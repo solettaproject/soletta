@@ -36,7 +36,7 @@
 #include <time.h>
 
 // Riot includes
-#include <sched.h>
+#include <riotos/sched.h>
 #include <vtimer.h>
 
 #include "sol-interrupt_scheduler_riot.h"
