@@ -398,12 +398,6 @@ endif
 
 endif
 
-if HAVE_PLATFORM_GALILEO
-src_shared_libshared_la_SOURCES += \
-src/shared/sol-galileo.c \
-src/shared/sol-galileo.h
-endif
-
 if HAVE_PLATFORM_RIOT
 src_shared_libshared_la_SOURCES += \
 src/shared/sol-gpio-riot.c \

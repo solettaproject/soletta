@@ -189,7 +189,7 @@ AM_CONDITIONAL([HAVE_GLIB], [test "${have_glib}" = "yes"])
 
 AC_ARG_WITH([platform],
         AS_HELP_STRING([--with-platform=IMPLEMENTATION],
-                       [enable integration with one of: galileo, systemd, riot, linux-micro or linux-dummy]),
+                       [enable integration with one of: systemd, riot, linux-micro or linux-dummy]),
         [],
         [with_platform="linux-dummy"])
 AC_MSG_CHECKING([platform to be used])
@@ -215,17 +215,10 @@ case "${with_platform}" in
         default_mainloop="riot"
         possible_mainloops="riot"
         ;;
-    galileo)
-        platform_linux="yes"
-        ;;
     *)
         AC_MSG_ERROR([unknown platform=${with_platform}])
         ;;
 esac
-
-AS_IF([test "$with_platform" = "galileo"],
-        [AC_DEFINE(HAVE_PLATFORM_GALILEO, 1, [Define if platform is galileo])])
-AM_CONDITIONAL([HAVE_PLATFORM_GALILEO], [test "$with_platform" = "galileo"])
 
 if test "${platform_linux}" = "yes"; then
     if test "${have_glib}" = "yes"; then
