@@ -51,9 +51,6 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 #include "sol-macros.h"
 #include "sol-util.h"
 
-#ifdef HAVE_PLATFORM_GALILEO
-#include "sol-galileo.h"
-#endif
 
 struct sol_i2c {
     int dev;
@@ -91,9 +88,6 @@ sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
     i2c->bus = bus;
     i2c->dev = dev;
 
-#ifdef HAVE_PLATFORM_GALILEO
-    i2c_setup();
-#endif
     return i2c;
 
 open_error:

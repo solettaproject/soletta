@@ -46,10 +46,6 @@
 #include "sol-pwm.h"
 #include "sol-util.h"
 
-#ifdef HAVE_PLATFORM_GALILEO
-#include "sol-galileo.h"
-#endif
-
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
 
 #define PWM_BASE "/sys/class/pwm"
@@ -232,11 +228,6 @@ _pwm_config(struct sol_pwm *pwm, const struct sol_pwm_config *config)
         fclose(pwm->period);
         return -EIO;
     }
-#ifdef HAVE_PLATFORM_GALILEO
-    else {
-        pwm_setup(pwm->channel);
-    }
-#endif
 
     if (config->period_ns != -1) {
         /* We'll assume that if we have an initial period, the most likely

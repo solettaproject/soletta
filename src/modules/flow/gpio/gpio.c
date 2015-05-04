@@ -37,10 +37,6 @@
 #include "sol-gpio.h"
 #include "sol-util.h"
 
-#ifdef HAVE_PLATFORM_GALILEO
-#include "sol-galileo.h"
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -103,10 +99,6 @@ gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
         SOL_WRN("could not open gpio #%" PRId32, opts->pin.val);
         return -EIO;
     }
-
-#ifdef HAVE_PLATFORM_GALILEO
-    gpio_setup(opts->pin.val, SOL_GPIO_DIR_IN);
-#endif
     return 0;
 }
 
@@ -143,10 +135,6 @@ gpio_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
         SOL_WRN("could not open gpio #%" PRId32, opts->pin.val);
         return -EIO;
     }
-
-#ifdef HAVE_PLATFORM_GALILEO
-    gpio_setup(opts->pin.val, SOL_GPIO_DIR_OUT);
-#endif
     return 0;
 }
 
