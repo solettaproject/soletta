@@ -418,6 +418,15 @@ else
     with_platform_name="auto"
 fi
 
+AC_ARG_WITH([pin-mux],
+	AS_HELP_STRING([--with-pin-mux], [Build pin multiplexer support]),
+        [],
+        [with_pin_mux="no"])
+
+AM_CONDITIONAL([BUILD_PIN_MUX], [test "x$with_pin_mux" != "xno"])
+
+AC_SUBST(pin_mux_builtins)
+
 AC_ARG_WITH([maximum-internal-log-level],
         AS_HELP_STRING([--with-maximum-internal-log-level=NUMBER],
                        [Specifies the maximum log level to be used in soletta library. This will remove all log messages greater than the given number from the final binary if it is compiled with optimizations. By default all log levels are allowed]))
@@ -519,8 +528,21 @@ general:
 sol-common:
         platform:                       ${with_platform}
         platform name:                  ${with_platform_name}
-        mainloop:                       ${with_mainloop}dnl
+        mainloop:                       ${with_mainloop}
+        pin mux:                        ${with_pin_mux}dnl
 ])
+
+if test -n "${pin_mux_modules}"; then
+   AC_MSG_RESULT([dnl
+        pin mux modules:               ${pin_mux_modules}dnl
+])
+fi
+
+if test -n "${pin_mux_builtins}"; then
+   AC_MSG_RESULT([dnl
+        pin mux builtins:              ${pin_mux_builtins}dnl
+])
+fi
 
 if test "${with_platform}" = "linux-micro"; then
    AC_MSG_RESULT([dnl
