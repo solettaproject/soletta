@@ -492,7 +492,7 @@ def generate_code_head(outfile, data):
 %(float_h)s
 """ % {
     "input": data["input"],
-    "header": data["header"],
+    "header": os.path.basename(data["header"]),
     "NAME_C": data["NAME_C"],
     "float_h": uses_float(data),
 })
