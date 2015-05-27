@@ -60,6 +60,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src/modules/flow/oic \
 	-I$(top_builddir)/src/modules/flow/piezo-speaker \
 	-I$(top_builddir)/src/modules/flow/platform \
+	-I$(top_builddir)/src/modules/flow/process \
 	-I$(top_builddir)/src/modules/flow/pwm \
 	-I$(top_builddir)/src/modules/flow/random \
 	-I$(top_builddir)/src/modules/flow/servo-motor \

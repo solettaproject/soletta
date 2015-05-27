@@ -354,6 +354,7 @@ SOL_FLOW_MODULE([gtk], [${platform_linux}], [CHECK_FLOW_GTK])
 SOL_FLOW_MODULE([file], [${have_pthread}])
 SOL_FLOW_MODULE([evdev], [${platform_linux}])
 SOL_FLOW_MODULE([unix-socket], [${platform_linux}])
+SOL_FLOW_MODULE([process], [${platform_linux}])
 
 
 SOL_FLOW_MODULE([constant], [builtin])
