@@ -33,37 +33,17 @@
 #pragma once
 
 #include "sol-platform.h"
-#include "sol-platform-linux.h"
 #include <stdbool.h>
-#include <unistd.h>
+#include <stdint.h>
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct sol_platform_linux_micro_module {
-    unsigned long int api_version;
-#define SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION (1UL)
-    const char *name;
-    int (*init)(const struct sol_platform_linux_micro_module *module, const char *service);
-    void (*shutdown)(const struct sol_platform_linux_micro_module *module, const char *service);
-    int (*start)(const struct sol_platform_linux_micro_module *module, const char *service);
-    int (*stop)(const struct sol_platform_linux_micro_module *module, const char *service, bool force_immediate);
-    int (*restart)(const struct sol_platform_linux_micro_module *module, const char *service);
-    int (*start_monitor)(const struct sol_platform_linux_micro_module *module, const char *service);
-    int (*stop_monitor)(const struct sol_platform_linux_micro_module *module, const char *service);
-};
-
-void sol_platform_linux_micro_inform_service_state(const char *service, enum sol_platform_service_state state);
-
-#ifdef SOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL
-#define SOL_PLATFORM_LINUX_MICRO_MODULE(_NAME, decl ...)                  \
-    SOL_API const struct sol_platform_linux_micro_module *SOL_PLATFORM_LINUX_MICRO_MODULE = &((const struct sol_platform_linux_micro_module){.api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, decl })
-#else
-#define SOL_PLATFORM_LINUX_MICRO_MODULE(_NAME, decl ...)                    \
-    const struct sol_platform_linux_micro_module SOL_PLATFORM_LINUX_MICRO_MODULE_ ## _NAME = { .api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, decl }
-#endif
+struct sol_platform_linux_fork_run *sol_platform_linux_fork_run(void (*on_fork)(void *data), void (*on_child_exit)(void *data, uint64_t pid, int status), const void *data);
+void sol_platform_linux_fork_run_stop(struct sol_platform_linux_fork_run *handle);
+pid_t sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_fork_run *handle);
 
 #ifdef __cplusplus
 }
