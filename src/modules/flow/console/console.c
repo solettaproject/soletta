@@ -34,6 +34,7 @@
 #include "sol-flow-internal.h"
 #include "sol-types.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -101,6 +102,29 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         fprintf(mdata->fp, "%s%s (string)%s\n",
             mdata->prefix ? mdata->prefix : "",
             val,
+            mdata->suffix ? mdata->suffix : "");
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BLOB) {
+        struct sol_blob *val;
+        const char *buf, *bufend;
+
+        int r = sol_flow_packet_get_blob(packet, &val);
+        SOL_INT_CHECK(r, < 0, r);
+        fprintf(mdata->fp, "%stype=%p, parent=%p, size=%zd, refcnt=%hu, mem=%p {",
+            mdata->prefix ? mdata->prefix : "",
+            val->type, val->parent, val->size, val->refcnt, val->mem);
+
+        buf = val->mem;
+        bufend = buf + val->size;
+        for (; buf < bufend; buf++) {
+            if (isprint(*buf))
+                fprintf(mdata->fp, "%#x(%c)", *buf, *buf);
+            else
+                fprintf(mdata->fp, "%#x", *buf);
+            if (buf + 1 < bufend)
+                fputs(", ", mdata->fp);
+        }
+
+        fprintf(mdata->fp, "} (blob)%s\n",
             mdata->suffix ? mdata->suffix : "");
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_ERROR) {
         int code;
