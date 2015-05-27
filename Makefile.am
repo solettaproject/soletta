@@ -238,7 +238,10 @@ src/shared/libshared.la \
 
 if HAVE_PLATFORM_LINUX
 src_lib_libsoletta_la_SOURCES += \
-src/lib/common/sol-socket-linux.c
+src/lib/common/sol-socket-linux.c \
+src/lib/common/sol-platform-linux-common.c
+pkginclude_HEADERS += \
+src/lib/common/sol-platform-linux.h
 endif
 
 if HAVE_MAINLOOP_GLIB
