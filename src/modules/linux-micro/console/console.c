@@ -53,7 +53,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-console");
 #include "sol-vector.h"
 
 struct instance {
-    struct sol_platform_linux_micro_fork_run *fork_run;
+    struct sol_platform_linux_fork_run *fork_run;
     struct sol_timeout *respawn_timeout;
     char tty[];
 };
@@ -315,7 +315,7 @@ load_kcmdline(void)
 static void
 console_spawn(struct instance *inst)
 {
-    inst->fork_run = sol_platform_linux_micro_fork_run(on_fork,
+    inst->fork_run = sol_platform_linux_fork_run(on_fork,
         on_fork_exit, inst);
 }
 
@@ -419,7 +419,7 @@ console_stop(const struct sol_platform_linux_micro_module *module, const char *s
 
     SOL_PTR_VECTOR_FOREACH_IDX (&instances, inst, i) {
         if (inst->fork_run) {
-            sol_platform_linux_micro_fork_run_stop(inst->fork_run);
+            sol_platform_linux_fork_run_stop(inst->fork_run);
             inst->fork_run = NULL;
         }
 
