@@ -47,5 +47,12 @@ int process_stdin_out_disconnect(struct sol_flow_node *node, void *data, uint16_
 int process_stdin_closed_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
 int process_stdin_closed_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
 
+int process_stdout_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+int process_stdout_closed_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
+int process_stdout_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
+void process_stdout_close(struct sol_flow_node *node, void *data);
 
-
+int process_stderr_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+int process_stderr_closed_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
+int process_stderr_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
+void process_stderr_close(struct sol_flow_node *node, void *data);
