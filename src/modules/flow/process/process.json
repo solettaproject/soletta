@@ -31,6 +31,66 @@
         }
       ],
       "url": "http://devapp.org/doc/latest/node_types/process_stdin.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "Current Process STDOUT",
+      "name": "process/stdout",
+      "methods": {
+        "close": "process_stdout_close",
+        "open": "process_stdout_open"
+      },
+      "in_ports": [
+        {
+          "data_type": "blob",
+          "description": "Binary data chunks (blobs) read. No extra processing is done, what arrived is written in stdout.",
+          "methods": {
+            "process": "process_stdout_in_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if STDOUT is closed",
+          "methods": {
+             "connect": "process_stdout_closed_connect"
+          },
+          "name": "CLOSED"
+        }
+      ],
+      "url": "http://devapp.org/doc/latest/node_types/process_stdout.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "Current Process STDERR",
+      "name": "process/stderr",
+      "methods": {
+        "close": "process_stderr_close",
+        "open": "process_stderr_open"
+      },
+      "in_ports": [
+        {
+          "data_type": "blob",
+          "description": "Binary data chunks (blobs) read. No extra processing is done, what arrived is written in stderr.",
+          "methods": {
+            "process": "process_stderr_in_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if STDERR is closed",
+          "methods": {
+             "connect": "process_stderr_closed_connect"
+	  },
+          "name": "CLOSED"
+        }
+      ],
+      "url": "http://devapp.org/doc/latest/node_types/process_stderr.html"
     }
   ]
 }
