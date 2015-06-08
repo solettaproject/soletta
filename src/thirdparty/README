@@ -1,0 +1,9 @@
+Thirdparty
+----------
+
+- Duktape
+      - Site/Repository: http://duktape.org / https://github.com/svaarala/duktape
+      - Version: 1.2.2
+      - Duktape is an embeddable Javascript engine, with focus on
+        portabillity and compact footprint. This is used in order
+        to create JS node types in flow.

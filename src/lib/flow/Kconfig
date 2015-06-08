@@ -2,6 +2,11 @@ config FLOW
 	bool "Flow support"
 	default y
 
+config JAVASCRIPT
+	bool "Javascript support"
+	depends on FLOW
+	default y
+
 config NODE_DESCRIPTION
 	bool "Node description support"
 	depends on FLOW
