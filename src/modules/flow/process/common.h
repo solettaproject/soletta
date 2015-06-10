@@ -40,6 +40,24 @@ extern struct sol_log_domain _log_domain;
 #include "sol-mainloop.h"
 #include "sol-flow-internal.h"
 
+struct subprocess_data {
+    pid_t pid;
+    struct {
+        int stdin[2];
+        int stdout[2];
+        int stderr[2];
+    } pipes;
+    struct {
+        struct sol_fd *stdin;
+        struct sol_fd *stdout;
+        struct sol_fd *stderr;
+    } watches;
+    struct sol_vector write_data;
+    struct sol_flow_node *node;
+    struct sol_platform_linux_fork_run *fork_run;
+    char *command;
+};
+
 void process_log_init(void);
 
 int process_stdin_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
@@ -56,3 +74,10 @@ int process_stderr_in_process(struct sol_flow_node *node, void *data, uint16_t p
 int process_stderr_closed_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
 int process_stderr_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
 void process_stderr_close(struct sol_flow_node *node, void *data);
+
+int process_subprocess_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+int process_subprocess_start_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+int process_subprocess_stop_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+int process_subprocess_signal_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+int process_subprocess_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
+void process_subprocess_close(struct sol_flow_node *node, void *data);
