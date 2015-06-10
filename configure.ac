@@ -425,6 +425,8 @@ AC_ARG_WITH([pin-mux],
 
 AM_CONDITIONAL([BUILD_PIN_MUX], [test "x$with_pin_mux" != "xno"])
 
+SOL_PIN_MUX_MODULE([intel-galileo-rev-g], [no], [Add Intel Galileo 2 pin mux support])
+
 AC_SUBST(pin_mux_builtins)
 
 AC_ARG_WITH([maximum-internal-log-level],
