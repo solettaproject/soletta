@@ -91,6 +91,89 @@
         }
       ],
       "url": "http://devapp.org/doc/latest/node_types/process_stderr.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "Spawn and monitor a subprocess",
+      "methods": {
+        "close": "process_subprocess_close",
+        "open": "process_subprocess_open"
+      },
+      "private_data_type": "subprocess_data",
+      "name": "process/subprocess",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The command that will be executed",
+            "name": "command"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Select if the process should automatically start (true) or should start only after a packet come into the START port",
+            "name": "start"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Start the child process",
+          "methods": {
+            "process": "process_subprocess_start_process"
+          },
+          "name": "START"
+        },
+        {
+          "data_type": "any",
+          "description": "Stop the child process sending SIGTERM",
+          "methods": {
+            "process": "process_subprocess_stop_process"
+          },
+          "name": "STOP"
+        },
+        {
+          "data_type": "int",
+          "description": "Send the specified signal to the child process",
+          "methods": {
+            "process": "process_subprocess_signal_process"
+          },
+          "name": "SIGNAL"
+        },
+        {
+          "data_type": "blob",
+          "description": "Data chunk that will be passed to the subprocess's stdin.",
+          "methods": {
+            "process": "process_subprocess_in_process"
+          },
+          "name": "STDIN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "It will delivery a packet when the child process stops or terminates containing its exit code, similar to waitpid(2).",
+          "name": "STATUS"
+        },
+        {
+          "data_type": "blob",
+          "description": "Binary data chunks (blobs) read. This is not buffered and no extra processing is done, you get what arrived from subprocess's stdout, as it arrived.",
+          "name": "STDOUT"
+        },
+        {
+          "data_type": "blob",
+          "description": "Binary data chunks (blobs) read. This is not buffered and no extra processing is done, you get what arrived from subprocess's stderr, as it arrived.",
+          "name": "STDERR"
+        },
+        {
+          "data_type": "int",
+          "description": "Send the pid of the child process.",
+          "name": "PID"
+        }
+      ],
+      "url": "http://devapp.org/doc/latest/node_types/process_subprocess.html"
     }
   ]
 }
