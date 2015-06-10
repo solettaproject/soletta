@@ -59,14 +59,16 @@ struct sol_i2c {
     int dev;
     uint8_t bus;
     uint8_t addr;
+    bool plain_i2c;
 };
 
 struct sol_i2c *
 sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
 {
-    struct sol_i2c *i2c;
-    char i2c_dev_path[PATH_MAX];
     int len, dev;
+    struct sol_i2c *i2c;
+    unsigned long funcs;
+    char i2c_dev_path[PATH_MAX];
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
@@ -90,6 +92,12 @@ sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
     }
     i2c->bus = bus;
     i2c->dev = dev;
+
+    /* check if the given I2C adapter supports plain-i2c messages */
+    if (ioctl(i2c->dev, I2C_FUNCS, &funcs) < 0)
+        goto open_error;
+
+    i2c->plain_i2c = (funcs & I2C_FUNC_I2C);
 
 #ifdef HAVE_PLATFORM_GALILEO
     i2c_setup();
@@ -272,6 +280,106 @@ sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t command, uint8_t *value
 }
 
 bool
+sol_i2c_plain_read_register(const struct sol_i2c *i2c,
+    uint8_t command,
+    uint8_t *values,
+    size_t count)
+{
+    struct i2c_msg msgs[] = {
+        {
+            addr  : i2c->addr,
+            flags : 0,
+            len   : 1,
+            buf   : (typeof(msgs->buf)) & command
+        },
+        {
+            addr  : i2c->addr,
+            flags : I2C_M_RD,
+            len   : count,
+            buf   : (typeof(msgs->buf))values,
+        }
+    };
+    struct i2c_rdwr_ioctl_data i2c_data = {
+        msgs : msgs,
+        nmsgs : 2
+    };
+
+    SOL_NULL_CHECK(i2c, false);
+    if (!i2c->plain_i2c) {
+        SOL_WRN("Unable to read I2C data (bus = %u, device address = 0x%x, "
+            "register = 0x%x): the bus/adapter does not support"
+            " plain-I2C commands (only SMBus ones)",
+            i2c->bus, i2c->addr, command);
+        return false;
+    }
+
+    if (ioctl(i2c->dev, I2C_RDWR, &i2c_data) < 0) {
+        SOL_WRN("Unable to perform I2C read/write (bus = %u,"
+            " device address = 0x%x, register = 0x%x): %s",
+            i2c->bus, i2c->addr, command, sol_util_strerrora(errno));
+        return false;
+    }
+
+    return true;
+}
+
+bool
+sol_i2c_plain_read_register_multiple(const struct sol_i2c *i2c,
+    uint8_t command,
+    uint8_t *values,
+    uint8_t len,
+    uint8_t count)
+{
+#ifdef I2C_RDRW_IOCTL_MAX_MSGS
+    const uint8_t max_count = I2C_RDRW_IOCTL_MAX_MSGS / 2;
+#else
+    const uint8_t max_count = 8;
+#endif
+
+    SOL_NULL_CHECK(i2c, false);
+    if (!i2c->plain_i2c) {
+        SOL_WRN("Unable to read I2C data (bus = %u, device address = 0x%x, "
+            "register = 0x%x): the bus/adapter does not support"
+            " plain-I2C commands (only SMBus ones)",
+            i2c->bus, i2c->addr, command);
+        return false;
+    }
+
+    while (count > 0) {
+        uint8_t n = count > max_count ? max_count : count;
+        struct i2c_msg msgs[2 * n];
+        struct i2c_rdwr_ioctl_data i2c_data = {
+            msgs : msgs,
+            nmsgs : (typeof(i2c_data.nmsgs))(2 * n)
+        };
+
+        for (uint8_t i = 0; i < n; i++) {
+            msgs[i * 2].addr = i2c->addr;
+            msgs[i * 2].flags = 0;
+            msgs[i * 2].len = 1;
+            msgs[i * 2].buf = (typeof(msgs->buf)) & command;
+            msgs[i * 2 + 1].addr = i2c->addr;
+            msgs[i * 2 + 1].flags = I2C_M_RD;
+            msgs[i * 2 + 1].len = len;
+            msgs[i * 2 + 1].buf = (typeof(msgs->buf))values;
+            values += len;
+        }
+        ;
+
+        if (ioctl(i2c->dev, I2C_RDWR, &i2c_data) == -1) {
+            SOL_WRN("Unable to perform I2C read/write (bus = %u,"
+                " device address = 0x%x, register = 0x%x): %s",
+                i2c->bus, i2c->addr, command, sol_util_strerrora(errno));
+            return false;
+        }
+
+        count -= n;
+    }
+
+    return true;
+}
+
+bool
 sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t command, const uint8_t *values, size_t count)
 {
     int32_t error;
@@ -321,6 +429,7 @@ sol_i2c_set_slave_address(struct sol_i2c *i2c, uint8_t slave_address)
         return false;
     }
     i2c->addr = slave_address;
+
     return true;
 }
 
