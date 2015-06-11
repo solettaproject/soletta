@@ -69,12 +69,14 @@ struct sol_fbp_conn {
 
     int src, dst;
     struct sol_str_slice src_port, dst_port;
+    int src_port_idx, dst_port_idx;
 };
 
 struct sol_fbp_exported_port {
     struct sol_fbp_position position;
 
     int node;
+    int port_idx;
     struct sol_str_slice port, exported_name;
 };
 
@@ -124,20 +126,20 @@ int sol_fbp_graph_add_meta(struct sol_fbp_graph *g,
 /* May return -EEXIST to indicate duplicate entries. */
 
 int sol_fbp_graph_add_conn(struct sol_fbp_graph *g,
-    int src, struct sol_str_slice src_port,
-    int dst, struct sol_str_slice dst_port,
+    int src, struct sol_str_slice src_port, int src_port_idx,
+    int dst, struct sol_str_slice dst_port, int dst_port_idx,
     struct sol_fbp_position position);
 
 /* Return -EEXIST if exported port with same name exists, and
  * -EADDRINUSE if the same node/port is already exported. */
 int sol_fbp_graph_add_exported_in_port(struct sol_fbp_graph *g,
-    int node, struct sol_str_slice port, struct sol_str_slice exported_name,
+    int node, struct sol_str_slice port, int port_idx, struct sol_str_slice exported_name,
     struct sol_fbp_position position, struct sol_fbp_exported_port **out_ep);
 
 /* Return -EEXIST if exported port with same name exists, and
  * -EADDRINUSE if the same node/port is already exported. */
 int sol_fbp_graph_add_exported_out_port(struct sol_fbp_graph *g,
-    int node, struct sol_str_slice port, struct sol_str_slice exported_name,
+    int node, struct sol_str_slice port, int port_idx, struct sol_str_slice exported_name,
     struct sol_fbp_position position, struct sol_fbp_exported_port **out_ep);
 
 int sol_fbp_graph_declare(struct sol_fbp_graph *g,

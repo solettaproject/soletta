@@ -125,7 +125,7 @@ set_parse_error(struct sol_fbp_parser *p, const char *fmt, ...)
 
 static bool
 parse_exported_port(struct sol_fbp_parser *p,
-    struct sol_str_slice *node, struct sol_str_slice *port,
+    struct sol_str_slice *node, struct sol_str_slice *port, int *port_idx,
     struct sol_str_slice *exported_port)
 {
     if (next_token(p) != SOL_FBP_TOKEN_EQUAL)
@@ -143,6 +143,24 @@ parse_exported_port(struct sol_fbp_parser *p,
         return set_parse_error(p, "Expected port identifier in export port statement");
 
     *port = get_token_slice(p);
+
+    if (peek_token(p) == SOL_FBP_TOKEN_BRACKET_OPEN) {
+        struct sol_str_slice idx;
+
+        /* consume '[' */
+        next_token(p);
+
+        if (next_token(p) != SOL_FBP_TOKEN_INTEGER)
+            return set_parse_error(p, "Expected integer number for port index");
+
+        idx = get_token_slice(p);
+
+        if (next_token(p) != SOL_FBP_TOKEN_BRACKET_CLOSE) {
+            return set_parse_error(p, "Expected ']' after port index");
+        }
+
+        sol_str_slice_to_int(idx, port_idx);
+    }
 
     if (next_token(p) != SOL_FBP_TOKEN_COLON)
         return set_parse_error(p, "Expected ':' after port identifier in export port statement");
@@ -232,11 +250,11 @@ parse_inport_stmt(struct sol_fbp_parser *p)
     struct sol_fbp_position node_position;
     struct sol_fbp_node *err_node;
     struct sol_fbp_exported_port *ep;
-    int node_idx;
+    int node_idx, port_idx = -1;
     int err;
 
     assert(next_token(p) == SOL_FBP_TOKEN_INPORT_KEYWORD);
-    if (!parse_exported_port(p, &node, &port, &exported_port))
+    if (!parse_exported_port(p, &node, &port, &port_idx, &exported_port))
         return false;
 
     node_position = get_token_position(&p->current_token);
@@ -247,7 +265,7 @@ parse_inport_stmt(struct sol_fbp_parser *p)
 
     sol_fbp_graph_add_in_port(p->graph, node_idx, port, get_token_position(&p->current_token));
 
-    err = sol_fbp_graph_add_exported_in_port(p->graph, node_idx, port, exported_port, get_token_position(&p->current_token), &ep);
+    err = sol_fbp_graph_add_exported_in_port(p->graph, node_idx, port, port_idx, exported_port, get_token_position(&p->current_token), &ep);
     if (err == -EEXIST) {
         return set_parse_error(p,
             "Exported input port with name '%.*s' already declared in %d:%d",
@@ -271,11 +289,11 @@ parse_outport_stmt(struct sol_fbp_parser *p)
     struct sol_fbp_position node_position;
     struct sol_fbp_node *err_node;
     struct sol_fbp_exported_port *ep;
-    int node_idx;
+    int node_idx, port_idx = -1;
     int err;
 
     assert(next_token(p) == SOL_FBP_TOKEN_OUTPORT_KEYWORD);
-    if (!parse_exported_port(p, &node, &port, &exported_port))
+    if (!parse_exported_port(p, &node, &port, &port_idx, &exported_port))
         return false;
 
     node_position = get_token_position(&p->current_token);
@@ -286,7 +304,7 @@ parse_outport_stmt(struct sol_fbp_parser *p)
 
     sol_fbp_graph_add_out_port(p->graph, node_idx, port, get_token_position(&p->current_token));
 
-    err = sol_fbp_graph_add_exported_out_port(p->graph, node_idx, port, exported_port, get_token_position(&p->current_token), &ep);
+    err = sol_fbp_graph_add_exported_out_port(p->graph, node_idx, port, port_idx, exported_port, get_token_position(&p->current_token), &ep);
     if (err == -EEXIST) {
         return set_parse_error(p,
             "Exported output port with name '%.*s' already declared in %d:%d",
@@ -446,14 +464,34 @@ end:
 }
 
 static bool
-parse_port(struct sol_fbp_parser *p, struct sol_str_slice *name)
+parse_port(struct sol_fbp_parser *p, struct sol_str_slice *name, int *port_idx)
 {
+    struct sol_str_slice idx;
+
     if (next_token(p) != SOL_FBP_TOKEN_IDENTIFIER) {
         return set_parse_error(p, "Expected port identifier."
             " e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'");
     }
 
     *name = get_token_slice(p);
+
+    if (peek_token(p) != SOL_FBP_TOKEN_BRACKET_OPEN)
+        return true;
+
+    next_token(p);
+
+    if (next_token(p) != SOL_FBP_TOKEN_INTEGER) {
+        return set_parse_error(p, "Expected integer number for port index");
+    }
+
+    idx = get_token_slice(p);
+
+    if (next_token(p) != SOL_FBP_TOKEN_BRACKET_CLOSE) {
+        return set_parse_error(p, "Expected ']' after port index");
+    }
+
+    sol_str_slice_to_int(idx, port_idx);
+
     return true;
 }
 
@@ -476,7 +514,8 @@ parse_conn_stmt(struct sol_fbp_parser *p)
     }
 
     while (peek_token(p) == SOL_FBP_TOKEN_IDENTIFIER) {
-        if (!parse_port(p, &src_port_name))
+        int src_port_idx = -1, dst_port_idx = -1;
+        if (!parse_port(p, &src_port_name, &src_port_idx))
             return false;
 
         conn_position = get_token_position(&p->current_token);
@@ -498,7 +537,7 @@ parse_conn_stmt(struct sol_fbp_parser *p)
                 " e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'");
         }
 
-        if (!parse_port(p, &dst_port_name))
+        if (!parse_port(p, &dst_port_name, &dst_port_idx))
             return false;
 
         in_port_position = get_token_position(&p->current_token);
@@ -513,7 +552,7 @@ parse_conn_stmt(struct sol_fbp_parser *p)
 
         sol_fbp_graph_add_in_port(p->graph, dst, dst_port_name, in_port_position);
 
-        r = sol_fbp_graph_add_conn(p->graph, src, src_port_name, dst, dst_port_name, conn_position);
+        r = sol_fbp_graph_add_conn(p->graph, src, src_port_name, src_port_idx, dst, dst_port_name, dst_port_idx, conn_position);
         if (r < 0)
             return handle_conn_error(p, src, &src_port_name, dst, &dst_port_name, &conn_position, r);
 
