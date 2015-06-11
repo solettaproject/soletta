@@ -1,0 +1,53 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# This is a sample where you have the attendee (that will call the next in line)
+# and two different lines, common and preferential (that has higher priority).
+#
+# Everytime the a line button is pressed (common or preferential) it generates
+# a new number to be called, preferential numbers are 1-99 and common are 101-999.
+#
+# In order to do so we created our custom JS node type, MyAttendee from attendee.js
+# file.
+
+DECLARE=MyAttendee:js:attendee.js
+
+_(constant/int:value=999) OUT -> IN[0] common_eq(int/equal)
+_(constant/int:value=99) OUT -> IN[0] preferential_eq(int/equal)
+
+common_btn(gtk/pushbutton) OUT -> IN _(boolean/filter) TRUE -> INC common_acc(int/accumulator:setup_value=val:100|min:100|max:999|step:1)
+common_acc OUT -> IN[1] common_eq OUT -> IN _(boolean/filter) TRUE -> INC common_acc
+common_acc OUT -> IN _(int/filter:min=101) OUT -> IN_COMMON attendee(MyAttendee) OUT_COMMON -> IN common_out(gtk/label)
+
+preferential_btn(gtk/pushbutton) OUT -> IN _(boolean/filter) TRUE -> INC preferential_acc(int/accumulator:setup_value=val:0|min:0|max:99|step:1)
+preferential_acc OUT -> IN[1] preferential_eq OUT -> IN _(boolean/filter) TRUE -> INC preferential_acc
+preferential_acc OUT -> IN _(int/filter:min=1) OUT -> IN_PREFERENTIAL attendee OUT_PREFERENTIAL -> IN preferential_out(gtk/label)
+
+attendee_btn(gtk/pushbutton) OUT -> IN _(boolean/filter) TRUE -> IN_ATTENDEE attendee OUT_ATTENDEE -> IN attendee_out(gtk/label)
