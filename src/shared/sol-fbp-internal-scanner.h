@@ -41,6 +41,8 @@
 #define SOL_FBP_TOKEN_LIST(X)                           \
     X(NONE)                                            \
     X(ARROW)                                           \
+    X(BRACKET_CLOSE)                                   \
+    X(BRACKET_OPEN)                                    \
     X(COLON)                                           \
     X(COMMA)                                           \
     X(DOT)                                             \
@@ -49,6 +51,7 @@
     X(EQUAL)                                           \
     X(IDENTIFIER)                                      \
     X(INPORT_KEYWORD)                                  \
+    X(INTEGER)                                         \
     X(OUTPORT_KEYWORD)                                 \
     X(PAREN_CLOSE)                                     \
     X(PAREN_OPEN)                                      \

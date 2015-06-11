@@ -409,6 +409,23 @@ static struct test_entry scan_tests[] = {
             SOL_FBP_TOKEN_EOF,
         },
     },
+    { /* Connection with array ports */
+        "a OUT[1] -> IN[0] b",
+        TOKENS {
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_BRACKET_OPEN,
+            SOL_FBP_TOKEN_INTEGER,
+            SOL_FBP_TOKEN_BRACKET_CLOSE,
+            SOL_FBP_TOKEN_ARROW,
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_BRACKET_OPEN,
+            SOL_FBP_TOKEN_INTEGER,
+            SOL_FBP_TOKEN_BRACKET_CLOSE,
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_EOF,
+        },
+    },
 };
 
 #define TOKEN_NAME(T) #T,
@@ -471,6 +488,9 @@ scan_errors(void)
         SOL_STR_SLICE_LITERAL("DECLARE=A"),
         SOL_STR_SLICE_LITERAL("DECLARE=A:B"),
         SOL_STR_SLICE_LITERAL("DECLARE=A:B:C:"),
+        SOL_STR_SLICE_LITERAL("PORT["),
+        SOL_STR_SLICE_LITERAL("PORT]"),
+        SOL_STR_SLICE_LITERAL("PORT[NaN]"),
     };
 
     for (i = 0; i < ARRAY_SIZE(tests); i++) {
