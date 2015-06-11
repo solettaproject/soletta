@@ -39,6 +39,7 @@
 #include <unistd.h>
 
 #include "sol-util.h"
+#include "sol-str-slice.h"
 
 #define CHUNK_SIZE 4096
 
@@ -259,4 +260,56 @@ sol_util_strerror(int errnum, char *buf, size_t buflen)
         ret = buf;
 
     return ret;
+}
+
+struct sol_vector
+sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit)
+{
+    struct sol_vector v = SOL_VECTOR_INIT(struct sol_str_slice);
+    ssize_t dlen, len;
+    const char *str = slice.data;
+
+    if (!slice.len || !delim || !maxsplit)
+        return v;
+
+    dlen = strlen(delim);
+    len = slice.len;
+
+#define CREATE_SLICE(_str, _len)      \
+    do {                              \
+        s = sol_vector_append(&v);    \
+        if (!s)                       \
+            goto err;                 \
+        s->data = _str;               \
+        s->len = _len;                \
+    } while (0)
+
+    while (str && (v.len < maxsplit) && (len > 0)) {
+        struct sol_str_slice *s;
+        char *token = memmem(str, len, delim, dlen);
+        if (!token) {
+            break;
+        }
+
+        if (token == str) {
+            str += dlen;
+            continue;
+        }
+
+        if (len < token - str) {
+            CREATE_SLICE(str, len);
+            break;
+        }
+
+        len -= (token - str);
+        CREATE_SLICE(str, token - str);
+        str = token;
+    }
+#undef CREATE_SLICE
+
+    return v;
+
+err:
+    sol_vector_clear(&v);
+    return v;
 }
