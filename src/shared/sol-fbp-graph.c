@@ -226,6 +226,8 @@ sol_fbp_graph_add_conn(struct sol_fbp_graph *g,
 
     SOL_VECTOR_FOREACH_IDX (&g->conns, conn, i) {
         if (conn->src == src && conn->dst == dst
+            && conn->src_port_idx == src_port_idx
+            && conn->dst_port_idx == dst_port_idx
             && sol_str_slice_eq(conn->src_port, src_port)
             && sol_str_slice_eq(conn->dst_port, dst_port))
             return -EEXIST;

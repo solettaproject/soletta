@@ -80,12 +80,12 @@ int sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const ch
  * description struct. If no description was declared,
  * sol_flow_builder_connect_by_index() should be used instead.
  */
-int sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name, const char *src_port_name, const char *dst_name, const char *dst_port_name);
+int sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name, const char *src_port_name, int src_port_idx, const char *dst_name, const char *dst_port_name, int dst_port_idx);
 
 int sol_flow_builder_connect_by_index(struct sol_flow_builder *builder, const char *src_name, uint16_t src_port_index, const char *dst_name, uint16_t dst_port_index);
 
-int sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *node_name, const char *port_name, const char *exported_name);
-int sol_flow_builder_export_out_port(struct sol_flow_builder *builder, const char *node_name, const char *port_name, const char *exported_name);
+int sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *node_name, const char *port_name, int port_idx, const char *exported_name);
+int sol_flow_builder_export_out_port(struct sol_flow_builder *builder, const char *node_name, const char *port_name, int port_idx, const char *exported_name);
 
 /* Returns the node type generated with the builder. It should be used
  * to create nodes with sol_flow_node_new(). After the type is

@@ -440,4 +440,39 @@ sol_flow_foreach_builtin_node_type(bool (*cb)(void *data, const struct sol_flow_
     }
 #endif
 }
+
+static const struct sol_flow_port_description *
+sol_flow_node_type_get_port_description(const struct sol_flow_port_description *const *ports, uint16_t port)
+{
+    const struct sol_flow_port_description *desc;
+    uint16_t next = 0;
+
+    for (desc = *ports; desc; desc++) {
+        next += desc->array_size ? : 1;
+        if (port < next)
+            return desc;
+    }
+
+    return NULL;
+}
+
+SOL_API const struct sol_flow_port_description *
+sol_flow_node_get_port_in_description(const struct sol_flow_node *node, uint16_t port)
+{
+    SOL_FLOW_NODE_CHECK(node, NULL);
+
+    SOL_NULL_CHECK(node->type->description, NULL);
+    SOL_NULL_CHECK(node->type->description->ports_in, NULL);
+    return sol_flow_node_type_get_port_description(node->type->description->ports_in, port);
+}
+
+SOL_API const struct sol_flow_port_description *
+sol_flow_node_get_port_out_description(const struct sol_flow_node *node, uint16_t port)
+{
+    SOL_FLOW_NODE_CHECK(node, NULL);
+
+    SOL_NULL_CHECK(node->type->description, NULL);
+    SOL_NULL_CHECK(node->type->description->ports_out, NULL);
+    return sol_flow_node_type_get_port_description(node->type->description->ports_out, port);
+}
 #endif

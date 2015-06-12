@@ -139,6 +139,7 @@ list_ports(FILE *fp, const struct sol_flow_port_description *const *ports)
 #undef OUT
 #undef STR
 
+        fprintf(fp, ", \"array_size\": %d\n", port->array_size);
         fprintf(fp,
             ", \"required\": %s\n"
             "}\n",

@@ -79,8 +79,8 @@ startup(void)
     sol_flow_builder_add_node(builder, "writer",
         _CUSTOM_NODE_TYPES_WRITER,
         &writer_opts.base);
-    sol_flow_builder_connect(builder, "reader", "OUT", "logic", "IN");
-    sol_flow_builder_connect(builder, "logic", "OUT", "writer", "IN");
+    sol_flow_builder_connect(builder, "reader", "OUT", 0, "logic", "IN", 0);
+    sol_flow_builder_connect(builder, "logic", "OUT", 0, "writer", "IN", 0);
 
     /* Also output to console using soletta's console node type.  If
      * console is builtin libsoletta, it is used, otherwise a module
@@ -90,8 +90,8 @@ startup(void)
      * sol_flow_builder_add_node().
      */
     sol_flow_builder_add_node_by_type(builder, "console", "console", NULL);
-    sol_flow_builder_connect(builder, "reader", "OUT", "console", "IN");
-    sol_flow_builder_connect(builder, "logic", "OUT", "console", "IN");
+    sol_flow_builder_connect(builder, "reader", "OUT", 0, "console", "IN", 0);
+    sol_flow_builder_connect(builder, "logic", "OUT", 0, "console", "IN", 0);
 
     /* this creates a static flow using the low-level API that will
      * actually run the flow. Note that its memory is bound to
