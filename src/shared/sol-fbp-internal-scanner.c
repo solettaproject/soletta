@@ -347,10 +347,90 @@ declare_state(struct sol_fbp_scanner *s)
     return declare_equal_state;
 }
 
+static void *
+option_end_state(struct sol_fbp_scanner *s)
+{
+    switch (peek(s)) {
+    case ',':
+    case ' ':
+    case '\n':
+    case '\r':
+    case '\t':
+    case '#':
+    case 0:
+        return default_state;
+
+    default:
+        next(s);
+        return error_state;
+    }
+}
+
+static void *
+option_name_state(struct sol_fbp_scanner *s)
+{
+    while (is_node_ident(peek(s)))
+        next(s);
+    set_token(s, SOL_FBP_TOKEN_IDENTIFIER);
+    return option_end_state;
+}
+
+static void *
+option_second_sep_state(struct sol_fbp_scanner *s)
+{
+    if (next(s) != ':')
+        return error_state;
+    set_token(s, SOL_FBP_TOKEN_COLON);
+    return option_name_state;
+}
+static void *
+option_node_option_state(struct sol_fbp_scanner *s)
+{
+    while (is_node_ident(peek(s)))
+        next(s);
+    set_token(s, SOL_FBP_TOKEN_IDENTIFIER);
+    return option_second_sep_state;
+}
+
+static void *
+option_first_sep_state(struct sol_fbp_scanner *s)
+{
+    if (next(s) != '.')
+        return error_state;
+    set_token(s, SOL_FBP_TOKEN_DOT);
+    return option_node_option_state;
+}
+
+static void *
+option_node_name_state(struct sol_fbp_scanner *s)
+{
+    while (is_node_ident(peek(s)))
+        next(s);
+    set_token(s, SOL_FBP_TOKEN_IDENTIFIER);
+    return option_first_sep_state;
+}
+
+static void *
+option_equal_state(struct sol_fbp_scanner *s)
+{
+    if (next(s) != '=')
+        return error_state;
+    set_token(s, SOL_FBP_TOKEN_EQUAL);
+    return option_node_name_state;
+}
+
+static void *
+option_state(struct sol_fbp_scanner *s)
+{
+    set_token(s, SOL_FBP_TOKEN_OPTION_KEYWORD);
+    return option_equal_state;
+}
+
 static const struct sol_str_table_ptr keyword_table[] = {
     SOL_STR_TABLE_PTR_ITEM("INPORT", inport_state),
     SOL_STR_TABLE_PTR_ITEM("OUTPORT", outport_state),
     SOL_STR_TABLE_PTR_ITEM("DECLARE", declare_state),
+    SOL_STR_TABLE_PTR_ITEM("OPTION", option_state),
     { }
 };
 

@@ -442,6 +442,19 @@ static struct test_entry scan_tests[] = {
             SOL_FBP_TOKEN_EOF,
         },
     },
+    { /* Export options in FBP files */
+        "OPTION=Subnode.option:MyOption",
+        TOKENS {
+            SOL_FBP_TOKEN_OPTION_KEYWORD,
+            SOL_FBP_TOKEN_EQUAL,
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_DOT,
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_COLON,
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_EOF,
+        },
+    },
 };
 
 #define TOKEN_NAME(T) #T,
@@ -507,6 +520,10 @@ scan_errors(void)
         SOL_STR_SLICE_LITERAL("PORT["),
         SOL_STR_SLICE_LITERAL("PORT]"),
         SOL_STR_SLICE_LITERAL("PORT[NaN]"),
+        SOL_STR_SLICE_LITERAL("OPTION=A"),
+        SOL_STR_SLICE_LITERAL("OPTION=A:B"),
+        SOL_STR_SLICE_LITERAL("OPTION=A.B"),
+        SOL_STR_SLICE_LITERAL("OPTION=A:B.C"),
     };
 
     for (i = 0; i < ARRAY_SIZE(tests); i++) {

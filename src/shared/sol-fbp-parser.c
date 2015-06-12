@@ -371,6 +371,60 @@ parse_declare_stmt(struct sol_fbp_parser *p)
 }
 
 static bool
+parse_option_stmt(struct sol_fbp_parser *p)
+{
+    struct sol_str_slice opt_name, node_name, node_opt, empty = SOL_STR_SLICE_EMPTY;
+    struct sol_fbp_node *err_node;
+    struct sol_fbp_position pos;
+    int node_idx, err;
+
+    assert(next_token(p) == SOL_FBP_TOKEN_OPTION_KEYWORD);
+
+    if (next_token(p) != SOL_FBP_TOKEN_EQUAL)
+        return set_parse_error(p, "Expected '=' after OPTION keyword");
+
+    if (next_token(p) != SOL_FBP_TOKEN_IDENTIFIER)
+        return set_parse_error(p, "Expected node name in option statement");
+
+    node_name = get_token_slice(p);
+    pos = get_token_position(&p->current_token);
+
+    if (next_token(p) != SOL_FBP_TOKEN_DOT)
+        return set_parse_error(p, "Expected '.' after node name in option statement");
+
+    if (next_token(p) != SOL_FBP_TOKEN_IDENTIFIER)
+        return set_parse_error(p, "Expected node option's original name in option statement");
+
+    node_opt = get_token_slice(p);
+
+    if (next_token(p) != SOL_FBP_TOKEN_COLON)
+        return set_parse_error(p, "Expected ':' after option name in option statement");
+
+    if (next_token(p) != SOL_FBP_TOKEN_IDENTIFIER)
+        return set_parse_error(p, "Expected exported option name in option statement");
+
+    opt_name = get_token_slice(p);
+
+    node_idx = sol_fbp_graph_add_node(p->graph, node_name, empty, pos, &err_node);
+    if (node_idx < 0)
+        return handle_node_error(p, &node_name, &pos, node_idx, err_node);
+
+    err = sol_fbp_graph_option(p->graph, node_idx, opt_name, node_opt, pos);
+    if (err == -EEXIST) {
+        p->error_pos = pos;
+        return set_parse_error(p, "Option '%.*s' already declared", SOL_STR_SLICE_PRINT(opt_name));
+    } else if (err == -EINVAL) {
+        p->error_pos = pos;
+        return set_parse_error(p, "Option '%.*s' with invalid values", SOL_STR_SLICE_PRINT(opt_name));
+    } else if (err < 0) {
+        p->error_pos = pos;
+        return set_parse_error(p, "Failed to parse option '%.*s'", SOL_STR_SLICE_PRINT(opt_name));
+    }
+
+    return true;
+}
+
+static bool
 parse_meta(struct sol_fbp_parser *p, int node)
 {
     struct sol_str_slice key, value;
@@ -579,6 +633,9 @@ parse_stmt(struct sol_fbp_parser *p)
 
     case SOL_FBP_TOKEN_DECLARE_KEYWORD:
         return parse_declare_stmt(p);
+
+    case SOL_FBP_TOKEN_OPTION_KEYWORD:
+        return parse_option_stmt(p);
 
     case SOL_FBP_TOKEN_IDENTIFIER:
         return parse_conn_stmt(p);

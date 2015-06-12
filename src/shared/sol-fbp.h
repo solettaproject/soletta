@@ -88,6 +88,14 @@ struct sol_fbp_declaration {
     struct sol_fbp_position position;
 };
 
+struct sol_fbp_option {
+    struct sol_str_slice name;
+    struct sol_str_slice node_option;
+    int node;
+
+    struct sol_fbp_position position;
+};
+
 struct sol_fbp_graph {
     struct sol_vector nodes;
     struct sol_vector conns;
@@ -95,6 +103,7 @@ struct sol_fbp_graph {
     struct sol_vector exported_in_ports;
     struct sol_vector exported_out_ports;
     struct sol_vector declarations;
+    struct sol_vector options;
 
     struct sol_arena *arena;
 };
@@ -144,6 +153,9 @@ int sol_fbp_graph_add_exported_out_port(struct sol_fbp_graph *g,
 
 int sol_fbp_graph_declare(struct sol_fbp_graph *g,
     struct sol_str_slice name, struct sol_str_slice kind, struct sol_str_slice contents, struct sol_fbp_position);
+
+int sol_fbp_graph_option(struct sol_fbp_graph *g,
+    int node, struct sol_str_slice name, struct sol_str_slice node_opt, struct sol_fbp_position position);
 
 /* Given an input string written using the "FBP file format" described
  * in https://github.com/noflo/fbp/blob/master/README.md, returns a
