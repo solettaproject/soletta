@@ -81,7 +81,7 @@
           "properties": {
             "name": {
               "type": "string",
-              "pattern": "^[A-Z][A-Z0-9_]*$"
+              "pattern": "^[A-Z][A-Z0-9_]*(\\[[0-9]+\\])?$"
             },
             "data_type": { "$ref": "#/definitions/port_data_type" },
             "methods": {
@@ -107,7 +107,7 @@
           "properties": {
             "name": {
               "type": "string",
-              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "pattern": "^[A-Z][A-Z0-9_]*(\\[[0-9]+\\])?$",
               "not": { "enum": [ "ERROR" ] }
             },
             "flags": { "enum": [ "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET" ] },

@@ -286,6 +286,11 @@ def packet_type_from_data_type(typename):
         return typename.split(':', 1)[1]
     return data_type_to_packet_type_map.get(typename, typename)
 
+def port_name_and_size(orig_name):
+    m = re.match(r"([A-Z0-9_]+)(?:\[([0-9]+)\])?", orig_name)
+    portname, size = m.groups('0')
+    return (portname, int(size))
+
 def str_to_c(string):
     return '"' + string.replace('"', '\\"') + '"'
 
@@ -464,14 +469,16 @@ struct %(name_c)s_options {
     if "in_ports" in data:
         outfile.write("\n/* Input Ports */\n")
         for i, o in enumerate(data["in_ports"]):
+            pname, psize = port_name_and_size(o["name"])
             outfile.write("#define %s__IN__%s (%d)\n" % (
-                data["NAME_C"], c_clean(o["name"]).upper(), i))
+                data["NAME_C"], c_clean(pname).upper(), i))
 
     if "out_ports" in data:
         outfile.write("\n/* Output Ports */\n")
         for i, o in enumerate(data["out_ports"]):
+            pname, psize = port_name_and_size(o["name"])
             outfile.write("#define %s__OUT__%s (%d)\n" % (
-                data["NAME_C"], c_clean(o["name"]).upper(), i))
+                data["NAME_C"], c_clean(pname).upper(), i))
 
 
 def generate_code_head(outfile, data):
@@ -568,7 +575,8 @@ def generate_code_entry(outfile, data):
         for o in data["in_ports"]:
             if "type" in o:
                 continue
-            type_c = "%s__in__%s" % (data["name_c"], c_clean(o["name"]))
+            pname, psize = port_name_and_size(o["name"])
+            type_c = "%s__in__%s" % (data["name_c"], c_clean(pname))
             in_ports_names.append(type_c)
             in_data_types.append(o.get("data_type", "empty"))
             port_methods = o.get("methods", {})
@@ -595,7 +603,8 @@ static struct sol_flow_port_type_in %(type_c)s = {
         for o in data["out_ports"]:
             if "type" in o:
                 continue
-            type_c = "%s__out__%s" % (data["name_c"], c_clean(o["name"]))
+            pname, psize = port_name_and_size(o["name"])
+            type_c = "%s__out__%s" % (data["name_c"], c_clean(pname))
             out_ports_names.append(type_c)
             out_data_types.append(o.get("data_type", "empty"))
             port_methods = o.get("methods", {})
@@ -804,6 +813,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
     .ports_in = (const struct sol_flow_port_description * const []){
 """)
         for o in data["in_ports"]:
+            pname, psize = port_name_and_size(o["name"])
             outfile.write("""\
             &((const struct sol_flow_port_description){
             .name = %(name)s,
@@ -812,7 +822,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
             .required=%(required)s,
         }),
 """ % {
-    "name": str_to_c(o["name"]),
+    "name": str_to_c(pname),
     "description": str_to_c(o.get("description")),
     "data_type": str_to_c_or_null(o.get("data_type")),
     "required": bool_to_c(o.get("required", False)),
@@ -827,6 +837,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
     .ports_out = (const struct sol_flow_port_description * const []){
 """)
         for o in data["out_ports"]:
+            pname, psize = port_name_and_size(o["name"])
             outfile.write("""\
         &((const struct sol_flow_port_description){
             .name = %(name)s,
@@ -835,7 +846,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
             .required=%(required)s,
         }),
 """ % {
-    "name": str_to_c(o["name"]),
+    "name": str_to_c(pname),
     "description": str_to_c_or_null(o.get("description")),
     "data_type": str_to_c_or_null(o.get("data_type")),
     "required": bool_to_c(o.get("required", False)),
