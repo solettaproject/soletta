@@ -47,6 +47,7 @@ sol_fbp_graph_init(struct sol_fbp_graph *g)
     sol_vector_init(&g->exported_in_ports, sizeof(struct sol_fbp_exported_port));
     sol_vector_init(&g->exported_out_ports, sizeof(struct sol_fbp_exported_port));
     sol_vector_init(&g->declarations, sizeof(struct sol_fbp_declaration));
+    sol_vector_init(&g->options, sizeof(struct sol_fbp_option));
     g->arena = sol_arena_new();
     return 0;
 }
@@ -70,6 +71,7 @@ sol_fbp_graph_fini(struct sol_fbp_graph *g)
     sol_vector_clear(&g->exported_in_ports);
     sol_vector_clear(&g->exported_out_ports);
     sol_vector_clear(&g->declarations);
+    sol_vector_clear(&g->options);
 
     sol_arena_del(g->arena);
 
@@ -344,5 +346,30 @@ sol_fbp_graph_declare(struct sol_fbp_graph *g,
     dec->kind = kind;
     dec->contents = contents;
     dec->position = position;
+    return i;
+}
+
+int
+sol_fbp_graph_option(struct sol_fbp_graph *g,
+    int node, struct sol_str_slice name, struct sol_str_slice node_opt, struct sol_fbp_position position)
+{
+    struct sol_fbp_option *opt;
+    uint16_t i;
+
+    if (name.len == 0 || node_opt.len == 0)
+        return -EINVAL;
+
+    SOL_VECTOR_FOREACH_IDX (&g->options, opt, i) {
+        if (sol_str_slice_eq(opt->name, name))
+            return -EEXIST;
+    }
+
+    opt = sol_vector_append(&g->options);
+    SOL_NULL_CHECK(opt, -errno);
+
+    opt->name = name;
+    opt->node = node;
+    opt->node_option = node_opt;
+    opt->position = position;
     return i;
 }
