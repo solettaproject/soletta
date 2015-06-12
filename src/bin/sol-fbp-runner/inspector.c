@@ -72,18 +72,24 @@ inspector_show_node_id(const struct sol_flow_node *node)
 }
 
 static void
+inspector_print_port_name(uint16_t port, const struct sol_flow_port_description *desc)
+{
+    if (desc->array_size == 0) {
+        fputs(desc->name, stdout);
+        return;
+    }
+    fprintf(stdout, "%s[%d]", desc->name, port - desc->base_port_idx);
+}
+
+static void
 inspector_show_in_port(const struct sol_flow_node *node, uint16_t port_idx)
 {
-    const struct sol_flow_node_type *type = sol_flow_node_get_type(node);
-    const struct sol_flow_node_type_description *desc;
+    const struct sol_flow_port_description *port;
 
-    if (!type)
-        return;
-    desc = type->description;
-    if (desc && desc->ports_in) {
-        const struct sol_flow_port_description *port = desc->ports_in[port_idx];
+    port = sol_flow_node_get_port_in_description(node, port_idx);
+    if (port) {
         if (port->name) {
-            fputs(port->name, stdout);
+            inspector_print_port_name(port_idx, port);
             if (port->data_type)
                 fprintf(stdout, "(%s)", port->data_type);
             return;
@@ -95,23 +101,17 @@ inspector_show_in_port(const struct sol_flow_node *node, uint16_t port_idx)
 static void
 inspector_show_out_port(const struct sol_flow_node *node, uint16_t port_idx)
 {
-    const struct sol_flow_node_type *type = sol_flow_node_get_type(node);
-    const struct sol_flow_node_type_description *desc;
+    const struct sol_flow_port_description *port;
 
-    if (!type)
+    if (port_idx == SOL_FLOW_NODE_PORT_ERROR) {
+        fputs(SOL_FLOW_NODE_PORT_ERROR_NAME, stdout);
         return;
-    desc = type->description;
-    if (desc && desc->ports_out) {
-        const struct sol_flow_port_description *port;
+    }
 
-        if (port_idx == SOL_FLOW_NODE_PORT_ERROR) {
-            fputs(SOL_FLOW_NODE_PORT_ERROR_NAME, stdout);
-            return;
-        }
-
-        port = desc->ports_out[port_idx];
+    port = sol_flow_node_get_port_out_description(node, port_idx);
+    if (port) {
         if (port->name) {
-            fputs(port->name, stdout);
+            inspector_print_port_name(port_idx, port);
             if (port->data_type)
                 fprintf(stdout, "(%s)", port->data_type);
             return;

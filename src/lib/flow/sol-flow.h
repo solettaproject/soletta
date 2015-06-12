@@ -224,6 +224,8 @@ struct sol_flow_port_description {
     const char *name; /**< port's name */
     const char *description; /**< port's description */
     const char *data_type; /**< textual representation of the port's accepted packet data type(s), e. g. "int" */
+    uint16_t array_size; /**< Size of array for array ports, or 0 for single ports */
+    uint16_t base_port_idx; /**< For array ports, the port number where the array begins */
     bool required; /**< whether at least one connection has to be made on this port in order to the node to function (Soletta does not check that at runtime, this is mostly a hint for visual editors that can output flows/code from visual representations of a flow) */
 };
 
@@ -338,6 +340,24 @@ const struct sol_flow_port_type_out *sol_flow_node_type_get_port_out(const struc
  *
  */
 void sol_flow_foreach_builtin_node_type(bool (*cb)(void *data, const struct sol_flow_node_type *type), const void *data);
+
+/**
+ * Get the port description associated with a given input port index.
+ *
+ * @param node The node the port belongs to
+ * @param port The port index
+ * @return The port description for the given port
+ */
+const struct sol_flow_port_description *sol_flow_node_get_port_in_description(const struct sol_flow_node *node, uint16_t port);
+
+/**
+ * Get the port description associated with a given output port index.
+ *
+ * @param node The node the port belongs to
+ * @param port The port index
+ * @return The port description for the given port
+ */
+const struct sol_flow_port_description *sol_flow_node_get_port_out_description(const struct sol_flow_node *node, uint16_t port);
 #endif
 
 /* When a node type is a container (i.e. may act as parent of other

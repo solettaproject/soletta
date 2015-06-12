@@ -192,8 +192,8 @@ handle_node_error(struct sol_fbp_parser *p, struct sol_str_slice *name, struct s
 
 static bool
 handle_conn_error(struct sol_fbp_parser *p,
-    int src, struct sol_str_slice *src_port_name,
-    int dst, struct sol_str_slice *dst_port_name,
+    int src, struct sol_str_slice *src_port_name, int src_port_idx,
+    int dst, struct sol_str_slice *dst_port_name, int dst_port_idx,
     struct sol_fbp_position *position, int error)
 {
     struct sol_fbp_conn *c;
@@ -206,11 +206,14 @@ handle_conn_error(struct sol_fbp_parser *p,
             if (c->src != src || c->dst != dst)
                 continue;
 
+            if (c->src_port_idx != src_port_idx || c->dst_port_idx != dst_port_idx)
+                continue;
+
             if (!sol_str_slice_eq(c->src_port, *src_port_name) || !sol_str_slice_eq(c->dst_port, *dst_port_name))
                 continue;
 
-            return set_parse_error(p, "Connection '%.*s -> %.*s' already declared at %d:%d",
-                (int)src_port_name->len, src_port_name->data, (int)dst_port_name->len, dst_port_name->data,
+            return set_parse_error(p, "Connection '%.*s[%d] -> %.*s[%d]' already declared at %d:%d",
+                (int)src_port_name->len, src_port_name->data, src_port_idx, (int)dst_port_name->len, dst_port_name->data, dst_port_idx,
                 c->position.line, c->position.column);
         }
     }
@@ -554,7 +557,7 @@ parse_conn_stmt(struct sol_fbp_parser *p)
 
         r = sol_fbp_graph_add_conn(p->graph, src, src_port_name, src_port_idx, dst, dst_port_name, dst_port_idx, conn_position);
         if (r < 0)
-            return handle_conn_error(p, src, &src_port_name, dst, &dst_port_name, &conn_position, r);
+            return handle_conn_error(p, src, &src_port_name, src_port_idx, dst, &dst_port_name, dst_port_idx, &conn_position, r);
 
         /* When parsing a chain of connections, the destination node
          * from previous will be the source node of the next. */

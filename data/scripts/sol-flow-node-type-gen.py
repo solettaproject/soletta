@@ -467,18 +467,34 @@ struct %(name_c)s_options {
 }""")
 
     if "in_ports" in data:
+        port_number_offset = 0
         outfile.write("\n/* Input Ports */\n")
         for i, o in enumerate(data["in_ports"]):
             pname, psize = port_name_and_size(o["name"])
             outfile.write("#define %s__IN__%s (%d)\n" % (
-                data["NAME_C"], c_clean(pname).upper(), i))
+                data["NAME_C"], c_clean(pname).upper(), i + port_number_offset))
+            for port_idx in range(psize):
+                outfile.write("#define %s__IN__%s_%d (%d)\n" % (
+                    data["NAME_C"], c_clean(pname).upper(),
+                    port_idx, i + port_number_offset))
+                port_number_offset += 1
+            else:
+                if psize > 0: port_number_offset -= 1
 
     if "out_ports" in data:
+        port_number_offset = 0
         outfile.write("\n/* Output Ports */\n")
         for i, o in enumerate(data["out_ports"]):
             pname, psize = port_name_and_size(o["name"])
             outfile.write("#define %s__OUT__%s (%d)\n" % (
-                data["NAME_C"], c_clean(pname).upper(), i))
+                data["NAME_C"], c_clean(pname).upper(), i + port_number_offset))
+            for port_idx in range(psize):
+                outfile.write("#define %s__OUT__%s_%d (%d)\n" % (
+                    data["NAME_C"], c_clean(pname).upper(),
+                    port_idx, i + port_number_offset))
+                port_number_offset += 1
+            else:
+                if psize > 0: port_number_offset -= 1
 
 
 def generate_code_head(outfile, data):
@@ -570,6 +586,8 @@ def generate_code_entry(outfile, data):
     init_type = None
 
     in_ports_names = []
+    in_ports_count = 0
+    in_ports_get_port = ""
     in_data_types = []
     if "in_ports" in data:
         for o in data["in_ports"]:
@@ -578,6 +596,15 @@ def generate_code_entry(outfile, data):
             pname, psize = port_name_and_size(o["name"])
             type_c = "%s__in__%s" % (data["name_c"], c_clean(pname))
             in_ports_names.append(type_c)
+            if psize == 0: psize = 1
+            in_ports_count += psize
+            in_ports_get_port += """\
+    if (port < %(port_limit)d)
+        return &%(port_name)s;
+""" % {
+    "port_limit": in_ports_count,
+    "port_name": type_c
+    }
             in_data_types.append(o.get("data_type", "empty"))
             port_methods = o.get("methods", {})
             connect = port_methods.get("connect", "NULL")
@@ -598,6 +625,8 @@ static struct sol_flow_port_type_in %(type_c)s = {
     })
 
     out_ports_names = []
+    out_ports_count = 0
+    out_ports_get_port = ""
     out_data_types = []
     if "out_ports" in data:
         for o in data["out_ports"]:
@@ -606,6 +635,15 @@ static struct sol_flow_port_type_in %(type_c)s = {
             pname, psize = port_name_and_size(o["name"])
             type_c = "%s__out__%s" % (data["name_c"], c_clean(pname))
             out_ports_names.append(type_c)
+            if psize == 0: psize = 1
+            out_ports_count += psize
+            out_ports_get_port += """\
+    if (port < %(port_limit)d)
+        return &%(port_name)s;
+""" % {
+    "port_limit": out_ports_count,
+    "port_name": type_c
+    }
             out_data_types.append(o.get("data_type", "empty"))
             port_methods = o.get("methods", {})
             connect = port_methods.get("connect", "NULL")
@@ -625,32 +663,30 @@ static struct sol_flow_port_type_out %(type_c)s = {
     })
 
     if in_ports_names:
-        outfile.write("static const struct sol_flow_port_type_in *%s_ports_in_internal[] = {\n" % data["name_c"])
-        for port in in_ports_names:
-            outfile.write("    &%s,\n" % port)
         outfile.write("""\
-};
-
 static const struct sol_flow_port_type_in *
 %(name_c)s_get_port_in_internal(const struct sol_flow_node_type *type, uint16_t port)
 {
-    return %(name_c)s_ports_in_internal[port];
+%(get_ports)s
+    return NULL; /* shouldn't happen, but compiler complains otherwise */
 }
-""" % {"name_c": data["name_c"]})
+""" % {
+    "name_c": data["name_c"],
+    "get_ports": in_ports_get_port
+    })
 
     if out_ports_names:
-        outfile.write("static const struct sol_flow_port_type_out *%s_ports_out_internal[] = {\n" % data["name_c"])
-        for port in out_ports_names:
-            outfile.write("    &%s,\n" % port)
         outfile.write("""\
-};
-
 static const struct sol_flow_port_type_out *
 %(name_c)s_get_port_out_internal(const struct sol_flow_node_type *type, uint16_t port)
 {
-    return %(name_c)s_ports_out_internal[port];
+%(get_ports)s
+    return NULL; /* shouldn't happen, but compiler complains otherwise */
 }
-"""  % {"name_c": data["name_c"]})
+""" % {
+    "name_c": data["name_c"],
+    "get_ports": out_ports_get_port
+    })
 
     outfile.write("""\
 static void
@@ -681,8 +717,8 @@ static void
 }
 """ % {
     "name_c": data["name_c"],
-    "ports_in_count": len(in_ports_names),
-    "ports_out_count": len(out_ports_names),
+    "ports_in_count": in_ports_count,
+    "ports_out_count": out_ports_count,
     })
 
     outfile.write("""
@@ -812,6 +848,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
         outfile.write("""\
     .ports_in = (const struct sol_flow_port_description * const []){
 """)
+        port_base = 0
         for o in data["in_ports"]:
             pname, psize = port_name_and_size(o["name"])
             outfile.write("""\
@@ -819,14 +856,19 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
             .name = %(name)s,
             .description=%(description)s,
             .data_type=%(data_type)s,
+            .array_size=%(array_size)d,
+            .base_port_idx=%(port_base)d,
             .required=%(required)s,
         }),
 """ % {
     "name": str_to_c(pname),
     "description": str_to_c(o.get("description")),
     "data_type": str_to_c_or_null(o.get("data_type")),
+    "array_size": psize,
+    "port_base": port_base,
     "required": bool_to_c(o.get("required", False)),
     })
+            port_base += psize if psize else 1;
         outfile.write("""\
         NULL
     },
@@ -836,6 +878,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
         outfile.write("""\
     .ports_out = (const struct sol_flow_port_description * const []){
 """)
+        port_base = 0
         for o in data["out_ports"]:
             pname, psize = port_name_and_size(o["name"])
             outfile.write("""\
@@ -843,14 +886,19 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
             .name = %(name)s,
             .description=%(description)s,
             .data_type=%(data_type)s,
+            .array_size=%(array_size)d,
+            .base_port_idx=%(port_base)d,
             .required=%(required)s,
         }),
 """ % {
     "name": str_to_c(pname),
     "description": str_to_c_or_null(o.get("description")),
     "data_type": str_to_c_or_null(o.get("data_type")),
+    "array_size": psize,
+    "port_base": port_base,
     "required": bool_to_c(o.get("required", False)),
     })
+            port_base += psize if psize else 1;
         outfile.write("""\
         NULL
     },

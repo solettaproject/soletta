@@ -152,7 +152,7 @@ sol_flow_builder_set_resolver(struct sol_flow_builder *builder,
 }
 
 static uint16_t
-find_port(const struct sol_flow_port_description *const *ports, const char *name)
+find_port(const struct sol_flow_port_description *const *ports, const char *name, uint16_t *port_size)
 {
     const struct sol_flow_port_description *const *itr;
 
@@ -161,8 +161,10 @@ find_port(const struct sol_flow_port_description *const *ports, const char *name
 
     itr = ports;
     while (*itr) {
-        if (!strcmp((*itr)->name, name))
-            return itr - ports;
+        if (!strcmp((*itr)->name, name)) {
+            *port_size = (*itr)->array_size;
+            return (*itr)->base_port_idx;
+        }
         itr++;
     }
 
@@ -170,17 +172,19 @@ find_port(const struct sol_flow_port_description *const *ports, const char *name
 }
 
 static uint16_t
-find_port_in(const struct sol_flow_port_description *const *ports_in, const char *name)
+find_port_in(const struct sol_flow_port_description *const *ports_in, const char *name, uint16_t *port_size)
 {
-    return find_port(ports_in, name);
+    return find_port(ports_in, name, port_size);
 }
 
 static uint16_t
-find_port_out(const struct sol_flow_port_description *const *ports_out, const char *name)
+find_port_out(const struct sol_flow_port_description *const *ports_out, const char *name, uint16_t *port_size)
 {
-    if (!strcmp(name, SOL_FLOW_NODE_PORT_ERROR_NAME))
+    if (!strcmp(name, SOL_FLOW_NODE_PORT_ERROR_NAME)) {
+        *port_size = 0;
         return SOL_FLOW_NODE_PORT_ERROR;
-    return find_port(ports_out, name);
+    }
+    return find_port(ports_out, name, port_size);
 }
 
 static bool
@@ -339,11 +343,11 @@ get_node(struct sol_flow_builder *builder, const char *node_name, uint16_t *out_
 }
 
 SOL_API int
-sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name, const char *src_port_name, const char *dst_name, const char *dst_port_name)
+sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name, const char *src_port_name, int src_port_idx, const char *dst_name, const char *dst_port_name, int dst_port_idx)
 {
     struct sol_flow_static_node_spec *src_node_spec, *dst_node_spec;
     int r;
-    uint16_t src, dst, src_port, dst_port;
+    uint16_t src, dst, src_port, dst_port, psize;
 
     SOL_NULL_CHECK(builder, -EBADR);
     SOL_NULL_CHECK(src_port_name, -EBADR);
@@ -363,7 +367,7 @@ sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name,
         return r;
 
     src_port = find_port_out(src_node_spec->type->description->ports_out,
-        src_port_name);
+        src_port_name, &psize);
 
     if (src_port == UINT16_MAX) {
         const struct sol_flow_port_description *const *itr;
@@ -379,8 +383,26 @@ sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name,
         return -EINVAL;
     }
 
+    if (!psize && src_port_idx != -1) {
+        SOL_ERR("Failed to connect, given index '%d', but port '%s' of node '%s' "
+            "is not an array port", src_port_idx, src_port_name, src_name);
+        return -EINVAL;
+    } else if (psize > 0 && src_port_idx == -1) {
+        SOL_ERR("Failed to connect, port '%s' of node '%s' is an array port, "
+            "but no index was given", src_port_name, src_name);
+        return -EINVAL;
+    } else if (src_port_idx > psize) {
+        SOL_ERR("Failed to connect, index '%d' of port '%s' from node '%s' is "
+            "out of bounds (array size = %d).", src_port_idx, src_port_name,
+            src_name, psize);
+        return -ERANGE;
+    }
+
+    if (src_port_idx != -1)
+        src_port += src_port_idx;
+
     dst_port = find_port_in(dst_node_spec->type->description->ports_in,
-        dst_port_name);
+        dst_port_name, &psize);
     if (dst_port == UINT16_MAX) {
         const struct sol_flow_port_description *const *itr;
 
@@ -394,6 +416,24 @@ sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name,
 
         return -EINVAL;
     }
+
+    if (!psize && dst_port_idx != -1) {
+        SOL_ERR("Failed to connect, given index '%d', but port '%s' of node '%s' "
+            "is not an array port", dst_port_idx, dst_port_name, dst_name);
+        return -EINVAL;
+    } else if (psize > 0 && dst_port_idx == -1) {
+        SOL_ERR("Failed to connect, port '%s' of node '%s' is an array port, "
+            "but no index was given", dst_port_name, dst_name);
+        return -EINVAL;
+    } else if (dst_port_idx > psize) {
+        SOL_ERR("Failed to connect, index '%d' of port '%s' from node '%s' is "
+            "out of bounds (array size = %d).", dst_port_idx, dst_port_name,
+            dst_name, psize);
+        return -ERANGE;
+    }
+
+    if (dst_port_idx != -1)
+        dst_port += dst_port_idx;
 
     return conn_spec_add(builder, src, dst, src_port, dst_port);
 }
@@ -753,13 +793,13 @@ sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const char *
 
 static int
 export_port(struct sol_flow_builder *builder, uint16_t node, uint16_t port,
-    const char *exported_name, struct sol_vector *exported_vector,
+    int psize, const char *exported_name, struct sol_vector *exported_vector,
     struct sol_ptr_vector *desc_vector)
 {
     struct sol_flow_port_description *port_desc;
     struct sol_flow_static_port_spec *port_spec;
     char *name;
-    int r;
+    int i = 0, r;
 
     name = strdup(exported_name);
     SOL_NULL_CHECK_GOTO(name, error_name);
@@ -767,19 +807,25 @@ export_port(struct sol_flow_builder *builder, uint16_t node, uint16_t port,
     port_desc = calloc(1, sizeof(struct sol_flow_port_description));
     SOL_NULL_CHECK_GOTO(port_desc, error_desc);
     port_desc->name = name;
+    port_desc->array_size = psize;
 
     r = sol_ptr_vector_append(desc_vector, port_desc);
     SOL_INT_CHECK_GOTO(r, < 0, error_desc_append);
 
-    port_spec = sol_vector_append(exported_vector);
-    SOL_NULL_CHECK_GOTO(port_spec, error_export);
+    do {
+        port_spec = sol_vector_append(exported_vector);
+        SOL_NULL_CHECK_GOTO(port_spec, error_export);
 
-    port_spec->node = node;
-    port_spec->port = port;
+        port_spec->node = node;
+        port_spec->port = port;
+        i++;
+    } while (i < psize);
 
     return 0;
 
 error_export:
+    for (; i > 0; i--)
+        sol_vector_del(exported_vector, exported_vector->len - 1);
     sol_ptr_vector_del(desc_vector, sol_ptr_vector_get_len(desc_vector) - 1);
 
 error_desc_append:
@@ -794,10 +840,10 @@ error_name:
 
 SOL_API int
 sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *node_name,
-    const char *port_name, const char *exported_name)
+    const char *port_name, int port_idx, const char *exported_name)
 {
     struct sol_flow_static_node_spec *node_spec;
-    uint16_t node, port;
+    uint16_t node, port, psize;
     int r;
 
     SOL_NULL_CHECK(builder, -EBADR);
@@ -816,14 +862,31 @@ sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *no
         return -EINVAL;
     }
 
-    port = find_port_in(node_spec->type->description->ports_in, port_name);
+    port = find_port_in(node_spec->type->description->ports_in, port_name, &psize);
     if (port == UINT16_MAX) {
         SOL_ERR("Failed to find input port '%s' of node '%s' to export",
             port_name, node_name);
         return -EINVAL;
     }
 
-    r = export_port(builder, node, port, exported_name,
+    if (port_idx != -1 && psize == 0) {
+        SOL_ERR("Failed to export input port '%s', indicated index '%d' for "
+            "source port '%s', but it's not an array port",
+            exported_name, port_idx, port_name);
+        return -EINVAL;
+    } else if (port_idx > psize) {
+        SOL_ERR("Failed to export input port '%s', index '%d' is out of range "
+            "(port '%s' is of size '%d')", exported_name, port_idx,
+            port_name, psize);
+        return -EINVAL;
+    }
+
+    if (port_idx != -1) {
+        port += port_idx;
+        psize = 0;
+    }
+
+    r = export_port(builder, node, port, psize, exported_name,
         &builder->exported_in, &builder->ports_in_desc);
     if (r < 0) {
         SOL_ERR("Failed to export input port '%s' of node '%s' with exported name '%s': %s",
@@ -836,10 +899,10 @@ sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *no
 
 SOL_API int
 sol_flow_builder_export_out_port(struct sol_flow_builder *builder, const char *node_name,
-    const char *port_name, const char *exported_name)
+    const char *port_name, int port_idx, const char *exported_name)
 {
     struct sol_flow_static_node_spec *node_spec;
-    uint16_t node, port;
+    uint16_t node, port, psize;
     int r;
 
     SOL_NULL_CHECK(builder, -EBADR);
@@ -858,14 +921,31 @@ sol_flow_builder_export_out_port(struct sol_flow_builder *builder, const char *n
         return -EINVAL;
     }
 
-    port = find_port_out(node_spec->type->description->ports_out, port_name);
+    port = find_port_out(node_spec->type->description->ports_out, port_name, &psize);
     if (port == UINT16_MAX) {
         SOL_ERR("Failed to find output port '%s' of node '%s' to export",
             port_name, node_name);
         return -EINVAL;
     }
 
-    r = export_port(builder, node, port, exported_name,
+    if (port_idx != -1 && psize == 0) {
+        SOL_ERR("Failed to export output port '%s', indicated index '%d' for "
+            "source port '%s', but it's not an array port",
+            exported_name, port_idx, port_name);
+        return -EINVAL;
+    } else if (port_idx > psize) {
+        SOL_ERR("Failed to export output port '%s', index '%d' is out of range "
+            "(port '%s' is of size '%d')", exported_name, port_idx,
+            port_name, psize);
+        return -EINVAL;
+    }
+
+    if (port_idx != -1) {
+        port += port_idx;
+        psize = 0;
+    }
+
+    r = export_port(builder, node, port, psize, exported_name,
         &builder->exported_out, &builder->ports_out_desc);
     if (r < 0) {
         SOL_ERR("Failed to export output port '%s' of node '%s' with exported name '%s': %s",
