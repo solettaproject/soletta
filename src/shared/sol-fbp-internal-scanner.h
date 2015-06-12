@@ -57,7 +57,8 @@
     X(PAREN_OPEN)                                      \
     X(STMT_SEPARATOR)                                  \
     X(STRING)                                          \
-    X(DECLARE_KEYWORD)
+    X(DECLARE_KEYWORD)                                 \
+    X(OPTION_KEYWORD)
 
 #define TOKEN_ENUM(T) SOL_FBP_TOKEN_ ## T,
 
