@@ -367,7 +367,7 @@ parse_range_default_value(struct sol_json_scanner *s, struct option_description 
 
     if (!sol_json_scanner_next(s, &tmp))
         return false;
-    SOL_JSON_SCANNER_OBJECT_LOOP(s, &tmp, &key, &value, reason)  {
+    SOL_JSON_SCANNER_OBJECT_LOOP (s, &tmp, &key, &value, reason) {
         if (!get_value(&value, &value_data, &key, &key_slice))
             return false;
 
@@ -403,7 +403,7 @@ parse_rgb_default_value(struct sol_json_scanner *s, struct option_description *o
 
     if (!sol_json_scanner_next(s, &tmp))
         return false;
-    SOL_JSON_SCANNER_OBJECT_LOOP(s, &tmp, &key, &value, reason)  {
+    SOL_JSON_SCANNER_OBJECT_LOOP (s, &tmp, &key, &value, reason) {
         if (!get_value(&value, &value_data, &key, &key_slice))
             return false;
 

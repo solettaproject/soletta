@@ -635,7 +635,7 @@ _get_oc_response_array_from_payload(uint8_t **payload, uint16_t *payload_len)
     enum sol_json_loop_reason reason;
 
     sol_json_scanner_init(&scanner, *payload, *payload_len);
-    SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &key, &value, reason) {
+    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (!sol_json_token_str_eq(&key, "oc", 2))
             continue;
         if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_ARRAY_START)
@@ -662,8 +662,8 @@ _get_rep_object(uint8_t **payload, uint16_t *payload_len)
         goto out;
 
     sol_json_scanner_init(&scanner, *payload, *payload_len);
-    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&scanner, &token, &key, &value, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
             if (sol_json_token_str_eq(&key, "rep", 3)
                 && sol_json_token_get_type(&value) == SOL_JSON_TYPE_OBJECT_START) {
                 *payload = (uint8_t *)value.start;

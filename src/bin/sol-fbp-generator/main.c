@@ -111,6 +111,7 @@ static void
 handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index)
 {
     const char *irange_drange_fields[5] = { "val", "min", "max", "step", NULL };
+
     if (check_suboption(option, meta))
         printf("            .%s = %s,\n", irange_drange_fields[index], option);
 }
@@ -119,7 +120,8 @@ static void
 handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index)
 {
     const char *rgb_fields[7] = { "red", "green", "blue",
-        "red_max", "green_max", "blue_max", NULL };
+                                  "red_max", "green_max", "blue_max", NULL };
+
     if (check_suboption(option, meta))
         printf("            .%s = %s,\n", rgb_fields[index], option);
 }

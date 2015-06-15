@@ -83,7 +83,7 @@ _parse_json_array(const char *data, unsigned int size, struct sol_vector *vec)
     enum sol_json_loop_reason reason;
 
     sol_json_scanner_init(&scanner, data, size);
-    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, SOL_JSON_TYPE_STRING, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_STRING, reason) {
         struct sol_str_slice *slice = sol_vector_append(vec);
 
         if (!slice) {
@@ -105,7 +105,7 @@ _parse_resource_reply_props(const char *data, unsigned int size, struct sol_oic_
     enum sol_json_loop_reason reason;
 
     sol_json_scanner_init(&scanner, data, size);
-    SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &key, &value, reason) {
+    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (sol_json_token_str_eq(&key, "obs", 3) && sol_json_token_get_type(&value) == SOL_JSON_TYPE_NUMBER) {
             if (value.end - value.start != 1)
                 goto out;
@@ -134,7 +134,7 @@ _get_oc_response_array_from_payload(uint8_t **payload, uint16_t *payload_len)
     enum sol_json_loop_reason reason;
 
     sol_json_scanner_init(&scanner, *payload, *payload_len);
-    SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &key, &value, reason) {
+    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (!sol_json_token_str_eq(&key, "oc", 2))
             continue;
         if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_ARRAY_START)
@@ -162,10 +162,10 @@ _parse_resource_reply_payload(struct sol_oic_resource *res, uint8_t *payload, ui
 
     sol_json_scanner_init(&scanner, payload, payload_len);
 
-    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         struct sol_json_token key, value;
 
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&scanner, &token, &key, &value, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
             if (sol_json_token_str_eq(&key, "href", 4) && sol_json_token_get_type(&value) == SOL_JSON_TYPE_STRING) {
                 res->href = SOL_STR_SLICE_STR(value.start + 1, (value.end - value.start) - 2);
             } else if (sol_json_token_str_eq(&key, "prop", 4) && sol_json_token_get_type(&value) == SOL_JSON_TYPE_OBJECT_START) {
@@ -340,12 +340,12 @@ _call_request_context_for_response_array(struct resource_request_ctx *ctx,
     enum sol_json_loop_reason reason;
 
     sol_json_scanner_init(&scanner, payload, payload_len);
-    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         struct sol_str_slice href = SOL_STR_SLICE_EMPTY;
         struct sol_str_slice rep = SOL_STR_SLICE_EMPTY;
         struct sol_json_token key, value;
 
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&scanner, &token, &key, &value, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
             if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_STRING && sol_json_token_str_eq(&key, "href", 4)) {
                 href = SOL_STR_SLICE_STR(value.start + 1, value.end - value.start - 2);
             } else if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_OBJECT_START && sol_json_token_str_eq(&key, "rep", 3)) {
