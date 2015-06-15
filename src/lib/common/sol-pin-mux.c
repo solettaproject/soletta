@@ -39,14 +39,12 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pin-mux");
-
 #include "sol-util.h"
 #include "sol-pin-mux.h"
 #include "sol-pin-mux-impl.h"
 #include "sol-pin-mux-builtins-gen.h"
+#include "sol-platform.h"
 
 #define GPIO_DRIVE_PULLUP   0
 #define GPIO_DRIVE_PULLDOWN 1
@@ -55,13 +53,12 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pin-mux");
 
 #define BASE "/sys/class/gpio"
 
+SOL_LOG_INTERNAL_DECLARE(_sol_pin_mux_log_domain, "pin-mux");
+
 static const struct sol_pin_mux *mux = NULL;
 
-static void
-_log_init(void)
-{
-    SOL_LOG_INTERNAL_INIT_ONCE;
-}
+int sol_pin_mux_init(void);
+void sol_pin_mux_shutdown(void);
 
 #ifdef ENABLE_DYNAMIC_MODULES
 static void *dl_handle = NULL;
@@ -135,8 +132,6 @@ _find_mux(const char *name)
 SOL_API bool
 sol_pin_mux_select_mux(const char *_board)
 {
-    _log_init();
-
     if (!_board || _board[0] == '\0')
         return false;
 
@@ -144,6 +139,27 @@ sol_pin_mux_select_mux(const char *_board)
         return true;
 
     return _find_mux(_board) ? true : _load_mux(_board);
+}
+
+int
+sol_pin_mux_init(void)
+{
+    sol_log_domain_init_level(SOL_LOG_DOMAIN);
+
+    sol_pin_mux_select_mux(sol_platform_get_name());
+
+    return 0;
+}
+
+void
+sol_pin_mux_shutdown(void)
+{
+    mux = NULL;
+#ifdef ENABLE_DYNAMIC_MODULES
+    if (dl_handle)
+        dlclose(dl_handle);
+    dl_handle = NULL;
+#endif
 }
 
 static int
