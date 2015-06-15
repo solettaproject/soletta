@@ -20,6 +20,7 @@
 /test-parser
 /test-scanner
 /test-str-slice
+/test-str-split
 /test-str-table
 /test-util
 /test-vector
