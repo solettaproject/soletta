@@ -30,42 +30,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#define SOL_LOG_DOMAIN &_log_domain
+#include "sol-log-internal.h"
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "sol-pwm.h"
+#include "sol-pin-mux.h"
 
-struct sol_pwm;
+struct sol_pwm *
+sol_pwm_open(int device, int channel, const struct sol_pwm_config *config)
+{
+    struct sol_pwm *pwm;
 
-/* No API for this on Linux, so we simply ignore it there */
-enum sol_pwm_alignment {
-    SOL_PWM_ALIGNMENT_LEFT,
-    SOL_PWM_ALIGNMENT_RIGHT,
-    SOL_PWM_ALIGNMENT_CENTER /* Also known as phase-correct */
-};
+    SOL_LOG_INTERNAL_INIT_ONCE;
 
-/* This is ignored on RIOT (no API there) and not always supported on Linux */
-enum sol_pwm_polarity {
-    SOL_PWM_POLARITY_NORMAL,
-    SOL_PWM_POLARITY_INVERSED
-};
+    pwm = sol_pwm_open_raw(device, channel, config);
+#ifdef HAVE_PIN_MUX
+    if (pwm && sol_pin_mux_setup_pwm(device, channel))
+        SOL_WRN("Pin Multiplexer Recipe for pwm device=%d channel=%d found, \
+            but couldn't be applied.", device, channel);
+#endif
 
-struct sol_pwm_config {
-    int32_t period_ns; /* if == -1, won't set */
-    int32_t duty_cycle_ns; /* if == -1, won't set, but if period is set, duty cycle is zeroed */
-    enum sol_pwm_alignment alignment;
-    enum sol_pwm_polarity polarity;
-    bool enabled;
-};
-
-struct sol_pwm *sol_pwm_open(int device, int channel, const struct sol_pwm_config *config);
-struct sol_pwm *sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config);
-void sol_pwm_close(struct sol_pwm *pwm);
-
-bool sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable);
-bool sol_pwm_get_enabled(const struct sol_pwm *pwm);
-
-bool sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns);
-int32_t sol_pwm_get_period(const struct sol_pwm *pwm);
-bool sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns);
-int32_t sol_pwm_get_duty_cycle(const struct sol_pwm *pwm);
+    return pwm;
+}
