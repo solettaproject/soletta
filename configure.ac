@@ -425,7 +425,10 @@ AC_ARG_WITH([pin-mux],
         [],
         [with_pin_mux="no"])
 
-AM_CONDITIONAL([BUILD_PIN_MUX], [test "x$with_pin_mux" != "xno"])
+AM_CONDITIONAL([HAVE_PIN_MUX], [test "x$with_pin_mux" != "xno"])
+if test "x$with_pin_mux" != "xno"; then
+    AC_DEFINE([HAVE_PIN_MUX], [1], [Pin multiplexer is enabled.])
+fi
 
 SOL_PIN_MUX_MODULE([intel-galileo-rev-g], [no], [Add Intel Galileo 2 pin mux support])
 

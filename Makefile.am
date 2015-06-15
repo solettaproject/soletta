@@ -522,7 +522,7 @@ endif
 
 endif # BUILD_SAMPLES
 
-if BUILD_PIN_MUX
+if HAVE_PIN_MUX
 src_lib_libsoletta_la_SOURCES += \
 	src/lib/common/sol-pin-mux.c \
 	src/lib/common/sol-pin-mux.h \
@@ -552,7 +552,7 @@ src/lib/common/sol-pin-mux-builtins-gen.h: Makefile data/scripts/sol-builtins-ge
 BUILT_SOURCES += src/lib/common/sol-pin-mux-builtins-gen.h
 
 include sol_pin_mux_modules.mk
-endif #BUILD_PIN_MUX
+endif #HAVE_PIN_MUX
 
 src/modules/flow/%-gen.h src/modules/flow/%-gen.c: src/modules/flow/%.json $(top_builddir)/data/scripts/sol-flow-node-type-gen.py
 	$(AM_V_GEN)$(PYTHON) $(top_builddir)/data/scripts/sol-flow-node-type-gen.py --prefix=sol-flow-node-type --genspec-schema=$(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/modules/flow/$*-gen.h src/modules/flow/$*-gen.c $(@D).json
