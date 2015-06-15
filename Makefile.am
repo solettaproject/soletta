@@ -367,6 +367,7 @@ src/shared/sol-list.h \
 src/shared/sol-monitors.c \
 src/shared/sol-monitors.h \
 src/shared/sol-network.h \
+src/shared/sol-pwm-common.c \
 src/shared/sol-pwm.h \
 src/shared/sol-spi.h \
 src/shared/sol-str-slice.c \

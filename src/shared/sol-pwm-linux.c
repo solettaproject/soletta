@@ -249,7 +249,7 @@ _pwm_config(struct sol_pwm *pwm, const struct sol_pwm_config *config)
 }
 
 struct sol_pwm *
-sol_pwm_open(int device, int channel, const struct sol_pwm_config *config)
+sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
 {
     char path[PATH_MAX];
     struct sol_pwm *pwm;
