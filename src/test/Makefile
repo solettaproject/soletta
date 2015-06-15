@@ -20,6 +20,9 @@ test-test-flow-builder-$(TEST_FLOW_BUILDER) := test.c test-flow-builder.c
 test-$(TEST_FLOW_PARSER) += test-flow-parser
 test-test-flow-parser-$(TEST_FLOW_PARSER) := test.c test-flow-parser.c
 
+test-$(TEST_JAVASCRIPT) += test-javascript
+test-test-javascript-$(TEST_JAVASCRIPT) := test.c test-javascript.c
+
 test-$(TEST_MAINLOOP) += test-mainloop
 test-test-mainloop-$(TEST_MAINLOOP) := test-mainloop.c
 
