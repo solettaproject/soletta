@@ -64,7 +64,7 @@ gpio_process_cb(void *data)
 }
 
 struct sol_gpio *
-sol_gpio_open(int pin, const struct sol_gpio_config *config)
+sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
 {
     struct sol_gpio *gpio;
     gpio_pp_t pull;
