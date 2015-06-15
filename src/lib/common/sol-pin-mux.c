@@ -176,7 +176,7 @@ _set_gpio(int pin, enum sol_gpio_direction dir, int drive, bool val)
     gpio_config.dir = dir;
     gpio_config.out.value = val;
 
-    gpio = sol_gpio_open(pin, &gpio_config);
+    gpio = sol_gpio_open_raw(pin, &gpio_config);
     if (!gpio)
         return -EINVAL;
 

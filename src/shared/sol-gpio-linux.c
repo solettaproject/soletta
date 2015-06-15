@@ -279,7 +279,7 @@ _gpio_config(struct sol_gpio *gpio, const struct sol_gpio_config *config)
 }
 
 struct sol_gpio *
-sol_gpio_open(int pin, const struct sol_gpio_config *config)
+sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
 {
     struct sol_gpio *gpio;
     char gpio_dir[PATH_MAX];

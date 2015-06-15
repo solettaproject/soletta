@@ -360,6 +360,7 @@ src/shared/sol-fbp.h \
 src/shared/sol-util.c \
 src/shared/sol-util.h \
 src/shared/sol-file-reader.h \
+src/shared/sol-gpio-common.c \
 src/shared/sol-gpio.h \
 src/shared/sol-i2c.h \
 src/shared/sol-list.h \
