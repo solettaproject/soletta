@@ -685,6 +685,7 @@ check_PROGRAMS = \
 	src/test/test-mainloop \
 	src/test/test-monitors \
 	src/test/test-str-slice \
+	src/test/test-str-split \
 	src/test/test-str-table \
 	src/test/test-util \
 	src/test/test-vector
@@ -769,6 +770,9 @@ src_test_test_flow_parser_LDADD = $(TEST_LDADD)
 
 src_test_test_str_slice_CFLAGS = $(TEST_CFLAGS)
 src_test_test_str_slice_LDADD = $(TEST_LDADD)
+
+src_test_test_str_split_CFLAGS = $(TEST_CFLAGS)
+src_test_test_str_split_LDADD = $(TEST_LDADD)
 
 src_test_test_str_table_CFLAGS = $(TEST_CFLAGS)
 src_test_test_str_table_LDADD = $(TEST_LDADD)
