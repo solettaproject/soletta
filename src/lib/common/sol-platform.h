@@ -41,12 +41,12 @@ extern "C" {
  * the chunk reading and allow mainloop to run again. This keeps
  * memory usage low.
  */
-#define CHUNK_READ_MAX (10 * CHUNK_READ_SIZE)
+#define CHUNK_READ_MAX (10 * (CHUNK_READ_SIZE))
 /* allow reading/writing loop to take up to this nanoseconds, then stop the
  * chunk reading and allow mainloop to run again. This keeps
  * interactivity.
  */
-#define CHUNK_MAX_TIME_NS (20 * NSEC_PER_MSEC)
+#define CHUNK_MAX_TIME_NS (20 * (NSEC_PER_MSEC))
 
 const char *sol_platform_get_name(void);
 

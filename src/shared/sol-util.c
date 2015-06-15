@@ -272,7 +272,7 @@ sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t m
     if (!slice.len || !delim)
         return v;
 
-    maxsplit = (maxsplit) ?: slice.len;
+    maxsplit = (maxsplit) ? : slice.len;
     dlen = strlen(delim);
     len = slice.len;
 

@@ -234,9 +234,10 @@ common_close(struct output_data *output, const struct sol_flow_node *node)
 static int
 common_connect(struct output_data *output, struct sol_flow_node *node)
 {
-  int flags;
-  flags = fcntl(output->fd, F_GETFL);
-  return sol_flow_send_boolean_packet(node, output->port, (flags < 0));
+    int flags;
+
+    flags = fcntl(output->fd, F_GETFL);
+    return sol_flow_send_boolean_packet(node, output->port, (flags < 0));
 }
 
 int

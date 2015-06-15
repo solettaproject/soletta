@@ -111,6 +111,7 @@ static void
 handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index)
 {
     const char *irange_drange_fields[5] = { "val", "min", "max", "step", NULL };
+
     if (check_suboption(option, meta))
         printf("            .%s = %s,\n", irange_drange_fields[index], option);
 }
@@ -119,7 +120,8 @@ static void
 handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index)
 {
     const char *rgb_fields[7] = { "red", "green", "blue",
-        "red_max", "green_max", "blue_max", NULL };
+                                  "red_max", "green_max", "blue_max", NULL };
+
     if (check_suboption(option, meta))
         printf("            .%s = %s,\n", rgb_fields[index], option);
 }
@@ -366,9 +368,9 @@ generate_exports(const struct sol_fbp_graph *g)
 
     if (g->exported_in_ports.len > 0) {
         printf("const struct sol_flow_static_port_spec exported_in[] = {\n");
-        SOL_VECTOR_FOREACH_IDX(&g->exported_in_ports, e, i) {
+        SOL_VECTOR_FOREACH_IDX (&g->exported_in_ports, e, i) {
             n = sol_vector_get(&g->nodes, e->node);
-            SOL_VECTOR_FOREACH_IDX(&n->in_ports, p, j) {
+            SOL_VECTOR_FOREACH_IDX (&n->in_ports, p, j) {
                 if (sol_str_slice_eq(e->port, p->name)) {
                     printf("    { %d, %d },\n", e->node, j);
                     break;
@@ -381,9 +383,9 @@ generate_exports(const struct sol_fbp_graph *g)
 
     if (g->exported_out_ports.len > 0) {
         printf("const struct sol_flow_static_port_spec exported_out[] = {\n");
-        SOL_VECTOR_FOREACH_IDX(&g->exported_out_ports, e, i) {
+        SOL_VECTOR_FOREACH_IDX (&g->exported_out_ports, e, i) {
             n = sol_vector_get(&g->nodes, e->node);
-            SOL_VECTOR_FOREACH_IDX(&n->out_ports, p, j) {
+            SOL_VECTOR_FOREACH_IDX (&n->out_ports, p, j) {
                 if (sol_str_slice_eq(e->port, p->name)) {
                     printf("    { %d, %d },\n", e->node, j);
                     break;

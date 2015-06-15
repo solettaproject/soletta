@@ -123,7 +123,7 @@ _parse_regex_array(struct sol_json_token *array, struct sol_vector *vector)
     enum sol_json_loop_reason reason;
 
     sol_json_scanner_init_from_token(&scanner, array);
-    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, array, SOL_JSON_TYPE_STRING, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, array, SOL_JSON_TYPE_STRING, reason) {
         token = sol_vector_append(vector);
         SOL_NULL_CHECK(token, -errno);
         *token = *array;
@@ -146,12 +146,12 @@ _platform_validation(const struct sol_json_token *validation)
     sol_vector_init(&dont_match, sizeof(struct sol_json_token));
     sol_json_scanner_init_from_token(&scanner, validation);
 
-    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         file_path = (struct sol_json_token) {NULL, NULL };
         sol_vector_clear(&match);
         sol_vector_clear(&dont_match);
 
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&scanner, &token, &key, &value, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "file_path")) {
                 if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_STRING)
                     continue;
@@ -219,7 +219,7 @@ sol_platform_detect(void)
     if (!json_doc)
         return NULL;
 
-    SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &key, &value, reason) {
+    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&token, "platforms")) {
             found = true;
             break;
@@ -229,11 +229,11 @@ sol_platform_detect(void)
         goto end;
 
     sol_json_scanner_init_from_token(&scanner, &value);
-    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         platform_name = (struct sol_json_token) {NULL, NULL };
         found = false;
 
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&scanner, &token, &key, &value, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "name")) {
                 if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_STRING)
                     continue;

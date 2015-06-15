@@ -73,7 +73,7 @@ blob_validator_process(
     const struct sol_flow_packet *packet)
 {
     struct blob_validator_data *mdata = data;
-    struct sol_blob* val;
+    struct sol_blob *val;
     bool match;
 
     if (mdata->done) {

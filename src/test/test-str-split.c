@@ -41,40 +41,41 @@ static void
 test_str_to_slice(void)
 {
     unsigned int i;
+
     struct {
         const struct sol_str_slice slice;
         const char *delim;
-        const char * const *strings;
+        const char *const *strings;
         unsigned int len;
     } items[] = {
         {
             { strlen("Using space -l :q"), "Using space -l :qdsdsdsdkjskdjksjdksjdksjdksjd" },
             " ",
-            (const char * const []){ "Using", "space", "-l", ":q" },
+            (const char *const []){ "Using", "space", "-l", ":q" },
             4
         },
         {
             { strlen("Using space -l :q"), "Using space -l :q" },
             " ",
-            (const char * const []){ "Using", "space" },
+            (const char *const []){ "Using", "space" },
             2
         },
         {
             { strlen("Using{{brackets{ {{"), "Using{{brackets{ {{" },
             "{",
-            (const char * const []){ "Using", NULL, "brackets", " ", NULL, NULL },
+            (const char *const []){ "Using", NULL, "brackets", " ", NULL, NULL },
             6
         },
         {
             { strlen("Using comma test"), "Using comma test" },
             ",",
-            (const char * const []){ "Using comma test" },
+            (const char *const []){ "Using comma test" },
             1
         },
         {
             { strlen("Using42brackets42 test42"), "Using42brackets42 test42" },
             "42",
-            (const char * const []){ "Using", "brackets", " test", NULL },
+            (const char *const []){ "Using", "brackets", " test", NULL },
             4
         },
         {
