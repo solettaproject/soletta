@@ -65,7 +65,7 @@ sol_speed_to_riot_speed(enum sol_i2c_speed speed)
 }
 
 struct sol_i2c *
-sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
+sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 {
     struct sol_i2c *i2c;
 
