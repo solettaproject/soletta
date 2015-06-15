@@ -59,7 +59,7 @@ struct sol_i2c {
 };
 
 struct sol_i2c *
-sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
+sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 {
     struct sol_i2c *i2c;
     char i2c_dev_path[PATH_MAX];

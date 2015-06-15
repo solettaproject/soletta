@@ -363,6 +363,7 @@ src/shared/sol-file-reader.h \
 src/shared/sol-gpio-common.c \
 src/shared/sol-gpio.h \
 src/shared/sol-i2c.h \
+src/shared/sol-i2c-common.c \
 src/shared/sol-list.h \
 src/shared/sol-monitors.c \
 src/shared/sol-monitors.h \
