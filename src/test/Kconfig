@@ -34,6 +34,11 @@ config TEST_FLOW_PARSER
 	depends on FLOW && NODE_DESCRIPTION
 	default y
 
+config TEST_JAVASCRIPT
+	bool "javascript"
+	depends on JAVASCRIPT
+	default y
+
 config TEST_MAINLOOP
 	bool "mainloop"
 	default y
