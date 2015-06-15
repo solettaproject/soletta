@@ -47,9 +47,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-calamari");
 
 #include "sol-flow-node-types.h"
 
-//FIXME: something like sol-flow-node-types.h for !built-in modules
-//too?
-#include "../../modules/flow/gpio/gpio-gen.h"
+#include "gpio-gen.h"
 
 #include "calamari-gen.h"
 
