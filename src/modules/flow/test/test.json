@@ -269,6 +269,44 @@
       ],
       "private_data_type": "float_validator_data",
       "url": "http://solettaproject.org/doc/latest/components/float-validator.html"
+    },
+    {
+      "category": "test",
+      "description": "Matches an expected memory blob.",
+      "methods": {
+        "close": "blob_validator_close",
+        "open": "blob_validator_open"
+      },
+      "name": "test/blob-validator",
+      "in_ports": [
+        {
+          "data_type": "blob",
+          "description": "Where to receive the expected sequence.",
+          "methods": {
+            "process": "blob_validator_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Expected sequence to be matched, formatted as '1.0 2 -1.7 35.864'",
+            "name": "expected"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Outputs true if there is a match, false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "blob_validator_data",
+      "url": "http://solettaproject.org/doc/latest/components/float-validator.html"
     }
   ]
 }

@@ -30,33 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <float.h>
-#include "sol-util.h"
-#include "sol-log-internal.h"
-
-#include "test-gen.h"
-
 #include "test-module.h"
-#include "result.h"
-#include "boolean-generator.h"
-#include "boolean-validator.h"
-#include "float-generator.h"
-#include "float-validator.h"
-#include "int-validator.h"
-#include "int-generator.h"
-#include "blob-validator.h"
+#include "sol-blob.h"
 
-SOL_LOG_INTERNAL_DECLARE(test_log_domain, "flow-test");
+struct blob_validator_data {
+    struct sol_blob expected;
+    bool done;
+};
 
-void
-test_init_log_domain(void)
-{
-    static bool done = false;
-
-    if (done)
-        return;
-    sol_log_domain_init_level(&test_log_domain);
-    done = true;
-}
-
-#include "test-gen.c"
+DECLARE_OPEN_FUNCTION(blob_validator_open);
+DECLARE_CLOSE_FUNCTION(blob_validator_close);
+DECLARE_PROCESS_FUNCTION(blob_validator_process);

@@ -30,33 +30,71 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <float.h>
-#include "sol-util.h"
-#include "sol-log-internal.h"
+#include <errno.h>
+#include <string.h>
 
+#include "sol-flow.h"
+#include "sol-log-internal.h"
+#include "sol-mainloop.h"
+#include "sol-util.h"
+
+#include "blob-validator.h"
 #include "test-gen.h"
 
-#include "test-module.h"
-#include "result.h"
-#include "boolean-generator.h"
-#include "boolean-validator.h"
-#include "float-generator.h"
-#include "float-validator.h"
-#include "int-validator.h"
-#include "int-generator.h"
-#include "blob-validator.h"
-
-SOL_LOG_INTERNAL_DECLARE(test_log_domain, "flow-test");
-
-void
-test_init_log_domain(void)
+int
+blob_validator_open(
+    struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
 {
-    static bool done = false;
+    struct blob_validator_data *mdata = data;
+    const struct sol_flow_node_type_test_blob_validator_options *opts =
+        (const struct sol_flow_node_type_test_blob_validator_options *)options;
 
-    if (done)
-        return;
-    sol_log_domain_init_level(&test_log_domain);
-    done = true;
+    mdata->done = false;
+
+    if (opts->expected == NULL || *opts->expected == '\0') {
+        SOL_ERR("Option 'expected' is either NULL or empty.");
+        return -EINVAL;
+    }
+    mdata->expected.mem = strdup(opts->expected);
+    SOL_NULL_CHECK(mdata->expected.mem, -errno);
+    mdata->expected.size = strlen(opts->expected);
+
+    return 0;
 }
 
-#include "test-gen.c"
+int
+blob_validator_process(
+    struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct blob_validator_data *mdata = data;
+    struct sol_blob* val;
+    bool match;
+
+    if (mdata->done) {
+        sol_flow_send_error_packet(node, ECANCELED,
+            "Input stream already deviated from expected data, ignoring packets.");
+        return 0;
+    }
+
+    sol_flow_packet_get_blob(packet, &val);
+    match = (mdata->expected.size == val->size) && memcmp(mdata->expected.mem, val->mem, val->size) == 0;
+
+    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_TEST_BOOLEAN_VALIDATOR__OUT__OUT, match);
+    mdata->done = true;
+
+    return 0;
+}
+
+void
+blob_validator_close(struct sol_flow_node *node, void *data)
+{
+    struct blob_validator_data *mdata = data;
+
+    free(mdata->expected.mem);
+}
