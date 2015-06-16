@@ -44,6 +44,7 @@ def c_clean(string):
 
 data_type_to_c_map = {
     "boolean": "bool ",
+    "blob": "struct sol_blob *",
     "byte": "unsigned char ",
     "int": "struct sol_irange ",
     "float": "struct sol_drange ",
@@ -98,11 +99,13 @@ def print_data_struct(outfile, struct):
 
 data_type_to_packet_getter_map = {
     "boolean": "boolean(packet, &in_value)",
+    "blob": "blob(packet, &in_value)",
     "int": "irange(packet, &in_value)",
     "float": "drange(packet, &in_value)",
     "string": "string(packet, &in_value)",
     "byte": "byte(packet, &in_value)",
     "error": "error(packet, &code_value, &in_value)",
+    "rgb": "rgb(packet, &in_value)",
     }
 def data_type_to_packet_getter(typename):
     return data_type_to_packet_getter_map[typename]
