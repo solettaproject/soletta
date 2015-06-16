@@ -13,4 +13,6 @@ flowmodules_test_extra_src += \
 	src/modules/flow/test/float-validator.c \
 	src/modules/flow/test/float-validator.h \
 	src/modules/flow/test/float-generator.c \
-	src/modules/flow/test/float-generator.h
+	src/modules/flow/test/float-generator.h \
+	src/modules/flow/test/blob-validator.c \
+	src/modules/flow/test/blob-validator.h
