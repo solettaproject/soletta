@@ -48,3 +48,5 @@ negative_val OUT -> IN abs(int/abs) OUT -> IN0 cmp_abs(int/equal)
 absolute_val OUT -> IN1 cmp_abs
 cmp_abs OUT -> RESULT abs_result(test/result)
 
+constrain_int(constant/int:value=50) OUT -> IN  constrain(int/constrain) OUT -> IN0 constrain_equal(int/equal)
+constrain_int OUT -> IN1 constrain_equal OUT -> RESULT constrain_test(test/result)
