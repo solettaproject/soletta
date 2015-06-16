@@ -50,6 +50,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src/modules/flow/fs \
 	-I$(top_builddir)/src/modules/flow/gpio \
 	-I$(top_builddir)/src/modules/flow/gtk \
+	-I$(top_builddir)/src/modules/flow/hub \
 	-I$(top_builddir)/src/modules/flow/int \
 	-I$(top_builddir)/src/modules/flow/keyboard \
 	-I$(top_builddir)/src/modules/flow/lcd-grove \
