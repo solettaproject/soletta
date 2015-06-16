@@ -1,0 +1,71 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Color(color/luminance-rgb:color=255|100|0|255|255|255)
+Luminance(constant/int:value=50|0|100|1) OUT -> IN Color
+
+RedByte(constant/byte:value=255) OUT -> RED ColorByte(converter/byte-to-rgb)
+GreenByte(constant/byte:value=100) OUT -> GREEN ColorByte
+BlueByte(constant/byte:value=0) OUT -> BLUE ColorByte
+ColorByte OUT -> IN Bytes(converter/rgb-to-int)
+
+Bytes RED -> IN0 cmpRedBytes(int/equal) OUT -> RESULT test_compare_red_byte(test/result)
+Bytes BLUE -> IN0 cmpBlueBytes(int/equal) OUT -> RESULT test_compare_blue_byte(test/result)
+Bytes GREEN -> IN0 cmpGreenBytes(int/equal) OUT -> RESULT test_compare_green_byte(test/result)
+
+_(constant/int:value=255) OUT -> IN1 cmpRedBytes
+_(constant/int:value=0) OUT -> IN1 cmpBlueBytes
+_(constant/int:value=100) OUT -> IN1 cmpGreenBytes
+
+RedFloat(constant/float:value=1|0|1|1) OUT -> RED ColorFloat(converter/float-to-rgb:blue_max=64)
+GreenFloat(constant/float:value=0.5|0|1|1) OUT -> GREEN ColorFloat
+BlueFloat(constant/float:value=100|0|100|1) OUT -> BLUE ColorFloat
+ColorFloat OUT -> IN Floats(converter/rgb-to-int)
+
+Floats RED -> IN0 cmpRedFloats(int/equal) OUT -> RESULT test_compare_red_float(test/result)
+Floats BLUE -> IN0 cmpBlueFloats(int/equal) OUT -> RESULT test_compare_blue_float(test/result)
+Floats GREEN -> IN0 cmpGreenFloats(int/equal) OUT -> RESULT test_compare_green_float(test/result)
+
+_(constant/int:value=255) OUT -> IN1 cmpRedFloats
+_(constant/int:value=64) OUT -> IN1 cmpBlueFloats
+_(constant/int:value=127) OUT -> IN1 cmpGreenFloats
+
+RedInt(constant/int:value=20|0|100|1) OUT -> RED ColorInt(converter/int-to-rgb:red_max=32,green_max=64,blue_max=32)
+GreenInt(constant/int:value=50|0|100|1) OUT -> GREEN ColorInt
+BlueInt(constant/int:value=100|0|100|1) OUT -> BLUE ColorInt
+ColorInt OUT -> IN Ints(converter/rgb-to-int)
+
+Ints RED -> IN0 cmpRedInts(int/equal) OUT -> RESULT test_compare_red_int(test/result)
+Ints BLUE -> IN0 cmpBlueInts(int/equal) OUT -> RESULT test_compare_blue_int(test/result)
+Ints GREEN -> IN0 cmpGreenInts(int/equal) OUT -> RESULT test_compare_green_int(test/result)
+
+_(constant/int:value=6) OUT -> IN1 cmpRedInts
+_(constant/int:value=32) OUT -> IN1 cmpBlueInts
+_(constant/int:value=32) OUT -> IN1 cmpGreenInts

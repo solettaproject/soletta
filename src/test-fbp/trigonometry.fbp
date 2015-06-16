@@ -1,0 +1,70 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+angle_0(constant/float:value=0)
+angle_45(constant/float:value=45)
+angle_90(constant/float:value=90)
+
+compare_cos_angle_0(float/equal) OUT -> RESULT output_cos_angle_0(test/result)
+compare_sin_angle_0(float/equal) OUT -> RESULT output_sin_angle_0(test/result)
+compare_tan_angle_0(float/equal) OUT -> RESULT output_tan_angle_0(test/result)
+
+result_cos_angle_0(constant/float:value=1) OUT -> IN1 compare_cos_angle_0
+result_sin_angle_0(constant/float:value=0) OUT -> IN1 compare_sin_angle_0
+result_tan_angle_0(constant/float:value=0) OUT -> IN1 compare_tan_angle_0
+
+angle_0 OUT -> IN cos_0(trigonometry/cosine) OUT -> IN0 compare_cos_angle_0
+angle_0 OUT -> IN sin_0(trigonometry/sine) OUT -> IN0 compare_sin_angle_0
+angle_0 OUT -> IN tan_0(trigonometry/tangent) OUT -> IN0 compare_tan_angle_0
+
+compare_cos_angle_45(float/equal) OUT -> RESULT output_cos_angle_45(test/result)
+compare_sin_angle_45(float/equal) OUT -> RESULT output_sin_angle_45(test/result)
+compare_tan_angle_45(float/equal) OUT -> RESULT output_tan_angle_45(test/result)
+
+result_cos_angle_45(constant/float:value=0.52532198881772973) OUT -> IN1 compare_cos_angle_45
+result_sin_angle_45(constant/float:value=0.85090352453411844) OUT -> IN1 compare_sin_angle_45
+result_tan_angle_45(constant/float:value=1.61977519054386154) OUT -> IN1 compare_tan_angle_45
+
+angle_45 OUT -> IN cos_45(trigonometry/cosine) OUT -> IN0 compare_cos_angle_45
+angle_45 OUT -> IN sin_45(trigonometry/sine) OUT -> IN0 compare_sin_angle_45
+angle_45 OUT -> IN tan_45(trigonometry/tangent) OUT -> IN0 compare_tan_angle_45
+
+compare_cos_angle_90(float/equal) OUT -> RESULT output_cos_angle_90(test/result)
+compare_sin_angle_90(float/equal) OUT -> RESULT output_sin_angle_90(test/result)
+compare_tan_angle_90(float/equal) OUT -> RESULT output_tan_angle_90(test/result)
+
+result_cos_angle_90(constant/float:value=-0.44807361612917013) OUT -> IN1 compare_cos_angle_90
+result_sin_angle_90(constant/float:value=0.89399666360055785) OUT -> IN1 compare_sin_angle_90
+result_tan_angle_90(constant/float:value=-1.99520041220824207) OUT -> IN1 compare_tan_angle_90
+
+angle_90 OUT -> IN cos_90(trigonometry/cosine) OUT -> IN0 compare_cos_angle_90
+angle_90 OUT -> IN sin_90(trigonometry/sine) OUT -> IN0 compare_sin_angle_90
+angle_90 OUT -> IN tan_90(trigonometry/tangent) OUT -> IN0 compare_tan_angle_90
+

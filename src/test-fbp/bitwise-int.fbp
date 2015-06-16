@@ -1,0 +1,72 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+input1(constant/int:value=0xf0f0f0f0)
+input2(constant/int:value=0x0f0f0f0f)
+all_one(constant/int:value=0xffffffff)
+all_zero(constant/int:value=0x00000000)
+one(constant/int:value=1)
+min_int(constant/int:value=0x80000000)
+max_int(constant/int:value=0x7fffffff)
+
+input1 OUT -> IN0 and(int/bitwise-and)
+input2 OUT -> IN1 and
+and OUT -> IN0 cmp_expected_and(int/equal)
+all_zero OUT -> IN1 cmp_expected_and
+cmp_expected_and OUT -> RESULT test_int_bitwise_and(test/result)
+
+input1 OUT -> IN0 or(int/bitwise-or)
+input2 OUT -> IN1 or
+or OUT -> IN0 cmp_expected_or(int/equal)
+all_one OUT -> IN1 cmp_expected_or
+cmp_expected_or OUT -> RESULT test_int_bitwise_or(test/result)
+
+input1 OUT -> IN0 xor(int/bitwise-xor)
+all_one OUT -> IN1 xor
+xor OUT -> IN0 cmp_expected_xor(int/equal)
+input2 OUT -> IN1 cmp_expected_xor
+cmp_expected_xor OUT -> RESULT test_int_bitwise_xor(test/result)
+
+input1 OUT -> IN not(int/bitwise-not)
+not OUT -> IN0 cmp_expected_not(int/equal)
+input2 OUT -> IN1 cmp_expected_not
+cmp_expected_not OUT -> RESULT test_int_bitwise_not(test/result)
+
+min_int OUT -> IN shiftl(int/shift-left)
+one OUT -> SHIFT shiftl
+shiftl OUT -> IN0 cmp_expected_shiftl(int/equal)
+all_zero OUT -> IN1 cmp_expected_shiftl
+cmp_expected_shiftl OUT -> RESULT test_int_bitwise_shift_left(test/result)
+
+all_one OUT -> IN shiftr(int/shift-right)
+one OUT -> SHIFT shiftr
+shiftr OUT -> IN0 cmp_expected_shiftr(int/equal)
+max_int OUT -> IN1 cmp_expected_shiftr
+cmp_expected_shiftr OUT -> RESULT test_int_bitwise_shift_right(test/result)

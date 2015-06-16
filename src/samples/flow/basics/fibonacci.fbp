@@ -1,0 +1,110 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# This file shows a Fibonacci implementation, not much useful per se, but
+# is an example of:
+#
+#  - declaring nodes without a connection
+#
+#  - integer node types (constant/int and int/addition)
+#
+#  - console node type (using a custom prefix)
+#
+#  - anonymous nodes (the '_' character)
+#
+#  - quit the application (app/quit)
+#
+#  - closed loops: the output of first addition (sum1) is feed to the
+#    second (sum2) that is then feedback to sum1. In many flow
+#    platforms this would crash due infinite recursion, but the way
+#    soletta is implemented allow this without problems as each
+#    iteration happens in its own mainloop execution.
+#
+#  - multiple connections per port: both the constant 'one' and the
+#    result of 'sum2' are connected to the second port (IN1) of
+#    'sum1'. There is no problem, as the constant will only produce
+#    the value on connection, while the addition produces new values
+#    when any of its input ports change. The most recent value is used
+#    by the port, then 'sum1' keeps being updated on every change (the
+#    recursion).
+#
+#  - error handling: all nodes have an implicit port 'ERROR' that is
+#    used to dispatch any error that may happen with the node. The
+#    addition node will report overflows there and it's used to stop
+#    the program.
+#
+#
+# Diagram:
+#                                                                      .----------.
+#                                                                      |          |
+# .------.      .------------------------.                      .->QUIT| app/quit |
+# |      |      |           .------.     |                      |      |          |
+# | zero |OUT---+------->IN0|      |     |        .------.      |      `----------'
+# |      |                  | sum1 |OUT------->IN0|      |ERROR-'    .-----.
+# `------'         .-+-->IN1|      |     |        | sum2 |           |     |
+#                  | |      `------'     `-+-->IN1|      |OUT--+-->IN| fib |
+#                  | |                     |      `------'     |     |     |
+# .------.         | `---------------------+------------------'      `-----'
+# | one  |OUT------'
+# `------'
+
+### declare nodes we'll use later:
+# constants:
+one(constant/int:value=1)
+zero(constant/int:value=0)
+# operations
+sum1(int/addition)
+sum2(int/addition)
+# output
+fib(console:prefix="fibonacci=")
+
+### implement the fibonacci recursive algorithm
+# base: 0 + 1 -> sum1
+zero OUT -> IN0 sum1
+one OUT -> IN1 sum1
+
+# base: sum1 + zero -> sum2
+sum1 OUT -> IN0 sum2
+zero OUT -> IN1 sum2
+
+# recursion: sum2 + zero -> sum1
+sum2 OUT -> IN1 sum1
+# recursion: sum2 + sum1 -> sum2
+sum2 OUT -> IN1 sum2
+
+### output the results
+# first output the '1' only once (since it's a constant)
+one OUT -> IN fib
+# then output each result of sum2
+sum2 OUT -> IN fib
+
+### Stop on errors (integer overflow)
+sum2 ERROR -> QUIT _(app/quit)

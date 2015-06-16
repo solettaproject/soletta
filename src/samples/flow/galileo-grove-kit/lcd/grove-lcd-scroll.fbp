@@ -1,0 +1,68 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.conf sol-fbp-runner grove-lc-scroll.fbp
+
+# This is a translation of
+# Grove_RGB_BackLight_LCD/Scroll/Scroll.ino, from
+# https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
+
+# This will start with the string at the display's origin, move it
+# past the boundaries to the left, back again to the right, till it
+# vanishes again and finally back to the initial position, just to
+# loop again.
+
+false(constant/boolean:value=false)
+string(constant/string:value="hello, world!") # strlen = 13
+string OUT -> PUT_STRING lcd(LCDChar)
+
+# zero output will be ignored at the start (1st_loop_filter's min is 1)
+acc(int/accumulator:setup_value=min:0|max:56|step:1)
+
+1st_loop_filter(int/filter:min=1,max=12) # strlen
+2nd_loop_filter(int/filter:min=13,max=40) # strlen + column span = 28
+3rd_loop_filter(int/filter:min=41,max=56) # column span = 16
+
+timer_delay(timer:interval=1000)
+false OUT -> ENABLED timer(timer:interval=150)
+
+start_loop(converter/empty-to-boolean:output_value=true)
+start_loop OUT -> ENABLED timer
+
+timer OUT -> INC acc
+acc OUT -> IN 1st_loop_filter OUT -> SCROLL_LEFT lcd
+acc OUT -> IN 2nd_loop_filter OUT -> SCROLL_RIGHT lcd
+acc OUT -> IN 3rd_loop_filter OUT -> SCROLL_LEFT lcd
+
+acc OVERFLOW -> IN loop_pause(converter/empty-to-boolean:output_value=true)
+loop_pause OUT -> ENABLED timer_delay
+loop_pause OUT -> IN _(boolean/not) OUT -> ENABLED timer
+timer_delay OUT -> IN start_loop

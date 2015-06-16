@@ -1,0 +1,6 @@
+[Unit]
+Description=Test SystemCallFilter for unix socket (fail reader)
+
+[Service]
+ExecStart=@prefix@/bin/sol-fbp-runner @abs_top_builddir@/src/samples/flow/unix-socket/string-reader.fbp
+SystemCallFilter=connect

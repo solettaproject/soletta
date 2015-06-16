@@ -1,0 +1,22 @@
+{
+  "platforms": [
+    {
+     "name": "intel_galileo_rev_d",
+     "validation": [
+      {
+       "file_path": "/sys/devices/virtual/dmi/id/board_name",
+       "match": [ "Galileo$" ]
+      }
+     ]
+    },
+    {
+     "name": "intel_galileo_rev_g",
+     "validation": [
+      {
+       "file_path": "/sys/devices/virtual/dmi/id/board_name",
+       "match": [ "GalileoGen2" ]
+      }
+     ]
+    }
+  ]
+}

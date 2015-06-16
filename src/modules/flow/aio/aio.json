@@ -1,0 +1,50 @@
+{
+  "name": "aio",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "Analog input reader. Default range is 0 - 4095 (12 bits) and can be changed by 'mask' options to support different chip manufacturers.",
+      "methods": {
+        "close": "aio_close",
+        "open": "aio_reader_open"
+      },
+      "name": "aio/reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "default": 12,
+            "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
+            "name": "mask"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
+            "name": "poll_timeout"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Measured value.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "aio_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/aio/reader.html"
+    }
+  ]
+}

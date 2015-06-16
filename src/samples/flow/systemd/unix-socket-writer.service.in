@@ -1,0 +1,5 @@
+[Unit]
+Description=Test SystemCallFilter for unix socket (writer)
+
+[Service]
+ExecStart=@prefix@/bin/sol-fbp-runner @abs_top_builddir@/src/samples/flow/unix-socket/string-writer.fbp

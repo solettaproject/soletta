@@ -1,0 +1,21 @@
+These examples cover the unix-socket node types.
+
+They are useful to provide fast inter-process-communication and they
+work by specifying a path to the unix socket to use and the mode
+(server or client). Then the server will accept connection from
+different local processes and read the data (if a reader) or broadcast
+it (if a writer). Servers should always be started before clients, as
+they will create the socket to accept connections.  By default writer
+nodes are server, unless defined as a node option.
+
+As both processes are local, no endianess conversion is done and the
+packets are considered to be of exact sizes, otherwise the peer may
+close the connection if it could not read or write the required
+amount.
+
+One can implement isolation and security using this communication
+primitive and some external mechanism. For instance one can isolate
+node memory by moving them to different UNIX processes. There are
+platform-dependent security systems such as SELinux or SECCOMP to
+filter syscalls a process may do or resources it may access. One
+example is provided using systemd and syscall filtering in ../systemd.

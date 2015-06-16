@@ -1,0 +1,62 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+below_min(constant/float:value=9.9)
+above_max(constant/float:value=20.001)
+within_range(constant/float:value=15.38)
+float_to_boolean_below(converter/float-to-boolean:true_range=min:10|max:20)
+float_to_boolean_above(converter/float-to-boolean:true_range=min:10|max:20)
+float_to_boolean_within(converter/float-to-boolean)
+true_range(constant/float:value=min:10|max:20) OUT -> TRUE_RANGE float_to_boolean_within
+
+boolean_to_float_false(converter/boolean-to-float)
+const_true_value(constant/float:value=117.83) OUT -> TRUE_VALUE boolean_to_float_false
+const_false_value(constant/float:value=1024.28) OUT -> FALSE_VALUE boolean_to_float_false
+
+below_min OUT -> IN float_to_boolean_below
+float_to_boolean_below OUT -> IN _(boolean/not) OUT -> RESULT result_below_range(test/result)
+
+above_max OUT -> IN float_to_boolean_above
+float_to_boolean_above OUT -> IN _(boolean/not) OUT -> RESULT result_above_range(test/result)
+
+within_range OUT -> IN float_to_boolean_within
+float_to_boolean_within OUT -> RESULT result_within_range(test/result)
+
+true(constant/boolean:value=true)
+false(constant/boolean:value=false)
+true_value(constant/float:value=117.83)
+false_value(constant/float:value=1024.28)
+boolean_to_float_true(converter/boolean-to-float:true_value=117.83,false_value=1024.28)
+
+true OUT -> IN boolean_to_float_true OUT -> IN0 cmp_true(float/equal)
+true_value OUT -> IN1 cmp_true OUT -> RESULT result_true(test/result)
+
+false OUT -> IN boolean_to_float_false OUT -> IN0 cmp_false(float/equal)
+false_value OUT -> IN1 cmp_false OUT -> RESULT result_false(test/result)

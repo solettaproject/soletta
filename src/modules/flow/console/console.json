@@ -1,0 +1,52 @@
+{
+  "category": "output/sw",
+  "author": "Intel Corporation",
+  "license": "BSD 3-Clause",
+  "description": "Console Output",
+  "in_ports": [
+  {
+   "data_type": "any",
+   "description": "Prints the packet to console",
+   "methods": {
+    "process": "console_in_process"
+   },
+   "name": "IN"
+  }
+ ],
+ "methods": {
+  "close": "console_close",
+  "open": "console_open"
+ },
+ "name": "console",
+ "options": {
+  "members": [
+   {
+    "data_type": "string",
+    "default": null,
+    "description": "prefix messages with given string.",
+    "name": "prefix"
+   },
+   {
+    "data_type": "string",
+    "default": null,
+    "description": "suffix messages with given string.",
+    "name": "suffix"
+   },
+   {
+    "data_type": "boolean",
+    "default": true,
+    "description": "If true will output to stdout, otherwise stderr.",
+    "name": "output_on_stdout"
+   },
+   {
+    "data_type": "boolean",
+    "default": true,
+    "description": "If true will force flush after messages are printed.",
+    "name": "flush"
+   }
+  ],
+  "version": 1
+ },
+ "private_data_type": "console_data",
+ "url": "http://solettaproject.org/doc/latest/node_types/console.html"
+}

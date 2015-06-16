@@ -1,0 +1,194 @@
+{
+  "name": "random",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "random",
+      "description": "Generate random booleans",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Seed value. Sequences are repeatable by using the same seed.",
+          "methods": {
+            "process": "random_seed_set"
+          },
+          "name": "SEED"
+        },
+        {
+          "data_type": "any",
+          "description": "Receives a pulse to generate a new random boolean.",
+          "methods": {
+            "process": "random_boolean_generate"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "random_open"
+      },
+      "name": "random/boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 1,
+            "description": "Seed value. Sequences are repeatable by using the same seed.",
+            "name": "seed"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Random boolean. Do NOT use it for anything else than test purposes.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "random_node_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/random/boolean.html"
+    },
+    {
+      "category": "random",
+      "description": "Generate random bytes",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Seed value. Sequences are repeatable by using the same seed.",
+          "methods": {
+            "process": "random_seed_set"
+          },
+          "name": "SEED"
+        },
+        {
+          "data_type": "any",
+          "description": "Receives a pulse to generate a new random byte.",
+          "methods": {
+            "process": "random_byte_generate"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "random_open"
+      },
+      "name": "random/byte",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 1,
+            "description": "Seed value. Sequences are repeatable by using the same seed.",
+            "name": "seed"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Random byte. Do NOT use it for anything else than test purposes.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "random_node_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/random/byte.html"
+    },
+    {
+      "category": "random",
+      "description": "Generate random float values",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Seed value. Sequences are repeatable by using the same seed.",
+          "methods": {
+            "process": "random_seed_set"
+          },
+          "name": "SEED"
+        },
+        {
+          "data_type": "any",
+          "description": "Receives a pulse to generate a new random float number.",
+          "methods": {
+            "process": "random_float_generate"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "random_open"
+      },
+      "name": "random/float",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 1,
+            "description": "Seed value. Sequences are repeatable by using the same seed.",
+            "name": "seed"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Random float value from 0 to INT32_MAX. Do NOT use it for anything else than test purposes.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "random_node_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/random/float.html"
+    },
+    {
+      "category": "random",
+      "description": "Generate random int values",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Seed value. Sequences are repeatable by using the same seed.",
+          "methods": {
+            "process": "random_seed_set"
+          },
+          "name": "SEED"
+        },
+        {
+          "data_type": "any",
+          "description": "Receives a pulse to generate a new random int number.",
+          "methods": {
+            "process": "random_int_generate"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "random_open"
+      },
+      "name": "random/int",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 1,
+            "description": "Seed value. Sequences are repeatable by using the same seed.",
+            "name": "seed"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Random int value from 0 to INT32_MAX. Do NOT use it for anything else than test purposes.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "random_node_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/random/int.html"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+/sol-flow-buildopts.h
+/sol-flow-builtins-gen.h
+/sol-flow-node-types.h
+/*-gen.[ch]
+/builtins.json

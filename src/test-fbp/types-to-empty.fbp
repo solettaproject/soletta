@@ -1,0 +1,73 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+const_true(constant/boolean:value=true)
+const_byte(constant/byte:value=127)
+const_int(constant/int:value=10)
+const_float(constant/float:value=10)
+
+result_bool(constant/boolean:value=true)
+result_byte(constant/byte:value=127)
+result_int(constant/int:value=9)
+result_float(constant/float:value=10)
+byte_to_boolean(converter/byte-to-boolean)
+
+equal_bool(boolean/and)
+equal_byte(byte/bitwise-and)
+equal_int(int/equal)
+equal_float(float/equal)
+
+
+map_int(int/map:use_input_range=true,output_range=min:0|max:10)
+map_float(float/map:use_input_range=true,output_range=min:0|max:10)
+
+bool_empty(converter/boolean-to-empty)
+empty_bool(converter/empty-to-boolean)
+byte_empty(converter/byte-to-empty:range_min=0,range_max=127)
+empty_byte(converter/empty-to-byte:output_value=127)
+int_empty(converter/int-to-empty:range=min:5|max:10)
+empty_int(converter/empty-to-int:output_value=9)
+float_empty(converter/float-to-empty:range=min:4.5)
+empty_float(converter/empty-to-float:output_value=10)
+
+const_true OUT -> PULSE_IF_TRUE bool_empty OUT -> IN empty_bool
+const_byte OUT -> IN byte_empty OUT -> IN empty_byte
+const_int OUT -> IN map_int OUT -> IN int_empty OUT -> IN empty_int
+const_float OUT -> IN map_float OUT -> IN float_empty OUT -> IN empty_float
+
+empty_bool OUT -> IN0 equal_bool
+empty_byte OUT -> IN0 equal_byte
+empty_int OUT -> IN0 equal_int
+empty_float OUT -> IN0 equal_float
+
+result_bool OUT -> IN1 equal_bool OUT -> RESULT r_bool(test/result)
+result_byte OUT -> IN1 equal_byte OUT -> IN byte_to_boolean OUT -> RESULT r_byte(test/result)
+result_int OUT -> IN1 equal_int OUT -> RESULT r_int(test/result)
+result_float OUT -> IN1 equal_float OUT -> RESULT r_float(test/result)

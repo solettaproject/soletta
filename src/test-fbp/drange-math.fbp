@@ -1,0 +1,89 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+negative_val(constant/float:value=-365.017)
+positive_val(constant/float:value=183784.872)
+absolute_val(constant/float:value=365.017)
+
+negative_val OUT -> IN0 min(float/min)
+positive_val OUT -> IN1 min
+min OUT -> IN0 cmp_min(float/equal)
+negative_val OUT -> IN1 cmp_min
+cmp_min OUT -> RESULT min_result(test/result)
+
+negative_val OUT -> IN0 max(float/max)
+positive_val OUT -> IN1 max
+max OUT -> IN0 cmp_max(float/equal)
+positive_val OUT -> IN1 cmp_max
+cmp_max OUT -> RESULT max_result(test/result)
+
+negative_val OUT -> IN abs(float/abs) OUT -> IN0 cmp_abs(float/equal)
+absolute_val OUT -> IN1 cmp_abs
+cmp_abs OUT -> RESULT abs_result(test/result)
+
+base(constant/float:value=2.0)
+exp(constant/float:value=10.0)
+result(constant/float:value=1024.0)
+
+base OUT -> BASE pow(float/pow)
+exp OUT -> EXPONENT pow
+pow OUT -> IN0 cmp_pow(float/equal)
+result OUT -> IN1 cmp_pow
+cmp_pow OUT -> RESULT pow_result(test/result)
+
+radicand(constant/float:value=16.00)
+sqrt_expected(constant/float:value=4.00)
+radicand OUT -> IN sqrt(float/sqrt) 
+sqrt OUT -> IN0 cmp_sqrt(float/equal)
+sqrt_expected OUT -> IN1 cmp_sqrt
+cmp_sqrt OUT -> RESULT sqrt_result(test/result)
+
+over(constant/float:value=566|0|565|1)
+within_range(constant/float:value=128|0|256|1)
+under(constant/float:value=-10|50|100|1)
+
+c1(constant/float:value=565)
+c2(constant/float:value=128)
+c3(constant/float:value=50)
+
+over OUT -> IN _(float/constrain) OUT -> IN0 cmp_over(float/equal)
+c1 OUT -> IN1 cmp_over OUT -> RESULT r_over(test/result)
+
+within_range OUT -> IN _(float/constrain) OUT -> IN0 cmp_within_range(float/equal)
+c2 OUT -> IN1 cmp_within_range OUT -> RESULT r_within_range(test/result)
+
+under OUT -> IN _(float/constrain) OUT -> IN0 cmp_under(float/equal)
+c3 OUT -> IN1 cmp_under OUT -> RESULT r_under(test/result)
+
+sixty_percent(constant/float:value=60|0|100|1)
+sixty_percent_of_sixty(constant/float:value=36)
+sixty_percent OUT -> IN map(float/map:use_input_range=true,output_range=min:0|max:60|step:1)
+map OUT -> IN0 cmp(float/equal)
+sixty_percent_of_sixty OUT -> IN1 cmp OUT -> RESULT r(test/result)

@@ -1,0 +1,16 @@
+This directory contains examples covering the basics of Soletta flows.
+
+The scripts should be executable given that sol-fbp-runner is in your
+$PATH, otherwise call manually sol-fbp-runner <script>
+
+Each file include the description of what it does and what is exemplified.
+
+Note that soletta applications are usually meant to run forever as
+they are "the device application", so most of them will never exit and
+you need to manually terminate them sending an UNIX signal such as
+SIGTERM or SIGINT (such as key sequence Control-C).
+
+The simple.fbp is converted to low-level C-API using sol-fbp-generator
+to simple-fbp.c, it is an example that the script can be turned into
+native code for efficiency matters. See ../c-api for more examples
+doing directly in C.

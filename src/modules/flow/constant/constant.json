@@ -1,0 +1,207 @@
+{
+  "name": "constant",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "constant",
+      "description": "Send an initial packet with a constant value set on options.",
+      "methods": {
+        "open": "constant_boolean_open"
+      },
+      "name": "constant/boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "description": "Value of constant.",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Constant value, sent only once, when connected to a node.",
+          "methods": {
+            "connect": "boolean_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_constant_boolean",
+      "url": "http://solettaproject.org/doc/latest/node_types/constant/boolean.html"
+    },
+    {
+      "category": "constant",
+      "description": "Send an initial packet with a constant value set on options.",
+      "methods": {
+        "open": "constant_byte_open"
+      },
+      "name": "constant/byte",
+      "options": {
+        "members": [
+          {
+            "data_type": "byte",
+            "description": "Value of constant.",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Constant value, sent only once, when connected to a node.",
+          "methods": {
+            "connect": "byte_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_constant_byte",
+      "url": "http://solettaproject.org/doc/latest/node_types/constant/byte.html"
+    },
+    {
+      "category": "constant",
+      "description": "Send an initial packet with a constant value set on options.",
+      "methods": {
+        "open": "constant_drange_open"
+      },
+      "name": "constant/float",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "description": "Value of constant.",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Constant value, sent only once, when connected to a node.",
+          "methods": {
+            "connect": "drange_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_drange",
+      "url": "http://solettaproject.org/doc/latest/node_types/constant/drange.html"
+    },
+    {
+      "category": "constant",
+      "description": "Send an initial empty packet.",
+      "name": "constant/empty",
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "A single pulse sent when connected to a node.",
+          "methods": {
+            "connect": "empty_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/constant/empty.html"
+    },
+    {
+      "category": "constant",
+      "description": "Send an initial packet with a constant value set on options.",
+      "methods": {
+        "open": "constant_irange_open"
+      },
+      "name": "constant/int",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Value of constant.",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Constant value, sent only once, when connected to a node.",
+          "methods": {
+            "connect": "irange_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_irange",
+      "url": "http://solettaproject.org/doc/latest/node_types/constant/irange.html"
+    },
+    {
+      "category": "constant",
+      "description": "Send an initial packet with a constant value set on options.",
+      "methods": {
+        "open": "constant_rgb_open"
+      },
+      "name": "constant/rgb",
+      "options": {
+        "members": [
+          {
+            "data_type": "rgb",
+            "description": "Value of constant.",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Constant value, sent only once, when connected to a node.",
+          "methods": {
+            "connect": "rgb_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_rgb",
+      "url": "http://solettaproject.org/doc/latest/node_types/constant/rgb.html"
+    },
+    {
+      "category": "constant",
+      "description": "Send an initial packet with a string set on options.",
+      "methods": {
+        "close": "constant_string_close",
+        "open": "constant_string_open"
+      },
+      "name": "constant/string",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "String to be sent when node is connected.",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Constant value, sent only once, when connected to a node.",
+          "methods": {
+            "connect": "string_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_constant_string",
+      "url": "http://solettaproject.org/doc/latest/node_types/constant/string.html"
+    }
+  ]
+}

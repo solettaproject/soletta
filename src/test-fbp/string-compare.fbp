@@ -1,0 +1,72 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+full_string(constant/string:value="Hello World")
+full_upper_string(constant/string:value="HELLO WORLD")
+same_string(constant/string:value="Hello World")
+lesser_string(constant/string:value="Hello")
+greater_string(constant/string:value="World")
+
+zero(constant/int:value=0)
+
+full_string OUT -> IN0 cmp_same(string/compare)
+same_string OUT -> IN1 cmp_same EQUAL -> RESULT full_and_same_are_equal(test/result)
+cmp_same OUT -> IN0 cmp_same_is_zero(int/equal)
+zero OUT -> IN1 cmp_same_is_zero OUT -> RESULT full_and_same_gives_zero(test/result)
+
+lesser_string OUT -> IN0 cmp_less(string/compare)
+full_string OUT -> IN1 cmp_less EQUAL -> IN not_cmp_less(boolean/not)
+not_cmp_less OUT -> RESULT lesser_and_full_are_not_equal(test/result)
+
+cmp_less OUT -> IN0 cmp_less_than_zero(int/less)
+zero OUT -> IN1 cmp_less_than_zero OUT -> RESULT lesser_and_full_gives_less_than_zero(test/result)
+
+greater_string OUT -> IN0 cmp_great(string/compare)
+full_string OUT -> IN1 cmp_great EQUAL -> IN not_cmp_great(boolean/not)
+not_cmp_great OUT -> RESULT greater_and_full_are_not_equal(test/result)
+
+cmp_great OUT -> IN0 cmp_greater_than_zero(int/greater)
+zero OUT -> IN1 cmp_greater_than_zero OUT -> RESULT greater_and_full_gives_greater_than_zero(test/result)
+
+lesser_string OUT -> IN0 cmp_bytes(string/compare:bytes=5)
+full_string OUT -> IN1 cmp_bytes EQUAL -> RESULT comparing_n_bytes_equal(test/result)
+cmp_bytes OUT -> IN0 cmp_bytes_is_zero(int/equal)
+zero OUT -> IN1 cmp_bytes_is_zero OUT -> RESULT comparing_n_bytes_gives_zero(test/result)
+
+
+# regular comparison should fail if case differs
+full_string OUT -> IN0 cmp_case(string/compare)
+full_upper_string OUT -> IN1 cmp_case
+cmp_case EQUAL -> IN _(boolean/not) OUT -> RESULT full_and_upper_differs(test/result)
+
+# but should works if ignore_case is set
+full_string OUT -> IN0 cmp_ignore_case(string/compare:ignore_case=true)
+full_upper_string OUT -> IN1 cmp_ignore_case
+cmp_ignore_case EQUAL -> RESULT full_and_upper_are_equal_if_ignore_case(test/result)

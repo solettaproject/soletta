@@ -1,0 +1,60 @@
+{
+  "category": "timer",
+  "author": "Intel Corporation",
+  "license": "BSD 3-Clause",
+  "description": "Provides an empty packet on a timely manner",
+  "in_ports": [
+  {
+   "data_type": "any",
+   "description": "Resets the timer without triggering a packet in the current iteration.",
+   "methods": {
+    "process": "timer_reset_process"
+   },
+   "name": "RESET",
+   "required": false
+  },
+  {
+   "data_type": "int",
+   "description": "Set the timer's tick interval in milliseconds.",
+   "methods": {
+    "process": "timer_interval_process"
+   },
+   "name": "INTERVAL",
+   "required": false
+  },
+  {
+   "data_type": "boolean",
+   "description": "Enables or disables the timer, based on the value of the packet received. When stopped, the timer will cease to emit packets from the OUT port. When enabled again, it does not resume from the point where it was stopped.",
+   "methods": {
+    "process": "timer_enabled_process"
+   },
+   "name": "ENABLED",
+   "required": false
+  }
+ ],
+ "methods": {
+  "close": "timer_close",
+  "open": "timer_open"
+ },
+ "name": "timer",
+ "options": {
+  "members": [
+   {
+    "data_type": "int",
+    "default": 1000,
+    "description": "Tick interval the timer will start with, in milliseconds.",
+    "name": "interval"
+   }
+  ],
+  "version": 1
+ },
+ "out_ports": [
+  {
+   "data_type": "empty",
+   "description": "an empty packet when timer ticks.",
+   "name": "OUT"
+  }
+ ],
+ "private_data_type": "timer_data",
+ "url": "http://solettaproject.org/doc/latest/node_types/timer.html"
+}

@@ -1,0 +1,364 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+
+  "definitions": {
+    "int_or_limit": {
+      "oneOf": [
+        { "type": "integer" },
+        { "enum": [ "INT32_MIN", "INT32_MAX" ] }
+      ]
+    },
+
+    "float_or_limit": {
+      "oneOf": [
+        { "type": "number" },
+        { "enum": [ "-DBL_MIN", "DBL_MIN", "-DBL_MAX", "DBL_MAX" ] }
+      ]
+    },
+
+    "c_ident": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$"
+    },
+
+    "string_or_null": {
+      "oneOf": [
+        { "type": "string" },
+        { "enum": [ null ] }
+      ]
+    },
+
+    "module_name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9-]*$"
+    },
+
+    "node_type_name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9-]*(|/[a-zA-Z0-9-]+)$"
+    },
+
+    "data_type": {
+      "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "error" ]
+    },
+
+    "port_data_type": {
+      "anyOf": [
+        { "$ref": "#/definitions/data_type" },
+        { "enum": [ "any", "blob" ] },
+        {
+          "type": "string",
+          "pattern": "^custom:[a-zA-Z_][a-zA-Z0-9_]*$"
+        }
+      ]
+    },
+
+    "port_data_type_out": {
+      "anyOf": [
+        { "$ref": "#/definitions/port_data_type" },
+        { "enum": [ "empty" ] }
+      ]
+    },
+
+    "port": {
+      "type": "object",
+      "properties": {
+        "name": { },
+        "description": { "type": "string" },
+        "flags": { },
+        "required": { "type": "boolean" },
+        "data_type": { },
+        "methods": { }
+      },
+      "additionalProperties": false,
+      "required": [ "name", "data_type", "description" ]
+    },
+
+    "in_port": {
+      "allOf": [
+        { "$ref": "#/definitions/port" },
+        {
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            },
+            "data_type": { "$ref": "#/definitions/port_data_type" },
+            "methods": {
+              "type": "object",
+              "properties": {
+                "connect": { "$ref": "#/definitions/c_ident" },
+                "disconnect": { "$ref": "#/definitions/c_ident" },
+                "process": { "$ref": "#/definitions/c_ident" }
+              },
+              "additionalProperties": false,
+              "required": [ "process" ]
+            }
+          },
+          "required": [ "methods" ]
+        }
+      ]
+    },
+
+    "out_port": {
+      "allOf": [
+        { "$ref": "#/definitions/port" },
+        {
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$",
+              "not": { "enum": [ "ERROR" ] }
+            },
+            "flags": { "enum": [ "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET" ] },
+            "data_type": { "$ref": "#/definitions/port_data_type_out" },
+            "methods": {
+              "type": "object",
+              "properties": {
+                "connect": { "$ref": "#/definitions/c_ident" },
+                "disconnect": { "$ref": "#/definitions/c_ident" }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      ]
+    },
+
+    "node_type": {
+      "type": "object",
+      "properties": {
+        "access": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "data_type": { "type": "string" },
+        "extra_methods": { "type": "object" }
+      },
+      "additionalProperties": false,
+      "required": [ "access", "data_type" ]
+    },
+
+    "options_methods": {
+      "type": "object",
+      "properties": {
+        "new": { "$ref": "#/definitions/c_ident" },
+        "free": { "$ref": "#/definitions/c_ident" }
+      },
+      "additionalProperties": false
+    },
+
+    "options_members_common": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "data_type": { },
+        "default": { }
+      },
+      "additionalProperties": false,
+      "required": [ "name", "data_type", "description" ]
+    },
+
+    "options_members_boolean": {
+      "properties": {
+        "data_type": { "enum": [ "boolean" ] },
+        "default": { "type": "boolean" }
+      }
+    },
+
+    "options_members_int": {
+      "properties": {
+        "data_type": { "enum": [ "int" ] },
+        "default": {
+          "oneOf": [
+            { "type": "integer" },
+            {
+              "type": "object",
+              "properties": {
+                "val": { "$ref": "#/definitions/int_or_limit" },
+                "min": { "$ref": "#/definitions/int_or_limit" },
+                "max": { "$ref": "#/definitions/int_or_limit" },
+                "step": { "$ref": "#/definitions/int_or_limit" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+
+    "options_members_float": {
+      "properties": {
+        "data_type": { "enum": [ "float" ] },
+        "default": {
+          "oneOf": [
+            { "type": "number" },
+            {
+              "type": "object",
+              "properties": {
+                "val": { "$ref": "#/definitions/float_or_limit" },
+                "min": { "$ref": "#/definitions/float_or_limit" },
+                "max": { "$ref": "#/definitions/float_or_limit" },
+                "step": { "$ref": "#/definitions/float_or_limit" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+
+    "options_members_rgb": {
+      "properties": {
+        "data_type": { "enum": [ "rgb" ] },
+        "default": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "red": { "$ref": "#/definitions/int_or_limit" },
+                "green": { "$ref": "#/definitions/int_or_limit" },
+                "blue": { "$ref": "#/definitions/int_or_limit" },
+                "red_max": { "$ref": "#/definitions/int_or_limit" },
+                "green_max": { "$ref": "#/definitions/int_or_limit" },
+                "blue_max": { "$ref": "#/definitions/int_or_limit" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+
+    "options_members_string": {
+      "properties": {
+        "data_type": { "enum": [ "string" ] },
+        "default":  { "$ref": "#/definitions/string_or_null" }
+      }
+    },
+
+    "options_members_byte": {
+      "properties": {
+        "data_type": { "enum": [ "byte" ] },
+        "default": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      }
+    },
+
+    "options_members_custom": {
+      "properties": {
+        "data_type": {
+          "type": "string",
+          "not": { "$ref": "#/definitions/data_type" }
+        },
+        "default": { "type": "string" }
+      }
+    },
+
+    "options_members_by_type": {
+      "allOf": [
+        { "$ref": "#/definitions/options_members_common" },
+        {
+          "oneOf": [
+            { "$ref": "#/definitions/options_members_boolean" },
+            { "$ref": "#/definitions/options_members_int" },
+            { "$ref": "#/definitions/options_members_float" },
+            { "$ref": "#/definitions/options_members_string" },
+            { "$ref": "#/definitions/options_members_byte" },
+            { "$ref": "#/definitions/options_members_rgb" },
+            { "$ref": "#/definitions/options_members_custom" }
+          ]
+        }
+      ]
+    },
+
+    "options": {
+      "type": "object",
+      "properties": {
+        "version": { "type": "integer" },
+        "methods": { "$ref": "#/definitions/options_methods" },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/definitions/options_members_by_type" }
+        }
+      },
+      "additionalProperties": false,
+      "required": [ "version" ]
+    },
+
+    "node": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/definitions/node_type_name" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "author": { "type": "string" },
+        "license": { "type": "string" },
+        "version": { "type": "string" },
+        "private_data_type": { "type": "string" },
+        "node_type": { "$ref": "#/definitions/node_type" },
+        "methods": {
+          "type": "object",
+          "properties": {
+            "init_type": { "$ref": "#/definitions/c_ident" },
+            "open": { "$ref": "#/definitions/c_ident" },
+            "close": { "$ref": "#/definitions/c_ident" }
+          }
+        },
+        "in_ports": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/definitions/in_port" }
+        },
+        "out_ports": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/definitions/out_port" }
+        },
+        "options": { "$ref": "#/definitions/options" }
+      },
+      "required": [ "name", "category", "description" ],
+      "additionalProperties": false
+    },
+
+    "module_meta": {
+      "type": "object",
+      "properties": {
+        "license": { "type": "string" },
+        "author": { "type": "string" },
+        "version": { "type": "number" }
+      }
+    },
+
+    "module": {
+      "type": "object",
+      "properties": {
+        "name": { "$ref": "#/definitions/module_name" },
+        "meta": { "$ref": "#/definitions/module_meta" },
+        "types": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/definitions/node" }
+        }
+      },
+      "required": [ "name", "meta", "types" ],
+      "additionalProperties": false
+    }
+  },
+
+  "oneOf": [
+    { "$ref": "#/definitions/node" },
+    { "$ref": "#/definitions/module" }
+  ]
+}

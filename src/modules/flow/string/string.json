@@ -1,0 +1,231 @@
+{
+  "name": "string",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "string",
+      "description": "Compare two strings",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "First string.",
+          "methods": {
+            "process": "string_compare"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "string",
+          "description": "String to be compared to the first one.",
+          "methods": {
+            "process": "string_compare"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "close": "string_close",
+        "open": "string_compare_open"
+      },
+      "name": "string/compare",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Amount of bytes to be compared between strings. If zero, the whole strings will be compared.",
+            "name": "bytes"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Ignore case when comparing strings.",
+            "name": "ignore_case"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "It returns an integer less than, equal to, or greater than zero if string received on IN0 is found to be less than, to match, or be greater than string on IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        },
+        {
+          "data_type": "boolean",
+          "description": "TRUE if the string received on IN0 is the same as the string on IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "EQUAL"
+        }
+      ],
+      "private_data_type": "string_compare_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/compare.html"
+    },
+    {
+      "category": "string",
+      "description": "Concatenate two strings",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "First string.",
+          "methods": {
+            "process": "string_concat"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "string",
+          "description": "String to be concatenated to the first one.",
+          "methods": {
+            "process": "string_concat"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "close": "string_concatenate_close",
+        "open": "string_concatenate_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Amount of bytes to be copied from string received on IN1. If zero, the whole string will be concatenated to the string received on IN0",
+            "name": "bytes"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Separator string to be used between the two concatenated strings. It's set to null by default (no separator).",
+            "name": "separator"
+          }
+        ],
+        "version": 1
+      },
+      "name": "string/concatenate",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "String IN0 concatenated to string IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_concatenate_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/concatenate.html"
+    },
+    {
+      "category": "string",
+      "description": "Calculate the length of a string",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String to be measured.",
+          "methods": {
+            "process": "string_length_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "string_length_open"
+      },
+      "name": "string/length",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Maximum length to be checked. If a string is greater than that, maxlen value will be sent. If zero, no limit is applied.",
+            "name": "maxlen"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Send the string size, the number of bytes excluding terminating null byte. If maxlen is provided, it'll be at most this value.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_length_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/length.html"
+    },
+    {
+      "category": "string",
+      "description": "Split a string given a separator.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String to be split.",
+          "methods": {
+            "process": "string_split"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "String received on 'IN' port will be split using these delimiter chars.",
+          "methods": {
+            "process": "set_string_separator"
+          },
+          "name": "SEPARATOR"
+        },
+        {
+          "data_type": "int",
+          "description": "A string can be split in many substrings. This value defines which substring should be sent. It must be non negative.",
+          "methods": {
+            "process": "set_string_index"
+          },
+          "name": "INDEX"
+        }
+      ],
+      "methods": {
+        "close": "string_split_close",
+        "open": "string_split_open"
+      },
+      "name": "string/split",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "A string can be split in many substrings. This value defines which substring should be sent. It must be non negative. It can be overriden by values received on 'INDEX' port.",
+            "name": "index"
+          },
+          {
+            "data_type": "string",
+            "default": " ",
+            "description": "String received on 'IN' port will be split using these delimiters chars. It can be overriden by values received on 'SEPARATOR' port.",
+            "name": "separator"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Number of generated substrings.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "LENGTH"
+        },
+        {
+          "data_type": "string",
+          "description": "Substring given a separator and an index.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_split_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/split.html"
+    }
+  ]
+}

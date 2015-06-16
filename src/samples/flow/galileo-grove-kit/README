@@ -1,0 +1,35 @@
+This showcases the Intel Galileo using the Grove Starter Kit
+
+http://www.seeedstudio.com/depot/Grove-starter-kit-plus-Intel-IoT-Edition-for-Intel-Galileo-Gen-2-and-Edison-p-1978.html
+http://www.intel.com/content/www/us/en/embedded/products/galileo/galileo-overview.html
+
+Grove Starter Kit Plus - Intel IoT Edition for Intel Galileo Gen 2
+Developer Kit is a complete hardware & software solution to help you
+explore the IoT space and create innovative projects. It is a starter
+kit for Intel Galileo Gen2 providing a collection of sensors,
+actuators and shields.
+
+Most of the samples are translations of Arduino Sketches, these are
+listed inside each script.
+
+Since the components may be assembled on different hardware I/O, one
+need to declare its configuration file with the correct pins to use.
+For instance, say you copied galileo-grove-kit.conf to
+my-galileo-grove-kit.conf and edited it to fit your needs, then run:
+
+   $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=my-galileo-grove-kit.conf
+   $ ./grove-button.fbp
+
+Same for other files with associated ".conf". If you fail to do so,
+you may receive an error such as:
+
+   $ ./grove-button.fbp
+   ./grove-button.fbp:37:1 Couldn't resolve type name 'Button'
+
+This is because there is no [SolettaNodeEntry Button] group in one
+configuration file supported by the system, you can define one using
+the environment variable.
+
+Alternatively you can define all your entries in a file called
+'sol-flow.conf' and it will be looked up in the current folder, then
+no environment variable is needed.

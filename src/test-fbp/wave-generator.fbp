@@ -1,0 +1,50 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# 15 samples for each
+tick_gen(test/boolean-generator:sequence="TTTTTTTTTTTTTTT",interval=0)
+
+square_validate(test/float-validator:sequence="-5.0 -5.0 0.0 -5.0 -5.0 0.0 -5.0 -5.0 0.0 -5.0 -5.0 0.0 -5.0 -5.0 0.0")
+square_wave(wave-generator/trapezoidal:min=-5,max=0,ticks_inc=1,ticks_dec=1,ticks_at_min=1,ticks_at_max=0)
+
+triangle_validate(test/float-validator:sequence="3.0 4.0 3.0 2.0 1.0 0.0 -1.0 0.0 1.0 2.0 3.0 4.0 3.0 2.0 1.0")
+triangle_wave(wave-generator/trapezoidal:tick_start=4,min=-1,max=4,ticks_inc=5,ticks_dec=5,ticks_at_min=0,ticks_at_max=0)
+
+trapezoid_validate(test/float-validator:sequence="1.0 4.0 4.0 4.0 1.0 -2.0 -2.0 1.0 4.0 4.0 4.0 1.0 -2.0 -2.0 1.0")
+trapezoid_wave(wave-generator/trapezoidal:tick_start=2,min=-2,max=4,ticks_inc=2,ticks_dec=2,ticks_at_min=1,ticks_at_max=2)
+
+# writing sine values up to double precision
+sine_validate(test/float-validator:sequence="0.0 0.06279051952931337 0.12533323356430426 0.18738131458572463 0.24868988716485479 0.30901699437494740 0.36812455268467792 0.42577929156507260 0.48175367410171521 0.53582679497899655 0.58778525229247303 0.63742398974868963 0.68454710592868850 0.72896862742141133 0.77051324277578903")
+sine_wave(wave-generator/sinusoidal:ticks_per_period=100,amplitude=1)
+
+tick_gen OUT -> TICK square_wave OUT -> IN square_validate OUT -> RESULT _(test/result)
+tick_gen OUT -> TICK triangle_wave OUT -> IN triangle_validate OUT -> RESULT _(test/result)
+tick_gen OUT -> TICK trapezoid_wave OUT -> IN trapezoid_validate OUT -> RESULT _(test/result)
+tick_gen OUT -> TICK sine_wave OUT -> IN sine_validate OUT -> RESULT _(test/result)

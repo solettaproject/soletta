@@ -1,0 +1,36 @@
+The input format used to describe flows is based on
+https://github.com/noflo/fbp/blob/master/README.md with some
+differences described below
+
+* Notation for ARRAY ports is still not supported.
+
+* Accepts ':' and '|' in the meta section.
+
+* Statements with zero connections, just a node alone.
+
+* Anonymous nodes are supported, declaring them by using _ as node name. e.g. '_(console)'
+
+* Add support for DECLARE statements, used to declare new components
+  to use in the flow.
+
+== Implementation ==
+
+The entry point for the parsing is the sol_fbp_parse()
+function. Implementation is divided into
+
+* sol-fbp-graph. Memory representation of the data we read. This is
+  used differently by the tools: fbp-generator uses it to write C
+  programs, fbp-runner uses it to build a series of sol_flow_nodes, and
+  fbp-to-dot to write a GraphViz (dot) description of the flow.
+
+* sol-fbp-internal-scanner. Used to produce a series of tokens given an
+  input. It takes care of clearing / normalizing the input for the
+  real parser.
+
+* sol-fbp-parser. Recursive descent parser that fills a graph
+  structure.
+
+The graph structure produced by the parser and the graph functions
+don't copy strings from the input, but use slices to it. This allows
+no extra memory / copying to be done at the cost of keeping the input
+alive while the graph is being used.

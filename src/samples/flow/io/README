@@ -1,0 +1,28 @@
+These examples show how to access input/output (I/O) ports on your boards.
+
+Since board configuration changes a lot and there is no way to
+autodetect it, you need to create a configuration file (ini-like) and
+specify it using the environment variable: $SOL_FLOW_MODULE_RESOLVER_CONFFILE
+
+For instance, say you copied pwm.conf to pwm-myboard.conf and edited
+it to fit your needs, then run:
+
+   $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=pwm-myboard.conf
+   $ ./pwm.fbp
+
+Same for other files with associated ".conf". If you fail to do so,
+you may receive an error such as:
+
+   $ ./pwm.fbp
+   ./pwm.fbp:41:36 Couldn't resolve type name 'Led1'
+
+This is because there is no [SolettaNodeEntry Led1] group in one
+configuration file supported by the system, you can define one using
+the environment variable.
+
+Alternatively you can define all your entries in a file called
+'sol-flow.conf' and it will be looked up in the current folder, then
+no environment variable is needed.
+
+Some boards have specific node types, they have their own examples in
+a sibling directory such as minnow-calamari or galileo-grove-kit.

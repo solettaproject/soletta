@@ -1,0 +1,1 @@
+parser-errors/node-defined-twice.fbp:32:1 Node 'foo' already declared with type 'boolean/and' at 31:1

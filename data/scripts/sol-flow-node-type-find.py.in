@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import json
+import re
+import os
+import sys
+
+defrepo = '@flowtypedescdir@'
+
+def ports_match(re_list, entries):
+    if not re_list:
+        return True
+    for e in entries:
+        for re_name, re_type in re_list:
+            if re_name and not re_name.match(e.get("name", "")):
+                continue
+            t = e.get("data_type")
+            if re_type and t and not re_type.match(t):
+                continue
+            return True
+    return False
+
+def find(repodir, category, name, inports, outports, ignored):
+    re_cat = re.compile(category)
+    re_name = re.compile(name)
+    res_inport = []
+    if inports:
+        for a in inports:
+            a = a.split(':', 2)
+            name = re.compile(a[0])
+            if len(a) == 2:
+                type = re.compile(a[1])
+            else:
+                type = None
+            res_inport.append((name, type))
+
+    res_outport = []
+    if outports:
+        for a in outports:
+            a = a.split(':', 2)
+            name = re.compile(a[0])
+            if len(a) == 2:
+                type = re.compile(a[1])
+            else:
+                type = None
+            res_outport.append((name, type))
+
+    results = {}
+    for f in os.listdir(repodir):
+        path = os.path.join(repodir, f)
+        try:
+            data = json.load(open(path))
+        except Exception as e:
+            sys.stderr.write("ERROR: could not load %s: %s\n" % (path, e))
+            continue
+        for k, v in data.items():
+            for t in v:
+                cat = t.get("category", "")
+                if not re_cat.match(cat):
+                    continue
+                name = t.get("name", "")
+                if name in ignored:
+                    continue
+                if not re_name.match(name):
+                    continue
+                inports = t.get("in_ports", [])
+                if not ports_match(res_inport, inports):
+                    continue
+                outports = t.get("out_ports", [])
+                if not ports_match(res_outport, outports):
+                    continue
+                results.setdefault(path, {}).setdefault(k, []).append(t)
+
+    return results
+
+def find_type_by_name(repodir, name):
+    for f in os.listdir(repodir):
+        path = os.path.join(repodir, f)
+        try:
+            data = json.load(open(path))
+        except Exception as e:
+            sys.stderr.write("ERROR: could not load %s: %s\n" % (path, e))
+            continue
+        for k, v in data.items():
+            for t in v:
+                if name == t.get("name"):
+                    return t
+    return None
+
+
+def regexp_from_port(p):
+    n = p.get("name")
+    t = p.get("data_type")
+    if t:
+        return '^%s$:^%s$' % (n, t)
+    else:
+        return '^%s$' % (n,)
+
+
+def regexps_from_ports(ports):
+    ret = []
+    for p in ports:
+        ret.append(regexp_from_port(p))
+    return ret
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repo",
+                        help="Directory to use as JSON repository",
+                        type=str, default=defrepo)
+    parser.add_argument("--category",
+                        help="Category (regular expression) to match",
+                        type=str, default=".*")
+    parser.add_argument("--inport", nargs='*',
+                        help="Input port name to match. If provided multiple times, all should match. Format is name:type, each of name or type being an regular expression.",
+                        type=str)
+    parser.add_argument("--outport", nargs='*',
+                        help="Output port name to match. If provided multiple times, all should match. Format is name:type, each of name or type being an regular expression.",
+                        type=str)
+    parser.add_argument("--name",
+                        help="Name (regular expression) to match",
+                        type=str, default=".*")
+    parser.add_argument("--similar-ports",
+                        help="Find types with ports similar to given name. This overrides the --inport/--outport",
+                        type=str)
+    parser.add_argument("--format",
+                        help="How to format output.",
+                        type=str, default="json", choices=["json", "simple"])
+    args = parser.parse_args()
+
+    inport = args.inport
+    outport = args.outport
+    ignored = []
+    if args.similar_ports:
+        ignored.append(args.similar_ports)
+        t = find_type_by_name(args.repo, args.similar_ports)
+        if not t:
+            raise SystemExit("type not found: %r" % (args.similar_ports,))
+        inport = regexps_from_ports(t.get("in_ports", []))
+        outport = regexps_from_ports(t.get("out_ports", []))
+
+    res = find(args.repo, args.category, args.name, inport, outport, ignored)
+    if args.format == "json":
+        print(json.dumps(res, indent=True, sort_keys=True))
+    elif args.format == "simple":
+        if res:
+            def fmt_port(p):
+                n = p.get("name", "???")
+                t = p.get("data_type")
+                if t:
+                    return "%s:%s" % (n, t)
+                else:
+                    return n
+
+            last_f = None
+            for f, sections in sorted(res.items()):
+                last_sec = None
+                for sec, types in sorted(sections.items()):
+                    for t in types:
+                        category = t.get("category")
+                        if not category:
+                            continue
+                        name = t.get("name")
+                        if not name:
+                            continue
+                        inports = t.get("in_ports", [])
+                        outports = t.get("out_ports", [])
+                        if f != last_f:
+                            print("# File: %s" % (f,))
+                            last_f = f
+                        if sec != last_sec:
+                            print("# Section: %s" % (sec,))
+                            last_sec = sec
+                        print("category=%r name=%r in=[%s] out=[%s]" %
+                              (category,
+                               name,
+                               ", ".join(fmt_port(p) for p in inports),
+                               ", ".join(fmt_port(p) for p in outports)))

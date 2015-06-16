@@ -1,0 +1,67 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.conf sol-fbp-runner grove-lc-set-cursor.fbp
+
+# This is a translation of
+# Grove_RGB_BackLight_LCD/setCursor/setCursor.ino, from
+# https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
+
+# This will loop from 'a' to 'z', filling in the whole display with
+# each single letter before changing to the next (to start again)
+
+timer_cols(timer:interval=200)
+
+timer_chars(timer:interval=6400)
+timer_chars OUT -> INC chars
+
+timer_rows(timer:interval=3200)
+timer_rows OUT -> INC rows
+
+lcd(LCDChar)
+
+cols(int/accumulator:setup_value=min:0|max:15|step:1)
+rows(int/accumulator:setup_value=min:0|max:1|step:1)
+
+# 'a' to 'z'
+chars(int/accumulator:setup_value=val:97|min:97|max:122|step:1)
+chars OUT -> IN to_byte(converter/int-to-byte)
+
+# trick to keep a 'current char' state
+to_byte OUT -> OUTPUT_VALUE curr_char(converter/empty-to-byte:output_value=97)
+_(constant/empty) OUT -> IN curr_char
+curr_char OUT -> PUT_CHAR lcd
+
+timer_cols OUT -> INC cols
+timer_cols OUT -> IN curr_char
+
+cols OUT -> COL lcd
+rows OUT -> ROW lcd

@@ -1,0 +1,100 @@
+{
+  "name": "wallclock",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "timer",
+      "description": "Provides int packets on a timely manner (after each system clock hour changes)",
+      "methods": {
+        "close": "wallclock_hour_close",
+        "open": "wallclock_hour_open"
+      },
+      "name": "wallclock/hour",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "An int range packet when wallclock hour ticks.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "wallclock_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/wallclock_hour.html"
+    },
+    {
+      "category": "timer",
+      "description": "Provides int packets on a timely manner (after each system clock minute changes)",
+      "methods": {
+        "close": "wallclock_minute_close",
+        "open": "wallclock_minute_open"
+      },
+      "name": "wallclock/minute",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "An int range packet when wallclock minute ticks.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "wallclock_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/wallclock_minute.html"
+    },
+    {
+      "category": "timer",
+      "description": "Provides int packets on a timely manner (after each system clock month day changes)",
+      "methods": {
+        "close": "wallclock_monthday_close",
+        "open": "wallclock_monthday_open"
+      },
+      "name": "wallclock/monthday",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "An int range packet when wallclock month day ticks.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "wallclock_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/wallclock_monthday.html"
+    },
+    {
+      "category": "timer",
+      "description": "Provides int packets on a timely manner (after each system clock second changes)",
+      "methods": {
+        "close": "wallclock_second_close",
+        "open": "wallclock_second_open"
+      },
+      "name": "wallclock/second",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "An int range packet when wallclock second ticks.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "wallclock_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/wallclock_second.html"
+    },
+    {
+      "category": "timer",
+      "description": "Provides int packets on a timely manner (after each system clock week day changes)",
+      "methods": {
+        "close": "wallclock_weekday_close",
+        "open": "wallclock_weekday_open"
+      },
+      "name": "wallclock/weekday",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "An int range packet when wallclock week day ticks.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "wallclock_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/wallclock_weekday.html"
+    }
+  ]
+}

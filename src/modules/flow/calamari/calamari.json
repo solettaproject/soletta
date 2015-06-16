@@ -1,0 +1,283 @@
+{
+  "name": "calamari",
+  "meta": {
+      "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+      "version": 1
+  },
+  "types": [
+    {
+      "category": "output/hw",
+      "description": "Calamari PWM Led Output",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Set PWM led intensity",
+          "methods": {
+            "process": "calamari_led_process_intensity"
+          },
+          "name": "INTENSITY"
+        }
+      ],
+      "methods": {
+        "close": "calamari_led_close",
+        "open": "calamari_led_open"
+      },
+      "name": "calamari/led",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 10000,
+            "description": "PWM period",
+            "name": "period"
+          },
+          {
+            "data_type": "int",
+            "default": {
+              "max": 10000,
+              "min": 0
+            },
+            "description": "Range for PWM output.",
+            "name": "range"
+          },
+          {
+            "data_type": "int",
+            "description": "Hardware address of the PWN output",
+            "name": "address"
+          }
+        ],
+        "version": 1
+      },
+      "private_data_type": "calamari_led_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/calamari_led.html"
+    },
+    {
+      "category": "input/hw",
+      "description": "SPI Lever in Calamari lure",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Signal the SPI chip that a read must be performed",
+          "methods": {
+            "process": "calamari_lever_process_poll"
+          },
+          "name": "POLL_SIGNAL",
+          "required": false
+        }
+      ],
+      "methods": {
+        "close": "calamari_lever_close",
+        "open": "calamari_lever_open"
+      },
+      "name": "calamari/lever",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Intervel between polling the SPI chip in the lure.",
+            "name": "poll_interval"
+          },
+          {
+            "data_type": "int",
+            "default": {
+              "max": 1023,
+              "min": 0
+            },
+            "description": "The range value. Used to convert the output.",
+            "name": "range"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "SPI bus.",
+            "name": "bus"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "SPI chip select.",
+            "name": "chip_select"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Current value queried from SPI chip",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "calamari_lever_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/calamari_lever.html"
+    },
+    {
+      "category": "internal",
+      "description": "RGB led control for calamari lure",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Turn red led ON/OFF",
+          "methods": {
+            "process": "calamari_rgb_led_process_red"
+          },
+          "name": "RED",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Turn green led ON/OFF",
+          "methods": {
+            "process": "calamari_rgb_led_process_green"
+          },
+          "name": "GREEN",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Turn blue led ON/OFF",
+          "methods": {
+            "process": "calamari_rgb_led_process_blue"
+          },
+          "name": "BLUE",
+          "required": true
+        }
+      ],
+      "name": "calamari/rgb-ctl",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Control GPIO pin responsible for turning red led ON/OFF",
+          "name": "RED"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Control GPIO pin responsible for turning green led ON/OFF",
+          "name": "GREEN"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Control GPIO pin responsible for turning blue led ON/OFF",
+          "name": "BLUE"
+        }
+      ]
+    },
+    {
+      "category": "internal",
+      "description": "",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Define segments to be on and off.",
+          "methods": {
+            "process": "segments_set"
+          },
+          "name": "SEGMENTS"
+        },
+        {
+          "data_type": "int",
+          "description": "Set value to be displayed.",
+          "methods": {
+            "process": "value_set"
+          },
+          "name": "VALUE"
+        }
+      ],
+      "methods": {
+        "close": "segments_ctl_close",
+        "open": "segments_ctl_open"
+      },
+      "name": "calamari/segments-ctl",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "",
+          "name": "CLEAR"
+        },
+        {
+          "data_type": "boolean",
+          "description": "",
+          "name": "LATCH"
+        },
+        {
+          "data_type": "boolean",
+          "description": "",
+          "name": "CLOCK"
+        },
+        {
+          "data_type": "boolean",
+          "description": "",
+          "name": "DATA"
+        }
+      ],
+      "private_data_type": "segments_ctl_data"
+    },
+    {
+      "category": "output/hw",
+      "description": "Receives packages with values to be displayed on Calamari's 7 segments display",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Define segments to be on and off.",
+          "methods": {
+            "process": "segments_set"
+          },
+          "name": "SEGMENTS"
+        },
+        {
+          "data_type": "int",
+          "description": "Set value to be displayed.",
+          "methods": {
+            "process": "value_set"
+          },
+          "name": "VALUE"
+        }
+      ],
+      "methods": {
+        "init_type": "segments_init_type"
+      },
+      "name": "calamari/7seg",
+      "url": "http://solettaproject.org/doc/latest/components/calamari-7seg.html"
+    },
+    {
+      "category": "output/hw",
+      "description": "Receives packets indicating the color of Calamari's RGB LED",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Turn red led ON/OFF",
+          "methods": {
+            "process": "calamari_rgb_led_process_red"
+          },
+          "name": "RED",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Turn green led ON/OFF",
+          "methods": {
+            "process": "calamari_rgb_led_process_green"
+          },
+          "name": "GREEN",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Turn blue led ON/OFF",
+          "methods": {
+            "process": "calamari_rgb_led_process_blue"
+          },
+          "name": "BLUE",
+          "required": true
+        }
+      ],
+      "methods": {
+        "init_type": "rgb_led_init_type"
+      },
+      "name": "calamari/rgb-led",
+      "url": "http://solettaproject.org/doc/latest/node_types/calamari_rgb_led.html"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+When running 'make check-fbp' or 'make check-fbp-valgrind' most files
+*.fbp in this directory and subdirectories will be called using
+runner, and the error code or output will be checked. These targets
+support the parameter V=1 to be more verbose.
+
+If there's only the FBP file, the exit code will be checked to decide
+on failure.
+
+Optionally there can be either a '-expected.txt' or
+'-expected-fail.txt', which will also check whether the output is
+exactly the same. The "fail" variant will expect the runner to fail,
+this is useful for testing runner errors.
+
+For example
+
+    my-test.fbp
+    my-test-expected.txt OR my-test-expected-fail.txt
+
+Don't depend on output messages from SOL_WRN and friends on the
+expected files since they contain implementation information (line,
+column, file name in the source) that might change as the code
+evolves.
+
+In all cases it's important that your flow ends at some point, look at
+the 'test' or 'app' modules to ways to do it. Usually TEST_RESULT is
+good enough.
+
+Skipped files:
+
+* Files that end with '_disabled.fbp'.

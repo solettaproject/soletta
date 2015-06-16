@@ -1,0 +1,55 @@
+{
+  "name": "evdev",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "output/sw",
+      "description": "Provides a boolean packet after an evdev event",
+      "methods": {
+        "close": "evdev_close",
+        "open": "evdev_open"
+      },
+      "name": "evdev/boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "The event code to be monitored",
+            "name": "ev_code"
+          },
+          {
+            "data_type": "string",
+            "description": "The event path to be monitored",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "The event is triggered on press",
+            "name": "on_press"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "The event is triggered on release",
+            "name": "on_release"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "An evdev event happened",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "evdev_data",
+      "url": "http://solettaproject.org/doc/latest/components/evdev.html"
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "name": "app",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "app",
+      "description": "Send command line arguments.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Argument index.",
+          "methods": {
+            "process": "argv_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "app/argc-argv",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Argument at position defined by packet received on port 'IN'.",
+          "name": "OUT"
+        },
+        {
+          "data_type": "int",
+          "description": "Number of arguments.",
+          "methods": {
+            "connect": "argc_connect"
+          },
+          "name": "ARGC"
+        }
+      ],
+      "private_data_type": "args",
+      "url": "http://solettaproject.org/doc/latest/node_types/app/argc-argv.html"
+    },
+    {
+      "category": "app",
+      "description": "Send command line argument at specific position.",
+      "methods": {
+        "open": "argv_open"
+      },
+      "name": "app/argv",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Argument position.",
+            "name": "index"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Command line argument at position defined by option 'index'.",
+          "methods": {
+            "connect": "argv_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "args",
+      "url": "http://solettaproject.org/doc/latest/node_types/app/argv.html"
+    },
+    {
+      "category": "app",
+      "description": "Quit the app.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Just quit with success code (0).",
+          "methods": {
+            "process": "quit_process"
+          },
+          "name": "QUIT"
+        },
+        {
+          "data_type": "int",
+          "description": "Quit with code received by packet.",
+          "methods": {
+            "process": "quit_with_code_process"
+          },
+          "name": "CODE"
+        },
+        {
+          "data_type": "error",
+          "description": "Quit with error received by packet.",
+          "methods": {
+            "process": "quit_with_error_process"
+          },
+          "name": "ERROR"
+        }
+      ],
+      "name": "app/quit",
+      "url": "http://solettaproject.org/doc/latest/node_types/app/quit.html"
+    }
+  ]
+}

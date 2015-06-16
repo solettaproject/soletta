@@ -1,0 +1,41 @@
+{
+  "name": "udev",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "output/sw",
+      "description": "Provides boolean packets after a device attach or dettach",
+      "methods": {
+        "close": "udev_close",
+        "open": "udev_open"
+      },
+      "name": "udev/boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The device's syspath that should be monitored",
+            "name": "address"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "A boolean packet when udev changes. If it's attached true, otherwise false.",
+          "methods": {
+            "connect": "udev_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "udev_data",
+      "url": "http://solettaproject.org/doc/latest/components/udev.html"
+    }
+  ]
+}

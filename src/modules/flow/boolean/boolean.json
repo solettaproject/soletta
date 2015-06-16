@@ -1,0 +1,311 @@
+{
+  "name": "boolean",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "logical/boolean",
+      "description": "Boolean And",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "First port of AND operation.",
+          "methods": {
+            "process": "and_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Second port of AND operation.",
+          "methods": {
+            "process": "and_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "boolean_open"
+      },
+      "name": "boolean/and",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if both IN0 and IN1 are true.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "boolean_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/boolean/and.html"
+    },
+    {
+      "category": "logical/boolean",
+      "description": "Receives boolean packets from different connections and returns the number of them in TRUE and FALSE state",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Input port",
+          "methods": {
+            "connect": "counter_connect",
+            "disconnect": "counter_disconnect",
+            "process": "counter_process"
+          },
+          "name": "IN",
+          "required": true
+        }
+      ],
+      "methods": {
+        "close": "counter_close",
+        "open": "counter_open"
+      },
+      "name": "boolean/counter",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Number of connections in TRUE state",
+          "name": "TRUE"
+        },
+        {
+          "data_type": "int",
+          "description": "Number of connections in FALSE state",
+          "name": "FALSE"
+        }
+      ],
+      "private_data_type": "counter_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/boolean/counter.html"
+    },
+    {
+      "category": "logical/boolean",
+      "description": "Receives a boolean packet and and forwards it through the TRUE or FALSE ports depending on its value.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "First port of AND operation.",
+          "methods": {
+            "process": "filter_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "boolean/filter",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Emits a packet with value TRUE when it recives a TRUE value on the IN port",
+          "name": "TRUE"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Emits a packet with value FALSE when it recives a FALSE value on the IN port",
+          "name": "FALSE"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/boolean/filter.html"
+    },
+    {
+      "category": "logical/boolean",
+      "description": "Boolean Not",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Where to receive the input of NOT operation.",
+          "methods": {
+            "process": "not_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "boolean/not",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if 'IN' is false, false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/boolean/not.html"
+    },
+    {
+      "category": "logical/boolean",
+      "description": "Boolean Or",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "First port of OR operation.",
+          "methods": {
+            "process": "or_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Second port of OR operation.",
+          "methods": {
+            "process": "or_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "boolean_open"
+      },
+      "name": "boolean/or",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if either IN0 or IN1 is true.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "boolean_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/boolean/or.html"
+    },
+    {
+      "category": "logical/boolean",
+      "description": "Receives an empty packet and toggle the boolean output.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Where to receive the toggle trigger",
+          "methods": {
+            "process": "toggle_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "toggle_open"
+      },
+      "name": "boolean/toggle",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "the initial state, defaults to false.",
+            "name": "initial_state"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Current toggle state.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "toggle_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/boolean/toggle.html"
+    },
+    {
+      "category": "logical/boolean",
+      "description": "Boolean XOR - exclusive or",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "First port of XOR operation.",
+          "methods": {
+            "process": "xor_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Second port of XOR operation.",
+          "methods": {
+            "process": "xor_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "boolean_open"
+      },
+      "name": "boolean/xor",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True whenever both inputs differ (one is true, the other is false). False if IN0 and IN1 are the same.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "boolean_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/boolean/xor.html"
+    },
+    {
+      "category": "logical/boolean",
+      "description": "Apply desired computation when buffer fills or timeout happens.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Input port.",
+          "methods": {
+            "process": "boolean_buffer_process"
+          },
+          "name": "IN",
+          "required": true
+        },
+        {
+          "data_type": "int",
+          "description": "Receives an int packet to set the timeout time to be used.",
+          "methods": {
+            "process": "boolean_buffer_timeout"
+          },
+          "name": "TIMEOUT"
+        },
+        {
+          "data_type": "any",
+          "description": "Reset buffer and timer to its initial state.",
+          "methods": {
+            "process": "boolean_buffer_reset"
+          },
+          "name": "RESET"
+        }
+      ],
+      "methods": {
+        "close": "boolean_buffer_close",
+        "open": "boolean_buffer_open"
+      },
+      "name": "boolean/buffer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Number of samples that the buffer should hold.",
+            "name": "samples"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Timeout time in milliseconds. Default is zero which means that timeout is disabled.",
+            "name": "timeout"
+          },
+          {
+            "data_type": "string",
+            "default": "all_true",
+            "description": "Operation to be applied in the buffer elements to compute the output.",
+            "name": "operation"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Output port.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "boolean_buffer_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/boolean/buffer.html"
+    }
+
+  ]
+}

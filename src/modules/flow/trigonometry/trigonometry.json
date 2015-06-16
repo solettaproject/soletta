@@ -1,0 +1,140 @@
+{
+  "name": "trigonometry",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "trigonometry",
+      "description": "Calculates the cosine of an angle.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Angle in radians.",
+          "methods": {
+            "process": "cosine_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "trigonometry/cosine",
+      "options": {
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Cosine of angle.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/trigonometry/cosine.html"
+    },
+    {
+      "category": "trigonometry",
+      "description": "Convert degrees to radians.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Angle in degrees.",
+          "methods": {
+            "process": "degrees_to_radian_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "trigonometry/degrees-to-radian",
+      "options": {
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Angle in radian.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/trigonometry/degrees_to_radian.html"
+    },
+    {
+      "category": "trigonometry",
+      "description": "Convert radians to degrees.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Angle in radians.",
+          "methods": {
+            "process": "radian_to_degrees_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "trigonometry/radian-to-degrees",
+      "options": {
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Angle in degrees.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/trigonometry/radian_to_degrees.html"
+    },
+    {
+      "category": "trigonometry",
+      "description": "Calculates the sine of an angle.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Angle in radians.",
+          "methods": {
+            "process": "sine_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "trigonometry/sine",
+      "options": {
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Sine of angle.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/trigonometry/sine.html"
+    },
+    {
+      "category": "trigonometry",
+      "description": "Calculates the tangent of an angle.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Angle in radians.",
+          "methods": {
+            "process": "tangent_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "trigonometry/tangent",
+      "options": {
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Tangent of angle.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/trigonometry/tangent.html"
+    }
+  ]
+}

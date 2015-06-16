@@ -1,0 +1,41 @@
+{
+  "name": "network",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "output/sw",
+      "description": "Provides boolean packets after connect or disconnect from network",
+      "methods": {
+        "close": "network_close",
+        "open": "network_open"
+      },
+      "name": "network/boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Which interface should be monitored (can be a regexp)",
+            "name": "address"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "A boolean packet when network changes. If it's connect true, otherwise false.",
+          "methods": {
+            "connect": "network_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "network_data",
+      "url": "http://solettaproject.org/doc/latest/components/network.html"
+    }
+  ]
+}

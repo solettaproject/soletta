@@ -1,0 +1,1711 @@
+{
+  "name": "converter",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "converter",
+      "description": "Receives a boolean packet and convert to float.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Where to receive the boolean value to be converted.",
+          "methods": {
+            "process": "boolean_to_drange_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "float",
+          "description": "DRange value of output when input is false.",
+          "methods": {
+            "process": "drange_min_value_set"
+          },
+          "name": "FALSE_VALUE"
+        },
+        {
+          "data_type": "float",
+          "description": "DRange value of output when input is true.",
+          "methods": {
+            "process": "drange_max_value_set"
+          },
+          "name": "TRUE_VALUE"
+        }
+      ],
+      "methods": {
+        "open": "boolean_to_drange_open"
+      },
+      "name": "converter/boolean-to-float",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "default": 0,
+            "description": "DRange value of output when input is false.",
+            "name": "false_value"
+          },
+          {
+            "data_type": "float",
+            "default": 1,
+            "description": "DRange value of output when input is true.",
+            "name": "true_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Float with value set on options or via value_set ports.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_drange",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/boolean-to-drange.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a boolean packet and convert to byte.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Where to receive the boolean value to be converted.",
+          "methods": {
+            "process": "boolean_to_byte_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value of output when input is false.",
+          "methods": {
+            "process": "byte_min_value_set"
+          },
+          "name": "FALSE_VALUE"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value of output when input is true.",
+          "methods": {
+            "process": "byte_max_value_set"
+          },
+          "name": "TRUE_VALUE"
+        }
+      ],
+      "methods": {
+        "open": "boolean_to_byte_open"
+      },
+      "name": "converter/boolean-to-byte",
+      "options": {
+        "members": [
+          {
+            "data_type": "byte",
+            "default": 0,
+            "description": "Byte value of output when input is false.",
+            "name": "false_value"
+          },
+          {
+            "data_type": "byte",
+            "default": 1,
+            "description": "Byte value of output when input is true.",
+            "name": "true_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte with value set on options or via value_set ports.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_byte",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/boolean-to-byte.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a boolean packet and convert it to empty.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "If received boolean is true generates a pulse.",
+          "methods": {
+            "process": "pulse_if_true"
+          },
+          "name": "PULSE_IF_TRUE"
+        },
+        {
+          "data_type": "boolean",
+          "description": "If received boolean is false generates a pulse.",
+          "methods": {
+            "process": "pulse_if_false"
+          },
+          "name": "PULSE_IF_FALSE"
+        }
+      ],
+      "name": "converter/boolean-to-empty",
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Sends a pulse if boolean values received on each port match expected value.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/boolean-to-empty.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a boolean packet and convert to int.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Where to receive the boolean value to be converted.",
+          "methods": {
+            "process": "boolean_to_irange_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "IRange value of output when input is false.",
+          "methods": {
+            "process": "irange_min_value_set"
+          },
+          "name": "FALSE_VALUE"
+        },
+        {
+          "data_type": "int",
+          "description": "IRange value of output when input is true.",
+          "methods": {
+            "process": "irange_max_value_set"
+          },
+          "name": "TRUE_VALUE"
+        }
+      ],
+      "methods": {
+        "open": "boolean_to_irange_open"
+      },
+      "name": "converter/boolean-to-int",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "IRange value of output when input is false.",
+            "name": "false_value"
+          },
+          {
+            "data_type": "int",
+            "default": 1,
+            "description": "IRange value of output when input is true.",
+            "name": "true_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "IRange with value set on options or via value_set ports.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_irange",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/boolean-to-irange.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a boolean packet and convert to string.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Where to receive the boolean value to be converted.",
+          "methods": {
+            "process": "boolean_to_string_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "String to be sent on output when input is false.",
+          "methods": {
+            "process": "string_false_value_set"
+          },
+          "name": "FALSE_VALUE"
+        },
+        {
+          "data_type": "string",
+          "description": "String to be sent on output when input is true.",
+          "methods": {
+            "process": "string_true_value_set"
+          },
+          "name": "TRUE_VALUE"
+        }
+      ],
+      "methods": {
+        "close": "boolean_to_string_close",
+        "open": "boolean_to_string_open"
+      },
+      "name": "converter/boolean-to-string",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "False",
+            "description": "String sent when input is false.",
+            "name": "false_value"
+          },
+          {
+            "data_type": "string",
+            "default": "True",
+            "description": "String sent when input is true.",
+            "name": "true_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Send string defined by option 'true_value' if input is true or by 'false_value' if input is false.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_boolean_string",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/boolean-to-string.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives byte packet and convert to a binary representaion in outputs.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Where to receive the byte value to be converted.",
+          "methods": {
+            "process": "byte_to_bits_convert"
+          },
+          "name": "IN",
+          "required": true
+        }
+      ],
+      "name": "converter/byte-to-bits",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Least significant bit",
+          "name": "OUT0"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Binary output",
+          "name": "OUT1"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Binary output",
+          "name": "OUT2"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Binary output",
+          "name": "OUT3"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Binary output",
+          "name": "OUT4"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Binary output",
+          "name": "OUT5"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Binary output",
+          "name": "OUT6"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Most significant bit",
+          "name": "OUT7"
+        }
+      ],
+      "private_data_type": "sol_converter_bits",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/byte-to-bits.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a byte packet and convert to boolean.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Where to receive the byte value to be converted.",
+          "methods": {
+            "process": "byte_to_boolean_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "byte",
+          "description": "Defines maximum value of input to set output as true.",
+          "methods": {
+            "process": "byte_max_value_set"
+          },
+          "name": "TRUE_MAX"
+        },
+        {
+          "data_type": "byte",
+          "description": "Defines minimum value of input to set output as true.",
+          "methods": {
+            "process": "byte_min_value_set"
+          },
+          "name": "TRUE_MIN"
+        }
+      ],
+      "methods": {
+        "open": "byte_to_boolean_open"
+      },
+      "name": "converter/byte-to-boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "byte",
+            "default": 255,
+            "description": "Defines maximum value of input to set output as true.",
+            "name": "true_max"
+          },
+          {
+            "data_type": "byte",
+            "default": 1,
+            "description": "Defines minimum value of input to set output as true.",
+            "name": "true_min"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Send true if input packet value is in range defined by min and max values or false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_byte",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/byte-to-boolean.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a byte packet and convert to float.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Where to receive the byte value to be converted.",
+          "methods": {
+            "process": "byte_to_drange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/byte-to-float",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Byte converted to float.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/byte-to-drange.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a byte packet and convert it to empty.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Where to receive the byte value to be converted.",
+          "methods": {
+            "process": "byte_to_empty_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte maximum range value that generates a pulse.",
+          "methods": {
+            "process": "empty_byte_max_value_set"
+          },
+          "name": "RANGE_MAX"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte minimum range value that generates a pulse.",
+          "methods": {
+            "process": "empty_byte_min_value_set"
+          },
+          "name": "RANGE_MIN"
+        }
+      ],
+      "methods": {
+        "open": "byte_to_empty_open"
+      },
+      "name": "converter/byte-to-empty",
+      "options": {
+        "members": [
+          {
+            "data_type": "byte",
+            "default": 255,
+            "description": "Byte maximum value that generates a pulse.",
+            "name": "range_max"
+          },
+          {
+            "data_type": "byte",
+            "default": 1,
+            "description": "Byte minimum value that generates a pulse.",
+            "name": "range_min"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Send an empty packet when input packet value in range defined by min and max values.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_byte",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/byte-to-empty.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a byte packet and convert to int.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Where to receive the byte value to be converted.",
+          "methods": {
+            "process": "byte_to_irange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/byte-to-int",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Byte converted to int.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/byte-to-irange.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives byte packets and convert to RGB.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte value for red component.",
+          "methods": {
+            "process": "byte_to_rgb_convert"
+          },
+          "name": "RED"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for green component.",
+          "methods": {
+            "process": "byte_to_rgb_convert"
+          },
+          "name": "GREEN"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for blue component.",
+          "methods": {
+            "process": "byte_to_rgb_convert"
+          },
+          "name": "BLUE"
+        }
+      ],
+      "methods": {
+        "open": "byte_to_rgb_open"
+      },
+      "name": "converter/byte-to-rgb",
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Bytes converted to RGB.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_rgb",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/byte-to-rgb.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a byte packet and convert to string.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Where to receive the byte value to be converted.",
+          "methods": {
+            "process": "byte_to_string_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/byte-to-string",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Byte converted to string, prefixed with '0x', as 0x3e.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/byte-to-string.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an float packet and convert to boolean.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Where to receive the float value to be converted.",
+          "methods": {
+            "process": "drange_to_boolean_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "float",
+          "description": "Defines minimum and maximum values of input to set output as true.",
+          "methods": {
+            "process": "drange_true_range_set"
+          },
+          "name": "TRUE_RANGE"
+        }
+      ],
+      "methods": {
+        "open": "drange_to_boolean_open"
+      },
+      "name": "converter/float-to-boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "default": {
+              "max": 255,
+              "min": 1
+            },
+            "description": "Defines minimum and maximum values of input to set output as true.",
+            "name": "true_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Send true if input packet value is in range defined by min and max values or false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_drange",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/drange-to-boolean.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a float packet and convert to byte.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Where to receive the float value to be converted.",
+          "methods": {
+            "process": "drange_to_byte_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/float-to-byte",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Float converted to byte. If float was greater than 255 or less than 0 the converted value will be at these limits.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/drange-to-byte.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a float packet and convert it to empty.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Where to receive the float value to be converted.",
+          "methods": {
+            "process": "drange_to_empty_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "float",
+          "description": "Float range that generates a pulse.",
+          "methods": {
+            "process": "empty_drange_value_set"
+          },
+          "name": "RANGE"
+        }
+      ],
+      "methods": {
+        "open": "drange_to_empty_open"
+      },
+      "name": "converter/float-to-empty",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "default": {
+              "max": 255,
+              "min": 1
+            },
+            "description": "Float range that generates a pulse.",
+            "name": "range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Send an empty packet when input packet value is in range defined by min and max values.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_drange",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/drange-to-empty.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a float packet and convert to int.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Where to receive the float value to be converted.",
+          "methods": {
+            "process": "drange_to_irange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/float-to-int",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Float converted to int. Value, min, max and step are converted.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/drange-to-irange.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives float packets and convert to RGB.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Float value for red component.",
+          "methods": {
+            "process": "drange_to_rgb_convert"
+          },
+          "name": "RED"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for green component.",
+          "methods": {
+            "process": "drange_to_rgb_convert"
+          },
+          "name": "GREEN"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for blue component.",
+          "methods": {
+            "process": "drange_to_rgb_convert"
+          },
+          "name": "BLUE"
+        }
+      ],
+      "methods": {
+        "open": "drange_to_rgb_open"
+      },
+      "name": "converter/float-to-rgb",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of red component. Minimum is set to zero.",
+            "name": "red_max"
+          },
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of green component. Minimum is set to zero.",
+            "name": "green_max"
+          },
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of blue component. Minimum is set to zero.",
+            "name": "blue_max"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Float values converted to RGB.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_rgb",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/float-to-rgb.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a float packet and convert to string.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Where to receive the float value to be converted.",
+          "methods": {
+            "process": "drange_to_string_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/float-to-string",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Float converted to string with 6 digits after decimal-point character.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/float-to-string.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an empty packet and convert it to boolean.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Where to receive the empty packet.",
+          "methods": {
+            "process": "empty_to_boolean_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Boolean value of output when an empty packet is received.",
+          "methods": {
+            "process": "empty_boolean_output_set"
+          },
+          "name": "OUTPUT_VALUE"
+        }
+      ],
+      "methods": {
+        "open": "empty_to_boolean_open"
+      },
+      "name": "converter/empty-to-boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Boolean value of output when an empty packet is received.",
+            "name": "output_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Boolean defined by OUTPUT_VALUE port or output_value option.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_boolean",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/empty-to-boolean.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an empty packet and convert it to byte.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Where to receive the empty packet.",
+          "methods": {
+            "process": "empty_to_byte_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value of output when an empty packet is received.",
+          "methods": {
+            "process": "empty_byte_min_value_set"
+          },
+          "name": "OUTPUT_VALUE"
+        }
+      ],
+      "methods": {
+        "open": "empty_to_byte_open"
+      },
+      "name": "converter/empty-to-byte",
+      "options": {
+        "members": [
+          {
+            "data_type": "byte",
+            "default": 1,
+            "description": "Byte value of output when an empty packet is received.",
+            "name": "output_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte defined by OUTPUT_VALUE port or output_value option.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_byte",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/empty-to-byte.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an empty packet and convert it to float.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Where to receive the empty packet.",
+          "methods": {
+            "process": "empty_to_drange_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value of output when an empty packet is received.",
+          "methods": {
+            "process": "empty_drange_value_set"
+          },
+          "name": "OUTPUT_VALUE"
+        }
+      ],
+      "methods": {
+        "open": "empty_to_drange_open"
+      },
+      "name": "converter/empty-to-float",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "default": {
+              "max": 1,
+              "min": 1,
+              "step": 1,
+              "val": 1
+            },
+            "description": "Float value of output when an empty packet is received.",
+            "name": "output_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Float defined by OUTPUT_VALUE port or output_value option.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_drange",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/empty-to-drange.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an empty packet and convert it to int.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Where to receive the empty packet.",
+          "methods": {
+            "process": "empty_to_irange_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value of output when an empty packet is received.",
+          "methods": {
+            "process": "empty_irange_value_set"
+          },
+          "name": "OUTPUT_VALUE"
+        }
+      ],
+      "methods": {
+        "open": "empty_to_irange_open"
+      },
+      "name": "converter/empty-to-int",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 1,
+              "min": 1,
+              "step": 1,
+              "val": 1
+            },
+            "description": "Int value of output when an empty packet is received.",
+            "name": "output_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Int defined by OUTPUT_VALUE port or output_value option.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_irange",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/empty-to-irange.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an empty packet and convert it to string.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Where to receive the empty packet.",
+          "methods": {
+            "process": "empty_to_string_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "Output string sent when an empty packet is received.",
+          "methods": {
+            "process": "empty_string_set"
+          },
+          "name": "OUTPUT_VALUE"
+        }
+      ],
+      "methods": {
+        "close": "empty_to_string_close",
+        "open": "empty_to_string_open"
+      },
+      "name": "converter/empty-to-string",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Output string sent when an empty packet is received.",
+            "name": "output_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "String defined by OUTPUT_VALUE port or output_value option.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_string",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/empty-to-string.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an int packet and convert to boolean.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Where to receive the int value to be converted.",
+          "methods": {
+            "process": "irange_to_boolean_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Defines minimum and maximum values of input to set output as true.",
+          "methods": {
+            "process": "irange_true_range_set"
+          },
+          "name": "TRUE_RANGE"
+        }
+      ],
+      "methods": {
+        "open": "irange_to_boolean_open"
+      },
+      "name": "converter/int-to-boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 1
+            },
+            "description": "Defines minimum and maximum values of input to set output as true.",
+            "name": "true_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Send true if input packet value is in range defined by min and max values or false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_irange",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-to-boolean.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an int packet and convert to byte.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Where to receive the int value to be converted.",
+          "methods": {
+            "process": "irange_to_byte_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/int-to-byte",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Int converted to byte. If int was greater than 255 or less than 0 the converted value will be at these limits.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-to-byte.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives four bytes and composes them into an int. Any input port with no connections will be treated as a 0 value input.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Least significant byte",
+          "methods": {
+            "connect": "irange_compose_connect",
+            "process": "irange_compose"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "byte",
+          "description": "Second byte",
+          "methods": {
+            "connect": "irange_compose_connect",
+            "process": "irange_compose"
+          },
+          "name": "IN1"
+        },
+        {
+          "data_type": "byte",
+          "description": "Third byte",
+          "methods": {
+            "connect": "irange_compose_connect",
+            "process": "irange_compose"
+          },
+          "name": "IN2"
+        },
+        {
+          "data_type": "byte",
+          "description": "Most significant byte",
+          "methods": {
+            "connect": "irange_compose_connect",
+            "process": "irange_compose"
+          },
+          "name": "IN3"
+        }
+      ],
+      "name": "converter/int-compose",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Integer composed from the four input bytes",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_irange_compose",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-compose.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an int packet and decomposes it into four bytes. The received int will be treated as unsigned.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Where to receive the int value to be decomposed.",
+          "methods": {
+            "process": "irange_decompose"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/int-decompose",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Least significant byte",
+          "name": "OUT0"
+        },
+        {
+          "data_type": "byte",
+          "description": "Second byte",
+          "name": "OUT1"
+        },
+        {
+          "data_type": "byte",
+          "description": "Third byte",
+          "name": "OUT2"
+        },
+        {
+          "data_type": "byte",
+          "description": "Most significant byte",
+          "name": "OUT3"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-decompose.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an int packet and convert to float.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Where to receive the int value to be converted.",
+          "methods": {
+            "process": "irange_to_drange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/int-to-float",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Int converted to float. Value, min, max and step are converted.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-to-drange.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an int packet and convert it to empty.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Where to receive the int value to be converted.",
+          "methods": {
+            "process": "irange_to_empty_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Int range that generates a pulse.",
+          "methods": {
+            "process": "empty_irange_value_set"
+          },
+          "name": "RANGE"
+        }
+      ],
+      "methods": {
+        "open": "irange_to_empty_open"
+      },
+      "name": "converter/int-to-empty",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 1
+            },
+            "description": "Int range that generates a pulse.",
+            "name": "range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Send an empty packet when input packet value is in range defined by min and max values.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_irange",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-to-empty.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives int packets and convert to RGB.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Int value for red component.",
+          "methods": {
+            "process": "irange_to_rgb_convert"
+          },
+          "name": "RED"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for green component.",
+          "methods": {
+            "process": "irange_to_rgb_convert"
+          },
+          "name": "GREEN"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for blue component.",
+          "methods": {
+            "process": "irange_to_rgb_convert"
+          },
+          "name": "BLUE"
+        }
+      ],
+      "methods": {
+        "open": "irange_to_rgb_open"
+      },
+      "name": "converter/int-to-rgb",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of red component. Minimum is set to zero.",
+            "name": "red_max"
+          },
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of green component. Minimum is set to zero.",
+            "name": "green_max"
+          },
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of blue component. Minimum is set to zero.",
+            "name": "blue_max"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Int values converted to RGB.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_rgb",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/int-to-rgb.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives an int packet and convert to string.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Where to receive the int value to be converted.",
+          "methods": {
+            "process": "irange_to_string_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/int-to-string",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Int converted to string.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-to-string.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives RGB packets and convert to bytes.",
+      "in_ports": [
+        {
+          "data_type": "rgb",
+          "description": "RGB to be decomposed.",
+          "methods": {
+            "process": "rgb_to_byte_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/rgb-to-byte",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte value for red component.",
+          "name": "RED"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for green component.",
+          "name": "GREEN"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for blue component.",
+          "name": "BLUE"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/rgb-to-byte.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives RGB packets and convert to float values.",
+      "in_ports": [
+        {
+          "data_type": "rgb",
+          "description": "RGB to be decomposed.",
+          "methods": {
+            "process": "rgb_to_drange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/rgb-to-float",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Float value for red component.",
+          "name": "RED"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for green component.",
+          "name": "GREEN"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for blue component.",
+          "name": "BLUE"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/rgb-to-float.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives RGB packets and convert to int values.",
+      "in_ports": [
+        {
+          "data_type": "rgb",
+          "description": "RGB to be decomposed.",
+          "methods": {
+            "process": "rgb_to_irange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/rgb-to-int",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Int value for red component.",
+          "name": "RED"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for green component.",
+          "name": "GREEN"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for blue component.",
+          "name": "BLUE"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/rgb-to-int.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a string packet and convert it to boolean.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string to be converted.",
+          "methods": {
+            "process": "string_to_boolean_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/string-to-boolean",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Send true if received string is 'true' and false if 'false'. It ignores case. If string is different from those, no packet is sent.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-boolean.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a string packet and convert it to byte.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string to be converted.",
+          "methods": {
+            "process": "string_to_byte_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/string-to-byte",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Send converted value on success or do not send anything if a valid byte can't be parsed. It's expected to be on base 16 and may include '0x' prefix.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-byte.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a string packet and convert it to float.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string to be converted.",
+          "methods": {
+            "process": "string_to_drange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/string-to-float",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Send converted value on success or do not send anything if a valid number can't be parsed.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-float.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a string packet and send an empty packet.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string.",
+          "methods": {
+            "process": "string_to_empty_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/string-to-empty",
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Send a packet when any string is received.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-empty.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a string packet and convert it to int.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string to be converted.",
+          "methods": {
+            "process": "string_to_irange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/string-to-int",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Send converted value on success or do not send anything if a valid number can't be parsed.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-int.html"
+    },
+    {
+      "category": "converter",
+      "description": "Extracts error code and string from an error packet.",
+      "in_ports": [
+        {
+          "data_type": "error",
+          "description": "Where to receive the error to be converted.",
+          "methods": {
+            "process": "error_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/error",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Code extracted from error packet",
+          "name": "CODE"
+        },
+        {
+          "data_type": "string",
+          "description": "Message extracted from error packet",
+          "name": "MESSAGE"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/error.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives boolean packets and convert these bits to a byte.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Receives the least significant bit",
+          "methods": {
+            "connect": "bits_to_byte_connect",
+            "process": "bits_to_byte_convert"
+          },
+          "name": "IN0",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Receives bit to be used in conversion",
+          "methods": {
+            "connect": "bits_to_byte_connect",
+            "process": "bits_to_byte_convert"
+          },
+          "name": "IN1",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Receives bit to be used in conversion",
+          "methods": {
+            "connect": "bits_to_byte_connect",
+            "process": "bits_to_byte_convert"
+          },
+          "name": "IN2",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Receives bit to be used in conversion",
+          "methods": {
+            "connect": "bits_to_byte_connect",
+            "process": "bits_to_byte_convert"
+          },
+          "name": "IN3",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Receives bit to be used in conversion",
+          "methods": {
+            "connect": "bits_to_byte_connect",
+            "process": "bits_to_byte_convert"
+          },
+          "name": "IN4",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Receives bit to be used in conversion",
+          "methods": {
+            "connect": "bits_to_byte_connect",
+            "process": "bits_to_byte_convert"
+          },
+          "name": "IN5",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Receives bit to be used in conversion",
+          "methods": {
+            "connect": "bits_to_byte_connect",
+            "process": "bits_to_byte_convert"
+          },
+          "name": "IN6",
+          "required": true
+        },
+        {
+          "data_type": "boolean",
+          "description": "Receives the most significant bit",
+          "methods": {
+            "connect": "bits_to_byte_connect",
+            "process": "bits_to_byte_convert"
+          },
+          "name": "IN7",
+          "required": true
+        }
+      ],
+      "name": "converter/bits-to-byte",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Send the byte converted from bits received.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT",
+          "required": true
+        }
+      ],
+      "private_data_type": "sol_converter_bits",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/bits-to-byte.html"
+    }    
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "name": "test",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "test",
+      "description": "Node type used to indicate whether a test flow has passed or not",
+      "name": "test/result",
+      "private_data_type": "test_result_data",
+      "methods": {
+        "close": "test_result_close",
+        "open": "test_result_open"
+      },
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Indicates that the tested flow has passed",
+          "methods": {
+            "process": "test_pass_process"
+          },
+          "name": "PASS"
+        },
+        {
+          "data_type": "any",
+          "description": "Indicates that the tested flow has failed",
+          "methods": {
+            "process": "test_fail_process"
+          },
+          "name": "FAIL"
+        },
+        {
+          "data_type": "any",
+          "description": "Indicates the result of tested flow, TRUE means success and FALSE means failure",
+          "methods": {
+            "process": "test_result_process"
+          },
+          "name": "RESULT"
+        }
+      ],
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 500,
+            "description": "Time allotted for a fbp test to run in ms. Expiration of the timer is considered a failure.",
+            "name": "timeout"
+          }
+         ],
+        "version": 1
+      },
+      "url": "http://solettaproject.org/doc/latest/components/test.html"
+    },
+    {
+      "category": "test",
+      "description": "Matches an expected sequence.",
+      "methods": {
+        "close": "boolean_validator_close",
+        "open": "boolean_validator_open"
+      },
+      "name": "test/boolean-validator",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Where to receive the expected sequence.",
+          "methods": {
+            "process": "sequence_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Expected sequence to be matched, formatted as 'TFTFTTTFF' where 'T' is true and 'F' is false.",
+            "name": "sequence"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Outputs true if there is a match, false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "boolean_validator_data",
+      "url": "http://solettaproject.org/doc/latest/components/boolean-validator.html"
+    },
+    {
+      "category": "test",
+      "description": "Provides predefined input for testing",
+      "methods": {
+        "close": "boolean_generator_close",
+        "open": "boolean_generator_open"
+      },
+      "name": "test/boolean-generator",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "String sequence to be generated, formatted as 'TFTFTTTFF' where 'T' is true and 'F' is false.",
+            "name": "sequence"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Interval between packets.",
+            "name": "interval"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Where the predefined sequence is outputted.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "boolean_generator_data",
+      "url": "http://solettaproject.org/doc/latest/components/boolean_generator.html"
+    },
+    {
+      "category": "test",
+      "description": "Matches an expected sequence of integer values.",
+      "methods": {
+        "close": "int_validator_close",
+        "open": "int_validator_open"
+      },
+      "name": "test/int-validator",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Where to receive the expected sequence.",
+          "methods": {
+            "process": "int_validator_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Expected sequence to be matched, formatted as '1 2 3 -4 10 100 -1000'",
+            "name": "sequence"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Outputs true if there is a match, false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "int_validator_data",
+      "url": "http://solettaproject.org/doc/latest/components/int-validator.html"
+    },
+    {
+      "category": "test",
+      "description": "Provides predefined input for testing",
+      "methods": {
+        "close": "int_generator_close",
+        "open": "int_generator_open"
+      },
+      "name": "test/int-generator",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "String sequence to be generated, formatted as '1 10 -2 1000'.",
+            "name": "sequence"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Interval between packets.",
+            "name": "interval"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Where the predefined sequence is outputted.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "int_generator_data",
+      "url": "http://solettaproject.org/doc/latest/components/int_generator.html"
+    },
+    {
+      "category": "test",
+      "description": "Provides predefined input for testing",
+      "methods": {
+        "close": "float_generator_close",
+        "open": "float_generator_open"
+      },
+      "name": "test/float-generator",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "String sequence to be generated, formatted as '1.0 2 -1.7 35.864'",
+            "name": "sequence"
+          },
+          {
+            "data_type": "float",
+            "default": 0,
+            "description": "Interval between packets.",
+            "name": "interval"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Where the predefined sequence is outputted.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "float_generator_data",
+      "url": "http://solettaproject.org/doc/latest/components/float_generator.html"
+    },
+    {
+      "category": "test",
+      "description": "Matches an expected sequence.",
+      "methods": {
+        "close": "float_validator_close",
+        "open": "float_validator_open"
+      },
+      "name": "test/float-validator",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Where to receive the expected sequence.",
+          "methods": {
+            "process": "float_validator_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Expected sequence to be matched, formatted as '1.0 2 -1.7 35.864'",
+            "name": "sequence"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Outputs true if there is a match, false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "float_validator_data",
+      "url": "http://solettaproject.org/doc/latest/components/float-validator.html"
+    }
+  ]
+}

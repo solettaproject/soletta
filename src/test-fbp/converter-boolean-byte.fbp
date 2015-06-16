@@ -1,0 +1,61 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+byte_to_boolean_within(converter/byte-to-boolean)
+true_min(constant/byte:value=10) OUT -> TRUE_MIN byte_to_boolean_within
+true_max(constant/byte:value=20) OUT -> TRUE_MAX byte_to_boolean_within
+
+below_min(constant/byte:value=9)
+above_max(constant/byte:value=21)
+within_range(constant/byte:value=15)
+byte_to_boolean_below(converter/byte-to-boolean:true_min=10,true_max=20)
+byte_to_boolean_above(converter/byte-to-boolean:true_min=10,true_max=20)
+
+below_min OUT -> IN byte_to_boolean_below
+byte_to_boolean_below OUT -> IN _(boolean/not) OUT -> RESULT result_below_range(test/result)
+
+above_max OUT -> IN byte_to_boolean_above
+byte_to_boolean_above OUT -> IN _(boolean/not) OUT -> RESULT result_above_range(test/result)
+
+within_range OUT -> IN byte_to_boolean_within
+byte_to_boolean_within OUT -> RESULT result_within_range(test/result)
+
+true(constant/boolean:value=true)
+false(constant/boolean:value=false)
+true_value(constant/int:value=117)
+false_value(constant/int:value=254)
+boolean_to_byte_true(converter/boolean-to-byte:true_value=117,false_value=254)
+boolean_to_byte_false(converter/boolean-to-byte:true_value=117,false_value=254)
+
+true OUT -> IN boolean_to_byte_true OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_true(int/equal)
+true_value OUT -> IN1 cmp_true OUT -> RESULT result_true(test/result)
+
+false OUT -> IN boolean_to_byte_false OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_false(int/equal)
+false_value OUT -> IN1 cmp_false OUT -> RESULT result_false(test/result)

@@ -1,0 +1,1048 @@
+{
+  "name": "int",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "math/int",
+      "description": "Int Max",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of MAX operation.",
+          "methods": {
+            "process": "irange_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of MAX operation.",
+          "methods": {
+            "process": "irange_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "close": "irange_close",
+        "open": "max_open"
+      },
+      "name": "int/max",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_node_type",
+        "extra_methods": {
+          "custom_process": "max_process"
+        }
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Maximum value between IN0 and IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/math/irange/max.html"
+    },
+    {
+      "category": "math/int",
+      "description": "Int Min",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of MIN operation.",
+          "methods": {
+            "process": "irange_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of MIN operation.",
+          "methods": {
+            "process": "irange_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "close": "irange_close",
+        "open": "min_open"
+      },
+      "name": "int/min",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_node_type",
+        "extra_methods": {
+          "custom_process": "min_process"
+        }
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Minimum value between IN0 and IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/math/irange/min.html"
+    },
+    {
+      "category": "math/int",
+      "description": "Calculates absolute value of a number.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Input number.",
+          "methods": {
+            "process": "abs_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "int/abs",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Number's absolute value.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_abs_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/math/irange/abs.html"
+    },
+    {
+      "category": "logical/int",
+      "description": "Increment or decrement it's internal value by 'step' whenever a packet is received and outputs the updated value. If the internal value is greater than 'max' after an increment, it's set to min and an empty packet is sent through OVERFLOW port as well, or if it's less than 'min' after a decrement, it's set to 'max' and an empty packet is sent through UNDERFLOW port.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Increment operation.",
+          "methods": {
+            "process": "inc_process"
+          },
+          "name": "INC"
+        },
+        {
+          "data_type": "any",
+          "description": "Decrement operation.",
+          "methods": {
+            "process": "dec_process"
+          },
+          "name": "DEC"
+        },
+        {
+          "data_type": "any",
+          "description": "Reset accumulator to its initial state.",
+          "methods": {
+            "process": "reset_process"
+          },
+          "name": "RESET"
+        }
+      ],
+      "methods": {
+        "open": "accumulator_open"
+      },
+      "name": "int/accumulator",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": "INT32_MAX",
+              "min": "INT32_MIN",
+              "step": 1,
+              "val": 0
+            },
+            "description": "The initial value, range and step to be used in operations. Only positive step values are allowed.",
+            "name": "setup_value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Updated value after an input is processed.",
+          "methods": {
+            "connect": "accumulator_connect"
+          },
+          "name": "OUT"
+        },
+        {
+          "data_type": "empty",
+          "description": "Sends an empty package whenever an overflow happens.",
+          "name": "OVERFLOW"
+        },
+        {
+          "data_type": "empty",
+          "description": "Sends an empty package whenever an underflow happens.",
+          "name": "UNDERFLOW"
+        }
+      ],
+      "private_data_type": "accumulator_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/irange/accumulator.html"
+    },
+    {
+      "category": "arithmetic/int",
+      "description": "Arithmetic addition operation with ints",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of addition operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of addition operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "addition_open"
+      },
+      "name": "int/addition",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Sum of values received on ports IN0 and IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_arithmetic_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/arithmetic/irange/addition.html"
+    },
+    {
+      "category": "arithmetic/int",
+      "description": "Arithmetic division operation with ints",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of division operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of division operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "division_open"
+      },
+      "name": "int/division",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Quotient of values received on ports IN0 and IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_arithmetic_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/arithmetic/irange/division.html"
+    },
+    {
+      "category": "arithmetic/int",
+      "description": "Arithmetic modulo operation with ints",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of modulo operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of modulo operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "modulo_open"
+      },
+      "name": "int/modulo",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The remainder of values received on ports IN0 divided by values on IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_arithmetic_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/arithmetic/irange/modulo.html"
+    },
+    {
+      "category": "arithmetic/int",
+      "description": "Arithmetic multiplication operation with ints",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of multiplication operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of multiplication operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "multiplication_open"
+      },
+      "name": "int/multiplication",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Product of values received on ports IN0 and IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_arithmetic_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/arithmetic/irange/multiplication.html"
+    },
+    {
+      "category": "arithmetic/int",
+      "description": "Arithmetic subtraction operation with ints",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of subtraction operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of subtraction operation.",
+          "methods": {
+            "process": "operator_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "subtraction_open"
+      },
+      "name": "int/subtraction",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Difference of values received on ports IN0 and IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_arithmetic_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/arithmetic/irange/subtraction.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise And",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of AND operation.",
+          "methods": {
+            "process": "and_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of AND operation.",
+          "methods": {
+            "process": "and_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "name": "int/bitwise-and",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The result of a bitwise AND between IN0 and IN1",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/int/bitwise_and.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Not",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of NOT operation.",
+          "methods": {
+            "process": "not_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "int/bitwise-not",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Bitwise NOT of the value received in IN.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/int/bitwise_not.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Or",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of OR operation.",
+          "methods": {
+            "process": "or_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of OR operation.",
+          "methods": {
+            "process": "or_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "name": "int/bitwise-or",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The result of a bitwise OR between IN0 or IN1",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/int/bitwise_or.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Shift Left",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Value to be shifted",
+          "methods": {
+            "process": "shift_left_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Number of bits to shift the value in IN (must be less than 32)",
+          "methods": {
+            "process": "shift_left_process"
+          },
+          "name": "SHIFT"
+        }
+      ],
+      "name": "int/shift-left",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The value received in IN, shifted SHIFT bits to the left.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/int/shift_left.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Shift Right",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Value to be shifted",
+          "methods": {
+            "process": "shift_right_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Number of bits to shift the value in IN (must be less than 32)",
+          "methods": {
+            "process": "shift_right_process"
+          },
+          "name": "SHIFT"
+        }
+      ],
+      "name": "int/shift-right",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The value received in IN, shifted SHIFT bits to the right (No sign extension).",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/int/shift_right.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Xor",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of XOR operation.",
+          "methods": {
+            "process": "xor_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of XOR operation.",
+          "methods": {
+            "process": "xor_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "name": "int/bitwise-xor",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The result of a bitwise XOR between IN0 xor IN1",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/int/bitwise_xor.html"
+    },
+    {
+      "category": "logical/int",
+      "description": "Apply desired computation when buffer fills or timeout happens.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Input port.",
+          "methods": {
+            "process": "irange_buffer_process"
+          },
+          "name": "IN",
+          "required": true
+        },
+        {
+          "data_type": "int",
+          "description": "Receives an int packet to set the timeout time to be used.",
+          "methods": {
+            "process": "irange_buffer_timeout"
+          },
+          "name": "TIMEOUT"
+        },
+        {
+          "data_type": "any",
+          "description": "Reset buffer and timer to its initial state.",
+          "methods": {
+            "process": "irange_buffer_reset"
+          },
+          "name": "RESET"
+        }
+      ],
+      "methods": {
+        "close": "irange_buffer_close",
+        "open": "irange_buffer_open"
+      },
+      "name": "int/buffer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 4,
+            "description": "Number of samples that the buffer should hold.",
+            "name": "samples"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Timeout time in milliseconds. Default is zero which means that timeout is disabled.",
+            "name": "timeout"
+          },
+          {
+            "data_type": "string",
+            "default": "all_true",
+            "description": "Operation to be applied in the buffer elements to compute the output.",
+            "name": "operation"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Output port.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_buffer_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/irange/buffer.html"
+    },
+    {
+      "category": "comparison/int",
+      "description": "Check if an int is equal to other.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of equal comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of equal comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "equal_open"
+      },
+      "name": "int/equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN0 is equal to value received on port IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/irange/equal.html"
+    },
+    {
+      "category": "comparison/int",
+      "description": "Check if an int is greater than other.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of greater comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of greater comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "greater_open"
+      },
+      "name": "int/greater",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN0 is greater than value received on port IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/irange/greater.html"
+    },
+    {
+      "category": "comparison/int",
+      "description": "Check if an int is greater than or equal to other.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of greater or equal comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of greater or equal comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "greater_or_equal_open"
+      },
+      "name": "int/greater-or-equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN0 is greater than or equal to value received on port IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/irange/greater-or-equal.html"
+    },
+    {
+      "category": "comparison/int",
+      "description": "Check if an int is less than other.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of less comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of less comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "less_open"
+      },
+      "name": "int/less",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN0 is less than value received on port IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/irange/less.html"
+    },
+    {
+      "category": "comparison/int",
+      "description": "Check if an int is less than or equal to other.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of less or equal comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of less or equal comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "less_or_equal_open"
+      },
+      "name": "int/less-or-equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN0 is less than or equal to value received on port IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/irange/less-or-equal.html"
+    },
+    {
+      "category": "comparison/int",
+      "description": "Check if an int is different from other.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "First port of not equal comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "int",
+          "description": "Second port of not equal comparison.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "methods": {
+        "open": "not_equal_open"
+      },
+      "name": "int/not-equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN0 is different from value received on port IN1.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/irange/not-equal.html"
+    },
+    {
+      "category": "math/int",
+      "description": "Constrain value to it's range",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Value to be constrained.",
+          "methods": {
+            "process": "irange_constrain_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "irange_constrain_open"
+      },
+      "name": "int/constrain",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 1023,
+              "min": 0
+            },
+            "description": "Range values (min, max, step). Used only if use_input_range is disabled.",
+            "name": "range"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Use min, max and step values from package instead of options min, max and step. It's useful if you need to convert from many different sources to the same range and all of them inform these values correctly in each package.",
+            "name": "use_input_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Value constrained considering range",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_constrain_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/math/irange/constrain.html"
+    },
+    {
+      "category": "int/filter",
+      "description": "Filter ints in range",
+      "name": "int/filter",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Data input port.",
+          "methods": {
+            "process": "int_filter_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "int_filter_open"
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Outputs the same variable as the input if it's in range, nothing otherwise.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Minimum value (inclusive)",
+            "name": "min",
+            "default" : {
+              "val" : "INT32_MIN"
+            }
+          },
+          {
+            "data_type": "int",
+            "description": "Maximum value (inclusive)",
+            "name": "max",
+            "default" : {
+              "val" : "INT32_MAX"
+            }
+          },
+          {
+            "data_type": "boolean",
+            "description": "if true, the packet irange will have it's min and max changed to the min and max of this node.",
+            "name": "range_override",
+            "default" : false
+          }
+        ],
+        "version": 1
+      },
+
+      "private_data_type": "int_filter_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/int/filter.html"
+    },
+    {
+      "category": "logical/int",
+      "description": "check if value is between a min and max range.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "value that will be checked if its in range or not.",
+          "methods": {
+            "process": "inrange_process"
+          },
+          "name": "IN0"
+        }
+      ],
+      "methods": {
+        "open": "inrange_open"
+      },
+      "name": "int/inrange",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": -255
+            },
+            "description": "maximum range value.",
+            "name": "range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "true if IN0 is in range",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_irange",
+      "url": "http://solettaproject.org/doc/latest/node_types/irange/inrange.html"
+    },
+    {
+      "category": "math/int",
+      "description": "Map values to different range",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Value to be converted.",
+          "methods": {
+            "process": "irange_map_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "irange_map_open"
+      },
+      "name": "int/map",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": "INT32_MAX",
+              "min": "INT32_MIN"
+            },
+            "description": "Input's range. Used only if use_input_range is disabled.",
+            "name": "input_range"
+          },
+          {
+            "data_type": "int",
+            "description": "Output's range.",
+            "name": "output_range"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Use min and max values from input package instead of option input_range. It's useful if you need to convert from many different sources to the same range and all of them inform these values correctly in each package.",
+            "name": "use_input_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Value mapped considering input and output ranges",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "irange_map_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/math/irange/map.html"
+    }
+  ]
+}

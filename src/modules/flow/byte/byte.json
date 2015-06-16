@@ -1,0 +1,245 @@
+{
+  "name": "byte",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise And",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "First port of AND operation.",
+          "methods": {
+            "process": "and_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "byte",
+          "description": "Second port of AND operation.",
+          "methods": {
+            "process": "and_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "name": "byte/bitwise-and",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "The result of a bitwise AND between IN0 and IN1",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/byte/bitwise_and.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Not",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "First port of NOT operation.",
+          "methods": {
+            "process": "not_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "byte/bitwise-not",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Bitwise NOT of the value received in IN.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/byte/bitwise_not.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Or",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "First port of OR operation.",
+          "methods": {
+            "process": "or_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "byte",
+          "description": "Second port of OR operation.",
+          "methods": {
+            "process": "or_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "name": "byte/bitwise-or",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "The result of a bitwise OR between IN0 or IN1",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/byte/bitwise_or.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Shift Left",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Value to be shifted",
+          "methods": {
+            "process": "shift_left_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "byte",
+          "description": "Number of bits to shift the value in IN (must be less than 8)",
+          "methods": {
+            "process": "shift_left_process"
+          },
+          "name": "SHIFT"
+        }
+      ],
+      "name": "byte/shift-left",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "The value received in IN, shifted SHIFT bits to the left.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/byte/shift_left.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Shift Right",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Value to be shifted",
+          "methods": {
+            "process": "shift_right_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "byte",
+          "description": "Number of bits to shift the value in IN (must be less than 8)",
+          "methods": {
+            "process": "shift_right_process"
+          },
+          "name": "SHIFT"
+        }
+      ],
+      "name": "byte/shift-right",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "The value received in IN, shifted SHIFT bits to the right (No sign extension).",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/byte/shift_right.html"
+    },
+    {
+      "category": "logical/bitwise",
+      "description": "Bitwise Xor",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "First port of XOR operation.",
+          "methods": {
+            "process": "xor_process"
+          },
+          "name": "IN0"
+        },
+        {
+          "data_type": "byte",
+          "description": "Second port of XOR operation.",
+          "methods": {
+            "process": "xor_process"
+          },
+          "name": "IN1"
+        }
+      ],
+      "name": "byte/bitwise-xor",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "The result of a bitwise XOR between IN0 xor IN1",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "bitwise_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/byte/bitwise_xor.html"
+    },
+    {
+      "category": "byte/filter",
+      "description": "Filter bytes in range",
+      "name": "byte/filter",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Data input port.",
+          "methods": {
+            "process": "byte_filter_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "byte_filter_open"
+      },
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Outputs the same variable as the input if it's in range, nothing otherwise.",
+          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
+          "name": "OUT"
+        }
+      ],
+      "options": {
+        "members": [
+          {
+            "data_type": "byte",
+            "description": "Minimum value (inclusive)",
+            "name": "min",
+            "default" : 0
+          },
+          {
+            "data_type": "byte",
+            "description": "Maximum value (inclusive)",
+            "name": "max",
+            "default" : 255
+          }
+        ],
+        "version": 1
+      },
+
+      "private_data_type": "byte_filter_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/byte/filter.html"
+    }
+  ]
+}

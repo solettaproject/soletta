@@ -1,0 +1,148 @@
+body{
+    background-image: url(images/side_background.jpg);
+    background-repeat: repeat-y;
+    background-color: white;
+    border: 0px;
+    margin: 0px;
+    padding: 0px;
+    color: #686c71;
+    font-family: sans-serif;
+}
+.Container
+{
+    height: 100%;
+    width: 1280px;
+    position: absolute;
+}
+.Content{
+    margin: 0px;
+    margin-bottom: 100px;
+    width: 1000px;
+    padding-left: 20px;
+    background-color: white;
+    position: absolute;
+    left:263px;
+}
+.Sidebar{
+    background-color: #2d3237;
+    width: 263px;
+    height: 100%;
+    position: absolute;
+    top:128px;
+}
+.Category
+{
+    float:left;
+    width: 950px;
+    margin-left: 13px;
+    height: 50px;
+    padding-top: 20px;
+    padding-bottom: 30px;
+}
+.Entry
+{
+    width: 306px;
+    min-height: 306px;
+    border: 1px solid #d3d3d3;
+    float: left;
+    margin-bottom: 13px;
+    margin-left: 13px;
+    background: url(images/entry_header.jpg) repeat-x #f7f7f7;
+    box-shadow: 3px 3px 0px #f7f7f7;
+}
+.EntryHeader
+{
+    min-height: 72px;
+    width: inherit;
+    margin: 0px;
+    background-color: white;
+    border-bottom: 1px solid #d3d3d3;
+}
+.Group
+{
+    width: 980px;
+    margin: 0px;
+    float: left;
+}
+.Logo
+{
+    display: block;
+    position: absolute;
+    border-bottom: 1px solid #6c7073;
+}
+.MenuItem{
+    width: 100%;
+    height: 40px;
+    border-top: 1px solid #6c7073;
+    color: white;
+    /*background-color: chartreuse;*/
+}
+.MenuItemLabel{
+    width: 220px;
+    margin-left: 40px;
+    margin-top:10px;
+    font-size: 15px;
+}
+.EntryLine{
+    outline-color: #ff0000;
+}
+.NodeDescription{
+    font-size: 15px;
+    margin-left: 15px;
+    margin-right: 15px;
+    margin-top: 5px;
+}
+.CategoryDescription{
+    font-size: 15px;
+}
+h1{ /*The category of the nodes*/
+    color:#2d3237;
+    font-size: 18px;
+    font-weight: bold;
+    margin-left: 0px;
+    margin-bottom: -10px; /*To reduce the distance between the title of the category and its description*/
+}
+h2{ /*The node titles*/
+    color:#2d3237;
+    font-size: 22px;
+    font-weight: bold;
+    margin-left: 15px;
+    margin-bottom: 0px;
+    margin-top: 25px;
+}
+h3{ /*The port label*/
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 15px;
+    color: #686c71;
+}
+ul.ULInput{ /*List for the inputs*/
+    list-style-image: url(images/li_input.jpg);
+}
+ul.ULOutput{ /*List for the outputs*/
+    list-style-image: url(images/li_output.jpg);
+}
+li /*List items*/
+{
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+li > b{ /*List port indication*/
+    font-size: 15px;
+    color: #2d3237;
+}
+hr{ /*Line that divides the Entry ports*/
+    border: none;
+    height: 1px;
+}
+a{
+    text-decoration: none;
+    color:white;
+}
+a:hover{
+    color: #1173c2;
+}
+a:active
+{
+    color: #0e5c9c;
+}

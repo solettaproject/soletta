@@ -1,0 +1,119 @@
+{
+  "name": "file",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "input/sw",
+      "description": "Reads a file from disk and dispatches on output port as a blob",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "A string containing the file path.",
+          "methods": {
+            "process": "file_reader_path_process"
+          },
+          "name": "PATH"
+        }
+      ],
+      "methods": {
+        "close": "file_reader_close",
+        "open": "file_reader_open"
+      },
+      "name": "file/reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "file name to read.",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "A blob containing the file contents and its size.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "file_reader_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/file_reader.html"
+    },
+    {
+      "category": "input/sw",
+      "description": "Writes a file to disk",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "A string containing the file path.",
+          "methods": {
+            "process": "file_writer_path_process"
+          },
+          "name": "PATH"
+        },
+        {
+          "data_type": "int",
+          "description": "file permissions in POSIX mode such as 0644.",
+          "methods": {
+            "process": "file_writer_permissions_process"
+          },
+          "name": "PERMISSIONS"
+        },
+        {
+          "data_type": "blob",
+          "description": "A blob containing the file contents.",
+          "methods": {
+            "process": "file_writer_contents_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "close": "file_writer_close",
+        "open": "file_writer_open"
+      },
+      "name": "file/writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "file name to write.",
+            "name": "path"
+          },
+          {
+            "data_type": "int",
+            "description": "file permissions in POSIX mode such as 0644.",
+            "name": "permissions"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if it's busy writing the file to disk.",
+          "name": "BUSY"
+        },
+        {
+          "data_type": "int",
+          "description": "Bytes already written to disk.",
+          "name": "SIZE"
+        },
+        {
+          "data_type": "int",
+          "description": "Total bytes to write to disk.",
+          "name": "DONE"
+        }
+      ],
+      "private_data_type": "file_writer_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/file_writer.html"
+    }
+  ]
+}

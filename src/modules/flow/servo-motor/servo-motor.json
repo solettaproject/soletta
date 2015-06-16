@@ -1,0 +1,69 @@
+{
+  "name": "servo-motor",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "output/hw",
+      "description": "Control RC servo motors.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Set the angle of the shaft in degrees, from 0 to 180.",
+          "methods": {
+            "process": "angle_set"
+          },
+          "name": "ANGLE"
+        },
+        {
+          "data_type": "int",
+          "description": "Set duty cycle width in microseconds. Shoudln't be less or greater than min and max values, defined on options.",
+          "methods": {
+            "process": "duty_cycle_set"
+          },
+          "name": "DUTY_CYCLE"
+        }
+      ],
+      "methods": {
+        "close": "servo_motor_close",
+        "open": "servo_motor_open"
+      },
+      "name": "servo-motor/controller",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 2400,
+              "min": 544
+            },
+            "description": "Pulse width range, in microseconds, corresponding to the minimum (0-degree) angle on the servo until the maximum (180-degree) angle.",
+            "name": "duty_cycle_range"
+          },
+          {
+            "data_type": "int",
+            "default": 22000,
+            "description": "Period, in microseconds. A pulse repetition rate of 50 Hz should work with most servos.",
+            "name": "period"
+          },
+          {
+            "data_type": "int",
+            "description": "PWM chip",
+            "name": "chip"
+          },
+          {
+            "data_type": "int",
+            "description": "PWM pin channel",
+            "name": "pin"
+          }
+        ],
+        "version": 1
+      },
+      "private_data_type": "servo_motor_data",
+      "url": "http://solettaproject.org/doc/latest/components/servo-motor.html"
+    }
+  ]
+}

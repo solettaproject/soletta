@@ -1,0 +1,93 @@
+{
+  "name": "custom-node-types",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "input/sw",
+      "description": "Example type that shows how to create an input/reader.",
+      "methods": {
+        "close": "reader_close",
+        "open": "reader_open"
+      },
+      "name": "custom-node-types/reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Example option integer value",
+            "name": "intopt"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Example output port producing an integer",
+          "methods": {
+            "connect": "reader_out_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "reader_data"
+    },
+    {
+      "category": "output/sw",
+      "description": "Example type that shows how to create an output/writer",
+      "methods": {
+        "close": "writer_close",
+        "open": "writer_open"
+      },
+      "name": "custom-node-types/writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Example option string value",
+            "name": "prefix",
+            "default": "some prefix"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Example input port receiving a boolean",
+          "methods": {
+            "process": "writer_in_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "private_data_type": "writer_data"
+    },
+    {
+      "category": "logic",
+      "description": "Example type with both input and output ports, it simulates some logic by converting the integer from custom-node-types/reader to boolean used by custom-node-types/writer",
+      "name": "custom-node-types/logic",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Some int",
+          "methods": {
+            "process": "logic_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Some bool",
+          "name": "OUT"
+        }
+      ]
+    }
+  ]
+}

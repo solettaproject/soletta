@@ -1,0 +1,66 @@
+{
+  "name": "piezo-speaker",
+  "meta": {
+      "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+      "version": 1
+  },
+  "types": [
+    {
+      "category": "output/hw",
+      "description": "Receives string packages (or load-time configurations) with tunes to be played by a piezo buzzer/speaker over PWM",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The tablature string to play on the node. The syntax for it is <note_array|beats_array|base_tempo_in_us>, as in 'ccggaa|111122|300' -- that plays do do sol sol la la in such a way that the first four notes last 300 ms and the last two hold for 600 ms. Possible individual notes are 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'C', and beats can only be on the 1-9 range.",
+          "methods": {
+            "process": "tune_set"
+          },
+          "name": "TUNE"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Start/stop buzzing",
+          "methods": {
+            "process": "enabled_set"
+          },
+          "name": "ENABLED"
+        }
+      ],
+      "methods": {
+        "close": "piezo_speaker_close",
+        "open": "piezo_speaker_open"
+      },
+      "name": "piezo-speaker/sound",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Pre-set tune to buzz with",
+            "name": "tune"
+          },
+          {
+            "data_type": "int",
+            "description": "PWM pin number",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "description": "PWM chip number",
+            "name": "chip"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Whether to loop indefinetely on the input tune",
+            "name": "loop"
+          }
+        ],
+        "version": 1
+      },
+      "private_data_type": "piezo_speaker_data",
+      "url": "http://solettaproject.org/doc/latest/components/piezo-speaker.html"
+    }
+  ]
+}

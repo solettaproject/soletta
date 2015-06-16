@@ -1,0 +1,60 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+input1(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN all_false_buffer(boolean/buffer:samples=4,operation=all_false)
+all_false_buffer OUT -> RESULT t1(test/result)
+
+input2(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN all_true_buffer(boolean/buffer:samples=4,operation=all_true)
+all_true_buffer OUT -> RESULT t2(test/result)
+
+input3(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN any_true_buffer(boolean/buffer:samples=4,operation=any_true)
+any_true_buffer OUT -> RESULT t3(test/result)
+
+input4(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN any_false_buffer(boolean/buffer:samples=4,operation=any_false)
+any_false_buffer OUT -> RESULT t4(test/result)
+
+# Negative tests
+
+input5(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN nall_false_buffer(boolean/buffer:samples=4,operation=all_false)
+nall_false_buffer OUT -> IN _(boolean/not) OUT -> RESULT t5(test/result)
+
+input6(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN nall_true_buffer(boolean/buffer:samples=4,operation=all_true)
+nall_true_buffer OUT -> IN _(boolean/not) OUT -> RESULT t6(test/result)
+
+input7(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN nany_true_buffer(boolean/buffer:samples=4,operation=any_true)
+nany_true_buffer OUT -> IN _(boolean/not) OUT -> RESULT t7(test/result)
+
+input8(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN nany_false_buffer(boolean/buffer:samples=4,operation=any_false)
+nany_false_buffer OUT -> IN _(boolean/not) OUT -> RESULT t8(test/result)
+
+
+#timeout test
+
+input9(test/boolean-generator:sequence="FT", interval=20) OUT -> IN buffer(boolean/buffer:samples=6, timeout=50, operation=any_true) OUT -> RESULT t9(test/result)

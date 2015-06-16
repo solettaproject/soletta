@@ -1,0 +1,62 @@
+{
+  "name": "keyboard",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "input/sw",
+      "description": "Provides boolean packets after each key press from a physical keyboard",
+      "methods": {
+        "close": "keyboard_boolean_close",
+        "open": "keyboard_boolean_open"
+      },
+      "name": "keyboard/boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "A key's actual ASCII code to capture.",
+            "name": "binary_code"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Whether to toggle the output value, if the same key is pressed in sequence.",
+            "name": "toggle"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "A boolean packet when keyboard input arrives.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "keyboard_boolean_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/keyboard_boolean.html"
+    },
+    {
+      "category": "input/sw",
+      "description": "Provides int packets after each key press from a physical keyboard",
+      "methods": {
+        "close": "keyboard_irange_close",
+        "open": "keyboard_irange_open"
+      },
+      "name": "keyboard/int",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "An int range packet (with the given key pressed's code) when keyboard input arrives.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "keyboard_irange_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/keyboard_irange.html"
+    }
+  ]
+}

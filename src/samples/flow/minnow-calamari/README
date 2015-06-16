@@ -1,0 +1,17 @@
+This showcases the Intel MinnoBoard using the Calamari Lure.
+
+http://elinux.org/Minnowboard:MaxLures
+http://www.minnowboard.org/
+
+The options will be read from sol-flow.conf. For sample
+calamari-buttons-rgb-led.fbp, you'll be able to set
+GPIO pins according to the version of your kernel (<= 3.17,
+or 3.19). Consult the calarmari-3.17.conf or
+calamari-3.19.conf and change GPIO pins for nodes LedRed,
+LedGreen, LedBlue, Button1, Button2 and Button3 in
+sol-flow.conf accordingly.
+
+For the remaining samples, due to a different implementation,
+the GPIO pins are hardcoded for kernel <= 3.17 and cannot be
+changed through conffile. Be sure you run those samples
+on appropriate kernel version.

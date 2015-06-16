@@ -1,0 +1,49 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+empty_to_byte2(converter/empty-to-byte)
+output_value(constant/byte:value=128) OUT -> OUTPUT_VALUE empty_to_byte2
+byte_to_empty2(converter/byte-to-empty)
+byte_min(constant/byte:value=100) OUT -> RANGE_MIN byte_to_empty2
+byte_max(constant/byte:value=129) OUT -> RANGE_MAX byte_to_empty2
+
+empty(constant/empty)
+check_against(constant/int:value=128)
+empty_to_byte(converter/empty-to-byte:output_value=128)
+byte_to_empty(converter/byte-to-empty:range_min=100,range_max=129)
+
+empty OUT -> IN empty_to_byte OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_output(int/equal)
+check_against OUT -> IN1 cmp_output OUT -> RESULT gen_byte(test/result)
+
+empty OUT -> IN empty_to_byte2 OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_output2(int/equal)
+check_against OUT -> IN1 cmp_output2 OUT -> RESULT gen_byte2(test/result)
+
+empty_to_byte OUT -> IN byte_to_empty OUT -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT gen_pulse(test/result)
+empty_to_byte OUT -> IN byte_to_empty2 OUT -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT gen_pulse2(test/result)

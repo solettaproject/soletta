@@ -1,0 +1,278 @@
+{
+  "name": "gtk",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "output/sw",
+      "description": "A byte's individual bits editor that outputs int packets with the resulting value.",
+      "methods": {
+        "close": "gtk_byte_editor_close",
+        "open": "gtk_byte_editor_open"
+      },
+      "name": "gtk/byte-editor",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "The current reading for the editor, after a change",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/byte-editor.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "Text output for boolean/int packets.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Prints the packet's value to a label widget",
+          "methods": {
+            "process": "gtk_label_in_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "close": "gtk_label_close",
+        "open": "gtk_label_open"
+      },
+      "name": "gtk/label",
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/label.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "Gtk widget that immitates a led. It's turned on by a true boolea packet and off by a false one.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Controls whether the led is on or off",
+          "methods": {
+            "process": "gtk_led_in_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "close": "gtk_led_close",
+        "open": "gtk_led_open"
+      },
+      "name": "gtk/led",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The led's RGB color components",
+            "name": "rgb",
+            "default": "0|0|255"
+          }
+        ],
+        "version": 1
+      },
+      "private_data_type": "gtk_led_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/led.html"
+    },
+    {
+      "category": "input/sw",
+      "description": "Emulates a pushbutton providing boolean packets",
+      "methods": {
+        "close": "gtk_pushbutton_close",
+        "open": "gtk_pushbutton_open"
+      },
+      "name": "gtk/pushbutton",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "TRUE when pushed and FALSE when released.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/pushbutton.html"
+    },
+    {
+      "category": "input/sw",
+      "description": "Gtk widget that a provides (int and boolean) pwm packets to other nodes.",
+      "methods": {
+        "close": "gtk_pwm_editor_close",
+        "open": "gtk_pwm_editor_open"
+      },
+      "name": "gtk/pwm-editor",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 100,
+              "min": 0
+            },
+            "description": "PWM editor range",
+            "name": "range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "The current reading for enabled (after an input change)",
+          "name": "ENABLED"
+        },
+        {
+          "data_type": "int",
+          "description": "The current reading for duty cycle (after an input change)",
+          "name": "DUTY_CYCLE"
+        },
+        {
+          "data_type": "int",
+          "description": "The current reading for period (after an input change)",
+          "name": "PERIOD"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/pwm-editor.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "Gtk widget that provides a graphical visualization of PWM.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Controls whether PWM is enabled or disabled.",
+          "methods": {
+            "process": "gtk_pwm_viewer_enable_process"
+          },
+          "name": "ENABLED"
+        },
+        {
+          "data_type": "int",
+          "description": "Set duty cycle value.",
+          "methods": {
+            "process": "gtk_pwm_viewer_duty_cycle_process"
+          },
+          "name": "DUTY_CYCLE"
+        },
+        {
+          "data_type": "int",
+          "description": "Set period.",
+          "methods": {
+            "process": "gtk_pwm_viewer_period_process"
+          },
+          "name": "PERIOD"
+        }
+      ],
+      "methods": {
+        "close": "gtk_pwm_viewer_close",
+        "open": "gtk_pwm_viewer_open"
+      },
+      "name": "gtk/pwm-viewer",
+      "private_data_type": "gtk_pwm_viewer_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/pwm-viewer.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "A color chooser widget that outputs int packets with RGB color space encoded in the int value.",
+      "methods": {
+        "close": "gtk_rgb_editor_close",
+        "open": "gtk_rgb_editor_open"
+      },
+      "name": "gtk/rgb-editor",
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "The current reading for the editor, after a change",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/rgb-editor.html"
+    },
+    {
+      "category": "input/sw",
+      "description": "Slider that provides (int) input packets to other nodes",
+      "methods": {
+        "close": "gtk_slider_close",
+        "open": "gtk_slider_open"
+      },
+      "name": "gtk/slider",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 100,
+              "min": 0
+            },
+            "description": "Slider's range",
+            "name": "range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The current reading for the slider (after an input change)",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/slider.html"
+    },
+    {
+      "category": "input/sw",
+      "description": "Spinbutton that provides (int) input packets to other nodes",
+      "methods": {
+        "close": "gtk_spinbutton_close",
+        "open": "gtk_spinbutton_open"
+      },
+      "name": "gtk/spinbutton",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 100,
+              "min": 0
+            },
+            "description": "Spinbutton's range",
+            "name": "range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The current reading for the spinbutton (after an input change)",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/spinbutton.html"
+    },
+    {
+      "category": "input/sw",
+      "description": "Toggle that provides boolean input packets to other nodes",
+      "methods": {
+        "close": "gtk_toggle_close",
+        "open": "gtk_toggle_open"
+      },
+      "name": "gtk/toggle",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "The current reading for the toggle (after an input change)",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/toggle.html"
+    }
+  ]
+}

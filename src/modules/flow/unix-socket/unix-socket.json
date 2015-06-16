@@ -1,0 +1,441 @@
+{
+  "name": "unix-socket",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "output/network",
+      "description": "Unix socket boolean writer",
+      "methods": {
+        "close": "common_close",
+        "open": "boolean_writer_open"
+      },
+      "name": "unix-socket/boolean-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Act like a server",
+            "name": "server"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Unix socket boolean writer, port out.",
+          "methods": {
+            "process": "boolean_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+    {
+      "category": "input/network",
+      "description": "Unix socket boolean reader",
+      "methods": {
+        "close": "common_close",
+        "open": "boolean_reader_open"
+      },
+      "name": "unix-socket/boolean-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Act like a server",
+            "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Unix socket boolean reader, port out.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+
+    {
+      "category": "output/network",
+      "description": "Unix socket string writer",
+      "methods": {
+        "close": "common_close",
+        "open": "string_writer_open"
+      },
+      "name": "unix-socket/string-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Act like a server",
+            "name": "server"
+         }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Unix socket string writer, port out.",
+          "methods": {
+            "process": "string_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+    {
+      "category": "input/network",
+      "description": "Unix socket string reader",
+      "methods": {
+        "close": "common_close",
+        "open": "string_reader_open"
+      },
+      "name": "unix-socket/string-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Act like a server",
+            "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Unix socket string reader, port out.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+
+    {
+      "category": "output/network",
+      "description": "Unix socket rgb writer",
+      "methods": {
+        "close": "common_close",
+        "open": "rgb_writer_open"
+      },
+      "name": "unix-socket/rgb-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Act like a server",
+            "name": "server"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Unix socket rgb writer, port out.",
+          "methods": {
+            "process": "rgb_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+    {
+      "category": "input/network",
+      "description": "Unix socket rgb reader",
+      "methods": {
+        "close": "common_close",
+        "open": "rgb_reader_open"
+      },
+      "name": "unix-socket/rgb-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Act like a server",
+            "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Unix socket rgb reader, port out.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+
+    {
+      "category": "output/network",
+      "description": "Unix socket byte writer",
+      "methods": {
+        "close": "common_close",
+        "open": "byte_writer_open"
+      },
+      "name": "unix-socket/byte-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Act like a server",
+            "name": "server"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Unix socket byte writer, port out.",
+          "methods": {
+            "process": "byte_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+    {
+      "category": "input/network",
+      "description": "Unix socket byte reader",
+      "methods": {
+        "close": "common_close",
+        "open": "byte_reader_open"
+      },
+      "name": "unix-socket/byte-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Act like a server",
+            "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Unix socket byte reader, port out.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+
+    {
+      "category": "output/network",
+      "description": "Unix socket int writer",
+      "methods": {
+        "close": "common_close",
+        "open": "int_writer_open"
+      },
+      "name": "unix-socket/int-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Act like a server",
+            "name": "server"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Unix socket int writer, port out.",
+          "methods": {
+            "process": "int_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+    {
+      "category": "input/network",
+      "description": "Unix socket int reader",
+      "methods": {
+        "close": "common_close",
+        "open": "int_reader_open"
+      },
+      "name": "unix-socket/int-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Act like a server",
+            "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Unix socket int reader, port out.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+
+    {
+      "category": "output/network",
+      "description": "Unix socket float writer",
+      "methods": {
+        "close": "common_close",
+        "open": "float_writer_open"
+      },
+      "name": "unix-socket/float-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Act like a server",
+            "name": "server"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Unix socket float writer, port out.",
+          "methods": {
+            "process": "float_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    },
+    {
+      "category": "input/network",
+      "description": "Unix socket float reader",
+      "methods": {
+        "close": "common_close",
+        "open": "float_reader_open"
+      },
+      "name": "unix-socket/float-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Act like a server",
+            "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Unix socket float reader, port out.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+    }
+  ]
+}

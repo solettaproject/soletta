@@ -1,0 +1,53 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+RedFloat(constant/float:value=20|0|100|1)
+GreenFloat(constant/float:value=40|0|100|1)
+BlueFloat(constant/float:value=70|0|100|1)
+float_to_rgb(converter/float-to-rgb:red_max=100,green_max=200,blue_max=50)
+
+RedFloat OUT -> RED float_to_rgb
+GreenFloat OUT -> GREEN float_to_rgb
+BlueFloat OUT -> BLUE float_to_rgb
+
+float_red(constant/float:value=20)
+float_green(constant/float:value=80)
+float_blue(constant/float:value=35)
+
+float_to_rgb OUT -> IN rgb_to_float(converter/rgb-to-float)
+
+rgb_to_float RED -> IN0 eq_twenty(float/equal)
+float_red OUT -> IN1 eq_twenty OUT -> RESULT red(test/result)
+
+rgb_to_float GREEN -> IN0 eq_eighty(float/equal)
+float_green OUT -> IN1 eq_eighty OUT -> RESULT green(test/result)
+
+rgb_to_float BLUE -> IN0 eq_thirty_five(float/equal)
+float_blue OUT -> IN1 eq_thirty_five OUT -> RESULT blue(test/result)

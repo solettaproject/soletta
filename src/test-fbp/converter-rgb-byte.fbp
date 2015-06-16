@@ -1,0 +1,53 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+RedByte(constant/byte:value=20)
+GreenByte(constant/byte:value=40)
+BlueByte(constant/byte:value=70)
+byte_to_rgb(converter/byte-to-rgb)
+
+RedByte OUT -> RED byte_to_rgb
+GreenByte OUT -> GREEN byte_to_rgb
+BlueByte OUT -> BLUE byte_to_rgb
+
+match_twenty(constant/int:value=20)
+match_eighty(constant/int:value=80)
+match_seventy(constant/int:value=70)
+
+byte_to_rgb OUT -> IN rgb_to_byte(converter/rgb-to-byte)
+
+rgb_to_byte RED -> IN _(converter/byte-to-int) OUT -> IN0 eq_twenty(int/equal)
+match_twenty OUT -> IN1 eq_twenty OUT -> RESULT red(test/result)
+
+rgb_to_byte GREEN -> IN _(converter/byte-to-int) OUT -> IN0 eq_eighty(int/equal)
+match_eighty OUT -> IN1 eq_eighty OUT -> IN _(boolean/not) OUT -> RESULT green(test/result)
+
+rgb_to_byte BLUE -> IN _(converter/byte-to-int) OUT -> IN0 eq_seventy(int/equal)
+match_seventy OUT -> IN1 eq_seventy OUT -> RESULT blue(test/result)

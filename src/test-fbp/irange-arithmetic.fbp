@@ -1,0 +1,76 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+augend(constant/int:value=7)
+addend(constant/int:value=3)
+sum(constant/int:value=10)
+
+augend OUT -> IN0 add(int/addition)
+addend OUT -> IN1 add
+add OUT -> IN0 equal_sum(int/equal)
+sum OUT -> IN1 equal_sum
+equal_sum OUT -> RESULT r_sum(test/result)
+
+minuend(constant/int:value=12)
+subtrahend(constant/int:value=10)
+difference(constant/int:value=2)
+
+minuend OUT -> IN0 sub(int/subtraction)
+subtrahend OUT -> IN1 sub
+sub OUT -> IN0 equal_sub(int/equal)
+difference OUT -> IN1 equal_sub
+equal_sub OUT -> RESULT r_sub(test/result)
+
+multiplicand(constant/int:value=37)
+multiplier(constant/int:value=5)
+product(constant/int:value=185)
+
+multiplicand OUT -> IN0 mul(int/multiplication)
+multiplier OUT -> IN1 mul
+mul OUT -> IN0 equal_mul(int/equal)
+product OUT -> IN1 equal_mul
+equal_mul OUT -> RESULT r_mul(test/result)
+
+dividend(constant/int:value=12)
+divisor(constant/int:value=3)
+quotient(constant/int:value=4)
+remainder(constant/int:value=0)
+
+dividend OUT -> IN0 div(int/division)
+divisor OUT -> IN1 div
+div OUT -> IN0 equal_div(int/equal)
+quotient OUT -> IN1 equal_div
+equal_div OUT -> RESULT r_div(test/result)
+
+dividend OUT -> IN0 mod(int/modulo)
+divisor OUT -> IN1 mod
+mod OUT -> IN0 equal_mod(int/equal)
+remainder OUT -> IN1 equal_mod
+equal_mod OUT -> RESULT r_mod(test/result)

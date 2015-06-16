@@ -1,0 +1,16 @@
+This is a basic example of how to use systemd to limit system calls access
+of given process.
+
+It contains three different services, one is resposible for start the fb-runner and
+runs runs the socket-string-writer.fbp, another service is responsible to run
+socket-string-reader.fbp and the last one is service that will fail to run
+socket-string-reader.fbp because the process is not allowed to use the connect() syscall.
+
+To test it, just copy those three services for the systemd service's dir and run:
+
+systemctl daemon-reload
+systemctl start unix-socket-writer
+systemctl start unix-socket-reader
+systemctl start unix-socket-reader-fail
+
+It's possible to check the result using journalctl -r

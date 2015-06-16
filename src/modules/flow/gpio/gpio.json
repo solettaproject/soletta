@@ -1,0 +1,105 @@
+{
+  "name": "gpio",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "GPIO reader",
+      "methods": {
+        "close": "gpio_close",
+        "open": "gpio_reader_open"
+      },
+      "name": "gpio/reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "GPIO pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Polling time",
+            "name": "poll_timeout"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Is active low",
+            "name": "active_low"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Is edge rising",
+            "name": "edge_rising"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Is edge falling",
+            "name": "edge_falling"
+          },
+          {
+            "data_type": "string",
+            "default": "none",
+            "description": "up for pull up, down for pull down, none for no pull",
+            "name": "pull"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "GPIO reader, port out",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gpio_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gpio/reader.html"
+    },
+    {
+      "category": "output/hw",
+      "description": "GPIO writer",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "GPIO writer, port in",
+          "methods": {
+            "process": "gpio_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "close": "gpio_close",
+        "open": "gpio_writer_open"
+      },
+      "name": "gpio/writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "GPIO pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Is active low",
+            "name": "active_low"
+          }
+        ],
+        "version": 1
+      },
+      "private_data_type": "gpio_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gpio/writer.html"
+    }
+  ]
+}

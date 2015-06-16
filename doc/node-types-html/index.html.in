@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>{ Soletta Cheat Sheet }</title>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<script type="text/javascript" src="js/isotope.pkgd.min.js"></script>
+<script type="text/javascript" src="js/Entry.js"></script>
+<script type="text/javascript" src="js/Category.js"></script>
+<script type="text/javascript" src="js/MenuItem.js"></script>
+<script type="text/javascript">
+
+function init()
+{
+    var group;
+    var createdGroups = [];
+
+<!-- PLACEHOLDER -->
+
+    for(i = 0; i<createdGroups.length; i++)
+    {
+        var container = document.querySelector(createdGroups[i]);
+        var iso = new Isotope(container,{
+            itemSelector:'.Entry',
+            layoutMode:'masonry',
+            columnWidth:450
+        });
+    }
+}
+</script>
+
+</head>
+<body onLoad="init()">
+
+  <div class="Container"  id="container">
+    <img src="images/logo.jpg" class="Logo">
+    <div class="Sidebar" id="sideBar"></div>
+    <div class="Content" id="content"></div>
+  </div>
+
+</body>
+</html>

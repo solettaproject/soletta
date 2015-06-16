@@ -1,0 +1,98 @@
+{
+  "name": "platform",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "input/sw",
+      "description": "Platform State",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Triggers emission of current state.",
+          "methods": {
+            "process": "platform_trigger_process"
+          },
+          "name": "TRIGGER"
+        }
+      ],
+      "methods": {
+        "close": "platform_close",
+        "open": "platform_open"
+      },
+      "name": "platform",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if platform is ready.",
+          "methods": {
+            "connect": "platform_ready_connect"
+          },
+          "name": "READY"
+        }
+      ],
+      "private_data_type": "platform_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform.html"
+    },
+    {
+      "category": "input/sw",
+      "description": "Platform Service State",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Triggers emission of current service state.",
+          "methods": {
+            "process": "platform_service_trigger_process"
+          },
+          "name": "TRIGGER"
+        },
+        {
+          "data_type": "any",
+          "description": "Starts service when receives a signal",
+          "methods": {
+            "process": "platform_service_start_process"
+          },
+          "name": "START"
+        },
+        {
+          "data_type": "any",
+          "description": "Stops service when receives a signal",
+          "methods": {
+            "process": "platform_service_stop_process"
+          },
+          "name": "STOP"
+        }
+      ],
+      "methods": {
+        "close": "platform_service_close",
+        "open": "platform_service_open"
+      },
+      "name": "platform-service",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "the platform service name",
+            "name": "service_name"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if platform service is active.",
+          "methods": {
+            "connect": "platform_service_active_connect"
+          },
+          "name": "ACTIVE"
+        }
+      ],
+      "private_data_type": "platform_service_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform_service.html"
+    }
+  ]
+}

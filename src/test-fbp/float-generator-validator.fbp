@@ -1,0 +1,51 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+gen1(test/float-generator:sequence="1.0 -12.1 100.00 17.0 0.0")
+val1(test/float-validator:sequence="1.0 -12.1 100.00 17.0 0.0")
+
+gen1 OUT -> IN val1 OUT -> RESULT true_negative_sign(test/result)
+
+gen2(test/float-generator:sequence="1 -12.1 100.00 17.01 0.0 +365.012")
+val2(test/float-validator:sequence="1 -12.1 100.00 17.01 0.0 +365.012")
+
+gen2 OUT -> IN val2 OUT -> RESULT true_positive_sign(test/result)
+
+gen3(test/float-generator:sequence="1 -12.1 100.00 17.01 0.0 +365.012")
+val3(test/float-validator:sequence="1 -12.1 100.0 17.01 0.0 +365.012")
+
+gen3 OUT -> IN val3 OUT -> RESULT true_missing_digit(test/result)
+
+gen4(test/float-generator:sequence="1 -12.1 100.00 17.01 0.00 +365.011")
+val4(test/float-validator:sequence="1 -12.1 100.01 17.01 0.00 +365.011")
+
+gen4 OUT -> IN val4 OUT -> IN _(boolean/not) OUT -> RESULT false_not_a_match(test/result)
+val4 ERROR -> INC _(int/accumulator) OUT -> IN0 error_count(int/equal)
+_(constant/int:value=3) OUT -> IN1 error_count OUT -> IN _(boolean/filter) TRUE -> PASS _(test/result)

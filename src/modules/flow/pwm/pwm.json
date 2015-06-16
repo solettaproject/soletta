@@ -1,0 +1,78 @@
+{
+  "category": "io/hw",
+  "author": "Intel Corporation",
+  "license": "BSD 3-Clause",
+  "description": "PWM",
+  "in_ports": [
+  {
+   "data_type": "boolean",
+   "description": "True enables PWM, False disables it",
+   "methods": {
+    "process": "pwm_process_enable"
+   },
+   "name": "ENABLED"
+  },
+  {
+   "data_type": "int",
+   "description": "PWM period, in ns",
+   "methods": {
+    "process": "pwm_process_period"
+   },
+   "name": "PERIOD"
+  },
+  {
+   "data_type": "int",
+   "description": "Duty cycle, in ns",
+   "methods": {
+    "process": "pwm_process_duty_cycle"
+   },
+   "name": "DUTY_CYCLE"
+  }
+ ],
+ "methods": {
+  "close": "pwm_close",
+  "open": "pwm_open"
+ },
+ "name": "pwm",
+ "options": {
+  "members": [
+   {
+    "data_type": "int",
+    "description": "PWM chip",
+    "name": "chip"
+   },
+   {
+    "data_type": "int",
+    "description": "PWM pin channel",
+    "name": "pin"
+   },
+   {
+    "data_type": "boolean",
+    "default": false,
+    "description": "Initial enabled state",
+    "name": "enabled"
+   },
+   {
+    "data_type": "boolean",
+    "default": false,
+    "description": "PWM polarity (normal or inversed)",
+    "name": "inversed_polarity"
+   },
+   {
+    "data_type": "int",
+    "default": 0,
+    "description": "Initial period",
+    "name": "period"
+   },
+   {
+    "data_type": "int",
+    "default": 0,
+    "description": "Initial duty cycle",
+    "name": "duty_cycle"
+   }
+  ],
+  "version": 1
+ },
+ "private_data_type": "pwm_data",
+ "url": "http://solettaproject.org/doc/latest/components/pwm.html"
+}

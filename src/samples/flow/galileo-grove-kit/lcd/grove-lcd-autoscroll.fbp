@@ -1,0 +1,83 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.conf sol-fbp-runner lcd/grove-lcd-autoscroll.fbp
+
+# This is a translation of
+# Grove_RGB_BackLight_LCD/Autoscroll/Autoscroll.ino, from
+# https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
+
+true(constant/boolean:value=true)
+false(constant/boolean:value=false)
+char_max(constant/int:value=57)
+loops_switch(boolean/toggle:initial_state=false)
+
+initial_color(constant/rgb:value=255|255|255|255|255|255)
+initial_color OUT -> COLOR lcd(LCDChar)
+
+# 48 is decimal value for char '0', 57 is for '9'
+acc(int/accumulator:setup_value=val:48|min:48|max:57|step:1)
+timer_scroll(timer:interval=500) OUT -> INC acc
+
+acc OUT -> IN accumulator_to_char(converter/int-to-byte)
+
+accumulator_to_char OUT -> PUT_CHAR lcd
+
+#take off
+true OUT -> RESET timer_scroll
+false OUT -> ENABLED timer_delay(timer:interval=500)
+
+acc OUT -> IN0 comp_max(int/equal)
+char_max OUT -> IN1 comp_max
+
+comp_max OUT -> PULSE_IF_TRUE bool_to_pulse0(converter/boolean-to-empty) OUT -> IN loops_switch
+
+loops_switch OUT -> IN end_of_loop(boolean/filter)
+
+end_of_loop TRUE -> IN set_col(converter/boolean-to-int:true_value=16)
+end_of_loop TRUE -> IN set_row(converter/boolean-to-int:true_value=1)
+end_of_loop TRUE -> AUTO_SCROLL lcd
+set_row OUT -> ROW lcd
+set_col OUT -> COL lcd
+
+end_of_loop FALSE -> ENABLED timer_scroll
+end_of_loop FALSE -> RESET timer_delay
+
+timer_delay OUT -> IN unset_autoscroll(converter/empty-to-boolean:output_value=false)
+unset_autoscroll OUT -> AUTO_SCROLL lcd
+
+# this mimics the line 'acc OUT -> IN accumulator_to_char', where we
+# put a char into the LCD before we delay 500ms
+timer_delay OUT -> INC acc
+
+timer_delay OUT -> CLEAR lcd
+timer_delay OUT -> RESET timer_scroll
+timer_delay OUT -> IN end_of_delay(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer_delay

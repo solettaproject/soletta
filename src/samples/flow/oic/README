@@ -1,0 +1,8 @@
+These examples communicate usin OIC - http://openinterconnect.org/
+
+The OIC communication is done over IP, including 6loWPAN, Ethernet or
+WiFi.
+
+The examples rely on client and servers. Since the pairing is still
+undefined and thus not implemeted, please edit a configuration file to
+state your hwaddr in your node.

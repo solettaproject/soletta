@@ -1,0 +1,47 @@
+{
+  "name": "color",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "color",
+      "description": "Modifies a color changing its luminance.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Luminance to be applied in the color.",
+          "methods": {
+            "process": "color_luminance_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "color_luminance_open"
+      },
+      "name": "color/luminance-rgb",
+      "options": {
+        "members": [
+          {
+            "data_type": "rgb",
+            "description": "Initial color, with full luminance. Luminance will vary considering value received on IN port.",
+            "name": "color"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Color with new luminance applied. The value is a multiplication of each component on option and rate between luminance value and its range.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_rgb",
+      "url": "http://solettaproject.org/doc/latest/node_types/color/luminance-rgb.html"
+    }
+  ]
+}

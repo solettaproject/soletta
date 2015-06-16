@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+modulesdir=@SOL_CONFFILE_MODULES_DIR@
+pkgdatadir=@datadir@/soletta
+nodeschemapath=${pkgdatadir}/flow/schemas/node-type.schema
+
+Name: soletta
+Description: SOLETTA io library
+Version: @VERSION@
+Libs: -L${libdir} -lsoletta
+Cflags: -I${includedir}/soletta

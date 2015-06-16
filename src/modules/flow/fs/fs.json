@@ -1,0 +1,215 @@
+{
+  "name": "fs",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": 1
+  },
+  "types": [
+    {
+      "category": "io/fs",
+      "description": "Persists the last input packet's data it receives in a given file, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "fs_persist_close",
+        "open": "fs_persist_boolean_open"
+      },
+      "name": "fs/persist-boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Path to file to persist a boolean packet in. The node won't create a new file, it must exist",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "A boolean packet to persist (and repeat on output)",
+          "methods": {
+            "process": "fs_persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "A boolean packet with the persisted value of the node",
+          "methods": {
+            "connect": "fs_persist_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "fs_persist_boolean_data",
+      "url": "http://solettaproject.org/doc/latest/components/fs.html"
+    },
+    {
+      "category": "io/fs",
+      "description": "Persists the last input packet's data it receives in a given file, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "fs_persist_close",
+        "open": "fs_persist_byte_open"
+      },
+      "name": "fs/persist-byte",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Path to file to persist a byte packet in. The node won't create a new file, it must exist",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "A byte packet to persist (and repeat on output)",
+          "methods": {
+            "process": "fs_persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "A byte packet with the persisted value of the node",
+          "methods": {
+            "connect": "fs_persist_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "fs_persist_byte_data",
+      "url": "http://solettaproject.org/doc/latest/components/fs.html"
+    },
+    {
+      "category": "io/fs",
+      "description": "Persists the last input packet's data it receives in a given file, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "fs_persist_close",
+        "open": "fs_persist_drange_open"
+      },
+      "name": "fs/persist-float",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Path to file to persist a float packet in. The node won't create a new file, it must exist",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "An float packet to persist (and repeat on output)",
+          "methods": {
+            "process": "fs_persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "A float packet with the persisted value of the node",
+          "methods": {
+            "connect": "fs_persist_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "fs_persist_drange_data",
+      "url": "http://solettaproject.org/doc/latest/components/fs.html"
+    },
+    {
+      "category": "io/fs",
+      "description": "Persists the last input packet's data it receives in a given file, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "fs_persist_close",
+        "open": "fs_persist_irange_open"
+      },
+      "name": "fs/persist-int",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Path to file to persist a int packet in. The node won't create a new file, it must exist",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "A int packet to persist (and repeat on output)",
+          "methods": {
+            "process": "fs_persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "A int packet with the persisted value of the node",
+          "methods": {
+            "connect": "fs_persist_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "fs_persist_irange_data",
+      "url": "http://solettaproject.org/doc/latest/components/fs.html"
+    },
+    {
+      "category": "io/fs",
+      "description": "Persists the last input packet's data it receives in a given file system file, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "fs_persist_close",
+        "open": "fs_persist_string_open"
+      },
+      "name": "fs/persist-string",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Path to file to persist a string packet in. The node won't create a new file, it must exist",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "A string packet to persist (and repeat on output)",
+          "methods": {
+            "process": "fs_persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "A string packet with the persisted value of the node",
+          "methods": {
+            "connect": "fs_persist_connect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "fs_persist_string_data",
+      "url": "http://solettaproject.org/doc/latest/components/fs.html"
+    }
+  ]
+}

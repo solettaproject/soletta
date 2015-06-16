@@ -1,0 +1,213 @@
+/*
+ * This file is part of the Soletta Project
+ *
+ * Copyright (C) 2015 Intel Corporation. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *   * Neither the name of Intel Corporation nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <netinet/in.h>
+#include <string.h>
+#include <errno.h>
+
+#include "sol-log.h"
+#include "sol-network.h"
+#include "sol-util.h"
+
+#include "sol-socket.h"
+
+static int
+from_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen,
+    struct sol_network_link_addr *addr)
+{
+    SOL_NULL_CHECK(sockaddr, -EINVAL);
+    SOL_NULL_CHECK(addr, -EINVAL);
+
+    if (sockaddr->sa_family != AF_INET && sockaddr->sa_family != AF_INET6)
+        return -EINVAL;
+
+    addr->family = sockaddr->sa_family;
+
+    if (sockaddr->sa_family == AF_INET) {
+        struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
+        if (socklen < sizeof(struct sockaddr_in))
+            return -EINVAL;
+
+        addr->port = ntohs(sock4->sin_port);
+        memcpy(&addr->addr.in, &sock4->sin_addr, sizeof(sock4->sin_addr));
+    } else {
+        struct sockaddr_in6 *sock6 = (struct sockaddr_in6 *)sockaddr;
+        if (socklen < sizeof(struct sockaddr_in6))
+            return -EINVAL;
+
+        addr->port = ntohs(sock6->sin6_port);
+        memcpy(&addr->addr.in6, &sock6->sin6_addr, sizeof(sock6->sin6_addr));
+    }
+
+    return 0;
+}
+
+static int
+to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr, socklen_t *socklen)
+{
+    SOL_NULL_CHECK(addr, -EINVAL);
+    SOL_NULL_CHECK(sockaddr, -EINVAL);
+    SOL_NULL_CHECK(socklen, -EINVAL);
+
+    if (addr->family != AF_INET && addr->family != AF_INET6)
+        return -EINVAL;
+
+    if (addr->family == AF_INET ) {
+        struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
+        if (*socklen < sizeof(struct sockaddr_in))
+            return -EINVAL;
+
+        memcpy(&sock4->sin_addr, addr->addr.in, sizeof(addr->addr.in));
+        sock4->sin_port = htons(addr->port);
+        sock4->sin_family = AF_INET;
+        *socklen = sizeof(*sock4);
+    } else {
+        struct sockaddr_in6 *sock6 = (struct sockaddr_in6 *)sockaddr;
+        if (*socklen < sizeof(struct sockaddr_in6))
+            return -EINVAL;
+
+        memcpy(&sock6->sin6_addr, addr->addr.in6, sizeof(addr->addr.in6));
+        sock6->sin6_port = htons(addr->port);
+        sock6->sin6_family = AF_INET6;
+        *socklen = sizeof(*sock6);
+    }
+
+    return *socklen;
+}
+
+SOL_API int
+sol_socket_recvmsg(int fd, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+{
+    uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
+    struct iovec iov = { .iov_base = buf,
+                         .iov_len = len };
+    struct msghdr msg = {
+        .msg_name = &sockaddr,
+        .msg_namelen = sizeof(sockaddr),
+        .msg_iov = &iov,
+        .msg_iovlen = 1
+    };
+    int r = recvmsg(fd, &msg, 0);
+
+    if (r < 0)
+        return -errno;
+
+    if (from_sockaddr((struct sockaddr *)sockaddr, sizeof(sockaddr), cliaddr) < 0)
+        return -EINVAL;
+
+    return r;
+}
+
+SOL_API int
+sol_socket_sendmsg(int fd, const void *buf, size_t len,
+    const struct sol_network_link_addr *cliaddr)
+{
+    uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
+    struct iovec iov = { .iov_base = (void *)buf,
+                         .iov_len = len };
+    struct msghdr msg = { .msg_iov = &iov,
+                          .msg_iovlen = 1 };
+    socklen_t l;
+
+    SOL_NULL_CHECK(cliaddr, -EINVAL);
+
+    l = sizeof(struct sockaddr_in6);
+    if (to_sockaddr(cliaddr, (struct sockaddr *)sockaddr, &l) < 0)
+        return -EINVAL;
+
+    msg.msg_name = &sockaddr;
+    msg.msg_namelen = l;
+
+    if (sendmsg(fd, &msg, 0) < 0)
+        return -errno;
+
+    return 0;
+}
+
+SOL_API int
+sol_socket_join_group(int fd, int ifindex, const struct sol_network_link_addr *group)
+{
+    struct ip_mreqn ip_join = { };
+    struct ipv6_mreq ip6_join = { };
+    const void *p;
+    int level, option;
+    socklen_t l;
+
+    SOL_NULL_CHECK(group, -EINVAL);
+
+    if (group->family != AF_INET && group->family != AF_INET6)
+        return -EINVAL;
+
+    if (group->family == AF_INET) {
+        memcpy(&ip_join.imr_multiaddr, group->addr.in, sizeof(group->addr.in));
+        ip_join.imr_ifindex = ifindex;
+
+        p = &ip_join;
+        l = sizeof(ip_join);
+        level = IPPROTO_IP;
+        option = IP_ADD_MEMBERSHIP;
+
+    } else {
+        memcpy(&ip6_join.ipv6mr_multiaddr, group->addr.in6, sizeof(group->addr.in6));
+        ip6_join.ipv6mr_interface = ifindex;
+
+        p = &ip6_join;
+        l = sizeof(ip6_join);
+        level = IPPROTO_IPV6;
+        option = IPV6_ADD_MEMBERSHIP;
+    }
+
+    if (setsockopt(fd, level, option, p, l) < 0)
+        return -errno;
+
+    return 0;
+}
+
+SOL_API int
+sol_socket_bind(int fd, const struct sol_network_link_addr *addr)
+{
+
+    uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
+    socklen_t l;
+
+    SOL_NULL_CHECK(addr, -EINVAL);
+
+    l = sizeof(struct sockaddr_in6);
+    if (to_sockaddr(addr, (void *)sockaddr, &l) < 0)
+        return -EINVAL;
+
+    if (bind(fd, (struct sockaddr *)sockaddr, l) < 0) {
+        return -errno;
+    }
+
+    return 0;
+}
