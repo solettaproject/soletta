@@ -356,6 +356,45 @@ generate_connections(struct sol_fbp_graph *g, struct type_description **descs)
     return true;
 }
 
+static void
+generate_exports(const struct sol_fbp_graph *g)
+{
+    struct sol_fbp_exported_port *e;
+    struct sol_fbp_node *n;
+    struct sol_fbp_port *p;
+    uint16_t i, j;
+
+    if (g->exported_in_ports.len > 0) {
+        printf("const struct sol_flow_static_port_spec exported_in[] = {\n");
+        SOL_VECTOR_FOREACH_IDX(&g->exported_in_ports, e, i) {
+            n = sol_vector_get(&g->nodes, e->node);
+            SOL_VECTOR_FOREACH_IDX(&n->in_ports, p, j) {
+                if (sol_str_slice_eq(e->port, p->name)) {
+                    printf("    { %d, %d },\n", e->node, j);
+                    break;
+                }
+            }
+        }
+        printf("    SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
+            "};\n\n");
+    }
+
+    if (g->exported_out_ports.len > 0) {
+        printf("const struct sol_flow_static_port_spec exported_out[] = {\n");
+        SOL_VECTOR_FOREACH_IDX(&g->exported_out_ports, e, i) {
+            n = sol_vector_get(&g->nodes, e->node);
+            SOL_VECTOR_FOREACH_IDX(&n->out_ports, p, j) {
+                if (sol_str_slice_eq(e->port, p->name)) {
+                    printf("    { %d, %d },\n", e->node, j);
+                    break;
+                }
+            }
+        }
+        printf("    SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
+            "};\n\n");
+    }
+}
+
 static int
 generate(struct sol_fbp_graph *g, struct type_description **descs)
 {
@@ -385,11 +424,14 @@ generate(struct sol_fbp_graph *g, struct type_description **descs)
     if (!generate_connections(g, descs))
         return EXIT_FAILURE;
 
+    generate_exports(g);
+
     printf("static void\n"
         "startup(void)\n"
         "{\n");
 
-    printf("    const struct sol_flow_static_node_spec nodes[] = {\n");
+    printf("    const struct sol_flow_node_type *type;\n\n"
+        "    const struct sol_flow_static_node_spec nodes[] = {\n");
     SOL_VECTOR_FOREACH_IDX (&g->nodes, n, i) {
         if (n->meta.len <= 0) {
             printf("        [%d] = {%s, \"%.*s\", NULL},\n",
@@ -402,7 +444,12 @@ generate(struct sol_fbp_graph *g, struct type_description **descs)
     printf("        SOL_FLOW_STATIC_NODE_SPEC_GUARD\n"
         "    };\n\n");
 
-    printf("    flow = sol_flow_static_new(NULL, nodes, conns);\n"
+    printf("    type = sol_flow_static_new_type(nodes, conns, %s, %s, NULL);\n",
+        g->exported_in_ports.len > 0 ? "exported_in" : "NULL",
+        g->exported_out_ports.len > 0 ? "exported_out" : "NULL");
+    printf("    if (!type)\n"
+        "        return NULL;\n\n"
+        "   flow = sol_flow_node_new(NULL, NULL, type, NULL);"
         "}\n\n"
         "static void\n"
         "shutdown(void)\n"
