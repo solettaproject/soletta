@@ -1,0 +1,79 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+const_boolean(constant/boolean:value=1)
+const_byte(constant/byte:value=10)
+const_float(constant/float:value=100.5)
+const_int(constant/int:value=10)
+const_rgb(constant/rgb:value="255|10|100")
+const_string(constant/string:value="Hello")
+
+hub_boolean(hub/boolean)
+hub_byte(hub/byte)
+hub_empty(hub/empty)
+hub_float(hub/float)
+hub_int(hub/int)
+hub_rgb(hub/rgb)
+hub_string(hub/string)
+
+empty_to_boolean(converter/empty-to-boolean)
+
+const_boolean OUT -> IN hub_boolean
+const_boolean OUT -> IN0 and(boolean/and)
+hub_boolean OUT -> IN1 and
+and OUT -> RESULT result_hub_boolean(test/result)
+
+const_boolean OUT -> IN hub_empty
+hub_empty OUT -> IN empty_to_boolean OUT -> RESULT result_hub_empty(test/result)
+
+const_byte OUT -> IN hub_byte
+const_int OUT -> IN0 byte_equal(int/equal)
+hub_byte OUT -> IN _(converter/byte-to-int) OUT -> IN1 byte_equal
+byte_equal OUT -> RESULT result_hub_byte(test/result)
+
+const_float OUT -> IN hub_float
+const_float OUT -> IN0 float_equal(float/equal)
+hub_float OUT -> IN1 float_equal
+float_equal OUT -> RESULT result_hub_float(test/result)
+
+const_int OUT -> IN hub_int
+const_int OUT -> IN0 int_equal(int/equal)
+hub_int OUT -> IN1 int_equal
+int_equal OUT -> RESULT result_hub_int(test/result)
+
+const_rgb OUT -> IN hub_rgb
+const_int OUT -> IN0 rgb_equal
+hub_rgb OUT -> IN _(converter/rgb-to-int) GREEN -> IN1 rgb_equal(int/equal)
+rgb_equal OUT -> RESULT result_hub_rgb(test/result)
+
+const_string OUT -> IN hub_string
+const_string OUT -> IN0 string_equal(string/compare)
+hub_string OUT -> IN1 string_equal
+string_equal EQUAL -> RESULT result_hub_string(test/result)
