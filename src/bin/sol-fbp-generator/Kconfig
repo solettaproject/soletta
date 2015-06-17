@@ -1,0 +1,4 @@
+config FBP_GENERATOR
+	bool "fbp generator"
+	depends on SOCKET_LINUX && FLOW && RESOLVER_CONFFILE && INSPECTOR
+	default y

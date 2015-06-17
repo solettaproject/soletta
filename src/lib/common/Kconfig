@@ -1,0 +1,84 @@
+config CORE
+	bool
+	default y
+
+choice
+	prompt "Target platform"
+	default PLATFORM_LINUX_MICRO
+	help
+	  The platform of your target.
+
+config PLATFORM_LINUX_MICRO
+	bool "micro-linux"
+
+config PLATFORM_RIOTOS
+	bool "riotos"
+
+config PLATFORM_DUMMY
+	bool "dummy"
+
+config PLATFORM_SYSTEMD
+	bool "systemd"
+	depends on HAVE_SYSTEMD
+	select USE_SYSTEMD
+endchoice
+
+choice
+	prompt "Mainloop"
+	help
+	  The mainloop implementation.
+
+config MAINLOOP_GLIB
+	bool "glib"
+	depends on (PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD) && HAVE_GLIB
+	select USE_GLIB
+
+config MAINLOOP_POSIX
+	bool "posix"
+	depends on PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD
+
+config MAINLOOP_RIOTOS
+	bool "riotos"
+	depends on PLATFORM_RIOTOS && HAVE_RIOTOS
+
+endchoice
+
+config LOG
+	bool "Log"
+	default y
+
+choice
+	prompt "Maximum log level"
+	default DEFAULT_LOG_LEVEL_ERROR
+	depends on LOG
+	help
+	  Default log level.
+
+config DEFAULT_LOG_LEVEL_CRITICAL
+	bool "critical"
+
+config DEFAULT_LOG_LEVEL_ERROR
+	bool "error"
+
+config DEFAULT_LOG_LEVEL_WARNING
+	bool "warning"
+
+config DEFAULT_LOG_LEVEL_INFO
+	bool "info"
+
+config DEFAULT_LOG_LEVEL_DEBUG
+	bool "debug"
+endchoice
+
+config INSPECTOR
+	bool "Inspector"
+	default y
+
+config KDBUS
+	bool "Kdbus"
+	depends on (PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD) && HAVE_SYSTEMD && HAVE_KDBUS
+
+config SOCKET_LINUX
+	bool "Linux sockets"
+	depends on PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD
+	default y

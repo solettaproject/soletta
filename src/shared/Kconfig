@@ -1,0 +1,8 @@
+config INTERNAL_SHARED
+	tristate
+	default m
+
+config PTHREAD
+	bool "Pthread"
+	depends on HAVE_PTHREAD && HAVE_GLIB && (PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD)
+	default y

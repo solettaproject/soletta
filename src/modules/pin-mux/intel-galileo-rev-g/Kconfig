@@ -1,0 +1,3 @@
+config PIN_MUX_INTEL_GALILEO_REV_G
+	tristate "intel galileo rev g"
+	default m

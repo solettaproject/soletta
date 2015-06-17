@@ -1,0 +1,4 @@
+config FBP_TO_DOT
+	bool "fbp-to-dot converter"
+	depends on SOCKET_LINUX && RESOLVER_CONFFILE && INSPECTOR
+	default y

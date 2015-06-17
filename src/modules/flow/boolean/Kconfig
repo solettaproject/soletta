@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_BOOLEAN
+	tristate "Node type: boolean"
+	depends on FLOW
+	default y
