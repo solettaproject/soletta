@@ -38,10 +38,6 @@
 #include "sol-util.h"
 #include "sol-types.h"
 
-#ifdef HAVE_PLATFORM_GALILEO
-#include "sol-galileo.h"
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -151,11 +147,6 @@ aio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
         SOL_WRN("aio #%d: Couldn't open pin.", mdata->pin);
         return -EINVAL;
     }
-#ifdef HAVE_PLATFORM_GALILEO
-    else {
-        aio_setup(mdata->pin);
-    }
-#endif
 
     if (opts->poll_timeout.val <= 0) {
         SOL_WRN("aio #%d: Invalid polling time=%" PRId32 ".", mdata->pin, opts->poll_timeout.val);

@@ -74,7 +74,8 @@ AM_CPPFLAGS = \
 	-DDATADIR=\"$(pkgdatadir)\" \
 	-DPKGSYSCONFDIR=\"$(pkgsysconfdir)\" \
 	-DFLOWMODULESDIR=\"$(flowmodulesdir)\" \
-	-DLINUXMICROMODULESDIR=\"$(linuxmicromodulesdir)\"
+	-DLINUXMICROMODULESDIR=\"$(linuxmicromodulesdir)\" \
+	-DPINMUXDIR=\"$(pinmuxdir)\"
 AM_CFLAGS = $(SOL_COMMON_CFLAGS) -std=gnu99
 AM_LDFLAGS = $(SOL_COMMON_LDFLAGS)
 
@@ -398,12 +399,6 @@ endif
 
 endif
 
-if HAVE_PLATFORM_GALILEO
-src_shared_libshared_la_SOURCES += \
-src/shared/sol-galileo.c \
-src/shared/sol-galileo.h
-endif
-
 if HAVE_PLATFORM_RIOT
 src_shared_libshared_la_SOURCES += \
 src/shared/sol-gpio-riot.c \
@@ -518,6 +513,38 @@ src/shared/libshared.la
 endif
 
 endif # BUILD_SAMPLES
+
+if BUILD_PIN_MUX
+src_lib_libsoletta_la_SOURCES += \
+	src/lib/common/sol-pin-mux.c \
+	src/lib/common/sol-pin-mux.h \
+	src/lib/common/sol-pin-mux-impl.h
+
+pkginclude_HEADERS += \
+src/lib/common/sol-pin-mux-impl.h
+
+if MAINTAINER_MODE
+pinmuxdir = $(abs_top_builddir)/src/modules/pin-mux/.libs
+else
+pinmuxdir = $(SOL_CONFFILE_MODULES_DIR)/pin-mux
+endif
+pinmux_LTLIBRARIES =
+
+src/lib/common/sol-pin-mux-builtins-gen.h: Makefile data/scripts/sol-builtins-gen.py
+	@rm -f $@
+	@mkdir -p src/lib/common
+	$(AM_V_GEN)$(PYTHON) $(top_srcdir)/data/scripts/sol-builtins-gen.py \
+	    --output=$@ \
+	    --array="static const struct sol_pin_mux *SOL_PIN_MUX_BUILTINS_ALL[]" \
+	    --count="SOL_PIN_MUX_BUILTIN_COUNT" \
+	    --decl="const struct sol_pin_mux SOL_PIN_MUX_@NAME@" \
+	    --item="&SOL_PIN_MUX_@NAME@" \
+	    $(pin_mux_builtins)
+
+BUILT_SOURCES += src/lib/common/sol-pin-mux-builtins-gen.h
+
+include sol_pin_mux_modules.mk
+endif #BUILD_PIN_MUX
 
 src/modules/flow/%-gen.h src/modules/flow/%-gen.c: src/modules/flow/%.json $(top_srcdir)/data/scripts/sol-flow-node-type-gen.py
 	$(AM_V_GEN)$(PYTHON) $(top_srcdir)/data/scripts/sol-flow-node-type-gen.py --prefix=sol-flow-node-type $(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/modules/flow/$*-gen.h src/modules/flow/$*-gen.c
