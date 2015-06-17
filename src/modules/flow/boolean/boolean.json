@@ -35,7 +35,6 @@
         {
           "data_type": "boolean",
           "description": "True if both IN0 and IN1 are true.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -158,7 +157,6 @@
         {
           "data_type": "boolean",
           "description": "True if either IN0 or IN1 is true.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -232,7 +230,6 @@
         {
           "data_type": "boolean",
           "description": "True whenever both inputs differ (one is true, the other is false). False if IN0 and IN1 are the same.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],

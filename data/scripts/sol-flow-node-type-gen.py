@@ -604,13 +604,11 @@ static struct sol_flow_port_type_in %(type_c)s = {
             outfile.write("""
 static struct sol_flow_port_type_out %(type_c)s = {
     .api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION,
-    .flags = %(flags)s,
     .connect = %(connect)s,
     .disconnect = %(disconnect)s,
 };
 """ % {
     "type_c": type_c,
-    "flags": o.get("flags", "0"),
     "connect": connect,
     "disconnect": disconnect,
     })

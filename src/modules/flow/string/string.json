@@ -53,13 +53,11 @@
         {
           "data_type": "int",
           "description": "It returns an integer less than, equal to, or greater than zero if string received on IN0 is found to be less than, to match, or be greater than string on IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         },
         {
           "data_type": "boolean",
           "description": "TRUE if the string received on IN0 is the same as the string on IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "EQUAL"
         }
       ],
@@ -113,7 +111,6 @@
         {
           "data_type": "string",
           "description": "String IN0 concatenated to string IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -152,7 +149,6 @@
         {
           "data_type": "int",
           "description": "Send the string size, the number of bytes excluding terminating null byte. If maxlen is provided, it'll be at most this value.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -214,13 +210,11 @@
         {
           "data_type": "int",
           "description": "Number of generated substrings.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "LENGTH"
         },
         {
           "data_type": "string",
           "description": "Substring given a separator and an index.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
