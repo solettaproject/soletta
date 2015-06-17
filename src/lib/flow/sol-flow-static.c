@@ -405,6 +405,8 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     r = flow_delay_send(node, fsd);
     SOL_INT_CHECK(r, < 0, r);
 
+    sol_list_init(&fsd->delayed_packets);
+
     node_storage_it = fsd->node_storage;
     for (spec = type->node_specs, i = 0; spec->type != NULL; spec++, i++) {
         struct sol_flow_node *child_node = (struct sol_flow_node *)node_storage_it;
@@ -432,8 +434,6 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
         }
         node_storage_it += calc_node_size(spec);
     }
-
-    sol_list_init(&fsd->delayed_packets);
 
     r = connect_nodes(type, fsd);
     if (r < 0)
