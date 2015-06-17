@@ -202,7 +202,6 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_math_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/drange/abs.html"
     },
     {
@@ -273,7 +272,6 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_math_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/drange/ln.html"
     },
     {
@@ -452,7 +450,6 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_math_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/drange/sqrt.html"
     },
     {
