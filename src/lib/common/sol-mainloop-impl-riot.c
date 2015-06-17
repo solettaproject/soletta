@@ -271,7 +271,7 @@ sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), c
 
     SOL_NULL_CHECK(timeout, NULL);
 
-    timeout->timeout sol_util_timespec_from_msec(timeout_ms);
+    timeout->timeout = sol_util_timespec_from_msec(timeout_ms);
     timeout->cb = cb;
     timeout->data = data;
     timeout->remove_me = false;
