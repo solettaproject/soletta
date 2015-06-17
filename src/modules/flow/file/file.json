@@ -89,6 +89,12 @@
           },
           {
             "data_type": "int",
+            "default": {
+              "max": "INT32_MAX",
+              "min": "INT32_MIN",
+              "step": 1,
+              "val": 420
+            },
             "description": "file permissions in POSIX mode such as 0644.",
             "name": "permissions"
           }
