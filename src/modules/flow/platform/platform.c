@@ -43,18 +43,18 @@ struct platform_data {
     enum sol_platform_state state;
 };
 
-static void
+static int
 state_dispatch_ready(struct platform_data *mdata)
 {
-    sol_flow_send_boolean_packet(mdata->node,
+    return sol_flow_send_boolean_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_PLATFORM__OUT__READY,
         mdata->state == SOL_PLATFORM_STATE_RUNNING);
 }
 
-static void
+static int
 state_dispatch(struct platform_data *mdata)
 {
-    state_dispatch_ready(mdata);
+    return state_dispatch_ready(mdata);
     /* TODO dispatch irange packet */
 }
 
@@ -73,21 +73,7 @@ platform_trigger_process(struct sol_flow_node *node, void *data, uint16_t port, 
 {
     struct platform_data *mdata = data;
 
-    state_dispatch(mdata);
-    return 0;
-}
-
-static int
-platform_ready_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct platform_data *mdata = data;
-
-    /* TODO: the signature should change to deliver the initial
-     * packet.  The following should NOT work as the connection is not
-     * fully established at this moment.
-     */
-    state_dispatch_ready(mdata);
-    return 0;
+    return state_dispatch(mdata);
 }
 
 static int
@@ -98,7 +84,8 @@ platform_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
     mdata->node = node;
     sol_platform_add_state_monitor(on_state_changed, mdata);
     mdata->state = sol_platform_get_state();
-    return 0;
+
+    return state_dispatch_ready(mdata);
 }
 
 static void
@@ -169,19 +156,6 @@ platform_service_stop_process(struct sol_flow_node *node, void *data, uint16_t p
     return sol_platform_stop_service(mdata->service_name);
 }
 
-
-static int
-platform_service_active_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct platform_service_data *mdata = data;
-
-    *packet = sol_flow_packet_new_boolean
-                  (mdata->state == SOL_PLATFORM_SERVICE_STATE_ACTIVE);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
-}
-
 static int
 platform_service_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
@@ -205,7 +179,9 @@ platform_service_open(struct sol_flow_node *node, void *data, const struct sol_f
     sol_platform_add_service_monitor(on_service_state_changed, mdata->service_name, mdata);
     mdata->state = sol_platform_get_service_state(mdata->service_name);
 
-    return 0;
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_PLATFORM_SERVICE__OUT__ACTIVE,
+        (mdata->state == SOL_PLATFORM_SERVICE_STATE_ACTIVE));
 }
 
 static void
@@ -217,11 +193,5 @@ platform_service_close(struct sol_flow_node *node, void *data)
 
     free(mdata->service_name);
 }
-
-
-
-
-
-
 
 #include "platform-gen.c"

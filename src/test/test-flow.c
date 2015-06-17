@@ -112,6 +112,9 @@ static int
 test_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     add_event(node, EVENT_NODE_OPEN, 0);
+    if (test_initial_data) {
+        return sol_flow_send_empty_packet(node, 0);
+    }
     return 0;
 }
 
@@ -136,12 +139,9 @@ test_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_t port, u
 }
 
 static int
-test_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
+test_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     add_event(node, EVENT_PORT_OUT_CONNECT, conn_id);
-    if (test_initial_data) {
-        *packet = sol_flow_packet_new_empty();
-    }
     return 0;
 }
 

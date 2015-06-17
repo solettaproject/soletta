@@ -173,7 +173,18 @@ reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     /* the initial value comes from options. */
     mdata->val = opts->intopt.val;
 
-    return 0;
+    /* Note that an 'int' port is actually an integer range or a
+     * 'struct sol_irange', as it carries not only the value, but how
+     * to interpret that integer such as minimum and maximum values
+     * (so we can limit to only positive or negative, and smaller
+     * precisions) as well how to increment or decrement the value
+     * (steps).
+     *
+     * In this example we are only interested in the value, thus we
+     * use the simpler packet constructor.
+     */
+    return sol_flow_send_irange_value_packet(node,
+        _CUSTOM_NODE_TYPES_READER__OUT__OUT, mdata->val);
 }
 
 /**
@@ -189,38 +200,6 @@ reader_close(struct sol_flow_node *node, void *data)
 
     /* stop the timer */
     sol_timeout_del(mdata->timer);
-}
-
-/**
- * This method is called when the port is connected. We use it to
- * deliver an initial packet.
- *
- * Never send packets from connect method as the connection is still
- * not established. Instead return it in @a packet.
- *
- * This method is usually not needed, but we provide it here to
- * clarify the initial packet delivery.
- */
-static int
-reader_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct reader_data *mdata = data;
-
-    /* on connect, send the current value as the initial packet.
-     *
-     * Note that an 'int' port is actually an integer range or a
-     * 'struct sol_irange', as it carries not only the value, but how
-     * to interpret that integer such as minimum and maximum values
-     * (so we can limit to only positive or negative, and smaller
-     * precisions) as well how to increment or decrement the value
-     * (steps).
-     *
-     * In this example we are only interested in the value, thus we
-     * use the simpler packet constructor.
-     */
-    *packet = sol_flow_packet_new_irange_value(mdata->val);
-
-    return 0;
 }
 
 

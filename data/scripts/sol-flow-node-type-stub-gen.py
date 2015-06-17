@@ -275,7 +275,7 @@ static void
 
         outfile.write("""\
 static int
-%s(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
+%s(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
 """ % method_connect)
         print_data_struct(outfile, struct)

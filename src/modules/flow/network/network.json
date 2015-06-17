@@ -28,9 +28,6 @@
         {
           "data_type": "boolean",
           "description": "A boolean packet when network changes. If it's connect true, otherwise false.",
-          "methods": {
-            "connect": "network_connect"
-          },
           "name": "OUT"
         }
       ],

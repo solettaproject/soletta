@@ -97,30 +97,11 @@ end:
 }
 
 static int
-udev_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct udev_device *device;
-    struct udev_data *mdata = data;
-    bool value;
-
-    device = udev_device_new_from_syspath(mdata->udev, mdata->addr);
-    if (device) {
-        value = true;
-        udev_device_unref(device);
-    } else {
-        value = false;
-    }
-
-    *packet = sol_flow_packet_new_boolean(value);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
-}
-
-static int
 udev_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct udev_data *mdata = data;
+    struct udev_device *device;
+    bool value;
     const struct sol_flow_node_type_udev_boolean_options *opts =
         (const struct sol_flow_node_type_udev_boolean_options *)options;
 
@@ -145,7 +126,16 @@ udev_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opt
         SOL_FD_FLAGS_IN | SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP,
         _on_event, mdata);
 
-    return 0;
+    device = udev_device_new_from_syspath(mdata->udev, mdata->addr);
+    if (device) {
+        value = true;
+        udev_device_unref(device);
+    } else {
+        value = false;
+    }
+
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_UDEV_BOOLEAN__OUT__OUT, value);
 
 receive_error:
     mdata->monitor = udev_monitor_unref(mdata->monitor);
