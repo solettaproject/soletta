@@ -296,43 +296,8 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "Least significant bit",
-          "name": "OUT0"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Binary output",
-          "name": "OUT1"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Binary output",
-          "name": "OUT2"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Binary output",
-          "name": "OUT3"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Binary output",
-          "name": "OUT4"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Binary output",
-          "name": "OUT5"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Binary output",
-          "name": "OUT6"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Most significant bit",
-          "name": "OUT7"
+          "description": "Byte turned to bits, index 0 is the least significant, 7 the most",
+          "name": "OUT[8]"
         }
       ],
       "private_data_type": "sol_converter_bits",
@@ -1122,39 +1087,12 @@
       "in_ports": [
         {
           "data_type": "byte",
-          "description": "Least significant byte",
+          "description": "Array of bytes to turn into an int. Index 0 is the least significant, 3 is the most",
           "methods": {
             "connect": "irange_compose_connect",
             "process": "irange_compose"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "byte",
-          "description": "Second byte",
-          "methods": {
-            "connect": "irange_compose_connect",
-            "process": "irange_compose"
-          },
-          "name": "IN1"
-        },
-        {
-          "data_type": "byte",
-          "description": "Third byte",
-          "methods": {
-            "connect": "irange_compose_connect",
-            "process": "irange_compose"
-          },
-          "name": "IN2"
-        },
-        {
-          "data_type": "byte",
-          "description": "Most significant byte",
-          "methods": {
-            "connect": "irange_compose_connect",
-            "process": "irange_compose"
-          },
-          "name": "IN3"
+          "name": "IN[4]"
         }
       ],
       "name": "converter/int-compose",
@@ -1185,23 +1123,8 @@
       "out_ports": [
         {
           "data_type": "byte",
-          "description": "Least significant byte",
-          "name": "OUT0"
-        },
-        {
-          "data_type": "byte",
-          "description": "Second byte",
-          "name": "OUT1"
-        },
-        {
-          "data_type": "byte",
-          "description": "Third byte",
-          "name": "OUT2"
-        },
-        {
-          "data_type": "byte",
-          "description": "Most significant byte",
-          "name": "OUT3"
+          "description": "Int turned to bytes, index 0 is the least significant, 3 the most",
+          "name": "OUT[4]"
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-decompose.html"
@@ -1615,82 +1538,12 @@
       "in_ports": [
         {
           "data_type": "boolean",
-          "description": "Receives the least significant bit",
+          "description": "Array of bits to turn into a byte. Index 0 is the least significant, 7 is the most",
           "methods": {
             "connect": "bits_to_byte_connect",
             "process": "bits_to_byte_convert"
           },
-          "name": "IN0",
-          "required": true
-        },
-        {
-          "data_type": "boolean",
-          "description": "Receives bit to be used in conversion",
-          "methods": {
-            "connect": "bits_to_byte_connect",
-            "process": "bits_to_byte_convert"
-          },
-          "name": "IN1",
-          "required": true
-        },
-        {
-          "data_type": "boolean",
-          "description": "Receives bit to be used in conversion",
-          "methods": {
-            "connect": "bits_to_byte_connect",
-            "process": "bits_to_byte_convert"
-          },
-          "name": "IN2",
-          "required": true
-        },
-        {
-          "data_type": "boolean",
-          "description": "Receives bit to be used in conversion",
-          "methods": {
-            "connect": "bits_to_byte_connect",
-            "process": "bits_to_byte_convert"
-          },
-          "name": "IN3",
-          "required": true
-        },
-        {
-          "data_type": "boolean",
-          "description": "Receives bit to be used in conversion",
-          "methods": {
-            "connect": "bits_to_byte_connect",
-            "process": "bits_to_byte_convert"
-          },
-          "name": "IN4",
-          "required": true
-        },
-        {
-          "data_type": "boolean",
-          "description": "Receives bit to be used in conversion",
-          "methods": {
-            "connect": "bits_to_byte_connect",
-            "process": "bits_to_byte_convert"
-          },
-          "name": "IN5",
-          "required": true
-        },
-        {
-          "data_type": "boolean",
-          "description": "Receives bit to be used in conversion",
-          "methods": {
-            "connect": "bits_to_byte_connect",
-            "process": "bits_to_byte_convert"
-          },
-          "name": "IN6",
-          "required": true
-        },
-        {
-          "data_type": "boolean",
-          "description": "Receives the most significant bit",
-          "methods": {
-            "connect": "bits_to_byte_connect",
-            "process": "bits_to_byte_convert"
-          },
-          "name": "IN7",
+          "name": "IN[8]",
           "required": true
         }
       ],
