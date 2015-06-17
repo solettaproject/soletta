@@ -131,6 +131,11 @@ data/scripts/sol-flow-node-type-find.py: data/scripts/sol-flow-node-type-find.py
 	$(AM_V_GEN)sed 's:@flowtypedescdir@:$(flowtypedescdir):g' $< > $@ && chmod +x $@
 BUILT_FILES += data/scripts/sol-flow-node-type-find.py
 
+data/scripts/sol-flow-node-type-gen.py: data/scripts/sol-flow-node-type-gen.py.in Makefile
+	@mkdir -p data/scripts
+	$(AM_V_GEN)sed 's:@pkgdatadir@:$(pkgdatadir):g' $< > $@ && chmod +x $@
+BUILT_FILES += data/scripts/sol-flow-node-type-gen.py
+
 lib_LTLIBRARIES += src/lib/libsoletta.la
 src_lib_libsoletta_la_SOURCES = \
 src/lib/common/sol-log-impl.h \
@@ -166,7 +171,7 @@ endif
 
 SOLETTA_FLOW_TYPE_JSONS =
 
-SOLETTA_FLOW_NODE_TYPE_SCHEMA = $(top_srcdir)/data/schemas/node-type.schema
+SOLETTA_FLOW_NODE_TYPE_SCHEMA = $(top_srcdir)/data/schemas/node-type-genspec.schema
 flowtypeschemas_DATA += $(SOLETTA_FLOW_NODE_TYPE_SCHEMA)
 
 SOLETTA_FLOW_BUILT_SRCS = $(patsubst %.json,%-gen.c,$(SOLETTA_FLOW_TYPE_JSONS))
@@ -463,8 +468,8 @@ src_samples_flow_c_api_libcustom_node_types_la_CFLAGS = $(src_lib_libsoletta_la_
 src_samples_flow_c_api_libcustom_node_types_la_LIBADD = src/lib/libsoletta.la
 src_samples_flow_c_api_libcustom_node_types_la_SOURCES = src/samples/flow/c-api/custom-node-types.c
 
-src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c: src/samples/flow/c-api/custom-node-types-spec.json $(top_srcdir)/data/scripts/sol-flow-node-type-gen.py
-	$(AM_V_GEN)$(PYTHON) $(top_srcdir)/data/scripts/sol-flow-node-type-gen.py $(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c
+src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c: src/samples/flow/c-api/custom-node-types-spec.json $(top_builddir)/data/scripts/sol-flow-node-type-gen.py
+	$(AM_V_GEN)$(PYTHON) $(top_builddir)/data/scripts/sol-flow-node-type-gen.py --genspec-schema=$(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c
 
 
 BUILT_SOURCES += src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c
@@ -520,8 +525,8 @@ endif
 
 endif # BUILD_SAMPLES
 
-src/modules/flow/%-gen.h src/modules/flow/%-gen.c: src/modules/flow/%.json $(top_srcdir)/data/scripts/sol-flow-node-type-gen.py
-	$(AM_V_GEN)$(PYTHON) $(top_srcdir)/data/scripts/sol-flow-node-type-gen.py --prefix=sol-flow-node-type $(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/modules/flow/$*-gen.h src/modules/flow/$*-gen.c
+src/modules/flow/%-gen.h src/modules/flow/%-gen.c: src/modules/flow/%.json $(top_builddir)/data/scripts/sol-flow-node-type-gen.py
+	$(AM_V_GEN)$(PYTHON) $(top_builddir)/data/scripts/sol-flow-node-type-gen.py --prefix=sol-flow-node-type --genspec-schema=$(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/modules/flow/$*-gen.h src/modules/flow/$*-gen.c
 
 flowtypedescs =
 
