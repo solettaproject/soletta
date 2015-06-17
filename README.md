@@ -25,40 +25,36 @@ It uses a main loop to provide single threaded cooperative tasks
 is based on Glib's GMainLoop, while some smaller OS have their own
 implementation, see `--with-mainloop` documentaion.
 
-The build system is based on autotools (autoconf/automake). If you got
-the unreleased source code from GIT, you must run:
+The build system is based on linux kernel's kconfig. To configure it
+with default configuration values run:
 
-        ./autogen.sh
+        make alldefconfig
 
-If you got the release tarballs then run:
+To update the configurations using a curses based interface run:
+        make menuconfig
 
-        ./configure --prefix=/usr CFLAGS="-O2"
+To update the configurations using a line-oriented interface run:
+        make config
 
 More options and variables are available with:
 
-        ./configure --help
+        make help
 
 To compile use (from top directory)
 
-        make all
+        make
 
 or to be verbose and get all the commands being executed:
 
-        make all V=1
+        make V=1
 
-To install run (sudo only required if installing to privileged
-directories):
+To install run:
+        make install
 
-        sudo make install
+the default behavior is to install in the root dir (namely /), but
+to install in a different root dir run install as:
 
-Note that to run applications that rely on modules to be installed
-(such as sol-io and conffile) one needs to either `make install` or
-configure as maintainer using:
-
-        ./configure --enable-maintainer-mode
-
-Then they will run from inside the build tree.
-
+        make install DESTDIR=/path/to/install/root/
 
 ### Debug
 
@@ -110,9 +106,8 @@ environment variables affect sol-log behavior:
 
 Note that at compile time some levels may be disabled by usage of
 `SOL_LOG_LEVEL_MAXIMUM` C-pre-processor macro, which may be set for
-soletta itself (internally) with:
-
-        ./configure --with-maximum-internal-log-level=NUMBER
+soletta itself (internally) by resetting it on kconfig (i.e menuconfig:
+Core library -> Log -> Maximum log level).
 
 or by applications if they define that in some way. Then messages
 above that number will be compiled out and using `$SOL_LOG_LEVEL` or
@@ -195,7 +190,7 @@ sol_fd_add() and sol_fd_del() are thread-safe and can be used from
 worker threads.
 
 
-##### GLib (`--with-mainloop=glib`)
+##### GLib (kconfig: Core library -> Mainloop -> glib)
 
 The well known GMainLoop is used by soletta so GLib-based frameworks
 can be easily integrated, things like social network services,
@@ -211,23 +206,13 @@ in-depth information, the summary of environment variables to use:
         export G_SLICE="all" # always-malloc, debug-blocks
         export G_MESSAGES_DEBUG="all" # print all debug
 
-        ./configure CFLAGS="-O0 -ggdb3" # disable optimizations
+	make CFLAGS="-O0 -ggdb3" # disable optimizations
 
-To debug binaries that are not yet installed (in-build tree), remember
-that they are actually libtool scripts and you need to call libtool
-command to get them right:
-
-        libtool --mode=execute valgrind ./my-binary
-        libtool --mode=execute gdb ./my-binary
-
-
-##### POSIX  (`--with-mainloop=posix`)
+##### POSIX (kconfig: Core library -> Mainloop -> posix)
 
 If GLib is too big then you can use a simpler implementation based
 solely on POSIX syscalls (poll/ppoll). As it's fully implemented in
 soletta there is no extra variables to debug it.
-
-It is a nice match for `--with-platform=micro-linux`
 
 ### Platforms
 
@@ -248,7 +233,7 @@ monitors about their state changes. They are platform-specific and
 depends on underlying platform setup.
 
 
-##### Systemd (`--with-platform=systemd`)
+##### Systemd (kconfig: Core library -> Target Platform -> systemd)
 
 This uses systemd as base. Whenever a target is set or a service is
 started it will call systemd. The D-Bus events from systemd will be
@@ -258,7 +243,7 @@ Thus both targets and services are implemented according to systemd
 using units in standard locations such as /usr/lib/systemd/system and
 /etc/systemd/system.
 
-##### Micro-Linux (`--with-platform=micro-linux`)
+##### Micro-Linux (kconfig: Core library -> Target Platform -> micro-linux)
 
 Micro-Linux implementation allows your Soletta binary to be used as
 PID1, it will do required initialization and will handle services as
@@ -269,9 +254,9 @@ binaries with well known target name such as "/sbin/rescue" or
 "/sbin/emergency".
 
 Services are handled as modules, they can be compiled into Soletta
-using --with-linux-micro-MODULE=builtin or as dynamically loadable
-modules. They have a simple API and is extensible by third party, so
-if Soletta lacks a service it easy to add that without patch Soletta
+by selecting them using config or menuconfig as builtin or as dynamically
+loadable modules. They have a simple API and is extensible by third party,
+so if Soletta lacks a service it easy to add that without patch Soletta
 itself.
 
 Soletta provides a init.d/rc.d compatibility service called rc-d.so,
@@ -400,7 +385,7 @@ API see the output of sol-fbp-generator.
 
             sol_flow_node_del(flow);
             sol_flow_builder_del(builder);
-            sol_shutdown();
+p            sol_shutdown();
             return 0;
         }
 ```

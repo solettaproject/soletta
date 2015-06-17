@@ -1,0 +1,4 @@
+config LINUX_MICRO_CONSOLE
+	tristate "console"
+	depends on LINUX_MICRO
+	default n

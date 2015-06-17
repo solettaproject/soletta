@@ -1,0 +1,4 @@
+config LINUX_MICRO_FSTAB
+	tristate "fstab"
+	depends on LINUX_MICRO
+	default n

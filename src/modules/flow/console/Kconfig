@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_CONSOLE
+	tristate "Node type: console"
+	depends on FLOW
+	default y
