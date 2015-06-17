@@ -906,8 +906,7 @@ def master_json_as_string(generated):
 
 def master_c_as_string(generated):
     generated = list(generated)
-
-    return '''#include <arpa/inet.h>
+    code = '''#include <arpa/inet.h>
 #include <errno.h>
 #include <math.h>
 #include <netinet/in.h>
@@ -1635,8 +1634,10 @@ json_token_to_bool(struct sol_json_token *token, bool *out)
 ''' % {
         'generated_c_common': '\n'.join(t['c_common'] for t in generated),
         'generated_c_client': '\n'.join(t['c_client'] for t in generated),
-        'generated_c_server': '\n'.join(t['c_server'] for t in generated)
+        'generated_c_server': '\n'.join(t['c_server'] for t in generated),
     }
+
+    return code.replace('\n\n\n', '\n')
 
 if __name__ == '__main__':
     def seems_schema(path):
