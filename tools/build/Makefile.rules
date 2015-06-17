@@ -1,0 +1,399 @@
+find-deps = $(foreach dep,$($(1)-deps),$($(dep)-out))
+
+known-module-type = \
+	$(foreach curr,$(module-types), \
+		$(if $(filter $(curr)%,$(subst ./src/modules/,,$(1))),$(strip $(curr))) \
+	) \
+
+module-type = \
+	$(eval curr-mod-type:=$(call known-module-type,$(1))) \
+	$(if $(curr-mod-type),$(curr-mod-type),external) \
+
+flow-type = \
+	$(sort $(if $(filter $(flow-dir)%,$(1)), \
+		$(subst /,,$(subst $(flow-dir),,$(dir $(1))))) \
+	)
+
+linux-micro-type = \
+	$(sort $(if $(filter $(linux-micro-dir)%,$(1)), \
+		$(subst /,,$(subst $(linux-micro-dir),,$(dir $(1))))) \
+	)
+
+all-gen-hdrs = $(foreach gen,$(all-gens),$($(gen)-hdr))
+
+gen-artifact = \
+	$(foreach json,$(filter %.json,$(2)), \
+		$(eval $(json)-hdr   := $(build_includedir)$(notdir $(subst .json,-gen.h,$(json)))) \
+		$(eval $(json)-src   := $(subst .json,-gen.c,$(json))) \
+		$(eval all-gens      += $(json)) \
+		$(eval $(json)-desc  := $(build_descdir)$(1).json) \
+		$(eval all-mod-descs += $($(json)-desc)) \
+		$(eval $(1)-gens     += $(json)) \
+	) \
+
+parse-common-module = \
+	$(eval artifacts    := $(addprefix $(2),$(obj-$(1)-$(3)))) \
+	$(call gen-artifact,$(1),$(filter %.json,$(artifacts))) \
+	$(eval mod-objs     := $(filter %.o,$(artifacts))) \
+	$(eval $(1)-bs      := $(addprefix $(2),Makefile Kconfig)) \
+	$(eval $(1)-hdrs    := $(filter %.h,$(artifacts))) \
+	$(foreach obj,$(mod-objs), \
+		$(eval dest-obj        := $(subst $(top_srcdir)src/,$(build_stagedir),$(obj))) \
+		$(eval $(dest-obj)-src := $(subst .o,.c,$(obj))) \
+		$(eval $(1)-srcs       := $($(dest-obj)-src)) \
+	        $(eval $(1)-objs       += $(dest-obj)) \
+		$(eval all-objs        += $(dest-obj)) \
+	)\
+
+parse-builtin-module = \
+	$(call parse-common-module,$(1),$(2),y) \
+	$(eval builtin-objs        += $($(1)-objs)) \
+	$(eval builtin-flows       += $(call flow-type,$(artifacts))) \
+	$(eval builtin-linux-micro += $(call linux-micro-type,$(artifacts))) \
+
+parse-mod-output = \
+	$(if $(filter yes,$(obj-$(1)-static)), \
+		$(eval $(mod)-out := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(subdir)),$(mod)).a) \
+		$(eval mod-ar     += $(1)), \
+		$(eval out-prefix := $(build_modulesdir)$(strip $(call module-type,$(2)))) \
+	        $(eval $(1)-out   := $(out-prefix)/$(1).so) \
+		$(eval mod-so     += $(1)) \
+	) \
+
+parse-mod-module = \
+	$(call parse-common-module,$(1),$(2),m) \
+	$(eval mod-flows       += $(call flow-type,$(artifacts))) \
+	$(eval mod-linux-micro += $(call linux-micro-type,$(artifacts))) \
+	$(eval $(mod)-deps     := $(subst .mod,,$(obj-$(mod)-m-deps))) \
+	$(call parse-mod-output,$(1),$(2)) \
+	$(eval modules-out += $($(mod)-out)) \
+
+parse-bin = \
+	$(eval bin-$(1)-srcs := $(addprefix $(2),$(bin-$(1)-y))) \
+	$(eval bin-$(1)-out  := $(addprefix $(build_bindir),$(1))) \
+	$(eval $(1)-deps     := $(subst .mod,,$(bin-$(1)-y-deps))) \
+	$(eval bins-out      += $(bin-$(1)-out)) \
+
+parse-test = \
+	$(eval test-$(1)-srcs := $(addprefix $(2),$(test-$(1)-y))) \
+	$(eval test-$(1)-out  := $(addprefix $(2),$(1))) \
+	$(eval $(1)-deps      := $(subst .mod,,$(test-$(1)-y-deps))) \
+	$(eval tests-out      += $(test-$(1)-out)) \
+
+clean-control = $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) $(eval test-y:=)
+
+inc-subdirs = \
+	$(foreach subdir,$(SUBDIRS), $(clean-control) \
+		$(eval -include $(subdir)Makefile) \
+		$(eval curr-builtins        := $(subst .mod,,$(filter %.mod,$(obj-y)))) \
+		$(eval builtins             += $(curr-builtins)) \
+		$(foreach buin,$(curr-builtins), \
+			$(call parse-builtin-module,$(buin),$(subdir)) \
+		) \
+		$(eval curr-modules        := $(subst .mod,,$(filter %.mod,$(obj-m)))) \
+		$(eval modules             += $(curr-modules)) \
+		$(foreach mod,$(curr-modules), \
+			$(call parse-mod-module,$(mod),$(subdir)) \
+		) \
+		$(eval curr-bins := $(bin-y)) \
+		$(eval bins += $(curr-bins)) \
+		$(foreach bin,$(curr-bins), \
+			$(call parse-bin,$(bin),$(subdir)) \
+		) \
+		$(eval tests += $(test-y)) \
+		$(foreach test,$(test-y), \
+			$(call parse-test,$(test),$(subdir)) \
+		) \
+		$(clean-control) \
+	)
+
+extra-headers = \
+	$(foreach hdr,$(EXTRA_HEADERS), \
+		$(eval $(hdr)-dest  := $(build_includedir)$(notdir $(hdr))) \
+		$(eval all-dest-hdr += $($(hdr)-dest)) \
+	) \
+
+extra-bins = \
+	$(foreach bin,$(EXTRA_BINS), \
+		$(eval $(bin)-dest  := $(build_bindir)$(notdir $(bin))) \
+		$(eval all-dest-bin += $($(bin)-dest)) \
+	) \
+
+ifeq (y,$(BUILD_SOLETTA))
+ifneq ($(M),)
+SUBDIRS += $(M)/
+endif # $(M)
+
+$(eval $(call inc-subdirs))
+$(eval $(call extra-headers))
+$(eval $(call extra-bins))
+
+endif # $(BUILD_SOLETTA)
+
+PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin)
+LIB_CFLAGS += $(addprefix -I,$(sort $(dir $(all-gen-hdrs))))
+
+define make-extra-header
+$($(1)-dest): $(1)
+	$(Q)echo "    "INST"   "$$@
+	$(Q)$(MKDIR) -p $(dir $($(1)-dest))
+	$(Q)$(CP) $(1) $($(1)-dest)
+endef
+$(foreach hdr,$(EXTRA_HEADERS),$(eval $(call make-extra-header,$(hdr))))
+
+define make-extra-bin
+$($(1)-dest): $(1)
+	$(Q)echo "    "INST"   "$$@
+	$(Q)$(MKDIR) -p $(dir $($(1)-dest))
+	$(Q)$(INSTALL) -m755 $(1) $($(1)-dest)
+endef
+$(foreach bin,$(EXTRA_BINS),$(eval $(call make-extra-bin,$(bin))))
+
+define make-bin
+$(bin-$(1)-out): $(SOL_LIB_SO) $(bin-$(1)-srcs) $(INT_LIB_AR) $(call find-deps,$(1)) $(PRE_GEN)
+	$(Q)echo "     "BIN"   "$$@
+	$(Q)$(MKDIR) -p $(dir $(bin-$(1)-out))
+	$(Q)$(TARGETCC) $(BIN_CFLAGS) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(LIB_COVERAGE_FLAGS)
+endef
+$(foreach curr,$(bins),$(eval $(call make-bin,$(curr))))
+
+define make-test
+$(test-$(1)-out): $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1)) $(PRE_GEN)
+	$(Q)echo "     "TST"   "$$@
+	$(Q)$(TARGETCC) $(filter-out %.h,$(test-$(1)-srcs)) -o $$@ \
+		$(BIN_CFLAGS) $(TEST_CFLAGS) $(call find-deps,$(1)) $(LIB_COVERAGE_FLAGS)
+endef
+$(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
+
+find-gen-hdrs = $(foreach gen,$($(2)-gens),$($(gen)-hdr))
+external-module-flags = -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1
+
+define make-object
+$(1): $($(1)-src) $($(2)-hdrs) $(call find-deps,$(2)) $(find-gen-hdrs) $(PRE_GEN) $($(2)-bs)
+	$(Q)echo "      "CC"   "$$@
+	$(Q)$(MKDIR) -p $(dir $(1))
+	$(Q)$(TARGETCC) $(LIB_CFLAGS) $($(1)-src) -c -o $(1) $(3) $(LIB_COVERAGE_FLAGS)
+endef
+$(foreach mod,$(modules), \
+	$(foreach obj,$($(mod)-objs),$(eval $(call make-object,$(obj),$(mod),$(external-module-flags)))) \
+)
+
+$(foreach buin,$(builtins), \
+	$(foreach obj,$($(buin)-objs), $(eval $(call make-object,$(obj),$(buin)))) \
+)
+
+define make-mod-so
+$($(1)-out): $(LIB_SO) $(INT_LIB_AR) $(PRE_GEN) $($(1)-objs) $(call find-deps,$(1))
+	$(Q)echo "     "MOD"   "$$@
+	$(Q)$(MKDIR) -p $(dir $($(1)-out))
+	$(Q)$(TARGETCC) $($(1)-objs) -shared -o $($(1)-out) $(LIB_COVERAGE_FLAGS)
+endef
+$(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
+
+define make-mod-ar
+$($(1)-out): $(PRE_GEN) $($(1)-objs) $(call find-deps,$(1))
+	$(Q)echo "      "AR"   "$$@
+	$(Q)$(MKDIR) -p $(dir $($(1)-out))
+	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $($(1)-out) $($(1)-objs)
+endef
+$(foreach curr,$(mod-ar),$(eval $(call make-mod-ar,$(curr))))
+
+$(SOL_LIB_AR): $(PRE_GEN) $(builtin-objs)
+	$(Q)echo "      "AR"   "$(@)
+	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_AR))
+	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(builtin-objs)
+
+$(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(INT_LIB_AR) $(builtin-objs)
+	$(Q)echo "      "LD"   "$(@)
+	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_SO))
+	$(Q)$(TARGETCC) $(builtin-objs) -shared -o $(@).$(VERSION) $(TARGET_LINKFLAGS) $(LIB_COVERAGE_FLAGS)
+	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
+
+$(DEPENDENCY_FILES): $(DEPENDENCY_SCRIPT)
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC)
+
+reconf: $(DEPENDENCY_SCRIPT)
+	$(Q)echo "[re]running dependency-resolver..."
+	$(Q)$(RM) -f $(DEPENDENCY_FILES)
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC)
+
+PHONY += reconf
+
+# generators
+define make-gen
+$($(1)-hdr) $($(1)-src) $($(1)-desc): $(1) $(NODE_TYPE_GEN_SCRIPT)
+	$(Q)echo "     "GEN"   "$$@
+	$(Q)$(MKDIR) -p $(dir $($(1)-hdr))
+	$(Q)$(MKDIR) -p $(dir $($(1)-desc))
+	$(Q)$(PYTHON) $(NODE_TYPE_GEN_SCRIPT) --prefix=sol-flow-node-type \
+		--genspec-schema=$(NODE_TYPE_SCHEMA) $(1) $($(1)-hdr) $($(1)-src) $($(1)-desc)
+endef
+$(foreach gen,$(all-gens),$(eval $(call make-gen,$(gen))))
+
+$(FLOW_BUILTINS_DESC): $(PRE_GEN) $(all-mod-descs) $(SOL_LIB_SO) $(SOL_LIB_AR) $(JSON_FORMAT_SCRIPT)
+	$(Q)echo "     "GEN"   "$@
+	$(Q)$(MKDIR) -p $(dir $(@))
+	$(Q)$(PYTHON) $(FLOW_MERGE_BUILTINS_SCRIPT) --modules-dir=$(build_descdir) $(@) $(builtin-flows)
+
+define install-resource
+$(2): $(1)
+	$(Q)echo "    "INST"   "$(1)
+	$(Q)$(MKDIR) -p $(dir $(2))
+	$(Q)$(CP) $(1) $(2)
+endef
+
+$(eval $(call install-resource,$(NODE_TYPE_SCHEMA),$(NODE_TYPE_SCHEMA_DEST)))
+$(eval $(call install-resource,$(PLATFORM_DETECT),$(PLATFORM_DETECT_DEST)))
+$(eval $(call install-resource,$(GDB_AUTOLOAD_PY),$(GDB_AUTOLOAD_PY_DEST)))
+
+$(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT)
+	$(Q)echo "     "GEN"   "$(@)
+	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) $(FLOW_OIC_SPEC_DIR) $(FLOW_OIC_GEN) &>/dev/null
+
+$(FLOW_NODE_TYPES_H): $(NODE_TYPE_H_GEN_SCRIPT) $(KCONFIG_CONFIG)
+	$(Q)echo "     "GEN"   "$(@)
+	$(Q)$(PYTHON) $(NODE_TYPE_H_GEN_SCRIPT) $(FLOW_NODE_TYPES_H) $(all-gen-hdrs)
+
+$(LINUX_MICRO_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
+	$(Q)echo "     "GEN"   "$(@)
+	$(Q)$(PYTHON) $(BUILTINS_SCRIPT) --output=$@ \
+		--array="static const struct sol_platform_linux_micro_module *SOL_PLATFORM_LINUX_MICRO_MODULE_ALL[]" \
+		--count="SOL_PLATFORM_LINUX_MICRO_MODULE_COUNT" \
+		--decl="struct sol_platform_linux_micro_module SOL_PLATFORM_LINUX_MICRO_MODULE_@NAME@" \
+		--item="&SOL_PLATFORM_LINUX_MICRO_MODULE_@NAME@" \
+		$(builtin-linux-micro)
+
+$(FLOW_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG) $(KCONFIG_CONFIG)
+	$(Q)echo "     "GEN"   "$(@)
+	$(Q)$(PYTHON) $(BUILTINS_SCRIPT) \
+		--output=$@ \
+		--array="static const void *SOL_FLOW_BUILTIN_NODE_TYPE_ALL[]" \
+		--count="SOL_FLOW_BUILTIN_NODE_TYPE_COUNT" \
+		--decl="const struct sol_flow_node_type *sol_flow_foreach_builtin_node_type_@name@(bool (*)(void *, const struct sol_flow_node_type *), const void *)" \
+		--item="sol_flow_foreach_builtin_node_type_@name@" \
+		$(subst -,_,$(builtin-flows))
+
+node-type-desc-enabled = $(if $(filter y,$(CONFIG_MODULES)),\#define SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED 1,)
+inspector-enabled = $(if $(filter y,$(CONFIG_INSPECTOR)),\#define SOL_FLOW_INSPECTOR_ENABLED 1,)
+resolver-conffile-enabled = $(if $(filter y,$(CONFIG_RESOLVER_CONFFILE)),\#define SOL_BUILD_FLOW_MODULE_RESOLVER_CONFFILE 1,)
+
+$(FLOW_BUILDOPTS_H): $(FLOW_BUILDOPTS_H_IN) $(KCONFIG_CONFIG)
+	$(Q)echo "     "GEN"   "$(@)
+	$(Q)$(CAT) $(<) | $(SED) 's/@SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED@/$(node-type-desc-enabled)/g' | \
+		$(SED) 's/@SOL_FLOW_INSPECTOR_ENABLED@/$(inspector-enabled)/g' | \
+		$(SED) 's/@SOL_BUILD_FLOW_MODULE_RESOLVER_CONFFILE@/$(resolver-conffile-enabled)/' > $(@)
+
+ifeq (y,$(CONFIG_PLATFORM_LINUX_MICRO))
+platform-linux-enabled  := \#define SOL_PLATFORM_LINUX 1
+endif
+
+ifeq (y,$(CONFIG_PLATFORM_RIOTOS))
+platform-riotos-enabled := \#define SOL_PLATFORM_RIOT 1
+endif
+
+ifeq (y,$(CONFIG_LOG))
+log-enabled := \#define SOL_LOG_ENABLED 1
+endif
+
+$(COMMON_BUILDOPTS_H): $(COMMON_BUILDOPTS_H_IN) $(KCONFIG_CONFIG)
+	$(Q)echo "     "GEN"   "$(@)
+	$(Q)$(CAT) $(<) | $(SED) 's/@SOL_PLATFORM_LINUX@/$(platform-linux-enabled)/g' | \
+		$(SED) 's/@SOL_PLATFORM_RIOT@/$(platform-riotos-enabled)/g' | \
+		$(SED) 's/@SOL_LOG_ENABLED@/$(log-enabled)/' > $(@)
+
+$(PC_GEN): $(PC_GEN_IN)
+	$(Q)echo "     "GEN"   "$(PC_GEN)
+	$(Q)$(MKDIR) -p $(dir $(PC_GEN))
+	$(Q)$(CAT) $(<) | $(SED) 's#@prefix@#$(CONFG_PREFIX)#g' | \
+		$(SED) 's#@exec_prefix@#$(CONFIG_PREFIX)#g' | \
+		$(SED) 's#@libdir@#$(LIBDIR)#g' | \
+		$(SED) 's#@includedir@#$(INCLUDEDIR)#g' | \
+		$(SED) 's#@SOL_CONFFILE_MODULES_DIR@#$(MODULESDIR)#g' | \
+		$(SED) 's#@datadir@#$(DATADIR)#g' | \
+		$(SED) 's#@VERSION@#$(VERSION)#g' > $(@)
+
+$(NODE_TYPE_GEN_SCRIPT): $(NODE_TYPE_GEN_SCRIPT_IN)
+	$(Q)echo "     "GEN"   "$(NODE_TYPE_GEN_SCRIPT)
+	$(Q)$(MKDIR) -p $(dir $(NODE_TYPE_GEN_SCRIPT))
+	$(Q)$(CAT) $(<) | $(SED) 's#@pkgdatadir@#$(DATADIR)#g' > $(@) && $(CHMOD) +x $(@)
+
+$(FLOW_NODE_TYPE_FIND): $(FLOW_NODE_TYPE_FIND_IN)
+	$(Q)echo "     "GEN"   "$(FLOW_NODE_TYPE_FIND)
+	$(Q)$(CAT) $(<) | $(SED) 's#@flowtypedescdir@#$(DESCDIR)#' > $(@)
+
+check: $(SOL_LIB_AR) $(SOL_LIB_SO) $(tests-out)
+	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)"
+
+check-fbp: $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
+	$(Q)echo $(shell SOL_FBP_RUNNER_BIN="$(abspath $(SOL_FBP_RUNNER_BIN))" $(TEST_FBP_SCRIPT))
+
+ifeq (y,$(HAVE_VALGRIND))
+check-valgrind: $(SOL_LIB_AR) $(SOL_LIB_SO) $(tests-out)
+	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)" \
+		--valgrind=$(VALGRIND) --valgrind-supp=$(TEST_VALGRIND_SUPP)
+
+check-fbp-valgrind: $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
+	$(Q)echo $(shell SOL_FBP_RUNNER_BIN="$(abspath $(SOL_FBP_RUNNER_BIN))" \
+		TEST_VALGRIND_SUPP="$(abspath $(TET_VALGRIND_SUPP))" $(TEST_FBP_SCRIPT))
+else
+check-valgrind:
+	$(Q)echo "No such valgrind installation: $(VALGRIND), either make sure your valgrind"
+	$(Q)echo " installation is correct or provide a valid VALGRIND= variable"
+
+check-fbp-valgrind: check-valgrind
+endif # HAVE_VALGRIND
+
+define clean-resource
+	$(Q)echo "   "CLEAN"   "$(1)
+	$(Q)$(RM) -Rf $(1)
+
+endef
+
+ifneq (,$(LCOV))
+run-coverage: check check-fbp
+	$(Q)$(MKDIR) -p $(coveragedir)
+	$(Q)$(LCOV) --capture --directory $(top_srcdir) --output-file $(coveragedir)coverage.info
+	$(Q)$(MV) *.gcda $(build_bindir)
+	$(Q)$(GENHTML) coverage/coverage.info --output-directory coverage/
+
+coverage: clean
+	$(Q)$(RM) -Rf $(coveragedir)
+	$(Q)$(MAKE) -f $(top_srcdir)Makefile run-coverage
+else
+coverage:
+	$(Q)echo "NO such lcov installation, check you system and run it again."
+endif
+
+cleanup-files := $(shell find $(top_srcdir)src/ -name '*.o' -o -name '*.so' -o -name '*.a')
+cleanup-files += $(shell find $(top_srcdir) -name '*.gcda' -o -name '*.gcno')
+cleanup-files += $(CLEANUP_GEN) $(kconfig-clean-objs) $(BUILDDIR)
+
+clean:
+	$(foreach curr,$(wildcard $(cleanup-files)),$(call clean-resource,$(curr)))
+
+distclean: clean
+	$(Q)$(RM) -Rf .config* $(DEPENDENCY_FILES) $(KCONFIG_INCLUDE)
+
+PRE_INSTALL := $(PC_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out) $(all-mod-descs)
+PRE_INSTALL += $(FLOW_BUILTINS_DESC) $(NODE_TYPE_SCHEMA_DEST) $(PLATFORM_DETECT_DEST) $(GDB_AUTOLOAD_PY_DEST)
+
+cleanup-bins := $(subst $(build_sysroot)/,$(DESTDIR),$(bins-out))
+
+define rpath-cleanup
+$(1)-rpath-cleanup: $(1)
+	@$(CHRPATH) -d $(1)
+endef
+$(foreach bin,$(cleanup-bins),$(eval $(call rpath-cleanup,$(bin))))
+
+pre-install: $(PRE_INSTALL)
+	$(Q)echo "     "INSTALLING SYSROOT TO: $(DESTDIR)
+	$(Q)$(CP) -R $(build_sysroot)/* $(DESTDIR)
+
+post-install: pre-install $(addsuffix -rpath-cleanup,$(cleanup-bins))
+
+install: post-install
+
+PHONY += check check-valgrind coverage run-coverage clean distclean install post-install pre-install
+
+$(KCONFIG_AUTOHEADER): $(KCONFIG_CONFIG)
+	$(MAKE) -f $(top_srcdir)Makefile silentoldconfig

@@ -1,0 +1,67 @@
+config TEST_ARENA
+	bool "arena"
+	default y
+
+config TEST_BUFFER
+	bool "buffer"
+	default y
+
+config TEST_COAP
+	bool "coap"
+	depends on COAP
+	default y
+
+config TEST_FBP
+	bool "fbp"
+	default y
+
+config TEST_FBP_SCANNER
+	bool "fbp scanner"
+	default y
+
+config TEST_FLOW
+	bool "flow"
+	default n
+
+config TEST_FLOW_BUILDER
+	bool "flow builder"
+	default y
+
+config TEST_FLOW_PARSER
+	bool "flow parser"
+	default y
+
+config TEST_MAINLOOP
+	bool "mainloop"
+	default y
+
+config TEST_MAINLOOP_LINUX
+	bool "mainloop linux"
+	depends on PLATFORM_LINUX
+	default y
+
+config TEST_MAINLOOP_THREADS
+	bool "mainloop threads"
+	depends on PTHREAD
+	default y
+
+config TEST_MAINLOOP_THREADS_SOL_RUN
+	bool "mainloop threads sol run"
+	depends on PTHREAD
+	default n
+
+config TEST_MONITORS
+	bool "monitors"
+	default y
+
+config TEST_STR_SLICE
+	bool "str-slice"
+	default y
+
+config TEST_STR_TABLE
+	bool "str-table"
+	default y
+
+config TEST_VECTOR
+	bool "vector"
+	default y

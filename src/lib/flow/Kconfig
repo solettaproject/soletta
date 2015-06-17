@@ -1,0 +1,11 @@
+config FLOW
+	bool "flow support"
+	default y
+
+config RESOLVER_CONFFILE
+	bool "resolver conffile"
+	default y
+
+config FLOW_RESOLVER
+	bool "flow resolver"
+	default y

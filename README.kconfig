@@ -1,0 +1,21 @@
+KCONFIG
+=====
+
+The SOLETTA project uses kconfig[1] as its configuration system. It's
+kept within tools/kconfig/ directory and we maintain it as clean
+as possible, meaning we don't intend to add/change/remove any file there.
+All the source code therein should be as is.
+
+The current kconfig version is the one present on linux kernel v4.0-rc1.
+The process to update kconfig is fairly simple:
+
+1 - download linux kernel source code;
+2 - git rm tools/kconfig/*
+3 - cp -R $path-to-linux-source/scripts/kconfig/* tools/kconfig/
+4 - git add tools/kconfig/*
+
+There's a tools/build/Makefile.kconfig which defines an interface between
+SOLETTA's build system and kconfig itself - so we don't need to touch
+tools/kconfig/Makefile at all.
+
+[1] - https://www.kernel.org/doc/Documentation/kbuild/kconfig.txt
