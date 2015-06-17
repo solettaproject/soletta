@@ -30,6 +30,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+pkgdatadir = '@pkgdatadir@'
+
 import json
 import jsonschema
 import os
@@ -993,26 +995,80 @@ SOL_API const struct sol_flow_node_type *%(NAME_C)s = &%(name_c)s%(node_base_typ
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="""\
+Reads sol_flow_node_type specification from JSON and generates all the
+C boilerplate to create an usable builtin or external module.
+""",
+        epilog="""\
+The generator specification is a JSON with a list of types, their options,
+ports and methods. See an example at:
+
+    https://github.com/solettaproject/soletta/blob/master/src/modules/flow/gpio/gpio.json
+
+It will then generate a C header file with the public interface and the
+boilerplate C source to expose these types as both builtin or external
+modules. Then the user must create his own C source file that defines
+all the functions and structures referenced in the generator
+specification. See an example at:
+
+    https://github.com/solettaproject/soletta/blob/master/src/modules/flow/gpio/gpio.c
+
+These should be compiled later such as:
+
+    cc `pkg-config --libs --cflags soletta` \\
+        -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 \\
+        -shared -fPIC module.c -o module.so
+
+One can create an initial 'module.c' based on the generator specification
+using the sol-flow-node-type-stub-gen.py tool.
+
+""")
+
     parser.add_argument("--prefix",
                         help="Prefix to use in C generated code",
                         type=str)
-    parser.add_argument("schema",
-                        help="JSON Schema to use for validation",
-                        type=argparse.FileType('r'))
-    parser.add_argument("input",
-                        help="Input description file in JSON format",
+    parser.add_argument("--genspec-schema",
+                        help="JSON Schema of the genspec to use for validation",
+                        type=argparse.FileType('r'),
+                        default=os.path.join(pkgdatadir,
+                                             "flow", "schemas",
+                                             "node-type-genspec.schema"))
+    parser.add_argument("genspec",
+                        help=("Generator specification file in JSON format "
+                              "(follows node-type-genspec.schema, "
+                              "see --genspec-schema). "
+                              "This file contains a list of node types and "
+                              "information about their options, ports and "
+                              "methods that will result in the generation of "
+                              "a series of struct sol_flow_node_type and all "
+                              "the required boilerplate to have them usable "
+                              "by both builtin or external modules."),
                         type=argparse.FileType('r'))
     parser.add_argument("output_header",
-                        help="Output header (.h) file",
+                        help=("Output header (.h) file. This file will "
+                              "contain the public declaration of all "
+                              "'struct sol_flow_node_type*', "
+                              "their associated "
+                              "'struct sol_flow_node_options' and "
+                              "C pre-processor (CPP) defines for all ports."),
                         type=argparse.FileType('w'))
     parser.add_argument("output_code",
-                        help="Output code (.c) file",
+                        help=("Boilerplate output code (.c) file. This file "
+                              "will contain only the declaration of "
+                              "boilerplate structures and initializations "
+                              "required by 'struct sol_flow_node_type'. "
+                              "The node and port methods will be set according "
+                              "to the specifications in genspec and usually it "
+                              "will be included by an user-defined C file with "
+                              "the actual functions and "
+                              "private data declarations."),
                         type=argparse.FileType('w'))
 
     args = parser.parse_args()
     try:
-        data = load_json(args.input, args.schema, args.prefix)
+        data = load_json(args.genspec, args.genspec_schema, args.prefix)
     except Exception as e:
         if args.output_header and args.output_header.name:
             os.unlink(args.output_header.name)
@@ -1034,7 +1090,7 @@ if __name__ == "__main__":
                 "prefix_c": tmp["prefix_c"],
                 }
 
-        data["input"] = args.input.name
+        data["input"] = args.genspec.name
         data["header"] = args.output_header.name
         data["source"] = args.output_code.name
 
