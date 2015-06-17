@@ -1,8 +1,6 @@
-SOLETTA PROJECT
-==============
+# Soletta Project
 
-Soletta Project is a framework for making IoT devices.
-
+**Soletta Project** is a framework for making IoT devices.
 With Soletta Project's libraries developers can easily write software
 for devices that control actuators/sensors and communicate using
 standard technologies. It enables adding smartness even on the
@@ -13,17 +11,16 @@ enabling developers to reuse their code and knowledge on different
 targets.
 
 
-GENERAL INFORMATION
-~~~~~~~~~~~~~~~~~~~
+### General Information
 
-SOLETTA PROJECT uses "sol" as C namespace, so macros start with "SOL_"
-and functions, enumerations, structures and others start with "sol_".
+**Soletta Project** uses `sol` as C namespace, so macros start with `SOL_`
+and functions, enumerations, structures and others start with `sol_`.
 
 It uses a main loop to provide single threaded cooperative tasks
 (co-routines) triggered by UNIX file-descriptors, timers or idlers
 (runs whenever there is nothing else to do). The traditional main loop
 is based on Glib's GMainLoop, while some smaller OS have their own
-implementation, see --with-mainloop documentaion.
+implementation, see `--with-mainloop` documentaion.
 
 The build system is based on autotools (autoconf/automake). If you got
 the unreleased source code from GIT, you must run:
@@ -51,21 +48,18 @@ directories):
 
         sudo make install
 
-
 Note that to run applications that rely on modules to be installed
-(such as sol-io and conffile) one needs to either "make install" or
+(such as sol-io and conffile) one needs to either `make install` or
 configure as maintainer using:
 
-        ./configure --enable-maintainer-mode ...
+        ./configure --enable-maintainer-mode
 
 Then they will run from inside the build tree.
 
 
+### Debug
 
-DEBUG
-~~~~~
-
-Soletta provides sol-log to provide meaningful critical, error, warning,
+**Soletta** provides `sol-log` to provide meaningful critical, error, warning,
 informational or debug messages in a simple way. The following
 environment variables affect sol-log behavior:
 
@@ -112,55 +106,53 @@ environment variables affect sol-log behavior:
         Enabled by default.
 
 Note that at compile time some levels may be disabled by usage of
-SOL_LOG_LEVEL_MAXIMUM C-pre-processor macro, which may be set for
+`SOL_LOG_LEVEL_MAXIMUM` C-pre-processor macro, which may be set for
 soletta itself (internally) with:
 
         ./configure --with-maximum-internal-log-level=NUMBER
 
 or by applications if they define that in some way. Then messages
-above that number will be compiled out and using $SOL_LOG_LEVEL or
-$SOL_LOG_LEVELS for those numbers won't have effect.
+above that number will be compiled out and using `$SOL_LOG_LEVEL` or
+`$SOL_LOG_LEVELS` for those numbers won't have effect.
 
 
-LIBRARIES
-~~~~~~~~~
+### Libraries
 
-common:
+##### common
 
-        Main loop, logging and access to platform details such as
-        services and state.
+Main loop, logging and access to platform details such as
+services and state.
 
-        Main loop will allow cooperative routines to run in a single
-        thread, they can be started from a timeout (timer), an
-        interruption handler, file descriptor monitor (POSIX-like
-        systems) or when nothing else is running (idlers).
+Main loop will allow cooperative routines to run in a single
+thread, they can be started from a timeout (timer), an
+interruption handler, file descriptor monitor (POSIX-like
+systems) or when nothing else is running (idlers).
 
-        Logging allows different domains to be logged independently,
-        making it is easy to debug your application or Soletta itself.
+Logging allows different domains to be logged independently,
+making it is easy to debug your application or Soletta itself.
 
-        Platform allows checking the system state, if it's ready,
-        still booting, degraded (something failed), going to shutdown
-        and so on. It has the concept of services that can be started
-        or stopped as well as monitored for a dynamic lifecycle
-        management.
-
-
-coap:
-
-        Implementation of The Constrained Application Protocol (CoAP -
-        RFC 7252). This network protocol is pretty simple and uses a
-        HTTP-like message that is space-efficient over UDP.
+Platform allows checking the system state, if it's ready,
+still booting, degraded (something failed), going to shutdown
+and so on. It has the concept of services that can be started
+or stopped as well as monitored for a dynamic lifecycle
+management.
 
 
-flow:
+##### coap
 
-        Implementation of Flow-Based Programming (FBP), allowing the
-        programmer to express business logic as a directional graph of
-        nodes connected to type-specific ports.
+Implementation of The Constrained Application Protocol (CoAP -
+RFC 7252). This network protocol is pretty simple and uses a
+HTTP-like message that is space-efficient over UDP.
 
 
-MAIN LOOPS
-~~~~~~~~~~
+##### flow
+
+Implementation of Flow-Based Programming (FBP), allowing the
+programmer to express business logic as a directional graph of
+nodes connected to type-specific ports.
+
+
+### Main Loops
 
 Main loops are responsible to deliver events and timers in a single
 thread by continuously poll and interleave registered functions. It
@@ -200,8 +192,7 @@ sol_fd_add() and sol_fd_del() are thread-safe and can be used from
 worker threads.
 
 
-GLib (--with-mainloop=glib)
----------------------------
+##### GLib (`--with-mainloop=glib`)
 
 The well known GMainLoop is used by soletta so GLib-based frameworks
 can be easily integrated, things like social network services,
@@ -227,18 +218,15 @@ command to get them right:
         libtool --mode=execute gdb ./my-binary
 
 
-POSIX  (--with-mainloop=posix)
-------------------------------
+##### POSIX  (`--with-mainloop=posix`)
 
 If GLib is too big then you can use a simpler implementation based
 solely on POSIX syscalls (poll/ppoll). As it's fully implemented in
 soletta there is no extra variables to debug it.
 
-It is a nice match for --with-platform=micro-linux
+It is a nice match for `--with-platform=micro-linux`
 
-
-PLATFORMS
-~~~~~~~~~
+### Platforms
 
 Platforms is about target states and services.
 
@@ -257,8 +245,7 @@ monitors about their state changes. They are platform-specific and
 depends on underlying platform setup.
 
 
-Systemd (--with-platform=systemd)
----------------------------------
+##### Systemd (`--with-platform=systemd`)
 
 This uses systemd as base. Whenever a target is set or a service is
 started it will call systemd. The D-Bus events from systemd will be
@@ -268,8 +255,7 @@ Thus both targets and services are implemented according to systemd
 using units in standard locations such as /usr/lib/systemd/system and
 /etc/systemd/system.
 
-Micro-Linux (--with-platform=micro-linux)
------------------------------------------
+##### Micro-Linux (`--with-platform=micro-linux`)
 
 Micro-Linux implementation allows your Soletta binary to be used as
 PID1, it will do required initialization and will handle services as
@@ -299,11 +285,9 @@ A set of services are started automatically by Soletta in order to do
 initialization, these are listed in
 /usr/lib/soletta/modules/linux-micro/initial-services.
 
+### Flow Based Programming
 
-FLOW BASED PROGRAMMING
-~~~~~~~~~~~~~~~~~~~~~~
-
-Flow-Based Programming (FBP) allows the programmer to express business
+Flow-Based Programming (**FBP**) allows the programmer to express business
 logic as a directional graph of nodes connected to type-specific
 ports.
 
@@ -373,7 +357,7 @@ One can link multiple segments at once:
 It is much simpler than a program using the high-level C API, even if
 we're omitting error checking, as we can see below. For the low-level
 API see the output of sol-fbp-generator.
-
+```C
         #include "sol-mainloop.h"
         #include "sol-flow-builder.h"
         #include "sol-flow-node-types.h"
@@ -416,4 +400,4 @@ API see the output of sol-fbp-generator.
             sol_shutdown();
             return 0;
         }
-
+```
