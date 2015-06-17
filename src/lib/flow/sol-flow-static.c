@@ -407,13 +407,20 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
     sol_list_init(&fsd->delayed_packets);
 
+    /* Set all pointers before calling nodes methods */
     node_storage_it = fsd->node_storage;
     for (spec = type->node_specs, i = 0; spec->type != NULL; spec++, i++) {
         struct sol_flow_node *child_node = (struct sol_flow_node *)node_storage_it;
-        struct sol_flow_node_options *child_opts;
 
         fsd->nodes[i] = child_node;
         child_node->parent_data = INT_TO_PTR(i);
+        node_storage_it += calc_node_size(spec);
+    }
+
+    node_storage_it = fsd->node_storage;
+    for (spec = type->node_specs; spec->type != NULL; spec++) {
+        struct sol_flow_node *child_node = (struct sol_flow_node *)node_storage_it;
+        struct sol_flow_node_options *child_opts;
 
         child_opts = sol_flow_node_get_options(spec->type, spec->opts);
         if (!child_opts) {
