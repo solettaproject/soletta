@@ -1099,7 +1099,11 @@ using the sol-flow-node-type-stub-gen.py tool.
         output_code = args.output_code
         generate_header_head(args.output_header, data)
         generate_code_head(args.output_code, data)
+        meta = data.get("meta", {})
         for t in data["types"]:
+            t.setdefault("license", meta.get("license"))
+            t.setdefault("author", meta.get("author"))
+            t.setdefault("version", meta.get("version"))
             t["header"] = data["header"]
             t["source"] = data["source"]
             t["input"] = data["input"]

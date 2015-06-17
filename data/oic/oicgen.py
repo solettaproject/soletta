@@ -898,7 +898,7 @@ def master_json_as_string(generated):
         'meta': {
             'author': 'Intel Corporation',
             'license': 'BSD 3-Clause',
-            'version': 1
+            'version': '1'
         },
         'types': [t['json_server'] for t in generated] + [t['json_client'] for t in generated]
     }

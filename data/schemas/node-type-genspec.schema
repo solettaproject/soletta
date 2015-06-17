@@ -336,7 +336,7 @@
       "properties": {
         "license": { "type": "string" },
         "author": { "type": "string" },
-        "version": { "type": "number" }
+        "version": { "type": "string" }
       }
     },
 
