@@ -36,190 +36,89 @@
 #include <sol-util.h>
 #include <errno.h>
 
-struct sol_constant_byte {
-    unsigned char byte;
-};
-
-struct sol_constant_boolean {
-    bool boolean;
-};
-
-struct sol_constant_string {
-    char *string;
-};
-
 static int
 constant_irange_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_irange *mdata = data;
     const struct sol_flow_node_type_constant_int_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONSTANT_INT_OPTIONS_API_VERSION, -EINVAL);
     opts = (const struct sol_flow_node_type_constant_int_options *)options;
 
-    *mdata = opts->value;
-
-    return 0;
-}
-
-static int
-irange_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct sol_irange *mdata = data;
-
-    *packet = sol_flow_packet_new_irange(mdata);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
+    return sol_flow_send_irange_packet(node,
+        SOL_FLOW_NODE_TYPE_CONSTANT_INT__OUT__OUT, &opts->value);
 }
 
 static int
 constant_drange_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_drange *mdata = data;
     const struct sol_flow_node_type_constant_float_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONSTANT_FLOAT_OPTIONS_API_VERSION, -EINVAL);
     opts = (const struct sol_flow_node_type_constant_float_options *)options;
 
-    *mdata = opts->value;
-
-    return 0;
-}
-
-static int
-drange_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct sol_drange *mdata = data;
-
-    *packet = sol_flow_packet_new_drange(mdata);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
+    return sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_CONSTANT_FLOAT__OUT__OUT, &opts->value);
 }
 
 static int
 constant_byte_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_constant_byte *mdata = data;
     const struct sol_flow_node_type_constant_byte_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONSTANT_BYTE_OPTIONS_API_VERSION, -EINVAL);
     opts = (const struct sol_flow_node_type_constant_byte_options *)options;
 
-    mdata->byte = opts->value;
-
-    return 0;
-}
-
-static int
-byte_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct sol_constant_byte *mdata = data;
-
-    *packet = sol_flow_packet_new_byte(mdata->byte);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
+    return sol_flow_send_byte_packet(node,
+        SOL_FLOW_NODE_TYPE_CONSTANT_BYTE__OUT__OUT, opts->value);
 }
 
 static int
 constant_boolean_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_constant_boolean *mdata = data;
     const struct sol_flow_node_type_constant_boolean_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONSTANT_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
     opts = (const struct sol_flow_node_type_constant_boolean_options *)options;
 
-    mdata->boolean = opts->value;
-
-    return 0;
-}
-
-static int
-boolean_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct sol_constant_boolean *mdata = data;
-
-    *packet = sol_flow_packet_new_boolean(mdata->boolean);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_CONSTANT_BOOLEAN__OUT__OUT, opts->value);
 }
 
 static int
 constant_string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_constant_string *mdata = data;
     const struct sol_flow_node_type_constant_string_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONSTANT_STRING_OPTIONS_API_VERSION, -EINVAL);
     opts = (const struct sol_flow_node_type_constant_string_options *)options;
 
-    mdata->string = strdup(opts->value);
-    if (!mdata->string)
-        return -errno;
-
-    return 0;
-}
-
-static void
-constant_string_close(struct sol_flow_node *node, void *data)
-{
-    struct sol_constant_string *mdata = data;
-
-    free(mdata->string);
+    return sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_CONSTANT_STRING__OUT__OUT, opts->value);
 }
 
 static int
-string_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
+constant_empty_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_constant_string *mdata = data;
-
-    *packet = sol_flow_packet_new_string(mdata->string);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
-}
-
-static int
-empty_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    *packet = sol_flow_packet_new_empty();
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-    return 0;
+    return sol_flow_send_empty_packet(node,
+        SOL_FLOW_NODE_TYPE_CONSTANT_EMPTY__OUT__OUT);
 }
 
 static int
 constant_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_rgb *mdata = data;
     const struct sol_flow_node_type_constant_rgb_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONSTANT_RGB_OPTIONS_API_VERSION, -EINVAL);
     opts = (const struct sol_flow_node_type_constant_rgb_options *)options;
 
-    *mdata = opts->value;
-
-    return 0;
-}
-
-static int
-rgb_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct sol_rgb *mdata = data;
-
-    *packet = sol_flow_packet_new_rgb(mdata);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
+    return sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_CONSTANT_RGB__OUT__OUT, &opts->value);
 }
 
 #include "constant-gen.c"

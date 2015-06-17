@@ -38,25 +38,6 @@
 
 #include "app-gen.h"
 
-struct args {
-    int index;
-};
-
-static int
-argv_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct args *mdata = data;
-    const struct sol_flow_node_type_app_argv_options *opts;
-
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_APP_ARGV_OPTIONS_API_VERSION,
-        -EINVAL);
-    opts = (const struct sol_flow_node_type_app_argv_options *)options;
-
-    mdata->index = opts->index.val;
-
-    return 0;
-}
-
 static int
 check_index(struct sol_flow_node *node, int index)
 {
@@ -80,26 +61,27 @@ check_index(struct sol_flow_node *node, int index)
 }
 
 static int
-argv_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
+argv_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct args *mdata = data;
+    const struct sol_flow_node_type_app_argv_options *opts;
     int r;
 
-    r = check_index(node, mdata->index);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_APP_ARGV_OPTIONS_API_VERSION,
+        -EINVAL);
+    opts = (const struct sol_flow_node_type_app_argv_options *)options;
+
+    r = check_index(node, opts->index.val);
     SOL_INT_CHECK(r, < 0, r);
 
-    *packet = sol_flow_packet_new_string(sol_argv()[mdata->index]);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
+    return sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_APP_ARGV__OUT__OUT, sol_argv()[opts->index.val]);
 }
 
 static int
-argc_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
+argc_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    *packet = sol_flow_packet_new_irange_value(sol_argc());
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-    return 0;
+    return sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_APP_ARGC_ARGV__OUT__ARGC, sol_argc());
 }
 
 static int

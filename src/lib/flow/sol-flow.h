@@ -361,7 +361,7 @@ struct sol_flow_port_type_out {
     uint16_t flags; /**< see #sol_flow_port_type_flags */
     const struct sol_flow_packet_type *packet_type; /**< the packet type that the port will deliver */
 
-    int (*connect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet); /**< member function issued everytime a new connection is made to the port (if the output port wants to pass an initial packet at connection time, it must be done via the packet parameter) */
+    int (*connect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued everytime a new connection is made to the port */
     int (*disconnect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued everytime a connection is unmade on the port */
 };
 

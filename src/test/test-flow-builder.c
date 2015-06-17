@@ -100,7 +100,7 @@ test_port_in_connect(struct sol_flow_node *node, void *data, uint16_t port, uint
 }
 
 static int
-test_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
+test_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     add_event(node, EVENT_PORT_CONNECT);
     return 0;

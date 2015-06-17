@@ -105,14 +105,13 @@ struct delayed_packet {
 
 static int
 dispatch_connect_out(struct sol_flow_node *node, uint16_t port, uint16_t conn_id,
-    const struct sol_flow_port_type_out *port_type, struct sol_flow_packet **packet)
+    const struct sol_flow_port_type_out *port_type)
 {
-    SOL_NULL_CHECK(packet, -EINVAL);
     SOL_FLOW_PORT_TYPE_OUT_API_CHECK(port_type,
         SOL_FLOW_PORT_TYPE_OUT_API_VERSION, 0);
 
     if (port_type->connect)
-        return port_type->connect(node, node->data, port, conn_id, packet);
+        return port_type->connect(node, node->data, port, conn_id);
     return 0;
 }
 
@@ -211,7 +210,7 @@ connect_nodes(struct flow_static_type *type, struct flow_static_data *fsd)
             goto dispatch_error;
         }
 
-        r = dispatch_connect_out(src, spec->src_port, ci->out_conn_id, src_port_type, &packet);
+        r = dispatch_connect_out(src, spec->src_port, ci->out_conn_id, src_port_type);
         if (r < 0) {
             CONNECT_NODES_WRN(spec, src->id, dst->id, "Error connecting source: %s", sol_util_strerrora(-r));
             if (packet)
@@ -877,8 +876,7 @@ flow_exported_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_
 }
 
 static int
-flow_exported_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
-    struct sol_flow_packet **packet)
+flow_exported_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     struct flow_static_type *type;
     struct flow_static_data *fsd;
@@ -893,7 +891,7 @@ flow_exported_port_out_connect(struct sol_flow_node *node, void *data, uint16_t 
     child_conn_id = type->ports_out_base_conn_id[port] + conn_id;
 
     return dispatch_connect_out(child_node, child_port, child_conn_id,
-        sol_flow_node_type_get_port_out(child_node->type, child_port), packet);
+        sol_flow_node_type_get_port_out(child_node->type, child_port));
 }
 
 static int

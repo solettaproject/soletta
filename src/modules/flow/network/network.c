@@ -105,19 +105,6 @@ _check_connected(struct sol_ptr_vector *links)
     return false;
 }
 
-static int
-network_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct network_data *mdata = data;
-    bool value = false;
-
-    value = _check_connected(&mdata->links);
-    *packet = sol_flow_packet_new_boolean(value);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
-}
-
 static void
 _on_network_event(void *data, const struct sol_network_link *link, enum sol_network_event event)
 {
@@ -193,7 +180,10 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     }
 
     mdata->node = node;
-    return 0;
+
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN__OUT__OUT,
+        _check_connected(&mdata->links));
 
 err_net:
     SOL_WRN("Failed to init the network");

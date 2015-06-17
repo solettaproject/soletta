@@ -156,9 +156,6 @@
         {
           "data_type": "int",
           "description": "Updated value after an input is processed.",
-          "methods": {
-            "connect": "accumulator_connect"
-          },
           "name": "OUT"
         },
         {

@@ -51,17 +51,6 @@ struct accumulator_data {
 };
 
 static int
-accumulator_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct accumulator_data *mdata = data;
-
-    *packet = sol_flow_packet_new_irange(&mdata->val);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
-}
-
-static int
 accumulator_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     int32_t tmp;
@@ -100,7 +89,9 @@ accumulator_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 
     mdata->init_val = opts->setup_value.val;
 
-    return 0;
+    return sol_flow_send_irange_packet(node,
+        SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR__OUT__OUT,
+        &mdata->val);
 }
 
 static int
