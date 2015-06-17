@@ -159,7 +159,7 @@ def generate_object_serialize_fn_common_c(state_struct_name, name, props, client
             continue
 
         if 'enum' in prop_descr:
-            fields.append('%s_%s_str[state->state.%s]' % (state_struct_name, prop_name, prop_name))
+            fields.append('%s_%s_tbl[state->state.%s].key' % (state_struct_name, prop_name, prop_name))
         elif prop_descr['type'] == 'boolean':
             fields.append('(state->state.%s)?"true":"false"' % prop_name)
         elif prop_descr['type'] == 'string':
@@ -282,29 +282,18 @@ def get_field_boolean_client_c(id, name, prop):
     }
 
 def get_field_enum_client_c(id, struct_name, name, prop):
-    check_fields = []
-    for item in prop['enum']:
-        check_fields.append('''if (sol_json_token_str_eq(&value, "%(item)s", %(item_len)d)) {
-    fields.%(field_name)s = %(STRUCT_NAME)s_%(FIELD_NAME)s_%(ITEM)s;
-    continue;
-}''' % {
-        'item': item,
-        'item_len': len(item),
-        'field_name': name,
-        'struct_name': struct_name,
-        'STRUCT_NAME': struct_name.upper(),
-        'FIELD_NAME': name.upper(),
-        'ITEM': item.upper()
-    })
-
     return '''if (decode_mask & (1<<%(id)d) && sol_json_token_str_eq(&key, "%(field_name)s", %(field_name_len)d)) {
-    %(check_fields)s
-    RETURN_ERROR(-EINVAL);
+    int16_t val = sol_str_table_lookup_fallback(%(struct_name)s_%(field_name)s_tbl,
+        SOL_STR_SLICE_STR(value.start, value.end - value.start), -1);
+    if (val < 0)
+        RETURN_ERROR(-EINVAL);
+    fields.%(field_name)s = (enum %(struct_name)s_%(field_name)s)val;
+    continue;
 }
 ''' % {
+        'struct_name': struct_name,
         'field_name': name,
         'field_name_len': len(name),
-        'check_fields': '\n'.join(check_fields),
         'id': id
     }
 
@@ -454,7 +443,7 @@ def object_inform_flow_fn_common_c(state_struct_name, name, props, client):
     for field_name, field_props in props.items():
         if 'enum' in field_props:
             fn = 'sol_flow_send_string_packet'
-            val = '%(struct_name)s_%(field_name)s_str[state->state.%(field_name)s]' % {
+            val = '%(struct_name)s_%(field_name)s_tbl[state->state.%(field_name)s].key' % {
                 'struct_name': state_struct_name,
                 'field_name': field_name
             }
@@ -633,43 +622,34 @@ def object_setters_fn_common_c(state_struct_name, name, props, client):
             continue
 
         if 'enum' in descr:
-            str_to_enum = []
-            for item in descr['enum']:
-                str_to_enum.append('''if (!strcmp(var, "%(item)s")) {
-    resource->state.%(field_name)s = %(STATE_STRUCT_NAME)s_%(FIELD_NAME)s_%(ITEM)s;
-    goto out;
-}
-''' % {
-        'item': item,
-        'field_name': field,
-        'STATE_STRUCT_NAME': state_struct_name.upper(),
-        'FIELD_NAME': field.upper(),
-        'ITEM': item.upper()
-    })
             fields.append('''static int
 %(struct_name)s_set_%(field_name)s(struct sol_flow_node *node, void *data, uint16_t port,
     uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct %(struct_name)s *resource = data;
     const char *var;
-    int r;
 
-    r = sol_flow_packet_get_string(packet, &var);
-    if (!r) {
-        %(str_to_enum)s
+    if (!sol_flow_packet_get_string(packet, &var)) {
+        int16_t val = sol_str_table_lookup_fallback(%(state_struct_name)s_%(field_name)s_tbl,
+            sol_str_slice_from_str(var), -1);
+        if (val >= 0) {
+            resource->state.%(field_name)s = (enum %(state_struct_name)s_%(field_name)s)val;
+            %(type)s_resource_schedule_update(&resource->base);
+            return 0;
+        }
+        return -ENOENT;
     }
-    return r;
-
-out:
-    %(type)s_resource_schedule_update(&resource->base);
-    return 0;
+    return -EINVAL;
 }
 ''' % {
-        'struct_name': name,
         'field_name': field,
-        'str_to_enum': '\n'.join(str_to_enum),
+        'FIELD_NAME': field.upper(),
+        'state_struct_name': state_struct_name,
+        'STATE_STRUCT_NAME': state_struct_name.upper(),
+        'struct_name': name,
         'type': 'client' if client else 'server'
     })
+
         else:
             fields.append('''static int
 %(struct_name)s_set_%(field_name)s(struct sol_flow_node *node, void *data, uint16_t port,
@@ -714,10 +694,15 @@ def generate_enums_common_c(name, props):
                 'field_name': field,
                 'items': ', '.join(('%s_%s_%s' % (name, field, item)).upper() for item in descr['enum'])
             })
-            output.append('''static const char *%(struct_name)s_%(field_name)s_str[] = { %(items)s };''' % {
+
+            output.append('''static const struct sol_str_table %(struct_name)s_%(field_name)s_tbl[] = {
+    %(items)s,
+    { }
+};''' % {
                 'struct_name': name,
                 'field_name': field,
-                'items': ', '.join('"%s"' % item for item in descr['enum'])
+                'items': ',\n'.join('SOL_STR_TABLE_ITEM(\"%s\", %s_%s_%s)' % (
+                    item, name.upper(), field.upper(), item.upper()) for item in descr['enum'])
             })
 
     return '\n'.join(output)
