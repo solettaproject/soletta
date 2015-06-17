@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_TRIGONOMETRY
+	tristate "Node type: trigonometry"
+	depends on FLOW
+	default y

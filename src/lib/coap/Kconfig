@@ -1,0 +1,3 @@
+config COAP
+	bool "CoAP"
+	default y
