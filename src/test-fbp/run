@@ -31,13 +31,23 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 SCRIPT_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
-RUNNER=$PWD/src/bin/sol-fbp-runner/sol-fbp-runner
+
+# default build location
+RUNNER=$PWD/build/soletta_sysroot/usr/bin/sol-fbp-runner
+
+if [ -n "$SOL_FBP_RUNNER_BIN" ]; then
+    RUNNER=$SOL_FBP_RUNNER_BIN
+fi
+
 COUNT=0
 CMD_PREFIX=
 TMP_FILE=$(mktemp -t check-fbp.XXXXXX)
 
 if [ -n "$VALGRIND" ]; then
-    CMD_PREFIX="libtool e valgrind --show-reachable=no --quiet --error-exitcode=1 --leak-check=full --suppressions=$SCRIPT_DIR/../test/test.supp"
+    CMD_PREFIX="$VALGRIND --show-reachable=no --quiet --error-exitcode=1 --leak-check=full"
+    if [ -e "$TEST_VALGRIND_SUPP" ]; then
+	CMD_PREFIX="$CMD_PREFIX --suppressions=$TEST_VALGRIND_SUPP"
+    fi
 fi
 
 cd $SCRIPT_DIR

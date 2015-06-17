@@ -1,0 +1,5 @@
+config FLOW_NODE_TYPE_UDEV
+	tristate "Node type: udev"
+	depends on FLOW
+	select USE_UDEV
+	default m

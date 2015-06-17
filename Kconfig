@@ -1,0 +1,120 @@
+mainmenu "soletta configuration"
+
+source "Kconfig.gen"
+
+menu "Basic"
+# backward compatibility with autotools vars
+config ENABLE_DYNAMIC_MODULES
+        bool
+	default n
+
+config MODULES
+        bool "Enable loadable module support"
+	option modules
+	select ENABLE_DYNAMIC_MODULES
+	default y
+
+config PREFIX
+        string "Installation prefix"
+	default "/usr"
+
+config USE_GTK
+	bool
+	default n
+
+config USE_UDEV
+	bool
+	default n
+
+config USE_SYSTEMD
+	bool
+	default n
+
+config USE_GLIB
+	bool
+	default n
+
+config USE_CHECK
+	bool
+	default y
+endmenu
+
+menu "Core library"
+source "src/lib/common/Kconfig"
+source "src/lib/flow/Kconfig"
+source "src/lib/coap/Kconfig"
+source "src/shared/Kconfig"
+endmenu
+
+menu "Node types"
+source "src/modules/flow/accelerometer/Kconfig"
+source "src/modules/flow/aio/Kconfig"
+source "src/modules/flow/app/Kconfig"
+source "src/modules/flow/boolean/Kconfig"
+source "src/modules/flow/byte/Kconfig"
+source "src/modules/flow/calamari/Kconfig"
+source "src/modules/flow/color/Kconfig"
+source "src/modules/flow/console/Kconfig"
+source "src/modules/flow/constant/Kconfig"
+source "src/modules/flow/converter/Kconfig"
+source "src/modules/flow/evdev/Kconfig"
+source "src/modules/flow/file/Kconfig"
+source "src/modules/flow/filter-repeated/Kconfig"
+source "src/modules/flow/float/Kconfig"
+source "src/modules/flow/fs/Kconfig"
+source "src/modules/flow/gpio/Kconfig"
+source "src/modules/flow/grove/Kconfig"
+source "src/modules/flow/gtk/Kconfig"
+source "src/modules/flow/gyroscope/Kconfig"
+source "src/modules/flow/hub/Kconfig"
+source "src/modules/flow/int/Kconfig"
+source "src/modules/flow/keyboard/Kconfig"
+source "src/modules/flow/network/Kconfig"
+source "src/modules/flow/oic/Kconfig"
+source "src/modules/flow/piezo-speaker/Kconfig"
+source "src/modules/flow/platform/Kconfig"
+source "src/modules/flow/process/Kconfig"
+source "src/modules/flow/pwm/Kconfig"
+source "src/modules/flow/random/Kconfig"
+source "src/modules/flow/servo-motor/Kconfig"
+source "src/modules/flow/string/Kconfig"
+source "src/modules/flow/test/Kconfig"
+source "src/modules/flow/timer/Kconfig"
+source "src/modules/flow/trigonometry/Kconfig"
+source "src/modules/flow/udev/Kconfig"
+source "src/modules/flow/unix-socket/Kconfig"
+source "src/modules/flow/wallclock/Kconfig"
+endmenu
+
+menu "Linux micro"
+config LINUX_MICRO
+       bool "Linux micro"
+       depends on PLATFORM_LINUX_MICRO
+       default n
+
+source "src/modules/linux-micro/bluetooth/Kconfig"
+source "src/modules/linux-micro/console/Kconfig"
+source "src/modules/linux-micro/dbus/Kconfig"
+source "src/modules/linux-micro/fstab/Kconfig"
+source "src/modules/linux-micro/hostname/Kconfig"
+source "src/modules/linux-micro/locale/Kconfig"
+source "src/modules/linux-micro/network-up/Kconfig"
+source "src/modules/linux-micro/rc-d/Kconfig"
+source "src/modules/linux-micro/sysctl/Kconfig"
+source "src/modules/linux-micro/watchdog/Kconfig"
+endmenu
+
+menu "Pin mux"
+source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
+endmenu
+
+menu "Tools"
+source "src/bin/sol-fbp-generator/Kconfig"
+source "src/bin/sol-fbp-runner/Kconfig"
+source "src/bin/sol-fbp-to-dot/Kconfig"
+source "src/bin/sol-flow-node-types/Kconfig"
+endmenu
+
+menu "Test suite"
+source "src/test/Kconfig"
+endmenu

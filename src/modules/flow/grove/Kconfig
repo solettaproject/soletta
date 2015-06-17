@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_GROVE
+	tristate "Node type: grove"
+	depends on FLOW
+	default m

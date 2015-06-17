@@ -1,0 +1,51 @@
+test-$(TEST_ARENA) += test-arena
+test-test-arena-$(TEST_ARENA) := test.c test-arena.c
+
+test-$(TEST_COAP) += test-coap
+test-test-coap-$(TEST_COAP) := test.c test-coap.c
+
+test-$(TEST_FBP) += test-fbp
+test-test-fbp-$(TEST_FBP) := test.c test-fbp.c
+
+test-$(TEST_FBP_SCANNER) += test-fbp-scanner
+test-test-fbp-scanner-$(TEST_FBP_SCANNER) := test.c test-fbp-scanner.c
+
+test-$(TEST_FLOW) += test-flow
+test-test-flow-$(TEST_FLOW) := test.c test-flow.c
+test-test-flow-$(TEST_FLOW)-deps := flow-node-type-timer.mod flow-node-type-pwm.mod flow-node-type-console.mod
+
+test-$(TEST_FLOW_BUILDER) += test-flow-builder
+test-test-flow-builder-$(TEST_FLOW_BUILDER) := test.c test-flow-builder.c
+
+test-$(TEST_FLOW_PARSER) += test-flow-parser
+test-test-flow-parser-$(TEST_FLOW_PARSER) := test.c test-flow-parser.c
+
+test-$(TEST_MAINLOOP) += test-mainloop
+test-test-mainloop-$(TEST_MAINLOOP) := test-mainloop.c
+
+test-$(MAINLOOP_LINUX) += test-mainloop-linux
+test-test-mainloop-linux-$(MAINLOOP_LINUX) := test-mainloop-linux.c
+
+test-$(TEST_MAINLOOP_THREADS) += test-mainloop-threads
+test-test-mainloop-threads-$(TEST_MAINLOOP_THREADS) := test-mainloop-threads.c
+
+test-$(TEST_MAINLOOP_THREADS_SOL_RUN) += test-mainloop-threads-sol-run
+test-test-mainloop-threads-sol-run-$(TEST_MAINLOOP_THREADS_SOL_RUN) := test-mainloop-threads-sol-run.c
+
+test-$(TEST_MONITORS) += test-monitors
+test-test-monitors-$(TEST_MONITORS) := test.c test-monitors.c
+
+test-$(TEST_STR_SLICE) += test-str-slice
+test-test-str-slice-$(TEST_STR_SLICE) := test.c test-str-slice.c
+
+test-$(TEST_STR_SPLIT) += test-str-split
+test-test-str-split-$(TEST_STR_SPLIT) := test.c test-str-split.c
+
+test-$(TEST_STR_TABLE) += test-str-table
+test-test-str-table-$(TEST_STR_TABLE) := test.c test-str-table.c
+
+test-$(TEST_VECTOR) += test-vector
+test-test-vector-$(TEST_VECTOR) := test.c test-vector.c
+
+test-$(TEST_BUFFER) += test-buffer
+test-test-buffer-$(TEST_VECTOR) := test.c test-buffer.c
