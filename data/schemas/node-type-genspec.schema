@@ -290,7 +290,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [ "version" ]
+      "required": [ "version", "members" ]
     },
 
     "node": {

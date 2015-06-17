@@ -20,9 +20,6 @@
         }
       ],
       "name": "trigonometry/cosine",
-      "options": {
-        "version": 1
-      },
       "out_ports": [
         {
           "data_type": "float",
@@ -46,9 +43,6 @@
         }
       ],
       "name": "trigonometry/degrees-to-radian",
-      "options": {
-        "version": 1
-      },
       "out_ports": [
         {
           "data_type": "float",
@@ -72,9 +66,6 @@
         }
       ],
       "name": "trigonometry/radian-to-degrees",
-      "options": {
-        "version": 1
-      },
       "out_ports": [
         {
           "data_type": "float",
@@ -98,9 +89,6 @@
         }
       ],
       "name": "trigonometry/sine",
-      "options": {
-        "version": 1
-      },
       "out_ports": [
         {
           "data_type": "float",
@@ -124,9 +112,6 @@
         }
       ],
       "name": "trigonometry/tangent",
-      "options": {
-        "version": 1
-      },
       "out_ports": [
         {
           "data_type": "float",
