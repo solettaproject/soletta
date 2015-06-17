@@ -115,6 +115,7 @@ data/scripts/sol-flow-node-type-stub-gen.py \
 data/scripts/sol-flow-node-types-h-gen.py \
 data/scripts/json-format.py \
 data/scripts/json-format-check.sh \
+data/scripts/flow-merge-builtins.py \
 data/gdb/libsoletta.so-gdb.py \
 data/vim/fbp.vim
 
@@ -216,8 +217,8 @@ pkginclude_HEADERS += \
 if HAVE_SOL_FLOW_NODE_TYPES
 flowtypedesc_DATA += src/lib/flow/builtins.json
 BUILT_FILES += ${flowtypedesc_DATA}
-src/lib/flow/builtins.json: src/lib/libsoletta.la $(sol_flow_node_types)
-	$(AM_V_GEN)$(sol_flow_node_types) | $(PYTHON) $(top_srcdir)/data/scripts/json-format.py - $@
+src/lib/flow/builtins.json: src/lib/libsoletta.la
+	$(AM_V_GEN)$(PYTHON) $(top_srcdir)/data/scripts/flow-merge-builtins.py --modules-dir=$(top_builddir)/src/modules/flow $@ $(flow_builtin_modules)
 endif # HAVE_SOL_FLOW_NODE_TYPES
 endif
 
@@ -468,8 +469,8 @@ src_samples_flow_c_api_libcustom_node_types_la_CFLAGS = $(src_lib_libsoletta_la_
 src_samples_flow_c_api_libcustom_node_types_la_LIBADD = src/lib/libsoletta.la
 src_samples_flow_c_api_libcustom_node_types_la_SOURCES = src/samples/flow/c-api/custom-node-types.c
 
-src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c: src/samples/flow/c-api/custom-node-types-spec.json $(top_builddir)/data/scripts/sol-flow-node-type-gen.py
-	$(AM_V_GEN)$(PYTHON) $(top_builddir)/data/scripts/sol-flow-node-type-gen.py --genspec-schema=$(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c
+src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c src/samples/flow/c-api/custom-node-types.json: src/samples/flow/c-api/custom-node-types-spec.json $(top_builddir)/data/scripts/sol-flow-node-type-gen.py
+	$(AM_V_GEN)$(PYTHON) $(top_builddir)/data/scripts/sol-flow-node-type-gen.py --genspec-schema=$(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c src/samples/flow/c-api/custom-node-types.json
 
 
 BUILT_SOURCES += src/samples/flow/c-api/custom-node-types-gen.h src/samples/flow/c-api/custom-node-types-gen.c
@@ -526,7 +527,7 @@ endif
 endif # BUILD_SAMPLES
 
 src/modules/flow/%-gen.h src/modules/flow/%-gen.c: src/modules/flow/%.json $(top_builddir)/data/scripts/sol-flow-node-type-gen.py
-	$(AM_V_GEN)$(PYTHON) $(top_builddir)/data/scripts/sol-flow-node-type-gen.py --prefix=sol-flow-node-type --genspec-schema=$(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/modules/flow/$*-gen.h src/modules/flow/$*-gen.c
+	$(AM_V_GEN)$(PYTHON) $(top_builddir)/data/scripts/sol-flow-node-type-gen.py --prefix=sol-flow-node-type --genspec-schema=$(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/modules/flow/$*-gen.h src/modules/flow/$*-gen.c $(@D).json
 
 flowtypedescs =
 
@@ -549,9 +550,6 @@ if HAVE_SOL_FLOW_NODE_TYPES
 if SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 
 flowtypedesc_DATA += $(flowtypedescs)
-
-src/modules/flow/%.json: src/modules/flow/%.la $(sol_flow_node_types)
-	$(AM_V_GEN)$(sol_flow_node_types) --no-builtins --name=$* src/modules/flow/.libs/$*.so | $(PYTHON) $(top_srcdir)/data/scripts/json-format.py - $@
 endif
 endif # HAVE_SOL_FLOW_NODE_TYPES
 

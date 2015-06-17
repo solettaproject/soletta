@@ -303,44 +303,45 @@ def bool_to_c(value):
     else:
         return "false"
 
+
+def expand_value(value, data_type):
+    if data_type == "rgb":
+        value.setdefault("red", 0)
+        value.setdefault("green", 0)
+        value.setdefault("blue", 0)
+        value.setdefault("red_max", 255)
+        value.setdefault("green_max", 255)
+        value.setdefault("blue_max", 255)
+    elif data_type == "int":
+        if isinstance(value, int):
+            value = {"val": value}
+        value.setdefault("val", 0)
+        value.setdefault("step", 1)
+        value.setdefault("min", "INT32_MIN")
+        value.setdefault("max", "INT32_MAX")
+    elif data_type == "float":
+        if isinstance(value, (float, int)):
+            value = {"val": float(value)}
+        value.setdefault("val", 0.0)
+        value.setdefault("step", "DBL_MIN")
+        value.setdefault("min", "-DBL_MAX")
+        value.setdefault("max", "DBL_MAX")
+
+    return value
+
+def json_to_c_struct(data):
+    return "{" + \
+        ", ".join(".%s=%s" % it for it in sorted(data.items())) + \
+        "}"
+
 def value_to_c(value, data_type):
+    value = expand_value(value, data_type)
     if data_type == "string":
         return str_to_c_or_null(value)
     elif data_type == "boolean":
         return bool_to_c(value)
-    elif data_type == "rgb":
-        red = str(value.get("red", 0))
-        green = str(value.get("green", 0))
-        blue = str(value.get("blue", 0))
-        red_max = str(value.get("red_max", 255))
-        green_max = str(value.get("green_max", 255))
-        blue_max = str(value.get("blue_max", 255))
-        return "{ %s, %s, %s, %s, %s, %s }" % (red, green, blue,
-                                               red_max, green_max, blue_max)
-    elif data_type == "int":
-        if type(value) is int:
-            ival = value
-            istep = 1
-            imin = "INT32_MIN"
-            imax = "INT32_MAX"
-        else:
-            ival = str(value.get("val", 0))
-            istep = str(value.get("step", 1))
-            imin = str(value.get("min", "INT32_MIN"))
-            imax = str(value.get("max", "INT32_MAX"))
-        return "{ %s, %s, %s, %s }" % (ival, imin, imax, istep)
-    elif data_type == "float":
-        if type(value) in [float, int]:
-            ival = value
-            istep = "DBL_MIN"
-            imin = "-DBL_MAX"
-            imax = "DBL_MAX"
-        else:
-            ival = str(value.get("val", 0))
-            istep = str(value.get("step", "DBL_MIN"))
-            imin = str(value.get("min", "-DBL_MAX"))
-            imax = str(value.get("max", "DBL_MAX"))
-        return "{ %s, %s, %s, %s }" % (ival, imin, imax, istep)
+    elif data_type in ("rgb", "int", "float"):
+        return json_to_c_struct(value)
     else:
         return "%s" % (value)
 
@@ -993,6 +994,92 @@ SOL_API const struct sol_flow_node_type *%(NAME_C)s = &%(name_c)s%(node_base_typ
     })
 
 
+def generate_description_entry(descriptions, data):
+    def dict_copy_nonempty_keys(dst, src, keys):
+        for k in keys:
+            v = src.get(k)
+            if v:
+                dst[k] = v
+
+    entry = {
+        "symbol": data["NAME_C"],
+        "options_symbol": data["name_c"] + "_options",
+        }
+    descriptions.append(entry)
+    dict_copy_nonempty_keys(entry, data,
+                            ("name",
+                             "category",
+                             "description",
+                             "url",
+                             "author",
+                             "license",
+                             "version"))
+
+    if "options" in data:
+        options = {"required": False}
+        entry["options"] = options
+        dict_copy_nonempty_keys(options,
+                                data["options"],
+                                ("version",
+                                 "members"))
+        for m in options.get("members", []):
+            if "default" not in m:
+                m["required"] = True
+                options["required"] = True
+            else:
+                data_type = m["data_type"]
+                value = m["default"]
+                value = expand_value(value, data_type)
+                # TODO: should we pass thru the symbols as strings?
+                # TODO: this would solve the DBL_MIN being platform
+                # TODO: dependent and here stated INCORRECTLY as '0.0'
+                if isinstance(value, dict):
+                    for k, v in list(value.items()):
+                        if v == "INT32_MAX":
+                            value[k] = 2147483647
+                        elif v == "INT32_MIN":
+                            value[k] = -2147483648
+                        elif v == "DBL_MAX":
+                            value[k] = 1.7976931348623157e+308
+                        elif v == "-DBL_MAX":
+                            value[k] = -1.7976931348623157e+308
+                        elif v == "DBL_MIN":
+                            value[k] = 0.0 # TODO
+
+                m["default"] = value
+                m["required"] = False
+
+    if "in_ports" in data:
+        in_ports = []
+        entry["in_ports"] = in_ports
+        for genspec_port in data["in_ports"]:
+            definition_port = {}
+            in_ports.append(definition_port)
+            dict_copy_nonempty_keys(definition_port,
+                                    genspec_port,
+                                    ("name",
+                                     "description",
+                                     "required",
+                                     "data_type"))
+            if "required" not in definition_port:
+                definition_port["required"] = False
+
+    if "out_ports" in data:
+        out_ports = []
+        entry["out_ports"] = out_ports
+        for genspec_port in data["out_ports"]:
+            definition_port = {}
+            out_ports.append(definition_port)
+            dict_copy_nonempty_keys(definition_port,
+                                    genspec_port,
+                                    ("name",
+                                     "description",
+                                     "required",
+                                     "data_type"))
+            if "required" not in definition_port:
+                definition_port["required"] = False
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
@@ -1065,15 +1152,36 @@ using the sol-flow-node-type-stub-gen.py tool.
                               "the actual functions and "
                               "private data declarations."),
                         type=argparse.FileType('w'))
+    parser.add_argument("output_description",
+                        help=("The JSON description of the module. This file "
+                              "is similar to genspec, but instead of "
+                              "containing information about methods and "
+                              "internal programming information it will "
+                              "provide information on how to use the module. "
+                              "It is used by tools such as sol-fbp-generator, "
+                              "sol-flow-node-type-find.py, IDEs and so on and "
+                              "should be installed to %s/flow/schemas") \
+                        % (pkgdatadir,),
+                        type=str)
 
     args = parser.parse_args()
     try:
+        if args.genspec.name == args.output_description:
+            raise SystemExit("genspec == output_description: %s" % (
+                args.output_description,))
+        if args.output_description == "-":
+            output_description = sys.stdout
+        else:
+            output_description = open(args.output_description, "w")
         data = load_json(args.genspec, args.genspec_schema, args.prefix)
     except Exception as e:
         if args.output_header and args.output_header.name:
             os.unlink(args.output_header.name)
         if args.output_code and args.output_code.name:
             os.unlink(args.output_code.name)
+        if args.output_description != "-" and \
+           args.genspec.name == args.output_description:
+            os.unlink(args.output_description)
         if isinstance(e, (ValueError, jsonschema.ValidationError, jsonschema.SchemaError)):
             exit(1)
         else:
@@ -1097,6 +1205,7 @@ using the sol-flow-node-type-stub-gen.py tool.
         ntypes = len(data["types"])
         output_header = args.output_header
         output_code = args.output_code
+        descriptions = []
         generate_header_head(args.output_header, data)
         generate_code_head(args.output_code, data)
         meta = data.get("meta", {})
@@ -1112,14 +1221,24 @@ using the sol-flow-node-type-stub-gen.py tool.
             t["prefix_c"] = data["prefix_c"]
             generate_header_entry(output_header, t)
             generate_code_entry(output_code, t)
+            generate_description_entry(descriptions, t)
 
         generate_header_tail(args.output_header, data)
         generate_code_tail(args.output_code, data)
         output_header.close()
         output_code.close()
+
+        json.dump({data["name"]: descriptions},
+                  output_description,
+                  indent=True, sort_keys=True)
+        output_description.write('\n')
+        output_description.close()
     except:
         if args.output_header and args.output_header.name:
             os.unlink(args.output_header.name)
         if args.output_code and args.output_code.name:
             os.unlink(args.output_code.name)
+        if args.output_description != "-" and \
+           args.genspec.name == args.output_description:
+            os.unlink(args.output_description)
         raise
