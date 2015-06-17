@@ -14,7 +14,7 @@
           "data_type": "int",
           "description": "First port of MAX operation.",
           "methods": {
-            "process": "irange_process"
+            "process": "min_max_process"
           },
           "name": "IN0"
         },
@@ -22,25 +22,15 @@
           "data_type": "int",
           "description": "Second port of MAX operation.",
           "methods": {
-            "process": "irange_process"
+            "process": "min_max_process"
           },
           "name": "IN1"
         }
       ],
       "methods": {
-        "close": "irange_close",
         "open": "max_open"
       },
       "name": "int/max",
-      "node_type": {
-        "access": [
-          "base"
-        ],
-        "data_type": "struct irange_node_type",
-        "extra_methods": {
-          "custom_process": "max_process"
-        }
-      },
       "out_ports": [
         {
           "data_type": "int",
@@ -49,7 +39,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_data",
+      "private_data_type": "irange_min_max_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/irange/max.html"
     },
     {
@@ -60,7 +50,7 @@
           "data_type": "int",
           "description": "First port of MIN operation.",
           "methods": {
-            "process": "irange_process"
+            "process": "min_max_process"
           },
           "name": "IN0"
         },
@@ -68,25 +58,15 @@
           "data_type": "int",
           "description": "Second port of MIN operation.",
           "methods": {
-            "process": "irange_process"
+            "process": "min_max_process"
           },
           "name": "IN1"
         }
       ],
       "methods": {
-        "close": "irange_close",
         "open": "min_open"
       },
       "name": "int/min",
-      "node_type": {
-        "access": [
-          "base"
-        ],
-        "data_type": "struct irange_node_type",
-        "extra_methods": {
-          "custom_process": "min_process"
-        }
-      },
       "out_ports": [
         {
           "data_type": "int",
@@ -95,7 +75,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_data",
+      "private_data_type": "irange_min_max_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/irange/min.html"
     },
     {
