@@ -1050,6 +1050,11 @@ if __name__ == "__main__":
             t["name_c"] = data["prefix_c"] + "_" + c_clean(t["name"].lower())
             t["NAME_C"] = t["name_c"].upper()
             t["prefix_c"] = data["prefix_c"]
+
+            if "meta" in data:
+                t["license"] = data["meta"]["license"]
+                t["author"] = data["meta"]["author"]
+                t["version"] = str(data["meta"]["version"])
             generate_header_entry(output_header, t)
             generate_code_entry(output_code, t)
 
