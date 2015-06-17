@@ -1699,13 +1699,12 @@
         {
           "data_type": "byte",
           "description": "Send the byte converted from bits received.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT",
           "required": true
         }
       ],
       "private_data_type": "sol_converter_bits",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/bits-to-byte.html"
-    }    
+    }
   ]
 }

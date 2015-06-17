@@ -35,7 +35,6 @@
         {
           "data_type": "int",
           "description": "Maximum value between IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -71,7 +70,6 @@
         {
           "data_type": "int",
           "description": "Minimum value between IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -96,7 +94,6 @@
         {
           "data_type": "int",
           "description": "Number's absolute value.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -201,7 +198,6 @@
         {
           "data_type": "int",
           "description": "Sum of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -237,7 +233,6 @@
         {
           "data_type": "int",
           "description": "Quotient of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -273,7 +268,6 @@
         {
           "data_type": "int",
           "description": "The remainder of values received on ports IN0 divided by values on IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -309,7 +303,6 @@
         {
           "data_type": "int",
           "description": "Product of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -345,7 +338,6 @@
         {
           "data_type": "int",
           "description": "Difference of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -378,7 +370,6 @@
         {
           "data_type": "int",
           "description": "The result of a bitwise AND between IN0 and IN1",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -403,7 +394,6 @@
         {
           "data_type": "int",
           "description": "Bitwise NOT of the value received in IN.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -435,7 +425,6 @@
         {
           "data_type": "int",
           "description": "The result of a bitwise OR between IN0 or IN1",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -468,7 +457,6 @@
         {
           "data_type": "int",
           "description": "The value received in IN, shifted SHIFT bits to the left.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -501,7 +489,6 @@
         {
           "data_type": "int",
           "description": "The value received in IN, shifted SHIFT bits to the right (No sign extension).",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -534,7 +521,6 @@
         {
           "data_type": "int",
           "description": "The result of a bitwise XOR between IN0 xor IN1",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -638,7 +624,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is equal to value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -674,7 +659,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is greater than value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -710,7 +694,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is greater than or equal to value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -746,7 +729,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is less than value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -782,7 +764,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is less than or equal to value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -818,7 +799,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is different from value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -893,7 +873,6 @@
         {
           "data_type": "int",
           "description": "Outputs the same variable as the input if it's in range, nothing otherwise.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],

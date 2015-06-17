@@ -35,7 +35,6 @@
         {
           "data_type": "float",
           "description": "Sum of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -71,7 +70,6 @@
         {
           "data_type": "float",
           "description": "Quotient of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -107,7 +105,6 @@
         {
           "data_type": "float",
           "description": "The remainder of values received on ports IN0 divided by values on IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -143,7 +140,6 @@
         {
           "data_type": "float",
           "description": "Product of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -179,7 +175,6 @@
         {
           "data_type": "float",
           "description": "Difference of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -204,7 +199,6 @@
         {
           "data_type": "float",
           "description": "Number's absolute value.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -276,7 +270,6 @@
         {
           "data_type": "float",
           "description": "The result of the natural logarithm operation.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -365,7 +358,6 @@
         {
           "data_type": "float",
           "description": "Maximum value between IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -401,7 +393,6 @@
         {
           "data_type": "float",
           "description": "Minimum value between IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -434,7 +425,6 @@
         {
           "data_type": "float",
           "description": "The result of the exponentiation.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -459,7 +449,6 @@
         {
           "data_type": "float",
           "description": "Number's square root.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -495,7 +484,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port in0 is equal to value received on port in1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -531,7 +519,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port in0 is greater than or equal to value received on port in1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -567,7 +554,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port in0 is greater than value received on port in1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -603,7 +589,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port in0 is less than or equal to value received on port in1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -639,7 +624,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port in0 is less than value received on port in1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -675,7 +659,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port in0 is different from value received on port in1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -703,7 +686,6 @@
         {
           "data_type": "float",
           "description": "Outputs the same variable as the input if it's in range, nothing otherwise.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],

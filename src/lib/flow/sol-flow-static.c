@@ -566,20 +566,6 @@ flow_send(struct sol_flow_node *flow, struct sol_flow_node *source_node, uint16_
         return -EINVAL;
     }
 
-    if (ptype->flags & SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET) {
-        struct sol_list *itr;
-        SOL_LIST_FOREACH (&fsd->delayed_packets, itr) {
-            dp = SOL_LIST_GET_CONTAINER(itr, struct delayed_packet, list);
-            if (dp->source_idx == src_idx && dp->source_port_idx == source_out_port_idx) {
-                sol_flow_packet_del(dp->packet);
-                dp->packet = packet;
-                sol_list_remove(itr);
-                sol_list_append(&fsd->delayed_packets, itr);
-                return 0;
-            }
-        }
-    }
-
     r = flow_delay_send(flow, fsd);
     SOL_INT_CHECK(r, < 0, r);
 

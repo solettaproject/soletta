@@ -65,7 +65,6 @@
       "properties": {
         "name": { },
         "description": { "type": "string" },
-        "flags": { },
         "required": { "type": "boolean" },
         "data_type": { },
         "methods": { }
@@ -110,7 +109,6 @@
               "pattern": "^[A-Z][A-Z0-9_]*$",
               "not": { "enum": [ "ERROR" ] }
             },
-            "flags": { "enum": [ "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET" ] },
             "data_type": { "$ref": "#/definitions/port_data_type_out" },
             "methods": {
               "type": "object",
