@@ -41,10 +41,8 @@
 struct bitwise_data {
     unsigned char in0;
     unsigned char in1;
-    unsigned char result;
     bool in0_init : 1;
     bool in1_init : 1;
-    bool sent_first : 1;
 };
 
 static int
@@ -70,11 +68,6 @@ two_port_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint1
         return 0;
 
     out_value = func(mdata->in0, mdata->in1);
-    if (out_value == mdata->result && mdata->sent_first)
-        return 0;
-
-    mdata->result = out_value;
-    mdata->sent_first = true;
 
     return sol_flow_send_byte_packet(node, port_out, out_value);
 }

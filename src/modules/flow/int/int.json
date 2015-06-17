@@ -97,7 +97,6 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_abs_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/irange/abs.html"
     },
     {

@@ -27,9 +27,6 @@
           "name": "IN1"
         }
       ],
-      "methods": {
-        "open": "boolean_open"
-      },
       "name": "boolean/and",
       "out_ports": [
         {
@@ -149,9 +146,6 @@
           "name": "IN1"
         }
       ],
-      "methods": {
-        "open": "boolean_open"
-      },
       "name": "boolean/or",
       "out_ports": [
         {
@@ -222,9 +216,6 @@
           "name": "IN1"
         }
       ],
-      "methods": {
-        "open": "boolean_open"
-      },
       "name": "boolean/xor",
       "out_ports": [
         {
