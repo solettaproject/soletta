@@ -225,17 +225,6 @@ open_err:
     return NULL;
 }
 
-void *
-sol_util_memdup(const void *data, size_t len)
-{
-    void *ptr;
-
-    ptr = malloc(len);
-    if (ptr)
-        memcpy(ptr, data, len);
-    return ptr;
-}
-
 struct timespec
 sol_util_timespec_get_current(void)
 {
@@ -243,70 +232,6 @@ sol_util_timespec_get_current(void)
 
     clock_gettime(CLOCK_MONOTONIC, &t);
     return t;
-}
-
-char *
-sol_util_strerror(int errnum, char *buf, size_t buflen)
-{
-    char *ret;
-
-    if (buflen < 1)
-        return NULL;
-
-    buf[0] = '\0';
-
-    ret = (char *)strerror_r(errnum, buf, buflen);
-    /* if buf was used it means it can be XSI version (so ret won't be
-       pointing to msg string), or GNU version using non static string
-       (in this case ret == buf already) */
-    if (buf[0] != '\0')
-        ret = buf;
-
-    return ret;
-}
-
-struct sol_vector
-sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit)
-{
-    struct sol_vector v = SOL_VECTOR_INIT(struct sol_str_slice);
-    ssize_t dlen, len;
-    const char *str = slice.data;
-
-    if (!slice.len || !delim)
-        return v;
-
-    maxsplit = (maxsplit) ? : slice.len;
-    dlen = strlen(delim);
-    len = slice.len;
-
-#define CREATE_SLICE(_str, _len) \
-    do { \
-        s = sol_vector_append(&v); \
-        if (!s) \
-            goto err; \
-        s->data = _str; \
-        s->len = _len; \
-    } while (0)
-
-    while (str && (v.len < maxsplit)) {
-        struct sol_str_slice *s;
-        char *token = memmem(str, len, delim, dlen);
-        if (!token) {
-            CREATE_SLICE(str, len);
-            break;
-        }
-
-        len -= (token - str) + dlen;
-        CREATE_SLICE(str, token - str);
-        str = token + dlen;
-    }
-#undef CREATE_SLICE
-
-    return v;
-
-err:
-    sol_vector_clear(&v);
-    return v;
 }
 
 static int
