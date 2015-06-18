@@ -50,6 +50,7 @@ sol_util_memdup(const void *data, size_t len)
     return ptr;
 }
 
+#ifndef SOL_PLATFORM_CONTIKI
 struct timespec
 sol_util_timespec_get_current(void)
 {
@@ -58,6 +59,7 @@ sol_util_timespec_get_current(void)
     clock_gettime(CLOCK_MONOTONIC, &t);
     return t;
 }
+#endif
 
 char *
 sol_util_strerror(int errnum, char *buf, size_t buflen)

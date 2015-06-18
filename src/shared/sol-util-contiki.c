@@ -30,14 +30,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <errno.h>
+#include <time.h>
 
-{{
-st.on_value("SOL_PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-}}
+#include <contiki.h>
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-}}
+#include "sol-log.h"
+#include "sol-util.h"
+
+struct timespec
+sol_util_timespec_get_current(void)
+{
+    struct timespec ret;
+    clock_time_t ticks;
+
+    ticks = clock_time();
+    ret.tv_sec = ticks / CLOCK_SECOND;
+    ticks -= ret.tv_sec * CLOCK_SECOND;
+    ret.tv_nsec = (ticks * NSEC_PER_SEC) / CLOCK_SECOND;
+    return ret;
+}

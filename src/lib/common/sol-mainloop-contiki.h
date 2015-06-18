@@ -32,12 +32,35 @@
 
 #pragma once
 
-{{
-st.on_value("SOL_PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-}}
+#include <stdbool.h>
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-}}
+#include <contiki.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void sol_mainloop_contiki_event_set(process_event_t ev, process_data_t data);
+bool sol_mainloop_contiki_iter(void);
+
+#define SOL_MAIN_DEFAULT(name, strname, setup_func, teardown_func) \
+    PROCESS(name, strname);                                        \
+    AUTOSTART_PROCESSES(&name);                                    \
+    PROCESS_THREAD(name, ev, data)                                 \
+    {                                                              \
+        sol_mainloop_contiki_event_set(ev, data);                  \
+        PROCESS_BEGIN();                                           \
+        if (sol_init() < 0)                                        \
+            return EXIT_FAILURE;                                   \
+        setup_func();                                              \
+        sol_run();                                                 \
+        while (sol_mainloop_contiki_iter())                        \
+            PROCESS_WAIT_EVENT();                                  \
+        teardown_func();                                           \
+        sol_shutdown();                                            \
+        PROCESS_END();                                             \
+    }
+
+#ifdef __cplusplus
+}
+#endif
