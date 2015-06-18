@@ -53,6 +53,13 @@
              --outfile=sol_linux_micro_modules.mk \
              --modules-path=src/modules/linux-micro || exit 1
 
+/usr/bin/env python3 data/scripts/sol-modules-mk-gen.py \
+             --am-conditional=PIN_MUX \
+             --ltlibraries=pinmux \
+             --if-module-cflags="-DSOL_PIN_MUX_MODULE=1" \
+             --outfile=sol_pin_mux_modules.mk \
+             --modules-path=src/modules/pin-mux || exit 1
+
 autoreconf -f -i || exit 1
 
 if [ -z "$NOCONFIGURE" ]; then

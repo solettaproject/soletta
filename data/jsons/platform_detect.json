@@ -1,7 +1,7 @@
 {
   "platforms": [
     {
-     "name": "intel_galileo_rev_d",
+     "name": "intel-galileo-rev-d",
      "validation": [
       {
        "file_path": "/sys/devices/virtual/dmi/id/board_name",
@@ -10,7 +10,7 @@
      ]
     },
     {
-     "name": "intel_galileo_rev_g",
+     "name": "intel-galileo-rev-g",
      "validation": [
       {
        "file_path": "/sys/devices/virtual/dmi/id/board_name",

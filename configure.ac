@@ -189,7 +189,7 @@ AM_CONDITIONAL([HAVE_GLIB], [test "${have_glib}" = "yes"])
 
 AC_ARG_WITH([platform],
         AS_HELP_STRING([--with-platform=IMPLEMENTATION],
-                       [enable integration with one of: galileo, systemd, riot, linux-micro or linux-dummy]),
+                       [enable integration with one of: systemd, riot, linux-micro or linux-dummy]),
         [],
         [with_platform="linux-dummy"])
 AC_MSG_CHECKING([platform to be used])
@@ -215,17 +215,10 @@ case "${with_platform}" in
         default_mainloop="riot"
         possible_mainloops="riot"
         ;;
-    galileo)
-        platform_linux="yes"
-        ;;
     *)
         AC_MSG_ERROR([unknown platform=${with_platform}])
         ;;
 esac
-
-AS_IF([test "$with_platform" = "galileo"],
-        [AC_DEFINE(HAVE_PLATFORM_GALILEO, 1, [Define if platform is galileo])])
-AM_CONDITIONAL([HAVE_PLATFORM_GALILEO], [test "$with_platform" = "galileo"])
 
 if test "${platform_linux}" = "yes"; then
     if test "${have_glib}" = "yes"; then
@@ -426,6 +419,17 @@ else
     with_platform_name="auto"
 fi
 
+AC_ARG_WITH([pin-mux],
+	AS_HELP_STRING([--with-pin-mux], [Build pin multiplexer support]),
+        [],
+        [with_pin_mux="no"])
+
+AM_CONDITIONAL([BUILD_PIN_MUX], [test "x$with_pin_mux" != "xno"])
+
+SOL_PIN_MUX_MODULE([intel-galileo-rev-g], [no], [Add Intel Galileo 2 pin mux support])
+
+AC_SUBST(pin_mux_builtins)
+
 AC_ARG_WITH([maximum-internal-log-level],
         AS_HELP_STRING([--with-maximum-internal-log-level=NUMBER],
                        [Specifies the maximum log level to be used in soletta library. This will remove all log messages greater than the given number from the final binary if it is compiled with optimizations. By default all log levels are allowed]))
@@ -527,8 +531,21 @@ general:
 sol-common:
         platform:                       ${with_platform}
         platform name:                  ${with_platform_name}
-        mainloop:                       ${with_mainloop}dnl
+        mainloop:                       ${with_mainloop}
+        pin mux:                        ${with_pin_mux}dnl
 ])
+
+if test -n "${pin_mux_modules}"; then
+   AC_MSG_RESULT([dnl
+        pin mux modules:               ${pin_mux_modules}dnl
+])
+fi
+
+if test -n "${pin_mux_builtins}"; then
+   AC_MSG_RESULT([dnl
+        pin mux builtins:              ${pin_mux_builtins}dnl
+])
+fi
 
 if test "${with_platform}" = "linux-micro"; then
    AC_MSG_RESULT([dnl
