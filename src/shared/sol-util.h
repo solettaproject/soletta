@@ -159,3 +159,5 @@ align_power2(unsigned int u)
  *       elements found are returned.
  */
 struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
+
+int sol_util_get_rootdir(char *out, size_t size);
