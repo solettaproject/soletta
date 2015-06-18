@@ -516,7 +516,7 @@ general:
         log enabled:                    ${enable_log}
 
         sanitizer:                      ${enable_sanitizer}
-	coverage:                       ${enable_coverage}
+        coverage:                       ${enable_coverage}
 
         build samples:                  ${build_samples}
         build COAP:                     ${build_coap}
