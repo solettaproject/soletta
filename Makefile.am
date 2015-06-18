@@ -52,6 +52,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src/modules/flow/float \
 	-I$(top_builddir)/src/modules/flow/fs \
 	-I$(top_builddir)/src/modules/flow/gpio \
+	-I$(top_builddir)/src/modules/flow/grove \
 	-I$(top_builddir)/src/modules/flow/gtk \
 	-I$(top_builddir)/src/modules/flow/gyroscope \
 	-I$(top_builddir)/src/modules/flow/hub \
