@@ -501,7 +501,6 @@ sol_network_link_up(unsigned int link_index)
     ifi->ifi_change = IFF_UP;
     ifi->ifi_flags = IFF_UP;
 
-#define NLMSG_BOTTOM(_nlmsg) ((struct rtattr *)(_nlmsg + NLMSG_ALIGN((_nlmsg)->nlmsg_len)))
 #define ADD_RTATTR(_attr, _len, _type)                                        \
     do {                                                                      \
         SOL_INT_CHECK(NLMSG_ALIGN(h->nlmsg_len) + sizeof(struct rtattr), > buf_size, false); \
@@ -515,11 +514,10 @@ sol_network_link_up(unsigned int link_index)
     ADD_RTATTR(inet_container, RTA_LENGTH(0), AF_INET6);
     ADD_RTATTR(addr_gen_container, RTA_LENGTH(sizeof(uint8_t)), IFLA_INET6_ADDR_GEN_MODE);
 
-    inet_container->rta_len = NLMSG_BOTTOM(h) - inet_container;
-    af_spec_container->rta_len = NLMSG_BOTTOM(h) - af_spec_container;
+    inet_container->rta_len +=  RTA_ALIGN(addr_gen_container->rta_len);
+    af_spec_container->rta_len += RTA_ALIGN(inet_container->rta_len);
     memcpy(RTA_DATA(addr_gen_container), &mode, sizeof(mode));
 #undef ADD_RTATTR
-#undef NLMSG_BOTTOM
 
     if (sendmsg(network->nl_socket, (struct msghdr *)&msg, 0) <= 0) {
         SOL_WRN("Failed on send message to set link up");
