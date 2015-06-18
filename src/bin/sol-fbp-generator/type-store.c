@@ -321,11 +321,37 @@ read_default_value(struct decoder *d, struct option_description *o)
 }
 
 static bool
+check_types(struct sol_json_token *key,  struct sol_json_token *tmp, struct sol_json_token *value)
+{
+    if (sol_json_token_get_type(key) != SOL_JSON_TYPE_STRING)
+        return false;
+    if (sol_json_token_get_type(tmp) != SOL_JSON_TYPE_PAIR_SEP)
+        return false;
+    if (sol_json_token_get_type(value) != SOL_JSON_TYPE_NUMBER)
+        return false;
+
+    return true;
+}
+
+static bool
+get_value(struct sol_json_token *value, char **value_data, struct sol_json_token *key, struct sol_str_slice *key_slice)
+{
+    *key_slice = get_slice(key);
+
+    *value_data = strndup(value->start, value->end - value->start);
+    if (!value_data)
+        return false;
+
+    return true;
+}
+
+static bool
 parse_range_default_value(struct sol_json_scanner *s, struct option_description *o)
 {
     struct option_range_value *range;
     struct sol_json_token tmp, key, value;
     struct sol_str_slice key_slice;
+    enum sol_json_loop_reason reason;
     char *value_data;
 
     range = &o->default_value.range;
@@ -333,27 +359,11 @@ parse_range_default_value(struct sol_json_scanner *s, struct option_description 
 
     if (!sol_json_scanner_next(s, &tmp))
         return false;
-    if (sol_json_token_get_type(&tmp) != SOL_JSON_TYPE_OBJECT_START)
-        return false;
-
-    for (;;) {
-        if (!sol_json_scanner_next(s, &key))
+    SOL_JSON_SCANNER_OBJECT_LOOP(s, &tmp, &key, &value, reason)  {
+        if (!check_types(&key, &tmp, &value))
             return false;
-        if (sol_json_token_get_type(&key) != SOL_JSON_TYPE_STRING)
+        if (!get_value(&value, &value_data, &key, &key_slice))
             return false;
-
-        if (!sol_json_scanner_next(s, &tmp))
-            return false;
-        if (sol_json_token_get_type(&tmp) != SOL_JSON_TYPE_PAIR_SEP)
-            return false;
-
-        if (!sol_json_scanner_next(s, &value))
-            return false;
-        if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_NUMBER)
-            return false;
-
-        key_slice = get_slice(&key);
-        value_data = strndup(value.start, value.end - value.start);
 
         if (sol_str_slice_eq(key_slice, VAL_SLICE))
             range->val = value_data;
@@ -366,21 +376,11 @@ parse_range_default_value(struct sol_json_scanner *s, struct option_description 
         else
             free(value_data);
 
-        if (!sol_json_scanner_next(s, &tmp))
+        if (reason != SOL_JSON_LOOP_REASON_OK)
             return false;
-
-        switch (sol_json_token_get_type(&tmp)) {
-        case SOL_JSON_TYPE_ELEMENT_SEP:
-            continue;
-        case SOL_JSON_TYPE_OBJECT_END:
-            return true;
-        default:
-            return false;
-        }
     }
 
-    /* Not reached. */
-    return false;
+    return true;
 }
 
 static bool
