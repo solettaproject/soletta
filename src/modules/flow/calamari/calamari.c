@@ -190,36 +190,30 @@ segments_ctl_close(struct sol_flow_node *node, void *data)
 
 ///////// CALAMARI 7SEG ///////////
 
-// Linux Kernel < 3.19 GPIO pins numbers
-#define CLOCK_PIN (84)
-#define CLEAR_PIN (217)
-#define DATA_PIN (218)
-#define LATCH_PIN (219)
+static void
+calamari_7seg_child_opts_set(uint16_t child_index,
+    const struct sol_flow_node_options *opts,
+    struct sol_flow_node_options *child_opts)
+{
+    const struct sol_flow_node_type_calamari_7seg_options *calamari_7seg_opts =
+        (const struct sol_flow_node_type_calamari_7seg_options *)opts;
 
-struct sol_flow_node_type_gpio_writer_options clock_opts =
-    SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_DEFAULTS(
-        .pin.val = CLOCK_PIN
-        );
+    struct sol_flow_node_type_gpio_writer_options *gpio_opts =
+        (struct sol_flow_node_type_gpio_writer_options *)child_opts;
 
-struct sol_flow_node_type_gpio_writer_options clear_opts =
-    SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_DEFAULTS(
-        .pin.val = CLEAR_PIN
-        );
+    const int pins[] = {
+        [1] = calamari_7seg_opts->clear_pin.val,
+        [2] = calamari_7seg_opts->latch_pin.val,
+        [3] = calamari_7seg_opts->clock_pin.val,
+        [4] = calamari_7seg_opts->data_pin.val
+    };
 
-struct sol_flow_node_type_gpio_writer_options data_opts =
-    SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_DEFAULTS(
-        .pin.val = DATA_PIN
-        );
+    // There is nothing to do for node 0, which is segments-ctl
+    if (child_index == 0 || child_index > 4)
+        return;
 
-struct sol_flow_node_type_gpio_writer_options latch_opts =
-    SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_DEFAULTS(
-        .pin.val = LATCH_PIN
-        );
-
-#undef CLOCK_PIN
-#undef CLEAR_PIN
-#undef DATA_PIN
-#undef LATCH_PIN
+    gpio_opts->pin.val = pins[child_index];
+}
 
 static void
 calamari_7seg_new_type(const struct sol_flow_node_type **current)
@@ -228,10 +222,10 @@ calamari_7seg_new_type(const struct sol_flow_node_type **current)
 
     static struct sol_flow_static_node_spec nodes[] = {
         [0] = { NULL, "segments-ctl", NULL },
-        [1] = { NULL, "gpio-clear", &clear_opts.base },
-        [2] = { NULL, "gpio-latch", &latch_opts.base },
-        [3] = { NULL, "gpio-clock", &clock_opts.base },
-        [4] = { NULL, "gpio-data", &data_opts.base },
+        [1] = { NULL, "gpio-clear", NULL },
+        [2] = { NULL, "gpio-latch", NULL },
+        [3] = { NULL, "gpio-clock", NULL },
+        [4] = { NULL, "gpio-data", NULL },
         SOL_FLOW_STATIC_NODE_SPEC_GUARD
     };
 
@@ -252,11 +246,12 @@ calamari_7seg_new_type(const struct sol_flow_node_type **current)
     nodes[0].type = SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL;
     nodes[1].type = nodes[2].type = nodes[3].type = nodes[4].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
 
-    type = sol_flow_static_new_type(nodes, conns, exported_in, NULL, NULL);
+    type = sol_flow_static_new_type(nodes, conns, exported_in, NULL, calamari_7seg_child_opts_set);
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     SOL_NULL_CHECK(type);
     type->description = (*current)->description;
 #endif
+    type->new_options = (*current)->new_options;
     *current = type;
 }
 
@@ -481,34 +476,29 @@ calamari_rgb_led_process_blue(struct sol_flow_node *node, void *data, uint16_t p
     return 0;
 }
 
-// Linux Kernel < 3.19 GPIO pins numbers
-#define GPIO_S5_0 (82) /* RED */
-#define GPIO_S5_1 (83) /* GREEN */
-#define GPIO_IBL_8254 (208) /* BLUE */
+static void
+calamari_rgb_child_opts_set(uint16_t child_index,
+    const struct sol_flow_node_options *opts,
+    struct sol_flow_node_options *child_opts)
+{
+    const struct sol_flow_node_type_calamari_rgb_led_options *calamari_rgb_opts =
+        (const struct sol_flow_node_type_calamari_rgb_led_options *)opts;
 
-static const struct sol_flow_node_type_gpio_writer_options red_opts = {
-    .base = {
-        .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
-        .sub_api = SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION,
-    },
-    .pin.val = GPIO_S5_0
-};
+    struct sol_flow_node_type_gpio_writer_options *gpio_opts =
+        (struct sol_flow_node_type_gpio_writer_options *)child_opts;
 
-static const struct sol_flow_node_type_gpio_writer_options green_opts = {
-    .base = {
-        .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
-        .sub_api = SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION,
-    },
-    .pin.val = GPIO_S5_1
-};
+    const int pins[] = {
+        [1] = calamari_rgb_opts->red_pin.val,
+        [2] = calamari_rgb_opts->green_pin.val,
+        [3] = calamari_rgb_opts->blue_pin.val,
+    };
 
-static const struct sol_flow_node_type_gpio_writer_options blue_opts = {
-    .base = {
-        .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
-        .sub_api = SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION,
-    },
-    .pin.val = GPIO_IBL_8254
-};
+    // There is nothing to do for node 0, which is rgb-ctl
+    if (child_index == 0 || child_index > 3)
+        return;
+
+    gpio_opts->pin.val = pins[child_index];
+}
 
 static void
 calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
@@ -517,9 +507,9 @@ calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
 
     static struct sol_flow_static_node_spec nodes[] = {
         [0] = { NULL, "rgb-ctl", NULL },
-        [1] = { NULL, "gpio-red", &red_opts.base },
-        [2] = { NULL, "gpio-green", &green_opts.base },
-        [3] = { NULL, "gpio-blue", &blue_opts.base },
+        [1] = { NULL, "gpio-red", NULL },
+        [2] = { NULL, "gpio-green", NULL },
+        [3] = { NULL, "gpio-blue", NULL },
         SOL_FLOW_STATIC_NODE_SPEC_GUARD
     };
 
@@ -540,12 +530,12 @@ calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
     nodes[0].type = SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL;
     nodes[1].type = nodes[2].type = nodes[3].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
 
-    type = sol_flow_static_new_type(nodes, conns, exported_in, NULL, NULL);
+    type = sol_flow_static_new_type(nodes, conns, exported_in, NULL, calamari_rgb_child_opts_set);
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     SOL_NULL_CHECK(type);
     type->description = (*current)->description;
 #endif
-
+    type->new_options = (*current)->new_options;
     *current = type;
 }
 

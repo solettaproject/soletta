@@ -239,6 +239,31 @@
         "init_type": "segments_init_type"
       },
       "name": "calamari/7seg",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "CLOCK GPIO pin",
+            "name": "clock_pin"
+          },
+          {
+            "data_type": "int",
+            "description": "CLEAR GPIO pin",
+            "name": "clear_pin"
+          },
+          {
+            "data_type": "int",
+            "description": "DATA GPIO pin",
+            "name": "data_pin"
+          },
+          {
+            "data_type": "int",
+            "description": "LATCH GPIO pin",
+            "name": "latch_pin"
+          }
+        ],
+        "version": 1
+      },
       "url": "http://solettaproject.org/doc/latest/components/calamari-7seg.html"
     },
     {
@@ -277,6 +302,26 @@
         "init_type": "rgb_led_init_type"
       },
       "name": "calamari/rgb-led",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Red LED GPIO pin",
+            "name": "red_pin"
+          },
+          {
+            "data_type": "int",
+            "description": "Green LED GPIO pin",
+            "name": "green_pin"
+          },
+          {
+            "data_type": "int",
+            "description": "Blue LED GPIO pin",
+            "name": "blue_pin"
+          }
+        ],
+        "version": 1
+      },
       "url": "http://solettaproject.org/doc/latest/node_types/calamari_rgb_led.html"
     }
   ]
