@@ -342,6 +342,7 @@ AC_DEFUN([CHECK_FLOW_GTK], [dnl
 SOL_FLOW_MODULE([keyboard], [${platform_linux}])
 SOL_FLOW_MODULE([piezo-speaker], [yes])
 SOL_FLOW_MODULE([calamari], [yes])
+SOL_FLOW_MODULE([grove], [yes])
 SOL_FLOW_MODULE([oic], [yes], [CHECK_FLOW_OIC])
 SOL_FLOW_MODULE([fs], [yes])
 SOL_FLOW_MODULE([test], [yes])

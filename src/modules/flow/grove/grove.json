@@ -1,0 +1,158 @@
+{
+  "name": "grove",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "internal",
+      "description": "Converts raw sensor temperature readings to Celsius, Fahrenheit and Kelvin packets. Conversion to Kelvin is done using: 1/(log(((i-r)*Rc/r)/Rt)/B + 1/T - where i is input range, r is raw sensor value, Rc is potential divider resistor resitance, Rt is thermistor resistance, B is thermistor constant and T is thermistor reference temperature. Celsius and Fahrenheit values are simply derived from Kelvin value.",
+      "in_ports": [
+          {
+            "data_type": "int",
+            "description": "Input value",
+            "name": "IN",
+            "methods": {
+                "process": "temperature_convert"
+            }
+          }
+      ],
+      "methods": {
+         "open": "temperature_converter_open"
+      },
+      "name": "grove/temperature-converter",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Thermistor constant",
+            "name": "thermistor_constant"
+          },
+          {
+            "data_type": "int",
+            "description": "Input range mask",
+            "name": "input_range_mask"
+          },
+          {
+            "data_type": "int",
+            "description": "Potential divider resistance",
+            "name": "resistance"
+          },
+          {
+            "data_type": "float",
+            "description": "Thermistor reference temperature",
+            "name": "reference_temperature"
+          },
+          {
+            "data_type": "int",
+            "description": "Thermistor reference resistance",
+            "name": "thermistor_resistance"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Celsius.",
+          "name": "CELSIUS"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Fahrenheit.",
+          "name": "FAHRENHEIT"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Kelvin.",
+          "name": "KELVIN"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured temperature.",
+          "name": "RAW"
+        }
+      ],
+      "private_data_type": "temperature_converter_data"
+    },
+    {
+      "category": "input/hw",
+      "description": "Gets sensor temperature in Celsius, Fahrenheit and Kelvin. Conversion to Kelvin is done using: 1/(log(((i-r)*Rc/r)/Rt)/B + 1/T - where i is input range, r is raw sensor value, Rc is potential divider resistor resitance, Rt is thermistor resistance, B is thermistor constant and T is thermistor reference temperature. Celsius and Fahrenheit values are simply derived from Kelvin value.",
+      "methods": {
+        "init_type": "temperature_init_type"
+      },
+      "name": "grove/temperature-sensor",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 2,
+            "description": "Pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "default": 12,
+            "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
+            "name": "mask"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
+            "name": "poll_timeout"
+          },
+          {
+            "data_type": "int",
+            "default": 3975,
+            "description": "Thermistor constant",
+            "name": "thermistor_constant"
+          },
+          {
+            "data_type": "int",
+            "default": 10000,
+            "description": "Potential divider resistance",
+            "name": "resistance"
+          },
+          {
+            "data_type": "float",
+            "default": 298.15,
+            "description": "Thermistor reference temperature",
+            "name": "reference_temperature"
+          },
+          {
+            "data_type": "int",
+            "default": 10000,
+            "description": "Thermistor reference resistance",
+            "name": "thermistor_resistance"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Celsius.",
+          "name": "CELSIUS"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Fahrenheit.",
+          "name": "FAHRENHEIT"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Kelvin.",
+          "name": "KELVIN"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured temperature.",
+          "name": "RAW"
+        }
+      ]
+    }
+  ]
+}
