@@ -16,6 +16,7 @@ endif
 
 ifeq (y,$(PLATFORM_CONTIKI))
 obj-io-$(IO) += \
+    sol-gpio-contiki.o \
     sol-missing-contiki.o
 endif
 

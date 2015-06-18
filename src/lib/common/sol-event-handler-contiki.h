@@ -30,54 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdint.h>
-#include <stdlib.h>
+#pragma once
 
-#include "sol-pwm.h"
+#include <stdbool.h>
 
-struct sol_pwm *
-sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
-{
-    return NULL;
-}
+#include <contiki.h>
 
-void
-sol_pwm_close(struct sol_pwm *pwm)
-{
-}
-
-bool
-sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
-{
-    return false;
-}
-
-bool
-sol_pwm_get_enabled(const struct sol_pwm *pwm)
-{
-    return false;
-}
-
-bool
-sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
-{
-    return false;
-}
-
-int32_t
-sol_pwm_get_period(const struct sol_pwm *pwm)
-{
-    return -1;
-}
-
-bool
-sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
-{
-    return false;
-}
-
-int32_t
-sol_pwm_get_duty_cycle(const struct sol_pwm *pwm)
-{
-    return -1;
-}
+bool sol_mainloop_contiki_event_handler_add(const process_event_t *ev, const process_data_t ev_data, void (*cb)(process_event_t ev, process_data_t ev_data, void *user_data), const void *data);
+bool sol_mainloop_contiki_event_handler_del(const process_event_t *ev, const process_data_t ev_data, void (*cb)(process_event_t ev, process_data_t ev_data, void *user_data), const void *data);
