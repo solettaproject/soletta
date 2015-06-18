@@ -121,6 +121,19 @@ config PLATFORM_RIOTOS
             Soletta will do its best to offer the same experience on
             all platforms, including RIOt.
 
+config PLATFORM_CONTIKI
+	bool "contiki"
+	depends on HAVE_CONTIKI
+	help
+            This platform is to be used with Contiki Small OS.
+
+            Contiki (http://contiki-os.org/) is an open source operating
+            system for the Internet of Things. Contiki connects tiny low-cost,
+            low-power microcontrollers to the Internet.
+
+            Soletta will do its best to offer the same experience on
+            all platforms, including Contiki.
+
 endchoice
 
 source "src/modules/linux-micro/Kconfig"
@@ -194,6 +207,12 @@ config MAINLOOP_RIOTOS
 	depends on PLATFORM_RIOTOS && HAVE_RIOTOS
 	help
             The mainloop to be used in RIOT platform.
+
+config MAINLOOP_CONTIKI
+	bool "contiki"
+	depends on PLATFORM_CONTIKI && HAVE_CONTIKI
+	help
+            The mainloop to be used in Contiki platform.
 
 endchoice
 
