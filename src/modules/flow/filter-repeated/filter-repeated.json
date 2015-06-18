@@ -1,0 +1,177 @@
+{
+  "name": "filter-repeated",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "filter-repeated",
+      "description": "Filter repeated boolean packets.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Where to receive the boolean packet to be filtered. If the packet is equal to the previously received, it'll be dropped. Otherwise, it'll be forwarded.",
+          "methods": {
+            "process": "boolean_filter"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "filter-repeated/boolean",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Filtered boolean packets.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "filter_boolean_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/filter-repeated/boolean.html"
+    },
+    {
+      "category": "filter-repeated",
+      "description": "Filter repeated byte packets.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Where to receive the byte packet to be filtered. If the packet is equal to the previously received, it'll be dropped. Otherwise, it'll be forwarded.",
+          "methods": {
+            "process": "byte_filter"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "filter-repeated/byte",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Filtered byte packets.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "filter_byte_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/filter-repeated/byte.html"
+    },
+    {
+      "category": "filter-repeated",
+      "description": "Filter repeated error packets.",
+      "in_ports": [
+        {
+          "data_type": "error",
+          "description": "Where to receive the error packet to be filtered. If the packet is equal to the previously received, it'll be dropped. Otherwise, it'll be forwarded. They're forwared via 'ERROR' port.",
+          "methods": {
+            "process": "error_filter"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "close": "error_close"
+      },
+      "name": "filter-repeated/error",
+      "private_data_type": "filter_error_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/filter-repeated/error.html"
+    },
+    {
+      "category": "filter-repeated",
+      "description": "Filter repeated float packets.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Where to receive the float packet to be filtered. If the packet is equal to the previously received, it'll be dropped. Otherwise, it'll be forwarded.",
+          "methods": {
+            "process": "float_filter"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "filter-repeated/float",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Filtered float packets.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "filter_drange_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/filter-repeated/float.html"
+    },
+    {
+      "category": "filter-repeated",
+      "description": "Filter repeated int packets.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Where to receive the int packet to be filtered. If the packet is equal to the previously received, it'll be dropped. Otherwise, it'll be forwarded.",
+          "methods": {
+            "process": "int_filter"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "filter-repeated/int",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Filtered int packets.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "filter_irange_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/filter-repeated/int.html"
+    },
+    {
+      "category": "filter-repeated",
+      "description": "Filter repeated rgb packets.",
+      "in_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Where to receive the rgb packet to be filtered. If the packet is equal to the previously received, it'll be dropped. Otherwise, it'll be forwarded.",
+          "methods": {
+            "process": "rgb_filter"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "filter-repeated/rgb",
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Filtered rgb packets.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "filter_rgb_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/filter-repeated/rgb.html"
+    },
+    {
+      "category": "filter-repeated",
+      "description": "Filter repeated string packets.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string packet to be filtered. If the packet is equal to the previously received, it'll be dropped. Otherwise, it'll be forwarded.",
+          "methods": {
+            "process": "string_filter"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "close": "string_close"
+      },
+      "name": "filter-repeated/string",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Filtered string packets.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "filter_string_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/filter-repeated/string.html"
+    }
+  ]
+}
