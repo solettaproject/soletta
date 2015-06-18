@@ -33,6 +33,7 @@ filter_byte(filter-repeated/byte)
 filter_float(filter-repeated/float)
 filter_int(filter-repeated/int)
 filter_rgb(filter-repeated/rgb)
+filter_vector_3f(filter-repeated/vector-3f)
 filter_string(filter-repeated/string)
 
 gen_boolean(test/boolean-generator:sequence="TTFFFTT")
@@ -69,6 +70,20 @@ rgb3 OUT -> IN filter_rgb
 rgb4 OUT -> IN filter_rgb
 rgb5 OUT -> IN filter_rgb
 validator_green OUT -> RESULT filter_repeated_rgb(test/result)
+
+vector_3f_1(constant/vector-3f:value=x:255|y:10|z:100)
+vector_3f_2(constant/vector-3f:value="240|10|100")
+vector_3f_3(constant/vector-3f:value="240|10|100")
+vector_3f_4(constant/vector-3f:value="240|100|100")
+vector_3f_5(constant/vector-3f:value="240|100|100")
+vector_3f_int(converter/vector-3f-to-int)
+validator_y(test/int-validator:sequence="10 10 100")
+vector_3f_1 OUT -> IN filter_vector_3f OUT -> IN vector_3f_int Y -> IN validator_y
+vector_3f_2 OUT -> IN filter_vector_3f
+vector_3f_3 OUT -> IN filter_vector_3f
+vector_3f_4 OUT -> IN filter_vector_3f
+vector_3f_5 OUT -> IN filter_vector_3f
+validator_y OUT -> RESULT filter_repeated_vector_3f(test/result)
 
 string1(constant/string:value="Hello")
 string2(constant/string:value="Hello")

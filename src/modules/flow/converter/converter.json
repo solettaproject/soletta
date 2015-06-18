@@ -514,6 +514,49 @@
     },
     {
       "category": "converter",
+      "description": "Receives byte packets and convert to tridimensional doubles vector (vector 3f)",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte value for x component.",
+          "methods": {
+            "process": "byte_to_vector_3f_convert"
+          },
+          "name": "X"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for y component.",
+          "methods": {
+            "process": "byte_to_vector_3f_convert"
+          },
+          "name": "Y"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for z component.",
+          "methods": {
+            "process": "byte_to_vector_3f_convert"
+          },
+          "name": "Z"
+        }
+      ],
+      "methods": {
+        "open": "byte_to_vector_3f_open"
+      },
+      "name": "converter/byte-to-vector-3f",
+      "out_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Bytes converted to tridimensional doubles vector (vector 3f).",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_vector_3f",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/byte-to-vector-3f.html"
+    },
+    {
+      "category": "converter",
       "description": "Receives a byte packet and convert to string.",
       "in_ports": [
         {
@@ -744,6 +787,63 @@
       ],
       "private_data_type": "sol_converter_rgb",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/float-to-rgb.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives float packets and converts to tridimensional doubles vector (vector 3f) ones.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Float value for x component.",
+          "methods": {
+            "process": "drange_to_vector_3f_convert"
+          },
+          "name": "X"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for y component.",
+          "methods": {
+            "process": "drange_to_vector_3f_convert"
+          },
+          "name": "Y"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for z component.",
+          "methods": {
+            "process": "drange_to_vector_3f_convert"
+          },
+          "name": "Z"
+        }
+      ],
+      "methods": {
+        "open": "drange_to_vector_3f_open"
+      },
+      "name": "converter/float-to-vector-3f",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "default": {
+              "max": "DBL_MAX",
+              "min": "-DBL_MAX"
+            },
+            "description": "Range of output packet.",
+            "name": "out_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Float values converted to VECTOR-3F.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_vector_3f",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/float-to-vector-3f.html"
     },
     {
       "category": "converter",
@@ -1269,6 +1369,113 @@
     },
     {
       "category": "converter",
+      "description": "Receives tridimensional doubles vector (vector 3f) packets and converts to RGB ones.",
+      "in_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Input for tridimensional doubles vector (vector 3f) packets to be converted.",
+          "methods": {
+            "process": "vector_3f_to_rgb_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "vector_3f_to_rgb_open"
+      },
+      "name": "converter/vector-3f-to-rgb",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of red component. Minimum is set to zero.",
+            "name": "red_max"
+          },
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of green component. Minimum is set to zero.",
+            "name": "green_max"
+          },
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of blue component. Minimum is set to zero.",
+            "name": "blue_max"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Tridimensional doubles vector (vector 3f) values converted to RGB.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_rgb",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/int-to-rgb.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives int packets and converts a to tridimensional doubles vector (vector 3f) one.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Int value for x component.",
+          "methods": {
+            "process": "irange_to_vector_3f_convert"
+          },
+          "name": "X"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for y component.",
+          "methods": {
+            "process": "irange_to_vector_3f_convert"
+          },
+          "name": "Y"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for z component.",
+          "methods": {
+            "process": "irange_to_vector_3f_convert"
+          },
+          "name": "Z"
+        }
+      ],
+      "methods": {
+        "open": "irange_to_vector_3f_open"
+      },
+      "name": "converter/int-to-vector-3f",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "default": {
+              "max": "DBL_MAX",
+              "min": "-DBL_MAX"
+            },
+            "description": "Range of output packet.",
+            "name": "out_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Int values converted to VECTOR-3F.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_vector_3f",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/int-to-vector-3f.html"
+    },
+    {
+      "category": "converter",
       "description": "Receives an int packet and convert to string.",
       "in_ports": [
         {
@@ -1388,6 +1595,128 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/converter/rgb-to-int.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives RGB packets and convert to tridimensional doubles vector (vector 3f) ones.",
+      "in_ports": [
+        {
+          "data_type": "rgb",
+          "description": "RGB to be converted.",
+          "methods": {
+            "process": "rgb_to_vector_3f_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/rgb-to-vector-3f",
+      "out_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Tridimensional Doubles Vector (Vector 3f) packet",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/rgb-to-tridimensional doubles vector (vector 3f).html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives tridimensional doubles vector (vector 3f) packets and converts to bytes.",
+      "in_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "tridimensional doubles vector (vector 3f) to be decomposed.",
+          "methods": {
+            "process": "vector_3f_to_byte_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/vector-3f-to-byte",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte value for x component.",
+          "name": "X"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for y component.",
+          "name": "Y"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for z component.",
+          "name": "Z"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/vector-3f-to-byte.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives tridimensional doubles vector (vector 3f) packets and converts to float values.",
+      "in_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "tridimensional doubles vector (vector 3f) to be decomposed.",
+          "methods": {
+            "process": "vector_3f_to_drange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/vector-3f-to-float",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Float value for x component.",
+          "name": "X"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for y component.",
+          "name": "Y"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for z component.",
+          "name": "Z"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/vector-3f-to-float.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives tridimensional doubles vector (vector 3f) packets and converts to RGB.",
+      "in_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "tridimensional doubles vector (vector 3f) to be decomposed.",
+          "methods": {
+            "process": "vector_3f_to_irange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/vector-3f-to-int",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Int value for x component.",
+          "name": "X"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for y component.",
+          "name": "Y"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for z component.",
+          "name": "Z"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/vector-3f-to-int.html"
     },
     {
       "category": "converter",

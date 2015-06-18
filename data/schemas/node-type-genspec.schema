@@ -39,7 +39,7 @@
     },
 
     "data_type": {
-      "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "error" ]
+      "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "vector-3f", "error" ]
     },
 
     "port_data_type": {
@@ -230,6 +230,27 @@
       }
     },
 
+    "options_members_vector_3f": {
+      "properties": {
+        "data_type": { "enum": [ "vector-3f" ] },
+        "default": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "x": { "$ref": "#/definitions/float_or_limit" },
+                "y": { "$ref": "#/definitions/float_or_limit" },
+                "z": { "$ref": "#/definitions/float_or_limit" },
+                "min": { "$ref": "#/definitions/float_or_limit" },
+                "max": { "$ref": "#/definitions/float_or_limit" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+
     "options_members_string": {
       "properties": {
         "data_type": { "enum": [ "string" ] },
@@ -269,6 +290,7 @@
             { "$ref": "#/definitions/options_members_string" },
             { "$ref": "#/definitions/options_members_byte" },
             { "$ref": "#/definitions/options_members_rgb" },
+            { "$ref": "#/definitions/options_members_vector_3f" },
             { "$ref": "#/definitions/options_members_custom" }
           ]
         }
