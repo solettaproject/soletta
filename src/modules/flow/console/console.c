@@ -94,6 +94,14 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
             mdata->prefix ? mdata->prefix : "",
             red, green, blue,
             mdata->suffix ? mdata->suffix : "");
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_VECTOR_3F) {
+        double x, y, z;
+        int r = sol_flow_packet_get_vector_3f_components(packet, &x, &y, &z);
+        SOL_INT_CHECK(r, < 0, r);
+        fprintf(mdata->fp, "%s(%lf, %lf, %lf) (vector-3f)%s\n",
+            mdata->prefix ? mdata->prefix : "",
+            x, y, z,
+            mdata->suffix ? mdata->suffix : "");
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_STRING) {
         const char *val;
 

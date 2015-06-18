@@ -49,6 +49,7 @@ enum option_value_type {
     OPTION_VALUE_TYPE_STRING,
     OPTION_VALUE_TYPE_RANGE,
     OPTION_VALUE_TYPE_RGB,
+    OPTION_VALUE_TYPE_VECTOR_3F
 };
 
 /* Options are stored as strings because that's convenient for the
@@ -69,6 +70,14 @@ struct option_rgb_value {
     char *blue_max;
 };
 
+struct option_vector_3f_value {
+    char *x;
+    char *y;
+    char *z;
+    char *min;
+    char *max;
+};
+
 struct option_description {
     char *name;
     char *data_type;
@@ -78,6 +87,7 @@ struct option_description {
         char *string;
         struct option_range_value range;
         struct option_rgb_value rgb;
+        struct option_vector_3f_value vector_3f;
         struct sol_json_token token;
     } default_value;
 };

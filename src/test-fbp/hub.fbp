@@ -33,6 +33,7 @@ const_byte(constant/byte:value=10)
 const_float(constant/float:value=100.5)
 const_int(constant/int:value=10)
 const_rgb(constant/rgb:value="255|10|100")
+const_vector_3f(constant/vector-3f:value="255|10|100")
 const_string(constant/string:value="Hello")
 
 hub_boolean(hub/boolean)
@@ -41,6 +42,7 @@ hub_empty(hub/empty)
 hub_float(hub/float)
 hub_int(hub/int)
 hub_rgb(hub/rgb)
+hub_vector_3f(hub/vector-3f)
 hub_string(hub/string)
 
 empty_to_boolean(converter/empty-to-boolean)
@@ -72,6 +74,11 @@ const_rgb OUT -> IN hub_rgb
 const_int OUT -> IN0 rgb_equal
 hub_rgb OUT -> IN _(converter/rgb-to-int) GREEN -> IN1 rgb_equal(int/equal)
 rgb_equal OUT -> RESULT result_hub_rgb(test/result)
+
+const_vector_3f OUT -> IN hub_vector_3f
+const_int OUT -> IN0 vector_3f_equal
+hub_vector_3f OUT -> IN _(converter/vector-3f-to-int) Y -> IN1 vector_3f_equal(int/equal)
+vector_3f_equal OUT -> RESULT result_hub_vector_3f(test/result)
 
 const_string OUT -> IN hub_string
 const_string OUT -> IN0 string_equal(string/compare)

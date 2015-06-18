@@ -68,6 +68,11 @@ struct filter_rgb_data {
     bool initialized : 1;
 };
 
+struct filter_vector_3f_data {
+    struct sol_vector_3f value;
+    bool initialized : 1;
+};
+
 struct filter_string_data {
     char *value;
 };
@@ -206,6 +211,27 @@ rgb_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
 
     return sol_flow_send_rgb_packet(node,
         SOL_FLOW_NODE_TYPE_FILTER_REPEATED_RGB__OUT__OUT, &in_value);
+}
+
+static int
+vector_3f_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct filter_vector_3f_data *mdata = data;
+    int r;
+    struct sol_vector_3f in_value;
+
+    r = sol_flow_packet_get_vector_3f(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (mdata->initialized &&
+        !memcmp(&in_value, &mdata->value, sizeof(struct sol_vector_3f)))
+        return 0;
+
+    mdata->initialized = true;
+    mdata->value = in_value;
+
+    return sol_flow_send_vector_3f_packet(node,
+        SOL_FLOW_NODE_TYPE_FILTER_REPEATED_VECTOR_3F__OUT__OUT, &in_value);
 }
 
 static void
