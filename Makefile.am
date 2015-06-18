@@ -169,6 +169,9 @@ endif
 if HAVE_PLATFORM_RIOT
 src_lib_libsoletta_la_SOURCES += src/lib/common/sol-log-impl-riot.c
 endif
+if HAVE_PLATFORM_CONTIKI
+src_lib_libsoletta_la_SOURCES += src/lib/common/sol-log-impl-contiki.c
+endif
 
 endif
 
@@ -260,6 +263,12 @@ src/lib/common/sol-interrupt_scheduler_riot.c \
 src/lib/common/sol-interrupt_scheduler_riot.h
 endif
 
+if HAVE_MAINLOOP_CONTIKI
+src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-mainloop-impl-common.c \
+src/lib/common/sol-mainloop-impl-contiki.c
+endif
+
 if HAVE_PLATFORM_SYSTEMD
 src_lib_libsoletta_la_SOURCES += \
 src/lib/common/sol-bus.c \
@@ -316,6 +325,11 @@ src_lib_libsoletta_la_SOURCES += \
 src/lib/common/sol-platform-impl-riot.c
 endif
 
+if HAVE_PLATFORM_CONTIKI
+src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-platform-impl-contiki.c
+endif
+
 pkginclude_HEADERS += \
 src/lib/common/sol-macros.h \
 src/lib/common/sol-log.h \
@@ -327,6 +341,11 @@ src/lib/common/sol-missing.h \
 src/lib/flow/sol-flow.h \
 src/lib/flow/sol-flow-resolver.h \
 src/lib/flow/sol-flow-packet.h
+
+if HAVE_PLATFORM_CONTIKI
+pkginclude_HEADERS += \
+src/lib/common/sol-mainloop-contiki.h
+endif
 
 nodist_pkginclude_HEADERS += \
 src/lib/common/sol-common-buildopts.h \
@@ -417,6 +436,12 @@ src/shared/sol-spi-riot.c \
 src/shared/sol-uart-riot.c \
 src/shared/sol-network-riot.c \
 src/shared/sol-util-riot.c
+endif
+
+if HAVE_PLATFORM_CONTIKI
+src_shared_libshared_la_SOURCES += \
+src/shared/sol-missing-contiki.c \
+src/shared/sol-util-contiki.c
 endif
 
 src_shared_libshared_la_CFLAGS += $(AM_CFLAGS)
