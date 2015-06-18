@@ -401,3 +401,9 @@ API see the output of sol-fbp-generator.
             return 0;
         }
 ```
+
+### Build Status
+
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/5517/badge.svg)](https://scan.coverity.com/projects/5517)
+
+
