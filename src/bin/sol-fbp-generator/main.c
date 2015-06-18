@@ -95,18 +95,33 @@ handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *opt
     printf("            .%s,\n", option);
 }
 
+static bool
+check_suboption(char *option, const struct sol_fbp_meta *meta)
+{
+    if (memchr(option, ':', strlen(option))) {
+        sol_fbp_log_print(args.fbp_file, meta->position.line, meta->position.column, "Wrong suboption format, ignoring"
+            "value '%s'. You cannot mix the formats, choose one 'opt1:val1|opt2:val2...' or 'val1|val2...'", option);
+        return false;
+    }
+
+    return true;
+}
+
 static void
 handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index)
 {
     const char *irange_drange_fields[5] = { "val", "min", "max", "step", NULL };
+    if (check_suboption(option, meta))
+        printf("            .%s = %s,\n", irange_drange_fields[index], option);
+}
 
-    if (memchr(option, ':', strlen(option))) {
-        sol_fbp_log_print(args.fbp_file, meta->position.line, meta->position.column, "Wrong suboption format, ignoring"
-            "value '%s'. You cannot mix the formats, choose one 'opt1:val1|opt2:val2...' or 'val1|val2...'", option);
-        return;
-    }
-
-    printf("            .%s = %s,\n", irange_drange_fields[index], option);
+static void
+handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index)
+{
+    const char *rgb_fields[7] = { "red", "green", "blue",
+        "red_max", "green_max", "blue_max", NULL };
+    if (check_suboption(option, meta))
+        printf("            .%s = %s,\n", rgb_fields[index], option);
 }
 
 static bool
@@ -124,6 +139,11 @@ handle_options(const struct sol_fbp_meta *meta, struct sol_vector *options)
                 handle_suboptions(meta, handle_suboption_with_explicit_fields);
             else
                 handle_suboptions(meta, handle_irange_drange_suboption);
+        } else if (streq(o->data_type, "rgb")) {
+            if (memchr(meta->value.data, ':', meta->value.len))
+                handle_suboptions(meta, handle_suboption_with_explicit_fields);
+            else
+                handle_suboptions(meta, handle_rgb_suboption);
         } else if (streq(o->data_type, "string")) {
             if (meta->value.data[0] == '"')
                 printf("        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);

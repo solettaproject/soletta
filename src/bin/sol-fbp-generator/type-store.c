@@ -67,6 +67,12 @@ CONST_SLICE(VAL_SLICE, "val");
 CONST_SLICE(MIN_SLICE, "min");
 CONST_SLICE(MAX_SLICE, "max");
 CONST_SLICE(STEP_SLICE, "step");
+CONST_SLICE(RED_SLICE, "red");
+CONST_SLICE(RED_MAX_SLICE, "red_max");
+CONST_SLICE(GREEN_SLICE, "green");
+CONST_SLICE(GREEN_MAX_SLICE, "green_max");
+CONST_SLICE(BLUE_SLICE, "blue");
+CONST_SLICE(BLUE_MAX_SLICE, "blue_max");
 
 static void
 decoder_init(struct decoder *d, struct sol_str_slice input)
@@ -187,6 +193,7 @@ static void
 option_description_fini(struct option_description *o)
 {
     struct option_range_value *range;
+    struct option_rgb_value *rgb;
 
     free(o->name);
     free(o->data_type);
@@ -201,6 +208,15 @@ option_description_fini(struct option_description *o)
         free(range->min);
         free(range->max);
         free(range->step);
+        break;
+    case OPTION_VALUE_TYPE_RGB:
+        rgb = &o->default_value.rgb;
+        free(rgb->red);
+        free(rgb->green);
+        free(rgb->blue);
+        free(rgb->red_max);
+        free(rgb->green_max);
+        free(rgb->blue_max);
         break;
     default:
         /* Nothing to free. */
@@ -384,6 +400,48 @@ parse_range_default_value(struct sol_json_scanner *s, struct option_description 
 }
 
 static bool
+parse_rgb_default_value(struct sol_json_scanner *s, struct option_description *o)
+{
+    struct option_rgb_value *rgb;
+    struct sol_json_token tmp, key, value;
+    struct sol_str_slice key_slice;
+    enum sol_json_loop_reason reason;
+    char *value_data;
+
+    rgb = &o->default_value.rgb;
+    memset(rgb, 0, sizeof(struct option_rgb_value));
+
+    if (!sol_json_scanner_next(s, &tmp))
+        return false;
+    SOL_JSON_SCANNER_OBJECT_LOOP(s, &tmp, &key, &value, reason)  {
+        if (!check_types(&key, &tmp, &value))
+            return false;
+        if (!get_value(&value, &value_data, &key, &key_slice))
+            return false;
+
+        if (sol_str_slice_eq(key_slice, RED_SLICE))
+            rgb->red = value_data;
+        else if (sol_str_slice_eq(key_slice, GREEN_SLICE))
+            rgb->green = value_data;
+        else if (sol_str_slice_eq(key_slice, BLUE_SLICE))
+            rgb->blue = value_data;
+        else if (sol_str_slice_eq(key_slice, RED_MAX_SLICE))
+            rgb->red_max = value_data;
+        else if (sol_str_slice_eq(key_slice, GREEN_MAX_SLICE))
+            rgb->green_max = value_data;
+        else if (sol_str_slice_eq(key_slice, BLUE_MAX_SLICE))
+            rgb->blue_max = value_data;
+        else
+            free(value_data);
+
+        if (reason != SOL_JSON_LOOP_REASON_OK)
+            return false;
+    }
+
+    return true;
+}
+
+static bool
 parse_string_default_value(struct sol_json_scanner *s, struct option_description *o)
 {
     struct sol_json_token token;
@@ -429,6 +487,11 @@ parse_default_value(struct option_description *o)
     if (streq(o->data_type, "int") || streq(o->data_type, "float")) {
         o->default_value_type = OPTION_VALUE_TYPE_RANGE;
         return parse_range_default_value(&value_scanner, o);
+    }
+
+    if (streq(o->data_type, "rgb")) {
+        o->default_value_type = OPTION_VALUE_TYPE_RGB;
+        return parse_rgb_default_value(&value_scanner, o);
     }
 
     o->default_value_type = OPTION_VALUE_TYPE_STRING;
@@ -721,6 +784,7 @@ type_description_print(struct type_description *desc)
         printf("options\n");
     SOL_VECTOR_FOREACH_IDX (&desc->options, o, i) {
         struct option_range_value *range;
+        struct option_rgb_value *rgb;
 
         printf("  %s (%s", o->name, o->data_type);
 
@@ -732,6 +796,13 @@ type_description_print(struct type_description *desc)
             range = &o->default_value.range;
             printf(", default val=%s  min=%s  max=%s  step=%s)\n",
                 range->val, range->min, range->max, range->step);
+            break;
+        case OPTION_VALUE_TYPE_RGB:
+            rgb = &o->default_value.rgb;
+            printf(", default red=%s  green=%s  blue=%s  red_max=%s  "
+                "green_max=%s  blue_max=%s)\n",
+                rgb->red, rgb->green, rgb->blue, rgb->red_max, rgb->green_max,
+                rgb->blue_max);
             break;
         default:
             printf(")\n");
