@@ -357,8 +357,8 @@ src/shared/sol-fbp-internal-scanner.c \
 src/shared/sol-fbp-internal-scanner.h \
 src/shared/sol-fbp-parser.c \
 src/shared/sol-fbp.h \
-src/shared/sol-util.c \
 src/shared/sol-util.h \
+src/shared/sol-util-common.c \
 src/shared/sol-file-reader.h \
 src/shared/sol-gpio.h \
 src/shared/sol-i2c.h \
@@ -398,7 +398,8 @@ src/shared/sol-network-linux.c \
 src/shared/sol-pwm-linux.c \
 src/shared/sol-i2c-linux.c \
 src/shared/sol-spi-linux.c \
-src/shared/sol-uart-linux.c
+src/shared/sol-uart-linux.c \
+src/shared/sol-util-linux.c
 
 if PTHREAD_LIBS
 src_shared_libshared_la_SOURCES += \
@@ -414,7 +415,8 @@ src/shared/sol-i2c-riot.c \
 src/shared/sol-pwm-riot.c \
 src/shared/sol-spi-riot.c \
 src/shared/sol-uart-riot.c \
-src/shared/sol-network-riot.c
+src/shared/sol-network-riot.c \
+src/shared/sol-util-riot.c
 endif
 
 src_shared_libshared_la_CFLAGS += $(AM_CFLAGS)
