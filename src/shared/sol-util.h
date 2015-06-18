@@ -148,3 +148,6 @@ align_power2(unsigned int u)
         return 0;
     return 1 << ((sizeof(u) * 8) - left_zeros);
 }
+
+
+int sol_util_get_rootdir(char *out, size_t size);
