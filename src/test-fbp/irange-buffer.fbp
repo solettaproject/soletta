@@ -39,5 +39,15 @@ median_result OUT -> IN1 median_equal
 
 median_equal OUT -> RESULT test_median(test/result)
 
+# --------------------------
 
+median_result2(constant/int:value=1)
+median_buffer2(int/buffer:operation=median)
+median_equal2(int/equal)
+gen2(test/int-generator:sequence="1 2") OUT -> IN median_buffer2
+timeout(constant/int:value=1) OUT -> TIMEOUT median_buffer2
 
+median_buffer2 OUT -> IN0 median_equal2
+median_result2 OUT -> IN1 median_equal2
+
+median_equal2 OUT -> RESULT test_median2(test/result)
