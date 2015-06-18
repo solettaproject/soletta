@@ -41,37 +41,12 @@
 
 #include "sol-interrupt_scheduler_riot.h"
 #include "sol-mainloop-impl.h"
+#include "sol-mainloop-impl-common.h"
 #include "sol-vector.h"
 #include "sol-util.h"
 
-#define DEFAULT_USLEEP_TIME 10000
-
-static bool run_loop;
-
-static bool timeout_processing;
-static unsigned int timeout_pending_deletion;
-static struct sol_ptr_vector timeout_vector = SOL_PTR_VECTOR_INIT;
-
-static bool idler_processing;
-static unsigned int idler_pending_deletion;
-static struct sol_ptr_vector idler_vector = SOL_PTR_VECTOR_INIT;
-
 #define MSG_BUFFER_SIZE 32
 static msg_t msg_buffer[MSG_BUFFER_SIZE];
-
-struct sol_timeout_riot {
-    struct timespec timeout;
-    struct timespec expire;
-    const void *data;
-    bool (*cb)(void *data);
-    bool remove_me;
-};
-
-struct sol_idler_riot {
-    const void *data;
-    bool (*cb)(void *data);
-    enum { idler_ready, idler_deleted, idler_ready_on_next_iteration } status;
-};
 
 int
 sol_mainloop_impl_init(void)
@@ -84,139 +59,13 @@ sol_mainloop_impl_init(void)
 void
 sol_mainloop_impl_shutdown(void)
 {
-    void *ptr;
-    uint16_t i;
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&timeout_vector, ptr, i) {
-        free(ptr);
-    }
-    sol_ptr_vector_clear(&timeout_vector);
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&idler_vector, ptr, i) {
-        free(ptr);
-    }
-    sol_ptr_vector_clear(&idler_vector);
-}
-
-static int
-timeout_compare(const void *data1, const void *data2)
-{
-    const struct sol_timeout_riot *a = data1, *b = data2;
-
-    return sol_util_timespec_compare(&a->expire, &b->expire);
-}
-
-static inline void
-timeout_cleanup(void)
-{
-    struct sol_timeout_riot *timeout;
-    uint16_t i;
-
-    if (!timeout_pending_deletion)
-        return;
-
-    // Walk backwards so deletion doesn't impact the indices.
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&timeout_vector, timeout, i) {
-        if (!timeout->remove_me)
-            continue;
-
-        sol_ptr_vector_del(&timeout_vector, i);
-        free(timeout);
-        timeout_pending_deletion--;
-        if (!timeout_pending_deletion)
-            break;
-    }
-}
-
-static inline void
-timeout_process(void)
-{
-    struct timespec now;
-    unsigned int i;
-
-    timeout_processing = true;
-    now = sol_util_timespec_get_current();
-    for (i = 0; i < timeout_vector.base.len; i++) {
-        struct sol_timeout_riot *timeout = sol_ptr_vector_get(&timeout_vector, i);
-        if (!run_loop)
-            break;
-        if (timeout->remove_me)
-            continue;
-        if (sol_util_timespec_compare(&timeout->expire, &now) > 0)
-            break;
-
-        if (!timeout->cb((void *)timeout->data)) {
-            if (!timeout->remove_me) {
-                timeout->remove_me = true;
-                timeout_pending_deletion++;
-            }
-            continue;
-        }
-
-        sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
-        sol_ptr_vector_del(&timeout_vector, i);
-        sol_ptr_vector_insert_sorted(&timeout_vector, timeout, timeout_compare);
-        i--;
-    }
-
-    timeout_cleanup();
-    timeout_processing = false;
-}
-
-static inline void
-idler_cleanup(void)
-{
-    struct sol_idler_riot *idler;
-    uint16_t i;
-
-    if (!idler_pending_deletion)
-        return;
-
-    // Walk backwards so deletion doesn't impact the indices.
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&idler_vector, idler, i) {
-        if (idler->status != idler_deleted)
-            continue;
-
-        sol_ptr_vector_del(&idler_vector, i);
-        free(idler);
-        idler_pending_deletion--;
-        if (!idler_pending_deletion)
-            break;
-    }
-}
-
-static inline void
-idler_process(void)
-{
-    uint16_t i;
-    struct sol_idler_riot *idler;
-
-    idler_processing = true;
-    SOL_PTR_VECTOR_FOREACH_IDX (&idler_vector, idler, i) {
-        if (!run_loop)
-            break;
-        if (idler->status != idler_ready) {
-            if (idler->status == idler_ready_on_next_iteration)
-                idler->status = idler_ready;
-            continue;
-        }
-        if (!idler->cb((void *)idler->data)) {
-            if (idler->status != idler_deleted) {
-                idler->status = idler_deleted;
-                idler_pending_deletion++;
-            }
-        }
-        timeout_process();
-    }
-
-    idler_cleanup();
-    idler_processing = false;
+    sol_mainloop_impl_common_shutdown();
 }
 
 static inline void
 timex_set_until_next_timeout(timex_t *timex)
 {
-    struct sol_timeout_riot *timeout;
+    struct sol_timeout_common *timeout;
     struct timespec now;
     struct timespec diff;
 
@@ -243,9 +92,9 @@ sol_mainloop_impl_run(void)
         msg_t msg;
         timex_t timex;
 
-        timeout_process();
-        idler_process();
-        timeout_process();
+        sol_mainloop_impl_common_timeout_process();
+        sol_mainloop_impl_common_idler_process();
+        sol_mainloop_impl_common_timeout_process();
 
         if (!run_loop)
             return;
@@ -265,72 +114,25 @@ sol_mainloop_impl_quit(void)
 void *
 sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data)
 {
-    struct timespec now;
-    int ret;
-    struct sol_timeout_riot *timeout = malloc(sizeof(struct sol_timeout_riot));
-
-    SOL_NULL_CHECK(timeout, NULL);
-
-    timeout->timeout = sol_util_timespec_from_msec(timeout_ms);
-    timeout->cb = cb;
-    timeout->data = data;
-    timeout->remove_me = false;
-
-    now = sol_util_timespec_get_current();
-    sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
-    ret = sol_ptr_vector_insert_sorted(&timeout_vector, timeout, timeout_compare);
-    SOL_INT_CHECK_GOTO(ret, != 0, clean);
-    return timeout;
-
-clean:
-    free(timeout);
-    return NULL;
+    return sol_mainloop_impl_common_timeout_add(timeout_ms, cb, data);
 }
 
 bool
 sol_mainloop_impl_timeout_del(void *handle)
 {
-    struct sol_timeout_riot *timeout = handle;
-
-    timeout->remove_me = true;
-    timeout_pending_deletion++;
-    if (!timeout_processing)
-        timeout_cleanup();
-
-    return true;
+    return sol_mainloop_impl_common_timeout_del(handle);
 }
 
 void *
 sol_mainloop_impl_idle_add(bool (*cb)(void *data), const void *data)
 {
-    int ret;
-    struct sol_idler_riot *idler = malloc(sizeof(struct sol_idler_riot));
-
-    SOL_NULL_CHECK(idler, NULL);
-    idler->cb = cb;
-    idler->data = data;
-
-    idler->status = idler_processing ? idler_ready_on_next_iteration : idler_ready;
-    ret = sol_ptr_vector_append(&idler_vector, idler);
-    SOL_INT_CHECK_GOTO(ret, != 0, clean);
-    return idler;
-
-clean:
-    free(idler);
-    return NULL;
+    return sol_mainloop_impl_common_idle_add(cb, data);
 }
 
 bool
 sol_mainloop_impl_idle_del(void *handle)
 {
-    struct sol_idler_riot *idler = handle;
-
-    idler->status = idler_deleted;
-    idler_pending_deletion++;
-    if (!idler_processing)
-        idler_cleanup();
-
-    return true;
+    return sol_mainloop_impl_common_idle_del(handle);
 }
 
 void *

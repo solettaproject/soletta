@@ -62,6 +62,8 @@ struct sol_idler_common {
     enum { idler_ready, idler_deleted, idler_ready_on_next_iteration } status;
 };
 
+int sol_mainloop_impl_timeout_compare(const void *data1, const void *data2);
+
 void sol_mainloop_impl_common_shutdown(void);
 
 void sol_mainloop_impl_common_timeout_cleanup(void);

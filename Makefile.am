@@ -253,11 +253,13 @@ endif
 
 if HAVE_MAINLOOP_POSIX
 src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-mainloop-impl-common.c \
 src/lib/common/sol-mainloop-impl-posix.c
 endif
 
 if HAVE_MAINLOOP_RIOT
 src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-mainloop-impl-common.c \
 src/lib/common/sol-mainloop-impl-riot.c \
 src/lib/common/sol-interrupt_scheduler_riot.c \
 src/lib/common/sol-interrupt_scheduler_riot.h

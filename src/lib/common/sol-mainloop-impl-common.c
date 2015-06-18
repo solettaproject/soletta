@@ -49,8 +49,8 @@ bool idler_processing;
 unsigned int idler_pending_deletion;
 struct sol_ptr_vector idler_vector = SOL_PTR_VECTOR_INIT;
 
-static int
-timeout_compare(const void *data1, const void *data2)
+int
+sol_mainloop_impl_timeout_compare(const void *data1, const void *data2)
 {
     const struct sol_timeout_common *a = data1, *b = data2;
 
@@ -112,7 +112,8 @@ sol_mainloop_impl_common_timeout_add(unsigned int timeout_ms, bool (*cb)(void *d
 
     now = sol_util_timespec_get_current();
     sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
-    ret = sol_ptr_vector_insert_sorted(&timeout_vector, timeout, timeout_compare);
+    ret = sol_ptr_vector_insert_sorted(&timeout_vector, timeout,
+                                       sol_mainloop_impl_timeout_compare);
     SOL_INT_CHECK_GOTO(ret, != 0, clean);
     return timeout;
 
@@ -244,7 +245,8 @@ sol_mainloop_impl_common_timeout_process(void)
 
         sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
         sol_ptr_vector_del(&timeout_vector, i);
-        sol_ptr_vector_insert_sorted(&timeout_vector, timeout, timeout_compare);
+        sol_ptr_vector_insert_sorted(&timeout_vector, timeout,
+                                     sol_mainloop_impl_timeout_compare);
         i--;
     }
 
