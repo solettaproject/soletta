@@ -1,0 +1,120 @@
+{
+  "name": "grove",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "internal",
+      "description": "Converts raw sensor temperature to Celsius, Fahrenheit and Kelvin.",
+      "in_ports": [
+          {
+            "data_type": "int",
+            "description": "Input value",
+            "name": "IN",
+            "methods": {
+                "process": "temperature_convert"
+            }
+          }
+      ],
+      "methods": {
+         "open": "temperature_converter_open"
+      },
+      "name": "grove/temperature-converter",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Thermistor constant",
+            "name": "thermistor_constant"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Celsius.",
+          "name": "CELSIUS"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Fahrenheit.",
+          "name": "FAHRENHEIT"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Kelvin.",
+          "name": "KELVIN"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured temperature.",
+          "name": "RAW"
+        }
+      ],
+      "private_data_type": "temperature_converter_data"
+    },
+    {
+      "category": "input/hw",
+      "description": "Gets sensor temperature in Celsius, Fahrenheit and Kelvin.",
+      "methods": {
+        "init_type": "temperature_init_type"
+      },
+      "name": "grove/temperature-sensor",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 2,
+            "description": "Pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "default": 12,
+            "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
+            "name": "mask"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
+            "name": "poll_timeout"
+          },
+          {
+            "data_type": "int",
+            "default": 3975,
+            "description": "Thermistor constant",
+            "name": "thermistor_constant"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Celsius.",
+          "name": "CELSIUS"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Fahrenheit.",
+          "name": "FAHRENHEIT"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Kelvin.",
+          "name": "KELVIN"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured temperature.",
+          "name": "RAW"
+        }
+      ]
+    }
+  ]
+}
