@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <ctype.h>
 #include <stdlib.h>
 
 #include "sol-arena.h"
@@ -148,6 +149,85 @@ sol_flow_builder_set_resolver(struct sol_flow_builder *builder,
     if (!resolver)
         resolver = sol_flow_get_default_resolver();
     builder->resolver = resolver;
+}
+
+static bool
+set_type_description_symbols(struct sol_flow_builder *builder, const char *name)
+{
+    char *n;
+    char buf[4096];
+    int r;
+
+    n = strdupa(name);
+    for (char *p = n; *p; p++)
+        *p = toupper(*p);
+
+    r = snprintf(buf, sizeof(buf), "SOL_FLOW_NODE_TYPE_BUILDER_%s", n);
+    if (r < 0 || r >= (int)sizeof(buf))
+        return false;
+
+    builder->type_desc.symbol = sol_arena_strdup(builder->str_arena, buf);
+    SOL_NULL_CHECK(builder->type_desc.symbol, false);
+
+    n = strdupa(name);
+    for (char *p = n; *p; p++)
+        *p = tolower(*p);
+
+    r = snprintf(buf, sizeof(buf), "sol_flow_node_type_builder_%s_options", n);
+    if (r < 0 || r >= (int)sizeof(buf))
+        return false;
+
+    builder->type_desc.options_symbol = sol_arena_strdup(builder->str_arena, buf);
+    SOL_NULL_CHECK(builder->type_desc.options_symbol, false);
+
+    return true;
+}
+
+SOL_API int
+sol_flow_builder_set_type_description(struct sol_flow_builder *builder, const char *name, const char *category,
+    const char *description, const char *author, const char *url, const char *license, const char *version)
+{
+    SOL_NULL_CHECK(builder, -EINVAL);
+
+    if (builder->node_type) {
+        SOL_WRN("Couldn't set builder node type description, node type created already");
+        return -EEXIST;
+    }
+
+    if (strchr(name, ' ')) {
+        SOL_WRN("Whitespaces are not allowed on builder type description name");
+        return -EINVAL;
+    }
+
+    builder->type_desc.name = sol_arena_strdup(builder->str_arena, name);
+    SOL_NULL_CHECK_GOTO(builder->type_desc.name, failure);
+
+    builder->type_desc.category = sol_arena_strdup(builder->str_arena, category);
+    SOL_NULL_CHECK_GOTO(builder->type_desc.category, failure);
+
+    builder->type_desc.description = sol_arena_strdup(builder->str_arena, description);
+    SOL_NULL_CHECK_GOTO(builder->type_desc.description, failure);
+
+    builder->type_desc.author = sol_arena_strdup(builder->str_arena, author);
+    SOL_NULL_CHECK_GOTO(builder->type_desc.author, failure);
+
+    builder->type_desc.url = sol_arena_strdup(builder->str_arena, url);
+    SOL_NULL_CHECK_GOTO(builder->type_desc.url, failure);
+
+    builder->type_desc.license = sol_arena_strdup(builder->str_arena, license);
+    SOL_NULL_CHECK_GOTO(builder->type_desc.license, failure);
+
+    builder->type_desc.version = sol_arena_strdup(builder->str_arena, version);
+    SOL_NULL_CHECK_GOTO(builder->type_desc.version, failure);
+
+    if (!set_type_description_symbols(builder, name))
+        goto failure;
+
+    return 0;
+
+failure:
+    SOL_WRN("Couldn't set type description for builder");
+    return -ENOMEM;
 }
 
 static uint16_t
