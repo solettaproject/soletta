@@ -451,12 +451,17 @@ irange_constrain_open(struct sol_flow_node *node, void *data, const struct sol_f
     return 0;
 }
 
-static void
+static int
 irange_constrain(struct sol_irange *value)
 {
+    if(value->step == 0) {
+        SOL_ERR("int/step is zero, this will cause a math exception.");
+        return -ERANGE;
+    }
     value->val -= (value->val - value->min) % value->step;
     if (value->val < value->min) value->val = value->min;
     if (value->val > value->max) value->val = value->max;
+    return 0;
 }
 
 static int
@@ -475,7 +480,8 @@ irange_constrain_process(struct sol_flow_node *node, void *data, uint16_t port, 
         value.step = mdata->val.step;
     }
 
-    irange_constrain(&value);
+    r = irange_constrain(&value);
+    SOL_INT_CHECK(r, < 0, r);
     mdata->val = value;
 
     return sol_flow_send_irange_packet(node,

@@ -54,3 +54,24 @@ constant1 OUT -> IN abs_pos(int/abs)
 abs_pos OUT -> IN0 equal_abs_pos(int/equal)
 constant1 OUT -> IN1 equal_abs_pos
 equal_abs_pos OUT -> RESULT r_abs_pos(test/result)
+
+constrain(int/constrain:range=min:20|max:60|step:1,use_input_range=false)
+lower_const(constant/int:value=10) OUT -> IN constrain
+constrain OUT -> IN0 less_equal(int/less-or-equal)
+upper(constant/int:value=60) OUT -> IN1 less_equal OUT -> RESULT test_constrain_upper_boundary(test/result)
+constrain OUT -> IN0 greater_equal(int/greater-or-equal)
+lower(constant/int:value=20) OUT -> IN1 greater_equal OUT -> RESULT test_constrain_lower_boundary(test/result)
+
+constrain2(int/constrain:range=min:20|max:60|step:1,use_input_range=false)
+right_const(constant/int:value=30) OUT -> IN constrain2
+constrain2 OUT -> IN0 less_equal2(int/less-or-equal)
+upper2(constant/int:value=60) OUT -> IN1 less_equal2 OUT -> RESULT test_constrain_upper_boundary2(test/result)
+constrain2 OUT -> IN0 greater_equal2(int/greater-or-equal)
+lower2(constant/int:value=20) OUT -> IN1 greater_equal2 OUT -> RESULT test_constrain_lower_boundary2(test/result)
+
+constrain3(int/constrain:range=min:20|max:60|step:1,use_input_range=false)
+upper_const(constant/int:value=70) OUT -> IN constrain3
+constrain3 OUT -> IN0 less_equal3(int/less-or-equal)
+upper3(constant/int:value=60) OUT -> IN1 less_equal3 OUT -> RESULT test_constrain_upper_boundary3(test/result)
+constrain3 OUT -> IN0 greater_equal3(int/greater-or-equal)
+lower3(constant/int:value=20) OUT -> IN1 greater_equal3 OUT -> RESULT test_constrain_lower_boundary3(test/result)
