@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <ctype.h>
 #include <stdlib.h>
 
 #include "sol-flow-builder.h"
@@ -116,6 +117,9 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
     }
     sol_ptr_vector_clear(&builder->ports_out_desc);
 
+    free((char *)builder->type_desc.symbol);
+    free((char *)builder->type_desc.options_symbol);
+
     sol_vector_clear(&builder->exported_in);
     sol_vector_clear(&builder->exported_out);
 
@@ -149,6 +153,55 @@ sol_flow_builder_set_resolver(struct sol_flow_builder *builder,
     if (!resolver)
         resolver = sol_flow_get_default_resolver();
     builder->resolver = resolver;
+}
+
+static void
+set_type_description_symbols(struct sol_flow_node_type_description *desc, const char *name)
+{
+    char *n;
+
+    n = strdupa(name);
+    for (char *p = n; *p; p++)
+        *p = toupper(*p);
+
+    if (asprintf(&n, "SOL_FLOW_NODE_TYPE_%s", n) >= 0)
+        desc->symbol = n;
+    else
+        SOL_WRN("Couldn't set type description symbol for '%s' builder", name);
+
+    n = strdupa(name);
+    for (char *p = n; *p; p++)
+        *p = tolower(*p);
+
+    if (asprintf(&n, "sol_flow_node_type_%s_options", n) >= 0)
+        desc->options_symbol = n;
+    else
+        SOL_WRN("Couldn't set type description options_symbol for '%s' builder", name);
+}
+
+SOL_API void
+sol_flow_builder_set_type_description(struct sol_flow_builder *builder, const char *name, const char *category,
+    const char *description, const char *author, const char *url, const char *license, const char *version)
+{
+    SOL_NULL_CHECK(builder);
+
+    if (memchr(name, ' ', strlen(name))) {
+        SOL_WRN("Whitespaces are not allowed on builder type description name");
+        return;
+    }
+
+    builder->type_desc = (struct sol_flow_node_type_description) {
+        .name = name,
+        .category = category,
+        .description = description,
+        .author = author,
+        .url = url,
+        .license = license,
+        .version = version
+    };
+
+    if (name)
+        set_type_description_symbols(&builder->type_desc, name);
 }
 
 static uint16_t

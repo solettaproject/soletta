@@ -60,6 +60,10 @@ int sol_flow_builder_del(struct sol_flow_builder *builder);
  * fallback to using the default resolver. */
 void sol_flow_builder_set_resolver(struct sol_flow_builder *builder, const struct sol_flow_resolver *resolver);
 
+/* Set type description to use. Input/output ports,
+ * and options descriptions are automatically set. */
+void sol_flow_builder_set_type_description(struct sol_flow_builder *builder, const char *name, const char *category, const char *description, const char *author, const char *url, const char *license, const char *version);
+
 /* Add nodes to nodes spec.
  * Node names can't be NULL and must to be unique */
 int sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, const struct sol_flow_node_type *type, const struct sol_flow_node_options *option);
