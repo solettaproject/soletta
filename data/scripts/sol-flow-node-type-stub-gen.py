@@ -42,6 +42,12 @@ class StubError(Exception):
 def c_clean(string):
     return re.sub('[^A-Za-z0-9_]', '_', string)
 
+def is_custom(typename):
+    return typename[:7] == "custom:"
+
+def custom_get_name(typename):
+    return c_clean(typename[7:].lower())
+
 data_type_to_c_map = {
     "boolean": "bool ",
     "blob": "struct sol_blob *",
@@ -53,6 +59,9 @@ data_type_to_c_map = {
     "error": "int code_value; const char *",
     }
 def data_type_to_c(typename):
+    if (is_custom(typename)):
+        cname = custom_get_name(typename)
+        return "struct " + cname + "_packet_data "
     return data_type_to_c_map[typename]
 
 def load_json(infile, prefix):
@@ -108,7 +117,10 @@ data_type_to_packet_getter_map = {
     "rgb": "rgb(packet, &in_value)",
     }
 def data_type_to_packet_getter(typename):
-    return data_type_to_packet_getter_map[typename]
+    if (is_custom(typename)):
+        return "packet_get_" + custom_get_name(typename) + \
+               "(packet /* TODO: add args */)"
+    return "sol_flow_packet_get_" + data_type_to_packet_getter_map[typename]
 
 
 def get_base_name(base_name):
@@ -183,13 +195,120 @@ def include_common_headers(outfile):
 """)
 
 
+def declare_packet(outfile, port, packets):
+    data_type = port.get("data_type");
+    if (is_custom(data_type)):
+        packet_name = custom_get_name(data_type)
+        if packet_name not in packets:
+            packets.append(packet_name)
+            outfile.write("""\
+struct %(name_data)s {
+    /* TODO: add packet struct fields */
+};
+
+static void
+%(name)s_packet_dispose(const struct sol_flow_packet_type *packet_type,
+                        void *mem)
+{
+    struct %(name_data)s *%(name)s = mem;
+    /* TODO: free fields alloced memory */
+}
+
+static int
+%(name)s_packet_init(const struct sol_flow_packet_type *packet_type,
+                     void *mem, const void *input)
+{
+    const struct %(name_data)s *in = input;
+    struct %(name_data)s *%(name)s = mem;
+
+    /* TODO: initialize fields with input content */
+
+    return 0;
+}
+
+#define %(NAME)s_PACKET_TYPE_API_VERSION (1)
+
+static const struct sol_flow_packet_type _%(NAME)s = {
+    .api_version = %(NAME)s_PACKET_TYPE_API_VERSION,
+    .name = "%(NAME)s",
+    .data_size = sizeof(struct %(name_data)s),
+    .init = %(name)s_packet_init,
+    .dispose = %(name)s_packet_dispose,
+};
+static const struct sol_flow_packet_type *%(NAME)s =
+    &_%(NAME)s;
+
+#undef %(NAME)s_PACKET_TYPE_API_VERSION
+
+static struct sol_flow_packet *
+packet_new_%(name)s(/* TODO: args to fill fields */)
+{
+    struct %(name_data)s %(name)s;
+
+    /* TODO: check for args validity and fill fields */
+
+    return sol_flow_packet_new(%(NAME)s, &%(name)s);
+}
+
+static int
+packet_get_%(name)s(const struct sol_flow_packet *packet
+                    /* TODO: args to get fields values */)
+{
+    struct %(name_data)s %(name)s;
+    int ret;
+
+    SOL_NULL_CHECK(packet, -EBADR);
+    if (sol_flow_packet_get_type(packet) != %(NAME)s)
+        return -EINVAL;
+
+    ret = sol_flow_packet_get(packet, &%(name)s);
+    SOL_INT_CHECK(ret, != 0, ret);
+
+    /* TODO: set args with fields values */
+
+    return ret;
+}
+
+static int
+send_%(name)s_packet(struct sol_flow_node *src, uint16_t src_port
+                     /* TODO: args to create a new packet */)
+{
+    struct sol_flow_packet *packet;
+    int ret;
+
+    packet = packet_new_%(name)s(/* TODO: args */);
+    SOL_NULL_CHECK(packet, -ENOMEM);
+
+    ret = sol_flow_send_packet(src, src_port, packet);
+    if (ret != 0)
+        sol_flow_packet_del(packet);
+
+    return ret;
+}
+
+""" % {
+    "name": packet_name,
+    "NAME": packet_name.upper(),
+    "name_data": packet_name + "_packet_data"
+    })
+
+
+def declare_packets(outfile, data, packets):
+    if "in_ports" in data:
+        for port in data["in_ports"]:
+            declare_packet(outfile, port, packets)
+    if "out_ports" in data:
+        for port in data["out_ports"]:
+            declare_packet(outfile, port, packets)
+
+
 def declare_structs(outfile, data, structs):
     # declare empty struct
     struct = data.get("private_data_type", None)
     if struct and struct not in structs:
         outfile.write("""\
 struct %s {
-
+    /* TODO: add struct fields */
 };
 
 """ % struct)
@@ -323,7 +442,7 @@ static int
     int r;
     %sin_value;
 
-    r = sol_flow_packet_get_%s;
+    r = %s;
     SOL_INT_CHECK(r, < 0, r);
 
 """ % (data_type_to_c(single_type),
@@ -352,6 +471,7 @@ def generate_stub(stub_file, inputs_list, prefix, is_module):
     methods = []
     # blacklist our types that are often used
     structs = ['sol_drange', 'sol_irange', 'sol_rgb']
+    packets = []
 
     try:
         for input_json in inputs_list:
@@ -371,6 +491,15 @@ def generate_stub(stub_file, inputs_list, prefix, is_module):
 
     add_empty_line(stub_file)
 
+    # declare all custom packets - structs and functions
+    for data_item in data:
+        if not "types" in data_item:
+            declare_packets(stub_file, data_item, packets)
+        else:
+            for t in data_item["types"]:
+                declare_packets(stub_file, t, packets)
+
+    # declare private data structs
     for data_item in data:
         if not "types" in data_item:
             declare_structs(stub_file, data_item, structs)
@@ -383,6 +512,7 @@ def generate_stub(stub_file, inputs_list, prefix, is_module):
 
                 declare_structs(stub_file, t, structs)
 
+    # declare all node and port methods
     for data_item in data:
         if not "types" in data_item:
             declare_methods(stub_file, data_item, methods)
