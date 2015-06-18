@@ -9,6 +9,9 @@
     {
       "category": "app",
       "description": "Send command line arguments.",
+      "methods": {
+        "open": "argc_open"
+      },
       "in_ports": [
         {
           "data_type": "int",
@@ -29,13 +32,9 @@
         {
           "data_type": "int",
           "description": "Number of arguments.",
-          "methods": {
-            "connect": "argc_connect"
-          },
           "name": "ARGC"
         }
       ],
-      "private_data_type": "args",
       "url": "http://solettaproject.org/doc/latest/node_types/app/argc-argv.html"
     },
     {
@@ -59,13 +58,9 @@
         {
           "data_type": "string",
           "description": "Command line argument at position defined by option 'index'.",
-          "methods": {
-            "connect": "argv_connect"
-          },
           "name": "OUT"
         }
       ],
-      "private_data_type": "args",
       "url": "http://solettaproject.org/doc/latest/node_types/app/argv.html"
     },
     {

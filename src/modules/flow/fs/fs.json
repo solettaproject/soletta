@@ -38,9 +38,6 @@
         {
           "data_type": "boolean",
           "description": "A boolean packet with the persisted value of the node",
-          "methods": {
-            "connect": "fs_persist_connect"
-          },
           "name": "OUT"
         }
       ],
@@ -79,9 +76,6 @@
         {
           "data_type": "byte",
           "description": "A byte packet with the persisted value of the node",
-          "methods": {
-            "connect": "fs_persist_connect"
-          },
           "name": "OUT"
         }
       ],
@@ -120,9 +114,6 @@
         {
           "data_type": "float",
           "description": "A float packet with the persisted value of the node",
-          "methods": {
-            "connect": "fs_persist_connect"
-          },
           "name": "OUT"
         }
       ],
@@ -161,9 +152,6 @@
         {
           "data_type": "int",
           "description": "A int packet with the persisted value of the node",
-          "methods": {
-            "connect": "fs_persist_connect"
-          },
           "name": "OUT"
         }
       ],
@@ -202,9 +190,6 @@
         {
           "data_type": "string",
           "description": "A string packet with the persisted value of the node",
-          "methods": {
-            "connect": "fs_persist_connect"
-          },
           "name": "OUT"
         }
       ],

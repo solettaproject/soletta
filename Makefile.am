@@ -46,6 +46,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src/modules/flow/converter \
 	-I$(top_builddir)/src/modules/flow/evdev \
 	-I$(top_builddir)/src/modules/flow/file \
+	-I$(top_builddir)/src/modules/flow/filter-repeated \
 	-I$(top_builddir)/src/modules/flow/float \
 	-I$(top_builddir)/src/modules/flow/fs \
 	-I$(top_builddir)/src/modules/flow/gpio \

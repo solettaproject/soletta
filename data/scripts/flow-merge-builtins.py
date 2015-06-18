@@ -53,6 +53,7 @@ if __name__ == "__main__":
         lst = []
         merged = {"builtin": lst}
         for module in args.definitions:
+            module = module.replace("_", "-")
             path = os.path.join(args.modules_dir, module) + ".json"
             with open(path, "r") as f:
                 definition = json.load(f)
@@ -65,5 +66,4 @@ if __name__ == "__main__":
     except Exception as e:
         if args.output and args.output.name:
             os.unlink(args.output.name)
-
-
+        raise e

@@ -112,6 +112,9 @@ static int
 test_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     add_event(node, EVENT_NODE_OPEN, 0);
+    if (test_initial_data) {
+        return sol_flow_send_empty_packet(node, 0);
+    }
     return 0;
 }
 
@@ -136,12 +139,9 @@ test_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_t port, u
 }
 
 static int
-test_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
+test_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     add_event(node, EVENT_PORT_OUT_CONNECT, conn_id);
-    if (test_initial_data) {
-        *packet = sol_flow_packet_new_empty();
-    }
     return 0;
 }
 
@@ -164,14 +164,6 @@ static struct sol_flow_port_type_out test_port_out = {
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
     .connect = test_port_out_connect,
     .disconnect = test_port_out_disconnect,
-};
-
-static struct sol_flow_port_type_out test_port_replace_out = {
-    .api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION,
-    .flags = SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET,
-    .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
-    .disconnect = test_port_out_disconnect,
-    .connect = test_port_out_connect,
 };
 
 static struct sol_flow_port_type_in test_port_in = {
@@ -222,7 +214,6 @@ static const struct sol_flow_port_type_in *test_ports_in[] = {
 static const struct sol_flow_port_type_out *test_ports_out[] = {
     &test_port_out,
     &test_port_out,
-    &test_port_replace_out,
     &test_port_match_out,
     &test_port_any_out,
 };
@@ -233,7 +224,6 @@ test_node_get_ports_counts(const struct sol_flow_node_type *type, uint16_t *port
     if (!test_port_in.packet_type) {
         test_port_in.packet_type = SOL_FLOW_PACKET_TYPE_EMPTY;
         test_port_out.packet_type = SOL_FLOW_PACKET_TYPE_EMPTY;
-        test_port_replace_out.packet_type = SOL_FLOW_PACKET_TYPE_EMPTY;
         test_port_match_in.packet_type = SOL_FLOW_PACKET_TYPE_BOOLEAN;
         test_port_match_out.packet_type = SOL_FLOW_PACKET_TYPE_BOOLEAN;
         test_port_any_in.packet_type = SOL_FLOW_PACKET_TYPE_ANY;
@@ -403,38 +393,6 @@ send_packets(void)
         sol_flow_send_empty_packet(node_out, 0);
         ASSERT_EVENT_COUNT(node_in, EVENT_PORT_PROCESS, i);
     }
-
-    sol_flow_node_del(flow);
-}
-
-
-DEFINE_TEST(replace_packets);
-
-static void
-replace_packets(void)
-{
-    struct sol_flow_node *flow, *node_out, *node_in;
-    static const struct sol_flow_static_node_spec nodes[] = {
-        [0] = { .type = &test_node_type, .name = "node out" },
-        [1] = { .type = &test_node_type, .name = "node in" },
-        SOL_FLOW_STATIC_NODE_SPEC_GUARD
-    };
-    static const struct sol_flow_static_conn_spec conns[] = {
-        { .src = 0, .src_port = 2, .dst = 1, .dst_port = 0 },
-        SOL_FLOW_STATIC_CONN_SPEC_GUARD
-    };
-    int i;
-
-    flow = sol_flow_static_new(NULL, nodes, conns);
-    node_out = sol_flow_static_get_node(flow, 0);
-    node_in = sol_flow_static_get_node(flow, 1);
-
-    ASSERT_EVENT_COUNT(node_in, EVENT_PORT_PROCESS, 0);
-
-    for (i = 1; i < 10; i++) {
-        sol_flow_send_empty_packet(node_out, 2);
-    }
-    ASSERT_EVENT_COUNT(node_in, EVENT_PORT_PROCESS, 1);
 
     sol_flow_node_del(flow);
 }
@@ -1086,19 +1044,19 @@ connect_two_nodes_match_packet_types(void)
         SOL_FLOW_STATIC_CONN_SPEC_GUARD
     };
     static const struct sol_flow_static_conn_spec boolean_to_empty_conns[] = {
-        { .src = 0, .src_port = 3, .dst = 1, .dst_port = 0 },
+        { .src = 0, .src_port = 2, .dst = 1, .dst_port = 0 },
         SOL_FLOW_STATIC_CONN_SPEC_GUARD
     };
     static const struct sol_flow_static_conn_spec boolean_to_any_conns[] = {
-        { .src = 0, .src_port = 3, .dst = 1, .dst_port = 3 },
+        { .src = 0, .src_port = 2, .dst = 1, .dst_port = 3 },
         SOL_FLOW_STATIC_CONN_SPEC_GUARD
     };
     static const struct sol_flow_static_conn_spec any_to_empty_conns[] = {
-        { .src = 0, .src_port = 4, .dst = 1, .dst_port = 0 },
+        { .src = 0, .src_port = 3, .dst = 1, .dst_port = 0 },
         SOL_FLOW_STATIC_CONN_SPEC_GUARD
     };
     static const struct sol_flow_static_conn_spec any_to_any_conns[] = {
-        { .src = 0, .src_port = 4, .dst = 1, .dst_port = 3 },
+        { .src = 0, .src_port = 3, .dst = 1, .dst_port = 3 },
         SOL_FLOW_STATIC_CONN_SPEC_GUARD
     };
 
@@ -1138,7 +1096,7 @@ send_packets_match_packet_types(void)
         SOL_FLOW_STATIC_CONN_SPEC_GUARD
     };
     static const struct sol_flow_static_conn_spec conns2[] = {
-        { .src = 0, .src_port = 4, .dst = 1, .dst_port = 0 },
+        { .src = 0, .src_port = 3, .dst = 1, .dst_port = 0 },
         SOL_FLOW_STATIC_CONN_SPEC_GUARD
     };
     int r;

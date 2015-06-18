@@ -14,7 +14,7 @@
           "data_type": "int",
           "description": "First port of MAX operation.",
           "methods": {
-            "process": "irange_process"
+            "process": "min_max_process"
           },
           "name": "IN0"
         },
@@ -22,34 +22,23 @@
           "data_type": "int",
           "description": "Second port of MAX operation.",
           "methods": {
-            "process": "irange_process"
+            "process": "min_max_process"
           },
           "name": "IN1"
         }
       ],
       "methods": {
-        "close": "irange_close",
         "open": "max_open"
       },
       "name": "int/max",
-      "node_type": {
-        "access": [
-          "base"
-        ],
-        "data_type": "struct irange_node_type",
-        "extra_methods": {
-          "custom_process": "max_process"
-        }
-      },
       "out_ports": [
         {
           "data_type": "int",
           "description": "Maximum value between IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_data",
+      "private_data_type": "irange_min_max_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/irange/max.html"
     },
     {
@@ -60,7 +49,7 @@
           "data_type": "int",
           "description": "First port of MIN operation.",
           "methods": {
-            "process": "irange_process"
+            "process": "min_max_process"
           },
           "name": "IN0"
         },
@@ -68,34 +57,23 @@
           "data_type": "int",
           "description": "Second port of MIN operation.",
           "methods": {
-            "process": "irange_process"
+            "process": "min_max_process"
           },
           "name": "IN1"
         }
       ],
       "methods": {
-        "close": "irange_close",
         "open": "min_open"
       },
       "name": "int/min",
-      "node_type": {
-        "access": [
-          "base"
-        ],
-        "data_type": "struct irange_node_type",
-        "extra_methods": {
-          "custom_process": "min_process"
-        }
-      },
       "out_ports": [
         {
           "data_type": "int",
           "description": "Minimum value between IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_data",
+      "private_data_type": "irange_min_max_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/irange/min.html"
     },
     {
@@ -116,11 +94,9 @@
         {
           "data_type": "int",
           "description": "Number's absolute value.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_abs_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/irange/abs.html"
     },
     {
@@ -176,9 +152,6 @@
         {
           "data_type": "int",
           "description": "Updated value after an input is processed.",
-          "methods": {
-            "connect": "accumulator_connect"
-          },
           "name": "OUT"
         },
         {
@@ -224,7 +197,6 @@
         {
           "data_type": "int",
           "description": "Sum of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -260,7 +232,6 @@
         {
           "data_type": "int",
           "description": "Quotient of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -296,7 +267,6 @@
         {
           "data_type": "int",
           "description": "The remainder of values received on ports IN0 divided by values on IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -332,7 +302,6 @@
         {
           "data_type": "int",
           "description": "Product of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -368,7 +337,6 @@
         {
           "data_type": "int",
           "description": "Difference of values received on ports IN0 and IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -401,7 +369,6 @@
         {
           "data_type": "int",
           "description": "The result of a bitwise AND between IN0 and IN1",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -426,7 +393,6 @@
         {
           "data_type": "int",
           "description": "Bitwise NOT of the value received in IN.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -458,7 +424,6 @@
         {
           "data_type": "int",
           "description": "The result of a bitwise OR between IN0 or IN1",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -491,7 +456,6 @@
         {
           "data_type": "int",
           "description": "The value received in IN, shifted SHIFT bits to the left.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -524,7 +488,6 @@
         {
           "data_type": "int",
           "description": "The value received in IN, shifted SHIFT bits to the right (No sign extension).",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -557,7 +520,6 @@
         {
           "data_type": "int",
           "description": "The result of a bitwise XOR between IN0 xor IN1",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -661,7 +623,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is equal to value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -697,7 +658,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is greater than value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -733,7 +693,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is greater than or equal to value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -769,7 +728,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is less than value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -805,7 +763,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is less than or equal to value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -841,7 +798,6 @@
         {
           "data_type": "boolean",
           "description": "True if value received on port IN0 is different from value received on port IN1.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -916,7 +872,6 @@
         {
           "data_type": "int",
           "description": "Outputs the same variable as the input if it's in range, nothing otherwise.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],

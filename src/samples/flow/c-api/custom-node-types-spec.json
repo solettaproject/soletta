@@ -28,9 +28,6 @@
         {
           "data_type": "int",
           "description": "Example output port producing an integer",
-          "methods": {
-            "connect": "reader_out_connect"
-          },
           "name": "OUT"
         }
       ],

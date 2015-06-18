@@ -30,15 +30,12 @@
 
 counter(boolean/counter)
 
-filter_true(boolean/filter)
-filter_false(boolean/filter)
-
 false_1(constant/boolean:value=false) OUT -> IN counter
 true_1(constant/boolean:value=true) OUT -> IN counter
 true_2(constant/boolean:value=true) OUT -> IN counter
 
-counter TRUE -> IN0 true_equals(int/equal)  OUT -> IN filter_true TRUE -> RESULT true_counter(test/result)
-counter FALSE -> IN0 false_equals(int/equal)  OUT -> IN filter_false TRUE -> RESULT false_counter(test/result)
+false_validator(test/int-validator:sequence="1 1 1")
+true_validator(test/int-validator:sequence="0 1 2")
 
-true_count(constant/int:value=2) OUT -> IN1 true_equals
-false_count(constant/int:value=1) OUT -> IN1 false_equals
+counter TRUE -> IN true_validator OUT -> RESULT true_counter(test/result)
+counter FALSE -> IN false_validator OUT -> RESULT false_counter(test/result)

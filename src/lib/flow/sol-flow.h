@@ -351,17 +351,12 @@ struct sol_flow_node_container_type {
     void (*remove)(struct sol_flow_node *container, struct sol_flow_node *node); /**< member function that, if not @c NULL, is issued when child nodes of an insance of this type this are deleted */
 };
 
-enum sol_flow_port_type_flags {
-    SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET = (1 << 0) /**< if set, nodes that send more than one packet to an output port, at the same mainloop iteration, will have only the last one delivered (otherwise all of them get delivered) */
-};
-
 struct sol_flow_port_type_out {
 #define SOL_FLOW_PORT_TYPE_OUT_API_VERSION (1) /**< compile time API version to be checked during runtime */
     uint16_t api_version; /**< must match SOL_FLOW_PORT_TYPE_OUT_API_VERSION at runtime */
-    uint16_t flags; /**< see #sol_flow_port_type_flags */
     const struct sol_flow_packet_type *packet_type; /**< the packet type that the port will deliver */
 
-    int (*connect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet); /**< member function issued everytime a new connection is made to the port (if the output port wants to pass an initial packet at connection time, it must be done via the packet parameter) */
+    int (*connect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued everytime a new connection is made to the port */
     int (*disconnect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued everytime a connection is unmade on the port */
 };
 

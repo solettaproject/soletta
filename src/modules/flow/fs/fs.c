@@ -60,23 +60,6 @@ struct fs_persist_data {
 };
 
 static int
-fs_persist_connect(struct sol_flow_node *node,
-    void *data,
-    uint16_t port,
-    uint16_t conn_id,
-    struct sol_flow_packet **packet)
-{
-    struct fs_persist_data *mdata = data;
-
-    if (mdata->last_set) {
-        *packet = mdata->packet_new_fn(mdata);
-        SOL_NULL_CHECK(*packet, -ENOMEM);
-    }
-
-    return 0;
-}
-
-static int
 fs_persist_open(struct sol_flow_node *node,
     void *data,
     const char *path)
@@ -117,7 +100,7 @@ fs_persist_open(struct sol_flow_node *node,
 
     mdata->last_set = true;
 
-    return 0;
+    return mdata->packet_send_fn(node);
 }
 
 static void
