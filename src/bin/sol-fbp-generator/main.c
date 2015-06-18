@@ -125,7 +125,11 @@ handle_options(const struct sol_fbp_meta *meta, struct sol_vector *options)
             else
                 handle_suboptions(meta, handle_irange_drange_suboption);
         } else if (streq(o->data_type, "string")) {
-            printf("        .%.*s = \"%.*s\",\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
+            if (meta->value.data[0] == '"')
+                printf("        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
+            else
+                printf("        .%.*s = \"%.*s\",\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
+
         } else {
             printf("        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
         }
