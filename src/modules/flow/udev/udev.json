@@ -28,9 +28,6 @@
         {
           "data_type": "boolean",
           "description": "A boolean packet when udev changes. If it's attached true, otherwise false.",
-          "methods": {
-            "connect": "udev_connect"
-          },
           "name": "OUT"
         }
       ],

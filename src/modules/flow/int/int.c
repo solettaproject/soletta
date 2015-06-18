@@ -51,17 +51,6 @@ struct accumulator_data {
 };
 
 static int
-accumulator_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, struct sol_flow_packet **packet)
-{
-    struct accumulator_data *mdata = data;
-
-    *packet = sol_flow_packet_new_irange(&mdata->val);
-    SOL_NULL_CHECK(*packet, -ENOMEM);
-
-    return 0;
-}
-
-static int
 accumulator_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     int32_t tmp;
@@ -100,7 +89,9 @@ accumulator_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 
     mdata->init_val = opts->setup_value.val;
 
-    return 0;
+    return sol_flow_send_irange_packet(node,
+        SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR__OUT__OUT,
+        &mdata->val);
 }
 
 static int
@@ -151,62 +142,6 @@ reset_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
 }
 
 // =============================================================================
-struct irange_data {
-    struct sol_flow_node *node;
-    struct sol_irange *values;
-    struct sol_irange last_output;
-    uint16_t count;
-    bool output_initialized : 1;
-};
-
-struct irange_node_type {
-    struct sol_flow_node_type base;
-    int (*custom_process)(struct irange_data *mdata);
-};
-
-static int
-irange_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_data *mdata = data;
-    uint16_t o;
-
-    mdata->node = node;
-    node->type->get_ports_counts(node->type, &mdata->count, &o);
-    SOL_INT_CHECK(mdata->count, == 0, -EINVAL);
-    mdata->values = calloc(mdata->count, sizeof(struct sol_irange));
-    SOL_NULL_CHECK(mdata->values, -ENOMEM);
-    return 0;
-}
-
-static void
-irange_close(struct sol_flow_node *node, void *data)
-{
-    struct irange_data *mdata = data;
-
-    free(mdata->values);
-}
-
-static int
-irange_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
-    const struct sol_flow_packet *packet)
-{
-    int r;
-    struct sol_irange *in;
-    struct irange_data *mdata = data;
-    const struct irange_node_type *type;
-
-    SOL_INT_CHECK(port, >= mdata->count, -EINVAL);
-
-    in = &mdata->values[port];
-    r = sol_flow_packet_get_irange(packet, in);
-    SOL_INT_CHECK(r, < 0, r);
-
-    type = (const struct irange_node_type *)sol_flow_node_get_type(mdata->node);
-    SOL_NULL_CHECK(type, -EINVAL);
-    return type->custom_process(mdata);
-}
-
-// =============================================================================
 // IRANGE IN RANGE
 // =============================================================================
 
@@ -249,102 +184,80 @@ inrange_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
 }
 
 // =============================================================================
-// IRANGE MAX
+// IRANGE MIN / MAX
 // =============================================================================
+
+struct irange_min_max_data {
+    int val[2];
+    int (*func) (int var0, int var1);
+    uint16_t port;
+    bool val_initialized[2];
+};
 
 static int
-max_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+irange_val_isless(int var0, int var1)
 {
-    int ret;
-    uint16_t i;
-    struct irange_data *mdata = data;
-
-    if ((ret = irange_open(node, data, options)))
-        return ret;
-
-    for (i = 0; i < mdata->count; i++)
-        mdata->values[i].val = INT32_MIN; //Not initializing other values because isn't needed.
-
-    return 0;
+    return var0 < var1;
 }
-
-static int
-max_process(struct irange_data *mdata)
-{
-    uint16_t i;
-    struct sol_irange *result = &mdata->values[0];
-
-    for (i = 1; i < mdata->count; i++) {
-        if (mdata->values[i].val > result->val)
-            result = &mdata->values[i];
-    }
-
-    if (mdata->output_initialized &&
-        sol_irange_equal(&mdata->last_output, result))
-        return 0;
-
-    mdata->last_output = *result;
-    mdata->output_initialized = true;
-
-    return sol_flow_send_irange_packet(mdata->node,
-        SOL_FLOW_NODE_TYPE_INT_MAX__OUT__OUT, result);
-}
-
-// =============================================================================
-// IRANGE MIN
-// =============================================================================
 
 static int
 min_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    int ret;
-    uint16_t i;
-    struct irange_data *mdata = data;
+    struct irange_min_max_data *mdata = data;
 
-    if ((ret = irange_open(node, data, options)))
-        return ret;
-
-    for (i = 0; i < mdata->count; i++)
-        mdata->values[i].val = INT32_MAX; //Not initializing other values because isn't needed.
+    mdata->port = SOL_FLOW_NODE_TYPE_INT_MIN__OUT__OUT;
+    mdata->func = irange_val_isless;
 
     return 0;
 }
 
 static int
-min_process(struct irange_data *mdata)
+irange_val_isgreater(int var0, int var1)
 {
-    uint16_t i;
-    struct sol_irange *result = &mdata->values[0];
+    return var0 > var1;
+}
 
-    for (i = 1; i < mdata->count; i++) {
-        if (mdata->values[i].val < result->val)
-            result = &mdata->values[i];
-    }
+static int
+max_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct irange_min_max_data *mdata = data;
 
-    if (mdata->output_initialized &&
-        sol_irange_equal(&mdata->last_output, result))
+    mdata->port = SOL_FLOW_NODE_TYPE_INT_MAX__OUT__OUT;
+    mdata->func = irange_val_isgreater;
+
+    return 0;
+}
+
+static int
+min_max_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct irange_min_max_data *mdata = data;
+    int *result;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &mdata->val[port]);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->val_initialized[port] = true;
+
+    if (mdata->func(mdata->val[0], mdata->val[1]))
+        result = &mdata->val[0];
+    else
+        result = &mdata->val[1];
+
+    if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
         return 0;
 
-    mdata->last_output = *result;
-    mdata->output_initialized = true;
-
-    return sol_flow_send_irange_packet(mdata->node,
-        SOL_FLOW_NODE_TYPE_INT_MAX__OUT__OUT, result);
+    return sol_flow_send_irange_value_packet(node, mdata->port, *result);
 }
 
 // =============================================================================
 // IRANGE ABS
 // =============================================================================
 
-struct irange_abs_data {
-    int32_t last_output;
-    bool output_initialized : 1;
-};
-
 static int
 abs_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct irange_abs_data *mdata = data;
     int32_t value, result;
     int r;
 
@@ -352,12 +265,6 @@ abs_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     SOL_INT_CHECK(r, < 0, r);
 
     result = abs(value);
-
-    if (mdata->output_initialized && mdata->last_output == value)
-        return 0;
-
-    mdata->last_output = result;
-    mdata->output_initialized = true;
 
     return sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_INT_ABS__OUT__OUT, result);
@@ -426,12 +333,10 @@ int_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 struct irange_arithmetic_data {
     struct sol_irange var0;
     struct sol_irange var1;
-    struct sol_irange last_output;
     int (*func) (const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
     uint16_t port;
     bool var0_initialized : 1;
     bool var1_initialized : 1;
-    bool output_initialized : 1;
 };
 
 static int
@@ -522,14 +427,6 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
         return r;
     }
 
-    /* if nothing has changed there's no need to send another packet */
-    if (mdata->output_initialized &&
-        sol_irange_equal(&mdata->last_output, &value))
-        return 0;
-
-    mdata->last_output = value;
-    mdata->output_initialized = true;
-
     return sol_flow_send_irange_packet(node, mdata->port, &value);
 }
 
@@ -539,7 +436,6 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 
 struct irange_constrain_data {
     struct sol_irange val;
-    bool output_initialized : 1;
     bool use_input_range : 1;
 };
 
@@ -581,13 +477,7 @@ irange_constrain_process(struct sol_flow_node *node, void *data, uint16_t port, 
     }
 
     irange_constrain(&value);
-
-    if (mdata->output_initialized &&
-        sol_irange_equal(&mdata->val, &value))
-        return 0;
-
     mdata->val = value;
-    mdata->output_initialized = true;
 
     return sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_INT_CONSTRAIN__OUT__OUT,
@@ -606,8 +496,6 @@ struct irange_buffer_data {
     size_t cur_len;
     size_t n_samples;
     uint32_t timeout;
-    int32_t last_value;
-    bool is_first : 1;
 };
 
 // =============================================================================
@@ -675,12 +563,6 @@ _irange_buffer_do(struct irange_buffer_data *mdata)
 
     result = mdata->normalize_cb(mdata->input_queue, mdata->cur_len);
 
-    if (mdata->is_first)
-        mdata->is_first = false;
-    else if (result == mdata->last_value)
-        return 0;
-
-    mdata->last_value = result;
     return sol_flow_send_irange_value_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_INT_BUFFER__OUT__OUT, result);
 }
@@ -786,7 +668,6 @@ irange_buffer_open(struct sol_flow_node *node, void *data,
     if (mdata->timeout > 0)
         mdata->timer = sol_timeout_add(mdata->timeout, _timeout, mdata);
 
-    mdata->is_first = true;
     return 0;
 }
 
@@ -1102,7 +983,6 @@ struct irange_map_data {
     struct sol_irange output;
     struct sol_irange output_value;
     bool use_input_range : 1;
-    bool output_initialized : 1;
 };
 
 static int
@@ -1189,11 +1069,7 @@ irange_map_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
     SOL_INT_CHECK(r, < 0, r);
 
-    if (mdata->output_initialized && mdata->output_value.val == out_value)
-        return 0;
-
     mdata->output_value.val = out_value;
-    mdata->output_initialized = true;
 
     return sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_INT_MAP__OUT__OUT,

@@ -44,19 +44,7 @@ struct boolean_data {
     bool init_in1 : 1;
     bool in0 : 1;
     bool in1 : 1;
-    bool is_first : 1;
-    bool result : 1;
 };
-
-static int
-boolean_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct boolean_data *mdata = data;
-
-    mdata->is_first = true;
-
-    return 0;
-}
 
 static int
 two_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out,
@@ -79,13 +67,6 @@ two_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint
 
     if (mdata->init_in0 && mdata->init_in1) {
         b = func(mdata->in0, mdata->in1);
-
-        if (mdata->is_first)
-            mdata->is_first = false;
-        else if (mdata->result == b)
-            return 0;
-
-        mdata->result = b;
         return sol_flow_send_boolean_packet(node, port_out, b);
     }
 
@@ -311,8 +292,6 @@ struct boolean_buffer_data {
     size_t cur_len;
     size_t n_samples;
     uint32_t timeout;
-    bool last_value : 1;
-    bool is_first : 1;
 };
 
 // =============================================================================
@@ -382,13 +361,6 @@ _boolean_buffer_do(struct boolean_buffer_data *mdata)
         return 0;
 
     result = mdata->normalize_cb(mdata->input_queue, mdata->cur_len);
-
-    if (mdata->is_first)
-        mdata->is_first = false;
-    else if (result == mdata->last_value)
-        return 0;
-
-    mdata->last_value = result;
     return sol_flow_send_boolean_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_BOOLEAN_BUFFER__OUT__OUT, result);
 }
@@ -493,7 +465,6 @@ boolean_buffer_open(struct sol_flow_node *node, void *data,
     if (mdata->timeout > 0)
         mdata->timer = sol_timeout_add(mdata->timeout, _timeout, mdata);
 
-    mdata->is_first = true;
     return 0;
 }
 

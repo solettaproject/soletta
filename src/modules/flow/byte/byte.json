@@ -32,7 +32,6 @@
         {
           "data_type": "byte",
           "description": "The result of a bitwise AND between IN0 and IN1",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -57,7 +56,6 @@
         {
           "data_type": "byte",
           "description": "Bitwise NOT of the value received in IN.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -89,7 +87,6 @@
         {
           "data_type": "byte",
           "description": "The result of a bitwise OR between IN0 or IN1",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -122,7 +119,6 @@
         {
           "data_type": "byte",
           "description": "The value received in IN, shifted SHIFT bits to the left.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -155,7 +151,6 @@
         {
           "data_type": "byte",
           "description": "The value received in IN, shifted SHIFT bits to the right (No sign extension).",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -188,7 +183,6 @@
         {
           "data_type": "byte",
           "description": "The result of a bitwise XOR between IN0 xor IN1",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
@@ -216,7 +210,6 @@
         {
           "data_type": "byte",
           "description": "Outputs the same variable as the input if it's in range, nothing otherwise.",
-          "flags": "SOL_FLOW_PORT_TYPE_FLAGS_REPLACE_PACKET",
           "name": "OUT"
         }
       ],
