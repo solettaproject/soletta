@@ -454,7 +454,8 @@ irange_constrain_open(struct sol_flow_node *node, void *data, const struct sol_f
 static void
 irange_constrain(struct sol_irange *value)
 {
-    value->val -= (value->val - value->min) % value->step;
+    if (value->step)
+        value->val -= (value->val - value->min) % value->step;
     if (value->val < value->min) value->val = value->min;
     if (value->val > value->max) value->val = value->max;
 }
