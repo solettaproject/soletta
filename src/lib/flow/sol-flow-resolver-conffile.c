@@ -37,6 +37,7 @@
 #include "sol-flow-internal.h"
 #include "sol-flow-resolver.h"
 #include "sol-str-slice.h"
+#include "sol-util.h"
 
 struct resolve_module_type_foreach_ctx {
     const char *name;
@@ -117,7 +118,7 @@ _resolver_conffile_get_module(const char *type)
     struct resolver_conffile_dlopen *entry;
     const struct sol_flow_node_type *ret;
     struct sol_str_slice module_name;
-    char path[PATH_MAX];
+    char path[PATH_MAX], install_rootdir[PATH_MAX] = {NULL};
     char *name;
     int r;
 
@@ -155,8 +156,13 @@ _resolver_conffile_get_module(const char *type)
     }
 
     entry->name = name;
-    r = snprintf(path, sizeof(path), "%s/%s.so",
-        FLOWMODULESDIR, name);
+
+    r = sol_util_get_rootdir(install_rootdir, sizeof(install_rootdir));
+    if (r < 0 || r >= (int)sizeof(path))
+        goto error;
+
+    r = snprintf(path, sizeof(path), "%s%s/%s.so",
+        install_rootdir, FLOWMODULESDIR, name);
     if (r < 0 || r >= (int)sizeof(path))
         goto error;
 
