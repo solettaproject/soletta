@@ -53,6 +53,7 @@ timer_tick(void *data)
 
     val = sol_vector_get(&mdata->values, mdata->next_index);
     output.val = *val;
+    output.step = 1;
     sol_flow_send_irange_packet(node, SOL_FLOW_NODE_TYPE_TEST_INT_GENERATOR__OUT__OUT, &output);
     mdata->next_index++;
 
