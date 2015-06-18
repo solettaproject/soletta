@@ -321,7 +321,6 @@ flow_send_do(struct sol_flow_node *flow, struct flow_static_data *fsd, uint16_t 
                 /* Export the packet. Note that ownership of packet
                  * will pass to the send() function. */
                 sol_flow_send_packet(flow, exported_out, packet);
-                dispatched = true;
                 return;
             }
         }
