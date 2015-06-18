@@ -2,8 +2,6 @@ The input format used to describe flows is based on
 https://github.com/noflo/fbp/blob/master/README.md with some
 differences described below
 
-* Notation for ARRAY ports is still not supported.
-
 * Accepts ':' and '|' in the meta section.
 
 * Statements with zero connections, just a node alone.

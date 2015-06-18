@@ -1039,7 +1039,8 @@ byte_to_bits_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
         if (mdata->output_initialized && last_bit == next_bit)
             continue;
 
-        sol_flow_send_boolean_packet(node, i, next_bit);
+        sol_flow_send_boolean_packet(node,
+            SOL_FLOW_NODE_TYPE_CONVERTER_BYTE_TO_BITS__OUT__OUT_0 + i, next_bit);
     }
 
     mdata->last = in_val;
@@ -1388,8 +1389,9 @@ static int
 irange_compose_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     struct sol_converter_irange_compose *mdata = data;
+    int idx = port - SOL_FLOW_NODE_TYPE_CONVERTER_INT_COMPOSE__IN__IN_0;
 
-    mdata->connected_ports |= 1 << port;
+    mdata->connected_ports |= 1 << idx;
     return 0;
 }
 
@@ -1398,6 +1400,7 @@ irange_compose(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
 {
     struct sol_converter_irange_compose *mdata = data;
     struct sol_irange out_val = { .min = INT32_MIN, .max = INT32_MAX, .step = 1 };
+    int idx = port - SOL_FLOW_NODE_TYPE_CONVERTER_INT_COMPOSE__IN__IN_0;
     unsigned int tmp;
     unsigned char in_val;
     int r;
@@ -1405,10 +1408,10 @@ irange_compose(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     r = sol_flow_packet_get_byte(packet, &in_val);
     SOL_INT_CHECK(r, < 0, r);
 
-    mdata->port_has_value |= 1 << port;
+    mdata->port_has_value |= 1 << idx;
 
-    tmp = mdata->output_value & ~(0xff << (port * CHAR_BIT));
-    tmp |= in_val << (port * CHAR_BIT);
+    tmp = mdata->output_value & ~(0xff << (idx * CHAR_BIT));
+    tmp |= in_val << (idx * CHAR_BIT);
     mdata->output_value = tmp;
 
     if (mdata->port_has_value != mdata->connected_ports)
@@ -1431,10 +1434,10 @@ irange_decompose(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     value = (unsigned)in.val;
     for (i = 0; i < 4; i++) {
         uint16_t out_port[] = {
-            SOL_FLOW_NODE_TYPE_CONVERTER_INT_DECOMPOSE__OUT__OUT0,
-            SOL_FLOW_NODE_TYPE_CONVERTER_INT_DECOMPOSE__OUT__OUT1,
-            SOL_FLOW_NODE_TYPE_CONVERTER_INT_DECOMPOSE__OUT__OUT2,
-            SOL_FLOW_NODE_TYPE_CONVERTER_INT_DECOMPOSE__OUT__OUT3
+            SOL_FLOW_NODE_TYPE_CONVERTER_INT_DECOMPOSE__OUT__OUT_0,
+            SOL_FLOW_NODE_TYPE_CONVERTER_INT_DECOMPOSE__OUT__OUT_1,
+            SOL_FLOW_NODE_TYPE_CONVERTER_INT_DECOMPOSE__OUT__OUT_2,
+            SOL_FLOW_NODE_TYPE_CONVERTER_INT_DECOMPOSE__OUT__OUT_3
         };
         unsigned char byte;
         byte = value & 0xff;
@@ -1467,8 +1470,9 @@ static int
 bits_to_byte_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
     struct sol_converter_bits *mdata = data;
+    int idx = port - SOL_FLOW_NODE_TYPE_CONVERTER_BITS_TO_BYTE__IN__IN_0;
 
-    mdata->connected_ports |= 1 << port;
+    mdata->connected_ports |= 1 << idx;
     return 0;
 }
 
@@ -1481,17 +1485,18 @@ static int
 bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_converter_bits *mdata = data;
+    int idx = port - SOL_FLOW_NODE_TYPE_CONVERTER_BITS_TO_BYTE__IN__IN_0;
     bool in_val;
 
     sol_flow_packet_get_boolean(packet, &in_val);
 
-    if ((mdata->output_initialized >> port) & 1) {
-        if ((mdata->last >> port) == in_val)
+    if ((mdata->output_initialized >> idx) & 1) {
+        if ((mdata->last >> idx) == in_val)
             return 0;
     } else
-        mdata->output_initialized |= 1 << port;
+        mdata->output_initialized |= 1 << idx;
 
-    SET_BIT(mdata->last, port, in_val);
+    SET_BIT(mdata->last, idx, in_val);
 
     if (mdata->output_initialized != mdata->connected_ports)
         return 0;

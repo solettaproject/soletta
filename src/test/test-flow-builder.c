@@ -274,10 +274,10 @@ connect_two_nodes(void)
     sol_flow_builder_add_node(builder, "node1", &test_node_type, NULL);
     sol_flow_builder_add_node(builder, "node2", &test_node_type, NULL);
 
-    sol_flow_builder_connect(builder, "node1", "OUT1", "node2", "IN2");
-    sol_flow_builder_connect(builder, "node1", "OUT2", "node2", "IN1");
-    sol_flow_builder_connect(builder, "node2", "OUT1", "node1", "IN1");
-    sol_flow_builder_connect(builder, "node2", "OUT2", "node1", "IN1");
+    sol_flow_builder_connect(builder, "node1", "OUT1", -1, "node2", "IN2", -1);
+    sol_flow_builder_connect(builder, "node1", "OUT2", -1, "node2", "IN1", -1);
+    sol_flow_builder_connect(builder, "node2", "OUT1", -1, "node1", "IN1", -1);
+    sol_flow_builder_connect(builder, "node2", "OUT2", -1, "node1", "IN1", -1);
 
     node_type = sol_flow_builder_get_node_type(builder);
 
@@ -316,8 +316,8 @@ connections_nodes_are_ordered(void)
     sol_flow_builder_add_node(builder, "node2", &test_node_type, NULL);
 
     /* nodes out of order */
-    sol_flow_builder_connect(builder, "node2", "OUT1", "node1", "IN1");
-    sol_flow_builder_connect(builder, "node1", "OUT1", "node2", "IN1");
+    sol_flow_builder_connect(builder, "node2", "OUT1", -1, "node1", "IN1", -1);
+    sol_flow_builder_connect(builder, "node1", "OUT1", -1, "node2", "IN1", -1);
 
     node_type = sol_flow_builder_get_node_type(builder);
 
@@ -345,8 +345,8 @@ connections_ports_are_ordered(void)
     sol_flow_builder_add_node(builder, "node2", &test_node_type, NULL);
 
     /* ports out of order */
-    sol_flow_builder_connect(builder, "node1", "OUT2", "node2", "IN1");
-    sol_flow_builder_connect(builder, "node1", "OUT1", "node2", "IN2");
+    sol_flow_builder_connect(builder, "node1", "OUT2", -1, "node2", "IN1", -1);
+    sol_flow_builder_connect(builder, "node1", "OUT1", -1, "node2", "IN2", -1);
 
     node_type = sol_flow_builder_get_node_type(builder);
 
@@ -425,12 +425,12 @@ ports_can_be_exported(void)
 
     sol_flow_builder_add_node(builder, "node", &test_node_type, NULL);
     sol_flow_builder_add_node(builder, "other", &test_node_type, NULL);
-    sol_flow_builder_connect(builder, "node", "OUT2", "other", "IN2");
+    sol_flow_builder_connect(builder, "node", "OUT2", -1, "other", "IN2", -1);
 
-    ret = sol_flow_builder_export_in_port(builder, "node", "IN1", in_name);
+    ret = sol_flow_builder_export_in_port(builder, "node", "IN1", -1, in_name);
     ASSERT(ret >= 0);
 
-    ret = sol_flow_builder_export_out_port(builder, "other", "OUT2", out_name);
+    ret = sol_flow_builder_export_out_port(builder, "other", "OUT2", -1, out_name);
     ASSERT(ret >= 0);
 
     type = sol_flow_builder_get_node_type(builder);

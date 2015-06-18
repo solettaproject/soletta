@@ -502,8 +502,8 @@ build_flow(struct parse_state *state)
             goto end;
 
         err = sol_flow_builder_connect(state->builder,
-            state->node_names[c->src], src_port_buf.data,
-            state->node_names[c->dst], dst_port_buf.data);
+            state->node_names[c->src], src_port_buf.data, c->src_port_idx,
+            state->node_names[c->dst], dst_port_buf.data, c->dst_port_idx);
         if (err < 0) {
             sol_fbp_log_print(state->filename, c->position.line, c->position.column,
                 "Couldn't connect '%s %s -> %s %s'",
@@ -529,7 +529,7 @@ build_flow(struct parse_state *state)
 
         sol_flow_builder_export_in_port(
             state->builder, state->node_names[ep->node],
-            dst_port_buf.data, exported_name);
+            dst_port_buf.data, ep->port_idx, exported_name);
     }
 
     SOL_VECTOR_FOREACH_IDX (&graph->exported_out_ports, ep, i) {
@@ -548,7 +548,7 @@ build_flow(struct parse_state *state)
 
         sol_flow_builder_export_out_port(
             state->builder, state->node_names[ep->node],
-            src_port_buf.data, exported_name);
+            src_port_buf.data, ep->port_idx, exported_name);
     }
 
     type = sol_flow_builder_get_node_type(state->builder);

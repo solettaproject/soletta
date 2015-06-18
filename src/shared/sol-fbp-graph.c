@@ -211,8 +211,8 @@ sol_fbp_graph_add_out_port(struct sol_fbp_graph *g,
 
 int
 sol_fbp_graph_add_conn(struct sol_fbp_graph *g,
-    int src, struct sol_str_slice src_port,
-    int dst, struct sol_str_slice dst_port,
+    int src, struct sol_str_slice src_port, int src_port_idx,
+    int dst, struct sol_str_slice dst_port, int dst_port_idx,
     struct sol_fbp_position position)
 {
     struct sol_fbp_conn *conn;
@@ -226,6 +226,8 @@ sol_fbp_graph_add_conn(struct sol_fbp_graph *g,
 
     SOL_VECTOR_FOREACH_IDX (&g->conns, conn, i) {
         if (conn->src == src && conn->dst == dst
+            && conn->src_port_idx == src_port_idx
+            && conn->dst_port_idx == dst_port_idx
             && sol_str_slice_eq(conn->src_port, src_port)
             && sol_str_slice_eq(conn->dst_port, dst_port))
             return -EEXIST;
@@ -236,15 +238,17 @@ sol_fbp_graph_add_conn(struct sol_fbp_graph *g,
 
     conn->src = src;
     conn->src_port = src_port;
+    conn->src_port_idx = src_port_idx;
     conn->dst = dst;
     conn->dst_port = dst_port;
+    conn->dst_port_idx = dst_port_idx;
     conn->position = position;
     return i;
 }
 
 int
 sol_fbp_graph_add_exported_in_port(struct sol_fbp_graph *g,
-    int node, struct sol_str_slice port, struct sol_str_slice exported_name,
+    int node, struct sol_str_slice port, int port_idx, struct sol_str_slice exported_name,
     struct sol_fbp_position position, struct sol_fbp_exported_port **out_ep)
 {
     struct sol_fbp_exported_port *ep;
@@ -256,7 +260,9 @@ sol_fbp_graph_add_exported_in_port(struct sol_fbp_graph *g,
             err = -EEXIST;
             goto end;
         }
-        if (ep->node == node && sol_str_slice_eq(ep->port, port)) {
+        if (ep->node == node && (ep->port_idx == port_idx
+                || (ep->port_idx == -1 || port_idx == -1))
+                && sol_str_slice_eq(ep->port, port)) {
             err = -EADDRINUSE;
             goto end;
         }
@@ -267,6 +273,7 @@ sol_fbp_graph_add_exported_in_port(struct sol_fbp_graph *g,
 
     ep->node = node;
     ep->port = port;
+    ep->port_idx = port_idx;
     ep->exported_name = exported_name;
     ep->position = position;
     err = 0;
@@ -279,7 +286,7 @@ end:
 
 int
 sol_fbp_graph_add_exported_out_port(struct sol_fbp_graph *g,
-    int node, struct sol_str_slice port, struct sol_str_slice exported_name,
+    int node, struct sol_str_slice port, int port_idx, struct sol_str_slice exported_name,
     struct sol_fbp_position position, struct sol_fbp_exported_port **out_ep)
 {
     struct sol_fbp_exported_port *ep;
@@ -291,7 +298,9 @@ sol_fbp_graph_add_exported_out_port(struct sol_fbp_graph *g,
             err = -EEXIST;
             goto end;
         }
-        if (ep->node == node && sol_str_slice_eq(ep->port, port)) {
+        if (ep->node == node && (ep->port_idx == port_idx
+                || (ep->port_idx == -1 || port_idx == -1))
+                && sol_str_slice_eq(ep->port, port)) {
             err = -EADDRINUSE;
             goto end;
         }
@@ -302,6 +311,7 @@ sol_fbp_graph_add_exported_out_port(struct sol_fbp_graph *g,
 
     ep->node = node;
     ep->port = port;
+    ep->port_idx = port_idx;
     ep->exported_name = exported_name;
     ep->position = position;
     err = 0;
