@@ -30,19 +30,75 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
 
-{{
-st.on_value("SOL_PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-}}
+#include "sol-log-impl.h"
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-}}
+int
+sol_log_impl_init(void)
+{
+    return 0;
+}
 
-#ifdef SOL_PLATFORM_LINUX
-#define SOL_MAINLOOP_FD_ENABLED 1
-#define SOL_MAINLOOP_FORK_WATCH_ENABLED 1
-#endif
+void
+sol_log_impl_shutdown(void)
+{
+}
+
+bool
+sol_log_impl_lock(void)
+{
+    return true;
+}
+
+void
+sol_log_impl_unlock(void)
+{
+}
+
+void
+sol_log_impl_domain_init_level(struct sol_log_domain *domain)
+{
+    domain->level = _global_domain.level;
+}
+
+void
+sol_log_impl_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
+{
+    const char *name = domain->name ? domain->name : "";
+    char level_str[4];
+    size_t len;
+    int errno_bkp = errno;
+
+    sol_log_level_to_str(message_level, level_str, sizeof(level_str));
+
+    if (_show_file && _show_function && _show_line) {
+        fprintf(stderr, "%s:%s %s:%d %s() ",
+            level_str, name, file, line, function);
+    } else {
+        fprintf(stderr, "%s:%s ", level_str, name);
+
+        if (_show_file)
+            fputs(file, stderr);
+        if (_show_file && _show_line)
+            fputc(':', stderr);
+        if (_show_line)
+            fprintf(stderr, "%d", line);
+
+        if (_show_file || _show_line)
+            fputc(' ', stderr);
+
+        if (_show_function)
+            fprintf(stderr, "%s() ", function);
+    }
+
+    errno = errno_bkp;
+    vfprintf(stderr, format, args);
+
+    len = strlen(format);
+    if (len > 0 && format[len - 1] != '\n')
+        fputc('\n', stderr);
+    fflush(stderr);
+}

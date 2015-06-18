@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "sol-common-buildopts.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -160,6 +162,27 @@ struct sol_main_callbacks {
     void (*shutdown)(void);
 };
 
+#ifdef SOL_PLATFORM_CONTIKI
+#include "sol-mainloop-contiki.h"
+
+#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN)               \
+    PROCESS(soletta_app_process, "soletta app process");  \
+    AUTOSTART_PROCESSES(&soletta_app_process);            \
+    PROCESS_THREAD(soletta_app_process, ev, data)         \
+    {                                                     \
+        sol_mainloop_contiki_event_set(ev, data);         \
+        PROCESS_BEGIN();                                  \
+        if (sol_init() < 0)                               \
+            return EXIT_FAILURE;                          \
+        STARTUP();                                        \
+        sol_run();                                        \
+        while (sol_mainloop_contiki_iter())               \
+            PROCESS_WAIT_EVENT();                         \
+        SHUTDOWN();                                       \
+        sol_shutdown();                                   \
+        PROCESS_END();                                    \
+    }
+#else
 #define SOL_MAIN(CALLBACKS)                                          \
     int main(int argc, char *argv[]) {                              \
         return sol_mainloop_default_main(&(CALLBACKS), argc, argv);  \
@@ -172,6 +195,7 @@ struct sol_main_callbacks {
         .shutdown = (SHUTDOWN),                                         \
     };                                                                  \
     SOL_MAIN(sol_main_callbacks_instance)
+#endif
 
 /* Internal. */
 int sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, char *argv[]);

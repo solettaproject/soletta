@@ -294,6 +294,7 @@ sol_mainloop_common_idler_first(void)
     return NULL;
 }
 
+#ifndef SOL_PLATFORM_CONTIKI
 void
 sol_mainloop_impl_run(void)
 {
@@ -306,6 +307,7 @@ sol_mainloop_impl_run(void)
     while (sol_mainloop_common_loop_check())
         sol_mainloop_impl_iter();
 }
+#endif
 
 void
 sol_mainloop_impl_quit(void)
