@@ -33,6 +33,7 @@ filter_byte(filter-repeated/byte)
 filter_float(filter-repeated/float)
 filter_int(filter-repeated/int)
 filter_rgb(filter-repeated/rgb)
+filter_direction_vector(filter-repeated/direction-vector)
 filter_string(filter-repeated/string)
 
 gen_boolean(test/boolean-generator:sequence="TTFFFTT")
@@ -69,6 +70,20 @@ rgb3 OUT -> IN filter_rgb
 rgb4 OUT -> IN filter_rgb
 rgb5 OUT -> IN filter_rgb
 validator_green OUT -> RESULT filter_repeated_rgb(test/result)
+
+direction_vector_1(constant/direction-vector:value=x:255|y:10|z:100)
+direction_vector_2(constant/direction-vector:value="240|10|100")
+direction_vector_3(constant/direction-vector:value="240|10|100")
+direction_vector_4(constant/direction-vector:value="240|100|100")
+direction_vector_5(constant/direction-vector:value="240|100|100")
+direction_vector_int(converter/direction-vector-to-int)
+validator_y(test/int-validator:sequence="10 10 100")
+direction_vector_1 OUT -> IN filter_direction_vector OUT -> IN direction_vector_int Y -> IN validator_y
+direction_vector_2 OUT -> IN filter_direction_vector
+direction_vector_3 OUT -> IN filter_direction_vector
+direction_vector_4 OUT -> IN filter_direction_vector
+direction_vector_5 OUT -> IN filter_direction_vector
+validator_y OUT -> RESULT filter_repeated_direction_vector(test/result)
 
 string1(constant/string:value="Hello")
 string2(constant/string:value="Hello")

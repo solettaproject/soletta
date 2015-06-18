@@ -293,6 +293,71 @@ rgb_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
 }
 
 /*
+ *----------------------- direction_vector --------------------------
+ */
+static void
+direction_vector_read_data(void *data, int fd)
+{
+    struct unix_socket_data *mdata = data;
+    struct sol_direction_vector direction_vector;
+
+    if (socket_read(fd, &direction_vector, sizeof(direction_vector)) < 0)
+        return;
+
+    sol_flow_send_direction_vector_packet(mdata->node,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_DIRECTION_VECTOR_READER__OUT__OUT, &direction_vector);
+}
+
+static int
+direction_vector_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct unix_socket_data *mdata = data;
+    struct sol_flow_node_type_unix_socket_direction_vector_reader_options *opts =
+        (struct sol_flow_node_type_unix_socket_direction_vector_reader_options *)options;
+
+    mdata->node = node;
+    if (opts->server)
+        mdata->un_socket = unix_socket_server_new(mdata, opts->path, direction_vector_read_data);
+    else
+        mdata->un_socket = unix_socket_client_new(mdata, opts->path, direction_vector_read_data);
+
+    SOL_NULL_CHECK(mdata->un_socket, -1);
+
+    return 0;
+}
+
+static int
+direction_vector_writer_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct unix_socket_data *mdata = data;
+    struct sol_direction_vector direction_vector;
+    int r;
+
+    r = sol_flow_packet_get_direction_vector(packet, &direction_vector);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return unix_socket_write(mdata->un_socket, &direction_vector, sizeof(direction_vector));
+}
+
+static int
+direction_vector_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct unix_socket_data *mdata = data;
+    struct sol_flow_node_type_unix_socket_direction_vector_writer_options *opts =
+        (struct sol_flow_node_type_unix_socket_direction_vector_writer_options *)options;
+
+    mdata->node = node;
+    if (opts->server)
+        mdata->un_socket = unix_socket_server_new(mdata, opts->path, NULL);
+    else
+        mdata->un_socket = unix_socket_client_new(mdata, opts->path, NULL);
+
+    SOL_NULL_CHECK(mdata->un_socket, -1);
+
+    return 0;
+}
+
+/*
  *----------------------- byte --------------------------
  */
 static void

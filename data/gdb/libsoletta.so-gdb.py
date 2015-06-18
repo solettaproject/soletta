@@ -68,6 +68,7 @@ defvalue_member_map = {
     "int": "i",
     "float": "f",
     "rgb": "rgb",
+    "direction_vector": "direction_vector",
     }
 
 def get_type_description(type):

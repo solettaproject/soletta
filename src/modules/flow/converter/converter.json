@@ -514,6 +514,49 @@
     },
     {
       "category": "converter",
+      "description": "Receives byte packets and convert to direction vector",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte value for x component.",
+          "methods": {
+            "process": "byte_to_direction_vector_convert"
+          },
+          "name": "X"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for y component.",
+          "methods": {
+            "process": "byte_to_direction_vector_convert"
+          },
+          "name": "Y"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for z component.",
+          "methods": {
+            "process": "byte_to_direction_vector_convert"
+          },
+          "name": "Z"
+        }
+      ],
+      "methods": {
+        "open": "byte_to_direction_vector_open"
+      },
+      "name": "converter/byte-to-direction-vector",
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Bytes converted to direction vector.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_direction_vector",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/byte-to-direction-vector.html"
+    },
+    {
+      "category": "converter",
       "description": "Receives a byte packet and convert to string.",
       "in_ports": [
         {
@@ -744,6 +787,63 @@
       ],
       "private_data_type": "sol_converter_rgb",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/float-to-rgb.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives float packets and converts to direction vector ones.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Float value for x component.",
+          "methods": {
+            "process": "drange_to_direction_vector_convert"
+          },
+          "name": "X"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for y component.",
+          "methods": {
+            "process": "drange_to_direction_vector_convert"
+          },
+          "name": "Y"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for z component.",
+          "methods": {
+            "process": "drange_to_direction_vector_convert"
+          },
+          "name": "Z"
+        }
+      ],
+      "methods": {
+        "open": "drange_to_direction_vector_open"
+      },
+      "name": "converter/float-to-direction-vector",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "default": {
+              "max": "DBL_MAX",
+              "min": "-DBL_MAX"
+            },
+            "description": "Range of output packet.",
+            "name": "out_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Float values converted to direction vector.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_direction_vector",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/float-to-direction-vector.html"
     },
     {
       "category": "converter",
@@ -1322,6 +1422,113 @@
     },
     {
       "category": "converter",
+      "description": "Receives direction vector packets and converts to RGB ones.",
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Input for direction vector packets to be converted.",
+          "methods": {
+            "process": "direction_vector_to_rgb_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "direction_vector_to_rgb_open"
+      },
+      "name": "converter/direction-vector-to-rgb",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of red component. Minimum is set to zero.",
+            "name": "red_max"
+          },
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of green component. Minimum is set to zero.",
+            "name": "green_max"
+          },
+          {
+            "data_type": "int",
+            "default": 255,
+            "description": "Max value of blue component. Minimum is set to zero.",
+            "name": "blue_max"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Direction vector values converted to RGB.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_rgb",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/int-to-rgb.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives int packets and converts a to direction vector one.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Int value for x component.",
+          "methods": {
+            "process": "irange_to_direction_vector_convert"
+          },
+          "name": "X"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for y component.",
+          "methods": {
+            "process": "irange_to_direction_vector_convert"
+          },
+          "name": "Y"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for z component.",
+          "methods": {
+            "process": "irange_to_direction_vector_convert"
+          },
+          "name": "Z"
+        }
+      ],
+      "methods": {
+        "open": "irange_to_direction_vector_open"
+      },
+      "name": "converter/int-to-direction-vector",
+      "options": {
+        "members": [
+          {
+            "data_type": "float",
+            "default": {
+              "max": "DBL_MAX",
+              "min": "-DBL_MAX"
+            },
+            "description": "Range of output packet.",
+            "name": "out_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Int values converted to direction vector.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_direction_vector",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/int-to-direction-vector.html"
+    },
+    {
+      "category": "converter",
       "description": "Receives an int packet and convert to string.",
       "in_ports": [
         {
@@ -1441,6 +1648,128 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/converter/rgb-to-int.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives RGB packets and convert to direction vector ones.",
+      "in_ports": [
+        {
+          "data_type": "rgb",
+          "description": "RGB to be converted.",
+          "methods": {
+            "process": "rgb_to_direction_vector_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/rgb-to-direction-vector",
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Dimensional vector packet",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/rgb-to-direction-vector.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives direction vector packets and converts to bytes.",
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "direction vector to be decomposed.",
+          "methods": {
+            "process": "direction_vector_to_byte_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/direction-vector-to-byte",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte value for x component.",
+          "name": "X"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for y component.",
+          "name": "Y"
+        },
+        {
+          "data_type": "byte",
+          "description": "Byte value for z component.",
+          "name": "Z"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/direction-vector-to-byte.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives direction vector packets and converts to float values.",
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "direction vector to be decomposed.",
+          "methods": {
+            "process": "direction_vector_to_drange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/direction-vector-to-float",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Float value for x component.",
+          "name": "X"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for y component.",
+          "name": "Y"
+        },
+        {
+          "data_type": "float",
+          "description": "Float value for z component.",
+          "name": "Z"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/direction-vector-to-float.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives direction vector packets and converts to RGB.",
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "direction vector to be decomposed.",
+          "methods": {
+            "process": "direction_vector_to_irange_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/direction-vector-to-int",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Int value for x component.",
+          "name": "X"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for y component.",
+          "name": "Y"
+        },
+        {
+          "data_type": "int",
+          "description": "Int value for z component.",
+          "name": "Z"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/direction-vector-to-int.html"
     },
     {
       "category": "converter",

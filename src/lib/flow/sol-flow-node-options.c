@@ -392,6 +392,85 @@ err:
 }
 
 
+static int
+direction_vector_parse(const struct sol_flow_node_options_member_description *member,
+    const char *value,
+    struct sol_direction_vector *ret)
+{
+    char *buf;
+    int field_cnt = 0;
+    bool keys_schema = false;
+    char *min, *max, *x, *y, *z;
+    bool min_done = false, max_done = false,
+         x_done = false, y_done = false, z_done = false;
+    static const char DBL_MAX_STR[] = "DBL_MAX";
+    static const char DBL_MIN_STR[] = "-DBL_MAX";
+    static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
+    static const size_t DBL_MIN_STR_LEN = sizeof(DBL_MIN_STR) - 1;
+    double *store_vals[] = { &ret->x, &ret->y, &ret->z, &ret->min, &ret->max };
+
+    buf = strdup(value);
+
+    ASSIGN_KEY_VAL(double, x, strtod, false,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+    ASSIGN_KEY_VAL(double, y, strtod, false,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+    ASSIGN_KEY_VAL(double, z, strtod, false,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+    ASSIGN_KEY_VAL(double, min, strtod, false,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+    ASSIGN_KEY_VAL(double, max, strtod, false,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+
+    if (keys_schema) {
+        if (!x_done) ret->x = 0;
+        if (!y_done) ret->y = 0;
+        if (!z_done) ret->z = 0;
+        if (!min_done) ret->min = -DBL_MAX;
+        if (!max_done) ret->max = DBL_MAX;
+    }
+
+    ASSIGN_LINEAR_VALUES(strtod,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+
+    switch (field_cnt) {
+    case 1:
+        ret->y = 0;
+    case 2:
+        ret->z = 0;
+    case 3:
+        ret->min = -DBL_MAX;
+    case 4:
+        ret->max = DBL_MAX;
+    default:
+        break;
+    }
+
+    SOL_DBG("direction_vector opt ends up as x=%lf, y=%lf, z=%lf, min=%lf, max=%lf\n",
+        ret->x, ret->y, ret->z, ret->min, ret->max);
+
+    free(buf);
+    return 0;
+
+err:
+    SOL_ERR("Invalid direction_vector value for option name=\"%s\": \"%s\"."
+        " Please use the formats"
+        " \"<x_value>|<y_value>|<z_value>|<min_value>|<max_value>\","
+        " in that order, or \"<key>:<value>|<...>\", for keys in "
+        "[x, y, z, min, max], in any order. Values may be the "
+        "special strings DBL_MAX and -DBL_MAX. Don't use commas "
+        "on the numbers",
+        member->name, value);
+    free(buf);
+    return -EINVAL;
+}
+
 #undef STRTOL_DECIMAL
 #undef KEY_VALUES_RECAP
 #undef LINEAR_VALUES_RECAP
@@ -442,6 +521,10 @@ member_parse(const struct sol_flow_node_options_description *desc, const struct 
     } else if (streq(t, "rgb")) {
         struct sol_rgb *rgb = mem;
         int r = rgb_parse(member, value, rgb);
+        SOL_INT_CHECK(r, < 0, r);
+    } else if (streq(t, "direction-vector")) {
+        struct sol_direction_vector *direction_vector = mem;
+        int r = direction_vector_parse(member, value, direction_vector);
         SOL_INT_CHECK(r, < 0, r);
     } else {
         SOL_WRN("Unsupported member parse #%u "

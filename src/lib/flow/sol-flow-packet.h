@@ -81,6 +81,7 @@ extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DRANGE;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_ANY;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_ERROR;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_RGB;
+extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
 
 /* Convenience functions to use certain types of common packets. */
 struct sol_flow_packet *sol_flow_packet_new_empty(void);
@@ -115,6 +116,11 @@ struct sol_flow_packet *sol_flow_packet_new_rgb(const struct sol_rgb *rgb);
 struct sol_flow_packet *sol_flow_packet_new_rgb_components(uint32_t red, uint32_t green, uint32_t blue);
 int sol_flow_packet_get_rgb(const struct sol_flow_packet *packet, struct sol_rgb *rgb);
 int sol_flow_packet_get_rgb_components(const struct sol_flow_packet *packet, uint32_t *red, uint32_t *green, uint32_t *blue);
+
+struct sol_flow_packet *sol_flow_packet_new_direction_vector(const struct sol_direction_vector *direction_vector);
+struct sol_flow_packet *sol_flow_packet_new_direction_vector_components(double x, double y, double z);
+int sol_flow_packet_get_direction_vector(const struct sol_flow_packet *packet, struct sol_direction_vector *direction_vector);
+int sol_flow_packet_get_direction_vector_components(const struct sol_flow_packet *packet, double *x, double *y, double *z);
 
 
 #ifdef __cplusplus

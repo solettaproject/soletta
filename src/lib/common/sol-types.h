@@ -40,6 +40,16 @@
 extern "C" {
 #endif
 
+/*** SOL_DIRECTION_VECTOR ***/
+
+struct sol_direction_vector {
+    double x;
+    double y;
+    double z;
+    double min;
+    double max;
+};
+
 /*** SOL_RGB ***/
 
 struct sol_rgb {

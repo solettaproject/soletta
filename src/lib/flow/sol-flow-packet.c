@@ -567,6 +567,57 @@ sol_flow_packet_get_rgb_components(const struct sol_flow_packet *packet, uint32_
     return ret_val;
 }
 
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR = {
+    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    .name = "DIRECTION_VECTOR",
+    .data_size = sizeof(struct sol_direction_vector),
+};
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR = &_SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_direction_vector(const struct sol_direction_vector *direction_vector)
+{
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR, direction_vector);
+}
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_direction_vector_components(double x, double y, double z)
+{
+    struct sol_direction_vector direction_vector = {
+        .x = x,
+        .z = z,
+        .y = y,
+        .min = -DBL_MAX,
+        .max = DBL_MAX,
+    };
+
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR, &direction_vector);
+}
+
+SOL_API int
+sol_flow_packet_get_direction_vector(const struct sol_flow_packet *packet, struct sol_direction_vector *direction_vector)
+{
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR, -EBADR);
+    return sol_flow_packet_get(packet, direction_vector);
+}
+
+SOL_API int
+sol_flow_packet_get_direction_vector_components(const struct sol_flow_packet *packet, double *x, double *y, double *z)
+{
+    struct sol_direction_vector ret;
+    int ret_val;
+
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR, -EBADR);
+    ret_val = sol_flow_packet_get(packet, &ret);
+    if (ret_val == 0) {
+        if (x) *x = ret.x;
+        if (z) *z = ret.z;
+        if (y) *y = ret.y;
+    }
+
+    return ret_val;
+}
+
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_ANY = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "Any",

@@ -224,6 +224,78 @@
 
     {
       "category": "output/network",
+      "description": "Unix socket direction vector writer",
+      "methods": {
+        "close": "common_close",
+        "open": "direction_vector_writer_open"
+      },
+      "name": "unix-socket/direction-vector-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Act like a server",
+            "name": "server"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Unix socket direction vector writer, input port.",
+          "methods": {
+            "process": "direction_vector_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/direction-vector-writer.html"
+    },
+    {
+      "category": "input/network",
+      "description": "Unix socket direction_vector reader",
+      "methods": {
+        "close": "common_close",
+        "open": "direction_vector_reader_open"
+      },
+      "name": "unix-socket/direction-vector-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Act like a server",
+            "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Unix socket direction vector reader, oupput port.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/direction-vector-reader.html"
+    },
+
+    {
+      "category": "output/network",
       "description": "Unix socket byte writer",
       "methods": {
         "close": "common_close",

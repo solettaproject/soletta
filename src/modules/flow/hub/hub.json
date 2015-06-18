@@ -185,6 +185,29 @@
     },
     {
       "category": "hub",
+      "description": "Forward direction vector packets.",
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Where to receive the direction vector packet to be forwarded.",
+          "methods": {
+            "process": "direction_vector_forward"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "hub/direction-vector",
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Forwarded direction_vector packets.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/hub/direction-vector.html"
+    },
+    {
+      "category": "hub",
       "description": "Forward string packets.",
       "in_ports": [
         {

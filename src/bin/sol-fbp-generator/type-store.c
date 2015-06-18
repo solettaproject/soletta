@@ -73,6 +73,9 @@ CONST_SLICE(GREEN_SLICE, "green");
 CONST_SLICE(GREEN_MAX_SLICE, "green_max");
 CONST_SLICE(BLUE_SLICE, "blue");
 CONST_SLICE(BLUE_MAX_SLICE, "blue_max");
+CONST_SLICE(X_SLICE, "x");
+CONST_SLICE(Y_SLICE, "y");
+CONST_SLICE(Z_SLICE, "z");
 
 static void
 decoder_init(struct decoder *d, struct sol_str_slice input)
@@ -192,6 +195,7 @@ type_description_init(struct type_description *desc)
 static void
 option_description_fini(struct option_description *o)
 {
+    struct option_direction_vector_value *direction_vector;
     struct option_range_value *range;
     struct option_rgb_value *rgb;
 
@@ -217,6 +221,14 @@ option_description_fini(struct option_description *o)
         free(rgb->red_max);
         free(rgb->green_max);
         free(rgb->blue_max);
+        break;
+    case OPTION_VALUE_TYPE_DIRECTION_VECTOR:
+        direction_vector = &o->default_value.direction_vector;
+        free(direction_vector->x);
+        free(direction_vector->y);
+        free(direction_vector->z);
+        free(direction_vector->min);
+        free(direction_vector->max);
         break;
     default:
         /* Nothing to free. */
@@ -426,6 +438,44 @@ parse_rgb_default_value(struct sol_json_scanner *s, struct option_description *o
 }
 
 static bool
+parse_direction_vector_default_value(struct sol_json_scanner *s, struct option_description *o)
+{
+    struct option_direction_vector_value *direction_vector;
+    struct sol_json_token tmp, key, value;
+    enum sol_json_loop_reason reason;
+    struct sol_str_slice key_slice;
+    char *value_data;
+
+    direction_vector = &o->default_value.direction_vector;
+    memset(direction_vector, 0, sizeof(struct option_direction_vector_value));
+
+    if (!sol_json_scanner_next(s, &tmp))
+        return false;
+    SOL_JSON_SCANNER_OBJECT_LOOP (s, &tmp, &key, &value, reason) {
+        if (!get_value(&value, &value_data, &key, &key_slice))
+            return false;
+
+        if (sol_str_slice_eq(key_slice, X_SLICE))
+            direction_vector->x = value_data;
+        else if (sol_str_slice_eq(key_slice, Y_SLICE))
+            direction_vector->y = value_data;
+        else if (sol_str_slice_eq(key_slice, Z_SLICE))
+            direction_vector->z = value_data;
+        else if (sol_str_slice_eq(key_slice, MIN_SLICE))
+            direction_vector->min = value_data;
+        else if (sol_str_slice_eq(key_slice, MAX_SLICE))
+            direction_vector->max = value_data;
+        else
+            free(value_data);
+
+        if (reason != SOL_JSON_LOOP_REASON_OK)
+            return false;
+    }
+
+    return true;
+}
+
+static bool
 parse_string_default_value(struct sol_json_scanner *s, struct option_description *o)
 {
     struct sol_json_token token;
@@ -476,6 +526,11 @@ parse_default_value(struct option_description *o)
     if (streq(o->data_type, "rgb")) {
         o->default_value_type = OPTION_VALUE_TYPE_RGB;
         return parse_rgb_default_value(&value_scanner, o);
+    }
+
+    if (streq(o->data_type, "direction_vector")) {
+        o->default_value_type = OPTION_VALUE_TYPE_DIRECTION_VECTOR;
+        return parse_direction_vector_default_value(&value_scanner, o);
     }
 
     o->default_value_type = OPTION_VALUE_TYPE_STRING;
@@ -769,6 +824,7 @@ type_description_print(struct type_description *desc)
     SOL_VECTOR_FOREACH_IDX (&desc->options, o, i) {
         struct option_range_value *range;
         struct option_rgb_value *rgb;
+        struct option_direction_vector_value *direction_vector;
 
         printf("  %s (%s", o->name, o->data_type);
 
@@ -787,6 +843,13 @@ type_description_print(struct type_description *desc)
                 "green_max=%s  blue_max=%s)\n",
                 rgb->red, rgb->green, rgb->blue, rgb->red_max, rgb->green_max,
                 rgb->blue_max);
+            break;
+        case OPTION_VALUE_TYPE_DIRECTION_VECTOR:
+            direction_vector = &o->default_value.direction_vector;
+            printf(", default x=%s  y=%s  z=%s  min=%s  "
+                "max=%s)\n",
+                direction_vector->x, direction_vector->y, direction_vector->z, direction_vector->min,
+                direction_vector->max);
             break;
         default:
             printf(")\n");

@@ -68,6 +68,11 @@ struct filter_rgb_data {
     bool initialized : 1;
 };
 
+struct filter_direction_vector_data {
+    struct sol_direction_vector value;
+    bool initialized : 1;
+};
+
 struct filter_string_data {
     char *value;
 };
@@ -206,6 +211,27 @@ rgb_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
 
     return sol_flow_send_rgb_packet(node,
         SOL_FLOW_NODE_TYPE_FILTER_REPEATED_RGB__OUT__OUT, &in_value);
+}
+
+static int
+direction_vector_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct filter_direction_vector_data *mdata = data;
+    int r;
+    struct sol_direction_vector in_value;
+
+    r = sol_flow_packet_get_direction_vector(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (mdata->initialized &&
+        !memcmp(&in_value, &mdata->value, sizeof(struct sol_direction_vector)))
+        return 0;
+
+    mdata->initialized = true;
+    mdata->value = in_value;
+
+    return sol_flow_send_direction_vector_packet(node,
+        SOL_FLOW_NODE_TYPE_FILTER_REPEATED_DIRECTION_VECTOR__OUT__OUT, &in_value);
 }
 
 static void

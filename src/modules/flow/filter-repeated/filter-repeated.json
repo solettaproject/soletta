@@ -148,6 +148,30 @@
     },
     {
       "category": "filter-repeated",
+      "description": "Filter repeated direction vector packets.",
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Where to receive the direction vector packet to be filtered. If the packet is equal to the previously received one, it'll be dropped. Otherwise, it'll be forwarded.",
+          "methods": {
+            "process": "direction_vector_filter"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "filter-repeated/direction-vector",
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Filtered direction vector packets.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "filter_direction_vector_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/filter-repeated/direction-vector.html"
+    },
+    {
+      "category": "filter-repeated",
       "description": "Filter repeated string packets.",
       "in_ports": [
         {

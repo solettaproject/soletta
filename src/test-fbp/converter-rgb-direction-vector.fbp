@@ -1,0 +1,47 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+color(constant/rgb:value=255|255|255)
+rgb_to_direction_vector(converter/rgb-to-direction-vector)
+
+color OUT -> IN rgb_to_direction_vector
+
+int_255(constant/int:value=255)
+
+rgb_to_direction_vector OUT -> IN direction_vector_to_rgb(converter/direction-vector-to-rgb)
+
+direction_vector_to_rgb OUT -> IN _(converter/rgb-to-int) RED -> IN0 eq_red(int/equal)
+int_255 OUT -> IN1 eq_red OUT -> RESULT x(test/result)
+
+direction_vector_to_rgb OUT -> IN _(converter/rgb-to-int) GREEN -> IN0 eq_green(int/equal)
+int_255 OUT -> IN1 eq_green OUT -> RESULT y(test/result)
+
+direction_vector_to_rgb OUT -> IN _(converter/rgb-to-int) BLUE -> IN0 eq_blue(int/equal)
+int_255 OUT -> IN1 eq_blue OUT -> RESULT z(test/result)
