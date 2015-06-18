@@ -368,13 +368,13 @@ sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name,
     if (src_port == UINT16_MAX) {
         const struct sol_flow_port_description *const *itr;
 
-        SOL_ERR("Failed to find output port '%s' in source node '%s' "
+        SOL_DBG("Failed to find output port '%s' in source node '%s' "
             "of type (%s), valid output ports are",
             src_port_name, src_name,
             src_node_spec->type->description->name);
 
         for (itr = src_node_spec->type->description->ports_out; itr && *itr; itr++)
-            SOL_ERR("- '%s'", (*itr)->name);
+            SOL_DBG("- '%s'", (*itr)->name);
 
         return -EINVAL;
     }
@@ -384,13 +384,13 @@ sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name,
     if (dst_port == UINT16_MAX) {
         const struct sol_flow_port_description *const *itr;
 
-        SOL_ERR("Failed to find input port '%s' in destination node '%s' "
+        SOL_DBG("Failed to find input port '%s' in destination node '%s' "
             "of type (%s), valid input ports are",
             dst_port_name, dst_name,
             dst_node_spec->type->description->name);
 
         for (itr = dst_node_spec->type->description->ports_in; itr && *itr; itr++)
-            SOL_ERR("- '%s'", (*itr)->name);
+            SOL_DBG("- '%s'", (*itr)->name);
 
         return -EINVAL;
     }

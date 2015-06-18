@@ -229,7 +229,7 @@ irange_parse(const struct sol_flow_node_options_member_description *member,
     return 0;
 
 err:
-    SOL_ERR("Invalid irange value for option name=\"%s\": \"%s\"."
+    SOL_DBG("Invalid irange value for option name=\"%s\": \"%s\"."
         " Please use the formats"
         " \"<val_value>|<min_value>|<max_value>|<step_value>\","
         " in that order, or \"<key>:<value>|<...>\", for keys in "
@@ -287,7 +287,7 @@ drange_parse(const struct sol_flow_node_options_member_description *member,
     return 0;
 
 err:
-    SOL_ERR("Invalid drange value for option name=\"%s\": \"%s\"."
+    SOL_DBG("Invalid drange value for option name=\"%s\": \"%s\"."
         " Please use the formats"
         " \"<val_value>|<min_value>|<max_value>|<step_value>\","
         " in that order, or \"<key>:<value>|<...>\", for keys in "
@@ -375,7 +375,7 @@ rgb_parse(const struct sol_flow_node_options_member_description *member,
     return 0;
 
 err:
-    SOL_ERR("Invalid rgb value for option name=\"%s\": \"%s\"."
+    SOL_DBG("Invalid rgb value for option name=\"%s\": \"%s\"."
         " Please use the formats"
         " \"<red_value>|<green_value>|<blue_value>|"
         "<red_max_value>|<green_max_value>|<blue_max_value>\","
@@ -413,7 +413,7 @@ member_parse(const struct sol_flow_node_options_description *desc, const struct 
         else if (streq(value, "0") || streq(value, "false") || streq(value, "off") || streq(value, "no"))
             *b = false;
         else {
-            SOL_ERR("Invalid boolean value for option name=\"%s\": \"%s\"",
+            SOL_DBG("Invalid boolean value for option name=\"%s\": \"%s\"",
                 member->name, value);
             return -EINVAL;
         }
@@ -423,7 +423,7 @@ member_parse(const struct sol_flow_node_options_description *desc, const struct 
         errno = 0;
         i = strtol(value, NULL, 0);
         if ((errno != 0) || (i < 0) || (i > 255)) {
-            SOL_ERR("Invalid byte value for option name=\"%s\": \"%s\"",
+            SOL_DBG("Invalid byte value for option name=\"%s\": \"%s\"",
                 member->name, value);
             return -errno;
         }
@@ -503,19 +503,19 @@ options_from_strv(const struct sol_flow_node_options_description *desc, struct s
         int r;
 
         if (split_option(*entry, &key, &key_len, &value)) {
-            SOL_ERR("Invalid option #%u format: \"%s\"", (unsigned)(entry - strv), *entry);
+            SOL_DBG("Invalid option #%u format: \"%s\"", (unsigned)(entry - strv), *entry);
             goto end;
         }
 
         m = find_member(desc, SOL_STR_SLICE_STR(key, key_len));
         if (!m) {
-            SOL_ERR("Unknown option: \"%s\"", *entry);
+            SOL_DBG("Unknown option: \"%s\"", *entry);
             goto end;
         }
 
         r = member_parse(desc, m, opts, *entry, value - *entry);
         if (r < 0) {
-            SOL_ERR("Could not parse member #%u "
+            SOL_DBG("Could not parse member #%u "
                 "name=\"%s\", type=\"%s\", option=\"%s\": %s",
                 (unsigned)(m - desc->members), m->name,
                 m->data_type, *entry, sol_util_strerrora(-r));
@@ -534,7 +534,7 @@ options_from_strv(const struct sol_flow_node_options_description *desc, struct s
     if (has_required) {
         for (m = desc->members; m->name != NULL; m++) {
             if (m->required && !handled_member[m - desc->members]) {
-                SOL_ERR("Required member not in options: "
+                SOL_DBG("Required member not in options: "
                     "name=\"%s\", type=\"%s\"", m->name, m->data_type);
                 goto end;
             }
