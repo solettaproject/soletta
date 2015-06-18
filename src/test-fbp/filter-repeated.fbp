@@ -1,0 +1,84 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+filter_boolean(filter-repeated/boolean)
+filter_byte(filter-repeated/byte)
+filter_float(filter-repeated/float)
+filter_int(filter-repeated/int)
+filter_rgb(filter-repeated/rgb)
+filter_string(filter-repeated/string)
+
+gen_boolean(test/boolean-generator:sequence="TTFFFTT")
+validator_boolean(test/boolean-validator:sequence="TFT")
+gen_boolean OUT -> IN filter_boolean OUT -> IN validator_boolean
+validator_boolean OUT -> RESULT filter_repeated_boolean(test/result)
+
+gen_byte(test/int-generator:sequence="0 1 19 19 1 1 1 2")
+validator_byte(test/int-validator:sequence="0 1 19 1 2")
+gen_byte OUT -> IN _(converter/int-to-byte) OUT -> IN filter_byte
+filter_byte OUT -> IN _(converter/byte-to-int) OUT -> IN validator_byte
+validator_byte OUT -> RESULT filter_repeated_byte(test/result)
+
+gen_float(test/float-generator:sequence="0 1 -8.0 -8.0 1.2 1.2 1.21 2")
+validator_float(test/float-validator:sequence="0 1 -8.0 1.2 1.21 2")
+gen_float OUT -> IN filter_float OUT -> IN validator_float
+validator_float OUT -> RESULT filter_repeated_float(test/result)
+
+gen_int(test/int-generator:sequence="0 1 -8 -8 1 1 2")
+validator_int(test/int-validator:sequence="0 1 -8 1 2")
+gen_int OUT -> IN filter_int OUT -> IN validator_int
+validator_int OUT -> RESULT filter_repeated_int(test/result)
+
+rgb1(constant/rgb:value="255|10|100")
+rgb2(constant/rgb:value="240|10|100")
+rgb3(constant/rgb:value="240|10|100")
+rgb4(constant/rgb:value="240|100|100")
+rgb5(constant/rgb:value="240|100|100")
+rgb_int(converter/rgb-to-int)
+validator_green(test/int-validator:sequence="10 10 100")
+rgb1 OUT -> IN filter_rgb OUT -> IN rgb_int GREEN -> IN validator_green
+rgb2 OUT -> IN filter_rgb
+rgb3 OUT -> IN filter_rgb
+rgb4 OUT -> IN filter_rgb
+rgb5 OUT -> IN filter_rgb
+validator_green OUT -> RESULT filter_repeated_rgb(test/result)
+
+string1(constant/string:value="Hello")
+string2(constant/string:value="Hello")
+string3(constant/string:value="World")
+string4(constant/string:value="World")
+validator_string(test/int-validator:sequence="0 1 2")
+accumulator(int/accumulator)
+string1 OUT -> IN filter_string OUT -> INC accumulator
+string2 OUT -> IN filter_string
+string3 OUT -> IN filter_string
+string4 OUT -> IN filter_string
+accumulator OUT -> IN validator_string
+validator_string OUT -> RESULT filter_repeated_string(test/result)
