@@ -14,6 +14,11 @@ obj-io-$(IO) += \
     sol-uart-riot.o
 endif
 
+ifeq (y,$(PLATFORM_CONTIKI))
+obj-io-$(IO) += \
+    sol-gpio-contiki.o
+endif
+
 ifeq (y,$(SOL_PLATFORM_LINUX))
 obj-io-$(IO) += \
     sol-gpio-linux.o \
