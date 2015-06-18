@@ -35,6 +35,7 @@
 #include <contiki.h>
 #include <lib/sensors.h>
 
+#include "sol-event-handler-contiki.h"
 #include "sol-mainloop-contiki.h"
 #include "sol-mainloop-impl.h"
 #include "sol-mainloop-impl-common.h"
@@ -46,6 +47,21 @@
 static process_event_t event;
 static process_data_t event_data;
 static struct etimer et;
+
+static struct sol_ptr_vector event_handler_vector = SOL_PTR_VECTOR_INIT;
+static bool event_handling_processing;
+static unsigned int event_handler_pending_deletion;
+
+struct sol_event_handler_contiki
+{
+    process_event_t ev;
+    process_data_t ev_data;
+    void (*cb)(process_event_t ev, process_data_t ev_data, void *user_data);
+    void *data;
+    bool delete_me;
+};
+
+static void event_dispatch(void);
 
 int
 sol_mainloop_impl_init(void)
@@ -84,7 +100,7 @@ bool sol_mainloop_contiki_loop(void)
     // Another event could make process wakeup
     etimer_stop(&et);
 
-    // TODO: check event
+    event_dispatch();
 
     sol_mainloop_impl_common_timeout_process();
     sol_mainloop_impl_common_idler_process();
@@ -166,4 +182,99 @@ sol_mainloop_contiki_event_set(process_event_t ev, process_data_t data)
 {
     event = ev;
     event_data = data;
+}
+
+bool
+sol_mainloop_contiki_event_handler_add(const process_event_t ev, const process_data_t ev_data, void (*cb)(process_event_t ev, process_data_t ev_data, void *user_data), const void *data)
+{
+    struct sol_event_handler_contiki *event_handler =
+                malloc(sizeof(struct sol_event_handler_contiki));
+    if (!event_handler)
+        return false;
+    event_handler->ev = ev;
+    event_handler->ev_data = ev_data;
+    event_handler->cb = cb;
+    event_handler->data = (void*) data;
+    event_handler->delete_me = false;
+
+    if (sol_ptr_vector_append(&event_handler_vector, event_handler)) {
+        free(event_handler);
+        return false;
+    }
+
+    return true;
+}
+
+bool
+sol_mainloop_contiki_event_handler_del(const process_event_t ev, const process_data_t ev_data, void (*cb)(process_event_t ev, process_data_t ev_data, void *user_data), const void *data)
+{
+    int i;
+    struct sol_event_handler_contiki *event_handler;
+
+    SOL_PTR_VECTOR_FOREACH_IDX(&event_handler_vector, event_handler, i)
+    {
+        if (event_handler->ev != ev)
+            continue;
+        if (event_handler->ev_data != ev_data)
+            continue;
+        if (event_handler->cb != cb)
+            continue;
+        if (event_handler->data != data)
+            continue;
+
+        if (event_handling_processing) {
+            event_handler->delete_me = true;
+            event_handler_pending_deletion++;
+        } else {
+            sol_ptr_vector_del(&event_handler_vector, i);
+            free(event_handler);
+        }
+        return true;
+    }
+    return false;
+}
+
+static void
+event_handler_cleanup(void)
+{
+    int i;
+    struct sol_event_handler_contiki *event_handler;
+
+    if (!event_handler_pending_deletion)
+        return;
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(&event_handler_vector, event_handler, i)
+    {
+        if (!event_handler->delete_me)
+            continue;
+        sol_ptr_vector_del(&event_handler_vector, i);
+        free(event_handler);
+        event_handler_pending_deletion--;
+        if (!event_handler_pending_deletion)
+            break;
+    }
+}
+
+static void
+event_dispatch(void)
+{
+    int i;
+    struct sol_event_handler_contiki *event_handler;
+
+    if (event != sensors_event)
+        return;
+
+    event_handling_processing = true;
+    SOL_PTR_VECTOR_FOREACH_IDX(&event_handler_vector, event_handler, i)
+    {
+        if (event_handler->delete_me)
+            continue;
+        if (event_handler->ev != event)
+            continue;
+        if (event_handler->ev_data != NULL &&
+                    event_handler->ev_data != event_data)
+            continue;
+        event_handler->cb(event, event_data, event_handler->data);
+    }
+    event_handling_processing = false;
+    event_handler_cleanup();
 }

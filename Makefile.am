@@ -442,6 +442,7 @@ endif
 
 if HAVE_PLATFORM_CONTIKI
 src_shared_libshared_la_SOURCES += \
+src/shared/sol-gpio-contiki.c \
 src/shared/sol-missing-contiki.c \
 src/shared/sol-util-contiki.c
 endif
