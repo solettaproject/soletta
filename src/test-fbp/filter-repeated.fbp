@@ -56,7 +56,7 @@ validator_int(test/int-validator:sequence="0 1 -8 1 2")
 gen_int OUT -> IN filter_int OUT -> IN validator_int
 validator_int OUT -> RESULT filter_repeated_int(test/result)
 
-rgb1(constant/rgb:value="255|10|100")
+rgb1(constant/rgb:value=red:255|green:10|blue:100)
 rgb2(constant/rgb:value="240|10|100")
 rgb3(constant/rgb:value="240|10|100")
 rgb4(constant/rgb:value="240|100|100")

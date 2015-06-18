@@ -349,9 +349,12 @@ rgb_parse(const struct sol_flow_node_options_member_description *member,
         INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
         INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
 
+    /* field_cnt shouldn't start from 0 in switch,
+     * since if no value was declared, it doesn't make
+     * sense to declare the option. Also, if values were
+     * assigned by ASSIGN_KEY_VAL field_cnt would stay 0, and the whole
+     * option would be set to default values */
     switch (field_cnt) {
-    case 0:
-        ret->red = 0;
     case 1:
         ret->green = 0;
     case 2:
