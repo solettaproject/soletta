@@ -237,6 +237,7 @@ def get_field_integer_client_c(id, name, prop):
     return '''if (decode_mask & (1<<%(id)d) && sol_json_token_str_eq(&key, "%(field_name)s", %(field_name_len)d)) {
     if (!json_token_to_int32(&value, &fields.%(field_name)s))
         RETURN_ERROR(-EINVAL);
+    decode_mask &= ~(1<<%(id)d);
     continue;
 }
 ''' % {
@@ -249,6 +250,7 @@ def get_field_number_client_c(id, name, prop):
     return '''if (decode_mask & (1<<%(id)d) && sol_json_token_str_eq(&key, "%(field_name)s", %(field_name_len)d)) {
     if (!json_token_to_float(&value, &fields.%(field_name)s))
         RETURN_ERROR(-EINVAL);
+    decode_mask &= ~(1<<%(id)d);
     continue;
 }
 ''' % {
@@ -261,6 +263,7 @@ def get_field_string_client_c(id, name, prop):
     return '''if (decode_mask & (1<<%(id)d) && sol_json_token_str_eq(&key, "%(field_name)s", %(field_name_len)d)) {
     if (!json_token_to_string(&value, &fields.%(field_name)s))
         RETURN_ERROR(-EINVAL);
+    decode_mask &= ~(1<<%(id)d);
     continue;
 }
 ''' % {
@@ -273,6 +276,7 @@ def get_field_boolean_client_c(id, name, prop):
     return '''if (decode_mask & (1<<%(id)d) && sol_json_token_str_eq(&key, "%(field_name)s", %(field_name_len)d)) {
     if (!json_token_to_bool(&value, &fields.%(field_name)s))
         RETURN_ERROR(-EINVAL);
+    decode_mask &= ~(1<<%(id)d);
     continue;
 }
 ''' % {
@@ -288,6 +292,7 @@ def get_field_enum_client_c(id, struct_name, name, prop):
     if (val < 0)
         RETURN_ERROR(-EINVAL);
     fields.%(field_name)s = (enum %(struct_name)s_%(field_name)s)val;
+    decode_mask &= ~(1<<%(id)d);
     continue;
 }
 ''' % {
