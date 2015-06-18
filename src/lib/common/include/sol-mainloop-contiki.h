@@ -32,20 +32,16 @@
 
 #pragma once
 
-{{
-st.on_value("SOL_PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-}}
+#include <contiki.h>
+#include <stdbool.h>
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-}}
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-{{
-st.on_value("MAINLOOP_FD", "y", "#define SOL_MAINLOOP_FD_ENABLED 1", "")
-}}
+void sol_mainloop_contiki_event_set(process_event_t ev, process_data_t data);
+bool sol_mainloop_contiki_iter(void);
 
-{{
-st.on_value("MAINLOOP_FORK_WATCH", "y", "#define SOL_MAINLOOP_FORK_WATCH_ENABLED 1", "")
-}}
+#ifdef __cplusplus
+}
+#endif

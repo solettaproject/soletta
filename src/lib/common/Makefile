@@ -13,6 +13,8 @@ obj-core-$(SOL_PLATFORM_LINUX) += \
     sol-log-impl-linux.o
 obj-core-$(PLATFORM_RIOTOS) += \
     sol-log-impl-riot.o
+obj-core-$(PLATFORM_CONTIKI) += \
+    sol-log-impl-contiki.o
 endif
 
 obj-core-$(KDBUS) += \
@@ -33,6 +35,11 @@ obj-core-$(MAINLOOP_RIOTOS) += \
     sol-interrupt_scheduler_riot.o  \
     sol-mainloop-common.o \
     sol-mainloop-impl-riot.o
+
+obj-core-$(MAINLOOP_CONTIKI) += \
+    sol-mainloop-common.o \
+    sol-mainloop-impl-contiki.o
+
 obj-core-$(PLATFORM_LINUX_MICRO) += \
     sol-platform-impl-linux-micro.o
 obj-core-$(SOCKET_LINUX) += \
@@ -41,6 +48,8 @@ obj-core-$(PLATFORM_RIOTOS) += \
     sol-platform-impl-riot.o
 obj-core-$(PLATFORM_DUMMY) += \
     sol-platform-impl-dummy.o
+obj-core-$(PLATFORM_CONTIKI) += \
+    sol-platform-impl-contiki.o
 
 obj-core-$(SOL_PLATFORM_LINUX) += \
     sol-platform-linux-common.o \
@@ -75,3 +84,6 @@ headers-y := \
 
 headers-$(HAVE_PIN_MUX) += \
     include/sol-pin-mux-modules.h
+
+headers-$(MAINLOOP_CONTIKI) += \
+    include/sol-mainloop-contiki.h
