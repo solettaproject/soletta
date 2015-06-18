@@ -81,6 +81,8 @@ sol_flow_builder_init(struct sol_flow_builder *builder)
     sol_flow_builder_set_resolver(builder, NULL);
 
     builder->type_desc.api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION;
+    builder->type_desc.symbol = "SOL_FLOW_NODE_TYPE_BUILDER";
+    builder->type_desc.options_symbol = "sol_flow_node_type_builder_options";
 }
 
 SOL_API struct sol_flow_builder *
@@ -148,6 +150,26 @@ sol_flow_builder_set_resolver(struct sol_flow_builder *builder,
     if (!resolver)
         resolver = sol_flow_get_default_resolver();
     builder->resolver = resolver;
+}
+
+SOL_API void
+sol_flow_builder_set_type_description(struct sol_flow_builder *builder, const char *name, const char *category,
+    const char *description, const char *author, const char *url, const char *license, const char *version)
+{
+    SOL_NULL_CHECK(builder);
+
+    if (builder->node_type) {
+        SOL_WRN("Couldn't set builder node type description, node type created already");
+        return;
+    }
+
+    builder->type_desc.name = name;
+    builder->type_desc.category = category;
+    builder->type_desc.description = description;
+    builder->type_desc.author = author;
+    builder->type_desc.url = url;
+    builder->type_desc.license = license;
+    builder->type_desc.version = version;
 }
 
 static uint16_t
