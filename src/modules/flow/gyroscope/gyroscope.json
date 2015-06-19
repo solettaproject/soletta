@@ -1,0 +1,54 @@
+{
+  "name": "gyroscope",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "L3G4200D gyroscope input node, meant for i2c reading primitives testing. After each tick in its TICK port, a new reading is output on each of its output ports.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a gyroscope reading and produce packets on each of the the output ports.",
+          "name": "TICK",
+          "methods": {
+            "process": "gyroscope_l3g4200d_tick"
+          }
+        }
+      ],
+      "methods": {
+        "close": "gyroscope_l3g4200d_close",
+        "open": "gyroscope_l3g4200d_open"
+      },
+      "name": "gyroscope/l3g4200d",
+      "options": {
+       "members": [
+         {
+           "data_type": "int",
+           "description": "I2C bus number",
+           "name": "i2c_bus"
+         },
+         {
+           "data_type": "boolean",
+           "description": "Output in rad/s, instead of deg/s",
+           "name": "output_radians",
+           "default": false
+         }
+       ],
+       "version": 1
+      },
+      "out_ports": [
+        {
+         "data_type": "direction-vector",
+         "description": "Angular speed in all X/Y/Z axes, in the selected output unit",
+         "name": "OUT"
+        }
+      ],
+      "private_data_type": "gyroscope_l3g4200d_data",
+      "url": "http://devapp.org/doc/latest/components/gyroscope/l3g4200d.html"
+    }
+ ]
+}
