@@ -41,6 +41,7 @@
 #define SOL_ATTR_NOINSTRUMENT __attribute__((no_instrument_function))
 #define SOL_ATTR_NONNULL(...) __attribute__((nonnull(__VA_ARGS__)))
 #define SOL_ATTR_SECTION(secname) __attribute__((section(secname)))
+#define SOL_ATTR_USED __attribute__((__used__))
 #else
 #define SOL_API
 #define SOL_ATTR_WARN_UNUSED_RESULT
@@ -50,4 +51,5 @@
 #define SOL_ATTR_NOINSTRUMENT
 #define SOL_ATTR_NONNULL(...)
 #define SOL_ATTR_SECTION(secname)
+#define SOL_ATTR_USED
 #endif
