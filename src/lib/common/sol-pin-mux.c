@@ -70,10 +70,13 @@ _load_mux(const char *name)
 #ifdef ENABLE_DYNAMIC_MODULES
     int r;
     void *handle;
-    char path[PATH_MAX];
+    char path[PATH_MAX], install_rootdir[PATH_MAX] = { NULL };
     const struct sol_pin_mux *p_sym;
 
-    r = snprintf(path, sizeof(path), "%s/%s.so", PINMUXDIR, name);
+    r = sol_util_get_rootdir(install_rootdir, sizeof(install_rootdir));
+    SOL_INT_CHECK(r, >= (int)sizeof(install_rootdir), false);
+
+    r = snprintf(path, sizeof(path), "%s%s/%s.so", install_rootdir, PINMUXDIR, name);
     SOL_INT_CHECK(r, >= (int)sizeof(path), false);
     SOL_INT_CHECK(r, < 0, false);
 
