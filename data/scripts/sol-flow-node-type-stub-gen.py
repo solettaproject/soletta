@@ -533,6 +533,10 @@ if __name__ == "__main__":
     parser.add_argument("--module",
                         help="It'll generate a module instead of builtin node types.",
                         type=bool)
+    parser.add_argument("--force",
+                        help="Force stub file rewrite.",
+                        default=False,
+                        type=bool)
     parser.add_argument("output_stub",
                         help="Output stub code (.c) file",
                         type=str)
@@ -541,7 +545,7 @@ if __name__ == "__main__":
                         type=argparse.FileType('r'))
 
     args = parser.parse_args()
-    if os.path.exists(args.output_stub):
+    if os.path.exists(args.output_stub) and not args.force:
         raise StubError("Can't overwrite stub file '%s'. Remove it yourself." %
                         args.output_stub)
     try:
