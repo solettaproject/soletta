@@ -67,6 +67,7 @@ rotary_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_inde
         converter_opts->input_range_mask = container_opts->mask;
     } else if (child_index == ROTARY_AIO_READER_NODE_IDX) {
         struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        reader_opts->device = container_opts->device;
         reader_opts->pin = container_opts->pin;
         reader_opts->mask = container_opts->mask;
         reader_opts->poll_timeout = container_opts->poll_timeout;
@@ -186,6 +187,7 @@ light_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_index
         converter_opts->input_range_mask = container_opts->mask;
     } else if (child_index == LIGHT_AIO_READER_NODE_IDX) {
         struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        reader_opts->device = container_opts->device;
         reader_opts->pin = container_opts->pin;
         reader_opts->mask = container_opts->mask;
         reader_opts->poll_timeout = container_opts->poll_timeout;
@@ -364,6 +366,7 @@ temperature_child_opts_set(const struct sol_flow_node_type *type, uint16_t child
         converter_opts->thermistor_resistance = container_opts->thermistor_resistance;
     } else if (child_index == TEMPERATURE_AIO_READER_NODE_IDX) {
         struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        reader_opts->device = container_opts->device;
         reader_opts->pin = container_opts->pin;
         reader_opts->mask = container_opts->mask;
         reader_opts->poll_timeout = container_opts->poll_timeout;

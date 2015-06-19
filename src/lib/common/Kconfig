@@ -310,6 +310,10 @@ config SOL_BUS
 	default n
 
 menu "Hardware Options"
+config USE_AIO
+	bool "AIO Support"
+	default y
+
 config USE_PWM
 	bool "PWM Support"
 	default y

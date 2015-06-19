@@ -89,6 +89,12 @@
         "members": [
           {
             "data_type": "int",
+            "default": 0,
+            "description": "Device number",
+            "name": "device"
+          },
+          {
+            "data_type": "int",
             "default": 2,
             "description": "Pin",
             "name": "pin"
@@ -207,6 +213,12 @@
         "members": [
           {
             "data_type": "int",
+            "default": 0,
+            "description": "Device number",
+            "name": "device"
+          },
+          {
+            "data_type": "int",
             "default": 1,
             "description": "Pin",
             "name": "pin"
@@ -299,6 +311,12 @@
       "name": "grove/rotary-sensor",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Device number",
+            "name": "device"
+          },
           {
             "data_type": "int",
             "default": 0,
