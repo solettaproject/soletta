@@ -143,7 +143,8 @@ if __name__ == "__main__":
             continue
         if fname.startswith("."):
             continue
-        if not os.path.isfile(os.path.join(path, fname + ".c")):
+        if not (os.path.isfile(os.path.join(path, fname + ".c")) or
+                os.path.isfile(os.path.join(path, fname + ".json"))):
             continue
 
         data = {
