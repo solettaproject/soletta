@@ -169,6 +169,9 @@ endif
 if HAVE_PLATFORM_RIOT
 src_lib_libsoletta_la_SOURCES += src/lib/common/sol-log-impl-riot.c
 endif
+if HAVE_PLATFORM_CONTIKI
+src_lib_libsoletta_la_SOURCES += src/lib/common/sol-log-impl-contiki.c
+endif
 
 endif
 
@@ -250,14 +253,22 @@ endif
 
 if HAVE_MAINLOOP_POSIX
 src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-mainloop-impl-common.c \
 src/lib/common/sol-mainloop-impl-posix.c
 endif
 
 if HAVE_MAINLOOP_RIOT
 src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-mainloop-impl-common.c \
 src/lib/common/sol-mainloop-impl-riot.c \
 src/lib/common/sol-interrupt_scheduler_riot.c \
 src/lib/common/sol-interrupt_scheduler_riot.h
+endif
+
+if HAVE_MAINLOOP_CONTIKI
+src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-mainloop-impl-common.c \
+src/lib/common/sol-mainloop-impl-contiki.c
 endif
 
 if HAVE_PLATFORM_SYSTEMD
@@ -316,6 +327,11 @@ src_lib_libsoletta_la_SOURCES += \
 src/lib/common/sol-platform-impl-riot.c
 endif
 
+if HAVE_PLATFORM_CONTIKI
+src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-platform-impl-contiki.c
+endif
+
 pkginclude_HEADERS += \
 src/lib/common/sol-macros.h \
 src/lib/common/sol-log.h \
@@ -327,6 +343,11 @@ src/lib/common/sol-missing.h \
 src/lib/flow/sol-flow.h \
 src/lib/flow/sol-flow-resolver.h \
 src/lib/flow/sol-flow-packet.h
+
+if HAVE_PLATFORM_CONTIKI
+pkginclude_HEADERS += \
+src/lib/common/sol-mainloop-contiki.h
+endif
 
 nodist_pkginclude_HEADERS += \
 src/lib/common/sol-common-buildopts.h \
@@ -357,8 +378,8 @@ src/shared/sol-fbp-internal-scanner.c \
 src/shared/sol-fbp-internal-scanner.h \
 src/shared/sol-fbp-parser.c \
 src/shared/sol-fbp.h \
-src/shared/sol-util.c \
 src/shared/sol-util.h \
+src/shared/sol-util-common.c \
 src/shared/sol-file-reader.h \
 src/shared/sol-gpio.h \
 src/shared/sol-i2c.h \
@@ -398,7 +419,8 @@ src/shared/sol-network-linux.c \
 src/shared/sol-pwm-linux.c \
 src/shared/sol-i2c-linux.c \
 src/shared/sol-spi-linux.c \
-src/shared/sol-uart-linux.c
+src/shared/sol-uart-linux.c \
+src/shared/sol-util-linux.c
 
 if PTHREAD_LIBS
 src_shared_libshared_la_SOURCES += \
@@ -414,7 +436,15 @@ src/shared/sol-i2c-riot.c \
 src/shared/sol-pwm-riot.c \
 src/shared/sol-spi-riot.c \
 src/shared/sol-uart-riot.c \
-src/shared/sol-network-riot.c
+src/shared/sol-network-riot.c \
+src/shared/sol-util-riot.c
+endif
+
+if HAVE_PLATFORM_CONTIKI
+src_shared_libshared_la_SOURCES += \
+src/shared/sol-gpio-contiki.c \
+src/shared/sol-missing-contiki.c \
+src/shared/sol-util-contiki.c
 endif
 
 src_shared_libshared_la_CFLAGS += $(AM_CFLAGS)

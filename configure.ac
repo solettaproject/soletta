@@ -189,7 +189,7 @@ AM_CONDITIONAL([HAVE_GLIB], [test "${have_glib}" = "yes"])
 
 AC_ARG_WITH([platform],
         AS_HELP_STRING([--with-platform=IMPLEMENTATION],
-                       [enable integration with one of: systemd, riot, linux-micro or linux-dummy]),
+                       [enable integration with one of: systemd, riot, contiki, linux-micro or linux-dummy]),
         [],
         [with_platform="linux-dummy"])
 AC_MSG_CHECKING([platform to be used])
@@ -215,6 +215,10 @@ case "${with_platform}" in
         default_mainloop="riot"
         possible_mainloops="riot"
         ;;
+    contiki)
+        default_mainloop="contiki"
+        possible_mainloops="contiki"
+        ;;
     *)
         AC_MSG_ERROR([unknown platform=${with_platform}])
         ;;
@@ -237,6 +241,7 @@ AM_CONDITIONAL(HAVE_PLATFORM_SYSTEMD, [test "$with_platform" = "systemd"])
 AM_CONDITIONAL(HAVE_PLATFORM_LINUX_MICRO, [test "$with_platform" = "linux-micro"])
 AM_CONDITIONAL(HAVE_PLATFORM_LINUX_DUMMY, [test "$with_platform" = "linux-dummy"])
 AM_CONDITIONAL(HAVE_PLATFORM_RIOT, [test "$with_platform" = "riot"])
+AM_CONDITIONAL(HAVE_PLATFORM_CONTIKI, [test "$with_platform" = "contiki"])
 
 AM_CONDITIONAL(HAVE_PLATFORM_LINUX, [test "$platform_linux" = "yes"])
 
@@ -276,7 +281,7 @@ AC_SUBST(linux_micro_initial_services)
 
 AC_ARG_WITH([mainloop],
         AS_HELP_STRING([--with-mainloop=IMPLEMENTATION],
-                       [enable mainloop integration with one of platform-dependent implementation: Linux=(glib, posix), RIOT=riot.]),
+                       [enable mainloop integration with one of platform-dependent implementation: Linux=(glib, posix), RIOT=riot, CONTIKI=contiki.]),
         [],
         [with_mainloop="${default_mainloop}"])
 AC_MSG_CHECKING([mainloop to be used])
@@ -293,6 +298,8 @@ case "${with_mainloop}" in
         ;;
     riot)
         ;;
+    contiki)
+        ;;
     *)
         AC_MSG_ERROR([unknown platform=${with_platform}])
         ;;
@@ -301,6 +308,7 @@ esac
 AM_CONDITIONAL([HAVE_MAINLOOP_GLIB], [test "${with_mainloop}" = "glib"])
 AM_CONDITIONAL([HAVE_MAINLOOP_POSIX], [test "${with_mainloop}" = "posix"])
 AM_CONDITIONAL([HAVE_MAINLOOP_RIOT], [test "${with_mainloop}" = "riot"])
+AM_CONDITIONAL([HAVE_MAINLOOP_CONTIKI], [test "${with_mainloop}" = "contiki"])
 
 flow_module_resolvers=""
 

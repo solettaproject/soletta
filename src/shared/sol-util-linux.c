@@ -221,17 +221,6 @@ open_err:
     return NULL;
 }
 
-void *
-sol_util_memdup(const void *data, size_t len)
-{
-    void *ptr;
-
-    ptr = malloc(len);
-    if (ptr)
-        memcpy(ptr, data, len);
-    return ptr;
-}
-
 struct timespec
 sol_util_timespec_get_current(void)
 {
@@ -239,24 +228,4 @@ sol_util_timespec_get_current(void)
 
     clock_gettime(CLOCK_MONOTONIC, &t);
     return t;
-}
-
-char *
-sol_util_strerror(int errnum, char *buf, size_t buflen)
-{
-    char *ret;
-
-    if (buflen < 1)
-        return NULL;
-
-    buf[0] = '\0';
-
-    ret = (char *)strerror_r(errnum, buf, buflen);
-    /* if buf was used it means it can be XSI version (so ret won't be
-       pointing to msg string), or GNU version using non static string
-       (in this case ret == buf already) */
-    if (buf[0] != '\0')
-        ret = buf;
-
-    return ret;
 }
