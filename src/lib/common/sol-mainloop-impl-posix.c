@@ -368,6 +368,24 @@ static unsigned char siginfo_storage_used;
 #define SIGINFO_HANDLER_FOREACH(ptr) \
     for (ptr = siginfo_handler; ptr < siginfo_handler + SIGINFO_HANDLER_COUNT; ptr++) if (ptr->sig)
 
+#ifdef HAVE_PTHREAD_H
+void sol_mainloop_posix_signals_block(void);
+void sol_mainloop_posix_signals_unblock(void);
+
+/* used externally by worker threads management */
+void
+sol_mainloop_posix_signals_block(void)
+{
+    pthread_sigmask(SIG_BLOCK, &sig_blockset, NULL);
+}
+
+void
+sol_mainloop_posix_signals_unblock(void)
+{
+    pthread_sigmask(SIG_UNBLOCK, &sig_blockset, NULL);
+}
+#endif
+
 static void
 sighandler(int sig, siginfo_t *si, void *context)
 {
