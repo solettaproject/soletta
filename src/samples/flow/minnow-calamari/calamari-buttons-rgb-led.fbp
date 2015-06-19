@@ -35,10 +35,10 @@
 #
 # The button presses will also go to console on stdout.
 
-btn1(Button1) OUT -> IN red(LedRed)
+btn1(Button1) OUT -> RED led(RGBLed)
 btn1 OUT -> IN log(console:prefix="btn1_pressed ")
-btn2(Button2) OUT -> IN green(LedGreen)
+btn2(Button2) OUT -> GREEN led
 btn2 OUT -> IN log2(console:prefix="btn2_pressed ")
-btn3(Button3) OUT -> IN blue(LedBlue)
+btn3(Button3) OUT -> BLUE led
 btn3 OUT -> IN log3(console:prefix="btn3_pressed ")
 
