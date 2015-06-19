@@ -145,6 +145,9 @@ src/lib/common/sol-log-impl.h \
 src/lib/common/sol-log-internal.h \
 src/lib/common/sol-mainloop.c \
 src/lib/common/sol-mainloop-impl.h \
+src/lib/common/sol-worker-thread.c \
+src/lib/common/sol-worker-thread.h \
+src/lib/common/sol-worker-thread-impl.h \
 src/lib/common/sol-platform.c \
 src/lib/common/sol-platform-impl.h \
 src/lib/common/sol-blob.c \
@@ -246,11 +249,21 @@ src_lib_libsoletta_la_SOURCES += \
 src/lib/common/sol-mainloop-impl-glib.c
 src_lib_libsoletta_la_CFLAGS += @GLIB_CFLAGS@
 src_lib_libsoletta_la_LIBADD += @GLIB_LIBS@
+
+if PTHREAD_LIBS
+src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-worker-thread-impl-glib.c
+endif
 endif
 
 if HAVE_MAINLOOP_POSIX
 src_lib_libsoletta_la_SOURCES += \
 src/lib/common/sol-mainloop-impl-posix.c
+
+if PTHREAD_LIBS
+src_lib_libsoletta_la_SOURCES += \
+src/lib/common/sol-worker-thread-impl-posix.c
+endif
 endif
 
 if HAVE_MAINLOOP_RIOT
@@ -375,7 +388,6 @@ src/shared/sol-str-table.h \
 src/shared/sol-vector.c \
 src/shared/sol-uart.h \
 src/shared/sol-vector.h \
-src/shared/sol-worker-thread.h \
 src/shared/sol-json.h \
 src/shared/sol-json.c
 
@@ -399,12 +411,6 @@ src/shared/sol-pwm-linux.c \
 src/shared/sol-i2c-linux.c \
 src/shared/sol-spi-linux.c \
 src/shared/sol-uart-linux.c
-
-if PTHREAD_LIBS
-src_shared_libshared_la_SOURCES += \
-src/shared/sol-worker-thread-pthread.c
-endif
-
 endif
 
 if HAVE_PLATFORM_RIOT
