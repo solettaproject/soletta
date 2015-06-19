@@ -1503,7 +1503,7 @@ client_resource_schedule_update(struct client_resource *resource)
 
 static const char escapable_chars[] = {'\\\\', '\\"', '/', '\\b', '\\f', '\\n', '\\r', '\\t'};
 
-static size_t
+SOL_ATTR_USED static size_t
 calculate_escaped_len(const char *s)
 {
     size_t len = 0;
@@ -1515,7 +1515,7 @@ calculate_escaped_len(const char *s)
     return len + 1;
 }
 
-static char *
+SOL_ATTR_USED static char *
 escape_json_string(const char *s, char *buf)
 {
     char *out = buf;
@@ -1546,7 +1546,7 @@ escape_json_string(const char *s, char *buf)
         escape_json_string(s, buffer ## __COUNT__); \\
     })
 
-static bool
+SOL_ATTR_USED static bool
 json_token_to_int32(struct sol_json_token *token, int32_t *out)
 {
     long val;
@@ -1570,7 +1570,7 @@ json_token_to_int32(struct sol_json_token *token, int32_t *out)
     return true;
 }
 
-static bool
+SOL_ATTR_USED static bool
 json_token_to_float(struct sol_json_token *token, float *out)
 {
     float val;
@@ -1594,7 +1594,7 @@ json_token_to_float(struct sol_json_token *token, float *out)
     return true;
 }
 
-static bool
+SOL_ATTR_USED static bool
 json_token_to_string(struct sol_json_token *token, char **out)
 {
     if (sol_json_token_get_type(token) != SOL_JSON_TYPE_STRING)
@@ -1604,7 +1604,7 @@ json_token_to_string(struct sol_json_token *token, char **out)
     return !!*out;
 }
 
-static bool
+SOL_ATTR_USED static bool
 json_token_to_bool(struct sol_json_token *token, bool *out)
 {
     if (sol_json_token_get_type(token) == SOL_JSON_TYPE_TRUE)
