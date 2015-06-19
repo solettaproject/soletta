@@ -1,5 +1,6 @@
 # Soletta Project
 
+[![Build Status](https://semaphoreci.com/api/v1/projects/dfd5e3f1-9539-49d5-a2bc-55415867db02/460921/badge.svg)](https://semaphoreci.com/lstrano/soletta--2)<br/>
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/5517/badge.svg)](https://scan.coverity.com/projects/5517)
 
 **Soletta Project** is a framework for making IoT devices.
