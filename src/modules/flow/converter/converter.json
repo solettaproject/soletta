@@ -816,6 +816,59 @@
     },
     {
       "category": "converter",
+      "description": "Receives an empty packet and convert it to rgb.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Where to receive the empty packet.",
+          "methods": {
+            "process": "empty_to_rgb_convert"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "rgb",
+          "description": "RGB value of output when an empty packet is received.",
+          "methods": {
+            "process": "empty_rgb_output_set"
+          },
+          "name": "OUTPUT_VALUE"
+        }
+      ],
+      "methods": {
+        "open": "empty_to_rgb_open"
+      },
+      "name": "converter/empty-to-rgb",
+      "options": {
+        "members": [
+          {
+            "data_type": "rgb",
+            "description": "RGB value of output when an empty packet is received.",
+            "name": "output_value",
+            "default": {
+              "red": 255,
+              "green": 255,
+              "blue": 255,
+              "red_max": 255,
+              "green_max": 255,
+              "blue_max": 255
+            }
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "RGB defined by OUTPUT_VALUE port or output_value option.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_rgb",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/empty-to-rgb.html"
+    },
+    {
+      "category": "converter",
       "description": "Receives an empty packet and convert it to byte.",
       "in_ports": [
         {
