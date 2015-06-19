@@ -153,6 +153,90 @@
           "name": "RAW"
         }
       ]
+    },
+    {
+      "category": "internal",
+      "description": "Converts light sensor raw readings to Lux.",
+      "in_ports": [
+          {
+            "data_type": "int",
+            "description": "Input value",
+            "name": "IN",
+            "methods": {
+                "process": "light_converter"
+            }
+          }
+      ],
+      "methods": {
+         "open": "light_converter_open"
+      },
+      "name": "grove/light-converter",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Input range mask",
+            "name": "input_range_mask"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured illuminance in Lux (approximately).",
+          "name": "LUX"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured illuminance.",
+          "name": "RAW"
+        }
+      ],
+      "private_data_type": "light_converter_data"
+    },
+    {
+      "category": "input/hw",
+      "description": "Get light sensor readings in Lux. However, it should be noted that this sensor is not precise, so the Lux readings are a rough estimation based on Grove Starter Kit booklet table, which relates raw sensor readings to Lux.",
+      "methods": {
+         "init_type": "light_sensor_init_type"
+      },
+      "name": "grove/light-sensor",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 1,
+            "description": "Pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "default": 12,
+            "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
+            "name": "mask"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
+            "name": "poll_timeout"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured illuminance in Lux (approximately).",
+          "name": "LUX"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured illuminance.",
+          "name": "RAW"
+        }
+      ]
     }
   ]
 }
