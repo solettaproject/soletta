@@ -47,10 +47,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-calamari");
 
 #include "sol-flow-node-types.h"
 
-//FIXME: something like sol-flow-node-types.h for !built-in modules
-//too?
-#include "../../modules/flow/gpio/gpio-gen.h"
-
+#include "gpio-gen.h"
 #include "calamari-gen.h"
 
 ///////// SEGMENTS CTL ///////////
@@ -190,6 +187,12 @@ segments_ctl_close(struct sol_flow_node *node, void *data)
 
 ///////// CALAMARI 7SEG ///////////
 
+#define SEG_CTL 0
+#define SEG_CLEAR 1
+#define SEG_LATCH 2
+#define SEG_CLOCK 3
+#define SEG_DATA 4
+
 static void
 calamari_7seg_child_opts_set(uint16_t child_index,
     const struct sol_flow_node_options *opts,
@@ -202,14 +205,13 @@ calamari_7seg_child_opts_set(uint16_t child_index,
         (struct sol_flow_node_type_gpio_writer_options *)child_opts;
 
     const int pins[] = {
-        [1] = calamari_7seg_opts->clear_pin.val,
-        [2] = calamari_7seg_opts->latch_pin.val,
-        [3] = calamari_7seg_opts->clock_pin.val,
-        [4] = calamari_7seg_opts->data_pin.val
+        [SEG_CLEAR] = calamari_7seg_opts->clear_pin.val,
+        [SEG_LATCH] = calamari_7seg_opts->latch_pin.val,
+        [SEG_CLOCK] = calamari_7seg_opts->clock_pin.val,
+        [SEG_DATA] = calamari_7seg_opts->data_pin.val
     };
 
-    // There is nothing to do for node 0, which is segments-ctl
-    if (child_index == 0 || child_index > 4)
+    if (child_index == SEG_CTL || child_index > SEG_DATA)
         return;
 
     gpio_opts->pin.val = pins[child_index];
@@ -221,30 +223,30 @@ calamari_7seg_new_type(const struct sol_flow_node_type **current)
     struct sol_flow_node_type *type;
 
     static struct sol_flow_static_node_spec nodes[] = {
-        [0] = { NULL, "segments-ctl", NULL },
-        [1] = { NULL, "gpio-clear", NULL },
-        [2] = { NULL, "gpio-latch", NULL },
-        [3] = { NULL, "gpio-clock", NULL },
-        [4] = { NULL, "gpio-data", NULL },
+        [SEG_CTL] = { NULL, "segments-ctl", NULL },
+        [SEG_CLEAR] = { NULL, "gpio-clear", NULL },
+        [SEG_LATCH] = { NULL, "gpio-latch", NULL },
+        [SEG_CLOCK] = { NULL, "gpio-clock", NULL },
+        [SEG_DATA] = { NULL, "gpio-data", NULL },
         SOL_FLOW_STATIC_NODE_SPEC_GUARD
     };
 
     static const struct sol_flow_static_conn_spec conns[] = {
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLEAR, 1, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__LATCH, 2, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLOCK, 3, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__DATA, 4, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
+        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLEAR, SEG_CLEAR, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
+        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__LATCH, SEG_LATCH, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
+        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLOCK, SEG_CLOCK, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
+        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__DATA, SEG_DATA, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
         SOL_FLOW_STATIC_CONN_SPEC_GUARD
     };
 
     static const struct sol_flow_static_port_spec exported_in[] = {
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__IN__SEGMENTS },
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__IN__VALUE },
+        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__IN__SEGMENTS },
+        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__IN__VALUE },
         SOL_FLOW_STATIC_PORT_SPEC_GUARD
     };
 
-    nodes[0].type = SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL;
-    nodes[1].type = nodes[2].type = nodes[3].type = nodes[4].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
+    nodes[SEG_CTL].type = SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL;
+    nodes[SEG_CLEAR].type = nodes[SEG_LATCH].type = nodes[SEG_CLOCK].type = nodes[SEG_DATA].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
 
     type = sol_flow_static_new_type(nodes, conns, exported_in, NULL, calamari_7seg_child_opts_set);
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
@@ -254,6 +256,20 @@ calamari_7seg_new_type(const struct sol_flow_node_type **current)
     type->new_options = (*current)->new_options;
     *current = type;
 }
+
+#undef SEG_CTL
+#undef SEG_CLEAR
+#undef SEG_LATCH
+#undef SEG_CLOCK
+#undef SEG_DATA
+
+static void
+segments_init_type(void)
+{
+    calamari_7seg_new_type(&SOL_FLOW_NODE_TYPE_CALAMARI_7SEG);
+}
+
+///////// CALAMARI LED ///////////
 
 struct calamari_led_data {
     struct sol_flow_node *node;
@@ -314,6 +330,8 @@ calamari_led_close(struct sol_flow_node *node, void *data)
 
     sol_pwm_close(mdata->pwm);
 }
+
+///////// CALAMARI LEVER ///////////
 
 struct calamari_lever_data {
     struct sol_flow_node *node;
@@ -476,6 +494,11 @@ calamari_rgb_led_process_blue(struct sol_flow_node *node, void *data, uint16_t p
     return 0;
 }
 
+#define RGB_LED_CTL 0
+#define RGB_LED_RED 1
+#define RGB_LED_GREEN 2
+#define RGB_LED_BLUE 3
+
 static void
 calamari_rgb_child_opts_set(uint16_t child_index,
     const struct sol_flow_node_options *opts,
@@ -488,13 +511,13 @@ calamari_rgb_child_opts_set(uint16_t child_index,
         (struct sol_flow_node_type_gpio_writer_options *)child_opts;
 
     const int pins[] = {
-        [1] = calamari_rgb_opts->red_pin.val,
-        [2] = calamari_rgb_opts->green_pin.val,
-        [3] = calamari_rgb_opts->blue_pin.val,
+        [RGB_LED_RED] = calamari_rgb_opts->red_pin.val,
+        [RGB_LED_GREEN] = calamari_rgb_opts->green_pin.val,
+        [RGB_LED_BLUE] = calamari_rgb_opts->blue_pin.val,
     };
 
     // There is nothing to do for node 0, which is rgb-ctl
-    if (child_index == 0 || child_index > 3)
+    if (child_index == RGB_LED_CTL || child_index > RGB_LED_BLUE)
         return;
 
     gpio_opts->pin.val = pins[child_index];
@@ -506,29 +529,29 @@ calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
     struct sol_flow_node_type *type;
 
     static struct sol_flow_static_node_spec nodes[] = {
-        [0] = { NULL, "rgb-ctl", NULL },
-        [1] = { NULL, "gpio-red", NULL },
-        [2] = { NULL, "gpio-green", NULL },
-        [3] = { NULL, "gpio-blue", NULL },
+        [RGB_LED_CTL] = { NULL, "rgb-ctl", NULL },
+        [RGB_LED_RED] = { NULL, "gpio-red", NULL },
+        [RGB_LED_GREEN] = { NULL, "gpio-green", NULL },
+        [RGB_LED_BLUE] = { NULL, "gpio-blue", NULL },
         SOL_FLOW_STATIC_NODE_SPEC_GUARD
     };
 
     static const struct sol_flow_static_conn_spec conns[] = {
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__RED, 1, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__GREEN, 2, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__BLUE, 3, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
+        { RGB_LED_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__RED, RGB_LED_RED, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
+        { RGB_LED_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__GREEN, RGB_LED_GREEN, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
+        { RGB_LED_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__BLUE, RGB_LED_BLUE, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
         SOL_FLOW_STATIC_CONN_SPEC_GUARD
     };
 
     static const struct sol_flow_static_port_spec exported_in[] = {
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__IN__RED },
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__IN__GREEN },
-        { 0, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__IN__BLUE },
+        { RGB_LED_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__IN__RED },
+        { RGB_LED_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__IN__GREEN },
+        { RGB_LED_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__IN__BLUE },
         SOL_FLOW_STATIC_PORT_SPEC_GUARD
     };
 
-    nodes[0].type = SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL;
-    nodes[1].type = nodes[2].type = nodes[3].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
+    nodes[RGB_LED_CTL].type = SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL;
+    nodes[RGB_LED_RED].type = nodes[RGB_LED_GREEN].type = nodes[RGB_LED_BLUE].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
 
     type = sol_flow_static_new_type(nodes, conns, exported_in, NULL, calamari_rgb_child_opts_set);
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
@@ -539,17 +562,15 @@ calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
     *current = type;
 }
 
+#undef RGB_LED_CTL
+#undef RGB_LED_RED
+#undef RGB_LED_GREEN
+#undef RGB_LED_BLUE
 
 static void
 rgb_led_init_type(void)
 {
     calamari_rgb_led_new_type(&SOL_FLOW_NODE_TYPE_CALAMARI_RGB_LED);
-}
-
-static void
-segments_init_type(void)
-{
-    calamari_7seg_new_type(&SOL_FLOW_NODE_TYPE_CALAMARI_7SEG);
 }
 
 #include "calamari-gen.c"
