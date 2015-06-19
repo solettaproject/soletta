@@ -344,8 +344,10 @@ get_value(struct sol_json_token *value, char **value_data, struct sol_json_token
 
     *key_slice = get_slice(key);
 
-    *value_data = strndup(value->start, value->end - value->start);
     if (!value_data)
+        return false;
+    *value_data = strndup(value->start, value->end - value->start);
+    if (!*value_data)
         return false;
 
     return true;
