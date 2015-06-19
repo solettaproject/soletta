@@ -32,6 +32,7 @@
 
 #include "aio-gen.h"
 
+#include "sol-aio.h"
 #include "sol-flow-internal.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"
@@ -43,35 +44,16 @@
 #include <sys/stat.h>
 #include <limits.h>
 
-#define AIO_BASE_PATH "/sys/bus/iio/devices/iio:device0/in_voltage%d_raw"
-
 struct aio_data {
     struct sol_flow_node *node;
     struct sol_timeout *timer;
-    FILE *fp;
+    struct sol_aio *aio;
+    int device;
     int pin;
     int mask;
     int last_value;
     bool is_first;
 };
-
-static bool
-_aio_open_fd(struct aio_data *mdata)
-{
-    char path[PATH_MAX];
-    int len;
-
-    len = snprintf(path, sizeof(path), AIO_BASE_PATH, mdata->pin);
-    if (len < 0 || len > PATH_MAX)
-        return false;
-
-    mdata->fp = fopen(path, "re");
-    if (!mdata->fp)
-        return false;
-    setvbuf(mdata->fp, NULL, _IONBF, 0);
-
-    return true;
-}
 
 static void
 aio_close(struct sol_flow_node *node, void *data)
@@ -80,8 +62,8 @@ aio_close(struct sol_flow_node *node, void *data)
 
     SOL_NULL_CHECK(mdata);
 
-    if (mdata->fp)
-        fclose(mdata->fp);
+    if (mdata->aio)
+        sol_aio_close(mdata->aio);
     if (mdata->timer)
         sol_timeout_del(mdata->timer);
 }
@@ -98,21 +80,11 @@ _on_reader_timeout(void *data)
 
     SOL_NULL_CHECK(data, true);
 
-    if (!mdata->fp) {
-        if (!_aio_open_fd(mdata)) {
-            SOL_WRN("aio #%d: Could not open file.", mdata->pin);
-            return false;
-        }
-    }
-
-    rewind(mdata->fp);
-
-    if (fscanf(mdata->fp, "%d", &i.val) < 1) {
-        SOL_WRN("aio #%d: Could not read value.", mdata->pin);
+    i.val = sol_aio_get_value(mdata->aio);
+    if (i.val < 0) {
+        SOL_WRN("aio #%d,%d: Could not read value.", mdata->device, mdata->pin);
         return false;
     }
-
-    i.val &= mdata->mask;
 
     if (mdata->is_first || i.val != mdata->last_value) {
         mdata->is_first = false;
@@ -130,8 +102,6 @@ _on_reader_timeout(void *data)
 static int
 aio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    char path[PATH_MAX];
-    struct stat st;
     struct aio_data *mdata = data;
     const struct sol_flow_node_type_aio_reader_options *opts =
         (const struct sol_flow_node_type_aio_reader_options *)options;
@@ -140,24 +110,24 @@ aio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
 
     mdata->is_first = true;
     mdata->node = node;
-    mdata->pin = opts->pin.val;
 
-    snprintf(path, sizeof(path), AIO_BASE_PATH, mdata->pin);
-    if (stat(path, &st) == -1) {
-        SOL_WRN("aio #%d: Couldn't open pin.", mdata->pin);
+    if (opts->mask.val <= 0) {
+        SOL_WRN("aio #%d,%d: Invalid bit mask value=%" PRId32 ".", opts->device.val, opts->pin.val,
+            opts->mask.val);
         return -EINVAL;
     }
+
+    mdata->aio = sol_aio_open(opts->device.val, opts->pin.val, opts->mask.val);
+    SOL_NULL_CHECK(mdata->aio, -EINVAL);
 
     if (opts->poll_timeout.val <= 0) {
-        SOL_WRN("aio #%d: Invalid polling time=%" PRId32 ".", mdata->pin, opts->poll_timeout.val);
+        SOL_WRN("aio #%d,%d: Invalid polling time=%" PRId32 ".", opts->device.val, opts->pin.val,
+            opts->poll_timeout.val);
         return -EINVAL;
     }
 
-    if (opts->mask.val == 0) {
-        SOL_WRN("aio #%d: Invalid bit mask value=%" PRId32 ".", mdata->pin, opts->mask.val);
-        return -EINVAL;
-    }
-
+    mdata->device = opts->device.val;
+    mdata->pin = opts->pin.val;
     mdata->mask = (0x01 << opts->mask.val) - 1;
     mdata->timer = sol_timeout_add(opts->poll_timeout.val, _on_reader_timeout, mdata);
 
