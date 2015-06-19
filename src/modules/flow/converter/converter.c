@@ -551,6 +551,22 @@ empty_to_boolean_open(struct sol_flow_node *node, void *data, const struct sol_f
 }
 
 static int
+empty_to_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct sol_rgb *mdata = data;
+    const struct sol_flow_node_type_converter_empty_to_rgb_options *opts =
+        (const struct sol_flow_node_type_converter_empty_to_rgb_options *)
+        options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_RGB_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    *mdata = opts->output_value;
+    return 0;
+}
+
+static int
 empty_to_byte_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct sol_converter_byte *mdata = data;
@@ -655,6 +671,16 @@ empty_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     return sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_BOOLEAN__OUT__OUT,
         mdata->output_value);
+}
+
+static int
+empty_to_rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_rgb *mdata = data;
+
+    return sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_RGB__OUT__OUT,
+        mdata);
 }
 
 static int
@@ -978,6 +1004,16 @@ empty_boolean_output_set(struct sol_flow_node *node, void *data, uint16_t port, 
 {
     struct sol_converter_boolean *mdata = data;
     int r = sol_flow_packet_get_boolean(packet, &mdata->output_value);
+
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+empty_rgb_output_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_rgb *mdata = data;
+    int r = sol_flow_packet_get_rgb(packet, mdata);
 
     SOL_INT_CHECK(r, < 0, r);
     return 0;
