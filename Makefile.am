@@ -35,6 +35,7 @@ AM_CPPFLAGS = \
 	-include $(top_builddir)/sol_config.h \
 	-I$(top_builddir)/src/lib/common \
 	-I$(top_builddir)/src/lib/flow \
+	-I$(top_builddir)/src/modules/flow/accelerometer \
 	-I$(top_builddir)/src/modules/flow/aio \
 	-I$(top_builddir)/src/modules/flow/app \
 	-I$(top_builddir)/src/modules/flow/boolean \
@@ -52,6 +53,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src/modules/flow/fs \
 	-I$(top_builddir)/src/modules/flow/gpio \
 	-I$(top_builddir)/src/modules/flow/gtk \
+	-I$(top_builddir)/src/modules/flow/gyroscope \
 	-I$(top_builddir)/src/modules/flow/hub \
 	-I$(top_builddir)/src/modules/flow/int \
 	-I$(top_builddir)/src/modules/flow/keyboard \
