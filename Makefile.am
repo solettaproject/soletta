@@ -347,6 +347,8 @@ src_shared_libshared_la_LIBADD =
 
 noinst_LTLIBRARIES += src/shared/libshared.la
 src_shared_libshared_la_SOURCES = \
+src/shared/sol-aio-common.c \
+src/shared/sol-aio.h \
 src/shared/sol-arena.c \
 src/shared/sol-arena.h \
 src/shared/sol-buffer.c \
@@ -396,6 +398,7 @@ endif # HAVE_GLIB
 
 if HAVE_PLATFORM_LINUX
 src_shared_libshared_la_SOURCES += \
+src/shared/sol-aio-linux.c \
 src/shared/sol-file-reader.c \
 src/shared/sol-gpio-linux.c \
 src/shared/sol-network-linux.c \
@@ -413,6 +416,7 @@ endif
 
 if HAVE_PLATFORM_RIOT
 src_shared_libshared_la_SOURCES += \
+src/shared/sol-aio-riot.c \
 src/shared/sol-gpio-riot.c \
 src/shared/sol-i2c-riot.c \
 src/shared/sol-pwm-riot.c \

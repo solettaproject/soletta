@@ -18,6 +18,11 @@
         "members": [
           {
             "data_type": "int",
+            "description": "Device number on platform.",
+            "name": "device"
+          },
+          {
+            "data_type": "int",
             "description": "Pin",
             "name": "pin"
           },
