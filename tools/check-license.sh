@@ -42,11 +42,37 @@ DIFF_LIST=$(mktemp /tmp/sol-tmp.XXXX)
 PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|generate\-svg\-from\-all\-fbps\)$"
 IGNORE="data\/oic\/\|data\/jsons\/\|.*\.ac"
 
+trap "rm -f $DIFF_LIST" EXIT
+
+function usage()
+{
+    echo "usage: $0 [-b <base_commit>] [-h]"
+}
+
+while getopts b:h o
+do case "$o" in
+       b) BASE_COMMIT="$OPTARG";;
+       h) usage
+          exit 0;;
+       [?]) usage
+          exit 1;;
+   esac
+done
+
 git diff --diff-filter=ACMR --oneline --name-only | grep $PATTERNS | sed '/'${IGNORE}'/d' > $DIFF_LIST
+git diff --cached --diff-filter=ACMR --oneline --name-only | grep $PATTERNS | sed '/'${IGNORE}'/d' >> $DIFF_LIST
+
+if [ -n "$BASE_COMMIT" -a -s "$DIFF_LIST" ]; then
+    echo "Commits since $BASE_COMMIT marked to be checked, but the git tree is dirty -- checking these files instead"
+    BASE_COMMIT=""
+fi
 
 if [ ! -s "$DIFF_LIST" ]; then
-    echo Working directory is clean, checking the topmost commit.
-    git diff --diff-filter=ACMR --oneline --name-only HEAD~1 | grep $PATTERNS | sed '/'${IGNORE}'/d' > $DIFF_LIST
+    if [ -z "$BASE_COMMIT" ]; then
+        BASE_COMMIT="HEAD~1"
+    fi
+    echo "Working directory is clean, checking commit changes since $BASE_COMMIT"
+    git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep --color=never '^.*\.[ch]' > $DIFF_LIST
 fi
 
 for f in $(cat $DIFF_LIST); do
