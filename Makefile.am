@@ -44,6 +44,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src/modules/flow/console \
 	-I$(top_builddir)/src/modules/flow/constant \
 	-I$(top_builddir)/src/modules/flow/converter \
+	-I$(top_builddir)/src/modules/flow/dummy \
 	-I$(top_builddir)/src/modules/flow/evdev \
 	-I$(top_builddir)/src/modules/flow/file \
 	-I$(top_builddir)/src/modules/flow/filter-repeated \
@@ -553,6 +554,15 @@ BUILT_SOURCES += src/lib/common/sol-pin-mux-builtins-gen.h
 
 include sol_pin_mux_modules.mk
 endif #BUILD_PIN_MUX
+
+if MODULE_OR_BUILTIN_FLOW_DUMMY
+
+BUILT_SOURCES += src/modules/flow/dummy/dummy.c
+
+src/modules/flow/dummy/dummy.c: src/modules/flow/dummy/dummy.json $(top_builddir)/data/scripts/sol-flow-node-type-stub-gen.py src/modules/flow/dummy/dummy-gen.c  src/modules/flow/dummy/dummy-gen.h
+	$(AM_V_GEN)$(PYTHON) $(top_builddir)/data/scripts/sol-flow-node-type-stub-gen.py --prefix=sol-flow-node-type --force=yes src/modules/flow/dummy/dummy.c src/modules/flow/dummy/dummy.json
+
+endif #MODULE_OR_BUILTIN_FLOW_DUMMY
 
 src/modules/flow/%-gen.h src/modules/flow/%-gen.c: src/modules/flow/%.json $(top_builddir)/data/scripts/sol-flow-node-type-gen.py
 	$(AM_V_GEN)$(PYTHON) $(top_builddir)/data/scripts/sol-flow-node-type-gen.py --prefix=sol-flow-node-type --genspec-schema=$(SOLETTA_FLOW_NODE_TYPE_SCHEMA) $<  src/modules/flow/$*-gen.h src/modules/flow/$*-gen.c $(@D).json

@@ -1,0 +1,303 @@
+{
+  "name": "dummy",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "dummy",
+      "description": "Just a dummy description to test stub generator.",
+      "in_ports": [
+       {
+        "data_type": "any",
+        "description": "Dummy any input port.",
+        "methods": {
+         "connect": "any_connect",
+         "disconnect": "any_disconnect",
+         "process": "any_process"
+        },
+        "name": "ANY"
+       },
+       {
+        "data_type": "blob",
+        "description": "Dummy blob input port.",
+        "methods": {
+         "connect": "blob_connect",
+         "disconnect": "blob_disconnect",
+         "process": "blob_process"
+        },
+        "name": "BLOB"
+       },
+       {
+        "data_type": "boolean",
+        "description": "Dummy boolean input port.",
+        "methods": {
+         "connect": "boolean_connect",
+         "disconnect": "boolean_disconnect",
+         "process": "boolean_process"
+        },
+        "name": "BOOLEAN"
+       },
+       {
+        "data_type": "byte",
+        "description": "Dummy byte input port.",
+        "methods": {
+         "connect": "byte_connect",
+         "disconnect": "byte_disconnect",
+         "process": "byte_process"
+        },
+        "name": "BYTE"
+       },
+       {
+        "data_type": "custom:CUSTOM_TYPE_1",
+        "description": "Dummy custom input port.",
+        "methods": {
+         "connect": "custom1_connect",
+         "disconnect": "custom1_disconnect",
+         "process": "custom1_process"
+        },
+        "name": "CUSTOM1"
+       },
+       {
+        "data_type": "custom:CUSTOM_TYPE_2",
+        "description": "Dummy custom input port.",
+        "methods": {
+         "connect": "custom2_connect",
+         "disconnect": "custom2_disconnect",
+         "process": "custom2_process"
+        },
+        "name": "CUSTOM2"
+       },
+       {
+        "data_type": "float",
+        "description": "Dummy float input port.",
+        "methods": {
+         "connect": "float_connect",
+         "disconnect": "float_disconnect",
+         "process": "float_process"
+        },
+        "name": "FLOAT"
+       },
+       {
+        "data_type": "int",
+        "description": "Dummy int input port.",
+        "methods": {
+         "connect": "int_connect",
+         "disconnect": "int_disconnect",
+         "process": "int_process"
+        },
+        "name": "INT"
+       },
+       {
+        "data_type": "rgb",
+        "description": "Dummy rgb input port.",
+        "methods": {
+         "connect": "rgb_connect",
+         "disconnect": "rgb_disconnect",
+         "process": "rgb_process"
+        },
+        "name": "RGB"
+       },
+       {
+        "data_type": "string",
+        "description": "Dummy string input port.",
+        "methods": {
+         "connect": "string_connect",
+         "disconnect": "string_disconnect",
+         "process": "string_process"
+        },
+        "name": "STRING"
+       }
+      ],
+      "methods": {
+       "close": "dummy_close",
+       "open": "dummy_open"
+      },
+      "name": "dummy/type1",
+      "options": {
+       "members": [
+        {
+         "data_type": "boolean",
+         "default": false,
+         "description": "Dummy boolean option.",
+         "name": "opt_boolean"
+        },
+        {
+         "data_type": "byte",
+         "default": 15,
+         "description": "Dummy byte option.",
+         "name": "opt_byte"
+        },
+        {
+         "data_type": "float",
+         "default": {
+             "val": 20.5,
+             "min": -10,
+             "max": 33,
+             "step": 0.5
+         },
+         "description": "Dummy float option.",
+         "name": "opt_float"
+        },
+        {
+         "data_type": "int",
+         "default": {
+             "val": 20,
+             "min": -10,
+             "max": 33,
+             "step": 1
+         },
+         "description": "Dummy int option.",
+         "name": "opt_int"
+        },
+        {
+         "data_type": "rgb",
+         "default": {
+             "red": 100,
+             "green": 200,
+             "blue": 0,
+             "red_max": 255,
+             "green_max": 200,
+             "blue_max": 255
+         },
+         "description": "Dummy rgb option.",
+         "name": "opt_rgb"
+        },
+        {
+         "data_type": "string",
+         "default": "Hello World",
+         "description": "Dummy string option.",
+         "name": "opt_string"
+        }
+       ],
+       "version": 1
+      },
+      "out_ports": [
+       {
+        "data_type": "blob",
+        "description": "Dummy blob input port.",
+        "name": "BLOB"
+       },
+       {
+        "data_type": "boolean",
+        "description": "Dummy boolean input port.",
+        "name": "BOOLEAN"
+       },
+       {
+        "data_type": "byte",
+        "description": "Dummy byte input port.",
+        "name": "BYTE"
+       },
+       {
+        "data_type": "custom:CUSTOM_TYPE_1",
+        "description": "Dummy custom input port.",
+        "name": "CUSTOM1"
+       },
+       {
+        "data_type": "custom:CUSTOM_TYPE_2",
+        "description": "Dummy custom input port.",
+        "name": "CUSTOM2"
+       },
+       {
+        "data_type": "empty",
+        "description": "Dummy empty input port.",
+        "name": "EMPTY"
+       },
+       {
+        "data_type": "float",
+        "description": "Dummy float input port.",
+        "name": "FLOAT"
+       },
+       {
+        "data_type": "int",
+        "description": "Dummy int input port.",
+        "name": "INT"
+       },
+       {
+        "data_type": "rgb",
+        "description": "Dummy rgb input port.",
+        "name": "RGB"
+       },
+       {
+        "data_type": "string",
+        "description": "Dummy string input port.",
+        "name": "STRING"
+       }
+      ],
+      "private_data_type": "dummy_data",
+      "url": "http://soletta.org/doc/latest/node_types/dummy/type1.html"
+    },
+    {
+      "category": "dummy",
+      "description": "Just a dummy description to test stub generator.",
+      "in_ports": [
+       {
+        "data_type": "custom:CUSTOM_TYPE_1",
+        "description": "Dummy custom input port.",
+        "methods": {
+         "connect": "type2_custom1_connect",
+         "disconnect": "type2_custom1_disconnect",
+         "process": "type2_custom1_process"
+        },
+        "name": "CUSTOM1"
+       },
+       {
+        "data_type": "custom:CUSTOM_TYPE_4",
+        "description": "Dummy custom input port.",
+        "methods": {
+         "connect": "custom4_connect",
+         "disconnect": "custom4_disconnect",
+         "process": "custom4_process"
+        },
+        "name": "CUSTOM4"
+       },
+       {
+        "data_type": "int",
+        "description": "Dummy int input port.",
+        "methods": {
+         "connect": "int2_connect",
+         "disconnect": "int2_disconnect",
+         "process": "int_process"
+        },
+        "name": "INT"
+       },
+       {
+        "data_type": "string",
+        "description": "Dummy string input port.",
+        "methods": {
+         "connect": "string_connect",
+         "disconnect": "string_disconnect",
+         "process": "string2_process"
+        },
+        "name": "STRING"
+       }
+      ],
+      "methods": {
+       "close": "dummy2_close",
+       "open": "dummy_open"
+      },
+      "name": "dummy/type2",
+      "out_ports": [
+       {
+        "data_type": "custom:CUSTOM_TYPE_1",
+        "description": "Dummy custom input port.",
+        "name": "CUSTOM1"
+       },
+       {
+        "data_type": "custom:CUSTOM_TYPE_3",
+        "description": "Dummy custom input port.",
+        "name": "CUSTOM3"
+       },
+       {
+        "data_type": "string",
+        "description": "Dummy string input port.",
+        "name": "STRING"
+       }
+      ],
+      "private_data_type": "dummy2_data",
+      "url": "http://soletta.org/doc/latest/node_types/dummy/type2.html"
+    }
+  ]
+}
