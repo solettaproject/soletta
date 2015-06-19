@@ -361,12 +361,15 @@ src/shared/sol-fbp.h \
 src/shared/sol-util.c \
 src/shared/sol-util.h \
 src/shared/sol-file-reader.h \
+src/shared/sol-gpio-common.c \
 src/shared/sol-gpio.h \
 src/shared/sol-i2c.h \
+src/shared/sol-i2c-common.c \
 src/shared/sol-list.h \
 src/shared/sol-monitors.c \
 src/shared/sol-monitors.h \
 src/shared/sol-network.h \
+src/shared/sol-pwm-common.c \
 src/shared/sol-pwm.h \
 src/shared/sol-spi.h \
 src/shared/sol-str-slice.c \
@@ -523,7 +526,7 @@ endif
 
 endif # BUILD_SAMPLES
 
-if BUILD_PIN_MUX
+if HAVE_PIN_MUX
 src_lib_libsoletta_la_SOURCES += \
 	src/lib/common/sol-pin-mux.c \
 	src/lib/common/sol-pin-mux.h \
@@ -553,7 +556,7 @@ src/lib/common/sol-pin-mux-builtins-gen.h: Makefile data/scripts/sol-builtins-ge
 BUILT_SOURCES += src/lib/common/sol-pin-mux-builtins-gen.h
 
 include sol_pin_mux_modules.mk
-endif #BUILD_PIN_MUX
+endif #HAVE_PIN_MUX
 
 if MODULE_OR_BUILTIN_FLOW_DUMMY
 

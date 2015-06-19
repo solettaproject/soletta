@@ -49,6 +49,9 @@ enum sol_i2c_speed {
 };
 
 struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
+
+struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
+
 void sol_i2c_close(struct sol_i2c *i2c);
 
 bool sol_i2c_write_quick(const struct sol_i2c *i2c, bool rw);
