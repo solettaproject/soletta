@@ -1,0 +1,4 @@
+config LINUX_MICRO_DBUS
+	tristate "dbus"
+	depends on LINUX_MICRO
+	default n

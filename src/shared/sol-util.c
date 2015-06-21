@@ -32,8 +32,10 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/auxv.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -259,4 +261,40 @@ sol_util_strerror(int errnum, char *buf, size_t buflen)
         ret = buf;
 
     return ret;
+}
+
+static int
+get_progname(char *out, size_t size)
+{
+    char cwd[PATH_MAX] = {NULL}, *execfn;
+
+    if (getcwd(cwd, sizeof(cwd)) == NULL)
+        return -1;
+
+    execfn = (char *)getauxval(AT_EXECFN);
+    if (execfn && execfn[0] == '/')
+        return snprintf(out, size, "%s", execfn);
+    else
+        return snprintf(out, size, "%s/%s", cwd, execfn);
+}
+
+int
+sol_util_get_rootdir(char *out, size_t size) {
+    char progname[PATH_MAX] = {NULL}, *substr, *prefix;
+    int r;
+
+    r = get_progname(progname, sizeof(progname));
+    if (r < 0 || r >= (int)sizeof(progname))
+        return r;
+
+    substr = strstr(progname, "soletta_sysroot");
+    if (!substr) {
+        return snprintf(out, size, "/");
+    }
+
+    prefix = strndupa(progname, strlen(progname) - strlen(substr));
+    if (!prefix)
+        return -1;
+
+    return snprintf(out, size, "%ssoletta_sysroot/", prefix);
 }

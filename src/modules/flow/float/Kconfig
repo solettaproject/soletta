@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_FLOAT
+	tristate "Node type: float"
+	depends on FLOW
+	default y

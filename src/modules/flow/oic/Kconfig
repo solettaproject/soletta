@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_OIC
+	tristate "Node type: oic"
+	depends on FLOW && COAP && SOCKET_LINUX
+	default m
