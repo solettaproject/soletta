@@ -464,8 +464,10 @@ build_flow(struct parse_state *state)
     struct sol_fbp_node *n;
     struct sol_fbp_conn *c;
     struct sol_fbp_exported_port *ep;
+    struct sol_fbp_option *opt;
     struct sol_flow_node_type *type = NULL;
     struct sol_buffer src_port_buf = SOL_BUFFER_EMPTY, dst_port_buf = SOL_BUFFER_EMPTY;
+    struct sol_buffer opt_name_buf = SOL_BUFFER_EMPTY;
     int i, err = 0;
 
     fbp_error = sol_fbp_parse(state->input, &state->graph);
@@ -551,6 +553,24 @@ build_flow(struct parse_state *state)
             src_port_buf.data, ep->port_idx, exported_name);
     }
 
+    SOL_VECTOR_FOREACH_IDX (&graph->options, opt, i) {
+        char *exported_name;
+
+        err = sol_buffer_copy_slice(&opt_name_buf, opt->node_option);
+        if (err < 0)
+            goto end;
+
+        exported_name = sol_arena_strdup_slice(state->arena, opt->name);
+        if (!exported_name) {
+            err = -errno;
+            goto end;
+        }
+
+        sol_flow_builder_export_option(
+            state->builder, state->node_names[opt->node],
+            opt_name_buf.data, exported_name);
+    }
+
     type = sol_flow_builder_get_node_type(state->builder);
     if (!type)
         err = -ECANCELED;
@@ -560,6 +580,7 @@ end:
 
     sol_buffer_fini(&src_port_buf);
     sol_buffer_fini(&dst_port_buf);
+    sol_buffer_fini(&opt_name_buf);
     if (err < 0)
         errno = -err;
     return type;
