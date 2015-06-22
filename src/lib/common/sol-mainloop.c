@@ -53,6 +53,21 @@ sol_log_shutdown(void)
 }
 #endif
 
+#ifdef HAVE_PIN_MUX
+extern int sol_pin_mux_init(void);
+extern void sol_pin_mux_shutdown(void);
+#else
+static inline int
+sol_pin_mux_init(void)
+{
+    return 0;
+}
+static inline void
+sol_pin_mux_shutdown(void)
+{
+}
+#endif
+
 extern int sol_platform_init(void);
 extern void sol_platform_shutdown(void);
 extern int sol_blob_init(void);
@@ -89,6 +104,10 @@ sol_init(void)
     if (r < 0)
         goto platform_error;
 
+    r = sol_pin_mux_init();
+    if (r < 0)
+        goto pin_mux_error;
+
     r = sol_blob_init();
     if (r < 0)
         goto blob_error;
@@ -104,6 +123,8 @@ sol_init(void)
 flow_error:
     sol_blob_shutdown();
 blob_error:
+    sol_pin_mux_shutdown();
+pin_mux_error:
     sol_platform_shutdown();
 platform_error:
     sol_mainloop_impl_shutdown();
@@ -170,6 +191,7 @@ sol_shutdown(void)
     SOL_DBG("shutdown");
     sol_flow_shutdown();
     sol_blob_shutdown();
+    sol_pin_mux_shutdown();
     sol_platform_shutdown();
     sol_mainloop_impl_shutdown();
     sol_log_shutdown();
