@@ -30,42 +30,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "sol-gpio.h"
+#include "sol-pin-mux.h"
 
-#include <stdbool.h>
-#include <stdint.h>
+struct sol_gpio *
+sol_gpio_open(int pin, const struct sol_gpio_config *config)
+{
+    struct sol_gpio *gpio = sol_gpio_open_raw(pin, config);
+#ifdef HAVE_PIN_MUX
+    if (gpio)
+        sol_pin_mux_setup_gpio(pin, config ? config->dir : SOL_GPIO_DIR_IN);
+#endif
 
-struct sol_pwm;
-
-/* No API for this on Linux, so we simply ignore it there */
-enum sol_pwm_alignment {
-    SOL_PWM_ALIGNMENT_LEFT,
-    SOL_PWM_ALIGNMENT_RIGHT,
-    SOL_PWM_ALIGNMENT_CENTER /* Also known as phase-correct */
-};
-
-/* This is ignored on RIOT (no API there) and not always supported on Linux */
-enum sol_pwm_polarity {
-    SOL_PWM_POLARITY_NORMAL,
-    SOL_PWM_POLARITY_INVERSED
-};
-
-struct sol_pwm_config {
-    int32_t period_ns; /* if == -1, won't set */
-    int32_t duty_cycle_ns; /* if == -1, won't set, but if period is set, duty cycle is zeroed */
-    enum sol_pwm_alignment alignment;
-    enum sol_pwm_polarity polarity;
-    bool enabled;
-};
-
-struct sol_pwm *sol_pwm_open(int device, int channel, const struct sol_pwm_config *config);
-struct sol_pwm *sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config);
-void sol_pwm_close(struct sol_pwm *pwm);
-
-bool sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable);
-bool sol_pwm_get_enabled(const struct sol_pwm *pwm);
-
-bool sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns);
-int32_t sol_pwm_get_period(const struct sol_pwm *pwm);
-bool sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns);
-int32_t sol_pwm_get_duty_cycle(const struct sol_pwm *pwm);
+    return gpio;
+}

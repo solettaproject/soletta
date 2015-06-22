@@ -342,6 +342,7 @@ AC_DEFUN([CHECK_FLOW_GTK], [dnl
 SOL_FLOW_MODULE([keyboard], [${platform_linux}])
 SOL_FLOW_MODULE([piezo-speaker], [yes])
 SOL_FLOW_MODULE([calamari], [yes])
+SOL_FLOW_MODULE([grove], [yes])
 SOL_FLOW_MODULE([oic], [yes], [CHECK_FLOW_OIC])
 SOL_FLOW_MODULE([fs], [yes])
 SOL_FLOW_MODULE([test], [yes])
@@ -426,7 +427,10 @@ AC_ARG_WITH([pin-mux],
         [],
         [with_pin_mux="no"])
 
-AM_CONDITIONAL([BUILD_PIN_MUX], [test "x$with_pin_mux" != "xno"])
+AM_CONDITIONAL([HAVE_PIN_MUX], [test "x$with_pin_mux" != "xno"])
+if test "x$with_pin_mux" != "xno"; then
+    AC_DEFINE([HAVE_PIN_MUX], [1], [Pin multiplexer is enabled.])
+fi
 
 SOL_PIN_MUX_MODULE([intel-galileo-rev-g], [no], [Add Intel Galileo 2 pin mux support])
 

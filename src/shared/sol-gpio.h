@@ -74,6 +74,7 @@ struct sol_gpio_config {
 };
 
 struct sol_gpio *sol_gpio_open(int pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_gpio *sol_gpio_open_raw(int pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
 void sol_gpio_close(struct sol_gpio *gpio);
 
 bool sol_gpio_write(struct sol_gpio *gpio, bool value);
