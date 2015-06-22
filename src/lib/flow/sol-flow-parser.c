@@ -228,7 +228,7 @@ sol_flow_parser_del(struct sol_flow_parser *parser)
 
     SOL_NULL_CHECK(parser, -EBADF);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&parser->builders, b, i)
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&parser->builders, b, i)
         sol_flow_builder_del(b);
     sol_ptr_vector_clear(&parser->builders);
 
