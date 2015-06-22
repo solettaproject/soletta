@@ -69,9 +69,9 @@ sol_gpio_open(int pin, const struct sol_gpio_config *config)
     struct sol_gpio *gpio;
     gpio_pp_t pull;
     const unsigned int drive_table[] = {
-        [SOL_GPIO_PULL_RESISTOR_NONE] = GPIO_NOPULL,
-        [SOL_GPIO_PULL_RESISTOR_UP] = GPIO_PULLUP,
-        [SOL_GPIO_PULL_RESISTOR_DOWN] = GPIO_PULLDOWN
+        [SOL_GPIO_DRIVE_NONE] = GPIO_NOPULL,
+        [SOL_GPIO_DRIVE_PULL_UP] = GPIO_PULLUP,
+        [SOL_GPIO_DRIVE_PULL_DOWN] = GPIO_PULLDOWN
     };
 
     SOL_LOG_INTERNAL_INIT_ONCE;
@@ -86,12 +86,12 @@ sol_gpio_open(int pin, const struct sol_gpio_config *config)
     pull = drive_table[config->drive_mode];
 
     if (config->dir == SOL_GPIO_DIR_OUT) {
-        if (gpio_init_out(gpio->pin, gpio->pull) < 0)
+        if (gpio_init_out(gpio->pin, pull) < 0)
             goto error;
         sol_gpio_write(gpio, config->out.value);
     } else {
         if (config->in.trigger_mode == SOL_GPIO_EDGE_NONE) {
-            if (gpio_init_in(gpio->pin, gpio->pull) < 0)
+            if (gpio_init_in(gpio->pin, pull) < 0)
                 goto error;
         } else {
             gpio_flank_t flank;
@@ -105,7 +105,7 @@ sol_gpio_open(int pin, const struct sol_gpio_config *config)
 
             gpio->irq.cb = config->in.cb;
             gpio->irq.data = config->in.user_data;
-            if (sol_interrupt_scheduler_gpio_init_int(config->pin, pull, flank,
+            if (sol_interrupt_scheduler_gpio_init_int(gpio->pin, pull, flank,
                     gpio_process_cb, gpio,
                     &gpio->irq.int_handler) < 0)
                 goto error;
