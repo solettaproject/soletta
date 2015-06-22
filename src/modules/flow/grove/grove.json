@@ -237,6 +237,111 @@
           "name": "RAW"
         }
       ]
+    },
+    {
+      "category": "internal",
+      "description": "Converts raw rotary sensor reading to degrees or radians.",
+      "in_ports": [
+          {
+            "data_type": "int",
+            "description": "Input value",
+            "name": "IN",
+            "methods": {
+                "process": "rotary_converter"
+            }
+          }
+      ],
+      "methods": {
+         "open": "rotary_converter_open"
+      },
+      "name": "grove/rotary-converter",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Angular range",
+            "name": "angular_range"
+          },
+          {
+            "data_type": "int",
+            "description": "Input range mask",
+            "name": "input_range_mask"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured rotation in degrees.",
+          "name": "DEG"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured rotation in radians.",
+          "name": "RAD"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured rotation.",
+          "name": "RAW"
+        }
+      ],
+      "private_data_type": "rotary_converter_data"
+    },
+    {
+      "category": "input/hw",
+      "description": "Get rotary sensor reading in degrees and radians.",
+      "methods": {
+         "init_type": "rotary_sensor_init_type"
+      },
+      "name": "grove/rotary-sensor",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "default": 12,
+            "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
+            "name": "mask"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
+            "name": "poll_timeout"
+          },
+          {
+            "data_type": "int",
+            "default": 300,
+            "description": "Angular range",
+            "name": "angular_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured rotation in degrees.",
+          "name": "DEG"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured rotation in radians.",
+          "name": "RAD"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured rotation.",
+          "name": "RAW"
+        }
+      ]
     }
   ]
 }
