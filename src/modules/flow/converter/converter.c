@@ -1867,6 +1867,33 @@ bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
         SOL_FLOW_NODE_TYPE_CONVERTER_BITS_TO_BYTE__OUT__OUT, mdata->last);
 }
 
+static int
+string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    char *mem;
+    const char *str;
+    struct sol_blob *blob;
+    int ret;
+
+    ret = sol_flow_packet_get_string(packet, &str);
+    SOL_INT_CHECK(ret, < 0, -EINVAL);
+
+    mem = strdup(str);
+    SOL_NULL_CHECK(mem, -ENOMEM);
+
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, strlen(mem) + 1);
+    if (!blob) {
+        free(mem);
+        return -ENOMEM;
+    }
+
+    ret = sol_flow_send_blob_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_BLOB__OUT__OUT, blob);
+
+    sol_blob_unref(blob);
+    return ret;
+}
+
 #undef SET_BIT
 
 #include "converter-gen.c"
