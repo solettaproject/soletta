@@ -156,7 +156,7 @@ sol_flow_node_get_options(const struct sol_flow_node_type *type, const struct so
     struct sol_flow_node_options *opts = &empty_defaults;
 
     if (type->new_options)
-        opts = type->new_options(copy_from);
+        opts = type->new_options(type, copy_from);
     return opts;
 }
 
@@ -166,7 +166,7 @@ sol_flow_node_free_options(const struct sol_flow_node_type *type, struct sol_flo
     if (!options || options == &empty_defaults)
         return;
     if (type->free_options)
-        type->free_options(options);
+        type->free_options(type, options);
 }
 
 SOL_API struct sol_flow_node *

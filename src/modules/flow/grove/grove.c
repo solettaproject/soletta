@@ -54,8 +54,8 @@ struct rotary_converter_data {
     int input_range;
 };
 
-static void
-rotary_child_opts_set(uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
+static int
+rotary_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
 {
     struct sol_flow_node_type_grove_rotary_sensor_options *container_opts = (struct sol_flow_node_type_grove_rotary_sensor_options *)opts;
 
@@ -70,6 +70,8 @@ rotary_child_opts_set(uint16_t child_index, const struct sol_flow_node_options *
         reader_opts->mask = container_opts->mask;
         reader_opts->poll_timeout = container_opts->poll_timeout;
     }
+
+    return 0;
 }
 
 static void
@@ -165,8 +167,8 @@ struct light_converter_data {
     int input_range;
 };
 
-static void
-light_child_opts_set(uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
+static int
+light_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
 {
     struct sol_flow_node_type_grove_light_sensor_options *container_opts = (struct sol_flow_node_type_grove_light_sensor_options *)opts;
 
@@ -179,6 +181,8 @@ light_child_opts_set(uint16_t child_index, const struct sol_flow_node_options *o
         reader_opts->mask = container_opts->mask;
         reader_opts->poll_timeout = container_opts->poll_timeout;
     }
+
+    return 0;
 }
 
 static void
@@ -328,8 +332,8 @@ temperature_convert(struct sol_flow_node *node, void *data, uint16_t port, uint1
     return 0;
 }
 
-static void
-temperature_child_opts_set(uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
+static int
+temperature_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
 {
     struct sol_flow_node_type_grove_temperature_sensor_options *container_opts = (struct sol_flow_node_type_grove_temperature_sensor_options *)opts;
 
@@ -347,6 +351,8 @@ temperature_child_opts_set(uint16_t child_index, const struct sol_flow_node_opti
         reader_opts->mask = container_opts->mask;
         reader_opts->poll_timeout = container_opts->poll_timeout;
     }
+
+    return 0;
 }
 
 static void

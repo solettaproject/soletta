@@ -653,10 +653,10 @@ sol_flow_node_options_new_from_strv(const struct sol_flow_node_type *type, const
     SOL_NULL_CHECK(type->description->options, NULL);
     SOL_NULL_CHECK(type->description->options->members, NULL);
     SOL_NULL_CHECK(type->new_options, NULL);
-    opts = type->new_options(NULL);
+    opts = type->new_options(type, NULL);
     SOL_NULL_CHECK(opts, NULL);
     if (!options_from_strv(type->description->options, opts, strv)) {
-        type->free_options(opts);
+        type->free_options(type, opts);
         return NULL;
     }
     return opts;
@@ -677,7 +677,7 @@ sol_flow_node_options_copy(const struct sol_flow_node_type *type, const struct s
     SOL_NULL_CHECK(type->description->options, NULL);
     SOL_NULL_CHECK(type->description->options->members, NULL);
     SOL_NULL_CHECK(type->new_options, NULL);
-    return type->new_options(opts);
+    return type->new_options(type, opts);
 #endif
 }
 
@@ -715,7 +715,7 @@ sol_flow_node_options_del(const struct sol_flow_node_type *type, struct sol_flow
     SOL_NULL_CHECK(type->description->options->members);
     SOL_NULL_CHECK(type->free_options);
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, type->description->options->sub_api);
-    type->free_options(options);
+    type->free_options(type, options);
 #endif
 }
 
