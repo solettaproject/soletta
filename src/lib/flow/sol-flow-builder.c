@@ -35,6 +35,7 @@
 #include "sol-flow-builder.h"
 #include "sol-flow-internal.h"
 #include "sol-flow-resolver.h"
+#include "sol-str-table.h"
 
 struct sol_flow_builder {
     struct sol_vector nodes;
@@ -51,6 +52,9 @@ struct sol_flow_builder {
     struct sol_ptr_vector ports_in_desc;
     struct sol_ptr_vector ports_out_desc;
 
+    struct sol_vector options_description;
+    size_t options_size;
+
     struct sol_flow_node_type_description type_desc;
 };
 
@@ -58,9 +62,24 @@ struct sol_flow_builder_node_spec {
     struct sol_flow_static_node_spec spec;
     char *name;
 
+    struct sol_vector exported_options;
+
     /* Whether builder owns the options for this node. */
     bool owns_opts;
 };
+
+struct sol_flow_builder_node_exported_option {
+    uint16_t parent_offset, child_offset;
+    uint16_t size;
+    bool is_string;
+};
+
+struct sol_flow_builder_options {
+    struct sol_flow_node_options base;
+    struct sol_flow_builder *builder;
+};
+
+#define SOL_FLOW_BUILDER_API_VERSION 1
 
 static void
 sol_flow_builder_init(struct sol_flow_builder *builder)
@@ -71,6 +90,7 @@ sol_flow_builder_init(struct sol_flow_builder *builder)
     sol_vector_init(&builder->exported_out, sizeof(struct sol_flow_static_port_spec));
     sol_ptr_vector_init(&builder->ports_in_desc);
     sol_ptr_vector_init(&builder->ports_out_desc);
+    sol_vector_init(&builder->options_description, sizeof(struct sol_flow_node_options_member_description));
 
     sol_flow_builder_set_resolver(builder, NULL);
 
@@ -96,6 +116,7 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
     struct sol_flow_builder_node_spec *builder_node_spec;
     struct sol_flow_static_conn_spec *conn_spec;
     struct sol_flow_port_description *port_desc;
+    struct sol_flow_node_options_member_description *opt_member;
     uint16_t i;
 
     SOL_NULL_CHECK(builder, -EBADR);
@@ -128,8 +149,16 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
             sol_flow_node_options_del(builder_node_spec->spec.type,
                 (struct sol_flow_node_options *)builder_node_spec->spec.opts);
         free(builder_node_spec->name);
+        sol_vector_clear(&builder_node_spec->exported_options);
     }
     sol_vector_clear(&builder->nodes);
+
+    SOL_VECTOR_FOREACH_IDX (&builder->options_description, opt_member, i) {
+        free((char *)opt_member->name);
+    }
+    sol_vector_clear(&builder->options_description);
+
+    free((void *)builder->type_desc.options);
 
     free(builder->node_spec);
     free(builder->conn_spec);
@@ -273,6 +302,7 @@ sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, co
     node_spec->spec.name = node_name;
     node_spec->spec.type = type;
     node_spec->spec.opts = option;
+    sol_vector_init(&node_spec->exported_options, sizeof(struct sol_flow_builder_node_exported_option));
 
     SOL_DBG("Node %s added: type=%p, opts=%p.", name, type, option);
 
@@ -338,6 +368,23 @@ get_node(struct sol_flow_builder *builder, const char *node_name, uint16_t *out_
         SOL_ERR("Failed to find node with name '%s'", node_name);
         return -EINVAL;
     }
+
+    return 0;
+}
+
+static int
+node_spec_add_options_reference(struct sol_flow_builder *builder, uint16_t node, const struct sol_flow_node_options_member_description *parent, const struct sol_flow_node_options_member_description *child)
+{
+    struct sol_flow_builder_node_spec *spec;
+    struct sol_flow_builder_node_exported_option *ref;
+
+    spec = sol_vector_get(&builder->nodes, node);
+    ref = sol_vector_append(&spec->exported_options);
+    SOL_NULL_CHECK(ref, -ENOMEM);
+    ref->parent_offset = parent->offset;
+    ref->child_offset = child->offset;
+    ref->size = parent->size;
+    ref->is_string = streq(parent->data_type, "string");
 
     return 0;
 }
@@ -526,6 +573,31 @@ get_conn_spec(const struct sol_flow_builder *builder)
     return ret_spec;
 }
 
+static struct sol_flow_node_options_description *
+get_options_description(struct sol_flow_builder *builder)
+{
+    struct sol_flow_node_options_description *opts;
+    struct sol_flow_node_options_member_description *member;
+    bool required = false;
+
+    opts = calloc(1, sizeof(*opts));
+    SOL_NULL_CHECK(opts, NULL);
+
+    opts->sub_api = SOL_FLOW_BUILDER_API_VERSION;
+
+    for (member = builder->options_description.data; member->name; member++) {
+        if (member->required) {
+            required = true;
+            break;
+        }
+    }
+
+    opts->members = builder->options_description.data;
+    opts->required = required;
+
+    return opts;
+}
+
 static struct sol_flow_node_type_description *
 get_type_description(struct sol_flow_builder *builder)
 {
@@ -542,6 +614,15 @@ get_type_description(struct sol_flow_builder *builder)
         r = sol_ptr_vector_append(&builder->ports_out_desc, NULL);
         SOL_INT_CHECK(r, < 0, NULL);
         builder->type_desc.ports_out = builder->ports_out_desc.base.data;
+    }
+
+    if (builder->options_description.len > 0) {
+        struct sol_flow_node_options_member_description *sentinel;
+        sentinel = sol_vector_append(&builder->options_description);
+        SOL_NULL_CHECK(sentinel, NULL);
+        memset(sentinel, 0, sizeof(*sentinel));
+        builder->type_desc.options = get_options_description(builder);
+        SOL_NULL_CHECK(builder->type_desc.options, NULL);
     }
 
     return &builder->type_desc;
@@ -579,6 +660,107 @@ get_exported_ports(
     }
 
     return 0;
+}
+
+static struct sol_flow_node_options *
+builder_type_new_options(const struct sol_flow_node_type *type, const struct sol_flow_node_options *copy_from)
+{
+    struct sol_flow_builder *builder = (struct sol_flow_builder *)type->type_data;
+    struct sol_flow_builder_options *opts;
+    const struct sol_flow_node_options_member_description *member;
+
+    SOL_NULL_CHECK(builder, NULL);
+
+    if (copy_from) {
+        SOL_FLOW_NODE_OPTIONS_API_CHECK(copy_from, SOL_FLOW_NODE_OPTIONS_API_VERSION, NULL);
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(copy_from, SOL_FLOW_BUILDER_API_VERSION, NULL);
+    }
+
+    opts = calloc(1, builder->options_size);
+    SOL_NULL_CHECK(opts, NULL);
+
+    opts->base.api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION;
+    opts->base.sub_api = SOL_FLOW_BUILDER_API_VERSION;
+
+    for (member = type->description->options->members; member->name; member++) {
+        char *dst;
+        const char **src;
+        bool is_string;
+
+        is_string = streq(member->data_type, "string");
+
+        dst = (char *)opts + member->offset;
+        if (copy_from)
+            src = (const char **)((char *)copy_from + member->offset);
+        else
+            src = (const char **)&member->defvalue.ptr;
+
+        if (is_string) {
+            char **s = (char **)dst;
+            free(*s);
+            *s = *src ? strdup(*src) : NULL;
+        } else
+            memcpy(dst, src, member->size);
+    }
+
+    opts->builder = builder;
+
+    return &opts->base;
+}
+
+static void
+builder_type_free_options(struct sol_flow_node_options *options)
+{
+    struct sol_flow_builder_options *opts = (struct sol_flow_builder_options *)options;
+    const struct sol_flow_node_options_member_description *member;
+
+    SOL_FLOW_NODE_OPTIONS_API_CHECK(options, SOL_FLOW_NODE_OPTIONS_API_VERSION);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_BUILDER_API_VERSION);
+
+    SOL_NULL_CHECK(opts->builder);
+
+    for (member = opts->builder->type_desc.options->members; member->name; member++) {
+        char **ptr;
+
+        if (!streq(member->data_type, "string"))
+            continue;
+
+        ptr = (char **)((char *)opts + member->offset);
+        free(*ptr);
+    }
+
+    free(opts);
+}
+
+static void
+builder_child_opts_set(uint16_t child, const struct sol_flow_node_options *options, struct sol_flow_node_options *child_opts)
+{
+    struct sol_flow_builder_options *opts = (struct sol_flow_builder_options *)options;
+    struct sol_flow_builder_node_spec *node_spec;
+    struct sol_flow_builder_node_exported_option *opt_ref;
+    uint16_t i;
+
+    SOL_FLOW_NODE_OPTIONS_API_CHECK(options, SOL_FLOW_NODE_OPTIONS_API_VERSION);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_BUILDER_API_VERSION);
+    SOL_FLOW_NODE_OPTIONS_API_CHECK(child_opts, SOL_FLOW_NODE_OPTIONS_API_VERSION);
+
+    node_spec = sol_vector_get(&opts->builder->nodes, child);
+    SOL_NULL_CHECK(node_spec);
+
+    SOL_VECTOR_FOREACH_IDX (&node_spec->exported_options, opt_ref, i) {
+        const char **src;
+        char *dst;
+
+        src = (const char **)((char *)opts + opt_ref->parent_offset);
+        dst = (char *)child_opts + opt_ref->child_offset;
+
+        if (opt_ref->is_string) {
+            char **s = (char **)dst;
+            free(*s);
+            *s = *src ? strdup(*src) : NULL;
+        } else
+            memcpy(dst, src, opt_ref->size);
+    }
 }
 
 SOL_API struct sol_flow_node_type *
@@ -620,12 +802,18 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
         builder->conn_spec,
         exported_in,
         exported_out,
-        NULL);
+        desc->options ? builder_child_opts_set : NULL);
     if (!builder->node_type) {
         SOL_WRN("Failed to create new type");
         goto error_node_type;
     }
 
+    if (desc->options) {
+        builder->node_type->new_options = builder_type_new_options;
+        builder->node_type->free_options = builder_type_free_options;
+    }
+
+    builder->node_type->type_data = builder;
     builder->node_type->description = desc;
 
     SOL_DBG("Node type %p created", builder->node_type);
@@ -950,6 +1138,100 @@ sol_flow_builder_export_out_port(struct sol_flow_builder *builder, const char *n
     if (r < 0) {
         SOL_ERR("Failed to export output port '%s' of node '%s' with exported name '%s': %s",
             port_name, node_name, exported_name, sol_util_strerrora(-r));
+        return r;
+    }
+
+    return 0;
+}
+
+static size_t
+get_member_alignment(const struct sol_flow_node_options_member_description *member)
+{
+    struct sol_str_slice t;
+    static const struct sol_str_table alignments[] = {
+        SOL_STR_TABLE_ITEM("boolean", __alignof__(member->defvalue.b)),
+        SOL_STR_TABLE_ITEM("byte", __alignof__(member->defvalue.byte)),
+        SOL_STR_TABLE_ITEM("float", __alignof__(member->defvalue.f)),
+        SOL_STR_TABLE_ITEM("int", __alignof__(member->defvalue.i)),
+        SOL_STR_TABLE_ITEM("rgb", __alignof__(member->defvalue.rgb)),
+        SOL_STR_TABLE_ITEM("string", __alignof__(member->defvalue.s)),
+    };
+
+    t = SOL_STR_SLICE_STR(member->data_type, strlen(member->data_type));
+    return sol_str_table_lookup_fallback(alignments, t, __alignof__(void *));
+}
+
+SOL_API int
+sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *node_name, const char *option_name, const char *exported_name)
+{
+    struct sol_flow_static_node_spec *node_spec;
+    const struct sol_flow_node_options_member_description *opt;
+    struct sol_flow_node_options_member_description *exported_opt;
+    size_t member_alignment, padding;
+    uint16_t node;
+    int r;
+
+    SOL_NULL_CHECK(builder, -EBADR);
+    SOL_NULL_CHECK(node_name, -EBADR);
+    SOL_NULL_CHECK(option_name, -EBADR);
+    SOL_NULL_CHECK(exported_name, -EBADR);
+
+    if (builder->node_type) {
+        SOL_ERR("Failed to export output port, node type created already");
+        return -EEXIST;
+    }
+
+    r = get_node(builder, node_name, &node, &node_spec);
+    if (r < 0) {
+        SOL_ERR("Failed to find node '%s' to export option member", node_name);
+        return -EINVAL;
+    }
+
+    if (!node_spec->type->description->options || !node_spec->type->description->options->members) {
+        SOL_ERR("Failed to export option member for node '%s', node type has no options", node_name);
+        return -EINVAL;
+    }
+
+    for (opt = node_spec->type->description->options->members; opt->name; opt++) {
+        if (streq(opt->name, option_name))
+            break;
+    }
+
+    if (!opt->name) {
+        SOL_ERR("Failed to find option '%s' from node '%s'", option_name, node_name);
+        return -EINVAL;
+    }
+
+    exported_opt = sol_vector_append(&builder->options_description);
+    if (!exported_opt) {
+        SOL_ERR("Failed to export option '%s' from node '%s'", option_name, node_name);
+        return -ENOMEM;
+    }
+
+    memset(exported_opt, 0, sizeof(*exported_opt));
+    exported_opt->name = strdup(exported_name);
+    exported_opt->data_type = opt->data_type;
+    exported_opt->required = opt->required;
+    exported_opt->size = opt->size;
+    if (node_spec->opts) {
+        /* The node has options, use whatever we have there as the default
+         * for the exported one. */
+        const char **node_opt = (const char **)((char *)node_spec->opts + opt->offset);
+        exported_opt->defvalue.ptr = *node_opt;
+    } else
+        exported_opt->defvalue = opt->defvalue;
+
+    if (!builder->options_size)
+        builder->options_size = sizeof(struct sol_flow_builder_options);
+
+    member_alignment = get_member_alignment(opt);
+    padding = builder->options_size % member_alignment;
+    exported_opt->offset = builder->options_size + padding;
+
+    builder->options_size += exported_opt->size + padding;
+    r = node_spec_add_options_reference(builder, node, exported_opt, opt);
+    if (r < 0) {
+        SOL_ERR("Failed to export option '%s' from node '%s'", option_name, node_name);
         return r;
     }
 
