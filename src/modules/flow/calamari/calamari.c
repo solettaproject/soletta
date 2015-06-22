@@ -187,8 +187,9 @@ segments_ctl_close(struct sol_flow_node *node, void *data)
 #define SEG_CLOCK 3
 #define SEG_DATA 4
 
-static void
-calamari_7seg_child_opts_set(uint16_t child_index,
+static int
+calamari_7seg_child_opts_set(const struct sol_flow_node_type *type,
+    uint16_t child_index,
     const struct sol_flow_node_options *opts,
     struct sol_flow_node_options *child_opts)
 {
@@ -206,9 +207,11 @@ calamari_7seg_child_opts_set(uint16_t child_index,
     };
 
     if (child_index == SEG_CTL || child_index > SEG_DATA)
-        return;
+        return 0;
 
     gpio_opts->pin.val = pins[child_index];
+
+    return 0;
 }
 
 static void
@@ -497,8 +500,9 @@ calamari_rgb_led_process_blue(struct sol_flow_node *node, void *data, uint16_t p
 #define RGB_LED_GREEN 2
 #define RGB_LED_BLUE 3
 
-static void
-calamari_rgb_child_opts_set(uint16_t child_index,
+static int
+calamari_rgb_child_opts_set(const struct sol_flow_node_type *type,
+    uint16_t child_index,
     const struct sol_flow_node_options *opts,
     struct sol_flow_node_options *child_opts)
 {
@@ -516,9 +520,11 @@ calamari_rgb_child_opts_set(uint16_t child_index,
 
     // There is nothing to do for node 0, which is rgb-ctl
     if (child_index == RGB_LED_CTL || child_index > RGB_LED_BLUE)
-        return;
+        return 0;
 
     gpio_opts->pin.val = pins[child_index];
+
+    return 0;
 }
 
 static void

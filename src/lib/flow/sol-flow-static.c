@@ -71,7 +71,8 @@ struct flow_static_type {
     const struct sol_flow_static_port_spec *exported_in_specs;
     const struct sol_flow_static_port_spec *exported_out_specs;
 
-    void (*child_opts_set)(uint16_t child_index,
+    int (*child_opts_set)(const struct sol_flow_node_type *type,
+        uint16_t child_index,
         const struct sol_flow_node_options *opts,
         struct sol_flow_node_options *child_opts);
 
@@ -416,7 +417,7 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
         }
 
         if (type->child_opts_set)
-            type->child_opts_set(i, options, child_opts);
+            type->child_opts_set(node->type, i, options, child_opts);
         r = sol_flow_node_init(child_node, node, spec->name, spec->type,
             child_opts);
         sol_flow_node_free_options(spec->type, child_opts);
@@ -981,7 +982,8 @@ flow_static_type_init(
     const struct sol_flow_static_conn_spec conns[],
     const struct sol_flow_static_port_spec exported_in[],
     const struct sol_flow_static_port_spec exported_out[],
-    void (*child_opts_set)(uint16_t child_index,
+    int (*child_opts_set)(const struct sol_flow_node_type *type,
+        uint16_t child_index,
         const struct sol_flow_node_options *opts,
         struct sol_flow_node_options *child_opts))
 {
@@ -1104,7 +1106,8 @@ sol_flow_static_new_type(
     const struct sol_flow_static_conn_spec conns[],
     const struct sol_flow_static_port_spec exported_in[],
     const struct sol_flow_static_port_spec exported_out[],
-    void (*child_opts_set)(uint16_t child_index,
+    int (*child_opts_set)(const struct sol_flow_node_type *type,
+        uint16_t child_index,
         const struct sol_flow_node_options *opts,
         struct sol_flow_node_options *child_opts))
 {

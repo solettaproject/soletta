@@ -297,8 +297,10 @@ struct sol_flow_node_type {
     uint16_t data_size; /**< size of the whole sol_flow_node_type derivate */
     uint16_t flags; /**< @see #sol_flow_node_type_flags */
 
-    struct sol_flow_node_options *(*new_options)(const struct sol_flow_node_options *copy_from); /**< member function to instantiate new options for the node (if @a copy_from is not @c NULL, its members will be copied into the new returned struct */
-    void (*free_options)(struct sol_flow_node_options *opts); /**< member function to delete the node options */
+    const void *type_data; /**< pointer to per-type user data */
+
+    struct sol_flow_node_options *(*new_options)(const struct sol_flow_node_type *type, const struct sol_flow_node_options *copy_from); /**< member function to instantiate new options for the node. If @a copy_from is not @c NULL, its members will be copied into the new returned struct */
+    void (*free_options)(const struct sol_flow_node_type *type, struct sol_flow_node_options *opts); /**< member function to delete the node options */
 
     void (*get_ports_counts)(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count); /**< member function to get the number of input/output ports of the node */
     const struct sol_flow_port_type_in *(*get_port_in)(const struct sol_flow_node_type *type, uint16_t port); /**< member function to get the array of the node's input ports */
@@ -502,7 +504,8 @@ struct sol_flow_node_type *sol_flow_static_new_type(
     const struct sol_flow_static_conn_spec conns[],
     const struct sol_flow_static_port_spec exported_in[],
     const struct sol_flow_static_port_spec exported_out[],
-    void (*child_opts_set)(uint16_t child_index,
+    int (*child_opts_set)(const struct sol_flow_node_type *type,
+        uint16_t child_index,
         const struct sol_flow_node_options *opts,
         struct sol_flow_node_options *child_opts));
 
