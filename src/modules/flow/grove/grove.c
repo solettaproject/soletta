@@ -44,6 +44,113 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-grove");
 
 #include "grove-gen.h"
 
+// ################################ Rotary sensor nodes
+
+struct rotary_converter_data {
+    int angular_range;
+};
+
+static void
+rotary_child_opts_set(uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
+{
+    struct sol_flow_node_type_grove_rotary_sensor_options *container_opts = (struct sol_flow_node_type_grove_rotary_sensor_options *)opts;
+
+    if (child_index == 0) {
+        // 0 is the rotary-converter index
+        struct sol_flow_node_type_grove_rotary_converter_options *converter_opts =
+            (struct sol_flow_node_type_grove_rotary_converter_options *)child_opts;
+        converter_opts->angular_range = container_opts->angular_range;
+    } else if (child_index == 1) {
+        // 1 is the aio/reader index
+        struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        reader_opts->pin = container_opts->pin;
+        reader_opts->mask = container_opts->mask;
+        reader_opts->poll_timeout = container_opts->poll_timeout;
+    }
+}
+
+static void
+grove_rotary_sensor_new_type(const struct sol_flow_node_type **current)
+{
+    struct sol_flow_node_type *type;
+
+    static struct sol_flow_static_node_spec nodes[] = {
+        { NULL, "rotary-converter", NULL },
+        { NULL, "aio-reader", NULL },
+        SOL_FLOW_STATIC_NODE_SPEC_GUARD
+    };
+
+    static const struct sol_flow_static_conn_spec conns[] = {
+        { 1, SOL_FLOW_NODE_TYPE_AIO_READER__OUT__OUT, 0, SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__IN__IN },
+        SOL_FLOW_STATIC_CONN_SPEC_GUARD
+    };
+
+    static const struct sol_flow_static_port_spec exported_out[] = {
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__DEG },
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAD },
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAW },
+        SOL_FLOW_STATIC_PORT_SPEC_GUARD
+    };
+
+    nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER;
+    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+
+    type = sol_flow_static_new_type(nodes, conns, NULL, exported_out, &rotary_child_opts_set);
+    SOL_NULL_CHECK(type);
+#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
+    type->description = (*current)->description;
+#endif
+    type->new_options = (*current)->new_options;
+    *current = type;
+}
+
+static void
+rotary_sensor_init_type(void)
+{
+    grove_rotary_sensor_new_type(&SOL_FLOW_NODE_TYPE_GROVE_ROTARY_SENSOR);
+}
+
+static int
+rotary_converter_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct rotary_converter_data *mdata = data;
+    const struct sol_flow_node_type_grove_rotary_converter_options *opts =
+        (const struct sol_flow_node_type_grove_rotary_converter_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER_OPTIONS_API_VERSION, -EINVAL);
+
+    mdata->angular_range = opts->angular_range.val;
+
+    return 0;
+}
+
+static int
+rotary_converter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_irange in_value;
+    float degrees;
+    struct rotary_converter_data *mdata = data;
+
+    r = sol_flow_packet_get_irange(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    degrees = (float)in_value.val * (float)mdata->angular_range / 4096.0;
+
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__DEG,
+        degrees);
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAD,
+        degrees * M_PI / 180.0);
+    sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAW,
+        in_value.val);
+
+    return 0;
+}
+
 // ################################ Light sensor nodes
 
 static void
