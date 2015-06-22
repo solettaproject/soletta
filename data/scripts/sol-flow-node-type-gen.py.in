@@ -756,7 +756,7 @@ static const struct %(name_c)s_options %(name_c)s_options_defaults = %(NAME_C)s_
         new_options_func = "%s_new_options_internal" % data["name_c"]
         outfile.write("""
 static struct sol_flow_node_options *
-%(name_func)s(const struct sol_flow_node_options *copy_from)
+%(name_func)s(const struct sol_flow_node_type *type, const struct sol_flow_node_options *copy_from)
 {
     struct %(name_c)s_options *opts;
     const struct %(name_c)s_options *from;
