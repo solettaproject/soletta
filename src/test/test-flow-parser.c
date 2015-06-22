@@ -161,6 +161,11 @@ test_node_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
     return test_ports_out[port];
 }
 
+struct test_node_options {
+    struct sol_flow_node_options base;
+    bool opt;
+};
+
 static const struct sol_flow_node_type_description test_node_description = {
     .ports_in = (const struct sol_flow_port_description *const []){
         &((const struct sol_flow_port_description){
@@ -180,10 +185,48 @@ static const struct sol_flow_node_type_description test_node_description = {
           }),
         NULL
     },
+    .options = &((const struct sol_flow_node_options_description){
+        .data_size = sizeof(struct test_node_options),
+        .sub_api = 1,
+        .required = false,
+        .members = (const struct sol_flow_node_options_member_description[]){
+                    {
+            .name="opt",
+            .description="An optional option",
+            .data_type="boolean",
+            .required=false,
+            .offset=offsetof(struct test_node_options, opt),
+            .size=sizeof(bool),
+            .defvalue.b = true,
+        },
+            {}
+        }
+    })
 };
+
+static struct sol_flow_node_options *
+test_node_type_new_options(const struct sol_flow_node_type *type,
+        const struct sol_flow_node_options *copy_from)
+{
+    struct test_node_options *opts, *from = (struct test_node_options *)copy_from;
+    opts = malloc(sizeof(*opts));
+    opts->base.api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION;
+    opts->base.sub_api = 1;
+    opts->opt = from ? from->opt : true;
+    return &opts->base;
+}
+
+static void
+test_node_type_free_options(const struct sol_flow_node_type *type, struct sol_flow_node_options *opts)
+{
+    free(opts);
+}
 
 static const struct sol_flow_node_type test_node_type = {
     .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+
+    .new_options = test_node_type_new_options,
+    .free_options = test_node_type_free_options,
 
     .get_ports_counts = test_node_get_ports_counts,
     .get_port_in = test_node_get_port_in,
@@ -460,6 +503,51 @@ declare_fbp(void)
 
     type = sol_flow_parse_string(parser, input, NULL);
     ASSERT(type);
+
+    sol_flow_parser_del(parser);
+}
+
+DEFINE_TEST(exported_options);
+
+static void
+exported_options(void)
+{
+    struct sol_flow_parser *parser;
+    struct sol_flow_node_type *type;
+    const struct sol_flow_node_options_member_description *myopt, *myotheropt, *opt;
+
+    static const char input[] =
+        "OPTION=a.opt:myopt\n"
+        "OPTION=b.opt:myotheropt\n"
+        "a(whatever) OUT1 -> IN1 b(whatever:opt=false)";
+
+    parser = sol_flow_parser_new(NULL, &test_resolver);
+    ASSERT(parser);
+
+    type = sol_flow_parse_string(parser, input, NULL);
+    ASSERT(type);
+
+    ASSERT(type->description);
+    ASSERT(type->description->options);
+    ASSERT(type->description->options->members);
+
+    myopt = &type->description->options->members[0];
+    ASSERT(myopt);
+
+    ASSERT(streq(myopt->name, "myopt"));
+
+    opt = &test_node_description.options->members[0];
+
+    ASSERT(streq(myopt->data_type, opt->data_type));
+    ASSERT(myopt->required == opt->required);
+    ASSERT(myopt->size == opt->size);
+    ASSERT(myopt->defvalue.b == opt->defvalue.b);
+
+    myotheropt = &type->description->options->members[1];
+    ASSERT(myotheropt);
+
+    ASSERT(streq(myotheropt->name, "myotheropt"));
+    ASSERT(myotheropt->defvalue.b == false);
 
     sol_flow_parser_del(parser);
 }
