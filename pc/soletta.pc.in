@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 modulesdir=@SOL_CONFFILE_MODULES_DIR@
 pkgdatadir=@datadir@/soletta
-nodeschemapath=${pkgdatadir}/flow/schemas/node-type.schema
+nodeschemapath=${pkgdatadir}/flow/schemas/node-type-genspec.schema
 
 Name: soletta
 Description: SOLETTA io library
