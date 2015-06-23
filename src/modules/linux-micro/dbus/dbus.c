@@ -47,7 +47,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-dbus");
 #include "sol-platform-linux-micro.h"
 #include "sol-util.h"
 
-static struct sol_platform_linux_micro_fork_run *fork_run;
+static struct sol_platform_linux_fork_run *fork_run;
 static struct sol_timeout *check_timeout;
 static const char *name;
 
@@ -140,14 +140,14 @@ dbus_start(const struct sol_platform_linux_micro_module *mod, const char *servic
         return 0;
 
     name = service;
-    fork_run = sol_platform_linux_micro_fork_run(on_fork, on_fork_exit, NULL);
+    fork_run = sol_platform_linux_fork_run(on_fork, on_fork_exit, NULL);
     if (!fork_run) {
         sol_platform_linux_micro_inform_service_state(service, SOL_PLATFORM_SERVICE_STATE_FAILED);
         return -errno;
     }
 
     SOL_DBG("dbus-daemon started as pid=%" PRIu64,
-        (uint64_t)sol_platform_linux_micro_fork_run_get_pid(fork_run));
+        (uint64_t)sol_platform_linux_fork_run_get_pid(fork_run));
 
     /* TODO: change to use inotify */
     check_timeout = sol_timeout_add(200, on_timeout, NULL);
@@ -158,7 +158,7 @@ dbus_start(const struct sol_platform_linux_micro_module *mod, const char *servic
 static int
 send_sig(int sig)
 {
-    pid_t pid = sol_platform_linux_micro_fork_run_get_pid(fork_run);
+    pid_t pid = sol_platform_linux_fork_run_get_pid(fork_run);
 
     if (pid > 0) {
         if (kill(pid, sig) == 0)
@@ -178,7 +178,7 @@ dbus_stop(const struct sol_platform_linux_micro_module *mod, const char *service
     if (!force_immediate)
         err = send_sig(SIGTERM);
     else {
-        sol_platform_linux_micro_fork_run_stop(fork_run);
+        sol_platform_linux_fork_run_stop(fork_run);
         fork_run = NULL;
     }
 

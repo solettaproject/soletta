@@ -33,6 +33,8 @@
 #pragma once
 
 #include "sol-macros.h"
+#include "sol-str-slice.h"
+#include "sol-vector.h"
 
 #include <inttypes.h>
 #include <stdarg.h>
@@ -148,3 +150,11 @@ align_power2(unsigned int u)
         return 0;
     return 1 << ((sizeof(u) * 8) - left_zeros);
 }
+
+/* The given slice 'slice' will be splitted in sub-strings delimited by the 'delim'
+ * This function returns an vector of struct sol_str_slice.
+ *
+ * NOTE: Different from strtoken, it cosiderer the full string in 'delim' and split
+ *       up to the number of elements specified in 'maxplit'.
+ */
+struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);

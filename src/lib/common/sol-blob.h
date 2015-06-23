@@ -55,6 +55,11 @@ struct sol_blob_type {
     void (*free)(struct sol_blob *blob);
 };
 
+/*
+ * The default type uses free() to release the blob's memory
+ */
+extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
+
 struct sol_blob *sol_blob_new(const struct sol_blob_type *type, struct sol_blob *parent, const void *mem, size_t size);
 int sol_blob_setup(struct sol_blob *blob, const struct sol_blob_type *type, const void *mem, size_t size);
 struct sol_blob *sol_blob_ref(struct sol_blob *blob);

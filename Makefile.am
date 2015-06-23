@@ -60,6 +60,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src/modules/flow/oic \
 	-I$(top_builddir)/src/modules/flow/piezo-speaker \
 	-I$(top_builddir)/src/modules/flow/platform \
+	-I$(top_builddir)/src/modules/flow/process \
 	-I$(top_builddir)/src/modules/flow/pwm \
 	-I$(top_builddir)/src/modules/flow/random \
 	-I$(top_builddir)/src/modules/flow/servo-motor \
@@ -239,7 +240,10 @@ src/shared/libshared.la \
 
 if HAVE_PLATFORM_LINUX
 src_lib_libsoletta_la_SOURCES += \
-src/lib/common/sol-socket-linux.c
+src/lib/common/sol-socket-linux.c \
+src/lib/common/sol-platform-linux-common.c
+pkginclude_HEADERS += \
+src/lib/common/sol-platform-linux.h
 endif
 
 if HAVE_MAINLOOP_GLIB
@@ -681,6 +685,7 @@ check_PROGRAMS = \
 	src/test/test-mainloop \
 	src/test/test-monitors \
 	src/test/test-str-slice \
+	src/test/test-str-split \
 	src/test/test-str-table \
 	src/test/test-util \
 	src/test/test-vector
@@ -765,6 +770,9 @@ src_test_test_flow_parser_LDADD = $(TEST_LDADD)
 
 src_test_test_str_slice_CFLAGS = $(TEST_CFLAGS)
 src_test_test_str_slice_LDADD = $(TEST_LDADD)
+
+src_test_test_str_split_CFLAGS = $(TEST_CFLAGS)
+src_test_test_str_split_LDADD = $(TEST_LDADD)
 
 src_test_test_str_table_CFLAGS = $(TEST_CFLAGS)
 src_test_test_str_table_LDADD = $(TEST_LDADD)

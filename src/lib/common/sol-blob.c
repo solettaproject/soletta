@@ -160,3 +160,19 @@ sol_blob_set_parent(struct sol_blob *blob, struct sol_blob *parent)
 
     blob->parent = parent;
 }
+
+
+static void
+blob_free(struct sol_blob *blob)
+{
+    free(blob->mem);
+    free(blob);
+}
+
+static const struct sol_blob_type _SOL_BLOB_TYPE_DEFAULT = {
+    .api_version = SOL_BLOB_TYPE_API_VERSION,
+    .sub_api = 0,
+    .free = blob_free,
+};
+
+SOL_API const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT = &_SOL_BLOB_TYPE_DEFAULT;
