@@ -800,14 +800,22 @@ export_port(struct sol_flow_builder *builder, uint16_t node, uint16_t port,
     struct sol_flow_static_port_spec *port_spec;
     char *name;
     int i = 0, r;
+    uint16_t desc_len, base_port_idx = 0;
 
     name = strdup(exported_name);
     SOL_NULL_CHECK_GOTO(name, error_name);
+
+    desc_len = sol_ptr_vector_get_len(desc_vector);
+    if (desc_len) {
+        port_desc = sol_ptr_vector_get(desc_vector, desc_len - 1);
+        base_port_idx = port_desc->base_port_idx + (port_desc->array_size) ?: 1;
+    }
 
     port_desc = calloc(1, sizeof(struct sol_flow_port_description));
     SOL_NULL_CHECK_GOTO(port_desc, error_desc);
     port_desc->name = name;
     port_desc->array_size = psize;
+    port_desc->base_port_idx = base_port_idx;
 
     r = sol_ptr_vector_append(desc_vector, port_desc);
     SOL_INT_CHECK_GOTO(r, < 0, error_desc_append);
