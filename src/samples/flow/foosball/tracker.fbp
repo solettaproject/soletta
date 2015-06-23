@@ -30,13 +30,16 @@
 
 # This is a subflow to be used in fossball.fbp
 #
-# It exports two input ports (RESET and WIN_SCORE) and one output port
+# It has one option (win_score), which takes the score that must be reached
+# to declare the winner.
+# It exports input port (RESET) and one output port
 # (WON).
 
 INPORT=score.RESET:RESET
-INPORT=won.IN1:WIN_SCORE
 OUTPORT=won.OUT:WON
+OPTION=win_score.value:win_score
 
 goal(gtk/pushbutton) OUT -> PULSE_IF_TRUE toggle(converter/boolean-to-empty) OUT -> INC score(int/accumulator) OUT -> IN output(gtk/label)
 
 score OUT -> IN0 won(int/greater-or-equal)
+win_score(constant/int:value=10) OUT -> IN1 won

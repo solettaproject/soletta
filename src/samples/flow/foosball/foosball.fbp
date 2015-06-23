@@ -35,13 +35,8 @@
 DECLARE=Tracker:fbp:tracker.fbp
 
 # and create two nodes using this type, each representing a side of the table
-red_tracker(Tracker)
-yellow_tracker(Tracker)
-
-# we declare a winner on the 5th goal
-win_score(constant/int:value=5)
-win_score OUT -> WIN_SCORE red_tracker
-win_score OUT -> WIN_SCORE yellow_tracker
+red_tracker(Tracker:win_score=5)
+yellow_tracker(Tracker:win_score=5)
 
 # if there is a winner, turn on its LED
 red_tracker WON -> IN red_won_output(gtk/led:rgb=255|0|0)
