@@ -33,6 +33,6 @@
 # Led1 and Led2 (PWM leds), as defined in sol-flow.conf in this
 # directory.
 
-lever(Lever) OUT -> INTENSITY led1(Led1)
+lever(LedLever) OUT -> INTENSITY led1(Led1)
 lever OUT -> INTENSITY led2(Led2)
 

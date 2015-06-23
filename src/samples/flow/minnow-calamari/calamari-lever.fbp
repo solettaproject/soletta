@@ -32,5 +32,4 @@
 # This example links the Calamari lever (SPI) to the 7segment display,
 # displaying the level from 0-15 (in hexadecimal)
 
-lever(Lever) OUT -> VALUE seven_segments(SevenSegments)
-
+lever(SegmentsLever) OUT -> VALUE seven_segments(SevenSegments)
