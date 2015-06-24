@@ -450,7 +450,7 @@ generate(struct sol_fbp_graph *g, struct type_description **descs)
         g->exported_in_ports.len > 0 ? "exported_in" : "NULL",
         g->exported_out_ports.len > 0 ? "exported_out" : "NULL");
     printf("    if (!type)\n"
-        "        return NULL;\n\n"
+        "        return;\n\n"
         "   flow = sol_flow_node_new(NULL, NULL, type, NULL);"
         "}\n\n"
         "static void\n"
