@@ -83,9 +83,14 @@ irange_min_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint
     int r;
 
     r = sol_flow_packet_get_irange_value(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
     mdata->min = value;
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -97,9 +102,14 @@ irange_max_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint
     int r;
 
     r = sol_flow_packet_get_irange_value(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
     mdata->max = value;
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -107,9 +117,15 @@ static int
 irange_true_range_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_irange *mdata = data;
-    int r = sol_flow_packet_get_irange(packet, mdata);
+    int r;
 
-    SOL_INT_CHECK(r, < 0, r);
+    r = sol_flow_packet_get_irange(packet, mdata);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -121,9 +137,14 @@ drange_min_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint
     int r;
 
     r = sol_flow_packet_get_drange_value(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
     mdata->min = value;
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -135,9 +156,14 @@ drange_max_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint
     int r;
 
     r = sol_flow_packet_get_drange_value(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
     mdata->max = value;
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -145,9 +171,15 @@ static int
 drange_true_range_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_drange *mdata = data;
-    int r = sol_flow_packet_get_drange(packet, mdata);
+    int r;
 
-    SOL_INT_CHECK(r, < 0, r);
+    r = sol_flow_packet_get_drange(packet, mdata);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -159,9 +191,14 @@ byte_min_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16
     unsigned char value;
 
     r = sol_flow_packet_get_byte(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
     mdata->min = value;
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -173,9 +210,14 @@ byte_max_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16
     unsigned char value;
 
     r = sol_flow_packet_get_byte(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
     mdata->max = value;
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -205,11 +247,17 @@ boolean_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port,
     bool in_value;
 
     r = sol_flow_packet_get_boolean(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return sol_flow_send_irange_value_packet(node,
+    sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BOOLEAN_TO_INT__OUT__OUT,
         in_value ? mdata->max : mdata->min);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -246,16 +294,22 @@ irange_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port,
     bool out_value;
 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if ((in_value < mdata->min) || (in_value > mdata->max))
         out_value = false;
     else
         out_value = true;
 
-    return sol_flow_send_boolean_packet(node,
+    sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_BOOLEAN__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -284,11 +338,17 @@ boolean_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port,
     bool in_value;
 
     r = sol_flow_packet_get_boolean(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return sol_flow_send_drange_value_packet(node,
+    sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BOOLEAN_TO_FLOAT__OUT__OUT,
         in_value ? mdata->max : mdata->min);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -325,16 +385,22 @@ drange_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port,
     bool out_value;
 
     r = sol_flow_packet_get_drange_value(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if ((in_value < mdata->min) || (in_value > mdata->max))
         out_value = false;
     else
         out_value = true;
 
-    return sol_flow_send_boolean_packet(node,
+    sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_BOOLEAN__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -363,11 +429,17 @@ boolean_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, u
     bool in_value;
 
     r = sol_flow_packet_get_boolean(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BOOLEAN_TO_BYTE__OUT__OUT,
         in_value ? mdata->max : mdata->min);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -404,16 +476,22 @@ byte_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port, u
     bool out_value;
 
     r = sol_flow_packet_get_byte(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if ((in_value < mdata->min) || (in_value > mdata->max))
         out_value = false;
     else
         out_value = true;
 
-    return sol_flow_send_boolean_packet(node,
+    sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BYTE_TO_BOOLEAN__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -424,13 +502,19 @@ byte_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
     unsigned char in_value;
 
     r = sol_flow_packet_get_byte(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     out_value.val = (int32_t)in_value;
 
-    return sol_flow_send_irange_packet(node,
+    sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BYTE_TO_INT__OUT__OUT,
         &out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -441,13 +525,19 @@ byte_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
     unsigned char in_value;
 
     r = sol_flow_packet_get_byte(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     out_value.val = (double)in_value;
 
-    return sol_flow_send_drange_packet(node,
+    sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BYTE_TO_FLOAT__OUT__OUT,
         &out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -458,7 +548,7 @@ irange_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
     unsigned char out_value;
 
     r = sol_flow_packet_get_irange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (in_value.val < 0)
         out_value = 0;
@@ -467,9 +557,15 @@ irange_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
     else
         out_value = (char)in_value.val;
 
-    return sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_BYTE__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -480,7 +576,7 @@ drange_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
     unsigned char out_value;
 
     r = sol_flow_packet_get_drange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (in_value.val < 0)
         out_value = 0;
@@ -489,9 +585,15 @@ drange_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
     else
         out_value = (char)in_value.val;
 
-    return sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_BYTE__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -502,16 +604,22 @@ irange_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     int r;
 
     r = sol_flow_packet_get_irange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     out_value.val = (double)in_value.val;
     out_value.min = (double)in_value.min;
     out_value.max = (double)in_value.max;
     out_value.step = (double)in_value.step;
 
-    return sol_flow_send_drange_packet(node,
+    sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_FLOAT__OUT__OUT,
         &out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -522,16 +630,22 @@ drange_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     int r;
 
     r = sol_flow_packet_get_drange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     out_value.val = (int32_t)in_value.val;
     out_value.min = (int32_t)in_value.min;
     out_value.max = (int32_t)in_value.max;
     out_value.step = (int32_t)in_value.step;
 
-    return sol_flow_send_irange_packet(node,
+    sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_INT__OUT__OUT,
         &out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -652,9 +766,11 @@ empty_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port, 
 {
     struct sol_converter_boolean *mdata = data;
 
-    return sol_flow_send_boolean_packet(node,
+    sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_BOOLEAN__OUT__OUT,
         mdata->output_value);
+
+    return 0;
 }
 
 static int
@@ -662,9 +778,11 @@ empty_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
 {
     struct sol_converter_byte *mdata = data;
 
-    return sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_BYTE__OUT__OUT,
         mdata->min);
+
+    return 0;
 }
 
 static int
@@ -672,9 +790,11 @@ empty_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, u
 {
     struct sol_drange *mdata = data;
 
-    return sol_flow_send_drange_packet(node,
+    sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_FLOAT__OUT__OUT,
         mdata);
+
+    return 0;
 }
 
 static int
@@ -682,9 +802,11 @@ empty_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port, u
 {
     struct sol_irange *mdata = data;
 
-    return sol_flow_send_irange_packet(node,
+    sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_INT__OUT__OUT,
         mdata);
+
+    return 0;
 }
 
 static int
@@ -700,13 +822,19 @@ pulse_if_true(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     int r;
 
     r = sol_flow_packet_get_boolean(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (!in_value)
         return 0;
 
-    return send_empty_packet(node,
+    send_empty_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BOOLEAN_TO_EMPTY__OUT__OUT);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -716,13 +844,19 @@ pulse_if_false(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     int r;
 
     r = sol_flow_packet_get_boolean(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (in_value)
         return 0;
 
-    return send_empty_packet(node,
+    send_empty_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BOOLEAN_TO_EMPTY__OUT__OUT);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -733,13 +867,19 @@ byte_to_empty_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
     int r;
 
     r = sol_flow_packet_get_byte(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if ((in_value < mdata->min) || (in_value > mdata->max))
         return 0;
 
-    return send_empty_packet(node,
+    send_empty_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BYTE_TO_EMPTY__OUT__OUT);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -750,13 +890,19 @@ drange_to_empty_convert(struct sol_flow_node *node, void *data, uint16_t port, u
     int r;
 
     r = sol_flow_packet_get_drange_value(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if ((in_value < mdata->min) || (in_value > mdata->max))
         return 0;
 
-    return send_empty_packet(node,
+    send_empty_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_EMPTY__OUT__OUT);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -767,13 +913,19 @@ irange_to_empty_convert(struct sol_flow_node *node, void *data, uint16_t port, u
     int r;
 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if ((in_value < mdata->min) || (in_value > mdata->max))
         return 0;
 
-    return send_empty_packet(node,
+    send_empty_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_EMPTY__OUT__OUT);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 #define STR_SIZE (32)
@@ -786,13 +938,19 @@ drange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     char out_value[STR_SIZE];
 
     r = sol_flow_packet_get_drange_value(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     snprintf(out_value, STR_SIZE, "%f", in_value);
 
-    return sol_flow_send_string_packet(node,
+    sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_STRING__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -803,13 +961,19 @@ irange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     char out_value[STR_SIZE];
 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     snprintf(out_value, STR_SIZE, "%d", in_value);
 
-    return sol_flow_send_string_packet(node,
+    sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_STRING__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 #undef STR_SIZE
@@ -880,16 +1044,32 @@ static int
 string_false_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_converter_boolean_string *mdata = data;
+    int r;
 
-    return set_string(packet, &mdata->false_value);
+    r = set_string(packet, &mdata->false_value);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
 string_true_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_converter_boolean_string *mdata = data;
+    int r;
 
-    return set_string(packet, &mdata->true_value);
+    r = set_string(packet, &mdata->true_value);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -900,11 +1080,17 @@ boolean_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port,
     bool in_value;
 
     r = sol_flow_packet_get_boolean(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return sol_flow_send_string_packet(node,
+    sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BOOLEAN_TO_STRING__OUT__OUT,
         in_value ? mdata->true_value : mdata->false_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 #define BYTE_STR_SIZE (5)
@@ -917,13 +1103,19 @@ byte_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
     char out_value[BYTE_STR_SIZE];
 
     r = sol_flow_packet_get_byte(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     snprintf(out_value, BYTE_STR_SIZE, "0x%02x", in_value);
 
-    return sol_flow_send_string_packet(node,
+    sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BYTE_TO_STRING__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 #undef BYTE_STR_SIZE
@@ -959,8 +1151,16 @@ static int
 empty_string_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_converter_string *mdata = data;
+    int r;
 
-    return set_string(packet, &mdata->string);
+    r = set_string(packet, &mdata->string);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -968,18 +1168,26 @@ empty_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, u
 {
     struct sol_converter_string *mdata = data;
 
-    return sol_flow_send_string_packet(node,
+    sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_STRING__OUT__OUT,
         mdata->string);
+
+    return 0;
 }
 
 static int
 empty_boolean_output_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_converter_boolean *mdata = data;
-    int r = sol_flow_packet_get_boolean(packet, &mdata->output_value);
+    int r;
 
-    SOL_INT_CHECK(r, < 0, r);
+    r = sol_flow_packet_get_boolean(packet, &mdata->output_value);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -987,9 +1195,15 @@ static int
 empty_byte_min_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_converter_byte *mdata = data;
-    int r = sol_flow_packet_get_byte(packet, &mdata->min);
+    int r;
 
-    SOL_INT_CHECK(r, < 0, r);
+    r = sol_flow_packet_get_byte(packet, &mdata->min);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -997,9 +1211,15 @@ static int
 empty_byte_max_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_converter_byte *mdata = data;
-    int r = sol_flow_packet_get_byte(packet, &mdata->max);
+    int r;
 
-    SOL_INT_CHECK(r, < 0, r);
+    r = sol_flow_packet_get_byte(packet, &mdata->max);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -1007,9 +1227,15 @@ static int
 empty_drange_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_drange *mdata = data;
-    int r = sol_flow_packet_get_drange(packet, mdata);
+    int r;
 
-    SOL_INT_CHECK(r, < 0, r);
+    r = sol_flow_packet_get_drange(packet, mdata);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -1017,9 +1243,15 @@ static int
 empty_irange_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_irange *mdata = data;
-    int r = sol_flow_packet_get_irange(packet, mdata);
+    int r;
 
-    SOL_INT_CHECK(r, < 0, r);
+    r = sol_flow_packet_get_irange(packet, mdata);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -1027,10 +1259,11 @@ static int
 byte_to_bits_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_converter_bits *mdata = data;
-    int i;
+    int i, r;
     unsigned char in_val, last_bit, next_bit;
 
-    sol_flow_packet_get_byte(packet, &in_val);
+    r = sol_flow_packet_get_byte(packet, &in_val);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     for (i = 0; i <= 7; i++) {
         last_bit = (mdata->last >> i) & 1;
@@ -1047,57 +1280,87 @@ byte_to_bits_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
     mdata->output_initialized = 1;
 
     return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
 string_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     const char *in_value;
+    char *errmsg;
     int r;
     bool out_value = false;
 
     r = sol_flow_packet_get_string(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (!strcasecmp(in_value, "true"))
         out_value = true;
     else if (strcasecmp(in_value, "false")) {
-        SOL_WRN("String %s isn't a valid boolean", in_value);
-        return -EINVAL;
+        asprintf(&errmsg, "String %s isn't a valide boolean. %s", in_value, sol_util_strerrora(EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
-    return sol_flow_send_boolean_packet(node,
+    sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_BOOLEAN__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 static int
 string_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     const char *in_value;
-    char *endptr;
+    char *endptr, *errmsg;
     int r;
     unsigned char out_value;
 
     r = sol_flow_packet_get_string(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     errno = 0;
     out_value = strtol(in_value, &endptr, 16);
     if (errno) {
-        SOL_WRN("Failed to convert string to byte %s: %d", in_value, errno);
-        return -errno;
+        asprintf(&errmsg, "Failed to convert string to byte %s: %s", in_value, sol_util_strerrora(errno));
+        r = -errno;
+        goto error;
     }
 
     // no error, but no conversion done
     if (in_value == endptr) {
-        SOL_WRN("Failed to convert string to byte %s", in_value);
-        return -EINVAL;
+        asprintf(&errmsg, "Failed to convert string to byte %s. %s", in_value, sol_util_strerrora(EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
-    return sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_BYTE__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 static int
@@ -1105,62 +1368,90 @@ string_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, 
 {
     double out_value;
     const char *in_value;
-    char *endptr;
+    char *endptr, *errmsg;
     int r;
 
     r = sol_flow_packet_get_string(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     errno = 0;
     out_value = strtod(in_value, &endptr);
     if (errno) {
-        SOL_WRN("Failed to convert string to float %s: %d", in_value, errno);
-        return -errno;
+        asprintf(&errmsg, "Failed to convert string to float %s: %s", in_value, sol_util_strerrora(errno));
+        r = -errno;
+        goto error;
     }
 
     if (in_value == endptr) {
-        SOL_WRN("Failed to convert string to float %s", in_value);
-        return -EINVAL;
+        asprintf(&errmsg, "Failed to convert string to float %s. %s", in_value, sol_util_strerrora(EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
-    return sol_flow_send_drange_value_packet(node,
+    sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_FLOAT__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 static int
 string_to_empty_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    return sol_flow_send_empty_packet(node,
+    sol_flow_send_empty_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_EMPTY__OUT__OUT);
+
+    return 0;
 }
 
 static int
 string_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     const char *in_value;
-    char *endptr;
+    char *endptr, *errmsg;
     uint32_t out_value;
     int r;
 
     r = sol_flow_packet_get_string(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     errno = 0;
     out_value = strtol(in_value, &endptr, 10);
     if (errno) {
-        SOL_WRN("Failed to convert string to int %s: %d", in_value, errno);
-        return -errno;
+        asprintf(&errmsg, "Failed to convert string to int %s: %s", in_value, sol_util_strerrora(errno));
+        r = -errno;
+        goto error;
     }
 
     if (in_value == endptr) {
-        SOL_WRN("Failed to convert string to int %s", in_value);
-        return -EINVAL;
+        asprintf(&errmsg, "Failed to convert string to int %s. %s", in_value, sol_util_strerrora(EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
-    return sol_flow_send_irange_value_packet(node,
+    sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_INT__OUT__OUT,
         out_value);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 static int
@@ -1213,7 +1504,7 @@ drange_to_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow
     return 0;
 }
 
-static int
+static void
 rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uint32_t val)
 {
     struct sol_converter_rgb *mdata = data;
@@ -1232,10 +1523,10 @@ rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uint32_t val)
 
     for (i = 0; i < 3; i++) {
         if (!mdata->output_initialized[i])
-            return 0;
+            return;
     }
 
-    return sol_flow_send_rgb_packet(node, 0, &mdata->output_value);
+    sol_flow_send_rgb_packet(node, 0, &mdata->output_value);
 }
 
 static int
@@ -1245,9 +1536,15 @@ byte_to_rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uint1
     int r;
 
     r = sol_flow_packet_get_byte(packet, &in_val);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return rgb_convert(node, data, port, in_val);
+    rgb_convert(node, data, port, in_val);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static inline uint32_t
@@ -1268,23 +1565,37 @@ irange_to_rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
     struct sol_irange in_val;
     uint32_t val;
     int r;
+    char *errmsg;
 
     r = sol_flow_packet_get_irange(packet, &in_val);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (in_val.val < 0) {
-        SOL_WRN("Color component must to be a not negative value");
-        return -EINVAL;
+        asprintf(&errmsg, "Color component must be a non negative value. %s", sol_util_strerrora(EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
     if (in_val.max <= 0) {
-        SOL_WRN("Max value for color component must to be a positive value");
-        return -EINVAL;
+        asprintf(&errmsg, "Max value for color component must be a positive value. %s", sol_util_strerrora(EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
     val = in_val.val * rgb_get_port_max(data, port) / in_val.max;
 
-    return rgb_convert(node, data, port, val);
+    rgb_convert(node, data, port, val);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 static int
@@ -1293,23 +1604,37 @@ drange_to_rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
     struct sol_drange in_val;
     uint32_t val;
     int r;
+    char *errmsg;
 
     r = sol_flow_packet_get_drange(packet, &in_val);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (isless(in_val.val, 0)) {
-        SOL_WRN("Color component must to be a not negative value");
-        return -EINVAL;
+        asprintf(&errmsg, "Color component must be a non negative value. %s", sol_util_strerrora(EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
     if (islessequal(in_val.max, 0)) {
-        SOL_WRN("Max value for color component must to be a positive value");
-        return -EINVAL;
+        asprintf(&errmsg, "Max value for color component must be a positive value. %s", sol_util_strerrora(EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
     val = in_val.val * rgb_get_port_max(data, port) / in_val.max;
 
-    return rgb_convert(node, data, port, val);
+    rgb_convert(node, data, port, val);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 static int
@@ -1319,18 +1644,22 @@ rgb_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint1
     int r;
 
     r = sol_flow_packet_get_rgb(packet, &rgb);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    r = sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_RGB_TO_BYTE__OUT__RED, rgb.red);
-    SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_RGB_TO_BYTE__OUT__GREEN, rgb.green);
-    SOL_INT_CHECK(r, < 0, r);
 
-    return sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_RGB_TO_BYTE__OUT__BLUE, rgb.blue);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 #define RGB_SEND(_type, _type_m, _component, _component_m) \
@@ -1340,7 +1669,6 @@ rgb_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint1
         r = sol_flow_send_ ## _type ## _packet(node, \
             SOL_FLOW_NODE_TYPE_CONVERTER_RGB_TO_ ## _type_m ## __OUT__ ## _component_m, \
             &out); \
-        SOL_INT_CHECK(r, < 0, r); \
     } while (0)
 
 static int
@@ -1351,7 +1679,7 @@ rgb_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
     int r;
 
     r = sol_flow_packet_get_rgb(packet, &rgb);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     out.min = 0;
     out.step = 1;
@@ -1360,7 +1688,11 @@ rgb_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
     RGB_SEND(irange, INT, green, GREEN);
     RGB_SEND(irange, INT, blue, BLUE);
 
-    return r;
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -1371,7 +1703,7 @@ rgb_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
     int r;
 
     r = sol_flow_packet_get_rgb(packet, &rgb);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     out.min = 0;
     out.step = 1;
@@ -1380,7 +1712,11 @@ rgb_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
     RGB_SEND(drange, FLOAT, green, GREEN);
     RGB_SEND(drange, FLOAT, blue, BLUE);
 
-    return r;
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 #undef RGB_SEND
@@ -1406,7 +1742,7 @@ irange_compose(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     int r;
 
     r = sol_flow_packet_get_byte(packet, &in_val);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     mdata->port_has_value |= 1 << idx;
 
@@ -1418,7 +1754,13 @@ irange_compose(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
         return 0;
 
     out_val.val = (int)mdata->output_value;
-    return sol_flow_send_irange_packet(node, SOL_FLOW_NODE_TYPE_CONVERTER_INT_COMPOSE__OUT__OUT, &out_val);
+    sol_flow_send_irange_packet(node, SOL_FLOW_NODE_TYPE_CONVERTER_INT_COMPOSE__OUT__OUT, &out_val);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -1429,7 +1771,7 @@ irange_decompose(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     int r, i;
 
     r = sol_flow_packet_get_irange(packet, &in);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     value = (unsigned)in.val;
     for (i = 0; i < 4; i++) {
@@ -1442,10 +1784,13 @@ irange_decompose(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
         unsigned char byte;
         byte = value & 0xff;
         value >>= CHAR_BIT;
-        r = sol_flow_send_byte_packet(node, out_port[i], byte);
-        SOL_INT_CHECK(r, < 0, r);
+        sol_flow_send_byte_packet(node, out_port[i], byte);
     }
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -1456,14 +1801,19 @@ error_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     int code, r;
 
     r = sol_flow_packet_get_error(packet, &code, &msg);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    r = sol_flow_send_irange_value_packet(node,
+    sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_ERROR__OUT__CODE, code);
-    SOL_INT_CHECK(r, < 0, r);
 
-    return sol_flow_send_string_packet(node,
+    sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_ERROR__OUT__MESSAGE, msg);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -1486,9 +1836,11 @@ bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
 {
     struct sol_converter_bits *mdata = data;
     int idx = port - SOL_FLOW_NODE_TYPE_CONVERTER_BITS_TO_BYTE__IN__IN_0;
+    int r;
     bool in_val;
 
-    sol_flow_packet_get_boolean(packet, &in_val);
+    r = sol_flow_packet_get_boolean(packet, &in_val);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if ((mdata->output_initialized >> idx) & 1) {
         if ((mdata->last >> idx) == in_val)
@@ -1501,8 +1853,14 @@ bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
     if (mdata->output_initialized != mdata->connected_ports)
         return 0;
 
-    return sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BITS_TO_BYTE__OUT__OUT, mdata->last);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 #undef SET_BIT
