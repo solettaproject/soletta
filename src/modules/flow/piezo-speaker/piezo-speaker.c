@@ -243,17 +243,22 @@ enabled_set(struct sol_flow_node *node,
     int r;
 
     r = sol_flow_packet_get_boolean(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    if (!in_value)
-        return tune_stop(mdata);
+    if (!in_value) {
+        tune_stop(mdata);
+        return 0;
+    }
 
     if (in_value && mdata->periods_us && !mdata->timer) {
         r = tune_start(mdata);
-        SOL_INT_CHECK(r, < 0, r);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
     }
 
+    return 0;
 
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -365,22 +370,26 @@ tune_set(struct sol_flow_node *node,
     int r;
 
     r = sol_flow_packet_get_string(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->timer) {
         last_state = true;
         r = tune_stop(mdata);
-        SOL_INT_CHECK(r, < 0, r);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
     }
 
     r = tune_parse(mdata, in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (last_state) {
         r = tune_start(mdata);
-        SOL_INT_CHECK(r, < 0, r);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
     }
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
