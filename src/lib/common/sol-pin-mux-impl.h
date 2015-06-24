@@ -57,7 +57,7 @@ enum sol_pin_mode {
     SOL_PIN_MODE_GPIO_OUTPUT = 0x08, /**< GPIO Output */
     SOL_PIN_MODE_PWM = 0x10, /**< PWM */
     SOL_PIN_MODE_I2C = 0x20, /**< I2C */
-    SOL_PIN_MODE_ANALOG = 0x40, /**< Analogic Reader */
+    SOL_PIN_MODE_ANALOG = 0x40, /**< Analog Reader */
     SOL_PIN_MODE_UART = 0x80, /**< UART */
     SOL_PIN_MODE_SPI = 0x100, /**< SPI */
     SOL_PIN_MODE_SWITCH = 0x200, /**< SWITCH */
