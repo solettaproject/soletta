@@ -45,7 +45,7 @@ struct bitwise_data {
     bool in1_init : 1;
 };
 
-static int
+static void
 two_port_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out, const struct sol_flow_packet *packet, int (*func)(unsigned char, unsigned char))
 {
     struct bitwise_data *mdata = data;
@@ -54,7 +54,7 @@ two_port_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint1
     unsigned char out_value;
 
     r = sol_flow_packet_get_byte(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (port_in) {
         mdata->in1 = in_value;
@@ -65,11 +65,14 @@ two_port_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint1
     }
 
     if (!(mdata->in0_init && mdata->in1_init))
-        return 0;
+        return;
 
     out_value = func(mdata->in0, mdata->in1);
 
-    return sol_flow_send_byte_packet(node, port_out, out_value);
+    sol_flow_send_byte_packet(node, port_out, out_value);
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
 }
 
 static int
@@ -81,7 +84,9 @@ and_func(unsigned char in0, unsigned char in1)
 static int
 and_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    return two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_BITWISE_AND__OUT__OUT, packet, and_func);
+    two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_BITWISE_AND__OUT__OUT, packet, and_func);
+
+    return 0;
 }
 
 static int
@@ -93,7 +98,9 @@ or_func(unsigned char in0, unsigned char in1)
 static int
 or_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    return two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_BITWISE_OR__OUT__OUT, packet, or_func);
+    two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_BITWISE_OR__OUT__OUT, packet, or_func);
+
+    return 0;
 }
 
 static int
@@ -105,7 +112,9 @@ xor_func(unsigned char in0, unsigned char in1)
 static int
 xor_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    return two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_BITWISE_XOR__OUT__OUT, packet, xor_func);
+    two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_BITWISE_XOR__OUT__OUT, packet, xor_func);
+
+    return 0;
 }
 
 static int
@@ -132,11 +141,18 @@ shift_left_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 {
     int r = 0;
 
-    if (port == SOL_FLOW_NODE_TYPE_BYTE_SHIFT_LEFT__IN__SHIFT)
+    if (port == SOL_FLOW_NODE_TYPE_BYTE_SHIFT_LEFT__IN__SHIFT) {
         r = validate_shift(packet);
-    if (r < 0)
-        return r;
-    return two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_SHIFT_LEFT__OUT__OUT, packet, shift_left_func);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+    }
+
+    two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_SHIFT_LEFT__OUT__OUT, packet, shift_left_func);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -150,11 +166,18 @@ shift_right_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
 {
     int r = 0;
 
-    if (port == SOL_FLOW_NODE_TYPE_BYTE_SHIFT_RIGHT__IN__SHIFT)
+    if (port == SOL_FLOW_NODE_TYPE_BYTE_SHIFT_RIGHT__IN__SHIFT) {
         r = validate_shift(packet);
-    if (r < 0)
-        return r;
-    return two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_SHIFT_RIGHT__OUT__OUT, packet, shift_right_func);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+    }
+
+    two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_SHIFT_RIGHT__OUT__OUT, packet, shift_right_func);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -165,10 +188,16 @@ not_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     unsigned char out_value;
 
     r = sol_flow_packet_get_byte(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     out_value = ~in_value;
-    return sol_flow_send_byte_packet(node, SOL_FLOW_NODE_TYPE_BYTE_BITWISE_NOT__OUT__OUT, out_value);
+    sol_flow_send_byte_packet(node, SOL_FLOW_NODE_TYPE_BYTE_BITWISE_NOT__OUT__OUT, out_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 // =============================================================================
@@ -210,11 +239,15 @@ byte_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
     struct byte_filter_data *mdata = data;
 
     r = sol_flow_packet_get_byte(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    if (value >= mdata->min && value <= mdata->max ) {
-        return sol_flow_send_byte_packet(node, SOL_FLOW_NODE_TYPE_BYTE_FILTER__OUT__OUT, value);
-    }
+    if (value >= mdata->min && value <= mdata->max )
+        sol_flow_send_byte_packet(node, SOL_FLOW_NODE_TYPE_BYTE_FILTER__OUT__OUT, value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
