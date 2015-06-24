@@ -1278,7 +1278,9 @@ using the sol-flow-node-type-stub-gen.py tool.
             t["prefix_c"] = data["prefix_c"]
             generate_header_entry(output_header, t)
             generate_code_entry(output_code, t)
-            generate_description_entry(descriptions, t)
+            # internal nodes don't appear in the description json files
+            if t["category"] != "internal":
+                generate_description_entry(descriptions, t)
 
         generate_header_tail(args.output_header, data)
         generate_code_tail(args.output_code, data)
