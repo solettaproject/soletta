@@ -32,6 +32,7 @@
 
 #include <sol-util.h>
 #include <errno.h>
+#include <math.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
@@ -143,12 +144,30 @@ accel_read(struct accelerometer_adxl345_data *mdata)
             return;
         }
 
+        /* At least with the current i2c driver implementation at the
+         * time of testing, if too much time passes between two
+         * consecutive readings, the buffer will be reported full, but
+         * the last readings will contain trash values -- this will
+         * guard against that (one will have to read again to get
+         * newer values)*/
+#define MAX_EPSILON (10.0f)
+#define EPSILON_CHECK(_axis) \
+        if (i > 0 && isgreater(fabs((buffer[i][_axis] * ACCEL_SCALE_M_S) \
+                                    - mdata->reading[_axis]), MAX_EPSILON)) \
+            break
+
         /* raw readings, with only the sensor-provided filtering */
-        for (uint8_t i = 0; i < num_samples_available; i++) {
+        for (int i = 0; i < num_samples_available; i++) {
+            EPSILON_CHECK(0);
+            EPSILON_CHECK(1);
+            EPSILON_CHECK(2);
+
             mdata->reading[0] = buffer[i][0] * ACCEL_SCALE_M_S;
             mdata->reading[1] = -buffer[i][1] * ACCEL_SCALE_M_S;
             mdata->reading[2] = -buffer[i][2] * ACCEL_SCALE_M_S;
         }
+#undef MAX_EPSILON
+#undef EPSILON_CHECK
     }
 }
 
