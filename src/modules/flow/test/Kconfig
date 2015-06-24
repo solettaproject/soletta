@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_TEST
+	tristate "Node type: test"
+	depends on FLOW
+	default m

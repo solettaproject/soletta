@@ -1,0 +1,5 @@
+config FLOW_NODE_TYPE_GTK
+	tristate "Node type: gtk"
+	depends on FLOW && HAVE_GTK
+	default m
+	select USE_GTK

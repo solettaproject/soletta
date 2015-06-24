@@ -1,0 +1,4 @@
+config LINUX_MICRO_RC_D
+	tristate "rc-d"
+	depends on LINUX_MICRO
+	default n

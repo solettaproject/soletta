@@ -1,0 +1,65 @@
+check: $(SOL_LIB_SO) $(SOL_LIB_AR) $(tests-out)
+	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)"
+
+PHONY += check
+
+check-fbp: $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
+	$(Q)echo $(shell SOL_FBP_RUNNER_BIN="$(abspath $(SOL_FBP_RUNNER_BIN))" $(TEST_FBP_SCRIPT))
+
+PHONY += check-fbp
+
+ifeq (y,$(HAVE_VALGRIND))
+check-valgrind: $(SOL_LIB_SO) $(SOL_LIB_AR) $(tests-out)
+	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)" \
+		--valgrind=$(VALGRIND) --valgrind-supp=$(abpath $(TEST_VALGRIND_SUPP))
+
+check-fbp-valgrind: $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
+	$(Q)echo $(shell SOL_FBP_RUNNER_BIN="$(abspath $(SOL_FBP_RUNNER_BIN))" \
+		TEST_VALGRIND_SUPP="$(abspath $(TEST_VALGRIND_SUPP))" $(TEST_FBP_SCRIPT))
+else
+check-valgrind:
+	$(Q)echo "No such valgrind installation: $(VALGRIND), either make sure your valgrind"
+	$(Q)echo " installation is correct or provide a valid VALGRIND= variable"
+
+check-fbp-valgrind: check-valgrind
+endif # HAVE_VALGRIND
+
+PHONY += check-valgrind check-fbp-valgrind
+
+ifneq (,$(LCOV))
+run-coverage: check check-fbp
+	$(Q)$(MKDIR) -p $(coveragedir)
+	$(Q)$(LCOV) --capture --directory $(top_srcdir) --output-file $(coveragedir)coverage.info
+	$(Q)$(MV) *.gcda $(build_bindir)
+	$(Q)$(GENHTML) coverage/coverage.info --output-directory coverage/
+
+coverage: clean
+	$(Q)$(RM) -Rf $(coveragedir)
+	$(Q)$(MAKE) -f $(top_srcdir)Makefile run-coverage
+else
+coverage:
+	$(Q)echo "No such lcov installation, check your system and run it again."
+endif
+
+PHONY += run-coverage coverage
+
+PRE_INSTALL := $(PC_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out) $(all-mod-descs)
+PRE_INSTALL += $(FLOW_BUILTINS_DESC) $(NODE_TYPE_SCHEMA_DEST) $(PLATFORM_DETECT_DEST) $(GDB_AUTOLOAD_PY_DEST)
+
+rpath-bins := $(subst $(build_sysroot)/,$(DESTDIR),$(bins-out))
+
+define rpath-cleanup
+$(1)-rpath-cleanup: $(1)
+	@$(CHRPATH) -d $(1)
+endef
+$(foreach bin,$(rpath-bins),$(eval $(call rpath-cleanup,$(bin))))
+
+pre-install: $(PRE_INSTALL)
+	$(Q)echo "     "INSTALLING SYSROOT TO: $(DESTDIR)
+	$(Q)$(CP) -R $(build_sysroot)/* $(DESTDIR)
+
+post-install: pre-install $(addsuffix -rpath-cleanup,$(rpath-bins))
+
+install: post-install
+
+PHONY += install post-install pre-install
