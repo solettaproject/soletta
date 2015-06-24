@@ -35,18 +35,14 @@
 #include <string.h>
 #include <errno.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-calamari");
+#include "calamari-gen.h"
+#include "gpio-gen.h"
 
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-pwm.h"
 #include "sol-spi.h"
 #include "sol-util.h"
-
-#include "gpio-gen.h"
-#include "calamari-gen.h"
 
 ///////// SEGMENTS CTL ///////////
 

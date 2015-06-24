@@ -38,6 +38,13 @@ def generate_header(outfile, headers_list):
 
 /* this file was auto-generated */
 
+/* modules' log domains should not affect whatever other domain a user
+of this header might want to declare, so guard against that */
+#ifndef SOL_LOG_DOMAIN
+#define SOL_LOG_DOMAIN 1
+#define DOMAIN_CHANGED 1
+#endif
+
 """)
 
     for header in sorted(headers_list):
@@ -45,6 +52,13 @@ def generate_header(outfile, headers_list):
 #include "%s"
 """ % os.path.basename(header))
 
+    outfile.write("""\
+
+#ifdef DOMAIN_CHANGED
+#undef DOMAIN_CHANGED
+#undef SOL_LOG_DOMAIN
+#endif
+""")
     outfile.close()
 
 if __name__ == "__main__":

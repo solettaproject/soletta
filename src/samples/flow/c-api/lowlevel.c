@@ -32,8 +32,12 @@
 
 #include <stdlib.h>
 
+/* we include custom-node-types-gen.h but are not building a module,
+ * disregard log_init */
+#include "sol-macros.h"
+static void log_init(void) SOL_ATTR_UNUSED;
+
 #include "sol-flow.h"
-#include "sol-flow-node-types.h"
 #include "custom-node-types-gen.h"
 #include "sol-mainloop.h"
 

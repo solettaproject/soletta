@@ -34,18 +34,15 @@
 #include <errno.h>
 #include <math.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-grove");
+#include "grove-gen.h"
+#include "aio-gen.h"
 
 #include "sol-flow-internal.h"
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-vector.h"
-#include "aio-gen.h"
 
-#include "grove-gen.h"
 
 // ################################ Rotary sensor nodes
 

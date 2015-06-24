@@ -31,12 +31,22 @@
  */
 
 #include <float.h>
+
+
 #include "sol-util.h"
 #include "sol-log-internal.h"
 
+#include "test-module.h"
+
+// The test module is a bit of an alien WRT logging, as it has to
+// share the domain symbol externally with the various .o objects that
+// will be linked together. Let's redeclare it by hand, then, and
+// before including test-gen.h. Also, log_init() is defined here
+// instead.
+SOL_LOG_INTERNAL_DECLARE(_log_domain, "flow-test");
+
 #include "test-gen.h"
 
-#include "test-module.h"
 #include "result.h"
 #include "boolean-generator.h"
 #include "boolean-validator.h"
@@ -46,17 +56,10 @@
 #include "int-generator.h"
 #include "blob-validator.h"
 
-SOL_LOG_INTERNAL_DECLARE(test_log_domain, "flow-test");
-
-void
-test_init_log_domain(void)
+static void
+log_init(void)
 {
-    static bool done = false;
-
-    if (done)
-        return;
-    sol_log_domain_init_level(&test_log_domain);
-    done = true;
+    SOL_LOG_INTERNAL_INIT_ONCE;
 }
 
 #include "test-gen.c"
