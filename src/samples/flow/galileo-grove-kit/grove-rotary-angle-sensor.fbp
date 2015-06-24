@@ -33,8 +33,9 @@
 
 # This is a translation of
 # Grove_Rotary_Angle_Sensor/Grove_Rotary_Angle_Sensor.ino, from
-# https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
+# https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git,
+# but showing degrees instead.
 
-sensor(RotaryAngleSensor) OUT -> IN converter(converter/int-to-string) OUT -> IN screen(LCDString)
+sensor(RotaryAngleSensor) DEG -> IN converter(converter/float-to-string) OUT -> IN screen(LCDString)
 
 initial_color(constant/rgb:value=255|255|255|255|255|255) OUT -> COLOR screen
