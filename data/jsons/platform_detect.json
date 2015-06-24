@@ -17,6 +17,24 @@
        "match": [ "GalileoGen2" ]
       }
      ]
+    },
+    {
+     "name": "intel-edison-rev-c",
+     "validation": [
+      {
+       "file_path": "/sys/devices/virtual/dmi/id/board_name",
+       "match": [ "BODEGA BAY" ]
+      }
+     ]
+    },
+    {
+     "name": "intel-edison-rev-c",
+     "validation": [
+      {
+       "file_path": "/sys/devices/virtual/dmi/id/board_name",
+       "match": [ "SALT BAY" ]
+      }
+     ]
     }
   ]
 }
