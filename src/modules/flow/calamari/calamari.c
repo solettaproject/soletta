@@ -45,8 +45,6 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-calamari");
 #include "sol-spi.h"
 #include "sol-util.h"
 
-#include "sol-flow-node-types.h"
-
 #include "gpio-gen.h"
 #include "calamari-gen.h"
 

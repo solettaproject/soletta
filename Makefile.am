@@ -190,7 +190,7 @@ BUILT_SOURCES += $(SOLETTA_FLOW_BUILT_HDRS) $(SOLETTA_FLOW_BUILT_SRCS)
 # the library before the files are generated. By adding this explicit
 # depdendency we can ensure that all the required files will be there by the
 # time they are needed.
-$(src_lib_libsoletta_la_OBJECTS): $(SOLETTA_FLOW_BUILT_HDRS) $(SOLETTA_FLOW_BUILT_SRCS) src/lib/flow/sol-flow-node-types.h
+$(src_lib_libsoletta_la_OBJECTS): $(SOLETTA_FLOW_BUILT_HDRS) $(SOLETTA_FLOW_BUILT_SRCS) src/lib/flow/sol-flow-node-types.h src/lib/flow/sol-flow-builtins-gen.h
 
 src/lib/flow/sol-flow-node-types.h: $(SOLETTA_FLOW_BUILT_HDRS) $(top_srcdir)/data/scripts/sol-flow-node-types-h-gen.py
 	$(AM_V_GEN)$(PYTHON) $(top_srcdir)/data/scripts/sol-flow-node-types-h-gen.py  src/lib/flow/sol-flow-node-types.h $(SOLETTA_FLOW_BUILT_HDRS)
@@ -572,7 +572,7 @@ src/modules/flow/%-gen.h src/modules/flow/%-gen.c: src/modules/flow/%.json $(top
 
 flowtypedescs =
 
-src/lib/flow/sol-flow-builtins-gen.h: Makefile data/scripts/sol-builtins-gen.py
+src/lib/flow/sol-flow-builtins-gen.h: Makefile data/scripts/sol-builtins-gen.py $(SOLETTA_FLOW_BUILT_HDRS)
 	@rm -f $@
 	@mkdir -p src/lib/flow
 	$(AM_V_GEN)$(PYTHON) $(top_srcdir)/data/scripts/sol-builtins-gen.py \

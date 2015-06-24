@@ -47,6 +47,14 @@ def generate_module_entry(file, data):
                            .replace("@name@", data["name"]),)
         return s
 
+    def built_sources(data):
+        if "built_sources" not in data:
+            return ""
+        bs = ""
+        for s in data["built_sources"]:
+            bs += " " + s
+        return bs
+
     repl = {
         "name": data["name"],
         "c_name": c_clean(data["name"]),
@@ -60,6 +68,7 @@ def generate_module_entry(file, data):
         "if_builtin_rules": rules2str("if_builtin_rules"),
         "if_module_rules": rules2str("if_module_rules"),
         "extra_rules": rules2str("extra_rules"),
+        "built_sources": built_sources(data),
     }
     if "extra_path" in data:
         repl["extra_path_include"] = "include %s\n" % (data["extra_path"],)
@@ -79,6 +88,7 @@ if MODULE_%(am_conditional)s_%(NAME)s
 %(ltlibraries)s_LTLIBRARIES += %(path)s.la
 %(c_path)s_la_SOURCES = %(path)s/%(name)s.c $(%(ltlibraries)s_%(c_name)s_extra_src)
 %(c_path)s_la_CFLAGS = $(src_lib_libsoletta_la_CFLAGS) %(if_module_cflags)s $(%(ltlibraries)s_%(c_name)s_extra_cflags)
+$(%(c_path)s_la_OBJECTS): %(built_sources)s
 %(c_path)s_la_LDFLAGS = -module -no-undefined -avoid-version
 %(c_path)s_la_LIBADD = src/lib/libsoletta.la src/shared/libshared.la $(%(ltlibraries)s_%(c_name)s_extra_libs)
 %(c_path)s_la_LIBTOOLFLAGS = --tag=disable-static
