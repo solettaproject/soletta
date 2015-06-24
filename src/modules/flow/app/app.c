@@ -91,13 +91,19 @@ argv_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     int r;
 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     r = check_index(node, in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return sol_flow_send_string_packet(node,
+    sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_APP_ARGC_ARGV__OUT__OUT, sol_argv()[in_value]);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -114,9 +120,14 @@ quit_with_code_process(struct sol_flow_node *node, void *data, uint16_t port, ui
     int r;
 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     sol_quit_with_code(in_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -127,9 +138,14 @@ quit_with_error_process(struct sol_flow_node *node, void *data, uint16_t port, u
     int r;
 
     r = sol_flow_packet_get_error(packet, &in_value, NULL);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     sol_quit_with_code(in_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
