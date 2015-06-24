@@ -55,7 +55,7 @@ two_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint
     struct boolean_data *mdata = data;
 
     r = sol_flow_packet_get_boolean(packet, &b);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (port_in) {
         mdata->init_in1 = true;
@@ -67,9 +67,13 @@ two_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint
 
     if (mdata->init_in0 && mdata->init_in1) {
         b = func(mdata->in0, mdata->in1);
-        return sol_flow_send_boolean_packet(node, port_out, b);
+        sol_flow_send_boolean_packet(node, port_out, b);
     }
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -85,8 +89,10 @@ static int
 and_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-    return two_ports_process(node, data, port, SOL_FLOW_NODE_TYPE_BOOLEAN_AND__OUT__OUT, packet,
+    two_ports_process(node, data, port, SOL_FLOW_NODE_TYPE_BOOLEAN_AND__OUT__OUT, packet,
         and_func);
+
+    return 0;
 }
 
 /* OR *****************************************************************/
@@ -101,8 +107,10 @@ static int
 or_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-    return two_ports_process(node, data, port, SOL_FLOW_NODE_TYPE_BOOLEAN_OR__OUT__OUT, packet,
+    two_ports_process(node, data, port, SOL_FLOW_NODE_TYPE_BOOLEAN_OR__OUT__OUT, packet,
         or_func);
+
+    return 0;
 }
 
 /* XOR ****************************************************************/
@@ -117,8 +125,10 @@ static int
 xor_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-    return two_ports_process(node, data, port, SOL_FLOW_NODE_TYPE_BOOLEAN_XOR__OUT__OUT, packet,
+    two_ports_process(node, data, port, SOL_FLOW_NODE_TYPE_BOOLEAN_XOR__OUT__OUT, packet,
         xor_func);
+
+    return 0;
 }
 
 /* NOT ********************************************************************/
@@ -130,9 +140,15 @@ not_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     bool in;
 
     r = sol_flow_packet_get_boolean(packet, &in);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_BOOLEAN_NOT__OUT__OUT, !in);
+    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_BOOLEAN_NOT__OUT__OUT, !in);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 /* TOGGLE *****************************************************************/
@@ -148,8 +164,10 @@ toggle_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
 
     mdata->state = !mdata->state;
 
-    return sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_BOOLEAN_TOGGLE__OUT__OUT,
+    sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_BOOLEAN_TOGGLE__OUT__OUT,
         mdata->state);
+
+    return 0;
 }
 
 static int
@@ -218,7 +236,8 @@ counter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     int r;
 
     r = sol_flow_packet_get_boolean(packet, &packet_val);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
     s = sol_vector_get(&mdata->map, conn_id);
 
     if (*s == packet_val)
@@ -241,6 +260,10 @@ counter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     val.val = mdata->false_count;
     sol_flow_send_irange_packet(node, SOL_FLOW_NODE_TYPE_BOOLEAN_COUNTER__OUT__FALSE, &val);
 
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -271,12 +294,20 @@ filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     int r;
 
     r = sol_flow_packet_get_boolean(packet, &packet_val);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
     if (packet_val)
         out_port = SOL_FLOW_NODE_TYPE_BOOLEAN_FILTER__OUT__TRUE;
     else
         out_port = SOL_FLOW_NODE_TYPE_BOOLEAN_FILTER__OUT__FALSE;
-    return sol_flow_send_boolean_packet(node, out_port, packet_val);
+
+    sol_flow_send_boolean_packet(node, out_port, packet_val);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 
@@ -352,16 +383,16 @@ static const struct sol_str_table_ptr table[] = {
 
 // =============================================================================
 
-static int
+static void
 _boolean_buffer_do(struct boolean_buffer_data *mdata)
 {
     bool result;
 
     if (!mdata->cur_len)
-        return 0;
+        return;
 
     result = mdata->normalize_cb(mdata->input_queue, mdata->cur_len);
-    return sol_flow_send_boolean_packet(mdata->node,
+    sol_flow_send_boolean_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_BOOLEAN_BUFFER__OUT__OUT, result);
 }
 
@@ -393,6 +424,7 @@ boolean_buffer_reset(struct sol_flow_node *node, void *data, uint16_t port, uint
     const struct sol_flow_packet *packet)
 {
     _reset(data);
+
     return 0;
 }
 
@@ -405,7 +437,7 @@ boolean_buffer_timeout(struct sol_flow_node *node, void *data, uint16_t port, ui
     struct boolean_buffer_data *mdata = data;
 
     r = sol_flow_packet_get_irange_value(packet, &timeout);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (timeout < 0)
         SOL_WRN("Invalid 'timeout' value: '%" PRId32 "'. Skipping it.", timeout);
@@ -417,7 +449,11 @@ boolean_buffer_timeout(struct sol_flow_node *node, void *data, uint16_t port, ui
     if (mdata->timeout)
         mdata->timer = sol_timeout_add(mdata->timeout, _timeout, mdata);
 
-    return r;
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -428,14 +464,18 @@ boolean_buffer_process(struct sol_flow_node *node, void *data, uint16_t port, ui
     struct boolean_buffer_data *mdata = data;
 
     r = sol_flow_packet_get_boolean(packet, &mdata->input_queue[mdata->cur_len]);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->n_samples <= ++mdata->cur_len) {
-        r = _boolean_buffer_do(mdata);
+        _boolean_buffer_do(mdata);
         _reset(data);
     }
 
-    return r;
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
