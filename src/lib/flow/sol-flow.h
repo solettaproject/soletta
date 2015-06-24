@@ -293,7 +293,9 @@ struct sol_flow_node_type {
     uint16_t data_size; /**< size of the whole sol_flow_node_type derivate */
     uint16_t flags; /**< @see #sol_flow_node_type_flags */
 
-    struct sol_flow_node_options *(*new_options)(const struct sol_flow_node_options *copy_from); /**< member function to instantiate new options for the node (if @a copy_from is not @c NULL, its members will be copied into the new returned struct */
+    const void *type_data; /**< pointer to per-type user data */
+
+    struct sol_flow_node_options *(*new_options)(const struct sol_flow_node_type *type, const struct sol_flow_node_options *copy_from); /**< member function to instantiate new options for the node (if @a copy_from is not @c NULL, its members will be copied into the new returned struct */
     void (*free_options)(struct sol_flow_node_options *opts); /**< member function to delete the node options */
 
     void (*get_ports_counts)(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count); /**< member function to get the number of input/output ports of the node */
@@ -490,6 +492,9 @@ struct sol_flow_node *sol_flow_static_get_node(struct sol_flow_node *node, uint1
  *                     own output ports
  * @param child_opts_set member function to forward option members of
  *                       the container node to child nodes
+ * @param type_data user pointer that will be passed to @a child_opts_set, so
+ *                  that dynamically created types can identify the options
+ *                  members that belong to each child node
  *
  * @return A new container node type on success, otherwise @c NULL.
  */

@@ -87,6 +87,8 @@ int sol_flow_builder_connect_by_index(struct sol_flow_builder *builder, const ch
 int sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *node_name, const char *port_name, int port_idx, const char *exported_name);
 int sol_flow_builder_export_out_port(struct sol_flow_builder *builder, const char *node_name, const char *port_name, int port_idx, const char *exported_name);
 
+int sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *node_name, const char *option_name, const char *exported_name);
+
 /* Returns the node type generated with the builder. It should be used
  * to create nodes with sol_flow_node_new(). After the type is
  * created, no more nodes or connections can be added.
