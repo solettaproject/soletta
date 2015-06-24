@@ -32,39 +32,18 @@
 
 #pragma once
 
+#include "sol-platform.h"
+#include <stdbool.h>
 #include <stdint.h>
-#include <sys/types.h>
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct sol_blob_type;
-struct sol_blob {
-    const struct sol_blob_type *type;
-    struct sol_blob *parent;
-    void *mem;
-    size_t size;
-    uint16_t refcnt;
-};
-
-struct sol_blob_type {
-#define SOL_BLOB_TYPE_API_VERSION (1)
-    uint16_t api_version;
-    uint16_t sub_api;
-    void (*free)(struct sol_blob *blob);
-};
-
-/*
- * The default type uses free() to release the blob's memory
- */
-extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
-
-struct sol_blob *sol_blob_new(const struct sol_blob_type *type, struct sol_blob *parent, const void *mem, size_t size);
-int sol_blob_setup(struct sol_blob *blob, const struct sol_blob_type *type, const void *mem, size_t size);
-struct sol_blob *sol_blob_ref(struct sol_blob *blob);
-void sol_blob_unref(struct sol_blob *blob);
-void sol_blob_set_parent(struct sol_blob *blob, struct sol_blob *parent);
+struct sol_platform_linux_fork_run *sol_platform_linux_fork_run(void (*on_fork)(void *data), void (*on_child_exit)(void *data, uint64_t pid, int status), const void *data);
+void sol_platform_linux_fork_run_stop(struct sol_platform_linux_fork_run *handle);
+pid_t sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_fork_run *handle);
 
 #ifdef __cplusplus
 }

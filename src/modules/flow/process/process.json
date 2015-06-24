@@ -1,0 +1,179 @@
+{
+  "name": "process",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/sw",
+      "description": "Current Process STDIN",
+      "name": "process/stdin",
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "Binary data chunks (blobs) read. This is not buffered and no extra processing is done, you get what arrived on stdin, as it arrived.",
+          "methods": {
+            "connect": "process_stdin_out_connect",
+            "disconnect": "process_stdin_out_disconnect"
+          },
+          "name": "OUT"
+        },
+        {
+          "data_type": "boolean",
+          "description": "True if STDIN is closed",
+          "methods": {
+            "connect": "process_stdin_closed_connect",
+            "disconnect": "process_stdin_closed_disconnect"
+          },
+          "name": "CLOSED"
+        }
+      ],
+      "url": "http://devapp.org/doc/latest/node_types/process_stdin.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "Current Process STDOUT",
+      "name": "process/stdout",
+      "methods": {
+        "close": "process_stdout_close",
+        "open": "process_stdout_open"
+      },
+      "in_ports": [
+        {
+          "data_type": "blob",
+          "description": "Binary data chunks (blobs) read. No extra processing is done, what arrived is written in stdout.",
+          "methods": {
+            "process": "process_stdout_in_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if STDOUT is closed",
+          "methods": {
+             "connect": "process_stdout_closed_connect"
+          },
+          "name": "CLOSED"
+        }
+      ],
+      "url": "http://devapp.org/doc/latest/node_types/process_stdout.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "Current Process STDERR",
+      "name": "process/stderr",
+      "methods": {
+        "close": "process_stderr_close",
+        "open": "process_stderr_open"
+      },
+      "in_ports": [
+        {
+          "data_type": "blob",
+          "description": "Binary data chunks (blobs) read. No extra processing is done, what arrived is written in stderr.",
+          "methods": {
+            "process": "process_stderr_in_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if STDERR is closed",
+          "methods": {
+             "connect": "process_stderr_closed_connect"
+	  },
+          "name": "CLOSED"
+        }
+      ],
+      "url": "http://devapp.org/doc/latest/node_types/process_stderr.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "Spawn and monitor a subprocess",
+      "methods": {
+        "close": "process_subprocess_close",
+        "open": "process_subprocess_open"
+      },
+      "private_data_type": "subprocess_data",
+      "name": "process/subprocess",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The command that will be executed",
+            "name": "command"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Select if the process should automatically start (true) or should start only after a packet come into the START port",
+            "name": "start"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Start the child process",
+          "methods": {
+            "process": "process_subprocess_start_process"
+          },
+          "name": "START"
+        },
+        {
+          "data_type": "any",
+          "description": "Stop the child process sending SIGTERM",
+          "methods": {
+            "process": "process_subprocess_stop_process"
+          },
+          "name": "STOP"
+        },
+        {
+          "data_type": "int",
+          "description": "Send the specified signal to the child process",
+          "methods": {
+            "process": "process_subprocess_signal_process"
+          },
+          "name": "SIGNAL"
+        },
+        {
+          "data_type": "blob",
+          "description": "Data chunk that will be passed to the subprocess's stdin.",
+          "methods": {
+            "process": "process_subprocess_in_process"
+          },
+          "name": "STDIN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "It will delivery a packet when the child process stops or terminates containing its exit code, similar to waitpid(2).",
+          "name": "STATUS"
+        },
+        {
+          "data_type": "blob",
+          "description": "Binary data chunks (blobs) read. This is not buffered and no extra processing is done, you get what arrived from subprocess's stdout, as it arrived.",
+          "name": "STDOUT"
+        },
+        {
+          "data_type": "blob",
+          "description": "Binary data chunks (blobs) read. This is not buffered and no extra processing is done, you get what arrived from subprocess's stderr, as it arrived.",
+          "name": "STDERR"
+        },
+        {
+          "data_type": "int",
+          "description": "Send the pid of the child process.",
+          "name": "PID"
+        }
+      ],
+      "url": "http://devapp.org/doc/latest/node_types/process_subprocess.html"
+    }
+  ]
+}
