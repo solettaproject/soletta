@@ -156,6 +156,10 @@ int sol_flow_send_drange_value_packet(struct sol_flow_node *src, uint16_t src_po
 int sol_flow_send_rgb_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_rgb *value);
 int sol_flow_send_rgb_components_packet(struct sol_flow_node *src, uint16_t src_port, uint32_t red, uint32_t green, uint32_t blue);
 
+int sol_flow_send_vector_3f_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_vector_3f *value);
+
+int sol_flow_send_vector_3f_components_packet(struct sol_flow_node *src, uint16_t src_port, double x, double y, double z);
+
 int sol_flow_send_empty_packet(struct sol_flow_node *src, uint16_t src_port);
 
 int sol_flow_send_irange_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_irange *value);

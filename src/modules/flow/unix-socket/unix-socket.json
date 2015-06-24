@@ -41,7 +41,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/boolean-writer.html"
     },
     {
       "category": "input/network",
@@ -75,7 +75,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/boolean-reader.html"
     },
 
     {
@@ -113,7 +113,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/string-writer.html"
     },
     {
       "category": "input/network",
@@ -147,7 +147,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/string-reader.html"
     },
 
     {
@@ -185,7 +185,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/rgb-writer.html"
     },
     {
       "category": "input/network",
@@ -219,7 +219,79 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/rgb-reader.html"
+    },
+
+    {
+      "category": "output/network",
+      "description": "Unix socket tridimensional doubles vector (vector 3f) writer",
+      "methods": {
+        "close": "common_close",
+        "open": "vector_3f_writer_open"
+      },
+      "name": "unix-socket/vector-3f-writer",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Act like a server",
+            "name": "server"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Unix socket tridimensional doubles vector (vector 3f) writer, input port.",
+          "methods": {
+            "process": "vector_3f_writer_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/vector-3f-writer.html"
+    },
+    {
+      "category": "input/network",
+      "description": "Unix socket vector_3f reader",
+      "methods": {
+        "close": "common_close",
+        "open": "vector_3f_reader_open"
+      },
+      "name": "unix-socket/vector-3f-reader",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Act like a server",
+            "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Unix socket tridimensional doubles vector (vector 3f) reader, oupput port.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "unix_socket_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/vector-3f-reader.html"
     },
 
     {
@@ -257,7 +329,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/byte-writer.html"
     },
     {
       "category": "input/network",
@@ -291,7 +363,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/byte-reader.html"
     },
 
     {
@@ -329,7 +401,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/int-writer.html"
     },
     {
       "category": "input/network",
@@ -363,7 +435,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/int-reader.html"
     },
 
     {
@@ -401,7 +473,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/float-writer.html"
     },
     {
       "category": "input/network",
@@ -435,7 +507,7 @@
         }
       ],
       "private_data_type": "unix_socket_data",
-      "url": "http://solettaproject.org/doc/latest/components/unixsocket.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/unix-socket/float-reader.html"
     }
   ]
 }

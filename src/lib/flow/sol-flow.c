@@ -325,6 +325,23 @@ sol_flow_send_rgb_components_packet(struct sol_flow_node *src, uint16_t src_port
 }
 
 SOL_API int
+sol_flow_send_vector_3f_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_vector_3f *value)
+{
+    SOL_FLOW_SEND_PACKET(vector_3f);
+}
+
+SOL_API int
+sol_flow_send_vector_3f_components_packet(struct sol_flow_node *src, uint16_t src_port, double x, double y, double z)
+{
+    struct sol_flow_packet *out_packet;
+
+    out_packet = sol_flow_packet_new_vector_3f_components(x, y, z);
+    SOL_NULL_CHECK(out_packet, -ENOMEM);
+
+    return sol_flow_send_packet(src, src_port, out_packet);
+}
+
+SOL_API int
 sol_flow_send_irange_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_irange *value)
 {
     SOL_FLOW_SEND_PACKET(irange);

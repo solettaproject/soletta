@@ -154,6 +154,33 @@
     },
     {
       "category": "constant",
+      "description": "Send an initial packet with a constant value set on options.",
+      "methods": {
+        "open": "constant_vector_3f_open"
+      },
+      "name": "constant/vector-3f",
+      "options": {
+        "members": [
+          {
+            "data_type": "vector-3f",
+            "description": "Value of constant.",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Constant value, sent only once, when connected to a node.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_vector_3f",
+      "url": "http://solettaproject.org/doc/latest/node_types/constant/vector_3f.html"
+    },
+    {
+      "category": "constant",
       "description": "Send an initial packet with a string set on options.",
       "methods": {
         "open": "constant_string_open"

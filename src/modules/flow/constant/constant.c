@@ -121,4 +121,19 @@ constant_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow_
         SOL_FLOW_NODE_TYPE_CONSTANT_RGB__OUT__OUT, &opts->value);
 }
 
+static int
+constant_vector_3f_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    const struct sol_flow_node_type_constant_vector_3f_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CONSTANT_VECTOR_3F_OPTIONS_API_VERSION, -EINVAL);
+    opts = (const struct sol_flow_node_type_constant_vector_3f_options *)options;
+
+    return sol_flow_send_vector_3f_packet(node,
+        SOL_FLOW_NODE_TYPE_CONSTANT_VECTOR_3F__OUT__OUT, &opts->value);
+
+    return 0;
+}
+
 #include "constant-gen.c"

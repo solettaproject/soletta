@@ -567,6 +567,57 @@ sol_flow_packet_get_rgb_components(const struct sol_flow_packet *packet, uint32_
     return ret_val;
 }
 
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_VECTOR_3F = {
+    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    .name = "VECTOR_3F",
+    .data_size = sizeof(struct sol_vector_3f),
+};
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_VECTOR_3F = &_SOL_FLOW_PACKET_TYPE_VECTOR_3F;
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_vector_3f(const struct sol_vector_3f *vector_3f)
+{
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_VECTOR_3F, vector_3f);
+}
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_vector_3f_components(double x, double y, double z)
+{
+    struct sol_vector_3f vector_3f = {
+        .x = x,
+        .z = z,
+        .y = y,
+        .min = -DBL_MAX,
+        .max = DBL_MAX,
+    };
+
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_VECTOR_3F, &vector_3f);
+}
+
+SOL_API int
+sol_flow_packet_get_vector_3f(const struct sol_flow_packet *packet, struct sol_vector_3f *vector_3f)
+{
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_VECTOR_3F, -EBADR);
+    return sol_flow_packet_get(packet, vector_3f);
+}
+
+SOL_API int
+sol_flow_packet_get_vector_3f_components(const struct sol_flow_packet *packet, double *x, double *y, double *z)
+{
+    struct sol_vector_3f ret;
+    int ret_val;
+
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_VECTOR_3F, -EBADR);
+    ret_val = sol_flow_packet_get(packet, &ret);
+    if (ret_val == 0) {
+        if (x) *x = ret.x;
+        if (z) *z = ret.z;
+        if (y) *y = ret.y;
+    }
+
+    return ret_val;
+}
+
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_ANY = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "Any",

@@ -148,6 +148,30 @@
     },
     {
       "category": "filter-repeated",
+      "description": "Filter repeated tridimensional doubles vector (vector 3f) packets.",
+      "in_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Where to receive the tridimensional doubles vector (vector 3f) packet to be filtered. If the packet is equal to the previously received one, it'll be dropped. Otherwise, it'll be forwarded.",
+          "methods": {
+            "process": "vector_3f_filter"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "filter-repeated/vector-3f",
+      "out_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Filtered tridimensional doubles vector (vector 3f) packets.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "filter_vector_3f_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/filter-repeated/vector_3f.html"
+    },
+    {
+      "category": "filter-repeated",
       "description": "Filter repeated string packets.",
       "in_ports": [
         {

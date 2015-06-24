@@ -56,14 +56,16 @@ struct sol_i2c {
     int dev;
     uint8_t bus;
     uint8_t addr;
+    bool plain_i2c;
 };
 
 struct sol_i2c *
 sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 {
-    struct sol_i2c *i2c;
-    char i2c_dev_path[PATH_MAX];
     int len, dev;
+    struct sol_i2c *i2c;
+    unsigned long funcs;
+    char i2c_dev_path[PATH_MAX];
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
@@ -87,6 +89,12 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     }
     i2c->bus = bus;
     i2c->dev = dev;
+
+    /* check if the given I2C adapter supports plain-i2c messages */
+    if (ioctl(i2c->dev, I2C_FUNCS, &funcs) < 0)
+        goto open_error;
+
+    i2c->plain_i2c = (funcs & I2C_FUNC_I2C);
 
     return i2c;
 
@@ -145,7 +153,9 @@ sol_i2c_write_quick(const struct sol_i2c *i2c, bool rw)
     SOL_NULL_CHECK(i2c, false);
 
     if (ioctl(i2c->dev, I2C_SMBUS, &ioctldata) == -1) {
-        SOL_WRN("%u,%u: Unable to write I2C quick", i2c->bus, i2c->addr);
+        SOL_WRN("Unable to perform I2C-SMBus write quick (bus = %u,"
+            " device address = %u): %s", i2c->bus, i2c->addr,
+            sol_util_strerrora(errno));
         return false;
     }
 
@@ -163,7 +173,7 @@ write_byte(const struct sol_i2c *i2c, uint8_t byte)
     };
 
     if (ioctl(i2c->dev, I2C_SMBUS, &ioctldata) == -1) {
-        SOL_WRN("Unable to perform I2C-SMBUS write byte (bus = %u,"
+        SOL_WRN("Unable to perform I2C-SMBus write byte (bus = %u,"
             " device address = %u): %s",
             i2c->bus, i2c->addr, sol_util_strerrora(errno));
         return false;
@@ -183,7 +193,7 @@ read_byte(const struct sol_i2c *i2c, uint8_t *byte)
     };
 
     if (ioctl(i2c->dev, I2C_SMBUS, &ioctldata) == -1) {
-        SOL_WRN("Unable to perform I2C-SMBUS read byte (bus = %u,"
+        SOL_WRN("Unable to perform I2C-SMBus read byte (bus = %u,"
             " device address = %u): %s",
             i2c->bus, i2c->addr, sol_util_strerrora(errno));
         return false;
@@ -230,6 +240,49 @@ sol_i2c_write(const struct sol_i2c *i2c, uint8_t *values, size_t count)
     return true;
 }
 
+static int
+sol_i2c_plain_read_register(const struct sol_i2c *i2c,
+    uint8_t command,
+    uint8_t *values,
+    size_t count)
+{
+    struct i2c_msg msgs[] = {
+        {
+            .addr = i2c->addr,
+            .flags = 0,
+            .len = 1,
+            .buf = &command
+        },
+        {
+            .addr = i2c->addr,
+            .flags = I2C_M_RD,
+            .len = count,
+            .buf = values,
+        }
+    };
+    struct i2c_rdwr_ioctl_data i2c_data = {
+        .msgs = msgs,
+        .nmsgs = 2
+    };
+
+    if (!i2c->plain_i2c) {
+        SOL_WRN("Unable to read I2C data (bus = %u, device address = 0x%x, "
+            "register = 0x%x): the bus/adapter does not support"
+            " plain-I2C commands (only SMBus ones)",
+            i2c->bus, i2c->addr, command);
+        return -EBADR;
+    }
+
+    if (ioctl(i2c->dev, I2C_RDWR, &i2c_data) < 0) {
+        SOL_WRN("Unable to perform I2C read/write (bus = %u,"
+            " device address = 0x%x, register = 0x%x): %s",
+            i2c->bus, i2c->addr, command, sol_util_strerrora(errno));
+        return -errno;
+    }
+
+    return count;
+}
+
 ssize_t
 sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t command, uint8_t *values, size_t count)
 {
@@ -241,8 +294,14 @@ sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t command, uint8_t *value
     SOL_NULL_CHECK(values, -EINVAL);
     SOL_INT_CHECK(count, == 0, -EINVAL);
 
-    if ((error = _i2c_smbus_ioctl(i2c->dev, I2C_SMBUS_READ, command, count, &data)) < 0) {
-        SOL_WRN("%u,0x%x,0x%x: Unable to read I2C data: %d", i2c->bus, i2c->addr, command, error);
+    if (count >= 32)
+        return sol_i2c_plain_read_register(i2c, command, values, count);
+
+    if ((error = _i2c_smbus_ioctl(i2c->dev, I2C_SMBUS_READ, command,
+             count, &data)) < 0) {
+        SOL_WRN("Unable to perform I2C-SMBus read (byte/word/block) data "
+            "(bus = %u, device address = 0x%x, register = 0x%x): %s",
+            i2c->bus, i2c->addr, command, sol_util_strerrora(-error));
         return error;
     }
 
@@ -262,6 +321,97 @@ sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t command, uint8_t *value
 }
 
 bool
+sol_i2c_read_register_multiple(const struct sol_i2c *i2c,
+    uint8_t command,
+    uint8_t *values,
+    uint8_t len,
+    uint8_t count)
+{
+    struct i2c_msg msgs[I2C_RDRW_IOCTL_MAX_MSGS] = { };
+    struct i2c_rdwr_ioctl_data data = { };
+    const unsigned int max_count = I2C_RDRW_IOCTL_MAX_MSGS / 2;
+
+    SOL_NULL_CHECK(i2c, false);
+    if (!i2c->plain_i2c) {
+        SOL_WRN("Unable to read I2C data (bus = %u, device address = 0x%x, "
+            "register = 0x%x): the bus/adapter does not support"
+            " plain-I2C commands (only SMBus ones)",
+            i2c->bus, i2c->addr, command);
+        return false;
+    }
+
+    while (count > 0) {
+        unsigned int n = count > max_count ? max_count : count;
+        unsigned int i;
+        uint8_t *p = values;
+
+        for (i = 0; i < n * 2; i += 2) {
+            msgs[i].addr = i2c->addr;
+            msgs[i].flags = 0;
+            msgs[i].len = 1;
+            msgs[i].buf = &command;
+            msgs[i + 1].addr = i2c->addr;
+            msgs[i + 1].flags = I2C_M_RD;
+            msgs[i + 1].len = len;
+            msgs[i + 1].buf = p;
+            p += len;
+        }
+
+        data.msgs = msgs;
+        data.nmsgs = 2 * n;
+
+        if (ioctl(i2c->dev, I2C_RDWR, &data) == -1) {
+            SOL_WRN("Unable to perform I2C read/write (bus = %u,"
+                " device address = 0x%x, register = 0x%x): %s",
+                i2c->bus, i2c->addr, command, sol_util_strerrora(errno));
+            return false;
+        }
+
+        count -= n;
+    }
+
+    return true;
+}
+
+static bool
+sol_i2c_plain_write_register(const struct sol_i2c *i2c, uint8_t command, const uint8_t *values, size_t count)
+{
+    uint8_t buf[count + 1];
+    struct i2c_msg msgs[] = {
+        {
+            .addr = i2c->addr,
+            .flags = 0,
+            .len = count + 1,
+            .buf = buf
+        }
+    };
+    struct i2c_rdwr_ioctl_data i2c_data = {
+        .msgs = msgs,
+        .nmsgs = 1
+    };
+
+    if (!i2c->plain_i2c) {
+        SOL_WRN("Unable to read I2C data (bus = %u, device address = 0x%x, "
+            "register = 0x%x): the bus/adapter does not support"
+            " plain-I2C commands (only SMBus ones)",
+            i2c->bus, i2c->addr, command);
+        return false;
+    }
+
+    buf[0] = command;
+    memcpy(buf + 1, values, count);
+
+    if (ioctl(i2c->dev, I2C_RDWR, &i2c_data) == -1) {
+        SOL_WRN("Unable to perform I2C read/write (bus = %u,"
+            " device address = 0x%x, register = 0x%x): %s",
+            i2c->bus, i2c->addr, command, sol_util_strerrora(errno));
+        return false;
+    }
+
+    return true;
+}
+
+bool
 sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t command, const uint8_t *values, size_t count)
 {
     int32_t error;
@@ -271,10 +421,8 @@ sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t command, const uint8_t
     SOL_NULL_CHECK(values, false);
     SOL_INT_CHECK(count, == 0, false);
 
-    if (count > I2C_SMBUS_BLOCK_MAX) {
-        SOL_WRN("%u,0x%x,0x%x: Block data limited to %d bytes", i2c->bus, i2c->addr, command, I2C_SMBUS_BLOCK_MAX);
-        count = I2C_SMBUS_BLOCK_MAX;
-    }
+    if (count >= 32)
+        return sol_i2c_plain_write_register(i2c, command, values, count);
 
     switch (count) {
     case 1:
@@ -288,8 +436,11 @@ sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t command, const uint8_t
         memcpy(data.block + 1, values, count);
     }
 
-    if ((error = _i2c_smbus_ioctl(i2c->dev, I2C_SMBUS_WRITE, command, count, &data)) < 0) {
-        SOL_WRN("%u,0x%x,0x%x: Unable to write I2C data: %d", i2c->bus, i2c->addr, command, error);
+    if ((error = _i2c_smbus_ioctl(i2c->dev, I2C_SMBUS_WRITE, command, count,
+             &data)) < 0) {
+        SOL_WRN("Unable to perform I2C-SMBus write (byte/word/block) data "
+            " (bus = %u, device address = 0x%x, register = 0x%x:): %s",
+            i2c->bus, i2c->addr, command, sol_util_strerrora(-error));
         return false;
     }
 
@@ -302,10 +453,12 @@ sol_i2c_set_slave_address(struct sol_i2c *i2c, uint8_t slave_address)
     SOL_NULL_CHECK(i2c, false);
 
     if (ioctl(i2c->dev, I2C_SLAVE, slave_address) == -1) {
-        SOL_WRN("i2c #%u 0x%x: could not specify device address", i2c->bus, slave_address);
+        SOL_WRN("I2C (bus = %u): could not specify device address 0x%x",
+            i2c->bus, slave_address);
         return false;
     }
     i2c->addr = slave_address;
+
     return true;
 }
 

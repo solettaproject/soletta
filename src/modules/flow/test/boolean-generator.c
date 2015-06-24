@@ -53,7 +53,7 @@ timer_tick(void *data)
         out_packet = true;
     } else if (*mdata->it == 'F') {
         out_packet = false;
-    } else  {
+    } else {
         sol_flow_send_error_packet(node, ECANCELED,
             "Unknown sample: %c. Option 'sequence' must be composed by 'T' and/or 'F' chars.");
         return false;

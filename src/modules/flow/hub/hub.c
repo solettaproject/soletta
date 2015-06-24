@@ -90,6 +90,19 @@ rgb_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 }
 
 static int
+vector_3f_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_vector_3f in_value;
+
+    r = sol_flow_packet_get_vector_3f(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_flow_send_vector_3f_packet(node,
+        SOL_FLOW_NODE_TYPE_HUB_VECTOR_3F__OUT__OUT, &in_value);
+}
+
+static int
 empty_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     return sol_flow_send_empty_packet(node,

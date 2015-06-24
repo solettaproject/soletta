@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # This file is part of the Soletta Project
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
@@ -30,61 +28,20 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-function die() {
-    echo "ERROR: $1"
-    exit 1
-}
+color(constant/rgb:value=255|255|255)
+rgb_to_vector_3f(converter/rgb-to-vector-3f)
 
-[ -e ./autogen.sh ] || die "Call from the root directory."
+color OUT -> IN rgb_to_vector_3f
 
-DIFF_LIST=$(mktemp /tmp/sol-tmp.XXXX)
+int_255(constant/int:value=255)
 
-PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|generate\-svg\-from\-all\-fbps\)$"
-IGNORE="data\/oic\/\|data\/jsons\/\|.*\.ac"
+rgb_to_vector_3f OUT -> IN vector_3f_to_rgb(converter/vector-3f-to-rgb)
 
-trap "rm -f $DIFF_LIST" EXIT
+vector_3f_to_rgb OUT -> IN _(converter/rgb-to-int) RED -> IN0 eq_red(int/equal)
+int_255 OUT -> IN1 eq_red OUT -> RESULT x(test/result)
 
-function usage()
-{
-    echo "usage: $0 [-b <base_commit>] [-h]"
-}
+vector_3f_to_rgb OUT -> IN _(converter/rgb-to-int) GREEN -> IN0 eq_green(int/equal)
+int_255 OUT -> IN1 eq_green OUT -> RESULT y(test/result)
 
-while getopts b:h o
-do case "$o" in
-       b) BASE_COMMIT="$OPTARG";;
-       h) usage
-          exit 0;;
-       [?]) usage
-          exit 1;;
-   esac
-done
-
-git diff --diff-filter=ACMR --oneline --name-only | grep $PATTERNS | sed '/'${IGNORE}'/d' > $DIFF_LIST
-git diff --cached --diff-filter=ACMR --oneline --name-only | grep $PATTERNS | sed '/'${IGNORE}'/d' >> $DIFF_LIST
-
-if [ -n "$BASE_COMMIT" -a -s "$DIFF_LIST" ]; then
-    echo "Commits since $BASE_COMMIT marked to be checked, but the git tree is dirty -- checking these files instead"
-    BASE_COMMIT=""
-fi
-
-if [ ! -s "$DIFF_LIST" ]; then
-    if [ -z "$BASE_COMMIT" ]; then
-        BASE_COMMIT="HEAD~1"
-    fi
-    echo "Working directory is clean, checking commit changes since $BASE_COMMIT"
-    git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep --color=never '^.*\.[ch]' > $DIFF_LIST
-fi
-
-for f in $(cat $DIFF_LIST); do
-    r=0
-    if [ ${f##*.} = "json" ]; then
-        r=$(grep -c -m 1 "\"license\": \"BSD 3\-Clause\"" $f)
-    else
-        r=$(grep -c -m 1 "This file is part of the Soletta Project" $f)
-    fi
-    if [ $r = 0 ]; then
-        echo "$f has license issues"
-        exit 1
-    fi
-    exit 0
-done
+vector_3f_to_rgb OUT -> IN _(converter/rgb-to-int) BLUE -> IN0 eq_blue(int/equal)
+int_255 OUT -> IN1 eq_blue OUT -> RESULT z(test/result)

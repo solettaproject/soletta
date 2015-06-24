@@ -1,0 +1,48 @@
+{
+  "name": "accelerometer",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "ADXL345 accelerometer input node, meant for i2c reading primitives testing. After each tick in its TICK port, a new reading is output on each of its output ports.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a accelerometer reading and produce packets on each of the the output ports.",
+          "name": "TICK",
+          "methods": {
+            "process": "accelerometer_adxl345_tick"
+          }
+        }
+      ],
+      "methods": {
+        "close": "accelerometer_adxl345_close",
+        "open": "accelerometer_adxl345_open"
+      },
+      "name": "accelerometer/adxl345",
+      "options": {
+       "members": [
+         {
+           "data_type": "int",
+           "description": "I2C bus number",
+           "name": "i2c_bus"
+         }
+       ],
+       "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "vector-3f",
+          "description": "Acceleration in all X/Y/Z axes, in multiples of g",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "accelerometer_adxl345_data",
+      "url": "http://devapp.org/doc/latest/components/accelerometer/adxl345.html"
+    }
+ ]
+}
