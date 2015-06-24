@@ -83,8 +83,8 @@ if [ -z "$DIFF_LIST" ]; then
     die "Failed to create temporary file to store code diffs."
 fi
 
-git diff --diff-filter=ACMR --oneline --name-only | grep --color=never '^.*\.[ch]' > $DIFF_LIST
-git diff --cached --diff-filter=ACMR --oneline --name-only | grep --color=never '^.*\.[ch]' >> $DIFF_LIST
+git diff --diff-filter=ACMR --oneline --name-only | grep --color=never '^.*\.[ch]$' > $DIFF_LIST
+git diff --cached --diff-filter=ACMR --oneline --name-only | grep --color=never '^.*\.[ch]$' >> $DIFF_LIST
 
 if [ -n "$BASE_COMMIT" -a -s "$DIFF_LIST" ]; then
     echo "Commits since $BASE_COMMIT marked to be checked, but the git tree is dirty -- checking these files instead"
@@ -96,7 +96,7 @@ if [ ! -s "$DIFF_LIST" ]; then
         BASE_COMMIT="HEAD~1"
     fi
     echo "Working directory is clean, checking commit changes since $BASE_COMMIT"
-    git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep --color=never '^.*\.[ch]' > $DIFF_LIST
+    git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep --color=never '^.*\.[ch]$' > $DIFF_LIST
 fi
 
 cleanup
