@@ -313,3 +313,4 @@ menuconfig HAVE_PIN_MUX
 
 source "src/modules/pin-mux/intel-galileo-rev-d/Kconfig"
 source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
+source "src/modules/pin-mux/intel-edison-rev-c/Kconfig"
