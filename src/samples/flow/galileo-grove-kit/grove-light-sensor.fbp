@@ -34,7 +34,6 @@
 # This is a translation of Grove_Light_Sensor/Grove_Light_Sensor.ino, from
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
 
-# Our range is 0-4096 for light sensor's analog reading, so the
-# original 400 value maps to ~1600
+# The original 400 value maps to LUX ~6
 
-lightSensor(LightSensor) OUT -> IN analogToBool(converter/int-to-boolean:true_range=min:1600) OUT -> IN led(LED)
+lightSensor(LightSensor) LUX -> IN analogToBool(converter/float-to-boolean:true_range=min:6) OUT -> IN led(LED)

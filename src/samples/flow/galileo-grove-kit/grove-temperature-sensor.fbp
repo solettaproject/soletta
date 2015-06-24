@@ -35,28 +35,8 @@
 # Grove_Temperature_Sensor/Grove_Temperature_Sensor.ino, from
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
 
-const_one(constant/float:value=1)
-const_max_analog(constant/int:value=4096)
-const_resistance(constant/float:value=10000)
-const_thermistor(constant/float:value=3975)
-const_room_temp_inverse(constant/float:value=3.35401643468e-3)
-const_zero_temp(constant/float:value=273.15)
 const_celsius_symbol(constant/string:value= C)
 
-temperatureSensor(TemperatureSensor) OUT -> IN1 minus1(int/subtraction)
-const_max_analog OUT -> IN0 minus1
-minus1 OUT -> IN int_to_float1(converter/int-to-float)
-int_to_float1 OUT -> IN0 times(float/multiplication)
-temperatureSensor OUT -> IN int_to_float2(converter/int-to-float)
-int_to_float2 OUT -> IN1 div1(float/division)
-const_resistance OUT -> IN0 div1 OUT -> IN1 times
-times OUT -> IN0 div2(float/division)
-const_resistance OUT -> IN1 div2 OUT -> IN ln(float/ln)
-ln OUT -> IN0 div3(float/division)
-const_thermistor OUT -> IN1 div3 OUT -> IN0 plus(float/addition)
-const_room_temp_inverse OUT -> IN1 plus OUT -> IN1 div4
-const_one OUT -> IN0 div4(float/division) OUT -> IN0 minus2(float/subtraction)
-const_zero_temp OUT -> IN1 minus2
-minus2 OUT -> IN converter(converter/float-to-string)
+temperatureSensor(TemperatureSensor) CELSIUS -> IN converter(converter/float-to-string)
 converter OUT -> IN0 concat(string/concatenate)
 const_celsius_symbol OUT -> IN1 concat OUT -> IN screen(LCDString)
