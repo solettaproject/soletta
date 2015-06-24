@@ -1,0 +1,4 @@
+config PIN_MUX_INTEL_EDISON_REV_C
+        tristate "Intel Edison (Rev C)"
+        depends on HAVE_PIN_MUX
+        default m
