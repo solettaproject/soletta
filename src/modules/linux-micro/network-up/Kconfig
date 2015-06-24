@@ -1,0 +1,4 @@
+config LINUX_MICRO_NETWORK_UP
+	tristate "network-up"
+	depends on LINUX_MICRO
+	default n

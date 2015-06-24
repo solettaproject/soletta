@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPES
+	bool "flow node types"
+	depends on SOCKET_LINUX && RESOLVER_CONFFILE && INSPECTOR
+	default y

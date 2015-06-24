@@ -1,0 +1,2 @@
+obj-$(CONFIG_LINUX_MICRO_RC_D) += linux-micro-rc-d.mod
+obj-linux-micro-rc-d-$(CONFIG_LINUX_MICRO_RC_D) += rc-d.o

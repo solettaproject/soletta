@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_HUB
+	tristate "Node type: hub"
+	depends on FLOW
+	default y

@@ -1,0 +1,4 @@
+config FBP_RUNNER
+	bool "fbp runner"
+	depends on SOCKET_LINUX && FLOW && RESOLVER_CONFFILE && INSPECTOR
+	default y
