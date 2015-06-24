@@ -808,7 +808,7 @@ export_port(struct sol_flow_builder *builder, uint16_t node, uint16_t port,
     desc_len = sol_ptr_vector_get_len(desc_vector);
     if (desc_len) {
         port_desc = sol_ptr_vector_get(desc_vector, desc_len - 1);
-        base_port_idx = port_desc->base_port_idx + ((port_desc->array_size) ?: 1);
+        base_port_idx = port_desc->base_port_idx + ((port_desc->array_size) ? : 1);
     }
 
     port_desc = calloc(1, sizeof(struct sol_flow_port_description));
