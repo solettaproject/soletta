@@ -41,16 +41,12 @@
 #include <inttypes.h>
 #include <fcntl.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-keyboard");
+#include "keyboard-gen.h"
 
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-vector.h"
 #include "sol-util.h"
-
-#include "keyboard-gen.h"
 
 struct keyboard_common_data {
     struct sol_flow_node *node;

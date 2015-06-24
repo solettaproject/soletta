@@ -36,10 +36,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-unix-socket");
-
 #include "unix-socket.h"
 #include "unix-socket-gen.h"
 #include "sol-flow.h"

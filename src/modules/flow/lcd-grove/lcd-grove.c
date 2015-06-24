@@ -32,17 +32,13 @@
 
 #include <errno.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "grove-lcd");
+#include "lcd-grove-gen.h"
 
 #include "sol-flow-internal.h"
+#include "sol-util.h"
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
 #include "sol-vector.h"
-
-#include "lcd-grove-gen.h"
 
 /* TODO move me to options - speed only works for riot */
 #define I2C_BUS 0

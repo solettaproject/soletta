@@ -30,12 +30,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-flow-internal.h"
-
-#include <sol-util.h>
 #include <errno.h>
 
 #include "filter-repeated-gen.h"
+#include "sol-flow-internal.h"
+#include "sol-util.h"
+
 
 struct filter_boolean_data {
     bool value;

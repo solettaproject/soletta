@@ -60,5 +60,5 @@
 #ifdef SOL_LOG_DOMAIN
 #undef SOL_LOG_DOMAIN
 #define SOL_LOG_DOMAIN NULL
-#endif
-#endif
+#endif // #ifdef SOL_LOG_DOMAIN
+#endif // #ifdef SOL_LOG_ENABLED

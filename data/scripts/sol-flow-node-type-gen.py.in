@@ -409,12 +409,32 @@ extern "C" {
     "float_h": uses_float(data),
 })
 
+# "ifndef SOL_LOG_DOMAIN" is there to aid on cases where a node
+# aggregates sub-node types, thus including their log domains. In that
+# case, the first generated header to be included must be the one with
+# the actual log domain to apply
 def generate_header_tail(outfile, data):
     outfile.write("""
+#ifdef SOL_FLOW_NODE_TYPE_MODULE_EXTERNAL
+#ifndef SOL_LOG_DOMAIN
+#define SOL_LOG_DOMAIN &_log_domain
+#include "sol-log-internal.h"
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, \"%(domain)s\");
+
+static void
+log_init(void)
+{
+    SOL_LOG_INTERNAL_INIT_ONCE;
+}
+#endif // ifdef SOL_FLOW_NODE_TYPE_MODULE_EXTERNAL
+#endif // ifndef SOL_LOG_DOMAIN
+
 #ifdef __cplusplus
 }
 #endif
-""")
+"""  % {
+    "domain": "flow-" + c_clean(data["name"].lower())
+})
 
 
 def generate_header_entry(outfile, data):
@@ -741,6 +761,13 @@ static void
 
     if "init_type" in methods:
         outfile.write("    %s();\n" % methods.get("init_type"))
+
+    outfile.write(
+"""
+#ifdef SOL_FLOW_NODE_TYPE_MODULE_EXTERNAL
+    log_init();
+#endif
+""")
 
     outfile.write("""\
 }
