@@ -847,7 +847,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
 
     if "in_ports" in data:
         outfile.write("""\
-    .ports_in = (const struct sol_flow_port_description * const []){
+    .ports_in = (const struct sol_flow_port_description *const []){
 """)
         port_base = 0
         for o in data["in_ports"]:
@@ -877,7 +877,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
 
     if "out_ports" in data:
         outfile.write("""\
-    .ports_out = (const struct sol_flow_port_description * const []){
+    .ports_out = (const struct sol_flow_port_description *const []){
 """)
         port_base = 0
         for o in data["out_ports"]:
