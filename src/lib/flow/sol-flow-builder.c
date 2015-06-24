@@ -32,6 +32,7 @@
 
 #include <stdlib.h>
 
+#include "sol-arena.h"
 #include "sol-flow-builder.h"
 #include "sol-flow-internal.h"
 #include "sol-flow-resolver.h"
@@ -52,6 +53,8 @@ struct sol_flow_builder {
     struct sol_ptr_vector ports_out_desc;
 
     struct sol_flow_node_type_description type_desc;
+
+    struct sol_arena *str_arena;
 };
 
 struct sol_flow_builder_node_spec {
@@ -72,9 +75,14 @@ sol_flow_builder_init(struct sol_flow_builder *builder)
     sol_ptr_vector_init(&builder->ports_in_desc);
     sol_ptr_vector_init(&builder->ports_out_desc);
 
+    builder->str_arena = sol_arena_new();
+    SOL_NULL_CHECK(builder->str_arena);
+
     sol_flow_builder_set_resolver(builder, NULL);
 
     builder->type_desc.api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION;
+    builder->type_desc.symbol = "SOL_FLOW_NODE_TYPE_BUILDER";
+    builder->type_desc.options_symbol = "sol_flow_node_type_builder_options";
 }
 
 SOL_API struct sol_flow_builder *
@@ -100,20 +108,12 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
 
     SOL_NULL_CHECK(builder, -EBADR);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&builder->ports_in_desc, port_desc, i) {
-        if (port_desc) {
-            free((char *)port_desc->name);
-            free(port_desc);
-        }
-    }
+    SOL_PTR_VECTOR_FOREACH_IDX (&builder->ports_in_desc, port_desc, i)
+        free(port_desc);
     sol_ptr_vector_clear(&builder->ports_in_desc);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&builder->ports_out_desc, port_desc, i) {
-        if (port_desc) {
-            free((char *)port_desc->name);
-            free(port_desc);
-        }
-    }
+    SOL_PTR_VECTOR_FOREACH_IDX (&builder->ports_out_desc, port_desc, i)
+        free(port_desc);
     sol_ptr_vector_clear(&builder->ports_out_desc);
 
     sol_vector_clear(&builder->exported_in);
@@ -127,7 +127,6 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
         if (builder_node_spec->owns_opts && builder_node_spec->spec.opts)
             sol_flow_node_options_del(builder_node_spec->spec.type,
                 (struct sol_flow_node_options *)builder_node_spec->spec.opts);
-        free(builder_node_spec->name);
     }
     sol_vector_clear(&builder->nodes);
 
@@ -136,6 +135,8 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
 
     if (builder->node_type)
         sol_flow_static_del_type(builder->node_type);
+
+    sol_arena_del(builder->str_arena);
 
     free(builder);
     return 0;
@@ -149,6 +150,26 @@ sol_flow_builder_set_resolver(struct sol_flow_builder *builder,
     if (!resolver)
         resolver = sol_flow_get_default_resolver();
     builder->resolver = resolver;
+}
+
+SOL_API void
+sol_flow_builder_set_type_description(struct sol_flow_builder *builder, const char *name, const char *category,
+    const char *description, const char *author, const char *url, const char *license, const char *version)
+{
+    SOL_NULL_CHECK(builder);
+
+    if (builder->node_type) {
+        SOL_WRN("Couldn't set builder node type description, node type created already");
+        return;
+    }
+
+    builder->type_desc.name = name;
+    builder->type_desc.category = category;
+    builder->type_desc.description = description;
+    builder->type_desc.author = author;
+    builder->type_desc.url = url;
+    builder->type_desc.license = license;
+    builder->type_desc.version = version;
 }
 
 static uint16_t
@@ -258,7 +279,7 @@ sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, co
           find_duplicated_port_names(type->description->ports_out, true))))
         return -EEXIST;
 
-    node_name = strdup(name);
+    node_name = sol_arena_strdup(builder->str_arena, name);
     if (!node_name)
         return -errno;
 
@@ -802,7 +823,7 @@ export_port(struct sol_flow_builder *builder, uint16_t node, uint16_t port,
     int i = 0, r;
     uint16_t desc_len, base_port_idx = 0;
 
-    name = strdup(exported_name);
+    name = sol_arena_strdup(builder->str_arena, exported_name);
     SOL_NULL_CHECK_GOTO(name, error_name);
 
     desc_len = sol_ptr_vector_get_len(desc_vector);

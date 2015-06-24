@@ -527,4 +527,35 @@ add_node_by_type(void)
     sol_flow_builder_del(builder);
 }
 
+DEFINE_TEST(add_type_descriptions);
+
+static void
+add_type_descriptions(void)
+{
+    struct sol_flow_builder *builder;
+    struct sol_flow_node_type *type;
+
+    builder = sol_flow_builder_new();
+    ASSERT(builder);
+
+    sol_flow_builder_add_node_by_type(builder, "node", "boolean/and", NULL);
+
+    sol_flow_builder_set_type_description(builder, "MyName", "MyCategory", "MyDescription", "MyAuthor", "MyUrl", "MyLicense", "MyVersion");
+
+    type = sol_flow_builder_get_node_type(builder);
+    ASSERT(type);
+
+    ASSERT(streq(type->description->name, "MyName"));
+    ASSERT(streq(type->description->category, "MyCategory"));
+    ASSERT(streq(type->description->description, "MyDescription"));
+    ASSERT(streq(type->description->author, "MyAuthor"));
+    ASSERT(streq(type->description->url, "MyUrl"));
+    ASSERT(streq(type->description->license, "MyLicense"));
+    ASSERT(streq(type->description->version, "MyVersion"));
+    ASSERT(streq(type->description->symbol, "SOL_FLOW_NODE_TYPE_BUILDER"));
+    ASSERT(streq(type->description->options_symbol, "sol_flow_node_type_builder_options"));
+
+    sol_flow_builder_del(builder);
+}
+
 TEST_MAIN_WITH_RESET_FUNC(clear_events);
