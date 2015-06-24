@@ -620,7 +620,7 @@ verify_graph(struct sol_fbp_parser *p)
     SOL_VECTOR_FOREACH_IDX (&p->graph->nodes, n, i) {
         if (n->component.len == 0) {
             p->error_pos = n->position;
-            return set_parse_error(p, "Node '%.*s' doesn't have a type, Node type must be defined. e.g. 'node(nodetype'",
+            return set_parse_error(p, "Node '%.*s' doesn't have a type, Node type must be defined. e.g. 'node(nodetype)'",
                 (int)n->name.len, n->name.data);
         }
     }
