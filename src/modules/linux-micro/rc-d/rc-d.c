@@ -53,7 +53,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-rc-d");
 struct pending {
     const char *service; /* will be alive during whole execution */
     const char *arg; /* will be alive during whole execution */
-    struct sol_platform_linux_micro_fork_run *fork_run;
+    struct sol_platform_linux_fork_run *fork_run;
     void (*cb)(void *data, const char *service, const char *arg, int status);
     const void *data;
 };
@@ -125,11 +125,11 @@ rc_d_run(const char *service, const char *arg, void (*cb)(void *data, const char
     p->arg = arg;
     p->cb = cb;
     p->data = data;
-    p->fork_run = sol_platform_linux_micro_fork_run(on_fork_run, on_fork_run_exit, p);
+    p->fork_run = sol_platform_linux_fork_run(on_fork_run, on_fork_run_exit, p);
     SOL_NULL_CHECK_GOTO(p->fork_run, error_fork_run);
     SOL_DBG("run '%s %s' as pid=%" PRIu64,
         service, arg,
-        (uint64_t)sol_platform_linux_micro_fork_run_get_pid(p->fork_run));
+        (uint64_t)sol_platform_linux_fork_run_get_pid(p->fork_run));
 
     return 0;
 
@@ -294,7 +294,7 @@ rc_d_shutdown(const struct sol_platform_linux_micro_module *module, const char *
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (&pendings, itr, i) {
         if (itr->service == service)
-            sol_platform_linux_micro_fork_run_stop(itr->fork_run);
+            sol_platform_linux_fork_run_stop(itr->fork_run);
     }
 
     rc_d_stop_monitor(module, service);

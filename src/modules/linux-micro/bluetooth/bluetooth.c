@@ -47,7 +47,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-bluetooth");
 #include "sol-platform-linux-micro.h"
 #include "sol-util.h"
 
-static struct sol_platform_linux_micro_fork_run *fork_run;
+static struct sol_platform_linux_fork_run *fork_run;
 static const char *name;
 
 static void on_dbus_service_state_changed(void *data,
@@ -106,7 +106,7 @@ fork_run_do(void)
     if (fork_run)
         return 0;
 
-    fork_run = sol_platform_linux_micro_fork_run(on_fork, on_fork_exit, NULL);
+    fork_run = sol_platform_linux_fork_run(on_fork, on_fork_exit, NULL);
     if (!fork_run) {
         sol_platform_linux_micro_inform_service_state
             (name, SOL_PLATFORM_SERVICE_STATE_FAILED);
@@ -114,7 +114,7 @@ fork_run_do(void)
     }
 
     SOL_DBG("bluetooth-daemon started as pid=%" PRIu64,
-        (uint64_t)sol_platform_linux_micro_fork_run_get_pid(fork_run));
+        (uint64_t)sol_platform_linux_fork_run_get_pid(fork_run));
 
     sol_platform_linux_micro_inform_service_state
         (name, SOL_PLATFORM_SERVICE_STATE_ACTIVE);
@@ -125,7 +125,7 @@ fork_run_do(void)
 static int
 send_sig(int sig)
 {
-    pid_t pid = sol_platform_linux_micro_fork_run_get_pid(fork_run);
+    pid_t pid = sol_platform_linux_fork_run_get_pid(fork_run);
 
     if (pid > 0) {
         if (kill(pid, sig) == 0)
@@ -148,7 +148,7 @@ bluetooth_stop(const struct sol_platform_linux_micro_module *mod,
     if (!force_immediate)
         err = send_sig(SIGTERM);
     else {
-        sol_platform_linux_micro_fork_run_stop(fork_run);
+        sol_platform_linux_fork_run_stop(fork_run);
         fork_run = NULL;
     }
 
