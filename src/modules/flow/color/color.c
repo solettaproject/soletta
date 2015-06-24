@@ -36,6 +36,7 @@
 
 #include <sol-util.h>
 #include <errno.h>
+#include <stdio.h>
 
 static int
 color_luminance_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
@@ -65,22 +66,24 @@ color_luminance_process(struct sol_flow_node *node, void *data, uint16_t port, u
     struct sol_rgb out;
     struct sol_irange in_value;
     int r;
+    char *errmsg;
     int64_t val, diff;
 
     r = sol_flow_packet_get_irange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (in_value.max <= in_value.min) {
-        SOL_WRN("Max luminance %" PRId32 " must be greater than "
-            "min %" PRId32 " luminance", in_value.max, in_value.min);
-        return -EINVAL;
+        asprintf(&errmsg, "Max luminance %" PRId32 "must be greater than min %" PRId32 "luminance. %s",
+            in_value.max, in_value.min, sol_util_strerrora(-EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
     if (in_value.val > in_value.max || in_value.val < in_value.min) {
-        SOL_WRN("Luminance value %" PRId32 " can't be out of luminance range: "
-            "%" PRId32 " - %" PRId32 "",
-            in_value.val, in_value.min, in_value.max);
-        return -EINVAL;
+        asprintf(&errmsg, "Luminance value %" PRId32 " can't be out of luminance range: " "%" PRId32 " - %" PRId32 "" ". %s",
+            in_value.val, in_value.min, in_value.max, sol_util_strerrora(-EINVAL));
+        r = -EINVAL;
+        goto error;
     }
 
     out.red_max = mdata->red_max;
@@ -96,9 +99,18 @@ color_luminance_process(struct sol_flow_node *node, void *data, uint16_t port, u
     val = mdata->blue * in_value.val / diff;
     out.blue = abs(val);
 
-    return sol_flow_send_rgb_packet(node,
-        SOL_FLOW_NODE_TYPE_COLOR_LUMINANCE_RGB__OUT__OUT,
-        &out);
+    sol_flow_send_rgb_packet(node, SOL_FLOW_NODE_TYPE_COLOR_LUMINANCE_RGB__OUT__OUT, &out);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 #include "color-gen.c"
