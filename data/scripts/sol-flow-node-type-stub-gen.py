@@ -458,15 +458,6 @@ static int
 """)
 
 
-def set_log_domain(outfile, name):
-    outfile.write("""\
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-static SOL_LOG_INTERNAL_DECLARE(_log_domain, "%s");
-
-""" % name)
-
-
 def generate_stub(stub_file, inputs_list, prefix, is_module):
     data = []
     base_names = []
@@ -482,14 +473,12 @@ def generate_stub(stub_file, inputs_list, prefix, is_module):
     except:
         raise
 
-    if is_module:
-        set_log_domain(stub_file, data[0]["name"])
-
     license_header(stub_file)
-    include_common_headers(stub_file)
 
     for base_name in base_names:
         include_header(stub_file, base_name)
+
+    include_common_headers(stub_file)
 
     add_empty_line(stub_file)
 

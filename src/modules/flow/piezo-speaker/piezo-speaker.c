@@ -37,9 +37,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-piezo-speaker");
+#include "piezo-speaker-gen.h"
 
 #include "sol-flow.h"
 #include "sol-mainloop.h"
@@ -47,8 +45,6 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-piezo-speaker");
 #include "sol-str-table.h"
 #include "sol-util.h"
 #include "sol-worker-thread.h"
-
-#include "piezo-speaker-gen.h"
 
 static bool be_quiet(void *data);
 

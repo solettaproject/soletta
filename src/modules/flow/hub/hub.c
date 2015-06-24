@@ -30,12 +30,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-flow-internal.h"
-
-#include <sol-util.h>
 #include <errno.h>
 
 #include "hub-gen.h"
+#include "sol-flow-internal.h"
+#include "sol-util.h"
+
 
 static int
 boolean_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)

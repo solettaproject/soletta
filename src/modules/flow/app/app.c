@@ -30,13 +30,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-flow-internal.h"
-
-#include <sol-util.h>
-#include <sol-mainloop.h>
 #include <errno.h>
 
 #include "app-gen.h"
+#include "sol-flow-internal.h"
+#include "sol-mainloop.h"
+#include "sol-util.h"
 
 static int
 check_index(struct sol_flow_node *node, int index)

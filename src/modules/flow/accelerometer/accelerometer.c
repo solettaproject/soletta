@@ -30,18 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sol-util.h>
 #include <errno.h>
 #include <math.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-accelerometer");
+#include "accelerometer-gen.h"
 
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
-
-#include "accelerometer-gen.h"
+#include "sol-util.h"
 
 /* speed only works for riot */
 #define I2C_SPEED SOL_I2C_SPEED_10KBIT
@@ -348,12 +344,6 @@ accel_init(struct accelerometer_adxl345_data *mdata)
     return accel_init_power(mdata) ? 0 : -EIO;
 }
 
-static void
-log_init(void)
-{
-    SOL_LOG_INTERNAL_INIT_ONCE;
-}
-
 static int
 accelerometer_adxl345_open(struct sol_flow_node *node,
     void *data,
@@ -365,7 +355,6 @@ accelerometer_adxl345_open(struct sol_flow_node *node,
 
     SOL_NULL_CHECK(options, -EINVAL);
 
-    log_init();
     mdata->i2c = sol_i2c_open(opts->i2c_bus.val, I2C_SPEED);
     if (!mdata->i2c) {
         SOL_WRN("Failed to open i2c bus");

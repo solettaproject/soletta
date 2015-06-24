@@ -37,17 +37,13 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-file");
+#include "file-gen.h"
 
 #include "sol-file-reader.h"
 #include "sol-flow-internal.h"
 #include "sol-worker-thread.h"
 #include "sol-util.h"
 #include "sol-mainloop.h"
-
-#include "file-gen.h"
 
 /*
  * TODO:
@@ -57,12 +53,6 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-file");
  * writing to disk as they arrive at input. In such cases there must
  * be a "reset" port so readers fseek() to start and writers truncate.
  */
-
-static void
-log_init(void)
-{
-    SOL_LOG_INTERNAL_INIT_ONCE;
-}
 
 static void
 file_reader_blob_free(struct sol_blob *blob)
@@ -183,8 +173,6 @@ file_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 {
     const struct sol_flow_node_type_file_reader_options *opts = (const struct sol_flow_node_type_file_reader_options *)options;
     struct file_reader_data *mdata = data;
-
-    log_init();
 
     mdata->node = node;
 
@@ -450,8 +438,6 @@ file_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 {
     const struct sol_flow_node_type_file_writer_options *opts = (const struct sol_flow_node_type_file_writer_options *)options;
     struct file_writer_data *mdata = data;
-
-    log_init();
 
     mdata->node = node;
 

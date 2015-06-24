@@ -42,6 +42,7 @@
 #define SOL_ATTR_NONNULL(...) __attribute__((nonnull(__VA_ARGS__)))
 #define SOL_ATTR_SECTION(secname) __attribute__((section(secname)))
 #define SOL_ATTR_USED __attribute__((__used__))
+#define SOL_ATTR_UNUSED __attribute__((__unused__))
 #else
 #define SOL_API
 #define SOL_ATTR_WARN_UNUSED_RESULT

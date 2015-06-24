@@ -167,8 +167,6 @@ common_process(struct output_data *output, const struct sol_flow_packet *packet)
     struct write_data *d;
     int ret;
 
-    process_log_init();
-
     ret = sol_flow_packet_get_blob(packet, &blob);
     SOL_INT_CHECK(ret, < 0, ret);
 
@@ -195,8 +193,6 @@ err:
 static int
 common_open(struct output_data *output, struct sol_flow_node *node)
 {
-    process_log_init();
-
     if (sol_ptr_vector_append(&output->monitors, node) < 0)
         return -ENOMEM;
 

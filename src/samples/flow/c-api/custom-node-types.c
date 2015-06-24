@@ -61,12 +61,12 @@
 #include <errno.h>
 #include <stdio.h>
 
+/* This file is generated using sol-flow-node-type-gen.py, see above */
+#include "custom-node-types-gen.h"
+
 #include <sol-log.h>
 #include <sol-mainloop.h>
 #include <sol-util.h>
-
-/* This file is generated using sol-flow-node-type-gen.py, see above */
-#include "custom-node-types-gen.h"
 
 /* macro to check if option's sub_api is the one we expect */
 #define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...)      \
