@@ -206,3 +206,22 @@ err:
     return -1;
 }
 
+static inline int sol_create_pipe(int pipedes[static 2], int flags)
+{
+    int ret;
+
+#if defined(HAVE_PIPE2) && HAVE_PIPE2 && defined(O_CLOEXEC)
+    ret = pipe2(pipedes, flags | O_CLOEXEC);
+    if (ret != -1 || errno != ENOSYS)
+        return ret;
+#endif
+    ret = pipe(pipedes);
+    if (ret == -1)
+        return -1;
+
+    if (fd_set_flags_cloexec(pipedes[0], flags) == -1) {
+        close(pipedes[1]);
+        return -1;
+    }
+    return fd_set_flags_cloexec(pipedes[1], flags) == -1 ? -1 : 0;
+}
