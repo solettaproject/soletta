@@ -51,11 +51,11 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src/modules/flow/float \
 	-I$(top_builddir)/src/modules/flow/fs \
 	-I$(top_builddir)/src/modules/flow/gpio \
+	-I$(top_builddir)/src/modules/flow/grove \
 	-I$(top_builddir)/src/modules/flow/gtk \
 	-I$(top_builddir)/src/modules/flow/hub \
 	-I$(top_builddir)/src/modules/flow/int \
 	-I$(top_builddir)/src/modules/flow/keyboard \
-	-I$(top_builddir)/src/modules/flow/lcd-grove \
 	-I$(top_builddir)/src/modules/flow/network \
 	-I$(top_builddir)/src/modules/flow/oic \
 	-I$(top_builddir)/src/modules/flow/piezo-speaker \

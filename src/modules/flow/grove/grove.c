@@ -30,19 +30,369 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sol-util.h>
 #include <errno.h>
+#include <math.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "grove-lcd");
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-grove");
 
 #include "sol-flow-internal.h"
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-vector.h"
+#include "aio-gen.h"
 
-#include "lcd-grove-gen.h"
+#include "grove-gen.h"
+
+// ################################ Rotary sensor nodes
+
+#define ROTARY_CONVERTER_NODE_IDX 0
+#define ROTARY_AIO_READER_NODE_IDX 1
+
+struct rotary_converter_data {
+    int angular_range;
+    int input_range;
+};
+
+static void
+rotary_child_opts_set(uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
+{
+    struct sol_flow_node_type_grove_rotary_sensor_options *container_opts = (struct sol_flow_node_type_grove_rotary_sensor_options *)opts;
+
+    if (child_index == ROTARY_CONVERTER_NODE_IDX) {
+        struct sol_flow_node_type_grove_rotary_converter_options *converter_opts =
+            (struct sol_flow_node_type_grove_rotary_converter_options *)child_opts;
+        converter_opts->angular_range = container_opts->angular_range;
+        converter_opts->input_range_mask = container_opts->mask;
+    } else if (child_index == ROTARY_AIO_READER_NODE_IDX) {
+        struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        reader_opts->pin = container_opts->pin;
+        reader_opts->mask = container_opts->mask;
+        reader_opts->poll_timeout = container_opts->poll_timeout;
+    }
+}
+
+static void
+grove_rotary_sensor_new_type(const struct sol_flow_node_type **current)
+{
+    struct sol_flow_node_type *type;
+
+    static struct sol_flow_static_node_spec nodes[] = {
+        { NULL, "rotary-converter", NULL },
+        { NULL, "aio-reader", NULL },
+        SOL_FLOW_STATIC_NODE_SPEC_GUARD
+    };
+
+    static const struct sol_flow_static_conn_spec conns[] = {
+        { 1, SOL_FLOW_NODE_TYPE_AIO_READER__OUT__OUT, 0, SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__IN__IN },
+        SOL_FLOW_STATIC_CONN_SPEC_GUARD
+    };
+
+    static const struct sol_flow_static_port_spec exported_out[] = {
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__DEG },
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAD },
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAW },
+        SOL_FLOW_STATIC_PORT_SPEC_GUARD
+    };
+
+    nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER;
+    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+
+    type = sol_flow_static_new_type(nodes, conns, NULL, exported_out, &rotary_child_opts_set);
+    SOL_NULL_CHECK(type);
+#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
+    type->description = (*current)->description;
+#endif
+    type->new_options = (*current)->new_options;
+    *current = type;
+}
+
+static void
+rotary_sensor_init_type(void)
+{
+    grove_rotary_sensor_new_type(&SOL_FLOW_NODE_TYPE_GROVE_ROTARY_SENSOR);
+}
+
+static int
+rotary_converter_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct rotary_converter_data *mdata = data;
+    const struct sol_flow_node_type_grove_rotary_converter_options *opts =
+        (const struct sol_flow_node_type_grove_rotary_converter_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER_OPTIONS_API_VERSION, -EINVAL);
+
+    mdata->angular_range = opts->angular_range.val;
+    mdata->input_range = 1 << opts->input_range_mask.val;
+
+    return 0;
+}
+
+static int
+rotary_converter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_irange in_value;
+    float degrees;
+    struct rotary_converter_data *mdata = data;
+
+    r = sol_flow_packet_get_irange(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    degrees = (float)in_value.val * (float)mdata->angular_range / mdata->input_range;
+
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__DEG,
+        degrees);
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAD,
+        degrees * M_PI / 180.0);
+    sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAW,
+        in_value.val);
+
+    return 0;
+}
+
+// ################################ Light sensor nodes
+
+#define LIGHT_CONVERTER_NODE_IDX 0
+#define LIGHT_AIO_READER_NODE_IDX 1
+
+struct light_converter_data {
+    int input_range;
+};
+
+static void
+light_child_opts_set(uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
+{
+    struct sol_flow_node_type_grove_light_sensor_options *container_opts = (struct sol_flow_node_type_grove_light_sensor_options *)opts;
+
+    if (child_index == LIGHT_CONVERTER_NODE_IDX) {
+        struct sol_flow_node_type_grove_light_converter_options *converter_opts = (struct sol_flow_node_type_grove_light_converter_options *)child_opts;
+        converter_opts->input_range_mask = container_opts->mask;
+    } else if (child_index == LIGHT_AIO_READER_NODE_IDX) {
+        struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        reader_opts->pin = container_opts->pin;
+        reader_opts->mask = container_opts->mask;
+        reader_opts->poll_timeout = container_opts->poll_timeout;
+    }
+}
+
+static void
+grove_light_sensor_new_type(const struct sol_flow_node_type **current)
+{
+    struct sol_flow_node_type *type;
+
+    static struct sol_flow_static_node_spec nodes[] = {
+        { NULL, "light-converter", NULL },
+        { NULL, "aio-reader", NULL },
+        SOL_FLOW_STATIC_NODE_SPEC_GUARD
+    };
+
+    static const struct sol_flow_static_conn_spec conns[] = {
+        { 1, SOL_FLOW_NODE_TYPE_AIO_READER__OUT__OUT, 0, SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER__IN__IN },
+        SOL_FLOW_STATIC_CONN_SPEC_GUARD
+    };
+
+    static const struct sol_flow_static_port_spec exported_out[] = {
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER__OUT__LUX },
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER__OUT__RAW },
+        SOL_FLOW_STATIC_PORT_SPEC_GUARD
+    };
+
+    nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER;
+    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+
+    type = sol_flow_static_new_type(nodes, conns, NULL, exported_out, &light_child_opts_set);
+    SOL_NULL_CHECK(type);
+#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
+    type->description = (*current)->description;
+#endif
+    type->new_options = (*current)->new_options;
+    *current = type;
+}
+
+static void
+light_sensor_init_type(void)
+{
+    grove_light_sensor_new_type(&SOL_FLOW_NODE_TYPE_GROVE_LIGHT_SENSOR);
+}
+
+static int
+light_converter_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct light_converter_data *mdata = data;
+    const struct sol_flow_node_type_grove_light_converter_options *opts =
+        (const struct sol_flow_node_type_grove_light_converter_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER_OPTIONS_API_VERSION, -EINVAL);
+
+    mdata->input_range = 1 << opts->input_range_mask.val;
+
+    return 0;
+}
+
+static int
+light_converter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_irange in_value;
+    float a;
+    struct light_converter_data *mdata = data;
+
+    r = sol_flow_packet_get_irange(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    // The following calculations follow the exponential best fit
+    // (found using least squares) for the values suggested for LUX
+    // on the table found on Grove Starter Kit for Arduino booklet
+    // Least squares best fit: 0.152262 e^(0.00782118 x)
+    // First row below maps input_range to 0-1023 range, used on booklet table.
+    a = (float)in_value.val * 1023 / mdata->input_range;
+    a = 0.152262 * exp(0.00782118 * (a));
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER__OUT__LUX,
+        a);
+    sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER__OUT__RAW,
+        in_value.val);
+
+    return 0;
+}
+
+// ################################ Temperature sensor nodes
+
+#define TEMPERATURE_CONVERTER_NODE_IDX 0
+#define TEMPERATURE_AIO_READER_NODE_IDX 1
+
+struct temperature_converter_data {
+    int thermistor_constant;
+    int input_range;
+    int resistance;
+    int thermistor_resistance;
+    float reference_temperature;
+};
+
+static int
+temperature_converter_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct temperature_converter_data *mdata = data;
+    const struct sol_flow_node_type_grove_temperature_converter_options *opts =
+        (const struct sol_flow_node_type_grove_temperature_converter_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER_OPTIONS_API_VERSION, -EINVAL);
+
+    mdata->thermistor_constant = opts->thermistor_constant.val;
+    mdata->input_range = 1 << opts->input_range_mask.val;
+    mdata->resistance = opts->resistance.val;
+    mdata->reference_temperature = opts->reference_temperature.val;
+    mdata->thermistor_resistance = opts->thermistor_resistance.val;
+
+    return 0;
+}
+
+static int
+temperature_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_irange in_value;
+    float resistance, temperature_kelvin;
+    struct temperature_converter_data *mdata = data;
+
+    r = sol_flow_packet_get_irange(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    resistance = (float)(mdata->input_range - in_value.val) * mdata->resistance / in_value.val;
+    temperature_kelvin = 1 / (log(resistance / mdata->thermistor_resistance) / mdata->thermistor_constant + 1 / mdata->reference_temperature);
+
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__CELSIUS,
+        temperature_kelvin - 273.15);
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__FAHRENHEIT,
+        temperature_kelvin * 9 / 5 - 459.67);
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__KELVIN,
+        temperature_kelvin);
+
+    sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__RAW,
+        in_value.val);
+
+    return 0;
+}
+
+static void
+temperature_child_opts_set(uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)
+{
+    struct sol_flow_node_type_grove_temperature_sensor_options *container_opts = (struct sol_flow_node_type_grove_temperature_sensor_options *)opts;
+
+    if (child_index == TEMPERATURE_CONVERTER_NODE_IDX) {
+        struct sol_flow_node_type_grove_temperature_converter_options *converter_opts =
+            (struct sol_flow_node_type_grove_temperature_converter_options *)child_opts;
+        converter_opts->thermistor_constant = container_opts->thermistor_constant;
+        converter_opts->input_range_mask = container_opts->mask;
+        converter_opts->resistance = container_opts->resistance;
+        converter_opts->reference_temperature = container_opts->reference_temperature;
+        converter_opts->thermistor_resistance = container_opts->thermistor_resistance;
+    } else if (child_index == TEMPERATURE_AIO_READER_NODE_IDX) {
+        struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        reader_opts->pin = container_opts->pin;
+        reader_opts->mask = container_opts->mask;
+        reader_opts->poll_timeout = container_opts->poll_timeout;
+    }
+}
+
+static void
+grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
+{
+    struct sol_flow_node_type *type;
+
+    static struct sol_flow_static_node_spec nodes[] = {
+        { NULL, "temperature-converter", NULL },
+        { NULL, "aio-reader", NULL },
+        SOL_FLOW_STATIC_NODE_SPEC_GUARD
+    };
+
+    static const struct sol_flow_static_conn_spec conns[] = {
+        { 1, SOL_FLOW_NODE_TYPE_AIO_READER__OUT__OUT, 0, SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__IN__IN },
+        SOL_FLOW_STATIC_CONN_SPEC_GUARD
+    };
+
+    static const struct sol_flow_static_port_spec exported_out[] = {
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__CELSIUS },
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__FAHRENHEIT },
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__KELVIN },
+        { 0, SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__RAW },
+        SOL_FLOW_STATIC_PORT_SPEC_GUARD
+    };
+
+    nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER;
+    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+
+    type = sol_flow_static_new_type(nodes, conns, NULL, exported_out, &temperature_child_opts_set);
+    SOL_NULL_CHECK(type);
+#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
+    type->description = (*current)->description;
+#endif
+    type->new_options = (*current)->new_options;
+    *current = type;
+}
+
+static void
+temperature_init_type(void)
+{
+    grove_temperature_sensor_new_type(&SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_SENSOR);
+}
+
+// ################################ LCD nodes
 
 /* TODO move me to options - speed only works for riot */
 #define I2C_BUS 0
@@ -988,7 +1338,7 @@ scroll_display(struct sol_flow_node *node,
     struct lcd_data *mdata = data;
     int r;
 
-    value |= (port == SOL_FLOW_NODE_TYPE_LCD_GROVE_CHAR__IN__SCROLL_RIGHT ?
+    value |= (port == SOL_FLOW_NODE_TYPE_GROVE_LCD_CHAR__IN__SCROLL_RIGHT ?
               LCD_MOVE_RIGHT : LCD_MOVE_LEFT);
 
     if (mdata->ready) {
@@ -1008,12 +1358,12 @@ lcd_char_open(struct sol_flow_node *node,
     const struct sol_flow_node_options *options)
 {
     struct lcd_data *mdata = data;
-    const struct sol_flow_node_type_lcd_grove_char_options *opts =
-        (const struct sol_flow_node_type_lcd_grove_char_options *)options;
+    const struct sol_flow_node_type_grove_lcd_char_options *opts =
+        (const struct sol_flow_node_type_grove_lcd_char_options *)options;
     int r;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
-        (opts, SOL_FLOW_NODE_TYPE_LCD_GROVE_CHAR_OPTIONS_API_VERSION, -EINVAL);
+        (opts, SOL_FLOW_NODE_TYPE_GROVE_LCD_CHAR_OPTIONS_API_VERSION, -EINVAL);
 
     r = lcd_open(node, data, options);
     SOL_INT_CHECK(r, < 0, r);
@@ -1066,4 +1416,4 @@ lcd_char_open(struct sol_flow_node *node,
 #undef LCD_MODE_SET_LTR
 #undef LCD_MODE_SET_AUTO_SCROLL
 
-#include "lcd-grove-gen.c"
+#include "grove-gen.c"
