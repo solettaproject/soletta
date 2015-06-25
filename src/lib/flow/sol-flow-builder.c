@@ -904,7 +904,7 @@ export_port(struct sol_flow_builder *builder, uint16_t node, uint16_t port,
         SOL_NULL_CHECK_GOTO(port_spec, error_export);
 
         port_spec->node = node;
-        port_spec->port = port;
+        port_spec->port = port++;
         i++;
     } while (i < psize);
 
