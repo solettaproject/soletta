@@ -68,6 +68,7 @@ defvalue_member_map = {
     "int": "i",
     "float": "f",
     "rgb": "rgb",
+    "vector_3f": "vector_3f",
     }
 
 def get_type_description(type):

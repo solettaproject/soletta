@@ -78,3 +78,7 @@ err:
 #endif
 
 #define EBADR       53  /* Invalid request descriptor */
+
+#ifndef I2C_RDRW_IOCTL_MAX_MSGS
+#define I2C_RDRW_IOCTL_MAX_MSGS 42
+#endif

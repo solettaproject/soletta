@@ -64,6 +64,11 @@ struct sol_converter_rgb {
     bool output_initialized[3];
 };
 
+struct sol_converter_vector_3f {
+    struct sol_vector_3f output_value;
+    bool output_initialized[3];
+};
+
 struct sol_converter_irange_compose {
     unsigned int output_value;
     unsigned char connected_ports : 4;
@@ -1250,6 +1255,25 @@ drange_to_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow
 }
 
 static int
+vector_3f_to_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct sol_converter_rgb *mdata = data;
+    const struct sol_flow_node_type_converter_float_to_rgb_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_RGB_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    opts = (const struct sol_flow_node_type_converter_float_to_rgb_options *)options;
+
+    mdata->output_value.red_max = opts->red_max.val;
+    mdata->output_value.green_max = opts->green_max.val;
+    mdata->output_value.blue_max = opts->blue_max.val;
+
+    return 0;
+}
+
+static int
 rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uint32_t val)
 {
     struct sol_converter_rgb *mdata = data;
@@ -1349,6 +1373,61 @@ drange_to_rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
 }
 
 static int
+vector_3f_to_rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_converter_rgb *mdata = data;
+    struct sol_vector_3f in_val;
+    uint32_t val_red, val_green, val_blue;
+    int r;
+
+    r = sol_flow_packet_get_vector_3f(packet, &in_val);
+    SOL_INT_CHECK(r, < 0, r);
+
+#define AXIS_CHECK(_axis) \
+    do { \
+        if (isless(in_val._axis, 0)) { \
+            SOL_WRN("Color component must to be a not negative value"); \
+            return -EINVAL; \
+        } \
+    } while (0)
+
+    AXIS_CHECK(x);
+    AXIS_CHECK(y);
+    AXIS_CHECK(z);
+#undef AXIS_CHECK
+
+    if (islessequal(in_val.max, 0)) {
+        SOL_WRN("Max value for color component must be a positive value"
+            " (got %lf)", in_val.max);
+        return -EINVAL;
+    }
+
+    if (isless(in_val.min, 0)) {
+        SOL_WRN("min value for color component must be a nonnegative value"
+            " (got %lf)", in_val.min);
+        return -EINVAL;
+    }
+
+    val_red = in_val.x *
+              rgb_get_port_max(data, port) / (in_val.max - in_val.min);
+
+    val_green = in_val.y *
+                rgb_get_port_max(data, port) / (in_val.max - in_val.min);
+
+    val_blue = in_val.z *
+               rgb_get_port_max(data, port) / (in_val.max - in_val.min);
+
+    mdata->output_value.red = val_red > mdata->output_value.red_max ?
+                              mdata->output_value.red_max : val_red;
+    mdata->output_value.green = val_green > mdata->output_value.green_max ?
+                                mdata->output_value.green_max : val_green;
+    mdata->output_value.blue = val_blue > mdata->output_value.blue_max ?
+                               mdata->output_value.blue_max : val_blue;
+
+    return sol_flow_send_rgb_packet(node, 0, &mdata->output_value);
+}
+
+static int
 rgb_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_rgb rgb;
@@ -1419,7 +1498,254 @@ rgb_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
     return r;
 }
 
+static int
+rgb_to_vector_3f_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_rgb rgb;
+    struct sol_vector_3f out;
+    double max;
+    int r;
+
+    r = sol_flow_packet_get_rgb(packet, &rgb);
+    SOL_INT_CHECK(r, < 0, r);
+
+    /* we stick to the bigger max, since the vector components share a
+     * range */
+    if (rgb.red_max > rgb.green_max)
+        max = rgb.red_max;
+    else
+        max = rgb.green_max;
+    if (max < rgb.blue_max)
+        max = rgb.blue_max;
+
+    out.min = 0;
+    out.max = max;
+    out.x = rgb.red;
+    out.y = rgb.green;
+    out.z = rgb.blue;
+
+    r = sol_flow_send_vector_3f_packet
+            (node, SOL_FLOW_NODE_TYPE_CONVERTER_RGB_TO_VECTOR_3F__OUT__OUT, &out);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return r;
+}
+
 #undef RGB_SEND
+
+
+static int
+byte_to_vector_3f_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct sol_converter_vector_3f *mdata = data;
+
+    mdata->output_value.max = 255;
+    mdata->output_value.min = 0;
+
+    return 0;
+}
+
+static int
+irange_to_vector_3f_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct sol_converter_vector_3f *mdata = data;
+    const struct sol_flow_node_type_converter_int_to_vector_3f_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_VECTOR_3F_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    opts = (const struct sol_flow_node_type_converter_int_to_vector_3f_options *)options;
+
+    mdata->output_value.max = opts->out_range.max;
+    mdata->output_value.min = opts->out_range.min;
+
+    return 0;
+}
+
+static int
+drange_to_vector_3f_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct sol_converter_vector_3f *mdata = data;
+    const struct sol_flow_node_type_converter_float_to_vector_3f_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_VECTOR_3F_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    opts = (const struct sol_flow_node_type_converter_float_to_vector_3f_options *)options;
+
+    mdata->output_value.max = opts->out_range.max;
+    mdata->output_value.min = opts->out_range.min;
+
+    return 0;
+}
+
+static int
+vector_3f_convert(struct sol_flow_node *node, void *data, uint16_t port, double val)
+{
+    struct sol_converter_vector_3f *mdata = data;
+    unsigned i;
+
+    if (val > mdata->output_value.max)
+        val = mdata->output_value.max;
+    if (val < mdata->output_value.min)
+        val = mdata->output_value.min;
+
+    mdata->output_initialized[port] = true;
+    if (port == 0) {
+        mdata->output_value.x = val;
+    } else if (port == 1) {
+        mdata->output_value.y = val;
+    } else {
+        mdata->output_value.z = val;
+    }
+
+    for (i = 0; i < ARRAY_SIZE(mdata->output_initialized); i++) {
+        if (!mdata->output_initialized[i])
+            return 0;
+    }
+
+    return sol_flow_send_vector_3f_packet(node, 0, &mdata->output_value);
+}
+
+static int
+byte_to_vector_3f_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    unsigned char in_val;
+    int r;
+
+    r = sol_flow_packet_get_byte(packet, &in_val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return vector_3f_convert(node, data, port, in_val);
+}
+
+static int
+irange_to_vector_3f_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_converter_vector_3f *mdata = data;
+    struct sol_irange in_val;
+    uint32_t val;
+    int r;
+
+    r = sol_flow_packet_get_irange(packet, &in_val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    val = in_val.val *
+          (mdata->output_value.max - mdata->output_value.min) /
+          (in_val.max - in_val.min);
+
+    return vector_3f_convert(node, data, port, val);
+}
+
+static int
+drange_to_vector_3f_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_converter_vector_3f *mdata = data;
+    struct sol_drange in_val;
+    uint32_t val;
+    int r;
+
+    r = sol_flow_packet_get_drange(packet, &in_val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    val = in_val.val *
+          (mdata->output_value.max - mdata->output_value.min) /
+          (in_val.max - in_val.min);
+
+    return vector_3f_convert(node, data, port, val);
+}
+
+static int
+vector_3f_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_vector_3f vector_3f;
+    unsigned char out_x, out_y, out_z;
+    int r;
+
+    r = sol_flow_packet_get_vector_3f(packet, &vector_3f);
+    SOL_INT_CHECK(r, < 0, r);
+
+#define VALUE_CONSTRAIN(_val, _out_val) \
+    do { \
+        if (_val < 0) \
+            _out_val = 0; \
+        else if (_val > 255) \
+            _out_val = 255; \
+        else \
+            _out_val = (unsigned char)_val; \
+    } while (0)
+
+    VALUE_CONSTRAIN(vector_3f.x, out_x);
+    VALUE_CONSTRAIN(vector_3f.y, out_y);
+    VALUE_CONSTRAIN(vector_3f.z, out_z);
+#undef VALUE_CONSTRAIN
+
+    r = sol_flow_send_byte_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_VECTOR_3F_TO_BYTE__OUT__X, out_x);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_byte_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_VECTOR_3F_TO_BYTE__OUT__Y, out_y);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_flow_send_byte_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_VECTOR_3F_TO_BYTE__OUT__Z, out_z);
+}
+
+#define VECTOR_3F_SEND(_type, _type_m, _component, _component_m) \
+    do { \
+        out.val = vector_3f._component; \
+        r = sol_flow_send_ ## _type ## _packet(node, \
+            SOL_FLOW_NODE_TYPE_CONVERTER_VECTOR_3F_TO_ ## _type_m ## __OUT__ ## _component_m, \
+            &out); \
+        SOL_INT_CHECK(r, < 0, r); \
+    } while (0)
+
+static int
+vector_3f_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_vector_3f vector_3f;
+    struct sol_irange out;
+    int r;
+
+    r = sol_flow_packet_get_vector_3f(packet, &vector_3f);
+    SOL_INT_CHECK(r, < 0, r);
+
+    out.step = 1;
+    out.min = vector_3f.min < INT32_MIN ? INT32_MIN : vector_3f.min;
+    out.max = vector_3f.max > INT32_MAX ? INT32_MAX : vector_3f.max;
+
+    VECTOR_3F_SEND(irange, INT, x, X);
+    VECTOR_3F_SEND(irange, INT, y, Y);
+    VECTOR_3F_SEND(irange, INT, z, Z);
+
+    return r;
+}
+
+static int
+vector_3f_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_vector_3f vector_3f;
+    struct sol_drange out;
+    int r;
+
+    r = sol_flow_packet_get_vector_3f(packet, &vector_3f);
+    SOL_INT_CHECK(r, < 0, r);
+
+    out.min = vector_3f.min;
+    out.max = vector_3f.max;
+    out.step = DBL_MIN;
+
+    VECTOR_3F_SEND(drange, FLOAT, x, X);
+    VECTOR_3F_SEND(drange, FLOAT, y, Y);
+    VECTOR_3F_SEND(drange, FLOAT, z, Z);
+
+    return r;
+}
+
+#undef VECTOR_3F_SEND
 
 static int
 irange_compose_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)

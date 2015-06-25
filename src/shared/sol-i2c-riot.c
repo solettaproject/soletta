@@ -145,6 +145,17 @@ sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t reg, uint8_t *data, siz
 }
 
 bool
+sol_i2c_read_register_multiple(const struct sol_i2c *i2c,
+    uint8_t command,
+    uint8_t *values,
+    uint8_t len,
+    uint8_t count)
+{
+    //TODO
+    return false;
+}
+
+bool
 sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t reg, const uint8_t *data, size_t count)
 {
     int write;

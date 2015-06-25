@@ -187,6 +187,14 @@ inspector_show_packet(const struct sol_flow_packet *packet)
                 v.red_max, v.green_max, v.blue_max);
             return;
         }
+    } else if (type == SOL_FLOW_PACKET_TYPE_VECTOR_3F) {
+        struct sol_vector_3f v;
+        if (sol_flow_packet_get_vector_3f(packet, &v) == 0) {
+            fprintf(stdout,
+                "<x=%g|y=%g|z=%g|min=%g|max=%g>",
+                v.x, v.y, v.z, v.min, v.max);
+            return;
+        }
     }
 
     fputs("<?>", stdout);

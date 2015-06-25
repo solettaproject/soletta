@@ -126,6 +126,15 @@ handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t ind
         printf("            .%s = %s,\n", rgb_fields[index], option);
 }
 
+static void
+handle_vector_3f_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index)
+{
+    const char *vector_3f_fields[7] = { "x", "y", "z", "min", "max", NULL };
+
+    if (check_suboption(option, meta))
+        printf("            .%s = %s,\n", vector_3f_fields[index], option);
+}
+
 static bool
 handle_options(const struct sol_fbp_meta *meta, struct sol_vector *options)
 {
@@ -146,6 +155,11 @@ handle_options(const struct sol_fbp_meta *meta, struct sol_vector *options)
                 handle_suboptions(meta, handle_suboption_with_explicit_fields);
             else
                 handle_suboptions(meta, handle_rgb_suboption);
+        } else if (streq(o->data_type, "vector_3f")) {
+            if (memchr(meta->value.data, ':', meta->value.len))
+                handle_suboptions(meta, handle_suboption_with_explicit_fields);
+            else
+                handle_suboptions(meta, handle_vector_3f_suboption);
         } else if (streq(o->data_type, "string")) {
             if (meta->value.data[0] == '"')
                 printf("        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
