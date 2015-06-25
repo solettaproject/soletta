@@ -157,7 +157,7 @@ file_reader_path_process(struct sol_flow_node *node, void *data, uint16_t port, 
     int r;
 
     r = sol_flow_packet_get_string(packet, &path);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (path && mdata->path && streq(path, mdata->path))
         return 0;
@@ -165,7 +165,14 @@ file_reader_path_process(struct sol_flow_node *node, void *data, uint16_t port, 
     file_reader_unload(mdata);
 
     mdata->path = path ? strdup(path) : NULL;
-    return file_reader_load(mdata);
+    r = file_reader_load(mdata);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static bool
@@ -398,7 +405,7 @@ file_writer_path_process(struct sol_flow_node *node, void *data, uint16_t port, 
     int r;
 
     r = sol_flow_packet_get_string(packet, &path);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (path && mdata->path && streq(path, mdata->path))
         return 0;
@@ -407,7 +414,13 @@ file_writer_path_process(struct sol_flow_node *node, void *data, uint16_t port, 
     free(mdata->path);
 
     mdata->path = path ? strdup(path) : NULL;
-    return file_writer_load(mdata);
+    r = file_writer_load(mdata);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -417,7 +430,7 @@ file_writer_permissions_process(struct sol_flow_node *node, void *data, uint16_t
     int r, permissions;
 
     r = sol_flow_packet_get_irange_value(packet, &permissions);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->permissions == permissions)
         return 0;
@@ -425,7 +438,14 @@ file_writer_permissions_process(struct sol_flow_node *node, void *data, uint16_t
     file_writer_unload(mdata);
 
     mdata->permissions = permissions;
-    return file_writer_load(mdata);
+    r = file_writer_load(mdata);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -436,13 +456,23 @@ file_writer_contents_process(struct sol_flow_node *node, void *data, uint16_t po
     int r;
 
     r = sol_flow_packet_get_blob(packet, &blob);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     file_writer_unload(mdata);
     mdata->pending_blob = sol_blob_ref(blob);
-    SOL_NULL_CHECK(mdata->pending_blob, -errno);
+    if (!mdata->pending_blob) {
+        r = errno;
+        goto error;
+    }
 
-    return file_writer_load(mdata);
+    r = file_writer_load(mdata);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int

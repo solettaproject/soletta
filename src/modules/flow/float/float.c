@@ -39,6 +39,7 @@
 #include <float.h>
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 
 // =============================================================================
 // DRANGE ARITHMETIC
@@ -116,11 +117,7 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     int r;
 
     r = sol_flow_packet_get_drange(packet, &value);
-
-    if (r < 0) {
-        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
-        return r;
-    }
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (port == 0) {
         mdata->var0 = value;
@@ -135,9 +132,15 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
         return 0;
 
     r = mdata->func(&mdata->var0, &mdata->var1, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    return sol_flow_send_drange_packet(node, mdata->port, &value);
+    sol_flow_send_drange_packet(node, mdata->port, &value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 // MATH
@@ -157,7 +160,7 @@ pow_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     int r;
 
     r = sol_flow_packet_get_drange_value(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (port == 0) {
         if (mdata->var0_initialized &&
@@ -178,10 +181,18 @@ pow_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 
     errno = 0;
     result = pow(mdata->var0, mdata->var1);
-    SOL_INT_CHECK(errno, != 0, -errno);
+    if (errno != 0) {
+        r = -errno;
+        goto error;
+    }
 
-    return sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_FLOAT_POW__OUT__OUT, result);
+    sol_flow_send_drange_value_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_POW__OUT__OUT, result);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -193,19 +204,31 @@ ln_process(struct sol_flow_node *node,
 {
     double value, result;
     int r;
+    char *errmsg;
 
     r = sol_flow_packet_get_drange_value(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (fpclassify(value) == FP_ZERO || islessequal(value, 0.0)) {
-        SOL_WRN("Number can't be negative or too close to zero");
-        return -EDOM;
+        asprintf(&errmsg, "Number can't be negative or too close to zero. %s", sol_util_strerrora(EDOM));
+        r = -EDOM;
+        goto error;
     }
 
     result = log(value);
 
-    return sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_FLOAT_LN__OUT__OUT, result);
+    sol_flow_send_drange_value_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_LN__OUT__OUT, result);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 static int
@@ -213,19 +236,31 @@ sqrt_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
 {
     double value, result;
     int r;
+    char *errmsg;
 
     r = sol_flow_packet_get_drange_value(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (isless(value, 0)) {
-        SOL_WRN("Number can't be negative");
-        return -EDOM;
+        asprintf(&errmsg, "Number can't be negative. %s", sol_util_strerrora(EDOM));
+        r = -EDOM;
+        goto error;
     }
 
     result = sqrt(value);
 
-    return sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_FLOAT_SQRT__OUT__OUT, result);
+    sol_flow_send_drange_value_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_SQRT__OUT__OUT, result);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 static int
@@ -235,12 +270,17 @@ abs_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     int r;
 
     r = sol_flow_packet_get_drange_value(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     result = fabs(value);
 
-    return sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_FLOAT_ABS__OUT__OUT, result);
+    sol_flow_send_drange_value_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_ABS__OUT__OUT, result);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 struct drange_map_data {
@@ -309,14 +349,16 @@ map_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     struct sol_drange in_value;
     double out_value;
     int r;
+    char *errmsg;
 
     r = sol_flow_packet_get_drange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->use_input_range) {
         if (isgreaterequal(in_value.min, in_value.max)) {
-            SOL_WRN("Invalid range: input max must to be bigger than min");
-            return -EINVAL;
+            asprintf(&errmsg, "Invalid range: input max must be bigger than min. %s", sol_util_strerrora(EINVAL));
+            r = -EINVAL;
+            goto error;
         }
         r = _map(in_value.val, in_value.min, in_value.max, mdata->output.min,
             mdata->output.max, mdata->output_value.step, &out_value);
@@ -325,13 +367,23 @@ map_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
             mdata->output.min, mdata->output.max, mdata->output_value.step,
             &out_value);
 
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     mdata->output_value.val = out_value;
 
-    return sol_flow_send_drange_packet(node,
-        SOL_FLOW_NODE_TYPE_FLOAT_MAP__OUT__OUT,
+    sol_flow_send_drange_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_MAP__OUT__OUT,
         &mdata->output_value);
+
+    return 0;
+
+error:
+    if (errmsg) {
+        sol_flow_send_error_packet(node, -r, errmsg);
+        free(errmsg);
+    } else {
+        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    }
+    return 0;
 }
 
 struct drange_constrain_data {
@@ -386,7 +438,7 @@ constrain_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_
     struct sol_drange value;
 
     r = sol_flow_packet_get_drange(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (!mdata->use_input_range) {
         value.min = mdata->val.min;
@@ -395,13 +447,18 @@ constrain_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_
     }
 
     r = _constrain(&value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     mdata->val = value;
 
-    return sol_flow_send_drange_packet(node,
-        SOL_FLOW_NODE_TYPE_FLOAT_CONSTRAIN__OUT__OUT,
+    sol_flow_send_drange_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_CONSTRAIN__OUT__OUT,
         &mdata->val);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 struct drange_min_max_data {
@@ -453,7 +510,7 @@ min_max_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     int r;
 
     r = sol_flow_packet_get_drange_value(packet, &mdata->val[port]);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     mdata->val_initialized[port] = true;
     if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
@@ -464,7 +521,13 @@ min_max_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     else
         result = &mdata->val[1];
 
-    return sol_flow_send_drange_value_packet(node, mdata->port, *result);
+    sol_flow_send_drange_value_packet(node, mdata->port, *result);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 // =============================================================================
@@ -585,7 +648,7 @@ comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     bool output;
 
     r = sol_flow_packet_get_drange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (port == 0) {
         mdata->var0_initialized = true;
@@ -601,7 +664,13 @@ comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
     output = mdata->func(mdata->var0, mdata->var1);
 
-    return sol_flow_send_boolean_packet(node, mdata->port, output);
+    sol_flow_send_boolean_packet(node, mdata->port, output);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 // =============================================================================
@@ -645,7 +714,7 @@ float_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint
     struct float_filter_data *mdata = data;
 
     r = sol_flow_packet_get_drange(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (isgreaterequal(value.val, mdata->min) && islessequal(value.val, mdata->max)) {
         if (mdata->range_override) {
@@ -653,8 +722,13 @@ float_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint
             value.max = mdata->max;
             value.step = 1;
         }
-        return sol_flow_send_drange_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_FILTER__OUT__OUT, &value);
+        sol_flow_send_drange_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_FILTER__OUT__OUT, &value);
     }
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
     return 0;
 }
 
@@ -768,9 +842,10 @@ wave_generator_trapezoidal_process(struct sol_flow_node *node,
 
     trapezoidal_iterate(mdata);
 
-    return sol_flow_send_drange_packet
-               (node, SOL_FLOW_NODE_TYPE_WAVE_GENERATOR_TRAPEZOIDAL__OUT__OUT,
-               &mdata->t_state.val);
+    sol_flow_send_drange_packet(node, SOL_FLOW_NODE_TYPE_WAVE_GENERATOR_TRAPEZOIDAL__OUT__OUT,
+        &mdata->t_state.val);
+
+    return 0;
 }
 
 static int
@@ -906,9 +981,10 @@ wave_generator_sinusoidal_process(struct sol_flow_node *node,
 
     sinusoidal_iterate(mdata);
 
-    return sol_flow_send_drange_packet
-               (node, SOL_FLOW_NODE_TYPE_WAVE_GENERATOR_SINUSOIDAL__OUT__OUT,
-               &mdata->s_state.val);
+    sol_flow_send_drange_packet(node, SOL_FLOW_NODE_TYPE_WAVE_GENERATOR_SINUSOIDAL__OUT__OUT,
+        &mdata->s_state.val);
+
+    return 0;
 }
 
 static int

@@ -80,7 +80,7 @@ boolean_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     bool in_value;
 
     r = sol_flow_packet_get_boolean(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->initialized && in_value == mdata->value)
         return 0;
@@ -88,8 +88,14 @@ boolean_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     mdata->initialized = true;
     mdata->value = in_value;
 
-    return sol_flow_send_boolean_packet(node,
+    sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_FILTER_REPEATED_BOOLEAN__OUT__OUT, in_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -100,7 +106,7 @@ byte_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     unsigned char in_value;
 
     r = sol_flow_packet_get_byte(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->initialized && in_value == mdata->value)
         return 0;
@@ -108,8 +114,14 @@ byte_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     mdata->initialized = true;
     mdata->value = in_value;
 
-    return sol_flow_send_byte_packet(node,
+    sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_FILTER_REPEATED_BYTE__OUT__OUT, in_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static void
@@ -128,7 +140,7 @@ error_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     int r, code_value;
 
     r = sol_flow_packet_get_error(packet, &code_value, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->initialized &&
         mdata->code == code_value &&
@@ -139,12 +151,19 @@ error_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     free(mdata->msg);
     mdata->msg = strdup(in_value);
     if (!mdata->msg) {
-        sol_flow_send_error_packet(node, errno, sol_util_strerrora(errno));
-        return -errno;
+        r = -errno;
+        goto error;
     }
+
     mdata->code = code_value;
 
-    return sol_flow_send_error_packet(node, code_value, in_value);
+    sol_flow_send_error_packet(node, code_value, in_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -155,7 +174,7 @@ float_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     struct sol_drange in_value;
 
     r = sol_flow_packet_get_drange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->initialized && sol_drange_equal(&in_value, &mdata->value))
         return 0;
@@ -163,8 +182,14 @@ float_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     mdata->initialized = true;
     mdata->value = in_value;
 
-    return sol_flow_send_drange_packet(node,
+    sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_FILTER_REPEATED_FLOAT__OUT__OUT, &in_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -175,7 +200,7 @@ int_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
     struct sol_irange in_value;
 
     r = sol_flow_packet_get_irange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->initialized && sol_irange_equal(&in_value, &mdata->value))
         return 0;
@@ -183,8 +208,14 @@ int_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
     mdata->initialized = true;
     mdata->value = in_value;
 
-    return sol_flow_send_irange_packet(node,
+    sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_FILTER_REPEATED_INT__OUT__OUT, &in_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static int
@@ -195,7 +226,7 @@ rgb_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
     struct sol_rgb in_value;
 
     r = sol_flow_packet_get_rgb(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->initialized &&
         !memcmp(&in_value, &mdata->value, sizeof(struct sol_rgb)))
@@ -204,8 +235,14 @@ rgb_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
     mdata->initialized = true;
     mdata->value = in_value;
 
-    return sol_flow_send_rgb_packet(node,
+    sol_flow_send_rgb_packet(node,
         SOL_FLOW_NODE_TYPE_FILTER_REPEATED_RGB__OUT__OUT, &in_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 static void
@@ -224,7 +261,7 @@ string_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     const char *in_value;
 
     r = sol_flow_packet_get_string(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     if (mdata->value && !strcmp(mdata->value, in_value))
         return 0;
@@ -232,12 +269,18 @@ string_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     free(mdata->value);
     mdata->value = strdup(in_value);
     if (!mdata->value) {
-        sol_flow_send_error_packet(node, errno, sol_util_strerrora(errno));
-        return -errno;
+        r = -errno;
+        goto error;
     }
 
-    return sol_flow_send_string_packet(node,
+    sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_FILTER_REPEATED_STRING__OUT__OUT, in_value);
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+    return 0;
 }
 
 #include "filter-repeated-gen.c"
