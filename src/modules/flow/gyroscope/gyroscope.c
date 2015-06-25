@@ -121,7 +121,7 @@ gyro_read(struct gyroscope_l3g4200d_data *mdata)
 
     if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
-        return false;
+        return;
     }
 
     fifo_status = 0;
