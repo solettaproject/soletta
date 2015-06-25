@@ -30,6 +30,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+outdir=$PWD
+srcdir=$PWD
+test -f "$PWD/autogen.sh" || srcdir=`dirname $0`
+
+cd $srcdir
 /usr/bin/env python3 data/oic/oicgen.py \
              data/oic \
              src/modules/flow/oic/oic.json \
@@ -62,6 +67,8 @@
 
 autoreconf -f -i || exit 1
 
+cd "$outdir"
+
 if [ -z "$NOCONFIGURE" ]; then
-    ./configure "$@"
+    "$srcdir/configure" "$@"
 fi
