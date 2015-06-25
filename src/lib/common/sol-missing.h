@@ -77,6 +77,22 @@ err:
 }
 #endif
 
+#if !HAVE_DECL_IFLA_INET6_ADDR_GEN_MODE
+#define IFLA_INET6_UNSPEC 0
+#define IFLA_INET6_FLAGS 1
+#define IFLA_INET6_CONF 2
+#define IFLA_INET6_STATS 3
+#define IFLA_INET6_MCAST 4
+#define IFLA_INET6_CACHEINFO 5
+#define IFLA_INET6_ICMP6STATS 6
+#define IFLA_INET6_TOKEN 7
+#define IFLA_INET6_ADDR_GEN_MODE 8
+#define __IFLA_INET6_MAX 9
+#define IFLA_INET6_MAX (__IFLA_INET6_MAX - 1)
+#define IN6_ADDR_GEN_MODE_EUI64 0
+#define IN6_ADDR_GEN_MODE_NONE 1
+#endif
+
 #define EBADR       53  /* Invalid request descriptor */
 
 #ifndef I2C_RDRW_IOCTL_MAX_MSGS

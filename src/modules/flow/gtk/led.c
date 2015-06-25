@@ -45,8 +45,8 @@ do_drawing(cairo_t *cr, struct gtk_led_data *mdata)
     float r, g, b;
 
     cairo_set_line_width(cr, 1);
-    cairo_arc(cr, LED_VIEW_DIMENSION / 2,
-        LED_VIEW_DIMENSION / 2, LED_VIEW_DIMENSION / 3, 0, 2 * M_PI);
+    cairo_arc(cr, (double)LED_VIEW_DIMENSION / 2,
+        (double)LED_VIEW_DIMENSION / 2, (double)LED_VIEW_DIMENSION / 3, 0, 2 * M_PI);
     cairo_stroke_preserve(cr);
 
     r = mdata->on ? (float)mdata->r / RGB_VALUE_MAX : 0;
