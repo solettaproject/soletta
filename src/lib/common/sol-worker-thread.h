@@ -33,8 +33,6 @@
 #pragma once
 
 #include <stdbool.h>
-#include <stdlib.h>
-#include <errno.h>
 
 // TODO abstract locks? see eina_lock.h
 struct sol_worker_thread;
