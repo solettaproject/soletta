@@ -1,0 +1,551 @@
+{
+  "name": "grove",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "internal",
+      "description": "Converts raw sensor temperature readings to Celsius, Fahrenheit and Kelvin packets. Conversion to Kelvin is done using: 1/(log(((i-r)*Rc/r)/Rt)/B + 1/T - where i is input range, r is raw sensor value, Rc is potential divider resistor resitance, Rt is thermistor resistance, B is thermistor constant and T is thermistor reference temperature. Celsius and Fahrenheit values are simply derived from Kelvin value.",
+      "in_ports": [
+          {
+            "data_type": "int",
+            "description": "Input value",
+            "name": "IN",
+            "methods": {
+                "process": "temperature_convert"
+            }
+          }
+      ],
+      "methods": {
+         "open": "temperature_converter_open"
+      },
+      "name": "grove/temperature-converter",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Thermistor constant",
+            "name": "thermistor_constant"
+          },
+          {
+            "data_type": "int",
+            "description": "Input range mask",
+            "name": "input_range_mask"
+          },
+          {
+            "data_type": "int",
+            "description": "Potential divider resistance",
+            "name": "resistance"
+          },
+          {
+            "data_type": "float",
+            "description": "Thermistor reference temperature",
+            "name": "reference_temperature"
+          },
+          {
+            "data_type": "int",
+            "description": "Thermistor reference resistance",
+            "name": "thermistor_resistance"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Celsius.",
+          "name": "CELSIUS"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Fahrenheit.",
+          "name": "FAHRENHEIT"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Kelvin.",
+          "name": "KELVIN"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured temperature.",
+          "name": "RAW"
+        }
+      ],
+      "private_data_type": "temperature_converter_data"
+    },
+    {
+      "category": "input/hw",
+      "description": "Gets sensor temperature in Celsius, Fahrenheit and Kelvin. Conversion to Kelvin is done using: 1/(log(((i-r)*Rc/r)/Rt)/B + 1/T - where i is input range, r is raw sensor value, Rc is potential divider resistor resitance, Rt is thermistor resistance, B is thermistor constant and T is thermistor reference temperature. Celsius and Fahrenheit values are simply derived from Kelvin value.",
+      "methods": {
+        "init_type": "temperature_init_type"
+      },
+      "name": "grove/temperature-sensor",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 2,
+            "description": "Pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "default": 12,
+            "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
+            "name": "mask"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
+            "name": "poll_timeout"
+          },
+          {
+            "data_type": "int",
+            "default": 3975,
+            "description": "Thermistor constant",
+            "name": "thermistor_constant"
+          },
+          {
+            "data_type": "int",
+            "default": 10000,
+            "description": "Potential divider resistance",
+            "name": "resistance"
+          },
+          {
+            "data_type": "float",
+            "default": 298.15,
+            "description": "Thermistor reference temperature",
+            "name": "reference_temperature"
+          },
+          {
+            "data_type": "int",
+            "default": 10000,
+            "description": "Thermistor reference resistance",
+            "name": "thermistor_resistance"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Celsius.",
+          "name": "CELSIUS"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Fahrenheit.",
+          "name": "FAHRENHEIT"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Kelvin.",
+          "name": "KELVIN"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured temperature.",
+          "name": "RAW"
+        }
+      ]
+    },
+    {
+      "category": "internal",
+      "description": "Converts light sensor raw readings to Lux.",
+      "in_ports": [
+          {
+            "data_type": "int",
+            "description": "Input value",
+            "name": "IN",
+            "methods": {
+                "process": "light_converter"
+            }
+          }
+      ],
+      "methods": {
+         "open": "light_converter_open"
+      },
+      "name": "grove/light-converter",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Input range mask",
+            "name": "input_range_mask"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured illuminance in Lux (approximately).",
+          "name": "LUX"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured illuminance.",
+          "name": "RAW"
+        }
+      ],
+      "private_data_type": "light_converter_data"
+    },
+    {
+      "category": "input/hw",
+      "description": "Get light sensor readings in Lux. However, it should be noted that this sensor is not precise, so the Lux readings are a rough estimation based on Grove Starter Kit booklet table, which relates raw sensor readings to Lux.",
+      "methods": {
+         "init_type": "light_sensor_init_type"
+      },
+      "name": "grove/light-sensor",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 1,
+            "description": "Pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "default": 12,
+            "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
+            "name": "mask"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
+            "name": "poll_timeout"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured illuminance in Lux (approximately).",
+          "name": "LUX"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured illuminance.",
+          "name": "RAW"
+        }
+      ]
+    },
+    {
+      "category": "internal",
+      "description": "Converts raw rotary sensor reading to degrees or radians.",
+      "in_ports": [
+          {
+            "data_type": "int",
+            "description": "Input value",
+            "name": "IN",
+            "methods": {
+                "process": "rotary_converter"
+            }
+          }
+      ],
+      "methods": {
+         "open": "rotary_converter_open"
+      },
+      "name": "grove/rotary-converter",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Angular range",
+            "name": "angular_range"
+          },
+          {
+            "data_type": "int",
+            "description": "Input range mask",
+            "name": "input_range_mask"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured rotation in degrees.",
+          "name": "DEG"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured rotation in radians.",
+          "name": "RAD"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured rotation.",
+          "name": "RAW"
+        }
+      ],
+      "private_data_type": "rotary_converter_data"
+    },
+    {
+      "category": "input/hw",
+      "description": "Get rotary sensor reading in degrees and radians.",
+      "methods": {
+         "init_type": "rotary_sensor_init_type"
+      },
+      "name": "grove/rotary-sensor",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin",
+            "name": "pin"
+          },
+          {
+            "data_type": "int",
+            "default": 12,
+            "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
+            "name": "mask"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
+            "name": "poll_timeout"
+          },
+          {
+            "data_type": "int",
+            "default": 300,
+            "description": "Angular range",
+            "name": "angular_range"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured rotation in degrees.",
+          "name": "DEG"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured rotation in radians.",
+          "name": "RAD"
+        },
+        {
+          "data_type": "int",
+          "description": "Raw measured rotation.",
+          "name": "RAW"
+        }
+      ]
+    },
+    {
+      "category": "output/hw",
+      "description": "LCD grove controller (JHD131M1 model) for simple string displaying and backlight color setting. It uses two I2C addresses, one to control an HD44780 based display and one for RGB backlight. Display matrix is 16x2.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Set string to be displayed. If it's bigger than 16 characters, it breaks it to the second line. If it's bigger than 32 (what fits on the two display lines), it'll be cropped to this length.",
+          "methods": {
+            "process": "set_string"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "rgb",
+          "description": "Set display's backlight color.",
+          "methods": {
+            "process": "set_color"
+          },
+          "name": "COLOR"
+        }
+      ],
+      "methods": {
+        "close": "lcd_close",
+        "open": "lcd_string_open"
+      },
+      "name": "grove/lcd-string",
+      "private_data_type": "lcd_data",
+      "url": "http://solettaproject.org/doc/latest/components/lcd/grove.html"
+    },
+    {
+      "category": "output/hw",
+      "description": "LCD grove controller (JHD131M1 model) for custom character/cursor manipulation and backlight color setting. It uses two I2C addresses, one to control an HD44780 based display and one for RGB backlight. Display matrix is 16x2.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Set whether auto-scrolling is on or off. After it's set to on, the cursor position is held static until one sets it off again (or changes it explicitly).",
+          "methods": {
+            "process": "set_autoscroll"
+          },
+          "name": "AUTO_SCROLL"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Set character entry direction to be left-to-right (true) or right-to-left (false).",
+          "methods": {
+            "process": "set_ltr"
+          },
+          "name": "LEFT_TO_RIGHT"
+        },
+        {
+          "data_type": "rgb",
+          "description": "Set display's backlight color.",
+          "methods": {
+            "process": "set_color"
+          },
+          "name": "COLOR"
+        },
+        {
+          "data_type": "int",
+          "description": "Set display's current column. Valid range is 0-16 (16 is a virtual position useful when writing on the last column in right-to-left mode).",
+          "methods": {
+            "process": "set_col"
+          },
+          "name": "COL"
+        },
+        {
+          "data_type": "int",
+          "description": "Set display's current row. Valid range is 0-1.",
+          "methods": {
+            "process": "set_row"
+          },
+          "name": "ROW"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Set whether the display's blinking cursor is on (true) or off (false).",
+          "methods": {
+            "process": "set_blinking_cursor"
+          },
+          "name": "BLINK_CURSOR"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Set whether the display's underline cursor is on (true) or off (false).",
+          "methods": {
+            "process": "set_underline_cursor"
+          },
+          "name": "UNDERLINE_CURSOR"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Set whether the display is on (true) or not (false). Naturally, it starts on by default.",
+          "methods": {
+            "process": "set_display_on"
+          },
+          "name": "DISPLAY_ON"
+        },
+        {
+          "data_type": "byte",
+          "description": "Write given character at display's current row/column and advance them one position. The column will raise or lower depending on the entry direction, and no wrapping will occur -- if either top-left or bottom-right of the screen is hit, further char writes will update those limit cells until one changes the cursor position explicitly.",
+          "methods": {
+            "process": "put_char"
+          },
+          "name": "PUT_CHAR"
+        },
+        {
+          "data_type": "string",
+          "description": "Write a sequence of characters at display's current row/column and advance the cursor's position. The cursor's position will change differently depending on the entry direction, and, if either top-left or bottom-right of the screen is hit, the string will be cropped at that point.",
+          "methods": {
+            "process": "put_string"
+          },
+          "name": "PUT_STRING"
+        },
+        {
+          "data_type": "any",
+          "description": "Shift/scroll right the whole display by one column, keeping the char cell states (lcd's RAM state) as it was. Thus, a subsequent shift left will bring the display to what it looked like before the first shift.",
+          "methods": {
+            "process": "scroll_display"
+          },
+          "name": "SCROLL_RIGHT"
+        },
+        {
+          "data_type": "any",
+          "description": "Shift/scroll left the whole display by one column, keeping the char cell states (lcd's RAM state) as it was. Thus, a subsequent shift left will bring the display to what it looked like before the first shift.",
+          "methods": {
+            "process": "scroll_display"
+          },
+          "name": "SCROLL_LEFT"
+        },
+        {
+          "data_type": "any",
+          "description": "Clear the whole display, also resetting cursor to the top-left position.",
+          "methods": {
+            "process": "display_clear"
+          },
+          "name": "CLEAR"
+        }
+      ],
+      "methods": {
+        "close": "lcd_close",
+        "open": "lcd_char_open"
+      },
+      "name": "grove/lcd-char",
+      "options": {
+       "members": [
+        {
+          "data_type": "int",
+          "default": {
+            "val": 0
+          },
+          "description": "Initial column of the cursor.",
+          "name": "init_col"
+        },
+        {
+          "data_type": "int",
+          "default": {
+            "val": 0
+          },
+          "description": "Initial row of the cursor.",
+          "name": "init_row"
+        },
+        {
+          "data_type": "boolean",
+          "default": true,
+          "description": "Whether to start on left-to-right (true) or right-to-left (false) cursor advancing.",
+          "name": "ltr"
+        },
+        {
+          "data_type": "boolean",
+          "default": false,
+          "description": "Set whether the display's blinking cursor is on (true) or off (false).",
+          "name": "blink_cursor"
+        },
+        {
+          "data_type": "boolean",
+          "default": false,
+          "description": "Set whether the display's underline cursor is on (true) or off (false).",
+          "name": "underline_cursor"
+        },
+        {
+          "data_type": "boolean",
+          "default": false,
+          "description": "Whether to start on auto scroll mode (true) or not (false).",
+          "name": "auto_scroll"
+        },
+        {
+          "data_type": "rgb",
+          "default": {
+            "red": 255,
+            "green": 255,
+            "blue": 255,
+            "red_max": 255,
+            "green_max": 255,
+            "blue_max": 255
+          },
+          "description": "Initial background color.",
+          "name": "color"
+        }
+       ],
+       "version": 1
+       },
+      "private_data_type": "lcd_data",
+      "url": "http://solettaproject.org/doc/latest/components/lcd/grove.html"
+    }
+  ]
+}
