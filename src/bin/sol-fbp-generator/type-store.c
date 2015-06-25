@@ -449,8 +449,6 @@ parse_direction_vector_default_value(struct sol_json_scanner *s, struct option_d
     direction_vector = &o->default_value.direction_vector;
     memset(direction_vector, 0, sizeof(struct option_direction_vector_value));
 
-    if (!sol_json_scanner_next(s, &tmp))
-        return false;
     SOL_JSON_SCANNER_OBJECT_LOOP (s, &tmp, &key, &value, reason) {
         if (!get_value(&value, &value_data, &key, &key_slice))
             return false;
