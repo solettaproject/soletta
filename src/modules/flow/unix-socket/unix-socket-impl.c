@@ -47,6 +47,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-unix-socket-impl");
 #include "unix-socket.h"
 #include "sol-mainloop.h"
 #include "sol-missing.h"
+#include "sol-network.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
@@ -154,7 +155,7 @@ on_server_connect(void *data, int fd, unsigned int cond)
 
     len = sizeof(client);
 
-    c->sock = accept4(server->base.sock, (struct sockaddr *)&client, &len, SOCK_CLOEXEC);
+    c->sock = socket_accept(server->base.sock, (struct sockaddr *)&client, &len, 0);
     if (c->sock < 0) {
         SOL_WRN("Error on accept %s", sol_util_strerrora(errno));
         goto err;
@@ -207,7 +208,7 @@ unix_socket_client_new(const void *data, const char *socket_path, void (*data_re
     client->data = data;
     client->data_read_cb = data_read_cb;
 
-    client->sock = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
+    client->sock = socket_create(AF_UNIX, SOCK_STREAM, 0, O_NONBLOCK);
     if (client->sock < 0) {
         SOL_WRN("Failed to create the socket %s", sol_util_strerrora(errno));
         goto err;
@@ -290,7 +291,7 @@ unix_socket_server_new(const void *data, const char *socket_path, void (*data_re
     server->base.data_read_cb = data_read_cb;
     sol_vector_init(&server->clients, sizeof(struct client_data));
 
-    server->base.sock = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
+    server->base.sock = socket_create(AF_UNIX, SOCK_STREAM, 0, O_NONBLOCK);
     if (server->base.sock < 0) {
         SOL_WRN("Failed to create the socket %s", sol_util_strerrora(errno));
         goto err;
