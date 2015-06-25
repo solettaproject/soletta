@@ -25,6 +25,16 @@ AM_CONDITIONAL([ENABLE_STATIC], [test "${enable_static}" = "yes"])
 AC_PROG_MKDIR_P
 PKG_PROG_PKG_CONFIG
 
+AC_CHECK_DECLS([IFLA_INET6_ADDR_GEN_MODE],
+[], [], [[
+#include <netinet/in.h>
+#include <netinet/ether.h>
+#include <linux/rtnetlink.h>
+#include <net/if.h>
+#include <linux/if_link.h>
+#include <linux/if_addr.h>
+]])
+
 # MUSL does not have strndupa()
 AC_CHECK_DECLS_ONCE([strndupa],,,[
 #include <string.h>
