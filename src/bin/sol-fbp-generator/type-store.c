@@ -351,7 +351,10 @@ read_default_value(struct decoder *d, struct option_description *o)
 static bool
 get_value(struct sol_json_token *value, char **value_data, struct sol_json_token *key, struct sol_str_slice *key_slice)
 {
-    if (sol_json_token_get_type(value) != SOL_JSON_TYPE_NUMBER)
+    enum sol_json_type type;
+
+    type = sol_json_token_get_type(value);
+    if (type != SOL_JSON_TYPE_NUMBER && type != SOL_JSON_TYPE_STRING)
         return false;
 
     *key_slice = get_slice(key);
