@@ -30,8 +30,9 @@ AC_CHECK_DECLS_ONCE([strndupa],,,[
 #include <string.h>
 ])
 
-# accept4() is Linux-only and GLIBC requires __GNU_SOURCE to enable it
-AC_CHECK_FUNCS([accept4])
+# accept4() and pipe2() are Linux-only and GLIBC requires __GNU_SOURCE to
+# enable it
+AC_CHECK_FUNCS([pipe2 accept4])
 
 CC_CHECK_FLAGS_APPEND(with_cflags, [CFLAGS], [\
 		       -pipe \

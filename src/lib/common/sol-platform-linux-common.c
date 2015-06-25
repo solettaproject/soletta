@@ -84,7 +84,7 @@ sol_platform_linux_fork_run(void (*on_fork)(void *data), void (*on_child_exit)(v
     errno = EINVAL;
     SOL_NULL_CHECK(on_fork, NULL);
 
-    if (pipe(pfds) < 0) {
+    if (sol_create_pipe(pfds, 0) < 0) {
         SOL_WRN("could not create pipe: %s", sol_util_strerrora(errno));
         return NULL;
     }
