@@ -324,6 +324,8 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     if (!r)
         return true;
 
+    goto out_no_pkt;
+
 out:
     sol_coap_packet_unref(req);
 out_no_pkt:
