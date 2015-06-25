@@ -44,3 +44,4 @@
 /sol_flow_modules.mk
 /sol_linux_micro_modules.mk
 /sol_pin_mux_modules.mk
+*.uncrustify
