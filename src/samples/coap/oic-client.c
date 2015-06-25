@@ -44,7 +44,7 @@ got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr 
 {
     char addr[SOL_INET_ADDR_STRLEN];
 
-    if (sol_network_addr_to_str(cliaddr, addr, sizeof(addr)) < 0) {
+    if (!sol_network_addr_to_str(cliaddr, addr, sizeof(addr))) {
         SOL_WRN("Could not convert network address to string");
         return;
     }
@@ -61,7 +61,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     uint16_t idx;
     char addr[SOL_INET_ADDR_STRLEN];
 
-    if (sol_network_addr_to_str(&res->addr, addr, sizeof(addr)) < 0) {
+    if (!sol_network_addr_to_str(&res->addr, addr, sizeof(addr))) {
         SOL_WRN("Could not convert network address to string");
         return;
     }
