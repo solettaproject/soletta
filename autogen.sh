@@ -70,5 +70,11 @@ autoreconf -f -i || exit 1
 cd "$outdir"
 
 if [ -z "$NOCONFIGURE" ]; then
-    "$srcdir/configure" "$@"
+    if [ -x ./config.status ]; then
+        # Run ./config.status instead of configure
+        ./config.status --recheck "$@"
+        ./config.status
+    else
+        "$srcdir/configure" "$@"
+    fi
 fi
