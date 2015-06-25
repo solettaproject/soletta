@@ -851,6 +851,48 @@
       ],
       "private_data_type": "drange_wave_generator_sinusoidal_data",
       "url": "http://solettaproject.org/doc/latest/node_types/wave-generator/sinusoidal.html"
+    },
+    {
+      "category": "float/classify",
+      "description": "Classifies input float according to one of float classifications: Not a Number, Infinite, Zero, Subnormal or Normal. It has OUT ports for each classification and sends input float to its classification OUT port.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Float to be classified.",
+          "methods": {
+            "process": "classify_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "float/classify",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "If input is NaN, it will go through this port.",
+          "name": "NAN"
+        },
+        {
+          "data_type": "float",
+          "description": "If input is Infinite (either positive or negative), it will go through this port.",
+          "name": "INFINITE"
+        },
+        {
+          "data_type": "float",
+          "description": "If input is Zero, it will go through this port.",
+          "name": "ZERO"
+        },
+        {
+          "data_type": "float",
+          "description": "If input is Subnormal, it will go through this port.",
+          "name": "SUBNORMAL"
+        },
+        {
+          "data_type": "float",
+          "description": "If input is Normal, it will go through this port.",
+          "name": "NORMAL"
+        }
+      ]
     }
   ]
 }
