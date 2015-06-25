@@ -204,8 +204,6 @@ stdin_monitor_find(const struct sol_flow_node *node)
     struct stdin_monitor *m;
     uint16_t i;
 
-    process_log_init();
-
     SOL_VECTOR_FOREACH_REVERSE_IDX (&stdin_monitors, m, i) {
         if (m->node == node)
             return i;
@@ -247,8 +245,6 @@ process_stdin_out_connect(struct sol_flow_node *node, void *data, uint16_t port,
     struct stdin_monitor *m;
     int ret;
 
-    process_log_init();
-
     ret = stdin_common_connect(node, &m);
     if (ret < 0)
         return ret;
@@ -262,8 +258,6 @@ process_stdin_out_disconnect(struct sol_flow_node *node, void *data, uint16_t po
 {
     struct stdin_monitor *m;
     uint16_t i;
-
-    process_log_init();
 
     i = stdin_monitor_find(node);
     if (i == UINT16_MAX)
@@ -282,8 +276,6 @@ process_stdin_closed_connect(struct sol_flow_node *node, void *data, uint16_t po
     struct stdin_monitor *m;
     int ret, flags;
 
-    process_log_init();
-
     ret = stdin_common_connect(node, &m);
     if (ret < 0)
         return ret;
@@ -300,8 +292,6 @@ process_stdin_closed_disconnect(struct sol_flow_node *node, void *data, uint16_t
 {
     struct stdin_monitor *m;
     uint16_t i;
-
-    process_log_init();
 
     i = stdin_monitor_find(node);
     if (i == UINT16_MAX)

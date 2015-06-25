@@ -34,25 +34,29 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sol-vector.h"
-
+// The gtk module is a bit of an alien WRT logging, as it has to share
+// the domain symbol externally with the various .o objects that will
+// be linked together. Let's redeclare it by hand, then, and before
+// including gtk-gen.h. Also, log_init() is defined here instead.
 #include "common.h"
-
 SOL_LOG_INTERNAL_DECLARE(_log_domain, "flow-gtk");
 
+#include "gtk-gen.h"
+
+#include "sol-mainloop.h"
+#include "sol-util.h"
+#include "sol-vector.h"
+
 #include "byte-editor.h"
-#include "led.h"
 #include "label.h"
+#include "led.h"
+#include "pushbutton.h"
 #include "pwm-editor.h"
 #include "pwm-viewer.h"
-#include "pushbutton.h"
 #include "rgb-editor.h"
 #include "slider.h"
 #include "spinbutton.h"
 #include "toggle.h"
-#include "gtk-gen.h"
-#include "sol-mainloop.h"
-#include "sol-util.h"
 #include "window.h"
 
 struct gtk_state {
@@ -62,6 +66,12 @@ struct gtk_state {
 
 static struct gtk_state *gtk_state = NULL;
 static struct gtk_state _gtk_state;
+
+static void
+log_init(void)
+{
+    SOL_LOG_INTERNAL_INIT_ONCE;
+}
 
 static void
 init(void)

@@ -33,14 +33,10 @@
 #include <sol-util.h>
 #include <errno.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-gyroscope");
+#include "gyroscope-gen.h"
 
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
-
-#include "gyroscope-gen.h"
 
 /* speed only works for riot */
 #define I2C_SPEED SOL_I2C_SPEED_10KBIT
@@ -345,12 +341,6 @@ gyro_init(struct gyroscope_l3g4200d_data *mdata)
         gyro_init_sampling, mdata) == 0;
 }
 
-static void
-log_init(void)
-{
-    SOL_LOG_INTERNAL_INIT_ONCE;
-}
-
 static int
 gyroscope_l3g4200d_open(struct sol_flow_node *node,
     void *data,
@@ -362,7 +352,6 @@ gyroscope_l3g4200d_open(struct sol_flow_node *node,
 
     SOL_NULL_CHECK(options, -EINVAL);
 
-    log_init();
     mdata->i2c = sol_i2c_open(opts->i2c_bus.val, I2C_SPEED);
     if (!mdata->i2c) {
         SOL_WRN("Failed to open i2c bus");

@@ -37,10 +37,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "servo-motor");
-
 #include "servo-motor-gen.h"
 
 struct servo_motor_data {

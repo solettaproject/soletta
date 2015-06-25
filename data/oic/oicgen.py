@@ -904,9 +904,7 @@ def master_c_as_string(generated):
 #include <stdlib.h>
 #include <sys/socket.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-static SOL_LOG_INTERNAL_DECLARE(_log_domain, "oic");
+#include "oic-gen.h"
 
 #include "sol-coap.h"
 #include "sol-json.h"
@@ -917,8 +915,6 @@ static SOL_LOG_INTERNAL_DECLARE(_log_domain, "oic");
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
 #include "sol-util.h"
-
-#include "oic-gen.h"
 
 #define DEFAULT_UDP_PORT 5683
 #define MULTICAST_ADDRESS_IPv4 "224.0.1.187"

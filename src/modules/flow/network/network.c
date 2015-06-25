@@ -37,10 +37,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-network");
-
 #include "network-gen.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"
