@@ -111,7 +111,7 @@ sol_platform_linux_fork_run(void (*on_fork)(void *data), void (*on_child_exit)(v
 
         errno = 0;
         on_fork((void *)data);
-        exit(EXIT_SUCCESS);
+        _exit(EXIT_SUCCESS);
     } else if (pid < 0) {
         close(pfds[0]);
         close(pfds[1]);

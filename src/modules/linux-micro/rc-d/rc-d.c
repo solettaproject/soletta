@@ -82,7 +82,7 @@ find_exec(const char *service, const char *arg)
     }
 
     SOL_WRN("service not found: %s", service);
-    exit(EXIT_FAILURE);
+    _exit(EXIT_FAILURE);
 }
 
 static void
