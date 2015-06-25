@@ -179,7 +179,6 @@ connect_nodes(struct flow_static_type *type, struct flow_static_data *fsd)
         const struct sol_flow_port_type_in *dst_port_type;
         struct sol_flow_node *src, *dst;
         struct conn_info *ci;
-        struct sol_flow_packet *packet = NULL;
 
         src = fsd->nodes[spec->src];
         dst = fsd->nodes[spec->dst];
@@ -213,8 +212,6 @@ connect_nodes(struct flow_static_type *type, struct flow_static_data *fsd)
         r = dispatch_connect_out(src, spec->src_port, ci->out_conn_id, src_port_type);
         if (r < 0) {
             CONNECT_NODES_WRN(spec, src->id, dst->id, "Error connecting source: %s", sol_util_strerrora(-r));
-            if (packet)
-                sol_flow_packet_del(packet);
             goto dispatch_error;
         }
 
@@ -222,19 +219,11 @@ connect_nodes(struct flow_static_type *type, struct flow_static_data *fsd)
         if (r < 0) {
             CONNECT_NODES_WRN(spec, src->id, dst->id, "Error connecting destination: %s", sol_util_strerrora(-r));
             dispatch_disconnect_out(src, spec->src_port, ci->out_conn_id, src_port_type);
-            if (packet)
-                sol_flow_packet_del(packet);
             goto dispatch_error;
         }
 
         inspector_did_connect_port(src, spec->src_port, ci->out_conn_id,
             dst, spec->dst_port, ci->in_conn_id);
-
-        if (!packet)
-            continue;
-
-        dispatch_process(dst, spec->dst_port, ci->in_conn_id, dst_port_type, (const struct sol_flow_packet *)packet);
-        sol_flow_packet_del(packet);
     }
     SOL_DBG("Making %u connections.", i);
 
