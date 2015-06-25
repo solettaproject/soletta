@@ -1087,21 +1087,9 @@ def generate_description_entry(descriptions, data):
                 data_type = m["data_type"]
                 value = m["default"]
                 value = expand_value(value, data_type)
-                # TODO: should we pass thru the symbols as strings?
-                # TODO: this would solve the DBL_MIN being platform
-                # TODO: dependent and here stated INCORRECTLY as '0.0'
                 if isinstance(value, dict):
                     for k, v in list(value.items()):
-                        if v == "INT32_MAX":
-                            value[k] = 2147483647
-                        elif v == "INT32_MIN":
-                            value[k] = -2147483648
-                        elif v == "DBL_MAX":
-                            value[k] = 1.7976931348623157e+308
-                        elif v == "-DBL_MAX":
-                            value[k] = -1.7976931348623157e+308
-                        elif v == "DBL_MIN":
-                            value[k] = 0.0 # TODO
+                        value[k] = v
 
                 m["default"] = value
                 m["required"] = False
