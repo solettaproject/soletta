@@ -265,16 +265,13 @@ keyboard_open(struct sol_flow_node *node,
     struct keyboard_common_data *mdata = data;
 
     if (!keyboard_done) {
-        int flags;
-
         if (!isatty(STDIN_FILENO)) {
             SOL_WRN("stdin is not a TTY");
             return -errno;
         }
 
-        flags = fcntl(STDIN_FILENO, F_GETFL);
-        flags |= O_NONBLOCK;
-        fcntl(STDIN_FILENO, F_SETFL, flags);
+        if (sol_util_fd_set_flag(STDIN_FILENO, O_NONBLOCK) < 0)
+            return -errno;
 
         if (tcgetattr(STDIN_FILENO, &keyboard_termios) != 0) {
             SOL_ERR("Unable to get keyboard settings.");

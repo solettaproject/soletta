@@ -418,20 +418,12 @@ process_subprocess_open(struct sol_flow_node *node, void *data, const struct sol
         goto stderr_err;
     }
 
-#define NONBLOCK_FD(_fd)                                \
-    do {                                                \
-        int flags;                                      \
-        flags = fcntl(_fd, F_GETFL);                    \
-        SOL_INT_CHECK_GOTO(flags, < 0, flags_err);      \
-        flags |= O_NONBLOCK;                            \
-        fcntl(_fd, F_SETFL, flags);                     \
-    } while (0)
-
-    NONBLOCK_FD(mdata->pipes.stdin[0]);
-    NONBLOCK_FD(mdata->pipes.stderr[0]);
-    NONBLOCK_FD(mdata->pipes.stdout[1]);
-
-#undef NONBLOCK_FD
+    SOL_INT_CHECK_GOTO(sol_util_fd_set_flag(
+        mdata->pipes.stdin[0], O_NONBLOCK), < 0, flags_err);
+    SOL_INT_CHECK_GOTO(sol_util_fd_set_flag(
+        mdata->pipes.stderr[0], O_NONBLOCK), < 0, flags_err);
+    SOL_INT_CHECK_GOTO(sol_util_fd_set_flag(
+        mdata->pipes.stdout[1], O_NONBLOCK), < 0, flags_err);
 
     mdata->command = strdup(opts->command);
     SOL_NULL_CHECK_GOTO(mdata->command, flags_err);
