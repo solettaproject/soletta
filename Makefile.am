@@ -690,7 +690,8 @@ check_PROGRAMS = \
 	src/test/test-str-split \
 	src/test/test-str-table \
 	src/test/test-util \
-	src/test/test-vector
+	src/test/test-vector \
+	src/test/test-json
 
 if BUILD_COAP
 check_PROGRAMS += src/test/test-coap
@@ -784,6 +785,9 @@ src_test_test_util_LDADD = $(TEST_LDADD)
 
 src_test_test_vector_CFLAGS = $(TEST_CFLAGS)
 src_test_test_vector_LDADD = $(TEST_LDADD)
+
+src_test_test_json_CFLAGS = $(TEST_CFLAGS)
+src_test_test_json_LDADD = $(TEST_LDADD)
 
 if HAVE_SOL_FBP_RUNNER
 check-fbp: src/bin/sol-fbp-runner/sol-fbp-runner $(flowmodules_LTLIBRARIES)
