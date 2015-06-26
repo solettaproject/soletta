@@ -183,7 +183,7 @@ sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, u
 SOL_API void
 sol_log_level_to_str(uint8_t level, char *buf, size_t buflen)
 {
-    static const char level_names[][4] = {
+    static const char *level_names[] = {
         [SOL_LOG_LEVEL_CRITICAL] = "CRI",
         [SOL_LOG_LEVEL_ERROR] = "ERR",
         [SOL_LOG_LEVEL_WARNING] = "WRN",
