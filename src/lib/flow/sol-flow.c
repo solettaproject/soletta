@@ -127,7 +127,7 @@ sol_flow_node_init(struct sol_flow_node *node, struct sol_flow_node *parent, con
         node->id = strdup(name);
 
     if (type->open) {
-        int r = type->open(node, node->data, options);
+        int r = type->open(node, type->data_size ? node->data : NULL, options);
         if (r < 0) {
             if (parent_type) {
                 if (parent_type->remove)
