@@ -120,9 +120,6 @@ stop_sound(struct piezo_speaker_data *mdata)
     r = sol_pwm_set_duty_cycle(mdata->pwm, 0);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_pwm_set_period(mdata->pwm, 1000);
-    SOL_INT_CHECK(r, < 0, r);
-
     return 0;
 }
 
