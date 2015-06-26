@@ -272,8 +272,12 @@ keyboard_open(struct sol_flow_node *node,
         }
 
         flags = fcntl(STDIN_FILENO, F_GETFL);
+        if (flags < 0)
+            return -errno;
         flags |= O_NONBLOCK;
         fcntl(STDIN_FILENO, F_SETFL, flags);
+        if (flags < 0)
+            return -errno;
 
         tcgetattr(STDIN_FILENO, &keyboard_termios);
         keyboard_done = true;

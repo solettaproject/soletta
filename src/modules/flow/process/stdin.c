@@ -173,7 +173,8 @@ stdin_watch_start(void)
     flags = fcntl(STDIN_FILENO, F_GETFL);
     SOL_INT_CHECK(flags, < 0, -errno);
     flags |= O_NONBLOCK;
-    fcntl(STDIN_FILENO, F_SETFL, flags);
+    if (fcntl(STDIN_FILENO, F_SETFL, flags) < 0)
+        return -errno;
 
     stdin_watch = sol_fd_add(STDIN_FILENO, SOL_FD_FLAGS_IN | SOL_FD_FLAGS_ERR,
         stdin_watch_cb, NULL);
