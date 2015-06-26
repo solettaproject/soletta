@@ -264,11 +264,16 @@ tune_parse(struct piezo_speaker_data *mdata, const char *tune)
 
     mdata->num_entries = 0;
 
+    /* should not happen, just to be sure */
+    if (!pos) {
+        SOL_ERR("Null tune string, can't proceed parsing it");
+    }
+
     //two passes to avoid reallocs
-    while (pos && *pos) {
+    while (*pos) {
         pos++;
         mdata->num_entries++;
-        if (pos && *pos == TUNE_FIELD_SEPARATOR) break;
+        if (*pos == TUNE_FIELD_SEPARATOR) break;
     }
     pos = tune;
 
@@ -283,7 +288,7 @@ tune_parse(struct piezo_speaker_data *mdata, const char *tune)
         return -ENOMEM;
     }
 
-    for (i = 0; pos && *pos != TUNE_FIELD_SEPARATOR; pos++, i++) {
+    for (i = 0; *pos && *pos != TUNE_FIELD_SEPARATOR; pos++, i++) {
         if (isspace(*pos))
             mdata->periods_us[i] = SPEAKER_NOTE_SENTINEL;
         else {
@@ -292,11 +297,11 @@ tune_parse(struct piezo_speaker_data *mdata, const char *tune)
                 == SPEAKER_NOTE_SENTINEL, -EINVAL);
         }
     }
-    if (!pos || *pos != TUNE_FIELD_SEPARATOR)
+    if (!*pos || *pos != TUNE_FIELD_SEPARATOR)
         goto _format_err;
     pos++;
 
-    for (i = 0; pos && *pos != TUNE_FIELD_SEPARATOR; pos++, i++) {
+    for (i = 0; *pos && *pos != TUNE_FIELD_SEPARATOR; pos++, i++) {
         uint32_t beat = *pos - '0';
 
         if (beat <= 0 || beat > 9) {
@@ -308,7 +313,7 @@ tune_parse(struct piezo_speaker_data *mdata, const char *tune)
 
         mdata->delays_us[i] = beat;
     }
-    if (!pos) goto _format_err;
+    if (!*pos) goto _format_err;
 
     if (*pos != TUNE_FIELD_SEPARATOR || i != mdata->num_entries) {
         if (!i) goto _format_err;
@@ -317,9 +322,9 @@ tune_parse(struct piezo_speaker_data *mdata, const char *tune)
             " The notes array length is being shrunk to match the beats",
             tune, i, mdata->num_entries);
         mdata->num_entries = i;
-        while (pos && *pos != TUNE_FIELD_SEPARATOR) pos++;
+        while (*pos && *pos != TUNE_FIELD_SEPARATOR) pos++;
     }
-    if (!pos) goto _format_err;
+    if (!*pos) goto _format_err;
     pos++;
 
     errno = 0;
