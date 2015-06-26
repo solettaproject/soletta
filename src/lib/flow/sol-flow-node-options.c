@@ -82,7 +82,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
     do {                                                                \
         char *start, *end, backup;                                      \
         int field_cnt_max = ARRAY_SIZE(store_vals); \
-        if (keys_schema) continue;                                      \
+        if (keys_schema) break;                                         \
         start = buf;                                                    \
         end = strchr(start, SUBOPTION_SEPARATOR);                       \
         if (!end) end = start + strlen(start);                          \
@@ -131,13 +131,13 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
         if (_key) {                                             \
             keys_schema = true;                                 \
             _key = strchr(_key, ':');                           \
-        } else continue;                                        \
+        } else break;                                           \
         if (_key && _key[0] && _key[1]) {                       \
             _key++;                                             \
             while (_key && isspace(*_key)) _key++;              \
         } else goto err;                                        \
         if (!_key)                                              \
-            continue;                                           \
+            break;                                              \
         if (strlen(_key) >= _max_str_len                        \
             && (strncmp(_key, _max_str,                         \
                     _max_str_len) == 0)) {                  \
