@@ -93,7 +93,9 @@ err:
 #define IN6_ADDR_GEN_MODE_NONE 1
 #endif
 
-#define EBADR       53  /* Invalid request descriptor */
+#if !HAVE_DECL_EBADR
+#define EBADR 53  /* Invalid request descriptor */
+#endif
 
 #ifndef I2C_RDRW_IOCTL_MAX_MSGS
 #define I2C_RDRW_IOCTL_MAX_MSGS 42

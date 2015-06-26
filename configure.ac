@@ -25,8 +25,10 @@ AM_CONDITIONAL([ENABLE_STATIC], [test "${enable_static}" = "yes"])
 AC_PROG_MKDIR_P
 PKG_PROG_PKG_CONFIG
 
-AC_CHECK_DECLS([IFLA_INET6_ADDR_GEN_MODE],
+AC_CHECK_DECLS([IFLA_INET6_ADDR_GEN_MODE,
+                EBADR],
 [], [], [[
+#include <errno.h>
 #include <netinet/in.h>
 #include <netinet/ether.h>
 #include <linux/rtnetlink.h>
