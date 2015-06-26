@@ -165,15 +165,11 @@ stdin_watch_cb(void *data, int fd, unsigned int active_flags)
 static int
 stdin_watch_start(void)
 {
-    int flags;
-
     if (stdin_watch)
         return 0;
 
-    flags = fcntl(STDIN_FILENO, F_GETFL);
-    SOL_INT_CHECK(flags, < 0, -errno);
-    flags |= O_NONBLOCK;
-    fcntl(STDIN_FILENO, F_SETFL, flags);
+    if (sol_util_fd_set_flag(STDIN_FILENO, O_NONBLOCK) < 0)
+        return -errno;
 
     stdin_watch = sol_fd_add(STDIN_FILENO, SOL_FD_FLAGS_IN | SOL_FD_FLAGS_ERR,
         stdin_watch_cb, NULL);
