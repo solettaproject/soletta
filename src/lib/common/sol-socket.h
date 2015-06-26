@@ -32,11 +32,6 @@
 
 #pragma once
 
-#ifndef SOCK_CLOEXEC
-/* CLOEXEC doesn't make sense on RIOT. */
-#define SOCK_CLOEXEC 0
-#endif
-
 int sol_socket_recvmsg(int fd, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
 
 int sol_socket_sendmsg(int fd, const void *buf, size_t len,

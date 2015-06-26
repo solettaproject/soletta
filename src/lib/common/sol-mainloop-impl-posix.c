@@ -230,7 +230,7 @@ threads_init(void)
 {
     int err;
 
-    err = pipe(pipe_fds);
+    err = sol_create_pipe(pipe_fds, 0);
     SOL_INT_CHECK(err, != 0);
 
     main_thread = pthread_self();

@@ -32,15 +32,24 @@
 
 #pragma once
 
+#include "sol_config.h"
+
 #include "sol-macros.h"
 #include "sol-str-slice.h"
 #include "sol-vector.h"
 
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
 #include <sys/types.h>
+
+#ifdef __unix
+#include <unistd.h>
+#endif
 
 #define SOL_UTIL_MAX_READ_ATTEMPTS 10
 
@@ -159,3 +168,57 @@ align_power2(unsigned int u)
  *       elements found are returned.
  */
 struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
+
+/* Sets the F_SETFL flags and sets FD_CLOEXEC in fd.
+ * If either operation fails, closes the fd and returns -1.
+*/
+static inline int fd_set_flags_cloexec(int fd, int flags)
+{
+    int fl;
+    if (fd == -1)
+        return -1;
+
+    fl = fcntl(fd, F_GETFD);
+    if (fl == -1)
+        goto err;
+
+    fl |= FD_CLOEXEC;
+    if (fcntl(fd, F_SETFD, fl) == -1)
+        goto err;
+
+    if (flags) {
+        /* we only handle O_NONBLOCK */
+        assert((flags & ~O_NONBLOCK) == 0);
+
+        fl = fcntl(fd, F_GETFL);
+        if (fl == -1)
+            goto err;
+
+        fl |= flags;
+        if (fcntl(fd, F_SETFL, fl) == -1)
+            goto err;
+    }
+
+    return fd;
+
+err:
+    close(fd);
+    return -1;
+}
+
+static inline int sol_create_pipe(int pipedes[2], int flags)
+{
+    int ret;
+
+#if defined(HAVE_PIPE2) && HAVE_PIPE2 && defined(O_CLOEXEC)
+    ret = pipe2(pipedes, flags | O_CLOEXEC);
+    if (ret != -1 || errno != ENOSYS)
+        return ret;
+#endif
+
+    if (fd_set_flags_cloexec(pipedes[0], flags) == -1) {
+        close(pipedes[1]);
+        return -1;
+    }
+    return fd_set_flags_cloexec(pipedes[1], flags) == -1 ? -1 : 0;
+}

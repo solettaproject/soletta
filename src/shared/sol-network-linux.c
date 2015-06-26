@@ -323,7 +323,7 @@ sol_network_init(void)
 
     network->seq = 0;
     network->count = 1;
-    network->nl_socket = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC | SOCK_NONBLOCK, NETLINK_ROUTE);
+    network->nl_socket = socket_create(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE, O_NONBLOCK);
     if (network->nl_socket < 0) {
         SOL_WRN("Socket create failed!");
         goto err;

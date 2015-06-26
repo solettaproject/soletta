@@ -35,6 +35,7 @@
 #include <stdbool.h>
 #include <sys/socket.h>
 
+#include "sol-util.h"
 #include "sol-vector.h"
 
 #define SOL_INET_ADDR_STRLEN 48
@@ -86,3 +87,35 @@ const struct sol_vector *sol_network_get_available_links(void);
 char *sol_network_link_get_name(const struct sol_network_link *link);
 
 bool sol_network_link_up(unsigned int link_index);
+
+static inline int
+socket_create(int domain, int type, int protocol, int flags)
+{
+    int fd;
+
+#ifdef SOCK_CLOEXEC
+    int amendedtype = type | SOCK_CLOEXEC;
+    if (flags & O_NONBLOCK)
+        amendedtype |= SOCK_NONBLOCK;
+    fd = socket(domain, amendedtype, protocol);
+    if (fd != -1 || errno != EINVAL)
+        return fd;
+#endif
+
+    fd = socket(domain, type, protocol);
+    return fd_set_flags_cloexec(fd, flags);
+}
+
+static inline int
+socket_accept(int sockfd, struct sockaddr *addr, socklen_t *socklen, int flags)
+{
+    int fd;
+#if defined(HAVE_ACCEPT4) && HAVE_ACCEPT4
+    fd = accept4(sockfd, addr, socklen, SOCK_CLOEXEC);
+    if (fd != -1 || errno != ENOSYS)
+        return fd;
+#endif
+
+    fd = accept(sockfd, addr, socklen);
+    return fd_set_flags_cloexec(fd, flags);
+}

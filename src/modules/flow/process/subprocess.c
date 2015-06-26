@@ -403,17 +403,17 @@ process_subprocess_open(struct sol_flow_node *node, void *data, const struct sol
     mdata->node = node;
     sol_vector_init(&mdata->write_data, sizeof(struct write_data));
 
-    if (pipe(mdata->pipes.stdout) < 0) {
+    if (sol_create_pipe(mdata->pipes.stdout, 0) < 0) {
         SOL_WRN("Failed to create stdout pipe");
         return -errno;
     }
 
-    if (pipe(mdata->pipes.stdin) < 0) {
+    if (sol_create_pipe(mdata->pipes.stdin, 0) < 0) {
         SOL_WRN("Failed to create stdin pipe");
         goto stdin_err;
     }
 
-    if (pipe(mdata->pipes.stderr) < 0) {
+    if (sol_create_pipe(mdata->pipes.stderr, 0) < 0) {
         SOL_WRN("Failed to create stderr pipe");
         goto stderr_err;
     }
