@@ -248,6 +248,7 @@ calamari_7seg_new_type(const struct sol_flow_node_type **current)
     type->description = (*current)->description;
 #endif
     type->new_options = (*current)->new_options;
+    type->free_options = (*current)->free_options;
     *current = type;
 }
 
@@ -553,6 +554,7 @@ calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
     type->description = (*current)->description;
 #endif
     type->new_options = (*current)->new_options;
+    type->free_options = (*current)->free_options;
     *current = type;
 }
 
