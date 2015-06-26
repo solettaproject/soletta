@@ -163,9 +163,7 @@ wallclock_schedule_next(struct sol_flow_node *node)
         seconds = (local_time.tm_sec);
         minutes = (local_time.tm_min) * SECONDS_IN_MINUTE;
 
-        if (time_fail) {
-            timeout = 0;
-        } else if (mdata->type == TIMEOUT_MINUTE) {
+        if (mdata->type == TIMEOUT_MINUTE) {
             timeout = (SECONDS_IN_MINUTE - local_time.tm_sec);
         } else if (mdata->type == TIMEOUT_HOUR) {
             timeout = (MINUTES_IN_HOUR - local_time.tm_min) * SECONDS_IN_MINUTE
