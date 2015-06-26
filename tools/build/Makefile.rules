@@ -152,7 +152,7 @@ define make-bin
 $(bin-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(INT_LIB_AR) $(bin-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "BIN"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(bin-$(1)-out))
-	$(Q)$(TARGETCC) $(BIN_CFLAGS) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(LIB_COVERAGE_FLAGS)
+	$(Q)$(TARGETCC) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(LIB_COVERAGE_FLAGS) $(BIN_CFLAGS)
 endef
 $(foreach curr,$(bins),$(eval $(call make-bin,$(curr))))
 
