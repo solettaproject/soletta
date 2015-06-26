@@ -106,7 +106,7 @@ sol_vector_shrink(struct sol_vector *v)
 int
 sol_vector_del(struct sol_vector *v, uint16_t i)
 {
-    int tail_len;
+    size_t tail_len;
 
     if (i >= v->len)
         return -EINVAL;
