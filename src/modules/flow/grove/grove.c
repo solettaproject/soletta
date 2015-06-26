@@ -803,6 +803,10 @@ lcd_open(struct sol_flow_node *node,
     mdata->cmd_queue.len = 0;
     mdata->cmd_queue.elem_size = sizeof(struct command);
 
+    mdata->display_mode = LCD_ENTRY_MODE_SET | LCD_MODE_SET_LTR;
+    mdata->display_control = (LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON)
+                             & (~LCD_BLINK_ON | ~LCD_CURSOR_ON);
+
     return timer_reschedule(mdata, TIME_TO_TURN_ON, setup, mdata);
 }
 
@@ -1367,10 +1371,6 @@ lcd_char_open(struct sol_flow_node *node,
 
     r = lcd_open(node, data, options);
     SOL_INT_CHECK(r, < 0, r);
-
-    mdata->display_mode = LCD_ENTRY_MODE_SET | LCD_MODE_SET_LTR;
-    mdata->display_control = (LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON)
-                             & (~LCD_BLINK_ON | ~LCD_CURSOR_ON);
 
     r = cursor_cmd_queue(mdata, opts->init_col.val, false);
     SOL_INT_CHECK(r, < 0, r);
