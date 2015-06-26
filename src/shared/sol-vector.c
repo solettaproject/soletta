@@ -119,7 +119,7 @@ sol_vector_del(struct sol_vector *v, uint16_t i)
         data = v->data;
         dst = &data[v->elem_size * i];
         src = dst + v->elem_size;
-        memmove(dst, src, v->elem_size * tail_len);
+        memmove(dst, src, (size_t)v->elem_size * tail_len);
     }
 
     sol_vector_shrink(v);
