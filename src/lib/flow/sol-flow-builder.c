@@ -745,7 +745,7 @@ strv_join(const char *const *first, const char *const *second)
     first_size = first_count * sizeof(char *);
     second_size = second_count * sizeof(char *);
     memcpy(joined, first, first_size);
-    memcpy(joined + first_size, second, second_size);
+    memcpy(joined + first_count, second, second_size);
 
     return joined;
 }
