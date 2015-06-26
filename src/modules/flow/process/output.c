@@ -144,15 +144,11 @@ watch_cb(void *data, int fd, unsigned int active_flags)
 static int
 watch_start(struct output_data *output)
 {
-    int flags;
-
     if (output->watch)
         return 0;
 
-    flags = fcntl(output->fd, F_GETFL);
-    SOL_INT_CHECK(flags, < 0, -errno);
-    flags |= O_NONBLOCK;
-    fcntl(output->fd, F_SETFL, flags);
+    if (sol_util_fd_set_flag(output->fd, O_NONBLOCK) < 0)
+        return -errno;
 
     output->watch = sol_fd_add(output->fd, SOL_FD_FLAGS_OUT | SOL_FD_FLAGS_ERR, watch_cb, output);
     SOL_NULL_CHECK(output->watch, -ENOMEM);
