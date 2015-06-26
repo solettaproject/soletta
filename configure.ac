@@ -433,6 +433,8 @@ if test "x$with_pin_mux" != "xno"; then
     AC_DEFINE([HAVE_PIN_MUX], [1], [Pin multiplexer is enabled.])
 fi
 
+SOL_PIN_MUX_MODULE([intel-edison-rev-c], [no], [Add Intel Edison pin mux support])
+SOL_PIN_MUX_MODULE([intel-galileo-rev-d], [no], [Add Intel Galileo 1 pin mux support])
 SOL_PIN_MUX_MODULE([intel-galileo-rev-g], [no], [Add Intel Galileo 2 pin mux support])
 
 AC_SUBST(pin_mux_builtins)
