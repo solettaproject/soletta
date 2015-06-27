@@ -4,7 +4,7 @@ obj-core-$(CORE)             := sol-log.o sol-blob.o sol-mainloop.o
 obj-core-$(CORE)             += sol-platform.o sol-types.o sol-platform-detect.o
 
 obj-core-$(KDBUS)            += sol-bus.o
-obj-core-$(KDBUS)-extra-cflags += $(SYSTEMD_CFLAGS)
+obj-core-$(KDBUS)-extra-cflags += $(SYSTEMD_CFLAGS) $(GLIB_CFLAGS)
 
 obj-core-$(MAINLOOP_GLIB)    += sol-mainloop-impl-glib.o
 obj-core-$(MAINLOOP_GLIB)-extra-cflags += $(GLIB_CFLAGS)

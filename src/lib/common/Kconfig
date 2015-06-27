@@ -85,6 +85,7 @@ config INSPECTOR
 config KDBUS
 	bool "Kdbus"
 	depends on (PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD) && HAVE_SYSTEMD && HAVE_KDBUS
+	select USE_GLIB
 	default n
 
 config SOCKET_LINUX
