@@ -2,7 +2,7 @@ config CORE
 	bool
 	default y
 
-config PLATFORM_LINUX_COMMON
+config SOL_PLATFORM_LINUX
 	bool
 	default n
 
@@ -13,7 +13,7 @@ choice
 	  The platform of your target.
 
 config PLATFORM_LINUX_MICRO
-	select PLATFORM_LINUX_COMMON
+	select SOL_PLATFORM_LINUX
 	bool "micro-linux"
 
 config PLATFORM_RIOTOS
@@ -21,13 +21,14 @@ config PLATFORM_RIOTOS
 
 config PLATFORM_DUMMY
 	bool "dummy"
-	select PLATFORM_LINUX_COMMON
+	select SOL_PLATFORM_LINUX
 
 config PLATFORM_SYSTEMD
 	bool "systemd"
 	depends on HAVE_SYSTEMD
 	select USE_SYSTEMD
-	select PLATFORM_LINUX_COMMON
+	select SOL_PLATFORM_LINUX
+	select KDBUS
 endchoice
 
 choice

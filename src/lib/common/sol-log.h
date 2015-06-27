@@ -35,6 +35,7 @@
 #include "sol-common-buildopts.h"
 
 #include "sol-macros.h"
+#include "sol_config.h"
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdarg.h>

@@ -30,7 +30,7 @@ obj-libshared-m += sol-gpio-riot.o sol-i2c-riot.o sol-pwm-riot.o
 obj-libshared-m += sol-spi-riot.o sol-uart-riot.o sol-network-riot.o
 endif
 
-ifeq (y,$(PLATFORM_LINUX_MICRO))
+ifeq (y,$(SOL_PLATFORM_LINUX))
 obj-libshared-m += sol-file-reader.o sol-gpio-linux.o sol-network-linux.o
 obj-libshared-m += sol-pwm-linux.o sol-i2c-linux.o sol-spi-linux.o sol-uart-linux.o
 endif
