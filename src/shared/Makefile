@@ -14,7 +14,7 @@ endif
 
 ifeq (y,$(MODULES))
 obj-libshared-m += sol-conffile.o
-obj-libshared-m-extra-cflags := $(GLIB_CFLAGS)
+obj-libshared-m-extra-cflags += $(GLIB_CFLAGS)
 endif
 
 ifeq (y,$(PTHREAD))
