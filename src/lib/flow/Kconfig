@@ -4,6 +4,7 @@ config FLOW
 
 config RESOLVER_CONFFILE
 	bool "Resolver conffile"
+	select USE_GLIB
 	default y
 
 config FLOW_RESOLVER
