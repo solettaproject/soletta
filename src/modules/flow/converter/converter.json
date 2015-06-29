@@ -1940,6 +1940,29 @@
       ],
       "private_data_type": "sol_converter_bits",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/bits-to-byte.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a string packet and convert to blob.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string value to be converted.",
+          "methods": {
+            "process": "string_to_blob_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/string-to-blob",
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "Send blob with the contents of the string received in the port IN.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-blob.htmlhtml"
     }
   ]
 }
