@@ -110,6 +110,9 @@ bool type_store_read_from_json(struct type_store *store, struct sol_str_slice in
 /* Call after all the types are read. */
 struct type_description *type_store_find(struct type_store *store, const char *name);
 
+/* All the information of this type description will be copied. */
+bool type_store_add_type(struct type_store *store, const struct type_description *type);
+
 void type_store_del(struct type_store *store);
 
 void type_store_print(struct type_store *store);
