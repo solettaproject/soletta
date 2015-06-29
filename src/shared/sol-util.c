@@ -35,7 +35,9 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_SYS_AUXV_H
 #include <sys/auxv.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -311,14 +313,25 @@ err:
 static int
 get_progname(char *out, size_t size)
 {
-    char cwd[PATH_MAX] = { NULL }, *execfn;
+    char cwd[PATH_MAX] = { 0 };
+#ifdef HAVE_SYS_AUXV_H
+    char *execfn = NULL;
+#else
+    char execfn[PATH_MAX] = { 0 };
+#endif
 
     if (getcwd(cwd, sizeof(cwd)) == NULL)
-        return -1;
+        return -errno;
 
+#ifdef HAVE_SYS_AUXV_H
     execfn = (char *)getauxval(AT_EXECFN);
+
     if (!execfn)
-        return -1;
+        return -errno;
+#else
+    if (readlink("/proc/self/exe", execfn, sizeof(execfn) - 1) < 0 || !execfn[0])
+        return -ENOSYS;
+#endif
 
     if (execfn[0] == '/')
         return snprintf(out, size, "%s", execfn);
