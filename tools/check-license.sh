@@ -35,7 +35,7 @@ function die() {
     exit 1
 }
 
-[ -e ./autogen.sh ] || die "Call from the root directory."
+[ -e ./Kconfig ] || die "Call from the root directory."
 
 DIFF_LIST=$(mktemp /tmp/sol-tmp.XXXX)
 
