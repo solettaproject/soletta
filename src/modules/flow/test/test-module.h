@@ -35,11 +35,11 @@
 #include "sol-flow.h"
 #include "sol-log.h"
 
-extern struct sol_log_domain _log_domain;
+extern struct sol_log_domain _test_log_domain;
 void test_init_log_domain(void);
 
 #undef SOL_LOG_DOMAIN
-#define SOL_LOG_DOMAIN &_log_domain
+#define SOL_LOG_DOMAIN &_test_log_domain
 
 #define DECLARE_PROCESS_FUNCTION(_name)             \
     int _name(                                      \

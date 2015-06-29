@@ -43,7 +43,7 @@
 // will be linked together. Let's redeclare it by hand, then, and
 // before including test-gen.h. Also, log_init() is defined here
 // instead.
-SOL_LOG_INTERNAL_DECLARE(_log_domain, "flow-test");
+SOL_LOG_INTERNAL_DECLARE(_test_log_domain, "flow-test");
 
 #include "test-gen.h"
 

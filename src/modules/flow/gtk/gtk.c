@@ -39,7 +39,7 @@
 // be linked together. Let's redeclare it by hand, then, and before
 // including gtk-gen.h. Also, log_init() is defined here instead.
 #include "common.h"
-SOL_LOG_INTERNAL_DECLARE(_log_domain, "flow-gtk");
+SOL_LOG_INTERNAL_DECLARE(_gtk_log_domain, "flow-gtk");
 
 #include "gtk-gen.h"
 

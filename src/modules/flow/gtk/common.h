@@ -36,8 +36,8 @@
 #include <gtk/gtk.h>
 
 #ifndef SOL_LOG_DOMAIN
-#define SOL_LOG_DOMAIN &_log_domain
-extern struct sol_log_domain _log_domain;
+#define SOL_LOG_DOMAIN &_gtk_log_domain
+extern struct sol_log_domain _gtk_log_domain;
 #include "sol-log-internal.h"
 #endif
 

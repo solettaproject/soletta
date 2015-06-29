@@ -32,9 +32,9 @@
 
 #pragma once
 
-#define SOL_LOG_DOMAIN &_log_domain
+#define SOL_LOG_DOMAIN &_process_log_domain
 #include "sol-log-internal.h"
-extern struct sol_log_domain _log_domain;
+extern struct sol_log_domain _process_log_domain;
 
 #include "process-gen.h"
 #include "sol-mainloop.h"
