@@ -166,7 +166,7 @@ fail:
 }
 
 static int
-_match_disconnected(sd_bus *bus, sd_bus_message *m, void *userdata,
+_match_disconnected(sd_bus_message *m, void *userdata,
     sd_bus_error *error)
 {
     struct ctx *ctx = userdata;
@@ -276,14 +276,17 @@ sol_bus_close(void)
 }
 
 static int
-_message_map_all_properties(sd_bus *bus, sd_bus_message *m,
+_message_map_all_properties(sd_bus_message *m,
     struct property_table *t, sd_bus_error *ret_error)
 {
+    sd_bus *bus;
     uint64_t mask = 0;
     int r;
 
     r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}");
     SOL_INT_CHECK(r, < 0, r);
+
+    bus = sd_bus_message_get_bus(m);
 
     do {
         const struct sol_bus_properties *iter;
@@ -337,7 +340,7 @@ end:
 }
 
 static int
-_match_properties_changed(sd_bus *bus, sd_bus_message *m, void *userdata,
+_match_properties_changed(sd_bus_message *m, void *userdata,
     sd_bus_error *ret_error)
 {
     struct property_table *t = userdata;
@@ -350,7 +353,7 @@ _match_properties_changed(sd_bus *bus, sd_bus_message *m, void *userdata,
     r = sd_bus_message_skip(m, "s");
     SOL_INT_CHECK(r, < 0, r);
 
-    r = _message_map_all_properties(bus, m, t, ret_error);
+    r = _message_map_all_properties(m, t, ret_error);
     SOL_INT_CHECK(r, < 0, r);
 
     /* Ignore invalidated properties */
@@ -359,17 +362,17 @@ _match_properties_changed(sd_bus *bus, sd_bus_message *m, void *userdata,
 }
 
 static int
-_getall_properties(sd_bus *bus, sd_bus_message *reply, void *userdata,
+_getall_properties(sd_bus_message *reply, void *userdata,
     sd_bus_error *ret_error)
 {
     struct property_table *t = userdata;
 
     t->getall_slot = sd_bus_slot_unref(t->getall_slot);
 
-    if (sol_bus_log_callback(bus, reply, userdata, ret_error) < 0)
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0)
         return 0;
 
-    return _message_map_all_properties(bus, reply, t, ret_error);
+    return _message_map_all_properties(reply, t, ret_error);
 }
 
 int
@@ -467,7 +470,7 @@ sol_bus_unmap_cached_properties(const struct sol_bus_properties property_table[]
 }
 
 int
-sol_bus_log_callback(sd_bus *bus, sd_bus_message *reply, void *userdata,
+sol_bus_log_callback(sd_bus_message *reply, void *userdata,
     sd_bus_error *ret_error)
 {
     const sd_bus_error *error;

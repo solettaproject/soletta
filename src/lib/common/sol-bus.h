@@ -55,5 +55,5 @@ int sol_bus_unmap_cached_properties(const struct sol_bus_properties property_tab
     const void *data);
 
 /* convenience methods */
-int sol_bus_log_callback(sd_bus *bus, sd_bus_message *reply, void *userdata,
+int sol_bus_log_callback(sd_bus_message *reply, void *userdata,
     sd_bus_error *ret_error);

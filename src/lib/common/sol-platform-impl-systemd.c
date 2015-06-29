@@ -250,7 +250,7 @@ static const struct sol_bus_properties _service_properties[] = {
 };
 
 static int
-_add_service_monitor(sd_bus *bus, sd_bus_message *reply, void *userdata,
+_add_service_monitor(sd_bus_message *reply, void *userdata,
     sd_bus_error *ret_error)
 {
     struct service *x = userdata;
@@ -259,13 +259,13 @@ _add_service_monitor(sd_bus *bus, sd_bus_message *reply, void *userdata,
 
     x->slot = sd_bus_slot_unref(x->slot);
 
-    if (sol_bus_log_callback(bus, reply, userdata, ret_error) < 0)
+    if (sol_bus_log_callback(reply, userdata, ret_error) < 0)
         return 0;
 
     r = sd_bus_message_read(reply, "o", &path);
     SOL_INT_CHECK(r, < 0, r);
 
-    sol_bus_map_cached_properties(bus,
+    sol_bus_map_cached_properties(sd_bus_message_get_bus(reply),
         "org.freedesktop.systemd1",
         path,
         "org.freedesktop.systemd1.Unit",
