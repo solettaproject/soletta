@@ -21,3 +21,9 @@ obj-core-$(SOL_PLATFORM_LINUX)-extra-cflags += $(SYSTEMD_CFLAGS)
 
 obj-core-$(PLATFORM_SYSTEMD) += sol-platform-impl-systemd.o
 obj-core-$(PLATFORM_SYSTEMD)-extra-cflags += $(SYSTEMD_CFLAGS) $(UDEV_CFLAGS)
+
+ifeq (y,$(PTHREAD))
+obj-core-$(CORE)             += sol-worker-thread.o
+obj-core-$(MAINLOOP_GLIB)    += sol-worker-thread-impl-glib.o
+obj-core-$(MAINLOOP_POSIX)   += sol-worker-thread-impl-posix.o
+endif

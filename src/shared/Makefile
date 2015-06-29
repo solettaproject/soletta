@@ -17,10 +17,6 @@ obj-libshared-m += sol-conffile.o
 obj-libshared-m-extra-cflags += $(GLIB_CFLAGS)
 endif
 
-ifeq (y,$(PTHREAD))
-obj-libshared-m += sol-worker-thread-pthread.o
-endif
-
 ifeq (y,$(PLATFORM_GALILEO))
 obj-libshared-m  += sol-galileo.o
 endif

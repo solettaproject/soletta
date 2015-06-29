@@ -51,6 +51,11 @@ config MAINLOOP_RIOTOS
 
 endchoice
 
+config PTHREAD
+        bool "Pthread"
+        depends on HAVE_PTHREAD && SOL_PLATFORM_LINUX
+        default y
+
 config LOG
 	bool "Log"
 	select USE_SYSTEMD
