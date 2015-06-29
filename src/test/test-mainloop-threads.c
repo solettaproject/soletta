@@ -188,7 +188,7 @@ main(int argc, char *argv[])
 
     pthread_create(&thr5, NULL, thr5_run, &fds[1]);
 
-    ASSERT(sol_timeout_add(12000, stop_all, NULL));
+    ASSERT(sol_timeout_add(3000, stop_all, NULL));
     sol_run();
 
     pthread_join(thr1, NULL);
