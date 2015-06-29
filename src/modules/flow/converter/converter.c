@@ -1881,7 +1881,7 @@ string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
     mem = strdup(str);
     SOL_NULL_CHECK(mem, -ENOMEM);
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, strlen(mem) + 1);
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, strlen(mem));
     if (!blob) {
         free(mem);
         return -ENOMEM;
