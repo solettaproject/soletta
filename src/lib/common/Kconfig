@@ -8,9 +8,13 @@ config SOL_PLATFORM_LINUX
 
 choice
 	prompt "Target platform"
-	default PLATFORM_LINUX_MICRO
+	default PLATFORM_DUMMY
 	help
 	  The platform of your target.
+
+config PLATFORM_DUMMY
+	bool "dummy"
+	select SOL_PLATFORM_LINUX
 
 config PLATFORM_LINUX_MICRO
 	select SOL_PLATFORM_LINUX
@@ -18,10 +22,6 @@ config PLATFORM_LINUX_MICRO
 
 config PLATFORM_RIOTOS
 	bool "riotos"
-
-config PLATFORM_DUMMY
-	bool "dummy"
-	select SOL_PLATFORM_LINUX
 
 config PLATFORM_SYSTEMD
 	bool "systemd"
