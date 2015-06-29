@@ -962,4 +962,36 @@ wave_generator_sinusoidal_open(struct sol_flow_node *node,
     return 0;
 }
 
+// =============================================================================
+// FPCLASSIFY
+// =============================================================================
+
+static int
+classify_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    double value;
+    int r;
+
+    r = sol_flow_packet_get_drange_value(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    switch (fpclassify(value)) {
+        case FP_NAN:
+            sol_flow_send_drange_value_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_CLASSIFY__OUT__NAN, value);
+            break;
+        case FP_INFINITE:
+            sol_flow_send_drange_value_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_CLASSIFY__OUT__INFINITE, value);
+            break;
+        case FP_ZERO:
+            sol_flow_send_drange_value_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_CLASSIFY__OUT__ZERO, value);
+            break;
+        case FP_SUBNORMAL:
+            sol_flow_send_drange_value_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_CLASSIFY__OUT__SUBNORMAL, value);
+            break;
+        default:
+            sol_flow_send_drange_value_packet(node, SOL_FLOW_NODE_TYPE_FLOAT_CLASSIFY__OUT__NORMAL, value);
+    }
+
+    return 0;
+}
 #include "float-gen.c"
