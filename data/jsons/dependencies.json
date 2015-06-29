@@ -34,6 +34,14 @@
 	    ]
 	},
 	{
+	    "dependency": "sys_auxv_h",
+	    "type": "ccode",
+	    "headers": [
+		"<sys/auxv.h>"
+	    ],
+	    "fragment": "getauxval(AT_EXECFN);"
+	},
+	{
 	    "dependency": "pthread_h",
 	    "type": "ccode",
 	    "headers": [
