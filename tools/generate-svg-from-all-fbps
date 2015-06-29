@@ -35,7 +35,7 @@
 set -e
 
 OUTPUT=$PWD/svg
-FBP_TO_DOT=$PWD/src/bin/sol-fbp-to-dot/sol-fbp-to-dot
+FBP_TO_DOT=$PWD/build/soletta_sysroot/usr/bin/sol-fbp-to-dot
 
 function die() {
     echo "ERROR: $1"
@@ -43,6 +43,7 @@ function die() {
 }
 
 [ -e ./Kconfig ] || die "Call from the root directory."
+[ -e $FBP_TO_DOT ] || die "Couldn't find sol-fbp-to-dot."
 
 for f in $(find src/ -name \*.fbp); do
     if [ -f ${f/.fbp/-expected-fail.txt} ]; then
