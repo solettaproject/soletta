@@ -50,19 +50,6 @@ header_deps = {
     "PTHREAD": "<pthread.h>",
     "RIOTOS": "<riotos/cpu.h>",
     "DLFCN_H": "<dlfcn.h>",
-    "INTTYPES_H": "<inttypes.h>",
-    "LINUX_NETLINK_H": "<linux/netlink.h>",
-    "LINUX_RTNETLINK_H": "<linux/rtnetlink.h>",
-    "LINUX_WATCHDOG_H": "<linux/watchdog.h>",
-    "MEMORY_H": "<memory.h>",
-    "PTHREAD_H": "<pthread.h>",
-    "STDINT_H": "<stdint.h>",
-    "STDLIB_H": "<stdlib.h>",
-    "STRINGS_H": "<strings.h>",
-    "STRING_H": "<string.h>",
-    "SYS_STAT_H": "<sys/stat.h>",
-    "SYS_TYPES_H": "<sys/types.h>",
-    "UNISTD_H": "<unistd.h>",
 }
 
 exec_deps = {
