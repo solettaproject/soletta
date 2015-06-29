@@ -134,7 +134,7 @@ sol_worker_thread_impl_new(bool (*setup)(void *data),
     g_mutex_init(&thread->lock);
 
     snprintf(name, 16, "thr-%u",
-             __atomic_fetch_add(&thr_cnt, 1, __ATOMIC_SEQ_CST));
+        __atomic_fetch_add(&thr_cnt, 1, __ATOMIC_SEQ_CST));
     thread->thread = g_thread_new(name, sol_worker_thread_do, thread);
     SOL_NULL_CHECK_GOTO(thread->thread, error_thread);
 
@@ -189,6 +189,7 @@ void
 sol_worker_thread_impl_feedback(void *handle)
 {
     struct sol_worker_thread_glib *thread = handle;
+
     SOL_NULL_CHECK(thread);
     SOL_NULL_CHECK(thread->feedback);
 
@@ -204,6 +205,6 @@ sol_worker_thread_impl_feedback(void *handle)
     g_mutex_lock(&thread->lock);
     if (!thread->idler)
         thread->idler = sol_idle_add(sol_worker_thread_feedback_dispatch,
-                                     thread);
+            thread);
     g_mutex_unlock(&thread->lock);
 }

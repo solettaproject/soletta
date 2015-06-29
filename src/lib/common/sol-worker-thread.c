@@ -48,7 +48,7 @@ sol_worker_thread_new(bool (*setup)(void *data),
 {
     SOL_NULL_CHECK(iterate, NULL);
     return sol_worker_thread_impl_new(setup, cleanup, iterate,
-                                      cancel, finished, feedback, data);
+        cancel, finished, feedback, data);
 }
 
 SOL_API void

@@ -232,6 +232,7 @@ void
 sol_worker_thread_impl_feedback(void *handle)
 {
     struct sol_worker_thread_posix *thread = handle;
+
     SOL_NULL_CHECK(thread);
     SOL_NULL_CHECK(thread->feedback);
 
