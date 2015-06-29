@@ -42,13 +42,13 @@ config TEST_MAINLOOP_LINUX
 
 config TEST_MAINLOOP_THREADS
 	bool "mainloop threads"
-	depends on PTHREAD
+	depends on PTHREAD && MAINLOOP_POSIX
 	default y
 
 config TEST_MAINLOOP_THREADS_SOL_RUN
 	bool "mainloop threads sol run"
-	depends on PTHREAD
-	default n
+	depends on PTHREAD && MAINLOOP_POSIX
+	default y
 
 config TEST_MONITORS
 	bool "monitors"
