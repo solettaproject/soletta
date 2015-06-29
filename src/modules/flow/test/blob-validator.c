@@ -59,7 +59,10 @@ blob_validator_open(
     }
     mdata->expected.mem = strdup(opts->expected);
     SOL_NULL_CHECK(mdata->expected.mem, -errno);
+
     mdata->expected.size = strlen(opts->expected);
+    if (opts->expect_terminating_null_byte)
+        mdata->expected.size++;
 
     return 0;
 }
