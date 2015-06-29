@@ -292,8 +292,14 @@
         "members": [
           {
             "data_type": "string",
-            "description": "Expected sequence to be matched, formatted as '1.0 2 -1.7 35.864'",
+            "description": "Expected string to be matched",
             "name": "expected"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, it will compare the received blob with 'expected' string with terminating null byte, otherwise it will compare with a not terminated string.",
+            "name": "expect_terminating_null_byte"
           }
          ],
         "version": 1
@@ -306,7 +312,7 @@
         }
       ],
       "private_data_type": "blob_validator_data",
-      "url": "http://solettaproject.org/doc/latest/components/float-validator.html"
+      "url": "http://solettaproject.org/doc/latest/components/blob-validator.html"
     }
   ]
 }
