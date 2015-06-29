@@ -98,3 +98,7 @@ err:
 #ifndef I2C_RDRW_IOCTL_MAX_MSGS
 #define I2C_RDRW_IOCTL_MAX_MSGS 42
 #endif
+
+#if !HAVE_SYS_AUXV_H
+#define AT_EXECFN  31   /* filename of program */
+#endif // HAVE_SYS_AUXV_H
