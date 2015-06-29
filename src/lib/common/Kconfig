@@ -53,6 +53,7 @@ endchoice
 
 config LOG
 	bool "Log"
+	select USE_SYSTEMD
 	default y
 
 choice

@@ -15,7 +15,9 @@ obj-core-$(PLATFORM_LINUX_MICRO) += sol-platform-impl-linux-micro.o
 obj-core-$(SOCKET_LINUX)     += sol-socket-linux.o
 obj-core-$(PLATFORM_RIOTOS)  += sol-platform-impl-riot.o
 obj-core-$(PLATFORM_DUMMY)   += sol-platform-impl-dummy.o
+
 obj-core-$(SOL_PLATFORM_LINUX) += sol-platform-linux-common.o sol-log-impl-linux.o
+obj-core-$(SOL_PLATFORM_LINUX)-extra-cflags += $(SYSTEMD_CFLAGS)
 
 obj-core-$(PLATFORM_SYSTEMD) += sol-platform-impl-systemd.o
 obj-core-$(PLATFORM_SYSTEMD)-extra-cflags += $(SYSTEMD_CFLAGS) $(UDEV_CFLAGS)
