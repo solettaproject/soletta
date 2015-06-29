@@ -42,7 +42,7 @@ function die() {
     exit 1
 }
 
-[ -e ./autogen.sh ] || die "Call from the root directory."
+[ -e ./Kconfig ] || die "Call from the root directory."
 
 for f in $(find src/ -name \*.fbp); do
     if [ -f ${f/.fbp/-expected-fail.txt} ]; then
