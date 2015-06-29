@@ -182,7 +182,7 @@ $(foreach buin,$(builtins), \
 )
 
 define make-mod-so
-$($(1)-out): $(LIB_SO) $(INT_LIB_AR) $(PRE_GEN) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
+$($(1)-out): $(SOL_LIB_SO) $(INT_LIB_AR) $(PRE_GEN) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)echo "     "MOD"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
 	$(Q)$(TARGETCC) $($(1)-objs) -shared -o $($(1)-out) $(LIB_COVERAGE_FLAGS) $($(1)-cflags)
