@@ -4,5 +4,5 @@ config INTERNAL_SHARED
 
 config PTHREAD
 	bool "Pthread"
-	depends on HAVE_PTHREAD && HAVE_GLIB && (PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD)
+	depends on HAVE_PTHREAD && SOL_PLATFORM_LINUX
 	default y
