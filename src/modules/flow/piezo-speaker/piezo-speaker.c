@@ -263,6 +263,7 @@ tune_parse(struct piezo_speaker_data *mdata, const char *tune)
     /* should not happen, just to be sure */
     if (!pos) {
         SOL_ERR("Null tune string, can't proceed parsing it");
+        return -EINVAL;
     }
 
     //two passes to avoid reallocs

@@ -152,7 +152,8 @@ watch_start(struct output_data *output)
     flags = fcntl(output->fd, F_GETFL);
     SOL_INT_CHECK(flags, < 0, -errno);
     flags |= O_NONBLOCK;
-    fcntl(output->fd, F_SETFL, flags);
+    if (fcntl(output->fd, F_SETFL, flags) < 0)
+        return -errno;
 
     output->watch = sol_fd_add(output->fd, SOL_FD_FLAGS_OUT | SOL_FD_FLAGS_ERR, watch_cb, output);
     SOL_NULL_CHECK(output->watch, -ENOMEM);
