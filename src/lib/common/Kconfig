@@ -38,12 +38,12 @@ choice
 
 config MAINLOOP_GLIB
 	bool "glib"
-	depends on (PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD) && HAVE_GLIB
+	depends on SOL_PLATFORM_LINUX && HAVE_GLIB
 	select USE_GLIB
 
 config MAINLOOP_POSIX
 	bool "posix"
-	depends on PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD
+	depends on SOL_PLATFORM_LINUX
 
 config MAINLOOP_RIOTOS
 	bool "riotos"
@@ -85,11 +85,11 @@ config INSPECTOR
 
 config KDBUS
 	bool "Kdbus"
-	depends on (PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD) && HAVE_SYSTEMD && HAVE_KDBUS
+	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_KDBUS
 	select USE_GLIB
 	default n
 
 config SOCKET_LINUX
 	bool "Linux sockets"
-	depends on PLATFORM_LINUX_MICRO || PLATFORM_SYSTEMD
+	depends on SOL_PLATFORM_LINUX
 	default y
