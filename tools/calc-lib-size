@@ -41,14 +41,12 @@ function die() {
 
 usage() {
     echo "
-Usage: $(basename $0) [OPTIONS] [CONFIGURE OPTIONS]
+Usage: $(basename $0) [OPTIONS]
 Show size of the library compiled in different configurations
 
 OPTIONS
     -a             show size of all modules in addition to the library
     -h             display this help message
-
-The remaining options are passed to ./autogen.sh.
 " 1>&2;
     exit 1;
 }
@@ -70,10 +68,9 @@ IFS=' ' read -a args <<< "$args"
 CONFIGURE_OPTS="$args"
 
 function calc_size() {
-    echo \# ./autogen.sh $CONFIGURE_OPTS CFLAGS="$@"
-    ./autogen.sh $CONFIGURE_OPTS CFLAGS="$@" &> /dev/null || die "Error running autogen.sh for $@"
+    make alldefconfig
     make clean > /dev/null
-    make -j4 &> /dev/null || die "Error compiling with $@"
+    make CFLAGS="$@" -j4 &> /dev/null || die "Error compiling with $@"
     LIB=*
     if [ $OPT_ALL -eq 0 ]; then
 	LIB=libsoletta
