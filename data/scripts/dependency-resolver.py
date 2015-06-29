@@ -42,6 +42,7 @@ pkg_config_deps = {
     "GLIB": "glib-2.0",
     "GTK": "gtk+-3.0",
     "SYSTEMD": "libsystemd",
+    "SYSTEMD_JOURNAL": "libsystemd-journal",
     "UDEV": "libudev",
 }
 

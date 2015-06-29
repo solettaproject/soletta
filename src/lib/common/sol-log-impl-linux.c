@@ -637,7 +637,7 @@ sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, u
 SOL_API void
 sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
 {
-#ifdef HAVE_SYSTEMD
+#ifdef HAVE_SYSTEMD && HAVE_SYSTEMD_JOURNAL
     char *code_file = NULL;
     char *code_line = NULL;
     char *msg = NULL;

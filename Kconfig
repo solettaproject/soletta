@@ -30,6 +30,10 @@ config USE_SYSTEMD
 	bool
 	default n
 
+config USE_SYSTEMD_JOURNAL
+	bool
+	default n
+
 config USE_GLIB
 	bool
 	default n
