@@ -66,8 +66,7 @@ source "src/modules/flow/unix-socket/Kconfig"
 source "src/modules/flow/wallclock/Kconfig"
 endmenu
 
-menu "Linux micro"
-config LINUX_MICRO
+menuconfig LINUX_MICRO
        bool "Linux micro"
        depends on PLATFORM_LINUX_MICRO
        default n
@@ -82,7 +81,6 @@ source "src/modules/linux-micro/network-up/Kconfig"
 source "src/modules/linux-micro/rc-d/Kconfig"
 source "src/modules/linux-micro/sysctl/Kconfig"
 source "src/modules/linux-micro/watchdog/Kconfig"
-endmenu
 
 menu "Tools"
 source "src/bin/sol-fbp-generator/Kconfig"
