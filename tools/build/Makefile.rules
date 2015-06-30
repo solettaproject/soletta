@@ -19,6 +19,11 @@ linux-micro-type = \
 		$(subst /,,$(subst $(linux-micro-dir),,$(dir $(1))))) \
 	)
 
+pin-mux-type = \
+	$(sort $(if $(filter $(pin-mux-dir)%,$(1)), \
+		$(subst /,,$(subst $(pin-mux-dir),,$(dir $(1))))) \
+	)
+
 all-gen-hdrs = $(foreach gen,$(all-gens),$($(gen)-hdr))
 
 gen-artifact = \
@@ -54,6 +59,7 @@ parse-builtin-module = \
 	$(eval builtin-objs        += $($(1)-objs)) \
 	$(eval builtin-flows       += $(call flow-type,$(artifacts))) \
 	$(eval builtin-linux-micro += $(call linux-micro-type,$(artifacts))) \
+	$(eval builtin-pin-mux 	   += $(call pin-mux-type,$(artifacts))) \
 
 parse-mod-output = \
 	$(if $(filter yes,$(obj-$(1)-static)), \
@@ -68,6 +74,7 @@ parse-mod-module = \
 	$(call parse-common-module,$(1),$(2),m) \
 	$(eval mod-flows       += $(call flow-type,$(artifacts))) \
 	$(eval mod-linux-micro += $(call linux-micro-type,$(artifacts))) \
+	$(eval mod-pin-mux     += $(call pin-mux-type,$(artifacts))) \
 	$(eval $(mod)-deps     := $(subst .mod,,$(obj-$(mod)-m-deps))) \
 	$(call parse-mod-output,$(1),$(2)) \
 	$(eval modules-out += $($(mod)-out)) \
@@ -167,7 +174,7 @@ endef
 $(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
 
 find-gen-hdrs = $(foreach gen,$($(2)-gens),$($(gen)-hdr))
-external-module-flags = -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1
+external-module-flags = -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 -DPIN_MUX_MODULE=1
 
 define make-object
 $(1): $(PRE_GEN) $($(1)-src) $(call find-deps,$(2)) $(find-gen-hdrs)
@@ -274,6 +281,16 @@ $(FLOW_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
 		--decl="const struct sol_flow_node_type *sol_flow_foreach_builtin_node_type_@name@(bool (*)(void *, const struct sol_flow_node_type *), const void *)" \
 		--item="sol_flow_foreach_builtin_node_type_@name@" \
 		$(subst -,_,$(builtin-flows))
+
+$(PIN_MUX_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
+	$(Q)echo "     "GEN"   "$(@)
+	$(Q)$(PYTHON) $(BUILTINS_SCRIPT) \
+                --output=$@ \
+                --array="static const struct sol_pin_mux *SOL_PIN_MUX_BUILTINS_ALL[]" \
+                --count="SOL_PIN_MUX_BUILTIN_COUNT" \
+                --decl="const struct sol_pin_mux SOL_PIN_MUX_@NAME@" \
+                --item="&SOL_PIN_MUX_@NAME@" \
+                $(subst -,_,$(builtin-pin-mux))
 
 ifeq (y,$(MODULES))
 node-type-desc-enabled = \#define SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED 1
