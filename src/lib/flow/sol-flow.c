@@ -461,13 +461,13 @@ sol_flow_foreach_builtin_node_type(bool (*cb)(void *data, const struct sol_flow_
 static const struct sol_flow_port_description *
 sol_flow_node_type_get_port_description(const struct sol_flow_port_description *const *ports, uint16_t port)
 {
-    const struct sol_flow_port_description *desc;
+    const struct sol_flow_port_description *const *desc;
     uint16_t next = 0;
 
-    for (desc = *ports; desc; desc++) {
-        next += desc->array_size ? : 1;
+    for (desc = ports; *desc; desc++) {
+        next += (*desc)->array_size ? : 1;
         if (port < next)
-            return desc;
+            return *desc;
     }
 
     return NULL;
