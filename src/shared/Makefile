@@ -15,6 +15,7 @@ endif
 ifeq (y,$(MODULES))
 obj-libshared-m += sol-conffile.o
 obj-libshared-m-extra-cflags += $(GLIB_CFLAGS)
+obj-libshared-m-extra-ldflags += $(GLIB_LDFLAGS)
 endif
 
 ifeq (y,$(PLATFORM_GALILEO))
