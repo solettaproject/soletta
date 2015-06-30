@@ -1,3 +1,4 @@
 config PIN_MUX_INTEL_GALILEO_REV_G
-	tristate "intel galileo rev g"
-	default m
+        tristate "Intel Galileo Gen 2 (Rev G)"
+        depends on HAVE_PIN_MUX
+        default n

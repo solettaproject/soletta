@@ -84,10 +84,6 @@ source "src/modules/linux-micro/sysctl/Kconfig"
 source "src/modules/linux-micro/watchdog/Kconfig"
 endmenu
 
-menu "Pin mux"
-source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
-endmenu
-
 menu "Tools"
 source "src/bin/sol-fbp-generator/Kconfig"
 source "src/bin/sol-fbp-runner/Kconfig"

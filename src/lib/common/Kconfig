@@ -94,3 +94,15 @@ config SOCKET_LINUX
 	bool "Linux sockets"
 	depends on SOL_PLATFORM_LINUX
 	default y
+
+menuconfig HAVE_PIN_MUX
+        bool "Pin Multiplexer"
+        default n
+        help
+          Pin Multiplexer is a feature that helps to setup
+          physical pins shared by more than one feature in
+          some platforms.
+
+          If unsure, say N.
+
+source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
