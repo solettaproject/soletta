@@ -92,12 +92,14 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 
     /* check if the given I2C adapter supports plain-i2c messages */
     if (ioctl(i2c->dev, I2C_FUNCS, &funcs) < 0)
-        goto open_error;
+        goto ioctl_error;
 
     i2c->plain_i2c = (funcs & I2C_FUNC_I2C);
 
     return i2c;
 
+ioctl_error:
+    close(i2c->dev);
 open_error:
     free(i2c);
     return NULL;
