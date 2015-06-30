@@ -35,10 +35,13 @@ const_int(constant/int:value=10)
 const_rgb(constant/rgb:value="255|10|100")
 const_direction_vector(constant/direction-vector:value="255|10|100")
 const_string(constant/string:value="Hello")
+const_error(constant/string:value="Numerical argument out of domain")
 
 hub_boolean(hub/boolean)
+hub_blob(hub/blob)
 hub_byte(hub/byte)
 hub_empty(hub/empty)
+hub_error(hub/error)
 hub_float(hub/float)
 hub_int(hub/int)
 hub_rgb(hub/rgb)
@@ -84,3 +87,16 @@ const_string OUT -> IN hub_string
 const_string OUT -> IN0 string_equal(string/compare)
 hub_string OUT -> IN1 string_equal
 string_equal EQUAL -> RESULT result_hub_string(test/result)
+
+str_to_blob(converter/string-to-blob)
+blob_validator(test/blob-validator:expected="Hello",expect_terminating_null_byte=true)
+const_string OUT -> IN str_to_blob OUT -> IN blob_validator
+blob_validator OUT -> RESULT result_hub_blob(test/result)
+
+const_int OUT -> IN0 div(int/division)
+const_zero(constant/int:value=0) OUT -> IN1 div
+div ERROR -> IN hub_error
+hub_error ERROR -> IN conv_error(converter/error)
+conv_error MESSAGE -> IN0 error_msg_equal(string/compare)
+const_error OUT -> IN1 error_msg_equal
+error_msg_equal EQUAL -> RESULT result_hub_error(test/result)
