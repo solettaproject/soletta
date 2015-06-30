@@ -48,7 +48,7 @@ test-$(TEST_VECTOR) += test-vector
 test-test-vector-$(TEST_VECTOR) := test.c test-vector.c
 
 test-$(TEST_BUFFER) += test-buffer
-test-test-buffer-$(TEST_VECTOR) := test.c test-buffer.c
+test-test-buffer-$(TEST_BUFFER) := test.c test-buffer.c
 
 test-$(TEST_JSON) += test-json
 test-test-json-$(TEST_JSON) := test.c test-json.c
