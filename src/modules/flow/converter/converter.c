@@ -1071,7 +1071,8 @@ byte_to_bits_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
     int i;
     unsigned char in_val, last_bit, next_bit;
 
-    sol_flow_packet_get_byte(packet, &in_val);
+    int r = sol_flow_packet_get_byte(packet, &in_val);
+    SOL_INT_CHECK(r, < 0, r);
 
     for (i = 0; i <= 7; i++) {
         last_bit = (mdata->last >> i) & 1;
@@ -1850,7 +1851,8 @@ bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
     int idx = port - SOL_FLOW_NODE_TYPE_CONVERTER_BITS_TO_BYTE__IN__IN_0;
     bool in_val;
 
-    sol_flow_packet_get_boolean(packet, &in_val);
+    int r = sol_flow_packet_get_boolean(packet, &in_val);
+    SOL_INT_CHECK(r, < 0, r);
 
     if ((mdata->output_initialized >> idx) & 1) {
         if ((mdata->last >> idx) == in_val)

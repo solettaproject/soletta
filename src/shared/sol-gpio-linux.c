@@ -260,7 +260,11 @@ _gpio_config(struct sol_gpio *gpio, const struct sol_gpio_config *config)
         no_dir = true;
 
     snprintf(gpio_dir, sizeof(gpio_dir), GPIO_BASE "/gpio%d/active_low", gpio->pin);
-    sol_util_write_file(gpio_dir, "%d", config->active_low);
+
+    if (sol_util_write_file(gpio_dir, "%d", config->active_low) < 0) {
+        SOL_WRN("gpio #%d: could not set requested active_low", config->active_low);
+        return -EINVAL;
+    }
 
     fd = _gpio_open_fd(gpio, config->dir);
     if (fd < 0)
