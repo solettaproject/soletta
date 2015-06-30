@@ -4,8 +4,10 @@ config FLOW
 
 config RESOLVER_CONFFILE
 	bool "Resolver conffile"
+	depends on FLOW
 	default y
 
 config FLOW_RESOLVER
 	bool "Flow resolver"
+	depends on FLOW
 	default y
