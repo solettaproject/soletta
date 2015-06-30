@@ -18,10 +18,6 @@ obj-libshared-m-extra-cflags += $(GLIB_CFLAGS)
 obj-libshared-m-extra-ldflags += $(GLIB_LDFLAGS)
 endif
 
-ifeq (y,$(PLATFORM_GALILEO))
-obj-libshared-m  += sol-galileo.o
-endif
-
 ifeq (y,$(PLATFORM_RIOTOS))
 obj-libshared-m += sol-gpio-riot.o sol-i2c-riot.o sol-pwm-riot.o
 obj-libshared-m += sol-spi-riot.o sol-uart-riot.o sol-network-riot.o
