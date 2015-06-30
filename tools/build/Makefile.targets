@@ -51,17 +51,25 @@ PRE_INSTALL += $(FLOW_BUILTINS_DESC) $(NODE_TYPE_SCHEMA_DEST) $(PLATFORM_DETECT_
 
 rpath-bins := $(subst $(build_sysroot)/,$(DESTDIR),$(bins-out))
 
+rpath-bins-prepare = \
+	$(foreach bin,$(bins-out), \
+		$(eval $(bin)-install := $(subst $(build_sysroot)/,$(DESTDIR)/,$(bin))) \
+		$(eval all-rpath-bins += $($(bin)-install)-rpath-cleanup) \
+	) \
+
+$(eval $(call rpath-bins-prepare))
+
 define rpath-cleanup
-$(1)-rpath-cleanup: $(1)
-	@$(CHRPATH) -d $(1)
+$($(1)-install)-rpath-cleanup: $(1) pre-install
+	@$(CHRPATH) -d $($(1)-install)
 endef
-$(foreach bin,$(rpath-bins),$(eval $(call rpath-cleanup,$(bin))))
+$(foreach bin,$(bins-out),$(eval $(call rpath-cleanup,$(bin))))
 
 pre-install: $(PRE_INSTALL)
 	$(Q)echo "     "INSTALLING SYSROOT TO: $(DESTDIR)
 	$(Q)$(CP) -R $(build_sysroot)/* $(DESTDIR)
 
-post-install: pre-install $(addsuffix -rpath-cleanup,$(rpath-bins))
+post-install: pre-install $(all-rpath-bins)
 
 install: post-install
 
