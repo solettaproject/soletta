@@ -1,0 +1,129 @@
+{
+    "dependencies": [
+	{
+	    "dependency": "check",
+	    "type": "pkg-config",
+	    "pkgname": "check"
+	},
+	{
+	    "dependency": "glib",
+	    "type": "pkg-config",
+	    "pkgname": "glib-2.0"
+	},
+	{
+	    "dependency": "gtk",
+	    "type": "pkg-config",
+	    "pkgname": "gtk+-3.0"
+	},
+	{
+	    "dependency": "systemd",
+	    "type": "pkg-config",
+	    "pkgname": "libsystemd",
+	    "atleast-version": "221"
+	},
+	{
+	    "dependency": "udev",
+	    "type": "pkg-config",
+	    "pkgname": "libudev"
+	},
+	{
+	    "dependency": "kdbus",
+	    "type": "ccode",
+	    "headers": [
+		"<systemd/sd-bus.h>"
+	    ]
+	},
+	{
+	    "dependency": "pthread_h",
+	    "type": "ccode",
+	    "headers": [
+		"<pthread.h>"
+	    ],
+            "ldflags": "-lpthread"
+	},
+	{
+	    "dependency": "riotos",
+	    "type": "ccode",
+	    "headers": [
+		"<riotos/cpu.h>"
+	    ]
+	},
+	{
+	    "dependency": "dlfcn_h",
+	    "type": "ccode",
+	    "headers": [
+		"<dlfcn.h>"
+	    ]
+	},
+	{
+	    "dependency": "accept4",
+	    "type": "ccode",
+	    "headers": [
+		"<sys/socket.h>"
+	    ],
+	    "fragment": "accept4(0, 0, 0, 0);"
+	},
+	{
+	    "dependency": "isatty",
+	    "type": "ccode",
+	    "headers": [
+		"<unistd.h>"
+	    ],
+	    "fragment": "isatty(0);"
+	},
+	{
+	    "dependency": "ppoll",
+	    "type": "ccode",
+	    "headers": [
+		"<poll.h>"
+	    ],
+	    "fragment": "ppoll(0, 0, 0, 0);"
+	},
+	{
+	    "dependency": "decl_strndupa",
+	    "type": "ccode",
+	    "headers": [
+		"<string.h>"
+	    ],
+	    "fragment": "strndupa(0, 0);"
+	},
+	{
+	    "dependency": "decl_ifla_inet6_addr_gen_mode",
+	    "type": "ccode",
+	    "headers": [
+		"<netinet/in.h>",
+		"<netinet/ether.h>",
+                "<linux/rtnetlink.h>",
+		"<net/if.h>",
+                "<linux/if_link.h>",
+		"<linux/if_addr.h>"
+	    ],
+	    "fragment": "int v = IFLA_INET6_ADDR_GEN_MODE;"
+	},
+	{
+	    "dependency": "valgrind",
+	    "type": "exec",
+	    "exec": "valgrind"
+	},
+	{
+	    "dependency": "lcov",
+	    "type": "exec",
+	    "exec": "lcov"
+	},
+	{
+	    "dependency": "genhtml",
+	    "type": "exec",
+	    "exec": "genhtml"
+	},
+	{
+	    "dependency": "chrpath",
+	    "type": "exec",
+	    "exec": "chrpath"
+	},
+	{
+	    "dependency": "jsonschema",
+	    "type": "python",
+	    "pkgname": "jsonschema"
+	}
+    ]
+}

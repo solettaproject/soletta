@@ -28,9 +28,11 @@ test-test-mainloop-linux-$(MAINLOOP_LINUX) := test-mainloop-linux.c
 
 test-$(TEST_MAINLOOP_THREADS) += test-mainloop-threads
 test-test-mainloop-threads-$(TEST_MAINLOOP_THREADS) := test-mainloop-threads.c
+test-test-mainloop-threads-$(TEST_MAINLOOP_THREADS)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 
 test-$(TEST_MAINLOOP_THREADS_SOL_RUN) += test-mainloop-threads-sol-run
 test-test-mainloop-threads-sol-run-$(TEST_MAINLOOP_THREADS_SOL_RUN) := test-mainloop-threads-sol-run.c
+test-test-mainloop-threads-sol-run-$(TEST_MAINLOOP_THREADS_SOL_RUN)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 
 test-$(TEST_MONITORS) += test-monitors
 test-test-monitors-$(TEST_MONITORS) := test.c test-monitors.c
