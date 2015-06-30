@@ -645,6 +645,8 @@ error_packet_init(const struct sol_flow_packet_type *packet_type, void *mem, con
     struct error_data *error = mem;
 
     error->msg = (in->msg) ? strdup(in->msg) : NULL;
+    error->code = in->code;
+
     return 0;
 }
 
