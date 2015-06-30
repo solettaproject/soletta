@@ -114,7 +114,7 @@ timeout_compare(const void *data1, const void *data2)
     return sol_util_timespec_compare(&a->expire, &b->expire);
 }
 
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
 #include <pthread.h>
 
 #define SIGPROCMASK pthread_sigmask
@@ -248,7 +248,7 @@ threads_shutdown(void)
     close(pipe_fds[0]);
 }
 
-#else  /* !HAVE_PTHREAD_H */
+#else  /* !PTHREAD */
 
 #define SIGPROCMASK sigprocmask
 #define MAIN_THREAD_CHECK_RETURN do { } while (0)
@@ -368,7 +368,7 @@ static unsigned char siginfo_storage_used;
 #define SIGINFO_HANDLER_FOREACH(ptr) \
     for (ptr = siginfo_handler; ptr < siginfo_handler + SIGINFO_HANDLER_COUNT; ptr++) if (ptr->sig)
 
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
 void sol_mainloop_posix_signals_block(void);
 void sol_mainloop_posix_signals_unblock(void);
 
