@@ -269,7 +269,7 @@ check_port_existence(struct sol_vector *ports, struct sol_str_slice *name, uint1
 
     SOL_VECTOR_FOREACH_IDX (ports, p, i) {
         if (sol_str_slice_str_eq(*name, p->name)) {
-            *port_number = i;
+            *port_number = p->base_port_idx;
             return p;
         }
     }
@@ -307,6 +307,21 @@ handle_port_error(struct sol_vector *ports, struct sol_str_slice *name, struct s
 }
 
 static bool
+handle_port_index_error(struct sol_fbp_position *p, struct port_description *port_desc, struct sol_str_slice *component, int port_idx)
+{
+    if (port_idx == -1) {
+        sol_fbp_log_print(args.fbp_file, p->line, p->column,
+            "Port '%s' from node type '%.*s' is an array port and no index was given'",
+            port_desc->name, component->len, component->data);
+    } else {
+        sol_fbp_log_print(args.fbp_file, p->line, p->column,
+            "Port '%s' from node type '%.*s' has size '%d', but given index '%d' is out of bounds",
+            port_desc->name, component->len, component->data, port_desc->array_size, port_idx);
+    }
+    return false;
+}
+
+static bool
 generate_connections(struct sol_fbp_graph *g, struct type_description **descs)
 {
     struct sol_fbp_conn *conn;
@@ -338,11 +353,29 @@ generate_connections(struct sol_fbp_graph *g, struct type_description **descs)
             return handle_port_error(&n->out_ports, &conn->src_port, &n->component);
         }
 
+        if (src_port_desc->array_size > 0) {
+            if (conn->src_port_idx == -1 || conn->src_port_idx >= src_port_desc->array_size) {
+                struct sol_fbp_node *n = sol_vector_get(&g->nodes, conn->src);
+                free(conn_specs);
+                return handle_port_index_error(&conn->position, src_port_desc, &n->component, conn->src_port_idx);
+            }
+            spec->src_port += conn->src_port_idx;
+        }
+
         dst_port_desc = check_port_existence(&dst_desc->in_ports, &conn->dst_port, &spec->dst_port);
         if (!dst_port_desc) {
             struct sol_fbp_node *n = sol_vector_get(&g->nodes, conn->dst);
             free(conn_specs);
             return handle_port_error(&n->in_ports, &conn->dst_port, &n->component);
+        }
+
+        if (dst_port_desc->array_size > 0) {
+            if (conn->dst_port_idx == -1 || conn->dst_port_idx >= dst_port_desc->array_size) {
+                struct sol_fbp_node *n = sol_vector_get(&g->nodes, conn->dst);
+                free(conn_specs);
+                return handle_port_index_error(&conn->position, dst_port_desc, &n->component, conn->dst_port_idx);
+            }
+            spec->dst_port += conn->dst_port_idx;
         }
 
         if (!port_types_compatible(src_port_desc->data_type, dst_port_desc->data_type)) {
@@ -372,24 +405,50 @@ generate_connections(struct sol_fbp_graph *g, struct type_description **descs)
     return true;
 }
 
-static void
-generate_exports(const struct sol_fbp_graph *g)
+static bool
+generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fbp_exported_port *e)
+{
+    struct port_description *p;
+    uint16_t base;
+
+    p = check_port_existence(ports, &e->port, &base);
+    if (!p) {
+        sol_fbp_log_print(args.fbp_file, e->position.line, e->position.column,
+            "Couldn't export '%.*s'. Port '%.*s' doesn't exist in node '%s'",
+            e->exported_name.len, e->exported_name.data, e->port.len, e->port.data, node);
+        return false;
+    }
+    if (e->port_idx == -1) {
+        uint16_t last = base + p->array_size;
+        for (; base < last; base++) {
+            printf("    { %d, %d },\n", e->node, base);
+        }
+    } else {
+        if (e->port_idx >= p->array_size) {
+            sol_fbp_log_print(args.fbp_file, e->position.line, e->position.column,
+                "Couldn't export '%.*s'. Index '%d' is out of range (port size: %d).",
+                e->exported_name.len, e->exported_name.data, e->port_idx, p->array_size);
+            return false;
+        }
+        printf("    { %d, %d },\n", e->node, base + e->port_idx);
+    }
+
+    return true;
+}
+
+static bool
+generate_exports(const struct sol_fbp_graph *g, struct type_description **descs)
 {
     struct sol_fbp_exported_port *e;
-    struct sol_fbp_node *n;
-    struct sol_fbp_port *p;
-    uint16_t i, j;
+    struct type_description *n;
+    uint16_t i;
 
     if (g->exported_in_ports.len > 0) {
         printf("const struct sol_flow_static_port_spec exported_in[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&g->exported_in_ports, e, i) {
-            n = sol_vector_get(&g->nodes, e->node);
-            SOL_VECTOR_FOREACH_IDX (&n->in_ports, p, j) {
-                if (sol_str_slice_eq(e->port, p->name)) {
-                    printf("    { %d, %d },\n", e->node, j);
-                    break;
-                }
-            }
+            n = descs[e->node];
+            if (!generate_exported_port(n->name, &n->in_ports, e))
+                return false;
         }
         printf("    SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
             "};\n\n");
@@ -398,17 +457,15 @@ generate_exports(const struct sol_fbp_graph *g)
     if (g->exported_out_ports.len > 0) {
         printf("const struct sol_flow_static_port_spec exported_out[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&g->exported_out_ports, e, i) {
-            n = sol_vector_get(&g->nodes, e->node);
-            SOL_VECTOR_FOREACH_IDX (&n->out_ports, p, j) {
-                if (sol_str_slice_eq(e->port, p->name)) {
-                    printf("    { %d, %d },\n", e->node, j);
-                    break;
-                }
-            }
+            n = descs[e->node];
+            if (!generate_exported_port(n->name, &n->out_ports, e))
+                return false;
         }
         printf("    SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
             "};\n\n");
     }
+
+    return true;
 }
 
 static int
@@ -440,7 +497,8 @@ generate(struct sol_fbp_graph *g, struct type_description **descs)
     if (!generate_connections(g, descs))
         return EXIT_FAILURE;
 
-    generate_exports(g);
+    if (!generate_exports(g, descs))
+        return EXIT_FAILURE;
 
     printf("static void\n"
         "startup(void)\n"
