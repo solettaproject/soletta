@@ -16,6 +16,11 @@ config NODE_DESCRIPTION
 
             If unsure, say Y.
 
+config INSPECTOR
+	bool "Inspector"
+	depends on FLOW
+	default y
+
 menu "Node Types"
 	depends on FLOW
 source "src/modules/flow/accelerometer/Kconfig"
