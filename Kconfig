@@ -17,26 +17,6 @@ config MODULES
 config PREFIX
         string "Installation prefix"
 	default "/usr"
-
-config USE_GTK
-	bool
-	default n
-
-config USE_UDEV
-	bool
-	default n
-
-config USE_SYSTEMD
-	bool
-	default n
-
-config USE_GLIB
-	bool
-	default n
-
-config USE_CHECK
-	bool
-	default y
 endmenu
 
 menu "Core library"
