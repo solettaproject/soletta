@@ -318,7 +318,10 @@ get_progname(char *out, size_t size)
         return -1;
 
     execfn = (char *)getauxval(AT_EXECFN);
-    if (execfn && execfn[0] == '/')
+    if (!execfn)
+        return -1;
+
+    if (execfn[0] == '/')
         return snprintf(out, size, "%s", execfn);
     else
         return snprintf(out, size, "%s/%s", cwd, execfn);
