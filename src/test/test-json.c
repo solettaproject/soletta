@@ -157,7 +157,10 @@ test_json(void)
         output = scan_tests[i].output;
 
         for (j = 0; j < scan_tests[i].expected_elements; j++) {
-            sol_json_scanner_next(&scanner, &input);
+            if(!sol_json_scanner_next(&scanner, &input)) {
+                SOL_WRN("Error: Unexpected end of file.");
+                ASSERT(false);
+            }
             if (sol_json_token_get_type(&input) != output[j]) {
                 SOL_WRN("Token: %c , Expected: %c \n", sol_json_token_get_type(&input), output[j]);
                 ASSERT(false);

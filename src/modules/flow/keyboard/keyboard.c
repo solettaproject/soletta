@@ -99,8 +99,9 @@ keyboard_termios_setup(void)
 static void
 keyboard_termios_reset(void)
 {
-    tcsetattr(STDIN_FILENO, TCSANOW,
-        &keyboard_termios);
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &keyboard_termios) < 0) {
+        SOL_WRN("could not reset termios: %s", sol_util_strerrora(errno));
+    }
 }
 
 static void
@@ -275,7 +276,11 @@ keyboard_open(struct sol_flow_node *node,
         flags |= O_NONBLOCK;
         fcntl(STDIN_FILENO, F_SETFL, flags);
 
-        tcgetattr(STDIN_FILENO, &keyboard_termios);
+        if (tcgetattr(STDIN_FILENO, &keyboard_termios) != 0) {
+            SOL_ERR("Unable to get keyboard settings.");
+            return -errno;
+        }
+
         keyboard_done = true;
         atexit(keyboard_termios_reset);
     }

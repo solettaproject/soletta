@@ -113,7 +113,8 @@ int_validator_process(
             "Input stream already deviated from expected data, ignoring packets.");
         return 0;
     }
-    sol_flow_packet_get_irange(packet, &val);
+    int r = sol_flow_packet_get_irange(packet, &val);
+    SOL_INT_CHECK(r, < 0, r);
     op = sol_vector_get(&mdata->values, mdata->next_index);
     match = val.val == *op;
     mdata->next_index++;
