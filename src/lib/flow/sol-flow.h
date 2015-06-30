@@ -348,20 +348,20 @@ void sol_flow_foreach_builtin_node_type(bool (*cb)(void *data, const struct sol_
 /**
  * Get the port description associated with a given input port index.
  *
- * @param node The node the port belongs to
+ * @param type The node type to get a port description from
  * @param port The port index
  * @return The port description for the given port
  */
-const struct sol_flow_port_description *sol_flow_node_get_port_in_description(const struct sol_flow_node *node, uint16_t port);
+const struct sol_flow_port_description *sol_flow_node_get_port_in_description(const struct sol_flow_node_type *type, uint16_t port);
 
 /**
  * Get the port description associated with a given output port index.
  *
- * @param node The node the port belongs to
+ * @param type The node type to get a port description from
  * @param port The port index
  * @return The port description for the given port
  */
-const struct sol_flow_port_description *sol_flow_node_get_port_out_description(const struct sol_flow_node *node, uint16_t port);
+const struct sol_flow_port_description *sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, uint16_t port);
 #endif
 
 /* When a node type is a container (i.e. may act as parent of other
