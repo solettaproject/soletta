@@ -59,11 +59,18 @@ config LOG
 	default y
 
 choice
-	prompt "Maximum log level"
+	prompt "Maximum allowed log level"
 	default DEFAULT_LOG_LEVEL_ERROR
 	depends on LOG
 	help
-	  Default log level.
+          Maximum log level that will be allowed.
+
+          All log level higher than the selected one will be
+          disabled in compile time and wont be present in the
+          final library.
+
+          Log level ordering is:
+          critical < error < warning < info < debug.
 
 config DEFAULT_LOG_LEVEL_CRITICAL
 	bool "critical"
