@@ -35,6 +35,7 @@
 
 #include "sol-file-reader.h"
 #include "sol-flow-parser.h"
+#include "sol-flow-builder.h"
 #include "sol-log.h"
 #include "sol-str-slice.h"
 #include "sol-util.h"
@@ -46,6 +47,7 @@ struct runner {
     struct sol_flow_parser *parser;
     struct sol_flow_node_type *root_type;
     struct sol_flow_node *root;
+    struct sol_flow_builder *builder;
 
     const char *filename;
     char *basename;
@@ -106,8 +108,160 @@ close_files(struct runner *r)
     sol_ptr_vector_clear(&r->file_readers);
 }
 
+static char *
+get_node_name(const char *port_name, int suffix, bool is_input_port)
+{
+    static char prefix_in[] = "node_for_input_";
+    static char prefix_out[] = "node_for_output_";
+    char *prefix, *name;
+    int err;
+
+    prefix = is_input_port ? prefix_in : prefix_out;
+    err = asprintf(&name, "%s%s_%d", prefix, port_name, suffix);
+
+    if (err < 0)
+        return NULL;
+
+    return name;
+}
+
+static const char parent[] = "PARENT_NODE";
+
+static int
+add_simulation_node(struct runner *r, const char *node_type, const char *port_name, const char *node_name, const char *parent_port_name, int idx, bool is_input_port)
+{
+    int err;
+
+    err = sol_flow_builder_add_node_by_type(r->builder, node_name, node_type, NULL);
+    SOL_INT_CHECK(err, < 0, err);
+
+    if (is_input_port) {
+        return sol_flow_builder_connect(r->builder, node_name, port_name, -1, parent,
+            parent_port_name, idx);
+    } else {
+        return sol_flow_builder_connect(r->builder, parent, parent_port_name, idx,
+            node_name, port_name, -1);
+    }
+    return 0;
+}
+
+struct map {
+    const char *packet_name;
+    const char *node_type;
+    const char *port_name;
+};
+
+static const struct map input_nodes[] = {
+    { "IRange", "gtk/spinbutton", "OUT" },
+    { "DRange", "gtk/slider", "OUT" },
+    { "Any", "gtk/toggle", "OUT" },
+    { "Empty", "gtk/toggle", "OUT" },
+    { "Boolean", "gtk/pushbutton", "OUT" },
+    { "RGB", "gtk/rgb-editor", "OUT" },
+    { "Byte", "byte/editor", "OUT" },
+};
+
+static const struct map output_nodes[] = {
+    { "IRange", "gtk/label", "IN" },
+    { "DRange", "gtk/label", "IN" },
+    { "String", "gtk/label", "IN" },
+    { "Boolean", "gtk/led", "IN" },
+};
+
+static int
+attach_simulation_nodes(struct runner *r)
+{
+    const struct sol_flow_port_type_in *port_in;
+    const struct sol_flow_port_type_out *port_out;
+    const struct sol_flow_port_description *port_desc;
+    uint16_t in_count, out_count;
+    int i, k, idx, err;
+    bool found;
+    char *node_name;
+
+    r->root_type->get_ports_counts(r->root_type, &in_count, &out_count);
+
+    if (in_count == 0 && out_count == 0)
+        return 0;
+
+    r->builder = sol_flow_builder_new();
+    SOL_NULL_CHECK(r->builder, -ENOMEM);
+
+    err = sol_flow_builder_add_node(r->builder, parent, r->root_type, NULL);
+    SOL_INT_CHECK_GOTO(err, < 0, error);
+
+    for (i = 0; i < in_count; i++) {
+        port_in = sol_flow_node_type_get_port_in(r->root_type, i);
+        port_desc = sol_flow_node_get_port_in_description(r->root_type, i);
+        SOL_NULL_CHECK_GOTO(port_desc, inval);
+
+        idx = port_desc->array_size > 0 ? i - port_desc->base_port_idx : -1;
+        found = false;
+
+        for (k = 0; k < ARRAY_SIZE(input_nodes); k++) {
+            if (streq(port_in->packet_type->name, input_nodes[k].packet_name)) {
+                node_name = get_node_name(port_desc->name, i - port_desc->base_port_idx, true);
+                SOL_NULL_CHECK_GOTO(node_name, nomem);
+
+                err = add_simulation_node(r, input_nodes[k].node_type, input_nodes[k].port_name, node_name,
+                    port_desc->name, idx, true);
+
+                free(node_name);
+                SOL_INT_CHECK_GOTO(err, < 0, error);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            SOL_WRN("No simulation node to connect to input port '%s' of type '%s'",
+                port_desc->name, port_in->packet_type->name);
+        }
+    }
+
+    for (i = 0; i < out_count; i++) {
+        port_out = sol_flow_node_type_get_port_out(r->root_type, i);
+        port_desc = sol_flow_node_get_port_out_description(r->root_type, i);
+        SOL_NULL_CHECK_GOTO(port_desc, inval);
+
+        idx = port_desc->array_size > 0 ? i - port_desc->base_port_idx : -1;
+        found = false;
+
+        for (k = 0; k < ARRAY_SIZE(output_nodes); k++) {
+            if (streq(port_out->packet_type->name, output_nodes[k].packet_name)) {
+                node_name = get_node_name(port_desc->name, i - port_desc->base_port_idx, false);
+                SOL_NULL_CHECK_GOTO(node_name, nomem);
+
+                err = add_simulation_node(r, output_nodes[k].node_type, output_nodes[k].port_name, node_name,
+                    port_desc->name, idx, false);
+
+                free(node_name);
+                SOL_INT_CHECK_GOTO(err, < 0, error);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            SOL_WRN("No simulation node to connect to output port '%s' of type '%s'",
+                port_desc->name, port_out->packet_type->name);
+        }
+    }
+    r->root_type = sol_flow_builder_get_node_type(r->builder);
+
+    return 0;
+
+inval:
+    sol_flow_builder_del(r->builder);
+    return -EINVAL;
+nomem:
+    sol_flow_builder_del(r->builder);
+    return -ENOMEM;
+error:
+    sol_flow_builder_del(r->builder);
+    return err;
+}
+
 struct runner *
-runner_new(const char *filename)
+runner_new(const char *filename, bool provide_sim_nodes)
 {
     struct runner *r;
     const char *buf;
@@ -143,6 +297,12 @@ runner_new(const char *filename)
     if (!r->root_type)
         goto error;
 
+    if (provide_sim_nodes) {
+        err = attach_simulation_nodes(r);
+        if (err < 0)
+            goto error;
+    }
+
     close_files(r);
 
     return r;
@@ -170,6 +330,8 @@ runner_del(struct runner *r)
         sol_flow_node_del(r->root);
     if (r->parser)
         sol_flow_parser_del(r->parser);
+    if (r->builder)
+        sol_flow_builder_del(r->builder);
     free(r->dirname);
     free(r->basename);
     free(r);
