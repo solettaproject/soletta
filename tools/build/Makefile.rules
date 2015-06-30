@@ -194,7 +194,7 @@ define make-mod-so
 $($(1)-out): $(SOL_LIB_SO) $(INT_LIB_AR) $(PRE_GEN) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)echo "     "MOD"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
-	$(Q)$(TARGETCC) $($(1)-objs) -shared -o $($(1)-out) $(LIB_COVERAGE_FLAGS) $(sort $($(1)-cflags)) $(sort $($(1)-ldflags))
+	$(Q)$(TARGETCC) $($(1)-objs) -shared -o $($(1)-out) $(LIB_COVERAGE_FLAGS) $(sort $($(1)-cflags)) $(sort $($(1)-ldflags)) $(COMMON_CFLAGS)
 endef
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
 
@@ -214,7 +214,7 @@ $(SOL_LIB_AR): $(PRE_GEN) $(all-objs)
 $(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(INT_LIB_AR) $(builtin-objs)
 	$(Q)echo "      "LD"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_SO))
-	$(Q)$(TARGETCC) $(builtin-objs) -shared -o $(@).$(VERSION) $(TARGET_LINKFLAGS) \
+	$(Q)$(TARGETCC) $(builtin-objs) -shared -o $(@).$(VERSION) $(TARGET_LINKFLAGS) $(COMMON_CFLAGS) \
 		$(LIB_COVERAGE_FLAGS) $(sort $(builtin-cflags)) $(sort $(builtin-ldflags))
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
