@@ -461,7 +461,8 @@ calamari_rgb_led_process_red(struct sol_flow_node *node, void *data, uint16_t po
 {
     bool val;
 
-    sol_flow_packet_get_boolean(packet, &val);
+    int r = sol_flow_packet_get_boolean(packet, &val);
+    SOL_INT_CHECK(r, < 0, r);
     sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__RED, val);
 
     return 0;
@@ -472,7 +473,8 @@ calamari_rgb_led_process_green(struct sol_flow_node *node, void *data, uint16_t 
 {
     bool val;
 
-    sol_flow_packet_get_boolean(packet, &val);
+    int r = sol_flow_packet_get_boolean(packet, &val);
+    SOL_INT_CHECK(r, < 0, r);
     sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__GREEN, val);
 
     return 0;
@@ -483,7 +485,8 @@ calamari_rgb_led_process_blue(struct sol_flow_node *node, void *data, uint16_t p
 {
     bool val;
 
-    sol_flow_packet_get_boolean(packet, &val);
+    int r = sol_flow_packet_get_boolean(packet, &val);
+    SOL_INT_CHECK(r, < 0, r);
     sol_flow_send_boolean_packet(node, SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL__OUT__BLUE, val);
 
     return 0;

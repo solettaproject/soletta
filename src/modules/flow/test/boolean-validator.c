@@ -81,7 +81,9 @@ sequence_process(
         return 0;
     }
 
-    sol_flow_packet_get_boolean(packet, &val);
+    int r = sol_flow_packet_get_boolean(packet, &val);
+    SOL_INT_CHECK(r, < 0, r);
+
     input = val ? 'T' : 'F';
 
     match = input == *mdata->it;
