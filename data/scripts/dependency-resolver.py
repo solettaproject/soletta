@@ -31,192 +31,151 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import argparse
+import json
 import os
 import subprocess
 import sys
 import tempfile
 from shutil import which
 
-pkg_config_deps = {
-    "CHECK": "check",
-    "GLIB": "glib-2.0",
-    "GTK": "gtk+-3.0",
-    "SYSTEMD": "libsystemd",
-    "UDEV": "libudev",
+cfg_cflags = {}
+cfg_ldflags = {}
+cfg_kconfig = {}
+makefile_vars = {}
+
+def run_command(cmd):
+    try:
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
+                                         shell=True, universal_newlines=True)
+        return output.replace("\n", "").strip(), True
+    except subprocess.CalledProcessError as e:
+        return e.output, False
+
+def handle_pkgconfig_check(args, conf):
+    dep = conf["dependency"].upper()
+    pkg = conf["pkgname"]
+
+    cflags_cmd = "pkg-config --cflags %s" % pkg
+    ldflags_cmd = "pkg-config --libs %s" % pkg
+
+    cflags, cflags_stat = run_command(cflags_cmd)
+    ldflags, ldflags_stat = run_command(ldflags_cmd)
+
+    if cflags_stat:
+        cfg_cflags["%s_CFLAGS" % dep] = cflags
+
+    if ldflags_stat:
+        cfg_ldflags["%s_LDFLAGS" % dep] = ldflags
+
+    have_var = "y" if (cflags_stat or ldflags_stat) else "n"
+    cfg_kconfig["HAVE_%s" % dep] = have_var
+
+def compile_test(source, compiler, cflags):
+    f = tempfile.NamedTemporaryFile(suffix=".c",delete=False)
+    f.write(bytes(source, 'UTF-8'))
+    f.close()
+    output = "%s-bin" % f.name
+    cmd = "{compiler} {cflags} {src} -o {out}".format(compiler=compiler, cflags=cflags,
+                                                      src=f.name, out=output)
+    out, status = run_command(cmd)
+    if os.path.exists(output):
+        os.unlink(output)
+    os.unlink(f.name)
+
+    return status
+
+def handle_ccode_check(args, conf):
+    dep = conf["dependency"].upper()
+    source = ""
+    for i in conf["headers"]:
+        source += "#include %s\n" % i
+
+    fragment = conf.get("fragment") or ""
+    cstub = "{headers}\nint main(int argc, char **argv){{\n {fragment} return 0;\n}}"
+    source = cstub.format(headers=source, fragment=fragment)
+    success = compile_test(source, args.compiler, args.cflags)
+
+    if success:
+        cfg_cflags["%s_CFLAGS" % dep] = conf.get("cflags") or ""
+        cfg_ldflags["%s_LDFLAGS" % dep] = conf.get("ldflags") or ""
+        cfg_kconfig["HAVE_%s" % dep] = "y"
+    else:
+        cfg_kconfig["HAVE_%s" % dep] = "n"
+
+def handle_exec_check(args, conf):
+    dep = conf["dependency"].upper()
+    path = which(conf["exec"]) or None
+
+    makefile_vars[dep] = path
+
+def handle_python_check(args, conf):
+    dep = conf["dependency"].upper()
+
+    if conf.get("pkgname"):
+        source = "import %s" % conf.get("pkgname")
+
+    f = tempfile.NamedTemporaryFile(suffix=".py",delete=False)
+    f.write(bytes(source, 'UTF-8'))
+    f.close()
+
+    cmd = "%s %s" % (sys.executable, f.name)
+    output, status = run_command(cmd)
+    makefile_vars["HAVE_PYTHON_%s" % dep] = "y" if status else "n"
+
+type_handlers = {
+    "pkg-config": handle_pkgconfig_check,
+    "ccode": handle_ccode_check,
+    "exec": handle_exec_check,
+    "python": handle_python_check,
 }
 
-header_deps = {
-    "KDBUS": "<systemd/sd-bus.h>",
-    "PTHREAD": "<pthread.h>",
-    "RIOTOS": "<riotos/cpu.h>",
-    "DLFCN_H": "<dlfcn.h>",
-}
+def var_str(items):
+    output = ""
+    for k,v in items:
+        if not v: continue
+        output += "%s ?= %s\n" % (k, v)
+    return output
 
-exec_deps = {
-    "VALGRIND": "valgrind",
-    "LCOV": "lcov",
-    "GENHTML": "genhtml",
-}
+def makefile_gen(args):
+    output = ""
+    output += var_str(makefile_vars.items())
+    output += var_str(cfg_cflags.items())
+    output += var_str(cfg_ldflags.items())
+    f = open(args.makefile_output, "w+")
+    f.write(output)
+    f.close()
 
-cfragment_deps = {
-    "ACCEPT4": {"fragment": "accept4(0, 0, 0, 0);", "headers": ["<sys/socket.h>"]},
-    "ISATTY": {"fragment": "isatty(0);", "headers": ["<unistd.h>"]},
-    "PPOLL": {"fragment": "ppoll(0, 0, 0, 0);", "headers": ["<poll.h>"]},
-    "DECL_STRNDUPA": {"fragment": "strndupa(0, 0);", "headers": ["<string.h>"]},
-    "DECL_IFLA_INET6_ADDR_GEN_MODE": {"fragment": "int v = IFLA_INET6_ADDR_GEN_MODE;", \
-                                      "headers": ["<netinet/in.h>", "<netinet/ether.h>", \
-                                                  "<linux/rtnetlink.h>", "<net/if.h>" \
-                                                  "<linux/if_link.h>", "<linux/if_addr.h>"]},
-}
-
-python_pkg_deps = {
-    "PYTHON_JSONSCHEMA" : "jsonschema"
-}
-
-makefile_gen = []
-kconfig_gen = []
-
-compiler = "gcc"
-cflags = ""
-
-def kconfig_add(key, enabled):
-    item = "config {config}\n{indent}bool\n{indent}default {enabled}". \
-           format(config="HAVE_%s" % key, indent="       ", enabled=enabled)
-    kconfig_gen.append(item)
-
-def pkg_config_discover():
-    for k,v in pkg_config_deps.items():
-        cmd = "pkg-config --libs %s --cflags" % v
-        enabled = "n"
-        flags = ""
-        try:
-            flags = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                            shell=True, universal_newlines=True)
-            flags = flags.replace("\n", "")
-            enabled = "y"
-        except subprocess.CalledProcessError as e:
-            flags = None
-
-        if flags is not None:
-            line = "ifeq (y,$(USE_%s))\n" % k
-            line = "%s%s_CFLAGS += %s\n" % (line, k, flags)
-            line = "%sendif\n" % line
-            makefile_gen.append(line)
-
-        kconfig_add(k, enabled)
-
-def python_dep_test():
-    for k,v in python_pkg_deps.items():
-        found = "y"
-        source = "import jsonschema"
-        f = tempfile.NamedTemporaryFile(suffix=".py",delete=False)
-        f.write(bytes(source, 'UTF-8'))
-        f.close()
-
-        try:
-            cmd = "%s %s" % (sys.executable, f.name)
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                    shell=True, universal_newlines=True)
-        except subprocess.CalledProcessError as e:
-            found = "n"
-
-        line = "HAVE_%s := %s\n" % (k, found)
-        makefile_gen.append(line)
-        os.unlink(f.name)
-
-def fragment_dep_test():
-    for k,v in cfragment_deps.items():
-        enabled = "y"
-
-        headers = ""
-        for h in v["headers"]:
-            headers = "%s#include %s\n" %(headers, h)
-
-        source = "%s\nint main(int argc, char **argv){\n %s return 0;\n}" % (headers, v["fragment"])
-        f = tempfile.NamedTemporaryFile(suffix=".c",delete=False)
-        f.write(bytes(source, 'UTF-8'))
-        f.close()
-
-        try:
-            output = "%s-bin" % f.name
-            cmd = "{compiler} {cflags} {src} -o {out}".format(compiler=compiler, cflags=cflags,
-                                                              src=f.name, out=output)
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                    shell=True, universal_newlines=True)
-            os.unlink(output)
-        except subprocess.CalledProcessError as e:
-            enabled = "n"
-
-        os.unlink(f.name)
-        kconfig_add(k, enabled)
-
-def header_dep_test():
-    for k,v in header_deps.items():
-        enabled = "y"
-        source = "#include %s\nint main(int argc, char **argv){\n    return 0;\n}" % v
-        f = tempfile.NamedTemporaryFile(suffix=".c",delete=False)
-        f.write(bytes(source, 'UTF-8'))
-        f.close()
-
-        try:
-            output = "%s-bin" % f.name
-            cmd = "{compiler} {cflags} {src} -o {out}".format(compiler=compiler, cflags=cflags,
-                                                              src=f.name, out=output)
-            subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                    shell=True, universal_newlines=True)
-            os.unlink(output)
-        except subprocess.CalledProcessError as e:
-            enabled = "n"
-
-        os.unlink(f.name)
-        kconfig_add(k, enabled)
-
-def exec_discover():
-    for k,v in exec_deps.items():
-        path = which(v) or ""
-        
-        line = "%s ?= %s\n" % (k, path)
-        makefile_gen.append(line)
+def kconfig_gen(args):
+    output = ""
+    for k,v in cfg_kconfig.items():
+        output += "config {config}\n{indent}bool\n{indent}default {enabled}\n". \
+                  format(config=k, indent="       ", enabled=v)
+    f = open(args.kconfig_output, "w+")
+    f.write(output)
+    f.close()
 
 if __name__ == "__main__":
-    kconfig = "Kconfig.gen"
-    makefile = "Makefile.gen"
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("--compiler", help="The gcc compiler[for headers based tests]", type=str)
-    parser.add_argument("--cflags", help="Additional cflags[for headers based tests]", type=str)
-    parser.add_argument("--kconfig-output", help="The kconfig fragment output file", type=str)
-    parser.add_argument("--makefile-output", help="The makefile fragment output file", type=str)
+    parser.add_argument("--compiler", help="The gcc compiler[for headers based tests]",
+                        type=str, default="gcc")
+    parser.add_argument("--cflags", help="Additional cflags[for headers based tests]",
+                        type=str, default="")
+    parser.add_argument("--kconfig-output", help="The kconfig fragment output file",
+                        type=str, default="Kconfig.gen")
+    parser.add_argument("--makefile-output", help="The makefile fragment output file",
+                        type=str, default="Makefile.gen")
+    parser.add_argument("--dep-config", help="The dependencies config file",
+                        type=argparse.FileType("r"), default="data/jsons/dependencies.json")
 
     args = parser.parse_args()
+    conf = json.loads(args.dep_config.read())
+    dep_checks = conf["dependencies"]
 
-    if (args.compiler):
-        compiler = args.compiler
-
-    if (args.cflags):
-        cflags = args.cflags
-
-    if (args.kconfig_output):
-        kconfig = args.kconfig_output
-
-    pkg_config_discover()
-    header_dep_test()
-    fragment_dep_test()
-    exec_discover()
-    python_dep_test()
-
-    fragment = ""
-    for i in kconfig_gen:
-        fragment += "%s\n" % i
-
-    f = open(kconfig, mode="w+")
-    f.write(fragment)
-    f.close()
-
-    fragment = ""
-    for i in makefile_gen:
-        fragment += "%s\n" % i
-
-    f = open(makefile, mode="w+")
-    f.write(fragment)
-    f.close()
+    for i in dep_checks:
+        handler = type_handlers[i["type"]]
+        if not handler:
+            print("Could not handle type: %s" % i["type"])
+            continue
+        handler(args, i)
+    makefile_gen(args)
+    kconfig_gen(args)
