@@ -36,6 +36,7 @@ parse-common-module = \
 	$(call gen-artifact,$(1),$(filter %.json,$(artifacts))) \
 	$(eval mod-objs     := $(filter %.o,$(artifacts))) \
 	$(eval $(1)-cflags  := $(obj-$(1)-$(3)-extra-cflags)) \
+	$(eval $(1)-ldflags := $(obj-$(1)-$(3)-extra-ldflags)) \
 	$(eval $(1)-bs      := $(addprefix $(2),Makefile Kconfig)) \
 	$(eval $(1)-hdrs    := $(filter %.h,$(artifacts))) \
 	$(foreach obj,$(mod-objs), \
@@ -49,6 +50,7 @@ parse-common-module = \
 parse-builtin-module = \
 	$(call parse-common-module,$(1),$(2),y) \
 	$(eval builtin-cflags      += $($(1)-cflags)) \
+	$(eval builtin-ldflags     += $($(1)-ldflags)) \
 	$(eval builtin-objs        += $($(1)-objs)) \
 	$(eval builtin-flows       += $(call flow-type,$(artifacts))) \
 	$(eval builtin-linux-micro += $(call linux-micro-type,$(artifacts))) \
@@ -171,7 +173,7 @@ define make-object
 $(1): $(PRE_GEN) $($(1)-src) $(call find-deps,$(2)) $(find-gen-hdrs)
 	$(Q)echo "      "CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(1))
-	$(Q)$(TARGETCC) $(LIB_CFLAGS) $($(1)-src) -c -o $(1) $(3) $(LIB_COVERAGE_FLAGS) $($(2)-cflags)
+	$(Q)$(TARGETCC) $(LIB_CFLAGS) $($(1)-src) -c -o $(1) $(3) $(LIB_COVERAGE_FLAGS) $($(2)-cflags) $($(2)-ldflags)
 endef
 $(foreach mod,$(modules), \
 	$(foreach obj,$($(mod)-objs),$(eval $(call make-object,$(obj),$(mod),$(external-module-flags)))) \
@@ -185,7 +187,7 @@ define make-mod-so
 $($(1)-out): $(SOL_LIB_SO) $(INT_LIB_AR) $(PRE_GEN) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)echo "     "MOD"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
-	$(Q)$(TARGETCC) $($(1)-objs) -shared -o $($(1)-out) $(LIB_COVERAGE_FLAGS) $($(1)-cflags)
+	$(Q)$(TARGETCC) $($(1)-objs) -shared -o $($(1)-out) $(LIB_COVERAGE_FLAGS) $($(1)-cflags) $($(1)-ldflags)
 endef
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
 
@@ -206,7 +208,7 @@ $(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(INT_LIB_AR) $(builtin-objs)
 	$(Q)echo "      "LD"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_SO))
 	$(Q)$(TARGETCC) $(builtin-objs) -shared -o $(@).$(VERSION) $(TARGET_LINKFLAGS) \
-		$(LIB_COVERAGE_FLAGS) $(builtin-cflags)
+		$(LIB_COVERAGE_FLAGS) $(builtin-cflags) $(builtin-ldflags)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
 $(DEPENDENCY_FILES): $(DEPENDENCY_SCRIPT)
