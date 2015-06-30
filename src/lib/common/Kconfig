@@ -81,10 +81,6 @@ config DEFAULT_LOG_LEVEL_DEBUG
 	bool "debug"
 endchoice
 
-config INSPECTOR
-	bool "Inspector"
-	default y
-
 config KDBUS
 	bool "Kdbus"
 	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_KDBUS
