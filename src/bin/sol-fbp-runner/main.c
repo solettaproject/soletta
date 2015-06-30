@@ -44,6 +44,7 @@
 static struct {
     const char *filename;
     bool check_only;
+    bool provide_sim_nodes;
 } args;
 
 static struct runner *the_runner;
@@ -63,6 +64,7 @@ usage(const char *program)
         "Options:\n"
         "    -c  Check syntax only. The program will exit as soon as the flow\n"
         "        is built and the syntax is verified.\n"
+        "    -s  Provide simulation nodes for flows with exported ports.\n"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "    -D  Debug the flow by printing connections and packets to stdout.\n"
 #endif
@@ -74,7 +76,7 @@ static bool
 parse_args(int argc, char *argv[])
 {
     int opt;
-    const char known_opts[] = "ch"
+    const char known_opts[] = "chs"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
                               "D"
 #endif
@@ -84,6 +86,9 @@ parse_args(int argc, char *argv[])
         switch (opt) {
         case 'c':
             args.check_only = true;
+            break;
+        case 's':
+            args.provide_sim_nodes = true;
             break;
         case 'h':
             usage(argv[0]);
@@ -115,7 +120,7 @@ startup(void *data)
     bool finished = true;
     int result = EXIT_FAILURE;
 
-    the_runner = runner_new(args.filename);
+    the_runner = runner_new(args.filename, args.provide_sim_nodes);
     if (!the_runner)
         goto end;
 
