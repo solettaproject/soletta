@@ -206,10 +206,10 @@ $($(1)-out): $(PRE_GEN) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 endef
 $(foreach curr,$(mod-ar),$(eval $(call make-mod-ar,$(curr))))
 
-$(SOL_LIB_AR): $(PRE_GEN) $(builtin-objs)
+$(SOL_LIB_AR): $(PRE_GEN) $(all-objs)
 	$(Q)echo "      "AR"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_AR))
-	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(builtin-objs)
+	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(all-objs)
 
 $(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(INT_LIB_AR) $(builtin-objs)
 	$(Q)echo "      "LD"   "$(@)
