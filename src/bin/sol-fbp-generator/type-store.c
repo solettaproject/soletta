@@ -307,6 +307,9 @@ read_port(struct decoder *d, struct port_description *p)
         accept(d, SOL_JSON_TYPE_ELEMENT_SEP);
     }
 
+    if (!p->name || !p->data_type)
+        return false;
+
     return accept(d, SOL_JSON_TYPE_OBJECT_END);
 }
 
@@ -573,6 +576,9 @@ read_option(struct decoder *d, struct option_description *o)
         skip(d);
     }
 
+    if (!o->name || !o->data_type)
+        return false;
+
     /* The default_value might be read before the data_type, so we
      * delay parsing it until we finish reading all properties for an
      * option. */
@@ -709,6 +715,12 @@ read_type(struct decoder *d, struct type_description *desc)
             break;
         accept(d, SOL_JSON_TYPE_ELEMENT_SEP);
     }
+
+    if (!desc->name || !desc->symbol)
+        return false;
+
+    if (desc->options.len > 0 && !desc->options_symbol)
+        return false;
 
     return accept(d, SOL_JSON_TYPE_OBJECT_END);
 }
