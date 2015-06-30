@@ -157,7 +157,7 @@ arrow_state(struct sol_fbp_scanner *s)
 }
 
 static void *export_state(struct sol_fbp_scanner *s);
-static void *port_array_state(struct sol_fbp_scanner *s);
+static void *export_port_array_state(struct sol_fbp_scanner *s);
 
 static void *
 export_ident_state(struct sol_fbp_scanner *s)
@@ -166,6 +166,34 @@ export_ident_state(struct sol_fbp_scanner *s)
         next(s);
     set_token(s, SOL_FBP_TOKEN_IDENTIFIER);
     return export_state;
+}
+
+static void *
+export_port_index_state(struct sol_fbp_scanner *s)
+{
+    while (isdigit(peek(s)))
+        next(s);
+    set_token(s, SOL_FBP_TOKEN_INTEGER);
+    return export_port_array_state;
+}
+
+static void *
+export_port_array_state(struct sol_fbp_scanner *s)
+{
+    char c = peek(s);
+
+    switch (c) {
+    case ']':
+        next(s);
+        set_token(s, SOL_FBP_TOKEN_BRACKET_CLOSE);
+        return export_state;
+
+    default:
+        if (isdigit(c)) {
+            return export_port_index_state;
+        }
+        return error_state;
+    }
 }
 
 static void *
@@ -187,7 +215,7 @@ export_state(struct sol_fbp_scanner *s)
     case '[':
         next(s);
         set_token(s, SOL_FBP_TOKEN_BRACKET_OPEN);
-        return port_array_state;
+        return export_port_array_state;
 
     case ',':
     case ' ':
@@ -350,6 +378,8 @@ identifier_or_keyword_state(struct sol_fbp_scanner *s)
 
     return next_state;
 }
+
+static void *port_array_state(struct sol_fbp_scanner *s);
 
 static void *
 port_index_state(struct sol_fbp_scanner *s)

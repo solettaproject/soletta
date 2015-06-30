@@ -209,6 +209,22 @@ static struct test_entry scan_tests[] = {
         },
     },
     {
+        "OUTPORT=Counter.OUT[0]:OUT",
+        TOKENS {
+            SOL_FBP_TOKEN_OUTPORT_KEYWORD,
+            SOL_FBP_TOKEN_EQUAL,
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_DOT,
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_BRACKET_OPEN,
+            SOL_FBP_TOKEN_INTEGER,
+            SOL_FBP_TOKEN_BRACKET_CLOSE,
+            SOL_FBP_TOKEN_COLON,
+            SOL_FBP_TOKEN_IDENTIFIER,
+            SOL_FBP_TOKEN_EOF,
+        },
+    },
+    {
         "INPORT=Read.IN:FILENAME, Read(ReadFile) OUT -> IN Display(Output)",
         TOKENS {
             SOL_FBP_TOKEN_INPORT_KEYWORD,
