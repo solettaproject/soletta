@@ -49,7 +49,7 @@ static pid_t _main_pid;
 static struct sol_str_table *_env_levels = NULL;
 static char *_env_levels_str = NULL;
 
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
 #include <pthread.h>
 static pthread_t _main_thread;
 static pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -396,7 +396,7 @@ sol_log_impl_init(void)
     if (_main_pid == 0)
         _main_pid = getpid();
 
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
     if (_main_thread == 0)
         _main_thread = pthread_self();
 #endif
@@ -447,7 +447,7 @@ sol_log_impl_shutdown(void)
 {
     _env_levels_unload();
     _main_pid = 0;
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
     _main_thread = 0;
     pthread_mutex_destroy(&_mutex);
 #endif
@@ -456,7 +456,7 @@ sol_log_impl_shutdown(void)
 bool
 sol_log_impl_lock(void)
 {
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
     int error = pthread_mutex_lock(&_mutex);
     if (!error)
         return true;
@@ -471,7 +471,7 @@ sol_log_impl_lock(void)
 void
 sol_log_impl_unlock(void)
 {
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
     pthread_mutex_unlock(&_mutex);
 #endif
 }
@@ -501,7 +501,7 @@ sol_log_impl_print_function_stderr(void *data, const struct sol_log_domain *doma
 
     if (_main_pid != getpid())
         fprintf(stderr, "P%u ", getpid());
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
     if (_main_thread != pthread_self())
         fprintf(stderr, "T%lu ", pthread_self());
 #endif
@@ -576,7 +576,7 @@ sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uin
 
     if (_main_pid != getpid())
         fprintf(fp, "P:%u ", getpid());
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
     if (_main_thread != pthread_self())
         fprintf(fp, "T:%lu ", pthread_self());
 #endif
@@ -658,7 +658,7 @@ sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, 
     sd_journal_send_with_location(code_file, code_line, function,
         "PRIORITY=%i", sd_level,
         "MESSAGE=%s", msg ? msg : format,
-#ifdef HAVE_PTHREAD_H
+#ifdef PTHREAD
         "THREAD=%" PRIu64, (uint64_t)pthread_self(),
 #endif
         NULL);

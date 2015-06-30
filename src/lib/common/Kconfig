@@ -26,7 +26,6 @@ config PLATFORM_RIOTOS
 config PLATFORM_SYSTEMD
 	bool "systemd"
 	depends on HAVE_SYSTEMD
-	select USE_SYSTEMD
 	select SOL_PLATFORM_LINUX
 	select KDBUS
 endchoice
@@ -39,7 +38,6 @@ choice
 config MAINLOOP_GLIB
 	bool "glib"
 	depends on SOL_PLATFORM_LINUX && HAVE_GLIB
-	select USE_GLIB
 
 config MAINLOOP_POSIX
 	bool "posix"
@@ -53,12 +51,11 @@ endchoice
 
 config PTHREAD
         bool "Pthread"
-        depends on HAVE_PTHREAD && SOL_PLATFORM_LINUX
+        depends on HAVE_PTHREAD_H && SOL_PLATFORM_LINUX
         default y
 
 config LOG
 	bool "Log"
-	select USE_SYSTEMD
 	default y
 
 choice
@@ -91,7 +88,6 @@ config INSPECTOR
 config KDBUS
 	bool "Kdbus"
 	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_KDBUS
-	select USE_GLIB
 	default n
 
 config SOCKET_LINUX
