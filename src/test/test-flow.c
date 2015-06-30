@@ -31,10 +31,13 @@
  */
 
 #include "sol-flow.h"
-#include "sol-flow-node-types.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-vector.h"
+
+#include "console-gen.h"
+#include "pwm-gen.h"
+#include "timer-gen.h"
 
 #include "test.h"
 

@@ -348,7 +348,6 @@ API see the output of sol-fbp-generator.
 ```C
         #include "sol-mainloop.h"
         #include "sol-flow-builder.h"
-        #include "sol-flow-node-types.h"
 
         int main(void) {
             struct sol_flow_node_type *node_type;

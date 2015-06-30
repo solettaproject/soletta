@@ -419,7 +419,6 @@ generate(struct sol_fbp_graph *g, struct type_description **descs)
     uint16_t i, j;
 
     printf("#include \"sol-flow.h\"\n"
-        "#include \"sol-flow-node-types.h\"\n"
         "#include \"sol-mainloop.h\"\n"
         "\n"
         "static struct sol_flow_node *flow;\n\n");
