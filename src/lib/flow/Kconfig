@@ -7,10 +7,14 @@ config RESOLVER_CONFFILE
 	depends on FLOW
 	default y
 
-config FLOW_RESOLVER
-	bool "Flow resolver"
-	depends on FLOW
+config NODE_DESCRIPTION
+	bool "Node description support"
+	depends on RESOLVER_CONFFILE
 	default y
+	help
+            Add node description support to enable runtime introspection.
+
+            If unsure, say Y.
 
 menu "Node Types"
 	depends on FLOW
