@@ -28,9 +28,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Takes an irange, add 22 and outputs it.
+# Takes an irange, add 22 (or the value passed in options) and outputs it.
 
 INPORT=adder.IN1:IN
 OUTPORT=adder.OUT:OUT
+OPTION=add_value.value:add_value
 
-_(constant/int:value=22) OUT -> IN0 adder(int/addition)
+add_value(constant/int:value=22) OUT -> IN0 adder(int/addition)
