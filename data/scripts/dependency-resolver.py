@@ -47,7 +47,7 @@ pkg_config_deps = {
 
 header_deps = {
     "KDBUS": "<systemd/sd-bus.h>",
-    "PTHREAD": "<pthread.h>",
+    "PTHREAD_H": "<pthread.h>",
     "RIOTOS": "<riotos/cpu.h>",
     "DLFCN_H": "<dlfcn.h>",
 }

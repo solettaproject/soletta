@@ -53,7 +53,7 @@ endchoice
 
 config PTHREAD
         bool "Pthread"
-        depends on HAVE_PTHREAD && SOL_PLATFORM_LINUX
+        depends on HAVE_PTHREAD_H && SOL_PLATFORM_LINUX
         default y
 
 config LOG
