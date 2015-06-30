@@ -60,6 +60,8 @@ CONST_SLICE(OPTIONS_SYMBOL_SLICE, "options_symbol");
 CONST_SLICE(IN_PORTS_SLICE, "in_ports");
 CONST_SLICE(OUT_PORTS_SLICE, "out_ports");
 CONST_SLICE(DATA_TYPE_SLICE, "data_type");
+CONST_SLICE(ARRAY_SIZE_SLICE, "array_size");
+CONST_SLICE(BASE_PORT_IDX_SLICE, "base_port_idx");
 CONST_SLICE(OPTIONS_SLICE, "options");
 CONST_SLICE(MEMBERS_SLICE, "members");
 CONST_SLICE(DEFAULT_SLICE, "default");
@@ -155,6 +157,30 @@ static char *
 get_string(struct sol_json_token *token)
 {
     return strndup(token->start + 1, token->end - token->start - 2);
+}
+
+static int
+get_int(struct sol_json_token *token, int *value)
+{
+    int v;
+    char *str, *endptr = NULL;
+
+    str = strndupa(token->start, token->end - token->start);
+
+    errno = 0;
+    v = strtol(str, &endptr, 0);
+
+    if (errno)
+        return -errno;
+
+    if (*endptr != 0)
+        return -EINVAL;
+
+    if ((long)(int)v != v)
+        return -ERANGE;
+
+    *value = v;
+    return 0;
 }
 
 static bool
@@ -277,6 +303,16 @@ read_string_property_value(struct decoder *d, struct sol_json_token *value)
 }
 
 static bool
+read_int_property_value(struct decoder *d, struct sol_json_token *value)
+{
+    if (!accept(d, SOL_JSON_TYPE_PAIR_SEP))
+        return false;
+    if (next(d, value) != SOL_JSON_TYPE_NUMBER)
+        return false;
+    return true;
+}
+
+static bool
 read_port(struct decoder *d, struct port_description *p)
 {
     while (true) {
@@ -298,6 +334,16 @@ read_port(struct decoder *d, struct port_description *p)
                 return false;
             p->data_type = get_string(&value);
 
+        } else if (sol_str_slice_eq(key_slice, ARRAY_SIZE_SLICE)) {
+            if (!read_int_property_value(d, &value))
+                return false;
+            get_int(&value, &p->array_size);
+
+        } else if (sol_str_slice_eq(key_slice, BASE_PORT_IDX_SLICE)) {
+            if (!read_int_property_value(d, &value))
+                return false;
+            get_int(&value, &p->base_port_idx);
+
         } else if (!skip_property_value(d)) {
             return false;
         }
@@ -307,7 +353,7 @@ read_port(struct decoder *d, struct port_description *p)
         accept(d, SOL_JSON_TYPE_ELEMENT_SEP);
     }
 
-    if (!p->name || !p->data_type)
+    if (!p->name || !p->data_type || p->array_size == -1 || p->base_port_idx == -1)
         return false;
 
     return accept(d, SOL_JSON_TYPE_OBJECT_END);
@@ -332,6 +378,8 @@ read_ports_array(struct decoder *d, struct sol_vector *ports)
             return false;
         p->name = NULL;
         p->data_type = NULL;
+        p->array_size = -1;
+        p->base_port_idx = -1;
 
         if (!read_port(d, p))
             return false;
