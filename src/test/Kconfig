@@ -69,3 +69,7 @@ config TEST_STR_TABLE
 config TEST_VECTOR
 	bool "vector"
 	default y
+
+config TEST_JSON
+	bool "json"
+	default y
