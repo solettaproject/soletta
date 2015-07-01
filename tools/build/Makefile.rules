@@ -331,7 +331,7 @@ $(COMMON_BUILDOPTS_H): $(COMMON_BUILDOPTS_H_IN) $(KCONFIG_CONFIG)
 $(PC_GEN): $(PC_GEN_IN)
 	$(Q)echo "     "GEN"   "$(PC_GEN)
 	$(Q)$(MKDIR) -p $(dir $(PC_GEN))
-	$(Q)$(CAT) $(<) | $(SED) 's#@prefix@#$(CONFG_PREFIX)#g' | \
+	$(Q)$(CAT) $(<) | $(SED) 's#@prefix@#$(PREFIX)#g' | \
 		$(SED) 's#@exec_prefix@#$(PREFIX)#g' | \
 		$(SED) 's#@libdir@#$(LIBDIR)#g' | \
 		$(SED) 's#@includedir@#$(INCLUDEDIR)#g' | \
