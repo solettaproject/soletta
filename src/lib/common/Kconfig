@@ -321,6 +321,10 @@ config USE_SPI
 config USE_UART
 	bool "UART Support"
 	default y
+
+config USE_I2C
+	bool "I2C Support"
+	default y
 endmenu
 
 config SOCKET_LINUX
