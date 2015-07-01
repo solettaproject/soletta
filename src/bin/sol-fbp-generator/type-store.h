@@ -39,6 +39,8 @@ struct type_store;
 struct port_description {
     char *name;
     char *data_type;
+    int array_size;
+    int base_port_idx;
 };
 
 enum option_value_type {

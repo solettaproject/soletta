@@ -1126,32 +1126,48 @@ def generate_description_entry(descriptions, data):
     if "in_ports" in data:
         in_ports = []
         entry["in_ports"] = in_ports
+        base_port_idx = 0
         for genspec_port in data["in_ports"]:
             definition_port = {}
             in_ports.append(definition_port)
+            pname, psize = port_name_and_size(genspec_port["name"])
+            definition_port["name"] = pname
+            definition_port["array_size"] = psize
+            definition_port["base_port_idx"] = base_port_idx
             dict_copy_nonempty_keys(definition_port,
                                     genspec_port,
-                                    ("name",
-                                     "description",
+                                    ("description",
                                      "required",
                                      "data_type"))
             if "required" not in definition_port:
                 definition_port["required"] = False
+            if psize == 0:
+                base_port_idx += 1
+            else:
+                base_port_idx += psize
 
     if "out_ports" in data:
         out_ports = []
         entry["out_ports"] = out_ports
+        base_port_idx = 0
         for genspec_port in data["out_ports"]:
             definition_port = {}
             out_ports.append(definition_port)
+            pname, psize = port_name_and_size(genspec_port["name"])
+            definition_port["name"] = pname
+            definition_port["array_size"] = psize
+            definition_port["base_port_idx"] = base_port_idx
             dict_copy_nonempty_keys(definition_port,
                                     genspec_port,
-                                    ("name",
-                                     "description",
+                                    ("description",
                                      "required",
                                      "data_type"))
             if "required" not in definition_port:
                 definition_port["required"] = False
+            if psize == 0:
+                base_port_idx += 1
+            else:
+                base_port_idx += psize
 
 
 if __name__ == "__main__":
