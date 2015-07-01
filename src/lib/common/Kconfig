@@ -117,6 +117,12 @@ config USE_I2C
 	help
           Enables I2C support.
 	default y
+
+config USE_GPIO
+	bool "GPIO Support"
+	help
+          Enables GPIO support.
+	default y
 endmenu
 
 config SOCKET_LINUX
@@ -126,6 +132,7 @@ config SOCKET_LINUX
 
 menuconfig HAVE_PIN_MUX
         bool "Pin Multiplexer"
+        depends on USE_GPIO
         default n
         help
           Pin Multiplexer is a feature that helps to setup
