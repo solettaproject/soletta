@@ -1,3 +1,0 @@
-config INTERNAL_SHARED
-	tristate
-	default m
