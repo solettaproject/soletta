@@ -11,7 +11,7 @@ PHONY += check-fbp
 ifeq (y,$(HAVE_VALGRIND))
 check-valgrind: $(SOL_LIB_SO) $(SOL_LIB_AR) $(tests-out)
 	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)" \
-		--valgrind=$(VALGRIND) --valgrind-supp=$(abpath $(TEST_VALGRIND_SUPP))
+		--valgrind=$(VALGRIND) --valgrind-supp=$(abspath $(TEST_VALGRIND_SUPP))
 
 check-fbp-valgrind: $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
 	$(Q)SOL_FBP_RUNNER_BIN="$(abspath $(SOL_FBP_RUNNER_BIN))" \

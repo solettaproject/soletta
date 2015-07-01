@@ -91,9 +91,6 @@ def run_valgrind_test(args):
     common_args = "--error-exitcode=1 --num-callers=30"
     valgrind_tools = {
         'memcheck': '--leak-check=full --show-reachable=no',
-        'helgrind': '--history-level=approx',
-        'drd': None,
-        'exp-sgcheck': None,
     }
 
     for k,v in valgrind_tools.items():
@@ -102,7 +99,7 @@ def run_valgrind_test(args):
         threads = []
 
         for i in args.tests.split():
-            cmd = "{valgrind} {test_path} {supp} --tool={tool} {tool_args} {common}". \
+            cmd = "{valgrind} {supp} --tool={tool} {tool_args} {common} {test_path}". \
                   format(valgrind=args.valgrind, test_path=i, supp=args.valgrind_supp, \
                          tool=k, tool_args=v, common=common_args)
             t = Thread(target=run_test_program, args=(cmd, i, stat, log,))
