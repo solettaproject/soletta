@@ -809,34 +809,7 @@ mark_own_opts(struct sol_flow_builder *builder, uint16_t node_idx)
 }
 
 SOL_API int
-sol_flow_builder_add_node_by_id(struct sol_flow_builder *builder, const char *id)
-{
-    struct sol_flow_static_node_spec node_spec;
-    int r;
-
-    SOL_NULL_CHECK(builder, -EBADR);
-
-    node_spec.name = id;
-    r = find_type(builder->resolver, id, NULL, &node_spec.type, &node_spec.opts);
-    if (r < 0)
-        return r;
-
-    r = sol_flow_builder_add_node(builder, node_spec.name, node_spec.type,
-        node_spec.opts);
-    if (r < 0) {
-        if (node_spec.opts) {
-            sol_flow_node_options_del(node_spec.type,
-                (struct sol_flow_node_options *)node_spec.opts);
-        }
-    }
-
-    mark_own_opts(builder, builder->nodes.len - 1);
-    return 0;
-}
-
-
-SOL_API int
-sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const char *id, const char *type, const char *const *options_strv)
+sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const char *name, const char *type_name, const char *const *options_strv)
 {
     const struct sol_flow_node_options *opts = NULL;
     const struct sol_flow_node_type *node_type = NULL;
@@ -844,23 +817,23 @@ sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const char *
     int r;
 
     SOL_NULL_CHECK(builder, -EBADR);
-    SOL_NULL_CHECK(id, -EBADR);
-    SOL_NULL_CHECK(type, -EBADR);
+    SOL_NULL_CHECK(name, -EBADR);
+    SOL_NULL_CHECK(type_name, -EBADR);
 
     builtins_resolver = sol_flow_get_builtins_resolver();
 
     /* Ensure that we'll always find builtin types regardless of the
      * resolver used. */
     if (builtins_resolver != builder->resolver)
-        find_type(builtins_resolver, type, options_strv, &node_type, &opts);
+        find_type(builtins_resolver, type_name, options_strv, &node_type, &opts);
 
     if (!node_type) {
-        r = find_type(builder->resolver, type, options_strv, &node_type, &opts);
+        r = find_type(builder->resolver, type_name, options_strv, &node_type, &opts);
         if (r < 0)
             return r;
     }
 
-    r = sol_flow_builder_add_node(builder, id, node_type, opts);
+    r = sol_flow_builder_add_node(builder, name, node_type, opts);
     if (r < 0) {
         sol_flow_node_options_del(node_type, (struct sol_flow_node_options *)opts);
     } else {
