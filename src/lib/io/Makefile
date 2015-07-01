@@ -1,7 +1,9 @@
 obj-$(IO) += io.mod
 
-obj-io-$(IO) := \
+ifeq (y, $(USE_GPIO))
+obj-io-$(IO) += \
     sol-gpio-common.o
+endif
 
 ifeq (y, $(USE_PWM))
 obj-io-$(IO) += \
@@ -14,8 +16,10 @@ obj-io-$(IO) += \
 endif
 
 ifeq (y,$(PLATFORM_RIOTOS))
+ifeq (y, $(USE_GPIO))
 obj-io-$(IO) += \
     sol-gpio-riot.o
+endif # USE_GPIO
 
 ifeq (y, $(USE_PWM))
 obj-io-$(IO) += \
@@ -39,13 +43,17 @@ endif # USE_I2C
 endif # PLATFORM_RIOTOS
 
 ifeq (y,$(PLATFORM_CONTIKI))
+ifeq (y, $(USE_GPIO))
 obj-io-$(IO) += \
     sol-gpio-contiki.o
-endif
+endif # USE_GPIO
+endif # PLATFORM_CONTIKI
 
 ifeq (y,$(SOL_PLATFORM_LINUX))
+ifeq (y, $(USE_GPIO))
 obj-io-$(IO) += \
     sol-gpio-linux.o
+endif # USE_GPIO
 
 ifeq (y, $(USE_PWM))
 obj-io-$(IO) += \
@@ -68,8 +76,10 @@ obj-io-$(IO) += \
 endif # USE_I2C
 endif # PLATFORM_LINUX
 
-headers-$(IO) := \
+ifeq (y, $(USE_GPIO))
+headers-$(IO) += \
     include/sol-gpio.h
+endif
 
 ifeq (y, $(USE_PWM))
 headers-$(IO) += \
