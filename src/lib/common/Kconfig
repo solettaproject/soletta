@@ -92,6 +92,12 @@ config HARDWARE_PWM
 	help
           Globaly enables pwm hardware support.
 	default y
+
+config HARDWARE_SPI
+	bool "spi"
+	help
+          Globaly enables spi hardware support.
+	default y
 endmenu
 
 

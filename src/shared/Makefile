@@ -27,14 +27,23 @@ ifeq (y,$(HARDWARE_PWM))
 obj-libshared-m += sol-pwm-riot.o
 endif
 
+ifeq (y,$(HARDWARE_SPI))
+obj-libshared-m += sol-spi-riot.o
+endif
+
 obj-libshared-m += sol-gpio-riot.o sol-i2c-riot.o
-obj-libshared-m += sol-spi-riot.o sol-uart-riot.o sol-network-riot.o
+obj-libshared-m += sol-uart-riot.o sol-network-riot.o
 endif
 
 ifeq (y,$(SOL_PLATFORM_LINUX))
 ifeq (y,$(HARDWARE_PWM))
 obj-libshared-m += sol-pwm-linux.o
 endif
+
+ifeq (y,$(HARDWARE_SPI))
+obj-libshared-m += sol-spi-linux.o
+endif
+
 obj-libshared-m += sol-file-reader.o sol-gpio-linux.o sol-network-linux.o
-obj-libshared-m += sol-i2c-linux.o sol-spi-linux.o sol-uart-linux.o
+obj-libshared-m += sol-i2c-linux.o sol-uart-linux.o
 endif
