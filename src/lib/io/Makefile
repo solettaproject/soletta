@@ -1,18 +1,21 @@
 obj-$(IO) += io.mod
 
 obj-io-$(IO) := \
-    sol-gpio-common.o \
-    sol-i2c-common.o
+    sol-gpio-common.o
 
 ifeq (y, $(USE_PWM))
 obj-io-$(IO) += \
     sol-pwm-common.o
 endif
 
+ifeq (y, $(USE_I2C))
+obj-io-$(IO) += \
+    sol-i2c-common.o
+endif
+
 ifeq (y,$(PLATFORM_RIOTOS))
 obj-io-$(IO) += \
-    sol-gpio-riot.o \
-    sol-i2c-riot.o
+    sol-gpio-riot.o
 
 ifeq (y, $(USE_PWM))
 obj-io-$(IO) += \
@@ -28,7 +31,12 @@ ifeq (y, $(USE_UART))
 obj-io-$(IO) += \
     sol-uart-riot.o
 endif # USE_UART
-endif
+
+ifeq (y, $(USE_I2C))
+obj-io-$(IO) += \
+    sol-i2c-riot.o
+endif # USE_I2C
+endif # PLATFORM_RIOTOS
 
 ifeq (y,$(PLATFORM_CONTIKI))
 obj-io-$(IO) += \
@@ -37,8 +45,7 @@ endif
 
 ifeq (y,$(SOL_PLATFORM_LINUX))
 obj-io-$(IO) += \
-    sol-gpio-linux.o \
-    sol-i2c-linux.o
+    sol-gpio-linux.o
 
 ifeq (y, $(USE_PWM))
 obj-io-$(IO) += \
@@ -54,11 +61,15 @@ ifeq (y, $(USE_UART))
 obj-io-$(IO) += \
     sol-uart-linux.o
 endif # USE_UART
-endif
+
+ifeq (y, $(USE_I2C))
+obj-io-$(IO) += \
+    sol-i2c-linux.o
+endif # USE_I2C
+endif # PLATFORM_LINUX
 
 headers-$(IO) := \
-    include/sol-gpio.h \
-    include/sol-i2c.h
+    include/sol-gpio.h
 
 ifeq (y, $(USE_PWM))
 headers-$(IO) += \
@@ -73,4 +84,9 @@ endif
 ifeq (y, $(USE_UART))
 headers-$(IO) += \
     include/sol-uart.h
+endif
+
+ifeq (y, $(USE_I2C))
+headers-$(IO) += \
+    include/sol-i2c.h
 endif
