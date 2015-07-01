@@ -105,8 +105,13 @@ config USE_SPI
 	help
           Enables SPI support.
 	default y
-endmenu
 
+config USE_UART
+	bool "UART Support"
+	help
+          Enables UART support.
+	default y
+endmenu
 
 config SOCKET_LINUX
 	bool "Linux sockets"
