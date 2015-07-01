@@ -34,4 +34,4 @@ obj-core-$(MAINLOOP_POSIX)   += sol-worker-thread-impl-posix.o
 obj-core-y-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 endif
 
-obj-core-$(HAVE_PIN_MUX)     += sol-pin-mux.o
+obj-core-$(USE_PIN_MUX)     += sol-pin-mux.o

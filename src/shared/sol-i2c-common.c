@@ -47,7 +47,7 @@ sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     i2c = sol_i2c_open_raw(bus, speed);
-#ifdef HAVE_PIN_MUX
+#ifdef USE_PIN_MUX
     if (i2c && sol_pin_mux_setup_i2c(bus) < 0) {
         SOL_ERR("Pin Multiplexer Recipe for i2c bus=%u found, but couldn't be applied.", bus);
         sol_i2c_close(i2c);

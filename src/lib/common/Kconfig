@@ -130,7 +130,7 @@ config SOCKET_LINUX
 	depends on SOL_PLATFORM_LINUX
 	default y
 
-menuconfig HAVE_PIN_MUX
+menuconfig USE_PIN_MUX
         bool "Pin Multiplexer"
         depends on USE_GPIO
         default n
