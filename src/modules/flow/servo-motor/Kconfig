@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_SERVO_MOTOR
 	tristate "Node type: servo-motor"
-	depends on FLOW
+	depends on FLOW && HARDWARE_PWM
 	default m

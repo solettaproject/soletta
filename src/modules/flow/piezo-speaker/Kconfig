@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_PIEZO_SPEAKER
 	tristate "Node type: piezo-speaker"
-	depends on FLOW
+	depends on FLOW && HARDWARE_PWM
 	default m
