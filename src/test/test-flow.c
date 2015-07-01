@@ -37,7 +37,11 @@
 #include "sol-vector.h"
 
 #include "console-gen.h"
+
+#ifdef USE_PWM
 #include "pwm-gen.h"
+#endif
+
 #include "timer-gen.h"
 
 #include "test.h"
@@ -1152,13 +1156,17 @@ node_options_from_strv(void)
     const char *timer_strv[2] = { "interval=1000", NULL };
     const char *timer_irange_strv[2] = { "interval=50|20|60|2", NULL };
     const char *timer_irange_different_format_strv[2] = { "interval=val:100|min:10|max:200|step:5", NULL };
+#ifdef USE_PWM
     const char *pwm_strv[6] = { "chip=2", "pin=7", "enabled=true", "period=42", "duty_cycle=88", NULL };
+#endif
     const char *console_strv[4] = { "prefix=console prefix:", "suffix=. suffix!", "output_on_stdout=true", NULL };
     const char *timer_unknown_field_strv[2] = { "this_is_not_a_valid_field=100", NULL };
     const char *timer_wrongly_formatted_strv[2] = { "interval = 1000", NULL };
 
     struct sol_flow_node_type_timer_options *timer_opts;
+#ifdef USE_PWM
     struct sol_flow_node_type_pwm_options *pwm_opts;
+#endif
     struct sol_flow_node_type_console_options *console_opts;
     struct sol_flow_node_options *opts;
 
@@ -1169,6 +1177,7 @@ node_options_from_strv(void)
     ASSERT_INT_EQ(timer_opts->interval.val, 1000);
     sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_TIMER, (struct sol_flow_node_options *)timer_opts);
 
+#ifdef USE_PWM
     /* Multiple options */
     pwm_opts = (struct sol_flow_node_type_pwm_options *)
         sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_PWM, pwm_strv);
@@ -1179,6 +1188,7 @@ node_options_from_strv(void)
     ASSERT_INT_EQ(pwm_opts->period.val, 42);
     ASSERT_INT_EQ(pwm_opts->duty_cycle.val, 88);
     sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_PWM, (struct sol_flow_node_options *)pwm_opts);
+#endif
 
     /* String options */
     console_opts = (struct sol_flow_node_type_console_options *)

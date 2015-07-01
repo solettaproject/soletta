@@ -307,6 +307,13 @@ config KDBUS
 	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_KDBUS
 	default n
 
+menu "Hardware Options"
+config USE_PWM
+	bool "PWM Support"
+	default y
+endmenu
+
+
 config SOCKET_LINUX
 	bool "Linux sockets"
 	depends on SOL_PLATFORM_LINUX && NETWORK
