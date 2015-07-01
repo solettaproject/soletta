@@ -31,18 +31,18 @@
 false(constant/boolean:value=false)
 true(constant/boolean:value=true) 
 
-false OUT -> IN0 or_ff(boolean/or)
-false OUT -> IN1 or_ff
+false OUT -> IN[0] or_ff(boolean/or)
+false OUT -> IN[1] or_ff
 or_ff OUT -> IN not1(boolean/not) OUT -> RESULT false_or_false_is_false(test/result)
 
-false OUT -> IN0 or_ft(boolean/or)
-true OUT -> IN1 or_ft
+false OUT -> IN[0] or_ft(boolean/or)
+true OUT -> IN[1] or_ft
 or_ft OUT -> RESULT false_or_true_is_true(test/result)
 
-true OUT -> IN0 or_tf(boolean/or)
-false OUT -> IN1 or_tf
+true OUT -> IN[0] or_tf(boolean/or)
+false OUT -> IN[1] or_tf
 or_tf OUT -> RESULT true_or_false_is_true(test/result)
 
-true OUT -> IN0 or_tt(boolean/or)
-true OUT -> IN1 or_tt
+true OUT -> IN[0] or_tt(boolean/or)
+true OUT -> IN[1] or_tt
 or_tt OUT -> RESULT true_or_true_is_true(test/result)

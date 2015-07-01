@@ -31,18 +31,18 @@
 false(constant/boolean:value=false)
 true(constant/boolean:value=true) 
 
-false OUT -> IN0 xor_ff(boolean/xor)
-false OUT -> IN1 xor_ff
+false OUT -> IN[0] xor_ff(boolean/xor)
+false OUT -> IN[1] xor_ff
 xor_ff OUT -> IN not1(boolean/not) OUT -> RESULT false_xor_false_is_false(test/result)
 
-false OUT -> IN0 xor_ft(boolean/xor)
-true OUT -> IN1 xor_ft
+false OUT -> IN[0] xor_ft(boolean/xor)
+true OUT -> IN[1] xor_ft
 xor_ft OUT -> RESULT false_xor_true_is_true(test/result)
 
-true OUT -> IN0 xor_tf(boolean/xor)
-false OUT -> IN1 xor_tf
+true OUT -> IN[0] xor_tf(boolean/xor)
+false OUT -> IN[1] xor_tf
 xor_tf OUT -> RESULT true_xor_false_is_true(test/result)
 
-true OUT -> IN0 xor_tt(boolean/xor)
-true OUT -> IN1 xor_tt
+true OUT -> IN[0] xor_tt(boolean/xor)
+true OUT -> IN[1] xor_tt
 xor_tt OUT -> IN not2(boolean/not) OUT -> RESULT true_xor_true_is_false(test/result)
