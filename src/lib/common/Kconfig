@@ -99,6 +99,12 @@ config USE_PWM
 	help
           Enables PWM support.
 	default y
+
+config USE_SPI
+	bool "SPI Support"
+	help
+          Enables SPI support.
+	default y
 endmenu
 
 
