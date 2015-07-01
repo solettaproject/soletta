@@ -174,7 +174,7 @@ endef
 $(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
 
 find-gen-hdrs = $(foreach gen,$($(2)-gens),$($(gen)-hdr))
-external-module-flags = -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 -DPIN_MUX_MODULE=1
+external-module-flags = -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 -DSOL_PIN_MUX_MODULE=1
 
 define make-object
 $(1): $(PRE_GEN) $($(1)-src) $(call find-deps,$(2)) $(find-gen-hdrs)
