@@ -3,15 +3,9 @@
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
-   fun:allocate_dtv
-   fun:_dl_allocate_tls
-   fun:pthread_create@@GLIBC_2.2.5
-   obj:/usr/lib/libglib-2.0.so.0.4200.1
-   obj:/usr/lib/libglib-2.0.so.0.4200.1
+   ...
    fun:g_thread_new
-   obj:/usr/lib/libglib-2.0.so.0.4200.1
-   obj:/usr/lib/libglib-2.0.so.0.4200.1
-   obj:/usr/lib/libglib-2.0.so.0.4200.1
+   ...
    fun:g_unix_signal_add_full
    fun:sol_mainloop_impl_init
 }
