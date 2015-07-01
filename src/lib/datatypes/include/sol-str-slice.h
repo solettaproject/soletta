@@ -30,48 +30,67 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <inttypes.h>
+#pragma once
 
-#include "sol-str-table.h"
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
-int16_t
-sol_str_table_lookup_fallback(const struct sol_str_table *table,
-    const struct sol_str_slice key,
-    int16_t fallback)
-{
-    const struct sol_str_table *iter;
-    uint16_t len;
+#include <sol-macros.h>
 
-    if (unlikely(key.len > INT16_MAX))
-        return fallback;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    len = (uint16_t)key.len;
+/* Slice of a string with explicit length.
+ * It doesn't necessarily ends with NUL byte like C strings.
+ * This representation is convenient for referencing to substrings
+ * of a larger string without having to duplicate them.
+ */
 
-    for (iter = table; iter->key; iter++) {
-        if (iter->len == len && memcmp(iter->key, key.data, len) == 0) {
-            return iter->val;
-        }
-    }
-    return fallback;
-}
+#define SOL_STR_STATIC_ASSERT_LITERAL(_s) ("" _s)
 
-const void *
-sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table,
-    const struct sol_str_slice key,
-    const void *fallback)
-{
-    const struct sol_str_table_ptr *iter;
+#define SOL_STR_SLICE_LITERAL(_s) { sizeof(SOL_STR_STATIC_ASSERT_LITERAL(_s)) - 1, _s }
+
+#define SOL_STR_SLICE_STR(_s, _len) (struct sol_str_slice){.len = _len, .data = _s }
+
+#define SOL_STR_SLICE_EMPTY { .len = 0, .data = "" }
+
+/* To be used together with "%.*s" formatting in printf family of functions. */
+#define SOL_STR_SLICE_PRINT(_s) (int)(_s).len, (_s).data
+
+struct sol_str_slice {
     size_t len;
+    const char *data;
+};
 
-    if (unlikely(key.len > INT16_MAX))
-        return fallback;
-
-    len = key.len;
-
-    for (iter = table; iter->key; iter++) {
-        if (iter->len == len && memcmp(iter->key, key.data, len) == 0) {
-            return iter->val;
-        }
-    }
-    return fallback;
+static inline bool
+sol_str_slice_str_eq(const struct sol_str_slice a, const char *b)
+{
+    return b && a.len == strlen(b) && (memcmp(a.data, b, a.len) == 0);
 }
+
+static inline bool
+sol_str_slice_eq(const struct sol_str_slice a, const struct sol_str_slice b)
+{
+    return a.len == b.len && (memcmp(a.data, b.data, a.len) == 0);
+}
+
+static inline void
+sol_str_slice_copy(char *dst, const struct sol_str_slice src)
+{
+    memcpy(dst, src.data, src.len);
+    dst[src.len] = 0;
+}
+
+static SOL_ATTR_NONNULL(1) inline struct sol_str_slice
+sol_str_slice_from_str(const char *s)
+{
+    return SOL_STR_SLICE_STR(s, strlen(s));
+}
+
+int sol_str_slice_to_int(const struct sol_str_slice s, int *value);
+
+#ifdef __cplusplus
+}
+#endif

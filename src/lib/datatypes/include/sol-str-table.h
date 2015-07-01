@@ -32,58 +32,59 @@
 
 #pragma once
 
-struct sol_list {
-    struct sol_list *next, *prev;
+#include <inttypes.h>
+
+#include <sol-str-slice.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct sol_str_table {
+    const char *key;
+    uint16_t len;
+    int16_t val;
 };
 
-#define SOL_LIST_INIT { NULL, NULL }
-#define SOL_LIST_GET_CONTAINER(list, type, member) (type *)((char *)(list) - offsetof(type, member))
-#define SOL_LIST_FOREACH(list, itr) for (itr = (list)->next; itr != (list); itr = itr->next)
-#define SOL_LIST_FOREACH_SAFE(list, itr, itr_next) for (itr = (list)->next, itr_next = itr->next; itr != (list); itr = itr_next, itr_next = itr_next->next)
+#define SOL_STR_TABLE_ITEM(_key, _val) \
+    { SOL_STR_STATIC_ASSERT_LITERAL(_key), sizeof(_key) - 1, _val }
 
-static inline void
-sol_list_init(struct sol_list *list)
-{
-    list->next = list->prev = list;
-}
+int16_t sol_str_table_lookup_fallback(const struct sol_str_table *table,
+    const struct sol_str_slice key,
+    int16_t fallback) SOL_ATTR_NONNULL(1);
 
-static inline void
-sol_list_append(struct sol_list *list, struct sol_list *new_l)
-{
-    new_l->next = list;
-    new_l->prev = list->prev;
-    list->prev->next = new_l;
-    list->prev = new_l;
-}
+#define SOL_STR_TABLE_NOT_FOUND INT16_MAX
+#define sol_str_table_lookup(_table, _key, _pval) ({ \
+    int16_t _v = sol_str_table_lookup_fallback(_table, _key, INT16_MAX); \
+    if (_v != INT16_MAX) \
+        *_pval = _v; \
+    _v != INT16_MAX; \
+})
 
-static inline void
-sol_list_prepend(struct sol_list *list, struct sol_list *new_l)
-{
-    new_l->prev = list;
-    new_l->next = list->next;
-    list->next->prev = new_l;
-    list->next = new_l;
-}
 
-static inline void
-sol_list_remove(struct sol_list *list)
-{
-    list->next->prev = list->prev;
-    list->prev->next = list->next;
-}
+struct sol_str_table_ptr {
+    const char *key;
+    const void *val;
+    size_t len;
+};
 
-static inline bool
-sol_list_is_empty(struct sol_list *list)
-{
-    return list->next == list;
-}
+#define SOL_STR_TABLE_PTR_ITEM(_key, _val) \
+    { .key = SOL_STR_STATIC_ASSERT_LITERAL(_key), \
+      .len = sizeof(_key) - 1, \
+      .val = _val }
 
-static inline void
-sol_list_steal(struct sol_list *list, struct sol_list *new_head)
-{
-    list->prev->next = new_head;
-    list->next->prev = new_head;
-    new_head->next = list->next;
-    new_head->prev = list->prev;
-    sol_list_init(list);
+const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table_ptr,
+    const struct sol_str_slice key,
+    const void *fallback) SOL_ATTR_NONNULL(1);
+
+#define sol_str_table_ptr_lookup(_table_ptr, _key, _pval) ({ \
+    const void *_v = sol_str_table_ptr_lookup_fallback(_table_ptr, \
+        _key, NULL); \
+    if (_v != NULL) \
+        *_pval = _v; \
+    _v != NULL; \
+})
+
+#ifdef __cplusplus
 }
+#endif

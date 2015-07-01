@@ -32,8 +32,12 @@
 
 #pragma once
 
-#include "sol-str-slice.h"
-#include "sol-vector.h"
+#include <sol-str-slice.h>
+#include <sol-vector.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* A sol_arena is an object that does allocation on user behalf and can
  * deallocate all at once.
@@ -54,3 +58,7 @@ int sol_arena_slice_sprintf(struct sol_arena *arena, struct sol_str_slice *dst, 
 char *sol_arena_strdup(struct sol_arena *arena, const char *str);
 char *sol_arena_strndup(struct sol_arena *arena, const char *str, size_t n);
 char *sol_arena_strdup_slice(struct sol_arena *arena, const struct sol_str_slice slice);
+
+#ifdef __cplusplus
+}
+#endif

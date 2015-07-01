@@ -30,53 +30,68 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
-#include <limits.h>
-#include <stdlib.h>
+#pragma once
 
-#include "sol-buffer.h"
-#include "sol-util.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-int
-sol_buffer_resize(struct sol_buffer *buf, unsigned int new_size)
+struct sol_list {
+    struct sol_list *next, *prev;
+};
+
+#define SOL_LIST_INIT { NULL, NULL }
+#define SOL_LIST_GET_CONTAINER(list, type, member) (type *)((char *)(list) - offsetof(type, member))
+#define SOL_LIST_FOREACH(list, itr) for (itr = (list)->next; itr != (list); itr = itr->next)
+#define SOL_LIST_FOREACH_SAFE(list, itr, itr_next) for (itr = (list)->next, itr_next = itr->next; itr != (list); itr = itr_next, itr_next = itr_next->next)
+
+static inline void
+sol_list_init(struct sol_list *list)
 {
-    char *new_data;
-
-    assert(buf);
-
-    if (buf->size == new_size)
-        return 0;
-
-    new_data = realloc(buf->data, new_size * sizeof(char));
-    if (!new_data)
-        return -errno;
-
-    buf->data = new_data;
-    buf->size = new_size;
-    return 0;
+    list->next = list->prev = list;
 }
 
-int
-sol_buffer_ensure(struct sol_buffer *buf, unsigned int min_size)
+static inline void
+sol_list_append(struct sol_list *list, struct sol_list *new_l)
 {
-    assert(buf);
-    if (min_size >= UINT_MAX - 1)
-        return -EINVAL;
-    if (buf->size >= min_size)
-        return 0;
-    return sol_buffer_resize(buf, align_power2(min_size + 1));
+    new_l->next = list;
+    new_l->prev = list->prev;
+    list->prev->next = new_l;
+    list->prev = new_l;
 }
 
-int
-sol_buffer_copy_slice(struct sol_buffer *buf, struct sol_str_slice slice)
+static inline void
+sol_list_prepend(struct sol_list *list, struct sol_list *new_l)
 {
-    int err;
-
-    /* Extra room for the ending NUL-byte. */
-    err = sol_buffer_ensure(buf, slice.len + 1);
-    if (err < 0)
-        return err;
-
-    sol_str_slice_copy(buf->data, slice);
-    return 0;
+    new_l->prev = list;
+    new_l->next = list->next;
+    list->next->prev = new_l;
+    list->next = new_l;
 }
+
+static inline void
+sol_list_remove(struct sol_list *list)
+{
+    list->next->prev = list->prev;
+    list->prev->next = list->next;
+}
+
+static inline bool
+sol_list_is_empty(struct sol_list *list)
+{
+    return list->next == list;
+}
+
+static inline void
+sol_list_steal(struct sol_list *list, struct sol_list *new_head)
+{
+    list->prev->next = new_head;
+    list->next->prev = new_head;
+    new_head->next = list->next;
+    new_head->prev = list->prev;
+    sol_list_init(list);
+}
+
+#ifdef __cplusplus
+}
+#endif
