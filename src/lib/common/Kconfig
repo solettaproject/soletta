@@ -93,6 +93,15 @@ config SOL_BUS
 	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_SD_BUS
 	default n
 
+menu "Hardware Options"
+config USE_PWM
+	bool "PWM Support"
+	help
+          Enables PWM support.
+	default y
+endmenu
+
+
 config SOCKET_LINUX
 	bool "Linux sockets"
 	depends on SOL_PLATFORM_LINUX
