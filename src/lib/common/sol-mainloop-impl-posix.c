@@ -33,27 +33,13 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <time.h>
 #include <poll.h>
 #include <signal.h>
 #include <sys/wait.h>
 
-// TODO MAYBE:
-// if HAVE_GLIB then integrate with glib's main loop so gtk works?
-
+#include "sol-mainloop-common.h"
 #include "sol-mainloop-impl.h"
 #include "sol-vector.h"
-#include "sol-util.h"
-
-static bool run_loop;
-
-static bool timeout_processing;
-static unsigned int timeout_pending_deletion;
-static struct sol_ptr_vector timeout_vector = SOL_PTR_VECTOR_INIT;
-
-static bool idler_processing;
-static unsigned int idler_pending_deletion;
-static struct sol_ptr_vector idler_vector = SOL_PTR_VECTOR_INIT;
 
 static bool child_watch_processing;
 static unsigned int child_watch_pending_deletion;
@@ -68,20 +54,6 @@ static struct pollfd *pollfds;
 static unsigned pollfds_count;
 static unsigned pollfds_used;
 #define POLLFDS_COUNT_BLOCKSIZE (32)
-
-struct sol_timeout_posix {
-    struct timespec timeout;
-    struct timespec expire;
-    const void *data;
-    bool (*cb)(void *data);
-    bool remove_me;
-};
-
-struct sol_idler_posix {
-    const void *data;
-    bool (*cb)(void *data);
-    enum { idler_ready, idler_deleted, idler_ready_on_next_iteration } status;
-};
 
 struct sol_child_watch_posix {
     const void *data;
@@ -106,14 +78,6 @@ struct child_exit_status {
 
 static struct sol_vector child_exit_status_vector = SOL_VECTOR_INIT(struct child_exit_status);
 
-static int
-timeout_compare(const void *data1, const void *data2)
-{
-    const struct sol_timeout_posix *a = data1, *b = data2;
-
-    return sol_util_timespec_compare(&a->expire, &b->expire);
-}
-
 #ifdef PTHREAD
 #include <pthread.h>
 
@@ -124,23 +88,9 @@ static pthread_t main_thread;
 static bool have_notified;
 static struct sol_fd *ack_handler;
 
-#define MAIN_THREAD_CHECK_RETURN                                        \
-    do {                                                                \
-        if (pthread_self() != main_thread) {                            \
-            SOL_ERR("sol_run() called on different thread than sol_init()"); \
-            return;                                                     \
-        }                                                               \
-    } while (0)
-
-static struct sol_ptr_vector timeout_v_process = SOL_PTR_VECTOR_INIT;
-static struct sol_ptr_vector idler_v_process = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector child_watch_v_process = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector fd_v_process = SOL_PTR_VECTOR_INIT;
 
-#define TIMEOUT_PROCESS timeout_v_process
-#define TIMEOUT_ACUM timeout_vector
-#define IDLER_PROCESS idler_v_process
-#define IDLER_ACUM idler_vector
 #define CHILD_WATCH_PROCESS child_watch_v_process
 #define CHILD_WATCH_ACUM child_watch_vector
 #define FD_PROCESS fd_v_process
@@ -149,51 +99,28 @@ static struct sol_ptr_vector fd_v_process = SOL_PTR_VECTOR_INIT;
 /* protects all mainloop bookkeeping data structures */
 static pthread_mutex_t ml_lock = PTHREAD_MUTEX_INITIALIZER;
 
-#define mainloop_ds_lock() pthread_mutex_lock(&ml_lock)
-#define mainloop_ds_unlock() pthread_mutex_unlock(&ml_lock)
-
-#define run_loop_get() __atomic_load_n(&run_loop, __ATOMIC_SEQ_CST)
-#define run_loop_set(val) __atomic_store_n(&run_loop, (val), __ATOMIC_SEQ_CST)
-
-static inline void
-ptr_vector_take(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
+void
+sol_mainloop_impl_lock(void)
 {
-    *to = *from;
-    sol_ptr_vector_init(from);
+    pthread_mutex_lock(&ml_lock);
 }
 
-static inline void
-ptr_vector_update(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
+void
+sol_mainloop_impl_unlock(void)
 {
-    void *itr;
-    uint16_t i;
-
-    SOL_PTR_VECTOR_FOREACH_IDX (from, itr, i)
-        sol_ptr_vector_append(to, itr);
-    sol_ptr_vector_clear(from);
+    pthread_mutex_unlock(&ml_lock);
 }
 
-static inline void
-timeout_vector_update(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
+bool
+sol_mainloop_impl_main_thread_check(void)
 {
-    struct sol_timeout_posix *itr;
-    uint16_t i;
-
-    SOL_PTR_VECTOR_FOREACH_IDX (from, itr, i)
-        sol_ptr_vector_insert_sorted(to, itr, timeout_compare);
-    sol_ptr_vector_clear(from);
+    return pthread_self() == main_thread;
 }
-
-#define main_thread_check_notify()              \
-    do {                                        \
-        if (pthread_self() != main_thread)      \
-            main_thread_notify();               \
-    } while (0)
 
 /* mostly called with mainloop lock HELD, but
    may be called from signal handler context */
-static inline void
-main_thread_notify(void)
+void
+sol_mainloop_impl_main_thread_notify(void)
 {
     char tok = 'w';
     int r;
@@ -214,12 +141,12 @@ main_thread_ack(void *data, int fd, unsigned int active_flags)
     SOL_EXP_CHECK(active_flags & SOL_FD_FLAGS_ERR, true);
     SOL_EXP_CHECK(!(active_flags & SOL_FD_FLAGS_IN), true);
 
-    mainloop_ds_lock();
+    sol_mainloop_impl_lock();
 
     r = read(fd, &tok, sizeof(tok));
     __atomic_clear(&have_notified, __ATOMIC_SEQ_CST);
 
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
 
     SOL_INT_CHECK(r, != 1, true);
     return true;
@@ -251,28 +178,33 @@ threads_shutdown(void)
 #else  /* !PTHREAD */
 
 #define SIGPROCMASK sigprocmask
-#define MAIN_THREAD_CHECK_RETURN do { } while (0)
-#define TIMEOUT_PROCESS timeout_vector
-#define TIMEOUT_ACUM nothing
-#define IDLER_PROCESS idler_vector
-#define IDLER_ACUM nothing
+
 #define CHILD_WATCH_PROCESS child_watch_vector
-#define CHILD_WATCH_ACUM nothing
+#define CHILD_WATCH_ACUM child_watch_vector
 #define FD_PROCESS fd_vector
-#define FD_ACUM nothing
+#define FD_ACUM fd_vector
 
-#define mainloop_ds_lock() do { } while (0)
-#define mainloop_ds_unlock() do { } while (0)
+void
+sol_mainloop_impl_lock(void)
+{
+}
 
-#define run_loop_get() (run_loop)
-#define run_loop_set(val) run_loop = (val)
+void
+sol_mainloop_impl_unlock(void)
+{
+}
 
-#define ptr_vector_take(...) do { } while (0)
-#define ptr_vector_update(...) do { } while (0)
-#define timeout_vector_update(...) do { } while (0)
+bool
+sol_mainloop_impl_main_thread_check(void)
+{
+    return true;
+}
 
-#define main_thread_check_notify() do { } while (0)
-#define main_thread_notify() do { } while (0)
+void
+sol_mainloop_impl_main_thread_notify(void)
+{
+}
+
 #define threads_init() do { } while (0)
 #define threads_shutdown() do { } while (0)
 
@@ -459,6 +391,8 @@ sol_mainloop_impl_init(void)
     const struct siginfo_handler *sih;
     unsigned int i;
 
+    sol_mainloop_common_init();
+
     sigemptyset(&sig_blockset);
     SIGINFO_HANDLER_FOREACH(sih)
     sigaddset(&sig_blockset, sih->sig);
@@ -491,16 +425,6 @@ sol_mainloop_impl_shutdown(void)
 
     threads_shutdown();
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&timeout_vector, ptr, i) {
-        free(ptr);
-    }
-    sol_ptr_vector_clear(&timeout_vector);
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&idler_vector, ptr, i) {
-        free(ptr);
-    }
-    sol_ptr_vector_clear(&idler_vector);
-
     SOL_PTR_VECTOR_FOREACH_IDX (&child_watch_vector, ptr, i) {
         free(ptr);
     }
@@ -520,170 +444,9 @@ sol_mainloop_impl_shutdown(void)
         sigaction(sih->sig, sa_orig + i, NULL);
         i++;
     }
-    sigprocmask(SIG_SETMASK, &sig_origset, NULL);
-}
+    SIGPROCMASK(SIG_SETMASK, &sig_origset, NULL);
 
-/* called with mainloop lock HELD */
-static inline void
-timeout_cleanup(void)
-{
-    struct sol_timeout_posix *timeout;
-    uint16_t i;
-
-    if (!timeout_pending_deletion)
-        return;
-
-    // Walk backwards so deletion doesn't impact the indices.
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&timeout_vector, timeout, i) {
-        if (!timeout->remove_me)
-            continue;
-
-        sol_ptr_vector_del(&timeout_vector, i);
-        free(timeout);
-        timeout_pending_deletion--;
-        if (!timeout_pending_deletion)
-            break;
-    }
-}
-
-static inline void
-timeout_process(void)
-{
-    struct timespec now;
-    unsigned int i;
-
-    mainloop_ds_lock();
-    ptr_vector_take(&TIMEOUT_PROCESS, &TIMEOUT_ACUM);
-    timeout_processing = true;
-    mainloop_ds_unlock();
-
-    now = sol_util_timespec_get_current();
-    for (i = 0; i < TIMEOUT_PROCESS.base.len; i++) {
-        struct sol_timeout_posix *timeout = sol_ptr_vector_get(&TIMEOUT_PROCESS, i);
-        if (!run_loop_get())
-            break;
-        if (timeout->remove_me)
-            continue;
-        if (sol_util_timespec_compare(&timeout->expire, &now) > 0)
-            break;
-
-        if (!timeout->cb((void *)timeout->data)) {
-            mainloop_ds_lock();
-            if (!timeout->remove_me) {
-                timeout->remove_me = true;
-                timeout_pending_deletion++;
-            }
-            mainloop_ds_unlock();
-            continue;
-        }
-
-        sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
-        sol_ptr_vector_del(&TIMEOUT_PROCESS, i);
-        sol_ptr_vector_insert_sorted(&TIMEOUT_PROCESS, timeout, timeout_compare);
-        i--;
-    }
-
-    mainloop_ds_lock();
-    timeout_vector_update(&TIMEOUT_ACUM, &TIMEOUT_PROCESS);
-    timeout_cleanup();
-    timeout_processing = false;
-    mainloop_ds_unlock();
-}
-
-/* called with mainloop lock HELD */
-static inline struct sol_timeout_posix *
-timeout_first(void)
-{
-    struct sol_timeout_posix *timeout;
-    uint16_t i;
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&timeout_vector, timeout, i) {
-        if (timeout->remove_me)
-            continue;
-        return timeout;
-    }
-    return NULL;
-}
-
-/* called with mainloop lock HELD */
-static inline void
-idler_cleanup(void)
-{
-    struct sol_idler_posix *idler;
-    uint16_t i;
-
-    if (!idler_pending_deletion)
-        return;
-
-    // Walk backwards so deletion doesn't impact the indices.
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&idler_vector, idler, i) {
-        if (idler->status != idler_deleted)
-            continue;
-
-        sol_ptr_vector_del(&idler_vector, i);
-        free(idler);
-        idler_pending_deletion--;
-        if (!idler_pending_deletion)
-            break;
-    }
-}
-
-static inline void
-idler_process(void)
-{
-    struct sol_idler_posix *idler;
-    uint16_t i;
-
-    mainloop_ds_lock();
-    ptr_vector_take(&IDLER_PROCESS, &IDLER_ACUM);
-    idler_processing = true;
-    mainloop_ds_unlock();
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&IDLER_PROCESS, idler, i) {
-        if (!run_loop_get())
-            break;
-        if (idler->status != idler_ready) {
-            if (idler->status == idler_ready_on_next_iteration)
-                idler->status = idler_ready;
-            continue;
-        }
-        if (!idler->cb((void *)idler->data)) {
-            mainloop_ds_lock();
-            if (idler->status != idler_deleted) {
-                idler->status = idler_deleted;
-                idler_pending_deletion++;
-            }
-            mainloop_ds_unlock();
-        }
-        timeout_process();
-    }
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&IDLER_PROCESS, idler, i) {
-        if (idler->status == idler_ready_on_next_iteration) {
-            idler->status = idler_ready;
-        }
-    }
-
-    mainloop_ds_lock();
-    ptr_vector_update(&IDLER_ACUM, &IDLER_PROCESS);
-    idler_cleanup();
-    idler_processing = false;
-    mainloop_ds_unlock();
-}
-
-/* called with mainloop lock HELD */
-static inline struct sol_idler_posix *
-idler_first(void)
-{
-    struct sol_idler_posix *idler;
-    uint16_t i;
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&idler_vector, idler, i) {
-        if (idler->status == idler_deleted)
-            continue;
-        return idler;
-    }
-    return NULL;
+    sol_mainloop_common_shutdown();
 }
 
 /* called with mainloop lock HELD */
@@ -715,14 +478,14 @@ child_watch_process(void)
     struct sol_child_watch_posix *child_watch;
     uint16_t i;
 
-    mainloop_ds_lock();
-    ptr_vector_take(&CHILD_WATCH_PROCESS, &CHILD_WATCH_ACUM);
+    sol_mainloop_impl_lock();
+    sol_ptr_vector_steal(&CHILD_WATCH_PROCESS, &CHILD_WATCH_ACUM);
     child_watch_processing = true;
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
 
     SOL_PTR_VECTOR_FOREACH_IDX (&CHILD_WATCH_PROCESS, child_watch, i) {
         const struct child_exit_status *cs;
-        if (!run_loop_get())
+        if (!sol_mainloop_common_loop_check())
             break;
         if (child_watch->remove_me)
             continue;
@@ -730,23 +493,23 @@ child_watch_process(void)
         if (!cs)
             continue;
         child_watch->cb((void *)child_watch->data, cs->pid, cs->status);
-        mainloop_ds_lock();
+        sol_mainloop_impl_lock();
         if (!child_watch->remove_me) {
             child_watch->remove_me = true;
             child_watch_pending_deletion++;
         }
-        mainloop_ds_unlock();
+        sol_mainloop_impl_unlock();
 
-        timeout_process();
+        sol_mainloop_common_timeout_process();
     }
 
     sol_vector_clear(&child_exit_status_vector);
 
-    mainloop_ds_lock();
-    ptr_vector_update(&CHILD_WATCH_ACUM, &CHILD_WATCH_PROCESS);
+    sol_mainloop_impl_lock();
+    sol_ptr_vector_update(&CHILD_WATCH_ACUM, &CHILD_WATCH_PROCESS);
     child_watch_cleanup();
     child_watch_processing = false;
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
 }
 
 static short int
@@ -880,19 +643,19 @@ fd_process(void)
     bool use_diff;
     int nfds;
 
-    if (!run_loop_get())
+    if (!sol_mainloop_common_loop_check())
         return;
 
-    mainloop_ds_lock();
+    sol_mainloop_impl_lock();
 
     fd_prepare();
 
-    if (idler_first()) {
+    if (sol_mainloop_common_idler_first()) {
         use_diff = true;
         diff.tv_sec = 0;
         diff.tv_nsec = 0;
     } else {
-        struct sol_timeout_posix *timeout = timeout_first();
+        struct sol_timeout_common *timeout = sol_mainloop_common_timeout_first();
         if (!timeout)
             use_diff = false;
         else {
@@ -907,21 +670,21 @@ fd_process(void)
     }
     sigemptyset(&emptyset);
 
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
 
     nfds = ppoll(pollfds, pollfds_used, use_diff ? &diff : NULL, &emptyset);
 
-    mainloop_ds_lock();
-    ptr_vector_take(&FD_PROCESS, &FD_ACUM);
+    sol_mainloop_impl_lock();
+    sol_ptr_vector_steal(&FD_PROCESS, &FD_ACUM);
     fd_processing = true;
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
 
     j = 0;
     SOL_PTR_VECTOR_FOREACH_IDX (&FD_PROCESS, handler, i) {
         unsigned int active_flags;
         const struct pollfd *pfd;
 
-        if (!run_loop_get())
+        if (!sol_mainloop_common_loop_check())
             break;
 
         if (nfds <= 0)
@@ -946,140 +709,33 @@ fd_process(void)
 
         nfds--;
         if (!handler->cb((void *)handler->data, handler->fd, active_flags)) {
-            mainloop_ds_lock();
+            sol_mainloop_impl_lock();
             if (!handler->remove_me) {
                 handler->remove_me = true;
                 fd_pending_deletion++;
                 fd_changed = true;
             }
-            mainloop_ds_unlock();
+            sol_mainloop_impl_unlock();
         }
 
-        timeout_process();
+        sol_mainloop_common_timeout_process();
     }
 
-    mainloop_ds_lock();
-    ptr_vector_update(&FD_ACUM, &FD_PROCESS);
+    sol_mainloop_impl_lock();
+    sol_ptr_vector_update(&FD_ACUM, &FD_PROCESS);
     fd_cleanup();
     fd_processing = false;
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
 }
 
 void
-sol_mainloop_impl_run(void)
+sol_mainloop_impl_iter(void)
 {
-    MAIN_THREAD_CHECK_RETURN;
-
-    run_loop_set(true);
-    while (run_loop_get()) {
-        timeout_process();
-        fd_process();
-        signals_process();
-        child_watch_process();
-        idler_process();
-    }
-}
-
-void
-sol_mainloop_impl_quit(void)
-{
-    run_loop_set(false);
-    main_thread_notify();
-}
-
-void *
-sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data)
-{
-    struct timespec now;
-    int ret;
-    struct sol_timeout_posix *timeout = malloc(sizeof(struct sol_timeout_posix));
-
-    SOL_NULL_CHECK(timeout, NULL);
-
-    mainloop_ds_lock();
-
-    timeout->timeout.tv_sec = timeout_ms / MSEC_PER_SEC;
-    timeout->timeout.tv_nsec = (timeout_ms % MSEC_PER_SEC) * NSEC_PER_MSEC;
-    timeout->cb = cb;
-    timeout->data = data;
-    timeout->remove_me = false;
-
-    now = sol_util_timespec_get_current();
-    sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
-    ret = sol_ptr_vector_insert_sorted(&timeout_vector, timeout, timeout_compare);
-    SOL_INT_CHECK_GOTO(ret, != 0, clean);
-
-    main_thread_check_notify();
-    mainloop_ds_unlock();
-
-    return timeout;
-
-clean:
-    mainloop_ds_unlock();
-    free(timeout);
-    return NULL;
-}
-
-bool
-sol_mainloop_impl_timeout_del(void *handle)
-{
-    struct sol_timeout_posix *timeout = handle;
-
-    mainloop_ds_lock();
-
-    timeout->remove_me = true;
-    timeout_pending_deletion++;
-    if (!timeout_processing)
-        timeout_cleanup();
-
-    mainloop_ds_unlock();
-
-    return true;
-}
-
-void *
-sol_mainloop_impl_idle_add(bool (*cb)(void *data), const void *data)
-{
-    int ret;
-    struct sol_idler_posix *idler = malloc(sizeof(struct sol_idler_posix));
-
-    SOL_NULL_CHECK(idler, NULL);
-
-    mainloop_ds_lock();
-
-    idler->cb = cb;
-    idler->data = data;
-
-    idler->status = idler_processing ? idler_ready_on_next_iteration : idler_ready;
-    ret = sol_ptr_vector_append(&idler_vector, idler);
-    SOL_INT_CHECK_GOTO(ret, != 0, clean);
-
-    main_thread_check_notify();
-    mainloop_ds_unlock();
-
-    return idler;
-
-clean:
-    mainloop_ds_unlock();
-    free(idler);
-    return NULL;
-}
-
-bool
-sol_mainloop_impl_idle_del(void *handle)
-{
-    struct sol_idler_posix *idler = handle;
-
-    mainloop_ds_lock();
-
-    idler->status = idler_deleted;
-    idler_pending_deletion++;
-    if (!idler_processing)
-        idler_cleanup();
-
-    mainloop_ds_unlock();
-
-    return true;
+    sol_mainloop_common_timeout_process();
+    fd_process();
+    signals_process();
+    child_watch_process();
+    sol_mainloop_common_idler_process();
 }
 
 void *
@@ -1090,7 +746,7 @@ sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int 
 
     SOL_NULL_CHECK(handle, NULL);
 
-    mainloop_ds_lock();
+    sol_mainloop_impl_lock();
 
     handle->fd = fd;
     handle->flags = flags;
@@ -1103,13 +759,13 @@ sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int 
     SOL_INT_CHECK_GOTO(ret, != 0, clean);
     fd_changed = true;
 
-    main_thread_check_notify();
-    mainloop_ds_unlock();
+    sol_mainloop_common_main_thread_check_notify();
+    sol_mainloop_impl_unlock();
 
     return handle;
 
 clean:
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
     free(handle);
     return NULL;
 }
@@ -1119,7 +775,7 @@ sol_mainloop_impl_fd_del(void *handle)
 {
     struct sol_fd_posix *fd = handle;
 
-    mainloop_ds_lock();
+    sol_mainloop_impl_lock();
 
     fd->remove_me = true;
     fd_pending_deletion++;
@@ -1127,7 +783,7 @@ sol_mainloop_impl_fd_del(void *handle)
     if (!fd_processing)
         fd_cleanup();
 
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
 
     return true;
 }
@@ -1140,7 +796,7 @@ sol_mainloop_impl_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t 
 
     SOL_NULL_CHECK(child_watch, NULL);
 
-    mainloop_ds_lock();
+    sol_mainloop_impl_lock();
 
     child_watch->pid = pid;
     child_watch->cb = cb;
@@ -1150,13 +806,13 @@ sol_mainloop_impl_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t 
     ret = sol_ptr_vector_append(&child_watch_vector, child_watch);
     SOL_INT_CHECK_GOTO(ret, != 0, clean);
 
-    main_thread_check_notify();
-    mainloop_ds_unlock();
+    sol_mainloop_common_main_thread_check_notify();
+    sol_mainloop_impl_unlock();
 
     return child_watch;
 
 clean:
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
     free(child_watch);
     return NULL;
 }
@@ -1166,14 +822,14 @@ sol_mainloop_impl_child_watch_del(void *handle)
 {
     struct sol_child_watch_posix *child_watch = handle;
 
-    mainloop_ds_lock();
+    sol_mainloop_impl_lock();
 
     child_watch->remove_me = true;
     child_watch_pending_deletion++;
     if (!child_watch_processing)
         child_watch_cleanup();
 
-    mainloop_ds_unlock();
+    sol_mainloop_impl_unlock();
 
     return true;
 }
