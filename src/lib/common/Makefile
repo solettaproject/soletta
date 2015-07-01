@@ -11,9 +11,10 @@ obj-core-$(MAINLOOP_GLIB)    += sol-mainloop-impl-glib.o
 obj-core-$(MAINLOOP_GLIB)-extra-cflags += $(GLIB_CFLAGS)
 obj-core-$(MAINLOOP_GLIB)-extra-ldflags += $(GLIB_LDFLAGS)
 
-obj-core-$(MAINLOOP_POSIX)   += sol-mainloop-impl-posix.o
+obj-core-$(MAINLOOP_POSIX)   += sol-mainloop-impl-common.o sol-mainloop-impl-posix.o
 
-obj-core-$(MAINLOOP_RIOTOS)  += sol-mainloop-impl-riot.o
+obj-core-$(MAINLOOP_RIOTOS)  += sol-mainloop-impl-common.o sol-mainloop-impl-riot.o
+
 obj-core-$(PLATFORM_LINUX_MICRO) += sol-platform-impl-linux-micro.o
 obj-core-$(SOCKET_LINUX)     += sol-socket-linux.o
 obj-core-$(PLATFORM_RIOTOS)  += sol-platform-impl-riot.o
