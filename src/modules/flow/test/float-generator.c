@@ -47,7 +47,7 @@ timer_tick(void *data)
 {
     struct sol_flow_node *node = data;
     struct float_generator_data *mdata = sol_flow_node_get_private_data(node);
-    struct sol_drange output;
+    struct sol_drange output = { };
     double *val;
 
     val = sol_vector_get(&mdata->values, mdata->next_index);
