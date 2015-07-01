@@ -34,6 +34,7 @@
 #include <stdio.h>
 
 #include "sol-json.h"
+#include "sol-log.h"
 #include "sol-str-slice.h"
 #include "sol-util.h"
 #include "sol-vector.h"
@@ -797,6 +798,121 @@ type_store_find(struct type_store *store, const char *name)
     }
 
     return NULL;
+}
+
+bool
+type_store_add_type(struct type_store *store, const struct type_description *type)
+{
+    struct option_description *o, *option;
+    struct port_description *p, *port;
+    struct type_description *t;
+    uint16_t i;
+
+    SOL_NULL_CHECK(store, false);
+    SOL_NULL_CHECK(type, false);
+
+    t = sol_vector_append(&store->types);
+    SOL_NULL_CHECK(t, false);
+
+    t->name = strdup(type->name);
+    SOL_NULL_CHECK_GOTO(t->name, fail_name);
+
+    t->symbol = strdup(type->symbol);
+    SOL_NULL_CHECK_GOTO(t->symbol, fail_symbol);
+
+    t->options_symbol = strdup(type->options_symbol);
+    SOL_NULL_CHECK_GOTO(t->options_symbol, fail_options_symbol);
+
+    sol_vector_init(&t->in_ports, sizeof(struct port_description));
+    SOL_VECTOR_FOREACH_IDX (&type->in_ports, p, i) {
+        port = sol_vector_append(&t->in_ports);
+        SOL_NULL_CHECK_GOTO(port, fail_in_ports);
+
+        port->name = strdup(p->name);
+        SOL_NULL_CHECK_GOTO(port->name, fail_in_ports);
+
+        port->data_type = strdup(p->data_type);
+        SOL_NULL_CHECK_GOTO(port->data_type, fail_in_ports);
+    }
+
+    sol_vector_init(&t->out_ports, sizeof(struct port_description));
+    SOL_VECTOR_FOREACH_IDX (&type->out_ports, p, i) {
+        port = sol_vector_append(&t->out_ports);
+        SOL_NULL_CHECK_GOTO(port, fail_out_ports);
+
+        port->name = strdup(p->name);
+        SOL_NULL_CHECK_GOTO(port->name, fail_out_ports);
+
+        port->data_type = strdup(p->data_type);
+        SOL_NULL_CHECK_GOTO(port->data_type, fail_out_ports);
+    }
+
+    sol_vector_init(&t->options, sizeof(struct option_description));
+    SOL_VECTOR_FOREACH_IDX (&type->options, o, i) {
+        option = sol_vector_append(&t->options);
+        SOL_NULL_CHECK_GOTO(option, fail_options);
+
+        option->name = strdup(o->name);
+        SOL_NULL_CHECK_GOTO(option->name, fail_options);
+
+        option->data_type = strdup(o->data_type);
+        SOL_NULL_CHECK_GOTO(option->data_type, fail_options);
+
+        option->default_value_type = o->default_value_type;
+
+        switch (o->default_value_type) {
+        case OPTION_VALUE_TYPE_STRING:
+            option->default_value.string = strdup(o->default_value.string);
+            SOL_NULL_CHECK_GOTO(option->default_value.string, fail_options);
+            break;
+        case OPTION_VALUE_TYPE_RANGE:
+            option->default_value.range = o->default_value.range;
+            break;
+        case OPTION_VALUE_TYPE_RGB:
+            option->default_value.rgb = o->default_value.rgb;
+            break;
+        case OPTION_VALUE_TYPE_DIRECTION_VECTOR:
+            option->default_value.direction_vector = o->default_value.direction_vector;
+            break;
+        case OPTION_VALUE_TYPE_UNPARSED_JSON:
+            option->default_value.token = o->default_value.token;
+            break;
+        case OPTION_VALUE_TYPE_NONE:
+            break;
+        }
+    }
+
+    return true;
+
+fail_options:
+    SOL_VECTOR_FOREACH_IDX (&t->options, o, i) {
+        free(o->name);
+        free(o->data_type);
+
+        if (o->default_value_type == OPTION_VALUE_TYPE_STRING)
+            free(o->default_value.string);
+    }
+    sol_vector_clear(&t->options);
+fail_out_ports:
+    SOL_VECTOR_FOREACH_IDX (&t->out_ports, p, i) {
+        free(p->name);
+        free(p->data_type);
+    }
+    sol_vector_clear(&t->out_ports);
+fail_in_ports:
+    SOL_VECTOR_FOREACH_IDX (&t->in_ports, p, i) {
+        free(p->name);
+        free(p->data_type);
+    }
+    sol_vector_clear(&t->in_ports);
+fail_options_symbol:
+    free(t->symbol);
+fail_symbol:
+    free(t->name);
+fail_name:
+    sol_vector_del(&store->types, store->types.len - 1);
+
+    return false;
 }
 
 void
