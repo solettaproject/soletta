@@ -27,7 +27,7 @@
 	    "pkgname": "libudev"
 	},
 	{
-	    "dependency": "kdbus",
+	    "dependency": "sd_bus",
 	    "type": "ccode",
 	    "headers": [
 		"<systemd/sd-bus.h>"
