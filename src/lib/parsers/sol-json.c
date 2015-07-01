@@ -138,7 +138,7 @@ check_number(struct sol_json_scanner *scanner, struct sol_json_token *token)
     return true;
 }
 
-bool
+SOL_API bool
 sol_json_scanner_next(struct sol_json_scanner *scanner, struct sol_json_token *token)
 {
     token->start = NULL;
@@ -189,15 +189,7 @@ sol_json_scanner_next(struct sol_json_scanner *scanner, struct sol_json_token *t
     return false;
 }
 
-/* modifies token to be the last token to skip over the given entry.
- * if object/array start, it will be the matching end token.
- * otherwise it will be the given token (as there is no nesting).
- *
- * in every case the scanner->current position is reset to given
- * token->end and as it iterates the scanner->position is updated to
- * match the new token's end (sol_json_scanner_next() behavior).
- */
-bool
+SOL_API bool
 sol_json_scanner_skip_over(struct sol_json_scanner *scanner,
     struct sol_json_token *token)
 {
@@ -245,7 +237,7 @@ sol_json_scanner_skip_over(struct sol_json_scanner *scanner,
     return true;
 }
 
-bool
+SOL_API bool
 sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
     struct sol_json_token *key,
     struct sol_json_token *value)

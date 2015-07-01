@@ -24,6 +24,7 @@ source "src/lib/common/Kconfig"
 source "src/lib/coap/Kconfig"
 source "src/lib/datatypes/Kconfig"
 source "src/lib/flow/Kconfig"
+source "src/lib/parsers/Kconfig"
 source "src/shared/Kconfig"
 endmenu
 
