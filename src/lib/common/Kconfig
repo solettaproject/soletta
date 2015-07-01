@@ -111,6 +111,12 @@ config USE_UART
 	help
           Enables UART support.
 	default y
+
+config USE_I2C
+	bool "I2C Support"
+	help
+          Enables I2C support.
+	default y
 endmenu
 
 config SOCKET_LINUX
