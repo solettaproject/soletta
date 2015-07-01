@@ -32,8 +32,6 @@
 
 #pragma once
 
-#include "sol_config.h"
-
 #if !HAVE_DECL_STRNDUPA
 #include <alloca.h>
 

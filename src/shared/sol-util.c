@@ -40,7 +40,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "sol_config.h"
 #include "sol-util.h"
 #include "sol-str-slice.h"
 
