@@ -30,52 +30,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <stdlib.h>
 
-#include <stdbool.h>
-#include "sol-macros.h"
+#define SOL_LOG_DOMAIN &_log_domain
+#include "sol-log-internal.h"
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 
-struct sol_gpio;
+#include "sol-i2c.h"
+#include "sol-pin-mux.h"
 
-enum sol_gpio_direction {
-    SOL_GPIO_DIR_UNDEFINED = -1,
-    SOL_GPIO_DIR_OUT = 0,
-    SOL_GPIO_DIR_IN = 1
-};
+SOL_API struct sol_i2c *
+sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
+{
+    struct sol_i2c *i2c;
 
-enum sol_gpio_edge {
-    SOL_GPIO_EDGE_NONE = 0,
-    SOL_GPIO_EDGE_RISING,
-    SOL_GPIO_EDGE_FALLING,
-    SOL_GPIO_EDGE_BOTH
-};
+    SOL_LOG_INTERNAL_INIT_ONCE;
 
-enum sol_gpio_drive {
-    SOL_GPIO_DRIVE_NONE = 0,
-    SOL_GPIO_DRIVE_PULL_UP,
-    SOL_GPIO_DRIVE_PULL_DOWN
-};
+    i2c = sol_i2c_open_raw(bus, speed);
+#ifdef HAVE_PIN_MUX
+    if (i2c && sol_pin_mux_setup_i2c(bus) < 0) {
+        SOL_ERR("Pin Multiplexer Recipe for i2c bus=%u found, but couldn't be applied.", bus);
+        sol_i2c_close(i2c);
+        i2c = NULL;
+    }
+#endif
 
-struct sol_gpio_config {
-    enum sol_gpio_direction dir;
-    bool active_low;
-    enum sol_gpio_drive drive_mode;
-    union {
-        struct {
-            enum sol_gpio_edge trigger_mode;
-            void (*cb)(void *data, struct sol_gpio *gpio);
-            const void *user_data;
-            int poll_timeout; /* Will be used if interruptions are not possible */
-        } in;
-        struct {
-            bool value;
-        } out;
-    };
-};
-
-struct sol_gpio *sol_gpio_open(int pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
-struct sol_gpio *sol_gpio_open_raw(int pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
-void sol_gpio_close(struct sol_gpio *gpio);
-
-bool sol_gpio_write(struct sol_gpio *gpio, bool value);
-int sol_gpio_read(struct sol_gpio *gpio);
+    return i2c;
+}

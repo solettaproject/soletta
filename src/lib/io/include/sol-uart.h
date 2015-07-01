@@ -30,30 +30,48 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
+#pragma once
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
+#include <stdbool.h>
+#include <stdint.h>
 
-#include "sol-i2c.h"
-#include "sol-pin-mux.h"
-
-struct sol_i2c *
-sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)
-{
-    struct sol_i2c *i2c;
-
-    SOL_LOG_INTERNAL_INIT_ONCE;
-
-    i2c = sol_i2c_open_raw(bus, speed);
-#ifdef HAVE_PIN_MUX
-    if (i2c && sol_pin_mux_setup_i2c(bus) < 0) {
-        SOL_ERR("Pin Multiplexer Recipe for i2c bus=%u found, but couldn't be applied.", bus);
-        sol_i2c_close(i2c);
-        i2c = NULL;
-    }
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-    return i2c;
+struct sol_uart;
+
+struct sol_uart *sol_uart_open(const char *port_name);
+void sol_uart_close(struct sol_uart *uart);
+
+bool sol_uart_set_baud_rate(struct sol_uart *uart, uint32_t baud_rate);
+uint32_t sol_uart_get_baud_rate(const struct sol_uart *uart);
+
+bool sol_uart_set_parity_bit(struct sol_uart *uart, bool enable, bool odd_paraty);
+bool sol_uart_get_parity_bit_enable(struct sol_uart *uart);
+bool sol_uart_get_parity_bit_odd(struct sol_uart *uart);
+
+bool sol_uart_set_data_bits_length(struct sol_uart *uart, uint8_t lenght);
+uint8_t sol_uart_get_data_bits_length(struct sol_uart *uart);
+
+bool sol_uart_set_stop_bits_length(struct sol_uart *uart, bool two_bits);
+uint8_t sol_uart_get_stop_bits_length(struct sol_uart *uart);
+
+bool sol_uart_set_flow_control(struct sol_uart *uart, bool enable);
+bool sol_uart_get_flow_control(struct sol_uart *uart);
+
+/**
+ * Write X characters on UART without block the execution, when the
+ * transmission finish the callback will be called.
+ */
+bool sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(struct sol_uart *uart, int status, void *data), const void *data);
+
+/**
+ * Set a callback to be called every time a character is received on UART.
+ */
+bool sol_uart_set_rx_callback(struct sol_uart *uart, void (*rx_cb)(struct sol_uart *uart, char read_char, void *data), const void *data);
+void sol_uart_del_rx_callback(struct sol_uart *uart);
+
+#ifdef __cplusplus
 }
+#endif

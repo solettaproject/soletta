@@ -36,7 +36,11 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include "sol-macros.h"
+#include <sol-macros.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct sol_i2c;
 
@@ -240,3 +244,7 @@ bool sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t reg, const uint8_
  * @return @c true on succes, @c false otherwise
  */
 bool sol_i2c_read_register_multiple(const struct sol_i2c *i2c, uint8_t reg, uint8_t *values, uint8_t len, uint8_t times);
+
+#ifdef __cplusplus
+}
+#endif

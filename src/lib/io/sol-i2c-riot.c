@@ -64,7 +64,7 @@ sol_speed_to_riot_speed(enum sol_i2c_speed speed)
     return table[speed];
 }
 
-struct sol_i2c *
+SOL_API struct sol_i2c *
 sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
 {
     struct sol_i2c *i2c;
@@ -86,7 +86,7 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     return i2c;
 }
 
-void
+SOL_API void
 sol_i2c_close(struct sol_i2c *i2c)
 {
     SOL_NULL_CHECK(i2c);
@@ -96,14 +96,14 @@ sol_i2c_close(struct sol_i2c *i2c)
     free(i2c);
 }
 
-bool
+SOL_API bool
 sol_i2c_write_quick(const struct sol_i2c *i2c, bool rw)
 {
     SOL_CRI("Unsupported");
     return false;
 }
 
-ssize_t
+SOL_API ssize_t
 sol_i2c_read(const struct sol_i2c *i2c, uint8_t *data, size_t count)
 {
     ssize_t ret;
@@ -116,7 +116,7 @@ sol_i2c_read(const struct sol_i2c *i2c, uint8_t *data, size_t count)
     return ret;
 }
 
-bool
+SOL_API bool
 sol_i2c_write(const struct sol_i2c *i2c, uint8_t *data, size_t count)
 {
     int write;
@@ -131,7 +131,7 @@ sol_i2c_write(const struct sol_i2c *i2c, uint8_t *data, size_t count)
     return false;
 }
 
-ssize_t
+SOL_API ssize_t
 sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t reg, uint8_t *data, size_t count)
 {
     ssize_t ret;
@@ -144,7 +144,7 @@ sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t reg, uint8_t *data, siz
     return ret;
 }
 
-bool
+SOL_API bool
 sol_i2c_read_register_multiple(const struct sol_i2c *i2c,
     uint8_t command,
     uint8_t *values,
@@ -155,7 +155,7 @@ sol_i2c_read_register_multiple(const struct sol_i2c *i2c,
     return false;
 }
 
-bool
+SOL_API bool
 sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t reg, const uint8_t *data, size_t count)
 {
     int write;
@@ -170,7 +170,7 @@ sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t reg, const uint8_t *da
     return false;
 }
 
-bool
+SOL_API bool
 sol_i2c_set_slave_address(struct sol_i2c *i2c, uint8_t slave_address)
 {
     SOL_NULL_CHECK(i2c, false);
@@ -178,7 +178,7 @@ sol_i2c_set_slave_address(struct sol_i2c *i2c, uint8_t slave_address)
     return true;
 }
 
-uint8_t
+SOL_API uint8_t
 sol_i2c_get_slave_address(struct sol_i2c *i2c)
 {
     SOL_NULL_CHECK(i2c, false);

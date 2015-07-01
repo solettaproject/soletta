@@ -131,7 +131,7 @@ uart_setup(struct sol_uart *uart)
         uart, &uart->async.handler) == 0;
 }
 
-struct sol_uart *
+SOL_API struct sol_uart *
 sol_uart_open(const char *port_name)
 {
     struct sol_uart *uart;
@@ -150,7 +150,7 @@ sol_uart_open(const char *port_name)
     return uart;
 }
 
-void
+SOL_API void
 sol_uart_close(struct sol_uart *uart)
 {
     struct uart_write_data *write_data;
@@ -170,7 +170,7 @@ sol_uart_close(struct sol_uart *uart)
     free(uart);
 }
 
-bool
+SOL_API bool
 sol_uart_set_baud_rate(struct sol_uart *uart, uint32_t baud_rate)
 {
     SOL_NULL_CHECK(uart, false);
@@ -178,21 +178,21 @@ sol_uart_set_baud_rate(struct sol_uart *uart, uint32_t baud_rate)
     return uart_setup(uart);
 }
 
-uint32_t
+SOL_API uint32_t
 sol_uart_get_baud_rate(const struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart, 0);
     return uart->baud_rate;
 }
 
-bool
+SOL_API bool
 sol_uart_set_parity_bit(struct sol_uart *uart, bool enable, bool odd_paraty)
 {
     SOL_NULL_CHECK(uart, false);
     return !enable;
 }
 
-bool
+SOL_API bool
 sol_uart_get_parity_bit_enable(struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart, false);
@@ -200,56 +200,56 @@ sol_uart_get_parity_bit_enable(struct sol_uart *uart)
 }
 
 
-bool
+SOL_API bool
 sol_uart_get_parity_bit_odd(struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart, false);
     return false;
 }
 
-bool
+SOL_API bool
 sol_uart_set_data_bits_length(struct sol_uart *uart, uint8_t length)
 {
     SOL_NULL_CHECK(uart, false);
     return length == 8;
 }
 
-uint8_t
+SOL_API uint8_t
 sol_uart_get_data_bits_length(struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart, 0);
     return 8;
 }
 
-bool
+SOL_API bool
 sol_uart_set_stop_bits_length(struct sol_uart *uart, bool two_bits)
 {
     SOL_NULL_CHECK(uart, false);
     return !two_bits;
 }
 
-uint8_t
+SOL_API uint8_t
 sol_uart_get_stop_bits_length(struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart, 0);
     return 1;
 }
 
-bool
+SOL_API bool
 sol_uart_set_flow_control(struct sol_uart *uart, bool enable)
 {
     SOL_NULL_CHECK(uart, false);
     return !enable;
 }
 
-bool
+SOL_API bool
 sol_uart_get_flow_control(struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart, false);
     return false;
 }
 
-bool
+SOL_API bool
 sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(struct sol_uart *uart, int status, void *data), const void *data)
 {
     struct uart_write_data *write_data;
@@ -279,7 +279,7 @@ malloc_buffer_fail:
     return false;
 }
 
-bool
+SOL_API bool
 sol_uart_set_rx_callback(struct sol_uart *uart, void (*rx_cb)(struct sol_uart *uart, char read_char, void *data), const void *data)
 {
     SOL_NULL_CHECK(uart, false);
@@ -290,7 +290,7 @@ sol_uart_set_rx_callback(struct sol_uart *uart, void (*rx_cb)(struct sol_uart *u
     return true;
 }
 
-void
+SOL_API void
 sol_uart_del_rx_callback(struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart);

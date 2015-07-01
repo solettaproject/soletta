@@ -63,7 +63,7 @@ spi_init(struct sol_spi *spi)
     return retval == 0;
 }
 
-struct sol_spi *
+SOL_API struct sol_spi *
 sol_spi_open(unsigned int bus, unsigned int chip_select)
 {
     struct sol_spi *spi;
@@ -84,7 +84,7 @@ sol_spi_open(unsigned int bus, unsigned int chip_select)
     return spi;
 }
 
-void
+SOL_API void
 sol_spi_close(struct sol_spi *spi)
 {
     SOL_NULL_CHECK(spi);
@@ -92,14 +92,14 @@ sol_spi_close(struct sol_spi *spi)
     free(spi);
 }
 
-int32_t
+SOL_API int32_t
 sol_spi_get_transfer_mode(const struct sol_spi *spi)
 {
     SOL_NULL_CHECK(spi, -EINVAL);
     return spi->mode;
 }
 
-bool
+SOL_API bool
 sol_spi_set_transfer_mode(struct sol_spi *spi, uint32_t mode)
 {
     SOL_NULL_CHECK(spi, false);
@@ -108,25 +108,25 @@ sol_spi_set_transfer_mode(struct sol_spi *spi, uint32_t mode)
     return spi_init(spi);
 }
 
-int8_t
+SOL_API int8_t
 sol_spi_get_bit_justification(const struct sol_spi *spi)
 {
     return 0;
 }
 
-bool
+SOL_API bool
 sol_spi_set_bit_justification(struct sol_spi *spi, uint8_t justification)
 {
     return false;
 }
 
-int8_t
+SOL_API int8_t
 sol_spi_get_bits_per_word(const struct sol_spi *spi)
 {
     return 8;
 }
 
-bool
+SOL_API bool
 sol_spi_set_bits_per_word(struct sol_spi *spi, uint8_t bits_per_word)
 {
     SOL_NULL_CHECK(spi, false);
@@ -151,7 +151,7 @@ riot_speed_to_hz(spi_speed_t speed)
     return table[speed];
 }
 
-int32_t
+SOL_API int32_t
 sol_spi_get_max_speed(const struct sol_spi *spi)
 {
     SOL_NULL_CHECK(spi, 0);
@@ -172,7 +172,7 @@ hz_to_riot_speed(uint32_t speed)
     return SPI_SPEED_100KHZ;
 }
 
-bool
+SOL_API bool
 sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed)
 {
     SOL_NULL_CHECK(spi, false);
@@ -180,7 +180,7 @@ sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed)
     return spi_init(spi);
 }
 
-bool
+SOL_API bool
 sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t count)
 {
     int ret;
@@ -196,7 +196,7 @@ sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t cou
     return ret > 0 && ((unsigned int)ret) == count;
 }
 
-bool
+SOL_API bool
 sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count)
 {
     SOL_CRI("Unsupported");

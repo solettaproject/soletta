@@ -30,31 +30,35 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
+#pragma once
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
+#include <stdint.h>
+#include <stdbool.h>
 
-#include "sol-pwm.h"
-#include "sol-pin-mux.h"
-
-struct sol_pwm *
-sol_pwm_open(int device, int channel, const struct sol_pwm_config *config)
-{
-    struct sol_pwm *pwm;
-
-    SOL_LOG_INTERNAL_INIT_ONCE;
-
-    pwm = sol_pwm_open_raw(device, channel, config);
-#ifdef HAVE_PIN_MUX
-    if (pwm && sol_pin_mux_setup_pwm(device, channel)) {
-        SOL_WRN("Pin Multiplexer Recipe for pwm device=%d channel=%d found, \
-            but couldn't be applied.", device, channel);
-        sol_pwm_close(pwm);
-        pwm = NULL;
-    }
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-    return pwm;
+struct sol_spi;
+
+int32_t sol_spi_get_transfer_mode(const struct sol_spi *spi);
+bool sol_spi_set_transfer_mode(struct sol_spi *spi, uint32_t mode);
+
+int8_t sol_spi_get_bit_justification(const struct sol_spi *spi);
+bool sol_spi_set_bit_justification(struct sol_spi *spi, uint8_t justification);
+
+int8_t sol_spi_get_bits_per_word(const struct sol_spi *spi);
+bool sol_spi_set_bits_per_word(struct sol_spi *spi, uint8_t bits_per_word);
+
+int32_t sol_spi_get_max_speed(const struct sol_spi *spi);
+bool sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed);
+
+bool sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t count);
+bool sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count);
+
+void sol_spi_close(struct sol_spi *spi);
+struct sol_spi *sol_spi_open(unsigned int bus, unsigned int chip_select);
+
+#ifdef __cplusplus
 }
+#endif

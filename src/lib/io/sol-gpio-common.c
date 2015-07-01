@@ -30,28 +30,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <stdlib.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+#define SOL_LOG_DOMAIN &_log_domain
+#include "sol-log-internal.h"
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");
 
+#include "sol-gpio.h"
+#include "sol-pin-mux.h"
 
-struct sol_spi;
+SOL_API struct sol_gpio *
+sol_gpio_open(int pin, const struct sol_gpio_config *config)
+{
+    struct sol_gpio *gpio;
 
-int32_t sol_spi_get_transfer_mode(const struct sol_spi *spi);
-bool sol_spi_set_transfer_mode(struct sol_spi *spi, uint32_t mode);
+    SOL_LOG_INTERNAL_INIT_ONCE;
 
-int8_t sol_spi_get_bit_justification(const struct sol_spi *spi);
-bool sol_spi_set_bit_justification(struct sol_spi *spi, uint8_t justification);
+    gpio = sol_gpio_open_raw(pin, config);
+#ifdef HAVE_PIN_MUX
+    if (gpio && sol_pin_mux_setup_gpio(pin, config ? config->dir : SOL_GPIO_DIR_IN)) {
+        SOL_ERR("Pin Multiplexer Recipe for gpio=%d found, but couldn't be applied.", pin);
+        sol_gpio_close(gpio);
+        gpio = NULL;
+    }
+#endif
 
-int8_t sol_spi_get_bits_per_word(const struct sol_spi *spi);
-bool sol_spi_set_bits_per_word(struct sol_spi *spi, uint8_t bits_per_word);
-
-int32_t sol_spi_get_max_speed(const struct sol_spi *spi);
-bool sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed);
-
-bool sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t count);
-bool sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count);
-
-void sol_spi_close(struct sol_spi *spi);
-struct sol_spi *sol_spi_open(unsigned int bus, unsigned int chip_select);
+    return gpio;
+}

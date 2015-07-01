@@ -56,7 +56,7 @@ struct sol_spi {
     unsigned int chip_select;
 };
 
-int32_t
+SOL_API int32_t
 sol_spi_get_transfer_mode(const struct sol_spi *spi)
 {
     uint32_t mode;
@@ -71,7 +71,7 @@ sol_spi_get_transfer_mode(const struct sol_spi *spi)
     return mode;
 }
 
-bool
+SOL_API bool
 sol_spi_set_transfer_mode(struct sol_spi *spi, uint32_t mode)
 {
     SOL_NULL_CHECK(spi, false);
@@ -84,7 +84,7 @@ sol_spi_set_transfer_mode(struct sol_spi *spi, uint32_t mode)
     return true;
 }
 
-int8_t
+SOL_API int8_t
 sol_spi_get_bit_justification(const struct sol_spi *spi)
 {
     uint8_t justification;
@@ -99,7 +99,7 @@ sol_spi_get_bit_justification(const struct sol_spi *spi)
     return justification;
 }
 
-bool
+SOL_API bool
 sol_spi_set_bit_justification(struct sol_spi *spi, uint8_t justification)
 {
     SOL_NULL_CHECK(spi, false);
@@ -112,7 +112,7 @@ sol_spi_set_bit_justification(struct sol_spi *spi, uint8_t justification)
     return true;
 }
 
-int8_t
+SOL_API int8_t
 sol_spi_get_bits_per_word(const struct sol_spi *spi)
 {
     uint8_t bits_per_word;
@@ -127,7 +127,7 @@ sol_spi_get_bits_per_word(const struct sol_spi *spi)
     return bits_per_word;
 }
 
-bool
+SOL_API bool
 sol_spi_set_bits_per_word(struct sol_spi *spi, uint8_t bits_per_word)
 {
     SOL_NULL_CHECK(spi, false);
@@ -140,7 +140,7 @@ sol_spi_set_bits_per_word(struct sol_spi *spi, uint8_t bits_per_word)
     return true;
 }
 
-int32_t
+SOL_API int32_t
 sol_spi_get_max_speed(const struct sol_spi *spi)
 {
     uint32_t speed;
@@ -155,7 +155,7 @@ sol_spi_get_max_speed(const struct sol_spi *spi)
     return speed;
 }
 
-bool
+SOL_API bool
 sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed)
 {
     SOL_NULL_CHECK(spi, false);
@@ -168,7 +168,7 @@ sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed)
     return true;
 }
 
-bool
+SOL_API bool
 sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t size)
 {
     struct spi_ioc_transfer tr = { (uintptr_t)tx, (uintptr_t)rx, size };
@@ -184,7 +184,7 @@ sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t siz
     return true;
 }
 
-bool
+SOL_API bool
 sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count)
 {
     struct spi_ioc_transfer *_tr = (struct spi_ioc_transfer *)tr;
@@ -201,7 +201,7 @@ sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count)
     return true;
 }
 
-void
+SOL_API void
 sol_spi_close(struct sol_spi *spi)
 {
     SOL_NULL_CHECK(spi);
@@ -211,7 +211,7 @@ sol_spi_close(struct sol_spi *spi)
     free(spi);
 }
 
-struct sol_spi *
+SOL_API struct sol_spi *
 sol_spi_open(unsigned int bus, unsigned int chip_select)
 {
     struct sol_spi *spi;

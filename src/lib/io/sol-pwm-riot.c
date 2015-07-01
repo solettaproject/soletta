@@ -55,12 +55,19 @@ struct sol_pwm {
     bool enable;
 };
 
-struct sol_pwm *
+SOL_API struct sol_pwm *
 sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
 {
     struct sol_pwm *pwm;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
+
+    if (unlikely(config->api_version != SOL_PWM_CONFIG_API_VERSION)) {
+        SOL_WRN("Couldn't open pwm that has unsupported version '%u', "
+                "expected version is '%u'",
+                config->api_version, SOL_PWM_CONFIG_API_VERSION);
+        return NULL;
+    }
 
     pwm = calloc(1, sizeof(struct sol_pwm));
     SOL_NULL_CHECK(pwm, NULL);
@@ -79,7 +86,7 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
     return pwm;
 }
 
-void
+SOL_API void
 sol_pwm_close(struct sol_pwm *pwm)
 {
     sol_pwm_set_duty_cycle(pwm, 0);
@@ -89,7 +96,7 @@ sol_pwm_close(struct sol_pwm *pwm)
     free(pwm);
 }
 
-bool
+SOL_API bool
 sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
 {
     SOL_NULL_CHECK(pwm, false);
@@ -103,14 +110,14 @@ sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
     return true;
 }
 
-bool
+SOL_API bool
 sol_pwm_get_enabled(const struct sol_pwm *pwm)
 {
     SOL_NULL_CHECK(pwm, false);
     return pwm->enable;
 }
 
-bool
+SOL_API bool
 sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
 {
     SOL_NULL_CHECK(pwm, false);
@@ -119,14 +126,14 @@ sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
     return pwm_init(pwm->dev, pwm->phase, NSEC_PER_SEC / pwm->period, RESOLUTION) == 0;
 }
 
-int32_t
+SOL_API int32_t
 sol_pwm_get_period(const struct sol_pwm *pwm)
 {
     SOL_NULL_CHECK(pwm, -EINVAL);
     return (int32_t)pwm->period;
 }
 
-bool
+SOL_API bool
 sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
 {
     double value;
@@ -140,7 +147,7 @@ sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
     return pwm_set(pwm->dev, pwm->channel, value) == 0;
 }
 
-int32_t
+SOL_API int32_t
 sol_pwm_get_duty_cycle(const struct sol_pwm *pwm)
 {
     SOL_NULL_CHECK(pwm, -EINVAL);
