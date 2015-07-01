@@ -27,7 +27,7 @@ config PLATFORM_SYSTEMD
 	bool "systemd"
 	depends on HAVE_SYSTEMD
 	select SOL_PLATFORM_LINUX
-	select KDBUS
+	select SOL_BUS
 endchoice
 
 choice
@@ -88,18 +88,51 @@ config DEFAULT_LOG_LEVEL_DEBUG
 	bool "debug"
 endchoice
 
-config KDBUS
-	bool "Kdbus"
-	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_KDBUS
+config SOL_BUS
+	bool "Sol-bus"
+	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_SD_BUS
 	default n
+
+menu "Hardware Options"
+config USE_PWM
+	bool "PWM Support"
+	help
+          Enables PWM support.
+	default y
+
+config USE_SPI
+	bool "SPI Support"
+	help
+          Enables SPI support.
+	default y
+
+config USE_UART
+	bool "UART Support"
+	help
+          Enables UART support.
+	default y
+
+config USE_I2C
+	bool "I2C Support"
+	help
+          Enables I2C support.
+	default y
+
+config USE_GPIO
+	bool "GPIO Support"
+	help
+          Enables GPIO support.
+	default y
+endmenu
 
 config SOCKET_LINUX
 	bool "Linux sockets"
 	depends on SOL_PLATFORM_LINUX
 	default y
 
-menuconfig HAVE_PIN_MUX
+menuconfig USE_PIN_MUX
         bool "Pin Multiplexer"
+        depends on USE_GPIO
         default n
         help
           Pin Multiplexer is a feature that helps to setup

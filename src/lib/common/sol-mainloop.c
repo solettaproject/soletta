@@ -53,7 +53,7 @@ sol_log_shutdown(void)
 }
 #endif
 
-#ifdef HAVE_PIN_MUX
+#ifdef USE_PIN_MUX
 extern int sol_pin_mux_init(void);
 extern void sol_pin_mux_shutdown(void);
 #else
