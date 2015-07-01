@@ -98,8 +98,13 @@ config HARDWARE_SPI
 	help
           Globaly enables spi hardware support.
 	default y
-endmenu
 
+config HARDWARE_UART
+	bool "uart"
+	help
+          Globaly enables uart hardware support.
+	default y
+endmenu
 
 config SOCKET_LINUX
 	bool "Linux sockets"
