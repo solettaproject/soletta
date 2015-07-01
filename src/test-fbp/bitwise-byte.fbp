@@ -36,20 +36,20 @@ one(constant/byte:value=1)
 min_char(constant/byte:value=0x80)
 max_char(constant/byte:value=0x7f)
 
-input1 OUT -> IN0 and(byte/bitwise-and)
-input2 OUT -> IN1 and
+input1 OUT -> IN[0] and(byte/bitwise-and)
+input2 OUT -> IN[1] and
 and OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_expected_and(int/equal)
 all_zero OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_expected_and
 cmp_expected_and OUT -> RESULT test_byte_bitwise_and(test/result)
 
-input1 OUT -> IN0 or(byte/bitwise-or)
-input2 OUT -> IN1 or
+input1 OUT -> IN[0] or(byte/bitwise-or)
+input2 OUT -> IN[1] or
 or OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_expected_or(int/equal)
 all_one OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_expected_or
 cmp_expected_or OUT -> RESULT test_byte_bitwise_or(test/result)
 
-input1 OUT -> IN0 xor(byte/bitwise-xor)
-all_one OUT -> IN1 xor
+input1 OUT -> IN[0] xor(byte/bitwise-xor)
+all_one OUT -> IN[1] xor
 xor OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_expected_xor(int/equal)
 input2 OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_expected_xor
 cmp_expected_xor OUT -> RESULT test_byte_bitwise_xor(test/result)

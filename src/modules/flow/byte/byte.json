@@ -12,26 +12,18 @@
       "in_ports": [
         {
           "data_type": "byte",
-          "description": "First port of AND operation.",
+          "description": "Two ports for bitwise operation AND. Indexed from 0 to 1.",
           "methods": {
             "process": "and_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "byte",
-          "description": "Second port of AND operation.",
-          "methods": {
-            "process": "and_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "name": "byte/bitwise-and",
       "out_ports": [
         {
           "data_type": "byte",
-          "description": "The result of a bitwise AND between IN0 and IN1",
+          "description": "The result of a bitwise AND between IN[0] and IN[1]",
           "name": "OUT"
         }
       ],
@@ -67,26 +59,18 @@
       "in_ports": [
         {
           "data_type": "byte",
-          "description": "First port of OR operation.",
+          "description": "Two ports for bitwise operation OR. Indexed from 0 to 1.",
           "methods": {
             "process": "or_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "byte",
-          "description": "Second port of OR operation.",
-          "methods": {
-            "process": "or_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "name": "byte/bitwise-or",
       "out_ports": [
         {
           "data_type": "byte",
-          "description": "The result of a bitwise OR between IN0 or IN1",
+          "description": "The result of a bitwise OR between IN[0] or IN[1]",
           "name": "OUT"
         }
       ],
@@ -163,26 +147,18 @@
       "in_ports": [
         {
           "data_type": "byte",
-          "description": "First port of XOR operation.",
+          "description": "Two ports for bitwise operation XOR. Indexed from 0 to 1.",
           "methods": {
             "process": "xor_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "byte",
-          "description": "Second port of XOR operation.",
-          "methods": {
-            "process": "xor_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "name": "byte/bitwise-xor",
       "out_ports": [
         {
           "data_type": "byte",
-          "description": "The result of a bitwise XOR between IN0 xor IN1",
+          "description": "The result of a bitwise XOR between IN[0] xor IN[1]",
           "name": "OUT"
         }
       ],
