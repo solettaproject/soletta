@@ -34,13 +34,13 @@ World(constant/string:value="World")
 Len(constant/int:value=2)
 
 HelloWorld OUT -> IN split(string/split)
-split OUT -> IN0 cmp(string/compare)
-Hello OUT -> IN1 cmp
+split OUT -> IN[0] cmp(string/compare)
+Hello OUT -> IN[1] cmp
 cmp EQUAL -> RESULT split_first_word(test/result)
 
 HelloWorld OUT -> IN split2(string/split:separator=" ",index=1)
-split2 OUT -> IN0 cmp2(string/compare)
-World OUT -> IN1 cmp2
+split2 OUT -> IN[0] cmp2(string/compare)
+World OUT -> IN[1] cmp2
 cmp2 EQUAL -> RESULT split_second_word(test/result)
 
 split2 LENGTH -> IN0 equal(int/equal)

@@ -12,19 +12,11 @@
       "in_ports": [
         {
           "data_type": "string",
-          "description": "First string.",
+          "description": "Two strings to be compared. Indexed from 0 to 1.",
           "methods": {
             "process": "string_compare"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "string",
-          "description": "String to be compared to the first one.",
-          "methods": {
-            "process": "string_compare"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -52,12 +44,12 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "It returns an integer less than, equal to, or greater than zero if string received on IN0 is found to be less than, to match, or be greater than string on IN1.",
+          "description": "It returns an integer less than, equal to, or greater than zero if string received on IN[0] is found to be less than, to match, or be greater than string on IN[1].",
           "name": "OUT"
         },
         {
           "data_type": "boolean",
-          "description": "TRUE if the string received on IN0 is the same as the string on IN1.",
+          "description": "TRUE if the string received on IN[0] is the same as the string on IN[1].",
           "name": "EQUAL"
         }
       ],
@@ -70,19 +62,11 @@
       "in_ports": [
         {
           "data_type": "string",
-          "description": "First string.",
+          "description": "Two strings to be concatenated. Indexed from 0 to 1.",
           "methods": {
             "process": "string_concat"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "string",
-          "description": "String to be concatenated to the first one.",
-          "methods": {
-            "process": "string_concat"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -94,7 +78,7 @@
           {
             "data_type": "int",
             "default": 0,
-            "description": "Amount of bytes to be copied from string received on IN1. If zero, the whole string will be concatenated to the string received on IN0",
+            "description": "Amount of bytes to be copied from string received on IN[1]. If zero, the whole string will be concatenated to the string received on IN[0]",
             "name": "bytes"
           },
           {
@@ -110,7 +94,7 @@
       "out_ports": [
         {
           "data_type": "string",
-          "description": "String IN0 concatenated to string IN1.",
+          "description": "String IN[0] concatenated to string IN[1].",
           "name": "OUT"
         }
       ],

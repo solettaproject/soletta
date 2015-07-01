@@ -41,8 +41,8 @@ const_int OUT -> IN0 div
 const_zero OUT -> IN1 div
 div ERROR -> IN conv_error
 
-conv_error MESSAGE -> IN0 error_msg_equal
-const_error_msg OUT -> IN1 error_msg_equal
+conv_error MESSAGE -> IN[0] error_msg_equal
+const_error_msg OUT -> IN[1] error_msg_equal
 error_msg_equal EQUAL -> RESULT error_converts_to_msg(test/result)
 
 conv_error CODE -> IN0 error_code_equal
