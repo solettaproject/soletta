@@ -12,26 +12,18 @@
       "in_ports": [
         {
           "data_type": "boolean",
-          "description": "First port of AND operation.",
+          "description": "Two ports for logical operation AND. Indexed from 0 to 1.",
           "methods": {
             "process": "and_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Second port of AND operation.",
-          "methods": {
-            "process": "and_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "name": "boolean/and",
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if both IN0 and IN1 are true.",
+          "description": "True if both IN[0] and IN[1] are true.",
           "name": "OUT"
         }
       ],
@@ -76,7 +68,7 @@
     },
     {
       "category": "logical/boolean",
-      "description": "Receives a boolean packet and and forwards it through the TRUE or FALSE ports depending on its value.",
+      "description": "Receives a boolean packet and forwards it through the TRUE or FALSE ports depending on its value.",
       "in_ports": [
         {
           "data_type": "boolean",
@@ -131,26 +123,18 @@
       "in_ports": [
         {
           "data_type": "boolean",
-          "description": "First port of OR operation.",
+          "description": "Two ports for logical operation OR. Indexed from 0 to 1.",
           "methods": {
             "process": "or_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Second port of OR operation.",
-          "methods": {
-            "process": "or_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "name": "boolean/or",
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if either IN0 or IN1 is true.",
+          "description": "True if either IN[0] or IN[1] is true.",
           "name": "OUT"
         }
       ],
@@ -201,26 +185,18 @@
       "in_ports": [
         {
           "data_type": "boolean",
-          "description": "First port of XOR operation.",
+          "description": "Two ports for logical operation XOR. Indexed from 0 to 1.",
           "methods": {
             "process": "xor_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "boolean",
-          "description": "Second port of XOR operation.",
-          "methods": {
-            "process": "xor_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "name": "boolean/xor",
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True whenever both inputs differ (one is true, the other is false). False if IN0 and IN1 are the same.",
+          "description": "True whenever both inputs differ (one is true, the other is false). False if IN[0] and IN[1] are the same.",
           "name": "OUT"
         }
       ],

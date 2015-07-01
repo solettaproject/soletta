@@ -31,18 +31,18 @@
 false(constant/boolean:value=false)
 true(constant/boolean:value=true) 
 
-false OUT -> IN0 and_ff(boolean/and)
-false OUT -> IN1 and_ff
+false OUT -> IN[0] and_ff(boolean/and)
+false OUT -> IN[1] and_ff
 and_ff OUT -> IN not1(boolean/not) OUT -> RESULT false_and_false_is_false(test/result)
 
-false OUT -> IN0 and_ft(boolean/and)
-true OUT -> IN1 and_ft
+false OUT -> IN[0] and_ft(boolean/and)
+true OUT -> IN[1] and_ft
 and_ft OUT -> IN not2(boolean/not) OUT -> RESULT false_and_true_is_false(test/result)
 
-true OUT -> IN0 and_tf(boolean/and)
-false OUT -> IN1 and_tf
+true OUT -> IN[0] and_tf(boolean/and)
+false OUT -> IN[1] and_tf
 and_tf OUT -> IN not3(boolean/not) OUT -> RESULT true_and_false_is_false(test/result)
 
-true OUT -> IN0 and_tt(boolean/and)
-true OUT -> IN1 and_tt
+true OUT -> IN[0] and_tt(boolean/and)
+true OUT -> IN[1] and_tt
 and_tt OUT -> RESULT true_and_true_is_true(test/result)
