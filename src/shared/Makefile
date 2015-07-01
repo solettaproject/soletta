@@ -3,7 +3,7 @@ obj-libshared-static := yes
 
 obj-libshared-$(INTERNAL_SHARED)   := sol-fbp-graph.o sol-fbp-internal-log.o
 obj-libshared-$(INTERNAL_SHARED)   += sol-fbp-internal-scanner.o sol-util.o
-obj-libshared-$(INTERNAL_SHARED)   += sol-monitors.o sol-json.o
+obj-libshared-$(INTERNAL_SHARED)   += sol-monitors.o
 obj-libshared-$(INTERNAL_SHARED)   += sol-pwm-common.o sol-gpio-common.o
 obj-libshared-$(INTERNAL_SHARED)   += sol-i2c-common.o
 

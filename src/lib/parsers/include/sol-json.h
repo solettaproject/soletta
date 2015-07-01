@@ -37,7 +37,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
-#include "sol-macros.h"
+#include <sol-macros.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct sol_json_scanner {
     const char *mem;
@@ -89,9 +93,9 @@ enum sol_json_loop_reason {
 static inline void
 sol_json_scanner_init(struct sol_json_scanner *scanner, const void *mem, unsigned int size)
 {
-    scanner->mem = mem;
+    scanner->mem = (const char *)mem;
     scanner->mem_end = scanner->mem + size;
-    scanner->current = mem;
+    scanner->current = (const char *)mem;
 }
 
 static inline void
@@ -129,7 +133,7 @@ sol_json_scanner_get_size_remaining(const struct sol_json_scanner *scanner)
 static inline unsigned int
 sol_json_scanner_get_mem_offset(const struct sol_json_scanner *scanner, const void *mem)
 {
-    const char *p = mem;
+    const char *p = (const char *)mem;
 
     if (p < scanner->mem || p > scanner->mem_end)
         return (unsigned int)-1;
@@ -139,10 +143,10 @@ sol_json_scanner_get_mem_offset(const struct sol_json_scanner *scanner, const vo
 static inline enum sol_json_type
 sol_json_mem_get_type(const void *mem)
 {
-    const char *p = mem;
+    const char *p = (const char *)mem;
 
     if (strchr("{}[],:tfn\"", *p))
-        return *p;
+        return (enum sol_json_type)*p;
     if (isdigit(*p) || *p == '-' || *p == '+')
         return SOL_JSON_TYPE_NUMBER;
     return SOL_JSON_TYPE_UNKNOWN;
@@ -179,6 +183,14 @@ bool sol_json_scanner_next(struct sol_json_scanner *scanner,
 SOL_ATTR_WARN_UNUSED_RESULT
     SOL_ATTR_NONNULL(1, 2);
 
+/* modifies token to be the last token to skip over the given entry.
+ * if object/array start, it will be the matching end token.
+ * otherwise it will be the given token (as there is no nesting).
+ *
+ * in every case the scanner->current position is reset to given
+ * token->end and as it iterates the scanner->position is updated to
+ * match the new token's end (sol_json_scanner_next() behavior).
+ */
 bool sol_json_scanner_skip_over(struct sol_json_scanner *scanner,
     struct sol_json_token *token)
 SOL_ATTR_WARN_UNUSED_RESULT
@@ -260,3 +272,7 @@ _sol_json_loop_helper_init(struct sol_json_scanner *scanner, struct sol_json_tok
         return SOL_JSON_LOOP_REASON_INVALID;
     return SOL_JSON_LOOP_REASON_OK;
 }
+
+#ifdef __cplusplus
+}
+#endif
