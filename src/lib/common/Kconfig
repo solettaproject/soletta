@@ -309,6 +309,13 @@ config SOL_BUS
           Systemd's sd-bus support.
 	default n
 
+menu "Hardware Options"
+config USE_PWM
+	bool "PWM Support"
+	default y
+endmenu
+
+
 config SOCKET_LINUX
 	bool "Linux sockets"
 	depends on SOL_PLATFORM_LINUX && NETWORK
