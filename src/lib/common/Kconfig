@@ -311,6 +311,10 @@ menu "Hardware Options"
 config USE_PWM
 	bool "PWM Support"
 	default y
+
+config USE_SPI
+	bool "SPI Support"
+	default y
 endmenu
 
 
