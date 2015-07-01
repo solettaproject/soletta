@@ -1,3 +1,4 @@
 config COAP
 	bool "CoAP"
+	depends on USE_NETWORK
 	default y
