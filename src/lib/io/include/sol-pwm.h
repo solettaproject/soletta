@@ -35,35 +35,47 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-struct sol_uart;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-struct sol_uart *sol_uart_open(const char *port_name);
-void sol_uart_close(struct sol_uart *uart);
+struct sol_pwm;
 
-bool sol_uart_set_baud_rate(struct sol_uart *uart, uint32_t baud_rate);
-uint32_t sol_uart_get_baud_rate(const struct sol_uart *uart);
+/* No API for this on Linux, so we simply ignore it there */
+enum sol_pwm_alignment {
+    SOL_PWM_ALIGNMENT_LEFT,
+    SOL_PWM_ALIGNMENT_RIGHT,
+    SOL_PWM_ALIGNMENT_CENTER /* Also known as phase-correct */
+};
 
-bool sol_uart_set_parity_bit(struct sol_uart *uart, bool enable, bool odd_paraty);
-bool sol_uart_get_parity_bit_enable(struct sol_uart *uart);
-bool sol_uart_get_parity_bit_odd(struct sol_uart *uart);
+/* This is ignored on RIOT (no API there) and not always supported on Linux */
+enum sol_pwm_polarity {
+    SOL_PWM_POLARITY_NORMAL,
+    SOL_PWM_POLARITY_INVERSED
+};
 
-bool sol_uart_set_data_bits_length(struct sol_uart *uart, uint8_t lenght);
-uint8_t sol_uart_get_data_bits_length(struct sol_uart *uart);
+struct sol_pwm_config {
+#define SOL_PWM_CONFIG_API_VERSION (1)
+    uint16_t api_version;
+    int32_t period_ns; /* if == -1, won't set */
+    int32_t duty_cycle_ns; /* if == -1, won't set, but if period is set, duty cycle is zeroed */
+    enum sol_pwm_alignment alignment;
+    enum sol_pwm_polarity polarity;
+    bool enabled;
+};
 
-bool sol_uart_set_stop_bits_length(struct sol_uart *uart, bool two_bits);
-uint8_t sol_uart_get_stop_bits_length(struct sol_uart *uart);
+struct sol_pwm *sol_pwm_open(int device, int channel, const struct sol_pwm_config *config);
+struct sol_pwm *sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config);
+void sol_pwm_close(struct sol_pwm *pwm);
 
-bool sol_uart_set_flow_control(struct sol_uart *uart, bool enable);
-bool sol_uart_get_flow_control(struct sol_uart *uart);
+bool sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable);
+bool sol_pwm_get_enabled(const struct sol_pwm *pwm);
 
-/**
- * Write X characters on UART without block the execution, when the
- * transmission finish the callback will be called.
- */
-bool sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(struct sol_uart *uart, int status, void *data), const void *data);
+bool sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns);
+int32_t sol_pwm_get_period(const struct sol_pwm *pwm);
+bool sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns);
+int32_t sol_pwm_get_duty_cycle(const struct sol_pwm *pwm);
 
-/**
- * Set a callback to be called every time a character is received on UART.
- */
-bool sol_uart_set_rx_callback(struct sol_uart *uart, void (*rx_cb)(struct sol_uart *uart, char read_char, void *data), const void *data);
-void sol_uart_del_rx_callback(struct sol_uart *uart);
+#ifdef __cplusplus
+}
+#endif

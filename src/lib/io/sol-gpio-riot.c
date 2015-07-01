@@ -63,7 +63,7 @@ gpio_process_cb(void *data)
     gpio->irq.cb((void *)gpio->irq.data, gpio);
 }
 
-struct sol_gpio *
+SOL_API struct sol_gpio *
 sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
 {
     struct sol_gpio *gpio;
@@ -75,6 +75,13 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
     };
 
     SOL_LOG_INTERNAL_INIT_ONCE;
+
+    if (unlikely(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
+        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
+                "expected version is '%u'",
+                config->api_version, SOL_GPIO_CONFIG_API_VERSION);
+        return NULL;
+    }
 
     gpio = malloc(sizeof(struct sol_gpio));
     SOL_NULL_CHECK(gpio, NULL);
@@ -118,7 +125,7 @@ error:
     return NULL;
 }
 
-void
+SOL_API void
 sol_gpio_close(struct sol_gpio *gpio)
 {
     SOL_NULL_CHECK(gpio);
@@ -128,7 +135,7 @@ sol_gpio_close(struct sol_gpio *gpio)
     free(gpio);
 }
 
-bool
+SOL_API bool
 sol_gpio_write(struct sol_gpio *gpio, bool value)
 {
     SOL_NULL_CHECK(gpio, false);
@@ -136,7 +143,7 @@ sol_gpio_write(struct sol_gpio *gpio, bool value)
     return true;
 }
 
-int
+SOL_API int
 sol_gpio_read(struct sol_gpio *gpio)
 {
     SOL_NULL_CHECK(gpio, -EINVAL);

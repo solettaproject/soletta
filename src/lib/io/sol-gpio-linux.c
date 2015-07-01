@@ -282,7 +282,7 @@ _gpio_config(struct sol_gpio *gpio, const struct sol_gpio_config *config)
     return 0;
 }
 
-struct sol_gpio *
+SOL_API struct sol_gpio *
 sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
 {
     struct sol_gpio *gpio;
@@ -290,6 +290,13 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
     struct stat st;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
+
+    if (unlikely(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
+        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
+                "expected version is '%u'",
+                config->api_version, SOL_GPIO_CONFIG_API_VERSION);
+        return NULL;
+    }
 
     gpio = calloc(1, sizeof(*gpio));
     if (!gpio) {
@@ -320,7 +327,7 @@ export_error:
     return NULL;
 }
 
-void
+SOL_API void
 sol_gpio_close(struct sol_gpio *gpio)
 {
     SOL_NULL_CHECK(gpio);
@@ -338,7 +345,7 @@ sol_gpio_close(struct sol_gpio *gpio)
     free(gpio);
 }
 
-bool
+SOL_API bool
 sol_gpio_write(struct sol_gpio *gpio, bool val)
 {
     SOL_NULL_CHECK(gpio, false);
@@ -346,7 +353,7 @@ sol_gpio_write(struct sol_gpio *gpio, bool val)
     return fprintf(gpio->fp, "%d", val) > 0;
 }
 
-int
+SOL_API int
 sol_gpio_read(struct sol_gpio *gpio)
 {
     int val;

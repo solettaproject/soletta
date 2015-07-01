@@ -248,7 +248,7 @@ _pwm_config(struct sol_pwm *pwm, const struct sol_pwm_config *config)
     return 0;
 }
 
-struct sol_pwm *
+SOL_API struct sol_pwm *
 sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
 {
     char path[PATH_MAX];
@@ -256,6 +256,13 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
     struct stat st;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
+
+    if (unlikely(config->api_version != SOL_PWM_CONFIG_API_VERSION)) {
+        SOL_WRN("Couldn't open pwm that has unsupported version '%u', "
+                "expected version is '%u'",
+                config->api_version, SOL_PWM_CONFIG_API_VERSION);
+        return NULL;
+    }
 
     pwm = calloc(1, sizeof(*pwm));
     if (!pwm) {
@@ -295,7 +302,7 @@ open_error:
     return NULL;
 }
 
-void
+SOL_API void
 sol_pwm_close(struct sol_pwm *pwm)
 {
     SOL_NULL_CHECK(pwm);
@@ -315,7 +322,7 @@ sol_pwm_close(struct sol_pwm *pwm)
     free(pwm);
 }
 
-bool
+SOL_API bool
 sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
 {
     SOL_NULL_CHECK(pwm, false);
@@ -328,7 +335,7 @@ sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
     return true;
 }
 
-bool
+SOL_API bool
 sol_pwm_get_enabled(const struct sol_pwm *pwm)
 {
     int value;
@@ -343,7 +350,7 @@ sol_pwm_get_enabled(const struct sol_pwm *pwm)
     return value;
 }
 
-bool
+SOL_API bool
 sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
 {
     SOL_NULL_CHECK(pwm, false);
@@ -360,7 +367,7 @@ sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
     return true;
 }
 
-int32_t
+SOL_API int32_t
 sol_pwm_get_period(const struct sol_pwm *pwm)
 {
     int value, r;
@@ -382,7 +389,7 @@ sol_pwm_get_period(const struct sol_pwm *pwm)
     return value;
 }
 
-bool
+SOL_API bool
 sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
 {
     SOL_NULL_CHECK(pwm, false);
@@ -395,7 +402,7 @@ sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
     return true;
 }
 
-int32_t
+SOL_API int32_t
 sol_pwm_get_duty_cycle(const struct sol_pwm *pwm)
 {
     int value;
