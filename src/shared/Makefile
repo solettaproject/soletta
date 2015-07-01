@@ -5,7 +5,6 @@ obj-libshared-$(INTERNAL_SHARED)   := sol-arena.o sol-fbp-graph.o sol-fbp-intern
 obj-libshared-$(INTERNAL_SHARED)   += sol-fbp-internal-scanner.o sol-util.o
 obj-libshared-$(INTERNAL_SHARED)   += sol-monitors.o sol-str-slice.o sol-str-table.o
 obj-libshared-$(INTERNAL_SHARED)   += sol-vector.o sol-json.o sol-buffer.o
-obj-libshared-$(INTERNAL_SHARED)   += sol-gpio-common.o
 
 ifeq (y,$(HARDWARE_PWM))
 obj-libshared-$(INTERNAL_SHARED)   += sol-pwm-common.o
@@ -13,6 +12,10 @@ endif
 
 ifeq (y,$(HARDWARE_I2C))
 obj-libshared-$(INTERNAL_SHARED)   += sol-i2c-common.o
+endif
+
+ifeq (y,$(HARDWARE_GPIO))
+obj-libshared-$(INTERNAL_SHARED)   += sol-gpio-common.o
 endif
 
 ifeq (y,$(RESOLVER_CONFFILE))
@@ -42,7 +45,10 @@ ifeq (y,$(HARDWARE_I2C))
 obj-libshared-m += sol-i2c-riot.o
 endif
 
+ifeq (y,$(HARDWARE_GPIO))
 obj-libshared-m += sol-gpio-riot.o
+endif
+
 obj-libshared-m += sol-network-riot.o
 endif
 
@@ -63,5 +69,9 @@ ifeq (y,$(HARDWARE_I2C))
 obj-libshared-m += sol-i2c-linux.o
 endif
 
-obj-libshared-m += sol-file-reader.o sol-gpio-linux.o sol-network-linux.o
+ifeq (y,$(HARDWARE_GPIO))
+obj-libshared-m += sol-gpio-linux.o
+endif
+
+obj-libshared-m += sol-file-reader.o sol-network-linux.o
 endif

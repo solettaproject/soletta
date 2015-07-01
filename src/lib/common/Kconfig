@@ -110,6 +110,12 @@ config HARDWARE_I2C
 	help
           Globaly enables i2c hardware support.
 	default y
+
+config HARDWARE_GPIO
+	bool "gpio"
+	help
+          Globaly enables gpio hardware support.
+	default y
 endmenu
 
 config SOCKET_LINUX
