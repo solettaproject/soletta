@@ -23,6 +23,7 @@ obj-core-$(MAINLOOP_POSIX) += \
     sol-mainloop-impl-posix.o
 
 obj-core-$(MAINLOOP_RIOTOS) += \
+    sol-mainloop-common.o \
     sol-mainloop-impl-riot.o
 obj-core-$(PLATFORM_LINUX_MICRO) += \
     sol-platform-impl-linux-micro.o
