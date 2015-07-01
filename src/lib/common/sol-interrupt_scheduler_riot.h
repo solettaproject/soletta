@@ -33,14 +33,19 @@
 #include "kernel_types.h"
 #include "msg.h"
 #include "periph/gpio.h"
+
+#ifdef HARDWARE_UART
 #include "periph/uart.h"
+#endif
 
 void sol_interrupt_scheduler_set_pid(kernel_pid_t pid);
 
 int sol_interrupt_scheduler_gpio_init_int(gpio_t dev, gpio_pp_t pullup, gpio_flank_t flank, gpio_cb_t cb, void *arg, void **handler);
 void sol_interrupt_scheduler_gpio_stop(gpio_t dev, void *handler);
 
+#ifdef HARDWARE_UART
 int sol_interrupt_scheduler_uart_init_int(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, uart_tx_cb_t tx_cb, void *arg, void **handler);
 void sol_interrupt_scheduler_uart_stop(uart_t uart, void *handler);
+#endif
 
 void sol_interrupt_scheduler_process(msg_t *msg);

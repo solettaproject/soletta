@@ -22,6 +22,11 @@ endmenu
 menu "Core library"
 source "src/lib/common/Kconfig"
 source "src/lib/flow/Kconfig"
+
+config NETWORK
+        bool "Network support"
+	default y
+
 source "src/lib/coap/Kconfig"
 source "src/shared/Kconfig"
 endmenu

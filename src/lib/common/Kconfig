@@ -27,7 +27,7 @@ config PLATFORM_SYSTEMD
 	bool "systemd"
 	depends on HAVE_SYSTEMD
 	select SOL_PLATFORM_LINUX
-	select KDBUS
+	select SOL_BUS
 endchoice
 
 choice
@@ -88,10 +88,42 @@ config DEFAULT_LOG_LEVEL_DEBUG
 	bool "debug"
 endchoice
 
-config KDBUS
-	bool "Kdbus"
-	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_KDBUS
+config SOL_BUS
+	bool "Sol-bus"
+	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_SD_BUS
 	default n
+
+menu "Hardware support"
+config HARDWARE_PWM
+	bool "pwm"
+	help
+          Globaly enables pwm hardware support.
+	default y
+
+config HARDWARE_SPI
+	bool "spi"
+	help
+          Globaly enables spi hardware support.
+	default y
+
+config HARDWARE_UART
+	bool "uart"
+	help
+          Globaly enables uart hardware support.
+	default y
+
+config HARDWARE_I2C
+	bool "i2c"
+	help
+          Globaly enables i2c hardware support.
+	default y
+
+config HARDWARE_GPIO
+	bool "gpio"
+	help
+          Globaly enables gpio hardware support.
+	default y
+endmenu
 
 config SOCKET_LINUX
 	bool "Linux sockets"
