@@ -44,3 +44,4 @@ int sol_util_vread_file(const char *path, const char *fmt, va_list args) SOL_ATT
 void *sol_util_load_file_raw(const int fd, size_t *size);
 char *sol_util_load_file_string(const char *filename, size_t *size);
 int sol_util_get_rootdir(char *out, size_t size);
+int sol_util_fd_set_flag(int fd, int flag);

@@ -277,3 +277,19 @@ sol_util_get_rootdir(char *out, size_t size)
 
     return snprintf(out, size, "%s/", prefix);
 }
+
+int
+sol_util_fd_set_flag(int fd, int flag)
+{
+    int flags;
+
+    flags = fcntl(fd, F_GETFL);
+    if (flags < 0)
+        return -errno;
+
+    flags |= flags;
+    if (fcntl(fd, F_SETFL, flags) < 0)
+        return -errno;
+
+    return 0;
+}
