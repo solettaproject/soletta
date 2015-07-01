@@ -292,7 +292,7 @@ $(PIN_MUX_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
                 --item="&SOL_PIN_MUX_@NAME@" \
                 $(subst -,_,$(builtin-pin-mux))
 
-ifeq (y,$(MODULES))
+ifeq (y,$(NODE_DESCRIPTION))
 node-type-desc-enabled = \#define SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED 1
 endif
 
