@@ -36,11 +36,18 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// sol_vector is an array that grows dynamically. It's suited for storing a small set of contiguous
-// data. Dynamic resize might shuffle the data around, so pointers returned from _get() and
-// _append() should be considered invalid after the vector size is modified.
-//
-// For storing pointers, see sol_ptr_vector below.
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* sol_vector is an array that grows dynamically.
+ * It's suited for storing a small set of contiguous data.
+ * Dynamic resize might shuffle the data around,
+ * so pointers returned from _get() and _append() should be
+ * considered invalid after the vector size is modified.
+ *
+ * For storing pointers, see sol_ptr_vector below.
+ */
 
 struct sol_vector {
     void *data;
@@ -62,7 +69,7 @@ sol_vector_get(const struct sol_vector *v, uint16_t i)
 
     if (i >= v->len)
         return NULL;
-    data = v->data;
+    data = (const unsigned char *)v->data;
 
     return (void *)&data[v->elem_size * i];
 }
@@ -109,7 +116,7 @@ sol_ptr_vector_get(const struct sol_ptr_vector *pv, uint16_t i)
 {
     void **data;
 
-    data = sol_vector_get(&pv->base, i);
+    data = (void **)sol_vector_get(&pv->base, i);
     if (!data)
         return NULL;
     return *data;
@@ -141,12 +148,18 @@ sol_ptr_vector_clear(struct sol_ptr_vector *pv)
 }
 
 
-#define SOL_PTR_VECTOR_FOREACH_IDX(vector, itrvar, idx)                  \
-    for (idx = 0;                                                       \
-         idx < (vector)->base.len && ((itrvar = *(((void **)(vector)->base.data) + idx)), true); \
+#define SOL_PTR_VECTOR_FOREACH_IDX(vector, itrvar, idx) \
+    for (idx = 0; \
+         idx < (vector)->base.len && \
+            ((itrvar = *(((void **)(vector)->base.data) + idx)), true); \
          idx++)
 
-#define SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx)  \
-    for (idx = (vector)->base.len - 1;                                  \
-         idx != ((typeof(idx)) - 1) && (itrvar = *(((void **)(vector)->base.data) + idx), true); \
+#define SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx) \
+    for (idx = (vector)->base.len - 1; \
+         idx != ((typeof(idx)) - 1) && \
+            (itrvar = *(((void **)(vector)->base.data) + idx), true); \
          idx--)
+
+#ifdef __cplusplus
+}
+#endif

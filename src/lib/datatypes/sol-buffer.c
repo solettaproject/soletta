@@ -30,53 +30,53 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
 
-#include <assert.h>
+#include "sol-buffer.h"
+#include "sol-util.h"
 
-#include "sol-str-slice.h"
+SOL_API int
+sol_buffer_resize(struct sol_buffer *buf, unsigned int new_size)
+{
+    char *new_data;
 
-/* A sol_buffer is a dynamic array, that can be resized if needed. It
- * grows exponentially but also supports setting a specific size.
- *
- * Useful to reduce the noise of handling realloc/size-variable
- * manually.
- *
- * See also sol-arena.h if you are allocating multiple pieces of data
- * that will be de-allocated twice.
- */
+    assert(buf);
 
-struct sol_buffer {
-    char *data;
-    unsigned int size;
-};
+    if (buf->size == new_size)
+        return 0;
 
-#define SOL_BUFFER_EMPTY (struct sol_buffer){.data = NULL, .size = 0 }
+    new_data = realloc(buf->data, new_size * sizeof(char));
+    if (!new_data)
+        return -errno;
 
-static inline void
-sol_buffer_init(struct sol_buffer *buf)
+    buf->data = new_data;
+    buf->size = new_size;
+    return 0;
+}
+
+SOL_API int
+sol_buffer_ensure(struct sol_buffer *buf, unsigned int min_size)
 {
     assert(buf);
-    buf->data = NULL;
-    buf->size = 0;
+    if (min_size >= UINT_MAX - 1)
+        return -EINVAL;
+    if (buf->size >= min_size)
+        return 0;
+    return sol_buffer_resize(buf, align_power2(min_size + 1));
 }
 
-static inline void
-sol_buffer_fini(struct sol_buffer *buf)
+SOL_API int
+sol_buffer_copy_slice(struct sol_buffer *buf, struct sol_str_slice slice)
 {
-    if (!buf)
-        return;
-    free(buf->data);
-    buf->data = NULL;
-    buf->size = 0;
+    int err;
+
+    /* Extra room for the ending NUL-byte. */
+    err = sol_buffer_ensure(buf, slice.len + 1);
+    if (err < 0)
+        return err;
+
+    sol_str_slice_copy(buf->data, slice);
+    return 0;
 }
-
-int sol_buffer_resize(struct sol_buffer *buf, unsigned int new_size);
-
-/* Ensure that 'buf' has at least the given 'min_size'. It may
- * allocate more than requested. */
-int sol_buffer_ensure(struct sol_buffer *buf, unsigned int min_size);
-
-/* Copy the 'slice' into 'buf', ensuring that it will fit, including
- * an extra NUL byte so the buffer can be used as a cstr. */
-int sol_buffer_copy_slice(struct sol_buffer *buf, struct sol_str_slice slice);

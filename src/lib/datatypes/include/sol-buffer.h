@@ -32,53 +32,59 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
+#include <assert.h>
 
-#include "sol-macros.h"
+#include <sol-str-slice.h>
 
-// Slice of a string with explicit length. It doesn't necessarily ends with NUL byte like C
-// strings. This representation is convenient for referencing to substrings of a larger string
-// without having to duplicate them.
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define SOL_STR_SLICE_LITERAL(_s) { sizeof(STATIC_ASSERT_LITERAL(_s)) - 1, _s }
+/* A sol_buffer is a dynamic array, that can be resized if needed. It
+ * grows exponentially but also supports setting a specific size.
+ *
+ * Useful to reduce the noise of handling realloc/size-variable
+ * manually.
+ *
+ * See also sol-arena.h if you are allocating multiple pieces of data
+ * that will be de-allocated twice.
+ */
 
-#define SOL_STR_SLICE_STR(_s, _len) (struct sol_str_slice){.len = _len, .data = _s }
-
-#define SOL_STR_SLICE_EMPTY { .len = 0, .data = "" }
-
-/* To be used together with "%.*s" formatting in printf family of functions. */
-#define SOL_STR_SLICE_PRINT(_s) (int)(_s).len, (_s).data
-
-struct sol_str_slice {
-    size_t len;
-    const char *data;
+struct sol_buffer {
+    char *data;
+    unsigned int size;
 };
 
-static inline bool
-sol_str_slice_str_eq(const struct sol_str_slice a, const char *b)
-{
-    return b && a.len == strlen(b) && (memcmp(a.data, b, a.len) == 0);
-}
+#define SOL_BUFFER_EMPTY (struct sol_buffer){.data = NULL, .size = 0 }
 
-static inline bool
-sol_str_slice_eq(const struct sol_str_slice a, const struct sol_str_slice b)
+static inline void
+sol_buffer_init(struct sol_buffer *buf)
 {
-    return a.len == b.len && (memcmp(a.data, b.data, a.len) == 0);
+    assert(buf);
+    buf->data = NULL;
+    buf->size = 0;
 }
 
 static inline void
-sol_str_slice_copy(char *dst, const struct sol_str_slice src)
+sol_buffer_fini(struct sol_buffer *buf)
 {
-    memcpy(dst, src.data, src.len);
-    dst[src.len] = 0;
+    if (!buf)
+        return;
+    free(buf->data);
+    buf->data = NULL;
+    buf->size = 0;
 }
 
-static SOL_ATTR_NONNULL(1) inline struct sol_str_slice
-sol_str_slice_from_str(const char *s)
-{
-    return SOL_STR_SLICE_STR(s, strlen(s));
-}
+int sol_buffer_resize(struct sol_buffer *buf, unsigned int new_size);
 
-int sol_str_slice_to_int(const struct sol_str_slice s, int *value);
+/* Ensure that 'buf' has at least the given 'min_size'. It may
+ * allocate more than requested. */
+int sol_buffer_ensure(struct sol_buffer *buf, unsigned int min_size);
+
+/* Copy the 'slice' into 'buf', ensuring that it will fit, including
+ * an extra NUL byte so the buffer can be used as a cstr. */
+int sol_buffer_copy_slice(struct sol_buffer *buf, struct sol_str_slice slice);
+
+#ifdef __cplusplus
+}
+#endif

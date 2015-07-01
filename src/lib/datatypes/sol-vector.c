@@ -37,7 +37,7 @@
 #include "sol-util.h"
 #include "sol-vector.h"
 
-void
+SOL_API void
 sol_vector_init(struct sol_vector *v, uint16_t elem_size)
 {
     v->data = NULL;
@@ -64,7 +64,7 @@ sol_vector_grow(struct sol_vector *v)
     return 0;
 }
 
-void *
+SOL_API void *
 sol_vector_append(struct sol_vector *v)
 {
     unsigned char *data;
@@ -103,7 +103,7 @@ sol_vector_shrink(struct sol_vector *v)
     v->data = data;
 }
 
-int
+SOL_API int
 sol_vector_del(struct sol_vector *v, uint16_t i)
 {
     size_t tail_len;
@@ -126,7 +126,7 @@ sol_vector_del(struct sol_vector *v, uint16_t i)
     return 0;
 }
 
-void
+SOL_API void
 sol_vector_clear(struct sol_vector *v)
 {
     free(v->data);
@@ -178,7 +178,7 @@ ptr_vector_insert_at(struct sol_ptr_vector *pv, void *ptr, unsigned int index, i
     return 0;
 }
 
-int
+SOL_API int
 sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare)(const void *data1, const void *data2))
 {
     int dir;
@@ -192,7 +192,7 @@ sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare
     return ptr_vector_insert_at(pv, ptr, index, dir);
 }
 
-int
+SOL_API int
 sol_ptr_vector_append(struct sol_ptr_vector *pv, void *ptr)
 {
     void **data;
@@ -204,7 +204,7 @@ sol_ptr_vector_append(struct sol_ptr_vector *pv, void *ptr)
     return 0;
 }
 
-int
+SOL_API int
 sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, void *ptr)
 {
     void **data;

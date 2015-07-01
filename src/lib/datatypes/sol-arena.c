@@ -44,7 +44,7 @@ struct sol_arena {
     struct sol_ptr_vector str_vector;
 };
 
-struct sol_arena *
+SOL_API struct sol_arena *
 sol_arena_new(void)
 {
     struct sol_arena *arena;
@@ -56,7 +56,7 @@ sol_arena_new(void)
     return arena;
 }
 
-void
+SOL_API void
 sol_arena_del(struct sol_arena *arena)
 {
     char *s;
@@ -71,7 +71,7 @@ sol_arena_del(struct sol_arena *arena)
     free(arena);
 }
 
-int
+SOL_API int
 sol_arena_slice_dup_str_n(struct sol_arena *arena, struct sol_str_slice *dst, const char *str, size_t n)
 {
     struct sol_str_slice slice;
@@ -96,20 +96,20 @@ sol_arena_slice_dup_str_n(struct sol_arena *arena, struct sol_str_slice *dst, co
     return 0;
 }
 
-int
+SOL_API int
 sol_arena_slice_dup_str(struct sol_arena *arena, struct sol_str_slice *dst, const char *str)
 {
     SOL_NULL_CHECK(str, -EINVAL);
     return sol_arena_slice_dup_str_n(arena, dst, str, strlen(str));
 }
 
-int
+SOL_API int
 sol_arena_slice_dup(struct sol_arena *arena, struct sol_str_slice *dst, struct sol_str_slice slice)
 {
     return sol_arena_slice_dup_str_n(arena, dst, slice.data, slice.len);
 }
 
-int
+SOL_API int
 sol_arena_slice_sprintf(struct sol_arena *arena, struct sol_str_slice *dst, const char *fmt, ...)
 {
     va_list ap;
@@ -133,14 +133,14 @@ sol_arena_slice_sprintf(struct sol_arena *arena, struct sol_str_slice *dst, cons
     return 0;
 }
 
-char *
+SOL_API char *
 sol_arena_strdup(struct sol_arena *arena, const char *str)
 {
     SOL_NULL_CHECK(str, NULL);
     return sol_arena_strndup(arena, str, strlen(str));
 }
 
-char *
+SOL_API char *
 sol_arena_strndup(struct sol_arena *arena, const char *str, size_t n)
 {
     char *result;
@@ -162,7 +162,7 @@ sol_arena_strndup(struct sol_arena *arena, const char *str, size_t n)
     return result;
 }
 
-char *
+SOL_API char *
 sol_arena_strdup_slice(struct sol_arena *arena, const struct sol_str_slice slice)
 {
     return sol_arena_strndup(arena, slice.data, slice.len);
