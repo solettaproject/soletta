@@ -49,7 +49,9 @@ ifeq (y,$(HARDWARE_GPIO))
 obj-libshared-m += sol-gpio-riot.o
 endif
 
+ifeq (y,$(NETWORK))
 obj-libshared-m += sol-network-riot.o
+endif
 endif
 
 ifeq (y,$(SOL_PLATFORM_LINUX))
@@ -73,5 +75,9 @@ ifeq (y,$(HARDWARE_GPIO))
 obj-libshared-m += sol-gpio-linux.o
 endif
 
-obj-libshared-m += sol-file-reader.o sol-network-linux.o
+ifeq (y,$(NETWORK))
+obj-libshared-m += sol-network-linux.o
+endif
+
+obj-libshared-m += sol-file-reader.o
 endif
