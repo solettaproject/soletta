@@ -69,11 +69,6 @@ int sol_flow_builder_set_type_description(struct sol_flow_builder *builder, cons
  * Node names can't be NULL and must to be unique */
 int sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, const struct sol_flow_node_type *type, const struct sol_flow_node_options *option);
 
-/* Add nodes to nodes spec by id. It'll use a resolver to get
- * node type and options.
- * Node ids can't be NULL and must to be unique */
-int sol_flow_builder_add_node_by_id(struct sol_flow_builder *builder, const char *id);
-
 /* Add nodes to nodes spec by its type name. It'll use a resolver to get
  * node type and options.
  * Node ids can't be NULL and must to be unique */
