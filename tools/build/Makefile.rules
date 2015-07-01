@@ -29,7 +29,7 @@ all-gen-hdrs = $(foreach gen,$(all-gens),$($(gen)-hdr))
 gen-artifact = \
 	$(foreach json,$(filter %.json,$(2)), \
 		$(eval $(json)-hdr   := $(build_includedir)$(notdir $(subst .json,-gen.h,$(json)))) \
-		$(eval $(json)-src   := $(subst .json,-gen.c,$(json))) \
+		$(eval $(json)-src   := $(subst $(top_srcdir)src,$(build_stagedir),$(subst .json,-gen.c,$(json)))) \
 		$(eval all-gens      += $(json)) \
 		$(eval $(json)-desc  := $(build_descdir)$(1).json) \
 		$(eval all-mod-descs += $($(json)-desc)) \
@@ -233,6 +233,7 @@ define make-gen
 $($(1)-hdr) $($(1)-src) $($(1)-desc): $(1) $(NODE_TYPE_GEN_SCRIPT)
 	$(Q)echo "     "GEN"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-hdr))
+	$(Q)$(MKDIR) -p $(dir $($(1)-src))
 	$(Q)$(MKDIR) -p $(dir $($(1)-desc))
 	$(Q)$(PYTHON) $(NODE_TYPE_GEN_SCRIPT) --prefix=sol-flow-node-type \
 		--genspec-schema=$(NODE_TYPE_SCHEMA) $(1) $($(1)-hdr) $($(1)-src) $($(1)-desc)
