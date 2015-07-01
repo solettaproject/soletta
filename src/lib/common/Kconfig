@@ -27,7 +27,7 @@ config PLATFORM_SYSTEMD
 	bool "systemd"
 	depends on HAVE_SYSTEMD
 	select SOL_PLATFORM_LINUX
-	select KDBUS
+	select SOL_BUS
 endchoice
 
 choice
@@ -88,9 +88,9 @@ config DEFAULT_LOG_LEVEL_DEBUG
 	bool "debug"
 endchoice
 
-config KDBUS
-	bool "Kdbus"
-	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_KDBUS
+config SOL_BUS
+	bool "Sol-bus"
+	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_SD_BUS
 	default n
 
 config SOCKET_LINUX

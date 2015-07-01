@@ -3,9 +3,9 @@ obj-$(CORE) += core.mod
 obj-core-$(CORE)             := sol-log.o sol-blob.o sol-mainloop.o
 obj-core-$(CORE)             += sol-platform.o sol-types.o sol-platform-detect.o
 
-obj-core-$(KDBUS)            += sol-bus.o
-obj-core-$(KDBUS)-extra-cflags += $(SYSTEMD_CFLAGS) $(GLIB_CFLAGS)
-obj-core-$(KDBUS)-extra-ldflags += $(SYSTEMD_LDFLAGS) $(GLIB_LDFLAGS)
+obj-core-$(SOL_BUS)               += sol-bus.o
+obj-core-$(SOL_BUS)-extra-cflags  += $(SYSTEMD_CFLAGS) $(GLIB_CFLAGS)
+obj-core-$(SOL_BUS)-extra-ldflags += $(SYSTEMD_LDFLAGS) $(GLIB_LDFLAGS)
 
 obj-core-$(MAINLOOP_GLIB)    += sol-mainloop-impl-glib.o
 obj-core-$(MAINLOOP_GLIB)-extra-cflags += $(GLIB_CFLAGS)
