@@ -38,7 +38,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");
 
 #include "sol-gpio.h"
 
-#ifdef HAVE_PIN_MUX
+#ifdef USE_PIN_MUX
 #include "sol-pin-mux.h"
 #endif
 
@@ -52,7 +52,7 @@ sol_gpio_open(int pin, const struct sol_gpio_config *config)
     SOL_NULL_CHECK(config, NULL);
 
     gpio = sol_gpio_open_raw(pin, config);
-#ifdef HAVE_PIN_MUX
+#ifdef USE_PIN_MUX
     if (gpio && sol_pin_mux_setup_gpio(pin, config->dir)) {
         SOL_ERR("Pin Multiplexer Recipe for gpio=%d found, but couldn't be applied.", pin);
         sol_gpio_close(gpio);
