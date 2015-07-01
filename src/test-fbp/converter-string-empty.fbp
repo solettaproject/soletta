@@ -34,12 +34,12 @@ empty_to_str2(converter/empty-to-string)
 empty_str OUT -> OUTPUT_VALUE empty_to_str2
 
 empty OUT -> IN empty_to_str(converter/empty-to-string:output_value=Empty)
-empty_to_str OUT -> IN0 cmp(string/compare)
-empty_str OUT -> IN1 cmp EQUAL -> RESULT empty_converts_to_string(test/result)
+empty_to_str OUT -> IN[0] cmp(string/compare)
+empty_str OUT -> IN[1] cmp EQUAL -> RESULT empty_converts_to_string(test/result)
 
 empty OUT -> IN empty_to_str2
-empty_to_str OUT -> IN0 cmp2(string/compare)
-empty_str OUT -> IN1 cmp2 EQUAL -> RESULT empty_converts_to_string2(test/result)
+empty_to_str OUT -> IN[0] cmp2(string/compare)
+empty_str OUT -> IN[1] cmp2 EQUAL -> RESULT empty_converts_to_string2(test/result)
 
 empty_to_str OUT -> IN str_to_empty(converter/string-to-empty)
 str_to_empty OUT -> PASS string_converts_to_empty(test/result)

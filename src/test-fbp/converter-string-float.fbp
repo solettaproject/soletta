@@ -31,8 +31,8 @@
 const_float(constant/float:value=3.1415)
 const_float_str(constant/string:value=3.141500)
 
-const_float OUT -> IN float_to_str(converter/float-to-string) OUT -> IN0 str_cmp(string/compare)
-const_float_str OUT -> IN1 str_cmp EQUAL -> RESULT float_converts_to_string(test/result)
+const_float OUT -> IN float_to_str(converter/float-to-string) OUT -> IN[0] str_cmp(string/compare)
+const_float_str OUT -> IN[1] str_cmp EQUAL -> RESULT float_converts_to_string(test/result)
 
 float_to_str OUT -> IN str_to_float(converter/string-to-float)
 str_to_float OUT -> IN0 is_float_equal(float/equal)

@@ -31,8 +31,8 @@
 const_int(constant/int:value=666)
 const_int_str(constant/string:value=666)
 
-const_int OUT -> IN int_to_str(converter/int-to-string) OUT -> IN0 str_cmp(string/compare)
-const_int_str OUT -> IN1 str_cmp EQUAL -> RESULT int_converts_to_string(test/result)
+const_int OUT -> IN int_to_str(converter/int-to-string) OUT -> IN[0] str_cmp(string/compare)
+const_int_str OUT -> IN[1] str_cmp EQUAL -> RESULT int_converts_to_string(test/result)
 
 int_to_str OUT -> IN str_to_int(converter/string-to-int)
 str_to_int OUT -> IN0 is_int_equal(int/equal)

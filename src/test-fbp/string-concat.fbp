@@ -31,12 +31,12 @@
 hello(constant/string:value="Hello")
 world(constant/string:value=" World")
 
-hello OUT -> IN0 concat(string/concatenate)
-world OUT -> IN1 concat
-hello_world(constant/string:value="Hello World") OUT -> IN0 concat_cmp(string/compare)
-concat OUT -> IN1 concat_cmp EQUAL -> RESULT concat_entire_strings(test/result)
+hello OUT -> IN[0] concat(string/concatenate)
+world OUT -> IN[1] concat
+hello_world(constant/string:value="Hello World") OUT -> IN[0] concat_cmp(string/compare)
+concat OUT -> IN[1] concat_cmp EQUAL -> RESULT concat_entire_strings(test/result)
 
-hello OUT -> IN0 concat_n(string/concatenate:bytes=2)
-world OUT -> IN1 concat_n
-hello_w(constant/string:value="Hello W") OUT -> IN0 concat_n_cmp(string/compare)
-concat_n OUT -> IN1 concat_n_cmp EQUAL -> RESULT concat_some_bytes(test/result)
+hello OUT -> IN[0] concat_n(string/concatenate:bytes=2)
+world OUT -> IN[1] concat_n
+hello_w(constant/string:value="Hello W") OUT -> IN[0] concat_n_cmp(string/compare)
+concat_n OUT -> IN[1] concat_n_cmp EQUAL -> RESULT concat_some_bytes(test/result)

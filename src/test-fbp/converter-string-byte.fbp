@@ -31,8 +31,8 @@
 const_byte(constant/byte:value=14)
 const_byte_str(constant/string:value=0x0e)
 
-const_byte OUT -> IN byte_to_str(converter/byte-to-string) OUT -> IN0 str_cmp(string/compare)
-const_byte_str OUT -> IN1 str_cmp EQUAL -> RESULT byte_converts_to_string(test/result)
+const_byte OUT -> IN byte_to_str(converter/byte-to-string) OUT -> IN[0] str_cmp(string/compare)
+const_byte_str OUT -> IN[1] str_cmp EQUAL -> RESULT byte_converts_to_string(test/result)
 
 byte_to_str OUT -> IN str_to_byte(converter/string-to-byte)
 str_to_byte OUT -> IN conv1(converter/byte-to-int) OUT -> IN0 is_byte_equal(int/equal)
