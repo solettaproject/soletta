@@ -325,6 +325,10 @@ config USE_UART
 config USE_I2C
 	bool "I2C Support"
 	default y
+
+config USE_GPIO
+	bool "GPIO Support"
+	default y
 endmenu
 
 config SOCKET_LINUX
@@ -334,6 +338,7 @@ config SOCKET_LINUX
 
 menuconfig HAVE_PIN_MUX
         bool "Pin Multiplexer"
+        depends on USE_GPIO
         default y
         help
           Pin Multiplexer is a feature that helps to setup
