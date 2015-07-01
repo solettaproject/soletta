@@ -34,6 +34,13 @@
 	    ]
 	},
 	{
+	    "dependency": "sys_auxv_h",
+	    "type": "ccode",
+	    "headers": [
+		"<sys/auxv.h>"
+	    ]
+	},
+	{
 	    "dependency": "pthread_h",
 	    "type": "ccode",
 	    "headers": [

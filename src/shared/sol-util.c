@@ -35,7 +35,9 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_SYS_AUXV_H
 #include <sys/auxv.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -43,6 +45,7 @@
 #include "sol_config.h"
 #include "sol-util.h"
 #include "sol-str-slice.h"
+#include "sol-missing.h"
 
 #define CHUNK_SIZE 4096
 
@@ -312,14 +315,37 @@ err:
 static int
 get_progname(char *out, size_t size)
 {
-    char cwd[PATH_MAX] = { NULL }, *execfn;
+    char cwd[PATH_MAX] = { NULL }, *execfn = NULL;
 
     if (getcwd(cwd, sizeof(cwd)) == NULL)
-        return -1;
+        return -errno;
 
+#ifdef HAVE_SYS_AUXV_H
     execfn = (char *)getauxval(AT_EXECFN);
+
     if (!execfn)
-        return -1;
+        return -errno;
+#else
+    unsigned char data[2 * 8];
+    FILE *f = fopen("/proc/self/auxv", "r");
+
+    if (!f)
+        return -errno;
+
+    while (fread(data, sizeof(data), 1, f) > 0) {
+        unsigned long *data_p = (unsigned long *)data;
+
+        if (data_p[0] == AT_EXECFN) {
+            execfn = (char *)data_p[1];
+            break;
+        }
+    }
+
+    fclose(f);
+
+    if (!execfn)
+        return -ENOSYS;
+#endif /* HAVE_SYS_AUXV_H */
 
     if (execfn[0] == '/')
         return snprintf(out, size, "%s", execfn);
