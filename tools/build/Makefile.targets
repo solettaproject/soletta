@@ -75,3 +75,8 @@ post-install: pre-install $(all-rpath-bins)
 install: post-install
 
 PHONY += install post-install pre-install
+
+cheat-sheet: $(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_RESOURCES) $(all-mod-descs) $(FLOW_BUILTINS_DESC)
+	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(build_descdir)*.json
+
+PHONY += cheat-sheet
