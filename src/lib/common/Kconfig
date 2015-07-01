@@ -315,8 +315,11 @@ config USE_PWM
 config USE_SPI
 	bool "SPI Support"
 	default y
-endmenu
 
+config USE_UART
+	bool "UART Support"
+	default y
+endmenu
 
 config SOCKET_LINUX
 	bool "Linux sockets"
