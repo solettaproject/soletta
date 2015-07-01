@@ -342,7 +342,7 @@ get_progname(char *out, size_t size)
 int
 sol_util_get_rootdir(char *out, size_t size)
 {
-    char progname[PATH_MAX] = { NULL }, *substr, *prefix;
+    char progname[PATH_MAX] = { 0 }, *substr, *prefix;
     int r;
 
     r = get_progname(progname, sizeof(progname));

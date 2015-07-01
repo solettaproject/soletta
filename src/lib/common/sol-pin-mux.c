@@ -70,7 +70,7 @@ _load_mux(const char *name)
 #ifdef ENABLE_DYNAMIC_MODULES
     int r;
     void *handle;
-    char path[PATH_MAX], install_rootdir[PATH_MAX] = { NULL };
+    char path[PATH_MAX], install_rootdir[PATH_MAX] = { 0 };
     const struct sol_pin_mux *p_sym;
 
     r = sol_util_get_rootdir(install_rootdir, sizeof(install_rootdir));
