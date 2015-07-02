@@ -36,5 +36,5 @@ ten OUT -> IN int_to_empty OUT -> IN _(converter/empty-to-boolean) OUT -> RESULT
 empty_to_int(converter/empty-to-int:output_value=val:10|min:5|max:15|step:1)
 empty(constant/empty)
 
-empty OUT -> IN empty_to_int OUT -> IN0 equal(int/equal)
-ten OUT -> IN1 equal OUT -> RESULT _(test/result)
+empty OUT -> IN empty_to_int OUT -> IN[0] equal(int/equal)
+ten OUT -> IN[1] equal OUT -> RESULT _(test/result)

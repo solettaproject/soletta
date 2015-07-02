@@ -37,11 +37,11 @@ empty(constant/empty)
 
 empty OUT -> IN empty_to_rgb OUT -> IN rgb_to_int(converter/rgb-to-int)
 
-rgb_to_int RED -> IN0 eq_red(int/equal)
-RedInt OUT -> IN1 eq_red OUT -> RESULT red(test/result)
+rgb_to_int RED -> IN[0] eq_red(int/equal)
+RedInt OUT -> IN[1] eq_red OUT -> RESULT red(test/result)
 
-rgb_to_int GREEN -> IN0 eq_green(int/equal)
-GreenInt OUT -> IN1 eq_green OUT -> RESULT green(test/result)
+rgb_to_int GREEN -> IN[0] eq_green(int/equal)
+GreenInt OUT -> IN[1] eq_green OUT -> RESULT green(test/result)
 
-rgb_to_int BLUE -> IN0 eq_blue(int/equal)
-BlueInt OUT -> IN1 eq_blue OUT -> RESULT blue(test/result)
+rgb_to_int BLUE -> IN[0] eq_blue(int/equal)
+BlueInt OUT -> IN[1] eq_blue OUT -> RESULT blue(test/result)
