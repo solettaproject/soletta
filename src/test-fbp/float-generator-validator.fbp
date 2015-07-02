@@ -47,5 +47,5 @@ gen4(test/float-generator:sequence="1 -12.1 100.00 17.01 0.00 +365.011")
 val4(test/float-validator:sequence="1 -12.1 100.01 17.01 0.00 +365.011")
 
 gen4 OUT -> IN val4 OUT -> IN _(boolean/not) OUT -> RESULT false_not_a_match(test/result)
-val4 ERROR -> INC _(int/accumulator) OUT -> IN0 error_count(int/equal)
-_(constant/int:value=3) OUT -> IN1 error_count OUT -> IN _(boolean/filter) TRUE -> PASS _(test/result)
+val4 ERROR -> INC _(int/accumulator) OUT -> IN[0] error_count(int/equal)
+_(constant/int:value=3) OUT -> IN[1] error_count OUT -> IN _(boolean/filter) TRUE -> PASS _(test/result)

@@ -30,8 +30,8 @@
 
 # Takes an irange, add 22 (or the value passed in options) and outputs it.
 
-INPORT=adder.IN1:IN
+INPORT=adder.OPERAND[1]:IN
 OUTPORT=adder.OUT:OUT
 OPTION=add_value.value:add_value
 
-add_value(constant/int:value=22) OUT -> IN0 adder(int/addition)
+add_value(constant/int:value=22) OUT -> OPERAND[0] adder(int/addition)
