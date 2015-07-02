@@ -1,4 +1,18 @@
 config LINUX_MICRO_WATCHDOG
 	tristate "watchdog"
 	depends on LINUX_MICRO
-	default n
+	default m if MODULES=y
+	help
+            Start and keep alive the kernel watchdog.
+
+            Linux provides a watchdog API with both software and
+            hardware implementations. The software implementation may
+            be used to protect against userspace hangups, while the
+            hardware may protect from kernel hangups as well.
+
+            This module will open /dev/watchdog, check the period and
+            start a timer to keep the watchdog alive, avoiding the
+            system to be rebooted. If the application hangs for more
+            than such period, the watchdog will reboot the device.
+
+            See https://www.kernel.org/doc/Documentation/watchdog/watchdog-api.txt

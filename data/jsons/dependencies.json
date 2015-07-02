@@ -50,6 +50,13 @@
             "ldflags": "-lpthread"
 	},
 	{
+	    "dependency": "linux",
+	    "type": "ccode",
+	    "headers": [
+		"<linux/ioctl.h>"
+	    ]
+	},
+	{
 	    "dependency": "riotos",
 	    "type": "ccode",
 	    "headers": [

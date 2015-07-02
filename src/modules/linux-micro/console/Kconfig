@@ -1,4 +1,19 @@
 config LINUX_MICRO_CONSOLE
 	tristate "console"
 	depends on LINUX_MICRO
-	default n
+	default m if MODULES=y
+	help
+            Spawns agetty (or getty or /bin/sh) on consoles defined by
+            kernel, respawning as they exit.
+
+            This service is useful during development or devices that
+            should allow maintenance access using a serial console.
+
+            The consoles are defined by the kernel as it reads the
+            kernel command line for "console=XXX" statements, see
+            https://www.kernel.org/doc/Documentation/serial-console.txt
+
+            If agetty or getty binaries exist, they will be
+            executed. Otherwise /bin/sh is spawned and no login will
+            be prompted (be careful to only use this during
+            development).

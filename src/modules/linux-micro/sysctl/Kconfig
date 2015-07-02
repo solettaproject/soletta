@@ -1,4 +1,13 @@
 config LINUX_MICRO_SYSCTL
 	tristate "sysctl"
 	depends on LINUX_MICRO
-	default n
+	default m if MODULES=y
+	help
+            Sets kernel parameters from sysctl.conf files.
+
+            This service will mimic systemd-sysctl.service and read
+            the settings from /etc/sysctl.conf or /run/sysctl.d,
+            /etc/sysctl.d, /usr/local/lib/sysctl.d, /usr/lib/sysctl.d,
+            /lib/sysctl.d. Files are processed in alphabetical order.
+
+            See http://www.freedesktop.org/software/systemd/man/systemd-sysctl.service.html

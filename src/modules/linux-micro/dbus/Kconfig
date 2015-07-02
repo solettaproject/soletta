@@ -1,4 +1,20 @@
 config LINUX_MICRO_DBUS
 	tristate "dbus"
 	depends on LINUX_MICRO
-	default n
+	default m if MODULES=y
+	help
+            Start and monitor dbus-daemon. D-Bus is a message bus
+            system, a simple way for applications to talk to one
+            another. In addition to interprocess communication, D-Bus
+            helps coordinate process lifecycle; it makes it simple and
+            reliable to code a "single instance" application or
+            daemon, and to launch applications and daemons on demand
+            when their services are needed.
+
+            There is an ongoing effort to merge D-Bus in the Linux
+            Kernel (so called 'kdbus'), in this case the dbus-daemon
+            will be required only to coordinate process lifecycle
+            (such as spawning processes that implement a given
+            service).
+
+            http://www.freedesktop.org/wiki/Software/dbus/

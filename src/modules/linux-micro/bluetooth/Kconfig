@@ -1,4 +1,8 @@
 config LINUX_MICRO_BLUETOOTH
 	tristate "bluetooth"
 	depends on LINUX_MICRO
-	default n
+	default m if MODULES=y
+	help
+            Start and monitor bluetoothd (from BlueZ project). This
+            daemon is required for most bluetooth connectivity on the
+            Linux platform.

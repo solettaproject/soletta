@@ -1,4 +1,28 @@
 config LINUX_MICRO_RC_D
 	tristate "rc-d"
-	depends on LINUX_MICRO
-	default n
+	depends on LINUX_MICRO && MODULES=y && m
+	default m if MODULES=y
+	help
+            This is a meta-service that offers rc.d (init.d) like
+            functionality to Soletta's linux-micro platform.
+
+            This service is not to be used directly, instead one must
+            compile it as a dynamically loadable module and create
+            links to it in order to offer new services that will be
+            managed by executing /etc/init.d or /etc/rc.d binaries
+            with known arguments.
+
+            Example: to expose /etc/init.d/atd service to Soletta
+            (sol_platform_start_service("atd")), then:
+
+            $ cd $PREFIX/lib/soletta/modules/linux-micro
+            $ ln -s rc-d.so atd.so # enables the service 'atd' using rc.d
+
+            The /etc/init.d/atd will be then called with the following
+            arguments: start, stop, restart and status. The "status"
+            is called periodically (every 5s) if there is a service
+            monitor (sol_platform_add_service_monitor()).
+
+            Ideally these services are only used during development,
+            for final products we recommend creating a native service
+            implemented in C.

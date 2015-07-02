@@ -2,6 +2,20 @@ config CORE
 	bool
 	default y
 
+config PLATFORM_NAME
+	string "Platform Name"
+	default ""
+	help
+            Some parts of Soletta uses a "platform name" string from
+            sol_platform_get_name() to improve platform
+            behavior. Namely Pin Multiplexer will load modules based
+            on the platform name.
+
+            Usually the platform name is detected using rules defined
+            at $PREFIX/share/soletta/platform_detect.json, but some
+            platforms such as RIOT may not provide it, then this
+            string is used as a fallback.
+
 config SOL_PLATFORM_LINUX
 	bool
 	default n
@@ -10,57 +24,231 @@ choice
 	prompt "Target platform"
 	default PLATFORM_DUMMY
 	help
-	  The platform of your target.
+
+            Soletta abstracts your target platform basics such as
+            state and services. The functionality is exposed via C API
+            in sol-platform.h and allows one to change the state (ie:
+            reboot, poweroff) or start services (ie: network,
+            bluetooth).
+
+            While Soletta tries to provide a common API, the behavior
+            will always change slightly as some behavior does not make
+            sense everywhere.
+
+            Linux, for instance, provides a complete implementation on
+            top of systemd, benefiting from all of its
+            goodness. Alternatively, a linux-micro platform is
+            provided to allow single binary userspace, where the
+            Soletta application handles basic setup.
+
+            Each platform should document what is supported and
+            behavior changes.
 
 config PLATFORM_DUMMY
 	bool "dummy"
+	depends on !HAVE_RIOTOS
 	select SOL_PLATFORM_LINUX
+	help
+            This platform is an empty stub and will not do any state
+            transition or manage any service.
+
+            It is highly recommended to use either linux-micro or
+            systemd if running on Linux. Small OSes will provide their
+            own platform as well.
+
 
 config PLATFORM_LINUX_MICRO
 	select SOL_PLATFORM_LINUX
+	depends on HAVE_LINUX
 	bool "micro-linux"
+	help
+            This platform allows using a Soletta application as PID1
+            (/init). In this case some extra care needs to be done,
+            such as mounting /dev, /proc, /sys and handling children
+            processes.
 
-config PLATFORM_RIOTOS
-	bool "riotos"
+            It also offer basic services written in native C code,
+            either builtin libsoletta or as dynamically loadable
+            modules at
+            $PREFIX/lib/soletta/modules/linux-micro/<module>.so. See
+            Linux Micro Platform Modules.
+
+            This platform is only recommended for really small Linux
+            systems. For those with more capabilities we recommend
+            using systemd.
 
 config PLATFORM_SYSTEMD
 	bool "systemd"
 	depends on HAVE_SYSTEMD
 	select SOL_PLATFORM_LINUX
 	select KDBUS
+	help
+            This platform uses systemd.
+
+            Platform state changes are translated to D-Bus calls to
+            systemd in order to isolate the <state>.target. Then all
+            systemd targets are allowed, such as basic, emergency,
+            halt, hibernate, poweroff and so on, see
+            /usr/lib/systemd/system/*.target.
+
+            Services are managed analogously, issuing D-Bus calls to
+            start, stop and monitor <service>.service. Then all
+            systemd services are allowed, such as systemd-sysct,
+            systemd-localed, systemd-journald and son on, see
+            /usr/lib/systemd/system/*.service.
+
+            One can write more than one Soletta application to be used
+            in systemd and they can be sandboxed using SELinux, SMACK
+            or SECCOMP for syscall filtering. A sample is provided at
+            src/samples/flow/systemd/.
+
+config PLATFORM_RIOTOS
+	bool "riotos"
+	depends on HAVE_RIOTOS
+	help
+            This platform is to be used with RIOT Small OS.
+
+            RIOT (http://www.riot-os.org/) is an operating system
+            targeted at Internet of Things (IoT) devices. It is
+            resource friendly and can run on microcontrollers. The
+            minimum RAM requirement is around 1.5Kb, with ROM at 5Kb.
+
+            One can compile RIOT using standard GCC under Linux or
+            MacOS. It offers partial POSIX compliance.
+
+            Soletta will do its best to offer the same experience on
+            all platforms, including RIOt.
+
 endchoice
+
+source "src/modules/linux-micro/Kconfig"
 
 choice
 	prompt "Mainloop"
 	help
-	  The mainloop implementation.
+            The main loop is used to provide uniform event delivering
+            accross multiple operating systems.
+
+            Some operating systems will deliver events from an
+            userspace handle (ie: Linux does so via file descriptors),
+            while others will call from Interruption Handler
+            (ISR). These two environments are widely different,
+            particularly some primitives are usually forbidden from
+            ISRs, thus the programmer should be very careful.
+
+            Timers also varies a lot from one operating system to
+            another. With Linux one can use both an alarm() or a
+            timerfd(), as well as using timeout for some functions. On
+            the other hand, RIOT will call from a timer interruption.
+
+            Threads may not be supported in some systems and when they
+            do, they differ in behavior. Thus having multiple
+            functions to execute at once is a source of pain.
+
+            Main loop come to rescue as it provides a common interface
+            that works the same way everywhere. It does so by
+            scheduling events, timers and co-routines all in a single
+            thread and in a predictable, non-preemptive way. It will
+            queue events, time outs and idlers to be dispatched one
+            after another.
+
+            On Linux we provide two implementations, one on top of
+            well-known Glib and another on top of poll(2). Other
+            systems provide their specific mainloops, all tied to
+            their platforms (see Core Library > Target Platforms).
 
 config MAINLOOP_GLIB
 	bool "glib"
 	depends on SOL_PLATFORM_LINUX && HAVE_GLIB
+	help
+            The mainloop is implementated on top of Glib.
+
+            When using this mainloop, other libraries that uses
+            GMainLoop will work even if they are not aware of
+            Soletta. This is recommended for larger systems where the
+            Glib footprint doesn't matter, but integration with other
+            libraries does.
+
+            An alternative main loop for Linux is "posix", that is
+            lightweight and relies only on poll(2) syscall.
 
 config MAINLOOP_POSIX
 	bool "posix"
 	depends on SOL_PLATFORM_LINUX
+	help
+            The mainloop is implementated on top of poll(2) syscall.
+
+            This mainloop is very lightweight and does not rely on
+            external libraries. However, when integrating with other
+            libraries one must be sure to translate timer/timeout
+            requests to sol_timeout_add(), file descriptor monitoring
+            to sol_fd_add() and so on.
+
+            An alternative main loop for Linux is "glib", that allows
+            libraries interacting to GMainLoop to work with Soletta.
 
 config MAINLOOP_RIOTOS
 	bool "riotos"
 	depends on PLATFORM_RIOTOS && HAVE_RIOTOS
+	help
+            The mainloop to be used in RIOT platform.
 
 endchoice
 
 config PTHREAD
-        bool "Pthread"
-        depends on HAVE_PTHREAD_H && SOL_PLATFORM_LINUX
-        default y
+	bool "POSIX threads (pthread)"
+	depends on HAVE_PTHREAD_H && SOL_PLATFORM_LINUX
+	default y
+	help
+            Allow usage of POSIX threads (pthreads) in Soletta applications.
+
+            While Soletta doesn't use threads extensively, it needs to
+            be aware that threads would be used to make some
+            primitives thread-aware.
+
+            For instance, the main thread will be the one that called
+            sol_init() and sol_log_print() will detect other threads
+            and print their thread-id in the log messages, as well as
+            locking so log messages from different threads are
+            serialized properly.
+
+            Main loop primitives such as sol_fd_add(), sol_idle_add()
+            and sol_timeout_add() (and destructors) can be called from
+            secondary threads and they will behave properly.
+
+            This switch also enables exposing the sol-worker-thread.h
+            primitives to abstract creation and management of
+            secondary, low priority threads.
+
+            The only valid case to disable threads support is when the
+            Soletta application will never use threads, both
+            internally or via external modules or libraries. For
+            generic deployments it is recommended to enable threads.
+
+            If unsure, say Y.
 
 config LOG
 	bool "Log"
 	default y
+	help
+            Log (sol-log.h) implements a flexible message logging for
+            applications and modules.
+
+            Logs have a domain name (or "category") and different
+            levels so it's easier to filter and trace problems.
+
+            However, log messages increase binary size and they may be
+            disabled altogether (with this switch) or starting from a
+            specific level (the "Maximum allowed log level" below).
+
+            The only reason to disable log is to save space on product
+            deployment builds.
+
+            If unsure, say Y.
 
 choice
 	prompt "Maximum allowed log level"
-	default DEFAULT_LOG_LEVEL_ERROR
+	default MAXIMUM_LOG_LEVEL_UNLIMITED
 	depends on LOG
 	help
           Maximum log level that will be allowed.
@@ -72,20 +260,25 @@ choice
           Log level ordering is:
           critical < error < warning < info < debug.
 
-config DEFAULT_LOG_LEVEL_CRITICAL
+          The default is to not limit log levels.
+
+config MAXIMUM_LOG_LEVEL_CRITICAL
 	bool "critical"
 
-config DEFAULT_LOG_LEVEL_ERROR
+config MAXIMUM_LOG_LEVEL_ERROR
 	bool "error"
 
-config DEFAULT_LOG_LEVEL_WARNING
+config MAXIMUM_LOG_LEVEL_WARNING
 	bool "warning"
 
-config DEFAULT_LOG_LEVEL_INFO
+config MAXIMUM_LOG_LEVEL_INFO
 	bool "info"
 
-config DEFAULT_LOG_LEVEL_DEBUG
+config MAXIMUM_LOG_LEVEL_DEBUG
 	bool "debug"
+
+config MAXIMUM_LOG_LEVEL_UNLIMITED
+	bool "unlimited"
 endchoice
 
 config KDBUS
@@ -100,13 +293,23 @@ config SOCKET_LINUX
 
 menuconfig HAVE_PIN_MUX
         bool "Pin Multiplexer"
-        default n
+        default y
         help
           Pin Multiplexer is a feature that helps to setup
           physical pins shared by more than one feature in
           some platforms.
 
-          If unsure, say N.
+          This switch enables the logic to handle pin multiplexers,
+          but the multiplexer logic is to be defined in separate
+          pin-mux modules that can be built-in libsoletta or installed
+          as dynamically loadable modules at
+          $PREFIX/lib/soletta/modules/pin-mux/<module>.so
+
+          Pin mux modules are used based on the platform-detect logic
+          defined in $PREFIX/share/soletta/platform_detect.json or
+          statically defined PLATFORM_NAME.
+
+          If unsure, say Y.
 
 source "src/modules/pin-mux/intel-galileo-rev-d/Kconfig"
 source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"

@@ -1,4 +1,12 @@
 config LINUX_MICRO_HOSTNAME
 	tristate "hostname"
 	depends on LINUX_MICRO
-	default n
+	default m if MODULES=y
+	help
+            Reads /etc/hostname and sets machine hostname.
+
+            The file is read, leading and trailing spaces are ignored
+            and then the resulting string is sent directly to
+            sethostname(2).
+
+            The file /etc/hostname must exist.
