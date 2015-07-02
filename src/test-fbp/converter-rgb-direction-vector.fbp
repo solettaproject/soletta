@@ -37,11 +37,11 @@ int_255(constant/int:value=255)
 
 rgb_to_direction_vector OUT -> IN direction_vector_to_rgb(converter/direction-vector-to-rgb)
 
-direction_vector_to_rgb OUT -> IN _(converter/rgb-to-int) RED -> IN0 eq_red(int/equal)
-int_255 OUT -> IN1 eq_red OUT -> RESULT x(test/result)
+direction_vector_to_rgb OUT -> IN _(converter/rgb-to-int) RED -> IN[0] eq_red(int/equal)
+int_255 OUT -> IN[1] eq_red OUT -> RESULT x(test/result)
 
-direction_vector_to_rgb OUT -> IN _(converter/rgb-to-int) GREEN -> IN0 eq_green(int/equal)
-int_255 OUT -> IN1 eq_green OUT -> RESULT y(test/result)
+direction_vector_to_rgb OUT -> IN _(converter/rgb-to-int) GREEN -> IN[0] eq_green(int/equal)
+int_255 OUT -> IN[1] eq_green OUT -> RESULT y(test/result)
 
-direction_vector_to_rgb OUT -> IN _(converter/rgb-to-int) BLUE -> IN0 eq_blue(int/equal)
-int_255 OUT -> IN1 eq_blue OUT -> RESULT z(test/result)
+direction_vector_to_rgb OUT -> IN _(converter/rgb-to-int) BLUE -> IN[0] eq_blue(int/equal)
+int_255 OUT -> IN[1] eq_blue OUT -> RESULT z(test/result)

@@ -43,11 +43,11 @@ match_seventy(constant/int:value=70)
 
 byte_to_direction_vector OUT -> IN direction_vector_to_byte(converter/direction-vector-to-byte)
 
-direction_vector_to_byte X -> IN _(converter/byte-to-int) OUT -> IN0 eq_twenty(int/equal)
-match_twenty OUT -> IN1 eq_twenty OUT -> RESULT x(test/result)
+direction_vector_to_byte X -> IN _(converter/byte-to-int) OUT -> IN[0] eq_twenty(int/equal)
+match_twenty OUT -> IN[1] eq_twenty OUT -> RESULT x(test/result)
 
-direction_vector_to_byte Y -> IN _(converter/byte-to-int) OUT -> IN0 eq_eighty(int/equal)
-match_eighty OUT -> IN1 eq_eighty OUT -> IN _(boolean/not) OUT -> RESULT y(test/result)
+direction_vector_to_byte Y -> IN _(converter/byte-to-int) OUT -> IN[0] eq_eighty(int/equal)
+match_eighty OUT -> IN[1] eq_eighty OUT -> IN _(boolean/not) OUT -> RESULT y(test/result)
 
-direction_vector_to_byte Z -> IN _(converter/byte-to-int) OUT -> IN0 eq_seventy(int/equal)
-match_seventy OUT -> IN1 eq_seventy OUT -> RESULT z(test/result)
+direction_vector_to_byte Z -> IN _(converter/byte-to-int) OUT -> IN[0] eq_seventy(int/equal)
+match_seventy OUT -> IN[1] eq_seventy OUT -> RESULT z(test/result)

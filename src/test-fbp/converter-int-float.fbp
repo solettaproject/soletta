@@ -38,5 +38,5 @@ float_to_int(converter/float-to-int)
 two_four_eight_int OUT -> IN int_to_float OUT -> IN[0] cmp_floats(float/equal)
 two_four_eight_float OUT -> IN[1] cmp_floats OUT -> RESULT result_floats_cmp(test/result)
 
-ten_point_eight OUT -> IN float_to_int OUT -> IN0 cmp_ints(int/equal)
-ten OUT -> IN1 cmp_ints OUT -> RESULT result_ints_cmp(test/result)
+ten_point_eight OUT -> IN float_to_int OUT -> IN[0] cmp_ints(int/equal)
+ten OUT -> IN[1] cmp_ints OUT -> RESULT result_ints_cmp(test/result)

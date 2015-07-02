@@ -55,8 +55,8 @@ true_value(constant/int:value=117)
 false_value(constant/int:value=1024)
 boolean_to_int_true(converter/boolean-to-int:true_value=117,false_value=1024)
 
-true OUT -> IN boolean_to_int_true OUT -> IN0 cmp_true(int/equal)
-true_value OUT -> IN1 cmp_true OUT -> RESULT result_true(test/result)
+true OUT -> IN boolean_to_int_true OUT -> IN[0] cmp_true(int/equal)
+true_value OUT -> IN[1] cmp_true OUT -> RESULT result_true(test/result)
 
-false OUT -> IN boolean_to_int_false OUT -> IN0 cmp_false(int/equal)
-false_value OUT -> IN1 cmp_false OUT -> RESULT result_false(test/result)
+false OUT -> IN boolean_to_int_false OUT -> IN[0] cmp_false(int/equal)
+false_value OUT -> IN[1] cmp_false OUT -> RESULT result_false(test/result)

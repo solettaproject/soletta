@@ -31,9 +31,9 @@
 hello_world(constant/string:value="Hello World")
 
 hello_world OUT -> IN len(string/length)
-len OUT -> IN0 is_len_correct(int/equal)
-real_len(constant/int:value=11) OUT -> IN1 is_len_correct OUT -> RESULT len_works(test/result)
+len OUT -> IN[0] is_len_correct(int/equal)
+real_len(constant/int:value=11) OUT -> IN[1] is_len_correct OUT -> RESULT len_works(test/result)
 
 hello_world OUT -> IN len_with_max(string/length:maxlen=5)
-len_with_max OUT -> IN0 is_max(int/equal)
-max(constant/int:value=5) OUT -> IN1 is_max OUT -> RESULT len_with_max_works(test/result)
+len_with_max OUT -> IN[0] is_max(int/equal)
+max(constant/int:value=5) OUT -> IN[1] is_max OUT -> RESULT len_with_max_works(test/result)

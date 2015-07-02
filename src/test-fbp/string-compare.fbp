@@ -38,27 +38,27 @@ zero(constant/int:value=0)
 
 full_string OUT -> IN[0] cmp_same(string/compare)
 same_string OUT -> IN[1] cmp_same EQUAL -> RESULT full_and_same_are_equal(test/result)
-cmp_same OUT -> IN0 cmp_same_is_zero(int/equal)
-zero OUT -> IN1 cmp_same_is_zero OUT -> RESULT full_and_same_gives_zero(test/result)
+cmp_same OUT -> IN[0] cmp_same_is_zero(int/equal)
+zero OUT -> IN[1] cmp_same_is_zero OUT -> RESULT full_and_same_gives_zero(test/result)
 
 lesser_string OUT -> IN[0] cmp_less(string/compare)
 full_string OUT -> IN[1] cmp_less EQUAL -> IN not_cmp_less(boolean/not)
 not_cmp_less OUT -> RESULT lesser_and_full_are_not_equal(test/result)
 
-cmp_less OUT -> IN0 cmp_less_than_zero(int/less)
-zero OUT -> IN1 cmp_less_than_zero OUT -> RESULT lesser_and_full_gives_less_than_zero(test/result)
+cmp_less OUT -> IN[0] cmp_less_than_zero(int/less)
+zero OUT -> IN[1] cmp_less_than_zero OUT -> RESULT lesser_and_full_gives_less_than_zero(test/result)
 
 greater_string OUT -> IN[0] cmp_great(string/compare)
 full_string OUT -> IN[1] cmp_great EQUAL -> IN not_cmp_great(boolean/not)
 not_cmp_great OUT -> RESULT greater_and_full_are_not_equal(test/result)
 
-cmp_great OUT -> IN0 cmp_greater_than_zero(int/greater)
-zero OUT -> IN1 cmp_greater_than_zero OUT -> RESULT greater_and_full_gives_greater_than_zero(test/result)
+cmp_great OUT -> IN[0] cmp_greater_than_zero(int/greater)
+zero OUT -> IN[1] cmp_greater_than_zero OUT -> RESULT greater_and_full_gives_greater_than_zero(test/result)
 
 lesser_string OUT -> IN[0] cmp_bytes(string/compare:bytes=5)
 full_string OUT -> IN[1] cmp_bytes EQUAL -> RESULT comparing_n_bytes_equal(test/result)
-cmp_bytes OUT -> IN0 cmp_bytes_is_zero(int/equal)
-zero OUT -> IN1 cmp_bytes_is_zero OUT -> RESULT comparing_n_bytes_gives_zero(test/result)
+cmp_bytes OUT -> IN[0] cmp_bytes_is_zero(int/equal)
+zero OUT -> IN[1] cmp_bytes_is_zero OUT -> RESULT comparing_n_bytes_gives_zero(test/result)
 
 
 # regular comparison should fail if case differs
