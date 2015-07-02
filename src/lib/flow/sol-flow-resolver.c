@@ -74,7 +74,6 @@ sol_flow_resolve(
     return 0;
 }
 
-#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 struct find_type_ctx {
     const char *name;
     const struct sol_flow_node_type *type;
@@ -114,18 +113,13 @@ static const struct sol_flow_resolver builtins_resolver = {
     .resolve = builtins_resolve,
 };
 
+SOL_API const struct sol_flow_resolver *sol_flow_resolver_builtins = &builtins_resolver;
+
 SOL_API const struct sol_flow_resolver *
 sol_flow_get_builtins_resolver(void)
 {
     return &builtins_resolver;
 }
-#else
-SOL_API const struct sol_flow_resolver *
-sol_flow_get_builtins_resolver(void)
-{
-    return NULL;
-}
-#endif
 
 SOL_API const struct sol_flow_resolver *
 sol_flow_get_default_resolver(void)

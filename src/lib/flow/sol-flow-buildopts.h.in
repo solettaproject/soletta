@@ -32,10 +32,17 @@
 
 #pragma once
 
+#include "sol_config.h"
+
 @SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED@
 @SOL_FLOW_INSPECTOR_ENABLED@
 
 @SOL_BUILD_FLOW_MODULE_RESOLVER_CONFFILE@
+
+#ifdef NODE_DESCRIPTION
 #ifdef SOL_BUILD_FLOW_MODULE_RESOLVER_CONFFILE
-extern struct sol_flow_resolver *sol_flow_resolver_conffile;
+extern const struct sol_flow_resolver *sol_flow_resolver_conffile;
+#else
+extern const struct sol_flow_resolver *sol_flow_resolver_builtins;
+#endif
 #endif
