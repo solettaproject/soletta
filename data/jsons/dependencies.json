@@ -1,4 +1,19 @@
 {
+    "pre-dependencies": [
+	{
+	    "dependency": "gnu_source",
+	    "type": "ccode",
+	    "headers": [
+		"<string.h>"
+            ],
+            "fragment": "strndupa(0,0);",
+            "cflags": {
+                "comment": "append to COMMON_CFLAGS so it's used for further checks",
+                "append_to": "COMMON_CFLAGS",
+                "value": "-D_GNU_SOURCE=1"
+            }
+	}
+    ],
     "dependencies": [
 	{
 	    "dependency": "check",
@@ -47,7 +62,9 @@
 	    "headers": [
 		"<pthread.h>"
 	    ],
-            "ldflags": "-lpthread"
+            "ldflags": {
+                "value": "-lpthread"
+            }
 	},
 	{
 	    "dependency": "linux",
