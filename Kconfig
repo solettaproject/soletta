@@ -57,7 +57,7 @@ source "src/lib/flow/Kconfig"
 endmenu
 
 menu "Networking"
-source "src/lib/coap/Kconfig"
+source "src/lib/comms/Kconfig"
 endmenu
 
 menu "Tools"

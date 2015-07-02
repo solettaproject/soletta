@@ -57,6 +57,7 @@ extern "C" {
  * targets.
  *
  * For a better reference, check the following groups:
+ * @li @ref Comms
  * @li @ref Datatypes
  * @li @ref Flow
  * @li @ref IO

@@ -32,9 +32,23 @@
 
 #pragma once
 
-#include "sol-str-slice.h"
-#include "sol-coap.h"
+#include <sol-str-slice.h>
+#include <sol-coap.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @file
+ * @brief Routines to create servers talking OIC protocol.
+ */
+
+/**
+ * @ingroup Comms
+ *
+ * @{
+ */
 
 #ifndef OIC_DEVICE_NAME
 #define OIC_DEVICE_NAME "Soletta OIC Device"
@@ -76,6 +90,9 @@
 struct sol_oic_device_definition;
 
 struct sol_oic_resource_type {
+#define SOL_OIC_RESOURCE_TYPE_API_VERSION (1)
+    uint16_t api_version;
+    int : 0; /* save possible hole for a future field */
     struct sol_str_slice endpoint;
     struct sol_str_slice resource_type;
     struct sol_str_slice iface;
@@ -100,3 +117,11 @@ struct sol_coap_resource *sol_oic_device_definition_register_resource_type(
     const struct sol_oic_resource_type *resource_type,
     void *handler_data, enum sol_coap_flags flags);
 bool sol_oic_notify_observers(struct sol_coap_resource *resource, uint8_t *msg, uint16_t msg_len);
+
+/**
+ * @}
+ */
+
+#ifdef __cplusplus
+}
+#endif
