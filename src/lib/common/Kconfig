@@ -60,7 +60,7 @@ config LOG
 
 choice
 	prompt "Maximum allowed log level"
-	default DEFAULT_LOG_LEVEL_ERROR
+	default DEFAULT_LOG_LEVEL_WARNING
 	depends on LOG
 	help
           Maximum log level that will be allowed.
