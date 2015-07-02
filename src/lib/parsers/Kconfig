@@ -1,0 +1,3 @@
+config PARSERS
+	bool
+	default y
