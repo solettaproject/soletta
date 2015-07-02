@@ -67,6 +67,12 @@ class DepContext:
     def get_makefile_vars(self):
         return self.makefile_vars
 
+    def find_makefile_var(self, v):
+        var = self.makefile_vars.get(v)
+        if var:
+            return var["value"]
+        return ""
+
 def run_command(cmd):
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
@@ -132,22 +138,50 @@ def compile_test(source, compiler, cflags, ldflags):
 
     return status
 
+def set_makefile_compflags(flags, prefix, suffix):
+    append_to = flags.get("appent_to")
+    flag_value = flags.get("value")
+
+    if not flag_value:
+        return
+
+    if append_to:
+        context.add_append_makefile_var(append_to, flag_value)
+    else:
+        context.add_cond_makefile_var("%s_%s" % (prefix, suffix),
+                                      flag_value)
+
 def handle_ccode_check(args, conf, context):
     dep = conf["dependency"].upper()
     source = ""
 
-    for i in conf.get("headers"):
-        source += "#include %s\n" % i
+    cflags = conf.get("cflags")
+    ldflags = conf.get("ldflags")
 
+    defines = conf.get("defines")
+    headers = conf.get("headers")
+
+    if defines:
+        for i in defines:
+            source += "#define %s\n" % i
+
+    if headers:
+        for i in headers:
+            source += "#include %s\n" % i
+
+    common_cflags = context.find_makefile_var(args.common_cflags_var)
     fragment = conf.get("fragment") or ""
     cstub = "{headers}\nint main(int argc, char **argv){{\n {fragment} return 0;\n}}"
     source = cstub.format(headers=source, fragment=fragment)
-    success = compile_test(source, args.compiler, args.cflags, conf.get("ldflags", ""))
+    success = compile_test(source, args.compiler, "%s %s" % (args.cflags, common_cflags),
+                           conf.get("ldflags", ""))
 
     if success:
-        context.add_cond_makefile_var("%s_CFLAGS" % dep, conf.get("cflags", ""))
-        context.add_cond_makefile_var("%s_LDFLAGS" % dep, conf.get("ldflags", ""))
         context.add_kconfig("HAVE_%s" % dep, "y")
+        if cflags:
+            set_makefile_compflags(cflags, dep, "CFLAGS")
+        if ldflags:
+            set_makefile_compflags(ldflags, dep, "LDFLAGS")
     else:
         context.add_kconfig("HAVE_%s" % dep, "n")
 
@@ -200,6 +234,14 @@ def kconfig_gen(args, context):
     f.write(output)
     f.close()
 
+def run(args, dep_checks, context):
+    for i in dep_checks:
+        handler = type_handlers.get(i["type"])
+        if not handler:
+            print("Could not handle type: %s" % i["type"])
+            continue
+        handler(args, i, context)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--compiler", help="The gcc compiler[for headers based tests]",
@@ -212,19 +254,18 @@ if __name__ == "__main__":
                         type=str, default="Makefile.gen")
     parser.add_argument("--dep-config", help="The dependencies config file",
                         type=argparse.FileType("r"), default="data/jsons/dependencies.json")
+    parser.add_argument("--common-cflags-var", help="The makefile variable to group common cflags",
+                        type=str, default="COMMON_CFLAGS")
 
     args = parser.parse_args()
     conf = json.loads(args.dep_config.read())
-    dep_checks = conf["dependencies"]
+    dep_checks = conf.get("dependencies")
+    pre_checks = conf.get("pre-dependencies")
 
     context = DepContext()
 
-    for i in dep_checks:
-        handler = type_handlers.get(i["type"])
-        if not handler:
-            print("Could not handle type: %s" % i["type"])
-            continue
-        handler(args, i, context)
+    run(args, pre_checks, context)
+    run(args, dep_checks, context)
 
     makefile_gen(args, context)
     kconfig_gen(args, context)
