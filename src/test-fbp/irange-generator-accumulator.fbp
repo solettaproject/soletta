@@ -42,5 +42,5 @@ gen3(test/int-generator:sequence="100 -1 -120 3 4 -17")
 val3(test/int-validator:sequence="100 1 -120 3 4 -17")
 
 gen3 OUT -> IN val3 OUT -> IN _(boolean/not) OUT -> RESULT _(test/result)
-val3 ERROR -> INC _(int/accumulator) OUT -> IN0 error_count(int/equal)
-_(constant/int:value=4) OUT -> IN1 error_count OUT -> IN _(boolean/filter) TRUE -> PASS _(test/result)
+val3 ERROR -> INC _(int/accumulator) OUT -> IN[0] error_count(int/equal)
+_(constant/int:value=4) OUT -> IN[1] error_count OUT -> IN _(boolean/filter) TRUE -> PASS _(test/result)

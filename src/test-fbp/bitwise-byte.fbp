@@ -38,35 +38,35 @@ max_char(constant/byte:value=0x7f)
 
 input1 OUT -> IN[0] and(byte/bitwise-and)
 input2 OUT -> IN[1] and
-and OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_expected_and(int/equal)
-all_zero OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_expected_and
+and OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_expected_and(int/equal)
+all_zero OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_expected_and
 cmp_expected_and OUT -> RESULT test_byte_bitwise_and(test/result)
 
 input1 OUT -> IN[0] or(byte/bitwise-or)
 input2 OUT -> IN[1] or
-or OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_expected_or(int/equal)
-all_one OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_expected_or
+or OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_expected_or(int/equal)
+all_one OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_expected_or
 cmp_expected_or OUT -> RESULT test_byte_bitwise_or(test/result)
 
 input1 OUT -> IN[0] xor(byte/bitwise-xor)
 all_one OUT -> IN[1] xor
-xor OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_expected_xor(int/equal)
-input2 OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_expected_xor
+xor OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_expected_xor(int/equal)
+input2 OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_expected_xor
 cmp_expected_xor OUT -> RESULT test_byte_bitwise_xor(test/result)
 
 input1 OUT -> IN not(byte/bitwise-not)
-not OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_expected_not(int/equal)
-input2 OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_expected_not
+not OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_expected_not(int/equal)
+input2 OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_expected_not
 cmp_expected_not OUT -> RESULT test_byte_bitwise_not(test/result)
 
 min_char OUT -> IN shiftl(byte/shift-left)
 one OUT -> SHIFT shiftl
-shiftl OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_expected_shiftl(int/equal)
-all_zero OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_expected_shiftl
+shiftl OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_expected_shiftl(int/equal)
+all_zero OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_expected_shiftl
 cmp_expected_shiftl OUT -> RESULT test_byte_bitwise_shift_left(test/result)
 
 all_one OUT -> IN shiftr(byte/shift-right)
 one OUT -> SHIFT shiftr
-shiftr OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_expected_shiftr(int/equal)
-max_char OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_expected_shiftr
+shiftr OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_expected_shiftr(int/equal)
+max_char OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_expected_shiftr
 cmp_expected_shiftr OUT -> RESULT test_byte_bitwise_shift_right(test/result)

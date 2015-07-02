@@ -37,22 +37,22 @@ inferior_overflow(constant/int:value=-256)
 
 #default option -255 -> 255
 
-superior_limit OUT -> IN0 in_range_max(int/inrange)
+superior_limit OUT -> IN in_range_max(int/inrange)
 in_range_max OUT -> RESULT r_max(test/result)
 
-positive_mean_value OUT -> IN0 in_range_positive_mean_value(int/inrange)
+positive_mean_value OUT -> IN in_range_positive_mean_value(int/inrange)
 in_range_positive_mean_value OUT -> RESULT r_positive_mean(test/result)
 
-inferior_limit OUT -> IN0 in_range_min(int/inrange)
+inferior_limit OUT -> IN in_range_min(int/inrange)
 in_range_min OUT -> RESULT r_min(test/result)
 
-negative_mean_value OUT -> IN0 in_range_negative_mean_value(int/inrange)
+negative_mean_value OUT -> IN in_range_negative_mean_value(int/inrange)
 in_range_negative_mean_value OUT -> RESULT r_negative_mean(test/result)
 
-superior_overflow OUT -> IN0 out_range_max(int/inrange)
+superior_overflow OUT -> IN out_range_max(int/inrange)
 out_range_max OUT -> IN not1(boolean/not) OUT -> RESULT r_out_range_max(test/result)
 
-inferior_overflow OUT -> IN0 out_range_min(int/inrange)
+inferior_overflow OUT -> IN out_range_min(int/inrange)
 out_range_min OUT -> IN not2(boolean/not) OUT -> RESULT r_out_range_min(test/result)
 
 #custom option -1024 -> 1024
@@ -64,21 +64,21 @@ negative_mean_value_custom(constant/int:value=-512)
 superior_overflow_custom(constant/int:value=1025)
 inferior_overflow_custom(constant/int:value=-1025)
 
-superior_limit_custom OUT -> IN0 in_range_custom_max(int/inrange:range=min:-1024|max:1024)
+superior_limit_custom OUT -> IN in_range_custom_max(int/inrange:range=min:-1024|max:1024)
 in_range_custom_max OUT -> RESULT r_custom_max(test/result)
 
-positive_mean_value_custom OUT -> IN0 in_range_positive_custom_mean(int/inrange:range=min:-1024|max:1024)
+positive_mean_value_custom OUT -> IN in_range_positive_custom_mean(int/inrange:range=min:-1024|max:1024)
 in_range_positive_custom_mean OUT -> RESULT r_custom_positive_mean(test/result)
 
-inferior_limit_custom OUT -> IN0 in_range_custom_min(int/inrange:range=min:-1024|max:1024)
+inferior_limit_custom OUT -> IN in_range_custom_min(int/inrange:range=min:-1024|max:1024)
 in_range_custom_min OUT -> RESULT r_custom_min(test/result)
 
-negative_mean_value_custom OUT -> IN0 in_range_negative_custom_mean(int/inrange:range=min:-1024|max:1024)
+negative_mean_value_custom OUT -> IN in_range_negative_custom_mean(int/inrange:range=min:-1024|max:1024)
 in_range_negative_custom_mean OUT -> RESULT r_custom_negative_mean(test/result)
 
-superior_overflow_custom OUT -> IN0 out_range_custom_max(int/inrange:range=min:-1024|max:1024)
+superior_overflow_custom OUT -> IN out_range_custom_max(int/inrange:range=min:-1024|max:1024)
 out_range_custom_max OUT -> IN not3(boolean/not) OUT -> RESULT r_out_custom_max(test/result)
 
-inferior_overflow_custom OUT -> IN0 out_range_custom_min(int/inrange:range=min:-1024|max:1024)
+inferior_overflow_custom OUT -> IN out_range_custom_min(int/inrange:range=min:-1024|max:1024)
 out_range_custom_min OUT -> IN not4(boolean/not) OUT -> RESULT r_out_custom_min(test/result)
 

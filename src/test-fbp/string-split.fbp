@@ -43,6 +43,6 @@ split2 OUT -> IN[0] cmp2(string/compare)
 World OUT -> IN[1] cmp2
 cmp2 EQUAL -> RESULT split_second_word(test/result)
 
-split2 LENGTH -> IN0 equal(int/equal)
-Len OUT -> IN1 equal
+split2 LENGTH -> IN[0] equal(int/equal)
+Len OUT -> IN[1] equal
 equal OUT -> RESULT split_length(test/result)

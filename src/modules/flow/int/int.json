@@ -12,19 +12,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of MAX operation.",
+          "description": "Two ports for max operation. Indexed from 0 to 1.",
           "methods": {
             "process": "min_max_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of MAX operation.",
-          "methods": {
-            "process": "min_max_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -34,7 +26,7 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "Maximum value between IN0 and IN1.",
+          "description": "Maximum value between IN[0] and IN[1].",
           "name": "OUT"
         }
       ],
@@ -47,19 +39,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of MIN operation.",
+          "description": "Two ports for min operation. Indexed from 0 to 1.",
           "methods": {
             "process": "min_max_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of MIN operation.",
-          "methods": {
-            "process": "min_max_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -69,7 +53,7 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "Minimum value between IN0 and IN1.",
+          "description": "Minimum value between IN[0] and IN[1].",
           "name": "OUT"
         }
       ],
@@ -174,19 +158,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of addition operation.",
+          "description": "Thirty two ports for addition operation. Indexed from 0 to 31.",
           "methods": {
             "process": "operator_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of addition operation.",
-          "methods": {
-            "process": "operator_process"
-          },
-          "name": "IN1"
+          "name": "OPERAND[32]"
         }
       ],
       "methods": {
@@ -196,7 +172,7 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "Sum of values received on ports IN0 and IN1.",
+          "description": "Sum of values received on ports OPERAND[0] to OPERAND[31].",
           "name": "OUT"
         }
       ],
@@ -209,19 +185,19 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of division operation.",
+          "description": "Receives dividend value.",
           "methods": {
             "process": "operator_process"
           },
-          "name": "IN0"
+          "name": "DIVIDEND"
         },
         {
           "data_type": "int",
-          "description": "Second port of division operation.",
+          "description": "Receives divisor value.",
           "methods": {
             "process": "operator_process"
           },
-          "name": "IN1"
+          "name": "DIVISOR"
         }
       ],
       "methods": {
@@ -231,7 +207,7 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "Quotient of values received on ports IN0 and IN1.",
+          "description":  "Quotient from the division of DIVIDEND by DIVISOR.",
           "name": "OUT"
         }
       ],
@@ -244,19 +220,19 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of modulo operation.",
+          "description": "Receives dividend value.",
           "methods": {
             "process": "operator_process"
           },
-          "name": "IN0"
+          "name": "DIVIDEND"
         },
         {
           "data_type": "int",
-          "description": "Second port of modulo operation.",
+          "description": "Receives divisor value.",
           "methods": {
             "process": "operator_process"
           },
-          "name": "IN1"
+          "name": "DIVISOR"
         }
       ],
       "methods": {
@@ -266,7 +242,7 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "The remainder of values received on ports IN0 divided by values on IN1.",
+          "description": "Remainder from the division of DIVIDEND by DIVISOR.",
           "name": "OUT"
         }
       ],
@@ -279,19 +255,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of multiplication operation.",
+          "description": "Thirty two ports for multiplication operation. Indexed from 0 to 31.",
           "methods": {
             "process": "operator_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of multiplication operation.",
-          "methods": {
-            "process": "operator_process"
-          },
-          "name": "IN1"
+          "name": "OPERAND[32]"
         }
       ],
       "methods": {
@@ -301,7 +269,7 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "Product of values received on ports IN0 and IN1.",
+          "description": "Product of values received on ports OPERAND[0] and OPERAND[31].",
           "name": "OUT"
         }
       ],
@@ -314,19 +282,19 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of subtraction operation.",
+          "description": "Receives minuend value.",
           "methods": {
             "process": "operator_process"
           },
-          "name": "IN0"
+          "name": "MINUEND"
         },
         {
           "data_type": "int",
-          "description": "Second port of subtraction operation.",
+          "description": "Receives subtrahend value.",
           "methods": {
             "process": "operator_process"
           },
-          "name": "IN1"
+          "name": "SUBTRAHEND"
         }
       ],
       "methods": {
@@ -336,7 +304,7 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "Difference of values received on ports IN0 and IN1.",
+          "description": "Difference of values received on ports OPERAND[0] to OPERAND[31].",
           "name": "OUT"
         }
       ],
@@ -349,26 +317,18 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of AND operation.",
+          "description": "Two ports for AND operation. Indexed from 0 to 1.",
           "methods": {
             "process": "and_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of AND operation.",
-          "methods": {
-            "process": "and_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "name": "int/bitwise-and",
       "out_ports": [
         {
           "data_type": "int",
-          "description": "The result of a bitwise AND between IN0 and IN1",
+          "description": "The result of a bitwise AND between IN[0] and IN[1]",
           "name": "OUT"
         }
       ],
@@ -404,26 +364,18 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of OR operation.",
+          "description": "Two ports for OR operation. Indexed from 0 to 1.",
           "methods": {
             "process": "or_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of OR operation.",
-          "methods": {
-            "process": "or_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "name": "int/bitwise-or",
       "out_ports": [
         {
           "data_type": "int",
-          "description": "The result of a bitwise OR between IN0 or IN1",
+          "description": "The result of a bitwise OR between IN[0] and IN[1]",
           "name": "OUT"
         }
       ],
@@ -500,26 +452,18 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of XOR operation.",
+          "description": "Two ports for XOR operation. Indexed from 0 to 1.",
           "methods": {
             "process": "xor_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of XOR operation.",
-          "methods": {
-            "process": "xor_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "name": "int/bitwise-xor",
       "out_ports": [
         {
           "data_type": "int",
-          "description": "The result of a bitwise XOR between IN0 xor IN1",
+          "description": "The result of a bitwise XOR between IN[0] xor IN[1]",
           "name": "OUT"
         }
       ],
@@ -600,19 +544,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of equal comparison.",
+          "description": "Two ports for equal comparison operation. Indexed from 0 to 1.",
           "methods": {
             "process": "comparison_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of equal comparison.",
-          "methods": {
-            "process": "comparison_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -622,7 +558,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if value received on port IN0 is equal to value received on port IN1.",
+          "description": "True if value received on port IN[0] is equal to value received on port IN[1].",
           "name": "OUT"
         }
       ],
@@ -635,19 +571,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of greater comparison.",
+          "description": "Two ports for greater comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
           "methods": {
             "process": "comparison_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of greater comparison.",
-          "methods": {
-            "process": "comparison_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -657,7 +585,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if value received on port IN0 is greater than value received on port IN1.",
+          "description": "True if value received on port IN[0] is greater than value received on port IN[1].",
           "name": "OUT"
         }
       ],
@@ -670,19 +598,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of greater or equal comparison.",
+          "description": "Two ports for greater-or-equal comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
           "methods": {
             "process": "comparison_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of greater or equal comparison.",
-          "methods": {
-            "process": "comparison_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -692,7 +612,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if value received on port IN0 is greater than or equal to value received on port IN1.",
+          "description": "True if value received on port IN[0] is greater than or equal to value received on port IN[1].",
           "name": "OUT"
         }
       ],
@@ -705,19 +625,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of less comparison.",
+          "description": "Two ports for less comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
           "methods": {
             "process": "comparison_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of less comparison.",
-          "methods": {
-            "process": "comparison_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -727,7 +639,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if value received on port IN0 is less than value received on port IN1.",
+          "description": "True if value received on port IN[0] is less than value received on port IN[1].",
           "name": "OUT"
         }
       ],
@@ -740,19 +652,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of less or equal comparison.",
+          "description": "Two ports for less-or-equal comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
           "methods": {
             "process": "comparison_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of less or equal comparison.",
-          "methods": {
-            "process": "comparison_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -762,7 +666,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if value received on port IN0 is less than or equal to value received on port IN1.",
+          "description": "True if value received on port IN[0] is less than or equal to value received on port IN[1].",
           "name": "OUT"
         }
       ],
@@ -775,19 +679,11 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "First port of not equal comparison.",
+          "description": "Two ports for not-equal comparison operation. Indexed from 0 to 1",
           "methods": {
             "process": "comparison_process"
           },
-          "name": "IN0"
-        },
-        {
-          "data_type": "int",
-          "description": "Second port of not equal comparison.",
-          "methods": {
-            "process": "comparison_process"
-          },
-          "name": "IN1"
+          "name": "IN[2]"
         }
       ],
       "methods": {
@@ -797,7 +693,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if value received on port IN0 is different from value received on port IN1.",
+          "description": "True if value received on port IN[0] is different from value received on port IN[1].",
           "name": "OUT"
         }
       ],
@@ -916,7 +812,7 @@
           "methods": {
             "process": "inrange_process"
           },
-          "name": "IN0"
+          "name": "IN"
         }
       ],
       "methods": {
@@ -940,7 +836,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "true if IN0 is in range",
+          "description": "true if IN is in range",
           "name": "OUT"
         }
       ],

@@ -44,13 +44,13 @@ map_test_10(int/map:use_input_range=false,input_range=min:10|max:50,output_range
 map_test_30(int/map:use_input_range=false,input_range=min:10|max:50,output_range=min:0|max:100|step:1)
 map_test_50(int/map:use_input_range=false,input_range=min:10|max:50,output_range=min:0|max:100|step:1)
 
-constant_10 OUT -> IN map_test_10 OUT -> IN0 equal_10 OUT -> RESULT test_10(test/result)
-constant_30 OUT -> IN map_test_30 OUT -> IN0 equal_30 OUT -> RESULT test_30(test/result)
-constant_50 OUT -> IN map_test_50 OUT -> IN0 equal_50 OUT -> RESULT test_50(test/result)
+constant_10 OUT -> IN map_test_10 OUT -> IN[0] equal_10 OUT -> RESULT test_10(test/result)
+constant_30 OUT -> IN map_test_30 OUT -> IN[0] equal_30 OUT -> RESULT test_30(test/result)
+constant_50 OUT -> IN map_test_50 OUT -> IN[0] equal_50 OUT -> RESULT test_50(test/result)
 
-result_10 OUT -> IN1 equal_10
-result_30 OUT -> IN1 equal_30
-result_50 OUT -> IN1 equal_50
+result_10 OUT -> IN[1] equal_10
+result_30 OUT -> IN[1] equal_30
+result_50 OUT -> IN[1] equal_50
 
 
 

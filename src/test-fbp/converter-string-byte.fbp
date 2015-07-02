@@ -35,6 +35,6 @@ const_byte OUT -> IN byte_to_str(converter/byte-to-string) OUT -> IN[0] str_cmp(
 const_byte_str OUT -> IN[1] str_cmp EQUAL -> RESULT byte_converts_to_string(test/result)
 
 byte_to_str OUT -> IN str_to_byte(converter/string-to-byte)
-str_to_byte OUT -> IN conv1(converter/byte-to-int) OUT -> IN0 is_byte_equal(int/equal)
-const_byte OUT -> IN conv2(converter/byte-to-int) OUT -> IN1 is_byte_equal
+str_to_byte OUT -> IN conv1(converter/byte-to-int) OUT -> IN[0] is_byte_equal(int/equal)
+const_byte OUT -> IN conv2(converter/byte-to-int) OUT -> IN[1] is_byte_equal
 is_byte_equal OUT -> RESULT string_converts_to_byte(test/result)
