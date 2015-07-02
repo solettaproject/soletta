@@ -1,4 +1,18 @@
 {
+    "pre-dependencies": [
+	{
+	    "dependency": "gnu_source",
+	    "type": "ccode",
+            "defines": [
+                "_GNU_SOURCE 1"
+            ],
+	    "headers": [
+		"<string.h>"
+            ],
+            "fragment": "strndupa(0,0);",
+            "common_cflags": "_GNU_SOURCE=1"
+	}
+    ],
     "dependencies": [
 	{
 	    "dependency": "check",

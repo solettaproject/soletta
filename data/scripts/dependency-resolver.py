@@ -46,6 +46,7 @@ class DepContext:
         self.ldflags = {}
         self.kconfig = {}
         self.makefile_vars = {}
+        self.common_cflags = []
 
     def add_cflags(self, k, v):
         self.cflags[k] = v
@@ -70,6 +71,15 @@ class DepContext:
 
     def get_makefile(self):
         return self.makefile_vars
+
+    def add_common_cflags(self, v):
+        self.common_cflags.append(v)
+
+    def get_common_cflags(self):
+        result = ""
+        for i in self.common_cflags:
+            result += "-D%s " % i
+        return result
 
 class DepContextManager(BaseManager): pass
 DepContextManager.register('DepContext', DepContext)
@@ -142,19 +152,30 @@ def compile_test(source, compiler, cflags):
 def handle_ccode_check(args, conf, context):
     dep = conf["dependency"].upper()
     source = ""
+    common_cflags = conf.get("common_cflags")
+    defines = conf.get("defines")
+    headers = conf.get("headers")
 
-    for i in conf.get("headers"):
-        source += "#include %s\n" % i
+    if defines:
+        for i in defines:
+            source += "#define %s\n" % i
+
+    if headers:
+        for i in headers:
+            source += "#include %s\n" % i
 
     fragment = conf.get("fragment") or ""
     cstub = "{headers}\nint main(int argc, char **argv){{\n {fragment} return 0;\n}}"
     source = cstub.format(headers=source, fragment=fragment)
-    success = compile_test(source, args.compiler, args.cflags)
+    success = compile_test(source, args.compiler,
+                           "%s %s" % (args.cflags, context.get_common_cflags()))
 
     if success:
         context.add_cflags("%s_CFLAGS" % dep, conf.get("cflags") or "")
         context.add_ldflags("%s_LDFLAGS" % dep, conf.get("ldflags") or "")
         context.add_kconfig("HAVE_%s" % dep, "y")
+        if common_cflags:
+            context.add_common_cflags(common_cflags)
     else:
         context.add_kconfig("HAVE_%s" % dep, "n")
 
@@ -197,6 +218,11 @@ def makefile_gen(args, context):
     output += var_str(context.get_makefile().items())
     output += var_str(context.get_cflags().items())
     output += var_str(context.get_ldflags().items())
+
+    common_cflags = context.get_common_cflags()
+    if common_cflags:
+        output += "COMMON_CFLAGS += %s" % common_cflags
+
     f = open(args.makefile_output, "w+")
     f.write(output)
     f.close()
@@ -209,6 +235,20 @@ def kconfig_gen(args, context):
     f = open(args.kconfig_output, "w+")
     f.write(output)
     f.close()
+
+def run(args, dep_checks, context):
+    threads = []
+    for i in dep_checks:
+        handler = type_handlers.get(i["type"])
+        if not handler:
+            print("Could not handle type: %s" % i["type"])
+            continue
+        t = Thread(target=handler, args=(args, i, context,))
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -225,23 +265,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     conf = json.loads(args.dep_config.read())
-    dep_checks = conf["dependencies"]
+    dep_checks = conf.get("dependencies")
+    pre_checks = conf.get("pre-dependencies")
 
     with DepContextManager() as manager:
-        threads = []
         context = manager.DepContext()
 
-        for i in dep_checks:
-            handler = type_handlers.get(i["type"])
-            if not handler:
-                print("Could not handle type: %s" % i["type"])
-                continue
-            t = Thread(target=handler, args=(args, i, context,))
-            t.start()
-            threads.append(t)
-
-        for t in threads:
-            t.join()
+        run(args, pre_checks, context)
+        run(args, dep_checks, context)
 
         makefile_gen(args, context)
         kconfig_gen(args, context)
