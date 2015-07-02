@@ -82,8 +82,21 @@ PHONY += install post-install pre-install
 
 all-desc-jsons = $(all-mod-descs) $(if $(filter $(builtin-flows),$(builtin-flows)),$(FLOW_BUILTINS_DESC))
 
+ifeq (y,$(ENABLE_DOCS))
+doc: $(DOXYGEN_RESOURCES) cheat-sheet
+	$(Q)rm -rf $(DOXYGEN_GENERATED)
+	$(Q)$(DOXYGEN_BIN) doc/Doxyfile
+	$(Q)rm -rf $(PACKAGE_DOCNAME).tar*
+	$(Q)mkdir -p $(PACKAGE_DOCNAME)/doc
+	$(Q)cp -R $(DOXYGEN_GENERATED) $(PACKAGE_DOCNAME)/doc
+	$(Q)tar cf $(PACKAGE_DOCNAME).tar $(PACKAGE_DOCNAME)/
+	$(Q)bzip2 -9 $(PACKAGE_DOCNAME).tar
+	$(Q)rm -rf $(PACKAGE_DOCNAME)/
+	$(Q)mv $(PACKAGE_DOCNAME).tar.bz2 $(top_builddir)
+
 cheat-sheet: $(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_RESOURCES) $(all-desc-jsons)
 	$(Q)echo "     "GEN"   "$(CHEAT_SHEET_INDEX_HTML)
 	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(all-desc-jsons)
+endif
 
 PHONY += cheat-sheet
