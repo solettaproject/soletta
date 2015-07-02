@@ -312,6 +312,7 @@ calamari_led_open(struct sol_flow_node *node, void *data, const struct sol_flow_
     mdata->val = opts->range;
     mdata->node = node;
 
+    pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION;
     pwm_config.period_ns = mdata->period;
     pwm_config.duty_cycle_ns = 0;
     pwm_config.enabled = true;

@@ -180,6 +180,7 @@ _set_gpio(int pin, enum sol_gpio_direction dir, int drive, bool val)
     const char *drive_str;
     struct sol_gpio_config gpio_config = { 0 };
 
+    gpio_config.api_version = SOL_GPIO_CONFIG_API_VERSION;
     gpio_config.dir = dir;
     gpio_config.out.value = val;
 
