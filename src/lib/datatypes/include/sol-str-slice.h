@@ -42,10 +42,15 @@
 extern "C" {
 #endif
 
-/* Slice of a string with explicit length.
- * It doesn't necessarily ends with NUL byte like C strings.
- * This representation is convenient for referencing to substrings
- * of a larger string without having to duplicate them.
+/**
+ * @file
+ * @brief These are routines that Solleta provides for its string slice implementation.
+ */
+
+/**
+ * @ingroup Datatypes
+ *
+ * @{
  */
 
 #define SOL_STR_STATIC_ASSERT_LITERAL(_s) ("" _s)
@@ -59,6 +64,14 @@ extern "C" {
 /* To be used together with "%.*s" formatting in printf family of functions. */
 #define SOL_STR_SLICE_PRINT(_s) (int)(_s).len, (_s).data
 
+/**
+ * @struct sol_str_slice
+ *
+ * Slice of a string with explicit length. It doesn't necessarily ends
+ * with NUL byte like C strings. This representation is convenient for
+ * referencing to substrings of a larger string without having to
+ * duplicate them.
+ */
 struct sol_str_slice {
     size_t len;
     const char *data;
@@ -90,6 +103,10 @@ sol_str_slice_from_str(const char *s)
 }
 
 int sol_str_slice_to_int(const struct sol_str_slice s, int *value);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

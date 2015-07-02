@@ -42,12 +42,82 @@
 extern "C" {
 #endif
 
-/* The flow system consists of a series of connected nodes that send
+/**
+ * @mainpage Soletta Project Documentation
+ *
+ * @version 1
+ * @date 2015
+ *
+ * Soletta project is a framework for making IoT devices. With Soletta
+ * project's libraries developers can easily write software for
+ * devices that control actuators/sensors and communicate using
+ * standard technologies. It enables adding smartness even on the
+ * smallest edge devices.
+ *
+ * Portable and scalable, it abstracts details of hardware and OS,
+ * enabling developers to reuse their code and knowledge on different
+ * targets.
+ *
+ * For a better reference, check the following groups:
+ * @li @ref Datatypes
+ * @li @ref Flow
+ * @li @ref IO
+ * @li @ref Log
+ * @li @ref Macros
+ * @li @ref Mainloop
+ * @li @ref Missing
+ * @li @ref Parsers
+ * @li @ref Platform
+ * @li @ref Types
+ *
+ * Please see the @ref authors page for contact details.
+ */
+
+/**
+ * @page authors Authors
+ *
+ * @author Anselmo L. S. Melo <anselmo.melo@intel.com>
+ * @author Bruno Bottazzini <bruno.bottazzini@intel.com>
+ * @author Bruno Dilly <bruno.dilly@intel.com>
+ * @author Caio Marcelo de Oliveira Filho <caio.oliveira@intel.com>
+ * @author Ederson de Souza <ederson.desouza@intel.com>
+ * @author Flavio Ceolin <flavio.ceolin@intel.com>
+ * @author Gustavo Lima Chaves <gustavo.lima.chaves@intel.com>
+ * @author Gustavo Sverzut Barbieri <gustavo.barbieri@intel.com>
+ * @author Iván Briano <ivan.briano@intel.com>
+ * @author José Roberto de Souza <jose.souza@intel.com>
+ * @author Leandro Dorileo <leandro.maciel.dorileo@intel.com>
+ * @author Leandro Pereira <leandro.pereira@intel.com>
+ * @author Lucas De Marchi <lucas.demarchi@intel.com>
+ * @author Luis Felipe Strano Moraes <luis.strano@intel.com>
+ * @author Luiz Ywata <luizg.ywata@intel.com>
+ * @author Murilo Belluzzo <murilo.belluzzo@intel.com>
+ * @author Ricardo de Almeida Gonzaga <ricardo.gonzaga@intel.com>
+ * @author Rodrigo Chiossi <rodrigo.chiossi@intel.com>
+ * @author Tomaz Canabrava <tomaz.canabrava@intel.com>
+ * @author Ulisses Furquim <ulisses.furquim@intel.com>
+ * @author Vinicius Costa Gomes <vinicius.gomes@intel.com>
+ *
+ * Please contact <soletta-dev@ml01.01.org> to get in contact with the
+ * developers and maintainers.
+ */
+
+/**
+ * @file
+ * @brief These routines are used for Solleta flows manipulation.
+ */
+
+/**
+ * @defgroup Flow
+ *
+ * The flow system consists of a series of connected nodes that send
  * packets to each other via ports. Each node may have multiple
  * input/output ports. It is responsibility of the parent (container)
  * node to deliver the packets sent by its children nodes (one thing
  * the "static flow" node, returned by sol_flow_static_new(), already
  * does).
+ *
+ * @{
  */
 
 struct sol_flow_node_options;
@@ -510,6 +580,10 @@ struct sol_flow_node_type *sol_flow_static_new_type(
         struct sol_flow_node_options *child_opts));
 
 void sol_flow_static_del_type(struct sol_flow_node_type *type);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

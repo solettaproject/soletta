@@ -39,6 +39,18 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for PWM access under Solleta.
+ */
+
+/**
+ * @ingroup IO
+ *
+ * @{
+ *
+ */
+
 struct sol_pwm;
 
 /* No API for this on Linux, so we simply ignore it there */
@@ -75,6 +87,10 @@ bool sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns);
 int32_t sol_pwm_get_period(const struct sol_pwm *pwm);
 bool sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns);
 int32_t sol_pwm_get_duty_cycle(const struct sol_pwm *pwm);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
