@@ -34,8 +34,8 @@ zero(constant/float:value=0)
 infinite(constant/float:value=Inf)
 nan(constant/float:value=NaN)
 
-dbl_min OUT -> IN0 div(float/division)
-two OUT -> IN1 div
+dbl_min OUT -> DIVIDEND div(float/division)
+two OUT -> DIVISOR div
 div OUT -> IN cls_subnormal(float/classify)
 cls_subnormal SUBNORMAL -> PASS r_subnormal(test/result)
 

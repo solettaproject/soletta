@@ -55,8 +55,8 @@ true_value(constant/float:value=117.83)
 false_value(constant/float:value=1024.28)
 boolean_to_float_true(converter/boolean-to-float:true_value=117.83,false_value=1024.28)
 
-true OUT -> IN boolean_to_float_true OUT -> IN0 cmp_true(float/equal)
-true_value OUT -> IN1 cmp_true OUT -> RESULT result_true(test/result)
+true OUT -> IN boolean_to_float_true OUT -> IN[0] cmp_true(float/equal)
+true_value OUT -> IN[1] cmp_true OUT -> RESULT result_true(test/result)
 
-false OUT -> IN boolean_to_float_false OUT -> IN0 cmp_false(float/equal)
-false_value OUT -> IN1 cmp_false OUT -> RESULT result_false(test/result)
+false OUT -> IN boolean_to_float_false OUT -> IN[0] cmp_false(float/equal)
+false_value OUT -> IN[1] cmp_false OUT -> RESULT result_false(test/result)
