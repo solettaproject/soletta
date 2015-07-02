@@ -36,35 +36,35 @@ compare_cos_angle_0(float/equal) OUT -> RESULT output_cos_angle_0(test/result)
 compare_sin_angle_0(float/equal) OUT -> RESULT output_sin_angle_0(test/result)
 compare_tan_angle_0(float/equal) OUT -> RESULT output_tan_angle_0(test/result)
 
-result_cos_angle_0(constant/float:value=1) OUT -> IN1 compare_cos_angle_0
-result_sin_angle_0(constant/float:value=0) OUT -> IN1 compare_sin_angle_0
-result_tan_angle_0(constant/float:value=0) OUT -> IN1 compare_tan_angle_0
+result_cos_angle_0(constant/float:value=1) OUT -> IN[1] compare_cos_angle_0
+result_sin_angle_0(constant/float:value=0) OUT -> IN[1] compare_sin_angle_0
+result_tan_angle_0(constant/float:value=0) OUT -> IN[1] compare_tan_angle_0
 
-angle_0 OUT -> IN cos_0(trigonometry/cosine) OUT -> IN0 compare_cos_angle_0
-angle_0 OUT -> IN sin_0(trigonometry/sine) OUT -> IN0 compare_sin_angle_0
-angle_0 OUT -> IN tan_0(trigonometry/tangent) OUT -> IN0 compare_tan_angle_0
+angle_0 OUT -> IN cos_0(trigonometry/cosine) OUT -> IN[0] compare_cos_angle_0
+angle_0 OUT -> IN sin_0(trigonometry/sine) OUT -> IN[0] compare_sin_angle_0
+angle_0 OUT -> IN tan_0(trigonometry/tangent) OUT -> IN[0] compare_tan_angle_0
 
 compare_cos_angle_45(float/equal) OUT -> RESULT output_cos_angle_45(test/result)
 compare_sin_angle_45(float/equal) OUT -> RESULT output_sin_angle_45(test/result)
 compare_tan_angle_45(float/equal) OUT -> RESULT output_tan_angle_45(test/result)
 
-result_cos_angle_45(constant/float:value=0.52532198881772973) OUT -> IN1 compare_cos_angle_45
-result_sin_angle_45(constant/float:value=0.85090352453411844) OUT -> IN1 compare_sin_angle_45
-result_tan_angle_45(constant/float:value=1.61977519054386154) OUT -> IN1 compare_tan_angle_45
+result_cos_angle_45(constant/float:value=0.52532198881772973) OUT -> IN[1] compare_cos_angle_45
+result_sin_angle_45(constant/float:value=0.85090352453411844) OUT -> IN[1] compare_sin_angle_45
+result_tan_angle_45(constant/float:value=1.61977519054386154) OUT -> IN[1] compare_tan_angle_45
 
-angle_45 OUT -> IN cos_45(trigonometry/cosine) OUT -> IN0 compare_cos_angle_45
-angle_45 OUT -> IN sin_45(trigonometry/sine) OUT -> IN0 compare_sin_angle_45
-angle_45 OUT -> IN tan_45(trigonometry/tangent) OUT -> IN0 compare_tan_angle_45
+angle_45 OUT -> IN cos_45(trigonometry/cosine) OUT -> IN[0] compare_cos_angle_45
+angle_45 OUT -> IN sin_45(trigonometry/sine) OUT -> IN[0] compare_sin_angle_45
+angle_45 OUT -> IN tan_45(trigonometry/tangent) OUT -> IN[0] compare_tan_angle_45
 
 compare_cos_angle_90(float/equal) OUT -> RESULT output_cos_angle_90(test/result)
 compare_sin_angle_90(float/equal) OUT -> RESULT output_sin_angle_90(test/result)
 compare_tan_angle_90(float/equal) OUT -> RESULT output_tan_angle_90(test/result)
 
-result_cos_angle_90(constant/float:value=-0.44807361612917013) OUT -> IN1 compare_cos_angle_90
-result_sin_angle_90(constant/float:value=0.89399666360055785) OUT -> IN1 compare_sin_angle_90
-result_tan_angle_90(constant/float:value=-1.99520041220824207) OUT -> IN1 compare_tan_angle_90
+result_cos_angle_90(constant/float:value=-0.44807361612917013) OUT -> IN[1] compare_cos_angle_90
+result_sin_angle_90(constant/float:value=0.89399666360055785) OUT -> IN[1] compare_sin_angle_90
+result_tan_angle_90(constant/float:value=-1.99520041220824207) OUT -> IN[1] compare_tan_angle_90
 
-angle_90 OUT -> IN cos_90(trigonometry/cosine) OUT -> IN0 compare_cos_angle_90
-angle_90 OUT -> IN sin_90(trigonometry/sine) OUT -> IN0 compare_sin_angle_90
-angle_90 OUT -> IN tan_90(trigonometry/tangent) OUT -> IN0 compare_tan_angle_90
+angle_90 OUT -> IN cos_90(trigonometry/cosine) OUT -> IN[0] compare_cos_angle_90
+angle_90 OUT -> IN sin_90(trigonometry/sine) OUT -> IN[0] compare_sin_angle_90
+angle_90 OUT -> IN tan_90(trigonometry/tangent) OUT -> IN[0] compare_tan_angle_90
 

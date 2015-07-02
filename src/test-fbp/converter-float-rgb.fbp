@@ -43,11 +43,11 @@ float_blue(constant/float:value=35)
 
 float_to_rgb OUT -> IN rgb_to_float(converter/rgb-to-float)
 
-rgb_to_float RED -> IN0 eq_twenty(float/equal)
-float_red OUT -> IN1 eq_twenty OUT -> RESULT red(test/result)
+rgb_to_float RED -> IN[0] eq_twenty(float/equal)
+float_red OUT -> IN[1] eq_twenty OUT -> RESULT red(test/result)
 
-rgb_to_float GREEN -> IN0 eq_eighty(float/equal)
-float_green OUT -> IN1 eq_eighty OUT -> RESULT green(test/result)
+rgb_to_float GREEN -> IN[0] eq_eighty(float/equal)
+float_green OUT -> IN[1] eq_eighty OUT -> RESULT green(test/result)
 
-rgb_to_float BLUE -> IN0 eq_thirty_five(float/equal)
-float_blue OUT -> IN1 eq_thirty_five OUT -> RESULT blue(test/result)
+rgb_to_float BLUE -> IN[0] eq_thirty_five(float/equal)
+float_blue OUT -> IN[1] eq_thirty_five OUT -> RESULT blue(test/result)

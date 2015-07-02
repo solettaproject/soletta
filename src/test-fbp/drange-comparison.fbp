@@ -32,35 +32,35 @@ ten(constant/float:value=10.87)
 five(constant/float:value=5.1374)
 seventeen(constant/float:value=17.3847)
 
-five OUT -> IN0 equal(float/equal)
-five OUT -> IN1 equal
+five OUT -> IN[0] equal(float/equal)
+five OUT -> IN[1] equal
 equal OUT -> RESULT r_equal(test/result)
 
-ten OUT -> IN0 not_equal(float/not-equal)
-seventeen OUT -> IN1 not_equal
+ten OUT -> IN[0] not_equal(float/not-equal)
+seventeen OUT -> IN[1] not_equal
 not_equal OUT -> RESULT r_not_equal(test/result)
 
-ten OUT -> IN0 greater(float/greater)
-five OUT -> IN1 greater
+ten OUT -> IN[0] greater(float/greater)
+five OUT -> IN[1] greater
 greater OUT -> RESULT r_greater(test/result)
 
-ten OUT -> IN0 greater_or_equal_greater(float/greater-or-equal)
-five OUT -> IN1 greater_or_equal_greater
+ten OUT -> IN[0] greater_or_equal_greater(float/greater-or-equal)
+five OUT -> IN[1] greater_or_equal_greater
 greater_or_equal_greater OUT -> RESULT r_greater_or_equal_greater(test/result)
 
-five OUT -> IN0 greater_or_equal_equal(float/greater-or-equal)
-five OUT -> IN1 greater_or_equal_equal
+five OUT -> IN[0] greater_or_equal_equal(float/greater-or-equal)
+five OUT -> IN[1] greater_or_equal_equal
 greater_or_equal_equal OUT -> RESULT r_greater_or_equal_equal(test/result)
 
-five OUT -> IN0 less(float/less)
-seventeen OUT -> IN1 less
+five OUT -> IN[0] less(float/less)
+seventeen OUT -> IN[1] less
 less OUT -> RESULT r_less(test/result)
 
-five OUT -> IN0 less_or_equal_less(float/less-or-equal)
-ten OUT -> IN1 less_or_equal_less
+five OUT -> IN[0] less_or_equal_less(float/less-or-equal)
+ten OUT -> IN[1] less_or_equal_less
 less_or_equal_less OUT -> RESULT r_less_or_equal_less(test/result)
 
-seventeen OUT -> IN0 less_or_equal_equal(float/less-or-equal)
-seventeen OUT -> IN1 less_or_equal_equal
+seventeen OUT -> IN[0] less_or_equal_equal(float/less-or-equal)
+seventeen OUT -> IN[1] less_or_equal_equal
 less_or_equal_equal OUT -> RESULT r_less_or_equal_equal(test/result)
 
