@@ -60,7 +60,7 @@ config PLATFORM_DUMMY
 config PLATFORM_LINUX_MICRO
 	select SOL_PLATFORM_LINUX
 	depends on HAVE_LINUX
-	bool "micro-linux"
+	bool "linux-micro"
 	help
             This platform allows using a Soletta application as PID1
             (/init). In this case some extra care needs to be done,

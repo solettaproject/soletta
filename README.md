@@ -243,9 +243,9 @@ Thus both targets and services are implemented according to systemd
 using units in standard locations such as /usr/lib/systemd/system and
 /etc/systemd/system.
 
-##### Micro-Linux (kconfig: Core library -> Target Platform -> micro-linux)
+##### Linux-micro (kconfig: Core library -> Target Platform -> linux-micro)
 
-Micro-Linux implementation allows your Soletta binary to be used as
+Linux-micro implementation allows your Soletta binary to be used as
 PID1, it will do required initialization and will handle services as
 modules, so you can have a very small system that works.
 
@@ -264,7 +264,7 @@ the usage is to run scripts from /etc/init.d or /etc/rc.d with
 standard parameters "start", "stop", "restart" and "status". To enable
 a service all one needs to do is symlink the service name to rc-d.so,
 as an example to enable /etc/init.d/myservice to be used by
-Micro-Linux:
+Linux-micro:
 
         ln -s /usr/lib/soletta/modules/linux-micro/rc-d.so \
               /usr/lib/soletta/modules/linux-micro/myservice.so
