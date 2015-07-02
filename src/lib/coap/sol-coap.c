@@ -360,7 +360,6 @@ SOL_API struct sol_coap_packet *
 sol_coap_packet_new(struct sol_coap_packet *old)
 {
     struct sol_coap_packet *pkt;
-    uint8_t tkl = 0;
 
     pkt = calloc(1, sizeof(struct sol_coap_packet));
     SOL_NULL_CHECK(pkt, NULL); /* It may possible that in the next round there is enough memory. */
@@ -369,10 +368,11 @@ sol_coap_packet_new(struct sol_coap_packet *old)
 
     sol_coap_header_set_ver(pkt, COAP_VERSION);
 
-    pkt->payload.used = sizeof(struct coap_header) + tkl;
+    pkt->payload.used = sizeof(struct coap_header);
     pkt->payload.size = COAP_UDP_MTU;
 
     if (old) {
+        uint8_t tkl;
         uint8_t *token = sol_coap_header_get_token(old, &tkl);
         sol_coap_header_set_id(pkt, sol_coap_header_get_id(old));
         sol_coap_header_set_token(pkt, token, tkl);
