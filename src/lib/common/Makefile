@@ -12,6 +12,8 @@ obj-core-$(CORE) += \
     sol-log.o
 obj-core-$(SOL_PLATFORM_LINUX) += \
     sol-log-impl-linux.o
+obj-core-$(PLATFORM_RIOTOS) += \
+    sol-log-impl-riot.o
 endif
 
 obj-core-$(KDBUS) += \
@@ -29,6 +31,7 @@ obj-core-$(MAINLOOP_POSIX) += \
     sol-mainloop-impl-posix.o
 
 obj-core-$(MAINLOOP_RIOTOS) += \
+    sol-interrupt_scheduler_riot.o  \
     sol-mainloop-common.o \
     sol-mainloop-impl-riot.o
 obj-core-$(PLATFORM_LINUX_MICRO) += \
