@@ -11,8 +11,15 @@ obj-flow-$(FLOW) := \
 obj-flow-$(NODE_DESCRIPTION) += \
     sol-flow-builder.o
 
+ifeq (y,$(RESOLVER_CONFFILE))
+def-resolver-flag = -Dsol_flow_default_resolver=sol_flow_resolver_conffile
+else
+def-resolver-flag = -Dsol_flow_default_resolver=sol_flow_resolver_builtins
+endif
+
 obj-flow-$(RESOLVER_CONFFILE) += \
     sol-flow-resolver-conffile.o
 
 obj-flow-$(RESOLVER_CONFFILE)-extra-cflags := $(GLIB_CFLAGS)
+obj-flow-$(FLOW)-extra-cflags += $(def-resolver-flag)
 obj-flow-$(RESOLVER_CONFFILE)-extra-ldflags += $(GLIB_LDFLAGS)
