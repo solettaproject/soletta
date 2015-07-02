@@ -35,7 +35,11 @@
 #include <stdbool.h>
 #include <sys/socket.h>
 
-#include "sol-vector.h"
+#include <sol-vector.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define SOL_INET_ADDR_STRLEN 48
 
@@ -47,10 +51,10 @@ enum sol_network_event {
 
 enum sol_network_link_flags {
     SOL_NETWORK_LINK_UP            = 1 << 0,
-        SOL_NETWORK_LINK_BROADCAST     = 1 << 1,
-        SOL_NETWORK_LINK_LOOPBACK      = 1 << 2,
-        SOL_NETWORK_LINK_MULTICAST     = 1 << 3,
-        SOL_NETWORK_LINK_RUNNING       = 1 << 4,
+    SOL_NETWORK_LINK_BROADCAST     = 1 << 1,
+    SOL_NETWORK_LINK_LOOPBACK      = 1 << 2,
+    SOL_NETWORK_LINK_MULTICAST     = 1 << 3,
+    SOL_NETWORK_LINK_RUNNING       = 1 << 4,
 };
 
 struct sol_network_link_addr {
@@ -63,6 +67,9 @@ struct sol_network_link_addr {
 };
 
 struct sol_network_link {
+#define SOL_NETWORK_LINK_API_VERSION (1)
+    uint16_t api_version;
+    int : 0; /* save possible hole for a future field */
     int index;
     enum sol_network_link_flags flags;
     struct sol_vector addrs;       /* struct sol_network_link_addr */
@@ -86,3 +93,7 @@ const struct sol_vector *sol_network_get_available_links(void);
 char *sol_network_link_get_name(const struct sol_network_link *link);
 
 bool sol_network_link_up(unsigned int link_index);
+
+#ifdef __cplusplus
+}
+#endif

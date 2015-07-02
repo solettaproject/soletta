@@ -1,6 +1,24 @@
+config COMMS
+	bool "Comms"
+	default y
+	help
+            Comms consists on a few communication modules.
+            It provides ways to deal with network, CoAP protocol and
+            OIC protocol (server and client sides).
+
+config NETWORK
+	bool "Network"
+	default y
+	depends on COMMS
+	help
+            Network library provides a way to handle network link interfaces,
+            making it possible to observe events, to inquire available links
+            and to set their states.
+
 config COAP
 	bool "CoAP"
 	default y
+	depends on NETWORK
 	help
             The Constrained Application Protocol (CoAP) is a
             specialized web transfer protocol for use with constrained
@@ -26,3 +44,18 @@ config COAP
             http://openinterconnect.org/)
 
             See https://tools.ietf.org/html/rfc7252
+
+config OIC
+	bool "OIC"
+	default y
+	depends on COAP
+	help
+            Implementation of protocol defined by Open Inter Connect (OIC -
+            http://openinterconnect.org/)
+
+            It's a common communication framework based on industry standard
+            technologies to wirelessly connect and intelligently manage
+            the flow of information among devices, regardless of form factor,
+            operating system or service provider.
+
+            Both client and server sides are covered by this library.

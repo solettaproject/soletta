@@ -1358,6 +1358,7 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
     resource->funcs = funcs;
 
     resource->oic = (struct sol_oic_resource_type) {
+        .api_version = SOL_OIC_RESOURCE_TYPE_API_VERSION,
         .endpoint = sol_str_slice_from_str(resource->endpoint),
         .resource_type = resource_type,
         .iface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
