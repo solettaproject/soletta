@@ -94,13 +94,13 @@ def handle_pkgconfig_check(args, conf):
     have_var = "y" if ((cflags_stat or ldflags_stat) and ver_match) else "n"
     cfg_kconfig["HAVE_%s" % dep] = have_var
 
-def compile_test(source, compiler, cflags):
+def compile_test(source, compiler, cflags, ldflags):
     f = tempfile.NamedTemporaryFile(suffix=".c",delete=False)
     f.write(bytes(source, 'UTF-8'))
     f.close()
     output = "%s-bin" % f.name
-    cmd = "{compiler} {cflags} {src} -o {out}".format(compiler=compiler, cflags=cflags,
-                                                      src=f.name, out=output)
+    cmd = "{compiler} {cflags} {ldflags} {src} -o {out}".format(compiler=compiler,
+            cflags=cflags, ldflags=ldflags, src=f.name, out=output)
     out, status = run_command(cmd)
     if os.path.exists(output):
         os.unlink(output)
@@ -117,7 +117,7 @@ def handle_ccode_check(args, conf):
     fragment = conf.get("fragment") or ""
     cstub = "{headers}\nint main(int argc, char **argv){{\n {fragment} return 0;\n}}"
     source = cstub.format(headers=source, fragment=fragment)
-    success = compile_test(source, args.compiler, args.cflags)
+    success = compile_test(source, args.compiler, args.cflags, conf.get("ldflags") or "")
 
     if success:
         cfg_cflags["%s_CFLAGS" % dep] = conf.get("cflags") or ""
