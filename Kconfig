@@ -23,7 +23,6 @@ menu "Core library"
 source "src/lib/common/Kconfig"
 source "src/lib/flow/Kconfig"
 source "src/lib/coap/Kconfig"
-source "src/shared/Kconfig"
 endmenu
 
 menuconfig LINUX_MICRO
