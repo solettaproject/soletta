@@ -320,7 +320,7 @@ struct sol_flow_node_type {
  * Get a node type's input port definiton struct, given a port index.
  *
  * @param type The node type to get a port definiton from
- * @param node The port's index to retrieve
+ * @param port The port's index to retrieve
  * @return The input port's definition struct or @c NULL, on errors.
  *
  */
