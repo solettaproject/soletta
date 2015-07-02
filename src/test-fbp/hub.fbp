@@ -64,8 +64,8 @@ hub_byte OUT -> IN _(converter/byte-to-int) OUT -> IN1 byte_equal
 byte_equal OUT -> RESULT result_hub_byte(test/result)
 
 const_float OUT -> IN hub_float
-const_float OUT -> IN0 float_equal(float/equal)
-hub_float OUT -> IN1 float_equal
+const_float OUT -> IN[0] float_equal(float/equal)
+hub_float OUT -> IN[1] float_equal
 float_equal OUT -> RESULT result_hub_float(test/result)
 
 const_int OUT -> IN hub_int
