@@ -39,6 +39,20 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for GPIO access under Solleta.
+ */
+
+/**
+ * @defgroup IO I/O
+ *
+ * These routines are used for general I/O access under Solleta
+ * (namely GPIO, PWM, SPI, UART and I2C).
+ *
+ * @{
+ */
+
 struct sol_gpio;
 
 enum sol_gpio_direction {
@@ -85,6 +99,10 @@ void sol_gpio_close(struct sol_gpio *gpio);
 
 bool sol_gpio_write(struct sol_gpio *gpio, bool value);
 int sol_gpio_read(struct sol_gpio *gpio);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

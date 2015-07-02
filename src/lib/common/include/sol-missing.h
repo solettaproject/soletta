@@ -32,6 +32,21 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @file
+ * @brief These routines are Solleta replacements for others that aren't found in the underlying system.
+ */
+
+/**
+ * @defgroup Missing Missing
+ *
+ * @{
+ */
+
 #if !HAVE_DECL_STRNDUPA
 #include <alloca.h>
 
@@ -95,4 +110,12 @@ err:
 
 #ifndef I2C_RDRW_IOCTL_MAX_MSGS
 #define I2C_RDRW_IOCTL_MAX_MSGS 42
+#endif
+
+/**
+ * @}
+ */
+
+#ifdef __cplusplus
+}
 #endif

@@ -39,6 +39,18 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for UART access under Solleta.
+ */
+
+/**
+ * @ingroup IO
+ *
+ * @{
+ *
+ */
+
 struct sol_uart;
 
 struct sol_uart *sol_uart_open(const char *port_name);
@@ -71,6 +83,10 @@ bool sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, 
  */
 bool sol_uart_set_rx_callback(struct sol_uart *uart, void (*rx_cb)(struct sol_uart *uart, char read_char, void *data), const void *data);
 void sol_uart_del_rx_callback(struct sol_uart *uart);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

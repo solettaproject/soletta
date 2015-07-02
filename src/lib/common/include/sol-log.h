@@ -41,6 +41,20 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @file
+ * @brief These routines are used for Solleta logging.
+ */
+
+/**
+ * @defgroup Log Logging
+ *
+ * @{
+ */
 
 /* ANSI/VT100 colors as understood by most consoles and terminals */
 #define SOL_LOG_COLOR_LIGHTRED    "\033[31;1m"
@@ -57,10 +71,6 @@
 #define SOL_LOG_COLOR_CYAN         "\033[36m"
 #define SOL_LOG_COLOR_RESET        "\033[0m"
 #define SOL_LOG_COLOR_HIGH         "\033[1m"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define log_unlikely(x) __builtin_expect(!!(x), 0)
 
@@ -542,6 +552,10 @@ sol_log_set_show_line(bool enabled)
 {
 }
 #endif
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

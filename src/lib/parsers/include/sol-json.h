@@ -43,6 +43,19 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These are the parser routines that Soletta provides.
+ */
+
+/**
+ * @defgroup Parsers Parsers
+ *
+ * These are the parsers that Soletta provides (JSON only, for now)
+ *
+ * @{
+ */
+
 struct sol_json_scanner {
     const char *mem;
     const char *mem_end;
@@ -272,6 +285,10 @@ _sol_json_loop_helper_init(struct sol_json_scanner *scanner, struct sol_json_tok
         return SOL_JSON_LOOP_REASON_INVALID;
     return SOL_JSON_LOOP_REASON_OK;
 }
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

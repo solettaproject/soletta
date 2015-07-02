@@ -42,12 +42,22 @@
 extern "C" {
 #endif
 
-/* The flow system consists of a series of connected nodes that send
+/**
+ * @file
+ * @brief These routines are used for Solleta flows manipulation.
+ */
+
+/**
+ * @defgroup Flow Flow Based Programming
+ *
+ * The flow system consists of a series of connected nodes that send
  * packets to each other via ports. Each node may have multiple
  * input/output ports. It is responsibility of the parent (container)
  * node to deliver the packets sent by its children nodes (one thing
  * the "static flow" node, returned by sol_flow_static_new(), already
  * does).
+ *
+ * @{
  */
 
 struct sol_flow_node_options;
@@ -510,6 +520,10 @@ struct sol_flow_node_type *sol_flow_static_new_type(
     struct sol_flow_node_options *child_opts));
 
 void sol_flow_static_del_type(struct sol_flow_node_type *type);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

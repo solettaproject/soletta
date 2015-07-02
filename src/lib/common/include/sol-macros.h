@@ -32,6 +32,17 @@
 
 #pragma once
 
+/**
+ * @file
+ * @brief These are common Soletta macros.
+ */
+
+/**
+ * @defgroup Macros Macros
+ *
+ * @{
+ */
+
 #if __GNUC__ >= 4
 #define SOL_API  __attribute__((visibility("default")))
 #define SOL_ATTR_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
@@ -54,3 +65,7 @@
 #define SOL_ATTR_SECTION(secname)
 #define SOL_ATTR_USED
 #endif
+
+/**
+ * @}
+ */
