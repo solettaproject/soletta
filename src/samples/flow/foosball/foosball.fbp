@@ -48,8 +48,8 @@ red_tracker WON -> IN red_won_output(gtk/led:rgb=255|0|0)
 yellow_tracker WON -> IN yellow_won_output(gtk/led:rgb=255|255|0)
 
 # and cheer output
-red_tracker WON -> IN0 there_is_a_winner(boolean/or)
-yellow_tracker WON -> IN1 there_is_a_winner
+red_tracker WON -> IN[0] there_is_a_winner(boolean/or)
+yellow_tracker WON -> IN[1] there_is_a_winner
 
 there_is_a_winner OUT -> IN cheer_output(gtk/led)
 
