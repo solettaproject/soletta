@@ -107,12 +107,12 @@ struct sol_pin_mux {
     } i2c;
 };
 
-#ifdef SOL_PIN_MUX_MODULE
+#ifdef SOL_PIN_MUX_MODULE_EXTERNAL
 #define SOL_PIN_MUX_DECLARE(_NAME, decl ...) \
-    SOL_API const struct sol_pin_mux SOL_PIN_MUX = { .api_version = SOL_PIN_MUX_API_VERSION, decl }
+    SOL_API const struct sol_pin_mux SOL_PIN_MUX = { SOL_PIN_MUX_API_VERSION, decl }
 #else
 #define SOL_PIN_MUX_DECLARE(_NAME, decl ...) \
-    SOL_API const struct sol_pin_mux SOL_PIN_MUX_ ## _NAME = { .api_version = SOL_PIN_MUX_API_VERSION, decl }
+    SOL_API const struct sol_pin_mux SOL_PIN_MUX_ ## _NAME = { SOL_PIN_MUX_API_VERSION, decl }
 #endif
 
 #ifdef __cplusplus
