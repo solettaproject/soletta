@@ -42,7 +42,7 @@
 #include "sol-log-internal.h"
 #include "sol-util.h"
 #include "sol-pin-mux.h"
-#include "sol-pin-mux-impl.h"
+#include "sol-pin-mux-modules.h"
 #include "sol-pin-mux-builtins-gen.h"
 #include "sol-platform.h"
 
