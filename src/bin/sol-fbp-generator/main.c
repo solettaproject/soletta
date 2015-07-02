@@ -423,7 +423,7 @@ generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fb
         return false;
     }
     if (e->port_idx == -1) {
-        uint16_t last = base + p->array_size;
+        uint16_t last = base + (p->array_size ? : 1);
         for (; base < last; base++) {
             dprintf(fd, "    { %d, %d },\n", e->node, base);
         }
