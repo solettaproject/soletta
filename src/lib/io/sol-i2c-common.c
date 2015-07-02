@@ -37,7 +37,9 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 
 #include "sol-i2c.h"
+#ifdef HAVE_PIN_MUX
 #include "sol-pin-mux.h"
+#endif
 
 SOL_API struct sol_i2c *
 sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed)

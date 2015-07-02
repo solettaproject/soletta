@@ -37,7 +37,10 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");
 
 #include "sol-gpio.h"
+
+#ifdef HAVE_PIN_MUX
 #include "sol-pin-mux.h"
+#endif
 
 SOL_API struct sol_gpio *
 sol_gpio_open(int pin, const struct sol_gpio_config *config)
