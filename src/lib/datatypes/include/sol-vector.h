@@ -40,15 +40,28 @@
 extern "C" {
 #endif
 
-/* sol_vector is an array that grows dynamically.
- * It's suited for storing a small set of contiguous data.
- * Dynamic resize might shuffle the data around,
- * so pointers returned from _get() and _append() should be
- * considered invalid after the vector size is modified.
- *
- * For storing pointers, see sol_ptr_vector below.
+/**
+ * @file
+ * @brief These are routines that Solleta provides for its vector implementation.
  */
 
+/**
+ * @ingroup Datatypes
+ *
+ * @{
+ */
+
+/**
+ * @struct sol_vector
+ *
+ * Soletta vector is an array that grows dynamically. It's suited for
+ * storing a small set of contiguous data. Its dynamic resize might
+ * shuffle the data around, so pointers returned from sol_vector_get()
+ * and sol_vector_append() should be considered invalid after the
+ * vector size is modified.
+ *
+ * For storing pointers, see sol_ptr_vector().
+ */
 struct sol_vector {
     void *data;
     uint16_t len;
@@ -159,6 +172,10 @@ sol_ptr_vector_clear(struct sol_ptr_vector *pv)
          idx != ((typeof(idx)) - 1) && \
             (itrvar = *(((void **)(vector)->base.data) + idx), true); \
          idx--)
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

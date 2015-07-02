@@ -35,14 +35,27 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "sol-blob.h"
 #include "sol-types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Packet is a generic container for different kinds of contents. A
+/**
+ * @file
+ * @brief These routines are used for Solleta flow packets manipulation.
+ */
+
+/**
+ * @ingroup Flow
+ *
+ * @{
+ */
+
+/**
+ * @struct sol_flow_packet
+ *
+ * Packet is a generic container for different kinds of contents. A
  * packet type defines what's the content and how it's stored and
  * retrieved.
  */
@@ -122,6 +135,9 @@ struct sol_flow_packet *sol_flow_packet_new_direction_vector_components(double x
 int sol_flow_packet_get_direction_vector(const struct sol_flow_packet *packet, struct sol_direction_vector *direction_vector);
 int sol_flow_packet_get_direction_vector_components(const struct sol_flow_packet *packet, double *x, double *y, double *z);
 
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

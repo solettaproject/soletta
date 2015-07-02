@@ -41,13 +41,26 @@
 extern "C" {
 #endif
 
-/* Parser is used to transform a flow description files into node
+/**
+ * @file
+ * @brief These routines are used for Solleta flow language (flow based programming) parsing.
+ */
+
+/**
+ * @ingroup Flow
+ *
+ * @{
+ */
+
+/**
+ * @struct sol_flow_parser
+ *
+ * Parser is used to transform a flow description files into node
  * types that can be used in a flow.
  *
  * The node types created are owned by the parser object, so the
  * parser can only be deleted after all its types are not used
  * anymore. */
-
 struct sol_flow_parser;
 
 struct sol_flow_parser_client {
@@ -80,6 +93,10 @@ struct sol_flow_node_type *sol_flow_parse_string(
     struct sol_flow_parser *parser,
     const char *str,
     const char *filename);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

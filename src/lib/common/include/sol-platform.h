@@ -36,6 +36,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for Solleta platform interaction.
+ */
+
+/**
+ * @defgroup Platform
+ *
+ * @{
+ */
+
 #define CHUNK_READ_SIZE 1024
 /* allow reading loop to take up to this amount of bytes, then stop
  * the chunk reading and allow mainloop to run again. This keeps
@@ -102,6 +113,10 @@ int sol_platform_restart_service(const char *service);
 #define SOL_PLATFORM_TARGET_SUSPEND    "suspend"
 
 int sol_platform_set_target(const char *target);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

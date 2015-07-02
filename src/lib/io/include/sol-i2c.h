@@ -42,6 +42,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for I2C access under Solleta.
+ */
+
+/**
+ * @ingroup IO
+ *
+ * @{
+ */
+
 struct sol_i2c;
 
 enum sol_i2c_speed {
@@ -246,6 +257,10 @@ bool sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t reg, const uint8_
  * @return @c true on succes, @c false otherwise
  */
 bool sol_i2c_read_register_multiple(const struct sol_i2c *i2c, uint8_t reg, uint8_t *values, uint8_t len, uint8_t times);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

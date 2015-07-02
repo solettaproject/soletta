@@ -40,6 +40,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for Solleta types' manipulation.
+ */
+
+/**
+ * @defgroup Types
+ *
+ * @{
+ */
+
 /*** SOL_DIRECTION_VECTOR ***/
 
 struct sol_direction_vector {
@@ -105,6 +116,37 @@ int sol_irange_multiplication(const struct sol_irange *var0, const struct sol_ir
 int sol_irange_subtraction(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 bool sol_irange_equal(const struct sol_irange *var0, const struct sol_irange *var1);
+
+struct sol_blob_type;
+struct sol_blob {
+    const struct sol_blob_type *type;
+    struct sol_blob *parent;
+    void *mem;
+    size_t size;
+    uint16_t refcnt;
+};
+
+struct sol_blob_type {
+#define SOL_BLOB_TYPE_API_VERSION (1)
+    uint16_t api_version;
+    uint16_t sub_api;
+    void (*free)(struct sol_blob *blob);
+};
+
+/*
+ * The default type uses free() to release the blob's memory
+ */
+extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
+
+struct sol_blob *sol_blob_new(const struct sol_blob_type *type, struct sol_blob *parent, const void *mem, size_t size);
+int sol_blob_setup(struct sol_blob *blob, const struct sol_blob_type *type, const void *mem, size_t size);
+struct sol_blob *sol_blob_ref(struct sol_blob *blob);
+void sol_blob_unref(struct sol_blob *blob);
+void sol_blob_set_parent(struct sol_blob *blob, struct sol_blob *parent);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
