@@ -37,7 +37,7 @@
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
-static SOL_LOG_INTERNAL_DECLARE(_log_domain, "platform-detect");
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "platform-detect");
 
 #include "sol-file-reader.h"
 #include "sol-json.h"

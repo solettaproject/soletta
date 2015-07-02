@@ -36,19 +36,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "sol-log-internal.h"
+#define SOL_LOG_DOMAIN &sol_fbp_log_domain
 #include "sol-fbp-internal-log.h"
-#include "sol-util.h"
-
 SOL_LOG_INTERNAL_DECLARE(sol_fbp_log_domain, "fbp");
+
+#include "sol-util.h"
 
 void
 sol_fbp_init_log_domain(void)
 {
-    static bool done = false;
-
-    if (done)
-        return;
-    sol_log_domain_init_level(&sol_fbp_log_domain);
-    done = true;
+    SOL_LOG_INTERNAL_INIT_ONCE;
 }

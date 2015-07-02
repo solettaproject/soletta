@@ -37,8 +37,9 @@
 #include <dlfcn.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
-#include "sol-mainloop.h"
 #include "sol-log-internal.h"
+
+#include "sol-mainloop.h"
 #include "sol-flow.h"
 #include "sol-flow-internal.h"
 #include "sol-util.h"
@@ -335,7 +336,7 @@ main(int argc, char *argv[])
     if (sol_init() < 0)
         goto end;
 
-    sol_log_domain_init_level(&_log_domain);
+    SOL_LOG_INTERNAL_INIT_ONCE;
 
     fputs("{\n", stdout);
 

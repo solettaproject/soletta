@@ -35,12 +35,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define SOL_LOG_DOMAIN &_log_domain
+#include "sol-log-internal.h"
+
 #include "sol-fbp.h"
 #include "sol-file-reader.h"
 #include "sol-flow-builder.h"
 #include "sol-flow-internal.h"
 #include "sol-flow.h"
-#include "sol-log-internal.h"
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
@@ -305,7 +307,7 @@ main(int argc, char *argv[])
     struct sol_fbp_graph input_graph;
 
     sol_init();
-    sol_log_domain_init_level(&_log_domain);
+    SOL_LOG_INTERNAL_INIT_ONCE;
 
     if (argc == 1) {
         goto usage_error;
