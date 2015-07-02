@@ -39,8 +39,8 @@ warning:
 	$(Q)echo "If you've just installed it, run: make reconf"
 $(warning-targets)
 else
-all: $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
 include $(top_srcdir)tools/build/Makefile.targets
+all: $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
 endif # HAVE_PYTHON_JSONSCHEMA
 endif # HAVE_KCONFIG_CONFIG
 
