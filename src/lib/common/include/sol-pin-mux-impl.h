@@ -32,8 +32,6 @@
 
 #pragma once
 
-#include "sol-gpio.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
