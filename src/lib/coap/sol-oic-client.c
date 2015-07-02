@@ -41,7 +41,6 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
-#include "coap.h"
 #include "sol-coap.h"
 #include "sol-json.h"
 #include "sol-log-internal.h"
@@ -375,7 +374,7 @@ _resource_request_cb(struct sol_coap_packet *req, const struct sol_network_link_
 
     if (!ctx->cb)
         return -ENOENT;
-    if (!req->payload.start && req->payload.used == req->payload.size)
+    if (!sol_coap_packet_has_payload(req))
         return 0;
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0)
         return 0;

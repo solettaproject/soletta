@@ -44,7 +44,6 @@
 #include "sol-oic-server.h"
 #include "sol-json.h"
 
-#include "coap.h"
 #include "sol-coap.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
@@ -734,8 +733,10 @@ _sol_oic_resource_type_handle(
             goto done;
         }
     } else {
-        payload_len = sizeof(req->buf);
-        payload = req->buf;
+        if (sol_coap_packet_get_buf(req, &payload, &payload_len) < 0) {
+            code = SOL_COAP_RSPCODE_BAD_REQUEST;
+            goto done;
+        }
         memset(payload, 0, payload_len);
     }
 
