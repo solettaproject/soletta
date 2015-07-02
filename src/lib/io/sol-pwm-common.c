@@ -37,7 +37,9 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
 
 #include "sol-pwm.h"
+#ifdef HAVE_PIN_MUX
 #include "sol-pin-mux.h"
+#endif
 
 SOL_API struct sol_pwm *
 sol_pwm_open(int device, int channel, const struct sol_pwm_config *config)
