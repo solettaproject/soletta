@@ -1,4 +1,4 @@
 config FBP_TO_DOT
 	bool "fbp-to-dot converter"
-	depends on SOL_PLATFORM_LINUX && NODE_DESCRIPTION && INSPECTOR
+	depends on SOL_PLATFORM_LINUX && RESOLVER_CONFFILE
 	default y

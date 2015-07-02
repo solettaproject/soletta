@@ -2,23 +2,23 @@ config FLOW
 	bool "Flow support"
 	default y
 
-config RESOLVER_CONFFILE
-	bool "Resolver conffile"
-	depends on FLOW
-	default y
-
 config NODE_DESCRIPTION
 	bool "Node description support"
-	depends on RESOLVER_CONFFILE
+	depends on FLOW
 	default y
 	help
             Add node description support to enable runtime introspection.
 
             If unsure, say Y.
 
+config RESOLVER_CONFFILE
+	bool "Resolver conffile"
+	depends on NODE_DESCRIPTION
+	default y
+
 config INSPECTOR
 	bool "Inspector"
-	depends on FLOW
+	depends on NODE_DESCRIPTION
 	default y
 
 menu "Node Types"
