@@ -6,12 +6,13 @@ obj-flow-$(FLOW) := \
     sol-flow-static.o \
     sol-flow.o
 
+obj-flow-$(NODE_DESCRIPTION) += \
+    sol-flow-parser.o \
+    sol-flow-resolver.o \
+    sol-flow-builder.o
+
 obj-flow-$(RESOLVER_CONFFILE) += \
-    sol-flow-resolver-conffile.o \
-    sol-flow-resolver.o
+    sol-flow-resolver-conffile.o
+
 obj-flow-$(RESOLVER_CONFFILE)-extra-cflags := $(GLIB_CFLAGS)
 obj-flow-$(RESOLVER_CONFFILE)-extra-ldflags += $(GLIB_LDFLAGS)
-
-obj-flow-$(NODE_DESCRIPTION) += \
-    sol-flow-builder.o \
-    sol-flow-parser.o
