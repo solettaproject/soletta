@@ -31,7 +31,7 @@
  */
 
 #include "sol-util.h"
-#include "sol-pin-mux-impl.h"
+#include "sol-pin-mux-modules.h"
 
 // =============================================================================
 // Galileo Gen2 Multiplexer Description
