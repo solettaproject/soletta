@@ -1,4 +1,4 @@
-mainmenu "soletta configuration"
+mainmenu "Soletta configuration"
 
 source "Kconfig.gen"
 

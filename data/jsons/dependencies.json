@@ -121,6 +121,21 @@
 	    "exec": "valgrind"
 	},
 	{
+	    "dependency": "doxygen",
+	    "type": "exec",
+	    "exec": "doxygen"
+	},
+	{
+	    "dependency": "bzip2",
+	    "type": "exec",
+	    "exec": "bzip2"
+	},
+	{
+	    "dependency": "tar",
+	    "type": "exec",
+	    "exec": "tar"
+	},
+	{
 	    "dependency": "lcov",
 	    "type": "exec",
 	    "exec": "lcov"

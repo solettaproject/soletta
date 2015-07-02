@@ -82,6 +82,24 @@ PHONY += install post-install pre-install
 
 all-desc-jsons = $(all-mod-descs) $(if $(filter $(builtin-flows),$(builtin-flows)),$(FLOW_BUILTINS_DESC))
 
+ifeq (yyy,$(HAVE_DOXYGEN)$(HAVE_BZIP2)$(HAVE_TAR))
+doc: $(DOXYGEN_RESOURCES) cheat-sheet
+	$(Q)$(RM) -rf $(DOXYGEN_GENERATED)
+	$(Q)$(DOXYGEN) doc/doxygen/Doxyfile
+	$(Q)$(RM) -rf $(PACKAGE_DOCNAME).tar*
+	$(Q)$(MKDIR) -p $(PACKAGE_DOCNAME)/doc
+	$(Q)$(CP) -R $(DOXYGEN_GENERATED) $(PACKAGE_DOCNAME)/doc
+	$(Q)$(TAR) cf $(PACKAGE_DOCNAME).tar $(PACKAGE_DOCNAME)/
+	$(Q)$(BZIP2) -9 $(PACKAGE_DOCNAME).tar
+	$(Q)$(RM) -rf $(PACKAGE_DOCNAME)/
+	$(Q)$(MV) $(PACKAGE_DOCNAME).tar.bz2 $(top_builddir)
+else
+doc:
+	$(Q)echo "     "ERROR: Make sure to have bzip2, tar and doxygen installed and reconfigure
+endif
+
+PHONY += doc
+
 cheat-sheet: $(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_RESOURCES) $(all-desc-jsons)
 	$(Q)echo "     "GEN"   "$(CHEAT_SHEET_INDEX_HTML)
 	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(all-desc-jsons)
