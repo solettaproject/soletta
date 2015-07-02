@@ -8,7 +8,7 @@ obj-libshared-m := \
     sol-monitors.o \
     sol-util.o
 
-ifeq (y,$(RESOLVER_CONFFILE))
+ifeq (y,$(FLOW))
 obj-libshared-m += \
     sol-fbp-parser.o
 endif
