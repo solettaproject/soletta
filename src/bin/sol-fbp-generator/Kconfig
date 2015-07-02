@@ -1,4 +1,4 @@
 config FBP_GENERATOR
 	bool "fbp generator"
-	depends on SOL_PLATFORM_LINUX && FLOW && NODE_DESCRIPTION && INSPECTOR
+	depends on SOL_PLATFORM_LINUX && FLOW && NODE_DESCRIPTION
 	default y
