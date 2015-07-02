@@ -32,30 +32,30 @@ augend(constant/float:value=7.1)
 addend(constant/float:value=3.74)
 sum(constant/float:value=10.84)
 
-augend OUT -> IN0 add(float/addition)
-addend OUT -> IN1 add
-add OUT -> IN0 equal_sum(float/equal)
-sum OUT -> IN1 equal_sum
+augend OUT -> OPERAND[0] add(float/addition)
+addend OUT -> OPERAND[1] add
+add OUT -> IN[0] equal_sum(float/equal)
+sum OUT -> IN[1] equal_sum
 equal_sum OUT -> RESULT r_sum(test/result)
 
 minuend(constant/float:value=12.333)
 subtrahend(constant/float:value=10.303)
 difference(constant/float:value=2.030)
 
-minuend OUT -> IN0 sub(float/subtraction)
-subtrahend OUT -> IN1 sub
-sub OUT -> IN0 equal_sub(float/equal)
-difference OUT -> IN1 equal_sub
+minuend OUT -> MINUEND sub(float/subtraction)
+subtrahend OUT -> SUBTRAHEND sub
+sub OUT -> IN[0] equal_sub(float/equal)
+difference OUT -> IN[1] equal_sub
 equal_sub OUT -> RESULT r_sub(test/result)
 
 multiplicand(constant/float:value=37.17)
 multiplier(constant/float:value=5.23)
 product(constant/float:value=194.3991)
 
-multiplicand OUT -> IN0 mul(float/multiplication)
-multiplier OUT -> IN1 mul
-mul OUT -> IN0 equal_mul(float/equal)
-product OUT -> IN1 equal_mul
+multiplicand OUT -> OPERAND[0] mul(float/multiplication)
+multiplier OUT -> OPERAND[1] mul
+mul OUT -> IN[0] equal_mul(float/equal)
+product OUT -> IN[1] equal_mul
 equal_mul OUT -> RESULT r_mul(test/result)
 
 dividend(constant/float:value=40.5)
@@ -63,18 +63,18 @@ divisor(constant/float:value=8.0)
 quotient(constant/float:value=5.0625)
 remainder(constant/float:value=0.5)
 
-dividend OUT -> IN0 div(float/division)
-divisor OUT -> IN1 div
-div OUT -> IN0 equal_div(float/equal)
-quotient OUT -> IN1 equal_div
+dividend OUT -> DIVIDEND div(float/division)
+divisor OUT -> DIVISOR div
+div OUT -> IN[0] equal_div(float/equal)
+quotient OUT -> IN[1] equal_div
 equal_div OUT -> RESULT r_div(test/result)
 
-dividend OUT -> IN0 mod(float/modulo)
-divisor OUT -> IN1 mod
-mod OUT -> IN0 equal_mod(float/equal)
-remainder OUT -> IN1 equal_mod
+dividend OUT -> DIVIDEND mod(float/modulo)
+divisor OUT -> DIVISOR mod
+mod OUT -> IN[0] equal_mod(float/equal)
+remainder OUT -> IN[1] equal_mod
 equal_mod OUT -> RESULT r_mod(test/result)
 
-ln_constant(constant/float:value=2) OUT -> IN ln(float/ln) OUT -> IN0 ln_equals(float/equal) OUT -> RESULT ln_test(test/result)
-ln_result_const(constant/float:value=0.69314718055994529) OUT -> IN1 ln_equals
+ln_constant(constant/float:value=2) OUT -> IN ln(float/ln) OUT -> IN[0] ln_equals(float/equal) OUT -> RESULT ln_test(test/result)
+ln_result_const(constant/float:value=0.69314718055994529) OUT -> IN[1] ln_equals
 
