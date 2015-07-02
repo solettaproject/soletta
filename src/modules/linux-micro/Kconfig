@@ -1,0 +1,40 @@
+menuconfig LINUX_MICRO
+	bool "Linux Micro Platform Modules"
+	depends on PLATFORM_LINUX_MICRO
+	default y
+	help
+
+            Soletta can be compiled to use linux-micro as a target
+            platform (Core Library > Target platform) and in this case
+            the applications using it can be used as PID1 (the /init
+            binary). In this case some extra care needs to be done,
+            such as mounting /dev, /proc, /sys and handling children
+            processes.
+
+            The linux-micro platform will provide services
+            (sol_platform_start_service()) to extend its functionality
+            via modules. Modules can be built-in to the library or
+            dynamically loadable modules (if Basics > MODULES=y), in
+            this case they can be provided by third-parties. These
+            modules will be looked at
+            $PREFIX/lib/soletta/modules/linux-micro/<module>.so, where
+            PREFIX is defined at Basics > Installation Prefix.
+
+            Services can be automatically started if they are listed
+            in /etc/soletta/initial-services or
+            $PREFIX/lib/soletta/modules/linux-micro/initial-services. The
+            format is one service (module) name per line. If a service
+            fail to start, then the platform start will fail as a
+            whole unless the line contains a suffix '?', making that
+            service optional (may fail to start).
+
+source "src/modules/linux-micro/bluetooth/Kconfig"
+source "src/modules/linux-micro/console/Kconfig"
+source "src/modules/linux-micro/dbus/Kconfig"
+source "src/modules/linux-micro/fstab/Kconfig"
+source "src/modules/linux-micro/hostname/Kconfig"
+source "src/modules/linux-micro/locale/Kconfig"
+source "src/modules/linux-micro/network-up/Kconfig"
+source "src/modules/linux-micro/rc-d/Kconfig"
+source "src/modules/linux-micro/sysctl/Kconfig"
+source "src/modules/linux-micro/watchdog/Kconfig"

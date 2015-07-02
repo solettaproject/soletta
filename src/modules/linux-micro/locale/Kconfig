@@ -1,4 +1,28 @@
 config LINUX_MICRO_LOCALE
 	tristate "locale"
 	depends on LINUX_MICRO
-	default n
+	default m if MODULES=y
+	help
+            Sets locale environment variables.
+
+            This service will mimic systemd-localed.service and read
+            the locale setting from /etc/locale.conf or kernel command
+            line, then setting the environment variables in the
+            current and children processes.
+
+            The format of /etc/locale.conf is key=value, with key
+            being one of: LANG, LANGUAGE, LC_CTYPE, LC_NUMERIC,
+            LC_TIME, LC_COLLATE, LC_MONETARY, LC_MESSAGES, LC_PAPER,
+            LC_NAME, LC_ADDRESS, LC_TELEPHONE, LC_MEASUREMENT,
+            LC_IDENTIFICATION. For details about semantic refer to
+            man:locale(7).
+
+            The same variables may be set from kernel command line by
+            using a prefix "locale.", then to set LANG to en_US.UTF-8
+            use: "locale.LANG=en_US.UTF-8".
+
+            In order to use locales your libc must be compiled with
+            such support and locales to be used must be included in
+            the device disk image (ie: for glibc /usr/lib/locale).
+
+            See http://www.freedesktop.org/software/systemd/man/locale.conf.html

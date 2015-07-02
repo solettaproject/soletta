@@ -5,44 +5,60 @@ source "Kconfig.gen"
 menu "Basic"
 # backward compatibility with autotools vars
 config ENABLE_DYNAMIC_MODULES
-        bool
+	bool
 	default n
 
 config MODULES
-        bool "Enable loadable module support"
+	bool "Enable loadable module support"
 	option modules
 	select ENABLE_DYNAMIC_MODULES
+	depends on SOL_PLATFORM_LINUX
 	default y
+	help
+            This option enables dynamically loadable modules to be
+            created and used by Soletta. These modules can be created
+            and installed post libsoletta creation and when removed
+            shouldn't impact those that do not use such
+            functionality.
+
+            Modules are usually distributed as ".so" (shared objects)
+            and are usually loaded by libc (libdl) function
+            dlopen(). The modules are commonly installed at
+            $PREFIX/lib/soletta/modules/<subsystem>/<module>.
+
+            One would disable the modules support only when doing
+            single-binary static builds, in this case all modules
+            would be known at compile time, thus the code path can be
+            avoided and the dependency on extra libraries (ie: -ldl
+            on Linux) is not needed.
+
+            If unsure, say Y.
 
 config PREFIX
-        string "Installation prefix"
+	string "Installation prefix"
 	default "/usr"
+	help
+            This path is the intended installation prefix for the
+            binaries. It is used by code paths that need to look for
+            further resources, such as loadable module support (see
+            MODULES configuration help).
+
 endmenu
 
 menu "Core library"
 source "src/lib/common/Kconfig"
-source "src/lib/coap/Kconfig"
 source "src/lib/datatypes/Kconfig"
-source "src/lib/flow/Kconfig"
 source "src/lib/io/Kconfig"
 source "src/lib/parsers/Kconfig"
 endmenu
 
-menuconfig LINUX_MICRO
-       bool "Linux micro"
-       depends on PLATFORM_LINUX_MICRO
-       default n
+menu "Flow Based Programming (FBP)"
+source "src/lib/flow/Kconfig"
+endmenu
 
-source "src/modules/linux-micro/bluetooth/Kconfig"
-source "src/modules/linux-micro/console/Kconfig"
-source "src/modules/linux-micro/dbus/Kconfig"
-source "src/modules/linux-micro/fstab/Kconfig"
-source "src/modules/linux-micro/hostname/Kconfig"
-source "src/modules/linux-micro/locale/Kconfig"
-source "src/modules/linux-micro/network-up/Kconfig"
-source "src/modules/linux-micro/rc-d/Kconfig"
-source "src/modules/linux-micro/sysctl/Kconfig"
-source "src/modules/linux-micro/watchdog/Kconfig"
+menu "Networking"
+source "src/lib/coap/Kconfig"
+endmenu
 
 menu "Tools"
 source "src/bin/sol-fbp-generator/Kconfig"

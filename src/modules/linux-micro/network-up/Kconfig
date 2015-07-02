@@ -1,4 +1,13 @@
 config LINUX_MICRO_NETWORK_UP
 	tristate "network-up"
 	depends on LINUX_MICRO
-	default n
+	default m if MODULES=y
+	help
+            This service will enumerate all network interfaces using
+            netlink and then bring up all of them.
+
+            If the kernel is configured for IPv6 (CONFIG_IPV6=y) then
+            an automatic address is assigned based on the MAC address.
+
+            This service relies on netlink communication with the
+            kernel.

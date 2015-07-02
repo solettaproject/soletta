@@ -1,4 +1,13 @@
 config LINUX_MICRO_FSTAB
 	tristate "fstab"
 	depends on LINUX_MICRO
-	default n
+	default m if MODULES=y
+	help
+            Mounts filesystems in /etc/fstab.
+
+            This is a simple implementation that will mount entries,
+            however no filesystem check (fsck) is done, the fifth and
+            sixth fields (fs_freq and fs_passno) are not used.
+
+            The file /etc/fstab is optional, if it doesn't exist the
+            service starts but nothing is mounted.
