@@ -110,6 +110,7 @@ pwm_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
         return -EINVAL;
     }
 
+    pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION;
     pwm_config.period_ns = opts->period.val;
     pwm_config.duty_cycle_ns = opts->duty_cycle.val;
     if (opts->inversed_polarity)

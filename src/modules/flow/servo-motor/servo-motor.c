@@ -66,6 +66,7 @@ servo_motor_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     mdata->duty_cycle_diff = mdata->duty_cycle_range.max -
                              mdata->duty_cycle_range.min;
 
+    pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION;
     pwm_config.period_ns = opts->period.val * 1000;
     pwm_config.duty_cycle_ns = 0;
 
