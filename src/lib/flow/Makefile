@@ -8,10 +8,8 @@ obj-flow-$(FLOW) := \
 
 obj-flow-$(RESOLVER_CONFFILE) += \
     sol-flow-resolver-conffile.o \
+    sol-flow-builder.o \
+    sol-flow-parser.o \
     sol-flow-resolver.o
 obj-flow-$(RESOLVER_CONFFILE)-extra-cflags := $(GLIB_CFLAGS)
 obj-flow-$(RESOLVER_CONFFILE)-extra-ldflags += $(GLIB_LDFLAGS)
-
-obj-flow-$(NODE_DESCRIPTION) += \
-    sol-flow-builder.o \
-    sol-flow-parser.o
