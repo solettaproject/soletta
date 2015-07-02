@@ -22,6 +22,14 @@ include $(top_srcdir)tools/build/Makefile.rules
 # kconfig interface rules
 include $(top_srcdir)tools/build/Makefile.kconfig
 
+ifneq (,$(NOT_FOUND))
+warning:
+	$(Q)echo -e "The following dependencies were not met:\n"
+	$(Q)echo -e $(NOT_FOUND)
+	$(Q)echo -e "If you've just installed it, run: make reconf"
+	$(Q)echo -e "For more information/options, run: make help"
+$(warning-targets)
+else
 ifeq (n,$(HAVE_DEPENDENCY_FILES))
 PRE_GEN += $(DEPENDENCY_FILES)
 endif
@@ -33,16 +41,11 @@ warning:
 	$(Q)echo "For more information/options run: make help"
 $(warning-targets)
 else
-ifeq (n,$(HAVE_PYTHON_JSONSCHEMA))
-warning:
-	$(Q)echo "Cannot proceed, python module \"jsonschema\" was not found in your system..."
-	$(Q)echo "If you've just installed it, run: make reconf"
-$(warning-targets)
-else
 all: $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
 include $(top_srcdir)tools/build/Makefile.targets
-endif # HAVE_PYTHON_JSONSCHEMA
 endif # HAVE_KCONFIG_CONFIG
+endif # NOT_FOUND
 
 .DEFAULT_GOAL = all
 .PHONY = $(PHONY) all
+

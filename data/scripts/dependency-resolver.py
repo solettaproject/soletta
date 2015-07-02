@@ -42,6 +42,7 @@ cfg_cflags = {}
 cfg_ldflags = {}
 cfg_kconfig = {}
 makefile_vars = {}
+nof_deps = {}
 
 def run_command(cmd):
     try:
@@ -51,7 +52,6 @@ def run_command(cmd):
     except subprocess.CalledProcessError as e:
         return e.output, False
 
-
 def handle_pkgconfig_check(args, conf):
     dep = conf["dependency"].upper()
     pkg = conf["pkgname"]
@@ -59,6 +59,7 @@ def handle_pkgconfig_check(args, conf):
     max_ver = conf.get("max-version")
     exact_ver = conf.get("exact-version")
     ver_match = True
+    required = True if conf.get("required") else False
 
     if exact_ver:
         cmd = "pkg-config --exact-version=%s %s" % (exact_ver, pkg)
@@ -94,6 +95,9 @@ def handle_pkgconfig_check(args, conf):
     have_var = "y" if ((cflags_stat or ldflags_stat) and ver_match) else "n"
     cfg_kconfig["HAVE_%s" % dep] = have_var
 
+    if have_var == "n" and required:
+        nof_deps[pkg] = "library"
+
 def compile_test(source, compiler, cflags):
     f = tempfile.NamedTemporaryFile(suffix=".c",delete=False)
     f.write(bytes(source, 'UTF-8'))
@@ -111,6 +115,8 @@ def compile_test(source, compiler, cflags):
 def handle_ccode_check(args, conf):
     dep = conf["dependency"].upper()
     source = ""
+    required = True if conf.get("required") else False
+
     for i in conf["headers"]:
         source += "#include %s\n" % i
 
@@ -125,15 +131,21 @@ def handle_ccode_check(args, conf):
         cfg_kconfig["HAVE_%s" % dep] = "y"
     else:
         cfg_kconfig["HAVE_%s" % dep] = "n"
+        if required:
+            nof_deps[dep] = "toolchain feature"
 
 def handle_exec_check(args, conf):
     dep = conf["dependency"].upper()
     path = which(conf["exec"]) or None
+    required = True if conf.get("required") else False
 
     makefile_vars[dep] = path
+    if not path and required:
+        nof_deps[conf["exec"]] = "exec binary"
 
 def handle_python_check(args, conf):
     dep = conf["dependency"].upper()
+    required = True if conf.get("required") else False
 
     if conf.get("pkgname"):
         source = "import %s" % conf.get("pkgname")
@@ -144,7 +156,13 @@ def handle_python_check(args, conf):
 
     cmd = "%s %s" % (sys.executable, f.name)
     output, status = run_command(cmd)
-    makefile_vars["HAVE_PYTHON_%s" % dep] = "y" if status else "n"
+
+    if status:
+        makefile_vars["HAVE_PYTHON_%s" % dep] = "y"
+    else:
+        makefile_vars["HAVE_PYTHON_%s" % dep] = "n"
+        if required:
+            nof_deps[conf.get("pkgname")] = "python module"
 
 type_handlers = {
     "pkg-config": handle_pkgconfig_check,
@@ -160,11 +178,23 @@ def var_str(items):
         output += "%s ?= %s\n" % (k, v)
     return output
 
+def notfound_deps(items):
+    if not len(items):
+        return ""
+
+    content = ""
+    for k,v in items:
+        label = ("%s:" % v).ljust(20)
+        content += "%s %s\\n" % (label, k)
+    return "NOT_FOUND = \"%s\"" % content
+
 def makefile_gen(args):
     output = ""
     output += var_str(makefile_vars.items())
     output += var_str(cfg_cflags.items())
     output += var_str(cfg_ldflags.items())
+    output += notfound_deps(nof_deps.items())
+
     f = open(args.makefile_output, "w+")
     f.write(output)
     f.close()
