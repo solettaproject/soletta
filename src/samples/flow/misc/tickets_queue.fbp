@@ -68,18 +68,18 @@ CallNorm(boolean/and)
 CallNormTicket(int/accumulator:setup_value=0|0)
 CallNormPrinter(console)
 
-CashierBt OUT -> IN0 CallPref
-PrefLess OUT -> IN1 CallPref
+CashierBt OUT -> IN[0] CallPref
+PrefLess OUT -> IN[1] CallPref
 
 CallPref OUT -> IN _(boolean/filter) TRUE -> INC CallPrefTicket
 CallPrefTicket OUT -> IN0 PrefLess
 CallPrefTicket OUT -> IN CallPrefPrinter
 
-CashierBt OUT -> IN0 CouldCallNorm
-PrefLess OUT -> IN _(boolean/not) OUT -> IN1 CouldCallNorm
+CashierBt OUT -> IN[0] CouldCallNorm
+PrefLess OUT -> IN _(boolean/not) OUT -> IN[1] CouldCallNorm
 
-CouldCallNorm OUT -> IN0 CallNorm
-NormLess OUT -> IN1 CallNorm
+CouldCallNorm OUT -> IN[0] CallNorm
+NormLess OUT -> IN[1] CallNorm
 
 CallNorm OUT -> IN _(boolean/filter) TRUE -> INC CallNormTicket
 CallNormTicket OUT -> IN0 NormLess
