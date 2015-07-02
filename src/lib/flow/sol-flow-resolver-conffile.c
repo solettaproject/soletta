@@ -271,10 +271,10 @@ end:
     return 0;
 }
 
-static struct sol_flow_resolver _resolver_conffile = {
+static const struct sol_flow_resolver _resolver_conffile = {
     .api_version = SOL_FLOW_RESOLVER_API_VERSION,
     .name = "conffile",
     .resolve = resolver_conffile_resolve,
 };
 
-SOL_API struct sol_flow_resolver *sol_flow_resolver_conffile = &_resolver_conffile;
+SOL_API const struct sol_flow_resolver *sol_flow_resolver_conffile = &_resolver_conffile;
