@@ -23,6 +23,7 @@ obj-core-$(MAINLOOP_POSIX) += \
     sol-mainloop-impl-posix.o
 
 obj-core-$(MAINLOOP_RIOTOS) += \
+    sol-interrupt_scheduler_riot.o  \
     sol-mainloop-common.o \
     sol-mainloop-impl-riot.o
 obj-core-$(PLATFORM_LINUX_MICRO) += \
@@ -30,6 +31,7 @@ obj-core-$(PLATFORM_LINUX_MICRO) += \
 obj-core-$(SOCKET_LINUX) += \
     sol-socket-linux.o
 obj-core-$(PLATFORM_RIOTOS) += \
+    sol-log-impl-linux.o \
     sol-platform-impl-riot.o
 obj-core-$(PLATFORM_DUMMY) += \
     sol-platform-impl-dummy.o
