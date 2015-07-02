@@ -221,12 +221,12 @@ $(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(INT_LIB_AR) $(builtin-objs)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
 $(DEPENDENCY_FILES): $(DEPENDENCY_SCRIPT)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(CFLAGS)"
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)"
 
 reconf: $(DEPENDENCY_SCRIPT)
 	$(Q)echo "[re]running dependency-resolver..."
 	$(Q)$(RM) -f $(DEPENDENCY_FILES)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(CFLAGS)"
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)"
 
 PHONY += reconf
 
