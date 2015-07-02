@@ -99,6 +99,7 @@ _get_link(int index)
     link = sol_vector_append(&network->links);
     SOL_NULL_CHECK(link, NULL);
 
+    link->api_version = SOL_NETWORK_LINK_API_VERSION;
     link->flags = 0;
     sol_vector_init(&link->addrs, sizeof(struct sol_network_link_addr));
     link->index = index;
@@ -309,7 +310,7 @@ _netlink_request(int event)
     }
 }
 
-bool
+SOL_API bool
 sol_network_init(void)
 {
     SOL_LOG_INTERNAL_INIT_ONCE;
@@ -364,7 +365,7 @@ err:
     return false;
 }
 
-void
+SOL_API void
 sol_network_shutdown(void)
 {
     struct callback *callback;
@@ -405,7 +406,7 @@ sol_network_shutdown(void)
     (void)callback;
 }
 
-bool
+SOL_API bool
 sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data)
@@ -424,7 +425,7 @@ sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_lin
     return true;
 }
 
-bool
+SOL_API bool
 sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
     const void *data)
@@ -454,12 +455,19 @@ sol_network_get_available_links(void)
     return &network->links;
 }
 
-char *
+SOL_API char *
 sol_network_link_get_name(const struct sol_network_link *link)
 {
     char name[IFNAMSIZ];
 
     SOL_NULL_CHECK(link, NULL);
+
+    if (unlikely(link->api_version != SOL_NETWORK_LINK_API_VERSION)) {
+        SOL_WRN("Couldn't link that has unsupported version '%u', "
+                "expected version is '%u'",
+                link->api_version, SOL_NETWORK_LINK_API_VERSION);
+        return NULL;
+    }
 
     if (if_indextoname(link->index, name))
         return strdup(name);
@@ -467,7 +475,7 @@ sol_network_link_get_name(const struct sol_network_link *link)
     return NULL;
 }
 
-bool
+SOL_API bool
 sol_network_link_up(unsigned int link_index)
 {
     char buf[sizeof(struct nlmsghdr) + sizeof(struct ifinfomsg) + 512] = { 0 };

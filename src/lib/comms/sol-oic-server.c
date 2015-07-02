@@ -319,6 +319,7 @@ no_memory:
 }
 
 static const struct sol_coap_resource d_coap_resorce = {
+    .api_version = SOL_COAP_RESOURCE_API_VERSION,
     .path = {
         SOL_STR_SLICE_LITERAL("d"),
         SOL_STR_SLICE_EMPTY
@@ -327,6 +328,7 @@ static const struct sol_coap_resource d_coap_resorce = {
     .flags = SOL_COAP_FLAGS_NONE
 };
 static const struct sol_coap_resource res_coap_resorce = {
+    .api_version = SOL_COAP_RESOURCE_API_VERSION,
     .path = {
         SOL_STR_SLICE_LITERAL("res"),
         SOL_STR_SLICE_EMPTY
@@ -335,6 +337,7 @@ static const struct sol_coap_resource res_coap_resorce = {
     .flags = SOL_COAP_FLAGS_NONE
 };
 static const struct sol_coap_resource rts_coap_resorce = {
+    .api_version = SOL_COAP_RESOURCE_API_VERSION,
     .path = {
         SOL_STR_SLICE_LITERAL("rts"),
         SOL_STR_SLICE_EMPTY
@@ -796,6 +799,14 @@ sol_oic_device_definition_register_resource_type(struct sol_oic_device_definitio
     OIC_SERVER_CHECK(NULL);
     SOL_NULL_CHECK(definition, NULL);
     SOL_NULL_CHECK(resource_type, NULL);
+
+    if (unlikely(resource_type->api_version !=
+            SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
+        SOL_WRN("Couldn't register resource_type that has unsupported "
+                "version '%u', expected version is '%u'",
+                resource_type->api_version, SOL_OIC_RESOURCE_TYPE_API_VERSION);
+        return NULL;
+    }
 
     res_type_copy = sol_util_memdup(resource_type, sizeof(*resource_type));
     SOL_NULL_CHECK(res_type_copy, NULL);

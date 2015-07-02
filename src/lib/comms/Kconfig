@@ -1,7 +1,11 @@
-config COAP
-	bool "CoAP"
+config COMMS
+	bool "Comms"
 	default y
 	help
+            Comms consists on a few communication modules.
+            It provides ways to deal with network, CoAP protocol and
+            OIC protocol (server and client sides).
+
             The Constrained Application Protocol (CoAP) is a
             specialized web transfer protocol for use with constrained
             nodes and constrained (e.g., low-power, lossy) networks.

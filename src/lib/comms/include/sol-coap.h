@@ -32,8 +32,12 @@
 
 #pragma once
 
-#include "sol-network.h"
-#include "sol-str-slice.h"
+#include <sol-network.h>
+#include <sol-str-slice.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
     SOL_COAP_OPTION_IF_MATCH = 1,
@@ -116,6 +120,9 @@ struct sol_coap_packet;
 struct sol_coap_server;
 
 struct sol_coap_resource {
+#define SOL_COAP_RESOURCE_API_VERSION (1)
+    uint16_t api_version;
+    uint16_t reserved; /* save this hole for a future field */
     /*
      * handlers for the CoAP defined methods.
      */
@@ -193,3 +200,7 @@ bool sol_coap_server_register_resource(struct sol_coap_server *server,
 
 int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen);
+
+#ifdef __cplusplus
+}
+#endif

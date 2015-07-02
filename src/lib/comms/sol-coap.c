@@ -75,6 +75,17 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
 #define ACK_TIMEOUT_MS 2345
 #define MAX_RETRANSMIT 4
 
+#define COAP_RESOURCE_CHECK_API(...) \
+    do { \
+        if (unlikely(resource->api_version != \
+                SOL_COAP_RESOURCE_API_VERSION)) { \
+            SOL_WRN("Couldn't handle resource that has unsupported version " \
+                    "'%u', expected version is '%u'", \
+                    resource->api_version, SOL_COAP_RESOURCE_API_VERSION); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
 struct sol_coap_server {
     struct sol_vector contexts;
     struct sol_ptr_vector pending; /* waiting pending replies */
@@ -644,6 +655,8 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
     SOL_NULL_CHECK(resource, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
 
+    COAP_RESOURCE_CHECK_API(-EINVAL);
+
     c = find_context(server, resource);
     SOL_NULL_CHECK(c, -ENOENT);
 
@@ -695,6 +708,9 @@ sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap
     struct resource_context *c;
     struct sol_coap_packet *pkt;
     uint16_t id;
+
+    SOL_NULL_CHECK(resource, NULL);
+    COAP_RESOURCE_CHECK_API(NULL);
 
     c = find_context(server, resource);
     SOL_NULL_CHECK(c, NULL);
@@ -1501,6 +1517,8 @@ sol_coap_server_register_resource(struct sol_coap_server *server,
 
     SOL_NULL_CHECK(server, false);
     SOL_NULL_CHECK(resource, false);
+
+    COAP_RESOURCE_CHECK_API(false);
 
     c = sol_vector_append(&server->contexts);
     SOL_NULL_CHECK(c, false);
