@@ -260,16 +260,17 @@ $(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(builtin-objs)
 
 $(DEPENDENCY_CACHE):
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)"
+		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --pkg-config="$(PKG_CONFIG)"
 
 $(KCONFIG_GEN): $(DEPENDENCY_CACHE)
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --kconfig-gen
+		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --pkg-config="$(PKG_CONFIG)" \
+                --kconfig-gen
 
 $(MAKEFILE_GEN): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG)
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --definitions-header="$(DEFINITIONS_H)" \
-		--makefile-gen
+		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --pkg-config="$(PKG_CONFIG)" \
+                --definitions-header="$(DEFINITIONS_H)" --makefile-gen
 
 reconf: $(DEPENDENCY_SCRIPT)
 	$(Q)echo "[re]running dependency-resolver..."

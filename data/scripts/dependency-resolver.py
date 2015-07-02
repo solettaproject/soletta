@@ -98,17 +98,17 @@ def handle_pkgconfig_check(args, conf, context):
     ver_match = True
 
     if exact_ver:
-        cmd = "pkg-config --exact-version=%s %s" % (exact_ver, pkg)
+        cmd = "%s --exact-version=%s %s" % (args.pkg_config, exact_ver, pkg)
         result, status = run_command(cmd)
         if not status:
             ver_match = False
     elif atleast_ver:
-        cmd = "pkg-config --atleast-version=%s %s" % (atleast_ver, pkg)
+        cmd = "%s --atleast-version=%s %s" % (args.pkg_config, atleast_ver, pkg)
         result, status = run_command(cmd)
         if not status:
             ver_match = False
     elif max_ver:
-        cmd = "pkg-config --max-version=%s %s" % (max_ver, pkg)
+        cmd = "%s --max-version=%s %s" % (args.pkg_config, max_ver, pkg)
         result, status = run_command(cmd)
         if not status:
             ver_match = False
@@ -116,8 +116,8 @@ def handle_pkgconfig_check(args, conf, context):
     cflags_stat = None
     ldflags_stat = None
     if ver_match:
-        cflags_cmd = "pkg-config --cflags %s" % pkg
-        ldflags_cmd = "pkg-config --libs %s" % pkg
+        cflags_cmd = "%s --cflags %s" % (args.pkg_config, pkg)
+        ldflags_cmd = "%s --libs %s" % (args.pkg_config, pkg)
 
         cflags, cflags_stat = run_command(cflags_cmd)
         ldflags, ldflags_stat = run_command(ldflags_cmd)
@@ -392,6 +392,8 @@ if __name__ == "__main__":
                         type=str, default="gcc")
     parser.add_argument("--cflags", help="Additional cflags[for headers based tests]",
                         type=str, default="")
+    parser.add_argument("--pkg-config", help="What to use for pkg-config",
+                        type=str, default="pkg-config")
     parser.add_argument("--kconfig-output", help="The kconfig fragment output file",
                         type=str, default="Kconfig.gen")
     parser.add_argument("--makefile-output", help="The makefile fragment output file",
