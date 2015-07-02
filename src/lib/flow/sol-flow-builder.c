@@ -1289,8 +1289,8 @@ sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *nod
          * Since the sub-nodes options is owned by the builder, it's enough to
          * just reference it here without copying it.
          */
-        const char **node_opt = (const char **)((char *)node_spec->opts + opt->offset);
-        exported_opt->defvalue.ptr = *node_opt;
+        const char *node_opt = (char *)node_spec->opts + opt->offset;
+        memcpy(&exported_opt->defvalue, node_opt, exported_opt->size);
     } else
         exported_opt->defvalue = opt->defvalue;
 
