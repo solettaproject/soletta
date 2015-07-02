@@ -1,12 +1,18 @@
 obj-$(CORE) += core.mod
 
 obj-core-$(CORE) := \
-    sol-log.o \
     sol-blob.o \
     sol-mainloop.o \
     sol-platform.o \
     sol-types.o \
     sol-platform-detect.o
+
+ifeq (y,$(LOG))
+obj-core-$(CORE) += \
+    sol-log.o
+obj-core-$(SOL_PLATFORM_LINUX) += \
+    sol-log-impl-linux.o
+endif
 
 obj-core-$(KDBUS) += \
     sol-bus.o
@@ -35,8 +41,7 @@ obj-core-$(PLATFORM_DUMMY) += \
     sol-platform-impl-dummy.o
 
 obj-core-$(SOL_PLATFORM_LINUX) += \
-    sol-platform-linux-common.o \
-    sol-log-impl-linux.o
+    sol-platform-linux-common.o
 obj-core-$(SOL_PLATFORM_LINUX)-extra-cflags += $(SYSTEMD_CFLAGS)
 obj-core-$(SOL_PLATFORM_LINUX)-extra-ldflags += $(SYSTEMD_LDFLAGS)
 
