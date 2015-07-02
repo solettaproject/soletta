@@ -469,13 +469,13 @@ static int
 declare_fbp_read_file(void *data, const char *name, const char **buf, size_t *size)
 {
     if (streq(name, "add.fbp")) {
-        *buf = "INPORT=add.IN1:IN, OUTPORT=add.OUT:OUT, _(constant/int:value=1) OUT -> IN0 add(int/addition)";
+        *buf = "INPORT=add.OPERAND[1]:IN, OUTPORT=add.OUT:OUT, _(constant/int:value=1) OUT -> OPERAND[0] add(int/addition)";
         *size = strlen(*buf);
         return 0;
     }
 
     if (streq(name, "sub.fbp")) {
-        *buf = "INPORT=sub.IN1:IN, OUTPORT=sub.OUT:OUT, _(constant/int:value=1) OUT -> IN0 sub(int/subtraction)";
+        *buf = "INPORT=sub.SUBTRAHEND:IN, OUTPORT=sub.OUT:OUT, _(constant/int:value=1) OUT -> MINUEND sub(int/subtraction)";
         *size = strlen(*buf);
         return 0;
     }
