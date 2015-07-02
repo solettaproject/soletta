@@ -1438,6 +1438,19 @@ error:
 }
 
 SOL_API int
+sol_coap_packet_get_buf(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len)
+{
+    SOL_NULL_CHECK(pkt, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(len, -EINVAL);
+
+    *buf = pkt->buf;
+    *len = sizeof(pkt->buf);
+
+    return 0;
+}
+
+SOL_API int
 sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len)
 {
     SOL_NULL_CHECK(pkt, -EINVAL);
@@ -1471,6 +1484,13 @@ sol_coap_packet_set_payload_used(struct sol_coap_packet *pkt, uint16_t len)
 
     pkt->payload.used += len;
     return 0;
+}
+
+SOL_API bool
+sol_coap_packet_has_payload(struct sol_coap_packet *pkt)
+{
+    SOL_NULL_CHECK(pkt, false);
+    return (pkt->payload.start || pkt->payload.used != pkt->payload.size);
 }
 
 SOL_API bool
