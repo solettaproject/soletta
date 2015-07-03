@@ -64,10 +64,10 @@ const_float OUT -> IN map_float OUT -> IN float_empty OUT -> IN empty_float
 
 empty_bool OUT -> IN[0] equal_bool
 empty_byte OUT -> IN[0] equal_byte
-empty_int OUT -> IN0 equal_int
-empty_float OUT -> IN0 equal_float
+empty_int OUT -> IN[0] equal_int
+empty_float OUT -> IN[0] equal_float
 
 result_bool OUT -> IN[1] equal_bool OUT -> RESULT r_bool(test/result)
 result_byte OUT -> IN[1] equal_byte OUT -> IN byte_to_boolean OUT -> RESULT r_byte(test/result)
-result_int OUT -> IN1 equal_int OUT -> RESULT r_int(test/result)
-result_float OUT -> IN1 equal_float OUT -> RESULT r_float(test/result)
+result_int OUT -> IN[1] equal_int OUT -> RESULT r_int(test/result)
+result_float OUT -> IN[1] equal_float OUT -> RESULT r_float(test/result)

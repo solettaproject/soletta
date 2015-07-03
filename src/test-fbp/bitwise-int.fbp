@@ -36,37 +36,37 @@ one(constant/int:value=1)
 min_int(constant/int:value=0x80000000)
 max_int(constant/int:value=0x7fffffff)
 
-input1 OUT -> IN0 and(int/bitwise-and)
-input2 OUT -> IN1 and
-and OUT -> IN0 cmp_expected_and(int/equal)
-all_zero OUT -> IN1 cmp_expected_and
+input1 OUT -> IN[0] and(int/bitwise-and)
+input2 OUT -> IN[1] and
+and OUT -> IN[0] cmp_expected_and(int/equal)
+all_zero OUT -> IN[1] cmp_expected_and
 cmp_expected_and OUT -> RESULT test_int_bitwise_and(test/result)
 
-input1 OUT -> IN0 or(int/bitwise-or)
-input2 OUT -> IN1 or
-or OUT -> IN0 cmp_expected_or(int/equal)
-all_one OUT -> IN1 cmp_expected_or
+input1 OUT -> IN[0] or(int/bitwise-or)
+input2 OUT -> IN[1] or
+or OUT -> IN[0] cmp_expected_or(int/equal)
+all_one OUT -> IN[1] cmp_expected_or
 cmp_expected_or OUT -> RESULT test_int_bitwise_or(test/result)
 
-input1 OUT -> IN0 xor(int/bitwise-xor)
-all_one OUT -> IN1 xor
-xor OUT -> IN0 cmp_expected_xor(int/equal)
-input2 OUT -> IN1 cmp_expected_xor
+input1 OUT -> IN[0] xor(int/bitwise-xor)
+all_one OUT -> IN[1] xor
+xor OUT -> IN[0] cmp_expected_xor(int/equal)
+input2 OUT -> IN[1] cmp_expected_xor
 cmp_expected_xor OUT -> RESULT test_int_bitwise_xor(test/result)
 
 input1 OUT -> IN not(int/bitwise-not)
-not OUT -> IN0 cmp_expected_not(int/equal)
-input2 OUT -> IN1 cmp_expected_not
+not OUT -> IN[0] cmp_expected_not(int/equal)
+input2 OUT -> IN[1] cmp_expected_not
 cmp_expected_not OUT -> RESULT test_int_bitwise_not(test/result)
 
 min_int OUT -> IN shiftl(int/shift-left)
 one OUT -> SHIFT shiftl
-shiftl OUT -> IN0 cmp_expected_shiftl(int/equal)
-all_zero OUT -> IN1 cmp_expected_shiftl
+shiftl OUT -> IN[0] cmp_expected_shiftl(int/equal)
+all_zero OUT -> IN[1] cmp_expected_shiftl
 cmp_expected_shiftl OUT -> RESULT test_int_bitwise_shift_left(test/result)
 
 all_one OUT -> IN shiftr(int/shift-right)
 one OUT -> SHIFT shiftr
-shiftr OUT -> IN0 cmp_expected_shiftr(int/equal)
-max_int OUT -> IN1 cmp_expected_shiftr
+shiftr OUT -> IN[0] cmp_expected_shiftr(int/equal)
+max_int OUT -> IN[1] cmp_expected_shiftr
 cmp_expected_shiftr OUT -> RESULT test_int_bitwise_shift_right(test/result)

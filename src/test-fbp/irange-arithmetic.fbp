@@ -32,30 +32,30 @@ augend(constant/int:value=7)
 addend(constant/int:value=3)
 sum(constant/int:value=10)
 
-augend OUT -> IN0 add(int/addition)
-addend OUT -> IN1 add
-add OUT -> IN0 equal_sum(int/equal)
-sum OUT -> IN1 equal_sum
+augend OUT -> OPERAND[0] add(int/addition)
+addend OUT -> OPERAND[1] add
+add OUT -> IN[0] equal_sum(int/equal)
+sum OUT -> IN[1] equal_sum
 equal_sum OUT -> RESULT r_sum(test/result)
 
 minuend(constant/int:value=12)
 subtrahend(constant/int:value=10)
 difference(constant/int:value=2)
 
-minuend OUT -> IN0 sub(int/subtraction)
-subtrahend OUT -> IN1 sub
-sub OUT -> IN0 equal_sub(int/equal)
-difference OUT -> IN1 equal_sub
+minuend OUT -> OPERAND[0] sub(int/subtraction)
+subtrahend OUT -> OPERAND[1] sub
+sub OUT -> IN[0] equal_sub(int/equal)
+difference OUT -> IN[1] equal_sub
 equal_sub OUT -> RESULT r_sub(test/result)
 
 multiplicand(constant/int:value=37)
 multiplier(constant/int:value=5)
 product(constant/int:value=185)
 
-multiplicand OUT -> IN0 mul(int/multiplication)
-multiplier OUT -> IN1 mul
-mul OUT -> IN0 equal_mul(int/equal)
-product OUT -> IN1 equal_mul
+multiplicand OUT -> OPERAND[0] mul(int/multiplication)
+multiplier OUT -> OPERAND[1] mul
+mul OUT -> IN[0] equal_mul(int/equal)
+product OUT -> IN[1] equal_mul
 equal_mul OUT -> RESULT r_mul(test/result)
 
 dividend(constant/int:value=12)
@@ -63,14 +63,14 @@ divisor(constant/int:value=3)
 quotient(constant/int:value=4)
 remainder(constant/int:value=0)
 
-dividend OUT -> IN0 div(int/division)
-divisor OUT -> IN1 div
-div OUT -> IN0 equal_div(int/equal)
-quotient OUT -> IN1 equal_div
+dividend OUT -> DIVIDEND div(int/division)
+divisor OUT -> DIVISOR div
+div OUT -> IN[0] equal_div(int/equal)
+quotient OUT -> IN[1] equal_div
 equal_div OUT -> RESULT r_div(test/result)
 
-dividend OUT -> IN0 mod(int/modulo)
-divisor OUT -> IN1 mod
-mod OUT -> IN0 equal_mod(int/equal)
-remainder OUT -> IN1 equal_mod
+dividend OUT -> DIVIDEND mod(int/modulo)
+divisor OUT -> DIVISOR mod
+mod OUT -> IN[0] equal_mod(int/equal)
+remainder OUT -> IN[1] equal_mod
 equal_mod OUT -> RESULT r_mod(test/result)

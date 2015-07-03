@@ -32,20 +32,20 @@ negative_val(constant/float:value=-365.017)
 positive_val(constant/float:value=183784.872)
 absolute_val(constant/float:value=365.017)
 
-negative_val OUT -> IN0 min(float/min)
-positive_val OUT -> IN1 min
-min OUT -> IN0 cmp_min(float/equal)
-negative_val OUT -> IN1 cmp_min
+negative_val OUT -> IN[0] min(float/min)
+positive_val OUT -> IN[1] min
+min OUT -> IN[0] cmp_min(float/equal)
+negative_val OUT -> IN[1] cmp_min
 cmp_min OUT -> RESULT min_result(test/result)
 
-negative_val OUT -> IN0 max(float/max)
-positive_val OUT -> IN1 max
-max OUT -> IN0 cmp_max(float/equal)
-positive_val OUT -> IN1 cmp_max
+negative_val OUT -> IN[0] max(float/max)
+positive_val OUT -> IN[1] max
+max OUT -> IN[0] cmp_max(float/equal)
+positive_val OUT -> IN[1] cmp_max
 cmp_max OUT -> RESULT max_result(test/result)
 
-negative_val OUT -> IN abs(float/abs) OUT -> IN0 cmp_abs(float/equal)
-absolute_val OUT -> IN1 cmp_abs
+negative_val OUT -> IN abs(float/abs) OUT -> IN[0] cmp_abs(float/equal)
+absolute_val OUT -> IN[1] cmp_abs
 cmp_abs OUT -> RESULT abs_result(test/result)
 
 base(constant/float:value=2.0)
@@ -54,15 +54,15 @@ result(constant/float:value=1024.0)
 
 base OUT -> BASE pow(float/pow)
 exp OUT -> EXPONENT pow
-pow OUT -> IN0 cmp_pow(float/equal)
-result OUT -> IN1 cmp_pow
+pow OUT -> IN[0] cmp_pow(float/equal)
+result OUT -> IN[1] cmp_pow
 cmp_pow OUT -> RESULT pow_result(test/result)
 
 radicand(constant/float:value=16.00)
 sqrt_expected(constant/float:value=4.00)
 radicand OUT -> IN sqrt(float/sqrt) 
-sqrt OUT -> IN0 cmp_sqrt(float/equal)
-sqrt_expected OUT -> IN1 cmp_sqrt
+sqrt OUT -> IN[0] cmp_sqrt(float/equal)
+sqrt_expected OUT -> IN[1] cmp_sqrt
 cmp_sqrt OUT -> RESULT sqrt_result(test/result)
 
 over(constant/float:value=566|0|565|1)
@@ -73,17 +73,17 @@ c1(constant/float:value=565)
 c2(constant/float:value=128)
 c3(constant/float:value=50)
 
-over OUT -> IN _(float/constrain) OUT -> IN0 cmp_over(float/equal)
-c1 OUT -> IN1 cmp_over OUT -> RESULT r_over(test/result)
+over OUT -> IN _(float/constrain) OUT -> IN[0] cmp_over(float/equal)
+c1 OUT -> IN[1] cmp_over OUT -> RESULT r_over(test/result)
 
-within_range OUT -> IN _(float/constrain) OUT -> IN0 cmp_within_range(float/equal)
-c2 OUT -> IN1 cmp_within_range OUT -> RESULT r_within_range(test/result)
+within_range OUT -> IN _(float/constrain) OUT -> IN[0] cmp_within_range(float/equal)
+c2 OUT -> IN[1] cmp_within_range OUT -> RESULT r_within_range(test/result)
 
-under OUT -> IN _(float/constrain) OUT -> IN0 cmp_under(float/equal)
-c3 OUT -> IN1 cmp_under OUT -> RESULT r_under(test/result)
+under OUT -> IN _(float/constrain) OUT -> IN[0] cmp_under(float/equal)
+c3 OUT -> IN[1] cmp_under OUT -> RESULT r_under(test/result)
 
 sixty_percent(constant/float:value=60|0|100|1)
 sixty_percent_of_sixty(constant/float:value=36)
 sixty_percent OUT -> IN map(float/map:use_input_range=true,output_range=min:0|max:60|step:1)
-map OUT -> IN0 cmp(float/equal)
-sixty_percent_of_sixty OUT -> IN1 cmp OUT -> RESULT r(test/result)
+map OUT -> IN[0] cmp(float/equal)
+sixty_percent_of_sixty OUT -> IN[1] cmp OUT -> RESULT r(test/result)

@@ -36,36 +36,36 @@ GreenByte(constant/byte:value=100) OUT -> GREEN ColorByte
 BlueByte(constant/byte:value=0) OUT -> BLUE ColorByte
 ColorByte OUT -> IN Bytes(converter/rgb-to-int)
 
-Bytes RED -> IN0 cmpRedBytes(int/equal) OUT -> RESULT test_compare_red_byte(test/result)
-Bytes BLUE -> IN0 cmpBlueBytes(int/equal) OUT -> RESULT test_compare_blue_byte(test/result)
-Bytes GREEN -> IN0 cmpGreenBytes(int/equal) OUT -> RESULT test_compare_green_byte(test/result)
+Bytes RED -> IN[0] cmpRedBytes(int/equal) OUT -> RESULT test_compare_red_byte(test/result)
+Bytes BLUE -> IN[0] cmpBlueBytes(int/equal) OUT -> RESULT test_compare_blue_byte(test/result)
+Bytes GREEN -> IN[0] cmpGreenBytes(int/equal) OUT -> RESULT test_compare_green_byte(test/result)
 
-_(constant/int:value=255) OUT -> IN1 cmpRedBytes
-_(constant/int:value=0) OUT -> IN1 cmpBlueBytes
-_(constant/int:value=100) OUT -> IN1 cmpGreenBytes
+_(constant/int:value=255) OUT -> IN[1] cmpRedBytes
+_(constant/int:value=0) OUT -> IN[1] cmpBlueBytes
+_(constant/int:value=100) OUT -> IN[1] cmpGreenBytes
 
 RedFloat(constant/float:value=1|0|1|1) OUT -> RED ColorFloat(converter/float-to-rgb:blue_max=64)
 GreenFloat(constant/float:value=0.5|0|1|1) OUT -> GREEN ColorFloat
 BlueFloat(constant/float:value=100|0|100|1) OUT -> BLUE ColorFloat
 ColorFloat OUT -> IN Floats(converter/rgb-to-int)
 
-Floats RED -> IN0 cmpRedFloats(int/equal) OUT -> RESULT test_compare_red_float(test/result)
-Floats BLUE -> IN0 cmpBlueFloats(int/equal) OUT -> RESULT test_compare_blue_float(test/result)
-Floats GREEN -> IN0 cmpGreenFloats(int/equal) OUT -> RESULT test_compare_green_float(test/result)
+Floats RED -> IN[0] cmpRedFloats(int/equal) OUT -> RESULT test_compare_red_float(test/result)
+Floats BLUE -> IN[0] cmpBlueFloats(int/equal) OUT -> RESULT test_compare_blue_float(test/result)
+Floats GREEN -> IN[0] cmpGreenFloats(int/equal) OUT -> RESULT test_compare_green_float(test/result)
 
-_(constant/int:value=255) OUT -> IN1 cmpRedFloats
-_(constant/int:value=64) OUT -> IN1 cmpBlueFloats
-_(constant/int:value=127) OUT -> IN1 cmpGreenFloats
+_(constant/int:value=255) OUT -> IN[1] cmpRedFloats
+_(constant/int:value=64) OUT -> IN[1] cmpBlueFloats
+_(constant/int:value=127) OUT -> IN[1] cmpGreenFloats
 
 RedInt(constant/int:value=20|0|100|1) OUT -> RED ColorInt(converter/int-to-rgb:red_max=32,green_max=64,blue_max=32)
 GreenInt(constant/int:value=50|0|100|1) OUT -> GREEN ColorInt
 BlueInt(constant/int:value=100|0|100|1) OUT -> BLUE ColorInt
 ColorInt OUT -> IN Ints(converter/rgb-to-int)
 
-Ints RED -> IN0 cmpRedInts(int/equal) OUT -> RESULT test_compare_red_int(test/result)
-Ints BLUE -> IN0 cmpBlueInts(int/equal) OUT -> RESULT test_compare_blue_int(test/result)
-Ints GREEN -> IN0 cmpGreenInts(int/equal) OUT -> RESULT test_compare_green_int(test/result)
+Ints RED -> IN[0] cmpRedInts(int/equal) OUT -> RESULT test_compare_red_int(test/result)
+Ints BLUE -> IN[0] cmpBlueInts(int/equal) OUT -> RESULT test_compare_blue_int(test/result)
+Ints GREEN -> IN[0] cmpGreenInts(int/equal) OUT -> RESULT test_compare_green_int(test/result)
 
-_(constant/int:value=6) OUT -> IN1 cmpRedInts
-_(constant/int:value=32) OUT -> IN1 cmpBlueInts
-_(constant/int:value=32) OUT -> IN1 cmpGreenInts
+_(constant/int:value=6) OUT -> IN[1] cmpRedInts
+_(constant/int:value=32) OUT -> IN[1] cmpBlueInts
+_(constant/int:value=32) OUT -> IN[1] cmpGreenInts

@@ -40,11 +40,11 @@ byte_to_float(converter/byte-to-float)
 
 thirty_float OUT -> IN float_to_byte
 float_to_byte OUT -> IN byte_to_float
-byte_to_float OUT -> IN0 equal(float/equal)
-thirty_float OUT -> IN1 equal OUT -> RESULT _(test/result)
+byte_to_float OUT -> IN[0] equal(float/equal)
+thirty_float OUT -> IN[1] equal OUT -> RESULT _(test/result)
 
-minus_one OUT -> IN _(converter/float-to-byte) OUT -> IN _(converter/byte-to-float) OUT -> IN0 equal_zero(float/equal)
-zero OUT -> IN1 equal_zero OUT -> RESULT underflow(test/result)
+minus_one OUT -> IN _(converter/float-to-byte) OUT -> IN _(converter/byte-to-float) OUT -> IN[0] equal_zero(float/equal)
+zero OUT -> IN[1] equal_zero OUT -> RESULT underflow(test/result)
 
-overflow OUT -> IN _(converter/float-to-byte) OUT -> IN _(converter/byte-to-float) OUT -> IN0 equal_two_five_five(float/equal)
-in_range OUT -> IN1 equal_two_five_five OUT -> RESULT r_overflow(test/result)
+overflow OUT -> IN _(converter/float-to-byte) OUT -> IN _(converter/byte-to-float) OUT -> IN[0] equal_two_five_five(float/equal)
+in_range OUT -> IN[1] equal_two_five_five OUT -> RESULT r_overflow(test/result)

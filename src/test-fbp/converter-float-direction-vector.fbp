@@ -43,11 +43,11 @@ float_z(constant/float:value=140)
 
 float_to_direction_vector OUT -> IN direction_vector_to_float(converter/direction-vector-to-float)
 
-direction_vector_to_float X -> IN0 eq_twenty(float/equal)
-float_x OUT -> IN1 eq_twenty OUT -> RESULT x(test/result)
+direction_vector_to_float X -> IN[0] eq_twenty(float/equal)
+float_x OUT -> IN[1] eq_twenty OUT -> RESULT x(test/result)
 
-direction_vector_to_float Y -> IN0 eq_eighty(float/equal)
-float_y OUT -> IN1 eq_eighty OUT -> RESULT y(test/result)
+direction_vector_to_float Y -> IN[0] eq_eighty(float/equal)
+float_y OUT -> IN[1] eq_eighty OUT -> RESULT y(test/result)
 
-direction_vector_to_float Z -> IN0 eq_thirty_five(float/equal)
-float_z OUT -> IN1 eq_thirty_five OUT -> RESULT z(test/result)
+direction_vector_to_float Z -> IN[0] eq_thirty_five(float/equal)
+float_z OUT -> IN[1] eq_thirty_five OUT -> RESULT z(test/result)

@@ -41,14 +41,14 @@ byte_3 OUT -> IN[3] int_compose
 
 int_decompose(converter/int-decompose)
 int_compose OUT -> IN int_decompose
-int_decompose OUT[0] -> IN _(converter/byte-to-int) OUT -> IN0 cmp_least_significant_byte(int/equal)
-byte_0 OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_least_significant_byte OUT -> RESULT r_byte_0(test/result)
+int_decompose OUT[0] -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_least_significant_byte(int/equal)
+byte_0 OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_least_significant_byte OUT -> RESULT r_byte_0(test/result)
 
-int_decompose OUT[1] -> IN _(converter/byte-to-int) OUT -> IN0 cmp_second_byte(int/equal)
-byte_1 OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_second_byte OUT -> RESULT r_byte_1(test/result)
+int_decompose OUT[1] -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_second_byte(int/equal)
+byte_1 OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_second_byte OUT -> RESULT r_byte_1(test/result)
 
-int_decompose OUT[2] -> IN _(converter/byte-to-int) OUT -> IN0 cmp_third_byte(int/equal)
-byte_2 OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_third_byte OUT -> RESULT r_byte_2(test/result)
+int_decompose OUT[2] -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_third_byte(int/equal)
+byte_2 OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_third_byte OUT -> RESULT r_byte_2(test/result)
 
-int_decompose OUT[3] -> IN _(converter/byte-to-int) OUT -> IN0 cmp_fourth_byte(int/equal)
-byte_3 OUT -> IN _(converter/byte-to-int) OUT -> IN1 cmp_fourth_byte OUT -> RESULT r_byte_3(test/result)
+int_decompose OUT[3] -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_fourth_byte(int/equal)
+byte_3 OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_fourth_byte OUT -> RESULT r_byte_3(test/result)

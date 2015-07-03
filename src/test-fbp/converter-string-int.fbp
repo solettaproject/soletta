@@ -35,5 +35,5 @@ const_int OUT -> IN int_to_str(converter/int-to-string) OUT -> IN[0] str_cmp(str
 const_int_str OUT -> IN[1] str_cmp EQUAL -> RESULT int_converts_to_string(test/result)
 
 int_to_str OUT -> IN str_to_int(converter/string-to-int)
-str_to_int OUT -> IN0 is_int_equal(int/equal)
-const_int OUT -> IN1 is_int_equal OUT -> RESULT string_converts_to_int(test/result)
+str_to_int OUT -> IN[0] is_int_equal(int/equal)
+const_int OUT -> IN[1] is_int_equal OUT -> RESULT string_converts_to_int(test/result)
