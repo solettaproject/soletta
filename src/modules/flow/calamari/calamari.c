@@ -245,14 +245,7 @@ calamari_7seg_new_type(const struct sol_flow_node_type **current)
     nodes[SEG_CTL].type = SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL;
     nodes[SEG_CLEAR].type = nodes[SEG_LATCH].type = nodes[SEG_CLOCK].type = nodes[SEG_DATA].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
 
-    type = sol_flow_static_new_type(nodes, conns, exported_in, NULL, calamari_7seg_child_opts_set);
-    SOL_NULL_CHECK(type);
-#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    type->description = (*current)->description;
-#endif
-    type->new_options = (*current)->new_options;
-    type->free_options = (*current)->free_options;
-    *current = type;
+    *current = sol_flow_static_new_container_node_type(current, nodes, conns, exported_in, NULL, calamari_7seg_child_opts_set);
 }
 
 #undef SEG_CTL
@@ -561,14 +554,7 @@ calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
     nodes[RGB_LED_CTL].type = SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL;
     nodes[RGB_LED_RED].type = nodes[RGB_LED_GREEN].type = nodes[RGB_LED_BLUE].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
 
-    type = sol_flow_static_new_type(nodes, conns, exported_in, NULL, calamari_rgb_child_opts_set);
-    SOL_NULL_CHECK(type);
-#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    type->description = (*current)->description;
-#endif
-    type->new_options = (*current)->new_options;
-    type->free_options = (*current)->free_options;
-    *current = type;
+    *current =  sol_flow_static_new_container_node_type(current, nodes, conns, exported_in, NULL, calamari_rgb_child_opts_set);
 }
 
 #undef RGB_LED_CTL
