@@ -35,25 +35,6 @@
 #include "sol-str-slice.h"
 #include "sol-coap.h"
 
-struct sol_oic_server_information {
-    /* All fields are required by the spec. */
-    struct {
-        const char *name;
-        const char *resource_type;
-        const char *id;
-    } device;
-    struct {
-        const char *name;
-        const char *model;
-        const char *date;
-    } manufacturer;
-    struct {
-        const char *version;
-    } interface, platform, firmware;
-    const char *support_link;
-    const char *location;
-    const char *epi;
-};
 
 #ifndef OIC_DEVICE_NAME
 #define OIC_DEVICE_NAME "Soletta OIC Device"
