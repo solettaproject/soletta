@@ -1,4 +1,4 @@
-mainmenu "soletta configuration"
+mainmenu "Soletta configuration"
 
 source "Kconfig.gen"
 
@@ -69,4 +69,8 @@ endmenu
 
 menu "Test suite"
 source "src/test/Kconfig"
+endmenu
+
+menu "Documentation"
+source "doc/Kconfig"
 endmenu

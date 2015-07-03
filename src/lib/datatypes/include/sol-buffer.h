@@ -40,7 +40,21 @@
 extern "C" {
 #endif
 
-/* A sol_buffer is a dynamic array, that can be resized if needed. It
+/**
+ * @file
+ * @brief These are routines that Solleta provides for its buffer implementation.
+ */
+
+/**
+ * @defgroup Datatypes
+ *
+ * @{
+ */
+
+/**
+ * @struct sol_buffer
+ *
+ * A sol_buffer is a dynamic array, that can be resized if needed. It
  * grows exponentially but also supports setting a specific size.
  *
  * Useful to reduce the noise of handling realloc/size-variable
@@ -84,6 +98,10 @@ int sol_buffer_ensure(struct sol_buffer *buf, unsigned int min_size);
 /* Copy the 'slice' into 'buf', ensuring that it will fit, including
  * an extra NUL byte so the buffer can be used as a cstr. */
 int sol_buffer_copy_slice(struct sol_buffer *buf, struct sol_str_slice slice);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

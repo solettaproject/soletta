@@ -39,6 +39,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for SPI access under Solleta.
+ */
+
+/**
+ * @ingroup IO
+ *
+ * @{
+ */
+
 struct sol_spi;
 
 int32_t sol_spi_get_transfer_mode(const struct sol_spi *spi);
@@ -58,6 +69,10 @@ bool sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count);
 
 void sol_spi_close(struct sol_spi *spi);
 struct sol_spi *sol_spi_open(unsigned int bus, unsigned int chip_select);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

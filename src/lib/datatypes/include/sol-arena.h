@@ -39,12 +39,25 @@
 extern "C" {
 #endif
 
-/* A sol_arena is an object that does allocation on user behalf and can
+/**
+ * @file
+ * @brief These are routines that Solleta provides for its arena implementation.
+ */
+
+/**
+ * @ingroup Datatypes
+ *
+ * @{
+ */
+
+/**
+ * @struct sol_arena
+ *
+ * An arena is an object that does allocation on user behalf and can
  * deallocate all at once.
  *
  * See also sol-buffer.h if you just need a single resizable buffer.
  */
-
 struct sol_arena;
 
 struct sol_arena *sol_arena_new(void);
@@ -58,6 +71,10 @@ int sol_arena_slice_sprintf(struct sol_arena *arena, struct sol_str_slice *dst, 
 char *sol_arena_strdup(struct sol_arena *arena, const char *str);
 char *sol_arena_strndup(struct sol_arena *arena, const char *str, size_t n);
 char *sol_arena_strdup_slice(struct sol_arena *arena, const struct sol_str_slice slice);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

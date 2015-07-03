@@ -36,6 +36,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These are routines that Solleta provides for its list implementation.
+ */
+
+/**
+ * @ingroup Datatypes
+ *
+ * @{
+ */
+
 struct sol_list {
     struct sol_list *next, *prev;
 };
@@ -91,6 +102,10 @@ sol_list_steal(struct sol_list *list, struct sol_list *new_head)
     new_head->prev = list->prev;
     sol_list_init(list);
 }
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

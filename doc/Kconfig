@@ -1,0 +1,8 @@
+config ENABLE_DOCS
+       bool "Enable documentation building"
+       default y
+
+config DOXYGEN_BIN
+       string "Doxygen program to use"
+       depends on ENABLE_DOCS
+       default "doxygen"

@@ -31,7 +31,7 @@
  */
 
 #include "test-module.h"
-#include "sol-blob.h"
+#include "sol-types.h"
 
 struct blob_validator_data {
     struct sol_blob expected;

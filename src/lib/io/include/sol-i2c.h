@@ -42,6 +42,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for I2C access under Solleta.
+ */
+
+/**
+ * @ingroup IO
+ *
+ * @{
+ */
+
 struct sol_i2c;
 
 enum sol_i2c_speed {
@@ -55,7 +66,7 @@ enum sol_i2c_speed {
 /**
  * Open an I2C bus.
  *
- * @param type bus The I2C bus number to open
+ * @param bus The I2C bus number to open
  * @param speed The speed to open I2C bus @a bus at
  * @return A new I2C bus handle
  *
@@ -68,7 +79,7 @@ struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR
 /**
  * Open an I2C bus.
  *
- * @param type bus The I2C bus number to open
+ * @param bus The I2C bus number to open
  * @param speed The speed to open I2C bus @a bus at
  * @return A new I2C bus handle
  *
@@ -173,12 +184,13 @@ bool sol_i2c_write(const struct sol_i2c *i2c, uint8_t *data, size_t count);
  * specified register @a reg. Depending on @a count, the underlying
  * bus message might be SMBbus read byte (@a count is 1), SMBbus read
  * word (@a count is 2) or SMBbus read block (@a count is greater than
- * 2 and less than 33). If @count is 33 or greater, this will issue a
- * plain-I2C read/write transaction, with the first (write) message
+ * 2 and less than 33). If @a count is 33 or greater, this will issue
+ * a plain-I2C read/write transaction, with the first (write) message
  * specifying the register to operate on and the second (read) message
  * specifying the length and the destination of the read operation.
  *
  * @param i2c bus The I2C bus handle
+ * @param reg The I2C register for the read operation
  * @param data The output buffer for the read operation
  * @param count The bytes count for the read operation
  *
@@ -187,8 +199,8 @@ bool sol_i2c_write(const struct sol_i2c *i2c, uint8_t *data, size_t count);
  * device in question does not have that feature, one must issue
  * sol_i2c_read_register_multiple() instead.
  *
- * @warn This function will fail if @count is bigger than 32 and the
- *       target I2C device does not accept plain-I2C messages
+ * @warning This function will fail if @a count is bigger than 32 and
+ *          the target I2C device does not accept plain-I2C messages
  *
  * @return The number of bytes read, on success, or a negative value,
  *         on errors.
@@ -203,10 +215,11 @@ ssize_t sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t reg, uint8_t *d
  * specified register @a reg. Depending on @a count, the underlying
  * SMBus call might be write byte (@a count is 1), write word (@a
  * count is 2) or write block (@a count is greater than 2 and less
- * than 33). If @count is 33 or greater, this will issue a plain-I2C
+ * than 33). If @a count is 33 or greater, this will issue a plain-I2C
  * write transaction.
  *
  * @param i2c bus The I2C bus handle
+ * @param reg The I2C register for the write operation
  * @param data The output buffer for the write operation
  * @param count The bytes count for the write operation
  *
@@ -238,12 +251,16 @@ bool sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t reg, const uint8_
  * @param times How many reads of size @a len to perform (on success,
  *              @a len * @a times bytes will be read)
  *
- * @warn This function will fail if the target I2C device does not
- *       accept plain-I2C messages
+ * @warning This function will fail if the target I2C device does not
+ *          accept plain-I2C messages
  *
  * @return @c true on succes, @c false otherwise
  */
 bool sol_i2c_read_register_multiple(const struct sol_i2c *i2c, uint8_t reg, uint8_t *values, uint8_t len, uint8_t times);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
