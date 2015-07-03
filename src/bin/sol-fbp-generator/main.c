@@ -32,7 +32,11 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "sol-arena.h"
@@ -48,11 +52,14 @@
 
 static struct {
     const char *fbp_file;
+    const char *output_file;
     const char *conf_file;
     struct sol_ptr_vector json_files;
 } args;
 
 static struct sol_arena *str_arena;
+
+static int fd;
 
 static void
 handle_suboptions(const struct sol_fbp_meta *meta,
@@ -64,7 +71,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
     remaining = strndupa(meta->value.data, meta->value.len);
     SOL_NULL_CHECK(remaining);
 
-    printf("        .%.*s = {\n", (int)meta->key.len, meta->key.data);
+    dprintf(fd, "        .%.*s = {\n", (int)meta->key.len, meta->key.data);
     while (remaining) {
         p = memchr(remaining, '|', strlen(remaining));
         if (p)
@@ -77,7 +84,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
         remaining = p + 1;
         i++;
     }
-    printf("        },\n");
+    dprintf(fd, "        },\n");
 }
 
 static void
@@ -92,7 +99,7 @@ handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *opt
     }
 
     *p = '=';
-    printf("            .%s,\n", option);
+    dprintf(fd, "            .%s,\n", option);
 }
 
 static bool
@@ -113,7 +120,7 @@ handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, ui
     const char *irange_drange_fields[5] = { "val", "min", "max", "step", NULL };
 
     if (check_suboption(option, meta))
-        printf("            .%s = %s,\n", irange_drange_fields[index], option);
+        dprintf(fd, "            .%s = %s,\n", irange_drange_fields[index], option);
 }
 
 static void
@@ -123,7 +130,7 @@ handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t ind
                                   "red_max", "green_max", "blue_max", NULL };
 
     if (check_suboption(option, meta))
-        printf("            .%s = %s,\n", rgb_fields[index], option);
+        dprintf(fd, "            .%s = %s,\n", rgb_fields[index], option);
 }
 
 static void
@@ -132,7 +139,7 @@ handle_direction_vector_suboption(const struct sol_fbp_meta *meta, char *option,
     const char *direction_vector_fields[7] = { "x", "y", "z", "min", "max", NULL };
 
     if (check_suboption(option, meta))
-        printf("            .%s = %s,\n", direction_vector_fields[index], option);
+        dprintf(fd, "            .%s = %s,\n", direction_vector_fields[index], option);
 }
 
 static bool
@@ -162,12 +169,12 @@ handle_options(const struct sol_fbp_meta *meta, struct sol_vector *options)
                 handle_suboptions(meta, handle_direction_vector_suboption);
         } else if (streq(o->data_type, "string")) {
             if (meta->value.data[0] == '"')
-                printf("        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
+                dprintf(fd, "        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
             else
-                printf("        .%.*s = \"%.*s\",\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
+                dprintf(fd, "        .%.*s = \"%.*s\",\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
 
         } else {
-            printf("        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
+            dprintf(fd, "        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
         }
 
         return true;
@@ -392,13 +399,13 @@ generate_connections(struct sol_fbp_graph *g, struct type_description **descs)
     qsort(conn_specs, g->conns.len, sizeof(struct sol_flow_static_conn_spec),
         compare_conn_specs);
 
-    printf("static const struct sol_flow_static_conn_spec conns[] = {\n");
+    dprintf(fd, "static const struct sol_flow_static_conn_spec conns[] = {\n");
     for (i = 0; i < g->conns.len; i++) {
         struct sol_flow_static_conn_spec *spec = &conn_specs[i];
-        printf("    { %d, %d, %d, %d },\n",
+        dprintf(fd, "    { %d, %d, %d, %d },\n",
             spec->src, spec->src_port, spec->dst, spec->dst_port);
     }
-    printf("    SOL_FLOW_STATIC_CONN_SPEC_GUARD\n"
+    dprintf(fd, "    SOL_FLOW_STATIC_CONN_SPEC_GUARD\n"
         "};\n\n");
 
     free(conn_specs);
@@ -421,7 +428,7 @@ generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fb
     if (e->port_idx == -1) {
         uint16_t last = base + p->array_size;
         for (; base < last; base++) {
-            printf("    { %d, %d },\n", e->node, base);
+            dprintf(fd, "    { %d, %d },\n", e->node, base);
         }
     } else {
         if (e->port_idx >= p->array_size) {
@@ -430,7 +437,7 @@ generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fb
                 e->exported_name.len, e->exported_name.data, e->port_idx, p->array_size);
             return false;
         }
-        printf("    { %d, %d },\n", e->node, base + e->port_idx);
+        dprintf(fd, "    { %d, %d },\n", e->node, base + e->port_idx);
     }
 
     return true;
@@ -444,24 +451,24 @@ generate_exports(const struct sol_fbp_graph *g, struct type_description **descs)
     uint16_t i;
 
     if (g->exported_in_ports.len > 0) {
-        printf("const struct sol_flow_static_port_spec exported_in[] = {\n");
+        dprintf(fd, "const struct sol_flow_static_port_spec exported_in[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&g->exported_in_ports, e, i) {
             n = descs[e->node];
             if (!generate_exported_port(n->name, &n->in_ports, e))
                 return false;
         }
-        printf("    SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
+        dprintf(fd, "    SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
             "};\n\n");
     }
 
     if (g->exported_out_ports.len > 0) {
-        printf("const struct sol_flow_static_port_spec exported_out[] = {\n");
+        dprintf(fd, "const struct sol_flow_static_port_spec exported_out[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&g->exported_out_ports, e, i) {
             n = descs[e->node];
             if (!generate_exported_port(n->name, &n->out_ports, e))
                 return false;
         }
-        printf("    SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
+        dprintf(fd, "    SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
             "};\n\n");
     }
 
@@ -475,7 +482,7 @@ generate(struct sol_fbp_graph *g, struct type_description **descs)
     struct sol_fbp_node *n;
     uint16_t i, j;
 
-    printf("#include \"sol-flow.h\"\n"
+    dprintf(fd, "#include \"sol-flow.h\"\n"
         "#include \"sol-mainloop.h\"\n"
         "\n"
         "static struct sol_flow_node *flow;\n\n");
@@ -484,13 +491,13 @@ generate(struct sol_fbp_graph *g, struct type_description **descs)
         if (n->meta.len <= 0)
             continue;
 
-        printf("static const struct %s opts%d =\n", descs[i]->options_symbol, i);
-        printf("    %s_OPTIONS_DEFAULTS(\n", descs[i]->symbol);
+        dprintf(fd, "static const struct %s opts%d =\n", descs[i]->options_symbol, i);
+        dprintf(fd, "    %s_OPTIONS_DEFAULTS(\n", descs[i]->symbol);
         SOL_VECTOR_FOREACH_IDX (&n->meta, m, j) {
             if (!handle_options(m, &descs[i]->options))
                 return EXIT_FAILURE;
         }
-        printf("    );\n\n");
+        dprintf(fd, "    );\n\n");
     }
 
     if (!generate_connections(g, descs))
@@ -499,28 +506,28 @@ generate(struct sol_fbp_graph *g, struct type_description **descs)
     if (!generate_exports(g, descs))
         return EXIT_FAILURE;
 
-    printf("static void\n"
+    dprintf(fd, "static void\n"
         "startup(void)\n"
         "{\n");
 
-    printf("    const struct sol_flow_node_type *type;\n\n"
+    dprintf(fd, "    const struct sol_flow_node_type *type;\n\n"
         "    const struct sol_flow_static_node_spec nodes[] = {\n");
     SOL_VECTOR_FOREACH_IDX (&g->nodes, n, i) {
         if (n->meta.len <= 0) {
-            printf("        [%d] = {%s, \"%.*s\", NULL},\n",
+            dprintf(fd, "        [%d] = {%s, \"%.*s\", NULL},\n",
                 i, descs[i]->symbol, (int)n->name.len, n->name.data);
         } else {
-            printf("        [%d] = {%s, \"%.*s\", (struct sol_flow_node_options *) &opts%d},\n",
+            dprintf(fd, "        [%d] = {%s, \"%.*s\", (struct sol_flow_node_options *) &opts%d},\n",
                 i, descs[i]->symbol, (int)n->name.len, n->name.data, i);
         }
     }
-    printf("        SOL_FLOW_STATIC_NODE_SPEC_GUARD\n"
+    dprintf(fd, "        SOL_FLOW_STATIC_NODE_SPEC_GUARD\n"
         "    };\n\n");
 
-    printf("    type = sol_flow_static_new_type(nodes, conns, %s, %s, NULL);\n",
+    dprintf(fd, "    type = sol_flow_static_new_type(nodes, conns, %s, %s, NULL);\n",
         g->exported_in_ports.len > 0 ? "exported_in" : "NULL",
         g->exported_out_ports.len > 0 ? "exported_out" : "NULL");
-    printf("    if (!type)\n"
+    dprintf(fd, "    if (!type)\n"
         "        return;\n\n"
         "   flow = sol_flow_node_new(NULL, NULL, type, NULL);\n"
         "}\n\n"
@@ -576,9 +583,9 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
     bool has_json_file = false;
     int opt;
 
-    if (argc < 2) {
+    if (argc < 3) {
         fprintf(stderr, "sol-fbp-generator usage: ./sol-fbp-generator [-c conf_file]"
-            "[-j json_file -j json_file ...] fbp_file\n");
+            "[-j json_file -j json_file ...] fbp_file output_file\n");
         return false;
     }
 
@@ -595,13 +602,14 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
             break;
         case '?':
             fprintf(stderr, "sol-fbp-generator usage: ./sol-fbp-generator [-c conf_file]"
-                "[-j json_file -j json_file ...] fbp_file\n");
+                "[-j json_file -j json_file ...] fbp_file output_file\n");
             return false;
         }
     }
 
-    if (optind != argc - 1) {
-        fprintf(stderr, "A single FBP input file is required.\n");
+    if (optind != argc - 2) {
+        fprintf(stderr, "A single FBP input file and output file is required."
+            " e.g. './sol-fbp-generator -j builtins.json simple.fbp simple-fbp.c'\n");
         return false;
     }
 
@@ -612,6 +620,8 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
     }
 
     args.fbp_file = argv[optind];
+    args.output_file = argv[optind + 1];
+
     return true;
 }
 
@@ -635,6 +645,29 @@ resolve_nodes(const struct sol_fbp_graph *g, struct type_store *store)
     }
 
     return descs;
+}
+
+static uint8_t
+write_to_output_file(void)
+{
+    char fd_path[PATH_MAX];
+    int r;
+
+    r = snprintf(fd_path, PATH_MAX, "/proc/self/fd/%d", fd);
+    if (r < 0 || r >= PATH_MAX)
+        goto failure;
+
+    if (access(args.output_file, F_OK) == 0 && unlink(args.output_file) != 0)
+        goto failure;
+
+    if (linkat(AT_FDCWD, fd_path, AT_FDCWD, args.output_file, AT_SYMLINK_FOLLOW) != 0)
+        goto failure;
+
+    return EXIT_SUCCESS;
+
+failure:
+    SOL_ERR("Couldn't write to %s", args.output_file);
+    return EXIT_FAILURE;
 }
 
 int
@@ -694,8 +727,20 @@ main(int argc, char *argv[])
         goto fail_resolve;
     }
 
+    fd = open(".", O_TMPFILE | O_RDWR, S_IRUSR | S_IWUSR);
+    if (fd == -1) {
+        SOL_ERR("Couldn't open file to write.");
+        goto fail_open;
+    }
+
     result = generate(&graph, descs);
 
+    if (result == EXIT_SUCCESS)
+        result = write_to_output_file();
+
+    close(fd);
+
+fail_open:
 fail_resolve:
     free(descs);
     sol_arena_del(str_arena);
