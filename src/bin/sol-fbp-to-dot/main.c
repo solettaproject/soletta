@@ -156,7 +156,7 @@ convert_fbp_to_dot(struct sol_fbp_graph *g, const char *out)
     dot_file = fopen(out, "w+");
     if (!dot_file) {
         fprintf(stderr, "Couldn't open input file %s : %s", out,  sol_util_strerrora(errno));
-        return 1;
+        return EXIT_FAILURE;
     }
 
     fprintf(dot_file,
@@ -242,7 +242,7 @@ convert_fbp_to_dot(struct sol_fbp_graph *g, const char *out)
 
     fprintf(dot_file, "}\n");
     fclose(dot_file);
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 static void
@@ -303,10 +303,13 @@ main(int argc, char *argv[])
     char *fbpfile = NULL;
     char *dotfile = NULL;
     struct sol_file_reader *fr;
+    int r = EXIT_FAILURE;
 
     struct sol_fbp_graph input_graph;
 
-    sol_init();
+    if (sol_init() < 0)
+        goto end;
+
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     if (argc == 1) {
@@ -335,9 +338,10 @@ main(int argc, char *argv[])
         goto quit;
     }
 
-    if (convert_fbp_to_dot(&input_graph, dotfile)) {
+    r = convert_fbp_to_dot(&input_graph, dotfile);
+    if (r == EXIT_FAILURE)
         fprintf(stderr, "Couldn't convert from fbp to dot. \n Verify that you'r FBP file conforms to the standard.");
-    }
+
     sol_file_reader_close(fr);
     sol_fbp_graph_fini(&input_graph);
 
@@ -350,5 +354,6 @@ quit:
     free(fbpfile);
     free(dotfile);
     sol_shutdown();
-    return 0;
+end:
+    return r;
 }
