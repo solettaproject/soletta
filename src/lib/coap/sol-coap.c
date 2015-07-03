@@ -1390,7 +1390,7 @@ sol_coap_server_new(int port)
     }
     server->refcnt = 1;
 
-    sol_vector_init(&server->contexts, sizeof(struct sol_coap_resource));
+    sol_vector_init(&server->contexts, sizeof(struct resource_context));
 
     sol_ptr_vector_init(&server->pending);
     sol_ptr_vector_init(&server->outgoing);
