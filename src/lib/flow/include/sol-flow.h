@@ -509,6 +509,17 @@ struct sol_flow_node_type *sol_flow_static_new_type(
     const struct sol_flow_node_options *opts,
     struct sol_flow_node_options *child_opts));
 
+struct sol_flow_node_type *sol_flow_static_new_container_node_type(
+    const struct sol_flow_node_type **base,
+    const struct sol_flow_static_node_spec nodes[],
+    const struct sol_flow_static_conn_spec conns[],
+    const struct sol_flow_static_port_spec exported_in[],
+    const struct sol_flow_static_port_spec exported_out[],
+    int (*child_opts_set)(const struct sol_flow_node_type *type,
+        uint16_t child_index,
+        const struct sol_flow_node_options *opts,
+        struct sol_flow_node_options *child_opts));
+
 void sol_flow_static_del_type(struct sol_flow_node_type *type);
 
 #ifdef __cplusplus

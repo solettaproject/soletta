@@ -100,14 +100,7 @@ grove_rotary_sensor_new_type(const struct sol_flow_node_type **current)
     nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER;
     nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
 
-    type = sol_flow_static_new_type(nodes, conns, NULL, exported_out, &rotary_child_opts_set);
-    SOL_NULL_CHECK(type);
-#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    type->description = (*current)->description;
-#endif
-    type->new_options = (*current)->new_options;
-    type->free_options = (*current)->free_options;
-    *current = type;
+    *current =  sol_flow_static_new_container_node_type(current, nodes, conns, NULL, exported_out, rotary_child_opts_set);
 }
 
 static void
@@ -210,14 +203,8 @@ grove_light_sensor_new_type(const struct sol_flow_node_type **current)
     nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER;
     nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
 
-    type = sol_flow_static_new_type(nodes, conns, NULL, exported_out, &light_child_opts_set);
-    SOL_NULL_CHECK(type);
-#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    type->description = (*current)->description;
-#endif
-    type->new_options = (*current)->new_options;
-    type->free_options = (*current)->free_options;
-    *current = type;
+    *current = sol_flow_static_new_container_node_type(current, nodes, conns, NULL, exported_out, light_child_opts_set);
+
 }
 
 static void
@@ -382,14 +369,7 @@ grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
     nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER;
     nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
 
-    type = sol_flow_static_new_type(nodes, conns, NULL, exported_out, &temperature_child_opts_set);
-    SOL_NULL_CHECK(type);
-#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    type->description = (*current)->description;
-#endif
-    type->new_options = (*current)->new_options;
-    type->free_options = (*current)->free_options;
-    *current = type;
+    *current = sol_flow_static_new_container_node_type(current, nodes, conns, NULL, exported_out, temperature_child_opts_set);
 }
 
 static void
