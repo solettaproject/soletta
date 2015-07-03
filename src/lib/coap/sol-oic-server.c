@@ -49,6 +49,26 @@
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
+struct sol_oic_server_information {
+    /* All fields are required by the spec. */
+    struct {
+        const char *name;
+        const char *resource_type;
+        const char *id;
+    } device;
+    struct {
+        const char *name;
+        const char *model;
+        const char *date;
+    } manufacturer;
+    struct {
+        const char *version;
+    } interface, platform, firmware;
+    const char *support_link;
+    const char *location;
+    const char *epi;
+};
+
 struct sol_oic_server {
     struct sol_coap_server *server;
     struct sol_vector device_definitions;
