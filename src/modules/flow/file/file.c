@@ -277,10 +277,9 @@ file_writer_worker_thread_setup(void *data)
         mdata->permissions);
     SOL_DBG("open \"%s\" fd=%d, permissions=%#o", mdata->path, mdata->fd, mdata->permissions);
     if (mdata->fd < 0) {
-        char errmsg[1024];
         char *msg;
         mdata->error = errno;
-        msg = sol_util_strerror(errno, errmsg, sizeof(errmsg));
+        msg = sol_util_strerrora(errno);
         sol_flow_send_error_packet(mdata->node, mdata->error, msg);
         SOL_WRN("could not open '%s': %s", mdata->path, msg);
         return false;
@@ -294,16 +293,13 @@ static void
 file_writer_worker_thread_cleanup(void *data)
 {
     struct file_writer_data *mdata = data;
-    char errmsg[1024];
-    char *msg;
 
     if (mdata->error == 0 && mdata->done < mdata->pending_blob->size)
         mdata->error = ECANCELED;
 
-    msg = sol_util_strerror(mdata->error, errmsg, sizeof(errmsg));
     SOL_DBG("close \"%s\" fd=%d wrote=%zu of %zu, error=%d %s",
         mdata->path, mdata->fd, mdata->done, mdata->pending_blob->size,
-        mdata->error, msg);
+        mdata->error, sol_util_strerrora(mdata->error));
 
     close(mdata->fd);
     mdata->fd = -1;
@@ -335,10 +331,9 @@ file_writer_worker_thread_iterate(void *data)
         sol_worker_thread_feedback(mdata->worker);
     } else if (w < 0) {
         if (errno != EAGAIN && errno != EINTR) {
-            char errmsg[1024];
             char *msg;
             mdata->error = errno;
-            msg = sol_util_strerror(errno, errmsg, sizeof(errmsg));
+            msg = sol_util_strerrora(errno);
             SOL_WRN("could not write %zd bytes to fd=%d (%s): %s",
                 todo, mdata->fd, mdata->path, msg);
             sol_flow_send_error_packet(mdata->node, mdata->error, msg);
