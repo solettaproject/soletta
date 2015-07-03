@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Soletta's platform detection file",
+
+  "definitions": {
+    "regex_array": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "file_path": { "type": "string" },
+        "match": { "$ref": "#/definitions/regex_array" },
+        "dont_match": { "$ref": "#/definitions/regex_array" }
+      },
+      "required": [ "file_path" ]
+    },
+
+    "validation_array": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/rule" }
+    },
+
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-_]*$"
+        },
+        "validation": { "$ref": "#definitions/validation_array" }
+      },
+      "required": [ "name", "validation" ]
+    }
+  },
+
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "platforms": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/platform" }
+    }
+  },
+  "required": [ "platforms" ]
+}
