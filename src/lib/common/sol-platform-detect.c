@@ -46,6 +46,8 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "platform-detect");
 #include "sol-util.h"
 #include "sol-vector.h"
 
+#define PLATFORM_JSON "sol_platform_detect.json"
+
 static bool
 _check_rule(const char *path, const struct sol_vector *match, const struct sol_vector *dont_match)
 {
@@ -215,7 +217,7 @@ sol_platform_detect(void)
     struct sol_json_token token, key, value, platform_name = { NULL };
     enum sol_json_loop_reason reason;
 
-    json_doc = _json_open_doc(DATADIR "/platform_detect.json", &scanner);
+    json_doc = _json_open_doc(DATADIR PLATFORM_JSON, &scanner);
     if (!json_doc)
         return NULL;
 
