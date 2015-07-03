@@ -306,7 +306,9 @@ main(int argc, char *argv[])
 
     struct sol_fbp_graph input_graph;
 
-    sol_init();
+    if (sol_init() < 0)
+        goto end;
+
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     if (argc == 1) {
@@ -350,5 +352,6 @@ quit:
     free(fbpfile);
     free(dotfile);
     sol_shutdown();
+end:
     return 0;
 }
