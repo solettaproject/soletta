@@ -34,9 +34,9 @@
 # (WON).
 
 INPORT=score.RESET:RESET
-INPORT=won.IN1:WIN_SCORE
+INPORT=won.IN[1]:WIN_SCORE
 OUTPORT=won.OUT:WON
 
 goal(gtk/pushbutton) OUT -> PULSE_IF_TRUE toggle(converter/boolean-to-empty) OUT -> INC score(int/accumulator) OUT -> IN output(gtk/label)
 
-score OUT -> IN0 won(int/greater-or-equal)
+score OUT -> IN[0] won(int/greater-or-equal)
