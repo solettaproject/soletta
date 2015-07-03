@@ -11,10 +11,12 @@ config PLATFORM_NAME
             behavior. Namely Pin Multiplexer will load modules based
             on the platform name.
 
-            Usually the platform name is detected using rules defined
-            at $PREFIX/share/soletta/platform_detect.json, but some
-            platforms such as RIOT may not provide it, then this
-            string is used as a fallback.
+            Usually the platform name is detected using either
+            SOL_PLATFORM_NAME environment variable or the rules defined in
+            'platform_detect.json'. Soletta searches for 'platform_detect.json'
+            first at PKGSYSCONFDIR ('/etc/soletta' in most cases) and then at
+            '$PREFIX/share/soletta/', but some platforms such as RIOT may not
+            provide it, then this string is used as a fallback.
 
 config SOL_PLATFORM_LINUX
 	bool
