@@ -882,9 +882,13 @@ oc_core_get(const struct sol_coap_resource *resource, struct sol_coap_packet *re
     sol_coap_header_set_type(resp, SOL_COAP_TYPE_ACK);
     sol_coap_add_option(resp, SOL_COAP_OPTION_CONTENT_FORMAT, &format_json, sizeof(format_json));
 
-    sol_coap_packet_get_payload(resp, &payload, &size);
-    p = (char *)payload;
+    if (sol_coap_packet_get_payload(resp, &payload, &size) < 0) {
+        SOL_WRN("Couldn't get packet payload");
+        sol_coap_packet_unref(resp);
+        return -ENOMEM;
+    }
 
+    p = (char *)payload;
     errno = 0;
 
     len = snprintf_safe(p, size, OC_CORE_JSON_START);
