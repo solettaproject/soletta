@@ -88,17 +88,17 @@ fib(console:prefix="fibonacci=")
 
 ### implement the fibonacci recursive algorithm
 # base: 0 + 1 -> sum1
-zero OUT -> IN0 sum1
-one OUT -> IN1 sum1
+zero OUT -> OPERAND[0] sum1
+one OUT -> OPERAND[1] sum1
 
 # base: sum1 + zero -> sum2
-sum1 OUT -> IN0 sum2
-zero OUT -> IN1 sum2
+sum1 OUT -> OPERAND[0] sum2
+zero OUT -> OPERAND[1] sum2
 
 # recursion: sum2 + zero -> sum1
-sum2 OUT -> IN1 sum1
+sum2 OUT -> OPERAND[0] sum1
 # recursion: sum2 + sum1 -> sum2
-sum2 OUT -> IN1 sum2
+sum2 OUT -> OPERAND[1] sum2
 
 ### output the results
 # first output the '1' only once (since it's a constant)

@@ -46,7 +46,7 @@ PrefLess(int/less)
 
 PrefBt OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> INC PrefTicket
 PrefTicket OUT -> IN PrefPrinter
-PrefTicket OUT -> IN1 PrefLess
+PrefTicket OUT -> IN[1] PrefLess
 
 # regular tickets emissor
 NormBt(keyboard/boolean:binary_code=110)
@@ -56,7 +56,7 @@ NormLess(int/less)
 
 NormBt OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> INC NormTicket
 NormTicket OUT -> IN NormPrinter
-NormTicket OUT -> IN1 NormLess
+NormTicket OUT -> IN[1] NormLess
 
 # cashier calls all preferencial tickets before regular tickets.
 CashierBt(keyboard/boolean:binary_code=99)
@@ -72,7 +72,7 @@ CashierBt OUT -> IN[0] CallPref
 PrefLess OUT -> IN[1] CallPref
 
 CallPref OUT -> IN _(boolean/filter) TRUE -> INC CallPrefTicket
-CallPrefTicket OUT -> IN0 PrefLess
+CallPrefTicket OUT -> IN[0] PrefLess
 CallPrefTicket OUT -> IN CallPrefPrinter
 
 CashierBt OUT -> IN[0] CouldCallNorm
@@ -82,5 +82,5 @@ CouldCallNorm OUT -> IN[0] CallNorm
 NormLess OUT -> IN[1] CallNorm
 
 CallNorm OUT -> IN _(boolean/filter) TRUE -> INC CallNormTicket
-CallNormTicket OUT -> IN0 NormLess
+CallNormTicket OUT -> IN[0] NormLess
 CallNormTicket OUT -> IN CallNormPrinter

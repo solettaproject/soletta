@@ -40,6 +40,6 @@
 
 threshold(constant/int:value=200)
 
-sensor(SoundSensor) OUT -> IN0 compare(int/greater-or-equal)
-threshold OUT -> IN1 compare
+sensor(SoundSensor) OUT -> IN[0] compare(int/greater-or-equal)
+threshold OUT -> IN[1] compare
 compare OUT -> IN led(LED)
