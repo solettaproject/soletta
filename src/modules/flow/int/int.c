@@ -660,7 +660,7 @@ irange_buffer_open(struct sol_flow_node *node, void *data,
     mdata->n_samples = opts->samples.val;
     mdata->timeout = opts->timeout.val;
     mdata->normalize_cb = sol_str_table_ptr_lookup_fallback
-                              (table, sol_str_slice_from_str(opts->operation), _normalize_mean);
+            (table, sol_str_slice_from_str(opts->operation), _normalize_mean);
 
     mdata->input_queue = calloc(mdata->n_samples, sizeof(*mdata->input_queue));
     SOL_NULL_CHECK(mdata->input_queue, -ENOMEM);
@@ -1037,7 +1037,7 @@ _map(int64_t in_value, int64_t in_min, int64_t in_max, int64_t out_min, int64_t 
     }
 
     result = (in_value - in_min) * (out_max - out_min) /
-             (in_max - in_min) + out_min;
+        (in_max - in_min) + out_min;
     result -= (result - out_min) % out_step;
     *out_value = result;
 

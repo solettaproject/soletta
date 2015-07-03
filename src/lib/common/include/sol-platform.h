@@ -62,10 +62,10 @@ enum sol_platform_state {
 int sol_platform_get_state(void);
 
 int sol_platform_add_state_monitor(void (*cb)(void *data,
-        enum sol_platform_state state),
+    enum sol_platform_state state),
     const void *data);
 int sol_platform_del_state_monitor(void (*cb)(void *data,
-        enum sol_platform_state state),
+    enum sol_platform_state state),
     const void *data);
 
 
@@ -82,11 +82,11 @@ enum sol_platform_service_state {
 enum sol_platform_service_state sol_platform_get_service_state(const char *service);
 
 int sol_platform_add_service_monitor(void (*cb)(void *data, const char *service,
-        enum sol_platform_service_state state),
+    enum sol_platform_service_state state),
     const char *service,
     const void *data);
 int sol_platform_del_service_monitor(void (*cb)(void *data, const char *service,
-        enum sol_platform_service_state state),
+    enum sol_platform_service_state state),
     const char *service,
     const void *data);
 

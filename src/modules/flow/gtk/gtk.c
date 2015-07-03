@@ -152,7 +152,7 @@ int
 gtk_open(struct sol_flow_node *node,
     void *data,
     int (*setup_cb)(struct gtk_common_data *mdata,
-        const struct sol_flow_node_options *options),
+    const struct sol_flow_node_options *options),
     const struct sol_flow_node_options *options)
 {
     struct gtk_common_data *mdata = data;

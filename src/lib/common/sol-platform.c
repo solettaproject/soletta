@@ -117,7 +117,7 @@ sol_platform_get_state(void)
 
 SOL_API int
 sol_platform_add_state_monitor(void (*cb)(void *data,
-        enum sol_platform_state state),
+    enum sol_platform_state state),
     const void *data)
 {
     struct sol_monitors_entry *e;
@@ -132,7 +132,7 @@ sol_platform_add_state_monitor(void (*cb)(void *data,
 
 SOL_API int
 sol_platform_del_state_monitor(void (*cb)(void *data,
-        enum sol_platform_state state),
+    enum sol_platform_state state),
     const void *data)
 {
     int i;
@@ -193,7 +193,7 @@ service_monitor_free(const struct sol_monitors *monitors, const struct sol_monit
 
 SOL_API int
 sol_platform_add_service_monitor(void (*cb)(void *data, const char *service,
-        enum sol_platform_service_state state),
+    enum sol_platform_service_state state),
     const char *service,
     const void *data)
 {
@@ -235,7 +235,7 @@ fail_append:
 
 SOL_API int
 sol_platform_del_service_monitor(void (*cb)(void *data, const char *service,
-        enum sol_platform_service_state state),
+    enum sol_platform_service_state state),
     const char *service,
     const void *data)
 {

@@ -447,8 +447,8 @@ sol_flow_foreach_builtin_node_type(bool (*cb)(void *data, const struct sol_flow_
 
     SOL_NULL_CHECK(cb);
     for (i = 0, itr = SOL_FLOW_BUILTIN_NODE_TYPE_ALL;
-         i <  SOL_FLOW_BUILTIN_NODE_TYPE_COUNT;
-         i++, itr++) {
+        i <  SOL_FLOW_BUILTIN_NODE_TYPE_COUNT;
+        i++, itr++) {
         const struct sol_flow_node_type * (*type_func)(bool (*cb)(void *data, const struct sol_flow_node_type *type), const void *data) = *itr;
         const struct sol_flow_node_type *t = type_func(cb, data);
         if (t && !cb((void *)data, t)) {

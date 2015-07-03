@@ -158,11 +158,11 @@ sol_conffile_load_keyfile_from_dirs(const char *file, char **full_path)
     /* absolute path */
     if (g_path_is_absolute(file)) {
         if (!g_key_file_load_from_file(keyfile,
-                file, G_KEY_FILE_NONE, &error))
+            file, G_KEY_FILE_NONE, &error))
             goto err;
     } else if (!g_key_file_load_from_dirs(keyfile, file, search_dirs,
-                   full_path, G_KEY_FILE_NONE,
-                   &error))
+        full_path, G_KEY_FILE_NONE,
+        &error))
         goto err;
 
     return keyfile;
@@ -191,7 +191,7 @@ sol_conffile_load_keyfile_from_paths(const char *path,
         splitted_paths = g_strsplit(fallback_paths, ";", -1);
         for (ptr = splitted_paths; *ptr; ptr++) {
             keyfile = sol_conffile_load_keyfile_from_dirs
-                          (*ptr, full_path);
+                    (*ptr, full_path);
             if (keyfile)
                 break;
         }
@@ -235,9 +235,9 @@ sol_conffile_append_to_entry_vector(struct sol_ptr_vector pv)
 
     SOL_PTR_VECTOR_FOREACH_IDX (&pv, pv_entry, i) {
         SOL_PTR_VECTOR_FOREACH_IDX (&sol_conffile_entry_vector,
-                                    sol_conffile_entry_vector_entry, j) {
+            sol_conffile_entry_vector_entry, j) {
             if (streq(pv_entry->id,
-                    sol_conffile_entry_vector_entry->id)) {
+                sol_conffile_entry_vector_entry->id)) {
                 SOL_DBG("Ignoring entry [%s], as it already exists",
                     pv_entry->id);
                 sol_conffile_free_entry_vector(&pv);
@@ -266,7 +266,7 @@ sol_conffile_fill_vector(const char *path, const char *fallback_paths)
     struct sol_ptr_vector pv;
 
     keyfile = sol_conffile_load_keyfile_from_paths
-                  (path, fallback_paths, &full_path);
+            (path, fallback_paths, &full_path);
     if (!keyfile)
         return;
 

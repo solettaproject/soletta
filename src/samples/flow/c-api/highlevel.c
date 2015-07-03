@@ -65,12 +65,12 @@ startup(void)
     struct sol_flow_node_type *flow_node_type;
     struct _custom_node_types_reader_options reader_opts =
         _CUSTOM_NODE_TYPES_READER_OPTIONS_DEFAULTS(
-            .intopt.val = 1
-            );
+        .intopt.val = 1
+        );
     struct _custom_node_types_writer_options writer_opts =
         _CUSTOM_NODE_TYPES_WRITER_OPTIONS_DEFAULTS(
-            .prefix = "writer prefix from options"
-            );
+        .prefix = "writer prefix from options"
+        );
 
     builder = sol_flow_builder_new();
 

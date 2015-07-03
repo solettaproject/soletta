@@ -135,9 +135,9 @@ char *sol_util_strerror(int errnum, char *buf, size_t buflen);
 
 #define sol_util_strerrora(errnum) \
     ({ \
-         char buf ## __COUNT__[512]; \
-         sol_util_strerror((errnum), buf ## __COUNT__, sizeof(buf ## __COUNT__)); \
-     })
+        char buf ## __COUNT__[512]; \
+        sol_util_strerror((errnum), buf ## __COUNT__, sizeof(buf ## __COUNT__)); \
+    })
 
 static inline unsigned int
 align_power2(unsigned int u)

@@ -166,20 +166,20 @@ test_node_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
 static const struct sol_flow_node_type_description test_node_description = {
     .ports_in = (const struct sol_flow_port_description *const []){
         &((const struct sol_flow_port_description){
-              .name = "IN1",
-          }),
+            .name = "IN1",
+        }),
         &((const struct sol_flow_port_description){
-              .name = "IN2",
-          }),
+            .name = "IN2",
+        }),
         NULL
     },
     .ports_out = (const struct sol_flow_port_description *const []){
         &((const struct sol_flow_port_description){
-              .name = "OUT1",
-          }),
+            .name = "OUT1",
+        }),
         &((const struct sol_flow_port_description){
-              .name = "OUT2",
-          }),
+            .name = "OUT2",
+        }),
         NULL
     },
 };
@@ -197,11 +197,11 @@ static const struct sol_flow_node_type test_node_type = {
 static const struct sol_flow_node_type_description test_wrong_out_node_description = {
     .ports_out = (const struct sol_flow_port_description *const []){
         &((const struct sol_flow_port_description){
-              .name = "OUT",
-          }),
+            .name = "OUT",
+        }),
         &((const struct sol_flow_port_description){
-              .name = "OUT",
-          }),
+            .name = "OUT",
+        }),
         NULL
     },
 };
@@ -214,10 +214,10 @@ static const struct sol_flow_node_type test_wrong_out_node_type = {
 static const struct sol_flow_node_type_description test_wrong_out2_node_description = {
     .ports_out = (const struct sol_flow_port_description *const []){
         &((const struct sol_flow_port_description){
-          }),
+        }),
         &((const struct sol_flow_port_description){
-              .name = "OUT",
-          }),
+            .name = "OUT",
+        }),
         NULL
     },
 };
@@ -230,11 +230,11 @@ static const struct sol_flow_node_type test_wrong_out2_node_type = {
 static const struct sol_flow_node_type_description test_wrong_in_node_description = {
     .ports_in = (const struct sol_flow_port_description *const []){
         &((const struct sol_flow_port_description){
-              .name = "IN",
-          }),
+            .name = "IN",
+        }),
         &((const struct sol_flow_port_description){
-              .name = "IN",
-          }),
+            .name = "IN",
+        }),
         NULL
     },
 };
@@ -247,10 +247,10 @@ static const struct sol_flow_node_type test_wrong_in_node_type = {
 static const struct sol_flow_node_type_description test_wrong_in2_node_description = {
     .ports_in = (const struct sol_flow_port_description *const []){
         &((const struct sol_flow_port_description){
-              .name = "IN",
-          }),
+            .name = "IN",
+        }),
         &((const struct sol_flow_port_description){
-          }),
+        }),
         NULL
     },
 };

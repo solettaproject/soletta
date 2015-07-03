@@ -78,7 +78,7 @@ parse_args(int argc, char *argv[])
     int opt;
     const char known_opts[] = "chs"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
-                              "D"
+        "D"
 #endif
     ;
 

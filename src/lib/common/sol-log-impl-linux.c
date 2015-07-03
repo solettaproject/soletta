@@ -149,14 +149,14 @@ _bool_parse(const char *str, size_t size, bool *storage)
         else
             return false;
     } else if ((size == sizeof("true") - 1 &&
-                strncasecmp(str, "true", size) == 0) ||
-               (size == sizeof("yes") - 1 &&
-                strncasecmp(str, "yes", size) == 0)) {
+        strncasecmp(str, "true", size) == 0) ||
+        (size == sizeof("yes") - 1 &&
+        strncasecmp(str, "yes", size) == 0)) {
         *storage = true;
     } else if ((size == sizeof("false") - 1 &&
-                strncasecmp(str, "false", size) == 0) ||
-               (size == sizeof("no") - 1 &&
-                strncasecmp(str, "no", size) == 0)) {
+        strncasecmp(str, "false", size) == 0) ||
+        (size == sizeof("no") - 1 &&
+        strncasecmp(str, "no", size) == 0)) {
         *storage = false;
     } else
         return false;
@@ -383,13 +383,13 @@ sol_log_impl_init(void)
         const char *term = getenv("TERM");
         if (term) {
             _show_colors = (streq(term, "xterm") ||
-                            streq(term, "xterm-color") ||
-                            streq(term, "xterm-256color") ||
-                            streq(term, "rxvt") ||
-                            streq(term, "rxvt-unicode") ||
-                            streq(term, "rxvt-unicode-256color") ||
-                            streq(term, "gnome") ||
-                            streq(term, "screen"));
+                streq(term, "xterm-color") ||
+                streq(term, "xterm-256color") ||
+                streq(term, "rxvt") ||
+                streq(term, "rxvt-unicode") ||
+                streq(term, "rxvt-unicode-256color") ||
+                streq(term, "gnome") ||
+                streq(term, "screen"));
         }
     }
 #endif

@@ -314,6 +314,7 @@ static int
 get_progname(char *out, size_t size)
 {
     char cwd[PATH_MAX] = { 0 };
+
 #ifdef HAVE_SYS_AUXV_H
     char *execfn = NULL;
 #else

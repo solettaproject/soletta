@@ -81,7 +81,7 @@ slider_setup(struct gtk_common_data *data,
     }
 
     mdata->widget = gtk_scale_new_with_range
-                        (GTK_ORIENTATION_HORIZONTAL, min, max, step);
+            (GTK_ORIENTATION_HORIZONTAL, min, max, step);
     g_signal_connect(mdata->widget, "value-changed",
         G_CALLBACK(on_slider_changed), mdata);
     g_object_set(mdata->widget, "hexpand", true, NULL);

@@ -77,8 +77,8 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
     } while (0)                                 \
 
 #define ASSIGN_LINEAR_VALUES(_parse_func, \
-                             _max_val, _max_str, _max_str_len,          \
-                             _min_val, _min_str, _min_str_len)          \
+        _max_val, _max_str, _max_str_len,          \
+        _min_val, _min_str, _min_str_len)          \
     do {                                                                \
         char *start, *end, backup;                                      \
         int field_cnt_max = ARRAY_SIZE(store_vals); \
@@ -93,11 +93,11 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             errno = 0;                                                  \
             if (strlen(start) >= _max_str_len                           \
                 && (strncmp(start, _max_str,                            \
-                        _max_str_len) == 0)) {                      \
+                _max_str_len) == 0)) {                      \
                 is_max = true;                                          \
             } else if (strlen(start) >= _min_str_len                    \
-                       && (strncmp(start, _min_str,                     \
-                               _min_str_len) == 0)) {               \
+                && (strncmp(start, _min_str,                     \
+                _min_str_len) == 0)) {               \
                 is_min = true;                                          \
             }                                                           \
             if (is_max) *store_vals[field_cnt] = _max_val;              \
@@ -123,8 +123,8 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
     } while (0)
 
 #define ASSIGN_KEY_VAL(_type, _key, _parse_func, _only_not_negative, \
-                       _max_val, _max_str, _max_str_len,        \
-                       _min_val, _min_str, _min_str_len)        \
+        _max_val, _max_str, _max_str_len,        \
+        _min_val, _min_str, _min_str_len)        \
     do {                                                        \
         bool is_max = false, is_min = false;                    \
         _key = strstr(buf, #_key);                              \
@@ -140,11 +140,11 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             break;                                              \
         if (strlen(_key) >= _max_str_len                        \
             && (strncmp(_key, _max_str,                         \
-                    _max_str_len) == 0)) {                  \
+            _max_str_len) == 0)) {                  \
             is_max = true;                                      \
         } else if (strlen(_key) >= _min_str_len                 \
-                   && (strncmp(_key, _min_str,                  \
-                           _min_str_len) == 0)) {           \
+            && (strncmp(_key, _min_str,                  \
+            _min_str_len) == 0)) {           \
             is_min = true;                                      \
         }                                                       \
         if (is_max)                                             \
@@ -159,8 +159,8 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             char *endptr; \
             _type parsed_val; \
             while (_key ## _end                                 \
-                   && *_key ## _end != '\0'                     \
-                   && *_key ## _end != SUBOPTION_SEPARATOR)     \
+                && *_key ## _end != '\0'                     \
+                && *_key ## _end != SUBOPTION_SEPARATOR)     \
                 _key ## _end++;                                 \
             if (_key ## _end) {                                 \
                 _key ## _backup = *_key ## _end;                \
@@ -193,7 +193,7 @@ irange_parse(const struct sol_flow_node_options_member_description *member,
     bool keys_schema = false;
     char *min, *max, *step, *val;
     bool min_done = false, max_done = false,
-         step_done = false, val_done = false;
+        step_done = false, val_done = false;
     static const char INT_MAX_STR[] = "INT32_MAX";
     static const char INT_MIN_STR[] = "INT32_MIN";
     static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
@@ -250,7 +250,7 @@ drange_parse(const struct sol_flow_node_options_member_description *member,
     bool keys_schema = false;
     char *min, *max, *step, *val;
     bool min_done = false, max_done = false,
-         step_done = false, val_done = false;
+        step_done = false, val_done = false;
     static const char DBL_MAX_STR[] = "DBL_MAX";
     static const char DBL_MIN_STR[] = "-DBL_MAX";
     static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
@@ -308,7 +308,7 @@ rgb_parse(const struct sol_flow_node_options_member_description *member,
     bool keys_schema = false;
     char *red, *green, *blue, *red_max, *green_max, *blue_max;
     bool red_done = false, green_done = false, blue_done = false,
-         red_max_done = false, green_max_done = false, blue_max_done = false;
+        red_max_done = false, green_max_done = false, blue_max_done = false;
     static const char INT_MAX_STR[] = "INT32_MAX";
     static const char INT_MIN_STR[] = "INT32_MIN";
     static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
@@ -402,7 +402,7 @@ direction_vector_parse(const struct sol_flow_node_options_member_description *me
     bool keys_schema = false;
     char *min, *max, *x, *y, *z;
     bool min_done = false, max_done = false,
-         x_done = false, y_done = false, z_done = false;
+        x_done = false, y_done = false, z_done = false;
     static const char DBL_MAX_STR[] = "DBL_MAX";
     static const char DBL_MIN_STR[] = "-DBL_MAX";
     static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;

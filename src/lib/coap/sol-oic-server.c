@@ -681,7 +681,7 @@ out:
 static int
 _sol_oic_resource_type_handle(
     sol_coap_responsecode_t (*handle_fn)(const struct sol_network_link_addr *cliaddr, const void *data,
-        uint8_t *payload, uint16_t *payload_len),
+    uint8_t *payload, uint16_t *payload_len),
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     struct resource_type_data *res, bool expect_payload)
 {

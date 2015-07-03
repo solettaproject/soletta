@@ -1140,14 +1140,14 @@ node_options_from_strv(void)
 
     /* One option */
     timer_opts = (struct sol_flow_node_type_timer_options *)
-                 sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_strv);
+        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_strv);
     ASSERT(timer_opts);
     ASSERT_INT_EQ(timer_opts->interval.val, 1000);
     sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_TIMER, (struct sol_flow_node_options *)timer_opts);
 
     /* Multiple options */
     pwm_opts = (struct sol_flow_node_type_pwm_options *)
-               sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_PWM, pwm_strv);
+        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_PWM, pwm_strv);
     ASSERT(pwm_opts);
     ASSERT_INT_EQ(pwm_opts->chip.val, 2);
     ASSERT_INT_EQ(pwm_opts->pin.val, 7);
@@ -1158,7 +1158,7 @@ node_options_from_strv(void)
 
     /* String options */
     console_opts = (struct sol_flow_node_type_console_options *)
-                   sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_CONSOLE, console_strv);
+        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_CONSOLE, console_strv);
     ASSERT(console_opts);
     ASSERT(streq(console_opts->prefix, "console prefix:"));
     ASSERT(streq(console_opts->suffix, ". suffix!"));
@@ -1167,7 +1167,7 @@ node_options_from_strv(void)
 
     /* Irange options */
     timer_opts = (struct sol_flow_node_type_timer_options *)
-                 sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_irange_strv);
+        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_irange_strv);
     ASSERT(timer_opts);
     ASSERT_INT_EQ(timer_opts->interval.val, 50);
     ASSERT_INT_EQ(timer_opts->interval.step, 2);
@@ -1177,7 +1177,7 @@ node_options_from_strv(void)
 
     /* Irange different format options */
     timer_opts = (struct sol_flow_node_type_timer_options *)
-                 sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_irange_different_format_strv);
+        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_irange_different_format_strv);
     ASSERT(timer_opts);
     ASSERT_INT_EQ(timer_opts->interval.val, 100);
     ASSERT_INT_EQ(timer_opts->interval.step, 5);
@@ -1217,7 +1217,7 @@ merge_options(void)
     };
 
     opts = (struct sol_flow_node_type_console_options *)
-           sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_CONSOLE, original_strv);
+        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_CONSOLE, original_strv);
     ASSERT(opts);
 
     ASSERT(streq(opts->prefix, "original_prefix"));
@@ -1250,7 +1250,7 @@ copy_options(void)
     opts.flush = false;
 
     copied_opts = (struct sol_flow_node_type_console_options *)
-                  sol_flow_node_options_copy(SOL_FLOW_NODE_TYPE_CONSOLE, &opts.base);
+        sol_flow_node_options_copy(SOL_FLOW_NODE_TYPE_CONSOLE, &opts.base);
     ASSERT(copied_opts);
 
     /* Will touch some of the values after the copy. */

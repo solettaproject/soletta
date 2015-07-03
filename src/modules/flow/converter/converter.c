@@ -969,7 +969,7 @@ empty_to_string_open(struct sol_flow_node *node, void *data, const struct sol_fl
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_STRING_OPTIONS_API_VERSION,
         -EINVAL);
     opts = (const struct sol_flow_node_type_converter_empty_to_string_options *)
-           options;
+        options;
 
     mdata->string = strdup(opts->output_value);
     if (!mdata->string)
@@ -1072,6 +1072,7 @@ byte_to_bits_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
     unsigned char in_val, last_bit, next_bit;
 
     int r = sol_flow_packet_get_byte(packet, &in_val);
+
     SOL_INT_CHECK(r, < 0, r);
 
     for (i = 0; i <= 7; i++) {
@@ -1283,13 +1284,13 @@ rgb_convert(struct sol_flow_node *node, void *data, uint16_t port, uint32_t val)
     mdata->output_initialized[port] = true;
     if (port == 0)
         mdata->output_value.red = val > mdata->output_value.red_max ?
-                                  mdata->output_value.red_max : val;
+            mdata->output_value.red_max : val;
     else if (port == 1)
         mdata->output_value.green = val > mdata->output_value.green_max ?
-                                    mdata->output_value.green_max : val;
+            mdata->output_value.green_max : val;
     else
         mdata->output_value.blue = val > mdata->output_value.blue_max ?
-                                   mdata->output_value.blue_max : val;
+            mdata->output_value.blue_max : val;
 
     for (i = 0; i < 3; i++) {
         if (!mdata->output_initialized[i])
@@ -1410,20 +1411,20 @@ direction_vector_to_rgb_convert(struct sol_flow_node *node, void *data, uint16_t
     }
 
     val_red = in_val.x *
-              rgb_get_port_max(data, port) / (in_val.max - in_val.min);
+        rgb_get_port_max(data, port) / (in_val.max - in_val.min);
 
     val_green = in_val.y *
-                rgb_get_port_max(data, port) / (in_val.max - in_val.min);
+        rgb_get_port_max(data, port) / (in_val.max - in_val.min);
 
     val_blue = in_val.z *
-               rgb_get_port_max(data, port) / (in_val.max - in_val.min);
+        rgb_get_port_max(data, port) / (in_val.max - in_val.min);
 
     mdata->output_value.red = val_red > mdata->output_value.red_max ?
-                              mdata->output_value.red_max : val_red;
+        mdata->output_value.red_max : val_red;
     mdata->output_value.green = val_green > mdata->output_value.green_max ?
-                                mdata->output_value.green_max : val_green;
+        mdata->output_value.green_max : val_green;
     mdata->output_value.blue = val_blue > mdata->output_value.blue_max ?
-                               mdata->output_value.blue_max : val_blue;
+        mdata->output_value.blue_max : val_blue;
 
     return sol_flow_send_rgb_packet(node, 0, &mdata->output_value);
 }
@@ -1634,8 +1635,8 @@ irange_to_direction_vector_convert(struct sol_flow_node *node, void *data, uint1
     SOL_INT_CHECK(r, < 0, r);
 
     val = in_val.val *
-          (mdata->output_value.max - mdata->output_value.min) /
-          (in_val.max - in_val.min);
+        (mdata->output_value.max - mdata->output_value.min) /
+        (in_val.max - in_val.min);
 
     return direction_vector_convert(node, data, port, val);
 }
@@ -1652,8 +1653,8 @@ drange_to_direction_vector_convert(struct sol_flow_node *node, void *data, uint1
     SOL_INT_CHECK(r, < 0, r);
 
     val = in_val.val *
-          (mdata->output_value.max - mdata->output_value.min) /
-          (in_val.max - in_val.min);
+        (mdata->output_value.max - mdata->output_value.min) /
+        (in_val.max - in_val.min);
 
     return direction_vector_convert(node, data, port, val);
 }
@@ -1852,6 +1853,7 @@ bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
     bool in_val;
 
     int r = sol_flow_packet_get_boolean(packet, &in_val);
+
     SOL_INT_CHECK(r, < 0, r);
 
     if ((mdata->output_initialized >> idx) & 1) {

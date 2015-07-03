@@ -64,7 +64,7 @@ enum sol_pin_mode {
 
 /* Combinations of the above for convenience */
 #define SOL_PIN_MODE_GPIO_INPUT (SOL_PIN_MODE_GPIO_INPUT_PULLUP | \
-                                 SOL_PIN_MODE_GPIO_INPUT_PULLDOWN | SOL_PIN_MODE_GPIO_INPUT_HIZ)
+    SOL_PIN_MODE_GPIO_INPUT_PULLDOWN | SOL_PIN_MODE_GPIO_INPUT_HIZ)
 #define SOL_PIN_MODE_GPIO (SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_GPIO_OUTPUT)
 
 struct sol_pin_mux_description {

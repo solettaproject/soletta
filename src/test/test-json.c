@@ -157,7 +157,7 @@ test_json(void)
         output = scan_tests[i].output;
 
         for (j = 0; j < scan_tests[i].expected_elements; j++) {
-            if(!sol_json_scanner_next(&scanner, &input)) {
+            if (!sol_json_scanner_next(&scanner, &input)) {
                 SOL_WRN("Error: Unexpected end of file.");
                 ASSERT(false);
             }

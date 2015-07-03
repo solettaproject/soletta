@@ -457,7 +457,7 @@ boolean_buffer_open(struct sol_flow_node *node, void *data,
     mdata->n_samples = opts->samples.val;
     mdata->timeout = opts->timeout.val;
     mdata->normalize_cb = sol_str_table_ptr_lookup_fallback
-                              (table, sol_str_slice_from_str(opts->operation), _normalize_all_true);
+            (table, sol_str_slice_from_str(opts->operation), _normalize_all_true);
 
     mdata->input_queue = calloc(mdata->n_samples, sizeof(*mdata->input_queue));
     SOL_NULL_CHECK(mdata->input_queue, -ENOMEM);

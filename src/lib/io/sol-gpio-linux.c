@@ -293,8 +293,8 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
 
     if (unlikely(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
-                "expected version is '%u'",
-                config->api_version, SOL_GPIO_CONFIG_API_VERSION);
+            "expected version is '%u'",
+            config->api_version, SOL_GPIO_CONFIG_API_VERSION);
         return NULL;
     }
 

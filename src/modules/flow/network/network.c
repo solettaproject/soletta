@@ -170,7 +170,7 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
             if (_match_link(mdata, itr)) {
                 sol_ptr_vector_append(&mdata->links, itr);
                 mdata->connected |= (itr->flags & SOL_NETWORK_LINK_RUNNING) &&
-                                    !(itr->flags & SOL_NETWORK_LINK_LOOPBACK);
+                    !(itr->flags & SOL_NETWORK_LINK_LOOPBACK);
             }
         }
     }

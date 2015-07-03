@@ -301,7 +301,7 @@ sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
 }
 
 static int(*find_resource_cb(const struct sol_coap_packet *req,
-        const struct sol_coap_resource *resource)) (
+    const struct sol_coap_resource *resource)) (
     const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data){
@@ -544,8 +544,8 @@ SOL_API int
 sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
     int (*reply_cb)(struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr,
-        void *data),
+    const struct sol_network_link_addr *cliaddr,
+    void *data),
     void *data)
 {
     struct sol_coap_option_value option = {};

@@ -300,7 +300,7 @@ sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t command, uint8_t *value
         return sol_i2c_plain_read_register(i2c, command, values, count);
 
     if ((error = _i2c_smbus_ioctl(i2c->dev, I2C_SMBUS_READ, command,
-             count, &data)) < 0) {
+            count, &data)) < 0) {
         SOL_WRN("Unable to perform I2C-SMBus read (byte/word/block) data "
             "(bus = %u, device address = 0x%x, register = 0x%x): %s",
             i2c->bus, i2c->addr, command, sol_util_strerrora(-error));
@@ -439,7 +439,7 @@ sol_i2c_write_register(const struct sol_i2c *i2c, uint8_t command, const uint8_t
     }
 
     if ((error = _i2c_smbus_ioctl(i2c->dev, I2C_SMBUS_WRITE, command, count,
-             &data)) < 0) {
+            &data)) < 0) {
         SOL_WRN("Unable to perform I2C-SMBus write (byte/word/block) data "
             " (bus = %u, device address = 0x%x, register = 0x%x:): %s",
             i2c->bus, i2c->addr, command, sol_util_strerrora(-error));

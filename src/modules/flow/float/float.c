@@ -290,7 +290,7 @@ _map(long double in_value, long double in_min, long double in_max, long double o
     long double result;
 
     result = (in_value - in_min) * (out_max - out_min) /
-             (in_max - in_min) + out_min;
+        (in_max - in_min) + out_min;
 
     errno = 0;
     result -= fmodl((result - out_min), out_step);
@@ -835,7 +835,7 @@ wave_generator_trapezoidal_open(struct sol_flow_node *node,
     /* calculating starting val from tick_start */
     t_state->increasing = true;
     mdata->period_in_ticks = mdata->ticks_at_min + mdata->ticks_inc
-                             + mdata->ticks_at_max + mdata->ticks_dec;
+        + mdata->ticks_at_max + mdata->ticks_dec;
 
     tick_start = opts->tick_start.val % mdata->period_in_ticks;
 
@@ -879,7 +879,7 @@ sinusoidal_calc_next(struct drange_wave_generator_sinusoidal_data *mdata)
 
     val->val = sin(s_state->rad_val) * mdata->amplitude;
     val->step = (sin(s_state->rad_val + mdata->rad_step)
-                 * mdata->amplitude) - val->val;
+        * mdata->amplitude) - val->val;
 }
 
 static void

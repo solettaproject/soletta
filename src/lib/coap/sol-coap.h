@@ -179,7 +179,7 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
 int sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
     int (*reply_cb)(struct sol_coap_packet *req,
-        const struct sol_network_link_addr *cliaddr, void *data),
+    const struct sol_network_link_addr *cliaddr, void *data),
     void *data);
 
 int sol_coap_packet_send_notification(struct sol_coap_server *server,

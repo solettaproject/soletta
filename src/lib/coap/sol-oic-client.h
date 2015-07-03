@@ -59,19 +59,19 @@ struct sol_oic_resource {
 bool sol_oic_client_find_resource(struct sol_oic_client *client,
     struct sol_network_link_addr *cliaddr, const char *resource_type,
     void (*resource_found_cb)(struct sol_oic_client *cli,
-        struct sol_oic_resource *res,
-        void *data),
+    struct sol_oic_resource *res,
+    void *data),
     void *data);
 
 bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     sol_coap_method_t method, uint8_t *payload, size_t payload_len,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-        const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
     void *data);
 
 bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-        const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
     void *data, bool observe);
 
 struct sol_oic_resource *sol_oic_resource_ref(struct sol_oic_resource *r);

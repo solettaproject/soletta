@@ -46,14 +46,14 @@ on_value_changed(GtkWidget *widget, gpointer data)
     struct sol_rgb color;
 
     red = gtk_spin_button_get_value_as_int
-              (GTK_SPIN_BUTTON(g_object_get_data
-                      (G_OBJECT(mdata->widget), "spin_r")));
+            (GTK_SPIN_BUTTON(g_object_get_data
+                (G_OBJECT(mdata->widget), "spin_r")));
     green = gtk_spin_button_get_value_as_int
-                (GTK_SPIN_BUTTON(g_object_get_data
-                        (G_OBJECT(mdata->widget), "spin_g")));
+            (GTK_SPIN_BUTTON(g_object_get_data
+                (G_OBJECT(mdata->widget), "spin_g")));
     blue = gtk_spin_button_get_value_as_int
-               (GTK_SPIN_BUTTON(g_object_get_data
-                       (G_OBJECT(mdata->widget), "spin_b")));
+            (GTK_SPIN_BUTTON(g_object_get_data
+                (G_OBJECT(mdata->widget), "spin_b")));
 
     rgba.red = (gdouble)red / COLOR_VALUE_MAX;
     rgba.green = (gdouble)green / COLOR_VALUE_MAX;
@@ -62,7 +62,7 @@ on_value_changed(GtkWidget *widget, gpointer data)
 
     gtk_color_chooser_set_rgba
         (GTK_COLOR_CHOOSER(g_object_get_data(G_OBJECT(mdata->widget),
-                "rgb_button")), &rgba);
+        "rgb_button")), &rgba);
 
     color.red = red;
     color.red_max = COLOR_VALUE_MAX;
@@ -113,7 +113,7 @@ rgb_editor_setup(struct gtk_common_data *mdata,
     g_object_set(grid, "halign", GTK_ALIGN_CENTER, NULL);
 
     red_spin = gtk_spin_button_new_with_range
-                   (COLOR_VALUE_MIN, COLOR_VALUE_MAX, 1);
+            (COLOR_VALUE_MIN, COLOR_VALUE_MAX, 1);
     gtk_grid_attach(GTK_GRID(grid), red_spin, 0, 0, 20, 20);
     g_signal_connect(red_spin, "value-changed",
         G_CALLBACK(on_value_changed), mdata);
@@ -126,7 +126,7 @@ rgb_editor_setup(struct gtk_common_data *mdata,
     gtk_widget_show(red_label);
 
     green_spin = gtk_spin_button_new_with_range
-                     (COLOR_VALUE_MIN, COLOR_VALUE_MAX, 1);
+            (COLOR_VALUE_MIN, COLOR_VALUE_MAX, 1);
     gtk_grid_attach_next_to(GTK_GRID(grid), green_spin, red_spin,
         GTK_POS_RIGHT, 20, 20);
     g_signal_connect(green_spin, "value-changed",
@@ -140,7 +140,7 @@ rgb_editor_setup(struct gtk_common_data *mdata,
     gtk_widget_show(green_label);
 
     blue_spin = gtk_spin_button_new_with_range
-                    (COLOR_VALUE_MIN, COLOR_VALUE_MAX, 1);
+            (COLOR_VALUE_MIN, COLOR_VALUE_MAX, 1);
     gtk_grid_attach_next_to(GTK_GRID(grid), blue_spin, green_spin,
         GTK_POS_RIGHT, 20, 20);
     g_signal_connect(blue_spin, "value-changed",

@@ -108,8 +108,8 @@ find_builtin_service_module(const char *name)
     unsigned int i;
 
     for (i = 0, itr = SOL_PLATFORM_LINUX_MICRO_MODULE_ALL;
-         i < SOL_PLATFORM_LINUX_MICRO_MODULE_COUNT;
-         i++, itr++) {
+        i < SOL_PLATFORM_LINUX_MICRO_MODULE_COUNT;
+        i++, itr++) {
         if (streq(name, (*itr)->name)) {
             if (!builtin_init[i]) {
                 if ((*itr)->init) {
@@ -579,8 +579,8 @@ builtins_cleanup(void)
     unsigned int i;
 
     for (i = 0, itr = SOL_PLATFORM_LINUX_MICRO_MODULE_ALL;
-         i < SOL_PLATFORM_LINUX_MICRO_MODULE_COUNT;
-         i++, itr++) {
+        i < SOL_PLATFORM_LINUX_MICRO_MODULE_COUNT;
+        i++, itr++) {
         if (builtin_init[i] && (*itr)->shutdown)
             (*itr)->shutdown((*itr), (*itr)->name);
     }

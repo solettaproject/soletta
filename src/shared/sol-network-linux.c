@@ -122,10 +122,10 @@ _on_link_event(struct nlmsghdr *header)
     SOL_NULL_CHECK(link);
 
     event = (header->nlmsg_type == RTM_NEWLINK) ? SOL_NETWORK_LINK_ADDED :
-            SOL_NETWORK_LINK_REMOVED;
+        SOL_NETWORK_LINK_REMOVED;
 
     for (rth = IFLA_RTA(ifi), rtl = IFLA_PAYLOAD(header); rtl && RTA_OK(rth, rtl);
-         rth = RTA_NEXT(rth, rtl)) {
+        rth = RTA_NEXT(rth, rtl)) {
         if (rth->rta_type != IFLA_STATS)
             continue;
 
@@ -171,7 +171,7 @@ _on_addr_event(struct nlmsghdr *header)
     SOL_NULL_CHECK(link);
 
     for (rth = IFA_RTA(ifa), rtl = IFA_PAYLOAD(header); rtl && RTA_OK(rth, rtl);
-         rth = RTA_NEXT(rth, rtl)) {
+        rth = RTA_NEXT(rth, rtl)) {
         struct sol_network_link_addr *addr = NULL, *addr_itr;
 
         if (rth->rta_type != IFA_LOCAL && rth->rta_type != IFA_ADDRESS)
@@ -234,7 +234,7 @@ _on_event(void *data, int nl_socket, unsigned int cond)
     }
 
     for (h = (struct nlmsghdr *)buf; NLMSG_OK(h, (unsigned int)status);
-         h = NLMSG_NEXT(h, status)) {
+        h = NLMSG_NEXT(h, status)) {
 
         switch (h->nlmsg_type) {
         case NLMSG_ERROR:
@@ -335,7 +335,7 @@ sol_network_init(void)
     network->nl_addr.nl_groups = RTMGRP_LINK | RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR;
 
     if (bind(network->nl_socket, (struct sockaddr *)&network->nl_addr,
-            sizeof(network->nl_addr)) < 0) {
+        sizeof(network->nl_addr)) < 0) {
         SOL_WRN("Socket bind failed!");
         goto err_bind;
     }
@@ -407,7 +407,7 @@ sol_network_shutdown(void)
 
 bool
 sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
-        enum sol_network_event event),
+    enum sol_network_event event),
     const void *data)
 {
     struct callback *callback;
@@ -426,7 +426,7 @@ sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_lin
 
 bool
 sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
-        enum sol_network_event event),
+    enum sol_network_event event),
     const void *data)
 {
     struct callback *callback;

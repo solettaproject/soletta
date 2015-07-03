@@ -64,7 +64,7 @@ servo_motor_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     }
 
     mdata->duty_cycle_diff = mdata->duty_cycle_range.max -
-                             mdata->duty_cycle_range.min;
+        mdata->duty_cycle_range.min;
 
     pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION;
     pwm_config.period_ns = opts->period.val * 1000;
@@ -100,7 +100,7 @@ set_pulse_width(struct servo_motor_data *mdata, int32_t pulse_width)
 
     mdata->duty_cycle_range.val = pulse_width;
     if (!sol_pwm_set_duty_cycle(mdata->pwm,
-            mdata->duty_cycle_range.val * 1000)) {
+        mdata->duty_cycle_range.val * 1000)) {
         SOL_WRN("Failed to write duty cycle %" PRId32 "ns.",
             mdata->duty_cycle_range.val * 1000);
         return -1;
@@ -146,7 +146,7 @@ angle_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_i
     }
 
     pulse_width = in_value * mdata->duty_cycle_diff / 180 +
-                  mdata->duty_cycle_range.min;
+        mdata->duty_cycle_range.min;
 
     return set_pulse_width(mdata, pulse_width);
 }

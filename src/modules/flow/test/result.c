@@ -154,6 +154,7 @@ test_result_process(
     bool passed = false;
 
     int r = sol_flow_packet_get_boolean(packet, &passed);
+
     SOL_INT_CHECK(r, < 0, r);
 
     if (passed)

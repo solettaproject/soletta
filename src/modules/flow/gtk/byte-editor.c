@@ -44,13 +44,13 @@ on_byte_editor_clicked(GtkWidget *widget, gpointer data)
     GList *node;
 
     for (node = gtk_container_get_children(GTK_CONTAINER(mdata->widget));
-         node != NULL; node = node->next) {
+        node != NULL; node = node->next) {
 
         GtkWidget *button = node->data;
         uintptr_t bit = (intptr_t)g_object_get_data(G_OBJECT(button),
             BIT_POSITION_KEY);
         unsigned char v = gtk_toggle_button_get_active
-                              (GTK_TOGGLE_BUTTON(button));
+                (GTK_TOGGLE_BUTTON(button));
         result |= v << bit;
     }
 

@@ -149,7 +149,7 @@ accel_read(struct accelerometer_adxl345_data *mdata)
 #define MAX_EPSILON (10.0f)
 #define EPSILON_CHECK(_axis) \
     if (i > 0 && isgreater(fabs((buffer[i][_axis] * ACCEL_SCALE_M_S) \
-                - mdata->reading[_axis]), MAX_EPSILON)) \
+        - mdata->reading[_axis]), MAX_EPSILON)) \
         break
 
         /* raw readings, with only the sensor-provided filtering */
@@ -248,7 +248,7 @@ accel_init_rate(void *data)
     }
 
     if (accel_timer_resched(mdata, ACCEL_INIT_STEP_TIME,
-            accel_init_stream, mdata) < 0)
+        accel_init_stream, mdata) < 0)
         SOL_WRN("error in scheduling a ADXL345 accel's init command");
 
     return false;
@@ -277,7 +277,7 @@ accel_init_format(void *data)
     }
 
     if (accel_timer_resched(mdata, ACCEL_INIT_STEP_TIME,
-            accel_init_rate, mdata) < 0)
+        accel_init_rate, mdata) < 0)
         SOL_WRN("error in scheduling a ADXL345 accel's init command");
 
     return false;
@@ -311,9 +311,9 @@ accel_init_power(void *data)
         power_done = true;
 
     if (accel_timer_resched(mdata, ACCEL_INIT_STEP_TIME,
-            power_done ?
-            accel_init_format : accel_init_power,
-            mdata) < 0) {
+        power_done ?
+        accel_init_format : accel_init_power,
+        mdata) < 0) {
         SOL_WRN("error in scheduling a ADXL345 accel's init command");
     }
 

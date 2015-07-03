@@ -166,7 +166,7 @@ on_dbus_service_state_changed(void *data,
     if (state == SOL_PLATFORM_SERVICE_STATE_ACTIVE)
         fork_run_do();
     else if (state == SOL_PLATFORM_SERVICE_STATE_INACTIVE
-             || state == SOL_PLATFORM_SERVICE_STATE_FAILED)
+        || state == SOL_PLATFORM_SERVICE_STATE_FAILED)
         bluetooth_stop(data, name, true);
 }
 
@@ -184,7 +184,7 @@ bluetooth_start(const struct sol_platform_linux_micro_module *mod,
         return 0;
 
     ret = sol_platform_add_service_monitor
-              (on_dbus_service_state_changed, DBUS, mod);
+            (on_dbus_service_state_changed, DBUS, mod);
     if (ret >= 0)
         goto err;
 

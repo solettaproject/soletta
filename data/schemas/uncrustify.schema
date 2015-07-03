@@ -5,6 +5,7 @@
 output_tab_size               = 4 # new tab size
 
 indent_columns                = output_tab_size
+indent_continue               = output_tab_size
 indent_func_call_param        = true # function call parameters one indent level
 indent_func_def_param         = true # function def parameters one indent level
 indent_func_proto_param       = true # function proto parameters one indent level

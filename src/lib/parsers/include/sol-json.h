@@ -76,19 +76,19 @@ enum sol_json_loop_reason {
 
 #define SOL_JSON_SCANNER_ARRAY_LOOP_NEST(scanner_, token_, element_type_, end_reason_) \
     for (end_reason_ = SOL_JSON_LOOP_REASON_OK;  \
-         _sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
+        _sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
 
 #define SOL_JSON_SCANNER_ARRAY_LOOP(scanner_, token_, element_type_, end_reason_) \
     for (end_reason_ = _sol_json_loop_helper_init(scanner_, token_, SOL_JSON_TYPE_ARRAY_START); \
-         _sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
+        _sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
 
 #define SOL_JSON_SCANNER_OBJECT_LOOP_NEST(scanner_, token_, key_, value_, end_reason_) \
     for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
-         _sol_json_loop_helper_object(scanner_, token_, key_, value_, &end_reason_);)
+        _sol_json_loop_helper_object(scanner_, token_, key_, value_, &end_reason_);)
 
 #define SOL_JSON_SCANNER_OBJECT_LOOP(scanner_, token_, key_, value_, end_reason_) \
     for (end_reason_ = _sol_json_loop_helper_init(scanner_, token_, SOL_JSON_TYPE_OBJECT_START); \
-         _sol_json_loop_helper_object(scanner_, token_, key_, value_, &end_reason_);)
+        _sol_json_loop_helper_object(scanner_, token_, key_, value_, &end_reason_);)
 
 static inline void
 sol_json_scanner_init(struct sol_json_scanner *scanner, const void *mem, unsigned int size)

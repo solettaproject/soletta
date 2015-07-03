@@ -277,8 +277,8 @@ SOL_API bool
 sol_oic_client_find_resource(struct sol_oic_client *client,
     struct sol_network_link_addr *cliaddr, const char *resource_type,
     void (*resource_found_cb)(struct sol_oic_client *cli,
-        struct sol_oic_resource *res,
-        void *data),
+    struct sol_oic_resource *res,
+    void *data),
     void *data)
 {
     static const char oc_core_uri[] = "/oc/core";
@@ -396,7 +396,7 @@ static bool
 _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     sol_coap_method_t method, uint8_t *payload, size_t payload_len,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-        const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
     void *data, bool observe)
 {
     int (*cb)(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data);
@@ -470,7 +470,7 @@ SOL_API bool
 sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     sol_coap_method_t method, uint8_t *payload, size_t payload_len,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-        const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
     void *data)
 {
     return _resource_request(client, res, method, payload, payload_len, callback, data, false);
@@ -498,7 +498,7 @@ _poll_resource(void *data)
 static bool
 _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-        const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
     void *data)
 {
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
@@ -539,7 +539,7 @@ _stop_observing_with_polling(struct sol_oic_resource *res)
 SOL_API bool
 sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-        const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
     void *data, bool observe)
 {
     SOL_NULL_CHECK(client, false);

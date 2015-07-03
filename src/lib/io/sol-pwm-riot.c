@@ -64,8 +64,8 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
 
     if (unlikely(config->api_version != SOL_PWM_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open pwm that has unsupported version '%u', "
-                "expected version is '%u'",
-                config->api_version, SOL_PWM_CONFIG_API_VERSION);
+            "expected version is '%u'",
+            config->api_version, SOL_PWM_CONFIG_API_VERSION);
         return NULL;
     }
 

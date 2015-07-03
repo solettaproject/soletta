@@ -116,7 +116,7 @@ sol_network_shutdown(void)
 
 SOL_API bool
 sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
-        enum sol_network_event event),
+    enum sol_network_event event),
     const void *data)
 {
     return false;
@@ -124,7 +124,7 @@ sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_lin
 
 SOL_API bool
 sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
-        enum sol_network_event event),
+    enum sol_network_event event),
     const void *data)
 {
     return false;

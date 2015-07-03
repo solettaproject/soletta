@@ -356,9 +356,9 @@ sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, co
     /* check if port names are unique */
     if (type->description &&
         ((type->description->ports_in &&
-          find_duplicated_port_names(type->description->ports_in, false)) ||
-         (type->description->ports_out &&
-          find_duplicated_port_names(type->description->ports_out, true))))
+        find_duplicated_port_names(type->description->ports_in, false)) ||
+        (type->description->ports_out &&
+        find_duplicated_port_names(type->description->ports_out, true))))
         return -EEXIST;
 
     node_name = sol_arena_strdup(builder->str_arena, name);
@@ -410,7 +410,7 @@ conn_spec_add(struct sol_flow_builder *builder, uint16_t src, uint16_t dst, uint
     conn_spec->dst_port = dst_port;
 
     if (sol_ptr_vector_insert_sorted(&builder->conns, conn_spec,
-            compare_conns) < 0) {
+        compare_conns) < 0) {
         free(conn_spec);
         return -ENOMEM;
     }

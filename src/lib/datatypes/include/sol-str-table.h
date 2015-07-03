@@ -55,11 +55,11 @@ int16_t sol_str_table_lookup_fallback(const struct sol_str_table *table,
 
 #define SOL_STR_TABLE_NOT_FOUND INT16_MAX
 #define sol_str_table_lookup(_table, _key, _pval) ({ \
-    int16_t _v = sol_str_table_lookup_fallback(_table, _key, INT16_MAX); \
-    if (_v != INT16_MAX) \
-        *_pval = _v; \
-    _v != INT16_MAX; \
-})
+        int16_t _v = sol_str_table_lookup_fallback(_table, _key, INT16_MAX); \
+        if (_v != INT16_MAX) \
+            *_pval = _v; \
+        _v != INT16_MAX; \
+    })
 
 
 struct sol_str_table_ptr {
@@ -78,12 +78,12 @@ const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *ta
     const void *fallback) SOL_ATTR_NONNULL(1);
 
 #define sol_str_table_ptr_lookup(_table_ptr, _key, _pval) ({ \
-    const void *_v = sol_str_table_ptr_lookup_fallback(_table_ptr, \
-        _key, NULL); \
-    if (_v != NULL) \
-        *_pval = _v; \
-    _v != NULL; \
-})
+        const void *_v = sol_str_table_ptr_lookup_fallback(_table_ptr, \
+            _key, NULL); \
+        if (_v != NULL) \
+            *_pval = _v; \
+        _v != NULL; \
+    })
 
 #ifdef __cplusplus
 }

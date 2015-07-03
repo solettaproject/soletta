@@ -134,7 +134,7 @@ gyro_read(struct gyroscope_l3g4200d_data *mdata)
         num_samples_available = 0;
     } else {
         num_samples_available = fifo_status
-                                & GYRO_REG_FIFO_SRC_ENTRIES_MASK;
+            & GYRO_REG_FIFO_SRC_ENTRIES_MASK;
     }
 
     if (!num_samples_available) {
@@ -151,7 +151,7 @@ gyro_read(struct gyroscope_l3g4200d_data *mdata)
          */
         int16_t buffer[num_samples_available][3];
         double scale = mdata->use_rad ? GYRO_SCALE_R_S * DEG_TO_RAD
-                       : GYRO_SCALE_R_S;
+            : GYRO_SCALE_R_S;
 
         r = sol_i2c_read_register(mdata->i2c,
             GYRO_REG_XL | GYRO_REG_AUTO_INCREMENT,
@@ -254,7 +254,7 @@ gyro_init_fifo(void *data)
     }
 
     if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME,
-            gyro_init_stream, mdata) < 0)
+        gyro_init_stream, mdata) < 0)
         SOL_WRN("error in scheduling a L3G4200D gyro's init command");
 
     return false;
@@ -280,7 +280,7 @@ gyro_init_range(void *data)
     }
 
     if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME,
-            gyro_init_fifo, mdata) < 0)
+        gyro_init_fifo, mdata) < 0)
         SOL_WRN("error in scheduling a L3G4200D gyro's init command");
 
     return false;
@@ -312,9 +312,9 @@ gyro_init_sampling(void *data)
     mdata->init_sampling_cnt--;
 
     if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME,
-            mdata->init_sampling_cnt ?
-            gyro_init_sampling : gyro_init_range,
-            mdata) < 0) {
+        mdata->init_sampling_cnt ?
+        gyro_init_sampling : gyro_init_range,
+        mdata) < 0) {
         SOL_WRN("error in scheduling a L3G4200D gyro's init command");
     }
 

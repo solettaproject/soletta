@@ -228,7 +228,7 @@ resolver_conffile_get_strv(const char *id,
     }
 
     *node_type = resolve_module_type_by_component
-                     (type_name, sol_flow_foreach_builtin_node_type);
+            (type_name, sol_flow_foreach_builtin_node_type);
     if (!*node_type) {
         *node_type = _resolver_conffile_get_module(type_name);
         if (!*node_type) {

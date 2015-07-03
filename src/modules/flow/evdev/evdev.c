@@ -313,7 +313,7 @@ evdev_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     SOL_NULL_CHECK(mdata->handler, -EINVAL);
 
     if (!sol_monitors_append(&mdata->handler->monitors,
-            (sol_monitors_cb_t)evdev_event_handler, node)) {
+        (sol_monitors_cb_t)evdev_event_handler, node)) {
         handler_evdev_close(mdata->handler);
         return -EINVAL;
     }

@@ -61,12 +61,12 @@ static void log_init(void) SOL_ATTR_UNUSED;
 
 static const struct _custom_node_types_reader_options reader_opts =
     _CUSTOM_NODE_TYPES_READER_OPTIONS_DEFAULTS(
-        .intopt.val = 1
-        );
+    .intopt.val = 1
+    );
 static const struct _custom_node_types_writer_options writer_opts =
     _CUSTOM_NODE_TYPES_WRITER_OPTIONS_DEFAULTS(
-        .prefix = "writer prefix from options"
-        );
+    .prefix = "writer prefix from options"
+    );
 
 /* This array defines the nodes we will use in our flow. It is space
  * efficient and will not be duplicated, a reference of it is kept by

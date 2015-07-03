@@ -78,8 +78,8 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
 
     if (unlikely(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
-                "expected version is '%u'",
-                config->api_version, SOL_GPIO_CONFIG_API_VERSION);
+            "expected version is '%u'",
+            config->api_version, SOL_GPIO_CONFIG_API_VERSION);
         return NULL;
     }
 
@@ -113,8 +113,8 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
             gpio->irq.cb = config->in.cb;
             gpio->irq.data = config->in.user_data;
             if (sol_interrupt_scheduler_gpio_init_int(gpio->pin, pull, flank,
-                    gpio_process_cb, gpio,
-                    &gpio->irq.int_handler) < 0)
+                gpio_process_cb, gpio,
+                &gpio->irq.int_handler) < 0)
                 goto error;
         }
     }

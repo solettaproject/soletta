@@ -136,7 +136,7 @@ wallclock_schedule_next(struct sol_flow_node *node)
     if (mdata->type == TIMEOUT_SECOND) {
         CLOCK_GETTIME_DO(timeout,
             1000 - ((ts.tv_sec * 1000)
-                    + (ts.tv_nsec / 1000000)) % 1000);
+            + (ts.tv_nsec / 1000000)) % 1000);
         if (time_fail)
             goto err;
     } else {
@@ -167,10 +167,10 @@ wallclock_schedule_next(struct sol_flow_node *node)
             timeout = (SECONDS_IN_MINUTE - local_time.tm_sec);
         } else if (mdata->type == TIMEOUT_HOUR) {
             timeout = (MINUTES_IN_HOUR - local_time.tm_min) * SECONDS_IN_MINUTE
-                      - seconds;
+                - seconds;
         } else { /* TIMEOUT_MONTHDAY or TIMEOUT_WEEKDAY */
             timeout = (HOURS_IN_DAY - local_time.tm_hour) * SECONDS_IN_HOUR
-                      - minutes - seconds;
+                - minutes - seconds;
         }
     }
 

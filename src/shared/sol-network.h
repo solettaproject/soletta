@@ -76,10 +76,10 @@ bool sol_network_link_addr_eq(const struct sol_network_link_addr *a,
 bool sol_network_init(void);
 void sol_network_shutdown(void);
 bool sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
-        enum sol_network_event event),
+    enum sol_network_event event),
     const void *data);
 bool sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
-        enum sol_network_event event),
+    enum sol_network_event event),
     const void *data);
 
 const struct sol_vector *sol_network_get_available_links(void);

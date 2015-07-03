@@ -52,7 +52,7 @@ color_luminance_open(struct sol_flow_node *node, void *data, const struct sol_fl
 
     mdata->red = mdata->red > mdata->red_max ? mdata->red_max : mdata->red;
     mdata->green = mdata->green > mdata->green_max ?
-                   mdata->green_max : mdata->green;
+        mdata->green_max : mdata->green;
     mdata->blue = mdata->blue > mdata->blue_max ? mdata->blue_max : mdata->blue;
 
     return 0;

@@ -135,7 +135,7 @@ random_float_generate(struct sol_flow_node *node, void *data, uint16_t port, uin
     fraction = get_random_number(mdata);
 
     out_value.val = value * ((double)(INT32_MAX - 1) / INT32_MAX) +
-                    (double)fraction / INT32_MAX;
+        (double)fraction / INT32_MAX;
 
     return sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_FLOAT__OUT__OUT,

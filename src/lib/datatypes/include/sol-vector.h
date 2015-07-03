@@ -80,13 +80,13 @@ void sol_vector_clear(struct sol_vector *v);
 
 #define SOL_VECTOR_FOREACH_IDX(vector, itrvar, idx)                      \
     for (idx = 0;                                                       \
-         idx < (vector)->len && (itrvar = sol_vector_get((vector), idx), true); \
-         idx++)
+        idx < (vector)->len && (itrvar = sol_vector_get((vector), idx), true); \
+        idx++)
 
 #define SOL_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx)              \
     for (idx = (vector)->len - 1;                                       \
-         idx != ((typeof(idx)) - 1) && (itrvar = sol_vector_get((vector), idx), true); \
-         idx--)
+        idx != ((typeof(idx)) - 1) && (itrvar = sol_vector_get((vector), idx), true); \
+        idx--)
 
 
 // sol_ptr_vector is like vector but with an API more convenient for storing pointers.
@@ -150,15 +150,15 @@ sol_ptr_vector_clear(struct sol_ptr_vector *pv)
 
 #define SOL_PTR_VECTOR_FOREACH_IDX(vector, itrvar, idx) \
     for (idx = 0; \
-         idx < (vector)->base.len && \
-            ((itrvar = *(((void **)(vector)->base.data) + idx)), true); \
-         idx++)
+        idx < (vector)->base.len && \
+        ((itrvar = *(((void **)(vector)->base.data) + idx)), true); \
+        idx++)
 
 #define SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx) \
     for (idx = (vector)->base.len - 1; \
-         idx != ((typeof(idx)) - 1) && \
-            (itrvar = *(((void **)(vector)->base.data) + idx), true); \
-         idx--)
+        idx != ((typeof(idx)) - 1) && \
+        (itrvar = *(((void **)(vector)->base.data) + idx), true); \
+        idx--)
 
 #ifdef __cplusplus
 }

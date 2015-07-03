@@ -263,7 +263,7 @@ sol_fbp_graph_add_exported_in_port(struct sol_fbp_graph *g,
             goto end;
         }
         if (ep->node == node && (ep->port_idx == port_idx
-                                 || (ep->port_idx == -1 || port_idx == -1))
+            || (ep->port_idx == -1 || port_idx == -1))
             && sol_str_slice_eq(ep->port, port)) {
             err = -EADDRINUSE;
             goto end;
@@ -301,7 +301,7 @@ sol_fbp_graph_add_exported_out_port(struct sol_fbp_graph *g,
             goto end;
         }
         if (ep->node == node && (ep->port_idx == port_idx
-                                 || (ep->port_idx == -1 || port_idx == -1))
+            || (ep->port_idx == -1 || port_idx == -1))
             && sol_str_slice_eq(ep->port, port)) {
             err = -EADDRINUSE;
             goto end;

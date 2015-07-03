@@ -85,27 +85,27 @@ extern "C" {
     __builtin_types_compatible_p(typeof(var), int),                \
     "" # var " (%d) " # exp,                                       \
     __builtin_choose_expr(                                             \
-        __builtin_types_compatible_p(typeof(var), long),               \
-        "" # var " (%ld) " # exp,                                      \
-        __builtin_choose_expr(                                             \
-            __builtin_types_compatible_p(typeof(var), size_t),             \
-            "" # var " (%zu) " # exp,                                      \
-            __builtin_choose_expr(                                             \
-                __builtin_types_compatible_p(typeof(var), unsigned),           \
-                "" # var " (%u) " # exp,                                       \
-                __builtin_choose_expr(                                             \
-                    __builtin_types_compatible_p(typeof(var), uint64_t),           \
-                    "" # var " (%" PRIu64 ") " # exp,                              \
-                    __builtin_choose_expr(                                             \
-                        __builtin_types_compatible_p(typeof(var), uint32_t),           \
-                        "" # var " (%" PRIu32 ") " # exp,                              \
-                        __builtin_choose_expr(                                             \
-                            __builtin_types_compatible_p(typeof(var), uint16_t),           \
-                            "" # var " (%" PRIu16 ") " # exp,                              \
-                            __builtin_choose_expr(                                             \
-                                __builtin_types_compatible_p(typeof(var), uint8_t),            \
-                                "" # var " (%" PRIu8 ") " # exp,                               \
-                                (void)0))))))))
+    __builtin_types_compatible_p(typeof(var), long),               \
+    "" # var " (%ld) " # exp,                                      \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), size_t),             \
+    "" # var " (%zu) " # exp,                                      \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), unsigned),           \
+    "" # var " (%u) " # exp,                                       \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), uint64_t),           \
+    "" # var " (%" PRIu64 ") " # exp,                              \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), uint32_t),           \
+    "" # var " (%" PRIu32 ") " # exp,                              \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), uint16_t),           \
+    "" # var " (%" PRIu16 ") " # exp,                              \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), uint8_t),            \
+    "" # var " (%" PRIu8 ") " # exp,                               \
+    (void)0))))))))
 
 #define SOL_INT_CHECK(var, exp, ...)                     \
     do {                                                \

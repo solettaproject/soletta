@@ -811,7 +811,7 @@ lcd_open(struct sol_flow_node *node,
 
     mdata->display_mode = LCD_ENTRY_MODE_SET | LCD_MODE_SET_LTR;
     mdata->display_control = (LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON)
-                             & (~LCD_BLINK_ON | ~LCD_CURSOR_ON);
+        & (~LCD_BLINK_ON | ~LCD_CURSOR_ON);
 
     return timer_reschedule(mdata, TIME_TO_TURN_ON, setup, mdata);
 }
@@ -861,7 +861,7 @@ cursor_cmd_queue(struct lcd_data *mdata, uint8_t value, bool is_col)
     cmd->chip_addr = DISPLAY_ADDR;
     cmd->data_addr = SEND_COMMAND;
     cmd->value = is_col ? value | ROW_ADDR[mdata->row]
-                 : mdata->col | ROW_ADDR[value];
+        : mdata->col | ROW_ADDR[value];
     cmd->done = false;
 
     return 0;
@@ -1349,7 +1349,7 @@ scroll_display(struct sol_flow_node *node,
     int r;
 
     value |= (port == SOL_FLOW_NODE_TYPE_GROVE_LCD_CHAR__IN__SCROLL_RIGHT ?
-              LCD_MOVE_RIGHT : LCD_MOVE_LEFT);
+        LCD_MOVE_RIGHT : LCD_MOVE_LEFT);
 
     if (mdata->ready) {
         if (!write_display_command(mdata->i2c, value))

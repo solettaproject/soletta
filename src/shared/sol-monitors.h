@@ -130,8 +130,8 @@ void sol_monitors_end_walk(struct sol_monitors *ms);
 
 #define __SOL_MONITORS_WALK(ms, itrvar, idx, executed)                    \
     for (bool executed = ({ sol_monitors_begin_walk(ms); false; });      \
-         !executed;                                                     \
-         executed = ({ sol_monitors_end_walk(ms); true; }))              \
+        !executed;                                                     \
+        executed = ({ sol_monitors_end_walk(ms); true; }))              \
         SOL_VECTOR_FOREACH_IDX (&(ms)->entries, itrvar, idx)
 
 #define _SOL_MONITORS_WALK(ms, itrvar, idx, executed) \
