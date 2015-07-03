@@ -21,14 +21,17 @@ config TEST_FBP_SCANNER
 
 config TEST_FLOW
 	bool "flow"
+	depends on FLOW
 	default y
 
 config TEST_FLOW_BUILDER
 	bool "flow builder"
+	depends on FLOW && NODE_DESCRIPTION
 	default y
 
 config TEST_FLOW_PARSER
 	bool "flow parser"
+	depends on FLOW && NODE_DESCRIPTION
 	default y
 
 config TEST_MAINLOOP
