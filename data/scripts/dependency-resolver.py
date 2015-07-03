@@ -36,12 +36,53 @@ import os
 import subprocess
 import sys
 import tempfile
+from multiprocessing.managers import BaseManager
 from shutil import which
+from threading import Thread
 
-cfg_cflags = {}
-cfg_ldflags = {}
-cfg_kconfig = {}
-makefile_vars = {}
+class DepContext:
+    def __init__(self):
+        self.cflags = {}
+        self.ldflags = {}
+        self.kconfig = {}
+        self.makefile_vars = {}
+        self.common_cflags = []
+
+    def add_cflags(self, k, v):
+        self.cflags[k] = v
+
+    def get_cflags(self):
+        return self.cflags
+
+    def add_ldflags(self, k, v):
+        self.ldflags[k] = v
+
+    def get_ldflags(self):
+        return self.ldflags
+
+    def add_kconfig(self, k, v):
+        self.kconfig[k] = v
+
+    def get_kconfig(self):
+        return self.kconfig
+
+    def add_makefile(self, k, v):
+        self.makefile_vars[k] = v
+
+    def get_makefile(self):
+        return self.makefile_vars
+
+    def add_common_cflags(self, v):
+        self.common_cflags.append(v)
+
+    def get_common_cflags(self):
+        result = ""
+        for i in self.common_cflags:
+            result += "-D%s " % i
+        return result
+
+class DepContextManager(BaseManager): pass
+DepContextManager.register('DepContext', DepContext)
 
 def run_command(cmd):
     try:
@@ -52,7 +93,7 @@ def run_command(cmd):
         return e.output, False
 
 
-def handle_pkgconfig_check(args, conf):
+def handle_pkgconfig_check(args, conf, context):
     dep = conf["dependency"].upper()
     pkg = conf["pkgname"]
     atleast_ver = conf.get("atleast-version")
@@ -86,13 +127,13 @@ def handle_pkgconfig_check(args, conf):
         ldflags, ldflags_stat = run_command(ldflags_cmd)
 
         if cflags_stat:
-            cfg_cflags["%s_CFLAGS" % dep] = cflags
+            context.add_cflags("%s_CFLAGS" % dep, cflags)
 
         if ldflags_stat:
-            cfg_ldflags["%s_LDFLAGS" % dep] = ldflags
+            context.add_ldflags("%s_LDFLAGS" % dep, ldflags)
 
     have_var = "y" if ((cflags_stat or ldflags_stat) and ver_match) else "n"
-    cfg_kconfig["HAVE_%s" % dep] = have_var
+    context.add_kconfig("HAVE_%s" % dep, have_var)
 
 def compile_test(source, compiler, cflags):
     f = tempfile.NamedTemporaryFile(suffix=".c",delete=False)
@@ -108,31 +149,43 @@ def compile_test(source, compiler, cflags):
 
     return status
 
-def handle_ccode_check(args, conf):
+def handle_ccode_check(args, conf, context):
     dep = conf["dependency"].upper()
     source = ""
-    for i in conf["headers"]:
-        source += "#include %s\n" % i
+    common_cflags = conf.get("common_cflags")
+    defines = conf.get("defines")
+    headers = conf.get("headers")
+
+    if defines:
+        for i in defines:
+            source += "#define %s\n" % i
+
+    if headers:
+        for i in headers:
+            source += "#include %s\n" % i
 
     fragment = conf.get("fragment") or ""
     cstub = "{headers}\nint main(int argc, char **argv){{\n {fragment} return 0;\n}}"
     source = cstub.format(headers=source, fragment=fragment)
-    success = compile_test(source, args.compiler, args.cflags)
+    success = compile_test(source, args.compiler,
+                           "%s %s" % (args.cflags, context.get_common_cflags()))
 
     if success:
-        cfg_cflags["%s_CFLAGS" % dep] = conf.get("cflags") or ""
-        cfg_ldflags["%s_LDFLAGS" % dep] = conf.get("ldflags") or ""
-        cfg_kconfig["HAVE_%s" % dep] = "y"
+        context.add_cflags("%s_CFLAGS" % dep, conf.get("cflags") or "")
+        context.add_ldflags("%s_LDFLAGS" % dep, conf.get("ldflags") or "")
+        context.add_kconfig("HAVE_%s" % dep, "y")
+        if common_cflags:
+            context.add_common_cflags(common_cflags)
     else:
-        cfg_kconfig["HAVE_%s" % dep] = "n"
+        context.add_kconfig("HAVE_%s" % dep, "n")
 
-def handle_exec_check(args, conf):
+def handle_exec_check(args, conf, context):
     dep = conf["dependency"].upper()
     path = which(conf["exec"]) or None
 
-    makefile_vars[dep] = path
+    context.add_makefile(dep, path)
 
-def handle_python_check(args, conf):
+def handle_python_check(args, conf, context):
     dep = conf["dependency"].upper()
 
     if conf.get("pkgname"):
@@ -144,7 +197,7 @@ def handle_python_check(args, conf):
 
     cmd = "%s %s" % (sys.executable, f.name)
     output, status = run_command(cmd)
-    makefile_vars["HAVE_PYTHON_%s" % dep] = "y" if status else "n"
+    context.add_makefile("HAVE_PYTHON_%s" % dep, "y" if status else "n")
 
 type_handlers = {
     "pkg-config": handle_pkgconfig_check,
@@ -160,23 +213,42 @@ def var_str(items):
         output += "%s ?= %s\n" % (k, v)
     return output
 
-def makefile_gen(args):
+def makefile_gen(args, context):
     output = ""
-    output += var_str(makefile_vars.items())
-    output += var_str(cfg_cflags.items())
-    output += var_str(cfg_ldflags.items())
+    output += var_str(context.get_makefile().items())
+    output += var_str(context.get_cflags().items())
+    output += var_str(context.get_ldflags().items())
+
+    common_cflags = context.get_common_cflags()
+    if common_cflags:
+        output += "COMMON_CFLAGS += %s" % common_cflags
+
     f = open(args.makefile_output, "w+")
     f.write(output)
     f.close()
 
-def kconfig_gen(args):
+def kconfig_gen(args, context):
     output = ""
-    for k,v in cfg_kconfig.items():
+    for k,v in context.get_kconfig().items():
         output += "config {config}\n{indent}bool\n{indent}default {enabled}\n". \
                   format(config=k, indent="       ", enabled=v)
     f = open(args.kconfig_output, "w+")
     f.write(output)
     f.close()
+
+def run(args, dep_checks, context):
+    threads = []
+    for i in dep_checks:
+        handler = type_handlers.get(i["type"])
+        if not handler:
+            print("Could not handle type: %s" % i["type"])
+            continue
+        t = Thread(target=handler, args=(args, i, context,))
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -193,13 +265,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     conf = json.loads(args.dep_config.read())
-    dep_checks = conf["dependencies"]
+    dep_checks = conf.get("dependencies")
+    pre_checks = conf.get("pre-dependencies")
 
-    for i in dep_checks:
-        handler = type_handlers[i["type"]]
-        if not handler:
-            print("Could not handle type: %s" % i["type"])
-            continue
-        handler(args, i)
-    makefile_gen(args)
-    kconfig_gen(args)
+    with DepContextManager() as manager:
+        context = manager.DepContext()
+
+        run(args, pre_checks, context)
+        run(args, dep_checks, context)
+
+        makefile_gen(args, context)
+        kconfig_gen(args, context)

@@ -62,3 +62,15 @@ endif
 
 obj-core-$(HAVE_PIN_MUX) += \
     sol-pin-mux.o
+
+headers-y := \
+    include/sol-blob.h \
+    include/sol-log.h \
+    include/sol-macros.h \
+    include/sol-mainloop.h \
+    include/sol-missing.h \
+    include/sol-platform.h \
+    include/sol-types.h
+
+headers-$(HAVE_PIN_MUX) += \
+    include/sol-pin-mux-modules.h
