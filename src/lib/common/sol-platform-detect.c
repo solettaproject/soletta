@@ -217,9 +217,14 @@ sol_platform_detect(void)
     struct sol_json_token token, key, value, platform_name = { NULL };
     enum sol_json_loop_reason reason;
 
-    json_doc = _json_open_doc(DATADIR PLATFORM_JSON, &scanner);
-    if (!json_doc)
-        return NULL;
+    json_doc = _json_open_doc("/etc/" PLATFORM_JSON, &scanner);
+    if (!json_doc) {
+        json_doc = _json_open_doc(DATADIR PLATFORM_JSON, &scanner);
+        if (!json_doc) {
+            SOL_INF(PLATFORM_JSON " could not be found.");
+            return NULL;
+        }
+    }
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&token, "platforms")) {
