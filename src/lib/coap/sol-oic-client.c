@@ -283,15 +283,18 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
 {
     static const char oc_core_uri[] = "/oc/core";
     struct sol_coap_packet *req;
-    struct find_resource_ctx *ctx = sol_util_memdup(&(struct find_resource_ctx) {
-            .client = client,
-            .cb = resource_found_cb,
-            .data = data
-        }, sizeof(*ctx));
+    struct find_resource_ctx *ctx;
     int r;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
+    SOL_NULL_CHECK(client, false);
+
+    ctx = sol_util_memdup(&(struct find_resource_ctx) {
+            .client = client,
+            .cb = resource_found_cb,
+            .data = data
+        }, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, false);
 
     /* Multicast discovery should be non-confirmable */
@@ -473,6 +476,9 @@ sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_re
     const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
     void *data)
 {
+    SOL_NULL_CHECK(client, false);
+    SOL_NULL_CHECK(res, false);
+
     return _resource_request(client, res, method, payload, payload_len, callback, data, false);
 }
 
