@@ -108,11 +108,13 @@ builtins_resolve(void *data, const char *id, struct sol_flow_node_type const **t
     return 0;
 }
 
-static const struct sol_flow_resolver builtins_resolver = {
+static struct sol_flow_resolver builtins_resolver = {
     .api_version = SOL_FLOW_RESOLVER_API_VERSION,
     .name = "builtins_resolver",
     .resolve = builtins_resolve,
 };
+
+SOL_API struct sol_flow_resolver *sol_flow_resolver_builtins = &builtins_resolver;
 
 SOL_API const struct sol_flow_resolver *
 sol_flow_get_builtins_resolver(void)
