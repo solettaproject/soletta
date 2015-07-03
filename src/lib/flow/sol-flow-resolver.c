@@ -114,6 +114,8 @@ static const struct sol_flow_resolver builtins_resolver = {
     .resolve = builtins_resolve,
 };
 
+SOL_API const struct sol_flow_resolver *sol_flow_resolver_builtins = &builtins_resolver;
+
 SOL_API const struct sol_flow_resolver *
 sol_flow_get_builtins_resolver(void)
 {
