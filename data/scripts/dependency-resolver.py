@@ -38,6 +38,8 @@ import sys
 import tempfile
 from shutil import which
 
+cstub = "{headers}\nint main(int argc, char **argv){{\n {fragment} return 0;\n}}"
+
 class DepContext:
     def __init__(self):
         self.kconfig = {}
@@ -130,7 +132,7 @@ def compile_test(source, compiler, cflags, ldflags):
     f.close()
     output = "%s-bin" % f.name
     cmd = "{compiler} {cflags} {ldflags} {src} -o {out}".format(compiler=compiler,
-            cflags=cflags, ldflags=ldflags, src=f.name, out=output)
+            cflags=cflags, ldflags=ldflags or "", src=f.name, out=output)
     out, status = run_command(cmd)
     if os.path.exists(output):
         os.unlink(output)
@@ -169,7 +171,6 @@ def handle_ccode_check(args, conf, context):
 
     common_cflags = context.find_makefile_var(args.common_cflags_var)
     fragment = conf.get("fragment") or ""
-    cstub = "{headers}\nint main(int argc, char **argv){{\n {fragment} return 0;\n}}"
     source = cstub.format(headers=source, fragment=fragment)
     success = compile_test(source, args.compiler, "%s %s" % (args.cflags, common_cflags),
                            conf.get("ldflags", ""))
@@ -203,11 +204,37 @@ def handle_python_check(args, conf, context):
     output, status = run_command(cmd)
     context.add_cond_makefile_var("HAVE_PYTHON_%s" % dep, "y" if status else "n")
 
+def handle_cflags_check(args, conf, context):
+    check_cflags = conf.get("cflags")
+    append_to = conf.get("append_to")
+    source = cstub.format(headers="", fragment="")
+
+    if not append_to or not check_cflags:
+        return
+
+    flags = " ".join(check_cflags)
+    success = compile_test(source, args.compiler, "-Werror %s" % flags, None)
+    if success:
+        context.add_append_makefile_var(append_to, flags)
+        return
+
+    supported = []
+    for i in check_cflags:
+        # must acumulate the tested one so we handle dependent flags like -Wformat*
+        flags = "%s %s" % (" ".join(supported), i)
+        success = compile_test(source, args.compiler, "-Werror %s" % flags, None)
+        if success:
+            supported.append(i)
+
+    if supported:
+        context.add_append_makefile_var(append_to, " ".join(supported))
+
 type_handlers = {
     "pkg-config": handle_pkgconfig_check,
     "ccode": handle_ccode_check,
     "exec": handle_exec_check,
     "python": handle_python_check,
+    "cflags": handle_cflags_check,
 }
 
 def format_makefile_var(items):
