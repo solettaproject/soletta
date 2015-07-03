@@ -50,6 +50,6 @@ wave(wave-generator/trapezoidal:min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_
 
 timer OUT -> TICK wave
 
-constant_duty_cycle_step OUT -> IN1 mult(float/multiplication)
-wave OUT -> IN0 mult
+constant_duty_cycle_step OUT -> OPERAND[1] mult(float/multiplication)
+wave OUT -> OPERAND[0] mult
 mult OUT -> IN conv(converter/float-to-int) OUT -> DUTY_CYCLE led(LED_PWM)

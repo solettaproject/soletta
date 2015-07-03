@@ -55,30 +55,30 @@
 #           |         |       |                                 .---------.
 #           |         |       |ARGC-+------------------------>IN| Console |
 #           |         `-------'     |                           `---------'
-#           |                       |      .-------------.
-#           |                       `-->IN0|             |
-#           |         .------.             | Subtraction |OUT-.
-#           |         | '1'  |OUT------>IN1|  (ARGC - 1) |    |
-#           |         `------'             `-------------'    |
-#           |                                                 |
-#           |                       .-------------------------'
-#           |                       |        .-------.
-#           |                       `---->IN0|       |
-#           |                                | Limit |OUT--+---.
-#           |                       .---->IN1|       |     |   |
-#           |                       |        `-------'     |   |
-#           `-----------------------+                      |   |
-#                     .-------.     |                      |   |
-#              .-->INC| Index |OUT--'                      |   |
-#              |      `-------'                            |   |
-#              |                                           |   |
-#              `---------------------------------------.   |   |
-#                             .------------------.     |   |   |
-#            .->PULSE_IF_FALSE| boolean-to-empty |OUT--'   |   |
-#            |                `------------------'         |   |
-#            `---------------------------------------------'   |
-#                                                              |
-#            .-------------------------------------------------'
+#           |                       |          .-------------.
+#           |                       `-->MINUEND|             |
+#           |         .------.                 | Subtraction |OUT-.
+#           |         | '1'  |OUT--->SUBTRAHEND|  (ARGC - 1) |    |
+#           |         `------'                 `-------------'    |
+#           |                                                     |
+#           |                       .-----------------------------'
+#           |                       |           .-------.
+#           |                       `----->IN[0]|       |
+#           |                                   | Limit |OUT--+---.
+#           |                       .----->IN[1]|       |     |   |
+#           |                       |           `-------'     |   |
+#           `-----------------------+                         |   |
+#                     .-------.     |                         |   |
+#              .-->INC| Index |OUT--'                         |   |
+#              |      `-------'                               |   |
+#              |                                              |   |
+#              `----------------------------------------.     |   |
+#                             .------------------.      |     |   |
+#            .->PULSE_IF_FALSE| boolean-to-empty |OUT---'     |   |
+#            |                `------------------'            |   |
+#            `------------------------------------------------'   |
+#                                                                 |
+#            .----------------------------------------------------'
 #            |                .------------------.            .----------.
 #            `-->PULSE_IF_TRUE| boolean-to-empty |OUT---->QUIT| app/quit |
 #                             `------------------'            `----------'
@@ -93,8 +93,8 @@ Args OUT -> IN _(console:prefix="argument: ")
 
 ## Loop from argv[1] to argv[argc], request that value in IN Args.
 # calculates (ARGC - 1)
-Args ARGC -> IN0 Subtraction(int/subtraction)
-_(constant/int:value=1) OUT -> IN1 Subtraction
+Args ARGC -> MINUEND Subtraction(int/subtraction)
+_(constant/int:value=1) OUT -> SUBTRAHEND Subtraction
 
 # Start an accumulator to be our iterator (Index)
 Index(int/accumulator:setup_value=min:0|step:1)
@@ -102,7 +102,7 @@ Index(int/accumulator:setup_value=min:0|step:1)
 Index OUT -> IN Args
 
 # If Index is equal to (ARGC - 1), quit, otherwise increment the accumulator
-Subtraction OUT -> IN0 Limit(int/equal)
-Index OUT -> IN1 Limit
+Subtraction OUT -> IN[0] Limit(int/equal)
+Index OUT -> IN[1] Limit
 Limit OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> QUIT _(app/quit)
 Limit OUT -> PULSE_IF_FALSE _(converter/boolean-to-empty) OUT -> INC Index

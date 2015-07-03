@@ -32,8 +32,8 @@
 # usage: ./file-copy.fbp path/to/src path/to/dest
 
 # check if number of args are correct
-_(constant/int:value=2) OUT -> IN0 ExpectedArgs(int/equal)
-Args(app/argc-argv) ARGC -> IN1 ExpectedArgs
+_(constant/int:value=2) OUT -> IN[0] ExpectedArgs(int/equal)
+Args(app/argc-argv) ARGC -> IN[1] ExpectedArgs
 ExpectedArgs OUT -> IN ArgsCountOK(console)
 
 SrcPath(app/argv:index=1) OUT -> PATH fr(file/reader)
@@ -51,8 +51,8 @@ fw DONE -> IN Done(console)
 
 # quit after copy is done or on error
 Quit(app/quit)
-fw SIZE -> IN0 Success(int/equal)
-fw DONE -> IN1 Success
+fw SIZE -> IN[0] Success(int/equal)
+fw DONE -> IN[1] Success
 
 Success OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> QUIT Quit
 fw ERROR -> ERROR Quit

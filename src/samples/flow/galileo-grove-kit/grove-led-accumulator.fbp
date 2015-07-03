@@ -61,17 +61,17 @@ timer_dec OUT -> DEC acc
 timer_dec OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer_mid_delay
 false OUT -> ENABLED timer_dec
 
-acc OUT -> IN0 mult(int/multiplication) OUT -> DUTY_CYCLE led(LED_PWM)
-constant_duty_cycle_step OUT -> IN1 mult
+acc OUT -> OPERAND[0] mult(int/multiplication) OUT -> DUTY_CYCLE led(LED_PWM)
+constant_duty_cycle_step OUT -> OPERAND[1] mult
 
-acc OUT -> IN0 comp_max(int/equal)
-constant_max OUT -> IN1 comp_max
+acc OUT -> IN[0] comp_max(int/equal)
+constant_max OUT -> IN[1] comp_max
 comp_max OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> IN at_max(converter/empty-to-boolean:output_value=true)
 at_max OUT -> IN _(boolean/not) OUT -> ENABLED timer_inc
 at_max OUT -> RESET timer_mid_delay
 
-acc OUT -> IN0 comp_min(int/equal)
-constant_min OUT -> IN1 comp_min
+acc OUT -> IN[0] comp_min(int/equal)
+constant_min OUT -> IN[1] comp_min
 comp_min OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> IN at_min(converter/empty-to-boolean:output_value=true)
 at_min OUT -> IN _(boolean/not) OUT -> ENABLED timer_dec
 at_min OUT -> RESET timer_final_delay
