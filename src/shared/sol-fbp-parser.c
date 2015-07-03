@@ -693,7 +693,7 @@ sol_fbp_log_print(const char *file, unsigned int line, unsigned int column, cons
 
     va_start(ap, format);
     if (vasprintf(&msg, format, ap) == -1) {
-        SOL_WRN("Unable to parse error message %s", strerror(errno));
+        SOL_WRN("Unable to parse error message %s", sol_util_strerrora(errno));
         va_end(ap);
         return;
     }
