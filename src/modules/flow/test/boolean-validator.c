@@ -74,6 +74,7 @@ sequence_process(
     struct boolean_validator_data *mdata = data;
     char input;
     bool val, match;
+    int r;
 
     if (mdata->done) {
         sol_flow_send_error_packet(node, ECANCELED,
@@ -81,7 +82,7 @@ sequence_process(
         return 0;
     }
 
-    int r = sol_flow_packet_get_boolean(packet, &val);
+    r = sol_flow_packet_get_boolean(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
 
     input = val ? 'T' : 'F';
