@@ -715,7 +715,7 @@ main(int argc, char *argv[])
             SOL_ERR("Couldn't write to %s. %s", args.output_file, sol_util_strerrora(errno));
     } else {
         if (remove((const char *)temp_file) != 0)
-            SOL_ERR("Couldn't remove temporary file %s. %s", &temp_file, sol_util_strerrora(errno));
+            SOL_ERR("Couldn't remove temporary file %s. %s", (char *)&temp_file, sol_util_strerrora(errno));
     }
 
     close(fd);
