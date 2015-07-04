@@ -40,6 +40,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These are routines that Solleta provides for its string table implementation.
+ */
+
+/**
+ * @ingroup Datatypes
+ *
+ * @{
+ */
+
 struct sol_str_table {
     const char *key;
     uint16_t len;
@@ -84,6 +95,10 @@ const void *sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *ta
             *_pval = _v; \
         _v != NULL; \
     })
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

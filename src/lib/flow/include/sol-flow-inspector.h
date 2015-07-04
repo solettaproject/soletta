@@ -40,6 +40,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for Solleta flow's runtime inspector.
+ */
+
+/**
+ * @ingroup Flow
+ *
+ * @{
+ */
+
 struct sol_flow_inspector {
     unsigned long api_version;
 #define SOL_FLOW_INSPECTOR_API_VERSION (1UL)
@@ -52,6 +63,10 @@ struct sol_flow_inspector {
 };
 
 bool sol_flow_set_inspector(const struct sol_flow_inspector *inspector);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

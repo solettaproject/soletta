@@ -40,7 +40,21 @@
 extern "C" {
 #endif
 
-/* Resolver matches type names to an actual node_type and possibly and
+/**
+ * @file
+ * @brief These routines are used for Solleta flow language's .conf file entries resolving.
+ */
+
+/**
+ * @ingroup Flow
+ *
+ * @{
+ */
+
+/**
+ * @struct sol_flow_resolver
+ *
+ * Resolver matches type names to an actual node_type and possibly and
  * companion options.
  *
  * A resolver typically would match type names directly, but other
@@ -73,6 +87,10 @@ int sol_flow_resolve(
 /* Resolver that interprets IDs as node type names and return the
  * appropriate builtin node type. */
 const struct sol_flow_resolver *sol_flow_get_builtins_resolver(void);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

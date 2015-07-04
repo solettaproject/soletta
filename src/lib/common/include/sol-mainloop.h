@@ -40,6 +40,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for Solleta's mainloop manipulation.
+ */
+
+/**
+ * @defgroup Mainloop
+ *
+ * @{
+ */
+
 int sol_init(void);
 int sol_run(void);
 void sol_quit(void);
@@ -99,6 +110,10 @@ struct sol_main_callbacks {
 
 /* Internal. */
 int sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, char *argv[]);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
