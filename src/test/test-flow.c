@@ -35,6 +35,8 @@
 #include "sol-util.h"
 #include "sol-vector.h"
 
+#define SOL_LOG_DOMAIN 1
+
 #include "console-gen.h"
 #include "pwm-gen.h"
 #include "timer-gen.h"
