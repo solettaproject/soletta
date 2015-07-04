@@ -78,6 +78,7 @@ blob_validator_process(
     struct blob_validator_data *mdata = data;
     struct sol_blob *val;
     bool match;
+    int r;
 
     if (mdata->done) {
         sol_flow_send_error_packet(node, ECANCELED,
@@ -85,7 +86,7 @@ blob_validator_process(
         return 0;
     }
 
-    int r = sol_flow_packet_get_blob(packet, &val);
+    r = sol_flow_packet_get_blob(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
     match = (mdata->expected.size == val->size) && memcmp(mdata->expected.mem, val->mem, val->size) == 0;
 

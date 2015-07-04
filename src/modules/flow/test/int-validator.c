@@ -107,13 +107,14 @@ int_validator_process(
     struct sol_irange val;
     int32_t *op;
     bool match;
+    int r;
 
     if (mdata->done) {
         sol_flow_send_error_packet(node, ECANCELED,
             "Input stream already deviated from expected data, ignoring packets.");
         return 0;
     }
-    int r = sol_flow_packet_get_irange(packet, &val);
+    r = sol_flow_packet_get_irange(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
     op = sol_vector_get(&mdata->values, mdata->next_index);
     match = val.val == *op;
