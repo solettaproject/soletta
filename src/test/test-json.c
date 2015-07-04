@@ -138,7 +138,7 @@ DEFINE_TEST(test_json);
 static void
 test_json(void)
 {
-    int i = 0;
+    unsigned int i = 0;
     int j = 0;
 
     for (i = 0; i < ARRAY_SIZE(scan_tests); i++) {
