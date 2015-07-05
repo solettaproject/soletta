@@ -224,13 +224,16 @@ $(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(INT_LIB_AR) $(builtin-objs)
 	$(Q)$(TARGETCC) -shared $(builtin-objs) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
-$(DEPENDENCY_FILES): $(DEPENDENCY_SCRIPT)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)"
+$(DEPENDENCY_FILES): $(DEPENDENCY_SCRIPT) $(DEPENDENCY_SPEC)
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--cache="$(DEPENDENCY_CACHE)"
 
 reconf: $(DEPENDENCY_SCRIPT)
 	$(Q)echo "[re]running dependency-resolver..."
 	$(Q)$(RM) -f $(DEPENDENCY_FILES)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)"
+	$(Q)$(RM) $(DEPENDENCY_CACHE)
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--cache="$(DEPENDENCY_CACHE)"
 
 PHONY += reconf
 
@@ -373,7 +376,7 @@ clean:
 PHONY += clean
 
 distclean: clean
-	$(Q)$(RM) -Rf .config* $(DEPENDENCY_FILES) $(KCONFIG_INCLUDE)
+	$(Q)$(RM) -Rf .config* $(DEPENDENCY_FILES) $(KCONFIG_INCLUDE) $(DEPENDENCY_CACHE)
 
 PHONY += distclean
 

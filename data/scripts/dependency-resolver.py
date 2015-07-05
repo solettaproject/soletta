@@ -33,6 +33,7 @@
 import argparse
 import json
 import os
+import pickle
 import subprocess
 import sys
 import tempfile
@@ -282,16 +283,28 @@ if __name__ == "__main__":
                         type=argparse.FileType("r"), default="data/jsons/dependencies.json")
     parser.add_argument("--common-cflags-var", help="The makefile variable to group common cflags",
                         type=str, default="COMMON_CFLAGS")
+    parser.add_argument("--cache", help="The configuration cache.", type=str,
+                        default=".config-cache")
 
     args = parser.parse_args()
-    conf = json.loads(args.dep_config.read())
-    dep_checks = conf.get("dependencies")
-    pre_checks = conf.get("pre-dependencies")
 
-    context = DepContext()
+    context = None
+    if os.path.isfile(args.cache):
+        cache = open(args.cache, "rb")
+        context = pickle.load(cache)
+        cache.close()
+    else:
+        conf = json.loads(args.dep_config.read())
+        dep_checks = conf.get("dependencies")
+        pre_checks = conf.get("pre-dependencies")
 
-    run(args, pre_checks, context)
-    run(args, dep_checks, context)
+        context = DepContext()
+
+        run(args, pre_checks, context)
+        run(args, dep_checks, context)
+        cache = open(args.cache, "wb")
+        pickle.dump(context, cache, pickle.HIGHEST_PROTOCOL)
+        cache.close()
 
     makefile_gen(args, context)
     kconfig_gen(args, context)
