@@ -38,13 +38,7 @@
 #include "sol-worker-thread-impl.h"
 
 struct sol_worker_thread_glib {
-    const void *data;
-    bool (*setup)(void *data);
-    void (*cleanup)(void *data);
-    bool (*iterate)(void *data);
-    void (*cancel)(void *data);
-    void (*finished)(void *data);
-    void (*feedback)(void *data);
+    struct sol_worker_thread_spec spec;
     struct sol_idle *idler;
     GMutex lock;
     GThread *thread;
@@ -66,8 +60,8 @@ sol_worker_thread_finished(void *data)
 
     SOL_DBG("worker thread %p finished", thread);
 
-    if (thread->finished)
-        thread->finished((void *)thread->data);
+    if (thread->spec.finished)
+        thread->spec.finished((void *)thread->spec.data);
 
     free(thread);
     return false;
@@ -77,21 +71,22 @@ static gpointer
 sol_worker_thread_do(gpointer data)
 {
     struct sol_worker_thread_glib *thread = data;
+    struct sol_worker_thread_spec *spec = &thread->spec;
 
     SOL_DBG("worker thread %p started", thread);
 
-    if (thread->setup) {
-        if (!thread->setup((void *)thread->data))
+    if (spec->setup) {
+        if (!spec->setup((void *)spec->data))
             goto end;
     }
 
     while (thread->thread) {
-        if (!thread->iterate((void *)thread->data))
+        if (!spec->iterate((void *)spec->data))
             break;
     }
 
-    if (thread->cleanup)
-        thread->cleanup((void *)thread->data);
+    if (spec->cleanup)
+        spec->cleanup((void *)spec->data);
 
 end:
     g_mutex_lock(&thread->lock);
@@ -106,30 +101,16 @@ end:
 }
 
 void *
-sol_worker_thread_impl_new(bool (*setup)(void *data),
-    void (*cleanup)(void *data),
-    bool (*iterate)(void *data),
-    void (*cancel)(void *data),
-    void (*finished)(void *data),
-    void (*feedback)(void *data),
-    const void *data)
+sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
 {
     static uint16_t thr_cnt = 0;
     struct sol_worker_thread_glib *thread;
     char name[16];
 
-    SOL_NULL_CHECK(iterate, NULL);
-
     thread = calloc(1, sizeof(*thread));
     SOL_NULL_CHECK(thread, NULL);
 
-    thread->data = data;
-    thread->setup = setup;
-    thread->cleanup = cleanup;
-    thread->iterate = iterate;
-    thread->cancel = cancel;
-    thread->finished = finished;
-    thread->feedback = feedback;
+    thread->spec = *spec;
 
     g_mutex_init(&thread->lock);
 
@@ -161,8 +142,8 @@ sol_worker_thread_impl_cancel(void *handle)
         return;
     }
 
-    if (thread->cancel)
-        thread->cancel((void *)thread->data);
+    if (thread->spec.cancel)
+        thread->spec.cancel((void *)thread->spec.data);
 
     g_thread_join(thread->thread);
     thread->thread = NULL;
@@ -181,7 +162,7 @@ sol_worker_thread_feedback_dispatch(void *data)
     thread->idler = NULL;
     g_mutex_unlock(&thread->lock);
 
-    thread->feedback((void *)thread->data);
+    thread->spec.feedback((void *)thread->spec.data);
     return false;
 }
 
@@ -191,7 +172,7 @@ sol_worker_thread_impl_feedback(void *handle)
     struct sol_worker_thread_glib *thread = handle;
 
     SOL_NULL_CHECK(thread);
-    SOL_NULL_CHECK(thread->feedback);
+    SOL_NULL_CHECK(thread->spec.feedback);
 
     if (!thread->thread) {
         SOL_WRN("worker thread %p is not running.", thread);
