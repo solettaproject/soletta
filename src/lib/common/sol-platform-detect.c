@@ -215,7 +215,7 @@ sol_platform_detect(void)
     struct sol_json_token token, key, value, platform_name = { NULL };
     enum sol_json_loop_reason reason;
 
-    json_doc = _json_open_doc(DATADIR "/platform_detect.json", &scanner);
+    json_doc = _json_open_doc(SOL_DATADIR "/platform_detect.json", &scanner);
     if (!json_doc)
         return NULL;
 
