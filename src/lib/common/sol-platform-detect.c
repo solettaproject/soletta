@@ -219,7 +219,7 @@ sol_platform_detect(void)
 
     json_doc = _json_open_doc(PKGSYSCONFDIR PLATFORM_JSON, &scanner);
     if (!json_doc) {
-        json_doc = _json_open_doc(DATADIR PLATFORM_JSON, &scanner);
+        json_doc = _json_open_doc(SOL_DATADIR PLATFORM_JSON, &scanner);
         if (!json_doc) {
             SOL_INF(PLATFORM_JSON " could not be found. Searched paths:\n.%s\n%s",
                 PKGSYSCONFDIR, DATADIR);
