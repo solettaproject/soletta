@@ -46,8 +46,8 @@ class DepContext:
         self.kconfig = {}
         self.makefile_vars = {}
 
-    def add_kconfig(self, k, v):
-        self.kconfig[k] = v
+    def add_kconfig(self, k, t, v):
+        self.kconfig[k] = {"value": v, "type": t}
 
     def get_kconfig(self):
         return self.kconfig
@@ -125,7 +125,7 @@ def handle_pkgconfig_check(args, conf, context):
             context.add_cond_makefile_var("%s_LDFLAGS" % dep, ldflags)
 
     have_var = "y" if ((cflags_stat or ldflags_stat) and ver_match) else "n"
-    context.add_kconfig("HAVE_%s" % dep, have_var)
+    context.add_kconfig("HAVE_%s" % dep, "bool", have_var)
 
 def compile_test(source, compiler, cflags, ldflags):
     f = tempfile.NamedTemporaryFile(suffix=".c",delete=False)
@@ -179,13 +179,13 @@ def handle_ccode_check(args, conf, context):
                            conf.get("ldflags", ""))
 
     if success:
-        context.add_kconfig("HAVE_%s" % dep, "y")
+        context.add_kconfig("HAVE_%s" % dep, "bool", "y")
         if cflags:
             set_makefile_compflags(cflags, dep, "CFLAGS")
         if ldflags:
             set_makefile_compflags(ldflags, dep, "LDFLAGS")
     else:
-        context.add_kconfig("HAVE_%s" % dep, "n")
+        context.add_kconfig("HAVE_%s" % dep, "bool", "n")
 
 def handle_exec_check(args, conf, context):
     dep = conf["dependency"].upper()
@@ -260,8 +260,8 @@ def makefile_gen(args, context):
 def kconfig_gen(args, context):
     output = ""
     for k,v in context.get_kconfig().items():
-        output += "config {config}\n{indent}bool\n{indent}default {enabled}\n". \
-                  format(config=k, indent="       ", enabled=v)
+        output += "config {config}\n{indent}{ktype}\n{indent}default {enabled}\n". \
+                  format(config=k, indent="       ", ktype=v["type"], enabled=v["value"])
     f = open(args.kconfig_output, "w+")
     f.write(output)
     f.close()
@@ -273,6 +273,56 @@ def run(args, dep_checks, context):
             print("Could not handle type: %s" % i["type"])
             continue
         handler(args, i, context)
+
+def vars_expand(origin, dest, maxrec):
+    remaining = {}
+
+    if not maxrec:
+        return
+
+    for k,v in origin.items():
+        if not isinstance(v, str):
+            dest[k] = v
+            continue
+
+        try:
+            dest[k] = v.format(**dest)
+        except KeyError:
+            remaining[k] = v
+
+    if remaining:
+        vars_expand(remaining, dest, maxrec - 1)
+
+def handle_definitions(args, conf, context):
+    definitions = conf.get("definitions")
+
+    variables = {"PREFIX": args.prefix}
+    vars_expand(definitions, variables, len(definitions))
+
+    header = ""
+    for k,v in variables.items():
+        if k == "PREFIX":
+            continue
+
+        if isinstance(v, str):
+            value = "\"%s\"" % v
+        else:
+            value = "%d" % v
+        context.add_cond_makefile_var(k, v)
+        header += "#define %s %s\n" % (k, value)
+
+    dirname = os.path.dirname(args.definitions_header)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    f = open(args.definitions_header, "w")
+    f.write(header)
+    f.close()
+
+def cache_persist(args, context):
+    cache = open(args.cache, "wb")
+    pickle.dump(context, cache, pickle.HIGHEST_PROTOCOL)
+    cache.close()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -286,20 +336,31 @@ if __name__ == "__main__":
                         type=str, default="Makefile.gen")
     parser.add_argument("--dep-config", help="The dependencies config file",
                         type=argparse.FileType("r"), default="data/jsons/dependencies.json")
-    parser.add_argument("--common-cflags-var", help="The makefile variable to group common cflags",
+    parser.add_argument("--common-cflags-var", help=("The makefile variable to "
+                                                     "group common cflags"),
                         type=str, default="COMMON_CFLAGS")
     parser.add_argument("--cache", help="The configuration cache.", type=str,
                         default=".config-cache")
+    parser.add_argument("--prefix", help="The installation prefix",
+                        type=str, default="/usr")
+    parser.add_argument("--definitions-header",
+                        help=("File containing definitions propagated to source code"),
+                        type=str,
+                        default="include/generated/sol_definitions.h")
+    parser.add_argument("--makefile-gen", help="Should generate Makefile.gen?",
+                        action="store_true")
+    parser.add_argument("--kconfig-gen", help="Should generate Kconfig.gen?",
+                        action="store_true")
 
     args = parser.parse_args()
 
     context = None
+    conf = json.loads(args.dep_config.read())
     if os.path.isfile(args.cache):
         cache = open(args.cache, "rb")
         context = pickle.load(cache)
         cache.close()
     else:
-        conf = json.loads(args.dep_config.read())
         dep_checks = conf.get("dependencies")
         pre_checks = conf.get("pre-dependencies")
 
@@ -307,9 +368,12 @@ if __name__ == "__main__":
 
         run(args, pre_checks, context)
         run(args, dep_checks, context)
-        cache = open(args.cache, "wb")
-        pickle.dump(context, cache, pickle.HIGHEST_PROTOCOL)
-        cache.close()
+        cache_persist(args, context)
 
-    makefile_gen(args, context)
-    kconfig_gen(args, context)
+    if args.makefile_gen:
+        handle_definitions(args, conf, context)
+        makefile_gen(args, context)
+        cache_persist(args, context)
+
+    if args.kconfig_gen:
+        kconfig_gen(args, context)
