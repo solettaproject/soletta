@@ -1,4 +1,28 @@
 {
+    "definitions" : {
+        "VERSION_MAJOR": 0,
+        "VERSION_MINOR": 0,
+        "VERSION_RELEASE": 1,
+        "VERSION": "{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_RELEASE}",
+        "DESTDIR": "/",
+        "SYSCONF": "/etc/",
+        "LIBDIR": "{PREFIX}/lib/",
+        "DATADIR": "{PREFIX}/share/",
+        "BINDIR": "{PREFIX}/bin/",
+        "INCLUDEDIR": "{PREFIX}/include/",
+        "SOL_DATADIR": "{DATADIR}soletta/",
+        "SOL_INCLUDEDIR": "{INCLUDEDIR}soletta/",
+        "MODULESDIR": "{LIBDIR}soletta/modules/",
+        "SOL_FLOW_DATADIR": "{SOL_DATADIR}flow/",
+        "DESCDIR": "{SOL_FLOW_DATADIR}descriptions/",
+        "SCHEMADIR": "{SOL_FLOW_DATADIR}schema/",
+        "PCDIR": "{LIBDIR}pkgconfig/",
+        "PKGNAME": "soletta",
+        "PKGSYSCONFDIR": "{SYSCONF}soletta/",
+        "FLOWMODULESDIR": "{MODULESDIR}flow/",
+        "PINMUXDIR": "{MODULESDIR}pin-mux/",
+        "LINUXMICROMODULESDIR": "{MODULESDIR}linux-micro/"
+    },
     "pre-dependencies": [
 	{
 	    "dependency": "gnu_source",
