@@ -347,6 +347,17 @@ file_writer_worker_thread_iterate(void *data)
 static int
 file_writer_load(struct file_writer_data *mdata)
 {
+    struct sol_worker_thread_spec spec = {
+        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        .setup = file_writer_worker_thread_setup,
+        .cleanup = file_writer_worker_thread_cleanup,
+        .iterate = file_writer_worker_thread_iterate,
+        .cancel = NULL,
+        .finished = file_writer_worker_thread_finished,
+        .feedback = file_writer_worker_thread_feedback,
+        .data = mdata
+    };
+
     if (!mdata->path || !mdata->pending_blob)
         return 0;
 
@@ -356,14 +367,7 @@ file_writer_load(struct file_writer_data *mdata)
     mdata->canceled = false;
     file_writer_send(mdata);
 
-    mdata->worker = sol_worker_thread_new(
-        file_writer_worker_thread_setup,
-        file_writer_worker_thread_cleanup,
-        file_writer_worker_thread_iterate,
-        NULL,
-        file_writer_worker_thread_finished,
-        file_writer_worker_thread_feedback,
-        mdata);
+    mdata->worker = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK_GOTO(mdata->worker, error);
     return 0;
 
