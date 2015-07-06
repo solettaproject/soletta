@@ -123,9 +123,8 @@ def run_check(args, uncrustify):
 
         try:
             gen = unified_diff(fromlines, tolines, f, unc_file)
-            if gen:
-                passed = False
             for ln in gen:
+                passed = False
                 if sys.stdout.isatty() and not args.no_colors:
                     out = re.sub("^\@", "%s@" % DIFF_REF_COLOR, \
                                  re.sub("^\-", "%s-" % DIFF_REM_COLOR, \
