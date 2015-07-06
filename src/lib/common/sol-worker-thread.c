@@ -32,23 +32,18 @@
 
 #include <stdlib.h>
 
+#include "sol-macros.h"
 #include "sol-worker-thread.h"
 #include "sol-worker-thread-impl.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_worker_thread_log_domain, "worker-thread");
 
 SOL_API struct sol_worker_thread *
-sol_worker_thread_new(bool (*setup)(void *data),
-    void (*cleanup)(void *data),
-    bool (*iterate)(void *data),
-    void (*cancel)(void *data),
-    void (*finished)(void *data),
-    void (*feedback)(void *data),
-    const void *data)
+sol_worker_thread_new(const struct sol_worker_thread_spec *spec)
 {
-    SOL_NULL_CHECK(iterate, NULL);
-    return sol_worker_thread_impl_new(setup, cleanup, iterate,
-        cancel, finished, feedback, data);
+    SOL_NULL_CHECK(spec, NULL);
+    SOL_NULL_CHECK(spec->iterate, NULL);
+    return sol_worker_thread_impl_new(spec);
 }
 
 SOL_API void

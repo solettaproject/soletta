@@ -32,13 +32,11 @@
 
 #pragma once
 
-#include <stdbool.h>
-
 #define SOL_LOG_DOMAIN &_sol_worker_thread_log_domain
 extern struct sol_log_domain _sol_worker_thread_log_domain;
 #include "sol-log-internal.h"
 #include "sol-worker-thread.h"
 
-void *sol_worker_thread_impl_new(bool (*setup)(void *data), void (*cleanup)(void *data), bool (*iterate)(void *data), void (*cancel)(void *data), void (*finished)(void *data), void (*feedback)(void *data), const void *data);
+void *sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec);
 void sol_worker_thread_impl_cancel(void *handle);
 void sol_worker_thread_impl_feedback(void *handle);

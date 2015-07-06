@@ -33,9 +33,33 @@
 #pragma once
 
 #include <stdbool.h>
+#include <inttypes.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // TODO abstract locks? see eina_lock.h
 struct sol_worker_thread;
+
+/**
+ * @struct sol_worker_thread_spec
+ * @brief Worker thread functions and context data specification.
+ */
+struct sol_worker_thread_spec {
+#define SOL_WORKER_THREAD_SPEC_API_VERSION (1)
+    uint16_t api_version; /**< must match SOL_WORKER_THREAD_SPEC_API_VERSION in runtime */
+    int : 0;              /* hole reserved for future use */
+    bool (*setup)(void *data); /**< function to be called once from the @b worker thread, before all other thread functions. It's always called if sol_worker_thread_new() returns non-NULL. If the setup function returns false then the thread is terminated and no further functions will be called from the thread -- that is, only the @a finished may be called. May be @c NULL if nothing is to be done. */
+    void (*cleanup)(void *data); /**< function to be called once from the @b worker thread, after all other thread functions. It's always called if sol_worker_thread_new() returns non-NULL. If the @a setup function returns false, then this function will @b not be called! May be @c NULL if nothing is to be done. */
+    bool (*iterate)(void *data); /**< function to be called repeatedly from the @b worker thread until it returns false or sol_worker_thread_cancel() is called from the main thread. If the @a setup function returns false, then this function will @b not be called! This function must @b not be @c NULL. */
+    void (*cancel)(void *data); /**< function to be called from the @b main thread before the worker thread is to be terminated. There is @b no locking, then if you touch sensitive resources shared with the thread be sure to handle locking to avoid race-conditions -- both @a setup, @a iterate or @a cleanup may be in executing when this function is called! May be @c NULL if nothing is to be done. */
+    void (*finished)(void *data); /**< function to be called from the @b main thread after the worker thread is finished. After this function is called the pointer to the worker thread is freed and should be considered invalid. This function is called both when the work is finished (@a iterate returns false) and when
+the thread is cancelled with sol_worker_thread_cancel()). May be @c NULL if nothing is to be done. */
+    void (*feedback)(void *data); /**< function to be called from the @b main thread after the worker thread calls sol_worker_thread_feedback(). May be @c NULL if nothing is to be done. */
+    const void *data; /**< the context data to give to all functions. */
+};
+
 /**
  * Create and run a worker thread.
  *
@@ -58,58 +82,19 @@ struct sol_worker_thread;
  *
  * @note this function must be called from the @b main thread.
  *
- * @param setup function to be called once from the @b worker thread,
- *        before all other thread functions. It's always called if
- *        sol_worker_thread_new() returns non-NULL. If the setup
- *        function returns false then the thread is terminated and no
- *        further functions will be called from the thread -- that is,
- *        only the @a finished may be called. May be @c NULL if
- *        nothing is to be done.
- *
- * @param cleanup function to be called once from the @b worker thread,
- *        after all other thread functions. It's always called if
- *        sol_worker_thread_new() returns non-NULL. If the @a setup
- *        function returns false, then this function will @b not be
- *        called! May be @c NULL if nothing is to be done.
- *
- * @param iterate function to be called repeatedly from the @b worker
- *        thread until it returns false or sol_worker_thread_cancel()
- *        is called from the main thread. If the @a setup function
- *        returns false, then this function will @b not be called!
- *        This function must @b not be @c NULL.
- *
- * @param cancel function to be called from the @b main thread before
- *        the worker thread is to be terminated. There is @b no
- *        locking, then if you touch sensitive resources shared with
- *        the thread be sure to handle locking to avoid
- *        race-conditions -- both @a setup, @a iterate or @a cleanup
- *        may be in executing when this function is called! May be @c
- *        NULL if nothing is to be done.
- *
- * @param finished function to be called from the @b main thread
- *        after the worker thread is finished. After this function is
- *        called the pointer to the worker thread is freed and should
- *        be considered invalid. This function is called both when
- *        the work is finished (@a iterate returns false) and when
- *        the thread is cancelled with
- *        sol_worker_thread_cancel()). May be @c NULL if nothing is to
- *        be done.
- *
- * @param feedback function to be called from the @b main thread
- *        after the worker thread calls
- *        sol_worker_thread_feedback(). May be @c NULL if nothing is
- *        to be done.
- *
- * @param data the context data to give to all functions.
+ * @param spec worker thread specification with functions and context
+ *        data to be used.
  *
  * @return newly allocated worker thread handle on success or @c NULL
  * on errors.
  *
+ * @see sol_worker_thread_spec
  * @see sol_worker_thread_cancel()
  * @see sol_worker_thread_feedback()
  * @see sol_idle_add()
  */
-struct sol_worker_thread *sol_worker_thread_new(bool (*setup)(void *data), void (*cleanup)(void *data), bool (*iterate)(void *data), void (*cancel)(void *data), void (*finished)(void *data), void (*feedback)(void *data), const void *data);
+struct sol_worker_thread *sol_worker_thread_new(const struct sol_worker_thread_spec *spec);
+
 /**
  * Cancel a worker thread.
  *
@@ -132,6 +117,7 @@ struct sol_worker_thread *sol_worker_thread_new(bool (*setup)(void *data), void 
  * @see sol_worker_thread_new()
  */
 void sol_worker_thread_cancel(struct sol_worker_thread *thread);
+
 /**
  * Schedule feedback from the worker to the main thread.
  *
@@ -152,3 +138,7 @@ void sol_worker_thread_cancel(struct sol_worker_thread *thread);
  * @see sol_worker_thread_new()
  */
 void sol_worker_thread_feedback(struct sol_worker_thread *thread);
+
+#ifdef __cplusplus
+}
+#endif
