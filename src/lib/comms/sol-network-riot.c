@@ -72,6 +72,7 @@ sol_network_init(void)
 
         /* FIXME: set the flags */
 
+        link->api_version = SOL_NETWORK_LINK_API_VERSION;
         link->index = net_if;
 
         do {

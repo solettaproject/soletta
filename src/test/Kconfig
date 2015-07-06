@@ -8,7 +8,7 @@ config TEST_BUFFER
 
 config TEST_COAP
 	bool "coap"
-	depends on COAP
+	depends on COMMS
 	default y
 
 config TEST_FBP

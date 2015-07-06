@@ -41,7 +41,6 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
-#include "coap.h"
 #include "sol-coap.h"
 #include "sol-json.h"
 #include "sol-log-internal.h"
@@ -56,6 +55,27 @@
 #define IOTIVITY_CON_REQ_MID 0xd42
 #define IOTIVITY_CON_REQ_OBS_MID 0x7d44
 #define IOTIVITY_NONCON_REQ_MID 0x7d40
+
+#define OIC_RESOURCE_CHECK_API(ptr, ...) \
+    do {                                        \
+        if (unlikely(ptr->api_version != \
+                SOL_OIC_RESOURCE_API_VERSION)) { \
+            SOL_WRN("Couldn't handle oic client resource that has unsupported "\
+                    "version '%u', expected version is '%u'", \
+                    ptr->api_version, SOL_OIC_RESOURCE_API_VERSION); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
+#define OIC_CLIENT_CHECK_API(ptr, ...) \
+    do {                                        \
+        if (unlikely(ptr->api_version != SOL_OIC_CLIENT_API_VERSION)) { \
+            SOL_WRN("Couldn't handle oic client that has unsupported "\
+                    "version '%u', expected version is '%u'", \
+                    ptr->api_version, SOL_OIC_CLIENT_API_VERSION); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
 
 struct find_resource_ctx {
     struct sol_oic_client *client;
@@ -190,6 +210,7 @@ SOL_API struct sol_oic_resource *
 sol_oic_resource_ref(struct sol_oic_resource *r)
 {
     SOL_NULL_CHECK(r, NULL);
+    OIC_RESOURCE_CHECK_API(r, NULL);
 
     r->refcnt++;
     return r;
@@ -199,6 +220,7 @@ SOL_API void
 sol_oic_resource_unref(struct sol_oic_resource *r)
 {
     SOL_NULL_CHECK(r);
+    OIC_RESOURCE_CHECK_API(r);
 
     r->refcnt--;
     if (!r->refcnt) {
@@ -283,15 +305,19 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
 {
     static const char oc_core_uri[] = "/oc/core";
     struct sol_coap_packet *req;
-    struct find_resource_ctx *ctx = sol_util_memdup(&(struct find_resource_ctx) {
-            .client = client,
-            .cb = resource_found_cb,
-            .data = data
-        }, sizeof(*ctx));
+    struct find_resource_ctx *ctx;
     int r;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
+    SOL_NULL_CHECK(client, false);
+    OIC_CLIENT_CHECK_API(client, false);
+
+    ctx = sol_util_memdup(&(struct find_resource_ctx) {
+            .client = client,
+            .cb = resource_found_cb,
+            .data = data
+        }, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, false);
 
     /* Multicast discovery should be non-confirmable */
@@ -372,7 +398,7 @@ _resource_request_cb(struct sol_coap_packet *req, const struct sol_network_link_
 
     if (!ctx->cb)
         return -ENOENT;
-    if (!req->payload.start && req->payload.used == req->payload.size)
+    if (!sol_coap_packet_has_payload(req))
         return 0;
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0)
         return 0;
@@ -473,6 +499,11 @@ sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_re
     const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
     void *data)
 {
+    SOL_NULL_CHECK(client, false);
+    OIC_CLIENT_CHECK_API(client, false);
+    SOL_NULL_CHECK(res, false);
+    OIC_RESOURCE_CHECK_API(res, false);
+
     return _resource_request(client, res, method, payload, payload_len, callback, data, false);
 }
 
@@ -543,7 +574,9 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
     void *data, bool observe)
 {
     SOL_NULL_CHECK(client, false);
+    OIC_CLIENT_CHECK_API(client, false);
     SOL_NULL_CHECK(res, false);
+    OIC_RESOURCE_CHECK_API(res, false);
 
     if (observe) {
         if (!res->observable)
