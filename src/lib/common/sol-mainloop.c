@@ -72,8 +72,10 @@ extern int sol_platform_init(void);
 extern void sol_platform_shutdown(void);
 extern int sol_blob_init(void);
 extern void sol_blob_shutdown(void);
+#if FLOW
 extern int sol_flow_init(void);
 extern void sol_flow_shutdown(void);
+#endif
 
 static int _init_count;
 static bool mainloop_running;
@@ -112,9 +114,11 @@ sol_init(void)
     if (r < 0)
         goto blob_error;
 
+#if FLOW
     r = sol_flow_init();
     if (r < 0)
         goto flow_error;
+#endif
 
     SOL_DBG("initialized");
 
@@ -189,7 +193,9 @@ sol_shutdown(void)
         return;
 
     SOL_DBG("shutdown");
+#if FLOW
     sol_flow_shutdown();
+#endif
     sol_blob_shutdown();
     sol_pin_mux_shutdown();
     sol_platform_shutdown();
