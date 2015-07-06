@@ -31,15 +31,18 @@
  */
 
 #include <errno.h>
-#include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <limits.h>
 
 #include "sol-conffile.h"
 #include "sol-log.h"
 #include "sol-util.h"
 #include "sol-vector.h"
+#include "sol-json.h"
 
 static struct sol_ptr_vector sol_conffile_entry_vector;
 
@@ -58,93 +61,198 @@ sol_conffile_entry_sort_cb(const void *data1, const void *data2)
     return strcasecmp(e1->id, e2->id);
 }
 
+static char**
+str_split(const char* a_str, const char a_delim)
+{
+    char** result = 0;
+    size_t count = 0;
+    char* tmp_counter = 0;
+    char* tmp = 0;
+    char* last_comma = 0;
+    char delim[2];
+    delim[0] = a_delim;
+    delim[1] = 0;
+
+    tmp = strdup(a_str);
+    tmp_counter = tmp;
+    while (*tmp_counter) {
+        if (a_delim == *tmp_counter) {
+            count++;
+            last_comma = tmp_counter;
+        }
+        tmp_counter++;
+    }
+
+    count += last_comma < (tmp + strlen(tmp) - 1); // space for last comma
+    count += 1; // space for null
+
+    result = malloc(sizeof(char*) * count);
+    if (result) {
+        size_t idx  = 0;
+        char* token = strtok(tmp, delim);
+        while (token) {
+            SOL_INT_CHECK(idx, >= count, NULL);
+            *(result + idx++) = strdup(token);
+            token = strtok(0, delim);
+        }
+        SOL_INT_CHECK(idx, == count, NULL);
+        *(result + idx) = 0;
+    }
+
+    free (tmp);
+    return result;
+}
+
+static char * dup_string_from_json_token(struct sol_json_token token)
+{
+    int len;
+    char *dupped;
+
+    len = sol_json_token_get_size(&token) -2;
+    dupped = malloc(len); // remove quotes.
+    strncpy(dupped, token.start+1, len);
+    dupped[len] = '\0';
+    return dupped;
+}
+
+static void sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json_token options_object)
+{
+    char **options = NULL;
+    int len, i;
+    int numOptions = 0, curr_option = 0;
+    struct sol_json_scanner scanner;
+    struct sol_json_token token, key, value;
+    enum sol_json_loop_reason reason;
+
+    sol_json_scanner_init_from_token(&scanner, &options_object);
+    SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &key, &value, reason) {
+        numOptions += 1;
+    }
+
+    options = malloc(sizeof(char*) * numOptions);
+    sol_json_scanner_init_from_token(&scanner, &options_object);
+    SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &key, &value, reason) {
+        int key_len, value_len;
+        key_len = sol_json_token_get_size(&key) - 2; // remove quotes from the key.
+        value_len = sol_json_token_get_size(&value); // do not remove quotes from the value. ( not everythign is a string here )
+
+        len = key_len + value_len + 1;
+        options[curr_option] = malloc( len );
+        sprintf(options[curr_option], "%.*s=%.*s\0",
+                 key_len, key.start + 1, value_len, value.start);
+        curr_option += 1;
+    }
+    entry->options = (const char**) options;
+}
+
 static struct sol_ptr_vector
-sol_conffile_keyfile_to_vector(GKeyFile *keyfile)
+sol_conffile_keyfile_to_vector(struct sol_json_scanner scanner)
 {
     struct sol_ptr_vector pv;
-    gchar **groups, **groups_ptr;
     struct sol_conffile_entry *entry = NULL;
+    const char *node_group = "nodetypes";
+    const char *node_name = "name";
+    const char *node_type = "type";
+    const char *node_options = "options";
+
+    struct sol_json_token token, key, value;
+    struct sol_json_scanner obj_scanner, obj_scanner2;
+    enum sol_json_loop_reason reason;
+    bool found_nodes = false;
 
     sol_ptr_vector_init(&pv);
 
-    groups = g_key_file_get_groups(keyfile, NULL);
-    for (groups_ptr = groups; *groups_ptr; groups_ptr++) {
+    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
+        if (sol_json_token_str_eq(&key, node_group, strlen(node_group))) {
+            found_nodes = true;
+            break;
+        }
+    }
+
+    if(!found_nodes)
+        return pv;
+
+    sol_json_scanner_init_from_token(&obj_scanner, &value);
+    SOL_JSON_SCANNER_ARRAY_LOOP(&obj_scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         entry = calloc(1, sizeof(*entry));
         SOL_NULL_CHECK(entry, pv);
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&obj_scanner, &token, &key, &value, reason) {
+            if (sol_json_token_str_eq(&key, node_name, strlen(node_name))) {
+                entry->id = dup_string_from_json_token(value);
+            }
 
-        entry->id = strdup(*groups_ptr);
+            if (sol_json_token_str_eq(&key, node_type, strlen(node_type))) {
+                entry->type = dup_string_from_json_token(value);
+            }
 
-        entry->type = g_key_file_get_string(keyfile,
-            *groups_ptr, "Type", NULL);
-
-        if (!entry->type) {
-            SOL_DBG("could not find mandatory 'Type' key on group [%s],"
-                " skipping entry", *groups_ptr);
-            free((void *)entry->id);
-            free(entry);
-            continue;
+            if (sol_json_token_str_eq(&key, node_options, strlen(node_options))) {
+                sol_conffile_set_entry_options(entry, value);
+            }
         }
 
-        entry->options = (const char **)g_key_file_get_string_list(keyfile,
-            *groups_ptr, "Options", NULL, NULL);
-
-        sol_ptr_vector_insert_sorted(&pv, entry,
-            sol_conffile_entry_sort_cb);
+        sol_ptr_vector_insert_sorted(&pv, entry, sol_conffile_entry_sort_cb);
     }
-    g_strfreev(groups);
-
     return pv;
 }
 
 static void
-sol_conffile_get_keyfile_include_paths(GKeyFile *keyfile,
+sol_conffile_get_keyfile_include_paths(
+    struct sol_json_scanner json_scanner,
     char **include,
     char **include_fallbacks)
 {
     const char *include_group = "SolettaInclude";
-    GError *error = NULL;
+    const char *include_str = "Include";
+    const char *include_fallback = "IncludeFallbacks";
 
-    if (!g_key_file_has_group(keyfile, include_group))
+    bool found_include = false;
+
+    struct sol_json_token token, key, value;
+    struct sol_json_scanner include_scanner;
+    enum sol_json_loop_reason reason;
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (&json_scanner, &token, &key, &value, reason) {
+        if (sol_json_token_str_eq(&key, include_group, strlen(include_group))) {
+            found_include = true;
+            break;
+        }
+    }
+
+    if (!found_include)
         return;
 
-    *include = g_key_file_get_string(keyfile,
-        include_group, "Include", &error);
-    if (*include == NULL && error
-        && error->code != G_KEY_FILE_ERROR_KEY_NOT_FOUND) {
-        SOL_DBG("could not read value from %s group: %s",
-            include_group, error->message);
-        g_error_free(error);
-    }
-
-    *include_fallbacks = g_key_file_get_string(keyfile, include_group,
-        "IncludeFallbacks", &error);
-    if (*include_fallbacks == NULL && error
-        && error->code != G_KEY_FILE_ERROR_KEY_NOT_FOUND) {
-        SOL_DBG("could not read value from %s group: %s",
-            include_group, error->message);
-        g_error_free(error);
-    }
-
-    if (!g_key_file_remove_group(keyfile, include_group, &error)) {
-        SOL_DBG("could not remove %s group: %s", include_group,
-            error ? error->message : "unknown error");
-        g_error_free(error);
+    sol_json_scanner_init_from_token(&include_scanner, &value);
+    SOL_JSON_SCANNER_OBJECT_LOOP (&include_scanner, &token, &key, &value, reason) {
+        if (sol_json_token_str_eq(&key, include_str, strlen(include_str))) {
+            *include = malloc(sol_json_token_get_size(&value) + 1);
+            strncpy(*include, value.start, sol_json_token_get_size(&value));
+            continue;
+        }
+        if (sol_json_token_str_eq(&key, include_fallback, strlen(include_fallback))) {
+            *include_fallbacks = malloc(sol_json_token_get_size(&value) + 1);
+            strncpy(*include, value.start, sol_json_token_get_size(&value));
+            continue;
+        }
     }
 }
 
-static GKeyFile *
+static char *
 sol_conffile_load_keyfile_from_dirs(const char *file, char **full_path)
 {
+    int i;
     char *cwd = NULL;
-    GError *error = NULL;
-    GKeyFile *keyfile = NULL;
+    FILE *keyfile = NULL;
+    char *config_file_contents;
     char cwdbuf[PATH_MAX + 1];
+    unsigned int length = 0;
     const char *search_dirs[] = {
         NULL,
         ".",
         PKGSYSCONFDIR,
         NULL,
     };
+    int search_dirs_size;
+    search_dirs_size = sizeof(search_dirs)/sizeof(*search_dirs);
 
     cwd = getcwd(cwdbuf, sizeof(cwdbuf));
     if (cwd)
@@ -152,53 +260,62 @@ sol_conffile_load_keyfile_from_dirs(const char *file, char **full_path)
     else
         SOL_DBG("could not getcwd: %d", errno);
 
-    keyfile = g_key_file_new();
-    SOL_NULL_CHECK(keyfile, NULL);
-
     /* absolute path */
-    if (g_path_is_absolute(file)) {
-        if (!g_key_file_load_from_file(keyfile,
-            file, G_KEY_FILE_NONE, &error))
-            goto err;
-    } else if (!g_key_file_load_from_dirs(keyfile, file, search_dirs,
-        full_path, G_KEY_FILE_NONE,
-        &error))
-        goto err;
+    if (file[0] == '/') {
+        keyfile = fopen(file, "r");
+    } else {
+        for (i = 0; i < search_dirs_size; i++) {
+            char filename[PATH_MAX+1];
+            struct stat st;
+            sprintf(filename, "%s/%s", search_dirs[i],file);
+            if (stat(filename, &st) != 0)
+                continue;
 
-    return keyfile;
-
-err:
-    SOL_DBG("could not load file '%s' from dirs: %s",
-        file, error ? error->message : "unknown error");
-    g_error_free(error);
-    g_key_file_free(keyfile);
-    return NULL;
-}
-
-static GKeyFile *
-sol_conffile_load_keyfile_from_paths(const char *path,
-    const char *fallback_paths,
-    char **full_path)
-{
-    gchar **ptr;
-    gchar **splitted_paths;
-    GKeyFile *keyfile = NULL;
-
-    if (path)
-        keyfile = sol_conffile_load_keyfile_from_dirs(path, full_path);
-
-    if (fallback_paths && !keyfile) {
-        splitted_paths = g_strsplit(fallback_paths, ";", -1);
-        for (ptr = splitted_paths; *ptr; ptr++) {
-            keyfile = sol_conffile_load_keyfile_from_dirs
-                    (*ptr, full_path);
-            if (keyfile)
+            keyfile = fopen(filename, "r");
+            if(keyfile) {
                 break;
+            }
         }
-        g_strfreev(splitted_paths);
     }
 
-    return keyfile;
+    if (!keyfile)
+        SOL_DBG("could not load file '%s' from dirs: unknown error");
+
+    /* reads all the config to a temporary buffer */
+    fseek (keyfile, 0, SEEK_END);
+    length = ftell (keyfile);
+    fseek (keyfile, 0, SEEK_SET);
+    config_file_contents = malloc (length);
+    if (config_file_contents) {
+        fread (config_file_contents, 1, length, keyfile);
+    }
+    fclose (keyfile);
+    return config_file_contents;
+}
+
+static char*
+sol_conffile_load_keyfile_from_paths(const char *path,
+            const char *fallback_paths,
+            char **full_path)
+{
+    char **ptr;
+    char **splitted_paths;
+    char *config_file_contents = NULL;
+
+    if (path)
+        config_file_contents = sol_conffile_load_keyfile_from_dirs(path, full_path);
+
+    if (fallback_paths && !config_file_contents) {
+        splitted_paths = str_split(fallback_paths, ';');
+        for (ptr = splitted_paths; *ptr; ptr++) {
+            config_file_contents = sol_conffile_load_keyfile_from_dirs(*ptr, full_path);
+            if (config_file_contents) {
+                break;
+            }
+        }
+        free (splitted_paths);
+    }
+    return config_file_contents;
 }
 
 static void
@@ -209,9 +326,9 @@ sol_conffile_free_entry_vector(struct sol_ptr_vector *pv)
 
     SOL_PTR_VECTOR_FOREACH_IDX (pv, e, i) {
         free((void *)e->id);
-        g_free((void *)e->type);
+        free((void *)e->type);
         if (e->options)
-            g_strfreev((gchar **)e->options);
+            free((char **)e->options);
         free(e);
     }
 
@@ -225,8 +342,9 @@ sol_conffile_append_to_entry_vector(struct sol_ptr_vector pv)
     struct sol_conffile_entry *pv_entry;
     uint16_t i, j;
 
-    if (sol_ptr_vector_get_len(&pv) <= 0)
+    if (sol_ptr_vector_get_len(&pv) <= 0) {
         return false;
+    }
 
     if (sol_ptr_vector_get_len(&sol_conffile_entry_vector) <= 0) {
         sol_conffile_entry_vector = pv;
@@ -235,10 +353,9 @@ sol_conffile_append_to_entry_vector(struct sol_ptr_vector pv)
 
     SOL_PTR_VECTOR_FOREACH_IDX (&pv, pv_entry, i) {
         SOL_PTR_VECTOR_FOREACH_IDX (&sol_conffile_entry_vector,
-            sol_conffile_entry_vector_entry, j) {
-            if (streq(pv_entry->id,
-                sol_conffile_entry_vector_entry->id)) {
-                SOL_DBG("Ignoring entry [%s], as it already exists",
+                                    sol_conffile_entry_vector_entry, j) {
+            if (streq(pv_entry->id, sol_conffile_entry_vector_entry->id)) {
+                    SOL_WRN("Ignoring entry [%s], as it already exists",
                     pv_entry->id);
                 sol_conffile_free_entry_vector(&pv);
                 return false;
@@ -247,12 +364,10 @@ sol_conffile_append_to_entry_vector(struct sol_ptr_vector pv)
     }
 
     SOL_PTR_VECTOR_FOREACH_IDX (&pv, pv_entry, i) {
-        sol_ptr_vector_insert_sorted(&sol_conffile_entry_vector,
-            pv_entry, sol_conffile_entry_sort_cb);
+        sol_ptr_vector_insert_sorted(&sol_conffile_entry_vector, pv_entry, sol_conffile_entry_sort_cb);
     }
 
     sol_ptr_vector_clear(&pv);
-
     return true;
 }
 
@@ -262,19 +377,20 @@ sol_conffile_fill_vector(const char *path, const char *fallback_paths)
     char *full_path = NULL;
     char *include = NULL;
     char *include_fallbacks = NULL;
-    GKeyFile *keyfile = NULL;
-    struct sol_ptr_vector pv;
+    char *config_file_contents = NULL;
 
-    keyfile = sol_conffile_load_keyfile_from_paths
-            (path, fallback_paths, &full_path);
-    if (!keyfile)
+    struct sol_ptr_vector pv;
+    struct sol_json_scanner json_scanner;
+
+    config_file_contents = sol_conffile_load_keyfile_from_paths(path, fallback_paths, &full_path);
+    if (!config_file_contents)
         return;
 
-    sol_conffile_get_keyfile_include_paths
-        (keyfile, &include, &include_fallbacks);
+    sol_json_scanner_init(&json_scanner, config_file_contents, strlen(config_file_contents));
+    sol_conffile_get_keyfile_include_paths(json_scanner, &include, &include_fallbacks);
 
-    pv = sol_conffile_keyfile_to_vector(keyfile);
-    g_key_file_free(keyfile);
+    pv = sol_conffile_keyfile_to_vector(json_scanner);
+    free(config_file_contents);
 
     if (!sol_conffile_append_to_entry_vector(pv)) {
         SOL_DBG("Ignoring conffile %s", full_path);
@@ -285,16 +401,16 @@ sol_conffile_fill_vector(const char *path, const char *fallback_paths)
         sol_conffile_fill_vector(include, include_fallbacks);
 
 free_for_all:
-    g_free(full_path);
-    g_free(include);
-    g_free(include_fallbacks);
+    free(full_path);
+    free(include);
+    free(include_fallbacks);
 }
 
 static void
 sol_conffile_load_vector(void)
 {
     sol_conffile_fill_vector(getenv("SOL_FLOW_MODULE_RESOLVER_CONFFILE"),
-        "sol-flow.conf");
+        "sol-flow.json");
     /*
      * TODO: Add the following fill priority:
      * 1. Envvar
@@ -307,7 +423,7 @@ sol_conffile_load_vector(void)
 static void
 sol_conffile_clear_data(void)
 {
-    sol_conffile_free_entry_vector(&sol_conffile_entry_vector);
+    //sol_conffile_free_entry_vector(&sol_conffile_entry_vector);
 }
 
 static int
@@ -324,36 +440,32 @@ _sol_conffile_resolve(const char *id, const char **type, const char ***opts)
 {
     struct sol_conffile_entry key;
     struct sol_conffile_entry *entry;
-    char entry_id[PATH_MAX];
     void **vector_pointer;
     int r;
 
-    if (sol_ptr_vector_get_len(&sol_conffile_entry_vector) <= 0)
+    if (sol_ptr_vector_get_len(&sol_conffile_entry_vector) <= 0) {
         return -EINVAL;
+    }
 
-    r = snprintf(entry_id, sizeof(entry_id), "SolettaNodeEntry %s", id);
-    if (r < 0 || r >= (int)sizeof(entry_id))
-        return -EINVAL;
-
-    key.id = entry_id;
+    key.id = id;
     vector_pointer = bsearch(&key,
         sol_conffile_entry_vector.base.data,
         sol_ptr_vector_get_len(&sol_conffile_entry_vector),
         sol_conffile_entry_vector.base.elem_size,
         sol_conffile_bsearch_entry_sort_cb);
     if (!vector_pointer) {
-        SOL_DBG("could not find entry [%s]", entry_id);
+        SOL_DBG("could not find entry [%s]", id);
         return -EINVAL;
     }
 
     entry = *vector_pointer;
     if (!entry) {
-        SOL_DBG("could not find entry [%s]", entry_id);
+        SOL_DBG("could not find entry [%s]", id);
         return -EINVAL;
     }
 
     if (!entry->type) {
-        SOL_DBG("could not find mandatory [%s] Type= key", entry_id);
+        SOL_DBG("could not find mandatory [%s] Type= key", id);
         return -EINVAL;
     }
 
