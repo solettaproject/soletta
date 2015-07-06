@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <pthread.h>
@@ -42,7 +43,20 @@ struct sol_worker_thread_posix {
     struct sol_idle *idler;
     pthread_mutex_t lock;
     pthread_t thread;
+    bool loop;
 };
+
+static inline bool
+loop_check(const struct sol_worker_thread_posix *thread)
+{
+    return __atomic_load_n(&thread->loop, __ATOMIC_SEQ_CST);
+}
+
+static inline void
+loop_set(struct sol_worker_thread_posix *thread, bool val)
+{
+    __atomic_store_n(&thread->loop, val, __ATOMIC_SEQ_CST);
+}
 
 static bool
 sol_worker_thread_lock(struct sol_worker_thread_posix *thread)
@@ -68,7 +82,8 @@ sol_worker_thread_finished(void *data)
 {
     struct sol_worker_thread_posix *thread = data;
 
-    if (thread->thread) {
+    if (loop_check(thread)) {
+        loop_set(thread, false);
         pthread_join(thread->thread, NULL);
         thread->thread = 0;
     }
@@ -94,12 +109,14 @@ sol_worker_thread_do(void *data)
 
     SOL_DBG("worker thread %p started", thread);
 
+    loop_set(thread, true);
+
     if (spec->setup) {
         if (!spec->setup((void *)spec->data))
             goto end;
     }
 
-    while (thread->thread) {
+    while (loop_check(thread)) {
         if (!spec->iterate((void *)spec->data))
             break;
     }
@@ -168,13 +185,11 @@ void
 sol_worker_thread_impl_cancel(void *handle)
 {
     struct sol_worker_thread_posix *thread = handle;
-    pthread_t tid;
     int r;
 
     SOL_NULL_CHECK(thread);
 
-    tid = thread->thread;
-    if (!tid) {
+    if (!loop_check(thread)) {
         SOL_WRN("worker thread %p is not running.", thread);
         return;
     }
@@ -186,9 +201,9 @@ sol_worker_thread_impl_cancel(void *handle)
     if (thread->spec.cancel)
         thread->spec.cancel((void *)thread->spec.data);
 
+    loop_set(thread, false);
+    pthread_join(thread->thread, NULL);
     thread->thread = 0;
-    r = pthread_join(tid, NULL);
-    SOL_INT_CHECK(r, != 0);
 
     /* no locks since thread is now dead */
     sol_idle_del(thread->idler);
@@ -217,7 +232,7 @@ sol_worker_thread_impl_feedback(void *handle)
     SOL_NULL_CHECK(thread);
     SOL_NULL_CHECK(thread->spec.feedback);
 
-    if (!thread->thread) {
+    if (!loop_check(thread)) {
         SOL_WRN("worker thread %p is not running.", thread);
         return;
     }
