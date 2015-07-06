@@ -711,8 +711,11 @@ _sol_oic_resource_type_handle(
 {
     struct sol_coap_packet *response;
     sol_coap_responsecode_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
-    uint8_t *payload;
-    uint16_t payload_len;
+    uint8_t *payload, *response_payload;
+    uint16_t payload_len, response_len;
+    const char response_prefix[] = "{\"oc\":[{\"rep\":";
+    const char response_suffix[] = "}]}";
+    size_t len;
 
     OIC_SERVER_CHECK(-ENOTCONN);
 
@@ -722,9 +725,21 @@ _sol_oic_resource_type_handle(
         return -1;
     }
 
-    if (!handle_fn) {
-        code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+    len = strlen(response_prefix);
+
+    if (sol_coap_packet_get_payload(response, &response_payload, &response_len) < 0)
         goto done;
+
+    if (response_len <= (len + strlen(response_suffix)))
+        goto done;
+
+    memcpy(response_payload, response_prefix, len);
+    response_payload += len;
+    response_len -= len;
+
+    if (!handle_fn) {
+	    code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+	    goto done;
     }
 
     if (expect_payload) {
@@ -737,31 +752,16 @@ _sol_oic_resource_type_handle(
             code = SOL_COAP_RSPCODE_BAD_REQUEST;
             goto done;
         }
-    } else {
-        if (sol_coap_packet_get_buf(req, &payload, &payload_len) < 0) {
-            code = SOL_COAP_RSPCODE_BAD_REQUEST;
-            goto done;
-        }
-        memset(payload, 0, payload_len);
     }
 
     code = handle_fn(cliaddr, res->data, payload, &payload_len);
     if (code == SOL_COAP_RSPCODE_CONTENT) {
-        uint8_t *response_payload;
-        uint16_t response_len;
-        int r;
+        len += payload_len;
 
-        if (sol_coap_packet_get_payload(response, &response_payload, &response_len) < 0)
-            goto done;
+        len += strlen(response_suffix);
+        memcpy(response_payload, response_suffix, strlen(response_suffix));
 
-        r = snprintf((char *)response_payload, response_len, "{\"oc\":[{\"rep\":%.*s}]}",
-            (int)payload_len, payload);
-        if (r < 0 || r >= response_len) {
-            code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
-            goto done;
-        }
-
-        if (sol_coap_packet_set_payload_used(response, r) < 0) {
+        if (sol_coap_packet_set_payload_used(response, len) < 0) {
             code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
             goto done;
         }
