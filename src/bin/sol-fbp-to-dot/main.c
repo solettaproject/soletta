@@ -50,7 +50,6 @@
 #include "sol-vector.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-to-dot");
-#define SLICE_PRINT(slice) (int)slice.len, slice.data
 
 static struct sol_str_slice
 get_node_name(const struct sol_fbp_node *node)
@@ -195,7 +194,7 @@ convert_fbp_to_dot(struct sol_fbp_graph *g, const char *out)
         uint32_t input_label_color = calculate_contrasting_color(input_color);
         uint32_t output_label_color = calculate_contrasting_color(output_color);
 
-        fprintf(dot_file, "\t\"%.*s\" [\n", SLICE_PRINT(node->name));
+        fprintf(dot_file, "\t\"%.*s\" [\n", SOL_STR_SLICE_PRINT(node->name));
         fprintf(dot_file, "\t\tshape = \"none\"\n");
         fprintf(dot_file, "\t\tlabel = <<table border=\"0\" cellspacing=\"0\" color=\"#%06x\">\n",
             border_color);
@@ -204,23 +203,23 @@ convert_fbp_to_dot(struct sol_fbp_graph *g, const char *out)
             fprintf(dot_file, "\t\t\t<tr><td border=\"1\" bgcolor=\"#%06x\"><font color=\"#%06x\">"
                 "%.*s</font></td></tr>\n",
                 node_color, calculate_contrasting_color(node_color),
-                SLICE_PRINT(node->component));
+                SOL_STR_SLICE_PRINT(node->component));
         } else {
             fprintf(dot_file, "\t\t\t<tr><td border=\"1\" bgcolor=\"#%06x\"><font color=\"#%06x\">"
                 "%.*s<br/><font point-size=\"8\">%.*s</font></font></td></tr>\n",
                 node_color, calculate_contrasting_color(node_color),
-                SLICE_PRINT(get_node_name(node)), SLICE_PRINT(node->component));
+                SOL_STR_SLICE_PRINT(get_node_name(node)), SOL_STR_SLICE_PRINT(node->component));
         }
 
         SOL_VECTOR_FOREACH_IDX (&node->in_ports, port, i) {
             fprintf(dot_file, "\t\t\t<tr><td port=\"%.*s\" border=\"1\" align=\"left\" bgcolor=\"#%06x\">"
                 "<font point-size=\"10\" color=\"#%06x\">◎ %.*s</font></td></tr>\n",
-                SLICE_PRINT(port->name), input_color, input_label_color, SLICE_PRINT(port->name));
+                SOL_STR_SLICE_PRINT(port->name), input_color, input_label_color, SOL_STR_SLICE_PRINT(port->name));
         }
         SOL_VECTOR_FOREACH_IDX (&node->out_ports, port, i) {
             fprintf(dot_file, "\t\t\t<tr><td port=\"%.*s\" border=\"1\" align=\"right\" bgcolor=\"#%06x\">"
                 "<font point-size=\"10\" color=\"#%06x\">%.*s ◉</font></td></tr>\n",
-                SLICE_PRINT(port->name), output_color, output_label_color, SLICE_PRINT(port->name));
+                SOL_STR_SLICE_PRINT(port->name), output_color, output_label_color, SOL_STR_SLICE_PRINT(port->name));
         }
         fprintf(dot_file, "\t\t</table>>\n\t];\n");
     }
@@ -231,10 +230,10 @@ convert_fbp_to_dot(struct sol_fbp_graph *g, const char *out)
 
         /* Node:Port -> Node:Port */
         fprintf(dot_file, "\t\"%.*s\":%.*s:e -> \"%.*s\":%.*s:w [color=\"#%06x\"]\n",
-            SLICE_PRINT(in_node->name),
-            SLICE_PRINT(conn->src_port),
-            SLICE_PRINT(out_node->name),
-            SLICE_PRINT(conn->dst_port),
+            SOL_STR_SLICE_PRINT(in_node->name),
+            SOL_STR_SLICE_PRINT(conn->src_port),
+            SOL_STR_SLICE_PRINT(out_node->name),
+            SOL_STR_SLICE_PRINT(conn->dst_port),
             get_connection_color(in_node, out_node, conn));
 
         /* FIXME: append [label = "port type"] to each connection */
