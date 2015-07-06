@@ -313,7 +313,7 @@ $(FLOW_BUILDOPTS_H): $(FLOW_BUILDOPTS_H_IN) $(KCONFIG_CONFIG)
 		$(SED) 's/@SOL_FLOW_INSPECTOR_ENABLED@/$(inspector-enabled)/g' | \
 		$(SED) 's/@SOL_BUILD_FLOW_MODULE_RESOLVER_CONFFILE@/$(resolver-conffile-enabled)/' > $(@)
 
-ifeq (y,$(PLATFORM_LINUX_MICRO))
+ifeq (y,$(SOL_PLATFORM_LINUX))
 platform-linux-enabled  := \#define SOL_PLATFORM_LINUX 1
 endif
 
