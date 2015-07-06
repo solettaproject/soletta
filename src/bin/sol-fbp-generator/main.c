@@ -68,7 +68,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
     remaining = strndupa(meta->value.data, meta->value.len);
     SOL_NULL_CHECK(remaining);
 
-    dprintf(fd, "        .%.*s = {\n", (int)meta->key.len, meta->key.data);
+    dprintf(fd, "        .%.*s = {\n", SOL_STR_SLICE_PRINT(meta->key));
     while (remaining) {
         p = memchr(remaining, '|', strlen(remaining));
         if (p)
@@ -166,19 +166,19 @@ handle_options(const struct sol_fbp_meta *meta, struct sol_vector *options)
                 handle_suboptions(meta, handle_direction_vector_suboption);
         } else if (streq(o->data_type, "string")) {
             if (meta->value.data[0] == '"')
-                dprintf(fd, "        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
+                dprintf(fd, "        .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
             else
-                dprintf(fd, "        .%.*s = \"%.*s\",\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
+                dprintf(fd, "        .%.*s = \"%.*s\",\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
 
         } else {
-            dprintf(fd, "        .%.*s = %.*s,\n", (int)meta->key.len, meta->key.data, (int)meta->value.len, meta->value.data);
+            dprintf(fd, "        .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
         }
 
         return true;
     }
 
     sol_fbp_log_print(args.fbp_file, meta->position.line, meta->position.column,
-        "Invalid option key '%.*s'", (int)meta->key.len, meta->key.data);
+        "Invalid option key '%.*s'", SOL_STR_SLICE_PRINT(meta->key));
     return false;
 }
 
@@ -302,7 +302,7 @@ handle_port_error(struct sol_vector *ports, struct sol_str_slice *name, struct s
 
         sol_fbp_log_print(args.fbp_file, p->position.line, p->position.column,
             "Port '%.*s' doesn't exist for node type '%.*s'",
-            (int)name->len, name->data, (int)component->len, component->data);
+            SOL_STR_SLICE_PRINT(*name), SOL_STR_SLICE_PRINT(*component));
 
         break;
     }
@@ -316,11 +316,11 @@ handle_port_index_error(struct sol_fbp_position *p, struct port_description *por
     if (port_idx == -1) {
         sol_fbp_log_print(args.fbp_file, p->line, p->column,
             "Port '%s' from node type '%.*s' is an array port and no index was given'",
-            port_desc->name, component->len, component->data);
+            port_desc->name, SOL_STR_SLICE_PRINT(*component));
     } else {
         sol_fbp_log_print(args.fbp_file, p->line, p->column,
             "Port '%s' from node type '%.*s' has size '%d', but given index '%d' is out of bounds",
-            port_desc->name, component->len, component->data, port_desc->array_size, port_idx);
+            port_desc->name, SOL_STR_SLICE_PRINT(*component), port_desc->array_size, port_idx);
     }
     return false;
 }
@@ -385,8 +385,8 @@ generate_connections(struct sol_fbp_graph *g, struct type_description **descs)
         if (!port_types_compatible(src_port_desc->data_type, dst_port_desc->data_type)) {
             sol_fbp_log_print(args.fbp_file, conn->position.line, conn->position.column,
                 "Couldn't connect '%s %.*s -> %.*s %s'. Source port type '%s' doesn't match destiny port type '%s'",
-                src_desc->name, (int)conn->src_port.len, conn->src_port.data,
-                (int)conn->dst_port.len, conn->dst_port.data, dst_desc->name,
+                src_desc->name, SOL_STR_SLICE_PRINT(conn->src_port),
+                SOL_STR_SLICE_PRINT(conn->dst_port), dst_desc->name,
                 src_port_desc->data_type, dst_port_desc->data_type);
             free(conn_specs);
             return false;
@@ -419,7 +419,7 @@ generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fb
     if (!p) {
         sol_fbp_log_print(args.fbp_file, e->position.line, e->position.column,
             "Couldn't export '%.*s'. Port '%.*s' doesn't exist in node '%s'",
-            e->exported_name.len, e->exported_name.data, e->port.len, e->port.data, node);
+            SOL_STR_SLICE_PRINT(e->exported_name), SOL_STR_SLICE_PRINT(e->port), node);
         return false;
     }
     if (e->port_idx == -1) {
@@ -431,7 +431,7 @@ generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fb
         if (e->port_idx >= p->array_size) {
             sol_fbp_log_print(args.fbp_file, e->position.line, e->position.column,
                 "Couldn't export '%.*s'. Index '%d' is out of range (port size: %d).",
-                e->exported_name.len, e->exported_name.data, e->port_idx, p->array_size);
+                SOL_STR_SLICE_PRINT(e->exported_name), e->port_idx, p->array_size);
             return false;
         }
         dprintf(fd, "    { %d, %d },\n", e->node, base + e->port_idx);
@@ -512,10 +512,10 @@ generate(struct sol_fbp_graph *g, struct type_description **descs)
     SOL_VECTOR_FOREACH_IDX (&g->nodes, n, i) {
         if (n->meta.len <= 0) {
             dprintf(fd, "        [%d] = {%s, \"%.*s\", NULL},\n",
-                i, descs[i]->symbol, (int)n->name.len, n->name.data);
+                i, descs[i]->symbol, SOL_STR_SLICE_PRINT(n->name));
         } else {
             dprintf(fd, "        [%d] = {%s, \"%.*s\", (struct sol_flow_node_options *) &opts%d},\n",
-                i, descs[i]->symbol, (int)n->name.len, n->name.data, i);
+                i, descs[i]->symbol, SOL_STR_SLICE_PRINT(n->name), i);
         }
     }
     dprintf(fd, "        SOL_FLOW_STATIC_NODE_SPEC_GUARD\n"
