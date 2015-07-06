@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <glib.h>
@@ -42,14 +43,30 @@ struct sol_worker_thread_glib {
     struct sol_idle *idler;
     GMutex lock;
     GThread *thread;
+    bool cancel;
 };
+
+bool
+sol_worker_thread_impl_cancel_check(const void *handle)
+{
+    const struct sol_worker_thread_glib *thread = handle;
+
+    return __atomic_load_n(&thread->cancel, __ATOMIC_SEQ_CST);
+}
+
+static inline void
+cancel_set(struct sol_worker_thread_glib *thread)
+{
+    __atomic_store_n(&thread->cancel, true, __ATOMIC_SEQ_CST);
+}
 
 static bool
 sol_worker_thread_finished(void *data)
 {
     struct sol_worker_thread_glib *thread = data;
 
-    if (thread->thread) {
+    if (!sol_worker_thread_impl_cancel_check(thread)) {
+        /* no need to set cancel, the thread has finished */
         g_thread_join(thread->thread);
         thread->thread = NULL;
     }
@@ -80,7 +97,7 @@ sol_worker_thread_do(gpointer data)
             goto end;
     }
 
-    while (thread->thread) {
+    while (!sol_worker_thread_impl_cancel_check(thread)) {
         if (!spec->iterate((void *)spec->data))
             break;
     }
@@ -133,7 +150,7 @@ sol_worker_thread_impl_cancel(void *handle)
 
     SOL_NULL_CHECK(thread);
 
-    if (!thread->thread) {
+    if (sol_worker_thread_impl_cancel_check(thread)) {
         SOL_WRN("worker thread %p is not running.", thread);
         return;
     }
@@ -141,6 +158,8 @@ sol_worker_thread_impl_cancel(void *handle)
         SOL_WRN("trying to cancel from worker thread %p.", thread);
         return;
     }
+
+    cancel_set(thread);
 
     if (thread->spec.cancel)
         thread->spec.cancel((void *)thread->spec.data);
@@ -174,7 +193,7 @@ sol_worker_thread_impl_feedback(void *handle)
     SOL_NULL_CHECK(thread);
     SOL_NULL_CHECK(thread->spec.feedback);
 
-    if (!thread->thread) {
+    if (sol_worker_thread_impl_cancel_check(thread)) {
         SOL_WRN("worker thread %p is not running.", thread);
         return;
     }
