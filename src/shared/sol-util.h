@@ -42,7 +42,9 @@
 #include <time.h>
 #include <sys/types.h>
 
-#define SOL_UTIL_MAX_READ_ATTEMPTS 10
+#ifdef SOL_PLATFORM_LINUX
+#include "sol-util-linux.h"
+#endif
 
 #define streq(a, b) (strcmp((a), (b)) == 0)
 #define streqn(a, b, n) (strncmp((a), (b), (n)) == 0)
@@ -123,12 +125,6 @@ sol_util_msec_from_timespec(const struct timespec *ts)
     return ts->tv_sec * MSEC_PER_SEC + ts->tv_nsec / NSEC_PER_MSEC;
 }
 
-int sol_util_write_file(const char *path, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
-int sol_util_vwrite_file(const char *path, const char *fmt, va_list args) SOL_ATTR_PRINTF(2, 0);
-int sol_util_read_file(const char *path, const char *fmt, ...) SOL_ATTR_SCANF(2, 3);
-int sol_util_vread_file(const char *path, const char *fmt, va_list args) SOL_ATTR_SCANF(2, 0);
-void *sol_util_load_file_raw(const int fd, size_t *size);
-char *sol_util_load_file_string(const char *filename, size_t *size);
 void *sol_util_memdup(const void *data, size_t len);
 
 char *sol_util_strerror(int errnum, char *buf, size_t buflen);
@@ -159,5 +155,3 @@ align_power2(unsigned int u)
  *       elements found are returned.
  */
 struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
-
-int sol_util_get_rootdir(char *out, size_t size);
