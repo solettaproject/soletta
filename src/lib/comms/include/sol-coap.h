@@ -32,8 +32,12 @@
 
 #pragma once
 
-#include "sol-network.h"
-#include "sol-str-slice.h"
+#include <sol-network.h>
+#include <sol-str-slice.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
     SOL_COAP_OPTION_IF_MATCH = 1,
@@ -116,6 +120,9 @@ struct sol_coap_packet;
 struct sol_coap_server;
 
 struct sol_coap_resource {
+#define SOL_COAP_RESOURCE_API_VERSION (1)
+    uint16_t api_version;
+    uint16_t reserved; /* save this hole for a future field */
     /*
      * handlers for the CoAP defined methods.
      */
@@ -165,8 +172,11 @@ struct sol_coap_packet *sol_coap_packet_notification_new(struct sol_coap_server 
 struct sol_coap_packet *sol_coap_packet_ref(struct sol_coap_packet *pkt);
 void sol_coap_packet_unref(struct sol_coap_packet *pkt);
 
+int sol_coap_packet_get_buf(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len);
+
 int sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len);
 int sol_coap_packet_set_payload_used(struct sol_coap_packet *pkt, uint16_t len);
+bool sol_coap_packet_has_payload(struct sol_coap_packet *pkt);
 
 int sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *value, uint16_t len);
 int sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char *uri);
@@ -190,3 +200,7 @@ bool sol_coap_server_register_resource(struct sol_coap_server *server,
 
 int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen);
+
+#ifdef __cplusplus
+}
+#endif

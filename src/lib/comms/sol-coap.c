@@ -75,6 +75,17 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
 #define ACK_TIMEOUT_MS 2345
 #define MAX_RETRANSMIT 4
 
+#define COAP_RESOURCE_CHECK_API(...) \
+    do { \
+        if (unlikely(resource->api_version != \
+                SOL_COAP_RESOURCE_API_VERSION)) { \
+            SOL_WRN("Couldn't handle resource that has unsupported version " \
+                    "'%u', expected version is '%u'", \
+                    resource->api_version, SOL_COAP_RESOURCE_API_VERSION); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
 struct sol_coap_server {
     struct sol_vector contexts;
     struct sol_ptr_vector pending; /* waiting pending replies */
@@ -360,7 +371,6 @@ SOL_API struct sol_coap_packet *
 sol_coap_packet_new(struct sol_coap_packet *old)
 {
     struct sol_coap_packet *pkt;
-    uint8_t tkl = 0;
 
     pkt = calloc(1, sizeof(struct sol_coap_packet));
     SOL_NULL_CHECK(pkt, NULL); /* It may possible that in the next round there is enough memory. */
@@ -369,10 +379,11 @@ sol_coap_packet_new(struct sol_coap_packet *old)
 
     sol_coap_header_set_ver(pkt, COAP_VERSION);
 
-    pkt->payload.used = sizeof(struct coap_header) + tkl;
+    pkt->payload.used = sizeof(struct coap_header);
     pkt->payload.size = COAP_UDP_MTU;
 
     if (old) {
+        uint8_t tkl;
         uint8_t *token = sol_coap_header_get_token(old, &tkl);
         sol_coap_header_set_id(pkt, sol_coap_header_get_id(old));
         sol_coap_header_set_token(pkt, token, tkl);
@@ -519,9 +530,18 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr)
 {
     struct outgoing *outgoing;
+    int r;
+
+    SOL_NULL_CHECK(cliaddr, -EINVAL);
 
     outgoing = calloc(1, sizeof(*outgoing));
-    SOL_NULL_CHECK_GOTO(outgoing, error);
+    SOL_NULL_CHECK(outgoing, -ENOMEM);
+
+    r = sol_ptr_vector_append(&server->outgoing, outgoing);
+    if (r < 0) {
+        free(outgoing);
+        return r;
+    }
 
     outgoing->server = server;
 
@@ -529,15 +549,9 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
 
     outgoing->pkt = sol_coap_packet_ref(pkt);
 
-    sol_ptr_vector_append(&server->outgoing, outgoing);
-
     wakeup_write(server);
 
     return 0;
-
-error:
-    errno = ENOMEM;
-    return -ENOMEM;
 }
 
 SOL_API int
@@ -644,6 +658,8 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
     SOL_NULL_CHECK(resource, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
 
+    COAP_RESOURCE_CHECK_API(-EINVAL);
+
     c = find_context(server, resource);
     SOL_NULL_CHECK(c, -ENOENT);
 
@@ -695,6 +711,9 @@ sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap
     struct resource_context *c;
     struct sol_coap_packet *pkt;
     uint16_t id;
+
+    SOL_NULL_CHECK(resource, NULL);
+    COAP_RESOURCE_CHECK_API(NULL);
 
     c = find_context(server, resource);
     SOL_NULL_CHECK(c, NULL);
@@ -1390,7 +1409,7 @@ sol_coap_server_new(int port)
     }
     server->refcnt = 1;
 
-    sol_vector_init(&server->contexts, sizeof(struct sol_coap_resource));
+    sol_vector_init(&server->contexts, sizeof(struct resource_context));
 
     sol_ptr_vector_init(&server->pending);
     sol_ptr_vector_init(&server->outgoing);
@@ -1438,6 +1457,19 @@ error:
 }
 
 SOL_API int
+sol_coap_packet_get_buf(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len)
+{
+    SOL_NULL_CHECK(pkt, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(len, -EINVAL);
+
+    *buf = pkt->buf;
+    *len = sizeof(pkt->buf);
+
+    return 0;
+}
+
+SOL_API int
 sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len)
 {
     SOL_NULL_CHECK(pkt, -EINVAL);
@@ -1474,6 +1506,13 @@ sol_coap_packet_set_payload_used(struct sol_coap_packet *pkt, uint16_t len)
 }
 
 SOL_API bool
+sol_coap_packet_has_payload(struct sol_coap_packet *pkt)
+{
+    SOL_NULL_CHECK(pkt, false);
+    return (pkt->payload.start || pkt->payload.used != pkt->payload.size);
+}
+
+SOL_API bool
 sol_coap_server_register_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, void *data)
 {
@@ -1481,6 +1520,8 @@ sol_coap_server_register_resource(struct sol_coap_server *server,
 
     SOL_NULL_CHECK(server, false);
     SOL_NULL_CHECK(resource, false);
+
+    COAP_RESOURCE_CHECK_API(false);
 
     c = sol_vector_append(&server->contexts);
     SOL_NULL_CHECK(c, false);

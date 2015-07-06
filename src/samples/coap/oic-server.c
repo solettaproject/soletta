@@ -128,6 +128,7 @@ register_light_resource_type(
     /* This function will be auto-generated from the RAML definitions. */
 
     struct sol_oic_resource_type resource_type = {
+        .api_version = SOL_OIC_RESOURCE_TYPE_API_VERSION,
         .endpoint = SOL_STR_SLICE_LITERAL("/a/light"),
         .resource_type = SOL_STR_SLICE_LITERAL("core.light"),
         .iface = SOL_STR_SLICE_LITERAL("oc.mi.def"),

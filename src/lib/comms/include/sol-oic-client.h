@@ -34,16 +34,26 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "sol-coap.h"
-#include "sol-network.h"
-#include "sol-str-slice.h"
-#include "sol-vector.h"
+#include <sol-coap.h>
+#include <sol-network.h>
+#include <sol-str-slice.h>
+#include <sol-vector.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct sol_oic_client {
+#define SOL_OIC_CLIENT_API_VERSION (1)
+    uint16_t api_version;
+    int : 0; /* save possible hole for a future field */
     struct sol_coap_server *server;
 };
 
 struct sol_oic_resource {
+#define SOL_OIC_RESOURCE_API_VERSION (1)
+    uint16_t api_version;
+    int : 0; /* save possible hole for a future field */
     struct sol_network_link_addr addr;
     struct sol_str_slice href;
     struct sol_vector types;
@@ -76,3 +86,7 @@ bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struc
 
 struct sol_oic_resource *sol_oic_resource_ref(struct sol_oic_resource *r);
 void sol_oic_resource_unref(struct sol_oic_resource *r);
+
+#ifdef __cplusplus
+}
+#endif

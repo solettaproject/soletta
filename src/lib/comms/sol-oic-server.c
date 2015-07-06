@@ -44,10 +44,29 @@
 #include "sol-oic-server.h"
 #include "sol-json.h"
 
-#include "coap.h"
 #include "sol-coap.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
+
+struct sol_oic_server_information {
+    /* All fields are required by the spec. */
+    struct {
+        const char *name;
+        const char *resource_type;
+        const char *id;
+    } device;
+    struct {
+        const char *name;
+        const char *model;
+        const char *date;
+    } manufacturer;
+    struct {
+        const char *version;
+    } interface, platform, firmware;
+    const char *support_link;
+    const char *location;
+    const char *epi;
+};
 
 struct sol_oic_server {
     struct sol_coap_server *server;
@@ -300,6 +319,7 @@ no_memory:
 }
 
 static const struct sol_coap_resource d_coap_resorce = {
+    .api_version = SOL_COAP_RESOURCE_API_VERSION,
     .path = {
         SOL_STR_SLICE_LITERAL("d"),
         SOL_STR_SLICE_EMPTY
@@ -308,6 +328,7 @@ static const struct sol_coap_resource d_coap_resorce = {
     .flags = SOL_COAP_FLAGS_NONE
 };
 static const struct sol_coap_resource res_coap_resorce = {
+    .api_version = SOL_COAP_RESOURCE_API_VERSION,
     .path = {
         SOL_STR_SLICE_LITERAL("res"),
         SOL_STR_SLICE_EMPTY
@@ -316,6 +337,7 @@ static const struct sol_coap_resource res_coap_resorce = {
     .flags = SOL_COAP_FLAGS_NONE
 };
 static const struct sol_coap_resource rts_coap_resorce = {
+    .api_version = SOL_COAP_RESOURCE_API_VERSION,
     .path = {
         SOL_STR_SLICE_LITERAL("rts"),
         SOL_STR_SLICE_EMPTY
@@ -714,8 +736,10 @@ _sol_oic_resource_type_handle(
             goto done;
         }
     } else {
-        payload_len = sizeof(req->buf);
-        payload = req->buf;
+        if (sol_coap_packet_get_buf(req, &payload, &payload_len) < 0) {
+            code = SOL_COAP_RSPCODE_BAD_REQUEST;
+            goto done;
+        }
         memset(payload, 0, payload_len);
     }
 
@@ -775,6 +799,14 @@ sol_oic_device_definition_register_resource_type(struct sol_oic_device_definitio
     OIC_SERVER_CHECK(NULL);
     SOL_NULL_CHECK(definition, NULL);
     SOL_NULL_CHECK(resource_type, NULL);
+
+    if (unlikely(resource_type->api_version !=
+            SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
+        SOL_WRN("Couldn't register resource_type that has unsupported "
+                "version '%u', expected version is '%u'",
+                resource_type->api_version, SOL_OIC_RESOURCE_TYPE_API_VERSION);
+        return NULL;
+    }
 
     res_type_copy = sol_util_memdup(resource_type, sizeof(*resource_type));
     SOL_NULL_CHECK(res_type_copy, NULL);
