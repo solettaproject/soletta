@@ -36,5 +36,5 @@ match_ten OUT -> IN float_to_empty OUT -> IN _(converter/empty-to-boolean) OUT -
 empty_to_float(converter/empty-to-float:output_value=val:10|min:5|max:15|step:1)
 empty(constant/empty)
 
-empty OUT -> IN empty_to_float OUT -> IN0 equal(float/equal)
-match_ten OUT -> IN1 equal OUT -> RESULT r_ten_received(test/result)
+empty OUT -> IN empty_to_float OUT -> IN[0] equal(float/equal)
+match_ten OUT -> IN[1] equal OUT -> RESULT r_ten_received(test/result)

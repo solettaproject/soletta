@@ -39,11 +39,11 @@ check_against(constant/int:value=128)
 empty_to_byte(converter/empty-to-byte:output_value=128)
 byte_to_empty(converter/byte-to-empty:range_min=100,range_max=129)
 
-empty OUT -> IN empty_to_byte OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_output(int/equal)
-check_against OUT -> IN1 cmp_output OUT -> RESULT gen_byte(test/result)
+empty OUT -> IN empty_to_byte OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_output(int/equal)
+check_against OUT -> IN[1] cmp_output OUT -> RESULT gen_byte(test/result)
 
-empty OUT -> IN empty_to_byte2 OUT -> IN _(converter/byte-to-int) OUT -> IN0 cmp_output2(int/equal)
-check_against OUT -> IN1 cmp_output2 OUT -> RESULT gen_byte2(test/result)
+empty OUT -> IN empty_to_byte2 OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_output2(int/equal)
+check_against OUT -> IN[1] cmp_output2 OUT -> RESULT gen_byte2(test/result)
 
 empty_to_byte OUT -> IN byte_to_empty OUT -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT gen_pulse(test/result)
 empty_to_byte OUT -> IN byte_to_empty2 OUT -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT gen_pulse2(test/result)

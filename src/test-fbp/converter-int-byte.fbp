@@ -40,11 +40,11 @@ byte_to_int(converter/byte-to-int)
 
 thirty_int OUT -> IN int_to_byte
 int_to_byte OUT -> IN byte_to_int
-byte_to_int OUT -> IN0 equal(int/equal)
-thirty_int OUT -> IN1 equal OUT -> RESULT _(test/result)
+byte_to_int OUT -> IN[0] equal(int/equal)
+thirty_int OUT -> IN[1] equal OUT -> RESULT _(test/result)
 
-minus_one OUT -> IN _(converter/int-to-byte) OUT -> IN _(converter/byte-to-int) OUT -> IN0 equal_zero(int/equal)
-zero OUT -> IN1 equal_zero OUT -> RESULT underflow(test/result)
+minus_one OUT -> IN _(converter/int-to-byte) OUT -> IN _(converter/byte-to-int) OUT -> IN[0] equal_zero(int/equal)
+zero OUT -> IN[1] equal_zero OUT -> RESULT underflow(test/result)
 
-two_five_six OUT -> IN _(converter/int-to-byte) OUT -> IN _(converter/byte-to-int) OUT -> IN0 equal_two_five_five(int/equal)
-two_five_five OUT -> IN1 equal_two_five_five OUT -> RESULT overflow(test/result)
+two_five_six OUT -> IN _(converter/int-to-byte) OUT -> IN _(converter/byte-to-int) OUT -> IN[0] equal_two_five_five(int/equal)
+two_five_five OUT -> IN[1] equal_two_five_five OUT -> RESULT overflow(test/result)

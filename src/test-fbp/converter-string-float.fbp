@@ -35,5 +35,5 @@ const_float OUT -> IN float_to_str(converter/float-to-string) OUT -> IN[0] str_c
 const_float_str OUT -> IN[1] str_cmp EQUAL -> RESULT float_converts_to_string(test/result)
 
 float_to_str OUT -> IN str_to_float(converter/string-to-float)
-str_to_float OUT -> IN0 is_float_equal(float/equal)
-const_float OUT -> IN1 is_float_equal OUT -> RESULT string_converts_to_float(test/result)
+str_to_float OUT -> IN[0] is_float_equal(float/equal)
+const_float OUT -> IN[1] is_float_equal OUT -> RESULT string_converts_to_float(test/result)

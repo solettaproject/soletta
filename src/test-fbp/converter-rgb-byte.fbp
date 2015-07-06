@@ -43,11 +43,11 @@ match_seventy(constant/int:value=70)
 
 byte_to_rgb OUT -> IN rgb_to_byte(converter/rgb-to-byte)
 
-rgb_to_byte RED -> IN _(converter/byte-to-int) OUT -> IN0 eq_twenty(int/equal)
-match_twenty OUT -> IN1 eq_twenty OUT -> RESULT red(test/result)
+rgb_to_byte RED -> IN _(converter/byte-to-int) OUT -> IN[0] eq_twenty(int/equal)
+match_twenty OUT -> IN[1] eq_twenty OUT -> RESULT red(test/result)
 
-rgb_to_byte GREEN -> IN _(converter/byte-to-int) OUT -> IN0 eq_eighty(int/equal)
-match_eighty OUT -> IN1 eq_eighty OUT -> IN _(boolean/not) OUT -> RESULT green(test/result)
+rgb_to_byte GREEN -> IN _(converter/byte-to-int) OUT -> IN[0] eq_eighty(int/equal)
+match_eighty OUT -> IN[1] eq_eighty OUT -> IN _(boolean/not) OUT -> RESULT green(test/result)
 
-rgb_to_byte BLUE -> IN _(converter/byte-to-int) OUT -> IN0 eq_seventy(int/equal)
-match_seventy OUT -> IN1 eq_seventy OUT -> RESULT blue(test/result)
+rgb_to_byte BLUE -> IN _(converter/byte-to-int) OUT -> IN[0] eq_seventy(int/equal)
+match_seventy OUT -> IN[1] eq_seventy OUT -> RESULT blue(test/result)
