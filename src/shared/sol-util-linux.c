@@ -150,7 +150,7 @@ sol_util_load_file_raw(const int fd, size_t *size)
             goto err;
 
         ret = _fill_buffer(fd, buffer, buffer_size, size);
-        if (ret <= 0)
+        if (ret == st.st_size)
             goto end;
     }
 
