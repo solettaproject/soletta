@@ -102,14 +102,15 @@ def run_check(args, uncrustify):
 
     if not diff_list:
         print("No source files (*.[ch]) changed for: %s" % args.target_refspec)
-        return
+        return True
 
     cmd = "%s -c data/schemas/uncrustify.schema -l C %s" % \
           (uncrustify, diff_list.replace("\n", " "))
     output = run_command(cmd)
     if not output:
-        return
+        return False
 
+    passed = True
     for f in diff_list.split():
         unc_file = "%s.uncrustify" % f
 
@@ -122,6 +123,8 @@ def run_check(args, uncrustify):
 
         try:
             gen = unified_diff(fromlines, tolines, f, unc_file)
+            if gen:
+                passed = False
             for ln in gen:
                 if sys.stdout.isatty() and not args.no_colors:
                     out = re.sub("^\@", "%s@" % DIFF_REF_COLOR, \
@@ -134,7 +137,8 @@ def run_check(args, uncrustify):
             os.remove(unc_file)
         except KeyboardInterrupt:
             """ ignore keyboard interrupt and simply return """
-            return
+            return False
+    return passed
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -158,4 +162,5 @@ if __name__ == "__main__":
     if not uncrustify:
         exit(1)
 
-    run_check(args, uncrustify)
+    if not run_check(args, uncrustify):
+        exit(1)
