@@ -43,6 +43,8 @@ parse-common-module = \
 	$(eval mod-objs     := $(filter %.o,$(artifacts))) \
 	$(eval $(1)-cflags  := $(obj-$(1)-$(3)-extra-cflags)) \
 	$(eval $(1)-ldflags := $(obj-$(1)-$(3)-extra-ldflags)) \
+	$(eval all-ldflags  += $($(1)-ldflags)) \
+	$(eval all-cflags   += $($(1)-ldflags)) \
 	$(eval $(1)-bs      := $(addprefix $(2),Makefile)) \
 	$(eval $(1)-bs      += $(if $(wildcard $(2)/Kconfig),$(addprefix $(2),Kconfig))) \
 	$(eval $(1)-hdrs    := $(filter %.h,$(artifacts))) \
@@ -84,12 +86,16 @@ parse-mod-module = \
 parse-bin = \
 	$(eval bin-$(1)-srcs := $(addprefix $(2),$(bin-$(1)-y))) \
 	$(eval bin-$(1)-out  := $(addprefix $(build_bindir),$(1))) \
+	$(eval bin-$(1)-cflags := $(bin-$(1)-y-extra-cflags)) \
+	$(eval bin-$(1)-ldflags := $(bin-$(1)-y-extra-ldflags)) \
 	$(eval $(1)-deps     := $(subst .mod,,$(bin-$(1)-y-deps))) \
 	$(eval bins-out      += $(bin-$(1)-out)) \
 
 parse-test = \
 	$(eval test-$(1)-srcs := $(addprefix $(2),$(test-$(1)-y))) \
 	$(eval test-$(1)-out  := $(addprefix $(2),$(1))) \
+	$(eval test-$(1)-cflags := $(test-$(1)-y-extra-cflags)) \
+	$(eval test-$(1)-ldflags := $(test-$(1)-y-extra-ldflags)) \
 	$(eval $(1)-deps      := $(subst .mod,,$(test-$(1)-y-deps))) \
 	$(eval tests-out      += $(test-$(1)-out)) \
 
@@ -162,14 +168,14 @@ define make-bin
 $(bin-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(bin-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "BIN"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(bin-$(1)-out))
-	$(Q)$(TARGETCC) $(BIN_CFLAGS) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(BIN_LDFLAGS) $(sort $(builtin-ldflags))
+	$(Q)$(TARGETCC) $(BIN_CFLAGS) $(bin-$(1)-cflags) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(BIN_LDFLAGS) $(bin-$(1)-ldflags) $(sort $(builtin-ldflags))
 endef
 $(foreach curr,$(bins),$(eval $(call make-bin,$(curr))))
 
 define make-test
 $(test-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "TST"   "$$@
-	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(filter-out %.h,$(test-$(1)-srcs)) $(builtin-objs) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_LDFLAGS)
+	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(all-cflags) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) $(builtin-objs) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_LDFLAGS) $(test-$(1)-ldflags) $(all-ldflags)
 
 endef
 $(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
