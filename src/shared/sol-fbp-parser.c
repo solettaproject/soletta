@@ -187,7 +187,7 @@ handle_node_error(struct sol_fbp_parser *p, struct sol_str_slice *name, struct s
             err_node->position.line, err_node->position.column);
     }
 
-    return set_parse_error(p, "Couldn't create node '%.*s': %s", (int)name->len, name->data, sol_util_strerrora(error));
+    return set_parse_error(p, "Couldn't create node '%.*s': %s", SOL_STR_SLICE_PRINT(*name), sol_util_strerrora(error));
 }
 
 static bool
@@ -213,13 +213,13 @@ handle_conn_error(struct sol_fbp_parser *p,
                 continue;
 
             return set_parse_error(p, "Connection '%.*s[%d] -> %.*s[%d]' already declared at %d:%d",
-                (int)src_port_name->len, src_port_name->data, src_port_idx, (int)dst_port_name->len, dst_port_name->data, dst_port_idx,
+                SOL_STR_SLICE_PRINT(*src_port_name), src_port_idx, SOL_STR_SLICE_PRINT(*dst_port_name), dst_port_idx,
                 c->position.line, c->position.column);
         }
     }
 
     return set_parse_error(p, "Couldn't add connection '%.*s -> %.*s': %s",
-        (int)src_port_name->len, src_port_name->data, (int)dst_port_name->len, dst_port_name->data, sol_util_strerrora(error));
+        SOL_STR_SLICE_PRINT(*src_port_name), SOL_STR_SLICE_PRINT(*dst_port_name), sol_util_strerrora(error));
 }
 
 static bool
@@ -238,7 +238,7 @@ handle_meta_error(struct sol_fbp_parser *p, int node, struct sol_str_slice *key,
         SOL_VECTOR_FOREACH_IDX (&n->meta, m, i) {
             if (sol_str_slice_eq(m->key, *key)) {
                 return set_parse_error(p, "Node '%.*s' option '%.*s' already declared at %d:%d",
-                    (int)n->name.len, n->name.data, (int)key->len, key->data, m->position.line, m->position.column);
+                    SOL_STR_SLICE_PRINT(n->name), SOL_STR_SLICE_PRINT(*key), m->position.line, m->position.column);
             }
         }
     }
@@ -678,7 +678,7 @@ verify_graph(struct sol_fbp_parser *p)
         if (n->component.len == 0) {
             p->error_pos = n->position;
             return set_parse_error(p, "Node '%.*s' doesn't have a type, Node type must be defined. e.g. 'node(nodetype)'",
-                (int)n->name.len, n->name.data);
+                SOL_STR_SLICE_PRINT(n->name));
         }
     }
 

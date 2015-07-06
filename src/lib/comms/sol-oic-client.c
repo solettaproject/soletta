@@ -454,7 +454,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     }
 
     if (sol_coap_packet_add_uri_path_option(req, strndupa(res->href.data, res->href.len)) < 0) {
-        SOL_WRN("Invalid URI: %.*s", (int)res->href.len, res->href.data);
+        SOL_WRN("Invalid URI: %.*s", SOL_STR_SLICE_PRINT(res->href));
         goto out;
     }
 

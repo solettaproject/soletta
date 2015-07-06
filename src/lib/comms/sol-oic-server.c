@@ -110,7 +110,7 @@ _append_json_key_value_full(uint8_t *payload,
     int ret;
 
     ret = snprintf((char *)payload, (size_t)(payload_size - payload_len), "%s\"%s\":\"%.*s\"%s,",
-        prefix, key, (int)value.len, value.data, suffix);
+        prefix, key, SOL_STR_SLICE_PRINT(value), suffix);
     if (ret < 0 || ret >= payload_size - payload_len)
         return 0;
     return payload_len + ret;
@@ -481,7 +481,7 @@ _sol_oic_device_definition_specific_get(const struct sol_coap_resource *resource
         goto no_memory;
 
     ret = snprintf((char *)payload, payload_size, "{\"rt\":\"%.*s\",",
-        (int)def->resource_type_prefix.len, def->resource_type_prefix.data);
+        SOL_STR_SLICE_PRINT(def->resource_type_prefix));
     if (ret < 0 || ret >= payload_size)
         goto no_memory;
     payload_len += ret;
@@ -505,9 +505,9 @@ _sol_oic_device_definition_specific_get(const struct sol_coap_resource *resource
         struct sol_oic_resource_type *rt = iter->resource_type;
         ret = snprintf((char *)payload, payload_size,
             "{\"link\":\"/%.*s\",\"rel\":\"contains\",\"rt\":\"%.*s.%.*s\"},",
-            (int)rt->endpoint.len, rt->endpoint.data,
-            (int)def->resource_type_prefix.len, def->resource_type_prefix.data,
-            (int)rt->endpoint.len, rt->endpoint.data);
+            SOL_STR_SLICE_PRINT(rt->endpoint),
+            SOL_STR_SLICE_PRINT(def->resource_type_prefix),
+            SOL_STR_SLICE_PRINT(rt->endpoint));
         if (ret < 0 || ret >= payload_size)
             goto no_memory;
         payload_len += ret;
@@ -547,12 +547,12 @@ create_coap_resource(struct sol_str_slice endpoint)
     SOL_INT_CHECK(count, == 0, NULL);
 
     if (endpoint.data[0] != '/') {
-        SOL_WRN("Invalid endpoint - Path '%.*s' does not start with '/'", (int)endpoint.len, endpoint.data);
+        SOL_WRN("Invalid endpoint - Path '%.*s' does not start with '/'", SOL_STR_SLICE_PRINT(endpoint));
         return NULL;
     }
 
     if (endpoint.data[endpoint.len - 1] == '/') {
-        SOL_WRN("Invalid endpoint - Path '%.*s' ends with '/'", (int)endpoint.len, endpoint.data);
+        SOL_WRN("Invalid endpoint - Path '%.*s' ends with '/'", SOL_STR_SLICE_PRINT(endpoint));
         return NULL;
     }
 

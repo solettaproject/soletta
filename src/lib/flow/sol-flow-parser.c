@@ -289,8 +289,8 @@ get_options_array(struct sol_fbp_node *node, char ***opts_array)
         if (m->value.len == 0)
             continue;
 
-        if (asprintf(&entry, "%.*s=%.*s", (int)m->key.len, m->key.data,
-            (int)m->value.len, m->value.data) < 0)
+        if (asprintf(&entry, "%.*s=%.*s", SOL_STR_SLICE_PRINT(m->key),
+            SOL_STR_SLICE_PRINT(m->value)) < 0)
             goto fail;
 
         if (entry[m->key.len + 1] == '"') {

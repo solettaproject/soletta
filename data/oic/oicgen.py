@@ -1156,8 +1156,8 @@ state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr
 
     if (!sol_str_slice_eq(*href, resource->resource->href)) {
         SOL_WRN("Received response to href=`%%.*s`, but resource href is `%%.*s`",
-            (int)href->len, href->data,
-            (int)resource->resource->href.len, resource->resource->href.data);
+            SOL_STR_SLICE_PRINT(*href),
+            SOL_STR_SLICE_PRINT(resource->resource->href));
         return;
     }
 
@@ -1346,7 +1346,7 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     if (!sol_oic_server_init(DEFAULT_UDP_PORT)) {
-        SOL_WRN("Could not create %%.*s server", (int)resource_type.len, resource_type.data);
+        SOL_WRN("Could not create %%.*s server", SOL_STR_SLICE_PRINT(resource_type));
         return -ENOTCONN;
     }
 

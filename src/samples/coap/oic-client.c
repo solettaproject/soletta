@@ -50,7 +50,7 @@ got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr 
     }
 
     printf("Received payload for GET from %s (%.*s): %.*s\n",
-        addr, (int)href->len, href->data, (int)payload->len, payload->data);
+        addr, SOL_STR_SLICE_PRINT(*href), SOL_STR_SLICE_PRINT(*payload));
 }
 
 static void
@@ -67,17 +67,17 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     }
 
     printf("Found resource: coap://%s%.*s <observable: %s>\n", addr,
-        (int)res->href.len, res->href.data, res->observable ? "yes" : "no");
+        SOL_STR_SLICE_PRINT(res->href), res->observable ? "yes" : "no");
 
     printf("Resource types:\n");
     SOL_VECTOR_FOREACH_IDX (&res->types, slice, idx)
-        printf("\t\t%.*s\n", (int)slice->len, slice->data);
+        printf("\t\t%.*s\n", SOL_STR_SLICE_PRINT(*slice));
 
     printf("Resource interfaces:\n");
     SOL_VECTOR_FOREACH_IDX (&res->interfaces, slice, idx)
-        printf("\t\t%.*s\n", (int)slice->len, slice->data);
+        printf("\t\t%.*s\n", SOL_STR_SLICE_PRINT(*slice));
 
-    printf("Issuing GET %.*s on resource...\n", (int)res->href.len, res->href.data);
+    printf("Issuing GET %.*s on resource...\n", SOL_STR_SLICE_PRINT(res->href));
     sol_oic_client_resource_request(cli, res, SOL_COAP_METHOD_GET, NULL, 0,
         got_get_response, data);
 
