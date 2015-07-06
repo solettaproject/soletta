@@ -36,7 +36,7 @@
 #include "sol-str-slice.h"
 #include "sol-vector.h"
 
-truct sol_fbp_position {
+struct sol_fbp_position {
     unsigned int line, column;
 };
 
