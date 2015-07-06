@@ -306,61 +306,32 @@ $(PIN_MUX_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
                 --item="&SOL_PIN_MUX_@NAME@" \
                 $(subst -,_,$(builtin-pin-mux))
 
-ifeq (y,$(NODE_DESCRIPTION))
-node-type-desc-enabled = \#define SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED 1
-endif
-
-ifeq (y,$(INSPECTOR))
-inspector-enabled = \#define SOL_FLOW_INSPECTOR_ENABLED 1
-endif
-
-ifeq (y,$(RESOLVER_CONFFILE))
-resolver-conffile-enabled = \#define SOL_BUILD_FLOW_MODULE_RESOLVER_CONFFILE 1
-endif
-
 $(FLOW_BUILDOPTS_H): $(FLOW_BUILDOPTS_H_IN) $(KCONFIG_CONFIG)
 	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(CAT) $(<) | $(SED) 's/@SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED@/$(node-type-desc-enabled)/g' | \
-		$(SED) 's/@SOL_FLOW_INSPECTOR_ENABLED@/$(inspector-enabled)/g' | \
-		$(SED) 's/@SOL_BUILD_FLOW_MODULE_RESOLVER_CONFFILE@/$(resolver-conffile-enabled)/' > $(@)
-
-ifeq (y,$(SOL_PLATFORM_LINUX))
-platform-linux-enabled  := \#define SOL_PLATFORM_LINUX 1
-endif
-
-ifeq (y,$(PLATFORM_RIOTOS))
-platform-riotos-enabled := \#define SOL_PLATFORM_RIOT 1
-endif
-
-ifeq (y,$(LOG))
-log-enabled := \#define SOL_LOG_ENABLED 1
-endif
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(FLOW_BUILDOPTS_H_IN) --output=$(FLOW_BUILDOPTS_H)
 
 $(COMMON_BUILDOPTS_H): $(COMMON_BUILDOPTS_H_IN) $(KCONFIG_CONFIG)
 	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(CAT) $(<) | $(SED) 's/@SOL_PLATFORM_LINUX@/$(platform-linux-enabled)/g' | \
-		$(SED) 's/@SOL_PLATFORM_RIOT@/$(platform-riotos-enabled)/g' | \
-		$(SED) 's/@SOL_LOG_ENABLED@/$(log-enabled)/' > $(@)
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(COMMON_BUILDOPTS_H_IN) --output=$(COMMON_BUILDOPTS_H)
 
 $(PC_GEN): $(PC_GEN_IN)
 	$(Q)echo "     "GEN"   "$(PC_GEN)
 	$(Q)$(MKDIR) -p $(dir $(PC_GEN))
-	$(Q)$(CAT) $(<) | $(SED) 's#@prefix@#$(PREFIX)#g' | \
-		$(SED) 's#@exec_prefix@#$(PREFIX)#g' | \
-		$(SED) 's#@libdir@#$(LIBDIR)#g' | \
-		$(SED) 's#@includedir@#$(INCLUDEDIR)#g' | \
-		$(SED) 's#@SOL_CONFFILE_MODULES_DIR@#$(MODULESDIR)#g' | \
-		$(SED) 's#@datadir@#$(DATADIR)#g' | \
-		$(SED) 's#@VERSION@#$(VERSION)#g' > $(@)
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(PC_GEN_IN) --output=$(PC_GEN)
 
 $(NODE_TYPE_GEN_SCRIPT): $(NODE_TYPE_GEN_SCRIPT_IN)
 	$(Q)echo "     "GEN"   "$(NODE_TYPE_GEN_SCRIPT)
 	$(Q)$(MKDIR) -p $(dir $(NODE_TYPE_GEN_SCRIPT))
-	$(Q)$(CAT) $(<) | $(SED) 's#@pkgdatadir@#$(SOL_DATADIR)#g' > $(@) && $(CHMOD) +x $(@)
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(NODE_TYPE_GEN_SCRIPT_IN) --output=$(NODE_TYPE_GEN_SCRIPT)
 
 $(FLOW_NODE_TYPE_FIND): $(FLOW_NODE_TYPE_FIND_IN)
 	$(Q)echo "     "GEN"   "$(FLOW_NODE_TYPE_FIND)
-	$(Q)$(CAT) $(<) | $(SED) 's#@flowtypedescdir@#$(DESCDIR)#' > $(@)
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(FLOW_NODE_TYPE_FIND_IN) --output=$(FLOW_NODE_TYPE_FIND)
 
 # common build targets
 define clean-resource
