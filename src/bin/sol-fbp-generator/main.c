@@ -711,11 +711,6 @@ main(int argc, char *argv[])
     result = generate(&graph, descs);
 
     if (result == EXIT_SUCCESS) {
-        if (access(args.output_file, F_OK) == 0 && remove(args.output_file) != 0) {
-            SOL_ERR("Couldn't remove old %s file. %s", args.output_file, sol_util_strerrora(errno));
-            goto fail_remove_old_file;
-        }
-
         if (rename((const char *)temp_file, args.output_file) != 0)
             SOL_ERR("Couldn't write to %s. %s", args.output_file, sol_util_strerrora(errno));
     } else {
@@ -723,7 +718,6 @@ main(int argc, char *argv[])
             SOL_ERR("Couldn't remove temporary file %s. %s", &temp_file, sol_util_strerrora(errno));
     }
 
-fail_remove_old_file:
     close(fd);
 fail_open:
 fail_resolve:
