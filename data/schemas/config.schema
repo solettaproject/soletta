@@ -1,0 +1,28 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+
+    "definitions" : {
+
+        "nodetype" : {
+             "type": "object",
+            "properties": {
+                "name" : { "type" : "string" },
+                "type" : { "type" : "string" },
+                "options" : {
+                    "type" : "object",
+                     "patternProperties": {
+                        "^[a-z]+$": { "type" : "any" }
+                    }
+                }
+            },
+            "required" : ["name", "type"]
+        },
+
+        "nodetypes" : {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "#/definitions/nodetype" }
+        }
+    }
+}
