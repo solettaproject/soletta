@@ -530,9 +530,18 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr)
 {
     struct outgoing *outgoing;
+    int r;
+
+    SOL_NULL_CHECK(cliaddr, -EINVAL);
 
     outgoing = calloc(1, sizeof(*outgoing));
-    SOL_NULL_CHECK_GOTO(outgoing, error);
+    SOL_NULL_CHECK(outgoing, -ENOMEM);
+
+    r = sol_ptr_vector_append(&server->outgoing, outgoing);
+    if (r < 0) {
+        free(outgoing);
+        return r;
+    }
 
     outgoing->server = server;
 
@@ -540,15 +549,9 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
 
     outgoing->pkt = sol_coap_packet_ref(pkt);
 
-    sol_ptr_vector_append(&server->outgoing, outgoing);
-
     wakeup_write(server);
 
     return 0;
-
-error:
-    errno = ENOMEM;
-    return -ENOMEM;
 }
 
 SOL_API int
