@@ -162,6 +162,19 @@ struct sol_worker_thread *sol_worker_thread_new(const struct sol_worker_thread_s
 void sol_worker_thread_cancel(struct sol_worker_thread *thread);
 
 /**
+ * Check if a worker thread has been marked as cancelled.
+ *
+ * @note this function may be called from both @b main and @b worker thread.
+ *
+ * @param thread a valid worker thread handle.
+ *
+ * @return @c true if worker thread is marked cancelled or @c false otherwise.
+ *
+ * @see sol_worker_thread_cancel()
+ */
+bool sol_worker_thread_cancel_check(const struct sol_worker_thread *thread);
+
+/**
  * Schedule feedback from the worker to the main thread.
  *
  * This function will schedule a call to @c feedback() function given

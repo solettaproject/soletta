@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #define SOL_LOG_DOMAIN &_sol_worker_thread_log_domain
 extern struct sol_log_domain _sol_worker_thread_log_domain;
 #include "sol-log-internal.h"
@@ -39,4 +41,5 @@ extern struct sol_log_domain _sol_worker_thread_log_domain;
 
 void *sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec);
 void sol_worker_thread_impl_cancel(void *handle);
+bool sol_worker_thread_impl_cancel_check(const void *handle);
 void sol_worker_thread_impl_feedback(void *handle);
