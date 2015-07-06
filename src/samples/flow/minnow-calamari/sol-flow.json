@@ -1,0 +1,116 @@
+{
+ "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+ "nodetypes": [
+  {
+   "name": "RGBLed",
+   "options": {
+    "blue_pin": 208,
+    "green_pin": 83,
+    "red_pin": 82
+   },
+   "type": "calamari/rgb-led"
+  },
+  {
+   "name": "SevenSegments",
+   "options": {
+    "clear_pin": 217,
+    "clock_pin": 84,
+    "data_pin": 218,
+    "latch_pin": 219
+   },
+   "type": "calamari/7seg"
+  },
+  {
+   "name": "LedRed",
+   "options": {
+    "pin": 82
+   },
+   "type": "gpio/writer"
+  },
+  {
+   "name": "LedGreen",
+   "options": {
+    "pin": 83
+   },
+   "type": "gpio/writer"
+  },
+  {
+   "name": "LedBlue",
+   "options": {
+    "pin": 208
+   },
+   "type": "gpio/writer"
+  },
+  {
+   "name": "Button1",
+   "options": {
+    "active_low": true,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": 216,
+    "pull": "up"
+   },
+   "type": "gpio/reader"
+  },
+  {
+   "name": "Button2",
+   "options": {
+    "active_low": true,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": 226,
+    "pull": "up"
+   },
+   "type": "gpio/reader"
+  },
+  {
+   "name": "Button3",
+   "options": {
+    "active_low": true,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": 227,
+    "pull": "up"
+   },
+   "type": "gpio/reader"
+  },
+  {
+   "name": "Led1",
+   "options": {
+    "address": 1,
+    "period": 10000,
+    "range": "min:0|max:10000|step:1"
+   },
+   "type": "calamari/led"
+  },
+  {
+   "name": "Led2",
+   "options": {
+    "address": 2,
+    "period": 10000,
+    "range": "min:0|max:10000|step:1"
+   },
+   "type": "calamari/led"
+  },
+  {
+   "name": "LedLever",
+   "options": {
+    "bus": 0,
+    "chip_select": 0,
+    "poll_interval": 100,
+    "range": "min:0|max:1000|step:1"
+   },
+   "type": "calamari/lever"
+  },
+  {
+   "name": "SegmentsLever",
+   "options": {
+    "bus": 0,
+    "chip_select": 0,
+    "poll_interval": 100,
+    "range": "min:0|max:15|step:1"
+   },
+   "type": "calamari/lever"
+  }
+ ]
+}

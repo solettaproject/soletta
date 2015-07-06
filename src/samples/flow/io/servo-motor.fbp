@@ -30,13 +30,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # This example controls a servo and sets its angle, adjusting every 3
-# seconds. The node type is resolved using the servo-motor.conf,
+# seconds. The node type is resolved using the servo-motor.json,
 # please adjust to your board configuration.
 #
-#    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=servo-motor-myboard.conf
+#    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=servo-motor-myboard.json
 #    $ ./servo-motor.fbp
 #
-# or save it as sol-flow.conf
+# or save it as sol-flow.json
 
 inc(int/accumulator:setup_value=min:0|max:180|step:5|val:0)
 

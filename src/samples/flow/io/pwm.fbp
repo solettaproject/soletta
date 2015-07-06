@@ -31,12 +31,12 @@
 
 # This example enables a PWM called 'led1' and sets the duty cycle of
 # another called 'led2'. These node types are resolved using the
-# pwm.conf, please adjust to your board configuration:
+# pwm.json, please adjust to your board configuration:
 #
-#    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=pwm-myboard.conf
+#    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=pwm-myboard.json
 #    $ ./pwm.fbp
 #
-# or save it as sol-flow.conf
+# or save it as sol-flow.json
 
 
 t1(timer:interval=1000)

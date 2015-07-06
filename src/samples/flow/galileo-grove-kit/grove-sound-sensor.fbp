@@ -29,7 +29,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.conf sol-fbp-runner grove-sound-sensor.fbp
+# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.json sol-fbp-runner grove-sound-sensor.fbp
 
 # This is a translation of
 # Grove_Sound_Sensor/Grove_Sound_Sensor.ino, from

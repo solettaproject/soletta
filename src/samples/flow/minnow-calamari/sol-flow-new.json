@@ -1,0 +1,116 @@
+{
+ "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+ "nodetypes": [
+  {
+   "name": "RGBLed",
+   "options": {
+    "blue_pin": 464,
+    "green_pin": 339,
+    "red_pin": 338
+   },
+   "type": "calamari/rgb-led"
+  },
+  {
+   "name": "SevenSegments",
+   "options": {
+    "clear_pin": 473,
+    "clock_pin": 340,
+    "data_pin": 474,
+    "latch_pin": 475
+   },
+   "type": "calamari/7seg"
+  },
+  {
+   "name": "LedRed",
+   "options": {
+    "pin": 338
+   },
+   "type": "gpio/writer"
+  },
+  {
+   "name": "LedGreen",
+   "options": {
+    "pin": 339
+   },
+   "type": "gpio/writer"
+  },
+  {
+   "name": "LedBlue",
+   "options": {
+    "pin": 464
+   },
+   "type": "gpio/writer"
+  },
+  {
+   "name": "Button1",
+   "options": {
+    "active_low": true,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": 472,
+    "pull": "up"
+   },
+   "type": "gpio/reader"
+  },
+  {
+   "name": "Button2",
+   "options": {
+    "active_low": true,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": 482,
+    "pull": "up"
+   },
+   "type": "gpio/reader"
+  },
+  {
+   "name": "Button3",
+   "options": {
+    "active_low": true,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": 483,
+    "pull": "up"
+   },
+   "type": "gpio/reader"
+  },
+  {
+   "name": "Led1",
+   "options": {
+    "address": 1,
+    "period": 10000,
+    "range": "min:0|max:10000|step:1"
+   },
+   "type": "calamari/led"
+  },
+  {
+   "name": "Led2",
+   "options": {
+    "address": 2,
+    "period": 10000,
+    "range": "min:0|max:10000|step:1"
+   },
+   "type": "calamari/led"
+  },
+  {
+   "name": "LedLever",
+   "options": {
+    "bus": 0,
+    "chip_select": 0,
+    "poll_interval": 100,
+    "range": "min:0|max:1000|step:1"
+   },
+   "type": "calamari/lever"
+  },
+  {
+   "name": "SegmentsLever",
+   "options": {
+    "bus": 0,
+    "chip_select": 0,
+    "poll_interval": 100,
+    "range": "min:0|max:15|step:1"
+   },
+   "type": "calamari/lever"
+  }
+ ]
+}

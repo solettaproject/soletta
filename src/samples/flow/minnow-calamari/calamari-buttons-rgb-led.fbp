@@ -31,7 +31,7 @@
 
 # This example links Buttons 1, 2 and 3 from calamari to Red, Green
 # and Blue leds, accessed directly over GPIO as defined in
-# sol-flow.conf in the current directory.
+# sol-flow.json in the current directory.
 #
 # The button presses will also go to console on stdout.
 

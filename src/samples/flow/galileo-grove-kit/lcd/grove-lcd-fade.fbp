@@ -29,7 +29,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.conf sol-fbp-runner grove-led.fbp
+# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.json sol-fbp-runner grove-led.fbp
 
 # This is one of the translations of Grove_LED/Grove_LED.ino, from
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git

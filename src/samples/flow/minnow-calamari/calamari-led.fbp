@@ -30,7 +30,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # This example links the Calamari lever (SPI) to intensity light of
-# Led1 and Led2 (PWM leds), as defined in sol-flow.conf in this
+# Led1 and Led2 (PWM leds), as defined in sol-flow.json in this
 # directory.
 
 lever(LedLever) OUT -> INTENSITY led1(Led1)
