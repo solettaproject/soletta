@@ -1,4 +1,93 @@
 {
+    "definitions" : {
+        "VERSION_MAJOR": 0,
+        "VERSION_MINOR": 0,
+        "VERSION_RELEASE": 1,
+        "VERSION": "{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_RELEASE}",
+        "DESTDIR": "/",
+        "SYSCONF": "/etc/",
+        "LIBDIR": "{PREFIX}/lib/",
+        "DATADIR": "{PREFIX}/share/",
+        "BINDIR": "{PREFIX}/bin/",
+        "INCLUDEDIR": "{PREFIX}/include/",
+        "SOL_DATADIR": "{DATADIR}soletta/",
+        "SOL_INCLUDEDIR": "{INCLUDEDIR}soletta/",
+        "MODULESDIR": "{LIBDIR}soletta/modules/",
+        "SOL_FLOW_DATADIR": "{SOL_DATADIR}flow/",
+        "DESCDIR": "{SOL_FLOW_DATADIR}descriptions/",
+        "SCHEMADIR": "{SOL_FLOW_DATADIR}schema/",
+        "PCDIR": "{LIBDIR}pkgconfig/",
+        "PKGNAME": "soletta",
+        "PKGSYSCONFDIR": "{SYSCONF}",
+        "FLOWMODULESDIR": "{MODULESDIR}flow/",
+        "PINMUXDIR": "{MODULESDIR}pin-mux/",
+        "LINUXMICROMODULESDIR": "{MODULESDIR}linux-micro/"
+    },
+    "pre-dependencies": [
+	{
+	    "dependency": "gnu_source",
+	    "type": "ccode",
+            "defines": [
+                "_GNU_SOURCE 1"
+            ],
+	    "headers": [
+		"<string.h>"
+            ],
+            "fragment": "strndupa(0,0);",
+            "cflags": {
+                "comment": "append to COMMON_CFLAGS so it's used for further checks",
+                "appent_to": "COMMON_CFLAGS",
+                "value": "-D_GNU_SOURCE=1"
+            }
+	},
+	{
+	    "dependency": "check_flags",
+	    "type": "cflags",
+	    "cflags": [
+                "-pipe",
+                "-Wall",
+                "-W",
+                "-Wextra",
+                "-Wundef",
+                "-Wformat=2",
+                "-Wlogical-op",
+                "-Wsign-compare",
+                "-Wformat-security",
+                "-Wmissing-include-dirs",
+                "-Wformat-nonliteral",
+                "-Wold-style-definition",
+                "-Wpointer-arith",
+                "-Winit-self",
+                "-Wdeclaration-after-statement",
+                "-Wfloat-equal",
+                "-Wmissing-prototypes",
+                "-Wstrict-prototypes",
+                "-Wredundant-decls",
+                "-Wmissing-declarations",
+                "-Wmissing-noreturn",
+                "-Wno-unused-parameter",
+                "-Wshadow",
+                "-Wendif-labels",
+                "-Wstrict-aliasing=3",
+                "-Wwrite-strings",
+                "-Wno-long-long",
+                "-Wno-missing-field-initializers",
+                "-Wno-override-init",
+                "-Wnested-externs",
+                "-Wchar-subscripts",
+                "-Wtype-limits",
+                "-Wuninitialized",
+                "-fno-common",
+                "-fdiagnostics-show-option",
+                "-fvisibility=hidden",
+                "-ffunction-sections",
+                "-fdata-sections",
+                "-fno-asynchronous-unwind-tables"
+            ],
+            "comment": "append to COMMON_CFLAGS so it's used for further checks",
+            "append_to": "COMMON_CFLAGS"
+	}
+    ],
     "dependencies": [
 	{
 	    "dependency": "check",
@@ -47,7 +136,9 @@
 	    "headers": [
 		"<pthread.h>"
 	    ],
-            "ldflags": "-lpthread"
+            "ldflags": {
+                "value": "-lpthread"
+            }
 	},
 	{
 	    "dependency": "linux",
