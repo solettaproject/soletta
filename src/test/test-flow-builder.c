@@ -35,6 +35,7 @@
 #include "sol-flow.h"
 #include "sol-flow-builder.h"
 #include "sol-flow-resolver.h"
+#include "sol-flow-static.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"

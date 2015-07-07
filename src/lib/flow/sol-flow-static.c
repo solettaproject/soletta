@@ -37,6 +37,7 @@
 #include <string.h>
 
 #include "sol-flow-internal.h"
+#include "sol-flow-static.h"
 #include "sol-list.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"

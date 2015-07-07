@@ -39,6 +39,7 @@
 #include "gpio-gen.h"
 
 #include "sol-flow.h"
+#include "sol-flow-static.h"
 #include "sol-mainloop.h"
 #include "sol-pwm.h"
 #include "sol-spi.h"
