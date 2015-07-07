@@ -229,6 +229,7 @@ static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_EMPTY = {
     .name = "Empty",
     .get = packet_empty_get,
     .get_constant = packet_empty_get_constant,
+    .members = (const struct sol_flow_packet_member_description[]){},
 };
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_EMPTY = &_SOL_FLOW_PACKET_TYPE_EMPTY;
 
@@ -267,6 +268,17 @@ static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BOOLEAN = {
     .name = "Boolean",
     .data_size = sizeof(bool),
     .get_constant = packet_boolean_get_constant,
+    .data_type = "bool",
+    .members = (const struct sol_flow_packet_member_description[]){
+        {
+            .name = "val",
+            .description = "The value of this packet",
+            .data_type = "bool",
+            .offset = 0,
+            .size = sizeof(bool),
+        },
+        {}
+    },
 };
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_BOOLEAN = &_SOL_FLOW_PACKET_TYPE_BOOLEAN;
 
@@ -287,6 +299,38 @@ static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_IRANGE = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "IRange",
     .data_size = sizeof(struct sol_irange),
+    .data_type = "struct sol_irange",
+    .members = (const struct sol_flow_packet_member_description[]){
+        {
+            .name = "val",
+            .description = "The value of this integer range. It's constrained within min and max (both inclusive) and should be increased based on declared steps.",
+            .data_type = "int32_t",
+            .offset = offsetof(struct sol_irange, val),
+            .size = sizeof(int32_t),
+        },
+        {
+            .name = "min",
+            .description = "The minimum allowed value for this integer range.",
+            .data_type = "int32_t",
+            .offset = offsetof(struct sol_irange, min),
+            .size = sizeof(int32_t),
+        },
+        {
+            .name = "max",
+            .description = "The maximum allowed value for this integer range.",
+            .data_type = "int32_t",
+            .offset = offsetof(struct sol_irange, max),
+            .size = sizeof(int32_t),
+        },
+        {
+            .name = "step",
+            .description = "The step that should be used to change the value for this integer range.",
+            .data_type = "int32_t",
+            .offset = offsetof(struct sol_irange, step),
+            .size = sizeof(int32_t),
+        },
+        {}
+    },
 };
 
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_IRANGE = &_SOL_FLOW_PACKET_TYPE_IRANGE;
@@ -352,12 +396,24 @@ string_packet_dispose(const struct sol_flow_packet_type *packet_type, void *mem)
     free(*pstring);
 }
 
+/* TODO: string packet should use a sol_string that is derived from sol_blob */
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_STRING = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "String",
     .data_size = sizeof(char *),
     .init = string_packet_init,
     .dispose = string_packet_dispose,
+    .data_type = "char[]",
+    .members = (const struct sol_flow_packet_member_description[]){
+        {
+            .name = "val",
+            .description = "The value of this packet",
+            .data_type = "string",
+            .offset = 0,
+            .size = sizeof(char *),
+        },
+        {}
+    },
 };
 
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_STRING = &_SOL_FLOW_PACKET_TYPE_STRING;
@@ -427,12 +483,52 @@ blob_packet_dispose(const struct sol_flow_packet_type *packet_type, void *mem)
         sol_blob_unref(*pblob);
 }
 
+/* TODO: blob packet should be actually a 'byte segment' to avoid confusion. */
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BLOB = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "Blob",
     .data_size = sizeof(struct sol_blob *),
     .init = blob_packet_init,
     .dispose = blob_packet_dispose,
+    .data_type = "struct sol_blob",
+    .members = (const struct sol_flow_packet_member_description[]){
+        {
+            .name = "type",
+            .description = "The blob type describing how to deal with memory below.",
+            .data_type = "struct sol_blob_type *",
+            .offset = offsetof(struct sol_blob, type),
+            .size = sizeof(struct sol_blob_type *),
+        },
+        {
+            .name = "parent",
+            .description = "The parent of this blob.",
+            .data_type = "struct sol_blob *",
+            .offset = offsetof(struct sol_blob, parent),
+            .size = sizeof(struct sol_blob *),
+        },
+        {
+            .name = "mem",
+            .description = "The address of a linear memory segment this blob refers to.",
+            .data_type = "void *",
+            .offset = offsetof(struct sol_blob, mem),
+            .size = sizeof(void *),
+        },
+        {
+            .name = "size",
+            .description = "The size of a linear memory segment at 'mem' this blob refers to.",
+            .data_type = "size_t",
+            .offset = offsetof(struct sol_blob, size),
+            .size = sizeof(size_t),
+        },
+        {
+            .name = "refcnt",
+            .description = "The reference count for this blob.",
+            .data_type = "uint16_t",
+            .offset = offsetof(struct sol_blob, refcnt),
+            .size = sizeof(uint16_t),
+        },
+        {}
+    },
 };
 
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_BLOB = &_SOL_FLOW_PACKET_TYPE_BLOB;
@@ -455,6 +551,38 @@ static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_DRANGE = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "DRange",
     .data_size = sizeof(struct sol_drange),
+    .data_type = "struct sol_drange",
+    .members = (const struct sol_flow_packet_member_description[]){
+        {
+            .name = "val",
+            .description = "The value of this double floating point range. It's constrained within min and max (both inclusive) and should be increased based on declared steps.",
+            .data_type = "double",
+            .offset = offsetof(struct sol_irange, val),
+            .size = sizeof(double),
+        },
+        {
+            .name = "min",
+            .description = "The minimum allowed value for this double floating point range.",
+            .data_type = "double",
+            .offset = offsetof(struct sol_irange, min),
+            .size = sizeof(double),
+        },
+        {
+            .name = "max",
+            .description = "The maximum allowed value for this double floating point range.",
+            .data_type = "double",
+            .offset = offsetof(struct sol_irange, max),
+            .size = sizeof(double),
+        },
+        {
+            .name = "step",
+            .description = "The step that should be used to change the value for this double floating point range.",
+            .data_type = "double",
+            .offset = offsetof(struct sol_irange, step),
+            .size = sizeof(double),
+        },
+        {}
+    },
 };
 
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DRANGE = &_SOL_FLOW_PACKET_TYPE_DRANGE;
@@ -505,7 +633,18 @@ sol_flow_packet_get_drange_value(const struct sol_flow_packet *packet, double *v
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BYTE = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "Byte",
-    .data_size = sizeof(unsigned char),
+    .data_size = sizeof(uint8_t),
+    .data_type = "uint8_t",
+    .members = (const struct sol_flow_packet_member_description[]){
+        {
+            .name = "val",
+            .description = "The value of this packet",
+            .data_type = "uint8_t",
+            .offset = 0,
+            .size = sizeof(uint8_t),
+        },
+        {}
+    },
 };
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_BYTE = &_SOL_FLOW_PACKET_TYPE_BYTE;
 
@@ -526,6 +665,52 @@ static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_RGB = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "RGB",
     .data_size = sizeof(struct sol_rgb),
+    .data_type = "struct sol_rgb",
+    .members = (const struct sol_flow_packet_member_description[]){
+        {
+            .name = "red",
+            .description = "The red component of this RGB color, from 0 to 'red_max'.",
+            .data_type = "uint32_t",
+            .offset = offsetof(struct sol_rgb, red),
+            .size = sizeof(uint32_t),
+        },
+        {
+            .name = "green",
+            .description = "The green component of this RGB color, from 0 to 'green_max'.",
+            .data_type = "uint32_t",
+            .offset = offsetof(struct sol_rgb, green),
+            .size = sizeof(uint32_t),
+        },
+        {
+            .name = "blue",
+            .description = "The blue component of this RGB color, from 0 to 'blue_max'.",
+            .data_type = "uint32_t",
+            .offset = offsetof(struct sol_rgb, blue),
+            .size = sizeof(uint32_t),
+        },
+        {
+            .name = "red_max",
+            .description = "The maximum value (inclusive) of red component of this RGB color.",
+            .data_type = "uint32_t",
+            .offset = offsetof(struct sol_rgb, red_max),
+            .size = sizeof(uint32_t),
+        },
+        {
+            .name = "green_max",
+            .description = "The maximum value (inclusive) of green component of this RGB color.",
+            .data_type = "uint32_t",
+            .offset = offsetof(struct sol_rgb, green_max),
+            .size = sizeof(uint32_t),
+        },
+        {
+            .name = "blue_max",
+            .description = "The maximum value (inclusive) of blue component of this RGB color.",
+            .data_type = "uint32_t",
+            .offset = offsetof(struct sol_rgb, blue_max),
+            .size = sizeof(uint32_t),
+        },
+        {}
+    },
 };
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_RGB = &_SOL_FLOW_PACKET_TYPE_RGB;
 
@@ -578,6 +763,45 @@ static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR 
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "DIRECTION_VECTOR",
     .data_size = sizeof(struct sol_direction_vector),
+    .data_type = "struct sol_direction_vector",
+    .members = (const struct sol_flow_packet_member_description[]){
+        {
+            .name = "x",
+            .description = "The X-axis value within 'min' and 'max' range.",
+            .data_type = "double",
+            .offset = offsetof(struct sol_direction_vector, x),
+            .size = sizeof(double),
+        },
+        {
+            .name = "y",
+            .description = "The Y-axis value within 'min' and 'max' range.",
+            .data_type = "double",
+            .offset = offsetof(struct sol_direction_vector, y),
+            .size = sizeof(double),
+        },
+        {
+            .name = "z",
+            .description = "The Z-axis value within 'min' and 'max' range.",
+            .data_type = "double",
+            .offset = offsetof(struct sol_direction_vector, z),
+            .size = sizeof(double),
+        },
+        {
+            .name = "min",
+            .description = "The minimum (inclusive) value allowed for each axis.",
+            .data_type = "double",
+            .offset = offsetof(struct sol_direction_vector, min),
+            .size = sizeof(double),
+        },
+        {
+            .name = "max",
+            .description = "The maximum (inclusive) value allowed for each axis.",
+            .data_type = "double",
+            .offset = offsetof(struct sol_direction_vector, max),
+            .size = sizeof(double),
+        },
+        {}
+    },
 };
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR = &_SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
 
@@ -663,6 +887,23 @@ static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_ERROR = {
     .data_size = sizeof(struct error_data),
     .init = error_packet_init,
     .dispose = error_packet_dispose,
+    .members = (const struct sol_flow_packet_member_description[]){
+        {
+            .name = "code",
+            .description = "The numeric error (errno) for this packet",
+            .data_type = "int",
+            .offset = offsetof(struct error_data, code),
+            .size = sizeof(int),
+        },
+        {
+            .name = "msg",
+            .description = "The message for this error packet",
+            .data_type = "string",
+            .offset = offsetof(struct error_data, msg),
+            .size = sizeof(char *),
+        },
+        {}
+    },
 };
 SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_ERROR = &_SOL_FLOW_PACKET_TYPE_ERROR;
 

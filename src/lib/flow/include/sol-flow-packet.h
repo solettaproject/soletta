@@ -61,6 +61,14 @@ extern "C" {
  */
 struct sol_flow_packet;
 
+struct sol_flow_packet_member_description {
+    const char *name; /**< packet member's name */
+    const char *description; /**< packet member's description */
+    const char *data_type; /**< textual representation of the packet member basic C data type(s), e. g. "int" */
+    uint16_t offset; /**< packet member's absolute offset inside the memory returned by sol_flow_packet_get_memory() */
+    uint16_t size; /**< packet member's size inside the memory returned by sol_flow_packet_get_memory(), starting at offset */
+};
+
 struct sol_flow_packet_type {
 #define SOL_FLOW_PACKET_TYPE_API_VERSION (1)
     uint16_t api_version;
@@ -76,6 +84,9 @@ struct sol_flow_packet_type {
     /* Internal. Used for types that have a set of constant values, so
      * no allocation is needed. */
     struct sol_flow_packet *(*get_constant)(const struct sol_flow_packet_type *packet_type, const void *value);
+
+    const char *data_type; /**< textual representation of the packet payload as a C data type(s), may be a struct such as e.g. "struct sol_irange". For basic C types see the array 'members'. */
+    const struct sol_flow_packet_member_description *members; /**< @NULL terminated packet members array */
 };
 
 struct sol_flow_packet *sol_flow_packet_new(const struct sol_flow_packet_type *type, const void *value);
