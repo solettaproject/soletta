@@ -69,6 +69,7 @@ enum sol_pwm_polarity {
 struct sol_pwm_config {
 #define SOL_PWM_CONFIG_API_VERSION (1)
     uint16_t api_version;
+    int : 0; /* save possible hole for a future field */
     int32_t period_ns; /* if == -1, won't set */
     int32_t duty_cycle_ns; /* if == -1, won't set, but if period is set, duty cycle is zeroed */
     enum sol_pwm_alignment alignment;

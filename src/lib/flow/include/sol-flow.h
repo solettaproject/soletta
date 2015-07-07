@@ -276,7 +276,8 @@ struct sol_flow_node_type_description {
      * incremented.
      */
 #define SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION (1)
-    unsigned long api_version;
+    uint16_t api_version; /**< API version */
+    int : 0; /* save possible hole for a future field */
     const char *name; /**< mandatory, the user-visible name */
     const char *category; /**< mandatory, convention is: category/subcategory/..., such as input/hw/sensor for a pressure sensor or input/sw/oic/switch for an OIC compliant on/off switch */
     const char *symbol; /**< the symbol that exports this type, useful to code that generates C code.  */

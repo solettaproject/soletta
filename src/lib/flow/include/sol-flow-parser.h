@@ -64,8 +64,9 @@ extern "C" {
 struct sol_flow_parser;
 
 struct sol_flow_parser_client {
-#define SOL_FLOW_PARSER_CLIENT_API_VERSION (1UL)
-    unsigned long api_version;
+#define SOL_FLOW_PARSER_CLIENT_API_VERSION (1)
+    uint16_t api_version; /**< API version */
+    int : 0; /* save possible hole for a future field */
     void *data;
 
     /* Called by parser to load declared types, buf should be valid

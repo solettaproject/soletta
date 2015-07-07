@@ -77,8 +77,8 @@ enum sol_gpio_drive {
 struct sol_gpio_config {
 #define SOL_GPIO_CONFIG_API_VERSION (1)
     uint16_t api_version;
+    int : 0; /* save possible hole for a future field */
     enum sol_gpio_direction dir;
-    bool active_low;
     enum sol_gpio_drive drive_mode;
     union {
         struct {
@@ -91,6 +91,7 @@ struct sol_gpio_config {
             bool value;
         } out;
     };
+    bool active_low;
 };
 
 struct sol_gpio *sol_gpio_open(int pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;

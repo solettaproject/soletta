@@ -86,9 +86,10 @@ struct sol_pin_mux_controller {
  * Structure containing the recipes (lists of rules) that should be used
  * to multiplex the pins of a given platform
  */
-#define SOL_PIN_MUX_API_VERSION (1UL)
+#define SOL_PIN_MUX_API_VERSION (1)
 struct sol_pin_mux {
-    unsigned long int api_version; /**< API version */
+    uint16_t api_version; /**< API version */
+    int : 0; /* save possible hole for a future field */
     const char *plat_name; /**< Name this multiplexer target platform */
 
     struct sol_pin_mux_controller gpio;
