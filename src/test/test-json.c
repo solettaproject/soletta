@@ -138,7 +138,7 @@ DEFINE_TEST(test_json);
 static void
 test_json(void)
 {
-    int i = 0;
+    unsigned int i = 0;
     int j = 0;
 
     for (i = 0; i < ARRAY_SIZE(scan_tests); i++) {
@@ -146,14 +146,12 @@ test_json(void)
         struct sol_json_scanner scanner;
         struct sol_json_token input;
         const enum sol_json_type *output;
-        int pos = 0;
 
         t = &scan_tests[i];
         input.start = t->input;
         input.end = t->input + strlen(t->input);
         sol_json_scanner_init(&scanner, input.start, input.end - input.start);
 
-        pos = 0;
         output = scan_tests[i].output;
 
         for (j = 0; j < scan_tests[i].expected_elements; j++) {

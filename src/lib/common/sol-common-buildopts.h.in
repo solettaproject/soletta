@@ -32,7 +32,11 @@
 
 #pragma once
 
-@SOL_PLATFORM_LINUX@
-@SOL_PLATFORM_RIOT@
+{{
+st.on_value("SOL_PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
+st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
+}}
 
-@SOL_LOG_ENABLED@
+{{
+st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
+}}
