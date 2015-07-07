@@ -40,7 +40,7 @@ config COAP
             as multicast support, very low overhead, and simplicity
             for constrained environments.
 
-            It is used by Open Inter Connect (OIC -
+            It is used by Open Interconnect Consortium (OIC -
             http://openinterconnect.org/)
 
             See https://tools.ietf.org/html/rfc7252
@@ -50,8 +50,8 @@ config OIC
 	default y
 	depends on COAP
 	help
-            Implementation of protocol defined by Open Inter Connect (OIC -
-            http://openinterconnect.org/)
+            Implementation of protocol defined by Open Interconnect Consortium
+            (OIC - http://openinterconnect.org/)
 
             It's a common communication framework based on industry standard
             technologies to wirelessly connect and intelligently manage
