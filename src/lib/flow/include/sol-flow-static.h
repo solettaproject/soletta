@@ -172,8 +172,6 @@ struct sol_flow_node *sol_flow_static_get_node(struct sol_flow_node *node, uint1
 struct sol_flow_node_type *sol_flow_static_new_type(
     const struct sol_flow_static_spec *spec);
 
-void sol_flow_static_del_type(struct sol_flow_node_type *type);
-
 #ifdef __cplusplus
 }
 #endif

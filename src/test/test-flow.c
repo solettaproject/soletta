@@ -304,7 +304,7 @@ test_flow_new_type(void)
 static void
 test_flow_del_type(struct sol_flow_node_type *type)
 {
-    sol_flow_static_del_type(type);
+    sol_flow_node_type_del(type);
 }
 
 #define ASSERT_EVENT_COUNT(node, event, count) \
@@ -774,7 +774,7 @@ test_other_flow_new_type(void)
 static void
 test_other_flow_del_type(struct sol_flow_node_type *type)
 {
-    sol_flow_static_del_type(type);
+    sol_flow_node_type_del(type);
 }
 
 
