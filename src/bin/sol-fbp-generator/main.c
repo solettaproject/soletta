@@ -42,6 +42,7 @@
 #include "sol-fbp-internal-log.h"
 #include "sol-file-reader.h"
 #include "sol-flow.h"
+#include "sol-flow-static.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-conffile.h"
@@ -591,6 +592,7 @@ generate(struct sol_vector *fbp_data_vector)
     uint16_t i;
 
     dprintf(fd, "#include \"sol-flow.h\"\n"
+        "#include \"sol-flow-static.h\"\n"
         "#include \"sol-mainloop.h\"\n"
         "\n"
         "static struct sol_flow_node *flow;\n\n");

@@ -37,6 +37,7 @@
 #include "sol-flow-builder.h"
 #include "sol-flow-internal.h"
 #include "sol-flow-resolver.h"
+#include "sol-flow-static.h"
 #include "sol-str-table.h"
 
 struct sol_flow_builder {

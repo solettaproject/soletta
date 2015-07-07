@@ -37,6 +37,7 @@
 #include "grove-gen.h"
 #include "aio-gen.h"
 
+#include "sol-flow-static.h"
 #include "sol-flow-internal.h"
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
