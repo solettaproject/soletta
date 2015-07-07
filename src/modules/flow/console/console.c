@@ -49,106 +49,131 @@ static int
 console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct console_data *mdata = data;
+    const struct sol_flow_packet_type *type = sol_flow_packet_get_type(packet);
+    const uint8_t *mem;
+    const struct sol_flow_packet_member_description *desc;
+    bool has_members, single_member;
 
-    if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_EMPTY) {
-        fprintf(mdata->fp, "%s(empty)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
-        bool value;
-        int r = sol_flow_packet_get_boolean(packet, &value);
-        SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%s (boolean)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            value ? "true" : "false",
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BYTE) {
-        unsigned char value;
-        int r = sol_flow_packet_get_byte(packet, &value);
-        SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s#%02x (byte)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            value,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_IRANGE) {
-        int32_t val;
-        int r = sol_flow_packet_get_irange_value(packet, &val);
-        SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%" PRId32 " (integer range)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            val,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_DRANGE) {
-        double val;
-        int r = sol_flow_packet_get_drange_value(packet, &val);
-        SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%f (float range)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            val,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_RGB) {
-        uint32_t red, green, blue;
-        int r = sol_flow_packet_get_rgb_components(packet, &red, &green, &blue);
-        SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s(%d, %d, %d) (rgb)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            red, green, blue,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR) {
-        double x, y, z;
-        int r = sol_flow_packet_get_direction_vector_components(packet, &x, &y, &z);
-        SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s(%lf, %lf, %lf) (direction-vector)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            x, y, z,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_STRING) {
-        const char *val;
+    SOL_NULL_CHECK(type, -EINVAL);
 
-        int r = sol_flow_packet_get_string(packet, &val);
-        SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%s (string)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            val,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BLOB) {
-        struct sol_blob *val;
-        const char *buf, *bufend;
+    if (mdata->prefix)
+        fputs(mdata->prefix, mdata->fp);
 
-        int r = sol_flow_packet_get_blob(packet, &val);
-        SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%stype=%p, parent=%p, size=%zd, refcnt=%hu, mem=%p {",
-            mdata->prefix ? mdata->prefix : "",
-            val->type, val->parent, val->size, val->refcnt, val->mem);
+    if (type->data_size == 0)
+        goto end;
 
-        buf = val->mem;
-        bufend = buf + val->size;
-        for (; buf < bufend; buf++) {
-            if (isprint(*buf))
-                fprintf(mdata->fp, "%#x(%c)", *buf, *buf);
-            else
-                fprintf(mdata->fp, "%#x", *buf);
-            if (buf + 1 < bufend)
+    mem = sol_flow_packet_get_memory(packet);
+    desc = type->members;
+    if (!desc) {
+        fprintf(mdata->fp, "<packet %p has no members description>", packet);
+        goto end;
+    }
+
+    has_members = (desc[0].name != NULL && desc[0].data_type != NULL);
+    single_member =  has_members &&
+        (desc[1].name == NULL || desc[1].data_type == NULL);
+    if (has_members && !single_member) {
+        if (type->data_type)
+            fprintf(mdata->fp, "(%s)", type->data_type);
+        fputc('{', mdata->fp);
+    }
+
+    for (; desc->name != NULL && desc->data_type != NULL; desc++) {
+        const char *data_type = desc->data_type;
+        const void *member_mem;
+        const uint16_t member_size = desc->size;
+        if (unlikely(desc->offset + member_size > type->data_size)) {
+            SOL_WRN("packet type %p (%s) data_size=%hu smaller than member "
+                "'%s' offset=%hu, size=%hu. Member skipped.",
+                type, type->name ? type->name : "",
+                type->data_size,
+                desc->name, desc->offset, member_size);
+            continue;
+        }
+        if (likely(!single_member)) {
+            if (desc > type->members)
                 fputs(", ", mdata->fp);
+            fprintf(mdata->fp, ".%s=", desc->name);
         }
 
-        fprintf(mdata->fp, "} (blob)%s\n",
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_ERROR) {
-        int code;
-        const char *msg;
-        int r = sol_flow_packet_get_error(packet, &code, &msg);
-        SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s#%02x (error)%s - %s\n",
-            mdata->prefix ? mdata->prefix : "",
-            code,
-            mdata->suffix ? mdata->suffix : "",
-            msg ? : "");
-    } else {
-        SOL_WRN("Unsupported packet=%p type=%p (%s)",
-            packet, sol_flow_packet_get_type(packet), sol_flow_packet_get_type(packet)->name);
-        return -EINVAL;
+        member_mem = mem + desc->offset;
+#define CHECK_SIZE(expected) (member_size == sizeof(expected))
+#define CHECK_CTYPE(expected) CHECK_SIZE(expected) && streq(data_type, #expected)
+        if (CHECK_CTYPE(bool)) {
+            const bool *v = member_mem;
+            fputs(*v ? "true" : "false", mdata->fp);
+        } else if (CHECK_SIZE(char *) && streq(data_type, "string")) {
+            const char *const *v = member_mem;
+            if (*v)
+                fprintf(mdata->fp, "\"%s\"", *v);
+            else
+                fputs("(null)", mdata->fp);
+        } else if (CHECK_CTYPE(int)) {
+            const int *v = member_mem;
+            fprintf(mdata->fp, "%d", *v);
+        } else if (CHECK_CTYPE(unsigned)) {
+            const unsigned *v = member_mem;
+            fprintf(mdata->fp, "%u", *v);
+        } else if (CHECK_CTYPE(int8_t)) {
+            const int8_t *v = member_mem;
+            fprintf(mdata->fp, "%" PRId8 "", *v);
+        } else if (CHECK_CTYPE(int16_t)) {
+            const int16_t *v = member_mem;
+            fprintf(mdata->fp, "%" PRId16 "", *v);
+        } else if (CHECK_CTYPE(int32_t)) {
+            const int32_t *v = member_mem;
+            fprintf(mdata->fp, "%" PRId32 "", *v);
+        } else if (CHECK_CTYPE(int64_t)) {
+            const int64_t *v = member_mem;
+            fprintf(mdata->fp, "%" PRId64 "", *v);
+        } else if (CHECK_CTYPE(uint8_t)) {
+            const uint8_t *v = member_mem;
+            fprintf(mdata->fp, "%" PRIu8 "", *v);
+        } else if (CHECK_CTYPE(uint16_t)) {
+            const uint16_t *v = member_mem;
+            fprintf(mdata->fp, "%" PRIu16 "", *v);
+        } else if (CHECK_CTYPE(uint32_t)) {
+            const uint32_t *v = member_mem;
+            fprintf(mdata->fp, "%" PRIu32 "", *v);
+        } else if (CHECK_CTYPE(uint64_t)) {
+            const uint64_t *v = member_mem;
+            fprintf(mdata->fp, "%" PRIu64 "", *v);
+        } else if (CHECK_CTYPE(double)) {
+            const double *v = member_mem;
+            fprintf(mdata->fp, "%f", *v);
+        } else if (CHECK_CTYPE(size_t)) {
+            const size_t *v = member_mem;
+            fprintf(mdata->fp, "%zu", *v);
+        } else if (CHECK_CTYPE(ssize_t)) {
+            const ssize_t *v = member_mem;
+            fprintf(mdata->fp, "%zd", *v);
+        } else {
+            size_t len = strlen(data_type);
+            if (CHECK_SIZE(void *) && len > 0 && data_type[len - 1] == '*') {
+                const void *const *v = member_mem;
+                fprintf(mdata->fp, "(%s)%p", data_type, *v);
+            } else {
+                fprintf(mdata->fp, "[unsupported](%s*)%p",
+                    data_type, member_mem);
+            }
+        }
+#undef CHECK_CTYPE
+#undef CHECK_SIZE
     }
+
+    if (has_members && !single_member)
+        fputc('}', mdata->fp);
+
+end:
+    if (type->name)
+        fprintf(mdata->fp, "(%s)", type->name);
+    else
+        fprintf(mdata->fp, "(%p)", type);
+
+    if (mdata->suffix)
+        fputs(mdata->suffix, mdata->fp);
+
+    fputc('\n', mdata->fp);
 
     if (mdata->flush)
         fflush(mdata->fp);
