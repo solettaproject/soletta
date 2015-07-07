@@ -979,14 +979,7 @@ fail_nomem:
 static int
 flow_static_type_init(
     struct flow_static_type *type,
-    const struct sol_flow_static_node_spec nodes[],
-    const struct sol_flow_static_conn_spec conns[],
-    const struct sol_flow_static_port_spec exported_in[],
-    const struct sol_flow_static_port_spec exported_out[],
-    int (*child_opts_set)(const struct sol_flow_node_type *type,
-    uint16_t child_index,
-    const struct sol_flow_node_options *opts,
-    struct sol_flow_node_options *child_opts))
+    const struct sol_flow_static_spec *spec)
 {
     int r;
 
@@ -1004,11 +997,11 @@ flow_static_type_init(
             },
             .send = flow_send,
         },
-        .node_specs = nodes,
-        .conn_specs = conns,
-        .exported_in_specs = exported_in,
-        .exported_out_specs = exported_out,
-        .child_opts_set = child_opts_set
+        .node_specs = spec->nodes,
+        .conn_specs = spec->conns,
+        .exported_in_specs = spec->exported_in,
+        .exported_out_specs = spec->exported_out,
+        .child_opts_set = spec->child_opts_set
     };
 
     r = setup_node_specs(type);
@@ -1047,7 +1040,13 @@ sol_flow_static_new(struct sol_flow_node *parent, const struct sol_flow_static_n
     struct sol_flow_node *node;
     struct flow_static_type *type;
 
-    type = (struct flow_static_type *)sol_flow_static_new_type(nodes, conns, NULL, NULL, NULL);
+    struct sol_flow_static_spec spec = {
+        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        .nodes = nodes,
+        .conns = conns,
+    };
+
+    type = (struct flow_static_type *)sol_flow_static_new_type(&spec);
     if (!type)
         return NULL;
     type->owned_by_node = true;
@@ -1103,23 +1102,25 @@ sol_flow_static_get_node(struct sol_flow_node *flow, uint16_t index)
 
 SOL_API struct sol_flow_node_type *
 sol_flow_static_new_type(
-    const struct sol_flow_static_node_spec nodes[],
-    const struct sol_flow_static_conn_spec conns[],
-    const struct sol_flow_static_port_spec exported_in[],
-    const struct sol_flow_static_port_spec exported_out[],
-    int (*child_opts_set)(const struct sol_flow_node_type *type,
-    uint16_t child_index,
-    const struct sol_flow_node_options *opts,
-    struct sol_flow_node_options *child_opts))
+    const struct sol_flow_static_spec *spec)
 {
     struct flow_static_type *type;
     int r;
+
+    SOL_NULL_CHECK(spec, NULL);
+
+    if (spec->api_version != SOL_FLOW_STATIC_API_VERSION) {
+        SOL_WRN("spec(%p)->api_version(%u) != "
+            "SOL_FLOW_STATIC_API_VERSION(%u)",
+            spec, spec->api_version, SOL_FLOW_STATIC_API_VERSION);
+        return NULL;
+    }
 
     type = calloc(1, sizeof(*type));
     if (!type)
         return NULL;
 
-    r = flow_static_type_init(type, nodes, conns, exported_in, exported_out, child_opts_set);
+    r = flow_static_type_init(type, spec);
     if (r < 0) {
         free(type);
         return NULL;
