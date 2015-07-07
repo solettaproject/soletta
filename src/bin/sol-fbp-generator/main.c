@@ -31,10 +31,12 @@
  */
 
 #include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "sol-arena.h"
@@ -680,6 +682,74 @@ sol_fbp_generator_type_store_load(struct type_store *common_store)
     return true;
 }
 
+static bool handle_json_path(const char *path);
+
+static bool
+handle_json_dir(const char *path)
+{
+    DIR *dp;
+    struct dirent *entry;
+    char full_path[PATH_MAX];
+    int r;
+
+    dp = opendir(path);
+    if (!dp)
+        return false;
+
+    while (entry = readdir(dp)) {
+        if (entry->d_name[0] == '.')
+            continue;
+
+        r = snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+        if (r < 0 || r >= (int)sizeof(full_path)) {
+            closedir(dp);
+            return false;
+        }
+
+        if (!handle_json_path(full_path)) {
+            closedir(dp);
+            return false;
+        }
+    }
+
+    closedir(dp);
+
+    return true;
+}
+
+const char *
+get_file_ext(const char *file)
+{
+    char *ext = strrchr(file, '.');
+
+    if (!ext)
+        ext = "";
+
+    return ext;
+}
+
+static bool
+handle_json_path(const char *path)
+{
+    struct stat s;
+    char *dup_path;
+
+    if (stat(path, &s) != 0)
+        return false;
+
+    if (S_ISDIR(s.st_mode))
+        return handle_json_dir(path);
+
+    if (S_ISREG(s.st_mode) && streq(get_file_ext(path), ".json")) {
+        dup_path = sol_arena_strdup(str_arena, path);
+        SOL_NULL_CHECK(dup_path, false);
+
+        sol_ptr_vector_append(&args.json_files, dup_path);
+    }
+
+    return true;
+}
+
 static bool
 sol_fbp_generator_handle_args(int argc, char *argv[])
 {
@@ -702,7 +772,10 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
             break;
         case 'j':
             has_json_file = true;
-            sol_ptr_vector_append(&args.json_files, optarg);
+            if (!handle_json_path(optarg)) {
+                SOL_ERR("Couldn handle JSON path: %s. %s", optarg, sol_util_strerrora(errno));
+                return false;
+            }
             break;
         case '?':
             fprintf(stderr, "sol-fbp-generator usage: ./sol-fbp-generator [-c conf_file]"
