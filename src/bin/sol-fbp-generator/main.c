@@ -762,7 +762,7 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
     type.symbol = node_type;
 
     /* useless for fbp type */
-    type.options_symbol = (char *) "";
+    type.options_symbol = (char *)"";
 
     sol_vector_init(&type.in_ports, sizeof(struct port_description));
     SOL_VECTOR_FOREACH_IDX (&data->graph.exported_in_ports, e, i) {
@@ -921,7 +921,7 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
                 return NULL;
 
             /* We need to do this because we may have appended new data to fbp_data_vector,
-            * this changes the position of data pointers since it's a sol_vector. */
+             * this changes the position of data pointers since it's a sol_vector. */
             data = sol_vector_get(fbp_data_vector, data_idx);
 
             if (!add_fbp_type_to_type_store(data->store, d)) {
