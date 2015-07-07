@@ -146,27 +146,46 @@ add_simulation_node(struct runner *r, const char *node_type, const char *port_na
 }
 
 struct map {
-    const char *packet_name;
+    const struct sol_flow_packet_type *packet;
     const char *node_type;
     const char *port_name;
 };
 
-static const struct map input_nodes[] = {
-    { "IRange", "gtk/spinbutton", "OUT" },
-    { "DRange", "gtk/slider", "OUT" },
-    { "Any", "gtk/toggle", "OUT" },
-    { "Empty", "gtk/toggle", "OUT" },
-    { "Boolean", "gtk/pushbutton", "OUT" },
-    { "RGB", "gtk/rgb-editor", "OUT" },
-    { "Byte", "byte/editor", "OUT" },
+static struct map input_nodes[] = {
+    { NULL, "gtk/spinbutton", "OUT" },
+    { NULL, "gtk/slider", "OUT" },
+    { NULL, "gtk/toggle", "OUT" },
+    { NULL, "gtk/toggle", "OUT" },
+    { NULL, "gtk/pushbutton", "OUT" },
+    { NULL, "gtk/rgb-editor", "OUT" },
+    { NULL, "byte/editor", "OUT" },
 };
 
-static const struct map output_nodes[] = {
-    { "IRange", "gtk/label", "IN" },
-    { "DRange", "gtk/label", "IN" },
-    { "String", "gtk/label", "IN" },
-    { "Boolean", "gtk/led", "IN" },
+static struct map output_nodes[] = {
+    { NULL, "gtk/label", "IN" },
+    { NULL, "gtk/label", "IN" },
+    { NULL, "gtk/label", "IN" },
+    { NULL, "gtk/led", "IN" },
 };
+
+static void
+init_tables() {
+    struct map *in = input_nodes;
+    struct map *on = output_nodes;
+
+    in[0].packet = SOL_FLOW_PACKET_TYPE_IRANGE;
+    in[1].packet = SOL_FLOW_PACKET_TYPE_DRANGE;
+    in[2].packet = SOL_FLOW_PACKET_TYPE_ANY;
+    in[3].packet = SOL_FLOW_PACKET_TYPE_EMPTY;
+    in[4].packet = SOL_FLOW_PACKET_TYPE_BOOLEAN;
+    in[5].packet = SOL_FLOW_PACKET_TYPE_RGB;
+    in[6].packet = SOL_FLOW_PACKET_TYPE_BYTE;
+
+    on[0].packet = SOL_FLOW_PACKET_TYPE_IRANGE;
+    on[1].packet = SOL_FLOW_PACKET_TYPE_DRANGE;
+    on[2].packet = SOL_FLOW_PACKET_TYPE_STRING;
+    on[3].packet = SOL_FLOW_PACKET_TYPE_BOOLEAN;
+}
 
 static int
 attach_simulation_nodes(struct runner *r)
@@ -184,6 +203,7 @@ attach_simulation_nodes(struct runner *r)
     if (in_count == 0 && out_count == 0)
         return 0;
 
+    init_tables();
     r->builder = sol_flow_builder_new();
     SOL_NULL_CHECK(r->builder, -ENOMEM);
 
@@ -199,7 +219,7 @@ attach_simulation_nodes(struct runner *r)
         found = false;
 
         for (k = 0; k < ARRAY_SIZE(input_nodes); k++) {
-            if (streq(port_in->packet_type->name, input_nodes[k].packet_name)) {
+            if (streq(port_in->packet_type->name, input_nodes[k].packet->name)) {
                 node_name = get_node_name(port_desc->name, i - port_desc->base_port_idx, true);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);
 
@@ -227,7 +247,7 @@ attach_simulation_nodes(struct runner *r)
         found = false;
 
         for (k = 0; k < ARRAY_SIZE(output_nodes); k++) {
-            if (streq(port_out->packet_type->name, output_nodes[k].packet_name)) {
+            if (streq(port_out->packet_type->name, output_nodes[k].packet->name)) {
                 node_name = get_node_name(port_desc->name, i - port_desc->base_port_idx, false);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);
 
