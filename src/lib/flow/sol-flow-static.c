@@ -505,7 +505,7 @@ flow_node_close(struct sol_flow_node *node, void *data)
     free(fsd->nodes);
 
     if (type->owned_by_node)
-        sol_flow_static_del_type(&type->base.base);
+        sol_flow_node_type_del(&type->base.base);
 }
 
 static bool
@@ -976,6 +976,15 @@ fail_nomem:
     return -ENOMEM;
 }
 
+static void
+flow_dispose_type(struct sol_flow_node_type *type)
+{
+    struct flow_static_type *fst = (struct flow_static_type *)type;
+
+    flow_static_type_fini(fst);
+    free(fst);
+}
+
 static int
 flow_static_type_init(
     struct flow_static_type *type,
@@ -994,6 +1003,7 @@ flow_static_type_init(
                 .get_ports_counts = flow_get_ports_counts,
                 .get_port_in = flow_get_port_in,
                 .get_port_out = flow_get_port_out,
+                .dispose_type = flow_dispose_type,
             },
             .send = flow_send,
         },
@@ -1057,7 +1067,7 @@ sol_flow_static_new(struct sol_flow_node *parent, const struct sol_flow_static_n
         NULL);
 
     if (!node)
-        sol_flow_static_del_type(&type->base.base);
+        sol_flow_node_type_del(&type->base.base);
 
     return node;
 }
@@ -1127,16 +1137,4 @@ sol_flow_static_new_type(
     }
 
     return &type->base.base;
-}
-
-SOL_API void
-sol_flow_static_del_type(struct sol_flow_node_type *type)
-{
-    struct flow_static_type *fst;
-
-    SOL_FLOW_STATIC_TYPE_CHECK(type);
-
-    fst = (struct flow_static_type *)type;
-    flow_static_type_fini(fst);
-    free(fst);
 }

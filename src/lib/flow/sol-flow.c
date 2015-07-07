@@ -435,6 +435,14 @@ sol_flow_node_type_get_port_out(const struct sol_flow_node_type *type, uint16_t 
     return type->get_port_out(type, port);
 }
 
+SOL_API void
+sol_flow_node_type_del(struct sol_flow_node_type *type)
+{
+    if (!type || !type->dispose_type)
+        return;
+    type->dispose_type(type);
+}
+
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 #include "sol-flow-builtins-gen.h"
 

@@ -158,7 +158,7 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
     free(builder->conn_spec);
 
     if (builder->node_type)
-        sol_flow_static_del_type(builder->node_type);
+        sol_flow_node_type_del(builder->node_type);
 
     sol_arena_del(builder->str_arena);
 

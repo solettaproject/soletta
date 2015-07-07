@@ -321,6 +321,10 @@ struct sol_flow_node_type {
 
     void (*init_type)(void); /**< member function called at least once for each node type, that allows initialization of node-specific data (packet types, logging domains, etc) */
 
+    /** Called as part of sol_flow_node_type_del() to dispose any
+     * extra resources associated with the node type. */
+    void (*dispose_type)(struct sol_flow_node_type *type);
+
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     const struct sol_flow_node_type_description *description; /**< pointer to node's description */
 #endif
@@ -345,6 +349,12 @@ const struct sol_flow_port_type_in *sol_flow_node_type_get_port_in(const struct 
  *
  */
 const struct sol_flow_port_type_out *sol_flow_node_type_get_port_out(const struct sol_flow_node_type *type, uint16_t port);
+
+/**
+ * Delete a node type. It should be used only for types dynamically
+ * created and returned by functions like sol_flow_static_new_type().
+ */
+void sol_flow_node_type_del(struct sol_flow_node_type *type);
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 /**
