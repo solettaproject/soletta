@@ -118,7 +118,7 @@ _resolver_conffile_get_module(const char *type)
     struct resolver_conffile_dlopen *entry;
     const struct sol_flow_node_type *ret;
     struct sol_str_slice module_name;
-    char path[PATH_MAX], install_rootdir[PATH_MAX] = { NULL };
+    char path[PATH_MAX], install_rootdir[PATH_MAX] = { 0 };
     char *name;
     int r;
 
