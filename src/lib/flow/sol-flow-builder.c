@@ -925,11 +925,6 @@ error_node_spec:
     return NULL;
 }
 
-struct builder_from_string {
-    struct sol_flow_builder base;
-    const struct sol_flow_resolver *resolver;
-};
-
 static const char **
 strv_join(const char *const *first, const char *const *second)
 {
