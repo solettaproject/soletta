@@ -31,6 +31,7 @@
  */
 
 #include "sol-flow.h"
+#include "sol-flow-static.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-vector.h"
@@ -289,7 +290,15 @@ test_flow_new_type(void)
         SOL_FLOW_STATIC_PORT_SPEC_GUARD
     };
 
-    return sol_flow_static_new_type(nodes, conns, exported_in, exported_out, NULL);
+    static const struct sol_flow_static_spec spec = {
+        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        .nodes = nodes,
+        .conns = conns,
+        .exported_in = exported_in,
+        .exported_out = exported_out,
+    };
+
+    return sol_flow_static_new_type(&spec);
 }
 
 static void
@@ -751,7 +760,15 @@ test_other_flow_new_type(void)
         SOL_FLOW_STATIC_PORT_SPEC_GUARD
     };
 
-    return sol_flow_static_new_type(nodes, conns, exported_in, exported_out, NULL);
+    static const struct sol_flow_static_spec spec = {
+        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        .nodes = nodes,
+        .conns = conns,
+        .exported_in = exported_in,
+        .exported_out = exported_out,
+    };
+
+    return sol_flow_static_new_type(&spec);
 }
 
 static void
@@ -998,7 +1015,14 @@ exported_specs_must_be_ordered(void)
         SOL_FLOW_STATIC_PORT_SPEC_GUARD
     };
 
-    type = sol_flow_static_new_type(nodes, conns, exported_in, NULL, NULL);
+    static const struct sol_flow_static_spec spec = {
+        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        .nodes = nodes,
+        .conns = conns,
+        .exported_in = exported_in,
+    };
+
+    type = sol_flow_static_new_type(&spec);
     ASSERT(!type);
 }
 
