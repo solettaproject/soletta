@@ -266,3 +266,21 @@ end:
     sol_file_reader_close(json_doc);
     return platform;
 }
+
+bool
+sol_platform_invalid_name(const char *name)
+{
+    unsigned int i;
+
+    if (name[0] == '\0')
+        return true;
+
+    for (i = 0; name[i] != '\0'; i++) {
+        if (isalnum(name[i]) || name[i] == '_' || name[i] == '-')
+            continue;
+
+        return true;
+    }
+
+    return false;
+}
