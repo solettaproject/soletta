@@ -1,0 +1,115 @@
+{
+    "nodetypes": [
+        {
+            "options": {
+                "red_pin": "338",
+                "green_pin": "339",
+                "blue_pin": "464"
+            },
+            "type": "calamari/rgb-led",
+            "name": "RGBLed"
+        },
+        {
+            "options": {
+                "clear_pin": "473",
+                "data_pin": "474",
+                "clock_pin": "340",
+                "latch_pin": "475"
+            },
+            "type": "calamari/7seg",
+            "name": "SevenSegments"
+        },
+        {
+            "options": {
+                "pin": "338"
+            },
+            "type": "gpio/writer",
+            "name": "LedRed"
+        },
+        {
+            "options": {
+                "pin": "339"
+            },
+            "type": "gpio/writer",
+            "name": "LedGreen"
+        },
+        {
+            "options": {
+                "pin": "464"
+            },
+            "type": "gpio/writer",
+            "name": "LedBlue"
+        },
+        {
+            "options": {
+                "active_low": "true",
+                "pull": "up",
+                "pin": "472",
+                "edge_falling": "true",
+                "edge_rising": "true"
+            },
+            "type": "gpio/reader",
+            "name": "Button1"
+        },
+        {
+            "options": {
+                "active_low": "true",
+                "pull": "up",
+                "pin": "482",
+                "edge_falling": "true",
+                "edge_rising": "true"
+            },
+            "type": "gpio/reader",
+            "name": "Button2"
+        },
+        {
+            "options": {
+                "active_low": "true",
+                "pull": "up",
+                "pin": "483",
+                "edge_falling": "true",
+                "edge_rising": "true"
+            },
+            "type": "gpio/reader",
+            "name": "Button3"
+        },
+        {
+            "options": {
+                "address": "1",
+                "period": "10000",
+                "range": "min:0|max:10000|step:1"
+            },
+            "type": "calamari/led",
+            "name": "Led1"
+        },
+        {
+            "options": {
+                "address": "2",
+                "period": "10000",
+                "range": "min:0|max:10000|step:1"
+            },
+            "type": "calamari/led",
+            "name": "Led2"
+        },
+        {
+            "options": {
+                "poll_interval": "100",
+                "range": "min:0|max:1000|step:1",
+                "bus": "0",
+                "chip_select": "0"
+            },
+            "type": "calamari/lever",
+            "name": "LedLever"
+        },
+        {
+            "options": {
+                "poll_interval": "100",
+                "range": "min:0|max:15|step:1",
+                "bus": "0",
+                "chip_select": "0"
+            },
+            "type": "calamari/lever",
+            "name": "SegmentsLever"
+        }
+    ]
+}
