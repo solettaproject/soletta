@@ -1,0 +1,24 @@
+{
+    "nodetypes": [
+        {
+            "type": "pwm",
+            "name": "Led1",
+            "options": {
+                "chip": "0",
+                "pin": "1",
+                "period": "22000",
+                "duty_cycle": "min:544|max:2400"
+            }
+        },
+        {
+            "type": "pwm",
+            "name": "Led2",
+            "options": {
+                "chip": "1",
+                "pin": "2",
+                "period": "22000",
+                "duty_cycle": "min:544|max:2400"
+            }
+        }
+    ]
+}

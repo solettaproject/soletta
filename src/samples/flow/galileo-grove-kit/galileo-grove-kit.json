@@ -1,0 +1,109 @@
+{
+    "nodetypes": [
+        {
+            "name": "LCDString",
+            "type": "grove/lcd-string"
+        },
+        {
+            "name": "LCDChar",
+            "type": "grove/lcd-char"
+        },
+        {
+            "name": "RotaryAngleSensor",
+            "options": {
+                "pin": "0",
+                "poll_timeout": "50"
+            },
+            "type": "grove/rotary-sensor"
+        },
+        {
+            "name": "LightSensor",
+            "options": {
+                "pin": "1",
+                "poll_timeout": "50"
+            },
+            "type": "grove/light-sensor"
+        },
+        {
+            "name": "TemperatureSensor",
+            "options": {
+                "pin": "2",
+                "poll_timeout": "50"
+            },
+            "type": "grove/temperature-sensor"
+        },
+        {
+            "name": "SoundSensor",
+            "options": {
+                "pin": "3",
+                "poll_timeout": "50"
+            },
+            "type": "aio/reader"
+        },
+        {
+            "name": "Button",
+            "options": {
+                "pin": "61",
+                "edge_rising": "true",
+                "edge_falling": "true",
+                "active_low": "false"
+            },
+            "type": "gpio/reader"
+        },
+        {
+            "name": "TouchSensor",
+            "options": {
+                "pin": "6",
+                "edge_rising": "true",
+                "edge_falling": "true",
+                "active_low": "false"
+            },
+            "type": "gpio/reader"
+        },
+        {
+            "name": "LED",
+            "options": {
+                "pin": "1",
+                "active_low": "false"
+            },
+            "type": "gpio/writer"
+        },
+        {
+            "name": "Relay",
+            "options": {
+                "pin": "38",
+                "active_low": "false"
+            },
+            "type": "gpio/writer"
+        },
+        {
+            "name": "Servo",
+            "options": {
+                "pin": "1",
+                "chip": "0",
+                "period": "22000",
+                "duty_cycle_range": "min:544|max:2400"
+            },
+            "type": "servo-motor"
+        },
+        {
+            "name": "Buzzer",
+            "options": {
+                "pin": "3",
+                "chip": "0"
+            },
+            "type": "piezo-speaker/sound"
+        },
+        {
+            "name": "LED_PWM",
+            "options": {
+                "pin": "5",
+                "enabled": "true",
+                "chip": "0",
+                "duty_cycle": "0",
+                "period": "2040816"
+            },
+            "type": "pwm"
+        }
+    ]
+}

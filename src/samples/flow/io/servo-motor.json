@@ -1,0 +1,14 @@
+{
+    "nodetypes": [
+        {
+            "type": "servo-motor",
+            "options": {
+                "chip": "0",
+                "pin": "1",
+                "period": "22000",
+                "duty_cycle_range": "min:544|max:2400"
+            },
+            "name": "Servo"
+        }
+    ]
+}
