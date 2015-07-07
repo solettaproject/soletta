@@ -30,7 +30,7 @@
           "name": "CLOSED"
         }
       ],
-      "url": "http://devapp.org/doc/latest/node_types/process_stdin.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/process_stdin.html"
     },
     {
       "category": "output/sw",
@@ -60,7 +60,7 @@
           "name": "CLOSED"
         }
       ],
-      "url": "http://devapp.org/doc/latest/node_types/process_stdout.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/process_stdout.html"
     },
     {
       "category": "output/sw",
@@ -90,7 +90,7 @@
           "name": "CLOSED"
         }
       ],
-      "url": "http://devapp.org/doc/latest/node_types/process_stderr.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/process_stderr.html"
     },
     {
       "category": "output/sw",
@@ -173,7 +173,7 @@
           "name": "PID"
         }
       ],
-      "url": "http://devapp.org/doc/latest/node_types/process_subprocess.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/process_subprocess.html"
     }
   ]
 }

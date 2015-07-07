@@ -42,7 +42,7 @@
         }
       ],
       "private_data_type": "accelerometer_adxl345_data",
-      "url": "http://devapp.org/doc/latest/components/accelerometer/adxl345.html"
+      "url": "http://solettaproject.org/doc/latest/components/accelerometer/adxl345.html"
     }
  ]
 }

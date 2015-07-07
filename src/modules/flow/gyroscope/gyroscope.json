@@ -48,7 +48,7 @@
         }
       ],
       "private_data_type": "gyroscope_l3g4200d_data",
-      "url": "http://devapp.org/doc/latest/components/gyroscope/l3g4200d.html"
+      "url": "http://solettaproject.org/doc/latest/components/gyroscope/l3g4200d.html"
     }
  ]
 }
