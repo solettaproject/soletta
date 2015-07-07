@@ -292,6 +292,7 @@ static struct sol_pin_mux_description *aio_0[] = {
 };
 
 static struct sol_pin_mux_controller edison_rev_c_mux_aio[] = {
+    { 0, NULL },
     { ARRAY_SIZE(aio_0), aio_0 },
 };
 
