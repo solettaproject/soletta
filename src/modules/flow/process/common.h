@@ -43,14 +43,14 @@ extern struct sol_log_domain _process_log_domain;
 struct subprocess_data {
     pid_t pid;
     struct {
-        int stdin[2];
-        int stdout[2];
-        int stderr[2];
+        int in[2];
+        int out[2];
+        int err[2];
     } pipes;
     struct {
-        struct sol_fd *stdin;
-        struct sol_fd *stdout;
-        struct sol_fd *stderr;
+        struct sol_fd *in;
+        struct sol_fd *out;
+        struct sol_fd *err;
     } watches;
     struct sol_vector write_data;
     struct sol_flow_node *node;

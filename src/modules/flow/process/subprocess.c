@@ -48,7 +48,7 @@ struct write_data {
 };
 
 static int
-stdout_write(struct subprocess_data *mdata)
+out_write(struct subprocess_data *mdata)
 {
     int ret = 0;
     struct timespec start = sol_util_timespec_get_current();
@@ -64,7 +64,7 @@ stdout_write(struct subprocess_data *mdata)
             elapsed.tv_nsec > (time_t)CHUNK_MAX_TIME_NS)
             break;
 
-        r = write(mdata->pipes.stdout[1], (uint8_t *)w->blob->mem + w->offset, w->blob->size - w->offset);
+        r = write(mdata->pipes.out[1], (uint8_t *)w->blob->mem + w->offset, w->blob->size - w->offset);
         if (r > 0) {
             w->offset += r;
         } else if (r < 0) {
@@ -96,7 +96,7 @@ on_write(void *data, int fd, unsigned int active_flags)
     if (active_flags & SOL_FD_FLAGS_ERR)
         err = -EBADF;
     else
-        err = stdout_write(mdata);
+        err = out_write(mdata);
 
     if (err < 0) {
         uint16_t i;
@@ -108,7 +108,7 @@ on_write(void *data, int fd, unsigned int active_flags)
     }
 
     if (mdata->write_data.len == 0) {
-        mdata->watches.stdout = NULL;
+        mdata->watches.out = NULL;
         return false;
     }
 
@@ -136,8 +136,8 @@ process_subprocess_in_process(struct sol_flow_node *node, void *data, uint16_t p
     if (mdata->write_data.len > 1)
         return 0;
 
-    mdata->watches.stdout = sol_fd_add(mdata->pipes.stdout[1], SOL_FD_FLAGS_OUT | SOL_FD_FLAGS_ERR, on_write, mdata);
-    if (!mdata->watches.stdout) {
+    mdata->watches.out = sol_fd_add(mdata->pipes.out[1], SOL_FD_FLAGS_OUT | SOL_FD_FLAGS_ERR, on_write, mdata);
+    if (!mdata->watches.out) {
         sol_blob_unref(w->blob);
         sol_vector_del(&mdata->write_data, mdata->write_data.len - 1);
         return -1;
@@ -151,18 +151,18 @@ on_fork(void *data)
 {
     struct subprocess_data *mdata = data;
 
-    close(mdata->pipes.stdout[1]);
-    close(mdata->pipes.stderr[0]);
-    close(mdata->pipes.stdin[0]);
+    close(mdata->pipes.out[1]);
+    close(mdata->pipes.err[0]);
+    close(mdata->pipes.in[0]);
     close(STDOUT_FILENO);
     close(STDIN_FILENO);
     close(STDERR_FILENO);
 
-    if (dup2(mdata->pipes.stdout[0], STDIN_FILENO) < 0)
+    if (dup2(mdata->pipes.out[0], STDIN_FILENO) < 0)
         goto err;
-    if (dup2(mdata->pipes.stdin[1], STDOUT_FILENO) < 0)
+    if (dup2(mdata->pipes.in[1], STDOUT_FILENO) < 0)
         goto err;
-    if (dup2(mdata->pipes.stderr[1], STDERR_FILENO) < 0)
+    if (dup2(mdata->pipes.err[1], STDERR_FILENO) < 0)
         goto err;
 
     execl("/bin/sh", "sh", "-c", mdata->command, (char *)0);
@@ -172,9 +172,9 @@ on_fork(void *data)
  */
 err:
     SOL_WRN("Failed in setup the files descriptors");
-    close(mdata->pipes.stdout[1]);
-    close(mdata->pipes.stderr[0]);
-    close(mdata->pipes.stdin[0]);
+    close(mdata->pipes.out[1]);
+    close(mdata->pipes.err[0]);
+    close(mdata->pipes.in[0]);
     exit(-errno);
 }
 
@@ -247,7 +247,7 @@ blob_error:
 }
 
 static bool
-on_stdin_read(void *data, int fd, unsigned int active_flags)
+on_in_read(void *data, int fd, unsigned int active_flags)
 {
     struct subprocess_data *mdata = data;
     struct sol_blob *blob = NULL;
@@ -257,10 +257,10 @@ on_stdin_read(void *data, int fd, unsigned int active_flags)
     if (active_flags & SOL_FD_FLAGS_ERR)
         err = -EBADF;
     else
-        err = child_read(&blob, &eof, mdata->pipes.stdin[0]);
+        err = child_read(&blob, &eof, mdata->pipes.in[0]);
 
     if (eof || err < 0) {
-        mdata->watches.stdin = NULL;
+        mdata->watches.in = NULL;
         if (err < 0)
             return false;
     }
@@ -273,7 +273,7 @@ on_stdin_read(void *data, int fd, unsigned int active_flags)
 }
 
 static bool
-on_stderr_read(void *data, int fd, unsigned int active_flags)
+on_err_read(void *data, int fd, unsigned int active_flags)
 {
     struct subprocess_data *mdata = data;
     struct sol_blob *blob = NULL;
@@ -283,10 +283,10 @@ on_stderr_read(void *data, int fd, unsigned int active_flags)
     if (active_flags & SOL_FD_FLAGS_ERR)
         err = -EBADF;
     else
-        err = child_read(&blob, &eof, mdata->pipes.stderr[0]);
+        err = child_read(&blob, &eof, mdata->pipes.err[0]);
 
     if (eof || err < 0) {
-        mdata->watches.stderr = NULL;
+        mdata->watches.err = NULL;
         if (err < 0)
             return false;
     }
@@ -304,34 +304,34 @@ on_fork_exit(void *data, uint64_t pid, int status)
     struct subprocess_data *mdata = data;
 
     mdata->fork_run = NULL;
-    if (mdata->watches.stdin)
-        sol_fd_del(mdata->watches.stdin);
-    if (mdata->watches.stderr)
-        sol_fd_del(mdata->watches.stderr);
-    if (mdata->watches.stdout) {
+    if (mdata->watches.in)
+        sol_fd_del(mdata->watches.in);
+    if (mdata->watches.err)
+        sol_fd_del(mdata->watches.err);
+    if (mdata->watches.out) {
         struct write_data *w;
         uint16_t i;
-        sol_fd_del(mdata->watches.stdout);
+        sol_fd_del(mdata->watches.out);
         SOL_VECTOR_FOREACH_IDX (&mdata->write_data, w, i)
             sol_blob_unref(w->blob);
         sol_vector_clear(&mdata->write_data);
     }
 
-    mdata->watches.stdin = NULL;
-    mdata->watches.stderr = NULL;
-    mdata->watches.stdout = NULL;
+    mdata->watches.in = NULL;
+    mdata->watches.err = NULL;
+    mdata->watches.out = NULL;
     sol_flow_send_irange_value_packet(mdata->node, SOL_FLOW_NODE_TYPE_PROCESS_SUBPROCESS__OUT__STATUS, status);
 }
 
 static int
 setup_watches(struct subprocess_data *mdata)
 {
-    mdata->watches.stdin = sol_fd_add(mdata->pipes.stdin[0], SOL_FD_FLAGS_IN | SOL_FD_FLAGS_ERR, on_stdin_read, mdata);
-    SOL_NULL_CHECK(mdata->watches.stdin, -1);
+    mdata->watches.in = sol_fd_add(mdata->pipes.in[0], SOL_FD_FLAGS_IN | SOL_FD_FLAGS_ERR, on_in_read, mdata);
+    SOL_NULL_CHECK(mdata->watches.in, -1);
 
-    mdata->watches.stderr = sol_fd_add(mdata->pipes.stderr[0], SOL_FD_FLAGS_IN | SOL_FD_FLAGS_ERR, on_stderr_read, mdata);
-    if (!mdata->watches.stderr) {
-        sol_fd_del(mdata->watches.stdin);
+    mdata->watches.err = sol_fd_add(mdata->pipes.err[0], SOL_FD_FLAGS_IN | SOL_FD_FLAGS_ERR, on_err_read, mdata);
+    if (!mdata->watches.err) {
+        sol_fd_del(mdata->watches.in);
         return -1;
     }
 
@@ -356,10 +356,10 @@ process_subprocess_start_process(struct sol_flow_node *node, void *data, uint16_
     return 0;
 
 fork_err:
-    sol_fd_del(mdata->watches.stderr);
-    mdata->watches.stderr = NULL;
-    sol_fd_del(mdata->watches.stdin);
-    mdata->watches.stdin = NULL;
+    sol_fd_del(mdata->watches.err);
+    mdata->watches.err = NULL;
+    sol_fd_del(mdata->watches.in);
+    mdata->watches.in = NULL;
     return -1;
 }
 
@@ -403,27 +403,27 @@ process_subprocess_open(struct sol_flow_node *node, void *data, const struct sol
     mdata->node = node;
     sol_vector_init(&mdata->write_data, sizeof(struct write_data));
 
-    if (pipe(mdata->pipes.stdout) < 0) {
-        SOL_WRN("Failed to create stdout pipe");
+    if (pipe(mdata->pipes.out) < 0) {
+        SOL_WRN("Failed to create out pipe");
         return -errno;
     }
 
-    if (pipe(mdata->pipes.stdin) < 0) {
-        SOL_WRN("Failed to create stdin pipe");
-        goto stdin_err;
+    if (pipe(mdata->pipes.in) < 0) {
+        SOL_WRN("Failed to create in pipe");
+        goto in_err;
     }
 
-    if (pipe(mdata->pipes.stderr) < 0) {
-        SOL_WRN("Failed to create stderr pipe");
-        goto stderr_err;
+    if (pipe(mdata->pipes.err) < 0) {
+        SOL_WRN("Failed to create err pipe");
+        goto err_err;
     }
 
     SOL_INT_CHECK_GOTO(sol_util_fd_set_flag(
-        mdata->pipes.stdin[0], O_NONBLOCK), < 0, flags_err);
+        mdata->pipes.in[0], O_NONBLOCK), < 0, flags_err);
     SOL_INT_CHECK_GOTO(sol_util_fd_set_flag(
-        mdata->pipes.stderr[0], O_NONBLOCK), < 0, flags_err);
+        mdata->pipes.err[0], O_NONBLOCK), < 0, flags_err);
     SOL_INT_CHECK_GOTO(sol_util_fd_set_flag(
-        mdata->pipes.stdout[1], O_NONBLOCK), < 0, flags_err);
+        mdata->pipes.out[1], O_NONBLOCK), < 0, flags_err);
 
     mdata->command = strdup(opts->command);
     SOL_NULL_CHECK_GOTO(mdata->command, flags_err);
@@ -438,19 +438,19 @@ process_subprocess_open(struct sol_flow_node *node, void *data, const struct sol
     return 0;
 
 err:
-    sol_fd_del(mdata->watches.stdin);
-    sol_fd_del(mdata->watches.stderr);
+    sol_fd_del(mdata->watches.in);
+    sol_fd_del(mdata->watches.err);
 watch_err:
     free(mdata->command);
 flags_err:
-    close(mdata->pipes.stderr[0]);
-    close(mdata->pipes.stderr[1]);
-stderr_err:
-    close(mdata->pipes.stdin[0]);
-    close(mdata->pipes.stdin[1]);
-stdin_err:
-    close(mdata->pipes.stdout[0]);
-    close(mdata->pipes.stdout[1]);
+    close(mdata->pipes.err[0]);
+    close(mdata->pipes.err[1]);
+err_err:
+    close(mdata->pipes.in[0]);
+    close(mdata->pipes.in[1]);
+in_err:
+    close(mdata->pipes.out[0]);
+    close(mdata->pipes.out[1]);
     return -errno;
 }
 
@@ -462,26 +462,26 @@ process_subprocess_close(struct sol_flow_node *node, void *data)
     if (mdata->fork_run)
         sol_platform_linux_fork_run_stop(mdata->fork_run);
 
-    if (mdata->watches.stdin)
-        sol_fd_del(mdata->watches.stdin);
-    if (mdata->watches.stderr)
-        sol_fd_del(mdata->watches.stderr);
-    if (mdata->watches.stdout) {
+    if (mdata->watches.in)
+        sol_fd_del(mdata->watches.in);
+    if (mdata->watches.err)
+        sol_fd_del(mdata->watches.err);
+    if (mdata->watches.out) {
         struct write_data *w;
         uint16_t i;
 
-        sol_fd_del(mdata->watches.stdout);
+        sol_fd_del(mdata->watches.out);
         SOL_VECTOR_FOREACH_IDX (&mdata->write_data, w, i)
             sol_blob_unref(w->blob);
         sol_vector_clear(&mdata->write_data);
     }
 
-    close(mdata->pipes.stdin[0]);
-    close(mdata->pipes.stdin[1]);
-    close(mdata->pipes.stderr[0]);
-    close(mdata->pipes.stderr[1]);
-    close(mdata->pipes.stdout[0]);
-    close(mdata->pipes.stdout[1]);
+    close(mdata->pipes.in[0]);
+    close(mdata->pipes.in[1]);
+    close(mdata->pipes.err[0]);
+    close(mdata->pipes.err[1]);
+    close(mdata->pipes.out[0]);
+    close(mdata->pipes.out[1]);
 
     free(mdata->command);
 }
