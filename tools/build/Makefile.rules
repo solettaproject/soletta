@@ -43,6 +43,8 @@ parse-common-module = \
 	$(eval mod-objs     := $(filter %.o,$(artifacts))) \
 	$(eval $(1)-cflags  := $(obj-$(1)-$(3)-extra-cflags)) \
 	$(eval $(1)-ldflags := $(obj-$(1)-$(3)-extra-ldflags)) \
+	$(eval all-ldflags  += $($(1)-ldflags)) \
+	$(eval all-cflags   += $($(1)-ldflags)) \
 	$(eval $(1)-bs      := $(addprefix $(2),Makefile)) \
 	$(eval $(1)-bs      += $(if $(wildcard $(2)/Kconfig),$(addprefix $(2),Kconfig))) \
 	$(eval $(1)-hdrs    := $(filter %.h,$(artifacts))) \
@@ -84,12 +86,16 @@ parse-mod-module = \
 parse-bin = \
 	$(eval bin-$(1)-srcs := $(addprefix $(2),$(bin-$(1)-y))) \
 	$(eval bin-$(1)-out  := $(addprefix $(build_bindir),$(1))) \
+	$(eval bin-$(1)-cflags := $(bin-$(1)-y-extra-cflags)) \
+	$(eval bin-$(1)-ldflags := $(bin-$(1)-y-extra-ldflags)) \
 	$(eval $(1)-deps     := $(subst .mod,,$(bin-$(1)-y-deps))) \
 	$(eval bins-out      += $(bin-$(1)-out)) \
 
 parse-test = \
 	$(eval test-$(1)-srcs := $(addprefix $(2),$(test-$(1)-y))) \
 	$(eval test-$(1)-out  := $(addprefix $(2),$(1))) \
+	$(eval test-$(1)-cflags := $(test-$(1)-y-extra-cflags)) \
+	$(eval test-$(1)-ldflags := $(test-$(1)-y-extra-ldflags)) \
 	$(eval $(1)-deps      := $(subst .mod,,$(test-$(1)-y-deps))) \
 	$(eval tests-out      += $(test-$(1)-out)) \
 
@@ -141,7 +147,6 @@ $(eval $(call extra-headers))
 $(eval $(call extra-bins))
 
 PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin)
-LIB_CFLAGS += $(addprefix -I,$(sort $(dir $(all-gen-hdrs))))
 
 define make-extra-header
 $($(1)-dest): $(1)
@@ -160,18 +165,18 @@ endef
 $(foreach bin,$(EXTRA_BINS),$(eval $(call make-extra-bin,$(bin))))
 
 define make-bin
-$(bin-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(INT_LIB_AR) $(bin-$(1)-srcs) $(call find-deps,$(1))
+$(bin-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(bin-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "BIN"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(bin-$(1)-out))
-	$(Q)$(TARGETCC) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(LIB_COVERAGE_FLAGS) $(BIN_CFLAGS)
+	$(Q)$(TARGETCC) $(BIN_CFLAGS) $(bin-$(1)-cflags) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(BIN_LDFLAGS) $(bin-$(1)-ldflags) $(sort $(builtin-ldflags))
 endef
 $(foreach curr,$(bins),$(eval $(call make-bin,$(curr))))
 
 define make-test
 $(test-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "TST"   "$$@
-	$(Q)$(TARGETCC) $(filter-out %.h,$(test-$(1)-srcs)) -o $$@ \
-		$(BIN_CFLAGS) $(TEST_CFLAGS) $(call find-deps,$(1)) $(LIB_COVERAGE_FLAGS)
+	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(all-cflags) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) $(builtin-objs) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_LDFLAGS) $(test-$(1)-ldflags) $(all-ldflags)
+
 endef
 $(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
 
@@ -182,7 +187,7 @@ define make-object
 $(1): $(PRE_GEN) $($(1)-src) $(call find-deps,$(2)) $(find-gen-hdrs)
 	$(Q)echo "      "CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(1))
-	$(Q)$(TARGETCC) $(LIB_CFLAGS) $($(2)-gen-cflags) $($(1)-src) -c -o $(1) $(3) $(LIB_COVERAGE_FLAGS) $(sort $($(2)-cflags)) $(sort $($(2)-ldflags))
+	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) $($(1)-src) -c -o $(1) $(3)
 endef
 $(foreach mod,$(modules), \
 	$(foreach obj,$($(mod)-objs),$(eval $(call make-object,$(obj),$(mod),$(external-module-flags)))) \
@@ -193,10 +198,10 @@ $(foreach buin,$(builtins), \
 )
 
 define make-mod-so
-$($(1)-out): $(SOL_LIB_SO) $(INT_LIB_AR) $(PRE_GEN) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
+$($(1)-out): $(SOL_LIB_SO) $(PRE_GEN) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)echo "     "MOD"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
-	$(Q)$(TARGETCC) $($(1)-objs) -shared -o $($(1)-out) $(LIB_COVERAGE_FLAGS) $(sort $($(1)-cflags)) $(sort $($(1)-ldflags)) $(COMMON_CFLAGS)
+	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $($(1)-objs) -shared -o $($(1)-out) $(sort $($(1)-ldflags))
 endef
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
 
@@ -213,20 +218,32 @@ $(SOL_LIB_AR): $(PRE_GEN) $(all-objs)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_AR))
 	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(all-objs)
 
-$(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(INT_LIB_AR) $(builtin-objs)
+$(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(builtin-objs)
 	$(Q)echo "      "LD"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_SO))
-	$(Q)$(TARGETCC) $(builtin-objs) -shared -o $(@).$(VERSION) $(TARGET_LINKFLAGS) $(COMMON_CFLAGS) \
-		$(LIB_COVERAGE_FLAGS) $(sort $(builtin-cflags)) $(sort $(builtin-ldflags))
+	$(Q)$(TARGETCC) -shared $(builtin-objs) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
-$(DEPENDENCY_FILES): $(DEPENDENCY_SCRIPT)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(CFLAGS)"
+$(DEPENDENCY_CACHE):
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)"
+
+$(KCONFIG_GEN): $(DEPENDENCY_CACHE)
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --kconfig-gen
+
+$(MAKEFILE_GEN): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG)
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --definitions-header="$(DEFINITIONS_H)" \
+		--makefile-gen
 
 reconf: $(DEPENDENCY_SCRIPT)
 	$(Q)echo "[re]running dependency-resolver..."
 	$(Q)$(RM) -f $(DEPENDENCY_FILES)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(CFLAGS)"
+	$(Q)$(RM) $(DEPENDENCY_CACHE)
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--prefix="$(PREFIX)" --definitions-header="$(DEFINITIONS_H)" \
+		--cache="$(DEPENDENCY_CACHE)" --kconfig-gen --makefile-gen
 
 PHONY += reconf
 
@@ -295,61 +312,32 @@ $(PIN_MUX_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
                 --item="&SOL_PIN_MUX_@NAME@" \
                 $(subst -,_,$(builtin-pin-mux))
 
-ifeq (y,$(NODE_DESCRIPTION))
-node-type-desc-enabled = \#define SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED 1
-endif
-
-ifeq (y,$(INSPECTOR))
-inspector-enabled = \#define SOL_FLOW_INSPECTOR_ENABLED 1
-endif
-
-ifeq (y,$(RESOLVER_CONFFILE))
-resolver-conffile-enabled = \#define SOL_BUILD_FLOW_MODULE_RESOLVER_CONFFILE 1
-endif
-
 $(FLOW_BUILDOPTS_H): $(FLOW_BUILDOPTS_H_IN) $(KCONFIG_CONFIG)
 	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(CAT) $(<) | $(SED) 's/@SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED@/$(node-type-desc-enabled)/g' | \
-		$(SED) 's/@SOL_FLOW_INSPECTOR_ENABLED@/$(inspector-enabled)/g' | \
-		$(SED) 's/@SOL_BUILD_FLOW_MODULE_RESOLVER_CONFFILE@/$(resolver-conffile-enabled)/' > $(@)
-
-ifeq (y,$(SOL_PLATFORM_LINUX))
-platform-linux-enabled  := \#define SOL_PLATFORM_LINUX 1
-endif
-
-ifeq (y,$(PLATFORM_RIOTOS))
-platform-riotos-enabled := \#define SOL_PLATFORM_RIOT 1
-endif
-
-ifeq (y,$(LOG))
-log-enabled := \#define SOL_LOG_ENABLED 1
-endif
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(FLOW_BUILDOPTS_H_IN) --output=$(FLOW_BUILDOPTS_H)
 
 $(COMMON_BUILDOPTS_H): $(COMMON_BUILDOPTS_H_IN) $(KCONFIG_CONFIG)
 	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(CAT) $(<) | $(SED) 's/@SOL_PLATFORM_LINUX@/$(platform-linux-enabled)/g' | \
-		$(SED) 's/@SOL_PLATFORM_RIOT@/$(platform-riotos-enabled)/g' | \
-		$(SED) 's/@SOL_LOG_ENABLED@/$(log-enabled)/' > $(@)
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(COMMON_BUILDOPTS_H_IN) --output=$(COMMON_BUILDOPTS_H)
 
 $(PC_GEN): $(PC_GEN_IN)
 	$(Q)echo "     "GEN"   "$(PC_GEN)
 	$(Q)$(MKDIR) -p $(dir $(PC_GEN))
-	$(Q)$(CAT) $(<) | $(SED) 's#@prefix@#$(PREFIX)#g' | \
-		$(SED) 's#@exec_prefix@#$(PREFIX)#g' | \
-		$(SED) 's#@libdir@#$(LIBDIR)#g' | \
-		$(SED) 's#@includedir@#$(INCLUDEDIR)#g' | \
-		$(SED) 's#@SOL_CONFFILE_MODULES_DIR@#$(MODULESDIR)#g' | \
-		$(SED) 's#@datadir@#$(DATADIR)#g' | \
-		$(SED) 's#@VERSION@#$(VERSION)#g' > $(@)
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(PC_GEN_IN) --output=$(PC_GEN)
 
 $(NODE_TYPE_GEN_SCRIPT): $(NODE_TYPE_GEN_SCRIPT_IN)
 	$(Q)echo "     "GEN"   "$(NODE_TYPE_GEN_SCRIPT)
 	$(Q)$(MKDIR) -p $(dir $(NODE_TYPE_GEN_SCRIPT))
-	$(Q)$(CAT) $(<) | $(SED) 's#@pkgdatadir@#$(SOL_DATADIR)#g' > $(@) && $(CHMOD) +x $(@)
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(NODE_TYPE_GEN_SCRIPT_IN) --output=$(NODE_TYPE_GEN_SCRIPT)
 
 $(FLOW_NODE_TYPE_FIND): $(FLOW_NODE_TYPE_FIND_IN)
 	$(Q)echo "     "GEN"   "$(FLOW_NODE_TYPE_FIND)
-	$(Q)$(CAT) $(<) | $(SED) 's#@flowtypedescdir@#$(DESCDIR)#' > $(@)
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(FLOW_NODE_TYPE_FIND_IN) --output=$(FLOW_NODE_TYPE_FIND)
 
 # common build targets
 define clean-resource
@@ -369,7 +357,7 @@ clean:
 PHONY += clean
 
 distclean: clean
-	$(Q)$(RM) -Rf .config* $(DEPENDENCY_FILES) $(KCONFIG_INCLUDE)
+	$(Q)$(RM) -Rf .config* $(DEPENDENCY_FILES) $(KCONFIG_INCLUDE) $(DEPENDENCY_CACHE)
 
 PHONY += distclean
 

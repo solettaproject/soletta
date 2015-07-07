@@ -11,7 +11,9 @@ export KCONFIG_AUTOHEADER
 -include $(KCONFIG_CONFIG)
 
 # dependency-resolver generated, deps resolution
+ifneq ($(HAVE_KCONFIG_CONFIG),)
 -include Makefile.gen
+endif
 
 # basic variable definitions
 include $(top_srcdir)tools/build/Makefile.vars
@@ -22,12 +24,8 @@ include $(top_srcdir)tools/build/Makefile.rules
 # kconfig interface rules
 include $(top_srcdir)tools/build/Makefile.kconfig
 
-ifeq (n,$(HAVE_DEPENDENCY_FILES))
-PRE_GEN += $(DEPENDENCY_FILES)
-endif
-
 ifeq ($(HAVE_KCONFIG_CONFIG),)
-warning:
+warning: $(KCONFIG_GEN)
 	$(Q)echo "You need a config file first. Please run a config target, e.g.: make menuconfig"
 	$(Q)echo "For a quick default config run: make alldefconfig"
 	$(Q)echo "For more information/options run: make help"
@@ -43,6 +41,8 @@ include $(top_srcdir)tools/build/Makefile.targets
 all: $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
 endif # HAVE_PYTHON_JSONSCHEMA
 endif # HAVE_KCONFIG_CONFIG
+
+$(KCONFIG_CONFIG): $(KCONFIG_GEN)
 
 .DEFAULT_GOAL = all
 .PHONY = $(PHONY) all

@@ -175,7 +175,8 @@ attach_simulation_nodes(struct runner *r)
     const struct sol_flow_port_type_out *port_out;
     const struct sol_flow_port_description *port_desc;
     uint16_t in_count, out_count;
-    int i, k, idx, err;
+    int i, idx, err;
+    unsigned int k;
     bool found;
     char *node_name;
 
