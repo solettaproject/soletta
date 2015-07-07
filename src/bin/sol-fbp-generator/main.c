@@ -525,7 +525,7 @@ generate_exports(const struct fbp_data *data)
     return true;
 }
 
-static bool
+static void
 generate_node_specs(const struct fbp_data *data)
 {
     struct declared_fbp_type *dec_type;
@@ -551,7 +551,17 @@ generate_node_specs(const struct fbp_data *data)
         }
     }
     dprintf(fd, "        SOL_FLOW_STATIC_NODE_SPEC_GUARD\n"
-        "    };\n\n");
+        "    };\n");
+}
+
+static void
+generate_node_type_assignments(const struct fbp_data *data)
+{
+    struct declared_fbp_type *dec_type;
+    struct sol_fbp_node *n;
+    uint16_t i;
+
+    dprintf(fd, "\n");
 
     for (i = 0; i < data->graph.nodes.len; i++)
         dprintf(fd, "    nodes[%d].type = %s;\n", i, data->descriptions[i]->symbol);
@@ -561,26 +571,37 @@ generate_node_specs(const struct fbp_data *data)
             "        return NULL;\n",
             dec_type->name);
     }
-
-    return true;
 }
 
 static bool
 generate_create_type_function(struct fbp_data *data)
-{   
+{
     dprintf(fd, "static const struct sol_flow_node_type *\n"
         "create_%d_%s_type(void)\n"
         "{\n",
         data->id,
         data->name);
 
-    if (!generate_options(data) || !generate_connections(data) || !generate_exports(data) || !generate_node_specs(data))
+    if (!generate_options(data) || !generate_connections(data) || !generate_exports(data))
         return false;
 
-    dprintf(fd, "\n    return sol_flow_static_new_type(nodes, conns, %s, %s, NULL);\n"
-        "}\n\n",
+    generate_node_specs(data);
+
+    dprintf(fd, "\n"
+        "    struct sol_flow_static_spec spec = {\n"
+        "        .nodes = nodes,\n"
+        "        .conns = conns,\n"
+        "        .exported_in = %s,\n"
+        "        .exported_out = %s,\n"
+        "    };\n",
         data->graph.exported_in_ports.len > 0 ? "exported_in" : "NULL",
         data->graph.exported_out_ports.len > 0 ? "exported_out" : "NULL");
+
+    generate_node_type_assignments(data);
+
+    dprintf(fd, "\n"
+        "    return sol_flow_static_new_type(&spec);\n"
+        "}\n\n");
 
     return true;
 }
