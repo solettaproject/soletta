@@ -288,7 +288,7 @@ config KDBUS
 
 config SOCKET_LINUX
 	bool "Linux sockets"
-	depends on SOL_PLATFORM_LINUX
+	depends on SOL_PLATFORM_LINUX && NETWORK
 	default y
 
 menuconfig HAVE_PIN_MUX
