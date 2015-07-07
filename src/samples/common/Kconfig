@@ -1,0 +1,13 @@
+config LINUX_MICRO_INIT_SAMPLE
+	bool "Linux Micro Init"
+	depends on PLATFORM_LINUX_MICRO
+	default n
+
+config PLATFORM_SIMPLE_SAMPLE
+	bool "Platform Simple"
+	default n
+
+config UART_SAMPLE
+	bool "UART"
+	default n
+

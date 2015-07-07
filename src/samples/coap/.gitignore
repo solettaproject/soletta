@@ -1,4 +1,4 @@
-/oic-client
-/oic-server
-/simple-client
-/simple-server
+/oic-sample-client
+/oic-sample-server
+/coap-sample-client
+/coap-sample-server
