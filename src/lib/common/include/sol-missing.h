@@ -47,7 +47,7 @@ extern "C" {
  * @{
  */
 
-#if !HAVE_DECL_STRNDUPA
+#ifndef HAVE_DECL_STRNDUPA
 #include <alloca.h>
 
 #define __strndupa_internal__(str_, len_, var_)       \
