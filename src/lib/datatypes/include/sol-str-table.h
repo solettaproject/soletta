@@ -46,6 +46,7 @@ extern "C" {
  */
 
 /**
+ * @defgroup Str_Table
  * @ingroup Datatypes
  *
  * @{

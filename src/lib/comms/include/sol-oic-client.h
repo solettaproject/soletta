@@ -49,7 +49,18 @@ extern "C" {
  */
 
 /**
+ * @defgroup OIC Open Interconnect Consortium
  * @ingroup Comms
+ *
+ * Implementation of protocol defined by Open Interconnect Consortium
+ * (OIC - http://openinterconnect.org/)
+ *
+ * It's a common communication framework based on industry standard
+ * technologies to wirelessly connect and intelligently manage
+ * the flow of information among devices, regardless of form factor,
+ * operating system or service provider.
+ *
+ * Both client and server sides are covered by this module.
  *
  * @{
  */

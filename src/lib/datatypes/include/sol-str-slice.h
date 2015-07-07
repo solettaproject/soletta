@@ -48,7 +48,13 @@ extern "C" {
  */
 
 /**
+ * @defgroup Str_Slice
  * @ingroup Datatypes
+ *
+ * It's a slice of a string with explicit length. It doesn't necessarily ends
+ * with NUL byte like C strings. This representation is convenient for
+ * referencing to substrings of a larger string without having to
+ * duplicate them.
  *
  * @{
  */
