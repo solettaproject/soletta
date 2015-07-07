@@ -125,7 +125,7 @@ def run_check(args, uncrustify):
             gen = unified_diff(fromlines, tolines, f, unc_file)
             for ln in gen:
                 passed = False
-                if sys.stdout.isatty() and not args.no_colors:
+                if args.color == "always":
                     out = re.sub("^\@", "%s@" % DIFF_REF_COLOR, \
                                  re.sub("^\-", "%s-" % DIFF_REM_COLOR, \
                                  re.sub("$", END_COLOR, \
@@ -146,8 +146,9 @@ if __name__ == "__main__":
                        type=str, metavar="<base-commit>")
     group.add_argument("-r", help="Use a refspec instead of a base commit",
                        dest="refspec", type=str, metavar="<refspec>")
-    parser.add_argument("--no-colors", help="Don't display colorized diffs",
-                        action="store_true")
+    parser.add_argument("--color", metavar="WHEN", type=str, \
+                        help="Use colors. WHEN can be always, auto and never.")
+    parser.set_defaults(color="auto")
 
     args = parser.parse_args()
     if args.base_commit:
@@ -156,6 +157,12 @@ if __name__ == "__main__":
         args.target_refspec = args.refspec
     else:
         args.target_refspec = "HEAD~1"
+
+    if args.color == "auto":
+        if sys.stdout.isatty():
+            args.color = "always"
+        else:
+            args.color = "never"
 
     uncrustify = check_uncrustify()
     if not uncrustify:
