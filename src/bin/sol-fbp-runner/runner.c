@@ -32,6 +32,7 @@
 
 #include <errno.h>
 #include <libgen.h>
+#include <assert.h>
 
 #include "sol-file-reader.h"
 #include "sol-flow-parser.h"
@@ -146,27 +147,41 @@ add_simulation_node(struct runner *r, const char *node_type, const char *port_na
 }
 
 struct map {
-    const char *packet_name;
+    const struct sol_flow_packet_type *packet_type;
     const char *node_type;
     const char *port_name;
 };
 
-static const struct map input_nodes[] = {
-    { "IRange", "gtk/spinbutton", "OUT" },
-    { "DRange", "gtk/slider", "OUT" },
-    { "Any", "gtk/toggle", "OUT" },
-    { "Empty", "gtk/toggle", "OUT" },
-    { "Boolean", "gtk/pushbutton", "OUT" },
-    { "RGB", "gtk/rgb-editor", "OUT" },
-    { "Byte", "byte/editor", "OUT" },
-};
+struct map input_nodes[7];
+struct map output_nodes[4];
 
-static const struct map output_nodes[] = {
-    { "IRange", "gtk/label", "IN" },
-    { "DRange", "gtk/label", "IN" },
-    { "String", "gtk/label", "IN" },
-    { "Boolean", "gtk/led", "IN" },
-};
+static void
+init_tables(void) {
+    struct map in[] = {
+        { SOL_FLOW_PACKET_TYPE_IRANGE, "gtk/spinbutton", "OUT" },
+        { SOL_FLOW_PACKET_TYPE_DRANGE, "gtk/slider", "OUT" },
+        { SOL_FLOW_PACKET_TYPE_ANY, "gtk/toggle", "OUT" },
+        { SOL_FLOW_PACKET_TYPE_EMPTY, "gtk/toggle", "OUT" },
+        { SOL_FLOW_PACKET_TYPE_BOOLEAN, "gtk/pushbutton", "OUT" },
+        { SOL_FLOW_PACKET_TYPE_RGB, "gtk/rgb-editor", "OUT" },
+        { SOL_FLOW_PACKET_TYPE_BYTE, "gtk/byte-editor", "OUT" },
+    };
+    assert(!input_nodes[0].packet_type);
+    static_assert(ARRAY_SIZE(in) == ARRAY_SIZE(input_nodes),
+        "input_node size does not match in[] size.");
+    memcpy(input_nodes, in, sizeof(in));
+
+    struct map on[] = {
+        { SOL_FLOW_PACKET_TYPE_IRANGE, "gtk/label", "IN" },
+        { SOL_FLOW_PACKET_TYPE_DRANGE, "gtk/label", "IN" },
+        { SOL_FLOW_PACKET_TYPE_STRING, "gtk/label", "IN" },
+        { SOL_FLOW_PACKET_TYPE_BOOLEAN, "gtk/led", "IN" },
+    };
+    assert(!output_nodes[0].packet_type);
+    static_assert(ARRAY_SIZE(on) == ARRAY_SIZE(output_nodes),
+        "output_node size does not match on[] size.");
+    memcpy(output_nodes, on, sizeof(on));
+}
 
 static int
 attach_simulation_nodes(struct runner *r)
@@ -184,6 +199,7 @@ attach_simulation_nodes(struct runner *r)
     if (in_count == 0 && out_count == 0)
         return 0;
 
+    init_tables();
     r->builder = sol_flow_builder_new();
     SOL_NULL_CHECK(r->builder, -ENOMEM);
 
@@ -199,7 +215,7 @@ attach_simulation_nodes(struct runner *r)
         found = false;
 
         for (k = 0; k < ARRAY_SIZE(input_nodes); k++) {
-            if (streq(port_in->packet_type->name, input_nodes[k].packet_name)) {
+            if (streq(port_in->packet_type->name, input_nodes[k].packet_type->name)) {
                 node_name = get_node_name(port_desc->name, i - port_desc->base_port_idx, true);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);
 
@@ -227,7 +243,7 @@ attach_simulation_nodes(struct runner *r)
         found = false;
 
         for (k = 0; k < ARRAY_SIZE(output_nodes); k++) {
-            if (streq(port_out->packet_type->name, output_nodes[k].packet_name)) {
+            if (streq(port_out->packet_type->name, output_nodes[k].packet_type->name)) {
                 node_name = get_node_name(port_desc->name, i - port_desc->base_port_idx, false);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);
 
