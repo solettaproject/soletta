@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <pthread.h>
@@ -38,17 +39,24 @@
 #include "sol-worker-thread-impl.h"
 
 struct sol_worker_thread_posix {
-    const void *data;
-    bool (*setup)(void *data);
-    void (*cleanup)(void *data);
-    bool (*iterate)(void *data);
-    void (*cancel)(void *data);
-    void (*finished)(void *data);
-    void (*feedback)(void *data);
+    struct sol_worker_thread_spec spec;
     struct sol_idle *idler;
     pthread_mutex_t lock;
     pthread_t thread;
+    bool loop;
 };
+
+static inline bool
+loop_check(const struct sol_worker_thread_posix *thread)
+{
+    return __atomic_load_n(&thread->loop, __ATOMIC_SEQ_CST);
+}
+
+static inline void
+loop_set(struct sol_worker_thread_posix *thread, bool val)
+{
+    __atomic_store_n(&thread->loop, val, __ATOMIC_SEQ_CST);
+}
 
 static bool
 sol_worker_thread_lock(struct sol_worker_thread_posix *thread)
@@ -74,7 +82,8 @@ sol_worker_thread_finished(void *data)
 {
     struct sol_worker_thread_posix *thread = data;
 
-    if (thread->thread) {
+    if (loop_check(thread)) {
+        loop_set(thread, false);
         pthread_join(thread->thread, NULL);
         thread->thread = 0;
     }
@@ -85,8 +94,8 @@ sol_worker_thread_finished(void *data)
 
     SOL_DBG("worker thread %p finished", thread);
 
-    if (thread->finished)
-        thread->finished((void *)thread->data);
+    if (thread->spec.finished)
+        thread->spec.finished((void *)thread->spec.data);
 
     free(thread);
     return false;
@@ -96,21 +105,24 @@ static void *
 sol_worker_thread_do(void *data)
 {
     struct sol_worker_thread_posix *thread = data;
+    struct sol_worker_thread_spec *spec = &thread->spec;
 
     SOL_DBG("worker thread %p started", thread);
 
-    if (thread->setup) {
-        if (!thread->setup((void *)thread->data))
+    loop_set(thread, true);
+
+    if (spec->setup) {
+        if (!spec->setup((void *)spec->data))
             goto end;
     }
 
-    while (thread->thread) {
-        if (!thread->iterate((void *)thread->data))
+    while (loop_check(thread)) {
+        if (!spec->iterate((void *)spec->data))
             break;
     }
 
-    if (thread->cleanup)
-        thread->cleanup((void *)thread->data);
+    if (spec->cleanup)
+        spec->cleanup((void *)spec->data);
 
 end:
     if (sol_worker_thread_lock(thread)) {
@@ -129,30 +141,16 @@ extern void sol_mainloop_posix_signals_block(void);
 extern void sol_mainloop_posix_signals_unblock(void);
 
 void *
-sol_worker_thread_impl_new(bool (*setup)(void *data),
-    void (*cleanup)(void *data),
-    bool (*iterate)(void *data),
-    void (*cancel)(void *data),
-    void (*finished)(void *data),
-    void (*feedback)(void *data),
-    const void *data)
+sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
 {
     pthread_mutexattr_t attrs;
     struct sol_worker_thread_posix *thread;
     int r;
 
-    SOL_NULL_CHECK(iterate, NULL);
-
     thread = calloc(1, sizeof(*thread));
     SOL_NULL_CHECK(thread, NULL);
 
-    thread->data = data;
-    thread->setup = setup;
-    thread->cleanup = cleanup;
-    thread->iterate = iterate;
-    thread->cancel = cancel;
-    thread->finished = finished;
-    thread->feedback = feedback;
+    thread->spec = *spec;
 
     r = pthread_mutexattr_init(&attrs);
     SOL_INT_CHECK_GOTO(r, != 0, error_mutex);
@@ -187,13 +185,11 @@ void
 sol_worker_thread_impl_cancel(void *handle)
 {
     struct sol_worker_thread_posix *thread = handle;
-    pthread_t tid;
     int r;
 
     SOL_NULL_CHECK(thread);
 
-    tid = thread->thread;
-    if (!tid) {
+    if (!loop_check(thread)) {
         SOL_WRN("worker thread %p is not running.", thread);
         return;
     }
@@ -202,12 +198,12 @@ sol_worker_thread_impl_cancel(void *handle)
         return;
     }
 
-    if (thread->cancel)
-        thread->cancel((void *)thread->data);
+    if (thread->spec.cancel)
+        thread->spec.cancel((void *)thread->spec.data);
 
+    loop_set(thread, false);
+    pthread_join(thread->thread, NULL);
     thread->thread = 0;
-    r = pthread_join(tid, NULL);
-    SOL_INT_CHECK(r, != 0);
 
     /* no locks since thread is now dead */
     sol_idle_del(thread->idler);
@@ -224,7 +220,7 @@ sol_worker_thread_feedback_dispatch(void *data)
         sol_worker_thread_unlock(thread);
     }
 
-    thread->feedback((void *)thread->data);
+    thread->spec.feedback((void *)thread->spec.data);
     return false;
 }
 
@@ -234,9 +230,9 @@ sol_worker_thread_impl_feedback(void *handle)
     struct sol_worker_thread_posix *thread = handle;
 
     SOL_NULL_CHECK(thread);
-    SOL_NULL_CHECK(thread->feedback);
+    SOL_NULL_CHECK(thread->spec.feedback);
 
-    if (!thread->thread) {
+    if (!loop_check(thread)) {
         SOL_WRN("worker thread %p is not running.", thread);
         return;
     }
