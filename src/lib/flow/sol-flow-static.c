@@ -77,6 +77,8 @@ struct flow_static_type {
         const struct sol_flow_node_options *opts,
         struct sol_flow_node_options *child_opts);
 
+    void (*dispose)(const void *type_data);
+
     struct sol_flow_port_type_in *ports_in;
     struct sol_flow_port_type_out *ports_out;
 
@@ -980,8 +982,11 @@ static void
 flow_dispose_type(struct sol_flow_node_type *type)
 {
     struct flow_static_type *fst = (struct flow_static_type *)type;
+    const void *type_data = type->type_data;
 
     flow_static_type_fini(fst);
+    if (fst->dispose)
+        fst->dispose(type_data);
     free(fst);
 }
 
@@ -1011,7 +1016,8 @@ flow_static_type_init(
         .conn_specs = spec->conns,
         .exported_in_specs = spec->exported_in,
         .exported_out_specs = spec->exported_out,
-        .child_opts_set = spec->child_opts_set
+        .child_opts_set = spec->child_opts_set,
+        .dispose = spec->dispose,
     };
 
     r = setup_node_specs(type);
