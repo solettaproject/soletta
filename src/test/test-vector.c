@@ -238,5 +238,43 @@ vector_iterates_correctly_using_void_as_iterator(void)
     sol_vector_clear(v);
 }
 
+DEFINE_TEST(vector_take_data);
+
+static void
+vector_take_data(void)
+{
+    struct sol_vector v_ = SOL_VECTOR_INIT(int), *v = &v_;
+    int *elem, *taken;
+    uint16_t i;
+
+    for (i = 0; i < 16; i++) {
+        elem = sol_vector_append(v);
+        *elem = i;
+    }
+
+    ASSERT_INT_EQ(v->len, 16);
+
+    taken = sol_vector_take_data(v);
+
+    ASSERT(taken);
+    ASSERT_INT_EQ(v->len, 0);
+
+    for (i = 0; i < 16; i++)
+        ASSERT_INT_EQ(taken[i], i);
+
+    for (i = 0; i < 16; i++) {
+        elem = sol_vector_append(v);
+        *elem = -1;
+    }
+
+    ASSERT_INT_EQ(v->len, 16);
+
+    for (i = 0; i < 16; i++)
+        ASSERT_INT_EQ(taken[i], i);
+
+    sol_vector_clear(v);
+    free(taken);
+}
+
 
 TEST_MAIN();
