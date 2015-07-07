@@ -226,31 +226,33 @@ open_err:
 static int
 get_progname(char *out, size_t size)
 {
-    char cwd[PATH_MAX] = { 0 };
+    char cwd[PATH_MAX] = { 0 }, readlink_path[PATH_MAX] = { 0 };
+    char *execfn;
+    int r;
 
 #ifdef HAVE_SYS_AUXV_H
-    char *execfn = NULL;
-#else
-    char execfn[PATH_MAX] = { 0 };
+    execfn = (char *)getauxval(AT_EXECFN);
+    if (execfn)
+        goto done;
 #endif
+
+    r = readlink("/proc/self/exe", readlink_path, sizeof(readlink_path));
+    if (r < 0)
+        return -errno;
+    if (r == sizeof(readlink_path))
+        return -ENOMEM;
+
+    readlink_path[r] = '\0';
+    execfn = readlink_path;
+
+done:
+    if (execfn[0] == '/')
+        return snprintf(out, size, "%s", execfn);
 
     if (getcwd(cwd, sizeof(cwd)) == NULL)
         return -errno;
 
-#ifdef HAVE_SYS_AUXV_H
-    execfn = (char *)getauxval(AT_EXECFN);
-
-    if (!execfn)
-        return -errno;
-#else
-    if (readlink("/proc/self/exe", execfn, sizeof(execfn) - 1) < 0 || !execfn[0])
-        return -ENOSYS;
-#endif
-
-    if (execfn[0] == '/')
-        return snprintf(out, size, "%s", execfn);
-    else
-        return snprintf(out, size, "%s/%s", cwd, execfn);
+    return snprintf(out, size, "%s/%s", cwd, execfn);
 }
 
 int
