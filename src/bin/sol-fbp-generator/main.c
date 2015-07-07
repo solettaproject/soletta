@@ -57,6 +57,7 @@ static struct {
     struct sol_ptr_vector json_files;
     char *fbp_basename;
     char *fbp_dirname;
+    bool is_subflow;
 } args;
 
 static struct sol_arena *str_arena;
@@ -613,11 +614,13 @@ generate(struct sol_vector *fbp_data_vector)
     struct fbp_data *data;
     uint16_t i;
 
-    dprintf(fd, "#include \"sol-flow.h\"\n"
-        "#include \"sol-flow-static.h\"\n"
-        "#include \"sol-mainloop.h\"\n"
-        "\n"
-        "static struct sol_flow_node *flow;\n\n");
+    if (!args.is_subflow) {
+        dprintf(fd, "#include \"sol-flow.h\"\n"
+            "#include \"sol-flow-static.h\"\n"
+            "#include \"sol-mainloop.h\"\n"
+            "\n"
+            "static struct sol_flow_node *flow;\n\n");
+    }
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
         if (!generate_create_type_function(data)) {
@@ -626,21 +629,23 @@ generate(struct sol_vector *fbp_data_vector)
         }
     }
 
-    dprintf(fd, "static void\n"
-        "startup(void)\n"
-        "{\n"
-        "    const struct sol_flow_node_type *type;\n\n"
-        "    type = create_0_root_type();\n"
-        "    if (!type)\n"
-        "        return;\n\n"
-        "    flow = sol_flow_node_new(NULL, NULL, type, NULL);\n"
-        "}\n\n"
-        "static void\n"
-        "shutdown(void)\n"
-        "{\n"
-        "    sol_flow_node_del(flow);\n"
-        "}\n\n"
-        "SOL_MAIN_DEFAULT(startup, shutdown);\n");
+    if (!args.is_subflow) {
+        dprintf(fd, "static void\n"
+            "startup(void)\n"
+            "{\n"
+            "    const struct sol_flow_node_type *type;\n\n"
+            "    type = create_0_root_type();\n"
+            "    if (!type)\n"
+            "        return;\n\n"
+            "    flow = sol_flow_node_new(NULL, NULL, type, NULL);\n"
+            "}\n\n"
+            "static void\n"
+            "shutdown(void)\n"
+            "{\n"
+            "    sol_flow_node_del(flow);\n"
+            "}\n\n"
+            "SOL_MAIN_DEFAULT(startup, shutdown);\n");
+    }
 
     return EXIT_SUCCESS;
 }
@@ -749,6 +754,18 @@ handle_json_path(const char *path)
     return true;
 }
 
+static void
+print_usage(const char *program)
+{
+    fprintf(stderr, "usage: %s [options] [-c conf_file]"
+        "[-j json_file -j json_file ...] fbp_file output_file\n"
+        "\n"
+        "Generates C code from fbp_file to output_file.\n\n"
+        "Options:\n"
+        "    -s  Generate a subflow code (without includes and main).\n",
+        program);
+}
+
 static bool
 sol_fbp_generator_handle_args(int argc, char *argv[])
 {
@@ -757,15 +774,17 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
     int opt;
 
     if (argc < 3) {
-        fprintf(stderr, "sol-fbp-generator usage: ./sol-fbp-generator [-c conf_file]"
-            "[-j json_file -j json_file ...] fbp_file output_file\n");
+        print_usage(argv[0]);
         return false;
     }
 
     sol_ptr_vector_init(&args.json_files);
 
-    while ((opt = getopt(argc, argv, "c:j:")) != -1) {
+    while ((opt = getopt(argc, argv, "sc:j:")) != -1) {
         switch (opt) {
+        case 's':
+            args.is_subflow = true;
+            break;
         case 'c':
             args.conf_file = optarg;
             break;
@@ -777,8 +796,7 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
             }
             break;
         case '?':
-            fprintf(stderr, "sol-fbp-generator usage: ./sol-fbp-generator [-c conf_file]"
-                "[-j json_file -j json_file ...] fbp_file output_file\n");
+            print_usage(argv[0]);
             return false;
         }
     }
