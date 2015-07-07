@@ -47,6 +47,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "platform-detect");
 #include "sol-vector.h"
 
 #define PLATFORM_JSON "/platform_detect.json"
+#define PLATFORM_NAME_REGEX "^[a-zA-Z0-9][a-zA-Z0-9_-]*$" //this regex matches the schema
 
 static bool
 _check_rule(const char *path, const struct sol_vector *match, const struct sol_vector *dont_match)
@@ -265,4 +266,28 @@ sol_platform_detect(void)
 end:
     sol_file_reader_close(json_doc);
     return platform;
+}
+
+bool
+sol_platform_invalid_name(const char *name)
+{
+    int check;
+    regex_t regex;
+
+    check = regcomp(&regex, PLATFORM_NAME_REGEX, REG_EXTENDED | REG_NOSUB);
+    if (check) {
+        SOL_WRN("Regular expression for platform name failed to compile: \"%s\".\n"
+            "This should never happen.", PLATFORM_NAME_REGEX);
+        return true;
+    }
+
+    check = regexec(&regex, name, 0, NULL, 0);
+    regfree(&regex);
+    if (check) {
+        SOL_WRN("Platform name doesn't match specifications:\n"
+            "name=\"%s\", spec=\"" PLATFORM_NAME_REGEX "\".", name);
+        return true;
+    }
+
+    return false;
 }

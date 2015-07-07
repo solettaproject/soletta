@@ -99,6 +99,11 @@ sol_platform_get_name(void)
         platform_name = strdup(platform_name);
     else
         platform_name = sol_platform_detect();
+
+    if (platform_name && sol_platform_invalid_name(platform_name)) {
+        free(platform_name);
+        platform_name = NULL;
+    }
 #endif
 
 #ifdef PLATFORM_NAME
