@@ -34,6 +34,7 @@ from multiprocessing import Manager
 from threading import Thread
 import argparse
 import subprocess
+import sys
 
 WARN = '\033[93m'
 PASS = '\033[92m'
@@ -139,9 +140,24 @@ if __name__ == "__main__":
     parser.add_argument("--valgrind", help="Path to valgrind, if provided " \
                         "the tests are run with it", type=str)
     parser.add_argument("--valgrind-supp", help="Path to valgrind's suppression file", type=str)
+    parser.add_argument("--color", metavar="WHEN", type=str,
+                        help="Use colors. WHEN can be always, auto and never.")
+    parser.set_defaults(color="auto")
 
     args = parser.parse_args()
     if args.valgrind_supp:
         args.valgrind_supp = "--suppressions=%s" % args.valgrind_supp
+    if args.color == "auto":
+        if sys.stdout.isatty():
+            args.color = "always"
+        else:
+            args.color = "never"
+
+    if args.color == "never":
+        WARN = ''
+        PASS = ''
+        FAIL = ''
+        ENDC = ''
+        STATUS_COLOR = ['', '']
 
     run_suite(args)
