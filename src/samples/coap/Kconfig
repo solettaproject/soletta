@@ -1,0 +1,13 @@
+config COAP_SAMPLES
+	bool "CoAP samples"
+	default y
+
+config COAP_CLIENT_SERVER_SAMPLES
+	bool "CoAP client/server samples"
+	depends on COAP && COAP_SAMPLES
+	default y
+
+config OIC_SAMPLES
+	bool "OIC samples"
+	depends on OIC && COAP_SAMPLES
+	default y

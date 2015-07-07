@@ -108,7 +108,13 @@ parse-test = \
 	$(eval $(1)-deps      := $(subst .mod,,$(test-$(1)-y-deps))) \
 	$(eval tests-out      += $(test-$(1)-out)) \
 
-clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) $(eval test-y:=)
+parse-sample = \
+	$(eval sample-$(1)-srcs := $(addprefix $(2),$(sample-$(1)-y))) \
+	$(eval sample-$(1)-out  := $(addprefix $(2),$(1))) \
+	$(eval $(1)-deps        := $(subst .mod,,$(sample-$(1)-y-deps))) \
+	$(eval samples-out      += $(sample-$(1)-out)) \
+
+clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) $(eval test-y:=) $(eval sample-y:=)
 
 inc-subdirs = \
 	$(foreach subdir,$(SUBDIRS), $(clean-control) \
@@ -132,6 +138,10 @@ inc-subdirs = \
 		$(eval tests += $(test-y)) \
 		$(foreach test,$(test-y), \
 			$(call parse-test,$(test),$(subdir)) \
+		) \
+		$(eval samples += $(sample-y)) \
+		$(foreach sample,$(sample-y), \
+			$(call parse-sample,$(sample),$(subdir)) \
 		) \
 		$(clean-control) \
 	)
@@ -175,6 +185,13 @@ $(bin-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(bin-$(1)-srcs) $(call find-deps,$(1)
 	$(Q)$(TARGETCC) $(BIN_CFLAGS) $(bin-$(1)-cflags) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(BIN_LDFLAGS) $(bin-$(1)-ldflags) $(sort $(builtin-ldflags))
 endef
 $(foreach curr,$(bins),$(eval $(call make-bin,$(curr))))
+
+define make-sample
+$(sample-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(sample-$(1)-srcs) $(call find-deps,$(1))
+	$(Q)echo "     "SMP"   "$$@
+	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(sample-$(1)-cflags) $(filter-out %.h,$(sample-$(1)-srcs)) -o $(sample-$(1)-out) $(SAMPLE_LDFLAGS) $(sample-$(1)-ldflags) $(sort $(builtin-ldflags))
+endef
+$(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
 
 define make-test
 $(test-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1))
