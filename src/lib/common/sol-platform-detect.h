@@ -32,4 +32,7 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 char *sol_platform_detect(void);
+bool sol_platform_invalid_name(const char *name);

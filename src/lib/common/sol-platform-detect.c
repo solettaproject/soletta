@@ -266,3 +266,24 @@ end:
     sol_file_reader_close(json_doc);
     return platform;
 }
+
+bool
+sol_platform_invalid_name(const char *name)
+{
+    unsigned int i;
+
+    if (name[0] == '\0')
+        return true;
+
+    for (i = 0; name[i] != '\0'; i++) {
+        // https://xkcd.com/276/
+        if ((name[i] >= 'A' && name[i] <= 'Z') ||
+            (name[i] >= 'a' && name[i] <= 'z') ||
+            (name[i] == '_' || name[i] == '-'))
+            continue;
+
+        return true;
+    }
+
+    return false;
+}
