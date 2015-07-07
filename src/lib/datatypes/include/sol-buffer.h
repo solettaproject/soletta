@@ -48,6 +48,18 @@ extern "C" {
 /**
  * @defgroup Datatypes Data types
  *
+ * Soletta provides some data types to make development easier.
+ * Focused on low memory footprints, they're a good choice for
+ * node types development.
+ *
+ * @defgroup Buffer
+ *
+ * Buffer is a dynamic array, that can be resized if needed.
+ * See also \ref Arena if you are allocating multiple pieces of data that will
+ * be de-allocated twice.
+ *
+ * @ingroup Datatypes
+ *
  * @{
  */
 
