@@ -82,6 +82,7 @@ struct sol_flow_packet *sol_flow_packet_new(const struct sol_flow_packet_type *t
 void sol_flow_packet_del(struct sol_flow_packet *packet);
 
 const struct sol_flow_packet_type *sol_flow_packet_get_type(const struct sol_flow_packet *packet);
+void *sol_flow_packet_get_memory(const struct sol_flow_packet *packet);
 int sol_flow_packet_get(const struct sol_flow_packet *packet, void *output);
 
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_EMPTY;

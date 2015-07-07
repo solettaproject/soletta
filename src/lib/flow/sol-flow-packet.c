@@ -60,13 +60,20 @@ struct sol_flow_packet {
 };
 
 static inline void *
-sol_flow_packet_get_memory(const struct sol_flow_packet *packet)
+packet_get_memory(const struct sol_flow_packet *packet)
 {
-    if (!packet || !packet->type || !packet->type->data_size)
-        return NULL;
     if (packet->type->data_size <= sizeof(packet->data))
         return (void *)&packet->data;
     return (void *)packet->data;
+}
+
+SOL_API void *
+sol_flow_packet_get_memory(const struct sol_flow_packet *packet)
+{
+    SOL_NULL_CHECK(packet, NULL);
+    SOL_NULL_CHECK(packet->type, NULL);
+    SOL_INT_CHECK(packet->type->data_size, == 0, NULL);
+    return packet_get_memory(packet);
 }
 
 static int
@@ -109,7 +116,7 @@ init_packet(struct sol_flow_packet *packet, const void *value)
     void *mem;
 
     type = packet->type;
-    mem = sol_flow_packet_get_memory(packet);
+    mem = packet_get_memory(packet);
 
     if (type->init)
         return type->init(type, mem, value);
@@ -166,7 +173,7 @@ sol_flow_packet_del(struct sol_flow_packet *packet)
         return;
 
     if (packet->type->dispose)
-        packet->type->dispose(packet->type, sol_flow_packet_get_memory(packet));
+        packet->type->dispose(packet->type, packet_get_memory(packet));
     free(packet);
 }
 
@@ -189,7 +196,7 @@ sol_flow_packet_get(const struct sol_flow_packet *packet, void *output)
     SOL_NULL_CHECK(output, -EBADR);
 
     type = packet->type;
-    mem = sol_flow_packet_get_memory(packet);
+    mem = packet_get_memory(packet);
 
     if (type->get)
         return type->get(type, mem, output);
@@ -380,7 +387,7 @@ sol_flow_packet_new_string_take(char *value)
         goto error;
     }
 
-    pstring = sol_flow_packet_get_memory(packet);
+    pstring = packet_get_memory(packet);
     if (!pstring) {
         goto string_error;
     }
