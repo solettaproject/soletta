@@ -162,7 +162,7 @@ main(int argc, char *argv[])
     }
 
     if (sol_init() < 0) {
-        SOL_CRI("Cannot initialize soletta.");
+        fprintf(stderr, "Cannot initialize soletta.\n");
         return EXIT_FAILURE;
     }
 
