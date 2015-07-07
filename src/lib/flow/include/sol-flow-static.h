@@ -76,6 +76,47 @@ struct sol_flow_static_port_spec {
 #define SOL_FLOW_STATIC_CONN_SPEC_GUARD { .src = UINT16_MAX }
 #define SOL_FLOW_STATIC_PORT_SPEC_GUARD { .node = UINT16_MAX }
 
+#define SOL_FLOW_STATIC_API_VERSION (1)
+
+/** Specification of how a static flow should work. Note that the
+ * arrays and functions provided are assumed to be available and valid
+ * while the static flow type created from it is being used. */
+struct sol_flow_static_spec {
+    uint16_t api_version;
+    uint16_t flags;
+
+    /** Array specifying the node types that are used by the static
+     * flow. It should terminate with a
+     * #SOL_FLOW_STATIC_NODE_SPEC_GUARD. */
+    const struct sol_flow_static_node_spec *nodes;
+
+    /** Array specifying the connections between nodes in the static
+     * flow. This array @b must be sorted by node index and port
+     * indexes. It should terminate with a
+     * #SOL_FLOW_STATIC_CONN_SPEC_GUARD. */
+    const struct sol_flow_static_conn_spec *conns;
+
+    /** Array specifying which input ports from the flow are going to
+     * be exported by the static flow. When static flow is used as a
+     * node in another flow, these will be its input ports. It should
+     * terminate with a #SOL_FLOW_STATIC_PORT_SPEC_GUARD. */
+    const struct sol_flow_static_port_spec *exported_in;
+
+    /** Array specifying which output ports from the flow are going to
+     * be exported by the static flow. When static flow is used as a
+     * node in another flow, these will be its output ports. It should
+     * terminate with a #SOL_FLOW_STATIC_PORT_SPEC_GUARD. */
+    const struct sol_flow_static_port_spec *exported_out;
+
+    /** Function to allow the static flow control the options used to
+     * create its nodes. It is called for each node everytime a new
+     * flow is created from this type. */
+    int (*child_opts_set)(const struct sol_flow_node_type *type,
+        uint16_t child_index,
+        const struct sol_flow_node_options *opts,
+        struct sol_flow_node_options *child_opts);
+};
+
 /**
  * Creates a new "static flow" node.
  *
@@ -122,34 +163,14 @@ struct sol_flow_node *sol_flow_static_get_node(struct sol_flow_node *node, uint1
  * tune it. Exported input/output ports may be declared, as well as
  * options forwarding.
  *
- * @param nodes A #SOL_FLOW_STATIC_PORT_SPEC_GUARD terminated array of
- *              node specification structs
- * @param conns A #SOL_FLOW_STATIC_CONN_SPEC_GUARD terminated array of
- *              port connections of the nodes declared in @a nodes.
- *              This array @b must be sorted by node index and port
- *              indexes.
- * @param exported_in A #SOL_FLOW_STATIC_PORT_SPEC_GUARD terminated
- *                    array of port specification structs that will
- *                    map child node input ports to the container's
- *                    own input ports
- * @param exported_out A #SOL_FLOW_STATIC_PORT_SPEC_GUARD terminated
- *                     array of port specification structs that will
- *                     map child node output ports to the container's
- *                     own output ports
- * @param child_opts_set member function to forward option members of
- *                       the container node to child nodes
+ * @param spec A specification of the type to be created. The data
+ * inside the spec is assumed to still be valid until the type is
+ * deleted.
  *
  * @return A new container node type on success, otherwise @c NULL.
  */
 struct sol_flow_node_type *sol_flow_static_new_type(
-    const struct sol_flow_static_node_spec nodes[],
-    const struct sol_flow_static_conn_spec conns[],
-    const struct sol_flow_static_port_spec exported_in[],
-    const struct sol_flow_static_port_spec exported_out[],
-    int (*child_opts_set)(const struct sol_flow_node_type *type,
-    uint16_t child_index,
-    const struct sol_flow_node_options *opts,
-    struct sol_flow_node_options *child_opts));
+    const struct sol_flow_static_spec *spec);
 
 void sol_flow_static_del_type(struct sol_flow_node_type *type);
 

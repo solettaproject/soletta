@@ -857,6 +857,11 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
     struct sol_flow_node_type_description *desc;
     int err;
 
+    struct sol_flow_static_spec spec = {
+        .api_version = SOL_FLOW_STATIC_API_VERSION,
+    };
+
+
     SOL_NULL_CHECK(builder, NULL);
 
     if (builder->node_type)
@@ -884,12 +889,14 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
     if (err < 0)
         goto error_exported;
 
-    builder->node_type = sol_flow_static_new_type(
-        builder->node_spec,
-        builder->conn_spec,
-        exported_in,
-        exported_out,
-        desc->options ? builder_child_opts_set : NULL);
+    spec.nodes = builder->node_spec;
+    spec.conns = builder->conn_spec;
+    spec.exported_in = exported_in;
+    spec.exported_out = exported_out;
+    if (desc->options)
+        spec.child_opts_set = builder_child_opts_set;
+
+    builder->node_type = sol_flow_static_new_type(&spec);
     if (!builder->node_type) {
         SOL_WRN("Failed to create new type");
         goto error_node_type;
