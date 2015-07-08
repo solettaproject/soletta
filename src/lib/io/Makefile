@@ -22,3 +22,10 @@ obj-io-$(IO) += \
     sol-spi-linux.o \
     sol-uart-linux.o
 endif
+
+headers-$(IO) := \
+    include/sol-gpio.h \
+    include/sol-i2c.h \
+    include/sol-pwm.h \
+    include/sol-spi.h \
+    include/sol-uart.h
