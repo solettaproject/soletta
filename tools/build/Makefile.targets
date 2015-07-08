@@ -46,6 +46,10 @@ endif
 
 PHONY += run-coverage coverage
 
+samples: $(SOL_LIB_SO) $(SOL_LIB_AR) $(samples-out)
+
+PHONY += samples
+
 PRE_INSTALL := $(PC_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out) $(all-mod-descs)
 PRE_INSTALL += $(NODE_TYPE_SCHEMA_DEST) $(PLATFORM_DETECT_DEST) $(GDB_AUTOLOAD_PY_DEST)
 

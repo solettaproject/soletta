@@ -93,7 +93,13 @@ parse-test = \
 	$(eval $(1)-deps      := $(subst .mod,,$(test-$(1)-y-deps))) \
 	$(eval tests-out      += $(test-$(1)-out)) \
 
-clean-control = $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) $(eval test-y:=)
+parse-sample = \
+	$(eval sample-$(1)-srcs := $(addprefix $(2),$(sample-$(1)-y))) \
+	$(eval sample-$(1)-out  := $(addprefix $(2),$(1))) \
+	$(eval $(1)-deps      := $(subst .mod,,$(sample-$(1)-y-deps))) \
+	$(eval samples-out      += $(sample-$(1)-out)) \
+
+clean-control = $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) $(eval test-y:=) $(eval sample-y:=)
 
 inc-subdirs = \
 	$(foreach subdir,$(SUBDIRS), $(clean-control) \
@@ -116,6 +122,10 @@ inc-subdirs = \
 		$(eval tests += $(test-y)) \
 		$(foreach test,$(test-y), \
 			$(call parse-test,$(test),$(subdir)) \
+		) \
+		$(eval samples += $(sample-y)) \
+		$(foreach sample,$(sample-y), \
+			$(call parse-sample,$(sample),$(subdir)) \
 		) \
 		$(clean-control) \
 	)
@@ -166,6 +176,14 @@ $(bin-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(INT_LIB_AR) $(bin-$(1)-srcs) $(call 
 	$(Q)$(TARGETCC) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(LIB_COVERAGE_FLAGS) $(BIN_CFLAGS)
 endef
 $(foreach curr,$(bins),$(eval $(call make-bin,$(curr))))
+
+define make-sample
+$(sample-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(sample-$(1)-srcs) $(call find-deps,$(1))
+	$(Q)echo "     "SMP"   "$$@
+	$(Q)$(TARGETCC) $(filter-out %.h,$(sample-$(1)-srcs)) -o $$@ \
+		$(BIN_CFLAGS) $(SAMPLE_CFLAGS) $(call find-deps,$(1)) $(LIB_COVERAGE_FLAGS)
+endef
+$(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
 
 define make-test
 $(test-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1))

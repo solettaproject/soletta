@@ -1,0 +1,9 @@
+config COAP_SAMPLES
+	bool "CoAP samples"
+	depends on COAP
+	default n
+
+config OIC_SAMPLES
+	bool "OIC samples"
+	depends on OIC
+	default n

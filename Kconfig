@@ -60,6 +60,11 @@ menu "Networking"
 source "src/lib/comms/Kconfig"
 endmenu
 
+menu "Samples"
+source "src/samples/coap/Kconfig"
+source "src/samples/common/Kconfig"
+endmenu
+
 menu "Tools"
 source "src/bin/sol-fbp-generator/Kconfig"
 source "src/bin/sol-fbp-runner/Kconfig"
