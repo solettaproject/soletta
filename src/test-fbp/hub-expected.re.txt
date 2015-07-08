@@ -1,0 +1,1 @@
+WRN: ./src/lib/common/sol-types.c:.*? sol_irange_division\(\) Division by zero: 10, 0
