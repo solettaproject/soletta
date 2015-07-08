@@ -25,3 +25,21 @@ obj-comms-$(COMMS) += \
     sol-oic-client.o \
     sol-oic-server.o
 endif
+
+headers-$(COMMS) :=
+
+ifeq (y,$(NETWORK))
+headers-$(COMMS) += \
+    include/sol-network.h
+endif
+
+ifeq (y,$(COAP))
+headers-$(COMMS) += \
+    include/sol-coap.h
+endif
+
+ifeq (y,$(OIC))
+headers-$(COMMS) += \
+    include/sol-oic-client.h \
+    include/sol-oic-server.h
+endif
