@@ -100,3 +100,6 @@ hub_error ERROR -> IN conv_error(converter/error)
 conv_error MESSAGE -> IN[0] error_msg_equal(string/compare)
 const_error OUT -> IN[1] error_msg_equal
 error_msg_equal EQUAL -> RESULT result_hub_error(test/result)
+
+## TEST-OUTPUT-REGEX
+# WRN: ./src/lib/common/sol-types.c:.*? sol_irange_division\(\) Division by zero: 10, 0
