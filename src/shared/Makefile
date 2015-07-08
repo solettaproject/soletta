@@ -1,7 +1,6 @@
-obj-m += libshared.mod
-obj-libshared-static := yes
+obj-y += libshared.mod
 
-obj-libshared-m := \
+obj-libshared-y := \
     sol-fbp-graph.o \
     sol-fbp-internal-log.o \
     sol-fbp-internal-scanner.o \
@@ -9,15 +8,17 @@ obj-libshared-m := \
     sol-util.o
 
 ifeq (y,$(FLOW))
-obj-libshared-m += \
+obj-libshared-y += \
     sol-fbp-parser.o
 endif
 
 ifeq (y,$(SOL_PLATFORM_LINUX))
-obj-libshared-m += \
+obj-libshared-y += \
     sol-conffile.o \
     sol-file-reader.o \
     sol-util-linux.o
-obj-libshared-m-extra-cflags += $(GLIB_CFLAGS)
-obj-libshared-m-extra-ldflags += $(GLIB_LDFLAGS)
+obj-libshared-y-extra-cflags += $(GLIB_CFLAGS)
+obj-libshared-y-extra-ldflags += $(GLIB_LDFLAGS)
 endif
+
+obj-libshared-y-extra-cflags += -fvisibility=default

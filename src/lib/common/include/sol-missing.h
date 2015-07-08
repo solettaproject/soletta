@@ -47,7 +47,7 @@ extern "C" {
  * @{
  */
 
-#if !HAVE_DECL_STRNDUPA
+#ifndef HAVE_DECL_STRNDUPA
 #include <alloca.h>
 
 #define __strndupa_internal__(str_, len_, var_)       \
@@ -90,7 +90,7 @@ err:
 }
 #endif
 
-#if !HAVE_DECL_IFLA_INET6_ADDR_GEN_MODE
+#ifndef HAVE_DECL_IFLA_INET6_ADDR_GEN_MODE
 #define IFLA_INET6_UNSPEC 0
 #define IFLA_INET6_FLAGS 1
 #define IFLA_INET6_CONF 2

@@ -103,6 +103,7 @@ float_validator_process(
     struct sol_drange input;
     double *op;
     bool match;
+    int r;
 
     if (mdata->done) {
         sol_flow_send_error_packet(node, ECANCELED,
@@ -110,7 +111,7 @@ float_validator_process(
         return 0;
     }
 
-    int r = sol_flow_packet_get_drange(packet, &input);
+    r = sol_flow_packet_get_drange(packet, &input);
     SOL_INT_CHECK(r, < 0, r);
     op = sol_vector_get(&mdata->values, mdata->next_index);
     match = sol_drange_val_equal(input.val, *op);
