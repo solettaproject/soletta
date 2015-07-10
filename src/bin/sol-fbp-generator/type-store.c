@@ -38,6 +38,7 @@
 #include "sol-str-slice.h"
 #include "sol-util.h"
 #include "sol-vector.h"
+#include "sol-missing.h"
 
 #include "type-store.h"
 
