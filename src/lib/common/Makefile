@@ -4,8 +4,7 @@ obj-core-$(CORE) := \
     sol-blob.o \
     sol-mainloop.o \
     sol-platform.o \
-    sol-types.o \
-    sol-platform-detect.o
+    sol-types.o
 
 ifeq (y,$(LOG))
 obj-core-$(CORE) += \
@@ -44,7 +43,8 @@ obj-core-$(PLATFORM_DUMMY) += \
     sol-platform-impl-dummy.o
 
 obj-core-$(SOL_PLATFORM_LINUX) += \
-    sol-platform-linux-common.o
+    sol-platform-linux-common.o \
+    sol-platform-detect.o
 obj-core-$(SOL_PLATFORM_LINUX)-extra-cflags += $(SYSTEMD_CFLAGS)
 obj-core-$(SOL_PLATFORM_LINUX)-extra-ldflags += $(SYSTEMD_LDFLAGS)
 
