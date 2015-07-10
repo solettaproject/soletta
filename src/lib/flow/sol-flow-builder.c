@@ -177,9 +177,16 @@ sol_flow_builder_set_resolver(struct sol_flow_builder *builder,
     builder->resolver = resolver;
 }
 
+static struct sol_arena *
+get_arena(struct sol_flow_builder *builder)
+{
+    return builder->str_arena;
+}
+
 static bool
 set_type_description_symbols(struct sol_flow_builder *builder, const char *name)
 {
+    struct sol_flow_node_type_description *desc = &builder->type_desc;
     char *n;
     char buf[4096];
     int r;
@@ -192,8 +199,8 @@ set_type_description_symbols(struct sol_flow_builder *builder, const char *name)
     if (r < 0 || r >= (int)sizeof(buf))
         return false;
 
-    builder->type_desc.symbol = sol_arena_strdup(builder->str_arena, buf);
-    SOL_NULL_CHECK(builder->type_desc.symbol, false);
+    desc->symbol = sol_arena_strdup(get_arena(builder), buf);
+    SOL_NULL_CHECK(desc->symbol, false);
 
     n = strdupa(name);
     for (char *p = n; *p; p++)
@@ -203,8 +210,8 @@ set_type_description_symbols(struct sol_flow_builder *builder, const char *name)
     if (r < 0 || r >= (int)sizeof(buf))
         return false;
 
-    builder->type_desc.options_symbol = sol_arena_strdup(builder->str_arena, buf);
-    SOL_NULL_CHECK(builder->type_desc.options_symbol, false);
+    desc->options_symbol = sol_arena_strdup(get_arena(builder), buf);
+    SOL_NULL_CHECK(desc->options_symbol, false);
 
     return true;
 }
@@ -213,6 +220,8 @@ SOL_API int
 sol_flow_builder_set_type_description(struct sol_flow_builder *builder, const char *name, const char *category,
     const char *description, const char *author, const char *url, const char *license, const char *version)
 {
+    struct sol_flow_node_type_description *desc;
+
     SOL_NULL_CHECK(builder, -EINVAL);
 
     if (builder->node_type) {
@@ -225,26 +234,28 @@ sol_flow_builder_set_type_description(struct sol_flow_builder *builder, const ch
         return -EINVAL;
     }
 
-    builder->type_desc.name = sol_arena_strdup(builder->str_arena, name);
-    SOL_NULL_CHECK_GOTO(builder->type_desc.name, failure);
+    desc = &builder->type_desc;
 
-    builder->type_desc.category = sol_arena_strdup(builder->str_arena, category);
-    SOL_NULL_CHECK_GOTO(builder->type_desc.category, failure);
+    desc->name = sol_arena_strdup(get_arena(builder), name);
+    SOL_NULL_CHECK_GOTO(desc->name, failure);
 
-    builder->type_desc.description = sol_arena_strdup(builder->str_arena, description);
-    SOL_NULL_CHECK_GOTO(builder->type_desc.description, failure);
+    desc->category = sol_arena_strdup(get_arena(builder), category);
+    SOL_NULL_CHECK_GOTO(desc->category, failure);
 
-    builder->type_desc.author = sol_arena_strdup(builder->str_arena, author);
-    SOL_NULL_CHECK_GOTO(builder->type_desc.author, failure);
+    desc->description = sol_arena_strdup(get_arena(builder), description);
+    SOL_NULL_CHECK_GOTO(desc->description, failure);
 
-    builder->type_desc.url = sol_arena_strdup(builder->str_arena, url);
-    SOL_NULL_CHECK_GOTO(builder->type_desc.url, failure);
+    desc->author = sol_arena_strdup(get_arena(builder), author);
+    SOL_NULL_CHECK_GOTO(desc->author, failure);
 
-    builder->type_desc.license = sol_arena_strdup(builder->str_arena, license);
-    SOL_NULL_CHECK_GOTO(builder->type_desc.license, failure);
+    desc->url = sol_arena_strdup(get_arena(builder), url);
+    SOL_NULL_CHECK_GOTO(desc->url, failure);
 
-    builder->type_desc.version = sol_arena_strdup(builder->str_arena, version);
-    SOL_NULL_CHECK_GOTO(builder->type_desc.version, failure);
+    desc->license = sol_arena_strdup(get_arena(builder), license);
+    SOL_NULL_CHECK_GOTO(desc->license, failure);
+
+    desc->version = sol_arena_strdup(get_arena(builder), version);
+    SOL_NULL_CHECK_GOTO(desc->version, failure);
 
     if (!set_type_description_symbols(builder, name))
         goto failure;
@@ -363,7 +374,7 @@ sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, co
         find_duplicated_port_names(type->description->ports_out, true))))
         return -EEXIST;
 
-    node_name = sol_arena_strdup(builder->str_arena, name);
+    node_name = sol_arena_strdup(get_arena(builder), name);
     if (!node_name)
         return -errno;
 
@@ -1053,7 +1064,7 @@ export_port(struct sol_flow_builder *builder, uint16_t node, uint16_t port,
     int i = 0, r;
     uint16_t desc_len, base_port_idx = 0;
 
-    name = sol_arena_strdup(builder->str_arena, exported_name);
+    name = sol_arena_strdup(get_arena(builder), exported_name);
     SOL_NULL_CHECK_GOTO(name, error_name);
 
     desc_len = sol_ptr_vector_get_len(desc_vector);
@@ -1281,7 +1292,7 @@ sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *nod
     }
 
     memset(exported_opt, 0, sizeof(*exported_opt));
-    exported_opt->name = sol_arena_strdup(builder->str_arena, exported_name);
+    exported_opt->name = sol_arena_strdup(get_arena(builder), exported_name);
     exported_opt->data_type = opt->data_type;
     /* Since we can't instantiate a sub-node without its required options
      * available, we will always have a default for the exported one, which
