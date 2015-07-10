@@ -560,7 +560,6 @@ static void
 generate_node_type_assignments(const struct fbp_data *data)
 {
     struct declared_fbp_type *dec_type;
-    struct sol_fbp_node *n;
     uint16_t i;
 
     dprintf(fd, "\n");
@@ -696,7 +695,7 @@ handle_json_dir(const char *path)
     if (!dp)
         return false;
 
-    while (entry = readdir(dp)) {
+    while ((entry = readdir(dp))) {
         if (entry->d_name[0] == '.')
             continue;
 
@@ -717,13 +716,13 @@ handle_json_dir(const char *path)
     return true;
 }
 
-const char *
+static const char *
 get_file_ext(const char *file)
 {
     char *ext = strrchr(file, '.');
 
     if (!ext)
-        ext = "";
+        ext = (char *) "";
 
     return ext;
 }
