@@ -32,6 +32,7 @@
 
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "sol-arena.h"
 #include "sol-flow-builder.h"
