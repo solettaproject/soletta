@@ -56,13 +56,13 @@ static void log_init(void) SOL_ATTR_UNUSED;
  * node type descriptions.
  */
 
+static struct sol_flow_node_type *flow_node_type;
 static struct sol_flow_node *flow;
-static struct sol_flow_builder *builder;
 
 static void
 startup(void)
 {
-    struct sol_flow_node_type *flow_node_type;
+    struct sol_flow_builder *builder;
     struct _custom_node_types_reader_options reader_opts =
         _CUSTOM_NODE_TYPES_READER_OPTIONS_DEFAULTS(
         .intopt.val = 1
@@ -99,13 +99,15 @@ startup(void)
     sol_flow_builder_connect(builder, "logic", "OUT", 0, "console", "IN", 0);
 
     /* this creates a static flow using the low-level API that will
-     * actually run the flow. Note that its memory is bound to
-     * builder, then keep builder alive.
+     * actually run the flow.
      */
     flow_node_type = sol_flow_builder_get_node_type(builder);
 
     /* create and run the flow */
     flow = sol_flow_node_new(NULL, "highlevel", flow_node_type, NULL);
+
+    /* builder is not necessary anymore, so delete it */
+    sol_flow_builder_del(builder);
 }
 
 static void
@@ -113,8 +115,8 @@ shutdown(void)
 {
     /* stop the flow, disconnect ports and close children nodes */
     sol_flow_node_del(flow);
-    /* free the builder and its internal node type */
-    sol_flow_builder_del(builder);
+    /* delete the node type we've created with builder */
+    sol_flow_builder_del(flow_node_type);
 }
 
 SOL_MAIN_DEFAULT(startup, shutdown);
