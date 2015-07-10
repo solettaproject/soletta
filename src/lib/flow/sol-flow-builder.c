@@ -212,6 +212,8 @@ dispose_builder_type(const void *data)
     free(type_data->node_extras);
 
     sol_arena_del(type_data->arena);
+
+    free(type_data);
 }
 
 SOL_API int
@@ -223,10 +225,8 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
 
     SOL_NULL_CHECK(builder, -EBADR);
 
-    if (builder->node_type) {
-        sol_flow_node_type_del(builder->node_type);
+    if (builder->node_type)
         goto end;
-    }
 
     SOL_PTR_VECTOR_FOREACH_IDX (&builder->ports_in_desc, port_desc, i)
         free(port_desc);
@@ -256,9 +256,9 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
     sol_vector_clear(&builder->exported_out);
 
     sol_arena_del(builder->type_data->arena);
+    free(builder->type_data);
 
 end:
-    free(builder->type_data);
     free(builder);
     return 0;
 }

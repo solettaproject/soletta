@@ -329,10 +329,12 @@ runner_del(struct runner *r)
 {
     if (r->root)
         sol_flow_node_del(r->root);
+    if (r->builder) {
+        sol_flow_node_type_del(r->root_type);
+        sol_flow_builder_del(r->builder);
+    }
     if (r->parser)
         sol_flow_parser_del(r->parser);
-    if (r->builder)
-        sol_flow_builder_del(r->builder);
     free(r->dirname);
     free(r->basename);
     free(r);

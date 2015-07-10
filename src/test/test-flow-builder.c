@@ -281,6 +281,7 @@ connect_two_nodes(void)
     sol_flow_builder_connect(builder, "node2", "OUT2", -1, "node1", "IN1", -1);
 
     node_type = sol_flow_builder_get_node_type(builder);
+    sol_flow_builder_del(builder);
 
     flow = sol_flow_node_new(NULL, "simple_and", node_type, NULL);
     ASSERT(flow);
@@ -294,7 +295,7 @@ connect_two_nodes(void)
     ASSERT_EVENT_COUNT(node_in, EVENT_PORT_DISCONNECT, 0);
 
     sol_flow_node_del(flow);
-    sol_flow_builder_del(builder);
+    sol_flow_node_type_del(node_type);
 
     ASSERT_EVENT_COUNT(node_out, EVENT_PORT_CONNECT, 4);
     ASSERT_EVENT_COUNT(node_out, EVENT_PORT_DISCONNECT, 4);
@@ -321,6 +322,7 @@ connections_nodes_are_ordered(void)
     sol_flow_builder_connect(builder, "node1", "OUT1", -1, "node2", "IN1", -1);
 
     node_type = sol_flow_builder_get_node_type(builder);
+    sol_flow_builder_del(builder);
 
     /* if connections are out of order flow won't be created */
     flow = sol_flow_node_new(NULL, "simple_and", node_type, NULL);
@@ -328,7 +330,7 @@ connections_nodes_are_ordered(void)
     ASSERT(flow);
 
     sol_flow_node_del(flow);
-    sol_flow_builder_del(builder);
+    sol_flow_node_type_del(node_type);
 }
 
 DEFINE_TEST(connections_ports_are_ordered);
@@ -350,13 +352,14 @@ connections_ports_are_ordered(void)
     sol_flow_builder_connect(builder, "node1", "OUT1", -1, "node2", "IN2", -1);
 
     node_type = sol_flow_builder_get_node_type(builder);
+    sol_flow_builder_del(builder);
 
     /* if connections are out of order flow won't be created */
     flow = sol_flow_node_new(NULL, "simple_and", node_type, NULL);
     ASSERT(flow);
 
     sol_flow_node_del(flow);
-    sol_flow_builder_del(builder);
+    sol_flow_node_type_del(node_type);
 }
 
 DEFINE_TEST(nodes_must_have_unique_names);
@@ -446,6 +449,7 @@ ports_can_be_exported(void)
     ASSERT(streq(type->description->ports_in[0]->name, in_name));
     ASSERT(streq(type->description->ports_out[0]->name, out_name));
 
+    sol_flow_node_type_del(type);
     sol_flow_builder_del(builder);
 }
 
@@ -547,6 +551,7 @@ add_type_descriptions(void)
 
     type = sol_flow_builder_get_node_type(builder);
     ASSERT(type);
+    sol_flow_builder_del(builder);
 
     ASSERT(streq(type->description->name, "MyName"));
     ASSERT(streq(type->description->category, "MyCategory"));
@@ -558,7 +563,7 @@ add_type_descriptions(void)
     ASSERT(streq(type->description->symbol, "SOL_FLOW_NODE_TYPE_BUILDER_MYNAME"));
     ASSERT(streq(type->description->options_symbol, "sol_flow_node_type_builder_myname_options"));
 
-    sol_flow_builder_del(builder);
+    sol_flow_node_type_del(type);
 }
 
 TEST_MAIN_WITH_RESET_FUNC(clear_events);
