@@ -31,6 +31,7 @@
  */
 
 #include "sol-util-linux.h"
+#include "sol-missing.h"
 
 #include <errno.h>
 #include <fcntl.h>
