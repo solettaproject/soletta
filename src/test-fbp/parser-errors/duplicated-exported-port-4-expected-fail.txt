@@ -1,1 +1,1 @@
-parser-errors/duplicated-exported-port-4.fbp:32:18 Node 'node' and output port 'OUT' already exported as 'PORT_A' declared in 31:18
+duplicated-exported-port-4.fbp:32:18 Node 'node' and output port 'OUT' already exported as 'PORT_A' declared in 31:18
