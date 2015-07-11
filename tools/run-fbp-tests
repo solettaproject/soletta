@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import argparse
+import difflib
+import os
+import subprocess
+import sys
+
+def sh(cmd, cwd=None):
+    try:
+        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, cwd=cwd).decode('utf-8')
+        return out, 0
+    except subprocess.CalledProcessError as err:
+        return err.output.decode('utf-8'), err.returncode
+
+def is_valid_fbp(f):
+    return os.path.basename(f)[0] != '_' and os.path.splitext(f)[1] == ".fbp"
+
+def collect_tests_dir(dir, result):
+    for root, subdirs, files in os.walk(dir):
+        for f in files:
+            if is_valid_fbp(f):
+                result.append(os.path.join(root, f))
+        for d in subdirs:
+            collect_tests_dir(d, result)
+
+def collect_tests(tests):
+    result = []
+    for t in args.tests:
+        t = os.path.abspath(t)
+        if not os.path.exists(t):
+            print("Ignoring non-existent test file or directory", t)
+            continue
+
+        if os.path.isdir(t):
+            collect_tests_dir(t, result)
+        elif is_valid_fbp(t):
+            result.append(t)
+    return result
+
+# TODO: Consider putting the expected output as comments inside the
+# input file. This would also allow specifying other parameters there
+# like the expected error code, avoiding the clumsyness of two
+# different expected files.
+def get_expected(t):
+    code = 0
+    out = None
+    no_ext = os.path.splitext(t)[0]
+    success_file = no_ext + "-expected.txt"
+    fail_file = no_ext + "-expected-fail.txt"
+
+    if os.path.isfile(success_file):
+        with open(success_file) as f:
+            out = f.read()
+    elif os.path.isfile(fail_file):
+        with open(fail_file) as f:
+            out = f.read()
+        code = 1
+
+    return out, code
+
+if __name__ == "__main__":
+    cmd_prefix = []
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--runner", help="Path to the sol-fbp-runner program", default="build/soletta_sysroot/usr/bin/sol-fbp-runner", type=str)
+    parser.add_argument("--valgrind", help="Enable valgrind, if path not passed, assume default location in the system", nargs='?', const="/usr/bin/valgrind", type=str)
+    parser.add_argument("--valgrind-supp", help="Path to valgrind's suppression file", type=str)
+    parser.add_argument("tests", metavar="TEST", help="Path to FBP file or directory containing FBP file to be tested.", nargs='*', default=["src/test-fbp/"])
+
+    args = parser.parse_args()
+    if args.valgrind:
+        valgrind = os.path.abspath(args.valgrind)
+        if not os.path.isfile(valgrind):
+            sys.exit("Couldn't find valgrind program at", valgrind)
+        cmd_prefix.extend([
+            valgrind,
+            "--show-reachable=no",
+            "--quiet",
+            "--error-exitcode=1",
+            "--leak-check=full",
+        ])
+
+        if args.valgrind_supp:
+            supp = os.path.abspath(args.valgrind_supp)
+            if not os.path.abspath(supp):
+                sys.exit("Couldn't find valgrind suppression file at", supp)
+            cmd_prefix.append("--suppressions=%s" % supp)
+
+    runner = os.path.abspath(args.runner)
+    if not os.path.isfile(runner):
+        sys.exit("Couldn't find runner program at %s" % runner)
+
+    tests = collect_tests(args.tests)
+    if not tests:
+        sys.exit("No test files found.")
+
+    tests.sort()
+    failures = 0
+
+    for t in tests:
+        dir = os.path.dirname(t)
+        file = os.path.basename(t)
+        expected_out, expected_code = get_expected(t)
+        out, code = sh(cmd_prefix + [runner, file], cwd=dir)
+        if expected_out is not None and out != expected_out:
+            failures += 1
+            print("FAILED running %s: wrong output" % t)
+            for line in difflib.unified_diff(out.splitlines(True), expected_out.splitlines(True)):
+                sys.stdout.write(line)
+            print()
+            continue
+        if expected_code != code:
+            failures += 1
+            print("FAILED running %s: wrong exit code, got %d but expected %d" % (t, code, expected_code))
+            print()
+            continue
+        if expected_out is None and len(out) > 0:
+            print("IGNORING unexpected output from", t)
+            print(out)
+
+    print("%d tests passed." % (len(tests) - failures))
+    if failures > 0:
+        print("%d tests failed." % failures)
+        sys.exit(1)
