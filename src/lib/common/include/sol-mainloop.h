@@ -126,6 +126,7 @@ struct sol_idle;
 struct sol_idle *sol_idle_add(bool (*cb)(void *data), const void *data);
 bool sol_idle_del(struct sol_idle *handle);
 
+#ifdef SOL_MAINLOOP_FD_ENABLED
 enum sol_fd_flags {
     SOL_FD_FLAGS_NONE = 0,
     SOL_FD_FLAGS_IN   = (1 << 0),
@@ -139,10 +140,13 @@ enum sol_fd_flags {
 struct sol_fd;
 struct sol_fd *sol_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data);
 bool sol_fd_del(struct sol_fd *handle);
+#endif
 
+#ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
 struct sol_child_watch;
 struct sol_child_watch *sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data);
 bool sol_child_watch_del(struct sol_child_watch *handle);
+#endif
 
 int sol_argc(void);
 char **sol_argv(void);
