@@ -135,7 +135,7 @@ interrupt_scheduler_handler_free(void *handler)
 void
 sol_interrupt_scheduler_gpio_stop(gpio_t dev, void *handler)
 {
-    gpio_init_in(dev, GPIO_NOPULL);
+    gpio_init(dev, GPIO_DIR_IN, GPIO_NOPULL);
     interrupt_scheduler_handler_free(handler);
 }
 
