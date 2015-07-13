@@ -76,3 +76,6 @@ headers-y := \
 
 headers-$(HAVE_PIN_MUX) += \
     include/sol-pin-mux-modules.h
+
+headers-$(PTHREAD) += \
+    include/sol-worker-thread.h
