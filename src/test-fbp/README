@@ -36,10 +36,15 @@ Tests can also be skipped by adding a comment
 The reason provided will be part of the execution output but won't
 count as a failure.
 
-Don't depend on output messages from SOL_WRN and friends on the
-expected files since they contain implementation information (line,
-column, file name in the source) that might change as the code
-evolves.
+It also supports regular expressions variants. Its syntax
+is described at https://docs.python.org/3/library/re.html.
+In order to use regex, just use TEST-OUTPUT-REGEX instead
+of TEST-OUTPUT. So it will look for an expression match.
+
+If output messages from SOL_WRN and friends are expected using
+regular expressions is required, since they contain implementation
+information (line, column, file name in the source) that might
+change as the code evolves.
 
 In all cases it's important that your flow ends at some point, look at
 the 'test' or 'app' modules to ways to do it. Usually TEST_RESULT is

@@ -33,6 +33,7 @@
 import argparse
 import difflib
 import os
+import re
 import subprocess
 import sys
 
@@ -72,6 +73,7 @@ def get_expected(t):
     code = 0
     out = None
     skip = None
+    is_regex = False
 
     f = open(t)
     for line in f:
@@ -79,6 +81,10 @@ def get_expected(t):
             continue
         splitted = line.split(maxsplit=2)
         cmd = splitted[1]
+
+        if cmd == "TEST-OUTPUT-REGEX":
+            is_regex = True
+
         if cmd == "TEST-EXPECTS-ERROR":
             code = 1
         elif cmd == "TEST-SKIP":
@@ -86,12 +92,13 @@ def get_expected(t):
                 skip = splitted[2]
             else:
                 skip = ""
-        elif cmd == "TEST-OUTPUT":
+        elif cmd in ["TEST-OUTPUT", "TEST-OUTPUT-REGEX"]:
             out = ""
             break
         else:
             print("Ignoring unknown test command '%s' in test %s" % (cmd, t))
             continue
+
     if out is not None:
         for line in f:
             if not line.startswith("#"):
@@ -99,7 +106,7 @@ def get_expected(t):
             out += line[2:] or '\n'
     f.close()
 
-    return out, code, skip
+    return out, code, skip, is_regex
 
 if __name__ == "__main__":
     cmd_prefix = []
@@ -144,19 +151,32 @@ if __name__ == "__main__":
     for t in sorted(set(tests)):
         dir = os.path.dirname(t)
         file = os.path.basename(t)
-        expected_out, expected_code, skip = get_expected(t)
+
+        expected_out, expected_code, skip, is_regex = get_expected(t)
         if skip is not None:
             print("SKIPPED running %s: %s" % (t, skip))
             skipped += 1
             continue
+
         out, code = sh(cmd_prefix + [runner, file], cwd=dir)
-        if expected_out is not None and out != expected_out:
-            failed += 1
-            print("FAILED running %s: wrong output" % t)
-            for line in difflib.unified_diff(out.splitlines(True), expected_out.splitlines(True)):
-                sys.stdout.write(line)
-            print()
-            continue
+        if expected_out is not None:
+            if is_regex:
+                if not re.match(expected_out, out):
+                    failed += 1
+                    print("FAILED running %s: wrong output" % t)
+                    print("Expected expression:")
+                    print(expected_out)
+                    print("Output:")
+                    print(out)
+                    print()
+                    continue
+            elif out != expected_out:
+                failed += 1
+                print("FAILED running %s: wrong output" % t)
+                for line in difflib.unified_diff(out.splitlines(True), expected_out.splitlines(True)):
+                    sys.stdout.write(line)
+                print()
+                continue
         if expected_code != code:
             failed += 1
             print("FAILED running %s: wrong exit code, got %d but expected %d" % (t, code, expected_code))
