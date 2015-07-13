@@ -30,14 +30,54 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <stdint.h>
+#include <stdlib.h>
 
-{{
-st.on_value("SOL_PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-}}
+#include "sol-pwm.h"
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-}}
+struct sol_pwm *
+sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
+{
+    return NULL;
+}
+
+void
+sol_pwm_close(struct sol_pwm *pwm)
+{
+}
+
+bool
+sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
+{
+    return false;
+}
+
+bool
+sol_pwm_get_enabled(const struct sol_pwm *pwm)
+{
+    return false;
+}
+
+bool
+sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
+{
+    return false;
+}
+
+int32_t
+sol_pwm_get_period(const struct sol_pwm *pwm)
+{
+    return -1;
+}
+
+bool
+sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
+{
+    return false;
+}
+
+int32_t
+sol_pwm_get_duty_cycle(const struct sol_pwm *pwm)
+{
+    return -1;
+}

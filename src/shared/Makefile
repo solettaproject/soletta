@@ -12,6 +12,10 @@ obj-libshared-y += \
     sol-fbp-parser.o
 endif
 
+ifeq (y,$(PLATFORM_CONTIKI))
+obj-libshared-m += sol-util-contiki.o
+endif
+
 ifeq (y,$(SOL_PLATFORM_LINUX))
 obj-libshared-y += \
     sol-conffile.o \

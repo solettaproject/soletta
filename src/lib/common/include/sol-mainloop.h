@@ -161,6 +161,7 @@ struct sol_main_callbacks {
         return sol_mainloop_default_main(&(CALLBACKS), argc, argv);  \
     }
 
+#ifndef SOL_PLATFORM_CONTIKI
 #define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN)                              \
     static const struct sol_main_callbacks sol_main_callbacks_instance = { \
         .api_version = SOL_MAIN_CALLBACKS_API_VERSION,                   \
@@ -168,6 +169,7 @@ struct sol_main_callbacks {
         .shutdown = (SHUTDOWN),                                         \
     };                                                                  \
     SOL_MAIN(sol_main_callbacks_instance)
+#endif
 
 /* Internal. */
 int sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, char *argv[]);
