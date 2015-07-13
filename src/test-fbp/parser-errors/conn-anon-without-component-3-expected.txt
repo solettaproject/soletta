@@ -1,1 +1,0 @@
-conn-anon-without-component-3.fbp:31:20 Anonymous node type must be defined. e.g. '_(nodetype)'

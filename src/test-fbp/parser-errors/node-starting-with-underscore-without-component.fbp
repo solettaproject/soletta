@@ -31,3 +31,6 @@
 _foo
 
 # TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# node-starting-with-underscore-without-component.fbp:31:1 Node '_foo' doesn't have a type, Node type must be defined. e.g. 'node(nodetype)'

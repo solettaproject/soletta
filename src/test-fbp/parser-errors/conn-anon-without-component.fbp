@@ -31,3 +31,6 @@
 _ -> _
 
 # TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# conn-anon-without-component.fbp:31:1 Anonymous node type must be defined. e.g. '_(nodetype)'

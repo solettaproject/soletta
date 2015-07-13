@@ -1,1 +1,0 @@
-multi-conn-wrong-arrow.fbp:31:36 Expected '->' between connection statement. e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'

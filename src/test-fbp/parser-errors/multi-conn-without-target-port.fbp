@@ -31,3 +31,6 @@
 foo(Foo) OUT -> IN bar(Bar) OUTPUT -> xpto(Xpto)
 
 # TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# multi-conn-without-target-port.fbp:31:39 Expected node and port while defining a connection. e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'

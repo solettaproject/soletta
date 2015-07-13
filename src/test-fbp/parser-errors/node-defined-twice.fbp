@@ -32,3 +32,6 @@ foo(boolean/and)
 foo(boolean/not)
 
 # TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# node-defined-twice.fbp:32:1 Node 'foo' already declared with type 'boolean/and' at 31:1

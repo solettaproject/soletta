@@ -68,27 +68,26 @@ def collect_tests(tests):
             result.append(t)
     return result
 
-# TODO: Consider putting the expected output as comments inside the
-# input file. This would also allow specifying other parameters there
-# like the expected error code, avoiding the clumsyness of two
-# different expected files.
 def get_expected(t):
     code = 0
     out = None
     skip = None
 
-    with open(t) as f:
+    f = open(t)
+    for line in f:
+        if line == "# TEST-EXPECTS-ERROR\n":
+            code = 1
+        if line.startswith("# TEST-SKIP: "):
+            skip = line[line.index(":") + 2:]
+        if line == "# TEST-OUTPUT:\n":
+            out = ""
+            break
+    if out is not None:
         for line in f:
-            if line == "# TEST-EXPECTS-ERROR\n":
-                code = 1
-            if line.startswith("# TEST-SKIP: "):
-                skip = line[line.index(":") + 2:]
-
-    no_ext = os.path.splitext(t)[0]
-    success_file = no_ext + "-expected.txt"
-    if os.path.isfile(success_file):
-        with open(success_file) as f:
-            out = f.read()
+            if not line.startswith("#"):
+                continue
+            out += line[2:] or '\n'
+    f.close()
 
     return out, code, skip
 
