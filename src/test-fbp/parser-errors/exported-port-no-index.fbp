@@ -31,3 +31,5 @@
 INPORT=node.IN[:IN
 
 node(boolean/and)
+
+# TEST-EXPECTS-ERROR

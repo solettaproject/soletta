@@ -75,17 +75,17 @@ def collect_tests(tests):
 def get_expected(t):
     code = 0
     out = None
+
+    with open(t) as f:
+        for line in f:
+            if line == "# TEST-EXPECTS-ERROR\n":
+                code = 1
+
     no_ext = os.path.splitext(t)[0]
     success_file = no_ext + "-expected.txt"
-    fail_file = no_ext + "-expected-fail.txt"
-
     if os.path.isfile(success_file):
         with open(success_file) as f:
             out = f.read()
-    elif os.path.isfile(fail_file):
-        with open(fail_file) as f:
-            out = f.read()
-        code = 1
 
     return out, code
 

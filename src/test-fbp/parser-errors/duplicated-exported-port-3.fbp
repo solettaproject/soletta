@@ -32,3 +32,5 @@ OUTPORT=node.TRUE:OUT
 OUTPORT=node.FALSE:OUT
 
 node(boolean/filter)
+
+# TEST-EXPECTS-ERROR

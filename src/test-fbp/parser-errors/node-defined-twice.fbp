@@ -30,3 +30,5 @@
 
 foo(boolean/and)
 foo(boolean/not)
+
+# TEST-EXPECTS-ERROR
