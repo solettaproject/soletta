@@ -46,6 +46,51 @@ extern "C" {
  */
 
 /**
+ * @defgroup Type_Checking Type Checking
+ *
+ * @{
+ */
+
+/**
+ * This performs a compile-time type check on a const string, returning it.
+ *
+ * It is often used with macros that ends into types such as 'void*'
+ * or even variable-arguments (varargs).
+ *
+ * Example:
+ * @code
+ * #define mystruct_set_string(st, x) \
+ *    do { \
+ *       st->type = mystruct_type_string; \
+ *       st->value = sol_check_const_str(x); \
+ *    } while (0)
+ * @endcode
+ *
+ * @see sol_check_str()
+ */
+static inline const char *sol_check_const_str(const char *s) { return s; }
+
+/**
+ * This performs a compile-time type check on a string, returning it.
+ *
+ * It is often used with macros that ends into types such as 'void*'
+ * or even variable-arguments (varargs).
+ *
+ * Example:
+ * @code
+ * // free() that checks if the given argument is a string.
+ * #define free_str(x) free(sol_check_str(x))
+ * @endcode
+ *
+ * @see sol_check_const_str()
+ */
+static inline char *sol_check_str(char *s) { return s; }
+
+/**
+ * @}
+ */
+
+/**
  * @defgroup Types Types
  *
  * @{
