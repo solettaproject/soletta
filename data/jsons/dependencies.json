@@ -236,12 +236,14 @@
 	{
 	    "dependency": "chrpath",
 	    "type": "exec",
-	    "exec": "chrpath"
+	    "exec": "chrpath",
+	    "required": true
 	},
 	{
 	    "dependency": "jsonschema",
 	    "type": "python",
-	    "pkgname": "jsonschema"
+	    "pkgname": "jsonschema",
+	    "required": true
 	}
     ]
 }

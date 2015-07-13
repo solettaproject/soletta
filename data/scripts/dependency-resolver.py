@@ -191,16 +191,33 @@ def handle_ccode_check(args, conf, context):
         context.add_kconfig("HAVE_%s" % dep, "bool", "n")
 
 def handle_exec_check(args, conf, context):
-    dep = conf["dependency"].upper()
-    path = which(conf["exec"]) or None
+    dep = conf.get("dependency")
+    exe = conf.get("exec", None)
 
-    context.add_cond_makefile_var(dep, path)
+    if exe is None:
+        print("Could not parse dependency: %s, no exec was specified.")
+        exit(1)
+
+    path = which(exe) or None
+    required = conf.get("required", False)
+
+    if required and path is None:
+        req_label = context.find_makefile_var("NOT_FOUND")
+        req_label += "executable: %s\\n" % exe
+        context.add_append_makefile_var("NOT_FOUND", req_label, True)
+
+    context.add_cond_makefile_var(dep.upper(), path)
 
 def handle_python_check(args, conf, context):
-    dep = conf["dependency"].upper()
+    dep = conf.get("dependency")
+    required = conf.get("required", False)
+    pkgname = conf.get("pkgname")
 
-    if conf.get("pkgname"):
-        source = "import %s" % conf.get("pkgname")
+    if not pkgname:
+        print("Could not parse dependency: %s, no pkgname specified.")
+        exit(1)
+
+    source = "import %s" % pkgname
 
     f = tempfile.NamedTemporaryFile(suffix=".py",delete=False)
     f.write(bytes(source, 'UTF-8'))
@@ -208,7 +225,13 @@ def handle_python_check(args, conf, context):
 
     cmd = "%s %s" % (sys.executable, f.name)
     output, status = run_command(cmd)
-    context.add_cond_makefile_var("HAVE_PYTHON_%s" % dep, "y" if status else "n")
+
+    if required and not status:
+        req_label = context.find_makefile_var("NOT_FOUND")
+        req_label += "python module: %s\\n" % pkgname
+        context.add_append_makefile_var("NOT_FOUND", req_label, True)
+
+    context.add_cond_makefile_var("HAVE_PYTHON_%s" % dep.upper(), "y" if status else "n")
 
 def handle_cflags_check(args, conf, context):
     check_cflags = conf.get("cflags")
