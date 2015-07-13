@@ -11,6 +11,9 @@ obj-flow-$(NODE_DESCRIPTION) += \
     sol-flow-resolver.o \
     sol-flow-builder.o
 
+obj-flow-$(JAVASCRIPT) += \
+	sol-flow-js.o
+
 ifeq (y,$(RESOLVER_CONFFILE))
 def-resolver-flag = -Dsol_flow_default_resolver=sol_flow_resolver_conffile
 else
@@ -28,6 +31,7 @@ headers-$(FLOW) := \
     include/sol-flow-builder.h \
     include/sol-flow.h \
     include/sol-flow-inspector.h \
+    include/sol-flow-js.h \
     include/sol-flow-packet.h \
     include/sol-flow-parser.h \
     include/sol-flow-resolver.h \

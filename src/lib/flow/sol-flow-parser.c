@@ -43,6 +43,10 @@
 #include "sol-util.h"
 #include "sol-vector.h"
 
+#ifdef JAVASCRIPT
+#include "sol-flow-js.h"
+#endif
+
 #define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...)          \
     do {                                                                \
         if ((client)->api_version != (expected)) {                      \
@@ -59,6 +63,8 @@ struct sol_flow_parser {
 
     struct sol_flow_resolver resolver_with_declares;
     struct sol_ptr_vector builders;
+
+    struct sol_ptr_vector no_builder_types;
 };
 
 struct declared_type {
@@ -188,6 +194,7 @@ parse_state_fini(struct parse_state *state)
         sol_flow_builder_del(state->builder);
         state->builder = NULL;
     }
+
     sol_fbp_graph_fini(&state->graph);
     sol_arena_del(state->arena);
 }
@@ -217,6 +224,8 @@ sol_flow_parser_new(
 
     sol_ptr_vector_init(&parser->builders);
 
+    sol_ptr_vector_init(&parser->no_builder_types);
+
     return parser;
 }
 
@@ -224,6 +233,7 @@ SOL_API int
 sol_flow_parser_del(struct sol_flow_parser *parser)
 {
     struct sol_flow_builder *b;
+    struct sol_flow_node_type *t;
     uint16_t i;
 
     SOL_NULL_CHECK(parser, -EBADF);
@@ -231,6 +241,10 @@ sol_flow_parser_del(struct sol_flow_parser *parser)
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&parser->builders, b, i)
         sol_flow_builder_del(b);
     sol_ptr_vector_clear(&parser->builders);
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&parser->no_builder_types, t, i)
+        sol_flow_node_type_del(t);
+    sol_ptr_vector_clear(&parser->no_builder_types);
 
     free(parser);
     return 0;
@@ -409,8 +423,47 @@ create_fbp_type(
     return 0;
 }
 
+#ifdef JAVASCRIPT
+static int
+create_js_type(
+    struct parse_state *state,
+    struct sol_str_slice name,
+    struct sol_str_slice contents,
+    const struct sol_flow_node_type **type)
+{
+    const struct sol_flow_parser_client *client = state->parser->client;
+    const char *buf, *filename;
+    struct sol_flow_node_type *result;
+    size_t size;
+    int err;
+
+    SOL_NULL_CHECK(client, -ENOSYS);
+    SOL_NULL_CHECK(client->read_file, -ENOSYS);
+
+    filename = sol_arena_strdup_slice(state->arena, contents);
+    err = client->read_file(client->data, filename, &buf, &size);
+    if (err < 0)
+        return -EINVAL;
+
+    result = sol_flow_js_new_type(buf, size);
+    if (!result)
+        return -EINVAL;
+
+    if (sol_ptr_vector_append(&state->parser->no_builder_types, result) < 0) {
+        sol_flow_node_type_del(result);
+        return -ENOMEM;
+    }
+
+    *type = result;
+    return 0;
+}
+#endif
+
 static const struct sol_str_table_ptr creator_table[] = {
     SOL_STR_TABLE_PTR_ITEM("fbp", create_fbp_type),
+#ifdef JAVASCRIPT
+    SOL_STR_TABLE_PTR_ITEM("js", create_js_type),
+#endif
     { }
 };
 
