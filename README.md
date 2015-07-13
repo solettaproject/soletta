@@ -16,6 +16,7 @@ targets.
 ## TOC ##
 
  * [General Information](#general-information)
+ * [Building from Source](#building-from-source)
  * [Debug](#debug)
  * [Libraries](#libraries)
   * [Common](#common)
@@ -44,6 +45,8 @@ It uses a main loop to provide single threaded cooperative tasks
 (runs whenever there is nothing else to do). The traditional main loop
 is based on Glib's GMainLoop, while some smaller OS have their own
 implementation, see `--with-mainloop` documentaion.
+
+## Building from Source
 
 The build system is based on linux kernel's kconfig. To configure it
 with default configuration values run:
@@ -126,7 +129,7 @@ environment variables affect sol-log behavior:
 
 Note that at compile time some levels may be disabled by usage of
 `SOL_LOG_LEVEL_MAXIMUM` C-pre-processor macro, which may be set for
-soletta itself (internally) by resetting it on kconfig (i.e menuconfig:
+Soletta itself (internally) by resetting it on kconfig (i.e menuconfig:
 Core library -> Log -> Maximum log level).
 
 or by applications if they define that in some way. Then messages
@@ -147,7 +150,7 @@ interruption handler, file descriptor monitor (POSIX-like
 systems) or when nothing else is running (idlers).
 
 Logging allows different domains to be logged independently,
-making it is easy to debug your application or Soletta itself.
+making it is easy to debug an application or Soletta itself.
 
 Platform allows checking the system state, if it's ready,
 still booting, degraded (something failed), going to shutdown
@@ -190,7 +193,8 @@ Both client and server sides are covered by this library.
 
 #### flow
 
-Implementation of Flow-Based Programming (FBP), allowing the
+Implementation of [Flow-Based Programming (FBP)](#flow-based-programming),
+allowing the
 programmer to express business logic as a directional graph of
 nodes connected to type-specific ports.
 
@@ -200,7 +204,7 @@ nodes connected to type-specific ports.
 Main loops are responsible to deliver events and timers in a single
 thread by continuously poll and interleave registered functions. It
 abstracts every OS particularity and delivers common behavior to
-soletta applications.
+Soletta applications.
 
 For instance, while in Linux GPIO interruptions are handled at the
 kernel level and dispatched to userspace by means of file-descriptors
@@ -237,15 +241,17 @@ worker threads.
 
 #### GLib (kconfig: Core library -> Mainloop -> glib)
 
-The well known GMainLoop is used by soletta so GLib-based frameworks
+The well known GMainLoop is used by Soletta so GLib-based frameworks
 can be easily integrated, things like social network services,
 multimedia systems and so on.
 
-When using GLib as platform you should also use their debug
+When using [GLib](https://developer.gnome.org/glib/stable/)
+as platform you should also use their debug
 infrastructure in addition to our common part.
 
-See https://developer.gnome.org/glib/stable/glib-running.html for
-in-depth information, the summary of environment variables to use:
+See
+[Running GLib Applications](https://developer.gnome.org/glib/stable/glib-running.html)
+for in-depth information, the summary of environment variables to use:
 
         export G_DEBUG="all" # fatal-warnings, gc-friendly...
         export G_SLICE="all" # always-malloc, debug-blocks
@@ -256,8 +262,8 @@ in-depth information, the summary of environment variables to use:
 #### POSIX (kconfig: Core library -> Mainloop -> posix)
 
 If GLib is too big then you can use a simpler implementation based
-solely on POSIX syscalls (poll/ppoll). As it's fully implemented in
-soletta there is no extra variables to debug it.
+solely on POSIX syscalls (poll(2)/ppoll(2)). As it's fully implemented in
+Soletta there are no extra variables to debug it.
 
 ## Platforms
 
@@ -285,12 +291,17 @@ started it will call systemd. The D-Bus events from systemd will be
 used to notify monitors.
 
 Thus both targets and services are implemented according to systemd
-using units in standard locations such as /usr/lib/systemd/system and
-/etc/systemd/system.
+using units in standard locations such as
+
+        /usr/lib/systemd/system
+
+and
+
+        /etc/systemd/system
 
 #### Linux-micro (kconfig: Core library -> Target Platform -> linux-micro)
 
-Linux-micro implementation allows your Soletta binary to be used as
+Linux-micro implementation allows a Soletta binary to be used as
 PID1, it will do required initialization and will handle services as
 modules, so you can have a very small system that works.
 
@@ -316,11 +327,13 @@ Linux-micro:
 
 A set of services are started automatically by Soletta in order to do
 initialization, these are listed in
-/usr/lib/soletta/modules/linux-micro/initial-services.
+
+        /usr/lib/soletta/modules/linux-micro/initial-services
 
 ## Flow Based Programming
 
-Flow-Based Programming (**FBP**) allows the programmer to express business
+[Flow-Based Programming (**FBP**)](https://en.wikipedia.org/wiki/Flow-based_programming)
+allows the programmer to express business
 logic as a directional graph of nodes connected to type-specific
 ports.
 
@@ -342,19 +355,25 @@ Node instances should be isolated and independent thus they can be
 considered a blackbox that is only defined by their input and output
 ports. They do not share state so it's easy to replace a node with
 another without affecting the flow. For instance if a flow used a
-gpi/reader as a source one could easily replace that by a bluetooth
+gpio/reader as a source one could easily replace that by a bluetooth
 presence sensor only by replacing that node given that they all have
 the same ports.
 
 Nodes can be created from builtin or third party types distributed as
 shared objects (.so) stored at
-/usr/lib/soletta/modules/flow/. Builtin nodes include boolean logic,
+
+        /usr/lib/soletta/modules/flow/
+
+Builtin nodes include boolean logic,
 converters, math, GPIO, Analog I/O, PWM, timers and even Soletta's
 platform and services. External modules usually covers board or
 operating system specific support such as udev or evdev for Linux,
 calamari support for Intel's MinnowBoard extension shield. Node
 descriptons can be found in JSON files stored at
-/usr/share/soletta/flow/descriptions/. One can query the node types
+
+        /usr/share/soletta/flow/descriptions/
+
+One can query the node types
 database using the Python tool sol-flow-node-type-find.py, as an
 example say we want to query the nodes with at least the same ports as
 gpio/writer (a single boolean OUT port):
