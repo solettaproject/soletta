@@ -91,9 +91,8 @@ int sol_flow_builder_export_option(struct sol_flow_builder *builder, const char 
 
 /* Returns the node type generated with the builder. It should be used
  * to create nodes with sol_flow_node_new(). After the type is
- * created, no more nodes or connections can be added.
- * This node type will be freed by the builder when the builder
- * itself is deleted.
+ * created, no more nodes or connections can be added. This node type
+ * must be deleted using sol_flow_node_type_del().
  */
 struct sol_flow_node_type *sol_flow_builder_get_node_type(struct sol_flow_builder *builder);
 

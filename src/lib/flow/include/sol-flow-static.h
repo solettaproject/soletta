@@ -115,6 +115,11 @@ struct sol_flow_static_spec {
         uint16_t child_index,
         const struct sol_flow_node_options *opts,
         struct sol_flow_node_options *child_opts);
+
+    /** Function called after the static type is disposed. The user is
+     * passed the type_data pointer, that can be used to store
+     * reference to extra resources to be disposed. */
+    void (*dispose)(const void *type_data);
 };
 
 /**

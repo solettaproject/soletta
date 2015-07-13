@@ -58,7 +58,10 @@ struct sol_flow_parser {
     const struct sol_flow_parser_client *client;
 
     struct sol_flow_resolver resolver_with_declares;
-    struct sol_ptr_vector builders;
+
+    /* Types produced by the parser are owned by it, to ensure that no
+     * type get it's dependencies deleted too early. */
+    struct sol_ptr_vector types;
 };
 
 struct declared_type {
@@ -170,24 +173,11 @@ fail:
     return err;
 }
 
-static struct sol_flow_builder *
-parse_state_take_builder(struct parse_state *state)
-{
-    struct sol_flow_builder *builder;
-
-    builder = state->builder;
-    state->builder = NULL;
-    return builder;
-}
-
 static void
 parse_state_fini(struct parse_state *state)
 {
     sol_vector_clear(&state->declared_types);
-    if (state->builder) {
-        sol_flow_builder_del(state->builder);
-        state->builder = NULL;
-    }
+    sol_flow_builder_del(state->builder);
     sol_fbp_graph_fini(&state->graph);
     sol_arena_del(state->arena);
 }
@@ -215,7 +205,7 @@ sol_flow_parser_new(
     parser->resolver = resolver;
     parser->client = client;
 
-    sol_ptr_vector_init(&parser->builders);
+    sol_ptr_vector_init(&parser->types);
 
     return parser;
 }
@@ -223,14 +213,15 @@ sol_flow_parser_new(
 SOL_API int
 sol_flow_parser_del(struct sol_flow_parser *parser)
 {
-    struct sol_flow_builder *b;
+    struct sol_flow_node_type *type;
     uint16_t i;
 
     SOL_NULL_CHECK(parser, -EBADF);
 
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&parser->builders, b, i)
-        sol_flow_builder_del(b);
-    sol_ptr_vector_clear(&parser->builders);
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&parser->types, type, i) {
+        sol_flow_node_type_del(type);
+    }
+    sol_ptr_vector_clear(&parser->types);
 
     free(parser);
     return 0;
@@ -612,9 +603,9 @@ sol_flow_parse_buffer(
         goto end;
     }
 
-    err = sol_ptr_vector_append(&parser->builders,
-        parse_state_take_builder(&state));
+    err = sol_ptr_vector_append(&parser->types, type);
     if (err < 0) {
+        sol_flow_node_type_del(type);
         type = NULL;
         goto end;
     }

@@ -91,6 +91,16 @@ int sol_vector_del(struct sol_vector *v, uint16_t i);
 
 void sol_vector_clear(struct sol_vector *v);
 
+static inline void *
+sol_vector_take_all(struct sol_vector *v)
+{
+    void *data = v->data;
+
+    v->data = NULL;
+    v->len = 0;
+    return data;
+}
+
 #define SOL_VECTOR_FOREACH_IDX(vector, itrvar, idx)                      \
     for (idx = 0;                                                       \
         idx < (vector)->len && (itrvar = sol_vector_get((vector), idx), true); \
@@ -160,6 +170,11 @@ sol_ptr_vector_clear(struct sol_ptr_vector *pv)
     sol_vector_clear(&pv->base);
 }
 
+static inline void *
+sol_ptr_vector_take_all(struct sol_ptr_vector *pv)
+{
+    return sol_vector_take_all(&pv->base);
+}
 
 #define SOL_PTR_VECTOR_FOREACH_IDX(vector, itrvar, idx) \
     for (idx = 0; \
