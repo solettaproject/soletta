@@ -246,15 +246,15 @@ $(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(builtin-objs)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
 $(DEPENDENCY_CACHE):
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
 		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)"
 
 $(KCONFIG_GEN): $(DEPENDENCY_CACHE)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
 		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --kconfig-gen
 
 $(MAKEFILE_GEN): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
 		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --definitions-header="$(DEFINITIONS_H)" \
 		--makefile-gen
 
