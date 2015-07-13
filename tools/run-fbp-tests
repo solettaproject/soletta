@@ -125,31 +125,32 @@ if __name__ == "__main__":
     if not tests:
         sys.exit("No test files found.")
 
-    tests.sort()
-    failures = 0
+    passed = 0
+    failed = 0
 
-    for t in tests:
+    for t in sorted(set(tests)):
         dir = os.path.dirname(t)
         file = os.path.basename(t)
         expected_out, expected_code = get_expected(t)
         out, code = sh(cmd_prefix + [runner, file], cwd=dir)
         if expected_out is not None and out != expected_out:
-            failures += 1
+            failed += 1
             print("FAILED running %s: wrong output" % t)
             for line in difflib.unified_diff(out.splitlines(True), expected_out.splitlines(True)):
                 sys.stdout.write(line)
             print()
             continue
         if expected_code != code:
-            failures += 1
+            failed += 1
             print("FAILED running %s: wrong exit code, got %d but expected %d" % (t, code, expected_code))
             print()
             continue
         if expected_out is None and len(out) > 0:
             print("IGNORING unexpected output from", t)
             print(out)
+        passed += 1
 
-    print("%d tests passed." % (len(tests) - failures))
-    if failures > 0:
-        print("%d tests failed." % failures)
+    print("%d tests passed." % passed)
+    if failed > 0:
+        print("%d tests failed." % failed)
         sys.exit(1)
