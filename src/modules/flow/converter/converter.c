@@ -30,7 +30,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "converter-gen.h"
+#include "string-format.h"
+
+// The converter module is a bit of an alien WRT logging, as it has to
+// share the domain symbol externally with the various .o objects that
+// will be linked together. Also, log_init() is defined here instead.
+SOL_LOG_INTERNAL_DECLARE(_converter_log_domain, "flow-converter");
+
+static void
+log_init(void)
+{
+    SOL_LOG_INTERNAL_INIT_ONCE;
+}
 
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
@@ -807,43 +818,119 @@ irange_to_empty_convert(struct sol_flow_node *node, void *data, uint16_t port, u
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_EMPTY__OUT__OUT);
 }
 
-#define STR_SIZE (32)
-
 static int
 drange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    double in_value;
     int r;
-    char out_value[STR_SIZE];
+    char *out_value = NULL;
+    struct sol_drange in_value;
+    struct auto_number auto_number;
+    struct string_converter *mdata = data;
 
-    r = sol_flow_packet_get_drange_value(packet, &in_value);
+    mdata->node = node;
+
+    r = sol_flow_packet_get_drange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    snprintf(out_value, STR_SIZE, "%f", in_value);
+    auto_number_init(&auto_number);
+    r = do_float_markup(mdata, mdata->format, &in_value, &auto_number,
+        &out_value);
+    SOL_INT_CHECK(r, < 0, r);
 
-    return sol_flow_send_string_packet(node,
+    r = sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_STRING__OUT__OUT,
         out_value);
+
+    free(out_value);
+    return r;
 }
 
 static int
-irange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+drange_to_string_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
 {
-    int32_t in_value;
-    int r;
-    char out_value[STR_SIZE];
+    struct string_converter *mdata = data;
+    const struct sol_flow_node_type_converter_float_to_string_options *opts;
 
-    r = sol_flow_packet_get_irange_value(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_STRING_OPTIONS_API_VERSION,
+        -EINVAL);
 
-    snprintf(out_value, STR_SIZE, "%d", in_value);
+    opts = (const struct sol_flow_node_type_converter_float_to_string_options *)options;
 
-    return sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_STRING__OUT__OUT,
-        out_value);
+    mdata->format = strdup(opts->format_spec);
+    SOL_NULL_CHECK(mdata->format, -ENOMEM);
+
+    return 0;
 }
 
-#undef STR_SIZE
+static void
+drange_to_string_close(struct sol_flow_node *node, void *data)
+{
+    struct string_converter *mdata = data;
+
+    free(mdata->format);
+}
+
+static int
+irange_to_string_convert(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    char *out_value = NULL;
+    struct sol_irange in_value;
+    struct auto_number auto_number;
+    struct string_converter *mdata = data;
+
+    mdata->node = node;
+
+    r = sol_flow_packet_get_irange(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    auto_number_init(&auto_number);
+    r = do_integer_markup(mdata, mdata->format, &in_value, &auto_number,
+        &out_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_STRING__OUT__OUT,
+        out_value);
+
+    free(out_value);
+    return r;
+}
+
+static int
+irange_to_string_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct string_converter *mdata = data;
+    const struct sol_flow_node_type_converter_int_to_string_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_STRING_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    opts = (const struct sol_flow_node_type_converter_int_to_string_options *)options;
+
+    mdata->format = strdup(opts->format_spec);
+    SOL_NULL_CHECK(mdata->format, -ENOMEM);
+
+    return 0;
+}
+
+static void
+irange_to_string_close(struct sol_flow_node *node, void *data)
+{
+    struct string_converter *mdata = data;
+
+    free(mdata->format);
+}
 
 static int
 boolean_to_string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
@@ -1871,6 +1958,8 @@ bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
         SOL_FLOW_NODE_TYPE_CONVERTER_BITS_TO_BYTE__OUT__OUT, mdata->last);
 }
 
+#undef SET_BIT
+
 static int
 string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
@@ -1897,7 +1986,5 @@ string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
     sol_blob_unref(blob);
     return ret;
 }
-
-#undef SET_BIT
 
 #include "converter-gen.c"
