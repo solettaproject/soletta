@@ -29,7 +29,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 const_float(constant/float:value=3.1415)
-const_float_str(constant/string:value=3.141500)
+const_float_str(constant/string:value="3.141500")
 
 const_float OUT -> IN float_to_str(converter/float-to-string) OUT -> IN[0] str_cmp(string/compare)
 const_float_str OUT -> IN[1] str_cmp EQUAL -> RESULT float_converts_to_string(test/result)
@@ -37,3 +37,31 @@ const_float_str OUT -> IN[1] str_cmp EQUAL -> RESULT float_converts_to_string(te
 float_to_str OUT -> IN str_to_float(converter/string-to-float)
 str_to_float OUT -> IN[0] is_float_equal(float/equal)
 const_float OUT -> IN[1] is_float_equal OUT -> RESULT string_converts_to_float(test/result)
+
+#stressing float formatting
+_(constant/float:value=3) OUT -> IN _(converter/float-to-string:format_spec="{:}") OUT -> IN[0] fmt_test_cmp_33(string/compare)
+_(constant/string:value="3.000000") OUT -> IN[1] fmt_test_cmp_33 EQUAL -> RESULT _(test/result)
+
+_(constant/float:value=DBL_MAX) OUT -> IN _(converter/float-to-string:format_spec="{:e}") OUT -> IN[0] fmt_test_cmp_34(string/compare)
+_(constant/string:value="1.797693e+308") OUT -> IN[1] fmt_test_cmp_34 EQUAL -> RESULT _(test/result)
+
+_(constant/float:value=DBL_MAX) OUT -> IN _(converter/float-to-string:format_spec="{:E}") OUT -> IN[0] fmt_test_cmp_35(string/compare)
+_(constant/string:value="1.797693E+308") OUT -> IN[1] fmt_test_cmp_35 EQUAL -> RESULT _(test/result)
+
+_(constant/float:value=3.1415) OUT -> IN _(converter/float-to-string:format_spec="{:g}") OUT -> IN[0] fmt_test_cmp_36(string/compare)
+_(constant/string:value="3.1415") OUT -> IN[1] fmt_test_cmp_36 EQUAL -> RESULT _(test/result)
+
+_(constant/float:value=30000000) OUT -> IN _(converter/float-to-string:format_spec="{:g}") OUT -> IN[0] fmt_test_cmp_37(string/compare)
+_(constant/string:value="3e+07") OUT -> IN[1] fmt_test_cmp_37 EQUAL -> RESULT _(test/result)
+
+_(constant/float:value=30000000) OUT -> IN _(converter/float-to-string:format_spec="{:G}") OUT -> IN[0] fmt_test_cmp_38(string/compare)
+_(constant/string:value="3E+07") OUT -> IN[1] fmt_test_cmp_38 EQUAL -> RESULT _(test/result)
+
+_(constant/float:value=30000000) OUT -> IN _(converter/float-to-string:format_spec="{:,f}") OUT -> IN[0] fmt_test_cmp_39(string/compare)
+_(constant/string:value="30,000,000.000000") OUT -> IN[1] fmt_test_cmp_39 EQUAL -> RESULT _(test/result)
+
+_(constant/float:value=3.1415) OUT -> IN _(converter/float-to-string:format_spec="{:%}") OUT -> IN[0] fmt_test_cmp_40(string/compare)
+_(constant/string:value="314.150000%") OUT -> IN[1] fmt_test_cmp_40 EQUAL -> RESULT _(test/result)
+
+_(constant/float:value=3.1415) OUT -> IN _(converter/float-to-string:format_spec="{val:07n} / {min:.3f} / {max:G} / {step:%}") OUT -> IN[0] fmt_test_cmp_41(string/compare)
+_(constant/string:value="03.1415 / -179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.000 / 1.79769E+308 / 100.000000%") OUT -> IN[1] fmt_test_cmp_41 EQUAL -> RESULT _(test/result)
