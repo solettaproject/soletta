@@ -29,3 +29,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 [Foo]
+
+# TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# brackets-instead-of-parens.fbp:31:1 Couldn't parse statement.

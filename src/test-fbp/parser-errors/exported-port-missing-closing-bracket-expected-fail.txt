@@ -1,1 +1,0 @@
-exported-port-missing-closing-bracket.fbp:31:17 Expected ']' after port index

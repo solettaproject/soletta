@@ -29,3 +29,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 foo
+
+# TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# node-without-component.fbp:31:1 Node 'foo' doesn't have a type, Node type must be defined. e.g. 'node(nodetype)'

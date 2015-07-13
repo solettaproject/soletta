@@ -29,3 +29,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _
+
+# TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# anonymous-node-without-component.fbp:31:1 Anonymous node type must be defined. e.g. '_(nodetype)'

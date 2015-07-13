@@ -30,3 +30,6 @@
 
 _(constant/byte:value=255) OUT -> IN c(console)
 _(constant/int:value=1) OUT -> INTERVAL _(timer) OUT -> QUIT _(app/quit)
+
+# TEST-OUTPUT:
+# c #ff (byte)

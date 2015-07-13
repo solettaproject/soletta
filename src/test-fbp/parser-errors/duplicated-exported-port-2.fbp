@@ -32,3 +32,8 @@ INPORT=node.IN0:PORT_A
 INPORT=node.IN0:PORT_B
 
 node(boolean/and)
+
+# TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# duplicated-exported-port-2.fbp:32:17 Node 'node' and input port 'IN0' already exported as 'PORT_A' declared in 31:17

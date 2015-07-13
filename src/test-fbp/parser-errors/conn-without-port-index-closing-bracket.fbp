@@ -29,3 +29,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 foo PORT[123
+
+# TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# conn-without-port-index-closing-bracket.fbp:31:13 Expected ']' after port index

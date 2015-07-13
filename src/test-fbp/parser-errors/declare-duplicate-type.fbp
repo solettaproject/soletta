@@ -30,3 +30,8 @@
 
 DECLARE=MyType:fbp:MyType.fbp
 DECLARE=MyType:fbp:Other.fbp
+
+# TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# declare-duplicate-type.fbp:32:9 Type 'MyType' already declared

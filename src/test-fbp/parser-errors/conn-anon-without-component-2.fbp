@@ -29,3 +29,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _() -> _()
+
+# TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# conn-anon-without-component-2.fbp:31:1 Anonymous node type must be defined. e.g. '_(nodetype)'

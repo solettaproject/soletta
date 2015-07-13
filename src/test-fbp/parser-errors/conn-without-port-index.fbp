@@ -29,3 +29,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 foo PORT[
+
+# TEST-EXPECTS-ERROR
+
+# TEST-OUTPUT:
+# conn-without-port-index.fbp:31:10 Expected integer number for port index
