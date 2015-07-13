@@ -16,8 +16,14 @@ For example
     my-test.fbp
     my-test-expected.txt OR my-test-expected-fail.txt
 
-Don't depend on output messages from SOL_WRN and friends on the
-expected files since they contain implementation information (line,
+It also supports regular expressions variants. Its syntax
+is described at https://docs.python.org/3/library/re.html.
+In such cases, files must be named with extension '.re.txt'
+instead of just '.txt'. So it will look for an expression match.
+
+If output messages from SOL_WRN and friends are expected on the
+expected files, using regular expressions is required,
+since they contain implementation information (line,
 column, file name in the source) that might change as the code
 evolves.
 
