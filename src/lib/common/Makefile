@@ -70,7 +70,6 @@ headers-y := \
     include/sol-log.h \
     include/sol-macros.h \
     include/sol-mainloop.h \
-    include/sol-missing.h \
     include/sol-platform.h \
     include/sol-types.h
 
