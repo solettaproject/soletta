@@ -32,3 +32,5 @@ OUTPORT=node.OUT:PORT_A
 OUTPORT=node.OUT:PORT_B
 
 node(boolean/and)
+
+## TEST-EXPECTS-ERROR

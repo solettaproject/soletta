@@ -30,3 +30,5 @@
 
 DECLARE=MyType:fbp:MyType.fbp
 DECLARE=MyType:fbp:Other.fbp
+
+## TEST-EXPECTS-ERROR

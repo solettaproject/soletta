@@ -32,3 +32,5 @@ INPORT=node.IN0:PORT_A
 INPORT=node.IN0:PORT_B
 
 node(boolean/and)
+
+## TEST-EXPECTS-ERROR
