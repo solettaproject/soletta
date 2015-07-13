@@ -111,7 +111,7 @@ sol_spi_open(unsigned int bus, const struct sol_spi_config *config)
     spi->cs_pin = config->chip_select;
     spi->transfer.timeout = NULL;
 
-    gpio_init_out(spi->cs_pin, GPIO_NOPULL);
+    gpio_init(spi->cs_pin, GPIO_DIR_OUT, GPIO_NOPULL);
     gpio_set(spi->cs_pin);
     return spi;
 }
