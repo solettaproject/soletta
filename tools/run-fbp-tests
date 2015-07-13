@@ -33,6 +33,7 @@
 import argparse
 import difflib
 import os
+import re
 import subprocess
 import sys
 
@@ -75,19 +76,33 @@ def collect_tests(tests):
 def get_expected(t):
     code = 0
     out = None
+    is_re = False
+    filename = None
+
     no_ext = os.path.splitext(t)[0]
     success_file = no_ext + "-expected.txt"
+    success_file_re = no_ext + "-expected.re.txt"
     fail_file = no_ext + "-expected-fail.txt"
+    fail_file_re = no_ext + "-expected-fail.re.txt"
 
     if os.path.isfile(success_file):
-        with open(success_file) as f:
-            out = f.read()
+        filename = success_file
+    elif os.path.isfile(success_file_re):
+        filename = success_file_re
+        is_re = True
     elif os.path.isfile(fail_file):
-        with open(fail_file) as f:
-            out = f.read()
+        filename = fail_file
         code = 1
+    elif os.path.isfile(fail_file_re):
+        filename = fail_file_re
+        code = 1
+        is_re = True
 
-    return out, code
+    if filename:
+        with open(filename) as f:
+            out = f.read()
+
+    return out, code, is_re
 
 if __name__ == "__main__":
     cmd_prefix = []
@@ -131,21 +146,34 @@ if __name__ == "__main__":
     for t in tests:
         dir = os.path.dirname(t)
         file = os.path.basename(t)
-        expected_out, expected_code = get_expected(t)
+
+        expected_out, expected_code, is_re = get_expected(t)
         out, code = sh(cmd_prefix + [runner, file], cwd=dir)
-        if expected_out is not None and out != expected_out:
-            failures += 1
-            print("FAILED running %s: wrong output" % t)
-            for line in difflib.unified_diff(out.splitlines(True), expected_out.splitlines(True)):
-                sys.stdout.write(line)
-            print()
-            continue
+
+        if expected_out:
+            if is_re:
+                if not re.match(expected_out, out):
+                    failures += 1
+                    print("FAILED running %s: wrong output" % t)
+                    print("Expected expression:")
+                    print(expected_out)
+                    print("Output:")
+                    print(out)
+                    print()
+                    continue
+            elif out != expected_out:
+                failures += 1
+                print("FAILED running %s: wrong output" % t)
+                for line in difflib.unified_diff(out.splitlines(True), expected_out.splitlines(True)):
+                    sys.stdout.write(line)
+                print()
+                continue
         if expected_code != code:
             failures += 1
             print("FAILED running %s: wrong exit code, got %d but expected %d" % (t, code, expected_code))
             print()
             continue
-        if expected_out is None and len(out) > 0:
+        if not expected_out and len(out) > 0:
             print("IGNORING unexpected output from", t)
             print(out)
 

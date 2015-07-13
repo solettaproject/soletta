@@ -46,7 +46,8 @@ function die() {
 [ -e $FBP_TO_DOT ] || die "Couldn't find sol-fbp-to-dot."
 
 for f in $(find src/ -name \*.fbp); do
-    if [ -f ${f/.fbp/-expected-fail.txt} ]; then
+    if [ -f ${f/.fbp/-expected-fail.txt} ] ||
+       [ -f ${f/.fbp/-expected-fail.re.txt} ]; then
 	continue
     fi
     dir=$(dirname $f)
