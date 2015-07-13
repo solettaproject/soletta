@@ -29,7 +29,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 const_int(constant/int:value=666)
-const_int_str(constant/string:value=666)
+const_int_str(constant/string:value="666")
 
 const_int OUT -> IN int_to_str(converter/int-to-string) OUT -> IN[0] str_cmp(string/compare)
 const_int_str OUT -> IN[1] str_cmp EQUAL -> RESULT int_converts_to_string(test/result)
@@ -37,3 +37,100 @@ const_int_str OUT -> IN[1] str_cmp EQUAL -> RESULT int_converts_to_string(test/r
 int_to_str OUT -> IN str_to_int(converter/string-to-int)
 str_to_int OUT -> IN[0] is_int_equal(int/equal)
 const_int OUT -> IN[1] is_int_equal OUT -> RESULT string_converts_to_int(test/result)
+
+#stressing integer formatting
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:d}") OUT -> IN[0] fmt_test_cmp_01(string/compare)
+_(constant/string:value="3") OUT -> IN[1] fmt_test_cmp_01 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:010d}") OUT -> IN[0] fmt_test_cmp_02(string/compare)
+_(constant/string:value="0000000003") OUT -> IN[1] fmt_test_cmp_02 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:!^10d}") OUT -> IN[0] fmt_test_cmp_03(string/compare)
+_(constant/string:value="!!!!3!!!!!") OUT -> IN[1] fmt_test_cmp_03 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{: <10d}") OUT -> IN[0] fmt_test_cmp_04(string/compare)
+_(constant/string:value="3         ") OUT -> IN[1] fmt_test_cmp_04 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:_>10d}") OUT -> IN[0] fmt_test_cmp_05(string/compare)
+_(constant/string:value="_________3") OUT -> IN[1] fmt_test_cmp_05 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=-3) OUT -> IN _(converter/int-to-string:format_spec="{: =10d}") OUT -> IN[0] fmt_test_cmp_06(string/compare)
+_(constant/string:value="-        3") OUT -> IN[1] fmt_test_cmp_06 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{: d}") OUT -> IN[0] fmt_test_cmp_07(string/compare)
+_(constant/string:value=" 3") OUT -> IN[1] fmt_test_cmp_07 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=-3) OUT -> IN _(converter/int-to-string:format_spec="{: d}") OUT -> IN[0] fmt_test_cmp_08(string/compare)
+_(constant/string:value="-3") OUT -> IN[1] fmt_test_cmp_08 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:+d}") OUT -> IN[0] fmt_test_cmp_09(string/compare)
+_(constant/string:value="+3") OUT -> IN[1] fmt_test_cmp_09 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:b}") OUT -> IN[0] fmt_test_cmp_10(string/compare)
+_(constant/string:value="11") OUT -> IN[1] fmt_test_cmp_10 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:#b}") OUT -> IN[0] fmt_test_cmp_11(string/compare)
+_(constant/string:value="0b11") OUT -> IN[1] fmt_test_cmp_11 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=51) OUT -> IN _(converter/int-to-string:format_spec="{:c}") OUT -> IN[0] fmt_test_cmp_12(string/compare)
+_(constant/string:value="3") OUT -> IN[1] fmt_test_cmp_12 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=13) OUT -> IN _(converter/int-to-string:format_spec="{:o}") OUT -> IN[0] fmt_test_cmp_13(string/compare)
+_(constant/string:value="15") OUT -> IN[1] fmt_test_cmp_13 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=13) OUT -> IN _(converter/int-to-string:format_spec="{:#o}") OUT -> IN[0] fmt_test_cmp_14(string/compare)
+_(constant/string:value="0o15") OUT -> IN[1] fmt_test_cmp_14 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=13) OUT -> IN _(converter/int-to-string:format_spec="{:x}") OUT -> IN[0] fmt_test_cmp_15(string/compare)
+_(constant/string:value="d") OUT -> IN[1] fmt_test_cmp_15 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=13) OUT -> IN _(converter/int-to-string:format_spec="{:#x}") OUT -> IN[0] fmt_test_cmp_16(string/compare)
+_(constant/string:value="0xd") OUT -> IN[1] fmt_test_cmp_16 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=13) OUT -> IN _(converter/int-to-string:format_spec="{:X}") OUT -> IN[0] fmt_test_cmp_17(string/compare)
+_(constant/string:value="D") OUT -> IN[1] fmt_test_cmp_17 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:n}") OUT -> IN[0] fmt_test_cmp_18(string/compare)
+_(constant/string:value="3") OUT -> IN[1] fmt_test_cmp_18 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{}") OUT -> IN[0] fmt_test_cmp_19(string/compare)
+_(constant/string:value="3") OUT -> IN[1] fmt_test_cmp_19 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:}") OUT -> IN[0] fmt_test_cmp_20(string/compare)
+_(constant/string:value="3") OUT -> IN[1] fmt_test_cmp_20 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:f}") OUT -> IN[0] fmt_test_cmp_21(string/compare)
+_(constant/string:value="3.000000") OUT -> IN[1] fmt_test_cmp_21 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:.3f}") OUT -> IN[0] fmt_test_cmp_22(string/compare)
+_(constant/string:value="3.000") OUT -> IN[1] fmt_test_cmp_22 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=INT32_MAX) OUT -> IN _(converter/int-to-string:format_spec="{:e}") OUT -> IN[0] fmt_test_cmp_23(string/compare)
+_(constant/string:value="2.147484e+09") OUT -> IN[1] fmt_test_cmp_23 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=INT32_MAX) OUT -> IN _(converter/int-to-string:format_spec="{:E}") OUT -> IN[0] fmt_test_cmp_24(string/compare)
+_(constant/string:value="2.147484E+09") OUT -> IN[1] fmt_test_cmp_24 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:g}") OUT -> IN[0] fmt_test_cmp_25(string/compare)
+_(constant/string:value="3") OUT -> IN[1] fmt_test_cmp_25 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=30000000) OUT -> IN _(converter/int-to-string:format_spec="{:g}") OUT -> IN[0] fmt_test_cmp_26(string/compare)
+_(constant/string:value="3e+07") OUT -> IN[1] fmt_test_cmp_26 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=30000000) OUT -> IN _(converter/int-to-string:format_spec="{:G}") OUT -> IN[0] fmt_test_cmp_27(string/compare)
+_(constant/string:value="3E+07") OUT -> IN[1] fmt_test_cmp_27 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=30000000) OUT -> IN _(converter/int-to-string:format_spec="{:,f}") OUT -> IN[0] fmt_test_cmp_28(string/compare)
+_(constant/string:value="30,000,000.000000") OUT -> IN[1] fmt_test_cmp_28 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:%}") OUT -> IN[0] fmt_test_cmp_29(string/compare)
+_(constant/string:value="300.000000%") OUT -> IN[1] fmt_test_cmp_29 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{val:03d} / {min:.3f} / {max:o} / {step:#x}") OUT -> IN[0] fmt_test_cmp_30(string/compare)
+_(constant/string:value="003 / -2147483648.000 / 17777777777 / 0x1") OUT -> IN[1] fmt_test_cmp_30 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:03d} / {:.3f} / {:o} / {:#x}") OUT -> IN[0] fmt_test_cmp_31(string/compare)
+_(constant/string:value="003 / -2147483648.000 / 17777777777 / 0x1") OUT -> IN[1] fmt_test_cmp_31 EQUAL -> RESULT _(test/result)
+
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{3:#x} / {2:o} / {1:.3f} / {0:03d}") OUT -> IN[0] fmt_test_cmp_32(string/compare)
+_(constant/string:value="0x1 / 17777777777 / -2147483648.000 / 003") OUT -> IN[1] fmt_test_cmp_32 EQUAL -> RESULT _(test/result)

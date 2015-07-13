@@ -859,7 +859,22 @@
           "name": "IN"
         }
       ],
+      "methods": {
+        "open": "drange_to_string_open",
+        "close": "drange_to_string_close"
+      },
       "name": "converter/float-to-string",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "{val:f}",
+            "description": "Format string to be used in the conversion. The syntax is the same as Python's string.format() -- https://docs.python.org/3/library/stdtypes.html#str.format --, except that we got no format recursion, no '!' conversions, and the attribute names must be one of the integer fields (val, min, max, step). Numbered fields will get to them in this order. Naturally, there is no field attribute nor field index dereferencing either.",
+            "name": "format_spec"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "string",
@@ -867,6 +882,7 @@
           "name": "OUT"
         }
       ],
+      "private_data_type": "string_converter",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/float-to-string.html"
     },
     {
@@ -1541,7 +1557,22 @@
           "name": "IN"
         }
       ],
+      "methods": {
+        "open": "irange_to_string_open",
+        "close": "irange_to_string_close"
+      },
       "name": "converter/int-to-string",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "{val:d}",
+            "description": "Format string to be used in the conversion. The syntax is the same as Python's string.format() -- https://docs.python.org/3/library/stdtypes.html#str.format --, except that we got no format recursion, no '!' conversions, and the attribute names must be one of the integer fields (val, min, max, step). Numbered fields will get to them in this order. Naturally, there is no field attribute nor field index dereferencing either.",
+            "name": "format_spec"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "string",
@@ -1549,6 +1580,7 @@
           "name": "OUT"
         }
       ],
+      "private_data_type": "string_converter",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-to-string.html"
     },
     {
