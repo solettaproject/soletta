@@ -51,9 +51,12 @@ bool sol_mainloop_impl_timeout_del(void *handle);
 void *sol_mainloop_impl_idle_add(bool (*cb)(void *data), const void *data);
 bool sol_mainloop_impl_idle_del(void *handle);
 
+#ifdef SOL_MAINLOOP_FD_ENABLED
 void *sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data);
 bool sol_mainloop_impl_fd_del(void *handle);
+#endif
 
+#ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
 void *sol_mainloop_impl_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data);
 bool sol_mainloop_impl_child_watch_del(void *handle);
-
+#endif

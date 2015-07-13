@@ -40,3 +40,11 @@ st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
 {{
 st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
 }}
+
+{{
+st.on_value("MAINLOOP_FD", "y", "#define SOL_MAINLOOP_FD_ENABLED 1", "")
+}}
+
+{{
+st.on_value("MAINLOOP_FORK_WATCH", "y", "#define SOL_MAINLOOP_FORK_WATCH_ENABLED 1", "")
+}}

@@ -126,31 +126,3 @@ sol_mainloop_impl_iter(void)
     if (vtimer_msg_receive_timeout(&msg, timex) > 0)
         sol_interrupt_scheduler_process(&msg);
 }
-
-void *
-sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data)
-{
-    SOL_CRI("Unsupported");
-    return NULL;
-}
-
-bool
-sol_mainloop_impl_fd_del(void *handle)
-{
-    SOL_CRI("Unsupported");
-    return true;
-}
-
-void *
-sol_mainloop_impl_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data)
-{
-    SOL_CRI("Unsupported");
-    return NULL;
-}
-
-bool
-sol_mainloop_impl_child_watch_del(void *handle)
-{
-    SOL_CRI("Unsupported");
-    return true;
-}
