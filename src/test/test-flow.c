@@ -36,6 +36,9 @@
 #include "sol-util.h"
 #include "sol-vector.h"
 
+/* we include some -gen.h but are not building a module, disregard
+ * log_init() */
+static void log_init(void) SOL_ATTR_UNUSED;
 #include "console-gen.h"
 #include "pwm-gen.h"
 #include "timer-gen.h"
