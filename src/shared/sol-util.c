@@ -191,6 +191,19 @@ sol_util_timespec_get_current(void)
     ret.tv_nsec = (ticks * NSEC_PER_SEC) / CLOCK_SECOND;
     return ret;
 }
+#elif defined(SOL_PLATFORM_RIOT) && SOL_PLATFORM_RIOT
+#include <vtimer.h>
+
+struct timespec
+sol_util_timespec_get_current(void)
+{
+    struct timespec tp;
+    timex_t t;
+    vtimer_now(&t);
+    tp.tv_sec = t.seconds;
+    tp.tv_nsec = t.microseconds * 1000;
+    return tp;
+}
 #else
 struct timespec
 sol_util_timespec_get_current(void)
