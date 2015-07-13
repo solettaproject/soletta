@@ -973,8 +973,9 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
     err = add_guards(builder);
     if (err < 0) {
         SOL_WRN("Failed to allocate memory for constructing node type");
+        free(opts);
         errno = ENOMEM;
-        return NULL;
+        goto guards_error;
     }
 
     spec->nodes = builder->nodes.data;
@@ -997,7 +998,7 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
     builder->node_type = sol_flow_static_new_type(spec);
     if (!builder->node_type) {
         SOL_WRN("Failed to create new type");
-        goto error;
+        goto node_type_error;
     }
 
     if (opts) {
@@ -1023,9 +1024,7 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
 
     return builder->node_type;
 
-error:
-    free(opts);
-
+node_type_error:
     remove_guards(builder);
     spec->nodes = NULL;
     spec->conns = NULL;
@@ -1033,6 +1032,8 @@ error:
     spec->exported_out = NULL;
     spec->child_opts_set = NULL;
 
+guards_error:
+    free(opts);
     return NULL;
 }
 
