@@ -1,1 +1,0 @@
-conn-without-destination.fbp:31:1 Arrow symbol must appear between two port names

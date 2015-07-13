@@ -1,1 +1,0 @@
-c 22.500000 (float range)

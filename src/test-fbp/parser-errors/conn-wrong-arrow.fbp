@@ -31,3 +31,6 @@
 foo(Foo) OUT - IN bar(Bar)
 
 ## TEST-EXPECTS-ERROR
+
+## TEST-OUTPUT
+# conn-wrong-arrow.fbp:31:14 Expected '->' between connection statement. e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'

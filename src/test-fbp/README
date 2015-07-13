@@ -1,20 +1,40 @@
-When running 'make check-fbp' or 'make check-fbp-valgrind' most files
-*.fbp in this directory and subdirectories will be called using
-runner, and the error code or output will be checked. These targets
-support the parameter V=1 to be more verbose.
+The tests are regular FBP files with comments that describe what is
+expected from them. While they can be executed using regular
+sol-fbp-runner, it's more convenient to use 'tools/run-fbp-tests',
+from the source root directory.
 
-If there's only the FBP file, the exit code will be checked to decide
-on failure.
+    # Run all the tests inside src/test-fbp.
+    $ tools/run-fbp-tests
 
-Optionally there can be either a '-expected.txt' or
-'-expected-fail.txt', which will also check whether the output is
-exactly the same. The "fail" variant will expect the runner to fail,
-this is useful for testing runner errors.
+    # Run only specific set of tests, accepts directories too.
+    $ tools/run-fbp-tests src/test-fbp/declare.fbp src/test-fbp/parser-errors/
 
-For example
+For convenience, 'make check-fbp' and 'make check-fbp-valgrind' will
+call the script with appropriate arguments to run all the tests in
+'src/test-fbp/'.
 
-    my-test.fbp
-    my-test-expected.txt OR my-test-expected-fail.txt
+By default a test is considered to pass if it exits with code equals
+to 0. Test meta-data can be passed by using comments that start with a
+double hash. If an error is expected, this can be specified by adding
+the comment
+
+    ## TEST-EXPECTS-ERROR
+
+to the test. An expected output can be provided by using
+
+    ## TEST-OUTPUT
+    # Output line 1.
+    # Output line 2.
+    # Last output line.
+
+    # Comments after the first blank line will be ignored.
+
+Tests can also be skipped by adding a comment
+
+    ## TEST-SKIP Skipped because reason XYZ.
+
+The reason provided will be part of the execution output but won't
+count as a failure.
 
 Don't depend on output messages from SOL_WRN and friends on the
 expected files since they contain implementation information (line,
@@ -24,7 +44,3 @@ evolves.
 In all cases it's important that your flow ends at some point, look at
 the 'test' or 'app' modules to ways to do it. Usually TEST_RESULT is
 good enough.
-
-Skipped files:
-
-* Files that end with '_disabled.fbp'.

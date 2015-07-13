@@ -30,3 +30,6 @@
 
 _(constant/boolean:value=true) OUT -> IN c(console)
 _(constant/int:value=1) OUT -> INTERVAL _(timer) OUT -> QUIT _(app/quit)
+
+## TEST-OUTPUT
+# c true (boolean)

@@ -31,3 +31,6 @@
 foo(Foo) -> bar(Bar)
 
 ## TEST-EXPECTS-ERROR
+
+## TEST-OUTPUT
+# conn-without-both-ports.fbp:31:8 Expected node and port while defining a connection. e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'

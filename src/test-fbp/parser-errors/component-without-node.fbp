@@ -31,3 +31,6 @@
 (Foo)
 
 ## TEST-EXPECTS-ERROR
+
+## TEST-OUTPUT
+# component-without-node.fbp:31:1 Couldn't parse statement.

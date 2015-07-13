@@ -30,3 +30,6 @@
 
 _(file/reader:path="file_that_doesnt_exists") ERROR -> IN c(console)
 _(constant/int:value=1) OUT -> INTERVAL _(timer) OUT -> QUIT _(app/quit)
+
+## TEST-OUTPUT
+# c #02 (error) - Could not load "file_that_doesnt_exists": No such file or directory

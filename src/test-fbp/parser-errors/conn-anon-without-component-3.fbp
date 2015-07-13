@@ -31,3 +31,6 @@
 foo(Foo) OUT -> IN _
 
 ## TEST-EXPECTS-ERROR
+
+## TEST-OUTPUT
+# conn-anon-without-component-3.fbp:31:20 Anonymous node type must be defined. e.g. '_(nodetype)'

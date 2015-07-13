@@ -34,3 +34,6 @@ INPORT=node.IN1:IN
 node(boolean/and)
 
 ## TEST-EXPECTS-ERROR
+
+## TEST-OUTPUT
+# duplicated-exported-port.fbp:32:17 Exported input port with name 'IN' already declared in 31:17

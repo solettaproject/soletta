@@ -1,1 +1,0 @@
-multi-conn-without-ports.fbp:31:29 Arrow symbol must appear between two port names
