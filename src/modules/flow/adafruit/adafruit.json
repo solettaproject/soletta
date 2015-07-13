@@ -1,0 +1,69 @@
+{
+  "name": "adafruit",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "output/hw",
+      "description": "",
+      "in_ports": [
+          {
+            "data_type": "int",
+            "description": "Pixel position to have its colour set. See node description to understand details of how pixel colours are set.",
+            "name": "PIXEL",
+            "methods": {
+                "process": "pixel_process"
+            }
+          },
+          {
+            "data_type": "rgb",
+            "description": "Colour of current pixel position. See node description to understand details of how pixel colours are set.",
+            "name": "COLOR",
+            "methods": {
+                "process": "color_process"
+            }
+          },
+          {
+            "data_type": "any",
+            "description": "Flushes current colour setting to device, effectively applying them.",
+            "name": "FLUSH",
+            "methods": {
+                "process": "flush_process"
+            }
+          }
+      ],
+      "methods": {
+         "close": "led_strip_controler_close",
+         "open": "led_strip_controler_open"
+      },
+      "name": "adafruit/led-strip",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "SPI Bus number.",
+            "name": "bus"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "SPI chip to operate.",
+            "name": "chip_select"
+          },
+          {
+            "data_type": "int",
+            "default": 32,
+            "description": "Pixel count. How many LEDs are on the strip.",
+            "name": "pixel_count"
+          }
+        ],
+        "version": 1
+      },
+      "private_data_type": "lcd_strip_data"
+    }
+  ]
+}

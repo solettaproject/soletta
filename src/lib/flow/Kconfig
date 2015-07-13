@@ -24,6 +24,7 @@ config INSPECTOR
 menu "Node Types"
 	depends on FLOW
 source "src/modules/flow/accelerometer/Kconfig"
+source "src/modules/flow/adafruit/Kconfig"
 source "src/modules/flow/aio/Kconfig"
 source "src/modules/flow/app/Kconfig"
 source "src/modules/flow/boolean/Kconfig"
