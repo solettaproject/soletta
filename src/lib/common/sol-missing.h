@@ -79,6 +79,27 @@ err:
 }
 #endif
 
+#ifndef HAVE_DECL_MEMMEM
+#include <string.h>
+
+static inline void *
+memmem(const void *haystack, size_t haystacklen, const void *needle, size_t needlelen)
+{
+    const char *ptr = haystack;
+    const char *end = ptr + (haystacklen - needlelen);
+
+    if (needlelen > haystacklen)
+        return NULL;
+
+    for (; ptr <= end; ptr++) {
+        if (!memcmp(ptr, needle, needlelen))
+            return (void *)ptr;
+    }
+
+    return NULL;
+}
+#endif
+
 #ifndef HAVE_DECL_IFLA_INET6_ADDR_GEN_MODE
 #define IFLA_INET6_UNSPEC 0
 #define IFLA_INET6_FLAGS 1
