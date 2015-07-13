@@ -1,1 +1,1 @@
-parser-errors/duplicated-exported-port-2.fbp:32:17 Node 'node' and input port 'IN0' already exported as 'PORT_A' declared in 31:17
+duplicated-exported-port-2.fbp:32:17 Node 'node' and input port 'IN0' already exported as 'PORT_A' declared in 31:17

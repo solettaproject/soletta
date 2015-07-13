@@ -4,7 +4,7 @@ check: $(SOL_LIB_SO) $(SOL_LIB_AR) $(tests-out)
 PHONY += check
 
 check-fbp: $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
-	$(Q)SOL_FBP_RUNNER_BIN="$(abspath $(SOL_FBP_RUNNER_BIN))" $(TEST_FBP_SCRIPT)
+	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --runner="$(abspath $(SOL_FBP_RUNNER_BIN))"
 
 PHONY += check-fbp
 
@@ -14,9 +14,7 @@ check-valgrind: $(SOL_LIB_SO) $(SOL_LIB_AR) $(tests-out)
 		--valgrind=$(VALGRIND) --valgrind-supp=$(abspath $(TEST_VALGRIND_SUPP))
 
 check-fbp-valgrind: $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
-	$(Q)SOL_FBP_RUNNER_BIN="$(abspath $(SOL_FBP_RUNNER_BIN))" \
-		TEST_VALGRIND_SUPP="$(abspath $(TEST_VALGRIND_SUPP))" \
-		VALGRIND="$(VALGRIND)" $(TEST_FBP_SCRIPT)
+	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --runner="$(abspath $(SOL_FBP_RUNNER_BIN))" --valgrind="$(VALGRIND)" --valgrind-supp="$(abspath $(TEST_VALGRIND_SUPP))"
 else
 check-valgrind:
 	$(Q)echo "No such valgrind installation: $(VALGRIND), either make sure your valgrind"

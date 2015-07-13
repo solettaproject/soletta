@@ -1,1 +1,1 @@
-parser-errors/duplicated-exported-port.fbp:32:17 Exported input port with name 'IN' already declared in 31:17
+duplicated-exported-port.fbp:32:17 Exported input port with name 'IN' already declared in 31:17

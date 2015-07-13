@@ -1,1 +1,1 @@
-parser-errors/exported-port-no-index.fbp:31:16 Expected integer number for port index
+exported-port-no-index.fbp:31:16 Expected integer number for port index
