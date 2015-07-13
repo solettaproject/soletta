@@ -32,24 +32,8 @@
 
 #pragma once
 
-/* implement these functions for your own system so soletta will work */
+void *sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data);
+bool sol_mainloop_impl_fd_del(void *handle);
 
-#define SOL_LOG_DOMAIN &_sol_mainloop_log_domain
-extern struct sol_log_domain _sol_mainloop_log_domain;
-#include "sol-log-internal.h"
-#include "sol-mainloop.h"
-#ifdef SOL_PLATFORM_LINUX
-#include "sol-mainloop-impl-linux.h"
-#endif
-
-int sol_mainloop_impl_init(void);
-void sol_mainloop_impl_run(void);
-void sol_mainloop_impl_quit(void);
-void sol_mainloop_impl_shutdown(void);
-
-void *sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_timeout_del(void *handle);
-
-void *sol_mainloop_impl_idle_add(bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_idle_del(void *handle);
-
+void *sol_mainloop_impl_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data);
+bool sol_mainloop_impl_child_watch_del(void *handle);

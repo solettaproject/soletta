@@ -30,26 +30,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-/* implement these functions for your own system so soletta will work */
-
-#define SOL_LOG_DOMAIN &_sol_mainloop_log_domain
-extern struct sol_log_domain _sol_mainloop_log_domain;
-#include "sol-log-internal.h"
 #include "sol-mainloop.h"
-#ifdef SOL_PLATFORM_LINUX
-#include "sol-mainloop-impl-linux.h"
-#endif
+#include "sol-mainloop-impl.h"
 
-int sol_mainloop_impl_init(void);
-void sol_mainloop_impl_run(void);
-void sol_mainloop_impl_quit(void);
-void sol_mainloop_impl_shutdown(void);
+SOL_API struct sol_fd *
+sol_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data)
+{
+    SOL_NULL_CHECK(cb, NULL);
+    return sol_mainloop_impl_fd_add(fd, flags, cb, data);
+}
 
-void *sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_timeout_del(void *handle);
+SOL_API bool
+sol_fd_del(struct sol_fd *handle)
+{
+    SOL_NULL_CHECK(handle, false);
+    return sol_mainloop_impl_fd_del(handle);
+}
 
-void *sol_mainloop_impl_idle_add(bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_idle_del(void *handle);
+SOL_API struct sol_child_watch *
+sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data)
+{
+    SOL_INT_CHECK(pid, < 1, NULL);
+    SOL_NULL_CHECK(cb, NULL);
+    return sol_mainloop_impl_child_watch_add(pid, cb, data);
+}
 
+SOL_API bool
+sol_child_watch_del(struct sol_child_watch *handle)
+{
+    SOL_NULL_CHECK(handle, false);
+    return sol_mainloop_impl_child_watch_del(handle);
+}

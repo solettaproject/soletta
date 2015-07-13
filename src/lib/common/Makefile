@@ -43,6 +43,7 @@ obj-core-$(PLATFORM_DUMMY) += \
     sol-platform-impl-dummy.o
 
 obj-core-$(SOL_PLATFORM_LINUX) += \
+    sol-mainloop-linux.o \
     sol-platform-linux-common.o \
     sol-platform-detect.o
 obj-core-$(SOL_PLATFORM_LINUX)-extra-cflags += $(SYSTEMD_CFLAGS)
@@ -76,3 +77,6 @@ headers-y := \
 
 headers-$(HAVE_PIN_MUX) += \
     include/sol-pin-mux-modules.h
+
+headers-$(SOL_PLATFORM_LINUX) += \
+    include/sol-mainloop-linux.h \

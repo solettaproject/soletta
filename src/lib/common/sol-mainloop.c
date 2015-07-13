@@ -231,35 +231,6 @@ sol_idle_del(struct sol_idle *handle)
     return sol_mainloop_impl_idle_del(handle);
 }
 
-SOL_API struct sol_fd *
-sol_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data)
-{
-    SOL_NULL_CHECK(cb, NULL);
-    return sol_mainloop_impl_fd_add(fd, flags, cb, data);
-}
-
-SOL_API bool
-sol_fd_del(struct sol_fd *handle)
-{
-    SOL_NULL_CHECK(handle, false);
-    return sol_mainloop_impl_fd_del(handle);
-}
-
-SOL_API struct sol_child_watch *
-sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data)
-{
-    SOL_INT_CHECK(pid, < 1, NULL);
-    SOL_NULL_CHECK(cb, NULL);
-    return sol_mainloop_impl_child_watch_add(pid, cb, data);
-}
-
-SOL_API bool
-sol_child_watch_del(struct sol_child_watch *handle)
-{
-    SOL_NULL_CHECK(handle, false);
-    return sol_mainloop_impl_child_watch_del(handle);
-}
-
 SOL_API int
 sol_argc(void)
 {
