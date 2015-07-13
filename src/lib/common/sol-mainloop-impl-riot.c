@@ -38,7 +38,7 @@
 #include <time.h>
 
 // Riot includes
-#include <riotos/sched.h>
+#include <sched.h>
 #include <vtimer.h>
 
 #include "sol-mainloop-common.h"

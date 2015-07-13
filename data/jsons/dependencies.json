@@ -188,9 +188,7 @@
 	{
 	    "dependency": "riotos",
 	    "type": "ccode",
-	    "headers": [
-		"<riotos/cpu.h>"
-	    ]
+	    "fragment": "#ifndef RIOT_CPU\n#error \"No RIOT_CPU defined\"\n#endif\n"
 	},
 	{
 	    "dependency": "contiki",
