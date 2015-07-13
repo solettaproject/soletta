@@ -56,7 +56,6 @@ got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr 
 static void
 found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data)
 {
-    const char *query = NULL;
     struct sol_str_slice *slice;
     uint16_t idx;
     char addr[SOL_INET_ADDR_STRLEN];
