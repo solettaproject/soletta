@@ -268,6 +268,14 @@
 	    "fragment": "__builtin_add_overflow(0ULL, 0ULL, (unsigned long long *)0);"
 	},
 	{
+	    "dependency": "decl_memmem",
+	    "type": "ccode",
+	    "headers": [
+		"<string.h>"
+	    ],
+	    "fragment": "memmem(0, 0, 0, 0);"
+	},
+	{
 	    "dependency": "decl_ifla_inet6_addr_gen_mode",
 	    "type": "ccode",
 	    "headers": [
