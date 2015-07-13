@@ -974,6 +974,7 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
     if (err < 0) {
         SOL_WRN("Failed to allocate memory for constructing node type");
         errno = ENOMEM;
+        free(opts);
         return NULL;
     }
 
