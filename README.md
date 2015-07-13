@@ -13,8 +13,28 @@ Portable and scalable, it abstracts details of hardware and OS,
 enabling developers to reuse their code and knowledge on different
 targets.
 
+## TOC ##
 
-### General Information
+ * [General Information](#general-information)
+ * [Debug](#debug)
+ * [Libraries](#libraries)
+  * [Common](#common)
+  * [Comms](#comms)
+    * [Network](#network)
+    * [COAP](#coap)
+    * [OIC](#oic)
+  * [Flow](#flow)
+ * [Main Loops](#main-loops)
+  * [GLib](#glib-kconfig-core-library---mainloop---glib)
+  * [POSIX](#posix-kconfig-core-library---mainloop---posix)
+ * [Platforms](#platforms)
+  * [Systemd](#systemd-kconfig-core-library---target-platform---systemd)
+  * [Linux-micro](#linux-micro-kconfig-core-library---target-platform---linux-micro)
+ * [Flow Based Programming](#flow-based-programming)
+ * [Contributing](#contributing)
+
+
+## General Information
 
 **Soletta Project** uses `sol` as C namespace, so macros start with `SOL_`
 and functions, enumerations, structures and others start with `sol_`.
@@ -56,7 +76,7 @@ to install in a different root dir run install as:
 
         make install DESTDIR=/path/to/install/root/
 
-### Debug
+## Debug
 
 **Soletta** provides `sol-log` to provide meaningful critical, error, warning,
 informational or debug messages in a simple way. The following
@@ -114,9 +134,9 @@ above that number will be compiled out and using `$SOL_LOG_LEVEL` or
 `$SOL_LOG_LEVELS` for those numbers won't have effect.
 
 
-### Libraries
+## Libraries
 
-##### common
+#### common
 
 Main loop, logging and access to platform details such as
 services and state.
@@ -136,21 +156,45 @@ or stopped as well as monitored for a dynamic lifecycle
 management.
 
 
-##### coap
+#### comms
+
+Comms consists on a few communication modules.
+It provides ways to deal with network, CoAP protocol and
+OIC protocol (server and client sides).
+
+
+##### Network
+
+Network library provides a way to handle network link interfaces,
+making it possible to observe events, to inquire available links
+and to set their states.
+
+##### COAP
 
 Implementation of The Constrained Application Protocol (CoAP -
 RFC 7252). This network protocol is pretty simple and uses a
 HTTP-like message that is space-efficient over UDP.
 
+##### OIC
 
-##### flow
+Implementation of protocol defined by Open Interconnect Consortium
+(OIC - http://openinterconnect.org/)
+
+It's a common communication framework based on industry standard
+technologies to wirelessly connect and intelligently manage
+the flow of information among devices, regardless of form factor,
+operating system or service provider.
+
+Both client and server sides are covered by this library.
+
+#### flow
 
 Implementation of Flow-Based Programming (FBP), allowing the
 programmer to express business logic as a directional graph of
 nodes connected to type-specific ports.
 
 
-### Main Loops
+## Main Loops
 
 Main loops are responsible to deliver events and timers in a single
 thread by continuously poll and interleave registered functions. It
@@ -190,7 +234,7 @@ sol_fd_add() and sol_fd_del() are thread-safe and can be used from
 worker threads.
 
 
-##### GLib (kconfig: Core library -> Mainloop -> glib)
+#### GLib (kconfig: Core library -> Mainloop -> glib)
 
 The well known GMainLoop is used by soletta so GLib-based frameworks
 can be easily integrated, things like social network services,
@@ -208,13 +252,13 @@ in-depth information, the summary of environment variables to use:
 
 	make CFLAGS="-O0 -ggdb3" # disable optimizations
 
-##### POSIX (kconfig: Core library -> Mainloop -> posix)
+#### POSIX (kconfig: Core library -> Mainloop -> posix)
 
 If GLib is too big then you can use a simpler implementation based
 solely on POSIX syscalls (poll/ppoll). As it's fully implemented in
 soletta there is no extra variables to debug it.
 
-### Platforms
+## Platforms
 
 Platforms is about target states and services.
 
@@ -233,7 +277,7 @@ monitors about their state changes. They are platform-specific and
 depends on underlying platform setup.
 
 
-##### Systemd (kconfig: Core library -> Target Platform -> systemd)
+#### Systemd (kconfig: Core library -> Target Platform -> systemd)
 
 This uses systemd as base. Whenever a target is set or a service is
 started it will call systemd. The D-Bus events from systemd will be
@@ -243,7 +287,7 @@ Thus both targets and services are implemented according to systemd
 using units in standard locations such as /usr/lib/systemd/system and
 /etc/systemd/system.
 
-##### Linux-micro (kconfig: Core library -> Target Platform -> linux-micro)
+#### Linux-micro (kconfig: Core library -> Target Platform -> linux-micro)
 
 Linux-micro implementation allows your Soletta binary to be used as
 PID1, it will do required initialization and will handle services as
@@ -273,7 +317,7 @@ A set of services are started automatically by Soletta in order to do
 initialization, these are listed in
 /usr/lib/soletta/modules/linux-micro/initial-services.
 
-### Flow Based Programming
+## Flow Based Programming
 
 Flow-Based Programming (**FBP**) allows the programmer to express business
 logic as a directional graph of nodes connected to type-specific
@@ -389,7 +433,7 @@ API see the output of sol-fbp-generator.
         }
 ```
 
-### Contributing
+## Contributing
 
 When submitting code to this project, please indicate that you certify you are able to contribute the code by adding a signed-off-by line at the end of your commit message (using your real name) such as:
 

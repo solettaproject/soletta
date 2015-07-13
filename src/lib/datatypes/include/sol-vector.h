@@ -46,7 +46,11 @@ extern "C" {
  */
 
 /**
+ * @defgroup Vector
  * @ingroup Datatypes
+ *
+ * It's an array that grows dynamically. It's suited for
+ * storing a small set of contiguous data.
  *
  * @{
  */

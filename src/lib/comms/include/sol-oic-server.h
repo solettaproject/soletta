@@ -45,7 +45,7 @@ extern "C" {
  */
 
 /**
- * @ingroup Comms
+ * @ingroup OIC
  *
  * @{
  */

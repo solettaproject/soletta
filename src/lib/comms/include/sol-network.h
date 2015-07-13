@@ -51,6 +51,17 @@ extern "C" {
 /**
  * @defgroup Comms Communication Libraries
  *
+ * Comms consists on a few communication modules.
+ * It provides ways to deal with network, CoAP protocol and
+ * OIC protocol (server and client sides).
+ *
+ * @defgroup Network
+ * @ingroup Comms
+ *
+ * Network module provides a way to handle network link interfaces,
+ * making it possible to observe events, to inquire available links
+ * and to set their states.
+ *
  * @{
  */
 
