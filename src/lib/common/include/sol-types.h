@@ -46,6 +46,69 @@ extern "C" {
  */
 
 /**
+ * @defgroup Type_Checking Type Checking
+ *
+ * @{
+ */
+
+/**
+ * @def _SOL_TYPE_CHECK(type, var, value)
+ *
+ * Internal macro to check type of given value. It does so by creating
+ * a block with a new variable called @a var of the given @a type,
+ * assigning the @a value to it and then returning the variable.
+ *
+ * The compiler should issue compile-time type errors if the value
+ * doesn't match the type of variable.
+ *
+ * @see SOL_TYPE_CHECK()
+ * @internal
+ */
+#define _SOL_TYPE_CHECK(type, var, value) \
+    ({ type var = (value); var; })
+
+/**
+ * @def SOL_TYPE_CHECK(type, value)
+ *
+ * Macro to check @a type of given @a value.
+ *
+ * The compiler should issue compile-time type errors if the value
+ * doesn't match the type.
+ *
+ * It is often used with macros that ends into types such as 'void*'
+ * or even variable-arguments (varargs).
+ *
+ * Example: set mystruct to hold a string, checking type:
+ * @code
+ * struct mystruct {
+ *    int type;
+ *    void *value;
+ * };
+ *
+ * #define mystruct_set_string(st, x) \
+ *    do { \
+ *       st->type = mystruct_type_string; \
+ *       st->value = SOL_TYPE_CHECK(const char *, x); \
+ *    } while (0)
+ * @endcode
+ *
+ * Example: a free that checks if argument is a string
+ * @code
+ * #define free_str(x) free(SOL_TYPE_CHECK(char *, x))
+ * @endcode
+ *
+ * @param type the desired type to check.
+ * @param value the value to check, it's returned by the macro.
+ * @return the given value
+ */
+#define SOL_TYPE_CHECK(type, value) \
+    _SOL_TYPE_CHECK(type, __dummy_ ## __COUNTER__, (value))
+
+/**
+ * @}
+ */
+
+/**
  * @defgroup Types Types
  *
  * @{
