@@ -13,6 +13,26 @@ Portable and scalable, it abstracts details of hardware and OS,
 enabling developers to reuse their code and knowledge on different
 targets.
 
+## TOC ##
+
+ * [General Information](#general-information)
+ * [Debug](#debug)
+ * [Libraries](#libraries)
+  * [Common](#common)
+  * [Comms](#comms)
+    * [Network](#network)
+    * [CoAP](#coap)
+    * [OIC](#oic)
+  * [Flow](#flow)
+ * [Main Loops](#main-loops)
+  * [GLib](#glib-kconfig-core-library---mainloop---glib)
+  * [POSIX](#posix-kconfig-core-library---mainloop---posix)
+ * [Platforms](#platforms)
+  * [Systemd](#systemd-kconfig-core-library---target-platform---systemd)
+  * [Linux-micro](#linux-micro-kconfig-core-library---target-platform---linux-micro)
+ * [Flow Based Programming](#flow-based-programming)
+ * [Contributing](#contributing)
+
 
 ## General Information
 
