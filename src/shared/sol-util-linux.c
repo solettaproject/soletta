@@ -32,9 +32,13 @@
 
 #include "sol-util-linux.h"
 #include "sol-missing.h"
+#include "sol-mainloop.h"
+#include "sol-log.h"
 
+#include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -256,15 +260,43 @@ done:
     return snprintf(out, size, "%s/%s", cwd, execfn);
 }
 
+static int
+get_libname(char *out, size_t size)
+{
+#ifdef HAVE_DECL_DLADDR
+    Dl_info info;
+    int r;
+    char *path;
+
+    r = dladdr(sol_init, &info);
+    if (!r)
+        return -EINVAL;
+
+    if (!info.dli_saddr) {
+        SOL_WRN("No symbol 'sol_init' found");
+        return -EINVAL;
+    }
+
+    /* dirname() may modify path, copy it to a local memory. */
+    path = strdupa(info.dli_fname);
+
+    return snprintf(out, size, "%s", dirname(path));
+#endif /* HAVE_DECL_DLADDR */
+    return -ENOSYS;
+}
+
 int
 sol_util_get_rootdir(char *out, size_t size)
 {
     char progname[PATH_MAX] = { 0 }, *substr, *prefix;
     int r;
 
-    r = get_progname(progname, sizeof(progname));
-    if (r < 0 || r >= (int)sizeof(progname))
-        return r;
+    r = get_libname(progname, sizeof(progname));
+    if (r < 0 || r >= (int) sizeof(progname)) {
+        r = get_progname(progname, sizeof(progname));
+        if (r < 0 || r >= (int)sizeof(progname))
+            return r;
+    }
 
     substr = strstr(progname, PREFIX);
     if (!substr) {
