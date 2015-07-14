@@ -1,4 +1,5 @@
 {
+  "$schema": "http://solettaproject.github.io/soletta/schemas/platform-detect.schema",
   "platforms": [
     {
      "name": "intel-galileo-rev-d",

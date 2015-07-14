@@ -1,4 +1,5 @@
 {
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
   "name": "unix-socket",
   "meta": {
     "author": "Intel Corporation",

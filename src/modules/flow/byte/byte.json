@@ -1,4 +1,5 @@
 {
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
   "name": "byte",
   "meta": {
     "author": "Intel Corporation",

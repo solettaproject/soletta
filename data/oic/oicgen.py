@@ -884,6 +884,7 @@ def generate_for_schema(directory, path):
 
 def master_json_as_string(generated):
     master_json = {
+        '$schema': 'http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema',
         'name': 'oic',
         'meta': {
             'author': 'Intel Corporation',
