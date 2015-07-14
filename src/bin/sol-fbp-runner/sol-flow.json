@@ -1,0 +1,11 @@
+{
+ "nodetypes": [
+  {
+   "name": "Label",
+   "options": {
+    "suffix": "suffix_from_conf"
+   },
+   "type": "console"
+  }
+ ]
+}
