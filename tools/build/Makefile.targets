@@ -85,7 +85,7 @@ PHONY += install post-install pre-install
 all-desc-jsons = $(all-mod-descs) $(if $(filter $(builtin-flows),$(builtin-flows)),$(FLOW_BUILTINS_DESC))
 
 ifeq (yyy,$(HAVE_DOXYGEN)$(HAVE_BZIP2)$(HAVE_TAR))
-doc: $(DOXYGEN_RESOURCES) cheat-sheet
+doc: $(DOXYGEN_RESOURCES)
 	$(Q)$(RM) -rf $(DOXYGEN_GENERATED)
 	$(Q)$(DOXYGEN) doc/doxygen/Doxyfile
 	$(Q)$(RM) -rf $(PACKAGE_DOCNAME).tar*
