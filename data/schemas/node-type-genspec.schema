@@ -316,6 +316,7 @@
     "node": {
       "type": "object",
       "properties": {
+        "$schema": { "type": "string", "format": "uri" },
         "name": { "$ref": "#/definitions/node_type_name" },
         "category": { "type": "string" },
         "description": { "type": "string" },
@@ -363,6 +364,7 @@
     "module": {
       "type": "object",
       "properties": {
+        "$schema": { "type": "string", "format": "uri" },
         "name": { "$ref": "#/definitions/module_name" },
         "meta": { "$ref": "#/definitions/module_meta" },
         "types": {
@@ -372,7 +374,7 @@
           "items": { "$ref": "#/definitions/node" }
         }
       },
-      "required": [ "name", "meta", "types" ],
+      "required": [ "$schema", "name", "meta", "types" ],
       "additionalProperties": false
     }
   },
