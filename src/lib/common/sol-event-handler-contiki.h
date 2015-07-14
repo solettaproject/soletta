@@ -32,24 +32,9 @@
 
 #pragma once
 
-/* implement these functions for your own system so soletta will work */
+#include <stdbool.h>
 
-#define SOL_LOG_DOMAIN &_sol_mainloop_log_domain
-extern struct sol_log_domain _sol_mainloop_log_domain;
-#include "sol-log-internal.h"
-#include "sol-mainloop.h"
-#ifdef SOL_PLATFORM_LINUX
-#include "sol-mainloop-impl-linux.h"
-#endif
+#include <contiki.h>
 
-int sol_mainloop_impl_init(void);
-void sol_mainloop_impl_run(void);
-void sol_mainloop_impl_quit(void);
-void sol_mainloop_impl_shutdown(void);
-
-void *sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_timeout_del(void *handle);
-
-void *sol_mainloop_impl_idle_add(bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_idle_del(void *handle);
-
+bool sol_mainloop_contiki_event_handler_add(const process_event_t *ev, const process_data_t ev_data, void (*cb)(void *user_data, process_event_t ev, process_data_t ev_data), const void *data);
+bool sol_mainloop_contiki_event_handler_del(const process_event_t *ev, const process_data_t ev_data, void (*cb)(void *user_data, process_event_t ev, process_data_t ev_data), const void *data);

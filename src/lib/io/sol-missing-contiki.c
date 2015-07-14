@@ -30,26 +30,54 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <stdint.h>
+#include <stdlib.h>
 
-/* implement these functions for your own system so soletta will work */
+#include "sol-pwm.h"
 
-#define SOL_LOG_DOMAIN &_sol_mainloop_log_domain
-extern struct sol_log_domain _sol_mainloop_log_domain;
-#include "sol-log-internal.h"
-#include "sol-mainloop.h"
-#ifdef SOL_PLATFORM_LINUX
-#include "sol-mainloop-impl-linux.h"
-#endif
+struct sol_pwm *
+sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
+{
+    return NULL;
+}
 
-int sol_mainloop_impl_init(void);
-void sol_mainloop_impl_run(void);
-void sol_mainloop_impl_quit(void);
-void sol_mainloop_impl_shutdown(void);
+void
+sol_pwm_close(struct sol_pwm *pwm)
+{
+}
 
-void *sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_timeout_del(void *handle);
+bool
+sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable)
+{
+    return false;
+}
 
-void *sol_mainloop_impl_idle_add(bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_idle_del(void *handle);
+bool
+sol_pwm_get_enabled(const struct sol_pwm *pwm)
+{
+    return false;
+}
 
+bool
+sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
+{
+    return false;
+}
+
+int32_t
+sol_pwm_get_period(const struct sol_pwm *pwm)
+{
+    return -1;
+}
+
+bool
+sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
+{
+    return false;
+}
+
+int32_t
+sol_pwm_get_duty_cycle(const struct sol_pwm *pwm)
+{
+    return -1;
+}

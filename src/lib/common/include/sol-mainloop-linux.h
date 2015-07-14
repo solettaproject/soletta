@@ -32,24 +32,28 @@
 
 #pragma once
 
-/* implement these functions for your own system so soletta will work */
-
-#define SOL_LOG_DOMAIN &_sol_mainloop_log_domain
-extern struct sol_log_domain _sol_mainloop_log_domain;
-#include "sol-log-internal.h"
-#include "sol-mainloop.h"
-#ifdef SOL_PLATFORM_LINUX
-#include "sol-mainloop-impl-linux.h"
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-int sol_mainloop_impl_init(void);
-void sol_mainloop_impl_run(void);
-void sol_mainloop_impl_quit(void);
-void sol_mainloop_impl_shutdown(void);
+enum sol_fd_flags {
+    SOL_FD_FLAGS_NONE = 0,
+    SOL_FD_FLAGS_IN   = (1 << 0),
+    SOL_FD_FLAGS_OUT  = (1 << 1),
+    SOL_FD_FLAGS_PRI  = (1 << 2),
+    SOL_FD_FLAGS_ERR  = (1 << 3),
+    SOL_FD_FLAGS_HUP  = (1 << 4),
+    SOL_FD_FLAGS_NVAL = (1 << 5)
+};
 
-void *sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_timeout_del(void *handle);
+struct sol_fd;
+struct sol_fd *sol_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data);
+bool sol_fd_del(struct sol_fd *handle);
 
-void *sol_mainloop_impl_idle_add(bool (*cb)(void *data), const void *data);
-bool sol_mainloop_impl_idle_del(void *handle);
+struct sol_child_watch;
+struct sol_child_watch *sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data);
+bool sol_child_watch_del(struct sol_child_watch *handle);
 
+#ifdef __cplusplus
+}
+#endif

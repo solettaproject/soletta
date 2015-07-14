@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "sol-common-buildopts.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -126,27 +128,13 @@ struct sol_idle;
 struct sol_idle *sol_idle_add(bool (*cb)(void *data), const void *data);
 bool sol_idle_del(struct sol_idle *handle);
 
-enum sol_fd_flags {
-    SOL_FD_FLAGS_NONE = 0,
-    SOL_FD_FLAGS_IN   = (1 << 0),
-    SOL_FD_FLAGS_OUT  = (1 << 1),
-    SOL_FD_FLAGS_PRI  = (1 << 2),
-    SOL_FD_FLAGS_ERR  = (1 << 3),
-    SOL_FD_FLAGS_HUP  = (1 << 4),
-    SOL_FD_FLAGS_NVAL = (1 << 5)
-};
-
-struct sol_fd;
-struct sol_fd *sol_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data);
-bool sol_fd_del(struct sol_fd *handle);
-
-struct sol_child_watch;
-struct sol_child_watch *sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data);
-bool sol_child_watch_del(struct sol_child_watch *handle);
-
 int sol_argc(void);
 char **sol_argv(void);
 void sol_args_set(int argc, char *argv[]);
+
+#ifdef SOL_PLATFORM_LINUX
+#include "sol-mainloop-linux.h"
+#endif
 
 struct sol_main_callbacks {
 #define SOL_MAIN_CALLBACKS_API_VERSION (1)
@@ -156,6 +144,27 @@ struct sol_main_callbacks {
     void (*shutdown)(void);
 };
 
+#ifdef SOL_PLATFORM_CONTIKI
+#include "sol-mainloop-contiki.h"
+
+#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN)               \
+    PROCESS(soletta_app_process, "soletta app process");  \
+    AUTOSTART_PROCESSES(&soletta_app_process);            \
+    PROCESS_THREAD(soletta_app_process, ev, data)         \
+    {                                                     \
+        sol_mainloop_contiki_event_set(ev, data);         \
+        PROCESS_BEGIN();                                  \
+        if (sol_init() < 0)                               \
+            return EXIT_FAILURE;                          \
+        STARTUP();                                        \
+        sol_run();                                        \
+        while (sol_mainloop_contiki_iter())               \
+            PROCESS_WAIT_EVENT();                         \
+        SHUTDOWN();                                       \
+        sol_shutdown();                                   \
+        PROCESS_END();                                    \
+    }
+#else
 #define SOL_MAIN(CALLBACKS)                                          \
     int main(int argc, char *argv[]) {                              \
         return sol_mainloop_default_main(&(CALLBACKS), argc, argv);  \
@@ -168,6 +177,7 @@ struct sol_main_callbacks {
         .shutdown = (SHUTDOWN),                                         \
     };                                                                  \
     SOL_MAIN(sol_main_callbacks_instance)
+#endif
 
 /* Internal. */
 int sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, char *argv[]);
