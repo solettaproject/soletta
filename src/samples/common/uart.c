@@ -47,7 +47,7 @@ string_received(void)
 }
 
 static void
-uart1_rx(struct sol_uart *uart, char read_char, void *data)
+uart1_rx(void *data, struct sol_uart *uart, char read_char)
 {
     static int index = 0;
     static char string[64];
@@ -63,7 +63,7 @@ uart1_rx(struct sol_uart *uart, char read_char, void *data)
 }
 
 static void
-uart2_rx(struct sol_uart *uart, char read_char, void *data)
+uart2_rx(void *data, struct sol_uart *uart, char read_char)
 {
     static int index = 0;
     static char string[64];
@@ -79,7 +79,7 @@ uart2_rx(struct sol_uart *uart, char read_char, void *data)
 }
 
 static void
-uart_tx_completed(struct sol_uart *uart, int status, void *data)
+uart_tx_completed(void *data, struct sol_uart *uart, int status)
 {
     const char *string = data;
 

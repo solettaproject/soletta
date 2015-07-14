@@ -51,8 +51,8 @@ struct sol_uart {
     struct {
         void *handler;
 
-        void (*rx_cb)(struct sol_uart *uart, char read_char, void *data);
-        void *rx_user_data;
+        void (*rx_cb)(void *data, struct sol_uart *uart, char read_char);
+        const void *rx_user_data;
 
         struct sol_vector tx_queue;
     } async;
@@ -62,8 +62,8 @@ struct uart_write_data {
     char *buffer;
     unsigned int length;
     unsigned int index;
-    void (*cb)(struct sol_uart *uart, int write, void *data);
-    void *user_data;
+    void (*cb)(void *data, struct sol_uart *uart, int write);
+    const void *user_data;
     struct sol_uart *uart;
 };
 
@@ -74,14 +74,14 @@ uart_rx_cb(void *arg, char data)
 
     if (!uart->async.rx_cb)
         return;
-    uart->async.rx_cb(uart, data, uart->async.rx_user_data);
+    uart->async.rx_cb((void *)uart->async.rx_user_data, uart, data);
 }
 
 static void
 uart_dispatch_write_data(struct uart_write_data *write_data, int write)
 {
     free(write_data->buffer);
-    write_data->cb(write_data->uart, write, write_data->user_data);
+    write_data->cb((void *)write_data->user_data, write_data->uart, write);
 }
 
 static int
@@ -121,7 +121,7 @@ uart_tx_cb(void *arg)
 SOL_API struct sol_uart *
 sol_uart_open(const char *port_name, enum sol_uart_baud_rate baud_rate,
     enum sol_uart_settings settings,
-    void (*rx_cb)(struct sol_uart *uart, char read_char, void *user_data),
+    void (*rx_cb)(void *user_data, struct sol_uart *uart, char read_char),
     const void *rx_cb_user_data)
 {
     struct sol_uart *uart;
@@ -155,7 +155,7 @@ sol_uart_open(const char *port_name, enum sol_uart_baud_rate baud_rate,
     SOL_INT_CHECK_GOTO(ret, != 0, fail);
 
     uart->async.rx_cb = rx_cb;
-    uart->async.rx_user_data = (void *)rx_cb_user_data;
+    uart->async.rx_user_data = rx_cb_user_data;
     sol_vector_init(&uart->async.tx_queue, sizeof(struct uart_write_data));
     return uart;
 
@@ -177,7 +177,7 @@ sol_uart_close(struct sol_uart *uart)
 
     SOL_VECTOR_FOREACH_IDX (&uart->async.tx_queue, write_data, i) {
         free(write_data->buffer);
-        write_data->cb(uart, -1, write_data->user_data);
+        write_data->cb((void *)write_data->user_data, uart, -1);
     }
     sol_vector_clear(&uart->async.tx_queue);
 
@@ -185,7 +185,7 @@ sol_uart_close(struct sol_uart *uart)
 }
 
 SOL_API bool
-sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(struct sol_uart *uart, int status, void *data), const void *data)
+sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, int status), const void *data)
 {
     struct uart_write_data *write_data;
 
@@ -199,7 +199,7 @@ sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void 
 
     memcpy(write_data->buffer, tx, length);
     write_data->cb = tx_cb;
-    write_data->user_data = (void *)data;
+    write_data->user_data = data;
     write_data->index = 0;
     write_data->length = length;
     write_data->uart = uart;
