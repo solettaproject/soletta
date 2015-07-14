@@ -85,7 +85,7 @@ struct sol_uart *sol_uart_open(const char *port_name,
                                enum sol_uart_parity parity,
                                enum sol_uart_stop_bits stop_bits,
                                bool flow_control,
-                               void (*rx_cb)(struct sol_uart *uart, char read_char, void *user_data),
+                               void (*rx_cb)(void *user_data, struct sol_uart *uart, char read_char),
                                const void *rx_cb_user_data);
 void sol_uart_close(struct sol_uart *uart);
 
@@ -93,7 +93,7 @@ void sol_uart_close(struct sol_uart *uart);
  * Write X characters on UART without block the execution, when the
  * transmission finish the callback will be called.
  */
-bool sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(struct sol_uart *uart, int status, void *data), const void *data);
+bool sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, int status), const void *data);
 
 /**
  * @}
