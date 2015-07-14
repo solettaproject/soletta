@@ -152,6 +152,13 @@
 	    ]
 	},
 	{
+	    "dependency": "contiki",
+	    "type": "ccode",
+	    "headers": [
+		"<contiki.h>"
+	    ]
+	},
+	{
 	    "dependency": "dlfcn_h",
 	    "type": "ccode",
 	    "headers": [

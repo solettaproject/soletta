@@ -231,6 +231,7 @@ sol_idle_del(struct sol_idle *handle)
     return sol_mainloop_impl_idle_del(handle);
 }
 
+#ifdef SOL_MAINLOOP_FD_ENABLED
 SOL_API struct sol_fd *
 sol_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data)
 {
@@ -244,7 +245,9 @@ sol_fd_del(struct sol_fd *handle)
     SOL_NULL_CHECK(handle, false);
     return sol_mainloop_impl_fd_del(handle);
 }
+#endif
 
+#ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
 SOL_API struct sol_child_watch *
 sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data)
 {
@@ -259,6 +262,7 @@ sol_child_watch_del(struct sol_child_watch *handle)
     SOL_NULL_CHECK(handle, false);
     return sol_mainloop_impl_child_watch_del(handle);
 }
+#endif
 
 SOL_API int
 sol_argc(void)

@@ -39,7 +39,9 @@
 #include "sol-log-internal.h"
 #include "sol-macros.h"
 #include "sol-monitors.h"
+#ifdef SOL_PLATFORM_LINUX
 #include "sol-platform-detect.h"
+#endif
 #include "sol-platform.h"
 #include "sol-util.h"
 
