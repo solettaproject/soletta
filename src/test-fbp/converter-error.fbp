@@ -48,3 +48,6 @@ error_msg_equal EQUAL -> RESULT error_converts_to_msg(test/result)
 conv_error CODE -> IN[0] error_code_equal
 const_error_code OUT -> IN[1] error_code_equal
 error_code_equal OUT -> RESULT error_converts_to_code(test/result)
+
+## TEST-OUTPUT-REGEX
+# WRN: ./src/lib/common/sol-types.c:.*? sol_irange_division\(\) Division by zero: 10, 0
