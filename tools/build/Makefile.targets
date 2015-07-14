@@ -30,6 +30,7 @@ ifneq (,$(LCOV))
 run-coverage: check check-fbp
 	$(Q)$(MKDIR) -p $(coveragedir)
 	$(Q)$(LCOV) --capture --directory $(top_srcdir) --output-file $(coveragedir)coverage.info
+	$(Q)$(LCOV) --remove $(coveragedir)coverage.info *thirdparty* --output-file $(coveragedir)coverage.info
 	$(Q)$(MV) *.gcda $(build_bindir)
 	$(Q)$(GENHTML) coverage/coverage.info --output-directory coverage/
 
