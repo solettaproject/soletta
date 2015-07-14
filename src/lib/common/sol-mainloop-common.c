@@ -109,16 +109,18 @@ sol_mainloop_common_loop_set(bool val)
 }
 
 int
-sol_mainloop_common_init(void)
+sol_mainloop_impl_init(void)
 {
-    return 0;
+    return sol_mainloop_impl_platform_init();
 }
 
 void
-sol_mainloop_common_shutdown(void)
+sol_mainloop_impl_shutdown(void)
 {
     void *ptr;
     uint16_t i;
+
+    sol_mainloop_impl_platform_shutdown();
 
     SOL_PTR_VECTOR_FOREACH_IDX (&timeout_vector, ptr, i) {
         free(ptr);

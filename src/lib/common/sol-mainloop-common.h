@@ -77,8 +77,6 @@ sol_ptr_vector_update(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
 
 bool sol_mainloop_common_loop_check(void);
 void sol_mainloop_common_loop_set(bool val);
-int sol_mainloop_common_init(void);
-void sol_mainloop_common_shutdown(void);
 void sol_mainloop_common_timeout_process(void);
 void sol_mainloop_common_idler_process(void);
 struct sol_timeout_common *sol_mainloop_common_timeout_first(void);
@@ -90,7 +88,9 @@ void sol_mainloop_impl_main_thread_notify(void);
 void sol_mainloop_impl_lock(void);
 void sol_mainloop_impl_unlock(void);
 
-/* platform specific mainloop iteration function */
+/* platform specific mainloop functions */
+int sol_mainloop_impl_platform_init(void);
+void sol_mainloop_impl_platform_shutdown(void);
 void sol_mainloop_impl_iter(void);
 
 static inline void

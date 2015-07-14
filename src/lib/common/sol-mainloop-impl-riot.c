@@ -73,18 +73,16 @@ sol_mainloop_impl_main_thread_notify(void)
 }
 
 int
-sol_mainloop_impl_init(void)
+sol_mainloop_impl_platform_init(void)
 {
-    sol_mainloop_common_init();
     sol_interrupt_scheduler_set_pid(sched_active_pid);
     msg_init_queue(msg_buffer, MSG_BUFFER_SIZE);
     return 0;
 }
 
 void
-sol_mainloop_impl_shutdown(void)
+sol_mainloop_impl_platform_shutdown(void)
 {
-    sol_mainloop_common_shutdown();
 }
 
 static inline void
