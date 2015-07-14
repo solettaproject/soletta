@@ -48,7 +48,6 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 
 struct sol_uart {
     uart_t id;
-    uint32_t baud_rate;
     struct {
         void *handler;
 
@@ -119,24 +118,32 @@ uart_tx_cb(void *arg)
     return 1;
 }
 
-static bool
-uart_setup(struct sol_uart *uart)
-{
-    if (uart->async.handler) {
-        sol_interrupt_scheduler_uart_stop(uart->id, uart->async.handler);
-        uart->async.handler = NULL;
-    }
-    return sol_interrupt_scheduler_uart_init_int(uart->id, uart->baud_rate,
-        uart_rx_cb, uart_tx_cb,
-        uart, &uart->async.handler) == 0;
-}
-
 SOL_API struct sol_uart *
-sol_uart_open(const char *port_name)
+sol_uart_open(const char *port_name, const struct sol_uart_config *config)
 {
     struct sol_uart *uart;
+    const unsigned int baud_rata_table[] = {
+        [SOL_UART_BAUD_RATE_9600] = 9600,
+        [SOL_UART_BAUD_RATE_19200] = 19200,
+        [SOL_UART_BAUD_RATE_38400] = 38400,
+        [SOL_UART_BAUD_RATE_57600] = 57600,
+        [SOL_UART_BAUD_RATE_115200] = 115200
+    };
+    int ret;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
+
+    if (unlikely(config->api_version != SOL_UART_CONFIG_API_VERSION)) {
+        SOL_WRN("Couldn't open UART that has unsupported version '%u', "
+            "expected version is '%u'",
+            config->api_version, SOL_UART_CONFIG_API_VERSION);
+        return NULL;
+    }
+
+    SOL_EXP_CHECK(config->parity != SOL_UART_PARITY_NONE, NULL);
+    SOL_EXP_CHECK(config->data_bits != SOL_UART_DATA_BITS_8, NULL);
+    SOL_EXP_CHECK(config->stop_bits != SOL_UART_STOP_BITS_ONE, NULL);
+    SOL_EXP_CHECK(config->flow_control, NULL);
 
     SOL_NULL_CHECK(port_name, NULL);
     uart = calloc(1, sizeof(struct sol_uart));
@@ -144,10 +151,19 @@ sol_uart_open(const char *port_name)
 
     uart->id = strtol(port_name, NULL, 10);
     uart_poweron(uart->id);
-    uart->baud_rate = 9600;
-    uart_setup(uart);
+    ret = sol_interrupt_scheduler_uart_init_int(uart->id,
+        baud_rata_table[config->baud_rate], uart_rx_cb, uart_tx_cb, uart,
+        &uart->async.handler);
+    SOL_INT_CHECK_GOTO(ret, != 0, fail);
+
+    uart->async.rx_cb = config->rx_cb;
+    uart->async.rx_user_data = (void *)config->rx_cb_user_data;
     sol_vector_init(&uart->async.tx_queue, sizeof(struct uart_write_data));
     return uart;
+
+fail:
+    free(uart);
+    return NULL;
 }
 
 SOL_API void
@@ -168,85 +184,6 @@ sol_uart_close(struct sol_uart *uart)
     sol_vector_clear(&uart->async.tx_queue);
 
     free(uart);
-}
-
-SOL_API bool
-sol_uart_set_baud_rate(struct sol_uart *uart, uint32_t baud_rate)
-{
-    SOL_NULL_CHECK(uart, false);
-    uart->baud_rate = baud_rate;
-    return uart_setup(uart);
-}
-
-SOL_API uint32_t
-sol_uart_get_baud_rate(const struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, 0);
-    return uart->baud_rate;
-}
-
-SOL_API bool
-sol_uart_set_parity_bit(struct sol_uart *uart, bool enable, bool odd_paraty)
-{
-    SOL_NULL_CHECK(uart, false);
-    return !enable;
-}
-
-SOL_API bool
-sol_uart_get_parity_bit_enable(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, false);
-    return false;
-}
-
-
-SOL_API bool
-sol_uart_get_parity_bit_odd(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, false);
-    return false;
-}
-
-SOL_API bool
-sol_uart_set_data_bits_length(struct sol_uart *uart, uint8_t length)
-{
-    SOL_NULL_CHECK(uart, false);
-    return length == 8;
-}
-
-SOL_API uint8_t
-sol_uart_get_data_bits_length(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, 0);
-    return 8;
-}
-
-SOL_API bool
-sol_uart_set_stop_bits_length(struct sol_uart *uart, bool two_bits)
-{
-    SOL_NULL_CHECK(uart, false);
-    return !two_bits;
-}
-
-SOL_API uint8_t
-sol_uart_get_stop_bits_length(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, 0);
-    return 1;
-}
-
-SOL_API bool
-sol_uart_set_flow_control(struct sol_uart *uart, bool enable)
-{
-    SOL_NULL_CHECK(uart, false);
-    return !enable;
-}
-
-SOL_API bool
-sol_uart_get_flow_control(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, false);
-    return false;
 }
 
 SOL_API bool
@@ -277,25 +214,4 @@ sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void 
 malloc_buffer_fail:
     sol_vector_del(&uart->async.tx_queue, uart->async.tx_queue.len - 1);
     return false;
-}
-
-SOL_API bool
-sol_uart_set_rx_callback(struct sol_uart *uart, void (*rx_cb)(struct sol_uart *uart, char read_char, void *data), const void *data)
-{
-    SOL_NULL_CHECK(uart, false);
-    SOL_EXP_CHECK(uart->async.rx_cb != NULL, false);
-
-    uart->async.rx_cb = rx_cb;
-    uart->async.rx_user_data = (void *)data;
-    return true;
-}
-
-SOL_API void
-sol_uart_del_rx_callback(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart);
-    SOL_NULL_CHECK(uart->async.rx_cb);
-
-    uart->async.rx_cb = NULL;
-    uart->async.rx_user_data = NULL;
 }
