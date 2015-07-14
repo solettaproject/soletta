@@ -185,7 +185,6 @@ void
 sol_worker_thread_impl_cancel(void *handle)
 {
     struct sol_worker_thread_posix *thread = handle;
-    int r;
 
     SOL_NULL_CHECK(thread);
 
