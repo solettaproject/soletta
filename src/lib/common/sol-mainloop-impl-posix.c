@@ -386,12 +386,10 @@ signals_process(void)
 }
 
 int
-sol_mainloop_impl_init(void)
+sol_mainloop_impl_platform_init(void)
 {
     const struct siginfo_handler *sih;
     unsigned int i;
-
-    sol_mainloop_common_init();
 
     sigemptyset(&sig_blockset);
     SIGINFO_HANDLER_FOREACH(sih)
@@ -417,7 +415,7 @@ sol_mainloop_impl_init(void)
 }
 
 void
-sol_mainloop_impl_shutdown(void)
+sol_mainloop_impl_platform_shutdown(void)
 {
     const struct siginfo_handler *sih;
     void *ptr;
@@ -445,8 +443,6 @@ sol_mainloop_impl_shutdown(void)
         i++;
     }
     SIGPROCMASK(SIG_SETMASK, &sig_origset, NULL);
-
-    sol_mainloop_common_shutdown();
 }
 
 /* called with mainloop lock HELD */

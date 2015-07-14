@@ -83,14 +83,13 @@ sol_mainloop_impl_main_thread_notify(void)
 }
 
 int
-sol_mainloop_impl_init(void)
+sol_mainloop_impl_platform_init(void)
 {
-    sol_mainloop_common_init();
     return 0;
 }
 
 void
-sol_mainloop_impl_shutdown(void)
+sol_mainloop_impl_platform_shutdown(void)
 {
     void *ptr;
     uint16_t i;
@@ -99,8 +98,6 @@ sol_mainloop_impl_shutdown(void)
         free(ptr);
     }
     sol_ptr_vector_clear(&event_handler_vector);
-
-    sol_mainloop_common_shutdown();
 }
 
 static inline clock_time_t
