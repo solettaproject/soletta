@@ -14,7 +14,6 @@
 *.gcda
 *.gcno
 /coverage
-/svg
 *.uncrustify
 .config*
 Makefile.gen
