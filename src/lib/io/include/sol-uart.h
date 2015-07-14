@@ -53,36 +53,40 @@ extern "C" {
 
 struct sol_uart;
 
-struct sol_uart *sol_uart_open(const char *port_name);
+enum sol_uart_baud_rate {
+    SOL_UART_BAUD_RATE_9600 = 0,
+    SOL_UART_BAUD_RATE_19200,
+    SOL_UART_BAUD_RATE_38400,
+    SOL_UART_BAUD_RATE_57600,
+    SOL_UART_BAUD_RATE_115200
+};
+
+enum sol_uart_settings {
+    SOL_UART_DATA_BITS_8 = (1 << 0),
+    SOL_UART_DATA_BITS_7 = (1 << 1),
+    SOL_UART_DATA_BITS_6 = (1 << 2),
+    SOL_UART_DATA_BITS_5 = (1 << 3),
+    SOL_UART_PARITY_NONE = (1 << 4),
+    SOL_UART_PARITY_EVEN = (1 << 5),
+    SOL_UART_PARITY_ODD = (1 << 6),
+    SOL_UART_STOP_BITS_ONE = (1 << 7),
+    SOL_UART_STOP_BITS_TWO = (1 << 8),
+    SOL_UART_FLOW_CONTROL = (1 << 9),
+    SOL_UART_DEFAULT = (SOL_UART_DATA_BITS_8 | SOL_UART_PARITY_NONE | SOL_UART_STOP_BITS_ONE)
+};
+
+struct sol_uart *sol_uart_open(const char *port_name,
+    enum sol_uart_baud_rate baud_rate, enum sol_uart_settings settings,
+    void (*rx_cb)(struct sol_uart *uart, char read_char, void *user_data),
+    const void *rx_cb_user_data);
+
 void sol_uart_close(struct sol_uart *uart);
-
-bool sol_uart_set_baud_rate(struct sol_uart *uart, uint32_t baud_rate);
-uint32_t sol_uart_get_baud_rate(const struct sol_uart *uart);
-
-bool sol_uart_set_parity_bit(struct sol_uart *uart, bool enable, bool odd_paraty);
-bool sol_uart_get_parity_bit_enable(struct sol_uart *uart);
-bool sol_uart_get_parity_bit_odd(struct sol_uart *uart);
-
-bool sol_uart_set_data_bits_length(struct sol_uart *uart, uint8_t lenght);
-uint8_t sol_uart_get_data_bits_length(struct sol_uart *uart);
-
-bool sol_uart_set_stop_bits_length(struct sol_uart *uart, bool two_bits);
-uint8_t sol_uart_get_stop_bits_length(struct sol_uart *uart);
-
-bool sol_uart_set_flow_control(struct sol_uart *uart, bool enable);
-bool sol_uart_get_flow_control(struct sol_uart *uart);
 
 /**
  * Write X characters on UART without block the execution, when the
  * transmission finish the callback will be called.
  */
 bool sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(struct sol_uart *uart, int status, void *data), const void *data);
-
-/**
- * Set a callback to be called every time a character is received on UART.
- */
-bool sol_uart_set_rx_callback(struct sol_uart *uart, void (*rx_cb)(struct sol_uart *uart, char read_char, void *data), const void *data);
-void sol_uart_del_rx_callback(struct sol_uart *uart);
 
 /**
  * @}

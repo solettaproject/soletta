@@ -94,40 +94,19 @@ main(int argc, char *argv[])
 
     sol_init();
 
-    uart1 = sol_uart_open("ttyUSB0");
+    uart1 = sol_uart_open("ttyUSB0", SOL_UART_BAUD_RATE_9600, SOL_UART_DEFAULT,
+        uart1_rx, NULL);
     if (!uart1) {
         printf("Unable to get uart1.\n");
         goto error_uart1;
     }
 
-    uart2 = sol_uart_open("ttyUSB1");
+    uart2 = sol_uart_open("ttyUSB1", SOL_UART_BAUD_RATE_9600, SOL_UART_DEFAULT,
+        uart2_rx, NULL);
     if (!uart2) {
         printf("Unable to get uart2.\n");
         goto error;
     }
-
-    if (!sol_uart_set_baud_rate(uart1, 9600)) {
-        printf("Error setting baud rate on uart1.\n");
-        goto error;
-    }
-
-    if (!sol_uart_set_baud_rate(uart2, 9600)) {
-        printf("Error setting baud rate on uart2.\n");
-        goto error;
-    }
-
-    if (!sol_uart_set_data_bits_length(uart1, 8)) {
-        printf("Error setting data bits length on uart1.\n");
-        goto error;
-    }
-
-    if (!sol_uart_set_data_bits_length(uart2, 8)) {
-        printf("Error setting data bits length on uart2.\n");
-        goto error;
-    }
-
-    sol_uart_set_rx_callback(uart1, uart1_rx, NULL);
-    sol_uart_set_rx_callback(uart2, uart2_rx, NULL);
 
     sprintf(buf, "Hello");
     sol_uart_write(uart1, buf, strlen(buf) + 1, uart_tx_completed,
@@ -144,9 +123,6 @@ main(int argc, char *argv[])
     sol_run();
 
     sol_shutdown();
-
-    sol_uart_del_rx_callback(uart1);
-    sol_uart_del_rx_callback(uart2);
 
     sol_uart_close(uart1);
     sol_uart_close(uart2);
