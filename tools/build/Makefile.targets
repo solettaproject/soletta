@@ -102,8 +102,11 @@ endif
 
 PHONY += doc
 
+ifeq (y,$(FBP_TO_DOT))
 cheat-sheet: $(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_RESOURCES) $(all-desc-jsons)
 	$(Q)echo "     "GEN"   "$(CHEAT_SHEET_INDEX_HTML)
 	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(all-desc-jsons)
+	$(Q)$(GEN_SVG_SCRIPT) "$(abspath $(SOL_FBP_TO_DOT_BIN))" $(SVG_OUTPUT_DIR)
+endif
 
 PHONY += cheat-sheet
