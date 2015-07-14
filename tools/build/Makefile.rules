@@ -196,7 +196,7 @@ $(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
 define make-test
 $(test-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "TST"   "$$@
-	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(all-cflags) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) $(builtin-objs) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_LDFLAGS) $(test-$(1)-ldflags) $(all-ldflags)
+	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) $(builtin-objs) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_LDFLAGS) $(test-$(1)-ldflags)
 
 endef
 $(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
