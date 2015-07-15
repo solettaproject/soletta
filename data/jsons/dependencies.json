@@ -251,6 +251,16 @@
 	    "type": "python",
 	    "pkgname": "jsonschema",
 	    "required": true
+	},
+	{
+	    "dependency": "coverage",
+	    "type": "ccode",
+            "ldflags": {
+                "value": "-lgcov"
+            },
+            "cflags": {
+                "value": "-fprofile-arcs -ftest-coverage"
+            }
 	}
     ]
 }
