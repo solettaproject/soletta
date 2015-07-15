@@ -79,11 +79,23 @@ uart2_rx(void *data, struct sol_uart *uart, unsigned char read_char)
 }
 
 static void
-uart_tx_completed(void *data, struct sol_uart *uart, int status)
+uart_tx_completed(void *data, struct sol_uart *uart, unsigned char *tx, int status)
 {
     const char *string = data;
 
     printf("%s\n", string);
+}
+
+static void
+uart1_tx_completed(void *data, struct sol_uart *uart, unsigned char *tx, int status)
+{
+    const char *string = data;
+
+    printf("%s\n", string);
+
+    sprintf((char *)tx, "async");
+    sol_uart_write(uart, tx, strlen((char *)tx) + 1,
+        uart_tx_completed, "Uart1 transmission completed.");
 }
 
 int
@@ -91,7 +103,7 @@ main(int argc, char *argv[])
 {
     struct sol_uart *uart1, *uart2;
     struct sol_uart_config config;
-    char buf[64];
+    char uart1_buffer[8], uart2_buffer[8];
 
     sol_init();
 
@@ -116,17 +128,15 @@ main(int argc, char *argv[])
         goto error;
     }
 
-    sprintf(buf, "Hello");
-    sol_uart_write(uart1, (unsigned char *)buf, strlen(buf) + 1,
-        uart_tx_completed, "Uart1 transmission completed.");
+    sprintf(uart1_buffer, "Hello");
+    sol_uart_write(uart1, (unsigned char *)uart1_buffer,
+        strlen(uart1_buffer) + 1, uart1_tx_completed,
+        "Uart1 transmission completed.");
 
-    sprintf(buf, "async");
-    sol_uart_write(uart1, (unsigned char *)buf, strlen(buf) + 1,
-        uart_tx_completed, "Uart1 transmission completed.");
-
-    sprintf(buf, "world");
-    sol_uart_write(uart2, (unsigned char *)buf, strlen(buf) + 1,
-        uart_tx_completed, "Uart2 transmission completed.");
+    sprintf(uart2_buffer, "world");
+    sol_uart_write(uart2, (unsigned char *)uart2_buffer,
+        strlen(uart2_buffer) + 1, uart_tx_completed,
+        "Uart2 transmission completed.");
 
     sol_run();
 

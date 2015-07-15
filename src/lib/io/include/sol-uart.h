@@ -119,8 +119,11 @@ void sol_uart_close(struct sol_uart *uart);
  * an error happen during the transmission
  * @param data the first parameter of tx_cb
  * @return true if transfer was started
+ *
+ * @note Caller should guarantee that tx buffer will not be freed until
+ * callback is called.
  */
-bool sol_uart_write(struct sol_uart *uart, const unsigned char *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, int status), const void *data);
+bool sol_uart_write(struct sol_uart *uart, const unsigned char *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, unsigned char *tx, int status), const void *data);
 
 /**
  * @}
