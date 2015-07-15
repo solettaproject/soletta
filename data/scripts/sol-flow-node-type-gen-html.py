@@ -43,7 +43,7 @@ import re
 
 def print_option(outfile, option):
     outfile.write("""\
-["%(name)s", "%(data_type)s", "%(description)s", "%(default)s"],
+                    {name:"%(name)s", description:"%(description)s", dataType:"(data_type)s", required:true, defaults:"%(default)s"},
 """ % {
     "name": option["name"],
     "data_type": option["data_type"],
@@ -53,20 +53,32 @@ def print_option(outfile, option):
 
 def print_port(outfile, port):
     outfile.write("""\
-["%(name)s", "%(data_type)s", "%(description)s"],
+                    { name:"%(name)s", description:"%(description)s", dataType:"(data_type)s", required:true},
 """ % {
     "name": port["name"],
     "data_type": port["data_type"],
     "description": port["description"],
     })
 
+group_id = 0
+entry_id = 0
 
 def print_node_type(outfile, node_type):
+    global group_id
+    global entry_id
     outfile.write("""\
-var entry = new Entry("%(name)s", "%(description)s", [
+            var entry = new Entry({
+                id:"entry_%(group_id)s_%(entry_id)s",
+                name:"%(name)s",
+                categoryName:fullCategoryName,
+                categoryId:"category_%(group_id)s",
+                description:"%(description)s",
+                inputs:[
 """ % {
     "name": node_type["name"],
     "description": node_type["description"],
+    "group_id": str(group_id),
+    "entry_id": str(entry_id),
     })
 
     in_ports = node_type.get("in_ports")
@@ -75,7 +87,8 @@ var entry = new Entry("%(name)s", "%(description)s", [
             print_port(outfile, port)
 
     outfile.write("""\
-],[
+                ],
+                outputs:[
 """)
 
     out_ports = node_type.get("out_ports")
@@ -84,7 +97,8 @@ var entry = new Entry("%(name)s", "%(description)s", [
             print_port(outfile, port)
 
     outfile.write("""\
-],[
+                ],
+                options:[
 """)
 
     options = node_type.get("options")
@@ -95,14 +109,30 @@ var entry = new Entry("%(name)s", "%(description)s", [
                 print_option(outfile, option)
 
     outfile.write("""\
-]);
-entry.add(group);
+                ],
+                exampleList:[
 """)
 
-group_id = 0
+    # TODO add real examples
+    outfile.write("""\
+                    {large:'images/checker.jpg',thumb:'images/checker_thumb.jpg',code:'example 0 code here'},
+                    {large:'images/checker.jpg',thumb:'images/checker_thumb.jpg',code:'example 8 code here'}
+""")
+
+    outfile.write("""\
+                ],
+                exampleId:0,
+            });
+
+            entry.getElement().on('entry:select',onEntryEvent);
+            entry.getElement().on('entry:hover',onEntryEvent);
+""")
+    entry_id = entry_id + 1
 
 def print_description(outfile, description, infile):
     global group_id
+    global entry_id
+
     modules = description.keys()
     if len(modules) != 1:
         print("Warning: a single module is expected per file. Skiping %s" %
@@ -111,24 +141,29 @@ def print_description(outfile, description, infile):
 
     for module in description.keys():
         outfile.write("""\
-var groupId = "%(id)s";
-var category = new Category("%(name)s", "%(description)s", "category" + groupId);
-var menuItem = new MenuItem("%(name)s", "group" + groupId);
+            var fullCategoryName = "%(name)s";
 
-group = document.createElement("div");
-group.setAttribute("class","Group");
-group.setAttribute("id","group" + groupId);
-document.getElementById("content").appendChild(group);
-createdGroups.push("#group" + groupId);
-
+            var category = new Category({
+                id:"category_%(id)s",
+                categoryLabel:fullCategoryName,
+                menuLabel:fullCategoryName
+            });
 """ % {
     "id": str(group_id),
     "name": module,
-    "description": " ",
     })
-        group_id = group_id + 1
+
+        entry_id = 0
         for node_type in description[module]:
             print_node_type(outfile, node_type)
+
+        outfile.write("""\
+            $(category.getContents()).isotope({
+                itemSelector:".entry",
+                layoutMode:"masonry"
+            });
+""")
+        group_id = group_id + 1
 
 
 PLACEHOLDER = "<!-- PLACEHOLDER -->\n"
