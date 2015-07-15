@@ -44,9 +44,9 @@
 SOL_API int
 sol_drange_addition(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     result->val = var0->val + var1->val;
     result->step = DBL_MIN;
@@ -59,9 +59,9 @@ sol_drange_addition(const struct sol_drange *var0, const struct sol_drange *var1
 SOL_API int
 sol_drange_division(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     result->val = var0->val / var1->val;
     result->step = DBL_MIN;
@@ -74,9 +74,9 @@ sol_drange_division(const struct sol_drange *var0, const struct sol_drange *var1
 SOL_API int
 sol_drange_modulo(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     errno = 0;
     result->val = fmod(var0->val, var1->val);
@@ -95,9 +95,9 @@ sol_drange_modulo(const struct sol_drange *var0, const struct sol_drange *var1, 
 SOL_API int
 sol_drange_multiplication(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     result->step = DBL_MIN;
     result->val = var0->val * var1->val;
@@ -110,9 +110,9 @@ sol_drange_multiplication(const struct sol_drange *var0, const struct sol_drange
 SOL_API int
 sol_drange_subtraction(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     result->val = var0->val - var1->val;
     result->step = DBL_MIN;
@@ -184,9 +184,9 @@ sol_drange_equal(const struct sol_drange *var0, const struct sol_drange *var1)
 SOL_API int
 sol_irange_addition(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     if (SOL_IRANGE_ADDITION_OVERFLOW(var0->val, var1->val)) {
         SOL_WRN("Addition overflow: %" PRId32 ", %" PRId32, var0->val, var1->val);
@@ -234,9 +234,9 @@ sol_irange_equal(const struct sol_irange *var0, const struct sol_irange *var1)
 SOL_API int
 sol_irange_division(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     if (var1->val == 0) {
         SOL_WRN("Division by zero: %" PRId32 ", %" PRId32, var0->val, var1->val);
@@ -262,9 +262,9 @@ sol_irange_division(const struct sol_irange *var0, const struct sol_irange *var1
 SOL_API int
 sol_irange_modulo(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     if (var1->val == 0) {
         SOL_WRN("Modulo by zero: %" PRId32 ", %" PRId32, var0->val, var1->val);
@@ -290,9 +290,9 @@ sol_irange_modulo(const struct sol_irange *var0, const struct sol_irange *var1, 
 SOL_API int
 sol_irange_multiplication(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     result->step = 1;
 
@@ -325,9 +325,9 @@ sol_irange_multiplication(const struct sol_irange *var0, const struct sol_irange
 SOL_API int
 sol_irange_subtraction(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result)
 {
-    SOL_NULL_CHECK(var0, -EBADR);
-    SOL_NULL_CHECK(var1, -EBADR);
-    SOL_NULL_CHECK(result, -EBADR);
+    SOL_NULL_CHECK(var0, -EINVAL);
+    SOL_NULL_CHECK(var1, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
 
     if (SOL_IRANGE_SUBTRACTION_OVERFLOW(var0->val, var1->val)) {
         SOL_WRN("Subtraction overflow: %" PRId32 ", %" PRId32, var0->val, var1->val);

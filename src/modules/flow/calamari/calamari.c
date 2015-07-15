@@ -373,7 +373,7 @@ calamari_lever_spi_read(struct sol_spi *spi)
     uint8_t rx[ARRAY_SIZE(tx)] = { 0x00, };
 
     if (!sol_spi_transfer(spi, tx, rx, ARRAY_SIZE(tx)))
-        return -EBADR;
+        return -EIO;
 
     for (i = ARRAY_SIZE(rx) - 1, value = 0; i >= 0; i--) {
         value |= rx[i] << 8 * (ARRAY_SIZE(rx) - 1 - i);
@@ -425,7 +425,7 @@ calamari_lever_process_poll(struct sol_flow_node *node, void *data, uint16_t por
 {
     struct calamari_lever_data *mdata = data;
 
-    SOL_NULL_CHECK(mdata, -EBADR);
+    SOL_NULL_CHECK(mdata, -EINVAL);
 
     mdata->forced = true;
 

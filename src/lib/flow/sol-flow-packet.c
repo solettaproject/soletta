@@ -79,7 +79,7 @@ packet_default_get(const struct sol_flow_packet_type *type, const void *mem, voi
 static int
 packet_default_init(const struct sol_flow_packet_type *type, void *mem, const void *input)
 {
-    SOL_NULL_CHECK(mem, -EBADR);
+    SOL_NULL_CHECK(mem, -EINVAL);
     memcpy(mem, input, type->data_size);
     return 0;
 }
@@ -184,9 +184,9 @@ sol_flow_packet_get(const struct sol_flow_packet *packet, void *output)
     const struct sol_flow_packet_type *type;
     const void *mem;
 
-    SOL_NULL_CHECK(packet, -EBADR);
-    SOL_NULL_CHECK(packet->type, -EBADR);
-    SOL_NULL_CHECK(output, -EBADR);
+    SOL_NULL_CHECK(packet, -EINVAL);
+    SOL_NULL_CHECK(packet->type, -EINVAL);
+    SOL_NULL_CHECK(output, -EINVAL);
 
     type = packet->type;
     mem = sol_flow_packet_get_memory(packet);
@@ -272,7 +272,7 @@ sol_flow_packet_new_boolean(bool boolean)
 SOL_API int
 sol_flow_packet_get_boolean(const struct sol_flow_packet *packet, bool *boolean)
 {
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_BOOLEAN, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_BOOLEAN, -EINVAL);
     return sol_flow_packet_get(packet, boolean);
 }
 
@@ -306,7 +306,7 @@ sol_flow_packet_new_irange_value(int32_t value)
 SOL_API int
 sol_flow_packet_get_irange(const struct sol_flow_packet *packet, struct sol_irange *irange)
 {
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_IRANGE, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_IRANGE, -EINVAL);
     return sol_flow_packet_get(packet, irange);
 }
 
@@ -316,8 +316,8 @@ sol_flow_packet_get_irange_value(const struct sol_flow_packet *packet, int32_t *
     struct sol_irange ret;
     int ret_val;
 
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_IRANGE, -EBADR);
-    SOL_NULL_CHECK(value, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_IRANGE, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
 
     ret_val = sol_flow_packet_get(packet, &ret);
     if (ret_val == 0) {
@@ -364,7 +364,7 @@ sol_flow_packet_new_string(const char *value)
 SOL_API int
 sol_flow_packet_get_string(const struct sol_flow_packet *packet, const char **value)
 {
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_STRING, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_STRING, -EINVAL);
     return sol_flow_packet_get(packet, value);
 }
 
@@ -440,7 +440,7 @@ sol_flow_packet_new_blob(const struct sol_blob *blob)
 SOL_API int
 sol_flow_packet_get_blob(const struct sol_flow_packet *packet, struct sol_blob **value)
 {
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_BLOB, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_BLOB, -EINVAL);
     return sol_flow_packet_get(packet, value);
 }
 
@@ -474,7 +474,7 @@ sol_flow_packet_new_drange_value(double value)
 SOL_API int
 sol_flow_packet_get_drange(const struct sol_flow_packet *packet, struct sol_drange *drange)
 {
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DRANGE, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DRANGE, -EINVAL);
     return sol_flow_packet_get(packet, drange);
 }
 
@@ -484,8 +484,8 @@ sol_flow_packet_get_drange_value(const struct sol_flow_packet *packet, double *v
     struct sol_drange ret;
     int ret_val;
 
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DRANGE, -EBADR);
-    SOL_NULL_CHECK(value, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DRANGE, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
 
     ret_val = sol_flow_packet_get(packet, &ret);
     if (ret_val == 0) {
@@ -511,7 +511,7 @@ sol_flow_packet_new_byte(unsigned char byte)
 SOL_API int
 sol_flow_packet_get_byte(const struct sol_flow_packet *packet, unsigned char *byte)
 {
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_BYTE, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_BYTE, -EINVAL);
     return sol_flow_packet_get(packet, byte);
 }
 
@@ -546,7 +546,7 @@ sol_flow_packet_new_rgb_components(uint32_t red, uint32_t green, uint32_t blue)
 SOL_API int
 sol_flow_packet_get_rgb(const struct sol_flow_packet *packet, struct sol_rgb *rgb)
 {
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_RGB, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_RGB, -EINVAL);
     return sol_flow_packet_get(packet, rgb);
 }
 
@@ -556,7 +556,7 @@ sol_flow_packet_get_rgb_components(const struct sol_flow_packet *packet, uint32_
     struct sol_rgb ret;
     int ret_val;
 
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_RGB, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_RGB, -EINVAL);
     ret_val = sol_flow_packet_get(packet, &ret);
     if (ret_val == 0) {
         if (red) *red = ret.red;
@@ -597,7 +597,7 @@ sol_flow_packet_new_direction_vector_components(double x, double y, double z)
 SOL_API int
 sol_flow_packet_get_direction_vector(const struct sol_flow_packet *packet, struct sol_direction_vector *direction_vector)
 {
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR, -EINVAL);
     return sol_flow_packet_get(packet, direction_vector);
 }
 
@@ -607,7 +607,7 @@ sol_flow_packet_get_direction_vector_components(const struct sol_flow_packet *pa
     struct sol_direction_vector ret;
     int ret_val;
 
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR, -EINVAL);
     ret_val = sol_flow_packet_get(packet, &ret);
     if (ret_val == 0) {
         if (x) *x = ret.x;
@@ -675,7 +675,7 @@ sol_flow_packet_get_error(const struct sol_flow_packet *packet, int *code, const
     struct error_data error;
     int ret;
 
-    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_ERROR, -EBADR);
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_ERROR, -EINVAL);
     ret = sol_flow_packet_get(packet, &error);
     SOL_INT_CHECK(ret, != 0, ret);
 
