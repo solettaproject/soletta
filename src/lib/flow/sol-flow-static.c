@@ -444,6 +444,8 @@ error_nodes:
     for (i--; i >= 0; i--)
         sol_flow_node_fini(fsd->nodes[i]);
 
+    sol_timeout_del(fsd->delay_send);
+
 error_alloc:
     free(fsd->node_storage);
     free(fsd->nodes);
