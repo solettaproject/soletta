@@ -335,11 +335,11 @@ static int
         print_data_struct(outfile, struct)
         if "options" in data:
             outfile.write("""\
-    const struct %(name_c)s_options *opts;
+    const struct sol_flow_node_type_%(name_c)s_options *opts;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, %(NAME_C)s_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_%(NAME_C)s_OPTIONS_API_VERSION,
                                        -EINVAL);
-    opts = (const struct %(name_c)s_options *)options;
+    opts = (const struct sol_flow_node_type_%(name_c)s_options *)options;
 
 """ % {
     "name_c": data["name_c"],
