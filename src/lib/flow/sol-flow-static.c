@@ -394,7 +394,7 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
      * that timeouts coming from nodes' init/open functions and that
      * may produce packets will always have them delivered */
     r = flow_delay_send(node, fsd);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error_alloc);
 
     sol_list_init(&fsd->delayed_packets);
 
