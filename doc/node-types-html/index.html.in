@@ -1,41 +1,155 @@
 <!doctype html>
 <html lang="en">
 <head>
-<title>{ Soletta Cheat Sheet }</title>
-<link rel="stylesheet" type="text/css" href="styles.css">
-<script type="text/javascript" src="js/isotope.pkgd.min.js"></script>
-<script type="text/javascript" src="js/Entry.js"></script>
-<script type="text/javascript" src="js/Category.js"></script>
-<script type="text/javascript" src="js/MenuItem.js"></script>
-<script type="text/javascript">
+    <title>{ Soletta Node Types }</title>
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <link rel="stylesheet" type="text/css" href="css/jquery-ui.min.css">
 
-function init()
-{
-    var group;
-    var createdGroups = [];
+    <!-- frameworks !-->
+    <script type="text/javascript" src="js/frameworks/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="js/frameworks/isotope.pkgd.min.js"></script>
+    <script type="text/javascript" src="js/frameworks/jquery-ui.min.js"></script>
+
+    <!-- internal scripts !-->
+    <script type="text/javascript" src="js/page/CategoryLabel.js"></script>
+    <script type="text/javascript" src="js/page/Category.js"></script>
+    <script type="text/javascript" src="js/page/Entry.js"></script>
+    <script type="text/javascript" src="js/page/MenuItem.js"></script>
+    <script type="text/javascript" src="js/page/ExamplesView.js"></script>
+
+    <!-- page scripts !-->
+    <script type="text/javascript">
+
+        $(document).ready(function(){
+
+            /* initializing UI */
+            $("#example").hide();
+            $('#example').on('examples:closed',onExamplesClosed);
+
+            var examplesView = new ExamplesView();
+            var lastScrollPosition = 0;
+            var over = false; /* to control the event bubbling to repeat itself */
 
 <!-- PLACEHOLDER -->
 
-    for(i = 0; i<createdGroups.length; i++)
-    {
-        var container = document.querySelector(createdGroups[i]);
-        var iso = new Isotope(container,{
-            itemSelector:'.Entry',
-            layoutMode:'masonry',
-            columnWidth:450
+            function onExamplesClosed(event){
+                $('#contents').fadeIn(250,onFadeInCompleted);
+            }
+
+            function onFadeInCompleted(event){
+                window.scrollTo(0, lastScrollPosition);
+            }
+
+            /* ENTRY CUSTOM EVENTS
+             * ------------------------------------
+             * Handles the custom events dispatched
+             * by the Entry obejct
+             */
+            function onEntryEvent(event,_data){
+                if(event.type == 'entry:hover'){
+                    /* mouse over the entry cards */
+                    event.stopPropagation;
+                    cover.on("mouseleave",hideCover);
+                    showCover($(event.target),_data);
+                } else if(event.type == 'entry:select'){
+                    /* selected a entry card to see examples */
+                    lastScrollPosition = $(document).scrollTop();
+                    $('#contents').hide();
+                    window.scrollTo(0, 0);
+                    examplesView.show(_data);
+                }
+            }
+
+            /* COVER BOX FUNCTIONALITY
+             * --------------------------------------------------------------
+             * Defines the behaviour of the entries when the mouse rolls over
+             */
+            var cover = $("<div></div>");
+            cover.append('<div id="cover-header" class="cover-header"></div>');
+            cover.addClass("cover");
+            cover.attr("id","cover");
+
+            var button = $("<img>");
+            button.attr("src","images/button_example.png");
+            button.addClass("button-example");
+            cover.append(button);
+
+            function showCover(entry,_data){
+                if(!over){
+                    $('#cover-header').empty();
+
+                    over = true;
+                    cover.css('height',entry.height());
+                    cover.appendTo(entry);
+
+                    /* adding info */
+                    $('#cover-header').append('<span class="cover-name">'+_data['name']+'</span><br>');
+                    $('#cover-header').append('<span class="cover-description">'+_data['description']+'</span>');
+
+                    /* hiding for animation */
+                    cover.stop().show().css('opacity',0).animate({opacity:1},150);
+                }
+            }
+            function hideCover(event){
+                if(over){
+                    over = false;
+                    cover.stop().animate({opacity:0},200,function(){
+                        cover.hide();
+                    });
+                }
+
+            }
+
+            /* MENU SCROLLING BEHAVIOUR
+             * -----------------------------------------------------------
+             * Defines how the menu will behave when the user clicks on it
+             * or when the user scrolls the page up or down
+             */
+            $('a[href^="#"]').on('click',onMenuItemClick);
+
+            function onMenuItemClick(event){
+                event.preventDefault;
+                $(document).off('scroll');
+
+                /* removing all active elements */
+                $('#navigation a').each(function(){
+                    $(this).removeClass('active');
+                });
+
+                /* adding the active class to the selected object */
+                $(this).addClass('active');
+                var hashString = String(this.hash);
+                var target = $(hashString);
+
+                /* animating the page scroll to the target category */
+                $('html, body').stop().animate(
+                    {'scrollTop':target.offset().top - 101 - 91},
+                    1200,
+                    'swing',
+                    function(){
+                        window.location.hash = hashString;
+                    }
+                )
+            }
         });
-    }
-}
-</script>
+    </script>
 
 </head>
-<body onLoad="init()">
+<body>
 
-  <div class="Container"  id="container">
-    <img src="images/logo.jpg" class="Logo">
-    <div class="Sidebar" id="sideBar"></div>
-    <div class="Content" id="content"></div>
-  </div>
-
+    <div id="top"><img src="images/label_cheat_sheet.png" id="title-image"/></div>
+    <div id="sidebar">
+        <div class="menu-label">NODE TYPES</div>
+        <nav class="">
+            <ul id="navigation">
+            </ul>
+        </nav>
+    </div>
+    <div id="contents"></div>
+    <div id='example'>
+        <div id="example-header"><img src="images/button_back.png" class="button-back"></div>
+        <div id='example-info'></div>
+        <div id="example-image-container"></div>
+    </div>
 </body>
 </html>

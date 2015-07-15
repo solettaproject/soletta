@@ -1,0 +1,247 @@
+/* This file is part of the Soletta Project
+ *
+ * Copyright (C) 2015 Intel Corporation. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *   * Neither the name of Intel Corporation nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+body{
+    margin: 0px;
+    background-color: rgba(45,50,55,1);
+    font-family: sans-serif;
+}
+.transparent{
+    background-color: rgba(255,255,255,0.1);
+}
+#top{
+    background-color: rgba(45,50,55,0.9);
+    height:101px;
+    position: fixed;
+    right: 0px;
+    left:0px;
+    z-index: 10;
+}
+#title-image{
+    position: absolute;
+    left:64px;
+    top:25px;
+}
+#sidebar{
+    position: absolute;
+    top:101px;
+    width:263px;
+}
+#contents{
+    position: absolute;
+    top:101px;
+    right:0px;
+    left:263px;
+    margin-bottom: 50px;
+}
+.category{
+    /*category definitions goes here*/
+}
+.category-label{
+    height: 34px;
+    color: #33b7e9;
+    font-weight: bold;
+    font-size: 0.8em;
+    padding-top: 57px;
+}
+.menu-label{
+    color: #33b7e9;
+    font-weight: bold;
+    font-size: 0.8em;
+    height: 34px;
+    padding-top: 57px;
+    padding-left: 66px;
+}
+.entry{
+    width: 350px;
+    border-radius: 3px;
+    background-color: #cfd2d5;
+    margin-right: 17px;
+    margin-bottom: 17px;
+}
+.entry-header{
+    min-height: 121px;
+    background-color: #33b7e9;
+    padding-top: 30px;
+    padding-left: 24px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+}
+.entry-name{
+    color: white;
+    font-weight: bold;
+    font-size: 1.4em;
+}
+.entry-description{
+    color: white;
+    font-size: 1em;
+}
+.entry-separator{
+    height:20px;
+    background-color:#bfc2c5;
+    color:#222529;
+    font-size: 0.75em;
+    font-weight: bold;
+    padding-left: 24px;
+    padding-top: 5px;
+}
+.entry ul{
+    padding-left: 24px;
+}
+.entry li{
+    color:#222529;
+    list-style: none;
+    margin: 0 0 10px 0;
+    padding: 0;
+    font-size: 0.95em;
+}
+.cover{
+    border-radius:2px;
+    width: 350px;
+    height:351px;
+    background-color: rgba(26,31,35,0.9);
+    position: absolute;
+    top:0px;
+    left:0px;
+    cursor:pointer;
+    cursor:hand;
+    color: white;
+}
+.cover-header{
+    min-height: 121px;
+    padding-top: 30px;
+    padding-left: 24px;
+}
+.cover-name{
+    font-weight: bold;
+    font-size: 1.4em;
+}
+.cover-description{
+    font-size: 1em;
+}
+#example{
+    position: absolute;
+    top:101px;
+    bottom:59px;
+    right:59px;
+    left:263px;
+    overflow: hidden;
+}
+#example-header{
+    height: 91px;
+    border-color: #4c5155;
+    border-bottom-style: dotted;
+    border-bottom-width: 1px;
+}
+#example-info{
+    position: absolute;
+    margin-top: 32px;
+    width: 291px; /*fixed size*/
+    right:0px;
+    top:91px;
+    bottom:0px;
+}
+#example-image-container{
+    position: absolute;
+    top:123px;
+    background-color: rgba(255,255,255,0.05);
+    overflow: hidden;
+}
+.example-thumb{
+    float: left;
+    margin-bottom: 8px;
+    margin-right: 8px;
+    cursor: pointer;
+    overflow: hidden;
+}
+.example-thumb-active{
+    outline: #33b7e9 solid 5px;
+    outline-offset: -5px;
+}
+#example-get-code{
+    cursor: pointer;
+    margin-top: 51px;
+}
+#example-code-copied{
+    margin-top: 51px;
+}
+#example-info h1{
+    color: white;
+    float:left;
+    clear: both;
+    margin: 0;
+}
+#example-info p{
+    float: left;
+    clear: both;
+    color: white;
+    width: 291px;
+    margin-bottom: 50px;
+}
+.button-example{
+    position:absolute;
+    bottom:92px;
+    left:72px;
+}
+.button-back{
+    cursor: pointer;
+    margin-top: 50px;
+}
+nav ul{
+    list-style-type: none;
+    margin:0;
+    margin-left: 39px;
+    margin-right: 39px;
+    padding: 0;
+}
+nav li{
+    margin-left: 27px;
+    height: 23px;
+    padding-top: 5px;
+    border-color: #4c5155;
+    border-top-style: dotted;
+    border-top-width: 1px;
+}
+nav li a{
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 0.9em;
+    color:#afb2b6;
+}
+nav li a:hover{
+    color:white;
+}
+a{
+    text-decoration: none;
+}
+.active{
+    color:white;
+}
