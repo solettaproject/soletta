@@ -63,5 +63,11 @@ for f in $(find src/ -name \*.fbp); do
 
     dir=$(dirname $f)
     mkdir -p $OUTPUT/$dir
+
+    # Copy fbp used to generate svg removing license.
+    # It's going to be used to display code snippets, having 30 lines
+    # of license is annyoing.
+    awk -v filter=0 -e '{if ($0 ~ "This file is part of the Soletta") filter=1; if (filter==0) print; if ($0 ~ "SUCH DAMAGE") filter=0;}' < $f > $OUTPUT/$f
+
     $FBP_TO_DOT --fbp=$f --dot=/dev/stdout | dot -Tsvg > $OUTPUT/${f/.fbp/.svg}
 done
