@@ -47,7 +47,7 @@ string_received(void)
 }
 
 static void
-uart1_rx(struct sol_uart *uart, char read_char, void *data)
+uart1_rx(void *data, struct sol_uart *uart, char read_char)
 {
     static int index = 0;
     static char string[64];
@@ -63,7 +63,7 @@ uart1_rx(struct sol_uart *uart, char read_char, void *data)
 }
 
 static void
-uart2_rx(struct sol_uart *uart, char read_char, void *data)
+uart2_rx(void *data, struct sol_uart *uart, char read_char)
 {
     static int index = 0;
     static char string[64];
@@ -79,7 +79,7 @@ uart2_rx(struct sol_uart *uart, char read_char, void *data)
 }
 
 static void
-uart_tx_completed(struct sol_uart *uart, int status, void *data)
+uart_tx_completed(void *data, struct sol_uart *uart, int status)
 {
     const char *string = data;
 
@@ -94,59 +94,37 @@ main(int argc, char *argv[])
 
     sol_init();
 
-    uart1 = sol_uart_open("ttyUSB0");
+    uart1 = sol_uart_open("ttyUSB0", SOL_UART_SPEED_9600, SOL_UART_DATA_BITS_8,
+                          SOL_UART_PARITY_DISABLE, SOL_UART_STOP_BITS_ONE,
+                          false, uart1_rx, NULL);
     if (!uart1) {
         printf("Unable to get uart1.\n");
         goto error_uart1;
     }
 
-    uart2 = sol_uart_open("ttyUSB1");
+    uart2 = sol_uart_open("ttyUSB1", SOL_UART_SPEED_9600, SOL_UART_DATA_BITS_8,
+                          SOL_UART_PARITY_DISABLE, SOL_UART_STOP_BITS_ONE,
+                          false, uart2_rx, NULL);
     if (!uart2) {
         printf("Unable to get uart2.\n");
         goto error;
     }
 
-    if (!sol_uart_set_baud_rate(uart1, 9600)) {
-        printf("Error setting baud rate on uart1.\n");
-        goto error;
-    }
-
-    if (!sol_uart_set_baud_rate(uart2, 9600)) {
-        printf("Error setting baud rate on uart2.\n");
-        goto error;
-    }
-
-    if (!sol_uart_set_data_bits_length(uart1, 8)) {
-        printf("Error setting data bits length on uart1.\n");
-        goto error;
-    }
-
-    if (!sol_uart_set_data_bits_length(uart2, 8)) {
-        printf("Error setting data bits length on uart2.\n");
-        goto error;
-    }
-
-    sol_uart_set_rx_callback(uart1, uart1_rx, NULL);
-    sol_uart_set_rx_callback(uart2, uart2_rx, NULL);
-
     sprintf(buf, "Hello");
     sol_uart_write(uart1, buf, strlen(buf) + 1, uart_tx_completed,
-        "Uart1 transmission completed.");
+                   "Uart1 transmission completed.");
 
     sprintf(buf, "async");
     sol_uart_write(uart1, buf, strlen(buf) + 1, uart_tx_completed,
-        "Uart1 transmission completed.");
+                   "Uart1 transmission completed.");
 
     sprintf(buf, "world");
     sol_uart_write(uart2, buf, strlen(buf) + 1, uart_tx_completed,
-        "Uart2 transmission completed.");
+                   "Uart2 transmission completed.");
 
     sol_run();
 
     sol_shutdown();
-
-    sol_uart_del_rx_callback(uart1);
-    sol_uart_del_rx_callback(uart2);
 
     sol_uart_close(uart1);
     sol_uart_close(uart2);

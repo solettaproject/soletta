@@ -48,16 +48,14 @@
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 
-#define REG_SET(reg, reg_mask, value) reg = ((reg & ~reg_mask) | value)
-
 #define FD_ERROR_FLAGS (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_NVAL)
 
 struct sol_uart {
     int fd;
     struct {
         void *rx_fd_handler;
-        void (*rx_cb)(struct sol_uart *uart, char read_char, void *data);
-        void *rx_user_data;
+        void (*rx_cb)(void *data, struct sol_uart *uart, char read_char);
+        const void *rx_user_data;
 
         void *tx_fd_handler;
         struct sol_vector tx_queue;
@@ -68,17 +66,52 @@ struct uart_write_data {
     char *buffer;
     unsigned int length;
     unsigned int index;
-    void (*cb)(struct sol_uart *uart, int write, void *data);
-    void *user_data;
+    void (*cb)(void *data, struct sol_uart *uart, int write);
+    const void *user_data;
 };
 
+static bool
+uart_rx_callback(void *data, int fd, unsigned int active_flags)
+{
+    struct sol_uart *uart = data;
+
+    if (active_flags & FD_ERROR_FLAGS) {
+        SOL_ERR("Some error flag was set on UART file descriptor %d.", fd);
+        return true;
+    }
+    if (active_flags & SOL_FD_FLAGS_IN) {
+        char buf[1];
+        int status = read(uart->fd, buf, sizeof(buf));
+        if (status > 0)
+            uart->async.rx_cb((void *) uart->async.rx_user_data, uart, buf[0]);
+    }
+    return true;
+}
+
 SOL_API struct sol_uart *
-sol_uart_open(const char *port_name)
+sol_uart_open(const char *port_name, enum sol_uart_speed speed,
+              enum sol_uart_data_bits data_bits, enum sol_uart_parity parity,
+              enum sol_uart_stop_bits stop_bits, bool flow_control,
+              void (*rx_cb)(void *user_data, struct sol_uart *uart, char read_char),
+              const void *rx_cb_user_data)
 {
     struct sol_uart *uart;
     struct termios tty;
     char device[PATH_MAX];
     int r;
+    const speed_t speed_table[] = {
+        [SOL_UART_SPEED_9600] = B9600,
+        [SOL_UART_SPEED_19200] = B19200,
+        [SOL_UART_SPEED_38400] = B38400,
+        [SOL_UART_SPEED_57600] = B57600,
+        [SOL_UART_SPEED_115200] = B115200
+    };
+    const uint32_t data_bits_table[] = {
+        [SOL_UART_DATA_BITS_8] = CS8,
+        [SOL_UART_DATA_BITS_7] = CS7,
+        [SOL_UART_DATA_BITS_6] = CS6,
+        [SOL_UART_DATA_BITS_5] = CS5
+    };
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
@@ -97,17 +130,50 @@ sol_uart_open(const char *port_name)
     }
 
     memset(&tty, 0, sizeof(struct termios));
-    if (tcsetattr(uart->fd, TCSANOW, &tty) != 0) {
-        SOL_ERR("Unable to set default configuration of UART.");
-        goto tcsetattr_fail;
+
+    if (cfsetospeed(&tty, speed_table[speed]) != 0)
+        goto fail;
+    if (cfsetispeed(&tty, B0) != 0)
+        goto fail;
+
+    tty.c_cflag |= data_bits_table[data_bits];
+
+    if (parity != SOL_UART_PARITY_DISABLE) {
+        tty.c_cflag |= PARENB;
+        tty.c_iflag |= INPCK;
+        if (parity == SOL_UART_PARITY_ENABLE_ODD)
+            tty.c_cflag |= PARODD;
     }
 
+    if (stop_bits == SOL_UART_STOP_BITS_TWO)
+        tty.c_cflag |= CSTOPB;
+
+    if (flow_control) {
+        tty.c_cflag |= CRTSCTS;
+        tty.c_iflag |= (IXON | IXOFF | IXANY);
+    }
+
+    if (tcsetattr(uart->fd, TCSANOW, &tty) != 0) {
+        SOL_ERR("Unable to set UART configuration.");
+        goto fail;
+    }
     tcflush(uart->fd, TCIOFLUSH);
+
     sol_vector_init(&uart->async.tx_queue, sizeof(struct uart_write_data));
+
+    uart->async.rx_fd_handler = sol_fd_add(uart->fd,
+                                           FD_ERROR_FLAGS | SOL_FD_FLAGS_IN,
+                                           uart_rx_callback, uart);
+    if (!uart->async.rx_fd_handler) {
+        SOL_ERR("Unable to add file descriptor to watch UART.");
+        goto fail;
+    }
+    uart->async.rx_cb = rx_cb;
+    uart->async.rx_user_data = rx_cb_user_data;
 
     return uart;
 
-tcsetattr_fail:
+fail:
     close(uart->fd);
 open_fail:
     free(uart);
@@ -121,7 +187,7 @@ clean_tx_queue(struct sol_uart *uart, int error_code)
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (&uart->async.tx_queue, write_data, i) {
-        write_data->cb(uart, -1, write_data->user_data);
+        write_data->cb((void *) write_data->user_data, uart, -1);
         free(write_data->buffer);
     }
     sol_vector_clear(&uart->async.tx_queue);
@@ -140,278 +206,6 @@ sol_uart_close(struct sol_uart *uart)
     free(uart);
 }
 
-static speed_t
-uint_to_speed(uint32_t baud_rate)
-{
-    switch (baud_rate) {
-    case 230400:
-        return B230400;
-    case 115200:
-        return B115200;
-    case 57600:
-        return B57600;
-    case 38400:
-        return B38400;
-    case 19200:
-        return B19200;
-    case 9600:
-        return B9600;
-    case 4800:
-        return B4800;
-    case 2400:
-        return B2400;
-    case 1800:
-        return B1800;
-    default:
-    case 0:
-        return B0;
-    }
-}
-
-SOL_API bool
-sol_uart_set_baud_rate(struct sol_uart *uart, uint32_t baud_rate)
-{
-    struct termios tty;
-
-    SOL_NULL_CHECK(uart, false);
-
-    if (tcgetattr(uart->fd, &tty) != 0) {
-        SOL_ERR("Unable to get UART settings.");
-        return false;
-    }
-
-    if (cfsetospeed(&tty, uint_to_speed(baud_rate)) != 0)
-        goto error_setting_baud_rate;
-
-    if (cfsetispeed(&tty, B0) != 0)
-        goto error_setting_baud_rate;
-
-    if (tcsetattr(uart->fd, TCSANOW, &tty) != 0)
-        goto error_setting_baud_rate;
-
-    return true;
-
-error_setting_baud_rate:
-    SOL_ERR("Error setting baud rate.");
-    return false;
-}
-
-static uint32_t
-speed_to_uint(speed_t baud_rate)
-{
-    switch (baud_rate) {
-    case B230400:
-        return 230400;
-    case B115200:
-        return 115200;
-    case B57600:
-        return 57600;
-    case B38400:
-        return 38400;
-    case B19200:
-        return 19200;
-    case B9600:
-        return 9600;
-    case B4800:
-        return 4800;
-    case B2400:
-        return 2400;
-    case B1800:
-        return 1800;
-    default:
-    case B0:
-        return 0;
-    }
-}
-
-SOL_API uint32_t
-sol_uart_get_baud_rate(const struct sol_uart *uart)
-{
-    struct termios tty;
-
-    SOL_NULL_CHECK(uart, 0);
-
-    if (tcgetattr(uart->fd, &tty) != 0) {
-        SOL_ERR("Unable to get UART settings.");
-        return false;
-    }
-
-    return speed_to_uint(cfgetospeed(&tty));
-}
-
-SOL_API bool
-sol_uart_set_parity_bit(struct sol_uart *uart, bool enable, bool odd_paraty)
-{
-    struct termios tty;
-
-    SOL_NULL_CHECK(uart, false);
-
-    if (tcgetattr(uart->fd, &tty) != 0) {
-        SOL_ERR("Unable to get UART settings.");
-        return false;
-    }
-
-    REG_SET(tty.c_cflag, PARENB, enable ? PARENB : 0);
-    REG_SET(tty.c_iflag, INPCK, enable ? INPCK : 0);
-    REG_SET(tty.c_cflag, PARODD, odd_paraty ? PARODD : 0);
-
-    if (tcsetattr(uart->fd, TCSANOW, &tty) != 0) {
-        SOL_ERR("Error setting parity bit.");
-        return false;
-    }
-
-    return true;
-}
-
-static tcflag_t
-uart_get_control_flags(struct sol_uart *uart)
-{
-    struct termios tty;
-
-    if (tcgetattr(uart->fd, &tty) != 0) {
-        SOL_ERR("Unable to get UART settings.");
-        return 0;
-    }
-
-    return tty.c_cflag;
-}
-
-SOL_API bool
-sol_uart_get_parity_bit_enable(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, false);
-    return uart_get_control_flags(uart) & PARENB;
-}
-
-SOL_API bool
-sol_uart_get_parity_bit_odd(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, false);
-    return uart_get_control_flags(uart) & PARODD;
-}
-
-SOL_API bool
-sol_uart_set_data_bits_length(struct sol_uart *uart, uint8_t length)
-{
-    struct termios tty;
-    uint32_t reg_length_value = 0;
-
-    SOL_NULL_CHECK(uart, false);
-    SOL_INT_CHECK(length, < 5, false);
-    SOL_INT_CHECK(length, > 9, false);
-
-    if (tcgetattr(uart->fd, &tty) != 0) {
-        SOL_ERR("Unable to get UART settings.");
-        return false;
-    }
-
-    switch (length) {
-    case 5:
-        reg_length_value = CS5;
-        break;
-    case 6:
-        reg_length_value = CS6;
-        break;
-    case 7:
-        reg_length_value = CS7;
-        break;
-    case 8:
-        reg_length_value = CS8;
-    }
-
-    REG_SET(tty.c_cflag, CSIZE, reg_length_value);
-
-    if (tcsetattr(uart->fd, TCSANOW, &tty) != 0) {
-        SOL_ERR("Error setting data bit length.");
-        return false;
-    }
-
-    return true;
-}
-
-SOL_API uint8_t
-sol_uart_get_data_bits_length(struct sol_uart *uart)
-{
-    uint32_t reg_length_value;
-
-    SOL_NULL_CHECK(uart, false);
-
-    reg_length_value = uart_get_control_flags(uart) & CSIZE;
-    switch (reg_length_value) {
-    case CS5:
-        return 5;
-    case CS6:
-        return 6;
-    case CS7:
-        return 7;
-    case CS8:
-        return 8;
-    default:
-        return 0;
-    }
-}
-
-SOL_API bool
-sol_uart_set_stop_bits_length(struct sol_uart *uart, bool two_bits)
-{
-    struct termios tty;
-
-    SOL_NULL_CHECK(uart, false);
-
-    if (tcgetattr(uart->fd, &tty) != 0) {
-        SOL_ERR("Unable to get UART settings.");
-        return false;
-    }
-
-    REG_SET(tty.c_cflag, CSTOPB, two_bits ? CSTOPB : 0);
-
-    if (tcsetattr(uart->fd, TCSANOW, &tty) != 0) {
-        SOL_ERR("Error setting stop bit length.");
-        return false;
-    }
-
-    return true;
-}
-
-SOL_API uint8_t
-sol_uart_get_stop_bits_length(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, false);
-    return uart_get_control_flags(uart) & CSTOPB ? 2 : 1;
-}
-
-SOL_API bool
-sol_uart_set_flow_control(struct sol_uart *uart, bool enable)
-{
-    struct termios tty;
-
-    SOL_NULL_CHECK(uart, false);
-
-    if (tcgetattr(uart->fd, &tty) != 0) {
-        SOL_ERR("Unable to get UART settings.");
-        return false;
-    }
-
-    REG_SET(tty.c_cflag, CRTSCTS, enable ? CRTSCTS : 0);
-    REG_SET(tty.c_iflag, (IXON | IXOFF | IXANY),
-        enable ? (IXON | IXOFF | IXANY) : 0);
-
-    if (tcsetattr(uart->fd, TCSANOW, &tty) != 0) {
-        SOL_ERR("Error setting flow control.");
-        return false;
-    }
-
-    return true;
-}
-
-SOL_API bool
-sol_uart_get_flow_control(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart, false);
-
-    return uart_get_control_flags(uart) & CRTSCTS;
-}
-
 static bool
 uart_tx_callback(void *data, int fd, unsigned int active_flags)
 {
@@ -426,7 +220,7 @@ uart_tx_callback(void *data, int fd, unsigned int active_flags)
 
     if (write_data->index == write_data->length) {
         free(write_data->buffer);
-        write_data->cb(uart, write_data->index, write_data->user_data);
+        write_data->cb((void *) write_data->user_data, uart, write_data->index);
         sol_vector_del(&uart->async.tx_queue, 0);
 
         if (!uart->async.tx_queue.len) {
@@ -441,7 +235,7 @@ uart_tx_callback(void *data, int fd, unsigned int active_flags)
         write_data->length - write_data->index);
     if (ret < 0) {
         SOL_ERR("Error when writing to file descriptor %d.", fd);
-        write_data->cb(uart, ret, write_data->user_data);
+        write_data->cb((void *) write_data->user_data, uart, ret);
         free(write_data->buffer);
         sol_vector_del(&uart->async.tx_queue, 0);
         goto error;
@@ -456,7 +250,7 @@ error:
 }
 
 SOL_API bool
-sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(struct sol_uart *uart, int status, void *data), const void *data)
+sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, int status), const void *data)
 {
     struct uart_write_data *write_data;
 
@@ -477,7 +271,7 @@ sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void 
 
     memcpy(write_data->buffer, tx, length);
     write_data->cb = tx_cb;
-    write_data->user_data = (void *)data;
+    write_data->user_data = data;
     write_data->index = 0;
     write_data->length = length;
 
@@ -489,47 +283,4 @@ append_write_data_fail:
     sol_fd_del(uart->async.tx_fd_handler);
     uart->async.tx_fd_handler = NULL;
     return false;
-}
-
-static bool
-uart_rx_callback(void *data, int fd, unsigned int active_flags)
-{
-    struct sol_uart *uart = data;
-
-    if (active_flags & FD_ERROR_FLAGS) {
-        SOL_ERR("Some error flag was set on UART file descriptor %d.", fd);
-        return true;
-    }
-    if (active_flags & SOL_FD_FLAGS_IN) {
-        char buf[1];
-        int status = read(uart->fd, buf, sizeof(buf));
-        if (status > 0)
-            uart->async.rx_cb(uart, buf[0], uart->async.rx_user_data);
-    }
-    return true;
-}
-
-SOL_API bool
-sol_uart_set_rx_callback(struct sol_uart *uart, void (*rx_cb)(struct sol_uart *uart, char read_char, void *data), const void *data)
-{
-    SOL_NULL_CHECK(uart, false);
-    SOL_EXP_CHECK(uart->async.rx_fd_handler != NULL, false);
-
-    uart->async.rx_fd_handler = sol_fd_add(uart->fd,
-        FD_ERROR_FLAGS | SOL_FD_FLAGS_IN,
-        uart_rx_callback, uart);
-    SOL_NULL_CHECK(uart->async.rx_fd_handler, false);
-    uart->async.rx_cb = rx_cb;
-    uart->async.rx_user_data = (void *)data;
-    return true;
-}
-
-SOL_API void
-sol_uart_del_rx_callback(struct sol_uart *uart)
-{
-    SOL_NULL_CHECK(uart);
-    SOL_NULL_CHECK(uart->async.rx_fd_handler);
-
-    sol_fd_del(uart->async.rx_fd_handler);
-    uart->async.rx_fd_handler = NULL;
 }
