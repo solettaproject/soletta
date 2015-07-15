@@ -101,11 +101,11 @@ parse-bin = \
 	$(eval bins-out      += $(bin-$(1)-out)) \
 
 parse-test = \
-	$(eval test-$(1)-srcs := $(addprefix $(2),$(test-$(1)-y))) \
+	$(eval test-$(1)-srcs := $(addprefix $(2),$($(3)-$(1)-y))) \
 	$(eval test-$(1)-out  := $(addprefix $(2),$(1))) \
-	$(eval test-$(1)-cflags := $(test-$(1)-y-extra-cflags)) \
-	$(eval test-$(1)-ldflags := $(test-$(1)-y-extra-ldflags)) \
-	$(eval $(1)-deps      := $(subst .mod,,$(test-$(1)-y-deps))) \
+	$(eval test-$(1)-cflags := $($(3)-$(1)-y-extra-cflags)) \
+	$(eval test-$(1)-ldflags := $($(3)-$(1)-y-extra-ldflags)) \
+	$(eval $(1)-deps      := $(subst .mod,,$($(3)-$(1)-y-deps))) \
 	$(eval tests-out      += $(test-$(1)-out)) \
 
 parse-sample = \
@@ -114,7 +114,8 @@ parse-sample = \
 	$(eval $(1)-deps        := $(subst .mod,,$(sample-$(1)-y-deps))) \
 	$(eval samples-out      += $(sample-$(1)-out)) \
 
-clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) $(eval test-y:=) $(eval sample-y:=)
+clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) \
+		$(eval test-y:=) $(eval test-internal-y:=) $(eval sample-y:=)
 
 inc-subdirs = \
 	$(foreach subdir,$(SUBDIRS), $(clean-control) \
@@ -137,7 +138,11 @@ inc-subdirs = \
 		) \
 		$(eval tests += $(test-y)) \
 		$(foreach test,$(test-y), \
-			$(call parse-test,$(test),$(subdir)) \
+			$(call parse-test,$(test),$(subdir),test) \
+		) \
+		$(eval tests-internal += $(test-internal-y)) \
+		$(foreach test,$(test-internal-y), \
+			$(call parse-test,$(test),$(subdir),test-internal) \
 		) \
 		$(eval samples += $(sample-y)) \
 		$(foreach sample,$(sample-y), \
@@ -196,10 +201,18 @@ $(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
 define make-test
 $(test-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "TST"   "$$@
-	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) $(builtin-objs) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_LDFLAGS) $(test-$(1)-ldflags)
-
+	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) \
+	$(call find-deps,$(1)) -o $$@ $(TEST_LDFLAGS) $(test-$(1)-ldflags)
 endef
 $(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
+
+define make-test-internal
+$(test-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1))
+	$(Q)echo "     "TST"   "$$@
+	$(Q)$(TARGETCC) $(TEST_INT_CFLAGS) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) \
+	$(builtin-objs) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_INT_LDFLAGS) $(test-$(1)-ldflags)
+endef
+$(foreach curr,$(tests-internal),$(eval $(call make-test-internal,$(curr))))
 
 find-gen-hdrs = $(foreach gen,$($(2)-gens),$($(gen)-hdr))
 external-module-flags = -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 -DSOL_PIN_MUX_MODULE_EXTERNAL=1
