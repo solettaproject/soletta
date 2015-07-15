@@ -380,10 +380,8 @@ define clean-resource
 
 endef
 
-cleanup-files := $(shell find $(top_srcdir)src/ -name '*.o' -o -name '*.so' -o -name '*.a')
-cleanup-files += $(shell find $(top_srcdir) -name '*.gcda' -o -name '*.gcno')
-cleanup-files += $(CLEANUP_GEN) $(kconfig-clean-objs) $(BUILDDIR) $(CHEAT_SHEET_INDEX_HTML)
-cleanup-files += $(DOXYGEN_GENERATED)
+cleanup-files := $(tests-out) $(CLEANUP_GEN) $(kconfig-clean-objs)
+cleanup-files += $(BUILDDIR) $(CHEAT_SHEET_INDEX_HTML) $(DOXYGEN_GENERATED)
 
 clean:
 	$(foreach curr,$(wildcard $(cleanup-files)),$(call clean-resource,$(curr)))
