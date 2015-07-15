@@ -15,8 +15,7 @@
 
 static SOL_LOG_INTERNAL_DECLARE(_log_domain, "gpio");
 
-struct sol_gpio
-{
+struct sol_gpio {
     int pin;
     struct sensors_sensor *button_sensor;
     bool active_low;
@@ -30,6 +29,7 @@ static void
 event_handler_cb(void *user_data, process_event_t ev, process_data_t ev_data)
 {
     struct sol_gpio *gpio = user_data;
+
     gpio->irq.cb(gpio->irq.data, gpio);
 }
 
@@ -58,7 +58,7 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
                 continue;
             }
             if (i == pin) {
-                found = (struct sensors_sensor *) sensor;
+                found = (struct sensors_sensor *)sensor;
                 break;
             }
             sensor = sensors_next(sensor);
@@ -85,10 +85,10 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
 
     if (config->dir == SOL_GPIO_DIR_IN) {
         gpio->irq.cb = config->in.cb;
-        gpio->irq.data = (void *) config->in.user_data;
+        gpio->irq.data = (void *)config->in.user_data;
         if (config->in.cb)
             sol_mainloop_contiki_event_handler_add(&sensors_event, found,
-                                                   event_handler_cb, gpio);
+                event_handler_cb, gpio);
     } else
         sol_gpio_write(gpio, config->out.value);
 
@@ -101,8 +101,7 @@ sol_gpio_close(struct sol_gpio *gpio)
     SOL_NULL_CHECK(gpio);
     if (gpio->irq.cb)
         sol_mainloop_contiki_event_handler_del(&sensors_event,
-                                               gpio->button_sensor,
-                                               event_handler_cb, gpio);
+            gpio->button_sensorevent_handler_cb, gpio);
     free(gpio);
 }
 
