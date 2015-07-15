@@ -265,6 +265,11 @@
 	    "type": "python",
 	    "pkgname": "jsonschema",
 	    "required": true
+	},
+	{
+	    "dependency": "graphviz",
+	    "type": "exec",
+	    "exec": "dot"
 	}
     ]
 }
