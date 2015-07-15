@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import argparse
+import difflib
+import os
+import re
+import subprocess
+import sys
+
+def sh(cmd, cwd=None):
+    try:
+        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, cwd=cwd).decode('utf-8')
+        return out, 0
+    except subprocess.CalledProcessError as err:
+        return err.output.decode('utf-8'), err.returncode
+
+def is_valid_fbp(f):
+    return os.path.splitext(f)[1] == ".fbp"
+
+def collect_fbps_dir(dir, result):
+    for root, subdirs, files in os.walk(dir):
+        for f in files:
+            if is_valid_fbp(f):
+                result.append(os.path.join(root, f))
+        for d in subdirs:
+            collect_fbps_dir(d, result)
+
+
+def collect_fbps(fbps):
+    result = []
+
+    for t in args.fbps:
+        t = os.path.abspath(t)
+        if not os.path.exists(t):
+            print("Ignoring non-existent fbp file or directory", t)
+            continue
+
+        if os.path.isdir(t):
+            collect_fbps_dir(t, result)
+        elif is_valid_fbp(t):
+            result.append(t)
+
+    return result
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--generator", default="../build/soletta_sysroot/usr/bin/sol-fbp-generator", type=str)
+    parser.add_argument("--json_dir", default="../build/soletta_sysroot/usr/share/soletta/flow/descriptions", type=str)
+    parser.add_argument("fbps", nargs='*', default=["../src/modules/flow/"])
+    args = parser.parse_args()
+
+    if not os.path.isfile(args.generator):
+        sys.exit("Couldn't find generator program at %s" % generator)
+
+    fbps = collect_fbps(args.fbps)
+
+    for f in fbps:
+        dir = os.path.dirname(f)
+        file = os.path.basename(f)
+        dst_filename = os.path.splitext(file)[0]
+        dst_filename += "-gen.c"
+
+        out, code = sh([os.path.abspath(args.generator), '-s', '-j', os.path.abspath(args.json_dir), file, dst_filename], cwd=dir)
+
+        if code != 0:
+           print("run-fbp-generator failed! sol-fbp-generator status: %s" % out)
