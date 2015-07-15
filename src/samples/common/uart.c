@@ -86,6 +86,19 @@ uart_tx_completed(void *data, struct sol_uart *uart, int status)
     printf("%s\n", string);
 }
 
+static void
+uart1_tx_completed(void *data, struct sol_uart *uart, int status)
+{
+    char buf[64];
+    const char *string = data;
+
+    printf("%s\n", string);
+
+    sprintf(buf, "async");
+    sol_uart_write(uart, buf, strlen(buf) + 1, uart_tx_completed,
+        "Uart1 transmission completed.");
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -117,11 +130,7 @@ main(int argc, char *argv[])
     }
 
     sprintf(buf, "Hello");
-    sol_uart_write(uart1, buf, strlen(buf) + 1, uart_tx_completed,
-        "Uart1 transmission completed.");
-
-    sprintf(buf, "async");
-    sol_uart_write(uart1, buf, strlen(buf) + 1, uart_tx_completed,
+    sol_uart_write(uart1, buf, strlen(buf) + 1, uart1_tx_completed,
         "Uart1 transmission completed.");
 
     sprintf(buf, "world");

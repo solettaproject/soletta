@@ -44,7 +44,6 @@
 #include "sol-mainloop.h"
 #include "sol-uart.h"
 #include "sol-util.h"
-#include "sol-vector.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 
@@ -58,16 +57,11 @@ struct sol_uart {
         const void *rx_user_data;
 
         void *tx_fd_handler;
-        struct sol_vector tx_queue;
+        void (*tx_cb)(void *data, struct sol_uart *uart, int status);
+        const void *tx_user_data;
+        char *tx_buffer;
+        unsigned int tx_length, tx_index;
     } async;
-};
-
-struct uart_write_data {
-    char *buffer;
-    unsigned int length;
-    unsigned int index;
-    void (*cb)(void *data, struct sol_uart *uart, int write);
-    const void *user_data;
 };
 
 static bool
@@ -165,8 +159,6 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
     }
     tcflush(uart->fd, TCIOFLUSH);
 
-    sol_vector_init(&uart->async.tx_queue, sizeof(struct uart_write_data));
-
     uart->async.rx_fd_handler = sol_fd_add(uart->fd,
         FD_ERROR_FLAGS | SOL_FD_FLAGS_IN, uart_rx_callback, uart);
     if (!uart->async.rx_fd_handler) {
@@ -185,19 +177,6 @@ open_fail:
     return NULL;
 }
 
-static void
-clean_tx_queue(struct sol_uart *uart, int error_code)
-{
-    struct uart_write_data *write_data;
-    uint16_t i;
-
-    SOL_VECTOR_FOREACH_IDX (&uart->async.tx_queue, write_data, i) {
-        write_data->cb((void *)write_data->user_data, uart, -1);
-        free(write_data->buffer);
-    }
-    sol_vector_clear(&uart->async.tx_queue);
-}
-
 SOL_API void
 sol_uart_close(struct sol_uart *uart)
 {
@@ -207,15 +186,23 @@ sol_uart_close(struct sol_uart *uart)
     if (uart->async.tx_fd_handler)
         sol_fd_del(uart->async.tx_fd_handler);
     close(uart->fd);
-    clean_tx_queue(uart, -1);
     free(uart);
+}
+
+static void
+uart_tx_dispatch(struct sol_uart *uart, int status)
+{
+    free(uart->async.tx_buffer);
+    uart->async.tx_fd_handler = NULL;
+    if (!uart->async.tx_cb)
+        return;
+    uart->async.tx_cb((void *)uart->async.tx_user_data, uart, status);
 }
 
 static bool
 uart_tx_callback(void *data, int fd, unsigned int active_flags)
 {
     struct sol_uart *uart = data;
-    struct uart_write_data *write_data = sol_vector_get(&uart->async.tx_queue, 0);
     int ret;
 
     if (active_flags & FD_ERROR_FLAGS) {
@@ -223,68 +210,48 @@ uart_tx_callback(void *data, int fd, unsigned int active_flags)
         goto error;
     }
 
-    if (write_data->index == write_data->length) {
-        free(write_data->buffer);
-        write_data->cb((void *)write_data->user_data, uart, write_data->index);
-        sol_vector_del(&uart->async.tx_queue, 0);
-
-        if (!uart->async.tx_queue.len) {
-            uart->async.tx_fd_handler = NULL;
-            return false;
-        }
-
-        return uart_tx_callback(uart, fd, active_flags);
+    if (uart->async.tx_index == uart->async.tx_length) {
+        uart_tx_dispatch(uart, uart->async.tx_index);
+        return false;
     }
 
-    ret = write(fd, write_data->buffer + write_data->index,
-        write_data->length - write_data->index);
+    ret = write(fd, uart->async.tx_buffer + uart->async.tx_index,
+        uart->async.tx_length - uart->async.tx_index);
     if (ret < 0) {
         SOL_ERR("Error when writing to file descriptor %d.", fd);
-        write_data->cb((void *)write_data->user_data, uart, ret);
-        free(write_data->buffer);
-        sol_vector_del(&uart->async.tx_queue, 0);
+        uart_tx_dispatch(uart, ret);
         goto error;
     }
-    write_data->index += ret;
+
+    uart->async.tx_index += ret;
     return true;
 
 error:
-    clean_tx_queue(uart, -1);
-    uart->async.tx_fd_handler = NULL;
     return false;
 }
 
 SOL_API bool
 sol_uart_write(struct sol_uart *uart, const char *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, int status), const void *data)
 {
-    struct uart_write_data *write_data;
-
     SOL_NULL_CHECK(uart, false);
+    SOL_EXP_CHECK(uart->async.tx_fd_handler != NULL, false);
 
-    if (!uart->async.tx_fd_handler) {
-        uart->async.tx_fd_handler = sol_fd_add(uart->fd,
-            FD_ERROR_FLAGS | SOL_FD_FLAGS_OUT,
-            uart_tx_callback, uart);
-        SOL_NULL_CHECK(uart->async.tx_fd_handler, false);
-    }
+    uart->async.tx_fd_handler = sol_fd_add(uart->fd,
+        FD_ERROR_FLAGS | SOL_FD_FLAGS_OUT, uart_tx_callback, uart);
+    SOL_NULL_CHECK(uart->async.tx_fd_handler, false);
 
-    write_data = sol_vector_append(&uart->async.tx_queue);
-    SOL_NULL_CHECK_GOTO(write_data, append_write_data_fail);
+    uart->async.tx_buffer = malloc(length);
+    SOL_NULL_CHECK_GOTO(uart->async.tx_buffer, malloc_buffer_fail);
 
-    write_data->buffer = malloc(length);
-    SOL_NULL_CHECK_GOTO(write_data->buffer, malloc_buffer_fail);
-
-    memcpy(write_data->buffer, tx, length);
-    write_data->cb = tx_cb;
-    write_data->user_data = data;
-    write_data->index = 0;
-    write_data->length = length;
+    memcpy(uart->async.tx_buffer, tx, length);
+    uart->async.tx_cb = tx_cb;
+    uart->async.tx_user_data = data;
+    uart->async.tx_index = 0;
+    uart->async.tx_length = length;
 
     return true;
 
 malloc_buffer_fail:
-    sol_vector_del(&uart->async.tx_queue, uart->async.tx_queue.len - 1);
-append_write_data_fail:
     sol_fd_del(uart->async.tx_fd_handler);
     uart->async.tx_fd_handler = NULL;
     return false;
