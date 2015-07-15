@@ -35,99 +35,82 @@
 #include "sol-mainloop.h"
 #include "sol-uart.h"
 
-static void
-string_received(void)
-{
-    static unsigned string_receveid = 0;
-
-    string_receveid++;
-    if (string_receveid > 2) {
-        sol_quit();
-    }
-}
+struct uart_data {
+    unsigned int id;
+    char rx_buffer[64];
+    unsigned int rx_index;
+};
 
 static void
-uart1_rx(void *data, struct sol_uart *uart, char read_char)
+uart_rx(void *data, struct sol_uart *uart, char read_char)
 {
-    static int index = 0;
-    static char string[64];
+    struct uart_data *uart_data = data;
+    static unsigned char missing_strings = 3;
 
-    string[index] = read_char;
+    uart_data->rx_buffer[uart_data->rx_index] = read_char;
     if (read_char == 0) {
-        printf("Async transmission received on uart1: %s\n", string);
-        string_received();
-        index = 0;
-    } else {
-        index++;
+        uart_data->rx_index = 0;
+        printf("Data received on UART%d: %s\n",
+            uart_data->id, uart_data->rx_buffer);
+        missing_strings--;
+        if (missing_strings == 0)
+            sol_quit();
+    } else
+        uart_data->rx_index++;
+}
+
+static void
+uart_tx(void *data, struct sol_uart *uart, int status)
+{
+    static bool missing_tx = true;
+    struct uart_data *uart_data = data;
+
+    if (status > 0)
+        printf("UART%d data transmitted.\n", uart_data->id);
+    else
+        printf("UART%d transmission error.\n", uart_data->id);
+
+    if (missing_tx) {
+        char buf[16];
+
+        missing_tx = false;
+        sprintf(buf, "async");
+        sol_uart_write(uart, buf, strlen(buf) + 1, uart_tx, uart_data);
     }
-}
-
-static void
-uart2_rx(void *data, struct sol_uart *uart, char read_char)
-{
-    static int index = 0;
-    static char string[64];
-
-    string[index] = read_char;
-    if (read_char == 0) {
-        printf("Async transmission received on uart2: %s\n", string);
-        string_received();
-        index = 0;
-    } else {
-        index++;
-    }
-}
-
-static void
-uart_tx_completed(void *data, struct sol_uart *uart, int status)
-{
-    const char *string = data;
-
-    printf("%s\n", string);
-}
-
-static void
-uart1_tx_completed(void *data, struct sol_uart *uart, int status)
-{
-    char buf[64];
-    const char *string = data;
-
-    printf("%s\n", string);
-
-    sprintf(buf, "async");
-    sol_uart_write(uart, buf, strlen(buf) + 1, uart_tx_completed,
-        "Uart1 transmission completed.");
 }
 
 int
 main(int argc, char *argv[])
 {
     struct sol_uart *uart1, *uart2;
-    char buf[64];
+    struct uart_data uart1_data, uart2_data;
+    char buf[16];
 
     sol_init();
 
     uart1 = sol_uart_open("ttyUSB0", SOL_UART_BAUD_RATE_9600, SOL_UART_DEFAULT,
-        uart1_rx, NULL);
+        uart_rx, &uart1_data);
     if (!uart1) {
         printf("Unable to get uart1.\n");
         goto error_uart1;
     }
+    uart1_data.id = 1;
+    uart1_data.rx_index = 0;
 
     uart2 = sol_uart_open("ttyUSB1", SOL_UART_BAUD_RATE_9600, SOL_UART_DEFAULT,
-        uart2_rx, NULL);
+        uart_rx, &uart2_data);
     if (!uart2) {
         printf("Unable to get uart2.\n");
         goto error;
     }
+    uart2_data.id = 2;
+    uart2_data.rx_index = 0;
 
     sprintf(buf, "Hello");
-    sol_uart_write(uart1, buf, strlen(buf) + 1, uart1_tx_completed,
-        "Uart1 transmission completed.");
+    sol_uart_write(uart1, buf, strlen(buf) + 1, uart_tx, &uart1_data);
 
     sprintf(buf, "world");
-    sol_uart_write(uart2, buf, strlen(buf) + 1, uart_tx_completed,
-        "Uart2 transmission completed.");
+    sol_uart_write(uart2, buf, strlen(buf) + 1, uart_tx, &uart2_data);
 
     sol_run();
 
