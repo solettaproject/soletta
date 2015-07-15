@@ -104,14 +104,14 @@ sol_platform_linux_fork_run(void (*on_fork)(void *data), void (*on_child_exit)(v
             else {
                 SOL_WRN("failed to read from pipe: %s", sol_util_strerrora(errno));
                 close(pfds[0]);
-                exit(EXIT_FAILURE);
+                _exit(EXIT_FAILURE);
             }
         }
         close(pfds[0]);
 
         errno = 0;
         on_fork((void *)data);
-        exit(EXIT_SUCCESS);
+        _exit(EXIT_SUCCESS);
     } else if (pid < 0) {
         close(pfds[0]);
         close(pfds[1]);

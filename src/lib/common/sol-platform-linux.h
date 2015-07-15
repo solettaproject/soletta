@@ -41,6 +41,9 @@
 extern "C" {
 #endif
 
+/*
+ *@note: exit() should not be used in the child process, instead of this use _exit(). It avoids possible problems, such as, stdio buffer being flushed twice.
+ */
 struct sol_platform_linux_fork_run *sol_platform_linux_fork_run(void (*on_fork)(void *data), void (*on_child_exit)(void *data, uint64_t pid, int status), const void *data);
 void sol_platform_linux_fork_run_stop(struct sol_platform_linux_fork_run *handle);
 pid_t sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_fork_run *handle);

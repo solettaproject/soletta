@@ -83,7 +83,7 @@ on_fork(void *data)
     }
 
     SOL_INF("bluetooth daemon executable not found, aborting");
-    exit(EXIT_FAILURE);
+    _exit(EXIT_FAILURE);
 }
 
 static void

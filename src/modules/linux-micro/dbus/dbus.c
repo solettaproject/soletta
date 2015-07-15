@@ -101,7 +101,7 @@ on_fork(void *data)
     execv(argv[0], (char *const *)argv);
 
 error:
-    exit(EXIT_FAILURE);
+    _exit(EXIT_FAILURE);
 }
 
 static void
