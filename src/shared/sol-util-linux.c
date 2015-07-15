@@ -285,10 +285,34 @@ get_libname(char *out, size_t size)
     return -ENOSYS;
 }
 
+static const char *
+strrstr(const char *haystack, const char *needle)
+{
+    const char *r = NULL;
+
+    if (!haystack || !needle)
+        return NULL;
+
+    if (strlen(needle) == 0)
+        return haystack + strlen(haystack);
+
+    while (1) {
+        const char *p = strstr(haystack, needle);
+        if (!p)
+            return r;
+
+        r = p;
+        haystack = p + 1;
+    }
+
+    return r;
+}
+
 int
 sol_util_get_rootdir(char *out, size_t size)
 {
-    char progname[PATH_MAX] = { 0 }, *substr, *prefix;
+    char progname[PATH_MAX] = { 0 }, *prefix;
+    const char *substr;
     int r;
 
     r = get_libname(progname, sizeof(progname));
@@ -298,7 +322,7 @@ sol_util_get_rootdir(char *out, size_t size)
             return r;
     }
 
-    substr = strstr(progname, PREFIX);
+    substr = strrstr(progname, PREFIX);
     if (!substr) {
         return -1;
     }
