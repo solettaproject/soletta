@@ -31,11 +31,21 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Generate SVG representations of all FBP files in the repository.
+# ./generate-svg-from-all-fbps path/to/sol-fbp-to-dot path/to/output_dir
 
 set -e
 
-OUTPUT=$PWD/svg
+# Default paths
+OUTPUT=$PWD/doc/svg
 FBP_TO_DOT=$PWD/build/soletta_sysroot/usr/bin/sol-fbp-to-dot
+
+if [[ ! -z "$1" ]]; then
+    FBP_TO_DOT=$1
+fi
+
+if [[ ! -z "$2" ]]; then
+    OUTPUT=$2
+fi
 
 function die() {
     echo "ERROR: $1"
