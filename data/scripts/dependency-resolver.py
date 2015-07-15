@@ -128,8 +128,11 @@ def handle_pkgconfig_check(args, conf, context):
         if ldflags_stat:
             context.add_cond_makefile_var("%s_LDFLAGS" % dep, ldflags)
 
-    have_var = "y" if ((cflags_stat or ldflags_stat) and ver_match) else "n"
+    success = (cflags_stat or ldflags_stat) and ver_match
+    have_var = "y" if success else "n"
     context.add_kconfig("HAVE_%s" % dep, "bool", have_var)
+
+    return success
 
 def compile_test(source, compiler, cflags, ldflags):
     f = tempfile.NamedTemporaryFile(suffix=".c",delete=False)
@@ -190,6 +193,9 @@ def handle_ccode_check(args, conf, context):
     else:
         context.add_kconfig("HAVE_%s" % dep, "bool", "n")
 
+    return success
+
+
 def handle_exec_check(args, conf, context):
     dep = conf.get("dependency")
     exe = conf.get("exec")
@@ -201,12 +207,16 @@ def handle_exec_check(args, conf, context):
     path = which(exe)
     required = conf.get("required")
 
-    if required and not path:
+    success = bool(path)
+
+    if required and not success:
         req_label = context.find_makefile_var("NOT_FOUND")
         req_label += "executable: %s\\n" % exe
         context.add_append_makefile_var("NOT_FOUND", req_label, True)
 
     context.add_cond_makefile_var(dep.upper(), path)
+
+    return success
 
 def handle_python_check(args, conf, context):
     dep = conf.get("dependency")
@@ -226,12 +236,16 @@ def handle_python_check(args, conf, context):
     cmd = "%s %s" % (sys.executable, f.name)
     output, status = run_command(cmd)
 
-    if required and not status:
+    success = bool(status)
+
+    if required and not success:
         req_label = context.find_makefile_var("NOT_FOUND")
         req_label += "python module: %s\\n" % pkgname
         context.add_append_makefile_var("NOT_FOUND", req_label, True)
 
-    context.add_cond_makefile_var("HAVE_PYTHON_%s" % dep.upper(), "y" if status else "n")
+    context.add_cond_makefile_var("HAVE_PYTHON_%s" % dep.upper(), "y" if success else "n")
+
+    return success
 
 def handle_cflags_check(args, conf, context):
     check_cflags = conf.get("cflags")
@@ -245,7 +259,7 @@ def handle_cflags_check(args, conf, context):
     success = compile_test(source, args.compiler, "-Werror %s" % flags, None)
     if success:
         context.add_append_makefile_var(append_to, flags)
-        return
+        return True
 
     supported = []
     for i in check_cflags:
@@ -257,6 +271,9 @@ def handle_cflags_check(args, conf, context):
 
     if supported:
         context.add_append_makefile_var(append_to, " ".join(supported))
+
+    return bool(supported)
+
 
 type_handlers = {
     "pkg-config": handle_pkgconfig_check,
@@ -288,14 +305,36 @@ def kconfig_gen(args, context):
     f.write(output)
     f.close()
 
+def is_verbose():
+    flag = os.environ.get("V")
+    if not flag:
+        return False
+    try:
+        flag = int(flag) != 0
+    except ValueError:
+        flag = flag.lower() in ("true", "yes", "on", "enabled")
+    finally:
+        return flag
+
 def run(args, dep_checks, context):
+    verbose = is_verbose()
+
     for dep in dep_checks:
+        if verbose:
+            s = "Checking for %s%s... " % (dep["dependency"],
+                " (optional)" if not dep.get("required") else "")
+            print(s, end="")
+            sys.stdout.flush()
+
         handler = type_handlers.get(dep["type"])
         if not handler:
             print("Parsing %s." % args.dep_config.name)
             print("Invalid type: %s at: %s\n" % (dep["type"], dep))
             exit(1)
-        handler(args, dep, context)
+
+        result = handler(args, dep, context)
+        if verbose:
+            print("found." if result else "not found.")
 
 def vars_expand(origin, dest, maxrec):
     remaining = {}
