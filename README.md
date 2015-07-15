@@ -44,7 +44,7 @@ It uses a main loop to provide single threaded cooperative tasks
 (co-routines) triggered by UNIX file-descriptors, timers or idlers
 (runs whenever there is nothing else to do). The traditional main loop
 is based on Glib's GMainLoop, while some smaller OS have their own
-implementation, see `--with-mainloop` documentaion.
+implementation, see [main loops](#main-loops) documentaion.
 
 ## Building from Source
 
