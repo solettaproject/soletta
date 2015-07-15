@@ -223,7 +223,7 @@ sol_flow_builder_del(struct sol_flow_builder *builder)
     struct sol_flow_port_description *port_desc;
     uint16_t i;
 
-    SOL_NULL_CHECK(builder, -EBADR);
+    SOL_NULL_CHECK(builder, -EINVAL);
 
     if (builder->node_type)
         goto end;
@@ -445,9 +445,9 @@ sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, co
     char *node_name;
     uint16_t i;
 
-    SOL_NULL_CHECK(builder, -EBADR);
-    SOL_NULL_CHECK(name, -EBADR);
-    SOL_NULL_CHECK(type, -EBADR);
+    SOL_NULL_CHECK(builder, -EINVAL);
+    SOL_NULL_CHECK(name, -EINVAL);
+    SOL_NULL_CHECK(type, -EINVAL);
 
     SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, -EINVAL);
 
@@ -534,9 +534,9 @@ get_node(struct sol_flow_builder *builder, const char *node_name, uint16_t *out_
     struct sol_flow_static_node_spec *node_spec;
     uint16_t i;
 
-    SOL_NULL_CHECK(node_name, -EBADR);
-    SOL_NULL_CHECK(out_index, -EBADR);
-    SOL_NULL_CHECK(out_spec, -EBADR);
+    SOL_NULL_CHECK(node_name, -EINVAL);
+    SOL_NULL_CHECK(out_index, -EINVAL);
+    SOL_NULL_CHECK(out_spec, -EINVAL);
 
     *out_index = UINT16_MAX;
 
@@ -580,9 +580,9 @@ sol_flow_builder_connect(struct sol_flow_builder *builder, const char *src_name,
     int r;
     uint16_t src, dst, src_port, dst_port, psize;
 
-    SOL_NULL_CHECK(builder, -EBADR);
-    SOL_NULL_CHECK(src_port_name, -EBADR);
-    SOL_NULL_CHECK(dst_port_name, -EBADR);
+    SOL_NULL_CHECK(builder, -EINVAL);
+    SOL_NULL_CHECK(src_port_name, -EINVAL);
+    SOL_NULL_CHECK(dst_port_name, -EINVAL);
 
     if (builder->node_type) {
         SOL_ERR("Failed to connect, node type created already");
@@ -676,7 +676,7 @@ sol_flow_builder_connect_by_index(struct sol_flow_builder *builder, const char *
     int r;
     uint16_t src, dst, ports_in_count, ports_out_count;
 
-    SOL_NULL_CHECK(builder, -EBADR);
+    SOL_NULL_CHECK(builder, -EINVAL);
 
     if (builder->node_type) {
         SOL_WRN("Failed to connect, node type created already");
@@ -1126,9 +1126,9 @@ sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const char *
     const struct sol_flow_resolver *builtins_resolver;
     int r;
 
-    SOL_NULL_CHECK(builder, -EBADR);
-    SOL_NULL_CHECK(name, -EBADR);
-    SOL_NULL_CHECK(type_name, -EBADR);
+    SOL_NULL_CHECK(builder, -EINVAL);
+    SOL_NULL_CHECK(name, -EINVAL);
+    SOL_NULL_CHECK(type_name, -EINVAL);
 
     builtins_resolver = sol_flow_get_builtins_resolver();
 
@@ -1217,10 +1217,10 @@ sol_flow_builder_export_in_port(struct sol_flow_builder *builder, const char *no
     uint16_t node, port, psize;
     int r;
 
-    SOL_NULL_CHECK(builder, -EBADR);
-    SOL_NULL_CHECK(node_name, -EBADR);
-    SOL_NULL_CHECK(port_name, -EBADR);
-    SOL_NULL_CHECK(exported_name, -EBADR);
+    SOL_NULL_CHECK(builder, -EINVAL);
+    SOL_NULL_CHECK(node_name, -EINVAL);
+    SOL_NULL_CHECK(port_name, -EINVAL);
+    SOL_NULL_CHECK(exported_name, -EINVAL);
 
     if (builder->node_type) {
         SOL_ERR("Failed to export input port, node type created already");
@@ -1276,10 +1276,10 @@ sol_flow_builder_export_out_port(struct sol_flow_builder *builder, const char *n
     uint16_t node, port, psize;
     int r;
 
-    SOL_NULL_CHECK(builder, -EBADR);
-    SOL_NULL_CHECK(node_name, -EBADR);
-    SOL_NULL_CHECK(port_name, -EBADR);
-    SOL_NULL_CHECK(exported_name, -EBADR);
+    SOL_NULL_CHECK(builder, -EINVAL);
+    SOL_NULL_CHECK(node_name, -EINVAL);
+    SOL_NULL_CHECK(port_name, -EINVAL);
+    SOL_NULL_CHECK(exported_name, -EINVAL);
 
     if (builder->node_type) {
         SOL_ERR("Failed to export output port, node type created already");
@@ -1354,10 +1354,10 @@ sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *nod
     uint16_t node;
     int r;
 
-    SOL_NULL_CHECK(builder, -EBADR);
-    SOL_NULL_CHECK(node_name, -EBADR);
-    SOL_NULL_CHECK(option_name, -EBADR);
-    SOL_NULL_CHECK(exported_name, -EBADR);
+    SOL_NULL_CHECK(builder, -EINVAL);
+    SOL_NULL_CHECK(node_name, -EINVAL);
+    SOL_NULL_CHECK(option_name, -EINVAL);
+    SOL_NULL_CHECK(exported_name, -EINVAL);
 
     if (builder->node_type) {
         SOL_ERR("Failed to export output port, node type created already");

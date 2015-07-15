@@ -358,7 +358,7 @@ accelerometer_adxl345_open(struct sol_flow_node *node,
     mdata->i2c = sol_i2c_open(opts->i2c_bus.val, I2C_SPEED);
     if (!mdata->i2c) {
         SOL_WRN("Failed to open i2c bus");
-        return -EBADR;
+        return -EIO;
     }
 
     if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
