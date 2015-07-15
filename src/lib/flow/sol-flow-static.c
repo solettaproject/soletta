@@ -1100,17 +1100,15 @@ sol_flow_static_get_node(struct sol_flow_node *flow, uint16_t index)
     struct flow_static_type *type;
     struct flow_static_data *fsd;
 
-    errno = EBADR;
+    errno = EINVAL;
     SOL_NULL_CHECK(flow, NULL);
     SOL_FLOW_STATIC_TYPE_CHECK(flow->type, NULL);
 
     type = (struct flow_static_type *)flow->type;
     fsd = sol_flow_node_get_private_data(flow);
 
-    if (index >= type->node_count) {
-        errno = EINVAL;
+    if (index >= type->node_count)
         return NULL;
-    }
 
     errno = 0;
     return fsd->nodes[index];

@@ -259,7 +259,7 @@ packet_get_%(name)s(const struct sol_flow_packet *packet
     struct %(name_data)s %(name)s;
     int ret;
 
-    SOL_NULL_CHECK(packet, -EBADR);
+    SOL_NULL_CHECK(packet, -EINVAL);
     if (sol_flow_packet_get_type(packet) != %(NAME)s)
         return -EINVAL;
 
