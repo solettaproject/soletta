@@ -261,6 +261,20 @@
             "cflags": {
                 "value": "-fprofile-arcs -ftest-coverage"
             }
+	},
+	{
+	    "dependency": "libmath",
+	    "type": "ccode",
+            "ldflags": {
+                "value": "-lm"
+            }
+	},
+	{
+	    "dependency": "libdl",
+	    "type": "ccode",
+            "ldflags": {
+                "value": "-ldl"
+            }
 	}
     ]
 }
