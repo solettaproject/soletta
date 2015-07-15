@@ -264,7 +264,7 @@ sol_flow_send_packet(struct sol_flow_node *src, uint16_t src_port, struct sol_fl
 
 err:
     sol_flow_packet_del(packet);
-    return -EBADR;
+    return -EINVAL;
 }
 
 #define SOL_FLOW_SEND_PACKET(_type) \

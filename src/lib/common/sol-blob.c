@@ -106,7 +106,7 @@ sol_blob_new(const struct sol_blob_type *type, struct sol_blob *parent, const vo
 SOL_API int
 sol_blob_setup(struct sol_blob *blob, const struct sol_blob_type *type, const void *mem, size_t size)
 {
-    SOL_NULL_CHECK(blob, -EBADR);
+    SOL_NULL_CHECK(blob, -EINVAL);
     SOL_NULL_CHECK(type, -EINVAL);
     SOL_INT_CHECK(type->api_version, != SOL_BLOB_TYPE_API_VERSION, -EINVAL);
 

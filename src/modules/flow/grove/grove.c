@@ -827,7 +827,7 @@ lcd_open(struct sol_flow_node *node,
     mdata->i2c = sol_i2c_open(I2C_BUS, I2C_SPEED);
     if (!mdata->i2c) {
         SOL_WRN("Failed to open i2c bus");
-        return -EBADR;
+        return -EIO;
     }
 
     mdata->cmd_queue.data = NULL;

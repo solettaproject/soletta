@@ -41,7 +41,7 @@ int
 sol_fbp_graph_init(struct sol_fbp_graph *g)
 {
     sol_fbp_init_log_domain();
-    SOL_NULL_CHECK(g, -EBADR);
+    SOL_NULL_CHECK(g, -EINVAL);
     sol_vector_init(&g->nodes, sizeof(struct sol_fbp_node));
     sol_vector_init(&g->conns, sizeof(struct sol_fbp_conn));
     sol_vector_init(&g->exported_in_ports, sizeof(struct sol_fbp_exported_port));
@@ -58,7 +58,7 @@ sol_fbp_graph_fini(struct sol_fbp_graph *g)
     struct sol_fbp_node *n;
     uint16_t i;
 
-    SOL_NULL_CHECK(g, -EBADR);
+    SOL_NULL_CHECK(g, -EINVAL);
     SOL_VECTOR_FOREACH_IDX (&g->nodes, n, i) {
         sol_vector_clear(&n->meta);
         sol_vector_clear(&n->in_ports);
@@ -88,7 +88,7 @@ sol_fbp_graph_add_node(struct sol_fbp_graph *g,
     int r;
     uint16_t i;
 
-    SOL_NULL_CHECK(g, -EBADR);
+    SOL_NULL_CHECK(g, -EINVAL);
 
     if (name.len == 1 && name.data[0] == '_') {
         if (component.len == 0)
@@ -137,7 +137,7 @@ sol_fbp_graph_add_meta(struct sol_fbp_graph *g,
     struct sol_fbp_meta *m;
     uint16_t i;
 
-    SOL_NULL_CHECK(g, -EBADR);
+    SOL_NULL_CHECK(g, -EINVAL);
     SOL_INT_CHECK(node, < 0, -EINVAL);
 
     n = sol_vector_get(&g->nodes, node);
@@ -165,7 +165,7 @@ sol_fbp_graph_add_in_port(struct sol_fbp_graph *g,
     struct sol_fbp_port *p;
     uint16_t i;
 
-    SOL_NULL_CHECK(g, -EBADR);
+    SOL_NULL_CHECK(g, -EINVAL);
     SOL_INT_CHECK(node, < 0, -EINVAL);
 
     n = sol_vector_get(&g->nodes, node);
@@ -192,7 +192,7 @@ sol_fbp_graph_add_out_port(struct sol_fbp_graph *g,
     struct sol_fbp_port *p;
     uint16_t i;
 
-    SOL_NULL_CHECK(g, -EBADR);
+    SOL_NULL_CHECK(g, -EINVAL);
     SOL_INT_CHECK(node, < 0, -EINVAL);
 
     n = sol_vector_get(&g->nodes, node);
@@ -220,7 +220,7 @@ sol_fbp_graph_add_conn(struct sol_fbp_graph *g,
     struct sol_fbp_conn *conn;
     uint16_t i;
 
-    SOL_NULL_CHECK(g, -EBADR);
+    SOL_NULL_CHECK(g, -EINVAL);
     SOL_INT_CHECK(src, < 0, -EINVAL);
     SOL_INT_CHECK(dst, < 0, -EINVAL);
     if (!src_port.len || !dst_port.len)
