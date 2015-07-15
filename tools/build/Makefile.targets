@@ -82,10 +82,8 @@ install: post-install
 
 PHONY += install post-install pre-install
 
-all-desc-jsons = $(all-mod-descs) $(if $(filter $(builtin-flows),$(builtin-flows)),$(FLOW_BUILTINS_DESC))
-
 ifeq (yyy,$(HAVE_DOXYGEN)$(HAVE_BZIP2)$(HAVE_TAR))
-doc: $(DOXYGEN_RESOURCES) cheat-sheet
+doxygen: $(DOXYGEN_RESOURCES)
 	$(Q)$(RM) -rf $(DOXYGEN_GENERATED)
 	$(Q)$(DOXYGEN) doc/doxygen/Doxyfile
 	$(Q)$(RM) -rf $(PACKAGE_DOCNAME).tar*
@@ -94,19 +92,28 @@ doc: $(DOXYGEN_RESOURCES) cheat-sheet
 	$(Q)$(TAR) cf $(PACKAGE_DOCNAME).tar $(PACKAGE_DOCNAME)/
 	$(Q)$(BZIP2) -9 $(PACKAGE_DOCNAME).tar
 	$(Q)$(RM) -rf $(PACKAGE_DOCNAME)/
+	$(Q)$(MKDIR) -p $(top_builddir)
 	$(Q)$(MV) $(PACKAGE_DOCNAME).tar.bz2 $(top_builddir)
 else
-doc:
-	$(Q)echo "     "ERROR: Make sure to have bzip2, tar and doxygen installed and reconfigure
+doxygen:
+	$(Q)echo "     ERROR: Make sure to have bzip2, tar and doxygen installed and reconfigure"
 endif
+
+PHONY += doxygen
+
+doc: cheat-sheet doxygen
 
 PHONY += doc
 
-ifeq (y,$(FBP_TO_DOT))
-cheat-sheet: $(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_RESOURCES) $(SOL_FBP_TO_DOT_BIN) $(all-desc-jsons)
+ifeq (yy,$(FBP_TO_DOT)$(HAVE_GRAPHVIZ))
+cheat-sheet: $(MAKEFILE_GEN) $(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_RESOURCES) $(SOL_FBP_TO_DOT_BIN) $(all-mod-descs)
 	$(Q)echo "     "GEN"   "$(CHEAT_SHEET_INDEX_HTML)
-	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(all-desc-jsons)
+	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(all-mod-descs)
 	$(Q)$(GEN_SVG_SCRIPT) "$(abspath $(SOL_FBP_TO_DOT_BIN))" $(SVG_OUTPUT_DIR)
+else
+cheat-sheet:
+	$(Q)echo "     Either no sol-fbp-to-dot built, or no graphviz installed in the host system"
+	$(Q)echo "     If lacking graphviz, after installing it run: make reconf"
 endif
 
 PHONY += cheat-sheet
