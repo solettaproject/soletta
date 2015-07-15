@@ -50,8 +50,7 @@ static struct sol_ptr_vector event_handler_vector = SOL_PTR_VECTOR_INIT;
 static bool event_handling_processing;
 static unsigned int event_handler_pending_deletion;
 
-struct sol_event_handler_contiki
-{
+struct sol_event_handler_contiki {
     const process_event_t *ev;
     process_data_t ev_data;
     void (*cb)(void *user_data, process_event_t ev, process_data_t ev_data);
@@ -117,7 +116,7 @@ ticks_until_next_timeout(void)
         return 0;
 
     return diff.tv_sec * CLOCK_SECOND +
-                (CLOCK_SECOND / NSEC_PER_SEC) * diff.tv_nsec;
+           (CLOCK_SECOND / NSEC_PER_SEC) * diff.tv_nsec;
 }
 
 void
@@ -167,7 +166,8 @@ bool
 sol_mainloop_contiki_event_handler_add(const process_event_t *ev, const process_data_t ev_data, void (*cb)(void *user_data, process_event_t ev, process_data_t ev_data), const void *data)
 {
     struct sol_event_handler_contiki *event_handler =
-                malloc(sizeof(struct sol_event_handler_contiki));
+        malloc(sizeof(struct sol_event_handler_contiki));
+
     if (!event_handler)
         return false;
     event_handler->ev = ev;
@@ -190,7 +190,7 @@ sol_mainloop_contiki_event_handler_del(const process_event_t *ev, const process_
     int i;
     struct sol_event_handler_contiki *event_handler;
 
-    SOL_PTR_VECTOR_FOREACH_IDX(&event_handler_vector, event_handler, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&event_handler_vector, event_handler, i) {
         if (event_handler->ev != ev)
             continue;
         if (event_handler->ev_data != ev_data)
@@ -220,7 +220,7 @@ event_handler_cleanup(void)
 
     if (!event_handler_pending_deletion)
         return;
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(&event_handler_vector, event_handler, i) {
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&event_handler_vector, event_handler, i) {
         if (!event_handler->delete_me)
             continue;
         sol_ptr_vector_del(&event_handler_vector, i);
@@ -241,15 +241,15 @@ event_dispatch(void)
         return;
 
     event_handling_processing = true;
-    SOL_PTR_VECTOR_FOREACH_IDX(&event_handler_vector, event_handler, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&event_handler_vector, event_handler, i) {
         if (event_handler->delete_me)
             continue;
         if (*event_handler->ev != event)
             continue;
         if (event_handler->ev_data != NULL &&
-                    event_handler->ev_data != event_data)
+            event_handler->ev_data != event_data)
             continue;
-        event_handler->cb((void *) event_handler->user_data, event, event_data);
+        event_handler->cb((void *)event_handler->user_data, event, event_data);
     }
     event_handling_processing = false;
     event_handler_cleanup();
