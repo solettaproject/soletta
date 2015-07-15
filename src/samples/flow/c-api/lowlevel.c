@@ -37,8 +37,16 @@
 #include "sol-macros.h"
 static void log_init(void) SOL_ATTR_UNUSED;
 
-#include "sol-flow.h"
+#include "sol-flow-static.h"
 #include "custom-node-types-gen.h"
+/* TODO: how to know if console is builtin?
+ * before we had console-gen.h included by sol-flow-node-types.h,
+ * that was created based on builtins list.
+ *
+ * Since we're at the low-level API we can't use the foreach
+ * functions, as they rely on node type descriptions.
+ */
+#include "console-gen.h"
 #include "sol-mainloop.h"
 
 /**
