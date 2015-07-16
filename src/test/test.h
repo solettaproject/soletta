@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct test {
     const char *name;
@@ -90,6 +91,28 @@ int test_main(struct test *start, struct test *stop, void (*reset_func)(void), i
         if ((__value_expr_a) == (__value_expr_b)) {                     \
             fprintf(stderr, "%s:%d: %s: Assertion `" #expr_a "' (%d) != `" #expr_b "' (%d) failed.\n", \
                 __FILE__, __LINE__, __PRETTY_FUNCTION__, __value_expr_a, __value_expr_b); \
+            exit(-1);                                                   \
+        }                                                               \
+    } while (0)
+
+#define ASSERT_STR_EQ(str_a, str_b)                                     \
+    do {                                                                \
+        ASSERT((str_a) != NULL);                                        \
+        ASSERT((str_b) != NULL);                                        \
+        if (strcmp((str_a), (str_b)) != 0) {                            \
+            fprintf(stderr, "%s:%d: %s: Assertion string_equal(\"%s\", \"%s\") failed.\n", \
+                __FILE__, __LINE__, __PRETTY_FUNCTION__, (str_a), (str_b)); \
+            exit(-1);                                                   \
+        }                                                               \
+    } while (0)
+
+#define ASSERT_STR_NE(str_a, str_b)                                     \
+    do {                                                                \
+        ASSERT((str_a) != NULL);                                        \
+        ASSERT((str_b) != NULL);                                        \
+        if (strcmp((str_a), (str_b)) == 0) {                            \
+            fprintf(stderr, "%s:%d: %s: Assertion string_different(\"%s\", \"%s\") failed.\n", \
+                __FILE__, __LINE__, __PRETTY_FUNCTION__, (str_a), (str_b)); \
             exit(-1);                                                   \
         }                                                               \
     } while (0)
