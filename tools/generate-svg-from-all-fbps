@@ -36,7 +36,7 @@
 set -e
 
 # Default paths
-OUTPUT=$PWD/doc/svg
+OUTPUT=$PWD/doc/node-types-html/svg
 FBP_TO_DOT=$PWD/build/soletta_sysroot/usr/bin/sol-fbp-to-dot
 
 if [[ ! -z "$1" ]]; then
