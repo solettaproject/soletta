@@ -26,7 +26,7 @@ endif # HAVE_VALGRIND
 
 PHONY += check-valgrind check-fbp-valgrind
 
-ifneq (,$(LCOV))
+ifeq (yy,$(HAVE_LCOV)$(HAVE_COVERAGE_SUPPORT))
 run-coverage: check check-fbp
 	$(Q)$(MKDIR) -p $(coveragedir)
 	$(Q)$(LCOV) --capture --directory $(top_srcdir) --output-file $(coveragedir)coverage.info
@@ -37,7 +37,7 @@ coverage: clean
 	$(Q)$(RM) -Rf $(coveragedir)
 	$(Q)$(MAKE) -f $(top_srcdir)Makefile run-coverage
 else
-coverage:
+coverage: FORCE
 	$(Q)echo "No such lcov installation, check your system and run it again."
 	$(Q)echo "If you've just installed it, run: make reconf"
 endif
