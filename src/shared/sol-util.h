@@ -155,3 +155,15 @@ align_power2(unsigned int u)
  *       elements found are returned.
  */
 struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
+
+static inline int
+sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out)
+{
+#ifdef HAVE_UMULL_OVERFLOW
+    if (__builtin_umull_overflow(elem_size, num_elems, out))
+        return -EOVERFLOW;
+#else
+    *out = elem_size * num_elems;
+#endif
+    return 0;
+}

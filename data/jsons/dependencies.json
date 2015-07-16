@@ -246,6 +246,11 @@
 	    "fragment": "strndupa(0, 0);"
 	},
 	{
+	    "dependency": "builtin_umull_overflow",
+	    "type": "ccode",
+	    "fragment": "__builtin_umull_overflow(0, 0, (void *)0);"
+	},
+	{
 	    "dependency": "decl_ifla_inet6_addr_gen_mode",
 	    "type": "ccode",
 	    "headers": [

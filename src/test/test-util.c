@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 
 #include "sol-util.h"
@@ -71,6 +73,21 @@ test_align_power2(void)
             ASSERT(false);
         }
     }
+}
+
+
+DEFINE_TEST(test_size_mul);
+
+static void
+test_size_mul(void)
+{
+    const size_t half_size = SIZE_MAX / 2;
+    size_t out;
+
+    ASSERT(sol_util_size_mul(half_size, 2, &out) == 0);
+    ASSERT_INT_EQ(out, SIZE_MAX);
+
+    ASSERT_INT_EQ(sol_util_size_mul(half_size, 4, &out), -EOVERFLOW);
 }
 
 
