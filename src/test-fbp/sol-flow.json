@@ -1,0 +1,11 @@
+{
+    "nodetypes": [
+	{ 
+            "name": "TestConsole",
+            "type" : "console",
+            "options" : { 
+                "prefix":"-=-=- soletta -=-=-"
+            }
+        }
+    ]
+}
