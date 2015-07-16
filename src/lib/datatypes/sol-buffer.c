@@ -35,42 +35,46 @@
 #include <stdlib.h>
 
 #include "sol-buffer.h"
+#include "sol-log.h"
 #include "sol-util.h"
 
 SOL_API int
-sol_buffer_resize(struct sol_buffer *buf, unsigned int new_size)
+sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
 {
     char *new_data;
 
-    assert(buf);
+    SOL_NULL_CHECK(buf, -EINVAL);
 
-    if (buf->size == new_size)
+    if (buf->reserved == new_size)
         return 0;
 
-    new_data = realloc(buf->data, new_size * sizeof(char));
+    new_data = realloc(buf->data, new_size);
     if (!new_data)
         return -errno;
 
     buf->data = new_data;
-    buf->size = new_size;
+    buf->reserved = new_size;
     return 0;
 }
 
 SOL_API int
-sol_buffer_ensure(struct sol_buffer *buf, unsigned int min_size)
+sol_buffer_ensure(struct sol_buffer *buf, size_t min_size)
 {
-    assert(buf);
-    if (min_size >= UINT_MAX - 1)
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    if (min_size >= SIZE_MAX - 1)
         return -EINVAL;
-    if (buf->size >= min_size)
+    if (buf->reserved >= min_size)
         return 0;
     return sol_buffer_resize(buf, align_power2(min_size + 1));
 }
 
 SOL_API int
-sol_buffer_copy_slice(struct sol_buffer *buf, struct sol_str_slice slice)
+sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 {
     int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
 
     /* Extra room for the ending NUL-byte. */
     err = sol_buffer_ensure(buf, slice.len + 1);
@@ -78,5 +82,24 @@ sol_buffer_copy_slice(struct sol_buffer *buf, struct sol_str_slice slice)
         return err;
 
     sol_str_slice_copy(buf->data, slice);
+    buf->used = slice.len;
+    return 0;
+}
+
+SOL_API int
+sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
+{
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    /* Extra room for the ending NUL-byte. */
+    /* FIXME: len+used might overflow! */
+    err = sol_buffer_ensure(buf, slice.len + buf->used + 1);
+    if (err < 0)
+        return err;
+
+    sol_str_slice_copy((char *)buf->data + buf->used, slice);
+    buf->used += slice.len;
     return 0;
 }
