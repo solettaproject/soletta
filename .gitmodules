@@ -1,0 +1,6 @@
+[submodule "src/thirdparty/duktape"]
+	path = src/thirdparty/duktape
+	url = https://github.com/svaarala/duktape-releases.git
+	branch = v1.2.2
+	sparsecheckout = true
+	sparserules = src/ LICENSE.txt

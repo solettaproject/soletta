@@ -258,7 +258,7 @@ $(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(builtin-objs)
 	$(Q)$(TARGETCC) -shared $(builtin-objs) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
-$(DEPENDENCY_CACHE):
+$(DEPENDENCY_CACHE): submodules-init
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
 		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --pkg-config="$(PKG_CONFIG)"
 
@@ -309,6 +309,11 @@ endef
 $(eval $(call install-resource,$(NODE_TYPE_SCHEMA),$(NODE_TYPE_SCHEMA_DEST)))
 $(eval $(call install-resource,$(PLATFORM_DETECT),$(PLATFORM_DETECT_DEST)))
 $(eval $(call install-resource,$(GDB_AUTOLOAD_PY),$(GDB_AUTOLOAD_PY_DEST)))
+
+submodules-init:
+	$(Q)$(PYTHON)$(SUBMODULE_SCRIPT)
+
+PHONY += submodules-init
 
 $(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT)
 	$(Q)echo "     "GEN"   "$(@)
