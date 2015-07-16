@@ -3,7 +3,7 @@ This showcases the Intel MinnoBoard Max using the Calamari Lure.
 http://elinux.org/Minnowboard:MaxLures
 http://www.minnowboard.org/
 
-sol-fbp-runner will read the options from sol-flow.conf.
+sol-fbp-runner will read the options from sol-flow.json.
 
 ### Special note if your Linux Kernel version is >=  3.18.
 
@@ -17,20 +17,20 @@ The following samples make use of GPIOs and require special attention:
 The GPIO pins numbers have changed in Linux Kernel 3.18,
 the original pin numbers were added by 256.
 
-sol-flow.conf contains the original numbers, prior to Linux Kernel 3.18.
+sol-flow.json contains the original numbers, prior to Linux Kernel 3.18.
 
-sol-flow-new.conf contains the same content, but with the GPIO pin numbers
+sol-flow-new.json contains the same content, but with the GPIO pin numbers
 added by 256. So, if your Linux Kernel >= 3.18, please,
 use this file.
 
 Basically, there are two methods of doing that:
 
  * Method 1 [recommended] - Run:
-        SOL_FLOW_MODULE_RESOLVER_CONFFILE=sol-flow-new.conf sol-fbp-runner example.fbp
+        SOL_FLOW_MODULE_RESOLVER_CONFFILE=sol-flow-new.json sol-fbp-runner example.fbp
 
- * Method 2 - Update the sol-flow.conf file manually. You can edit it manually or copy the
-contents from sol-flow.conf:
-        cp sol-flow-new.conf sol-flow.conf
+ * Method 2 - Update the sol-flow.json file manually. You can edit it manually or copy the
+contents from sol-flow.json:
+        cp sol-flow-new.json sol-flow.json
         sol-fbp-runner example.fbp
 
 
