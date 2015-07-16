@@ -77,18 +77,19 @@ extern "C" {
  */
 
 struct sol_buffer {
-    char *data;
-    unsigned int size;
+    void *data;
+    size_t reserved, used;
 };
 
-#define SOL_BUFFER_EMPTY (struct sol_buffer){.data = NULL, .size = 0 }
+#define SOL_BUFFER_EMPTY (struct sol_buffer){.data = NULL, .reserved = 0, .used = 0 }
 
 static inline void
 sol_buffer_init(struct sol_buffer *buf)
 {
     assert(buf);
     buf->data = NULL;
-    buf->size = 0;
+    buf->reserved = 0;
+    buf->used = 0;
 }
 
 static inline void
@@ -98,18 +99,22 @@ sol_buffer_fini(struct sol_buffer *buf)
         return;
     free(buf->data);
     buf->data = NULL;
-    buf->size = 0;
+    buf->used = 0;
+    buf->reserved = 0;
 }
 
-int sol_buffer_resize(struct sol_buffer *buf, unsigned int new_size);
+int sol_buffer_resize(struct sol_buffer *buf, size_t new_size);
 
 /* Ensure that 'buf' has at least the given 'min_size'. It may
  * allocate more than requested. */
-int sol_buffer_ensure(struct sol_buffer *buf, unsigned int min_size);
+int sol_buffer_ensure(struct sol_buffer *buf, size_t min_size);
 
 /* Copy the 'slice' into 'buf', ensuring that it will fit, including
  * an extra NUL byte so the buffer can be used as a cstr. */
-int sol_buffer_copy_slice(struct sol_buffer *buf, struct sol_str_slice slice);
+int sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
+
+/* Appends the 'slice' into 'buf', reallocating if necessary. */
+int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
 
 /**
  * @}

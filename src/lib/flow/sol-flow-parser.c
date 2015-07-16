@@ -529,11 +529,11 @@ build_flow(struct parse_state *state)
     }
 
     SOL_VECTOR_FOREACH_IDX (&graph->conns, c, i) {
-        err = sol_buffer_copy_slice(&src_port_buf, c->src_port);
+        err = sol_buffer_set_slice(&src_port_buf, c->src_port);
         if (err < 0)
             goto end;
 
-        err = sol_buffer_copy_slice(&dst_port_buf, c->dst_port);
+        err = sol_buffer_set_slice(&dst_port_buf, c->dst_port);
         if (err < 0)
             goto end;
 
@@ -552,7 +552,7 @@ build_flow(struct parse_state *state)
     SOL_VECTOR_FOREACH_IDX (&graph->exported_in_ports, ep, i) {
         char *exported_name;
 
-        err = sol_buffer_copy_slice(&dst_port_buf, ep->port);
+        err = sol_buffer_set_slice(&dst_port_buf, ep->port);
         if (err < 0)
             goto end;
 
@@ -571,7 +571,7 @@ build_flow(struct parse_state *state)
     SOL_VECTOR_FOREACH_IDX (&graph->exported_out_ports, ep, i) {
         char *exported_name;
 
-        err = sol_buffer_copy_slice(&src_port_buf, ep->port);
+        err = sol_buffer_set_slice(&src_port_buf, ep->port);
         if (err < 0)
             goto end;
 
@@ -590,7 +590,7 @@ build_flow(struct parse_state *state)
     SOL_VECTOR_FOREACH_IDX (&graph->options, opt, i) {
         char *exported_name;
 
-        err = sol_buffer_copy_slice(&opt_name_buf, opt->node_option);
+        err = sol_buffer_set_slice(&opt_name_buf, opt->node_option);
         if (err < 0)
             goto end;
 
