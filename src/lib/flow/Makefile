@@ -3,6 +3,7 @@ obj-$(FLOW) += flow.mod
 obj-flow-$(FLOW) := \
     sol-flow-node-options.o \
     sol-flow-packet.o \
+    sol-flow-simplectype.o \
     sol-flow-static.o \
     sol-flow.o
 
@@ -31,4 +32,5 @@ headers-$(FLOW) := \
     include/sol-flow-packet.h \
     include/sol-flow-parser.h \
     include/sol-flow-resolver.h \
+    include/sol-flow-simplectype.h \
     include/sol-flow-static.h

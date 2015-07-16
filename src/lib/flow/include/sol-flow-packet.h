@@ -78,6 +78,21 @@ struct sol_flow_packet_type {
     struct sol_flow_packet *(*get_constant)(const struct sol_flow_packet_type *packet_type, const void *value);
 };
 
+/**
+ * This performs a compile-time type check on a const packet-type, returning it.
+ *
+ * It is often used with macros that ends into types such as 'void*'
+ * or even variable-arguments (varargs).
+ */
+static inline const struct sol_flow_packet_type *sol_flow_packet_type_check_const(const struct sol_flow_packet_type *t) { return t; }
+/**
+ * This performs a compile-time type check on a packet-type, returning it.
+ *
+ * It is often used with macros that ends into types such as 'void*'
+ * or even variable-arguments (varargs).
+ */
+static inline struct sol_flow_packet_type *sol_flow_packet_type_check(struct sol_flow_packet_type *t) { return t; }
+
 struct sol_flow_packet *sol_flow_packet_new(const struct sol_flow_packet_type *type, const void *value);
 void sol_flow_packet_del(struct sol_flow_packet *packet);
 
