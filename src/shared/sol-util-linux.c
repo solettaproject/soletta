@@ -250,7 +250,9 @@ get_progname(char *out, size_t size)
     readlink_path[r] = '\0';
     execfn = readlink_path;
 
+#ifdef HAVE_SYS_AUXV_H
 done:
+#endif
     if (execfn[0] == '/')
         return snprintf(out, size, "%s", execfn);
 
