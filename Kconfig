@@ -8,6 +8,7 @@ config BASE_OS
     default "contiki" if HAVE_CONTIKI
     default "linux" if HAVE_LINUX
     default "riot" if HAVE_RIOTOS
+    default "zephyr" if HAVE_ZEPHYR
 
 source "tools/build/Kconfig.$BASE_OS"
 

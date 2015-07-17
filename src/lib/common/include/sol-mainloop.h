@@ -1118,6 +1118,18 @@ struct sol_main_callbacks {
     int main(void) { \
         return sol_mainloop_default_main(&(CALLBACKS), 0, NULL); \
     }
+#elif defined SOL_PLATFORM_ZEPHYR
+/* We can't include zephyr.h during the Soletta build, because it wil bring
+ * in sysgen.h, that's only generated later on during the build process of
+ * the application */
+#ifndef MAINLOOP_ZEPHYR
+#include <zephyr.h>
+#endif
+
+#define SOL_MAIN(CALLBACKS) \
+    void main_task(void) { \
+        sol_mainloop_default_main(&(CALLBACKS), 0, NULL); \
+    }
 #else
 #define SOL_MAIN(CALLBACKS)                                          \
     int main(int argc, char *argv[]) {                              \

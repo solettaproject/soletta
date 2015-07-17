@@ -31,6 +31,9 @@ obj-libshared-$(PLATFORM_RIOTOS) += \
 obj-libshared-$(PLATFORM_CONTIKI) += \
     sol-util-impl-contiki.o
 
+obj-libshared-$(PLATFORM_ZEPHYR) += \
+    sol-util-impl-zephyr.o
+
 obj-libshared-y-extra-cflags += -fvisibility=default
 
 headers-y += \

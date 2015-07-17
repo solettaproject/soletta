@@ -30,31 +30,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+/* Zephyr includes */
+#include "microkernel.h"
 
-{{
-st.on_value("PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-st.on_value("PLATFORM_ZEPHYR", "y", "#define SOL_PLATFORM_ZEPHYR 1", "")
-}}
+#include "sol-util.h"
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-st.on_value("NO_API_VERSION_NEEDED", "y", "#define SOL_NO_API_VERSION 1", "")
-}}
+struct timespec
+sol_util_timespec_get_current(void)
+{
+    struct timespec ret;
+    int64_t ticks;
 
-{{
-st.on_value("MODULES", "y", "#define SOL_DYNAMIC_MODULES 1", "")
-}}
+    ticks = sys_tick_get();
+    ret.tv_sec = ticks / sys_clock_ticks_per_sec;
+    ticks -= ret.tv_sec * sys_clock_ticks_per_sec;
+    ret.tv_nsec = (ticks * NSEC_PER_SEC) / sys_clock_ticks_per_sec;
 
-#ifdef SOL_PLATFORM_LINUX
-#define SOL_MAINLOOP_FD_ENABLED 1
-#define SOL_MAINLOOP_FORK_WATCH_ENABLED 1
-#endif
+    return ret;
+}
 
-#ifdef SOL_NO_API_VERSION
-#define SOL_SET_API_VERSION(...)
-#else
-#define SOL_SET_API_VERSION(...) __VA_ARGS__
-#endif
+int
+sol_util_timespec_get_realtime(struct timespec *t)
+{
+    errno = ENOSYS;
+    return -1;
+}

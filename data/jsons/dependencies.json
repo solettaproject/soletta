@@ -210,6 +210,13 @@
       ]
     },
     {
+      "dependency": "zephyr",
+      "type": "ccode",
+      "headers": [
+        "<microkernel.h>"
+      ]
+    },
+    {
       "dependency": "dlfcn_h",
       "type": "ccode",
       "headers": [

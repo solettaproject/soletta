@@ -30,31 +30,77 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
 
-{{
-st.on_value("PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-st.on_value("PLATFORM_ZEPHYR", "y", "#define SOL_PLATFORM_ZEPHYR 1", "")
-}}
+/* Zephyr headers */
+#include <microkernel.h>
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-st.on_value("NO_API_VERSION_NEEDED", "y", "#define SOL_NO_API_VERSION 1", "")
-}}
+#include "sol-mainloop-common.h"
+#include "sol-mainloop-impl.h"
+#include "sol-vector.h"
 
-{{
-st.on_value("MODULES", "y", "#define SOL_DYNAMIC_MODULES 1", "")
-}}
+#define PIPE_BUFFER_SIZE 32
+DEFINE_PIPE(_sol_mainloop_pipe, PIPE_BUFFER_SIZE)
 
-#ifdef SOL_PLATFORM_LINUX
-#define SOL_MAINLOOP_FD_ENABLED 1
-#define SOL_MAINLOOP_FORK_WATCH_ENABLED 1
-#endif
+void
+sol_mainloop_impl_lock(void)
+{
+}
 
-#ifdef SOL_NO_API_VERSION
-#define SOL_SET_API_VERSION(...)
-#else
-#define SOL_SET_API_VERSION(...) __VA_ARGS__
-#endif
+void
+sol_mainloop_impl_unlock(void)
+{
+}
+
+bool
+sol_mainloop_impl_main_thread_check(void)
+{
+    return true;
+}
+
+void
+sol_mainloop_impl_main_thread_notify(void)
+{
+}
+
+int
+sol_mainloop_impl_platform_init(void)
+{
+    return 0;
+}
+
+void
+sol_mainloop_impl_platform_shutdown(void)
+{
+    sol_mainloop_common_source_shutdown();
+}
+
+static inline int32_t
+ticks_until_next_timeout(void)
+{
+    struct timespec ts;
+
+    if (!sol_mainloop_common_timespec_first(&ts))
+        return 0;
+
+    if (ts.tv_sec < 0)
+        return 0;
+
+    return ts.tv_sec * sys_clock_ticks_per_sec +
+           (sys_clock_ticks_per_sec / NSEC_PER_SEC) * ts.tv_nsec;
+}
+
+void
+sol_mainloop_impl_iter(void)
+{
+    sol_mainloop_common_timeout_process();
+    sol_mainloop_common_idler_process();
+    sol_mainloop_common_timeout_process();
+
+    if (!sol_mainloop_common_loop_check())
+        return;
+
+    task_sleep(ticks_until_next_timeout());
+}
