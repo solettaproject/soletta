@@ -76,6 +76,10 @@ extern void sol_blob_shutdown(void);
 extern int sol_flow_init(void);
 extern void sol_flow_shutdown(void);
 #endif
+#ifdef COMMS
+extern int sol_comms_init(void);
+extern void sol_comms_shutdown(void);
+#endif
 
 static int _init_count;
 static bool mainloop_running;
@@ -120,11 +124,21 @@ sol_init(void)
         goto flow_error;
 #endif
 
+#ifdef COMMS
+    r = sol_comms_init();
+    if (r < 0)
+        goto comms_error;
+#endif
+
     SOL_DBG("initialized");
 
     return 0;
 
+#ifdef COMMS
+comms_error:
+#endif
 #ifdef FLOW
+    sol_flow_shutdown();
 flow_error:
 #endif
     sol_blob_shutdown();
@@ -195,6 +209,9 @@ sol_shutdown(void)
         return;
 
     SOL_DBG("shutdown");
+#ifdef COMMS
+    sol_comms_shutdown();
+#endif
 #ifdef FLOW
     sol_flow_shutdown();
 #endif
