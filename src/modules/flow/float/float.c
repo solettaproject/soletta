@@ -307,7 +307,7 @@ map_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 {
     struct drange_map_data *mdata = data;
     struct sol_drange in_value;
-    double out_value;
+    double out_value = 0.0;
     int r;
 
     r = sol_flow_packet_get_drange(packet, &in_value);
