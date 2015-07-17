@@ -33,11 +33,11 @@
 # Generate SVG representations of all FBP files in the repository.
 # ./generate-svg-from-all-fbps path/to/sol-fbp-to-dot path/to/output_dir
 
-set -e
-
 # Default paths
 OUTPUT=$PWD/doc/node-types-html/svg
 FBP_TO_DOT=$PWD/build/soletta_sysroot/usr/bin/sol-fbp-to-dot
+
+THUMB_SIZE=89
 
 if [[ ! -z "$1" ]]; then
     FBP_TO_DOT=$1
@@ -64,10 +64,28 @@ for f in $(find src/ -name \*.fbp); do
     dir=$(dirname $f)
     mkdir -p $OUTPUT/$dir
 
+    f_dot=$OUTPUT/${f/.fbp/.dot}
+    f_svg=$OUTPUT/${f/.fbp/.svg}
+    f_thumb=$OUTPUT/${f/.fbp/_thumb.jpg}
+
     # Copy fbp used to generate svg removing license.
     # It's going to be used to display code snippets, having 30 lines
     # of license is annyoing.
     awk -v filter=0 -e '{if ($0 ~ "This file is part of the Soletta") filter=1; if (filter==0) print; if ($0 ~ "SUCH DAMAGE") filter=0;}' < $f > $OUTPUT/$f
 
-    $FBP_TO_DOT --fbp=$f --dot=/dev/stdout | dot -Tsvg > $OUTPUT/${f/.fbp/.svg}
+    # Create svg from fbp
+    $FBP_TO_DOT --fbp=$f --dot=$f_dot
+    # It may fail if any module wasn't built
+    if [[ $? -ne 0 ]]; then
+        echo "Failed to convert $f"
+        continue
+    fi
+    dot -Tsvg $f_dot > $f_svg
+    rm $f_dot
+
+    # Create jgp thumbnail
+    min=`convert $f_svg -format "%[fx:min(w,h)]" info:`
+    convert $f_svg -background black -gravity center -extent ${min}x${min} $f_thumb
+    convert $f_thumb -thumbnail $THUMB_SIZE $f_thumb
+
 done
