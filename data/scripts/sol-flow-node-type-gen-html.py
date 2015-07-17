@@ -75,7 +75,7 @@ def print_example(outfile, example):
                     { large:'%(image_path)s', thumb:'%(thumb_path)s', code:'%(code_path)s' },
 """ % {
     "image_path": example[0:-3] + "svg",
-    "thumb_path": example[0:-3] + "svg",
+    "thumb_path": example[0:-4] + "_thumb.jpg",
     "code_path": example,
     })
 
