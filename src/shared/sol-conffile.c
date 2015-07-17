@@ -163,7 +163,7 @@ sol_conffile_json_to_vector(struct sol_json_scanner scanner, struct sol_ptr_vect
     sol_json_scanner_init_from_token(&obj_scanner, &value);
     SOL_JSON_SCANNER_ARRAY_LOOP (&obj_scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         entry = calloc(1, sizeof(*entry));
-        SOL_NULL_CHECK(entry, -ENOMEM);
+        SOL_NULL_CHECK_GOTO(entry, err);
         entry->id = NULL;
         entry->type = NULL;
         sol_ptr_vector_init(&entry->options);
@@ -176,42 +176,46 @@ sol_conffile_json_to_vector(struct sol_json_scanner scanner, struct sol_ptr_vect
             if (sol_json_token_str_eq(&key, node_name, strlen(node_name))) {
                 entry->id = sol_dup_json_str(value);
                 if (!entry->id) {
-                    goto err;
+                    goto entry_err;
                 }
             } else if (sol_json_token_str_eq(&key, node_type, strlen(node_type))) {
                 entry->type = sol_dup_json_str(value);
                 if (!entry->type) {
-                    goto err;
+                    goto entry_err;
                 }
             } else if (sol_json_token_str_eq(&key, node_options, strlen(node_options))) {
                 if (sol_conffile_set_entry_options(entry, value) != 0) {
-                    goto err;
+                    goto entry_err;
                 }
             }
         }
         if (!entry->type || !entry->id) {
             SOL_DBG("Error: Invalid config type entry, please check your config file.");
-            goto err;
+            goto entry_err;
         }
 
         if (reason != SOL_JSON_LOOP_REASON_OK) {
             SOL_DBG("Error: Invalid JSON.");
-            goto err;
+            goto entry_err;
         }
-        sol_ptr_vector_insert_sorted(pv, entry, sol_conffile_entry_sort_cb);
+
+        if (sol_ptr_vector_insert_sorted(pv, entry, sol_conffile_entry_sort_cb) == -1)
+            goto entry_err;
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
         SOL_DBG("Error: Invalid JSON.");
-        goto err;
+        goto entry_err;
     }
 
     return 0;
 
+entry_err:
+    sol_free_conffile_entry(entry);
 err:
     SOL_PTR_VECTOR_FOREACH_IDX (pv, entry, i) {
         sol_free_conffile_entry(entry);
-        sol_ptr_vector_clear(pv);
     }
+    sol_ptr_vector_clear(pv);
 
     return -ENOMEM;
 }
