@@ -43,6 +43,10 @@
 #include "sol-util.h"
 #include "sol-vector.h"
 
+#ifdef JAVASCRIPT
+#include "sol-flow-js.h"
+#endif
+
 #define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...)          \
     do {                                                                \
         if ((client)->api_version != (expected)) {                      \
@@ -400,8 +404,47 @@ create_fbp_type(
     return 0;
 }
 
+#ifdef JAVASCRIPT
+static int
+create_js_type(
+    struct parse_state *state,
+    struct sol_str_slice name,
+    struct sol_str_slice contents,
+    const struct sol_flow_node_type **type)
+{
+    const struct sol_flow_parser_client *client = state->parser->client;
+    const char *buf, *filename;
+    struct sol_flow_node_type *result;
+    size_t size;
+    int err;
+
+    SOL_NULL_CHECK(client, -ENOSYS);
+    SOL_NULL_CHECK(client->read_file, -ENOSYS);
+
+    filename = strndupa(contents.data, contents.len);
+    err = client->read_file(client->data, filename, &buf, &size);
+    if (err < 0)
+        return -EINVAL;
+
+    result = sol_flow_js_new_type(buf, size);
+    if (!result)
+        return -EINVAL;
+
+    if (sol_ptr_vector_append(&state->parser->types, result) < 0) {
+        sol_flow_node_type_del(result);
+        return -ENOMEM;
+    }
+
+    *type = result;
+    return 0;
+}
+#endif
+
 static const struct sol_str_table_ptr creator_table[] = {
     SOL_STR_TABLE_PTR_ITEM("fbp", create_fbp_type),
+#ifdef JAVASCRIPT
+    SOL_STR_TABLE_PTR_ITEM("js", create_js_type),
+#endif
     { }
 };
 
