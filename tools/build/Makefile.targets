@@ -105,15 +105,15 @@ doc: cheat-sheet doxygen
 
 PHONY += doc
 
-ifeq (yy,$(FBP_TO_DOT)$(HAVE_GRAPHVIZ))
+ifeq (yyy,$(FBP_TO_DOT)$(HAVE_GRAPHVIZ)$(HAVE_IMAGEMAGICK))
 cheat-sheet: $(MAKEFILE_GEN) $(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_RESOURCES) $(SOL_FBP_TO_DOT_BIN) $(all-mod-descs)
 	$(Q)echo "     "GEN"   "$(CHEAT_SHEET_INDEX_HTML)
-	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(all-mod-descs)
 	$(Q)$(GEN_SVG_SCRIPT) "$(abspath $(SOL_FBP_TO_DOT_BIN))" $(SVG_OUTPUT_DIR)
+	$(Q)$(CHEAT_SHEET_HTML_SCRIPT) $(CHEAT_SHEET_INDEX_HTML_IN) $(CHEAT_SHEET_INDEX_HTML) $(SVG_OUTPUT_DIR) $(all-mod-descs)
 else
 cheat-sheet:
-	$(Q)echo "     Either no sol-fbp-to-dot built, or no graphviz installed in the host system"
-	$(Q)echo "     If lacking graphviz, after installing it run: make reconf"
+	$(Q)echo "     Either no sol-fbp-to-dot built, or no graphviz or imagemagick installed in the host system"
+	$(Q)echo "     If lacking graphviz or imagemagick, after installing it run: make reconf"
 endif
 
 PHONY += cheat-sheet

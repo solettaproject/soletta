@@ -270,6 +270,11 @@
 	    "dependency": "graphviz",
 	    "type": "exec",
 	    "exec": "dot"
+	},
+	{
+	    "dependency": "imagemagick",
+	    "type": "exec",
+	    "exec": "convert"
 	}
     ]
 }
