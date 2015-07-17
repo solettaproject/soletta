@@ -2,9 +2,8 @@ config COMMS
 	bool "Comms"
 	default y
 	help
-            Comms consists on a few communication modules.
-            It provides ways to deal with network, CoAP protocol and
-            OIC protocol (server and client sides).
+            Network connectivity modules. Includes CoAP, OIC
+            (client/server), HTTP (client), basic network link management.
 
 config NETWORK
 	bool "Network"
@@ -59,3 +58,10 @@ config OIC
             operating system or service provider.
 
             Both client and server sides are covered by this library.
+
+config HTTP_CLIENT
+	bool "HTTP Client"
+	default y
+	depends on HAVE_LIBCURL && COMMS
+	help
+            Client API for both HTTP and HTTPS.
