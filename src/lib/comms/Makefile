@@ -35,3 +35,14 @@ headers-comms-$(COAP) += \
 headers-comms-$(OIC) += \
     include/sol-oic-client.h \
     include/sol-oic-server.h
+
+ifeq (y,$(HTTP_CLIENT))
+obj-comms-$(COMMS) += \
+    sol-http-client.o
+
+obj-comms-$(COMMS)-extra-ldflags += \
+    $(LIBCURL_LDFLAGS)
+endif
+
+headers-comms-$(HTTP_CLIENT) += \
+    include/sol-http-client.h
