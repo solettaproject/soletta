@@ -272,7 +272,7 @@ static struct sol_str_slice
 sol_conffile_load_json_from_dirs(const char *file, char **full_path, struct sol_file_reader **file_reader)
 {
     size_t i;
-    struct sol_str_slice config_file_contents;
+    struct sol_str_slice config_file_contents = SOL_STR_SLICE_EMPTY;
     const char *search_dirs[] = {
         NULL,
         ".",
