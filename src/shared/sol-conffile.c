@@ -67,7 +67,7 @@ sol_free_conffile_entry(struct sol_conffile_entry *entry)
     void *ptr;
     free(entry->id);
     free(entry->type);
-    SOL_PTR_VECTOR_FOREACH_IDX(&entry->options, ptr, idx) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&entry->options, ptr, idx) {
         free(ptr);
     }
     sol_ptr_vector_clear(&entry->options);
@@ -90,7 +90,7 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
         char *tmp;
         key_len = sol_json_token_get_size(&key) - 2; // remove quotes from the key.
         value_len = sol_json_token_get_size(&value); // do not remove quotes from the value. (not everything is a string here)
-        if(!key_len || !value_len) {
+        if (!key_len || !value_len) {
             reason = SOL_JSON_LOOP_REASON_INVALID;
             break;
         }
@@ -106,7 +106,7 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
         int i;
         void *ptr;
         SOL_DBG("Error: Invalid JSON.");
-        SOL_PTR_VECTOR_FOREACH_IDX(&vec_options, ptr, i) {
+        SOL_PTR_VECTOR_FOREACH_IDX (&vec_options, ptr, i) {
             free(ptr);
         }
         sol_ptr_vector_clear(&vec_options);
@@ -208,7 +208,7 @@ sol_conffile_json_to_vector(struct sol_json_scanner scanner, struct sol_ptr_vect
     return 0;
 
 err:
-    SOL_PTR_VECTOR_FOREACH_IDX(pv, entry, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (pv, entry, i) {
         sol_free_conffile_entry(entry);
         sol_ptr_vector_clear(pv);
     }
@@ -458,7 +458,7 @@ _sol_conffile_resolve(const char *id, const char **type, const char ***opts)
         return -EINVAL;
     }
 
-    key.id = (char*) id;
+    key.id = (char *)id;
     vector_pointer = bsearch(&key,
         sol_conffile_entry_vector.base.data,
         sol_ptr_vector_get_len(&sol_conffile_entry_vector),
@@ -481,7 +481,7 @@ _sol_conffile_resolve(const char *id, const char **type, const char ***opts)
     }
 
     *type = entry->type;
-    *opts = (const char**) entry->options.base.data;
+    *opts = (const char **)entry->options.base.data;
 
     return 0;
 }
