@@ -139,7 +139,7 @@ def compile_test(source, compiler, cflags, ldflags):
     f.write(bytes(source, 'UTF-8'))
     f.close()
     output = "%s-bin" % f.name
-    cmd = "{compiler} {cflags} {ldflags} {src} -o {out}".format(compiler=compiler,
+    cmd = "{compiler} {cflags} {src} -o {out} {ldflags}".format(compiler=compiler,
             cflags=cflags, ldflags=ldflags or "", src=f.name, out=output)
     out, status = run_command(cmd)
     if os.path.exists(output):
