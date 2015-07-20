@@ -52,8 +52,6 @@ parse-common-module = \
 	$(eval mod-objs     := $(filter %.o,$(artifacts))) \
 	$(eval $(1)-cflags  := $(obj-$(1)-$(3)-extra-cflags)) \
 	$(eval $(1)-ldflags := $(obj-$(1)-$(3)-extra-ldflags)) \
-	$(eval all-ldflags  += $($(1)-ldflags)) \
-	$(eval all-cflags   += $($(1)-ldflags)) \
 	$(eval $(1)-bs      := $(addprefix $(2),Makefile)) \
 	$(eval $(1)-bs      += $(if $(wildcard $(2)/Kconfig),$(addprefix $(2),Kconfig))) \
 	$(eval $(1)-hdrs    := $(filter %.h,$(artifacts))) \
@@ -85,9 +83,6 @@ parse-mod-output = \
 
 parse-mod-module = \
 	$(call parse-common-module,$(1),$(2),m) \
-	$(eval mod-flows       += $(call flow-type,$(artifacts))) \
-	$(eval mod-linux-micro += $(call linux-micro-type,$(artifacts))) \
-	$(eval mod-pin-mux     += $(call pin-mux-type,$(artifacts))) \
 	$(eval $(mod)-deps     := $(subst .mod,,$(obj-$(mod)-m-deps))) \
 	$(call parse-mod-output,$(1),$(2)) \
 	$(eval modules-out += $($(mod)-out)) \
@@ -381,10 +376,8 @@ define clean-resource
 
 endef
 
-cleanup-files := $(shell find $(top_srcdir)src/ -name '*.o' -o -name '*.so' -o -name '*.a')
-cleanup-files += $(shell find $(top_srcdir) -name '*.gcda' -o -name '*.gcno')
-cleanup-files += $(CLEANUP_GEN) $(kconfig-clean-objs) $(BUILDDIR) $(CHEAT_SHEET_INDEX_HTML)
-cleanup-files += $(DOXYGEN_GENERATED)
+cleanup-files := $(tests-out) $(CLEANUP_GEN) $(kconfig-clean-objs)
+cleanup-files += $(BUILDDIR) $(CHEAT_SHEET_INDEX_HTML) $(DOXYGEN_GENERATED)
 
 clean:
 	$(foreach curr,$(wildcard $(cleanup-files)),$(call clean-resource,$(curr)))
