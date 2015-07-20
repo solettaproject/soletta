@@ -295,14 +295,16 @@ sol_conffile_load_json_from_dirs(const char *file, char **full_path, struct sol_
                 SOL_WRN("Couldn't allocate memory for config file.");
                 break;
             }
-            *file_reader = sol_file_reader_open(file);
-            if (*file_reader)
-                config_file_contents = sol_file_reader_get_all(*file_reader);
 
-            if (config_file_contents.len != 0)
-                break;
-            else
-                SOL_WRN("Error creating type.");
+            *file_reader = sol_file_reader_open(file);
+            if (*file_reader) {
+                config_file_contents = sol_file_reader_get_all(*file_reader);
+                if (config_file_contents.len != 0)
+                    break;
+
+                sol_file_reader_close(*file_reader);
+                *file_reader = NULL;
+            }
         }
     }
 
