@@ -110,7 +110,6 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
             free(ptr);
         }
         sol_ptr_vector_clear(&vec_options);
-        sol_free_conffile_entry(entry);
         return -ENOKEY;
     }
 
