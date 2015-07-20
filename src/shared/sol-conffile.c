@@ -392,13 +392,16 @@ sol_conffile_fill_vector(const char *path, const char *fallback_paths)
     char *include = NULL;
     char *include_fallbacks = NULL;
     struct sol_str_slice config_file_contents = SOL_STR_SLICE_EMPTY;
-    struct sol_file_reader *file_reader;
+    struct sol_file_reader *file_reader = NULL;
     struct sol_ptr_vector pv;
     struct sol_json_scanner json_scanner;
 
     config_file_contents = sol_conffile_load_json_from_paths(path, fallback_paths, &full_path, &file_reader);
-    if (!config_file_contents.len)
+    if (!config_file_contents.len) {
+        if (file_reader)
+            sol_file_reader_close(file_reader);
         return;
+    }
 
     sol_json_scanner_init(&json_scanner, config_file_contents.data, config_file_contents.len);
     sol_conffile_get_json_include_paths(json_scanner, &include, &include_fallbacks);
