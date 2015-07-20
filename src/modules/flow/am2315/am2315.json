@@ -1,0 +1,107 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "am2315",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "Gets AM2315 sensor temperature in Celsius, Fahrenheit and Kelvin. This device also reads humidity, check for its node",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a temperature reading and produce packets on each of the the output ports. Note that AM2315 needs a 2 seconds interval between readings - any ticks sent before such interval will output cached data.",
+          "name": "TICK",
+          "methods": {
+            "process": "temperature_am2315_tick"
+          }
+        }
+      ],
+      "methods": {
+        "close": "temperature_am2315_close",
+        "open": "temperature_am2315_open"
+      },
+      "name": "am2315/temperature",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "I2C bus number",
+            "name": "i2c_bus"
+          },
+          {
+            "data_type": "int",
+            "description": "I2C bus slave on which the sensor answers.",
+            "name": "i2c_slave",
+            "default": 92
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Celsius.",
+          "name": "CELSIUS"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Fahrenheit.",
+          "name": "FAHRENHEIT"
+        },
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Kelvin.",
+          "name": "KELVIN"
+        }
+      ],
+      "private_data_type": "am2315_data"
+    },
+    {
+      "category": "input/hw",
+      "description": "Gets AM2315 sensor relative humidity in percentage. This device also reads temperature, check for its node",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a humidity reading and produce packets on the output ports. Note that AM2315 needs a 2 seconds interval between readings - any ticks sent before such interval will output cached data.",
+          "name": "TICK",
+          "methods": {
+            "process": "humidity_am2315_tick"
+          }
+        }
+      ],
+      "methods": {
+        "close": "humidity_am2315_close",
+        "open": "humidity_am2315_open"
+      },
+      "name": "am2315/humidity",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "I2C bus number",
+            "name": "i2c_bus"
+          },
+          {
+            "data_type": "int",
+            "description": "I2C bus slave on which the sensor answers.",
+            "name": "i2c_slave",
+            "default": 92
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured relative humidity in percentage.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "am2315_data"
+    }
+  ]
+}
