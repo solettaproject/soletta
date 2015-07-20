@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_AM2315
+	tristate "Node type: am2315"
+	depends on FLOW
+	default m
