@@ -30,6 +30,7 @@ menu "Node Types"
 	depends on FLOW
 source "src/modules/flow/accelerometer/Kconfig"
 source "src/modules/flow/aio/Kconfig"
+source "src/modules/flow/am2315/Kconfig"
 source "src/modules/flow/app/Kconfig"
 source "src/modules/flow/boolean/Kconfig"
 source "src/modules/flow/byte/Kconfig"
