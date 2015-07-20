@@ -38,6 +38,31 @@
             }
 	},
 	{
+	    "dependency": "ldl",
+	    "type": "ccode",
+	    "headers": [
+		"<dlfcn.h>"
+            ],
+            "fragment": "dlopen(0,0);",
+            "cflags": {
+                "comment": "append to COMMON_LDFLAGS so it's used for further checks, and else where in the build system",
+                "append_to": "COMMON_LDFLAGS",
+                "value": "-ldl"
+            }
+	},
+	{
+	    "dependency": "lib_math",
+	    "type": "ccode",
+	    "headers": [
+		"<math.h>"
+            ],
+            "fragment": "isinf(0);",
+            "cflags": {
+                "append_to": "COMMON_LDFLAGS",
+                "value": "-lm"
+            }
+	},
+	{
 	    "dependency": "check_flags",
 	    "type": "cflags",
 	    "cflags": [
@@ -130,16 +155,10 @@
 	{
 	    "dependency": "decl_dladdr",
 	    "type": "ccode",
-	    "defines": [
-		"_GNU_SOURCE"
-	    ],
 	    "headers": [
 		"<dlfcn.h>"
 	    ],
-	    "fragment": "dladdr(0, 0);",
-	    "ldflags": {
-		"value": "-ldl"
-	    }
+	    "fragment": "dladdr(0, 0);"
 	},
 	{
 	    "dependency": "pthread_h",
