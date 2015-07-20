@@ -63,7 +63,7 @@
             }
 	},
 	{
-	    "dependency": "check_flags",
+	    "dependency": "check_cflags",
 	    "type": "cflags",
 	    "cflags": [
                 "-pipe",
@@ -108,6 +108,14 @@
             ],
             "comment": "append to COMMON_CFLAGS so it's used for further checks",
             "append_to": "COMMON_CFLAGS"
+	},
+	{
+	    "dependency": "check_ldflags",
+	    "type": "ldflags",
+	    "ldflags": [
+                "-Wl,--gc-sections"
+            ],
+            "append_to": "COMMON_LDFLAGS"
 	}
     ],
     "dependencies": [

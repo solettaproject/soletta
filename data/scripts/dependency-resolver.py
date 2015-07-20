@@ -251,25 +251,39 @@ def handle_python_check(args, conf, context):
 
     return success
 
-def handle_cflags_check(args, conf, context):
-    check_cflags = conf.get("cflags")
+def handle_flags_check(args, conf, context, cflags, ldflags):
     append_to = conf.get("append_to")
     source = cstub.format(headers="", fragment="")
+    test_cflags = ""
+    test_ldflags = ""
 
-    if not append_to or not check_cflags:
-        return
+    if cflags:
+        test_cflags = " ".join(cflags)
+        flags = test_cflags
+    elif ldflags:
+        test_ldflags = " ".join(ldflags)
+        flags = test_ldflags
+    else:
+        print("Neither cflags nor ldflags provided to flags_check.")
+        exit(1)
 
-    flags = " ".join(check_cflags)
-    success = compile_test(source, args.compiler, "-Werror %s" % flags, None)
+    success = compile_test(source, args.compiler, "-Werror %s" % test_cflags, test_ldflags)
     if success:
         context.add_append_makefile_var(append_to, flags)
         return True
 
     supported = []
-    for i in check_cflags:
+    for i in flags:
         # must acumulate the tested one so we handle dependent flags like -Wformat*
         flags = "%s %s" % (" ".join(supported), i)
-        success = compile_test(source, args.compiler, "-Werror %s" % flags, None)
+        if cflags:
+            test_cflags = flags
+            test_ldflags = ""
+        else:
+            test_ldflags = flags
+            test_cflags = ""
+
+        success = compile_test(source, args.compiler, "-Werror %s" % test_cflags, test_ldflags)
         if success:
             supported.append(i)
 
@@ -278,6 +292,11 @@ def handle_cflags_check(args, conf, context):
 
     return bool(supported)
 
+def handle_cflags_check(args, conf, context):
+    return handle_flags_check(args, conf, context, conf.get("cflags"), None)
+
+def handle_ldflags_check(args, conf, context):
+    return handle_flags_check(args, conf, context, None, conf.get("ldflags"))
 
 type_handlers = {
     "pkg-config": handle_pkgconfig_check,
@@ -285,6 +304,7 @@ type_handlers = {
     "exec": handle_exec_check,
     "python": handle_python_check,
     "cflags": handle_cflags_check,
+    "ldflags": handle_ldflags_check,
 }
 
 def format_makefile_var(items):
