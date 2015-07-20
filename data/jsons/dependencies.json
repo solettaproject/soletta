@@ -143,16 +143,10 @@
 	{
 	    "dependency": "decl_dladdr",
 	    "type": "ccode",
-	    "defines": [
-		"_GNU_SOURCE"
-	    ],
 	    "headers": [
 		"<dlfcn.h>"
 	    ],
-	    "fragment": "dladdr(0, 0);",
-	    "ldflags": {
-		"value": "-ldl"
-	    }
+	    "fragment": "dladdr(0, 0);"
 	},
 	{
 	    "dependency": "pthread_h",
