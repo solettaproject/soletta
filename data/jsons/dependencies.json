@@ -51,6 +51,18 @@
             }
 	},
 	{
+	    "dependency": "lib_math",
+	    "type": "ccode",
+	    "headers": [
+		"<math.h>"
+            ],
+            "fragment": "isinf(0);",
+            "ldflags": {
+                "append_to": "COMMON_LDFLAGS",
+                "value": "-lm"
+            }
+	},
+	{
 	    "dependency": "check_flags",
 	    "type": "cflags",
 	    "cflags": [
