@@ -38,6 +38,19 @@
             }
 	},
 	{
+	    "dependency": "ldl",
+	    "type": "ccode",
+	    "headers": [
+		"<dlfcn.h>"
+            ],
+            "fragment": "dlopen(0,0);",
+            "ldflags": {
+                "comment": "append to COMMON_LDFLAGS so it's used for further checks, and else where in the build system",
+                "append_to": "COMMON_LDFLAGS",
+                "value": "-ldl"
+            }
+	},
+	{
 	    "dependency": "check_flags",
 	    "type": "cflags",
 	    "cflags": [
