@@ -178,11 +178,15 @@ def handle_ccode_check(args, conf, context):
         source += "#include %s\n" % header
 
     common_cflags = context.find_makefile_var(args.common_cflags_var)
+    common_ldflags = context.find_makefile_var(args.common_ldflags_var)
+
+    test_cflags = (cflags.get("value", ""), args.cflags, common_cflags)
+    test_ldflags = (ldflags.get("value", ""), common_ldflags)
+
     fragment = conf.get("fragment") or ""
     source = cstub.format(headers=source, fragment=fragment)
-    success = compile_test(source, args.compiler, "%s %s %s" %
-                           (cflags.get("value", ""), args.cflags, common_cflags),
-                           ldflags.get("value", ""))
+    success = compile_test(source, args.compiler, (" ").join(test_cflags),
+                           (" ").join(test_ldflags))
 
     if success:
         context.add_kconfig("HAVE_%s" % dep, "bool", "y")
@@ -401,6 +405,9 @@ if __name__ == "__main__":
     parser.add_argument("--common-cflags-var", help=("The makefile variable to "
                                                      "group common cflags"),
                         type=str, default="COMMON_CFLAGS")
+    parser.add_argument("--common-ldflags-var", help=("The makefile variable to "
+                                                      "group common ldflags"),
+                        type=str, default="COMMON_LDFLAGS")
     parser.add_argument("--cache", help="The configuration cache.", type=str,
                         default=".config-cache")
     parser.add_argument("--prefix", help="The installation prefix",
