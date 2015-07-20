@@ -83,7 +83,7 @@ config PLATFORM_SYSTEMD
 	bool "systemd"
 	depends on HAVE_SYSTEMD
 	select SOL_PLATFORM_LINUX
-	select KDBUS
+	select SOL_BUS
 	help
             This platform uses systemd.
 
@@ -302,9 +302,11 @@ config MAXIMUM_LOG_LEVEL_UNLIMITED
 	bool "unlimited"
 endchoice
 
-config KDBUS
-	bool "Kdbus"
-	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_KDBUS
+config SOL_BUS
+	bool "Sd-bus support"
+	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_SD_BUS
+	help
+          Systemd's sd-bus support.
 	default n
 
 config SOCKET_LINUX
