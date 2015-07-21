@@ -60,7 +60,7 @@ extern "C" {
 #define strndupa(str_, len_)     __strndupa_internal__(str_, len_, __tmp__ ## __LINE__)
 #endif
 
-#if !defined(HAVE_ACCEPT4) || HAVE_ACCEPT4 == 0
+#if HAVE_SOCKET && (!defined(HAVE_ACCEPT4) || HAVE_ACCEPT4 == 0)
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>

@@ -180,6 +180,13 @@
 	    ]
 	},
 	{
+	    "dependency": "socket",
+	    "type": "ccode",
+	    "headers": [
+		"<sys/socket.h>"
+	    ]
+	},
+	{
 	    "dependency": "accept4",
 	    "type": "ccode",
 	    "headers": [
