@@ -95,7 +95,7 @@ def check_commits(args):
     print("Working directory is clean, checking commit changes for (%s)" % args.target_refspec)
     return run_command(cmd_check % args.target_refspec)
 
-def run_check(args, uncrustify):
+def run_check(args, uncrustify, cfg_file):
     diff_list = check_dirty(args)
     if not diff_list:
         diff_list = check_commits(args)
@@ -104,8 +104,8 @@ def run_check(args, uncrustify):
         print("No source files (*.[ch]) changed for: %s" % args.target_refspec)
         return True
 
-    cmd = "%s -c data/schemas/uncrustify.schema -l C %s" % \
-          (uncrustify, diff_list.replace("\n", " "))
+    cmd = "%s -c %s -l C %s" % \
+          (uncrustify, cfg_file, diff_list.replace("\n", " "))
     output = run_command(cmd)
     if not output:
         return False
@@ -146,6 +146,8 @@ if __name__ == "__main__":
                        type=str, metavar="<base-commit>")
     group.add_argument("-r", help="Use a refspec instead of a base commit",
                        dest="refspec", type=str, metavar="<refspec>")
+    parser.add_argument("-c", help="Path for the config file", dest="cfg_file",
+                        type=str, metavar="<config>")
     parser.add_argument("--color", metavar="WHEN", type=str, \
                         help="Use colors. WHEN can be always, auto and never.")
     parser.set_defaults(color="auto")
@@ -168,5 +170,8 @@ if __name__ == "__main__":
     if not uncrustify:
         exit(1)
 
-    if not run_check(args, uncrustify):
+    if not args.cfg_file:
+        args.cfg_file = "data/schemas/uncrustify.schema"
+
+    if not run_check(args, uncrustify, args.cfg_file):
         exit(1)
