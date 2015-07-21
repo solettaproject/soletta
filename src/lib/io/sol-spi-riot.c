@@ -47,37 +47,54 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "spi");
 struct sol_spi {
     unsigned int bus;
     unsigned int cs_pin;
-    uint32_t mode;
-    spi_speed_t speed;
 };
 
-static bool
-spi_init(struct sol_spi *spi)
+static spi_speed_t
+uint32_to_spi_speed_enum(uint32_t freq)
 {
-    int retval;
-
-    spi_acquire(spi->bus);
-    spi_conf_pins(spi->bus);
-    retval = spi_init_master(spi->bus, spi->mode, spi->speed);
-    spi_release(spi->bus);
-    return retval == 0;
+    if (freq >= 10000000)
+        return SPI_SPEED_10MHZ;
+    if (freq >= 5000000)
+        return SPI_SPEED_5MHZ;
+    if (freq >= 1000000)
+        return SPI_SPEED_1MHZ;
+    if (freq >= 400000)
+        return SPI_SPEED_400KHZ;
+    return SPI_SPEED_100KHZ;
 }
 
 SOL_API struct sol_spi *
-sol_spi_open(unsigned int bus, unsigned int chip_select)
+sol_spi_open(unsigned int bus, const struct sol_spi_config *config)
 {
     struct sol_spi *spi;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
-    spi = calloc(sizeof(struct sol_spi), 1);
+    if (unlikely(config->api_version != SOL_SPI_CONFIG_API_VERSION)) {
+        SOL_WRN("Couldn't open SPI that has unsupported version '%u', "
+            "expected version is '%u'",
+            config->api_version, SOL_SPI_CONFIG_API_VERSION);
+        return NULL;
+    }
+
+    SOL_EXP_CHECK(config->bits_per_word != 8, NULL);
+
+    spi = malloc(sizeof(struct sol_spi));
     SOL_NULL_CHECK(spi, NULL);
 
-    spi->bus = bus;
-    spi->cs_pin = chip_select;
+    spi_poweron(bus);
+    spi_acquire(bus);
+    spi_conf_pins(bus);
+    if (spi_init_master(bus, config->mode, uint32_to_spi_speed_enum(config->frequency)) != 0) {
+        SOL_WRN("%u,%u: Unable to setup SPI", bus, config->chip_select);
+        spi_release(bus);
+        free(spi);
+        return NULL;
+    }
+    spi_release(spi->bus);
 
-    spi_poweron(spi->bus);
-    spi_init(spi);
+    spi->bus = bus;
+    spi->cs_pin = config->chip_select;
 
     gpio_init_out(spi->cs_pin, GPIO_NOPULL);
     gpio_set(spi->cs_pin);
@@ -92,96 +109,8 @@ sol_spi_close(struct sol_spi *spi)
     free(spi);
 }
 
-SOL_API int32_t
-sol_spi_get_transfer_mode(const struct sol_spi *spi)
-{
-    SOL_NULL_CHECK(spi, -EINVAL);
-    return spi->mode;
-}
-
 SOL_API bool
-sol_spi_set_transfer_mode(struct sol_spi *spi, uint32_t mode)
-{
-    SOL_NULL_CHECK(spi, false);
-    SOL_INT_CHECK(mode, > 3, false);
-    spi->mode = mode;
-    return spi_init(spi);
-}
-
-SOL_API int8_t
-sol_spi_get_bit_justification(const struct sol_spi *spi)
-{
-    return 0;
-}
-
-SOL_API bool
-sol_spi_set_bit_justification(struct sol_spi *spi, uint8_t justification)
-{
-    return false;
-}
-
-SOL_API int8_t
-sol_spi_get_bits_per_word(const struct sol_spi *spi)
-{
-    return 8;
-}
-
-SOL_API bool
-sol_spi_set_bits_per_word(struct sol_spi *spi, uint8_t bits_per_word)
-{
-    SOL_NULL_CHECK(spi, false);
-    if (bits_per_word != 8)
-        return false;
-    return true;
-}
-
-static int32_t
-riot_speed_to_hz(spi_speed_t speed)
-{
-    const unsigned int table[] = {
-        [SPI_SPEED_100KHZ] = 100000,
-        [SPI_SPEED_400KHZ] = 400000,
-        [SPI_SPEED_1MHZ] = 1000000,
-        [SPI_SPEED_5MHZ] = 5000000,
-        [SPI_SPEED_10MHZ] = 10000000
-    };
-
-    if (unlikely(speed > (sizeof(table) / sizeof(unsigned int))))
-        return 0;
-    return table[speed];
-}
-
-SOL_API int32_t
-sol_spi_get_max_speed(const struct sol_spi *spi)
-{
-    SOL_NULL_CHECK(spi, 0);
-    return riot_speed_to_hz(spi->speed);
-}
-
-static spi_speed_t
-hz_to_riot_speed(uint32_t speed)
-{
-    if (speed >= 10000000)
-        return SPI_SPEED_10MHZ;
-    if (speed >= 5000000)
-        return SPI_SPEED_5MHZ;
-    if (speed >= 1000000)
-        return SPI_SPEED_1MHZ;
-    if (speed >= 400000)
-        return SPI_SPEED_400KHZ;
-    return SPI_SPEED_100KHZ;
-}
-
-SOL_API bool
-sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed)
-{
-    SOL_NULL_CHECK(spi, false);
-    spi->speed = hz_to_riot_speed(speed);
-    return spi_init(spi);
-}
-
-SOL_API bool
-sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t count)
+sol_spi_transfer(const struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count)
 {
     int ret;
 
