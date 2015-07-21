@@ -1,0 +1,49 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "compass",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "Generic compass that takes direction-vectors of an accelerometer and a magnetometer and outputs heading towards Magnetic North Pole, in degrees.",
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Accelerometer readings.",
+          "name": "ACCELEROMETER",
+          "methods": {
+            "process": "compass_accel_open"
+          },
+          "required": true
+        },
+        {
+          "data_type": "direction-vector",
+          "description": "Magnetometer readings.",
+          "name": "MAGNETOMETER",
+          "methods": {
+            "process": "compass_mag_open"
+          },
+          "required": true
+        }
+      ],
+      "name": "compass/accelerometer-magnetometer",
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Heading relative to Magnetic North Pole.",
+          "name": "VECTOR"
+        },
+        {
+          "data_type": "float",
+          "description": "Heading relative to Magnetic North Pole, in degrees.",
+          "name": "HEADING"
+        }
+      ],
+      "private_data_type": "compass_data"
+    }
+ ]
+}
