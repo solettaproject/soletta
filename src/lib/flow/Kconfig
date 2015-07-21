@@ -13,7 +13,7 @@ config NODE_DESCRIPTION
 
 config RESOLVER_CONFFILE
 	bool "Resolver conffile"
-	depends on NODE_DESCRIPTION
+	depends on NODE_DESCRIPTION && HAVE_GLIB
 	default y
 
 config INSPECTOR
