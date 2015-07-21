@@ -330,6 +330,8 @@ sol_conffile_load_json_from_paths(const char *path,
         struct sol_str_slice *s_ptr;
         struct sol_vector str_splitted = sol_util_str_split(sol_str_slice_from_str(fallback_paths), ";", 0);
         SOL_VECTOR_FOREACH_IDX (&str_splitted, s_ptr, idx) {
+            if (*file_reader)
+                sol_file_reader_close(*file_reader);
             config_file_contents = sol_conffile_load_json_from_dirs(s_ptr->data, full_path, file_reader);
             if (config_file_contents.len)
                 break;
@@ -420,7 +422,8 @@ sol_conffile_fill_vector(const char *path, const char *fallback_paths)
         sol_conffile_fill_vector(include, include_fallbacks);
 
 free_for_all:
-    sol_file_reader_close(file_reader);
+    if (file_reader)
+        sol_file_reader_close(file_reader);
     free(full_path);
     free(include);
     free(include_fallbacks);
