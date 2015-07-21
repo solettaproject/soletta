@@ -438,6 +438,7 @@ calamari_lever_open(struct sol_flow_node *node, void *data, const struct sol_flo
     struct calamari_lever_data *mdata = data;
     const struct sol_flow_node_type_calamari_lever_options *opts =
         (const struct sol_flow_node_type_calamari_lever_options *)options;
+    struct sol_spi_config spi_config;
 
     SOL_NULL_CHECK(options, 0);
 
@@ -445,7 +446,12 @@ calamari_lever_open(struct sol_flow_node *node, void *data, const struct sol_flo
     mdata->last_value = 0;
     mdata->forced = true;
     mdata->val = opts->range;
-    mdata->spi = sol_spi_open(opts->bus.val, opts->chip_select.val);
+    spi_config.api_version = SOL_SPI_CONFIG_API_VERSION;
+    spi_config.chip_select = opts->chip_select.val;
+    spi_config.mode = SOL_SPI_MODE_0;
+    spi_config.speed = SOL_SPI_SPEED_100K;
+    spi_config.bits_per_word = SOL_SPI_DATA_BITS_DEFAULT;
+    mdata->spi = sol_spi_open(opts->bus.val, &spi_config);
 
     if (opts->poll_interval.val != 0)
         mdata->timer = sol_timeout_add(opts->poll_interval.val,
