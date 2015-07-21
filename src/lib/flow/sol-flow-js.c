@@ -311,8 +311,13 @@ send_packet(duk_context *ctx)
     port_name = duk_require_string(ctx, 0);
 
     node = get_node_from_duk_ctx(ctx);
+    if (!node) {
+        duk_error(ctx, DUK_ERR_ERROR, "Couldn't send packet to '%s' port.", port_name);
+        return 0;
+    }
+
     type = (struct flow_js_type *)node->type;
-    if (!node || !type) {
+    if (!type) {
         duk_error(ctx, DUK_ERR_ERROR, "Couldn't send packet to '%s' port.", port_name);
         return 0;
     }
