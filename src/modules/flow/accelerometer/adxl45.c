@@ -42,6 +42,10 @@
 /* speed only works for riot */
 #define I2C_SPEED SOL_I2C_SPEED_10KBIT
 
+#define INIT_POWER_OFF 0x00
+#define INIT_POWER_STARTING 0xff
+#define INIT_POWER_MEASURING 0x08
+
 /* ADXL345 Accelerometer
  * http://www.analog.com/static/imported-files/data_sheets/ADXL345.pdf
  */
@@ -50,9 +54,9 @@ struct accelerometer_adxl345_data {
     struct sol_i2c *i2c;
     struct sol_timeout *timer;
     double reading[3];
-    uint8_t init_power;
     unsigned init_sampling_cnt;
     unsigned pending_ticks;
+    uint8_t init_power;
     bool ready : 1;
 };
 
@@ -80,18 +84,60 @@ struct accelerometer_adxl345_data {
 static int
 accel_timer_resched(struct accelerometer_adxl345_data *mdata,
     unsigned int timeout_ms,
-    bool (*cb)(void *data),
-    const void *cb_data)
+    bool (*cb)(void *data))
 {
     SOL_NULL_CHECK(cb, -EINVAL);
 
     if (mdata->timer)
         sol_timeout_del(mdata->timer);
 
-    mdata->timer = sol_timeout_add(timeout_ms, cb, cb_data);
+    mdata->timer = sol_timeout_add(timeout_ms, cb, mdata);
     SOL_NULL_CHECK(mdata->timer, -ENOMEM);
 
     return 0;
+}
+
+static void
+read_samples(struct accelerometer_adxl345_data *mdata, uint8_t num_samples_available)
+{
+    int r;
+    /* int16_t and 3 entries because of x, y and z axis are read,
+     * each consisting of L + H byte parts
+     */
+    int16_t buffer[num_samples_available][3];
+
+    r = sol_i2c_read_register_multiple(mdata->i2c,
+        ACCEL_REG_DATAX0, (uint8_t *)&buffer[0][0], sizeof(buffer[0]),
+        num_samples_available);
+    if (r <= 0) {
+        SOL_WRN("Failed to read ADXL345 accel samples");
+        return;
+    }
+
+    /* At least with the current i2c driver implementation at the
+     * time of testing, if too much time passes between two
+     * consecutive readings, the buffer will be reported full, but
+     * the last readings will contain trash values -- this will
+     * guard against that (one will have to read again to get
+     * newer values)*/
+#define MAX_EPSILON (10.0f)
+#define EPSILON_CHECK(_axis) \
+    if (i > 0 && isgreater(fabs((buffer[i][_axis] * ACCEL_SCALE_M_S) \
+        - mdata->reading[_axis]), MAX_EPSILON)) \
+        break
+
+    /* raw readings, with only the sensor-provided filtering */
+    for (int i = 0; i < num_samples_available; i++) {
+        EPSILON_CHECK(0);
+        EPSILON_CHECK(1);
+        EPSILON_CHECK(2);
+
+        mdata->reading[0] = buffer[i][0] * ACCEL_SCALE_M_S;
+        mdata->reading[1] = -buffer[i][1] * ACCEL_SCALE_M_S;
+        mdata->reading[2] = -buffer[i][2] * ACCEL_SCALE_M_S;
+    }
+#undef MAX_EPSILON
+#undef EPSILON_CHECK
 }
 
 static void
@@ -123,45 +169,7 @@ accel_read(struct accelerometer_adxl345_data *mdata)
 
     SOL_DBG("%d samples available", num_samples_available);
 
-    {
-        /* int16_t and 3 entries because of x, y and z axis are read,
-         * each consisting of L + H byte parts
-         */
-        int16_t buffer[num_samples_available][3];
-
-        r = sol_i2c_read_register_multiple(mdata->i2c,
-            ACCEL_REG_DATAX0, (uint8_t *)&buffer[0][0], sizeof(buffer[0]),
-            num_samples_available);
-        if (r <= 0) {
-            SOL_WRN("Failed to read ADXL345 accel samples");
-            return;
-        }
-
-        /* At least with the current i2c driver implementation at the
-         * time of testing, if too much time passes between two
-         * consecutive readings, the buffer will be reported full, but
-         * the last readings will contain trash values -- this will
-         * guard against that (one will have to read again to get
-         * newer values)*/
-#define MAX_EPSILON (10.0f)
-#define EPSILON_CHECK(_axis) \
-    if (i > 0 && isgreater(fabs((buffer[i][_axis] * ACCEL_SCALE_M_S) \
-        - mdata->reading[_axis]), MAX_EPSILON)) \
-        break
-
-        /* raw readings, with only the sensor-provided filtering */
-        for (int i = 0; i < num_samples_available; i++) {
-            EPSILON_CHECK(0);
-            EPSILON_CHECK(1);
-            EPSILON_CHECK(2);
-
-            mdata->reading[0] = buffer[i][0] * ACCEL_SCALE_M_S;
-            mdata->reading[1] = -buffer[i][1] * ACCEL_SCALE_M_S;
-            mdata->reading[2] = -buffer[i][2] * ACCEL_SCALE_M_S;
-        }
-#undef MAX_EPSILON
-#undef EPSILON_CHECK
-    }
+    read_samples(mdata, num_samples_available);
 }
 
 static int
@@ -245,7 +253,7 @@ accel_init_rate(void *data)
     }
 
     if (accel_timer_resched(mdata, ACCEL_INIT_STEP_TIME,
-        accel_init_stream, mdata) < 0)
+        accel_init_stream) < 0)
         SOL_WRN("error in scheduling a ADXL345 accel's init command");
 
     return false;
@@ -274,7 +282,7 @@ accel_init_format(void *data)
     }
 
     if (accel_timer_resched(mdata, ACCEL_INIT_STEP_TIME,
-        accel_init_rate, mdata) < 0)
+        accel_init_rate) < 0)
         SOL_WRN("error in scheduling a ADXL345 accel's init command");
 
     return false;
@@ -300,17 +308,16 @@ accel_init_power(void *data)
         return false;
     }
 
-    if (mdata->init_power == 0x00)
-        mdata->init_power = 0xff;
-    else if (mdata->init_power == 0xff)
-        mdata->init_power = 0x08;
+    if (mdata->init_power == INIT_POWER_OFF)
+        mdata->init_power = INIT_POWER_STARTING;
+    else if (mdata->init_power == INIT_POWER_STARTING)
+        mdata->init_power = INIT_POWER_MEASURING;
     else
         power_done = true;
 
     if (accel_timer_resched(mdata, ACCEL_INIT_STEP_TIME,
         power_done ?
-        accel_init_format : accel_init_power,
-        mdata) < 0) {
+        accel_init_format : accel_init_power) < 0) {
         SOL_WRN("error in scheduling a ADXL345 accel's init command");
     }
 
@@ -364,7 +371,7 @@ accelerometer_adxl345_open(struct sol_flow_node *node,
         return -EIO;
     }
 
-    mdata->init_power = 0x00;
+    mdata->init_power = INIT_POWER_OFF;
     mdata->ready = false;
     mdata->node = node;
 
