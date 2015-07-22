@@ -171,7 +171,20 @@ sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed)
 SOL_API bool
 sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t size)
 {
-    struct spi_ioc_transfer tr = { (uintptr_t)tx, (uintptr_t)rx, size };
+    struct spi_ioc_transfer tr;
+    uint8_t bits_per_word;
+
+    if (ioctl(spi->fd, SPI_IOC_RD_BITS_PER_WORD, &bits_per_word) == -1) {
+        SOL_WRN("%u,%u: Unable to get the value of bits per word",
+            spi->bus, spi->chip_select);
+        return false;
+    }
+
+    memset(&tr, 0, sizeof(struct spi_ioc_transfer));
+    tr.tx_buf = (uintptr_t)tx;
+    tr.rx_buf = (uintptr_t)rx;
+    tr.len = size;
+    tr.bits_per_word = bits_per_word;
 
     SOL_NULL_CHECK(spi, false);
     SOL_INT_CHECK(size, == 0, false);
