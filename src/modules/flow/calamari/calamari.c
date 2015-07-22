@@ -365,7 +365,7 @@ calamari_lever_convert_range(const struct calamari_lever_data *mdata, int value)
 static int
 calamari_lever_spi_read(struct sol_spi *spi)
 {
-    int i, value;
+    unsigned int value;
 
     /* MCP300X message - Start, Single ended - pin 0, null */
     uint8_t tx[] = { 0x01, 0x80, 0x00 };
@@ -375,12 +375,8 @@ calamari_lever_spi_read(struct sol_spi *spi)
     if (!sol_spi_transfer(spi, tx, rx, ARRAY_SIZE(tx)))
         return -EIO;
 
-    for (i = ARRAY_SIZE(rx) - 1, value = 0; i >= 0; i--) {
-        value |= rx[i] << 8 * (ARRAY_SIZE(rx) - 1 - i);
-    }
-
     /* MCP300x - 10 bit precision */
-    value &= 0x3ff;
+    value = (rx[1] << 8 | rx[2]) & 0x3ff;
 
     return value;
 }
