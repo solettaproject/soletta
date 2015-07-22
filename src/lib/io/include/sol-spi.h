@@ -65,7 +65,6 @@ int32_t sol_spi_get_max_speed(const struct sol_spi *spi);
 bool sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed);
 
 bool sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t count);
-bool sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count);
 
 void sol_spi_close(struct sol_spi *spi);
 struct sol_spi *sol_spi_open(unsigned int bus, unsigned int chip_select);

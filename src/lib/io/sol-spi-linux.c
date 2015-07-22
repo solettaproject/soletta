@@ -184,23 +184,6 @@ sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t siz
     return true;
 }
 
-SOL_API bool
-sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count)
-{
-    struct spi_ioc_transfer *_tr = (struct spi_ioc_transfer *)tr;
-
-    SOL_NULL_CHECK(spi, false);
-    SOL_NULL_CHECK(tr, false);
-    SOL_INT_CHECK(count, == 0, false);
-
-    if (ioctl(spi->fd, SPI_IOC_MESSAGE(count), _tr) == -1) {
-        SOL_WRN("%u,%u: Unable to perform SPI transfer", spi->bus, spi->chip_select);
-        return false;
-    }
-
-    return true;
-}
-
 SOL_API void
 sol_spi_close(struct sol_spi *spi)
 {

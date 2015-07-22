@@ -195,10 +195,3 @@ sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t cou
 
     return ret > 0 && ((unsigned int)ret) == count;
 }
-
-SOL_API bool
-sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count)
-{
-    SOL_CRI("Unsupported");
-    return false;
-}
