@@ -54,6 +54,7 @@ struct sol_spi {
     int fd;
     unsigned int bus;
     unsigned int chip_select;
+    uint8_t bits_per_word;
 };
 
 SOL_API int32_t
@@ -115,28 +116,15 @@ sol_spi_set_bit_justification(struct sol_spi *spi, uint8_t justification)
 SOL_API int8_t
 sol_spi_get_bits_per_word(const struct sol_spi *spi)
 {
-    uint8_t bits_per_word;
-
     SOL_NULL_CHECK(spi, -EINVAL);
-
-    if (ioctl(spi->fd, SPI_IOC_RD_BITS_PER_WORD, &bits_per_word) == -1) {
-        SOL_WRN("%u,%u: Unable to read SPI bits per word", spi->bus, spi->chip_select);
-        return -errno;
-    }
-
-    return bits_per_word;
+    return spi->bits_per_word;
 }
 
 SOL_API bool
 sol_spi_set_bits_per_word(struct sol_spi *spi, uint8_t bits_per_word)
 {
     SOL_NULL_CHECK(spi, false);
-
-    if (ioctl(spi->fd, SPI_IOC_WR_BITS_PER_WORD, &bits_per_word) == -1) {
-        SOL_WRN("%u,%u: Unable to write SPI bits per word", spi->bus, spi->chip_select);
-        return false;
-    }
-
+    spi->bits_per_word = bits_per_word;
     return true;
 }
 
@@ -171,13 +159,20 @@ sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed)
 SOL_API bool
 sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t size)
 {
-    struct spi_ioc_transfer tr = { (uintptr_t)tx, (uintptr_t)rx, size };
+    struct spi_ioc_transfer tr;
+
+    memset(&tr, 0, sizeof(struct spi_ioc_transfer));
+    tr.tx_buf = (uintptr_t)tx;
+    tr.rx_buf = (uintptr_t)rx;
+    tr.len = size;
+    tr.bits_per_word = spi->bits_per_word;
 
     SOL_NULL_CHECK(spi, false);
     SOL_INT_CHECK(size, == 0, false);
 
     if (ioctl(spi->fd, SPI_IOC_MESSAGE(1), &tr) == -1) {
-        SOL_WRN("%u,%u: Unable to perform SPI transfer", spi->bus, spi->chip_select);
+        SOL_WRN("%u,%u: Unable to perform SPI transfer: %s", spi->bus,
+            spi->chip_select, sol_util_strerrora(errno));
         return false;
     }
 
@@ -210,6 +205,7 @@ sol_spi_open(unsigned int bus, unsigned int chip_select)
 
     spi->bus = bus;
     spi->chip_select = chip_select;
+    spi->bits_per_word = 8;
 
     snprintf(spi_dir, sizeof(spi_dir), "/dev/spidev%u.%u", bus, chip_select);
     spi->fd = open(spi_dir, O_RDWR | O_CLOEXEC);
