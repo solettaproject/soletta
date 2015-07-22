@@ -1,0 +1,7 @@
+INPORT=ctl.SEGMENTS:SEGMENTS
+INPORT=ctl.VALUE:VALUE
+
+ctl(calamari/segments-ctl) CLEAR -> IN clear(gpio/writer:pin=473)
+ctl LATCH -> IN latch(gpio/writer:pin=475)
+ctl CLOCK -> IN clock(gpio/writer:pin=340)
+ctl DATA -> IN data(gpio/writer:pin=474)

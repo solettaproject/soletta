@@ -215,46 +215,14 @@ calamari_7seg_child_opts_set(const struct sol_flow_node_type *type,
     return 0;
 }
 
+#include "calamari-7seg.c"
+
 static void
 calamari_7seg_new_type(const struct sol_flow_node_type **current)
 {
     struct sol_flow_node_type *type;
 
-    static struct sol_flow_static_node_spec nodes[] = {
-        [SEG_CTL] = { NULL, "segments-ctl", NULL },
-        [SEG_CLEAR] = { NULL, "gpio-clear", NULL },
-        [SEG_LATCH] = { NULL, "gpio-latch", NULL },
-        [SEG_CLOCK] = { NULL, "gpio-clock", NULL },
-        [SEG_DATA] = { NULL, "gpio-data", NULL },
-        SOL_FLOW_STATIC_NODE_SPEC_GUARD
-    };
-
-    static const struct sol_flow_static_conn_spec conns[] = {
-        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLEAR, SEG_CLEAR, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
-        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__LATCH, SEG_LATCH, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
-        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__CLOCK, SEG_CLOCK, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
-        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__OUT__DATA, SEG_DATA, SOL_FLOW_NODE_TYPE_GPIO_WRITER__IN__IN },
-        SOL_FLOW_STATIC_CONN_SPEC_GUARD
-    };
-
-    static const struct sol_flow_static_port_spec exported_in[] = {
-        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__IN__SEGMENTS },
-        { SEG_CTL, SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL__IN__VALUE },
-        SOL_FLOW_STATIC_PORT_SPEC_GUARD
-    };
-
-    static const struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
-        .nodes = nodes,
-        .conns = conns,
-        .exported_in = exported_in,
-        .child_opts_set = calamari_7seg_child_opts_set,
-    };
-
-    nodes[SEG_CTL].type = SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL;
-    nodes[SEG_CLEAR].type = nodes[SEG_LATCH].type = nodes[SEG_CLOCK].type = nodes[SEG_DATA].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
-
-    type = sol_flow_static_new_type(&spec);
+    type = create_0_root_type();
     SOL_NULL_CHECK(type);
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     type->description = (*current)->description;

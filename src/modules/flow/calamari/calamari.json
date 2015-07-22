@@ -166,7 +166,7 @@
       ]
     },
     {
-      "category": "internal",
+      "category": "output/hw",
       "description": "",
       "in_ports": [
         {
