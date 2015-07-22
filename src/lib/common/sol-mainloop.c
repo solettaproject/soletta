@@ -124,7 +124,9 @@ sol_init(void)
 
     return 0;
 
+#ifdef FLOW
 flow_error:
+#endif
     sol_blob_shutdown();
 blob_error:
     sol_pin_mux_shutdown();
