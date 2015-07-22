@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <assert.h>
 #include <dlfcn.h>
 #include <glib.h>
 
@@ -77,26 +78,32 @@ resolve_module_type_by_component(const char *component, void (*foreach)(bool (*c
     return ctx.found;
 }
 
-static GHashTable *resolver_conffile_dlopens = NULL;
 struct resolver_conffile_dlopen {
     char *name;
     void *handle;
     void (*foreach)(bool (*cb)(void *data, const struct sol_flow_node_type *type), const void *data);
 };
 
+static struct sol_vector resolver_conffile_dlopens = SOL_VECTOR_INIT(struct resolver_conffile_dlopen);
+
 static void
 resolver_conffile_dlopen_free(struct resolver_conffile_dlopen *entry)
 {
     /* do no dlclose() as some modules may crash due hanging references */
     free(entry->name);
-    free(entry);
 }
 
 static void
 resolver_conffile_clear_data(void)
 {
-    g_hash_table_destroy(resolver_conffile_dlopens);
-    resolver_conffile_dlopens = NULL;
+    struct resolver_conffile_dlopen *entry;
+    unsigned int i;
+
+    SOL_VECTOR_FOREACH_IDX (&resolver_conffile_dlopens, entry, i) {
+        resolver_conffile_dlopen_free(entry);
+    }
+
+    sol_vector_clear(&resolver_conffile_dlopens);
 }
 
 const char MODULE_NAME_SEPARATOR = '/';
@@ -112,6 +119,35 @@ get_module_for_type(const char *type)
     return SOL_STR_SLICE_STR(type, sep -  type);
 }
 
+static int
+find_entry_by_match(struct sol_vector *entries,
+    const struct resolver_conffile_dlopen *match)
+{
+    const struct resolver_conffile_dlopen *entry;
+    unsigned int i;
+
+    SOL_VECTOR_FOREACH_IDX (entries, entry, i) {
+        if (entry == match)
+            return i;
+    }
+
+    return -1;
+}
+
+static struct resolver_conffile_dlopen *
+find_entry_by_name(struct sol_vector *entries, const char *name)
+{
+    struct resolver_conffile_dlopen *entry;
+    unsigned int i;
+
+    SOL_VECTOR_FOREACH_IDX (entries, entry, i) {
+        if (streq(name, entry->name))
+            return entry;
+    }
+
+    return NULL;
+}
+
 static const struct sol_flow_node_type *
 _resolver_conffile_get_module(const char *type)
 {
@@ -120,17 +156,7 @@ _resolver_conffile_get_module(const char *type)
     struct sol_str_slice module_name;
     char path[PATH_MAX], install_rootdir[PATH_MAX] = { 0 };
     char *name;
-    int r;
-
-    if (!resolver_conffile_dlopens) {
-        resolver_conffile_dlopens = g_hash_table_new_full(
-            g_str_hash,
-            g_str_equal,
-            NULL,
-            (GDestroyNotify)resolver_conffile_dlopen_free);
-        SOL_NULL_CHECK(resolver_conffile_dlopens, NULL);
-        atexit(resolver_conffile_clear_data);
-    }
+    int r, index;
 
     module_name = get_module_for_type(type);
     if (module_name.len == 0) {
@@ -142,18 +168,18 @@ _resolver_conffile_get_module(const char *type)
     SOL_NULL_CHECK(name, NULL);
 
     /* the hash entry keys are the type part only */
-    entry = g_hash_table_lookup(resolver_conffile_dlopens, name);
+    entry = find_entry_by_name(&resolver_conffile_dlopens, name);
     if (entry) {
         free(name);
         goto found;
     }
 
-    entry = calloc(1, sizeof(*entry));
-    if (!entry) {
-        SOL_DBG("Could not alloc memory for entry");
-        free(name);
-        return NULL;
+    if (resolver_conffile_dlopens.len == 0) {
+        atexit(resolver_conffile_clear_data);
     }
+
+    entry = sol_vector_append(&resolver_conffile_dlopens);
+    SOL_NULL_CHECK(entry, NULL);
 
     entry->name = name;
 
@@ -179,21 +205,18 @@ _resolver_conffile_get_module(const char *type)
         goto error;
     }
 
-    g_hash_table_insert(resolver_conffile_dlopens,
-        entry->name, entry);
-
 found:
     ret = resolve_module_type_by_component(type, entry->foreach);
-    SOL_NULL_CHECK_GOTO(ret, wipe_entry);
-
+    SOL_NULL_CHECK_GOTO(ret, error);
     return ret;
 
 error:
+    /* In case 'entry' was not the last one appended. */
+    index = find_entry_by_match(&resolver_conffile_dlopens, entry);
+    assert(index >= 0);
     resolver_conffile_dlopen_free(entry);
-    return NULL;
+    sol_vector_del(&resolver_conffile_dlopens, index);
 
-wipe_entry:
-    g_hash_table_remove(resolver_conffile_dlopens, entry->name);
     return NULL;
 }
 
