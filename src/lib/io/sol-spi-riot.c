@@ -47,6 +47,14 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "spi");
 struct sol_spi {
     unsigned int bus;
     unsigned int cs_pin;
+    struct {
+        void (*cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, int status);
+        const void *cb_data;
+        int status;
+        const uint8_t *tx;
+        uint8_t *rx;
+        struct sol_idle *idler;
+    } transfer;
 };
 
 SOL_API struct sol_spi *
@@ -88,6 +96,7 @@ sol_spi_open(unsigned int bus, const struct sol_spi_config *config)
 
     spi->bus = bus;
     spi->cs_pin = config->chip_select;
+    spi->transfer.idler = NULL;
 
     gpio_init_out(spi->cs_pin, GPIO_NOPULL);
     gpio_set(spi->cs_pin);
@@ -98,22 +107,49 @@ SOL_API void
 sol_spi_close(struct sol_spi *spi)
 {
     SOL_NULL_CHECK(spi);
+    if (spi->transfer.idler) {
+        sol_idle_del(spi->transfer.idler);
+        spi_idler_cb(spi);
+    }
     spi_poweroff(spi->bus);
     free(spi);
 }
 
+static bool
+spi_idler_cb(void *data)
+{
+    struct sol_spi *spi = data;
+
+    spi->transfer.idler = NULL;
+    if (!spi->transfer.cb) return false;
+    spi->transfer.cb((void *)spi->transfer.cb_data, spi, spi->transfer.tx,
+        spi->transfer.rx, spi->transfer.status);
+
+    return false;
+}
+
 SOL_API bool
-sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count)
+sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, int status), const void *cb_data)
 {
     int ret;
 
     SOL_NULL_CHECK(spi, false);
+    SOL_EXP_CHECK(spi->transfer.idler, false);
 
     spi_acquire(spi->bus);
     gpio_clear(spi->cs_pin);
     ret = spi_transfer_bytes(spi->bus, (char *)tx, (char *)rx, count);
     gpio_set(spi->cs_pin);
     spi_release(spi->bus);
+
+    spi->transfer.idler = sol_idle_add(spi_idler_cb, spi);
+    SOL_NULL_CHECK(spi->transfer.idler, false);
+
+    spi->transfer.tx = tx;
+    spi->transfer.rx = rx;
+    spi->transfer.status = count;
+    spi->transfer.cb = transfer_cb;
+    spi->transfer.cb_data = cb_data;
 
     return ret > 0 && ((unsigned int)ret) == count;
 }

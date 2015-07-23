@@ -93,7 +93,8 @@ led_strip_controler_open(struct sol_flow_node *node, void *data, const struct so
     mdata->spi = sol_spi_open(opts->bus.val, &spi_config);
     if (mdata->spi) {
         // Initial reset
-        sol_spi_transfer(mdata->spi, &mdata->pixels[mdata->pixel_count * 3], NULL, latch_bytes);
+        sol_spi_transfer(mdata->spi, &mdata->pixels[mdata->pixel_count * 3],
+            NULL, latch_bytes, NULL, NULL);
     }
 
     return 0;
@@ -163,7 +164,8 @@ flush_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
 {
     struct lcd_strip_lpd8806_data *mdata = data;
 
-    sol_spi_transfer(mdata->spi, mdata->pixels, NULL, mdata->pixel_array_length);
+    sol_spi_transfer(mdata->spi, mdata->pixels, NULL, mdata->pixel_array_length,
+        NULL, NULL);
 
     return 0;
 }

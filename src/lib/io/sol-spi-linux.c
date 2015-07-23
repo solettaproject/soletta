@@ -44,9 +44,12 @@
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
 #include "sol-macros.h"
+#include "sol-mainloop.h"
 #include "sol-spi.h"
 #include "sol-util.h"
-
+#ifdef PTHREAD
+#include "sol-worker-thread.h"
+#endif
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "spi");
 
@@ -55,12 +58,106 @@ struct sol_spi {
     unsigned int bus;
     unsigned int chip_select;
     uint8_t bits_per_word;
+
+    struct {
+        void (*cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, int status);
+        const void *cb_data;
+        int status;
+        const uint8_t *tx;
+        uint8_t *rx;
+#ifdef PTHREAD
+        struct sol_worker_thread *worker;
+        size_t count;
+#else
+        struct sol_idle *idler;
+#endif
+    } transfer;
 };
 
+#ifdef PTHREAD
+static void
+spi_worker_thread_finished(void *data)
+{
+    struct sol_spi *spi = data;
+
+    spi->transfer.worker = NULL;
+    if (!spi->transfer.cb) return;
+    spi->transfer.cb((void *)spi->transfer.cb_data, spi, spi->transfer.tx,
+        spi->transfer.rx, spi->transfer.status);
+}
+
+static bool
+spi_worker_thread_iterate(void *data)
+{
+    struct sol_spi *spi = data;
+    struct spi_ioc_transfer tr;
+
+    memset(&tr, 0, sizeof(struct spi_ioc_transfer));
+    tr.tx_buf = (uintptr_t)spi->transfer.tx;
+    tr.rx_buf = (uintptr_t)spi->transfer.rx;
+    tr.len = spi->transfer.count;
+    tr.bits_per_word = spi->bits_per_word;
+
+    if (ioctl(spi->fd, SPI_IOC_MESSAGE(1), &tr) == -1) {
+        SOL_WRN("%u,%u: Unable to perform SPI transfer", spi->bus, spi->chip_select);
+        spi->transfer.status = -1;
+    }
+
+    spi->transfer.status = spi->transfer.count;
+
+    return false;
+}
+
 SOL_API bool
-sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t size)
+sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t size, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, int status), const void *cb_data)
+{
+    struct sol_worker_thread_spec spec = {
+        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        .setup = NULL,
+        .cleanup = NULL,
+        .iterate = spi_worker_thread_iterate,
+        .finished = spi_worker_thread_finished,
+        .feedback = NULL,
+        .data = spi
+    };
+
+    SOL_NULL_CHECK(spi, false);
+    SOL_INT_CHECK(size, == 0, false);
+    SOL_EXP_CHECK(spi->transfer.worker, false);
+
+    spi->transfer.worker = sol_worker_thread_new(&spec);
+    SOL_NULL_CHECK(spi->transfer.worker, false);
+
+    spi->transfer.tx = tx;
+    spi->transfer.rx = rx;
+    spi->transfer.count = size;
+    spi->transfer.cb = transfer_cb;
+    spi->transfer.cb_data = cb_data;
+
+    return true;
+}
+#else
+static bool
+spi_idler_cb(void *data)
+{
+    struct sol_spi *spi = data;
+
+    spi->transfer.idler = NULL;
+    if (!spi->transfer.cb) return false;
+    spi->transfer.cb((void *)spi->transfer.cb_data, spi, spi->transfer.tx,
+        spi->transfer.rx, spi->transfer.status);
+
+    return false;
+}
+
+SOL_API bool
+sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t size, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, int status), const void *cb_data)
 {
     struct spi_ioc_transfer tr;
+
+    SOL_NULL_CHECK(spi, false);
+    SOL_INT_CHECK(size, == 0, false);
+    SOL_EXP_CHECK(spi->transfer.idler, false);
 
     memset(&tr, 0, sizeof(struct spi_ioc_transfer));
     tr.tx_buf = (uintptr_t)tx;
@@ -68,22 +165,43 @@ sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t siz
     tr.len = size;
     tr.bits_per_word = spi->bits_per_word;
 
-    SOL_NULL_CHECK(spi, false);
-    SOL_INT_CHECK(size, == 0, false);
-
     if (ioctl(spi->fd, SPI_IOC_MESSAGE(1), &tr) == -1) {
-        SOL_WRN("%u,%u: Unable to perform SPI transfer", spi->bus, spi->chip_select);
-        return false;
+        SOL_WRN("%u,%u: Unable to perform SPI transfer", spi->bus,
+            spi->chip_select);
+        spi->transfer.status = -1;
     }
+
+    spi->transfer.idler = sol_idle_add(spi_idler_cb, spi);
+    SOL_NULL_CHECK(spi->transfer.idler, false);
+
+    spi->transfer.tx = tx;
+    spi->transfer.rx = rx;
+    spi->transfer.status = size;
+    spi->transfer.cb = transfer_cb;
+    spi->transfer.cb_data = cb_data;
 
     return true;
 }
+#endif
 
 SOL_API void
 sol_spi_close(struct sol_spi *spi)
 {
     SOL_NULL_CHECK(spi);
 
+#ifdef PTHREAD
+    if (spi->transfer.worker) {
+        sol_worker_thread_cancel(spi->transfer.worker);
+        spi->transfer.status = -1;
+        spi_worker_thread_finished(spi);
+        spi->transfer.cb = NULL;
+    }
+#else
+    if (spi->transfer.idler) {
+        sol_idle_del(spi->transfer.idler);
+        spi_idler_cb(spi);
+    }
+#endif
     close(spi->fd);
 
     free(spi);
@@ -142,6 +260,11 @@ sol_spi_open(unsigned int bus, const struct sol_spi_config *config)
     }
 
     spi->bits_per_word = config->bits_per_word;
+#ifdef PTHREAD
+    spi->transfer.worker = NULL;
+#else
+    spi->transfer.idler = NULL;
+#endif
 
     return spi;
 
