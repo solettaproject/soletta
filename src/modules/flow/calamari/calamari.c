@@ -362,48 +362,23 @@ calamari_lever_convert_range(const struct calamari_lever_data *mdata, int value)
            / (RANGE_MAX - RANGE_MIN) + mdata->val.min;
 }
 
-static int
-calamari_lever_spi_read(struct sol_spi *spi)
+static void
+spi_transfer_cb(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, int status)
 {
-    int i, value;
-
-    /* MCP300X message - Start, Single ended - pin 0, null */
-    uint8_t tx[] = { 0x01, 0x80, 0x00 };
-    /* rx must be the same size as tx */
-    uint8_t rx[ARRAY_SIZE(tx)] = { 0x00, };
-
-    if (!sol_spi_transfer(spi, tx, rx, ARRAY_SIZE(tx)))
-        return -EIO;
-
-    for (i = ARRAY_SIZE(rx) - 1, value = 0; i >= 0; i--) {
-        value |= rx[i] << 8 * (ARRAY_SIZE(rx) - 1 - i);
-    }
-
-    /* MCP300x - 10 bit precision */
-    value &= 0x3ff;
-
-    return value;
-}
-
-static bool
-calamari_lever_spi_poll(void *data)
-{
-    struct calamari_lever_data *mdata = data;
+    struct calamari_lever_data *mdata = cb_data;
     int val;
 
-    SOL_NULL_CHECK(mdata, false);
-    SOL_NULL_CHECK(mdata->spi, false);
-
-    val = calamari_lever_spi_read(mdata->spi);
-    if (val < 0) {
-        SOL_WRN("Error reading lever during poll. Polling disabled. %d", val);
+    if (status < 1) {
+        SOL_WRN("Error reading lever during poll. Polling disabled.");
         if (mdata->timer) {
             sol_timeout_del(mdata->timer);
             mdata->timer = NULL;
         }
-        return false;
+        return;
     }
 
+    /* MCP300x - 10 bit precision */
+    val = (rx[1] << 8 | rx[2]) & 0x3ff;
     val = calamari_lever_convert_range(mdata, val);
 
     if (val != mdata->last_value || mdata->forced) {
@@ -415,7 +390,24 @@ calamari_lever_spi_poll(void *data)
             SOL_FLOW_NODE_TYPE_CALAMARI_LEVER__OUT__OUT,
             &mdata->val);
     }
+}
 
+static bool
+calamari_lever_spi_poll(void *data)
+{
+    struct calamari_lever_data *mdata = data;
+    /* MCP300X message - Start, Single ended - pin 0, null */
+    static const uint8_t tx[] = { 0x01, 0x80, 0x00 };
+    /* rx must be the same size as tx */
+    static uint8_t rx[ARRAY_SIZE(tx)] = { 0x00, };
+
+    SOL_NULL_CHECK(mdata, false);
+    SOL_NULL_CHECK(mdata->spi, false);
+
+    if (!sol_spi_transfer(mdata->spi, tx, rx, ARRAY_SIZE(tx), spi_transfer_cb,
+        mdata)) {
+        SOL_WRN("Error reading lever during poll.");
+    }
     return true;
 }
 
@@ -438,6 +430,7 @@ calamari_lever_open(struct sol_flow_node *node, void *data, const struct sol_flo
     struct calamari_lever_data *mdata = data;
     const struct sol_flow_node_type_calamari_lever_options *opts =
         (const struct sol_flow_node_type_calamari_lever_options *)options;
+    struct sol_spi_config spi_config;
 
     SOL_NULL_CHECK(options, 0);
 
@@ -445,7 +438,12 @@ calamari_lever_open(struct sol_flow_node *node, void *data, const struct sol_flo
     mdata->last_value = 0;
     mdata->forced = true;
     mdata->val = opts->range;
-    mdata->spi = sol_spi_open(opts->bus.val, opts->chip_select.val);
+    spi_config.api_version = SOL_SPI_CONFIG_API_VERSION;
+    spi_config.chip_select = opts->chip_select.val;
+    spi_config.mode = SOL_SPI_MODE_0;
+    spi_config.speed = SOL_SPI_SPEED_100K;
+    spi_config.bits_per_word = SOL_SPI_DATA_BITS_DEFAULT;
+    mdata->spi = sol_spi_open(opts->bus.val, &spi_config);
 
     if (opts->poll_interval.val != 0)
         mdata->timer = sol_timeout_add(opts->poll_interval.val,

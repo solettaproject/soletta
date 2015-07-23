@@ -64,6 +64,7 @@ led_strip_controler_open(struct sol_flow_node *node, void *data, const struct so
     const struct sol_flow_node_type_led_strip_lpd8806_options *opts;
     uint32_t data_bytes, pixel_array_length;
     uint8_t latch_bytes;
+    struct sol_spi_config spi_config;
 
     opts = (const struct sol_flow_node_type_led_strip_lpd8806_options *)options;
 
@@ -84,12 +85,16 @@ led_strip_controler_open(struct sol_flow_node *node, void *data, const struct so
     memset(mdata->pixels, 0x80, data_bytes); // Init to RGB 'off' state
     memset(&mdata->pixels[data_bytes], 0, latch_bytes); // Clear latch bytes
 
-    mdata->spi = sol_spi_open(opts->bus.val, opts->chip_select.val);
+    spi_config.api_version = SOL_SPI_CONFIG_API_VERSION;
+    spi_config.chip_select = opts->chip_select.val;
+    spi_config.mode = SOL_SPI_MODE_0;
+    spi_config.speed = SOL_SPI_SPEED_100K;
+    spi_config.bits_per_word = SOL_SPI_DATA_BITS_DEFAULT;
+    mdata->spi = sol_spi_open(opts->bus.val, &spi_config);
     if (mdata->spi) {
-        sol_spi_set_transfer_mode(mdata->spi, 0);
-
         // Initial reset
-        sol_spi_transfer(mdata->spi, &mdata->pixels[mdata->pixel_count * 3], NULL, latch_bytes);
+        sol_spi_transfer(mdata->spi, &mdata->pixels[mdata->pixel_count * 3],
+            NULL, latch_bytes, NULL, NULL);
     }
 
     return 0;
@@ -159,7 +164,8 @@ flush_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
 {
     struct lcd_strip_lpd8806_data *mdata = data;
 
-    sol_spi_transfer(mdata->spi, mdata->pixels, NULL, mdata->pixel_array_length);
+    sol_spi_transfer(mdata->spi, mdata->pixels, NULL, mdata->pixel_array_length,
+        NULL, NULL);
 
     return 0;
 }

@@ -52,23 +52,67 @@ extern "C" {
 
 struct sol_spi;
 
-int32_t sol_spi_get_transfer_mode(const struct sol_spi *spi);
-bool sol_spi_set_transfer_mode(struct sol_spi *spi, uint32_t mode);
+enum sol_spi_mode {
+    SOL_SPI_MODE_0 = 0,
+    SOL_SPI_MODE_1,
+    SOL_SPI_MODE_2,
+    SOL_SPI_MODE_3
+};
 
-int8_t sol_spi_get_bit_justification(const struct sol_spi *spi);
-bool sol_spi_set_bit_justification(struct sol_spi *spi, uint8_t justification);
+enum sol_spi_speed {
+    SOL_SPI_SPEED_100K = 0,
+    SOL_SPI_SPEED_400K,
+    SOL_SPI_SPEED_1M,
+    SOL_SPI_SPEED_5M,
+    SOL_SPI_SPEED_10M
+};
 
-int8_t sol_spi_get_bits_per_word(const struct sol_spi *spi);
-bool sol_spi_set_bits_per_word(struct sol_spi *spi, uint8_t bits_per_word);
+#define SOL_SPI_DATA_BITS_DEFAULT 8
 
-int32_t sol_spi_get_max_speed(const struct sol_spi *spi);
-bool sol_spi_set_max_speed(struct sol_spi *spi, uint32_t speed);
+struct sol_spi_config {
+#define SOL_SPI_CONFIG_API_VERSION (1)
+    uint16_t api_version;
+    unsigned int chip_select;
+    enum sol_spi_mode mode;
+    enum sol_spi_speed speed;
+    uint8_t bits_per_word;
+};
 
-bool sol_spi_transfer(const struct sol_spi *spi, uint8_t *tx, uint8_t *rx, size_t count);
-bool sol_spi_raw_transfer(const struct sol_spi *spi, void *tr, size_t count);
+/**
+ * Perform a SPI asynchronous transfer.
+ *
+ * @param spi The SPI bus handle
+ * @param tx The output buffer
+ * @param rx The input buffer
+ * @param count number of bytes to be transfer
+ * @param transfer_cb callback to be called when transmission finish,
+ * in case of success the status parameters on callback should be the same
+ * value as count, otherwise a error happen.
+ * @param cb_data user data, first parameter of transfer_cb
+ * @return true if transfer was started.
+ *
+ * As SPI works in full-duplex, data are going in and out
+ * at same time, so both buffers must have the count size.
+ * Caller should guarantee that both buffers will not be
+ * freed until callback is called.
+ */
+bool sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, int status), const void *cb_data);
 
+/**
+ * Close an SPI bus.
+ *
+ * @param spi The SPI bus handle
+ */
 void sol_spi_close(struct sol_spi *spi);
-struct sol_spi *sol_spi_open(unsigned int bus, unsigned int chip_select);
+
+/**
+ * Open an SPI bus.
+ *
+ * @param bus The SPI bus number to open
+ * @param config The SPI bus configuration
+ * @return A new SPI bus handle
+ */
+struct sol_spi *sol_spi_open(unsigned int bus, const struct sol_spi_config *config);
 
 /**
  * @}
