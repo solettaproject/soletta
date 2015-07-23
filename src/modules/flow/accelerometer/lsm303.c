@@ -87,6 +87,7 @@ accelerometer_lsm303_open(struct sol_flow_node *node, void *data, const struct s
     case 16:
         scale_bit = 0x03;
         mdata->sensitivity = 12.0 / 1000;
+        break;
     default:
         SOL_WRN("Invalid scale. Expected one of 2, 4, 8 or 16");
         return -EINVAL;
