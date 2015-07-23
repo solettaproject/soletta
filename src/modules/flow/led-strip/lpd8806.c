@@ -40,10 +40,12 @@
 struct lcd_strip_lpd8806_data {
     struct sol_spi *spi;
     uint8_t *pixels;
+    uint8_t *spi_rx_buffer;
     int last_set_pixel;
     int last_set_color;
     uint16_t pixel_count;
     uint16_t pixel_array_length;
+    uint8_t spi_busy : 1, flush_pending : 1;
 };
 
 static void
@@ -55,6 +57,18 @@ led_strip_controler_close(struct sol_flow_node *node, void *data)
         sol_spi_close(mdata->spi);
 
     free(mdata->pixels);
+    free(mdata->spi_rx_buffer);
+}
+
+static void
+spi_transfer_initial_reset(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status)
+{
+    struct lcd_strip_lpd8806_data *mdata = cb_data;
+
+    mdata->spi_busy = false;
+
+    if (status < 0)
+        SOL_WRN("SPI error when writing initial value of pixels.");
 }
 
 static int
@@ -93,8 +107,12 @@ led_strip_controler_open(struct sol_flow_node *node, void *data, const struct so
     mdata->spi = sol_spi_open(opts->bus.val, &spi_config);
     if (mdata->spi) {
         // Initial reset
-        sol_spi_transfer(mdata->spi, &mdata->pixels[mdata->pixel_count * 3], NULL, latch_bytes);
+        sol_spi_transfer(mdata->spi, &mdata->pixels[mdata->pixel_count * 3],
+            NULL, latch_bytes, spi_transfer_initial_reset,
+            mdata);
+        mdata->spi_busy = true;
     }
+    mdata->flush_pending = false;
 
     return 0;
 }
@@ -158,12 +176,44 @@ color_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     return 0;
 }
 
+static int flush_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+
+static void
+spi_transfer_cb(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status)
+{
+    struct lcd_strip_lpd8806_data *mdata = cb_data;
+
+    mdata->spi_busy = false;
+
+    if (status < 0) {
+        SOL_WRN("SPI error when writing pixels.");
+        return;
+    }
+
+    if (!mdata->flush_pending)
+        return;
+
+    mdata->flush_pending = false;
+    flush_process(NULL, mdata, 0, 0, NULL);
+}
+
 static int
 flush_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct lcd_strip_lpd8806_data *mdata = data;
 
-    sol_spi_transfer(mdata->spi, mdata->pixels, NULL, mdata->pixel_array_length);
+    if (mdata->spi_busy) {
+        mdata->flush_pending = true;
+        return 0;
+    }
+
+    if (!sol_spi_transfer(mdata->spi, mdata->pixels, NULL,
+        mdata->pixel_array_length, spi_transfer_cb, mdata)) {
+        SOL_WRN("Unable to start SPI transfer.");
+        return -1;
+    }
+
+    mdata->spi_busy = true;
 
     return 0;
 }

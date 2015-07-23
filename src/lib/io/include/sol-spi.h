@@ -71,18 +71,26 @@ struct sol_spi_config {
 };
 
 /**
- * Perform a SPI transfer.
+ * Perform a SPI asynchronous transfer.
  *
  * @param spi The SPI bus handle
  * @param tx The output buffer
  * @param rx The input buffer
  * @param count number of bytes to be transfer
- * @return true if transfer was completed with success.
+ * @param transfer_cb callback to be called when transmission finish,
+ * in case of success the status parameters on callback should be the same
+ * value as count, otherwise a error happen.
+ * @param cb_data user data, first parameter of transfer_cb
+ * @return true if transfer was started.
  *
  * As SPI works in full-duplex, data are going in and out
  * at same time, so both buffers must have the count size.
+ * Caller should guarantee that both buffers will not be
+ * freed until callback is called.
+ * Also there is no transfer queue, calling this function when there is
+ * transfer happening would return false.
  */
-bool sol_spi_transfer(const struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count);
+bool sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data);
 
 /**
  * Close an SPI bus.
