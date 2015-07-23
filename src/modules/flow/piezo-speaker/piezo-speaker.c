@@ -44,7 +44,6 @@
 #include "sol-pwm.h"
 #include "sol-str-table.h"
 #include "sol-util.h"
-#include "sol-worker-thread.h"
 
 static bool be_quiet(void *data);
 
