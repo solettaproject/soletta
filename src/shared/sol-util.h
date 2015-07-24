@@ -48,6 +48,7 @@
 
 #define streq(a, b) (strcmp((a), (b)) == 0)
 #define streqn(a, b, n) (strncmp((a), (b), (n)) == 0)
+#define strstartswith(a, b) streqn((a), (b), strlen(b))
 
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
