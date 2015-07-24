@@ -51,7 +51,7 @@ PHONY += samples
 
 simple: $(SOL_FBP_GENERATOR_BIN)
 	$(Q)$(SOL_FBP_GENERATOR_BIN) -j $(build_sysroot)/usr/share/soletta/flow/descriptions/ $(top_srcdir)src/samples/flow/basics/simple.fbp $(top_srcdir)src/samples/flow/basics/simple-fbp.c
-
+	$(Q)$(SOL_FBP_GENERATOR_BIN) -s -j $(build_sysroot)/usr/share/soletta/flow/descriptions/ -b child_opts_set -f new_root_type $(top_srcdir)src/samples/flow/basics/simple.fbp $(top_srcdir)src/samples/flow/basics/subflow-fbp.c
 PHONY += simple
 
 PRE_INSTALL := $(PC_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out) $(all-mod-descs)
