@@ -56,6 +56,8 @@
 static struct {
     const char *conf_file;
     const char *output_file;
+    const char *options_callback;
+    const char *root_type_function;
     struct sol_ptr_vector json_files;
     char *fbp_basename;
     char *fbp_dirname;
@@ -580,11 +582,21 @@ generate_node_type_assignments(const struct fbp_data *data)
 static bool
 generate_create_type_function(struct fbp_data *data)
 {
+    char *function;
+
+    if (args.root_type_function)
+        function = strdup(args.root_type_function);
+    else
+        asprintf(&function, "create_%d_%s_type", data->id, data->name);
+
+    SOL_NULL_CHECK(function, false);
+
     dprintf(fd, "static const struct sol_flow_node_type *\n"
-        "create_%d_%s_type(void)\n"
+        "%s(void)\n"
         "{\n",
-        data->id,
-        data->name);
+        function);
+
+    free(function);
 
     if (!generate_options(data) || !generate_connections(data) || !generate_exports(data))
         return false;
@@ -598,10 +610,12 @@ generate_create_type_function(struct fbp_data *data)
         "        .conns = conns,\n"
         "        .exported_in = %s,\n"
         "        .exported_out = %s,\n"
+        "        .child_opts_set = %s,\n"
         "    };\n",
         SOL_FLOW_STATIC_API_VERSION,
         data->graph.exported_in_ports.len > 0 ? "exported_in" : "NULL",
-        data->graph.exported_out_ports.len > 0 ? "exported_out" : "NULL");
+        data->graph.exported_out_ports.len > 0 ? "exported_out" : "NULL",
+        args.options_callback ? : "NULL");
 
     generate_node_type_assignments(data);
 
@@ -762,7 +776,7 @@ static void
 print_usage(const char *program)
 {
     fprintf(stderr, "usage: %s [options] [-c conf_file]"
-        "[-j json_file -j json_file ...] fbp_file output_file\n"
+        "[-j json_file -j json_file ...] [-b options_callback] [-f root_type_function] fbp_file output_file\n"
         "\n"
         "Generates C code from fbp_file to output_file.\n\n"
         "Options:\n"
@@ -784,7 +798,7 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
 
     sol_ptr_vector_init(&args.json_files);
 
-    while ((opt = getopt(argc, argv, "sc:j:")) != -1) {
+    while ((opt = getopt(argc, argv, "sc:j:b:f:")) != -1) {
         switch (opt) {
         case 's':
             args.is_subflow = true;
@@ -798,6 +812,12 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
                 SOL_ERR("Couldn handle JSON path: %s. %s", optarg, sol_util_strerrora(errno));
                 return false;
             }
+            break;
+        case 'b':
+            args.options_callback = optarg;
+            break;
+        case 'f':
+            args.root_type_function = optarg;
             break;
         case '?':
             print_usage(argv[0]);
