@@ -1,0 +1,149 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "thingspeak",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "iot/cloud",
+      "description": "Execute the next Thingspeak Talkback command",
+      "methods": {
+        "open": "thingspeak_execute_open",
+        "close": "thingspeak_execute_close"
+      },
+      "name": "thingspeak/talkback-execute",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Thingpeak API key",
+            "name": "api_key"
+          },
+          {
+            "data_type": "string",
+            "description": "Talkback ID",
+            "name": "talkback_id"
+          },
+          {
+            "data_type": "string",
+            "default": "https://api.thingspeak.com/",
+            "description": "Thingspeak endpoint. Defaults to public server",
+            "name": "endpoint"
+          },
+          {
+            "data_type": "int",
+            "default": 1,
+            "description": "Poll interval in seconds. Default to 1 request/second.",
+            "name": "interval"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The next command to execute. Freeform string.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "thingspeak_execute_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/iot/thingspeak-execute.html"
+    },
+    {
+      "category": "iot/cloud",
+      "description": "Add a command to the Thingspeak Talkback queue",
+      "methods": {
+        "open": "thingspeak_add_open",
+        "close": "thingspeak_add_close"
+      },
+      "name": "thingspeak/talkback-add",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Thingpeak API key",
+            "name": "api_key"
+          },
+          {
+            "data_type": "string",
+            "description": "Talkback ID",
+            "name": "talkback_id"
+          },
+          {
+            "data_type": "string",
+            "default": "https://api.thingspeak.com/",
+            "description": "Thingspeak endpoint. Defaults to public server",
+            "name": "endpoint"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "Position for this command to appear in the queue. Default is end of queue",
+            "name": "position"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The next command to execute. Freeform string.",
+          "name": "IN",
+          "methods": {
+            "process": "thingspeak_add_in_process"
+          }
+        }
+      ],
+      "private_data_type": "thingspeak_add_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/iot/thingspeak-add.html"
+    },
+    {
+      "category": "iot/cloud",
+      "description": "Update a Thingspeak channel",
+      "methods": {
+        "open": "thingspeak_channel_update_open",
+        "close": "thingspeak_channel_update_close"
+      },
+      "name": "thingspeak/channel-update",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Thingpeak API key",
+            "name": "api_key"
+          },
+          {
+            "data_type": "string",
+            "default": "https://api.thingspeak.com/",
+            "description": "Thingspeak endpoint. Defaults to public server",
+            "name": "endpoint"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Status fields",
+          "name": "FIELD[8]",
+          "methods": {
+            "process": "thingspeak_channel_update_field_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "Status update message",
+          "name": "STATUS",
+          "methods": {
+            "process": "thingspeak_channel_update_status_process"
+          }
+        }
+      ],
+      "private_data_type": "thingspeak_channel_update_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/iot/thingspeak-channel.html"
+    }
+  ]
+}

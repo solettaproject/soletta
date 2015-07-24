@@ -1,0 +1,27 @@
+config FLOW_NODE_TYPE_THINGSPEAK
+	tristate "Node type: thingspeak"
+	depends on FLOW && HTTP_CLIENT
+	default y
+	help
+		ThingSpeak is a service that allows publishing data via HTTP
+		to be consumed by IoT devices.
+
+		It is an open platform, with full source code available.
+		There is also a free service with API call rate limits.  If
+		the rate limits are too low for your application, you can
+		set up a server yourself; the node types allow specifying
+		the API endpoint.
+
+		This option enables three node types:
+
+                  * thingspeak/talkback-execute, to query ThingSpeak's
+                      Talkback queue
+                  * thingspeak/talkback-add, to add something to the Talkback
+                      queue
+                  * thingspeak/channel-update, to update a channel
+
+		To use these nodes, one must register and obtain an API key.
+		API keys for channels and talkbacks are different.  For the
+		talkback, obtaining a Talkback ID is also required.
+
+		If unsure, say Y.

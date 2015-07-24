@@ -64,6 +64,7 @@
 #define SOL_ATTR_NONNULL(...)
 #define SOL_ATTR_SECTION(secname)
 #define SOL_ATTR_USED
+#define SOL_ATTR_UNUSED
 #endif
 
 /**

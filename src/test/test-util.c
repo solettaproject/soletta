@@ -31,6 +31,7 @@
  */
 
 #include <stdbool.h>
+#include <limits.h>
 
 #include "sol-util.h"
 
@@ -71,6 +72,21 @@ test_align_power2(void)
             ASSERT(false);
         }
     }
+}
+
+
+DEFINE_TEST(test_size_mul);
+
+static void
+test_size_mul(void)
+{
+    const size_t half_size = SIZE_MAX / 2;
+    size_t out;
+
+    ASSERT(sol_util_size_mul(half_size, 2, &out) == 0);
+    ASSERT(out == SIZE_MAX);
+
+    ASSERT(sol_util_size_mul(half_size, 4, &out) < 0);
 }
 
 

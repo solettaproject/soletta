@@ -59,6 +59,7 @@ test_resize(void)
 {
     struct sol_buffer buf = SOL_BUFFER_EMPTY;
     const int size = 1024;
+    char *buf_data;
     int i;
 
     sol_buffer_resize(&buf, size);
@@ -66,13 +67,15 @@ test_resize(void)
     memset(buf.data, 22, size);
 
     sol_buffer_resize(&buf, size * 2);
+    buf_data = buf.data;
     for (i = 0; i < size; i++) {
-        ASSERT(buf.data[i] == 22);
+        ASSERT(buf_data[i] == 22);
     }
 
     sol_buffer_resize(&buf, size / 2);
+    buf_data = buf.data;
     for (i = 0; i < size / 2; i++) {
-        ASSERT(buf.data[i] == 22);
+        ASSERT(buf_data[i] == 22);
     }
 
     sol_buffer_fini(&buf);
@@ -86,6 +89,7 @@ test_ensure(void)
 {
     struct sol_buffer buf = SOL_BUFFER_EMPTY;
     const int size = 1024;
+    char *buf_data;
     int i;
 
     sol_buffer_ensure(&buf, size);
@@ -93,23 +97,25 @@ test_ensure(void)
     memset(buf.data, 22, size);
 
     sol_buffer_ensure(&buf, size * 2);
+    buf_data = buf.data;
     for (i = 0; i < size; i++) {
-        ASSERT(buf.data[i] == 22);
+        ASSERT(buf_data[i] == 22);
     }
 
     sol_buffer_ensure(&buf, size / 2);
+    buf_data = buf.data;
     for (i = 0; i < size / 2; i++) {
-        ASSERT(buf.data[i] == 22);
+        ASSERT(buf_data[i] == 22);
     }
 
     sol_buffer_fini(&buf);
 }
 
 
-DEFINE_TEST(test_copy_slice);
+DEFINE_TEST(test_set_slice);
 
 static void
-test_copy_slice(void)
+test_set_slice(void)
 {
     struct sol_buffer buf;
     struct sol_str_slice slice;
@@ -121,15 +127,51 @@ test_copy_slice(void)
     slice = sol_str_slice_from_str(backend);
 
     sol_buffer_init(&buf);
-    err = sol_buffer_copy_slice(&buf, slice);
+    err = sol_buffer_set_slice(&buf, slice);
     ASSERT(err >= 0);
 
-    ASSERT(buf.size >= strlen(backend) + 1);
+    ASSERT(buf.used == strlen(backend));
     ASSERT(streq(buf.data, backend));
 
     backend[1] = 'a';
     ASSERT(!streq(buf.data, backend));
     ASSERT(streq(buf.data, str));
+
+    sol_buffer_fini(&buf);
+
+    free(backend);
+}
+
+
+DEFINE_TEST(test_append_slice);
+
+static void
+test_append_slice(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    const char *str = "Hello";
+    const char *expected_str = "HelloHello";
+    char *backend;
+    int err;
+
+    backend = strdup(str);
+    slice = sol_str_slice_from_str(backend);
+
+    sol_buffer_init(&buf);
+    err = sol_buffer_set_slice(&buf, slice);
+    ASSERT(err >= 0);
+
+    ASSERT(buf.used == strlen(backend));
+    ASSERT(streq(buf.data, backend));
+
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT(err >= 0);
+    ASSERT(buf.used == strlen(expected_str));
+
+    backend[1] = 'a';
+    ASSERT(!streq(buf.data, backend));
+    ASSERT(streq(buf.data, expected_str));
 
     sol_buffer_fini(&buf);
 
