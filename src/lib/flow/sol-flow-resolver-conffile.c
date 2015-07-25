@@ -179,7 +179,7 @@ _resolver_conffile_get_module(const char *type)
     }
 
     entry = sol_vector_append(&resolver_conffile_dlopens);
-    SOL_NULL_CHECK(entry, NULL);
+    SOL_NULL_CHECK_GOTO(entry, entry_error);
 
     entry->name = name;
 
@@ -209,6 +209,10 @@ found:
     ret = resolve_module_type_by_component(type, entry->foreach);
     SOL_NULL_CHECK_GOTO(ret, error);
     return ret;
+
+entry_error:
+    free(name);
+    return NULL;
 
 error:
     /* In case 'entry' was not the last one appended. */
