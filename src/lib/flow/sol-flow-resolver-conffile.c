@@ -179,7 +179,10 @@ _resolver_conffile_get_module(const char *type)
     }
 
     entry = sol_vector_append(&resolver_conffile_dlopens);
-    SOL_NULL_CHECK(entry, NULL);
+    if (!entry) {
+        free(name);
+        return NULL;
+    }
 
     entry->name = name;
 
