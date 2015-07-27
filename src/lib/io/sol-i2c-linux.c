@@ -336,12 +336,12 @@ SOL_API bool
 sol_i2c_read_register_multiple(const struct sol_i2c *i2c,
     uint8_t command,
     uint8_t *values,
-    uint8_t len,
-    uint8_t count)
+    uint8_t count,
+    uint8_t times)
 {
     struct i2c_msg msgs[I2C_RDRW_IOCTL_MAX_MSGS] = { };
     struct i2c_rdwr_ioctl_data data = { };
-    const unsigned int max_count = I2C_RDRW_IOCTL_MAX_MSGS / 2;
+    const unsigned int max_times = I2C_RDRW_IOCTL_MAX_MSGS / 2;
 
     SOL_NULL_CHECK(i2c, false);
     if (!i2c->plain_i2c) {
@@ -352,8 +352,8 @@ sol_i2c_read_register_multiple(const struct sol_i2c *i2c,
         return false;
     }
 
-    while (count > 0) {
-        unsigned int n = count > max_count ? max_count : count;
+    while (times > 0) {
+        unsigned int n = times > max_times ? max_times : times;
         unsigned int i;
         uint8_t *p = values;
 
@@ -364,9 +364,9 @@ sol_i2c_read_register_multiple(const struct sol_i2c *i2c,
             msgs[i].buf = &command;
             msgs[i + 1].addr = i2c->addr;
             msgs[i + 1].flags = I2C_M_RD;
-            msgs[i + 1].len = len;
+            msgs[i + 1].len = count;
             msgs[i + 1].buf = p;
-            p += len;
+            p += count;
         }
 
         data.msgs = msgs;
@@ -379,7 +379,7 @@ sol_i2c_read_register_multiple(const struct sol_i2c *i2c,
             return false;
         }
 
-        count -= n;
+        times -= n;
     }
 
     return true;
