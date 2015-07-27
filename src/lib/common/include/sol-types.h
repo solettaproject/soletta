@@ -124,6 +124,15 @@ struct sol_direction_vector {
     double max;
 };
 
+/*** SOL_LOCATION ***/
+
+struct sol_location {
+    double lat;
+    double lon;
+    double alt;
+};
+
+
 /*** SOL_RGB ***/
 
 struct sol_rgb {

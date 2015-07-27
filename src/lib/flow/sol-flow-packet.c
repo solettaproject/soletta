@@ -626,6 +626,26 @@ sol_flow_packet_get_direction_vector_components(const struct sol_flow_packet *pa
     return ret_val;
 }
 
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_LOCATION = {
+    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    .name = "LOCATION",
+    .data_size = sizeof(struct sol_location),
+};
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_LOCATION = &_SOL_FLOW_PACKET_TYPE_LOCATION;
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_location(const struct sol_location *location)
+{
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_LOCATION, location);
+}
+
+SOL_API int
+sol_flow_packet_get_location(const struct sol_flow_packet *packet, struct sol_location *location)
+{
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_LOCATION, -EINVAL);
+    return sol_flow_packet_get(packet, location);
+}
+
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_ANY = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "Any",
