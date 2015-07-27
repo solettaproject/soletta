@@ -195,6 +195,12 @@ inspector_show_packet(const struct sol_flow_packet *packet)
                 v.x, v.y, v.z, v.min, v.max);
             return;
         }
+    } else if (type == SOL_FLOW_PACKET_TYPE_LOCATION) {
+        struct sol_location v;
+        if (sol_flow_packet_get_location(packet, &v) == 0) {
+            fprintf(stdout, "<lat=%g|lon=%g|alt=%g>", v.lat, v.lon, v.alt);
+            return;
+        }
     }
 
     fputs("<?>", stdout);

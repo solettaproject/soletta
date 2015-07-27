@@ -342,6 +342,12 @@ sol_flow_send_direction_vector_components_packet(struct sol_flow_node *src, uint
 }
 
 SOL_API int
+sol_flow_send_location_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_location *value)
+{
+    SOL_FLOW_SEND_PACKET(location);
+}
+
+SOL_API int
 sol_flow_send_irange_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_irange *value)
 {
     SOL_FLOW_SEND_PACKET(irange);

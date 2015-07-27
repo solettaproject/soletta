@@ -102,6 +102,14 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
             mdata->prefix ? mdata->prefix : "",
             x, y, z,
             mdata->suffix ? mdata->suffix : "");
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_LOCATION) {
+        struct sol_location location;
+        int r = sol_flow_packet_get_location(packet, &location);
+        SOL_INT_CHECK(r, < 0, r);
+        fprintf(mdata->fp, "%slatitude=%g, longitude=%g altitude=%g (location)%s\n",
+            mdata->prefix ? mdata->prefix : "",
+            location.lat, location.lon, location.alt,
+            mdata->suffix ? mdata->suffix : "");
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_STRING) {
         const char *val;
 

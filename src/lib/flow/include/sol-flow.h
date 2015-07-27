@@ -167,8 +167,9 @@ int sol_flow_send_rgb_packet(struct sol_flow_node *src, uint16_t src_port, const
 int sol_flow_send_rgb_components_packet(struct sol_flow_node *src, uint16_t src_port, uint32_t red, uint32_t green, uint32_t blue);
 
 int sol_flow_send_direction_vector_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_direction_vector *value);
-
 int sol_flow_send_direction_vector_components_packet(struct sol_flow_node *src, uint16_t src_port, double x, double y, double z);
+
+int sol_flow_send_location_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_location *value);
 
 int sol_flow_send_empty_packet(struct sol_flow_node *src, uint16_t src_port);
 
