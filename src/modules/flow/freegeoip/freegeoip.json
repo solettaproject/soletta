@@ -1,0 +1,98 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "freegeoip",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "iot/cloud",
+      "description": "Obtain location from IP address.",
+      "methods": {
+        "open": "freegeoip_open",
+        "close": "freegeoip_close"
+      },
+      "name": "location/freegeoip",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "API endpoint. Defaults to public server",
+            "default": "https://freegeoip.net",
+            "name": "endpoint"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "IP address.",
+          "name": "IP"
+        },
+        {
+          "data_type": "string",
+          "description": "ISO Country Code (e.g. BR). \"RD\" is for reserved addresses.",
+          "name": "COUNTRY_CODE"
+        },
+        {
+          "data_type": "string",
+          "description": "Country name (e.g. Brazil).",
+          "name": "COUNTRY_NAME"
+        },
+        {
+          "data_type": "string",
+          "description": "Region code (e.g. SP).",
+          "name": "REGION_CODE"
+        },
+        {
+          "data_type": "string",
+          "description": "Region name (e.g. São Paulo).",
+          "name": "REGION_NAME"
+        },
+        {
+          "data_type": "string",
+          "description": "City name (e.g. Campinas).",
+          "name": "CITY_NAME"
+        },
+        {
+          "data_type": "string",
+          "description": "ZIP code (e.g. 13069-310).",
+          "name": "ZIP_CODE"
+        },
+        {
+          "data_type": "string",
+          "description": "Timezone (e.g. America/Sao_Paulo).",
+          "name": "TIMEZONE"
+        },
+        {
+          "data_type": "location",
+          "description": "Latitude/longitude.",
+          "name": "LOCATION"
+        }
+      ],
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Request location from current IP address.",
+          "name": "IN",
+          "methods": {
+            "process": "freegeoip_in_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "IP address to request location.",
+          "name": "IP",
+          "methods": {
+            "process": "freegeoip_ip_process"
+          }
+        }
+      ],
+      "private_data_type": "freegeoip_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/location/freegeoip.html"
+    }
+  ]
+}
