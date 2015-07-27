@@ -342,6 +342,23 @@ sol_flow_send_direction_vector_components_packet(struct sol_flow_node *src, uint
 }
 
 SOL_API int
+sol_flow_send_location_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_location *value)
+{
+    SOL_FLOW_SEND_PACKET(location);
+}
+
+SOL_API int
+sol_flow_send_location_latlon_packet(struct sol_flow_node *src, uint16_t src_port, double lat, double lon)
+{
+    struct sol_flow_packet *out_packet;
+
+    out_packet = sol_flow_packet_new_location_latlon(lat, lon);
+    SOL_NULL_CHECK(out_packet, -ENOMEM);
+
+    return sol_flow_send_packet(src, src_port, out_packet);
+}
+
+SOL_API int
 sol_flow_send_irange_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_irange *value)
 {
     SOL_FLOW_SEND_PACKET(irange);
