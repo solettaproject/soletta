@@ -145,14 +145,23 @@ sol_i2c_read_register(const struct sol_i2c *i2c, uint8_t reg, uint8_t *data, siz
 }
 
 SOL_API bool
-sol_i2c_read_register_multiple(const struct sol_i2c *i2c,
-    uint8_t command,
-    uint8_t *values,
-    uint8_t len,
-    uint8_t count)
+sol_i2c_read_register_multiple(const struct sol_i2c *i2c, uint8_t command, uint8_t *values, uint8_t count, uint8_t times)
 {
-    //TODO
-    return false;
+    uint8_t i;
+    ssize_t ret;
+
+    SOL_NULL_CHECK(i2c, false);
+
+    i2c_acquire(i2c->dev);
+    for (i = 0; i < times; i++) {
+        ret = i2c_read_regs(i2c->dev, i2c->slave_address, command,
+            (char *)(values + (count * i)), count);
+        if (ret != count)
+            break;
+    }
+    i2c_release(i2c->dev);
+
+    return ret == count;
 }
 
 SOL_API bool
