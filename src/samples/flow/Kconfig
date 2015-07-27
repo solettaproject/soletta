@@ -1,0 +1,14 @@
+config FLOW_SAMPLES
+	bool "Flow samples"
+	depends on FLOW
+	default y
+
+config FLOW_BASIC_SAMPLE
+	bool "Simple fbp sample"
+	depends on FLOW_SAMPLES && FBP_GENERATOR
+	default y
+
+config FLOW_CMDLINE_ARGS_SAMPLE
+	bool "Command line arguments sample"
+	depends on FLOW_SAMPLES && FBP_GENERATOR
+	default y
