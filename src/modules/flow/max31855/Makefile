@@ -1,0 +1,3 @@
+obj-$(FLOW_NODE_TYPE_MAX31855) += max31855.mod
+obj-max31855-$(FLOW_NODE_TYPE_MAX31855) := max31855.json \
+		max31855.o
