@@ -72,7 +72,7 @@ struct sol_vector {
     uint16_t elem_size;
 };
 
-#define SOL_VECTOR_INIT(TYPE) { NULL, 0, sizeof(TYPE) }
+#define SOL_VECTOR_INIT(TYPE) (struct sol_vector){ .data = NULL, .len = 0, .elem_size = sizeof(TYPE) }
 
 void sol_vector_init(struct sol_vector *v, uint16_t elem_size);
 
