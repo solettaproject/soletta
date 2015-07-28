@@ -255,24 +255,25 @@ $(SOL_LIB_SO): $(PRE_GEN) $(SOL_LIB_AR) $(builtin-objs)
 
 $(DEPENDENCY_CACHE): submodules-init
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --pkg-config="$(PKG_CONFIG)"
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
+		--pkg-config="$(PKG_CONFIG)"
 
 $(KCONFIG_GEN): $(DEPENDENCY_CACHE)
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --pkg-config="$(PKG_CONFIG)" \
-                --kconfig-gen
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
+		--pkg-config="$(PKG_CONFIG)" --kconfig-gen
 
 $(MAKEFILE_GEN): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG)
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" --pkg-config="$(PKG_CONFIG)" \
-                --definitions-header="$(DEFINITIONS_H)" --makefile-gen
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
+		--pkg-config="$(PKG_CONFIG)" --definitions-header="$(DEFINITIONS_H)" --makefile-gen
 
 reconf: $(DEPENDENCY_SCRIPT)
 	$(Q)echo "[re]running dependency-resolver..."
 	$(Q)$(RM) -f $(DEPENDENCY_FILES)
 	$(Q)$(RM) $(DEPENDENCY_CACHE)
 	$(Q) V=1 $(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--prefix="$(PREFIX)" --definitions-header="$(DEFINITIONS_H)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --definitions-header="$(DEFINITIONS_H)" \
 		--cache="$(DEPENDENCY_CACHE)" --kconfig-gen --makefile-gen
 
 PHONY += reconf

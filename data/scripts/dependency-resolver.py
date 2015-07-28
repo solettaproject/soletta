@@ -181,7 +181,7 @@ def handle_ccode_check(args, conf, context):
     common_ldflags = context.find_makefile_var(args.common_ldflags_var)
 
     test_cflags = (cflags.get("value", ""), args.cflags, common_cflags)
-    test_ldflags = (ldflags.get("value", ""), common_ldflags)
+    test_ldflags = (ldflags.get("value", ""), args.ldflags, common_ldflags)
 
     fragment = conf.get("fragment") or ""
     source = cstub.format(headers=source, fragment=fragment)
@@ -415,6 +415,8 @@ if __name__ == "__main__":
     parser.add_argument("--compiler", help="The gcc compiler[for headers based tests]",
                         type=str, default="gcc")
     parser.add_argument("--cflags", help="Additional cflags[for headers based tests]",
+                        type=str, default="")
+    parser.add_argument("--ldflags", help="Additional/environment ldflags",
                         type=str, default="")
     parser.add_argument("--pkg-config", help="What to use for pkg-config",
                         type=str, default="pkg-config")
