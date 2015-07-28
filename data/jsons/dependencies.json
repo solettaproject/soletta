@@ -38,7 +38,32 @@
             }
 	},
 	{
-	    "dependency": "check_flags",
+	    "dependency": "ldl",
+	    "type": "ccode",
+	    "headers": [
+		"<dlfcn.h>"
+            ],
+            "fragment": "dlopen(0,0);",
+            "ldflags": {
+                "comment": "append to COMMON_LDFLAGS so it's used for further checks, and else where in the build system",
+                "append_to": "COMMON_LDFLAGS",
+                "value": "-ldl"
+            }
+	},
+	{
+	    "dependency": "lib_math",
+	    "type": "ccode",
+	    "headers": [
+		"<math.h>"
+            ],
+            "fragment": "isinf(0);",
+            "ldflags": {
+                "append_to": "COMMON_LDFLAGS",
+                "value": "-lm"
+            }
+	},
+	{
+	    "dependency": "check_cflags",
 	    "type": "cflags",
 	    "cflags": [
                 "-pipe",
@@ -83,6 +108,14 @@
             ],
             "comment": "append to COMMON_CFLAGS so it's used for further checks",
             "append_to": "COMMON_CFLAGS"
+	},
+	{
+	    "dependency": "check_ldflags",
+	    "type": "ldflags",
+	    "ldflags": [
+                "-Wl,--gc-sections"
+            ],
+            "append_to": "COMMON_LDFLAGS"
 	}
     ],
     "dependencies": [
@@ -113,7 +146,7 @@
 	    "pkgname": "libudev"
 	},
 	{
-	    "dependency": "kdbus",
+	    "dependency": "sd_dbus",
 	    "type": "ccode",
 	    "headers": [
 		"<systemd/sd-bus.h>"
@@ -130,16 +163,10 @@
 	{
 	    "dependency": "decl_dladdr",
 	    "type": "ccode",
-	    "defines": [
-		"_GNU_SOURCE"
-	    ],
 	    "headers": [
 		"<dlfcn.h>"
 	    ],
-	    "fragment": "dladdr(0, 0);",
-	    "ldflags": {
-		"value": "-ldl"
-	    }
+	    "fragment": "dladdr(0, 0);"
 	},
 	{
 	    "dependency": "pthread_h",

@@ -17,10 +17,10 @@ obj-core-$(PLATFORM_CONTIKI) += \
     sol-log-impl-contiki.o
 endif
 
-obj-core-$(KDBUS) += \
+obj-core-$(SOL_BUS) += \
     sol-bus.o
-obj-core-$(KDBUS)-extra-cflags += $(SYSTEMD_CFLAGS) $(GLIB_CFLAGS)
-obj-core-$(KDBUS)-extra-ldflags += $(SYSTEMD_LDFLAGS) $(GLIB_LDFLAGS)
+obj-core-$(SOL_BUS)-extra-cflags += $(SYSTEMD_CFLAGS) $(GLIB_CFLAGS)
+obj-core-$(SOL_BUS)-extra-ldflags += $(SYSTEMD_LDFLAGS) $(GLIB_LDFLAGS)
 
 obj-core-$(MAINLOOP_GLIB) += \
     sol-mainloop-impl-glib.o
