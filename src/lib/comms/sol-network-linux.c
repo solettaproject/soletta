@@ -429,7 +429,7 @@ sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_l
     SOL_NULL_CHECK(network, false);
     SOL_NULL_CHECK(cb, false);
 
-    SOL_VECTOR_FOREACH_IDX (&network->callbacks, callback, idx) {
+    SOL_VECTOR_FOREACH_REVERSE_IDX (&network->callbacks, callback, idx) {
         if ((callback->cb == cb) && (callback->data == data)) {
             sol_vector_del(&network->callbacks, idx);
             ret = true;
