@@ -182,7 +182,7 @@ def handle_ccode_check(args, conf, context):
     source = cstub.format(headers=source, fragment=fragment)
     success = compile_test(source, args.compiler, "%s %s %s" %
                            (cflags.get("value", ""), args.cflags, common_cflags),
-                           ldflags.get("value", ""))
+                           (ldflags.get("value", ""), args.ldflags))
 
     if success:
         context.add_kconfig("HAVE_%s" % dep, "bool", "y")
@@ -391,6 +391,8 @@ if __name__ == "__main__":
     parser.add_argument("--compiler", help="The gcc compiler[for headers based tests]",
                         type=str, default="gcc")
     parser.add_argument("--cflags", help="Additional cflags[for headers based tests]",
+                        type=str, default="")
+    parser.add_argument("--ldflags", help="Additional/environment ldflags",
                         type=str, default="")
     parser.add_argument("--pkg-config", help="What to use for pkg-config",
                         type=str, default="pkg-config")
