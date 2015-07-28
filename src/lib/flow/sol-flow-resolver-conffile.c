@@ -84,7 +84,7 @@ struct resolver_conffile_dlopen {
     void (*foreach)(bool (*cb)(void *data, const struct sol_flow_node_type *type), const void *data);
 };
 
-static struct sol_vector resolver_conffile_dlopens = SOL_VECTOR_INIT(struct resolver_conffile_dlopen);
+static struct sol_vector resolver_conffile_dlopens = SOL_VECTOR_INIT(char[sizeof(struct resolver_conffile_dlopen)]);
 
 static void
 resolver_conffile_dlopen_free(struct resolver_conffile_dlopen *entry)
