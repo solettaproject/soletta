@@ -173,7 +173,7 @@ void sol_http_param_free(struct sol_http_param *params);
 int sol_http_client_request(enum sol_http_method method,
     const char *base_uri, const struct sol_http_param *params,
     void (*cb)(void *data, struct sol_http_response *response),
-    const void *data) SOL_ATTR_NONNULL(2, 3, 4) SOL_ATTR_WARN_UNUSED_RESULT;
+    const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @}
