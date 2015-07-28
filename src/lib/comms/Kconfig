@@ -62,3 +62,11 @@ config HTTP_CLIENT
 	depends on NETWORK && FEATURE_HTTP_CLIENT
 	help
             Client API for both HTTP and HTTPS.
+
+config HTTP_SERVER
+	bool "HTTP Server"
+	default y
+	select HTTP
+	depends on NETWORK && FEATURE_HTTP_SERVER
+	help
+            Server API for both HTTP and HTTPS.

@@ -445,6 +445,11 @@
         "in-tree": "{TOP_SRCDIR}/src/thirdparty/duktape/src",
         "out-of-tree": "{DUKTAPE_SRC}"
       }
+    },
+    {
+      "dependency": "libmicrohttpd",
+      "type": "pkg-config",
+      "pkgname": "libmicrohttpd"
     }
   ]
 }
