@@ -34,13 +34,14 @@ import configparser
 import os
 import subprocess
 import sys
+from shutil import rmtree
 
 def run_command(cmd):
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
                                          shell=True, universal_newlines=True)
         return output.replace("\n", "").strip(), True
-    except subprocess.CalledProcessError as e:
+    except subprocess.SubprocessError as e:
         return e.output, False
 
 def submodule_clone(name, path, url, branch, depth, dest, sparserules):
@@ -51,6 +52,11 @@ def submodule_clone(name, path, url, branch, depth, dest, sparserules):
     sys.stdout.flush()
     out, status = run_command("git clone {url} {branch} {depth} --bare {dest}".format(
         url=url, branch=branch, depth=depth, dest=dest))
+
+    if not status:
+        print("[failed]")
+        print("[ERROR]:\n %s" % out)
+        exit(1)
 
     if sparserules:
         submodule_config = "%s/config" % dest
@@ -94,9 +100,17 @@ def submodule_checkout(name, submodule_git, path):
 
 if __name__ == "__main__":
     gitmodules = ".gitmodules"
-    
+    status_file = ".git/modules-ok"
+    force = False
+
     if not os.path.exists(gitmodules):
+        open(status_file, 'w').close()
         exit(0)
+
+    if os.path.exists(status_file):
+        os.remove(status_file)
+    else:
+        force = True
 
     config = configparser.ConfigParser()
     config["DEFAULT"] = {"sparsecheckout": False, "sparserules": "", "branch": ""}
@@ -120,6 +134,11 @@ if __name__ == "__main__":
         submodule_git = ".git/modules/%s" % name
         depth = "--depth 1" if sparsecheckout else ""
         branch_arg = "-b %s" % branch if branch else ""
+
+        if force and os.path.exists(submodule_git):
+            rmtree(submodule_git)
+            run_command("git submodule deinit %s" % path)
+
         out, status = submodule_clone(name, path, url, branch_arg, depth, submodule_git, sparserules)
 
         if not status:
@@ -128,3 +147,5 @@ if __name__ == "__main__":
             exit(1)
 
         submodule_checkout(name, submodule_git, path)
+
+    open(status_file, 'w').close()
