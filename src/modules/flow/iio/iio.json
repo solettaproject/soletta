@@ -1,0 +1,90 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "iio",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "IIO based gyroscope input node. As any IIO device, it can use a buffer to get the readings. To use a buffer, define a size > 0 on buffer size. Readings are sent to the buffer via a trigger mechanism. Set iio_trigger_name to a valid iio trigger name in order to use buffer. If buffer is enabled but no iio_trigger_name was set, it will attempt to create a default trigger that will be activated when sending packets to TICK port.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a gyroscope reading and produce packets on each of the the output ports. If buffer is enabled, current trigger must accept manual activation (default one, sysfs trigger, does).",
+          "name": "TICK",
+          "methods": {
+            "process": "gyroscope_tick"
+          }
+        }
+      ],
+      "methods": {
+        "close": "gyroscope_close",
+        "open": "gyroscope_open"
+      },
+      "name": "iio/gyroscope",
+      "options": {
+       "members": [
+         {
+           "data_type": "int",
+           "description": "IIO device number",
+           "name": "iio_device"
+         },
+         {
+           "data_type": "int",
+           "description": "IIO buffer size. If -1, buffering is disabled. If 0, will use default buffer size. If enabled (> 0), a trigger is necessary to perform readings. Set it using 'iio_trigger_name'; if no trigger name is set, it will attempt to create a default one, which is activated via TICK port.",
+           "default": 0,
+           "name": "buffer_size"
+         },
+         {
+           "data_type": "string",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "name": "iio_trigger_name",
+           "default": null
+         },
+         {
+           "data_type": "boolean",
+           "default": true,
+           "description": "If should use device own default scale. If false, it will attempt to use scale option.",
+           "name": "use_device_default_scale"
+         },
+         {
+             "data_type": "direction-vector",
+             "default": {},
+             "description": "Scale to applied to device raw readings",
+             "name": "scale"
+         },
+         {
+           "data_type": "boolean",
+           "default": true,
+           "description": "If should use device own default offset. If false, it will attempt to use offset_x, offset_y and offset_z options.",
+           "name": "use_device_default_offset"
+         },
+         {
+             "data_type": "direction-vector",
+             "default": {},
+             "description": "Offset to be added to device raw readings",
+             "name": "offset"
+         },
+         {
+             "data_type": "int",
+             "default": -1,
+             "description": "Sampling frequency of the sensor. If -1, use device default",
+             "name": "sampling_frequency"
+         }
+       ],
+       "version": 1
+      },
+      "out_ports": [
+        {
+         "data_type": "direction-vector",
+         "description": "Angular speed in all X/Y/Z axes, in radians per second.",
+         "name": "OUT"
+        }
+      ],
+      "private_data_type": "gyroscope_data"
+    }
+ ]
+}
