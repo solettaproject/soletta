@@ -371,7 +371,7 @@ sol_network_shutdown(void)
     struct callback *callback;
     struct sol_network_link *link;
     struct sol_network_link_addr *addr;
-    uint16_t i, idx;
+    uint16_t idx;
 
     if (!network)
         return;
@@ -385,16 +385,8 @@ sol_network_shutdown(void)
 
     close(network->nl_socket);
 
-    SOL_VECTOR_FOREACH_IDX (&network->callbacks, callback, idx)
-        sol_vector_del(&network->callbacks, idx);
-
     SOL_VECTOR_FOREACH_IDX (&network->links, link, idx) {
-        SOL_VECTOR_FOREACH_IDX (&link->addrs, addr, i) {
-            sol_vector_del(&link->addrs, i);
-        }
-
         sol_vector_clear(&link->addrs);
-        sol_vector_del(&network->links, i);
     }
 
     sol_vector_clear(&network->links);
