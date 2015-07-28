@@ -299,12 +299,14 @@ sol_conffile_load_json_from_dirs(const char *file, char **full_path, struct sol_
             *file_reader = sol_file_reader_open(file);
             if (*file_reader) {
                 config_file_contents = sol_file_reader_get_all(*file_reader);
-                if (config_file_contents.len != 0)
+                if (config_file_contents.len != 0) {
+                    free(filename);
                     break;
-
+                }
                 sol_file_reader_close(*file_reader);
                 *file_reader = NULL;
             }
+            free(filename);
         }
     }
 
