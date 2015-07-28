@@ -464,8 +464,8 @@ sol_network_link_get_name(const struct sol_network_link *link)
 
     if (unlikely(link->api_version != SOL_NETWORK_LINK_API_VERSION)) {
         SOL_WRN("Couldn't link that has unsupported version '%u', "
-                "expected version is '%u'",
-                link->api_version, SOL_NETWORK_LINK_API_VERSION);
+            "expected version is '%u'",
+            link->api_version, SOL_NETWORK_LINK_API_VERSION);
         return NULL;
     }
 
