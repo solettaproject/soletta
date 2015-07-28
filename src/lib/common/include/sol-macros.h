@@ -54,6 +54,7 @@
 #define SOL_ATTR_SECTION(secname) __attribute__((section(secname)))
 #define SOL_ATTR_USED __attribute__((__used__))
 #define SOL_ATTR_UNUSED __attribute__((__unused__))
+#define SOL_ATTR_SENTINEL __attribute__((sentinel))
 #else
 #define SOL_API
 #define SOL_ATTR_WARN_UNUSED_RESULT
@@ -64,6 +65,7 @@
 #define SOL_ATTR_NONNULL(...)
 #define SOL_ATTR_SECTION(secname)
 #define SOL_ATTR_USED
+#define SOL_ATTR_SENTINEL
 #endif
 
 /**
