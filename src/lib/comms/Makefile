@@ -31,6 +31,15 @@ obj-networking-$(HTTP_CLIENT)-extra-ldflags += \
 requires-private-$(HTTP_CLIENT) := \
     $(LIBCURL_REQUIRES_PRIVATE)
 
+obj-networking-$(HTTP_SERVER) += \
+    sol-http-server-impl-microhttpd.o
+
+obj-networking-$(HTTP_SERVER)-extra-ldflags += \
+    $(LIBMICROHTTPD_LDFLAGS)
+
+requires-private-$(HTTP_SERVER) := \
+    $(LIBMICROHTTPD_REQUIRES_PRIVATE)
+
 headers-networking-$(NETWORK) += \
     include/sol-network.h
 
@@ -46,3 +55,6 @@ headers-networking-$(HTTP) += \
 
 headers-networking-$(HTTP_CLIENT) += \
     include/sol-http-client.h
+
+headers-networking-$(HTTP_SERVER) += \
+    include/sol-http-server.h
