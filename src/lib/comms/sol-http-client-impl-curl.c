@@ -706,7 +706,10 @@ sol_http_client_request(enum sol_http_method method,
     void (*cb)(void *data, struct sol_http_response *response),
     const void *data)
 {
-    static CURLoption sol_to_curl_method[] = {
+    static const struct sol_http_param empty_params = {
+        .params = SOL_VECTOR_INIT(struct sol_http_param_value)
+    };
+    static const CURLoption sol_to_curl_method[] = {
         [SOL_HTTP_METHOD_GET] = CURLOPT_HTTPGET,
         [SOL_HTTP_METHOD_POST] = CURLOPT_HTTPPOST,
         [SOL_HTTP_METHOD_HEAD] = CURLOPT_NOBODY,
@@ -723,9 +726,13 @@ sol_http_client_request(enum sol_http_method method,
         return -EINVAL;
     }
 
-    if (!check_param_api_version(params)) {
-        SOL_WRN("Parameter API version mismatch");
-        return -EINVAL;
+    if (params) {
+        if (!check_param_api_version(params)) {
+            SOL_WRN("Parameter API version mismatch");
+            return -EINVAL;
+        }
+    } else {
+        params = &empty_params;
     }
 
     arena = sol_arena_new();
