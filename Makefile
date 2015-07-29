@@ -30,6 +30,7 @@ warning:
 	$(Q)echo -e "$(NOT_FOUND)"
 	$(Q)echo -e "If you've just installed it, run: make reconf"
 	$(Q)echo -e "For more information/options, run: make help"
+	$(Q)false
 $(warning-targets)
 else
 ifeq ($(HAVE_KCONFIG_CONFIG),)
@@ -37,6 +38,7 @@ warning: $(KCONFIG_GEN)
 	$(Q)echo "You need a config file first. Please run a config target, e.g.: make menuconfig"
 	$(Q)echo "For a quick default config run: make alldefconfig"
 	$(Q)echo "For more information/options run: make help"
+	$(Q)false
 $(warning-targets)
 else
 include $(top_srcdir)tools/build/Makefile.targets
