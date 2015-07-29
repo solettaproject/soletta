@@ -37,7 +37,7 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
 
 #include "sol-pwm.h"
-#ifdef HAVE_PIN_MUX
+#ifdef USE_PIN_MUX
 #include "sol-pin-mux.h"
 #endif
 
@@ -49,7 +49,7 @@ sol_pwm_open(int device, int channel, const struct sol_pwm_config *config)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     pwm = sol_pwm_open_raw(device, channel, config);
-#ifdef HAVE_PIN_MUX
+#ifdef USE_PIN_MUX
     if (pwm && sol_pin_mux_setup_pwm(device, channel)) {
         SOL_WRN("Pin Multiplexer Recipe for pwm device=%d channel=%d found, \
             but couldn't be applied.", device, channel);

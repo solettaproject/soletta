@@ -40,8 +40,10 @@ static kernel_pid_t pid;
 
 enum interrupt_type {
     GPIO,
+#ifdef USE_UART
     UART_RX,
     UART_TX
+#endif
 };
 
 struct interrupt_data_base {
@@ -54,6 +56,7 @@ struct interrupt_data {
     void *data;
 };
 
+#ifdef USE_UART
 struct uart_interrupt_data {
     struct interrupt_data_base base;
     uart_t uart_id;
@@ -66,6 +69,7 @@ struct uart_rx_interrupt_data {
     char char_read;
     struct uart_interrupt_data *uart_int;
 };
+#endif
 
 void
 sol_interrupt_scheduler_set_pid(kernel_pid_t p)
@@ -136,6 +140,7 @@ sol_interrupt_scheduler_gpio_stop(gpio_t dev, void *handler)
 }
 
 /* Run in interrupt context */
+#ifdef USE_UART
 static void
 uart_rx_cb(void *data, char char_read)
 {
@@ -203,6 +208,7 @@ sol_interrupt_scheduler_uart_stop(uart_t uart, void *handler)
     uart_init_blocking(uart, 9600);
     interrupt_scheduler_handler_free(handler);
 }
+#endif
 
 void
 sol_interrupt_scheduler_process(msg_t *msg)
@@ -216,6 +222,7 @@ sol_interrupt_scheduler_process(msg_t *msg)
         interrupt_data_base_unref(&int_data->base);
         break;
     }
+#ifdef USE_UART
     case UART_RX: {
         struct uart_rx_interrupt_data *rx_data = (void *)msg->content.ptr;
         uart_rx_cb_t cb = rx_data->uart_int->rx_cb;
@@ -235,5 +242,6 @@ sol_interrupt_scheduler_process(msg_t *msg)
         interrupt_data_base_unref(&int_data->base);
         break;
     }
+#endif
     }
 }

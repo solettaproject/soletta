@@ -72,7 +72,7 @@ obj-core-$(MAINLOOP_POSIX) += \
 obj-core-y-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 endif
 
-obj-core-$(HAVE_PIN_MUX) += \
+obj-core-$(USE_PIN_MUX) += \
     sol-pin-mux.o
 
 headers-y := \
@@ -82,7 +82,7 @@ headers-y := \
     include/sol-platform.h \
     include/sol-types.h
 
-headers-$(HAVE_PIN_MUX) += \
+headers-$(USE_PIN_MUX) += \
     include/sol-pin-mux-modules.h
 
 headers-$(PTHREAD) += \
