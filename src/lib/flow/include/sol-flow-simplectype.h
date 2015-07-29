@@ -96,8 +96,8 @@ struct sol_flow_simplectype_event {
  * }
  * @endcode
  *
- * The newly returned type should be freed calling its
- * 'dispose_type()' callback.
+ * The newly returned type should be freed calling
+ * sol_flow_node_type_del().
  *
  * The ports of the given type should be specified using the
  * NULL-terminated variable arguments, each port takes a triple name,
