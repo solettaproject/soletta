@@ -1,4 +1,4 @@
 config PIN_MUX_INTEL_GALILEO_REV_D
         tristate "Intel Galileo (Rev D)"
-        depends on HAVE_PIN_MUX
+        depends on USE_PIN_MUX
         default m

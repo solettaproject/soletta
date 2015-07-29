@@ -309,13 +309,36 @@ config SOL_BUS
           Systemd's sd-bus support.
 	default n
 
+menu "Hardware Options"
+config USE_PWM
+	bool "PWM Support"
+	default y
+
+config USE_SPI
+	bool "SPI Support"
+	default y
+
+config USE_UART
+	bool "UART Support"
+	default y
+
+config USE_I2C
+	bool "I2C Support"
+	default y
+
+config USE_GPIO
+	bool "GPIO Support"
+	default y
+endmenu
+
 config SOCKET_LINUX
 	bool "Linux sockets"
 	depends on SOL_PLATFORM_LINUX && NETWORK
 	default y
 
-menuconfig HAVE_PIN_MUX
+menuconfig USE_PIN_MUX
         bool "Pin Multiplexer"
+        depends on USE_GPIO
         default y
         help
           Pin Multiplexer is a feature that helps to setup
