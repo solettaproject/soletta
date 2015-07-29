@@ -80,7 +80,8 @@ headers-y := \
     include/sol-macros.h \
     include/sol-mainloop.h \
     include/sol-platform.h \
-    include/sol-types.h
+    include/sol-types.h \
+    sol-common-buildopts.h.in
 
 headers-$(USE_PIN_MUX) += \
     include/sol-pin-mux-modules.h

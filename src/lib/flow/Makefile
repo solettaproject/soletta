@@ -37,4 +37,5 @@ headers-$(FLOW) := \
     include/sol-flow-parser.h \
     include/sol-flow-resolver.h \
     include/sol-flow-simplectype.h \
-    include/sol-flow-static.h
+    include/sol-flow-static.h \
+    sol-flow-buildopts.h.in
