@@ -53,22 +53,34 @@ struct sol_platform_linux_fork_run {
 
 static struct sol_ptr_vector fork_runs = SOL_PTR_VECTOR_INIT;
 
+static uint16_t
+find_handle(const struct sol_platform_linux_fork_run *handle)
+{
+    struct sol_platform_linux_fork_run *itr = NULL;
+    uint16_t i;
+
+    errno = ENOENT;
+    SOL_NULL_CHECK(handle, UINT16_MAX);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&fork_runs, itr, i) {
+        if (itr == handle) {
+            errno = 0;
+            return i;
+        }
+    }
+
+    return UINT16_MAX;
+}
+
 static void
 on_child(void *data, uint64_t pid, int status)
 {
     struct sol_platform_linux_fork_run *handle = data;
-    struct sol_platform_linux_fork_run *itr = NULL;
     uint16_t i;
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&fork_runs, itr, i) {
-        if (itr == handle) {
-            sol_ptr_vector_del(&fork_runs, i);
-            break;
-        }
-    }
-
-    if (itr != handle)
-        return;
+    i = find_handle(handle);
+    SOL_INT_CHECK(i, == UINT16_MAX);
+    sol_ptr_vector_del(&fork_runs, i);
 
     if (handle->on_child_exit)
         handle->on_child_exit((void *)handle->data, pid, status);
@@ -104,17 +116,19 @@ sol_platform_linux_fork_run(void (*on_fork)(void *data), void (*on_child_exit)(v
             else {
                 SOL_WRN("failed to read from pipe: %s", sol_util_strerrora(errno));
                 close(pfds[0]);
-                exit(EXIT_FAILURE);
+                sol_platform_linux_fork_run_exit(EXIT_FAILURE);
             }
         }
         close(pfds[0]);
 
         errno = 0;
         on_fork((void *)data);
-        exit(EXIT_SUCCESS);
+        sol_platform_linux_fork_run_exit(EXIT_SUCCESS);
     } else if (pid < 0) {
+        int errno_bkp = errno;
         close(pfds[0]);
         close(pfds[1]);
+        errno = errno_bkp;
         SOL_WRN("could not fork: %s", sol_util_strerrora(errno));
         return NULL;
     } else {
@@ -171,43 +185,60 @@ error_malloc:
     }
 }
 
-SOL_API void
+SOL_API int
+sol_platform_linux_fork_run_send_signal(struct sol_platform_linux_fork_run *handle, int sig)
+{
+    SOL_INT_CHECK(find_handle(handle), == UINT16_MAX, -errno);
+    return kill(handle->pid, sig) == 0;
+}
+
+SOL_API int
 sol_platform_linux_fork_run_stop(struct sol_platform_linux_fork_run *handle)
 {
-    struct sol_platform_linux_fork_run *itr = NULL;
-    int status = 0;
+    int errno_bkp, status = 0;
     uint16_t i;
 
-    errno = ENOENT;
-    SOL_NULL_CHECK(handle);
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&fork_runs, itr, i) {
-        if (itr == handle) {
-            sol_ptr_vector_del(&fork_runs, i);
-            break;
-        }
-    }
-
-    if (itr != handle)
-        return;
+    i = find_handle(handle);
+    SOL_INT_CHECK(i, == UINT16_MAX, -errno);
+    sol_ptr_vector_del(&fork_runs, i);
 
     sol_child_watch_del(handle->watch);
 
     kill(handle->pid, SIGTERM);
-    waitpid(handle->pid, &status, 0);
+    errno = 0;
+    while (waitpid(handle->pid, &status, 0) < 0) {
+        if (errno == EINTR) {
+            errno = 0;
+            continue;
+        }
+
+        SOL_WRN("waitpid(%" PRIu64 "): %s",
+            (uint64_t)handle->pid, sol_util_strerrora(errno));
+
+        if (errno == ECHILD)
+            errno = 0; /* weird, but let's assume success */
+        break;
+    }
+
+    errno_bkp = errno;
 
     if (handle->on_child_exit)
         handle->on_child_exit((void *)handle->data, handle->pid, status);
     free(handle);
-    errno = 0;
+
+    errno = errno_bkp;
+    return 0;
 }
 
-SOL_API pid_t
+SOL_API uint64_t
 sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_fork_run *handle)
 {
-    errno = EINVAL;
-    SOL_NULL_CHECK(handle, -1);
-
-    errno = 0;
+    SOL_INT_CHECK(find_handle(handle), == UINT16_MAX, UINT64_MAX);
     return handle->pid;
+}
+
+SOL_API void
+sol_platform_linux_fork_run_exit(int status)
+{
+    _exit(status);
 }
