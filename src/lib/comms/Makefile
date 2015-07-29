@@ -18,6 +18,9 @@ obj-networking-$(OIC) += \
     sol-oic-client.o \
     sol-oic-server.o
 
+obj-networking-$(HTTP) += \
+    sol-http-common.o
+
 obj-networking-$(HTTP_CLIENT) += \
     sol-http-client-impl-curl.o
 
@@ -33,6 +36,9 @@ headers-networking-$(COAP) += \
 headers-networking-$(OIC) += \
     include/sol-oic-client.h \
     include/sol-oic-server.h
+
+headers-networking-$(HTTP) += \
+    include/sol-http.h
 
 headers-networking-$(HTTP_CLIENT) += \
     include/sol-http-client.h
