@@ -1231,46 +1231,6 @@ node_options_from_strv(void)
 }
 
 
-DEFINE_TEST(merge_options);
-
-static void
-merge_options(void)
-{
-    struct sol_flow_node_type_console_options *opts;
-    int err;
-
-    const char *original_strv[] = {
-        "prefix=original_prefix",
-        "suffix=original_suffix",
-        "output_on_stdout=true",
-        NULL
-    };
-
-    const char *to_merge_strv[] = {
-        "prefix=merged_prefix",
-        "output_on_stdout=false",
-        NULL
-    };
-
-    opts = (struct sol_flow_node_type_console_options *)
-        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_CONSOLE, original_strv);
-    ASSERT(opts);
-
-    ASSERT(streq(opts->prefix, "original_prefix"));
-    ASSERT(streq(opts->suffix, "original_suffix"));
-    ASSERT(opts->output_on_stdout);
-
-    err = sol_flow_node_options_merge_from_strv(SOL_FLOW_NODE_TYPE_CONSOLE, &opts->base, to_merge_strv);
-    ASSERT(err >= 0);
-
-    ASSERT(streq(opts->prefix, "merged_prefix"));
-    ASSERT(streq(opts->suffix, "original_suffix"));
-    ASSERT(!opts->output_on_stdout);
-
-    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_CONSOLE, &opts->base);
-}
-
-
 DEFINE_TEST(copy_options);
 
 static void

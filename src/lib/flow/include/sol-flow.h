@@ -205,12 +205,6 @@ struct sol_flow_node_options {
 struct sol_flow_node_options *sol_flow_node_options_new_from_strv(const struct sol_flow_node_type *type, const char *const *strv);
 
 /*
- * Parse an array of options and use their value to overwrite the
- * given options structure for a node.
- */
-int sol_flow_node_options_merge_from_strv(const struct sol_flow_node_type *type, struct sol_flow_node_options *opts, const char *const *strv);
-
-/*
  * Duplicate an options handle.
  */
 struct sol_flow_node_options *sol_flow_node_options_copy(const struct sol_flow_node_type *type, const struct sol_flow_node_options *opts);
