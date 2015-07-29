@@ -111,7 +111,7 @@ clients_cleanup(struct wallclock_timer *timer)
 
 #define CLOCK_GETTIME_DO(_store_var, _store_val)        \
     do {                                                \
-        if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {   \
+        if (sol_util_timespec_get_realtime(&ts) < 0) {   \
             SOL_WRN("could not fetch current time: %s",  \
                 sol_util_strerrora(errno));           \
             time_fail = true;                           \
