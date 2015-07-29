@@ -38,6 +38,7 @@
 
 #include "sol-flow-internal.h"
 #include "sol-str-slice.h"
+#include "sol-str-table.h"
 #include "sol-util.h"
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
@@ -184,9 +185,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
     } while (0)
 
 static int
-irange_parse(const struct sol_flow_node_options_member_description *member,
-    const char *value,
-    struct sol_irange *ret)
+irange_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
     char *buf;
     int field_cnt = 0;
@@ -197,6 +196,7 @@ irange_parse(const struct sol_flow_node_options_member_description *member,
     static const char INT_MAX_STR[] = "INT32_MAX";
     static const char INT_MIN_STR[] = "INT32_MIN";
     static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
+    struct sol_irange *ret = &m->irange;
     int32_t *store_vals[] = { &ret->val, &ret->min, &ret->max, &ret->step };
 
     buf = strdup(value);
@@ -235,15 +235,13 @@ err:
         " in that order, or \"<key>:<value>|<...>\", for keys in "
         "[val, min, max, step], in any order. Values may be the "
         "special strings INT32_MAX and INT32_MIN.",
-        member->name, value);
+        m->name, value);
     free(buf);
     return -EINVAL;
 }
 
 static int
-drange_parse(const struct sol_flow_node_options_member_description *member,
-    const char *value,
-    struct sol_drange *ret)
+drange_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
     char *buf;
     int field_cnt = 0;
@@ -255,6 +253,7 @@ drange_parse(const struct sol_flow_node_options_member_description *member,
     static const char DBL_MIN_STR[] = "-DBL_MAX";
     static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
     static const size_t DBL_MIN_STR_LEN = sizeof(DBL_MIN_STR) - 1;
+    struct sol_drange *ret = &m->drange;
     double *store_vals[] = { &ret->val, &ret->min, &ret->max, &ret->step };
 
     buf = strdup(value);
@@ -294,14 +293,13 @@ err:
         "[val, min, max, step], in any order. Values may be the "
         "special strings DBL_MAX and -DBL_MAX. Don't use commas "
         "on the numbers",
-        member->name, value);
+        m->name, value);
     free(buf);
     return -EINVAL;
 }
 
 static int
-rgb_parse(const struct sol_flow_node_options_member_description *member,
-    const char *value, struct sol_rgb *ret)
+rgb_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
     char *buf;
     int field_cnt = 0;
@@ -312,6 +310,7 @@ rgb_parse(const struct sol_flow_node_options_member_description *member,
     static const char INT_MAX_STR[] = "INT32_MAX";
     static const char INT_MIN_STR[] = "INT32_MIN";
     static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
+    struct sol_rgb *ret = &m->rgb;
     uint32_t *store_vals[] = { &ret->red, &ret->green, &ret->blue,
                                &ret->red_max, &ret->green_max, &ret->blue_max };
 
@@ -386,16 +385,14 @@ err:
         "[red, green, blue, red_max, green_max, blue_max], in any order. "
         "Values may be the special strings INT32_MAX. All of them must be "
         "not negative int values.",
-        member->name, value);
+        m->name, value);
     free(buf);
     return -EINVAL;
 }
 
 
 static int
-direction_vector_parse(const struct sol_flow_node_options_member_description *member,
-    const char *value,
-    struct sol_direction_vector *ret)
+direction_vector_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
     char *buf;
     int field_cnt = 0;
@@ -407,6 +404,7 @@ direction_vector_parse(const struct sol_flow_node_options_member_description *me
     static const char DBL_MIN_STR[] = "-DBL_MAX";
     static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
     static const size_t DBL_MIN_STR_LEN = sizeof(DBL_MIN_STR) - 1;
+    struct sol_direction_vector *ret = &m->direction_vector;
     double *store_vals[] = { &ret->x, &ret->y, &ret->z, &ret->min, &ret->max };
 
     buf = strdup(value);
@@ -466,7 +464,7 @@ err:
         "[x, y, z, min, max], in any order. Values may be the "
         "special strings DBL_MAX and -DBL_MAX. Don't use commas "
         "on the numbers",
-        member->name, value);
+        m->name, value);
     free(buf);
     return -EINVAL;
 }
@@ -478,75 +476,237 @@ err:
 #undef ASSIGN_KEY_VAL
 
 static int
-member_parse(const struct sol_flow_node_options_description *desc, const struct sol_flow_node_options_member_description *member, struct sol_flow_node_options *opts, const char *str, uint16_t value_start)
+boolean_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
-    const char *t = member->data_type;
-    const char *value = str + value_start;
-    void *mem = get_member_memory(member, opts);
-
-    if (streq(t, "string")) {
-        char **s = mem;
-        free(*s);
-        *s = strdup(value);
-    } else if (streq(t, "boolean")) {
-        bool *b = mem;
-        if (streq(value, "1") || streq(value, "true") || streq(value, "on") || streq(value, "yes"))
-            *b = true;
-        else if (streq(value, "0") || streq(value, "false") || streq(value, "off") || streq(value, "no"))
-            *b = false;
-        else {
-            SOL_DBG("Invalid boolean value for option name=\"%s\": \"%s\"",
-                member->name, value);
-            return -EINVAL;
-        }
-    } else if (streq(t, "byte")) {
-        unsigned char *byte = mem;
-        int i;
-        errno = 0;
-        i = strtol(value, NULL, 0);
-        if ((errno != 0) || (i < 0) || (i > 255)) {
-            SOL_DBG("Invalid byte value for option name=\"%s\": \"%s\"",
-                member->name, value);
-            return -errno;
-        }
-        *byte = i;
-    } else if (streq(t, "int")) {
-        struct sol_irange *i = mem;
-        int r = irange_parse(member, value, i);
-        SOL_INT_CHECK(r, < 0, r);
-    } else if (streq(t, "float")) {
-        struct sol_drange *f = mem;
-        int r = drange_parse(member, value, f);
-        SOL_INT_CHECK(r, < 0, r);
-    } else if (streq(t, "rgb")) {
-        struct sol_rgb *rgb = mem;
-        int r = rgb_parse(member, value, rgb);
-        SOL_INT_CHECK(r, < 0, r);
-    } else if (streq(t, "direction-vector")) {
-        struct sol_direction_vector *direction_vector = mem;
-        int r = direction_vector_parse(member, value, direction_vector);
-        SOL_INT_CHECK(r, < 0, r);
+    if (streq(value, "1") || streq(value, "true") || streq(value, "on") || streq(value, "yes")) {
+        m->boolean = true;
+    } else if (streq(value, "0") || streq(value, "false") || streq(value, "off") || streq(value, "no")) {
+        m->boolean = false;
     } else {
-        SOL_WRN("Unsupported member parse #%u "
-            "name=\"%s\", type=\"%s\", offset=%hu, size=%hu",
-            (unsigned)(member - desc->members), member->name,
-            member->data_type, member->offset, member->size);
+        return -EINVAL;
     }
-
     return 0;
 }
 
-static const struct sol_flow_node_options_member_description *
-find_member(const struct sol_flow_node_options_description *desc, const struct sol_str_slice name)
+static int
+byte_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
-    const struct sol_flow_node_options_member_description *m;
+    int v;
 
-    for (m = desc->members; m->name != NULL; m++) {
-        if (sol_str_slice_str_eq(name, m->name))
-            return m;
+    errno = 0;
+    v = strtol(value, NULL, 0);
+    if ((errno != 0) || (v < 0) || (v > 255)) {
+        return -EINVAL;
     }
 
-    return NULL;
+    m->byte = v;
+    return 0;
+}
+
+static int
+string_parse(const char *value, struct sol_flow_node_named_options_member *m)
+{
+    char *s;
+
+    s = strdup(value);
+    if (!s)
+        return -errno;
+
+    m->string = s;
+    return 0;
+}
+
+static int(*const options_parse_functions[]) (const char *, struct sol_flow_node_named_options_member *) = {
+    NULL,
+    boolean_parse,
+    byte_parse,
+    irange_parse,
+    drange_parse,
+    rgb_parse,
+    direction_vector_parse,
+    string_parse,
+};
+
+SOL_API int
+sol_flow_node_named_options_parse_member(
+    struct sol_flow_node_named_options_member *m,
+    const char *value)
+{
+    int r;
+
+    if (m->type == 0) {
+        r = -EINVAL;
+        SOL_DBG("Unitialized member type for name=\"%s\": \"%s\"", m->name, value);
+    } else if (m->type < ARRAY_SIZE(options_parse_functions)) {
+        r = options_parse_functions[m->type](value, m);
+        if (r < 0) {
+            SOL_DBG("Invalid value '%s' for option name='%s' of type='%s'",
+                value, m->name, sol_flow_node_options_member_type_to_string(m->type));
+        }
+    } else {
+        r = -ENOTSUP;
+        SOL_DBG("Invalid option member type for name=\"%s\": \"%s\"", m->name, value);
+    }
+
+    return r;
+}
+
+static void
+set_member(
+    const struct sol_flow_node_options_member_description *mdesc,
+    enum sol_flow_node_options_member_type mdesc_type,
+    const struct sol_flow_node_named_options_member *m,
+    struct sol_flow_node_options *opts)
+{
+    char **s;
+    void *mem = get_member_memory(mdesc, opts);
+
+    switch (mdesc_type) {
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN:
+        *(bool *)mem = m->boolean;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE:
+        *(unsigned char *)mem = m->byte;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
+        *(struct sol_irange *)mem = m->irange;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
+        *(struct sol_drange *)mem = m->drange;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
+        *(struct sol_rgb *)mem = m->rgb;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR:
+        *(struct sol_direction_vector *)mem = m->direction_vector;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_STRING:
+        s = mem;
+        free(*s);
+        *s = strdup(m->string);
+    default:
+        /* Not reached. */
+        /* TODO: Create ASSERT_NOT_REACHED() macro.*/
+        break;
+    }
+}
+
+static const struct sol_str_table member_str_to_type[] = {
+    SOL_STR_TABLE_ITEM("boolean", SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN),
+    SOL_STR_TABLE_ITEM("byte", SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE),
+    SOL_STR_TABLE_ITEM("int", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE),
+    SOL_STR_TABLE_ITEM("float", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE),
+    SOL_STR_TABLE_ITEM("rgb", SOL_FLOW_NODE_OPTIONS_MEMBER_RGB),
+    SOL_STR_TABLE_ITEM("direction-vector", SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR),
+    SOL_STR_TABLE_ITEM("string", SOL_FLOW_NODE_OPTIONS_MEMBER_STRING),
+    {}
+};
+
+/* TODO: Change type description to use the enum and remove this
+ * function. */
+SOL_API enum sol_flow_node_options_member_type
+sol_flow_node_options_member_type_from_string(const char *data_type)
+{
+    if (!data_type)
+        return SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN;
+    return sol_str_table_lookup_fallback(member_str_to_type,
+        sol_str_slice_from_str(data_type), SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN);
+}
+
+/* TODO: Make a reverse table? */
+SOL_API const char *
+sol_flow_node_options_member_type_to_string(enum sol_flow_node_options_member_type type)
+{
+    const struct sol_str_table *entry;
+    const char *data_type = NULL;
+
+    for (entry = member_str_to_type; entry->key; entry++) {
+        if ((enum sol_flow_node_options_member_type)entry->val == type) {
+            data_type = entry->key;
+            break;
+        }
+    }
+
+    return data_type;
+}
+
+static bool
+fill_options_with_named_options(
+    struct sol_flow_node_options *opts,
+    const struct sol_flow_node_options_description *desc,
+    const struct sol_flow_node_named_options *named_opts)
+{
+    const struct sol_flow_node_options_member_description *mdesc;
+
+    uint16_t count, i;
+    bool *handled_member = NULL;
+    bool success = false, has_required = false;
+
+    count = 0;
+    for (mdesc = desc->members; mdesc->name != NULL; mdesc++) {
+        count++;
+        has_required |= mdesc->required;
+    }
+
+    if (has_required) {
+        handled_member = calloc(count, sizeof(bool));
+        SOL_NULL_CHECK(handled_member, false);
+    }
+
+    for (i = 0; i < named_opts->count; i++) {
+        const struct sol_flow_node_named_options_member *m = named_opts->members + i;
+        enum sol_flow_node_options_member_type mdesc_type;
+        bool found = false;
+
+        mdesc = NULL;
+        if (m->name) {
+            for (mdesc = desc->members; mdesc->name; mdesc++) {
+                if (streq(mdesc->name, m->name)) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            SOL_DBG("Unknown option: \"%s\"", m->name);
+            goto end;
+        }
+
+        mdesc_type = sol_flow_node_options_member_type_from_string(mdesc->data_type);
+        if (mdesc_type != m->type || mdesc_type == SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN) {
+            SOL_DBG("Wrong type passed to member #%u "
+                "name=\"%s\", type=\"%s\"",
+                (unsigned)(mdesc - desc->members), mdesc->name, mdesc->data_type);
+            goto end;
+        }
+
+        set_member(mdesc, mdesc_type, m, opts);
+
+        if (has_required) {
+            handled_member[mdesc - desc->members] = true;
+        }
+
+        SOL_DBG("Parsed option \"%s\" member #%u "
+            "name=\"%s\", type=\"%s\", offset=%hu, size=%hu",
+            m->name, (unsigned)(mdesc - desc->members), mdesc->name,
+            mdesc->data_type, mdesc->offset, mdesc->size);
+    }
+
+    if (has_required) {
+        for (mdesc = desc->members; mdesc->name != NULL; mdesc++) {
+            if (mdesc->required && !handled_member[mdesc - desc->members]) {
+                SOL_DBG("Required member not in options: "
+                    "name=\"%s\", type=\"%s\"", mdesc->name, mdesc->data_type);
+                goto end;
+            }
+        }
+    }
+
+    success = true;
+
+end:
+    free(handled_member);
+    return success;
 }
 
 static int
@@ -562,104 +722,140 @@ split_option(const char *input, const char **key, unsigned int *key_len, const c
     *value = equal + 1;
     return 0;
 }
+#endif
 
-static bool
-options_from_strv(const struct sol_flow_node_options_description *desc, struct sol_flow_node_options *opts, const char *const *strv)
+SOL_API int
+sol_flow_node_options_new(
+    const struct sol_flow_node_type *type,
+    const struct sol_flow_node_named_options *named_opts,
+    struct sol_flow_node_options **out_opts)
 {
-    const struct sol_flow_node_options_member_description *m;
+#ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
+    SOL_WRN("does not work if compiled with --disable-flow-node-type-description");
+    return -ENOTSUP;
+#else
+    struct sol_flow_node_options *tmp_opts;
+    const struct sol_flow_node_type_description *desc;
+    bool type_has_options;
+
+    SOL_NULL_CHECK(type, -EINVAL);
+    SOL_NULL_CHECK(named_opts, -EINVAL);
+    SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, -EINVAL);
+
+    if (type->init_type)
+        type->init_type();
+    SOL_NULL_CHECK(type->description, -EINVAL);
+
+    desc = type->description;
+    type_has_options = desc->options && desc->options->members;
+    if (!type_has_options && named_opts->count > 0) {
+        /* TODO: improve the error handling here so caller knows more
+         * details about this. */
+        return -EINVAL;
+    }
+
+    if (!type->new_options) {
+        if (!type_has_options)
+            return 0;
+        return -EINVAL;
+    }
+
+    tmp_opts = type->new_options(type, NULL);
+    SOL_NULL_CHECK(tmp_opts, NULL);
+
+    if (type_has_options) {
+        if (!fill_options_with_named_options(tmp_opts, desc->options, named_opts)) {
+            type->free_options(type, tmp_opts);
+            return -EINVAL;
+        }
+    }
+
+    *out_opts = tmp_opts;
+    return 0;
+#endif
+}
+
+SOL_API int
+sol_flow_node_named_options_init_from_strv(
+    struct sol_flow_node_named_options *named_opts,
+    const struct sol_flow_node_type *type,
+    const char *const *strv)
+{
+#ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
+    SOL_WRN("does not work if compiled with --disable-flow-node-type-description");
+    return -ENOTSUP;
+#else
+    const struct sol_flow_node_options_description *desc;
+    struct sol_flow_node_named_options_member *members = NULL, *m;
+    uint16_t members_count = 0;
+    const struct sol_flow_node_options_member_description *mdesc;
     const char *const *entry;
-    uint16_t count;
-    bool *handled_member = NULL;
-    bool success = false, has_required = false;
+    int r;
 
-    count = 0;
-    for (m = desc->members; m->name != NULL; m++) {
-        count++;
-        has_required |= m->required;
+    SOL_NULL_CHECK(named_opts, -EINVAL);
+
+    if (type->init_type)
+        type->init_type();
+    SOL_NULL_CHECK(type->description, -EINVAL);
+    SOL_NULL_CHECK(type->description->options, -EINVAL);
+    SOL_NULL_CHECK(type->description->options->members, -EINVAL);
+
+    desc = type->description->options;
+
+    if (strv) {
+        for (entry = strv; *entry; entry++) {
+            members_count++;
+        }
+        members = calloc(members_count, sizeof(struct sol_flow_node_named_options_member));
     }
 
-    if (has_required) {
-        handled_member = calloc(count, sizeof(bool));
-        SOL_NULL_CHECK(handled_member, false);
-    }
-
-    for (entry = strv; entry && *entry != NULL; entry++) {
+    for (entry = strv, m = members; entry && *entry != NULL; entry++, m++) {
         const char *key, *value;
         unsigned int key_len;
-        int r;
 
         if (split_option(*entry, &key, &key_len, &value)) {
+            r = -EINVAL;
             SOL_DBG("Invalid option #%u format: \"%s\"", (unsigned)(entry - strv), *entry);
             goto end;
         }
 
-        m = find_member(desc, SOL_STR_SLICE_STR(key, key_len));
-        if (!m) {
+        mdesc = NULL;
+        for (mdesc = desc->members; mdesc->name != NULL; mdesc++) {
+            if (sol_str_slice_str_eq(SOL_STR_SLICE_STR(key, key_len), mdesc->name))
+                break;
+        }
+        if (!mdesc) {
+            r = -EINVAL;
             SOL_DBG("Unknown option: \"%s\"", *entry);
             goto end;
         }
 
-        r = member_parse(desc, m, opts, *entry, value - *entry);
+        m->type = sol_flow_node_options_member_type_from_string(mdesc->data_type);
+        m->name = mdesc->name;
+
+        r = sol_flow_node_named_options_parse_member(m, value);
         if (r < 0) {
             SOL_DBG("Could not parse member #%u "
                 "name=\"%s\", type=\"%s\", option=\"%s\": %s",
-                (unsigned)(m - desc->members), m->name,
-                m->data_type, *entry, sol_util_strerrora(-r));
+                (unsigned)(mdesc - desc->members), mdesc->name,
+                mdesc->data_type, *entry, sol_util_strerrora(-r));
             goto end;
         }
 
-        if (has_required)
-            handled_member[m - desc->members] = true;
-
         SOL_DBG("Parsed option \"%s\" member #%u "
             "name=\"%s\", type=\"%s\", offset=%hu, size=%hu",
-            *entry, (unsigned)(m - desc->members), m->name,
-            m->data_type, m->offset, m->size);
+            *entry, (unsigned)(mdesc - desc->members), mdesc->name,
+            mdesc->data_type, mdesc->offset, mdesc->size);
     }
 
-    if (has_required) {
-        for (m = desc->members; m->name != NULL; m++) {
-            if (m->required && !handled_member[m - desc->members]) {
-                SOL_DBG("Required member not in options: "
-                    "name=\"%s\", type=\"%s\"", m->name, m->data_type);
-                goto end;
-            }
-        }
-    }
-
-    success = true;
+    named_opts->members = members;
+    members = NULL;
+    named_opts->count = members_count;
+    r = 0;
 
 end:
-    free(handled_member);
-    return success;
-}
-#endif
-
-SOL_API struct sol_flow_node_options *
-sol_flow_node_options_new_from_strv(const struct sol_flow_node_type *type, const char *const *strv)
-{
-    struct sol_flow_node_options *opts;
-
-    SOL_NULL_CHECK(type, NULL);
-    SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, NULL);
-#ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    SOL_WRN("does not work if compiled with --disable-flow-node-type-description");
-    return NULL;
-    (void)opts;
-#else
-    if (type->init_type)
-        type->init_type();
-    SOL_NULL_CHECK(type->description, NULL);
-    SOL_NULL_CHECK(type->description->options, NULL);
-    SOL_NULL_CHECK(type->description->options->members, NULL);
-    SOL_NULL_CHECK(type->new_options, NULL);
-    opts = type->new_options(type, NULL);
-    SOL_NULL_CHECK(opts, NULL);
-    if (!options_from_strv(type->description->options, opts, strv)) {
-        type->free_options(type, opts);
-        return NULL;
-    }
-    return opts;
+    free(members);
+    return r;
 #endif
 }
 
@@ -708,4 +904,24 @@ sol_flow_node_options_strv_del(char **opts_strv)
     for (opts_it = opts_strv; *opts_it != NULL; opts_it++)
         free(*opts_it);
     free(opts_strv);
+}
+
+SOL_API void
+sol_flow_node_named_options_fini(struct sol_flow_node_named_options *named_opts)
+{
+    struct sol_flow_node_named_options_member *m;
+    uint16_t i;
+
+    if (!named_opts || !named_opts->members)
+        return;
+
+    for (i = 0, m = named_opts->members; i < named_opts->count; i++, m++) {
+        if (m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_STRING)
+            free((void *)m->string);
+    }
+
+    free(named_opts->members);
+
+    named_opts->members = NULL;
+    named_opts->count = 0;
 }

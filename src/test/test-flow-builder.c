@@ -456,10 +456,11 @@ ports_can_be_exported(void)
 
 static int
 custom_resolve(void *data, const char *id, struct sol_flow_node_type const **type,
-    const char ***opts_strv)
+    struct sol_flow_node_named_options *named_opts)
 {
     if (streq(id, "custom_test_type")) {
         *type = &test_node_type;
+        *named_opts = (struct sol_flow_node_named_options){};
         return 0;
     }
     return -ENOENT;
@@ -482,6 +483,9 @@ add_node_by_type(void)
     static const char *const good_opts[] = {
         "value=true", NULL
     };
+    static const char *const string_opts[] = {
+        "value=\"something\"", NULL
+    };
 
     static const struct {
         const char *type;
@@ -501,6 +505,8 @@ add_node_by_type(void)
 
         { "constant/boolean", false, bad_opts },
         { "constant/boolean", true, good_opts },
+
+        { "constant/string", true, string_opts },
     };
 
     struct sol_flow_builder *builder;
