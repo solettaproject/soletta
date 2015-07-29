@@ -65,6 +65,7 @@ sol_free_conffile_entry(struct sol_conffile_entry *entry)
 {
     int idx;
     void *ptr;
+
     free(entry->id);
     free(entry->type);
     SOL_PTR_VECTOR_FOREACH_IDX (&entry->options, ptr, idx) {

@@ -318,7 +318,7 @@ sol_util_get_rootdir(char *out, size_t size)
     int r;
 
     r = get_libname(progname, sizeof(progname));
-    if (r < 0 || r >= (int) sizeof(progname)) {
+    if (r < 0 || r >= (int)sizeof(progname)) {
         r = get_progname(progname, sizeof(progname));
         if (r < 0 || r >= (int)sizeof(progname))
             return r;

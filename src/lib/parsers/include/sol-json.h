@@ -194,7 +194,7 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsig
 bool sol_json_scanner_next(struct sol_json_scanner *scanner,
     struct sol_json_token *token)
 SOL_ATTR_WARN_UNUSED_RESULT
-    SOL_ATTR_NONNULL(1, 2);
+SOL_ATTR_NONNULL(1, 2);
 
 /* modifies token to be the last token to skip over the given entry.
  * if object/array start, it will be the matching end token.
@@ -207,13 +207,13 @@ SOL_ATTR_WARN_UNUSED_RESULT
 bool sol_json_scanner_skip_over(struct sol_json_scanner *scanner,
     struct sol_json_token *token)
 SOL_ATTR_WARN_UNUSED_RESULT
-    SOL_ATTR_NONNULL(1, 2);
+SOL_ATTR_NONNULL(1, 2);
 
 bool sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
     struct sol_json_token *key,
     struct sol_json_token *value)
 SOL_ATTR_WARN_UNUSED_RESULT
-    SOL_ATTR_NONNULL(1, 2, 3);
+SOL_ATTR_NONNULL(1, 2, 3);
 
 static inline bool
 _sol_json_loop_helper_generic(struct sol_json_scanner *scanner, struct sol_json_token *token,

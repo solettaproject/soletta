@@ -74,11 +74,11 @@ enum sol_network_event {
 };
 
 enum sol_network_link_flags {
-    SOL_NETWORK_LINK_UP            = 1 << 0,
-    SOL_NETWORK_LINK_BROADCAST     = 1 << 1,
-    SOL_NETWORK_LINK_LOOPBACK      = 1 << 2,
-    SOL_NETWORK_LINK_MULTICAST     = 1 << 3,
-    SOL_NETWORK_LINK_RUNNING       = 1 << 4,
+    SOL_NETWORK_LINK_UP            = (1 << 0),
+    SOL_NETWORK_LINK_BROADCAST     = (1 << 1),
+    SOL_NETWORK_LINK_LOOPBACK      = (1 << 2),
+    SOL_NETWORK_LINK_MULTICAST     = (1 << 3),
+    SOL_NETWORK_LINK_RUNNING       = (1 << 4),
 };
 
 struct sol_network_link_addr {

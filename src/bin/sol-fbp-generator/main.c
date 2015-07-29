@@ -731,7 +731,7 @@ get_file_ext(const char *file)
     char *ext = strrchr(file, '.');
 
     if (!ext)
-        ext = (char *) "";
+        ext = (char *)"";
 
     return ext;
 }
