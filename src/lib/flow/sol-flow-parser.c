@@ -102,7 +102,7 @@ struct parse_state {
 static int
 parse_state_resolve(void *data, const char *id,
     struct sol_flow_node_type const **type,
-    char const ***opts_strv)
+    struct sol_flow_node_named_options *named_opts)
 {
     struct parse_state *state = data;
     struct declared_type *dec_type;
@@ -111,10 +111,11 @@ parse_state_resolve(void *data, const char *id,
     SOL_VECTOR_FOREACH_IDX (&state->declared_types, dec_type, i) {
         if (sol_str_slice_str_eq(dec_type->name, id)) {
             *type = dec_type->type;
+            *named_opts = (struct sol_flow_node_named_options){};
             return 0;
         }
     }
-    return sol_flow_resolve(state->parser->resolver, id, type, opts_strv);
+    return sol_flow_resolve(state->parser->resolver, id, type, named_opts);
 }
 
 static void

@@ -194,15 +194,52 @@ struct sol_flow_node_options {
     uint16_t sub_api; /**< to version each subclass */
 };
 
-/* Parse a NULL-terminated array of option strings (in @c 'key=value'
- * form) and return the appropriate options structure for the node
- * type. If a key-value pair is not provided for a non-mandatory
- * option, the default value for that option will be used.
- *
- * If a key-value pair is not provided to a @b mandatory option or if
- * an unknown option key is passed, @c NULL is returned.
- */
-struct sol_flow_node_options *sol_flow_node_options_new_from_strv(const struct sol_flow_node_type *type, const char *const *strv);
+enum sol_flow_node_options_member_type {
+    SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN,
+    SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN,
+    SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE,
+    SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE,
+    SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE,
+    SOL_FLOW_NODE_OPTIONS_MEMBER_RGB,
+    SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR,
+    SOL_FLOW_NODE_OPTIONS_MEMBER_STRING,
+};
+
+const char *sol_flow_node_options_member_type_to_string(enum sol_flow_node_options_member_type type);
+enum sol_flow_node_options_member_type sol_flow_node_options_member_type_from_string(const char *data_type);
+
+struct sol_flow_node_named_options_member {
+    const char *name;
+    enum sol_flow_node_options_member_type type;
+    union {
+        bool boolean;
+        unsigned char byte;
+        struct sol_irange irange;
+        struct sol_drange drange;
+        struct sol_rgb rgb;
+        struct sol_direction_vector direction_vector;
+        const char *string;
+    };
+};
+
+struct sol_flow_node_named_options {
+    struct sol_flow_node_named_options_member *members;
+    uint16_t count;
+};
+
+int sol_flow_node_named_options_parse_member(
+    struct sol_flow_node_named_options_member *m,
+    const char *value);
+
+int sol_flow_node_options_new(
+    const struct sol_flow_node_type *type,
+    const struct sol_flow_node_named_options *named_opts,
+    struct sol_flow_node_options **out_opts);
+
+int sol_flow_node_named_options_init_from_strv(
+    struct sol_flow_node_named_options *named_opts,
+    const struct sol_flow_node_type *type,
+    const char *const *strv);
 
 /*
  * Duplicate an options handle.
@@ -218,6 +255,8 @@ void sol_flow_node_options_del(const struct sol_flow_node_type *type, struct sol
  * Delete a key-value options array (see @sol_flow_resolve_strv()).
  */
 void sol_flow_node_options_strv_del(char **opts_strv);
+
+void sol_flow_node_named_options_fini(struct sol_flow_node_named_options *named_opts);
 
 #include "sol-flow-buildopts.h"
 
