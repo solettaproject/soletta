@@ -227,7 +227,7 @@ error:
 static int
 resolver_conffile_resolve_by_type_name(const char *id,
     struct sol_flow_node_type const **node_type,
-    char const ***opts_strv)
+    struct sol_flow_node_named_options *named_opts)
 {
     const struct sol_flow_node_type *type;
 
@@ -236,33 +236,7 @@ resolver_conffile_resolve_by_type_name(const char *id,
         return -ENOENT;
 
     *node_type = type;
-    *opts_strv = NULL;
-
-    return 0;
-}
-
-static int
-resolver_conffile_get_strv(const char *id,
-    struct sol_flow_node_type const **node_type,
-    char const ***opts_as_string)
-{
-    const char *type_name;
-
-    if (sol_conffile_resolve(id, &type_name, opts_as_string) < 0) {
-        SOL_DBG("could not resolve a type name for id='%s'", id);
-        return -EINVAL;
-
-    }
-
-    *node_type = resolve_module_type_by_component
-            (type_name, sol_flow_foreach_builtin_node_type);
-    if (!*node_type) {
-        *node_type = _resolver_conffile_get_module(type_name);
-        if (!*node_type) {
-            SOL_DBG("could not resolve a node module for Type='%s'", type_name);
-            return -EINVAL;
-        }
-    }
+    *named_opts = (struct sol_flow_node_named_options){};
 
     return 0;
 }
@@ -270,32 +244,50 @@ resolver_conffile_get_strv(const char *id,
 static int
 resolver_conffile_resolve_by_id(const char *id,
     struct sol_flow_node_type const **node_type,
-    const char ***opts_strv)
+    struct sol_flow_node_named_options *named_opts)
 {
-    return resolver_conffile_get_strv(id, node_type, opts_strv);
+    const struct sol_flow_node_type *tmp_type;
+    const char **opts_strv = NULL;
+    const char *type_name;
+    int r;
+
+    /* TODO: replace strv in sol_conffile interface with something
+     * that holds line/column number information for each entry. */
+    if (sol_conffile_resolve(id, &type_name, &opts_strv) < 0) {
+        SOL_DBG("could not resolve a type name for id='%s'", id);
+        return -EINVAL;
+    }
+
+    /* TODO: is this needed given we already handle builtins from the outside? */
+    tmp_type = resolve_module_type_by_component(type_name, sol_flow_foreach_builtin_node_type);
+
+    if (!tmp_type) {
+        tmp_type = _resolver_conffile_get_module(type_name);
+        if (!tmp_type) {
+            r = -EINVAL;
+            SOL_DBG("could not resolve a node module for Type='%s'", type_name);
+            goto end;
+        }
+    }
+
+    r = sol_flow_node_named_options_init_from_strv(named_opts, tmp_type, opts_strv);
+    if (r < 0)
+        goto end;
+
+    *node_type = tmp_type;
+
+end:
+    return r;
 }
 
 static int
 resolver_conffile_resolve(void *data, const char *id,
     struct sol_flow_node_type const **node_type,
-    char const ***opts_strv)
+    struct sol_flow_node_named_options *named_opts)
 {
-    const char **strv;
-    int ret;
-
-    if (strchr(id, MODULE_NAME_SEPARATOR)) {
-        ret = resolver_conffile_resolve_by_type_name(id, node_type, &strv);
-        if (ret < 0)
-            return ret;
-        goto end;
-    }
-    ret = resolver_conffile_resolve_by_id(id, node_type, &strv);
-    if (ret < 0)
-        return ret;
-
-end:
-    *opts_strv = (const char **)g_strdupv((gchar **)strv);
-    return 0;
+    if (strchr(id, MODULE_NAME_SEPARATOR))
+        return resolver_conffile_resolve_by_type_name(id, node_type, named_opts);
+    return resolver_conffile_resolve_by_id(id, node_type, named_opts);
 }
 
 static const struct sol_flow_resolver _resolver_conffile = {
