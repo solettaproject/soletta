@@ -65,41 +65,26 @@ on_draw_event(GtkWidget *widget, cairo_t *cr, gpointer data)
     return FALSE;
 }
 
-static bool
-extract_rgb_option(const char *options, uint32_t *r, uint32_t *g, uint32_t *b)
-{
-    int items_scanned;
-
-    if (!r || !g || !b)
-        return false;
-
-    items_scanned = sscanf(options, " %u | %u | %u", r, g, b);
-
-    if (items_scanned != 3) {
-        SOL_WRN("could not parse rgb option value '%s'", options);
-        return false;
-    }
-
-    return true;
-}
-
 static int
 led_setup(struct gtk_common_data *data,
     const struct sol_flow_node_options *options)
 {
-    uint32_t red, green, blue;
     struct gtk_led_data *mdata = (struct gtk_led_data *)data;
     const struct sol_flow_node_type_gtk_led_options *opts =
         (const struct sol_flow_node_type_gtk_led_options *)options;
+    struct sol_rgb color;
 
     SOL_NULL_CHECK(options, -EINVAL);
 
-    if (!extract_rgb_option(opts->rgb, &red, &green, &blue))
+    color = opts->rgb;
+    if (sol_rgb_set_max(&color, 255) < 0) {
+        SOL_WRN("Invalid color");
         return -EINVAL;
+    }
 
-    mdata->r = (red > RGB_VALUE_MAX) ? RGB_VALUE_MAX : red;
-    mdata->g = (green > RGB_VALUE_MAX) ? RGB_VALUE_MAX : green;
-    mdata->b = (blue > RGB_VALUE_MAX) ? RGB_VALUE_MAX : blue;
+    mdata->r = color.red;
+    mdata->g = color.green;
+    mdata->b = color.blue;
 
     mdata->base.widget = gtk_drawing_area_new();
     gtk_widget_set_size_request(mdata->base.widget,
