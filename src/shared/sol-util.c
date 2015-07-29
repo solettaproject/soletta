@@ -218,6 +218,43 @@ sol_util_timespec_get_current(void)
 }
 #endif
 
+#ifdef SOL_PLATFORM_CONTIKI
+int
+sol_util_timespec_get_realtime(struct timespec *t)
+{
+    errno = ENOSYS;
+    return -1;
+}
+#elif defined(SOL_PLATFORM_RIOT) && SOL_PLATFORM_RIOT
+#if FEATURE_PERIPH_RTC
+#include <periph/rtc.h>
+#endif
+
+int
+sol_util_timespec_get_realtime(struct timespec *t)
+{
+#if FEATURE_PERITH_RTC
+    struct tm rtc;
+    if (rtc_get_time(&rtc) != 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    t.tv_sec = mktime(&rtc);
+    t.tv_nsec = 0;
+    return 0;
+#else
+    errno = ENOSYS;
+    return -1;
+#endif
+}
+#else
+int
+sol_util_timespec_get_realtime(struct timespec *t)
+{
+    return clock_gettime(CLOCK_REALTIME, t);
+}
+#endif
+
 char *
 sol_util_strerror(int errnum, char *buf, size_t buflen)
 {

@@ -115,6 +115,7 @@ sol_util_int_compare(const int a, const int b)
 }
 
 struct timespec sol_util_timespec_get_current(void);
+int sol_util_timespec_get_realtime(struct timespec *t);
 
 static inline void
 sol_util_timespec_sum(struct timespec *t1, struct timespec *t2, struct timespec *result)
