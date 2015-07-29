@@ -74,8 +74,8 @@ $(foreach bin,$(bins-out),$(eval $(call rpath-cleanup,$(bin))))
 
 pre-install: $(PRE_INSTALL)
 	$(Q)echo "     "INSTALLING SYSROOT TO: $(DESTDIR)
-	$(Q)$(MKDIR) -p $(DESTDIR)
-	$(Q)$(CP) -R $(build_sysroot)/$(PREFIX)/ $(DESTDIR)
+	$(Q)$(MKDIR) -p $(DESTDIR)/$(PREFIX)
+	$(Q)$(CP) -R $(build_sysroot)/$(PREFIX)/* $(DESTDIR)/$(PREFIX)
 
 post-install: pre-install $(all-rpath-bins)
 
