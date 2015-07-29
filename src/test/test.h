@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "sol-types.h"
 
 struct test {
     const char *name;
@@ -101,7 +102,7 @@ int test_main(struct test *start, struct test *stop, void (*reset_func)(void), i
         ASSERT((str_b) != NULL);                                        \
         if (strcmp((str_a), (str_b)) != 0) {                            \
             fprintf(stderr, "%s:%d: %s: Assertion string_equal(\"%s\", \"%s\") failed.\n", \
-                __FILE__, __LINE__, __PRETTY_FUNCTION__, (str_a), (str_b)); \
+                __FILE__, __LINE__, __PRETTY_FUNCTION__, SOL_TYPE_CHECK(const char *, str_a), SOL_TYPE_CHECK(const char *, str_b)); \
             exit(-1);                                                   \
         }                                                               \
     } while (0)
@@ -112,7 +113,7 @@ int test_main(struct test *start, struct test *stop, void (*reset_func)(void), i
         ASSERT((str_b) != NULL);                                        \
         if (strcmp((str_a), (str_b)) == 0) {                            \
             fprintf(stderr, "%s:%d: %s: Assertion string_different(\"%s\", \"%s\") failed.\n", \
-                __FILE__, __LINE__, __PRETTY_FUNCTION__, (str_a), (str_b)); \
+                __FILE__, __LINE__, __PRETTY_FUNCTION__, SOL_TYPE_CHECK(const char *, str_a), SOL_TYPE_CHECK(const char *, str_b)); \
             exit(-1);                                                   \
         }                                                               \
     } while (0)
