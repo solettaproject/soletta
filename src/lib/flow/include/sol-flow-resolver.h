@@ -68,7 +68,7 @@ struct sol_flow_resolver {
     const char *name;
     void *data;
 
-    int (*resolve)(void *data, const char *id, struct sol_flow_node_type const **type, char const ***opts_strv);
+    int (*resolve)(void *data, const char *id, struct sol_flow_node_type const **type, struct sol_flow_node_named_options *named_opts);
 };
 
 /* Default resolver set at compile time. */
@@ -76,13 +76,13 @@ const struct sol_flow_resolver *sol_flow_get_default_resolver(void);
 
 /* When resolver is NULL, use the default resolver.
  *
- * sol_flow_node_options_strv_del() must be used to delete opts_strv
+ * sol_flow_node_named_options_fini() must be used to delete members
  * in case of success. */
 int sol_flow_resolve(
     const struct sol_flow_resolver *resolver,
     const char *id,
-    struct sol_flow_node_type const **type,
-    const char ***opts_strv);
+    const struct sol_flow_node_type **type,
+    struct sol_flow_node_named_options *named_opts);
 
 /* Resolver that interprets IDs as node type names and return the
  * appropriate builtin node type. */
