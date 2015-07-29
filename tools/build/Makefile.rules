@@ -39,9 +39,16 @@ gen-artifact = \
 
 extra-headers = \
 	$(foreach hdr,$(1), \
-		$(eval $(hdr)-dest  := $(build_includedir)$(notdir $(hdr))) \
-		$(eval all-dest-hdr += $($(hdr)-dest)) \
-		$(eval all-hdr += $(hdr)) \
+		$(if $(filter %.h.in,$(hdr)), \
+			$(eval gen-file      := $(subst .h.in,.h,$(hdr))) \
+			$(eval $(hdr)-dest   := $(build_includedir)$(notdir $(gen-file))) \
+			$(eval all-templates += $(hdr)) \
+			$(eval all-hdr       += $($(hdr)-dest)) \
+		, \
+			$(eval $(hdr)-dest  := $(build_includedir)$(notdir $(hdr))) \
+			$(eval all-dest-hdr += $($(hdr)-dest)) \
+			$(eval all-hdr += $(hdr)) \
+		) \
 	) \
 
 parse-common-module = \
@@ -157,7 +164,6 @@ SUBDIRS += $(M)/
 endif # $(M)
 
 $(eval $(call inc-subdirs))
-$(eval $(call extra-headers,$(EXTRA_HEADERS)))
 $(eval $(call extra-bins))
 
 PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin)
@@ -213,7 +219,7 @@ find-gen-hdrs = $(foreach gen,$($(2)-gens),$($(gen)-hdr))
 external-module-flags = -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 -DSOL_PIN_MUX_MODULE_EXTERNAL=1
 
 define make-object
-$(1): $(PRE_GEN) $($(1)-src) $(call find-deps,$(2)) $(find-gen-hdrs)
+$(1): $(PRE_GEN) $($(1)-src) $(call find-deps,$(2)) $(find-gen-hdrs) $(all-hdr)
 	$(Q)echo "      "CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(1))
 	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) $($(1)-src) -c -o $(1) $(3)
@@ -290,6 +296,14 @@ $($(1)-hdr) $($(1)-src) $($(1)-desc): $(1) $(NODE_TYPE_GEN_SCRIPT)
 endef
 $(foreach gen,$(all-gens),$(eval $(call make-gen,$(gen))))
 
+define make-template-gen
+$($(1)-dest): $(1) $(KCONFIG_CONFIG)
+	$(Q)echo "     "GEN"   "$$@
+	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
+		--template=$(1) --output=$($(1)-dest)
+endef
+$(foreach tpl,$(all-templates),$(eval $(call make-template-gen,$(tpl))))
+
 $(FLOW_BUILTINS_DESC): $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(all-mod-descs) $(JSON_FORMAT_SCRIPT)
 	$(Q)echo "     "GEN"   "$@
 	$(Q)$(MKDIR) -p $(dir $(@))
@@ -347,16 +361,6 @@ $(PIN_MUX_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
                 --decl="const struct sol_pin_mux SOL_PIN_MUX_@NAME@" \
                 --item="&SOL_PIN_MUX_@NAME@" \
                 $(subst -,_,$(builtin-pin-mux))
-
-$(FLOW_BUILDOPTS_H): $(FLOW_BUILDOPTS_H_IN) $(KCONFIG_CONFIG)
-	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
-		--template=$(FLOW_BUILDOPTS_H_IN) --output=$(FLOW_BUILDOPTS_H)
-
-$(COMMON_BUILDOPTS_H): $(COMMON_BUILDOPTS_H_IN) $(KCONFIG_CONFIG) $(KCONFIG_CONFIG)
-	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
-		--template=$(COMMON_BUILDOPTS_H_IN) --output=$(COMMON_BUILDOPTS_H)
 
 $(PC_GEN): $(PC_GEN_IN) $(KCONFIG_CONFIG)
 	$(Q)echo "     "GEN"   "$(PC_GEN)
