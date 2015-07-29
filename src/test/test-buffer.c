@@ -131,11 +131,11 @@ test_set_slice(void)
     ASSERT(err >= 0);
 
     ASSERT_INT_EQ(buf.used, strlen(backend));
-    ASSERT_STR_EQ(buf.data, backend);
+    ASSERT_STR_EQ((char *)buf.data, backend);
 
     backend[1] = 'a';
-    ASSERT_STR_NE(buf.data, backend);
-    ASSERT_STR_EQ(buf.data, str);
+    ASSERT_STR_NE((char *)buf.data, backend);
+    ASSERT_STR_EQ((char *)buf.data, str);
 
     sol_buffer_fini(&buf);
 
@@ -163,15 +163,15 @@ test_append_slice(void)
     ASSERT(err >= 0);
 
     ASSERT_INT_EQ(buf.used, strlen(backend));
-    ASSERT_STR_EQ(buf.data, backend);
+    ASSERT_STR_EQ((char *)buf.data, backend);
 
     err = sol_buffer_append_slice(&buf, slice);
     ASSERT(err >= 0);
     ASSERT_INT_EQ(buf.used, strlen(expected_str));
 
     backend[1] = 'a';
-    ASSERT_STR_NE(buf.data, backend);
-    ASSERT_STR_EQ(buf.data, expected_str);
+    ASSERT_STR_NE((char *)buf.data, backend);
+    ASSERT_STR_EQ((char *)buf.data, expected_str);
 
     sol_buffer_fini(&buf);
 
