@@ -388,7 +388,8 @@ sol_flow_simplectype_new_full(const char *name, size_t private_data_size, int (*
         } else {
             SOL_WRN("'%s' port '%s' (type %p %s) unexpected direction %d",
                 name, port_name, pt, pt->name ? pt->name : "?", direction);
-            goto error;
+            ok = false;
+            break;
         }
     }
     va_end(ap);
