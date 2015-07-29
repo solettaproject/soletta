@@ -803,10 +803,10 @@ sol_oic_device_definition_register_resource_type(struct sol_oic_device_definitio
     SOL_NULL_CHECK(resource_type, NULL);
 
     if (unlikely(resource_type->api_version !=
-            SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
+        SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
         SOL_WRN("Couldn't register resource_type that has unsupported "
-                "version '%u', expected version is '%u'",
-                resource_type->api_version, SOL_OIC_RESOURCE_TYPE_API_VERSION);
+            "version '%u', expected version is '%u'",
+            resource_type->api_version, SOL_OIC_RESOURCE_TYPE_API_VERSION);
         return NULL;
     }
 

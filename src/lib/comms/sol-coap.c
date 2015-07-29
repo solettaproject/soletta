@@ -78,10 +78,10 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
 #define COAP_RESOURCE_CHECK_API(...) \
     do { \
         if (unlikely(resource->api_version != \
-                SOL_COAP_RESOURCE_API_VERSION)) { \
+            SOL_COAP_RESOURCE_API_VERSION)) { \
             SOL_WRN("Couldn't handle resource that has unsupported version " \
-                    "'%u', expected version is '%u'", \
-                    resource->api_version, SOL_COAP_RESOURCE_API_VERSION); \
+                "'%u', expected version is '%u'", \
+                resource->api_version, SOL_COAP_RESOURCE_API_VERSION); \
             return __VA_ARGS__; \
         } \
     } while (0)
@@ -1509,7 +1509,7 @@ SOL_API bool
 sol_coap_packet_has_payload(struct sol_coap_packet *pkt)
 {
     SOL_NULL_CHECK(pkt, false);
-    return (pkt->payload.start || pkt->payload.used != pkt->payload.size);
+    return pkt->payload.start || pkt->payload.used != pkt->payload.size;
 }
 
 SOL_API bool
