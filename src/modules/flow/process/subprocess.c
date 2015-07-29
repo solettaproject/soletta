@@ -175,7 +175,7 @@ err:
     close(mdata->pipes.out[1]);
     close(mdata->pipes.err[0]);
     close(mdata->pipes.in[0]);
-    exit(-errno);
+    sol_platform_linux_fork_run_exit(-errno);
 }
 
 static int
@@ -372,7 +372,7 @@ process_subprocess_stop_process(struct sol_flow_node *node, void *data, uint16_t
     if (!mdata->fork_run)
         return 0;
 
-    kill(sol_platform_linux_fork_run_get_pid(mdata->fork_run), SIGTERM);
+    sol_platform_linux_fork_run_send_signal(mdata->fork_run, SIGTERM);
     return 0;
 }
 
@@ -388,7 +388,7 @@ process_subprocess_signal_process(struct sol_flow_node *node, void *data, uint16
     ret = sol_flow_packet_get_irange_value(packet, &value);
     SOL_INT_CHECK(ret, < 0, ret);
 
-    kill(sol_platform_linux_fork_run_get_pid(mdata->fork_run), value);
+    sol_platform_linux_fork_run_send_signal(mdata->fork_run, value);
 
     return 0;
 }

@@ -218,7 +218,7 @@ on_fork(void *data)
         execl(getty_cmd,
             getty_cmd, "-L", use_baudrate, inst->tty, use_term, NULL);
     }
-    exit(EXIT_FAILURE);
+    sol_platform_linux_fork_run_exit(EXIT_FAILURE);
 }
 
 static void
