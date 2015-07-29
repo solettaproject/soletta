@@ -83,7 +83,7 @@ on_fork(void *data)
     }
 
     SOL_INF("bluetooth daemon executable not found, aborting");
-    exit(EXIT_FAILURE);
+    sol_platform_linux_fork_run_exit(EXIT_FAILURE);
 }
 
 static void
@@ -123,18 +123,6 @@ fork_run_do(void)
 }
 
 static int
-send_sig(int sig)
-{
-    pid_t pid = sol_platform_linux_fork_run_get_pid(fork_run);
-
-    if (pid > 0) {
-        if (kill(pid, sig) == 0)
-            return 0;
-    }
-    return -errno;
-}
-
-static int
 bluetooth_stop(const struct sol_platform_linux_micro_module *mod,
     const char *service,
     bool force_immediate)
@@ -146,7 +134,7 @@ bluetooth_stop(const struct sol_platform_linux_micro_module *mod,
         return 0;
 
     if (!force_immediate)
-        err = send_sig(SIGTERM);
+        err = sol_platform_linux_fork_run_send_signal(fork_run, SIGTERM);
     else {
         sol_platform_linux_fork_run_stop(fork_run);
         fork_run = NULL;
@@ -214,7 +202,7 @@ bluetooth_restart(const struct sol_platform_linux_micro_module *mod,
     if (!fork_run)
         return bluetooth_start(mod, service);
 
-    return send_sig(SIGHUP);
+    return sol_platform_linux_fork_run_send_signal(fork_run, SIGHUP);
 }
 
 static int

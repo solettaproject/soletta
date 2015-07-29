@@ -82,7 +82,7 @@ find_exec(const char *service, const char *arg)
     }
 
     SOL_WRN("service not found: %s", service);
-    exit(EXIT_FAILURE);
+    sol_platform_linux_fork_run_exit(EXIT_FAILURE);
 }
 
 static void
