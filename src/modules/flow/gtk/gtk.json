@@ -67,10 +67,14 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
+            "data_type": "rgb",
             "description": "The led's RGB color components",
             "name": "rgb",
-            "default": "0|0|255"
+            "default": {
+              "red": 0,
+              "green": 0,
+              "blue": 255
+            }
           }
         ],
         "version": 1
