@@ -681,27 +681,6 @@ sol_flow_node_options_copy(const struct sol_flow_node_type *type, const struct s
 #endif
 }
 
-SOL_API int
-sol_flow_node_options_merge_from_strv(const struct sol_flow_node_type *type,
-    struct sol_flow_node_options *opts, const char *const *strv)
-{
-    SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, -EINVAL);
-    SOL_FLOW_NODE_OPTIONS_API_CHECK(type, SOL_FLOW_NODE_OPTIONS_API_VERSION, -EINVAL);
-    SOL_NULL_CHECK(strv, -EINVAL);
-
-#ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    SOL_WRN("does not work if compiled with --disable-flow-node-type-description");
-    return -ENOTSUP;
-#else
-    SOL_NULL_CHECK(type->description, -EINVAL);
-    SOL_NULL_CHECK(type->description->options, -EINVAL);
-    SOL_NULL_CHECK(type->description->options->members, -EINVAL);
-    if (!options_from_strv(type->description->options, opts, strv))
-        return -EINVAL;
-    return 0;
-#endif
-}
-
 SOL_API void
 sol_flow_node_options_del(const struct sol_flow_node_type *type, struct sol_flow_node_options *options)
 {
