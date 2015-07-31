@@ -580,7 +580,23 @@ generate_node_type_assignments(const struct fbp_data *data)
 static bool
 generate_create_type_function(struct fbp_data *data)
 {
-    dprintf(fd, "static const struct sol_flow_node_type *\n"
+    uint16_t i;
+
+    /** Make sure to #include all the node type's headers in use. The header
+     * name is inferred on the node's module name. */
+    for (i = 0; i < (&data->graph.nodes)->len; i++) {
+        char *needle, *module;
+
+        module = data->descriptions[i]->name;
+        needle = strstr(module, "/");
+        if (needle) {
+            module = strndupa(module, strlen(module) - strlen(needle));
+        }
+
+        dprintf(fd, "#include \"%s-gen.h\"\n", module);
+    }
+
+    dprintf(fd, "\nstatic const struct sol_flow_node_type *\n"
         "create_%d_%s_type(void)\n"
         "{\n",
         data->id,

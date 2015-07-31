@@ -416,7 +416,6 @@ extern "C" {
 def generate_header_tail(outfile, data):
     outfile.write("""
 #ifndef SOL_LOG_DOMAIN
-#define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log.h"
 
 #ifdef SOL_LOG_ENABLED
@@ -429,40 +428,21 @@ def generate_header_tail(outfile, data):
 
 #define SOL_LOG_INTERNAL_DECLARE_STATIC(_var, _name) \
     static SOL_LOG_INTERNAL_DECLARE(_var, _name)
-
-#define SOL_LOG_INTERNAL_INIT_ONCE \
-    do { \
-        static bool _log_internal_init_once_first = true; \
-        if (_log_internal_init_once_first) { \
-            sol_log_domain_init_level(SOL_LOG_DOMAIN); \
-            _log_internal_init_once_first = false; \
-        } \
-    } while (0)
-#else
+#else // #ifdef SOL_LOG_ENABLED
 #define SOL_LOG_INTERNAL_DECLARE(_var, _name)
 #define SOL_LOG_INTERNAL_DECLARE_STATIC(_var, _name)
-#define SOL_LOG_INTERNAL_INIT_ONCE
 #ifdef SOL_LOG_DOMAIN
 #undef SOL_LOG_DOMAIN
 #define SOL_LOG_DOMAIN NULL
+
 #endif // #ifdef SOL_LOG_DOMAIN
 #endif // #ifdef SOL_LOG_ENABLED
-
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, \"%(domain)s\");
-
-static void
-log_init(void)
-{
-    SOL_LOG_INTERNAL_INIT_ONCE;
-}
 #endif // ifndef SOL_LOG_DOMAIN
 
 #ifdef __cplusplus
 }
 #endif
-"""  % {
-    "domain": "flow-" + c_clean(data["name"].lower())
-})
+""")
 
 
 def generate_header_entry(outfile, data):
@@ -570,11 +550,37 @@ def generate_code_head(outfile, data):
 #include <sol-macros.h>
 #include <errno.h>
 %(float_h)s
+
+#ifdef SOL_LOG_ENABLED
+#define SOL_LOG_INTERNAL_INIT_ONCE \
+    do { \
+        static bool _log_internal_init_once_first = true; \
+        if (_log_internal_init_once_first) { \
+            sol_log_domain_init_level(SOL_LOG_DOMAIN); \
+            _log_internal_init_once_first = false; \
+        } \
+    } while (0)
+#else
+#define SOL_LOG_INTERNAL_INIT_ONCE
+#endif // #ifdef SOL_LOG_ENABLED
+
+#ifndef SOL_LOG_DOMAIN
+#define SOL_LOG_DOMAIN &_log_domain
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, \"%(domain)s\");
+#endif // ifndef SOL_LOG_DOMAIN
+
+static void
+log_init(void)
+{
+    SOL_LOG_INTERNAL_INIT_ONCE;
+}
+
 """ % {
     "input": data["input"],
     "header": os.path.basename(data["header"]),
     "NAME_C": data["NAME_C"],
     "float_h": uses_float(data),
+    "domain": "flow-" + c_clean(data["name"].lower())
 })
 
 

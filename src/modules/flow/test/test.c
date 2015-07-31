@@ -38,14 +38,9 @@
 
 #include "test-module.h"
 
-// The test module is a bit of an alien WRT logging, as it has to
-// share the domain symbol externally with the various .o objects that
-// will be linked together. Let's redeclare it by hand, then, and
-// before including test-gen.h. Also, log_init() is defined here
-// instead.
-SOL_LOG_INTERNAL_DECLARE(_test_log_domain, "flow-test");
-
 #include "test-gen.h"
+
+SOL_LOG_INTERNAL_DECLARE(_test_log_domain, "flow-test");
 
 #include "result.h"
 #include "boolean-generator.h"
@@ -55,11 +50,5 @@ SOL_LOG_INTERNAL_DECLARE(_test_log_domain, "flow-test");
 #include "int-validator.h"
 #include "int-generator.h"
 #include "blob-validator.h"
-
-static void
-log_init(void)
-{
-    SOL_LOG_INTERNAL_INIT_ONCE;
-}
 
 #include "test-gen.c"

@@ -63,6 +63,7 @@ endmenu
 menu "Samples"
 source "src/samples/coap/Kconfig"
 source "src/samples/common/Kconfig"
+source "src/samples/flow/Kconfig"
 endmenu
 
 menu "Tools"
