@@ -205,6 +205,52 @@
       ],
       "private_data_type": "string_split_data",
       "url": "http://solettaproject.org/doc/latest/node_types/string/split.html"
+    },
+    {
+      "category": "string",
+      "description": "Given an input string, output a copy with all original characters in lower case.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String to be output in lowercase",
+          "methods": {
+            "process": "string_lowercase"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "string/lowercase",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The original input string now in lowercase characters",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/string/lowercase.html"
+    },
+    {
+      "category": "string",
+      "description": "Given an input string, output a copy with all original characters in upper case.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String to be output in uppercase",
+          "methods": {
+            "process": "string_uppercase"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "string/uppercase",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The original input string now in uppercase characters",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/string/uppercase.html"
     }
   ]
 }
