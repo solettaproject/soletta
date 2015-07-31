@@ -122,7 +122,7 @@ parse-sample = \
 	$(eval sample-$(1)-srcs := $(addprefix $(2),$(filter-out %.fbp,$(sample-$(1)-y)))) \
 	$(eval artifacts        := $(addprefix $(2),$(filter %.fbp,$(sample-$(1)-y)))) \
 	$(call gen-fbp-artifact,$(1),$(artifacts),sample-$(1)-srcs) \
-	$(eval sample-$(1)-out  := $(addprefix $(2),$(1))) \
+	$(eval sample-$(1)-out  := $(subst $(top_srcdir)src,$(build_stagedir),$(addprefix $(2),$(1)))) \
 	$(eval $(1)-deps        := $(subst .mod,,$(sample-$(1)-y-deps))) \
 	$(eval samples-out      += $(sample-$(1)-out)) \
 
@@ -205,6 +205,7 @@ $(foreach curr,$(bins),$(eval $(call make-bin,$(curr))))
 define make-sample
 $(sample-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(sample-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "SMP"   "$$@
+	$(Q)$(MKDIR) -p $(dir $(sample-$(1)-out))
 	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(sample-$(1)-cflags) $(filter-out %.h,$(sample-$(1)-srcs)) \
 	$(call find-deps,$(1)) -o $(sample-$(1)-out) $(SAMPLE_LDFLAGS) $(sample-$(1)-ldflags) $(sort $(builtin-ldflags))
 endef
