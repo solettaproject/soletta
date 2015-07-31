@@ -110,6 +110,7 @@ struct sol_http_response {
     const char *content_type;
     const char *url;
     struct sol_buffer content;
+    struct sol_http_param param;
     int response_code;
 };
 
