@@ -45,6 +45,38 @@ endif
 
 PHONY += run-coverage coverage
 
+# This dummy module is used just to make sure scripts node-type-gen
+# and node-type-stub-gen are working fine. It should build the module
+# sketch fine. Dummy module exercises all possible options and ports
+# data types.
+
+check-stub: $(SOL_LIB_SO) $(SOL_LIB_AR) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $(NODE_TYPE_GEN_SCRIPT) $(NODE_TYPE_STUB_GEN_TEST)
+	$(Q)$(MKDIR) -p $(NODE_TYPE_STUB_GEN_DIR)
+	$(Q)$(PYTHON) $(NODE_TYPE_GEN_SCRIPT) --prefix=sol-flow-node-type \
+		--genspec-schema=$(NODE_TYPE_SCHEMA) $(NODE_TYPE_STUB_GEN_TEST) \
+		$(NODE_TYPE_STUB_GEN_DIR)dummy-gen.h \
+		$(NODE_TYPE_STUB_GEN_DIR)dummy-gen.c \
+		$(NODE_TYPE_STUB_GEN_DIR)dummy.json
+	$(Q)$(PYTHON) $(NODE_TYPE_STUB_GEN_SCRIPT) --prefix=sol-flow-node-type \
+		--force=yes $(NODE_TYPE_STUB_GEN_DIR)dummy.c \
+		$(NODE_TYPE_STUB_GEN_TEST)
+
+# * disable warnings for unused and unused but set variables since
+#   the stub declare variables as options or structs to get data from packets,
+#   but doesn't use it.
+# * disable warnings for unused functions because functions related
+#   to custom packets are implemented but not used
+# * disable warnings related to old-style-definition and strict-prototypes
+#   because we can't predict what fields would be used on custom packets,
+#   and they should be passed as args for some functions.
+	$(Q)$(TARGETCC) $(MOD_CFLAGS) \
+		-Wno-unused-variable -Wno-unused-but-set-variable \
+		-Wno-unused-function -Wno-old-style-definition -Wno-strict-prototypes \
+		$(NODE_TYPE_STUB_GEN_DIR)dummy.c -shared \
+		-o $(NODE_TYPE_STUB_GEN_DIR)dummy.so
+
+PHONY += check-stub
+
 samples: $(SOL_LIB_SO) $(SOL_LIB_AR) $(samples-out)
 
 PHONY += samples
