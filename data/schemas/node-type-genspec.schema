@@ -42,6 +42,10 @@
       "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "direction-vector", "error" ]
     },
 
+    "option_data_type": {
+      "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "direction-vector"]
+    },
+
     "port_data_type": {
       "anyOf": [
         { "$ref": "#/definitions/data_type" },
@@ -273,7 +277,7 @@
       "properties": {
         "data_type": {
           "type": "string",
-          "not": { "$ref": "#/definitions/data_type" }
+          "not": { "$ref": "#/definitions/option_data_type" }
         },
         "default": { "type": "string" }
       }
