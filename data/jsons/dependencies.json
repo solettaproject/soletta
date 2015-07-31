@@ -222,6 +222,20 @@
 	    "fragment": "accept4(0, 0, 0, 0);"
 	},
 	{
+	    "dependency": "locale",
+	    "type": "ccode",
+	    "headers": [
+		"<locale.h>"
+	    ],
+	    "fragment": "setlocale(LC_ALL, NULL);"
+	},
+	{
+	    "dependency": "icu",
+	    "type": "pkg-config",
+	    "pkgname": "icu-uc icu-i18n",
+	    "atleast-version": "52.1"
+	},
+	{
 	    "dependency": "isatty",
 	    "type": "ccode",
 	    "headers": [
