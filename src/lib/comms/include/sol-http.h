@@ -92,13 +92,14 @@ struct sol_http_param_value {
 };
 
 struct sol_http_response {
-#define SOL_HTTP_RESPONSE_API_VERSION (1)
+#define SOL_HTTP_RESPONSE_API_VERSION (2)
     uint16_t api_version;
     uint16_t reserved;
 
     const char *content_type;
     const char *url;
     struct sol_buffer content;
+    struct sol_http_param param;
     int response_code;
 };
 
@@ -149,6 +150,11 @@ struct sol_http_response {
         .type = SOL_HTTP_PARAM_TIMEOUT, \
         .value.integer.value = (setting_) \
     }
+
+#define SOL_HTTP_PARAM_FOREACH_IDX(param, itrvar, idx)     \
+    for (idx = 0; \
+        param && idx < (param)->params.len && (itrvar = sol_vector_get(&(param)->params, idx), true); \
+        idx++)
 
 static inline void
 sol_http_param_init(struct sol_http_param *params)
