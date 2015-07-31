@@ -1337,6 +1337,9 @@ server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
     return SOL_COAP_RSPCODE_CONTENT;
 }
 
+// log_init() implementation happens within oic-gen.c
+static void log_init(void);
+
 static int
 server_resource_init(struct server_resource *resource, struct sol_flow_node *node,
     struct sol_str_slice resource_type, struct sol_str_slice defn_endpoint,
@@ -1344,7 +1347,7 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
 {
     struct sol_oic_device_definition *def;
 
-    SOL_LOG_INTERNAL_INIT_ONCE;
+    log_init();
 
     if (!sol_oic_server_init(DEFAULT_UDP_PORT)) {
         SOL_WRN("Could not create %%.*s server", SOL_STR_SLICE_PRINT(resource_type));
@@ -1398,7 +1401,7 @@ static int
 client_resource_init(struct sol_flow_node *node, struct client_resource *resource, const char *resource_type,
     const char *hwaddr, const struct client_resource_funcs *funcs)
 {
-    SOL_LOG_INTERNAL_INIT_ONCE;
+    log_init();
     if (!initialize_multicast_addresses_once()) {
         SOL_ERR("Could not initialize multicast addresses");
         return -ENOTCONN;
