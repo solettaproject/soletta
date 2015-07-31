@@ -103,8 +103,18 @@ parse-test = \
 	$(eval $(1)-deps      := $(subst .mod,,$($(3)-$(1)-y-deps))) \
 	$(eval tests-out      += $(test-$(1)-out)) \
 
+gen-fbp-artifact = \
+	$(foreach fbp,$(filter %.fbp,$(2)), \
+		$(eval $(fbp)-src       := $(subst $(top_srcdir)src,$(build_stagedir),$(subst .fbp,-gen.c,$(fbp)))) \
+		$(eval $(3)             += $($(fbp)-src)) \
+		$(eval sample-$(1)-gens += $(fbp)) \
+		$(eval all-fbp-gens     += $(fbp)) \
+	) \
+
 parse-sample = \
-	$(eval sample-$(1)-srcs := $(addprefix $(2),$(sample-$(1)-y))) \
+	$(eval sample-$(1)-srcs := $(addprefix $(2),$(filter-out %.fbp,$(sample-$(1)-y)))) \
+	$(eval artifacts        := $(addprefix $(2),$(filter %.fbp,$(sample-$(1)-y)))) \
+	$(call gen-fbp-artifact,$(1),$(artifacts),sample-$(1)-srcs) \
 	$(eval sample-$(1)-out  := $(addprefix $(2),$(1))) \
 	$(eval $(1)-deps        := $(subst .mod,,$(sample-$(1)-y-deps))) \
 	$(eval samples-out      += $(sample-$(1)-out)) \
@@ -186,10 +196,13 @@ $(bin-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(bin-$(1)-srcs) $(call find-deps,$(1)
 endef
 $(foreach curr,$(bins),$(eval $(call make-bin,$(curr))))
 
+include-mods-gen-h = $(foreach gen,$(all-gens),$(if $(filter %.h,$($(gen)-hdr)),-include $($(gen)-hdr)))
+
 define make-sample
 $(sample-$(1)-out): $(PRE_GEN) $(SOL_LIB_SO) $(sample-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "SMP"   "$$@
-	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(sample-$(1)-cflags) $(filter-out %.h,$(sample-$(1)-srcs)) -o $(sample-$(1)-out) $(SAMPLE_LDFLAGS) $(sample-$(1)-ldflags) $(sort $(builtin-ldflags))
+	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(sample-$(1)-cflags) $(include-mods-gen-h) $(filter-out %.h,$(sample-$(1)-srcs)) \
+	$(call find-deps,$(1)) -o $(sample-$(1)-out) $(SAMPLE_LDFLAGS) $(sample-$(1)-ldflags) $(sort $(builtin-ldflags))
 endef
 $(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
 
@@ -289,6 +302,14 @@ $($(1)-hdr) $($(1)-src) $($(1)-desc): $(1) $(NODE_TYPE_GEN_SCRIPT)
 		--genspec-schema=$(NODE_TYPE_SCHEMA) $(1) $($(1)-hdr) $($(1)-src) $($(1)-desc)
 endef
 $(foreach gen,$(all-gens),$(eval $(call make-gen,$(gen))))
+
+define make-fbp-gen
+$($(1)-src): $(1) $(SOL_FBP_GENERATOR_BIN)
+	$(Q)echo "     "GEN"   "$$@
+	$(Q)$(MKDIR) -p $(dir $($(1)-src))
+	$(Q)$(SOL_FBP_GENERATOR_BIN) -j $(build_descdir) $(1) $($(1)-src)
+endef
+$(foreach gen,$(all-fbp-gens),$(eval $(call make-fbp-gen,$(gen))))
 
 $(FLOW_BUILTINS_DESC): $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(all-mod-descs) $(JSON_FORMAT_SCRIPT)
 	$(Q)echo "     "GEN"   "$@
