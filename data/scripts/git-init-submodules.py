@@ -32,6 +32,7 @@
 
 import configparser
 import os
+import re
 import subprocess
 import sys
 
@@ -43,14 +44,20 @@ def run_command(cmd):
     except subprocess.CalledProcessError as e:
         return e.output, False
 
-def submodule_clone(name, path, url, branch, depth, dest, sparserules):
+def submodule_clone(name, path, url, branch, depth, dest, sparserules, single_branch):
     if os.path.exists(dest):
         return None, True
 
     print("GIT: cloning submodule %s ..." % name, end="")
     sys.stdout.flush()
-    out, status = run_command("git clone {url} {branch} {depth} --bare {dest}".format(
-        url=url, branch=branch, depth=depth, dest=dest))
+
+    if single_branch:
+        out, status = run_command("git clone {url} {branch} {depth} --bare {dest}".format(
+                url=url, branch=branch, depth=depth, dest=dest))
+    else:
+        # clone it all if we don't support single branch checkout
+        out, status = run_command("git clone {url} --bare {dest}".format(
+                url=url, dest=dest))
 
     if sparserules:
         submodule_config = "%s/config" % dest
@@ -80,7 +87,7 @@ def submodule_clone(name, path, url, branch, depth, dest, sparserules):
     print("[done]")
     return out, status
 
-def submodule_checkout(name, submodule_git, path):
+def submodule_checkout(name, submodule_git, path, branch, single_branch):
     git_link = "%s/.git" % path
 
     if os.path.exists(git_link):
@@ -90,17 +97,34 @@ def submodule_checkout(name, submodule_git, path):
     with open(git_link, "w") as git:
         git.write("gitdir: %s%s" % ("../" * ddepth, submodule_git))
 
-    out, status = run_command("cd {path} && git checkout -f".format(path=path))
+    if single_branch:
+        run_command("cd {path} && git checkout -f".format(path=path))
+    else:
+        run_command("cd {path} && git checkout -f {branch}".format(path=path,branch=branch))
+
+def git_single_branch():
+    git_version = list(map(int, out.replace("git version ", "").split(".")))
+    major = git_version[0]
+    minor = git_version[1]
+    release = git_version[2]
+    return (major >= 1 and minor >= 7 and release >= 10)
 
 if __name__ == "__main__":
     gitmodules = ".gitmodules"
-    
     if not os.path.exists(gitmodules):
         exit(0)
 
     config = configparser.ConfigParser()
     config["DEFAULT"] = {"sparsecheckout": False, "sparserules": "", "branch": ""}
     config.read(gitmodules)
+
+    out, status = run_command("git --version")
+    if not status:
+        print("Could not check git version")
+        exit(1)
+
+    # does git support single branch checkout?
+    single_branch = git_single_branch()
 
     for k,v in config.items():
         if not k.startswith("submodule"):
@@ -120,11 +144,12 @@ if __name__ == "__main__":
         submodule_git = ".git/modules/%s" % name
         depth = "--depth 1" if sparsecheckout else ""
         branch_arg = "-b %s" % branch if branch else ""
-        out, status = submodule_clone(name, path, url, branch_arg, depth, submodule_git, sparserules)
+        out, status = submodule_clone(name, path, url, branch_arg, depth, submodule_git,
+                                      sparserules, single_branch)
 
         if not status:
             print("ERROR: Failed to clone submodule: %s" % name)
             print("ERROR: %s" % out)
             exit(1)
 
-        submodule_checkout(name, submodule_git, path)
+        submodule_checkout(name, submodule_git, path, branch, single_branch)
