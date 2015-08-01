@@ -124,80 +124,111 @@ static void
 inspector_show_packet(const struct sol_flow_packet *packet)
 {
     const struct sol_flow_packet_type *type = sol_flow_packet_get_type(packet);
+    const uint8_t *mem;
+    const struct sol_flow_packet_member_description *desc;
+    bool has_members, single_member;
 
-    if (type == SOL_FLOW_PACKET_TYPE_EMPTY) {
-        fputs("<empty>", stdout);
-        return;
-    } else if (type == SOL_FLOW_PACKET_TYPE_ANY) {
-        fputs("<any>", stdout);
-        return;
-    } else if (type == SOL_FLOW_PACKET_TYPE_ERROR) {
-        int code;
-        const char *msg;
-        if (sol_flow_packet_get_error(packet, &code, &msg) == 0) {
-            fprintf(stdout, "<error:%d \"%s\">", code, msg ? msg : "");
-            return;
-        }
-    } else if (type == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
-        bool v;
-        if (sol_flow_packet_get_boolean(packet, &v) == 0) {
-            fprintf(stdout, "<%s>", v ? "true" : "false");
-            return;
-        }
-    } else if (type == SOL_FLOW_PACKET_TYPE_BYTE) {
-        unsigned char v;
-        if (sol_flow_packet_get_byte(packet, &v) == 0) {
-            fprintf(stdout, "<%#x>", v);
-            return;
-        }
-    } else if (type == SOL_FLOW_PACKET_TYPE_IRANGE) {
-        struct sol_irange v;
-        if (sol_flow_packet_get_irange(packet, &v) == 0) {
-            fprintf(stdout, "<val:%d|min:%d|max:%d|step:%d>",
-                v.val, v.min, v.max, v.step);
-            return;
-        }
-    } else if (type == SOL_FLOW_PACKET_TYPE_DRANGE) {
-        struct sol_drange v;
-        if (sol_flow_packet_get_drange(packet, &v) == 0) {
-            fprintf(stdout, "<val:%g|min:%g|max:%g|step:%g>",
-                v.val, v.min, v.max, v.step);
-            return;
-        }
-    } else if (type == SOL_FLOW_PACKET_TYPE_STRING) {
-        const char *v;
-        if (sol_flow_packet_get_string(packet, &v) == 0) {
-            fprintf(stdout, "<\"%s\">", v);
-            return;
-        }
-    } else if (type == SOL_FLOW_PACKET_TYPE_BLOB) {
-        struct sol_blob *v;
-        if (sol_flow_packet_get_blob(packet, &v) == 0) {
-            fprintf(stdout, "<mem=%p|size=%zd|refcnt=%hu|type=%p|parent=%p>",
-                v->mem, v->size, v->refcnt, v->type, v->parent);
-            return;
-        }
-    } else if (type == SOL_FLOW_PACKET_TYPE_RGB) {
-        struct sol_rgb v;
-        if (sol_flow_packet_get_rgb(packet, &v) == 0) {
-            fprintf(stdout,
-                "<red=%u|green=%u|blue=%u"
-                "|red_max=%u|green_max=%u|blue_max=%u>",
-                v.red, v.green, v.blue,
-                v.red_max, v.green_max, v.blue_max);
-            return;
-        }
-    } else if (type == SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR) {
-        struct sol_direction_vector v;
-        if (sol_flow_packet_get_direction_vector(packet, &v) == 0) {
-            fprintf(stdout,
-                "<x=%g|y=%g|z=%g|min=%g|max=%g>",
-                v.x, v.y, v.z, v.min, v.max);
-            return;
-        }
+    fputc('<', stdout);
+    if (type->name)
+        fputs(type->name, stdout);
+    else
+        fprintf(stdout, "%p", type);
+
+    if (type->data_size == 0)
+        goto end;
+
+    fputc(' ', stdout);
+
+    mem = sol_flow_packet_get_memory(packet);
+    desc = type->members;
+    if (!desc) {
+        fprintf(stdout, "packet %p has no members description", packet);
+        goto end;
     }
 
-    fputs("<?>", stdout);
+    has_members = (desc[0].name != NULL && desc[0].data_type != NULL);
+    single_member =  has_members &&
+        (desc[1].name == NULL || desc[1].data_type == NULL);
+
+    for (; desc->name != NULL && desc->data_type != NULL; desc++) {
+        const char *data_type = desc->data_type;
+        const void *member_mem;
+        const uint16_t member_size = desc->size;
+        if (unlikely(desc->offset + member_size > type->data_size))
+            continue;
+        if (likely(!single_member)) {
+            if (desc > type->members)
+                fputc('|', stdout);
+            fprintf(stdout, "%s:", desc->name);
+        }
+
+        member_mem = mem + desc->offset;
+#define CHECK_SIZE(expected) (member_size == sizeof(expected))
+#define CHECK_CTYPE(expected) CHECK_SIZE(expected) && streq(data_type, #expected)
+        if (CHECK_CTYPE(bool)) {
+            const bool *v = member_mem;
+            fputs(*v ? "true" : "false", stdout);
+        } else if (CHECK_SIZE(char *) && streq(data_type, "string")) {
+            const char *const *v = member_mem;
+            if (*v)
+                fprintf(stdout, "\"%s\"", *v);
+            else
+                fputs("(null)", stdout);
+        } else if (CHECK_CTYPE(int)) {
+            const int *v = member_mem;
+            fprintf(stdout, "%d", *v);
+        } else if (CHECK_CTYPE(unsigned)) {
+            const unsigned *v = member_mem;
+            fprintf(stdout, "%u", *v);
+        } else if (CHECK_CTYPE(int8_t)) {
+            const int8_t *v = member_mem;
+            fprintf(stdout, "%" PRId8 "", *v);
+        } else if (CHECK_CTYPE(int16_t)) {
+            const int16_t *v = member_mem;
+            fprintf(stdout, "%" PRId16 "", *v);
+        } else if (CHECK_CTYPE(int32_t)) {
+            const int32_t *v = member_mem;
+            fprintf(stdout, "%" PRId32 "", *v);
+        } else if (CHECK_CTYPE(int64_t)) {
+            const int64_t *v = member_mem;
+            fprintf(stdout, "%" PRId64 "", *v);
+        } else if (CHECK_CTYPE(uint8_t)) {
+            const uint8_t *v = member_mem;
+            fprintf(stdout, "%" PRIu8 "", *v);
+        } else if (CHECK_CTYPE(uint16_t)) {
+            const uint16_t *v = member_mem;
+            fprintf(stdout, "%" PRIu16 "", *v);
+        } else if (CHECK_CTYPE(uint32_t)) {
+            const uint32_t *v = member_mem;
+            fprintf(stdout, "%" PRIu32 "", *v);
+        } else if (CHECK_CTYPE(uint64_t)) {
+            const uint64_t *v = member_mem;
+            fprintf(stdout, "%" PRIu64 "", *v);
+        } else if (CHECK_CTYPE(double)) {
+            const double *v = member_mem;
+            fprintf(stdout, "%f", *v);
+        } else if (CHECK_CTYPE(size_t)) {
+            const size_t *v = member_mem;
+            fprintf(stdout, "%zu", *v);
+        } else if (CHECK_CTYPE(ssize_t)) {
+            const ssize_t *v = member_mem;
+            fprintf(stdout, "%zd", *v);
+        } else {
+            size_t len = strlen(data_type);
+            if (CHECK_SIZE(void *) && len > 0 && data_type[len - 1] == '*') {
+                const void *const *v = member_mem;
+                fprintf(stdout, "(%s)%p", data_type, *v);
+            } else {
+                fprintf(stdout, "[unsupported](%s*)%p",
+                    data_type, member_mem);
+            }
+        }
+#undef CHECK_CTYPE
+#undef CHECK_SIZE
+    }
+
+end:
+    fputc('>', stdout);
 }
 
 static void
