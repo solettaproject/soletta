@@ -37,61 +37,61 @@ const_direction_vector(constant/direction-vector:value="255|10|100")
 const_string(constant/string:value="Hello")
 const_error(constant/string:value="Numerical argument out of domain")
 
-hub_boolean(hub/boolean)
-hub_blob(hub/blob)
-hub_byte(hub/byte)
-hub_empty(hub/empty)
-hub_error(hub/error)
-hub_float(hub/float)
-hub_int(hub/int)
-hub_rgb(hub/rgb)
-hub_direction_vector(hub/direction-vector)
-hub_string(hub/string)
+hub_boolean(switcher/boolean)
+hub_blob(switcher/blob)
+hub_byte(switcher/byte)
+hub_empty(switcher/empty)
+hub_error(switcher/error)
+hub_float(switcher/float)
+hub_int(switcher/int)
+hub_rgb(switcher/rgb)
+hub_direction_vector(switcher/direction-vector)
+hub_string(switcher/string)
 
 empty_to_boolean(converter/empty-to-boolean)
 
 const_boolean OUT -> IN hub_boolean
 const_boolean OUT -> IN[0] and(boolean/and)
 hub_boolean OUT -> IN[1] and
-and OUT -> RESULT result_hub_boolean(test/result)
+and OUT -> RESULT result_switcher_boolean(test/result)
 
 const_boolean OUT -> IN hub_empty
-hub_empty OUT -> IN empty_to_boolean OUT -> RESULT result_hub_empty(test/result)
+hub_empty OUT[0] -> IN empty_to_boolean OUT -> RESULT result_switcher_empty(test/result)
 
 const_byte OUT -> IN hub_byte
 const_int OUT -> IN[0] byte_equal(int/equal)
-hub_byte OUT -> IN _(converter/byte-to-int) OUT -> IN[1] byte_equal
-byte_equal OUT -> RESULT result_hub_byte(test/result)
+hub_byte OUT[0] -> IN _(converter/byte-to-int) OUT -> IN[1] byte_equal
+byte_equal OUT -> RESULT result_switcher_byte(test/result)
 
 const_float OUT -> IN hub_float
 const_float OUT -> IN[0] float_equal(float/equal)
-hub_float OUT -> IN[1] float_equal
-float_equal OUT -> RESULT result_hub_float(test/result)
+hub_float OUT[0] -> IN[1] float_equal
+float_equal OUT -> RESULT result_switcher_float(test/result)
 
 const_int OUT -> IN hub_int
 const_int OUT -> IN[0] int_equal(int/equal)
-hub_int OUT -> IN[1] int_equal
-int_equal OUT -> RESULT result_hub_int(test/result)
+hub_int OUT[0] -> IN[1] int_equal
+int_equal OUT -> RESULT result_switcher_int(test/result)
 
 const_rgb OUT -> IN hub_rgb
 const_int OUT -> IN[0] rgb_equal
-hub_rgb OUT -> IN _(converter/rgb-to-int) GREEN -> IN[1] rgb_equal(int/equal)
-rgb_equal OUT -> RESULT result_hub_rgb(test/result)
+hub_rgb OUT[0] -> IN _(converter/rgb-to-int) GREEN -> IN[1] rgb_equal(int/equal)
+rgb_equal OUT -> RESULT result_switcher_rgb(test/result)
 
 const_direction_vector OUT -> IN hub_direction_vector
 const_int OUT -> IN[0] direction_vector_equal
-hub_direction_vector OUT -> IN _(converter/direction-vector-to-int) Y -> IN[1] direction_vector_equal(int/equal)
-direction_vector_equal OUT -> RESULT result_hub_direction_vector(test/result)
+hub_direction_vector OUT[0] -> IN _(converter/direction-vector-to-int) Y -> IN[1] direction_vector_equal(int/equal)
+direction_vector_equal OUT -> RESULT result_switcher_direction_vector(test/result)
 
 const_string OUT -> IN hub_string
 const_string OUT -> IN[0] string_equal(string/compare)
-hub_string OUT -> IN[1] string_equal
-string_equal EQUAL -> RESULT result_hub_string(test/result)
+hub_string OUT[0] -> IN[1] string_equal
+string_equal EQUAL -> RESULT result_switcher_string(test/result)
 
 str_to_blob(converter/string-to-blob)
 blob_validator(test/blob-validator:expected="Hello",expect_terminating_null_byte=true)
 const_string OUT -> IN str_to_blob OUT -> IN blob_validator
-blob_validator OUT -> RESULT result_hub_blob(test/result)
+blob_validator OUT -> RESULT result_switcher_blob(test/result)
 
 const_int OUT -> DIVIDEND div(int/division)
 const_zero(constant/int:value=0) OUT -> DIVISOR div
@@ -99,7 +99,7 @@ div ERROR -> IN hub_error
 hub_error ERROR -> IN conv_error(converter/error)
 conv_error MESSAGE -> IN[0] error_msg_equal(string/compare)
 const_error OUT -> IN[1] error_msg_equal
-error_msg_equal EQUAL -> RESULT result_hub_error(test/result)
+error_msg_equal EQUAL -> RESULT result_switcher_error(test/result)
 
 ## TEST-OUTPUT-REGEX
 # WRN: ./src/lib/common/sol-types.c:.*? sol_irange_division\(\) Division by zero: 10, 0

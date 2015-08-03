@@ -1,0 +1,487 @@
+{
+  "$schema": "http://solettaproject.gitswitcher.io/soletta/schemas/node-type-genspec.schema",
+  "name": "switcher",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "switcher",
+      "description": "Forward blob packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "blob",
+          "description": "Where to receive the blob packet to be forwarded.",
+          "methods": {
+            "process": "blob_forward"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/blob",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "Forwarded blob packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/blob.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward boolean packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Where to receive the boolean packet to be forwarded.",
+          "methods": {
+            "process": "boolean_forward"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Forwarded boolean packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/boolean.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward byte packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Where to receive the byte packet to be forwarded.",
+          "methods": {
+            "process": "byte_forward"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/byte",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Forwarded byte packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/byte.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward empty packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Where to receive the packet to be forwarded. Any packet can be received, but they'll be forwarded as empty packets.",
+          "methods": {
+            "process": "empty_forward"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/empty",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "empty",
+          "description": "Forwarded empty packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/empty.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward error packets.",
+      "in_ports": [
+        {
+          "data_type": "error",
+          "description": "Where to receive the error packet to be forwarded. They're forwared via 'ERROR' port.",
+          "methods": {
+            "process": "error_forward"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "switcher/error",
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/error.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward float packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Where to receive the float packet to be forwarded.",
+          "methods": {
+            "process": "float_forward"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/float",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Forwarded float packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/float.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward int packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Where to receive the int packet to be forwarded.",
+          "methods": {
+            "process": "int_forward"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/int",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Forwarded int packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/int.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward rgb packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Where to receive the rgb packet to be forwarded.",
+          "methods": {
+            "process": "rgb_forward"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/rgb",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "rgb",
+          "description": "Forwarded rgb packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/rgb.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward direction vector packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Where to receive the direction vector packet to be forwarded.",
+          "methods": {
+            "process": "direction_vector_forward"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/direction-vector",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "Forwarded direction_vector packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/direction-vector.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward string packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string packet to be forwarded.",
+          "methods": {
+            "process": "string_forward"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/string",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Forwarded string packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/string.html"
+    }
+  ]
+}
