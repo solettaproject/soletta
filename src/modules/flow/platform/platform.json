@@ -68,7 +68,7 @@
         "close": "platform_service_close",
         "open": "platform_service_open"
       },
-      "name": "platform-service",
+      "name": "platform/service",
       "options": {
         "members": [
           {
