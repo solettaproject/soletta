@@ -736,38 +736,53 @@ sol_flow_node_options_new(
 #else
     struct sol_flow_node_options *tmp_opts;
     const struct sol_flow_node_type_description *desc;
-    bool type_has_options;
+    bool has_options;
 
     SOL_NULL_CHECK(type, -EINVAL);
     SOL_NULL_CHECK(named_opts, -EINVAL);
     SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, -EINVAL);
+    SOL_INT_CHECK(type->options_size, < sizeof(struct sol_flow_node_options), -EINVAL);
 
     if (type->init_type)
         type->init_type();
     SOL_NULL_CHECK(type->description, -EINVAL);
 
     desc = type->description;
-    type_has_options = desc->options && desc->options->members;
-    if (!type_has_options && named_opts->count > 0) {
+    has_options = desc->options && desc->options->members;
+    if (!has_options && named_opts->count > 0) {
         /* TODO: improve the error handling here so caller knows more
          * details about this. */
         return -EINVAL;
     }
 
-    if (!type->new_options) {
-        if (!type_has_options)
-            return 0;
-        return -EINVAL;
-    }
+    tmp_opts = calloc(1, type->options_size);
+    if (!tmp_opts)
+        return -errno;
 
-    tmp_opts = type->new_options(type, NULL);
-    SOL_NULL_CHECK(tmp_opts, -EINVAL);
+    if (type->default_options) {
+        const struct sol_flow_node_options_member_description *member;
+        memcpy(tmp_opts, type->default_options, type->options_size);
 
-    if (type_has_options) {
-        if (!fill_options_with_named_options(tmp_opts, desc->options, named_opts)) {
-            type->free_options(type, tmp_opts);
-            return -EINVAL;
+        if (has_options) {
+            /* Copy the strings because options_from_strv may override
+             * some of the strings and we can't distinguish between
+             * them at deletion time. */
+            for (member = type->description->options->members; member->name; member++) {
+                if (streq(member->data_type, "string")) {
+                    char **s = (char **)((char *)(tmp_opts) + member->offset);
+                    if (*s)
+                        *s = strdup(*s);
+                }
+            }
+
+            if (!fill_options_with_named_options(tmp_opts, desc->options, named_opts)) {
+                sol_flow_node_options_del(type, tmp_opts);
+                return -EINVAL;
+            }
         }
+    } else {
+        memset(tmp_opts, 0, type->options_size);
+        memcpy(tmp_opts, &sol_flow_node_options_empty, sizeof(sol_flow_node_options_empty));
     }
 
     *out_opts = tmp_opts;
@@ -859,24 +874,6 @@ end:
 #endif
 }
 
-SOL_API struct sol_flow_node_options *
-sol_flow_node_options_copy(const struct sol_flow_node_type *type, const struct sol_flow_node_options *opts)
-{
-    SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, NULL);
-    SOL_FLOW_NODE_OPTIONS_API_CHECK(type, SOL_FLOW_NODE_OPTIONS_API_VERSION, NULL);
-
-#ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    SOL_WRN("This function needs NODE_DESCRIPTION=y in the build config.");
-    return NULL;
-#else
-    SOL_NULL_CHECK(type->description, NULL);
-    SOL_NULL_CHECK(type->description->options, NULL);
-    SOL_NULL_CHECK(type->description->options->members, NULL);
-    SOL_NULL_CHECK(type->new_options, NULL);
-    return type->new_options(type, opts);
-#endif
-}
-
 SOL_API void
 sol_flow_node_options_del(const struct sol_flow_node_type *type, struct sol_flow_node_options *options)
 {
@@ -886,11 +883,22 @@ sol_flow_node_options_del(const struct sol_flow_node_type *type, struct sol_flow
     SOL_WRN("This function needs NODE_DESCRIPTION=y in the build config.");
 #else
     SOL_NULL_CHECK(type->description);
-    SOL_NULL_CHECK(type->description->options);
-    SOL_NULL_CHECK(type->description->options->members);
-    SOL_NULL_CHECK(type->free_options);
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, type->description->options->sub_api);
-    type->free_options(type, options);
+
+    if (type->description->options) {
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, type->description->options->sub_api);
+
+        if (type->description->options->members) {
+            const struct sol_flow_node_options_member_description *member;
+            for (member = type->description->options->members; member->name; member++) {
+                if (streq(member->data_type, "string")) {
+                    char **s = (char **)((char *)(options) + member->offset);
+                    free(*s);
+                }
+            }
+        }
+    }
+
+    free(options);
 #endif
 }
 

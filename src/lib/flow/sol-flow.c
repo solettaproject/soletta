@@ -145,36 +145,16 @@ sol_flow_node_init(struct sol_flow_node *node, struct sol_flow_node *parent, con
     return 0;
 }
 
-static struct sol_flow_node_options empty_defaults = {
+const struct sol_flow_node_options sol_flow_node_options_empty = {
     .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
-    .sub_api = 0
+    .sub_api = 0,
 };
-
-struct sol_flow_node_options *
-sol_flow_node_get_options(const struct sol_flow_node_type *type, const struct sol_flow_node_options *copy_from)
-{
-    struct sol_flow_node_options *opts = &empty_defaults;
-
-    if (type->new_options)
-        opts = type->new_options(type, copy_from);
-    return opts;
-}
-
-void
-sol_flow_node_free_options(const struct sol_flow_node_type *type, struct sol_flow_node_options *options)
-{
-    if (!options || options == &empty_defaults)
-        return;
-    if (type->free_options)
-        type->free_options(type, options);
-}
 
 SOL_API struct sol_flow_node *
 sol_flow_node_new(struct sol_flow_node *parent, const char *id, const struct sol_flow_node_type *type, const struct sol_flow_node_options *options)
 {
     struct sol_flow_node *node;
     int err;
-    bool free_opts = false;
 
     SOL_NULL_CHECK(type, NULL);
     SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, NULL);
@@ -182,18 +162,17 @@ sol_flow_node_new(struct sol_flow_node *parent, const char *id, const struct sol
     node = calloc(1, sizeof(*node) + type->data_size);
     SOL_NULL_CHECK(node, NULL);
 
-    if (!options) {
-        options = sol_flow_node_get_options(type, NULL);
-        free_opts = true;
-    }
+    if (!options)
+        options = type->default_options;
+    if (!options)
+        options = &sol_flow_node_options_empty;
+
     err = sol_flow_node_init(node, parent, id, type, options);
     if (err < 0) {
         free(node);
         node = NULL;
         errno = -err;
     }
-    if (free_opts)
-        sol_flow_node_free_options(type, (struct sol_flow_node_options *)options);
 
     return node;
 }
