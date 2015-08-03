@@ -48,6 +48,6 @@
 #
 
 timer(timer:interval=1000)
-service(platform-service:service_name="bluetooth")
+service(platform/service:service_name="bluetooth")
 
 timer OUT -> TRIGGER service ACTIVE -> IN _(console:prefix="bluetooth is active? ")
