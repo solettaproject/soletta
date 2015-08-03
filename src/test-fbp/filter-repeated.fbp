@@ -58,10 +58,10 @@ gen_int OUT -> IN filter_int OUT -> IN validator_int
 validator_int OUT -> RESULT filter_repeated_int(test/result)
 
 rgb1(constant/rgb:value=red:255|green:10|blue:100)
-rgb2(constant/rgb:value="240|10|100")
-rgb3(constant/rgb:value="240|10|100")
-rgb4(constant/rgb:value="240|100|100")
-rgb5(constant/rgb:value="240|100|100")
+rgb2(constant/rgb:value=240|10|100)
+rgb3(constant/rgb:value=240|10|100)
+rgb4(constant/rgb:value=240|100|100)
+rgb5(constant/rgb:value=240|100|100)
 rgb_int(converter/rgb-to-int)
 validator_green(test/int-validator:sequence="10 10 100")
 rgb1 OUT -> IN filter_rgb OUT -> IN rgb_int GREEN -> IN validator_green
@@ -72,10 +72,10 @@ rgb5 OUT -> IN filter_rgb
 validator_green OUT -> RESULT filter_repeated_rgb(test/result)
 
 direction_vector_1(constant/direction-vector:value=x:255|y:10|z:100)
-direction_vector_2(constant/direction-vector:value="240|10|100")
-direction_vector_3(constant/direction-vector:value="240|10|100")
-direction_vector_4(constant/direction-vector:value="240|100|100")
-direction_vector_5(constant/direction-vector:value="240|100|100")
+direction_vector_2(constant/direction-vector:value=240|10|100)
+direction_vector_3(constant/direction-vector:value=240|10|100)
+direction_vector_4(constant/direction-vector:value=240|100|100)
+direction_vector_5(constant/direction-vector:value=240|100|100)
 direction_vector_int(converter/direction-vector-to-int)
 validator_y(test/int-validator:sequence="10 10 100")
 direction_vector_1 OUT -> IN filter_direction_vector OUT -> IN direction_vector_int Y -> IN validator_y
