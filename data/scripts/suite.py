@@ -85,39 +85,25 @@ def print_log(log_file, stat, log):
     f.write(log_output)
     f.close()
 
-def run_valgrind_test(args):
-    manager = Manager()
-    common_args = "--error-exitcode=1 --num-callers=30"
-    valgrind_tools = {
-        'memcheck': '--leak-check=full --show-reachable=no',
-    }
+VALGRIND_OPTS = "--tool=memcheck --leak-check=full --error-exitcode=1 --num-callers=30"
 
-    for k,v in valgrind_tools.items():
-        stat = manager.dict()
-        log = manager.list()
-        threads = []
-
-        for i in args.tests.split():
-            cmd = "{valgrind} {supp} --tool={tool} {tool_args} {common} {test_path}". \
-                  format(valgrind=args.valgrind, test_path=i, supp=args.valgrind_supp, \
-                         tool=k, tool_args=v, common=common_args)
-            t = Thread(target=run_test_program, args=(cmd, i, stat, log,))
-            t.start()
-            threads.append(t)
-
-        for t in threads:
-            t.join()
-
-        print_log("test-suite-%s.log" % k, stat, log)
-
-def run_test(args):
+def run_tests(args):
     manager = Manager()
     stat = manager.dict()
     log = manager.list()
     threads = []
+    log_file = "test-suite.log"
+
+    prefix = ""
+    if args.valgrind:
+        prefix = " ".join([args.valgrind, args.valgrind_supp, VALGRIND_OPTS])
+        log_file = "test-suite-memcheck.log"
 
     for i in args.tests.split():
-        t = Thread(target=run_test_program, args=(i, i, stat, log,))
+        cmd = i
+        if prefix:
+            cmd = prefix + " " + cmd
+        t = Thread(target=run_test_program, args=(cmd, i, stat, log,))
         t.start()
         threads.append(t)
 
@@ -125,12 +111,6 @@ def run_test(args):
         t.join()
 
     print_log("test-suite.log", stat, log)
-
-def run_suite(args):
-    if args.valgrind:
-        run_valgrind_test(args)
-    else:
-        run_test(args)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -157,4 +137,4 @@ if __name__ == "__main__":
         ENDC = ''
         STATUS_COLOR = ['', '']
 
-    run_suite(args)
+    run_tests(args)
