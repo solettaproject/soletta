@@ -3,12 +3,67 @@ config FLOW_SAMPLES
 	depends on FLOW
 	default y
 
-config FLOW_BASIC_SAMPLE
-	bool "Simple fbp sample"
+config FLOW_BASICS_SAMPLES
+	bool "Basics"
 	depends on FLOW_SAMPLES && FBP_GENERATOR
 	default y
 
-config FLOW_CMDLINE_ARGS_SAMPLE
+config FLOW_BASICS_SIMPLE_SAMPLE
+	bool "Simple fbp sample"
+	depends on FLOW_BASICS_SAMPLES
+	default y
+
+config FLOW_BASICS_CMDLINE_ARGS_SAMPLE
 	bool "Command line arguments sample"
+	depends on FLOW_BASICS_SAMPLES
+	default y
+
+config FLOW_BASICS_FIBONACCI_SAMPLE
+	bool "Fibonacci sample"
+	depends on FLOW_BASICS_SAMPLES
+	default y
+
+config FLOW_BASICS_PLATORM_SERVICE_SAMPLE
+	bool "Platform-service sample"
+	depends on FLOW_BASICS_SAMPLE
+	default y
+
+config FLOW_COMPASS_SAMPLES
+	bool "Compass"
 	depends on FLOW_SAMPLES && FBP_GENERATOR
+	default y
+
+config FLOW_COMPASS_LSM303_SAMPLE
+	bool "Compass lsm303 sample"
+	depends on FLOW_COMPASS_SAMPLES && FLOW_NODE_TYPE_MAGNETOMETER && ACCELEROMETER
+	default y
+
+config FLOW_FOOSBALL_SAMPLE
+	bool "Foosball sample"
+	depends on FLOW_SAMPLES && FBP_GENERATOR
+	default y
+
+config FLOW_GTK_GALLERY_SAMPLE
+	bool "Gtk-gallery sample"
+	depends on FLOW_SAMPLES && FBP_GENERATOR && GTK
+	default y
+
+config FLOW_LD_STRIP_SAMPLES
+	bool "Ld-strip"
+	depends on FLOW_SAMPLES && FBP_GENERATOR
+	default y
+
+config FLOW_LD_STRIP_LPD8806_SAMPLE
+	bool "lpd8806 sample"
+	depends on FLOW_LD_STRIP_SAMPLES
+	default y
+
+config FLOW_MISC_SAMPLES
+	bool "Misc samples"
+	depends on FLOW_SAMPLES && FBP_GENERATOR
+	default y
+
+config FLOW_MISC_FILE_COPY_SAMPLE
+	bool "File-copy sample"
+	depends on FLOW_MISC_SAMPLES
 	default y
