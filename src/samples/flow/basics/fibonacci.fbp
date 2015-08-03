@@ -36,6 +36,10 @@
 #
 #  - integer node types (constant/int and int/addition)
 #
+#  - toggle node type (boolean/toggle)
+#
+#  - switcher node types (switcher/int)
+#
 #  - console node type (using a custom prefix)
 #
 #  - anonymous nodes (the '_' character)
@@ -63,17 +67,22 @@
 #
 #
 # Diagram:
-#                                                                                .----------.
-#                                                                                |          |
-# .------.      .--------------------------.                              .->QUIT| app/quit |
-# |      |      |             .------.     |                              |      |          |
-# | zero |OUT---+-->OPERAND[0]|      |     |               .------.       |      `----------'
-# |      |                    | sum1 |OUT------->OPERAND[0]|      |ERROR--'       .-----.
-# `------'   .---+->OPERAND[1]|      |     |               | sum2 |               |     |
-#            |   |            `------'     `-+-->OPERAND[1]|      |OUT--+---+-->IN| fib |
-#            |   |                           |             `------'     |   |     |     |
-# .------.   `---|---------------------------+--------------------------'   |     `-----'
-# | one  |OUT----+----------------------------------------------------------'
+#                                                      .----------.
+#                                                      |          |
+#                                            .---->QUIT| app/quit |
+#                                            |         |          |
+#                                            |         `----------'
+#               .----------------------------|------------------------------.
+#               |                            |        .--------.            |    .-----------.
+# .------.      |                            |  .-->IN| toggle |OUT----------->IN| converter |OUT
+# |      |      |             .------.       |  |     `--------'            |    `-----------' |
+# | zero |OUT---+-->OPERAND[0]|      |ERROR--'  |  .------------------------|------------------'
+# |      |                    | sum  |          |  '          .----------.  |            .-----.
+# `------'   .---+->OPERAND[1]|      |          |  `->OUT_PORT| switcher |OUT[0]         |     |
+#            |   |            `------'OUT-------+---------->IN|          |OUT[1]  +--->IN| fib |
+#            |   |                              |             `----------' |      |      |     |
+# .------.   `---|------------------------------|--------------------------'      |      `-----'
+# | one  |OUT----+------------------------------+---------------------------------'
 # `------'
 
 ### declare nodes we'll use later:
@@ -81,30 +90,33 @@
 one(constant/int:value=1)
 zero(constant/int:value=0)
 # operations
-sum1(int/addition)
-sum2(int/addition)
+sum(int/addition)
+switcher(switcher/int)
+toggle(boolean/toggle)
 # output
 fib(console:prefix="fibonacci=")
 
 ### implement the fibonacci recursive algorithm
-# base: 0 + 1 -> sum1
-zero OUT -> OPERAND[0] sum1
-one OUT -> OPERAND[1] sum1
+# base: 0 + 1 -> sum
+zero OUT -> OPERAND[0] sum
+one OUT -> OPERAND[1] sum
 
-# base: sum1 + zero -> sum2
-sum1 OUT -> OPERAND[0] sum2
-zero OUT -> OPERAND[1] sum2
+# next number in fibonacci is sum of last two sums, so
+# alternating the input port of addition node will assure this.
+# a toggle can change the port index of a switcher at each sum
+switcher OUT[0] -> OPERAND[0] sum
+switcher OUT[1] -> OPERAND[1] sum
+toggle OUT -> IN _(converter/boolean-to-int) OUT -> OUT_PORT switcher
+sum OUT -> IN toggle
 
-# recursion: sum2 + zero -> sum1
-sum2 OUT -> OPERAND[1] sum1
-# recursion: sum2 + sum1 -> sum2
-sum2 OUT -> OPERAND[1] sum2
+# base: sum + last var (switcher does the trick)
+sum OUT -> IN switcher
 
 ### output the results
 # first output the '1' only once (since it's a constant)
 one OUT -> IN fib
-# then output each result of sum2
-sum2 OUT -> IN fib
+# then output each result of sum
+sum OUT -> IN fib
 
-### Stop on errors (integer overflow)
-sum2 ERROR -> QUIT _(app/quit)
+### stop when it reaches variable limit (integer overflow)
+sum ERROR -> QUIT _(app/quit)
