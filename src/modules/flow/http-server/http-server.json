@@ -1,0 +1,56 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "http-server",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "output/network",
+      "description": "HTTP Server for boolean",
+      "methods": {
+        "close": "boolean_close",
+        "open": "boolean_open"
+      },
+      "name": "http-server/boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+	    "default": "boolean",
+            "description": "The http path where it will be served",
+            "name": "path"
+          },
+	  {
+            "data_type": "boolean",
+	    "default": true,
+            "description": "The initial node's value",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+	{
+	  "data_type": "boolean",
+	  "description": "The value that will be give on a GET",
+          "methods": {
+            "process": "boolean_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+	{
+          "data_type": "boolean",
+          "description": "The value received on a POST",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-server/boolean.html"
+    }
+  ]
+}
