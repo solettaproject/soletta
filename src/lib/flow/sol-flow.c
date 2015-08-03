@@ -359,6 +359,12 @@ sol_flow_send_string_packet(struct sol_flow_node *src, uint16_t src_port, const 
     SOL_FLOW_SEND_PACKET(string);
 }
 
+SOL_API int
+sol_flow_send_string_slice_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_str_slice value)
+{
+    SOL_FLOW_SEND_PACKET(string_slice);
+}
+
 #undef SOL_FLOW_SEND_PACKET
 
 SOL_API int

@@ -35,6 +35,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "sol-str-slice.h"
 #include "sol-types.h"
 
 #ifdef __cplusplus
@@ -111,6 +112,7 @@ int sol_flow_packet_get_irange(const struct sol_flow_packet *packet, struct sol_
 int sol_flow_packet_get_irange_value(const struct sol_flow_packet *packet, int32_t *value);
 
 struct sol_flow_packet *sol_flow_packet_new_string(const char *value);
+struct sol_flow_packet *sol_flow_packet_new_string_slice(struct sol_str_slice slice);
 int sol_flow_packet_get_string(const struct sol_flow_packet *packet, const char **value);
 struct sol_flow_packet *sol_flow_packet_new_string_take(char *value);
 
