@@ -30,87 +30,105 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from multiprocessing import Manager
-from threading import Thread
 import argparse
+import os
+import queue
 import subprocess
 import sys
+import threading
 
-PASS = '\033[92m'
-FAIL = '\033[31m'
-ENDC = '\033[0m'
+PASS_COLOR = '\033[92m'
+FAIL_COLOR = '\033[31m'
+ENDC_COLOR = '\033[0m'
 
-STATUS_COLOR = [FAIL, PASS]
-STATUS_TAG = ["FAIL", "PASS"]
+class Task:
+    def __init__(self, name, cmd):
+        self.name = name
+        self.cmd = cmd
+        self.success = False
+        self.output = ""
 
-def run_test_program(cmd, test, stat, log):
-    success = 1
-    try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
-                                         shell=True, universal_newlines=True)
-        log.append(output)
-    except subprocess.CalledProcessError as e:
-        success = 0
-        log.append(e.output)
+def run_test_program(task_queue):
+    while not task_queue.empty():
+        try:
+            task = task_queue.get_nowait()
+        except queue.Empty:
+            break
 
-    stat[test] = success
+        try:
+            output = subprocess.check_output(task.cmd, stderr=subprocess.STDOUT,
+                                             shell=True, universal_newlines=True)
+            task.success = True
+            task.output = output
+            tag = "%sPASS:%s" % (PASS_COLOR, ENDC_COLOR)
+        except subprocess.CalledProcessError as e:
+            task.success = False
+            task.output = e.output
+            tag = "%sFAIL:%s" % (FAIL_COLOR, ENDC_COLOR)
+        print("%s %s" % (tag, task.name))
 
-    # print out each test's result right away
-    print("%s%s:%s %s" % (STATUS_COLOR[success], STATUS_TAG[success], ENDC, test))
+        task_queue.task_done()
 
-def print_log(log_file, stat, log):
-    output = ""
-    status_cnt = {'FAIL': 0, 'PASS': 0}
-    for k,v in sorted(stat.items()):
-        curr_status = STATUS_TAG[v]
-        status_cnt[curr_status] = status_cnt[curr_status] + 1
+def print_log(log_file, tasks):
+    success_count = 0
+    fail_count = 0
 
-    output += "============================================================================\n"
-    output += "Testsuite summary\n"
-    output += "============================================================================\n"
-    output += "# TOTAL: %d\n" % len(stat)
-    output += "# SUCCESS: %d\n" % status_cnt["PASS"]
-    output += "# FAIL: %d\n" % status_cnt["FAIL"]
-    output += "============================================================================\n"
-    output += "See %s\n" % log_file
-    output += "============================================================================\n"
-
-    # show the stat in the stdout
-    print(output)
-
-    log_output = ""
     f = open(log_file, mode="w+")
-    for i in log:
-        log_output += "%s\n" % i
-    f.write(log_output)
+
+    for task in tasks:
+        f.write("# Running " + task.cmd + "\n")
+        f.write(task.output)
+        f.write("\n")
+        if task.success:
+            success_count += 1
+        else:
+            fail_count += 1
+
+    summary = """\
+============================================================================
+Testsuite summary
+============================================================================
+# TOTAL: %d
+# SUCCESS: %d
+# FAIL: %d
+============================================================================
+See %s
+============================================================================"""
+    summary = summary % (len(tasks), success_count, fail_count, log_file)
+
+    f.write(summary)
     f.close()
+    print(summary)
 
 VALGRIND_OPTS = "--tool=memcheck --leak-check=full --error-exitcode=1 --num-callers=30"
 
 def run_tests(args):
-    manager = Manager()
-    stat = manager.dict()
-    log = manager.list()
-    threads = []
     log_file = "test-suite.log"
+    tasks = []
+    task_queue = queue.Queue()
 
     prefix = ""
     if args.valgrind:
         prefix = " ".join([args.valgrind, args.valgrind_supp, VALGRIND_OPTS])
         log_file = "test-suite-memcheck.log"
 
-    for i in args.tests.split():
-        cmd = i
+    for test in args.tests.split():
+        cmd = test
         if prefix:
             cmd = prefix + " " + cmd
-        t = Thread(target=run_test_program, args=(cmd, i, stat, log,))
-        t.start()
-        threads.append(t)
+        task = Task(test, cmd)
+        tasks.append(task)
+        task_queue.put(task)
 
-    for t in threads:
-        t.join()
+    for i in range(os.cpu_count()):
+        threading.Thread(target=run_test_program, args=(task_queue,)).start()
 
-    print_log("test-suite.log", stat, log)
+    task_queue.join()
+    print_log(log_file, tasks)
+
+    for task in tasks:
+        if not task.success:
+            sys.exit(1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -132,9 +150,8 @@ if __name__ == "__main__":
             args.color = "never"
 
     if args.color == "never":
-        PASS = ''
-        FAIL = ''
-        ENDC = ''
-        STATUS_COLOR = ['', '']
+        PASS_COLOR = ''
+        FAIL_COLOR = ''
+        ENDC_COLOR = ''
 
     run_tests(args)
