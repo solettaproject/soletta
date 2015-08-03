@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "sol-buffer.h"
 #include "sol-flow-internal.h"
 #include "sol-flow-static.h"
 #include "sol-list.h"
@@ -411,6 +412,7 @@ teardown_flow_data(
 static int
 flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
+    struct sol_buffer opts_buf = SOL_BUFFER_EMPTY;
     struct flow_static_type *type;
     struct flow_static_data *fsd;
     const struct sol_flow_static_node_spec *spec;
@@ -432,33 +434,38 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     for (spec = type->node_specs, i = 0; spec->type != NULL; spec++, i++) {
         struct sol_flow_node *child_node = fsd->nodes[i];
         const struct sol_flow_node_options *child_opts = spec->opts;
-        struct sol_flow_node_options *child_opts_copy = NULL;
 
-        static const struct sol_flow_node_options empty_opts = {
-            .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
-            .sub_api = 0,
-        };
+        if (!child_opts)
+            child_opts = spec->type->default_options;
+        if (!child_opts)
+            child_opts = &sol_flow_node_options_empty;
 
         if (type->child_opts_set) {
-            child_opts_copy = sol_flow_node_get_options(spec->type, spec->opts);
-            if (!child_opts_copy) {
-                SOL_WRN("failed to get options for node #%u, type=%p: %s",
-                    (unsigned)(spec - type->node_specs), spec->type,
+            uint16_t options_size = spec->type->options_size;
+            SOL_INT_CHECK_GOTO(options_size, < sizeof(struct sol_flow_node_options), error_nodes);
+
+            r = sol_buffer_ensure(&opts_buf, options_size);
+            if (r < 0) {
+                SOL_WRN("Failed to get buffer with size=%u for options #%u, type %p: %s",
+                    spec->type->options_size, (unsigned)(spec - type->node_specs), spec->type,
                     sol_util_strerrora(errno));
                 goto error_nodes;
             }
 
-            type->child_opts_set(node->type, i, options, child_opts_copy);
-            child_opts = child_opts_copy;
+            if (child_opts == &sol_flow_node_options_empty) {
+                memset(opts_buf.data, 0, options_size);
+                memcpy(opts_buf.data, &sol_flow_node_options_empty, sizeof(sol_flow_node_options_empty));
+            } else {
+                /* No need to copy strings here. The child_opt_set
+                * callback should just override them if needed. */
+                memcpy(opts_buf.data, child_opts, options_size);
+            }
+
+            type->child_opts_set(node->type, i, options, opts_buf.data);
+            child_opts = opts_buf.data;
         }
 
-        if (!child_opts)
-            child_opts = &empty_opts;
-
         r = sol_flow_node_init(child_node, node, spec->name, spec->type, child_opts);
-
-        if (child_opts_copy)
-            sol_flow_node_free_options(spec->type, child_opts_copy);
 
         if (r < 0) {
             SOL_WRN("failed to init node #%u, type=%p, opts=%p: %s",
@@ -472,7 +479,8 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     if (r < 0)
         goto error_conns;
 
-    return 0;
+    r = 0;
+    goto end;
 
 error_conns:
 error_nodes:
@@ -484,6 +492,9 @@ error_nodes:
 
 error_setup:
     teardown_flow_data(type, fsd);
+
+end:
+    sol_buffer_fini(&opts_buf);
 
     return r;
 }

@@ -204,30 +204,19 @@ static const struct sol_flow_node_type_description test_node_description = {
         })
 };
 
-static struct sol_flow_node_options *
-test_node_type_new_options(const struct sol_flow_node_type *type,
-    const struct sol_flow_node_options *copy_from)
-{
-    struct test_node_options *opts, *from = (struct test_node_options *)copy_from;
-
-    opts = malloc(sizeof(*opts));
-    opts->base.api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION;
-    opts->base.sub_api = 1;
-    opts->opt = from ? from->opt : true;
-    return &opts->base;
-}
-
-static void
-test_node_type_free_options(const struct sol_flow_node_type *type, struct sol_flow_node_options *opts)
-{
-    free(opts);
-}
+static const struct test_node_options default_opts = {
+    .base = {
+        .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
+        .sub_api = 1,
+    },
+    .opt = true,
+};
 
 static const struct sol_flow_node_type test_node_type = {
     .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
 
-    .new_options = test_node_type_new_options,
-    .free_options = test_node_type_free_options,
+    .options_size = sizeof(struct test_node_options),
+    .default_options = &default_opts,
 
     .get_ports_counts = test_node_get_ports_counts,
     .get_port_in = test_node_get_port_in,

@@ -635,6 +635,53 @@ end:
 }
 #endif
 
+static struct sol_flow_node_options *
+new_options(const struct sol_flow_node_type *type)
+{
+    struct sol_flow_node_options *opts;
+
+    opts = calloc(1, type->options_size);
+    if (!opts)
+        return NULL;
+
+    if (type->default_options) {
+        const struct sol_flow_node_options_member_description *member;
+        memcpy(opts, type->default_options, type->options_size);
+
+        /* Copy the strings because options_from_strv may override
+         * some of the strings and we can't distinguish between them
+         * at deletion time. */
+        for (member = type->description->options->members; member->name; member++) {
+            if (streq(member->data_type, "string")) {
+                char **s = (char **)((char *)(opts) + member->offset);
+                if (*s)
+                    *s = strdup(*s);
+            }
+        }
+    } else {
+        memset(opts, 0, type->options_size);
+        memcpy(opts, &sol_flow_node_options_empty, sizeof(sol_flow_node_options_empty));
+    }
+
+    return opts;
+}
+
+static void
+free_options(
+    const struct sol_flow_node_type *type,
+    struct sol_flow_node_options *opts)
+{
+    const struct sol_flow_node_options_member_description *member;
+
+    for (member = type->description->options->members; member->name; member++) {
+        if (streq(member->data_type, "string")) {
+            char **s = (char **)((char *)(opts) + member->offset);
+            free(*s);
+        }
+    }
+    free(opts);
+}
+
 SOL_API struct sol_flow_node_options *
 sol_flow_node_options_new_from_strv(const struct sol_flow_node_type *type, const char *const *strv)
 {
@@ -652,32 +699,13 @@ sol_flow_node_options_new_from_strv(const struct sol_flow_node_type *type, const
     SOL_NULL_CHECK(type->description, NULL);
     SOL_NULL_CHECK(type->description->options, NULL);
     SOL_NULL_CHECK(type->description->options->members, NULL);
-    SOL_NULL_CHECK(type->new_options, NULL);
-    opts = type->new_options(type, NULL);
+    opts = new_options(type);
     SOL_NULL_CHECK(opts, NULL);
     if (!options_from_strv(type->description->options, opts, strv)) {
-        type->free_options(type, opts);
+        free_options(type, opts);
         return NULL;
     }
     return opts;
-#endif
-}
-
-SOL_API struct sol_flow_node_options *
-sol_flow_node_options_copy(const struct sol_flow_node_type *type, const struct sol_flow_node_options *opts)
-{
-    SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, NULL);
-    SOL_FLOW_NODE_OPTIONS_API_CHECK(type, SOL_FLOW_NODE_OPTIONS_API_VERSION, NULL);
-
-#ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    SOL_WRN("does not work if compiled with --disable-flow-node-type-description");
-    return NULL;
-#else
-    SOL_NULL_CHECK(type->description, NULL);
-    SOL_NULL_CHECK(type->description->options, NULL);
-    SOL_NULL_CHECK(type->description->options->members, NULL);
-    SOL_NULL_CHECK(type->new_options, NULL);
-    return type->new_options(type, opts);
 #endif
 }
 
@@ -713,9 +741,8 @@ sol_flow_node_options_del(const struct sol_flow_node_type *type, struct sol_flow
     SOL_NULL_CHECK(type->description);
     SOL_NULL_CHECK(type->description->options);
     SOL_NULL_CHECK(type->description->options->members);
-    SOL_NULL_CHECK(type->free_options);
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, type->description->options->sub_api);
-    type->free_options(type, options);
+    free_options(type, options);
 #endif
 }
 

@@ -306,12 +306,11 @@ struct sol_flow_node_type {
 #define SOL_FLOW_NODE_TYPE_API_VERSION (1) /**< compile time API version to be checked during runtime */
     uint16_t api_version; /**< must match SOL_FLOW_NODE_TYPE_API_VERSION at runtime */
     uint16_t data_size; /**< size of the whole sol_flow_node_type derivate */
+    uint16_t options_size;
     uint16_t flags; /**< @see #sol_flow_node_type_flags */
 
     const void *type_data; /**< pointer to per-type user data */
-
-    struct sol_flow_node_options *(*new_options)(const struct sol_flow_node_type *type, const struct sol_flow_node_options *copy_from); /**< member function to instantiate new options for the node. If @a copy_from is not @c NULL, its members will be copied into the new returned struct */
-    void (*free_options)(const struct sol_flow_node_type *type, struct sol_flow_node_options *opts); /**< member function to delete the node options */
+    const void *default_options;
 
     void (*get_ports_counts)(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count); /**< member function to get the number of input/output ports of the node */
     const struct sol_flow_port_type_in *(*get_port_in)(const struct sol_flow_node_type *type, uint16_t port); /**< member function to get the array of the node's input ports */

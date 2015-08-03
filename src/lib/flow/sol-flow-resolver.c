@@ -62,13 +62,6 @@ sol_flow_resolve(
         return -ENOENT;
     }
 
-    if (!tmp_type->new_options && tmp_opts_strv) {
-        SOL_ERR("Error resolving node type for id='%s'. "
-            "The type doesn't support options, but resolver returned them", id);
-        sol_flow_node_options_strv_del((char **)tmp_opts_strv);
-        return -EINVAL;
-    }
-
     *type = tmp_type;
     *opts_strv = tmp_opts_strv;
     return 0;
