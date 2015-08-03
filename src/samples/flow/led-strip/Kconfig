@@ -1,0 +1,4 @@
+config FLOW_LD_STRIP_LPD8806_SAMPLE
+	bool
+	depends on FLOW_FBP_GENERATOR_SAMPLES
+	default y

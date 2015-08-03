@@ -1,0 +1,2 @@
+sample-$(FLOW_LD_STRIP_LDP8806_SAMPLE) += ldp8806
+sample-ldp8806-$(FLOW_LD_STRIP_LDP8806_SAMPLE) := ldp8806.fbp

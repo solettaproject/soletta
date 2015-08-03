@@ -63,7 +63,27 @@ endmenu
 menu "Samples"
 source "src/samples/coap/Kconfig"
 source "src/samples/common/Kconfig"
-source "src/samples/flow/Kconfig"
+
+config FLOW_SAMPLES
+	bool "Flow samples"
+	depends on FLOW
+	default y
+
+config FLOW_FBP_GENERATOR_SAMPLES
+	bool
+	depends on FLOW_SAMPLES && FBP_GENERATOR
+	default y
+
+source "src/samples/flow/basics/Kconfig"
+source "src/samples/flow/c-api/Kconfig"
+source "src/samples/flow/compass/Kconfig"
+source "src/samples/flow/foosball/Kconfig"
+source "src/samples/flow/galileo-grove-kit/Kconfig"
+source "src/samples/flow/galileo-grove-kit/lcd/Kconfig"
+source "src/samples/flow/gtk-gallery/Kconfig"
+source "src/samples/flow/led-strip/Kconfig"
+source "src/samples/flow/misc/Kconfig"
+
 endmenu
 
 menu "Tools"
