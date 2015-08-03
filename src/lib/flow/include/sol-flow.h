@@ -176,6 +176,7 @@ int sol_flow_send_irange_packet(struct sol_flow_node *src, uint16_t src_port, co
 int sol_flow_send_irange_value_packet(struct sol_flow_node *src, uint16_t src_port, int32_t value);
 
 int sol_flow_send_string_packet(struct sol_flow_node *src, uint16_t src_port, const char *value);
+int sol_flow_send_string_slice_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_str_slice value);
 
 int sol_flow_send_string_take_packet(struct sol_flow_node *src, uint16_t src_port, char *value);
 

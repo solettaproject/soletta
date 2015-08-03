@@ -330,10 +330,9 @@ sol_flow_packet_get_irange_value(const struct sol_flow_packet *packet, int32_t *
 static int
 string_packet_init(const struct sol_flow_packet_type *packet_type, void *mem, const void *input)
 {
-    const char *const *pin_string = input;
     char **pstring = mem;
 
-    *pstring = (*pin_string) ? strdup(*pin_string) : NULL;
+    *pstring = (char *)input;
     return 0;
 }
 
@@ -358,7 +357,18 @@ SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_STRING = &_SOL_F
 SOL_API struct sol_flow_packet *
 sol_flow_packet_new_string(const char *value)
 {
-    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &value);
+    struct sol_flow_packet *packet;
+    char *data = value ? strdup(value) : NULL;
+
+    SOL_NULL_CHECK(data, NULL);
+    packet = sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, data);
+    if (likely(packet)) {
+        return packet;
+    }
+
+    SOL_WRN("Could not copy string from slice to send packet");
+    free(data);
+    return NULL;
 }
 
 SOL_API int
@@ -366,6 +376,27 @@ sol_flow_packet_get_string(const struct sol_flow_packet *packet, const char **va
 {
     SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_STRING, -EINVAL);
     return sol_flow_packet_get(packet, value);
+}
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_string_slice(struct sol_str_slice slice)
+{
+    struct sol_flow_packet *packet;
+    char *data;
+
+    SOL_NULL_CHECK(slice.data, NULL);
+
+    data = strndup(slice.data, slice.len);
+    SOL_NULL_CHECK(data, NULL);
+
+    packet = sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, data);
+    if (likely(packet)) {
+        return packet;
+    }
+
+    SOL_WRN("Could not copy string from slice to send packet");
+    free(data);
+    return NULL;
 }
 
 SOL_API struct
