@@ -71,3 +71,8 @@ config HTTP_SERVER
 	depends on HTTP && FEATURE_HTTP_SERVER
 	help
             Server API for both HTTP and HTTPS.
+
+config HTTP_SERVER_PORT
+	depends on HTTP_SERVER
+	int "Default server port"
+	default "80"
