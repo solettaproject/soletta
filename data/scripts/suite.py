@@ -36,7 +36,6 @@ import argparse
 import subprocess
 import sys
 
-WARN = '\033[93m'
 PASS = '\033[92m'
 FAIL = '\033[31m'
 ENDC = '\033[0m'
@@ -46,7 +45,6 @@ STATUS_TAG = ["FAIL", "PASS"]
 
 def run_test_program(cmd, test, stat, log):
     success = 1
-    print("%sRUNNING: %s%s" % (WARN, ENDC, test))
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
                                          shell=True, universal_newlines=True)
@@ -154,7 +152,6 @@ if __name__ == "__main__":
             args.color = "never"
 
     if args.color == "never":
-        WARN = ''
         PASS = ''
         FAIL = ''
         ENDC = ''
