@@ -1,0 +1,15 @@
+config FLOW_C_API_CUSTOM_NODE_TYPES_SAMPLE
+	bool
+	default y
+
+config FLOW_C_API_HIGHLEVEL_SAMPLE
+	bool
+	default y
+
+config FLOW_C_API_LOWLEVEL_SAMPLE
+	bool
+	default y
+
+config FLOW_C_API_SIMPLECTYPE_SAMPLE
+	bool
+	default y

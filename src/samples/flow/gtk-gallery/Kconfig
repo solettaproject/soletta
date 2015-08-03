@@ -1,0 +1,4 @@
+config FLOW_GTK_GALLERY_SAMPLE
+	bool
+	depends on FLOW_FBP_GENERATOR_SAMPLES && GTK
+	default y

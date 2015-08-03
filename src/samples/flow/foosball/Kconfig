@@ -1,0 +1,4 @@
+config FLOW_FOOSBALL_SAMPLE
+	bool
+	depends on FLOW_FBP_GENERATOR_SAMPLES
+	default y
