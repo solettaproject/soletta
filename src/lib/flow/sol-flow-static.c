@@ -431,20 +431,35 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
     for (spec = type->node_specs, i = 0; spec->type != NULL; spec++, i++) {
         struct sol_flow_node *child_node = fsd->nodes[i];
-        struct sol_flow_node_options *child_opts;
+        const struct sol_flow_node_options *child_opts = spec->opts;
+        struct sol_flow_node_options *child_opts_copy = NULL;
 
-        child_opts = sol_flow_node_get_options(spec->type, spec->opts);
-        if (!child_opts) {
-            SOL_WRN("failed to get options for node #%u, type=%p: %s",
-                (unsigned)(spec - type->node_specs), spec->type,
-                sol_util_strerrora(errno));
+        static const struct sol_flow_node_options empty_opts = {
+            .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
+            .sub_api = 0,
+        };
+
+        if (type->child_opts_set) {
+            child_opts_copy = sol_flow_node_get_options(spec->type, spec->opts);
+            if (!child_opts_copy) {
+                SOL_WRN("failed to get options for node #%u, type=%p: %s",
+                    (unsigned)(spec - type->node_specs), spec->type,
+                    sol_util_strerrora(errno));
+                goto error_nodes;
+            }
+
+            type->child_opts_set(node->type, i, options, child_opts_copy);
+            child_opts = child_opts_copy;
         }
 
-        if (type->child_opts_set)
-            type->child_opts_set(node->type, i, options, child_opts);
-        r = sol_flow_node_init(child_node, node, spec->name, spec->type,
-            child_opts);
-        sol_flow_node_free_options(spec->type, child_opts);
+        if (!child_opts)
+            child_opts = &empty_opts;
+
+        r = sol_flow_node_init(child_node, node, spec->name, spec->type, child_opts);
+
+        if (child_opts_copy)
+            sol_flow_node_free_options(spec->type, child_opts_copy);
+
         if (r < 0) {
             SOL_WRN("failed to init node #%u, type=%p, opts=%p: %s",
                 (unsigned)(spec - type->node_specs), spec->type, spec->opts,
