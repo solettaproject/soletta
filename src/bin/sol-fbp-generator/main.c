@@ -84,6 +84,12 @@ struct declared_fbp_type {
     int id;
 };
 
+static struct port_description error_port = {
+    .name = (char *)SOL_FLOW_NODE_PORT_ERROR_NAME,
+    .data_type = (char *)"error",
+    .base_port_idx = SOL_FLOW_NODE_PORT_ERROR,
+};
+
 static void
 handle_suboptions(const struct sol_fbp_meta *meta,
     void (*handle_func)(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file), const char *fbp_file)
@@ -310,6 +316,11 @@ check_port_existence(struct sol_vector *ports, struct sol_str_slice *name, uint1
             *port_number = p->base_port_idx;
             return p;
         }
+    }
+
+    if (sol_str_slice_str_eq(*name, SOL_FLOW_NODE_PORT_ERROR_NAME)) {
+        *port_number = error_port.base_port_idx;
+        return &error_port;
     }
 
     return NULL;
