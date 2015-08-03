@@ -72,6 +72,16 @@
         "name": "CUSTOM2"
        },
        {
+        "data_type": "direction-vector",
+        "description": "Dummy direction-vector input port.",
+        "methods": {
+         "connect": "direction_vector_connect",
+         "disconnect": "direction_vector_disconnect",
+         "process": "direction_vector_process"
+        },
+        "name": "DIRECTION_VECTOR"
+       },
+       {
         "data_type": "float",
         "description": "Dummy float input port.",
         "methods": {
@@ -143,6 +153,18 @@
          "name": "opt_float"
         },
         {
+         "data_type": "direction-vector",
+         "default": {
+             "min": -20,
+             "max": 40,
+             "x": -8.4,
+             "y": 0,
+             "z": 33.25
+         },
+         "description": "Dummy direction-vector option.",
+         "name": "opt_direction_vector"
+        },
+        {
          "data_type": "int",
          "default": {
              "val": 20,
@@ -210,6 +232,11 @@
         "data_type": "float",
         "description": "Dummy float input port.",
         "name": "FLOAT"
+       },
+       {
+        "data_type": "direction-vector",
+        "description": "Dummy direction-vector output port.",
+        "name": "DIRECTION_VECTOR"
        },
        {
         "data_type": "int",
