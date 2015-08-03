@@ -372,33 +372,19 @@ flow_delay_send(struct sol_flow_node *flow, struct flow_static_data *fsd)
 }
 
 static int
-flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+setup_flow_data(
+    struct flow_static_type *type,
+    struct flow_static_data *fsd)
 {
-    struct flow_static_type *type;
-    struct flow_static_data *fsd;
     const struct sol_flow_static_node_spec *spec;
     char *node_storage_it;
-    int r, i;
-
-    type = (struct flow_static_type *)node->type;
-    fsd = data;
+    int i;
 
     fsd->nodes = calloc(type->node_count, sizeof(struct sol_flow_node *));
     fsd->node_storage = calloc(1, type->node_storage_size);
-    if (!fsd->nodes || !fsd->node_storage) {
-        r = -ENOMEM;
-        goto error_alloc;
-    }
+    if (!fsd->nodes || !fsd->node_storage)
+        return -ENOMEM;
 
-    /* Assure flow_send_idle()'s timeout is the first registered, so
-     * that timeouts coming from nodes' init/open functions and that
-     * may produce packets will always have them delivered */
-    r = flow_delay_send(node, fsd);
-    SOL_INT_CHECK_GOTO(r, < 0, error_alloc);
-
-    sol_list_init(&fsd->delayed_packets);
-
-    /* Set all pointers before calling nodes methods */
     node_storage_it = fsd->node_storage;
     for (spec = type->node_specs, i = 0; spec->type != NULL; spec++, i++) {
         struct sol_flow_node *child_node = (struct sol_flow_node *)node_storage_it;
@@ -407,6 +393,41 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
         child_node->parent_data = INT_TO_PTR(i);
         node_storage_it += calc_node_size(spec);
     }
+
+    sol_list_init(&fsd->delayed_packets);
+
+    return 0;
+}
+
+static void
+teardown_flow_data(
+    struct flow_static_type *type,
+    struct flow_static_data *fsd)
+{
+    free(fsd->nodes);
+    free(fsd->node_storage);
+}
+
+static int
+flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct flow_static_type *type;
+    struct flow_static_data *fsd;
+    const struct sol_flow_static_node_spec *spec;
+    int r, i;
+
+    type = (struct flow_static_type *)node->type;
+    fsd = data;
+
+    r = setup_flow_data(type, fsd);
+    if (r < 0)
+        goto error_setup;
+
+    /* Assure flow_send_idle()'s timeout is the first registered, so
+     * that timeouts coming from nodes' init/open functions and that
+     * may produce packets will always have them delivered */
+    r = flow_delay_send(node, fsd);
+    SOL_INT_CHECK_GOTO(r, < 0, error_setup);
 
     for (spec = type->node_specs, i = 0; spec->type != NULL; spec++, i++) {
         struct sol_flow_node *child_node = fsd->nodes[i];
@@ -446,9 +467,8 @@ error_nodes:
 
     sol_timeout_del(fsd->delay_send);
 
-error_alloc:
-    free(fsd->node_storage);
-    free(fsd->nodes);
+error_setup:
+    teardown_flow_data(type, fsd);
 
     return r;
 }
@@ -505,8 +525,7 @@ flow_node_close(struct sol_flow_node *node, void *data)
     for (i = type->node_count - 1; i >= 0; i--)
         sol_flow_node_fini(fsd->nodes[i]);
 
-    free(fsd->node_storage);
-    free(fsd->nodes);
+    teardown_flow_data(type, fsd);
 
     if (type->owned_by_node)
         sol_flow_node_type_del(&type->base.base);
