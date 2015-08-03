@@ -46,16 +46,20 @@ Show size of the library compiled in different configurations
 
 OPTIONS
     -a             show size of all modules in addition to the library
+    -l             do not disable log from the build
     -h             display this help message
 " 1>&2;
     exit 1;
 }
 
 OPT_ALL=0
+OPT_KEEP_LOG=0
 args=
 for arg in "$@"; do
     case "$arg" in
         -a) OPT_ALL=1
+            ;;
+        -l) OPT_KEEP_LOG=1
             ;;
         -h) usage
             ;;
@@ -65,11 +69,21 @@ for arg in "$@"; do
 done
 IFS=' ' read -a args <<< "$args"
 
-CONFIGURE_OPTS="$args"
+if [ $OPT_KEEP_LOG -eq 0 ]; then
+    echo "# logs disabled"
+else
+    echo "# logs enabled"
+fi
+
+echo
 
 function calc_size() {
-    make alldefconfig
+    echo "# building with CFLAGS='$@'"
+    make alldefconfig > /dev/null
     make clean > /dev/null
+    if [ $OPT_KEEP_LOG -eq 0 ]; then
+	sed -i "s/^LOG=y/LOG=n/" .config
+    fi
     make CFLAGS="$@" -j4 &> /dev/null || die "Error compiling with $@"
     LIB=*
     if [ $OPT_ALL -eq 0 ]; then
