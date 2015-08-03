@@ -1047,6 +1047,17 @@ mark_own_opts(struct sol_flow_builder *builder, uint16_t node_idx)
     node_extra->owns_opts = true;
 }
 
+void
+sol_flow_builder_mark_own_all_options(struct sol_flow_builder *builder)
+{
+    struct node_extra *node_extra;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (&builder->node_extras, node_extra, i) {
+        node_extra->owns_opts = true;
+    }
+}
+
 SOL_API int
 sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const char *name, const char *type_name, const char *const *options_strv)
 {
