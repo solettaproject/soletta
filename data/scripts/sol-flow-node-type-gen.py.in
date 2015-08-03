@@ -812,8 +812,6 @@ static void
 }
 """)
 
-    new_options_func = "NULL"
-    free_options_func = "NULL"
     if "options" in data:
         outfile.write("""
 static const struct %(name_c)s_options %(name_c)s_options_defaults = %(NAME_C)s_OPTIONS_DEFAULTS();
@@ -821,78 +819,7 @@ static const struct %(name_c)s_options %(name_c)s_options_defaults = %(NAME_C)s_
     "name_c": data["name_c"],
     "NAME_C": data["NAME_C"],
     })
-        new_options_func = None
-        free_options_func = None
-        if "methods" in data["options"]:
-            new_options_func = data["options"]["methods"].get("new", None)
-            free_options_func = data["options"]["methods"].get("free", None)
 
-    if new_options_func is None:
-        new_options_func = "%s_new_options_internal" % data["name_c"]
-        outfile.write("""
-static struct sol_flow_node_options *
-%(name_func)s(const struct sol_flow_node_type *type, const struct sol_flow_node_options *copy_from)
-{
-    struct %(name_c)s_options *opts;
-    const struct %(name_c)s_options *from;
-
-    if (!copy_from) from = &%(name_c)s_options_defaults;
-    else from = (struct %(name_c)s_options *)copy_from;
-    if (from->base.sub_api != %(NAME_C)s_OPTIONS_API_VERSION) {
-        errno = -EINVAL;
-        return NULL;
-    }
-
-    opts = malloc(sizeof(*opts));
-    if (!opts) {
-        errno = -ENOMEM;
-        return NULL;
-    }
-    *opts = *from;
-""" % {
-    "name_c": data["name_c"],
-    "NAME_C": data["NAME_C"],
-    "name_func": new_options_func
-    })
-        members = data["options"].get("members", [])
-        for m in members:
-            if m["data_type"] == "string":
-                outfile.write("""
-    if (opts->%(member)s)
-        opts->%(member)s = strdup(opts->%(member)s);
-""" % {
-    "member": m["name"]
-    })
-        outfile.write("""
-    return &opts->base;
-}
-""")
-
-    if free_options_func is None:
-        free_options_func = "%s_free_options_internal" % data["name_c"]
-        outfile.write("""
-static void
-%(name_func)s(const struct sol_flow_node_type *type, struct sol_flow_node_options *options)
-{
-    struct %(name_c)s_options *opts;
-    if (!options) return;
-    opts = (struct %(name_c)s_options *)options;
-""" % {
-    "name_c": data["name_c"],
-    "name_func": free_options_func
-    })
-        members = data["options"].get("members", [])
-        for m in members:
-            if m["data_type"] == "string":
-                outfile.write("""
-    free((void *)opts->%(member)s);
-""" % {
-    "member": m["name"]
-    })
-        outfile.write("""
-    free(opts);
-}
-""")
 
     outfile.write("""
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
@@ -1038,6 +965,12 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
     }),
 """)
 
+    outfile.write("""\
+};
+#endif
+
+""")
+
     node_type = "struct sol_flow_node_type"
     node_base_type_access_open = ""
     node_base_type_access_close = ""
@@ -1053,16 +986,20 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
     data_size = "0"
     if "private_data_type" in data:
         data_size = "sizeof(struct " + data.get("private_data_type") + ")"
-    outfile.write("""\
-};
-#endif
 
+    options_size = "sizeof(struct sol_flow_node_options)"
+    default_options = "NULL"
+    if "options" in data:
+        options_size = "sizeof(struct " + data["name_c"] + "_options)"
+        default_options = "&" + data["name_c"] + "_options_defaults"
+
+    outfile.write("""\
 static const %(node_type)s %(name_c)s = {%(node_base_type_access_open)s
     .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
     .data_size = %(data_size)s,
+    .options_size = %(options_size)s,
+    .default_options = %(default_options)s,
     .init_type = %(name_c)s_init_type_internal,
-    .new_options = %(new_opts)s,
-    .free_options = %(free_opts)s,
     .open = %(open)s,
     .close = %(close)s,
     .get_ports_counts = %(name_c)s_get_ports_counts_internal,
@@ -1071,8 +1008,8 @@ static const %(node_type)s %(name_c)s = {%(node_base_type_access_open)s
     "node_base_type_access_open": node_base_type_access_open,
     "name_c": data["name_c"],
     "data_size": data_size,
-    "new_opts": new_options_func,
-    "free_opts": free_options_func,
+    "options_size": options_size,
+    "default_options": default_options,
     "open": methods.get("open", "NULL"),
     "close": methods.get("close", "NULL"),
     })

@@ -114,8 +114,8 @@ grove_rotary_sensor_new_type(const struct sol_flow_node_type **current)
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     type->description = (*current)->description;
 #endif
-    type->new_options = (*current)->new_options;
-    type->free_options = (*current)->free_options;
+    type->options_size = (*current)->options_size;
+    type->default_options = (*current)->default_options;
     *current = type;
 }
 
@@ -232,8 +232,8 @@ grove_light_sensor_new_type(const struct sol_flow_node_type **current)
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     type->description = (*current)->description;
 #endif
-    type->new_options = (*current)->new_options;
-    type->free_options = (*current)->free_options;
+    type->options_size = (*current)->options_size;
+    type->default_options = (*current)->default_options;
     *current = type;
 }
 
@@ -412,8 +412,8 @@ grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     type->description = (*current)->description;
 #endif
-    type->new_options = (*current)->new_options;
-    type->free_options = (*current)->free_options;
+    type->options_size = (*current)->options_size;
+    type->default_options = (*current)->default_options;
     *current = type;
 }
 
