@@ -84,6 +84,8 @@ struct declared_fbp_type {
     int id;
 };
 
+struct port_description error_port;
+
 static void
 handle_suboptions(const struct sol_fbp_meta *meta,
     void (*handle_func)(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file), const char *fbp_file)
@@ -310,6 +312,11 @@ check_port_existence(struct sol_vector *ports, struct sol_str_slice *name, uint1
             *port_number = p->base_port_idx;
             return p;
         }
+    }
+
+    if (sol_str_slice_str_eq(*name, SOL_FLOW_NODE_PORT_ERROR_NAME)) {
+        *port_number = error_port.base_port_idx;
+        return &error_port;
     }
 
     return NULL;
@@ -1058,6 +1065,40 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
     return data;
 }
 
+static bool
+sol_fbp_generator_error_port_init(void) {
+    error_port.name = NULL;
+    error_port.data_type = NULL;
+
+    error_port.name = strdup(SOL_FLOW_NODE_PORT_ERROR_NAME);
+    if (!error_port.name)
+        return false;
+
+    error_port.data_type = strdup("error");
+    if (!error_port.data_type)
+        goto fail_data_type;
+
+    error_port.base_port_idx = SOL_FLOW_NODE_PORT_ERROR;
+    return true;
+
+ fail_data_type:
+    free(error_port.name);
+    error_port.name = NULL;
+    error_port.data_type = NULL;
+
+    return false;
+}
+
+static void
+sol_fbp_generator_error_port_free(void) {
+    free(error_port.name);
+    free(error_port.data_type);
+
+    error_port.name = NULL;
+    error_port.data_type = NULL;
+    error_port.base_port_idx = 0;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -1072,6 +1113,9 @@ main(int argc, char *argv[])
 
     if (sol_init() < 0)
         goto end;
+
+    if (!sol_fbp_generator_error_port_init())
+        goto fail_error_port;
 
     str_arena = sol_arena_new();
     if (!str_arena) {
@@ -1134,6 +1178,8 @@ fail_access:
 fail_args:
     sol_arena_del(str_arena);
 fail_arena:
+    sol_fbp_generator_error_port_free();
+fail_error_port:
     sol_shutdown();
 end:
     return result;
