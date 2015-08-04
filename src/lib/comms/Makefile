@@ -11,7 +11,8 @@ ifeq (y,$(NETWORK))
 
     ifeq (y,$(SOL_PLATFORM_LINUX))
     obj-comms-$(COMMS) += \
-        sol-network-linux.o
+        sol-network-linux.o \
+        sol-socket-linux.o
     endif
 endif
 

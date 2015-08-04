@@ -335,11 +335,6 @@ config USE_GPIO
 	default y
 endmenu
 
-config SOCKET_LINUX
-	bool "Linux sockets"
-	depends on SOL_PLATFORM_LINUX && NETWORK
-	default y
-
 menuconfig USE_PIN_MUX
         bool "Pin Multiplexer"
         depends on USE_GPIO
