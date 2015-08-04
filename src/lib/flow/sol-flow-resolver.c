@@ -36,44 +36,6 @@
 #include "sol-flow-internal.h"
 #include "sol-flow-buildopts.h"
 
-SOL_API int
-sol_flow_resolve(
-    const struct sol_flow_resolver *resolver,
-    const char *id,
-    struct sol_flow_node_type const **type,
-    const char ***opts_strv)
-{
-    const struct sol_flow_node_type *tmp_type = NULL;
-    const char **tmp_opts_strv = NULL;
-    int ret;
-
-    SOL_NULL_CHECK(id, -EINVAL);
-    SOL_NULL_CHECK(type, -EINVAL);
-    SOL_NULL_CHECK(opts_strv, -EINVAL);
-
-    if (!resolver)
-        resolver = sol_flow_get_default_resolver();
-    SOL_NULL_CHECK(resolver, -ENOENT);
-
-    ret = resolver->resolve(resolver->data, id, &tmp_type, &tmp_opts_strv);
-    if (ret != 0) {
-        SOL_DBG("could not resolve module for id='%s' using resolver=%s",
-            id, resolver->name);
-        return -ENOENT;
-    }
-
-    if (!tmp_type->new_options && tmp_opts_strv) {
-        SOL_ERR("Error resolving node type for id='%s'. "
-            "The type doesn't support options, but resolver returned them", id);
-        sol_flow_node_options_strv_del((char **)tmp_opts_strv);
-        return -EINVAL;
-    }
-
-    *type = tmp_type;
-    *opts_strv = tmp_opts_strv;
-    return 0;
-}
-
 struct find_type_ctx {
     const char *name;
     const struct sol_flow_node_type *type;
@@ -93,7 +55,7 @@ find_type_cb(void *data, const struct sol_flow_node_type *type)
 
 static int
 builtins_resolve(void *data, const char *id, struct sol_flow_node_type const **type,
-    const char ***opts_strv)
+    struct sol_flow_node_named_options *named_opts)
 {
     struct find_type_ctx ctx = {};
 
@@ -103,7 +65,7 @@ builtins_resolve(void *data, const char *id, struct sol_flow_node_type const **t
         return -ENOENT;
     *type = ctx.type;
     /* When resolving to a type, no options are set. */
-    *opts_strv = NULL;
+    *named_opts = (struct sol_flow_node_named_options){};
     return 0;
 }
 
@@ -125,4 +87,42 @@ SOL_API const struct sol_flow_resolver *
 sol_flow_get_default_resolver(void)
 {
     return sol_flow_default_resolver;
+}
+
+SOL_API int
+sol_flow_resolve(
+    const struct sol_flow_resolver *resolver,
+    const char *id,
+    const struct sol_flow_node_type **type,
+    struct sol_flow_node_named_options *named_opts)
+{
+    const struct sol_flow_node_type *tmp_type;
+    struct sol_flow_node_named_options tmp_named_opts = {};
+    int err;
+
+    SOL_NULL_CHECK(id, -EINVAL);
+    SOL_NULL_CHECK(type, -EINVAL);
+    SOL_NULL_CHECK(named_opts, -EINVAL);
+
+    if (!resolver)
+        resolver = sol_flow_get_default_resolver();
+    SOL_NULL_CHECK(resolver, -ENOENT);
+
+    err = resolver->resolve(resolver->data, id, &tmp_type, &tmp_named_opts);
+    if (err < 0) {
+        SOL_DBG("could not resolve module for id='%s' using resolver=%s",
+            id, resolver->name);
+        return -ENOENT;
+    }
+
+    if (!tmp_type->new_options && tmp_named_opts.count > 0) {
+        SOL_ERR("Error resolving node type for id='%s'. "
+            "The type doesn't support options, but resolver returned them", id);
+        return -EINVAL;
+    }
+
+    *type = tmp_type;
+    *named_opts = tmp_named_opts;
+
+    return 0;
 }

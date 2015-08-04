@@ -36,6 +36,7 @@
 #include "sol-buffer.h"
 #include "sol-fbp.h"
 #include "sol-flow-builder.h"
+#include "sol-flow-internal.h"
 #include "sol-flow-parser.h"
 #include "sol-flow-resolver.h"
 #include "sol-log.h"
@@ -61,6 +62,7 @@ struct sol_flow_parser {
     const struct sol_flow_resolver *resolver;
     const struct sol_flow_parser_client *client;
 
+    const struct sol_flow_resolver *builtins_resolver;
     struct sol_flow_resolver resolver_with_declares;
 
     /* Types produced by the parser are owned by it, to ensure that no
@@ -102,19 +104,26 @@ struct parse_state {
 static int
 parse_state_resolve(void *data, const char *id,
     struct sol_flow_node_type const **type,
-    char const ***opts_strv)
+    struct sol_flow_node_named_options *named_opts)
 {
     struct parse_state *state = data;
     struct declared_type *dec_type;
     uint16_t i;
+    int err;
 
     SOL_VECTOR_FOREACH_IDX (&state->declared_types, dec_type, i) {
         if (sol_str_slice_str_eq(dec_type->name, id)) {
             *type = dec_type->type;
+            *named_opts = (struct sol_flow_node_named_options){};
             return 0;
         }
     }
-    return sol_flow_resolve(state->parser->resolver, id, type, opts_strv);
+
+    err = sol_flow_resolve(state->parser->builtins_resolver, id, type, named_opts);
+    if (err >= 0)
+        return 0;
+
+    return sol_flow_resolve(state->parser->resolver, id, type, named_opts);
 }
 
 static void
@@ -206,6 +215,7 @@ sol_flow_parser_new(
 
     if (!resolver)
         resolver = sol_flow_get_default_resolver();
+    parser->builtins_resolver = sol_flow_get_builtins_resolver();
     parser->resolver = resolver;
     parser->client = client;
 
@@ -263,59 +273,139 @@ unescape_str(char *orig_str)
 }
 
 static int
-get_options_array(struct sol_fbp_node *node, char ***opts_array)
+append_node_options(
+    struct parse_state *state,
+    struct sol_fbp_node *node,
+    const struct sol_flow_node_type *type,
+    struct sol_flow_node_named_options *named_opts)
 {
-    struct sol_fbp_meta *m;
-    unsigned int i, count, pos;
-    char **tmp_array, **opts_it;
+    struct sol_buffer key = SOL_BUFFER_EMPTY, value = SOL_BUFFER_EMPTY;
+    struct sol_flow_node_named_options result;
+    struct sol_flow_node_named_options_member *m;
+    struct sol_fbp_meta *meta;
+    uint16_t i, count;
+    bool failed = false;
+    int r;
 
-    count = node->meta.len;
-    if (count == 0)
+    if (node->meta.len == 0)
         return 0;
 
-    /* Extra slot for NULL sentinel at the end. */
-    tmp_array = calloc(count + 1, sizeof(char *));
-    if (!tmp_array)
-        return -ENOMEM;
-
-    pos = 0;
-    SOL_VECTOR_FOREACH_IDX (&node->meta, m, i) {
-        char *entry;
-        if (m->value.len == 0)
-            continue;
-
-        if (asprintf(&entry, "%.*s=%.*s", SOL_STR_SLICE_PRINT(m->key),
-            SOL_STR_SLICE_PRINT(m->value)) < 0)
-            goto fail;
-
-        if (entry[m->key.len + 1] == '"') {
-            unescape_str(entry + m->key.len + 1);
-        }
-
-        tmp_array[pos] = entry;
-        pos++;
+    if (!type->description || !type->description->options
+        || !type->description->options->members) {
+        return -ENOTSUP;
     }
 
-    *opts_array = tmp_array;
-    return 0;
+    count = named_opts->count + node->meta.len;
+    result.members = calloc(count, sizeof(struct sol_flow_node_named_options_member));
+    if (!result.members)
+        return -errno;
 
-fail:
-    for (opts_it = tmp_array; *opts_it != NULL; opts_it++)
-        free(*opts_it);
-    free(tmp_array);
-    return -ENOMEM;
-}
+    result.count = named_opts->count;
+    m = result.members + result.count;
 
-static void
-del_options_array(char **opts_array)
-{
-    char **opts_it;
+    SOL_VECTOR_FOREACH_IDX (&node->meta, meta, i) {
+        const struct sol_flow_node_options_member_description *mdesc;
+        bool found = false, is_string_value;
 
-    if (!opts_array)
-        return;
-    for (opts_it = opts_array; *opts_it != NULL; opts_it++)
-        free(*opts_it);
-    free(opts_array);
+        if (meta->key.len == 0) {
+            sol_fbp_log_print(state->filename, meta->position.line, meta->position.column,
+                "Invalid option name '%.*s' of node '%.*s'",
+                SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(node->name));
+            failed = true;
+            continue;
+        }
+
+        if (meta->value.len == 0) {
+            sol_fbp_log_print(state->filename, meta->position.line, meta->position.column,
+                "Non-string empty value for option name '%.*s' of node '%.*s'",
+                SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(node->name));
+            failed = true;
+            continue;
+        }
+
+        r = sol_buffer_set_slice(&key, meta->key);
+        if (r < 0)
+            goto end;
+
+        mdesc = type->description->options->members;
+        for (; mdesc->name != NULL; mdesc++) {
+            if (streq(mdesc->name, key.data)) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            sol_fbp_log_print(state->filename, meta->position.line, meta->position.column,
+                "Unknown option name '%.*s' of node '%.*s'",
+                SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(node->name));
+            failed = true;
+            continue;
+        }
+
+        r = sol_buffer_set_slice(&value, meta->value);
+        if (r < 0)
+            goto end;
+
+        is_string_value = ((char *)value.data)[0] == '"';
+
+        m->type = sol_flow_node_options_member_type_from_string(mdesc->data_type);
+        if (m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN) {
+            sol_fbp_log_print(state->filename, meta->position.line, meta->position.column,
+                "Unknown type (%u) of option name '%.*s' of node '%.*s'",
+                m->type, SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(node->name));
+            failed = true;
+            continue;
+        } else if (m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_STRING) {
+            /* We currently don't enforce strings to be quoted. */
+            if (is_string_value)
+                unescape_str(value.data);
+        } else if (is_string_value) {
+            sol_fbp_log_print(state->filename, meta->position.line, meta->position.column,
+                "Option '%.*s' (%s) of node '%.*s' must not be quoted since it's not a string",
+                SOL_STR_SLICE_PRINT(meta->key), sol_flow_node_options_member_type_to_string(m->type),
+                SOL_STR_SLICE_PRINT(node->name));
+            failed = true;
+            continue;
+        }
+
+        m->name = mdesc->name;
+
+        r = sol_flow_node_named_options_parse_member(m, value.data);
+        if (r < 0) {
+            sol_fbp_log_print(state->filename, meta->position.line, meta->position.column,
+                "Couldn't parse value '%.*s' for option '%.*s' (%s) of node '%.*s'",
+                SOL_STR_SLICE_PRINT(meta->value), SOL_STR_SLICE_PRINT(meta->key),
+                sol_flow_node_options_member_type_to_string(m->type), SOL_STR_SLICE_PRINT(node->name));
+            failed = true;
+            continue;
+        }
+
+        m++;
+        result.count++;
+    }
+
+    if (!failed) {
+        memcpy(result.members, named_opts->members,
+            named_opts->count * sizeof(struct sol_flow_node_named_options_member));
+        *named_opts = result;
+        r = 0;
+    } else {
+        sol_flow_node_named_options_fini(&result);
+        r = -EINVAL;
+    }
+
+end:
+    sol_buffer_fini(&key);
+    sol_buffer_fini(&value);
+
+    if (r == -ENOMEM) {
+        sol_fbp_log_print(state->filename, node->position.line, node->position.column,
+            "Out of memory when processing node '%.*s'",
+            SOL_STR_SLICE_PRINT(node->name));
+    }
+
+    return r;
 }
 
 static char *
@@ -323,7 +413,9 @@ build_node(
     struct parse_state *state,
     struct sol_fbp_node *node)
 {
-    char **opts_array = NULL;
+    const struct sol_flow_node_type *type = NULL;
+    struct sol_flow_node_options *opts = NULL;
+    struct sol_flow_node_named_options named_opts = {};
     char *component, *name = NULL;
     int err;
 
@@ -338,30 +430,44 @@ build_node(
         goto end;
     }
 
-    err = get_options_array(node, &opts_array);
+    err = sol_flow_resolve(&state->resolver, component, &type, &named_opts);
     if (err < 0) {
         sol_fbp_log_print(state->filename, node->position.line, node->position.column,
-            "Couldn't get options for node '%s'", name);
-        err = -errno;
+            "Couldn't resolve type '%s' of node '%s'", component, name);
         goto end;
     }
 
-    err = sol_flow_builder_add_node_by_type(state->builder, name, component, (const char *const *)opts_array);
+    err = append_node_options(state, node, type, &named_opts);
     if (err < 0) {
-        if (err == -ENOENT) {
+        if (err == -ENOTSUP) {
             sol_fbp_log_print(state->filename, node->position.line, node->position.column,
-                "Couldn't resolve type name '%s'", component);
-        } else if (err == -EINVAL) {
-            sol_fbp_log_print(state->filename, node->position.line, node->position.column,
-                "Couldn't build options for node '%s'", name);
+                "Type name '%s' of node '%s' doesn't contain type description for options",
+                component, name);
         }
+        goto end;
     }
 
-    del_options_array(opts_array);
+    err = sol_flow_node_options_new(type, &named_opts, &opts);
+    if (err < 0) {
+        sol_fbp_log_print(state->filename, node->position.line, node->position.column,
+            "Couldn't build options for node '%s'", name);
+        goto end;
+    }
+
+    err = sol_flow_builder_add_node(state->builder, name, type, opts);
+    if (err < 0) {
+        sol_fbp_log_print(state->filename, node->position.line, node->position.column,
+            "Couldn't add node '%s'", name);
+        goto end;
+    }
 
 end:
+    sol_flow_node_named_options_fini(&named_opts);
+
     free(component);
     if (err < 0) {
+        if (opts)
+            sol_flow_node_options_del(type, opts);
         name = NULL;
         errno = -err;
     }
@@ -527,6 +633,8 @@ build_flow(struct parse_state *state)
             goto end;
         }
     }
+
+    sol_flow_builder_mark_own_all_options(state->builder);
 
     SOL_VECTOR_FOREACH_IDX (&graph->conns, c, i) {
         err = sol_buffer_set_slice(&src_port_buf, c->src_port);

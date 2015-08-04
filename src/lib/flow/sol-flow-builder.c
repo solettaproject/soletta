@@ -123,6 +123,8 @@ sol_flow_builder_init_type_data(struct sol_flow_builder *builder)
     builder->type_data->spec.api_version = SOL_FLOW_STATIC_API_VERSION;
     builder->type_data->desc.api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION;
 
+    builder->type_data->options_size = sizeof(struct sol_flow_builder_options);
+
     return 0;
 
 error_arena:
@@ -1037,77 +1039,6 @@ error:
     return NULL;
 }
 
-static const char **
-strv_join(const char *const *first, const char *const *second)
-{
-    unsigned int first_count = 0, second_count = 0;
-    unsigned int first_size, second_size;
-    const char *const *p;
-    const char **joined;
-
-    for (p = first; *p; p++, first_count++) ;
-    for (p = second; *p; p++, second_count++) ;
-
-    joined = calloc(first_count + second_count + 1, sizeof(char *));
-    if (!joined)
-        return NULL;
-
-    first_size = first_count * sizeof(char *);
-    second_size = second_count * sizeof(char *);
-    memcpy(joined, first, first_size);
-    memcpy(joined + first_count, second, second_size);
-
-    return joined;
-}
-
-static int
-find_type(const struct sol_flow_resolver *resolver, const char *id, const char *const *extra_strv,
-    struct sol_flow_node_type const **type, struct sol_flow_node_options const **opts)
-{
-    const struct sol_flow_node_type *tmp_type;
-    struct sol_flow_node_options *tmp_opts;
-    const char **opts_strv, **joined_strv = NULL;
-    const char *const *strv;
-    int err;
-
-    err = sol_flow_resolve(resolver, id, &tmp_type, &opts_strv);
-    if (err)
-        return -ENOENT;
-
-    if (!tmp_type->new_options) {
-        *type = tmp_type;
-        return 0;
-    }
-
-    if (extra_strv && opts_strv) {
-        joined_strv = strv_join(opts_strv, extra_strv);
-        if (!joined_strv) {
-            err = -ENOMEM;
-            goto end;
-        }
-        strv = joined_strv;
-    } else if (extra_strv) {
-        strv = extra_strv;
-    } else {
-        strv = opts_strv;
-    }
-
-    tmp_opts = sol_flow_node_options_new_from_strv(tmp_type, strv);
-    if (!tmp_opts) {
-        err = -EINVAL;
-        goto end;
-    }
-
-    *type = tmp_type;
-    *opts = tmp_opts;
-    err = 0;
-
-end:
-    free(joined_strv);
-    sol_flow_node_options_strv_del((char **)opts_strv);
-    return err;
-}
-
 static void
 mark_own_opts(struct sol_flow_builder *builder, uint16_t node_idx)
 {
@@ -1118,10 +1049,23 @@ mark_own_opts(struct sol_flow_builder *builder, uint16_t node_idx)
     node_extra->owns_opts = true;
 }
 
+void
+sol_flow_builder_mark_own_all_options(struct sol_flow_builder *builder)
+{
+    struct node_extra *node_extra;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (&builder->node_extras, node_extra, i) {
+        node_extra->owns_opts = true;
+    }
+}
+
 SOL_API int
 sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const char *name, const char *type_name, const char *const *options_strv)
 {
-    const struct sol_flow_node_options *opts = NULL;
+    struct sol_flow_node_named_options named_opts = {}, extra_opts = {};
+
+    struct sol_flow_node_options *opts = NULL;
     const struct sol_flow_node_type *node_type = NULL;
     const struct sol_flow_resolver *builtins_resolver;
     int r;
@@ -1135,13 +1079,50 @@ sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const char *
     /* Ensure that we'll always find builtin types regardless of the
      * resolver used. */
     if (builtins_resolver != builder->resolver)
-        find_type(builtins_resolver, type_name, options_strv, &node_type, &opts);
+        sol_flow_resolve(builtins_resolver, type_name, &node_type, &named_opts);
 
     if (!node_type) {
-        r = find_type(builder->resolver, type_name, options_strv, &node_type, &opts);
+        r = sol_flow_resolve(builder->resolver, type_name, &node_type, &named_opts);
         if (r < 0)
-            return r;
+            goto end;
     }
+
+    /* Apply extra options. */
+    if (options_strv) {
+        sol_flow_node_named_options_init_from_strv(&extra_opts, node_type, options_strv);
+
+        if (extra_opts.count > 0) {
+            size_t new_count = named_opts.count + extra_opts.count;
+            struct sol_flow_node_named_options_member *tmp;
+            uint16_t i;
+
+            tmp = realloc(named_opts.members, new_count * sizeof(struct sol_flow_node_named_options_member));
+            if (!tmp) {
+                r = -errno;
+                goto end;
+            }
+            named_opts.members = tmp;
+
+            for (i = 0; i < extra_opts.count; i++) {
+                struct sol_flow_node_named_options_member *dst = named_opts.members + named_opts.count + i;
+                struct sol_flow_node_named_options_member *src = extra_opts.members + i;
+
+                *dst = *src;
+                if (dst->type == SOL_FLOW_NODE_OPTIONS_MEMBER_STRING) {
+                    dst->string = strdup(src->string);
+                    if (!dst->string) {
+                        r = -errno;
+                        goto end;
+                    }
+                }
+            }
+            named_opts.count = new_count;
+        }
+    }
+
+    r = sol_flow_node_options_new(node_type, &named_opts, &opts);
+    if (r < 0)
+        goto end;
 
     r = sol_flow_builder_add_node(builder, name, node_type, opts);
     if (r < 0) {
@@ -1150,6 +1131,9 @@ sol_flow_builder_add_node_by_type(struct sol_flow_builder *builder, const char *
         mark_own_opts(builder, builder->nodes.len - 1);
     }
 
+end:
+    sol_flow_node_named_options_fini(&named_opts);
+    sol_flow_node_named_options_fini(&extra_opts);
     return r;
 }
 
@@ -1409,9 +1393,6 @@ sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *nod
         memcpy(&exported_opt->defvalue, node_opt, exported_opt->size);
     } else
         exported_opt->defvalue = opt->defvalue;
-
-    if (!builder->type_data->options_size)
-        builder->type_data->options_size = sizeof(struct sol_flow_builder_options);
 
     member_alignment = get_member_alignment(opt);
     padding = builder->type_data->options_size % member_alignment;
