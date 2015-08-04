@@ -1,13 +1,13 @@
-obj-$(DATATYPES) += datatypes.mod
+obj-y += datatypes.mod
 
-obj-datatypes-$(DATATYPES) := \
+obj-datatypes-y := \
     sol-arena.o \
     sol-buffer.o \
     sol-str-slice.o \
     sol-str-table.o\
     sol-vector.o
 
-headers-$(DATATYPES) := \
+headers-y := \
     include/sol-arena.h \
     include/sol-list.h \
     include/sol-str-table.h \
