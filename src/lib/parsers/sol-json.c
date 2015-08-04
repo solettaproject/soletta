@@ -38,6 +38,8 @@
 #include "sol-json.h"
 #include "sol-log.h"
 #include "sol-util.h"
+#include <float.h>
+#include <math.h>
 
 static bool
 check_symbol(struct sol_json_scanner *scanner, struct sol_json_token *token,
@@ -136,6 +138,179 @@ check_number(struct sol_json_scanner *scanner, struct sol_json_token *token)
 
     token->end = scanner->current;
     return true;
+}
+
+static int
+token_get_uint64(const struct sol_json_token *token, uint64_t *value)
+{
+    const char *itr = token->start;
+    uint64_t tmpvar = 0;
+
+    if (*itr == '+')
+        itr++;
+
+    for (; itr < token->end; itr++) {
+        const char c = *itr;
+        if (c >= '0' && c <= '9') {
+            int r;
+
+            r = sol_util_uint64_mul(tmpvar, 10, &tmpvar);
+            if (r < 0)
+                goto overflow;
+
+            r = sol_util_uint64_add(tmpvar, c - '0', &tmpvar);
+            if (r < 0)
+                goto overflow;
+            continue;
+        }
+        *value = tmpvar; /* best effort */
+        SOL_DBG("unexpected char '%c' at position %u of integer token %.*s",
+            c, (unsigned)(itr - token->start),
+            sol_json_token_get_size(token), token->start);
+        return -EINVAL;
+
+overflow:
+        *value = UINT64_MAX; /* best effort */
+        SOL_DBG("number is too large at position %u of integer token %.*s",
+            (unsigned)(itr - token->start),
+            sol_json_token_get_size(token), token->start);
+        return -ERANGE;
+    }
+
+    *value = tmpvar;
+    return 0;
+}
+
+static int
+token_get_int64(const struct sol_json_token *token, int64_t *value)
+{
+    struct sol_json_token inttoken = *token;
+    int r, sign = 1;
+    uint64_t tmpvar;
+
+    if (*inttoken.start == '-') {
+        sign = -1;
+        inttoken.start++;
+    }
+
+    r = token_get_uint64(&inttoken, &tmpvar);
+    if (r == 0) {
+        if (sign > 0 && tmpvar > INT64_MAX) {
+            *value = INT64_MAX;
+            return -ERANGE;
+        } else if (sign < 0 && tmpvar > ((uint64_t)INT64_MAX + 1)) {
+            *value = INT64_MIN;
+            return -ERANGE;
+        }
+        *value = sign * tmpvar;
+        return 0;
+    } else {
+        /* best effort to help users ignoring return false */
+        if (r == -ERANGE) {
+            if (sign > 0)
+                *value = INT64_MAX;
+            else
+                *value = INT64_MIN;
+        } else {
+            if (sign > 0 && tmpvar > INT64_MAX)
+                *value = INT64_MAX;
+            else if (sign < 0 && tmpvar > ((uint64_t)INT64_MAX + 1))
+                *value = INT64_MIN;
+            else
+                *value = sign * tmpvar;
+        }
+        return r;
+    }
+}
+
+SOL_API int
+sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value)
+{
+    *value = 0;
+    SOL_NULL_CHECK(token, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+    if (token->start >= token->end) {
+        SOL_WRN("invalid token: start=%p, end=%p",
+            token->start, token->end);
+        return -EINVAL;
+    }
+    if (sol_json_token_get_type(token) != SOL_JSON_TYPE_NUMBER) {
+        SOL_WRN("expected number, got token type '%c' for token \"%.*s\"",
+            sol_json_token_get_type(token),
+            sol_json_token_get_size(token), token->start);
+        return -EINVAL;
+    }
+    if (*token->start == '-') {
+        SOL_DBG("%.*s: negative number where unsigned is expected",
+            sol_json_token_get_size(token), token->start);
+        return -ERANGE;
+    }
+
+    return token_get_uint64(token, value);
+}
+
+SOL_API int
+sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value)
+{
+    *value = 0;
+    SOL_NULL_CHECK(token, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+    if (token->start >= token->end) {
+        SOL_WRN("invalid token: start=%p, end=%p",
+            token->start, token->end);
+        return -EINVAL;
+    }
+    if (sol_json_token_get_type(token) != SOL_JSON_TYPE_NUMBER) {
+        SOL_WRN("expected number, got token type '%c' for token \"%.*s\"",
+            sol_json_token_get_type(token),
+            sol_json_token_get_size(token), token->start);
+        return -EINVAL;
+    }
+
+    return token_get_int64(token, value);
+}
+
+SOL_API int
+sol_json_token_get_double(const struct sol_json_token *token, double *value)
+{
+    char *endptr;
+    int r;
+
+    /* NOTE: Using a copy to ensure trailing \0 and strtod() so we
+     * properly parse numbers with large precision.
+     *
+     * Splitting the integer, fractional and exponent parts and doing
+     * the math using double numbers will result in rounding errors
+     * when parsing DBL_MAX using "%.64g" formatting.
+     *
+     * Since parsing it is complex (ie:
+     * http://www.netlib.org/fp/dtoa.c), we take the short path to
+     * call our helper around libc's strtod() that limits the amount
+     * of bytes.
+     */
+
+    *value = sol_util_strtodn(token->start, &endptr,
+        sol_json_token_get_size(token), false);
+
+    r = -errno;
+    if (endptr == token->start)
+        r = -EINVAL;
+    else if (isinf(*value)) {
+        SOL_DBG("token '%.*s' is infinite",
+            sol_json_token_get_size(token), token->start);
+        if (*value < 0)
+            *value = -DBL_MAX;
+        else
+            *value = DBL_MAX;
+        r = -ERANGE;
+    } else if (isnan(*value)) {
+        SOL_DBG("token '%.*s' is not a number",
+            sol_json_token_get_size(token), token->start);
+        *value = 0;
+        r = -EINVAL;
+    }
+
+    return r;
 }
 
 SOL_API bool

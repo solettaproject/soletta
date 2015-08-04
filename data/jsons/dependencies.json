@@ -283,6 +283,14 @@
 	    "fragment": "int v = IFLA_INET6_ADDR_GEN_MODE;"
 	},
 	{
+	    "dependency": "strtod_l",
+	    "type": "ccode",
+	    "headers": [
+		"<stdlib.h>"
+	    ],
+	    "fragment": "strtod_l(0, 0, 0);"
+	},
+	{
 	    "dependency": "valgrind",
 	    "type": "exec",
 	    "exec": "valgrind"

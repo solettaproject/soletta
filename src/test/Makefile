@@ -57,3 +57,6 @@ test-test-buffer-$(TEST_BUFFER) := test.c test-buffer.c
 
 test-$(TEST_JSON) += test-json
 test-test-json-$(TEST_JSON) := test.c test-json.c
+
+test-$(TEST_UTIL) += test-util
+test-test-util-$(TEST_UTIL) := test.c test-util.c

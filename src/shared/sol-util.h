@@ -51,6 +51,36 @@
 #define streqn(a, b, n) (strncmp((a), (b), (n)) == 0)
 #define strstartswith(a, b) streqn((a), (b), strlen(b))
 
+/**
+ * Wrapper over strtod() that consumes up to @c len bytes and may not
+ * use a locale.
+ *
+ * This variation of strtod() will work with buffers that are not
+ * null-terminated.
+ *
+ * It also offers a way to skip the currently set locale, forcing
+ * plain "C". This is required to parse numbers in formats that
+ * require '.' as the decimal point while the current locale may use
+ * ',' such as in pt_BR.
+ *
+ * All the formats accepted by strtod() are accepted and the behavior
+ * should be the same, including using information from @c LC_NUMERIC
+ * if locale is configured and @a use_locale is true.
+ *
+ * @param nptr the string containing the number to convert.
+ * @param endptr if non-NULL, it will contain the last character used
+ *        in the conversion. If no conversion was done, endptr is @a nptr.
+ * @param use_locale if true, then current locale is used, if false
+ *        then "C" locale is forced.
+ *
+ * @param len use at most this amount of bytes of @a nptr.
+ *
+ * @return the converted value, if any. The converted value may be @c
+ *         NAN, @c INF (positive or negative). See the strtod(3)
+ *         documentation for the details.
+ */
+double sol_util_strtodn(const char *nptr, char **endptr, size_t len, bool use_locale);
+
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
