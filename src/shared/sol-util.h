@@ -40,6 +40,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 #include <sys/types.h>
 
 #ifdef SOL_PLATFORM_LINUX
@@ -49,6 +50,28 @@
 #define streq(a, b) (strcmp((a), (b)) == 0)
 #define streqn(a, b, n) (strncmp((a), (b), (n)) == 0)
 #define strstartswith(a, b) streqn((a), (b), strlen(b))
+
+/**
+ * Wrapper over strtod() that consumes up to @c len bytes.
+ *
+ * This variation of strtod() will work with buffers that are not
+ * null-terminated.
+ *
+ * All the formats accepted by strtod() are accepted and the behavior
+ * should be the same, including using information from @c LC_NUMERIC
+ * if locale is configured.
+ *
+ * @param nptr the string containing the number to convert.
+ * @param endptr if non-NULL, it will contain the last character used
+ *        in the conversion. If no conversion was done, endptr is @a nptr.
+ *
+ * @param len use at most this amount of bytes of @a nptr.
+ *
+ * @return the converted value, if any. The converted value may be @c
+ *         NAN, @c INF (positive or negative). See the strtod(3)
+ *         documentation for the details.
+ */
+double sol_util_strtodn(const char *nptr, char **endptr, size_t len);
 
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -160,11 +183,35 @@ struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const cha
 static inline int
 sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out)
 {
-#ifdef HAVE_UMULL_OVERFLOW
-    if (__builtin_umull_overflow(elem_size, num_elems, out))
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(elem_size, num_elems, out))
         return -EOVERFLOW;
 #else
     *out = elem_size * num_elems;
+#endif
+    return 0;
+}
+
+static inline uint64_t
+sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    *out = a * b;
+#endif
+    return 0;
+}
+
+static inline uint64_t
+sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
+{
+#ifdef HAVE_BUILTIN_ADD_OVERFLOW
+    if (__builtin_add_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    *out = a + b;
 #endif
     return 0;
 }
