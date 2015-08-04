@@ -1,3 +1,0 @@
-config DATATYPES
-	bool
-	default y

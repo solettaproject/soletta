@@ -1,13 +1,13 @@
-obj-$(CORE) += core.mod
+obj-y += core.mod
 
-obj-core-$(CORE) := \
+obj-core-y := \
     sol-blob.o \
     sol-mainloop.o \
     sol-platform.o \
     sol-types.o
 
 ifeq (y,$(LOG))
-obj-core-$(CORE) += \
+obj-core-y += \
     sol-log.o
 obj-core-$(PLATFORM_LINUX) += \
     sol-log-impl-linux.o
@@ -61,7 +61,7 @@ obj-core-$(PLATFORM_SYSTEMD)-extra-cflags += $(SYSTEMD_CFLAGS) $(UDEV_CFLAGS)
 obj-core-$(PLATFORM_SYSTEMD)-extra-ldflags += $(SYSTEMD_LDFLAGS) $(UDEV_LDFLAGS)
 
 ifeq (y,$(PTHREAD))
-obj-core-$(CORE) += \
+obj-core-y += \
     sol-worker-thread.o
 obj-core-$(MAINLOOP_GLIB) += \
     sol-worker-thread-impl-glib.o

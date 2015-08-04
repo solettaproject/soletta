@@ -1,7 +1,7 @@
-obj-$(PARSERS) += parsers.mod
+obj-y += parsers.mod
 
-obj-parsers-$(PARSERS) := \
+obj-parsers-y := \
     sol-json.o
 
-headers-$(PARSERS) := \
+headers-y := \
     include/sol-json.h

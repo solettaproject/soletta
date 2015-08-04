@@ -1,7 +1,3 @@
-config CORE
-	bool
-	default y
-
 config PLATFORM_NAME
 	string "Platform Name"
 	default ""
