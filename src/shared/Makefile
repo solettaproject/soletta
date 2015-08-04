@@ -1,16 +1,14 @@
 obj-y += libshared.mod
 
 obj-libshared-y := \
-    sol-fbp-graph.o \
-    sol-fbp-internal-log.o \
-    sol-fbp-internal-scanner.o \
     sol-monitors.o \
     sol-util.o
 
-ifeq (y,$(FLOW))
-obj-libshared-y += \
+obj-libshared-$(FLOW) += \
+    sol-fbp-graph.o \
+    sol-fbp-internal-log.o \
+    sol-fbp-internal-scanner.o \
     sol-fbp-parser.o
-endif
 
 ifeq (y,$(SOL_PLATFORM_LINUX))
 obj-libshared-y += \
