@@ -105,6 +105,9 @@ void sol_spi_close(struct sol_spi *spi);
  * @param bus The SPI bus number to open
  * @param config The SPI bus configuration
  * @return A new SPI bus handle
+ *
+ * @note For now it only supports one user of the bus at time, 2 or mode devices
+ * with different chip select on the same bus will cause concurrency errors.
  */
 struct sol_spi *sol_spi_open(unsigned int bus, const struct sol_spi_config *config);
 
