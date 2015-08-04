@@ -279,14 +279,11 @@ static int
 _message_map_all_properties(sd_bus_message *m,
     struct property_table *t, sd_bus_error *ret_error)
 {
-    sd_bus *bus;
     uint64_t mask = 0;
     int r;
 
     r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}");
     SOL_INT_CHECK(r, < 0, r);
-
-    bus = sd_bus_message_get_bus(m);
 
     do {
         const struct sol_bus_properties *iter;
