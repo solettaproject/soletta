@@ -387,10 +387,10 @@ parse_and_fail_with_invalid_string(void)
 static int
 test_resolve(void *data, const char *id,
     struct sol_flow_node_type const **type,
-    char const ***opts_strv)
+    struct sol_flow_node_named_options *named_opts)
 {
     *type = &test_node_type;
-    *opts_strv = NULL;
+    *named_opts = (struct sol_flow_node_named_options){};
     return 0;
 }
 

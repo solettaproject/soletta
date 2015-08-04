@@ -284,3 +284,6 @@ void sol_flow_node_free_options(const struct sol_flow_node_type *type, struct so
             return __VA_ARGS__;                                         \
         }                                                               \
     } while (0)
+
+struct sol_flow_builder;
+void sol_flow_builder_mark_own_all_options(struct sol_flow_builder *builder);
