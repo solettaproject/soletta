@@ -52,15 +52,27 @@
 struct accelerometer_adxl345_data {
     struct sol_flow_node *node;
     struct sol_i2c *i2c;
+    struct sol_i2c_pending *i2c_pending;
     struct sol_timeout *timer;
     double reading[3];
     unsigned init_sampling_cnt;
     unsigned pending_ticks;
-    uint8_t init_power;
+    //I2C buffers
+    union {
+        struct {
+            uint8_t buffer[64];
+        } common;
+        struct {
+            /* int16_t and 3 entries because of x, y and z axis are read,
+             * each consisting of L + H byte parts.
+             */
+            int16_t buffer[64][3];
+        } accel_data;
+    };
     bool ready : 1;
 };
 
-#define ACCEL_INIT_STEP_TIME 1
+#define ACCEL_STEP_TIME 1
 #define ACCEL_RANGE 8         // 8 g
 
 /* Accelerometer register definitions */
@@ -81,16 +93,13 @@ struct accelerometer_adxl345_data {
  */
 #define ACCEL_SCALE_M_S (GRAVITY_MSS / 256.0f)
 
+static bool accel_tick_do(void *data);
+
 static int
 accel_timer_resched(struct accelerometer_adxl345_data *mdata,
     unsigned int timeout_ms,
     bool (*cb)(void *data))
 {
-    SOL_NULL_CHECK(cb, -EINVAL);
-
-    if (mdata->timer)
-        sol_timeout_del(mdata->timer);
-
     mdata->timer = sol_timeout_add(timeout_ms, cb, mdata);
     SOL_NULL_CHECK(mdata->timer, -ENOMEM);
 
@@ -98,21 +107,24 @@ accel_timer_resched(struct accelerometer_adxl345_data *mdata,
 }
 
 static void
-read_samples(struct accelerometer_adxl345_data *mdata, uint8_t num_samples_available)
+i2c_read_multiple_data_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
 {
-    int r;
-    /* int16_t and 3 entries because of x, y and z axis are read,
-     * each consisting of L + H byte parts
-     */
-    int16_t buffer[num_samples_available][3];
+    struct accelerometer_adxl345_data *mdata = cb_data;
+    uint8_t num_samples_available;
+    struct sol_direction_vector val =
+    {
+        .min = -ACCEL_RANGE,
+        .max = ACCEL_RANGE,
+        .x = mdata->reading[0],
+        .y = mdata->reading[1],
+        .z = mdata->reading[2]
+    };
 
-    r = sol_i2c_read_register_multiple(mdata->i2c,
-        ACCEL_REG_DATAX0, (uint8_t *)&buffer[0][0], sizeof(buffer[0]),
-        num_samples_available);
-    if (r <= 0) {
-        SOL_WRN("Failed to read ADXL345 accel samples");
+    mdata->i2c_pending = NULL;
+    if (status < 0)
         return;
-    }
+
+    num_samples_available = status / (sizeof(int16_t) * 3);
 
     /* At least with the current i2c driver implementation at the
      * time of testing, if too much time passes between two
@@ -122,7 +134,7 @@ read_samples(struct accelerometer_adxl345_data *mdata, uint8_t num_samples_avail
      * newer values)*/
 #define MAX_EPSILON (10.0f)
 #define EPSILON_CHECK(_axis) \
-    if (i > 0 && isgreater(fabs((buffer[i][_axis] * ACCEL_SCALE_M_S) \
+    if (i > 0 && isgreater(fabs((mdata->accel_data.buffer[i][_axis] * ACCEL_SCALE_M_S) \
         - mdata->reading[_axis]), MAX_EPSILON)) \
         break
 
@@ -132,35 +144,32 @@ read_samples(struct accelerometer_adxl345_data *mdata, uint8_t num_samples_avail
         EPSILON_CHECK(1);
         EPSILON_CHECK(2);
 
-        mdata->reading[0] = buffer[i][0] * ACCEL_SCALE_M_S;
-        mdata->reading[1] = -buffer[i][1] * ACCEL_SCALE_M_S;
-        mdata->reading[2] = -buffer[i][2] * ACCEL_SCALE_M_S;
+        mdata->reading[0] = mdata->accel_data.buffer[i][0] * ACCEL_SCALE_M_S;
+        mdata->reading[1] = -mdata->accel_data.buffer[i][1] * ACCEL_SCALE_M_S;
+        mdata->reading[2] = -mdata->accel_data.buffer[i][2] * ACCEL_SCALE_M_S;
     }
 #undef MAX_EPSILON
 #undef EPSILON_CHECK
+
+    sol_flow_send_direction_vector_packet(mdata->node,
+        SOL_FLOW_NODE_TYPE_ACCELEROMETER_ADXL345__OUT__OUT, &val);
+
+    mdata->pending_ticks--;
+    if (mdata->pending_ticks)
+        accel_tick_do(mdata);
 }
 
 static void
-accel_read(struct accelerometer_adxl345_data *mdata)
+i2c_read_fifo_status_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
 {
+    struct accelerometer_adxl345_data *mdata = cb_data;
     uint8_t num_samples_available;
-    uint8_t fifo_status = 0;
-    int r;
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
+    mdata->i2c_pending = NULL;
+    if (status < 0)
         return;
-    }
 
-    fifo_status = 0;
-    r = sol_i2c_read_register(mdata->i2c, ACCEL_REG_FIFO_STATUS, &fifo_status,
-        1);
-    if (r <= 0) {
-        SOL_WRN("Failed to read ADXL345 accel fifo status");
-        return;
-    }
-
-    num_samples_available = fifo_status & 0x3F;
+    num_samples_available = mdata->common.buffer[0] & 0x3F;
 
     if (!num_samples_available) {
         SOL_INF("No samples available");
@@ -169,53 +178,68 @@ accel_read(struct accelerometer_adxl345_data *mdata)
 
     SOL_DBG("%d samples available", num_samples_available);
 
-    read_samples(mdata, num_samples_available);
+    mdata->i2c_pending = sol_i2c_read_register_multiple(mdata->i2c,
+        ACCEL_REG_DATAX0, (uint8_t *)&mdata->accel_data.buffer[0][0],
+        sizeof(mdata->accel_data.buffer[0]), num_samples_available,
+        i2c_read_multiple_data_cb, mdata);
+    if (!mdata->i2c_pending)
+        SOL_WRN("Failed to read ADXL345 accel samples");
 }
 
-static int
-accel_tick_do(struct accelerometer_adxl345_data *mdata)
-{
-    struct sol_direction_vector val =
-    {
-        .min = -ACCEL_RANGE,
-        .max = ACCEL_RANGE,
-        .x = mdata->reading[0],
-        .y = mdata->reading[1],
-        .z = mdata->reading[2]
-    };
-    int r;
-
-    accel_read(mdata);
-
-    r = sol_flow_send_direction_vector_packet
-            (mdata->node, SOL_FLOW_NODE_TYPE_ACCELEROMETER_ADXL345__OUT__OUT,
-            &val);
-
-    return r;
-}
-
-static void
-accel_ready(void *data)
+static bool
+accel_tick_do(void *data)
 {
     struct accelerometer_adxl345_data *mdata = data;
 
     mdata->timer = NULL;
-    mdata->ready = true;
-
-    while (mdata->pending_ticks) {
-        accel_tick_do(mdata);
-        mdata->pending_ticks--;
+    if (sol_i2c_busy(mdata->i2c)) {
+        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_tick_do);
+        return false;
     }
 
+    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
+        SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
+        return false;
+    }
+
+    mdata->common.buffer[0] = 0;
+    mdata->i2c_pending = sol_i2c_read_register(mdata->i2c,
+        ACCEL_REG_FIFO_STATUS, mdata->common.buffer, 1,
+        i2c_read_fifo_status_cb, mdata);
+    if (!mdata->i2c_pending)
+        SOL_WRN("Failed to read ADXL345 accel fifo status");
+
+    return false;
+}
+
+static void
+i2c_write_fifo_ctl_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
+{
+    struct accelerometer_adxl345_data *mdata = cb_data;
+
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
+        SOL_WRN("could not set ADXL345 accel sensor's stream mode");
+        return;
+    }
+
+    mdata->ready = true;
     SOL_DBG("accel is ready for reading");
+
+    if (mdata->pending_ticks)
+        accel_tick_do(mdata);
 }
 
 static bool
 accel_init_stream(void *data)
 {
-    bool r;
     struct accelerometer_adxl345_data *mdata = data;
-    static const uint8_t value = ACCEL_REG_FIFO_CTL_STREAM;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init_stream);
+        return false;
+    }
 
     if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
@@ -223,129 +247,194 @@ accel_init_stream(void *data)
     }
 
     /* enable FIFO in stream mode */
-    r = sol_i2c_write_register(mdata->i2c, ACCEL_REG_FIFO_CTL, &value, 1);
-    if (!r) {
+    mdata->common.buffer[0] = ACCEL_REG_FIFO_CTL_STREAM;
+    mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, ACCEL_REG_FIFO_CTL,
+        mdata->common.buffer, 1, i2c_write_fifo_ctl_cb, mdata);
+    if (!mdata->i2c_pending)
         SOL_WRN("could not set ADXL345 accel sensor's stream mode");
-        return false;
-    }
-
-    accel_ready(mdata);
 
     return false;
+}
+
+static void
+i2c_write_bw_rate_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
+{
+    struct accelerometer_adxl345_data *mdata = cb_data;
+
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
+        SOL_WRN("could not set ADXL345 accel sensor's sampling rate");
+        return;
+    }
+
+    if (accel_timer_resched(mdata, ACCEL_STEP_TIME,
+        accel_init_stream) < 0)
+        SOL_WRN("error in scheduling a ADXL345 accel's init command");
 }
 
 static bool
 accel_init_rate(void *data)
 {
-    bool r;
     struct accelerometer_adxl345_data *mdata = data;
-    static const uint8_t value = 0x0d;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init_rate);
+        return false;
+    }
 
     if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
         return false;
     }
 
-    r = sol_i2c_write_register(mdata->i2c, ACCEL_REG_BW_RATE, &value, 1);
-    if (!r) {
+    mdata->common.buffer[0] = 0x0d;
+    mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, ACCEL_REG_BW_RATE,
+        mdata->common.buffer, 1, i2c_write_bw_rate_cb, mdata);
+    if (!mdata->i2c_pending)
         SOL_WRN("could not set ADXL345 accel sensor's sampling rate");
-        return false;
-    }
-
-    if (accel_timer_resched(mdata, ACCEL_INIT_STEP_TIME,
-        accel_init_stream) < 0)
-        SOL_WRN("error in scheduling a ADXL345 accel's init command");
 
     return false;
+}
+
+static void
+i2c_write_data_format_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
+{
+    struct accelerometer_adxl345_data *mdata = cb_data;
+
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
+        SOL_WRN("could not set ADXL345 accel sensor's resolution");
+        return;
+    }
+
+    if (accel_timer_resched(mdata, ACCEL_STEP_TIME,
+        accel_init_rate) < 0)
+        SOL_WRN("error in scheduling a ADXL345 accel's init command");
 }
 
 static bool
 accel_init_format(void *data)
 {
-    bool r;
     struct accelerometer_adxl345_data *mdata = data;
-    /* Full resolution, 8g:
-     * Caution, this must agree with ACCEL_SCALE_1G
-     * In full resoution mode, the scale factor need not change
-     */
-    static const uint8_t value = 0x08;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init_format);
+        return false;
+    }
 
     if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
         return false;
     }
 
-    r = sol_i2c_write_register(mdata->i2c, ACCEL_REG_DATA_FORMAT, &value, 1);
-    if (!r) {
+    /* Full resolution, 8g:
+     * Caution, this must agree with ACCEL_SCALE_1G
+     * In full resolution mode, the scale factor need not change
+     */
+    mdata->common.buffer[0] = 0x08;
+    mdata->i2c_pending = sol_i2c_write_register(mdata->i2c,
+        ACCEL_REG_DATA_FORMAT, mdata->common.buffer, 1,
+        i2c_write_data_format_cb, mdata);
+    if (!mdata->i2c_pending)
         SOL_WRN("could not set ADXL345 accel sensor's resolution");
-        return false;
-    }
-
-    if (accel_timer_resched(mdata, ACCEL_INIT_STEP_TIME,
-        accel_init_rate) < 0)
-        SOL_WRN("error in scheduling a ADXL345 accel's init command");
 
     return false;
 }
 
+static bool accel_init_power(void *data);
+
 /* meant to run 3 times */
-static bool
-accel_init_power(void *data)
+static void
+i2c_write_power_ctl_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
 {
-    bool r, power_done = false;
-    static bool first_run = true;
-    struct accelerometer_adxl345_data *mdata = data;
+    struct accelerometer_adxl345_data *mdata = cb_data;
+    bool power_done = false;
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
-        return false;
-    }
-
-    r = sol_i2c_write_register(mdata->i2c, ACCEL_REG_POWER_CTL,
-        &mdata->init_power, 1);
-    if (!r) {
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
         SOL_WRN("could not set ADXL345 accel sensor's power mode");
-        return false;
+        return;
     }
 
-    if (mdata->init_power == INIT_POWER_OFF)
-        mdata->init_power = INIT_POWER_STARTING;
-    else if (mdata->init_power == INIT_POWER_STARTING)
-        mdata->init_power = INIT_POWER_MEASURING;
+    if (mdata->common.buffer[0] == INIT_POWER_OFF)
+        mdata->common.buffer[0] = INIT_POWER_STARTING;
+    else if (mdata->common.buffer[0] == INIT_POWER_STARTING)
+        mdata->common.buffer[0] = INIT_POWER_MEASURING;
     else
         power_done = true;
 
-    if (accel_timer_resched(mdata, ACCEL_INIT_STEP_TIME,
+    if (accel_timer_resched(mdata, ACCEL_STEP_TIME,
         power_done ?
         accel_init_format : accel_init_power) < 0) {
         SOL_WRN("error in scheduling a ADXL345 accel's init command");
     }
+}
 
-    if (first_run) {
-        first_run = false;
-        return true;
+static bool
+accel_init_power(void *data)
+{
+    struct accelerometer_adxl345_data *mdata = data;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init_power);
+        return false;
     }
+
+    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
+        SOL_WRN("Failed to set slave at address 0x%02x\n", ACCEL_ADDRESS);
+        return false;
+    }
+
+    mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, ACCEL_REG_POWER_CTL,
+        mdata->common.buffer, 1, i2c_write_power_ctl_cb, mdata);
+    if (!mdata->i2c_pending)
+        SOL_WRN("could not set ADXL345 accel sensor's power mode");
 
     return false;
 }
 
-static int
-accel_init(struct accelerometer_adxl345_data *mdata)
+static void
+i2c_read_dev_id_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
 {
-    ssize_t r;
-    uint8_t data = 0;
+    struct accelerometer_adxl345_data *mdata = cb_data;
 
-    r = sol_i2c_read_register(mdata->i2c, ACCEL_REG_DEV_ID, &data, 1);
-    if (r < 0) {
-        SOL_WRN("Failed to read i2c register");
-        return r;
-    }
-    if (data != ACCEL_DEV_ID) {
+    mdata->i2c_pending = NULL;
+    if (status < 0 || mdata->common.buffer[0] != ACCEL_DEV_ID) {
         SOL_WRN("could not find ADXL345 accel sensor");
-        return -EIO;
+        return;
     }
 
-    return accel_init_power(mdata) ? 0 : -EIO;
+    mdata->common.buffer[0] = INIT_POWER_OFF;
+    accel_init_power(mdata);
+}
+
+static bool
+accel_init(void *data)
+{
+    struct accelerometer_adxl345_data *mdata = data;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        accel_timer_resched(mdata, ACCEL_STEP_TIME, accel_init);
+        return false;
+    }
+
+    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
+        SOL_WRN("Failed to set slave at address 0x%02x\n",
+            ACCEL_ADDRESS);
+        return false;
+    }
+
+    mdata->i2c_pending = sol_i2c_read_register(mdata->i2c, ACCEL_REG_DEV_ID,
+        mdata->common.buffer, 1, i2c_read_dev_id_cb, mdata);
+    if (!mdata->i2c_pending) {
+        SOL_WRN("Failed to read i2c register");
+    }
+
+    return false;
 }
 
 static int
@@ -365,17 +454,10 @@ accelerometer_adxl345_open(struct sol_flow_node *node,
         return -EIO;
     }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, ACCEL_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n",
-            ACCEL_ADDRESS);
-        return -EIO;
-    }
-
-    mdata->init_power = INIT_POWER_OFF;
-    mdata->ready = false;
     mdata->node = node;
+    accel_init(mdata);
 
-    return accel_init(mdata);
+    return 0;
 }
 
 static void
@@ -386,6 +468,8 @@ accelerometer_adxl345_close(struct sol_flow_node *node, void *data)
     if (mdata->timer)
         sol_timeout_del(mdata->timer);
 
+    if (mdata->i2c_pending)
+        sol_i2c_pending_cancel(mdata->i2c, mdata->i2c_pending);
     if (mdata->i2c)
         sol_i2c_close(mdata->i2c);
 }
@@ -399,10 +483,11 @@ accelerometer_adxl345_tick(struct sol_flow_node *node,
 {
     struct accelerometer_adxl345_data *mdata = data;
 
-    if (!mdata->ready) {
+    if (!mdata->ready || mdata->pending_ticks) {
         mdata->pending_ticks++;
         return 0;
     }
 
-    return accel_tick_do(mdata);
+    accel_tick_do(mdata);
+    return 0;
 }
