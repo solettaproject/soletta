@@ -40,6 +40,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 #include <sys/types.h>
 
 #ifdef SOL_PLATFORM_LINUX
@@ -160,11 +161,35 @@ struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const cha
 static inline int
 sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out)
 {
-#ifdef HAVE_UMULL_OVERFLOW
-    if (__builtin_umull_overflow(elem_size, num_elems, out))
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(elem_size, num_elems, out))
         return -EOVERFLOW;
 #else
     *out = elem_size * num_elems;
+#endif
+    return 0;
+}
+
+static inline uint64_t
+sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    *out = a * b;
+#endif
+    return 0;
+}
+
+static inline uint64_t
+sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
+{
+#ifdef HAVE_BUILTIN_ADD_OVERFLOW
+    if (__builtin_add_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    *out = a + b;
 #endif
     return 0;
 }
