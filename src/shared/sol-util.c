@@ -37,9 +37,38 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#define HAVE_LOCALE 1 /* TODO: remove me when glima's patch gets in */
+#ifdef HAVE_LOCALE
+#include <locale.h>
+#endif
 
 #include "sol-util.h"
+#include "sol-log.h"
 #include "sol-str-slice.h"
+
+#ifdef HAVE_LOCALE
+static locale_t c_locale;
+static void
+clear_c_locale(void)
+{
+    freelocale(c_locale);
+    c_locale = NULL;
+}
+
+static bool
+init_c_locale(void)
+{
+    if (c_locale)
+        return true;
+
+    c_locale = newlocale(LC_ALL_MASK, "C", NULL);
+    if (!c_locale)
+        return false;
+
+    atexit(clear_c_locale);
+    return true;
+}
+#endif
 
 void *
 sol_util_memdup(const void *data, size_t len)
@@ -50,6 +79,104 @@ sol_util_memdup(const void *data, size_t len)
     if (ptr)
         memcpy(ptr, data, len);
     return ptr;
+}
+
+double
+sol_util_strtodn(const char *nptr, char **endptr, size_t len, bool use_locale)
+{
+    char *tmpbuf, *tmpbuf_endptr;
+    double value;
+
+#if defined(HAVE_LOCALE) && defined(HAVE_STRTOD_L)
+    if (!use_locale) {
+        if (!init_c_locale()) {
+            /* not great, but a best effort to convert something */
+            use_locale = false;
+            SOL_WRN("could not create locale 'C', use current locale.");
+        }
+    }
+#endif
+
+    /* NOTE: Using a copy to ensure trailing \0 and strtod() so we
+     * properly parse numbers with large precision.
+     *
+     * Since parsing it is complex (ie:
+     * http://www.netlib.org/fp/dtoa.c), we take the short path to
+     * call libc.
+     */
+    tmpbuf = strndupa(nptr, len);
+
+    errno = 0;
+#ifdef HAVE_LOCALE
+    if (!use_locale) {
+#ifdef HAVE_STRTOD_L
+        value = strtod_l(tmpbuf, &tmpbuf_endptr, c_locale);
+#else
+        /* fallback to query locale's decimal point and if it's
+         * different than '.' we replace JSON's '.' with locale's
+         * decimal point if the given number contains a '.'.
+         *
+         * We also replace any existing locale decimal_point with '.'
+         * so it will return correct endptr.
+         *
+         * Extra care since decimal point may be multi-byte.
+         */
+        struct lconv *lc = localeconv();
+        if (lc && lc->decimal_point && !streq(lc->decimal_point, ".")) {
+            if (strchr(tmpbuf, '.') || strstr(tmpbuf, lc->decimal_point)) {
+                int dplen = strlen(lc->decimal_point);
+                const char *src, *src_end = tmpbuf + len;
+                char *dst;
+                if (dplen == 1) {
+                    for (src = tmpbuf, dst = tmpbuf; src < src_end; src++, dst++) {
+                        if (*src == '.')
+                            *dst = *lc->decimal_point;
+                        else if (*src == *lc->decimal_point)
+                            *dst = '.';
+                    }
+                } else {
+                    char *transl;
+                    unsigned count = 0;
+
+                    for (src = tmpbuf; src < src_end; src++) {
+                        if (*src == '.')
+                            count++;
+                    }
+
+                    transl = alloca(len + (count * dplen) + 1);
+                    for (src = tmpbuf, dst = transl; src < src_end;) {
+                        if (*src == '.') {
+                            memcpy(dst, lc->decimal_point, dplen);
+                            dst += dplen;
+                            src++;
+                        } else if ((src_end - src) >= dplen &&
+                            streqn(src, lc->decimal_point, dplen)) {
+                            *dst = '.';
+                            dst++;
+                            src += dplen;
+                        } else {
+                            *dst = *src;
+                            dst++;
+                            src++;
+                        }
+                    }
+                    *dst = '\0';
+                    tmpbuf = transl;
+                }
+            }
+        }
+        value = strtod(tmpbuf, &tmpbuf_endptr);
+#endif
+    } else
+#endif
+    {
+        value = strtod(tmpbuf, &tmpbuf_endptr);
+    }
+
+    if (endptr)
+        *endptr = (char *)nptr + (tmpbuf_endptr - tmpbuf);
+
+    return value;
 }
 
 #ifdef SOL_PLATFORM_CONTIKI
