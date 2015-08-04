@@ -123,6 +123,8 @@ sol_flow_builder_init_type_data(struct sol_flow_builder *builder)
     builder->type_data->spec.api_version = SOL_FLOW_STATIC_API_VERSION;
     builder->type_data->desc.api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION;
 
+    builder->type_data->options_size = sizeof(struct sol_flow_builder_options);
+
     return 0;
 
 error_arena:
@@ -1409,9 +1411,6 @@ sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *nod
         memcpy(&exported_opt->defvalue, node_opt, exported_opt->size);
     } else
         exported_opt->defvalue = opt->defvalue;
-
-    if (!builder->type_data->options_size)
-        builder->type_data->options_size = sizeof(struct sol_flow_builder_options);
 
     member_alignment = get_member_alignment(opt);
     padding = builder->type_data->options_size % member_alignment;
