@@ -123,6 +123,8 @@ sol_flow_builder_init_type_data(struct sol_flow_builder *builder)
     builder->type_data->spec.api_version = SOL_FLOW_STATIC_API_VERSION;
     builder->type_data->desc.api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION;
 
+    builder->type_data->options_size = sizeof(struct sol_flow_builder_options);
+
     return 0;
 
 error_arena:
@@ -756,18 +758,18 @@ builder_type_free_options(const struct sol_flow_node_type *type, struct sol_flow
 static struct sol_flow_node_options *
 builder_type_new_options(const struct sol_flow_node_type *type, const struct sol_flow_node_options *copy_from)
 {
-    struct sol_flow_builder *builder = (struct sol_flow_builder *)type->type_data;
+    struct builder_type_data *type_data = (struct builder_type_data *)type->type_data;
     struct sol_flow_builder_options *opts;
     const struct sol_flow_node_options_member_description *member;
 
-    SOL_NULL_CHECK(builder, NULL);
+    SOL_NULL_CHECK(type_data, NULL);
 
     if (copy_from) {
         SOL_FLOW_NODE_OPTIONS_API_CHECK(copy_from, SOL_FLOW_NODE_OPTIONS_API_VERSION, NULL);
         SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(copy_from, SOL_FLOW_BUILDER_OPTIONS_API_VERSION, NULL);
     }
 
-    opts = calloc(1, builder->type_data->options_size);
+    opts = calloc(1, type_data->options_size);
     SOL_NULL_CHECK(opts, NULL);
 
     opts->base.api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION;
@@ -1409,9 +1411,6 @@ sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *nod
         memcpy(&exported_opt->defvalue, node_opt, exported_opt->size);
     } else
         exported_opt->defvalue = opt->defvalue;
-
-    if (!builder->type_data->options_size)
-        builder->type_data->options_size = sizeof(struct sol_flow_builder_options);
 
     member_alignment = get_member_alignment(opt);
     padding = builder->type_data->options_size % member_alignment;
