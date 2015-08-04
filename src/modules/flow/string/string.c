@@ -30,12 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <ctype.h>
+#include <errno.h>
+
 #include "string-gen.h"
 
 #include "sol-flow-internal.h"
-
-#include <sol-util.h>
-#include <errno.h>
+#include "sol-util.h"
 
 struct string_data {
     int n;
@@ -425,6 +426,52 @@ string_split(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     SOL_INT_CHECK(r, < 0, r);
 
     return send_substring(mdata, node);
+}
+
+static int
+string_lowercase(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    const char *value;
+    char *cpy, *ptr;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    cpy = strdup(value);
+    SOL_NULL_CHECK(value, -ENOMEM);
+
+    for (ptr = cpy; *ptr; ptr++)
+        *ptr = tolower(*ptr);
+
+    r = sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_STRING_LOWERCASE__OUT__OUT, cpy);
+    free(cpy);
+
+    return r;
+}
+
+static int
+string_uppercase(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    const char *value;
+    char *cpy, *ptr;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    cpy = strdup(value);
+    SOL_NULL_CHECK(value, -ENOMEM);
+
+    for (ptr = cpy; *ptr; ptr++)
+        *ptr = toupper(*ptr);
+
+    r = sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_STRING_UPPERCASE__OUT__OUT, cpy);
+    free(cpy);
+
+    return r;
 }
 
 #include "string-gen.c"
