@@ -52,7 +52,7 @@ empty_to_boolean(converter/empty-to-boolean)
 
 const_boolean OUT -> IN hub_boolean
 const_boolean OUT -> IN[0] and(boolean/and)
-hub_boolean OUT -> IN[1] and
+hub_boolean OUT[0] -> IN[1] and
 and OUT -> RESULT result_switcher_boolean(test/result)
 
 const_boolean OUT -> IN hub_empty
