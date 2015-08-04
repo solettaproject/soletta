@@ -1,5 +1,10 @@
 obj-$(IO) += io.mod
 
+ifeq (y, $(USE_AIO))
+obj-io-$(IO) += \
+    sol-aio-common.o
+endif
+
 ifeq (y, $(USE_GPIO))
 obj-io-$(IO) += \
     sol-gpio-common.o
@@ -16,6 +21,11 @@ obj-io-$(IO) += \
 endif
 
 ifeq (y,$(PLATFORM_RIOTOS))
+ifeq (y, $(USE_AIO))
+obj-io-$(IO) += \
+    sol-aio-riot.o
+endif # USE_AIO
+
 ifeq (y, $(USE_GPIO))
 obj-io-$(IO) += \
     sol-gpio-riot.o
@@ -50,6 +60,11 @@ endif # USE_GPIO
 endif # PLATFORM_CONTIKI
 
 ifeq (y,$(SOL_PLATFORM_LINUX))
+ifeq (y, $(USE_AIO))
+obj-io-$(IO) += \
+    sol-aio-linux.o
+endif # USE_AIO
+
 ifeq (y, $(USE_GPIO))
 obj-io-$(IO) += \
     sol-gpio-linux.o
@@ -75,6 +90,11 @@ obj-io-$(IO) += \
     sol-i2c-linux.o
 endif # USE_I2C
 endif # PLATFORM_LINUX
+
+ifeq (y, $(USE_AIO))
+headers-$(IO) += \
+    include/sol-aio.h
+endif
 
 ifeq (y, $(USE_GPIO))
 headers-$(IO) += \
