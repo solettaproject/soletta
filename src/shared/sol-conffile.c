@@ -323,8 +323,8 @@ _load_json_from_dirs(const char *file, char **full_path, struct sol_file_reader 
 
     for (i = 0; i < ARRAY_SIZE(search_dirs); i++) {
         char *filename;
-        asprintf(&filename, "%s/%s", search_dirs[i], file);
-        if (!filename) {
+
+        if (asprintf(&filename, "%s/%s", search_dirs[i], file) < 0 || !filename) {
             SOL_WRN("Couldn't allocate memory for config file.");
             break;
         }
