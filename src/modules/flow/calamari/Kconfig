@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_CALAMARI
 	tristate "Node type: calamari"
-	depends on FLOW && (FLOW_NODE_TYPE_GPIO = y) && USE_PWM && USE_SPI
+	depends on (FLOW_NODE_TYPE_GPIO = y) && USE_PWM && USE_SPI
 	default m

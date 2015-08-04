@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_LED_STRIP
 	tristate "Node type: led-strip"
-	depends on FLOW && USE_SPI
+	depends on USE_SPI
 	default m

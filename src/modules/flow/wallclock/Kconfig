@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_WALLCLOCK
 	tristate "Node type: wallclock"
-	depends on FLOW
 	default y

@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_AIO
 	tristate "Node type: aio"
-	depends on FLOW && USE_AIO
+	depends on USE_AIO
 	default y

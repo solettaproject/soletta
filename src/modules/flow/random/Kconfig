@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_RANDOM
 	tristate "Node type: random"
-	depends on FLOW
 	default y

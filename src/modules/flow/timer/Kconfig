@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_TIMER
 	tristate "Node type: timer"
-	depends on FLOW
 	default y

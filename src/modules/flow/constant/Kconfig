@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_CONSTANT
 	tristate "Node type: constant"
-	depends on FLOW
 	default y

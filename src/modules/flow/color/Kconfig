@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_COLOR
 	tristate "Node type: color"
-	depends on FLOW
 	default y

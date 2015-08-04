@@ -1,4 +1,4 @@
 config FBP_RUNNER
 	bool "fbp runner"
-	depends on SOL_PLATFORM_LINUX && FLOW && NODE_DESCRIPTION
+	depends on SOL_PLATFORM_LINUX && NODE_DESCRIPTION
 	default y

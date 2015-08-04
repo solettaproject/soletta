@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_FS
 	tristate "Node type: fs"
-	depends on FLOW
 	default m

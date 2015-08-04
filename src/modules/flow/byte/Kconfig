@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_BYTE
 	tristate "Node type: byte"
-	depends on FLOW
 	default y
