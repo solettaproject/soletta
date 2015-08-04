@@ -1,0 +1,108 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "iio",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "IIO based gyroscope input node. TODO explain the wonderful world of triggers, buffers and buffer sized 0 and -1.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a gyroscope reading and produce packets on each of the the output ports.",
+          "name": "TICK",
+          "methods": {
+            "process": "gyroscope_tick"
+          }
+        }
+      ],
+      "methods": {
+        "close": "gyroscope_close",
+        "open": "gyroscope_open"
+      },
+      "name": "iio/gyroscope",
+      "options": {
+       "members": [
+         {
+           "data_type": "int",
+           "description": "IIO device number",
+           "name": "iio_device"
+         },
+         {
+           "data_type": "int",
+           "description": "IIO buffer size. If -1, buffering is disabled. If 0, will use default buffer size. TODO explain triggers and etc",
+           "default": 0,
+           "name": "buffer_size"
+         },
+         {
+           "data_type": "string",
+           "description": "IIO trigger name. Name of IIO trigger that should be associated to this device for buffered readings. If not set and buffer enabled, will try to use device current trigger, if any. If none, will attempt to create a sysfs trigger",
+           "name": "iio_trigger_name",
+           "default": ""
+         },
+         {
+           "data_type": "boolean",
+           "default": true,
+           "description": "If should use device own default scale. If false, it will attempt to use scale_x, scale_y and scale_z options.",
+           "name": "use_device_default_scale"
+         },
+         {
+             "data_type": "float",
+             "default": 1,
+             "description": "Scale to be applied to x axis readings. Set use_device_scale_default to false to enable this option",
+             "name": "scale_x"
+         },
+         {
+             "data_type": "float",
+             "default": 1,
+             "description": "Scale to be applied to y axis readings. Set use_device_scale_default to false to enable this option",
+             "name": "scale_y"
+         },
+         {
+             "data_type": "float",
+             "default": 1,
+             "description": "Scale to be applied to z axis readings. Set use_device_scale_default to false to enable this option",
+             "name": "scale_z"
+         },
+         {
+           "data_type": "boolean",
+           "default": true,
+           "description": "If should use device own default offset. If false, it will attempt to use offset_x, offset_y and offset_z options.",
+           "name": "use_device_default_offset"
+         },
+         {
+             "data_type": "int",
+             "default": 1,
+             "description": "offset to be applied to x axis readings. Set use_device_offset_default to false to enable this option",
+             "name": "offset_x"
+         },
+         {
+             "data_type": "int",
+             "default": 1,
+             "description": "offset to be applied to y axis readings. Set use_device_offset_default to false to enable this option",
+             "name": "offset_y"
+         },
+         {
+             "data_type": "int",
+             "default": 1,
+             "description": "offset to be applied to z axis readings. Set use_device_offset_default to false to enable this option",
+             "name": "offset_z"
+         }
+       ],
+       "version": 1
+      },
+      "out_ports": [
+        {
+         "data_type": "direction-vector",
+         "description": "Angular speed in all X/Y/Z axes, in radians per second.",
+         "name": "OUT"
+        }
+      ],
+      "private_data_type": "gyroscope_data"
+    }
+ ]
+}
