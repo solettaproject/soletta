@@ -1,0 +1,3 @@
+config FLOW_NODE_TYPE_SI114X
+	tristate "Node type: si114x"
+	default m
