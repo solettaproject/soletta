@@ -27,6 +27,12 @@ obj-comms-$(COMMS) += \
     sol-oic-server.o
 endif
 
+ifeq (y,$(MQTT))
+obj-comms-$(COMMS) += \
+	sol-mqtt.o
+obj-comms-$(COMMS)-extra-ldflags += $(MOSQUITTO_LDFLAGS)
+endif
+
 headers-comms-$(NETWORK) += \
     include/sol-network.h
 
@@ -36,6 +42,9 @@ headers-comms-$(COAP) += \
 headers-comms-$(OIC) += \
     include/sol-oic-client.h \
     include/sol-oic-server.h
+
+headers-comms-$(MQTT) += \
+	include/sol-mqtt.h
 
 ifeq (y,$(HTTP_CLIENT))
 obj-comms-$(COMMS) += \
@@ -47,3 +56,4 @@ endif
 
 headers-comms-$(HTTP_CLIENT) += \
     include/sol-http-client.h
+

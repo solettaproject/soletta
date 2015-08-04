@@ -135,6 +135,17 @@
 	    "pkgname": "gtk+-3.0"
 	},
 	{
+	    "dependency": "mosquitto",
+	    "type": "ccode",
+	    "headers": [
+        "<mosquitto.h>"
+        ],
+        "fragment": "mosquitto_lib_init();",
+        "ldflags": {
+            "value": "-lmosquitto"
+        }
+	},
+	{
 	    "dependency": "systemd",
 	    "type": "pkg-config",
 	    "pkgname": "libsystemd",
