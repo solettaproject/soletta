@@ -52,6 +52,30 @@ sol_util_memdup(const void *data, size_t len)
     return ptr;
 }
 
+double
+sol_util_strtodn(const char *nptr, char **endptr, size_t len)
+{
+    char *tmpbuf, *tmpbuf_endptr;
+    double value;
+
+    /* NOTE: Using a copy to ensure trailing \0 and strtod() so we
+     * properly parse numbers with large precision.
+     *
+     * Since parsing it is complex (ie:
+     * http://www.netlib.org/fp/dtoa.c), we take the short path to
+     * call libc.
+     */
+    tmpbuf = strndupa(nptr, len);
+
+    errno = 0;
+    value = strtod(tmpbuf, &tmpbuf_endptr);
+
+    if (endptr)
+        *endptr = (char *)nptr + (tmpbuf_endptr - tmpbuf);
+
+    return value;
+}
+
 #ifdef SOL_PLATFORM_CONTIKI
 #include <contiki.h>
 

@@ -34,6 +34,8 @@
 #include "sol-json.h"
 #include "sol-util.h"
 #include "sol-log.h"
+#include "sol-types.h"
+#include <float.h>
 
 #define TOKENS (const enum sol_json_type[])
 struct test_entry {
@@ -162,6 +164,418 @@ test_json(void)
             if (sol_json_token_get_type(&input) != output[j]) {
                 SOL_WRN("Token: %c , Expected: %c \n", sol_json_token_get_type(&input), output[j]);
                 ASSERT(false);
+            }
+        }
+    }
+}
+
+DEFINE_TEST(test_json_token_get_uint64);
+
+static void
+test_json_token_get_uint64(void)
+{
+    const struct test_u64 {
+        const char *str;
+        uint64_t reference;
+        int expected_return;
+    } *itr, tests[] = {
+        { "0", 0, 0 },
+        { "123", 123, 0 },
+        { "18446744073709551615", UINT64_MAX, 0 },
+        { "0000123", 123, 0 },
+        { "-132", 0, -ERANGE },
+        { "184467440737095516150", UINT64_MAX, -ERANGE }, /* mul overflow */
+        { "18446744073709551616", UINT64_MAX, -ERANGE }, /* add overflow */
+        { "1.0", 1, -EINVAL },
+        { "123.456", 123, -EINVAL },
+        { "345e+12", 345, -EINVAL },
+        { "x", 0, -EINVAL },
+        { "", 0, -EINVAL },
+        {}
+    };
+
+    for (itr = tests; itr->str != NULL; itr++) {
+        uint64_t value;
+        char buf[512];
+        struct sol_json_token token;
+        int retval;
+
+        snprintf(buf, sizeof(buf), "%s123garbage", itr->str);
+        token.start = buf;
+        token.end = buf + strlen(itr->str);
+        retval = sol_json_token_get_uint64(&token, &value);
+        if (itr->expected_return == 0 && retval == 0) {
+            if (itr->reference == value) {
+                SOL_DBG("OK: parsed '%s' as %" PRIu64, itr->str, value);
+            } else {
+                SOL_WRN("FAILED: parsed '%s' as %" PRIu64 " where %" PRIu64
+                    " was expected", itr->str, value, itr->reference);
+                FAIL();
+            }
+        } else if (itr->expected_return == 0 && retval < 0) {
+            SOL_WRN("FAILED: parsing '%s' failed with errno = %d (%s)",
+                itr->str, retval, sol_util_strerrora(-retval));
+            FAIL();
+        } else if (itr->expected_return != 0 && retval == 0) {
+            SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                ", but got success with errno = %d (%s), value = %" PRIu64,
+                itr->str,
+                itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                retval, sol_util_strerrora(-retval), value);
+            FAIL();
+        } else if (itr->expected_return != 0 && retval < 0) {
+            if (itr->expected_return != retval) {
+                SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                    ", but got errno = %d (%s), value = %" PRIu64,
+                    itr->str,
+                    itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                    retval, sol_util_strerrora(-retval), value);
+                FAIL();
+            } else if (itr->reference != value) {
+                SOL_WRN("FAILED: parsing '%s' should result in %" PRIu64
+                    ", but got %" PRIu64, itr->str, itr->reference, value);
+                FAIL();
+            } else {
+                SOL_DBG("OK: parsed '%s' as %" PRIu64
+                    ", setting errno = %d (%s)",
+                    itr->str, value, retval, sol_util_strerrora(-retval));
+            }
+        }
+    }
+
+}
+
+DEFINE_TEST(test_json_token_get_uint32);
+
+static void
+test_json_token_get_uint32(void)
+{
+    const struct test_u32 {
+        const char *str;
+        uint32_t reference;
+        int expected_return;
+    } *itr, tests[] = {
+        { "0", 0, 0 },
+        { "123", 123, 0 },
+        { "4294967295", UINT32_MAX, 0 },
+        { "0000123", 123, 0 },
+        { "-132", 0, -ERANGE },
+        { "184467440737095516150", UINT32_MAX, -ERANGE },
+        { "1.0", 1, -EINVAL },
+        { "123.456", 123, -EINVAL },
+        { "345e+12", 345, -EINVAL },
+        { "x", 0, -EINVAL },
+        { "", 0, -EINVAL },
+        {}
+    };
+
+    for (itr = tests; itr->str != NULL; itr++) {
+        uint32_t value;
+        char buf[512];
+        struct sol_json_token token;
+        int retval;
+
+        snprintf(buf, sizeof(buf), "%s123garbage", itr->str);
+        token.start = buf;
+        token.end = buf + strlen(itr->str);
+        retval = sol_json_token_get_uint32(&token, &value);
+        if (itr->expected_return == 0 && retval == 0) {
+            if (itr->reference == value) {
+                SOL_DBG("OK: parsed '%s' as %" PRIu32, itr->str, value);
+            } else {
+                SOL_WRN("FAILED: parsed '%s' as %" PRIu32 " where %" PRIu32
+                    " was expected", itr->str, value, itr->reference);
+                FAIL();
+            }
+        } else if (itr->expected_return == 0 && retval < 0) {
+            SOL_WRN("FAILED: parsing '%s' failed with errno = %d (%s)",
+                itr->str, retval, sol_util_strerrora(-retval));
+            FAIL();
+        } else if (itr->expected_return != 0 && retval == 0) {
+            SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                ", but got success with errno = %d (%s), value = %" PRIu32,
+                itr->str,
+                itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                retval, sol_util_strerrora(-retval), value);
+            FAIL();
+        } else if (itr->expected_return != 0 && retval < 0) {
+            if (itr->expected_return != retval) {
+                SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                    ", but got errno = %d (%s), value = %" PRIu32,
+                    itr->str,
+                    itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                    retval, sol_util_strerrora(-retval), value);
+                FAIL();
+            } else if (itr->reference != value) {
+                SOL_WRN("FAILED: parsing '%s' should result in %" PRIu32
+                    ", but got %" PRIu32, itr->str, itr->reference, value);
+                FAIL();
+            } else {
+                SOL_DBG("OK: parsed '%s' as %" PRIu32
+                    ", setting errno = %d (%s)",
+                    itr->str, value, retval, sol_util_strerrora(-retval));
+            }
+        }
+    }
+
+}
+
+DEFINE_TEST(test_json_token_get_int64);
+
+static void
+test_json_token_get_int64(void)
+{
+    const struct test_i64 {
+        const char *str;
+        int64_t reference;
+        int expected_return;
+    } *itr, tests[] = {
+        { "0", 0, 0 },
+        { "123", 123, 0 },
+        { "9223372036854775807", INT64_MAX, 0 },
+        { "-9223372036854775808", INT64_MIN, 0 },
+        { "0000123", 123, 0 },
+        { "-132", -132, 0 },
+        { "-0000345", -345, 0 },
+        { "92233720368547758070", INT64_MAX, -ERANGE },
+        { "-92233720368547758080", INT64_MIN, -ERANGE },
+        { "9223372036854775808", INT64_MAX, -ERANGE },
+        { "-9223372036854775809", INT64_MIN, -ERANGE },
+        { "1.0", 1, -EINVAL },
+        { "123.456", 123, -EINVAL },
+        { "345e+12", 345, -EINVAL },
+        { "-1.0", -1, -EINVAL },
+        { "-123.456", -123, -EINVAL },
+        { "-345e+12", -345, -EINVAL },
+        { "x", 0, -EINVAL },
+        { "", 0, -EINVAL },
+        {}
+    };
+
+    for (itr = tests; itr->str != NULL; itr++) {
+        int64_t value;
+        char buf[512];
+        struct sol_json_token token;
+        int retval;
+
+        snprintf(buf, sizeof(buf), "%s123garbage", itr->str);
+        token.start = buf;
+        token.end = buf + strlen(itr->str);
+        retval = sol_json_token_get_int64(&token, &value);
+        if (itr->expected_return == 0 && retval == 0) {
+            if (itr->reference == value) {
+                SOL_DBG("OK: parsed '%s' as %" PRIi64, itr->str, value);
+            } else {
+                SOL_WRN("FAILED: parsed '%s' as %" PRIi64 " where %" PRIi64
+                    " was expected", itr->str, value, itr->reference);
+                FAIL();
+            }
+        } else if (itr->expected_return == 0 && retval < 0) {
+            SOL_WRN("FAILED: parsing '%s' failed with errno = %d (%s)",
+                itr->str, retval, sol_util_strerrora(-retval));
+            FAIL();
+        } else if (itr->expected_return != 0 && retval == 0) {
+            SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                ", but got success with errno = %d (%s), value = %" PRIi64,
+                itr->str,
+                itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                retval, sol_util_strerrora(-retval), value);
+            FAIL();
+        } else if (itr->expected_return != 0 && retval < 0) {
+            if (itr->expected_return != retval) {
+                SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                    ", but got errno = %d (%s), value = %" PRIi64,
+                    itr->str,
+                    itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                    retval, sol_util_strerrora(-retval), value);
+                FAIL();
+            } else if (itr->reference != value) {
+                SOL_WRN("FAILED: parsing '%s' should result in %" PRIi64
+                    ", but got %" PRIi64, itr->str, itr->reference, value);
+                FAIL();
+            } else {
+                SOL_DBG("OK: parsed '%s' as %" PRIi64
+                    ", setting errno = %d (%s)",
+                    itr->str, value, retval, sol_util_strerrora(-retval));
+            }
+        }
+    }
+
+}
+
+DEFINE_TEST(test_json_token_get_int32);
+
+static void
+test_json_token_get_int32(void)
+{
+    const struct test_i32 {
+        const char *str;
+        int32_t reference;
+        int expected_return;
+    } *itr, tests[] = {
+        { "0", 0, 0 },
+        { "123", 123, 0 },
+        { "2147483647", INT32_MAX, 0 },
+        { "-2147483648", INT32_MIN, 0 },
+        { "0000123", 123, 0 },
+        { "-132", -132, 0 },
+        { "-0000345", -345, 0 },
+        { "21474836470", INT32_MAX, -ERANGE },
+        { "-21474836480", INT32_MIN, -ERANGE },
+        { "2147483648", INT32_MAX, -ERANGE },
+        { "-2147483649", INT32_MIN, -ERANGE },
+        { "1.0", 1, -EINVAL },
+        { "123.456", 123, -EINVAL },
+        { "345e+12", 345, -EINVAL },
+        { "-1.0", -1, -EINVAL },
+        { "-123.456", -123, -EINVAL },
+        { "-345e+12", -345, -EINVAL },
+        { "x", 0, -EINVAL },
+        { "", 0, -EINVAL },
+        {}
+    };
+
+    for (itr = tests; itr->str != NULL; itr++) {
+        int32_t value;
+        char buf[512];
+        struct sol_json_token token;
+        int retval;
+
+        snprintf(buf, sizeof(buf), "%s123garbage", itr->str);
+        token.start = buf;
+        token.end = buf + strlen(itr->str);
+        retval = sol_json_token_get_int32(&token, &value);
+        if (itr->expected_return == 0 && retval == 0) {
+            if (itr->reference == value) {
+                SOL_DBG("OK: parsed '%s' as %" PRIi32, itr->str, value);
+            } else {
+                SOL_WRN("FAILED: parsed '%s' as %" PRIi32 " where %" PRIi32
+                    " was expected", itr->str, value, itr->reference);
+                FAIL();
+            }
+        } else if (itr->expected_return == 0 && retval < 0) {
+            SOL_WRN("FAILED: parsing '%s' failed with errno = %d (%s)",
+                itr->str, retval, sol_util_strerrora(-retval));
+            FAIL();
+        } else if (itr->expected_return != 0 && retval == 0) {
+            SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                ", but got success with errno = %d (%s), value = %" PRIi32,
+                itr->str,
+                itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                retval, sol_util_strerrora(-retval), value);
+            FAIL();
+        } else if (itr->expected_return != 0 && retval < 0) {
+            if (itr->expected_return != retval) {
+                SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                    ", but got errno = %d (%s), value = %" PRIi32,
+                    itr->str,
+                    itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                    retval, sol_util_strerrora(-retval), value);
+                FAIL();
+            } else if (itr->reference != value) {
+                SOL_WRN("FAILED: parsing '%s' should result in %" PRIi32
+                    ", but got %" PRIi32, itr->str, itr->reference, value);
+                FAIL();
+            } else {
+                SOL_DBG("OK: parsed '%s' as %" PRIi32
+                    ", setting errno = %d (%s)",
+                    itr->str, value, retval, sol_util_strerrora(-retval));
+            }
+        }
+    }
+
+}
+
+DEFINE_TEST(test_json_token_get_double);
+
+static void
+test_json_token_get_double(void)
+{
+    char dbl_max_str[256], neg_dbl_max_str[256];
+    char dbl_max_str_overflow[256], neg_dbl_max_str_overflow[256];
+    const struct test_double {
+        const char *str;
+        double reference;
+        int expected_return;
+    } *itr, tests[] = {
+        { "0", 0.0, 0 },
+        { "123", 123.0, 0 },
+        { "1.0", 1.0, 0 },
+        { "123.456", 123.456, 0 },
+        { "345e+12", 345e12, 0 },
+        { "345e-12", 345e-12, 0 },
+        { "345E+12", 345e12, 0 },
+        { "345E-12", 345e-12, 0 },
+        { "-1.0", -1.0, 0 },
+        { "-123.456", -123.456, 0 },
+        { "-345e+12", -345e12, 0 },
+        { "-345e-12", -345e-12, 0 },
+        { "-345E+12", -345e12, 0 },
+        { "-345E-12", -345e-12, 0 },
+        { "-345.678e+12", -345.678e12, 0 },
+        { "-345.678e-12", -345.678e-12, 0 },
+        { "-345.678E+12", -345.678e12, 0 },
+        { "-345.678E-12", -345.678e-12, 0 },
+        { dbl_max_str, DBL_MAX, 0 },
+        { neg_dbl_max_str, -DBL_MAX, 0 },
+        { dbl_max_str_overflow, DBL_MAX, -ERANGE },
+        { neg_dbl_max_str_overflow, -DBL_MAX, -ERANGE },
+        { "x", 0, -EINVAL },
+        { "", 0, -EINVAL },
+        {}
+    };
+
+    snprintf(dbl_max_str, sizeof(dbl_max_str), "%.64g", DBL_MAX);
+    snprintf(neg_dbl_max_str, sizeof(neg_dbl_max_str), "%.64g", -DBL_MAX);
+    snprintf(dbl_max_str_overflow, sizeof(dbl_max_str_overflow), "%.64g0", DBL_MAX);
+    snprintf(neg_dbl_max_str_overflow, sizeof(neg_dbl_max_str_overflow), "%.64g0", -DBL_MAX);
+
+    for (itr = tests; itr->str != NULL; itr++) {
+        double value;
+        char buf[512];
+        struct sol_json_token token;
+        int retval;
+
+        snprintf(buf, sizeof(buf), "%s123garbage", itr->str);
+        token.start = buf;
+        token.end = buf + strlen(itr->str);
+        retval = sol_json_token_get_double(&token, &value);
+        if (itr->expected_return == 0 && retval == 0) {
+            if (sol_drange_val_equal(itr->reference, value)) {
+                SOL_DBG("OK: parsed '%s' as %g", itr->str, value);
+            } else {
+                SOL_WRN("FAILED: parsed '%s' as %.64g where %.64g was expected"
+                    " (difference = %g)",
+                    itr->str, value, itr->reference, itr->reference - value);
+                FAIL();
+            }
+        } else if (itr->expected_return == 0 && retval < 0) {
+            SOL_WRN("FAILED: parsing '%s' failed with errno = %d (%s)",
+                itr->str, retval, sol_util_strerrora(-retval));
+            FAIL();
+        } else if (itr->expected_return != 0 && retval == 0) {
+            SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                ", but got success with errno = %d (%s), value = %g",
+                itr->str,
+                itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                retval, sol_util_strerrora(-retval), value);
+            FAIL();
+        } else if (itr->expected_return != 0 && retval < 0) {
+            if (itr->expected_return != retval) {
+                SOL_WRN("FAILED: parsing '%s' should fail with errno = %d (%s)"
+                    ", but got errno = %d (%s), value = %g",
+                    itr->str,
+                    itr->expected_return, sol_util_strerrora(-itr->expected_return),
+                    retval, sol_util_strerrora(-retval), value);
+                FAIL();
+            } else if (!sol_drange_val_equal(itr->reference, value)) {
+                SOL_WRN("FAILED: parsing '%s' should result in %.64g"
+                    ", but got %.64g (difference = %g)",
+                    itr->str, itr->reference, value, itr->reference - value);
+                FAIL();
+            } else {
+                SOL_DBG("OK: parsed '%s' as %g, setting errno = %d (%s)",
+                    itr->str, value, retval, sol_util_strerrora(-retval));
             }
         }
     }

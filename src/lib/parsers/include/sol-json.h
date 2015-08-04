@@ -37,6 +37,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include <errno.h>
+#include <stdint.h>
 #include <sol-macros.h>
 
 #ifdef __cplusplus
@@ -190,6 +192,120 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsig
 
 #define SOL_JSON_TOKEN_STR_LITERAL_EQ(token_, str_) \
     sol_json_token_str_eq(token_, str_, sizeof(str_) - 1)
+
+/**
+ * Get the numeric value of the given token as an 64 bits unsigned integer.
+ *
+ * @param token the token to convert to number.
+ * @param value where to return the converted number.
+ *
+ * @return 0 on success, -errno on failure (@c EINVAL or @c
+ * ERANGE). On errors @a value will be set to a best-match, such as 0
+ * if @c EINVAL or @c UINT64_MAX if @c ERANGE.
+ *
+ * @see sol_json_token_get_int64()
+ * @see sol_json_token_get_uint32()
+ * @see sol_json_token_get_double()
+ */
+int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2);
+
+/**
+ * Get the numeric value of the given token as an 64 bits signed integer.
+ *
+ * @param token the token to convert to number.
+ * @param value where to return the converted number.
+ *
+ * @return 0 on success, -errno on failure (@c EINVAL or @c
+ * ERANGE). On errors @a value will be set to a best-match, such as 0
+ * if @c EINVAL, @c INT64_MAX or @c INT64_MIN if @c ERANGE.
+ *
+ * @see sol_json_token_get_uint64()
+ * @see sol_json_token_get_int32()
+ * @see sol_json_token_get_double()
+ */
+int sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2);
+
+/**
+ * Get the numeric value of the given token as an 32 bits unsigned integer.
+ *
+ * @param token the token to convert to number.
+ * @param value where to return the converted number.
+ *
+ * @return 0 on success, -errno on failure (@c EINVAL or @c
+ * ERANGE). On errors @a value will be set to a best-match, such as 0
+ * if @c EINVAL or @c UINT32_MAX if @c ERANGE.
+ *
+ * @see sol_json_token_get_uint64()
+ * @see sol_json_token_get_int32()
+ * @see sol_json_token_get_double()
+ */
+static inline int
+sol_json_token_get_uint32(const struct sol_json_token *token, uint32_t *value)
+{
+    uint64_t tmp;
+    int r = sol_json_token_get_uint64(token, &tmp);
+
+    if (tmp > UINT32_MAX) {
+        tmp = UINT32_MAX;
+        if (r == 0)
+            r = -ERANGE;
+    }
+
+    *value = tmp;
+    return r;
+}
+
+/**
+ * Get the numeric value of the given token as an 32 bits signed integer.
+ *
+ * @param token the token to convert to number.
+ * @param value where to return the converted number.
+ *
+ * @return 0 on success, -errno on failure (@c EINVAL or @c
+ * ERANGE). On errors @a value will be set to a best-match, such as 0
+ * if @c EINVAL, @c INT32_MAX or @c INT32_MIN if @c ERANGE.
+ *
+ * @see sol_json_token_get_uint64()
+ * @see sol_json_token_get_int32()
+ * @see sol_json_token_get_double()
+ */
+static inline int
+sol_json_token_get_int32(const struct sol_json_token *token, int32_t *value)
+{
+    int64_t tmp;
+    int r = sol_json_token_get_int64(token, &tmp);
+
+    if (tmp > INT32_MAX) {
+        tmp = INT32_MAX;
+        if (r == 0)
+            r = -ERANGE;
+    } else if (tmp < INT32_MIN) {
+        tmp = INT32_MIN;
+        if (r == 0)
+            r = -ERANGE;
+    }
+
+    *value = tmp;
+    return r;
+}
+
+/**
+ * Get the numeric value of the given token as double-precision floating point.
+ *
+ * @param token the token to convert to number.
+ * @param value where to return the converted number.
+ *
+ * @return 0 on success, -errno on failure (@c EINVAL or @c
+ * ERANGE). On errors @a value will be set to a best-match, such as 0.0
+ * if @c EINVAL, @c DBL_MAX or @c -DBL_MAX if @c ERANGE.
+ *
+ * @see sol_json_token_get_uint64()
+ * @see sol_json_token_get_int64()
+ * @see sol_json_token_get_uint32()
+ * @see sol_json_token_get_int32()
+ */
+int sol_json_token_get_double(const struct sol_json_token *token, double *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2);
+
 
 bool sol_json_scanner_next(struct sol_json_scanner *scanner,
     struct sol_json_token *token)
