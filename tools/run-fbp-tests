@@ -180,6 +180,8 @@ if __name__ == "__main__":
         if expected_code != code:
             failed += 1
             print("FAILED running %s: wrong exit code, got %d but expected %d" % (t, code, expected_code))
+            print("Output:")
+            print(out)
             print()
             continue
         if expected_out is None and len(out) > 0:
