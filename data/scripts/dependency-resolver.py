@@ -322,7 +322,7 @@ def makefile_gen(args, context):
 
 def kconfig_gen(args, context):
     output = ""
-    for k,v in context.get_kconfig().items():
+    for k,v in sorted(context.get_kconfig().items()):
         output += "config {config}\n{indent}{ktype}\n{indent}default {enabled}\n". \
                   format(config=k, indent="       ", ktype=v["type"], enabled=v["value"])
     f = open(args.kconfig_output, "w+")
