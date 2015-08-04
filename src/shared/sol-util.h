@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include "sol-common-buildopts.h"
 #include "sol-macros.h"
 #include "sol-str-slice.h"
 #include "sol-vector.h"
