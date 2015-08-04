@@ -392,7 +392,7 @@ def uses_float(data):
                 return header
     elif "options" in data and "members" in data["options"]:
         for o in data["options"]["members"]:
-            if o["data_type"] == "float":
+            if o["data_type"] == "float" or o["data_type"] == "direction-vector":
                 return "#include <float.h>\n"
     return ""
 
