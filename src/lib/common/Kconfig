@@ -83,7 +83,6 @@ config PLATFORM_SYSTEMD
 	bool "systemd"
 	depends on HAVE_SYSTEMD
 	select SOL_PLATFORM_LINUX
-	select SOL_BUS
 	help
             This platform uses systemd.
 
@@ -304,7 +303,7 @@ endchoice
 
 config SOL_BUS
 	bool "Sd-bus support"
-	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_SD_BUS
+	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_SD_DBUS && HAVE_GLIB
 	help
           Systemd's sd-bus support.
 	default n
