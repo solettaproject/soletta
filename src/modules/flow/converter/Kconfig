@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_CONVERTER
 	tristate "Node type: converter"
-	depends on FLOW
 	default y

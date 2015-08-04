@@ -26,12 +26,12 @@ config TEST_FLOW
 
 config TEST_FLOW_BUILDER
 	bool "flow builder"
-	depends on FLOW && NODE_DESCRIPTION
+	depends on NODE_DESCRIPTION
 	default y
 
 config TEST_FLOW_PARSER
 	bool "flow parser"
-	depends on FLOW && NODE_DESCRIPTION
+	depends on NODE_DESCRIPTION
 	default y
 
 config TEST_JAVASCRIPT

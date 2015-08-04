@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_INT
 	tristate "Node type: int"
-	depends on FLOW
 	default y

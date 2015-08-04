@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_FILTER_REPEATED
 	tristate "Node type: filter-repeated"
-	depends on FLOW
 	default y

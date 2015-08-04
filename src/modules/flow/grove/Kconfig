@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_GROVE
 	tristate "Node type: grove"
-	depends on FLOW && USE_I2C && FLOW_NODE_TYPE_AIO
+	depends on USE_I2C && FLOW_NODE_TYPE_AIO
 	default m

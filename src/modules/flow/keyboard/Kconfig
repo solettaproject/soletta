@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_KEYBOARD
 	tristate "Node type: keyboard"
-	depends on FLOW
 	default m

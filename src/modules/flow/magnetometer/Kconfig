@@ -1,4 +1,3 @@
 config FLOW_NODE_TYPE_MAGNETOMETER
 	tristate "Node type: magnetometer"
-	depends on FLOW
 	default m

@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_PROCESS
 	tristate "Node type: process"
-	depends on FLOW && SOL_PLATFORM_LINUX
+	depends on SOL_PLATFORM_LINUX
 	default m
