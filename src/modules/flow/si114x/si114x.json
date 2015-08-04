@@ -1,0 +1,65 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "si114x",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "output/sw",
+      "description": "Provides ambient uv light reading",
+      "methods": {
+        "close": "si114x_close",
+        "open": "si114x_open",
+        "process": "si114x_process"
+      },
+      "name": "light-sensor/si114x",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Sensor BUS",
+            "name": "bus"
+          },
+          {
+            "data_type": "int",
+            "description": "Sensor Address",
+            "name": "address"
+          },
+          {
+            "data_type": "int",
+            "description": "Sensor reading speed",
+            "name": "speed"
+          },
+          {
+            "data_type": "int",
+            "description": "uv-calibration",
+            "name": "calibration"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Signal the s2p chip that a read must be performed",
+          "methods": {
+            "process": "si114x_process"
+          },
+          "name": "TICK"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "The current uv reading.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "si114x_data",
+      "url": "http://solettaproject.org/doc/latest/light-sensor/si114x.html"
+    }
+  ]
+}
