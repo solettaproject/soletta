@@ -24,6 +24,7 @@ targets.
     * [Network](#network)
     * [CoAP](#coap)
     * [OIC](#oic)
+    * [MQTT](#mqtt)
   * [Flow](#flow)
  * [Main Loops](#main-loops)
   * [GLib](#glib-kconfig-core-library---mainloop---glib)
@@ -192,6 +193,18 @@ the flow of information among devices, regardless of form factor,
 operating system or service provider.
 
 Both client and server sides are covered by this library.
+
+##### MQTT
+
+Wrapper around the mosquitto library implementation of the [MQTT
+protocol](http://mqtt.org/).
+
+
+MQTT is a machine-to-machine (M2M)/"Internet of Things"
+connectivity protocol. It was designed as an extremely
+lightweight publish/subscribe messaging transport. It is useful
+
+The broker is not covered by the wrapper, only the client.
 
 #### flow
 
