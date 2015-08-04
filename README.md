@@ -383,9 +383,10 @@ gpio/writer (a single boolean OUT port):
 
 Flow can be created directly in C using low-level primitives from
 sol-flow.h or using a higher-level API in sol-flow-builder.h. An
-alternative is to write the flow in a domain-specific language "FBP"
-that is easier to express. As an example imagine one wants to blink an
-LED linked to GPIO pin 123 every 200ms:
+alternative is to write the flow in a domain-specific
+language—"FBP"<sup>[1](#footnote_01)</sup>—that is easier to express.
+As an example imagine one wants to blink an LED linked to GPIO pin 123
+every 200ms:
 
         MyTimer(timer:interval=200) OUT -> IN MyToggler(boolean/toggle)
         MyToggler OUT -> IN MyLED(gpio/writer:pin=123)
@@ -499,3 +500,6 @@ By making a contribution to this project, I certify that:
     maintained indefinitely and may be redistributed consistent with
     this project or the open source license(s) involved.
 ```
+
+<a name="footnote_01">1</a>: Soletta expects that FBP files are
+utf-8-encoded

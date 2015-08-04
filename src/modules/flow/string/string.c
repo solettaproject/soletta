@@ -30,12 +30,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <ctype.h>
+#include <errno.h>
+
+#ifdef HAVE_ICU
+#include <unicode/ustring.h>
+#include <unicode/utypes.h>
+#else
+#warning "You're building the string nodes module without i18n support -- some nodes will only act properly on pure ASCII input, not the intended utf-8 for Soletta"
+#endif
+
+#ifdef HAVE_LOCALE
+#include <locale.h>
+#endif
+
 #include "string-gen.h"
 
 #include "sol-flow-internal.h"
-
-#include <sol-util.h>
-#include <errno.h>
+#include "sol-util.h"
 
 struct string_data {
     int n;
@@ -425,6 +437,155 @@ string_split(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     SOL_INT_CHECK(r, < 0, r);
 
     return send_substring(mdata, node);
+}
+
+static int
+string_change_case(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet,
+    bool lower)
+{
+#ifdef HAVE_ICU
+    int32_t (*case_func)(UChar *dest, int32_t destCapacity, const UChar *src,
+        int32_t srcLength, const char *locale,
+        UErrorCode *pErrorCode) = lower ? u_strToLower : u_strToUpper;
+    UChar *u_orig = NULL, *u_lower = NULL;
+    const char *curr_locale = NULL;
+    const char *value = NULL;
+    char *final = NULL;
+    int32_t u_changed_sz;
+    UErrorCode err;
+    int32_t sz;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    err = U_ZERO_ERROR;
+    u_strFromUTF8(NULL, 0, &sz, value, -1, &err);
+    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR)
+        return -EINVAL;
+
+    u_orig = calloc(sz + 1, sizeof(*u_orig));
+    if (!u_orig)
+        return -ENOMEM;
+
+    err = U_ZERO_ERROR;
+    u_strFromUTF8(u_orig, sz + 1, NULL, value, -1, &err);
+    if (U_FAILURE(err) || u_orig[sz] != 0) {
+        errno = EINVAL;
+        goto fail_from_utf8;
+    }
+
+#ifdef HAVE_LOCALE
+    curr_locale = setlocale(LC_ALL, NULL);
+    if (curr_locale == NULL) {
+        curr_locale = "";
+    }
+#else
+    curr_locale = "";
+#endif
+
+    err = U_ZERO_ERROR;
+    u_changed_sz = case_func(NULL, 0, u_orig, sz, curr_locale, &err);
+    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
+        errno = EINVAL;
+        goto fail_from_utf8;
+    }
+    u_lower = calloc(u_changed_sz + 1, sizeof(*u_lower));
+    if (!u_orig) {
+        errno = ENOMEM;
+        goto fail_from_utf8;
+    }
+
+    err = U_ZERO_ERROR;
+    case_func(u_lower, u_changed_sz + 1, u_orig, sz, curr_locale, &err);
+    free(u_orig);
+    if (U_FAILURE(err) || u_lower[u_changed_sz] != 0) {
+        errno = EINVAL;
+        goto fail_case_func;
+    }
+
+    err = U_ZERO_ERROR;
+    u_strToUTF8(NULL, 0, &sz, u_lower, u_changed_sz, &err);
+    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
+        errno = EINVAL;
+        goto fail_case_func;
+    }
+
+    final = calloc(sz + 1, sizeof(*final));
+    if (!final) {
+        errno = ENOMEM;
+        goto fail_case_func;
+    }
+
+    err = U_ZERO_ERROR;
+    u_strToUTF8(final, sz + 1, &sz, u_lower, u_changed_sz, &err);
+    free(u_lower);
+    if (U_FAILURE(err) || final[sz] != '\0') {
+        errno = EINVAL;
+        goto fail_to_utf8;
+    }
+
+    r = sol_flow_send_string_packet(node,
+        lower ? SOL_FLOW_NODE_TYPE_STRING_LOWERCASE__OUT__OUT :
+        SOL_FLOW_NODE_TYPE_STRING_UPPERCASE__OUT__OUT, final);
+    free(final);
+
+    return r;
+
+fail_from_utf8:
+    free(u_orig);
+fail_case_func:
+    free(u_lower);
+fail_to_utf8:
+    free(final);
+    sol_flow_send_error_packet(node, -errno, u_errorName(err));
+    return -errno;
+#else
+    int (*case_func)(int c) = lower ? tolower : toupper;
+    const char *value;
+    char *cpy, *ptr;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    cpy = strdup(value);
+    SOL_NULL_CHECK(value, -ENOMEM);
+
+    for (ptr = cpy; *ptr; ptr++)
+        *ptr = case_func(*ptr);
+
+    r = sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_STRING_UPPERCASE__OUT__OUT, cpy);
+    free(cpy);
+
+    return r;
+#endif
+}
+
+
+static int
+string_lowercase(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    return string_change_case(node, data, port, conn_id, packet, true);
+}
+
+static int
+string_uppercase(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    return string_change_case(node, data, port, conn_id, packet, false);
 }
 
 #include "string-gen.c"
