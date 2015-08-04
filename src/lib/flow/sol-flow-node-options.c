@@ -731,7 +731,7 @@ sol_flow_node_options_new(
     struct sol_flow_node_options **out_opts)
 {
 #ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    SOL_WRN("does not work if compiled with --disable-flow-node-type-description");
+    SOL_WRN("This function needs NODE_DESCRIPTION=y in the build config.");
     return -ENOTSUP;
 #else
     struct sol_flow_node_options *tmp_opts;
@@ -782,7 +782,7 @@ sol_flow_node_named_options_init_from_strv(
     const char *const *strv)
 {
 #ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    SOL_WRN("does not work if compiled with --disable-flow-node-type-description");
+    SOL_WRN("This function needs NODE_DESCRIPTION=y in the build config.");
     return -ENOTSUP;
 #else
     const struct sol_flow_node_options_description *desc;
@@ -866,7 +866,7 @@ sol_flow_node_options_copy(const struct sol_flow_node_type *type, const struct s
     SOL_FLOW_NODE_OPTIONS_API_CHECK(type, SOL_FLOW_NODE_OPTIONS_API_VERSION, NULL);
 
 #ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    SOL_WRN("does not work if compiled with --disable-flow-node-type-description");
+    SOL_WRN("This function needs NODE_DESCRIPTION=y in the build config.");
     return NULL;
 #else
     SOL_NULL_CHECK(type->description, NULL);
@@ -883,7 +883,7 @@ sol_flow_node_options_del(const struct sol_flow_node_type *type, struct sol_flow
     SOL_NULL_CHECK(type);
     SOL_FLOW_NODE_OPTIONS_API_CHECK(options, SOL_FLOW_NODE_OPTIONS_API_VERSION);
 #ifndef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    SOL_WRN("does not work if compiled with --disable-flow-node-type-description");
+    SOL_WRN("This function needs NODE_DESCRIPTION=y in the build config.");
 #else
     SOL_NULL_CHECK(type->description);
     SOL_NULL_CHECK(type->description->options);
