@@ -1146,21 +1146,174 @@ send_packets_match_packet_types(void)
 }
 
 
-DEFINE_TEST(node_options_from_strv);
+DEFINE_TEST(named_options_init_from_strv);
 
 static void
-node_options_from_strv(void)
+named_options_init_from_strv(void)
 {
-    const char *timer_strv[2] = { "interval=1000", NULL };
-    const char *timer_irange_strv[2] = { "interval=50|20|60|2", NULL };
-    const char *timer_irange_different_format_strv[2] = { "interval=val:100|min:10|max:200|step:5", NULL };
+    struct sol_flow_node_named_options named_opts;
+    struct sol_flow_node_named_options_member *m;
+    int r;
+
+    {
+        const char *strv[] = { "interval=1000", NULL };
+
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, SOL_FLOW_NODE_TYPE_TIMER, strv);
+        ASSERT(r >= 0);
+        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+
+        m = named_opts.members;
+        ASSERT_STR_EQ(m->name, "interval");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
+        ASSERT_INT_EQ(m->irange.val, 1000);
+
+        sol_flow_node_named_options_fini(&named_opts);
+    }
+
+    {
+        const char *strv[] = { "interval=50|20|60|2", NULL };
+
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, SOL_FLOW_NODE_TYPE_TIMER, strv);
+        ASSERT(r >= 0);
+        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+
+        m = named_opts.members;
+        ASSERT_STR_EQ(m->name, "interval");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
+        ASSERT_INT_EQ(m->irange.val, 50);
+        ASSERT_INT_EQ(m->irange.min, 20);
+        ASSERT_INT_EQ(m->irange.max, 60);
+        ASSERT_INT_EQ(m->irange.step, 2);
+
+        sol_flow_node_named_options_fini(&named_opts);
+    }
+
+    {
+        const char *strv[2] = { "interval=val:100|min:10|max:200|step:5", NULL };
+
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, SOL_FLOW_NODE_TYPE_TIMER, strv);
+        ASSERT(r >= 0);
+        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+
+        m = named_opts.members;
+        ASSERT_STR_EQ(m->name, "interval");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
+        ASSERT_INT_EQ(m->irange.val, 100);
+        ASSERT_INT_EQ(m->irange.min, 10);
+        ASSERT_INT_EQ(m->irange.max, 200);
+        ASSERT_INT_EQ(m->irange.step, 5);
+
+        sol_flow_node_named_options_fini(&named_opts);
+    }
 
 #ifdef USE_PWM
-    const char *pwm_strv[6] = { "chip=2", "pin=7", "enabled=true", "period=42", "duty_cycle=88", NULL };
+    {
+        const char *strv[] = { "chip=2", "pin=7", "enabled=true", "period=42", "duty_cycle=88", NULL };
+
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, SOL_FLOW_NODE_TYPE_PWM, strv);
+        ASSERT(r >= 0);
+        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+
+        m = named_opts.members;
+        ASSERT_STR_EQ(m->name, "chip");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
+        ASSERT_INT_EQ(m->irange.val, 2);
+
+        m++;
+        ASSERT_STR_EQ(m->name, "pin");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
+        ASSERT_INT_EQ(m->irange.val, 7);
+
+        m++;
+        ASSERT_STR_EQ(m->name, "enabled");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN);
+        ASSERT(m->boolean);
+
+        m++;
+        ASSERT_STR_EQ(m->name, "period");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
+        ASSERT_INT_EQ(m->irange.val, 42);
+
+        m++;
+        ASSERT_STR_EQ(m->name, "duty_cycle");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
+        ASSERT_INT_EQ(m->irange.val, 88);
+
+        sol_flow_node_named_options_fini(&named_opts);
+    }
 #endif
-    const char *console_strv[4] = { "prefix=console prefix:", "suffix=. suffix!", "output_on_stdout=true", NULL };
-    const char *timer_unknown_field_strv[2] = { "this_is_not_a_valid_field=100", NULL };
-    const char *timer_wrongly_formatted_strv[2] = { "interval = 1000", NULL };
+
+    {
+        const char *strv[] = { "prefix=console prefix:", "suffix=. suffix!", "output_on_stdout=true", NULL };
+
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, SOL_FLOW_NODE_TYPE_CONSOLE, strv);
+        ASSERT(r >= 0);
+        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+
+        m = named_opts.members;
+        ASSERT_STR_EQ(m->name, "prefix");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_STRING);
+        ASSERT_STR_EQ(m->string, "console prefix:");
+
+        m++;
+        ASSERT_STR_EQ(m->name, "suffix");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_STRING);
+        ASSERT_STR_EQ(m->string, ". suffix!");
+
+        m++;
+        ASSERT_STR_EQ(m->name, "output_on_stdout");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN);
+        ASSERT(m->boolean);
+
+        sol_flow_node_named_options_fini(&named_opts);
+    }
+
+    {
+        const char *strv[] = { "this_is_not_a_valid_field=100", NULL };
+
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, SOL_FLOW_NODE_TYPE_TIMER, strv);
+        ASSERT(r < 0);
+    }
+
+    {
+        const char *wrong_formatting_strv[] = { "interval = 1000", NULL };
+
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, SOL_FLOW_NODE_TYPE_TIMER, wrong_formatting_strv);
+        ASSERT(r < 0);
+    }
+}
+
+
+DEFINE_TEST(node_options_new);
+
+static void
+node_options_new(void)
+{
+    struct sol_flow_node_named_options_member one_option[] = {
+        { .name = "interval", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val=1000 }},
+    };
+
+    struct sol_flow_node_named_options_member multiple_options[] = {
+        { .name = "chip", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val = 2 }},
+        { .name = "pin", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val = 7 }},
+        { .name = "enabled", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
+        { .name = "period", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val = 42 }},
+        { .name = "duty_cycle", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val = 88 }},
+    };
+
+    struct sol_flow_node_named_options_member string_options[] = {
+        { .name = "prefix", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_STRING, .string = "console prefix:" },
+        { .name = "suffix", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_STRING, .string = ". suffix!" },
+        { .name = "output_on_stdout", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
+    };
+
+    struct sol_flow_node_named_options_member unknown_option[] = {
+        { .name = "this_is_not_a_valid_field", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
+    };
+
+    struct sol_flow_node_named_options_member wrong_type[] = {
+        { .name = "interval", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
+    };
 
     struct sol_flow_node_type_timer_options *timer_opts;
 #ifdef USE_PWM
@@ -1168,103 +1321,55 @@ node_options_from_strv(void)
 #endif
     struct sol_flow_node_type_console_options *console_opts;
     struct sol_flow_node_options *opts;
+    struct sol_flow_node_named_options named_opts;
+    int r;
 
     /* One option */
-    timer_opts = (struct sol_flow_node_type_timer_options *)
-        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_strv);
-    ASSERT(timer_opts);
+    named_opts.members = one_option;
+    named_opts.count = ARRAY_SIZE(one_option);
+    r = sol_flow_node_options_new(SOL_FLOW_NODE_TYPE_TIMER, &named_opts, &opts);
+    ASSERT(r >= 0);
+    timer_opts = (struct sol_flow_node_type_timer_options *)opts;
     ASSERT_INT_EQ(timer_opts->interval.val, 1000);
-    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_TIMER, (struct sol_flow_node_options *)timer_opts);
+    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_TIMER, opts);
 
 #ifdef USE_PWM
     /* Multiple options */
-    pwm_opts = (struct sol_flow_node_type_pwm_options *)
-        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_PWM, pwm_strv);
-    ASSERT(pwm_opts);
+    named_opts.members = multiple_options;
+    named_opts.count = ARRAY_SIZE(multiple_options);
+    r = sol_flow_node_options_new(SOL_FLOW_NODE_TYPE_PWM, &named_opts, &opts);
+    ASSERT(r >= 0);
+    pwm_opts = (struct sol_flow_node_type_pwm_options *)opts;
     ASSERT_INT_EQ(pwm_opts->chip.val, 2);
     ASSERT_INT_EQ(pwm_opts->pin.val, 7);
     ASSERT_INT_EQ(pwm_opts->enabled, true);
     ASSERT_INT_EQ(pwm_opts->period.val, 42);
     ASSERT_INT_EQ(pwm_opts->duty_cycle.val, 88);
-    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_PWM, (struct sol_flow_node_options *)pwm_opts);
+    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_PWM, opts);
 #endif
 
     /* String options */
-    console_opts = (struct sol_flow_node_type_console_options *)
-        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_CONSOLE, console_strv);
-    ASSERT(console_opts);
+    named_opts.members = string_options;
+    named_opts.count = ARRAY_SIZE(string_options);
+    r = sol_flow_node_options_new(SOL_FLOW_NODE_TYPE_CONSOLE, &named_opts, &opts);
+    ASSERT(r >= 0);
+    console_opts = (struct sol_flow_node_type_console_options *)opts;
     ASSERT(streq(console_opts->prefix, "console prefix:"));
     ASSERT(streq(console_opts->suffix, ". suffix!"));
     ASSERT_INT_EQ(console_opts->output_on_stdout, true);
-    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_CONSOLE, (struct sol_flow_node_options *)console_opts);
+    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_CONSOLE, opts);
 
-    /* Irange options */
-    timer_opts = (struct sol_flow_node_type_timer_options *)
-        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_irange_strv);
-    ASSERT(timer_opts);
-    ASSERT_INT_EQ(timer_opts->interval.val, 50);
-    ASSERT_INT_EQ(timer_opts->interval.step, 2);
-    ASSERT_INT_EQ(timer_opts->interval.min, 20);
-    ASSERT_INT_EQ(timer_opts->interval.max, 60);
-    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_TIMER, (struct sol_flow_node_options *)timer_opts);
+    /* Unknown option */
+    named_opts.members = unknown_option;
+    named_opts.count = ARRAY_SIZE(unknown_option);
+    r = sol_flow_node_options_new(SOL_FLOW_NODE_TYPE_TIMER, &named_opts, &opts);
+    ASSERT(r < 0);
 
-    /* Irange different format options */
-    timer_opts = (struct sol_flow_node_type_timer_options *)
-        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_irange_different_format_strv);
-    ASSERT(timer_opts);
-    ASSERT_INT_EQ(timer_opts->interval.val, 100);
-    ASSERT_INT_EQ(timer_opts->interval.step, 5);
-    ASSERT_INT_EQ(timer_opts->interval.min, 10);
-    ASSERT_INT_EQ(timer_opts->interval.max, 200);
-    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_TIMER, (struct sol_flow_node_options *)timer_opts);
-
-    /* Unknown field options */
-    opts = sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_unknown_field_strv);
-    ASSERT(!opts);
-
-    /* Wrongly formatted options */
-    opts = sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_TIMER, timer_wrongly_formatted_strv);
-    ASSERT(!opts);
-}
-
-
-DEFINE_TEST(merge_options);
-
-static void
-merge_options(void)
-{
-    struct sol_flow_node_type_console_options *opts;
-    int err;
-
-    const char *original_strv[] = {
-        "prefix=original_prefix",
-        "suffix=original_suffix",
-        "output_on_stdout=true",
-        NULL
-    };
-
-    const char *to_merge_strv[] = {
-        "prefix=merged_prefix",
-        "output_on_stdout=false",
-        NULL
-    };
-
-    opts = (struct sol_flow_node_type_console_options *)
-        sol_flow_node_options_new_from_strv(SOL_FLOW_NODE_TYPE_CONSOLE, original_strv);
-    ASSERT(opts);
-
-    ASSERT(streq(opts->prefix, "original_prefix"));
-    ASSERT(streq(opts->suffix, "original_suffix"));
-    ASSERT(opts->output_on_stdout);
-
-    err = sol_flow_node_options_merge_from_strv(SOL_FLOW_NODE_TYPE_CONSOLE, &opts->base, to_merge_strv);
-    ASSERT(err >= 0);
-
-    ASSERT(streq(opts->prefix, "merged_prefix"));
-    ASSERT(streq(opts->suffix, "original_suffix"));
-    ASSERT(!opts->output_on_stdout);
-
-    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_CONSOLE, &opts->base);
+    /* Wrong type */
+    named_opts.members = wrong_type;
+    named_opts.count = ARRAY_SIZE(wrong_type);
+    r = sol_flow_node_options_new(SOL_FLOW_NODE_TYPE_TIMER, &named_opts, &opts);
+    ASSERT(r < 0);
 }
 
 
