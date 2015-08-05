@@ -80,6 +80,7 @@ for f in $(find src/ -name \*.fbp); do
         echo "     GEN   $f_svg"
         dot -Tsvg $f_dot > $f_svg
         rm $f_dot
+        echo "     GEN   $f_svg"
 
         # Create jgp thumbnail
         min=`convert $f_svg -format "%[fx:min(w,h)]" info:`
