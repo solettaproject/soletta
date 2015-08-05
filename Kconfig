@@ -17,11 +17,16 @@ config ENABLE_DYNAMIC_MODULES
 	bool
 	default n
 
+config SHARED_LIBRARY
+    bool "Build shared library"
+    default y
+    depends on FEATURE_DYNAMIC_LINKER
+
 config MODULES
 	bool "Enable loadable module support"
 	option modules
 	select ENABLE_DYNAMIC_MODULES
-	depends on PLATFORM_LINUX
+	depends on SHARED_LIBRARY
 	default y
 	help
             This option enables dynamically loadable modules to be
@@ -57,25 +62,28 @@ endmenu
 menu "Core library"
 source "src/lib/common/Kconfig"
 source "src/lib/datatypes/Kconfig"
-source "src/lib/io/Kconfig"
 source "src/lib/parsers/Kconfig"
 endmenu
 
 menu "Flow Based Programming (FBP)"
+depends on FEATURE_FLOW
 source "src/lib/flow/Kconfig"
 endmenu
 
 menu "Networking"
+depends on FEATURE_NETWORK
 source "src/lib/comms/Kconfig"
 endmenu
 
 menu "Samples"
+depends on FEATURE_RUNNABLE_PROGRAMS
 source "src/samples/coap/Kconfig"
 source "src/samples/common/Kconfig"
 source "src/samples/flow/Kconfig"
 endmenu
 
 menu "Tools"
+depends on FEATURE_RUNNABLE_PROGRAMS
 source "src/bin/sol-fbp-generator/Kconfig"
 source "src/bin/sol-fbp-runner/Kconfig"
 source "src/bin/sol-fbp-to-dot/Kconfig"
@@ -83,5 +91,6 @@ source "src/bin/sol-flow-node-types/Kconfig"
 endmenu
 
 menu "Test suite"
+depends on FEATURE_RUNNABLE_PROGRAMS
 source "src/test/Kconfig"
 endmenu

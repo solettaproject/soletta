@@ -1,4 +1,4 @@
 config FBP_GENERATOR
 	bool "fbp generator"
-	depends on PLATFORM_LINUX && NODE_DESCRIPTION
+	depends on NODE_DESCRIPTION
 	default y

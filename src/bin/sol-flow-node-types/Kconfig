@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPES
 	bool "flow node types"
-	depends on PLATFORM_LINUX && NODE_DESCRIPTION
+	depends on NODE_DESCRIPTION
 	default y

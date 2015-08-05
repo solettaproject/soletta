@@ -1,4 +1,4 @@
 config FBP_RUNNER
 	bool "fbp runner"
-	depends on PLATFORM_LINUX && NODE_DESCRIPTION
+	depends on NODE_DESCRIPTION
 	default y
