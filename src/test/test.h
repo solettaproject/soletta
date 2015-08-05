@@ -74,27 +74,39 @@ int test_main(struct test *start, struct test *stop, void (*reset_func)(void), i
         }                                                               \
     } while (0)
 
-#define ASSERT_INT_EQ(expr_a, expr_b)                                   \
+#define ASSERT_NUMBER_EQ(type, expr_a, expr_b)                          \
     do {                                                                \
-        const int __value_expr_a = expr_a;                              \
-        const int __value_expr_b = expr_b;                              \
+        const type __value_expr_a = expr_a;                             \
+        const type __value_expr_b = expr_b;                             \
         if ((__value_expr_a) != (__value_expr_b)) {                     \
-            fprintf(stderr, "%s:%d: %s: Assertion `" #expr_a "' (%d) == `" #expr_b "' (%d) failed.\n", \
+            fprintf(stderr, "%s:%l: %s: Assertion `" #expr_a "' (%l) == `" #expr_b "' (%l) failed.\n", \
                 __FILE__, __LINE__, __PRETTY_FUNCTION__, __value_expr_a, __value_expr_b); \
             exit(-1);                                                   \
         }                                                               \
     } while (0)
 
-#define ASSERT_INT_NE(expr_a, expr_b)                                   \
+#define ASSERT_NUMBER_NE(type, expr_a, expr_b)                          \
     do {                                                                \
-        const int __value_expr_a = expr_a;                              \
-        const int __value_expr_b = expr_b;                              \
+        const type __value_expr_a = expr_a;                              \
+        const type __value_expr_b = expr_b;                              \
         if ((__value_expr_a) == (__value_expr_b)) {                     \
-            fprintf(stderr, "%s:%d: %s: Assertion `" #expr_a "' (%d) != `" #expr_b "' (%d) failed.\n", \
+            fprintf(stderr, "%s:%l: %s: Assertion `" #expr_a "' (%l) != `" #expr_b "' (%l) failed.\n", \
                 __FILE__, __LINE__, __PRETTY_FUNCTION__, __value_expr_a, __value_expr_b); \
             exit(-1);                                                   \
         }                                                               \
     } while (0)
+
+#define ASSERT_SIZE_T_EQ(expr_a, expr_b)        \
+    ASSERT_NUMBER_EQ(size_t, expr_a, expr_b)
+
+#define ASSERT_SIZE_T_NE(expr_a, expr_b)        \
+    ASSERT_NUMBER_NE(size_t, expr_a, expr_b)
+
+#define ASSERT_INT_EQ(expr_a, expr_b)           \
+    ASSERT_NUMBER_EQ(int, expr_a, expr_b)
+
+#define ASSERT_INT_NE(expr_a, expr_b)           \
+    ASSERT_NUMBER_NE(int, expr_a, expr_b)
 
 #define ASSERT_STR_EQ(str_a, str_b)                                     \
     do {                                                                \
