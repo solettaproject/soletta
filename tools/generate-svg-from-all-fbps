@@ -79,6 +79,7 @@ for f in $(find src/ -name \*.fbp); do
     if $FBP_TO_DOT --fbp=$f --dot=$f_dot; then
         dot -Tsvg $f_dot > $f_svg
         rm $f_dot
+        echo "     GEN   $f_svg"
 
         # Create jgp thumbnail
         min=`convert $f_svg -format "%[fx:min(w,h)]" info:`
