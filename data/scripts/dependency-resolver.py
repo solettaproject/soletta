@@ -202,6 +202,7 @@ def handle_ccode_check(args, conf, context):
 
 def handle_exec_check(args, conf, context):
     dep = conf.get("dependency")
+    dep_sym = dep.upper()
     exe = conf.get("exec")
 
     if not exe:
@@ -218,7 +219,8 @@ def handle_exec_check(args, conf, context):
         req_label += "executable: %s\\n" % exe
         context.add_append_makefile_var("NOT_FOUND", req_label, True)
 
-    context.add_cond_makefile_var(dep.upper(), path)
+    context.add_cond_makefile_var(dep_sym, path)
+    context.add_cond_makefile_var("HAVE_%s" % dep_sym, "y" if path else "n")
 
     return success
 
