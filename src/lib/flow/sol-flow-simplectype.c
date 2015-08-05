@@ -338,7 +338,7 @@ simplectype_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t
 }
 
 static struct sol_flow_node_type *
-simplectype_new_full_inner(const char *name, size_t private_data_size,
+simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t options_size,
     int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data),
     va_list args)
 {
@@ -418,6 +418,7 @@ simplectype_new_full_inner(const char *name, size_t private_data_size,
     type->open = simplectype_open;
     type->close = simplectype_close;
     type->dispose_type = simplectype_dispose;
+    type->options_size = options_size;
 
     if (!simplectype_create_description(type, name))
         goto error_desc;
@@ -443,7 +444,7 @@ error:
 }
 
 SOL_API struct sol_flow_node_type *
-sol_flow_simplectype_new_full(const char *name, size_t private_data_size,
+sol_flow_simplectype_new_full(const char *name, size_t private_data_size, uint16_t options_size,
     int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev,
     void *data), ...)
 {
@@ -451,9 +452,10 @@ sol_flow_simplectype_new_full(const char *name, size_t private_data_size,
     va_list ap;
 
     SOL_NULL_CHECK(func, NULL);
+    SOL_INT_CHECK(options_size, < sizeof(struct sol_flow_node_options), NULL);
 
     va_start(ap, func);
-    type = simplectype_new_full_inner(name, private_data_size, func, ap);
+    type = simplectype_new_full_inner(name, private_data_size, options_size, func, ap);
     va_end(ap);
 
     return type;
