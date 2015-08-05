@@ -9,7 +9,7 @@ ifeq (y,$(NETWORK))
         sol-network-riot.o
     endif
 
-    ifeq (y,$(SOL_PLATFORM_LINUX))
+    ifeq (y,$(PLATFORM_LINUX))
     obj-comms-$(COMMS) += \
         sol-network-linux.o \
         sol-socket-linux.o

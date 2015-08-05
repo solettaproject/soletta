@@ -47,7 +47,7 @@ config TEST_MAINLOOP
 
 config TEST_MAINLOOP_LINUX
 	bool "mainloop linux"
-	depends on SOL_PLATFORM_LINUX
+	depends on PLATFORM_LINUX
 	default y
 
 config TEST_MAINLOOP_THREADS

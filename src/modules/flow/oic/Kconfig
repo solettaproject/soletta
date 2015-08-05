@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_OIC
 	tristate "Node type: oic"
-	depends on OIC && SOL_PLATFORM_LINUX
+	depends on OIC && PLATFORM_LINUX
 	default m

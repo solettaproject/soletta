@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_UNIX_SOCKET
 	tristate "Node type: unix-socket"
-	depends on SOL_PLATFORM_LINUX
+	depends on PLATFORM_LINUX
 	default m
