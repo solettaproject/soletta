@@ -35,7 +35,6 @@
 /* we include custom-node-types-gen.h but are not building a module,
  * disregard log_init */
 #include "sol-macros.h"
-static void log_init(void) SOL_ATTR_UNUSED;
 
 #include "sol-flow-static.h"
 #include "custom-node-types-gen.h"
@@ -67,12 +66,12 @@ static void log_init(void) SOL_ATTR_UNUSED;
  * node type descriptions.
  */
 
-static const struct _custom_node_types_reader_options reader_opts =
-    _CUSTOM_NODE_TYPES_READER_OPTIONS_DEFAULTS(
+static const struct sol_flow_node_type_custom_node_types_reader_options reader_opts =
+    SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER_OPTIONS_DEFAULTS(
     .intopt.val = 1
     );
-static const struct _custom_node_types_writer_options writer_opts =
-    _CUSTOM_NODE_TYPES_WRITER_OPTIONS_DEFAULTS(
+static const struct sol_flow_node_type_custom_node_types_writer_options writer_opts =
+    SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER_OPTIONS_DEFAULTS(
     .prefix = "writer prefix from options"
     );
 
@@ -91,11 +90,11 @@ static const struct _custom_node_types_writer_options writer_opts =
  * in the startup() function below.
  */
 static struct sol_flow_static_node_spec nodes[] = {
-    [0] = { NULL /* placeholder _CUSTOM_NODE_TYPES_READER */,
+    [0] = { NULL /* placeholder SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER */,
             "reader", &reader_opts.base },
-    [1] = { NULL /* placeholder _CUSTOM_NODE_TYPES_LOGIC */,
+    [1] = { NULL /* placeholder SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC */,
             "logic", NULL },
-    [2] = { NULL /* placeholder _CUSTOM_NODE_TYPES_WRITER */,
+    [2] = { NULL /* placeholder SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER */,
             "writer", &writer_opts.base },
 #ifdef SOL_FLOW_NODE_TYPE_CONSOLE_DEFINED
     [3] = { NULL /* placeholder SOL_FLOW_NODE_TYPE_CONSOLE */,
@@ -114,16 +113,16 @@ static struct sol_flow_static_node_spec nodes[] = {
  * connections in a single ifdef as it would break the order.
  */
 static const struct sol_flow_static_conn_spec conns[] = {
-    { 0 /* reader */, _CUSTOM_NODE_TYPES_READER__OUT__OUT,
-      1 /* logic */, _CUSTOM_NODE_TYPES_LOGIC__IN__IN },
+    { 0 /* reader */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER__OUT__OUT,
+      1 /* logic */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC__IN__IN },
 #ifdef SOL_FLOW_NODE_TYPE_CONSOLE_DEFINED
-    { 0 /* reader */, _CUSTOM_NODE_TYPES_READER__OUT__OUT,
+    { 0 /* reader */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER__OUT__OUT,
       3 /* console */, SOL_FLOW_NODE_TYPE_CONSOLE__IN__IN },
 #endif
-    { 1 /* logic */, _CUSTOM_NODE_TYPES_LOGIC__OUT__OUT,
-      2 /* writer */, _CUSTOM_NODE_TYPES_WRITER__IN__IN },
+    { 1 /* logic */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC__OUT__OUT,
+      2 /* writer */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER__IN__IN },
 #ifdef SOL_FLOW_NODE_TYPE_CONSOLE_DEFINED
-    { 1 /* logic */, _CUSTOM_NODE_TYPES_LOGIC__OUT__OUT,
+    { 1 /* logic */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC__OUT__OUT,
       3 /* console */, SOL_FLOW_NODE_TYPE_CONSOLE__IN__IN },
 #endif
     SOL_FLOW_STATIC_CONN_SPEC_GUARD
@@ -139,9 +138,9 @@ startup(void)
      * initialize them in the vector initialization, we must assign
      * them in runtime.
      */
-    nodes[0 /* reader */].type = _CUSTOM_NODE_TYPES_READER;
-    nodes[1 /* logic */].type = _CUSTOM_NODE_TYPES_LOGIC;
-    nodes[2 /* writer */].type = _CUSTOM_NODE_TYPES_WRITER;
+    nodes[0 /* reader */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER;
+    nodes[1 /* logic */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC;
+    nodes[2 /* writer */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER;
 #ifdef SOL_FLOW_NODE_TYPE_CONSOLE_DEFINED
     nodes[3 /* console */].type = SOL_FLOW_NODE_TYPE_CONSOLE;
 #endif

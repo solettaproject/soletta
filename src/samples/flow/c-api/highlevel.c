@@ -35,7 +35,6 @@
 /* we include custom-node-types-gen.h but are not building a module,
  * disregard log_init */
 #include "sol-macros.h"
-static void log_init(void) SOL_ATTR_UNUSED;
 
 #include "sol-flow-builder.h"
 #include "custom-node-types-gen.h"
@@ -63,12 +62,12 @@ static void
 startup(void)
 {
     struct sol_flow_builder *builder;
-    struct _custom_node_types_reader_options reader_opts =
-        _CUSTOM_NODE_TYPES_READER_OPTIONS_DEFAULTS(
+    struct sol_flow_node_type_custom_node_types_reader_options reader_opts =
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER_OPTIONS_DEFAULTS(
         .intopt.val = 1
         );
-    struct _custom_node_types_writer_options writer_opts =
-        _CUSTOM_NODE_TYPES_WRITER_OPTIONS_DEFAULTS(
+    struct sol_flow_node_type_custom_node_types_writer_options writer_opts =
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER_OPTIONS_DEFAULTS(
         .prefix = "writer prefix from options"
         );
 
@@ -76,13 +75,13 @@ startup(void)
 
     /* use our custom node types */
     sol_flow_builder_add_node(builder, "reader",
-        _CUSTOM_NODE_TYPES_READER,
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER,
         &reader_opts.base);
     sol_flow_builder_add_node(builder, "logic",
-        _CUSTOM_NODE_TYPES_LOGIC,
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC,
         NULL);
     sol_flow_builder_add_node(builder, "writer",
-        _CUSTOM_NODE_TYPES_WRITER,
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER,
         &writer_opts.base);
     sol_flow_builder_connect(builder, "reader", "OUT", -1, "logic", "IN", -1);
     sol_flow_builder_connect(builder, "logic", "OUT", -1, "writer", "IN", -1);
