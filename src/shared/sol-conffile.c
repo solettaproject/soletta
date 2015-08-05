@@ -507,7 +507,9 @@ _resolve_config(const char *id, const char **type, const char ***opts)
     }
 
     *type = entry->type;
-    *opts = (const char **)entry->options.base.data;
+
+    if (opts && entry->options.base.len)
+        *opts = (const char **)entry->options.base.data;
 
     return 0;
 }
