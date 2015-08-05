@@ -85,7 +85,7 @@ JSON_TO_C = {
     "string": "char *",
     "integer": "int32_t",
     "boolean": "bool",
-    "number": "float"
+    "number": "double"
 }
 
 JSON_TO_C_TMP = {}
@@ -118,7 +118,7 @@ JSON_TO_SOL_JSON = {
     "string": "string",
     "integer": "int",
     "boolean": "boolean",
-    "number": "float"
+    "number": "double"
 }
 
 def object_fields_common_c(state_struct_name, name, props):
@@ -235,8 +235,9 @@ def object_serialize_fn_server_c(state_struct_name, name, props):
 
 def get_field_integer_client_c(id, name, prop):
     return '''if (decode_mask & (1<<%(id)d) && sol_json_token_str_eq(&key, "%(field_name)s", %(field_name_len)d)) {
-    if (!json_token_to_int32(&value, &fields.%(field_name)s))
-        RETURN_ERROR(-EINVAL);
+    int r = sol_json_token_get_int32(&value, &fields.%(field_name)s);
+    if (r < 0)
+        RETURN_ERROR(r);
     decode_mask &= ~(1<<%(id)d);
     continue;
 }
@@ -248,8 +249,9 @@ def get_field_integer_client_c(id, name, prop):
 
 def get_field_number_client_c(id, name, prop):
     return '''if (decode_mask & (1<<%(id)d) && sol_json_token_str_eq(&key, "%(field_name)s", %(field_name_len)d)) {
-    if (!json_token_to_float(&value, &fields.%(field_name)s))
-        RETURN_ERROR(-EINVAL);
+    int r = sol_json_token_get_double(&value, &fields.%(field_name)s);
+    if (r < 0)
+        RETURN_ERROR(r);
     decode_mask &= ~(1<<%(id)d);
     continue;
 }
@@ -1546,54 +1548,6 @@ escape_json_string(const char *s, char *buf)
         char buffer ## __COUNT__[calculate_escaped_len(s)]; \\
         escape_json_string(s, buffer ## __COUNT__); \\
     })
-
-SOL_ATTR_USED static bool
-json_token_to_int32(struct sol_json_token *token, int32_t *out)
-{
-    long val;
-    char *endptr;
-
-    if (sol_json_token_get_type(token) != SOL_JSON_TYPE_NUMBER)
-        return false;
-
-    errno = 0;
-    val = strtol(token->start, &endptr, 10);
-    if (errno)
-        return false;
-    if (endptr != token->end)
-        return false;
-    if (*endptr != 0)
-        return false;
-    if ((long)(int32_t) val != val)
-        return false;
-
-    *out = (long)val;
-    return true;
-}
-
-SOL_ATTR_USED static bool
-json_token_to_float(struct sol_json_token *token, float *out)
-{
-    float val;
-    char *endptr;
-
-    if (sol_json_token_get_type(token) != SOL_JSON_TYPE_NUMBER)
-        return false;
-
-    errno = 0;
-    val = strtof(token->start, &endptr);
-    if (errno)
-        return false;
-    if (endptr != token->end)
-        return false;
-    if (*endptr != 0)
-        return false;
-    if (isgreaterequal(val, HUGE_VALF))
-        return false;
-
-    *out = val;
-    return true;
-}
 
 SOL_ATTR_USED static bool
 json_token_to_string(struct sol_json_token *token, char **out)
