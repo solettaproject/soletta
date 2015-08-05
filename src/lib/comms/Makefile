@@ -3,28 +3,26 @@ obj-$(NETWORK) += networking.mod
 obj-networking-$(NETWORK) := \
     sol-comms.o
 
-ifeq (y,$(PLATFORM_RIOTOS))
-obj-networking-$(NETWORK) += \
+obj-networking-$(PLATFORM_RIOTOS) += \
     sol-network-riot.o
-endif
 
-ifeq (y,$(PLATFORM_LINUX))
-obj-networking-$(NETWORK) += \
+obj-networking-$(PLATFORM_LINUX) += \
     sol-network-linux.o \
     sol-socket-linux.o
-endif
 
-ifeq (y,$(COAP))
-obj-networking-$(NETWORK) += \
+obj-networking-$(COAP) += \
     coap.o \
     sol-coap.o
-endif
 
-ifeq (y,$(OIC))
-obj-networking-$(NETWORK) += \
+obj-networking-$(OIC) += \
     sol-oic-client.o \
     sol-oic-server.o
-endif
+
+obj-networking-$(HTTP_CLIENT) += \
+    sol-http-client-impl-curl.o
+
+obj-networking-$(HTTP_CLIENT)-extra-ldflags += \
+    $(LIBCURL_LDFLAGS)
 
 headers-networking-$(NETWORK) += \
     include/sol-network.h
@@ -35,15 +33,6 @@ headers-networking-$(COAP) += \
 headers-networking-$(OIC) += \
     include/sol-oic-client.h \
     include/sol-oic-server.h
-
-ifeq (y,$(HTTP_CLIENT))
-obj-networking-$(NETWORK) += \
-    sol-http-client-impl-curl.o
-
-obj-networking-$(NETWORK)-extra-ldflags += \
-    $(LIBCURL_LDFLAGS)
-
-endif
 
 headers-networking-$(HTTP_CLIENT) += \
     include/sol-http-client.h

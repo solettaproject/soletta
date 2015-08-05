@@ -10,13 +10,11 @@ obj-libshared-$(FLOW) += \
     sol-fbp-internal-scanner.o \
     sol-fbp-parser.o
 
-ifeq (y,$(PLATFORM_LINUX))
-obj-libshared-y += \
+obj-libshared-$(PLATFORM_LINUX) += \
     sol-conffile.o \
     sol-file-reader.o \
     sol-util-linux.o
-obj-libshared-y-extra-cflags += $(GLIB_CFLAGS)
-obj-libshared-y-extra-ldflags += $(GLIB_LDFLAGS)
-endif
+obj-libshared-$(PLATFORM_LINUX)-extra-cflags += $(GLIB_CFLAGS)
+obj-libshared-$(PLATFORM_LINUX)-extra-ldflags += $(GLIB_LDFLAGS)
 
 obj-libshared-y-extra-cflags += -fvisibility=default
