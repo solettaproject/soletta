@@ -121,7 +121,7 @@ reader_on_timeout(void *data)
      * In this example we are only interested in the value, thus we
      * use the simpler packet sender.
      *
-     * The port number macro (_CUSTOM_NODE_TYPES_READER__OUT__OUT) is
+     * The port number macro (SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER__OUT__OUT) is
      * defined in the generated file custom-node-types-gen.h and is
      * based on the JSON array declaration.
      *
@@ -130,11 +130,11 @@ reader_on_timeout(void *data)
      * high-level API to resolve names to indexes.
      */
     r = sol_flow_send_irange_value_packet(node,
-        _CUSTOM_NODE_TYPES_READER__OUT__OUT,
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER__OUT__OUT,
         mdata->val);
     if (r < 0) {
         fprintf(stderr, "ERROR: could not send packet on port=%d, value=%d\n",
-            _CUSTOM_NODE_TYPES_READER__OUT__OUT, mdata->val);
+            SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER__OUT__OUT, mdata->val);
         /* we will stop running and mdata->timer will be deleted if we
          * return false, then invalidate the handler.
          */
@@ -160,12 +160,13 @@ static int
 reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct reader_data *mdata = data;
-    const struct _custom_node_types_reader_options *opts;
+    const struct sol_flow_node_type_custom_node_types_reader_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
-        _CUSTOM_NODE_TYPES_READER_OPTIONS_API_VERSION,
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct _custom_node_types_reader_options *)options;
+    opts = (const struct sol_flow_node_type_custom_node_types_reader_options *)
+        options;
 
     /* create a 1 second timer where we produce packets. */
     mdata->timer = sol_timeout_add(1000, reader_on_timeout, node);
@@ -184,7 +185,7 @@ reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
      * use the simpler packet constructor.
      */
     return sol_flow_send_irange_value_packet(node,
-        _CUSTOM_NODE_TYPES_READER__OUT__OUT, mdata->val);
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER__OUT__OUT, mdata->val);
 }
 
 /**
@@ -222,12 +223,13 @@ static int
 writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct writer_data *mdata = data;
-    const struct _custom_node_types_writer_options *opts;
+    const struct sol_flow_node_type_custom_node_types_writer_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
-        _CUSTOM_NODE_TYPES_WRITER_OPTIONS_API_VERSION,
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct _custom_node_types_writer_options *)options;
+    opts = (const struct sol_flow_node_type_custom_node_types_writer_options *)
+        options;
 
     if (opts->prefix)
         mdata->prefix = strdup(opts->prefix);
@@ -283,7 +285,7 @@ logic_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_boolean_packet(node,
-        _CUSTOM_NODE_TYPES_LOGIC__IN__IN,
+        SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC__IN__IN,
         in_value.val % 2 == 0);
 
     return 0;
