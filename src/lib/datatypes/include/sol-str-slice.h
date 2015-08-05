@@ -61,9 +61,9 @@ extern "C" {
 
 #define SOL_STR_STATIC_ASSERT_LITERAL(_s) ("" _s)
 
-#define SOL_STR_SLICE_LITERAL(_s) { sizeof(SOL_STR_STATIC_ASSERT_LITERAL(_s)) - 1, _s }
+#define SOL_STR_SLICE_LITERAL(_s) { (sizeof(SOL_STR_STATIC_ASSERT_LITERAL(_s)) - 1), (_s) }
 
-#define SOL_STR_SLICE_STR(_s, _len) (struct sol_str_slice){.len = _len, .data = _s }
+#define SOL_STR_SLICE_STR(_s, _len) (struct sol_str_slice){.len = (_len), .data = (_s) }
 
 #define SOL_STR_SLICE_EMPTY { .len = 0, .data = "" }
 

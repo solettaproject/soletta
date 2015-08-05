@@ -35,6 +35,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "sol-str-slice.h"
 #include "sol-types.h"
 
 #ifdef __cplusplus
@@ -95,6 +96,7 @@ extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_ANY;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_ERROR;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_RGB;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
+extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_LOCATION;
 
 /* Convenience functions to use certain types of common packets. */
 struct sol_flow_packet *sol_flow_packet_new_empty(void);
@@ -111,6 +113,7 @@ int sol_flow_packet_get_irange(const struct sol_flow_packet *packet, struct sol_
 int sol_flow_packet_get_irange_value(const struct sol_flow_packet *packet, int32_t *value);
 
 struct sol_flow_packet *sol_flow_packet_new_string(const char *value);
+struct sol_flow_packet *sol_flow_packet_new_string_slice(struct sol_str_slice slice);
 int sol_flow_packet_get_string(const struct sol_flow_packet *packet, const char **value);
 struct sol_flow_packet *sol_flow_packet_new_string_take(char *value);
 
@@ -134,6 +137,9 @@ struct sol_flow_packet *sol_flow_packet_new_direction_vector(const struct sol_di
 struct sol_flow_packet *sol_flow_packet_new_direction_vector_components(double x, double y, double z);
 int sol_flow_packet_get_direction_vector(const struct sol_flow_packet *packet, struct sol_direction_vector *direction_vector);
 int sol_flow_packet_get_direction_vector_components(const struct sol_flow_packet *packet, double *x, double *y, double *z);
+
+struct sol_flow_packet *sol_flow_packet_new_location(const struct sol_location *location);
+int sol_flow_packet_get_location(const struct sol_flow_packet *packet, struct sol_location *location);
 
 /**
  * @}

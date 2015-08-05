@@ -1,0 +1,12 @@
+config FLOW_NODE_TYPE_FREEGEOIP
+	tristate "Node type: freegeoip"
+	depends on FLOW && HTTP_CLIENT
+	default y
+	help
+		Uses the free FreeGeoip service to obtain the location of
+		either a given IP address or the originating address.  The
+		service endpoint can be specified, but if omitted the
+		official, free server at https://freegeoip.net will be used
+		instead.
+
+		If unsure, say Y.
