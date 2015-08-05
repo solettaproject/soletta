@@ -12,7 +12,7 @@ config MODULES
 	bool "Enable loadable module support"
 	option modules
 	select ENABLE_DYNAMIC_MODULES
-	depends on SOL_PLATFORM_LINUX
+	depends on PLATFORM_LINUX
 	default y
 	help
             This option enables dynamically loadable modules to be

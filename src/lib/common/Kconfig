@@ -18,9 +18,8 @@ config PLATFORM_NAME
             '$PREFIX/share/soletta/', but some platforms such as RIOT may not
             provide it, then this string is used as a fallback.
 
-config SOL_PLATFORM_LINUX
+config PLATFORM_LINUX
 	bool
-	default n
 
 choice
 	prompt "Target platform"
@@ -49,7 +48,7 @@ choice
 config PLATFORM_DUMMY
 	bool "dummy"
 	depends on !HAVE_RIOTOS
-	select SOL_PLATFORM_LINUX
+	select PLATFORM_LINUX
 	help
             This platform is an empty stub and will not do any state
             transition or manage any service.
@@ -60,7 +59,7 @@ config PLATFORM_DUMMY
 
 
 config PLATFORM_LINUX_MICRO
-	select SOL_PLATFORM_LINUX
+	select PLATFORM_LINUX
 	depends on HAVE_LINUX
 	bool "linux-micro"
 	help
@@ -82,7 +81,7 @@ config PLATFORM_LINUX_MICRO
 config PLATFORM_SYSTEMD
 	bool "systemd"
 	depends on HAVE_SYSTEMD
-	select SOL_PLATFORM_LINUX
+	select PLATFORM_LINUX
 	select SOL_BUS
 	help
             This platform uses systemd.
@@ -174,7 +173,7 @@ choice
 
 config MAINLOOP_GLIB
 	bool "glib"
-	depends on SOL_PLATFORM_LINUX && HAVE_GLIB
+	depends on PLATFORM_LINUX && HAVE_GLIB
 	help
             The mainloop is implementated on top of Glib.
 
@@ -189,7 +188,7 @@ config MAINLOOP_GLIB
 
 config MAINLOOP_POSIX
 	bool "posix"
-	depends on SOL_PLATFORM_LINUX
+	depends on PLATFORM_LINUX
 	help
             The mainloop is implementated on top of poll(2) syscall.
 
@@ -218,7 +217,7 @@ endchoice
 
 config PTHREAD
 	bool "POSIX threads (pthread)"
-	depends on HAVE_PTHREAD_H && SOL_PLATFORM_LINUX
+	depends on HAVE_PTHREAD_H && PLATFORM_LINUX
 	default y
 	help
             Allow usage of POSIX threads (pthreads) in Soletta applications.

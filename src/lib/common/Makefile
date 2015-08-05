@@ -9,7 +9,7 @@ obj-core-$(CORE) := \
 ifeq (y,$(LOG))
 obj-core-$(CORE) += \
     sol-log.o
-obj-core-$(SOL_PLATFORM_LINUX) += \
+obj-core-$(PLATFORM_LINUX) += \
     sol-log-impl-linux.o
 obj-core-$(PLATFORM_RIOTOS) += \
     sol-log-impl-riot.o
@@ -49,11 +49,11 @@ obj-core-$(PLATFORM_DUMMY) += \
 obj-core-$(PLATFORM_CONTIKI) += \
     sol-platform-impl-contiki.o
 
-obj-core-$(SOL_PLATFORM_LINUX) += \
+obj-core-$(PLATFORM_LINUX) += \
     sol-platform-linux-common.o \
     sol-platform-detect.o
-obj-core-$(SOL_PLATFORM_LINUX)-extra-cflags += $(SYSTEMD_CFLAGS)
-obj-core-$(SOL_PLATFORM_LINUX)-extra-ldflags += $(SYSTEMD_LDFLAGS)
+obj-core-$(PLATFORM_LINUX)-extra-cflags += $(SYSTEMD_CFLAGS)
+obj-core-$(PLATFORM_LINUX)-extra-ldflags += $(SYSTEMD_LDFLAGS)
 
 obj-core-$(PLATFORM_SYSTEMD) += \
     sol-platform-impl-systemd.o

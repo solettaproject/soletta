@@ -59,7 +59,7 @@ obj-io-$(IO) += \
 endif # USE_GPIO
 endif # PLATFORM_CONTIKI
 
-ifeq (y,$(SOL_PLATFORM_LINUX))
+ifeq (y,$(PLATFORM_LINUX))
 ifeq (y, $(USE_AIO))
 obj-io-$(IO) += \
     sol-aio-linux.o

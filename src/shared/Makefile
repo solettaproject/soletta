@@ -10,7 +10,7 @@ obj-libshared-$(FLOW) += \
     sol-fbp-internal-scanner.o \
     sol-fbp-parser.o
 
-ifeq (y,$(SOL_PLATFORM_LINUX))
+ifeq (y,$(PLATFORM_LINUX))
 obj-libshared-y += \
     sol-conffile.o \
     sol-file-reader.o \
