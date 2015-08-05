@@ -337,8 +337,10 @@ simplectype_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t
     return type_data->func(node, &ev, data);
 }
 
-SOL_API struct sol_flow_node_type *
-sol_flow_simplectype_new_full(const char *name, size_t private_data_size, int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data), ...)
+static struct sol_flow_node_type *
+simplectype_new_full_inner(const char *name, size_t private_data_size,
+    int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data),
+    va_list args)
 {
     struct sol_vector ports_in = SOL_VECTOR_INIT(struct simplectype_port_in);
     struct sol_vector ports_out = SOL_VECTOR_INIT(struct simplectype_port_out);
@@ -348,15 +350,11 @@ sol_flow_simplectype_new_full(const char *name, size_t private_data_size, int (*
     struct simplectype_port_out *port_out;
     const char *port_name;
     uint16_t idx;
-    va_list ap;
     bool ok = true;
 
-    SOL_NULL_CHECK(func, NULL);
-
-    va_start(ap, func);
-    while ((port_name = va_arg(ap, const char *)) != NULL) {
-        const struct sol_flow_packet_type *pt = va_arg(ap, void *);
-        int direction = va_arg(ap, int);
+    while ((port_name = va_arg(args, const char *)) != NULL) {
+        const struct sol_flow_packet_type *pt = va_arg(args, void *);
+        int direction = va_arg(args, int);
 
         SOL_NULL_CHECK_GOTO(pt, error);
         SOL_INT_CHECK_GOTO(pt->api_version,
@@ -392,7 +390,6 @@ sol_flow_simplectype_new_full(const char *name, size_t private_data_size, int (*
             break;
         }
     }
-    va_end(ap);
 
     if (!ok)
         goto error;
@@ -443,6 +440,23 @@ error:
     }
     sol_vector_clear(&ports_out);
     return NULL;
+}
+
+SOL_API struct sol_flow_node_type *
+sol_flow_simplectype_new_full(const char *name, size_t private_data_size,
+    int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev,
+    void *data), ...)
+{
+    struct sol_flow_node_type *type;
+    va_list ap;
+
+    SOL_NULL_CHECK(func, NULL);
+
+    va_start(ap, func);
+    type = simplectype_new_full_inner(name, private_data_size, func, ap);
+    va_end(ap);
+
+    return type;
 }
 
 SOL_API uint16_t
