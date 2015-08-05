@@ -55,8 +55,8 @@ accumulator_to_char OUT -> PUT_CHAR lcd
 true OUT -> RESET timer_scroll
 false OUT -> ENABLED timer_delay(timer:interval=500)
 
-acc OUT -> IN0 comp_max(int/equal)
-char_max OUT -> IN1 comp_max
+acc OUT -> IN[0] comp_max(int/equal)
+char_max OUT -> IN[1] comp_max
 
 comp_max OUT -> PULSE_IF_TRUE bool_to_pulse0(converter/boolean-to-empty) OUT -> IN loops_switch
 
