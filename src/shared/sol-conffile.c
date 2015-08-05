@@ -416,8 +416,11 @@ _fill_vector(const char *path, const char *fallback_paths)
     struct sol_json_scanner json_scanner;
 
     config_file_contents = _load_json_from_paths(path, fallback_paths, &full_path, &file_reader);
-    if (!config_file_contents.len)
+    if (!config_file_contents.len) {
+        if (file_reader)
+            sol_file_reader_close(file_reader);
         return;
+    }
 
     sol_json_scanner_init(&json_scanner, config_file_contents.data, config_file_contents.len);
     _get_json_include_paths(json_scanner, &include, &include_fallbacks);
