@@ -344,10 +344,10 @@ simplectype_new_full_inner(const char *name, size_t private_data_size,
 {
     struct sol_vector ports_in = SOL_VECTOR_INIT(struct simplectype_port_in);
     struct sol_vector ports_out = SOL_VECTOR_INIT(struct simplectype_port_out);
-    struct sol_flow_node_type *type;
-    struct simplectype_type_data *type_data;
     struct simplectype_port_in *port_in;
     struct simplectype_port_out *port_out;
+    struct simplectype_type_data *type_data;
+    struct sol_flow_node_type *type;
     const char *port_name;
     uint16_t idx;
     bool ok = true;
