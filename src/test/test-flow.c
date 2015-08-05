@@ -1268,37 +1268,6 @@ merge_options(void)
 }
 
 
-DEFINE_TEST(copy_options);
-
-static void
-copy_options(void)
-{
-    struct sol_flow_node_type_console_options opts = {}, *copied_opts;
-    char prefix[] = { 'A', 'B', 'C', '\0' };
-
-    opts.base.api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION;
-    opts.base.sub_api = SOL_FLOW_NODE_TYPE_CONSOLE_OPTIONS_API_VERSION;
-    opts.prefix = prefix;
-    opts.output_on_stdout = true;
-    opts.flush = false;
-
-    copied_opts = (struct sol_flow_node_type_console_options *)
-        sol_flow_node_options_copy(SOL_FLOW_NODE_TYPE_CONSOLE, &opts.base);
-    ASSERT(copied_opts);
-
-    /* Will touch some of the values after the copy. */
-    prefix[0] = 'X';
-    prefix[1] = '\0';
-    opts.output_on_stdout = false;
-
-    ASSERT(streq(copied_opts->prefix, "ABC"));
-    ASSERT(copied_opts->output_on_stdout);
-    ASSERT(!copied_opts->flush);
-
-    sol_flow_node_options_del(SOL_FLOW_NODE_TYPE_CONSOLE, &copied_opts->base);
-}
-
-
 DEFINE_TEST(need_a_valid_type_to_create_packets);
 
 static void

@@ -131,8 +131,7 @@ int sol_flow_node_init(struct sol_flow_node *node, struct sol_flow_node *parent,
 /* Update libsoletta-gdb.py before changing the function and parameters below. */
 void sol_flow_node_fini(struct sol_flow_node *node);
 
-struct sol_flow_node_options *sol_flow_node_get_options(const struct sol_flow_node_type *type, const struct sol_flow_node_options *copy_from);
-void sol_flow_node_free_options(const struct sol_flow_node_type *type, struct sol_flow_node_options *options);
+extern const struct sol_flow_node_options sol_flow_node_options_empty;
 
 #define SOL_FLOW_NODE_CHECK(handle, ...)                 \
     do {                                                \
