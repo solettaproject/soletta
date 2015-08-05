@@ -46,8 +46,8 @@ lcd(LCDChar:underline_cursor=true)
 chars(int/accumulator:setup_value=val:97|min:97|max:122|step:1)
 chars OUT -> IN to_byte(converter/int-to-byte)
 
-chars OUT -> IN0 comp_m(int/equal)
-_(constant/int:value=109) OUT -> IN1 comp_m
+chars OUT -> IN[0] comp_m(int/equal)
+_(constant/int:value=109) OUT -> IN[1] comp_m
 
 to_byte OUT -> OUTPUT_VALUE curr_char(converter/empty-to-byte:output_value=97)
 curr_char OUT -> PUT_CHAR lcd
@@ -57,8 +57,8 @@ timer OUT -> INC chars
 
 comp_m OUT -> IN _(boolean/filter) TRUE -> IN _(boolean/not) OUT -> LEFT_TO_RIGHT lcd
 
-chars OUT -> IN0 comp_s(int/equal)
-_(constant/int:value=115) OUT -> IN1 comp_s
+chars OUT -> IN[0] comp_s(int/equal)
+_(constant/int:value=115) OUT -> IN[1] comp_s
 
 comp_s OUT -> IN _(boolean/filter) TRUE -> LEFT_TO_RIGHT lcd
 
