@@ -191,6 +191,7 @@ static const struct sol_flow_node_type test_node_type = {
     .get_ports_counts = test_node_get_ports_counts,
     .get_port_in = test_node_get_port_in,
     .get_port_out = test_node_get_port_out,
+    .options_size = sizeof(struct sol_flow_node_options),
 
     .description = &test_node_description,
 };

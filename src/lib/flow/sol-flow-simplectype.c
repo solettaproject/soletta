@@ -338,7 +338,7 @@ simplectype_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t
 }
 
 SOL_API struct sol_flow_node_type *
-sol_flow_simplectype_new_full(const char *name, size_t private_data_size, int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data), ...)
+sol_flow_simplectype_new_full(const char *name, size_t private_data_size, uint16_t options_size, int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data), ...)
 {
     struct sol_vector ports_in = SOL_VECTOR_INIT(struct simplectype_port_in);
     struct sol_vector ports_out = SOL_VECTOR_INIT(struct simplectype_port_out);
@@ -352,6 +352,7 @@ sol_flow_simplectype_new_full(const char *name, size_t private_data_size, int (*
     bool ok = true;
 
     SOL_NULL_CHECK(func, NULL);
+    SOL_INT_CHECK(options_size, < sizeof(struct sol_flow_node_options), NULL);
 
     va_start(ap, func);
     while ((port_name = va_arg(ap, const char *)) != NULL) {
@@ -421,6 +422,7 @@ sol_flow_simplectype_new_full(const char *name, size_t private_data_size, int (*
     type->open = simplectype_open;
     type->close = simplectype_close;
     type->dispose_type = simplectype_dispose;
+    type->options_size = options_size;
 
     if (!simplectype_create_description(type, name))
         goto error_desc;

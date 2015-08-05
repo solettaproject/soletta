@@ -454,7 +454,7 @@ build_node(
         goto end;
     }
 
-    err = sol_flow_builder_add_node(state->builder, name, type, opts);
+    err = sol_flow_builder_add_node_taking_options(state->builder, name, type, opts);
     if (err < 0) {
         sol_fbp_log_print(state->filename, node->position.line, node->position.column,
             "Couldn't add node '%s'", name);
@@ -466,8 +466,6 @@ end:
 
     free(component);
     if (err < 0) {
-        if (opts)
-            sol_flow_node_options_del(type, opts);
         name = NULL;
         errno = -err;
     }
@@ -633,8 +631,6 @@ build_flow(struct parse_state *state)
             goto end;
         }
     }
-
-    sol_flow_builder_mark_own_all_options(state->builder);
 
     SOL_VECTOR_FOREACH_IDX (&graph->conns, c, i) {
         err = sol_buffer_set_slice(&src_port_buf, c->src_port);

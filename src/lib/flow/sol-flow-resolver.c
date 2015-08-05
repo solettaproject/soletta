@@ -115,12 +115,6 @@ sol_flow_resolve(
         return -ENOENT;
     }
 
-    if (!tmp_type->new_options && tmp_named_opts.count > 0) {
-        SOL_ERR("Error resolving node type for id='%s'. "
-            "The type doesn't support options, but resolver returned them", id);
-        return -EINVAL;
-    }
-
     *type = tmp_type;
     *named_opts = tmp_named_opts;
 

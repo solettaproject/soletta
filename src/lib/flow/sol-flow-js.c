@@ -1303,6 +1303,7 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
             .get_port_in = flow_js_get_port_in,
             .get_port_out = flow_js_get_port_out,
             .dispose_type = flow_dispose_type,
+            .options_size = sizeof(struct sol_flow_node_options),
         },
     };
 
