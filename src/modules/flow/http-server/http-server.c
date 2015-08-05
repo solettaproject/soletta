@@ -48,6 +48,7 @@ struct http_data {
     struct sol_flow_node *node;
     union {
         bool b;
+        char *s;
     } value;
 
     char *path;
@@ -193,6 +194,107 @@ boolean_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     mdata->node = node;
 
     return 0;
+}
+
+/* ------------------------------------- string ------------------------------------------- */
+
+static int
+string_response_cb(void *data, struct sol_http_request *request)
+{
+    int r = 0;
+    uint16_t idx;
+    enum sol_http_method method;
+    struct http_data *mdata = data;
+    struct sol_http_param_value *value;
+    struct sol_http_response response = {
+        .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+        .content = SOL_BUFFER_INIT_EMPTY,
+        .param = SOL_HTTP_REQUEST_PARAM_INIT,
+        .response_code = SOL_HTTP_STATUS_OK
+    };
+
+    method = sol_http_request_get_method(request);
+    response.url = sol_http_request_get_url(request);
+
+    SOL_HTTP_PARAM_FOREACH_IDX (sol_http_request_get_params(request), value, idx) {
+        switch (value->type) {
+        case SOL_HTTP_PARAM_POST_FIELD:
+            if (streq(value->value.key_value.key, "value")) {
+                free(mdata->value.s);
+                mdata->value.s = strdup(value->value.key_value.value);
+                SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
+            }
+            break;
+        case SOL_HTTP_PARAM_HEADER:
+        default:
+            break;
+        }
+    }
+
+    r = sol_buffer_set_slice(&response.content, sol_str_slice_from_str(mdata->value.s));
+    SOL_INT_CHECK_GOTO(r, < 0, end);
+
+    r = sol_http_server_send_response(request, &response);
+    SOL_INT_CHECK_GOTO(r, < 0, end);
+
+    if (method == SOL_HTTP_METHOD_POST) {
+        sol_flow_send_string_packet(mdata->node, SOL_FLOW_NODE_TYPE_HTTP_SERVER_STRING__OUT__OUT, mdata->value.s);
+    }
+
+end:
+    sol_buffer_fini(&response.content);
+    sol_http_param_free(&response.param);
+
+    return r;
+}
+
+static int
+string_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct http_data *mdata = data;
+    const char *val;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    free(mdata->value.s);
+    mdata->value.s = strdup(val);
+    SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
+
+    return 0;
+}
+
+static void
+string_close(struct sol_flow_node *node, void *data)
+{
+    struct http_data *mdata = data;
+
+    free(mdata->value.s);
+    stop_server(mdata);
+}
+
+static int
+string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    int r;
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_server_string_options *opts =
+        (struct sol_flow_node_type_http_server_string_options *)options;
+
+    mdata->value.s = strdup(opts->value);
+    SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
+
+    r = start_server(mdata, opts->path, string_response_cb);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+    mdata->node = node;
+
+    return 0;
+
+err:
+    free(mdata->path);
+    return -1;
 }
 
 #include "http-server-gen.c"
