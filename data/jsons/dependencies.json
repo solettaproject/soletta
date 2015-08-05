@@ -260,9 +260,14 @@
 	    "fragment": "strndupa(0, 0);"
 	},
 	{
-	    "dependency": "builtin_umull_overflow",
+	    "dependency": "builtin_mul_overflow",
 	    "type": "ccode",
-	    "fragment": "__builtin_umull_overflow(0, 0, (void *)0);"
+	    "fragment": "__builtin_mul_overflow(0ULL, 0ULL, (unsigned long long *)0);"
+	},
+	{
+	    "dependency": "builtin_add_overflow",
+	    "type": "ccode",
+	    "fragment": "__builtin_add_overflow(0ULL, 0ULL, (unsigned long long *)0);"
 	},
 	{
 	    "dependency": "decl_ifla_inet6_addr_gen_mode",
@@ -276,6 +281,14 @@
 		"<linux/if_addr.h>"
 	    ],
 	    "fragment": "int v = IFLA_INET6_ADDR_GEN_MODE;"
+	},
+	{
+	    "dependency": "strtod_l",
+	    "type": "ccode",
+	    "headers": [
+		"<stdlib.h>"
+	    ],
+	    "fragment": "strtod_l(0, 0, 0);"
 	},
 	{
 	    "dependency": "valgrind",

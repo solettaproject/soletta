@@ -81,3 +81,7 @@ config TEST_VECTOR
 config TEST_JSON
 	bool "json"
 	default y
+
+config TEST_UTIL
+	bool "util"
+	default y
