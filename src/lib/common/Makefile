@@ -61,9 +61,9 @@ obj-core-$(PLATFORM_SYSTEMD) += \
 obj-core-$(PLATFORM_SYSTEMD)-extra-cflags += $(SYSTEMD_CFLAGS) $(UDEV_CFLAGS)
 obj-core-$(PLATFORM_SYSTEMD)-extra-ldflags += $(SYSTEMD_LDFLAGS) $(UDEV_LDFLAGS)
 
-obj-$(PTHREAD) += \
+obj-$(WORKER_THREAD) += \
     thread.mod
-obj-thread-$(PTHREAD) := \
+obj-thread-$(WORKER_THREAD) := \
     sol-worker-thread.o
 obj-thread-$(MAINLOOP_GLIB) += \
     sol-worker-thread-impl-glib.o

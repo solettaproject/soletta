@@ -9,7 +9,7 @@ config NETWORK
 config COAP
 	bool "CoAP"
 	default y
-	depends on NETWORK
+	depends on NETWORK && FEATURE_COAP
 	help
             The Constrained Application Protocol (CoAP) is a
             specialized web transfer protocol for use with constrained
@@ -54,6 +54,6 @@ config OIC
 config HTTP_CLIENT
 	bool "HTTP Client"
 	default y
-	depends on HAVE_LIBCURL && NETWORK
+	depends on NETWORK && FEATURE_HTTP_CLIENT
 	help
             Client API for both HTTP and HTTPS.

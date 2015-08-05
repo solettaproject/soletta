@@ -1,0 +1,54 @@
+config USE_AIO
+    bool "Analog I/O (AIO) Support"
+    depends on FEATURE_HW_AIO
+    default y
+
+config USE_PWM
+    bool "PWM Support"
+    depends on FEATURE_HW_PWM
+    default y
+
+config USE_SPI
+    bool "SPI Support"
+    depends on FEATURE_HW_SPI
+    default y
+
+config USE_UART
+    bool "UART Support"
+    depends on FEATURE_HW_UART
+    default y
+
+config USE_I2C
+    bool "I2C Support"
+    depends on FEATURE_HW_I2C
+    default y
+
+config USE_GPIO
+    bool "GPIO Support"
+    depends on FEATURE_HW_GPIO
+    default y
+
+menuconfig USE_PIN_MUX
+    bool "Pin Multiplexer"
+    depends on LINUX && USE_GPIO
+    default y
+    help
+          Pin Multiplexer is a feature that helps to setup
+          physical pins shared by more than one feature in
+          some platforms.
+
+          This switch enables the logic to handle pin multiplexers,
+          but the multiplexer logic is to be defined in separate
+          pin-mux modules that can be built-in libsoletta or installed
+          as dynamically loadable modules at
+          $PREFIX/lib/soletta/modules/pin-mux/<module>.so
+
+          Pin mux modules are used based on the platform-detect logic
+          defined in $PREFIX/share/soletta/platform_detect.json or
+          statically defined PLATFORM_NAME.
+
+          If unsure, say Y.
+
+source "src/modules/pin-mux/intel-galileo-rev-d/Kconfig"
+source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
+source "src/modules/pin-mux/intel-edison-rev-c/Kconfig"
