@@ -62,21 +62,6 @@ struct freegeoip_data {
         } \
     } while (0)
 
-static bool
-json_token_to_double(const struct sol_json_token *token, double *output)
-{
-    /* FIXME: strtod() isn't the correct function to parse floating point
-     * received from a JSON payload.  Use the correct function as soon as
-     * that's available.  */
-    char *endptr = NULL;
-
-    errno = 0;
-    /* Buffers from sol-http-client are zero-terminated, so strtod() is
-     * safe from overruns.  */
-    *output = strtod(token->start, &endptr);
-    return errno == 0 && endptr == token->end;
-}
-
 static void
 freegeoip_query_finished(void *data, struct sol_http_response *response)
 {
@@ -125,10 +110,10 @@ freegeoip_query_finished(void *data, struct sol_http_response *response)
         JSON_FIELD_TO_FLOW_PORT("time_zone", TIMEZONE);
 
         if (sol_json_token_str_eq(&key, "latitude", strlen("latitude"))) {
-            if (!json_token_to_double(&value, &location.lat))
+            if (sol_json_token_get_double(&value, &location.lat) < 0)
                 goto error;
         } else if (sol_json_token_str_eq(&key, "longitude", strlen("longitude"))) {
-            if (!json_token_to_double(&value, &location.lon))
+            if (sol_json_token_get_double(&value, &location.lon) < 0)
                 goto error;
         } else {
             SOL_DBG("Unknown key in FreeGeoip response: %.*s. Ignoring.",
