@@ -34,10 +34,8 @@
 extern int sol_http_client_init(void);
 extern void sol_http_client_shutdown(void);
 #endif
-#ifdef NETWORK
 extern int sol_network_init(void);
 extern void sol_network_shutdown(void);
-#endif
 
 int sol_comms_init(void);
 void sol_comms_shutdown(void);
@@ -47,11 +45,9 @@ sol_comms_init(void)
 {
     int r;
 
-#ifdef NETWORK
     r = sol_network_init();
     if (r < 0)
         goto network_error;
-#endif
 
 #ifdef HTTP_CLIENT
     r = sol_http_client_init();
@@ -64,10 +60,8 @@ sol_comms_init(void)
 #ifdef HTTP_CLIENT
 http_error:
 #endif
-#ifdef NETWORK
     sol_network_shutdown();
 network_error:
-#endif
     return -1;
 }
 
@@ -77,7 +71,5 @@ sol_comms_shutdown(void)
 #ifdef HTTP_CLIENT
     sol_http_client_shutdown();
 #endif
-#ifdef NETWORK
     sol_network_shutdown();
-#endif
 }

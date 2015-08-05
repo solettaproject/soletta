@@ -1,14 +1,6 @@
-config COMMS
-	bool "Comms"
-	default y
-	help
-            Network connectivity modules. Includes CoAP, OIC
-            (client/server), HTTP (client), basic network link management.
-
 config NETWORK
 	bool "Network"
 	default y
-	depends on COMMS
 	help
             Network library provides a way to handle network link interfaces,
             making it possible to observe events, to inquire available links
@@ -62,6 +54,6 @@ config OIC
 config HTTP_CLIENT
 	bool "HTTP Client"
 	default y
-	depends on HAVE_LIBCURL && COMMS
+	depends on HAVE_LIBCURL && NETWORK
 	help
             Client API for both HTTP and HTTPS.

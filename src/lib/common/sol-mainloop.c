@@ -76,7 +76,7 @@ extern void sol_blob_shutdown(void);
 extern int sol_flow_init(void);
 extern void sol_flow_shutdown(void);
 #endif
-#ifdef COMMS
+#ifdef NETWORK
 extern int sol_comms_init(void);
 extern void sol_comms_shutdown(void);
 #endif
@@ -124,7 +124,7 @@ sol_init(void)
         goto flow_error;
 #endif
 
-#ifdef COMMS
+#ifdef NETWORK
     r = sol_comms_init();
     if (r < 0)
         goto comms_error;
@@ -134,7 +134,7 @@ sol_init(void)
 
     return 0;
 
-#ifdef COMMS
+#ifdef NETWORK
 comms_error:
 #endif
 #ifdef FLOW
@@ -209,7 +209,7 @@ sol_shutdown(void)
         return;
 
     SOL_DBG("shutdown");
-#ifdef COMMS
+#ifdef NETWORK
     sol_comms_shutdown();
 #endif
 #ifdef FLOW
