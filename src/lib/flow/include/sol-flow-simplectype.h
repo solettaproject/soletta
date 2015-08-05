@@ -115,6 +115,9 @@ struct sol_flow_simplectype_event {
  *        the last argument. If zero is given, then this node
  *        shouldn't store per-instance information and data shouldn't
  *        be used.
+ * @param options_size the amount of bytes to store options used with
+ *        this type. The options struct must contain a struct
+ *        sol_flow_node_options as its first member.
  * @param func the function to call for all events of this node such
  *        as opening (creating), closing (destroying), ports being
  *        connected or disconnected as well as incoming packets on
@@ -127,7 +130,7 @@ struct sol_flow_simplectype_event {
  * @see sol_flow_simplectype_new_nocontext()
  * @see sol_flow_node_type_del()
  */
-struct sol_flow_node_type *sol_flow_simplectype_new_full(const char *name, size_t context_data_size, int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data), ...) SOL_ATTR_SENTINEL;
+struct sol_flow_node_type *sol_flow_simplectype_new_full(const char *name, size_t context_data_size, uint16_t options_size, int (*func)(struct sol_flow_node *node, const struct sol_flow_simplectype_event *ev, void *data), ...) SOL_ATTR_SENTINEL;
 
 /**
  * @def sol_flow_simplectype_new(context_data_type, cb, ...)
@@ -141,7 +144,7 @@ struct sol_flow_node_type *sol_flow_simplectype_new_full(const char *name, size_
  * @see sol_flow_simplectype_new_full()
  * @see sol_flow_simplectype_new_nocontext()
  */
-#define sol_flow_simplectype_new(context_data_type, cb, ...) sol_flow_simplectype_new_full(#cb, sizeof(context_data_type), cb, ## __VA_ARGS__, NULL)
+#define sol_flow_simplectype_new(context_data_type, cb, ...) sol_flow_simplectype_new_full(#cb, sizeof(context_data_type), sizeof(struct sol_flow_node_type), cb, ## __VA_ARGS__, NULL)
 
 /**
  * @def sol_flow_simplectype_new_nocontext(cb, ...)
@@ -154,7 +157,7 @@ struct sol_flow_node_type *sol_flow_simplectype_new_full(const char *name, size_
  * @see sol_flow_simplectype_new_full()
  * @see sol_flow_simplectype_new()
  */
-#define sol_flow_simplectype_new_nocontext(cb, ...) sol_flow_simplectype_new_full(#cb, 0, cb, ## __VA_ARGS__, NULL)
+#define sol_flow_simplectype_new_nocontext(cb, ...) sol_flow_simplectype_new_full(#cb, 0, sizeof(struct sol_flow_node_type), cb, ## __VA_ARGS__, NULL)
 
 /**
  * Helper to retrieve the output port index from its name.

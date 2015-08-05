@@ -239,8 +239,9 @@ startup(void)
      * input: IRANGE (index: 0), BOOLEAN (index: 1)
      * output: STRING (index: 0, as input and output have separate arrays)
      */
-    mytype = sol_flow_simplectype_new(
-        struct mytype_context, mytype_func,
+    mytype = sol_flow_simplectype_new_full(
+        "mytype", sizeof(struct mytype_context), sizeof(struct mytype_options),
+        mytype_func,
         SOL_FLOW_SIMPLECTYPE_PORT_IN("IRANGE", SOL_FLOW_PACKET_TYPE_IRANGE),
         SOL_FLOW_SIMPLECTYPE_PORT_IN("BOOLEAN", SOL_FLOW_PACKET_TYPE_BOOLEAN),
         SOL_FLOW_SIMPLECTYPE_PORT_OUT("STRING", SOL_FLOW_PACKET_TYPE_STRING),
