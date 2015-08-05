@@ -1,0 +1,54 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "max31855",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "MAX31855, A Temperature Reader, datasheet can be obtained at: http://www.adafruit.com/datasheets/MAX31855.pdf",
+      "methods": {
+        "close": "max31855_close",
+        "open": "max31855_open"
+      },
+      "name": "temperature/max31855",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Bus",
+            "name": "bus"
+          },
+          {
+            "data_type": "int",
+            "description": "Chip Select",
+            "name": "chip_select"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Signal the SPI chip that a read must be performed",
+          "methods": {
+            "process": "max31855_process"
+          },
+          "name": "TICK"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured value in kelvin.",
+          "name": "KELVIN"
+        }
+      ],
+      "private_data_type": "max31855_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/temperature/max31855.html"
+    }
+  ]
+}
