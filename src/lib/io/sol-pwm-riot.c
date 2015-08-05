@@ -37,6 +37,7 @@
 #include "sol-log-internal.h"
 #include "sol-pwm.h"
 #include "sol-util.h"
+#include "sol-vector.h"
 
 #include "periph/pwm.h"
 
@@ -44,6 +45,13 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
 
 // Resolution of PWM period, how many divisions a period can have
 #define RESOLUTION  255
+
+struct dev_ref {
+    uint16_t device;
+    uint16_t ref;
+};
+
+static struct sol_vector _dev_ref = SOL_VECTOR_INIT(struct dev_ref);
 
 struct sol_pwm {
     pwm_t dev;
@@ -54,6 +62,44 @@ struct sol_pwm {
     uint32_t duty_cycle;
     bool enable;
 };
+
+static void
+_power_on(const int device)
+{
+    uint16_t i;
+    struct dev_ref *ref;
+
+    SOL_VECTOR_FOREACH_IDX (&_dev_ref, ref, i) {
+        if (ref->device == device) {
+            ref->ref++;
+            return;
+        }
+    }
+
+    ref = sol_vector_append(&_dev_ref);
+    ref->device = device;
+    ref->ref = 1;
+    pwm_poweron(device);
+}
+
+static void
+_power_off(const int device)
+{
+    uint16_t i;
+    struct dev_ref *ref;
+
+    SOL_VECTOR_FOREACH_IDX (&_dev_ref, ref, i) {
+        if (ref->device == device) {
+            if (!--ref->ref) {
+                sol_vector_del(&_dev_ref, i);
+                pwm_poweroff(device);
+            }
+            return;
+        }
+    }
+
+    SOL_DBG("pwm: Trying to power off device %d, but reference was not found.", device);
+}
 
 SOL_API struct sol_pwm *
 sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
@@ -76,7 +122,7 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
     pwm->channel = channel;
     pwm->phase = config->alignment;
 
-    pwm_poweron(pwm->dev);
+    _power_on(pwm->dev);
     if (config->period_ns != -1)
         sol_pwm_set_period(pwm, config->period_ns);
     if (config->duty_cycle_ns != -1)
@@ -92,7 +138,7 @@ sol_pwm_close(struct sol_pwm *pwm)
     sol_pwm_set_duty_cycle(pwm, 0);
     sol_pwm_set_period(pwm, 0);
     pwm_stop(pwm->dev);
-    pwm_poweroff(pwm->dev);
+    _power_off(pwm->dev);
     free(pwm);
 }
 
