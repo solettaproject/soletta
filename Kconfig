@@ -1,6 +1,15 @@
 mainmenu "Soletta configuration"
 
 source "Kconfig.gen"
+source "tools/build/Kconfig.features"
+
+config BASE_OS
+    string
+    default "contiki" if HAVE_CONTIKI
+    default "linux" if HAVE_LINUX
+    default "riot" if HAVE_RIOTOS
+
+source "tools/build/Kconfig.$BASE_OS"
 
 menu "Basic"
 # backward compatibility with autotools vars

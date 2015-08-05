@@ -1,0 +1,41 @@
+config FEATURE_DYNAMIC_LINKER
+    bool
+
+config FEATURE_RUNNABLE_PROGRAMS
+    bool
+
+config FEATURE_WORKER_THREADS
+    bool
+
+config FEATURE_UNIX_SOCKETS
+    bool
+
+config FEATURE_NETWORK
+    bool
+
+config FEATURE_COAP
+    bool
+
+config FEATURE_HTTP_CLIENT
+    bool
+
+config FEATURE_HW_AIO
+    bool
+
+config FEATURE_HW_PWM
+    bool
+
+config FEATURE_HW_GPIO
+    bool
+
+config FEATURE_HW_UART
+    bool
+
+config FEATURE_HW_SPI
+    bool
+
+config FEATURE_HW_I2C
+    bool
+
+config FEATURE_FLOW
+    bool

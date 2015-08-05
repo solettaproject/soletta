@@ -1,0 +1,16 @@
+config LINUX
+    def_bool y
+    select FEATURE_DYNAMIC_LINKER
+    select FEATURE_HW_AIO
+    select FEATURE_HW_PWM
+    select FEATURE_HW_SPI
+    select FEATURE_HW_GPIO
+    select FEATURE_HW_UART
+    select FEATURE_HW_I2C
+    select FEATURE_RUNNABLE_PROGRAMS
+    select FEATURE_WORKER_THREADS
+    select FEATURE_UNIX_SOCKETS
+    select FEATURE_NETWORK
+    select FEATURE_COAP
+    select FEATURE_HTTP_CLIENT if HAVE_LIBCURL
+    select FEATURE_FLOW
