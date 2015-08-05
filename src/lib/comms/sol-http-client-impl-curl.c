@@ -375,7 +375,8 @@ xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
     struct connection *connection = clientp;
 
     if (dltotal > 0 && unlikely(dltotal < dlnow)) {
-        SOL_WRN("Received more than expected, aborting transfer (%ld < %ld)",
+        SOL_WRN("Received more than expected, aborting transfer ("
+            CURL_FORMAT_OFF_T "< " CURL_FORMAT_OFF_T ")",
             dltotal, dlnow);
         print_connection_info_wrn(connection);
         connection->error = true;
