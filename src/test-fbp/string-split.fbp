@@ -28,21 +28,32 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-HelloWorld(constant/string:value="Hello World")
-Hello(constant/string:value="Hello")
-World(constant/string:value="World")
+HelloWorld(constant/string:value="Ħěĺļō Ɯőŗŀď")
+PrefixForSpaceSplit(constant/string:value="Ħěĺļō")
+SuffixForMaxSplit(constant/string:value="ď ď ď ď ď")
+SuffixForOtherSplit(constant/string:value="ŗŀď")
 Len(constant/int:value=2)
+LongString(constant/string:value="Ħ ď ď ď ď ď")
 
 HelloWorld OUT -> IN split(string/split)
 split OUT -> IN[0] cmp(string/compare)
-Hello OUT -> IN[1] cmp
+PrefixForSpaceSplit OUT -> IN[1] cmp
 cmp EQUAL -> RESULT split_first_word(test/result)
 
-HelloWorld OUT -> IN split2(string/split:separator=" ",index=1)
+HelloWorld OUT -> IN split2(string/split:separator="Ɯő",index=1)
 split2 OUT -> IN[0] cmp2(string/compare)
-World OUT -> IN[1] cmp2
+SuffixForOtherSplit OUT -> IN[1] cmp2
 cmp2 EQUAL -> RESULT split_second_word(test/result)
 
 split2 LENGTH -> IN[0] equal(int/equal)
 Len OUT -> IN[1] equal
 equal OUT -> RESULT split_length(test/result)
+
+LongString OUT -> IN split3(string/split:max_split=1,index=1)
+split3 OUT -> IN[0] cmp3(string/compare)
+SuffixForMaxSplit OUT -> IN[1] cmp3
+cmp3 EQUAL -> RESULT split_with_max(test/result)
+
+split3 LENGTH -> IN[0] max_equal(int/equal)
+Len OUT -> IN[1] max_equal
+max_equal OUT -> RESULT split_max_length(test/result)
