@@ -6,16 +6,17 @@ obj-core-y := \
     sol-platform.o \
     sol-types.o
 
-ifeq (y,$(LOG))
-obj-core-y += \
+obj-$(LOG) += \
+    log.mod
+
+obj-log-$(LOG) := \
     sol-log.o
-obj-core-$(PLATFORM_LINUX) += \
+obj-log-$(PLATFORM_LINUX) += \
     sol-log-impl-linux.o
-obj-core-$(PLATFORM_RIOTOS) += \
+obj-log-$(PLATFORM_RIOTOS) += \
     sol-log-impl-riot.o
-obj-core-$(PLATFORM_CONTIKI) += \
+obj-log-$(PLATFORM_CONTIKI) += \
     sol-log-impl-contiki.o
-endif
 
 obj-core-$(SOL_BUS) += \
     sol-bus.o
@@ -60,15 +61,15 @@ obj-core-$(PLATFORM_SYSTEMD) += \
 obj-core-$(PLATFORM_SYSTEMD)-extra-cflags += $(SYSTEMD_CFLAGS) $(UDEV_CFLAGS)
 obj-core-$(PLATFORM_SYSTEMD)-extra-ldflags += $(SYSTEMD_LDFLAGS) $(UDEV_LDFLAGS)
 
-ifeq (y,$(PTHREAD))
-obj-core-y += \
+obj-$(PTHREAD) += \
+    thread.mod
+obj-thread-$(PTHREAD) := \
     sol-worker-thread.o
-obj-core-$(MAINLOOP_GLIB) += \
+obj-thread-$(MAINLOOP_GLIB) += \
     sol-worker-thread-impl-glib.o
-obj-core-$(MAINLOOP_POSIX) += \
+obj-thread-$(MAINLOOP_POSIX) += \
     sol-worker-thread-impl-posix.o
-obj-core-y-extra-ldflags += $(PTHREAD_H_LDFLAGS)
-endif
+obj-core-$(PTHREAD)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 
 obj-core-$(USE_PIN_MUX) += \
     sol-pin-mux.o

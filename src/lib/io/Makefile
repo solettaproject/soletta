@@ -1,122 +1,70 @@
-obj-y += io.mod
+obj-$(USE_AIO) += \
+    io-aio.mod
 
-ifeq (y, $(USE_AIO))
-obj-io-$(IO) += \
+obj-$(USE_GPIO) += \
+    io-gpio.mod
+
+obj-$(USE_PWM) += \
+    io-pwm.mod
+
+obj-$(USE_UART) += \
+    io-uart.mod
+
+obj-$(USE_I2C) += \
+    io-i2c.mod
+
+obj-$(USE_SPI) += \
+    io-spi.mod
+
+obj-io-aio-$(USE_AIO) := \
     sol-aio-common.o
-endif
-
-ifeq (y, $(USE_GPIO))
-obj-io-y += \
-    sol-gpio-common.o
-endif
-
-ifeq (y, $(USE_PWM))
-obj-io-y += \
-    sol-pwm-common.o
-endif
-
-ifeq (y, $(USE_I2C))
-obj-io-y += \
-    sol-i2c-common.o
-endif
-
-ifeq (y,$(PLATFORM_RIOTOS))
-ifeq (y, $(USE_AIO))
-obj-io-$(IO) += \
+obj-io-aio-$(PLATFORM_RIOTOS) += \
     sol-aio-riot.o
-endif # USE_AIO
-
-ifeq (y, $(USE_GPIO))
-obj-io-y += \
-    sol-gpio-riot.o
-endif # USE_GPIO
-
-ifeq (y, $(USE_PWM))
-obj-io-y += \
-    sol-pwm-riot.o
-endif # USE_PWM
-
-ifeq (y, $(USE_SPI))
-obj-io-y += \
-    sol-spi-riot.o
-endif # USE_SPI
-
-ifeq (y, $(USE_UART))
-obj-io-y += \
-    sol-uart-riot.o
-endif # USE_UART
-
-ifeq (y, $(USE_I2C))
-obj-io-y += \
-    sol-i2c-riot.o
-endif # USE_I2C
-endif # PLATFORM_RIOTOS
-
-ifeq (y,$(PLATFORM_CONTIKI))
-ifeq (y, $(USE_GPIO))
-obj-io-y += \
-    sol-gpio-contiki.o
-endif # USE_GPIO
-endif # PLATFORM_CONTIKI
-
-ifeq (y,$(PLATFORM_LINUX))
-ifeq (y, $(USE_AIO))
-obj-io-$(IO) += \
+obj-io-aio-$(PLATFORM_LINUX) += \
     sol-aio-linux.o
-endif # USE_AIO
 
-ifeq (y, $(USE_GPIO))
-obj-io-y += \
+obj-io-gpio-$(USE_GPIO) := \
+    sol-gpio-common.o
+obj-io-gpio-$(PLATFORM_RIOTOS) += \
+    sol-gpio-riot.o
+obj-io-gpio-$(PLATFORM_CONTIKI) += \
+    sol-gpio-contiki.o
+obj-io-gpio-$(PLATFORM_LINUX) += \
     sol-gpio-linux.o
-endif # USE_GPIO
 
-ifeq (y, $(USE_PWM))
-obj-io-y += \
+obj-io-pwm-$(USE_PWM) := \
+    sol-pwm-common.o
+obj-io-pwm-$(PLATFORM_RIOTOS) += \
+    sol-pwm-riot.o
+obj-io-pwm-$(PLATFORM_LINUX) += \
     sol-pwm-linux.o
-endif # USE_PWM
 
-ifeq (y, $(USE_SPI))
-obj-io-y += \
-    sol-spi-linux.o
-endif # USE_SPI
-
-ifeq (y, $(USE_UART))
-obj-io-y += \
-    sol-uart-linux.o
-endif # USE_UART
-
-ifeq (y, $(USE_I2C))
-obj-io-y += \
+obj-io-i2c-$(USE_I2C) := \
+    sol-i2c-common.o
+obj-io-i2c-$(PLATFORM_RIOTOS) += \
+    sol-i2c-riot.o
+obj-io-i2c-$(PLATFORM_LINUX) += \
     sol-i2c-linux.o
-endif # USE_I2C
-endif # PLATFORM_LINUX
 
-ifeq (y, $(USE_AIO))
-headers-$(IO) += \
+obj-io-spi-$(PLATFORM_RIOTOS) := \
+    sol-spi-riot.o
+obj-io-spi-$(PLATFORM_LINUX) := \
+    sol-spi-linux.o
+
+obj-io-uart-$(PLATFORM_RIOTOS) := \
+    sol-uart-riot.o
+obj-io-uart-$(PLATFORM_LINUX) := \
+    sol-uart-linux.o
+
+headers-$(USE_AIO) += \
     include/sol-aio.h
-endif
-
-ifeq (y, $(USE_GPIO))
-headers-y += \
+headers-$(USE_GPIO) += \
     include/sol-gpio.h
-endif
-
-ifeq (y, $(USE_PWM))
-headers-y += \
+headers-$(USE_PWM) += \
     include/sol-pwm.h
-endif
-
-ifeq (y, $(USE_SPI))
-headers-y += \
-    include/sol-spi.h
-endif
-
-ifeq (y, $(USE_UART))
-headers-y += \
-    include/sol-uart.h
-endif
-
-ifeq (y, $(USE_I2C))
-headers-y += \
+headers-$(USE_I2C) += \
     include/sol-i2c.h
-endif
+headers-$(USE_SPI) += \
+    include/sol-spi.h
+headers-$(USE_UART) += \
+    include/sol-uart.h
