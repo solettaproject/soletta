@@ -118,7 +118,7 @@ main(int argc, char *argv[])
 
         usleep(100);
         close(fds[1]);
-        exit(EXIT_SUCCESS);
+        _exit(EXIT_SUCCESS);
     }
 
     /* test if we handle graceful termination with SIGTERM */
@@ -126,7 +126,7 @@ main(int argc, char *argv[])
     if (pid == 0) {
         usleep(100000);
         kill(getppid(), SIGTERM);
-        exit(EXIT_SUCCESS);
+        _exit(EXIT_SUCCESS);
     }
 
     err = sol_init();
