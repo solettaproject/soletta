@@ -567,8 +567,13 @@ generate_node_type_assignments(const struct fbp_data *data)
 
     dprintf(fd, "\n");
 
-    for (i = 0; i < data->graph.nodes.len; i++)
-        dprintf(fd, "    nodes[%d].type = %s;\n", i, data->descriptions[i]->symbol);
+    for (i = 0; i < data->graph.nodes.len; i++) {
+        char *symbol = data->descriptions[i]->symbol;
+
+        dprintf(fd, "    if (%s->init_type)\n", symbol);
+        dprintf(fd, "        %s->init_type();\n\n", symbol);
+        dprintf(fd, "    nodes[%d].type = %s;\n\n", i, symbol);
+    }
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
         dprintf(fd, "\n    if (!type_%s)\n"
