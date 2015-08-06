@@ -834,8 +834,7 @@ sol_flow_node_named_options_init_from_strv(
             goto end;
         }
 
-        mdesc = NULL;
-        for (mdesc = desc->members; mdesc->name != NULL; mdesc++) {
+        for (mdesc = desc->members; mdesc && mdesc->name; mdesc++) {
             if (sol_str_slice_str_eq(SOL_STR_SLICE_STR(key, key_len), mdesc->name))
                 break;
         }
