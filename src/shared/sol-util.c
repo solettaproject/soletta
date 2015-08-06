@@ -45,7 +45,7 @@
 #include "sol-log.h"
 #include "sol-str-slice.h"
 
-#ifdef HAVE_LOCALE
+#if defined(HAVE_LOCALE) && defined(HAVE_STRTOD_L)
 static locale_t c_locale;
 static void
 clear_c_locale(void)
