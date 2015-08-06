@@ -15,7 +15,5 @@ obj-libshared-$(PLATFORM_LINUX) += \
     sol-file-reader.o \
     sol-util-linux.o \
     sol-iio.o
-obj-libshared-$(PLATFORM_LINUX)-extra-cflags += $(GLIB_CFLAGS)
-obj-libshared-$(PLATFORM_LINUX)-extra-ldflags += $(GLIB_LDFLAGS)
 
 obj-libshared-y-extra-cflags += -fvisibility=default
