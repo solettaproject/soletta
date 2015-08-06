@@ -184,6 +184,12 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
         }                                                       \
     } while (0)
 
+static inline double
+strtod_no_locale(const char *nptr, char **endptr)
+{
+    return sol_util_strtodn(nptr, endptr, -1, false);
+}
+
 static int
 irange_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
@@ -258,22 +264,22 @@ drange_parse(const char *value, struct sol_flow_node_named_options_member *m)
 
     buf = strdup(value);
 
-    ASSIGN_KEY_VAL(double, min, strtod, false,
+    ASSIGN_KEY_VAL(double, min, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
-    ASSIGN_KEY_VAL(double, max, strtod, false,
+    ASSIGN_KEY_VAL(double, max, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
-    ASSIGN_KEY_VAL(double, step, strtod, false,
+    ASSIGN_KEY_VAL(double, step, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
-    ASSIGN_KEY_VAL(double, val, strtod, false,
+    ASSIGN_KEY_VAL(double, val, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
 
     KEY_VALUES_RECAP(DBL_MAX, -DBL_MAX);
 
-    ASSIGN_LINEAR_VALUES(strtod,
+    ASSIGN_LINEAR_VALUES(strtod_no_locale,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
 
@@ -409,19 +415,19 @@ direction_vector_parse(const char *value, struct sol_flow_node_named_options_mem
 
     buf = strdup(value);
 
-    ASSIGN_KEY_VAL(double, x, strtod, false,
+    ASSIGN_KEY_VAL(double, x, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
-    ASSIGN_KEY_VAL(double, y, strtod, false,
+    ASSIGN_KEY_VAL(double, y, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
-    ASSIGN_KEY_VAL(double, z, strtod, false,
+    ASSIGN_KEY_VAL(double, z, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
-    ASSIGN_KEY_VAL(double, min, strtod, false,
+    ASSIGN_KEY_VAL(double, min, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
-    ASSIGN_KEY_VAL(double, max, strtod, false,
+    ASSIGN_KEY_VAL(double, max, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
 
@@ -433,7 +439,7 @@ direction_vector_parse(const char *value, struct sol_flow_node_named_options_mem
         if (!max_done) ret->max = DBL_MAX;
     }
 
-    ASSIGN_LINEAR_VALUES(strtod,
+    ASSIGN_LINEAR_VALUES(strtod_no_locale,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
 
