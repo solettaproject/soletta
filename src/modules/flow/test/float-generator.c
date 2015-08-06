@@ -88,8 +88,7 @@ float_generator_open(
         val = sol_vector_append(&mdata->values);
         SOL_NULL_CHECK_GOTO(val, no_memory);
 
-        errno = 0;
-        *val = strtod(it, &tail);
+        *val = sol_util_strtodn(it, &tail, -1, false);
         if (errno) {
             SOL_WRN("Failed do convert option 'sequence' to int %s: %d", it, errno);
             goto error;

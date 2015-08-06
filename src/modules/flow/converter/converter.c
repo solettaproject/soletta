@@ -1232,8 +1232,7 @@ string_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     r = sol_flow_packet_get_string(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    errno = 0;
-    out_value = strtod(in_value, &endptr);
+    out_value = sol_util_strtodn(in_value, &endptr, -1, false);
     if (errno) {
         SOL_WRN("Failed to convert string to float %s: %d", in_value, errno);
         return -errno;
