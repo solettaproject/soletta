@@ -495,7 +495,7 @@ string_change_case(struct sol_flow_node *node,
         goto fail_from_utf8;
     }
     u_lower = calloc(u_changed_sz + 1, sizeof(*u_lower));
-    if (!u_orig) {
+    if (!u_lower) {
         errno = ENOMEM;
         goto fail_from_utf8;
     }
