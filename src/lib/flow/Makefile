@@ -24,9 +24,7 @@ endif
 obj-flow-$(RESOLVER_CONFFILE) += \
     sol-flow-resolver-conffile.o
 
-obj-flow-$(RESOLVER_CONFFILE)-extra-cflags := $(GLIB_CFLAGS)
 obj-flow-$(FLOW)-extra-cflags += $(def-resolver-flag)
-obj-flow-$(RESOLVER_CONFFILE)-extra-ldflags += $(GLIB_LDFLAGS)
 
 headers-$(FLOW) := \
     include/sol-flow-builder.h \
