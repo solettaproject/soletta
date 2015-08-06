@@ -34,7 +34,7 @@
         },
         {
           "data_type": "string",
-          "description": "ISO Country Code (e.g. BR). \"RD\" is for reserved addresses.",
+          "description": "ISO Country Code (e.g. BR). 'RD' is for reserved addresses.",
           "name": "COUNTRY_CODE"
         },
         {
