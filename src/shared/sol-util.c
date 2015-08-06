@@ -81,7 +81,7 @@ sol_util_memdup(const void *data, size_t len)
 }
 
 double
-sol_util_strtodn(const char *nptr, char **endptr, size_t len, bool use_locale)
+sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 {
     char *tmpbuf, *tmpbuf_endptr;
     double value;
@@ -95,6 +95,9 @@ sol_util_strtodn(const char *nptr, char **endptr, size_t len, bool use_locale)
         }
     }
 #endif
+
+    if (len < 0)
+        len = (ssize_t)strlen(nptr);
 
     /* NOTE: Using a copy to ensure trailing \0 and strtod() so we
      * properly parse numbers with large precision.

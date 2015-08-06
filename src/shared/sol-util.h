@@ -78,13 +78,14 @@
  * @param use_locale if true, then current locale is used, if false
  *        then "C" locale is forced.
  *
- * @param len use at most this amount of bytes of @a nptr.
+ * @param len use at most this amount of bytes of @a nptr. If -1, assumes
+ *        nptr has a trailing NUL and calculate the string length.
  *
  * @return the converted value, if any. The converted value may be @c
  *         NAN, @c INF (positive or negative). See the strtod(3)
  *         documentation for the details.
  */
-double sol_util_strtodn(const char *nptr, char **endptr, size_t len, bool use_locale);
+double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale);
 
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
