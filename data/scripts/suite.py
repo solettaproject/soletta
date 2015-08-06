@@ -69,19 +69,30 @@ def run_test_program(task_queue):
 
         task_queue.task_done()
 
+def writeOutput(task, f):
+    f.write("# Running " + task.cmd + "\n")
+    f.write(task.output)
+    f.write("\n")
+
 def print_log(log_file, tasks):
     success_count = 0
     fail_count = 0
+    fail_header = False
 
     f = open(log_file, mode="w+")
 
     for task in tasks:
-        f.write("# Running " + task.cmd + "\n")
-        f.write(task.output)
-        f.write("\n")
+        writeOutput(task, f)
         if task.success:
             success_count += 1
         else:
+            if not fail_header:
+                print("""\
+============================================================================
+Failed tests output
+============================================================================""")
+                fail_header = True
+            writeOutput(task, sys.stdout)
             fail_count += 1
 
     summary = """\
@@ -92,7 +103,7 @@ Testsuite summary
 # SUCCESS: %d
 # FAIL: %d
 ============================================================================
-See %s
+See %s for full output.
 ============================================================================"""
     summary = summary % (len(tasks), success_count, fail_count, log_file)
 
