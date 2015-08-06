@@ -32,7 +32,7 @@
 
 #include <assert.h>
 #include <dlfcn.h>
-#include <glib.h>
+#include <limits.h>
 
 #include "sol-conffile.h"
 #include "sol-flow-internal.h"
