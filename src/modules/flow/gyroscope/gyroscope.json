@@ -9,7 +9,7 @@
   "types": [
     {
       "category": "input/hw",
-      "description": "L3G4200D gyroscope input node, meant for i2c reading primitives testing. After each tick in its TICK port, a new reading is output on each of its output ports.",
+      "description": "L3G4200D gyroscope input node. After each tick in its TICK port, a new reading is output on each of its output ports.",
       "in_ports": [
         {
           "data_type": "any",

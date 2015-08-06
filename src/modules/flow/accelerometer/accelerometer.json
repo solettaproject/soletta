@@ -9,7 +9,7 @@
   "types": [
     {
       "category": "input/hw",
-      "description": "ADXL345 accelerometer input node, meant for i2c reading primitives testing. After each tick in its TICK port, a new reading is output on each of its output ports.",
+      "description": "ADXL345 accelerometer input node. After each tick in its TICK port, a new reading is output on each of its output ports.",
       "in_ports": [
         {
           "data_type": "any",
