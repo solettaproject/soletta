@@ -91,23 +91,21 @@ freegeoip_query_finished(void *data, struct sol_http_response *response)
     }
 
 #define JSON_FIELD_TO_FLOW_PORT(json_field_, flow_field_) \
-    do { \
-        if (sol_json_token_str_eq(&key, json_field_, strlen(json_field_))) { \
-            sol_flow_send_string_slice_packet(mdata->node, \
-                SOL_FLOW_NODE_TYPE_LOCATION_FREEGEOIP__OUT__ ## flow_field_, \
-                SOL_STR_SLICE_STR(value.start + 1, value.end - value.start - 2)); \
-            continue; \
-        } \
-    } while (0)
+    if (sol_json_token_str_eq(&key, json_field_, strlen(json_field_))) { \
+        sol_flow_send_string_slice_packet(mdata->node, \
+            SOL_FLOW_NODE_TYPE_LOCATION_FREEGEOIP__OUT__ ## flow_field_, \
+            SOL_STR_SLICE_STR(value.start + 1, value.end - value.start - 2)); \
+        continue; \
+    }
 
     sol_json_scanner_init(&scanner, response->content.data, response->content.used);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        JSON_FIELD_TO_FLOW_PORT("ip", IP);
-        JSON_FIELD_TO_FLOW_PORT("country_name", COUNTRY_NAME);
-        JSON_FIELD_TO_FLOW_PORT("country_code", COUNTRY_CODE);
-        JSON_FIELD_TO_FLOW_PORT("city", CITY_NAME);
-        JSON_FIELD_TO_FLOW_PORT("zip_code", ZIP_CODE);
-        JSON_FIELD_TO_FLOW_PORT("time_zone", TIMEZONE);
+        JSON_FIELD_TO_FLOW_PORT("ip", IP)
+        JSON_FIELD_TO_FLOW_PORT("country_name", COUNTRY_NAME)
+        JSON_FIELD_TO_FLOW_PORT("country_code", COUNTRY_CODE)
+        JSON_FIELD_TO_FLOW_PORT("city", CITY_NAME)
+        JSON_FIELD_TO_FLOW_PORT("zip_code", ZIP_CODE)
+        JSON_FIELD_TO_FLOW_PORT("time_zone", TIMEZONE)
 
         if (sol_json_token_str_eq(&key, "latitude", strlen("latitude"))) {
             if (sol_json_token_get_double(&value, &location.lat) < 0)
