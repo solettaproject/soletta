@@ -53,14 +53,26 @@ int
 sol_util_vwrite_file(const char *path, const char *fmt, va_list args)
 {
     FILE *fp;
-    int ret;
+    int ret, errno_bkp = 0;
 
     fp = fopen(path, "we");
     if (!fp)
         return -errno;
 
+    errno = 0;
+
     ret = vfprintf(fp, fmt, args);
+    if (errno)
+        errno_bkp = errno;
+
+    fflush(fp);
+    if (errno_bkp == 0 && errno > 0)
+        errno_bkp = errno;
+
     fclose(fp);
+
+    if (errno_bkp)
+        return -errno_bkp;
 
     return ret;
 }
