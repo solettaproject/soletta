@@ -48,12 +48,12 @@ test_main(struct test *start, struct test *stop, void (*reset_func)(void), int a
 
     if (argc > 1) {
         pattern = argv[1];
-        printf("Running only tests that match '%s'\n", pattern);
+        fprintf(stderr, "Running only tests that match '%s'\n", pattern);
     }
 
     for (t = start; t < stop; t++) {
         if (!pattern || strstr(t->name, pattern)) {
-            printf("- %s\n", t->name);
+            fprintf(stderr, "- %s\n", t->name);
             t->func();
             if (reset_func)
                 reset_func();
@@ -62,12 +62,12 @@ test_main(struct test *start, struct test *stop, void (*reset_func)(void), int a
     }
 
     if (count == 0) {
-        printf("No tests found!\n");
+        fprintf(stderr, "No tests found!\n");
         return EXIT_FAILURE;
     }
 
     sol_shutdown();
-    printf("OK!\n");
+    fprintf(stderr, "OK!\n");
 
     return 0;
 }
