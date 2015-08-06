@@ -228,6 +228,14 @@
 	    "fragment": "setlocale(LC_ALL, NULL);"
 	},
 	{
+	    "dependency": "newlocale",
+	    "type": "ccode",
+	    "headers": [
+		"<locale.h>"
+	    ],
+	    "fragment": "newlocale(LC_ALL_MASK, NULL, NULL);"
+	},
+	{
 	    "dependency": "icu",
 	    "type": "pkg-config",
 	    "pkgname": "icu-uc icu-i18n",
