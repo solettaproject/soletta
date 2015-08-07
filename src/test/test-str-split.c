@@ -46,42 +46,50 @@ test_str_to_slice(void)
         const struct sol_str_slice slice;
         const char *delim;
         const char *const *strings;
-        unsigned int len;
+        unsigned int max_split;
+        unsigned int n_splits;
     } items[] = {
         {
-            { strlen("Using space -l :q"), "Using space -l :qdsdsdsdkjskdjksjdksjdksjdksjd" },
+            { strlen("Using space -l :q"), "Using space -l :q"
+              "dsdsdsdkjskdjksjdksjdksjdksjd" },
             " ",
             (const char *const []){ "Using", "space", "-l", ":q" },
+            0,
             4
         },
         {
             { strlen("Using space -l :q"), "Using space -l :q" },
             " ",
-            (const char *const []){ "Using", "space" },
+            (const char *const []){ "Using", "space -l :q" },
+            1,
             2
         },
         {
             { strlen("Using{{brackets{ {{"), "Using{{brackets{ {{" },
             "{",
-            (const char *const []){ "Using", NULL, "brackets", " ", NULL, NULL },
+            (const char *const []){ "Using", "", "brackets", " ", "", "" },
+            5,
             6
         },
         {
             { strlen("Using comma test"), "Using comma test" },
             ",",
             (const char *const []){ "Using comma test" },
+            0,
             1
         },
         {
             { strlen("Using42brackets42 test42"), "Using42brackets42 test42" },
             "42",
-            (const char *const []){ "Using", "brackets", " test", NULL },
+            (const char *const []){ "Using", "brackets", " test", "" },
+            3,
             4
         },
         {
             { strlen("Using42brackets42 test42"), "Using42brackets42 test42" },
             NULL,
             NULL,
+            0,
             0
         },
     };
@@ -91,8 +99,10 @@ test_str_to_slice(void)
         struct sol_vector tokens;
         struct sol_str_slice *s;
 
-        tokens = sol_util_str_split(items[i].slice, items[i].delim, items[i].len);
-        ASSERT_INT_EQ(tokens.len, items[i].len);
+        tokens = sol_util_str_split(items[i].slice, items[i].delim,
+            items[i].max_split);
+
+        ASSERT_INT_EQ(tokens.len, items[i].n_splits);
 
         SOL_VECTOR_FOREACH_IDX (&tokens, s, j)
             ASSERT(!strncmp(s->data, items[i].strings[j], s->len));
