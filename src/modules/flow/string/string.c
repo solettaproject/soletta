@@ -36,6 +36,7 @@
 #ifdef HAVE_ICU
 #include <unicode/ustring.h>
 #include <unicode/utypes.h>
+#include <unicode/uchar.h>
 #else
 #warning "You're building the string nodes module without i18n support -- some nodes will only act properly on pure ASCII input, not the intended utf-8 for Soletta"
 #endif
@@ -49,14 +50,24 @@
 #include "sol-flow-internal.h"
 #include "sol-util.h"
 
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 struct string_data {
-    int n;
+    int32_t n;
+#ifdef HAVE_ICU
+    UChar *string[2];
+#else
     char *string[2];
+#endif
 };
 
 struct string_concatenate_data {
     struct string_data base;
+#ifdef HAVE_ICU
+    UChar *separator;
+#else
     char *separator;
+#endif
 };
 
 struct string_compare_data {
@@ -83,19 +94,55 @@ string_concatenate_close(struct sol_flow_node *node, void *data)
 }
 
 static bool
-get_string(const struct sol_flow_packet *packet, uint16_t port, struct string_data *mdata)
+get_string(const struct sol_flow_packet *packet,
+    uint16_t port,
+    struct string_data *mdata)
 {
+#ifdef HAVE_ICU
+    UChar *new_str = NULL;
+    int32_t new_sz;
+    UErrorCode err;
+#endif
     const char *in_value;
     int r;
 
     r = sol_flow_packet_get_string(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (mdata->string[port] && !strcmp(mdata->string[port], in_value))
+#ifdef HAVE_ICU
+    err = U_ZERO_ERROR;
+    u_strFromUTF8(NULL, 0, &new_sz, in_value, -1, &err);
+    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR)
         return false;
 
+    new_str = calloc(new_sz + 1, sizeof(*new_str));
+    if (!new_str)
+        return false;
+
+    err = U_ZERO_ERROR;
+    u_strFromUTF8(new_str, new_sz + 1, &new_sz, in_value, -1, &err);
+    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
+        free(new_str);
+        return false;
+    }
+
+    if (mdata->string[port] && !u_strCompare(mdata->string[port],
+        -1, new_str, -1, false)) {
+        free(new_str);
+        return false;
+    }
+#else
+    if (mdata->string[port] && !strcmp(mdata->string[port], in_value))
+        return false;
+#endif
+
     free(mdata->string[port]);
+
+#ifdef HAVE_ICU
+    mdata->string[port] = new_str;
+#else
     mdata->string[port] = strdup(in_value);
+#endif
 
     if (!mdata->string[0] || !mdata->string[1])
         return false;
@@ -104,7 +151,9 @@ get_string(const struct sol_flow_packet *packet, uint16_t port, struct string_da
 }
 
 static int
-string_concatenate_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+string_concatenate_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
 {
     struct string_concatenate_data *mdata = data;
     const struct sol_flow_node_type_string_concatenate_options *opts;
@@ -124,7 +173,29 @@ string_concatenate_open(struct sol_flow_node *node, void *data, const struct sol
         mdata->base.n = opts->bytes.val;
 
     if (opts->separator) {
+#ifdef HAVE_ICU
+        UErrorCode err;
+        int32_t sz, len = strlen(opts->separator);
+
+        err = U_ZERO_ERROR;
+        u_strFromUTF8(NULL, 0, &sz, opts->separator, len, &err);
+        if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR)
+            return -EINVAL;
+
+        mdata->separator = calloc(sz + 1, sizeof(*mdata->separator));
+        if (!mdata->separator)
+            return -EINVAL;
+
+        err = U_ZERO_ERROR;
+        u_strFromUTF8(mdata->separator, sz + 1, &sz, opts->separator,
+            len, &err);
+        if (U_FAILURE(err) || mdata->separator[sz] != '\0') {
+            free(mdata->separator);
+            return -EINVAL;
+        }
+#else
         mdata->separator = strdup(opts->separator);
+#endif
         if (!mdata->separator) {
             SOL_WRN("Failed to duplicate separator string");
             return -ENOMEM;
@@ -135,37 +206,100 @@ string_concatenate_open(struct sol_flow_node *node, void *data, const struct sol
 }
 
 static int
-string_concat(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+string_concat(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
+#ifdef HAVE_ICU
+#define _STRLEN u_strlen
+#define _STRCPY u_strcpy
+#define _STRCAT u_strcat
+#define _STRNCAT u_strncat
+#else
+#define _STRLEN strlen
+#define _STRCPY strcpy
+#define _STRCAT strcat
+#define _STRNCAT strncat
+#endif
+
     struct string_concatenate_data *mdata = data;
+#ifdef HAVE_ICU
+    UErrorCode err;
+    UChar *dest;
+    char *final;
+    int32_t sz;
+#else
     char *dest;
-    int err, len;
+#endif
+    int r, len;
 
     if (!get_string(packet, port, &mdata->base))
         return 0;
 
-    len = strlen(mdata->base.string[0]) + strlen(mdata->base.string[1]) + 1;
+    len = _STRLEN(mdata->base.string[0]) + _STRLEN(mdata->base.string[1]) + 1;
     if (mdata->separator)
-        len += strlen(mdata->separator);
+        len += _STRLEN(mdata->separator);
 
-    dest = malloc(len);
+    dest = calloc(len, sizeof(*dest));
     SOL_NULL_CHECK(dest, -ENOMEM);
 
-    dest = strcpy(dest, mdata->base.string[0]);
+    dest = _STRCPY(dest, mdata->base.string[0]);
 
     if (mdata->separator)
-        dest = strcat(dest, mdata->separator);
+        dest = _STRCAT(dest, mdata->separator);
 
     if (!mdata->base.n)
-        dest = strcat(dest, mdata->base.string[1]);
+        dest = _STRCAT(dest, mdata->base.string[1]);
     else
-        dest = strncat(dest, mdata->base.string[1], mdata->base.n);
+        dest = _STRNCAT(dest, mdata->base.string[1], mdata->base.n);
 
-    err = sol_flow_send_string_take_packet(node,
+#ifdef HAVE_ICU
+    err = U_ZERO_ERROR;
+    u_strToUTF8(NULL, 0, &sz, dest, len, &err);
+    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
+        errno = EINVAL;
+        goto fail_sz;
+    }
+
+    final = calloc(sz + 1, sizeof(*final));
+    if (!final) {
+        errno = ENOMEM;
+        goto fail_sz;
+    }
+
+    err = U_ZERO_ERROR;
+    u_strToUTF8(final, sz + 1, &sz, dest, len, &err);
+    free(dest);
+    if (U_FAILURE(err) || final[sz] != '\0') {
+        errno = EINVAL;
+        goto fail_to_utf8;
+    }
+
+    r = sol_flow_send_string_take_packet(node,
+        SOL_FLOW_NODE_TYPE_STRING_CONCATENATE__OUT__OUT,
+        final);
+
+    return r;
+
+fail_sz:
+    free(dest);
+fail_to_utf8:
+    sol_flow_send_error_packet(node, -errno, u_errorName(err));
+    return -errno;
+#else
+    r = sol_flow_send_string_take_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_CONCATENATE__OUT__OUT,
         dest);
 
-    return err;
+    return r;
+#endif
+
+#undef _STRLEN
+#undef _STRCPY
+#undef _STRCAT
+#undef _STRNCAT
 }
 
 static int
@@ -194,15 +328,49 @@ string_compare_open(struct sol_flow_node *node, void *data, const struct sol_flo
 }
 
 static int
-string_compare(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+string_compare(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
     struct string_compare_data *mdata = data;
     uint32_t result;
-    int err;
+    int r;
+
+#ifdef HAVE_ICU
+    UErrorCode err;
+#endif
 
     if (!get_string(packet, port, &mdata->base))
         return 0;
 
+#ifdef HAVE_ICU
+    if (mdata->base.n) {
+        if (mdata->ignore_case) {
+            err = U_ZERO_ERROR;
+            result = u_strCaseCompare(mdata->base.string[0], mdata->base.n,
+                mdata->base.string[1], mdata->base.n, U_FOLD_CASE_DEFAULT,
+                &err);
+            if (U_FAILURE(err))
+                return -EINVAL;
+        } else {
+            result = u_strCompare(mdata->base.string[0], mdata->base.n,
+                mdata->base.string[1], mdata->base.n, false);
+        }
+    } else {
+        if (mdata->ignore_case) {
+            err = U_ZERO_ERROR;
+            result = u_strCaseCompare(mdata->base.string[0], -1,
+                mdata->base.string[1], -1, U_FOLD_CASE_DEFAULT, &err);
+            if (U_FAILURE(err))
+                return -EINVAL;
+        } else {
+            result = u_strCompare(mdata->base.string[0], -1,
+                mdata->base.string[1], -1, false);
+        }
+    }
+#else
     if (mdata->base.n) {
         if (mdata->ignore_case)
             result = strncasecmp(mdata->base.string[0], mdata->base.string[1],
@@ -216,11 +384,12 @@ string_compare(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
         else
             result = strcmp(mdata->base.string[0], mdata->base.string[1]);
     }
+#endif
 
-    err = sol_flow_send_boolean_packet(node,
+    r = sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_COMPARE__OUT__EQUAL, result == 0);
-    if (err < 0)
-        return err;
+    if (r < 0)
+        return r;
 
     return sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_COMPARE__OUT__OUT, result);
@@ -254,8 +423,24 @@ string_length_open(struct sol_flow_node *node, void *data, const struct sol_flow
 }
 
 static int
-string_length_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+string_length_process(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
+#ifdef HAVE_ICU
+    UChar *value = NULL;
+    UErrorCode err;
+    int32_t sz;
+#define _VALUE value
+#define _STRLEN u_strlen
+#define _STRNLEN(_str, _sz) MIN((uint32_t)u_strlen(_str), _sz)
+#else
+#define _VALUE in_value
+#define _STRLEN strlen
+#define _STRNLEN strnlen
+#endif
     struct string_length_data *mdata = data;
     const char *in_value;
     uint32_t result;
@@ -264,13 +449,38 @@ string_length_process(struct sol_flow_node *node, void *data, uint16_t port, uin
     r = sol_flow_packet_get_string(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
+#ifdef HAVE_ICU
+    err = U_ZERO_ERROR;
+    u_strFromUTF8(NULL, 0, &sz, in_value, -1, &err);
+    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR)
+        return -EINVAL;
+
+    value = calloc(sz + 1, sizeof(*value));
+    if (!value)
+        return -ENOMEM;
+
+    err = U_ZERO_ERROR;
+    u_strFromUTF8(value, sz + 1, &sz, in_value, -1, &err);
+    if (U_FAILURE(err) || value[sz] != '\0') {
+        free(value);
+        return -EINVAL;
+    }
+#endif
+
     if (mdata->n)
-        result = strnlen(in_value, mdata->n);
+        result = _STRNLEN(_VALUE, mdata->n);
     else
-        result = strlen(in_value);
+        result = _STRLEN(_VALUE);
+
+#ifdef HAVE_ICU
+    free(value);
+#endif
 
     return sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_LENGTH__OUT__OUT, result);
+#undef _STRLEN
+#undef _STRNLEN
+#undef _VALUE
 }
 
 
