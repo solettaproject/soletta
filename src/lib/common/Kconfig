@@ -304,7 +304,7 @@ endchoice
 
 config SOL_BUS
 	bool "Sd-bus support"
-	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_SD_BUS
+	depends on SOL_PLATFORM_LINUX && HAVE_SYSTEMD && HAVE_SD_DBUS
 	help
           Systemd's sd-bus support.
 	default n
