@@ -1,6 +1,6 @@
 {
-  "$schema": "http://solettaproject.github.io/soletta/schemas/platform-detect.schema",
-  "platforms": [
+  "$schema": "http://solettaproject.github.io/soletta/schemas/board-detect.schema",
+  "boards": [
     {
      "name": "intel-galileo-rev-d",
      "validation": [

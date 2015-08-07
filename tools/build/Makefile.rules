@@ -355,7 +355,7 @@ $(2): $(1)
 endef
 
 $(eval $(call install-resource,$(NODE_TYPE_SCHEMA),$(NODE_TYPE_SCHEMA_DEST)))
-$(eval $(call install-resource,$(PLATFORM_DETECT),$(PLATFORM_DETECT_DEST)))
+$(eval $(call install-resource,$(BOARD_DETECT),$(BOARD_DETECT_DEST)))
 $(eval $(call install-resource,$(GDB_AUTOLOAD_PY),$(GDB_AUTOLOAD_PY_DEST)))
 
 $(MODULES_OK_FILE):

@@ -40,16 +40,16 @@
 #include "sol-macros.h"
 #include "sol-monitors.h"
 #ifdef SOL_PLATFORM_LINUX
-#include "sol-platform-detect.h"
+#include "sol-board-detect.h"
 #endif
 #include "sol-platform.h"
 #include "sol-util.h"
 
-#define SOL_PLATFORM_NAME_ENVVAR "SOL_PLATFORM_NAME"
+#define SOL_BOARD_NAME_ENVVAR "SOL_BOARD_NAME"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_platform_log_domain, "platform");
 
-static char *platform_name = NULL;
+static char *board_name = NULL;
 
 struct service_monitor {
     struct sol_monitors_entry base;
@@ -83,37 +83,37 @@ sol_platform_init(void)
 void
 sol_platform_shutdown(void)
 {
-    free(platform_name);
+    free(board_name);
     sol_monitors_clear(&_ctx.state_monitors);
     sol_monitors_clear(&_ctx.service_monitors);
     sol_platform_impl_shutdown();
 }
 
 SOL_API const char *
-sol_platform_get_name(void)
+sol_platform_get_board_name(void)
 {
-    if (platform_name)
-        return platform_name;
+    if (board_name)
+        return board_name;
 
 #ifdef SOL_PLATFORM_LINUX
-    platform_name = getenv(SOL_PLATFORM_NAME_ENVVAR);
-    if (platform_name && *platform_name != '\0')
-        platform_name = strdup(platform_name);
+    board_name = getenv(SOL_BOARD_NAME_ENVVAR);
+    if (board_name && *board_name != '\0')
+        board_name = strdup(board_name);
     else
-        platform_name = sol_platform_detect();
+        board_name = sol_board_detect();
 
-    if (platform_name && sol_platform_invalid_name(platform_name)) {
-        free(platform_name);
-        platform_name = NULL;
+    if (board_name && sol_board_invalid_name(board_name)) {
+        free(board_name);
+        board_name = NULL;
     }
 #endif
 
-#ifdef PLATFORM_NAME
-    if (!platform_name)
-        platform_name = strdup(PLATFORM_NAME);
+#ifdef BOARD_NAME
+    if (!board_name)
+        board_name = strdup(BOARD_NAME);
 #endif
 
-    return platform_name;
+    return board_name;
 }
 
 SOL_API int

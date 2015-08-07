@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "Soletta's platform detection file",
+  "description": "Soletta's board detection file",
 
   "definitions": {
     "regex_array": {
@@ -28,7 +28,7 @@
       "items": { "$ref": "#/definitions/rule" }
     },
 
-    "platform": {
+    "board": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -46,10 +46,10 @@
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string", "format": "uri" }
-    "platforms": {
+    "boards": {
       "type": "array",
-      "items": { "$ref": "#/definitions/platform" }
+      "items": { "$ref": "#/definitions/board" }
     }
   },
-  "required": [ "$schema", "platforms" ]
+  "required": [ "$schema", "boards" ]
 }

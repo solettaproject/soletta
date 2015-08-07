@@ -1,18 +1,17 @@
-config PLATFORM_NAME
-	string "Platform Name"
+config BOARD_NAME
+	string "Board Name"
 	default ""
 	help
-            Some parts of Soletta uses a "platform name" string from
-            sol_platform_get_name() to improve platform
-            behavior. Namely Pin Multiplexer will load modules based
-            on the platform name.
+            Some parts of Soletta uses a "board name" string from
+            'sol_platform_get_board_name()' to improve board behavior.
+            Namely Pin Multiplexer will load modules based on the board name.
 
-            Usually the platform name is detected using either
-            SOL_PLATFORM_NAME environment variable or the rules defined in
-            'platform_detect.json'. Soletta searches for 'platform_detect.json'
-            first at PKGSYSCONFDIR ('/etc/soletta' in most cases) and then at
-            '$PREFIX/share/soletta/', but some platforms such as RIOT may not
-            provide it, then this string is used as a fallback.
+            Usually the board name is detected using either SOL_BOARD_NAME
+            environment variable or the rules defined in 'board_detect.json'.
+            Soletta searches for 'board_detect.json' first at PKGSYSCONFDIR
+            ('/etc/soletta' in most cases) and then at '$PREFIX/share/soletta/',
+            but some platforms such as RIOT may not provide it,
+            then this string is used as a fallback.
 
 config PLATFORM_LINUX
 	bool

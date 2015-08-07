@@ -59,7 +59,7 @@ extern "C" {
  */
 #define CHUNK_MAX_TIME_NS (20 * (NSEC_PER_MSEC))
 
-const char *sol_platform_get_name(void);
+const char *sol_platform_get_board_name(void);
 
 enum sol_platform_state {
     SOL_PLATFORM_STATE_INITIALIZING,

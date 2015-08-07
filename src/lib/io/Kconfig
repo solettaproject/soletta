@@ -43,9 +43,9 @@ menuconfig USE_PIN_MUX
           as dynamically loadable modules at
           $PREFIX/lib/soletta/modules/pin-mux/<module>.so
 
-          Pin mux modules are used based on the platform-detect logic
-          defined in $PREFIX/share/soletta/platform_detect.json or
-          statically defined PLATFORM_NAME.
+          Pin mux modules are used based on the board-detect logic
+          defined in $PREFIX/share/soletta/board_detect.json or
+          statically defined BOARD_NAME.
 
           If unsure, say Y.
 
