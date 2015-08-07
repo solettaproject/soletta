@@ -33,6 +33,8 @@
 #include <sol-util.h>
 #include <errno.h>
 #include <math.h>
+#include <stdio.h>
+#include <ctype.h>
 
 #include "grove-gen.h"
 #include "aio-gen.h"
@@ -465,16 +467,25 @@ struct lcd_data {
 
 static int mark_ready(struct lcd_data *mdata);
 
+struct timespec initial, prev;
+
 static bool
 write_to_chip(struct sol_i2c *i2c, uint8_t chip_addr, uint8_t data_addr, uint8_t value)
 {
+    struct timespec now, result, result2;
+
     if (!sol_i2c_set_slave_address(i2c, chip_addr)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", chip_addr);
         return false;
     }
 
-    SOL_DBG("ChipAddr: 0x%02x, DataAddr: 0x%02x, Value 0x%02x - %c",
-        chip_addr, data_addr, value, value);
+    now = sol_util_timespec_get_current();
+    sol_util_timespec_sub(&now, &initial, &result);
+    sol_util_timespec_sub(&now, &prev, &result2);
+    prev = now;
+
+    //printf("sec: %d microsec: %llu | diff= sec: %d microsec: %llu\n", (unsigned int)result.tv_sec, result.tv_nsec / NSEC_PER_USEC, (unsigned int)result2.tv_sec, result2.tv_nsec / NSEC_PER_USEC);
+    SOL_WRN("ChipAddr: 0x%02x, DataAddr: 0x%02x, Value 0x%02x - %c\n", chip_addr, data_addr, value, isprint(value) ? value : ' ');
 
     return sol_i2c_write_register(i2c, data_addr, &value, 1);
 }
@@ -1403,6 +1414,8 @@ lcd_char_open(struct sol_flow_node *node,
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
         (opts, SOL_FLOW_NODE_TYPE_GROVE_LCD_CHAR_OPTIONS_API_VERSION, -EINVAL);
 
+    initial = sol_util_timespec_get_current();
+    prev = initial;
     r = lcd_open(node, data, options);
     SOL_INT_CHECK(r, < 0, r);
 
