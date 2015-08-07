@@ -385,7 +385,7 @@ send_substring(struct string_split_data *mdata, struct sol_flow_node *node)
 
     sub_slice = sol_vector_get(&mdata->substrings, mdata->index);
     return sol_flow_send_string_slice_packet(node,
-        SOL_FLOW_NODE_TYPE_STRING_SPLIT__OUT__OUT, sub_slice);
+        SOL_FLOW_NODE_TYPE_STRING_SPLIT__OUT__OUT, *sub_slice);
 }
 
 static int
