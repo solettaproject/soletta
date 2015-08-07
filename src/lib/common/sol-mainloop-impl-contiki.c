@@ -102,21 +102,16 @@ sol_mainloop_impl_platform_shutdown(void)
 static inline clock_time_t
 ticks_until_next_timeout(void)
 {
-    struct sol_timeout_common *timeout;
-    struct timespec now, diff;
+    struct timespec ts;
 
-    timeout = sol_mainloop_common_timeout_first();
-    if (!timeout)
-        return DEFAULT_USLEEP_TIME_TICKS;
-
-    now = sol_util_timespec_get_current();
-    sol_util_timespec_sub(&timeout->expire, &now, &diff);
-
-    if (diff.tv_sec < 0)
+    if (!sol_mainloop_common_timespec_first(&ts))
         return 0;
 
-    return diff.tv_sec * CLOCK_SECOND +
-           (CLOCK_SECOND / NSEC_PER_SEC) * diff.tv_nsec;
+    if (ts.tv_sec < 0)
+        return 0;
+
+    return ts.tv_sec * CLOCK_SECOND +
+           (CLOCK_SECOND / NSEC_PER_SEC) * ts.tv_nsec;
 }
 
 void

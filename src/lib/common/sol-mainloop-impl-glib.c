@@ -210,3 +210,108 @@ sol_mainloop_impl_child_watch_del(void *handle)
 {
     return g_source_remove((uintptr_t)handle);
 }
+
+struct source_wrap_data {
+    GSource base;
+    const struct sol_mainloop_source_type *type;
+    const void *data;
+};
+
+static gboolean
+source_prepare(GSource *source, gint *timeout)
+{
+    struct source_wrap_data *wrap_data = (struct source_wrap_data *)source;
+
+    if (wrap_data->type->get_next_timeout) {
+        struct timespec ts;
+        if (wrap_data->type->get_next_timeout((void *)wrap_data->data, &ts)) {
+            if (ts.tv_sec < 0) {
+                ts.tv_sec = 0;
+                ts.tv_nsec = 0;
+            }
+            *timeout = sol_util_msec_from_timespec(&ts);
+        }
+    }
+
+    if (wrap_data->type->prepare)
+        return wrap_data->type->prepare((void *)wrap_data->data);
+    else
+        return FALSE;
+}
+
+static gboolean
+source_check(GSource *source)
+{
+    struct source_wrap_data *wrap_data = (struct source_wrap_data *)source;
+
+    if (wrap_data->type->check)
+        return wrap_data->type->check((void *)wrap_data->data);
+    else
+        return FALSE;
+}
+
+static gboolean
+source_dispatch(GSource *source, GSourceFunc cb, gpointer user_data)
+{
+    struct source_wrap_data *wrap_data = (struct source_wrap_data *)source;
+
+    wrap_data->type->dispatch((void *)wrap_data->data);
+    return TRUE;
+}
+
+static void
+source_finalize(GSource *source)
+{
+    struct source_wrap_data *wrap_data = (struct source_wrap_data *)source;
+
+    if (wrap_data->type->dispose)
+        wrap_data->type->dispose((void *)wrap_data->data);
+}
+
+static GSourceFuncs source_funcs = {
+    .prepare = source_prepare,
+    .check = source_check,
+    .dispatch = source_dispatch,
+    .finalize = source_finalize,
+};
+
+void *
+sol_mainloop_impl_source_new(const struct sol_mainloop_source_type *type, const void *data)
+{
+    struct source_wrap_data *wrap_data;
+    guint id;
+
+    wrap_data = (struct source_wrap_data *)g_source_new(&source_funcs,
+        sizeof(struct source_wrap_data));
+    SOL_NULL_CHECK(wrap_data, NULL);
+
+    wrap_data->type = type;
+    wrap_data->data = data;
+
+    id = g_source_attach(&wrap_data->base, NULL);
+    SOL_INT_CHECK_GOTO(id, == 0, error);
+
+    return wrap_data;
+
+error:
+    g_source_destroy(&wrap_data->base);
+    g_source_unref(&wrap_data->base);
+    return NULL;
+}
+
+void
+sol_mainloop_impl_source_del(void *handle)
+{
+    struct source_wrap_data *wrap_data = handle;
+
+    g_source_destroy(&wrap_data->base);
+    g_source_unref(&wrap_data->base);
+}
+
+void *
+sol_mainloop_impl_source_get_data(const void *handle)
+{
+    const struct source_wrap_data *wrap_data = handle;
+
+    return (void *)wrap_data->data;
+}
