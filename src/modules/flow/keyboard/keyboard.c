@@ -47,6 +47,7 @@
 #include "sol-mainloop.h"
 #include "sol-vector.h"
 #include "sol-util.h"
+#include "sol-util-linux.h"
 
 struct keyboard_common_data {
     struct sol_flow_node *node;
@@ -227,12 +228,13 @@ keyboard_on_event(void *data, int fd, unsigned int cond)
 
     if (cond & SOL_FD_FLAGS_IN) {
         unsigned char buf[8];
-        int r = read(STDIN_FILENO, buf, sizeof(buf));
+        size_t size;
+        int r = sol_util_fill_buffer(STDIN_FILENO, (char *)buf, sizeof(buf), &size);
         if (r < 0) {
             SOL_WRN("could not read stdin: %s", sol_util_strerrora(errno));
             cond |= SOL_FD_FLAGS_ERR;
-        } else if (r > 0) {
-            mdata->on_code(mdata, buf, r);
+        } else if (size > 0) {
+            mdata->on_code(mdata, buf, size);
         }
     }
 
