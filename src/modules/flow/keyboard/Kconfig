@@ -1,3 +1,4 @@
 config FLOW_NODE_TYPE_KEYBOARD
 	tristate "Node type: keyboard"
+	depends on PLATFORM_LINUX
 	default m
