@@ -41,6 +41,7 @@
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
+#include "sol-util-linux.h"
 #include "sol-vector.h"
 
 struct unix_socket_data {
@@ -56,27 +57,6 @@ common_close(struct sol_flow_node *node, void *data)
     unix_socket_del(mdata->un_socket);
 }
 
-static int
-socket_read(int fd, void *buf, size_t count)
-{
-    unsigned int attempts = SOL_UTIL_MAX_READ_ATTEMPTS;
-    size_t amount = 0;
-
-    while (attempts && (amount < count)) {
-        ssize_t r = read(fd, (char *)buf + amount, count - amount);
-        if (r < 0) {
-            attempts--;
-            if ((errno == EINTR) || (errno == EAGAIN))
-                continue;
-            else
-                return -errno;
-        }
-        amount += r;
-    }
-
-    return amount == count ? 0 : -EAGAIN;
-}
-
 /*
  *----------------------- boolean --------------------------
  */
@@ -86,7 +66,7 @@ boolean_read_data(void *data, int fd)
     struct unix_socket_data *mdata = data;
     bool val;
 
-    if (socket_read(fd, &val, sizeof(val)) < 0)
+    if (sol_util_fill_buffer(fd, (char *)&val, sizeof(val), NULL) < 0)
         return;
 
     sol_flow_send_boolean_packet(mdata->node,
@@ -150,14 +130,13 @@ string_read_data(void *data, int fd)
 {
     struct unix_socket_data *mdata = data;
     char val[4096];
-    size_t len;
-    ssize_t r;
+    size_t len, r;
 
-    if (socket_read(fd, &len, sizeof(len)) < 0)
+    if (sol_util_fill_buffer(fd, (char *)&len, sizeof(len), NULL) < 0)
         return;
 
     while (len > 0) {
-        if ((r = socket_read(fd, val, len < (sizeof(val) - 1) ? len : sizeof(val) - 1)) < 0)
+        if ((sol_util_fill_buffer(fd, (char *)val, len < (sizeof(val) - 1) ? len : sizeof(val) - 1, &r)) < 0)
             return;
 
         val[r] = '\0';
@@ -232,7 +211,7 @@ rgb_read_data(void *data, int fd)
     struct unix_socket_data *mdata = data;
     struct sol_rgb rgb;
 
-    if (socket_read(fd, &rgb, sizeof(rgb)) < 0)
+    if (sol_util_fill_buffer(fd, (char *)&rgb, sizeof(rgb), NULL) < 0)
         return;
 
     sol_flow_send_rgb_packet(mdata->node,
@@ -297,7 +276,7 @@ direction_vector_read_data(void *data, int fd)
     struct unix_socket_data *mdata = data;
     struct sol_direction_vector direction_vector;
 
-    if (socket_read(fd, &direction_vector, sizeof(direction_vector)) < 0)
+    if (sol_util_fill_buffer(fd, (char *)&direction_vector, sizeof(direction_vector), NULL) < 0)
         return;
 
     sol_flow_send_direction_vector_packet(mdata->node,
@@ -362,7 +341,7 @@ byte_read_data(void *data, int fd)
     struct unix_socket_data *mdata = data;
     uint8_t val;
 
-    if (socket_read(fd, &val, sizeof(val)) < 0)
+    if (sol_util_fill_buffer(fd, (char *)&val, sizeof(val), NULL) < 0)
         return;
 
     sol_flow_send_byte_packet(mdata->node,
@@ -427,7 +406,7 @@ int_read_data(void *data, int fd)
     struct unix_socket_data *mdata = data;
     struct sol_irange val;
 
-    if (socket_read(fd, &val, sizeof(val)) < 0)
+    if (sol_util_fill_buffer(fd, (char *)&val, sizeof(val), NULL) < 0)
         return;
 
     sol_flow_send_irange_packet(mdata->node,
@@ -492,7 +471,7 @@ float_read_data(void *data, int fd)
     struct unix_socket_data *mdata = data;
     double val;
 
-    if (socket_read(fd, &val, sizeof(val)) < 0)
+    if (sol_util_fill_buffer(fd, (char *)&val, sizeof(val), NULL) < 0)
         return;
 
     sol_flow_send_drange_value_packet(mdata->node,
