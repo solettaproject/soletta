@@ -502,4 +502,5 @@ By making a contribution to this project, I certify that:
 ```
 
 <a name="footnote_01">1</a>: Soletta expects that FBP files are
-utf-8-encoded
+UTF-8-encoded and that all floating point numbers in them are in the
+POSIX locale format.
