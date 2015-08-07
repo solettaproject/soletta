@@ -123,11 +123,11 @@ ssize_t
 sol_util_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_t *size_read)
 {
     ssize_t size;
+    size_t bytes_read = 0;
     unsigned int retry = 0;
 
-    *size_read = 0;
     do {
-        size = read(fd, buffer + *size_read, buffer_size - *size_read);
+        size = read(fd, buffer + bytes_read, buffer_size - bytes_read);
         if (size < 0) {
             retry++;
             if (retry >= SOL_UTIL_MAX_READ_ATTEMPTS)
@@ -140,8 +140,11 @@ sol_util_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_
         }
 
         retry = 0; //We only count consecutive failures
-        *size_read += (size_t)size;
-    } while (size && *size_read < buffer_size);
+        bytes_read += (size_t)size;
+    } while (size && bytes_read < buffer_size);
+
+    if (size_read)
+        *size_read = bytes_read;
 
     return size;
 }
