@@ -423,6 +423,8 @@ sol_mainloop_impl_platform_shutdown(void)
 
     threads_shutdown();
 
+    sol_mainloop_common_source_shutdown();
+
     SOL_PTR_VECTOR_FOREACH_IDX (&child_watch_vector, ptr, i) {
         free(ptr);
     }
@@ -633,42 +635,39 @@ static inline void
 fd_process(void)
 {
     struct sol_fd_posix *handler;
-    struct timespec now, diff;
+    struct timespec ts;
     sigset_t emptyset;
     uint16_t i, j;
-    bool use_diff;
+    bool use_ts, sources_ready;
     int nfds;
 
     if (!sol_mainloop_common_loop_check())
         return;
+
+    sources_ready = sol_mainloop_common_source_prepare();
 
     sol_mainloop_impl_lock();
 
     fd_prepare();
 
     if (sol_mainloop_common_idler_first()) {
-        use_diff = true;
-        diff.tv_sec = 0;
-        diff.tv_nsec = 0;
+        use_ts = true;
+        ts.tv_sec = 0;
+        ts.tv_nsec = 0;
     } else {
-        struct sol_timeout_common *timeout = sol_mainloop_common_timeout_first();
-        if (!timeout)
-            use_diff = false;
-        else {
-            use_diff = true;
-            now = sol_util_timespec_get_current();
-            sol_util_timespec_sub(&timeout->expire, &now, &diff);
-            if (diff.tv_sec < 0) {
-                diff.tv_sec = 0;
-                diff.tv_nsec = 0;
-            }
-        }
+        use_ts = sol_mainloop_common_timespec_first(&ts);
     }
     sigemptyset(&emptyset);
 
     sol_mainloop_impl_unlock();
 
-    nfds = ppoll(pollfds, pollfds_used, use_diff ? &diff : NULL, &emptyset);
+    if (sources_ready) {
+        ts.tv_sec = 0;
+        ts.tv_nsec = 0;
+        use_ts = true;
+    }
+
+    nfds = ppoll(pollfds, pollfds_used, use_ts ? &ts : NULL, &emptyset);
 
     sol_mainloop_impl_lock();
     sol_ptr_vector_steal(&FD_PROCESS, &FD_ACUM);
@@ -722,6 +721,9 @@ fd_process(void)
     fd_cleanup();
     fd_processing = false;
     sol_mainloop_impl_unlock();
+
+    if (sol_mainloop_common_source_check() || sources_ready)
+        sol_mainloop_common_source_dispatch();
 }
 
 void
