@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_IIO
+	tristate "Node type: IIO"
+	depends on FLOW && SOL_PLATFORM_LINUX
+	default m
