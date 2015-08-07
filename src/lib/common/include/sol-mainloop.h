@@ -150,6 +150,91 @@ struct sol_child_watch *sol_child_watch_add(uint64_t pid, void (*cb)(void *data,
 bool sol_child_watch_del(struct sol_child_watch *handle);
 #endif
 
+struct sol_mainloop_source_type {
+#define SOL_MAINLOOP_SOURCE_TYPE_API_VERSION (1)  /**< compile time API version to be checked during runtime */
+    uint16_t api_version;  /**< must match SOL_MAINLOOP_SOURCE_TYPE_API_VERSION at runtime */
+    bool (*prepare)(void *data); /**< prepare to check for events. If there are known events to be processed, then return true. May be NULL, in this case return false is assumed. */
+    bool (*get_next_timeout)(void *data, struct timespec *timeout); /**< query the next timeout for the next event in this source. If returns false, then may sleep forever as no events are expected. May be NULL. */
+    bool (*check)(void *data); /**< check if there are events to be dispatched. Must not be NULL. */
+    void (*dispatch)(void *data); /**< called during main loop iterations if check() returns true. Must not be NULL. */
+    void (*dispose)(void *data); /**< called when the source is deleted. May be NULL. */
+};
+
+struct sol_mainloop_source;
+
+/**
+ * Create a new source of events to the main loop.
+ *
+ * Some libraries will have their own internal main loop, in the case
+ * we should integrate them with Soletta's we do so by adding a new
+ * source of events to Soletta's main loop.
+ *
+ * The source is described by its @a type, a set of functions to be
+ * called back at various phases:
+ *
+ * @li @b prepare called before all other callbacks at each main loop
+ *     iteration.
+ *
+ * @li @b get_next_timeout called before configuring the maximum
+ *     timeout to wait for events. The smallest value of all sources
+ *     and the first timeout of Soletta's will be used to determine
+ *     the value to use (ie: the one to give to poll(2) if using posix
+ *     main loop). If returns @c false the main loop can sleep
+ *     forever. If not provided, then return @c false is assumed.
+ *
+ * @li @b check called after all event sources and Soletta's internal
+ *     events are polled and are ready to be dispatched. If it returns
+ *     @c true, then there are events to be dispatched in this
+ *     source.
+ *
+ * @li @b dispatch called if @c check() returns @c true.
+ *
+ * @li @c dispose called when the source is deleted. This will
+ *     happen at sol_shutdown() if the source is not manually deleted.
+ *
+ * If a source doesn't know the time for the next event (say an
+ * interruption service handler or an internal file descriptor), then
+ * further integration work needs to be done. The interruption service
+ * handler can use sol_timeout_add() from a thread to schedule a main
+ * loop wake, that in turn will run the source's prepare()
+ * automatically. Analogously, the internal file descriptors can be
+ * added to soletta's at prepare(). If the main loop uses epoll(),
+ * that fd can be added to chain the monitoring.
+ *
+ * @param type the description of the source of main loop events. This
+ *        pointer is not modified and is @b not copied, thus it @b
+ *        must exist during the lifetime of the source.
+ * @param data the user data (context) to give to callbacks in @a type.
+ *
+ * @return the new main loop source instance or @c NULL on failure.
+ *
+ * @see sol_mainloop_source_del()
+ */
+struct sol_mainloop_source *sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void *data);
+
+/**
+ * Destroy a source of main loop events.
+ *
+ * @param handle a valid handle previously created with
+ *        sol_mainloop_source_new().
+ *
+ * @see sol_mainloop_source_new()
+ */
+void sol_mainloop_source_del(struct sol_mainloop_source *handle);
+
+/**
+ * Retrieve the user data (context) given to the source at creation time.
+ *
+ * @param handle a valid handle previously created with
+ *        sol_mainloop_source_new().
+ *
+ * @return whatever was given to sol_mainloop_source_new() as second
+ *         parameter. NULL is a valid return.
+ *
+ * @see sol_mainloop_source_new()
+ */
+void *sol_mainloop_source_get_data(const struct sol_mainloop_source *handle);
+
 int sol_argc(void);
 char **sol_argv(void);
 void sol_args_set(int argc, char *argv[]);

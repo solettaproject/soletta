@@ -283,6 +283,39 @@ sol_child_watch_del(struct sol_child_watch *handle)
 }
 #endif
 
+SOL_API struct sol_mainloop_source *
+sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void *data)
+{
+    SOL_NULL_CHECK(type, NULL);
+
+    if (type->api_version != SOL_MAINLOOP_SOURCE_TYPE_API_VERSION) {
+        SOL_WRN("type(%p)->api_version(%hu) != "
+            "SOL_MAINLOOP_SOURCE_TYPE_API_VERSION(%hu)",
+            type, type->api_version,
+            SOL_MAINLOOP_SOURCE_TYPE_API_VERSION);
+        return NULL;
+    }
+
+    SOL_NULL_CHECK(type->check, NULL);
+    SOL_NULL_CHECK(type->dispatch, NULL);
+
+    return sol_mainloop_impl_source_new(type, data);
+}
+
+SOL_API void
+sol_mainloop_source_del(struct sol_mainloop_source *handle)
+{
+    SOL_NULL_CHECK(handle);
+    sol_mainloop_impl_source_del(handle);
+}
+
+SOL_API void *
+sol_mainloop_source_get_data(const struct sol_mainloop_source *handle)
+{
+    SOL_NULL_CHECK(handle, NULL);
+    return sol_mainloop_impl_source_get_data(handle);
+}
+
 SOL_API int
 sol_argc(void)
 {

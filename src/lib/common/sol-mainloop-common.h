@@ -79,8 +79,13 @@ bool sol_mainloop_common_loop_check(void);
 void sol_mainloop_common_loop_set(bool val);
 void sol_mainloop_common_timeout_process(void);
 void sol_mainloop_common_idler_process(void);
-struct sol_timeout_common *sol_mainloop_common_timeout_first(void);
+bool sol_mainloop_common_timespec_first(struct timespec *ts);
 struct sol_idler_common *sol_mainloop_common_idler_first(void);
+
+bool sol_mainloop_common_source_prepare(void);
+bool sol_mainloop_common_source_get_next_timeout(struct timespec *timeout);
+bool sol_mainloop_common_source_check(void);
+void sol_mainloop_common_source_dispatch(void);
 
 /* thread-related platform specific functions */
 bool sol_mainloop_impl_main_thread_check(void);
