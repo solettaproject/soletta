@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sol-util.h"
 #include "sol-util-linux.h"
 #include "sol-missing.h"
 #include "sol-mainloop.h"
@@ -52,17 +53,47 @@
 int
 sol_util_vwrite_file(const char *path, const char *fmt, va_list args)
 {
-    FILE *fp;
-    int ret;
+    char *content;
+    int fd;
+    size_t len;
+    int result, offset = 0, tries = 8;
 
-    fp = fopen(path, "we");
-    if (!fp)
-        return -errno;
+    result = vasprintf(&content, fmt, args);
+    if (result == -1)
+        return -1;
 
-    ret = vfprintf(fp, fmt, args);
-    fclose(fp);
+    fd = open(path, O_WRONLY | O_CLOEXEC);
+    if (fd < 0) {
+        result = fd;
+        goto end;
+    }
 
-    return ret;
+    len = strlen(content);
+
+    while (tries--) {
+        result = write(fd, content + offset, len - offset);
+        if (result == ((int)len - offset)) {
+            result = len;
+            break;
+        }
+        if (result >= 0) {
+            offset += result;
+            continue;
+        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+            continue;
+
+        SOL_WRN("Could not write to file [%s] - %s", path,
+            sol_util_strerrora(errno));
+        break;
+    }
+
+    close(fd);
+
+end:
+    free(content);
+
+    return result;
 }
 
 int

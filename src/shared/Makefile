@@ -16,7 +16,8 @@ ifeq (y,$(SOL_PLATFORM_LINUX))
 obj-libshared-y += \
     sol-conffile.o \
     sol-file-reader.o \
-    sol-util-linux.o
+    sol-util-linux.o \
+    sol-iio.o
 obj-libshared-y-extra-cflags += $(GLIB_CFLAGS)
 obj-libshared-y-extra-ldflags += $(GLIB_LDFLAGS)
 endif
