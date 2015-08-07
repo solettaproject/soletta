@@ -34,6 +34,7 @@
 
 #include "sol-platform.h"
 #include "sol-util.h"
+#include "sol-util-linux.h"
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -61,6 +62,7 @@ stdin_read(struct sol_blob **p_blob, bool *eof)
         struct timespec now = sol_util_timespec_get_current();
         struct timespec elapsed;
         ssize_t r;
+        size_t size;
 
         sol_util_timespec_sub(&now, &start, &elapsed);
         if (elapsed.tv_sec > 0 ||
@@ -83,21 +85,15 @@ stdin_read(struct sol_blob **p_blob, bool *eof)
             buflen += CHUNK_READ_SIZE;
         }
 
-        r = read(STDIN_FILENO, buf + offset, CHUNK_READ_SIZE);
+        r = sol_util_fill_buffer(STDIN_FILENO, buf + offset, CHUNK_READ_SIZE, &size);
         if (r > 0)
-            offset += r;
+            offset += size;
         else if (r == 0) {
             *eof = true;
             break;
         } else if (r < 0) {
-            if (errno == EINTR)
-                continue;
-            else if (errno == EAGAIN)
-                break;
-            else {
-                ret = -errno;
-                break;
-            }
+            ret = -errno;
+            break;
         }
     } while (1);
 
