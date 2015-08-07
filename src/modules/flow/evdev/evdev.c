@@ -45,6 +45,7 @@
 #include "sol-mainloop.h"
 #include "sol-monitors.h"
 #include "sol-util.h"
+#include "sol-util-linux.h"
 #include "sol-vector.h"
 
 struct evdev_fd_handler {
@@ -111,21 +112,16 @@ evdev_fd_handler_cb(void *data, int fd, unsigned int active_flags)
     while (retval) {
         struct input_event ev[8];
         ssize_t ret;
+        size_t read;
         int i, count;
 
-        ret = read(fd, ev, sizeof(ev));
+        ret = sol_util_fill_buffer(fd, (char *)ev, sizeof(ev), &read);
         if (ret < 0) {
-            if (errno == EINTR)
-                continue;
-            else if (errno == EAGAIN || errno == EWOULDBLOCK)
-                break;
-            else {
-                retval = false;
-                break;
-            }
+            retval = false;
+            break;
         }
 
-        count = ret / sizeof(*ev);
+        count = read / sizeof(*ev);
         for (i = 0; i < count; i++) {
             struct sol_monitors_entry *e;
             uint16_t j;
