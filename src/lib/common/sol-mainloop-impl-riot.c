@@ -83,28 +83,23 @@ sol_mainloop_impl_platform_init(void)
 void
 sol_mainloop_impl_platform_shutdown(void)
 {
+    sol_mainloop_common_source_shutdown();
 }
 
 static inline void
 timex_set_until_next_timeout(timex_t *timex)
 {
-    struct sol_timeout_common *timeout;
-    struct timespec now;
-    struct timespec diff;
+    struct timespec ts;
 
-    timeout = sol_mainloop_common_timeout_first();
-    if (!timeout) {
+    if (!sol_mainloop_common_timespec_first(&ts)) {
         *timex = timex_set(0, DEFAULT_USLEEP_TIME);
         return;
     }
 
-    now = sol_util_timespec_get_current();
-    sol_util_timespec_sub(&timeout->expire, &now, &diff);
-
-    if (diff.tv_sec < 0)
+    if (ts.tv_sec < 0)
         *timex = timex_set(0, 0);
     else
-        *timex = timex_set(diff.tv_sec, diff.tv_nsec / NSEC_PER_USEC);
+        *timex = timex_set(ts.tv_sec, ts.tv_nsec / NSEC_PER_USEC);
 }
 
 void
