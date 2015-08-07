@@ -150,7 +150,7 @@ sol_pin_mux_init(void)
 {
     sol_log_domain_init_level(SOL_LOG_DOMAIN);
 
-    if (!sol_pin_mux_select_mux(sol_platform_get_name())) {
+    if (!sol_pin_mux_select_mux(sol_platform_get_board_name())) {
         SOL_WRN("Pin Multiplexer found, but failed to be loaded.");
         return -1;
     }

@@ -37,16 +37,16 @@
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "platform-detect");
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "board-detect");
 
 #include "sol-file-reader.h"
 #include "sol-json.h"
-#include "sol-platform-detect.h"
+#include "sol-board-detect.h"
 #include "sol-str-slice.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
-#define PLATFORM_JSON "/platform_detect.json"
+#define BOARD_JSON "/board_detect.json"
 
 static bool
 _check_rule(const char *path, const struct sol_vector *match, const struct sol_vector *dont_match)
@@ -135,10 +135,10 @@ _parse_regex_array(struct sol_json_token *array, struct sol_vector *vector)
 }
 
 static bool
-_platform_validation(const struct sol_json_token *validation)
+_board_validation(const struct sol_json_token *validation)
 {
     char *path;
-    bool is_platform = false;
+    bool is_board = false;
     struct sol_vector match, dont_match;
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value, file_path;
@@ -177,10 +177,10 @@ _platform_validation(const struct sol_json_token *validation)
 
         if (file_path.start) {
             path = strndup(file_path.start + 1, file_path.end - file_path.start - 2);
-            is_platform = _check_rule(path, &match, &dont_match);
+            is_board = _check_rule(path, &match, &dont_match);
             free(path);
 
-            if (!is_platform)
+            if (!is_board)
                 break;
         }
     }
@@ -188,7 +188,7 @@ _platform_validation(const struct sol_json_token *validation)
 clear:
     sol_vector_clear(&match);
     sol_vector_clear(&dont_match);
-    return is_platform;
+    return is_board;
 }
 
 static struct sol_file_reader *
@@ -208,27 +208,27 @@ _json_open_doc(const char *path, struct sol_json_scanner *scanner)
 }
 
 char *
-sol_platform_detect(void)
+sol_board_detect(void)
 {
     bool found = false;
-    char *platform = NULL;
+    char *board = NULL;
     struct sol_file_reader *json_doc;
     struct sol_json_scanner scanner;
-    struct sol_json_token token, key, value, platform_name = { NULL };
+    struct sol_json_token token, key, value, board_name = { NULL };
     enum sol_json_loop_reason reason;
 
-    json_doc = _json_open_doc(PKGSYSCONFDIR PLATFORM_JSON, &scanner);
+    json_doc = _json_open_doc(PKGSYSCONFDIR BOARD_JSON, &scanner);
     if (!json_doc) {
-        json_doc = _json_open_doc(SOL_DATADIR PLATFORM_JSON, &scanner);
+        json_doc = _json_open_doc(SOL_DATADIR BOARD_JSON, &scanner);
         if (!json_doc) {
-            SOL_INF(PLATFORM_JSON " could not be found. Searched paths:\n.%s\n%s",
+            SOL_INF(BOARD_JSON " could not be found. Searched paths:\n.%s\n%s",
                 PKGSYSCONFDIR, DATADIR);
             return NULL;
         }
     }
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&token, "platforms")) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&token, "boards")) {
             found = true;
             break;
         }
@@ -238,37 +238,37 @@ sol_platform_detect(void)
 
     sol_json_scanner_init_from_token(&scanner, &value);
     SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
-        platform_name = (struct sol_json_token) {NULL, NULL };
+        board_name = (struct sol_json_token) {NULL, NULL };
         found = false;
 
         SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "name")) {
                 if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_STRING)
                     continue;
-                platform_name = value;
+                board_name = value;
             }
 
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "validation")) {
                 if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_ARRAY_START)
                     continue;
-                found = _platform_validation(&value);
+                found = _board_validation(&value);
             }
         }
 
-        if (platform_name.start && found)
+        if (board_name.start && found)
             break;
     }
 
-    if (platform_name.start && found)
-        platform = strndup(platform_name.start + 1, platform_name.end - platform_name.start - 2);
+    if (board_name.start && found)
+        board = strndup(board_name.start + 1, board_name.end - board_name.start - 2);
 
 end:
     sol_file_reader_close(json_doc);
-    return platform;
+    return board;
 }
 
 bool
-sol_platform_invalid_name(const char *name)
+sol_board_invalid_name(const char *name)
 {
     unsigned int i;
 

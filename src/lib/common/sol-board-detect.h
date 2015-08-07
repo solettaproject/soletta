@@ -34,5 +34,5 @@
 
 #include <stdbool.h>
 
-char *sol_platform_detect(void);
-bool sol_platform_invalid_name(const char *name);
+char *sol_board_detect(void);
+bool sol_board_invalid_name(const char *name);
