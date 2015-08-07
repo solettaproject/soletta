@@ -44,6 +44,7 @@
 #include "sol-mainloop.h"
 #include "sol-uart.h"
 #include "sol-util.h"
+#include "sol-util-linux.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 
@@ -78,7 +79,7 @@ uart_rx_callback(void *data, int fd, unsigned int active_flags)
     }
     if (active_flags & SOL_FD_FLAGS_IN) {
         unsigned char buf[1];
-        int status = read(uart->fd, buf, sizeof(buf));
+        int status = sol_util_fill_buffer(uart->fd, (char *)buf, sizeof(buf), NULL);
         if (status > 0)
             uart->async.rx_cb((void *)uart->async.rx_user_data, uart, buf[0]);
     }
