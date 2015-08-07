@@ -20,8 +20,8 @@ obj-log-$(PLATFORM_CONTIKI) += \
 
 obj-core-$(SOL_BUS) += \
     sol-bus.o
-obj-core-$(SOL_BUS)-extra-cflags += $(SYSTEMD_CFLAGS) $(GLIB_CFLAGS)
-obj-core-$(SOL_BUS)-extra-ldflags += $(SYSTEMD_LDFLAGS) $(GLIB_LDFLAGS)
+obj-core-$(SOL_BUS)-extra-cflags += $(SYSTEMD_CFLAGS)
+obj-core-$(SOL_BUS)-extra-ldflags += $(SYSTEMD_LDFLAGS)
 
 obj-core-$(MAINLOOP_GLIB) += \
     sol-mainloop-impl-glib.o
