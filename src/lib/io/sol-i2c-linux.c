@@ -255,7 +255,7 @@ i2c_write_quick_timeout_cb(void *data)
 }
 #endif
 
-SOL_API void *
+SOL_API struct sol_i2c_pending *
 sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data)
 {
 #ifdef PTHREAD
@@ -283,11 +283,11 @@ sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *c
 #ifdef PTHREAD
     i2c->async.worker = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
-    return i2c->async.worker;
+    return (struct sol_i2c_pending *)i2c->async.worker;
 #else
     i2c->async.timeout = sol_timeout_add(0, i2c_write_quick_timeout_cb, i2c);
     SOL_NULL_CHECK(i2c->async.timeout, NULL);
-    return i2c->async.timeout;
+    return (struct sol_i2c_pending *)i2c->async.timeout;
 #endif
 }
 

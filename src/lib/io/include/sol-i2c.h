@@ -55,6 +55,8 @@ extern "C" {
 
 struct sol_i2c;
 
+struct sol_i2c_pending;
+
 enum sol_i2c_speed {
     SOL_I2C_SPEED_10KBIT = 0,
     SOL_I2C_SPEED_100KBIT,
@@ -151,7 +153,7 @@ uint8_t sol_i2c_get_slave_address(struct sol_i2c *i2c);
  *
  * @return pending handle if operation was started otherwise a NULL pointer
  */
-void *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data);
+struct sol_i2c_pending *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data);
 
 /**
  * Perform successive asynchronous I2C byte read operations, with no specified
