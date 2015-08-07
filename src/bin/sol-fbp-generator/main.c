@@ -250,13 +250,16 @@ static const char *
 sol_fbp_generator_resolve_id(struct sol_fbp_node *n, const char *id, const char *fbp_file)
 {
     const char *type_name;
-    const char **opts_as_string;
+    const char **opts_as_string = NULL;
     const char *const *opt;
 
     if (sol_conffile_resolve_path(id, &type_name, &opts_as_string, args.conf_file) < 0) {
         sol_fbp_log_print(fbp_file, n->position.line, n->position.column, "Couldn't resolve type id '%s'", id);
         return NULL;
     }
+
+    if (!opts_as_string)
+        return type_name;
 
     /* Conffile may contain options for this node type */
     for (opt = opts_as_string; *opt != NULL; opt++)
