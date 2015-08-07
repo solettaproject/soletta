@@ -1620,7 +1620,7 @@ float_format_do(struct string_converter *mdata,
         && !format->thousands_separators) {
         /* Fast path */
         *out_value = string_alloc_init(buf, n_digits + 1); //one more for \0
-        if (!out_value) {
+        if (!*out_value) {
             free(buf);
             return -ENOMEM;
         }
