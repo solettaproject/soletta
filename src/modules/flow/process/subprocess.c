@@ -34,6 +34,7 @@
 
 #include "sol-platform-linux.h"
 #include "sol-util.h"
+#include "sol-util-linux.h"
 
 #include <fcntl.h>
 #include <signal.h>
@@ -191,6 +192,7 @@ child_read(struct sol_blob **p_blob, bool *eof, int fd)
     do {
         struct timespec now = sol_util_timespec_get_current();
         struct timespec elapsed;
+        size_t size;
         ssize_t r;
 
         sol_util_timespec_sub(&now, &start, &elapsed);
@@ -214,21 +216,15 @@ child_read(struct sol_blob **p_blob, bool *eof, int fd)
             buflen += CHUNK_READ_SIZE;
         }
 
-        r = read(fd, buf + offset, CHUNK_READ_SIZE);
+        r = sol_util_fill_buffer(fd, buf + offset, CHUNK_READ_SIZE, &size);
         if (r > 0)
-            offset += r;
+            offset += size;
         else if (r == 0) {
             *eof = true;
             break;
         } else if (r < 0) {
-            if (errno == EINTR)
-                continue;
-            else if (errno == EAGAIN)
-                break;
-            else {
-                ret = -errno;
-                break;
-            }
+            ret = -errno;
+            break;
         }
     } while (1);
 
