@@ -119,8 +119,8 @@ sol_util_read_file(const char *path, const char *fmt, ...)
     return ret;
 }
 
-static ssize_t
-_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_t *size_read)
+ssize_t
+sol_util_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_t *size_read)
 {
     ssize_t size;
     unsigned int retry = 0;
@@ -166,7 +166,7 @@ sol_util_load_file_raw(const int fd, size_t *size)
         if (!buffer)
             goto err;
 
-        ret = _fill_buffer(fd, buffer, buffer_size, size);
+        ret = sol_util_fill_buffer(fd, buffer, buffer_size, size);
         if (ret <= 0)
             goto end;
     }
@@ -178,7 +178,7 @@ sol_util_load_file_raw(const int fd, size_t *size)
             goto err;
         buffer = tmp;
 
-        ret = _fill_buffer(fd, buffer + *size, CHUNK_SIZE, size);
+        ret = sol_util_fill_buffer(fd, buffer + *size, CHUNK_SIZE, size);
     } while (ret > 0);
 
 end:
