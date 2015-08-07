@@ -52,6 +52,7 @@
 #include "sol-missing.h"
 #include "sol-network.h"
 #include "sol-util.h"
+#include "sol-util-linux.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "network");
 
@@ -294,7 +295,7 @@ _netlink_request(int event)
     if (sendmsg(network->nl_socket, (struct msghdr *)&msg, 0) <= 0)
         SOL_WRN("Failed on send message to get the links");
 
-    while ((n = read(network->nl_socket, buffer_receive, sizeof(buffer_receive))) > 0) {
+    while ((n = sol_util_fill_buffer(network->nl_socket, buffer_receive, sizeof(buffer_receive), NULL)) > 0) {
         for (h = (struct nlmsghdr *)buffer_receive; NLMSG_OK(h, n); h = NLMSG_NEXT(h, n)) {
             if (h->nlmsg_type == NLMSG_DONE)
                 return;
