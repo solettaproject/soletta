@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include <glib.h>
 #include <systemd/sd-bus.h>
 #include <systemd/sd-event.h>
 
@@ -44,11 +43,6 @@
 #include "sol-platform-impl.h"
 #include "sol-util.h"
 #include "sol-vector.h"
-
-struct event_source {
-    GSource gsource;
-    sd_event *event;
-};
 
 struct property_table {
     const struct sol_bus_properties *properties;
@@ -59,7 +53,7 @@ struct property_table {
 };
 
 struct ctx {
-    struct event_source *event_source;
+    struct sol_mainloop_source *mainloop_source;
     sd_bus *bus;
     sd_event_source *ping;
     struct sol_ptr_vector property_tables;
@@ -68,60 +62,88 @@ struct ctx {
 
 static struct ctx _ctx;
 
-static gboolean
-event_prepare(GSource *gsource, gint *timeout)
+struct source_ctx {
+    struct sd_event *event;
+    struct sol_fd *fd_handler;
+};
+
+static bool
+source_prepare(void *data)
 {
-    struct event_source *s = (struct event_source *)gsource;
+    struct source_ctx *s = data;
 
     return sd_event_prepare(s->event) > 0;
 }
 
-static gboolean
-event_check(GSource *gsource)
+static bool
+source_check(void *data)
 {
-    struct event_source *s = (struct event_source *)gsource;
+    struct source_ctx *s = data;
 
     return sd_event_wait(s->event, 0) > 0;
 }
 
-static gboolean
-event_dispatch(GSource *gsource, GSourceFunc cb, gpointer user_data)
+static void
+source_dispatch(void *data)
 {
-    struct event_source *s = (struct event_source *)gsource;
+    struct source_ctx *s = data;
 
-    return sd_event_dispatch(s->event) > 0;
+    sd_event_dispatch(s->event);
 }
 
 static void
-event_finalize(GSource *gsource)
+source_dispose(void *data)
 {
-    struct event_source *s = (struct event_source *)gsource;
+    struct source_ctx *s = data;
 
     sd_event_unref(s->event);
+    sol_fd_del(s->fd_handler);
+
+    free(s);
 }
 
-static GSourceFuncs event_funcs = {
-    .prepare = event_prepare,
-    .check = event_check,
-    .dispatch = event_dispatch,
-    .finalize = event_finalize,
+static const struct sol_mainloop_source_type source_type = {
+    .api_version = SOL_MAINLOOP_SOURCE_TYPE_API_VERSION,
+    .prepare = source_prepare,
+    .check = source_check,
+    .dispatch = source_dispatch,
+    .dispose = source_dispose,
 };
 
-static struct event_source *
+static bool
+on_sd_event_fd(void *data, int fd, unsigned int active_flags)
+{
+    /* just used to wake up main loop */
+    return true;
+}
+
+static struct sol_mainloop_source *
 event_create_source(sd_event *event)
 {
-    struct event_source *s;
+    struct sol_mainloop_source *source;
+    struct source_ctx *ctx;
 
-    s = (struct event_source *)g_source_new(&event_funcs,
-        sizeof(struct event_source));
-    if (!s)
-        return NULL;
+    ctx = malloc(sizeof(*ctx));
+    SOL_NULL_CHECK(ctx, NULL);
 
-    s->event = sd_event_ref(event);
-    g_source_add_unix_fd(&s->gsource, sd_event_get_fd(event),
-        G_IO_IN | G_IO_HUP | G_IO_ERR);
+    ctx->event = sd_event_ref(event);
 
-    return s;
+    ctx->fd_handler = sol_fd_add(sd_event_get_fd(event),
+        SOL_FD_FLAGS_IN | SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_ERR,
+        on_sd_event_fd, ctx);
+    SOL_NULL_CHECK_GOTO(ctx->fd_handler, error_fd);
+
+    source = sol_mainloop_source_new(&source_type, ctx);
+    SOL_NULL_CHECK_GOTO(source, error_source);
+
+    return source;
+
+error_source:
+    sol_fd_del(ctx->fd_handler);
+error_fd:
+    sd_event_unref(ctx->event);
+    free(ctx);
+    return NULL;
 }
 
 static int
@@ -142,18 +164,16 @@ event_attach_mainloop(void)
     int r;
     sd_event *e = NULL;
 
-    if (_ctx.event_source)
+    if (_ctx.mainloop_source)
         return 0;
 
     r = sd_event_default(&e);
     if (r < 0)
         return r;
 
-    _ctx.event_source = event_create_source(e);
-    if (!_ctx.event_source)
+    _ctx.mainloop_source = event_create_source(e);
+    if (!_ctx.mainloop_source)
         goto fail;
-
-    g_source_attach(&_ctx.event_source->gsource, NULL);
 
     sd_event_add_defer(e, &_ctx.ping, _event_mainloop_running, &_ctx);
 
@@ -185,11 +205,14 @@ connect_bus(void)
 {
     int r;
     sd_bus *bus = NULL;
+    struct source_ctx *s;
 
     r = sd_bus_default_system(&bus);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sd_bus_attach_event(bus, _ctx.event_source->event,
+    s = sol_mainloop_source_get_data(_ctx.mainloop_source);
+
+    r = sd_bus_attach_event(bus, s->event,
         SD_EVENT_PRIORITY_NORMAL);
     SOL_INT_CHECK_GOTO(r, < 0, fail);
 
@@ -222,7 +245,7 @@ sol_bus_get(void (*bus_initialized)(sd_bus *bus))
     if (_ctx.bus)
         return _ctx.bus;
 
-    if (!_ctx.event_source) {
+    if (!_ctx.mainloop_source) {
         r = event_attach_mainloop();
         SOL_INT_CHECK_GOTO(r, < 0, fail);
     }
@@ -266,12 +289,14 @@ sol_bus_close(void)
         _ctx.bus = NULL;
     }
 
-    if (_ctx.event_source) {
+    if (_ctx.mainloop_source) {
+        struct source_ctx *s;
         sd_event_source_unref(_ctx.ping);
-        sd_event_unref(_ctx.event_source->event);
-        g_source_destroy(&_ctx.event_source->gsource);
-        g_source_unref(&_ctx.event_source->gsource);
-        _ctx.event_source = NULL;
+
+        s = sol_mainloop_source_get_data(_ctx.mainloop_source);
+        sd_event_unref(s->event);
+        sol_mainloop_source_del(_ctx.mainloop_source);
+        _ctx.mainloop_source = NULL;
     }
 }
 
@@ -279,14 +304,11 @@ static int
 _message_map_all_properties(sd_bus_message *m,
     struct property_table *t, sd_bus_error *ret_error)
 {
-    sd_bus *bus;
     uint64_t mask = 0;
     int r;
 
     r = sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}");
     SOL_INT_CHECK(r, < 0, r);
-
-    bus = sd_bus_message_get_bus(m);
 
     do {
         const struct sol_bus_properties *iter;
