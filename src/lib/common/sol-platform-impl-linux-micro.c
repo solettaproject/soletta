@@ -766,8 +766,10 @@ sol_platform_impl_set_target(const char *target)
         reboot_cmd = RB_POWER_OFF;
     else if (streq(target, SOL_PLATFORM_TARGET_REBOOT))
         reboot_cmd = RB_AUTOBOOT;
+#ifdef RB_SW_SUSPEND
     else if (streq(target, SOL_PLATFORM_TARGET_SUSPEND))
         reboot_cmd = RB_SW_SUSPEND;
+#endif
     else if (streq(target, SOL_PLATFORM_TARGET_DEFAULT))
         reboot_exec = "/sbin/init";
     else if (streq(target, SOL_PLATFORM_TARGET_RESCUE))

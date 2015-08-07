@@ -47,12 +47,26 @@
 struct gyroscope_l3g4200d_data {
     struct sol_flow_node *node;
     struct sol_i2c *i2c;
+    void *i2c_pending;
     struct sol_timeout *timer;
     double reading[3];
     unsigned init_sampling_cnt;
     unsigned pending_ticks;
     bool use_rad : 1;
     bool ready : 1;
+    // I2C buffer
+    union {
+        struct {
+            uint8_t buffer[32];
+        } common;
+        struct {
+            /*
+             * int16_t and 3 entries because of x, y and z axis are read,
+             * each consisting of L + H byte parts
+             */
+            int16_t buffer[32][3];
+        } gyro_data;
+    };
 };
 
 #define GYRO_INIT_STEP_TIME 1
@@ -91,39 +105,66 @@ struct gyroscope_l3g4200d_data {
  */
 #define GYRO_SCALE_R_S (70.0f * 0.001f)
 
+static bool gyro_tick_do(void *data);
+
 static int
 gyro_timer_resched(struct gyroscope_l3g4200d_data *mdata,
     unsigned int timeout_ms,
-    bool (*cb)(void *data),
-    const void *cb_data)
+    bool (*cb)(void *data))
 {
-    SOL_NULL_CHECK(cb, -EINVAL);
-
-    if (mdata->timer)
-        sol_timeout_del(mdata->timer);
-
-    mdata->timer = sol_timeout_add(timeout_ms, cb, cb_data);
+    mdata->timer = sol_timeout_add(timeout_ms, cb, mdata);
     SOL_NULL_CHECK(mdata->timer, -ENOMEM);
 
     return 0;
 }
 
 static void
-gyro_read(struct gyroscope_l3g4200d_data *mdata)
+i2c_read_data_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
 {
+    struct gyroscope_l3g4200d_data *mdata = cb_data;
+    double scale = mdata->use_rad ? GYRO_SCALE_R_S * DEG_TO_RAD : GYRO_SCALE_R_S;
     uint8_t num_samples_available;
-    uint8_t fifo_status = 0;
-    int r;
+    struct sol_direction_vector val =
+    {
+        .min = -GYRO_RANGE,
+        .max = GYRO_RANGE,
+        .x = mdata->reading[0],
+        .y = mdata->reading[1],
+        .z = mdata->reading[2]
+    };
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
+        SOL_WRN("Failed to read L3G4200D gyro fifo status");
         return;
     }
 
-    fifo_status = 0;
-    r = sol_i2c_read_register(mdata->i2c,
-        GYRO_REG_FIFO_SRC, &fifo_status, 1);
-    if (r <= 0) {
+    num_samples_available = status / (sizeof(int16_t) * 3);
+
+    /* raw readings, with only the sensor-provided filtering */
+    for (uint8_t i = 0; i < num_samples_available; i++) {
+        mdata->reading[0] = mdata->gyro_data.buffer[i][0] * scale;
+        mdata->reading[1] = -mdata->gyro_data.buffer[i][1] * scale;
+        mdata->reading[2] = -mdata->gyro_data.buffer[i][2] * scale;
+    }
+
+    sol_flow_send_direction_vector_packet(mdata->node,
+        SOL_FLOW_NODE_TYPE_GYROSCOPE_L3G4200D__OUT__OUT, &val);
+
+    mdata->pending_ticks--;
+    if (mdata->pending_ticks)
+        gyro_tick_do(mdata);
+}
+
+static void
+i2c_read_fifo_status_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
+{
+    struct gyroscope_l3g4200d_data *mdata = cb_data;
+    uint8_t num_samples_available;
+    uint8_t fifo_status = mdata->common.buffer[0];
+
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
         SOL_WRN("Failed to read L3G4200D gyro fifo status");
         return;
     }
@@ -144,52 +185,38 @@ gyro_read(struct gyroscope_l3g4200d_data *mdata)
 
     SOL_DBG("%d samples available", num_samples_available);
 
-    {
-        /* Read *all* the entries in one go, using AUTO_INCREMENT.
-         * int16_t and 3 entries because of x, y and z axis are read,
-         * each consisting of L + H byte parts
-         */
-        int16_t buffer[num_samples_available][3];
-        double scale = mdata->use_rad ? GYRO_SCALE_R_S * DEG_TO_RAD
-            : GYRO_SCALE_R_S;
-
-        r = sol_i2c_read_register(mdata->i2c,
-            GYRO_REG_XL | GYRO_REG_AUTO_INCREMENT,
-            (uint8_t *)&buffer[0][0], sizeof(buffer));
-        if (r <= 0) {
-            SOL_WRN("Failed to read L3G4200D gyro samples");
-            return;
-        }
-
-        /* raw readings, with only the sensor-provided filtering */
-        for (uint8_t i = 0; i < num_samples_available; i++) {
-            mdata->reading[0] = buffer[i][0] * scale;
-            mdata->reading[1] = -buffer[i][1] * scale;
-            mdata->reading[2] = -buffer[i][2] * scale;
-        }
-    }
+    /* Read *all* the entries in one go, using AUTO_INCREMENT */
+    mdata->i2c_pending = sol_i2c_read_register(mdata->i2c,
+        GYRO_REG_XL | GYRO_REG_AUTO_INCREMENT,
+        (uint8_t *)&mdata->gyro_data.buffer[0][0],
+        sizeof(mdata->gyro_data.buffer), i2c_read_data_cb, mdata);
+    if (!mdata->i2c_pending)
+        SOL_WRN("Failed to read L3G4200D gyro samples");
 }
 
-static int
-gyro_tick_do(struct gyroscope_l3g4200d_data *mdata)
+static bool
+gyro_tick_do(void *data)
 {
-    struct sol_direction_vector val =
-    {
-        .min = -GYRO_RANGE,
-        .max = GYRO_RANGE,
-        .x = mdata->reading[0],
-        .y = mdata->reading[1],
-        .z = mdata->reading[2]
-    };
-    int r;
+    struct gyroscope_l3g4200d_data *mdata = data;
 
-    gyro_read(mdata);
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_tick_do);
+        return false;
+    }
 
-    r = sol_flow_send_direction_vector_packet
-            (mdata->node, SOL_FLOW_NODE_TYPE_GYROSCOPE_L3G4200D__OUT__OUT,
-            &val);
+    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
+        SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
+        return false;
+    }
 
-    return r;
+    mdata->common.buffer[0] = 0;
+    mdata->i2c_pending = sol_i2c_read_register(mdata->i2c, GYRO_REG_FIFO_SRC,
+        mdata->common.buffer, 1, i2c_read_fifo_status_cb, mdata);
+    if (!mdata->i2c_pending)
+        SOL_WRN("Failed to read L3G4200D gyro fifo status");
+
+    return false;
 }
 
 static bool
@@ -197,25 +224,40 @@ gyro_ready(void *data)
 {
     struct gyroscope_l3g4200d_data *mdata = data;
 
-    mdata->timer = NULL;
     mdata->ready = true;
-
-    while (mdata->pending_ticks) {
-        gyro_tick_do(mdata);
-        mdata->pending_ticks--;
-    }
-
     SOL_DBG("gyro is ready for reading");
 
+    if (mdata->pending_ticks)
+        gyro_tick_do(mdata);
+
     return false;
+}
+
+static void
+i2c_write_fifo_ctl_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
+{
+    struct gyroscope_l3g4200d_data *mdata = cb_data;
+
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
+        SOL_WRN("could not set L3G4200D gyro sensor's stream mode");
+        return;
+    }
+
+    if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_ready) < 0)
+        SOL_WRN("error in scheduling a L3G4200D gyro's init command");
 }
 
 static bool
 gyro_init_stream(void *data)
 {
-    bool r;
     struct gyroscope_l3g4200d_data *mdata = data;
-    static const uint8_t value = GYRO_REG_FIFO_CTL_STREAM;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init_stream);
+        return false;
+    }
 
     if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
@@ -223,49 +265,82 @@ gyro_init_stream(void *data)
     }
 
     /* enable FIFO in stream mode */
-    r = sol_i2c_write_register(mdata->i2c, GYRO_REG_FIFO_CTL, &value, 1);
-    if (!r) {
+    mdata->common.buffer[0] = GYRO_REG_FIFO_CTL_STREAM;
+    mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, GYRO_REG_FIFO_CTL,
+        mdata->common.buffer, 1, i2c_write_fifo_ctl_cb, mdata);
+    if (!mdata->i2c_pending)
         SOL_WRN("could not set L3G4200D gyro sensor's stream mode");
-        return false;
-    }
-
-    if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_ready, mdata) < 0)
-        SOL_WRN("error in scheduling a L3G4200D gyro's init command");
 
     return false;
+}
+
+static void
+i2c_write_ctrl_reg5_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
+{
+    struct gyroscope_l3g4200d_data *mdata = cb_data;
+
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
+        SOL_WRN("could not set L3G4200D gyro sensor's fifo mode");
+        return;
+    }
+
+    if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME,
+        gyro_init_stream) < 0)
+        SOL_WRN("error in scheduling a L3G4200D gyro's init command");
 }
 
 static bool
 gyro_init_fifo(void *data)
 {
-    bool r;
     struct gyroscope_l3g4200d_data *mdata = data;
-    static const uint8_t value = GYRO_REG_CTRL_REG5_FIFO_EN;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init_fifo);
+        return false;
+    }
 
     if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
         return false;
     }
 
-    r = sol_i2c_write_register(mdata->i2c, GYRO_REG_CTRL_REG5, &value, 1);
-    if (!r) {
+    mdata->common.buffer[0] = GYRO_REG_CTRL_REG5_FIFO_EN;
+    mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, GYRO_REG_CTRL_REG5,
+        mdata->common.buffer, 1, i2c_write_ctrl_reg5_cb, mdata);
+    if (!mdata->i2c_pending)
         SOL_WRN("could not set L3G4200D gyro sensor's fifo mode");
-        return false;
+
+    return false;
+}
+
+static void
+i2c_write_ctrl_reg4_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
+{
+    struct gyroscope_l3g4200d_data *mdata = cb_data;
+
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
+        SOL_WRN("could not set L3G4200D gyro sensor's resolution");
+        return;
     }
 
     if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME,
-        gyro_init_stream, mdata) < 0)
+        gyro_init_fifo) < 0)
         SOL_WRN("error in scheduling a L3G4200D gyro's init command");
-
-    return false;
 }
 
 static bool
 gyro_init_range(void *data)
 {
-    bool r;
     struct gyroscope_l3g4200d_data *mdata = data;
-    static const uint8_t value = GYRO_REG_CTRL_REG4_FS_2000;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init_range);
+        return false;
+    }
 
     if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
@@ -273,29 +348,48 @@ gyro_init_range(void *data)
     }
 
     /* setup for 2000 degrees/sec */
-    r = sol_i2c_write_register(mdata->i2c, GYRO_REG_CTRL_REG4, &value, 1);
-    if (!r) {
+    mdata->common.buffer[0] = GYRO_REG_CTRL_REG4_FS_2000;
+    mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, GYRO_REG_CTRL_REG4,
+        mdata->common.buffer, 1, i2c_write_ctrl_reg4_cb, mdata);
+    if (!mdata->i2c_pending)
         SOL_WRN("could not set L3G4200D gyro sensor's resolution");
-        return false;
-    }
-
-    if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME,
-        gyro_init_fifo, mdata) < 0)
-        SOL_WRN("error in scheduling a L3G4200D gyro's init command");
 
     return false;
+}
+
+static bool gyro_init_sampling(void *data);
+
+static void
+i2c_write_ctrl_reg1_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
+{
+    struct gyroscope_l3g4200d_data *mdata = cb_data;
+
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
+        SOL_WRN("could not set L3G4200D gyro sensor's sampling rate");
+        return;
+    }
+
+    mdata->init_sampling_cnt--;
+
+    if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME,
+        mdata->init_sampling_cnt ?
+        gyro_init_sampling : gyro_init_range) < 0) {
+        SOL_WRN("error in scheduling a L3G4200D gyro's init command");
+    }
 }
 
 /* meant to run 3 times */
 static bool
 gyro_init_sampling(void *data)
 {
-    bool r;
     struct gyroscope_l3g4200d_data *mdata = data;
-    static const uint8_t value =
-        GYRO_REG_CTRL_REG1_DRBW_800_110 |
-        GYRO_REG_CTRL_REG1_PD |
-        GYRO_REG_CTRL_REG1_XYZ_ENABLE;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init_sampling);
+        return false;
+    }
 
     if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", GYRO_ADDRESS);
@@ -303,42 +397,58 @@ gyro_init_sampling(void *data)
     }
 
     /* setup for 800Hz sampling with 110Hz filter */
-    r = sol_i2c_write_register(mdata->i2c, GYRO_REG_CTRL_REG1, &value, 1);
-    if (!r) {
+    mdata->common.buffer[0] = GYRO_REG_CTRL_REG1_DRBW_800_110 |
+        GYRO_REG_CTRL_REG1_PD | GYRO_REG_CTRL_REG1_XYZ_ENABLE;
+    mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, GYRO_REG_CTRL_REG1,
+        mdata->common.buffer, 1, i2c_write_ctrl_reg1_cb, mdata);
+    if (!mdata->i2c_pending)
         SOL_WRN("could not set L3G4200D gyro sensor's sampling rate");
-        return false;
-    }
-
-    mdata->init_sampling_cnt--;
-
-    if (gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME,
-        mdata->init_sampling_cnt ?
-        gyro_init_sampling : gyro_init_range,
-        mdata) < 0) {
-        SOL_WRN("error in scheduling a L3G4200D gyro's init command");
-    }
 
     return false;
 }
 
-static int
-gyro_init(struct gyroscope_l3g4200d_data *mdata)
+static void
+i2c_read_who_am_i_cb(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status)
 {
-    ssize_t r;
-    uint8_t data = 0;
+    struct gyroscope_l3g4200d_data *mdata = cb_data;
 
-    r = sol_i2c_read_register(mdata->i2c, GYRO_REG_WHO_AM_I, &data, 1);
-    if (r < 0) {
+    mdata->i2c_pending = NULL;
+    if (status < 0) {
         SOL_WRN("Failed to read i2c register");
-        return r;
-    }
-    if (data != GYRO_REG_WHO_AM_I_VALUE) {
-        SOL_WRN("could not find L3G4200D gyro sensor");
-        return -EIO;
+        return;
     }
 
-    return gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME,
-        gyro_init_sampling, mdata) == 0;
+    if (mdata->common.buffer[0] != GYRO_REG_WHO_AM_I_VALUE) {
+        SOL_WRN("could not find L3G4200D gyro sensor");
+        return;
+    }
+
+    gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init_sampling);
+}
+
+static bool
+gyro_init(void *data)
+{
+    struct gyroscope_l3g4200d_data *mdata = data;
+
+    mdata->timer = NULL;
+    if (sol_i2c_busy(mdata->i2c)) {
+        gyro_timer_resched(mdata, GYRO_INIT_STEP_TIME, gyro_init);
+        return false;
+    }
+
+    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
+        SOL_WRN("Failed to set slave at address 0x%02x\n",
+            GYRO_ADDRESS);
+        return false;
+    }
+
+    mdata->i2c_pending = sol_i2c_read_register(mdata->i2c, GYRO_REG_WHO_AM_I,
+        mdata->common.buffer, 1, i2c_read_who_am_i_cb, mdata);
+    if (!mdata->i2c_pending)
+        SOL_WRN("Failed to read i2c register");
+
+    return false;
 }
 
 static int
@@ -358,18 +468,13 @@ gyroscope_l3g4200d_open(struct sol_flow_node *node,
         return -EIO;
     }
 
-    if (!sol_i2c_set_slave_address(mdata->i2c, GYRO_ADDRESS)) {
-        SOL_WRN("Failed to set slave at address 0x%02x\n",
-            GYRO_ADDRESS);
-        return -EIO;
-    }
-
     mdata->use_rad = opts->output_radians;
     mdata->init_sampling_cnt = 3;
-    mdata->ready = false;
     mdata->node = node;
 
-    return gyro_init(mdata);
+    gyro_init(mdata);
+
+    return 0;
 }
 
 static void
@@ -377,11 +482,13 @@ gyroscope_l3g4200d_close(struct sol_flow_node *node, void *data)
 {
     struct gyroscope_l3g4200d_data *mdata = data;
 
-    if (mdata->timer)
-        sol_timeout_del(mdata->timer);
-
+    if (mdata->i2c_pending)
+        sol_i2c_pending_cancel(mdata->i2c, mdata->i2c_pending);
     if (mdata->i2c)
         sol_i2c_close(mdata->i2c);
+
+    if (mdata->timer)
+        sol_timeout_del(mdata->timer);
 }
 
 static int
@@ -393,12 +500,13 @@ gyroscope_l3g4200d_tick(struct sol_flow_node *node,
 {
     struct gyroscope_l3g4200d_data *mdata = data;
 
-    if (!mdata->ready) {
+    if (!mdata->ready || mdata->pending_ticks) {
         mdata->pending_ticks++;
         return 0;
     }
 
-    return gyro_tick_do(mdata);
+    gyro_tick_do(mdata);
+    return 0;
 }
 
 #include "gyroscope-gen.c"

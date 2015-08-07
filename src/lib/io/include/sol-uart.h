@@ -98,6 +98,9 @@ struct sol_uart_config {
  * ttyACM0 in small OSes it should be a id number.
  * @param config The UART bus configuration
  * @return A new UART bus handle
+ *
+ * @note For now it only support one user of each port at time, 2 or more users
+ * on the same port will cause several concurrency errors.
  */
 struct sol_uart *sol_uart_open(const char *port_name, const struct sol_uart_config *config);
 

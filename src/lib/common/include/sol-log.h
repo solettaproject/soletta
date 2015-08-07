@@ -141,6 +141,13 @@ extern "C" {
         }                                   \
     } while (0)                             \
 
+#define SOL_EXP_CHECK_GOTO(exp, label)       \
+    do {                                     \
+        if (log_unlikely((exp))) {           \
+            SOL_WRN("(" # exp ") is false"); \
+            goto label;                      \
+        }                                    \
+    } while (0)                              \
 
 enum sol_log_level {
     SOL_LOG_LEVEL_CRITICAL = 0,
