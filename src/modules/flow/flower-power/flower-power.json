@@ -1,0 +1,172 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "flower-power",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "iot/cloud",
+      "description": "Fetch plants Flower-Power data via HTTP",
+      "in_ports": [
+       {
+         "data_type": "any",
+         "description": "Fetch plants data via HTTP. Username and password must be provided before otherwise an error packet will be sent.",
+         "methods": {
+           "process": "http_get_process"
+         },
+         "name": "GET",
+         "required": true
+       },
+       {
+         "data_type": "string",
+         "description": "Username to be used to get plants information. It must be previously registered at Parrot site or app.",
+         "methods": {
+           "process": "http_set_username"
+         },
+         "name": "USERNAME",
+         "required": true
+       },
+       {
+         "data_type": "string",
+         "description": "Password for username to be used to get plants information.",
+         "methods": {
+           "process": "http_set_password"
+         },
+         "name": "PASSWORD",
+         "required": true
+       }
+      ],
+      "methods": {
+        "open": "http_get_open",
+        "close": "http_get_close"
+      },
+      "name": "flower-power/http-get",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Parrot client id",
+            "name": "client_id"
+          },
+          {
+            "data_type": "string",
+            "description": "Parrot client secret",
+            "name": "client_secret"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "custom:PACKET_TYPE_FLOWER_POWER",
+          "description": "Packet with measures (sunlight, temperature, soil moisture and fertilizer) related to a plant.",
+          "name": "OUT",
+          "required": true
+        }
+      ],
+      "private_data_type": "http_get_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/flower-power/http-get.html"
+    },
+    {
+      "category": "iot/cloud",
+      "description": "Parse Flower-Power packets splitting into each measure.",
+      "in_ports": [
+       {
+          "data_type": "custom:PACKET_TYPE_FLOWER_POWER",
+          "description": "Packet with measures (sunlight, temperature, soil moisture and fertilizer) related to a plant.",
+         "methods": {
+           "process": "parse_packet"
+         },
+         "name": "IN",
+         "required": true
+       }
+      ],
+      "name": "flower-power/get-value",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Plant identification, also known as location identifier.",
+          "name": "ID"
+        },
+        {
+          "data_type": "float",
+          "description": "Plant's fertilizer level.",
+          "name": "FERTILIZER"
+        },
+        {
+          "data_type": "float",
+          "description": "Plant's sunlight level.",
+          "name": "LIGHT"
+        },
+        {
+          "data_type": "float",
+          "description": "Air temperature around the plant (in celsius).",
+          "name": "TEMPERATURE"
+        },
+        {
+          "data_type": "string",
+          "description": "Timestamp of sensors reading.",
+          "name": "TIMESTAMP"
+        },
+        {
+          "data_type": "float",
+          "description": "Plant's water lever (soil moisture).",
+          "name": "WATER"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/flower-power/get-value.html"
+    },
+    {
+      "category": "iot/cloud",
+      "description": "Filter Flower-Power packets, forwarding only packets that matches a specific plant ID.",
+      "in_ports": [
+       {
+          "data_type": "custom:PACKET_TYPE_FLOWER_POWER",
+          "description": "Packet with measures (sunlight, temperature, soil moisture and fertilizer) related to a plant.",
+         "methods": {
+           "process": "filter_packet"
+         },
+         "name": "IN",
+         "required": true
+       },
+       {
+         "data_type": "string",
+         "description": "Plant identification, also known as location identifier. Overwrite previous ID or ID set via options.",
+         "methods": {
+           "process": "filter_set_id"
+         },
+         "name": "ID"
+       }
+      ],
+      "methods": {
+        "open": "filter_open",
+        "close": "filter_close"
+      },
+      "name": "flower-power/filter-id",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Plant identifier.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "custom:PACKET_TYPE_FLOWER_POWER",
+          "description": "Packet with measures (sunlight, temperature, soil moisture and fertilizer) related to the plant specified by options ID.",
+          "name": "OUT",
+          "required": true
+        }
+      ],
+      "private_data_type": "filter_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/flower-power/filter-id.html"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+config FLOW_NODE_TYPE_FLOWER_POWER
+	tristate "Node type: flower-power"
+	depends on FLOW && HTTP_CLIENT
+	default y
+	help
+		Parrot Flower Power is a wireless plant monitor that measures
+		and analyses the four elements crucial to plant's health:
+		sunlight, temperature, soil moisture and fertilizer.
+
+		Parrot Flower Power has API that allows to fetch plant's data
+		via HTTP, using a web service, and API to talk directly to
+		sensors using Bluetooth low energy (BLE).
+
+		This option enables two node types:
+
+                  * flower-power/http-get, to query plant's data via http.
+                  * flower-power/filter-id, to filter http-get packets
+                    for specific plant's ids.
+                  * flower-power/get-value, to parse packets from other
+                    flower-power node types into values of each measured
+                    element.
+
+		To use these nodes, one must register and obtain an API key, that
+		should be used as node options. To fetch plant's data, users
+		must provide username and password, obtained also from Parrot
+		site.
