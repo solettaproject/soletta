@@ -257,7 +257,7 @@ resolver_conffile_resolve_by_id(const char *id,
     const struct sol_flow_node_type *tmp_type;
     const char **opts_strv = NULL;
     const char *type_name;
-    int r;
+    int r = 0;
 
     /* TODO: replace strv in sol_conffile interface with something
     * that holds line/column number information for each entry. */
@@ -278,12 +278,14 @@ resolver_conffile_resolve_by_id(const char *id,
         }
     }
 
-    r = sol_flow_node_named_options_init_from_strv(named_opts, tmp_type, opts_strv);
-    if (r < 0)
-        goto end;
+    if (opts_strv) {
+        r = sol_flow_node_named_options_init_from_strv(named_opts, tmp_type, opts_strv);
+        if (r < 0)
+            goto end;
+    } else
+        *named_opts = (struct sol_flow_node_named_options){};
 
     *node_type = tmp_type;
-
 end:
     return r;
 }
