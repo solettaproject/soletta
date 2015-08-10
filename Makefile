@@ -22,7 +22,13 @@ include $(top_srcdir)tools/build/Makefile.vars
 include $(top_srcdir)tools/build/Makefile.rules
 
 # kconfig interface rules
+ifeq (help, $(filter help,$(MAKECMDGOALS)))
+help: soletta_help
+include $(top_srcdir)tools/build/Makefile.targets
+include $(top_srcdir)tools/build/Makefile.kconfig-proxy
+else
 include $(top_srcdir)tools/build/Makefile.kconfig
+endif
 
 ifeq (,$(filter $(dep-avoid-targets),$(MAKECMDGOALS)))
 -include ${all-objs:.o=.o.dep}

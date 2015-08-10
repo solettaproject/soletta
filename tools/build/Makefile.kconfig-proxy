@@ -1,0 +1,36 @@
+config:
+	$(Q)true
+nconfig:
+	$(Q)true
+menuconfig:
+	$(Q)true
+xconfig:
+	$(Q)true
+gconfig:
+	$(Q)true
+oldconfig:
+	$(Q)true
+localmodconfig:
+	$(Q)true
+localyesconfig:
+	$(Q)true
+silentoldconfig:
+	$(Q)true
+defconfig:
+	$(Q)true
+savedefconfig:
+	$(Q)true
+allnoconfig:
+	$(Q)true
+allyesconfig:
+	$(Q)true
+allmodconfig:
+	$(Q)true
+alldefconfig:
+	$(Q)true
+randconfig:
+	$(Q)true
+listnewconfig:
+	$(Q)true
+olddefconfig:
+	$(Q)true
