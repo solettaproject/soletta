@@ -270,12 +270,14 @@ resolver_conffile_resolve_by_id(const char *id,
         }
     }
 
-    r = sol_flow_node_named_options_init_from_strv(named_opts, tmp_type, opts_strv);
-    if (r < 0)
-        goto end;
+    if (opts_strv) {
+        r = sol_flow_node_named_options_init_from_strv(named_opts, tmp_type, opts_strv);
+        if (r < 0)
+            goto end;
+    }
 
     *node_type = tmp_type;
-
+    r = 0;
 end:
     return r;
 }
