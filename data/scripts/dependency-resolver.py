@@ -250,6 +250,7 @@ def handle_python_check(args, conf, context):
         context.add_append_makefile_var("NOT_FOUND", req_label, True)
 
     context.add_cond_makefile_var("HAVE_PYTHON_%s" % dep.upper(), "y" if success else "n")
+    os.unlink(f.name)
 
     return success
 

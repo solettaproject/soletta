@@ -150,3 +150,53 @@ cheat-sheet:
 endif
 
 PHONY += cheat-sheet
+
+soletta_help:
+	$(Q)echo  'VARIABLES:'
+	$(Q)echo  '  TOOLCHAIN_PREFIX  - The tool chain system identification prefix (when cross compiling) i.e: i586-none-linux-'
+	$(Q)echo  '  TARGETAR          - Target systems AR path, default: $(TOOLCHAIN_PREFIX)ar'
+	$(Q)echo  '  TARGETCC          - Target systems CC path, default: $(TOOLCHAIN_PREFIX)gcc'
+	$(Q)echo  '  HOSTCC            - Host systems CC path (used by build time tools like kconfig), default: gcc'
+	$(Q)echo  '  HOSTAR            - Host systems AR path (use by build time tools like kconfig), default: ar'
+	$(Q)echo  '  BUILDDIR          - Specifies where to build binary objects, libraries etc, default: {top_srcdir}/build/'
+	$(Q)echo  '  DESTDIR           - Similarly to other build systems DESTDIR determines where to install soletta,'
+	$(Q)echo  '                      the installation will be targeted to {DESTDIR}/{PREFIX}, the prefix variable is defined'
+	$(Q)echo  '                      with the kconfig interface (i.e menuconfig, nconfig etc).'
+
+	$(Q)echo  'GENERAL TARGETS:'
+	$(Q)echo  '  reconf             - Re-runs the dependency-resolver script to find local dependencies'
+	$(Q)echo  '  distclean          - Removes configurations and built objects (.o, .so etc)'
+	$(Q)echo  '  clean              - Removes built objects (.o, .so etc) but preserves configuration files'
+	$(Q)echo  '  install            - Install soletta to {DESTDIR}/{PREFIX} - see VARIABLES section'
+	$(Q)echo  '  check              - Runs test suite'
+	$(Q)echo  '  check-valgrind     - Runs test suite - with valgrind'
+	$(Q)echo  '  check-fbp          - Runs fbp (Flow Based Programming) tests'
+	$(Q)echo  '  check-fbp-valgrind - Runs fbp (Flow Based Programming) tests - with valgrind'
+	$(Q)echo  '  coverage           - Builds soletta with gcov and generates the coverage report'
+	$(Q)echo  '  samples            - Builds the samples directory'
+	$(Q)echo  '  doxygen            - Generates doxygen documentation'
+	$(Q)echo  '  cheat-sheet        - Generates fbp documentations cheat sheet'
+	$(Q)echo  '  doc                - Runs both doxygen and cheat-sheet targets'
+	$(Q)echo  '  '
+	$(Q)echo  'CONFIGURATION TARGETS:'
+	$(Q)echo  '  config          - Update current config utilising a line-oriented program'
+	$(Q)echo  '  nconfig         - Update current config utilising a ncurses menu based program'
+	$(Q)echo  '  menuconfig      - Update current config utilising a menu based program'
+	$(Q)echo  '  xconfig         - Update current config utilising a QT based front-end'
+	$(Q)echo  '  gconfig         - Update current config utilising a GTK based front-end'
+	$(Q)echo  '  oldconfig       - Update current config utilising a provided .config as base'
+	$(Q)echo  '  localmodconfig  - Update current config disabling modules not loaded'
+	$(Q)echo  '  localyesconfig  - Update current config converting local mods to core'
+	$(Q)echo  '  silentoldconfig - Same as oldconfig, but quietly, additionally update deps'
+	$(Q)echo  '  defconfig       - New config with default from ARCH supplied defconfig'
+	$(Q)echo  '  savedefconfig   - Save current config as ./defconfig (minimal config)'
+	$(Q)echo  '  allnoconfig     - New config where all options are answered with no'
+	$(Q)echo  '  allyesconfig    - New config where all options are accepted with yes'
+	$(Q)echo  '  allmodconfig    - New config selecting modules when possible'
+	$(Q)echo  '  alldefconfig    - New config with all symbols set to default'
+	$(Q)echo  '  randconfig      - New config with random answer to all options'
+	$(Q)echo  '  listnewconfig   - List new options'
+	$(Q)echo  '  olddefconfig    - Same as silentoldconfig but sets new symbols to their default value'
+
+
+PHONY += soletta_help
