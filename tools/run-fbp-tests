@@ -69,7 +69,7 @@ def collect_tests(tests):
             result.append(t)
     return result
 
-def get_expected(t):
+def get_expected(t, args):
     code = 0
     out = None
     skip = None
@@ -87,6 +87,12 @@ def get_expected(t):
 
         if cmd == "TEST-EXPECTS-ERROR":
             code = 1
+        elif cmd == "TEST-SKIP-VALGRIND":
+            if args.valgrind:
+                if len(splitted) > 2:
+                    skip = splitted[2]
+                else:
+                    skip = ""
         elif cmd == "TEST-SKIP":
             if len(splitted) > 2:
                 skip = splitted[2]
@@ -152,7 +158,7 @@ if __name__ == "__main__":
         dir = os.path.dirname(t)
         file = os.path.basename(t)
 
-        expected_out, expected_code, skip, is_regex = get_expected(t)
+        expected_out, expected_code, skip, is_regex = get_expected(t, args)
         if skip is not None:
             print("SKIPPED running %s: %s" % (t, skip))
             skipped += 1
