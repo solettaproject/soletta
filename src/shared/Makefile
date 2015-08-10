@@ -1,8 +1,18 @@
-obj-y += libshared.mod
+obj-y += libshared.mod util.mod
 
 obj-libshared-y := \
     sol-monitors.o \
     sol-util.o
+
+obj-$(UTIL) += \
+    util.mod
+
+obj-util-$(PLATFORM_LINUX) += \
+    sol-util-impl-linux.o
+obj-util-$(PLATFORM_RIOTOS) += \
+    sol-util-impl-riot.o
+obj-util-$(PLATFORM_CONTIKI) += \
+    sol-util-impl-contiki.o
 
 obj-libshared-$(FLOW) += \
     sol-fbp-graph.o \
