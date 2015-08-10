@@ -786,6 +786,33 @@ sol_mainloop_impl_fd_del(void *handle)
     return true;
 }
 
+bool
+sol_mainloop_impl_fd_set_flags(void *handle, unsigned int flags)
+{
+    struct sol_fd_posix *fd_handle = handle;
+
+    SOL_NULL_CHECK(handle, false);
+
+    sol_mainloop_impl_lock();
+
+    fd_handle->flags = flags;
+
+    sol_mainloop_common_main_thread_check_notify();
+    sol_mainloop_impl_unlock();
+
+    return true;
+}
+
+unsigned int
+sol_mainloop_impl_fd_get_flags(const void *handle)
+{
+    const struct sol_fd_posix *fd_handle = handle;
+
+    SOL_NULL_CHECK(handle, 0);
+
+    return fd_handle->flags;
+}
+
 void *
 sol_mainloop_impl_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data)
 {
