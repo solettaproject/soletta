@@ -24,6 +24,10 @@ include $(top_srcdir)tools/build/Makefile.rules
 # kconfig interface rules
 include $(top_srcdir)tools/build/Makefile.kconfig
 
+ifeq (,$(filter $(dep-avoid-targets),$(MAKECMDGOALS)))
+-include ${all-objs:.o=.o.dep}
+endif
+
 ifneq (,$(NOT_FOUND))
 warning:
 	$(Q)echo -e "The following (required) dependencies were not met:\n"
