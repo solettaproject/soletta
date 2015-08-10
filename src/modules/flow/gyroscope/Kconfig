@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_GYROSCOPE
 	tristate "Node type: gyroscope"
-	depends on PLATFORM_LINUX && USE_I2C
+	depends on USE_I2C
 	default m

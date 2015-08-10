@@ -1,3 +1,4 @@
 config FLOW_NODE_TYPE_MAX31855
 	tristate "Node type: max31855"
+	depends on USE_SPI
 	default m
