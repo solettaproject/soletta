@@ -17,6 +17,26 @@ config ENABLE_DYNAMIC_MODULES
 	bool
 	default n
 
+config CC_SANITIZE
+	bool "Compiler sanitize"
+	depends on HAVE_SANITIZE_UNDEFINED || HAVE_SANITIZE_ADDRESS
+	default y
+
+choice CC_SANITIZE_TYPE
+	prompt "Compiler sanitize type"
+	depends on CC_SANITIZE
+	default CC_SANITIZE_UNDEFINED if HAVE_SANITIZE_UNDEFINED
+	default CC_SANITIZE_ADDRESS if HAVE_SANITIZE_ADDRESS
+
+config CC_SANITIZE_UNDEFINED
+	bool "undefined"
+	depends on HAVE_SANITIZE_UNDEFINED
+
+config CC_SANITIZE_ADDRESS
+	bool "address"
+	depends on HAVE_SANITIZE_ADDRESS
+endchoice
+
 config SHARED_LIBRARY
     bool "Build shared library"
     default y

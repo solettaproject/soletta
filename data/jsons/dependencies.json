@@ -353,6 +353,20 @@
 	    "type": "pkg-config",
 	    "pkgname": "libcurl",
 	    "atleast-version": "7.32.0"
+	},
+	{
+	    "dependency": "sanitize_undefined",
+	    "type": "ccode",
+            "cflags": {
+                "value": "-fsanitize=undefined"
+            }
+	},
+	{
+	    "dependency": "sanitize_address",
+	    "type": "ccode",
+            "cflags": {
+                "value": "-fsanitize=address"
+            }
 	}
     ]
 }
