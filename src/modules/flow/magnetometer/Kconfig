@@ -1,3 +1,4 @@
 config FLOW_NODE_TYPE_MAGNETOMETER
 	tristate "Node type: magnetometer"
+	depends on USE_I2C
 	default m
