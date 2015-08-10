@@ -9,3 +9,15 @@
    fun:g_unix_signal_add_full
    fun:sol_mainloop_impl_init
 }
+
+{
+   <curl_misbehaving>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   obj:/usr/lib/libcurl.so.4.3.0
+   fun:sol_http_client_init
+   fun:sol_comms_init
+   fun:sol_init
+   fun:main
+}
