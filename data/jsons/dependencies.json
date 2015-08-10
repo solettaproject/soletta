@@ -353,6 +353,13 @@
 	    "type": "pkg-config",
 	    "pkgname": "libcurl",
 	    "atleast-version": "7.32.0"
+	},
+	{
+	    "dependency": "flto",
+	    "type": "ccode",
+            "cflags": {
+                "value": "-flto -ffat-lto-objects"
+            }
 	}
     ]
 }
