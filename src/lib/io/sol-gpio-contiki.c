@@ -101,7 +101,7 @@ sol_gpio_close(struct sol_gpio *gpio)
     SOL_NULL_CHECK(gpio);
     if (gpio->irq.cb)
         sol_mainloop_contiki_event_handler_del(&sensors_event,
-            gpio->button_sensorevent_handler_cb, gpio);
+            gpio->button_sensor, event_handler_cb, gpio);
     free(gpio);
 }
 
