@@ -49,6 +49,20 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+struct timespec
+sol_util_timespec_get_current(void)
+{
+    struct timespec t;
+
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return t;
+}
+int
+sol_util_timespec_get_realtime(struct timespec *t)
+{
+    return clock_gettime(CLOCK_REALTIME, t);
+}
+
 int
 sol_util_vwrite_file(const char *path, const char *fmt, va_list args)
 {
