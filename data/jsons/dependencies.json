@@ -382,6 +382,13 @@
             "ldflags": {
                 "value": "-lubsan"
             }
+	},
+	{
+	    "dependency": "flto",
+	    "type": "ccode",
+            "cflags": {
+                "value": "-flto -ffat-lto-objects"
+            }
 	}
     ]
 }
