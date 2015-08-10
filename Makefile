@@ -22,11 +22,18 @@ include $(top_srcdir)tools/build/Makefile.vars
 include $(top_srcdir)tools/build/Makefile.rules
 
 # kconfig interface rules
+ifeq (help, $(filter help,$(MAKECMDGOALS)))
+help: soletta_help
+include $(top_srcdir)tools/build/Makefile.kconfig-proxy
+else
 include $(top_srcdir)tools/build/Makefile.kconfig
+endif
 
 ifeq (,$(filter $(dep-avoid-targets),$(MAKECMDGOALS)))
 -include ${all-objs:.o=.o.dep}
 endif
+
+include $(top_srcdir)tools/build/Makefile.targets
 
 ifneq (,$(NOT_FOUND))
 warning:
@@ -45,7 +52,6 @@ warning: $(KCONFIG_GEN)
 	$(Q)false
 $(warning-targets)
 else
-include $(top_srcdir)tools/build/Makefile.targets
 all: $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
 endif # HAVE_KCONFIG_CONFIG
 endif # NOT_FOUND
