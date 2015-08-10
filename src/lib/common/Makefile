@@ -67,6 +67,8 @@ obj-thread-$(WORKER_THREAD) := \
     sol-worker-thread.o
 obj-thread-$(MAINLOOP_GLIB) += \
     sol-worker-thread-impl-glib.o
+obj-thread-$(MAINLOOP_GLIB)-extra-cflags += $(GLIB_CFLAGS)
+obj-thread-$(MAINLOOP_GLIB)-extra-ldflags += $(GLIB_LDFLAGS)
 obj-thread-$(MAINLOOP_POSIX) += \
     sol-worker-thread-impl-posix.o
 obj-core-$(PTHREAD)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
