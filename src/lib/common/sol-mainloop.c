@@ -264,6 +264,20 @@ sol_fd_del(struct sol_fd *handle)
     SOL_NULL_CHECK(handle, false);
     return sol_mainloop_impl_fd_del(handle);
 }
+
+SOL_API bool
+sol_fd_set_flags(struct sol_fd *handle, unsigned int flags)
+{
+    SOL_NULL_CHECK(handle, false);
+    return sol_mainloop_impl_fd_set_flags(handle, flags);
+}
+
+SOL_API unsigned int
+sol_fd_get_flags(const struct sol_fd *handle)
+{
+    SOL_NULL_CHECK(handle, false);
+    return sol_mainloop_impl_fd_get_flags(handle);
+}
 #endif
 
 #ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED

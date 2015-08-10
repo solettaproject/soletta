@@ -130,15 +130,20 @@ sol_mainloop_impl_idle_del(void *handle)
     return g_source_remove((uintptr_t)handle);
 }
 
-struct fd_wrap_data {
+struct sol_fd_glib {
     bool (*cb)(void *data, int fd, unsigned int active_flags);
     const void *data;
+    int fd;
+    unsigned int flags;
+    gint id;
+
+    int refcnt;
 };
 
 static gboolean
 on_fd(gint fd, GIOCondition cond, gpointer data)
 {
-    struct fd_wrap_data *wrap_data = data;
+    struct sol_fd_glib *fd_handle = data;
     unsigned int sol_flags = 0;
 
     if (cond & G_IO_IN) sol_flags |= SOL_FD_FLAGS_IN;
@@ -148,19 +153,36 @@ on_fd(gint fd, GIOCondition cond, gpointer data)
     if (cond & G_IO_HUP) sol_flags |= SOL_FD_FLAGS_HUP;
     if (cond & G_IO_NVAL) sol_flags |= SOL_FD_FLAGS_NVAL;
 
-    return wrap_data->cb((void *)wrap_data->data, fd, sol_flags);
+    return fd_handle->cb((void *)fd_handle->data, fd, sol_flags);
+}
+
+static void
+unref_fd(void *data)
+{
+    struct sol_fd_glib *fd_handle = data;
+
+    SOL_NULL_CHECK(fd_handle);
+
+    fd_handle->refcnt--;
+
+    if (fd_handle->refcnt <= 0)
+        free(fd_handle);
 }
 
 void *
 sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data)
 {
     GIOCondition glib_flags = 0;
-    struct fd_wrap_data *wrap_data = malloc(sizeof(*wrap_data));
+    struct sol_fd_glib *fd_handle = malloc(sizeof(*fd_handle));
 
-    SOL_NULL_CHECK(wrap_data, NULL);
+    SOL_NULL_CHECK(fd_handle, NULL);
 
-    wrap_data->cb = cb;
-    wrap_data->data = data;
+    fd_handle->refcnt = 1;
+
+    fd_handle->cb = cb;
+    fd_handle->data = data;
+    fd_handle->fd = fd;
+    fd_handle->flags = flags;
 
     if (flags & SOL_FD_FLAGS_IN) glib_flags |= G_IO_IN;
     if (flags & SOL_FD_FLAGS_OUT) glib_flags |= G_IO_OUT;
@@ -169,14 +191,63 @@ sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int 
     if (flags & SOL_FD_FLAGS_HUP) glib_flags |= G_IO_HUP;
     if (flags & SOL_FD_FLAGS_NVAL) glib_flags |= G_IO_NVAL;
 
-    return (void *)(long)g_unix_fd_add_full(0, fd, glib_flags, on_fd, wrap_data,
-        free);
+    fd_handle->id = g_unix_fd_add_full(0, fd, glib_flags, on_fd, fd_handle, unref_fd);
+
+    return fd_handle;
 }
 
 bool
 sol_mainloop_impl_fd_del(void *handle)
 {
-    return g_source_remove((uintptr_t)handle);
+    struct sol_fd_glib *fd_handle = handle;
+
+    SOL_NULL_CHECK(fd_handle, false);
+
+    return g_source_remove(fd_handle->id);
+}
+
+bool
+sol_mainloop_impl_fd_set_flags(void *handle, unsigned int flags)
+{
+    struct sol_fd_glib *fd_handle = handle;
+    GIOCondition glib_flags = 0;
+
+    SOL_NULL_CHECK(fd_handle, false);
+
+    if (fd_handle->flags == flags)
+        return true;
+
+    /* remove the watch but keep the data */
+    fd_handle->refcnt++;
+    if (!g_source_remove(fd_handle->id))
+        return false;
+
+    if (flags & SOL_FD_FLAGS_IN) glib_flags |= G_IO_IN;
+    if (flags & SOL_FD_FLAGS_OUT) glib_flags |= G_IO_OUT;
+    if (flags & SOL_FD_FLAGS_PRI) glib_flags |= G_IO_PRI;
+    if (flags & SOL_FD_FLAGS_ERR) glib_flags |= G_IO_ERR;
+    if (flags & SOL_FD_FLAGS_HUP) glib_flags |= G_IO_HUP;
+    if (flags & SOL_FD_FLAGS_NVAL) glib_flags |= G_IO_NVAL;
+
+    fd_handle->flags = flags;
+    fd_handle->id = g_unix_fd_add_full(0, fd_handle->fd, glib_flags, on_fd, fd_handle, unref_fd);
+    if (fd_handle->id <= 0) {
+        SOL_WRN("Error setting new flags");
+        unref_fd(fd_handle);
+        return false;
+    }
+
+    return true;
+}
+
+unsigned int
+sol_mainloop_impl_fd_get_flags(const void *handle)
+{
+    const struct sol_fd_glib *fd_handle = handle;
+
+    SOL_NULL_CHECK(fd_handle, 0);
+
+    return fd_handle->flags;
 }
 
 struct child_wrap_data {
