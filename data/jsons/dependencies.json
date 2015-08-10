@@ -381,6 +381,13 @@
             "ldflags": {
                 "value": "-fsanitize=address"
             }
+	},
+	{
+	    "dependency": "flto",
+	    "type": "ccode",
+            "cflags": {
+                "value": "-flto -ffat-lto-objects"
+            }
 	}
     ]
 }
