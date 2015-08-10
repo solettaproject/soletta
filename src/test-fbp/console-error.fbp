@@ -33,3 +33,5 @@ _(constant/int:value=1) OUT -> INTERVAL _(timer) OUT -> QUIT _(app/quit)
 
 ## TEST-OUTPUT
 # c #02 (error) - Could not load "file_that_doesnt_exists": No such file or directory
+
+## TEST-SKIP-VALGRIND
