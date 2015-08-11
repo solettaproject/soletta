@@ -39,3 +39,6 @@ config FEATURE_HW_I2C
 
 config FEATURE_FLOW
     bool
+
+config FEATURE_CC_SANITIZE
+    bool

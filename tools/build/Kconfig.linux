@@ -14,3 +14,4 @@ config LINUX
     select FEATURE_COAP
     select FEATURE_HTTP_CLIENT if HAVE_LIBCURL
     select FEATURE_FLOW
+    select FEATURE_CC_SANITIZE
