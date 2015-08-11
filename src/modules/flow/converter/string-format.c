@@ -48,8 +48,8 @@
 
 #include "string-format.h"
 
-#define MIN(x, y) (((x) > (y)) ? (y) : (x))
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define SF_MIN(x, y) (((x) > (y)) ? (y) : (x))
+#define SF_MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 struct format_spec_data {
     ssize_t width;
@@ -632,9 +632,9 @@ insert_thousands_grouping(
     }
 
     while ((l = group_generator_next(&groupgen)) > 0) {
-        l = MIN(l, MAX(MAX(remaining, min_width), 1));
-        n_zeros = MAX(0, l - remaining);
-        n_chars = MAX(0, MIN(remaining, l));
+        l = SF_MIN(l, SF_MAX(SF_MAX(remaining, min_width), 1));
+        n_zeros = SF_MAX(0, l - remaining);
+        n_chars = SF_MAX(0, SF_MIN(remaining, l));
 
         /* Use n_zero zero's and n_chars chars */
         /* Count only, don't do anything. */
@@ -661,9 +661,9 @@ insert_thousands_grouping(
     if (!loop_broken) {
         /* We left the loop without using a break statement. */
 
-        l = MAX(MAX(remaining, min_width), 1);
-        n_zeros = MAX(0, l - remaining);
-        n_chars = MAX(0, MIN(remaining, l));
+        l = SF_MAX(SF_MAX(remaining, min_width), 1);
+        n_zeros = SF_MAX(0, l - remaining);
+        n_chars = SF_MAX(0, SF_MIN(remaining, l));
 
         /* Use n_zero zero's and n_chars chars */
         count += (use_separator ? thousands_sep_len : 0) + n_zeros + n_chars;
