@@ -102,7 +102,7 @@ source "src/samples/common/Kconfig"
 
 config FLOW_SAMPLES
 	bool "Flow samples"
-	depends on FLOW
+	depends on FLOW_SUPPORT
 	default y
 
 config FLOW_FBP_GENERATOR_SAMPLES
