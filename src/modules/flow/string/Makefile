@@ -1,8 +1,12 @@
 obj-$(FLOW_NODE_TYPE_STRING) += string.mod
 obj-string-$(FLOW_NODE_TYPE_STRING) := string.json
 
+ifdef LINUX
 ifdef HAVE_ICU
 obj-string-$(FLOW_NODE_TYPE_STRING) += string-icu.o
+else
+obj-string-$(FLOW_NODE_TYPE_STRING) += string-ascii.o
+endif
 else
 obj-string-$(FLOW_NODE_TYPE_STRING) += string-ascii.o
 endif
