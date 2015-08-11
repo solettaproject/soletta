@@ -41,6 +41,7 @@
 
 #include "sol-util.h"
 #include "sol-log.h"
+#include "sol-missing.h"
 #include "sol-str-slice.h"
 
 #if defined(HAVE_NEWLOCALE) && defined(HAVE_STRTOD_L)
