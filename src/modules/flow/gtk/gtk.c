@@ -39,6 +39,7 @@
 
 SOL_LOG_INTERNAL_DECLARE(_gtk_log_domain, "flow-gtk");
 
+#include "sol-glib-integration.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-vector.h"
@@ -67,6 +68,9 @@ static void
 init(void)
 {
     SOL_LOG_INTERNAL_INIT_ONCE;
+
+    if (!sol_glib_integration())
+        return;
 
     gtk_state = &_gtk_state;
     gtk_state->window = window_new();
