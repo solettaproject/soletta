@@ -386,8 +386,9 @@ append_node_options(
     }
 
     if (!failed) {
-        memcpy(result.members, named_opts->members,
-            named_opts->count * sizeof(struct sol_flow_node_named_options_member));
+        if (named_opts->count)
+            memcpy(result.members, named_opts->members,
+                named_opts->count * sizeof(struct sol_flow_node_named_options_member));
         *named_opts = result;
         r = 0;
     } else {
