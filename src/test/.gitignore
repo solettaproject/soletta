@@ -27,3 +27,4 @@
 /test-vector
 /test-mainloop-threads
 /test-mainloop-threads-sol-run
+/test-mainloop-glib-integration

@@ -259,6 +259,11 @@ for in-depth information, the summary of environment variables to use:
 
 	make CFLAGS="-O0 -ggdb3" # disable optimizations
 
+Users of `GMainLoop` (ie: gtk, libsoup) should use the function
+`sol_glib_integration()` from the header file `sol-glib-integration.h`
+to make sure they will work with Soletta, regardless of how libsoletta
+was compiled.
+
 #### POSIX (kconfig: Core library -> Mainloop -> posix)
 
 If GLib is too big then you can use a simpler implementation based

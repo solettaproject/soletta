@@ -84,6 +84,9 @@ headers-y := \
     include/sol-types.h \
     sol-common-buildopts.h.in
 
+headers-$(PLATFORM_LINUX) += \
+    include/sol-glib-integration.h
+
 headers-$(USE_PIN_MUX) += \
     include/sol-pin-mux-modules.h
 

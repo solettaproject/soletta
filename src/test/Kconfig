@@ -60,6 +60,11 @@ config TEST_MAINLOOP_THREADS_SOL_RUN
 	depends on PTHREAD && MAINLOOP_POSIX
 	default y
 
+config TEST_MAINLOOP_GLIB_INTEGRATION
+	bool "mainloop glib integration"
+	depends on LINUX && HAVE_GLIB
+	default y
+
 config TEST_MONITORS
 	bool "monitors"
 	default y
