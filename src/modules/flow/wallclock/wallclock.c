@@ -303,12 +303,6 @@ wallclock_second_open(struct sol_flow_node *node,
     return wallclock_open(node, data, options);
 }
 
-static void
-wallclock_second_close(struct sol_flow_node *node, void *data)
-{
-    return wallclock_close(node, data);
-}
-
 static int
 wallclock_minute_open(struct sol_flow_node *node,
     void *data,
@@ -318,12 +312,6 @@ wallclock_minute_open(struct sol_flow_node *node,
 
     mdata->type = TIMEOUT_MINUTE;
     return wallclock_open(node, data, options);
-}
-
-static void
-wallclock_minute_close(struct sol_flow_node *node, void *data)
-{
-    return wallclock_close(node, data);
 }
 
 static int
@@ -337,12 +325,6 @@ wallclock_hour_open(struct sol_flow_node *node,
     return wallclock_open(node, data, options);
 }
 
-static void
-wallclock_hour_close(struct sol_flow_node *node, void *data)
-{
-    return wallclock_close(node, data);
-}
-
 static int
 wallclock_weekday_open(struct sol_flow_node *node,
     void *data,
@@ -354,12 +336,6 @@ wallclock_weekday_open(struct sol_flow_node *node,
     return wallclock_open(node, data, options);
 }
 
-static void
-wallclock_weekday_close(struct sol_flow_node *node, void *data)
-{
-    return wallclock_close(node, data);
-}
-
 static int
 wallclock_monthday_open(struct sol_flow_node *node,
     void *data,
@@ -369,12 +345,6 @@ wallclock_monthday_open(struct sol_flow_node *node,
 
     mdata->type = TIMEOUT_MONTHDAY;
     return wallclock_open(node, data, options);
-}
-
-static void
-wallclock_monthday_close(struct sol_flow_node *node, void *data)
-{
-    return wallclock_close(node, data);
 }
 
 #include "wallclock-gen.c"
