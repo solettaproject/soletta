@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <inttypes.h>
 #include <unistd.h>
 
 #include <sol-log.h>
@@ -916,7 +917,7 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     }
 
     SOL_DBG("channel [%s] added. scale: %lf - offset: %d - storagebits: %d"
-        " - bits: %d - mask: %ld", channel->name, channel->scale,
+        " - bits: %d - mask: %" PRIu64, channel->name, channel->scale,
         channel->offset, channel->storagebits, channel->bits, channel->mask);
 
     return channel;
