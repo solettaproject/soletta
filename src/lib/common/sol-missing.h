@@ -120,6 +120,10 @@ memmem(const void *haystack, size_t haystacklen, const void *needle, size_t need
 #define I2C_RDRW_IOCTL_MAX_MSGS 42
 #endif
 
+#ifndef SSIZE_MAX
+#define SSIZE_MAX LONG_MAX
+#endif
+
 #ifdef __cplusplus
 }
 #endif
