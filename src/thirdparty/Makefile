@@ -6,4 +6,5 @@ obj-javascript-$(JAVASCRIPT) := \
 obj-javascript-$(JAVASCRIPT)-extra-cflags := \
 	-Wno-float-equal \
 	-Wno-format-nonliteral \
-	-Wno-suggest-attribute=noreturn
+	-Wno-suggest-attribute=noreturn \
+	-fno-sanitize=all
