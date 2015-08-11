@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_GTK
 	tristate "Node type: gtk"
-	depends on HAVE_GTK && HAVE_GLIB
+	depends on LINUX && HAVE_GTK && HAVE_GLIB
 	default m
