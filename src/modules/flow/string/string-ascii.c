@@ -30,12 +30,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-//FIXME: change to build system warning, not compile time
-
-#ifdef LINUX
-#warning "You're building the string nodes module without i18n support -- some nodes will only act properly on pure ASCII input, not the intended utf-8 for Soletta. Please re-configure after you have ICU development packages installed to get the intended string nodes behavior."
-#endif
-
 #include <ctype.h>
 #include <errno.h>
 

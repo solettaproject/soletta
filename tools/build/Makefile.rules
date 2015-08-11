@@ -167,14 +167,23 @@ parse-sample = \
 	$(eval $(1)-deps        := $(subst .mod,,$(sample-$(1)-y-deps))) \
 	$(eval samples-out      += $(sample-$(1)-out)) \
 
+parse-warnings = \
+	$(if $(2), \
+		$(eval all-warnings        += $(1)bs-warnings) \
+		$(eval $(1)bs-warnings-msg += $(2)) \
+	) \
+
 clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) \
-		$(eval test-y:=) $(eval test-internal-y:=) $(eval sample-y:=) $(eval headers-m:=)
+		$(eval test-y:=) $(eval test-internal-y:=) $(eval sample-y:=) $(eval headers-m:=) \
+		$(eval warning-msg:=) $(eval warning-msg-y:=) $(eval warning-msg-m:=)
 
 inc-subdirs = \
 	$(foreach subdir,$(SUBDIRS), $(clean-control) \
 		$(eval -include $(subdir)Makefile) \
+		$(eval warnings             := $(warning-msg) $(warning-msg-y) $(warning-msg-m)) \
 		$(call extra-headers,$(addprefix $(subdir),$(headers-y))) \
 		$(call extra-headers,$(addprefix $(subdir),$(headers-m))) \
+		$(call parse-warnings,$(subdir),$(warnings)) \
 		$(eval curr-builtins        := $(subst .mod,,$(filter %.mod,$(obj-y)))) \
 		$(eval builtins             += $(curr-builtins)) \
 		$(foreach buin,$(curr-builtins), \
@@ -219,6 +228,23 @@ $(eval $(call inc-subdirs))
 $(eval $(call extra-bins))
 
 PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin)
+
+define make-warning
+$(1):
+	$(Q)echo -e "     [!]   "$($(1)-msg)
+
+all: $(1)
+PHONY += $(1)
+endef
+$(foreach wrn,$(all-warnings),$(eval $(call make-warning,$(wrn))))
+
+define make-warning-header
+$(all-warnings): warning-header
+warning-header: default_target
+	$(Q)echo -e "*** ATTENTION:"
+PHONY += warning-header
+endef
+$(if $(all-warnings),$(eval $(call make-warning-header,$(wrn))))
 
 define make-extra-header
 $($(1)-dest): $(1)
