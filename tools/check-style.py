@@ -95,7 +95,7 @@ def check_commits(args):
     print("Working directory is clean, checking commit changes for (%s)" % args.target_refspec)
     return run_command(cmd_check % args.target_refspec)
 
-def run_check(args, uncrustify, cfg_file):
+def run_check(args, uncrustify, cfg_file, replace):
     diff_list = check_dirty(args)
     if not diff_list:
         diff_list = check_commits(args)
@@ -104,10 +104,10 @@ def run_check(args, uncrustify, cfg_file):
         print("No source files (*.[ch]) changed for: %s" % args.target_refspec)
         return True
 
-    cmd = "%s -c %s -l C %s" % \
-          (uncrustify, cfg_file, diff_list.replace("\n", " "))
+    cmd = "%s -c %s %s -l C %s" % \
+          (uncrustify, cfg_file, replace, diff_list.replace("\n", " "))
     output = run_command(cmd)
-    if not output:
+    if (not output) or replace:
         return False
 
     passed = True
@@ -151,6 +151,9 @@ if __name__ == "__main__":
     parser.add_argument("--color", metavar="WHEN", type=str, \
                         help="Use colors. WHEN can be always, auto and never.")
     parser.set_defaults(color="auto")
+    parser.add_argument("--replace", action='store_true', default=False, \
+                        dest='replace', \
+                        help="Replace files, no backup. Use at your own risk.")
 
     args = parser.parse_args()
     if args.base_commit:
@@ -173,5 +176,9 @@ if __name__ == "__main__":
     if not args.cfg_file:
         args.cfg_file = "data/schemas/uncrustify.schema"
 
-    if not run_check(args, uncrustify, args.cfg_file):
+    replace = ""
+    if args.replace:
+        replace = "--no-backup"
+
+    if not run_check(args, uncrustify, args.cfg_file, replace):
         exit(1)
