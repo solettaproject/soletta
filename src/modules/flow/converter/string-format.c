@@ -368,7 +368,7 @@ static int
 int32_to_char(int32_t input,
     char **p_output)
 {
-    int r = asprintf(p_output, "%c", input);
+    int r = asprintf(p_output, "%c", (int)input);
 
     SOL_INT_CHECK(r, < 0, -EINVAL);
 
@@ -453,10 +453,10 @@ int32_to_binary_string(int32_t input,
 
     switch (base) {
     case 16:
-        FORMAT_EVAL("%s%s%x", input);
+        FORMAT_EVAL("%s%s%"PRIx32, input);
         break;
     case 8:
-        FORMAT_EVAL("%s%s%o", input);
+        FORMAT_EVAL("%s%s%"PRIo32, input);
         break;
     case 2:
         to_bin = byte_to_binary(input);

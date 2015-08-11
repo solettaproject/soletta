@@ -791,27 +791,27 @@ wave_generator_trapezoidal_open(struct sol_flow_node *node,
         return -EDOM;
     }
     if (opts->ticks_inc.val < 1) {
-        SOL_ERR("Trapezoidal wave generator's ticks_inc value (%d) cannot"
+        SOL_ERR("Trapezoidal wave generator's ticks_inc value (%"PRId32") cannot"
             " be less than 1)", opts->ticks_inc.val);
         return -EDOM;
     }
     if (opts->ticks_dec.val < 1) {
-        SOL_ERR("Trapezoidal wave generator's ticks_dec value (%d) cannot"
+        SOL_ERR("Trapezoidal wave generator's ticks_dec value (%"PRId32") cannot"
             " be less than 1)", opts->ticks_dec.val);
         return -EDOM;
     }
     if (opts->tick_start.val < 0) {
-        SOL_ERR("Trapezoidal wave generator's tick_start value (%d) cannot"
+        SOL_ERR("Trapezoidal wave generator's tick_start value (%"PRId32") cannot"
             " be less than 0)", opts->tick_start.val);
         return -EDOM;
     }
     if (opts->ticks_at_max.val < 0) {
-        SOL_ERR("Trapezoidal wave generator's ticks_at_max value (%d) cannot"
+        SOL_ERR("Trapezoidal wave generator's ticks_at_max value (%"PRId32") cannot"
             " be less than 0)", opts->ticks_at_max.val);
         return -EDOM;
     }
     if (opts->ticks_at_min.val < 0) {
-        SOL_ERR("Trapezoidal wave generator's ticks_at_min value (%d) cannot"
+        SOL_ERR("Trapezoidal wave generator's ticks_at_min value (%"PRId32") cannot"
             " be less than 0)", opts->ticks_at_min.val);
         return -EDOM;
     }
@@ -931,12 +931,12 @@ wave_generator_sinusoidal_open(struct sol_flow_node *node,
         return -EDOM;
     }
     if (opts->ticks_per_period.val < 1) {
-        SOL_ERR("Sinusoidal wave generator's ticks_per_period value (%d) cannot"
+        SOL_ERR("Sinusoidal wave generator's ticks_per_period value (%"PRId32") cannot"
             " be less than 1)", opts->ticks_per_period.val);
         return -EDOM;
     }
     if (opts->tick_start.val < 0) {
-        SOL_ERR("Sinusoidal wave generator's tick_start value (%d) cannot"
+        SOL_ERR("Sinusoidal wave generator's tick_start value (%"PRId32") cannot"
             " be less than 0)", opts->tick_start.val);
         return -EDOM;
     }
