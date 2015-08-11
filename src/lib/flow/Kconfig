@@ -9,7 +9,7 @@ config JAVASCRIPT
 
 config NODE_DESCRIPTION
 	bool "Node description support"
-	depends on FLOW
+	depends on FLOW && FEATURE_RUNNABLE_PROGRAMS
 	default y
 	help
             Add node description support to enable runtime introspection.
@@ -18,12 +18,12 @@ config NODE_DESCRIPTION
 
 config RESOLVER_CONFFILE
 	bool "Resolver conffile"
-	depends on NODE_DESCRIPTION
+	depends on NODE_DESCRIPTION && HAVE_GLIB
 	default y
 
 config INSPECTOR
 	bool "Inspector"
-	depends on FLOW
+	depends on FLOW && FEATURE_RUNNABLE_PROGRAMS
 	default y
 
 menu "Node Types"
