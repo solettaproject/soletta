@@ -37,6 +37,11 @@ test-$(TEST_MAINLOOP_THREADS_SOL_RUN) += test-mainloop-threads-sol-run
 test-test-mainloop-threads-sol-run-$(TEST_MAINLOOP_THREADS_SOL_RUN) := test-mainloop-threads-sol-run.c
 test-test-mainloop-threads-sol-run-$(TEST_MAINLOOP_THREADS_SOL_RUN)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 
+test-$(TEST_MAINLOOP_GLIB_INTEGRATION) += test-mainloop-glib-integration
+test-test-mainloop-glib-integration-$(TEST_MAINLOOP_GLIB_INTEGRATION) := test-mainloop-glib-integration.c
+test-test-mainloop-glib-integration-$(TEST_MAINLOOP_GLIB_INTEGRATION)-extra-cflags += $(GLIB_CFLAGS)
+test-test-mainloop-glib-integration-$(TEST_MAINLOOP_GLIB_INTEGRATION)-extra-ldflags += $(GLIB_LDFLAGS)
+
 test-$(TEST_MONITORS) += test-monitors
 test-test-monitors-$(TEST_MONITORS) := test.c test-monitors.c
 
