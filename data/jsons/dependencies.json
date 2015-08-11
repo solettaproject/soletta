@@ -375,6 +375,13 @@
             "cflags": {
                 "value": "-fsanitize=address"
             }
+	},
+	{
+	    "dependency": "libubsan",
+	    "type": "ccode",
+            "ldflags": {
+                "value": "-lubsan"
+            }
 	}
     ]
 }
