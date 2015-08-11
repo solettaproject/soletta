@@ -26,8 +26,8 @@ test-test-javascript-$(TEST_JAVASCRIPT) := test.c test-javascript.c
 test-$(TEST_MAINLOOP) += test-mainloop
 test-test-mainloop-$(TEST_MAINLOOP) := test-mainloop.c
 
-test-$(MAINLOOP_LINUX) += test-mainloop-linux
-test-test-mainloop-linux-$(MAINLOOP_LINUX) := test-mainloop-linux.c
+test-$(TEST_MAINLOOP_LINUX) += test-mainloop-linux
+test-test-mainloop-linux-$(TEST_MAINLOOP_LINUX) := test-mainloop-linux.c
 
 test-$(TEST_MAINLOOP_THREADS) += test-mainloop-threads
 test-test-mainloop-threads-$(TEST_MAINLOOP_THREADS) := test-mainloop-threads.c
