@@ -367,12 +367,18 @@
 	    "type": "ccode",
             "cflags": {
                 "value": "-fsanitize=undefined"
+            },
+            "ldflags": {
+                "value": "-fsanitize=undefined"
             }
 	},
 	{
 	    "dependency": "sanitize_address",
 	    "type": "ccode",
             "cflags": {
+                "value": "-fsanitize=address"
+            },
+            "ldflags": {
                 "value": "-fsanitize=address"
             }
 	}
