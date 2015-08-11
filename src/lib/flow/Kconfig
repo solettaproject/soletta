@@ -4,7 +4,7 @@ config FLOW
 
 config JAVASCRIPT
 	bool "Javascript support"
-	depends on FLOW
+	depends on FLOW && PLATFORM_LINUX
 	default y
 
 config NODE_DESCRIPTION
