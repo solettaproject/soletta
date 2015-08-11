@@ -141,12 +141,13 @@ parse-sample = \
 	$(eval samples-out      += $(sample-$(1)-out)) \
 
 clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) \
-		$(eval test-y:=) $(eval test-internal-y:=) $(eval sample-y:=)
+		$(eval test-y:=) $(eval test-internal-y:=) $(eval sample-y:=) $(eval headers-m:=)
 
 inc-subdirs = \
 	$(foreach subdir,$(SUBDIRS), $(clean-control) \
 		$(eval -include $(subdir)Makefile) \
 		$(call extra-headers,$(addprefix $(subdir),$(headers-y))) \
+		$(call extra-headers,$(addprefix $(subdir),$(headers-m))) \
 		$(eval curr-builtins        := $(subst .mod,,$(filter %.mod,$(obj-y)))) \
 		$(eval builtins             += $(curr-builtins)) \
 		$(foreach buin,$(curr-builtins), \
