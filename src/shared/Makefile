@@ -18,4 +18,10 @@ obj-libshared-$(PLATFORM_LINUX) += \
 obj-libshared-$(PLATFORM_LINUX)-extra-cflags += $(GLIB_CFLAGS)
 obj-libshared-$(PLATFORM_LINUX)-extra-ldflags += $(GLIB_LDFLAGS)
 
+obj-libshared-$(PLATFORM_RIOTOS) += \
+    sol-util-riot.o
+
+obj-libshared-$(PLATFORM_CONTIKI) += \
+    sol-util-contiki.o
+
 obj-libshared-y-extra-cflags += -fvisibility=default

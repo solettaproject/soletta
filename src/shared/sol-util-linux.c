@@ -30,10 +30,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-util-linux.h"
 #include "sol-missing.h"
 #include "sol-mainloop.h"
 #include "sol-log.h"
+#include "sol-util.h"
 
 #include <dlfcn.h>
 #include <errno.h>
@@ -48,6 +48,20 @@
 #endif
 #include <sys/stat.h>
 #include <unistd.h>
+
+struct timespec
+sol_util_timespec_get_current(void)
+{
+    struct timespec t;
+
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return t;
+}
+int
+sol_util_timespec_get_realtime(struct timespec *t)
+{
+    return clock_gettime(CLOCK_REALTIME, t);
+}
 
 int
 sol_util_vwrite_file(const char *path, const char *fmt, va_list args)

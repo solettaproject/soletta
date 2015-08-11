@@ -44,10 +44,6 @@
 #include <errno.h>
 #include <sys/types.h>
 
-#ifdef SOL_PLATFORM_LINUX
-#include "sol-util-linux.h"
-#endif
-
 /** constants used to calculate mul/add operations overflow */
 #define OVERFLOW_TYPE(type) ((type)1 << (sizeof(type) * 4))
 #define OVERFLOW_UINT64 OVERFLOW_TYPE(uint64_t)
@@ -108,6 +104,9 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
 /* number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000 */
 #define NSEC_PER_USEC 1000ULL
 
+#define CHUNK_SIZE 4096
+#define SOL_UTIL_MAX_READ_ATTEMPTS 10
+
 static inline int
 sol_util_int_compare(const int a, const int b)
 {
@@ -116,6 +115,15 @@ sol_util_int_compare(const int a, const int b)
 
 struct timespec sol_util_timespec_get_current(void);
 int sol_util_timespec_get_realtime(struct timespec *t);
+int sol_util_write_file(const char *path, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
+int sol_util_vwrite_file(const char *path, const char *fmt, va_list args) SOL_ATTR_PRINTF(2, 0);
+int sol_util_read_file(const char *path, const char *fmt, ...) SOL_ATTR_SCANF(2, 3);
+int sol_util_vread_file(const char *path, const char *fmt, va_list args) SOL_ATTR_SCANF(2, 0);
+void *sol_util_load_file_raw(const int fd, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
+char *sol_util_load_file_string(const char *filename, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
+int sol_util_get_rootdir(char *out, size_t size) SOL_ATTR_WARN_UNUSED_RESULT;
+int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
+ssize_t sol_util_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_t *size_read);
 
 static inline void
 sol_util_timespec_sum(struct timespec *t1, struct timespec *t2, struct timespec *result)

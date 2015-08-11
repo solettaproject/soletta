@@ -30,22 +30,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "sol-util.h"
 
-#include "sol-macros.h"
+/* RIOT headers */
+#include <vtimer.h>
 
-#include <sys/types.h>
-#include <stdarg.h>
+#if FEATURE_PERIPH_RTC
+#include <periph/rtc.h>
+#endif
 
-#define CHUNK_SIZE 4096
-#define SOL_UTIL_MAX_READ_ATTEMPTS 10
+struct timespec
+sol_util_timespec_get_current(void)
+{
+    struct timespec tp;
+    timex_t t;
 
-int sol_util_write_file(const char *path, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
-int sol_util_vwrite_file(const char *path, const char *fmt, va_list args) SOL_ATTR_PRINTF(2, 0);
-int sol_util_read_file(const char *path, const char *fmt, ...) SOL_ATTR_SCANF(2, 3);
-int sol_util_vread_file(const char *path, const char *fmt, va_list args) SOL_ATTR_SCANF(2, 0);
-void *sol_util_load_file_raw(const int fd, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
-char *sol_util_load_file_string(const char *filename, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
-int sol_util_get_rootdir(char *out, size_t size) SOL_ATTR_WARN_UNUSED_RESULT;
-int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
-ssize_t sol_util_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_t *size_read);
+    vtimer_now(&t);
+    tp.tv_sec = t.seconds;
+    tp.tv_nsec = t.microseconds * 1000;
+    return tp;
+}
+
+int
+sol_util_timespec_get_realtime(struct timespec *t)
+{
+#if FEATURE_PERITH_RTC
+    struct tm rtc;
+    if (rtc_get_time(&rtc) != 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    t.tv_sec = mktime(&rtc);
+    t.tv_nsec = 0;
+    return 0;
+#else
+    errno = ENOSYS;
+    return -1;
+#endif
+}
