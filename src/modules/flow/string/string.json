@@ -265,6 +265,82 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/string/uppercase.html"
+    },
+    {
+      "category": "string",
+      "description": "Replace a pattern in a string for another.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String to be replaced.",
+          "methods": {
+            "process": "string_replace_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "The string received on the 'IN' port will have substrings defined by this port replaced by the ones defined in the 'TO' port.",
+          "methods": {
+            "process": "set_replace_from"
+          },
+          "name": "FROM"
+        },
+        {
+          "data_type": "string",
+          "description": "The string received on the 'IN' port will have substrings defined by the 'FROM' port replaced by the ones defined in this port.",
+          "methods": {
+            "process": "set_replace_to"
+          },
+          "name": "TO"
+        },
+        {
+          "data_type": "int",
+          "description": "A string can have a substring replaced in many points. This value defines the maximum number of replacements to attempt, and must be non-negative.",
+          "methods": {
+            "process": "set_max_replace"
+          },
+          "name": "MAX_REPLACE"
+        }
+      ],
+      "methods": {
+        "close": "string_replace_close",
+        "open": "string_replace_open"
+      },
+      "name": "string/replace",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "A string can have a substring replaced in many points. This value defines the maximum number of replacements to attempt, and must be non-negative.. The default value of zero means to replace all possible substrings. This option can be overriden by values received on the 'MAX_REPLACE' port.",
+            "name": "max_replace"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "The string received on the 'IN' port will have substrings defined by this option replaced by the ones defined by the 'to_string' one. It can be overriden by values received on 'FROM' port.",
+            "name": "from_string"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "The string received on the 'IN' port will have substrings defined by the 'from_string' option replaced by the ones defined by this one. It can be overriden by values received on 'TO' port.",
+            "name": "to_string"
+          }
+
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The original string coming in the 'IN' port with the due replacements made.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_replace_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/replace.html"
     }
   ]
 }
