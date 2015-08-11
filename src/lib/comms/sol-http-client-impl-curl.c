@@ -52,12 +52,13 @@ void sol_http_client_shutdown(void);
 static struct {
     CURLM *multi;
     struct sol_timeout *multi_perform_timeout;
+    struct sol_ptr_vector connections;
     long timeout_ms;
-    unsigned int fds;
     int ref;
 } global = {
     .timeout_ms = 100,
-    .ref = 0
+    .ref = 0,
+    .connections = SOL_PTR_VECTOR_INIT,
 };
 
 struct connection {
@@ -73,22 +74,24 @@ struct connection {
     bool pending_error_cb;
 };
 
-static bool
-cleanup_multi_cb(void *data)
+static void
+destroy_connection(struct connection *c)
 {
-    CURLM *multi = data;
+    curl_multi_remove_handle(global.multi, c->curl);
+    curl_easy_cleanup(c->curl);
 
-    if (global.fds)
-        return true;
+    sol_buffer_fini(&c->buffer);
+    sol_arena_del(c->arena);
 
-    curl_multi_cleanup(multi);
-    curl_global_cleanup();
-    return false;
+    free(c);
 }
 
 void
 sol_http_client_shutdown(void)
 {
+    struct connection *c;
+    uint16_t i;
+
     if (!global.ref)
         return;
     global.ref--;
@@ -100,11 +103,15 @@ sol_http_client_shutdown(void)
         global.multi_perform_timeout = NULL;
     }
 
-    /* Cleanup in an idler as there might be easy handles in the flight. */
-    if (!sol_idle_add(cleanup_multi_cb, global.multi)) {
-        SOL_WRN("Could defer cURL cleanup");
-        return;
+    SOL_PTR_VECTOR_FOREACH_IDX (&global.connections, c, i) {
+        destroy_connection(c);
     }
+
+    sol_ptr_vector_clear(&global.connections);
+
+    curl_multi_cleanup(global.multi);
+    curl_global_cleanup();
+
     global.multi = NULL;
 }
 
@@ -276,15 +283,9 @@ error_cb(void *data)
 
     call_connection_finish_cb(connection);
 
-    curl_multi_remove_handle(global.multi, connection->curl);
-    curl_easy_cleanup(connection->curl);
+    sol_ptr_vector_remove(&global.connections, connection);
 
-    sol_buffer_fini(&connection->buffer);
-    sol_arena_del(connection->arena);
-
-    free(connection);
-
-    global.fds--;
+    destroy_connection(connection);
 
     return false;
 }
@@ -364,7 +365,6 @@ open_socket_cb(void *clientp, curlsocktype purpose, struct curl_sockaddr *addr)
         return -1;
     }
 
-    global.fds++;
     return fd;
 }
 
@@ -445,12 +445,16 @@ perform_multi(CURL *curl, struct sol_arena *arena,
     /* This timeout will be recreated if cURL changes the timeout value. */
     global.multi_perform_timeout = sol_timeout_add(global.timeout_ms,
         multi_perform_cb, NULL);
-    if (!global.multi_perform_timeout) {
-        curl_multi_remove_handle(global.multi, connection->curl);
-        goto free_buffer;
-    }
+    if (!global.multi_perform_timeout)
+        goto remove_handle;
+
+    if (sol_ptr_vector_append(&global.connections, connection) < 0)
+        goto remove_handle;
 
     return true;
+
+remove_handle:
+    curl_multi_remove_handle(global.multi, connection->curl);
 
 free_buffer:
     sol_buffer_fini(&connection->buffer);
