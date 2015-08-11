@@ -370,6 +370,13 @@
             }
 	},
 	{
+	    "dependency": "no_sanitize",
+	    "type": "ccode",
+            "cflags": {
+                "value": "-fno-sanitize=all"
+            }
+	},
+	{
 	    "dependency": "sanitize_address",
 	    "type": "ccode",
             "cflags": {
