@@ -215,3 +215,18 @@ sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, void *ptr)
     *data = ptr;
     return 0;
 }
+
+SOL_API int
+sol_ptr_vector_remove(struct sol_ptr_vector *pv, const void *ptr)
+{
+    uint16_t i;
+    void *p;
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (pv, p, i) {
+        if (ptr == p) {
+            sol_ptr_vector_del(pv, i);
+            return 0;
+        }
+    }
+    return -ENODATA;
+}
