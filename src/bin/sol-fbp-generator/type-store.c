@@ -582,7 +582,7 @@ parse_default_value(struct option_description *o)
         return parse_rgb_default_value(&value_scanner, o);
     }
 
-    if (streq(o->data_type, "direction_vector")) {
+    if (streq(o->data_type, "direction-vector")) {
         o->default_value_type = OPTION_VALUE_TYPE_DIRECTION_VECTOR;
         return parse_direction_vector_default_value(&value_scanner, o);
     }
