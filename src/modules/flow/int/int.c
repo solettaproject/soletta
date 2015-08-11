@@ -782,7 +782,7 @@ validate_shift(const struct sol_flow_packet *packet)
 static int
 shift_left_func(int in0, int in1)
 {
-    return in0 << in1;
+    return (unsigned) in0 << in1;
 }
 
 static int
@@ -792,8 +792,12 @@ shift_left_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
     if (port == SOL_FLOW_NODE_TYPE_INT_SHIFT_LEFT__IN__SHIFT)
         r = validate_shift(packet);
-    if (r < 0)
+
+    if (r < 0) {
+        sol_flow_send_error_packet(node, r, "Error, invalid numeric types for a shift left operation.");
         return r;
+    }
+
     return two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_INT_SHIFT_LEFT__OUT__OUT, packet, shift_left_func);
 }
 
