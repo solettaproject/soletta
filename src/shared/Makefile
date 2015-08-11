@@ -4,7 +4,7 @@ obj-libshared-y := \
     sol-monitors.o \
     sol-util.o
 
-obj-libshared-$(FLOW) += \
+obj-libshared-$(FLOW_SUPPORT) += \
     sol-fbp-graph.o \
     sol-fbp-internal-log.o \
     sol-fbp-internal-scanner.o \

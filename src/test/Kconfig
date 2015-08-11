@@ -13,17 +13,17 @@ config TEST_COAP
 
 config TEST_FBP
 	bool "fbp"
-	depends on FLOW
+	depends on FLOW_SUPPORT
 	default y
 
 config TEST_FBP_SCANNER
 	bool "fbp scanner"
-	depends on FLOW
+	depends on FLOW_SUPPORT
 	default y
 
 config TEST_FLOW
 	bool "flow"
-	depends on FLOW
+	depends on FLOW_SUPPORT
 	default y
 
 config TEST_FLOW_BUILDER

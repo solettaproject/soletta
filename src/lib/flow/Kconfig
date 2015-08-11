@@ -1,15 +1,15 @@
-config FLOW
+config FLOW_SUPPORT
 	bool "Flow support"
 	default y
 
 config JAVASCRIPT
 	bool "Javascript support"
-	depends on FLOW
+	depends on FLOW_SUPPORT
 	default y
 
 config NODE_DESCRIPTION
 	bool "Node description support"
-	depends on FLOW
+	depends on FLOW_SUPPORT
 	default y
 	help
             Add node description support to enable runtime introspection.
@@ -23,11 +23,11 @@ config RESOLVER_CONFFILE
 
 config INSPECTOR
 	bool "Inspector"
-	depends on FLOW
+	depends on FLOW_SUPPORT
 	default y
 
 menu "Node Types"
-	depends on FLOW
+	depends on FLOW_SUPPORT
 source "src/modules/flow/accelerometer/Kconfig"
 source "src/modules/flow/aio/Kconfig"
 source "src/modules/flow/app/Kconfig"
