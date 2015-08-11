@@ -48,6 +48,10 @@
 
 #include "string-format.h"
 
+#ifndef SSIZE_MAX
+# define SSIZE_MAX (SIZE_MAX / 2)
+#endif
+
 #define MIN(x, y) (((x) > (y)) ? (y) : (x))
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
