@@ -4,7 +4,7 @@ config FLOW_SUPPORT
 
 config JAVASCRIPT
 	bool "Javascript support"
-	depends on FLOW_SUPPORT
+	depends on FLOW_SUPPORT && FEATURE_JAVASCRIPT
 	default y
 
 config NODE_DESCRIPTION
@@ -18,7 +18,7 @@ config NODE_DESCRIPTION
 
 config RESOLVER_CONFFILE
 	bool "Resolver conffile"
-	depends on NODE_DESCRIPTION
+	depends on NODE_DESCRIPTION && FEATURE_FILESYSTEM
 	default y
 
 config INSPECTOR
