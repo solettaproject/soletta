@@ -421,7 +421,7 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "Value to be shifted",
+          "description": "Value to be shifted (it's assumed to be unsigned)",
           "methods": {
             "process": "shift_right_process"
           },
