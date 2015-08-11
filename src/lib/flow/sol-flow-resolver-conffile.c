@@ -160,7 +160,7 @@ _resolver_conffile_get_module(const char *type)
 
     module_name = get_module_for_type(type);
     if (module_name.len == 0) {
-        SOL_DBG("Invalid empty name");
+        SOL_WRN("invalid empty module name");
         return NULL;
     }
 
@@ -170,6 +170,7 @@ _resolver_conffile_get_module(const char *type)
     /* the hash entry keys are the type part only */
     entry = find_entry_by_name(&resolver_conffile_dlopens, name);
     if (entry) {
+        SOL_DBG("module named '%s' previoulsy loaded", name);
         free(name);
         goto found;
     }
@@ -184,26 +185,32 @@ _resolver_conffile_get_module(const char *type)
     entry->name = name;
 
     r = sol_util_get_rootdir(install_rootdir, sizeof(install_rootdir));
-    if (r < 0 || r >= (int)sizeof(install_rootdir))
+    if (r < 0 || r >= (int)sizeof(install_rootdir)) {
+        SOL_WRN("failed to get rootdir for module %s", name);
         goto error;
+    }
 
     r = snprintf(path, sizeof(path), "%s%s/%s.so",
         install_rootdir, FLOWMODULESDIR, name);
-    if (r < 0 || r >= (int)sizeof(path))
+    if (r < 0 || r >= (int)sizeof(path)) {
+        SOL_WRN("failed set path for module %s", name);
         goto error;
+    }
 
     entry->handle = dlopen(path, RTLD_LAZY | RTLD_LOCAL | RTLD_NODELETE);
     if (!entry->handle) {
-        SOL_DBG("could not load module '%s': %s", path, dlerror());
+        SOL_WRN("could not load module '%s': %s", path, dlerror());
         goto error;
     }
     entry->foreach = dlsym(entry->handle, "sol_flow_foreach_module_node_type");
     if (!entry->foreach) {
-        SOL_DBG("could not find symbol "
+        SOL_WRN("could not find symbol "
             "sol_flow_foreach_module_node_type() "
             "in module '%s': %s", path, dlerror());
         goto error;
     }
+
+    SOL_DBG("module named '%s' loaded from '%s'", entry->name, path);
 
 found:
     ret = resolve_module_type_by_component(type, entry->foreach);
@@ -211,6 +218,7 @@ found:
     return ret;
 
 entry_error:
+    SOL_WRN("failed to alloc memory for new module %s", name);
     free(name);
     return NULL;
 

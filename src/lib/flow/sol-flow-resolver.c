@@ -113,7 +113,9 @@ sol_flow_resolve(
         SOL_DBG("could not resolve module for id='%s' using resolver=%s",
             id, resolver->name);
         return -ENOENT;
-    }
+    } else
+        SOL_DBG("module for id='%s' resolved using resolver=%s",
+            id, resolver->name);
 
     *type = tmp_type;
     *named_opts = tmp_named_opts;
