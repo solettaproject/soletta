@@ -97,30 +97,17 @@ SOL_API const struct sol_flow_packet_type *PACKET_TYPE_FLOWER_POWER =
 SOL_API struct sol_flow_packet *
 sol_flower_power_new_packet(const struct sol_flower_power_data *fpd)
 {
-    struct sol_flower_power_data packet_type_flower_power;
-
     SOL_NULL_CHECK(fpd, NULL);
-    SOL_NULL_CHECK(fpd->id, NULL);
-    SOL_NULL_CHECK(fpd->timestamp, NULL);
-
-    packet_type_flower_power.id = strdup(fpd->id);
-    SOL_NULL_CHECK(packet_type_flower_power.id, NULL);
-
-    packet_type_flower_power.timestamp = strdup(fpd->timestamp);
-    SOL_NULL_CHECK_GOTO(packet_type_flower_power.timestamp, new_error);
-
-    packet_type_flower_power.fertilizer = fpd->fertilizer;
-    packet_type_flower_power.light = fpd->light;
-    packet_type_flower_power.temperature = fpd->temperature;
-    packet_type_flower_power.water = fpd->water;
-
-    return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER,
-        &packet_type_flower_power);
-
-new_error:
-    free(packet_type_flower_power.id);
-    return NULL;
+    return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER, fpd);
 }
+
+#define PACKET_SET_COMPONENT(_field) \
+    do { \
+        if (_field) \
+            packet_type_flower_power._field = *_field; \
+        else \
+            packet_type_flower_power._field = default_measure; \
+    } while (0)
 
 SOL_API struct sol_flow_packet *
 sol_flower_power_new_packet_components(const char *id,
@@ -129,29 +116,28 @@ sol_flower_power_new_packet_components(const char *id,
     struct sol_drange *temperature, struct sol_drange *water)
 {
     struct sol_flower_power_data packet_type_flower_power;
+    struct sol_drange default_measure = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
 
     SOL_NULL_CHECK(id, NULL);
     SOL_NULL_CHECK(timestamp, NULL);
-    SOL_NULL_CHECK(fertilizer, NULL);
-    SOL_NULL_CHECK(light, NULL);
-    SOL_NULL_CHECK(temperature, NULL);
-    SOL_NULL_CHECK(water, NULL);
 
     packet_type_flower_power.id = (char *)id;
     packet_type_flower_power.timestamp = (char *)timestamp;
-    packet_type_flower_power.fertilizer = *fertilizer;
-    packet_type_flower_power.light = *light;
-    packet_type_flower_power.temperature = *temperature;
-    packet_type_flower_power.water = *water;
+
+    PACKET_SET_COMPONENT(fertilizer);
+    PACKET_SET_COMPONENT(light);
+    PACKET_SET_COMPONENT(temperature);
+    PACKET_SET_COMPONENT(water);
 
     return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER,
         &packet_type_flower_power);
 }
 
+#undef PACKET_SET_COMPONENT
+
 SOL_API int
 sol_flower_power_get_packet(const struct sol_flow_packet *packet,
     struct sol_flower_power_data *fpd)
-
 {
     SOL_NULL_CHECK(packet, -EINVAL);
     if (sol_flow_packet_get_type(packet) != PACKET_TYPE_FLOWER_POWER)
@@ -162,10 +148,9 @@ sol_flower_power_get_packet(const struct sol_flow_packet *packet,
 
 SOL_API int
 sol_flower_power_get_packet_components(const struct sol_flow_packet *packet,
-    char **id, char **timestamp,
+    const char **id, const char **timestamp,
     struct sol_drange *fertilizer, struct sol_drange *light,
     struct sol_drange *temperature, struct sol_drange *water)
-
 {
     struct sol_flower_power_data packet_type_flower_power;
     int ret;
@@ -654,7 +639,7 @@ static int
 parse_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_drange fertilizer, light, temperature, water;
-    char *id, *timestamp;
+    const char *id, *timestamp;
     int r;
 
     r = sol_flower_power_get_packet_components(packet, &id, &timestamp,
