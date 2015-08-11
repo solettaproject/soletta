@@ -225,7 +225,7 @@
 	    "headers": [
 		"<locale.h>"
 	    ],
-	    "fragment": "setlocale(LC_ALL, NULL);"
+	    "fragment": "freelocale(NULL);"
 	},
 	{
 	    "dependency": "icu",
