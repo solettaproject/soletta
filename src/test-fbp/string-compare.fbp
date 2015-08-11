@@ -28,11 +28,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-full_string(constant/string:value="Hello World")
-full_upper_string(constant/string:value="HELLO WORLD")
-same_string(constant/string:value="Hello World")
-lesser_string(constant/string:value="Hello")
-greater_string(constant/string:value="World")
+full_string(constant/string:value="Ħěĺļō Ɯőŗŀď")
+same_string(constant/string:value="Ħěĺļō Ɯőŗŀď")
+full_upper_string(constant/string:value="ĦĚĹĻŌ ƜŐŖĿĎ")
+lesser_string(constant/string:value="Ħěĺļō")
+greater_string(constant/string:value="Ɯőŗŀď")
 
 zero(constant/int:value=0)
 

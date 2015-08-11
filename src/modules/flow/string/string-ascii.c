@@ -30,15 +30,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#warning "You're building the string nodes module without i18n support -- some nodes will only act properly on pure ASCII input, not the intended utf-8 for Soletta"
+
 #include <ctype.h>
 #include <errno.h>
-
-#ifdef HAVE_ICU
-#include <unicode/ustring.h>
-#include <unicode/utypes.h>
-#else
-#warning "You're building the string nodes module without i18n support -- some nodes will only act properly on pure ASCII input, not the intended utf-8 for Soletta"
-#endif
 
 #ifdef HAVE_LOCALE
 #include <locale.h>
@@ -50,7 +45,7 @@
 #include "sol-util.h"
 
 struct string_data {
-    int n;
+    int32_t n;
     char *string[2];
 };
 
@@ -83,7 +78,9 @@ string_concatenate_close(struct sol_flow_node *node, void *data)
 }
 
 static bool
-get_string(const struct sol_flow_packet *packet, uint16_t port, struct string_data *mdata)
+get_string(const struct sol_flow_packet *packet,
+    uint16_t port,
+    struct string_data *mdata)
 {
     const char *in_value;
     int r;
@@ -95,6 +92,7 @@ get_string(const struct sol_flow_packet *packet, uint16_t port, struct string_da
         return false;
 
     free(mdata->string[port]);
+
     mdata->string[port] = strdup(in_value);
 
     if (!mdata->string[0] || !mdata->string[1])
@@ -104,7 +102,9 @@ get_string(const struct sol_flow_packet *packet, uint16_t port, struct string_da
 }
 
 static int
-string_concatenate_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+string_concatenate_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
 {
     struct string_concatenate_data *mdata = data;
     const struct sol_flow_node_type_string_concatenate_options *opts;
@@ -135,11 +135,15 @@ string_concatenate_open(struct sol_flow_node *node, void *data, const struct sol
 }
 
 static int
-string_concat(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+string_concat(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
     struct string_concatenate_data *mdata = data;
     char *dest;
-    int err, len;
+    int r, len;
 
     if (!get_string(packet, port, &mdata->base))
         return 0;
@@ -148,7 +152,7 @@ string_concat(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     if (mdata->separator)
         len += strlen(mdata->separator);
 
-    dest = malloc(len);
+    dest = calloc(len, sizeof(*dest));
     SOL_NULL_CHECK(dest, -ENOMEM);
 
     dest = strcpy(dest, mdata->base.string[0]);
@@ -161,15 +165,17 @@ string_concat(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     else
         dest = strncat(dest, mdata->base.string[1], mdata->base.n);
 
-    err = sol_flow_send_string_take_packet(node,
+    r = sol_flow_send_string_take_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_CONCATENATE__OUT__OUT,
         dest);
 
-    return err;
+    return r;
 }
 
 static int
-string_compare_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+string_compare_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
 {
     struct string_compare_data *mdata = data;
     const struct sol_flow_node_type_string_compare_options *opts;
@@ -194,11 +200,15 @@ string_compare_open(struct sol_flow_node *node, void *data, const struct sol_flo
 }
 
 static int
-string_compare(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+string_compare(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
     struct string_compare_data *mdata = data;
     uint32_t result;
-    int err;
+    int r;
 
     if (!get_string(packet, port, &mdata->base))
         return 0;
@@ -217,10 +227,10 @@ string_compare(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
             result = strcmp(mdata->base.string[0], mdata->base.string[1]);
     }
 
-    err = sol_flow_send_boolean_packet(node,
+    r = sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_COMPARE__OUT__EQUAL, result == 0);
-    if (err < 0)
-        return err;
+    if (r < 0)
+        return r;
 
     return sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_COMPARE__OUT__OUT, result);
@@ -231,7 +241,9 @@ struct string_length_data {
 };
 
 static int
-string_length_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+string_length_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
 {
     struct string_data *mdata = data;
     const struct sol_flow_node_type_string_length_options *opts;
@@ -254,7 +266,11 @@ string_length_open(struct sol_flow_node *node, void *data, const struct sol_flow
 }
 
 static int
-string_length_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+string_length_process(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
     struct string_length_data *mdata = data;
     const char *in_value;
@@ -273,37 +289,44 @@ string_length_process(struct sol_flow_node *node, void *data, uint16_t port, uin
         SOL_FLOW_NODE_TYPE_STRING_LENGTH__OUT__OUT, result);
 }
 
-
 struct string_split_data {
-    struct sol_ptr_vector substrings;
+    struct sol_vector substrings;
     char *string;
     char *separator;
-    char *dupstring;
-    int index;
+    int index, max_split;
 };
 
 static int
-string_split_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+string_split_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
 {
     struct string_split_data *mdata = data;
     const struct sol_flow_node_type_string_split_options *opts;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_STRING_SPLIT_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
+        (options, SOL_FLOW_NODE_TYPE_STRING_SPLIT_OPTIONS_API_VERSION,
         -EINVAL);
     opts = (const struct sol_flow_node_type_string_split_options *)options;
 
     if (opts->index.val < 0) {
-        SOL_WRN("Index (%d) must be a non negative value", opts->index.val);
+        SOL_WRN("Index (%d) must be a non-negative value", opts->index.val);
+        return -EINVAL;
+    }
+    if (opts->max_split.val < 0) {
+        SOL_WRN("Max split (%d) must be a non-negative value",
+            opts->max_split.val);
         return -EINVAL;
     }
     mdata->index = opts->index.val;
+    mdata->max_split = opts->max_split.val;
 
     if (opts->separator) {
         mdata->separator = strdup(opts->separator);
         SOL_NULL_CHECK(mdata->separator, -ENOMEM);
     }
 
-    sol_ptr_vector_init(&mdata->substrings);
+    sol_vector_init(&mdata->substrings, sizeof(struct sol_str_slice));
 
     return 0;
 }
@@ -311,8 +334,7 @@ string_split_open(struct sol_flow_node *node, void *data, const struct sol_flow_
 static void
 clear_substrings(struct string_split_data *mdata)
 {
-    free(mdata->dupstring);
-    sol_ptr_vector_clear(&mdata->substrings);
+    sol_vector_clear(&mdata->substrings);
 }
 
 static void
@@ -326,36 +348,32 @@ string_split_close(struct sol_flow_node *node, void *data)
 }
 
 static int
-calculate_substrings(struct string_split_data *mdata, struct sol_flow_node *node)
+calculate_substrings(struct string_split_data *mdata,
+    struct sol_flow_node *node)
 {
-    char *saveptr, *token;
-
     if (!(mdata->string && mdata->separator))
         return 0;
 
-    mdata->dupstring = strdup(mdata->string);
-    SOL_NULL_CHECK(mdata->dupstring, -ENOMEM);
+    sol_vector_clear(&mdata->substrings);
 
-    token = strtok_r(mdata->string, mdata->separator, &saveptr);
-    while (token) {
-        sol_ptr_vector_append(&mdata->substrings, token);
-        token = strtok_r(NULL, mdata->separator, &saveptr);
-    }
+    mdata->substrings = sol_util_str_split(sol_str_slice_from_str
+            (mdata->string), mdata->separator, mdata->max_split);
 
     return sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_SPLIT__OUT__LENGTH,
-        sol_ptr_vector_get_len(&mdata->substrings));
+        mdata->substrings.len);
 }
 
 static int
 send_substring(struct string_split_data *mdata, struct sol_flow_node *node)
 {
     int len;
+    struct sol_str_slice *sub_slice;
 
     if (!(mdata->string && mdata->separator))
         return 0;
 
-    len = sol_ptr_vector_get_len(&mdata->substrings);
+    len = mdata->substrings.len;
     if (!len)
         return 0;
 
@@ -365,13 +383,40 @@ send_substring(struct string_split_data *mdata, struct sol_flow_node *node)
         return -EINVAL;
     }
 
-    return sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_STRING_SPLIT__OUT__OUT,
-        sol_ptr_vector_get(&mdata->substrings, mdata->index));
+    sub_slice = sol_vector_get(&mdata->substrings, mdata->index);
+    return sol_flow_send_string_slice_packet(node,
+        SOL_FLOW_NODE_TYPE_STRING_SPLIT__OUT__OUT, *sub_slice);
 }
 
 static int
-set_string_index(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+set_string_index(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_split_data *mdata = data;
+    int32_t in_value;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (in_value < 0) {
+        SOL_WRN("Index (%d) must be a non-negative value", in_value);
+        return -EINVAL;
+    }
+    mdata->index = in_value;
+
+    return send_substring(mdata, node);
+}
+
+static int
+set_max_split(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
     struct string_split_data *mdata = data;
     int r;
@@ -381,16 +426,20 @@ set_string_index(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value < 0) {
-        SOL_WRN("Index (%d) must be a non negative value", in_value);
+        SOL_WRN("Max split (%d) must be a non-negative value", in_value);
         return -EINVAL;
     }
-    mdata->index = in_value;
+    mdata->max_split = in_value;
+
+    r = calculate_substrings(mdata, node);
+    SOL_INT_CHECK(r, < 0, r);
 
     return send_substring(mdata, node);
 }
 
 static int
-split_get_string(const struct sol_flow_packet *packet, char **string)
+split_get_string(const struct sol_flow_packet *packet,
+    char **string)
 {
     const char *in_value;
     int r;
@@ -410,7 +459,11 @@ split_get_string(const struct sol_flow_packet *packet, char **string)
 }
 
 static int
-set_string_separator(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+set_string_separator(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
     struct string_split_data *mdata = data;
     int r;
@@ -425,7 +478,11 @@ set_string_separator(struct sol_flow_node *node, void *data, uint16_t port, uint
 }
 
 static int
-string_split(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+string_split(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
     struct string_split_data *mdata = data;
     int r;
@@ -447,104 +504,6 @@ string_change_case(struct sol_flow_node *node,
     const struct sol_flow_packet *packet,
     bool lower)
 {
-#ifdef HAVE_ICU
-    int32_t (*case_func)(UChar *dest, int32_t destCapacity, const UChar *src,
-        int32_t srcLength, const char *locale,
-        UErrorCode *pErrorCode) = lower ? u_strToLower : u_strToUpper;
-    UChar *u_orig = NULL, *u_lower = NULL;
-    const char *curr_locale = NULL;
-    const char *value = NULL;
-    int32_t u_changed_sz;
-    char *final = NULL;
-    UErrorCode err;
-    int32_t sz;
-    int r;
-
-    r = sol_flow_packet_get_string(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    err = U_ZERO_ERROR;
-    u_strFromUTF8(NULL, 0, &sz, value, -1, &err);
-    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR)
-        return -EINVAL;
-
-    u_orig = calloc(sz + 1, sizeof(*u_orig));
-    if (!u_orig)
-        return -ENOMEM;
-
-    err = U_ZERO_ERROR;
-    u_strFromUTF8(u_orig, sz + 1, NULL, value, -1, &err);
-    if (U_FAILURE(err) || u_orig[sz] != 0) {
-        errno = EINVAL;
-        goto fail_from_utf8;
-    }
-
-#ifdef HAVE_LOCALE
-    curr_locale = setlocale(LC_ALL, NULL);
-    if (curr_locale == NULL) {
-        curr_locale = "";
-    }
-#else
-    curr_locale = "";
-#endif
-
-    err = U_ZERO_ERROR;
-    u_changed_sz = case_func(NULL, 0, u_orig, sz, curr_locale, &err);
-    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
-        errno = EINVAL;
-        goto fail_from_utf8;
-    }
-    u_lower = calloc(u_changed_sz + 1, sizeof(*u_lower));
-    if (!u_lower) {
-        errno = ENOMEM;
-        goto fail_from_utf8;
-    }
-
-    err = U_ZERO_ERROR;
-    case_func(u_lower, u_changed_sz + 1, u_orig, sz, curr_locale, &err);
-    free(u_orig);
-    if (U_FAILURE(err) || u_lower[u_changed_sz] != 0) {
-        errno = EINVAL;
-        goto fail_case_func;
-    }
-
-    err = U_ZERO_ERROR;
-    u_strToUTF8(NULL, 0, &sz, u_lower, u_changed_sz, &err);
-    if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
-        errno = EINVAL;
-        goto fail_case_func;
-    }
-
-    final = calloc(sz + 1, sizeof(*final));
-    if (!final) {
-        errno = ENOMEM;
-        goto fail_case_func;
-    }
-
-    err = U_ZERO_ERROR;
-    u_strToUTF8(final, sz + 1, &sz, u_lower, u_changed_sz, &err);
-    free(u_lower);
-    if (U_FAILURE(err) || final[sz] != '\0') {
-        errno = EINVAL;
-        goto fail_to_utf8;
-    }
-
-    r = sol_flow_send_string_packet(node,
-        lower ? SOL_FLOW_NODE_TYPE_STRING_LOWERCASE__OUT__OUT :
-        SOL_FLOW_NODE_TYPE_STRING_UPPERCASE__OUT__OUT, final);
-    free(final);
-
-    return r;
-
-fail_from_utf8:
-    free(u_orig);
-fail_case_func:
-    free(u_lower);
-fail_to_utf8:
-    free(final);
-    sol_flow_send_error_packet(node, -errno, u_errorName(err));
-    return -errno;
-#else
     int (*case_func)(int c) = lower ? tolower : toupper;
     const char *value;
     char *cpy, *ptr;
@@ -564,9 +523,7 @@ fail_to_utf8:
     free(cpy);
 
     return r;
-#endif
 }
-
 
 static int
 string_lowercase(struct sol_flow_node *node,

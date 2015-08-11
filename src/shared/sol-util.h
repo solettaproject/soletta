@@ -187,12 +187,21 @@ align_power2(unsigned int u)
     return 1 << ((sizeof(u) * 8) - left_zeros);
 }
 
-/* The given slice 'slice' will be splitted in sub-strings delimited by the 'delim'
- * This function returns an vector of struct sol_str_slice.
+/**
+ * Return a list of the words in a given string slice, using a given
+ * delimiter string. If @a maxsplit is given, at most that number of
+ * splits are done (thus, the list will have at most @c maxsplit+1
+ * elements). If @c maxsplit is zero, then there is no limit on the
+ * number of splits (all possible splits are made).
  *
- * NOTE: Different from strtoken, it cosiderer the full string in 'delim' and split
- *       up to the number of elements specified in 'maxplit'. If 'maxplit' is zero all
- *       elements found are returned.
+ * @param slice The string slice to divide in sub-strings (in array of
+ *              slices form)
+ * @param delim The delimiter string to divide @a slice based on
+ * @param maxsplit The maximum number of splits to make on @a slice.
+ *                 If it's 0, than make as many splits as it can.
+ *
+ * @return A vector of string slices with the splitted words, on
+ *         success, or @c NULL, otherwise.
  */
 struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
 

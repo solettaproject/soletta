@@ -276,16 +276,19 @@ sol_util_strerror(int errnum, char *buf, size_t buflen)
 }
 
 struct sol_vector
-sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit)
+sol_util_str_split(const struct sol_str_slice slice,
+    const char *delim,
+    size_t maxsplit)
 {
     struct sol_vector v = SOL_VECTOR_INIT(struct sol_str_slice);
-    ssize_t dlen, len;
     const char *str = slice.data;
+    ssize_t dlen;
+    size_t len;
 
     if (!slice.len || !delim)
         return v;
 
-    maxsplit = (maxsplit) ? : slice.len;
+    maxsplit = (maxsplit) ? : slice.len - 1;
     dlen = strlen(delim);
     len = slice.len;
 
@@ -298,7 +301,7 @@ sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t m
         s->len = _len; \
     } while (0)
 
-    while (str && (v.len < maxsplit)) {
+    while (str && (v.len < maxsplit + 1)) {
         struct sol_str_slice *s;
         char *token = memmem(str, len, delim, dlen);
         if (!token) {
@@ -306,8 +309,12 @@ sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t m
             break;
         }
 
+        if (v.len == (uint16_t)maxsplit)
+            CREATE_SLICE(str, len);
+        else
+            CREATE_SLICE(str, (size_t)(token - str));
+
         len -= (token - str) + dlen;
-        CREATE_SLICE(str, token - str);
         str = token + dlen;
     }
 #undef CREATE_SLICE

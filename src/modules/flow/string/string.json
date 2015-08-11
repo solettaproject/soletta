@@ -162,11 +162,19 @@
         },
         {
           "data_type": "int",
-          "description": "A string can be split in many substrings. This value defines which substring should be sent. It must be non negative.",
+          "description": "A string can be split in many substrings. This value defines which substring should be sent. It must be non-negative.",
           "methods": {
             "process": "set_string_index"
           },
           "name": "INDEX"
+        },
+        {
+          "data_type": "int",
+          "description": "A string can be split in many substrings. This value defines the maximum number of splits (separated by the separator option) to generate, and must be non-negative.",
+          "methods": {
+            "process": "set_max_split"
+          },
+          "name": "MAX_SPLIT"
         }
       ],
       "methods": {
@@ -179,8 +187,14 @@
           {
             "data_type": "int",
             "default": 0,
-            "description": "A string can be split in many substrings. This value defines which substring should be sent. It must be non negative. It can be overriden by values received on 'INDEX' port.",
+            "description": "A string can be split in many substrings. This value defines which substring should be sent. It must be non-negative. It can be overriden by values received on 'INDEX' port.",
             "name": "index"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "A string can be split in many substrings. This value defines the maximum number of splits (separated by the separator option) to generate, and must be non-negative. The default value of zero means to generate all substrings between the given separator. This option can be overriden by values received on the 'MAX_SPLIT' port.",
+            "name": "max_split"
           },
           {
             "data_type": "string",
