@@ -202,6 +202,7 @@ sol_util_timespec_get_current(void)
 {
     struct timespec tp;
     timex_t t;
+
     vtimer_now(&t);
     tp.tv_sec = t.seconds;
     tp.tv_nsec = t.microseconds * 1000;
