@@ -43,7 +43,7 @@
 #include "sol-log.h"
 #include "sol-str-slice.h"
 
-#if defined(HAVE_LOCALE) && defined(HAVE_STRTOD_L)
+#if defined(HAVE_NEWLOCALE) && defined(HAVE_STRTOD_L)
 static locale_t c_locale;
 static void
 clear_c_locale(void)
@@ -84,7 +84,7 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
     char *tmpbuf, *tmpbuf_endptr;
     double value;
 
-#if defined(HAVE_LOCALE) && defined(HAVE_STRTOD_L)
+#if defined(HAVE_NEWLOCALE) && defined(HAVE_STRTOD_L)
     if (!use_locale) {
         if (!init_c_locale()) {
             /* not great, but a best effort to convert something */
@@ -107,7 +107,7 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
     tmpbuf = strndupa(nptr, len);
 
     errno = 0;
-#ifdef HAVE_LOCALE
+#ifdef HAVE_NEWLOCALE
     if (!use_locale) {
 #ifdef HAVE_STRTOD_L
         value = strtod_l(tmpbuf, &tmpbuf_endptr, c_locale);
