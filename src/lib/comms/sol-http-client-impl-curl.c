@@ -65,6 +65,7 @@ struct connection {
     CURL *curl;
     struct sol_fd *watch;
     struct sol_arena *arena;
+    struct curl_slist *headers;
     struct sol_buffer buffer;
 
     void (*cb)(void *data, struct sol_http_response *response);
@@ -78,6 +79,7 @@ static void
 destroy_connection(struct connection *c)
 {
     curl_multi_remove_handle(global.multi, c->curl);
+    curl_slist_free_all(c->headers);
     curl_easy_cleanup(c->curl);
 
     sol_buffer_fini(&c->buffer);
@@ -390,7 +392,7 @@ xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 }
 
 static bool
-perform_multi(CURL *curl, struct sol_arena *arena,
+perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
     void (*cb)(void *data, struct sol_http_response *response),
     const void *data)
 {
@@ -404,6 +406,7 @@ perform_multi(CURL *curl, struct sol_arena *arena,
     SOL_NULL_CHECK(connection, false);
 
     connection->arena = arena;
+    connection->headers = headers;
     connection->curl = curl;
     connection->cb = cb;
     connection->data = data;
@@ -811,7 +814,7 @@ sol_http_client_request(enum sol_http_method method,
         }
     }
 
-    if (perform_multi(curl, arena, cb, data))
+    if (perform_multi(curl, arena, headers, cb, data))
         return 0;
 
 invalid_option:
