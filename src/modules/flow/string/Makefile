@@ -3,9 +3,9 @@ obj-string-$(FLOW_NODE_TYPE_STRING) := string.json
 
 ifdef LINUX
 ifdef HAVE_ICU
-obj-string-$(FLOW_NODE_TYPE_STRING) += string-icu.o
+obj-string-$(FLOW_NODE_TYPE_STRING) += string-icu.o string-replace-icu.o
 else
-obj-string-$(FLOW_NODE_TYPE_STRING) += string-ascii.o
+obj-string-$(FLOW_NODE_TYPE_STRING) += string-ascii.o string-replace-ascii.o
 endif
 else
 obj-string-$(FLOW_NODE_TYPE_STRING) += string-ascii.o
