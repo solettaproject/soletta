@@ -35,6 +35,7 @@ all_zero(constant/int:value=0x00000000)
 one(constant/int:value=1)
 min_int(constant/int:value=0x80000000)
 max_int(constant/int:value=0x7fffffff)
+minus_one(constant/int:value=-1)
 
 input1 OUT -> IN[0] and(int/bitwise-and)
 input2 OUT -> IN[1] and
@@ -64,6 +65,10 @@ one OUT -> SHIFT shiftl
 shiftl OUT -> IN[0] cmp_expected_shiftl(int/equal)
 all_zero OUT -> IN[1] cmp_expected_shiftl
 cmp_expected_shiftl OUT -> RESULT test_int_bitwise_shift_left(test/result)
+
+min_int OUT -> IN shiftl_error(int/shift-left)
+minus_one OUT -> SHIFT shiftl_error
+shiftl_error ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS test_int_bitwise_shift_left_error(test/result)
 
 all_one OUT -> IN shiftr(int/shift-right)
 one OUT -> SHIFT shiftr
