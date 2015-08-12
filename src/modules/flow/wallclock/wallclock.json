@@ -96,6 +96,34 @@
       ],
       "private_data_type": "wallclock_data",
       "url": "http://solettaproject.org/doc/latest/node_types/wallclock_weekday.html"
+    },
+    {
+      "category": "timer",
+      "description": "Provides int packets on a timely manner (at each day's time block). A day is split in blocks of minutes defined by options. Last block may be smaller than others.",
+      "methods": {
+        "close": "wallclock_timeblock_close",
+        "open": "wallclock_timeblock_open"
+      },
+      "name": "wallclock/timeblock",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Time block interval. Defines the length of a frame in minutes. Last block may be smaller than others. For example, if interval is set to 50 minutes, it would tick 29 times a day, but interval for last one is just 48 minutes.",
+            "name": "interval"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "An int range packet when wallclock time block changes. An initial packet is sent informing current time block.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "wallclock_timeblock_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/wallclock_timeblock.html"
     }
   ]
 }

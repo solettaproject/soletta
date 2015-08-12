@@ -30,6 +30,7 @@
 
 seconds(wallclock/second) OUT -> IN Seconds(console)
 minutes(wallclock/minute) OUT -> IN Minutes(console)
+minutes2(wallclock/timeblock:interval=2) OUT -> IN Block2Minutes(console)
 hour(wallclock/hour) OUT -> IN Hour(console)
 monthday(wallclock/monthday) OUT -> IN MonthDay(console)
 weekday(wallclock/weekday) OUT -> IN WeekDay(console)
