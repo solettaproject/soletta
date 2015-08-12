@@ -153,6 +153,8 @@ int sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, void *ptr);
 
 int sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare_cb)(const void *data1, const void *data2));
 
+int sol_ptr_vector_remove(struct sol_ptr_vector *pv, const void *ptr);
+
 static inline int
 sol_ptr_vector_del(struct sol_ptr_vector *pv, uint16_t i)
 {

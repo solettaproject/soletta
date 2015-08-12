@@ -279,6 +279,10 @@ http_get_close(struct sol_flow_node *node, void *data)
         memset(mdata->password, 0, strlen(mdata->password));
         free(mdata->password);
     }
+    if (mdata->token) {
+        memset(mdata->token, 0, strlen(mdata->token));
+        free(mdata->token);
+    }
 
     /* FIXME: Cancel pending connections. Need HTTP API. */
 }

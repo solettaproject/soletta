@@ -52,18 +52,20 @@ void sol_http_client_shutdown(void);
 static struct {
     CURLM *multi;
     struct sol_timeout *multi_perform_timeout;
+    struct sol_ptr_vector connections;
     long timeout_ms;
-    unsigned int fds;
     int ref;
 } global = {
     .timeout_ms = 100,
-    .ref = 0
+    .ref = 0,
+    .connections = SOL_PTR_VECTOR_INIT,
 };
 
 struct connection {
     CURL *curl;
     struct sol_fd *watch;
     struct sol_arena *arena;
+    struct curl_slist *headers;
     struct sol_buffer buffer;
 
     void (*cb)(void *data, struct sol_http_response *response);
@@ -73,22 +75,25 @@ struct connection {
     bool pending_error_cb;
 };
 
-static bool
-cleanup_multi_cb(void *data)
+static void
+destroy_connection(struct connection *c)
 {
-    CURLM *multi = data;
+    curl_multi_remove_handle(global.multi, c->curl);
+    curl_slist_free_all(c->headers);
+    curl_easy_cleanup(c->curl);
 
-    if (global.fds)
-        return true;
+    sol_buffer_fini(&c->buffer);
+    sol_arena_del(c->arena);
 
-    curl_multi_cleanup(multi);
-    curl_global_cleanup();
-    return false;
+    free(c);
 }
 
 void
 sol_http_client_shutdown(void)
 {
+    struct connection *c;
+    unsigned int i;
+
     if (!global.ref)
         return;
     global.ref--;
@@ -100,11 +105,15 @@ sol_http_client_shutdown(void)
         global.multi_perform_timeout = NULL;
     }
 
-    /* Cleanup in an idler as there might be easy handles in the flight. */
-    if (!sol_idle_add(cleanup_multi_cb, global.multi)) {
-        SOL_WRN("Could defer cURL cleanup");
-        return;
+    SOL_PTR_VECTOR_FOREACH_IDX (&global.connections, c, i) {
+        destroy_connection(c);
     }
+
+    sol_ptr_vector_clear(&global.connections);
+
+    curl_multi_cleanup(global.multi);
+    curl_global_cleanup();
+
     global.multi = NULL;
 }
 
@@ -276,15 +285,9 @@ error_cb(void *data)
 
     call_connection_finish_cb(connection);
 
-    curl_multi_remove_handle(global.multi, connection->curl);
-    curl_easy_cleanup(connection->curl);
+    destroy_connection(connection);
 
-    sol_buffer_fini(&connection->buffer);
-    sol_arena_del(connection->arena);
-
-    free(connection);
-
-    global.fds--;
+    sol_ptr_vector_remove(&global.connections, connection);
 
     return false;
 }
@@ -364,7 +367,6 @@ open_socket_cb(void *clientp, curlsocktype purpose, struct curl_sockaddr *addr)
         return -1;
     }
 
-    global.fds++;
     return fd;
 }
 
@@ -390,7 +392,7 @@ xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 }
 
 static bool
-perform_multi(CURL *curl, struct sol_arena *arena,
+perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
     void (*cb)(void *data, struct sol_http_response *response),
     const void *data)
 {
@@ -404,6 +406,7 @@ perform_multi(CURL *curl, struct sol_arena *arena,
     SOL_NULL_CHECK(connection, false);
 
     connection->arena = arena;
+    connection->headers = headers;
     connection->curl = curl;
     connection->cb = cb;
     connection->data = data;
@@ -449,6 +452,8 @@ perform_multi(CURL *curl, struct sol_arena *arena,
         curl_multi_remove_handle(global.multi, connection->curl);
         goto free_buffer;
     }
+
+    sol_ptr_vector_append(&global.connections, connection);
 
     return true;
 
@@ -807,7 +812,7 @@ sol_http_client_request(enum sol_http_method method,
         }
     }
 
-    if (perform_multi(curl, arena, cb, data))
+    if (perform_multi(curl, arena, headers, cb, data))
         return 0;
 
 invalid_option:
