@@ -160,6 +160,14 @@ sol_buffer_get_slice(const struct sol_buffer *buf)
     return SOL_STR_SLICE_STR(buf->data, buf->used);
 }
 
+static inline struct sol_str_slice
+sol_buffer_get_slice_at(const struct sol_buffer *buf, size_t pos)
+{
+    if (!buf || buf->used < pos)
+        return SOL_STR_SLICE_STR(NULL, 0);
+    return SOL_STR_SLICE_STR((char *)buf->data + pos, buf->used - pos);
+}
+
 /* Appends the 'slice' into 'buf', reallocating if necessary. */
 int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
 
