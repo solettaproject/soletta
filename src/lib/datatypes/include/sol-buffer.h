@@ -76,20 +76,57 @@ extern "C" {
  * that will be de-allocated twice.
  */
 
-struct sol_buffer {
-    void *data;
-    size_t reserved, used;
+enum sol_buffer_flags {
+    /**
+     * default flags: buffer may be resized and memory will be free'd
+     * at the end.
+     */
+    SOL_BUFFER_FLAGS_DEFAULT = 0,
+    /**
+     * fixed capacity buffers won't be resized, sol_buffer_resize()
+     * will fail with -EPERM.
+     */
+    SOL_BUFFER_FLAGS_FIXED_CAPACITY = (1 << 0),
+    /**
+     * no free buffers won't call @c free(buf->data) at
+     * sol_buffer_fini().
+     */
+    SOL_BUFFER_FLAGS_NO_FREE = (1 << 1),
+    /**
+     * buffers where the @c buf->data is not owned by sol_buffer, that
+     * is, it can't be resized and free() should not be called at it
+     * at sol_buffer_fini().
+     */
+    SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED = (SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_FREE)
 };
 
-#define SOL_BUFFER_EMPTY (struct sol_buffer){.data = NULL, .reserved = 0, .used = 0 }
+struct sol_buffer {
+    void *data;
+    size_t capacity, used;
+    enum sol_buffer_flags flags;
+};
+
+#define SOL_BUFFER_INIT_EMPTY (struct sol_buffer){.data = NULL, .capacity = 0, .used = 0, .flags = SOL_BUFFER_FLAGS_DEFAULT }
+#define SOL_BUFFER_INIT_FLAGS(data_, size_, flags_) (struct sol_buffer){.data = data_, .capacity = size_, .used = 0, .flags = flags_ }
 
 static inline void
 sol_buffer_init(struct sol_buffer *buf)
 {
     assert(buf);
     buf->data = NULL;
-    buf->reserved = 0;
+    buf->capacity = 0;
     buf->used = 0;
+    buf->flags = SOL_BUFFER_FLAGS_DEFAULT;
+}
+
+static inline void
+sol_buffer_init_flags(struct sol_buffer *buf, void *data, size_t data_size, enum sol_buffer_flags flags)
+{
+    assert(buf);
+    buf->data = data;
+    buf->capacity = data_size;
+    buf->used = 0;
+    buf->flags = flags;
 }
 
 static inline void
@@ -97,10 +134,11 @@ sol_buffer_fini(struct sol_buffer *buf)
 {
     if (!buf)
         return;
-    free(buf->data);
+    if (!(buf->flags & SOL_BUFFER_FLAGS_NO_FREE))
+        free(buf->data);
     buf->data = NULL;
     buf->used = 0;
-    buf->reserved = 0;
+    buf->capacity = 0;
 }
 
 int sol_buffer_resize(struct sol_buffer *buf, size_t new_size);
