@@ -183,16 +183,11 @@ sol_flower_power_send_packet(struct sol_flow_node *src,
     uint16_t src_port, const struct sol_flower_power_data *fpd)
 {
     struct sol_flow_packet *packet;
-    int ret;
 
     packet = sol_flower_power_new_packet(fpd);
     SOL_NULL_CHECK(packet, -ENOMEM);
 
-    ret = sol_flow_send_packet(src, src_port, packet);
-    if (ret != 0)
-        sol_flow_packet_del(packet);
-
-    return ret;
+    return sol_flow_send_packet(src, src_port, packet);
 }
 
 SOL_API int
@@ -202,17 +197,12 @@ sol_flower_power_send_packet_components(struct sol_flow_node *src,
     struct sol_drange *temperature, struct sol_drange *water)
 {
     struct sol_flow_packet *packet;
-    int ret;
 
     packet = sol_flower_power_new_packet_components(id, timestamp,
         fertilizer, light, temperature, water);
     SOL_NULL_CHECK(packet, -ENOMEM);
 
-    ret = sol_flow_send_packet(src, src_port, packet);
-    if (ret != 0)
-        sol_flow_packet_del(packet);
-
-    return ret;
+    return sol_flow_send_packet(src, src_port, packet);
 }
 
 struct http_get_data {

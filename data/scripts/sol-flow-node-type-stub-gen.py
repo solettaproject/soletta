@@ -276,16 +276,11 @@ send_%(name)s_packet(struct sol_flow_node *src, uint16_t src_port
                      /* TODO: args to create a new packet */)
 {
     struct sol_flow_packet *packet;
-    int ret;
 
     packet = packet_new_%(name)s(/* TODO: args */);
     SOL_NULL_CHECK(packet, -ENOMEM);
 
-    ret = sol_flow_send_packet(src, src_port, packet);
-    if (ret != 0)
-        sol_flow_packet_del(packet);
-
-    return ret;
+    return sol_flow_send_packet(src, src_port, packet);
 }
 
 """ % {
