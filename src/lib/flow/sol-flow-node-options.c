@@ -228,7 +228,7 @@ irange_parse(const char *value, struct sol_flow_node_named_options_member *m)
 
     LINEAR_VALUES_RECAP(INT32_MAX, INT32_MIN);
 
-    SOL_DBG("irange opt ends up as min=%d, max=%d, step=%d, val=%d\n",
+    SOL_DBG("irange opt ends up as min=%"PRId32", max=%"PRId32", step=%"PRId32", val=%"PRId32"\n",
         ret->min, ret->max, ret->step, ret->val);
 
     free(buf);
@@ -374,8 +374,8 @@ rgb_parse(const char *value, struct sol_flow_node_named_options_member *m)
         break;
     }
 
-    SOL_DBG("rgb opt ends up as red=%d, green=%d, blue=%d "
-        "red_max=%d, green_max=%d, blue_max=%d\n",
+    SOL_DBG("rgb opt ends up as red=%"PRIu32", green=%"PRIu32", blue=%"PRIu32" "
+        "red_max=%"PRIu32", green_max=%"PRIu32", blue_max=%"PRIu32"\n",
         ret->red, ret->green, ret->blue,
         ret->red_max, ret->green_max, ret->blue_max);
 

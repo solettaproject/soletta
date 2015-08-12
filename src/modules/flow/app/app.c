@@ -122,7 +122,7 @@ quit_with_code_process(struct sol_flow_node *node, void *data, uint16_t port, ui
 static int
 quit_with_error_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    int32_t in_value;
+    int in_value;
     int r;
 
     r = sol_flow_packet_get_error(packet, &in_value, NULL);

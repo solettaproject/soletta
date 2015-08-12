@@ -314,7 +314,7 @@ tune_parse(struct piezo_speaker_data *mdata, const char *tune)
     if (*pos != TUNE_FIELD_SEPARATOR || i != mdata->num_entries) {
         if (!i) goto _format_err;
         SOL_WRN("Bad format for speaker tune string (%s)"
-            " -- less beat (%d) than note (%d) entries."
+            " -- less beat (%d) than note (%"PRId32") entries."
             " The notes array length is being shrunk to match the beats",
             tune, i, mdata->num_entries);
         mdata->num_entries = i;
@@ -329,7 +329,7 @@ tune_parse(struct piezo_speaker_data *mdata, const char *tune)
         goto _format_err;
     if (mdata->tempo_ms * 1000 > INT32_MAX / 9) {
         SOL_WRN("Bad format for speaker tune string (%s)"
-            " -- base tempo too high %" PRId32 " ms (max is %d ms)"
+            " -- base tempo too high %" PRId32 " ms (max is %"PRId32" ms)"
             " -- we can't apply a new tune",
             tune, mdata->tempo_ms, INT32_MAX / 9000);
         return -EINVAL;
