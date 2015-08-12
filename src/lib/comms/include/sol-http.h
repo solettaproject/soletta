@@ -103,6 +103,12 @@ struct sol_http_response {
     int response_code;
 };
 
+#define SOL_HTTP_REQUEST_PARAM_INIT   \
+    (struct sol_http_param) { \
+        .api_version = SOL_HTTP_PARAM_API_VERSION, \
+        .params = SOL_VECTOR_INIT(struct sol_http_param_value) \
+    }
+
 #define SOL_HTTP_REQUEST_PARAM_KEY_VALUE(type_, key_, value_) \
     (struct sol_http_param_value) { \
         .type = type_, \
