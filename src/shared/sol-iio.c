@@ -506,7 +506,7 @@ static bool
 iio_set_channel_scale(struct sol_iio_channel *channel, double scale)
 {
     char path[PATH_MAX], *pure_name = NULL;
-    bool result;
+    bool result = false;
 
     SOL_NULL_CHECK(channel, false);
 
@@ -542,7 +542,7 @@ static bool
 iio_set_channel_offset(struct sol_iio_channel *channel, int offset)
 {
     char path[PATH_MAX], *pure_name = NULL;
-    bool result;
+    bool result = false;
 
     SOL_NULL_CHECK(channel, false);
 
