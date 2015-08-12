@@ -48,12 +48,24 @@ static int read_magic[2];
 static int timeout_count;
 static int idler_count1, idler_count2;
 
+static int sigterm_fds[2];
+
+static void
+request_sigterm_if_complete(void)
+{
+    if (timeout_count == 2 && idler_count1 == 2 && idler_count2 == 2) {
+        /* Signal the child process by closing the write end of the pipe. */
+        close(sigterm_fds[1]);
+    }
+}
+
 static bool
 on_idle_renew_twice(void *data)
 {
     int *count = data;
 
     (*count)++;
+    request_sigterm_if_complete();
     return (*count) < 2;
 }
 
@@ -64,6 +76,7 @@ on_timeout_renew_twice(void *data)
     if (timeout_count == 1)
         sol_idle_add(on_idle_renew_twice, &idler_count2);
 
+    request_sigterm_if_complete();
     return timeout_count < 2;
 }
 
@@ -101,6 +114,9 @@ main(int argc, char *argv[])
     err = pipe(fds);
     ASSERT_INT_EQ(err, 0);
 
+    err = pipe(sigterm_fds);
+    ASSERT_INT_EQ(err, 0);
+
     /* test fd by writing from another process */
     pid = fork();
     if (pid == 0) {
@@ -124,7 +140,10 @@ main(int argc, char *argv[])
     /* test if we handle graceful termination with SIGTERM */
     pid = fork();
     if (pid == 0) {
-        usleep(100000);
+        int ignored;
+        close(sigterm_fds[1]);
+        /* Blocks until the parent close the write end of the pipe. */
+        read(sigterm_fds[0], &ignored, sizeof(ignored));
         kill(getppid(), SIGTERM);
         _exit(EXIT_SUCCESS);
     }
