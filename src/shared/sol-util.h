@@ -260,7 +260,7 @@ sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out)
     return 0;
 }
 
-static inline uint64_t
+static inline int
 sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
 {
 #ifdef HAVE_BUILTIN_MUL_OVERFLOW
@@ -275,7 +275,7 @@ sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
     return 0;
 }
 
-static inline uint64_t
+static inline int
 sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
 {
 #ifdef HAVE_BUILTIN_ADD_OVERFLOW
