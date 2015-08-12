@@ -137,6 +137,14 @@ int sol_buffer_ensure(struct sol_buffer *buf, size_t min_size);
  * an extra NUL byte so the buffer can be used as a cstr. */
 int sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
 
+static inline struct sol_str_slice
+sol_buffer_get_slice(const struct sol_buffer *buf)
+{
+    if (!buf)
+        return SOL_STR_SLICE_STR(NULL, 0);
+    return SOL_STR_SLICE_STR(buf->data, buf->used);
+}
+
 /* Appends the 'slice' into 'buf', reallocating if necessary. */
 int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
 

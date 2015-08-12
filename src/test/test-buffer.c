@@ -173,6 +173,10 @@ test_append_slice(void)
     ASSERT_STR_NE(buf.data, backend);
     ASSERT_STR_EQ(buf.data, expected_str);
 
+    slice = sol_buffer_get_slice(&buf);
+    ASSERT_INT_EQ(slice.len, buf.used);
+    ASSERT_STR_EQ(slice.data, buf.data);
+
     sol_buffer_fini(&buf);
 
     free(backend);
