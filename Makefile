@@ -53,10 +53,11 @@ warning: $(KCONFIG_GEN)
 $(warning-targets)
 else
 all: $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
+default_target: all
 endif # HAVE_KCONFIG_CONFIG
 endif # NOT_FOUND
 
 $(KCONFIG_CONFIG): $(KCONFIG_GEN)
 
-.DEFAULT_GOAL = all
+.DEFAULT_GOAL = default_target
 .PHONY = $(PHONY) all
