@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "sol-buffer.h"
 #include "sol-log.h"
@@ -110,4 +111,51 @@ sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice
     sol_str_slice_copy((char *)buf->data + buf->used, slice);
     buf->used += slice.len;
     return 0;
+}
+
+SOL_API int
+sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args)
+{
+    va_list args_copy;
+    size_t space;
+    char *p;
+    ssize_t done;
+    int r;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(fmt, -EINVAL);
+
+    /* We need to copy args since we first try to do one vsnprintf()
+     * to the existing space and if it doesn't fit we do a second
+     * one. The second one would fail since args may be changed by
+     * vsnprintf(), so the copy.
+     */
+    va_copy(args_copy, args);
+
+    space = buf->capacity - buf->used;
+    p = (char *)buf->data + buf->used;
+    done = vsnprintf(p, space, fmt, args_copy);
+    if (done < 0) {
+        r = -errno;
+        goto end;
+    } else if ((size_t)done >= space) {
+        r = sol_buffer_ensure(buf, buf->used + done + 1);
+        if (r < 0)
+            goto end;
+
+        space = buf->capacity - buf->used;
+        p = (char *)buf->data + buf->used;
+        done = vsnprintf(p, space, fmt, args);
+        if (done < 0) {
+            r = -errno;
+            goto end;
+        }
+    }
+
+    buf->used += done;
+    r = 0;
+
+end:
+    va_end(args_copy);
+    return r;
 }
