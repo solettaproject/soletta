@@ -35,6 +35,7 @@
 #include <assert.h>
 
 #include <sol-str-slice.h>
+#include <stdarg.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -138,6 +139,21 @@ int sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slic
 
 /* Appends the 'slice' into 'buf', reallocating if necessary. */
 int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
+
+/* append the formatted string to buffer, including trailing \0 */
+int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args);
+static inline int sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
+static inline int
+sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...)
+{
+    va_list args;
+    int r;
+
+    va_start(args, fmt);
+    r = sol_buffer_append_vprintf(buf, fmt, args);
+    va_end(args);
+    return r;
+}
 
 /**
  * @}
