@@ -224,6 +224,7 @@ sol_flow_send_packet(struct sol_flow_node *src, uint16_t src_port, struct sol_fl
 {
     struct sol_flow_node *parent;
     struct sol_flow_node_container_type *parent_type;
+    int ret;
 
     SOL_FLOW_NODE_CHECK_GOTO(src, err);
     parent = src->parent;
@@ -239,7 +240,11 @@ sol_flow_send_packet(struct sol_flow_node *src, uint16_t src_port, struct sol_fl
      * reduce indirection. */
     SOL_FLOW_NODE_TYPE_IS_CONTAINER_CHECK_GOTO(parent, err);
     parent_type = (struct sol_flow_node_container_type *)parent->type;
-    return parent_type->send(parent, src, src_port, packet);
+
+    ret = parent_type->send(parent, src, src_port, packet);
+    if (ret != 0)
+        sol_flow_packet_del(packet);
+    return ret;
 
 err:
     sol_flow_packet_del(packet);
