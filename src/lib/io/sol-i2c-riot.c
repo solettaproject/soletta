@@ -256,7 +256,7 @@ i2c_read_reg_multiple_timeout_cb(void *data)
 {
     struct sol_i2c *i2c = data;
     uint8_t i;
-    size_t ret;
+    size_t ret = 0;
 
     i2c_acquire(i2c->dev);
     for (i = 0; i < i2c->async.times; i++) {
@@ -371,7 +371,7 @@ sol_i2c_pending_cancel(struct sol_i2c *i2c, struct sol_i2c_pending *pending)
     SOL_NULL_CHECK(i2c);
     SOL_NULL_CHECK(pending);
 
-    if (i2c->async.timeout == (struct sol_i2c_pending *)pending) {
+    if (i2c->async.timeout == (struct sol_timeout *)pending) {
         sol_timeout_del(i2c->async.timeout);
         i2c->async.dispatch(i2c);
         i2c->async.timeout = NULL;
