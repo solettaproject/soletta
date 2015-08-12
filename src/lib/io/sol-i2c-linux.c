@@ -61,7 +61,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 #include "sol-worker-thread.h"
 #endif
 
@@ -72,7 +72,7 @@ struct sol_i2c {
     bool plain_i2c;
     struct {
         const void *cb_data;
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
         struct sol_worker_thread *worker;
 #else
         struct sol_timeout *timeout;
@@ -99,7 +99,7 @@ struct sol_i2c {
 
 };
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 #define BUSY_CHECK(i2c, ret) SOL_EXP_CHECK(i2c->async.worker, ret);
 #else
 #define BUSY_CHECK(i2c, ret) SOL_EXP_CHECK(i2c->async.timeout, ret);
@@ -158,7 +158,7 @@ sol_i2c_close_raw(struct sol_i2c *i2c)
 
     SOL_NULL_CHECK(i2c);
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     pending = (struct sol_i2c_pending *)i2c->async.worker;
 #else
     pending = (struct sol_i2c_pending *)i2c->async.timeout;
@@ -226,7 +226,7 @@ _i2c_write_quick_dispatch(struct sol_i2c *i2c)
         i2c->async.status);
 }
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 static bool
 i2c_write_quick_worker_thread_iterate(void *data)
 {
@@ -260,7 +260,7 @@ i2c_write_quick_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data)
 {
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
         .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
         .setup = NULL,
@@ -282,7 +282,7 @@ sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *c
     i2c->async.dispatch = _i2c_write_quick_dispatch;
     i2c->async.cb_data = cb_data;
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     i2c->async.worker = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
@@ -358,7 +358,7 @@ _i2c_read_write_dispatch(struct sol_i2c *i2c)
         i2c->async.data, i2c->async.status);
 }
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 static bool
 i2c_read_worker_thread_iterate(void *data)
 {
@@ -383,7 +383,7 @@ i2c_read_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_read(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*read_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data)
 {
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
         .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
         .setup = NULL,
@@ -408,7 +408,7 @@ sol_i2c_read(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*read_cb)
     i2c->async.dispatch = _i2c_read_write_dispatch;
     i2c->async.cb_data = cb_data;
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     i2c->async.worker = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
@@ -432,7 +432,7 @@ _i2c_write(struct sol_i2c *i2c, uint8_t *values)
     i2c->async.status = i2c->async.count;
 }
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 static bool
 i2c_write_worker_thread_iterate(void *data)
 {
@@ -457,7 +457,7 @@ i2c_write_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_write(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*write_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data)
 {
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
         .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
         .setup = NULL,
@@ -482,7 +482,7 @@ sol_i2c_write(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*write_c
     i2c->async.dispatch = _i2c_read_write_dispatch;
     i2c->async.cb_data = cb_data;
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     i2c->async.worker = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
@@ -584,7 +584,7 @@ _i2c_read_write_reg_dispatch(struct sol_i2c *i2c)
         i2c->async.reg, i2c->async.data, i2c->async.status);
 }
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 static bool
 i2c_read_reg_worker_thread_iterate(void *data)
 {
@@ -609,7 +609,7 @@ i2c_read_reg_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t count, void (*read_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data)
 {
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
         .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
         .setup = NULL,
@@ -635,7 +635,7 @@ sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t 
     i2c->async.reg = reg;
     i2c->async.cb_data = cb_data;
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     i2c->async.worker = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
@@ -698,7 +698,7 @@ _i2c_read_register_multiple(struct sol_i2c *i2c)
     i2c->async.status = i2c->async.count * i2c->async.times;
 }
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 static bool
 i2c_read_reg_multiple_worker_thread_iterate(void *data)
 {
@@ -723,7 +723,7 @@ i2c_read_reg_multiple_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t count, uint8_t times, void (*read_reg_multiple_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data)
 {
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
         .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
         .setup = NULL,
@@ -751,7 +751,7 @@ sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values
     i2c->async.cb_data = cb_data;
     i2c->async.times = times;
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     i2c->async.worker = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
@@ -838,7 +838,7 @@ _i2c_write_register(struct sol_i2c *i2c)
     i2c->async.status = i2c->async.count;
 }
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 static bool
 i2c_write_reg_worker_thread_iterate(void *data)
 {
@@ -863,7 +863,7 @@ i2c_write_reg_timeout_cb(void *data)
 SOL_API struct sol_i2c_pending *
 sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *values, size_t count, void (*write_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data)
 {
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
         .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
         .setup = NULL,
@@ -889,7 +889,7 @@ sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *values, 
     i2c->async.reg = reg;
     i2c->async.cb_data = cb_data;
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     i2c->async.worker = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK(i2c->async.worker, false);
     return (struct sol_i2c_pending *)i2c->async.worker;
@@ -934,7 +934,7 @@ SOL_API bool
 sol_i2c_busy(struct sol_i2c *i2c)
 {
     SOL_NULL_CHECK(i2c, true);
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     return i2c->async.worker;
 #else
     return i2c->async.timeout;
@@ -947,7 +947,7 @@ sol_i2c_pending_cancel(struct sol_i2c *i2c, struct sol_i2c_pending *pending)
     SOL_NULL_CHECK(i2c);
     SOL_NULL_CHECK(pending);
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     if (i2c->async.worker == (struct sol_worker_thread *)pending) {
         sol_worker_thread_cancel(i2c->async.worker);
         i2c->async.worker = NULL;
