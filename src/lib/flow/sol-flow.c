@@ -384,7 +384,6 @@ sol_flow_send_error_packet(struct sol_flow_node *src, int code, const char *msg_
 {
     struct sol_flow_packet *packet;
     va_list args;
-    int ret;
     char *msg = NULL;
 
     if (msg_fmt) {
@@ -399,12 +398,10 @@ sol_flow_send_error_packet(struct sol_flow_node *src, int code, const char *msg_
     }
 
     packet = sol_flow_packet_new_error(code, msg);
+    free(msg);
     SOL_NULL_CHECK(packet, -ENOMEM);
 
-    ret = sol_flow_send_packet(src, SOL_FLOW_NODE_PORT_ERROR, packet);
-
-    free(msg);
-    return ret;
+    return sol_flow_send_packet(src, SOL_FLOW_NODE_PORT_ERROR, packet);
 }
 
 static struct sol_flow_port_type_out port_error = {
