@@ -97,6 +97,29 @@ test_size_mul(void)
     ASSERT_INT_EQ(sol_util_size_mul(half_size, 4, &out), -EOVERFLOW);
 }
 
+DEFINE_TEST(test_ssize_mul);
+
+static void
+test_ssize_mul(void)
+{
+    ssize_t half_ssize = SSIZE_MAX / 2;
+    ssize_t half_double_ssize = (SSIZE_MAX % 2) ?
+        (SSIZE_MAX - 1) : SSIZE_MAX;
+    ssize_t out;
+
+    ASSERT(sol_util_ssize_mul(half_ssize, 2, &out) == 0);
+    ASSERT_INT_EQ(out, half_double_ssize);
+
+    ASSERT_INT_EQ(sol_util_ssize_mul(half_ssize, 4, &out), -EOVERFLOW);
+
+    half_ssize *= -1;
+    half_double_ssize *= -1;
+    ASSERT(sol_util_ssize_mul(half_ssize, 2, &out) == 0);
+    ASSERT_INT_EQ(out, half_double_ssize);
+
+    ASSERT_INT_EQ(sol_util_ssize_mul(half_ssize, 4, &out), -EOVERFLOW);
+}
+
 DEFINE_TEST(test_strtodn);
 
 static void

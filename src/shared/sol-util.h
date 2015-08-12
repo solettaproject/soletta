@@ -37,12 +37,13 @@
 #include "sol-str-slice.h"
 #include "sol-vector.h"
 
+#include <errno.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <string.h>
-#include <time.h>
-#include <errno.h>
 #include <sys/types.h>
+#include <time.h>
 
 #ifdef SOL_PLATFORM_LINUX
 #include "sol-util-linux.h"
@@ -52,6 +53,7 @@
 #define OVERFLOW_TYPE(type) ((type)1 << (sizeof(type) * 4))
 #define OVERFLOW_UINT64 OVERFLOW_TYPE(uint64_t)
 #define OVERFLOW_SIZE_T OVERFLOW_TYPE(size_t)
+#define OVERFLOW_SSIZE_T OVERFLOW_TYPE(ssize_t)
 
 #define streq(a, b) (strcmp((a), (b)) == 0)
 #define streqn(a, b, n) (strncmp((a), (b), (n)) == 0)
@@ -204,6 +206,25 @@ align_power2(unsigned int u)
  *         success, or @c NULL, otherwise.
  */
 struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
+
+static inline int
+sol_util_ssize_mul(ssize_t op1, ssize_t op2, ssize_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(op1, op2, out))
+        return -EOVERFLOW;
+#else
+    if (op1 < 0)
+        op1 *= -1;
+    if (op2 < 0)
+        op2 *= -1;
+    if ((op1 >= OVERFLOW_SSIZE_T || op2 >= OVERFLOW_SSIZE_T) &&
+        op1 > 0 && SSIZE_MAX / op1 < op2)
+        return -EOVERFLOW;
+    *out = op1 * op2;
+#endif
+    return 0;
+}
 
 static inline int
 sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out)

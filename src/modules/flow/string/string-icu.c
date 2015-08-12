@@ -36,6 +36,10 @@
 #include <unicode/ustring.h>
 #include <unicode/utypes.h>
 #include <unicode/uchar.h>
+
+#include "string-gen.h"
+#include "string-replace.h"
+
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 #define ICU_STR_FROM_UTF8(_icu_str, _icu_sz, _icu_err_val, \
@@ -74,6 +78,25 @@
             -1, &_icu_err_val); \
         if (U_FAILURE(_icu_err_val)) { \
             errno = -_inval_ret; \
+            goto _icu_conv_goto; \
+        } \
+    } while (0)
+
+#define ICU_STR_FROM_UTF8_GOTO_ALL(_icu_str, _icu_sz, _icu_err_val, \
+        _utf_str, _inval_goto, _no_mem_goto, _icu_conv_goto) \
+    do { \
+        _icu_err_val = U_ZERO_ERROR; \
+        u_strFromUTF8(NULL, 0, &_icu_sz, _utf_str, -1, &_icu_err_val); \
+        if (U_FAILURE(_icu_err_val) && \
+            _icu_err_val != U_BUFFER_OVERFLOW_ERROR) \
+            goto _inval_goto; \
+        _icu_str = calloc(_icu_sz + 1, sizeof(*_icu_str)); \
+        if (!_icu_str) \
+            goto _no_mem_goto; \
+        _icu_err_val = U_ZERO_ERROR; \
+        u_strFromUTF8(_icu_str, _icu_sz + 1, &_icu_sz, _utf_str, \
+            -1, &_icu_err_val); \
+        if (U_FAILURE(_icu_err_val)) { \
             goto _icu_conv_goto; \
         } \
     } while (0)
@@ -130,11 +153,6 @@
 #include <locale.h>
 #endif
 
-#include "string-gen.h"
-
-#include "sol-flow-internal.h"
-#include "sol-util.h"
-
 struct string_data {
     int32_t n;
     UChar *string[2];
@@ -169,7 +187,7 @@ string_concatenate_close(struct sol_flow_node *node, void *data)
 }
 
 static bool
-get_string(const struct sol_flow_packet *packet,
+get_string_by_port(const struct sol_flow_packet *packet,
     uint16_t port,
     struct string_data *mdata)
 {
@@ -251,7 +269,7 @@ string_concat(struct sol_flow_node *node,
     int32_t sz;
     int r, len;
 
-    if (!get_string(packet, port, &mdata->base))
+    if (!get_string_by_port(packet, port, &mdata->base))
         return 0;
 
     len = u_strlen(mdata->base.string[0])
@@ -327,7 +345,7 @@ string_compare(struct sol_flow_node *node,
 
     UErrorCode err;
 
-    if (!get_string(packet, port, &mdata->base))
+    if (!get_string_by_port(packet, port, &mdata->base))
         return 0;
 
     if (mdata->base.n) {
@@ -643,7 +661,7 @@ set_max_split(struct sol_flow_node *node,
 }
 
 static int
-split_get_string(const struct sol_flow_packet *packet,
+get_string(const struct sol_flow_packet *packet,
     UChar **string)
 {
     const char *in_value;
@@ -677,7 +695,7 @@ set_string_separator(struct sol_flow_node *node,
     struct string_split_data *mdata = data;
     int r;
 
-    r = split_get_string(packet, &mdata->separator);
+    r = get_string(packet, &mdata->separator);
     SOL_INT_CHECK(r, < 0, r);
 
     r = calculate_substrings(mdata, node);
@@ -696,7 +714,7 @@ string_split(struct sol_flow_node *node,
     struct string_split_data *mdata = data;
     int r;
 
-    r = split_get_string(packet, &mdata->string);
+    r = get_string(packet, &mdata->string);
     SOL_INT_CHECK(r, < 0, r);
 
     r = calculate_substrings(mdata, node);
@@ -798,6 +816,195 @@ string_uppercase(struct sol_flow_node *node,
     const struct sol_flow_packet *packet)
 {
     return string_change_case(node, data, port, conn_id, packet, false);
+}
+
+struct string_replace_data {
+    struct sol_flow_node *node;
+    UChar *orig_string;
+    UChar *from_string;
+    UChar *to_string;
+    int32_t max_replace;
+};
+
+static int
+string_replace_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    int32_t sz;
+    UErrorCode err;
+    struct string_replace_data *mdata = data;
+    const struct sol_flow_node_type_string_replace_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_STRING_REPLACE_OPTIONS_API_VERSION, -EINVAL);
+
+    opts = (const struct sol_flow_node_type_string_replace_options *)options;
+
+    mdata->node = node;
+    if (opts->max_replace.val < 0) {
+        SOL_WRN("Max replace (%d) must be a non-negative value",
+            opts->max_replace.val);
+        return -EINVAL;
+    }
+    mdata->max_replace = opts->max_replace.val ? : INT32_MAX;
+
+    if (!opts->from_string) {
+        SOL_WRN("Option 'from_string' must not be NULL");
+        return -EINVAL;
+    }
+
+    ICU_STR_FROM_UTF8(mdata->from_string, sz, err, opts->from_string,
+        -EINVAL, -ENOMEM);
+
+    if (!opts->from_string) {
+        free(mdata->from_string);
+        SOL_WRN("Option 'from_string' must not be NULL");
+        return -EINVAL;
+    }
+
+    ICU_STR_FROM_UTF8_GOTO_ALL(mdata->to_string, sz, err, opts->to_string,
+        err_inval, err_mem, err_inval);
+
+    return 0;
+
+err_mem:
+    free(mdata->from_string);
+    return -ENOMEM;
+
+err_inval:
+    free(mdata->to_string);
+    free(mdata->from_string);
+    return -EINVAL;
+}
+
+static void
+string_replace_close(struct sol_flow_node *node, void *data)
+{
+    struct string_replace_data *mdata = data;
+
+    free(mdata->orig_string);
+    free(mdata->from_string);
+    free(mdata->to_string);
+}
+
+static int
+string_replace_do(struct string_replace_data *mdata,
+    const char *value)
+{
+    UChar *orig_string_replaced;
+    UErrorCode err;
+    char *final;
+    int32_t sz;
+
+    if (!value)
+        goto replace;
+
+    free(mdata->orig_string);
+    mdata->orig_string = NULL;
+    ICU_STR_FROM_UTF8(mdata->orig_string, sz, err, value, -ENOMEM, -EINVAL);
+
+replace:
+    orig_string_replaced = string_replace(mdata->node, mdata->orig_string,
+        mdata->from_string, mdata->to_string, mdata->max_replace);
+    if (!orig_string_replaced) { // err packets already generated by the call
+        return -EINVAL;
+    }
+
+    UTF8_FROM_ICU_STR_ERRNO_GOTO(final, sz, err, orig_string_replaced, -1,
+        EINVAL, fail_to_utf8, ENOMEM, fail_to_utf8, EINVAL, fail_final);
+
+    return sol_flow_send_string_take_packet(mdata->node,
+        SOL_FLOW_NODE_TYPE_STRING_REPLACE__OUT__OUT, final);
+
+fail_final:
+    free(final);
+fail_to_utf8:
+    free(orig_string_replaced);
+    sol_flow_send_error_packet(mdata->node, -errno, "Failed to replace "
+        "string: %s", u_errorName(err));
+    return -errno;
+}
+
+static int
+string_replace_process(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_replace_data *mdata = data;
+    const char *in_value;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return string_replace_do(mdata, in_value);
+}
+
+static int
+set_replace_from(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_replace_data *mdata = data;
+    int r;
+
+    r = get_string(packet, &mdata->from_string);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!mdata->orig_string)
+        return 0;
+
+    return string_replace_do(mdata, NULL);
+}
+
+static int
+set_replace_to(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_replace_data *mdata = data;
+    int r;
+
+    r = get_string(packet, &mdata->to_string);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!mdata->orig_string)
+        return 0;
+
+    return string_replace_do(mdata, NULL);
+}
+
+static int
+set_max_replace(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_replace_data *mdata = data;
+    int r;
+    int32_t in_value;
+
+    r = sol_flow_packet_get_irange_value(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (in_value < 0) {
+        SOL_WRN("Max replace (%d) must be a non-negative value", in_value);
+        return -EINVAL;
+    }
+    mdata->max_replace = in_value;
+
+    if (!mdata->orig_string)
+        return 0;
+
+    return string_replace_do(mdata, NULL);
 }
 
 #include "string-gen.c"
