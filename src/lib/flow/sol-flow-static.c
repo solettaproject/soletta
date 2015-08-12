@@ -412,7 +412,7 @@ teardown_flow_data(
 static int
 flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_buffer opts_buf = SOL_BUFFER_EMPTY;
+    struct sol_buffer opts_buf = SOL_BUFFER_INIT_EMPTY;
     struct flow_static_type *type;
     struct flow_static_data *fsd;
     const struct sol_flow_static_node_spec *spec;

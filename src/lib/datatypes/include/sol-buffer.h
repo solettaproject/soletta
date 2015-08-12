@@ -79,9 +79,11 @@ extern "C" {
 struct sol_buffer {
     void *data;
     size_t reserved, used;
+    bool fixed_size;
 };
 
-#define SOL_BUFFER_EMPTY (struct sol_buffer){.data = NULL, .reserved = 0, .used = 0 }
+#define SOL_BUFFER_INIT_EMPTY (struct sol_buffer){.data = NULL, .reserved = 0, .used = 0, .fixed_size = false }
+#define SOL_BUFFER_INIT_FIXED(data_, size_) (struct sol_buffer){.data = data_, .reserved = size_, .used = 0, .fixed_size = true }
 
 static inline void
 sol_buffer_init(struct sol_buffer *buf)
@@ -90,6 +92,17 @@ sol_buffer_init(struct sol_buffer *buf)
     buf->data = NULL;
     buf->reserved = 0;
     buf->used = 0;
+    buf->fixed_size = false;
+}
+
+static inline void
+sol_buffer_init_fixed_size(struct sol_buffer *buf, void *data, size_t data_size)
+{
+    assert(buf);
+    buf->data = data;
+    buf->reserved = data_size;
+    buf->used = 0;
+    buf->fixed_size = true;
 }
 
 static inline void
@@ -98,6 +111,16 @@ sol_buffer_fini(struct sol_buffer *buf)
     if (!buf)
         return;
     free(buf->data);
+    buf->data = NULL;
+    buf->used = 0;
+    buf->reserved = 0;
+}
+
+static inline void
+sol_buffer_fini_nofree(struct sol_buffer *buf)
+{
+    if (!buf)
+        return;
     buf->data = NULL;
     buf->used = 0;
     buf->reserved = 0;

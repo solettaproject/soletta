@@ -57,7 +57,7 @@ DEFINE_TEST(test_resize);
 static void
 test_resize(void)
 {
-    struct sol_buffer buf = SOL_BUFFER_EMPTY;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     const int size = 1024;
     char *buf_data;
     int i;
@@ -87,7 +87,7 @@ DEFINE_TEST(test_ensure);
 static void
 test_ensure(void)
 {
-    struct sol_buffer buf = SOL_BUFFER_EMPTY;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     const int size = 1024;
     char *buf_data;
     int i;
@@ -176,6 +176,47 @@ test_append_slice(void)
     sol_buffer_fini(&buf);
 
     free(backend);
+}
+
+DEFINE_TEST(test_fixed_size);
+
+static void
+test_fixed_size(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    char backend[10];
+    int err;
+
+    sol_buffer_init_fixed_size(&buf, backend, sizeof(backend));
+
+    err = sol_buffer_ensure(&buf, 0);
+    ASSERT_INT_EQ(err, 0);
+
+    err = sol_buffer_ensure(&buf, sizeof(backend));
+    ASSERT_INT_EQ(err, 0);
+
+    err = sol_buffer_ensure(&buf, sizeof(backend) * 2);
+    ASSERT_INT_EQ(err, -ENOMEM);
+
+    err = sol_buffer_resize(&buf, 0);
+    ASSERT_INT_EQ(err, -EPERM);
+
+    slice = sol_str_slice_from_str("test");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "test");
+
+    slice = sol_str_slice_from_str("other");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "testother");
+
+    slice = sol_str_slice_from_str("OVERFLOW");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, -ENOMEM);
+
+    sol_buffer_fini_nofree(&buf);
 }
 
 

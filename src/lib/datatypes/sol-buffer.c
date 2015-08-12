@@ -44,6 +44,7 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
     char *new_data;
 
     SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_EXP_CHECK(buf->fixed_size, -EPERM);
 
     if (buf->reserved == new_size)
         return 0;
@@ -60,13 +61,19 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
 SOL_API int
 sol_buffer_ensure(struct sol_buffer *buf, size_t min_size)
 {
+    int err;
+
     SOL_NULL_CHECK(buf, -EINVAL);
 
     if (min_size >= SIZE_MAX - 1)
         return -EINVAL;
     if (buf->reserved >= min_size)
         return 0;
-    return sol_buffer_resize(buf, align_power2(min_size + 1));
+
+    err = sol_buffer_resize(buf, align_power2(min_size + 1));
+    if (err == -EPERM)
+        return -ENOMEM;
+    return err;
 }
 
 SOL_API int

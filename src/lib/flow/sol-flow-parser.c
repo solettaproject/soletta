@@ -279,7 +279,7 @@ append_node_options(
     const struct sol_flow_node_type *type,
     struct sol_flow_node_named_options *named_opts)
 {
-    struct sol_buffer key = SOL_BUFFER_EMPTY, value = SOL_BUFFER_EMPTY;
+    struct sol_buffer key = SOL_BUFFER_INIT_EMPTY, value = SOL_BUFFER_INIT_EMPTY;
     struct sol_flow_node_named_options result;
     struct sol_flow_node_named_options_member *m;
     struct sol_fbp_meta *meta;
@@ -604,8 +604,8 @@ build_flow(struct parse_state *state)
     struct sol_fbp_exported_port *ep;
     struct sol_fbp_option *opt;
     struct sol_flow_node_type *type = NULL;
-    struct sol_buffer src_port_buf = SOL_BUFFER_EMPTY, dst_port_buf = SOL_BUFFER_EMPTY;
-    struct sol_buffer opt_name_buf = SOL_BUFFER_EMPTY;
+    struct sol_buffer src_port_buf = SOL_BUFFER_INIT_EMPTY, dst_port_buf = SOL_BUFFER_INIT_EMPTY;
+    struct sol_buffer opt_name_buf = SOL_BUFFER_INIT_EMPTY;
     int i, err = 0;
 
     fbp_error = sol_fbp_parse(state->input, &state->graph);
