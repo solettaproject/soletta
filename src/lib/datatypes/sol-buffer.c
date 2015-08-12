@@ -214,3 +214,28 @@ end:
     va_end(args_copy);
     return r;
 }
+
+SOL_API int
+sol_buffer_insert_vprintf(struct sol_buffer *buf, size_t pos, const char *fmt, va_list args)
+{
+    char *s;
+    ssize_t len;
+    struct sol_str_slice slice;
+    int r;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(fmt, -EINVAL);
+    SOL_INT_CHECK(pos, > buf->used, -EINVAL);
+
+    if (pos == buf->used)
+        return sol_buffer_append_vprintf(buf, fmt, args);
+
+    len = vasprintf(&s, fmt, args);
+    if (len < 0)
+        return -errno;
+
+    slice = SOL_STR_SLICE_STR(s, len);
+    r = sol_buffer_insert_slice(buf, pos, slice);
+    free(s);
+    return r;
+}

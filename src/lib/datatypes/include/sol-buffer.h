@@ -212,6 +212,24 @@ sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...)
     return r;
 }
 
+/* insert the formatted string into the buffer at given position.  If
+ * position == buf->pos, then the behavior is the same as
+ * sol_buffer_append_vprintf().
+ */
+int sol_buffer_insert_vprintf(struct sol_buffer *buf, size_t pos, const char *fmt, va_list args);
+static inline int sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ...) SOL_ATTR_PRINTF(3, 4);
+static inline int
+sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ...)
+{
+    va_list args;
+    int r;
+
+    va_start(args, fmt);
+    r = sol_buffer_insert_vprintf(buf, pos, fmt, args);
+    va_end(args);
+    return r;
+}
+
 /**
  * @}
  */

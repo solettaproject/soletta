@@ -241,6 +241,30 @@ test_append_printf(void)
     sol_buffer_fini(&buf);
 }
 
+DEFINE_TEST(test_insert_printf);
+
+static void
+test_insert_printf(void)
+{
+    struct sol_buffer buf;
+    int err;
+
+    sol_buffer_init(&buf);
+    err = sol_buffer_insert_printf(&buf, 0, "'%s'", "This is a longer string, bla bla bla, bla bla bla");
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "'This is a longer string, bla bla bla, bla bla bla'");
+
+    err = sol_buffer_insert_printf(&buf, 0, "[%03d]", 1);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "[001]'This is a longer string, bla bla bla, bla bla bla'");
+
+    err = sol_buffer_insert_printf(&buf, strlen("[001]"), " ### ");
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "[001] ### 'This is a longer string, bla bla bla, bla bla bla'");
+
+    sol_buffer_fini(&buf);
+}
+
 DEFINE_TEST(test_memory_not_owned);
 
 static void
