@@ -47,7 +47,7 @@
 #include "sol-mainloop.h"
 #include "sol-spi.h"
 #include "sol-util.h"
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 #include "sol-worker-thread.h"
 #endif
 
@@ -64,7 +64,7 @@ struct sol_spi {
         const void *cb_data;
         const uint8_t *tx;
         uint8_t *rx;
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
         struct sol_worker_thread *worker;
 #else
         struct sol_timeout *timeout;
@@ -102,7 +102,7 @@ spi_transfer_dispatch(struct sol_spi *spi)
         spi->transfer.rx, spi->transfer.status);
 }
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
 static void
 spi_worker_thread_finished(void *data)
 {
@@ -137,7 +137,7 @@ spi_timeout_cb(void *data)
 SOL_API bool
 sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t size, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data)
 {
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
         .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
         .setup = NULL,
@@ -151,7 +151,7 @@ sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t siz
 
     SOL_NULL_CHECK(spi, false);
     SOL_INT_CHECK(size, == 0, false);
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     SOL_EXP_CHECK(spi->transfer.worker, false);
 #else
     SOL_EXP_CHECK(spi->transfer.timeout, false);
@@ -164,7 +164,7 @@ sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t siz
     spi->transfer.cb_data = cb_data;
     spi->transfer.status = -1;
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     spi->transfer.worker = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK(spi->transfer.worker, false);
 #else
@@ -180,7 +180,7 @@ sol_spi_close(struct sol_spi *spi)
 {
     SOL_NULL_CHECK(spi);
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     if (spi->transfer.worker) {
         sol_worker_thread_cancel(spi->transfer.worker);
     }
@@ -242,7 +242,7 @@ sol_spi_open(unsigned int bus, const struct sol_spi_config *config)
         goto config_error;
     }
 
-#ifdef PTHREAD
+#ifdef WORKER_THREAD
     spi->transfer.worker = NULL;
 #else
     spi->transfer.timeout = NULL;
