@@ -142,6 +142,24 @@ sol_buffer_fini(struct sol_buffer *buf)
     buf->capacity = 0;
 }
 
+static inline void *
+sol_buffer_at(const struct sol_buffer *buf, size_t pos)
+{
+    if (!buf)
+        return NULL;
+    if (pos > buf->used)
+        return NULL;
+    return (char *)buf->data + pos;
+}
+
+static inline void *
+sol_buffer_at_end(const struct sol_buffer *buf)
+{
+    if (!buf)
+        return NULL;
+    return (char *)buf->data + buf->used;
+}
+
 int sol_buffer_resize(struct sol_buffer *buf, size_t new_size);
 
 /* Ensure that 'buf' has at least the given 'min_size'. It may
@@ -165,7 +183,7 @@ sol_buffer_get_slice_at(const struct sol_buffer *buf, size_t pos)
 {
     if (!buf || buf->used < pos)
         return SOL_STR_SLICE_STR(NULL, 0);
-    return SOL_STR_SLICE_STR((char *)buf->data + pos, buf->used - pos);
+    return SOL_STR_SLICE_STR(sol_buffer_at(buf,  pos), buf->used - pos);
 }
 
 /* Appends the 'slice' into 'buf', reallocating if necessary. */
