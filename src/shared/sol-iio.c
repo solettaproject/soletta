@@ -955,11 +955,11 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
     storage_bytes = channel->storagebits / 8;
     if (channel->little_endian) {
         for (i = 0, j = 0; i < storage_bytes; i++, j += 8) {
-            data |= device->buffer[i + offset_bytes] << j;
+            data |= (uint64_t)device->buffer[i + offset_bytes] << j;
         }
     } else {
         for (i = storage_bytes - 1, j = 0; i >= 0; i--, j += 8) {
-            data |= device->buffer[i + offset_bytes] << j;
+            data |= (uint64_t)device->buffer[i + offset_bytes] << j;
         }
     }
 
