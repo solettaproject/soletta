@@ -364,7 +364,7 @@ $(eval $(call install-resource,$(BOARD_DETECT),$(BOARD_DETECT_DEST)))
 $(eval $(call install-resource,$(GDB_AUTOLOAD_PY),$(GDB_AUTOLOAD_PY_DEST)))
 
 $(MODULES_OK_FILE):
-	$(Q)$(PYTHON)$(SUBMODULE_SCRIPT) || (false)
+	$(Q)$(PYTHON) $(SUBMODULE_SCRIPT) || (false)
 
 $(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT)
 	$(Q)echo "     "GEN"   "$(@)
