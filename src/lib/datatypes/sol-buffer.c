@@ -44,8 +44,10 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
     char *new_data;
 
     SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_FIXED_CAPACITY, -EPERM);
+    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_NO_FREE, -EPERM);
 
-    if (buf->reserved == new_size)
+    if (buf->capacity == new_size)
         return 0;
 
     new_data = realloc(buf->data, new_size);
@@ -53,20 +55,26 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
         return -errno;
 
     buf->data = new_data;
-    buf->reserved = new_size;
+    buf->capacity = new_size;
     return 0;
 }
 
 SOL_API int
 sol_buffer_ensure(struct sol_buffer *buf, size_t min_size)
 {
+    int err;
+
     SOL_NULL_CHECK(buf, -EINVAL);
 
     if (min_size >= SIZE_MAX - 1)
         return -EINVAL;
-    if (buf->reserved >= min_size)
+    if (buf->capacity >= min_size)
         return 0;
-    return sol_buffer_resize(buf, align_power2(min_size + 1));
+
+    err = sol_buffer_resize(buf, align_power2(min_size + 1));
+    if (err == -EPERM)
+        return -ENOMEM;
+    return err;
 }
 
 SOL_API int
