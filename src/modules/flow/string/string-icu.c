@@ -754,7 +754,6 @@ string_change_case(struct sol_flow_node *node,
 
     err = U_ZERO_ERROR;
     case_func(u_lower, u_changed_sz + 1, u_orig, sz, curr_locale, &err);
-    free(u_orig);
     if (U_FAILURE(err) || u_lower[u_changed_sz] != 0) {
         errno = EINVAL;
         goto fail_case_func;
@@ -767,11 +766,11 @@ string_change_case(struct sol_flow_node *node,
         lower ? SOL_FLOW_NODE_TYPE_STRING_LOWERCASE__OUT__OUT :
         SOL_FLOW_NODE_TYPE_STRING_UPPERCASE__OUT__OUT, final);
     free(final);
+    free(u_orig);
 
     return r;
 
 fail_to_utf8:
-    free(final);
 fail_case_func:
     free(u_lower);
 fail_from_utf8:
