@@ -186,6 +186,37 @@ test_append_slice(void)
     free(backend);
 }
 
+DEFINE_TEST(test_insert_slice);
+
+static void
+test_insert_slice(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    int err;
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("World");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("World"));
+    ASSERT_STR_EQ(buf.data, "World");
+
+    slice = sol_str_slice_from_str("Hello");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("HelloWorld"));
+    ASSERT_STR_EQ(buf.data, "HelloWorld");
+
+    slice = sol_str_slice_from_str(" -*- ");
+    err = sol_buffer_insert_slice(&buf, strlen("Hello"), slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("Hello -*- World"));
+    ASSERT_STR_EQ(buf.data, "Hello -*- World");
+
+    sol_buffer_fini(&buf);
+}
+
 DEFINE_TEST(test_append_printf);
 
 static void
