@@ -100,6 +100,7 @@ sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 SOL_API int
 sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 {
+    char *p;
     size_t new_size;
     int err;
 
@@ -116,7 +117,9 @@ sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice
     if (err < 0)
         return err;
 
-    sol_str_slice_copy((char *)buf->data + buf->used, slice);
+    p = sol_buffer_at_end(buf);
+    memcpy(p, slice.data, slice.len);
+    p[slice.len] = '\0';
     buf->used += slice.len;
     return 0;
 }
@@ -141,7 +144,7 @@ sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args)
     va_copy(args_copy, args);
 
     space = buf->capacity - buf->used;
-    p = (char *)buf->data + buf->used;
+    p = sol_buffer_at_end(buf);
     done = vsnprintf(p, space, fmt, args_copy);
     if (done < 0) {
         r = -errno;
@@ -163,7 +166,7 @@ sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args)
             goto end;
 
         space = buf->capacity - buf->used;
-        p = (char *)buf->data + buf->used;
+        p = sol_buffer_at_end(buf);
         done = vsnprintf(p, space, fmt, args);
         if (done < 0) {
             r = -errno;
