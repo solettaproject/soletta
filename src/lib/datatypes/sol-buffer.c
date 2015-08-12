@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "sol-buffer.h"
 #include "sol-log.h"
@@ -110,4 +111,27 @@ sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice
     sol_str_slice_copy((char *)buf->data + buf->used, slice);
     buf->used += slice.len;
     return 0;
+}
+
+SOL_API int
+sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args)
+{
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(fmt, -EINVAL);
+
+    do {
+        size_t space = buf->capacity - buf->used;
+        char *p = (char *)buf->data + buf->used;
+        ssize_t done = vsnprintf(p, space, fmt, args);
+        if (done < 0)
+            return -errno;
+        else if ((size_t)done >= space) {
+            int r = sol_buffer_ensure(buf, buf->used + done + 1);
+            if (r < 0)
+                return r;
+        } else {
+            buf->used += done;
+            return 0;
+        }
+    } while (1);
 }
