@@ -69,6 +69,15 @@ def collect_tests(tests):
             result.append(t)
     return result
 
+def should_skip_on_valgrind(t):
+    f = open(t)
+    for line in f:
+        if not line.startswith("## "):
+            continue
+        if line.split()[1] == "TEST-SKIP-VALGRIND":
+            return True
+    return False
+
 def get_expected(t):
     code = 0
     out = None
@@ -156,6 +165,11 @@ if __name__ == "__main__":
         if skip is not None:
             print("SKIPPED running %s: %s" % (t, skip))
             skipped += 1
+            continue
+
+        if args.valgrind and should_skip_on_valgrind(t):
+            skipped += 1
+            print("SKIPPED running on valgrind " + t)
             continue
 
         out, code = sh(cmd_prefix + [runner, file], cwd=dir)

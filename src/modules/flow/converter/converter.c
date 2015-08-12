@@ -1851,7 +1851,7 @@ irange_compose(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
 
     mdata->port_has_value |= 1 << idx;
 
-    tmp = mdata->output_value & ~(0xff << (idx * CHAR_BIT));
+    tmp = mdata->output_value & ~(0xffu << (idx * CHAR_BIT));
     tmp |= in_val << (idx * CHAR_BIT);
     mdata->output_value = tmp;
 
