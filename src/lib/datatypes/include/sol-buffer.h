@@ -189,6 +189,14 @@ sol_buffer_get_slice_at(const struct sol_buffer *buf, size_t pos)
 /* Appends the 'slice' into 'buf', reallocating if necessary. */
 int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
 
+/* Insert the 'slice' into 'buf' at position 'pos', reallocating if necessary.
+ *
+ * If pos == buf->end, then the behavior is the same as
+ * sol_buffer_append_slice() and a trailing '\0' is
+ * guaranteed.
+ */
+int sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice);
+
 /* append the formatted string to buffer, including trailing \0 */
 int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args);
 static inline int sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
