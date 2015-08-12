@@ -174,6 +174,7 @@ check_manual_triggering(struct sol_iio_device *device)
     int success;
     long name_max;
     size_t len;
+    bool result = false;
 
     /* The only way I've found to relact trigger name and trigger is
      * by opening all triggers on /sys/bus/iio/devices
@@ -191,7 +192,7 @@ check_manual_triggering(struct sol_iio_device *device)
         name_max = 255;
     len = offsetof(struct dirent, d_name) + name_max + 1;
     ent = malloc(len);
-    SOL_NULL_CHECK(ent, false);
+    SOL_NULL_CHECK_GOTO(ent, end);
 
     success = readdir_r(dir, ent, &res);
     while (success == 0 && res) {
@@ -201,14 +202,19 @@ check_manual_triggering(struct sol_iio_device *device)
                     SYSFS_TRIGGER_NAME_PATH, ent->d_name);
                 /* triggers dirs are of the form triggerX, so here we save X */
                 device->trigger_id = atoi(ent->d_name + strlen("trigger"));
-                return true;
+                result = true;
+                break;
             }
         }
 
         success = readdir_r(dir, ent, &res);
     }
 
-    return false;
+end:
+    free(ent);
+    closedir(dir);
+
+    return result;
 }
 
 static bool
