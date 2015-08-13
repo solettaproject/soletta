@@ -37,21 +37,34 @@
 #include "sol-str-slice.h"
 #include "sol-vector.h"
 
+#include <errno.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <string.h>
-#include <time.h>
-#include <errno.h>
 #include <sys/types.h>
+#include <time.h>
 
 #ifdef SOL_PLATFORM_LINUX
 #include "sol-util-linux.h"
 #endif
 
-/** constants used to calculate mul/add operations overflow */
+/**
+ * Constants used to calculate mul/add operations overflow
+ *
+ * This is sqrt(TYPE_MAX + 1), as s1 * s2 <= TYPE_MAX
+ * if both s1 < MUL_NO_OVERFLOW and s2 < MUL_NO_OVERFLOW
+ */
 #define OVERFLOW_TYPE(type) ((type)1 << (sizeof(type) * 4))
 #define OVERFLOW_UINT64 OVERFLOW_TYPE(uint64_t)
 #define OVERFLOW_SIZE_T OVERFLOW_TYPE(size_t)
+
+/**
+ * Extracted from Hacker's Delight, 2nd edition, chapter 2-13
+ * (Overflow Dectection), table 2-2
+ */
+#define OVERFLOW_SSIZE_T_POS (ssize_t)(SIZE_MAX / 2)
+#define OVERFLOW_SSIZE_T_NEG (ssize_t)(((SIZE_MAX / 2) * -1) - 1)
 
 #define streq(a, b) (strcmp((a), (b)) == 0)
 #define streqn(a, b, n) (strncmp((a), (b), (n)) == 0)
@@ -204,6 +217,33 @@ align_power2(unsigned int u)
  *         success, or @c NULL, otherwise.
  */
 struct sol_vector sol_util_str_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
+
+static inline int
+sol_util_ssize_mul(ssize_t op1, ssize_t op2, ssize_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(op1, op2, out))
+        return -EOVERFLOW;
+#else
+    bool overflow = false;
+
+    if (op1 > 0 && op2 > 0) {
+        overflow = op1 > OVERFLOW_SSIZE_T_POS / op2;
+    } else if (op1 > 0 && op2 <= 0) {
+        overflow = op2 < OVERFLOW_SSIZE_T_NEG / op1;
+    } else if (op1 <= 0 && op2 > 0) {
+        overflow = op1 < OVERFLOW_SSIZE_T_NEG / op2;
+    } else { // op1 <= 0 && op2 <= 0
+        overflow = op1 != 0 && op2 < OVERFLOW_SSIZE_T_POS / op1;
+    }
+
+    if (overflow)
+        return -EOVERFLOW;
+
+    *out = op1 * op2;
+#endif
+    return 0;
+}
 
 static inline int
 sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out)

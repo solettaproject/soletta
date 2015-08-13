@@ -782,7 +782,7 @@ validate_shift(const struct sol_flow_packet *packet)
 static int
 shift_left_func(int in0, int in1)
 {
-    return (unsigned) in0 << in1;
+    return (unsigned)in0 << in1;
 }
 
 static int
