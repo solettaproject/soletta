@@ -44,6 +44,11 @@
 #include "sol-vector.h"
 #include "sol_config.h"
 
+#define HTTP_HEADER_ACCEPT "Accept"
+#define HTTP_HEADER_CONTENT_TYPE "Content-Type"
+#define HTTP_HEADER_CONTENT_TYPE_TEXT "text/plain"
+#define HTTP_HEADER_CONTENT_TYPE_JSON "application/json"
+
 struct http_data {
     struct sol_flow_node *node;
     union {
@@ -107,9 +112,10 @@ boolean_response_cb(void *data, struct sol_http_request *request)
 {
     int r = 0;
     uint16_t idx;
+    bool send_json = false;
     enum sol_http_method method;
     struct http_data *mdata = data;
-    char str[] = "false";
+    char str[512] = { 0 };
     struct sol_str_slice slice = { .data = str };
     struct sol_http_param_value *value;
     struct sol_http_response response = {
@@ -133,14 +139,29 @@ boolean_response_cb(void *data, struct sol_http_request *request)
             }
             break;
         case SOL_HTTP_PARAM_HEADER:
+            if (streq(value->value.key_value.key, HTTP_HEADER_ACCEPT)) {
+                if (strstr(value->value.key_value.value, HTTP_HEADER_CONTENT_TYPE_JSON))
+                    send_json = true;
+            }
+            break;
         default:
             break;
         }
     }
 
-    r = snprintf(str, sizeof(str), "%s", mdata->value.b == true ? "true" : "false");
+    if (send_json) {
+        r = snprintf(str, sizeof(str), "{\n\t\"%s\": %s\n}", mdata->path,
+            mdata->value.b == true ? "true" : "false");
+    } else {
+        r = snprintf(str, sizeof(str), "%s", mdata->value.b == true ? "true" : "false");
+    }
+
     SOL_INT_CHECK_GOTO(r, < 0, end);
     slice.len = strlen(str);
+
+    r = sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
+        HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON : HTTP_HEADER_CONTENT_TYPE_TEXT));
+    SOL_INT_CHECK_GOTO(r, != true, end);
 
     r = sol_buffer_set_slice(&response.content, slice);
     SOL_INT_CHECK_GOTO(r, < 0, end);
@@ -206,8 +227,10 @@ string_response_cb(void *data, struct sol_http_request *request)
 {
     int r = 0;
     uint16_t idx;
+    bool send_json = false;
     enum sol_http_method method;
     struct http_data *mdata = data;
+    char str[1024] = { 0 };
     struct sol_str_slice slice;
     struct sol_http_param_value *value;
     struct sol_http_response response = {
@@ -230,13 +253,30 @@ string_response_cb(void *data, struct sol_http_request *request)
             }
             break;
         case SOL_HTTP_PARAM_HEADER:
+            if (streq(value->value.key_value.key, HTTP_HEADER_ACCEPT)) {
+                if (strstr(value->value.key_value.value, HTTP_HEADER_CONTENT_TYPE_JSON))
+                    send_json = true;
+            }
+            break;
         default:
             break;
         }
     }
 
-    slice.data = mdata->value.s;
-    slice.len = strlen(mdata->value.s);
+    if (send_json) {
+        r = snprintf(str, sizeof(str), "{\n\t\"%s\": \"%s\"\n}", mdata->path,
+            mdata->value.s);
+    } else {
+        r = snprintf(str, sizeof(str), "%s", mdata->value.s);
+    }
+    SOL_INT_CHECK_GOTO(r, < 0, end);
+
+    slice.data = str;
+    slice.len = strlen(str);
+
+    r = sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
+        HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON : HTTP_HEADER_CONTENT_TYPE_TEXT));
+    SOL_INT_CHECK_GOTO(r, != true, end);
 
     r = sol_buffer_set_slice(&response.content, slice);
     SOL_INT_CHECK_GOTO(r, < 0, end);
@@ -311,9 +351,10 @@ int_response_cb(void *data, struct sol_http_request *request)
 {
     int r = 0;
     uint16_t idx;
+    bool send_json = false;
     enum sol_http_method method;
     struct http_data *mdata = data;
-    char str[3 * sizeof(int)] = { 0 };
+    char str[512] = { 0 };
     struct sol_str_slice slice = { .data = str };
     struct sol_http_param_value *value;
     struct sol_http_response response = {
@@ -352,20 +393,32 @@ int_response_cb(void *data, struct sol_http_request *request)
                 STRTOL_(step);
             break;
         case SOL_HTTP_PARAM_HEADER:
+            if (streq(value->value.key_value.key, HTTP_HEADER_ACCEPT)) {
+                if (strstr(value->value.key_value.value, HTTP_HEADER_CONTENT_TYPE_JSON))
+                    send_json = true;
+            }
+            break;
         default:
             break;
         }
     }
 #undef STRTOL_
 
-    r = snprintf(str, sizeof(str), "%d", mdata->value.i.val);
+    if (send_json) {
+        r = snprintf(str, sizeof(str), "{\"%s\":\n\t{\"value\":%d,\n\t\"min\":%d,\n\t\"max\":%d,\n\t\"step\":%d}\n}",
+            mdata->path, mdata->value.i.val, mdata->value.i.min, mdata->value.i.max, mdata->value.i.step);
+    } else {
+        r = snprintf(str, sizeof(str), "%d", mdata->value.i.val);
+    }
+
     SOL_INT_CHECK_GOTO(r, < 0, end);
     slice.len = strlen(str);
 
-    r = sol_buffer_set_slice(&response.content, slice);
-    SOL_INT_CHECK_GOTO(r, < 0, end);
+    r = sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
+        HTTP_HEADER_CONTENT_TYPE, (send_json) ? HTTP_HEADER_CONTENT_TYPE_JSON : HTTP_HEADER_CONTENT_TYPE_TEXT));
+    SOL_INT_CHECK_GOTO(r, != true, end);
 
-    r = sol_http_server_send_response(request, &response);
+    r = sol_buffer_set_slice(&response.content, slice);
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
     if (method == SOL_HTTP_METHOD_POST) {
