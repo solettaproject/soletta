@@ -69,3 +69,8 @@ Ints GREEN -> IN[0] cmpGreenInts(int/equal) OUT -> RESULT test_compare_green_int
 _(constant/int:value=6) OUT -> IN[1] cmpRedInts
 _(constant/int:value=32) OUT -> IN[1] cmpBlueInts
 _(constant/int:value=32) OUT -> IN[1] cmpGreenInts
+
+invalid_min_max(constant/int:value=min:10|max:5|val:10) OUT -> IN _(color/luminance-rgb:color=255|100|0|255|255|255) ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS invalid_test_result(test/result)
+
+invalid_value(constant/int:value=min:5|max:10|val:11) OUT -> IN _(color/luminance-rgb:color=255|100|0|255|255|255) ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS invalid_test_result2(test/result)
+
