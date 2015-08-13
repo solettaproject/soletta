@@ -50,7 +50,7 @@
 #include <unicode/utypes.h>
 #include <unicode/uchar.h>
 
-#include "string-replace.h"
+#include "string.h"
 
 #define FAST_COUNT 0
 #define FAST_SEARCH 1
@@ -363,13 +363,11 @@ string_replace(struct sol_flow_node *node,
         new_size += value_len;
 
         if (new_size == 0) {
-            int32_t sz;
             UErrorCode err;
-            UChar *unicode_empty;
 
-            ICU_STR_FROM_UTF8_GOTO(unicode_empty, sz, err, "",
-                error, error, error);
-            ret = unicode_empty;
+            r = icu_str_from_utf8("", &ret, &err);
+            SOL_INT_CHECK_GOTO(r, < 0, error);
+
             goto done;
         }
 

@@ -38,116 +38,77 @@
 #include <unicode/uchar.h>
 
 #include "string-gen.h"
-#include "string-replace.h"
+#include "string.h"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-#define ICU_STR_FROM_UTF8(_icu_str, _icu_sz, _icu_err_val, \
-        _utf_str, _inval_ret, _no_mem_ret)           \
-    do { \
-        _icu_err_val = U_ZERO_ERROR; \
-        u_strFromUTF8(NULL, 0, &_icu_sz, _utf_str, -1, &_icu_err_val); \
-        if (U_FAILURE(_icu_err_val) && \
-            _icu_err_val != U_BUFFER_OVERFLOW_ERROR) \
-            return _inval_ret; \
-        _icu_str = calloc(_icu_sz + 1, sizeof(*_icu_str)); \
-        if (!_icu_str) \
-            return _no_mem_ret; \
-        _icu_err_val = U_ZERO_ERROR; \
-        u_strFromUTF8(_icu_str, _icu_sz + 1, &_icu_sz, _utf_str, \
-            -1, &_icu_err_val); \
-        if (U_FAILURE(_icu_err_val)) { \
-            free(_icu_str); \
-            return _inval_ret; \
-        } \
-    } while (0)
+//ret_icu_str must be freed after usage
+int
+icu_str_from_utf8(const char *utf_str,
+    UChar **ret_icu_str,
+    UErrorCode *ret_icu_err)
+{
+    int32_t icu_sz;
 
-#define ICU_STR_FROM_UTF8_GOTO(_icu_str, _icu_sz, _icu_err_val, \
-        _utf_str, _inval_ret, _no_mem_ret, _icu_conv_goto) \
-    do { \
-        _icu_err_val = U_ZERO_ERROR; \
-        u_strFromUTF8(NULL, 0, &_icu_sz, _utf_str, -1, &_icu_err_val); \
-        if (U_FAILURE(_icu_err_val) && \
-            _icu_err_val != U_BUFFER_OVERFLOW_ERROR) \
-            return _inval_ret; \
-        _icu_str = calloc(_icu_sz + 1, sizeof(*_icu_str)); \
-        if (!_icu_str) \
-            return _no_mem_ret; \
-        _icu_err_val = U_ZERO_ERROR; \
-        u_strFromUTF8(_icu_str, _icu_sz + 1, &_icu_sz, _utf_str, \
-            -1, &_icu_err_val); \
-        if (U_FAILURE(_icu_err_val)) { \
-            errno = -_inval_ret; \
-            goto _icu_conv_goto; \
-        } \
-    } while (0)
+    SOL_NULL_CHECK(ret_icu_str, -EINVAL);
+    SOL_NULL_CHECK(ret_icu_err, -EINVAL);
 
-#define ICU_STR_FROM_UTF8_GOTO_ALL(_icu_str, _icu_sz, _icu_err_val, \
-        _utf_str, _inval_goto, _no_mem_goto, _icu_conv_goto) \
-    do { \
-        _icu_err_val = U_ZERO_ERROR; \
-        u_strFromUTF8(NULL, 0, &_icu_sz, _utf_str, -1, &_icu_err_val); \
-        if (U_FAILURE(_icu_err_val) && \
-            _icu_err_val != U_BUFFER_OVERFLOW_ERROR) \
-            goto _inval_goto; \
-        _icu_str = calloc(_icu_sz + 1, sizeof(*_icu_str)); \
-        if (!_icu_str) \
-            goto _no_mem_goto; \
-        _icu_err_val = U_ZERO_ERROR; \
-        u_strFromUTF8(_icu_str, _icu_sz + 1, &_icu_sz, _utf_str, \
-            -1, &_icu_err_val); \
-        if (U_FAILURE(_icu_err_val)) { \
-            goto _icu_conv_goto; \
-        } \
-    } while (0)
+    icu_sz = 0;
+    *ret_icu_str = NULL;
+    *ret_icu_err = U_ZERO_ERROR;
+    u_strFromUTF8(NULL, 0, &icu_sz, utf_str, -1, ret_icu_err);
+    if (U_FAILURE(*ret_icu_err) && *ret_icu_err != U_BUFFER_OVERFLOW_ERROR)
+        return -EINVAL;
 
-//(UChar *) cast because we abuse the struct sol_str_slice with UChar
-//* instead of char *
-#define UTF8_FROM_ICU_STR(_utf_str, _utf_sz, _icu_err_val, \
-        _icu_str, _icu_str_sz, _inval_ret, _no_mem_ret) \
-    do { \
-        err = U_ZERO_ERROR; \
-        u_strToUTF8(NULL, 0, &_utf_sz, (UChar *)_icu_str, _icu_str_sz, \
-            &_icu_err_val); \
-        if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) \
-            return _inval_ret; \
-        _utf_str = calloc(_utf_sz + 1, sizeof(*_utf_str)); \
-        if (!_utf_str) \
-            return _no_mem_ret; \
-        err = U_ZERO_ERROR; \
-        u_strToUTF8(_utf_str, _utf_sz + 1, &_utf_sz, (UChar *)_icu_str, \
-            _icu_str_sz, &_icu_err_val); \
-        if (U_FAILURE(err) || _utf_str[_utf_sz] != '\0') { \
-            free(_utf_str); \
-            return _inval_ret; \
-        } \
-    } while (0)
+    *ret_icu_str = calloc(icu_sz + 1, sizeof(UChar));
+    if (!*ret_icu_str)
+        return -ENOMEM;
 
-#define UTF8_FROM_ICU_STR_ERRNO_GOTO(_utf_str, _utf_sz, _icu_err_val, \
-        _icu_str, _icu_str_sz, _sz_calc_err, _sz_calc_goto, _mem_alloc_err, \
-        _mem_alloc_goto, _icu_conv_err, _icu_conv_goto) \
-    do { \
-        err = U_ZERO_ERROR; \
-        u_strToUTF8(NULL, 0, &_utf_sz, _icu_str, _icu_str_sz, \
-            &_icu_err_val); \
-        if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) { \
-            errno = _sz_calc_err; \
-            goto _sz_calc_goto; \
-        } \
-        _utf_str = calloc(_utf_sz + 1, sizeof(*_utf_str)); \
-        if (!_utf_str) { \
-            errno = _mem_alloc_err; \
-            goto _mem_alloc_goto; \
-        } \
-        err = U_ZERO_ERROR; \
-        u_strToUTF8(_utf_str, _utf_sz + 1, &_utf_sz, _icu_str, \
-            _icu_str_sz, &_icu_err_val); \
-        free(_icu_str); \
-        if (U_FAILURE(err) || _utf_str[_utf_sz] != '\0') { \
-            errno = _icu_conv_err; \
-            goto _icu_conv_goto; \
-        } \
-    } while (0)
+    *ret_icu_err = U_ZERO_ERROR;
+    u_strFromUTF8(*ret_icu_str, icu_sz + 1, NULL, utf_str, -1,
+        ret_icu_err);
+    if (U_FAILURE(*ret_icu_err)) {
+        free(*ret_icu_str);
+        *ret_icu_str = NULL;
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+//ret_utf_str must be freed after usage. -1 on icu_str_sz will assume
+//icu_str is null terminated
+static int
+utf8_from_icu_str_slice(const UChar *icu_str,
+    int32_t icu_str_sz,
+    char **ret_utf_str,
+    UErrorCode *ret_icu_err)
+{
+    int32_t utf_sz;
+
+    SOL_NULL_CHECK(ret_utf_str, -EINVAL);
+    SOL_NULL_CHECK(ret_icu_err, -EINVAL);
+
+    *ret_icu_err = U_ZERO_ERROR;
+    u_strToUTF8(NULL, 0, &utf_sz, icu_str, icu_str_sz, ret_icu_err);
+    if (U_FAILURE(*ret_icu_err) && *ret_icu_err != U_BUFFER_OVERFLOW_ERROR)
+        return -EINVAL;
+
+    *ret_utf_str = calloc(utf_sz + 1, sizeof(*ret_utf_str));
+    if (!*ret_utf_str)
+        return -ENOMEM;
+
+    *ret_icu_err = U_ZERO_ERROR;
+    u_strToUTF8(*ret_utf_str, utf_sz + 1, NULL, icu_str, icu_str_sz,
+        ret_icu_err);
+    if (U_FAILURE(*ret_icu_err) || (*ret_utf_str)[utf_sz] != '\0') {
+        free(*ret_utf_str);
+        *ret_utf_str = NULL;
+        return -EINVAL;
+    }
+
+    return 0;
+}
 
 #ifdef HAVE_LOCALE
 #include <locale.h>
@@ -193,14 +154,14 @@ get_string_by_port(const struct sol_flow_packet *packet,
 {
     UChar *new_str = NULL;
     const char *in_value;
-    int32_t new_sz;
     UErrorCode err;
     int r;
 
     r = sol_flow_packet_get_string(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(r, < 0, false);
 
-    ICU_STR_FROM_UTF8(new_str, new_sz, err, in_value, false, false);
+    r = icu_str_from_utf8(in_value, &new_str, &err);
+    SOL_INT_CHECK(r, < 0, false);
 
     if (mdata->string[port] && !u_strCompare(mdata->string[port],
         -1, new_str, -1, false)) {
@@ -242,14 +203,10 @@ string_concatenate_open(struct sol_flow_node *node,
 
     if (opts->separator) {
         UErrorCode err;
-        int32_t sz;
+        int r;
 
-        ICU_STR_FROM_UTF8(mdata->separator, sz, err, opts->separator,
-            -EINVAL, -ENOMEM);
-        if (!mdata->separator) {
-            SOL_WRN("Failed to duplicate separator string");
-            return -ENOMEM;
-        }
+        r = icu_str_from_utf8(opts->separator, &mdata->separator, &err);
+        SOL_INT_CHECK(r, < 0, r);
     }
 
     return 0;
@@ -263,10 +220,9 @@ string_concat(struct sol_flow_node *node,
     const struct sol_flow_packet *packet)
 {
     struct string_concatenate_data *mdata = data;
+    UChar *dest = NULL;
+    char *final = NULL;
     UErrorCode err;
-    UChar *dest;
-    char *final;
-    int32_t sz;
     int r, len;
 
     if (!get_string_by_port(packet, port, &mdata->base))
@@ -290,20 +246,18 @@ string_concat(struct sol_flow_node *node,
     else
         dest = u_strncat(dest, mdata->base.string[1], mdata->base.n);
 
-    UTF8_FROM_ICU_STR_ERRNO_GOTO(final, sz, err, dest, len, EINVAL, fail_sz,
-        ENOMEM, fail_sz, EINVAL, fail_to_utf8);
+    r = utf8_from_icu_str_slice(dest, len, &final, &err);
+    if (r < 0) {
+        free(dest);
+        sol_flow_send_error_packet(node, -errno, u_errorName(err));
+        return r;
+    }
 
+    free(dest);
     r = sol_flow_send_string_take_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_CONCATENATE__OUT__OUT, final);
 
     return r;
-
-fail_sz:
-    free(dest);
-fail_to_utf8:
-    free(final);
-    sol_flow_send_error_packet(node, -errno, u_errorName(err));
-    return -errno;
 }
 
 static int
@@ -342,9 +296,8 @@ string_compare(struct sol_flow_node *node,
 {
     struct string_compare_data *mdata = data;
     uint32_t result;
-    int r;
-
     UErrorCode err;
+    int r;
 
     if (!get_string_by_port(packet, port, &mdata->base))
         return 0;
@@ -424,13 +377,13 @@ string_length_process(struct sol_flow_node *node,
     UChar *value = NULL;
     uint32_t result;
     UErrorCode err;
-    int32_t sz;
     int r;
 
     r = sol_flow_packet_get_string(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    ICU_STR_FROM_UTF8(value, sz, err, in_value, -EINVAL, -ENOMEM);
+    r = icu_str_from_utf8(in_value, &value, &err);
+    SOL_INT_CHECK(r, < 0, r);
 
     if (mdata->n)
         result = MIN((uint32_t)u_strlen(value), mdata->n);
@@ -476,14 +429,11 @@ string_split_open(struct sol_flow_node *node,
     mdata->max_split = opts->max_split.val;
 
     if (opts->separator) {
-        UChar *new_str = NULL;
-        int32_t new_sz;
         UErrorCode err;
+        int r;
 
-        ICU_STR_FROM_UTF8(new_str, new_sz, err, opts->separator,
-            -EINVAL, -ENOMEM);
-
-        mdata->separator = new_str;
+        r = icu_str_from_utf8(opts->separator, &mdata->separator, &err);
+        SOL_INT_CHECK(r, < 0, r);
     }
 
     sol_vector_init(&mdata->substrings, sizeof(struct sol_str_slice));
@@ -584,12 +534,10 @@ calculate_substrings(struct string_split_data *mdata,
 static int
 send_substring(struct string_split_data *mdata, struct sol_flow_node *node)
 {
-    int len;
     struct sol_str_slice *sub_slice;
-
     char *outstr = NULL;
     UErrorCode err;
-    int32_t sz;
+    int len, r;
 
     if (!(mdata->string && mdata->separator))
         return 0;
@@ -605,8 +553,10 @@ send_substring(struct string_split_data *mdata, struct sol_flow_node *node)
     }
 
     sub_slice = sol_vector_get(&mdata->substrings, mdata->index);
-    UTF8_FROM_ICU_STR(outstr, sz, err, sub_slice->data, sub_slice->len,
-        -EINVAL, -ENOMEM);
+
+    r = utf8_from_icu_str_slice((const UChar *)sub_slice->data,
+        sub_slice->len, &outstr, &err);
+    SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_string_take_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_SPLIT__OUT__OUT, outstr);
@@ -675,12 +625,10 @@ get_string(const struct sol_flow_packet *packet,
     if (!in_value)
         *string = NULL;
     else {
-        UChar *new_str = NULL;
-        int32_t new_sz;
         UErrorCode err;
 
-        ICU_STR_FROM_UTF8(new_str, new_sz, err, in_value, -EINVAL, -ENOMEM);
-        *string = new_str;
+        r = icu_str_from_utf8(in_value, string, &err);
+        SOL_INT_CHECK(r, < 0, r);
     }
 
     return 0;
@@ -741,14 +689,16 @@ string_change_case(struct sol_flow_node *node,
     int32_t u_changed_sz;
     char *final = NULL;
     UErrorCode err;
-    int32_t sz;
     int r;
 
     r = sol_flow_packet_get_string(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    ICU_STR_FROM_UTF8_GOTO(u_orig, sz, err, value, -EINVAL, -ENOMEM,
-        fail_from_utf8);
+    r = icu_str_from_utf8(value, &u_orig, &err);
+    if (r < 0) {
+        sol_flow_send_error_packet(node, -errno, u_errorName(err));
+        return -errno;
+    }
 
 #ifdef HAVE_LOCALE
     curr_locale = setlocale(LC_ALL, NULL);
@@ -760,43 +710,46 @@ string_change_case(struct sol_flow_node *node,
 #endif
 
     err = U_ZERO_ERROR;
-    u_changed_sz = case_func(NULL, 0, u_orig, sz, curr_locale, &err);
+    u_changed_sz = case_func(NULL, 0, u_orig, -1, curr_locale, &err);
     if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
         errno = EINVAL;
-        goto fail_from_utf8;
+        free(u_orig);
+        sol_flow_send_error_packet(node, -errno, u_errorName(err));
+        return -errno;
     }
     u_lower = calloc(u_changed_sz + 1, sizeof(*u_lower));
     if (!u_lower) {
         errno = ENOMEM;
-        goto fail_from_utf8;
+        free(u_orig);
+        sol_flow_send_error_packet(node, -errno, "Out of memory");
+        return -errno;
     }
 
     err = U_ZERO_ERROR;
-    case_func(u_lower, u_changed_sz + 1, u_orig, sz, curr_locale, &err);
+    case_func(u_lower, u_changed_sz + 1, u_orig, -1, curr_locale, &err);
     if (U_FAILURE(err) || u_lower[u_changed_sz] != 0) {
         errno = EINVAL;
-        goto fail_case_func;
+        free(u_orig);
+        free(u_lower);
+        sol_flow_send_error_packet(node, -errno, u_errorName(err));
+        return -errno;
     }
 
-    UTF8_FROM_ICU_STR_ERRNO_GOTO(final, sz, err, u_lower, u_changed_sz,
-        EINVAL, fail_case_func, ENOMEM, fail_case_func, EINVAL, fail_to_utf8);
+    r = utf8_from_icu_str_slice(u_lower, u_changed_sz, &final, &err);
+    if (r < 0) {
+        free(u_orig);
+        free(u_lower);
+        sol_flow_send_error_packet(node, -errno, u_errorName(err));
+        return r;
+    }
 
-    r = sol_flow_send_string_packet(node,
+    r = sol_flow_send_string_take_packet(node,
         lower ? SOL_FLOW_NODE_TYPE_STRING_LOWERCASE__OUT__OUT :
         SOL_FLOW_NODE_TYPE_STRING_UPPERCASE__OUT__OUT, final);
-    free(final);
     free(u_orig);
+    free(u_lower);
 
     return r;
-
-fail_case_func:
-    free(u_lower);
-fail_to_utf8:
-fail_from_utf8:
-    free(u_orig);
-    free(final);
-    sol_flow_send_error_packet(node, -errno, u_errorName(err));
-    return -errno;
 }
 
 
@@ -833,7 +786,7 @@ string_replace_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
-    int32_t sz;
+    int r;
     UErrorCode err;
     struct string_replace_data *mdata = data;
     const struct sol_flow_node_type_string_replace_options *opts;
@@ -855,29 +808,21 @@ string_replace_open(struct sol_flow_node *node,
         SOL_WRN("Option 'from_string' must not be NULL");
         return -EINVAL;
     }
-
-    ICU_STR_FROM_UTF8_GOTO_ALL(mdata->from_string, sz, err, opts->from_string,
-        err_inval, err_mem, err_inval);
-
     if (!opts->to_string) {
         SOL_WRN("Option 'to_string' must not be NULL");
-        goto err_inval;
+        return -EINVAL;
     }
 
-    ICU_STR_FROM_UTF8_GOTO_ALL(mdata->to_string, sz, err, opts->to_string,
-        err_inval, err_mem, err_inval);
+    r = icu_str_from_utf8(opts->from_string, &mdata->from_string, &err);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = icu_str_from_utf8(opts->to_string, &mdata->to_string, &err);
+    if (r < 0) {
+        free(mdata->from_string);
+        return r;
+    }
 
     return 0;
-
-err_mem:
-    free(mdata->from_string);
-    free(mdata->to_string);
-    return -ENOMEM;
-
-err_inval:
-    free(mdata->from_string);
-    free(mdata->to_string);
-    return -EINVAL;
 }
 
 static void
@@ -897,14 +842,16 @@ string_replace_do(struct string_replace_data *mdata,
     UChar *orig_string_replaced;
     UErrorCode err;
     char *final;
-    int32_t sz;
+    int r;
 
     if (!value)
         goto replace;
 
     free(mdata->orig_string);
     mdata->orig_string = NULL;
-    ICU_STR_FROM_UTF8(mdata->orig_string, sz, err, value, -ENOMEM, -EINVAL);
+
+    r = icu_str_from_utf8(value, &mdata->orig_string, &err);
+    SOL_INT_CHECK(r, < 0, r);
 
 replace:
     orig_string_replaced = string_replace(mdata->node, mdata->orig_string,
@@ -913,19 +860,17 @@ replace:
         return -EINVAL;
     }
 
-    UTF8_FROM_ICU_STR_ERRNO_GOTO(final, sz, err, orig_string_replaced, -1,
-        EINVAL, fail_to_utf8, ENOMEM, fail_to_utf8, EINVAL, fail_final);
+    r = utf8_from_icu_str_slice(orig_string_replaced, -1, &final, &err);
+    if (r < 0) {
+        free(orig_string_replaced);
+        sol_flow_send_error_packet(mdata->node, -errno, "Failed to replace "
+            "string: %s", u_errorName(err));
+        return r;
+    }
 
+    free(orig_string_replaced);
     return sol_flow_send_string_take_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_STRING_REPLACE__OUT__OUT, final);
-
-fail_final:
-    free(final);
-fail_to_utf8:
-    free(orig_string_replaced);
-    sol_flow_send_error_packet(mdata->node, -errno, "Failed to replace "
-        "string: %s", u_errorName(err));
-    return -errno;
 }
 
 static int

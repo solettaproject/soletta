@@ -44,7 +44,7 @@
 #endif
 
 #include "string-gen.h"
-#include "string-replace.h"
+#include "string.h"
 
 struct string_data {
     int32_t n;
@@ -405,7 +405,7 @@ set_string_index(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value < 0) {
-        SOL_WRN("Index (%"PRId32") must be a non-negative value", in_value);
+        SOL_WRN("Index (%" PRId32 ") must be a non-negative value", in_value);
         return -EINVAL;
     }
     mdata->index = in_value;
