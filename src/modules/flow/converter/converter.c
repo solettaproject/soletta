@@ -334,10 +334,7 @@ drange_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port,
     r = sol_flow_packet_get_drange_value(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    if ((in_value < mdata->min) || (in_value > mdata->max))
-        out_value = false;
-    else
-        out_value = true;
+    out_value = !((in_value < mdata->min) || (in_value > mdata->max));
 
     return sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_BOOLEAN__OUT__OUT,
@@ -413,10 +410,7 @@ byte_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port, u
     r = sol_flow_packet_get_byte(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    if ((in_value < mdata->min) || (in_value > mdata->max))
-        out_value = false;
-    else
-        out_value = true;
+    out_value = !((in_value < mdata->min) || (in_value > mdata->max));
 
     return sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BYTE_TO_BOOLEAN__OUT__OUT,
