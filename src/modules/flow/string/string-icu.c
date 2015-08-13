@@ -283,6 +283,7 @@ string_concat(struct sol_flow_node *node,
 fail_sz:
     free(dest);
 fail_to_utf8:
+    free(final);
     sol_flow_send_error_packet(node, -errno, u_errorName(err));
     return -errno;
 }
@@ -770,11 +771,12 @@ string_change_case(struct sol_flow_node *node,
 
     return r;
 
-fail_to_utf8:
 fail_case_func:
     free(u_lower);
+fail_to_utf8:
 fail_from_utf8:
     free(u_orig);
+    free(final);
     sol_flow_send_error_packet(node, -errno, u_errorName(err));
     return -errno;
 }
