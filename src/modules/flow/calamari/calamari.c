@@ -156,8 +156,11 @@ value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_i
     r = sol_flow_packet_get_irange_value(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (value < RANGE_MIN || value > RANGE_MAX)
+    if (value < RANGE_MIN || value > RANGE_MAX) {
+        sol_flow_send_error_packet(node, -ERANGE, "Range invalid, it should be between %d and %d but was %d", RANGE_MIN, RANGE_MAX, value);
+        SOL_WRN("Range invalid, it should be between %d and %d but was %d", RANGE_MIN, RANGE_MAX, value);
         return -ERANGE;
+    }
     _write_byte(node, font[value]);
 
     return 0;
