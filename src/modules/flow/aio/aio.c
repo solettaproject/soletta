@@ -82,6 +82,7 @@ _on_reader_timeout(void *data)
 
     i.val = sol_aio_get_value(mdata->aio);
     if (i.val < 0) {
+        sol_flow_send_error_packet("aio #%d,%d: Could not read value.", mdata->device, mdata->pin);
         SOL_WRN("aio #%d,%d: Could not read value.", mdata->device, mdata->pin);
         return false;
     }
@@ -112,6 +113,9 @@ aio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
     mdata->node = node;
 
     if (opts->mask.val <= 0) {
+        sol_flow_send_error_packet("aio #%d,%d: Invalid bit mask value=%" PRId32 ".", opts->device.val, opts->pin.val,
+            opts->mask.val);
+
         SOL_WRN("aio #%d,%d: Invalid bit mask value=%" PRId32 ".", opts->device.val, opts->pin.val,
             opts->mask.val);
         return -EINVAL;
@@ -121,6 +125,8 @@ aio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
     SOL_NULL_CHECK(mdata->aio, -EINVAL);
 
     if (opts->poll_timeout.val <= 0) {
+        sol_flow_send_error_packet("aio #%d,%d: Invalid polling time=%" PRId32 ".", opts->device.val, opts->pin.val,
+            opts->poll_timeout.val);
         SOL_WRN("aio #%d,%d: Invalid polling time=%" PRId32 ".", opts->device.val, opts->pin.val,
             opts->poll_timeout.val);
         return -EINVAL;
