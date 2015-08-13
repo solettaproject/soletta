@@ -132,5 +132,5 @@ _(constant/string:value="003 / -2147483648.000 / 17777777777 / 0x1") OUT -> IN[1
 _(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{:03d} / {:.3f} / {:o} / {:#x}") OUT -> IN[0] fmt_test_cmp_31(string/compare)
 _(constant/string:value="003 / -2147483648.000 / 17777777777 / 0x1") OUT -> IN[1] fmt_test_cmp_31 EQUAL -> RESULT _(test/result)
 
-_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{3:#x} / {2:o} / {1:.3f} / {0:03d}") OUT -> IN[0] fmt_test_cmp_32(string/compare)
-_(constant/string:value="0x1 / 17777777777 / -2147483648.000 / 003") OUT -> IN[1] fmt_test_cmp_32 EQUAL -> RESULT _(test/result)
+_(constant/int:value=3) OUT -> IN _(converter/int-to-string:format_spec="{3:#x} ☆ {2:o} ☆ {1:.3f} ☆ {0:03d}") OUT -> IN[0] fmt_test_cmp_32(string/compare)
+_(constant/string:value="0x1 ☆ 17777777777 ☆ -2147483648.000 ☆ 003") OUT -> IN[1] fmt_test_cmp_32 EQUAL -> RESULT _(test/result)
