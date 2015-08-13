@@ -254,6 +254,40 @@ def handle_python_check(args, conf, context):
 
     return success
 
+def test_file_path(path, files):
+    files_len = len(files)
+    for curr in files:
+        exists = os.path.exists(os.path.join(path, curr))
+        if exists:
+            files_len = files_len - 1
+    return files_len == 0
+
+def handle_filesystem_check(args, conf, context):
+    dep = conf.get("dependency")
+    files = conf.get("files", [])
+    path = conf.get("path", {})
+
+    variables = dict(os.environ)
+    variables['TOP_SRCDIR'] = os.getcwd()
+    dest = path
+    vars_expand(dest, variables, len(dest))
+
+    found_path = None
+    for k,v in path.items():
+        curr_path = variables.get(k)
+        if not curr_path:
+            continue
+        r = test_file_path(curr_path, files)
+        if r:
+            found_path = curr_path
+            break
+
+    if found_path:
+        context.add_kconfig("HAVE_%s" % dep.upper(), "bool", "y")
+        context.add_cond_makefile_var("%s_PATH" % dep.upper(), found_path)
+    else:
+        context.add_kconfig("HAVE_%s" % dep.upper(), "bool", "n")
+
 def handle_flags_check(args, conf, context, cflags, ldflags):
     append_to = conf.get("append_to")
     source = cstub.format(headers="", fragment="")
@@ -308,6 +342,7 @@ type_handlers = {
     "python": handle_python_check,
     "cflags": handle_cflags_check,
     "ldflags": handle_ldflags_check,
+    "filesystem": handle_filesystem_check,
 }
 
 def format_makefile_var(items):
