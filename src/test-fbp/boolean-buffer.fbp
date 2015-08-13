@@ -58,3 +58,7 @@ nany_false_buffer OUT -> IN _(boolean/not) OUT -> RESULT t8(test/result)
 #timeout test
 
 input9(test/boolean-generator:sequence="FT", interval=20) OUT -> IN buffer(boolean/buffer:samples=6, timeout=50, operation=any_true) OUT -> RESULT t9(test/result)
+
+#timeout error
+negative_number(constant/int:value=-2) OUT -> TIMEOUT buffer_error(boolean/buffer:samples=6, operation=any_true)
+buffer_error ERROR -> IN trigger(converter/empty-to-boolean) OUT -> PASS t10(test/result)
