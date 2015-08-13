@@ -134,7 +134,7 @@ clients_cleanup(struct wallclock_timer *timer)
 
 static bool wallclock_do(void *data);
 
-static bool
+static int
 wallclock_schedule_next(struct sol_flow_node *node)
 {
     struct wallclock_data *mdata = sol_flow_node_get_private_data(node);
@@ -246,14 +246,11 @@ wallclock_do(void *data)
 #undef CLOCK_GETTIME_DO
 
 static int
-wallclock_open(struct sol_flow_node *node,
-    void *data,
-    const struct sol_flow_node_options *options)
+wallclock_open(struct sol_flow_node *node, void *data)
 {
     struct wallclock_data *mdata = data;
     struct wallclock_timer *timer;
 
-    (void)options;
     timer = &timers[mdata->type];
     sol_ptr_vector_append(&(timer->clients), node);
 
@@ -302,7 +299,7 @@ wallclock_second_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
 
     mdata->type = TIMEOUT_SECOND;
-    return wallclock_open(node, data, options);
+    return wallclock_open(node, data);
 }
 
 static int
@@ -313,7 +310,7 @@ wallclock_minute_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
 
     mdata->type = TIMEOUT_MINUTE;
-    return wallclock_open(node, data, options);
+    return wallclock_open(node, data);
 }
 
 static int
@@ -324,7 +321,7 @@ wallclock_hour_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
 
     mdata->type = TIMEOUT_HOUR;
-    return wallclock_open(node, data, options);
+    return wallclock_open(node, data);
 }
 
 static int
@@ -335,7 +332,7 @@ wallclock_weekday_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
 
     mdata->type = TIMEOUT_WEEKDAY;
-    return wallclock_open(node, data, options);
+    return wallclock_open(node, data);
 }
 
 static int
@@ -346,7 +343,7 @@ wallclock_monthday_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
 
     mdata->type = TIMEOUT_MONTHDAY;
-    return wallclock_open(node, data, options);
+    return wallclock_open(node, data);
 }
 
 static bool
