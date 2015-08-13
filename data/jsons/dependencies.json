@@ -396,6 +396,18 @@
       "cflags": {
         "value": "-flto -ffat-lto-objects"
       }
+    },
+    {
+      "dependency": "duktape_src",
+      "type": "filesystem",
+      "files": [
+        "duktape.c",
+        "duktape.h"
+      ],
+      "path": {
+        "in-tree": "{TOP_SRCDIR}/src/thirdparty/duktape/src",
+        "out-of-tree": "{DUKTAPE_SRC}"
+      }
     }
   ]
 }
