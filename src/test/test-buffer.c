@@ -57,7 +57,7 @@ DEFINE_TEST(test_resize);
 static void
 test_resize(void)
 {
-    struct sol_buffer buf = SOL_BUFFER_EMPTY;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     const int size = 1024;
     char *buf_data;
     int i;
@@ -87,7 +87,7 @@ DEFINE_TEST(test_ensure);
 static void
 test_ensure(void)
 {
-    struct sol_buffer buf = SOL_BUFFER_EMPTY;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     const int size = 1024;
     char *buf_data;
     int i;
@@ -173,9 +173,137 @@ test_append_slice(void)
     ASSERT_STR_NE(buf.data, backend);
     ASSERT_STR_EQ(buf.data, expected_str);
 
+    slice = sol_buffer_get_slice(&buf);
+    ASSERT_INT_EQ(slice.len, buf.used);
+    ASSERT_STR_EQ(slice.data, buf.data);
+
+    slice = sol_buffer_get_slice_at(&buf, 2);
+    ASSERT_INT_EQ(slice.len, buf.used - 2);
+    ASSERT_STR_EQ(slice.data, (char *)buf.data + 2);
+
     sol_buffer_fini(&buf);
 
     free(backend);
+}
+
+DEFINE_TEST(test_insert_slice);
+
+static void
+test_insert_slice(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    int err;
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("World");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("World"));
+    ASSERT_STR_EQ(buf.data, "World");
+
+    slice = sol_str_slice_from_str("Hello");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("HelloWorld"));
+    ASSERT_STR_EQ(buf.data, "HelloWorld");
+
+    slice = sol_str_slice_from_str(" -*- ");
+    err = sol_buffer_insert_slice(&buf, strlen("Hello"), slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("Hello -*- World"));
+    ASSERT_STR_EQ(buf.data, "Hello -*- World");
+
+    sol_buffer_fini(&buf);
+}
+
+DEFINE_TEST(test_append_printf);
+
+static void
+test_append_printf(void)
+{
+    struct sol_buffer buf;
+    int err;
+
+    sol_buffer_init(&buf);
+    err = sol_buffer_append_printf(&buf, "[%03d]", 1);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "[001]");
+
+    err = sol_buffer_append_printf(&buf, "'%s'", "This is a longer string, bla bla bla, bla bla bla");
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "[001]'This is a longer string, bla bla bla, bla bla bla'");
+
+    err = sol_buffer_append_printf(&buf, ".");
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "[001]'This is a longer string, bla bla bla, bla bla bla'.");
+
+    sol_buffer_fini(&buf);
+}
+
+DEFINE_TEST(test_insert_printf);
+
+static void
+test_insert_printf(void)
+{
+    struct sol_buffer buf;
+    int err;
+
+    sol_buffer_init(&buf);
+    err = sol_buffer_insert_printf(&buf, 0, "'%s'", "This is a longer string, bla bla bla, bla bla bla");
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "'This is a longer string, bla bla bla, bla bla bla'");
+
+    err = sol_buffer_insert_printf(&buf, 0, "[%03d]", 1);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "[001]'This is a longer string, bla bla bla, bla bla bla'");
+
+    err = sol_buffer_insert_printf(&buf, strlen("[001]"), " ### ");
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "[001] ### 'This is a longer string, bla bla bla, bla bla bla'");
+
+    sol_buffer_fini(&buf);
+}
+
+DEFINE_TEST(test_memory_not_owned);
+
+static void
+test_memory_not_owned(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    char backend[10];
+    int err;
+
+    sol_buffer_init_flags(&buf, backend, sizeof(backend), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+
+    err = sol_buffer_ensure(&buf, 0);
+    ASSERT_INT_EQ(err, 0);
+
+    err = sol_buffer_ensure(&buf, sizeof(backend));
+    ASSERT_INT_EQ(err, 0);
+
+    err = sol_buffer_ensure(&buf, sizeof(backend) * 2);
+    ASSERT_INT_EQ(err, -ENOMEM);
+
+    err = sol_buffer_resize(&buf, 0);
+    ASSERT_INT_EQ(err, -EPERM);
+
+    slice = sol_str_slice_from_str("test");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "test");
+
+    slice = sol_str_slice_from_str("other");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_STR_EQ(buf.data, "testother");
+
+    slice = sol_str_slice_from_str("OVERFLOW");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, -ENOMEM);
+
+    sol_buffer_fini(&buf);
 }
 
 

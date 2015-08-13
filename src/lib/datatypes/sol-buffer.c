@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "sol-buffer.h"
 #include "sol-log.h"
@@ -44,8 +45,10 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
     char *new_data;
 
     SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_FIXED_CAPACITY, -EPERM);
+    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_NO_FREE, -EPERM);
 
-    if (buf->reserved == new_size)
+    if (buf->capacity == new_size)
         return 0;
 
     new_data = realloc(buf->data, new_size);
@@ -53,20 +56,26 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
         return -errno;
 
     buf->data = new_data;
-    buf->reserved = new_size;
+    buf->capacity = new_size;
     return 0;
 }
 
 SOL_API int
 sol_buffer_ensure(struct sol_buffer *buf, size_t min_size)
 {
+    int err;
+
     SOL_NULL_CHECK(buf, -EINVAL);
 
     if (min_size >= SIZE_MAX - 1)
         return -EINVAL;
-    if (buf->reserved >= min_size)
+    if (buf->capacity >= min_size)
         return 0;
-    return sol_buffer_resize(buf, align_power2(min_size + 1));
+
+    err = sol_buffer_resize(buf, align_power2(min_size + 1));
+    if (err == -EPERM)
+        return -ENOMEM;
+    return err;
 }
 
 SOL_API int
@@ -77,6 +86,8 @@ sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
     SOL_NULL_CHECK(buf, -EINVAL);
 
     /* Extra room for the ending NUL-byte. */
+    if (slice.len >= SIZE_MAX - 1)
+        return -EOVERFLOW;
     err = sol_buffer_ensure(buf, slice.len + 1);
     if (err < 0)
         return err;
@@ -89,17 +100,117 @@ sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 SOL_API int
 sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 {
+    char *p;
+    size_t new_size;
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    /* Extra room for the ending NUL-byte. */
-    /* FIXME: len+used might overflow! */
-    err = sol_buffer_ensure(buf, slice.len + buf->used + 1);
+    err = sol_util_size_add(buf->used, slice.len, &new_size);
     if (err < 0)
         return err;
 
-    sol_str_slice_copy((char *)buf->data + buf->used, slice);
+    /* Extra room for the ending NUL-byte. */
+    if (new_size >= SIZE_MAX - 1)
+        return -EOVERFLOW;
+    err = sol_buffer_ensure(buf, new_size + 1);
+    if (err < 0)
+        return err;
+
+    p = sol_buffer_at_end(buf);
+    memcpy(p, slice.data, slice.len);
+    p[slice.len] = '\0';
     buf->used += slice.len;
     return 0;
+}
+
+SOL_API int
+sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice)
+{
+    char *p;
+    size_t new_size;
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_INT_CHECK(pos, > buf->used, -EINVAL);
+
+    if (pos == buf->used)
+        return sol_buffer_append_slice(buf, slice);
+
+    err = sol_util_size_add(buf->used, slice.len, &new_size);
+    if (err < 0)
+        return err;
+
+    /* Extra room for the ending NUL-byte. */
+    if (new_size >= SIZE_MAX - 1)
+        return -EOVERFLOW;
+    err = sol_buffer_ensure(buf, new_size + 1);
+    if (err < 0)
+        return err;
+
+    p = sol_buffer_at(buf, pos);
+    memmove(p + slice.len, p, buf->used - pos);
+    memcpy(p, slice.data, slice.len);
+    buf->used += slice.len;
+    p = sol_buffer_at_end(buf);
+    p[0] = '\0';
+    return 0;
+}
+
+SOL_API int
+sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args)
+{
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(fmt, -EINVAL);
+
+    do {
+        size_t space = buf->capacity - buf->used;
+        char *p = sol_buffer_at_end(buf);
+        ssize_t done = vsnprintf(p, space, fmt, args);
+        if (done < 0)
+            return -errno;
+        else if ((size_t)done >= space) {
+            int r;
+            size_t new_size;
+
+            r = sol_util_size_add(buf->used, done, &new_size);
+            if (r < 0)
+                return r;
+
+            /* Extra room for the ending NUL-byte. */
+            if (new_size >= SIZE_MAX - 1)
+                return -EOVERFLOW;
+            r = sol_buffer_ensure(buf, new_size + 1);
+            if (r < 0)
+                return r;
+        } else {
+            buf->used += done;
+            return 0;
+        }
+    } while (1);
+}
+
+SOL_API int
+sol_buffer_insert_vprintf(struct sol_buffer *buf, size_t pos, const char *fmt, va_list args)
+{
+    char *s;
+    ssize_t len;
+    struct sol_str_slice slice;
+    int r;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(fmt, -EINVAL);
+    SOL_INT_CHECK(pos, > buf->used, -EINVAL);
+
+    if (pos == buf->used)
+        return sol_buffer_append_vprintf(buf, fmt, args);
+
+    len = vasprintf(&s, fmt, args);
+    if (len < 0)
+        return -errno;
+
+    slice = SOL_STR_SLICE_STR(s, len);
+    r = sol_buffer_insert_slice(buf, pos, slice);
+    free(s);
+    return r;
 }
