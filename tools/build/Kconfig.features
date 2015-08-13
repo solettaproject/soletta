@@ -42,3 +42,6 @@ config FEATURE_FLOW
 
 config FEATURE_FILESYSTEM
     bool
+
+config FEATURE_CC_SANITIZE
+    bool
