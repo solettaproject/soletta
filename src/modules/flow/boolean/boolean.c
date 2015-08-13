@@ -407,8 +407,11 @@ boolean_buffer_timeout(struct sol_flow_node *node, void *data, uint16_t port, ui
     r = sol_flow_packet_get_irange_value(packet, &timeout);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (timeout < 0)
+    if (timeout < 0) {
+        sol_flow_send_error_packet(node, -EINVAL, "Invalid 'timeout' value: '%" PRId32 "'. Skipping it.", timeout);
         SOL_WRN("Invalid 'timeout' value: '%" PRId32 "'. Skipping it.", timeout);
+        return -EINVAL;
+    }
 
     mdata->timeout = timeout;
 
