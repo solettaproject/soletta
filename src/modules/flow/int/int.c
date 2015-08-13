@@ -188,7 +188,7 @@ inrange_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
 // =============================================================================
 
 struct irange_min_max_data {
-    int val[2];
+    int32_t val[2];
     int (*func) (int var0, int var1);
     uint16_t port;
     bool val_initialized[2];
@@ -232,7 +232,7 @@ static int
 min_max_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct irange_min_max_data *mdata = data;
-    int *result;
+    int32_t *result;
     int r;
 
     r = sol_flow_packet_get_irange_value(packet, &mdata->val[port]);
@@ -1053,7 +1053,7 @@ irange_map_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 {
     struct irange_map_data *mdata = data;
     struct sol_irange in_value;
-    int32_t out_value;
+    int32_t out_value = 0;
     int r;
 
     r = sol_flow_packet_get_irange(packet, &in_value);

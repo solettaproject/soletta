@@ -1,3 +1,4 @@
 config FLOW_NODE_TYPE_FS
 	tristate "Node type: fs"
+	depends on FEATURE_FILESYSTEM
 	default m

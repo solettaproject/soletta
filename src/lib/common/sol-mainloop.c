@@ -72,7 +72,7 @@ extern int sol_platform_init(void);
 extern void sol_platform_shutdown(void);
 extern int sol_blob_init(void);
 extern void sol_blob_shutdown(void);
-#ifdef FLOW
+#ifdef FLOW_SUPPORT
 extern int sol_flow_init(void);
 extern void sol_flow_shutdown(void);
 #endif
@@ -118,7 +118,7 @@ sol_init(void)
     if (r < 0)
         goto blob_error;
 
-#ifdef FLOW
+#ifdef FLOW_SUPPORT
     r = sol_flow_init();
     if (r < 0)
         goto flow_error;
@@ -137,7 +137,7 @@ sol_init(void)
 #ifdef NETWORK
 comms_error:
 #endif
-#ifdef FLOW
+#ifdef FLOW_SUPPORT
     sol_flow_shutdown();
 flow_error:
 #endif
@@ -212,7 +212,7 @@ sol_shutdown(void)
 #ifdef NETWORK
     sol_comms_shutdown();
 #endif
-#ifdef FLOW
+#ifdef FLOW_SUPPORT
     sol_flow_shutdown();
 #endif
     sol_blob_shutdown();

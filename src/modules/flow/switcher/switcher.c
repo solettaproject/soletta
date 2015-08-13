@@ -76,7 +76,8 @@ switcher_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 static int
 switcher_set_index(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    int r, in_value;
+    int32_t in_value;
+    int r;
 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);

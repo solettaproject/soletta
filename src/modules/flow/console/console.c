@@ -90,7 +90,7 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         uint32_t red, green, blue;
         int r = sol_flow_packet_get_rgb_components(packet, &red, &green, &blue);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s(%d, %d, %d) (rgb)%s\n",
+        fprintf(mdata->fp, "%s(%"PRIu32", %"PRIu32", %"PRIu32") (rgb)%s\n",
             mdata->prefix ? mdata->prefix : "",
             red, green, blue,
             mdata->suffix ? mdata->suffix : "");

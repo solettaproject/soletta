@@ -148,7 +148,7 @@ pixel_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value.val >= mdata->pixel_count) {
-        SOL_WRN("Invalid pixel %d. Expected pixel ranging from 0 to %d", in_value.val, mdata->pixel_count - 1);
+        SOL_WRN("Invalid pixel %d. Expected pixel ranging from 0 to %d", (int)in_value.val, mdata->pixel_count - 1);
         return -EINVAL;
     }
 
