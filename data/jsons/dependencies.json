@@ -367,6 +367,9 @@
 	    "type": "ccode",
             "cflags": {
                 "value": "-fsanitize=undefined"
+            },
+            "ldflags": {
+                "value": "-fsanitize=undefined"
             }
 	},
 	{
@@ -381,6 +384,16 @@
 	    "type": "ccode",
             "cflags": {
                 "value": "-fsanitize=address"
+            },
+            "ldflags": {
+                "value": "-fsanitize=address"
+            }
+	},
+	{
+	    "dependency": "flto",
+	    "type": "ccode",
+            "cflags": {
+                "value": "-flto -ffat-lto-objects"
             }
 	}
     ]

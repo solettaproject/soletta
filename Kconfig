@@ -11,19 +11,20 @@ config BASE_OS
 
 source "tools/build/Kconfig.$BASE_OS"
 
-menu "Basic"
-# backward compatibility with autotools vars
-config ENABLE_DYNAMIC_MODULES
-	bool
+menu "Compiler Options"
+config CC_DEBUG
+	bool "Debugging information"
 	default n
+	help
+            Produce debugging information in the operation system's native format.
 
 config CC_SANITIZE
-	bool "Compiler sanitize"
+	bool "Sanitize"
 	depends on HAVE_SANITIZE_UNDEFINED || HAVE_SANITIZE_ADDRESS
 	default y
 
 choice CC_SANITIZE_TYPE
-	prompt "Compiler sanitize type"
+	prompt "Sanitize type"
 	depends on CC_SANITIZE
 	default CC_SANITIZE_UNDEFINED if HAVE_SANITIZE_UNDEFINED
 	default CC_SANITIZE_ADDRESS if HAVE_SANITIZE_ADDRESS
@@ -31,11 +32,88 @@ choice CC_SANITIZE_TYPE
 config CC_SANITIZE_UNDEFINED
 	bool "undefined"
 	depends on HAVE_SANITIZE_UNDEFINED
+	help
+            Enable UndefinedBehaviorSanitizer, a fast undefined behavior detector.
 
 config CC_SANITIZE_ADDRESS
 	bool "address"
 	depends on HAVE_SANITIZE_ADDRESS
+	help
+            Enable AddressSanitizer, a fast memory error detector.
+
+            Memory access instructions are instrumented to detect
+            out-of-bounds and use-after-free bugs.
+
+            See <http://code.google.com/p/address-sanitizer/> for more details.
 endchoice
+
+config CC_OPTIMIZING
+	bool "Compilation optimizing"
+	default n
+
+choice CC_OPTIMIZING_LEVEL
+	prompt "Optimizing level"
+	depends on CC_OPTIMIZING
+
+config CC_OPTIMIZING_LEVEL_1
+	bool "Level 1"
+	help
+            Tries to reduce code size and execution time.
+
+config CC_OPTIMIZING_LEVEL_2
+	bool "Level 2"
+	help
+            Compiler performs nearly all supported optimizations that
+            do not involve a space-speed tradeoff.  As compared to -O,
+            this option increases both compilation time and the performance
+            of the generated code.
+
+config CC_OPTIMIZING_LEVEL_3
+	bool "Level 3"
+	help
+            Turns on all optimizations specified by level 2 and also
+            turns on the -finline-functions, -funswitch-loops,
+            -fpredictive-commoning, -fgcse-after-reload, -ftree-loop-vectorize,
+            -ftree-loop-distribute-patterns, -ftree-slp-vectorize,
+            -fvect-cost-model, -ftree-partial-pre and -fipa-cp-clone options.
+
+config CC_OPTIMIZING_LEVEL_4
+	bool "Level 4"
+
+config CC_OPTIMIZING_LEVEL_5
+	bool "Level 5"
+
+config CC_OPTIMIZING_LEVEL_S
+	bool "Level s"
+	help
+            Optimize for size. -Os enables all -O2 optimizations that
+            do not typically increase code size. It also performs further
+            optimizations designed to reduce code size.
+
+            -Os disables the following optimization flags: -falign-functions
+            -falign-jumps  -falign-loops -falign-labels  -freorder-blocks
+            -freorder-blocks-and-partition -fprefetch-loop-arrays
+
+endchoice
+
+config CONFIG_CFLAGS
+	string "Arbitrary CFLAGS"
+	help
+            Sets arbitrary CFLAGS to be used acrross make invocations
+            without the need to provide on every make call.
+
+config CONFIG_LDFLAGS
+	string "Arbitrary LDFLAGS"
+	help
+            Sets arbitrary LDFLAGS to be used acrross make invocations
+            without the need to provide on every make call.
+endmenu
+
+menu "Basic"
+# backward compatibility with autotools vars
+config ENABLE_DYNAMIC_MODULES
+	bool
+	default n
 
 config SHARED_LIBRARY
     bool "Build shared library"
