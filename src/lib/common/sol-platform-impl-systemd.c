@@ -66,10 +66,10 @@ struct ctx {
 static struct ctx _ctx;
 
 static bool
-_manager_set_system_state(void *data, const void *value)
+_manager_set_system_state(void *data, sd_bus_message *m)
 {
     struct ctx *ctx = data;
-    const char *str = value;
+    const char *str;
     bool changed;
     enum sol_platform_state state;
     static const struct sol_str_table table[] = {
@@ -83,6 +83,10 @@ _manager_set_system_state(void *data, const void *value)
         SOL_STR_TABLE_ITEM("stopping",     SOL_PLATFORM_STATE_STOPPING),
         { }
     };
+    int r;
+
+    r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
+    SOL_INT_CHECK(r, < 0, false);
 
     state = sol_str_table_lookup_fallback(table, sol_str_slice_from_str(str),
         SOL_PLATFORM_SERVICE_STATE_UNKNOWN);
@@ -112,7 +116,6 @@ _manager_properties_changed(void *data, uint64_t mask)
 static const struct sol_bus_properties _manager_properties[] = {
     [MANAGER_PROPERTY_SYSTEM_STATE] = {
         .member = "SystemState",
-        .type = 's',
         .set = _manager_set_system_state,
     },
     { }
@@ -198,10 +201,10 @@ sol_platform_impl_get_state(void)
 }
 
 static bool
-_service_set_state(void *data, const void *value)
+_service_set_state(void *data, sd_bus_message *m)
 {
     struct service *x = data;
-    const char *str = value;
+    const char *str;
     bool changed;
     enum sol_platform_service_state state;
     static const struct sol_str_table table[] = {
@@ -213,6 +216,10 @@ _service_set_state(void *data, const void *value)
         SOL_STR_TABLE_ITEM("deactivating", SOL_PLATFORM_SERVICE_STATE_DEACTIVATING),
         { }
     };
+    int r;
+
+    r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
+    SOL_INT_CHECK(r, < 0, false);
 
     state = sol_str_table_lookup_fallback(table, sol_str_slice_from_str(str),
         SOL_PLATFORM_SERVICE_STATE_UNKNOWN);
@@ -243,7 +250,6 @@ _service_properties_changed(void *data, uint64_t mask)
 static const struct sol_bus_properties _service_properties[] = {
     [SERVICE_PROPERTY_STATE] = {
         .member = "ActiveState",
-        .type = 's',
         .set = _service_set_state,
     },
     { }

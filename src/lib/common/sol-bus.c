@@ -313,7 +313,6 @@ _message_map_all_properties(sd_bus_message *m,
     do {
         const struct sol_bus_properties *iter;
         const char *member;
-        void *value;
 
         r = sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sv");
         if (r <= 0) {
@@ -330,16 +329,9 @@ _message_map_all_properties(sd_bus_message *m,
         }
 
         if (iter->member) {
-            char contents[] = { iter->type, '\0'  };
             bool changed;
 
-            r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, contents);
-            SOL_INT_CHECK_GOTO(r, < 0, end);
-
-            r = sd_bus_message_read_basic(m, iter->type, &value);
-            SOL_INT_CHECK_GOTO(r, < 0, end);
-
-            changed = iter->set((void *)t->data, value);
+            changed = iter->set((void *)t->data, m);
             if (changed)
                 mask |= 1 << (iter - t->properties);
         } else {
