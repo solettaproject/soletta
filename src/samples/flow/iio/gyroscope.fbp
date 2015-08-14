@@ -29,8 +29,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Print iio gyroscope reading each second
+# iio_device: will first try any device whose name is 'l3g4200d'. If fails,
+# will try to create it using the 'create' command. If it fails, tries
+# IIO device whose id is '0'.
 
-gyro(iio/gyroscope:iio_device=0,buffer_size=20)
+gyro(iio/gyroscope:iio_device="l3g4200d create,i2c,platform/80860F41:05,0x69,l3g4200d 0",buffer_size=20)
 timer(timer)
 
 timer OUT -> TICK gyro OUT -> IN _(console)
