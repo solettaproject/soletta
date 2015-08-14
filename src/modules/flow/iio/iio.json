@@ -28,8 +28,8 @@
       "options": {
        "members": [
          {
-           "data_type": "int",
-           "description": "IIO device number",
+           "data_type": "string",
+           "description": "IIO device identifier. It's a space separated list of commands. For commands, if it's an integer value, will be interpreted as IIO device id. If it's a string starting with '/', will be interpreted as absolute path of IIO device on sysfs. If it's on the form 'i2c/X-YYYY', will evaluate to an i2c device on sysfs, where X is the bus number and YYYY is the device number, eg, 7-0069, for device 0x69 on bus 7. If it's on the form 'create,i2c,<rel_path>,<devnumber>,<devname>', where rel_path is the path of bus relative to '/sys/devices', them it will attempt to create an IIO device on that i2c bus and use it.",
            "name": "iio_device"
          },
          {
