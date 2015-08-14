@@ -1,3 +1,9 @@
+# This is the solely user of ICU. If gets wider use, move up in the hierarchy.
+config USE_ICU
+	bool "Use ICU library"
+	depends on HAVE_ICU
+	default y
+
 config FLOW_NODE_TYPE_STRING
 	tristate "Node type: string"
 	default y
