@@ -35,8 +35,10 @@
 #include "sol-macros.h"
 #include "sol-buffer.h"
 
+#include <dirent.h>
 #include <sys/types.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #define CHUNK_SIZE 4096
 #define SOL_UTIL_MAX_READ_ATTEMPTS 10
@@ -61,3 +63,4 @@ int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
  * EAGAIN or EINTR being returned by @c read() raw call.
  */
 ssize_t sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size);
+bool sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path, struct dirent *ent), const void *data);
