@@ -46,7 +46,7 @@
 #include <sol-mainloop.h>
 #include <sol-str-slice.h>
 #include <sol-util.h>
-#include <sol-util-linux.h>
+#include <sol-util-file.h>
 #include <sol-vector.h>
 
 #include "sol-iio.h"

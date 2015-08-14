@@ -41,7 +41,7 @@
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
-#include "sol-util-linux.h"
+#include "sol-util-file.h"
 #include "sol-vector.h"
 
 struct unix_socket_data {

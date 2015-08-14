@@ -44,7 +44,7 @@
 #include "sol-mainloop.h"
 #include "sol-uart.h"
 #include "sol-util.h"
-#include "sol-util-linux.h"
+#include "sol-util-file.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
 

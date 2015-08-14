@@ -13,7 +13,7 @@ obj-libshared-$(FLOW_SUPPORT) += \
 obj-libshared-$(PLATFORM_LINUX) += \
     sol-conffile.o \
     sol-file-reader.o \
-    sol-util-linux.o \
+    sol-util-file.o \
     sol-iio.o
 
 obj-libshared-y-extra-cflags += -fvisibility=default

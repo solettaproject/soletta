@@ -46,7 +46,7 @@
 #include <time.h>
 
 #ifdef SOL_PLATFORM_LINUX
-#include "sol-util-linux.h"
+#include "sol-util-file.h"
 #endif
 
 /**

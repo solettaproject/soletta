@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-util-linux.h"
+#include "sol-util-file.h"
 #include "sol-missing.h"
 #include "sol-mainloop.h"
 #include "sol-log.h"

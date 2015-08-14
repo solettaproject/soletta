@@ -45,7 +45,7 @@
 #include "sol-mainloop.h"
 #include "sol-monitors.h"
 #include "sol-util.h"
-#include "sol-util-linux.h"
+#include "sol-util-file.h"
 #include "sol-vector.h"
 
 struct evdev_fd_handler {

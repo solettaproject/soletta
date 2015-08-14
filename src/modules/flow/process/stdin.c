@@ -34,7 +34,7 @@
 
 #include "sol-platform.h"
 #include "sol-util.h"
-#include "sol-util-linux.h"
+#include "sol-util-file.h"
 #include <fcntl.h>
 #include <unistd.h>
 

@@ -52,7 +52,7 @@
 #include "sol-missing.h"
 #include "sol-network.h"
 #include "sol-util.h"
-#include "sol-util-linux.h"
+#include "sol-util-file.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "network");
 
