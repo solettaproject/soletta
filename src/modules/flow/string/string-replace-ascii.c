@@ -46,7 +46,9 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "string.h"
+#include "sol-util.h"
+
+#include "string-ascii.h"
 
 #define FAST_COUNT 0
 #define FAST_SEARCH 1

@@ -32,15 +32,10 @@
 
 #pragma once
 
-#include "sol-log.h"
-#include "sol-flow.h"
-#include "sol-flow-internal.h"
-#include "sol-util.h"
+#include <unicode/uchar.h>
 
-#ifdef HAVE_ICU
+#include "sol-flow.h"
+
 UChar *string_replace(struct sol_flow_node *node, UChar *value, UChar *change_from, UChar *change_to, size_t max_count);
 
 int icu_str_from_utf8(const char *utf_str, UChar **ret_icu_str, UErrorCode *ret_icu_err);
-#else
-char *string_replace(struct sol_flow_node *node, char *value, char *change_from, char *change_to, size_t max_count);
-#endif
