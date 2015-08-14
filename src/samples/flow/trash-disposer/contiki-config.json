@@ -1,0 +1,42 @@
+{
+ "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+ "nodetypes": [
+  {
+   "name": "BaseServo",
+   "options": {
+    "chip": 0,
+    "duty_cycle_range": "min:1000|max:2000",
+    "period": 20000,
+    "pin": 0
+   },
+   "type": "servo-motor/controller"
+  },
+  {
+   "name": "TopServo",
+   "options": {
+    "chip": 0,
+    "duty_cycle_range": "min:1000|max:2000",
+    "period": 20000,
+    "pin": 1
+   },
+   "type": "servo-motor/controller"
+  },
+  {
+   "name": "Led",
+   "options": {
+    "pin": 16
+   },
+   "type": "gpio/writer"
+  },
+  {
+   "name": "Button",
+   "options": {
+    "active_low": false,
+    "edge_falling": false,
+    "edge_rising": true,
+    "pin": 15
+   },
+   "type": "gpio/reader"
+  }
+ ]
+}
