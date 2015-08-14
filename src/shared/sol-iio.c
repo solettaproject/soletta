@@ -51,6 +51,10 @@
 
 #include "sol-iio.h"
 
+#ifdef USE_I2C
+#include <sol-i2c.h>
+#endif
+
 struct sol_iio_device {
     char *trigger_name;
     void (*reader_cb)(void *data, struct sol_iio_device *device);
@@ -88,6 +92,12 @@ struct sol_iio_channel {
 struct resolve_name_path_data {
     const char *name;
     int id;
+};
+
+struct create_and_resolve_path_data {
+    char path[PATH_MAX];
+    void (*cb)(void *data, int device_id);
+    const void *data;
 };
 
 #define DEVICE_PATH "/dev/iio:device%d"
@@ -1212,3 +1222,101 @@ sol_iio_resolve_device_address(const char *address)
     return resolve_name_path(address);
 }
 
+/* This ifdef is here to avoid warnings by not having I2C support.
+ * It'll probably be extended for other supported hardware */
+#ifdef USE_I2C
+static char *
+sol_slice_to_str(const struct sol_str_slice *slice)
+{
+    char *result = calloc(1, slice->len + 1);
+
+    SOL_NULL_CHECK(result, NULL);
+
+    memcpy(result, slice->data, slice->len);
+
+    return result;
+}
+
+static bool
+create_and_resolve_path_timeout_cb(void *data)
+{
+    struct create_and_resolve_path_data *result = data;
+
+    result->cb((void *)result->data, resolve_absolute_path(result->path));
+
+    free(result);
+
+    return false;
+}
+#endif
+
+bool
+sol_iio_create_device_address(const char *address, void (*cb)(void *data, int device_id), const void *data)
+{
+    struct create_and_resolve_path_data *result;
+    char *rel_path = NULL, *dev_number = NULL, *dev_name = NULL;
+
+    SOL_NULL_CHECK(address, false);
+    SOL_NULL_CHECK(cb, false);
+
+    result = calloc(1, sizeof(struct create_and_resolve_path_data));
+    SOL_NULL_CHECK(result, false);
+
+    result->cb = cb;
+    result->data = data;
+
+    if (strstartswith(address, "i2c,")) {
+#ifndef USE_I2C
+        SOL_WRN("No support for i2c");
+        goto error;
+#else
+        struct sol_str_slice slices;
+        struct sol_vector instructions;
+        int write_status;
+
+        slices = sol_str_slice_from_str(address + strlen("i2c,"));
+        instructions = sol_util_str_split(slices, ",", 3);
+
+        if (instructions.len < 3) {
+            SOL_WRN("Invalid create device path. Expected 'create,i2c,<rel_path>,"
+                "<devnumber>,<devname>'");
+            goto error;
+        }
+
+        rel_path = sol_slice_to_str(sol_vector_get(&instructions, 0));
+        SOL_NULL_CHECK_GOTO(rel_path, error);
+
+        dev_number = sol_slice_to_str(sol_vector_get(&instructions, 1));
+        SOL_NULL_CHECK_GOTO(dev_number, error);
+
+        dev_name = sol_slice_to_str(sol_vector_get(&instructions, 2));
+        SOL_NULL_CHECK_GOTO(dev_name, error);
+
+        if (!sol_i2c_create_device(rel_path, dev_name, dev_number, result->path, &write_status)) {
+            SOL_WRN("Could not create i2c device");
+            goto error;
+        }
+
+        if (write_status > 0 || write_status == -EINVAL) {
+            /* Giving some time to sysfs update. Maybe listen for udev events? */
+            if (!sol_timeout_add(1000, create_and_resolve_path_timeout_cb, result)) {
+                goto error;
+            }
+        }
+#endif
+    }
+
+    free(rel_path);
+    free(dev_number);
+    free(dev_name);
+
+    return true;
+
+error:
+    free(rel_path);
+    free(dev_number);
+    free(dev_name);
+    free(result);
+
+    return false;
+}
