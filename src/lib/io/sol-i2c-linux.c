@@ -47,10 +47,12 @@
 #include <linux/i2c.h>
 #endif
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <errno.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
@@ -64,6 +66,16 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 #ifdef WORKER_THREAD
 #include "sol-worker-thread.h"
 #endif
+
+#define SYSFS_DEVICES_PATH_RAW "/sys/devices/%s"
+#define SYSFS_I2C_NEW_DEVICE "%s/%s/new_device"
+
+struct i2c_create_device {
+    struct sol_buffer *result_path;
+    unsigned int dev_number;
+    const char *dev_name;
+    int result;
+};
 
 struct sol_i2c {
     int dev;
@@ -961,4 +973,92 @@ sol_i2c_pending_cancel(struct sol_i2c *i2c, struct sol_i2c_pending *pending)
 #endif
         SOL_WRN("Invalid I2C pending handle.");
     }
+}
+
+static bool
+create_device_iter_cb(void *data, const char *dir_path, struct dirent *ent)
+{
+    struct i2c_create_device *result = data;
+    char path[PATH_MAX];
+    int r;
+    struct stat st;
+
+    if (strstartswith(ent->d_name, "i2c-")) {
+        r = snprintf(path, sizeof(path), SYSFS_I2C_NEW_DEVICE, dir_path,
+            ent->d_name);
+        if (r > 0) {
+            /* There should be only one i2c-X dir. If we fail to write to its
+             * new_device file, we lost */
+            result->result = sol_util_write_file(path, "%s %d",
+                result->dev_name, result->dev_number);
+            if (result->result < 0) {
+                SOL_WRN("Could not write to [%s]: %s", path,
+                    sol_util_strerrora(errno));
+            }
+
+            r = snprintf(path, PATH_MAX, "%s/%s/%s-00%X",
+                dir_path, ent->d_name, ent->d_name + strlen("i2c-"),
+                result->dev_number);
+            if (r < 0 || r >= PATH_MAX) {
+                SOL_WRN("Could not write resulting device path");
+                result->result = -EINVAL;
+                return true;
+            }
+
+            if (result->result == -EINVAL) {
+                /* Device may happen to exist. Check it. */
+                if (!stat(path, &st)) {
+                    result->result = -EEXIST;
+                }
+            }
+
+            if (result->result_path) {
+                r = sol_buffer_append_printf(result->result_path,
+                    "%s", path);
+                if (r < 0) {
+                    SOL_WRN("Could not write resulting device path to buffer");
+                    result->result = r;
+                }
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
+SOL_API int
+sol_i2c_create_device(const char *address, const char *dev_name, unsigned int dev_number, struct sol_buffer *result_path)
+{
+    char path[PATH_MAX], real_path[PATH_MAX];
+    int len;
+    struct i2c_create_device result;
+
+    SOL_NULL_CHECK(address, -EINVAL);
+    SOL_NULL_CHECK(dev_name, -EINVAL);
+
+    result.dev_name = dev_name;
+    result.dev_number = dev_number;
+    result.result_path = result_path;
+
+    len = snprintf(path, sizeof(path), SYSFS_DEVICES_PATH_RAW, address);
+    if (len < 0 || len >= PATH_MAX) {
+        SOL_WRN("Could not create sysfs bus path");
+        return -EINVAL;
+    }
+
+    /* Validate if path points do '/sys/devices', to avoid some '../' trickery */
+    if (realpath(path, real_path)) {
+        if (!strstartswith(real_path, "/sys/devices")) {
+            SOL_WRN("Invalid relative path [%s]", address);
+            return -EINVAL;
+        }
+    }
+
+    if (!sol_util_iterate_dir(real_path, create_device_iter_cb, &result)) {
+        SOL_WRN("Could not find suitable i2c dir on device sysfs [%s]", real_path);
+        return -ENOENT;
+    }
+
+    return result.result;
 }

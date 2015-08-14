@@ -37,6 +37,7 @@
 #include <sys/types.h>
 
 #include <sol-macros.h>
+#include <sol-buffer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -308,6 +309,29 @@ uint8_t sol_i2c_bus_get(const struct sol_i2c *i2c);
  * @param pending the operation handle
  */
 void sol_i2c_pending_cancel(struct sol_i2c *i2c, struct sol_i2c_pending *pending);
+
+#ifdef SOL_PLATFORM_LINUX
+
+/**
+ * Create a new i2c device.
+ *
+ * Iterates through @a relative_dir on '/sys/devices/' looking
+ * for 'i2c-X' dir and add @a dev_name @dev_number to its 'new_device' file.
+ *
+ * @param relative_dir bus on '/sys/devices' where to add new i2c device.
+ * @param dev_name name of device. Usually is the one its driver expects.
+ * @param dev_number number of device on bus.
+ * @param result_path resulting path of new device. It's a convenience to
+ * retrieve new device path. Note that the device dir may take some time
+ * to appear on sysfs - it may be necessary to wait some time before trying to
+ * access it.
+ *
+ * @return a positive value if everything was ok. A negative one if some error
+ * happened. Watch out for -EEXIST return: it means that device could not be
+ * created because it already exists.
+ */
+int sol_i2c_create_device(const char *address, const char *dev_name, unsigned int dev_number, struct sol_buffer *result_path);
+#endif
 
 /**
  * @}
