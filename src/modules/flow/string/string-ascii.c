@@ -312,7 +312,8 @@ string_split_open(struct sol_flow_node *node,
     opts = (const struct sol_flow_node_type_string_split_options *)options;
 
     if (opts->index.val < 0) {
-        SOL_WRN("Index (%" PRId32 ") must be a non-negative value", opts->index.val);
+        SOL_WRN("Index (%" PRId32 ") must be a non-negative value",
+            opts->index.val);
         return -EINVAL;
     }
     if (opts->max_split.val < 0) {
@@ -428,7 +429,8 @@ set_max_split(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value < 0) {
-        SOL_WRN("Max split (%" PRId32 ") must be a non-negative value", in_value);
+        SOL_WRN("Max split (%" PRId32 ") must be a non-negative value",
+            in_value);
         return -EINVAL;
     }
     mdata->max_split = in_value;
@@ -570,7 +572,7 @@ string_replace_open(struct sol_flow_node *node,
 
     mdata->node = node;
     if (opts->max_replace.val < 0) {
-        SOL_WRN("Max replace (%d) must be a non-negative value",
+        SOL_WRN("Max replace (%" PRId32 ") must be a non-negative value",
             opts->max_replace.val);
         return -EINVAL;
     }
@@ -702,7 +704,8 @@ set_max_replace(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value < 0) {
-        SOL_WRN("Max replace (%d) must be a non-negative value", in_value);
+        SOL_WRN("Max replace (%" PRId32 ") must be a non-negative value",
+            in_value);
         return -EINVAL;
     }
     mdata->max_replace = in_value;
