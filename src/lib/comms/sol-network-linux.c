@@ -265,7 +265,7 @@ static void
 _netlink_request(int event)
 {
     size_t n;
-    char buf[sizeof(struct nlmsghdr) + sizeof(struct rtgenmsg)] = { 0 };
+    char buf[NLMSG_ALIGN(sizeof(struct nlmsghdr) + sizeof(struct rtgenmsg))] = { 0 };
     char buffer_receive[4096];
     struct iovec iov = { buf, sizeof(buf) };
     struct sockaddr_nl snl = { .nl_family = AF_NETLINK };
@@ -471,7 +471,7 @@ sol_network_link_get_name(const struct sol_network_link *link)
 SOL_API bool
 sol_network_link_up(unsigned int link_index)
 {
-    char buf[sizeof(struct nlmsghdr) + sizeof(struct ifinfomsg) + 512] = { 0 };
+    char buf[NLMSG_ALIGN(sizeof(struct nlmsghdr) + sizeof(struct ifinfomsg) + 512)] = { 0 };
     struct iovec iov = { buf, sizeof(buf) };
     struct msghdr msg = { 0 };
     struct nlmsghdr *h;
