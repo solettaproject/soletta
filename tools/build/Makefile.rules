@@ -297,7 +297,7 @@ $(SOL_LIB_SO): $(SOL_LIB_AR) $(builtin-objs)
 $(DEPENDENCY_CACHE): $(MODULES_OK_FILE)
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
 		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
-		--pkg-config="$(PKG_CONFIG)"
+		--pkg-config="$(PKG_CONFIG)" --makefile-gen
 
 $(KCONFIG_GEN): $(DEPENDENCY_CACHE)
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
