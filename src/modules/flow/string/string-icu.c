@@ -37,8 +37,10 @@
 #include <unicode/utypes.h>
 #include <unicode/uchar.h>
 
+#include "sol-flow-internal.h"
+
 #include "string-gen.h"
-#include "string.h"
+#include "string-icu.h"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 

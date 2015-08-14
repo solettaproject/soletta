@@ -43,8 +43,10 @@
 #include <locale.h>
 #endif
 
+#include "sol-flow-internal.h"
+
 #include "string-gen.h"
-#include "string.h"
+#include "string-ascii.h"
 
 struct string_data {
     int32_t n;

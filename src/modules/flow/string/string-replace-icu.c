@@ -50,7 +50,10 @@
 #include <unicode/utypes.h>
 #include <unicode/uchar.h>
 
-#include "string.h"
+#include "sol-log.h"
+#include "sol-util.h"
+
+#include "string-icu.h"
 
 #define FAST_COUNT 0
 #define FAST_SEARCH 1
