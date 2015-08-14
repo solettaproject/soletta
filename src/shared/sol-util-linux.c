@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sol-util.h"
 #include "sol-util-linux.h"
 #include "sol-missing.h"
 #include "sol-mainloop.h"
@@ -40,6 +41,7 @@
 #include <fcntl.h>
 #include <libgen.h>
 #include <limits.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -365,4 +367,48 @@ sol_util_fd_set_flag(int fd, int flag)
         return -errno;
 
     return 0;
+}
+
+bool
+sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path, struct dirent *ent), const void *data)
+{
+    DIR *dir;
+    struct dirent *ent, *res;
+    int success;
+    long name_max;
+    size_t len;
+    bool result = false;
+
+    SOL_NULL_CHECK(path, false);
+    SOL_NULL_CHECK(iterate_dir_cb, false);
+
+    /* See readdir_r(3) */
+    name_max = pathconf(path, _PC_NAME_MAX);
+    if (name_max == -1)
+        name_max = 255;
+    len = offsetof(struct dirent, d_name) + name_max + 1;
+    ent = malloc(len);
+    SOL_NULL_CHECK(ent, false);
+
+    dir = opendir(path);
+    if (!dir) {
+        SOL_WRN("Could not open dir [%s] to iterate: %s", path,
+            sol_util_strerrora(errno));
+        return false;
+    }
+
+    success = readdir_r(dir, ent, &res);
+    while (success == 0 && res) {
+        if (iterate_dir_cb((void *)data, path, res)) {
+            result = true;
+            break;
+        }
+
+        success = readdir_r(dir, ent, &res);
+    }
+
+    free(ent);
+    closedir(dir);
+
+    return result;
 }
