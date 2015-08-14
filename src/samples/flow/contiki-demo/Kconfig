@@ -1,0 +1,4 @@
+config FLOW_CONTIKI_DEMO
+	bool
+	depends on FLOW_FBP_GENERATOR_SAMPLES
+	default y
