@@ -51,6 +51,10 @@
 
 #include "sol-iio.h"
 
+#ifdef USE_I2C
+#include <sol-i2c.h>
+#endif
+
 struct sol_iio_device {
     char *trigger_name;
     void (*reader_cb)(void *data, struct sol_iio_device *device);
@@ -85,10 +89,23 @@ struct sol_iio_channel {
     char name[]; /* Must be last. Memory trick in place. */
 };
 
+struct resolve_name_path_data {
+    const char *name;
+    int id;
+};
+
+struct create_and_resolve_path_data {
+    char path[PATH_MAX];
+    void (*cb)(void *data, int device_id);
+    const void *data;
+};
+
 #define DEVICE_PATH "/dev/iio:device%d"
 #define SYSFS_DEVICES_PATH "/sys/bus/iio/devices"
+#define SYSFS_DEVICE_PATH "/sys/bus/iio/devices/%s"
 
 #define DEVICE_NAME_PATH SYSFS_DEVICES_PATH "/iio:device%d/name"
+#define DEVICE_NAME_PATH_BY_DEVICE_DIR SYSFS_DEVICES_PATH "/%s/name"
 
 #define BUFFER_ENABLE_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/enable"
 #define BUFFER_LENGHT_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/length"
@@ -111,6 +128,8 @@ struct sol_iio_channel {
 #define SAMPLING_FREQUENCY_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/sampling_frequency"
 #define SAMPLING_FREQUENCY_BUFFER_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/sampling_frequency"
 #define SAMPLING_FREQUENCY_TRIGGER_PATH SYSFS_DEVICES_PATH "/trigger%d/sampling_frequency"
+
+#define I2C_DEVICES_PATH "/sys/bus/i2c/devices/%u-%04u/"
 
 static bool
 craft_filename_path(char *path, size_t size, const char *base, ...)
@@ -1087,4 +1106,217 @@ sol_iio_device_start_buffer(struct sol_iio_device *device)
     }
 
     return true;
+}
+
+static bool
+resolve_name_path_cb(void *data, const char *dir_path, struct dirent *ent)
+{
+    struct resolve_name_path_data *result = data;
+    char path[PATH_MAX], *name;
+    int len;
+
+    if (strstartswith(ent->d_name, "iio:device")) {
+        if (craft_filename_path(path, sizeof(path),
+            DEVICE_NAME_PATH_BY_DEVICE_DIR, ent->d_name)) {
+
+            len = sol_util_read_file(path, "%ms", &name);
+            if (len > 0) {
+                if (streqn(name, result->name, len)) {
+                    result->id = atoi(ent->d_name + strlen("iio:device"));
+                    free(name);
+                    return true;
+                }
+                free(name);
+            }
+        }
+    }
+
+    return false;
+}
+
+static int
+resolve_name_path(const char *name)
+{
+    struct resolve_name_path_data data = { .id = -1, .name = name };
+
+    sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_name_path_cb, &data);
+
+    return data.id;
+}
+
+struct resolve_absolute_path_data {
+    char *path;
+    int id;
+};
+
+static bool
+resolve_absolute_path_cb(void *data, const char *dir_path, struct dirent *ent)
+{
+    struct resolve_absolute_path_data *result = data;
+    char path[PATH_MAX], real_path[PATH_MAX];
+
+    if (craft_filename_path(path, sizeof(path),
+        SYSFS_DEVICE_PATH, ent->d_name)) {
+
+        if (realpath(path, real_path)) {
+            if (strstartswith(real_path, result->path)) {
+                result->id = atoi(ent->d_name + strlen("iio:device"));
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+static int
+resolve_absolute_path(const char *address)
+{
+    char real_path[PATH_MAX];
+    struct resolve_absolute_path_data result = { .id = -1 };
+
+    if (realpath(address, real_path)) {
+        result.path = real_path;
+        sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
+    }
+
+    return result.id;
+}
+
+static int
+resolve_i2c_path(const char *address)
+{
+    unsigned int bus, device;
+    char path[PATH_MAX], real_path[PATH_MAX];
+    struct resolve_absolute_path_data result = { .id = -1 };
+
+    if (sscanf(address, "%u-%u", &bus, &device) != 2) {
+        SOL_WRN("Unexpected i2c address format. Got [%s], expected X-YYYY,"
+            " where X is bus number and YYYY is device address", address);
+        return -1;
+    }
+
+    if (craft_filename_path(path, sizeof(path), I2C_DEVICES_PATH, bus, device)) {
+        /* Idea: check if there's a symbolic link on iio/devices to the same
+         * destination as the i2c dir */
+        if (realpath(path, real_path)) {
+            result.path = real_path;
+            sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
+        }
+    }
+
+    return result.id;
+}
+
+int
+sol_iio_resolve_device_address(const char *address)
+{
+    SOL_NULL_CHECK(address, -1);
+
+    if (strstartswith(address, "/"))
+        return resolve_absolute_path(address);
+
+    if (strstartswith(address, "i2c/"))
+        return resolve_i2c_path(address + strlen("i2c/"));
+
+    return resolve_name_path(address);
+}
+
+/* This ifdef is here to avoid warnings by not having I2C support.
+ * It'll probably be extended for other supported hardware */
+#ifdef USE_I2C
+static char *
+sol_slice_to_str(const struct sol_str_slice *slice)
+{
+    char *result = calloc(1, slice->len + 1);
+
+    SOL_NULL_CHECK(result, NULL);
+
+    memcpy(result, slice->data, slice->len);
+
+    return result;
+}
+
+static bool
+create_and_resolve_path_timeout_cb(void *data)
+{
+    struct create_and_resolve_path_data *result = data;
+
+    result->cb((void *)result->data, resolve_absolute_path(result->path));
+
+    free(result);
+
+    return false;
+}
+#endif
+
+bool
+sol_iio_create_device_address(const char *address, void (*cb)(void *data, int device_id), const void *data)
+{
+    struct create_and_resolve_path_data *result;
+    char *rel_path = NULL, *dev_number = NULL, *dev_name = NULL;
+
+    SOL_NULL_CHECK(address, false);
+    SOL_NULL_CHECK(cb, false);
+
+    result = calloc(1, sizeof(struct create_and_resolve_path_data));
+    SOL_NULL_CHECK(result, false);
+
+    result->cb = cb;
+    result->data = data;
+
+    if (strstartswith(address, "i2c,")) {
+#ifndef USE_I2C
+        SOL_WRN("No support for i2c");
+        goto error;
+#else
+        struct sol_str_slice slices;
+        struct sol_vector instructions;
+        int write_status;
+
+        slices = sol_str_slice_from_str(address + strlen("i2c,"));
+        instructions = sol_util_str_split(slices, ",", 3);
+
+        if (instructions.len < 3) {
+            SOL_WRN("Invalid create device path. Expected 'create,i2c,<rel_path>,"
+                "<devnumber>,<devname>'");
+            goto error;
+        }
+
+        rel_path = sol_slice_to_str(sol_vector_get(&instructions, 0));
+        SOL_NULL_CHECK_GOTO(rel_path, error);
+
+        dev_number = sol_slice_to_str(sol_vector_get(&instructions, 1));
+        SOL_NULL_CHECK_GOTO(dev_number, error);
+
+        dev_name = sol_slice_to_str(sol_vector_get(&instructions, 2));
+        SOL_NULL_CHECK_GOTO(dev_name, error);
+
+        if (!sol_i2c_create_device(rel_path, dev_name, dev_number, result->path, &write_status)) {
+            SOL_WRN("Could not create i2c device");
+            goto error;
+        }
+
+        if (write_status > 0 || write_status == -EINVAL) {
+            /* Giving some time to sysfs update. Maybe listen for udev events? */
+            if (!sol_timeout_add(1000, create_and_resolve_path_timeout_cb, result)) {
+                goto error;
+            }
+        }
+#endif
+    }
+
+    free(rel_path);
+    free(dev_number);
+    free(dev_name);
+
+    return true;
+
+error:
+    free(rel_path);
+    free(dev_number);
+    free(dev_name);
+    free(result);
+
+    return false;
 }

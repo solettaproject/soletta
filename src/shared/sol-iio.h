@@ -136,6 +136,45 @@ bool sol_iio_device_trigger_now(struct sol_iio_device *device);
  */
 bool sol_iio_device_start_buffer(struct sol_iio_device *device);
 
+/**
+ * Attempts to find IIO device id from an address.
+ *
+ * Address can be an absolute path (starting with '/') pointing to sysfs
+ * dir of device. Alternatively, it can be i2c/X-YYYY, for i2c device,
+ * where X is the bus number and YYYY is the device number, eg, 7-0069
+ * for device 0x69 on bus 7. If it doesn't start with '/' or 'i2c/' then
+ * it will search for it on contents of 'name' file of IIO devices.
+ *
+ * @param address of device.
+ *
+ * @return IIO device id or -1 if could not find device id
+ */
+int sol_iio_resolve_device_address(const char *address);
+
+/**
+ * Create device based on address information.
+ *
+ * Address is a combination on the for <bus_type>,<rel_path>,<devnumber>,<devname>
+ * @a bus_type is the bus type, supported values are: i2c
+ * @a rel_path is the relative path for device on '/sys/devices',
+ * like 'platform/80860F41:05'
+ * @a devnumber is device number on bus, like 0xA4
+ * @a devname is device name, the one recognized by its driver
+ * If successful, will return on @cb the device number obtained. If device
+ * number is -1, it was not possible to create the device. If device already
+ * exists, will just return its IIO id on @a cb.
+ *
+ * @param address on format specified above
+ * @param cb callback to be called after device creation. It contains IIO
+ * device id, or -1 if unsuccessful
+ * @param data user data to be passed to callback
+ *
+ * @return to if attempt to create device was successful, false othewise. Note
+ * that to really know if device was created, besides return, one needs to check
+ * callback device_id.
+ */
+bool sol_iio_create_device_address(const char *address, void (*cb)(void *data, int device_id), const void *data);
+
 #ifdef __cplusplus
 }
 #endif

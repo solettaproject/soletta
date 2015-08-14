@@ -309,6 +309,30 @@ uint8_t sol_i2c_bus_get(const struct sol_i2c *i2c);
  */
 void sol_i2c_pending_cancel(struct sol_i2c *i2c, struct sol_i2c_pending *pending);
 
+#ifdef SOL_PLATFORM_LINUX
+
+/**
+ * Create a new i2c device.
+ *
+ * Iterates through @a relative_dir on '/sys/devices/' looking
+ * for 'i2c-X' dir and add @a dev_name @dev_number to its 'new_device' file.
+ *
+ * @param relative_dir bus on '/sys/devices' where to add new i2c device.
+ * @param dev_name name of device. Usually is the one its driver expects
+ * @param dev_number number of device on bus. Usually a string on the form '0xYY'
+ * @param result_path resulting path of new device. It's a convenience to
+ * retrieve new device path. Note that the device dir may take some time
+ * to appear on sysfs - it may be necessary to wait some time before trying to
+ * access it. Needs to be PATH_MAX long in order to fit the path.
+ * @param write_status result of write operation to 'new_device' file.
+ * A value of -EINVAL means that write failed, but *maybe* the device already exists.
+ *
+ * @return false if could not try to write to 'new_device' file,
+ * true if could; in this case, @a write_status contain the status of writing
+ */
+bool sol_i2c_create_device(const char *address, const char *dev_name, const char *dev_number, char *result_path, int *write_status);
+#endif
+
 /**
  * @}
  */
