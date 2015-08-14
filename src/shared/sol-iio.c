@@ -51,6 +51,10 @@
 
 #include "sol-iio.h"
 
+#ifdef USE_I2C
+#include <sol-i2c.h>
+#endif
+
 struct sol_iio_device {
     char *trigger_name;
     void (*reader_cb)(void *data, struct sol_iio_device *device);
@@ -85,10 +89,32 @@ struct sol_iio_channel {
     char name[]; /* Must be last. Memory trick in place. */
 };
 
+struct resolve_name_path_data {
+    const char *name;
+    int id;
+};
+
+struct create_and_resolve_path_data {
+    struct sol_str_slice slice;
+    struct sol_vector commands;
+    struct sol_buffer path;
+    char *addresses;
+    void (*cb)(void *data, int device_id);
+    const void *data;
+    int command_index;
+};
+
+struct resolve_absolute_path_data {
+    char *path;
+    int id;
+};
+
 #define DEVICE_PATH "/dev/iio:device%d"
 #define SYSFS_DEVICES_PATH "/sys/bus/iio/devices"
+#define SYSFS_DEVICE_PATH "/sys/bus/iio/devices/%s"
 
 #define DEVICE_NAME_PATH SYSFS_DEVICES_PATH "/iio:device%d/name"
+#define DEVICE_NAME_PATH_BY_DEVICE_DIR SYSFS_DEVICES_PATH "/%s/name"
 
 #define BUFFER_ENABLE_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/enable"
 #define BUFFER_LENGHT_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/length"
@@ -111,6 +137,14 @@ struct sol_iio_channel {
 #define SAMPLING_FREQUENCY_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/sampling_frequency"
 #define SAMPLING_FREQUENCY_BUFFER_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/sampling_frequency"
 #define SAMPLING_FREQUENCY_TRIGGER_PATH SYSFS_DEVICES_PATH "/trigger%d/sampling_frequency"
+
+#define I2C_DEVICES_PATH "/sys/bus/i2c/devices/%u-%04u/"
+
+#define REL_PATH_IDX 2
+#define DEV_NUMBER_IDX 3
+#define DEV_NAME_IDX 4
+
+static bool create_or_resolve_device_address_dispatch(void *data);
 
 static bool
 craft_filename_path(char *path, size_t size, const char *base, ...)
@@ -1092,6 +1126,304 @@ sol_iio_device_start_buffer(struct sol_iio_device *device)
     SOL_PTR_VECTOR_FOREACH_IDX (&device->channels, channel, i) {
         channel->offset_in_buffer = calc_channel_offset_in_buffer(channel);
     }
+
+    return true;
+}
+
+static bool
+resolve_name_path_cb(void *data, const char *dir_path, struct dirent *ent)
+{
+    struct resolve_name_path_data *result = data;
+    char path[PATH_MAX], *name;
+    int len;
+
+    if (strstartswith(ent->d_name, "iio:device")) {
+        if (craft_filename_path(path, sizeof(path),
+            DEVICE_NAME_PATH_BY_DEVICE_DIR, ent->d_name)) {
+
+            len = sol_util_read_file(path, "%ms", &name);
+            if (len > 0) {
+                if (streq(name, result->name)) {
+                    result->id = atoi(ent->d_name + strlen("iio:device"));
+                    free(name);
+                    return true;
+                }
+                free(name);
+            }
+        }
+    }
+
+    return false;
+}
+
+static int
+resolve_name_path(const char *name)
+{
+    struct resolve_name_path_data data = { .id = -1, .name = name };
+
+    sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_name_path_cb, &data);
+
+    return data.id;
+}
+
+static bool
+resolve_absolute_path_cb(void *data, const char *dir_path, struct dirent *ent)
+{
+    struct resolve_absolute_path_data *result = data;
+    char path[PATH_MAX], real_path[PATH_MAX];
+
+    if (craft_filename_path(path, sizeof(path),
+        SYSFS_DEVICE_PATH, ent->d_name)) {
+
+        if (realpath(path, real_path)) {
+            if (strstartswith(real_path, result->path)) {
+                result->id = atoi(ent->d_name + strlen("iio:device"));
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+static int
+resolve_absolute_path(const char *address)
+{
+    char real_path[PATH_MAX];
+    struct resolve_absolute_path_data result = { .id = -1 };
+
+    if (realpath(address, real_path)) {
+        result.path = real_path;
+        sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
+    }
+
+    return result.id;
+}
+
+static int
+resolve_i2c_path(const char *address)
+{
+    unsigned int bus, device;
+    char path[PATH_MAX], real_path[PATH_MAX];
+    struct resolve_absolute_path_data result = { .id = -1 };
+
+    if (sscanf(address, "%u-%u", &bus, &device) != 2) {
+        SOL_WRN("Unexpected i2c address format. Got [%s], expected X-YYYY,"
+            " where X is bus number and YYYY is device address", address);
+        return -1;
+    }
+
+    if (craft_filename_path(path, sizeof(path), I2C_DEVICES_PATH, bus, device)) {
+        /* Idea: check if there's a symbolic link on iio/devices to the same
+         * destination as the i2c dir */
+        if (realpath(path, real_path)) {
+            result.path = real_path;
+            sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
+        }
+    }
+
+    return result.id;
+}
+
+static int
+check_device_id(int id)
+{
+    char path[PATH_MAX];
+    struct stat st;
+
+    if (craft_filename_path(path, sizeof(path), DEVICE_NAME_PATH, id)) {
+        if (!stat(path, &st))
+            return id;
+    }
+
+    return -1;
+}
+
+static int
+resolve_device_address(const char *address)
+{
+    char *end_ptr;
+    int i;
+
+    SOL_NULL_CHECK(address, -1);
+
+    if (strstartswith(address, "/"))
+        return resolve_absolute_path(address);
+
+    if (strstartswith(address, "i2c/"))
+        return resolve_i2c_path(address + strlen("i2c/"));
+
+    errno = 0;
+    i = strtol(address, &end_ptr, 0);
+    if (!errno && *end_ptr == '\0')
+        return check_device_id(i);
+
+    return resolve_name_path(address);
+}
+
+static void
+create_and_resolver_data_del(struct create_and_resolve_path_data *data)
+{
+    sol_vector_clear(&data->commands);
+    sol_buffer_fini(&data->path);
+    free(data->addresses);
+    free(data);
+}
+
+static char *
+sol_slice_to_str(const struct sol_str_slice *slice)
+{
+    char *result = calloc(1, slice->len + 1);
+
+    SOL_NULL_CHECK(result, NULL);
+
+    memcpy(result, slice->data, slice->len);
+
+    return result;
+}
+
+/* This ifdef is here to avoid warnings by not having I2C support.
+ * It'll probably be extended for other supported hardware */
+#ifdef USE_I2C
+static bool
+create_and_resolve_path_timeout_cb(void *data)
+{
+    struct create_and_resolve_path_data *dispatcher_data = data;
+    int r;
+
+    r = resolve_absolute_path((char *)dispatcher_data->path.data);
+    if (r > -1) {
+        dispatcher_data->cb((void *)dispatcher_data->data, r);
+        create_and_resolver_data_del(dispatcher_data);
+    } else
+        create_or_resolve_device_address_dispatch(dispatcher_data);
+
+    return false;
+}
+#endif
+
+static bool
+create_device_address(struct sol_str_slice *command, struct create_and_resolve_path_data *dispatcher_data)
+{
+    char *rel_path = NULL, *dev_number_s = NULL, *dev_name = NULL;
+    bool ret = false;
+    struct sol_vector instructions = SOL_VECTOR_INIT(struct sol_str_slice);
+
+    if (strstartswith(command->data, "create,i2c,")) {
+#ifndef USE_I2C
+        SOL_WRN("No support for i2c");
+        goto end;
+#else
+        unsigned int dev_number;
+        char *end_ptr;
+        int r;
+
+        instructions = sol_util_str_split(*command, ",", 5);
+
+        if (instructions.len < 5) {
+            SOL_WRN("Invalid create device path. Expected 'create,i2c,<rel_path>,"
+                "<devnumber>,<devname>'");
+            goto end;
+        }
+
+        rel_path = sol_slice_to_str(sol_vector_get(&instructions, REL_PATH_IDX));
+        SOL_NULL_CHECK_GOTO(rel_path, end);
+
+        dev_number_s = sol_slice_to_str(sol_vector_get(&instructions, DEV_NUMBER_IDX));
+        SOL_NULL_CHECK_GOTO(dev_number_s, end);
+
+        errno = 0;
+        dev_number = strtoul(dev_number_s, &end_ptr, 0);
+        if (errno || *end_ptr != '\0')
+            goto end;
+
+        dev_name = sol_slice_to_str(sol_vector_get(&instructions, DEV_NAME_IDX));
+        SOL_NULL_CHECK_GOTO(dev_name, end);
+
+        r = sol_i2c_create_device(rel_path, dev_name, dev_number,
+            &dispatcher_data->path);
+
+        if (r >= 0 || r == -EEXIST) {
+            /* Giving some time to sysfs update. Maybe listen for udev events? */
+            if (sol_timeout_add(1000, create_and_resolve_path_timeout_cb, dispatcher_data)) {
+                ret = true;
+            }
+        } else {
+            goto end;
+        }
+#endif
+    }
+
+end:
+    free(rel_path);
+    free(dev_number_s);
+    free(dev_name);
+    sol_vector_clear(&instructions);
+
+    return ret;
+}
+
+static bool
+create_or_resolve_device_address_dispatch(void *data)
+{
+    struct create_and_resolve_path_data *dispatcher_data = data;
+    struct sol_str_slice *command;
+    int r = -1;
+
+    do {
+        command = sol_vector_get(&dispatcher_data->commands, dispatcher_data->command_index++);
+        if (!command) {
+            SOL_WRN("Could not create or resolve device address using any of commands");
+            dispatcher_data->cb((void *)dispatcher_data->data, -1);
+            create_and_resolver_data_del(dispatcher_data);
+
+            return false;
+        }
+
+        SOL_DBG("IIO device creation/resolving dispatching command: %.*s",
+            SOL_STR_SLICE_PRINT(*command));
+
+        if (strstartswith(command->data, "create,")) {
+            if (create_device_address(command, dispatcher_data)) {
+                /* As this is an async call, lets wait it's answer */
+                return false;
+            }
+        } else {
+            char *command_s = sol_slice_to_str(command);
+            if (command_s) {
+                r = resolve_device_address(command_s);
+                if (r > -1) {
+                    dispatcher_data->cb((void *)dispatcher_data->data, r);
+                    create_and_resolver_data_del(dispatcher_data);
+                }
+                free(command_s);
+            }
+        }
+    } while (r < 0);
+
+    return false;
+}
+
+bool
+sol_iio_address_device(const char *commands, void (*cb)(void *data, int device_id), const void *data)
+{
+    struct create_and_resolve_path_data *dispatcher_data;
+
+    SOL_NULL_CHECK(commands, false);
+    SOL_NULL_CHECK(cb, false);
+
+    dispatcher_data = calloc(1, sizeof(struct create_and_resolve_path_data));
+    SOL_NULL_CHECK(dispatcher_data, false);
+
+    sol_buffer_init(&dispatcher_data->path);
+    dispatcher_data->cb = cb;
+    dispatcher_data->data = data;
+
+    dispatcher_data->addresses = strdup(commands);
+    dispatcher_data->slice = sol_str_slice_from_str(dispatcher_data->addresses);
+    dispatcher_data->commands = sol_util_str_split(dispatcher_data->slice, " ", 0);
+
+    sol_idle_add(create_or_resolve_device_address_dispatch, dispatcher_data);
 
     return true;
 }
