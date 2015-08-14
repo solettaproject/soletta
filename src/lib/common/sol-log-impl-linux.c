@@ -38,7 +38,7 @@
 #include <unistd.h>
 #include <syslog.h>
 
-#ifdef HAVE_SYSTEMD
+#ifdef PLATFORM_SYSTEMD
 #include <systemd/sd-journal.h>
 #endif
 
@@ -415,7 +415,7 @@ sol_log_impl_init(void)
     if (_main_pid == 1)
         _kcmdline_load();
 
-#ifdef HAVE_SYSTEMD
+#ifdef PLATFORM_SYSTEMD
     if (getenv("NOTIFY_SOCKET")) {
         _print_function = sol_log_print_function_journal;
         _print_function_data = NULL;
@@ -429,7 +429,7 @@ sol_log_impl_init(void)
         } else if (streq(func_name, "syslog")) {
             _print_function = sol_log_print_function_syslog;
             _print_function_data = NULL;
-#ifdef HAVE_SYSTEMD
+#ifdef PLATFORM_SYSTEMD
         } else if (streq(func_name, "journal")) {
             _print_function = sol_log_print_function_journal;
             _print_function_data = NULL;
@@ -638,7 +638,7 @@ sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, u
 SOL_API void
 sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
 {
-#ifdef HAVE_SYSTEMD
+#ifdef PLATFORM_SYSTEMD
     char *code_file = NULL;
     char *code_line = NULL;
     char *msg = NULL;
