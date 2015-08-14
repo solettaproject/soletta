@@ -42,7 +42,11 @@
 #include "sol-util.h"
 #include "sol-vector.h"
 
+#define SOL_HTTP_PARAM_IF_SINCE_MODIFIED "If-Since-Modified"
+#define SOL_HTTP_PARAM_LAST_MODIFIED "Last-Modified"
+
 struct http_handler {
+    time_t last_modified;
     struct sol_str_slice path;
     int (*request_cb)(void *data, struct sol_http_request *request);
     const void *user_data;
@@ -54,6 +58,7 @@ struct sol_http_request {
     const char *url;
     struct sol_http_param params;
     enum sol_http_method method;
+    time_t if_since_modified;
 };
 
 struct sol_http_server {
@@ -172,6 +177,19 @@ err:
     return MHD_NO;
 }
 
+static time_t
+process_if_modified_since(const char *value)
+{
+    char *s;
+    struct tm t;
+
+    s = strptime(value, "%a, %d %b %Y %H:%M:%S GMT", &t);
+    if (!s || *s != '\0')
+        return 0;
+
+    return timegm(&t);
+}
+
 static int
 headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const char *value)
 {
@@ -186,6 +204,10 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
 
     switch (kind) {
     case MHD_HEADER_KIND:
+        if (streq(k, SOL_HTTP_PARAM_IF_SINCE_MODIFIED)) {
+            request->if_since_modified = process_if_modified_since(v);
+            SOL_INT_CHECK_GOTO(request->if_since_modified, == 0, param_err);
+        }
         if (!sol_http_param_add(&request->params,
             SOL_HTTP_REQUEST_PARAM_HEADER(k, v)))
             goto param_err;
@@ -203,10 +225,8 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
 
 param_err:
     free(k);
-    k = NULL;
 err:
     free(v);
-    v = NULL;
     return MHD_NO;
 }
 
@@ -261,11 +281,16 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             continue;
 
         MHD_get_connection_values(connection, MHD_HEADER_KIND, headers_iterator, req);
-        MHD_suspend_connection(connection);
-        ret = handler->request_cb((void *)handler->user_data, req);
-        SOL_INT_CHECK(ret, < 0, MHD_NO);
+        if (handler->last_modified && (req->if_since_modified > handler->last_modified)) {
+            status = SOL_HTTP_STATUS_NOT_MODIFIED;
+            goto end;
+        } else {
+            MHD_suspend_connection(connection);
+            ret = handler->request_cb((void *)handler->user_data, req);
+            SOL_INT_CHECK(ret, < 0, MHD_NO);
+        }
 
-        return ret;
+        return MHD_YES;
     }
 
 end:
@@ -495,6 +520,7 @@ sol_http_server_register_handler(struct sol_http_server *server, const char *pat
 
     handler->request_cb = request_cb;
     handler->user_data = data;
+    handler->last_modified = 0;
 
     return 0;
 
@@ -544,4 +570,23 @@ sol_http_server_send_response(struct sol_http_request *request, struct sol_http_
     SOL_INT_CHECK(ret, != MHD_YES, -1);
 
     return ret;
+}
+
+SOL_API int
+sol_http_server_set_last_modified(struct sol_http_server *server, const char *path, time_t modified)
+{
+    uint16_t idx;
+    struct http_handler *handler;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+
+    SOL_VECTOR_FOREACH_IDX (&server->handlers, handler, idx) {
+        if (sol_str_slice_str_eq(handler->path, path)) {
+            handler->last_modified = modified;
+            return 0;
+        }
+    }
+
+    return -ENODATA;
 }
