@@ -85,10 +85,17 @@ struct sol_iio_channel {
     char name[]; /* Must be last. Memory trick in place. */
 };
 
+struct resolve_name_path_data {
+    const char *name;
+    int id;
+};
+
 #define DEVICE_PATH "/dev/iio:device%d"
 #define SYSFS_DEVICES_PATH "/sys/bus/iio/devices"
+#define SYSFS_DEVICE_PATH "/sys/bus/iio/devices/%s"
 
 #define DEVICE_NAME_PATH SYSFS_DEVICES_PATH "/iio:device%d/name"
+#define DEVICE_NAME_PATH_BY_DEVICE_DIR SYSFS_DEVICES_PATH "/%s/name"
 
 #define BUFFER_ENABLE_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/enable"
 #define BUFFER_LENGHT_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/length"
@@ -111,6 +118,8 @@ struct sol_iio_channel {
 #define SAMPLING_FREQUENCY_DEVICE_PATH SYSFS_DEVICES_PATH "/iio:device%d/sampling_frequency"
 #define SAMPLING_FREQUENCY_BUFFER_PATH SYSFS_DEVICES_PATH "/iio:device%d/buffer/sampling_frequency"
 #define SAMPLING_FREQUENCY_TRIGGER_PATH SYSFS_DEVICES_PATH "/trigger%d/sampling_frequency"
+
+#define I2C_DEVICES_PATH "/sys/bus/i2c/devices/%u-%04u/"
 
 static bool
 craft_filename_path(char *path, size_t size, const char *base, ...)
@@ -1088,3 +1097,118 @@ sol_iio_device_start_buffer(struct sol_iio_device *device)
 
     return true;
 }
+
+static bool
+resolve_name_path_cb(void *data, const char *dir_path, struct dirent *ent)
+{
+    struct resolve_name_path_data *result = data;
+    char path[PATH_MAX], *name;
+    int len;
+
+    if (strstartswith(ent->d_name, "iio:device")) {
+        if (craft_filename_path(path, sizeof(path),
+            DEVICE_NAME_PATH_BY_DEVICE_DIR, ent->d_name)) {
+
+            len = sol_util_read_file(path, "%ms", &name);
+            if (len > 0) {
+                if (streqn(name, result->name, len)) {
+                    result->id = atoi(ent->d_name + strlen("iio:device"));
+                    free(name);
+                    return true;
+                }
+                free(name);
+            }
+        }
+    }
+
+    return false;
+}
+
+static int
+resolve_name_path(const char *name)
+{
+    struct resolve_name_path_data data = { .id = -1, .name = name };
+
+    sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_name_path_cb, &data);
+
+    return data.id;
+}
+
+struct resolve_absolute_path_data {
+    char *path;
+    int id;
+};
+
+static bool
+resolve_absolute_path_cb(void *data, const char *dir_path, struct dirent *ent)
+{
+    struct resolve_absolute_path_data *result = data;
+    char path[PATH_MAX], real_path[PATH_MAX];
+
+    if (craft_filename_path(path, sizeof(path),
+        SYSFS_DEVICE_PATH, ent->d_name)) {
+
+        if (realpath(path, real_path)) {
+            if (strstartswith(real_path, result->path)) {
+                result->id = atoi(ent->d_name + strlen("iio:device"));
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+static int
+resolve_absolute_path(const char *address)
+{
+    char real_path[PATH_MAX];
+    struct resolve_absolute_path_data result = { .id = -1 };
+
+    if (realpath(address, real_path)) {
+        result.path = real_path;
+        sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
+    }
+
+    return result.id;
+}
+
+static int
+resolve_i2c_path(const char *address)
+{
+    unsigned int bus, device;
+    char path[PATH_MAX], real_path[PATH_MAX];
+    struct resolve_absolute_path_data result = { .id = -1 };
+
+    if (sscanf(address, "%u-%u", &bus, &device) != 2) {
+        SOL_WRN("Unexpected i2c address format. Got [%s], expected X-YYYY,"
+            " where X is bus number and YYYY is device address", address);
+        return -1;
+    }
+
+    if (craft_filename_path(path, sizeof(path), I2C_DEVICES_PATH, bus, device)) {
+        /* Idea: check if there's a symbolic link on iio/devices to the same
+         * destination as the i2c dir */
+        if (realpath(path, real_path)) {
+            result.path = real_path;
+            sol_util_iterate_dir(SYSFS_DEVICES_PATH, resolve_absolute_path_cb, &result);
+        }
+    }
+
+    return result.id;
+}
+
+int
+sol_iio_resolve_device_address(const char *address)
+{
+    SOL_NULL_CHECK(address, -1);
+
+    if (strstartswith(address, "/"))
+        return resolve_absolute_path(address);
+
+    if (strstartswith(address, "i2c/"))
+        return resolve_i2c_path(address + strlen("i2c/"));
+
+    return resolve_name_path(address);
+}
+

@@ -136,6 +136,21 @@ bool sol_iio_device_trigger_now(struct sol_iio_device *device);
  */
 bool sol_iio_device_start_buffer(struct sol_iio_device *device);
 
+/**
+ * Attempts to find IIO device id from an address.
+ *
+ * Address can be an absolute path (starting with '/') pointing to sysfs
+ * dir of device. Alternatively, it can be i2c/X-YYYY, for i2c device,
+ * where X is the bus number and YYYY is the device number, eg, 7-0069
+ * for device 0x69 on bus 7. If it doesn't start with '/' or 'i2c/' then
+ * it will search for it on contents of 'name' file of IIO devices.
+ *
+ * @param address of device.
+ *
+ * @return IIO device id or -1 if could not find device id
+ */
+int sol_iio_resolve_device_address(const char *address);
+
 #ifdef __cplusplus
 }
 #endif
