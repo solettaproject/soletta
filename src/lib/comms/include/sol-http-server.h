@@ -33,6 +33,7 @@
 #pragma once
 
 #include <sol-http.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,6 +69,7 @@ int sol_http_server_register_handler(struct sol_http_server *server, const char 
     int (*request_cb)(void *data, struct sol_http_request *request),
     const void *data);
 void sol_http_server_unregister_handler(struct sol_http_server *server, const char *path);
+int sol_http_server_set_last_modified(struct sol_http_server *server, const char *path, time_t modified);
 
 /**
  * @}
