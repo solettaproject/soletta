@@ -46,10 +46,6 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <unicode/ustring.h>
-#include <unicode/utypes.h>
-#include <unicode/uchar.h>
-
 #include "string.h"
 
 #define FAST_COUNT 0
