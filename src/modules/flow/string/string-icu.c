@@ -94,7 +94,7 @@ utf8_from_icu_str_slice(const UChar *icu_str,
     if (U_FAILURE(*ret_icu_err) && *ret_icu_err != U_BUFFER_OVERFLOW_ERROR)
         return -EINVAL;
 
-    *ret_utf_str = calloc(utf_sz + 1, sizeof(*ret_utf_str));
+    *ret_utf_str = calloc(utf_sz + 1, sizeof(char));
     if (!*ret_utf_str)
         return -ENOMEM;
 
