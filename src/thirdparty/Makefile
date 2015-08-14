@@ -1,7 +1,7 @@
 obj-$(JAVASCRIPT) := javascript.mod
 
 obj-javascript-$(JAVASCRIPT) := \
-	duktape/src/duktape.o
+	$(DUKTAPE_SRC_PATH)/duktape.o
 
 obj-javascript-$(JAVASCRIPT)-extra-cflags := \
 	-Wno-float-equal \

@@ -4,7 +4,7 @@ config FLOW_SUPPORT
 
 config JAVASCRIPT
 	bool "Javascript support"
-	depends on FLOW_SUPPORT && PLATFORM_LINUX
+	depends on FLOW_SUPPORT && PLATFORM_LINUX && HAVE_DUKTAPE_SRC
 	default y
 
 config NODE_DESCRIPTION
