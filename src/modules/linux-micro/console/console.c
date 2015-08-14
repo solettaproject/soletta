@@ -139,6 +139,8 @@ do_shell(const char *tty)
         term ? term : get_term_for_tty(tty));
     if (r < 0 || r >= (int)sizeof(term_buf))
         envp[0] = "TERM=vt102";
+    else
+        envp[0] = term_buf;
 
     pid = setsid();
     if (pid < 0) {
@@ -159,9 +161,10 @@ do_shell(const char *tty)
              * their controlling tty.
              */
             oldsig = signal(SIGHUP, SIG_IGN);
-            ioctl(fd, TIOCNOTTY);
+            r = ioctl(fd, TIOCNOTTY);
             close(fd);
             signal(SIGHUP, oldsig);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
         }
     }
 
