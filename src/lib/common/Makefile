@@ -53,8 +53,6 @@ obj-core-$(PLATFORM_CONTIKI) += \
 obj-core-$(PLATFORM_LINUX) += \
     sol-platform-linux-common.o \
     sol-board-detect.o
-obj-core-$(PLATFORM_LINUX)-extra-cflags += $(SYSTEMD_CFLAGS)
-obj-core-$(PLATFORM_LINUX)-extra-ldflags += $(SYSTEMD_LDFLAGS)
 
 obj-core-$(PLATFORM_SYSTEMD) += \
     sol-platform-impl-systemd.o
