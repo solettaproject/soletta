@@ -57,8 +57,19 @@ extra-headers = \
 		) \
 	) \
 
+artifact-path = $(foreach curr,$(1), \
+			$(if $(filter $(abspath $(top_srcdir))%,$(abspath $(1))), \
+				$(addprefix $(2),$(curr)), \
+				$(curr) \
+			) \
+		 ) \
+
+object-path = $(if $(filter $(abspath $(top_srcdir))%,$(abspath $(1))), \
+			$(subst $(top_srcdir)src/,$(build_stagedir),$(1)), \
+			$(addprefix $(build_stagedir)$(subst $(top_srcdir)src/,,$(2)),$(notdir $(1))))
+
 parse-common-module = \
-	$(eval artifacts    := $(addprefix $(2),$(obj-$(1)-$(3)))) \
+	$(eval artifacts    := $(call artifact-path,$(obj-$(1)-$(3)),$(2))) \
 	$(eval mod-headers  := $(addprefix $(2),$(headers-$(1)-$(3)))) \
 	$(call extra-headers,$(mod-headers)) \
 	$(call gen-artifact,$(1),$(filter %.json,$(artifacts))) \
@@ -69,7 +80,7 @@ parse-common-module = \
 	$(eval $(1)-bs      += $(if $(wildcard $(2)/Kconfig),$(addprefix $(2),Kconfig))) \
 	$(eval $(1)-hdrs    := $(filter %.h,$(artifacts))) \
 	$(foreach obj,$(mod-objs), \
-		$(eval dest-obj        := $(subst $(top_srcdir)src/,$(build_stagedir),$(obj))) \
+		$(eval dest-obj        := $(call object-path,$(obj),$(2))) \
 		$(eval $(dest-obj)-src := $(subst .o,.c,$(obj))) \
 		$(eval $(1)-srcs       := $($(dest-obj)-src)) \
 	        $(eval $(1)-objs       += $(dest-obj)) \
