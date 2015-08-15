@@ -767,19 +767,6 @@ static void
     "name_c": data["name_c"],
     })
 
-    if in_ports_names or out_ports_names:
-        first_port = in_ports_names[0] if in_ports_names else out_ports_names[0]
-        outfile.write("    if (%s.packet_type == NULL) {\n" % (first_port))
-
-    for port, d_type in zip(in_ports_names, in_data_types):
-        outfile.write("        %s.packet_type = %s;\n"  % (port, packet_type_from_data_type(d_type)))
-
-    for port, d_type in zip(out_ports_names, out_data_types):
-        outfile.write("        %s.packet_type = %s;\n"  % (port, packet_type_from_data_type(d_type)))
-
-    if in_ports_names or out_ports_names:
-        outfile.write("    }\n")
-
     outfile.write("""\
     if (ports_in_count)
         *ports_in_count = %(ports_in_count)d;
@@ -799,6 +786,16 @@ static void
 """ % {
     "name_c": data["name_c"],
     })
+
+    if in_ports_names or out_ports_names:
+        all_ports_names = in_ports_names + out_ports_names
+        all_ports_types = in_data_types + out_data_types
+        outfile.write("    if (%s.packet_type == NULL) {\n" % (all_ports_names[0]))
+
+        for port, d_type in zip(all_ports_names, all_ports_types):
+            packet_type = packet_type_from_data_type(d_type)
+            outfile.write("        %s.packet_type = %s;\n"  % (port, packet_type))
+        outfile.write("    }\n")
 
     if "init_type" in methods:
         outfile.write("    %s();\n" % methods.get("init_type"))
