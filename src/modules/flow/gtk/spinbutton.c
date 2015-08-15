@@ -53,33 +53,40 @@ on_spinbutton_changed(GtkSpinButton *spin, gpointer data)
 static int
 spinbutton_setup(struct gtk_common_data *data, const struct sol_flow_node_options *options)
 {
-    int min = 0;
-    int max = 100;
-    int step = 1;
+    struct sol_irange range;
 
     struct gtk_common_data *mdata = (struct gtk_common_data *)data;
     const struct sol_flow_node_type_gtk_spinbutton_options *opts =
         (const struct sol_flow_node_type_gtk_spinbutton_options *)options;
 
-    if (opts) {
-        min = opts->range.min;
-        max = opts->range.max;
-        step = opts->range.step;
-    }
+    if (options->sub_api != SOL_FLOW_NODE_TYPE_GTK_SPINBUTTON_OPTIONS_API_VERSION)
+        return -EINVAL;
 
-    if (min > max) {
-        SOL_WRN("invalid range min=%d max=%d for spinbutton id=%s\n", min, max, sol_flow_node_get_id(mdata->node));
+    range = opts->range;
+
+    if (range.min > range.max) {
+        SOL_WRN("invalid range min=%d max=%d for spinbutton id=%s\n",
+            range.min, range.max, sol_flow_node_get_id(mdata->node));
         return -EINVAL;
     }
 
-    if (step <= 0) {
-        SOL_WRN("invalid step=%d for spinbutton id=%s\n", step, sol_flow_node_get_id(mdata->node));
+    if (range.val < range.min || range.val > range.max) {
+        SOL_WRN("invalid value min=%d max=%d val=%d for spinbutton id=%s\n",
+            range.min, range.max, range.val, sol_flow_node_get_id(mdata->node));
         return -EINVAL;
     }
 
-    mdata->widget = gtk_spin_button_new_with_range(min, max, step);
+    if (range.step <= 0) {
+        SOL_WRN("invalid step=%d for spinbutton id=%s\n",
+            range.step, sol_flow_node_get_id(mdata->node));
+        return -EINVAL;
+    }
+
+    mdata->widget = gtk_spin_button_new_with_range(range.min, range.max, range.step);
     g_signal_connect(mdata->widget, "value-changed", G_CALLBACK(on_spinbutton_changed), mdata);
     g_object_set(mdata->widget, "hexpand", true, NULL);
+
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(mdata->widget), range.val);
 
     return 0;
 }
