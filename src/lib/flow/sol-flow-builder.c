@@ -703,7 +703,7 @@ sol_flow_builder_connect_by_index(struct sol_flow_builder *builder, const char *
 {
     struct sol_flow_static_node_spec *src_node_spec, *dst_node_spec;
     int r;
-    uint16_t src, dst, ports_in_count, ports_out_count;
+    uint16_t src, dst;
 
     SOL_NULL_CHECK(builder, -EINVAL);
 
@@ -721,19 +721,15 @@ sol_flow_builder_connect_by_index(struct sol_flow_builder *builder, const char *
         return r;
 
     /* check if port index is inside ports range */
-    src_node_spec->type->get_ports_counts(src_node_spec->type, NULL,
-        &ports_out_count);
-    if (src_port_index >= ports_out_count) {
+    if (src_port_index >= src_node_spec->type->ports_out_count) {
         SOL_WRN("Output port index %d out of ports range (count = %d).",
-            src_port_index, ports_out_count);
+            src_port_index, src_node_spec->type->ports_out_count);
         return -EINVAL;
     }
 
-    dst_node_spec->type->get_ports_counts(dst_node_spec->type, &ports_in_count,
-        NULL);
-    if (dst_port_index >= ports_in_count) {
+    if (dst_port_index >= dst_node_spec->type->ports_in_count) {
         SOL_WRN("Input port index %d out of ports range (count = %d).",
-            src_port_index, ports_in_count);
+            src_port_index, dst_node_spec->type->ports_in_count);
         return -EINVAL;
     }
 

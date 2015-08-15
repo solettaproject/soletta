@@ -103,7 +103,6 @@ sol_flow_node_init(struct sol_flow_node *node, struct sol_flow_node *parent, con
 
     SOL_NULL_CHECK(type, -EINVAL);
     SOL_NULL_CHECK(node, -EINVAL);
-    SOL_NULL_CHECK(type->get_ports_counts, -EINVAL);
 
     SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, -EINVAL);
 

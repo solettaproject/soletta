@@ -347,7 +347,9 @@ struct sol_flow_node_type {
     const void *type_data; /**< pointer to per-type user data */
     const void *default_options;
 
-    void (*get_ports_counts)(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count); /**< member function to get the number of input/output ports of the node */
+    uint16_t ports_in_count;
+    uint16_t ports_out_count;
+
     const struct sol_flow_port_type_in *(*get_port_in)(const struct sol_flow_node_type *type, uint16_t port); /**< member function to get the array of the node's input ports */
     const struct sol_flow_port_type_out *(*get_port_out)(const struct sol_flow_node_type *type, uint16_t port); /**< member function to get the array of the node's output ports */
 
