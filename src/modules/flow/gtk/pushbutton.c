@@ -40,6 +40,8 @@ on_pushbutton_pressed(GtkButton *button, gpointer data)
 
     sol_flow_send_boolean_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_GTK_PUSHBUTTON__OUT__OUT, true);
+    sol_flow_send_empty_packet(mdata->node,
+        SOL_FLOW_NODE_TYPE_GTK_PUSHBUTTON__OUT__PRESSED);
 }
 
 static void
@@ -49,6 +51,8 @@ on_pushbutton_released(GtkButton *button, gpointer data)
 
     sol_flow_send_boolean_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_GTK_PUSHBUTTON__OUT__OUT, false);
+    sol_flow_send_empty_packet(mdata->node,
+        SOL_FLOW_NODE_TYPE_GTK_PUSHBUTTON__OUT__RELEASED);
 }
 
 static int
