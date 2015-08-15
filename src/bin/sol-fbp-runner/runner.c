@@ -154,9 +154,9 @@ struct map {
 static const struct map input_nodes[] = {
     { &SOL_FLOW_PACKET_TYPE_IRANGE, "gtk/spinbutton", "OUT" },
     { &SOL_FLOW_PACKET_TYPE_DRANGE, "gtk/slider", "OUT" },
-    { &SOL_FLOW_PACKET_TYPE_ANY, "gtk/toggle", "OUT" },
-    { &SOL_FLOW_PACKET_TYPE_EMPTY, "gtk/toggle", "OUT" },
-    { &SOL_FLOW_PACKET_TYPE_BOOLEAN, "gtk/pushbutton", "OUT" },
+    { &SOL_FLOW_PACKET_TYPE_ANY, "gtk/pushbutton", "PRESSED" },
+    { &SOL_FLOW_PACKET_TYPE_EMPTY, "gtk/pushbutton", "PRESSED" },
+    { &SOL_FLOW_PACKET_TYPE_BOOLEAN, "gtk/toggle", "OUT" },
     { &SOL_FLOW_PACKET_TYPE_RGB, "gtk/rgb-editor", "OUT" },
     { &SOL_FLOW_PACKET_TYPE_BYTE, "gtk/byte-editor", "OUT" },
 };
@@ -164,6 +164,7 @@ static const struct map input_nodes[] = {
 static const struct map output_nodes[] = {
     { &SOL_FLOW_PACKET_TYPE_IRANGE, "gtk/label", "IN" },
     { &SOL_FLOW_PACKET_TYPE_DRANGE, "gtk/label", "IN" },
+    { &SOL_FLOW_PACKET_TYPE_EMPTY, "gtk/label", "IN" },
     { &SOL_FLOW_PACKET_TYPE_STRING, "gtk/label", "IN" },
     { &SOL_FLOW_PACKET_TYPE_BOOLEAN, "gtk/led", "IN" },
 };
