@@ -109,15 +109,19 @@ close_files(struct runner *r)
 }
 
 static char *
-get_node_name(const char *port_name, int suffix, bool is_input_port)
+get_node_name(
+    const char *port_name,
+    const char *packet_type_name,
+    int index)
 {
-    static char prefix_in[] = "node_for_input_";
-    static char prefix_out[] = "node_for_output_";
-    char *prefix, *name;
+    char *name;
     int err;
 
-    prefix = is_input_port ? prefix_in : prefix_out;
-    err = asprintf(&name, "%s%s_%d", prefix, port_name, suffix);
+    if (index == -1) {
+        err = asprintf(&name, "%s (%s)", port_name, packet_type_name);
+    } else {
+        err = asprintf(&name, "%s[%d] (%s)", port_name, index, packet_type_name);
+    }
 
     if (err < 0)
         return NULL;
@@ -125,7 +129,7 @@ get_node_name(const char *port_name, int suffix, bool is_input_port)
     return name;
 }
 
-static const char parent[] = "PARENT_NODE";
+static const char parent[] = "SIMULATOR";
 
 static int
 add_simulation_node(struct runner *r, const char *node_type, const char *port_name, const char *node_name, const char *parent_port_name, int idx, bool is_input_port)
@@ -202,7 +206,7 @@ attach_simulation_nodes(struct runner *r)
 
         for (k = 0; k < ARRAY_SIZE(input_nodes); k++) {
             if (port_in->packet_type == *(input_nodes[k].packet_type)) {
-                node_name = get_node_name(port_desc->name, i - port_desc->base_port_idx, true);
+                node_name = get_node_name(port_desc->name, port_in->packet_type->name, idx);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);
 
                 err = add_simulation_node(r, input_nodes[k].node_type, input_nodes[k].port_name, node_name,
@@ -230,7 +234,7 @@ attach_simulation_nodes(struct runner *r)
 
         for (k = 0; k < ARRAY_SIZE(output_nodes); k++) {
             if (port_out->packet_type == *(output_nodes[k].packet_type)) {
-                node_name = get_node_name(port_desc->name, i - port_desc->base_port_idx, false);
+                node_name = get_node_name(port_desc->name, port_out->packet_type->name, idx);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);
 
                 err = add_simulation_node(r, output_nodes[k].node_type, output_nodes[k].port_name, node_name,
