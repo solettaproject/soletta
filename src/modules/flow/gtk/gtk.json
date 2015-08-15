@@ -84,7 +84,7 @@
     },
     {
       "category": "input/sw",
-      "description": "Emulates a pushbutton providing boolean packets",
+      "description": "Emulates a pushbutton that automatically goes up when released",
       "methods": {
         "close": "gtk_pushbutton_close",
         "open": "gtk_pushbutton_open"
@@ -95,6 +95,16 @@
           "data_type": "boolean",
           "description": "TRUE when pushed and FALSE when released.",
           "name": "OUT"
+        },
+        {
+          "data_type": "empty",
+          "description": "Send an empty packet when the button is pushed.",
+          "name": "PRESSED"
+        },
+        {
+          "data_type": "empty",
+          "description": "Send an empty packet when the button is released.",
+          "name": "RELEASED"
         }
       ],
       "private_data_type": "gtk_common_data",
