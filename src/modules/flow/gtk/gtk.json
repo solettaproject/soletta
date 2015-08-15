@@ -242,8 +242,10 @@
           {
             "data_type": "int",
             "default": {
-              "max": 100,
-              "min": 0
+              "val": 0,
+              "max": "INT32_MAX",
+              "min": "INT32_MIN",
+              "step": 1
             },
             "description": "Spinbutton's range",
             "name": "range"
