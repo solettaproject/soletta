@@ -32,6 +32,11 @@
 
 #include "common.h"
 
+struct gtk_label_data {
+    struct gtk_common_data base;
+    unsigned int empty_count;
+};
+
 DEFINE_DEFAULT_HEADER(label);
 
 int gtk_label_in_process(struct sol_flow_node *node,

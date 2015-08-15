@@ -52,9 +52,13 @@ gtk_label_in_process(struct sol_flow_node *node,
     const struct sol_flow_packet *packet)
 {
     struct gtk_common_data *mdata = data;
+    struct gtk_label_data *label_data = data;
 
     if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_EMPTY) {
-        gtk_label_set_text(GTK_LABEL(mdata->widget), "[empty]");
+        char buf[32];
+        label_data->empty_count++;
+        snprintf(buf, sizeof(buf), "[empty %d]", label_data->empty_count);
+        gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_STRING) {
         const char *in_value;
         int r = sol_flow_packet_get_string(packet, &in_value);

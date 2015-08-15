@@ -49,3 +49,4 @@ byte_editor(gtk/byte-editor) OUT -> IN byte_editor_output(gtk/label)
 rgb_editor(gtk/rgb-editor) OUT -> IN rgb_editor_output(gtk/led:rgb=0|0|0)
 
 pushbutton(gtk/pushbutton) OUT -> IN pushbutton_output(gtk/led)
+pushbutton PRESSED -> IN pushbutton_pressed_output(gtk/label)

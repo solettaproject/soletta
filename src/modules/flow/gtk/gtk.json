@@ -43,7 +43,7 @@
         "open": "gtk_label_open"
       },
       "name": "gtk/label",
-      "private_data_type": "gtk_common_data",
+      "private_data_type": "gtk_label_data",
       "url": "http://solettaproject.org/doc/latest/node_types/gtk/label.html"
     },
     {
