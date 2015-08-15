@@ -45,10 +45,6 @@
 
 struct node_info {
     uint16_t first_conn_idx;
-
-    /* TODO: check if we can move this to be per-type instead of per-node. */
-    uint16_t ports_count_in;
-    uint16_t ports_count_out;
 };
 
 struct conn_info {
@@ -85,9 +81,6 @@ struct flow_static_type {
 
     uint16_t *ports_in_base_conn_id;
     uint16_t *ports_out_base_conn_id;
-
-    uint16_t ports_in_count;
-    uint16_t ports_out_count;
 
     /* This type was created for a single node, so when the node goes
      * down, the type will be finalized. */
@@ -306,7 +299,7 @@ flow_send_do(struct sol_flow_node *flow, struct flow_static_data *fsd, uint16_t 
         dispatched = true;
     }
 
-    if (type->ports_out_count > 0) {
+    if (type->base.base.ports_out_count > 0) {
         const struct sol_flow_static_port_spec *pspec;
         uint16_t exported_out;
         for (pspec = type->exported_out_specs, exported_out = 0; pspec->node < UINT16_MAX; pspec++, exported_out++) {
@@ -558,18 +551,18 @@ flow_node_close(struct sol_flow_node *node, void *data)
 }
 
 static bool
-flow_port_out_is_valid(struct node_info *ninfo, uint16_t port_idx)
+flow_port_out_is_valid(const struct sol_flow_static_node_spec *spec, uint16_t port_idx)
 {
     if (port_idx == SOL_FLOW_NODE_PORT_ERROR)
         return true;
-    SOL_INT_CHECK(port_idx, >= ninfo->ports_count_out, false);
+    SOL_INT_CHECK(port_idx, >= spec->type->ports_out_count, false);
     return true;
 }
 
 static bool
-flow_port_in_is_valid(struct node_info *ninfo, uint16_t port_idx)
+flow_port_in_is_valid(const struct sol_flow_static_node_spec *spec, uint16_t port_idx)
 {
-    SOL_INT_CHECK(port_idx, >= ninfo->ports_count_in, false);
+    SOL_INT_CHECK(port_idx, >= spec->type->ports_in_count, false);
     return true;
 }
 
@@ -600,7 +593,7 @@ flow_send(struct sol_flow_node *flow, struct sol_flow_node *source_node, uint16_
         return -EINVAL;
     }
 
-    if (!flow_port_out_is_valid(&type->node_infos[src_idx], source_out_port_idx)) {
+    if (!flow_port_out_is_valid(&type->node_specs[src_idx], source_out_port_idx)) {
         SOL_WRN("Out port %d is not valid", source_out_port_idx);
         return -EINVAL;
     }
@@ -617,17 +610,6 @@ flow_send(struct sol_flow_node *flow, struct sol_flow_node *source_node, uint16_
     sol_list_append(&fsd->delayed_packets, &dp->list);
 
     return 0;
-}
-
-static void
-flow_get_ports_counts(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count)
-{
-    struct flow_static_type *fst = (struct flow_static_type *)type;
-
-    if (ports_in_count)
-        *ports_in_count = fst->ports_in_count;
-    if (ports_out_count)
-        *ports_out_count = fst->ports_out_count;
 }
 
 static const struct sol_flow_port_type_in *
@@ -651,7 +633,7 @@ setup_node_specs(struct flow_static_type *type)
 {
     const struct sol_flow_static_node_spec *spec;
     unsigned int storage_size = 0;
-    uint16_t count = 0, u;
+    uint16_t count = 0;
 
     for (spec = type->node_specs; count < UINT16_MAX && spec->type != NULL; spec++, count++) {
         unsigned int node_size = calc_node_size(spec);
@@ -671,12 +653,6 @@ setup_node_specs(struct flow_static_type *type)
     type->node_infos = calloc(count, sizeof(struct node_info));
     if (!type->node_infos)
         return -ENOMEM;
-
-    for (u = 0, spec = type->node_specs; u < count; u++, spec++) {
-        struct node_info *ni;
-        ni = &type->node_infos[u];
-        spec->type->get_ports_counts(spec->type, &ni->ports_count_in, &ni->ports_count_out);
-    }
 
     type->node_count = count;
     type->node_storage_size = storage_size;
@@ -707,15 +683,15 @@ is_valid_spec(struct flow_static_type *type, const struct sol_flow_static_conn_s
         return false;
     }
 
-    if (!flow_port_out_is_valid(&type->node_infos[spec->src], spec->src_port)) {
+    if (!flow_port_out_is_valid(&type->node_specs[spec->src], spec->src_port)) {
         INVALID_SPEC_WRN(spec, "invalid source out port index (ports count out=%hu)",
-            type->node_infos[spec->src].ports_count_out);
+            type->node_specs[spec->src].type->ports_out_count);
         return false;
     }
 
-    if (!flow_port_in_is_valid(&type->node_infos[spec->dst], spec->dst_port)) {
+    if (!flow_port_in_is_valid(&type->node_specs[spec->dst], spec->dst_port)) {
         INVALID_SPEC_WRN(spec, "invalid destination in port index (ports count in=%hu)",
-            type->node_infos[spec->dst].ports_count_in);
+            type->node_specs[spec->dst].type->ports_in_count);
         return false;
     }
 
@@ -728,10 +704,14 @@ static void
 setup_conn_ids(struct flow_static_type *type)
 {
     uint16_t node, exported_in = 0, exported_out = 0;
+    uint16_t ports_in_count, ports_out_count;
+
+    ports_in_count = type->base.base.ports_in_count;
+    ports_out_count = type->base.base.ports_out_count;
 
     for (node = 0; node < type->node_count; node++) {
         uint16_t port, port_count;
-        port_count = type->node_infos[node].ports_count_out;
+        port_count = type->node_specs[node].type->ports_out_count;
 
         for (port = 0; port < port_count; port++) {
             const struct sol_flow_static_conn_spec *spec;
@@ -745,14 +725,14 @@ setup_conn_ids(struct flow_static_type *type)
                     type->conn_infos[i].out_conn_id = out_conn_id++;
             }
 
-            if (exported_in < type->ports_in_count) {
+            if (exported_in < ports_in_count) {
                 const struct sol_flow_static_port_spec *pspec;
                 pspec = &type->exported_in_specs[exported_in];
                 if (pspec->node == node && pspec->port == port)
                     type->ports_in_base_conn_id[exported_in++] = in_conn_id;
             }
 
-            if (exported_out < type->ports_out_count) {
+            if (exported_out < ports_out_count) {
                 const struct sol_flow_static_port_spec *pspec;
                 pspec = &type->exported_out_specs[exported_out];
                 if (pspec->node == node && pspec->port == port)
@@ -940,11 +920,11 @@ flow_exported_port_out_disconnect(struct sol_flow_node *node, void *data, uint16
 static void
 teardown_exported_ports_specs(struct flow_static_type *type)
 {
-    if (type->ports_in_count > 0) {
+    if (type->base.base.ports_in_count > 0) {
         free(type->ports_in);
         free(type->ports_in_base_conn_id);
     }
-    if (type->ports_out_count > 0) {
+    if (type->base.base.ports_out_count > 0) {
         free(type->ports_out);
         free(type->ports_out_base_conn_id);
     }
@@ -981,7 +961,7 @@ setup_exported_ports_specs(struct flow_static_type *type)
 
     if (in_count > 0) {
         struct sol_flow_port_type_in *port_type;
-        type->ports_in_count = in_count;
+        type->base.base.ports_in_count = in_count;
         type->ports_in = calloc(in_count, sizeof(struct sol_flow_port_type_in));
         type->ports_in_base_conn_id = calloc(in_count, sizeof(uint16_t));
         if (!type->ports_in || !type->ports_in_base_conn_id)
@@ -1001,7 +981,7 @@ setup_exported_ports_specs(struct flow_static_type *type)
 
     if (out_count > 0) {
         struct sol_flow_port_type_out *port_type;
-        type->ports_out_count = out_count;
+        type->base.base.ports_out_count = out_count;
         type->ports_out = calloc(out_count, sizeof(struct sol_flow_port_type_out));
         type->ports_out_base_conn_id = calloc(out_count, sizeof(uint16_t));
         if (!type->ports_out || !type->ports_out_base_conn_id)
@@ -1052,7 +1032,6 @@ flow_static_type_init(
                 .flags = SOL_FLOW_NODE_TYPE_FLAGS_CONTAINER,
                 .open = flow_node_open,
                 .close = flow_node_close,
-                .get_ports_counts = flow_get_ports_counts,
                 .get_port_in = flow_get_port_in,
                 .get_port_out = flow_get_port_out,
                 .dispose_type = flow_dispose_type,
@@ -1135,7 +1114,7 @@ sol_flow_static_new(struct sol_flow_node *parent, const struct sol_flow_static_n
             return __VA_ARGS__;                                         \
         }                                                               \
         if (((type)->flags & SOL_FLOW_NODE_TYPE_FLAGS_CONTAINER) == 0    \
-            || ((type)->get_ports_counts != flow_get_ports_counts)) { \
+            || ((type)->open != flow_node_open)) { \
             SOL_WRN("" # type " isn't a static flow type!");             \
             return __VA_ARGS__;                                         \
         }                                                               \

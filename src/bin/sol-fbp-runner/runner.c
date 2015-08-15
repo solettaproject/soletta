@@ -180,7 +180,8 @@ attach_simulation_nodes(struct runner *r)
     bool found;
     char *node_name;
 
-    r->root_type->get_ports_counts(r->root_type, &in_count, &out_count);
+    in_count = r->root_type->ports_in_count;
+    out_count = r->root_type->ports_out_count;
 
     if (in_count == 0 && out_count == 0)
         return 0;

@@ -882,17 +882,6 @@ flow_js_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t por
         type->ports_in.len * PORTS_IN_METHODS_LENGTH, PORTS_OUT_METHODS_LENGTH, PORTS_OUT_DISCONNECT_INDEX);
 }
 
-static void
-flow_js_get_ports_counts(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count)
-{
-    const struct flow_js_type *js_type = (struct flow_js_type *)type;
-
-    if (ports_in_count)
-        *ports_in_count = js_type->ports_in.len;
-    if (ports_out_count)
-        *ports_out_count = js_type->ports_out.len;
-}
-
 static const struct sol_flow_port_type_in *
 flow_js_get_port_in(const struct sol_flow_node_type *type, uint16_t port)
 {
@@ -1299,7 +1288,6 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
             .data_size = sizeof(struct flow_js_data),
             .open = flow_js_open,
             .close = flow_js_close,
-            .get_ports_counts = flow_js_get_ports_counts,
             .get_port_in = flow_js_get_port_in,
             .get_port_out = flow_js_get_port_out,
             .dispose_type = flow_dispose_type,
@@ -1309,6 +1297,9 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
 
     if (!setup_ports(type, buf, len))
         return false;
+
+    type->base.ports_in_count = type->ports_in.len;
+    type->base.ports_out_count = type->ports_out.len;
 
     js_content_buf = strndup(buf, len);
     SOL_NULL_CHECK(js_content_buf, false);

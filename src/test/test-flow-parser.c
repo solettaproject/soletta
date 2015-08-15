@@ -136,15 +136,6 @@ static const struct sol_flow_port_type_out *test_ports_out[] = {
 };
 
 static void
-test_node_get_ports_counts(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count)
-{
-    if (ports_in_count)
-        *ports_in_count = ARRAY_SIZE(test_ports_in);
-    if (ports_out_count)
-        *ports_out_count = ARRAY_SIZE(test_ports_out);
-}
-
-static void
 test_node_init_type(void)
 {
     if (!test_port_in.packet_type) {
@@ -224,7 +215,8 @@ static const struct sol_flow_node_type test_node_type = {
 
     .init_type = test_node_init_type,
 
-    .get_ports_counts = test_node_get_ports_counts,
+    .ports_in_count = ARRAY_SIZE(test_ports_in),
+    .ports_out_count = ARRAY_SIZE(test_ports_out),
     .get_port_in = test_node_get_port_in,
     .get_port_out = test_node_get_port_out,
 
@@ -432,7 +424,6 @@ exported_ports(void)
 {
     struct sol_flow_parser *parser;
     struct sol_flow_node_type *type;
-    uint16_t count_in = 0, count_out = 0;
 
     static const char input[] =
         "OUTPORT=a.OUT1:OUTPUT_PORT\n"
@@ -445,9 +436,8 @@ exported_ports(void)
     type = sol_flow_parse_string(parser, input, NULL);
     ASSERT(type);
 
-    type->get_ports_counts(type, &count_in, &count_out);
-    ASSERT_INT_EQ(count_in, 1);
-    ASSERT_INT_EQ(count_out, 1);
+    ASSERT_INT_EQ(type->ports_in_count, 1);
+    ASSERT_INT_EQ(type->ports_out_count, 1);
 
     ASSERT(type->description);
 

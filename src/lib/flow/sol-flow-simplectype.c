@@ -187,17 +187,6 @@ simplectype_destroy_description(struct sol_flow_node_type *type)
 #endif
 }
 
-static void
-simplectype_get_ports_counts(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count)
-{
-    const struct simplectype_type_data *type_data = type->type_data;
-
-    if (ports_in_count)
-        *ports_in_count = type_data->ports_in.len;
-    if (ports_out_count)
-        *ports_out_count = type_data->ports_out.len;
-}
-
 static const struct sol_flow_port_type_in *
 simplectype_get_port_in(const struct sol_flow_node_type *type, uint16_t port)
 {
@@ -412,7 +401,9 @@ simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t 
     type_data->ports_in = ports_in;
     type_data->ports_out = ports_out;
 
-    type->get_ports_counts = simplectype_get_ports_counts;
+    type->ports_in_count = ports_in.len;
+    type->ports_out_count = ports_out.len;
+
     type->get_port_in = simplectype_get_port_in;
     type->get_port_out = simplectype_get_port_out;
     type->open = simplectype_open;

@@ -759,26 +759,6 @@ static const struct sol_flow_port_type_out *
     "get_ports": out_ports_get_port
     })
 
-    outfile.write("""\
-static void
-%(name_c)s_get_ports_counts_internal(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count)
-{
-""" % {
-    "name_c": data["name_c"],
-    })
-
-    outfile.write("""\
-    if (ports_in_count)
-        *ports_in_count = %(ports_in_count)d;
-    if (ports_out_count)
-        *ports_out_count = %(ports_out_count)d;
-}
-""" % {
-    "name_c": data["name_c"],
-    "ports_in_count": in_ports_count,
-    "ports_out_count": out_ports_count,
-    })
-
     outfile.write("""
 static void
 %(name_c)s_init_type_internal(void)
@@ -999,7 +979,6 @@ static const %(node_type)s %(name_c)s = {%(node_base_type_access_open)s
     .init_type = %(name_c)s_init_type_internal,
     .open = %(open)s,
     .close = %(close)s,
-    .get_ports_counts = %(name_c)s_get_ports_counts_internal,
 """ % {
     "node_type": node_type,
     "node_base_type_access_open": node_base_type_access_open,
@@ -1013,13 +992,21 @@ static const %(node_type)s %(name_c)s = {%(node_base_type_access_open)s
 
     if in_ports_names:
         outfile.write("""\
+    .ports_in_count = %(count)d,
     .get_port_in = %(name_c)s_get_port_in_internal,
-""" % {"name_c": data["name_c"]})
+""" % {
+    "name_c": data["name_c"],
+    "count": in_ports_count,
+    })
 
     if out_ports_names:
         outfile.write("""\
+    .ports_out_count = %(count)d,
     .get_port_out = %(name_c)s_get_port_out_internal,
-""" % {"name_c": data["name_c"]})
+""" % {
+    "name_c": data["name_c"],
+    "count": out_ports_count,
+    })
 
     outfile.write("""\
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED

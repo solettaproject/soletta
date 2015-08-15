@@ -225,15 +225,6 @@ static const struct sol_flow_port_type_out *test_ports_out[] = {
 };
 
 static void
-test_node_get_ports_counts(const struct sol_flow_node_type *type, uint16_t *ports_in_count, uint16_t *ports_out_count)
-{
-    if (ports_in_count)
-        *ports_in_count = ARRAY_SIZE(test_ports_in);
-    if (ports_out_count)
-        *ports_out_count = ARRAY_SIZE(test_ports_out);
-}
-
-static void
 test_node_init_type(void)
 {
     if (!test_port_in.packet_type) {
@@ -269,7 +260,8 @@ static const struct sol_flow_node_type test_node_type = {
 
     .init_type = test_node_init_type,
 
-    .get_ports_counts = test_node_get_ports_counts,
+    .ports_in_count = ARRAY_SIZE(test_ports_in),
+    .ports_out_count = ARRAY_SIZE(test_ports_out),
     .get_port_in = test_node_get_port_in,
     .get_port_out = test_node_get_port_out,
 };
