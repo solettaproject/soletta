@@ -907,8 +907,10 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
     desc = &type_data->desc;
 
     /* TODO: ensure no repeated connections in connect() */
-    qsort(builder->conns.data, builder->conns.len,
-        sizeof(struct sol_flow_static_conn_spec), compare_conns);
+    if (builder->conns.len > 1) {
+        qsort(builder->conns.data, builder->conns.len,
+            sizeof(struct sol_flow_static_conn_spec), compare_conns);
+    }
 
     if (builder->options_description.len > 0) {
         opts = calloc(1, sizeof(*opts));
