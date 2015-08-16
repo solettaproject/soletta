@@ -6,9 +6,13 @@ obj-libshared-y := \
 
 obj-libshared-$(FLOW_SUPPORT) += \
     sol-fbp-graph.o \
-    sol-fbp-internal-log.o \
     sol-fbp-internal-scanner.o \
     sol-fbp-parser.o
+
+ifeq (y,$(LOG))
+obj-libshared-$(FLOW_SUPPORT) += \
+    sol-fbp-internal-log.o
+endif
 
 obj-libshared-$(PLATFORM_LINUX) += \
     sol-conffile.o \

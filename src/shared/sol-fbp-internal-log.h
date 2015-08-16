@@ -32,9 +32,18 @@
 
 #pragma once
 
+#ifdef SOL_LOG_ENABLED
 extern struct sol_log_domain sol_fbp_log_domain;
 void sol_fbp_init_log_domain(void);
 
 #undef SOL_LOG_DOMAIN
 #define SOL_LOG_DOMAIN &sol_fbp_log_domain
+#else
+
+static inline void
+sol_fbp_init_log_domain(void)
+{
+}
+
+#endif
 #include "sol-log-internal.h"
