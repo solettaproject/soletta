@@ -65,6 +65,12 @@ shiftl OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_expected_shiftl(int/e
 all_zero OUT -> IN _(converter/byte-to-int) OUT -> IN[1] cmp_expected_shiftl
 cmp_expected_shiftl OUT -> RESULT test_byte_bitwise_shift_left(test/result)
 
+input1 OUT -> IN shift_error(byte/shift-left)
+all_one OUT -> SHIFT shift_error ERROR -> IN conv(converter/empty-to-boolean) OUT -> PASS test_error_invalid_shift_value(test/result)
+
+input1 OUT -> IN shift_error2(byte/shift-right)
+all_one OUT -> SHIFT shift_error2 ERROR -> IN conv2(converter/empty-to-boolean) OUT -> PASS test_error_invalid_shift_value2(test/result)
+
 all_one OUT -> IN shiftr(byte/shift-right)
 one OUT -> SHIFT shiftr
 shiftr OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_expected_shiftr(int/equal)
