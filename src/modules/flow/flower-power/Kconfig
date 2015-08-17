@@ -11,14 +11,19 @@ config FLOW_NODE_TYPE_FLOWER_POWER
 		via HTTP, using a web service, and API to talk directly to
 		sensors using Bluetooth low energy (BLE).
 
-		This option enables two node types:
+		This option enables a few node types:
 
                   * flower-power/http-get, to query plant's data via http.
                   * flower-power/filter-id, to filter http-get packets
                     for specific plant's ids.
-                  * flower-power/get-value, to parse packets from other
-                    flower-power node types into values of each measured
-                    element.
+                  * flower-power/get-value, to parse packets with plant
+                    information from other flower-power node types
+                    into values of each measured element.
+                  * flower-power/filter-sensor-id, to filter http-get packets
+                    for specific sensor's ids.
+                  * flower-power/get-sensor-value, to parse packets with
+                    device information from other flower-power node types
+                    into values of each measured element.
 
 		To use these nodes, one must register and obtain an API key, that
 		should be used as node options. To fetch plant's data, users

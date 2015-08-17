@@ -29,7 +29,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Usage: ./flower-power-http.fbp USERNAME PASSWORD PLANT_ID
+# Usage: ./flower-power-http.fbp USERNAME PASSWORD PLANT_ID SENSOR_ID
 #
 # Register at https://apiflowerpower.parrot.com/api_access/signup
 # to receive client_id and client_secret and use it on Flowers node
@@ -37,15 +37,22 @@
 Username(app/argv:index=1)
 Password(app/argv:index=2)
 PlantID(app/argv:index=3)
+SensorID(app/argv:index=4)
+
 Timer(timer:interval=3000)
 
 Flowers(flower-power/http-get:client_id="CLIENT_ID", client_secret="CLIENT_SECRET")
 Filter(flower-power/filter-id)
 Parser(flower-power/get-value)
+FilterSensor(flower-power/filter-sensor-id)
+ParserSensor(flower-power/get-sensor-value)
 
 Username OUT -> USERNAME Flowers
 Password OUT -> PASSWORD Flowers
 PlantID OUT -> ID Filter
+SensorID OUT -> ID FilterSensor
+
+# Information about plants
 
 Timer OUT -> GET Flowers OUT -> IN Filter OUT -> IN Parser
 
@@ -55,3 +62,12 @@ Parser FERTILIZER -> IN FertilizerLevel(console)
 Parser LIGHT -> IN Sunlight(console)
 Parser TEMPERATURE -> IN Temperature(console)
 Parser WATER -> IN WaterLevel(console)
+
+# Information about sensors
+
+Flowers DEVICE_INFO -> IN FilterSensor OUT -> IN ParserSensor
+
+ParserSensor ID -> IN Sensor(console)
+ParserSensor TIMESTAMP -> IN SensorTimestamp(console)
+ParserSensor BATTERY_END_OF_LIFE -> IN SensorBatteryEOL(console)
+ParserSensor BATTERY_LEVEL -> IN SensorBatteryLevel(console)
