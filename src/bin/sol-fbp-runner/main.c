@@ -42,9 +42,10 @@
 #include "runner.h"
 
 static struct {
-    const char *filename;
+    const char *name;
     bool check_only;
     bool provide_sim_nodes;
+    bool execute_type;
 } args;
 
 static struct runner *the_runner;
@@ -65,6 +66,8 @@ usage(const char *program)
         "    -c  Check syntax only. The program will exit as soon as the flow\n"
         "        is built and the syntax is verified.\n"
         "    -s  Provide simulation nodes for flows with exported ports.\n"
+        "    -t  Instead of reading a file, execute a node type with the name\n"
+        "        passed as first argument. Implies -s.\n"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "    -D  Debug the flow by printing connections and packets to stdout.\n"
 #endif
@@ -76,7 +79,7 @@ static bool
 parse_args(int argc, char *argv[])
 {
     int opt;
-    const char known_opts[] = "chs"
+    const char known_opts[] = "chst"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "D"
 #endif
@@ -94,6 +97,9 @@ parse_args(int argc, char *argv[])
             usage(argv[0]);
             exit(EXIT_SUCCESS);
             break;
+        case 't':
+            args.execute_type = true;
+            break;
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         case 'D':
             inspector_init();
@@ -107,7 +113,10 @@ parse_args(int argc, char *argv[])
     if (optind == argc)
         return false;
 
-    args.filename = argv[optind];
+    args.name = argv[optind];
+    if (args.execute_type) {
+        args.provide_sim_nodes = true;
+    }
 
     sol_args_set(argc - optind, &argv[optind]);
 
@@ -120,18 +129,32 @@ startup(void *data)
     bool finished = true;
     int result = EXIT_FAILURE;
 
-    the_runner = runner_new(args.filename, args.provide_sim_nodes);
+    if (args.execute_type) {
+        the_runner = runner_new_from_type(args.name);
+    } else {
+        the_runner = runner_new_from_file(args.name);
+    }
+
     if (!the_runner)
         goto end;
 
     if (args.check_only) {
-        printf("file: '%s' - Syntax OK\n", args.filename);
+        printf("'%s' - Syntax OK\n", args.name);
         result = EXIT_SUCCESS;
         goto end;
     }
 
+    if (args.provide_sim_nodes) {
+        int err;
+        err = runner_attach_simulation(the_runner);
+        if (err < 0) {
+            fprintf(stderr, "Cannot attach simulation nodes\n");
+            goto end;
+        }
+    }
+
     if (runner_run(the_runner) < 0) {
-        SOL_ERR("Failed to run");
+        fprintf(stderr, "Failed to run\n");
         goto end;
     }
 

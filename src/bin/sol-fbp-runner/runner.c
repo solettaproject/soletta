@@ -46,6 +46,7 @@
 struct runner {
     struct sol_flow_parser *parser;
     struct sol_flow_node_type *root_type;
+    struct sol_flow_node_named_options named_opts;
     struct sol_flow_node *root;
     struct sol_flow_builder *builder;
 
@@ -168,8 +169,8 @@ static const struct map output_nodes[] = {
     { &SOL_FLOW_PACKET_TYPE_BOOLEAN, "gtk/led", "IN" },
 };
 
-static int
-attach_simulation_nodes(struct runner *r)
+int
+runner_attach_simulation(struct runner *r)
 {
     const struct sol_flow_port_type_in *port_in;
     const struct sol_flow_port_type_out *port_out;
@@ -262,7 +263,8 @@ error:
 }
 
 struct runner *
-runner_new(const char *filename, bool provide_sim_nodes)
+runner_new_from_file(
+    const char *filename)
 {
     struct runner *r;
     const char *buf;
@@ -298,13 +300,43 @@ runner_new(const char *filename, bool provide_sim_nodes)
     if (!r->root_type)
         goto error;
 
-    if (provide_sim_nodes) {
-        err = attach_simulation_nodes(r);
-        if (err < 0)
+    close_files(r);
+
+    return r;
+
+error:
+    close_files(r);
+    runner_del(r);
+    return NULL;
+}
+
+struct runner *
+runner_new_from_type(
+    const char *typename)
+{
+    struct runner *r;
+    int err;
+
+    SOL_NULL_CHECK(typename, NULL);
+
+    r = calloc(1, sizeof(*r));
+    SOL_NULL_CHECK(r, NULL);
+
+    err = sol_flow_resolve(sol_flow_get_builtins_resolver(), typename,
+        (const struct sol_flow_node_type **)&r->root_type, &r->named_opts);
+    if (err < 0) {
+        err = sol_flow_resolve(NULL, typename,
+            (const struct sol_flow_node_type **)&r->root_type, &r->named_opts);
+        if (err < 0) {
+            fprintf(stderr, "Couldn't find type '%s'\n", typename);
+            errno = -err;
             goto error;
+        }
     }
 
-    close_files(r);
+    r->filename = strdup(typename);
+    if (!r->filename)
+        goto error;
 
     return r;
 
@@ -335,6 +367,7 @@ runner_del(struct runner *r)
     }
     if (r->parser)
         sol_flow_parser_del(r->parser);
+    sol_flow_node_named_options_fini(&r->named_opts);
     free(r->dirname);
     free(r->basename);
     free(r);

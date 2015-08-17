@@ -34,6 +34,9 @@
 
 struct runner;
 
-struct runner *runner_new(const char *filename, bool provide_sim_nodes);
+struct runner *runner_new_from_file(const char *filename);
+struct runner *runner_new_from_type(const char *typename);
+
+int runner_attach_simulation(struct runner *r);
 int runner_run(struct runner *r);
 void runner_del(struct runner *r);
