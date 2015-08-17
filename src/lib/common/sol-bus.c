@@ -415,7 +415,7 @@ sol_bus_map_cached_properties(sd_bus *bus,
     for (iter_desc = property_table; iter_desc->member != NULL;)
         iter_desc++;
 
-    SOL_INT_CHECK(iter_desc - property_table, >= (int)sizeof(uint64_t), -ENOBUFS);
+    SOL_INT_CHECK(iter_desc - property_table, >= (int)sizeof(uint64_t) * CHAR_BIT, -ENOBUFS);
 
     r = snprintf(matchstr, sizeof(matchstr),
         "type='signal',"
