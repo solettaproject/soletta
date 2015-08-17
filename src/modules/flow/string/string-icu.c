@@ -38,6 +38,8 @@
 
 #include "sol-flow-internal.h"
 
+#include "sol-flow-internal.h"
+
 #include "string-gen.h"
 #include "string-icu.h"
 
