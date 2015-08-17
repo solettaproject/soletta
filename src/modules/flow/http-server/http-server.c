@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "http-server-gen.h"
 #include "sol-flow.h"
@@ -136,6 +137,9 @@ boolean_response_cb(void *data, struct sol_http_request *request)
                     mdata->value.b = true;
                 else if (streq(value->value.key_value.value, "false"))
                     mdata->value.b = false;
+
+                r = sol_http_server_set_last_modified(server, mdata->path, time(NULL));
+                SOL_INT_CHECK(r, < 0, r);
             }
             break;
         case SOL_HTTP_PARAM_HEADER:
@@ -190,6 +194,9 @@ boolean_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     int r;
 
     r = sol_flow_packet_get_boolean(packet, &mdata->value.b);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_http_server_set_last_modified(server, mdata->path, time(NULL));
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
@@ -250,6 +257,9 @@ string_response_cb(void *data, struct sol_http_request *request)
                 free(mdata->value.s);
                 mdata->value.s = strdup(value->value.key_value.value);
                 SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
+
+                r = sol_http_server_set_last_modified(server, mdata->path, time(NULL));
+                SOL_INT_CHECK(r, < 0, r);
             }
             break;
         case SOL_HTTP_PARAM_HEADER:
@@ -305,6 +315,9 @@ string_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     r = sol_flow_packet_get_string(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
 
+    r = sol_http_server_set_last_modified(server, mdata->path, time(NULL));
+    SOL_INT_CHECK(r, < 0, r);
+
     free(mdata->value.s);
     mdata->value.s = strdup(val);
     SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
@@ -351,7 +364,7 @@ int_response_cb(void *data, struct sol_http_request *request)
 {
     int r = 0;
     uint16_t idx;
-    bool send_json = false;
+    bool send_json = false, modified = false;
     enum sol_http_method method;
     struct http_data *mdata = data;
     char str[512] = { 0 };
@@ -370,6 +383,7 @@ int_response_cb(void *data, struct sol_http_request *request)
 #define STRTOL_(field_) \
     do { \
         errno = 0; \
+        modified = true; \
         mdata->value.i.field_ = strtol(value->value.key_value.value, NULL, 0); \
         if (errno != 0) { \
             r = -errno; \
@@ -403,6 +417,11 @@ int_response_cb(void *data, struct sol_http_request *request)
         }
     }
 #undef STRTOL_
+
+    if (modified) {
+        r = sol_http_server_set_last_modified(server, mdata->path, time(NULL));
+        SOL_INT_CHECK(r, < 0, r);
+    }
 
     if (send_json) {
         r = snprintf(str, sizeof(str), "{\"%s\":\n\t{\"value\":%d,\n\t\"min\":%d,\n\t\"max\":%d,\n\t\"step\":%d}\n}",
@@ -439,6 +458,9 @@ int_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     int r;
 
     r = sol_flow_packet_get_irange(packet, &mdata->value.i);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_http_server_set_last_modified(server, mdata->path, time(NULL));
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
