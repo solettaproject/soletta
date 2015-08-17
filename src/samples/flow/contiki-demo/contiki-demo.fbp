@@ -40,21 +40,23 @@ top_servo(servo-motor/controller:chip=0,duty_cycle_range=min:1000|max:2000,perio
 button(gpio/reader:active_low=false,edge_falling=true,edge_rising=true,pin=15)
 led(gpio/writer:active_low=false,pin=16)
 timer_reset(timer:interval=3000)
-button_active(converter/boolean-to-empty)
 
-_(constant/int:value=1000) OUT -> DUTY_CYCLE base_servo
-_(constant/int:value=1000) OUT -> DUTY_CYCLE top_servo
-_(constant/boolean:value=false) OUT -> ENABLED timer_reset
+frequency(converter/boolean-to-int:false_value=1000,true_value=2000)
+button_filter(boolean/filter)
+pulse_false(converter/empty-to-boolean:output_value=false)
+false(constant/boolean:value=false)
+
+# initialize timer and servo
+false OUT -> ENABLED timer_reset
+false OUT -> IN frequency OUT -> DUTY_CYCLE base_servo
+frequency OUT -> DUTY_CYCLE top_servo
 
 # button pressed
-button OUT -> PULSE_IF_TRUE button_active
-button_active OUT -> IN _(converter/empty-to-int:output_value=2000) OUT -> DUTY_CYCLE base_servo
-button_active OUT -> IN _(converter/empty-to-int:output_value=2000) OUT -> DUTY_CYCLE top_servo
-button_active OUT -> IN _(converter/empty-to-boolean:output_value=true) OUT -> ENABLED timer_reset
-button OUT -> IN _(boolean/filter) TRUE -> IN led
+button OUT -> IN button_filter TRUE -> IN frequency
+button_filter TRUE -> ENABLED timer_reset
+button_filter TRUE -> IN led
 
 # after 3 seconds of button pressed
-timer_reset OUT -> IN _(converter/empty-to-int:output_value=1000) OUT -> DUTY_CYCLE base_servo
-timer_reset OUT -> IN _(converter/empty-to-int:output_value=1000) OUT -> DUTY_CYCLE top_servo
-timer_reset OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> IN led
-timer_reset OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer_reset
+timer_reset OUT -> IN pulse_false OUT -> IN frequency
+pulse_false OUT -> ENABLED timer_reset
+pulse_false OUT -> IN led
