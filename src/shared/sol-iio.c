@@ -241,23 +241,29 @@ set_current_trigger(struct sol_iio_device *device, const char *trigger_name)
 static bool
 create_sysfs_trigger(struct sol_iio_device *device)
 {
-    int len, id, i;
+    int len, id, i, tries = 10;
     char *trigger_name;
     bool result = false;
 
-    /* TODO check available trigger indice instead of using a random one */
-    /* Create new trigger */
     id = rand();
-    i = sol_util_write_file(SYSFS_TRIGGER_SYSFS_ADD_TRIGGER, "%d", id);
-    if (i < 0) {
+    do {
+        i = sol_util_write_file(SYSFS_TRIGGER_SYSFS_ADD_TRIGGER, "%d", id);
         if (i == -ENOENT) {
-            SOL_WRN("No 'iio_sysfs_tigger' under '/sys/bus/iio/devices'."
+            SOL_WRN("No 'iio_sysfs_trigger' under '/sys/bus/iio/devices'."
                 " Missing 'modprobe iio-trig-sysfs'?");
             return false;
         }
 
+        /* If EINVAL, we try again. If not, give up */
+        if (i < 0 && i != -EINVAL)
+            goto error;
+
+        if (i < 0)
+            id = rand();
+    } while (i < 0 && tries--);
+
+    if (i < 0)
         goto error;
-    }
 
     /* Set device current trigger */
     len = asprintf(&trigger_name, "sysfstrig%d", id);
