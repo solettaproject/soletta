@@ -1,0 +1,96 @@
+#!/bin/bash
+
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+function die() {
+    echo "ERROR: $1"
+    exit 1
+}
+
+usage() {
+    echo "
+Usage: $(basename $0) CONFIG_TO_TOGGLE
+Toggle a configuration between set and unset in .config.
+
+The CONFIG_TO_TOGGLE can be a subset of the config name if it's not
+ambiguous. The match is case insensitive.
+
+This must be called from Soletta's root directory and a .config file
+must exist already.
+" 1>&$1;
+}
+
+[ -e ./Kconfig ] || die "Call from the root directory."
+[ -e ./.config ] || die "Need a .config to be able to toggle."
+
+if [ -z "$1" -o -n "$2" ]; then
+    usage 2
+    exit 1
+fi
+
+if [ "$1" == "-h" ]; then
+    usage 1
+    exit 0
+fi
+
+name=$(echo $1 | tr 'a-z' 'A-Z')
+pattern="^\(\w*$name\w*=y\|# \w*$name\w* is not set\)$"
+count=$(grep -ci "$pattern" .config)
+
+[ $count -gt 0 ] || die "No config matches '$1'."
+
+[ $? -eq 0 ] || die "Couldn't call grep for $1."
+
+if [ $count -gt 1 ]; then
+    grep -i "$pattern" .config
+    echo
+    die "Multiple configs match '$1', be more specific."
+fi
+
+before=$(grep -i "$pattern" .config)
+
+if [[ $before == "# "* ]]; then
+    sed -i "s/^# \(\w*$name\w*\) is not set/\1=y/" .config
+else
+    sed -i "s/^\(\w*$name\w*\)=y$/\1=n/" .config
+fi
+
+echo $before
+
+echo
+echo Toggling and running 'make oldconfig'
+echo
+make oldconfig > /dev/null
+
+after=$(grep -i "$pattern" .config)
+echo $after
+
+[ "$before" != "$after" ] || die "Couldn't toggle the config."
