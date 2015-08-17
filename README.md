@@ -17,6 +17,9 @@ targets.
 
  * [General Information](#general-information)
  * [Building from Source](#building-from-source)
+   * [Submodules](#submodules)
+       * [Duktape](#duktape)
+   * [Building](#building)
  * [Debug](#debug)
  * [Libraries](#libraries)
   * [Common](#common)
@@ -47,6 +50,40 @@ is based on Glib's GMainLoop, while some smaller OS have their own
 implementation, see [main loops](#main-loops) documentaion.
 
 ## Building from Source
+
+#### Submodules
+**Soletta Project** uses git submodule to include external sources into
+its source tree (currently we have a single one). The submodules are handled
+as an optional dependency and can be built as an external source code where
+the source code can be cloned out-of-tree.
+
+We have introduced in the source tree the script
+```data/scripts/git-init-submodules.py``` to handle the submodules. This
+script does some special tricks when handling with submodules, it knows
+about some extra variables introduced to .gitmodule file like: handling
+sparsecheckout, shallow checkouts based on ```branch``` variable and also
+generates the sparse rules file based on ```sparserules``` variable.
+
+Since the script wraps git submodule the configured modules can be initialized,
+de-initialized and so on as a regular git submodule, we recommend using our
+script because it provides the extra features we have introduced.
+
+###### Duktape
+As mentioned in the previous section **Soletta Project** includes some git
+submodules, Duktape - an embeddable Javascript engine - is one of them.
+
+> Warning: we strongly recommend using the **Soleta's** Duktape submodule -
+see previous section.
+
+To build **Soletta** with Duktape support you either initialize its git submodule
+or set the ```DUKTAPE_SRC``` environment variable to point to Duktape source
+code - we're interested in duktape.c and duktape.h files so make sure to
+set the variable pointing to ```src/``` directory - not the root source dir.
+
+We have specific version requirements so make sure to clone the proper version
+if not using submodule.
+
+#### Building
 
 The build system is based on linux kernel's kconfig. To configure it
 with default configuration values run:
