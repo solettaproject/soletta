@@ -141,6 +141,51 @@
       ],
       "private_data_type": "http_data",
       "url": "http://solettaproject.org/doc/latest/node_types/http-server/int.html"
+    },
+    {
+      "category": "output/network",
+      "description": "HTTP Server for float",
+      "methods": {
+        "close": "float_close",
+        "open": "float_open"
+      },
+      "name": "http-server/float",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+	    "default": "string",
+            "description": "The http path where it will be served",
+            "name": "path"
+          },
+	  {
+            "data_type": "float",
+	    "default": 0,
+            "description": "The initial node's value",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+	{
+	  "data_type": "float",
+	  "description": "The value that will be give on a GET",
+          "methods": {
+            "process": "float_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+	{
+          "data_type": "float",
+          "description": "The value received on a POST",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-server/float.html"
     }
   ]
 }
