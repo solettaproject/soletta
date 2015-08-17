@@ -41,8 +41,14 @@
 
 #include "runner.h"
 
+#define MAX_OPTS 64
+
 static struct {
     const char *name;
+
+    const char *options[MAX_OPTS + 1];
+    int options_count;
+
     bool check_only;
     bool provide_sim_nodes;
     bool execute_type;
@@ -63,13 +69,14 @@ usage(const char *program)
         "\n"
         "Executes the flow described in input_file.\n\n"
         "Options:\n"
-        "    -c  Check syntax only. The program will exit as soon as the flow\n"
-        "        is built and the syntax is verified.\n"
-        "    -s  Provide simulation nodes for flows with exported ports.\n"
-        "    -t  Instead of reading a file, execute a node type with the name\n"
-        "        passed as first argument. Implies -s.\n"
+        "    -c            Check syntax only. The program will exit as soon as the flow\n"
+        "                  is built and the syntax is verified.\n"
+        "    -s            Provide simulation nodes for flows with exported ports.\n"
+        "    -t            Instead of reading a file, execute a node type with the name\n"
+        "                  passed as first argument. Implies -s.\n"
+        "    -o name=value Provide option when creating the root node, can have multiple.\n"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
-        "    -D  Debug the flow by printing connections and packets to stdout.\n"
+        "    -D            Debug the flow by printing connections and packets to stdout.\n"
 #endif
         "\n",
         program);
@@ -79,7 +86,7 @@ static bool
 parse_args(int argc, char *argv[])
 {
     int opt;
-    const char known_opts[] = "chst"
+    const char known_opts[] = "cho:st"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "D"
 #endif
@@ -96,6 +103,13 @@ parse_args(int argc, char *argv[])
         case 'h':
             usage(argv[0]);
             exit(EXIT_SUCCESS);
+            break;
+        case 'o':
+            if (args.options_count == MAX_OPTS) {
+                printf("Too many options.\n");
+                exit(EXIT_FAILURE);
+            }
+            args.options[args.options_count++] = optarg;
             break;
         case 't':
             args.execute_type = true;
@@ -130,9 +144,9 @@ startup(void *data)
     int result = EXIT_FAILURE;
 
     if (args.execute_type) {
-        the_runner = runner_new_from_type(args.name);
+        the_runner = runner_new_from_type(args.name, args.options);
     } else {
-        the_runner = runner_new_from_file(args.name);
+        the_runner = runner_new_from_file(args.name, args.options);
     }
 
     if (!the_runner)

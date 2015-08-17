@@ -45,10 +45,14 @@
 
 struct runner {
     struct sol_flow_parser *parser;
+
     struct sol_flow_node_type *root_type;
-    struct sol_flow_node_named_options named_opts;
-    struct sol_flow_node *root;
+    struct sol_flow_node_options *root_options;
+
     struct sol_flow_builder *builder;
+    struct sol_flow_node_type *sim_type;
+
+    struct sol_flow_node *root;
 
     const char *filename;
     char *basename;
@@ -194,7 +198,7 @@ runner_attach_simulation(struct runner *r)
     r->builder = sol_flow_builder_new();
     SOL_NULL_CHECK(r->builder, -ENOMEM);
 
-    err = sol_flow_builder_add_node(r->builder, parent, r->root_type, NULL);
+    err = sol_flow_builder_add_node(r->builder, parent, r->root_type, r->root_options);
     SOL_INT_CHECK_GOTO(err, < 0, error);
 
     for (i = 0; i < in_count; i++) {
@@ -252,7 +256,7 @@ runner_attach_simulation(struct runner *r)
                 port_desc->name, port_out->packet_type->name);
         }
     }
-    r->root_type = sol_flow_builder_get_node_type(r->builder);
+    r->sim_type = sol_flow_builder_get_node_type(r->builder);
 
     return 0;
 
@@ -267,9 +271,67 @@ error:
     return err;
 }
 
+static int
+parse_options(struct runner *r, const char **options_strv, struct sol_flow_node_named_options *resolved_opts)
+{
+    struct sol_flow_node_named_options user_opts = {}, type_opts = {}, opts = {};
+    int err;
+
+    if (!options_strv || !*options_strv)
+        return 0;
+
+    if (resolved_opts) {
+        type_opts = *resolved_opts;
+        *resolved_opts = (struct sol_flow_node_named_options){};
+    }
+
+    err = sol_flow_node_named_options_init_from_strv(&user_opts, r->root_type, options_strv);
+    if (err < 0) {
+        /* TODO: improve return value from the init function so we can
+         * give better error messages. */
+        fprintf(stderr, "Invalid options\n");
+        goto end;
+    }
+
+    if (type_opts.count + user_opts.count > 0) {
+        const int member_size = sizeof(struct sol_flow_node_named_options_member);
+        int count = type_opts.count + user_opts.count;
+
+        opts.members = calloc(count, member_size);
+        if (!opts.members) {
+            err = -errno;
+            fprintf(stderr,  "Not enough memory to build options.\n");
+            goto end;
+        }
+
+        if (type_opts.count > 0)
+            memcpy(opts.members, type_opts.members, type_opts.count * member_size);
+        if (user_opts.count > 0)
+            memcpy(opts.members + type_opts.count, user_opts.members, user_opts.count * member_size);
+        opts.count = count;
+    }
+
+    if (opts.count > 0) {
+        err = sol_flow_node_options_new(r->root_type, &opts, &r->root_options);
+        if (err < 0) {
+            fprintf(stderr, "Couldn't create options");
+            goto end;
+        }
+        sol_flow_node_named_options_fini(&opts);
+    }
+
+    err = 0;
+
+end:
+    free(type_opts.members);
+    free(user_opts.members);
+    return err;
+}
+
 struct runner *
 runner_new_from_file(
-    const char *filename)
+    const char *filename,
+    const char **options_strv)
 {
     struct runner *r;
     const char *buf;
@@ -305,6 +367,10 @@ runner_new_from_file(
     if (!r->root_type)
         goto error;
 
+    err = parse_options(r, options_strv, NULL);
+    if (err < 0)
+        goto error;
+
     close_files(r);
 
     return r;
@@ -317,8 +383,10 @@ error:
 
 struct runner *
 runner_new_from_type(
-    const char *typename)
+    const char *typename,
+    const char **options_strv)
 {
+    struct sol_flow_node_named_options resolved_opts = {};
     struct runner *r;
     int err;
 
@@ -328,16 +396,20 @@ runner_new_from_type(
     SOL_NULL_CHECK(r, NULL);
 
     err = sol_flow_resolve(sol_flow_get_builtins_resolver(), typename,
-        (const struct sol_flow_node_type **)&r->root_type, &r->named_opts);
+        (const struct sol_flow_node_type **)&r->root_type, &resolved_opts);
     if (err < 0) {
         err = sol_flow_resolve(NULL, typename,
-            (const struct sol_flow_node_type **)&r->root_type, &r->named_opts);
+            (const struct sol_flow_node_type **)&r->root_type, &resolved_opts);
         if (err < 0) {
             fprintf(stderr, "Couldn't find type '%s'\n", typename);
             errno = -err;
             goto error;
         }
     }
+
+    err = parse_options(r, options_strv, &resolved_opts);
+    if (err < 0)
+        goto error;
 
     r->filename = strdup(typename);
     if (!r->filename)
@@ -354,7 +426,15 @@ error:
 int
 runner_run(struct runner *r)
 {
-    r->root = sol_flow_node_new(NULL, r->filename, r->root_type, NULL);
+    const struct sol_flow_node_type *type = r->sim_type;
+    const struct sol_flow_node_options *opts = NULL;
+
+    if (!type) {
+        type = r->root_type;
+        opts = r->root_options;
+    }
+
+    r->root = sol_flow_node_new(NULL, r->filename, type, opts);
     if (!r->root)
         return -1;
 
@@ -364,15 +444,16 @@ runner_run(struct runner *r)
 void
 runner_del(struct runner *r)
 {
+    if (r->root_options)
+        sol_flow_node_options_del(r->root_type, r->root_options);
     if (r->root)
         sol_flow_node_del(r->root);
     if (r->builder) {
-        sol_flow_node_type_del(r->root_type);
+        sol_flow_node_type_del(r->sim_type);
         sol_flow_builder_del(r->builder);
     }
     if (r->parser)
         sol_flow_parser_del(r->parser);
-    sol_flow_node_named_options_fini(&r->named_opts);
     free(r->dirname);
     free(r->basename);
     free(r);

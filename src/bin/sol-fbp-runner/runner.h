@@ -34,8 +34,8 @@
 
 struct runner;
 
-struct runner *runner_new_from_file(const char *filename);
-struct runner *runner_new_from_type(const char *typename);
+struct runner *runner_new_from_file(const char *filename, const char **options_strv);
+struct runner *runner_new_from_type(const char *typename, const char **options_strv);
 
 int runner_attach_simulation(struct runner *r);
 int runner_run(struct runner *r);
