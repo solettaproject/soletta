@@ -463,11 +463,11 @@ static void
 http_get_cb(void *data, struct sol_http_response *response)
 {
     struct http_get_data *mdata = data;
-    struct sol_json_scanner scanner, locations_scanner;
-    struct sol_json_token token, key, value;
+    struct sol_json_scanner scanner, locations_scanner, sensors_scanner;
+    struct sol_json_token token, key, value, locations, sensors;
     int r;
     enum sol_json_loop_reason reason;
-    bool found_locations = false;
+    bool found_locations = false, found_sensors = false;
 
     RESPONSE_CHECK_API(response, mdata);
 
@@ -490,7 +490,10 @@ http_get_cb(void *data, struct sol_http_response *response)
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (sol_json_token_str_eq(&key, "locations", strlen("locations"))) {
             found_locations = true;
-            break;
+            locations = value;
+        } else if (sol_json_token_str_eq(&key, "sensors", strlen("sensors"))) {
+            found_sensors = true;
+            sensors = value;
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK)
@@ -498,65 +501,123 @@ http_get_cb(void *data, struct sol_http_response *response)
 
     if (!found_locations) {
         SOL_DBG("No plants found on response");
-        return;
-    }
+    } else {
+        sol_json_scanner_init_from_token(&locations_scanner, &locations);
+        SOL_JSON_SCANNER_ARRAY_LOOP (&locations_scanner, &token,
+            SOL_JSON_TYPE_OBJECT_START, reason) {
+            struct sol_drange fertilizer = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
+            struct sol_drange water = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
+            struct sol_drange temperature = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
+            struct sol_drange light = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
+            char *id = NULL, *timestamp = NULL;
 
-    sol_json_scanner_init_from_token(&locations_scanner, &value);
-    SOL_JSON_SCANNER_ARRAY_LOOP (&locations_scanner, &token,
-        SOL_JSON_TYPE_OBJECT_START, reason) {
-        struct sol_drange fertilizer = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
-        struct sol_drange water = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
-        struct sol_drange temperature = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
-        struct sol_drange light = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
-        char *id = NULL, *timestamp = NULL;
-
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&locations_scanner, &token,
-            &key, &value, reason) {
-            if (sol_json_token_str_eq(&key, "fertilizer",
-                strlen("fertilizer"))) {
-                if (!get_measure(&value, &fertilizer)) {
-                    SOL_WRN("Failed to get fertilizer info");
-                    goto error;
-                }
-            } else if (sol_json_token_str_eq(&key, "light",
-                strlen("light"))) {
-                if (!get_measure(&value, &light)) {
-                    SOL_WRN("Failed to get light info");
-                    goto error;
-                }
-            } else if (sol_json_token_str_eq(&key, "air_temperature",
-                strlen("air_temperature"))) {
-                if (!get_measure(&value, &temperature)) {
-                    SOL_WRN("Failed to get temperature info");
-                    goto error;
-                }
-            } else if (sol_json_token_str_eq(&key, "soil_moisture",
-                strlen("soil_moisture"))) {
-                if (!get_measure(&value, &water)) {
-                    SOL_WRN("Failed to get water info");
-                    goto error;
-                }
-            } else if (sol_json_token_str_eq(&key, "location_identifier",
-                strlen("location_identifier"))) {
-                id = strndupa(value.start + 1, value.end - value.start - 2);
-                if (!id) {
-                    SOL_WRN("Failed to get id");
-                    goto error;
-                }
-            } else if (sol_json_token_str_eq(&key, "last_sample_upload",
-                strlen("last_sample_upload"))) {
-                timestamp = strndupa(value.start + 1,
-                    value.end - value.start - 2);
-                if (!timestamp) {
-                    SOL_WRN("Failed to get timestamp");
-                    goto error;
+            SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&locations_scanner, &token,
+                &key, &value, reason) {
+                if (sol_json_token_str_eq(&key, "fertilizer",
+                    strlen("fertilizer"))) {
+                    if (!get_measure(&value, &fertilizer)) {
+                        SOL_WRN("Failed to get fertilizer info");
+                        goto error;
+                    }
+                } else if (sol_json_token_str_eq(&key, "light",
+                    strlen("light"))) {
+                    if (!get_measure(&value, &light)) {
+                        SOL_WRN("Failed to get light info");
+                        goto error;
+                    }
+                } else if (sol_json_token_str_eq(&key, "air_temperature",
+                    strlen("air_temperature"))) {
+                    if (!get_measure(&value, &temperature)) {
+                        SOL_WRN("Failed to get temperature info");
+                        goto error;
+                    }
+                } else if (sol_json_token_str_eq(&key, "soil_moisture",
+                    strlen("soil_moisture"))) {
+                    if (!get_measure(&value, &water)) {
+                        SOL_WRN("Failed to get water info");
+                        goto error;
+                    }
+                } else if (sol_json_token_str_eq(&key, "location_identifier",
+                    strlen("location_identifier"))) {
+                    id = strndupa(value.start + 1, value.end - value.start - 2);
+                    if (!id) {
+                        SOL_WRN("Failed to get id");
+                        goto error;
+                    }
+                } else if (sol_json_token_str_eq(&key, "last_sample_upload",
+                    strlen("last_sample_upload"))) {
+                    timestamp = strndupa(value.start + 1,
+                        value.end - value.start - 2);
+                    if (!timestamp) {
+                        SOL_WRN("Failed to get timestamp");
+                        goto error;
+                    }
                 }
             }
+            r = sol_flower_power_send_packet_components(mdata->node,
+                SOL_FLOW_NODE_TYPE_FLOWER_POWER_HTTP_GET__OUT__OUT,
+                id, timestamp, &fertilizer, &light, &temperature, &water);
+            SOL_INT_CHECK_GOTO(r, < 0, error);
         }
-        r = sol_flower_power_send_packet_components(mdata->node,
-            SOL_FLOW_NODE_TYPE_FLOWER_POWER_HTTP_GET__OUT__OUT,
-            id, timestamp, &fertilizer, &light, &temperature, &water);
-        SOL_INT_CHECK_GOTO(r, < 0, error);
+    }
+
+    if (!found_sensors) {
+        SOL_DBG("No sensors found on response");
+    } else {
+        sol_json_scanner_init_from_token(&sensors_scanner, &sensors);
+        SOL_JSON_SCANNER_ARRAY_LOOP (&sensors_scanner, &token,
+            SOL_JSON_TYPE_OBJECT_START, reason) {
+            struct sol_drange battery_level = { -1, 0, 100, DBL_MIN };
+            char *id = NULL, *timestamp = NULL, *battery_end_of_life = NULL;
+
+            SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&sensors_scanner, &token,
+                &key, &value, reason) {
+                if (sol_json_token_str_eq(&key, "battery_level",
+                    strlen("battery_level"))) {
+                    sol_json_scanner_init_from_token(&scanner, &value);
+                    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key,
+                        &value, reason) {
+                        if (sol_json_token_str_eq(&key, "level_percent",
+                            strlen("level_percent"))) {
+                            if (sol_json_token_get_double(&value,
+                                &battery_level.val)) {
+                                SOL_DBG("Failed to get battery level");
+                                goto error;
+                            }
+                        } else if (sol_json_token_str_eq(&key,
+                            "battery_end_of_life_date_utc",
+                            strlen("battery_end_of_life_date_utc"))) {
+                            battery_end_of_life = strndupa(value.start + 1,
+                                value.end - value.start - 2);
+                            if (!battery_end_of_life) {
+                                SOL_WRN("Failed to get battery end of life");
+                                goto error;
+                            }
+                        }
+                    }
+                } else if (sol_json_token_str_eq(&key, "sensor_serial",
+                    strlen("sensor_serial"))) {
+                    id = strndupa(value.start + 1, value.end - value.start - 2);
+                    if (!id) {
+                        SOL_WRN("Failed to get id");
+                        goto error;
+                    }
+                } else if (sol_json_token_str_eq(&key,
+                    "last_upload_datetime_utc",
+                    strlen("last_upload_datetime_utc"))) {
+                    timestamp = strndupa(value.start + 1,
+                        value.end - value.start - 2);
+                    if (!timestamp) {
+                        SOL_WRN("Failed to get timestamp");
+                        goto error;
+                    }
+                }
+            }
+            r = sol_flower_power_sensor_send_packet_components(mdata->node,
+                SOL_FLOW_NODE_TYPE_FLOWER_POWER_HTTP_GET__OUT__DEVICE_INFO,
+                id, timestamp, battery_end_of_life, &battery_level);
+            SOL_INT_CHECK_GOTO(r, < 0, error);
+        }
     }
 
     return;
@@ -711,7 +772,7 @@ filter_set_id(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     SOL_INT_CHECK(r, < 0, r);
 
     if (!in_value || !strlen(in_value)) {
-        sol_flow_send_error_packet(node, -EINVAL, "Invalid plant ids");
+        sol_flow_send_error_packet(node, -EINVAL, "Invalid id");
         return -EINVAL;
     }
 
@@ -744,6 +805,215 @@ filter_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
 
     return sol_flower_power_send_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_FILTER_ID__OUT__OUT, &fpd);
+}
+
+/* SENSOR INFORMATION PACKET / NODE TYPES */
+
+static void
+packet_type_flower_power_sensor_packet_dispose(const struct sol_flow_packet_type *packet_type,
+    void *mem)
+{
+    struct sol_flower_power_sensor_data *fpsd = mem;
+
+    free(fpsd->id);
+    free(fpsd->timestamp);
+    free(fpsd->battery_end_of_life);
+}
+
+static int
+packet_type_flower_power_sensor_packet_init(
+    const struct sol_flow_packet_type *packet_type,
+    void *mem, const void *input)
+{
+    const struct sol_flower_power_sensor_data *in = input;
+    struct sol_flower_power_sensor_data *fpsd = mem;
+
+    SOL_NULL_CHECK(in->id, -EINVAL);
+    SOL_NULL_CHECK(in->timestamp, -EINVAL);
+    SOL_NULL_CHECK(in->battery_end_of_life, -EINVAL);
+
+    fpsd->id = strdup(in->id);
+    SOL_NULL_CHECK(fpsd->id, -ENOMEM);
+
+    fpsd->timestamp = strdup(in->timestamp);
+    SOL_NULL_CHECK_GOTO(fpsd->timestamp, timestamp_error);
+
+    fpsd->battery_end_of_life = strdup(in->battery_end_of_life);
+    SOL_NULL_CHECK_GOTO(fpsd->battery_end_of_life, battery_error);
+
+    fpsd->battery_level = in->battery_level;
+
+    return 0;
+
+battery_error:
+    free(fpsd->timestamp);
+timestamp_error:
+    free(fpsd->id);
+    return -ENOMEM;
+}
+
+#define PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION (1)
+
+static const struct sol_flow_packet_type _PACKET_TYPE_FLOWER_POWER_SENSOR = {
+    .api_version = PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION,
+    .name = "PACKET_TYPE_FLOWER_POWER_SENSOR",
+    .data_size = sizeof(struct sol_flower_power_sensor_data),
+    .init = packet_type_flower_power_sensor_packet_init,
+    .dispose = packet_type_flower_power_sensor_packet_dispose,
+};
+SOL_API const struct sol_flow_packet_type *PACKET_TYPE_FLOWER_POWER_SENSOR =
+    &_PACKET_TYPE_FLOWER_POWER_SENSOR;
+
+#undef PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION
+
+SOL_API struct sol_flow_packet *
+sol_flower_power_sensor_new_packet(const struct sol_flower_power_sensor_data *fpsd)
+{
+    SOL_NULL_CHECK(fpsd, NULL);
+    return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER_SENSOR, fpsd);
+}
+
+SOL_API struct sol_flow_packet *
+sol_flower_power_sensor_new_packet_components(const char *id,
+    const char *timestamp, const char *battery_end_of_life,
+    struct sol_drange *battery_level)
+{
+    struct sol_flower_power_sensor_data fpsd;
+
+    SOL_NULL_CHECK(id, NULL);
+    SOL_NULL_CHECK(timestamp, NULL);
+    SOL_NULL_CHECK(battery_end_of_life, NULL);
+    SOL_NULL_CHECK(battery_level, NULL);
+
+    fpsd.id = (char *)id;
+    fpsd.timestamp = (char *)timestamp;
+    fpsd.battery_end_of_life = (char *)battery_end_of_life;
+    fpsd.battery_level = *battery_level;
+
+    return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER_SENSOR, &fpsd);
+}
+
+SOL_API int
+sol_flower_power_sensor_get_packet(const struct sol_flow_packet *packet,
+    struct sol_flower_power_sensor_data *fpsd)
+{
+    SOL_NULL_CHECK(packet, -EINVAL);
+    if (sol_flow_packet_get_type(packet) != PACKET_TYPE_FLOWER_POWER_SENSOR)
+        return -EINVAL;
+
+    return sol_flow_packet_get(packet, fpsd);
+}
+
+SOL_API int
+sol_flower_power_sensor_get_packet_components(
+    const struct sol_flow_packet *packet,
+    const char **id, const char **timestamp, const char **battery_end_of_life,
+    struct sol_drange *battery_level)
+{
+    struct sol_flower_power_sensor_data fpsd;
+    int ret;
+
+    SOL_NULL_CHECK(packet, -EINVAL);
+    if (sol_flow_packet_get_type(packet) != PACKET_TYPE_FLOWER_POWER_SENSOR)
+        return -EINVAL;
+
+    ret = sol_flow_packet_get(packet, &fpsd);
+    SOL_INT_CHECK(ret, != 0, ret);
+
+    if (id)
+        *id = fpsd.id;
+    if (timestamp)
+        *timestamp = fpsd.timestamp;
+    if (battery_end_of_life)
+        *battery_end_of_life = fpsd.battery_end_of_life;
+    if (battery_level)
+        *battery_level = fpsd.battery_level;
+
+    return ret;
+}
+
+SOL_API int
+sol_flower_power_sensor_send_packet(struct sol_flow_node *src,
+    uint16_t src_port, const struct sol_flower_power_sensor_data *fpsd)
+{
+    struct sol_flow_packet *packet;
+
+    packet = sol_flower_power_sensor_new_packet(fpsd);
+    SOL_NULL_CHECK(packet, -ENOMEM);
+
+    return sol_flow_send_packet(src, src_port, packet);
+}
+
+SOL_API int
+sol_flower_power_sensor_send_packet_components(struct sol_flow_node *src,
+    uint16_t src_port, char *id, char *timestamp, char *battery_end_of_life,
+    struct sol_drange *battery_level)
+{
+    struct sol_flow_packet *packet;
+
+    packet = sol_flower_power_sensor_new_packet_components(id, timestamp,
+        battery_end_of_life, battery_level);
+    SOL_NULL_CHECK(packet, -ENOMEM);
+
+    return sol_flow_send_packet(src, src_port, packet);
+}
+
+static int
+parse_sensor_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_drange battery_level;
+    const char *id, *timestamp, *battery_end_of_life;
+    int r;
+
+    r = sol_flower_power_sensor_get_packet_components(packet, &id, &timestamp,
+        &battery_end_of_life, &battery_level);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_SENSOR_VALUE__OUT__ID,
+        id);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_SENSOR_VALUE__OUT__TIMESTAMP,
+        timestamp);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_SENSOR_VALUE__OUT__BATTERY_END_OF_LIFE,
+        battery_end_of_life);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_SENSOR_VALUE__OUT__BATTERY_LEVEL,
+        &battery_level);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+filter_sensor_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct filter_data *mdata = data;
+    struct sol_flower_power_sensor_data fpsd;
+    int r;
+
+    r = sol_flower_power_sensor_get_packet(packet, &fpsd);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!fpsd.id || !mdata->id) {
+        sol_flow_send_error_packet(node, -EINVAL,
+            "Failed to compare sensor ids");
+        return -EINVAL;
+    }
+
+    /* Don't forward packets if ids don't match */
+    if (strcmp(fpsd.id, mdata->id))
+        return 0;
+
+    return sol_flower_power_sensor_send_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_FILTER_SENSOR_ID__OUT__OUT, &fpsd);
 }
 
 #undef RESPONSE_CHECK_API

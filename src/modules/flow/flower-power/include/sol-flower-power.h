@@ -40,6 +40,8 @@
 extern "C" {
 #endif
 
+/* PLANT INFORMATION */
+
 struct sol_flower_power_data {
     struct sol_drange fertilizer;
     struct sol_drange light;
@@ -60,6 +62,26 @@ int sol_flower_power_get_packet_components(const struct sol_flow_packet *packet,
 
 int sol_flower_power_send_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_flower_power_data *fpd);
 int sol_flower_power_send_packet_components(struct sol_flow_node *src, uint16_t src_port, char *id, char *timestamp, struct sol_drange *fertilizer, struct sol_drange *light, struct sol_drange *temperature, struct sol_drange *water);
+
+/* SENSOR INFORMATION */
+
+struct sol_flower_power_sensor_data {
+    struct sol_drange battery_level;
+    char *battery_end_of_life;
+    char *id;
+    char *timestamp;
+};
+
+extern const struct sol_flow_packet_type *PACKET_TYPE_FLOWER_POWER_SENSOR;
+
+struct sol_flow_packet *sol_flower_power_sensor_new_packet(const struct sol_flower_power_sensor_data *fpsd);
+struct sol_flow_packet *sol_flower_power_sensor_new_packet_components(const char *id, const char *timestamp, const char *battery_end_of_life, struct sol_drange *battery_level);
+
+int sol_flower_power_sensor_get_packet(const struct sol_flow_packet *packet, struct sol_flower_power_sensor_data *fpsd);
+int sol_flower_power_sensor_get_packet_components(const struct sol_flow_packet *packet, const char **id, const char **timestamp, const char **battery_end_of_life, struct sol_drange *battery_level);
+
+int sol_flower_power_sensor_send_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_flower_power_sensor_data *fpsd);
+int sol_flower_power_sensor_send_packet_components(struct sol_flow_node *src, uint16_t src_port, char *id, char *timestamp, char *battery_end_of_life, struct sol_drange *battery_level);
 
 #ifdef __cplusplus
 }

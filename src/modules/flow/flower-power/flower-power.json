@@ -63,8 +63,12 @@
         {
           "data_type": "custom:PACKET_TYPE_FLOWER_POWER",
           "description": "Packet with measures (sunlight, temperature, soil moisture and fertilizer) related to a plant.",
-          "name": "OUT",
-          "required": true
+          "name": "OUT"
+        },
+        {
+          "data_type": "custom:PACKET_TYPE_FLOWER_POWER_SENSOR",
+          "description": "Packet with sensor information, as battery level and battery's end of life date.",
+          "name": "DEVICE_INFO"
         }
       ],
       "private_data_type": "http_get_data",
@@ -167,6 +171,94 @@
       ],
       "private_data_type": "filter_data",
       "url": "http://solettaproject.org/doc/latest/node_types/flower-power/filter-id.html"
+    },
+    {
+      "category": "iot/cloud",
+      "description": "Parse Flower-Power sensor packets splitting into each measure.",
+      "in_ports": [
+       {
+          "data_type": "custom:PACKET_TYPE_FLOWER_POWER_SENSOR",
+          "description": "Packet with sensor information, as battery level and battery's end of life date related to a sensor.",
+          "methods": {
+            "process": "parse_sensor_packet"
+          },
+          "name": "IN",
+          "required": true
+       }
+      ],
+      "name": "flower-power/get-sensor-value",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Sensor identification, also known as sensor serial.",
+          "name": "ID"
+        },
+        {
+          "data_type": "float",
+          "description": "Battery level (percent).",
+          "name": "BATTERY_LEVEL"
+        },
+        {
+          "data_type": "string",
+          "description": "Timestamp of estimated battery end of life.",
+          "name": "BATTERY_END_OF_LIFE"
+        },
+        {
+          "data_type": "string",
+          "description": "Timestamp of sensors reading.",
+          "name": "TIMESTAMP"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/flower-power/get-sensor-value.html"
+    },
+    {
+      "category": "iot/cloud",
+      "description": "Filter Flower-Power device information packets, forwarding only packets that matches a specific sensor ID.",
+      "in_ports": [
+       {
+          "data_type": "custom:PACKET_TYPE_FLOWER_POWER_SENSOR",
+          "description": "Packet with sensor information, as battery level and battery's end of life date.",
+         "methods": {
+           "process": "filter_sensor_packet"
+         },
+         "name": "IN",
+         "required": true
+       },
+       {
+         "data_type": "string",
+         "description": "Sensor identification, also known as sensor serial. Overwrite previous ID or ID set via options.",
+         "methods": {
+           "process": "filter_set_id"
+         },
+         "name": "ID"
+       }
+      ],
+      "methods": {
+        "open": "filter_open",
+        "close": "filter_close"
+      },
+      "name": "flower-power/filter-sensor-id",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Sensor identifier.",
+            "name": "id"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "custom:PACKET_TYPE_FLOWER_POWER_SENSOR",
+          "description": "Packet with sensor information, as battery level and battery's end of life date related to the sensor specified by options ID.",
+          "name": "OUT",
+          "required": true
+        }
+      ],
+      "private_data_type": "filter_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/flower-power/filter-sensor-id.html"
     }
   ]
 }
