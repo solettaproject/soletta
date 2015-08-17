@@ -57,8 +57,8 @@ sol_comms_init(void)
 
 #ifdef HTTP_CLIENT
 http_error:
-#endif
     sol_network_shutdown();
+#endif
 network_error:
     return -1;
 }
