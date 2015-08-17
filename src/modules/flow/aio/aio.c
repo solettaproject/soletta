@@ -82,7 +82,7 @@ _on_reader_timeout(void *data)
 
     i.val = sol_aio_get_value(mdata->aio);
     if (i.val < 0) {
-        sol_flow_send_error_packet("aio #%d,%d: Could not read value.", mdata->device, mdata->pin);
+        sol_flow_send_error_packet(mdata->node, -EINVAL, "aio #%d,%d: Could not read value.", mdata->device, mdata->pin);
         return false;
     }
 
