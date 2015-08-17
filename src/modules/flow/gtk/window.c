@@ -62,6 +62,7 @@ struct window *
 window_new(void)
 {
     struct window *w;
+    GtkWidget *scrolled_win;
 
     gtk_init(NULL, NULL);
     w = calloc(1, sizeof(*w));
@@ -70,6 +71,10 @@ window_new(void)
     w->toplevel = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     g_signal_connect(w->toplevel, "destroy", G_CALLBACK(on_destroy), w);
     gtk_window_set_title(GTK_WINDOW(w->toplevel), "Soletta");
+    gtk_window_set_default_size(GTK_WINDOW(w->toplevel), 600, 800);
+
+    scrolled_win = gtk_scrolled_window_new(NULL, NULL);
+    gtk_container_add(GTK_CONTAINER(w->toplevel), scrolled_win);
 
     w->grid = gtk_grid_new();
     g_object_set(w->grid,
@@ -78,10 +83,11 @@ window_new(void)
         "column-spacing", 10,
         "hexpand", true,
         NULL);
-    gtk_container_add(GTK_CONTAINER(w->toplevel), w->grid);
+    gtk_container_add(GTK_CONTAINER(scrolled_win), w->grid);
     w->grid_height = 0;
 
     gtk_widget_show(w->grid);
+    gtk_widget_show(scrolled_win);
     gtk_widget_show(w->toplevel);
 
     return w;
