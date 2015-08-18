@@ -144,7 +144,7 @@ thingspeak_execute_poll(void *data)
 {
     struct thingspeak_execute_data *mdata = data;
     struct sol_http_param params;
-    int r;
+    struct sol_http_client_pending *pending;
 
     sol_http_param_init(&params);
     if (!sol_http_param_add(&params,
@@ -155,12 +155,12 @@ thingspeak_execute_poll(void *data)
         return false;
     }
 
-    r = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->talkback.endpoint,
+    pending = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->talkback.endpoint,
         &params, thingspeak_execute_poll_finished, mdata);
 
     sol_http_param_free(&params);
 
-    if (r < 0) {
+    if (!pending) {
         SOL_WRN("Could not create HTTP request");
         mdata->timeout = NULL;
         return false;
@@ -230,6 +230,7 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
     struct thingspeak_add_data *mdata = data;
     const char *cmd_str;
     struct sol_http_param params;
+    struct sol_http_client_pending *pending;
     int error_code = 0;
     int r;
 
@@ -273,9 +274,9 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
         }
     }
 
-    r = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->talkback.endpoint,
+    pending = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->talkback.endpoint,
         &params, thingspeak_add_request_finished, mdata);
-    if (r < 0) {
+    if (!pending) {
         SOL_WRN("Could not create HTTP request");
         error_code = -EINVAL;
     }
@@ -332,9 +333,9 @@ thingspeak_channel_update_send(void *data)
 {
     struct thingspeak_channel_update_data *mdata = data;
     struct sol_http_param params;
+    struct sol_http_client_pending *pending;
     char field_name[] = "fieldX";
     size_t i;
-    int r;
 
     sol_http_param_init(&params);
 
@@ -365,9 +366,9 @@ thingspeak_channel_update_send(void *data)
         }
     }
 
-    r = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->endpoint, &params,
+    pending = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->endpoint, &params,
         thingspeak_channel_update_finished, mdata);
-    if (r < 0) {
+    if (!pending) {
         SOL_WRN("Could not create HTTP request");
         goto out;
     }
