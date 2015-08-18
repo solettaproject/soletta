@@ -40,7 +40,7 @@ function die() {
 DIFF_LIST=$(mktemp /tmp/sol-tmp.XXXX)
 
 PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|generate\-svg\-from\-all\-fbps\)$"
-IGNORE="data\/oic\/\|data\/jsons\/\|.*\.ac"
+IGNORE="data\/oic\/\|data\/jsons\/\|.*\.ac|.*Makefile.*"
 
 trap "rm -f $DIFF_LIST" EXIT
 
@@ -72,7 +72,7 @@ if [ ! -s "$DIFF_LIST" ]; then
         BASE_COMMIT="HEAD~1"
     fi
     echo "Working directory is clean, checking commit changes since $BASE_COMMIT"
-    git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep --color=never '^.*\.[ch]' > $DIFF_LIST
+    git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep --color=never '^.*\.[ch]$' > $DIFF_LIST
 fi
 
 for f in $(cat $DIFF_LIST); do
