@@ -48,6 +48,8 @@ implementation, see [main loops](#main-loops) documentaion.
 
 ## Building from Source
 
+Before you start, check the [build requirements](https://github.com/solettaproject/soletta/wiki/Build-requirements).
+
 The build system is based on linux kernel's kconfig. To configure it
 with default configuration values run:
 
