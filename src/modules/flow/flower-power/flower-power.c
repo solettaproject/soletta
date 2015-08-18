@@ -353,7 +353,7 @@ static int
 generate_token(struct http_get_data *mdata)
 {
     struct sol_http_param params;
-    int r;
+    struct sol_http_client_pending *pending;
 
     sol_http_param_init(&params);
     if ((!sol_http_param_add(&params,
@@ -372,14 +372,14 @@ generate_token(struct http_get_data *mdata)
         return -ENOMEM;
     }
 
-    r = sol_http_client_request(SOL_HTTP_METHOD_GET, AUTH_URL,
+    pending = sol_http_client_request(SOL_HTTP_METHOD_GET, AUTH_URL,
         &params, generate_token_cb, mdata);
 
     sol_http_param_free(&params);
 
-    if (r < 0) {
+    if (!pending) {
         SOL_WRN("Could not create HTTP request for %s", AUTH_URL);
-        return r;
+        return -EINVAL;
     }
 
     return 0;
@@ -631,7 +631,7 @@ http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 {
     struct http_get_data *mdata = data;
     struct sol_http_param params;
-    int r;
+    struct sol_http_client_pending *pending;
 
     if (!mdata->token) {
         sol_flow_send_error_packet(node, EINVAL, "Missing valid token");
@@ -646,14 +646,14 @@ http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
         return -ENOMEM;
     }
 
-    r = sol_http_client_request(SOL_HTTP_METHOD_GET, STATUS_URL,
+    pending = sol_http_client_request(SOL_HTTP_METHOD_GET, STATUS_URL,
         &params, http_get_cb, mdata);
 
     sol_http_param_free(&params);
 
-    if (r < 0) {
+    if (!pending) {
         SOL_WRN("Could not create HTTP request for %s", STATUS_URL);
-        return r;
+        return -EINVAL;
     }
 
     return 0;
