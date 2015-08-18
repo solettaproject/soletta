@@ -632,13 +632,12 @@ generate_create_type_function(struct fbp_data *data)
 
     out("\n"
         "    struct sol_flow_static_spec spec = {\n"
-        "        .api_version = %u,\n"
+        "        .api_version = SOL_FLOW_STATIC_API_VERSION,\n"
         "        .nodes = nodes,\n"
         "        .conns = conns,\n"
         "        .exported_in = %s,\n"
         "        .exported_out = %s,\n"
         "    };\n",
-        SOL_FLOW_STATIC_API_VERSION,
         data->graph.exported_in_ports.len > 0 ? "exported_in" : "NULL",
         data->graph.exported_out_ports.len > 0 ? "exported_out" : "NULL");
 
