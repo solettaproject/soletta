@@ -335,15 +335,8 @@ temperature_convert(struct sol_flow_node *node, void *data, uint16_t port, uint1
     temperature_kelvin = 1 / (log(resistance / mdata->thermistor_resistance) / mdata->thermistor_constant + 1 / mdata->reference_temperature);
 
     sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__CELSIUS,
-        temperature_kelvin - 273.15);
-    sol_flow_send_drange_value_packet(node,
-        SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__FAHRENHEIT,
-        temperature_kelvin * 9 / 5 - 459.67);
-    sol_flow_send_drange_value_packet(node,
         SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__KELVIN,
         temperature_kelvin);
-
     sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__RAW,
         in_value.val);
@@ -392,8 +385,6 @@ grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
     };
 
     static const struct sol_flow_static_port_spec exported_out[] = {
-        { 0, SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__CELSIUS },
-        { 0, SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__FAHRENHEIT },
         { 0, SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__KELVIN },
         { 0, SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER__OUT__RAW },
         SOL_FLOW_STATIC_PORT_SPEC_GUARD

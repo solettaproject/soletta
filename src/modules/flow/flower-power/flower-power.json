@@ -107,8 +107,8 @@
         },
         {
           "data_type": "float",
-          "description": "Air temperature around the plant (in celsius).",
-          "name": "TEMPERATURE"
+          "description": "Air temperature around the plant (in Kelvin).",
+          "name": "KELVIN"
         },
         {
           "data_type": "string",
