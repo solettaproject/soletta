@@ -51,6 +51,8 @@
 #include "sol-util.h"
 #include "sol-conffile.h"
 #include "sol-missing.h"
+#include "sol-str-slice.h"
+
 #include "type-store.h"
 
 static struct {
@@ -599,22 +601,6 @@ generate_node_type_assignments(const struct fbp_data *data)
 static bool
 generate_create_type_function(struct fbp_data *data)
 {
-    uint16_t i;
-
-    /** Make sure to #include all the node type's headers in use. The header
-     * name is inferred on the node's module name. */
-    for (i = 0; i < (&data->graph.nodes)->len; i++) {
-        char *needle, *module;
-
-        module = data->descriptions[i]->name;
-        needle = strstr(module, "/");
-        if (needle) {
-            module = strndupa(module, strlen(module) - strlen(needle));
-        }
-
-        dprintf(fd, "#include \"%s-gen.h\"\n", module);
-    }
-
     dprintf(fd, "\nstatic const struct sol_flow_node_type *\n"
         "create_%d_%s_type(void)\n"
         "{\n",
@@ -647,6 +633,69 @@ generate_create_type_function(struct fbp_data *data)
     return true;
 }
 
+#define UNUSED(x) (void)(x)
+
+static void
+generate_includes(struct sol_vector *fbp_data_vector)
+{
+    struct sol_vector headers = SOL_VECTOR_INIT(struct sol_str_slice);
+    struct sol_str_slice *header;
+    struct sol_fbp_node *node;
+    struct fbp_data *data;
+    uint16_t i, j, k;
+
+    /* Make sure to #include all the node type's headers in use. The
+     * header name is inferred on the node's module name. */
+
+    SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
+        SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, node, j) {
+            const char *sep;
+            struct declared_fbp_type *dec_type;
+            struct sol_str_slice module;
+            bool found = false, declared = false;
+            UNUSED(node);
+
+            /* Need to go via descriptions to get the real resolved
+             * name (after conffile pass). */
+            module = sol_str_slice_from_str(data->descriptions[j]->name);
+            sep = strstr(module.data, "/");
+            if (sep) {
+                module.len = sep - module.data;
+            }
+
+            SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, k) {
+                if (sol_str_slice_str_eq(module, dec_type->name)) {
+                    declared = true;
+                    break;
+                }
+            }
+
+            /* No header files for declared types, since they will be
+             * declared and defined in the generated code. */
+            if (declared)
+                break;
+
+            SOL_VECTOR_FOREACH_IDX (&headers, header, k) {
+                if (sol_str_slice_eq(*header, module)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                header = sol_vector_append(&headers);
+                *header = module;
+            }
+        }
+    }
+
+    SOL_VECTOR_FOREACH_IDX (&headers, header, i) {
+        dprintf(fd, "#include \"%.*s-gen.h\"\n", SOL_STR_SLICE_PRINT(*header));
+    }
+
+    sol_vector_clear(&headers);
+}
+
 static int
 generate(struct sol_vector *fbp_data_vector)
 {
@@ -660,6 +709,8 @@ generate(struct sol_vector *fbp_data_vector)
             "\n"
             "static struct sol_flow_node *flow;\n\n");
     }
+
+    generate_includes(fbp_data_vector);
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
         if (!generate_create_type_function(data)) {
