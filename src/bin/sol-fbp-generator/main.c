@@ -707,8 +707,7 @@ generate(struct sol_vector *fbp_data_vector)
         dprintf(fd, "#include \"sol-flow.h\"\n"
             "#include \"sol-flow-static.h\"\n"
             "#include \"sol-mainloop.h\"\n"
-            "\n"
-            "static struct sol_flow_node *flow;\n\n");
+            "\n");
     }
 
     generate_includes(fbp_data_vector);
@@ -721,7 +720,10 @@ generate(struct sol_vector *fbp_data_vector)
     }
 
     if (!args.is_subflow) {
-        dprintf(fd, "static void\n"
+        dprintf(fd,
+            "static struct sol_flow_node *flow;\n"
+            "\n"
+            "static void\n"
             "startup(void)\n"
             "{\n"
             "    const struct sol_flow_node_type *type;\n\n"
