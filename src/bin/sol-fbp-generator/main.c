@@ -92,6 +92,16 @@ static struct port_description error_port = {
     .base_port_idx = SOL_FLOW_NODE_PORT_ERROR,
 };
 
+SOL_ATTR_PRINTF(1, 2) static void
+out(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    vdprintf(fd, fmt, ap);
+    va_end(ap);
+}
+
 static void
 handle_suboptions(const struct sol_fbp_meta *meta,
     void (*handle_func)(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file), const char *fbp_file)
@@ -102,7 +112,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
     remaining = strndupa(meta->value.data, meta->value.len);
     SOL_NULL_CHECK(remaining);
 
-    dprintf(fd, "            .%.*s = {\n", SOL_STR_SLICE_PRINT(meta->key));
+    out("            .%.*s = {\n", SOL_STR_SLICE_PRINT(meta->key));
     while (remaining) {
         p = memchr(remaining, '|', strlen(remaining));
         if (p)
@@ -115,7 +125,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
         remaining = p + 1;
         i++;
     }
-    dprintf(fd, "            },\n");
+    out("            },\n");
 }
 
 static void
@@ -130,7 +140,7 @@ handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *opt
     }
 
     *p = '=';
-    dprintf(fd, "                .%s,\n", option);
+    out("                .%s,\n", option);
 }
 
 static bool
@@ -151,7 +161,7 @@ handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, ui
     const char *irange_drange_fields[5] = { "val", "min", "max", "step", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        dprintf(fd, "                .%s = %s,\n", irange_drange_fields[index], option);
+        out("                .%s = %s,\n", irange_drange_fields[index], option);
 }
 
 static void
@@ -161,7 +171,7 @@ handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t ind
                                   "red_max", "green_max", "blue_max", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        dprintf(fd, "                .%s = %s,\n", rgb_fields[index], option);
+        out("                .%s = %s,\n", rgb_fields[index], option);
 }
 
 static void
@@ -170,7 +180,7 @@ handle_direction_vector_suboption(const struct sol_fbp_meta *meta, char *option,
     const char *direction_vector_fields[7] = { "x", "y", "z", "min", "max", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        dprintf(fd, "                .%s = %s,\n", direction_vector_fields[index], option);
+        out("                .%s = %s,\n", direction_vector_fields[index], option);
 }
 
 static bool
@@ -214,12 +224,12 @@ handle_option(const struct sol_fbp_meta *meta, struct sol_vector *options, const
                 handle_suboptions(meta, handle_direction_vector_suboption, fbp_file);
         } else if (streq(o->data_type, "string")) {
             if (meta->value.data[0] == '"')
-                dprintf(fd, "            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
+                out("            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
             else
-                dprintf(fd, "            .%.*s = \"%.*s\",\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
+                out("            .%.*s = \"%.*s\",\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
 
         } else {
-            dprintf(fd, "            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
+            out("            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
         }
 
         return true;
@@ -401,13 +411,13 @@ generate_options(const struct fbp_data *data)
         if (n->meta.len <= 0)
             continue;
 
-        dprintf(fd, "    static const struct %s opts%d =\n", data->descriptions[i]->options_symbol, i);
-        dprintf(fd, "        %s_OPTIONS_DEFAULTS(\n", data->descriptions[i]->symbol);
+        out("    static const struct %s opts%d =\n", data->descriptions[i]->options_symbol, i);
+        out("        %s_OPTIONS_DEFAULTS(\n", data->descriptions[i]->symbol);
         SOL_VECTOR_FOREACH_IDX (&n->meta, m, j) {
             if (!handle_option(m, &data->descriptions[i]->options, data->filename))
                 return EXIT_FAILURE;
         }
-        dprintf(fd, "        );\n\n");
+        out("        );\n\n");
     }
 
     return true;
@@ -484,13 +494,13 @@ generate_connections(const struct fbp_data *data)
     qsort(conn_specs, data->graph.conns.len, sizeof(struct sol_flow_static_conn_spec),
         compare_conn_specs);
 
-    dprintf(fd, "    static const struct sol_flow_static_conn_spec conns[] = {\n");
+    out("    static const struct sol_flow_static_conn_spec conns[] = {\n");
     for (i = 0; i < data->graph.conns.len; i++) {
         struct sol_flow_static_conn_spec *spec = &conn_specs[i];
-        dprintf(fd, "        { %d, %d, %d, %d },\n",
+        out("        { %d, %d, %d, %d },\n",
             spec->src, spec->src_port, spec->dst, spec->dst_port);
     }
-    dprintf(fd, "        SOL_FLOW_STATIC_CONN_SPEC_GUARD\n"
+    out("        SOL_FLOW_STATIC_CONN_SPEC_GUARD\n"
         "    };\n\n");
 
     free(conn_specs);
@@ -513,7 +523,7 @@ generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fb
     if (e->port_idx == -1) {
         uint16_t last = base + (p->array_size ? : 1);
         for (; base < last; base++) {
-            dprintf(fd, "        { %d, %d },\n", e->node, base);
+            out("        { %d, %d },\n", e->node, base);
         }
     } else {
         if (e->port_idx >= p->array_size) {
@@ -522,7 +532,7 @@ generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fb
                 SOL_STR_SLICE_PRINT(e->exported_name), e->port_idx, p->array_size);
             return false;
         }
-        dprintf(fd, "        { %d, %d },\n", e->node, base + e->port_idx);
+        out("        { %d, %d },\n", e->node, base + e->port_idx);
     }
 
     return true;
@@ -536,24 +546,24 @@ generate_exports(const struct fbp_data *data)
     uint16_t i;
 
     if (data->graph.exported_in_ports.len > 0) {
-        dprintf(fd, "    static const struct sol_flow_static_port_spec exported_in[] = {\n");
+        out("    static const struct sol_flow_static_port_spec exported_in[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&data->graph.exported_in_ports, e, i) {
             n = data->descriptions[e->node];
             if (!generate_exported_port(n->name, &n->in_ports, e, data->filename))
                 return false;
         }
-        dprintf(fd, "        SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
+        out("        SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
             "    };\n\n");
     }
 
     if (data->graph.exported_out_ports.len > 0) {
-        dprintf(fd, "    static const struct sol_flow_static_port_spec exported_out[] = {\n");
+        out("    static const struct sol_flow_static_port_spec exported_out[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&data->graph.exported_out_ports, e, i) {
             n = data->descriptions[e->node];
             if (!generate_exported_port(n->name, &n->out_ports, e, data->filename))
                 return false;
         }
-        dprintf(fd, "        SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
+        out("        SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
             "    };\n\n");
     }
 
@@ -568,7 +578,7 @@ generate_node_specs(const struct fbp_data *data)
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
-        dprintf(fd, "    const struct sol_flow_node_type *type_%s = create_%d_%s_type();\n",
+        out("    const struct sol_flow_node_type *type_%s = create_%d_%s_type();\n",
             dec_type->name, dec_type->id, dec_type->name);
     }
 
@@ -576,16 +586,16 @@ generate_node_specs(const struct fbp_data *data)
      * since sol_flow_static_new_type() doesn't copy the informations.
      * Also, we had to set NULL here and set the real value after because
      * the types are not constant values. */
-    dprintf(fd, "\n    static struct sol_flow_static_node_spec nodes[] = {\n");
+    out("\n    static struct sol_flow_static_node_spec nodes[] = {\n");
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
         if (n->meta.len <= 0) {
-            dprintf(fd, "        [%d] = {NULL, \"%.*s\", NULL},\n", i, SOL_STR_SLICE_PRINT(n->name));
+            out("        [%d] = {NULL, \"%.*s\", NULL},\n", i, SOL_STR_SLICE_PRINT(n->name));
         } else {
-            dprintf(fd, "        [%d] = {NULL, \"%.*s\", (struct sol_flow_node_options *) &opts%d},\n",
+            out("        [%d] = {NULL, \"%.*s\", (struct sol_flow_node_options *) &opts%d},\n",
                 i, SOL_STR_SLICE_PRINT(n->name), i);
         }
     }
-    dprintf(fd, "        SOL_FLOW_STATIC_NODE_SPEC_GUARD\n"
+    out("        SOL_FLOW_STATIC_NODE_SPEC_GUARD\n"
         "    };\n");
 }
 
@@ -595,15 +605,15 @@ generate_node_type_assignments(const struct fbp_data *data)
     struct declared_fbp_type *dec_type;
     uint16_t i;
 
-    dprintf(fd, "\n");
+    out("\n");
 
     for (i = 0; i < data->graph.nodes.len; i++) {
         char *symbol = data->descriptions[i]->symbol;
-        dprintf(fd, "    nodes[%d].type = %s;\n", i, symbol);
+        out("    nodes[%d].type = %s;\n", i, symbol);
     }
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
-        dprintf(fd, "\n    if (!type_%s)\n"
+        out("\n    if (!type_%s)\n"
             "        return NULL;\n",
             dec_type->name);
     }
@@ -612,7 +622,7 @@ generate_node_type_assignments(const struct fbp_data *data)
 static bool
 generate_create_type_function(struct fbp_data *data)
 {
-    dprintf(fd, "\nstatic const struct sol_flow_node_type *\n"
+    out("\nstatic const struct sol_flow_node_type *\n"
         "create_%d_%s_type(void)\n"
         "{\n",
         data->id,
@@ -623,7 +633,7 @@ generate_create_type_function(struct fbp_data *data)
 
     generate_node_specs(data);
 
-    dprintf(fd, "\n"
+    out("\n"
         "    struct sol_flow_static_spec spec = {\n"
         "        .api_version = %u,\n"
         "        .nodes = nodes,\n"
@@ -637,7 +647,7 @@ generate_create_type_function(struct fbp_data *data)
 
     generate_node_type_assignments(data);
 
-    dprintf(fd, "\n"
+    out("\n"
         "    return sol_flow_static_new_type(&spec);\n"
         "}\n\n");
 
@@ -737,15 +747,15 @@ generate(struct sol_vector *fbp_data_vector)
     uint16_t i;
     int r;
 
-    dprintf(fd,
+    out(
         "#include \"sol-flow.h\"\n"
         "#include \"sol-flow-static.h\"\n");
 
     if (!args.export_symbol) {
-        dprintf(fd, "#include \"sol-mainloop.h\"\n");
+        out("#include \"sol-mainloop.h\"\n");
     }
 
-    dprintf(fd, "\n");
+    out("\n");
 
     SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
         if (!collect_context_info(ctx, data))
@@ -754,7 +764,7 @@ generate(struct sol_vector *fbp_data_vector)
 
     /* Header name is currently inferred from the module name. */
     SOL_VECTOR_FOREACH_IDX (&ctx->modules, module, i) {
-        dprintf(fd, "#include \"%.*s-gen.h\"\n", SOL_STR_SLICE_PRINT(*module));
+        out("#include \"%.*s-gen.h\"\n", SOL_STR_SLICE_PRINT(*module));
     }
 
     /* Reverse since the dependencies appear later in the vector. */
@@ -766,22 +776,22 @@ generate(struct sol_vector *fbp_data_vector)
         }
     }
 
-    dprintf(fd,
+    out(
         "static void\n"
         "initialize_types(void)\n"
         "{\n");
     SOL_VECTOR_FOREACH_IDX (&ctx->types_to_initialize, symbol, i) {
-        dprintf(fd,
+        out(
             "    if (%.*s->init_type)\n"
             "        %.*s->init_type();\n",
             SOL_STR_SLICE_PRINT(*symbol),
             SOL_STR_SLICE_PRINT(*symbol));
     }
-    dprintf(fd,
+    out(
         "}\n\n");
 
     if (!args.export_symbol) {
-        dprintf(fd,
+        out(
             "static struct sol_flow_node *flow;\n"
             "\n"
             "static void\n"
@@ -801,7 +811,7 @@ generate(struct sol_vector *fbp_data_vector)
             "}\n\n"
             "SOL_MAIN_DEFAULT(startup, shutdown);\n");
     } else {
-        dprintf(fd,
+        out(
             "const struct sol_flow_node_type *\n"
             "%s(void) {\n"
             "    static const struct sol_flow_node_type *type = NULL;\n"
