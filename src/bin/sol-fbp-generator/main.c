@@ -180,8 +180,22 @@ handle_option(const struct sol_fbp_meta *meta, struct sol_vector *options, const
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (options, o, i) {
+        struct sol_fbp_meta unquoted_meta;
+
         if (!sol_str_slice_str_eq(meta->key, o->name))
             continue;
+
+        /* Option values from the conffile other than strings might
+        * have quotes. E.g. 0|3 is currently represented as a string
+        * "0|3" in JSON. When reading we don't have the type
+        * information, but at this point we do, so unquote them. */
+        if (!streq(o->data_type, "string") && meta->value.len > 1
+            && meta->value.data[0] == '"' && meta->value.data[meta->value.len - 1] == '"') {
+            unquoted_meta = *meta;
+            unquoted_meta.value.data += 1;
+            unquoted_meta.value.len -= 2;
+            meta = &unquoted_meta;
+        }
 
         if (streq(o->data_type, "int") || streq(o->data_type, "double")) {
             if (memchr(meta->value.data, ':', meta->value.len))
