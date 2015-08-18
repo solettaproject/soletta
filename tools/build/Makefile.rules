@@ -321,31 +321,6 @@ $(SOL_LIB_SO): $(SOL_LIB_AR) $(builtin-objs)
 	$(Q)$(TARGETCC) -shared $(builtin-objs) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
-$(DEPENDENCY_CACHE):
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
-		--pkg-config="$(PKG_CONFIG)" --makefile-gen
-
-$(KCONFIG_GEN): $(DEPENDENCY_CACHE)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
-		--pkg-config="$(PKG_CONFIG)" --kconfig-gen
-
-$(MAKEFILE_GEN): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG)
-	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
-		--pkg-config="$(PKG_CONFIG)" --definitions-header="$(DEFINITIONS_H)" --makefile-gen
-
-reconf: $(DEPENDENCY_SCRIPT)
-	$(Q)echo "[re]running dependency-resolver..."
-	$(Q)$(RM) -f $(DEPENDENCY_FILES)
-	$(Q)$(RM) $(DEPENDENCY_CACHE)
-	$(Q) V=1 $(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --definitions-header="$(DEFINITIONS_H)" \
-		--cache="$(DEPENDENCY_CACHE)" --kconfig-gen --makefile-gen
-
-PHONY += reconf
-
 # generators
 define make-gen
 $($(1)-hdr) $($(1)-src) $($(1)-desc): $(1) $(NODE_TYPE_GEN_SCRIPT)
@@ -444,25 +419,6 @@ $(FLOW_NODE_TYPE_FIND): $(FLOW_NODE_TYPE_FIND_IN) $(KCONFIG_CONFIG) $(MAKEFILE_G
 	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
 		--template=$(FLOW_NODE_TYPE_FIND_IN) --output=$(FLOW_NODE_TYPE_FIND)
 
-# common build targets
-define clean-resource
-	$(Q)echo "   "CLEAN"   "$(1)
-	$(Q)$(RM) -Rf $(1)
-
-endef
-
-cleanup-files := $(tests-out) $(CLEANUP_GEN) $(kconfig-clean-objs)
-cleanup-files += $(BUILDDIR) $(CHEAT_SHEET_INDEX_HTML) $(DOXYGEN_GENERATED)
-
-clean:
-	$(foreach curr,$(wildcard $(cleanup-files)),$(call clean-resource,$(curr)))
-
-PHONY += clean
-
-distclean: clean
-	$(Q)$(RM) -Rf .config* $(DEPENDENCY_FILES) $(KCONFIG_INCLUDE) $(DEPENDENCY_CACHE)
-
-PHONY += distclean
-
 $(KCONFIG_AUTOHEADER): $(KCONFIG_CONFIG)
-	$(MAKE) -f $(top_srcdir)Makefile silentoldconfig
+	$(Q)mkdir -p $(KCONFIG_INCLUDE)config $(KCONFIG_INCLUDE)generated
+	$(Q)$(obj)/conf -s --silentoldconfig Kconfig
