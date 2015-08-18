@@ -9,7 +9,7 @@
   "types": [
     {
       "category": "internal",
-      "description": "Converts raw sensor temperature readings to Celsius, Fahrenheit and Kelvin packets. Conversion to Kelvin is done using: 1/(log(((i-r)*Rc/r)/Rt)/B + 1/T - where i is input range, r is raw sensor value, Rc is potential divider resistor resitance, Rt is thermistor resistance, B is thermistor constant and T is thermistor reference temperature. Celsius and Fahrenheit values are simply derived from Kelvin value.",
+      "description": "Converts raw sensor temperature readings to Kelvin packets. Conversion to Kelvin is done using: 1/(log(((i-r)*Rc/r)/Rt)/B + 1/T - where i is input range, r is raw sensor value, Rc is potential divider resistor resitance, Rt is thermistor resistance, B is thermistor constant and T is thermistor reference temperature.",
       "in_ports": [
           {
             "data_type": "int",
@@ -57,16 +57,6 @@
       "out_ports": [
         {
           "data_type": "float",
-          "description": "Measured temperature in Celsius.",
-          "name": "CELSIUS"
-        },
-        {
-          "data_type": "float",
-          "description": "Measured temperature in Fahrenheit.",
-          "name": "FAHRENHEIT"
-        },
-        {
-          "data_type": "float",
           "description": "Measured temperature in Kelvin.",
           "name": "KELVIN"
         },
@@ -80,7 +70,7 @@
     },
     {
       "category": "input/hw",
-      "description": "Gets sensor temperature in Celsius, Fahrenheit and Kelvin. Conversion to Kelvin is done using: 1/(log(((i-r)*Rc/r)/Rt)/B + 1/T - where i is input range, r is raw sensor value, Rc is potential divider resistor resitance, Rt is thermistor resistance, B is thermistor constant and T is thermistor reference temperature. Celsius and Fahrenheit values are simply derived from Kelvin value.",
+      "description": "Gets sensor temperature in Kelvin. Conversion to Kelvin is done using: 1/(log(((i-r)*Rc/r)/Rt)/B + 1/T - where i is input range, r is raw sensor value, Rc is potential divider resistor resitance, Rt is thermistor resistance, B is thermistor constant and T is thermistor reference temperature.",
       "methods": {
         "init_type": "temperature_init_type"
       },
@@ -139,16 +129,6 @@
         "version": 1
       },
       "out_ports": [
-        {
-          "data_type": "float",
-          "description": "Measured temperature in Celsius.",
-          "name": "CELSIUS"
-        },
-        {
-          "data_type": "float",
-          "description": "Measured temperature in Fahrenheit.",
-          "name": "FAHRENHEIT"
-        },
         {
           "data_type": "float",
           "description": "Measured temperature in Kelvin.",

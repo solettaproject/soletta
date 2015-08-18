@@ -530,6 +530,13 @@ http_get_cb(void *data, struct sol_http_response *response)
                         SOL_WRN("Failed to get temperature info");
                         goto error;
                     }
+                    /* TODO: just converting current_value because max and min
+                     * will be changed to be sensors limit instead
+                     * of thresholds */
+
+                    /* convert from Celsius to Kelvin */
+                    if (!isnan(temperature.val))
+                        temperature.val += 273.15;
                 } else if (sol_json_token_str_eq(&key, "soil_moisture",
                     strlen("soil_moisture"))) {
                     if (!get_measure(&value, &water)) {
@@ -721,7 +728,7 @@ parse_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,
-        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__TEMPERATURE,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__KELVIN,
         &temperature);
     SOL_INT_CHECK(r, < 0, r);
 

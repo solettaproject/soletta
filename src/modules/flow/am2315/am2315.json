@@ -9,7 +9,7 @@
   "types": [
     {
       "category": "input/hw",
-      "description": "Gets AM2315 sensor temperature in Celsius, Fahrenheit and Kelvin. This device also reads humidity, check for its node",
+      "description": "Gets AM2315 sensor temperature in Kelvin. This device also reads humidity, check for its node",
       "in_ports": [
         {
           "data_type": "any",

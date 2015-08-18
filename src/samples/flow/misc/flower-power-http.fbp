@@ -60,7 +60,7 @@ Parser ID -> IN Plant(console)
 Parser TIMESTAMP -> IN Timestamp(console)
 Parser FERTILIZER -> IN FertilizerLevel(console)
 Parser LIGHT -> IN Sunlight(console)
-Parser TEMPERATURE -> IN Temperature(console)
+Parser KELVIN -> IN Temperature(console:suffix=" Kelvin")
 Parser WATER -> IN WaterLevel(console)
 
 # Information about sensors

@@ -61,13 +61,13 @@ static int
 max31855_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct max31855_data *mdata = data;
-    struct sol_flow_node_type_temperature_max31855_options *opts;
+    struct sol_flow_node_type_max31855_temperature_options *opts;
     struct sol_spi_config config = { .api_version = SOL_SPI_CONFIG_API_VERSION };
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
-        SOL_FLOW_NODE_TYPE_TEMPERATURE_MAX31855_OPTIONS_API_VERSION,
+        SOL_FLOW_NODE_TYPE_MAX31855_TEMPERATURE_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (struct sol_flow_node_type_temperature_max31855_options *)options;
+    opts = (struct sol_flow_node_type_max31855_temperature_options *)options;
 
     config.chip_select = opts->chip_select.val;
     config.frequency = 2000000;
@@ -142,7 +142,7 @@ spi_transfer_cb(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *
     }
 
     temperature.val = (raw_value * DATA_STEP) + KELVIN_FACTOR;
-    sol_flow_send_drange_packet(mdata->node, SOL_FLOW_NODE_TYPE_TEMPERATURE_MAX31855__OUT__KELVIN, &temperature);
+    sol_flow_send_drange_packet(mdata->node, SOL_FLOW_NODE_TYPE_MAX31855_TEMPERATURE__OUT__KELVIN, &temperature);
 
 end:
     mdata->pending_packets--;
