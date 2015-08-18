@@ -420,4 +420,5 @@ $(FLOW_NODE_TYPE_FIND): $(FLOW_NODE_TYPE_FIND_IN) $(KCONFIG_CONFIG) $(MAKEFILE_G
 		--template=$(FLOW_NODE_TYPE_FIND_IN) --output=$(FLOW_NODE_TYPE_FIND)
 
 $(KCONFIG_AUTOHEADER): $(KCONFIG_CONFIG)
-	$(MAKE) -f $(top_srcdir)Makefile silentoldconfig
+	$(Q)mkdir -p $(KCONFIG_INCLUDE)config $(KCONFIG_INCLUDE)generated
+	$(Q)$(obj)/conf -s --silentoldconfig Kconfig
