@@ -40,6 +40,7 @@
 
 #include <errno.h>
 #include <float.h>
+#include <math.h>
 
 
 static void
@@ -415,7 +416,7 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure)
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
     enum sol_json_loop_reason reason;
-    bool found_key = false, found_cur = false;
+    bool found_key = false;
 
     sol_json_scanner_init_from_token(&scanner, measure_token);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
@@ -436,12 +437,10 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure)
 
     sol_json_scanner_init_from_token(&scanner, &value);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        if (sol_json_token_str_eq(&key, "current_value", strlen("current_value"))) {
-            if (sol_json_token_get_double(&value, &measure->val)) {
-                SOL_WRN("Failed to get current value");
-                return false;
-            }
-            found_cur = true;
+        if (sol_json_token_str_eq(&key, "current_value",
+            strlen("current_value"))) {
+            if (sol_json_token_get_double(&value, &measure->val))
+                SOL_DBG("Failed to get current value");
         } else if (sol_json_token_str_eq(&key, "max_threshold",
             strlen("max_threshold"))) {
             if (sol_json_token_get_double(&value, &measure->max))
@@ -456,7 +455,7 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure)
     if (reason != SOL_JSON_LOOP_REASON_OK)
         return false;
 
-    return found_cur;
+    return true;
 }
 
 static void
@@ -505,10 +504,10 @@ http_get_cb(void *data, struct sol_http_response *response)
         sol_json_scanner_init_from_token(&locations_scanner, &locations);
         SOL_JSON_SCANNER_ARRAY_LOOP (&locations_scanner, &token,
             SOL_JSON_TYPE_OBJECT_START, reason) {
-            struct sol_drange fertilizer = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
-            struct sol_drange water = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
-            struct sol_drange temperature = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
-            struct sol_drange light = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
+            struct sol_drange fertilizer = { NAN, -DBL_MAX, DBL_MAX, DBL_MIN };
+            struct sol_drange water = { NAN, -DBL_MAX, DBL_MAX, DBL_MIN };
+            struct sol_drange temperature = { NAN, -DBL_MAX, DBL_MAX, DBL_MIN };
+            struct sol_drange light = { NAN, -DBL_MAX, DBL_MAX, DBL_MIN };
             char *id = NULL, *timestamp = NULL;
 
             SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&locations_scanner, &token,
