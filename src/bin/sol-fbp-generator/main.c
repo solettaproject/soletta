@@ -1177,8 +1177,10 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
         data_idx = fbp_data_vector->len - 1;
 
         SOL_VECTOR_FOREACH_IDX (&data->graph.declarations, dec, i) {
-            if (!sol_str_slice_str_eq(dec->kind, "fbp"))
-                continue;
+            if (!sol_str_slice_str_eq(dec->kind, "fbp")) {
+                SOL_ERR("DECLARE metatype '%.*s' not supported.", SOL_STR_SLICE_PRINT(dec->kind));
+                return NULL;
+            }
 
             dec_file = strndupa(dec->contents.data, dec->contents.len);
             dec_name = strndupa(dec->name.data, dec->name.len);
