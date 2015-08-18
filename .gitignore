@@ -20,3 +20,4 @@ Makefile.gen
 Kconfig.gen
 /build/
 /include/
+config.log*
