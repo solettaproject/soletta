@@ -40,7 +40,7 @@ function die() {
 DIFF_LIST=$(mktemp /tmp/sol-tmp.XXXX)
 
 PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|generate\-svg\-from\-all\-fbps\)$"
-IGNORE="data\/oic\/\|data\/jsons\/\|.*\.ac"
+IGNORE="data\/oic\/\|data\/jsons\/\|.*\.ac|.*Makefile.*"
 
 trap "rm -f $DIFF_LIST" EXIT
 

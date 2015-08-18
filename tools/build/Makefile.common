@@ -1,0 +1,44 @@
+$(DEPENDENCY_CACHE):
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
+		--pkg-config="$(PKG_CONFIG)" --makefile-gen
+
+$(KCONFIG_GEN): $(DEPENDENCY_CACHE)
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
+		--pkg-config="$(PKG_CONFIG)" --kconfig-gen
+
+$(MAKEFILE_GEN): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG)
+	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
+		--pkg-config="$(PKG_CONFIG)" --definitions-header="$(DEFINITIONS_H)" --makefile-gen
+
+reconf: $(DEPENDENCY_SCRIPT)
+	$(Q)echo "[re]running dependency-resolver..."
+	$(Q)$(RM) -f $(DEPENDENCY_FILES)
+	$(Q)$(RM) $(DEPENDENCY_CACHE)
+	$(Q) V=1 $(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --definitions-header="$(DEFINITIONS_H)" \
+		--cache="$(DEPENDENCY_CACHE)" --kconfig-gen --makefile-gen
+
+PHONY += reconf
+
+# common build targets
+define clean-resource
+	$(Q)echo "   "CLEAN"   "$(1)
+	$(Q)$(RM) -Rf $(1)
+
+endef
+
+cleanup-files := $(tests-out) $(CLEANUP_GEN) $(kconfig-clean-objs)
+cleanup-files += $(BUILDDIR) $(CHEAT_SHEET_INDEX_HTML) $(DOXYGEN_GENERATED)
+
+clean:
+	$(foreach curr,$(wildcard $(cleanup-files)),$(call clean-resource,$(curr)))
+
+PHONY += clean
+
+distclean: clean
+	$(Q)$(RM) -Rf .config* $(DEPENDENCY_FILES) $(KCONFIG_INCLUDE) $(DEPENDENCY_CACHE)
+
+PHONY += distclean
