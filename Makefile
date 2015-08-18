@@ -18,8 +18,7 @@ endif
 # basic variable definitions
 include $(top_srcdir)tools/build/Makefile.vars
 
-# soletta rules themselves
-include $(top_srcdir)tools/build/Makefile.rules
+include $(top_srcdir)tools/build/Makefile.common
 
 # kconfig interface rules
 ifeq (help, $(filter help,$(MAKECMDGOALS)))
@@ -33,25 +32,26 @@ ifeq (,$(filter $(dep-avoid-targets),$(MAKECMDGOALS)))
 -include ${all-objs:.o=.o.dep}
 endif
 
-include $(top_srcdir)tools/build/Makefile.targets
-
 ifneq (,$(NOT_FOUND))
 warning:
 	$(Q)echo -e "The following (required) dependencies were not met:\n"
 	$(Q)echo -e "$(NOT_FOUND)"
 	$(Q)echo -e "If you've just installed it, run: make reconf"
 	$(Q)echo -e "For more information/options, run: make help"
-	$(Q)false
 $(warning-targets)
 else
 ifeq ($(HAVE_KCONFIG_CONFIG),)
-warning: $(KCONFIG_GEN)
+warning:
 	$(Q)echo "You need a config file first. Please run a config target, e.g.: make menuconfig"
 	$(Q)echo "For a quick default config run: make alldefconfig"
 	$(Q)echo "For more information/options run: make help"
-	$(Q)false
 $(warning-targets)
 else
+# soletta rules themselves
+include $(top_srcdir)tools/build/Makefile.rules
+
+include $(top_srcdir)tools/build/Makefile.targets
+
 all: $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
 endif # HAVE_KCONFIG_CONFIG
 endif # NOT_FOUND
