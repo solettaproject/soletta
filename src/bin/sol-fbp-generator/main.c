@@ -30,29 +30,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
-#include <limits.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "sol-arena.h"
 #include "sol-buffer.h"
-#include "sol-fbp.h"
+#include "sol-conffile.h"
 #include "sol-fbp-internal-log.h"
+#include "sol-fbp.h"
 #include "sol-file-reader.h"
-#include "sol-flow.h"
 #include "sol-flow-static.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
-#include "sol-conffile.h"
 #include "sol-missing.h"
 #include "sol-str-slice.h"
+#include "sol-util.h"
 
 #include "type-store.h"
 
