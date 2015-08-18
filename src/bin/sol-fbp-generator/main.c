@@ -42,6 +42,7 @@
 #include <unistd.h>
 
 #include "sol-arena.h"
+#include "sol-buffer.h"
 #include "sol-fbp.h"
 #include "sol-fbp-internal-log.h"
 #include "sol-file-reader.h"
@@ -65,8 +66,7 @@ static struct {
 } args;
 
 static struct sol_arena *str_arena;
-
-static int fd;
+static struct sol_buffer output_buffer;
 
 /* In order to ensure that each generated fbp type has an unique id. */
 static unsigned int fbp_id_count;
@@ -98,7 +98,7 @@ out(const char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    vdprintf(fd, fmt, ap);
+    sol_buffer_append_vprintf(&output_buffer, fmt, ap);
     va_end(ap);
 }
 
@@ -1227,6 +1227,36 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
     return data;
 }
 
+static int
+write_file(const char *filename, const struct sol_buffer *buf)
+{
+    int fd;
+    char *p = buf->data;
+    ssize_t size = buf->used;
+    int err = 0;
+
+    fd = creat(filename, 0600);
+    if (fd < 0)
+        return -errno;
+
+    while (size > 0) {
+        ssize_t written = write(fd, p, size);
+        if (written < 0) {
+            if (errno == EINTR || errno == EAGAIN) {
+                continue;
+            } else {
+                err = -errno;
+                break;
+            }
+        }
+        p += written;
+        size -= written;
+    }
+
+    close(fd);
+    return err;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -1235,12 +1265,14 @@ main(int argc, char *argv[])
     struct sol_ptr_vector file_readers;
     struct sol_vector fbp_data_vector;
     struct type_store *common_store;
-    char temp_file[] = "sol-generated.c.tmp-XXXXXX";
     uint16_t i;
     uint8_t result = EXIT_FAILURE;
+    int err;
 
     if (sol_init() < 0)
         goto end;
+
+    sol_buffer_init(&output_buffer);
 
     str_arena = sol_arena_new();
     if (!str_arena) {
@@ -1267,24 +1299,21 @@ main(int argc, char *argv[])
     if (!create_fbp_data(&fbp_data_vector, &file_readers, common_store, "root", args.fbp_basename))
         goto fail_data;
 
-    fd = mkostemp(temp_file, O_RDWR | O_CLOEXEC);
-    if (fd == -1) {
-        SOL_ERR("Couldn't open file to write.");
-        goto fail_open;
-    }
-
     result = generate(&fbp_data_vector);
+    if (result != EXIT_SUCCESS)
+        goto fail_generate;
 
-    if (result == EXIT_SUCCESS) {
-        if (rename((const char *)temp_file, args.output_file) != 0)
-            SOL_ERR("Couldn't write to %s. %s", args.output_file, sol_util_strerrora(errno));
-    } else {
-        if (remove((const char *)temp_file) != 0)
-            SOL_ERR("Couldn't remove temporary file %s. %s", temp_file, sol_util_strerrora(errno));
+    err = write_file(args.output_file, &output_buffer);
+    if (err < 0) {
+        SOL_ERR("Couldn't write file '%s': %s",
+            args.output_file, sol_util_strerrora(-err));
+        goto fail_write;
     }
 
-    close(fd);
-fail_open:
+    result = EXIT_SUCCESS;
+
+fail_write:
+fail_generate:
 fail_data:
     SOL_VECTOR_FOREACH_IDX (&fbp_data_vector, data, i) {
         free(data->descriptions);
@@ -1303,6 +1332,7 @@ fail_access:
 fail_args:
     sol_arena_del(str_arena);
 fail_arena:
+    sol_buffer_fini(&output_buffer);
     sol_shutdown();
 end:
     return result;
