@@ -648,75 +648,85 @@ generate_create_type_function(struct fbp_data *data)
 
 #define UNUSED(x) (void)(x)
 
+struct generate_context {
+    struct sol_vector modules;
+};
+
 static bool
-generate_includes(struct sol_vector *fbp_data_vector)
+is_declared_type(struct fbp_data *data, const struct sol_str_slice name)
 {
-    struct sol_vector headers = SOL_VECTOR_INIT(struct sol_str_slice);
-    struct sol_str_slice *header;
+    struct declared_fbp_type *dec_type;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
+        if (sol_str_slice_str_eq(name, dec_type->name))
+            return true;
+    }
+    return false;
+}
+
+static bool
+contains_slice(const struct sol_vector *v, const struct sol_str_slice name)
+{
+    struct sol_str_slice *slice;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (v, slice, i) {
+        if (sol_str_slice_eq(*slice, name))
+            return true;
+    }
+    return false;
+}
+
+static bool
+collect_context_info(struct generate_context *ctx, struct fbp_data *data)
+{
     struct sol_fbp_node *node;
-    struct fbp_data *data;
-    uint16_t i, j, k;
+    uint16_t i;
 
-    /* Make sure to #include all the node type's headers in use. The
-     * header name is inferred on the node's module name. */
+    SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, node, i) {
+        const char *sep;
+        struct sol_str_slice name, module;
+        UNUSED(node);
 
-    SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
-        SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, node, j) {
-            const char *sep;
-            struct declared_fbp_type *dec_type;
-            struct sol_str_slice module;
-            bool found = false, declared = false;
-            UNUSED(node);
+        /* Need to go via descriptions to get the real resolved name,
+         * after conffile pass. */
+        name = sol_str_slice_from_str(data->descriptions[i]->name);
 
-            /* Need to go via descriptions to get the real resolved
-             * name (after conffile pass). */
-            module = sol_str_slice_from_str(data->descriptions[j]->name);
-            sep = strstr(module.data, "/");
-            if (sep) {
-                module.len = sep - module.data;
-            }
+        /* Ignore since these are completely defined in the generated code. */
+        if (is_declared_type(data, name)) {
+            continue;
+        }
 
-            SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, k) {
-                if (sol_str_slice_str_eq(module, dec_type->name)) {
-                    declared = true;
-                    break;
-                }
-            }
+        module = name;
+        sep = strstr(name.data, "/");
+        if (sep) {
+            module.len = sep - module.data;
+        }
 
-            /* No header files for declared types, since they will be
-             * declared and defined in the generated code. */
-            if (declared)
-                break;
-
-            SOL_VECTOR_FOREACH_IDX (&headers, header, k) {
-                if (sol_str_slice_eq(*header, module)) {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                header = sol_vector_append(&headers);
-                if (!header)
-                    return false;
-                *header = module;
-            }
+        if (!contains_slice(&ctx->modules, module)) {
+            struct sol_str_slice *m;
+            m = sol_vector_append(&ctx->modules);
+            if (!m)
+                return false;
+            *m = module;
         }
     }
 
-    SOL_VECTOR_FOREACH_IDX (&headers, header, i) {
-        dprintf(fd, "#include \"%.*s-gen.h\"\n", SOL_STR_SLICE_PRINT(*header));
-    }
-
-    sol_vector_clear(&headers);
     return true;
 }
 
 static int
 generate(struct sol_vector *fbp_data_vector)
 {
+    struct generate_context _ctx = {
+        .modules = SOL_VECTOR_INIT(struct sol_str_slice),
+    }, *ctx = &_ctx;
+
     struct fbp_data *data;
+    struct sol_str_slice *module;
     uint16_t i;
+    int r;
 
     if (!args.is_subflow) {
         dprintf(fd, "#include \"sol-flow.h\"\n"
@@ -725,13 +735,22 @@ generate(struct sol_vector *fbp_data_vector)
             "\n");
     }
 
-    if (!generate_includes(fbp_data_vector))
-        return EXIT_FAILURE;
+    SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
+        if (!collect_context_info(ctx, data))
+            return EXIT_FAILURE;
+    }
 
+    /* Header name is currently inferred from the module name. */
+    SOL_VECTOR_FOREACH_IDX (&ctx->modules, module, i) {
+        dprintf(fd, "#include \"%.*s-gen.h\"\n", SOL_STR_SLICE_PRINT(*module));
+    }
+
+    /* Reverse since the dependencies appear later in the vector. */
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
         if (!generate_create_type_function(data)) {
             SOL_ERR("Couldn't generate %s type function", data->name);
-            return EXIT_FAILURE;
+            r = EXIT_FAILURE;
+            goto end;
         }
     }
 
@@ -756,7 +775,11 @@ generate(struct sol_vector *fbp_data_vector)
             "SOL_MAIN_DEFAULT(startup, shutdown);\n");
     }
 
-    return EXIT_SUCCESS;
+    r = EXIT_SUCCESS;
+
+end:
+    sol_vector_clear(&ctx->modules);
+    return r;
 }
 
 static bool
