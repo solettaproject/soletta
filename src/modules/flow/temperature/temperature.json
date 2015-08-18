@@ -1,0 +1,73 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "temperature",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "temperature",
+      "description": "Convert temperatures between Kelvin, Celsius, Farenheit and Rankine.",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Temperature in Celsius.",
+          "methods": {
+            "process": "celsius_process"
+          },
+          "name": "CELSIUS"
+        },
+        {
+          "data_type": "float",
+          "description": "Temperature in Fahrenheit.",
+          "methods": {
+            "process": "fahrenheit_process"
+          },
+          "name": "FAHRENHEIT"
+        },
+        {
+          "data_type": "float",
+          "description": "Temperature in Kelvin.",
+          "methods": {
+            "process": "kelvin_process"
+          },
+          "name": "KELVIN"
+        },
+        {
+          "data_type": "float",
+          "description": "Temperature in Rankine.",
+          "methods": {
+            "process": "rankine_process"
+          },
+          "name": "RANKINE"
+        }
+      ],
+      "name": "temperature/converter",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Temperature in Celsius.",
+          "name": "CELSIUS"
+        },
+        {
+          "data_type": "float",
+          "description": "Temperature in Fahrenheit.",
+          "name": "FAHRENHEIT"
+        },
+        {
+          "data_type": "float",
+          "description": "Temperature in Kelvin.",
+          "name": "KELVIN"
+        },
+        {
+          "data_type": "float",
+          "description": "Temperature in Rankine.",
+          "name": "RANKINE"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/temperature/converter.html"
+    }
+  ]
+}

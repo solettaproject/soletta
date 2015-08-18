@@ -37,6 +37,6 @@
 
 const_celsius_symbol(constant/string:value= C)
 
-temperatureSensor(TemperatureSensor) CELSIUS -> IN converter(converter/float-to-string)
+temperatureSensor(TemperatureSensor) KELVIN -> KELVIN _(temperature/converter) CELSIUS -> IN converter(converter/float-to-string)
 converter OUT -> IN[0] concat(string/concatenate)
 const_celsius_symbol OUT -> IN[1] concat OUT -> IN screen(LCDString)
