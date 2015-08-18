@@ -51,6 +51,8 @@
 #include "sol-util.h"
 #include "sol-conffile.h"
 #include "sol-missing.h"
+#include "sol-str-slice.h"
+
 #include "type-store.h"
 
 static struct {
@@ -178,8 +180,22 @@ handle_option(const struct sol_fbp_meta *meta, struct sol_vector *options, const
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (options, o, i) {
+        struct sol_fbp_meta unquoted_meta;
+
         if (!sol_str_slice_str_eq(meta->key, o->name))
             continue;
+
+        /* Option values from the conffile other than strings might
+        * have quotes. E.g. 0|3 is currently represented as a string
+        * "0|3" in JSON. When reading we don't have the type
+        * information, but at this point we do, so unquote them. */
+        if (!streq(o->data_type, "string") && meta->value.len > 1
+            && meta->value.data[0] == '"' && meta->value.data[meta->value.len - 1] == '"') {
+            unquoted_meta = *meta;
+            unquoted_meta.value.data += 1;
+            unquoted_meta.value.len -= 2;
+            meta = &unquoted_meta;
+        }
 
         if (streq(o->data_type, "int") || streq(o->data_type, "double")) {
             if (memchr(meta->value.data, ':', meta->value.len))
@@ -599,22 +615,6 @@ generate_node_type_assignments(const struct fbp_data *data)
 static bool
 generate_create_type_function(struct fbp_data *data)
 {
-    uint16_t i;
-
-    /** Make sure to #include all the node type's headers in use. The header
-     * name is inferred on the node's module name. */
-    for (i = 0; i < (&data->graph.nodes)->len; i++) {
-        char *needle, *module;
-
-        module = data->descriptions[i]->name;
-        needle = strstr(module, "/");
-        if (needle) {
-            module = strndupa(module, strlen(module) - strlen(needle));
-        }
-
-        dprintf(fd, "#include \"%s-gen.h\"\n", module);
-    }
-
     dprintf(fd, "\nstatic const struct sol_flow_node_type *\n"
         "create_%d_%s_type(void)\n"
         "{\n",
@@ -647,6 +647,56 @@ generate_create_type_function(struct fbp_data *data)
     return true;
 }
 
+#define UNUSED(x) (void)(x)
+
+static void
+generate_includes(struct sol_vector *fbp_data_vector)
+{
+    struct sol_vector headers = SOL_VECTOR_INIT(struct sol_str_slice);
+    struct sol_str_slice *header;
+    struct sol_fbp_node *node;
+    struct fbp_data *data;
+    uint16_t i, j, k;
+
+    /* Make sure to #include all the node type's headers in use. The
+     * header name is inferred on the node's module name. */
+
+    SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
+        SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, node, j) {
+            const char *sep;
+            struct sol_str_slice module;
+            bool found = false;
+            UNUSED(node);
+
+            /* Need to go via descriptions to get the real resolved
+             * name (after conffile pass). */
+            module = sol_str_slice_from_str(data->descriptions[j]->name);
+            sep = strstr(module.data, "/");
+            if (sep) {
+                module.len = sep - module.data;
+            }
+
+            SOL_VECTOR_FOREACH_IDX (&headers, header, k) {
+                if (sol_str_slice_eq(*header, module)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                header = sol_vector_append(&headers);
+                *header = module;
+            }
+        }
+    }
+
+    SOL_VECTOR_FOREACH_IDX (&headers, header, i) {
+        dprintf(fd, "#include \"%.*s-gen.h\"\n", SOL_STR_SLICE_PRINT(*header));
+    }
+
+    sol_vector_clear(&headers);
+}
+
 static int
 generate(struct sol_vector *fbp_data_vector)
 {
@@ -657,9 +707,10 @@ generate(struct sol_vector *fbp_data_vector)
         dprintf(fd, "#include \"sol-flow.h\"\n"
             "#include \"sol-flow-static.h\"\n"
             "#include \"sol-mainloop.h\"\n"
-            "\n"
-            "static struct sol_flow_node *flow;\n\n");
+            "\n");
     }
+
+    generate_includes(fbp_data_vector);
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
         if (!generate_create_type_function(data)) {
@@ -669,7 +720,10 @@ generate(struct sol_vector *fbp_data_vector)
     }
 
     if (!args.is_subflow) {
-        dprintf(fd, "static void\n"
+        dprintf(fd,
+            "static struct sol_flow_node *flow;\n"
+            "\n"
+            "static void\n"
             "startup(void)\n"
             "{\n"
             "    const struct sol_flow_node_type *type;\n\n"
