@@ -599,10 +599,7 @@ generate_node_type_assignments(const struct fbp_data *data)
 
     for (i = 0; i < data->graph.nodes.len; i++) {
         char *symbol = data->descriptions[i]->symbol;
-
-        dprintf(fd, "    if (%s->init_type)\n", symbol);
-        dprintf(fd, "        %s->init_type();\n\n", symbol);
-        dprintf(fd, "    nodes[%d].type = %s;\n\n", i, symbol);
+        dprintf(fd, "    nodes[%d].type = %s;\n", i, symbol);
     }
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
@@ -651,6 +648,7 @@ generate_create_type_function(struct fbp_data *data)
 
 struct generate_context {
     struct sol_vector modules;
+    struct sol_vector types_to_initialize;
 };
 
 static bool
@@ -687,7 +685,7 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, node, i) {
         const char *sep;
-        struct sol_str_slice name, module;
+        struct sol_str_slice name, module, symbol;
         UNUSED(node);
 
         /* Need to go via descriptions to get the real resolved name,
@@ -697,6 +695,13 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
         /* Ignore since these are completely defined in the generated code. */
         if (is_declared_type(data, name)) {
             continue;
+        }
+
+        symbol = sol_str_slice_from_str(data->descriptions[i]->symbol);
+        if (!contains_slice(&ctx->types_to_initialize, symbol)) {
+            struct sol_str_slice *t;
+            t = sol_vector_append(&ctx->types_to_initialize);
+            *t = symbol;
         }
 
         module = name;
@@ -719,10 +724,11 @@ generate(struct sol_vector *fbp_data_vector)
 {
     struct generate_context _ctx = {
         .modules = SOL_VECTOR_INIT(struct sol_str_slice),
+        .types_to_initialize = SOL_VECTOR_INIT(struct sol_str_slice),
     }, *ctx = &_ctx;
 
     struct fbp_data *data;
-    struct sol_str_slice *module;
+    struct sol_str_slice *module, *symbol;
     uint16_t i;
     int r;
 
@@ -751,6 +757,20 @@ generate(struct sol_vector *fbp_data_vector)
         }
     }
 
+    dprintf(fd,
+        "static void\n"
+        "initialize_types(void)\n"
+        "{\n");
+    SOL_VECTOR_FOREACH_IDX (&ctx->types_to_initialize, symbol, i) {
+        dprintf(fd,
+            "    if (%.*s->init_type)\n"
+            "        %.*s->init_type();\n",
+            SOL_STR_SLICE_PRINT(*symbol),
+            SOL_STR_SLICE_PRINT(*symbol));
+    }
+    dprintf(fd,
+        "}\n\n");
+
     if (!args.is_subflow) {
         dprintf(fd,
             "static struct sol_flow_node *flow;\n"
@@ -759,6 +779,7 @@ generate(struct sol_vector *fbp_data_vector)
             "startup(void)\n"
             "{\n"
             "    const struct sol_flow_node_type *type;\n\n"
+            "    initialize_types();\n"
             "    type = create_0_root_type();\n"
             "    if (!type)\n"
             "        return;\n\n"
@@ -776,6 +797,7 @@ generate(struct sol_vector *fbp_data_vector)
 
 end:
     sol_vector_clear(&ctx->modules);
+    sol_vector_clear(&ctx->types_to_initialize);
     return r;
 }
 
