@@ -1,0 +1,3 @@
+config FLOW_NODE_TYPE_TEMPERATURE
+	tristate "Node type: temperature"
+	default y

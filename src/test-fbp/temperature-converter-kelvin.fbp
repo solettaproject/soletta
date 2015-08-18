@@ -1,4 +1,3 @@
-#!/usr/bin/env sol-fbp-runner
 # This file is part of the Soletta Project
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
@@ -29,16 +28,27 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Read temperature and humidity from an AM2315 device and prints them.
-# It's interesting to notice that this device needs at least two seconds
-# between two readings. As 'timer' ticks once each second, some readings
-# should return cached data - nodes behaviour when someone tries to read
-# before the two seconds interval.
+boiling_point_water_c(constant/float:value=99.9839)
+boiling_point_water_k(constant/float:value=373.1339)
+boiling_point_water_f(constant/float:value=211.97102)
+boiling_point_water_r(constant/float:value=671.64102)
 
-timer(timer)
-temp(am2315/temperature:i2c_bus=0,i2c_slave=1)
-humidity(am2315/humidity:i2c_bus=0,i2c_slave=1)
 converter(temperature/converter)
 
-timer OUT -> TICK temp KELVIN -> KELVIN converter CELSIUS -> IN _(console)
-timer OUT -> TICK humidity OUT -> IN _(console)
+boiling_point_water_k OUT -> KELVIN converter
+
+converter CELSIUS -> IN[0] cmp_celsius(float/equal)
+boiling_point_water_c OUT -> IN[1] cmp_celsius
+cmp_celsius OUT -> RESULT result_celsius(test/result)
+
+converter KELVIN -> IN[0] cmp_kelvin(float/equal)
+boiling_point_water_k OUT -> IN[1] cmp_kelvin
+cmp_kelvin OUT -> RESULT result_kelvin(test/result)
+
+converter RANKINE -> IN[0] cmp_rankine(float/equal)
+boiling_point_water_r OUT -> IN[1] cmp_rankine
+cmp_rankine OUT -> RESULT result_rankine(test/result)
+
+converter FAHRENHEIT -> IN[0] cmp_fahrenheit(float/equal)
+boiling_point_water_f OUT -> IN[1] cmp_fahrenheit
+cmp_fahrenheit OUT -> RESULT result_fahrenheit(test/result)
