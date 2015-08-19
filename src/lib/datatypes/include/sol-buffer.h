@@ -34,6 +34,7 @@
 
 #include <assert.h>
 
+#include <errno.h>
 #include <sol-str-slice.h>
 #include <stdarg.h>
 
@@ -228,6 +229,59 @@ sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ..
     r = sol_buffer_insert_vprintf(buf, pos, fmt, args);
     va_end(args);
     return r;
+}
+
+static inline int
+sol_buffer_trim(struct sol_buffer *buf)
+{
+    if (!buf)
+        return -EINVAL;
+
+    if (buf->used == buf->capacity)
+        return 0;
+
+    return sol_buffer_resize(buf, buf->used);
+}
+
+/**
+ *  'Steals' sol_buffer internal buffer and resets sol_buffer.
+ *
+ *  After this call, user is responsible for the memory returned.
+ *
+ *  @param buf buffer to have it's internal buffer stolen
+ *  @param size if not NULL, will store memory returned size
+ *
+ *  @return @a buffer internal buffer. It's caller responsibility now
+ *  to free this memory
+ *
+ *  @Note If @a buffer was allocated with @c sol_buffer_new(), it still
+ *  needs to be freed by calling @c sol_buffer_free();
+ */
+void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);
+
+static inline void
+sol_buffer_reset(struct sol_buffer *buf)
+{
+    buf->used = 0;
+}
+
+static inline struct sol_buffer *
+sol_buffer_new(void)
+{
+    struct sol_buffer *buf = calloc(1, sizeof(struct sol_buffer));
+
+    if (!buf) return NULL;
+
+    sol_buffer_init(buf);
+
+    return buf;
+}
+
+static inline void
+sol_buffer_free(struct sol_buffer *buf)
+{
+    sol_buffer_fini(buf);
+    free(buf);
 }
 
 /**
