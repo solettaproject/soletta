@@ -69,7 +69,6 @@ static struct sol_buffer output_buffer;
 static unsigned int fbp_id_count;
 
 struct fbp_data {
-    struct type_description **descriptions;
     struct type_store *store;
     char *filename;
     char *name;
@@ -97,6 +96,20 @@ out(const char *fmt, ...)
     va_start(ap, fmt);
     sol_buffer_append_vprintf(&output_buffer, fmt, ap);
     va_end(ap);
+}
+
+static struct sol_fbp_node *
+get_node(const struct fbp_data *data, uint16_t i)
+{
+    return sol_vector_get(&data->graph.nodes, i);
+}
+
+static struct type_description *
+get_node_type_description(const struct fbp_data *data, uint16_t i)
+{
+    struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, i);
+
+    return n->user_data;
 }
 
 static void
@@ -405,13 +418,15 @@ generate_options(const struct fbp_data *data)
     uint16_t i, j;
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
+        struct type_description *desc = n->user_data;
+
         if (n->meta.len <= 0)
             continue;
 
-        out("    static const struct %s opts%d =\n", data->descriptions[i]->options_symbol, i);
-        out("        %s_OPTIONS_DEFAULTS(\n", data->descriptions[i]->symbol);
+        out("    static const struct %s opts%d =\n", desc->options_symbol, i);
+        out("        %s_OPTIONS_DEFAULTS(\n", desc->symbol);
         SOL_VECTOR_FOREACH_IDX (&n->meta, m, j) {
-            if (!handle_option(m, &data->descriptions[i]->options, data->filename))
+            if (!handle_option(m, &desc->options, data->filename))
                 return EXIT_FAILURE;
         }
         out("        );\n\n");
@@ -442,19 +457,19 @@ generate_connections(const struct fbp_data *data)
         spec->src_port = UINT16_MAX;
         spec->dst_port = UINT16_MAX;
 
-        src_desc = data->descriptions[conn->src];
-        dst_desc = data->descriptions[conn->dst];
+        src_desc = get_node_type_description(data, conn->src);
+        dst_desc = get_node_type_description(data, conn->dst);
 
         src_port_desc = check_port_existence(&src_desc->out_ports, &conn->src_port, &spec->src_port);
         if (!src_port_desc) {
-            struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, conn->src);
+            struct sol_fbp_node *n = get_node(data, conn->src);
             free(conn_specs);
             return handle_port_error(&n->out_ports, &conn->src_port, &n->component, data->filename);
         }
 
         if (src_port_desc->array_size > 0) {
             if (conn->src_port_idx == -1 || conn->src_port_idx >= src_port_desc->array_size) {
-                struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, conn->src);
+                struct sol_fbp_node *n = get_node(data, conn->src);
                 free(conn_specs);
                 return handle_port_index_error(&conn->position, src_port_desc, &n->component, conn->src_port_idx, data->filename);
             }
@@ -463,14 +478,14 @@ generate_connections(const struct fbp_data *data)
 
         dst_port_desc = check_port_existence(&dst_desc->in_ports, &conn->dst_port, &spec->dst_port);
         if (!dst_port_desc) {
-            struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, conn->dst);
+            struct sol_fbp_node *n = get_node(data, conn->dst);
             free(conn_specs);
             return handle_port_error(&n->in_ports, &conn->dst_port, &n->component, data->filename);
         }
 
         if (dst_port_desc->array_size > 0) {
             if (conn->dst_port_idx == -1 || conn->dst_port_idx >= dst_port_desc->array_size) {
-                struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, conn->dst);
+                struct sol_fbp_node *n = get_node(data, conn->dst);
                 free(conn_specs);
                 return handle_port_index_error(&conn->position, dst_port_desc, &n->component, conn->dst_port_idx, data->filename);
             }
@@ -545,7 +560,7 @@ generate_exports(const struct fbp_data *data)
     if (data->graph.exported_in_ports.len > 0) {
         out("    static const struct sol_flow_static_port_spec exported_in[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&data->graph.exported_in_ports, e, i) {
-            n = data->descriptions[e->node];
+            n = get_node_type_description(data, e->node);
             if (!generate_exported_port(n->name, &n->in_ports, e, data->filename))
                 return false;
         }
@@ -556,7 +571,7 @@ generate_exports(const struct fbp_data *data)
     if (data->graph.exported_out_ports.len > 0) {
         out("    static const struct sol_flow_static_port_spec exported_out[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&data->graph.exported_out_ports, e, i) {
-            n = data->descriptions[e->node];
+            n = get_node_type_description(data, e->node);
             if (!generate_exported_port(n->name, &n->out_ports, e, data->filename))
                 return false;
         }
@@ -600,13 +615,14 @@ static void
 generate_node_type_assignments(const struct fbp_data *data)
 {
     struct declared_fbp_type *dec_type;
+    struct sol_fbp_node *n;
     uint16_t i;
 
     out("\n");
 
-    for (i = 0; i < data->graph.nodes.len; i++) {
-        char *symbol = data->descriptions[i]->symbol;
-        out("    nodes[%d].type = %s;\n", i, symbol);
+    SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
+        struct type_description *desc = n->user_data;
+        out("    nodes[%d].type = %s;\n", i, desc->symbol);
     }
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
@@ -650,8 +666,6 @@ generate_create_type_function(struct fbp_data *data)
     return true;
 }
 
-#define UNUSED(x) (void)(x)
-
 struct generate_context {
     struct sol_vector modules;
     struct sol_vector types_to_initialize;
@@ -690,20 +704,21 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, node, i) {
+        struct type_description *desc;
         const char *sep;
         struct sol_str_slice name, module, symbol;
-        UNUSED(node);
 
         /* Need to go via descriptions to get the real resolved name,
          * after conffile pass. */
-        name = sol_str_slice_from_str(data->descriptions[i]->name);
+        desc = node->user_data;
+        name = sol_str_slice_from_str(desc->name);
 
         /* Ignore since these are completely defined in the generated code. */
         if (is_declared_type(data, name)) {
             continue;
         }
 
-        symbol = sol_str_slice_from_str(data->descriptions[i]->symbol);
+        symbol = sol_str_slice_from_str(desc->symbol);
         if (!contains_slice(&ctx->types_to_initialize, symbol)) {
             struct sol_str_slice *t;
             t = sol_vector_append(&ctx->types_to_initialize);
@@ -1033,12 +1048,14 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
 
     sol_vector_init(&type.in_ports, sizeof(struct port_description));
     SOL_VECTOR_FOREACH_IDX (&data->graph.exported_in_ports, e, i) {
+        struct type_description *desc = get_node_type_description(data, e->node);
+
         p = sol_vector_append(&type.in_ports);
         SOL_NULL_CHECK_GOTO(p, fail_in_ports);
 
         p->name = strndupa(e->exported_name.data, e->exported_name.len);
 
-        SOL_VECTOR_FOREACH_IDX (&data->descriptions[e->node]->in_ports, port, j) {
+        SOL_VECTOR_FOREACH_IDX (&desc->in_ports, port, j) {
             if (streqn(e->port.data, port->name, e->port.len)) {
                 p->data_type = strdupa(port->data_type);
                 p->array_size = port->array_size;
@@ -1050,12 +1067,14 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
 
     sol_vector_init(&type.out_ports, sizeof(struct port_description));
     SOL_VECTOR_FOREACH_IDX (&data->graph.exported_out_ports, e, i) {
+        struct type_description *desc = get_node_type_description(data, e->node);
+
         p = sol_vector_append(&type.out_ports);
         SOL_NULL_CHECK_GOTO(p, fail_out_ports);
 
         p->name = strndupa(e->exported_name.data, e->exported_name.len);
 
-        SOL_VECTOR_FOREACH_IDX (&data->descriptions[e->node]->out_ports, port, j) {
+        SOL_VECTOR_FOREACH_IDX (&desc->out_ports, port, j) {
             if (streqn(e->port.data, port->name, e->port.len)) {
                 p->data_type = strdupa(port->data_type);
                 p->array_size = port->array_size;
@@ -1085,13 +1104,9 @@ resolve_node(struct fbp_data *data, struct type_store *common_store)
     struct sol_fbp_node *n;
     uint16_t i;
 
-    data->descriptions = calloc(data->graph.nodes.len, sizeof(void *));
-    if (!data->descriptions)
-        return false;
-
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
-        data->descriptions[i] = sol_fbp_generator_resolve_type(common_store, data->store, n, data->filename);
-        if (!data->descriptions[i])
+        n->user_data = sol_fbp_generator_resolve_type(common_store, data->store, n, data->filename);
+        if (!n->user_data)
             return false;
     }
 
@@ -1306,7 +1321,6 @@ fail_write:
 fail_generate:
 fail_data:
     SOL_VECTOR_FOREACH_IDX (&fbp_data_vector, data, i) {
-        free(data->descriptions);
         type_store_del(data->store);
         sol_fbp_graph_fini(&data->graph);
         sol_vector_clear(&data->declared_fbp_types);
