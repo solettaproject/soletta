@@ -1,6 +1,6 @@
 config LINUX_MICRO_NETWORK_UP
 	tristate "network-up"
-	depends on LINUX_MICRO
+	depends on LINUX_MICRO && NETWORK
 	default m if MODULES=y
 	help
             This service will enumerate all network interfaces using
