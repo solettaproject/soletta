@@ -182,17 +182,16 @@ err:
 static int
 child_read(struct sol_blob **p_blob, bool *eof, int fd)
 {
-    char *buf = NULL;
-    size_t buflen = 0;
-    size_t offset = 0;
-    int ret = 0;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     struct timespec start = sol_util_timespec_get_current();
+    size_t size;
+    void *v;
+    int ret = 0;
 
     *eof = false;
     do {
         struct timespec now = sol_util_timespec_get_current();
         struct timespec elapsed;
-        size_t size;
         ssize_t r;
 
         sol_util_timespec_sub(&now, &start, &elapsed);
@@ -200,45 +199,30 @@ child_read(struct sol_blob **p_blob, bool *eof, int fd)
             elapsed.tv_nsec > (time_t)CHUNK_MAX_TIME_NS)
             break;
 
-        if (offset + CHUNK_READ_SIZE > buflen) {
-            char *tmp;
-
-            /* limit reading chunks to maximum or available memory */
-            if (buflen + CHUNK_READ_SIZE >= CHUNK_READ_MAX)
-                break;
-
-            /* if we're out of memory, just return without failing */
-            tmp = realloc(buf, buflen + CHUNK_READ_SIZE);
-            if (!tmp)
-                break;
-
-            buf = tmp;
-            buflen += CHUNK_READ_SIZE;
-        }
-
-        r = sol_util_fill_buffer(fd, buf + offset, CHUNK_READ_SIZE, &size);
-        if (r > 0)
-            offset += size;
-        else if (r == 0) {
+        r = sol_util_fill_buffer(fd, &buf, CHUNK_READ_SIZE);
+        if (r == 0) {
             *eof = true;
             break;
         } else if (r < 0) {
-            ret = -errno;
+            /* Not a problem if failed because buffer could not be increased */
+            if (r != -ENOMEM)
+                ret = -errno;
             break;
         }
     } while (1);
 
-    if (ret < 0) {
-        free(buf);
+    if (ret < 0 && ret != -EAGAIN) {
+        sol_buffer_fini(&buf);
         return ret;
     }
 
-    *p_blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, buf, offset);
+    v = sol_buffer_steal(&buf, &size);
+    *p_blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, v, size);
     SOL_NULL_CHECK_GOTO(*p_blob, blob_error);
     return 0;
 
 blob_error:
-    free(buf);
+    sol_buffer_fini(&buf);
     return -ENOMEM;
 }
 

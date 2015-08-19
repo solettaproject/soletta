@@ -31,6 +31,7 @@
  */
 
 #include "sol-util-file.h"
+#include "sol-util.h"
 #include "sol-mainloop.h"
 #include "sol-log.h"
 
@@ -119,15 +120,22 @@ sol_util_read_file(const char *path, const char *fmt, ...)
 }
 
 ssize_t
-sol_util_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_t *size_read)
+sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
 {
-    ssize_t size;
     size_t bytes_read = 0;
     unsigned int retry = 0;
+    ssize_t ret;
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    ret = sol_buffer_ensure(buffer, buffer->used + size);
+    if (ret < 0)
+        return ret;
 
     do {
-        size = read(fd, buffer + bytes_read, buffer_size - bytes_read);
-        if (size < 0) {
+        ret = read(fd, (char *)buffer->data + buffer->used + bytes_read,
+            size - bytes_read);
+        if (ret < 0) {
             retry++;
             if (retry >= SOL_UTIL_MAX_READ_ATTEMPTS)
                 break;
@@ -139,67 +147,52 @@ sol_util_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_
         }
 
         retry = 0; //We only count consecutive failures
-        bytes_read += (size_t)size;
-    } while (size && bytes_read < buffer_size);
+        bytes_read += (size_t)ret;
+    } while (ret && bytes_read < size);
 
-    if (size_read)
-        *size_read = bytes_read;
+    buffer->used += bytes_read;
 
-    return size;
+    if (ret > 0)
+        ret = bytes_read;
+
+    return ret;
 }
 
-void *
-sol_util_load_file_raw(const int fd, size_t *size)
+struct sol_buffer *
+sol_util_load_file_raw(const int fd)
 {
     struct stat st;
-    int saved_errno;
-    char *tmp = NULL;
-    char *buffer = NULL;
-    size_t buffer_size = 0;
     ssize_t ret;
+    size_t buffer_size = 0;
+    struct sol_buffer *buffer;
 
-    if (fd < 0 || !size)
+    if (fd < 0)
         return NULL;
 
-    *size = 0;
-    if (fstat(fd, &st) >= 0 && st.st_size) {
-        buffer_size = st.st_size;
-        buffer = malloc(buffer_size);
-        if (!buffer)
-            goto err;
+    buffer = sol_buffer_new();
+    SOL_NULL_CHECK(buffer, NULL);
 
-        ret = sol_util_fill_buffer(fd, buffer, buffer_size, size);
-        if (ret <= 0)
-            goto end;
+    bool b = false;
+    if (fstat(fd, &st) >= 0 && st.st_size && b) {
+        ret = sol_util_fill_buffer(fd, buffer, st.st_size);
+    } else {
+        do {
+            buffer_size += CHUNK_SIZE;
+            ret = sol_util_fill_buffer(fd, buffer, CHUNK_SIZE);
+        } while (ret > 0);
     }
 
-    do {
-        buffer_size += CHUNK_SIZE;
-        tmp = realloc(buffer, buffer_size);
-        if (!tmp)
-            goto err;
-        buffer = tmp;
-
-        ret = sol_util_fill_buffer(fd, buffer + *size, CHUNK_SIZE, size);
-    } while (ret > 0);
-
-end:
-    if (ret < 0 || !*size)
+    if (ret < 0)
         goto err;
 
-    if (*size < buffer_size) {
-        tmp = realloc(buffer, *size);
-        if (tmp)
-            buffer = tmp;
-    }
+    if (sol_buffer_trim(buffer) < 0)
+        goto err;
 
     return buffer;
 
 err:
-    saved_errno = errno;
-    free(buffer);
-    errno = saved_errno;
-    *size = 0;
+    sol_buffer_free(buffer);
+
     return NULL;
 }
 
@@ -207,34 +200,40 @@ char *
 sol_util_load_file_string(const char *filename, size_t *size)
 {
     int fd = -1, saved_errno;
-    size_t read;
-    char *tmp, *data = NULL;
+    size_t size_read;
+    char *data = NULL;
+    struct sol_buffer *buffer = NULL;
 
     fd = open(filename, O_RDONLY | O_CLOEXEC);
     if (fd < 0)
         goto open_err;
 
-    data = sol_util_load_file_raw(fd, &read);
-    if (!data) {
+    buffer = sol_util_load_file_raw(fd);
+    if (!buffer) {
         data = strdup("");
-        read = 1;
-    } else if (data[read - 1] != '\0') {
-        tmp = realloc(data, read + 1);
-        if (!tmp)
+        size_read = 1;
+    } else {
+        if (sol_buffer_at_end(buffer) != '\0') {
+            sol_buffer_ensure(buffer, buffer->used + 1);
+            *((char *)buffer->data + buffer->used) = '\0';
+            buffer->used++;
+        }
+        data = sol_buffer_steal(buffer, &size_read);
+        if (!data)
             goto err;
-        data = tmp;
-        data[read] = '\0';
     }
 
+    sol_buffer_free(buffer);
     close(fd);
     if (size)
-        *size = read;
+        *size = size_read;
     return data;
 
 err:
     saved_errno = errno;
     free(data);
     close(fd);
+    sol_buffer_free(buffer);
     errno = saved_errno;
 open_err:
     if (size)
