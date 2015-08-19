@@ -189,14 +189,18 @@ pump_multi_info_queue(void)
     int msgs_left;
 
     while ((msg = curl_multi_info_read(global.multi, &msgs_left))) {
-        struct connection *conn;
+        char *priv;
         CURLcode r;
 
         if (msg->msg != CURLMSG_DONE)
             continue;
 
-        r = curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &conn);
-        if (r == CURLE_OK && conn) {
+        r = curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &priv);
+        if (r == CURLE_OK && priv) {
+            /* CURLINFO_PRIVATE is defined as a string and CURL_DISABLE_TYPECHECK
+             * will barf about us handling a different pointer.
+             */
+            struct connection *conn = (struct connection *)priv;
             call_connection_finish_cb(conn);
         } else {
             SOL_ERR("Could not obtain private connection data from cURL. Bug?");
@@ -626,7 +630,7 @@ set_auth_basic(CURL *curl, struct sol_arena *arena,
 }
 
 static bool
-set_allow_redir(CURL *curl, bool setting)
+set_allow_redir(CURL *curl, long setting)
 {
     return curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, setting) == CURLE_OK;
 }
@@ -638,7 +642,7 @@ set_timeout(CURL *curl, long setting)
 }
 
 static bool
-set_verbose(CURL *curl, bool setting)
+set_verbose(CURL *curl, long setting)
 {
     return curl_easy_setopt(curl, CURLOPT_VERBOSE, setting) == CURLE_OK;
 }
