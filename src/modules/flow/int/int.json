@@ -159,9 +159,10 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "Thirty two ports for addition operation. Indexed from 0 to 31.",
+          "description": "Thirty two ports for addition operation. Indexed from 0 to 31. Results are sent after at least one packet is received on each connected port.",
           "methods": {
-            "process": "operator_process"
+            "connect": "multiple_operator_connect",
+            "process": "multiple_operator_process"
           },
           "name": "OPERAND[32]"
         }
@@ -177,7 +178,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_arithmetic_data",
+      "private_data_type": "irange_multiple_arithmetic_data",
       "url": "http://solettaproject.org/doc/latest/node_types/arithmetic/irange/addition.html"
     },
     {
@@ -256,9 +257,10 @@
       "in_ports": [
         {
           "data_type": "int",
-          "description": "Thirty two ports for multiplication operation. Indexed from 0 to 31.",
+          "description": "Thirty two ports for multiplication operation. Indexed from 0 to 31. Results are sent after at least one packet is received on each connected port.",
           "methods": {
-            "process": "operator_process"
+            "connect": "multiple_operator_connect",
+            "process": "multiple_operator_process"
           },
           "name": "OPERAND[32]"
         }
@@ -274,7 +276,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_arithmetic_data",
+      "private_data_type": "irange_multiple_arithmetic_data",
       "url": "http://solettaproject.org/doc/latest/node_types/arithmetic/irange/multiplication.html"
     },
     {

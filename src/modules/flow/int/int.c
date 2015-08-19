@@ -325,7 +325,7 @@ int_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
 
 // =============================================================================
-// IRANGE ARITHMETIC
+// IRANGE ARITHMETIC - SUBTRACTION / DIVISION / MODULO
 // =============================================================================
 
 
@@ -337,17 +337,6 @@ struct irange_arithmetic_data {
     bool var0_initialized : 1;
     bool var1_initialized : 1;
 };
-
-static int
-addition_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_arithmetic_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_ADDITION__OUT__OUT;
-    mdata->func = sol_irange_addition;
-
-    return 0;
-}
 
 static int
 division_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
@@ -367,17 +356,6 @@ modulo_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
 
     mdata->port = SOL_FLOW_NODE_TYPE_INT_MODULO__OUT__OUT;
     mdata->func = sol_irange_modulo;
-
-    return 0;
-}
-
-static int
-multiplication_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_arithmetic_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_MULTIPLICATION__OUT__OUT;
-    mdata->func = sol_irange_multiplication;
 
     return 0;
 }
@@ -428,6 +406,98 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 
     return sol_flow_send_irange_packet(node, mdata->port, &value);
 }
+
+
+// =============================================================================
+// IRANGE ARITHMETIC - ADDITION / MULTIPLICATION
+// =============================================================================
+
+
+struct irange_multiple_arithmetic_data {
+    struct sol_irange var[32];
+    int32_t var_initialized;
+    int32_t var_connected;
+    int (*func) (const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+    uint16_t port;
+};
+
+static int
+addition_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct irange_multiple_arithmetic_data *mdata = data;
+
+    mdata->port = SOL_FLOW_NODE_TYPE_INT_ADDITION__OUT__OUT;
+    mdata->func = sol_irange_addition;
+
+    return 0;
+}
+
+static int
+multiplication_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct irange_multiple_arithmetic_data *mdata = data;
+
+    mdata->port = SOL_FLOW_NODE_TYPE_INT_MULTIPLICATION__OUT__OUT;
+    mdata->func = sol_irange_multiplication;
+
+    return 0;
+}
+
+static int
+multiple_operator_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+{
+    struct irange_multiple_arithmetic_data *mdata = data;
+
+    mdata->var_connected |= 1 << port;
+    return 0;
+}
+
+static int
+multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct irange_multiple_arithmetic_data *mdata = data;
+    struct sol_irange value;
+    struct sol_irange *result = NULL;
+    int r, i;
+
+    r = sol_flow_packet_get_irange(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if ((mdata->var_initialized & 1 << port) &&
+        sol_irange_equal(&mdata->var[port], &value))
+        return 0;
+
+    mdata->var_initialized |= 1 << port;
+    mdata->var[port] = value;
+
+    if (mdata->var_initialized != mdata->var_connected)
+        return 0;
+
+    for (i = 0; i < 32; i++) {
+        if (!(mdata->var_initialized & (1 << i)))
+            continue;
+
+        if (!result) {
+            result = alloca(sizeof(*result));
+            if (!result) {
+                r = ENOMEM;
+                sol_flow_send_error_packet(node, r, sol_util_strerrora(r));
+                return -r;
+            }
+            *result = mdata->var[i];
+            continue;
+        } else {
+            r = mdata->func(result, &mdata->var[i], result);
+            if (r < 0) {
+                sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+                return r;
+            }
+        }
+    }
+
+    return sol_flow_send_irange_packet(node, mdata->port, result);
+}
+
 
 // =============================================================================
 // IRANGE CONSTRAIN
