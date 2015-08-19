@@ -56,7 +56,7 @@ struct sol_iio_device {
     void (*reader_cb)(void *data, struct sol_iio_device *device);
     const void *reader_cb_data;
     struct sol_fd *fd_handler;
-    uint8_t *buffer;
+    struct sol_buffer buffer;
     size_t buffer_size;
     struct sol_ptr_vector channels;
     int device_id;
@@ -366,18 +366,17 @@ device_reader_cb(void *data, int fd, unsigned int active_flags)
     struct sol_iio_device *device = data;
     bool result = true;
     ssize_t ret;
-    size_t buffer_read;
 
     if (active_flags & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_NVAL)) {
         SOL_WRN("Unexpected reading");
         result = false;
     }
 
-    ret = sol_util_fill_buffer(fd, (char *)device->buffer, device->buffer_size,
-        &buffer_read);
+    sol_buffer_reset(&device->buffer);
+    ret = sol_util_fill_buffer(fd, &device->buffer, device->buffer_size);
     if (ret <= 0) {
         result = false;
-    } else if (buffer_read == device->buffer_size) {
+    } else if (device->buffer.used == device->buffer_size) {
         if (device->reader_cb) {
             device->reader_cb((void *)device->reader_cb_data, device);
         }
@@ -597,6 +596,7 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
     device = calloc(1, sizeof(struct sol_iio_device));
     SOL_NULL_CHECK(device, NULL);
     sol_ptr_vector_init(&device->channels);
+    device->buffer = SOL_BUFFER_INIT_EMPTY;
     device->fd = -1;
 
     device->device_id = device_id;
@@ -839,7 +839,7 @@ sol_iio_close(struct sol_iio_device *device)
     if (device->fd > -1) close(device->fd);
     if (device->name_fd > -1) close(device->name_fd);
 
-    free(device->buffer);
+    sol_buffer_fini(&device->buffer);
     free(device->trigger_name);
     free(device);
 }
@@ -949,8 +949,9 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
     int i, storage_bytes;
     bool negative = false;
     struct sol_iio_device *device = channel->device;
+    uint8_t *buffer = device->buffer.data;
 
-    SOL_NULL_CHECK(device->buffer, false);
+    SOL_NULL_CHECK(buffer, false);
 
     if (channel->offset_in_buffer + channel->storagebits > device->buffer_size * 8) {
         SOL_WRN("Invalid read on buffer.");
@@ -961,11 +962,11 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
     storage_bytes = channel->storagebits / 8;
     if (channel->little_endian) {
         for (i = 0, j = 0; i < storage_bytes; i++, j += 8) {
-            data |= (uint64_t)device->buffer[i + offset_bytes] << j;
+            data |= (uint64_t)buffer[i + offset_bytes] << j;
         }
     } else {
         for (i = storage_bytes - 1, j = 0; i >= 0; i--, j += 8) {
-            data |= (uint64_t)device->buffer[i + offset_bytes] << j;
+            data |= (uint64_t)buffer[i + offset_bytes] << j;
         }
     }
 
@@ -1081,8 +1082,8 @@ sol_iio_device_start_buffer(struct sol_iio_device *device)
     }
 
     device->buffer_size = calc_buffer_size(device);
-    device->buffer = calloc(1, device->buffer_size);
-    if (!device->buffer) {
+    i = sol_buffer_ensure(&device->buffer, device->buffer_size);
+    if (i < 0) {
         SOL_WRN("Could not alloc buffer for device. No readings will be performed");
         return false;
     }

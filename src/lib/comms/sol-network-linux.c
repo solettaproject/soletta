@@ -265,7 +265,6 @@ _netlink_request(int event)
 {
     size_t n;
     char buf[NLMSG_ALIGN(sizeof(struct nlmsghdr) + sizeof(struct rtgenmsg))] = { 0 };
-    char buffer_receive[4096];
     struct iovec iov = { buf, sizeof(buf) };
     struct sockaddr_nl snl = { .nl_family = AF_NETLINK };
     struct msghdr msg = {
@@ -279,6 +278,9 @@ _netlink_request(int event)
     };
     struct nlmsghdr *h;
     struct rtgenmsg *rt;
+    char buffer_receive_back[4096]; /* Backing storage for next sol_buffer */
+    struct sol_buffer buffer_receive = SOL_BUFFER_INIT_FLAGS(buffer_receive_back,
+        sizeof(buffer_receive_back), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
 
     h = (struct nlmsghdr *)buf;
 
@@ -294,8 +296,8 @@ _netlink_request(int event)
     if (sendmsg(network->nl_socket, (struct msghdr *)&msg, 0) <= 0)
         SOL_WRN("Failed on send message to get the links");
 
-    while ((sol_util_fill_buffer(network->nl_socket, buffer_receive, sizeof(buffer_receive), &n)) > 0) {
-        for (h = (struct nlmsghdr *)buffer_receive; NLMSG_OK(h, n); h = NLMSG_NEXT(h, n)) {
+    while ((sol_util_fill_buffer(network->nl_socket, &buffer_receive, buffer_receive.capacity)) > 0) {
+        for (h = buffer_receive.data; NLMSG_OK(h, n); h = NLMSG_NEXT(h, n)) {
             if (h->nlmsg_type == NLMSG_DONE)
                 return;
             if (h->nlmsg_type == NLMSG_ERROR) {
