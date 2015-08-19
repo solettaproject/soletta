@@ -137,8 +137,9 @@ error:
 static int
 query_addr(struct freegeoip_data *mdata, const char *addr)
 {
-    char json_endpoint[PATH_MAX];
     int r;
+    char json_endpoint[PATH_MAX];
+    struct sol_http_client_pending *pending;
 
     r = snprintf(json_endpoint, sizeof(json_endpoint), "%s/json/%s",
         mdata->endpoint, addr ? addr : "");
@@ -148,10 +149,10 @@ query_addr(struct freegeoip_data *mdata, const char *addr)
     }
 
     /* FIXME: Fix sol_http so that requests are cancellable. */
-    r = sol_http_client_request(SOL_HTTP_METHOD_GET, json_endpoint,
+    pending = sol_http_client_request(SOL_HTTP_METHOD_GET, json_endpoint,
         NULL, freegeoip_query_finished, mdata);
 
-    if (r < 0) {
+    if (!pending) {
         SOL_WRN("Could not create HTTP request");
         return -ENOTCONN;
     }
