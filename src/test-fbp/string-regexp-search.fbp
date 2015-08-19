@@ -1,0 +1,86 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+str_hello_world(constant/string:value="Ħěĺļō Ɯőŗŀď")
+str_hello_hello(constant/string:value="Ħěĺļō Ħěĺļō")
+
+result_hello(constant/string:value="Ħěĺļō")
+result_world(constant/string:value="Ɯőŗŀď")
+result_hello_world(constant/string:value="Ħěĺļō Ɯőŗŀď")
+
+str_hello_world OUT -> IN regexp_search_01(string/regexp-search:regexp="Ɯőŗŀď",index=0)
+regexp_search_01 OUT -> IN[0] cmp_01(string/compare)
+result_world OUT -> IN[1] cmp_01
+cmp_01 EQUAL -> RESULT result_01(test/result)
+
+str_hello_world OUT -> IN regexp_search_02(string/regexp-search:regexp="Ħ...ō",index=0)
+regexp_search_02 OUT -> IN[0] cmp_02(string/compare)
+result_hello OUT -> IN[1] cmp_02
+cmp_02 EQUAL -> RESULT result_02(test/result)
+
+str_hello_world OUT -> IN regexp_search_03(string/regexp-search:regexp="Ɯőŗŀď$",index=0)
+regexp_search_03 OUT -> IN[0] cmp_03(string/compare)
+result_world OUT -> IN[1] cmp_03
+cmp_03 EQUAL -> RESULT result_03(test/result)
+
+str_hello_world OUT -> IN regexp_search_04(string/regexp-search:regexp="Ɯőŗŀ[dďđ]$",index=0)
+regexp_search_04 OUT -> IN[0] cmp_04(string/compare)
+result_world OUT -> IN[1] cmp_04
+cmp_04 EQUAL -> RESULT result_04(test/result)
+
+str_hello_world OUT -> IN regexp_search_05(string/regexp-search:regexp="(\\p{L}+)\\s(\\p{L}+)",index=0)
+regexp_search_05 OUT -> IN[0] cmp_05(string/compare)
+result_hello_world OUT -> IN[1] cmp_05
+cmp_05 EQUAL -> RESULT result_05(test/result)
+
+str_hello_world OUT -> IN regexp_search_06(string/regexp-search:regexp="(\\p{L}+)\\s(\\p{L}+)",index=1)
+regexp_search_06 OUT -> IN[0] cmp_06(string/compare)
+result_hello OUT -> IN[1] cmp_06
+cmp_06 EQUAL -> RESULT result_06(test/result)
+
+str_hello_hello OUT -> IN regexp_search_07(string/regexp-search:regexp="(\\p{L}\\p{L}\\p{L}\\p{L}\\p{L})\\s\\g1",index=0)
+regexp_search_07 OUT -> IN[0] cmp_07(string/compare)
+str_hello_hello OUT -> IN[1] cmp_07
+cmp_07 EQUAL -> RESULT result_07(test/result)
+
+str_hello_hello OUT -> IN regexp_search_08(string/regexp-search:regexp="(\\p{L}\\p{L}\\p{L}\\p{L}\\p{L})\\s\\g{-1}",index=0)
+regexp_search_08 OUT -> IN[0] cmp_08(string/compare)
+str_hello_hello OUT -> IN[1] cmp_08
+cmp_08 EQUAL -> RESULT result_08(test/result)
+
+str_hello_hello OUT -> IN regexp_search_09(string/regexp-search:regexp="(?<hello>\\p{L}\\p{L}\\p{L}\\p{L}\\p{L})\\s\\g{hello}",index=0)
+regexp_search_09 OUT -> IN[0] cmp_09(string/compare)
+str_hello_hello OUT -> IN[1] cmp_09
+cmp_09 EQUAL -> RESULT result_09(test/result)
+
+str_hello_world OUT -> IN regexp_search_10(string/regexp-search:regexp="(\\p{L}{5})\\s(\\p{L}{5})",index=2)
+regexp_search_10 OUT -> IN[0] cmp_10(string/compare)
+result_world OUT -> IN[1] cmp_10
+cmp_10 EQUAL -> RESULT result_10(test/result)

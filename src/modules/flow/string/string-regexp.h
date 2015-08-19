@@ -32,12 +32,25 @@
 
 #pragma once
 
-#include <unicode/uchar.h>
-#include <unicode/ustring.h>
-#include <unicode/utypes.h>
-
 #include "sol-flow.h"
 
-UChar *string_replace(struct sol_flow_node *node, UChar *value, UChar *change_from, UChar *change_to, size_t max_count);
+int string_regexp_search_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
 
-int icu_str_from_utf8(const char *utf_str, UChar **ret_icu_str, UErrorCode *ret_icu_err);
+void string_regexp_search_close(struct sol_flow_node *node, void *data);
+
+int string_regexp_search(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+
+int set_string_regexp_pattern(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+
+int set_string_regexp_index(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+
+int set_string_regexp_max_match(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+
+struct string_regexp_search_data {
+    struct sol_flow_node *node;
+    struct sol_vector substrings;
+    size_t max_regexp_search;
+    char *string;
+    char *regexp;
+    int index;
+};
