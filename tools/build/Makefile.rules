@@ -410,6 +410,7 @@ $(LINUX_MICRO_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
 
 $(FLOW_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
 	$(Q)echo "     "GEN"   "$(@)
+	$(Q)$(MKDIR) -p $(dir $(FLOW_BUILTINS_H))
 	$(Q)$(PYTHON) $(BUILTINS_SCRIPT) \
 		--output=$@ \
 		--array="static const void *SOL_FLOW_BUILTIN_NODE_TYPE_ALL[]" \
@@ -420,6 +421,7 @@ $(FLOW_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
 
 $(PIN_MUX_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
 	$(Q)echo "     "GEN"   "$(@)
+	$(Q)$(MKDIR) -p $(dir $(PIN_MUX_BUILTINS_H))
 	$(Q)$(PYTHON) $(BUILTINS_SCRIPT) \
                 --output=$@ \
                 --array="static const struct sol_pin_mux *SOL_PIN_MUX_BUILTINS_ALL[]" \
