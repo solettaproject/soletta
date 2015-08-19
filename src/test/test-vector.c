@@ -276,5 +276,59 @@ vector_take_data(void)
     free(taken);
 }
 
+DEFINE_TEST(vector_append_n);
+
+static void
+vector_append_n(void)
+{
+    struct sol_vector v_ = SOL_VECTOR_INIT(int), *v = &v_;
+    int *elem;
+    uint16_t i;
+
+    elem = sol_vector_append_n(v, 16);
+    ASSERT(elem);
+    ASSERT_INT_EQ(v->len, 16);
+    ASSERT(elem == sol_vector_get(v, v->len - 16));
+
+    for (i = 0; i < 16; i++) {
+        *elem = i;
+        elem++;
+    }
+
+    elem = sol_vector_append(v);
+    ASSERT(elem);
+    ASSERT(elem == sol_vector_get(v, v->len - 1));
+    ASSERT_INT_EQ(v->len, 17);
+
+    elem = sol_vector_append_n(v, 1);
+    ASSERT(elem);
+    ASSERT(elem == sol_vector_get(v, v->len - 1));
+    ASSERT_INT_EQ(v->len, 18);
+
+    errno = 0;
+    elem = sol_vector_append_n(v, 0);
+    ASSERT(!elem);
+    ASSERT_INT_EQ(errno, EINVAL);
+
+    errno = 0;
+    elem = sol_vector_append_n(v, UINT16_MAX);
+    ASSERT(!elem);
+    ASSERT_INT_EQ(errno, EOVERFLOW);
+    ASSERT_INT_EQ(v->len, 18);
+
+    errno = 0;
+    elem = sol_vector_append_n(v, UINT16_MAX - v->len + 1);
+    ASSERT(!elem);
+    ASSERT_INT_EQ(errno, EOVERFLOW);
+    ASSERT_INT_EQ(v->len, 18);
+
+    errno = 0;
+    elem = sol_vector_append_n(NULL, 1);
+    ASSERT(!elem);
+    ASSERT_INT_EQ(errno, EINVAL);
+
+    sol_vector_clear(v);
+}
+
 
 TEST_MAIN();

@@ -79,6 +79,9 @@ void sol_vector_init(struct sol_vector *v, uint16_t elem_size);
 // Returns pointer to added element.
 void *sol_vector_append(struct sol_vector *v);
 
+// Returns pointer to the first element appended.
+void *sol_vector_append_n(struct sol_vector *v, uint16_t n);
+
 static inline void *
 sol_vector_get(const struct sol_vector *v, uint16_t i)
 {
