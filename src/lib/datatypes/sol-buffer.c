@@ -30,7 +30,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -237,5 +236,24 @@ sol_buffer_insert_vprintf(struct sol_buffer *buf, size_t pos, const char *fmt, v
     slice = SOL_STR_SLICE_STR(s, len);
     r = sol_buffer_insert_slice(buf, pos, slice);
     free(s);
+    return r;
+}
+
+SOL_API void *
+sol_buffer_steal(struct sol_buffer *buf, size_t *size)
+{
+    void *r;
+
+    SOL_NULL_CHECK(buf, NULL);
+
+    r = buf->data;
+
+    if (size)
+        *size = buf->used;
+
+    buf->data = NULL;
+    buf->used = 0;
+    buf->capacity = 0;
+
     return r;
 }
