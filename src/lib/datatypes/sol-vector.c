@@ -46,21 +46,26 @@ sol_vector_init(struct sol_vector *v, uint16_t elem_size)
 }
 
 static int
-sol_vector_grow(struct sol_vector *v)
+sol_vector_grow(struct sol_vector *v, uint16_t amount)
 {
     unsigned int new_cap, old_cap;
-    void *data;
+    uint16_t new_len;
 
+    if (v->len > UINT16_MAX - amount)
+        return -EOVERFLOW;
+
+    new_len = v->len + amount;
     old_cap = align_power2(v->len);
-    new_cap = align_power2(v->len + 1);
-    if (new_cap == old_cap)
-        return 0;
+    new_cap = align_power2(new_len);
 
-    data = realloc(v->data, new_cap * v->elem_size);
-    if (!data)
-        return -ENOMEM;
+    if (new_cap != old_cap) {
+        void *data = realloc(v->data, new_cap * v->elem_size);
+        if (!data)
+            return -ENOMEM;
+        v->data = data;
+    }
 
-    v->data = data;
+    v->len = new_len;
     return 0;
 }
 
@@ -69,14 +74,12 @@ sol_vector_append(struct sol_vector *v)
 {
     unsigned char *data;
 
-    if (v->len >= UINT16_MAX - 1)
+    if (sol_vector_grow(v, 1) != 0)
         return NULL;
 
-    if (sol_vector_grow(v) != 0)
-        return NULL;
     data = v->data;
 
-    return &data[v->elem_size * v->len++];
+    return &data[v->elem_size * (v->len - 1)];
 }
 
 static void
@@ -161,14 +164,13 @@ ptr_vector_insert_at(struct sol_ptr_vector *pv, void *ptr, unsigned int index, i
 {
     unsigned char *data, *dst, *src;
 
-    if (sol_vector_grow(&pv->base) != 0)
+    if (sol_vector_grow(&pv->base, 1) != 0)
         return -1;
 
     data = pv->base.data;
     dst = &data[pv->base.elem_size * (index + 1)];
     src = &data[pv->base.elem_size * index];
-    memmove(dst, src, pv->base.elem_size * (pv->base.len - index));
-    pv->base.len++;
+    memmove(dst, src, pv->base.elem_size * (pv->base.len - 1 - index));
 
     if (dir < 0) {
         sol_ptr_vector_set(pv, index, ptr);
