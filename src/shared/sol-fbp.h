@@ -62,6 +62,10 @@ struct sol_fbp_node {
     struct sol_vector meta;
     struct sol_vector in_ports;
     struct sol_vector out_ports;
+
+    /* To be used by client code. Allows associating client-specific
+     * data with a given node. */
+    void *user_data;
 };
 
 struct sol_fbp_conn {

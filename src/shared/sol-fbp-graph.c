@@ -120,6 +120,7 @@ sol_fbp_graph_add_node(struct sol_fbp_graph *g,
     n->name = name;
     n->component = component;
     n->position = position;
+    n->user_data = NULL;
     sol_vector_init(&n->meta, sizeof(struct sol_fbp_meta));
     sol_vector_init(&n->in_ports, sizeof(struct sol_fbp_port));
     sol_vector_init(&n->out_ports, sizeof(struct sol_fbp_port));

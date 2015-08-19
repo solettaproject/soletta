@@ -30,49 +30,45 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
-#include <limits.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "sol-arena.h"
-#include "sol-fbp.h"
+#include "sol-buffer.h"
+#include "sol-conffile.h"
 #include "sol-fbp-internal-log.h"
+#include "sol-fbp.h"
 #include "sol-file-reader.h"
-#include "sol-flow.h"
 #include "sol-flow-static.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
-#include "sol-conffile.h"
 #include "sol-missing.h"
 #include "sol-str-slice.h"
+#include "sol-util.h"
 
 #include "type-store.h"
 
 static struct {
     const char *conf_file;
     const char *output_file;
+    const char *export_symbol;
+
     struct sol_ptr_vector json_files;
     char *fbp_basename;
     char *fbp_dirname;
-    bool is_subflow;
 } args;
 
 static struct sol_arena *str_arena;
-
-static int fd;
+static struct sol_buffer output_buffer;
 
 /* In order to ensure that each generated fbp type has an unique id. */
 static unsigned int fbp_id_count;
 
 struct fbp_data {
-    struct type_description **descriptions;
     struct type_store *store;
     char *filename;
     char *name;
@@ -92,6 +88,30 @@ static struct port_description error_port = {
     .base_port_idx = SOL_FLOW_NODE_PORT_ERROR,
 };
 
+SOL_ATTR_PRINTF(1, 2) static void
+out(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    sol_buffer_append_vprintf(&output_buffer, fmt, ap);
+    va_end(ap);
+}
+
+static struct sol_fbp_node *
+get_node(const struct fbp_data *data, uint16_t i)
+{
+    return sol_vector_get(&data->graph.nodes, i);
+}
+
+static struct type_description *
+get_node_type_description(const struct fbp_data *data, uint16_t i)
+{
+    struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, i);
+
+    return n->user_data;
+}
+
 static void
 handle_suboptions(const struct sol_fbp_meta *meta,
     void (*handle_func)(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file), const char *fbp_file)
@@ -102,7 +122,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
     remaining = strndupa(meta->value.data, meta->value.len);
     SOL_NULL_CHECK(remaining);
 
-    dprintf(fd, "            .%.*s = {\n", SOL_STR_SLICE_PRINT(meta->key));
+    out("            .%.*s = {\n", SOL_STR_SLICE_PRINT(meta->key));
     while (remaining) {
         p = memchr(remaining, '|', strlen(remaining));
         if (p)
@@ -115,7 +135,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
         remaining = p + 1;
         i++;
     }
-    dprintf(fd, "            },\n");
+    out("            },\n");
 }
 
 static void
@@ -130,7 +150,7 @@ handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *opt
     }
 
     *p = '=';
-    dprintf(fd, "                .%s,\n", option);
+    out("                .%s,\n", option);
 }
 
 static bool
@@ -151,7 +171,7 @@ handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, ui
     const char *irange_drange_fields[5] = { "val", "min", "max", "step", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        dprintf(fd, "                .%s = %s,\n", irange_drange_fields[index], option);
+        out("                .%s = %s,\n", irange_drange_fields[index], option);
 }
 
 static void
@@ -161,7 +181,7 @@ handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t ind
                                   "red_max", "green_max", "blue_max", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        dprintf(fd, "                .%s = %s,\n", rgb_fields[index], option);
+        out("                .%s = %s,\n", rgb_fields[index], option);
 }
 
 static void
@@ -170,7 +190,7 @@ handle_direction_vector_suboption(const struct sol_fbp_meta *meta, char *option,
     const char *direction_vector_fields[7] = { "x", "y", "z", "min", "max", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        dprintf(fd, "                .%s = %s,\n", direction_vector_fields[index], option);
+        out("                .%s = %s,\n", direction_vector_fields[index], option);
 }
 
 static bool
@@ -214,12 +234,12 @@ handle_option(const struct sol_fbp_meta *meta, struct sol_vector *options, const
                 handle_suboptions(meta, handle_direction_vector_suboption, fbp_file);
         } else if (streq(o->data_type, "string")) {
             if (meta->value.data[0] == '"')
-                dprintf(fd, "            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
+                out("            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
             else
-                dprintf(fd, "            .%.*s = \"%.*s\",\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
+                out("            .%.*s = \"%.*s\",\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
 
         } else {
-            dprintf(fd, "            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
+            out("            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
         }
 
         return true;
@@ -398,16 +418,18 @@ generate_options(const struct fbp_data *data)
     uint16_t i, j;
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
+        struct type_description *desc = n->user_data;
+
         if (n->meta.len <= 0)
             continue;
 
-        dprintf(fd, "    static const struct %s opts%d =\n", data->descriptions[i]->options_symbol, i);
-        dprintf(fd, "        %s_OPTIONS_DEFAULTS(\n", data->descriptions[i]->symbol);
+        out("    static const struct %s opts%d =\n", desc->options_symbol, i);
+        out("        %s_OPTIONS_DEFAULTS(\n", desc->symbol);
         SOL_VECTOR_FOREACH_IDX (&n->meta, m, j) {
-            if (!handle_option(m, &data->descriptions[i]->options, data->filename))
+            if (!handle_option(m, &desc->options, data->filename))
                 return EXIT_FAILURE;
         }
-        dprintf(fd, "        );\n\n");
+        out("        );\n\n");
     }
 
     return true;
@@ -435,19 +457,19 @@ generate_connections(const struct fbp_data *data)
         spec->src_port = UINT16_MAX;
         spec->dst_port = UINT16_MAX;
 
-        src_desc = data->descriptions[conn->src];
-        dst_desc = data->descriptions[conn->dst];
+        src_desc = get_node_type_description(data, conn->src);
+        dst_desc = get_node_type_description(data, conn->dst);
 
         src_port_desc = check_port_existence(&src_desc->out_ports, &conn->src_port, &spec->src_port);
         if (!src_port_desc) {
-            struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, conn->src);
+            struct sol_fbp_node *n = get_node(data, conn->src);
             free(conn_specs);
             return handle_port_error(&n->out_ports, &conn->src_port, &n->component, data->filename);
         }
 
         if (src_port_desc->array_size > 0) {
             if (conn->src_port_idx == -1 || conn->src_port_idx >= src_port_desc->array_size) {
-                struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, conn->src);
+                struct sol_fbp_node *n = get_node(data, conn->src);
                 free(conn_specs);
                 return handle_port_index_error(&conn->position, src_port_desc, &n->component, conn->src_port_idx, data->filename);
             }
@@ -456,14 +478,14 @@ generate_connections(const struct fbp_data *data)
 
         dst_port_desc = check_port_existence(&dst_desc->in_ports, &conn->dst_port, &spec->dst_port);
         if (!dst_port_desc) {
-            struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, conn->dst);
+            struct sol_fbp_node *n = get_node(data, conn->dst);
             free(conn_specs);
             return handle_port_error(&n->in_ports, &conn->dst_port, &n->component, data->filename);
         }
 
         if (dst_port_desc->array_size > 0) {
             if (conn->dst_port_idx == -1 || conn->dst_port_idx >= dst_port_desc->array_size) {
-                struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, conn->dst);
+                struct sol_fbp_node *n = get_node(data, conn->dst);
                 free(conn_specs);
                 return handle_port_index_error(&conn->position, dst_port_desc, &n->component, conn->dst_port_idx, data->filename);
             }
@@ -484,13 +506,13 @@ generate_connections(const struct fbp_data *data)
     qsort(conn_specs, data->graph.conns.len, sizeof(struct sol_flow_static_conn_spec),
         compare_conn_specs);
 
-    dprintf(fd, "    static const struct sol_flow_static_conn_spec conns[] = {\n");
+    out("    static const struct sol_flow_static_conn_spec conns[] = {\n");
     for (i = 0; i < data->graph.conns.len; i++) {
         struct sol_flow_static_conn_spec *spec = &conn_specs[i];
-        dprintf(fd, "        { %d, %d, %d, %d },\n",
+        out("        { %d, %d, %d, %d },\n",
             spec->src, spec->src_port, spec->dst, spec->dst_port);
     }
-    dprintf(fd, "        SOL_FLOW_STATIC_CONN_SPEC_GUARD\n"
+    out("        SOL_FLOW_STATIC_CONN_SPEC_GUARD\n"
         "    };\n\n");
 
     free(conn_specs);
@@ -513,7 +535,7 @@ generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fb
     if (e->port_idx == -1) {
         uint16_t last = base + (p->array_size ? : 1);
         for (; base < last; base++) {
-            dprintf(fd, "        { %d, %d },\n", e->node, base);
+            out("        { %d, %d },\n", e->node, base);
         }
     } else {
         if (e->port_idx >= p->array_size) {
@@ -522,7 +544,7 @@ generate_exported_port(const char *node, struct sol_vector *ports, struct sol_fb
                 SOL_STR_SLICE_PRINT(e->exported_name), e->port_idx, p->array_size);
             return false;
         }
-        dprintf(fd, "        { %d, %d },\n", e->node, base + e->port_idx);
+        out("        { %d, %d },\n", e->node, base + e->port_idx);
     }
 
     return true;
@@ -536,24 +558,24 @@ generate_exports(const struct fbp_data *data)
     uint16_t i;
 
     if (data->graph.exported_in_ports.len > 0) {
-        dprintf(fd, "    static const struct sol_flow_static_port_spec exported_in[] = {\n");
+        out("    static const struct sol_flow_static_port_spec exported_in[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&data->graph.exported_in_ports, e, i) {
-            n = data->descriptions[e->node];
+            n = get_node_type_description(data, e->node);
             if (!generate_exported_port(n->name, &n->in_ports, e, data->filename))
                 return false;
         }
-        dprintf(fd, "        SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
+        out("        SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
             "    };\n\n");
     }
 
     if (data->graph.exported_out_ports.len > 0) {
-        dprintf(fd, "    static const struct sol_flow_static_port_spec exported_out[] = {\n");
+        out("    static const struct sol_flow_static_port_spec exported_out[] = {\n");
         SOL_VECTOR_FOREACH_IDX (&data->graph.exported_out_ports, e, i) {
-            n = data->descriptions[e->node];
+            n = get_node_type_description(data, e->node);
             if (!generate_exported_port(n->name, &n->out_ports, e, data->filename))
                 return false;
         }
-        dprintf(fd, "        SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
+        out("        SOL_FLOW_STATIC_PORT_SPEC_GUARD\n"
             "    };\n\n");
     }
 
@@ -568,7 +590,7 @@ generate_node_specs(const struct fbp_data *data)
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
-        dprintf(fd, "    const struct sol_flow_node_type *type_%s = create_%d_%s_type();\n",
+        out("    const struct sol_flow_node_type *type_%s = create_%d_%s_type();\n",
             dec_type->name, dec_type->id, dec_type->name);
     }
 
@@ -576,16 +598,16 @@ generate_node_specs(const struct fbp_data *data)
      * since sol_flow_static_new_type() doesn't copy the informations.
      * Also, we had to set NULL here and set the real value after because
      * the types are not constant values. */
-    dprintf(fd, "\n    static struct sol_flow_static_node_spec nodes[] = {\n");
+    out("\n    static struct sol_flow_static_node_spec nodes[] = {\n");
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
         if (n->meta.len <= 0) {
-            dprintf(fd, "        [%d] = {NULL, \"%.*s\", NULL},\n", i, SOL_STR_SLICE_PRINT(n->name));
+            out("        [%d] = {NULL, \"%.*s\", NULL},\n", i, SOL_STR_SLICE_PRINT(n->name));
         } else {
-            dprintf(fd, "        [%d] = {NULL, \"%.*s\", (struct sol_flow_node_options *) &opts%d},\n",
+            out("        [%d] = {NULL, \"%.*s\", (struct sol_flow_node_options *) &opts%d},\n",
                 i, SOL_STR_SLICE_PRINT(n->name), i);
         }
     }
-    dprintf(fd, "        SOL_FLOW_STATIC_NODE_SPEC_GUARD\n"
+    out("        SOL_FLOW_STATIC_NODE_SPEC_GUARD\n"
         "    };\n");
 }
 
@@ -593,20 +615,18 @@ static void
 generate_node_type_assignments(const struct fbp_data *data)
 {
     struct declared_fbp_type *dec_type;
+    struct sol_fbp_node *n;
     uint16_t i;
 
-    dprintf(fd, "\n");
+    out("\n");
 
-    for (i = 0; i < data->graph.nodes.len; i++) {
-        char *symbol = data->descriptions[i]->symbol;
-
-        dprintf(fd, "    if (%s->init_type)\n", symbol);
-        dprintf(fd, "        %s->init_type();\n\n", symbol);
-        dprintf(fd, "    nodes[%d].type = %s;\n\n", i, symbol);
+    SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
+        struct type_description *desc = n->user_data;
+        out("    nodes[%d].type = %s;\n", i, desc->symbol);
     }
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
-        dprintf(fd, "\n    if (!type_%s)\n"
+        out("\n    if (!type_%s)\n"
             "        return NULL;\n",
             dec_type->name);
     }
@@ -615,7 +635,7 @@ generate_node_type_assignments(const struct fbp_data *data)
 static bool
 generate_create_type_function(struct fbp_data *data)
 {
-    dprintf(fd, "\nstatic const struct sol_flow_node_type *\n"
+    out("\nstatic const struct sol_flow_node_type *\n"
         "create_%d_%s_type(void)\n"
         "{\n",
         data->id,
@@ -626,120 +646,164 @@ generate_create_type_function(struct fbp_data *data)
 
     generate_node_specs(data);
 
-    dprintf(fd, "\n"
+    out("\n"
         "    struct sol_flow_static_spec spec = {\n"
-        "        .api_version = %u,\n"
+        "        .api_version = SOL_FLOW_STATIC_API_VERSION,\n"
         "        .nodes = nodes,\n"
         "        .conns = conns,\n"
         "        .exported_in = %s,\n"
         "        .exported_out = %s,\n"
         "    };\n",
-        SOL_FLOW_STATIC_API_VERSION,
         data->graph.exported_in_ports.len > 0 ? "exported_in" : "NULL",
         data->graph.exported_out_ports.len > 0 ? "exported_out" : "NULL");
 
     generate_node_type_assignments(data);
 
-    dprintf(fd, "\n"
+    out("\n"
         "    return sol_flow_static_new_type(&spec);\n"
         "}\n\n");
 
     return true;
 }
 
-#define UNUSED(x) (void)(x)
+struct generate_context {
+    struct sol_vector modules;
+    struct sol_vector types_to_initialize;
+};
+
+static bool
+is_declared_type(struct fbp_data *data, const struct sol_str_slice name)
+{
+    struct declared_fbp_type *dec_type;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
+        if (sol_str_slice_str_eq(name, dec_type->name))
+            return true;
+    }
+    return false;
+}
+
+static bool
+contains_slice(const struct sol_vector *v, const struct sol_str_slice name)
+{
+    struct sol_str_slice *slice;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (v, slice, i) {
+        if (sol_str_slice_eq(*slice, name))
+            return true;
+    }
+    return false;
+}
 
 static void
-generate_includes(struct sol_vector *fbp_data_vector)
+collect_context_info(struct generate_context *ctx, struct fbp_data *data)
 {
-    struct sol_vector headers = SOL_VECTOR_INIT(struct sol_str_slice);
-    struct sol_str_slice *header;
     struct sol_fbp_node *node;
-    struct fbp_data *data;
-    uint16_t i, j, k;
+    uint16_t i;
 
-    /* Make sure to #include all the node type's headers in use. The
-     * header name is inferred on the node's module name. */
+    SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, node, i) {
+        struct type_description *desc;
+        const char *sep;
+        struct sol_str_slice name, module, symbol;
 
-    SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
-        SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, node, j) {
-            const char *sep;
-            struct declared_fbp_type *dec_type;
-            struct sol_str_slice module;
-            bool found = false, declared = false;
-            UNUSED(node);
+        /* Need to go via descriptions to get the real resolved name,
+         * after conffile pass. */
+        desc = node->user_data;
+        name = sol_str_slice_from_str(desc->name);
 
-            /* Need to go via descriptions to get the real resolved
-             * name (after conffile pass). */
-            module = sol_str_slice_from_str(data->descriptions[j]->name);
-            sep = strstr(module.data, "/");
-            if (sep) {
-                module.len = sep - module.data;
-            }
+        /* Ignore since these are completely defined in the generated code. */
+        if (is_declared_type(data, name)) {
+            continue;
+        }
 
-            SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, k) {
-                if (sol_str_slice_str_eq(module, dec_type->name)) {
-                    declared = true;
-                    break;
-                }
-            }
+        symbol = sol_str_slice_from_str(desc->symbol);
+        if (!contains_slice(&ctx->types_to_initialize, symbol)) {
+            struct sol_str_slice *t;
+            t = sol_vector_append(&ctx->types_to_initialize);
+            *t = symbol;
+        }
 
-            /* No header files for declared types, since they will be
-             * declared and defined in the generated code. */
-            if (declared)
-                break;
+        module = name;
+        sep = strstr(name.data, "/");
+        if (sep) {
+            module = name;
+            module.len = sep - module.data;
+        }
 
-            SOL_VECTOR_FOREACH_IDX (&headers, header, k) {
-                if (sol_str_slice_eq(*header, module)) {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                header = sol_vector_append(&headers);
-                *header = module;
-            }
+        if (!contains_slice(&ctx->modules, module)) {
+            struct sol_str_slice *m;
+            m = sol_vector_append(&ctx->modules);
+            *m = module;
         }
     }
-
-    SOL_VECTOR_FOREACH_IDX (&headers, header, i) {
-        dprintf(fd, "#include \"%.*s-gen.h\"\n", SOL_STR_SLICE_PRINT(*header));
-    }
-
-    sol_vector_clear(&headers);
 }
 
 static int
 generate(struct sol_vector *fbp_data_vector)
 {
-    struct fbp_data *data;
-    uint16_t i;
+    struct generate_context _ctx = {
+        .modules = SOL_VECTOR_INIT(struct sol_str_slice),
+        .types_to_initialize = SOL_VECTOR_INIT(struct sol_str_slice),
+    }, *ctx = &_ctx;
 
-    if (!args.is_subflow) {
-        dprintf(fd, "#include \"sol-flow.h\"\n"
-            "#include \"sol-flow-static.h\"\n"
-            "#include \"sol-mainloop.h\"\n"
-            "\n");
+    struct fbp_data *data;
+    struct sol_str_slice *module, *symbol;
+    uint16_t i;
+    int r;
+
+    out(
+        "#include \"sol-flow.h\"\n"
+        "#include \"sol-flow-static.h\"\n");
+
+    if (!args.export_symbol) {
+        out("#include \"sol-mainloop.h\"\n");
     }
 
-    generate_includes(fbp_data_vector);
+    out("\n");
 
+    SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
+        collect_context_info(ctx, data);
+    }
+
+    /* Header name is currently inferred from the module name. */
+    SOL_VECTOR_FOREACH_IDX (&ctx->modules, module, i) {
+        out("#include \"%.*s-gen.h\"\n", SOL_STR_SLICE_PRINT(*module));
+    }
+
+    /* Reverse since the dependencies appear later in the vector. */
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
         if (!generate_create_type_function(data)) {
             SOL_ERR("Couldn't generate %s type function", data->name);
-            return EXIT_FAILURE;
+            r = EXIT_FAILURE;
+            goto end;
         }
     }
 
-    if (!args.is_subflow) {
-        dprintf(fd,
+    out(
+        "static void\n"
+        "initialize_types(void)\n"
+        "{\n");
+    SOL_VECTOR_FOREACH_IDX (&ctx->types_to_initialize, symbol, i) {
+        out(
+            "    if (%.*s->init_type)\n"
+            "        %.*s->init_type();\n",
+            SOL_STR_SLICE_PRINT(*symbol),
+            SOL_STR_SLICE_PRINT(*symbol));
+    }
+    out(
+        "}\n\n");
+
+    if (!args.export_symbol) {
+        out(
             "static struct sol_flow_node *flow;\n"
             "\n"
             "static void\n"
             "startup(void)\n"
             "{\n"
             "    const struct sol_flow_node_type *type;\n\n"
+            "    initialize_types();\n"
             "    type = create_0_root_type();\n"
             "    if (!type)\n"
             "        return;\n\n"
@@ -751,9 +815,27 @@ generate(struct sol_vector *fbp_data_vector)
             "    sol_flow_node_del(flow);\n"
             "}\n\n"
             "SOL_MAIN_DEFAULT(startup, shutdown);\n");
+    } else {
+        out(
+            "const struct sol_flow_node_type *\n"
+            "%s(void) {\n"
+            "    static const struct sol_flow_node_type *type = NULL;\n"
+            "    if (!type) {\n"
+            "        initialize_types();\n"
+            "        type = create_0_root_type();\n"
+            "    }\n"
+            "\n"
+            "    return type;\n"
+            "}\n",
+            args.export_symbol);
     }
 
-    return EXIT_SUCCESS;
+    r = EXIT_SUCCESS;
+
+end:
+    sol_vector_clear(&ctx->modules);
+    sol_vector_clear(&ctx->types_to_initialize);
+    return r;
 }
 
 static bool
@@ -863,17 +945,21 @@ handle_json_path(const char *path)
 static void
 print_usage(const char *program)
 {
-    fprintf(stderr, "usage: %s [options] [-c conf_file]"
-        "[-j json_file -j json_file ...] fbp_file output_file\n"
-        "\n"
-        "Generates C code from fbp_file to output_file.\n\n"
+    fprintf(stderr, "usage: %s [-c CONF] [-j DESC -j DESC...] [-s SYMBOL] INPUT OUTPUT\n"
+        "Generates C code from INPUT into the OUTPUT file.\n\n"
         "Options:\n"
-        "    -s  Generate a subflow code (without includes and main).\n",
+        "    -c  Uses the CONF .json file for resolving unknown types.\n"
+        "    -j  When resolving types, use the passed DESC files. If DESC is\n"
+        "        a directory then all the .json files in the directory will be used.\n"
+        "        Multiple -j can be passed.\n"
+        "    -s  Define a function named SYMBOL that will return the type from FBP\n"
+        "        and don't generate any main function or entry point.\n"
+        "\n",
         program);
 }
 
 static bool
-sol_fbp_generator_handle_args(int argc, char *argv[])
+parse_args(int argc, char *argv[])
 {
     char *filename;
     bool has_json_file = false;
@@ -886,18 +972,24 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
 
     sol_ptr_vector_init(&args.json_files);
 
-    while ((opt = getopt(argc, argv, "sc:j:")) != -1) {
+    while ((opt = getopt(argc, argv, "s:c:j:")) != -1) {
         switch (opt) {
         case 's':
-            args.is_subflow = true;
+            args.export_symbol = optarg;
             break;
         case 'c':
+            if (access(optarg, R_OK) == -1) {
+                SOL_ERR("Can't access conf file '%s': %s",
+                    optarg, sol_util_strerrora(errno));
+                return false;
+            }
             args.conf_file = optarg;
             break;
         case 'j':
             has_json_file = true;
             if (!handle_json_path(optarg)) {
-                SOL_ERR("Couldn handle JSON path: %s. %s", optarg, sol_util_strerrora(errno));
+                SOL_ERR("Can't access JSON description path '%s': %s",
+                    optarg, sol_util_strerrora(errno));
                 return false;
             }
             break;
@@ -962,12 +1054,14 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
 
     sol_vector_init(&type.in_ports, sizeof(struct port_description));
     SOL_VECTOR_FOREACH_IDX (&data->graph.exported_in_ports, e, i) {
+        struct type_description *desc = get_node_type_description(data, e->node);
+
         p = sol_vector_append(&type.in_ports);
         SOL_NULL_CHECK_GOTO(p, fail_in_ports);
 
         p->name = strndupa(e->exported_name.data, e->exported_name.len);
 
-        SOL_VECTOR_FOREACH_IDX (&data->descriptions[e->node]->in_ports, port, j) {
+        SOL_VECTOR_FOREACH_IDX (&desc->in_ports, port, j) {
             if (streqn(e->port.data, port->name, e->port.len)) {
                 p->data_type = strdupa(port->data_type);
                 p->array_size = port->array_size;
@@ -979,12 +1073,14 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
 
     sol_vector_init(&type.out_ports, sizeof(struct port_description));
     SOL_VECTOR_FOREACH_IDX (&data->graph.exported_out_ports, e, i) {
+        struct type_description *desc = get_node_type_description(data, e->node);
+
         p = sol_vector_append(&type.out_ports);
         SOL_NULL_CHECK_GOTO(p, fail_out_ports);
 
         p->name = strndupa(e->exported_name.data, e->exported_name.len);
 
-        SOL_VECTOR_FOREACH_IDX (&data->descriptions[e->node]->out_ports, port, j) {
+        SOL_VECTOR_FOREACH_IDX (&desc->out_ports, port, j) {
             if (streqn(e->port.data, port->name, e->port.len)) {
                 p->data_type = strdupa(port->data_type);
                 p->array_size = port->array_size;
@@ -1014,13 +1110,9 @@ resolve_node(struct fbp_data *data, struct type_store *common_store)
     struct sol_fbp_node *n;
     uint16_t i;
 
-    data->descriptions = calloc(data->graph.nodes.len, sizeof(void *));
-    if (!data->descriptions)
-        return false;
-
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
-        data->descriptions[i] = sol_fbp_generator_resolve_type(common_store, data->store, n, data->filename);
-        if (!data->descriptions[i])
+        n->user_data = sol_fbp_generator_resolve_type(common_store, data->store, n, data->filename);
+        if (!n->user_data)
             return false;
     }
 
@@ -1106,8 +1198,10 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
         data_idx = fbp_data_vector->len - 1;
 
         SOL_VECTOR_FOREACH_IDX (&data->graph.declarations, dec, i) {
-            if (!sol_str_slice_str_eq(dec->kind, "fbp"))
-                continue;
+            if (!sol_str_slice_str_eq(dec->kind, "fbp")) {
+                SOL_ERR("DECLARE metatype '%.*s' not supported.", SOL_STR_SLICE_PRINT(dec->kind));
+                return NULL;
+            }
 
             dec_file = strndupa(dec->contents.data, dec->contents.len);
             dec_name = strndupa(dec->name.data, dec->name.len);
@@ -1144,6 +1238,36 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
     return data;
 }
 
+static int
+write_file(const char *filename, const struct sol_buffer *buf)
+{
+    int fd;
+    char *p = buf->data;
+    ssize_t size = buf->used;
+    int err = 0;
+
+    fd = open(filename, O_CREAT | O_RDWR | O_CLOEXEC, 0600);
+    if (fd < 0)
+        return -errno;
+
+    while (size > 0) {
+        ssize_t written = write(fd, p, size);
+        if (written < 0) {
+            if (errno == EINTR || errno == EAGAIN) {
+                continue;
+            } else {
+                err = -errno;
+                break;
+            }
+        }
+        p += written;
+        size -= written;
+    }
+
+    close(fd);
+    return err;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -1152,12 +1276,14 @@ main(int argc, char *argv[])
     struct sol_ptr_vector file_readers;
     struct sol_vector fbp_data_vector;
     struct type_store *common_store;
-    char temp_file[] = "sol-generated.c.tmp-XXXXXX";
     uint16_t i;
     uint8_t result = EXIT_FAILURE;
+    int err;
 
     if (sol_init() < 0)
         goto end;
+
+    sol_buffer_init(&output_buffer);
 
     str_arena = sol_arena_new();
     if (!str_arena) {
@@ -1165,13 +1291,8 @@ main(int argc, char *argv[])
         goto fail_arena;
     }
 
-    if (!sol_fbp_generator_handle_args(argc, argv))
+    if (!parse_args(argc, argv))
         goto fail_args;
-
-    if (args.conf_file && access(args.conf_file, R_OK) == -1) {
-        SOL_ERR("Couldn't open file '%s': %s", args.conf_file, sol_util_strerrora(errno));
-        goto fail_access;
-    }
 
     common_store = type_store_new();
     if (!common_store)
@@ -1184,27 +1305,23 @@ main(int argc, char *argv[])
     if (!create_fbp_data(&fbp_data_vector, &file_readers, common_store, "root", args.fbp_basename))
         goto fail_data;
 
-    fd = mkostemp(temp_file, O_RDWR | O_CLOEXEC);
-    if (fd == -1) {
-        SOL_ERR("Couldn't open file to write.");
-        goto fail_open;
-    }
-
     result = generate(&fbp_data_vector);
+    if (result != EXIT_SUCCESS)
+        goto fail_generate;
 
-    if (result == EXIT_SUCCESS) {
-        if (rename((const char *)temp_file, args.output_file) != 0)
-            SOL_ERR("Couldn't write to %s. %s", args.output_file, sol_util_strerrora(errno));
-    } else {
-        if (remove((const char *)temp_file) != 0)
-            SOL_ERR("Couldn't remove temporary file %s. %s", temp_file, sol_util_strerrora(errno));
+    err = write_file(args.output_file, &output_buffer);
+    if (err < 0) {
+        SOL_ERR("Couldn't write file '%s': %s",
+            args.output_file, sol_util_strerrora(-err));
+        goto fail_write;
     }
 
-    close(fd);
-fail_open:
+    result = EXIT_SUCCESS;
+
+fail_write:
+fail_generate:
 fail_data:
     SOL_VECTOR_FOREACH_IDX (&fbp_data_vector, data, i) {
-        free(data->descriptions);
         type_store_del(data->store);
         sol_fbp_graph_fini(&data->graph);
         sol_vector_clear(&data->declared_fbp_types);
@@ -1216,11 +1333,11 @@ fail_data:
 fail_store_load:
     type_store_del(common_store);
 fail_store:
-fail_access:
 fail_args:
     sol_arena_del(str_arena);
 fail_arena:
     sol_shutdown();
+    sol_buffer_fini(&output_buffer);
 end:
     return result;
 }
