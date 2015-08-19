@@ -33,13 +33,11 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include <unicode/ustring.h>
-#include <unicode/utypes.h>
-
 #include "sol-flow-internal.h"
 
 #include "string-gen.h"
 #include "string-icu.h"
+#include "string-regexp.h"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -444,17 +442,11 @@ string_split_open(struct sol_flow_node *node,
 }
 
 static void
-clear_substrings(struct string_split_data *mdata)
-{
-    sol_vector_clear(&mdata->substrings);
-}
-
-static void
 string_split_close(struct sol_flow_node *node, void *data)
 {
     struct string_split_data *mdata = data;
 
-    clear_substrings(mdata);
+    sol_vector_clear(&mdata->substrings);
     free(mdata->string);
     free(mdata->separator);
 }
@@ -478,6 +470,7 @@ icu_str_split(const struct sol_str_slice slice,
 
 #define CREATE_SLICE(_str, _len) \
     do { \
+        struct sol_str_slice *s; \
         s = sol_vector_append(&v); \
         if (!s) \
             goto err; \
@@ -486,7 +479,6 @@ icu_str_split(const struct sol_str_slice slice,
     } while (0)
 
     while (str && (v.len < max_split + 1)) {
-        struct sol_str_slice *s;
         UChar *token = u_strFindFirst(str, len, delim, dlen);
         if (!token) {
             CREATE_SLICE(str, len);
@@ -501,13 +493,13 @@ icu_str_split(const struct sol_str_slice slice,
         len -= (token - str) + dlen;
         str = token + dlen;
     }
-#undef CREATE_SLICE
 
     return v;
 
 err:
     sol_vector_clear(&v);
     return v;
+#undef CREATE_SLICE
 }
 
 static inline struct sol_str_slice

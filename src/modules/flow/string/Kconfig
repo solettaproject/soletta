@@ -7,3 +7,27 @@ config USE_ICU
 config FLOW_NODE_TYPE_STRING
 	tristate "Node type: string"
 	default y
+	help
+		The string family of nodes provide string facilities
+		on your flow, acting on the strings contained in
+		string packets:
+
+		 - compare/concatenate two strings
+		 - split a string in others
+		 - replace a substring in a string
+		 - measure the lenght of the string
+		 - change the string to lower/uppercase
+		 - search for regular expression patterns in a string
+		 - replace regular expression patterns in a string
+
+		For the nodes dealing with regular expressions, only
+		one RE backend is supported: libpcre. If that
+		dependency is not present, those nodes will be built
+		but made useless -- they will always generate error
+		packets after any input ones.
+
+		For each of the remaining string nodes, there may be
+		two implementations (depending on the presence of the
+		ICU library or not). We strongly recommend that you
+		build Soletta with ICU, so that the full UTF-8 set of
+		characters is properly handled by the string nodes.
