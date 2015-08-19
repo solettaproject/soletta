@@ -30,7 +30,7 @@
       "headers": [
         "<string.h>"
       ],
-      "fragment": "strndupa(0,0);",
+      "fragment": "strdupa(0);",
       "cflags": {
         "comment": "append to COMMON_CFLAGS so it's used for further checks",
         "append_to": "COMMON_CFLAGS",
