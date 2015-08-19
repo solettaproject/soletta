@@ -474,34 +474,57 @@ end:
     return name;
 }
 
-typedef int (*type_creator_func)(
-    struct parse_state *,
-    struct sol_str_slice,
-    struct sol_str_slice,
+#define SOL_FLOW_METATYPE_CONTEXT_API_VERSION (1)
+
+struct sol_flow_metatype_context {
+    uint16_t api_version;
+
+    struct sol_str_slice name;
+    struct sol_str_slice contents;
+
+    /* Buffers are guaranteed to be valid only until the creator
+     * function returns. */
+    int (*read_file)(
+        const struct sol_flow_metatype_context *ctx,
+        const char *name, const char **buf, size_t *size);
+
+    /* Any node types produced by the creator function should be
+     * stored using this function, it takes ownership of the type. */
+    int (*store_type)(
+        const struct sol_flow_metatype_context *ctx,
+        struct sol_flow_node_type *type);
+};
+
+typedef int (*sol_flow_metatype_creator_func)(
+    const struct sol_flow_metatype_context *,
     const struct sol_flow_node_type **);
+
+struct metatype_context_internal {
+    struct sol_flow_metatype_context base;
+    struct sol_flow_parser *parser;
+};
 
 static int
 create_fbp_type(
-    struct parse_state *state,
-    struct sol_str_slice name,
-    struct sol_str_slice contents,
+    const struct sol_flow_metatype_context *ctx,
     const struct sol_flow_node_type **type)
 {
+    struct metatype_context_internal *internal_ctx =
+        (struct metatype_context_internal *)ctx;
+
     const struct sol_flow_node_type *result;
-    const struct sol_flow_parser_client *client = state->parser->client;
     const char *buf, *filename;
     size_t size;
     int err;
 
-    if (!client || !client->read_file)
-        return -ENOSYS;
-
-    filename = sol_arena_strdup_slice(state->arena, contents);
-    err = client->read_file(client->data, filename, &buf, &size);
+    filename = strndupa(ctx->contents.data, ctx->contents.len);
+    err = ctx->read_file(ctx, filename, &buf, &size);
     if (err < 0)
         return -EINVAL;
 
-    result = sol_flow_parse_buffer(state->parser, buf, size, filename);
+    /* Because its reusing the same parser, there's no need to pass
+     * ownership using store_type(), the parser already have it. */
+    result = sol_flow_parse_buffer(internal_ctx->parser, buf, size, filename);
     if (!result)
         return -EINVAL;
 
@@ -512,22 +535,16 @@ create_fbp_type(
 #ifdef JAVASCRIPT
 static int
 create_js_type(
-    struct parse_state *state,
-    struct sol_str_slice name,
-    struct sol_str_slice contents,
+    const struct sol_flow_metatype_context *ctx,
     const struct sol_flow_node_type **type)
 {
-    const struct sol_flow_parser_client *client = state->parser->client;
     const char *buf, *filename;
     struct sol_flow_node_type *result;
     size_t size;
     int err;
 
-    SOL_NULL_CHECK(client, -ENOSYS);
-    SOL_NULL_CHECK(client->read_file, -ENOSYS);
-
-    filename = strndupa(contents.data, contents.len);
-    err = client->read_file(client->data, filename, &buf, &size);
+    filename = strndupa(ctx->contents.data, ctx->contents.len);
+    err = ctx->read_file(ctx, filename, &buf, &size);
     if (err < 0)
         return -EINVAL;
 
@@ -535,9 +552,10 @@ create_js_type(
     if (!result)
         return -EINVAL;
 
-    if (sol_ptr_vector_append(&state->parser->types, result) < 0) {
+    err = ctx->store_type(ctx, result);
+    if (err < 0) {
         sol_flow_node_type_del(result);
-        return -ENOMEM;
+        return -err;
     }
 
     *type = result;
@@ -554,6 +572,31 @@ static const struct sol_str_table_ptr creator_table[] = {
 };
 
 static int
+metatype_read_file(
+    const struct sol_flow_metatype_context *ctx,
+    const char *name, const char **buf, size_t *size)
+{
+    const struct metatype_context_internal *internal_ctx =
+        (const struct metatype_context_internal *)ctx;
+    const struct sol_flow_parser_client *client = internal_ctx->parser->client;
+
+    if (!client || !client->read_file)
+        return -ENOSYS;
+    return client->read_file(client->data, name, buf, size);
+}
+
+static int
+metatype_store_type(
+    const struct sol_flow_metatype_context *ctx,
+    struct sol_flow_node_type *type)
+{
+    const struct metatype_context_internal *internal_ctx =
+        (const struct metatype_context_internal *)ctx;
+
+    return sol_ptr_vector_append(&internal_ctx->parser->types, type);
+}
+
+static int
 parse_declarations(struct parse_state *state)
 {
     struct sol_fbp_declaration *dec;
@@ -567,8 +610,17 @@ parse_declarations(struct parse_state *state)
     SOL_VECTOR_FOREACH_IDX (&state->graph.declarations, dec, i) {
         int err;
         const struct sol_flow_node_type *type = NULL;
-        type_creator_func creator = sol_str_table_ptr_lookup_fallback(
+        sol_flow_metatype_creator_func creator = sol_str_table_ptr_lookup_fallback(
             creator_table, dec->metatype, NULL);
+        struct metatype_context_internal internal_ctx = {
+            .base = {
+                .name = dec->name,
+                .contents = dec->contents,
+                .read_file = metatype_read_file,
+                .store_type = metatype_store_type,
+            },
+            .parser = state->parser,
+        };
 
         if (!creator) {
             SOL_ERR("Couldn't handle declaration '%.*s' of metatype '%.*s'",
@@ -577,7 +629,7 @@ parse_declarations(struct parse_state *state)
             return -EBADF;
         }
 
-        err = creator(state, dec->name, dec->contents, &type);
+        err = creator(&internal_ctx.base, &type);
         if (err < 0) {
             SOL_ERR("Failed when creating type '%.*s' of metatype '%.*s'",
                 SOL_STR_SLICE_PRINT(dec->name),
