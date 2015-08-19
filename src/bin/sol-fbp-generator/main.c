@@ -649,7 +649,7 @@ generate_create_type_function(struct fbp_data *data)
 
 #define UNUSED(x) (void)(x)
 
-static void
+static bool
 generate_includes(struct sol_vector *fbp_data_vector)
 {
     struct sol_vector headers = SOL_VECTOR_INIT(struct sol_str_slice);
@@ -698,6 +698,8 @@ generate_includes(struct sol_vector *fbp_data_vector)
 
             if (!found) {
                 header = sol_vector_append(&headers);
+                if (!header)
+                    return false;
                 *header = module;
             }
         }
@@ -708,6 +710,7 @@ generate_includes(struct sol_vector *fbp_data_vector)
     }
 
     sol_vector_clear(&headers);
+    return true;
 }
 
 static int
@@ -723,7 +726,8 @@ generate(struct sol_vector *fbp_data_vector)
             "\n");
     }
 
-    generate_includes(fbp_data_vector);
+    if (!generate_includes(fbp_data_vector))
+        return EXIT_FAILURE;
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
         if (!generate_create_type_function(data)) {
