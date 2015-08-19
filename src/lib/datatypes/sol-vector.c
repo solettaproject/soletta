@@ -78,7 +78,7 @@ sol_vector_append(struct sol_vector *v)
 SOL_API void *
 sol_vector_extend(struct sol_vector *v, uint16_t amount)
 {
-    unsigned char *data;
+    void *new_elems;
     int err;
 
     if (!v || amount == 0) {
@@ -92,8 +92,10 @@ sol_vector_extend(struct sol_vector *v, uint16_t amount)
         return NULL;
     }
 
-    data = v->data;
-    return data + (v->elem_size * (v->len - amount));
+    new_elems = (unsigned char *)v->data + (v->elem_size * (v->len - amount));
+    memset(new_elems, 0, v->elem_size * amount);
+
+    return new_elems;
 }
 
 static void
