@@ -298,6 +298,19 @@
       "fragment": "int v = IFLA_INET6_ADDR_GEN_MODE;"
     },
     {
+      "dependency": "decl_ifla_inet6_max",
+      "type": "ccode",
+      "headers": [
+        "<netinet/in.h>",
+        "<netinet/ether.h>",
+        "<linux/rtnetlink.h>",
+        "<net/if.h>",
+        "<linux/if_link.h>",
+        "<linux/if_addr.h>"
+      ],
+      "fragment": "int v = IFLA_INET6_MAX;"
+    },
+    {
       "dependency": "strtod_l",
       "type": "ccode",
       "headers": [

@@ -100,7 +100,7 @@ memmem(const void *haystack, size_t haystacklen, const void *needle, size_t need
 }
 #endif
 
-#ifndef HAVE_DECL_IFLA_INET6_ADDR_GEN_MODE
+#ifndef HAVE_DECL_IFLA_INET6_MAX
 #define IFLA_INET6_UNSPEC 0
 #define IFLA_INET6_FLAGS 1
 #define IFLA_INET6_CONF 2
@@ -112,6 +112,11 @@ memmem(const void *haystack, size_t haystacklen, const void *needle, size_t need
 #define IFLA_INET6_ADDR_GEN_MODE 8
 #define __IFLA_INET6_MAX 9
 #define IFLA_INET6_MAX (__IFLA_INET6_MAX - 1)
+#elif !defined(HAVE_DECL_IFLA_INET6_ADDR_GEN_MODE)
+#define IFLA_INET6_ADDR_GEN_MODE 8
+#endif
+
+#ifndef HAVE_DECL_IFLA_INET6_ADDR_GEN_MODE
 #define IN6_ADDR_GEN_MODE_EUI64 0
 #define IN6_ADDR_GEN_MODE_NONE 1
 #endif
