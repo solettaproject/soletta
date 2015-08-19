@@ -46,6 +46,7 @@ class DepContext:
     def __init__(self):
         self.kconfig = {}
         self.makefile_vars = {}
+        self.log_content = []
 
     def add_kconfig(self, k, t, v):
         self.kconfig[k] = {"value": v, "type": t}
@@ -80,10 +81,23 @@ class DepContext:
             return var["value"]
         return ""
 
-def run_command(cmd):
+    def add_log_content(self, line):
+        self.log_content.append(line)
+
+    def write_log_content(self, path):
+        if not self.log_content:
+            return
+
+        with open(path, "w+") as f:
+            for line in self.log_content:
+                f.write("%s\n" % line)
+
+def run_command(cmd, context):
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT,
                                          shell=True, universal_newlines=True)
+        context.add_log_content("Running command: %s" % cmd)
+        context.add_log_content("Command output:\n%s" % (output if output else "None"))
         return output.replace("\n", "").strip(), True
     except subprocess.CalledProcessError as e:
         return e.output, False
@@ -99,17 +113,17 @@ def handle_pkgconfig_check(args, conf, context):
 
     if exact_ver:
         cmd = "%s --exact-version=%s %s" % (args.pkg_config, exact_ver, pkg)
-        result, status = run_command(cmd)
+        result, status = run_command(cmd, context)
         if not status:
             ver_match = False
     elif atleast_ver:
         cmd = "%s --atleast-version=%s %s" % (args.pkg_config, atleast_ver, pkg)
-        result, status = run_command(cmd)
+        result, status = run_command(cmd, context)
         if not status:
             ver_match = False
     elif max_ver:
         cmd = "%s --max-version=%s %s" % (args.pkg_config, max_ver, pkg)
-        result, status = run_command(cmd)
+        result, status = run_command(cmd, context)
         if not status:
             ver_match = False
 
@@ -119,8 +133,8 @@ def handle_pkgconfig_check(args, conf, context):
         cflags_cmd = "%s --cflags %s" % (args.pkg_config, pkg)
         ldflags_cmd = "%s --libs %s" % (args.pkg_config, pkg)
 
-        cflags, cflags_stat = run_command(cflags_cmd)
-        ldflags, ldflags_stat = run_command(ldflags_cmd)
+        cflags, cflags_stat = run_command(cflags_cmd, context)
+        ldflags, ldflags_stat = run_command(ldflags_cmd, context)
 
         if cflags_stat:
             context.add_cond_makefile_var("%s_CFLAGS" % dep, cflags)
@@ -141,7 +155,8 @@ def compile_test(source, compiler, cflags, ldflags):
     output = "%s-bin" % f.name
     cmd = "{compiler} {cflags} {src} -o {out} {ldflags}".format(compiler=compiler,
             cflags=cflags, ldflags=ldflags or "", src=f.name, out=output)
-    out, status = run_command(cmd)
+    context.add_log_content("Compiling source code:\n%s" % source)
+    out, status = run_command(cmd, context)
     if os.path.exists(output):
         os.unlink(output)
     os.unlink(f.name)
@@ -240,7 +255,8 @@ def handle_python_check(args, conf, context):
     f.close()
 
     cmd = "%s %s" % (sys.executable, f.name)
-    output, status = run_command(cmd)
+    context.add_log_content("Testing python code:\n%s" % source)
+    output, status = run_command(cmd, context)
 
     success = bool(status)
 
@@ -257,9 +273,13 @@ def handle_python_check(args, conf, context):
 def test_file_path(path, files):
     files_len = len(files)
     for curr in files:
+        context.add_log_content("Lookingup file: %s, at %s" % (curr, path))
         exists = os.path.exists(os.path.join(path, curr))
         if exists:
+            context.add_log_content(".....found")
             files_len = files_len - 1
+        else:
+            context.add_log_content(".....not found")
     return files_len == 0
 
 def handle_filesystem_check(args, conf, context):
@@ -276,6 +296,7 @@ def handle_filesystem_check(args, conf, context):
     for k,v in path.items():
         curr_path = variables.get(k)
         if not curr_path:
+            context.add_log_content("Variable $%s is not set" % v)
             continue
         r = test_file_path(curr_path, files)
         if r:
@@ -285,8 +306,10 @@ def handle_filesystem_check(args, conf, context):
     if found_path:
         context.add_kconfig("HAVE_%s" % dep.upper(), "bool", "y")
         context.add_cond_makefile_var("%s_PATH" % dep.upper(), found_path)
+        context.add_log_content("%s found" % dep)
     else:
         context.add_kconfig("HAVE_%s" % dep.upper(), "bool", "n")
+        context.add_log_content("%s found" % dep)
 
 def handle_flags_check(args, conf, context, cflags, ldflags):
     append_to = conf.get("append_to")
@@ -388,6 +411,7 @@ def run(args, dep_checks, context):
             print(s, end="")
             sys.stdout.flush()
 
+        context.add_log_content("Testing dependency: %s, type: %s" % (dep["dependency"], dep["type"]))
         handler = type_handlers.get(dep["type"])
         if not handler:
             print("Parsing %s." % args.dep_config.name)
@@ -395,8 +419,11 @@ def run(args, dep_checks, context):
             exit(1)
 
         result = handler(args, dep, context)
+        context.add_log_content("#############################")
         if verbose:
             print("found." if result else "not found.")
+
+    context.write_log_content(".config.log")
 
 def vars_expand(origin, dest, maxrec):
     remaining = {}
