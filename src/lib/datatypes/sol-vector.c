@@ -72,14 +72,28 @@ sol_vector_grow(struct sol_vector *v, uint16_t amount)
 SOL_API void *
 sol_vector_append(struct sol_vector *v)
 {
-    unsigned char *data;
+    return sol_vector_extend(v, 1);
+}
 
-    if (sol_vector_grow(v, 1) != 0)
+SOL_API void *
+sol_vector_extend(struct sol_vector *v, uint16_t amount)
+{
+    unsigned char *data;
+    int err;
+
+    if (!v || amount == 0) {
+        errno = EINVAL;
         return NULL;
+    }
+
+    err = sol_vector_grow(v, amount);
+    if (err < 0) {
+        errno = -err;
+        return NULL;
+    }
 
     data = v->data;
-
-    return &data[v->elem_size * (v->len - 1)];
+    return data + (v->elem_size * (v->len - amount));
 }
 
 static void
