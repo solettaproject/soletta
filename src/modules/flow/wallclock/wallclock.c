@@ -376,7 +376,7 @@ timeblock_send_packet(void *data)
     /* last time block of a day may be shorter than others */
     remaining_minutes = (MINUTES_IN_DAY - cur_minutes) *
         SECONDS_IN_MINUTE * 1000;
-    if (remaining_minutes < timeout)
+    if (remaining_minutes < (time_t)timeout)
         timeout = remaining_minutes;
 
     mdata->timer = sol_timeout_add(timeout, timeblock_send_packet, mdata);
