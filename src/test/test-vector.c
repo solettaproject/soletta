@@ -331,4 +331,33 @@ vector_append_n(void)
 }
 
 
+DEFINE_TEST(vector_initializes_elements_to_zero);
+
+static void
+vector_initializes_elements_to_zero(void)
+{
+    struct sol_vector v_ = SOL_VECTOR_INIT(int), *v = &v_;
+    int *elem;
+    uint16_t i;
+
+    elem = sol_vector_append_n(v, 16);
+    ASSERT(elem);
+    ASSERT_INT_EQ(v->len, 16);
+    ASSERT(elem == sol_vector_get(v, v->len - 16));
+
+    for (i = 0; i < 16; i++) {
+        ASSERT_INT_EQ(*elem, 0);
+        elem++;
+    }
+
+    elem = sol_vector_append(v);
+    ASSERT(elem);
+    ASSERT(elem == sol_vector_get(v, v->len - 1));
+    ASSERT_INT_EQ(v->len, 17);
+    ASSERT_INT_EQ(*elem, 0);
+
+    sol_vector_clear(v);
+}
+
+
 TEST_MAIN();
