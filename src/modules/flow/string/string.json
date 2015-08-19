@@ -341,6 +341,85 @@
       ],
       "private_data_type": "string_replace_data",
       "url": "http://solettaproject.org/doc/latest/node_types/string/replace.html"
+    },
+    {
+      "category": "string",
+      "description": "Search a given regular expression pattern on a given string. This node expects the same syntax and semantics as Perl 5 on regular expressions. When dealing the UTF-8 characters, remember to use the 'p{}' family of escape sequences (Unicode character properties).",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String to be searched.",
+          "methods": {
+            "process": "string_regexp_search"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "Regular expression pattern to search the string received on 'IN' port with.",
+          "methods": {
+            "process": "set_string_regexp_pattern"
+          },
+          "name": "REGEXP"
+        },
+        {
+          "data_type": "int",
+          "description": "This value defines which substring match (by index, starting from 0) inside the one that was fed to the 'IN' port should be output in the 'OUT' port. It must be non-negative. The first substring will always identify the portion of the subject string matched by the entire pattern. The next one will be the first capturing subpattern, and so on.",
+          "methods": {
+            "process": "set_string_regexp_index"
+          },
+          "name": "INDEX"
+        },
+        {
+          "data_type": "int",
+          "description": "The regular expression matching against the input string can result in various substring matches. This value defines the maximum number of them to generate and make available for selection by the 'INDEX' port. It must be non-negative.",
+          "methods": {
+            "process": "set_string_regexp_max_match"
+          },
+          "name": "MAX_REGEXP_SEARCH"
+        }
+      ],
+      "methods": {
+        "close": "string_regexp_search_close",
+        "open": "string_regexp_search_open"
+      },
+      "name": "string/regexp-search",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "This value defines which substring match (by index, starting from 0) inside the one that was fed to the 'IN' port should be output in the 'OUT' port. It must be non-negative. It can be overriden by values received on 'INDEX' port.",
+            "name": "index"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "The regular expression matching against the input string can result in various substring matches. This value defines the maximum number of them to generate and make available for selection by the 'INDEX' port. This option can be overriden by values received on the 'MAX_REGEXP_SEARCH' port. The value of zero (default one) will be interpreted as to generate all possible matches.",
+            "name": "max_regexp_search"
+          },
+          {
+            "data_type": "string",
+            "description": "Regular expression pattern to search the string received on 'IN' port with. It can be overriden by values received on 'REGEXP' port.",
+            "name": "regexp"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Number of regular expression match substrings. The first substring will always identify the portion of the subject string matched by the entire pattern. The next one will be the first capturing subpattern, and so on.",
+          "name": "LENGTH"
+        },
+        {
+          "data_type": "string",
+          "description": "Outputs the regular expression match substring at the selected index. With regard to indeces, the first substring (index 0) will always identify the portion of the subject string matched by the entire pattern. The next one will be the first capturing subpattern, and so on.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_regexp_search_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/regexp_search.html"
     }
   ]
 }

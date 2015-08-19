@@ -41,6 +41,7 @@
 
 #include "string-gen.h"
 #include "string-ascii.h"
+#include "string-regexp.h"
 
 struct string_data {
     int32_t n;
