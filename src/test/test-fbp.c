@@ -700,7 +700,7 @@ check_declare_stmt(struct sol_fbp_graph *g)
     ASSERT(dec);
 
     ASSERT(sol_str_slice_str_eq(dec->name, "MyType"));
-    ASSERT(sol_str_slice_str_eq(dec->kind, "fbp"));
+    ASSERT(sol_str_slice_str_eq(dec->metatype, "fbp"));
     ASSERT(sol_str_slice_str_eq(dec->contents, "MyType.fbp"));
 }
 

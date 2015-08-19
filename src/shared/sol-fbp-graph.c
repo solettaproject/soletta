@@ -327,12 +327,12 @@ end:
 
 int
 sol_fbp_graph_declare(struct sol_fbp_graph *g,
-    struct sol_str_slice name, struct sol_str_slice kind, struct sol_str_slice contents, struct sol_fbp_position position)
+    struct sol_str_slice name, struct sol_str_slice metatype, struct sol_str_slice contents, struct sol_fbp_position position)
 {
     struct sol_fbp_declaration *dec;
     uint16_t i;
 
-    if (name.len == 0 || kind.len == 0 || contents.len == 0)
+    if (name.len == 0 || metatype.len == 0 || contents.len == 0)
         return -EINVAL;
 
     SOL_VECTOR_FOREACH_IDX (&g->declarations, dec, i) {
@@ -344,7 +344,7 @@ sol_fbp_graph_declare(struct sol_fbp_graph *g,
     SOL_NULL_CHECK(dec, -errno);
 
     dec->name = name;
-    dec->kind = kind;
+    dec->metatype = metatype;
     dec->contents = contents;
     dec->position = position;
     return i;

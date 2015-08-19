@@ -327,7 +327,7 @@ parse_outport_stmt(struct sol_fbp_parser *p)
 static bool
 parse_declare_stmt(struct sol_fbp_parser *p)
 {
-    struct sol_str_slice name, kind, contents;
+    struct sol_str_slice name, metatype, contents;
     struct sol_fbp_position pos;
     int err;
 
@@ -346,19 +346,19 @@ parse_declare_stmt(struct sol_fbp_parser *p)
         return set_parse_error(p, "Expected ':' after name in declaration statement");
 
     if (next_token(p) != SOL_FBP_TOKEN_IDENTIFIER)
-        return set_parse_error(p, "Expected kind name in declaration statement");
+        return set_parse_error(p, "Expected metatype name in declaration statement");
 
-    kind = get_token_slice(p);
+    metatype = get_token_slice(p);
 
     if (next_token(p) != SOL_FBP_TOKEN_COLON)
-        return set_parse_error(p, "Expected ':' after kind name in declaration statement");
+        return set_parse_error(p, "Expected ':' after metatype name in declaration statement");
 
     if (next_token(p) != SOL_FBP_TOKEN_IDENTIFIER)
         return set_parse_error(p, "Expected declaration contents");
 
     contents = get_token_slice(p);
 
-    err = sol_fbp_graph_declare(p->graph, name, kind, contents, pos);
+    err = sol_fbp_graph_declare(p->graph, name, metatype, contents, pos);
     if (err == -EEXIST) {
         p->error_pos = pos;
         return set_parse_error(p, "Type '%.*s' already declared", SOL_STR_SLICE_PRINT(name));
