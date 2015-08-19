@@ -973,7 +973,7 @@ print_usage(const char *program)
 }
 
 static bool
-sol_fbp_generator_handle_args(int argc, char *argv[])
+parse_args(int argc, char *argv[])
 {
     char *filename;
     bool has_json_file = false;
@@ -992,12 +992,18 @@ sol_fbp_generator_handle_args(int argc, char *argv[])
             args.export_symbol = optarg;
             break;
         case 'c':
+            if (access(optarg, R_OK) == -1) {
+                SOL_ERR("Can't access conf file '%s': %s",
+                    optarg, sol_util_strerrora(errno));
+                return false;
+            }
             args.conf_file = optarg;
             break;
         case 'j':
             has_json_file = true;
             if (!handle_json_path(optarg)) {
-                SOL_ERR("Couldn handle JSON path: %s. %s", optarg, sol_util_strerrora(errno));
+                SOL_ERR("Can't access JSON description path '%s': %s",
+                    optarg, sol_util_strerrora(errno));
                 return false;
             }
             break;
@@ -1299,13 +1305,8 @@ main(int argc, char *argv[])
         goto fail_arena;
     }
 
-    if (!sol_fbp_generator_handle_args(argc, argv))
+    if (!parse_args(argc, argv))
         goto fail_args;
-
-    if (args.conf_file && access(args.conf_file, R_OK) == -1) {
-        SOL_ERR("Couldn't open file '%s': %s", args.conf_file, sol_util_strerrora(errno));
-        goto fail_access;
-    }
 
     common_store = type_store_new();
     if (!common_store)
@@ -1346,7 +1347,6 @@ fail_data:
 fail_store_load:
     type_store_del(common_store);
 fail_store:
-fail_access:
 fail_args:
     sol_arena_del(str_arena);
 fail_arena:
