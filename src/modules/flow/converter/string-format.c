@@ -46,8 +46,6 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "sol-missing.h"
-
 #include "string-format.h"
 
 #define SF_MIN(x, y) (((x) > (y)) ? (y) : (x))

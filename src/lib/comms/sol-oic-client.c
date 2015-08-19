@@ -45,7 +45,6 @@
 #include "sol-json.h"
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
-#include "sol-missing.h"
 #include "sol-util.h"
 
 #include "sol-oic-client.h"

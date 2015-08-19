@@ -50,7 +50,6 @@
 #include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-conffile.h"
-#include "sol-missing.h"
 #include "sol-str-slice.h"
 
 #include "type-store.h"

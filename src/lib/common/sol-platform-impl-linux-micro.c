@@ -51,7 +51,6 @@
 #include "sol-platform.h"
 #include "sol-util.h"
 #include "sol-vector.h"
-#include "sol-missing.h"
 
 #include "sol-platform-linux-micro-builtins-gen.h"
 

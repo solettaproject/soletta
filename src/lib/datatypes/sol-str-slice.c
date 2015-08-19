@@ -35,7 +35,6 @@
 #include <errno.h>
 
 #include "sol-str-slice.h"
-#include "sol-missing.h"
 
 SOL_API int
 sol_str_slice_to_int(const struct sol_str_slice s, int *value)

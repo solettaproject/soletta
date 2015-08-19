@@ -49,7 +49,6 @@
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
-#include "sol-missing.h"
 #include "sol-network.h"
 #include "sol-util.h"
 #include "sol-util-file.h"
