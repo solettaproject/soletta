@@ -568,20 +568,20 @@ parse_declarations(struct parse_state *state)
         int err;
         const struct sol_flow_node_type *type = NULL;
         type_creator_func creator = sol_str_table_ptr_lookup_fallback(
-            creator_table, dec->kind, NULL);
+            creator_table, dec->metatype, NULL);
 
         if (!creator) {
-            SOL_ERR("Couldn't handle declaration '%.*s' of kind '%.*s'",
+            SOL_ERR("Couldn't handle declaration '%.*s' of metatype '%.*s'",
                 SOL_STR_SLICE_PRINT(dec->name),
-                SOL_STR_SLICE_PRINT(dec->kind));
+                SOL_STR_SLICE_PRINT(dec->metatype));
             return -EBADF;
         }
 
         err = creator(state, dec->name, dec->contents, &type);
         if (err < 0) {
-            SOL_ERR("Failed when creating type '%.*s' of kind '%.*s'",
+            SOL_ERR("Failed when creating type '%.*s' of metatype '%.*s'",
                 SOL_STR_SLICE_PRINT(dec->name),
-                SOL_STR_SLICE_PRINT(dec->kind));
+                SOL_STR_SLICE_PRINT(dec->metatype));
             return -EINVAL;
         }
 
