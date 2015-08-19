@@ -504,7 +504,7 @@ sol_log_impl_print_function_stderr(void *data, const struct sol_log_domain *doma
         fprintf(stderr, "P%u ", getpid());
 #ifdef PTHREAD
     if (_main_thread != pthread_self())
-        fprintf(stderr, "T%lu ", pthread_self());
+        fprintf(stderr, "T%" PRIu64 " ", (uint64_t)(uintptr_t)pthread_self());
 #endif
 
     if (_show_file && _show_function && _show_line) {
@@ -579,7 +579,7 @@ sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uin
         fprintf(fp, "P:%u ", getpid());
 #ifdef PTHREAD
     if (_main_thread != pthread_self())
-        fprintf(fp, "T:%lu ", pthread_self());
+        fprintf(fp, "T%" PRIu64 " ", (uint64_t)(uintptr_t)pthread_self());
 #endif
 
     if (_show_file && _show_function && _show_line)
@@ -660,7 +660,7 @@ sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, 
         "PRIORITY=%i", sd_level,
         "MESSAGE=%s", msg ? msg : format,
 #ifdef PTHREAD
-        "THREAD=%" PRIu64, (uint64_t)pthread_self(),
+        "THREAD=%" PRIu64, (uint64_t)(uintptr_t)pthread_self(),
 #endif
         NULL);
 
