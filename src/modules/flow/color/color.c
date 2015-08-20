@@ -71,13 +71,15 @@ color_luminance_process(struct sol_flow_node *node, void *data, uint16_t port, u
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value.max <= in_value.min) {
-        sol_flow_send_error_packet(node, -EINVAL, "Max luminance %" PRId32 " must be greater than "
+        sol_flow_send_error_packet(node, EINVAL,
+            "Max luminance %" PRId32 " must be greater than "
             "min %" PRId32 " luminance", in_value.max, in_value.min);
         return -EINVAL;
     }
 
     if (in_value.val > in_value.max || in_value.val < in_value.min) {
-        sol_flow_send_error_packet(node, -EINVAL, "Luminance value %" PRId32 " can't be out of luminance range: "
+        sol_flow_send_error_packet(node, EINVAL,
+            "Luminance value %" PRId32 " can't be out of luminance range: "
             "%" PRId32 " - %" PRId32 "",
             in_value.val, in_value.min, in_value.max);
         return -EINVAL;

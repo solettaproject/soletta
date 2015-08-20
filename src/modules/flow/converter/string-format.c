@@ -123,7 +123,7 @@ get_integer(struct string_converter *mdata,
          * accumulator > (SSIZE_MAX - digitval) / 10.
          */
         if (accumulator > (SSIZE_MAX - digitval) / 10) {
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "Too many decimal digits in format string");
             return -EOVERFLOW;
         }
@@ -226,7 +226,7 @@ parse_internal_render_format_spec(struct string_converter *mdata,
 
         /* Not having a precision after a dot is an error. */
         if (consumed == 0) {
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "Format specifier missing precision");
             return -EINVAL;
         }
@@ -236,7 +236,7 @@ parse_internal_render_format_spec(struct string_converter *mdata,
 
     if (end - pos > 1) {
         /* More than one char remain, invalid format specifier. */
-        sol_flow_send_error_packet(mdata->node, -EINVAL,
+        sol_flow_send_error_packet(mdata->node, EINVAL,
             "Invalid format specifier");
         return -EINVAL;
     }
@@ -263,7 +263,7 @@ parse_internal_render_format_spec(struct string_converter *mdata,
             /* These are allowed. See PEP 378.*/
             break;
         default:
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "Cannot specify ',' with '%c'.", format->type);
             return -EINVAL;
         }
@@ -905,7 +905,7 @@ int32_format_do(struct string_converter *mdata,
 
     /* no precision allowed on integers */
     if (format->precision != -1) {
-        sol_flow_send_error_packet(mdata->node, -EINVAL,
+        sol_flow_send_error_packet(mdata->node, EINVAL,
             "Precision not allowed in integer format specifier");
         goto done;
     }
@@ -914,13 +914,13 @@ int32_format_do(struct string_converter *mdata,
     if (format->type == 'c') {
         /* error to specify a sign */
         if (format->sign != '\0') {
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "Sign not allowed with integer format specifier 'c'");
             goto done;
         }
         /* error to request alternate format */
         if (format->alternate) {
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "Alternate form (#) not allowed with integer"
                 " format specifier 'c'");
             goto done;
@@ -928,7 +928,7 @@ int32_format_do(struct string_converter *mdata,
 
         /* Integer input truncated to a character */
         if (in_value < 0 || in_value > 0x10ffff) {
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "%%c arg not in range(0x110000)");
             goto done;
         }
@@ -1565,7 +1565,7 @@ float_format_do(struct string_converter *mdata,
     struct locale_info locale = STATIC_LOCALE_INFO_INIT;
 
     if (format->precision > INT32_MAX) {
-        sol_flow_send_error_packet(mdata->node, -EINVAL, "precision too big");
+        sol_flow_send_error_packet(mdata->node, EINVAL, "precision too big");
         goto done;
     }
     precision = (int)format->precision;
@@ -1678,11 +1678,11 @@ unknown_presentation_type(struct string_converter *mdata,
 {
     /* %c might be out-of-range, hence the two cases. */
     if (presentation_type > 32 && presentation_type < 128)
-        sol_flow_send_error_packet(mdata->node, -EINVAL,
+        sol_flow_send_error_packet(mdata->node, EINVAL,
             "Unknown format code '%c' for object of type '%.200s'",
             presentation_type, type_name);
     else
-        sol_flow_send_error_packet(mdata->node, -EINVAL,
+        sol_flow_send_error_packet(mdata->node, EINVAL,
             "Unknown format code '\\x%x' for object of type '%.200s'",
             presentation_type, type_name);
 }
@@ -1814,7 +1814,7 @@ parse_field(struct string_converter *mdata,
 
         switch (c) {
         case '{':
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "unexpected '{' in field name");
             return -EINVAL;
         case '[':
@@ -1852,11 +1852,11 @@ parse_field(struct string_converter *mdata,
             }
         }
 
-        sol_flow_send_error_packet(mdata->node, -EINVAL,
+        sol_flow_send_error_packet(mdata->node, EINVAL,
             "unmatched '{' in format spec");
         return -EINVAL;
     } else if (c != '}') {
-        sol_flow_send_error_packet(mdata->node, -EINVAL,
+        sol_flow_send_error_packet(mdata->node, EINVAL,
             "expected '}' before end of string");
         return -EINVAL;
     }
@@ -1920,12 +1920,12 @@ markup_iterator_next(struct string_converter *mdata,
     at_end = input->len == 0;
 
     if ((c == '}') && (at_end || (c != input->data[0]))) {
-        sol_flow_send_error_packet(mdata->node, -EINVAL,
+        sol_flow_send_error_packet(mdata->node, EINVAL,
             "Single '}' encountered in format string");
         return -EINVAL;
     }
     if (at_end && c == '{') {
-        sol_flow_send_error_packet(mdata->node, -EINVAL,
+        sol_flow_send_error_packet(mdata->node, EINVAL,
             "Single '{' encountered in format string");
         return -EINVAL;
     }
@@ -1965,14 +1965,14 @@ auto_number_check_error(struct string_converter *mdata,
 {
     if (state == ANS_MANUAL) {
         if (field_name_is_empty) {
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "cannot switch from manual field specification to automatic"
                 " field numbering");
             return -EINVAL;
         }
     } else {
         if (!field_name_is_empty) {
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "cannot switch from automatic field numbering to manual field"
                 " specification");
             return -EINVAL;
@@ -2063,7 +2063,7 @@ get_integer_field(struct string_converter *mdata,
         else if (sol_str_slice_str_eq(*input, "step"))
             obj = &args->step;
         else {
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "Field %.*s does not exist for integer type",
                 SOL_STR_SLICE_PRINT(*input));
             return NULL;
@@ -2084,7 +2084,7 @@ get_integer_field(struct string_converter *mdata,
             obj = &args->step;
             break;
         default:
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "Field index %d does not exist for integer type", index);
         }
     }
@@ -2118,7 +2118,7 @@ get_float_field(struct string_converter *mdata,
         else if (sol_str_slice_str_eq(*input, "step"))
             obj = &args->step;
         else {
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "Field %.*s does not exist for float type",
                 SOL_STR_SLICE_PRINT(*input));
             return NULL;
@@ -2139,7 +2139,7 @@ get_float_field(struct string_converter *mdata,
             obj = &args->step;
             break;
         default:
-            sol_flow_send_error_packet(mdata->node, -EINVAL,
+            sol_flow_send_error_packet(mdata->node, EINVAL,
                 "Field index %d does not exist for float type", index);
         }
     }

@@ -99,7 +99,8 @@ spi_call(struct max31855_data *mdata)
 {
     if (mdata->pending_packets) {
         if (!sol_spi_transfer(mdata->device, mdata->rx, mdata->tx, sizeof(mdata->tx), &spi_transfer_cb, mdata)) {
-            sol_flow_send_error_packet(mdata->node, -EIO, "Error reading max31855 temperature sensor");
+            sol_flow_send_error_packet(mdata->node, EIO,
+                "Error reading max31855 temperature sensor");
             return -EIO;
         }
     }
@@ -116,7 +117,8 @@ spi_transfer_cb(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *
 
     // Amount asked to read is uint8_t[4]
     if (status != sizeof(uint8_t) * 4) {
-        sol_flow_send_error_packet(mdata->node, -EIO, "Error reading max31855 temperature sensor");
+        sol_flow_send_error_packet(mdata->node, EIO,
+            "Error reading max31855 temperature sensor");
         goto end;
     }
 
@@ -131,7 +133,8 @@ spi_transfer_cb(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *
     raw_value = (rx[0] << 24) | (rx[1] << 16) | (rx[2] << 8) | rx[3];
 
     if (raw_value & (OC_FAULT | SCG_FAULT | SCG_FAULT)) {
-        sol_flow_send_error_packet(mdata->node, -EIO, "Error reading max31855 temperature sensor");
+        sol_flow_send_error_packet(mdata->node, EIO,
+            "Error reading max31855 temperature sensor");
         goto end;
     }
 
