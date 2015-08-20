@@ -140,7 +140,7 @@ shift_left_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
             err = sol_flow_packet_get_byte(packet, &in);
             SOL_INT_CHECK(err, < 0, err);
 
-            sol_flow_send_error_packet(node, r,
+            sol_flow_send_error_packet(node, -r,
                 "Invalid values for a shift left operation: operation: %d. "
                 "Maximum is %d", in, (CHAR_BIT - 1));
             return 0;
@@ -171,7 +171,7 @@ shift_right_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
             err = sol_flow_packet_get_byte(packet, &in);
             SOL_INT_CHECK(err, < 0, err);
 
-            sol_flow_send_error_packet(node, r,
+            sol_flow_send_error_packet(node, -r,
                 "Invalid values for a shift left operation: operation: %d. "
                 "Maximum is %d", in, (CHAR_BIT - 1));
             return 0;

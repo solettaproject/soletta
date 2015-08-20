@@ -865,7 +865,8 @@ shift_left_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         r = validate_shift(packet);
 
     if (r < 0) {
-        sol_flow_send_error_packet(node, r, "Error, invalid numeric types for a shift left operation.");
+        sol_flow_send_error_packet(node, -r,
+            "Error, invalid numeric types for a shift left operation.");
         return r;
     }
 
