@@ -78,10 +78,12 @@ uart_rx_callback(void *data, int fd, unsigned int active_flags)
         return true;
     }
     if (active_flags & SOL_FD_FLAGS_IN) {
-        unsigned char buf[1];
-        int status = sol_util_fill_buffer(uart->fd, (char *)buf, sizeof(buf), NULL);
+        unsigned char c; /* Backing storage for next sol_buffer */
+        struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(&c, sizeof(c),
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        int status = sol_util_fill_buffer(uart->fd, &buf, 1);
         if (status > 0)
-            uart->async.rx_cb((void *)uart->async.rx_user_data, uart, buf[0]);
+            uart->async.rx_cb((void *)uart->async.rx_user_data, uart, c);
     }
     return true;
 }
