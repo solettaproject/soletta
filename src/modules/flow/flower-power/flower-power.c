@@ -278,20 +278,6 @@ http_get_close(struct sol_flow_node *node, void *data)
     /* FIXME: Cancel pending connections. Need HTTP API. */
 }
 
-#define RESPONSE_CHECK_API(response_, mdata_) \
-    do { \
-        if (unlikely(!response_)) { \
-            sol_flow_send_error_packet(mdata_->node, EINVAL, \
-                "Error while reaching service."); \
-            return; \
-        } \
-        if (unlikely(response_->api_version != SOL_HTTP_RESPONSE_API_VERSION)) { \
-            SOL_ERR("Unexpected API version (response is %u, expected %u)", \
-                response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
-            return; \
-        } \
-    } while (0)
-
 #define BASE_URL "https://apiflowerpower.parrot.com/"
 #define STATUS_URL BASE_URL "sensor_data/v4/garden_locations_status"
 #define AUTH_URL BASE_URL "user/v1/authenticate"
@@ -306,7 +292,12 @@ generate_token_cb(void *data, struct sol_http_response *response)
     enum sol_json_loop_reason reason;
     const size_t auth_len = strlen(AUTH_START);
 
-    RESPONSE_CHECK_API(response, mdata);
+    if (!response) {
+        sol_flow_send_error_packet(mdata->node, EINVAL,
+            "Error while reaching service to generate token.");
+        return;
+    }
+    SOL_HTTP_RESPONSE_CHECK_API(response);
 
     if (response->response_code != 200) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -468,7 +459,12 @@ http_get_cb(void *data, struct sol_http_response *response)
     enum sol_json_loop_reason reason;
     bool found_locations = false, found_sensors = false;
 
-    RESPONSE_CHECK_API(response, mdata);
+    if (!response) {
+        sol_flow_send_error_packet(mdata->node, EINVAL,
+            "Error while reaching service to get plants and sensors info.");
+        return;
+    }
+    SOL_HTTP_RESPONSE_CHECK_API(response);
 
     if (response->response_code != 200) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -1022,5 +1018,4 @@ filter_sensor_packet(struct sol_flow_node *node, void *data, uint16_t port, uint
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_FILTER_SENSOR_ID__OUT__OUT, &fpsd);
 }
 
-#undef RESPONSE_CHECK_API
 #include "flower-power-gen.c"

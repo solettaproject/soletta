@@ -74,11 +74,7 @@ struct thingspeak_channel_update_data {
                 "Error while reaching Thingspeak"); \
             return; \
         } \
-        if (unlikely(response_->api_version != SOL_HTTP_RESPONSE_API_VERSION)) { \
-            SOL_ERR("Unexpected API version (response is %u, expected %u)", \
-                response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
-            return; \
-        } \
+        SOL_HTTP_RESPONSE_CHECK_API(response); \
     } while (0)
 
 static bool

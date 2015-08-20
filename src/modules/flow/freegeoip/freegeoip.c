@@ -48,20 +48,6 @@ struct freegeoip_data {
     char *endpoint;
 };
 
-#define RESPONSE_CHECK_API(response_, mdata_) \
-    do { \
-        if (unlikely(!response_)) { \
-            sol_flow_send_error_packet(mdata_->node, EINVAL, \
-                "Error while reaching Freegeoip"); \
-            return; \
-        } \
-        if (unlikely(response_->api_version != SOL_HTTP_RESPONSE_API_VERSION)) { \
-            SOL_ERR("Unexpected API version (response is %u, expected %u)", \
-                response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
-            return; \
-        } \
-    } while (0)
-
 static void
 freegeoip_query_finished(void *data, struct sol_http_response *response)
 {
@@ -75,7 +61,12 @@ freegeoip_query_finished(void *data, struct sol_http_response *response)
         .alt = FP_NAN,
     };
 
-    RESPONSE_CHECK_API(response, mdata);
+    if (!response) {
+        sol_flow_send_error_packet(mdata->node, EINVAL,
+            "Error while reaching Freegeoip");
+        return;
+    }
+    SOL_HTTP_RESPONSE_CHECK_API(response);
 
     if (!response->content.used) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
