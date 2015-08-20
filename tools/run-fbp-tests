@@ -44,6 +44,7 @@ import re
 import subprocess
 import sys
 
+
 def sh(cmd, cwd=None):
     try:
         out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, cwd=cwd).decode('utf-8')
