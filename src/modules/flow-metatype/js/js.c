@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <float.h>
 #include <stdio.h>
 
@@ -40,10 +41,42 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-metatype-js");
 #include "duktape.h"
 
 #include "sol-arena.h"
-#include "sol-flow-js.h"
+#include "sol-flow-metatype.h"
 #include "sol-log.h"
 #include "sol-str-table.h"
 #include "sol-util.h"
+
+/**
+ * JS metatype allows the usage of Javascript language to create new
+ * and customizable node types.
+ *
+ * A JS node type is specified with one object containing each input
+ * and output port declarations (name and type) and its callback
+ * functions that will be trigged on the occurrence of certain events
+ * like input/output ports processes, open/close processes, so forth
+ * and so on.
+ *
+ * The Javascript code must contain an object:
+ *
+ *     - 'node': This object will be used to declare input and output ports
+ *               and its callback functions that will be trigged on the occurence
+ *               of certain events like input/output ports processes, open/close
+ *               processes, so forth and so on.
+ *
+ * e.g.  var node = {
+ *           in: [
+ *               {
+ *                   name: 'IN',
+ *                   type: 'int',
+ *                   process: function(v) {
+ *                       sendPacket("OUT", 42);
+ *                   }
+ *               }
+ *           ],
+ *           out: [ { name: 'OUT', type: 'int' } ]
+ *       };
+ *
+ */
 
 /* Contains information specific to a type based on JS. */
 struct flow_js_type {
@@ -1323,7 +1356,7 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
     return true;
 }
 
-SOL_API struct sol_flow_node_type *
+static struct sol_flow_node_type *
 sol_flow_js_new_type(const char *buf, size_t len)
 {
     struct flow_js_type *type;
@@ -1341,3 +1374,37 @@ sol_flow_js_new_type(const char *buf, size_t len)
 
     return &type->base;
 }
+
+static int
+js_create_type(
+    const struct sol_flow_metatype_context *ctx,
+    struct sol_flow_node_type **type)
+{
+    const char *buf, *filename;
+    struct sol_flow_node_type *result;
+    size_t size;
+    int err;
+
+    filename = strndupa(ctx->contents.data, ctx->contents.len);
+    err = ctx->read_file(ctx, filename, &buf, &size);
+    if (err < 0)
+        return -EINVAL;
+
+    result = sol_flow_js_new_type(buf, size);
+    if (!result)
+        return -EINVAL;
+
+    err = ctx->store_type(ctx, result);
+    if (err < 0) {
+        sol_flow_node_type_del(result);
+        return -err;
+    }
+
+    *type = result;
+    return 0;
+}
+
+SOL_FLOW_METATYPE(JS,
+    .name = "js",
+    .create_type = js_create_type,
+    );

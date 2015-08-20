@@ -33,7 +33,7 @@
 #include <errno.h>
 
 #include "sol-flow.h"
-#include "sol-flow-js.h"
+#include "sol-flow-parser.h"
 #include "sol-log.h"
 #include "sol-util.h"
 
@@ -75,14 +75,12 @@ test_js(void)
     unsigned int i;
 
     for (i = 0; i < ARRAY_SIZE(tests); i++) {
+        struct sol_flow_parser *parser;
         struct sol_flow_node_type *type;
-        size_t len = 0;
         entry = &tests[i];
 
-        if (entry->input)
-            len = strlen(entry->input);
-
-        type = sol_flow_js_new_type(entry->input, len);
+        parser = sol_flow_parser_new(NULL, NULL);
+        type = sol_flow_parse_string_metatype(parser, "js", entry->input, "buffer");
         if (type && entry->should_fail) {
             SOL_ERR("Node was created but should fail, input='%s'", entry->input);
             FAIL();
@@ -90,7 +88,7 @@ test_js(void)
             SOL_ERR("Node was created but should fail, input='%s'", entry->input);
             FAIL();
         }
-        sol_flow_node_type_del(type);
+        sol_flow_parser_del(parser);
     }
 }
 

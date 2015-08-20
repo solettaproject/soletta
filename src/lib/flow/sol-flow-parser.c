@@ -44,10 +44,6 @@
 #include "sol-util.h"
 #include "sol-vector.h"
 
-#ifdef JAVASCRIPT
-#include "sol-flow-js.h"
-#endif
-
 #include "sol-flow-metatype-builtins-gen.h"
 
 #define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...)          \
@@ -509,37 +505,6 @@ create_fbp_type(
     return 0;
 }
 
-#ifdef JAVASCRIPT
-static int
-create_js_type(
-    const struct sol_flow_metatype_context *ctx,
-    struct sol_flow_node_type **type)
-{
-    const char *buf, *filename;
-    struct sol_flow_node_type *result;
-    size_t size;
-    int err;
-
-    filename = strndupa(ctx->contents.data, ctx->contents.len);
-    err = ctx->read_file(ctx, filename, &buf, &size);
-    if (err < 0)
-        return -EINVAL;
-
-    result = sol_flow_js_new_type(buf, size);
-    if (!result)
-        return -EINVAL;
-
-    err = ctx->store_type(ctx, result);
-    if (err < 0) {
-        sol_flow_node_type_del(result);
-        return -err;
-    }
-
-    *type = result;
-    return 0;
-}
-#endif
-
 static int
 metatype_read_file(
     const struct sol_flow_metatype_context *ctx,
@@ -570,12 +535,6 @@ get_create_type_func(const struct sol_str_slice name)
 {
     if (sol_str_slice_str_eq(name, "fbp"))
         return create_fbp_type;
-
-#ifdef JAVASCRIPT
-    /* TODO: make JS a metatype module. */
-    if (sol_str_slice_str_eq(name, "js"))
-        return create_js_type;
-#endif
 
 #if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
     {
