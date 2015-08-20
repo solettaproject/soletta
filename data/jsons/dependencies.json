@@ -243,6 +243,12 @@
       "atleast-version": "52.1"
     },
     {
+      "dependency": "libpcre",
+      "type": "pkg-config",
+      "pkgname": "libpcre",
+      "atleast-version": "8.12"
+    },
+    {
       "dependency": "isatty",
       "type": "ccode",
       "headers": [

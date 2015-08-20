@@ -396,7 +396,7 @@ http_set_password(struct sol_flow_node *node, void *data, uint16_t port, uint16_
     SOL_INT_CHECK(r, < 0, r);
 
     if (!in_value || !strlen(in_value)) {
-        sol_flow_send_error_packet(node, -EINVAL, "Invalid password");
+        sol_flow_send_error_packet(node, EINVAL, "Invalid password");
         return 0;
     }
 
@@ -682,7 +682,7 @@ http_set_username(struct sol_flow_node *node, void *data, uint16_t port, uint16_
     SOL_INT_CHECK(r, < 0, r);
 
     if (!in_value || !strlen(in_value)) {
-        sol_flow_send_error_packet(node, -EINVAL, "Invalid username");
+        sol_flow_send_error_packet(node, EINVAL, "Invalid username");
         return 0;
     }
 
@@ -778,7 +778,7 @@ filter_set_id(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     SOL_INT_CHECK(r, < 0, r);
 
     if (!in_value || !strlen(in_value)) {
-        sol_flow_send_error_packet(node, -EINVAL, "Invalid id");
+        sol_flow_send_error_packet(node, EINVAL, "Invalid id");
         return -EINVAL;
     }
 
@@ -800,7 +800,7 @@ filter_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     SOL_INT_CHECK(r, < 0, r);
 
     if (!fpd.id || !mdata->id) {
-        sol_flow_send_error_packet(node, -EINVAL,
+        sol_flow_send_error_packet(node, EINVAL,
             "Failed to compare plant ids");
         return -EINVAL;
     }
@@ -1009,7 +1009,7 @@ filter_sensor_packet(struct sol_flow_node *node, void *data, uint16_t port, uint
     SOL_INT_CHECK(r, < 0, r);
 
     if (!fpsd.id || !mdata->id) {
-        sol_flow_send_error_packet(node, -EINVAL,
+        sol_flow_send_error_packet(node, EINVAL,
             "Failed to compare sensor ids");
         return -EINVAL;
     }
