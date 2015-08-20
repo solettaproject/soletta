@@ -178,6 +178,24 @@ bool sol_iio_device_start_buffer(struct sol_iio_device *device);
  */
 bool sol_iio_address_device(const char *commands, void (*cb)(void *data, int device_id), const void *data);
 
+/*
+ * Returns raw buffer with channel sample.
+ *
+ * This function is meaningful only when buffer is enabled. Useful for reading
+ * samples bigger than 64 bits. For channels with 64 or less bits, prefer
+ * @c sol_iio_read_channel_value, with return a more meaningful value, adjusted
+ * by channel offset and scale.
+ *
+ * @param channel channel to get raw buffer
+ *
+ * @return a sol_str_slice containing channel raw readings. Slice will
+ * be empty if buffer is not enabled or if there are no readings yet.
+ *
+ * @note Buffer size is the same as storage bits (aligned to byte boundary).
+ */
+struct sol_str_slice
+sol_iio_read_channel_raw_buffer(struct sol_iio_channel *channel);
+
 #ifdef __cplusplus
 }
 #endif
