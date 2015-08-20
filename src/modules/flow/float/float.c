@@ -124,8 +124,8 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 
 struct drange_multiple_arithmetic_data {
     struct sol_drange var[32];
-    int32_t var_initialized;
-    int32_t var_connected;
+    uint32_t var_initialized;
+    uint32_t var_connected;
     int (*func) (const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
     uint16_t port;
 };
@@ -157,7 +157,7 @@ multiple_operator_connect(struct sol_flow_node *node, void *data, uint16_t port,
 {
     struct drange_multiple_arithmetic_data *mdata = data;
 
-    mdata->var_connected |= 1 << port;
+    mdata->var_connected |= 1u << port;
     return 0;
 }
 
@@ -167,23 +167,24 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
     struct drange_multiple_arithmetic_data *mdata = data;
     struct sol_drange value;
     struct sol_drange *result = NULL;
-    int r, i;
+    uint32_t i;
+    int r;
 
     r = sol_flow_packet_get_drange(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    if ((mdata->var_initialized & 1 << port) &&
+    if ((mdata->var_initialized & (1u << port)) &&
         sol_drange_equal(&mdata->var[port], &value))
         return 0;
 
-    mdata->var_initialized |= 1 << port;
+    mdata->var_initialized |= 1u << port;
     mdata->var[port] = value;
 
     if (mdata->var_initialized != mdata->var_connected)
         return 0;
 
     for (i = 0; i < 32; i++) {
-        if (!(mdata->var_initialized & (1 << i)))
+        if (!(mdata->var_initialized & (1u << i)))
             continue;
 
         if (!result) {
