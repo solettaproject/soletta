@@ -315,21 +315,21 @@ generate_token_cb(void *data, struct sol_http_response *response)
     sol_json_scanner_init(&scanner, response->content.data,
         response->content.used);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        size_t token_size;
+        size_t value_size, token_size;
 
         if (!SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "access_token"))
             continue;
 
-        /* value is between double quotes */
-        token_size = value.end - value.start + auth_len - 1;
+        sol_json_token_remove_quotes(&value);
+        value_size = sol_json_token_get_size(&value);
+        token_size = value_size + auth_len + 1;
 
         free(mdata->token);
         mdata->token = malloc(token_size);
         SOL_NULL_CHECK(mdata->token);
 
         strcpy(mdata->token, AUTH_START);
-        memcpy(mdata->token + auth_len, value.start + 1,
-            value.end - value.start - 2);
+        memcpy(mdata->token + auth_len, value.start, value_size);
         *(mdata->token + token_size - 1) = '\0';
 
         return;
@@ -534,15 +534,17 @@ http_get_cb(void *data, struct sol_http_response *response)
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "location_identifier")) {
-                    id = strndupa(value.start + 1, value.end - value.start - 2);
+                    sol_json_token_remove_quotes(&value);
+                    id = strndupa(value.start, sol_json_token_get_size(&value));
                     if (!id) {
                         SOL_WRN("Failed to get id");
                         goto error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "last_sample_upload")) {
-                    timestamp = strndupa(value.start + 1,
-                        value.end - value.start - 2);
+                    sol_json_token_remove_quotes(&value);
+                    timestamp = strndupa(value.start,
+                        sol_json_token_get_size(&value));
                     if (!timestamp) {
                         SOL_WRN("Failed to get timestamp");
                         goto error;
@@ -580,8 +582,9 @@ http_get_cb(void *data, struct sol_http_response *response)
                             }
                         } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                             "battery_end_of_life_date_utc")) {
-                            battery_end_of_life = strndupa(value.start + 1,
-                                value.end - value.start - 2);
+                            sol_json_token_remove_quotes(&value);
+                            battery_end_of_life = strndupa(value.start,
+                                sol_json_token_get_size(&value));
                             if (!battery_end_of_life) {
                                 SOL_WRN("Failed to get battery end of life");
                                 goto error;
@@ -590,15 +593,17 @@ http_get_cb(void *data, struct sol_http_response *response)
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "sensor_serial")) {
-                    id = strndupa(value.start + 1, value.end - value.start - 2);
+                    sol_json_token_remove_quotes(&value);
+                    id = strndupa(value.start, sol_json_token_get_size(&value));
                     if (!id) {
                         SOL_WRN("Failed to get id");
                         goto error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "last_upload_datetime_utc")) {
-                    timestamp = strndupa(value.start + 1,
-                        value.end - value.start - 2);
+                    sol_json_token_remove_quotes(&value);
+                    timestamp = strndupa(value.start,
+                        sol_json_token_get_size(&value));
                     if (!timestamp) {
                         SOL_WRN("Failed to get timestamp");
                         goto error;
