@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 
 #include "evdev-gen.h"
+#include "sol-buffer.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-monitors.h"
@@ -112,16 +113,17 @@ evdev_fd_handler_cb(void *data, int fd, unsigned int active_flags)
     while (retval) {
         struct input_event ev[8];
         ssize_t ret;
-        size_t read;
         int i, count;
+        struct sol_buffer buffer = SOL_BUFFER_INIT_FLAGS(ev, sizeof(ev),
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
 
-        ret = sol_util_fill_buffer(fd, (char *)ev, sizeof(ev), &read);
+        ret = sol_util_fill_buffer(fd, &buffer, buffer.capacity);
         if (ret < 0) {
             retval = false;
             break;
         }
 
-        count = read / sizeof(*ev);
+        count = buffer.used / sizeof(*ev);
         for (i = 0; i < count; i++) {
             struct sol_monitors_entry *e;
             uint16_t j;

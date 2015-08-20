@@ -34,6 +34,7 @@
 
 #include <assert.h>
 
+#include <errno.h>
 #include <sol-str-slice.h>
 #include <stdarg.h>
 
@@ -228,6 +229,26 @@ sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ..
     r = sol_buffer_insert_vprintf(buf, pos, fmt, args);
     va_end(args);
     return r;
+}
+
+static inline int
+sol_buffer_trim(struct sol_buffer *buf)
+{
+    if (!buf)
+        return -EINVAL;
+
+    if (buf->used == buf->capacity)
+        return 0;
+
+    return sol_buffer_resize(buf, buf->used);
+}
+
+void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);
+
+static inline void
+sol_buffer_reset(struct sol_buffer *buf)
+{
+    buf->used = 0;
 }
 
 /**

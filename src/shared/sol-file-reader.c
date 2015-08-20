@@ -38,6 +38,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "sol-log.h"
+#include "sol-buffer.h"
 #include "sol-util.h"
 #include "sol-file-reader.h"
 
@@ -50,9 +52,9 @@ struct sol_file_reader {
 struct sol_file_reader *
 sol_file_reader_open(const char *filename)
 {
-    size_t read = 0;
     int fd = -1, saved_errno;
     struct sol_file_reader *fr, *result = NULL;
+    struct sol_buffer *buffer;
 
     fr = malloc(sizeof(*fr));
     if (!fr)
@@ -75,10 +77,11 @@ sol_file_reader_open(const char *filename)
         goto err;
     }
 
-    fr->contents = sol_util_load_file_raw(fd, &read);
-    if (!fr->contents)
+    buffer = sol_util_load_file_raw(fd);
+    if (!buffer)
         goto err;
-    fr->st.st_size = read;
+    fr->contents = sol_buffer_steal(buffer, (size_t *)&fr->st.st_size);
+    free(buffer);
 
 success:
     result = fr;

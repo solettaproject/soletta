@@ -33,6 +33,7 @@
 #pragma once
 
 #include "sol-macros.h"
+#include "sol-buffer.h"
 
 #include <sys/types.h>
 #include <stdarg.h>
@@ -44,8 +45,8 @@ int sol_util_write_file(const char *path, const char *fmt, ...) SOL_ATTR_PRINTF(
 int sol_util_vwrite_file(const char *path, const char *fmt, va_list args) SOL_ATTR_PRINTF(2, 0);
 int sol_util_read_file(const char *path, const char *fmt, ...) SOL_ATTR_SCANF(2, 3);
 int sol_util_vread_file(const char *path, const char *fmt, va_list args) SOL_ATTR_SCANF(2, 0);
-void *sol_util_load_file_raw(const int fd, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_buffer *sol_util_load_file_raw(const int fd) SOL_ATTR_WARN_UNUSED_RESULT;
 char *sol_util_load_file_string(const char *filename, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
 int sol_util_get_rootdir(char *out, size_t size) SOL_ATTR_WARN_UNUSED_RESULT;
 int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
-ssize_t sol_util_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_t *size_read);
+ssize_t sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size);
