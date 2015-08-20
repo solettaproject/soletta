@@ -1347,6 +1347,7 @@ fail_data:
 fail_store_load:
     type_store_del(common_store);
 fail_store:
+    sol_ptr_vector_clear(&args.json_files);
 fail_args:
     sol_arena_del(str_arena);
 fail_arena:
