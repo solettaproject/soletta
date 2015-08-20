@@ -33,13 +33,11 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include <unicode/ustring.h>
-#include <unicode/utypes.h>
-
 #include "sol-flow-internal.h"
 
 #include "string-gen.h"
 #include "string-icu.h"
+#include "string-regexp.h"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -418,11 +416,12 @@ string_split_open(struct sol_flow_node *node,
     opts = (const struct sol_flow_node_type_string_split_options *)options;
 
     if (opts->index.val < 0) {
-        SOL_WRN("Index (%d) must be a non-negative value", opts->index.val);
+        SOL_WRN("Index (%" PRId32 ") must be a non-negative value",
+            opts->index.val);
         return -EINVAL;
     }
     if (opts->max_split.val < 0) {
-        SOL_WRN("Max split (%d) must be a non-negative value",
+        SOL_WRN("Max split (%" PRId32 ") must be a non-negative value",
             opts->max_split.val);
         return -EINVAL;
     }
@@ -443,17 +442,11 @@ string_split_open(struct sol_flow_node *node,
 }
 
 static void
-clear_substrings(struct string_split_data *mdata)
-{
-    sol_vector_clear(&mdata->substrings);
-}
-
-static void
 string_split_close(struct sol_flow_node *node, void *data)
 {
     struct string_split_data *mdata = data;
 
-    clear_substrings(mdata);
+    sol_vector_clear(&mdata->substrings);
     free(mdata->string);
     free(mdata->separator);
 }
@@ -477,6 +470,7 @@ icu_str_split(const struct sol_str_slice slice,
 
 #define CREATE_SLICE(_str, _len) \
     do { \
+        struct sol_str_slice *s; \
         s = sol_vector_append(&v); \
         if (!s) \
             goto err; \
@@ -485,7 +479,6 @@ icu_str_split(const struct sol_str_slice slice,
     } while (0)
 
     while (str && (v.len < max_split + 1)) {
-        struct sol_str_slice *s;
         UChar *token = u_strFindFirst(str, len, delim, dlen);
         if (!token) {
             CREATE_SLICE(str, len);
@@ -500,7 +493,6 @@ icu_str_split(const struct sol_str_slice slice,
         len -= (token - str) + dlen;
         str = token + dlen;
     }
-#undef CREATE_SLICE
 
     return v;
 
@@ -548,8 +540,8 @@ send_substring(struct string_split_data *mdata, struct sol_flow_node *node)
         return 0;
 
     if (mdata->index >= len) {
-        SOL_WRN("Index (%" PRId32 ") greater than substrings "
-            "length (%" PRId32 ").", mdata->index, len);
+        SOL_WRN("Index (%d) greater than substrings "
+            "length (%d).", mdata->index, len);
         return -EINVAL;
     }
 
@@ -578,7 +570,7 @@ set_string_index(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value < 0) {
-        SOL_WRN("Index (%d) must be a non-negative value", in_value);
+        SOL_WRN("Index (%" PRId32 ") must be a non-negative value", in_value);
         return -EINVAL;
     }
     mdata->index = in_value;
@@ -601,7 +593,8 @@ set_max_split(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value < 0) {
-        SOL_WRN("Max split (%d) must be a non-negative value", in_value);
+        SOL_WRN("Max split (%" PRId32 ") must be a non-negative value",
+            in_value);
         return -EINVAL;
     }
     mdata->max_split = in_value;
@@ -799,7 +792,7 @@ string_replace_open(struct sol_flow_node *node,
 
     mdata->node = node;
     if (opts->max_replace.val < 0) {
-        SOL_WRN("Max replace (%d) must be a non-negative value",
+        SOL_WRN("Max replace (%" PRId32 ") must be a non-negative value",
             opts->max_replace.val);
         return -EINVAL;
     }
@@ -937,14 +930,15 @@ set_max_replace(struct sol_flow_node *node,
     const struct sol_flow_packet *packet)
 {
     struct string_replace_data *mdata = data;
-    int r;
     int32_t in_value;
+    int r;
 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     if (in_value < 0) {
-        SOL_WRN("Max replace (%d) must be a non-negative value", in_value);
+        SOL_WRN("Max replace (%" PRId32 ") must be a non-negative value",
+            in_value);
         return -EINVAL;
     }
     mdata->max_replace = in_value;
