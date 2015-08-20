@@ -38,7 +38,7 @@ config TEST_FLOW_PARSER
 
 config TEST_JAVASCRIPT
 	bool "javascript"
-	depends on JAVASCRIPT
+	depends on FLOW_METATYPE_JAVASCRIPT
 	default y
 
 config TEST_MAINLOOP
