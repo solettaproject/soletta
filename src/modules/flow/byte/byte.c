@@ -130,17 +130,26 @@ shift_left_func(unsigned char in0, unsigned char in1)
 static int
 shift_left_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    int r = 0;
+    if (port == SOL_FLOW_NODE_TYPE_BYTE_SHIFT_LEFT__IN__SHIFT) {
+        int r = validate_shift(packet);
 
-    if (port == SOL_FLOW_NODE_TYPE_BYTE_SHIFT_LEFT__IN__SHIFT)
-        r = validate_shift(packet);
-    if (r < 0) {
-        unsigned char in;
-        sol_flow_packet_get_byte(packet, &in);
-        sol_flow_send_error_packet(node, r, "Invalid values for a shift left operation: operation: %d, Maximum is %d", in, (CHAR_BIT - 1));
-        return r;
+        if (r < 0) {
+            int err;
+            unsigned char in;
+
+            err = sol_flow_packet_get_byte(packet, &in);
+            SOL_INT_CHECK(err, < 0, err);
+
+            sol_flow_send_error_packet(node, r,
+                "Invalid values for a shift left operation: operation: %d. "
+                "Maximum is %d", in, (CHAR_BIT - 1));
+            return 0;
+        }
     }
-    return two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_SHIFT_LEFT__OUT__OUT, packet, shift_left_func);
+
+    return two_port_process(node, data, port,
+        SOL_FLOW_NODE_TYPE_BYTE_SHIFT_LEFT__OUT__OUT,
+        packet, shift_left_func);
 }
 
 static int
@@ -152,17 +161,26 @@ shift_right_func(unsigned char in0, unsigned char in1)
 static int
 shift_right_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    int r = 0;
+    if (port == SOL_FLOW_NODE_TYPE_BYTE_SHIFT_RIGHT__IN__SHIFT) {
+        int r = validate_shift(packet);
 
-    if (port == SOL_FLOW_NODE_TYPE_BYTE_SHIFT_RIGHT__IN__SHIFT)
-        r = validate_shift(packet);
-    if (r < 0) {
-        unsigned char in;
-        sol_flow_packet_get_byte(packet, &in);
-        sol_flow_send_error_packet(node, r, "Invalid values for a shift left operation: operation: %d, Maximum is %d", in, (CHAR_BIT - 1));
-        return r;
+        if (r < 0) {
+            int err;
+            unsigned char in;
+
+            err = sol_flow_packet_get_byte(packet, &in);
+            SOL_INT_CHECK(err, < 0, err);
+
+            sol_flow_send_error_packet(node, r,
+                "Invalid values for a shift left operation: operation: %d. "
+                "Maximum is %d", in, (CHAR_BIT - 1));
+            return 0;
+        }
     }
-    return two_port_process(node, data, port, SOL_FLOW_NODE_TYPE_BYTE_SHIFT_RIGHT__OUT__OUT, packet, shift_right_func);
+
+    return two_port_process(node, data, port,
+        SOL_FLOW_NODE_TYPE_BYTE_SHIFT_RIGHT__OUT__OUT,
+        packet, shift_right_func);
 }
 
 static int
