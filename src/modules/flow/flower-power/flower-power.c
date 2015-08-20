@@ -117,7 +117,7 @@ sol_flower_power_new_packet_components(const char *id,
     struct sol_drange *temperature, struct sol_drange *water)
 {
     struct sol_flower_power_data packet_type_flower_power;
-    struct sol_drange default_measure = { 0, -DBL_MAX, DBL_MAX, DBL_MIN };
+    struct sol_drange default_measure = SOL_DRANGE_INIT();
 
     SOL_NULL_CHECK(id, NULL);
     SOL_NULL_CHECK(timestamp, NULL);
@@ -500,10 +500,10 @@ http_get_cb(void *data, struct sol_http_response *response)
         sol_json_scanner_init_from_token(&locations_scanner, &locations);
         SOL_JSON_SCANNER_ARRAY_LOOP (&locations_scanner, &token,
             SOL_JSON_TYPE_OBJECT_START, reason) {
-            struct sol_drange fertilizer = { NAN, -DBL_MAX, DBL_MAX, DBL_MIN };
-            struct sol_drange water = { NAN, -DBL_MAX, DBL_MAX, DBL_MIN };
-            struct sol_drange temperature = { NAN, -DBL_MAX, DBL_MAX, DBL_MIN };
-            struct sol_drange light = { NAN, -DBL_MAX, DBL_MAX, DBL_MIN };
+            struct sol_drange fertilizer = SOL_DRANGE_INIT_VALUE(NAN);
+            struct sol_drange water = SOL_DRANGE_INIT_VALUE(NAN);
+            struct sol_drange temperature = SOL_DRANGE_INIT_VALUE(NAN);
+            struct sol_drange light = SOL_DRANGE_INIT_VALUE(NAN);
             char *id = NULL, *timestamp = NULL;
 
             SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&locations_scanner, &token,

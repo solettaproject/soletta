@@ -293,12 +293,7 @@ sol_flow_packet_new_irange(const struct sol_irange *irange)
 SOL_API struct sol_flow_packet *
 sol_flow_packet_new_irange_value(int32_t value)
 {
-    struct sol_irange irange = {
-        .min = INT32_MIN,
-        .max = INT32_MAX,
-        .step = 1,
-        .val = value,
-    };
+    struct sol_irange irange = SOL_IRANGE_INIT_VALUE(value);
 
     return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_IRANGE, &irange);
 }
@@ -469,12 +464,7 @@ sol_flow_packet_new_drange(const struct sol_drange *drange)
 SOL_API struct sol_flow_packet *
 sol_flow_packet_new_drange_value(double value)
 {
-    struct sol_drange drange = {
-        .min = -DBL_MAX,
-        .max = DBL_MAX,
-        .step = DBL_MIN,
-        .val = value,
-    };
+    struct sol_drange drange = SOL_DRANGE_INIT_VALUE(value);
 
     return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_DRANGE, &drange);
 }

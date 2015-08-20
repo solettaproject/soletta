@@ -35,6 +35,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <float.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -155,6 +156,22 @@ struct sol_drange {
     double step;
 };
 
+#define SOL_DRANGE_INIT() \
+    { \
+        .min = -DBL_MAX, \
+        .max = DBL_MAX, \
+        .step = DBL_MIN, \
+        .val = 0 \
+    }
+
+#define SOL_DRANGE_INIT_VALUE(value_) \
+    { \
+        .min = -DBL_MAX, \
+        .max = DBL_MAX, \
+        .step = DBL_MIN, \
+        .val = value_ \
+    }
+
 int sol_drange_addition(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
 
 int sol_drange_division(const struct sol_drange *var0, const struct sol_drange *var1, struct sol_drange *result);
@@ -176,6 +193,22 @@ struct sol_irange {
     int32_t max;
     int32_t step;
 };
+
+#define SOL_IRANGE_INIT() \
+    { \
+        .min = INT32_MIN, \
+        .max = INT32_MAX, \
+        .step = 1, \
+        .val = 0 \
+    }
+
+#define SOL_IRANGE_INIT_VALUE(value_) \
+    { \
+        .min = INT32_MIN, \
+        .max = INT32_MAX, \
+        .step = 1, \
+        .val = value_ \
+    }
 
 int sol_irange_addition(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
