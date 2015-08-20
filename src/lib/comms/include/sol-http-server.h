@@ -33,6 +33,7 @@
 #pragma once
 
 #include <sol-http.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,9 +41,9 @@ extern "C" {
 
 /**
  * @file
- * @brief HTTP client
- * Library to perform HTTP(s) requests. Buffers whole response in memory,
- * so it's more suitable to remote API calls rather than file transfer.
+ * @brief HTTP server
+ * Library to make possible run an HTTP server to deliver and
+ * set values from others components.
  */
 
 /**
@@ -52,10 +53,17 @@ extern "C" {
  * @{
  */
 
-int sol_http_client_request(enum sol_http_method method,
-    const char *base_uri, const struct sol_http_param *params,
-    void (*cb)(void *data, struct sol_http_response *response),
-    const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_http_server;
+
+struct sol_http_server *sol_http_server_new(uint16_t port);
+struct sol_http_server *sol_http_server_ref(struct sol_http_server *server);
+void sol_http_server_unref(struct sol_http_server *server);
+
+int sol_http_server_register_handler(struct sol_http_server *server, const char *path,
+    int (*response_cb)(void *data, struct sol_http_response *response, const enum sol_http_method method, const struct sol_http_param *params),
+    const void *data);
+void sol_http_server_unregister_handler(struct sol_http_server *server, const char *path);
+int sol_http_server_set_last_modified(struct sol_http_server *server, const char *path, time_t modified);
 
 /**
  * @}

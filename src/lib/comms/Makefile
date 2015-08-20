@@ -18,11 +18,20 @@ obj-networking-$(OIC) += \
     sol-oic-client.o \
     sol-oic-server.o
 
+obj-networking-$(HTTP) += \
+    sol-http-common.o
+
 obj-networking-$(HTTP_CLIENT) += \
     sol-http-client-impl-curl.o
 
 obj-networking-$(HTTP_CLIENT)-extra-ldflags += \
     $(LIBCURL_LDFLAGS)
+
+obj-networking-$(HTTP_SERVER) += \
+    sol-http-server-impl-microhttpd.o
+
+obj-networking-$(HTTP_SERVER)-extra-ldflags += \
+    $(LIBMICROHTTPD_LDFLAGS)
 
 headers-networking-$(NETWORK) += \
     include/sol-network.h
@@ -34,5 +43,11 @@ headers-networking-$(OIC) += \
     include/sol-oic-client.h \
     include/sol-oic-server.h
 
+headers-networking-$(HTTP) += \
+    include/sol-http.h
+
 headers-networking-$(HTTP_CLIENT) += \
     include/sol-http-client.h
+
+headers-networking-$(HTTP_SERVER) += \
+    include/sol-http-server.h
