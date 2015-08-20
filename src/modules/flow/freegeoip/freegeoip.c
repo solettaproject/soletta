@@ -98,10 +98,10 @@ freegeoip_query_finished(void *data, struct sol_http_response *response)
         JSON_FIELD_TO_FLOW_PORT("zip_code", ZIP_CODE)
         JSON_FIELD_TO_FLOW_PORT("time_zone", TIMEZONE)
 
-        if (sol_json_token_str_eq(&key, "latitude", strlen("latitude"))) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "latitude")) {
             if (sol_json_token_get_double(&value, &location.lat) < 0)
                 goto error;
-        } else if (sol_json_token_str_eq(&key, "longitude", strlen("longitude"))) {
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "longitude")) {
             if (sol_json_token_get_double(&value, &location.lon) < 0)
                 goto error;
         } else {

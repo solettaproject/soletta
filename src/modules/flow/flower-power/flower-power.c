@@ -317,8 +317,7 @@ generate_token_cb(void *data, struct sol_http_response *response)
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         size_t token_size;
 
-        if (!sol_json_token_str_eq(&key, "access_token",
-            strlen("access_token")))
+        if (!SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "access_token"))
             continue;
 
         /* value is between double quotes */
@@ -411,8 +410,7 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure)
 
     sol_json_scanner_init_from_token(&scanner, measure_token);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        if (sol_json_token_str_eq(&key, "gauge_values",
-            strlen("gauge_values"))) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "gauge_values")) {
             found_key = true;
             break;
         }
@@ -428,16 +426,13 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure)
 
     sol_json_scanner_init_from_token(&scanner, &value);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        if (sol_json_token_str_eq(&key, "current_value",
-            strlen("current_value"))) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "current_value")) {
             if (sol_json_token_get_double(&value, &measure->val))
                 SOL_DBG("Failed to get current value");
-        } else if (sol_json_token_str_eq(&key, "max_threshold",
-            strlen("max_threshold"))) {
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "max_threshold")) {
             if (sol_json_token_get_double(&value, &measure->max))
                 SOL_DBG("Failed to get max value");
-        } else if (sol_json_token_str_eq(&key, "min_threshold",
-            strlen("min_threshold"))) {
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "min_threshold")) {
             if (sol_json_token_get_double(&value, &measure->min))
                 SOL_DBG("Failed to get min value");
         }
@@ -483,10 +478,10 @@ http_get_cb(void *data, struct sol_http_response *response)
         response->content.used);
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        if (sol_json_token_str_eq(&key, "locations", strlen("locations"))) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "locations")) {
             found_locations = true;
             locations = value;
-        } else if (sol_json_token_str_eq(&key, "sensors", strlen("sensors"))) {
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "sensors")) {
             found_sensors = true;
             sensors = value;
         }
@@ -508,20 +503,18 @@ http_get_cb(void *data, struct sol_http_response *response)
 
             SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&locations_scanner, &token,
                 &key, &value, reason) {
-                if (sol_json_token_str_eq(&key, "fertilizer",
-                    strlen("fertilizer"))) {
+                if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "fertilizer")) {
                     if (!get_measure(&value, &fertilizer)) {
                         SOL_WRN("Failed to get fertilizer info");
                         goto error;
                     }
-                } else if (sol_json_token_str_eq(&key, "light",
-                    strlen("light"))) {
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "light")) {
                     if (!get_measure(&value, &light)) {
                         SOL_WRN("Failed to get light info");
                         goto error;
                     }
-                } else if (sol_json_token_str_eq(&key, "air_temperature",
-                    strlen("air_temperature"))) {
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
+                    "air_temperature")) {
                     if (!get_measure(&value, &temperature)) {
                         SOL_WRN("Failed to get temperature info");
                         goto error;
@@ -533,21 +526,21 @@ http_get_cb(void *data, struct sol_http_response *response)
                     /* convert from Celsius to Kelvin */
                     if (!isnan(temperature.val))
                         temperature.val += 273.15;
-                } else if (sol_json_token_str_eq(&key, "soil_moisture",
-                    strlen("soil_moisture"))) {
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
+                    "soil_moisture")) {
                     if (!get_measure(&value, &water)) {
                         SOL_WRN("Failed to get water info");
                         goto error;
                     }
-                } else if (sol_json_token_str_eq(&key, "location_identifier",
-                    strlen("location_identifier"))) {
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
+                    "location_identifier")) {
                     id = strndupa(value.start + 1, value.end - value.start - 2);
                     if (!id) {
                         SOL_WRN("Failed to get id");
                         goto error;
                     }
-                } else if (sol_json_token_str_eq(&key, "last_sample_upload",
-                    strlen("last_sample_upload"))) {
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
+                    "last_sample_upload")) {
                     timestamp = strndupa(value.start + 1,
                         value.end - value.start - 2);
                     if (!timestamp) {
@@ -574,21 +567,19 @@ http_get_cb(void *data, struct sol_http_response *response)
 
             SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&sensors_scanner, &token,
                 &key, &value, reason) {
-                if (sol_json_token_str_eq(&key, "battery_level",
-                    strlen("battery_level"))) {
+                if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "battery_level")) {
                     sol_json_scanner_init_from_token(&scanner, &value);
                     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key,
                         &value, reason) {
-                        if (sol_json_token_str_eq(&key, "level_percent",
-                            strlen("level_percent"))) {
+                        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
+                            "level_percent")) {
                             if (sol_json_token_get_double(&value,
                                 &battery_level.val)) {
                                 SOL_DBG("Failed to get battery level");
                                 goto error;
                             }
-                        } else if (sol_json_token_str_eq(&key,
-                            "battery_end_of_life_date_utc",
-                            strlen("battery_end_of_life_date_utc"))) {
+                        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
+                            "battery_end_of_life_date_utc")) {
                             battery_end_of_life = strndupa(value.start + 1,
                                 value.end - value.start - 2);
                             if (!battery_end_of_life) {
@@ -597,16 +588,15 @@ http_get_cb(void *data, struct sol_http_response *response)
                             }
                         }
                     }
-                } else if (sol_json_token_str_eq(&key, "sensor_serial",
-                    strlen("sensor_serial"))) {
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
+                    "sensor_serial")) {
                     id = strndupa(value.start + 1, value.end - value.start - 2);
                     if (!id) {
                         SOL_WRN("Failed to get id");
                         goto error;
                     }
-                } else if (sol_json_token_str_eq(&key,
-                    "last_upload_datetime_utc",
-                    strlen("last_upload_datetime_utc"))) {
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
+                    "last_upload_datetime_utc")) {
                     timestamp = strndupa(value.start + 1,
                         value.end - value.start - 2);
                     if (!timestamp) {
