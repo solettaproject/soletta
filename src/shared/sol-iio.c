@@ -916,7 +916,6 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
         }
 
         channel->mask = (1 << channel->bits) - 1;
-        channel->offset_in_buffer = -1;
     }
 
     sol_ptr_vector_append(&channel->device->channels, channel);
