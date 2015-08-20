@@ -193,6 +193,17 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsig
 #define SOL_JSON_TOKEN_STR_LITERAL_EQ(token_, str_) \
     sol_json_token_str_eq(token_, str_, sizeof(str_) - 1)
 
+static inline void
+sol_json_token_remove_quotes(struct sol_json_token *token)
+{
+    if (sol_json_token_get_size(token) < 3)
+        return;
+    if (*token->start == '"')
+        token->start++;
+    if (*(token->end - 1) == '"')
+        token->end--;
+}
+
 /**
  * Get the numeric value of the given token as an 64 bits unsigned integer.
  *
