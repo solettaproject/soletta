@@ -34,8 +34,10 @@
 
 #include "sol-macros.h"
 
+#include <dirent.h>
 #include <sys/types.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #define CHUNK_SIZE 4096
 #define SOL_UTIL_MAX_READ_ATTEMPTS 10
@@ -49,3 +51,4 @@ char *sol_util_load_file_string(const char *filename, size_t *size) SOL_ATTR_WAR
 int sol_util_get_rootdir(char *out, size_t size) SOL_ATTR_WARN_UNUSED_RESULT;
 int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
 ssize_t sol_util_fill_buffer(const int fd, char *buffer, const size_t buffer_size, size_t *size_read);
+bool sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path, struct dirent *ent), const void *data);
