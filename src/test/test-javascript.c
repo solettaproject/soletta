@@ -39,48 +39,59 @@
 
 #include "test.h"
 
-#define JS_ASSERT_TRUE(_buf) {                                               \
-        struct sol_flow_node_type *t = sol_flow_js_new_type(_buf, strlen(_buf)); \
-        if (!t) {                                                                \
-            SOL_WRN("Failed to parse '%s'.", _buf);                              \
-            ASSERT(false);                                                       \
-        }                                                                        \
-        sol_flow_node_type_del(t); }
-
-#define JS_ASSERT_FALSE(_buf) {                                              \
-        struct sol_flow_node_type *t = sol_flow_js_new_type(_buf, strlen(_buf)); \
-        if (t) {                                                                 \
-            SOL_WRN("Parse should not be successful '%s'.", _buf);               \
-            ASSERT(false);                                                       \
-        }                                                                        \
-        sol_flow_node_type_del(t); }
-
 DEFINE_TEST(test_js);
 
 static void
 test_js(void)
 {
-    JS_ASSERT_FALSE("");
+    struct test_entry {
+        const char *input;
+        bool should_fail;
+    } *entry, tests[] = {
+        { NULL, .should_fail = true },
+        { "", .should_fail = true },
 
-    /* variables and methods */
-    JS_ASSERT_FALSE("var ports = {};");
-    JS_ASSERT_FALSE("var foo = 123; var my_ports = {};");
-    JS_ASSERT_FALSE("function in_port() { print('hello!'); }");
-    JS_ASSERT_TRUE("var node = {};");
-    JS_ASSERT_TRUE("var foo = 123; var node = {}; var bar = 'bar';");
-    JS_ASSERT_TRUE("function bar() { print('hello!'); } var node = {};");
+        /* Variables and methods. */
+        { "var ports = {};", .should_fail = true },
+        { "var foo = 123; var my_ports = {};", .should_fail = true },
+        { "function in_port() { print('hello!'); }", .should_fail = true },
 
-    /* in/out ports */
-    JS_ASSERT_TRUE("var node = { in: [{ name: 'IN_PORT', type:'int' }, { name: 'IN_PORT2', type: 'string'}]};");
-    JS_ASSERT_TRUE("var node = { out: [{ name: 'OUT_PORT', type:'float' }, { name: 'OUT_PORT2', type: 'byte'}]};");
-    JS_ASSERT_TRUE("var node = { in: [{ name: 'IN_PORT', type:'string' }], out: [{ name: 'OUT_PORT', type: 'int'}]};");
+        { "var node = {};" },
+        { "var foo = 123; var node = {}; var bar = 'bar';" },
+        { "function bar() { print('hello!'); } var node = {};" },
 
-    /* methods */
-    JS_ASSERT_TRUE("var node = { in: [{ name: 'IN', type: 'rgb', process: function() { print('process'); }} ]};");
-    JS_ASSERT_TRUE("var node = { out: [{ name: 'OUT', type: 'string', connect: function() { print('connect'); }} ]};");
+        /* In/Out ports. */
+        { "var node = { in: [{ name: 'IN_PORT', type:'int' }, { name: 'IN_PORT2', type: 'string'}]};" },
+        { "var node = { out: [{ name: 'OUT_PORT', type:'float' }, { name: 'OUT_PORT2', type: 'byte'}]};" },
+        { "var node = { in: [{ name: 'IN_PORT', type:'string' }], out: [{ name: 'OUT_PORT', type: 'int'}]};" },
 
-    /* properties on node variable */
-    JS_ASSERT_TRUE("var node = { in: [{ name: 'IN', type: 'rgb', process: function() { print('process'); }} ], property_1:123 };");
+        /* Methods. */
+        { "var node = { in: [{ name: 'IN', type: 'rgb', process: function() { print('process'); }} ]};" },
+        { "var node = { out: [{ name: 'OUT', type: 'string', connect: function() { print('connect'); }} ]};" },
+
+        /* Properties on node variable. */
+        { "var node = { in: [{ name: 'IN', type: 'rgb', process: function() { print('process'); }} ], property_1:123 };" },
+    };
+    unsigned int i;
+
+    for (i = 0; i < ARRAY_SIZE(tests); i++) {
+        struct sol_flow_node_type *type;
+        size_t len = 0;
+        entry = &tests[i];
+
+        if (entry->input)
+            len = strlen(entry->input);
+
+        type = sol_flow_js_new_type(entry->input, len);
+        if (type && entry->should_fail) {
+            SOL_ERR("Node was created but should fail, input='%s'", entry->input);
+            FAIL();
+        } else if (!type && !entry->should_fail) {
+            SOL_ERR("Node was created but should fail, input='%s'", entry->input);
+            FAIL();
+        }
+        sol_flow_node_type_del(type);
+    }
 }
 
 
