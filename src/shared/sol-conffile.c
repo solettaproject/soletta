@@ -93,14 +93,18 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         int key_len, value_len;
         char *tmp;
-        key_len = sol_json_token_get_size(&key) - 2; // remove quotes from the key.
-        value_len = sol_json_token_get_size(&value); // do not remove quotes from the value. (not everything is a string here)
+
+        sol_json_token_remove_quotes(&key);
+        key_len = sol_json_token_get_size(&key);
+        sol_json_token_remove_quotes(&value);
+        value_len = sol_json_token_get_size(&value);
+
         if (!key_len || !value_len) {
             reason = SOL_JSON_LOOP_REASON_INVALID;
             break;
         }
 
-        if (asprintf(&tmp, "%.*s=%.*s", key_len, key.start + 1, value_len, value.start) <= 0) {
+        if (asprintf(&tmp, "%.*s=%.*s", key_len, key.start, value_len, value.start) <= 0) {
             SOL_WRN("Couldn't allocate memory for the config file, ignoring options.");
             return -ENOMEM;
             break;

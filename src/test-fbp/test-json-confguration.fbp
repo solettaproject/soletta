@@ -32,5 +32,5 @@ _(constant/int:value=4) OUT -> IN _(TestConsole)
 _(constant/int:value=1) OUT -> INTERVAL _(timer) OUT -> QUIT _(app/quit)
 
 ## TEST-OUTPUT
-# "-=-=- soletta -=-=-"4 (integer range)
+# -=-=- soletta -=-=-4 (integer range)
 
