@@ -1335,18 +1335,18 @@ join_mcast_groups(int fd, const struct sol_network_link *link)
         groupaddr.family = addr->family;
 
         if (addr->family == AF_INET) {
-            inet_pton(addr->family, IPV4_ALL_COAP_NODES_GROUP, &groupaddr.addr);
+            sol_network_addr_from_str(&groupaddr, IPV4_ALL_COAP_NODES_GROUP);
             if (sol_socket_join_group(fd, link->index, &groupaddr) < 0)
                 return -errno;
 
             continue;
         }
 
-        inet_pton(addr->family, IPV6_ALL_COAP_NODES_SCOPE_LOCAL, &groupaddr.addr);
+        sol_network_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_LOCAL);
         if (sol_socket_join_group(fd, link->index, &groupaddr) < 0)
             return -errno;
 
-        inet_pton(addr->family, IPV6_ALL_COAP_NODES_SCOPE_SITE, &groupaddr.addr);
+        sol_network_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_SITE);
         if (sol_socket_join_group(fd, link->index, &groupaddr) < 0)
             return -errno;
     }

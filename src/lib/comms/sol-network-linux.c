@@ -86,6 +86,17 @@ sol_network_addr_to_str(const struct sol_network_link_addr *addr,
     return inet_ntop(addr->family, &addr->addr, buf, len);
 }
 
+SOL_API const struct sol_network_link_addr *
+sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
+{
+    SOL_NULL_CHECK(addr, NULL);
+    SOL_NULL_CHECK(buf, NULL);
+
+    if (inet_pton(addr->family, buf, &addr->addr) != 1)
+        return NULL;
+    return addr;
+}
+
 static struct sol_network_link *
 _get_link(int index)
 {
