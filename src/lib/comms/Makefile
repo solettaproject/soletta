@@ -24,6 +24,9 @@ obj-networking-$(HTTP_CLIENT) += \
 obj-networking-$(HTTP_CLIENT)-extra-ldflags += \
     $(LIBCURL_LDFLAGS)
 
+requires-private-$(HTTP_CLIENT) := \
+    $(LIBCURL_REQUIRES_PRIVATE)
+
 headers-networking-$(NETWORK) += \
     include/sol-network.h
 

@@ -74,6 +74,17 @@ obj-core-$(PTHREAD)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 obj-core-$(USE_PIN_MUX) += \
     sol-pin-mux.o
 
+requires-private-$(MAINLOOP_GLIB) += \
+    $(GLIB_REQUIRES_PRIVATE)
+
+requires-private-$(SOL_BUS) += \
+    $(SYSTEMD_REQUIRES_PRIVATE)
+
+requires-private-$(PLATFORM_SYSTEMD) += \
+    $(SYSTEMD_REQUIRES_PRIVATE) \
+    $(UDEV_REQUIRES_PRIVATE)
+
+
 headers-y := \
     include/sol-log.h \
     include/sol-macros.h \
