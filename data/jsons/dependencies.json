@@ -21,7 +21,8 @@
     "PKGSYSCONFDIR": "{SYSCONF}/{PKGNAME}/",
     "FLOWMODULESDIR": "{MODULESDIR}/flow/",
     "PINMUXDIR": "{MODULESDIR}/pin-mux/",
-    "LINUXMICROMODULESDIR": "{MODULESDIR}/linux-micro/"
+    "LINUXMICROMODULESDIR": "{MODULESDIR}/linux-micro/",
+    "FLOWMETATYPEMODULESDIR": "{MODULESDIR}/flow-metatype/"
   },
   "pre-dependencies": [
     {
