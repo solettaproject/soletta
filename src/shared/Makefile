@@ -17,6 +17,7 @@ endif
 obj-libshared-$(PLATFORM_LINUX) += \
     sol-conffile.o \
     sol-file-reader.o \
+    sol-lib-loader.o \
     sol-util-linux.o \
     sol-util-file.o \
     sol-iio.o
