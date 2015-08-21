@@ -49,18 +49,21 @@ struct talkback {
 struct thingspeak_execute_data {
     struct sol_flow_node *node;
     struct sol_timeout *timeout;
+    struct sol_ptr_vector pending_conns;
     struct talkback talkback;
 };
 
 struct thingspeak_add_data {
     struct sol_flow_node *node;
     struct talkback talkback;
+    struct sol_ptr_vector pending_conns;
     int position;
 };
 
 struct thingspeak_channel_update_data {
     struct sol_flow_node *node;
     struct sol_timeout *timeout;
+    struct sol_ptr_vector pending_conns;
     char *fields[8];
     char *endpoint;
     char *api_key;
@@ -108,10 +111,15 @@ static void
 thingspeak_execute_close(struct sol_flow_node *node, void *data)
 {
     struct thingspeak_execute_data *mdata = data;
+    struct sol_http_client_pending *connection;
+    uint16_t i;
 
     sol_timeout_del(mdata->timeout);
     free_talkback(&mdata->talkback);
-    /* FIXME: Cancel pending connections. Need HTTP API. */
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
+        sol_http_client_pending_cancel(connection);
+    sol_ptr_vector_clear(&mdata->pending_conns);
 }
 
 static void
@@ -146,7 +154,8 @@ thingspeak_execute_poll(void *data)
 {
     struct thingspeak_execute_data *mdata = data;
     struct sol_http_param params;
-    struct sol_http_client_pending *pending;
+    struct sol_http_client_pending *connection;
+    int r;
 
     sol_http_param_init(&params);
     if (!sol_http_param_add(&params,
@@ -157,14 +166,22 @@ thingspeak_execute_poll(void *data)
         return false;
     }
 
-    pending = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->talkback.endpoint,
-        &params, thingspeak_execute_poll_finished, mdata);
+    connection = sol_http_client_request(SOL_HTTP_METHOD_POST,
+        mdata->talkback.endpoint, &params,
+        thingspeak_execute_poll_finished, mdata);
 
     sol_http_param_free(&params);
 
-    if (!pending) {
+    if (!connection) {
         SOL_WRN("Could not create HTTP request");
         mdata->timeout = NULL;
+        return false;
+    }
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_pending_cancel(connection);
         return false;
     }
 
@@ -201,6 +218,8 @@ thingspeak_execute_open(struct sol_flow_node *node, void *data, const struct sol
     }
 
     mdata->node = node;
+    sol_ptr_vector_init(&mdata->pending_conns);
+
     return 0;
 }
 
@@ -234,7 +253,7 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
     struct thingspeak_add_data *mdata = data;
     const char *cmd_str;
     struct sol_http_param params;
-    struct sol_http_client_pending *pending;
+    struct sol_http_client_pending *connection;
     int error_code = 0;
     int r;
 
@@ -278,11 +297,20 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
         }
     }
 
-    pending = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->talkback.endpoint,
+    connection = sol_http_client_request(SOL_HTTP_METHOD_POST,
+        mdata->talkback.endpoint,
         &params, thingspeak_add_request_finished, mdata);
-    if (!pending) {
+    if (!connection) {
         SOL_WRN("Could not create HTTP request");
         error_code = -EINVAL;
+        goto out;
+    }
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_pending_cancel(connection);
+        error_code = -ENOMEM;
     }
 
 out:
@@ -294,9 +322,14 @@ static void
 thingspeak_add_close(struct sol_flow_node *node, void *data)
 {
     struct thingspeak_add_data *mdata = data;
+    struct sol_http_client_pending *connection;
+    uint16_t i;
 
     free_talkback(&mdata->talkback);
-    /* FIXME: Cancel pending connections. Need HTTP API. */
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
+        sol_http_client_pending_cancel(connection);
+    sol_ptr_vector_clear(&mdata->pending_conns);
 }
 
 static int
@@ -315,6 +348,7 @@ thingspeak_add_open(struct sol_flow_node *node, void *data, const struct sol_flo
 
     mdata->node = node;
     mdata->position = opts->position.val;
+    sol_ptr_vector_init(&mdata->pending_conns);
 
     return 0;
 }
@@ -339,9 +373,10 @@ thingspeak_channel_update_send(void *data)
 {
     struct thingspeak_channel_update_data *mdata = data;
     struct sol_http_param params;
-    struct sol_http_client_pending *pending;
+    struct sol_http_client_pending *connection;
     char field_name[] = "fieldX";
     size_t i;
+    int r;
 
     sol_http_param_init(&params);
 
@@ -372,11 +407,17 @@ thingspeak_channel_update_send(void *data)
         }
     }
 
-    pending = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->endpoint, &params,
-        thingspeak_channel_update_finished, mdata);
-    if (!pending) {
+    connection = sol_http_client_request(SOL_HTTP_METHOD_POST,
+        mdata->endpoint, &params, thingspeak_channel_update_finished, mdata);
+    if (!connection) {
         SOL_WRN("Could not create HTTP request");
         goto out;
+    }
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_pending_cancel(connection);
     }
 
 out:
@@ -455,7 +496,8 @@ static void
 thingspeak_channel_update_close(struct sol_flow_node *node, void *data)
 {
     struct thingspeak_channel_update_data *mdata = data;
-    size_t i;
+    struct sol_http_client_pending *connection;
+    uint16_t i;
 
     for (i = 0; i < ARRAY_SIZE(mdata->fields); i++)
         free(mdata->fields[i]);
@@ -466,7 +508,9 @@ thingspeak_channel_update_close(struct sol_flow_node *node, void *data)
 
     sol_timeout_del(mdata->timeout);
 
-    /* FIXME: Cancel pending connections. Need HTTP API. */
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
+        sol_http_client_pending_cancel(connection);
+    sol_ptr_vector_clear(&mdata->pending_conns);
 }
 
 static int
@@ -495,6 +539,7 @@ thingspeak_channel_update_open(struct sol_flow_node *node, void *data, const str
         mdata->fields[i] = NULL;
     mdata->status = NULL;
     mdata->timeout = NULL;
+    sol_ptr_vector_init(&mdata->pending_conns);
 
     return 0;
 }

@@ -45,6 +45,7 @@
 
 struct freegeoip_data {
     struct sol_flow_node *node;
+    struct sol_ptr_vector pending_conns;
     char *endpoint;
 };
 
@@ -61,6 +62,9 @@ freegeoip_query_finished(void *data, struct sol_http_client_pending *connection,
         .lon = FP_NAN,
         .alt = FP_NAN,
     };
+
+    if (sol_ptr_vector_remove(&mdata->pending_conns, connection) < 0)
+        SOL_WRN("Failed to find pending connection %p", connection);
 
     if (!response) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -131,7 +135,7 @@ query_addr(struct freegeoip_data *mdata, const char *addr)
 {
     int r;
     char json_endpoint[PATH_MAX];
-    struct sol_http_client_pending *pending;
+    struct sol_http_client_pending *connection;
 
     r = snprintf(json_endpoint, sizeof(json_endpoint), "%s/json/%s",
         mdata->endpoint, addr ? addr : "");
@@ -140,13 +144,19 @@ query_addr(struct freegeoip_data *mdata, const char *addr)
         return -EINVAL;
     }
 
-    /* FIXME: Fix sol_http so that requests are cancellable. */
-    pending = sol_http_client_request(SOL_HTTP_METHOD_GET, json_endpoint,
+    connection = sol_http_client_request(SOL_HTTP_METHOD_GET, json_endpoint,
         NULL, freegeoip_query_finished, mdata);
 
-    if (!pending) {
+    if (!connection) {
         SOL_WRN("Could not create HTTP request");
         return -ENOTCONN;
+    }
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_pending_cancel(connection);
+        return -ENOMEM;
     }
 
     return 0;
@@ -179,9 +189,15 @@ freegeoip_ip_process(struct sol_flow_node *node, void *data,
 static void
 freegeoip_close(struct sol_flow_node *node, void *data)
 {
+    struct sol_http_client_pending *connection;
     struct freegeoip_data *mdata = data;
+    uint16_t i;
 
     free(mdata->endpoint);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
+        sol_http_client_pending_cancel(connection);
+    sol_ptr_vector_clear(&mdata->pending_conns);
 }
 
 static int
@@ -198,6 +214,8 @@ freegeoip_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     mdata->endpoint = strdup(opts->endpoint);
     if (!mdata->endpoint)
         return -ENOMEM;
+
+    sol_ptr_vector_init(&mdata->pending_conns);
 
     return 0;
 }
