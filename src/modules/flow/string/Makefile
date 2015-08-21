@@ -16,14 +16,14 @@
 #  nodes have a different license than the others, we kept them split
 #  like that.
 
-ifeq (,$(HAVE_LIBPCRE))
+ifeq (,$(USE_LIBPCRE))
 warning-msg := "You're building the string nodes module without Perl regular expressions support. That way, the string module will still be built, but the regular expression nodes will be made useless -- any input packet on them only issue an error output packet. Please re-configure after you have LIBPCRE development packages installed to get the intended string nodes behavior.\n\n"
 endif
 
 obj-$(FLOW_NODE_TYPE_STRING) += string.mod
 obj-string-$(FLOW_NODE_TYPE_STRING) := string.json string-regexp.o
 
-ifeq (y,$(HAVE_ICU))
+ifeq (y,$(USE_ICU))
 obj-string-$(FLOW_NODE_TYPE_STRING) += string-icu.o string-replace-icu.o
 else
 obj-string-$(FLOW_NODE_TYPE_STRING) += string-ascii.o string-replace-ascii.o
