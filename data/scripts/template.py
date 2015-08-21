@@ -103,6 +103,11 @@ def load_context(files):
         handle.read_string(content)
         dc = handle["context"]
         result = dict(list(result.items()) + list(dc.items()))
+
+    # also consider env vars in the context
+    for k,v in os.environ.items():
+        result[k] = v
+
     return result
 
 def try_subst(verbatim):
