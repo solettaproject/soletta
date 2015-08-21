@@ -297,6 +297,7 @@ _netlink_request(int event)
         SOL_WRN("Failed on send message to get the links");
 
     while ((sol_util_fill_buffer(network->nl_socket, &buffer_receive, buffer_receive.capacity)) > 0) {
+        n = buffer_receive.used;
         for (h = buffer_receive.data; NLMSG_OK(h, n); h = NLMSG_NEXT(h, n)) {
             if (h->nlmsg_type == NLMSG_DONE)
                 return;
@@ -309,6 +310,7 @@ _netlink_request(int event)
             if ((h->nlmsg_type == RTM_NEWADDR) || (h->nlmsg_type == RTM_DELADDR))
                 _on_addr_event(h);
         }
+        sol_buffer_reset(&buffer_receive);
     }
 }
 
