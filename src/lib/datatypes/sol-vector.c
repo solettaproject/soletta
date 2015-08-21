@@ -93,7 +93,7 @@ sol_vector_append_n(struct sol_vector *v, uint16_t n)
     }
 
     new_elems = (unsigned char *)v->data + (v->elem_size * (v->len - n));
-    memset(new_elems, 0, v->elem_size * n);
+    memset(new_elems, 0, (size_t)v->elem_size * n);
 
     return new_elems;
 }
