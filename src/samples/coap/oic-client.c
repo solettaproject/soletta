@@ -92,7 +92,7 @@ main(int argc, char *argv[])
 
     sol_init();
 
-    if (inet_pton(cliaddr.family, "224.0.1.187", &cliaddr.addr) < 0) {
+    if (!sol_network_addr_from_str(&cliaddr, "224.0.1.187")) {
         printf("could not convert multicast ip address to sockaddr_in\n");
         return 1;
     }

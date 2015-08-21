@@ -64,6 +64,24 @@ sol_network_addr_to_str(const struct sol_network_link_addr *addr,
 #endif
 }
 
+SOL_API const struct sol_network_link_addr *
+sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
+{
+#if MODULE_GNRC_IPV6_NETIF
+    SOL_NULL_CHECK(addr, NULL);
+    SOL_NULL_CHECK(buf, NULL);
+
+    if (addr->family != AF_INET6)
+        return NULL;
+
+    if (!ipv6_addr_from_str((ipv6_addr_t *)&addr->addr, buf))
+        return NULL;
+    return addr;
+#else
+    return NULL;
+#endif
+}
+
 static int
 add_ip6_link(int idx, gnrc_ipv6_netif_t *if_ip6)
 {
