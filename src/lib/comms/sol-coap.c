@@ -1071,22 +1071,23 @@ register_observer(struct resource_context *c, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, int observe)
 {
     struct resource_observer *o;
+    uint16_t i;
     uint8_t *token, tkl;
     int r;
 
     token = sol_coap_header_get_token(req, &tkl);
 
-    /* remove if '1', yeah, makes sense. */
-    if (observe == 1) {
-        uint16_t i;
-        SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&c->observers, o, i) {
-            if (!memcmp(&o->cliaddr, cliaddr, sizeof(*cliaddr))
-                && tkl == o->tkl && !memcmp(token, o->token, tkl)) {
+    /* Avoid registering the same observer more than once */
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&c->observers, o, i) {
+        if (!memcmp(&o->cliaddr, cliaddr, sizeof(*cliaddr))
+            && tkl == o->tkl && !memcmp(token, o->token, tkl)) {
+            /* remove if '1', yeah, makes sense. */
+            if (observe == 1) {
                 sol_ptr_vector_del(&c->observers, i);
                 free(o);
             }
+            return 0;
         }
-        return 0;
     }
 
     o = calloc(1, sizeof(*o) + tkl);
