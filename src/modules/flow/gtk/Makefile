@@ -5,3 +5,6 @@ obj-gtk-$(FLOW_NODE_TYPE_GTK) += pwm-viewer.o rgb-editor.o slider.o
 obj-gtk-$(FLOW_NODE_TYPE_GTK) += spinbutton.o toggle.o window.o
 obj-gtk-$(FLOW_NODE_TYPE_GTK)-extra-cflags += $(GTK_CFLAGS) $(GLIB_CFLAGS)
 obj-gtk-$(FLOW_NODE_TYPE_GTK)-extra-ldflags += $(GTK_LDFLAGS) $(GLIB_LDFLAGS)
+
+requires-private-$(FLOW_NODE_TYPE_GTK) := \
+    $(GTK_REQUIRES_PRIVATE)

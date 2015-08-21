@@ -212,7 +212,8 @@ inc-subdirs = \
 			$(call parse-sample,$(sample),$(subdir)) \
 		) \
 		$(clean-control) \
-	)
+	) \
+	export requires-private-y
 
 extra-bins = \
 	$(foreach bin,$(EXTRA_BINS), \
