@@ -139,6 +139,7 @@ sol_flower_power_send_packet(struct sol_flow_node *src,
 
 struct http_get_data {
     struct sol_flow_node *node;
+    struct sol_ptr_vector pending_conns;
     char *client_id;
     char *client_secret;
     char *username;
@@ -174,6 +175,8 @@ http_get_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 
     mdata->node = node;
 
+    sol_ptr_vector_init(&mdata->pending_conns);
+
     return 0;
 
 open_error:
@@ -184,7 +187,9 @@ open_error:
 static void
 http_get_close(struct sol_flow_node *node, void *data)
 {
+    struct sol_http_client_pending *connection;
     struct http_get_data *mdata = data;
+    uint16_t i;
 
     free(mdata->client_id);
     /* Zero memory used to store client secret and password */
@@ -206,7 +211,9 @@ http_get_close(struct sol_flow_node *node, void *data)
         free(mdata->token);
     }
 
-    /* FIXME: Cancel pending connections. Need HTTP API. */
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
+        sol_http_client_pending_cancel(connection);
+    sol_ptr_vector_clear(&mdata->pending_conns);
 }
 
 #define BASE_URL "https://apiflowerpower.parrot.com/"
@@ -223,6 +230,9 @@ generate_token_cb(void *data, const struct sol_http_client_pending *connection,
     struct sol_json_token token, key, value;
     enum sol_json_loop_reason reason;
     const size_t auth_len = strlen(AUTH_START);
+
+    if (sol_ptr_vector_remove(&mdata->pending_conns, connection) < 0)
+        SOL_WRN("Failed to find pending connection %p", connection);
 
     if (!response) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -275,7 +285,8 @@ static int
 generate_token(struct http_get_data *mdata)
 {
     struct sol_http_param params;
-    struct sol_http_client_pending *pending;
+    struct sol_http_client_pending *connection;
+    int r;
 
     sol_http_param_init(&params);
     if ((!sol_http_param_add(&params,
@@ -294,14 +305,21 @@ generate_token(struct http_get_data *mdata)
         return -ENOMEM;
     }
 
-    pending = sol_http_client_request(SOL_HTTP_METHOD_GET, AUTH_URL,
+    connection = sol_http_client_request(SOL_HTTP_METHOD_GET, AUTH_URL,
         &params, generate_token_cb, mdata);
 
     sol_http_param_free(&params);
 
-    if (!pending) {
+    if (!connection) {
         SOL_WRN("Could not create HTTP request for %s", AUTH_URL);
         return -EINVAL;
+    }
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_pending_cancel(connection);
+        return -ENOMEM;
     }
 
     return 0;
@@ -409,6 +427,9 @@ http_get_cb(void *data, const struct sol_http_client_pending *connection,
     int r;
     enum sol_json_loop_reason reason;
     bool found_locations = false, found_sensors = false;
+
+    if (sol_ptr_vector_remove(&mdata->pending_conns, connection) < 0)
+        SOL_WRN("Failed to find pending connection %p", connection);
 
     if (!response) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -609,7 +630,8 @@ http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 {
     struct http_get_data *mdata = data;
     struct sol_http_param params;
-    struct sol_http_client_pending *pending;
+    struct sol_http_client_pending *connection;
+    int r;
 
     if (!mdata->token) {
         sol_flow_send_error_packet(node, EINVAL, "Missing valid token");
@@ -624,14 +646,21 @@ http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
         return -ENOMEM;
     }
 
-    pending = sol_http_client_request(SOL_HTTP_METHOD_GET, STATUS_URL,
+    connection = sol_http_client_request(SOL_HTTP_METHOD_GET, STATUS_URL,
         &params, http_get_cb, mdata);
 
     sol_http_param_free(&params);
 
-    if (!pending) {
+    if (!connection) {
         SOL_WRN("Could not create HTTP request for %s", STATUS_URL);
         return -EINVAL;
+    }
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_pending_cancel(connection);
+        return -ENOMEM;
     }
 
     return 0;
