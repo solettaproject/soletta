@@ -223,18 +223,21 @@ sol_platform_add_service_monitor(void (*cb)(void *data, const char *service,
     m = sol_monitors_append(ms, (sol_monitors_cb_t)cb, data);
     SOL_NULL_CHECK_GOTO(m, fail_append);
 
+    m->service = s;
+    m->state = SOL_PLATFORM_SERVICE_STATE_UNKNOWN;
+
     if (!found) {
         r = sol_platform_impl_add_service_monitor(s);
         SOL_INT_CHECK_GOTO(r, < 0, fail_add_impl);
     }
 
-    m->service = s;
-    m->state = SOL_PLATFORM_SERVICE_STATE_UNKNOWN;
 
     return 0;
 
 fail_add_impl:
     sol_monitors_del(ms, sol_monitors_count(ms) - 1);
+    return r;
+
 fail_append:
     free(s);
     return r;
