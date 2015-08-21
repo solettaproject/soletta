@@ -34,6 +34,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "sol-log.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
@@ -48,7 +49,7 @@ sol_vector_init(struct sol_vector *v, uint16_t elem_size)
 static int
 sol_vector_grow(struct sol_vector *v, uint16_t amount)
 {
-    unsigned int new_cap, old_cap;
+    size_t new_cap, old_cap;
     uint16_t new_len;
 
     if (v->len > UINT16_MAX - amount)
@@ -59,7 +60,14 @@ sol_vector_grow(struct sol_vector *v, uint16_t amount)
     new_cap = align_power2(new_len);
 
     if (new_cap != old_cap) {
-        void *data = realloc(v->data, new_cap * v->elem_size);
+        void *data;
+        int r;
+        size_t data_size;
+
+        r = sol_util_size_mul(v->elem_size, new_cap, &data_size);
+        SOL_INT_CHECK(r, < 0, r);
+
+        data = realloc(v->data, data_size);
         if (!data)
             return -ENOMEM;
         v->data = data;
@@ -93,7 +101,7 @@ sol_vector_append_n(struct sol_vector *v, uint16_t n)
     }
 
     new_elems = (unsigned char *)v->data + (v->elem_size * (v->len - n));
-    memset(new_elems, 0, v->elem_size * n);
+    memset(new_elems, 0, (size_t)v->elem_size * n);
 
     return new_elems;
 }
