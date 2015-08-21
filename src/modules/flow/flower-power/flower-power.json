@@ -102,13 +102,43 @@
         },
         {
           "data_type": "float",
+          "description": "Plant's fertilizer minimum threshold.",
+          "name": "FERTILIZER_MIN"
+        },
+        {
+          "data_type": "float",
+          "description": "Plant's fertilizer maximum threshold.",
+          "name": "FERTILIZER_MAX"
+        },
+        {
+          "data_type": "float",
           "description": "Plant's sunlight level.",
           "name": "LIGHT"
         },
         {
           "data_type": "float",
+          "description": "Plant's sunlight minimum threshold.",
+          "name": "LIGHT_MIN"
+        },
+        {
+          "data_type": "float",
+          "description": "Plant's sunlight maximum threshold.",
+          "name": "LIGHT_MAX"
+        },
+        {
+          "data_type": "float",
           "description": "Air temperature around the plant (in Kelvin).",
           "name": "KELVIN"
+        },
+        {
+          "data_type": "float",
+          "description": "Minimum threshold for air temperature around the plant(in Kelvin).",
+          "name": "KELVIN_MIN"
+        },
+        {
+          "data_type": "float",
+          "description": "Maximum threshold for air temperature around the plant(in Kelvin).",
+          "name": "KELVIN_MAX"
         },
         {
           "data_type": "string",
@@ -119,6 +149,16 @@
           "data_type": "float",
           "description": "Plant's water lever (soil moisture).",
           "name": "WATER"
+        },
+        {
+          "data_type": "float",
+          "description": "Plant's water minimum threshold.",
+          "name": "WATER_MIN"
+        },
+        {
+          "data_type": "float",
+          "description": "Plant's water maximum threshold.",
+          "name": "WATER_MAX"
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/flower-power/get-value.html"

@@ -54,7 +54,8 @@ packet_type_flower_power_packet_dispose(const struct sol_flow_packet_type *packe
 }
 
 static int
-packet_type_flower_power_packet_init(const struct sol_flow_packet_type *packet_type,
+packet_type_flower_power_packet_init(
+    const struct sol_flow_packet_type *packet_type,
     void *mem, const void *input)
 {
     const struct sol_flower_power_data *in = input;
@@ -70,9 +71,20 @@ packet_type_flower_power_packet_init(const struct sol_flow_packet_type *packet_t
     SOL_NULL_CHECK_GOTO(packet_type_flower_power->timestamp, init_error);
 
     packet_type_flower_power->fertilizer = in->fertilizer;
+    packet_type_flower_power->fertilizer_min = in->fertilizer_min;
+    packet_type_flower_power->fertilizer_max = in->fertilizer_max;
+
     packet_type_flower_power->light = in->light;
+    packet_type_flower_power->light_min = in->light_min;
+    packet_type_flower_power->light_max = in->light_max;
+
     packet_type_flower_power->temperature = in->temperature;
+    packet_type_flower_power->temperature_min = in->temperature_min;
+    packet_type_flower_power->temperature_max = in->temperature_max;
+
     packet_type_flower_power->water = in->water;
+    packet_type_flower_power->water_min = in->water_min;
+    packet_type_flower_power->water_max = in->water_max;
 
     return 0;
 
@@ -320,7 +332,8 @@ http_set_password(struct sol_flow_node *node, void *data, uint16_t port, uint16_
 }
 
 static bool
-get_measure(struct sol_json_token *measure_token, struct sol_drange *measure)
+get_measure(struct sol_json_token *measure_token, struct sol_drange *measure,
+    struct sol_drange *min, struct sol_drange *max)
 {
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
@@ -349,10 +362,10 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure)
             if (sol_json_token_get_double(&value, &measure->val))
                 SOL_DBG("Failed to get current value");
         } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "max_threshold")) {
-            if (sol_json_token_get_double(&value, &measure->max))
+            if (sol_json_token_get_double(&value, &max->val))
                 SOL_DBG("Failed to get max value");
         } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "min_threshold")) {
-            if (sol_json_token_get_double(&value, &measure->min))
+            if (sol_json_token_get_double(&value, &min->val))
                 SOL_DBG("Failed to get min value");
         }
     }
@@ -420,31 +433,36 @@ http_get_cb(void *data, struct sol_http_response *response)
             SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&locations_scanner, &token,
                 &key, &value, reason) {
                 if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "fertilizer")) {
-                    if (!get_measure(&value, &fpd.fertilizer)) {
+                    if (!get_measure(&value, &fpd.fertilizer,
+                        &fpd.fertilizer_min, &fpd.fertilizer_max)) {
                         SOL_WRN("Failed to get fertilizer info");
                         goto error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "light")) {
-                    if (!get_measure(&value, &fpd.light)) {
+                    if (!get_measure(&value, &fpd.light,
+                        &fpd.light_min, &fpd.light_max)) {
                         SOL_WRN("Failed to get light info");
                         goto error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "air_temperature")) {
-                    if (!get_measure(&value, &fpd.temperature)) {
+                    if (!get_measure(&value, &fpd.temperature,
+                        &fpd.temperature_min, &fpd.temperature_max)) {
                         SOL_WRN("Failed to get temperature info");
                         goto error;
                     }
-                    /* TODO: just converting current_value because max and min
-                     * will be changed to be sensors limit instead
-                     * of thresholds */
 
                     /* convert from Celsius to Kelvin */
                     if (!isnan(fpd.temperature.val))
                         fpd.temperature.val += 273.15;
+                    if (!isnan(fpd.temperature_min.val))
+                        fpd.temperature_min.val += 273.15;
+                    if (!isnan(fpd.temperature_max.val))
+                        fpd.temperature_max.val += 273.15;
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "soil_moisture")) {
-                    if (!get_measure(&value, &fpd.water)) {
+                    if (!get_measure(&value, &fpd.water, &fpd.water_min,
+                        &fpd.water_max)) {
                         SOL_WRN("Failed to get water info");
                         goto error;
                     }
@@ -629,8 +647,28 @@ parse_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__FERTILIZER_MIN,
+        &fpd.fertilizer_min);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__FERTILIZER_MAX,
+        &fpd.fertilizer_max);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__LIGHT,
         &fpd.light);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__LIGHT_MIN,
+        &fpd.light_min);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__LIGHT_MAX,
+        &fpd.light_max);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,
@@ -639,8 +677,28 @@ parse_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__KELVIN_MIN,
+        &fpd.temperature_min);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__KELVIN_MAX,
+        &fpd.temperature_max);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__WATER,
         &fpd.water);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__WATER_MIN,
+        &fpd.water_min);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__WATER_MAX,
+        &fpd.water_max);
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
