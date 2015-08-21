@@ -2,7 +2,7 @@ find-deps = $(foreach dep,$($(1)-deps),$($(dep)-out))
 
 known-module-type = \
 	$(foreach curr,$(module-types), \
-		$(if $(filter $(curr)%,$(subst ./src/modules/,,$(1))),$(strip $(curr))) \
+		$(if $(filter $(curr)/%,$(subst ./src/modules/,,$(1))),$(strip $(curr))) \
 	) \
 
 module-type = \
