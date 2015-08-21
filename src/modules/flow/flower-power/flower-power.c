@@ -274,8 +274,6 @@ http_get_close(struct sol_flow_node *node, void *data)
         memset(mdata->token, 0, strlen(mdata->token));
         free(mdata->token);
     }
-
-    /* FIXME: Cancel pending connections. Need HTTP API. */
 }
 
 #define BASE_URL "https://apiflowerpower.parrot.com/"

@@ -111,7 +111,6 @@ thingspeak_execute_close(struct sol_flow_node *node, void *data)
 
     sol_timeout_del(mdata->timeout);
     free_talkback(&mdata->talkback);
-    /* FIXME: Cancel pending connections. Need HTTP API. */
 }
 
 static void
@@ -292,7 +291,6 @@ thingspeak_add_close(struct sol_flow_node *node, void *data)
     struct thingspeak_add_data *mdata = data;
 
     free_talkback(&mdata->talkback);
-    /* FIXME: Cancel pending connections. Need HTTP API. */
 }
 
 static int
@@ -459,8 +457,6 @@ thingspeak_channel_update_close(struct sol_flow_node *node, void *data)
     free(mdata->endpoint);
 
     sol_timeout_del(mdata->timeout);
-
-    /* FIXME: Cancel pending connections. Need HTTP API. */
 }
 
 static int
