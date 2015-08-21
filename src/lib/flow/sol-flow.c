@@ -52,6 +52,9 @@ sol_flow_init(void)
 void
 sol_flow_shutdown(void)
 {
+#ifdef ENABLE_DYNAMIC_MODULES
+    loaded_metatype_cache_shutdown();
+#endif
 }
 
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
