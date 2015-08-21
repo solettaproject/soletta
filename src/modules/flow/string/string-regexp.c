@@ -33,7 +33,7 @@
 #include <ctype.h>
 #include <errno.h>
 
-#ifdef HAVE_LIBPCRE
+#ifdef USE_LIBPCRE
 #include <pcre.h>
 #endif
 
@@ -42,7 +42,7 @@
 #include "string-gen.h"
 #include "string-regexp.h"
 
-#ifdef HAVE_LIBPCRE
+#ifdef USE_LIBPCRE
 static struct sol_vector
 string_regexp_search_and_split(struct string_regexp_search_data *mdata)
 {
@@ -237,7 +237,7 @@ string_regexp_search(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-#ifdef HAVE_LIBPCRE
+#ifdef USE_LIBPCRE
     struct string_regexp_search_data *mdata = data;
     const char *in_value;
     int r;
@@ -271,7 +271,7 @@ set_string_regexp_pattern(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-#ifdef HAVE_LIBPCRE
+#ifdef USE_LIBPCRE
     struct string_regexp_search_data *mdata = data;
     const char *in_value;
     int r;
@@ -306,7 +306,7 @@ set_string_regexp_index(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-#ifdef HAVE_LIBPCRE
+#ifdef USE_LIBPCRE
     struct string_regexp_search_data *mdata = data;
     int32_t in_value;
     int r;
@@ -336,7 +336,7 @@ set_string_regexp_max_match(struct sol_flow_node *node,
     uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
-#ifdef HAVE_LIBPCRE
+#ifdef USE_LIBPCRE
     struct string_regexp_search_data *mdata = data;
     int32_t in_value;
     int r;

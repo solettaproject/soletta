@@ -1,7 +1,15 @@
-# This is the solely user of ICU. If gets wider use, move up in the hierarchy.
+# This is the solely user of ICU. If gets wider use, move up in the
+# hierarchy.
 config USE_ICU
 	bool "Use ICU library"
 	depends on HAVE_ICU
+	default y
+
+# This is the solely user of LIBPCRE. If gets wider use, move up in
+# the hierarchy.
+config USE_LIBPCRE
+	bool "Use LIBPCRE library"
+	depends on HAVE_LIBPCRE
 	default y
 
 config FLOW_NODE_TYPE_STRING
