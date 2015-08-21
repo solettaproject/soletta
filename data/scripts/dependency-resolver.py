@@ -181,6 +181,9 @@ def handle_pkgconfig_check(args, conf, context):
         if ldflags_stat:
             context.add_cond_makefile_var("%s_LDFLAGS" % dep, ldflags)
 
+        if cflags_stat or ldflags_stat:
+            context.add_cond_makefile_var("%s_REQUIRES_PRIVATE" % dep, pkg)
+
     success = (cflags_stat or ldflags_stat) and ver_match
     have_var = "y" if success else "n"
     context.add_kconfig("HAVE_%s" % dep, "bool", have_var)
@@ -406,7 +409,7 @@ type_handlers = {
 
 def format_makefile_var(items):
     output = ""
-    for k,v in items:
+    for k,v in sorted(items):
         if not v or not v["value"]: continue
         output += "%s %s %s\n" % (k, v["attrib"], v["value"])
     return output
