@@ -991,7 +991,8 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
 bool
 sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
 {
-    int len, raw_value;
+    int len;
+    int64_t raw_value;
     char path[PATH_MAX];
     struct sol_iio_device *device = channel->device;
     bool r;
@@ -1011,7 +1012,7 @@ sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
         return false;
     }
 
-    len = sol_util_read_file(path, "%d", &raw_value);
+    len = sol_util_read_file(path, "%" SCNd64, &raw_value);
     if (len < 0) {
         SOL_WRN("Could not read channel [%s] in device%d", channel->name,
             device->device_id);
