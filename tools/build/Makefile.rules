@@ -448,6 +448,6 @@ $(FLOW_NODE_TYPE_FIND): $(FLOW_NODE_TYPE_FIND_IN) $(KCONFIG_CONFIG) $(MAKEFILE_G
 	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
 		--template=$(FLOW_NODE_TYPE_FIND_IN) --output=$(FLOW_NODE_TYPE_FIND)
 
-$(KCONFIG_AUTOHEADER): $(KCONFIG_CONFIG) $(obj)/conf
+$(KCONFIG_AUTOHEADER): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG) $(obj)/conf
 	$(Q)mkdir -p $(KCONFIG_INCLUDE)config $(KCONFIG_INCLUDE)generated
 	$(Q)$(obj)/conf -s --silentoldconfig Kconfig
