@@ -102,40 +102,6 @@ sol_flower_power_new_packet(const struct sol_flower_power_data *fpd)
     return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER, fpd);
 }
 
-#define PACKET_SET_COMPONENT(_field) \
-    do { \
-        if (_field) \
-            packet_type_flower_power._field = *_field; \
-        else \
-            packet_type_flower_power._field = default_measure; \
-    } while (0)
-
-SOL_API struct sol_flow_packet *
-sol_flower_power_new_packet_components(const char *id,
-    const char *timestamp,
-    struct sol_drange *fertilizer, struct sol_drange *light,
-    struct sol_drange *temperature, struct sol_drange *water)
-{
-    struct sol_flower_power_data packet_type_flower_power;
-    struct sol_drange default_measure = SOL_DRANGE_INIT();
-
-    SOL_NULL_CHECK(id, NULL);
-    SOL_NULL_CHECK(timestamp, NULL);
-
-    packet_type_flower_power.id = (char *)id;
-    packet_type_flower_power.timestamp = (char *)timestamp;
-
-    PACKET_SET_COMPONENT(fertilizer);
-    PACKET_SET_COMPONENT(light);
-    PACKET_SET_COMPONENT(temperature);
-    PACKET_SET_COMPONENT(water);
-
-    return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER,
-        &packet_type_flower_power);
-}
-
-#undef PACKET_SET_COMPONENT
-
 SOL_API int
 sol_flower_power_get_packet(const struct sol_flow_packet *packet,
     struct sol_flower_power_data *fpd)
@@ -148,59 +114,12 @@ sol_flower_power_get_packet(const struct sol_flow_packet *packet,
 }
 
 SOL_API int
-sol_flower_power_get_packet_components(const struct sol_flow_packet *packet,
-    const char **id, const char **timestamp,
-    struct sol_drange *fertilizer, struct sol_drange *light,
-    struct sol_drange *temperature, struct sol_drange *water)
-{
-    struct sol_flower_power_data packet_type_flower_power;
-    int ret;
-
-    SOL_NULL_CHECK(packet, -EINVAL);
-    if (sol_flow_packet_get_type(packet) != PACKET_TYPE_FLOWER_POWER)
-        return -EINVAL;
-
-    ret = sol_flow_packet_get(packet, &packet_type_flower_power);
-    SOL_INT_CHECK(ret, != 0, ret);
-
-    if (id)
-        *id = packet_type_flower_power.id;
-    if (timestamp)
-        *timestamp = packet_type_flower_power.timestamp;
-    if (fertilizer)
-        *fertilizer = packet_type_flower_power.fertilizer;
-    if (light)
-        *light = packet_type_flower_power.light;
-    if (temperature)
-        *temperature = packet_type_flower_power.temperature;
-    if (water)
-        *water = packet_type_flower_power.water;
-
-    return ret;
-}
-
-SOL_API int
 sol_flower_power_send_packet(struct sol_flow_node *src,
     uint16_t src_port, const struct sol_flower_power_data *fpd)
 {
     struct sol_flow_packet *packet;
 
     packet = sol_flower_power_new_packet(fpd);
-    SOL_NULL_CHECK(packet, -ENOMEM);
-
-    return sol_flow_send_packet(src, src_port, packet);
-}
-
-SOL_API int
-sol_flower_power_send_packet_components(struct sol_flow_node *src,
-    uint16_t src_port, char *id, char *timestamp,
-    struct sol_drange *fertilizer, struct sol_drange *light,
-    struct sol_drange *temperature, struct sol_drange *water)
-{
-    struct sol_flow_packet *packet;
-
-    packet = sol_flower_power_new_packet_components(id, timestamp,
-        fertilizer, light, temperature, water);
     SOL_NULL_CHECK(packet, -ENOMEM);
 
     return sol_flow_send_packet(src, src_port, packet);
@@ -493,27 +412,24 @@ http_get_cb(void *data, struct sol_http_response *response)
         sol_json_scanner_init_from_token(&locations_scanner, &locations);
         SOL_JSON_SCANNER_ARRAY_LOOP (&locations_scanner, &token,
             SOL_JSON_TYPE_OBJECT_START, reason) {
-            struct sol_drange fertilizer = SOL_DRANGE_INIT_VALUE(NAN);
-            struct sol_drange water = SOL_DRANGE_INIT_VALUE(NAN);
-            struct sol_drange temperature = SOL_DRANGE_INIT_VALUE(NAN);
-            struct sol_drange light = SOL_DRANGE_INIT_VALUE(NAN);
-            char *id = NULL, *timestamp = NULL;
+            struct sol_flower_power_data fpd =
+                SOL_FLOWER_POWER_DATA_INIT_VALUE(NAN);
 
             SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&locations_scanner, &token,
                 &key, &value, reason) {
                 if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "fertilizer")) {
-                    if (!get_measure(&value, &fertilizer)) {
+                    if (!get_measure(&value, &fpd.fertilizer)) {
                         SOL_WRN("Failed to get fertilizer info");
                         goto error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "light")) {
-                    if (!get_measure(&value, &light)) {
+                    if (!get_measure(&value, &fpd.light)) {
                         SOL_WRN("Failed to get light info");
                         goto error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "air_temperature")) {
-                    if (!get_measure(&value, &temperature)) {
+                    if (!get_measure(&value, &fpd.temperature)) {
                         SOL_WRN("Failed to get temperature info");
                         goto error;
                     }
@@ -522,36 +438,37 @@ http_get_cb(void *data, struct sol_http_response *response)
                      * of thresholds */
 
                     /* convert from Celsius to Kelvin */
-                    if (!isnan(temperature.val))
-                        temperature.val += 273.15;
+                    if (!isnan(fpd.temperature.val))
+                        fpd.temperature.val += 273.15;
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "soil_moisture")) {
-                    if (!get_measure(&value, &water)) {
+                    if (!get_measure(&value, &fpd.water)) {
                         SOL_WRN("Failed to get water info");
                         goto error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "location_identifier")) {
                     sol_json_token_remove_quotes(&value);
-                    id = strndupa(value.start, sol_json_token_get_size(&value));
-                    if (!id) {
+                    fpd.id = strndupa(value.start,
+                        sol_json_token_get_size(&value));
+                    if (!fpd.id) {
                         SOL_WRN("Failed to get id");
                         goto error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "last_sample_upload")) {
                     sol_json_token_remove_quotes(&value);
-                    timestamp = strndupa(value.start,
+                    fpd.timestamp = strndupa(value.start,
                         sol_json_token_get_size(&value));
-                    if (!timestamp) {
+                    if (!fpd.timestamp) {
                         SOL_WRN("Failed to get timestamp");
                         goto error;
                     }
                 }
             }
-            r = sol_flower_power_send_packet_components(mdata->node,
+            r = sol_flower_power_send_packet(mdata->node,
                 SOL_FLOW_NODE_TYPE_FLOWER_POWER_HTTP_GET__OUT__OUT,
-                id, timestamp, &fertilizer, &light, &temperature, &water);
+                &fpd);
             SOL_INT_CHECK_GOTO(r, < 0, error);
         }
     }
@@ -688,42 +605,40 @@ http_set_username(struct sol_flow_node *node, void *data, uint16_t port, uint16_
 static int
 parse_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct sol_drange fertilizer, light, temperature, water;
-    const char *id, *timestamp;
+    struct sol_flower_power_data fpd;
     int r;
 
-    r = sol_flower_power_get_packet_components(packet, &id, &timestamp,
-        &fertilizer, &light, &temperature, &water);
+    r = sol_flower_power_get_packet(packet, &fpd);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__ID,
-        id);
+        fpd.id);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__TIMESTAMP,
-        timestamp);
+        fpd.timestamp);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__FERTILIZER,
-        &fertilizer);
+        &fpd.fertilizer);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__LIGHT,
-        &light);
+        &fpd.light);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__KELVIN,
-        &temperature);
+        &fpd.temperature);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__WATER,
-        &water);
+        &fpd.water);
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
