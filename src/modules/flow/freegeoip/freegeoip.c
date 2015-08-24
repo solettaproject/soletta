@@ -50,7 +50,7 @@ struct freegeoip_data {
 };
 
 static void
-freegeoip_query_finished(void *data, struct sol_http_client_pending *connection,
+freegeoip_query_finished(void *data, struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     struct freegeoip_data *mdata = data;
@@ -135,7 +135,7 @@ query_addr(struct freegeoip_data *mdata, const char *addr)
 {
     int r;
     char json_endpoint[PATH_MAX];
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
 
     r = snprintf(json_endpoint, sizeof(json_endpoint), "%s/json/%s",
         mdata->endpoint, addr ? addr : "");
@@ -155,7 +155,7 @@ query_addr(struct freegeoip_data *mdata, const char *addr)
     r = sol_ptr_vector_append(&mdata->pending_conns, connection);
     if (r < 0) {
         SOL_WRN("Failed to keep pending connection.");
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
         return -ENOMEM;
     }
 
@@ -189,14 +189,14 @@ freegeoip_ip_process(struct sol_flow_node *node, void *data,
 static void
 freegeoip_close(struct sol_flow_node *node, void *data)
 {
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     struct freegeoip_data *mdata = data;
     uint16_t i;
 
     free(mdata->endpoint);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
     sol_ptr_vector_clear(&mdata->pending_conns);
 }
 
