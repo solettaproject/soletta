@@ -15,6 +15,17 @@
         "open": "wallclock_hour_open"
       },
       "name": "wallclock/hour",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, a packet containing the current hour will be sent during initialization",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -33,6 +44,17 @@
         "open": "wallclock_minute_open"
       },
       "name": "wallclock/minute",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, a packet containing the current minute will be sent during initialization",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -51,6 +73,17 @@
         "open": "wallclock_monthday_open"
       },
       "name": "wallclock/monthday",
+      "options": {
+          "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, a packet containing the current monthday will be sent during initialization",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -69,6 +102,17 @@
         "open": "wallclock_second_open"
       },
       "name": "wallclock/second",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, a packet containing the current second will be sent during initialization",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -87,6 +131,17 @@
         "open": "wallclock_weekday_open"
       },
       "name": "wallclock/weekday",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, a packet containing the current weekday will be sent durinng initialization",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -111,6 +166,12 @@
             "data_type": "int",
             "description": "Time block interval. Defines the length of a frame in minutes. Last block may be smaller than others. For example, if interval is set to 50 minutes, it would tick 29 times a day, but interval for last one is just 48 minutes.",
             "name": "interval"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, a packet containing the current timeblock will be sent durinng initialization",
+            "name": "send_initial_packet"
           }
         ],
         "version": 1
