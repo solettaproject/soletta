@@ -122,13 +122,16 @@ sol_util_read_file(const char *path, const char *fmt, ...)
 ssize_t
 sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
 {
-    size_t bytes_read = 0;
+    size_t bytes_read = 0, s;
     unsigned int retry = 0;
     ssize_t ret;
 
     SOL_NULL_CHECK(buffer, -EINVAL);
 
-    ret = sol_buffer_ensure(buffer, buffer->used + size);
+    if (sol_util_size_add(buffer->used, size, &s) < 0)
+        return -EOVERFLOW;
+
+    ret = sol_buffer_ensure(buffer, s);
     if (ret < 0)
         return ret;
 
