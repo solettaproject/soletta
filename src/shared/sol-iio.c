@@ -916,17 +916,9 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
         }
 
         channel->mask = (1 << channel->bits) - 1;
-        channel->offset_in_buffer = -1;
     }
 
     sol_ptr_vector_append(&channel->device->channels, channel);
-
-    if (channel->storagebits > 64) {
-        // XXX is such a thing even possible?
-        SOL_WRN("Could not add channel [%s] - more than 64 bits of storage, found %d",
-            channel->name, channel->storagebits);
-        return false;
-    }
 
     SOL_DBG("channel [%s] added. scale: %lf - offset: %d - storagebits: %d"
         " - bits: %d - mask: %" PRIu64, channel->name, channel->scale,
@@ -952,6 +944,13 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
     uint8_t *buffer = device->buffer.data;
 
     SOL_NULL_CHECK(buffer, false);
+
+    if (channel->storagebits > 64) {
+        SOL_WRN("Could not read channel [%s] value - more than 64 bits of"
+            " storage - found %d. Use sol_iio_read_channel_raw_buffer() instead",
+            channel->name, channel->storagebits);
+        return false;
+    }
 
     if (channel->offset_in_buffer + channel->storagebits > device->buffer_size * 8) {
         SOL_WRN("Invalid read on buffer.");
@@ -992,7 +991,8 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
 bool
 sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
 {
-    int len, raw_value;
+    int len;
+    int64_t raw_value;
     char path[PATH_MAX];
     struct sol_iio_device *device = channel->device;
     bool r;
@@ -1012,7 +1012,7 @@ sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
         return false;
     }
 
-    len = sol_util_read_file(path, "%d", &raw_value);
+    len = sol_util_read_file(path, "%" SCNd64, &raw_value);
     if (len < 0) {
         SOL_WRN("Could not read channel [%s] in device%d", channel->name,
             device->device_id);
@@ -1094,4 +1094,28 @@ sol_iio_device_start_buffer(struct sol_iio_device *device)
     }
 
     return true;
+}
+
+struct sol_str_slice
+sol_iio_read_channel_raw_buffer(struct sol_iio_channel *channel)
+{
+    struct sol_str_slice slice = SOL_STR_SLICE_EMPTY;
+    unsigned int offset_bytes, storage_bytes;
+
+    SOL_NULL_CHECK(channel, slice);
+    SOL_NULL_CHECK(channel->device->buffer.data, slice);
+
+    if (!channel->device->buffer_enabled) {
+        SOL_WRN("sol_iio_read_channel_raw_buffer() only works when buffer"
+            " is enabled.");
+        return slice;
+    }
+
+    offset_bytes = channel->offset_in_buffer / 8;
+    storage_bytes = channel->storagebits / 8;
+
+    slice.len = storage_bytes;
+    slice.data = (char *)channel->device->buffer.data + offset_bytes;
+
+    return slice;
 }
