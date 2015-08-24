@@ -374,6 +374,22 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure,
     return true;
 }
 
+#define INIT_FERTILIZER(_water) \
+    _water.min = 0; \
+    _water.max = 10;
+
+#define INIT_LIGHT(_water) \
+    _water.min = 0.13; \
+    _water.max = 104;
+
+#define INIT_TEMPERATURE(_water) \
+    _water.min = 268.15; \
+    _water.max = 328.15;
+
+#define INIT_WATER(_water) \
+    _water.min = 0; \
+    _water.max = 50;
+
 static void
 http_get_cb(void *data, struct sol_http_response *response)
 {
@@ -431,12 +447,20 @@ http_get_cb(void *data, struct sol_http_response *response)
             SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&locations_scanner, &token,
                 &key, &value, reason) {
                 if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "fertilizer")) {
+                    INIT_FERTILIZER(fpd.fertilizer);
+                    INIT_FERTILIZER(fpd.fertilizer_min);
+                    INIT_FERTILIZER(fpd.fertilizer_max);
+
                     if (!get_measure(&value, &fpd.fertilizer,
                         &fpd.fertilizer_min, &fpd.fertilizer_max)) {
                         SOL_WRN("Failed to get fertilizer info");
                         goto error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "light")) {
+                    INIT_LIGHT(fpd.light);
+                    INIT_LIGHT(fpd.light_min);
+                    INIT_LIGHT(fpd.light_max);
+
                     if (!get_measure(&value, &fpd.light,
                         &fpd.light_min, &fpd.light_max)) {
                         SOL_WRN("Failed to get light info");
@@ -444,6 +468,10 @@ http_get_cb(void *data, struct sol_http_response *response)
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "air_temperature")) {
+                    INIT_TEMPERATURE(fpd.temperature);
+                    INIT_TEMPERATURE(fpd.temperature_min);
+                    INIT_TEMPERATURE(fpd.temperature_max);
+
                     if (!get_measure(&value, &fpd.temperature,
                         &fpd.temperature_min, &fpd.temperature_max)) {
                         SOL_WRN("Failed to get temperature info");
@@ -459,6 +487,10 @@ http_get_cb(void *data, struct sol_http_response *response)
                         fpd.temperature_max.val += 273.15;
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "soil_moisture")) {
+                    INIT_WATER(fpd.water);
+                    INIT_WATER(fpd.water_min);
+                    INIT_WATER(fpd.water_max);
+
                     if (!get_measure(&value, &fpd.water, &fpd.water_min,
                         &fpd.water_max)) {
                         SOL_WRN("Failed to get water info");
@@ -556,6 +588,11 @@ error:
     sol_flow_send_error_packet(mdata->node, EINVAL,
         "Error while parsing server response.");
 }
+
+#undef INIT_FERTILIZER
+#undef INIT_LIGHT
+#undef INIT_TEMPERATURE
+#undef INIT_WATER
 
 static int
 http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
