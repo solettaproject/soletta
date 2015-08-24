@@ -49,7 +49,8 @@ struct freegeoip_data {
 };
 
 static void
-freegeoip_query_finished(void *data, struct sol_http_response *response)
+freegeoip_query_finished(void *data, struct sol_http_client_pending *connection,
+    struct sol_http_response *response)
 {
     struct freegeoip_data *mdata = data;
     struct sol_json_scanner scanner;
