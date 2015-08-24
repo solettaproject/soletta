@@ -45,10 +45,13 @@ sol_vector_init(struct sol_vector *v, uint16_t elem_size)
     v->elem_size = elem_size;
 }
 
+#define SIZE_MULTIPLICATION_OVERFLOW(var0, var1) \
+    ((var0 > 0) && (var1 > 0) && (var0 > SIZE_MAX / var1))
+
 static int
 sol_vector_grow(struct sol_vector *v, uint16_t amount)
 {
-    unsigned int new_cap, old_cap;
+    size_t new_cap, old_cap;
     uint16_t new_len;
 
     if (v->len > UINT16_MAX - amount)
@@ -59,7 +62,12 @@ sol_vector_grow(struct sol_vector *v, uint16_t amount)
     new_cap = align_power2(new_len);
 
     if (new_cap != old_cap) {
-        void *data = realloc(v->data, new_cap * v->elem_size);
+        void *data;
+
+        if (SIZE_MULTIPLICATION_OVERFLOW(new_cap, v->elem_size))
+            return -EOVERFLOW;
+
+        data = realloc(v->data, new_cap * v->elem_size);
         if (!data)
             return -ENOMEM;
         v->data = data;
@@ -68,6 +76,8 @@ sol_vector_grow(struct sol_vector *v, uint16_t amount)
     v->len = new_len;
     return 0;
 }
+
+#undef SIZE_MULTIPLICATION_OVERFLOW
 
 SOL_API void *
 sol_vector_append(struct sol_vector *v)
@@ -93,7 +103,7 @@ sol_vector_append_n(struct sol_vector *v, uint16_t n)
     }
 
     new_elems = (unsigned char *)v->data + (v->elem_size * (v->len - n));
-    memset(new_elems, 0, v->elem_size * n);
+    memset(new_elems, 0, (size_t)v->elem_size * n);
 
     return new_elems;
 }
