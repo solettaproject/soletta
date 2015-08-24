@@ -358,8 +358,7 @@
     {
       "dependency": "chrpath",
       "type": "exec",
-      "exec": "chrpath",
-      "required": true
+      "exec": "chrpath"
     },
     {
       "dependency": "jsonschema",
