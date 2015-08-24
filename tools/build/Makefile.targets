@@ -1,19 +1,19 @@
-check: $(SOL_LIB_SO) $(SOL_LIB_AR) $(tests-out)
+check: $(SOL_LIB_OUTPUT) $(tests-out)
 	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)"
 
 PHONY += check
 
-check-fbp: $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
+check-fbp: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --runner="$(abspath $(SOL_FBP_RUNNER_BIN))"
 
 PHONY += check-fbp
 
 ifeq (y,$(HAVE_VALGRIND))
-check-valgrind: $(SOL_LIB_SO) $(SOL_LIB_AR) $(tests-out)
+check-valgrind: $(SOL_LIB_OUTPUT) $(tests-out)
 	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)" \
 		--valgrind=$(VALGRIND) --valgrind-supp=$(abspath $(TEST_VALGRIND_SUPP))
 
-check-fbp-valgrind: $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
+check-fbp-valgrind: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --runner="$(abspath $(SOL_FBP_RUNNER_BIN))" --valgrind="$(VALGRIND)" --valgrind-supp="$(abspath $(TEST_VALGRIND_SUPP))"
 else
 check-valgrind:
@@ -50,7 +50,7 @@ PHONY += run-coverage coverage
 # sketch fine. Dummy module exercises all possible options and ports
 # data types.
 
-check-stub: $(SOL_LIB_SO) $(SOL_LIB_AR) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $(NODE_TYPE_GEN_SCRIPT) $(NODE_TYPE_STUB_GEN_TEST)
+check-stub: $(SOL_LIB_OUTPUT) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $(NODE_TYPE_GEN_SCRIPT) $(NODE_TYPE_STUB_GEN_TEST)
 	$(Q)$(MKDIR) -p $(NODE_TYPE_STUB_GEN_DIR)
 	$(Q)$(PYTHON) $(NODE_TYPE_GEN_SCRIPT) --prefix=sol-flow-node-type \
 		--genspec-schema=$(NODE_TYPE_SCHEMA) $(NODE_TYPE_STUB_GEN_TEST) \
@@ -77,11 +77,11 @@ check-stub: $(SOL_LIB_SO) $(SOL_LIB_AR) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE
 
 PHONY += check-stub
 
-samples: $(SOL_LIB_SO) $(SOL_LIB_AR) $(samples-out)
+samples: $(SOL_LIB_OUTPUT) $(samples-out)
 
 PHONY += samples
 
-PRE_INSTALL := $(PC_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out) $(all-mod-descs)
+PRE_INSTALL := $(PC_GEN) $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out) $(all-mod-descs)
 PRE_INSTALL += $(NODE_TYPE_SCHEMA_DEST) $(BOARD_DETECT_DEST) $(GDB_AUTOLOAD_PY_DEST)
 
 ifneq (,$(strip $(builtin-flows)))
