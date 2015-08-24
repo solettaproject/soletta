@@ -12,9 +12,22 @@ config BASE_OS
 source "tools/build/Kconfig.$BASE_OS"
 
 menu "Basic"
+choice LIB_OUTPUT
+	prompt "Soletta library output"
+	default SHARED_LIBRARY
+
+config SHARED_LIBRARY
+	bool "Shared"
+	depends on FEATURE_DYNAMIC_LINKER
+
+config STATIC_LIBRARY
+	bool "Static"
+endchoice
+
 # backward compatibility with autotools vars
 config ENABLE_DYNAMIC_MODULES
 	bool
+	depends on SHARED_LIBRARY
 	default n
 
 config CC_SANITIZE
@@ -36,11 +49,6 @@ config CC_SANITIZE_ADDRESS
 	bool "address"
 	depends on HAVE_SANITIZE_ADDRESS
 endchoice
-
-config SHARED_LIBRARY
-    bool "Build shared library"
-    default y
-    depends on FEATURE_DYNAMIC_LINKER
 
 config MODULES
 	bool "Enable loadable module support"

@@ -52,7 +52,7 @@ include $(top_srcdir)tools/build/Makefile.rules
 
 include $(top_srcdir)tools/build/Makefile.targets
 
-default_target: $(PRE_GEN) $(SOL_LIB_SO) $(SOL_LIB_AR) $(bins-out) $(modules-out)
+default_target: $(PRE_GEN) $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out)
 all: default_target
 endif # HAVE_KCONFIG_CONFIG
 endif # NOT_FOUND
