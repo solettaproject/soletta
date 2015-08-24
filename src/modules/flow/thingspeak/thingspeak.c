@@ -115,7 +115,9 @@ thingspeak_execute_close(struct sol_flow_node *node, void *data)
 }
 
 static void
-thingspeak_execute_poll_finished(void *data, struct sol_http_response *response)
+thingspeak_execute_poll_finished(void *data,
+    const struct sol_http_client_pending *connection,
+    struct sol_http_response *response)
 {
     struct thingspeak_execute_data *mdata = data;
     char *body;
@@ -203,7 +205,9 @@ thingspeak_execute_open(struct sol_flow_node *node, void *data, const struct sol
 }
 
 static void
-thingspeak_add_request_finished(void *data, struct sol_http_response *response)
+thingspeak_add_request_finished(void *data,
+    const struct sol_http_client_pending *connection,
+    struct sol_http_response *response)
 {
     struct thingspeak_add_data *mdata = data;
 
@@ -316,7 +320,9 @@ thingspeak_add_open(struct sol_flow_node *node, void *data, const struct sol_flo
 }
 
 static void
-thingspeak_channel_update_finished(void *data, struct sol_http_response *response)
+thingspeak_channel_update_finished(void *data,
+    const struct sol_http_client_pending *connection,
+    struct sol_http_response *response)
 {
     struct thingspeak_channel_update_data *mdata = data;
 

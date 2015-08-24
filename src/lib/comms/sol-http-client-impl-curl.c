@@ -69,7 +69,7 @@ struct sol_http_client_pending {
     struct curl_slist *headers;
     struct sol_buffer buffer;
 
-    void (*cb)(void *data, struct sol_http_response *response);
+    void (*cb)(void *data, const struct sol_http_client_pending *connection, struct sol_http_response *response);
     const void *data;
 
     bool error;
@@ -167,7 +167,7 @@ call_connection_finish_cb(struct sol_http_client_pending *connection)
     param->response_code = (int)response_code;
 
 out:
-    connection->cb((void *)connection->data, param);
+    connection->cb((void *)connection->data, connection, param);
     connection->cb = NULL; /* Don't call again. */
 }
 
@@ -405,7 +405,8 @@ xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 
 static struct sol_http_client_pending *
 perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
-    void (*cb)(void *data, struct sol_http_response *response),
+    void (*cb)(void *data, const struct sol_http_client_pending *connection,
+        struct sol_http_response *response),
     const void *data)
 {
     struct sol_http_client_pending *connection;
@@ -722,7 +723,8 @@ check_param_api_version(const struct sol_http_param *params)
 SOL_API struct sol_http_client_pending *
 sol_http_client_request(enum sol_http_method method,
     const char *base_uri, const struct sol_http_param *params,
-    void (*cb)(void *data, struct sol_http_response *response),
+    void (*cb)(void *data, const struct sol_http_client_pending *connection,
+        struct sol_http_response *response),
     const void *data)
 {
     static const struct sol_http_param empty_params = {

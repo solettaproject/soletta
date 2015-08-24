@@ -215,7 +215,8 @@ http_get_close(struct sol_flow_node *node, void *data)
 #define AUTH_START "Bearer "
 
 static void
-generate_token_cb(void *data, struct sol_http_response *response)
+generate_token_cb(void *data, const struct sol_http_client_pending *connection,
+    struct sol_http_response *response)
 {
     struct http_get_data *mdata = data;
     struct sol_json_scanner scanner;
@@ -399,7 +400,8 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure,
     _water.max = 50;
 
 static void
-http_get_cb(void *data, struct sol_http_response *response)
+http_get_cb(void *data, const struct sol_http_client_pending *connection,
+    struct sol_http_response *response)
 {
     struct http_get_data *mdata = data;
     struct sol_json_scanner scanner, locations_scanner, sensors_scanner;
