@@ -38,47 +38,51 @@
 extern "C" {
 #endif
 
-/**
- * JS node allows the usage of Javascript language to create new and
- * customizable node types.
- *
- * A JS node type is specified with one object containing each
- * input and output port declarations (name and type) and its
- * callback functions that will be trigged on the occurrence
- * of certain events like input/output ports processes, open/close
- * processes, so forth and so on.
- */
+struct sol_flow_metatype_context {
+    struct sol_str_slice name;
+    struct sol_str_slice contents;
 
-/**
- * Creates a new "JS node" type.
- *
- * The Javascript code must contain an object:
- *
- *     - 'node': This object will be used to declare input and output ports
- *               and its callback functions that will be trigged on the occurence
- *               of certain events like input/output ports processes, open/close
- *               processes, so forth and so on.
- *
- * e.g.  var node = {
- *           in: [
- *               {
- *                   name: 'IN',
- *                   type: 'int',
- *                   process: function(v) {
- *                       sendPacket("OUT", 42);
- *                   }
- *               }
- *           ],
- *           out: [ { name: 'OUT', type: 'int' } ]
- *       };
- *
- * @param buf A buffer containing the Javascript code in which will be used
- *            in this new JS node type.
- * @param len The size of the buffer.
- *
- * @return A new JS node type on success, otherwise @c NULL.
- */
-struct sol_flow_node_type *sol_flow_js_new_type(const char *buf, size_t len);
+    /* Buffers are guaranteed to be valid only until the creator
+     * function returns. */
+    int (*read_file)(
+        const struct sol_flow_metatype_context *ctx,
+        const char *name, const char **buf, size_t *size);
+
+    /* Any node types produced by the creator function should be
+     * stored using this function, it takes ownership of the type. */
+    int (*store_type)(
+        const struct sol_flow_metatype_context *ctx,
+        struct sol_flow_node_type *type);
+};
+
+typedef int (*sol_flow_metatype_create_type_func)(
+    const struct sol_flow_metatype_context *,
+    struct sol_flow_node_type **);
+
+#define SOL_FLOW_METATYPE_API_VERSION (1)
+
+struct sol_flow_metatype {
+    uint16_t api_version;
+
+    const char *name;
+
+    sol_flow_metatype_create_type_func create_type;
+};
+
+#ifdef SOL_FLOW_METATYPE_MODULE_EXTERNAL
+#define SOL_FLOW_METATYPE(_NAME, decl ...) \
+    SOL_API const struct sol_flow_metatype *SOL_FLOW_METATYPE = \
+        &((const struct sol_flow_metatype) { \
+            .api_version = SOL_FLOW_METATYPE_API_VERSION, \
+            decl \
+        })
+#else
+#define SOL_FLOW_METATYPE(_NAME, decl ...) \
+    const struct sol_flow_metatype SOL_FLOW_METATYPE_ ## _NAME = { \
+        .api_version = SOL_FLOW_METATYPE_API_VERSION, \
+        decl \
+    }
+#endif
 
 #ifdef __cplusplus
 }

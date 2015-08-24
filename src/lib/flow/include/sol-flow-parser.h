@@ -94,6 +94,20 @@ struct sol_flow_node_type *sol_flow_parse_string(
     const char *str,
     const char *filename);
 
+struct sol_flow_node_type *sol_flow_parse_buffer_metatype(
+    struct sol_flow_parser *parser,
+    const char *metatype,
+    const char *buf,
+    size_t len,
+    const char *filename);
+
+/* Same as above but accepts C string. */
+struct sol_flow_node_type *sol_flow_parse_string_metatype(
+    struct sol_flow_parser *parser,
+    const char *metatype,
+    const char *str,
+    const char *filename);
+
 /**
  * @}
  */

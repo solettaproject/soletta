@@ -2,11 +2,6 @@ config FLOW_SUPPORT
 	bool "Flow support"
 	default y
 
-config JAVASCRIPT
-	bool "Javascript support"
-	depends on FLOW_SUPPORT && PLATFORM_LINUX && HAVE_DUKTAPE_SRC
-	default y
-
 config NODE_DESCRIPTION
 	bool "Node description support"
 	depends on FLOW_SUPPORT && FEATURE_RUNNABLE_PROGRAMS
@@ -25,6 +20,10 @@ config INSPECTOR
 	bool "Inspector"
 	depends on FLOW_SUPPORT && FEATURE_RUNNABLE_PROGRAMS
 	default y
+
+menu "Metatypes"
+source "src/modules/flow-metatype/js/Kconfig"
+endmenu
 
 menu "Node Types"
 	depends on FLOW_SUPPORT

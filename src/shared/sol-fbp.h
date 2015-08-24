@@ -86,7 +86,7 @@ struct sol_fbp_exported_port {
 
 struct sol_fbp_declaration {
     struct sol_str_slice name;
-    struct sol_str_slice kind;
+    struct sol_str_slice metatype;
     struct sol_str_slice contents;
 
     struct sol_fbp_position position;
@@ -156,7 +156,7 @@ int sol_fbp_graph_add_exported_out_port(struct sol_fbp_graph *g,
     struct sol_fbp_position position, struct sol_fbp_exported_port **out_ep);
 
 int sol_fbp_graph_declare(struct sol_fbp_graph *g,
-    struct sol_str_slice name, struct sol_str_slice kind, struct sol_str_slice contents, struct sol_fbp_position);
+    struct sol_str_slice name, struct sol_str_slice metatype, struct sol_str_slice contents, struct sol_fbp_position);
 
 int sol_fbp_graph_option(struct sol_fbp_graph *g,
     int node, struct sol_str_slice name, struct sol_str_slice node_opt, struct sol_fbp_position position);

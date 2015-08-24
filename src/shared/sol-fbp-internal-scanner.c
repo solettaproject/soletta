@@ -305,7 +305,7 @@ declare_second_sep_state(struct sol_fbp_scanner *s)
 }
 
 static void *
-declare_kind_state(struct sol_fbp_scanner *s)
+declare_metatype_state(struct sol_fbp_scanner *s)
 {
     while (is_node_ident(peek(s)))
         next(s);
@@ -319,7 +319,7 @@ declare_first_sep_state(struct sol_fbp_scanner *s)
     if (next(s) != ':')
         return error_state;
     set_token(s, SOL_FBP_TOKEN_COLON);
-    return declare_kind_state;
+    return declare_metatype_state;
 }
 
 static void *

@@ -30,14 +30,53 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <float.h>
 #include <stdio.h>
 
+#define SOL_LOG_DOMAIN &_log_domain
+#include "sol-log-internal.h"
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-metatype-js");
+
 #include "duktape.h"
+
 #include "sol-arena.h"
-#include "sol-flow-internal.h"
-#include "sol-flow-js.h"
+#include "sol-flow-metatype.h"
+#include "sol-log.h"
 #include "sol-str-table.h"
+#include "sol-util.h"
+
+/**
+ * JS metatype allows the usage of Javascript language to create new
+ * and customizable node types.
+ *
+ * A JS node type is specified with one object containing each input
+ * and output port declarations (name and type) and its callback
+ * functions that will be trigged on the occurrence of certain events
+ * like input/output ports processes, open/close processes, so forth
+ * and so on.
+ *
+ * The Javascript code must contain an object:
+ *
+ *     - 'node': This object will be used to declare input and output ports
+ *               and its callback functions that will be trigged on the occurence
+ *               of certain events like input/output ports processes, open/close
+ *               processes, so forth and so on.
+ *
+ * e.g.  var node = {
+ *           in: [
+ *               {
+ *                   name: 'IN',
+ *                   type: 'int',
+ *                   process: function(v) {
+ *                       sendPacket("OUT", 42);
+ *                   }
+ *               }
+ *           ],
+ *           out: [ { name: 'OUT', type: 'int' } ]
+ *       };
+ *
+ */
 
 /* Contains information specific to a type based on JS. */
 struct flow_js_type {
@@ -84,8 +123,9 @@ enum {
 };
 
 static const char *
-get_in_port_name(const struct flow_js_type *type, uint16_t port)
+get_in_port_name(const struct sol_flow_node *node, uint16_t port)
 {
+    const struct flow_js_type *type = (const struct flow_js_type *)sol_flow_node_get_type(node);
     const struct flow_js_port_in *p;
 
     p = sol_vector_get(&type->ports_in, port);
@@ -98,8 +138,9 @@ get_in_port_name(const struct flow_js_type *type, uint16_t port)
 }
 
 static const char *
-get_out_port_name(const struct flow_js_type *type, uint16_t port)
+get_out_port_name(const struct sol_flow_node *node, uint16_t port)
 {
+    const struct flow_js_type *type = (const struct flow_js_type *)sol_flow_node_get_type(node);
     const struct flow_js_port_out *p;
 
     p = sol_vector_get(&type->ports_out, port);
@@ -122,7 +163,7 @@ send_boolean_packet(struct sol_flow_node *node, uint16_t port, duk_context *ctx)
     r = sol_flow_send_boolean_packet(node, port, value);
     if (r < 0) {
         duk_error(ctx, DUK_ERR_ERROR, "Couldn't send boolean packet on '%s' port.",
-            get_out_port_name((struct flow_js_type *)node->type, port));
+            get_out_port_name(node, port));
     }
 
     return r;
@@ -139,7 +180,7 @@ send_byte_packet(struct sol_flow_node *node, uint16_t port, duk_context *ctx)
     r = sol_flow_send_byte_packet(node, port, value);
     if (r < 0) {
         duk_error(ctx, DUK_ERR_ERROR, "Couldn't send byte packet on '%s' port.",
-            get_out_port_name((struct flow_js_type *)node->type, port));
+            get_out_port_name(node, port));
     }
 
     return r;
@@ -176,7 +217,7 @@ send_float_packet(struct sol_flow_node *node, uint16_t port, duk_context *ctx)
     r = sol_flow_send_drange_packet(node, port, &value);
     if (r < 0) {
         duk_error(ctx, DUK_ERR_ERROR, "Couldn't send float packet on '%s' port.",
-            get_out_port_name((struct flow_js_type *)node->type, port));
+            get_out_port_name(node, port));
     }
 
     return r;
@@ -213,7 +254,7 @@ send_int_packet(struct sol_flow_node *node, uint16_t port, duk_context *ctx)
     r = sol_flow_send_irange_packet(node, port, &value);
     if (r < 0) {
         duk_error(ctx, DUK_ERR_ERROR, "Couldn't send int packet on '%s' port.",
-            get_out_port_name((struct flow_js_type *)node->type, port));
+            get_out_port_name(node, port));
     }
 
     return r;
@@ -246,7 +287,7 @@ send_rgb_packet(struct sol_flow_node *node, uint16_t port, duk_context *ctx)
     r = sol_flow_send_rgb_packet(node, port, &value);
     if (r < 0) {
         duk_error(ctx, DUK_ERR_ERROR, "Couldn't send rgb packet on '%s' port.",
-            get_out_port_name((struct flow_js_type *)node->type, port));
+            get_out_port_name(node, port));
     }
 
     return r;
@@ -263,7 +304,7 @@ send_string_packet(struct sol_flow_node *node, uint16_t port, duk_context *ctx)
     r = sol_flow_send_string_packet(node, port, value);
     if (r < 0) {
         duk_error(ctx, DUK_ERR_ERROR, "Couldn't send string packet on '%s' port.",
-            get_out_port_name((struct flow_js_type *)node->type, port));
+            get_out_port_name(node, port));
     }
 
     return r;
@@ -316,7 +357,7 @@ send_packet(duk_context *ctx)
         return 0;
     }
 
-    type = (struct flow_js_type *)node->type;
+    type = (struct flow_js_type *)sol_flow_node_get_type(node);
     if (!type) {
         duk_error(ctx, DUK_ERR_ERROR, "Couldn't send packet to '%s' port.", port_name);
         return 0;
@@ -511,7 +552,7 @@ setup_ports_methods(duk_context *duk_ctx, uint16_t ports_in_len, uint16_t ports_
 static int
 flow_js_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    const struct flow_js_type *type = (struct flow_js_type *)node->type;
+    const struct flow_js_type *type = (struct flow_js_type *)sol_flow_node_get_type(node);
     struct flow_js_data *mdata = data;
 
     mdata->duk_ctx = duk_create_heap_default();
@@ -594,14 +635,14 @@ process_boilerplate_pre(duk_context *ctx, struct sol_flow_node *node, uint16_t p
     duk_push_global_stash(ctx);
 
     if (!duk_get_prop_index(ctx, -1, port * PORTS_IN_METHODS_LENGTH + PORTS_IN_PROCESS_INDEX)) {
-        SOL_ERR("Couldn't handle '%s' process().", get_in_port_name((struct flow_js_type *)node->type, port));
+        SOL_ERR("Couldn't handle '%s' process().", get_in_port_name(node, port));
         duk_pop_2(ctx); /* get_prop() value and global_stash */
         return -1;
     }
 
     if (duk_is_null_or_undefined(ctx, -1)) {
         SOL_WRN("'%s' process() callback not implemented in javascript, ignoring incoming packets for this port",
-            get_in_port_name((struct flow_js_type *)node->type, port));
+            get_in_port_name(node, port));
         duk_pop_2(ctx); /* get_prop() value and global_stash */
         return 0;
     }
@@ -617,7 +658,7 @@ process_boilerplate_post(duk_context *ctx, struct sol_flow_node *node, uint16_t 
 {
     if (duk_pcall_method(ctx, js_method_nargs) != DUK_EXEC_SUCCESS) {
         duk_error(ctx, DUK_ERR_ERROR, "Javascript %s process() function error: %s\n",
-            get_in_port_name((struct flow_js_type *)node->type, port), duk_safe_to_string(ctx, -1));
+            get_in_port_name(node, port), duk_safe_to_string(ctx, -1));
         duk_pop_2(ctx); /* process() result and global_stash */
         return -1;
     }
@@ -829,7 +870,7 @@ handle_js_port_activity(struct sol_flow_node *node, void *data, uint16_t port, u
 
     if (!duk_get_prop_index(mdata->duk_ctx, -1, base + port * methods_length + method_index)) {
         duk_error(mdata->duk_ctx, DUK_ERR_ERROR, "Couldn't handle '%s' %s().",
-            get_in_port_name((struct flow_js_type *)node->type, port),
+            get_in_port_name(node, port),
             method_index == PORTS_IN_CONNECT_INDEX ? "connect" : "disconnect");
         duk_pop_2(mdata->duk_ctx); /* get_prop() value and global_stash */
         return -1;
@@ -867,7 +908,7 @@ flow_js_port_in_disconnect(struct sol_flow_node *node, void *data, uint16_t port
 static int
 flow_js_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    const struct flow_js_type *type = (struct flow_js_type *)node->type;
+    const struct flow_js_type *type = (const struct flow_js_type *)sol_flow_node_get_type(node);
 
     return handle_js_port_activity(node, data, port, conn_id,
         type->ports_in.len * PORTS_IN_METHODS_LENGTH, PORTS_OUT_METHODS_LENGTH, PORTS_OUT_CONNECT_INDEX);
@@ -876,7 +917,7 @@ flow_js_port_out_connect(struct sol_flow_node *node, void *data, uint16_t port, 
 static int
 flow_js_port_out_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
 {
-    const struct flow_js_type *type = (struct flow_js_type *)node->type;
+    const struct flow_js_type *type = (const struct flow_js_type *)sol_flow_node_get_type(node);
 
     return handle_js_port_activity(node, data, port, conn_id,
         type->ports_in.len * PORTS_IN_METHODS_LENGTH, PORTS_OUT_METHODS_LENGTH, PORTS_OUT_DISCONNECT_INDEX);
@@ -1315,10 +1356,12 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
     return true;
 }
 
-SOL_API struct sol_flow_node_type *
+static struct sol_flow_node_type *
 sol_flow_js_new_type(const char *buf, size_t len)
 {
     struct flow_js_type *type;
+
+    SOL_LOG_INTERNAL_INIT_ONCE;
 
     type = calloc(1, sizeof(struct flow_js_type));
     SOL_NULL_CHECK(type, NULL);
@@ -1331,3 +1374,37 @@ sol_flow_js_new_type(const char *buf, size_t len)
 
     return &type->base;
 }
+
+static int
+js_create_type(
+    const struct sol_flow_metatype_context *ctx,
+    struct sol_flow_node_type **type)
+{
+    const char *buf, *filename;
+    struct sol_flow_node_type *result;
+    size_t size;
+    int err;
+
+    filename = strndupa(ctx->contents.data, ctx->contents.len);
+    err = ctx->read_file(ctx, filename, &buf, &size);
+    if (err < 0)
+        return -EINVAL;
+
+    result = sol_flow_js_new_type(buf, size);
+    if (!result)
+        return -EINVAL;
+
+    err = ctx->store_type(ctx, result);
+    if (err < 0) {
+        sol_flow_node_type_del(result);
+        return -err;
+    }
+
+    *type = result;
+    return 0;
+}
+
+SOL_FLOW_METATYPE(JS,
+    .name = "js",
+    .create_type = js_create_type,
+    );
