@@ -124,7 +124,6 @@ handle_suboptions(const struct sol_fbp_meta *meta,
     remaining = strndupa(meta->value.data, meta->value.len);
     SOL_NULL_CHECK(remaining);
 
-    out("            .%.*s = {\n", SOL_STR_SLICE_PRINT(meta->key));
     while (remaining) {
         p = memchr(remaining, '|', strlen(remaining));
         if (p)
@@ -137,7 +136,6 @@ handle_suboptions(const struct sol_fbp_meta *meta,
         remaining = p + 1;
         i++;
     }
-    out("            },\n");
 }
 
 static void
@@ -152,7 +150,7 @@ handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *opt
     }
 
     *p = '=';
-    out("                .%s,\n", option);
+    out("            .%.*s.%s,\n", SOL_STR_SLICE_PRINT(meta->key), option);
 }
 
 static bool
@@ -170,29 +168,33 @@ check_suboption(char *option, const struct sol_fbp_meta *meta, const char *fbp_f
 static void
 handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
 {
-    const char *irange_drange_fields[5] = { "val", "min", "max", "step", NULL };
+    const char *irange_drange_fields[] = { "val", "min", "max", "step", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        out("                .%s = %s,\n", irange_drange_fields[index], option);
+        out("            .%.*s.%s = %s,\n", SOL_STR_SLICE_PRINT(meta->key),
+            irange_drange_fields[index], option);
 }
 
 static void
 handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
 {
-    const char *rgb_fields[7] = { "red", "green", "blue",
-                                  "red_max", "green_max", "blue_max", NULL };
+    const char *rgb_fields[] = { "red", "green", "blue",
+                                 "red_max", "green_max", "blue_max", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        out("                .%s = %s,\n", rgb_fields[index], option);
+        out("            .%.*s.%s = %s,\n", SOL_STR_SLICE_PRINT(meta->key),
+            rgb_fields[index], option);
 }
 
 static void
 handle_direction_vector_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
 {
-    const char *direction_vector_fields[7] = { "x", "y", "z", "min", "max", NULL };
+    const char *direction_vector_fields[] = { "x", "y", "z",
+                                              "min", "max", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        out("                .%s = %s,\n", direction_vector_fields[index], option);
+        out("            .%.*s.%s = %s,\n", SOL_STR_SLICE_PRINT(meta->key),
+            direction_vector_fields[index], option);
 }
 
 static bool
