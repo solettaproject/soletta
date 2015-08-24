@@ -111,20 +111,20 @@ static void
 thingspeak_execute_close(struct sol_flow_node *node, void *data)
 {
     struct thingspeak_execute_data *mdata = data;
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     uint16_t i;
 
     sol_timeout_del(mdata->timeout);
     free_talkback(&mdata->talkback);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
     sol_ptr_vector_clear(&mdata->pending_conns);
 }
 
 static void
 thingspeak_execute_poll_finished(void *data,
-    const struct sol_http_client_pending *connection,
+    const struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     struct thingspeak_execute_data *mdata = data;
@@ -154,7 +154,7 @@ thingspeak_execute_poll(void *data)
 {
     struct thingspeak_execute_data *mdata = data;
     struct sol_http_param params;
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     int r;
 
     sol_http_param_init(&params);
@@ -181,7 +181,7 @@ thingspeak_execute_poll(void *data)
     r = sol_ptr_vector_append(&mdata->pending_conns, connection);
     if (r < 0) {
         SOL_WRN("Failed to keep pending connection.");
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
         return false;
     }
 
@@ -225,7 +225,7 @@ thingspeak_execute_open(struct sol_flow_node *node, void *data, const struct sol
 
 static void
 thingspeak_add_request_finished(void *data,
-    const struct sol_http_client_pending *connection,
+    const struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     struct thingspeak_add_data *mdata = data;
@@ -253,7 +253,7 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
     struct thingspeak_add_data *mdata = data;
     const char *cmd_str;
     struct sol_http_param params;
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     int error_code = 0;
     int r;
 
@@ -309,7 +309,7 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
     r = sol_ptr_vector_append(&mdata->pending_conns, connection);
     if (r < 0) {
         SOL_WRN("Failed to keep pending connection.");
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
         error_code = -ENOMEM;
     }
 
@@ -322,13 +322,13 @@ static void
 thingspeak_add_close(struct sol_flow_node *node, void *data)
 {
     struct thingspeak_add_data *mdata = data;
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     uint16_t i;
 
     free_talkback(&mdata->talkback);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
     sol_ptr_vector_clear(&mdata->pending_conns);
 }
 
@@ -355,7 +355,7 @@ thingspeak_add_open(struct sol_flow_node *node, void *data, const struct sol_flo
 
 static void
 thingspeak_channel_update_finished(void *data,
-    const struct sol_http_client_pending *connection,
+    const struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     struct thingspeak_channel_update_data *mdata = data;
@@ -373,7 +373,7 @@ thingspeak_channel_update_send(void *data)
 {
     struct thingspeak_channel_update_data *mdata = data;
     struct sol_http_param params;
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     char field_name[] = "fieldX";
     size_t i;
     int r;
@@ -417,7 +417,7 @@ thingspeak_channel_update_send(void *data)
     r = sol_ptr_vector_append(&mdata->pending_conns, connection);
     if (r < 0) {
         SOL_WRN("Failed to keep pending connection.");
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
     }
 
 out:
@@ -496,7 +496,7 @@ static void
 thingspeak_channel_update_close(struct sol_flow_node *node, void *data)
 {
     struct thingspeak_channel_update_data *mdata = data;
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     uint16_t i;
 
     for (i = 0; i < ARRAY_SIZE(mdata->fields); i++)
@@ -509,7 +509,7 @@ thingspeak_channel_update_close(struct sol_flow_node *node, void *data)
     sol_timeout_del(mdata->timeout);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
     sol_ptr_vector_clear(&mdata->pending_conns);
 }
 

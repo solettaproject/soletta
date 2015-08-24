@@ -187,7 +187,7 @@ open_error:
 static void
 http_get_close(struct sol_flow_node *node, void *data)
 {
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     struct http_get_data *mdata = data;
     uint16_t i;
 
@@ -212,7 +212,7 @@ http_get_close(struct sol_flow_node *node, void *data)
     }
 
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
     sol_ptr_vector_clear(&mdata->pending_conns);
 }
 
@@ -222,7 +222,8 @@ http_get_close(struct sol_flow_node *node, void *data)
 #define AUTH_START "Bearer "
 
 static void
-generate_token_cb(void *data, const struct sol_http_client_pending *connection,
+generate_token_cb(void *data,
+    const struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     struct http_get_data *mdata = data;
@@ -285,7 +286,7 @@ static int
 generate_token(struct http_get_data *mdata)
 {
     struct sol_http_param params;
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     int r;
 
     sol_http_param_init(&params);
@@ -318,7 +319,7 @@ generate_token(struct http_get_data *mdata)
     r = sol_ptr_vector_append(&mdata->pending_conns, connection);
     if (r < 0) {
         SOL_WRN("Failed to keep pending connection.");
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
         return -ENOMEM;
     }
 
@@ -418,7 +419,7 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure,
     _water.max = 50;
 
 static void
-http_get_cb(void *data, const struct sol_http_client_pending *connection,
+http_get_cb(void *data, const struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
     struct http_get_data *mdata = data;
@@ -630,7 +631,7 @@ http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 {
     struct http_get_data *mdata = data;
     struct sol_http_param params;
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     int r;
 
     if (!mdata->token) {
@@ -659,7 +660,7 @@ http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     r = sol_ptr_vector_append(&mdata->pending_conns, connection);
     if (r < 0) {
         SOL_WRN("Failed to keep pending connection.");
-        sol_http_client_pending_cancel(connection);
+        sol_http_client_connection_cancel(connection);
         return -ENOMEM;
     }
 
