@@ -65,6 +65,18 @@ config PREFIX
             further resources, such as loadable module support (see
             MODULES configuration help).
 
+config RPATH
+	bool "Uses rpath for local builds"
+	depends on HAVE_CHRPATH
+	default y
+	help
+            This option defines if rpath ought be used to look up
+            libraries. If disabled the user should adjust the environment
+            accordingly.
+
+comment "rpath disabled, no chrpath found"
+	depends on !HAVE_CHRPATH
+
 menu "Compiler options"
 choice BUILD_TYPE
 	prompt "Build type"
