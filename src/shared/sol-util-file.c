@@ -172,8 +172,7 @@ sol_util_load_file_raw(const int fd)
     buffer = sol_buffer_new();
     SOL_NULL_CHECK(buffer, NULL);
 
-    bool b = false;
-    if (fstat(fd, &st) >= 0 && st.st_size && b) {
+    if (fstat(fd, &st) >= 0 && st.st_size) {
         ret = sol_util_fill_buffer(fd, buffer, st.st_size);
     } else {
         do {
@@ -214,7 +213,8 @@ sol_util_load_file_string(const char *filename, size_t *size)
         size_read = 1;
     } else {
         if (sol_buffer_at_end(buffer) != '\0') {
-            sol_buffer_ensure(buffer, buffer->used + 1);
+            if (sol_buffer_ensure(buffer, buffer->used + 1) < 0)
+                goto err;
             *((char *)buffer->data + buffer->used) = '\0';
             buffer->used++;
         }
