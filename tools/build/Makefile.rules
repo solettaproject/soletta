@@ -264,7 +264,7 @@ endef
 $(foreach bin,$(EXTRA_BINS),$(eval $(call make-extra-bin,$(bin))))
 
 define make-bin
-$(bin-$(1)-out): $(SOL_LIB_SO) $(bin-$(1)-srcs) $(call find-deps,$(1))
+$(bin-$(1)-out): $(SOL_LIB_OUTPUT) $(bin-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "BIN"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(bin-$(1)-out))
 	$(Q)$(TARGETCC) $(BIN_CFLAGS) $(bin-$(1)-cflags) $(filter-out %.h,$(bin-$(1)-srcs)) -o $(bin-$(1)-out) $(BIN_LDFLAGS) $(bin-$(1)-ldflags) $(sort $(builtin-ldflags))
@@ -275,7 +275,7 @@ sample-out = $(if $(filter %.o,$(sample-$(1)-out)), -c -o $(sample-$(1)-out),-o 
 sample-src = $(filter-out %.json,$(filter-out %.h,$(sample-$(1)-srcs)))
 
 define make-sample
-$(sample-$(1)-out): $(SOL_LIB_SO) $(sample-$(1)-srcs) $(call find-deps,$(1))
+$(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(sample-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "SMP"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(sample-$(1)-out))
 	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(sample-$(1)-cflags) $(sample-$(1)-includedir) $(sample-src) \
@@ -284,16 +284,21 @@ $(sample-$(1)-out): $(SOL_LIB_SO) $(sample-$(1)-srcs) $(call find-deps,$(1))
 endef
 $(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
 
+ifeq (y,$(STATIC_LIBRARY))
+use-builtin-ldflags = $(sort $(builtin-ldflags))
+use-builtin-cflags = $(sort $(builtin-cflags))
+endif
+
 define make-test
-$(test-$(1)-out): $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1))
+$(test-$(1)-out): $(SOL_LIB_OUTPUT) $(test-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "TST"   "$$@
-	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) \
-	$(call find-deps,$(1)) -o $$@ $(TEST_LDFLAGS) $(test-$(1)-ldflags)
+	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(test-$(1)-cflags) $(use-builtin-cflags) $(filter-out %.h,$(test-$(1)-srcs)) \
+	$(call find-deps,$(1)) -o $$@ $(TEST_LDFLAGS) $(test-$(1)-ldflags) $(use-builtin-ldflags)
 endef
 $(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
 
 define make-test-internal
-$(test-$(1)-out): $(SOL_LIB_SO) $(test-$(1)-srcs) $(call find-deps,$(1))
+$(test-$(1)-out): $(SOL_LIB_OUTPUT) $(test-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "TST"   "$$@
 	$(Q)$(TARGETCC) $(TEST_INT_CFLAGS) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) \
 	$(builtin-objs) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_INT_LDFLAGS) $(test-$(1)-ldflags)
@@ -321,13 +326,15 @@ $(foreach buin,$(builtins), \
 	$(foreach obj,$($(buin)-objs), $(eval $(call make-object,$(obj),$(buin)))) \
 )
 
+ifeq (y,$(SHARED_LIBRARY))
 define make-mod-so
-$($(1)-out): $(SOL_LIB_SO) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
+$($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)echo "     "MOD"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
 	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $($(1)-objs) -shared -o $($(1)-out) $(sort $($(1)-ldflags))
 endef
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
+endif
 
 define make-mod-ar
 $($(1)-out): $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
@@ -337,16 +344,18 @@ $($(1)-out): $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 endef
 $(foreach curr,$(mod-ar),$(eval $(call make-mod-ar,$(curr))))
 
+ifeq (y,$(STATIC_LIBRARY))
 $(SOL_LIB_AR): $(all-objs)
 	$(Q)echo "      "AR"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_AR))
 	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $(@) $(all-objs)
-
-$(SOL_LIB_SO): $(SOL_LIB_AR) $(builtin-objs)
+else
+$(SOL_LIB_SO): $(builtin-objs)
 	$(Q)echo "      "LD"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_SO))
 	$(Q)$(TARGETCC) -shared $(builtin-objs) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
+endif
 
 # generators
 define make-gen
@@ -376,7 +385,7 @@ $($(1)-src): $(1) $(SOL_FBP_GENERATOR_BIN)
 endef
 $(foreach gen,$(all-fbp-gens),$(eval $(call make-fbp-gen,$(gen))))
 
-$(FLOW_BUILTINS_DESC): $(SOL_LIB_SO) $(SOL_LIB_AR) $(all-mod-descs) $(JSON_FORMAT_SCRIPT)
+$(FLOW_BUILTINS_DESC): $(SOL_LIB_OUTPUT) $(all-mod-descs) $(JSON_FORMAT_SCRIPT)
 	$(Q)echo "     "GEN"   "$@
 	$(Q)$(MKDIR) -p $(dir $(@))
 	$(Q)$(PYTHON) $(FLOW_MERGE_BUILTINS_SCRIPT) --modules-dir=$(build_descdir) $(@) $(builtin-flows)
