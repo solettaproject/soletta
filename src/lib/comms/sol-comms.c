@@ -30,11 +30,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
+
 #ifdef HTTP_CLIENT
 extern int sol_http_client_init(void);
 extern void sol_http_client_shutdown(void);
 #endif
-extern int sol_network_init(void);
+extern bool sol_network_init(void);
 extern void sol_network_shutdown(void);
 
 int sol_comms_init(void);
@@ -43,15 +45,11 @@ void sol_comms_shutdown(void);
 int
 sol_comms_init(void)
 {
-    int r;
-
-    r = sol_network_init();
-    if (r < 0)
+    if (!sol_network_init())
         goto network_error;
 
 #ifdef HTTP_CLIENT
-    r = sol_http_client_init();
-    if (r < 0)
+    if (sol_http_client_init() < 0)
         goto http_error;
 #endif
 
