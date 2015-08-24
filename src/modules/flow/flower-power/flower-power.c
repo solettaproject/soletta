@@ -359,14 +359,20 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure,
     sol_json_scanner_init_from_token(&scanner, &value);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "current_value")) {
-            if (sol_json_token_get_double(&value, &measure->val))
+            if (sol_json_token_get_double(&value, &measure->val)) {
                 SOL_DBG("Failed to get current value");
+                measure->val = NAN;
+            }
         } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "max_threshold")) {
-            if (sol_json_token_get_double(&value, &max->val))
+            if (sol_json_token_get_double(&value, &max->val)) {
                 SOL_DBG("Failed to get max value");
+                max->val = NAN;
+            }
         } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "min_threshold")) {
-            if (sol_json_token_get_double(&value, &min->val))
+            if (sol_json_token_get_double(&value, &min->val)) {
                 SOL_DBG("Failed to get min value");
+                min->val = NAN;
+            }
         }
     }
 
