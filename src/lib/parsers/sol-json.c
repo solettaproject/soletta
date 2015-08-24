@@ -273,8 +273,8 @@ sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value)
 SOL_API int
 sol_json_token_get_double(const struct sol_json_token *token, double *value)
 {
+    double tmp_value;
     char *endptr;
-    int r;
 
     /* NOTE: Using a copy to ensure trailing \0 and strtod() so we
      * properly parse numbers with large precision.
@@ -289,28 +289,17 @@ sol_json_token_get_double(const struct sol_json_token *token, double *value)
      * of bytes.
      */
 
-    *value = sol_util_strtodn(token->start, &endptr,
+    errno = 0;
+    tmp_value = sol_util_strtodn(token->start, &endptr,
         sol_json_token_get_size(token), false);
+    SOL_INT_CHECK(errno, != 0, -errno);
 
-    r = -errno;
     if (endptr == token->start)
-        r = -EINVAL;
-    else if (isinf(*value)) {
-        SOL_DBG("token '%.*s' is infinite",
-            sol_json_token_get_size(token), token->start);
-        if (*value < 0)
-            *value = -DBL_MAX;
-        else
-            *value = DBL_MAX;
-        r = -ERANGE;
-    } else if (isnan(*value)) {
-        SOL_DBG("token '%.*s' is not a number",
-            sol_json_token_get_size(token), token->start);
-        *value = 0;
-        r = -EINVAL;
-    }
+        return -EINVAL;
 
-    return r;
+    *value = tmp_value;
+
+    return 0;
 }
 
 SOL_API bool
