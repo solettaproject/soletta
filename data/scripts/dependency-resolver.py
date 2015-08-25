@@ -277,7 +277,7 @@ def handle_exec_check(args, conf, context):
         context.add_append_makefile_var("NOT_FOUND", req_label, True)
 
     context.add_cond_makefile_var(dep_sym, path)
-    context.add_cond_makefile_var("HAVE_%s" % dep_sym, "y" if path else "n")
+    context.add_kconfig("HAVE_%s" % dep_sym, "bool", "y" if path else "n")
 
     return success
 
