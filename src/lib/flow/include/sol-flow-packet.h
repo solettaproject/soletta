@@ -34,6 +34,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <time.h>
 
 #include "sol-str-slice.h"
 #include "sol-types.h"
@@ -97,6 +98,7 @@ extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_ERROR;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_RGB;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_LOCATION;
+extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_TIMESTAMP;
 
 /* Convenience functions to use certain types of common packets. */
 struct sol_flow_packet *sol_flow_packet_new_empty(void);
@@ -140,6 +142,9 @@ int sol_flow_packet_get_direction_vector_components(const struct sol_flow_packet
 
 struct sol_flow_packet *sol_flow_packet_new_location(const struct sol_location *location);
 int sol_flow_packet_get_location(const struct sol_flow_packet *packet, struct sol_location *location);
+
+struct sol_flow_packet *sol_flow_packet_new_timestamp(const time_t *timestamp);
+int sol_flow_packet_get_timestamp(const struct sol_flow_packet *packet, time_t *timestamp);
 
 /**
  * @}

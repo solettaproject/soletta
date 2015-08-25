@@ -31,6 +31,8 @@
  */
 
 #include <stdio.h>
+#include <time.h>
+
 #include "sol-flow.h"
 #include "sol-flow-inspector.h"
 #include "sol-util.h"
@@ -200,6 +202,20 @@ inspector_show_packet(const struct sol_flow_packet *packet)
         if (sol_flow_packet_get_location(packet, &v) == 0) {
             fprintf(stdout, "<lat=%g|lon=%g|alt=%g>", v.lat, v.lon, v.alt);
             return;
+        }
+    } else if (type == SOL_FLOW_PACKET_TYPE_TIMESTAMP) {
+        time_t v;
+        if (sol_flow_packet_get_timestamp(packet, &v) == 0) {
+            struct tm cur_time;
+            char buf[32];
+            tzset();
+            if (localtime_r(&v, &cur_time)) {
+                if (strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ",
+                    &cur_time) > 0) {
+                    fprintf(stdout, "<%s>", buf);
+                    return;
+                }
+            }
         }
     }
 

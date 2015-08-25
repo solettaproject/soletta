@@ -34,6 +34,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <float.h>
+#include <time.h>
 
 #define SOL_LOG_DOMAIN &_sol_flow_log_domain
 #include "sol-log-internal.h"
@@ -634,6 +635,26 @@ sol_flow_packet_get_location(const struct sol_flow_packet *packet, struct sol_lo
 {
     SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_LOCATION, -EINVAL);
     return sol_flow_packet_get(packet, location);
+}
+
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_TIMESTAMP = {
+    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    .name = "TIMESTAMP",
+    .data_size = sizeof(time_t),
+};
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_TIMESTAMP = &_SOL_FLOW_PACKET_TYPE_TIMESTAMP;
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_timestamp(const time_t *timestamp)
+{
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_TIMESTAMP, timestamp);
+}
+
+SOL_API int
+sol_flow_packet_get_timestamp(const struct sol_flow_packet *packet, time_t *timestamp)
+{
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_TIMESTAMP, -EINVAL);
+    return sol_flow_packet_get(packet, timestamp);
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_ANY = {
