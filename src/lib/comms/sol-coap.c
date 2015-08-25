@@ -90,10 +90,8 @@ struct sol_coap_server {
     struct sol_vector contexts;
     struct sol_ptr_vector pending; /* waiting pending replies */
     struct sol_ptr_vector outgoing; /* in case we need to retransmit */
-    struct sol_fd *read_watch;
-    struct sol_fd *write_watch;
+    struct sol_socket *socket;
     int refcnt;
-    int fd;
 };
 
 struct resource_context {
@@ -127,7 +125,7 @@ struct outgoing {
     int counter; /* How many times this packet was retransmited. */
 };
 
-static bool can_write(void *data, int fd, unsigned int active_flags);
+static bool on_can_write(void *data, struct sol_socket *s);
 
 SOL_API uint8_t
 sol_coap_header_get_ver(const struct sol_coap_packet *pkt)
@@ -420,16 +418,6 @@ next_in_queue(struct sol_coap_server *server, int *idx)
     return NULL;
 }
 
-static void
-wakeup_write(struct sol_coap_server *server)
-{
-    if (server->write_watch)
-        return;
-
-    server->write_watch = sol_fd_add(server->fd, SOL_FD_FLAGS_OUT, can_write, server);
-    SOL_NULL_CHECK(server->write_watch);
-}
-
 static bool
 timeout_cb(void *data)
 {
@@ -439,7 +427,7 @@ timeout_cb(void *data)
 
     outgoing->timeout = NULL;
 
-    wakeup_write(server);
+    sol_socket_set_on_write(server->socket, on_can_write, server);
 
     sol_network_addr_to_str(&outgoing->cliaddr, addr, sizeof(addr));
 
@@ -475,26 +463,21 @@ setup_timeout(struct sol_coap_server *server, struct outgoing *outgoing)
 }
 
 static bool
-can_write(void *data, int fd, unsigned int active_flags)
+on_can_write(void *data, struct sol_socket *s)
 {
     struct sol_coap_server *server = data;
     struct outgoing *outgoing;
     int err;
     int idx;
 
-    if (active_flags & (SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_ERR)) {
-        SOL_WRN("server %p socket closed", server);
-        goto remove_watch;
-    }
-
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
-        goto remove_watch;
+        return false;
 
     outgoing = next_in_queue(server, &idx);
     if (!outgoing)
-        goto remove_watch;
+        return false;
 
-    err = sol_socket_sendmsg(server->fd, outgoing->pkt->buf,
+    err = sol_socket_sendmsg(s, outgoing->pkt->buf,
         outgoing->pkt->payload.used, &outgoing->cliaddr);
     /* Eventually we are going to re-send it. */
     if (err == -EAGAIN)
@@ -505,7 +488,7 @@ can_write(void *data, int fd, unsigned int active_flags)
         sol_network_addr_to_str(&outgoing->cliaddr, addr, sizeof(addr));
         SOL_WRN("Could not send packet %d to %s (%d): %s", sol_coap_header_get_id(outgoing->pkt),
             addr, errno, sol_util_strerrora(errno));
-        goto remove_watch;
+        return false;
     }
 
     if (sol_coap_header_get_type(outgoing->pkt) != SOL_COAP_TYPE_CON) {
@@ -516,13 +499,9 @@ can_write(void *data, int fd, unsigned int active_flags)
     }
 
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
-        goto remove_watch;
+        return false;
 
     return true;
-
-remove_watch:
-    server->write_watch = NULL;
-    return false;
 }
 
 static int
@@ -549,7 +528,7 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
 
     outgoing->pkt = sol_coap_packet_ref(pkt);
 
-    wakeup_write(server);
+    sol_socket_set_on_write(server->socket, on_can_write, server);
 
     return 0;
 }
@@ -1213,7 +1192,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
 }
 
 static bool
-on_receive_data(void *data, int fd, unsigned int active_flags)
+on_can_read(void *data, struct sol_socket *s)
 {
     struct sol_coap_server *server = data;
     struct sol_network_link_addr cliaddr;
@@ -1221,16 +1200,10 @@ on_receive_data(void *data, int fd, unsigned int active_flags)
     ssize_t len;
     int err;
 
-    if (active_flags & (SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_ERR)) {
-        SOL_WRN("server %p socket closed", server);
-        server->read_watch = NULL;
-        return false;
-    }
-
     pkt = sol_coap_packet_new(NULL);
     SOL_NULL_CHECK(pkt, true); /* It may possible that in the next round there is enough memory. */
 
-    len = sol_socket_recvmsg(fd, pkt->buf, pkt->payload.size, &cliaddr);
+    len = sol_socket_recvmsg(s, pkt->buf, pkt->payload.size, &cliaddr);
     if (len < 0) {
         SOL_WRN("Could not read from socket (%d): %s", errno, sol_util_strerrora(errno));
         coap_packet_free(pkt);
@@ -1286,10 +1259,7 @@ sol_coap_server_destroy(struct sol_coap_server *server)
     struct outgoing *o;
     uint16_t i;
 
-    if (server->read_watch)
-        sol_fd_del(server->read_watch);
-    if (server->write_watch)
-        sol_fd_del(server->write_watch);
+    sol_socket_del(server->socket);
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
         sol_ptr_vector_del(&server->outgoing, i);
@@ -1323,7 +1293,7 @@ sol_coap_server_unref(struct sol_coap_server *server)
 }
 
 static int
-join_mcast_groups(int fd, const struct sol_network_link *link)
+join_mcast_groups(struct sol_socket *s, const struct sol_network_link *link)
 {
     struct sol_network_link_addr groupaddr = { };
     struct sol_network_link_addr *addr;
@@ -1337,18 +1307,18 @@ join_mcast_groups(int fd, const struct sol_network_link *link)
 
         if (addr->family == AF_INET) {
             sol_network_addr_from_str(&groupaddr, IPV4_ALL_COAP_NODES_GROUP);
-            if (sol_socket_join_group(fd, link->index, &groupaddr) < 0)
+            if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
                 return -errno;
 
             continue;
         }
 
         sol_network_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_LOCAL);
-        if (sol_socket_join_group(fd, link->index, &groupaddr) < 0)
+        if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
             return -errno;
 
         sol_network_addr_from_str(&groupaddr, IPV6_ALL_COAP_NODES_SCOPE_SITE);
-        if (sol_socket_join_group(fd, link->index, &groupaddr) < 0)
+        if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
             return -errno;
     }
 
@@ -1366,48 +1336,40 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
     if (!(link->flags & SOL_NETWORK_LINK_RUNNING) && !(link->flags & SOL_NETWORK_LINK_MULTICAST))
         return;
 
-    join_mcast_groups(server->fd, link);
+    join_mcast_groups(server->socket, link);
 }
 
 SOL_API struct sol_coap_server *
 sol_coap_server_new(int port)
 {
-    static bool network_init;
     struct sol_network_link_addr servaddr = { .family = AF_INET6,
                                               .port = port };
     const struct sol_vector *links;
     struct sol_network_link *link;
     struct sol_coap_server *server;
-    int fd;
+    struct sol_socket *s;
     uint16_t i;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
-    if (!network_init) {
-        network_init = sol_network_init();
-        if (!network_init) {
-            SOL_WRN("Network could not be initialized");
-            return NULL;
-        }
-    }
-
-    fd = socket(servaddr.family, SOCK_DGRAM | SOCK_CLOEXEC, 0);
-    if (fd < 0) {
+    s = sol_socket_new(servaddr.family, SOL_SOCKET_UDP, 0);
+    if (!s) {
         SOL_WRN("Could not create socket (%d): %s", errno, sol_util_strerrora(errno));
         return NULL;
     }
 
-    if (sol_socket_bind(fd, &servaddr) < 0) {
+    if (sol_socket_bind(s, &servaddr) < 0) {
         SOL_WRN("Could not bind socket (%d): %s", errno, sol_util_strerrora(errno));
-        close(fd);
+        sol_socket_del(s);
         return NULL;
     }
 
     server = calloc(1, sizeof(*server));
     if (!server) {
-        close(fd);
+        sol_socket_del(s);
         return NULL;
     }
+
     server->refcnt = 1;
 
     sol_vector_init(&server->contexts, sizeof(struct resource_context));
@@ -1415,9 +1377,12 @@ sol_coap_server_new(int port)
     sol_ptr_vector_init(&server->pending);
     sol_ptr_vector_init(&server->outgoing);
 
-    server->fd = fd;
-    server->read_watch = sol_fd_add(fd, SOL_FD_FLAGS_IN, on_receive_data, server);
-    SOL_NULL_CHECK_GOTO(server->read_watch, error);
+    server->socket = s;
+    if (sol_socket_set_on_read(s, on_can_read, server) < 0) {
+        free(server);
+        sol_socket_del(s);
+        return NULL;
+    }
 
     /* From man 7 ip:
      *
@@ -1436,7 +1401,7 @@ sol_coap_server_new(int port)
             /* Not considering an error,
              * because direct packets will work still.
              */
-            if (join_mcast_groups(fd, link) < 0) {
+            if (join_mcast_groups(s, link) < 0) {
                 char *name = sol_network_link_get_name(link);
                 SOL_WRN("Could not join multicast group, iface %s (%d): %s",
                     name, errno, sol_util_strerrora(errno));
@@ -1450,11 +1415,6 @@ sol_coap_server_new(int port)
     SOL_DBG("New server %p on port %d", server, port);
 
     return server;
-
-error:
-    close(fd);
-    free(server);
-    return NULL;
 }
 
 SOL_API int
