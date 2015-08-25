@@ -30,26 +30,6 @@ config ENABLE_DYNAMIC_MODULES
 	depends on SHARED_LIBRARY
 	default n
 
-config CC_SANITIZE
-	bool "Compiler sanitize"
-	depends on FEATURE_CC_SANITIZE && (HAVE_SANITIZE_UNDEFINED || HAVE_SANITIZE_ADDRESS)
-	default y
-
-choice CC_SANITIZE_TYPE
-	prompt "Compiler sanitize type"
-	depends on CC_SANITIZE
-	default CC_SANITIZE_UNDEFINED if HAVE_SANITIZE_UNDEFINED
-	default CC_SANITIZE_ADDRESS if HAVE_SANITIZE_ADDRESS
-
-config CC_SANITIZE_UNDEFINED
-	bool "undefined"
-	depends on HAVE_SANITIZE_UNDEFINED
-
-config CC_SANITIZE_ADDRESS
-	bool "address"
-	depends on HAVE_SANITIZE_ADDRESS
-endchoice
-
 config MODULES
 	bool "Enable loadable module support"
 	option modules
@@ -84,6 +64,51 @@ config PREFIX
             binaries. It is used by code paths that need to look for
             further resources, such as loadable module support (see
             MODULES configuration help).
+
+menu "Compiler options"
+choice BUILD_TYPE
+	prompt "Build type"
+	default BUILD_TYPE_RELEASE
+
+config BUILD_TYPE_DEBUG
+	bool "debug"
+
+config BUILD_TYPE_RELEASE
+	bool "release"
+endchoice
+
+config CONFIG_CFLAGS
+       string "Arbitrary CFLAGS"
+       help
+           Sets arbitrary CFLAGS to be used across make invocations
+           without the need to be provided on every make call.
+
+config CONFIG_LDFLAGS
+       string "Arbitrary LDFLAGS"
+       help
+           Sets arbitrary LDFLAGS to be used across make invocations
+           without the need to be provided on every make call.
+
+config CC_SANITIZE
+	bool "Compiler sanitize"
+	depends on FEATURE_CC_SANITIZE && (HAVE_SANITIZE_UNDEFINED || HAVE_SANITIZE_ADDRESS)
+	default y
+
+choice CC_SANITIZE_TYPE
+	prompt "Compiler sanitize type"
+	depends on CC_SANITIZE
+	default CC_SANITIZE_UNDEFINED if HAVE_SANITIZE_UNDEFINED
+	default CC_SANITIZE_ADDRESS if HAVE_SANITIZE_ADDRESS
+
+config CC_SANITIZE_UNDEFINED
+	bool "undefined"
+	depends on HAVE_SANITIZE_UNDEFINED
+
+config CC_SANITIZE_ADDRESS
+	bool "address"
+	depends on HAVE_SANITIZE_ADDRESS
+endchoice
+endmenu
 
 endmenu
 
