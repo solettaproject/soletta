@@ -247,28 +247,31 @@ string_replace(struct sol_flow_node *node,
     char *value,
     char *change_from,
     char *change_to,
+    bool *replaced,
     size_t max_count)
 {
-    char *ret;
+    char *ret = NULL;
     size_t value_len = strlen(value);
     size_t change_to_len = strlen(change_to);
     size_t change_from_len = strlen(change_from);
 
+    *replaced = true;
+
     if (max_count == 0) {
         ret = strdup(value);
-        goto nothing;
+        goto end;
     }
 
     if (strcmp(change_from, change_to) == 0) {
         ret = strdup(value);
-        goto nothing;
+        goto end;
     }
 
     if (change_from_len == change_to_len) {
         /* same length */
         if (change_from_len == 0) {
             ret = strdup(value);
-            goto nothing;
+            goto end;
         }
         if (change_from_len == 1) {
             /* replace characters */
@@ -282,7 +285,7 @@ string_replace(struct sol_flow_node *node,
             ret = strdup(value);
             token = memmem(value, value_len, change_from, change_from_len);
             if (!token)
-                goto nothing;
+                goto end;
 
             i = token - value;
 
@@ -308,7 +311,7 @@ string_replace(struct sol_flow_node *node,
             change_from, change_from_len, max_count);
         if (count == 0) {
             ret = strdup(value);
-            goto nothing;
+            goto end;
         }
 
         if (change_from_len < change_to_len &&
@@ -316,7 +319,7 @@ string_replace(struct sol_flow_node *node,
             (INT32_MAX - value_len) / count) {
             sol_flow_send_error_packet(node, EINVAL,
                 "replace string is too long");
-            goto error;
+            goto end;
         }
         r = sol_util_ssize_mul(count,
             (ssize_t)(change_to_len - change_from_len), &new_size);
@@ -324,19 +327,19 @@ string_replace(struct sol_flow_node *node,
             (new_size > 0 && SSIZE_MAX - new_size < (ssize_t)value_len)) {
             sol_flow_send_error_packet(node, EINVAL,
                 "replace string is too long");
-            goto error;
+            goto end;
         }
 
         new_size += value_len;
 
         if (new_size == 0) {
             ret = (char *)"";
-            goto done;
+            goto end;
         }
 
         ret = calloc(new_size + 1, sizeof(*ret));
         if (!ret)
-            goto error;
+            goto end;
 
         ires = i = 0;
         if (change_from_len > 0) {
@@ -349,7 +352,7 @@ string_replace(struct sol_flow_node *node,
                 if (!token) {
                     free(ret);
                     ret = strdup(value);
-                    goto nothing;
+                    goto end;
                 }
 
                 j = sub_str_find(value +  i, value_len - i,
@@ -386,10 +389,10 @@ string_replace(struct sol_flow_node *node,
         }
     }
 
-done:
-nothing:
     return ret;
 
-error:
-    return NULL;
+// no changes (ret != NULL) and error (ret == NULL) cases
+end:
+    *replaced = false;
+    return ret;
 }
