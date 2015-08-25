@@ -130,6 +130,16 @@
          "process": "string_process"
         },
         "name": "STRING"
+       },
+       {
+        "data_type": "timestamp",
+        "description": "Dummy timestamp input port.",
+        "methods": {
+         "connect": "timestamp_connect",
+         "disconnect": "timestamp_disconnect",
+         "process": "timestamp_process"
+        },
+        "name": "TIMESTAMP"
        }
       ],
       "methods": {
@@ -267,6 +277,11 @@
         "data_type": "string",
         "description": "Dummy string input port.",
         "name": "STRING"
+       },
+       {
+        "data_type": "timestamp",
+        "description": "Dummy timestamp output port.",
+        "name": "TIMESTAMP"
        }
       ],
       "private_data_type": "dummy_data",
