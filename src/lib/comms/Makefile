@@ -4,7 +4,8 @@ obj-networking-$(NETWORK) := \
     sol-comms.o
 
 obj-networking-$(PLATFORM_RIOTOS) += \
-    sol-network-riot.o
+    sol-network-riot.o \
+    sol-socket-riot.o
 
 obj-networking-$(PLATFORM_LINUX) += \
     sol-network-linux.o \
