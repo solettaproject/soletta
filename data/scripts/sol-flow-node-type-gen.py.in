@@ -270,7 +270,6 @@ data_type_to_default_member_map = {
     "string": "s",
     "rgb": "rgb",
     "direction-vector": "direction_vector",
-    "location": "location"
     }
 def data_type_to_default_member(typename):
     return data_type_to_default_member_map.get(typename, "ptr")
@@ -322,10 +321,6 @@ def expand_value(value, data_type):
         value.setdefault("z", 0)
         value.setdefault("max", "DBL_MAX")
         value.setdefault("min", "-DBL_MAX")
-    elif data_type == "location":
-        value.setdefault("lat", 0)
-        value.setdefault("lon", 0)
-        value.setdefault("alt", 0)
     elif data_type == "rgb":
         value.setdefault("red", 0)
         value.setdefault("green", 0)
@@ -361,7 +356,7 @@ def value_to_c(value, data_type):
         return str_to_c_or_null(value)
     elif data_type == "boolean":
         return bool_to_c(value)
-    elif data_type in ("rgb", "direction-vector", "int", "float", "location"):
+    elif data_type in ("rgb", "direction-vector", "int", "float"):
         return json_to_c_struct(value)
     else:
         return "%s" % (value)

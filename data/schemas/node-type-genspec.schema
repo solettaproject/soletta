@@ -255,25 +255,6 @@
       }
     },
 
-    "options_members_location": {
-      "properties": {
-        "data_type": { "enum": [ "location" ] },
-        "default": {
-          "oneOf": [
-            {
-              "type": "object",
-              "properties": {
-                "lat": { "$ref": "#/definitions/float_or_limit" },
-                "lon": { "$ref": "#/definitions/float_or_limit" },
-                "alt": { "$ref": "#/definitions/float_or_limit" }
-              },
-              "additionalProperties": false
-            }
-          ]
-        }
-      }
-    },
-
     "options_members_string": {
       "properties": {
         "data_type": { "enum": [ "string" ] },
@@ -314,7 +295,6 @@
             { "$ref": "#/definitions/options_members_byte" },
             { "$ref": "#/definitions/options_members_rgb" },
             { "$ref": "#/definitions/options_members_direction_vector" },
-            { "$ref": "#/definitions/options_members_location" },
             { "$ref": "#/definitions/options_members_custom" }
           ]
         }
