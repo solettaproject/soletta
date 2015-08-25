@@ -34,4 +34,4 @@
 
 #include "sol-flow.h"
 
-char *string_replace(struct sol_flow_node *node, char *value, char *change_from, char *change_to, size_t max_count);
+char *string_replace(struct sol_flow_node *node, char *value, char *change_from, char *change_to, bool *replaced, size_t max_count);

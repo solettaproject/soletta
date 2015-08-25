@@ -323,6 +323,12 @@
             "name": "from_string"
           },
           {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Whether to only forward the input string as is to the output port when no matches occur (true) or to generate error packets (false)",
+            "name": "forward_on_no_match"
+          },
+          {
             "data_type": "string",
             "default": "",
             "description": "The string received on the 'IN' port will have substrings defined by the 'from_string' option replaced by the ones defined by this one. It can be overriden by values received on 'TO' port.",
