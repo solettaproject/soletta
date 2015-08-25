@@ -140,7 +140,7 @@ parse-bin = \
 
 parse-test = \
 	$(eval test-$(1)-srcs := $(addprefix $(2),$($(3)-$(1)-y))) \
-	$(eval test-$(1)-out  := $(addprefix $(2),$(1))) \
+	$(eval test-$(1)-out  := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(2)),$(1))) \
 	$(eval test-$(1)-cflags := $($(3)-$(1)-y-extra-cflags)) \
 	$(eval test-$(1)-ldflags := $($(3)-$(1)-y-extra-ldflags)) \
 	$(eval $(1)-deps      := $(subst .mod,,$($(3)-$(1)-y-deps))) \
@@ -295,6 +295,7 @@ endif
 define make-test
 $(test-$(1)-out): $(SOL_LIB_OUTPUT) $(test-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "TST"   "$$@
+	$(Q)$(MKDIR) -p $(dir $(test-$(1)-out))
 	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(test-$(1)-cflags) $(use-builtin-cflags) $(filter-out %.h,$(test-$(1)-srcs)) \
 	$(call find-deps,$(1)) -o $$@ $(TEST_LDFLAGS) $(test-$(1)-ldflags) $(use-builtin-ldflags)
 endef
