@@ -182,6 +182,11 @@ struct sol_http_response {
         .value.integer.value = (setting_) \
     }
 
+#define SOL_HTTP_PARAM_FOREACH_IDX(param, itrvar, idx) \
+    for (idx = 0; \
+        param && idx < (param)->params.len && (itrvar = sol_vector_get(&(param)->params, idx), true); \
+        idx++)
+
 static inline void
 sol_http_param_init(struct sol_http_param *params)
 {
