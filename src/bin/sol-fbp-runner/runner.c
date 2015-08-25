@@ -32,6 +32,7 @@
 
 #include <errno.h>
 #include <libgen.h>
+#include <sys/stat.h>
 
 #include "sol-file-reader.h"
 #include "sol-flow-parser.h"
@@ -56,12 +57,38 @@ struct runner {
 
     const char *filename;
     char *basename;
-    char *dirname;
 
     struct sol_ptr_vector file_readers;
+    struct sol_ptr_vector *fbp_paths;
 
     struct sol_flow_parser_client parser_client;
 };
+
+static char *
+search_fbp_file(struct runner *r, const char *basename)
+{
+    struct stat s;
+    const char *p;
+    char *fullpath;
+    uint16_t i;
+    int err;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (r->fbp_paths, p, i) {
+        err = asprintf(&fullpath, "%s/%s", p, basename);
+        if (err < 0) {
+            errno = ENOMEM;
+            return NULL;
+        }
+
+        if (stat(fullpath, &s) == 0 && S_ISREG(s.st_mode))
+            return fullpath;
+
+        free(fullpath);
+    }
+
+    errno = EINVAL;
+    return NULL;
+}
 
 static int
 read_file(void *data, const char *name, const char **buf, size_t *size)
@@ -72,9 +99,9 @@ read_file(void *data, const char *name, const char **buf, size_t *size)
     char *path;
     int err;
 
-    err = asprintf(&path, "%s/%s", r->dirname, name);
-    if (err < 0) {
-        err = -ENOMEM;
+    path = search_fbp_file(r, name);
+    if (!path) {
+        err = -errno;
         goto error;
     }
 
@@ -332,10 +359,12 @@ end:
 struct runner *
 runner_new_from_file(
     const char *filename,
-    const char **options_strv)
+    const char **options_strv,
+    struct sol_ptr_vector *fbps)
 {
     struct runner *r;
     const char *buf;
+    char *dir;
     size_t size;
     int err;
 
@@ -345,6 +374,7 @@ runner_new_from_file(
     SOL_NULL_CHECK(r, NULL);
 
     sol_ptr_vector_init(&r->file_readers);
+    r->fbp_paths = fbps;
 
     r->parser_client.api_version = SOL_FLOW_PARSER_CLIENT_API_VERSION;
     r->parser_client.data = r;
@@ -355,7 +385,12 @@ runner_new_from_file(
         goto error;
 
     r->filename = filename;
-    r->dirname = strdup(dirname(strdupa(filename)));
+
+    dir = strdup(dirname(strdupa(filename)));
+    err = sol_ptr_vector_append(r->fbp_paths, dir);
+    if (err < 0)
+        goto error;
+
     r->basename = strdup(basename(strdupa(filename)));
 
     err = read_file(r, r->basename, &buf, &size);
@@ -455,7 +490,6 @@ runner_del(struct runner *r)
     }
     if (r->parser)
         sol_flow_parser_del(r->parser);
-    free(r->dirname);
     free(r->basename);
     free(r);
 }
