@@ -60,6 +60,7 @@ check-stub: $(SOL_LIB_OUTPUT) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $
 	$(Q)$(PYTHON) $(NODE_TYPE_STUB_GEN_SCRIPT) --prefix=sol-flow-node-type \
 		--force=yes $(NODE_TYPE_STUB_GEN_DIR)dummy.c \
 		$(NODE_TYPE_STUB_GEN_TEST)
+	$(Q)echo "Stub generator is good"
 
 # * disable warnings for unused and unused but set variables since
 #   the stub declare variables as options or structs to get data from packets,
