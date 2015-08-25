@@ -32,13 +32,54 @@
 
 #include <netinet/in.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include "sol-log.h"
+#include "sol-mainloop.h"
 #include "sol-network.h"
 #include "sol-util.h"
 
 #include "sol-socket.h"
+
+struct sol_socket {
+    int fd;
+    struct {
+        bool (*cb)(void *data, struct sol_socket *s);
+        const void *data;
+        struct sol_fd *watch;
+    } read, write;
+};
+
+static bool
+on_socket_read(void *data, int fd, unsigned int flags)
+{
+    struct sol_socket *s = data;
+    bool ret;
+
+    ret = s->read.cb((void *)s->read.data, s);
+    if (!ret) {
+        s->read.cb = NULL;
+        s->read.data = NULL;
+        s->read.watch = NULL;
+    }
+    return ret;
+}
+
+static bool
+on_socket_write(void *data, int fd, unsigned int flags)
+{
+    struct sol_socket *s = data;
+    bool ret;
+
+    ret = s->write.cb((void *)s->write.data, s);
+    if (!ret) {
+        s->write.cb = NULL;
+        s->write.data = NULL;
+        s->write.watch = NULL;
+    }
+    return ret;
+}
 
 static int
 from_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen,
@@ -104,8 +145,74 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
     return *socklen;
 }
 
+SOL_API struct sol_socket *
+sol_socket_new(int domain, enum sol_socket_type type, int protocol)
+{
+    struct sol_socket *s;
+    int fd, socktype = SOCK_CLOEXEC | SOCK_NONBLOCK;
+
+    switch (type) {
+    case SOL_SOCKET_UDP:
+        socktype |= SOCK_DGRAM;
+        break;
+    default:
+        SOL_WRN("Unsupported socket type: %d", type);
+        errno = EPROTOTYPE;
+        return NULL;
+    }
+
+    fd = socket(domain, socktype, protocol);
+    SOL_INT_CHECK(fd, < 0, NULL);
+
+    s = calloc(1, sizeof(*s));
+    SOL_NULL_CHECK(s, NULL);
+
+    s->fd = fd;
+
+    return s;
+}
+
+SOL_API void
+sol_socket_del(struct sol_socket *s)
+{
+    if (s->read.watch)
+        sol_fd_del(s->read.watch);
+    if (s->write.watch)
+        sol_fd_del(s->write.watch);
+    close(s->fd);
+    free(s);
+}
+
 SOL_API int
-sol_socket_recvmsg(int fd, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+sol_socket_on_read_set(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
+{
+    SOL_NULL_CHECK(s, -EINVAL);
+    s->read.cb = cb;
+    s->read.data = data;
+    if (cb && !s->read.watch) {
+        s->read.watch = sol_fd_add(s->fd, SOL_FD_FLAGS_IN, on_socket_read, s);
+        SOL_NULL_CHECK(s->read.watch, -ENOMEM);
+    } else if (!cb && s->read.watch)
+        sol_fd_del(s->read.watch);
+    return 0;
+}
+
+SOL_API int
+sol_socket_on_write_set(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
+{
+    SOL_NULL_CHECK(s, -EINVAL);
+    s->write.cb = cb;
+    s->write.data = data;
+    if (cb && !s->write.watch) {
+        s->write.watch = sol_fd_add(s->fd, SOL_FD_FLAGS_OUT, on_socket_write, s);
+        SOL_NULL_CHECK(s->write.watch, -ENOMEM);
+    } else if (!cb && s->write.watch)
+        sol_fd_del(s->write.watch);
+    return 0;
+}
+
+SOL_API int
+sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
     struct iovec iov = { .iov_base = buf,
@@ -116,7 +223,11 @@ sol_socket_recvmsg(int fd, void *buf, size_t len, struct sol_network_link_addr *
         .msg_iov = &iov,
         .msg_iovlen = 1
     };
-    int r = recvmsg(fd, &msg, 0);
+    int r;
+
+    SOL_NULL_CHECK(s, -EINVAL);
+
+    r = recvmsg(s->fd, &msg, 0);
 
     if (r < 0)
         return -errno;
@@ -128,7 +239,7 @@ sol_socket_recvmsg(int fd, void *buf, size_t len, struct sol_network_link_addr *
 }
 
 SOL_API int
-sol_socket_sendmsg(int fd, const void *buf, size_t len,
+sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
     const struct sol_network_link_addr *cliaddr)
 {
     uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
@@ -138,6 +249,7 @@ sol_socket_sendmsg(int fd, const void *buf, size_t len,
                           .msg_iovlen = 1 };
     socklen_t l;
 
+    SOL_NULL_CHECK(s, -EINVAL);
     SOL_NULL_CHECK(cliaddr, -EINVAL);
 
     l = sizeof(struct sockaddr_in6);
@@ -147,14 +259,14 @@ sol_socket_sendmsg(int fd, const void *buf, size_t len,
     msg.msg_name = &sockaddr;
     msg.msg_namelen = l;
 
-    if (sendmsg(fd, &msg, 0) < 0)
+    if (sendmsg(s->fd, &msg, 0) < 0)
         return -errno;
 
     return 0;
 }
 
 SOL_API int
-sol_socket_join_group(int fd, int ifindex, const struct sol_network_link_addr *group)
+sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group)
 {
     struct ip_mreqn ip_join = { };
     struct ipv6_mreq ip6_join = { };
@@ -162,6 +274,7 @@ sol_socket_join_group(int fd, int ifindex, const struct sol_network_link_addr *g
     int level, option;
     socklen_t l;
 
+    SOL_NULL_CHECK(s, -EINVAL);
     SOL_NULL_CHECK(group, -EINVAL);
 
     if (group->family != AF_INET && group->family != AF_INET6)
@@ -186,26 +299,27 @@ sol_socket_join_group(int fd, int ifindex, const struct sol_network_link_addr *g
         option = IPV6_ADD_MEMBERSHIP;
     }
 
-    if (setsockopt(fd, level, option, p, l) < 0)
+    if (setsockopt(s->fd, level, option, p, l) < 0)
         return -errno;
 
     return 0;
 }
 
 SOL_API int
-sol_socket_bind(int fd, const struct sol_network_link_addr *addr)
+sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr)
 {
 
     uint8_t sockaddr[sizeof(struct sockaddr_in6)] = { };
     socklen_t l;
 
+    SOL_NULL_CHECK(s, -EINVAL);
     SOL_NULL_CHECK(addr, -EINVAL);
 
     l = sizeof(struct sockaddr_in6);
     if (to_sockaddr(addr, (void *)sockaddr, &l) < 0)
         return -EINVAL;
 
-    if (bind(fd, (struct sockaddr *)sockaddr, l) < 0) {
+    if (bind(s->fd, (struct sockaddr *)sockaddr, l) < 0) {
         return -errno;
     }
 

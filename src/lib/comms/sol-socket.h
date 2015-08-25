@@ -32,16 +32,25 @@
 
 #pragma once
 
-#ifndef SOCK_CLOEXEC
-/* CLOEXEC doesn't make sense on RIOT. */
-#define SOCK_CLOEXEC 0
-#endif
+#include "sol-network.h"
 
-int sol_socket_recvmsg(int fd, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
+struct sol_socket;
 
-int sol_socket_sendmsg(int fd, const void *buf, size_t len,
+enum sol_socket_type {
+    SOL_SOCKET_UDP
+};
+
+struct sol_socket * sol_socket_new(int domain, enum sol_socket_type type, int protocol);
+void sol_socket_del(struct sol_socket *s);
+
+int sol_socket_on_read_set(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
+int sol_socket_on_write_set(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
+
+int sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
+
+int sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
     const struct sol_network_link_addr *cliaddr);
 
-int sol_socket_join_group(int fd, int ifindex, const struct sol_network_link_addr *group);
+int sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group);
 
-int sol_socket_bind(int fd, const struct sol_network_link_addr *addr);
+int sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr);
