@@ -38,7 +38,12 @@
 #include "periph/uart.h"
 #endif
 
+#ifdef NETWORK
+#include "net/gnrc.h"
+#endif
+
 void sol_interrupt_scheduler_set_pid(kernel_pid_t pid);
+kernel_pid_t sol_interrupt_scheduler_get_pid(void);
 
 int sol_interrupt_scheduler_gpio_init_int(gpio_t dev, gpio_pp_t pullup, gpio_flank_t flank, gpio_cb_t cb, void *arg, void **handler);
 void sol_interrupt_scheduler_gpio_stop(gpio_t dev, void *handler);
@@ -46,6 +51,10 @@ void sol_interrupt_scheduler_gpio_stop(gpio_t dev, void *handler);
 #ifdef USE_UART
 int sol_interrupt_scheduler_uart_init_int(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, uart_tx_cb_t tx_cb, void *arg, void **handler);
 void sol_interrupt_scheduler_uart_stop(uart_t uart, void *handler);
+#endif
+
+#ifdef NETWORK
+void sol_network_msg_dispatch(msg_t *msg);
 #endif
 
 void sol_interrupt_scheduler_process(msg_t *msg);
