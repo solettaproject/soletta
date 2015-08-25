@@ -45,81 +45,61 @@ struct console_data {
     bool flush;
 };
 
+#define STR_OR_EMPTY( STRING ) \
+    STRING ? : ""
+
+#define FIXUP_STRING( PACKET_STRING, ... ) \
+    "%s" PACKET_STRING "%s", STR_OR_EMPTY(mdata->prefix), __VA_ARGS__, STR_OR_EMPTY(mdata->suffix)
+
 static int
 console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct console_data *mdata = data;
+    const struct sol_flow_packet_type *packet_type = sol_flow_packet_get_type(packet);
 
-    if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_EMPTY) {
-        fprintf(mdata->fp, "%s(empty)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
+    if (packet_type == SOL_FLOW_PACKET_TYPE_EMPTY) {
+        fprintf(mdata->fp, FIXUP_STRING("%s(empty)\n", ""));
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
         bool value;
         int r = sol_flow_packet_get_boolean(packet, &value);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%s (boolean)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            value ? "true" : "false",
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BYTE) {
+        fprintf(mdata->fp, FIXUP_STRING("%s (boolean)\n", value ? "true" : "false"));
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_BYTE) {
         unsigned char value;
         int r = sol_flow_packet_get_byte(packet, &value);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s#%02x (byte)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            value,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_IRANGE) {
+        fprintf(mdata->fp, FIXUP_STRING("#%02x (byte)\n", value));
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_IRANGE) {
         int32_t val;
         int r = sol_flow_packet_get_irange_value(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%" PRId32 " (integer range)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            val,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_DRANGE) {
+        fprintf(mdata->fp, FIXUP_STRING("%" PRId32 " (integer range)\n", val));
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_DRANGE) {
         double val;
         int r = sol_flow_packet_get_drange_value(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%f (float range)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            val,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_RGB) {
+        fprintf(mdata->fp, FIXUP_STRING("%f (float range)\n", val));
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_RGB) {
         uint32_t red, green, blue;
         int r = sol_flow_packet_get_rgb_components(packet, &red, &green, &blue);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s(%" PRIu32 ", %" PRIu32 ", %" PRIu32 ") (rgb)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            red, green, blue,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR) {
+        fprintf(mdata->fp, FIXUP_STRING("(%" PRIu32 ", %" PRIu32 ", %" PRIu32 ") (rgb)\n", red, green, blue));
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR) {
         double x, y, z;
         int r = sol_flow_packet_get_direction_vector_components(packet, &x, &y, &z);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s(%lf, %lf, %lf) (direction-vector)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            x, y, z,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_LOCATION) {
+        fprintf(mdata->fp, FIXUP_STRING("(%lf, %lf, %lf) (direction-vector)\n", x, y, z));
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_LOCATION) {
         struct sol_location location;
         int r = sol_flow_packet_get_location(packet, &location);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%slatitude=%g, longitude=%g altitude=%g (location)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            location.lat, location.lon, location.alt,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_STRING) {
+        fprintf(mdata->fp, FIXUP_STRING("latitude=%g, longitude=%g altitude=%g (location)\n", location.lat, location.lon, location.alt));
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_STRING) {
         const char *val;
-
         int r = sol_flow_packet_get_string(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%s (string)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            val,
-            mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BLOB) {
+        fprintf(mdata->fp, FIXUP_STRING("%s (string)\n", val));
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_BLOB) {
         struct sol_blob *val;
         const char *buf, *bufend;
 
@@ -142,7 +122,7 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
         fprintf(mdata->fp, "} (blob)%s\n",
             mdata->suffix ? mdata->suffix : "");
-    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_ERROR) {
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_ERROR) {
         int code;
         const char *msg;
         int r = sol_flow_packet_get_error(packet, &code, &msg);
@@ -153,8 +133,8 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
             mdata->suffix ? mdata->suffix : "",
             msg ? : "");
     } else {
-        SOL_WRN("Unsupported packet=%p type=%p (%s)",
-            packet, sol_flow_packet_get_type(packet), sol_flow_packet_get_type(packet)->name);
+        sol_flow_send_error_packet(node, -EINVAL, "Unsupported packet=%p type=%p (%s)",
+            packet, packet_type, packet_type->name);
         return -EINVAL;
     }
 
