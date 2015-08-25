@@ -33,6 +33,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <sol-macros.h>
 
 #ifdef __cplusplus
