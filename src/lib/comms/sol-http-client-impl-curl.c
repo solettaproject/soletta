@@ -61,7 +61,7 @@ static struct {
     .connections = SOL_PTR_VECTOR_INIT,
 };
 
-struct sol_http_client_pending {
+struct sol_http_client_connection {
     CURL *curl;
     struct sol_fd *watch;
     struct sol_idle *idle;
@@ -69,7 +69,7 @@ struct sol_http_client_pending {
     struct curl_slist *headers;
     struct sol_buffer buffer;
 
-    void (*cb)(void *data, struct sol_http_response *response);
+    void (*cb)(void *data, struct sol_http_client_connection *connection, struct sol_http_response *response);
     const void *data;
 
     bool error;
@@ -77,7 +77,7 @@ struct sol_http_client_pending {
 };
 
 static void
-destroy_connection(struct sol_http_client_pending *c)
+destroy_connection(struct sol_http_client_connection *c)
 {
     curl_multi_remove_handle(global.multi, c->curl);
     curl_slist_free_all(c->headers);
@@ -97,7 +97,7 @@ destroy_connection(struct sol_http_client_pending *c)
 void
 sol_http_client_shutdown(void)
 {
-    struct sol_http_client_pending *c;
+    struct sol_http_client_connection *c;
     uint16_t i;
 
     if (!global.ref)
@@ -124,7 +124,7 @@ sol_http_client_shutdown(void)
 }
 
 static void
-call_connection_finish_cb(struct sol_http_client_pending *connection)
+call_connection_finish_cb(struct sol_http_client_connection *connection)
 {
     struct sol_http_response *param;
     CURLcode r;
@@ -167,14 +167,14 @@ call_connection_finish_cb(struct sol_http_client_pending *connection)
     param->response_code = (int)response_code;
 
 out:
-    connection->cb((void *)connection->data, param);
+    connection->cb((void *)connection->data, connection, param);
     connection->cb = NULL; /* Don't call again. */
 }
 
 static size_t
 write_cb(char *data, size_t size, size_t nmemb, void *connp)
 {
-    struct sol_http_client_pending *connection = connp;
+    struct sol_http_client_connection *connection = connp;
     size_t data_size;
     int r;
 
@@ -196,7 +196,7 @@ pump_multi_info_queue(void)
 
     while ((msg = curl_multi_info_read(global.multi, &msgs_left))) {
         char *priv;
-        struct sol_http_client_pending *conn;
+        struct sol_http_client_connection *conn;
         CURLcode r;
 
         if (msg->msg != CURLMSG_DONE)
@@ -207,7 +207,7 @@ pump_multi_info_queue(void)
             /* CURLINFO_PRIVATE is defined as a string and CURL_DISABLE_TYPECHECK
              * will barf about us handling a different pointer.
              */
-            conn = (struct sol_http_client_pending *)priv;
+            conn = (struct sol_http_client_connection *)priv;
             call_connection_finish_cb(conn);
         } else {
             SOL_ERR("Could not obtain private connection data from cURL. Bug?");
@@ -292,7 +292,7 @@ cleanup:
 static bool
 error_cb(void *data)
 {
-    struct sol_http_client_pending *connection = data;
+    struct sol_http_client_connection *connection = data;
 
     call_connection_finish_cb(connection);
 
@@ -306,7 +306,7 @@ error_cb(void *data)
 static bool
 connection_watch_cb(void *data, int fd, unsigned int flags)
 {
-    struct sol_http_client_pending *connection = data;
+    struct sol_http_client_connection *connection = data;
     int action = 0;
 
     if (flags & SOL_FD_FLAGS_IN)
@@ -338,7 +338,7 @@ connection_watch_cb(void *data, int fd, unsigned int flags)
 }
 
 static void
-print_connection_info_wrn(struct sol_http_client_pending *connection)
+print_connection_info_wrn(struct sol_http_client_connection *connection)
 {
     const char *tmp_str;
     long tmp_long;
@@ -356,7 +356,7 @@ open_socket_cb(void *clientp, curlsocktype purpose, struct curl_sockaddr *addr)
     static const enum sol_fd_flags fd_flags =
         SOL_FD_FLAGS_IN | SOL_FD_FLAGS_OUT | SOL_FD_FLAGS_ERR |
         SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_NVAL;
-    struct sol_http_client_pending *connection = clientp;
+    struct sol_http_client_connection *connection = clientp;
     int fd;
 
     if (purpose != CURLSOCKTYPE_IPCXN) {
@@ -386,7 +386,7 @@ static int
 xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
     curl_off_t ultotal, curl_off_t ulnow)
 {
-    struct sol_http_client_pending *connection = clientp;
+    struct sol_http_client_connection *connection = clientp;
 
     if (dltotal > 0 && unlikely(dltotal < dlnow)) {
         SOL_WRN("Received more than expected, aborting transfer ("
@@ -403,12 +403,13 @@ xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
     return 0;
 }
 
-static struct sol_http_client_pending *
+static struct sol_http_client_connection *
 perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
-    void (*cb)(void *data, struct sol_http_response *response),
+    void (*cb)(void *data, struct sol_http_client_connection *connection,
+    struct sol_http_response *response),
     const void *data)
 {
-    struct sol_http_client_pending *connection;
+    struct sol_http_client_connection *connection;
     int running;
 
     SOL_INT_CHECK(global.ref, <= 0, NULL);
@@ -719,10 +720,11 @@ check_param_api_version(const struct sol_http_param *params)
     return true;
 }
 
-SOL_API struct sol_http_client_pending *
+SOL_API struct sol_http_client_connection *
 sol_http_client_request(enum sol_http_method method,
     const char *base_uri, const struct sol_http_param *params,
-    void (*cb)(void *data, struct sol_http_response *response),
+    void (*cb)(void *data, struct sol_http_client_connection *connection,
+    struct sol_http_response *response),
     const void *data)
 {
     static const struct sol_http_param empty_params = {
@@ -736,7 +738,7 @@ sol_http_client_request(enum sol_http_method method,
     struct sol_http_param_value *value;
     struct sol_arena *arena;
     struct curl_slist *headers = NULL;
-    struct sol_http_client_pending *pending;
+    struct sol_http_client_connection *pending;
     CURL *curl;
     uint16_t idx;
 
@@ -840,7 +842,7 @@ no_curl_easy:
 }
 
 SOL_API void
-sol_http_client_pending_cancel(struct sol_http_client_pending *pending)
+sol_http_client_connection_cancel(struct sol_http_client_connection *pending)
 {
     SOL_NULL_CHECK(pending);
 

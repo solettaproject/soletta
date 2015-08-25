@@ -59,9 +59,17 @@ Timer OUT -> GET Flowers OUT -> IN Filter OUT -> IN Parser
 Parser ID -> IN Plant(console)
 Parser TIMESTAMP -> IN Timestamp(console)
 Parser FERTILIZER -> IN FertilizerLevel(console)
+Parser FERTILIZER_MIN -> IN FertilizerMin(console)
+Parser FERTILIZER_MAX -> IN FertilizerMax(console)
 Parser LIGHT -> IN Sunlight(console)
+Parser LIGHT_MIN -> IN SunlightMin(console)
+Parser LIGHT_MAX -> IN SunlightMax(console)
 Parser KELVIN -> IN Temperature(console:suffix=" Kelvin")
+Parser KELVIN_MIN -> IN TemperatureMin(console:suffix=" Kelvin")
+Parser KELVIN_MAX -> IN TemperatureMax(console:suffix=" Kelvin")
 Parser WATER -> IN WaterLevel(console)
+Parser WATER_MIN -> IN WaterLevelMin(console)
+Parser WATER_MAX -> IN WaterLevelMax(console)
 
 # Information about sensors
 

@@ -184,14 +184,15 @@ bool sol_http_param_add(struct sol_http_param *params,
     struct sol_http_param_value value) SOL_ATTR_WARN_UNUSED_RESULT;
 void sol_http_param_free(struct sol_http_param *params);
 
-struct sol_http_client_pending;
+struct sol_http_client_connection;
 
-struct sol_http_client_pending *sol_http_client_request(enum sol_http_method method,
+struct sol_http_client_connection *sol_http_client_request(enum sol_http_method method,
     const char *base_uri, const struct sol_http_param *params,
-    void (*cb)(void *data, struct sol_http_response *response),
+    void (*cb)(void *data, struct sol_http_client_connection *connection,
+    struct sol_http_response *response),
     const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
 
-void sol_http_client_pending_cancel(struct sol_http_client_pending *pending);
+void sol_http_client_connection_cancel(struct sol_http_client_connection *pending);
 
 /**
  * @}
