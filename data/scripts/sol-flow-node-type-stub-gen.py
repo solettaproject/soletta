@@ -56,6 +56,7 @@ data_type_to_c_map = {
     "float": "struct sol_drange ",
     "rgb": "struct sol_rgb ",
     "direction-vector": "struct sol_direction_vector ",
+    "location": "struct sol_location ",
     "string": "const char *",
     "error": "int code_value; const char *",
     }
@@ -117,6 +118,7 @@ data_type_to_packet_getter_map = {
     "error": "error(packet, &code_value, &in_value)",
     "rgb": "rgb(packet, &in_value)",
     "direction-vector": "direction_vector(packet, &in_value)",
+    "location": "location(packet, &in_value)",
     }
 def data_type_to_packet_getter(typename):
     if (is_custom(typename)):
@@ -458,7 +460,8 @@ def generate_stub(stub_file, inputs_list, prefix, is_module):
     base_names = []
     methods = []
     # blacklist our types that are often used
-    structs = ['sol_drange', 'sol_irange', 'sol_rgb', 'sol_direction_vector' ]
+    structs = ['sol_drange', 'sol_irange', 'sol_rgb', 'sol_direction_vector',
+               'sol_location']
     packets = []
 
     try:

@@ -92,6 +92,16 @@
         "name": "FLOAT"
        },
        {
+        "data_type": "location",
+        "description": "Dummy location input port.",
+        "methods": {
+         "connect": "location_connect",
+         "disconnect": "location_disconnect",
+         "process": "location_process"
+        },
+        "name": "LOCATION"
+       },
+       {
         "data_type": "int",
         "description": "Dummy int input port.",
         "methods": {
@@ -237,6 +247,11 @@
         "data_type": "direction-vector",
         "description": "Dummy direction-vector output port.",
         "name": "DIRECTION_VECTOR"
+       },
+       {
+        "data_type": "location",
+        "description": "Dummy location output port.",
+        "name": "LOCATION"
        },
        {
         "data_type": "int",
