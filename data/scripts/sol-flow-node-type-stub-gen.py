@@ -52,6 +52,7 @@ data_type_to_c_map = {
     "boolean": "bool ",
     "blob": "struct sol_blob *",
     "byte": "unsigned char ",
+    "timestamp": "struct timespec ",
     "int": "struct sol_irange ",
     "float": "struct sol_drange ",
     "rgb": "struct sol_rgb ",
@@ -111,6 +112,7 @@ def print_data_struct(outfile, struct):
 data_type_to_packet_getter_map = {
     "boolean": "boolean(packet, &in_value)",
     "blob": "blob(packet, &in_value)",
+    "timestamp": "timestamp(packet, &in_value)",
     "int": "irange(packet, &in_value)",
     "float": "drange(packet, &in_value)",
     "string": "string(packet, &in_value)",

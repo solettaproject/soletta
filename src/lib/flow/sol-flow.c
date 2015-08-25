@@ -32,6 +32,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "sol-flow-internal.h"
 #include "sol-flow-resolver.h"
@@ -331,6 +332,12 @@ SOL_API int
 sol_flow_send_location_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_location *value)
 {
     SOL_FLOW_SEND_PACKET(location);
+}
+
+SOL_API int
+sol_flow_send_timestamp_packet(struct sol_flow_node *src, uint16_t src_port, const struct timespec *value)
+{
+    SOL_FLOW_SEND_PACKET(timestamp);
 }
 
 SOL_API int
