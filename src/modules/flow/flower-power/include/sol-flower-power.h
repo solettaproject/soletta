@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <time.h>
+
 #include "sol-flow.h"
 #include "sol-flow-packet.h"
 #include "sol-types.h"
@@ -55,8 +57,7 @@ struct sol_flower_power_data {
     struct sol_drange water;
     struct sol_drange water_max;
     struct sol_drange water_min;
-    /* TODO: maybe convert it to int */
-    char *timestamp;
+    time_t timestamp;
     char *id;
 };
 
@@ -74,7 +75,7 @@ struct sol_flower_power_data {
         .water = SOL_DRANGE_INIT_VALUE(value_), \
         .water_max = SOL_DRANGE_INIT_VALUE(value_), \
         .water_min = SOL_DRANGE_INIT_VALUE(value_), \
-        .timestamp = NULL, \
+        .timestamp = 0, \
         .id = NULL \
     }
 
@@ -90,21 +91,21 @@ int sol_flower_power_send_packet(struct sol_flow_node *src, uint16_t src_port, c
 
 struct sol_flower_power_sensor_data {
     struct sol_drange battery_level;
-    char *battery_end_of_life;
+    time_t timestamp;
+    time_t battery_end_of_life;
     char *id;
-    char *timestamp;
 };
 
 extern const struct sol_flow_packet_type *PACKET_TYPE_FLOWER_POWER_SENSOR;
 
 struct sol_flow_packet *sol_flower_power_sensor_new_packet(const struct sol_flower_power_sensor_data *fpsd);
-struct sol_flow_packet *sol_flower_power_sensor_new_packet_components(const char *id, const char *timestamp, const char *battery_end_of_life, struct sol_drange *battery_level);
+struct sol_flow_packet *sol_flower_power_sensor_new_packet_components(const char *id, const time_t *timestamp, const time_t *battery_end_of_life, struct sol_drange *battery_level);
 
 int sol_flower_power_sensor_get_packet(const struct sol_flow_packet *packet, struct sol_flower_power_sensor_data *fpsd);
-int sol_flower_power_sensor_get_packet_components(const struct sol_flow_packet *packet, const char **id, const char **timestamp, const char **battery_end_of_life, struct sol_drange *battery_level);
+int sol_flower_power_sensor_get_packet_components(const struct sol_flow_packet *packet, const char **id, time_t *timestamp, time_t *battery_end_of_life, struct sol_drange *battery_level);
 
 int sol_flower_power_sensor_send_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_flower_power_sensor_data *fpsd);
-int sol_flower_power_sensor_send_packet_components(struct sol_flow_node *src, uint16_t src_port, char *id, char *timestamp, char *battery_end_of_life, struct sol_drange *battery_level);
+int sol_flower_power_sensor_send_packet_components(struct sol_flow_node *src, uint16_t src_port, char *id, time_t *timestamp, time_t *battery_end_of_life, struct sol_drange *battery_level);
 
 #ifdef __cplusplus
 }

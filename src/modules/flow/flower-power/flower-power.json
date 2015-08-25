@@ -141,7 +141,7 @@
           "name": "KELVIN_MAX"
         },
         {
-          "data_type": "string",
+          "data_type": "timestamp",
           "description": "Timestamp of sensors reading.",
           "name": "TIMESTAMP"
         },
@@ -239,12 +239,12 @@
           "name": "BATTERY_LEVEL"
         },
         {
-          "data_type": "string",
+          "data_type": "timestamp",
           "description": "Timestamp of estimated battery end of life.",
           "name": "BATTERY_END_OF_LIFE"
         },
         {
-          "data_type": "string",
+          "data_type": "timestamp",
           "description": "Timestamp of sensors reading.",
           "name": "TIMESTAMP"
         }
