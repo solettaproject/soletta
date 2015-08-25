@@ -420,6 +420,85 @@
       ],
       "private_data_type": "string_regexp_search_data",
       "url": "http://solettaproject.org/doc/latest/node_types/string/regexp_search.html"
+    },
+    {
+      "category": "string",
+      "description": "Replace a regular expression pattern in a string for another. This node expects the same syntax and semantics as Perl 5 on regular expressions. When dealing the UTF-8 characters, remember to use the 'p{}' family of escape sequences (Unicode character properties).",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String to be replaced.",
+          "methods": {
+            "process": "string_regexp_replace"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "Regular expression pattern to match the string received on 'IN' port with. If groups are used, they may be referred back on the string coming in the 'TO' port.",
+          "methods": {
+            "process": "set_string_regexp_replace_pattern"
+          },
+          "name": "REGEXP"
+        },
+        {
+          "data_type": "string",
+          "description": "String substitution for the pattern match (may be a regular expression as well). Groups present on the string provided to the port 'REGEXP' may be referred here on the substitution.",
+          "methods": {
+            "process": "set_string_regexp_replace_to"
+          },
+          "name": "TO"
+        },
+        {
+          "data_type": "int",
+          "description": "The regular expression matching against the input string can result in various substring matches. This value defines the maximum number of them to exchange for the string given in the 'TO' port. It must be non-negative.",
+          "methods": {
+            "process": "set_string_regexp_replace_max_match"
+          },
+          "name": "MAX_REGEXP_REPLACE"
+        }
+      ],
+      "methods": {
+        "close": "string_regexp_replace_close",
+        "open": "string_regexp_replace_open"
+      },
+      "name": "string/regexp-replace",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "The regular expression matching against the input string can result in various substring matches. This value defines the maximum number of them to replace for the string given in the 'to' option. This option can be overriden by values received on the 'MAX_REGEXP_REPLACE' port. The value of zero (default one) will be interpreted as to replace all possible matches.",
+            "name": "max_regexp_replace"
+          },
+          {
+            "data_type": "string",
+            "description": "Regular expression pattern to match the string received on 'IN' port with. If groups are used, they may be referred back on the string coming in the 'TO' port. It must not be an empty string. It may be overriden by values received on 'REGEXP' port.",
+            "name": "regexp"
+          },
+          {
+            "data_type": "string",
+            "description": "String substitution for the pattern match. Groups present on the string provided to the port 'REGEXP' may be referred here on the substitution (e.g. \\\\g1 or \\\\1 for the first matching group). It may be an empty string. It can be overriden by values received on 'TO' port.",
+            "name": "to"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Whether to generate error packets on matching failures (true) or to ignore them silently and only not generate any output (false).",
+            "name": "no_match_error"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The original string coming in the 'IN' port with the due replacements made.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_regexp_replace_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/regexp_replace.html"
     }
   ]
 }

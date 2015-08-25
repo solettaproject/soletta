@@ -76,7 +76,7 @@ crc24(uint32_t crc, const char *ptr, size_t len)
     while (len--) {
         size_t bit;
 
-        crc ^= *ptr++ << (24 - 8);
+        crc ^= (unsigned)*ptr++ << (24 - 8);
         for (bit = 0; bit < 8; bit++) {
             if (crc & 0x800000UL)
                 crc = (crc << 1) ^ 0x783836UL; // x86 in ASCII

@@ -54,3 +54,24 @@ struct string_regexp_search_data {
     char *regexp;
     int index;
 };
+
+int string_regexp_replace_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
+
+void string_regexp_replace_close(struct sol_flow_node *node, void *data);
+
+int string_regexp_replace(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+
+int set_string_regexp_replace_pattern(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+
+int set_string_regexp_replace_to(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+
+int set_string_regexp_replace_max_match(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+
+struct string_regexp_replace_data {
+    struct sol_flow_node *node;
+    char *orig_string;
+    char *regexp;
+    char *to_regexp;
+    int32_t max_regexp_replace;
+    bool no_match_error;
+};
