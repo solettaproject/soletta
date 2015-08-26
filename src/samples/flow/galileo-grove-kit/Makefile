@@ -5,7 +5,7 @@ sample-grove-button-$(FLOW_GALILEO_GROVE_BUTTON_SAMPLE)-conffile := galileo-grov
 sample-$(FLOW_GALILEO_GROVE_BUZZER_SAMPLE) += grove-buzzer
 sample-grove-buzzer-$(FLOW_GALILEO_GROVE_BUZZER_SAMPLE) := grove-buzzer.fbp
 sample-grove-buzzer-$(FLOW_GALILEO_GROVE_BUZZER_SAMPLE)-conffile := galileo-grove-kit.json
-sample-grove-buzzer-$(FLOW_GALILEO_GROVE_BUZZER_SAMPLE)-deps := piezo-speaker.mod
+sample-grove-buzzer-$(FLOW_GALILEO_GROVE_BUZZER_SAMPLE)-deps := flow/piezo-speaker.mod
 
 sample-$(FLOW_GALILEO_GROVE_LED_ACCUMULATOR_SAMPLE) += grove-led-accumulator
 sample-grove-led-accumulator-$(FLOW_GALILEO_GROVE_LED_ACCUMULATOR_SAMPLE) := grove-led-accumulator.fbp
