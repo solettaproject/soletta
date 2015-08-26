@@ -337,4 +337,96 @@ localtime_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_
     return 0;
 }
 
+struct timestamp_comparison_node_type {
+    struct sol_flow_node_type base;
+    bool (*func) (struct timespec *var0, struct timespec *var1);
+};
+
+struct timestamp_comparison_data {
+    struct timespec var0;
+    struct timespec var1;
+    bool var0_initialized : 1;
+    bool var1_initialized : 1;
+};
+
+static bool
+timestamp_val_equal(struct timespec *var0, struct timespec *var1)
+{
+    if (var0->tv_sec != var1->tv_sec)
+        return false;
+    return var0->tv_nsec == var1->tv_nsec;
+}
+
+static bool
+timestamp_val_less(struct timespec *var0, struct timespec *var1)
+{
+    if (var0->tv_sec == var1->tv_sec)
+        return var0->tv_nsec < var1->tv_nsec;
+    return var0->tv_sec < var1->tv_sec;
+}
+
+static bool
+timestamp_val_less_or_equal(struct timespec *var0, struct timespec *var1)
+{
+    if (var0->tv_sec == var1->tv_sec)
+        return var0->tv_nsec <= var1->tv_nsec;
+    return var0->tv_sec <= var1->tv_sec;
+}
+
+static bool
+timestamp_val_greater(struct timespec *var0, struct timespec *var1)
+{
+    if (var0->tv_sec == var1->tv_sec)
+        return var0->tv_nsec > var1->tv_nsec;
+    return var0->tv_sec > var1->tv_sec;
+}
+
+static bool
+timestamp_val_greater_or_equal(struct timespec *var0, struct timespec *var1)
+{
+    if (var0->tv_sec == var1->tv_sec)
+        return var0->tv_nsec >= var1->tv_nsec;
+    return var0->tv_sec >= var1->tv_sec;
+}
+
+static bool
+timestamp_val_not_equal(struct timespec *var0, struct timespec *var1)
+{
+    if (var0->tv_sec != var1->tv_sec)
+        return true;
+    return var0->tv_nsec != var1->tv_nsec;
+}
+
+static int
+comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct timestamp_comparison_data *mdata = data;
+    const struct timestamp_comparison_node_type *type;
+    int r;
+    struct timespec in_value;
+    bool output;
+
+    r = sol_flow_packet_get_timestamp(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (port == 0) {
+        mdata->var0_initialized = true;
+        mdata->var0 = in_value;
+    } else if (port == 1) {
+        mdata->var1_initialized = true;
+        mdata->var1 = in_value;
+    }
+
+    /* only send something after both variables values are received */
+    if (!(mdata->var0_initialized && mdata->var1_initialized))
+        return 0;
+
+    type = (const struct timestamp_comparison_node_type *)
+        sol_flow_node_get_type(node);
+
+    output = type->func(&mdata->var0, &mdata->var1);
+
+    return sol_flow_send_boolean_packet(node, 0, output);
+}
+
 #include "timestamp-gen.c"
