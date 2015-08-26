@@ -50,7 +50,9 @@ enum sol_flow_node_wallclock_type {
     TIMEOUT_MINUTE,
     TIMEOUT_HOUR,
     TIMEOUT_WEEKDAY,
-    TIMEOUT_MONTHDAY
+    TIMEOUT_MONTHDAY,
+    TIMEOUT_MONTH,
+    TIMEOUT_YEAR
 };
 
 struct wallclock_timeblock_data {
@@ -92,6 +94,14 @@ static struct wallclock_timer timers[] = {
                            .val.step = 1,
                            .val.min = 1,
                            .val.max = 31, },
+    [TIMEOUT_MONTH] = { .clients = SOL_PTR_VECTOR_INIT,
+                        .val.step = 1,
+                        .val.min = 1,
+                        .val.max = 12, },
+    [TIMEOUT_YEAR] = { .clients = SOL_PTR_VECTOR_INIT,
+                       .val.step = 1,
+                       .val.min = 0,
+                       .val.max = INT32_MAX, },
 };
 
 static void
@@ -175,6 +185,41 @@ wallclock_schedule_next(struct sol_flow_node *node)
         } else if (mdata->type == TIMEOUT_HOUR) {
             timeout = (MINUTES_IN_HOUR - local_time.tm_min) * SECONDS_IN_MINUTE
                 - seconds;
+        } else if (mdata->type == TIMEOUT_MONTH) {
+            time_t next_time;
+            struct tm next_month = { 0 };
+
+            next_month.tm_isdst = local_time.tm_isdst;
+            next_month.tm_mday = 1;
+            if (local_time.tm_mon == 11) {
+                next_month.tm_year = local_time.tm_year + 1;
+            } else {
+                next_month.tm_mon = local_time.tm_mon + 1;
+                next_month.tm_year = local_time.tm_year;
+            }
+
+            next_time = mktime(&next_month);
+            if (next_time < 0) {
+                SOL_WRN("Failed to convert to timestamp");
+                goto err;
+            }
+
+            timeout = next_time - current_time;
+        } else if (mdata->type == TIMEOUT_YEAR) {
+            time_t next_time;
+            struct tm next_year = { 0 };
+
+            next_year.tm_isdst = local_time.tm_isdst;
+            next_year.tm_mday = 1;
+            next_year.tm_year = local_time.tm_year + 1;
+
+            next_time = mktime(&next_year);
+            if (next_time < 0) {
+                SOL_WRN("Failed to convert to timestamp");
+                goto err;
+            }
+
+            timeout = next_time - current_time;
         } else { /* TIMEOUT_MONTHDAY or TIMEOUT_WEEKDAY */
             timeout = (HOURS_IN_DAY - local_time.tm_hour) * SECONDS_IN_HOUR
                 - minutes - seconds;
@@ -224,8 +269,12 @@ wallclock_update_time(enum sol_flow_node_wallclock_type type,
             timer->val.val = local_time.tm_hour;
         } else if (type == TIMEOUT_WEEKDAY) {
             timer->val.val = local_time.tm_wday;
-        } else { /* TIMEOUT_MONTHDAY */
+        } else if (type == TIMEOUT_MONTHDAY) {
             timer->val.val = local_time.tm_mday;
+        } else if (type == TIMEOUT_MONTH) {
+            timer->val.val = local_time.tm_mon + 1;
+        } else { /* TIMEOUT_YEAR */
+            timer->val.val = local_time.tm_year + 1900;
         }
     }
 }
@@ -373,6 +422,34 @@ wallclock_monthday_open(struct sol_flow_node *node,
     opts = (const struct sol_flow_node_type_wallclock_monthday_options *)
         options;
     mdata->type = TIMEOUT_MONTHDAY;
+    return wallclock_open(node, data, opts->send_initial_packet);
+}
+
+static int
+wallclock_month_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct wallclock_data *mdata = data;
+    const struct sol_flow_node_type_wallclock_month_options *opts;
+
+    opts = (const struct sol_flow_node_type_wallclock_month_options *)
+        options;
+    mdata->type = TIMEOUT_MONTH;
+    return wallclock_open(node, data, opts->send_initial_packet);
+}
+
+static int
+wallclock_year_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct wallclock_data *mdata = data;
+    const struct sol_flow_node_type_wallclock_year_options *opts;
+
+    opts = (const struct sol_flow_node_type_wallclock_year_options *)
+        options;
+    mdata->type = TIMEOUT_YEAR;
     return wallclock_open(node, data, opts->send_initial_packet);
 }
 
