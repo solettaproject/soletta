@@ -236,7 +236,7 @@ generate_token_cb(void *data,
     }
     SOL_HTTP_RESPONSE_CHECK_API(response);
 
-    if (response->response_code != 200) {
+    if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
             "Service returned unexpected response code: %d for request %s",
             response->response_code, AUTH_URL);
@@ -467,7 +467,7 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
     }
     SOL_HTTP_RESPONSE_CHECK_API(response);
 
-    if (response->response_code != 200) {
+    if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
             "Service returned unexpected response code: %d for request %s",
             response->response_code, STATUS_URL);
