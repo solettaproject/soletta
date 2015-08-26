@@ -59,8 +59,8 @@ static struct {
     const char *export_symbol;
 
     struct sol_ptr_vector json_files;
+    struct sol_ptr_vector include_paths;
     char *fbp_basename;
-    char *fbp_dirname;
 } args;
 
 static struct sol_arena *str_arena;
@@ -952,10 +952,55 @@ handle_json_path(const char *path)
         dup_path = sol_arena_strdup(str_arena, path);
         SOL_NULL_CHECK(dup_path, false);
 
-        sol_ptr_vector_append(&args.json_files, dup_path);
+        if (sol_ptr_vector_append(&args.json_files, dup_path) < 0) {
+            SOL_ERR("Couldn't handle json path '%s': %s\n", path, sol_util_strerrora(errno));
+            return false;
+        }
     }
 
     return true;
+}
+
+static bool
+handle_include_path(char *path)
+{
+    struct stat s;
+    char *dup_path;
+
+    if (stat(path, &s) != 0)
+        return false;
+
+    if (S_ISDIR(s.st_mode))
+        dup_path = sol_arena_strdup(str_arena, path);
+    else if (S_ISREG(s.st_mode))
+        dup_path = sol_arena_strdup(str_arena, dirname(path));
+
+    SOL_NULL_CHECK(dup_path, false);
+    if (sol_ptr_vector_append(&args.include_paths, dup_path) < 0) {
+        SOL_ERR("Couldn't handle include path '%s': %s\n", path, sol_util_strerrora(errno));
+        return false;
+    }
+
+    return true;
+}
+
+static bool
+handle_include_dir(char *fullpath, const char *basename)
+{
+    struct stat s;
+    const char *p;
+    uint16_t i;
+    int err;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&args.include_paths, p, i) {
+        err = snprintf(fullpath, PATH_MAX, "%s/%s", p, basename);
+        SOL_INT_CHECK(err, < 0, false);
+
+        if (stat(fullpath, &s) == 0 && S_ISREG(s.st_mode))
+            return true;
+    }
+
+    return false;
 }
 
 static void
@@ -970,6 +1015,7 @@ print_usage(const char *program)
         "        Multiple -j can be passed.\n"
         "    -s  Define a function named SYMBOL that will return the type from FBP\n"
         "        and don't generate any main function or entry point.\n"
+        "    -I  Define search path for fbp files\n"
         "\n",
         program);
 }
@@ -977,7 +1023,7 @@ print_usage(const char *program)
 static bool
 parse_args(int argc, char *argv[])
 {
-    char *filename;
+    char *filename, *dup_path;
     bool has_json_file = false;
     int opt;
 
@@ -987,8 +1033,9 @@ parse_args(int argc, char *argv[])
     }
 
     sol_ptr_vector_init(&args.json_files);
+    sol_ptr_vector_init(&args.include_paths);
 
-    while ((opt = getopt(argc, argv, "s:c:j:")) != -1) {
+    while ((opt = getopt(argc, argv, "s:c:j:I:")) != -1) {
         switch (opt) {
         case 's':
             args.export_symbol = optarg;
@@ -1005,6 +1052,13 @@ parse_args(int argc, char *argv[])
             has_json_file = true;
             if (!handle_json_path(optarg)) {
                 SOL_ERR("Can't access JSON description path '%s': %s",
+                    optarg, sol_util_strerrora(errno));
+                return false;
+            }
+            break;
+        case 'I':
+            if (!handle_include_path(optarg)) {
+                SOL_ERR("Can't access include path '%s': %s",
                     optarg, sol_util_strerrora(errno));
                 return false;
             }
@@ -1036,10 +1090,13 @@ parse_args(int argc, char *argv[])
         return false;
     }
 
-    args.fbp_dirname = sol_arena_strdup(str_arena, dirname(strdupa(filename)));
-    if (!args.fbp_dirname) {
-        free(args.fbp_basename);
-        SOL_ERR("Couldn't get %s dirname args.", filename);
+    dup_path = sol_arena_strdup(str_arena, dirname(strdupa(filename)));
+    if (!dup_path) {
+        SOL_ERR("Couldn't get %s dirname.", filename);
+        return false;
+    }
+    if (sol_ptr_vector_append(&args.include_paths, dup_path) < 0) {
+        SOL_ERR("Couldn't handle include path '%s': %s\n", dup_path, sol_util_strerrora(errno));
         return false;
     }
 
@@ -1142,12 +1199,10 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
     struct fbp_data *data;
     struct sol_fbp_error *fbp_error;
     struct sol_file_reader *fr;
-    char filename[2048];
-    int r;
+    char filename[PATH_MAX];
 
-    r = snprintf(filename, sizeof(filename), "%s/%s", args.fbp_dirname, fbp_basename);
-    if (r < 0 || r >= (int)sizeof(filename)) {
-        SOL_ERR("Couldn't find file '%s': %s\n", filename, sol_util_strerrora(errno));
+    if (!handle_include_dir(filename, fbp_basename)) {
+        SOL_ERR("Couldn't find file '%s': %s\n", fbp_basename, sol_util_strerrora(errno));
         return NULL;
     }
 
@@ -1350,6 +1405,7 @@ fail_store_load:
     type_store_del(common_store);
 fail_store:
     sol_ptr_vector_clear(&args.json_files);
+    sol_ptr_vector_clear(&args.include_paths);
 fail_args:
     sol_arena_del(str_arena);
 fail_arena:
