@@ -32,9 +32,11 @@
 
 #pragma once
 
+#include "sol-vector.h"
+
 struct runner;
 
-struct runner *runner_new_from_file(const char *filename, const char **options_strv);
+struct runner *runner_new_from_file(const char *filename, const char **options_strv, struct sol_ptr_vector *include);
 struct runner *runner_new_from_type(const char *typename, const char **options_strv);
 
 int runner_attach_simulation(struct runner *r);

@@ -38,6 +38,7 @@
 #include "sol-flow-buildopts.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
+#include "sol-vector.h"
 
 #include "runner.h"
 
@@ -52,6 +53,7 @@ static struct {
     bool check_only;
     bool provide_sim_nodes;
     bool execute_type;
+    struct sol_ptr_vector include_paths;
 } args;
 
 static struct runner *the_runner;
@@ -78,6 +80,7 @@ usage(const char *program)
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "    -D            Debug the flow by printing connections and packets to stdout.\n"
 #endif
+        "    -I            Define search path for fbp files\n"
         "\n",
         program);
 }
@@ -85,8 +88,8 @@ usage(const char *program)
 static bool
 parse_args(int argc, char *argv[])
 {
-    int opt;
-    const char known_opts[] = "cho:st"
+    int opt, err;
+    const char known_opts[] = "cho:stI:"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "D"
 #endif
@@ -119,6 +122,12 @@ parse_args(int argc, char *argv[])
             inspector_init();
             break;
 #endif
+        case 'I':
+            err = sol_ptr_vector_append(&args.include_paths, optarg);
+            if (err < 0)
+                return false;
+
+            break;
         default:
             return false;
         }
@@ -146,7 +155,8 @@ startup(void *data)
     if (args.execute_type) {
         the_runner = runner_new_from_type(args.name, args.options);
     } else {
-        the_runner = runner_new_from_file(args.name, args.options);
+        the_runner = runner_new_from_file(args.name, args.options,
+            &args.include_paths);
     }
 
     if (!the_runner)
@@ -192,6 +202,8 @@ int
 main(int argc, char *argv[])
 {
     int r;
+
+    sol_ptr_vector_init(&args.include_paths);
 
     if (!parse_args(argc, argv)) {
         usage(argv[0]);
