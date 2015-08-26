@@ -220,37 +220,37 @@
       "out_ports": [
        {
         "data_type": "blob",
-        "description": "Dummy blob input port.",
+        "description": "Dummy blob output port.",
         "name": "BLOB"
        },
        {
         "data_type": "boolean",
-        "description": "Dummy boolean input port.",
+        "description": "Dummy boolean output port.",
         "name": "BOOLEAN"
        },
        {
         "data_type": "byte",
-        "description": "Dummy byte input port.",
+        "description": "Dummy byte output port.",
         "name": "BYTE"
        },
        {
         "data_type": "custom:CUSTOM_TYPE_1",
-        "description": "Dummy custom input port.",
+        "description": "Dummy custom output port.",
         "name": "CUSTOM1"
        },
        {
         "data_type": "custom:CUSTOM_TYPE_2",
-        "description": "Dummy custom input port.",
+        "description": "Dummy custom output port.",
         "name": "CUSTOM2"
        },
        {
         "data_type": "empty",
-        "description": "Dummy empty input port.",
+        "description": "Dummy empty output port.",
         "name": "EMPTY"
        },
        {
         "data_type": "float",
-        "description": "Dummy float input port.",
+        "description": "Dummy float output port.",
         "name": "FLOAT"
        },
        {
@@ -265,17 +265,17 @@
        },
        {
         "data_type": "int",
-        "description": "Dummy int input port.",
+        "description": "Dummy int output port.",
         "name": "INT"
        },
        {
         "data_type": "rgb",
-        "description": "Dummy rgb input port.",
+        "description": "Dummy rgb output port.",
         "name": "RGB"
        },
        {
         "data_type": "string",
-        "description": "Dummy string input port.",
+        "description": "Dummy string output port.",
         "name": "STRING"
        },
        {
@@ -289,7 +289,7 @@
     },
     {
       "category": "dummy",
-      "description": "Just a dummy description to test stub generator.",
+      "description": "Another dummy description to test stub generator, focused on custom packet types.",
       "in_ports": [
        {
         "data_type": "custom:CUSTOM_TYPE_1",
@@ -340,17 +340,17 @@
       "out_ports": [
        {
         "data_type": "custom:CUSTOM_TYPE_1",
-        "description": "Dummy custom input port.",
+        "description": "Dummy custom output port.",
         "name": "CUSTOM1"
        },
        {
         "data_type": "custom:CUSTOM_TYPE_3",
-        "description": "Dummy custom input port.",
+        "description": "Dummy custom output port.",
         "name": "CUSTOM3"
        },
        {
         "data_type": "string",
-        "description": "Dummy string input port.",
+        "description": "Dummy string output port.",
         "name": "STRING"
        }
       ],
