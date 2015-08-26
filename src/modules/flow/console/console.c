@@ -137,9 +137,9 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         fprintf(mdata->fp, "%s#%02x (error)%s - %s\n",
             mdata->prefix, code, mdata->suffix, msg ? : "");
     } else {
-        SOL_WRN("Unsupported packet=%p type=%p (%s)",
+        sol_flow_send_error_packet(node, -EINVAL, "Unsupported packet=%p type=%p (%s)",
             packet, sol_flow_packet_get_type(packet), sol_flow_packet_get_type(packet)->name);
-        return -EINVAL;
+        return 0;
     }
 
     if (mdata->flush)
