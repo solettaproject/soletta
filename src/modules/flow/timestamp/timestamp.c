@@ -299,4 +299,143 @@ localtime_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_
     return 0;
 }
 
+struct timestamp_comparison_data {
+    bool (*func) (time_t var0, time_t var1);
+    time_t var0;
+    time_t var1;
+    uint16_t port;
+    bool var0_initialized : 1;
+    bool var1_initialized : 1;
+};
+
+static bool
+timestamp_val_equal(time_t var0, time_t var1)
+{
+    return var0 == var1;
+}
+
+static int
+equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct timestamp_comparison_data *mdata = data;
+
+    mdata->port = SOL_FLOW_NODE_TYPE_TIMESTAMP_EQUAL__OUT__OUT;
+    mdata->func = timestamp_val_equal;
+
+    return 0;
+}
+
+static bool
+timestamp_val_less(time_t var0, time_t var1)
+{
+    return var0 < var1;
+}
+
+static int
+less_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct timestamp_comparison_data *mdata = data;
+
+    mdata->port = SOL_FLOW_NODE_TYPE_TIMESTAMP_LESS__OUT__OUT;
+    mdata->func = timestamp_val_less;
+
+    return 0;
+}
+
+static bool
+timestamp_val_less_or_equal(time_t var0, time_t var1)
+{
+    return var0 <= var1;
+}
+
+static int
+less_or_equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct timestamp_comparison_data *mdata = data;
+
+    mdata->port = SOL_FLOW_NODE_TYPE_TIMESTAMP_LESS_OR_EQUAL__OUT__OUT;
+    mdata->func = timestamp_val_less_or_equal;
+
+    return 0;
+}
+
+static bool
+timestamp_val_greater(time_t var0, time_t var1)
+{
+    return var0 > var1;
+}
+
+static int
+greater_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct timestamp_comparison_data *mdata = data;
+
+    mdata->port = SOL_FLOW_NODE_TYPE_TIMESTAMP_GREATER__OUT__OUT;
+    mdata->func = timestamp_val_greater;
+
+    return 0;
+}
+
+static bool
+timestamp_val_greater_or_equal(time_t var0, time_t var1)
+{
+    return var0 >= var1;
+}
+
+static int
+greater_or_equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct timestamp_comparison_data *mdata = data;
+
+    mdata->port = SOL_FLOW_NODE_TYPE_TIMESTAMP_EQUAL__OUT__OUT;
+    mdata->func = timestamp_val_greater_or_equal;
+
+    return 0;
+}
+
+static bool
+timestamp_val_not_equal(time_t var0, time_t var1)
+{
+    return var0 != var1;
+}
+
+static int
+not_equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct timestamp_comparison_data *mdata = data;
+
+    mdata->port = SOL_FLOW_NODE_TYPE_TIMESTAMP_NOT_EQUAL__OUT__OUT;
+    mdata->func = timestamp_val_not_equal;
+
+    return 0;
+}
+
+static int
+comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct timestamp_comparison_data *mdata = data;
+    int r;
+    time_t in_value;
+    bool output;
+
+    r = sol_flow_packet_get_timestamp(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (port == 0) {
+        mdata->var0_initialized = true;
+        mdata->var0 = in_value;
+    } else if (port == 1) {
+        mdata->var1_initialized = true;
+        mdata->var1 = in_value;
+    }
+
+    /* only send something after both variables values are received */
+    if (!(mdata->var0_initialized && mdata->var1_initialized))
+        return 0;
+
+    output = mdata->func(mdata->var0, mdata->var1);
+
+    return sol_flow_send_boolean_packet(node, mdata->port, output);
+}
+
 #include "timestamp-gen.c"

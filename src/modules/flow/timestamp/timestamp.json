@@ -165,6 +165,168 @@
        }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/timestamp/split_time.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is equal to other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for equal comparison operation. Indexed from 0 to 1.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "equal_open"
+      },
+      "name": "timestamp/equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is equal to value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/equal.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is greater than other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for greater comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "greater_open"
+      },
+      "name": "timestamp/greater",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is greater than value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/greater.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is greater than or equal to other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for greater-or-equal comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "greater_or_equal_open"
+      },
+      "name": "timestamp/greater-or-equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is greater than or equal to value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/greater-or-equal.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is less than other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for less comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "less_open"
+      },
+      "name": "timestamp/less",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is less than value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/less.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is less than or equal to other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for less-or-equal comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "less_or_equal_open"
+      },
+      "name": "timestamp/less-or-equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is less than or equal to value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/less-or-equal.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is different from other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for not-equal comparison operation. Indexed from 0 to 1",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "not_equal_open"
+      },
+      "name": "timestamp/not-equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is different from value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/not-equal.html"
     }
   ]
 }
