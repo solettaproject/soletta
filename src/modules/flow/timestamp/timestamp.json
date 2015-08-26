@@ -377,6 +377,35 @@
       ],
       "private_data_type": "timestamp_comparison_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/not-equal.html"
+    },
+    {
+      "category": "timestamp",
+      "description": "Calculate delta between two timestamps.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for delta calculation. Indexed from 0 to 1",
+          "methods": {
+            "process": "delta_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "name": "timestamp/delta",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Delta in seconds between timestamp received on port IN[0] and in port IN[1]. It may be a negative value if in[0] is less, positive if is greater, or zero if both timestamps are equal.",
+          "name": "SECONDS"
+        },
+        {
+          "data_type": "int",
+          "description": "Delta in nano seconds between timestamp received on port IN[0] and in port IN[1]. It may be a negative value if in[0] is less, positive if is greater, or zero if both timestamps are equal.",
+          "name": "NANO_SECONDS"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/timestamp/delta.html"
     }
   ]
 }
