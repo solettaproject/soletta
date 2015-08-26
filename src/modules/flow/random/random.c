@@ -48,46 +48,59 @@
  * article about Mersenne Twister (MT19937). */
 
 struct random_node_data {
-    int state[624];
+    unsigned int state[624];
     int index;
 };
 
-static int
-get_random_number(struct random_node_data *mdata)
+static unsigned int
+get_random_uint(struct random_node_data *mdata)
 {
-    int y;
+    const size_t state_array_size = ARRAY_SIZE(mdata->state);
+    unsigned int y;
 
     if (mdata->index == 0) {
         size_t i;
 
-        for (i = 0; i < ARRAY_SIZE(mdata->state); i++) {
-            y = (mdata->state[i] & 0x80000000) + (mdata->state[(i + 1) % ARRAY_SIZE(mdata->state)] & 0x7fffffff);
-            mdata->state[i] = mdata->state[(i + 397) % ARRAY_SIZE(mdata->state)] ^ y >> 1;
+        for (i = 0; i < state_array_size; i++) {
+            y = (mdata->state[i] & 0x80000000UL);
+            y += (mdata->state[(i + 1UL) % state_array_size] & 0x7fffffffUL);
+
+            mdata->state[i] = mdata->state[(i + 397UL) % state_array_size] ^ (y >> 1UL);
             if (y % 2 != 0)
-                mdata->state[i] = mdata->state[i] ^ 0x9908b0df;
+                mdata->state[i] ^= 0x9908b0dfUL;
         }
     }
 
     y = mdata->state[mdata->index];
-    y ^= y >> 11;
-    y ^= (y << 7) & 0x9d2c5680;
-    y ^= (y << 15) & 0xefc60000;
-    y ^= (y >> 18);
+    y ^= y >> 11UL;
+    y ^= (y << 7UL) & 0x9d2c5680UL;
+    y ^= (y << 15UL) & 0xefc60000UL;
+    y ^= (y >> 18UL);
 
-    mdata->index = (mdata->index + 1) % ARRAY_SIZE(mdata->state);
+    mdata->index = (mdata->index + 1) % state_array_size;
 
     return y;
+}
+
+static int
+get_random_int(struct random_node_data *mdata)
+{
+    unsigned int value = get_random_uint(mdata);
+    return (int)(value >> 1); /* kill sign bit */
 }
 
 static void
 initialize_seed(struct random_node_data *mdata, int seed)
 {
+    const size_t state_array_size = ARRAY_SIZE(mdata->state);
     size_t i;
 
     mdata->index = 0;
     mdata->state[0] = seed;
-    for (i = 1; i < ARRAY_SIZE(mdata->state); i++)
-        mdata->state[i] = i + 0x6c078965 * (mdata->state[i - 1] ^ (mdata->state[i - 1] >> 30));
+    for (i = 1; i < state_array_size; i++) {
+        unsigned int tmp = i + 0x6c078965UL * (mdata->state[i - 1] ^ (mdata->state[i - 1] >> 30UL));
+        mdata->state[i] = (int)tmp;
+    }
 }
 
 static int
@@ -114,7 +127,7 @@ random_int_generate(struct sol_flow_node *node, void *data, uint16_t port, uint1
     struct sol_irange value = { 0, 0, INT32_MAX, 1 };
     struct random_node_data *mdata = data;
 
-    value.val = get_random_number(mdata);
+    value.val = get_random_int(mdata);
 
     return sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_INT__OUT__OUT,
@@ -129,10 +142,10 @@ random_float_generate(struct sol_flow_node *node, void *data, uint16_t port, uin
 {
     struct random_node_data *mdata = data;
     struct sol_drange out_value = { 0, 0, INT32_MAX, 1 };
-    int32_t value, fraction;
+    int value, fraction;
 
-    value = get_random_number(mdata);
-    fraction = get_random_number(mdata);
+    value = get_random_int(mdata);
+    fraction = get_random_int(mdata);
 
     out_value.val = value * ((double)(INT32_MAX - 1) / INT32_MAX) +
         (double)fraction / INT32_MAX;
@@ -149,9 +162,9 @@ static int
 random_byte_generate(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct random_node_data *mdata = data;
-    int value;
+    unsigned int value;
 
-    value = get_random_number(mdata) & 0xff;
+    value = get_random_uint(mdata) & 0xff;
 
     return sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_BYTE__OUT__OUT,
@@ -165,9 +178,9 @@ static int
 random_boolean_generate(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct random_node_data *mdata = data;
-    int value;
+    unsigned int value;
 
-    value = get_random_number(mdata);
+    value = get_random_uint(mdata);
 
     return sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_BOOLEAN__OUT__OUT,
