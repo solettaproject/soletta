@@ -1,3 +1,3 @@
 sample-$(FLOW_GTK_GALLERY_SAMPLE) += gtk-sample
 sample-gtk-sample-$(FLOW_GTK_GALLERY_SAMPLE) := gtk-gallery.fbp
-sample-gtk-sample-$(FLOW_GTK_GALLERY_SAMPLE)-deps := gtk.mod
+sample-gtk-sample-$(FLOW_GTK_GALLERY_SAMPLE)-deps := flow/gtk.mod
