@@ -161,9 +161,9 @@ wallclock_schedule_next(struct sol_flow_node *node)
             goto err;
         }
 
+        tzset();
         if (!localtime_r(&current_time, &local_time)) {
-            SOL_WRN("could not convert time: %s",
-                sol_util_strerrora(errno));
+            SOL_WRN("could not convert time");
             goto err;
         }
 
@@ -206,13 +206,13 @@ wallclock_update_time(enum sol_flow_node_wallclock_type type,
     if (type == TIMEOUT_SECOND) {
         CLOCK_GETTIME_DO(timer->val.val, ts.tv_sec % 60);
     } else {
+        tzset();
         if (time(&current_time) == -1) {
             SOL_WRN("could not fetch current time: %s",
                 sol_util_strerrora(errno));
             time_fail = true;
         } else if (!localtime_r(&current_time, &local_time)) {
-            SOL_WRN("could not convert time: %s",
-                sol_util_strerrora(errno));
+            SOL_WRN("could not convert time");
             time_fail = true;
         }
 
@@ -392,9 +392,10 @@ timeblock_send_packet(void *data)
         return false;
     }
 
+    tzset();
     if (!localtime_r(&current_time, &local_time)) {
-        sol_flow_send_error_packet(mdata->node, errno,
-            "could not convert time: %s", sol_util_strerrora(errno));
+        sol_flow_send_error_packet(mdata->node, EINVAL,
+            "could not convert time");
         return false;
     }
 
