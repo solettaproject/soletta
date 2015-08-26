@@ -1,4 +1,4 @@
-find-deps = $(foreach dep,$($(1)-deps),$($(dep)-out))
+find-deps = $(foreach dep,$($(1)-deps),$($(filter %$(dep),$(modules))-out))
 
 known-module-type = \
 	$(foreach curr,$(module-types), \
@@ -41,8 +41,8 @@ gen-artifact = \
 			$(eval all-mod-descs += $($(json)-desc)) \
 		) \
 		$(eval all-gens      += $(json)) \
-		$(eval $(1)-gens     += $(json)) \
-		$(eval $(1)-gen-cflags+= $(addprefix -I,$(dir $($(json)-src)))) \
+		$(eval $(4)-gens     += $(json)) \
+		$(eval $(4)-gen-cflags+= $(addprefix -I,$(dir $($(json)-src)))) \
 	) \
 
 extra-headers = \
@@ -90,26 +90,26 @@ parse-common-module = \
 	$(eval all-artifacts += $(artifacts)) \
 	$(eval mod-headers  := $(addprefix $(2),$(headers-$(1)-$(3)))) \
 	$(call extra-headers,$(mod-headers)) \
-	$(call gen-artifact,$(1),$(filter %.json,$(artifacts))) \
+	$(call gen-artifact,$(1),$(filter %.json,$(artifacts)),"",$(4)) \
 	$(eval mod-objs     := $(filter %.o,$(artifacts))) \
-	$(eval $(1)-cflags  := $(obj-$(1)-$(3)-extra-cflags)) \
-	$(eval $(1)-ldflags := $(obj-$(1)-$(3)-extra-ldflags)) \
-	$(eval $(1)-bs      := $(addprefix $(2),Makefile)) \
-	$(eval $(1)-bs      += $(if $(wildcard $(2)/Kconfig),$(addprefix $(2),Kconfig))) \
-	$(eval $(1)-hdrs    := $(filter %.h,$(artifacts))) \
+	$(eval $(4)-cflags  := $(obj-$(1)-$(3)-extra-cflags)) \
+	$(eval $(4)-ldflags := $(obj-$(1)-$(3)-extra-ldflags)) \
+	$(eval $(4)-bs      := $(addprefix $(2),Makefile)) \
+	$(eval $(4)-bs      += $(if $(wildcard $(2)/Kconfig),$(addprefix $(2),Kconfig))) \
+	$(eval $(4)-hdrs    := $(filter %.h,$(artifacts))) \
 	$(foreach obj,$(mod-objs), \
 		$(call object-path,$(obj),$(2),dest-obj) \
 		$(eval $(dest-obj)-src := $(subst .o,.c,$(obj))) \
-		$(eval $(1)-srcs       := $($(dest-obj)-src)) \
-	        $(eval $(1)-objs       += $(dest-obj)) \
+		$(eval $(4)-srcs       := $($(dest-obj)-src)) \
+	        $(eval $(4)-objs       += $(dest-obj)) \
 		$(eval all-objs        += $(dest-obj)) \
 	)\
 
 parse-builtin-module = \
-	$(call parse-common-module,$(1),$(2),y) \
-	$(eval builtin-cflags      += $($(1)-cflags)) \
-	$(eval builtin-ldflags     += $($(1)-ldflags)) \
-	$(eval builtin-objs        += $($(1)-objs)) \
+	$(call parse-common-module,$(1),$(2),y,$(3)) \
+	$(eval builtin-cflags      += $($(3)-cflags)) \
+	$(eval builtin-ldflags     += $($(3)-ldflags)) \
+	$(eval builtin-objs        += $($(3)-objs)) \
 	$(eval builtin-flows       += $(call flow-type,$(artifacts))) \
 	$(eval builtin-linux-micro += $(call linux-micro-type,$(artifacts))) \
 	$(eval builtin-pin-mux 	   += $(call pin-mux-type,$(artifacts))) \
@@ -117,18 +117,18 @@ parse-builtin-module = \
 
 parse-mod-output = \
 	$(if $(filter yes,$(obj-$(1)-static)), \
-		$(eval $(mod)-out := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(subdir)),$(mod)).a) \
+		$(eval $(3)-out := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(subdir)),$(1)).a) \
 		$(eval mod-ar     += $(1)), \
 		$(eval out-prefix := $(build_modulesdir)$(strip $(call module-type,$(2)))) \
-	        $(eval $(1)-out   := $(out-prefix)/$(1).so) \
-		$(eval mod-so     += $(1)) \
+	        $(eval $(3)-out   := $(out-prefix)/$(1).so) \
+		$(eval mod-so     += $(3)) \
 	) \
 
 parse-mod-module = \
-	$(call parse-common-module,$(1),$(2),m) \
-	$(eval $(mod)-deps     := $(subst .mod,,$(obj-$(mod)-m-deps))) \
-	$(call parse-mod-output,$(1),$(2)) \
-	$(eval modules-out += $($(mod)-out)) \
+	$(call parse-common-module,$(1),$(2),m,$(3)) \
+	$(eval $(3)-deps     := $(subst .mod,,$(obj-$(1)-m-deps))) \
+	$(call parse-mod-output,$(1),$(2),$(3)) \
+	$(eval modules-out += $($(3)-out)) \
 
 parse-bin = \
 	$(eval bin-$(1)-srcs := $(addprefix $(2),$(bin-$(1)-y))) \
@@ -159,7 +159,7 @@ parse-sample = \
 	$(eval sample-$(1)-srcs := $(addprefix $(2),$(filter-out %.fbp,$(sample-$(1)-y)))) \
 	$(eval artifacts        := $(addprefix $(2),$(filter %.fbp,$(sample-$(1)-y)))) \
 	$(eval conffile         := $(addprefix $(2),$(filter %.json,$(sample-$(1)-y-conffile)))) \
-	$(call gen-artifact,$(1),$(addprefix $(2),$(filter %.json,$(sample-$(1)-y))),sample-$(1)-includedir) \
+	$(call gen-artifact,$(1),$(addprefix $(2),$(filter %.json,$(sample-$(1)-y))),sample-$(1)-includedir,$(1)) \
 	$(call gen-fbp-artifact,$(1),$(artifacts),sample-$(1)-srcs,$(conffile)) \
 	$(if $(filter %.o,$(sample-$(1)-srcs)), \
 		$(eval sample-$(1)-out  := $(subst $(top_srcdir)src/,$(build_stagedir),$(filter %.o,$(sample-$(1)-srcs)))) \
@@ -188,14 +188,16 @@ inc-subdirs = \
 		$(call extra-headers,$(addprefix $(subdir),$(headers-m))) \
 		$(call parse-warnings,$(subdir),$(warnings)) \
 		$(eval curr-builtins        := $(subst .mod,,$(filter %.mod,$(obj-y)))) \
-		$(eval builtins             += $(curr-builtins)) \
 		$(foreach buin,$(curr-builtins), \
-			$(call parse-builtin-module,$(buin),$(subdir)) \
+			$(eval mod-id := $(patsubst %/,%,$(subdir)$(buin))) \
+			$(call parse-builtin-module,$(buin),$(subdir),$(mod-id)) \
+			$(eval builtins += $(mod-id)) \
 		) \
 		$(eval curr-modules        := $(subst .mod,,$(filter %.mod,$(obj-m)))) \
-		$(eval modules             += $(curr-modules)) \
 		$(foreach mod,$(curr-modules), \
-			$(call parse-mod-module,$(mod),$(subdir)) \
+			$(eval mod-id := $(patsubst %/,%,$(subdir)$(buin))) \
+			$(call parse-mod-module,$(mod),$(subdir),$(mod-id)) \
+			$(eval modules += $(mod-id)) \
 		) \
 		$(eval curr-bins := $(bin-y)) \
 		$(eval bins += $(curr-bins)) \
