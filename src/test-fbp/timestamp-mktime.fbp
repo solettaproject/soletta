@@ -1,0 +1,77 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Split(timestamp/split-time)
+MkTime(timestamp/make-time)
+
+Year(constant/int:value=2015)
+Month(constant/int:value=8)
+Day(constant/int:value=26)
+Hour(constant/int:value=15)
+Minute(constant/int:value=20)
+Second(constant/int:value=59)
+
+EqualYear(int/equal)
+EqualMonth(int/equal)
+EqualDay(int/equal)
+EqualHour(int/equal)
+EqualMinute(int/equal)
+EqualSecond(int/equal)
+
+Year OUT -> IN[0] EqualYear
+Month OUT -> IN[0] EqualMonth
+Day OUT -> IN[0] EqualDay
+Hour OUT -> IN[0] EqualHour
+Minute OUT -> IN[0] EqualMinute
+Second OUT -> IN[0] EqualSecond
+
+Year OUT -> YEAR MkTime
+Month OUT -> MONTH MkTime
+Day OUT -> MONTH_DAY MkTime
+Hour OUT -> HOUR MkTime
+Minute OUT -> MINUTE MkTime
+Second OUT -> SECOND MkTime
+
+MkTime OUT -> IN Split
+
+Split YEAR -> IN[1] EqualYear
+Split MONTH -> IN[1] EqualMonth
+Split MONTH_DAY -> IN[1] EqualDay
+Split HOUR -> IN[1] EqualHour
+Split MINUTE -> IN[1] EqualMinute
+Split SECOND -> IN[1] EqualSecond
+
+EqualYear OUT -> RESULT result_year(test/result)
+EqualMonth OUT -> RESULT result_month(test/result)
+EqualDay OUT -> RESULT result_day(test/result)
+EqualHour OUT -> RESULT result_hour(test/result)
+EqualMinute OUT -> RESULT result_minute(test/result)
+EqualSecond OUT -> RESULT result_second(test/result)

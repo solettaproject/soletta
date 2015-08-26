@@ -30,6 +30,141 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/timestamp/time.html"
+    },
+    {
+      "category": "timestamp",
+      "description": "Make timestamp packets with time provided on ports (year, month, day, hour, minute, seconds).",
+      "in_ports": [
+       {
+         "data_type": "int",
+         "description": "Receive year of the timestamp counting from year 0, but can't be less than 1900.",
+         "methods": {
+           "process": "make_year"
+         },
+         "name": "YEAR",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive month of the timestamp (1-12).",
+         "methods": {
+           "process": "make_month"
+         },
+         "name": "MONTH",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive day of the timestamp in the range 1 to 31.",
+         "methods": {
+           "process": "make_day"
+         },
+         "name": "MONTH_DAY",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive hour of the timestamp (0-23).",
+         "methods": {
+           "process": "make_hour"
+         },
+         "name": "HOUR",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive minute of the timestamp (0-59).",
+         "methods": {
+           "process": "make_minute"
+         },
+         "name": "MINUTE",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive second of the timestamp (0-59).",
+         "methods": {
+           "process": "make_second"
+         },
+         "name": "SECOND",
+         "required": true
+       }
+      ],
+      "name": "timestamp/make-time",
+      "out_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Packet with time converted from broken-down time provided via ports. First packet is sent only after values are received in all ports.",
+          "name": "OUT",
+          "required": true
+        }
+      ],
+      "private_data_type": "make_time_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/timestamp/make_time.html"
+    },
+    {
+      "category": "timestamp",
+      "description": "Split timestamp packets into broken-down time (year, month, day, hour, minute, seconds).",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Packet with time to be converted into broken-down time.",
+          "methods": {
+            "process": "localtime_process"
+          },
+          "name": "IN",
+          "required": true
+        }
+      ],
+      "name": "timestamp/split-time",
+      "out_ports": [
+       {
+         "data_type": "int",
+         "description": "Number of years since year 0.",
+         "name": "YEAR"
+       },
+       {
+         "data_type": "int",
+         "description": "Month of the timestamp in the range 1 to 12.",
+         "name": "MONTH"
+       },
+       {
+         "data_type": "int",
+         "description": "The day of the month in timestamp. Range 1 to 31.",
+         "name": "MONTH_DAY"
+       },
+       {
+         "data_type": "int",
+         "description": "Hour of the timestamp from 0 to 23.",
+         "name": "HOUR"
+       },
+       {
+         "data_type": "int",
+         "description": "Minute of the timestamp in the range 0 to 59.",
+         "name": "MINUTE"
+       },
+       {
+         "data_type": "int",
+         "description": "Second of the timestamp, from 0 to 59. Eventually it can be up to 60 to allow for leap seconds.",
+         "name": "SECOND"
+       },
+       {
+         "data_type": "int",
+         "description": "Day of the week starting on Sunday, in the range 0 to 6. So Sunday is 0, Monday is 1, ....",
+         "name": "WEEK_DAY"
+       },
+       {
+         "data_type": "int",
+         "description": "The number of days since January 1, in the range 0 to 365.",
+         "name": "YEAR_DAY"
+       },
+       {
+         "data_type": "boolean",
+         "description": "Indicates whether daylight saving time is in effect at the time converted. TRUE if daylight saving is in effect or FALSE if it is not. This packet may not be sent if information is not available.",
+         "name": "DAYLIGHT_SAVING_TIME"
+       }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/timestamp/split_time.html"
     }
   ]
 }
