@@ -117,7 +117,7 @@ parse-builtin-module = \
 
 parse-mod-output = \
 	$(if $(filter yes,$(obj-$(1)-static)), \
-		$(eval $(mod)-out := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(subdir)),$(mod)).a) \
+		$(eval $(1)-out := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(subdir)),$(1)).a) \
 		$(eval mod-ar     += $(1)), \
 		$(eval out-prefix := $(build_modulesdir)$(strip $(call module-type,$(2)))) \
 	        $(eval $(1)-out   := $(out-prefix)/$(1).so) \
@@ -126,9 +126,9 @@ parse-mod-output = \
 
 parse-mod-module = \
 	$(call parse-common-module,$(1),$(2),m) \
-	$(eval $(mod)-deps     := $(subst .mod,,$(obj-$(mod)-m-deps))) \
+	$(eval $(1)-deps     := $(subst .mod,,$(obj-$(1)-m-deps))) \
 	$(call parse-mod-output,$(1),$(2)) \
-	$(eval modules-out += $($(mod)-out)) \
+	$(eval modules-out += $($(1)-out)) \
 
 parse-bin = \
 	$(eval bin-$(1)-srcs := $(addprefix $(2),$(bin-$(1)-y))) \
