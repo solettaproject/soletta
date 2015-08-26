@@ -1,0 +1,117 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+MkTime(timestamp/make-time)
+MkTime7200(timestamp/make-time)
+MkTime9(timestamp/make-time)
+MkTimeNano(timestamp/make-time)
+
+Delta0(timestamp/delta)
+Delta7200(timestamp/delta)
+Delta9(timestamp/delta)
+DeltaNano(timestamp/delta)
+
+Equal0(int/equal)
+Equal7200(int/equal)
+Equal9(int/equal)
+EqualNano(int/equal)
+
+Year(constant/int:value=2015)
+Month(constant/int:value=8)
+Day(constant/int:value=26)
+Hour(constant/int:value=15)
+Hour2(constant/int:value=17)
+Minute(constant/int:value=20)
+Second(constant/int:value=59)
+Second2(constant/int:value=50)
+NanoSecond(constant/int:value=1000)
+NanoSecond2(constant/int:value=999999999)
+
+d0(constant/int:value=0)
+d9(constant/int:value=-9)
+d7200(constant/int:value=7200)
+dNano(constant/int:value=-999998999)
+
+Year OUT -> YEAR MkTime
+Month OUT -> MONTH MkTime
+Day OUT -> MONTH_DAY MkTime
+Hour OUT -> HOUR MkTime
+Minute OUT -> MINUTE MkTime
+Second OUT -> SECOND MkTime
+NanoSecond OUT -> NANO_SECOND MkTime
+
+Year OUT -> YEAR MkTime9
+Month OUT -> MONTH MkTime9
+Day OUT -> MONTH_DAY MkTime9
+Hour OUT -> HOUR MkTime9
+Minute OUT -> MINUTE MkTime9
+Second2 OUT -> SECOND MkTime9
+NanoSecond OUT -> NANO_SECOND MkTime9
+
+Year OUT -> YEAR MkTime7200
+Month OUT -> MONTH MkTime7200
+Day OUT -> MONTH_DAY MkTime7200
+Hour2 OUT -> HOUR MkTime7200
+Minute OUT -> MINUTE MkTime7200
+Second OUT -> SECOND MkTime7200
+NanoSecond OUT -> NANO_SECOND MkTime7200
+
+Year OUT -> YEAR MkTimeNano
+Month OUT -> MONTH MkTimeNano
+Day OUT -> MONTH_DAY MkTimeNano
+Hour OUT -> HOUR MkTimeNano
+Minute OUT -> MINUTE MkTimeNano
+Second OUT -> SECOND MkTimeNano
+NanoSecond2 OUT -> NANO_SECOND MkTimeNano
+
+MkTime OUT -> IN[0] Delta0
+MkTime OUT -> IN[1] Delta0
+Delta0 SECONDS -> IN[0] Equal0
+d0 OUT -> IN[1] Equal0
+Equal0 OUT -> RESULT result_delta0(test/result)
+
+MkTime OUT -> IN[0] Delta9
+MkTime9 OUT -> IN[1] Delta9
+Delta9 SECONDS -> IN[0] Equal9
+d9 OUT -> IN[1] Equal9
+Equal9 OUT -> RESULT result_delta_negative(test/result)
+
+MkTime OUT -> IN[0] Delta7200
+MkTime7200 OUT -> IN[1] Delta7200
+Delta7200 SECONDS -> IN[0] Equal7200
+d7200 OUT -> IN[1] Equal7200
+Equal7200 OUT -> RESULT result_delta7200(test/result)
+
+MkTime OUT -> IN[0] DeltaNano
+MkTimeNano OUT -> IN[1] DeltaNano
+DeltaNano NANO_SECONDS -> IN[0] EqualNano
+dNano OUT -> IN[1] EqualNano
+EqualNano OUT -> RESULT result_delta_nano(test/result)

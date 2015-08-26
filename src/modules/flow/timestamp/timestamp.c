@@ -34,7 +34,6 @@
 #include "sol-flow-internal.h"
 
 #include <sol-util.h>
-#include <errno.h>
 #include <math.h>
 #include <time.h>
 
@@ -343,10 +342,8 @@ struct timestamp_comparison_node_type {
 };
 
 struct timestamp_comparison_data {
-    struct timespec var0;
-    struct timespec var1;
-    bool var0_initialized : 1;
-    bool var1_initialized : 1;
+    struct timespec val[2];
+    bool val_initialized[2];
 };
 
 static bool
@@ -397,36 +394,75 @@ timestamp_val_not_equal(struct timespec *var0, struct timespec *var1)
     return var0->tv_nsec != var1->tv_nsec;
 }
 
+static bool
+two_vars_get_value(struct timestamp_comparison_data *mdata, uint16_t port, const struct sol_flow_packet *packet)
+{
+    int r;
+
+    r = sol_flow_packet_get_timestamp(packet, &mdata->val[port]);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->val_initialized[port] = true;
+    if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
+        return false;
+
+    return true;
+}
+
 static int
 comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct timestamp_comparison_data *mdata = data;
     const struct timestamp_comparison_node_type *type;
-    int r;
-    struct timespec in_value;
     bool output;
 
-    r = sol_flow_packet_get_timestamp(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    if (port == 0) {
-        mdata->var0_initialized = true;
-        mdata->var0 = in_value;
-    } else if (port == 1) {
-        mdata->var1_initialized = true;
-        mdata->var1 = in_value;
-    }
-
-    /* only send something after both variables values are received */
-    if (!(mdata->var0_initialized && mdata->var1_initialized))
+    if (!two_vars_get_value(mdata, port, packet))
         return 0;
 
     type = (const struct timestamp_comparison_node_type *)
         sol_flow_node_get_type(node);
 
-    output = type->func(&mdata->var0, &mdata->var1);
+    output = type->func(&mdata->val[0], &mdata->val[1]);
 
     return sol_flow_send_boolean_packet(node, 0, output);
+}
+
+static int
+delta_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct timestamp_comparison_data *mdata = data;
+    struct timespec sub_result;
+    time_t result;
+    int r;
+    int32_t output;
+
+    if (!two_vars_get_value(mdata, port, packet))
+        return 0;
+
+    result = mdata->val[1].tv_sec - mdata->val[0].tv_sec;
+    if (result > INT32_MAX) {
+        sol_flow_send_error_packet(node, ERANGE,
+            "Delta is too big for seconds: %s", sol_util_strerrora(ERANGE));
+        return 0;
+    }
+    output = result;
+
+    r = sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_TIMESTAMP_DELTA__OUT__SECONDS, output);
+    SOL_INT_CHECK(r, < 0, r);
+
+    sol_util_timespec_sub(&mdata->val[0], &mdata->val[1], &sub_result);
+    result = sub_result.tv_sec * NSEC_PER_SEC + sub_result.tv_nsec;
+
+    if (result > INT32_MAX) {
+        SOL_DBG("Delta is too big for nanoseconds: %s",
+            sol_util_strerrora(ERANGE));
+        return 0;
+    }
+    output = result;
+
+    return sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_TIMESTAMP_DELTA__OUT__NANO_SECONDS, output);
 }
 
 #include "timestamp-gen.c"
