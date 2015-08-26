@@ -1167,7 +1167,7 @@ using the sol-flow-node-type-stub-gen.py tool.
                         type=str)
     parser.add_argument("--genspec-schema",
                         help="JSON Schema of the genspec to use for validation",
-                        type=argparse.FileType('r'),
+                        type=argparse.FileType('r', encoding='UTF-8'),
                         default=os.path.join(pkgdatadir,
                                              "flow", "schemas",
                                              "node-type-genspec.schema"))
@@ -1181,7 +1181,7 @@ using the sol-flow-node-type-stub-gen.py tool.
                               "a series of struct sol_flow_node_type and all "
                               "the required boilerplate to have them usable "
                               "by both builtin or external modules."),
-                        type=argparse.FileType('r'))
+                        type=argparse.FileType('r', encoding='UTF-8'))
     parser.add_argument("output_header",
                         help=("Output header (.h) file. This file will "
                               "contain the public declaration of all "
@@ -1189,7 +1189,7 @@ using the sol-flow-node-type-stub-gen.py tool.
                               "their associated "
                               "'struct sol_flow_node_options' and "
                               "C pre-processor (CPP) defines for all ports."),
-                        type=argparse.FileType('w'))
+                        type=argparse.FileType('w', encoding='UTF-8'))
     parser.add_argument("output_code",
                         help=("Boilerplate output code (.c) file. This file "
                               "will contain only the declaration of "
@@ -1200,7 +1200,7 @@ using the sol-flow-node-type-stub-gen.py tool.
                               "will be included by an user-defined C file with "
                               "the actual functions and "
                               "private data declarations."),
-                        type=argparse.FileType('w'))
+                        type=argparse.FileType('w', encoding='UTF-8'))
     parser.add_argument("output_description",
                         help=("The JSON description of the module. This file "
                               "is similar to genspec, but instead of "
@@ -1221,7 +1221,7 @@ using the sol-flow-node-type-stub-gen.py tool.
         if args.output_description == "-":
             output_description = sys.stdout
         else:
-            output_description = open(args.output_description, "w")
+            output_description = open(args.output_description, "w", encoding='UTF-8')
         data = load_json(args.genspec, args.genspec_schema, args.prefix)
     except Exception as e:
         if args.output_header and args.output_header.name:
