@@ -137,7 +137,7 @@ sol_network_init(void)
     for (i = 0; i < if_count; i++) {
         gnrc_ipv6_netif_t *ip6 = gnrc_ipv6_netif_get(ifs[i]);
         if (ip6) {
-            if (add_ip6_link(i, ip6)) {
+            if (add_ip6_link(ifs[i], ip6)) {
                 sol_vector_clear(&links);
                 return false;
             }
