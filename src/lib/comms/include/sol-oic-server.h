@@ -99,7 +99,7 @@ struct sol_oic_resource_type {
 
     struct {
         sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
-            const void *data, uint8_t *payload, uint16_t *payload_len);
+            const void *data, const struct sol_buffer *req_payload, struct sol_buffer *resp_payload);
     } get, put, post, delete;
 };
 

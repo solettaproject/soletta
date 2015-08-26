@@ -705,7 +705,7 @@ out:
 static int
 _sol_oic_resource_type_handle(
     sol_coap_responsecode_t (*handle_fn)(const struct sol_network_link_addr *cliaddr, const void *data,
-    uint8_t *payload, uint16_t *payload_len),
+        const struct sol_buffer *req_payload, struct sol_buffer *resp_payload),
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     struct resource_type_data *res, bool expect_payload)
 {
@@ -715,6 +715,7 @@ _sol_oic_resource_type_handle(
     uint16_t payload_len, response_len;
     const char response_prefix[] = "{\"oc\":[{\"rep\":";
     const char response_suffix[] = "}]}";
+    struct sol_buffer req_buf, resp_buf;
     size_t len;
 
     OIC_SERVER_CHECK(-ENOTCONN);
@@ -754,11 +755,20 @@ _sol_oic_resource_type_handle(
         }
     }
 
-    code = handle_fn(cliaddr, res->data, payload, &payload_len);
-    if (code == SOL_COAP_RSPCODE_CONTENT) {
-        len += payload_len;
+    sol_buffer_init_flags(&req_buf, payload, payload_len, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+    req_buf.used = payload_len;
 
-        len += strlen(response_suffix);
+    sol_buffer_init_flags(&resp_buf, response_payload, response_len, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+
+    code = handle_fn(cliaddr, res->data, &req_buf, &resp_buf);
+
+    len += resp_buf.used;
+    len += strlen(response_suffix);
+
+    if (len > response_len)
+        goto done;
+
+    if (code == SOL_COAP_RSPCODE_CONTENT) {
         memcpy(response_payload, response_suffix, strlen(response_suffix));
 
         if (sol_coap_packet_set_payload_used(response, len) < 0) {
