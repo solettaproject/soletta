@@ -438,4 +438,45 @@ comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     return sol_flow_send_boolean_packet(node, mdata->port, output);
 }
 
+struct timestamp_delta_data {
+    time_t var0;
+    time_t var1;
+    bool var0_initialized : 1;
+    bool var1_initialized : 1;
+};
+
+static int
+delta_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct timestamp_delta_data *mdata = data;
+    int r;
+    time_t in_value, result;
+    int32_t output;
+
+    r = sol_flow_packet_get_timestamp(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (port == 0) {
+        mdata->var0_initialized = true;
+        mdata->var0 = in_value;
+    } else if (port == 1) {
+        mdata->var1_initialized = true;
+        mdata->var1 = in_value;
+    }
+
+    if (!(mdata->var0_initialized && mdata->var1_initialized))
+        return 0;
+
+    result = mdata->var1 - mdata->var0;
+    if (result > INT32_MAX) {
+        sol_flow_send_error_packet(node, ERANGE,
+            "Delta is too big: %s", sol_util_strerrora(errno));
+        return 0;
+    }
+    output = result;
+
+    return sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_TIMESTAMP_DELTA__OUT__OUT, output);
+}
+
 #include "timestamp-gen.c"
