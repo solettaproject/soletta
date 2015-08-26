@@ -45,80 +45,69 @@ struct console_data {
     bool flush;
 };
 
+SOL_ATTR_PRINTF(2, 3) static void
+console_output(struct console_data *mdata, const char *fmt, ...)
+{
+    va_list ap;
+
+    fputs(mdata->prefix, mdata->fp);
+
+    va_start(ap, fmt);
+    vfprintf(mdata->fp, fmt, ap);
+    va_end(ap);
+
+    fprintf(mdata->fp, "%s\n", mdata->suffix);
+}
+
 static int
 console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct console_data *mdata = data;
 
     if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_EMPTY) {
-        fprintf(mdata->fp, "%s(empty)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            mdata->suffix ? mdata->suffix : "");
+        console_output(mdata, "(empty)");
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BOOLEAN) {
         bool value;
         int r = sol_flow_packet_get_boolean(packet, &value);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%s (boolean)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            value ? "true" : "false",
-            mdata->suffix ? mdata->suffix : "");
+        console_output(mdata, "%s (boolean)", value ? "true" : "false");
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BYTE) {
         unsigned char value;
         int r = sol_flow_packet_get_byte(packet, &value);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s#%02x (byte)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            value,
-            mdata->suffix ? mdata->suffix : "");
+        console_output(mdata, "#%02x (byte)", value);
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_IRANGE) {
         int32_t val;
         int r = sol_flow_packet_get_irange_value(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%" PRId32 " (integer range)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            val,
-            mdata->suffix ? mdata->suffix : "");
+        console_output(mdata, "%" PRId32 " (integer range)", val);
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_DRANGE) {
         double val;
         int r = sol_flow_packet_get_drange_value(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%f (float range)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            val,
-            mdata->suffix ? mdata->suffix : "");
+        console_output(mdata, "%f (float range)", val);
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_RGB) {
         uint32_t red, green, blue;
         int r = sol_flow_packet_get_rgb_components(packet, &red, &green, &blue);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s(%" PRIu32 ", %" PRIu32 ", %" PRIu32 ") (rgb)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            red, green, blue,
-            mdata->suffix ? mdata->suffix : "");
+        console_output(mdata, "(%" PRIu32 ", %" PRIu32 ", %" PRIu32 ") (rgb)", red, green, blue);
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR) {
         double x, y, z;
         int r = sol_flow_packet_get_direction_vector_components(packet, &x, &y, &z);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s(%lf, %lf, %lf) (direction-vector)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            x, y, z,
-            mdata->suffix ? mdata->suffix : "");
+        console_output(mdata, "(%lf, %lf, %lf) (direction-vector)", x, y, z);
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_LOCATION) {
         struct sol_location location;
         int r = sol_flow_packet_get_location(packet, &location);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%slatitude=%g, longitude=%g altitude=%g (location)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            location.lat, location.lon, location.alt,
-            mdata->suffix ? mdata->suffix : "");
+        console_output(mdata, "latitude=%g, longitude=%g altitude=%g (location)",
+            location.lat, location.lon, location.alt);
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_STRING) {
         const char *val;
 
         int r = sol_flow_packet_get_string(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%s%s (string)%s\n",
-            mdata->prefix ? mdata->prefix : "",
-            val,
-            mdata->suffix ? mdata->suffix : "");
+        console_output(mdata, "%s (string)", val);
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_BLOB) {
         struct sol_blob *val;
         const char *buf, *bufend;
@@ -126,8 +115,7 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         int r = sol_flow_packet_get_blob(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
         fprintf(mdata->fp, "%stype=%p, parent=%p, size=%zd, refcnt=%hu, mem=%p {",
-            mdata->prefix ? mdata->prefix : "",
-            val->type, val->parent, val->size, val->refcnt, val->mem);
+            mdata->prefix, val->type, val->parent, val->size, val->refcnt, val->mem);
 
         buf = val->mem;
         bufend = buf + val->size;
@@ -140,18 +128,14 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
                 fputs(", ", mdata->fp);
         }
 
-        fprintf(mdata->fp, "} (blob)%s\n",
-            mdata->suffix ? mdata->suffix : "");
+        fprintf(mdata->fp, "} (blob)%s\n", mdata->suffix);
     } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_ERROR) {
         int code;
         const char *msg;
         int r = sol_flow_packet_get_error(packet, &code, &msg);
         SOL_INT_CHECK(r, < 0, r);
         fprintf(mdata->fp, "%s#%02x (error)%s - %s\n",
-            mdata->prefix ? mdata->prefix : "",
-            code,
-            mdata->suffix ? mdata->suffix : "",
-            msg ? : "");
+            mdata->prefix, code, mdata->suffix, msg ? : "");
     } else {
         SOL_WRN("Unsupported packet=%p type=%p (%s)",
             packet, sol_flow_packet_get_type(packet), sol_flow_packet_get_type(packet)->name);
@@ -163,6 +147,8 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
     return 0;
 }
+
+static const char empty_string[] = "";
 
 static int
 console_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
@@ -190,6 +176,10 @@ console_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
         mdata->prefix = strdup(buf);
     }
 
+    if (!mdata->suffix) {
+        mdata->suffix = (char *)empty_string;
+    }
+
 end:
     return 0;
 }
@@ -200,7 +190,8 @@ console_close(struct sol_flow_node *node, void *data)
     struct console_data *mdata = data;
 
     free(mdata->prefix);
-    free(mdata->suffix);
+    if (mdata->suffix != empty_string)
+        free(mdata->suffix);
 }
 
 #include "console-gen.c"
