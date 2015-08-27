@@ -47,6 +47,93 @@
 #include <unistd.h>
 #endif
 
+#ifdef SOL_PLATFORM_LINUX
+static int
+getrandom_shim(void *buf, size_t buflen, unsigned int flags)
+{
+    int fd;
+    ssize_t ret;
+
+#ifdef SYS_getrandom
+    /* No wrappers are commonly available for this system call yet, so
+     * use syscall(2) directly. */
+    long gr_ret = syscall(SYS_getrandom, buf, buflen, flags);
+    if (gr_ret >= 0)
+        return gr_ret;
+#endif
+
+    fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
+        errno = EIO;
+        return -1;
+    }
+
+    ret = read(fd, buf, buflen);
+    close(fd);
+
+    return ret;
+}
+#endif /* SOL_PLATFORM_LINUX */
+
+static int
+get_platform_seed(int seed)
+{
+    int ret;
+
+    /* If a seed is provided, use it. */
+    if (seed)
+        return seed;
+
+#ifdef SOL_PLATFORM_LINUX
+    /* Use Linux-specific getrandom(2) if available to initialize the
+     * seed.  If syscall isn't available, read from /dev/urandom instead. */
+    ret = getrandom_shim(&seed, sizeof(seed), 0);
+    if (ret == sizeof(seed))
+        return seed;
+#endif /* SOL_PLATFORM_LINUX */
+
+    /* Fall back to using a bad source of entropy if platform-specific,
+     * higher quality random sources, are unavailable. */
+    return (int)time(NULL);
+}
+
+#ifdef HAVE_RANDOM_R
+
+struct random_node_data {
+    char buffer[32];
+    struct random_data state;
+};
+
+static unsigned int
+get_random_uint(struct random_node_data *mdata)
+{
+    int32_t result;
+
+    /* Return code ignored: no error case is possible at this point. */
+    (void)random_r(&mdata->state, &result);
+
+    return result;
+}
+
+static int
+get_random_int(struct random_node_data *mdata)
+{
+    return get_random_uint(mdata);
+}
+
+static bool
+initialize_seed(struct random_node_data *mdata, int seed)
+{
+    memset(&mdata->state, 0, sizeof(mdata->state));
+
+    /* Return code ignored: no error case is possible at this point. */
+    (void)initstate_r(get_platform_seed(seed), mdata->buffer, sizeof(mdata->buffer), &mdata->state);
+
+    return true;
+}
+
+#else /* HAVE_RANDOM_R */
+
 /* This implementation is a direct pseudocode-to-C conversion from the Wikipedia
  * article about Mersenne Twister (MT19937). */
 
@@ -89,60 +176,11 @@ static int
 get_random_int(struct random_node_data *mdata)
 {
     unsigned int value = get_random_uint(mdata);
-    return (int)(value >> 1); /* kill sign bit */
+
+    return (int)(value >> 1UL); /* kill sign bit */
 }
 
-#ifdef SOL_PLATFORM_LINUX
-static int
-getrandom_shim(void *buf, size_t buflen, unsigned int flags)
-{
-    int fd;
-    ssize_t ret;
-
-#ifdef SYS_getrandom
-    /* No wrappers are commonly available for this system call yet, so
-     * use syscall(2) directly. */
-    long gr_ret = syscall(SYS_getrandom, buf, buflen, flags);
-    if (gr_ret >= 0)
-        return gr_ret;
-#endif
-
-    fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
-    if (fd < 0) {
-        errno = EIO;
-        return -1;
-    }
-
-    ret = read(fd, buf, buflen);
-    close(fd);
-
-    return ret;
-}
-#endif /* SOL_PLATFORM_LINUX */
-
-static unsigned int
-get_platform_seed(int seed)
-{
-    int ret;
-
-    /* If a seed is provided, use it. */
-    if (seed)
-        return (unsigned int)seed;
-
-#ifdef SOL_PLATFORM_LINUX
-    /* Use Linux-specific getrandom(2) if available to initialize the
-     * seed.  If syscall isn't available, read from /dev/urandom instead. */
-    ret = getrandom_shim(&seed, sizeof(seed), 0);
-    if (ret == sizeof(seed))
-        return seed;
-#endif /* SOL_PLATFORM_LINUX */
-
-    /* Fall back to using a bad source of entropy if platform-specific,
-     * higher quality random sources, are unavailable. */
-    return time(NULL);
-}
-
-static void
+static bool
 initialize_seed(struct random_node_data *mdata, int seed)
 {
     const size_t state_array_size = ARRAY_SIZE(mdata->state);
@@ -152,7 +190,11 @@ initialize_seed(struct random_node_data *mdata, int seed)
     mdata->state[0] = get_platform_seed(seed);
     for (i = 1; i < state_array_size; i++)
         mdata->state[i] = i + 0x6c078965UL * (mdata->state[i - 1] ^ (mdata->state[i - 1] >> 30UL));
+
+    return true;
 }
+
+#endif /* HAVE_RANDOM_R */
 
 static int
 random_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
@@ -164,7 +206,10 @@ random_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
        multiple node types */
     opts = (const struct sol_flow_node_type_random_int_options *)options;
 
-    initialize_seed(mdata, opts->seed.val);
+    if (!initialize_seed(mdata, opts->seed.val)) {
+        SOL_ERR("Could not initialize random seed: %s", sol_util_strerrora(errno));
+        return -EINVAL;
+    }
 
     return 0;
 }

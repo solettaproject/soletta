@@ -274,6 +274,14 @@
       "fragment": "strndupa(0, 0);"
     },
     {
+      "dependency": "random_r",
+      "type": "ccode",
+      "headers": [
+        "<stdlib.h>"
+      ],
+      "fragment": "random_r(NULL, NULL);"
+    },
+    {
       "dependency": "builtin_mul_overflow",
       "type": "ccode",
       "fragment": "__builtin_mul_overflow(0ULL, 0ULL, (unsigned long long *)0);"
