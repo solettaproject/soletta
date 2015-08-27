@@ -633,7 +633,7 @@ replace:
     if (!mdata->forward_on_no_match && !replaced) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
             "Fail on matching '%s' on string"
-            " %s\n", mdata->from_string, mdata->orig_string);
+            " %s", mdata->from_string, mdata->orig_string);
         free(orig_string_replaced);
         return -EINVAL;
     }
