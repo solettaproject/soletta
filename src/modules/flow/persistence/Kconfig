@@ -1,0 +1,3 @@
+config FLOW_NODE_TYPE_PERSISTENCE
+	tristate "Node type: persistence"
+	default m
