@@ -172,7 +172,7 @@ sol_socket_new(int domain, enum sol_socket_type type, int protocol)
     return s;
 calloc_error:
     close(fd);
-    return NULL:
+    return NULL;
 }
 
 SOL_API void
