@@ -166,12 +166,13 @@ persist_process(struct sol_flow_node *node,
     const struct sol_flow_packet *packet)
 {
     struct persist_data *mdata = data;
-    unsigned char value[mdata->packet_data_size];
+    unsigned char *value;
     void *value_ptr = NULL;
     size_t size = 0;
     int r;
 
     if (mdata->packet_data_size) {
+        value = alloca(mdata->packet_data_size);
         r = mdata->packet_data_get_fn(packet, value);
     } else {
         r = mdata->packet_data_get_fn(packet, &value_ptr);
