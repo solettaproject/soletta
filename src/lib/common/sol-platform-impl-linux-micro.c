@@ -784,6 +784,51 @@ sol_platform_impl_set_target(const char *target)
     return 0;
 }
 
+static int
+validate_machine_id(char id[37])
+{
+    /* The stored machine-UUID we expect is at non-hyphenated form */
+    if (id[32] != '\n')
+        return -EINVAL;
+
+    id[32] = 0;
+
+    if (!sol_util_uuid_str_valid(id))
+        return -EINVAL;
+
+    id[32] = '\n';
+    id[33] = 0;
+
+    return 0;
+}
+
+int
+sol_platform_impl_get_machine_id(char id[37])
+{
+    const char *etc_path, *run_path;
+    int r;
+
+    etc_path = "/etc/machine-id";
+    run_path = "/run/machine-id";
+
+    r = sol_util_read_file(etc_path, "%37c", id);
+    if (r < 0) {
+        /* We can only tolerate the file not existing or being
+         * malformed on /etc/, otherwise it's got more serious
+         * problems and it's better to fail */
+        if (r != -ENOENT && r != EOF)
+            goto run;
+    } else
+        return validate_machine_id(id);
+
+run:
+    r = sol_util_read_file(run_path, "%37c", id);
+    if (r < 0) {
+        return r;
+    } else
+        return validate_machine_id(id);
+}
+
 SOL_API void
 sol_platform_linux_micro_inform_service_state(const char *service, enum sol_platform_service_state state)
 {

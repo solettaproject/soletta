@@ -21,7 +21,7 @@ warning-msg := "You're building the string nodes module without Perl regular exp
 endif
 
 obj-$(FLOW_NODE_TYPE_STRING) += string.mod
-obj-string-$(FLOW_NODE_TYPE_STRING) := string.json string-regexp.o
+obj-string-$(FLOW_NODE_TYPE_STRING) := string.json string-regexp.o string-uuid.o
 
 ifeq (y,$(USE_ICU))
 obj-string-$(FLOW_NODE_TYPE_STRING) += string-icu.o string-replace-icu.o
