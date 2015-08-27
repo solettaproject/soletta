@@ -1585,16 +1585,29 @@ json_token_to_bool(struct sol_json_token *token, bool *out)
     return code.replace('\n\n\n', '\n')
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--schema-dir",
+                        help="Directory where JSON schemas are located",
+                        required=True)
+    parser.add_argument("--node-type-json",
+                        help="Path to store the master JSON with node type information",
+                        required=True)
+    parser.add_argument("--node-type-impl",
+                        help="Path to store the node type implementation",
+                        required=True)
+    args = parser.parse_args()
+
     def seems_schema(path):
         return path.endswith('.json') and (path.startswith('oic.r.') or path.startswith('core.'))
 
     generated = []
     print('Generating code for schemas: ', end='')
-    for path in (f for f in os.listdir(sys.argv[1]) if seems_schema(f)):
+    for path in (f for f in os.listdir(args.schema_dir) if seems_schema(f)):
         print(path, end=', ')
 
         try:
-            for code in generate_for_schema(sys.argv[1], path):
+            for code in generate_for_schema(args.schema_dir, path):
                 generated.append(code)
         except KeyError as e:
             if e.args[0] == 'array':
@@ -1606,13 +1619,13 @@ if __name__ == '__main__':
             traceback.print_exc(e, file=sys.stderr)
             continue
 
-    print('\nWriting master JSON: %s' % sys.argv[2])
-    open(sys.argv[2], 'w+').write(master_json_as_string(generated))
+    print('\nWriting master JSON: %s' % args.node_type_json)
+    open(args.node_type_json, 'w+').write(master_json_as_string(generated))
 
-    print('Writing C: %s' % sys.argv[3])
-    open(sys.argv[3], 'w+').write(master_c_as_string(generated))
+    print('Writing C: %s' % args.node_type_impl)
+    open(args.node_type_impl, 'w+').write(master_c_as_string(generated))
     if os.path.exists('/usr/bin/indent'):
         print('Indenting generated C.')
-        os.system("/usr/bin/indent -kr -l120 '%s'" % sys.argv[3])
+        os.system("/usr/bin/indent -kr -l120 '%s'" % args.node_type_impl)
 
     print('Done.')
