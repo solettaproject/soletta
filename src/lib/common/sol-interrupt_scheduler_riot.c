@@ -77,6 +77,12 @@ sol_interrupt_scheduler_set_pid(kernel_pid_t p)
     pid = p;
 }
 
+kernel_pid_t
+sol_interrupt_scheduler_get_pid(void)
+{
+    return pid;
+}
+
 /* Run in interrupt context */
 static void
 gpio_cb(void *data)
@@ -242,6 +248,14 @@ sol_interrupt_scheduler_process(msg_t *msg)
         interrupt_data_base_unref(&int_data->base);
         break;
     }
+#endif
+#ifdef NETWORK
+    case GNRC_NETAPI_MSG_TYPE_RCV:
+    case GNRC_NETAPI_MSG_TYPE_SND:
+    case GNRC_NETAPI_MSG_TYPE_SET:
+    case GNRC_NETAPI_MSG_TYPE_GET:
+        sol_network_msg_dispatch(msg);
+        break;
 #endif
     }
 }

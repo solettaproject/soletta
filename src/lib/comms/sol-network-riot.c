@@ -33,11 +33,11 @@
 #include <netinet/in.h>
 #include <errno.h>
 
-#if MODULE_NG_IPV6_NETIF
-# include "net/ng_ipv6/addr.h"
-# include "net/ng_ipv6/netif.h"
+#if MODULE_GNRC_IPV6_NETIF
+# include "net/ipv6/addr.h"
+# include "net/gnrc/ipv6/netif.h"
 #endif
-#include "net/ng_netif.h"
+#include "net/gnrc/netif.h"
 
 #include "sol-log.h"
 #include "sol-util.h"
@@ -51,23 +51,41 @@ SOL_API const char *
 sol_network_addr_to_str(const struct sol_network_link_addr *addr,
     char *buf, socklen_t len)
 {
-#if MODULE_NG_IPV6_NETIF
+#if MODULE_GNRC_IPV6_NETIF
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
     if (addr->family != AF_INET6)
         return NULL;
 
-    return ng_ipv6_addr_to_str(buf, (ng_ipv6_addr_t *)&addr->addr, len);
+    return ipv6_addr_to_str(buf, (ipv6_addr_t *)&addr->addr, len);
+#else
+    return NULL;
+#endif
+}
+
+SOL_API const struct sol_network_link_addr *
+sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
+{
+#if MODULE_GNRC_IPV6_NETIF
+    SOL_NULL_CHECK(addr, NULL);
+    SOL_NULL_CHECK(buf, NULL);
+
+    if (addr->family != AF_INET6)
+        return NULL;
+
+    if (!ipv6_addr_from_str((ipv6_addr_t *)&addr->addr, buf))
+        return NULL;
+    return addr;
 #else
     return NULL;
 #endif
 }
 
 static int
-add_ip6_link(int idx, ng_ipv6_netif_t *if_ip6)
+add_ip6_link(int idx, gnrc_ipv6_netif_t *if_ip6)
 {
-#if MODULE_NG_IPV6_NETIF
+#if MODULE_GNRC_IPV6_NETIF
     int i;
     struct sol_network_link *link;
 
@@ -80,11 +98,11 @@ add_ip6_link(int idx, ng_ipv6_netif_t *if_ip6)
     link->index = idx;
     link->flags = 0;
 
-    for (i = 0; i < NG_IPV6_NETIF_ADDR_NUMOF; i++) {
+    for (i = 0; i < GNRC_IPV6_NETIF_ADDR_NUMOF; i++) {
         struct sol_network_link_addr *addr;
-        ng_ipv6_netif_addr_t *netif_addr = &if_ip6->addrs[i];
+        gnrc_ipv6_netif_addr_t *netif_addr = &if_ip6->addrs[i];
 
-        if (ng_ipv6_addr_is_unspecified(&netif_addr->addr))
+        if (ipv6_addr_is_unspecified(&netif_addr->addr))
             continue;
 
         addr = sol_vector_append(&link->addrs);
@@ -94,7 +112,7 @@ add_ip6_link(int idx, ng_ipv6_netif_t *if_ip6)
         memcpy(addr->addr.in6, netif_addr->addr.u8, sizeof(addr->addr.in6));
 
         link->flags |= SOL_NETWORK_LINK_UP;
-        if (ng_ipv6_addr_is_multicast(&netif_addr->addr))
+        if (ipv6_addr_is_multicast(&netif_addr->addr))
             link->flags |= SOL_NETWORK_LINK_MULTICAST;
     }
 
@@ -112,14 +130,14 @@ SOL_API bool
 sol_network_init(void)
 {
     size_t i, if_count;
-    kernel_pid_t ifs[NG_NETIF_NUMOF];
+    kernel_pid_t ifs[GNRC_NETIF_NUMOF];
 
-    if_count = ng_netif_get(ifs);
+    if_count = gnrc_netif_get(ifs);
 
     for (i = 0; i < if_count; i++) {
-        ng_ipv6_netif_t *ip6 = ng_ipv6_netif_get(ifs[i]);
+        gnrc_ipv6_netif_t *ip6 = gnrc_ipv6_netif_get(ifs[i]);
         if (ip6) {
-            if (add_ip6_link(i, ip6)) {
+            if (add_ip6_link(ifs[i], ip6)) {
                 sol_vector_clear(&links);
                 return false;
             }

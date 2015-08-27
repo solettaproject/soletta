@@ -32,9 +32,7 @@
 
 #pragma once
 
-#include <endian.h>
-
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 struct coap_header {
     uint8_t ver : 2;
     uint8_t type : 2;
@@ -42,7 +40,7 @@ struct coap_header {
     uint8_t code;
     uint16_t id;
 } __attribute__ ((packed));
-#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 struct coap_header {
     uint8_t tkl : 4;
     uint8_t type : 2;

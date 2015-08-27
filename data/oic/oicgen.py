@@ -978,17 +978,17 @@ initialize_multicast_addresses_once(void)
         return true;
 
     multicast_ipv4 = (struct sol_network_link_addr) { .family = AF_INET, .port = DEFAULT_UDP_PORT };
-    if (inet_pton(AF_INET, MULTICAST_ADDRESS_IPv4, &multicast_ipv4.addr) < 0) {
+    if (!sol_network_addr_from_str(&multicast_ipv4, MULTICAST_ADDRESS_IPv4)) {
         SOL_WRN("Could not parse multicast IP address");
         return false;
     }
     multicast_ipv6_local = (struct sol_network_link_addr) { .family = AF_INET6, .port = DEFAULT_UDP_PORT };
-    if (inet_pton(AF_INET6, MULTICAST_ADDRESS_IPv6_LOCAL, &multicast_ipv6_local.addr) < 0) {
+    if (!sol_network_addr_from_str(&multicast_ipv6_local, MULTICAST_ADDRESS_IPv6_LOCAL)) {
         SOL_WRN("Could not parse multicast IP address");
         return false;
     }
     multicast_ipv6_site = (struct sol_network_link_addr) { .family = AF_INET6, .port = DEFAULT_UDP_PORT };
-    if (inet_pton(AF_INET6, MULTICAST_ADDRESS_IPv6_SITE, &multicast_ipv6_site.addr) < 0) {
+    if (!sol_network_addr_from_str(&multicast_ipv6_site, MULTICAST_ADDRESS_IPv6_SITE)) {
         SOL_WRN("Could not parse multicast IP address");
         return false;
     }
@@ -1026,7 +1026,7 @@ find_device_by_hwaddr_arp_cache(const char *hwaddr, struct sol_network_link_addr
             continue;
 
         buffer[15] = '\\0';
-        if (inet_pton(AF_INET, buffer, &addr->addr) < 0) {
+        if (!sol_network_addr_from_str(addr, buffer)) {
             SOL_WRN("Could not parse IP address '%%s'", buffer);
             goto out;
         }
@@ -1095,7 +1095,7 @@ find_device_by_hwaddr_ipv6(const char *hwaddr, struct sol_network_link_addr *add
         struct sol_network_link_addr tentative_addr = { .family = AF_INET };
         const char *ipv4addr = addrstr + sizeof("::ffff:") - 1;
 
-        if (inet_pton(tentative_addr.family, ipv4addr, &tentative_addr.addr) < 0)
+        if (!sol_network_addr_from_str(&tentative_addr, ipv4addr))
             return false;
         return find_device_by_hwaddr_ipv4(hwaddr, &tentative_addr);
     }
