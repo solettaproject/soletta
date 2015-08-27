@@ -33,6 +33,20 @@
 #include "label.h"
 #include "gtk-gen.h"
 
+static void
+set_min_size(GtkWidget *widget)
+{
+    GtkRequisition natural_size = {};
+    int width = 100;
+
+    gtk_widget_get_preferred_size(widget, NULL, &natural_size);
+
+    if (natural_size.width > width)
+        width = natural_size.width;
+
+    gtk_widget_set_size_request(widget, width, natural_size.height);
+}
+
 static int
 label_setup(struct gtk_common_data *mdata,
     const struct sol_flow_node_options *options)
@@ -40,6 +54,7 @@ label_setup(struct gtk_common_data *mdata,
 
     mdata->widget = gtk_label_new(NULL);
     g_object_set(mdata->widget, "halign", GTK_ALIGN_CENTER, NULL);
+    set_min_size(mdata->widget);
 
     return 0;
 }
