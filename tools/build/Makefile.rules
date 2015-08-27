@@ -316,7 +316,7 @@ find-gen-hdrs = $(foreach gen,$($(2)-gens),$($(gen)-hdr))
 external-module-flags = -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 -DSOL_PIN_MUX_MODULE_EXTERNAL=1 -DSOL_FLOW_METATYPE_MODULE_EXTERNAL=1
 
 define make-object
-$(1): $(PRE_GEN) $($(1)-src) $(call find-deps,$(2)) $(find-gen-hdrs) $(all-hdr)
+$(1): $(PRE_GEN) $($(1)-src) $(call find-deps,$(2)) $(find-gen-hdrs) $(all-hdr) $(1).dep
 	$(Q)echo "      "CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(1))
 	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) $($(1)-src) -c -o $(1) $(3)
