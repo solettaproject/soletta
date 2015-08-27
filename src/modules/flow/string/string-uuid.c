@@ -30,75 +30,50 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <errno.h>
-#include <stdlib.h>
+#include <ctype.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
+#include "sol-flow-internal.h"
 #include "sol-platform.h"
-#include "sol-platform-impl.h"
+
+#include "string-gen.h"
+#include "string-uuid.h"
 
 int
-sol_platform_impl_init(void)
+string_uuid_gen(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
 {
-    return 0;
-}
+    int r;
+    char id[37] = { 0 };
+    struct string_uuid_data *mdata = data;
 
-void
-sol_platform_impl_shutdown(void)
-{
-}
+    r = sol_util_uuid_gen(mdata->upcase, mdata->with_hyphens, id);
+    SOL_INT_CHECK(r, < 0, r);
 
-int
-sol_platform_impl_get_state(void)
-{
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
-}
-
-int
-sol_platform_impl_add_service_monitor(const char *service)
-{
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
+    return sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_STRING_UUID__OUT__OUT, id);
 }
 
 int
-sol_platform_impl_del_service_monitor(const char *service)
+string_uuid_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
 {
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
-}
+    struct string_uuid_data *mdata = data;
+    const struct sol_flow_node_type_string_uuid_options *opts;
 
-int
-sol_platform_impl_start_service(const char *service)
-{
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
-}
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
+        (options, SOL_FLOW_NODE_TYPE_STRING_UUID_OPTIONS_API_VERSION, -EINVAL);
+    opts = (const struct sol_flow_node_type_string_uuid_options *)options;
 
-int
-sol_platform_impl_stop_service(const char *service)
-{
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
-}
+    mdata->node = node;
+    mdata->with_hyphens = opts->with_hyphens;
+    mdata->upcase = opts->upcase;
 
-int
-sol_platform_impl_restart_service(const char *service)
-{
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
-}
-
-int
-sol_platform_impl_set_target(const char *target)
-{
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
-}
-
-int
-sol_platform_impl_get_machine_id(char id[static 33])
-{
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
+    return string_uuid_gen(node, data, 0, 0, NULL);
 }

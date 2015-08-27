@@ -784,6 +784,41 @@ sol_platform_impl_set_target(const char *target)
     return 0;
 }
 
+static int
+validate_machine_id(char id[static 33])
+{
+    id[32] = '\0';
+
+    if (!sol_util_uuid_str_valid(id))
+        return -EINVAL;
+
+    return 0;
+}
+
+int
+sol_platform_impl_get_machine_id(char id[static 33])
+{
+    static const char *etc_path = "/etc/machine-id",
+    *run_path = "/run/machine-id";
+    int r;
+
+    r = sol_util_read_file(etc_path, "%33c", id);
+    if (r < 0) {
+        /* We can only tolerate the file not existing or being
+         * malformed on /etc/, otherwise it's got more serious
+         * problems and it's better to fail */
+        if (r == -ENOENT || r == EOF)
+            return r; /* else proceed to run_path */
+    } else
+        return validate_machine_id(id);
+
+    r = sol_util_read_file(run_path, "%33c", id);
+    if (r < 0) {
+        return r;
+    } else
+        return validate_machine_id(id);
+}
+
 SOL_API void
 sol_platform_linux_micro_inform_service_state(const char *service, enum sol_platform_service_state state)
 {

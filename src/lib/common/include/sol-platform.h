@@ -61,6 +61,22 @@ extern "C" {
 
 const char *sol_platform_get_board_name(void);
 
+/**
+ * Retrieves, in @a id, the machine-id present in the file system. The
+ * returned string is assured to be a valid, 16 bytes-long (128 bits)
+ * UUID.
+ *
+ * @param id Where to store the found machine id. It's 33 bytes in lenght
+ *           so it accomodates the maximum lenght case -- 2 * 16
+ *           (chars) + 1 (\0)
+ *
+ * @note: If the environment variable SOL_MACHINE_ID is set and is
+ * properly formatted as a UUID, its value is returned by this call.
+ *
+ * @return 0 on success, negative error code otherwise.
+ */
+int sol_platform_get_machine_id(char id[static 33]);
+
 enum sol_platform_state {
     SOL_PLATFORM_STATE_INITIALIZING,
     SOL_PLATFORM_STATE_RUNNING,
