@@ -50,6 +50,7 @@ enum sol_http_method {
     SOL_HTTP_METHOD_GET,
     SOL_HTTP_METHOD_POST,
     SOL_HTTP_METHOD_HEAD,
+    SOL_HTTP_METHOD_INVALID
 };
 
 enum sol_http_param_type {
