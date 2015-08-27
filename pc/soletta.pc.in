@@ -11,4 +11,4 @@ Description: SOLETTA io library
 Version: {{@VERSION@}}
 Libs: -L${libdir} -lsoletta
 Cflags: -I${includedir}/soletta
-Requires.private: {{@requires-private-y@}}
+Requires.private: {{@requires-private@}}
