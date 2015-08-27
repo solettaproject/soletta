@@ -1996,6 +1996,52 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-blob.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a timestamp packet and convert to string.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Where to receive the timestamp to be converted.",
+          "methods": {
+            "process": "timestamp_to_string_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/timestamp-to-string",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Packet with formatted date and time.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/timestamp-to-string.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a string packet and convert to timestamp.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string to be converted.",
+          "methods": {
+            "process": "string_to_timestamp_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/string-to-timestamp",
+      "out_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Packet with timestamp converted from string received on port IN using format set on options.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-timestamp.html"
     }
   ]
 }

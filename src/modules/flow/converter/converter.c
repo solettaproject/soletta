@@ -41,6 +41,7 @@ SOL_LOG_INTERNAL_DECLARE(_converter_log_domain, "flow-converter");
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 struct sol_converter_byte {
     unsigned char min;
@@ -1969,6 +1970,65 @@ string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
 
     sol_blob_unref(blob);
     return ret;
+}
+
+static int
+timestamp_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    time_t in_value;
+    struct tm time_tm;
+    int r;
+    char out_value[128];
+
+    r = sol_flow_packet_get_timestamp(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    tzset();
+    if (!localtime_r(&in_value, &time_tm))
+        goto timestamp_error;
+
+    r = strftime(out_value, sizeof(out_value), "%Y-%m-%dT%H:%M:%SZ",
+        &time_tm);
+    if (!r)
+        goto timestamp_error;
+
+    return sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_TIMESTAMP_TO_STRING__OUT__OUT,
+        out_value);
+
+timestamp_error:
+    sol_flow_send_error_packet(node, EINVAL, "Failed to convert timestamp");
+    return 0;
+}
+
+static int
+string_to_timestamp_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    const char *in_value;
+    char *timestamp_str;
+    time_t out_value;
+    struct tm time_tm = { 0 };
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    timestamp_str = strptime(in_value, "%Y-%m-%dT%H:%M:%SZ", &time_tm);
+    if (!timestamp_str)
+        goto timestamp_error;
+
+    out_value = mktime(&time_tm);
+    if (out_value < 0)
+        goto timestamp_error;
+
+    return sol_flow_send_timestamp_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_TIMESTAMP__OUT__OUT,
+        &out_value);
+
+timestamp_error:
+    sol_flow_send_error_packet(node, EINVAL,
+        "Failed to convert string to timestamp");
+    return 0;
 }
 
 #include "converter-gen.c"

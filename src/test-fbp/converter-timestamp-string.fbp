@@ -1,0 +1,80 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+StringTimestamp(converter/string-to-timestamp)
+TimestampString(converter/timestamp-to-string)
+
+MkTime(timestamp/make-time)
+
+Year(constant/int:value=2015)
+Month(constant/int:value=8)
+Day(constant/int:value=26)
+Hour(constant/int:value=15)
+Minute(constant/int:value=20)
+Second(constant/int:value=59)
+
+TimestampConverted(constant/string:value="2015-08-26T15:20:59Z")
+
+String(constant/string:value="2016-09-23T09:30:00Z")
+
+StringConverted(timestamp/make-time)
+
+CYear(constant/int:value=2016)
+CMonth(constant/int:value=9)
+CDay(constant/int:value=23)
+CHour(constant/int:value=9)
+CMinute(constant/int:value=30)
+CSecond(constant/int:value=0)
+
+StringEqual(string/compare)
+TimestampEqual(timestamp/equal)
+
+Year OUT -> YEAR MkTime
+Month OUT -> MONTH MkTime
+Day OUT -> MONTH_DAY MkTime
+Hour OUT -> HOUR MkTime
+Minute OUT -> MINUTE MkTime
+Second OUT -> SECOND MkTime
+
+TimestampConverted OUT -> IN[0] StringEqual
+MkTime OUT -> IN TimestampString OUT -> IN[1] StringEqual
+StringEqual EQUAL -> RESULT result_timestamp_convert(test/result)
+
+CYear OUT -> YEAR StringConverted
+CMonth OUT -> MONTH StringConverted
+CDay OUT -> MONTH_DAY StringConverted
+CHour OUT -> HOUR StringConverted
+CMinute OUT -> MINUTE StringConverted
+CSecond OUT -> SECOND StringConverted
+
+StringConverted OUT -> IN[0] TimestampEqual
+String OUT -> IN StringTimestamp OUT -> IN[1] TimestampEqual
+TimestampEqual OUT -> RESULT result_string_convert(test/result)
