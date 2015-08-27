@@ -445,11 +445,11 @@ wallclock_timeblock_open(struct sol_flow_node *node,
         options;
 
     if (opts->interval.val < 1) {
-        SOL_WRN("Invalid interval %d. Setting interval to 1",
+        SOL_WRN("Invalid interval %" PRId32 ". Setting interval to 1",
             opts->interval.val);
         mdata->interval = 1;
     } else if (opts->interval.val > MINUTES_IN_DAY) {
-        SOL_WRN("Invalid interval %d. Setting interval to %d",
+        SOL_WRN("Invalid interval %" PRId32 ". Setting interval to %d",
             opts->interval.val,
             MINUTES_IN_DAY);
         mdata->interval = MINUTES_IN_DAY;

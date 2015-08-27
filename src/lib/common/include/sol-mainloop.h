@@ -100,7 +100,7 @@ extern "C" {
  * @author Ulisses Furquim <ulisses.furquim@intel.com>
  * @author Vinicius Costa Gomes <vinicius.gomes@intel.com>
  *
- * Please contact <soletta-dev@ml01.01.org> to get in contact with the
+ * Please contact <soletta-dev@solettaproject.org> to get in contact with the
  * developers and maintainers.
  */
 

@@ -152,7 +152,7 @@ main(int argc, char *argv[])
         sol_coap_add_option(req, SOL_COAP_OPTION_URI_PATH, context.path[i].data, context.path[i].len);
 
     cliaddr.family = AF_INET;
-    if (inet_pton(cliaddr.family, argv[1], &cliaddr.addr) < 0) {
+    if (!sol_network_addr_from_str(&cliaddr, argv[1])) {
         SOL_WRN("%s is an invalid IPv4 address", argv[1]);
         free(context.path);
         sol_coap_packet_unref(req);

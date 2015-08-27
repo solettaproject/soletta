@@ -101,6 +101,7 @@ struct sol_network_link {
 
 const char *sol_network_addr_to_str(const struct sol_network_link_addr *addr,
     char *buf, socklen_t len);
+const struct sol_network_link_addr *sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf);
 bool sol_network_link_addr_eq(const struct sol_network_link_addr *a,
     const struct sol_network_link_addr *b);
 
