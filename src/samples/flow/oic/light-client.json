@@ -6,7 +6,7 @@
    "options": {
     "hwaddr": "08:00:27:ab:45:32"
    },
-   "type": "oic/client-core-brightlight"
+   "type": "oic/client-brightlight"
   }
  ]
 }
