@@ -35,4 +35,4 @@ obj-string-$(FLOW_NODE_TYPE_STRING)-extra-ldflags += $(LOCALE_LDFLAGS) $(ICU_LDF
 
 requires-private-$(FLOW_NODE_TYPE_STRING) := \
     $(ICU_REQUIRES_PRIVATE) \
-    $(LIBPCRE_LDFLAGS)
+    $(LIBPCRE_REQUIRES_PRIVATE)

@@ -179,7 +179,8 @@ parse-warnings = \
 
 clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) \
 		$(eval test-y:=) $(eval test-internal-y:=) $(eval sample-y:=) $(eval headers-m:=) \
-		$(eval warning-msg:=) $(eval warning-msg-y:=) $(eval warning-msg-m:=)
+		$(eval warning-msg:=) $(eval warning-msg-y:=) $(eval warning-msg-m:=) \
+		$(eval requires-private-y:=)
 
 inc-subdirs = \
 	$(foreach subdir,$(SUBDIRS), $(clean-control) \
@@ -217,9 +218,11 @@ inc-subdirs = \
 		$(foreach sample,$(sample-y), \
 			$(call parse-sample,$(sample),$(subdir)) \
 		) \
+		$(eval requires-private += $(requires-private-y)) \
 		$(clean-control) \
 	) \
-	export requires-private-y
+	$(eval requires-private := $(sort $(requires-private))) \
+	export requires-private
 
 extra-bins = \
 	$(foreach bin,$(EXTRA_BINS), \
