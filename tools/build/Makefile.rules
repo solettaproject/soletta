@@ -403,7 +403,7 @@ $(eval $(call install-resource,$(GDB_AUTOLOAD_PY),$(GDB_AUTOLOAD_PY_DEST)))
 
 $(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT)
 	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) $(FLOW_OIC_SPEC_DIR) $(FLOW_OIC_GEN) &>/dev/null
+	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) --schema-dir=$(FLOW_OIC_SPEC_DIR) --node-type-json=$(dir $(@))oic.json --node-type-impl=$(dir $(@))oic.c &>/dev/null
 
 $(FLOW_NODE_TYPES_H): $(NODE_TYPE_H_GEN_SCRIPT) $(KCONFIG_CONFIG)
 	$(Q)echo "     "GEN"   "$(@)
