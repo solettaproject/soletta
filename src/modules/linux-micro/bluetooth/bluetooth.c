@@ -173,8 +173,7 @@ bluetooth_start(const struct sol_platform_linux_micro_module *mod,
 
     ret = sol_platform_add_service_monitor
             (on_dbus_service_state_changed, DBUS, mod);
-    if (ret >= 0)
-        goto err;
+    SOL_INT_CHECK_GOTO(ret, < 0, err);
 
     ret = sol_platform_start_service(DBUS);
     if (ret < 0) {
@@ -188,6 +187,8 @@ bluetooth_start(const struct sol_platform_linux_micro_module *mod,
     state = sol_platform_get_service_state(DBUS);
     if (state == SOL_PLATFORM_SERVICE_STATE_ACTIVE)
         return fork_run_do();
+
+    return 0; /* wait for dep to activate */
 
 err:
     sol_platform_linux_micro_inform_service_state
