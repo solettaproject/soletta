@@ -33,16 +33,19 @@
 #include "random-gen.h"
 #include "sol-flow-internal.h"
 
-#include <sol-util.h>
 #include <errno.h>
 #include <float.h>
+#include <sol-util.h>
 #include <stdlib.h>
+#include <time.h>
 
-/* TODO
- * if no seed is set, use /dev/urandom on linux
- * so this node type should be useful for tests and more general uses
- * where a better random number is expected
- */
+#ifdef SOL_PLATFORM_LINUX
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
 
 /* This implementation is a direct pseudocode-to-C conversion from the Wikipedia
  * article about Mersenne Twister (MT19937). */
@@ -89,6 +92,56 @@ get_random_int(struct random_node_data *mdata)
     return (int)(value >> 1); /* kill sign bit */
 }
 
+#ifdef SOL_PLATFORM_LINUX
+static int
+getrandom_shim(void *buf, size_t buflen, unsigned int flags)
+{
+    int fd;
+    ssize_t ret;
+
+#ifdef SYS_getrandom
+    /* No wrappers are commonly available for this system call yet, so
+     * use syscall(2) directly. */
+    long gr_ret = syscall(SYS_getrandom, buf, buflen, flags);
+    if (gr_ret >= 0)
+        return gr_ret;
+#endif
+
+    fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
+        errno = EIO;
+        return -1;
+    }
+
+    ret = read(fd, buf, buflen);
+    close(fd);
+
+    return ret;
+}
+#endif /* SOL_PLATFORM_LINUX */
+
+static unsigned int
+get_platform_seed(int seed)
+{
+    int ret;
+
+    /* If a seed is provided, use it. */
+    if (seed)
+        return (unsigned int)seed;
+
+#ifdef SOL_PLATFORM_LINUX
+    /* Use Linux-specific getrandom(2) if available to initialize the
+     * seed.  If syscall isn't available, read from /dev/urandom instead. */
+    ret = getrandom_shim(&seed, sizeof(seed), 0);
+    if (ret == sizeof(seed))
+        return seed;
+#endif /* SOL_PLATFORM_LINUX */
+
+    /* Fall back to using a bad source of entropy if platform-specific,
+     * higher quality random sources, are unavailable. */
+    return time(NULL);
+}
+
 static void
 initialize_seed(struct random_node_data *mdata, int seed)
 {
@@ -96,7 +149,7 @@ initialize_seed(struct random_node_data *mdata, int seed)
     size_t i;
 
     mdata->index = 0;
-    mdata->state[0] = seed;
+    mdata->state[0] = get_platform_seed(seed);
     for (i = 1; i < state_array_size; i++)
         mdata->state[i] = i + 0x6c078965UL * (mdata->state[i - 1] ^ (mdata->state[i - 1] >> 30UL));
 }
