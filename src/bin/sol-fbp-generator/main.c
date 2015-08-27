@@ -965,19 +965,12 @@ static bool
 handle_include_path(char *path)
 {
     struct stat s;
-    char *dup_path;
 
-    if (stat(path, &s) != 0)
+    if (stat(path, &s) != 0 || !S_ISDIR(s.st_mode))
         return false;
 
-    if (S_ISDIR(s.st_mode))
-        dup_path = sol_arena_strdup(str_arena, path);
-    else if (S_ISREG(s.st_mode))
-        dup_path = sol_arena_strdup(str_arena, dirname(path));
-
-    SOL_NULL_CHECK(dup_path, false);
-    if (sol_ptr_vector_append(&args.fbp_search_paths, dup_path) < 0) {
-        SOL_ERR("Couldn't handle include path '%s': %s\n", path, sol_util_strerrora(errno));
+    if (sol_ptr_vector_append(&args.fbp_search_paths, path) < 0) {
+        SOL_ERR("Couldn't handle FBP search path '%s': %s\n", path, sol_util_strerrora(errno));
         return false;
     }
 
