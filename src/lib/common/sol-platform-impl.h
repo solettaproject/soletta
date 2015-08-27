@@ -52,6 +52,8 @@ int sol_platform_impl_restart_service(const char *service) SOL_ATTR_NONNULL(1);
 
 int sol_platform_impl_set_target(const char *target) SOL_ATTR_NONNULL(1);
 
+int sol_platform_impl_get_machine_id(char id[static 33]);
+
 /* callbacks into generic platform abstraction */
 void sol_platform_inform_state_monitors(enum sol_platform_state state);
 void sol_platform_inform_service_monitors(const char *service,

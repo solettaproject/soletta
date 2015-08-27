@@ -40,6 +40,7 @@
 #include <time.h>
 
 #ifdef SOL_PLATFORM_LINUX
+#include <linux/random.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
@@ -54,7 +55,7 @@ getrandom_shim(void *buf, size_t buflen, unsigned int flags)
     int fd;
     ssize_t ret;
 
-#ifdef SYS_getrandom
+#ifdef HAVE_GETRANDOM
     /* No wrappers are commonly available for this system call yet, so
      * use syscall(2) directly. */
     long gr_ret = syscall(SYS_getrandom, buf, buflen, flags);
@@ -63,10 +64,8 @@ getrandom_shim(void *buf, size_t buflen, unsigned int flags)
 #endif
 
     fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
-    if (fd < 0) {
-        errno = EIO;
-        return -1;
-    }
+    if (fd < 0)
+        return errno == ENOENT ? -ENOSYS : -errno;
 
     ret = read(fd, buf, buflen);
     close(fd);

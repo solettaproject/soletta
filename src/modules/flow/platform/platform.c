@@ -194,4 +194,23 @@ platform_service_close(struct sol_flow_node *node, void *data)
     free(mdata->service_name);
 }
 
+static int
+platform_machine_id_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    char id[33] = { 0 };
+
+    r = sol_platform_get_machine_id(id);
+    if (r < 0) {
+        sol_flow_send_error_packet(node, ENOSYS,
+            "Fail on retrieving machine id -- not available");
+        return 0; /* do not fail to create node */
+    }
+
+    return sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_PLATFORM_MACHINE_ID__OUT__OUT, id);
+}
+
 #include "platform-gen.c"
