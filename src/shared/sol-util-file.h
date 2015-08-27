@@ -64,3 +64,16 @@ int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
  */
 ssize_t sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size);
 bool sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path, struct dirent *ent), const void *data);
+
+/**
+ * Retrieves, in @a id, the machine-id present in the file system. The
+ * returned string is assured be to a valid, 16 bytes-long (128 bits)
+ * UUID.
+ *
+ * @param id Where to store the found machine id. It's 37 bytes in lenght
+ *           so it accomodates the maximum lenght case -- 2 * 16
+ *           (chars) + 4 (hyphens) + 1 (\0)
+ *
+ * @return 0 on success, negative error code otherwise.
+ */
+int sol_util_get_machine_id(char id[37]);
