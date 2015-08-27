@@ -66,7 +66,7 @@ pcre_compile_do(struct sol_flow_node *node,
         &pcre_error_str, &pcre_error_offset, NULL);
     if (!*compiled_re) {
         sol_flow_send_error_packet(node, EINVAL,
-            "Could not compile '%s': %s\n", regexp, pcre_error_str);
+            "Could not compile '%s': %s", regexp, pcre_error_str);
         return -EINVAL;
     }
 
@@ -84,7 +84,7 @@ pcre_compile_do(struct sol_flow_node *node,
     *pcre_extra = pcre_study(*compiled_re, 0, &pcre_error_str);
     if (pcre_error_str != NULL) {
         sol_flow_send_error_packet(node, EINVAL,
-            "Error optimizing '%s': %s\n", regexp, pcre_error_str);
+            "Error optimizing '%s': %s", regexp, pcre_error_str);
         pcre_free(compiled_re);
         return -EINVAL;
     }
@@ -129,7 +129,7 @@ string_regexp_search_and_split(struct string_regexp_search_data *mdata)
 
     if (r < 0) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Fail on matching regular expression '%s' on string %s\n",
+            "Fail on matching regular expression '%s' on string %s",
             mdata->regexp, mdata->string);
         goto err;
     } else {
@@ -144,7 +144,7 @@ string_regexp_search_and_split(struct string_regexp_search_data *mdata)
         if (r == 0) { // should not happen, but let's treat the case
             sol_flow_send_error_packet(mdata->node, EINVAL,
                 "A memory overflow happened while executing"
-                " regular expression '%s' on string %s\n",
+                " regular expression '%s' on string %s",
                 mdata->regexp, mdata->string);
             goto err;
         }
@@ -246,7 +246,7 @@ string_regexp_replace_get_matches(struct string_regexp_replace_data *mdata,
         if (r == 0) { // should not happen, but let's treat the case
             sol_flow_send_error_packet(mdata->node, EINVAL,
                 "A memory overflow happened while executing"
-                " regular expression '%s' on string %s\n",
+                " regular expression '%s' on string %s",
                 mdata->regexp, mdata->orig_string);
             r = -EINVAL;
             goto err;
@@ -315,7 +315,7 @@ get_unescaped_regexp_replacement_str(struct string_regexp_replace_data *mdata,
             if (!grp_num || grp_num > match_cnt) {
                 sol_flow_send_error_packet(mdata->node, EINVAL,
                     "Could not process '%s' pattern's reference "
-                    "to non-existent subpattern on '%s'\n",
+                    "to non-existent subpattern on '%s'",
                     mdata->to_regexp, mdata->regexp);
                 r = -EINVAL;
                 goto err;
@@ -616,7 +616,7 @@ string_regexp_replace(struct sol_flow_node *node,
                 if (!mdata->forward_on_no_match) {
                     sol_flow_send_error_packet(mdata->node, EINVAL,
                         "Fail on matching regular expression '%s' on string"
-                        " %s\n", mdata->regexp, mdata->orig_string);
+                        " %s", mdata->regexp, mdata->orig_string);
                     goto err;
                 } else
                     goto forward;
