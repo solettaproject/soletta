@@ -281,12 +281,15 @@ string_replace(struct sol_flow_node *node,
     UChar *value,
     UChar *change_from,
     UChar *change_to,
+    bool *replaced,
     size_t max_count)
 {
     UChar *ret;
     size_t value_len = u_strlen(value);
     size_t change_to_len = u_strlen(change_to);
     size_t change_from_len = u_strlen(change_from);
+
+    *replaced = true;
 
     if (max_count == 0) {
         ret = u_strdup(value);
@@ -427,8 +430,10 @@ string_replace(struct sol_flow_node *node,
 
 done:
 nothing:
+    *replaced = false;
     return ret;
 
 error:
+    *replaced = false;
     return NULL;
 }
