@@ -62,7 +62,7 @@ getrandom_shim(void *buf, size_t buflen, unsigned int flags)
     int fd;
     ssize_t ret;
 
-#ifdef SYS_getrandom
+#ifdef HAVE_GETRANDOM
     /* No wrappers are commonly available for this system call yet, so
      * use syscall(2) directly. */
     long gr_ret = syscall(SYS_getrandom, buf, buflen, flags);

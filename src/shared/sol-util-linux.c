@@ -30,7 +30,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sol-log.h"
+#include "sol-rng.h"
 #include "sol-util.h"
+
+#include <ctype.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 struct timespec
 sol_util_timespec_get_current(void)
@@ -44,4 +53,74 @@ int
 sol_util_timespec_get_realtime(struct timespec *t)
 {
     return clock_gettime(CLOCK_REALTIME, t);
+}
+
+static struct sol_uuid
+assert_uuid_v4(struct sol_uuid id)
+{
+    id.bytes[6] = (id.bytes[6] & 0x0F) | 0x40;
+    id.bytes[8] = (id.bytes[8] & 0x3F) | 0x80;
+
+    return id;
+}
+
+static int
+uuid_gen(struct sol_uuid *ret)
+{
+    struct sol_rng_engine *engine;
+    struct sol_uuid t;
+    size_t size;
+
+    SOL_NULL_CHECK(ret, -EINVAL);
+    engine = sol_rng_engine_new(SOL_RNG_ENGINE_IMPL_DEFAULT, 0);
+
+    size = sol_rng_engine_generate_bytes(engine, ret, sizeof(*ret));
+    if (size != sizeof(*ret)) {
+        sol_rng_engine_del(engine);
+        return -EIO;
+    }
+
+    *ret = assert_uuid_v4(t);
+
+    sol_rng_engine_del(engine);
+    return 0;
+}
+
+// 37 = 2 * 16 (chars) + 4 (hyphens) + 1 (\0)
+int
+sol_util_uuid_gen(bool upcase,
+    bool with_hyphens,
+    char id[static 37])
+{
+    static struct sol_str_slice hyphen = SOL_STR_SLICE_LITERAL("-");
+    /* hyphens on positions 8, 13, 18, 23 (from 0) */
+    static const int hyphens_pos[] = { 8, 13, 18, 23 };
+    struct sol_uuid uuid;
+    unsigned i;
+    int r;
+
+    struct sol_buffer buf = { 0 };
+
+    sol_buffer_init_flags(&buf, id, 37,
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+
+    r = uuid_gen(&uuid);
+    SOL_INT_CHECK(r, < 0, r);
+
+    for (i = 0; i < ARRAY_SIZE(uuid.bytes); i++) {
+        r = sol_buffer_append_printf(&buf, upcase ? "%02hhX" : "%02hhx",
+            uuid.bytes[i]);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+    }
+
+    if (with_hyphens) {
+        for (i = 0; i < ARRAY_SIZE(hyphens_pos); i++) {
+            r = sol_buffer_insert_slice(&buf, hyphens_pos[i], hyphen);
+            SOL_INT_CHECK_GOTO(r, < 0, err);
+        }
+    }
+
+err:
+    sol_buffer_fini(&buf);
+    return r;
 }
