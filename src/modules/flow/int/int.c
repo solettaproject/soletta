@@ -42,6 +42,46 @@
 #include <errno.h>
 
 // =============================================================================
+// IRANGE SHARED USED FUNCTIONS
+// =============================================================================
+
+static bool
+irange_val_equal(int32_t var0, int32_t var1)
+{
+    return var0 == var1;
+}
+
+static bool
+irange_val_less(int32_t var0, int32_t var1)
+{
+    return var0 < var1;
+}
+
+static bool
+irange_val_less_or_equal(int32_t var0, int32_t var1)
+{
+    return var0 <= var1;
+}
+
+static bool
+irange_val_greater(int32_t var0, int32_t var1)
+{
+    return var0 > var1;
+}
+
+static bool
+irange_val_greater_or_equal(int32_t var0, int32_t var1)
+{
+    return var0 >= var1;
+}
+
+static bool
+irange_val_not_equal(int32_t var0, int32_t var1)
+{
+    return var0 != var1;
+}
+
+// =============================================================================
 // IRANGE INC/DEC
 // =============================================================================
 
@@ -189,16 +229,10 @@ inrange_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
 
 struct irange_min_max_data {
     int32_t val[2];
-    int (*func) (int var0, int var1);
+    bool (*func) (int var0, int var1);
     uint16_t port;
     bool val_initialized[2];
 };
-
-static int
-irange_val_isless(int var0, int var1)
-{
-    return var0 < var1;
-}
 
 static int
 min_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
@@ -206,15 +240,9 @@ min_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
     struct irange_min_max_data *mdata = data;
 
     mdata->port = SOL_FLOW_NODE_TYPE_INT_MIN__OUT__OUT;
-    mdata->func = irange_val_isless;
+    mdata->func = irange_val_less;
 
     return 0;
-}
-
-static int
-irange_val_isgreater(int var0, int var1)
-{
-    return var0 > var1;
 }
 
 static int
@@ -223,7 +251,7 @@ max_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
     struct irange_min_max_data *mdata = data;
 
     mdata->port = SOL_FLOW_NODE_TYPE_INT_MAX__OUT__OUT;
-    mdata->func = irange_val_isgreater;
+    mdata->func = irange_val_greater;
 
     return 0;
 }
@@ -919,12 +947,6 @@ struct irange_comparison_data {
     bool var1_initialized : 1;
 };
 
-static bool
-irange_val_equal(int32_t var0, int32_t var1)
-{
-    return var0 == var1;
-}
-
 static int
 equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
@@ -934,12 +956,6 @@ equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     mdata->func = irange_val_equal;
 
     return 0;
-}
-
-static bool
-irange_val_less(int32_t var0, int32_t var1)
-{
-    return var0 < var1;
 }
 
 static int
@@ -953,12 +969,6 @@ less_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opt
     return 0;
 }
 
-static bool
-irange_val_less_or_equal(int32_t var0, int32_t var1)
-{
-    return var0 <= var1;
-}
-
 static int
 less_or_equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
@@ -968,12 +978,6 @@ less_or_equal_open(struct sol_flow_node *node, void *data, const struct sol_flow
     mdata->func = irange_val_less_or_equal;
 
     return 0;
-}
-
-static bool
-irange_val_greater(int32_t var0, int32_t var1)
-{
-    return var0 > var1;
 }
 
 static int
@@ -987,12 +991,6 @@ greater_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     return 0;
 }
 
-static bool
-irange_val_greater_or_equal(int32_t var0, int32_t var1)
-{
-    return var0 >= var1;
-}
-
 static int
 greater_or_equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
@@ -1002,12 +1000,6 @@ greater_or_equal_open(struct sol_flow_node *node, void *data, const struct sol_f
     mdata->func = irange_val_greater_or_equal;
 
     return 0;
-}
-
-static bool
-irange_val_not_equal(int32_t var0, int32_t var1)
-{
-    return var0 != var1;
 }
 
 static int
