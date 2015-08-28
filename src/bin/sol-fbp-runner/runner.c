@@ -57,6 +57,7 @@ struct runner {
 
     const char *filename;
     char *basename;
+    char *dir;
 
     struct sol_ptr_vector file_readers;
     struct sol_ptr_vector *fbp_paths;
@@ -73,18 +74,22 @@ search_fbp_file(struct runner *r, const char *basename)
     uint16_t i;
     int err;
 
-    SOL_PTR_VECTOR_FOREACH_IDX (r->fbp_paths, p, i) {
-        err = asprintf(&fullpath, "%s/%s", p, basename);
-        if (err < 0) {
-            errno = ENOMEM;
-            return NULL;
-        }
+#define STAT_PATH(_path) \
+    do { \
+        err = asprintf(&fullpath, "%s/%s", _path, basename); \
+        if (err < 0) { \
+            errno = ENOMEM;\
+            return NULL; \
+        } \
+        if (stat(fullpath, &s) == 0 && S_ISREG(s.st_mode)) \
+            return fullpath; \
+        free(fullpath); \
+    } while (0)
 
-        if (stat(fullpath, &s) == 0 && S_ISREG(s.st_mode))
-            return fullpath;
-
-        free(fullpath);
-    }
+    STAT_PATH(r->dir);
+    SOL_PTR_VECTOR_FOREACH_IDX (r->fbp_paths, p, i)
+        STAT_PATH(p);
+#undef STAT_PATH
 
     errno = EINVAL;
     return NULL;
@@ -364,7 +369,6 @@ runner_new_from_file(
 {
     struct runner *r;
     const char *buf;
-    char *dir;
     size_t size;
     int err;
 
@@ -386,10 +390,8 @@ runner_new_from_file(
 
     r->filename = filename;
 
-    dir = strdup(dirname(strdupa(filename)));
-    err = sol_ptr_vector_append(r->fbp_paths, dir);
-    if (err < 0)
-        goto error;
+    r->dir = strdup(dirname(strdupa(filename)));
+    SOL_NULL_CHECK_GOTO(r->dir, error);
 
     r->basename = strdup(basename(strdupa(filename)));
 
@@ -490,6 +492,7 @@ runner_del(struct runner *r)
     }
     if (r->parser)
         sol_flow_parser_del(r->parser);
+    free(r->dir);
     free(r->basename);
     free(r);
 }
