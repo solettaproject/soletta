@@ -325,18 +325,18 @@ _netlink_request(int event)
     }
 }
 
-SOL_API bool
+SOL_API int
 sol_network_init(void)
 {
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     if (network != NULL) {
         network->count++;
-        return true;
+        return 0;
     }
 
     network = calloc(1, sizeof(*network));
-    SOL_NULL_CHECK(network, false);
+    SOL_NULL_CHECK(network, -ENOMEM);
 
     network->seq = 0;
     network->count = 1;
@@ -370,14 +370,14 @@ sol_network_init(void)
     _netlink_request(RTM_GETLINK);
     _netlink_request(RTM_GETADDR);
 
-    return true;
+    return 0;
 
 err_bind:
     close(network->nl_socket);
 err:
     free(network);
     network = NULL;
-    return false;
+    return -1;
 }
 
 SOL_API void

@@ -381,20 +381,20 @@ init_static_info(void)
     return info;
 }
 
-SOL_API bool
+SOL_API int
 sol_oic_server_init(int port)
 {
     struct sol_oic_server_information *info;
 
     if (oic_server.refcnt > 0) {
         oic_server.refcnt++;
-        return true;
+        return 0;
     }
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     info = init_static_info();
-    SOL_NULL_CHECK(info, NULL);
+    SOL_NULL_CHECK(info, -1);
 
     oic_server.server = sol_coap_server_new(port);
     if (!oic_server.server) {
@@ -413,7 +413,7 @@ sol_oic_server_init(int port)
     sol_vector_init(&oic_server.device_definitions, sizeof(struct sol_oic_device_definition));
 
     oic_server.refcnt++;
-    return true;
+    return 0;
 
 unregister_res:
     /* FIXME: sol_coap_server_unregister_resource(res); */
@@ -421,7 +421,7 @@ unregister_d:
     /* FIXME: sol_coap_server_unregister_resource(d); */
 error:
     free(info);
-    return false;
+    return -1;
 }
 
 SOL_API void

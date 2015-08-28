@@ -126,7 +126,7 @@ addr_error:
 #endif
 }
 
-SOL_API bool
+SOL_API int
 sol_network_init(void)
 {
     size_t i, if_count;
@@ -139,12 +139,12 @@ sol_network_init(void)
         if (ip6) {
             if (add_ip6_link(ifs[i], ip6)) {
                 sol_vector_clear(&links);
-                return false;
+                return -1;
             }
         }
     }
 
-    return true;
+    return 0;
 }
 
 SOL_API void

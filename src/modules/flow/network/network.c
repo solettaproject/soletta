@@ -154,7 +154,7 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     if (!_compile_regex(&mdata->regex, opts->address))
         return -EINVAL;
 
-    if (sol_network_init() == false) {
+    if (sol_network_init() != 0) {
         SOL_WRN("Could not initialize the network");
         goto err;
     }
