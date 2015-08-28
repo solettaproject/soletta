@@ -2002,6 +2002,7 @@ timestamp_close(struct sol_flow_node *node, void *data)
 static int
 timestamp_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
+    struct sol_converter_string *mdata = data;
     struct timespec in_value;
     struct tm time_tm;
     int r;
@@ -2014,8 +2015,13 @@ timestamp_to_string_convert(struct sol_flow_node *node, void *data, uint16_t por
     if (!localtime_r(&in_value.tv_sec, &time_tm))
         goto timestamp_error;
 
-    r = strftime(out_value, sizeof(out_value), "%Y-%m-%dT%H:%M:%SZ",
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+
+    r = strftime(out_value, sizeof(out_value), mdata->string,
         &time_tm);
+
+#pragma GCC diagnostic pop
+
     if (!r)
         goto timestamp_error;
 

@@ -2010,7 +2010,22 @@
           "name": "IN"
         }
       ],
+      "methods": {
+        "close": "timestamp_close",
+        "open": "timestamp_open"
+      },
       "name": "converter/timestamp-to-string",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "%Y-%m-%dT%H:%M:%S%Z",
+            "description": "Format string to be used in the conversion. The syntax is the same as strftime().",
+            "name": "format"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "string",
@@ -2018,6 +2033,7 @@
           "name": "OUT"
         }
       ],
+      "private_data_type": "sol_converter_string",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/timestamp-to-string.html"
     },
     {
