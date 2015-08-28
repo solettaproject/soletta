@@ -300,6 +300,16 @@
       "fragment": "memmem(0, 0, 0, 0);"
     },
     {
+      "dependency": "getrandom",
+      "type": "ccode",
+      "headers": [
+        "<linux/random.h>",
+        "<unistd.h>",
+        "<sys/syscall.h>"
+      ],
+      "fragment": "char p; syscall(__NR_getrandom, &p, sizeof(p), GRND_NONBLOCK);"
+    },
+    {
       "dependency": "decl_ifla_inet6_addr_gen_mode",
       "type": "ccode",
       "headers": [

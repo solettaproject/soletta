@@ -121,6 +121,10 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
 /* number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000 */
 #define NSEC_PER_USEC 1000ULL
 
+struct sol_uuid {
+    uint8_t bytes[16];
+};
+
 static inline int
 sol_util_int_compare(const int a, const int b)
 {
@@ -301,4 +305,64 @@ sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
     *out = a + b;
 #endif
     return 0;
+}
+
+/**
+ * Generates a new universally unique identifier (UUID), in string
+ * form, which is 16 bytes-long (128 bits) long and conforms to v4
+ * UUIDs (generated from random—or pseudo-random—numbers).
+ *
+ * @param upcase Whether to generate the UUID in upcase or not
+ * @param with_hyphens Format the resulting UUID string with hyphens
+ *                     (e.g. "de305d54-75b4-431b-adb2-eb6b9e546014") or
+ *                     without them.
+ * @param id Where to store the generated id. It's 37 bytes in lenght
+ *           so it accomodates the maximum lenght case -- 2 * 16
+ *           (chars) + 4 (hyphens) + 1 (\0)
+ *
+ * @return 0 on success, negative error code otherwise.
+ */
+int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[37]);
+
+/**
+ * Checks if a given universally unique identifier (UUID), in string
+ * form, is valid (all upcase/downcase, hyphenated/non-hyphenated
+ * cases included).
+ *
+ * @param str The given UUID
+ *
+ * @return true if it's valid, false otherwise.
+ */
+static inline bool
+sol_util_uuid_str_valid(const char *str)
+{
+    size_t i, len;
+    char c;
+
+    len = strlen(str);
+    if (len == 32) {
+        for (i = 0; i < len; i++) {
+            c = str[i];
+
+            if (!(c >= '0' && c <= '9') && !(c >= 'a' && c <= 'z') &&
+                !(c >= 'A' && c <= 'Z'))
+                return false;
+        }
+    } else if (len == 36) {
+        for (i = 0; i < len; i++) {
+            c = str[i];
+
+            if (i == 8 || i == 13 || i == 18 || i == 23) {
+                if (c != '-')
+                    return false;
+            } else {
+                if (!(c >= '0' && c <= '9') && !(c >= 'a' && c <= 'z') &&
+                    !(c >= 'A' && c <= 'Z'))
+                    return false;
+            }
+        }
+    } else
+        return false;
+
+    return true;
 }

@@ -30,38 +30,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-util.h"
+#pragma once
 
-/* Contiki headers */
-#include <contiki.h>
+#include "sol-flow.h"
 
-struct timespec
-sol_util_timespec_get_current(void)
-{
-    struct timespec ret;
-    clock_time_t ticks;
+int string_uuid_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
 
-    ticks = clock_time();
-    ret.tv_sec = ticks / CLOCK_SECOND;
-    ticks -= ret.tv_sec * CLOCK_SECOND;
-    ret.tv_nsec = (ticks * NSEC_PER_SEC) / CLOCK_SECOND;
-    return ret;
-}
+int string_uuid_gen(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
 
-int
-sol_util_timespec_get_realtime(struct timespec *t)
-{
-    errno = ENOSYS;
-    return -1;
-}
+struct string_uuid_data {
+    struct sol_flow_node *node;
+    bool with_hyphens : 1;
+    bool upcase : 1;
+};
 
-int
-sol_util_uuid_gen(bool upcase,
-    bool with_hyphens,
-    char id[37])
-{
-    //FIXME: use whatever source there is of pseudo-random numbers on
-    //Contiki
-    SOL_WRN("Not implemented");
-    return -ENOSYS;
-}
+int string_machine_id_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
+
+struct string_machine_id_data {
+    struct sol_flow_node *node;
+    bool with_hyphens : 1;
+    bool upcase : 1;
+};
