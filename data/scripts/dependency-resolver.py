@@ -487,6 +487,14 @@ def handle_definitions(args, conf, context):
     context.debug("## ------------------- ##\n\n")
 
     variables = {"PREFIX": args.prefix}
+
+    # environment variables get priority, so set it beforehand
+    for k,v in os.environ.items():
+        found = definitions.get(k)
+        if not found:
+            continue
+        definitions[k] = v
+
     vars_expand(definitions, variables, len(definitions))
 
     header = ""
