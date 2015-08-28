@@ -42,8 +42,13 @@
 #include <errno.h>
 
 // =============================================================================
-// IRANGE SHARED USED FUNCTIONS
+// IRANGE SHARED STRUCTS AND FUNCTIONS
 // =============================================================================
+
+struct irange_comparison_node_type {
+    struct sol_flow_node_type base;
+    bool (*func) (int32_t var0, int32_t var1);
+};
 
 static bool
 irange_val_equal(int32_t var0, int32_t var1)
@@ -229,36 +234,13 @@ inrange_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
 
 struct irange_min_max_data {
     int32_t val[2];
-    bool (*func) (int var0, int var1);
-    uint16_t port;
     bool val_initialized[2];
 };
 
 static int
-min_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_min_max_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_MIN__OUT__OUT;
-    mdata->func = irange_val_less;
-
-    return 0;
-}
-
-static int
-max_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_min_max_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_MAX__OUT__OUT;
-    mdata->func = irange_val_greater;
-
-    return 0;
-}
-
-static int
 min_max_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
+    const struct irange_comparison_node_type *type;
     struct irange_min_max_data *mdata = data;
     int32_t *result;
     int r;
@@ -270,12 +252,15 @@ min_max_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
         return 0;
 
-    if (mdata->func(mdata->val[0], mdata->val[1]))
+    type = (const struct irange_comparison_node_type *)
+        sol_flow_node_get_type(node);
+
+    if (type->func(mdata->val[0], mdata->val[1]))
         result = &mdata->val[0];
     else
         result = &mdata->val[1];
 
-    return sol_flow_send_irange_value_packet(node, mdata->port, *result);
+    return sol_flow_send_irange_value_packet(node, 0, *result);
 }
 
 // =============================================================================
@@ -356,52 +341,22 @@ int_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 // IRANGE ARITHMETIC - SUBTRACTION / DIVISION / MODULO
 // =============================================================================
 
+struct irange_arithmetic_node_type {
+    struct sol_flow_node_type base;
+    int (*func) (const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
+};
 
 struct irange_arithmetic_data {
     struct sol_irange var0;
     struct sol_irange var1;
-    int (*func) (const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
-    uint16_t port;
     bool var0_initialized : 1;
     bool var1_initialized : 1;
 };
 
 static int
-division_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_arithmetic_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_DIVISION__OUT__OUT;
-    mdata->func = sol_irange_division;
-
-    return 0;
-}
-
-static int
-modulo_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_arithmetic_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_MODULO__OUT__OUT;
-    mdata->func = sol_irange_modulo;
-
-    return 0;
-}
-
-static int
-subtraction_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_arithmetic_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_SUBTRACTION__OUT__OUT;
-    mdata->func = sol_irange_subtraction;
-
-    return 0;
-}
-
-static int
 operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
+    const struct irange_arithmetic_node_type *type;
     struct irange_arithmetic_data *mdata = data;
     struct sol_irange value;
     int r;
@@ -426,13 +381,15 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     if (!(mdata->var0_initialized && mdata->var1_initialized))
         return 0;
 
-    r = mdata->func(&mdata->var0, &mdata->var1, &value);
+    type = (const struct irange_arithmetic_node_type *)
+        sol_flow_node_get_type(node);
+    r = type->func(&mdata->var0, &mdata->var1, &value);
     if (r < 0) {
         sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
         return r;
     }
 
-    return sol_flow_send_irange_packet(node, mdata->port, &value);
+    return sol_flow_send_irange_packet(node, 0, &value);
 }
 
 
@@ -440,36 +397,11 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 // IRANGE ARITHMETIC - ADDITION / MULTIPLICATION
 // =============================================================================
 
-
 struct irange_multiple_arithmetic_data {
     struct sol_irange var[32];
     uint32_t var_initialized;
     uint32_t var_connected;
-    int (*func) (const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
-    uint16_t port;
 };
-
-static int
-addition_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_multiple_arithmetic_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_ADDITION__OUT__OUT;
-    mdata->func = sol_irange_addition;
-
-    return 0;
-}
-
-static int
-multiplication_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_multiple_arithmetic_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_MULTIPLICATION__OUT__OUT;
-    mdata->func = sol_irange_multiplication;
-
-    return 0;
-}
 
 static int
 multiple_operator_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
@@ -484,6 +416,7 @@ static int
 multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct irange_multiple_arithmetic_data *mdata = data;
+    const struct irange_arithmetic_node_type *type;
     struct sol_irange value;
     struct sol_irange *result = NULL;
     uint32_t i;
@@ -502,6 +435,9 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
     if (mdata->var_initialized != mdata->var_connected)
         return 0;
 
+    type = (const struct irange_arithmetic_node_type *)
+        sol_flow_node_get_type(node);
+
     for (i = 0; i < 32; i++) {
         if (!(mdata->var_initialized & (1u << i)))
             continue;
@@ -516,7 +452,7 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
             *result = mdata->var[i];
             continue;
         } else {
-            r = mdata->func(result, &mdata->var[i], result);
+            r = type->func(result, &mdata->var[i], result);
             if (r < 0) {
                 sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
                 return r;
@@ -524,7 +460,7 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
         }
     }
 
-    return sol_flow_send_irange_packet(node, mdata->port, result);
+    return sol_flow_send_irange_packet(node, 0, result);
 }
 
 
@@ -939,83 +875,16 @@ not_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 // =============================================================================
 
 struct irange_comparison_data {
-    bool (*func) (int32_t var0, int32_t var1);
     int32_t var0;
     int32_t var1;
-    uint16_t port;
     bool var0_initialized : 1;
     bool var1_initialized : 1;
 };
 
 static int
-equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_comparison_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_EQUAL__OUT__OUT;
-    mdata->func = irange_val_equal;
-
-    return 0;
-}
-
-static int
-less_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_comparison_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_LESS__OUT__OUT;
-    mdata->func = irange_val_less;
-
-    return 0;
-}
-
-static int
-less_or_equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_comparison_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_LESS_OR_EQUAL__OUT__OUT;
-    mdata->func = irange_val_less_or_equal;
-
-    return 0;
-}
-
-static int
-greater_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_comparison_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_GREATER__OUT__OUT;
-    mdata->func = irange_val_greater;
-
-    return 0;
-}
-
-static int
-greater_or_equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_comparison_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_EQUAL__OUT__OUT;
-    mdata->func = irange_val_greater_or_equal;
-
-    return 0;
-}
-
-static int
-not_equal_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct irange_comparison_data *mdata = data;
-
-    mdata->port = SOL_FLOW_NODE_TYPE_INT_NOT_EQUAL__OUT__OUT;
-    mdata->func = irange_val_not_equal;
-
-    return 0;
-}
-
-static int
 comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
+    const struct irange_comparison_node_type *type;
     struct irange_comparison_data *mdata = data;
     int r;
     struct sol_irange in_value;
@@ -1036,9 +905,11 @@ comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     if (!(mdata->var0_initialized && mdata->var1_initialized))
         return 0;
 
-    output = mdata->func(mdata->var0, mdata->var1);
+    type = (const struct irange_comparison_node_type *)
+        sol_flow_node_get_type(node);
+    output = type->func(mdata->var0, mdata->var1);
 
-    return sol_flow_send_boolean_packet(node, mdata->port, output);
+    return sol_flow_send_boolean_packet(node, 0, output);
 }
 
 // =============================================================================

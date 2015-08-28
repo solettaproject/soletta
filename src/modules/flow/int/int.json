@@ -20,10 +20,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "max_open"
-      },
       "name": "int/max",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_comparison_node_type",
+        "extra_methods": {
+          "func": "irange_val_greater"
+        }
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -47,10 +53,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "min_open"
-      },
       "name": "int/min",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_comparison_node_type",
+        "extra_methods": {
+          "func": "irange_val_less"
+        }
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -167,10 +179,16 @@
           "name": "OPERAND[32]"
         }
       ],
-      "methods": {
-        "open": "addition_open"
-      },
       "name": "int/addition",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_irange_addition"
+        }
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -202,10 +220,16 @@
           "name": "DIVISOR"
         }
       ],
-      "methods": {
-        "open": "division_open"
-      },
       "name": "int/division",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_irange_division"
+        }
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -237,10 +261,16 @@
           "name": "DIVISOR"
         }
       ],
-      "methods": {
-        "open": "modulo_open"
-      },
       "name": "int/modulo",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_irange_modulo"
+        }
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -265,10 +295,16 @@
           "name": "OPERAND[32]"
         }
       ],
-      "methods": {
-        "open": "multiplication_open"
-      },
       "name": "int/multiplication",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_irange_multiplication"
+        }
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -300,10 +336,16 @@
           "name": "SUBTRAHEND"
         }
       ],
-      "methods": {
-        "open": "subtraction_open"
-      },
       "name": "int/subtraction",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_irange_subtraction"
+        }
+      },
       "out_ports": [
         {
           "data_type": "int",
@@ -554,10 +596,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "equal_open"
-      },
       "name": "int/equal",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_comparison_node_type",
+        "extra_methods": {
+          "func": "irange_val_equal"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -581,10 +629,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "greater_open"
-      },
       "name": "int/greater",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_comparison_node_type",
+        "extra_methods": {
+          "func": "irange_val_greater"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -608,10 +662,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "greater_or_equal_open"
-      },
       "name": "int/greater-or-equal",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_comparison_node_type",
+        "extra_methods": {
+          "func": "irange_val_greater_or_equal"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -635,10 +695,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "less_open"
-      },
       "name": "int/less",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_comparison_node_type",
+        "extra_methods": {
+          "func": "irange_val_less"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -662,10 +728,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "less_or_equal_open"
-      },
       "name": "int/less-or-equal",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_comparison_node_type",
+        "extra_methods": {
+          "func": "irange_val_less_or_equal"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -689,10 +761,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "not_equal_open"
-      },
       "name": "int/not-equal",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct irange_comparison_node_type",
+        "extra_methods": {
+          "func": "irange_val_not_equal"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
