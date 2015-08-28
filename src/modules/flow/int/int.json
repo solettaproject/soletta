@@ -37,7 +37,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_min_max_data",
+      "private_data_type": "irange_comparison_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/irange/max.html"
     },
     {
@@ -70,7 +70,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "irange_min_max_data",
+      "private_data_type": "irange_comparison_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/irange/min.html"
     },
     {
