@@ -75,3 +75,19 @@ sample_06 OUT -> IN replace_06(string/replace:from_string="★",to_string="¥",m
 replace_06 OUT -> IN[0] cmp_06(string/compare)
 out_06 OUT -> IN[1] cmp_06
 cmp_06 EQUAL -> RESULT test_06(test/result)
+
+sample_07(constant/string:value="whatever")
+out_07(constant/string:value="whatever")
+
+sample_07 OUT -> IN replace_07(string/replace:from_string="no_match",to_string="★")
+replace_07 OUT -> IN[0] cmp_07(string/compare)
+out_07 OUT -> IN[1] cmp_07
+cmp_07 EQUAL -> RESULT test_07(test/result)
+
+sample_08(constant/string:value="whatever")
+out_08(constant/string:value="Fail on matching 'n' on string w")
+
+sample_08 OUT -> IN replace_08(string/replace:from_string="no_match",to_string="★",forward_on_no_match=false)
+replace_08 ERROR -> IN _(converter/error) MESSAGE -> IN[0] cmp_08(string/compare)
+out_08 OUT -> IN[1] cmp_08
+cmp_08 EQUAL -> RESULT result_08(test/result)
