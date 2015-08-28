@@ -50,6 +50,11 @@ struct irange_comparison_node_type {
     bool (*func) (int32_t var0, int32_t var1);
 };
 
+struct irange_comparison_data {
+    int32_t val[2];
+    bool val_initialized[2];
+};
+
 static bool
 irange_val_equal(int32_t var0, int32_t var1)
 {
@@ -84,6 +89,27 @@ static bool
 irange_val_not_equal(int32_t var0, int32_t var1)
 {
     return var0 != var1;
+}
+
+static bool
+comparison_func(struct irange_comparison_data *mdata, struct sol_flow_node *node, uint16_t port, const struct sol_flow_packet *packet, bool *func_ret)
+{
+    const struct irange_comparison_node_type *type;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &mdata->val[port]);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->val_initialized[port] = true;
+    if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
+        return false;
+
+    type = (const struct irange_comparison_node_type *)
+        sol_flow_node_get_type(node);
+
+    *func_ret = type->func(mdata->val[0], mdata->val[1]);
+
+    return true;
 }
 
 // =============================================================================
@@ -232,30 +258,17 @@ inrange_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
 // IRANGE MIN / MAX
 // =============================================================================
 
-struct irange_min_max_data {
-    int32_t val[2];
-    bool val_initialized[2];
-};
-
 static int
 min_max_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    const struct irange_comparison_node_type *type;
-    struct irange_min_max_data *mdata = data;
+    struct irange_comparison_data *mdata = data;
     int32_t *result;
-    int r;
+    bool func_ret;
 
-    r = sol_flow_packet_get_irange_value(packet, &mdata->val[port]);
-    SOL_INT_CHECK(r, < 0, r);
-
-    mdata->val_initialized[port] = true;
-    if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
+    if (!comparison_func(mdata, node, port, packet, &func_ret))
         return 0;
 
-    type = (const struct irange_comparison_node_type *)
-        sol_flow_node_get_type(node);
-
-    if (type->func(mdata->val[0], mdata->val[1]))
+    if (func_ret)
         result = &mdata->val[0];
     else
         result = &mdata->val[1];
@@ -877,40 +890,14 @@ not_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 // IRANGE COMPARISON
 // =============================================================================
 
-struct irange_comparison_data {
-    int32_t var0;
-    int32_t var1;
-    bool var0_initialized : 1;
-    bool var1_initialized : 1;
-};
-
 static int
 comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    const struct irange_comparison_node_type *type;
     struct irange_comparison_data *mdata = data;
-    int r;
-    struct sol_irange in_value;
     bool output;
 
-    r = sol_flow_packet_get_irange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    if (port == 0) {
-        mdata->var0_initialized = true;
-        mdata->var0 = in_value.val;
-    } else if (port == 1) {
-        mdata->var1_initialized = true;
-        mdata->var1 = in_value.val;
-    }
-
-    /* only send something after both variables values are received */
-    if (!(mdata->var0_initialized && mdata->var1_initialized))
+    if (!comparison_func(mdata, node, port, packet, &output))
         return 0;
-
-    type = (const struct irange_comparison_node_type *)
-        sol_flow_node_get_type(node);
-    output = type->func(mdata->var0, mdata->var1);
 
     return sol_flow_send_boolean_packet(node, 0, output);
 }
