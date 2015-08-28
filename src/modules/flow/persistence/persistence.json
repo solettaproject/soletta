@@ -1,0 +1,226 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "fs",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "io/persistence",
+      "description": "Persists the last input packet's data it receives to storage, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "persist_close",
+        "open": "persist_boolean_open"
+      },
+      "name": "persistence/boolean",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Name to persist a boolean packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
+            "name": "name"
+          },
+          {
+            "data_type": "string",
+            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
+            "name": "storage"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "A boolean packet to persist (and repeat on output)",
+          "methods": {
+            "process": "persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "A boolean packet with the persisted value of the node",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "persist_boolean_data",
+      "url": "http://solettaproject.org/doc/latest/components/persistence.html"
+    },
+    {
+      "category": "io/persistence",
+      "description": "Persists the last input packet's data it receives to storage, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "persist_close",
+        "open": "persist_byte_open"
+      },
+      "name": "persistence/byte",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Name to persist a byte packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
+            "name": "name"
+          },
+          {
+            "data_type": "string",
+            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
+            "name": "storage"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "A byte packet to persist (and repeat on output)",
+          "methods": {
+            "process": "persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "A byte packet with the persisted value of the node",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "persist_byte_data",
+      "url": "http://solettaproject.org/doc/latest/components/persistence.html"
+    },
+    {
+      "category": "io/persistence",
+      "description": "Persists the last input packet's data it receives to storage, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "persist_close",
+        "open": "persist_drange_open"
+      },
+      "name": "persistence/float",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Name to persist a float packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
+            "name": "name"
+          },
+          {
+            "data_type": "string",
+            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
+            "name": "storage"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "An float packet to persist (and repeat on output)",
+          "methods": {
+            "process": "persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "A float packet with the persisted value of the node",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "persist_drange_data",
+      "url": "http://solettaproject.org/doc/latest/components/persistence.html"
+    },
+    {
+      "category": "io/persistence",
+      "description": "Persists the last input packet's data it receives to storage, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "persist_close",
+        "open": "persist_irange_open"
+      },
+      "name": "persistence/int",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Name to persist a int packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
+            "name": "name"
+          },
+          {
+            "data_type": "string",
+            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
+            "name": "storage"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "A int packet to persist (and repeat on output)",
+          "methods": {
+            "process": "persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "A int packet with the persisted value of the node",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "persist_irange_data",
+      "url": "http://solettaproject.org/doc/latest/components/persistence.html"
+    },
+    {
+      "category": "io/persistence",
+      "description": "Persists the last input packet's data it receives to storage, also repeating that packet on output port. Note that upon a new connection on the unique output port, if a previous stored packet is found, it will already be sent.",
+      "methods": {
+        "close": "persist_close",
+        "open": "persist_string_open"
+      },
+      "name": "persistence/string",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Name to persist a string packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
+            "name": "name"
+          },
+          {
+            "data_type": "string",
+            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
+            "name": "storage"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "A string packet to persist (and repeat on output)",
+          "methods": {
+            "process": "persist_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "A string packet with the persisted value of the node",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "persist_string_data",
+      "url": "http://solettaproject.org/doc/latest/components/persistence.html"
+    }
+  ]
+}
