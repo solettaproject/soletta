@@ -1387,9 +1387,12 @@ fail_write:
 fail_generate:
 fail_data:
     SOL_VECTOR_FOREACH_IDX (&fbp_data_vector, data, i) {
-        type_store_del(data->store);
-        sol_fbp_graph_fini(&data->graph);
-        sol_vector_clear(&data->declared_fbp_types);
+        if (data->store)
+            type_store_del(data->store);
+        if (&data->graph)
+            sol_fbp_graph_fini(&data->graph);
+        if (&data->declared_fbp_types)
+            sol_vector_clear(&data->declared_fbp_types);
     }
     sol_vector_clear(&fbp_data_vector);
     SOL_PTR_VECTOR_FOREACH_IDX (&file_readers, fr, i)

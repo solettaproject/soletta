@@ -156,7 +156,7 @@ main(int argc, char *argv[])
 
     sol_init();
 
-    if (!sol_oic_server_init(DEFAULT_UDP_PORT)) {
+    if (sol_oic_server_init(DEFAULT_UDP_PORT) != 0) {
         SOL_WRN("Could not create OIC server.");
         return -1;
     }

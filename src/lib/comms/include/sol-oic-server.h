@@ -103,7 +103,7 @@ struct sol_oic_resource_type {
     } get, put, post, delete;
 };
 
-bool sol_oic_server_init(int port);
+int sol_oic_server_init(int port);
 void sol_oic_server_release(void);
 
 struct sol_oic_device_definition *sol_oic_server_get_definition(struct sol_str_slice endpoint,

@@ -105,7 +105,7 @@ const struct sol_network_link_addr *sol_network_addr_from_str(struct sol_network
 bool sol_network_link_addr_eq(const struct sol_network_link_addr *a,
     const struct sol_network_link_addr *b);
 
-bool sol_network_init(void);
+int sol_network_init(void);
 void sol_network_shutdown(void);
 bool sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_link *link,
     enum sol_network_event event),
