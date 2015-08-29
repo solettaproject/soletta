@@ -82,7 +82,7 @@ def get_expected(t, args):
     skip = None
     is_regex = False
 
-    f = open(t)
+    f = open(t, encoding="UTF-8")
     for line in f:
         if not line.startswith("## "):
             continue
@@ -128,6 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--runner", help="Path to the sol-fbp-runner program", default="build/soletta_sysroot/usr/bin/sol-fbp-runner", type=str)
     parser.add_argument("--valgrind", help="Enable valgrind, if path not passed, assume default location in the system", nargs='?', const="/usr/bin/valgrind", type=str)
     parser.add_argument("--valgrind-supp", help="Path to valgrind's suppression file", type=str)
+    parser.add_argument("--verbose", help="Be verbose", dest="verbose", action="store_true")
     parser.add_argument("tests", metavar="TEST", help="Path to FBP file or directory containing FBP file to be tested.", nargs='*', default=["src/test-fbp/"])
 
     args = parser.parse_args()
@@ -164,7 +165,8 @@ if __name__ == "__main__":
     for t in sorted(set(tests)):
         dir = os.path.dirname(t)
         file = os.path.basename(t)
-
+        if args.verbose:
+            print("Testing file: %s/%s" % (dir, file))
         expected_out, expected_code, skip, is_regex = get_expected(t, args)
         if skip is not None:
             print("SKIPPED running %s: %s" % (t, skip))
