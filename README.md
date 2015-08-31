@@ -1,5 +1,6 @@
 # Soletta Project
 
+
 [![Build Status](https://semaphoreci.com/api/v1/projects/3cbed176-fbb9-4ca0-aacd-5b429e8166da/526888/shields_badge.svg)](https://semaphoreci.com/solettaproject/soletta)<br/>
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/5517/badge.svg)](https://scan.coverity.com/projects/5517)
 
