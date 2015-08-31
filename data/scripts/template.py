@@ -37,10 +37,11 @@ import re
 import stat
 
 class TemplateFragment:
-    def __init__(self, context, verbatim, expr):
+    def __init__(self, tpl_global, context, verbatim, expr):
         self.context = context
         self.verbatim = verbatim
         self.expr = expr
+        self.tpl_global = tpl_global
         self.subst = ""
 
     def __append_subst(self, subst):
@@ -67,29 +68,42 @@ class TemplateFragment:
     def println(self, ln):
         self.__append_subst(ln)
 
-def parse_template(raw, context):
+    def include(self, template):
+        dir_path = os.path.dirname(self.tpl_global["root_tpl"])
+        path = os.path.join(dir_path, template)
+
+        try:
+            f = open(path)
+        except:
+            print("Could not open include file: %s" % path)
+            return
+
+        content = run_template(f.read(), self.tpl_global, self.context, self)
+        self.__append_subst(content)
+
+def parse_template(raw, tpl_global, context):
     result = []
     curr = prev = ""
     expr = False
     for ch in raw:
         if ch == "{" and prev == "{":
             if curr:
-                fragment = TemplateFragment(context, curr, expr)
+                fragment = TemplateFragment(tpl_global, context, curr, expr)
                 result.append(fragment)
             curr = ""
             expr = True
         elif ch == "}" and prev == "}":
             if curr:
-                fragment = TemplateFragment(context, curr, expr)
+                fragment = TemplateFragment(tpl_global, context, curr[:len(curr) - 1], expr)
                 result.append(fragment)
             curr = ""
             expr = False
-        elif ch not in("{", "}"):
+        else:
             curr += ch
         prev = ch
 
     if curr:
-        fragment = TemplateFragment(context, curr, expr)
+        fragment = TemplateFragment(tpl_global, context, curr, expr)
         result.append(fragment)
 
     return result
@@ -119,9 +133,8 @@ def try_subst(verbatim):
 
     return verbatim.replace("@","")
 
-def run_template(f, context):
-    raw = f.read()
-    fragments = parse_template(raw, context)
+def run_template(raw, tpl_global, context, nested=None):
+    fragments = parse_template(raw, tpl_global, context)
     for frag in fragments:
         if frag.expr:
             subst = try_subst(frag.verbatim)
@@ -130,7 +143,12 @@ def run_template(f, context):
                 subst = subst.replace("\"","")
                 frag.subst = subst
             else:
-                exec(frag.verbatim, {"st": frag, "context": context})
+                if nested:
+                    tpl_global["st"] = nested
+                else:
+                    tpl_global["st"] = frag
+                tpl_global["context"] = context
+                exec(frag.verbatim, tpl_global)
             raw = raw.replace("{{%s}}" % frag.verbatim, frag.subst)
 
     return raw
@@ -149,8 +167,9 @@ if __name__ == "__main__":
                         type=argparse.FileType("w"), required=True)
 
     args = parser.parse_args()
+    tpl_global = {"root_tpl": os.path.realpath(args.template.name)}
     context = load_context(args.context_files)
-    output = run_template(args.template, context)
+    output = run_template(args.template.read(), tpl_global, context)
 
     args.output.write(output)
     st = os.fstat(args.template.fileno())
