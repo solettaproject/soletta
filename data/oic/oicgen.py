@@ -993,6 +993,7 @@ initialize_multicast_addresses_once(void)
         return false;
     }
 
+    multicast_addresses_initialized = true;
     return true;
 }
 
