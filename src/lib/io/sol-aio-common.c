@@ -47,7 +47,7 @@ sol_aio_open(const int device, const int pin, const unsigned int precision)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     aio = sol_aio_open_raw(device, pin, precision);
-#ifdef HAVE_PIN_MUX
+#ifdef USE_PIN_MUX
     if (aio && sol_pin_mux_setup_aio(device, pin)) {
         SOL_WRN("Pin Multiplexer Recipe for aio device=%d pin=%d found, "
             "but couldn't be applied.", device, pin);
