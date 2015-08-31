@@ -21,6 +21,15 @@
         }
       ],
       "name": "trigonometry/cosine",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct trigonometry_node_type",
+        "extra_methods": {
+          "func": "cos"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -44,6 +53,15 @@
         }
       ],
       "name": "trigonometry/degrees-to-radian",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct trigonometry_node_type",
+        "extra_methods": {
+          "func": "degrees_to_radian"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -67,6 +85,15 @@
         }
       ],
       "name": "trigonometry/radian-to-degrees",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct trigonometry_node_type",
+        "extra_methods": {
+          "func": "radian_to_degrees"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -90,6 +117,15 @@
         }
       ],
       "name": "trigonometry/sine",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct trigonometry_node_type",
+        "extra_methods": {
+          "func": "sin"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -113,6 +149,15 @@
         }
       ],
       "name": "trigonometry/tangent",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct trigonometry_node_type",
+        "extra_methods": {
+          "func": "tan"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",

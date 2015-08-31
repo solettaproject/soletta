@@ -39,16 +39,21 @@
 #include <float.h>
 #include <errno.h>
 
+
+struct trigonometry_node_type {
+    struct sol_flow_node_type base;
+    double (*func) (double value);
+};
+
 struct trigonometry {
     double min;
     double max;
-    uint16_t port;
-    double (*func) (double value);
 };
 
 static int
 _trigonometry_calculate(struct sol_flow_node *node, const struct sol_flow_packet *packet, const struct trigonometry *trig)
 {
+    const struct trigonometry_node_type *type;
     struct sol_drange value;
     double angle;
     int r;
@@ -56,7 +61,10 @@ _trigonometry_calculate(struct sol_flow_node *node, const struct sol_flow_packet
     r = sol_flow_packet_get_drange_value(packet, &angle);
     SOL_INT_CHECK(r, < 0, r);
 
-    value.val = trig->func(angle);
+    type = (const struct trigonometry_node_type *)
+        sol_flow_node_get_type(node);
+
+    value.val = type->func(angle);
     if (isnan(value.val)) {
         SOL_WRN("Angle out of domain");
         return -errno;
@@ -66,7 +74,7 @@ _trigonometry_calculate(struct sol_flow_node *node, const struct sol_flow_packet
     value.max = trig->max;
     value.step = 0;
 
-    return sol_flow_send_drange_packet(node, trig->port, &value);
+    return sol_flow_send_drange_packet(node, 0, &value);
 }
 
 static int
@@ -75,8 +83,6 @@ cosine_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     static const struct trigonometry trig = {
         .min = -1,
         .max = 1,
-        .port = SOL_FLOW_NODE_TYPE_TRIGONOMETRY_COSINE__OUT__OUT,
-        .func = cos,
     };
 
     return _trigonometry_calculate(node, packet, &trig);
@@ -88,8 +94,6 @@ sine_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     static const struct trigonometry trig = {
         .min = -1,
         .max = 1,
-        .port = SOL_FLOW_NODE_TYPE_TRIGONOMETRY_SINE__OUT__OUT,
-        .func = sin,
     };
 
     return _trigonometry_calculate(node, packet, &trig);
@@ -101,8 +105,6 @@ tangent_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     static const struct trigonometry trig = {
         .min = -DBL_MAX,
         .max = DBL_MAX,
-        .port = SOL_FLOW_NODE_TYPE_TRIGONOMETRY_TANGENT__OUT__OUT,
-        .func = tan,
     };
 
     return _trigonometry_calculate(node, packet, &trig);
@@ -112,7 +114,7 @@ static const double RAD_MAX = 2 * M_PI;
 static const double DEGREES_MAX = 360;
 
 static double
-_radian_to_degrees(double radian)
+radian_to_degrees(double radian)
 {
     const double degrees_per_rad = DEGREES_MAX / RAD_MAX;
 
@@ -125,15 +127,13 @@ radian_to_degrees_convert(struct sol_flow_node *node, void *data, uint16_t port,
     const struct trigonometry trig = {
         .min = 0,
         .max = RAD_MAX,
-        .port = SOL_FLOW_NODE_TYPE_TRIGONOMETRY_RADIAN_TO_DEGREES__OUT__OUT,
-        .func = _radian_to_degrees,
     };
 
     return _trigonometry_calculate(node, packet, &trig);
 }
 
 static double
-_degrees_to_radian(double degrees)
+degrees_to_radian(double degrees)
 {
     const double rad_per_degrees = RAD_MAX / DEGREES_MAX;
 
@@ -146,8 +146,6 @@ degrees_to_radian_convert(struct sol_flow_node *node, void *data, uint16_t port,
     const struct trigonometry trig = {
         .min = 0,
         .max = DEGREES_MAX,
-        .port = SOL_FLOW_NODE_TYPE_TRIGONOMETRY_DEGREES_TO_RADIAN__OUT__OUT,
-        .func = _degrees_to_radian,
     };
 
     return _trigonometry_calculate(node, packet, &trig);
