@@ -41,6 +41,35 @@
 #include <string.h>
 
 // =============================================================================
+// DRANGE SHARED STRUCTS AND FUNCTIONS
+// =============================================================================
+
+struct drange_comparison_node_type {
+    struct sol_flow_node_type base;
+    bool (*func) (double var0, double var1);
+};
+
+struct drange_two_vars_data {
+    double val[2];
+    bool val_initialized[2];
+};
+
+static bool
+two_vars_get_value(struct drange_two_vars_data *mdata, uint16_t port, const struct sol_flow_packet *packet)
+{
+    int r;
+
+    r = sol_flow_packet_get_drange_value(packet, &mdata->val[port]);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->val_initialized[port] = true;
+    if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
+        return false;
+
+    return true;
+}
+
+// =============================================================================
 // DRANGE ARITHMETIC - SUBTRACTION / DIVISION / MODULO
 // =============================================================================
 
@@ -162,44 +191,21 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
     return sol_flow_send_drange_packet(node, 0, result);
 }
 
-// MATH
-
-struct drange_pow_data {
-    double var0;
-    double var1;
-    bool var0_initialized : 1;
-    bool var1_initialized : 1;
-};
+// =============================================================================
+// DRANGE MATH
+// =============================================================================
 
 static int
 pow_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct drange_pow_data *mdata = data;
-    double value, result;
-    int r;
+    struct drange_two_vars_data *mdata = data;
+    double result;
 
-    r = sol_flow_packet_get_drange_value(packet, &value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    if (port == 0) {
-        if (mdata->var0_initialized &&
-            sol_drange_val_equal(mdata->var0, value))
-            return 0;
-        mdata->var0 = value;
-        mdata->var0_initialized = true;
-    } else {
-        if (mdata->var1_initialized &&
-            sol_drange_val_equal(mdata->var1, value))
-            return 0;
-        mdata->var1 = value;
-        mdata->var1_initialized = true;
-    }
-
-    if (!(mdata->var0_initialized && mdata->var1_initialized))
+    if (!two_vars_get_value(mdata, port, packet))
         return 0;
 
     errno = 0;
-    result = pow(mdata->var0, mdata->var1);
+    result = pow(mdata->val[0], mdata->val[1]);
     SOL_INT_CHECK(errno, != 0, -errno);
 
     return sol_flow_send_drange_value_packet(node,
@@ -426,44 +432,17 @@ constrain_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_
         &mdata->val);
 }
 
-struct drange_min_max_node_type {
-    struct sol_flow_node_type base;
-    int (*func) (double var0, double var1);
-};
-
-struct drange_min_max_data {
-    double val[2];
-    bool val_initialized[2];
-};
-
-static int
-drange_val_isless(double var0, double var1)
-{
-    return isless(var0, var1);
-}
-
-static int
-drange_val_isgreater(double var0, double var1)
-{
-    return isgreater(var0, var1);
-}
-
 static int
 min_max_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    const struct drange_min_max_node_type *type;
-    struct drange_min_max_data *mdata = data;
+    const struct drange_comparison_node_type *type;
+    struct drange_two_vars_data *mdata = data;
     double *result;
-    int r;
 
-    r = sol_flow_packet_get_drange_value(packet, &mdata->val[port]);
-    SOL_INT_CHECK(r, < 0, r);
-
-    mdata->val_initialized[port] = true;
-    if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
+    if (!two_vars_get_value(mdata, port, packet))
         return 0;
 
-    type = (const struct drange_min_max_node_type *)
+    type = (const struct drange_comparison_node_type *)
         sol_flow_node_get_type(node);
 
     if (type->func(mdata->val[0], mdata->val[1]))
@@ -477,18 +456,6 @@ min_max_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
 // =============================================================================
 // DRANGE COMPARISON
 // =============================================================================
-
-struct drange_comparison_node_type {
-    struct sol_flow_node_type base;
-    bool (*func) (double var0, double var1);
-};
-
-struct drange_comparison_data {
-    double var0;
-    double var1;
-    bool var0_initialized : 1;
-    bool var1_initialized : 1;
-};
 
 static bool
 drange_val_less(double var0, double var1)
@@ -524,30 +491,16 @@ static int
 comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     const struct drange_comparison_node_type *type;
-    struct drange_comparison_data *mdata = data;
-    int r;
-    struct sol_drange in_value;
+    struct drange_two_vars_data *mdata = data;
     bool output;
 
-    r = sol_flow_packet_get_drange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    if (port == 0) {
-        mdata->var0_initialized = true;
-        mdata->var0 = in_value.val;
-    } else if (port == 1) {
-        mdata->var1_initialized = true;
-        mdata->var1 = in_value.val;
-    }
-
-    /* only send something after both variables values are received */
-    if (!(mdata->var0_initialized && mdata->var1_initialized))
+    if (!two_vars_get_value(mdata, port, packet))
         return 0;
 
     type = (const struct drange_comparison_node_type *)
         sol_flow_node_get_type(node);
 
-    output = type->func(mdata->var0, mdata->var1);
+    output = type->func(mdata->val[0], mdata->val[1]);
 
     return sol_flow_send_boolean_packet(node, 0, output);
 }

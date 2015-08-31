@@ -362,9 +362,9 @@
         "access": [
           "base"
         ],
-        "data_type": "struct drange_min_max_node_type",
+        "data_type": "struct drange_comparison_node_type",
         "extra_methods": {
-          "func": "drange_val_isgreater"
+          "func": "drange_val_greater"
         }
       },
       "out_ports": [
@@ -374,7 +374,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_min_max_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/drange/max.html"
     },
     {
@@ -395,9 +395,9 @@
         "access": [
           "base"
         ],
-        "data_type": "struct drange_min_max_node_type",
+        "data_type": "struct drange_comparison_node_type",
         "extra_methods": {
-          "func": "drange_val_isless"
+          "func": "drange_val_less"
         }
       },
       "out_ports": [
@@ -407,7 +407,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_min_max_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/drange/min.html"
     },
     {
@@ -439,7 +439,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_pow_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/drange/pow.html"
     },
     {
@@ -495,7 +495,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/equal.html"
     },
     {
@@ -528,7 +528,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/greater_or_equal.html"
     },
     {
@@ -561,7 +561,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/greater.html"
     },
     {
@@ -594,7 +594,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/less_or_equal.html"
     },
     {
@@ -627,7 +627,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/less.html"
     },
     {
@@ -660,7 +660,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/not_equal.html"
     },
     {
