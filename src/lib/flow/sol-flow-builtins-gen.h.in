@@ -1,0 +1,8 @@
+{{
+st.include("../../../data/templates/builtins-common.tpl")
+decl = "const struct sol_flow_node_type *sol_flow_foreach_builtin_node_type_@name@(bool (*)(void *, const struct sol_flow_node_type *), const void *)"
+item = "sol_flow_foreach_builtin_node_type_@name@"
+array = "static const void *SOL_FLOW_BUILTIN_NODE_TYPE_ALL[]"
+count = "SOL_FLOW_BUILTIN_NODE_TYPE_COUNT"
+gen_builtins(decl, item, array, count, "builtin-flows")
+}}

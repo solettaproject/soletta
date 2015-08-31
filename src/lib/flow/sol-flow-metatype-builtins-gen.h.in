@@ -1,0 +1,9 @@
+{{
+st.include("../../../data/templates/builtins-common.tpl")
+
+array = "static const struct sol_flow_metatype *SOL_FLOW_METATYPE_BUILTINS_ALL[]"
+count = "SOL_FLOW_METATYPE_BUILTINS_COUNT"
+decl = "const struct sol_flow_metatype SOL_FLOW_METATYPE_@NAME@"
+item = "&SOL_FLOW_METATYPE_@NAME@"
+gen_builtins(decl, item, array, count, "builtin-flow-metatype")
+}}
