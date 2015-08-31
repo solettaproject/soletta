@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <float.h>
 #include <math.h>
+#include <time.h>
 
 
 static void
@@ -50,7 +51,6 @@ packet_type_flower_power_packet_dispose(const struct sol_flow_packet_type *packe
     struct sol_flower_power_data *packet_type_flower_power = mem;
 
     free(packet_type_flower_power->id);
-    free(packet_type_flower_power->timestamp);
 }
 
 static int
@@ -62,13 +62,11 @@ packet_type_flower_power_packet_init(
     struct sol_flower_power_data *packet_type_flower_power = mem;
 
     SOL_NULL_CHECK(in->id, -EINVAL);
-    SOL_NULL_CHECK(in->timestamp, -EINVAL);
 
     packet_type_flower_power->id = strdup(in->id);
     SOL_NULL_CHECK(packet_type_flower_power->id, -ENOMEM);
 
-    packet_type_flower_power->timestamp = strdup(in->timestamp);
-    SOL_NULL_CHECK_GOTO(packet_type_flower_power->timestamp, init_error);
+    packet_type_flower_power->timestamp = in->timestamp;
 
     packet_type_flower_power->fertilizer = in->fertilizer;
     packet_type_flower_power->fertilizer_min = in->fertilizer_min;
@@ -87,10 +85,6 @@ packet_type_flower_power_packet_init(
     packet_type_flower_power->water_max = in->water_max;
 
     return 0;
-
-init_error:
-    free(packet_type_flower_power->id);
-    return -ENOMEM;
 }
 
 #define PACKET_TYPE_FLOWER_POWER_PACKET_TYPE_API_VERSION (1)
@@ -402,6 +396,37 @@ get_measure(struct sol_json_token *measure_token, struct sol_drange *measure,
     return true;
 }
 
+static int
+get_timestamp(struct sol_json_token *value, time_t *timestamp)
+{
+    struct tm time_tm = { 0 };
+    time_t tmp_timestamp;
+    char *timestamp_str;
+
+    sol_json_token_remove_quotes(value);
+    timestamp_str = strndupa(value->start, sol_json_token_get_size(value));
+    if (!timestamp_str) {
+        SOL_WRN("Failed to get timestamp");
+        return -EINVAL;
+    }
+
+    timestamp_str = strptime(timestamp_str, "%Y-%m-%dT%H:%M:%SZ", &time_tm);
+    if (!timestamp_str) {
+        SOL_WRN("Failed to convert timestamp");
+        return -EINVAL;
+    }
+
+    tmp_timestamp = mktime(&time_tm);
+    if (tmp_timestamp < 0) {
+        SOL_WRN("Failed to convert timestamp");
+        return -EINVAL;
+    }
+
+    *timestamp = tmp_timestamp;
+
+    return 0;
+}
+
 #define INIT_FERTILIZER(_fertilizer) \
     _fertilizer.min = 0; \
     _fertilizer.max = 10;
@@ -539,13 +564,8 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "last_sample_upload")) {
-                    sol_json_token_remove_quotes(&value);
-                    fpd.timestamp = strndupa(value.start,
-                        sol_json_token_get_size(&value));
-                    if (!fpd.timestamp) {
-                        SOL_WRN("Failed to get timestamp");
-                        goto error;
-                    }
+                    r = get_timestamp(&value, &fpd.timestamp);
+                    SOL_INT_CHECK_GOTO(r, < 0, error);
                 }
             }
             r = sol_flower_power_send_packet(mdata->node,
@@ -562,7 +582,8 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
         SOL_JSON_SCANNER_ARRAY_LOOP (&sensors_scanner, &token,
             SOL_JSON_TYPE_OBJECT_START, reason) {
             struct sol_drange battery_level = { -1, 0, 100, DBL_MIN };
-            char *id = NULL, *timestamp = NULL, *battery_end_of_life = NULL;
+            time_t timestamp = 0, battery_end_of_life = 0;
+            char *id = NULL;
 
             SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&sensors_scanner, &token,
                 &key, &value, reason) {
@@ -579,13 +600,8 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
                             }
                         } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                             "battery_end_of_life_date_utc")) {
-                            sol_json_token_remove_quotes(&value);
-                            battery_end_of_life = strndupa(value.start,
-                                sol_json_token_get_size(&value));
-                            if (!battery_end_of_life) {
-                                SOL_WRN("Failed to get battery end of life");
-                                goto error;
-                            }
+                            r = get_timestamp(&value, &battery_end_of_life);
+                            SOL_INT_CHECK_GOTO(r, < 0, error);
                         }
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
@@ -598,18 +614,13 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "last_upload_datetime_utc")) {
-                    sol_json_token_remove_quotes(&value);
-                    timestamp = strndupa(value.start,
-                        sol_json_token_get_size(&value));
-                    if (!timestamp) {
-                        SOL_WRN("Failed to get timestamp");
-                        goto error;
-                    }
+                    r = get_timestamp(&value, &timestamp);
+                    SOL_INT_CHECK_GOTO(r, < 0, error);
                 }
             }
             r = sol_flower_power_sensor_send_packet_components(mdata->node,
                 SOL_FLOW_NODE_TYPE_FLOWER_POWER_HTTP_GET__OUT__DEVICE_INFO,
-                id, timestamp, battery_end_of_life, &battery_level);
+                id, &timestamp, &battery_end_of_life, &battery_level);
             SOL_INT_CHECK_GOTO(r, < 0, error);
         }
     }
@@ -711,9 +722,9 @@ parse_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
         fpd.id);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_flow_send_string_packet(node,
+    r = sol_flow_send_timestamp_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_VALUE__OUT__TIMESTAMP,
-        fpd.timestamp);
+        &fpd.timestamp);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,
@@ -861,8 +872,6 @@ packet_type_flower_power_sensor_packet_dispose(const struct sol_flow_packet_type
     struct sol_flower_power_sensor_data *fpsd = mem;
 
     free(fpsd->id);
-    free(fpsd->timestamp);
-    free(fpsd->battery_end_of_life);
 }
 
 static int
@@ -874,27 +883,15 @@ packet_type_flower_power_sensor_packet_init(
     struct sol_flower_power_sensor_data *fpsd = mem;
 
     SOL_NULL_CHECK(in->id, -EINVAL);
-    SOL_NULL_CHECK(in->timestamp, -EINVAL);
-    SOL_NULL_CHECK(in->battery_end_of_life, -EINVAL);
 
     fpsd->id = strdup(in->id);
     SOL_NULL_CHECK(fpsd->id, -ENOMEM);
 
-    fpsd->timestamp = strdup(in->timestamp);
-    SOL_NULL_CHECK_GOTO(fpsd->timestamp, timestamp_error);
-
-    fpsd->battery_end_of_life = strdup(in->battery_end_of_life);
-    SOL_NULL_CHECK_GOTO(fpsd->battery_end_of_life, battery_error);
-
     fpsd->battery_level = in->battery_level;
+    fpsd->timestamp = in->timestamp;
+    fpsd->battery_end_of_life = in->battery_end_of_life;
 
     return 0;
-
-battery_error:
-    free(fpsd->timestamp);
-timestamp_error:
-    free(fpsd->id);
-    return -ENOMEM;
 }
 
 #define PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION (1)
@@ -920,7 +917,7 @@ sol_flower_power_sensor_new_packet(const struct sol_flower_power_sensor_data *fp
 
 SOL_API struct sol_flow_packet *
 sol_flower_power_sensor_new_packet_components(const char *id,
-    const char *timestamp, const char *battery_end_of_life,
+    const time_t *timestamp, const time_t *battery_end_of_life,
     struct sol_drange *battery_level)
 {
     struct sol_flower_power_sensor_data fpsd;
@@ -931,8 +928,8 @@ sol_flower_power_sensor_new_packet_components(const char *id,
     SOL_NULL_CHECK(battery_level, NULL);
 
     fpsd.id = (char *)id;
-    fpsd.timestamp = (char *)timestamp;
-    fpsd.battery_end_of_life = (char *)battery_end_of_life;
+    fpsd.timestamp = *timestamp;
+    fpsd.battery_end_of_life = *battery_end_of_life;
     fpsd.battery_level = *battery_level;
 
     return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER_SENSOR, &fpsd);
@@ -952,7 +949,7 @@ sol_flower_power_sensor_get_packet(const struct sol_flow_packet *packet,
 SOL_API int
 sol_flower_power_sensor_get_packet_components(
     const struct sol_flow_packet *packet,
-    const char **id, const char **timestamp, const char **battery_end_of_life,
+    const char **id, time_t *timestamp, time_t *battery_end_of_life,
     struct sol_drange *battery_level)
 {
     struct sol_flower_power_sensor_data fpsd;
@@ -991,7 +988,7 @@ sol_flower_power_sensor_send_packet(struct sol_flow_node *src,
 
 SOL_API int
 sol_flower_power_sensor_send_packet_components(struct sol_flow_node *src,
-    uint16_t src_port, char *id, char *timestamp, char *battery_end_of_life,
+    uint16_t src_port, char *id, time_t *timestamp, time_t *battery_end_of_life,
     struct sol_drange *battery_level)
 {
     struct sol_flow_packet *packet;
@@ -1007,7 +1004,8 @@ static int
 parse_sensor_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_drange battery_level;
-    const char *id, *timestamp, *battery_end_of_life;
+    time_t timestamp, battery_end_of_life;
+    const char *id;
     int r;
 
     r = sol_flower_power_sensor_get_packet_components(packet, &id, &timestamp,
@@ -1019,14 +1017,14 @@ parse_sensor_packet(struct sol_flow_node *node, void *data, uint16_t port, uint1
         id);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_flow_send_string_packet(node,
+    r = sol_flow_send_timestamp_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_SENSOR_VALUE__OUT__TIMESTAMP,
-        timestamp);
+        &timestamp);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_flow_send_string_packet(node,
+    r = sol_flow_send_timestamp_packet(node,
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_GET_SENSOR_VALUE__OUT__BATTERY_END_OF_LIFE,
-        battery_end_of_life);
+        &battery_end_of_life);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_send_drange_packet(node,

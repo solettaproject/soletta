@@ -67,6 +67,35 @@
     },
     {
       "category": "timer",
+      "description": "Provides int packets on a timely manner (after each system clock month changes)",
+      "methods": {
+        "close": "wallclock_close",
+        "open": "wallclock_month_open"
+      },
+      "name": "wallclock/month",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, a packet containing the current month will be sent during initialization",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "An int range packet when wallclock month ticks.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "wallclock_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/wallclock_month.html"
+    },
+    {
+      "category": "timer",
       "description": "Provides int packets on a timely manner (after each system clock month day changes)",
       "methods": {
         "close": "wallclock_close",
@@ -185,6 +214,35 @@
       ],
       "private_data_type": "wallclock_timeblock_data",
       "url": "http://solettaproject.org/doc/latest/node_types/wallclock_timeblock.html"
+    },
+    {
+      "category": "timer",
+      "description": "Provides int packets on a timely manner (after each system clock year changes)",
+      "methods": {
+        "close": "wallclock_close",
+        "open": "wallclock_year_open"
+      },
+      "name": "wallclock/year",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, a packet containing the current year will be sent during initialization",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "An int range packet when wallclock year ticks.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "wallclock_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/wallclock_year.html"
     }
   ]
 }

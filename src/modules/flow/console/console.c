@@ -109,6 +109,25 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         int r = sol_flow_packet_get_string(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
         console_output(mdata, "%s (string)", val);
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_TIMESTAMP) {
+        time_t timestamp;
+        struct tm cur_time;
+        char buf[32];
+        int r;
+
+        r = sol_flow_packet_get_timestamp(packet, &timestamp);
+        SOL_INT_CHECK(r, < 0, r);
+
+        tzset();
+        if (!localtime_r(&timestamp, &cur_time)) {
+            SOL_WRN("Failed to convert time");
+            return -EINVAL;
+        }
+
+        r = strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &cur_time);
+        SOL_INT_CHECK(r, == 0, -EINVAL);
+
+        console_output(mdata, "%s (timestamp)", buf);
     } else if (packet_type == SOL_FLOW_PACKET_TYPE_BLOB) {
         struct sol_blob *val;
         const char *buf, *bufend;

@@ -1,0 +1,356 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "timestamp",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "timestamp",
+      "description": "Provides timestamp packets with current time",
+      "in_ports": [
+       {
+         "data_type": "any",
+         "description": "Triggers emission of packet with current time.",
+         "methods": {
+           "process": "time_process"
+         },
+         "name": "TRIGGER",
+         "required": true
+       }
+      ],
+      "name": "timestamp/time",
+      "out_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Packet with current time.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/timestamp/time.html"
+    },
+    {
+      "category": "timestamp",
+      "description": "Make timestamp packets with time provided on ports (year, month, day, hour, minute, seconds).",
+      "in_ports": [
+       {
+         "data_type": "int",
+         "description": "Receive year of the timestamp counting from year 0, but can't be less than 1900.",
+         "methods": {
+           "process": "make_year"
+         },
+         "name": "YEAR",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive month of the timestamp (1-12).",
+         "methods": {
+           "process": "make_month"
+         },
+         "name": "MONTH",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive day of the timestamp in the range 1 to 31.",
+         "methods": {
+           "process": "make_day"
+         },
+         "name": "MONTH_DAY",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive hour of the timestamp (0-23).",
+         "methods": {
+           "process": "make_hour"
+         },
+         "name": "HOUR",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive minute of the timestamp (0-59).",
+         "methods": {
+           "process": "make_minute"
+         },
+         "name": "MINUTE",
+         "required": true
+       },
+       {
+         "data_type": "int",
+         "description": "Receive second of the timestamp (0-59).",
+         "methods": {
+           "process": "make_second"
+         },
+         "name": "SECOND",
+         "required": true
+       }
+      ],
+      "name": "timestamp/make-time",
+      "out_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Packet with time converted from broken-down time provided via ports. First packet is sent only after values are received in all ports.",
+          "name": "OUT",
+          "required": true
+        }
+      ],
+      "private_data_type": "make_time_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/timestamp/make_time.html"
+    },
+    {
+      "category": "timestamp",
+      "description": "Split timestamp packets into broken-down time (year, month, day, hour, minute, seconds).",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Packet with time to be converted into broken-down time.",
+          "methods": {
+            "process": "localtime_process"
+          },
+          "name": "IN",
+          "required": true
+        }
+      ],
+      "name": "timestamp/split-time",
+      "out_ports": [
+       {
+         "data_type": "int",
+         "description": "Number of years since year 0.",
+         "name": "YEAR"
+       },
+       {
+         "data_type": "int",
+         "description": "Month of the timestamp in the range 1 to 12.",
+         "name": "MONTH"
+       },
+       {
+         "data_type": "int",
+         "description": "The day of the month in timestamp. Range 1 to 31.",
+         "name": "MONTH_DAY"
+       },
+       {
+         "data_type": "int",
+         "description": "Hour of the timestamp from 0 to 23.",
+         "name": "HOUR"
+       },
+       {
+         "data_type": "int",
+         "description": "Minute of the timestamp in the range 0 to 59.",
+         "name": "MINUTE"
+       },
+       {
+         "data_type": "int",
+         "description": "Second of the timestamp, from 0 to 59. Eventually it can be up to 60 to allow for leap seconds.",
+         "name": "SECOND"
+       },
+       {
+         "data_type": "int",
+         "description": "Day of the week starting on Sunday, in the range 0 to 6. So Sunday is 0, Monday is 1, ....",
+         "name": "WEEK_DAY"
+       },
+       {
+         "data_type": "int",
+         "description": "The number of days since January 1, in the range 0 to 365.",
+         "name": "YEAR_DAY"
+       },
+       {
+         "data_type": "boolean",
+         "description": "Indicates whether daylight saving time is in effect at the time converted. TRUE if daylight saving is in effect or FALSE if it is not. This packet may not be sent if information is not available.",
+         "name": "DAYLIGHT_SAVING_TIME"
+       }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/timestamp/split_time.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is equal to other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for equal comparison operation. Indexed from 0 to 1.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "equal_open"
+      },
+      "name": "timestamp/equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is equal to value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/equal.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is greater than other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for greater comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "greater_open"
+      },
+      "name": "timestamp/greater",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is greater than value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/greater.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is greater than or equal to other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for greater-or-equal comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "greater_or_equal_open"
+      },
+      "name": "timestamp/greater-or-equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is greater than or equal to value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/greater-or-equal.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is less than other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for less comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "less_open"
+      },
+      "name": "timestamp/less",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is less than value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/less.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is less than or equal to other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for less-or-equal comparison operation. Indexed from 0 to 1, and IN[0] being the left operand.",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "less_or_equal_open"
+      },
+      "name": "timestamp/less-or-equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is less than or equal to value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/less-or-equal.html"
+    },
+    {
+      "category": "comparison/timestamp",
+      "description": "Check if an timestamp is different from other.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for not-equal comparison operation. Indexed from 0 to 1",
+          "methods": {
+            "process": "comparison_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "methods": {
+        "open": "not_equal_open"
+      },
+      "name": "timestamp/not-equal",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if value received on port IN[0] is different from value received on port IN[1].",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_comparison_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/comparison/timestamp/not-equal.html"
+    },
+    {
+      "category": "timestamp",
+      "description": "Calculate delta between two timestamps.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Two ports for delta calculation. Indexed from 0 to 1",
+          "methods": {
+            "process": "delta_process"
+          },
+          "name": "IN[2]"
+        }
+      ],
+      "name": "timestamp/delta",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Delta in seconds between timestamp received on port IN[0] and in port IN[1]. It may be a negative value if in[0] is less, positive if is greater, or zero if both timestamps are equal.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "timestamp_delta_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/timestamp/delta.html"
+    }
+  ]
+}
