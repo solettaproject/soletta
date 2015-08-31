@@ -1,0 +1,9 @@
+{{include "../../../data/templates/builtins-common.tpl"}}
+
+{{
+array = "static const struct sol_platform_linux_micro_module *SOL_PLATFORM_LINUX_MICRO_MODULE_ALL[]"
+count = "SOL_PLATFORM_LINUX_MICRO_MODULE_COUNT"
+decl = "struct sol_platform_linux_micro_module SOL_PLATFORM_LINUX_MICRO_MODULE_@NAME@"
+item = "&SOL_PLATFORM_LINUX_MICRO_MODULE_@NAME@"
+gen_builtins(decl, item, array, count, "builtin-linux-micro")
+}}
