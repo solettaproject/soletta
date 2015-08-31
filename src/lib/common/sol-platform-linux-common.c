@@ -223,7 +223,8 @@ sol_platform_linux_fork_run_stop(struct sol_platform_linux_fork_run *handle)
     errno_bkp = errno;
 
     if (handle->on_child_exit)
-        handle->on_child_exit((void *)handle->data, handle->pid, status);
+        handle->on_child_exit((void *)handle->data, handle->pid,
+            WIFEXITED(status) ? WEXITSTATUS(status) : status);
     free(handle);
 
     errno = errno_bkp;
