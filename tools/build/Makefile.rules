@@ -9,23 +9,6 @@ module-type = \
 	$(eval curr-mod-type:=$(call known-module-type,$(1))) \
 	$(if $(curr-mod-type),$(curr-mod-type),external) \
 
-flow-type = \
-	$(sort $(if $(filter $(flow-dir)%,$(1)), \
-		$(subst /,,$(subst $(flow-dir),,$(dir $(1))))) \
-	)
-
-linux-micro-type = \
-	$(sort $(if $(filter $(linux-micro-dir)%,$(1)), \
-		$(subst /,,$(subst $(linux-micro-dir),,$(dir $(1))))) \
-	)
-
-pin-mux-type = \
-	$(sort $(if $(filter $(pin-mux-dir)%,$(1)), \
-		$(subst /,,$(subst $(pin-mux-dir),,$(dir $(1))))) \
-	)
-
-flow-metatype-type = $(if $(filter $(flow-metatype-dir)%,$(2)),$(1))
-
 all-gen-hdrs = $(foreach gen,$(all-gens),$($(gen)-hdr))
 
 gen-artifact = \
@@ -111,10 +94,14 @@ parse-builtin-module = \
 	$(eval builtin-cflags      += $($(3)-cflags)) \
 	$(eval builtin-ldflags     += $($(3)-ldflags)) \
 	$(eval builtin-objs        += $($(3)-objs)) \
-	$(eval builtin-flows       += $(call flow-type,$(artifacts))) \
-	$(eval builtin-linux-micro += $(call linux-micro-type,$(artifacts))) \
-	$(eval builtin-pin-mux 	   += $(call pin-mux-type,$(artifacts))) \
-	$(eval builtin-flow-metatype += $(call flow-metatype-type,$(1),$(2)))
+	$(if $(filter $(flow-dir)%,$(2)), \
+		$(eval builtin-flows += $(1))) \
+	$(if $(filter $(linux-micro-dir)%,$(2)), \
+		$(eval builtin-linux-micro += $(1))) \
+	$(if $(filter $(pin-mux-dir)%,$(2)), \
+		$(eval builtin-pin-mux += $(1))) \
+	$(if $(filter $(flow-metatype-dir)%,$(2)), \
+		$(eval builtin-flow-metatype += $(1))) \
 
 parse-mod-output = \
 	$(if $(filter yes,$(obj-$(1)-static)), \
