@@ -36,6 +36,8 @@
 #include "sol-macros.h"
 #include "sol-util.h"
 
+#include "sol-platform.h"
+
 SOL_LOG_INTERNAL_DECLARE(_sol_mainloop_log_domain, "mainloop");
 
 #ifdef SOL_LOG_ENABLED
@@ -130,7 +132,7 @@ sol_init(void)
         goto comms_error;
 #endif
 
-    SOL_DBG("initialized");
+    SOL_DBG("Soletta %s initialized", sol_platform_get_sw_version());
 
     return 0;
 

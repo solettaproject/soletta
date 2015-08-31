@@ -77,6 +77,37 @@ const char *sol_platform_get_board_name(void);
  */
 int sol_platform_get_machine_id(char id[static 33]);
 
+/**
+ * Retrieves, in @a number, the platform's main board serial
+ * number/identifier.
+ *
+ * @param number On success, it's set to returning serial number
+ *               string. It must be freed after usage.
+ *
+ * @note: If the environment variable SOL_SERIAL_NUMBER is set, its
+ * value is returned by this call.
+ *
+ * @return 0 on success, negative error code otherwise.
+ */
+int sol_platform_get_serial_number(char **number);
+
+/**
+ * Retrieves the version of Soletta that is running.
+ *
+ * @return On success, it returns the version string, that must not be
+ * modified. On error, it returns @c NULL.
+ */
+const char *sol_platform_get_sw_version(void);
+
+/**
+ * Retrieves the operating system's version that Soletta is running
+ * on top of.
+ *
+ * @return On success, it returns the version string, that must be
+ * freed after usage. On error, it returns @c NULL.
+ */
+char *sol_platform_get_os_version(void);
+
 enum sol_platform_state {
     SOL_PLATFORM_STATE_INITIALIZING,
     SOL_PLATFORM_STATE_RUNNING,

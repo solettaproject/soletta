@@ -319,6 +319,37 @@ sol_platform_get_machine_id(char id[static 33])
     return sol_platform_impl_get_machine_id(id);
 }
 
+SOL_API int
+sol_platform_get_serial_number(char **number)
+{
+    char *env_id;
+
+    SOL_NULL_CHECK(number, -EINVAL);
+
+#ifdef SOL_PLATFORM_LINUX
+    env_id = getenv("SOL_SERIAL_NUMBER");
+    if (env_id) {
+        *number = strdup(env_id);
+        SOL_NULL_CHECK(*number, -errno);
+
+        return 0;
+    }
+#endif
+    return sol_platform_impl_get_serial_number(number);
+}
+
+SOL_API const char *
+sol_platform_get_sw_version(void)
+{
+    return VERSION;
+}
+
+SOL_API char *
+sol_platform_get_os_version(void)
+{
+    return sol_platform_impl_get_os_version();
+}
+
 void
 sol_platform_inform_state_monitors(enum sol_platform_state state)
 {
