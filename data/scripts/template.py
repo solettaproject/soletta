@@ -80,11 +80,11 @@ def parse_template(raw, context):
             expr = True
         elif ch == "}" and prev == "}":
             if curr:
-                fragment = TemplateFragment(context, curr, expr)
+                fragment = TemplateFragment(context, curr[:len(curr)-1], expr)
                 result.append(fragment)
             curr = ""
             expr = False
-        elif ch not in("{", "}"):
+        else:
             curr += ch
         prev = ch
 
@@ -119,18 +119,48 @@ def try_subst(verbatim):
 
     return verbatim.replace("@","")
 
-def run_template(f, context):
-    raw = f.read()
+def try_include(verbatim, globals, context):
+    p = re.compile("^.*include.*\"(?P<include_file>.*)\".*$")
+    m = p.match(verbatim)
+
+    if not m:
+        return None, False
+
+    include_file = m.group("include_file")
+    if not include_file:
+        print("Could not determine include_file to include: %s" % verbatim)
+        return None, True
+
+    dir = os.path.dirname(os.path.realpath(args.template.name));
+    path = "%s/%s" % (dir, include_file)
+
+    try:
+        f = open(path)
+    except FileNotFoundError:
+        print("Could not open include file: %s" % path)
+        return None, True
+
+    return run_template(f.read(), globals, context), False
+
+def run_template(raw, globals, context):
     fragments = parse_template(raw, context)
     for frag in fragments:
         if frag.expr:
-            subst = try_subst(frag.verbatim)
-            if subst:
-                subst = context.get(subst.lower(), "")
-                subst = subst.replace("\"","")
+            subst, error = try_include(frag.verbatim, globals, context)
+            if error:
+                continue
+            elif subst:
                 frag.subst = subst
             else:
-                exec(frag.verbatim, {"st": frag, "context": context})
+                subst = try_subst(frag.verbatim)
+                if subst:
+                    subst = context.get(subst.lower(), "")
+                    subst = subst.replace("\"","")
+                    frag.subst = subst
+                else:
+                    globals["st"] = frag
+                    globals["context"] = context
+                    exec(frag.verbatim, globals)
             raw = raw.replace("{{%s}}" % frag.verbatim, frag.subst)
 
     return raw
@@ -148,9 +178,10 @@ if __name__ == "__main__":
     parser.add_argument("--output", help="The template file path",
                         type=argparse.FileType("w"), required=True)
 
+    globals = {}
     args = parser.parse_args()
     context = load_context(args.context_files)
-    output = run_template(args.template, context)
+    output = run_template(args.template.read(), globals, context)
 
     args.output.write(output)
     st = os.fstat(args.template.fileno())
