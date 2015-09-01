@@ -102,6 +102,7 @@ search_fbp_file(struct runner *r, const char *basename)
             return fullpath;
     }
 
+    SOL_ERR("Couldn't find file '%s'", basename);
     errno = EINVAL;
     return NULL;
 }
