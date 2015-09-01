@@ -694,20 +694,30 @@ irange_buffer_open(struct sol_flow_node *node, void *data,
     const struct sol_flow_node_options *options)
 {
     struct irange_buffer_data *mdata = data;
+    const struct sol_flow_node_type_int_buffer_options *def_opts;
     const struct sol_flow_node_type_int_buffer_options *opts =
         (const struct sol_flow_node_type_int_buffer_options *)options;
 
     mdata->node = node;
-    mdata->cur_len = 0;
+    def_opts = node->type->default_options;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
         (options, SOL_FLOW_NODE_TYPE_INT_BUFFER_OPTIONS_API_VERSION, -EINVAL);
 
-    SOL_INT_CHECK(opts->timeout.val, < 0, -EINVAL);
-    SOL_INT_CHECK(opts->samples.val, == 0, -EINVAL);
-
     mdata->n_samples = opts->samples.val;
+    if (opts->samples.val <= 0) {
+        SOL_WRN("Invalid samples (%" PRId32 "). Must be positive. "
+            "Set to %" PRId32 ".", opts->samples.val, def_opts->samples.val);
+        mdata->n_samples = def_opts->samples.val;
+    }
+
     mdata->timeout = opts->timeout.val;
+    if (opts->timeout.val < 0) {
+        SOL_WRN("Invalid timeout (%" PRId32 "). Must be non negative."
+            "Set to 0.", opts->timeout.val);
+        mdata->timeout = 0;
+    }
+
     mdata->normalize_cb = sol_str_table_ptr_lookup_fallback
             (table, sol_str_slice_from_str(opts->operation), NULL);
     if (!mdata->normalize_cb) {
