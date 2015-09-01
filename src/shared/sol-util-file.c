@@ -215,7 +215,7 @@ sol_util_load_file_string(const char *filename, size_t *size)
         data = strdup("");
         size_read = 1;
     } else {
-        if (*(char *)sol_buffer_at_end(buffer) != '\0') {
+        if (*((char *)sol_buffer_at_end(buffer) - 1) != '\0') {
             if (buffer->used >= SIZE_MAX - 1 ||
                 sol_buffer_ensure(buffer, buffer->used + 1) < 0)
                 goto err;
