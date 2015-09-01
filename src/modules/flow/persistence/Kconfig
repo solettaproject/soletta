@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_PERSISTENCE
+	tristate "Node type: persistence"
+	depends on PLATFORM_LINUX
+	default m
