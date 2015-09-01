@@ -168,7 +168,6 @@ sol_util_load_file_raw(const int fd)
 {
     struct stat st;
     ssize_t ret;
-    size_t buffer_size = 0;
     struct sol_buffer *buffer;
 
     if (fd < 0)
@@ -181,7 +180,6 @@ sol_util_load_file_raw(const int fd)
         ret = sol_util_fill_buffer(fd, buffer, st.st_size);
     } else {
         do {
-            buffer_size += CHUNK_SIZE;
             ret = sol_util_fill_buffer(fd, buffer, CHUNK_SIZE);
         } while (ret > 0);
     }
