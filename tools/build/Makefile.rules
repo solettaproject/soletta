@@ -9,23 +9,6 @@ module-type = \
 	$(eval curr-mod-type:=$(call known-module-type,$(1))) \
 	$(if $(curr-mod-type),$(curr-mod-type),external) \
 
-flow-type = \
-	$(sort $(if $(filter $(flow-dir)%,$(1)), \
-		$(subst /,,$(subst $(flow-dir),,$(dir $(1))))) \
-	)
-
-linux-micro-type = \
-	$(sort $(if $(filter $(linux-micro-dir)%,$(1)), \
-		$(subst /,,$(subst $(linux-micro-dir),,$(dir $(1))))) \
-	)
-
-pin-mux-type = \
-	$(sort $(if $(filter $(pin-mux-dir)%,$(1)), \
-		$(subst /,,$(subst $(pin-mux-dir),,$(dir $(1))))) \
-	)
-
-flow-metatype-type = $(if $(filter $(flow-metatype-dir)%,$(2)),$(1))
-
 all-gen-hdrs = $(foreach gen,$(all-gens),$($(gen)-hdr))
 
 gen-artifact = \
@@ -111,10 +94,14 @@ parse-builtin-module = \
 	$(eval builtin-cflags      += $($(3)-cflags)) \
 	$(eval builtin-ldflags     += $($(3)-ldflags)) \
 	$(eval builtin-objs        += $($(3)-objs)) \
-	$(eval builtin-flows       += $(call flow-type,$(artifacts))) \
-	$(eval builtin-linux-micro += $(call linux-micro-type,$(artifacts))) \
-	$(eval builtin-pin-mux 	   += $(call pin-mux-type,$(artifacts))) \
-	$(eval builtin-flow-metatype += $(call flow-metatype-type,$(1),$(2)))
+	$(if $(filter $(flow-dir)%,$(2)), \
+		$(eval builtin-flows += $(1))) \
+	$(if $(filter $(linux-micro-dir)%,$(2)), \
+		$(eval builtin-linux-micro += $(1))) \
+	$(if $(filter $(pin-mux-dir)%,$(2)), \
+		$(eval builtin-pin-mux += $(1))) \
+	$(if $(filter $(flow-metatype-dir)%,$(2)), \
+		$(eval builtin-flow-metatype += $(1))) \
 
 parse-mod-output = \
 	$(if $(filter yes,$(obj-$(1)-static)), \
@@ -236,6 +223,11 @@ endif # $(M)
 
 $(eval $(call inc-subdirs))
 $(eval $(call extra-bins))
+
+export builtin-flows
+export builtin-linux-micro
+export builtin-pin-mux
+export builtin-flow-metatype
 
 PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin)
 
@@ -379,6 +371,7 @@ $(foreach gen,$(sort $(all-gens)),$(eval $(call make-gen,$(gen))))
 define make-template-gen
 $($(1)-dest): $(1) $(KCONFIG_CONFIG) $(MAKEFILE_GEN)
 	$(Q)echo "     "GEN"   "$$@
+	$(Q)$(MKDIR) -p $(dir $($(1)-dest))
 	$(Q)$(PYTHON) $(TEMPLATE_SCRIPT) --context-files $(KCONFIG_CONFIG) $(MAKEFILE_GEN) \
 		--template=$(1) --output=$($(1)-dest)
 endef
@@ -415,47 +408,6 @@ $(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT)
 $(FLOW_NODE_TYPES_H): $(NODE_TYPE_H_GEN_SCRIPT) $(KCONFIG_CONFIG)
 	$(Q)echo "     "GEN"   "$(@)
 	$(Q)$(PYTHON) $(NODE_TYPE_H_GEN_SCRIPT) $(FLOW_NODE_TYPES_H) $(all-gen-hdrs)
-
-$(LINUX_MICRO_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
-	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(PYTHON) $(BUILTINS_SCRIPT) --output=$@ \
-		--array="static const struct sol_platform_linux_micro_module *SOL_PLATFORM_LINUX_MICRO_MODULE_ALL[]" \
-		--count="SOL_PLATFORM_LINUX_MICRO_MODULE_COUNT" \
-		--decl="struct sol_platform_linux_micro_module SOL_PLATFORM_LINUX_MICRO_MODULE_@NAME@" \
-		--item="&SOL_PLATFORM_LINUX_MICRO_MODULE_@NAME@" \
-		$(subst -,_,$(builtin-linux-micro))
-
-$(FLOW_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
-	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(MKDIR) -p $(dir $(FLOW_BUILTINS_H))
-	$(Q)$(PYTHON) $(BUILTINS_SCRIPT) \
-		--output=$@ \
-		--array="static const void *SOL_FLOW_BUILTIN_NODE_TYPE_ALL[]" \
-		--count="SOL_FLOW_BUILTIN_NODE_TYPE_COUNT" \
-		--decl="const struct sol_flow_node_type *sol_flow_foreach_builtin_node_type_@name@(bool (*)(void *, const struct sol_flow_node_type *), const void *)" \
-		--item="sol_flow_foreach_builtin_node_type_@name@" \
-		$(subst -,_,$(builtin-flows))
-
-$(PIN_MUX_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
-	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(MKDIR) -p $(dir $(PIN_MUX_BUILTINS_H))
-	$(Q)$(PYTHON) $(BUILTINS_SCRIPT) \
-                --output=$@ \
-                --array="static const struct sol_pin_mux *SOL_PIN_MUX_BUILTINS_ALL[]" \
-                --count="SOL_PIN_MUX_BUILTIN_COUNT" \
-                --decl="const struct sol_pin_mux SOL_PIN_MUX_@NAME@" \
-                --item="&SOL_PIN_MUX_@NAME@" \
-                $(subst -,_,$(builtin-pin-mux))
-
-$(FLOW_METATYPE_BUILTINS_H): $(BUILTINS_SCRIPT) $(KCONFIG_CONFIG)
-	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(PYTHON) $(BUILTINS_SCRIPT) \
-                --output=$@ \
-                --array="static const struct sol_flow_metatype *SOL_FLOW_METATYPE_BUILTINS_ALL[]" \
-                --count="SOL_FLOW_METATYPE_BUILTINS_COUNT" \
-                --decl="const struct sol_flow_metatype SOL_FLOW_METATYPE_@NAME@" \
-                --item="&SOL_FLOW_METATYPE_@NAME@" \
-                $(subst -,_,$(builtin-flow-metatype))
 
 $(PC_GEN): $(PC_GEN_IN) $(KCONFIG_CONFIG) $(MAKEFILE_GEN)
 	$(Q)echo "     "GEN"   "$(PC_GEN)
