@@ -37,16 +37,18 @@ fi
 NOTE_PREFIX=${TMP_DIR}/`basename $PWD`
 
 COMMITS_SINCE="$1"
-ISSUES_SINCE="$2"
+CLOSED_SINCE="$2"
 
 COMMITS_LOG="$NOTE_PREFIX-release-commits.txt"
 OPEN_ISSUES="$NOTE_PREFIX-release-issues-open.txt"
 CLOSED_ISSUES="$NOTE_PREFIX-release-issues-closed.txt"
 NOTE="release-note.txt"
 
-if [ -z "$1" ]
+if [ -z "$2" ]
 then
-    echo "Usage: $0 LAST_RELEASE_COMMIT"
+    echo "Usage: $0 LAST_RELEASE_COMMIT CLOSED_SINCE"
+    echo "    CLOSED_SINCE must be in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ"
+    echo "Example.: $0 3baae03daa72e6 2015-08-01T00:00:00Z"
     exit 1
 fi
 
@@ -54,11 +56,11 @@ echo "Getting git log..."
 git log --oneline $COMMITS_SINCE..HEAD > $COMMITS_LOG
 
 echo "Getting closed issues list..."
-git-hub issue list -i -c -H > $CLOSED_ISSUES
+git-hub issue list -i -t --closed-after $CLOSED_SINCE > $CLOSED_ISSUES
 
 echo "Getting open issues list..."
 #TODO consider since to get only closed after last release
-git-hub issue list -i -H > $OPEN_ISSUES
+git-hub issue list -i -t > $OPEN_ISSUES
 
 echo "Release " `git describe  --abbrev=0 --tags` " - " `date +%D` > $NOTE
 
@@ -83,6 +85,7 @@ echo "" >> $NOTE
 
 COMMITS_COUNT=(`wc -l $COMMITS_LOG`)
 echo "Changes in this release ($COMMITS_COUNT commits):" >> $NOTE
+echo "" >> $NOTE
 cat $COMMITS_LOG >> $NOTE
 
 "${EDITOR:-vi}" $NOTE
