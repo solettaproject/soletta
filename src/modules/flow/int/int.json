@@ -524,8 +524,8 @@
           },
           {
             "data_type": "string",
-            "default": "all_true",
-            "description": "Operation to be applied in the buffer elements to compute the output.",
+            "default": "mean",
+            "description": "Operation to be applied in the buffer elements to compute the output. Supported operations: mean and median.",
             "name": "operation"
           }
         ],

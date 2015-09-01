@@ -616,14 +616,6 @@ _normalize_median(const int32_t *const values, const size_t len)
     return ret;
 }
 
-static const struct sol_str_table_ptr table[] = {
-    SOL_STR_TABLE_PTR_ITEM("mean", _normalize_mean),
-    SOL_STR_TABLE_PTR_ITEM("median", _normalize_median),
-    { }
-};
-
-// =============================================================================
-
 static int
 _irange_buffer_do(struct irange_buffer_data *mdata)
 {
@@ -711,6 +703,12 @@ irange_buffer_process(struct sol_flow_node *node, void *data, uint16_t port, uin
     return r;
 }
 
+static const struct sol_str_table_ptr table[] = {
+    SOL_STR_TABLE_PTR_ITEM("mean", _normalize_mean),
+    SOL_STR_TABLE_PTR_ITEM("median", _normalize_median),
+    { }
+};
+
 static int
 irange_buffer_open(struct sol_flow_node *node, void *data,
     const struct sol_flow_node_options *options)
@@ -731,7 +729,12 @@ irange_buffer_open(struct sol_flow_node *node, void *data,
     mdata->n_samples = opts->samples.val;
     mdata->timeout = opts->timeout.val;
     mdata->normalize_cb = sol_str_table_ptr_lookup_fallback
-            (table, sol_str_slice_from_str(opts->operation), _normalize_mean);
+            (table, sol_str_slice_from_str(opts->operation), NULL);
+    if (!mdata->normalize_cb) {
+        SOL_WRN("Operation %s not supported. Setting operation to 'mean'",
+            opts->operation);
+        mdata->normalize_cb = _normalize_mean;
+    }
 
     mdata->input_queue = calloc(mdata->n_samples, sizeof(*mdata->input_queue));
     SOL_NULL_CHECK(mdata->input_queue, -ENOMEM);

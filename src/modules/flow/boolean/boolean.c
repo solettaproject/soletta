@@ -342,16 +342,6 @@ _normalize_any_false(const bool *const values, size_t len)
     return false;
 }
 
-static const struct sol_str_table_ptr table[] = {
-    SOL_STR_TABLE_PTR_ITEM("all_true", _normalize_all_true),
-    SOL_STR_TABLE_PTR_ITEM("all_false", _normalize_all_false),
-    SOL_STR_TABLE_PTR_ITEM("any_true", _normalize_any_true),
-    SOL_STR_TABLE_PTR_ITEM("any_false", _normalize_any_false),
-    { }
-};
-
-// =============================================================================
-
 static int
 _boolean_buffer_do(struct boolean_buffer_data *mdata)
 {
@@ -441,6 +431,14 @@ boolean_buffer_process(struct sol_flow_node *node, void *data, uint16_t port, ui
     return r;
 }
 
+static const struct sol_str_table_ptr table[] = {
+    SOL_STR_TABLE_PTR_ITEM("all_true", _normalize_all_true),
+    SOL_STR_TABLE_PTR_ITEM("all_false", _normalize_all_false),
+    SOL_STR_TABLE_PTR_ITEM("any_true", _normalize_any_true),
+    SOL_STR_TABLE_PTR_ITEM("any_false", _normalize_any_false),
+    { }
+};
+
 static int
 boolean_buffer_open(struct sol_flow_node *node, void *data,
     const struct sol_flow_node_options *options)
@@ -460,7 +458,12 @@ boolean_buffer_open(struct sol_flow_node *node, void *data,
     mdata->n_samples = opts->samples.val;
     mdata->timeout = opts->timeout.val;
     mdata->normalize_cb = sol_str_table_ptr_lookup_fallback
-            (table, sol_str_slice_from_str(opts->operation), _normalize_all_true);
+            (table, sol_str_slice_from_str(opts->operation), NULL);
+    if (!mdata->normalize_cb) {
+        SOL_WRN("Operation %s not supported. Setting operation to 'all_true'",
+            opts->operation);
+        mdata->normalize_cb = _normalize_all_true;
+    }
 
     mdata->input_queue = calloc(mdata->n_samples, sizeof(*mdata->input_queue));
     SOL_NULL_CHECK(mdata->input_queue, -ENOMEM);

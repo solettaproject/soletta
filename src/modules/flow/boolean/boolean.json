@@ -255,7 +255,7 @@
           {
             "data_type": "string",
             "default": "all_true",
-            "description": "Operation to be applied in the buffer elements to compute the output.",
+            "description": "Operation to be applied in the buffer elements to compute the output. Supported operations are: all_true, all_false, any_true, any_false.",
             "name": "operation"
           }
         ],
