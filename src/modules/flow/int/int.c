@@ -649,8 +649,11 @@ irange_buffer_timeout(struct sol_flow_node *node, void *data, uint16_t port, uin
     r = sol_flow_packet_get_irange_value(packet, &timeout);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (timeout < 0)
-        SOL_WRN("Invalid 'timeout' value: '%" PRId32 "'. Skipping it.", timeout);
+    if (timeout < 0) {
+        sol_flow_send_error_packet(node, EINVAL,
+            "Invalid 'timeout' value: '%" PRId32 "'. Skipping it.", timeout);
+        return 0;
+    }
 
     mdata->timeout = timeout;
 
@@ -659,7 +662,7 @@ irange_buffer_timeout(struct sol_flow_node *node, void *data, uint16_t port, uin
     if (mdata->timeout)
         mdata->timer = sol_timeout_add(mdata->timeout, _timeout, mdata);
 
-    return r;
+    return 0;
 }
 
 static int
