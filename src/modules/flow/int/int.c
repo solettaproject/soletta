@@ -624,8 +624,11 @@ _reset(void *data)
 
     mdata->cur_len = 0;
 
-    if (mdata->timer)
+    if (mdata->timer) {
         sol_timeout_del(mdata->timer);
+        mdata->timer = NULL;
+    }
+
     if (mdata->timeout)
         mdata->timer = sol_timeout_add(mdata->timeout, _timeout, mdata);
 }
@@ -657,8 +660,11 @@ irange_buffer_timeout(struct sol_flow_node *node, void *data, uint16_t port, uin
 
     mdata->timeout = timeout;
 
-    if (mdata->timer)
+    if (mdata->timer) {
         sol_timeout_del(mdata->timer);
+        mdata->timer = NULL;
+    }
+
     if (mdata->timeout)
         mdata->timer = sol_timeout_add(mdata->timeout, _timeout, mdata);
 
@@ -740,10 +746,8 @@ irange_buffer_close(struct sol_flow_node *node, void *data)
 {
     struct irange_buffer_data *mdata = data;
 
-    if (mdata->timer) {
+    if (mdata->timer)
         sol_timeout_del(mdata->timer);
-        mdata->timer = NULL;
-    }
 
     free(mdata->input_queue);
 }
