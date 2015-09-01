@@ -199,16 +199,12 @@ err:
 }
 
 char *
-sol_util_load_file_string(const char *filename, size_t *size)
+sol_util_load_file_fd_string(int fd, size_t *size)
 {
-    int fd = -1, saved_errno;
+    int saved_errno;
     size_t size_read;
     char *data = NULL;
     struct sol_buffer *buffer = NULL;
-
-    fd = open(filename, O_RDONLY | O_CLOEXEC);
-    if (fd < 0)
-        goto open_err;
 
     buffer = sol_util_load_file_raw(fd);
     if (!buffer) {
@@ -228,7 +224,6 @@ sol_util_load_file_string(const char *filename, size_t *size)
     }
 
     sol_buffer_free(buffer);
-    close(fd);
     if (size)
         *size = size_read;
     return data;
@@ -236,13 +231,35 @@ sol_util_load_file_string(const char *filename, size_t *size)
 err:
     saved_errno = errno;
     free(data);
-    close(fd);
     sol_buffer_free(buffer);
     errno = saved_errno;
-open_err:
     if (size)
         *size = 0;
     return NULL;
+}
+
+char *
+sol_util_load_file_string(const char *filename, size_t *size)
+{
+    int fd, saved_errno;
+    char *ret;
+
+    fd = open(filename, O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
+        if (size)
+            *size = 0;
+        return NULL;
+    }
+
+    ret = sol_util_load_file_fd_string(fd, size);
+
+    if (!ret)
+        saved_errno = errno;
+    close(fd);
+    if (!ret)
+        errno = saved_errno;
+
+    return ret;
 }
 
 static int
