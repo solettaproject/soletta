@@ -37,7 +37,7 @@ gen1(test/int-generator:sequence="0 4 8 12") OUT -> IN median_buffer
 median_buffer OUT -> IN[0] median_equal
 median_result OUT -> IN[1] median_equal
 
-median_equal OUT -> RESULT test_median(test/result)
+median_equal OUT -> RESULT test_median_even(test/result)
 
 # --------------------------
 
@@ -49,4 +49,17 @@ timeout(constant/int:value=1) OUT -> TIMEOUT median_buffer2
 
 median_buffer2 OUT -> IN[0] median_equal2
 median_result2 OUT -> IN[1] median_equal2
-median_equal2 OUT -> RESULT test_median2(test/result)
+median_equal2 OUT -> RESULT test_median_odd(test/result)
+
+# --------------------------
+
+mean_result(constant/int:value=6)
+mean_buffer(int/buffer)
+mean_equal(int/equal)
+
+gen3(test/int-generator:sequence="0 4 5 15") OUT -> IN mean_buffer
+
+mean_buffer OUT -> IN[0] mean_equal
+mean_result OUT -> IN[1] mean_equal
+
+mean_equal OUT -> RESULT test_mean(test/result)
