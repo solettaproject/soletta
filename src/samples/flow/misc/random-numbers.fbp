@@ -40,7 +40,7 @@
 # provide the seed.
 
 timer(timer:interval=1000)
-rI(random/int:seed=666)
+rI(random/int:seed=0)
 rF(random/float:seed=666)
 rB(random/byte:seed=666)
 rBool(random/boolean:seed=666)

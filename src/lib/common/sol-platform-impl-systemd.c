@@ -443,6 +443,14 @@ sol_platform_impl_set_target(const char *target)
 }
 
 int
+sol_platform_impl_get_machine_id(char id[37])
+{
+    int r;
+
+    return sol_util_read_file("/etc/machine-id", "%37c", id);
+}
+
+int
 sol_platform_impl_init(void)
 {
     /* For systemd backend we do nothing: we will only attach its mainloop to

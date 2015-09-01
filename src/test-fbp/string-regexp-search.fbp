@@ -84,3 +84,23 @@ str_hello_world OUT -> IN regexp_search_10(string/regexp-search:regexp="(\\p{L}{
 regexp_search_10 OUT -> IN[0] cmp_10(string/compare)
 result_world OUT -> IN[1] cmp_10
 cmp_10 EQUAL -> RESULT result_10(test/result)
+
+_(string/uuid) OUT -> IN regexp_search_11(string/regexp-search:regexp="((?:[a-f]|[0-9]){8})((?:(?:[a-f]|[0-9]){4}){3})((?:[a-f]|[0-9]){12})")
+regexp_search_11 LENGTH -> IN[0] cmp_11(int/equal)
+_(constant/int:value=4) OUT -> IN[1] cmp_11
+cmp_11 OUT -> RESULT result_11(test/result)
+
+_(string/uuid:with_hyphens=false) OUT -> IN regexp_search_12(string/regexp-search:regexp="((?:[a-f]|[0-9]){8})((?:(?:[a-f]|[0-9]){4}){3})((?:[a-f]|[0-9]){12})")
+regexp_search_12 LENGTH -> IN[0] cmp_12(int/equal)
+_(constant/int:value=4) OUT -> IN[1] cmp_12
+cmp_12 OUT -> RESULT result_12(test/result)
+
+_(string/uuid:with_hyphens=true,upcase=true) OUT -> IN regexp_search_13(string/regexp-search:regexp="((?:[A-F]|[0-9]){8}-)((?:(?:[A-F]|[0-9]){4}-){3})((?:[A-F]|[0-9]){12})")
+regexp_search_13 LENGTH -> IN[0] cmp_13(int/equal)
+_(constant/int:value=4) OUT -> IN[1] cmp_13
+cmp_13 OUT -> RESULT result_13(test/result)
+
+_(string/machine-id:with_hyphens=false,upcase=true) OUT -> IN regexp_search_14(string/regexp-search:regexp="((?:[A-F]|[0-9]){8})((?:(?:[A-F]|[0-9]){4}){3})((?:[A-F]|[0-9]){12})")
+regexp_search_14 LENGTH -> IN[0] cmp_14(int/equal)
+_(constant/int:value=4) OUT -> IN[1] cmp_14
+cmp_14 OUT -> RESULT result_14(test/result)

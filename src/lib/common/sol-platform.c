@@ -299,6 +299,28 @@ sol_platform_set_target(const char *target)
     return sol_platform_impl_set_target(target);
 }
 
+SOL_API int
+sol_platform_get_machine_id(char id[37])
+{
+    char *env_id = getenv("SOL_MACHINE_ID");
+    if (env_id) {
+        char c;
+        if (!sol_util_uuid_str_valid(env_id)) {
+            SOL_WRN("Malformed UUID passed on environment variable "
+                    "SOL_MACHINE_ID: %s", env_id);
+            return -EINVAL;
+        }
+        c = env_id[36];
+        env_id[36] = '\0';
+        memcpy(id, env_id, 37);
+        env_id[36] = c;
+
+        return 0;
+    }
+
+    return sol_platform_impl_get_machine_id(id);
+}
+
 void
 sol_platform_inform_state_monitors(enum sol_platform_state state)
 {
