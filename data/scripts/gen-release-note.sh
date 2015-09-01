@@ -62,7 +62,7 @@ echo "Getting open issues list..."
 #TODO consider since to get only closed after last release
 git-hub issue list -i -t > $OPEN_ISSUES
 
-echo "Release " `git describe  --abbrev=0 --tags` " - " `date +%D` > $NOTE
+echo "# Release " `git describe  --abbrev=0 --tags` " - " `date +%D` > $NOTE
 
 echo "" >> $NOTE
 echo "** WRITE A SHORT DESCRIPTION HERE **" >> $NOTE
@@ -70,21 +70,21 @@ echo "" >> $NOTE
 echo "" >> $NOTE
 
 CLOSED_COUNT=(`wc -l $CLOSED_ISSUES`)
-echo "Issues resolved in this release ($CLOSED_COUNT):" >> $NOTE
+echo "## Issues resolved in this release ($CLOSED_COUNT):" >> $NOTE
 echo "" >> $NOTE
 cat $CLOSED_ISSUES >> $NOTE
 echo "" >> $NOTE
 echo "" >> $NOTE
 
 OPEN_COUNT=(`wc -l $OPEN_ISSUES`)
-echo "Open issues ($OPEN_COUNT):" >> $NOTE
+echo "## Open issues ($OPEN_COUNT):" >> $NOTE
 echo "" >> $NOTE
 cat $OPEN_ISSUES >> $NOTE
 echo "" >> $NOTE
 echo "" >> $NOTE
 
 COMMITS_COUNT=(`wc -l $COMMITS_LOG`)
-echo "Changes in this release ($COMMITS_COUNT commits):" >> $NOTE
+echo "## Changes in this release ($COMMITS_COUNT commits):" >> $NOTE
 echo "" >> $NOTE
 cat $COMMITS_LOG >> $NOTE
 
