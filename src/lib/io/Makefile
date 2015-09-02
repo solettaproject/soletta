@@ -63,6 +63,8 @@ obj-io-storage-$(USE_FILESYSTEM) += \
     sol-fs-storage.o
 obj-io-storage-$(USE_EFIVARS) += \
     sol-efivarfs-storage.o
+obj-io-storage-$(USE_MEMMAP) += \
+    sol-memmap-storage.o
 
 headers-$(USE_AIO) += \
     include/sol-aio.h
@@ -80,3 +82,5 @@ headers-$(USE_FILESYSTEM) += \
     include/sol-fs-storage.h
 headers-$(USE_EFIVARS) += \
     include/sol-efivarfs-storage.h
+headers-$(USE_MEMMAP) += \
+    include/sol-memmap-storage.h

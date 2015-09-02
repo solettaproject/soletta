@@ -67,3 +67,13 @@ config USE_EFIVARS
     bool "EFI vars persistence storage"
     depends on USE_STORAGE
     default y
+
+config USE_MEMMAP
+    bool "Memory map persistence storage"
+    depends on USE_STORAGE
+    default y
+    help
+        Provide persistence storage based on memory maps.
+        Users must provide a mapping - for instance, using a JSON
+        file - that will be used to define where on memory
+        entries will be saved. Examples of memory are NVRAM or EEPROM.
