@@ -28,30 +28,30 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-input1(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN all_false_buffer(boolean/buffer:samples=4,operation=all_false)
+input1(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN all_false_buffer(boolean/buffer:operation=all_false)
 all_false_buffer OUT -> RESULT t1(test/result)
 
-input2(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN all_true_buffer(boolean/buffer:samples=4,operation=all_true)
+input2(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN all_true_buffer(boolean/buffer:operation=all_true)
 all_true_buffer OUT -> RESULT t2(test/result)
 
-input3(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN any_true_buffer(boolean/buffer:samples=4,operation=any_true)
+input3(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN any_true_buffer(boolean/buffer:operation=any_true)
 any_true_buffer OUT -> RESULT t3(test/result)
 
-input4(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN any_false_buffer(boolean/buffer:samples=4,operation=any_false)
+input4(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN any_false_buffer(boolean/buffer:operation=any_false)
 any_false_buffer OUT -> RESULT t4(test/result)
 
 # Negative tests
 
-input5(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN nall_false_buffer(boolean/buffer:samples=4,operation=all_false)
+input5(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN nall_false_buffer(boolean/buffer:operation=all_false)
 nall_false_buffer OUT -> IN _(boolean/not) OUT -> RESULT t5(test/result)
 
-input6(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN nall_true_buffer(boolean/buffer:samples=4,operation=all_true)
+input6(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN nall_true_buffer(boolean/buffer:operation=all_true)
 nall_true_buffer OUT -> IN _(boolean/not) OUT -> RESULT t6(test/result)
 
-input7(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN nany_true_buffer(boolean/buffer:samples=4,operation=any_true)
+input7(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN nany_true_buffer(boolean/buffer:operation=any_true)
 nany_true_buffer OUT -> IN _(boolean/not) OUT -> RESULT t7(test/result)
 
-input8(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN nany_false_buffer(boolean/buffer:samples=4,operation=any_false)
+input8(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN nany_false_buffer(boolean/buffer:operation=any_false)
 nany_false_buffer OUT -> IN _(boolean/not) OUT -> RESULT t8(test/result)
 
 
