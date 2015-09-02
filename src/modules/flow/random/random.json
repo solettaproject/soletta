@@ -29,7 +29,8 @@
         }
       ],
       "methods": {
-        "open": "random_open"
+        "open": "random_open",
+        "close": "random_close"
       },
       "name": "random/boolean",
       "options": {
@@ -75,7 +76,8 @@
         }
       ],
       "methods": {
-        "open": "random_open"
+        "open": "random_open",
+        "close": "random_close"
       },
       "name": "random/byte",
       "options": {
@@ -121,7 +123,8 @@
         }
       ],
       "methods": {
-        "open": "random_open"
+        "open": "random_open",
+        "close": "random_close"
       },
       "name": "random/float",
       "options": {
@@ -167,7 +170,8 @@
         }
       ],
       "methods": {
-        "open": "random_open"
+        "open": "random_open",
+        "close": "random_close"
       },
       "name": "random/int",
       "options": {
