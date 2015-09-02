@@ -117,6 +117,8 @@ parse-mod-module = \
 	$(eval $(3)-deps     := $(subst .mod,,$(obj-$(1)-m-deps))) \
 	$(call parse-mod-output,$(1),$(2),$(3)) \
 	$(eval modules-out += $($(3)-out)) \
+	$(if $(filter $(linux-micro-dir)%,$(2)), \
+		$(eval modules-linux-micro += $(1))) \
 
 parse-bin = \
 	$(eval bin-$(1)-srcs := $(addprefix $(2),$(bin-$(1)-y))) \
@@ -226,6 +228,7 @@ $(eval $(call extra-bins))
 
 export builtin-flows
 export builtin-linux-micro
+export modules-linux-micro
 export builtin-pin-mux
 export builtin-flow-metatype
 
