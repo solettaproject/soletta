@@ -465,7 +465,7 @@ direction_vector_parse(const char *value, struct sol_flow_node_named_options_mem
     return 0;
 
 err:
-    SOL_ERR("Invalid direction_vector value for option name=\"%s\": \"%s\"."
+    SOL_DBG("Invalid direction_vector value for option name=\"%s\": \"%s\"."
         " Please use the formats"
         " \"<x_value>|<y_value>|<z_value>|<min_value>|<max_value>\","
         " in that order, or \"<key>:<value>|<...>\", for keys in "
