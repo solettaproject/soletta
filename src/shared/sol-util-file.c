@@ -168,7 +168,6 @@ sol_util_load_file_raw(const int fd)
 {
     struct stat st;
     ssize_t ret;
-    size_t buffer_size = 0;
     struct sol_buffer *buffer;
 
     if (fd < 0)
@@ -181,7 +180,6 @@ sol_util_load_file_raw(const int fd)
         ret = sol_util_fill_buffer(fd, buffer, st.st_size);
     } else {
         do {
-            buffer_size += CHUNK_SIZE;
             ret = sol_util_fill_buffer(fd, buffer, CHUNK_SIZE);
         } while (ret > 0);
     }
@@ -201,23 +199,19 @@ err:
 }
 
 char *
-sol_util_load_file_string(const char *filename, size_t *size)
+sol_util_load_file_fd_string(int fd, size_t *size)
 {
-    int fd = -1, saved_errno;
+    int saved_errno;
     size_t size_read;
     char *data = NULL;
     struct sol_buffer *buffer = NULL;
-
-    fd = open(filename, O_RDONLY | O_CLOEXEC);
-    if (fd < 0)
-        goto open_err;
 
     buffer = sol_util_load_file_raw(fd);
     if (!buffer) {
         data = strdup("");
         size_read = 1;
     } else {
-        if (*(char *)sol_buffer_at_end(buffer) != '\0') {
+        if (*((char *)sol_buffer_at_end(buffer) - 1) != '\0') {
             if (buffer->used >= SIZE_MAX - 1 ||
                 sol_buffer_ensure(buffer, buffer->used + 1) < 0)
                 goto err;
@@ -230,7 +224,6 @@ sol_util_load_file_string(const char *filename, size_t *size)
     }
 
     sol_buffer_free(buffer);
-    close(fd);
     if (size)
         *size = size_read;
     return data;
@@ -238,13 +231,35 @@ sol_util_load_file_string(const char *filename, size_t *size)
 err:
     saved_errno = errno;
     free(data);
-    close(fd);
     sol_buffer_free(buffer);
     errno = saved_errno;
-open_err:
     if (size)
         *size = 0;
     return NULL;
+}
+
+char *
+sol_util_load_file_string(const char *filename, size_t *size)
+{
+    int fd, saved_errno;
+    char *ret;
+
+    fd = open(filename, O_RDONLY | O_CLOEXEC);
+    if (fd < 0) {
+        if (size)
+            *size = 0;
+        return NULL;
+    }
+
+    ret = sol_util_load_file_fd_string(fd, size);
+
+    if (!ret)
+        saved_errno = errno;
+    close(fd);
+    if (!ret)
+        errno = saved_errno;
+
+    return ret;
 }
 
 static int
