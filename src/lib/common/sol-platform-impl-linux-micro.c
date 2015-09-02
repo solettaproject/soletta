@@ -517,11 +517,23 @@ end:
 int
 sol_platform_impl_init(void)
 {
+    bool want_load_initial_services = false;
+
     if (getpid() == 1 && getppid() == 0) {
         int err = setup_pid1();
         SOL_INT_CHECK(err, < 0, err);
 
+        want_load_initial_services = true;
+    } else {
+        const char *s = getenv("SOL_LOAD_INITIAL_SERVICES");
+        if (s && streq(s, "1"))
+            want_load_initial_services = true;
+    }
+
+    if (want_load_initial_services) {
 #if (SOL_PLATFORM_LINUX_MICRO_MODULE_COUNT > 0) || defined(ENABLE_DYNAMIC_MODULES)
+        int err;
+
         platform_state_set(SOL_PLATFORM_STATE_INITIALIZING);
         err = load_initial_services();
         SOL_INT_CHECK(err, < 0, err);
