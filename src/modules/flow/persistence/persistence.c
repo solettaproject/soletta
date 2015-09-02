@@ -48,6 +48,10 @@
 #include "sol-efivarfs-storage.h"
 #endif
 
+#ifdef USE_MEMMAP
+#include "sol-memmap-storage.h"
+#endif
+
 struct storage_fn {
     int (*write)(const char *name, const struct sol_buffer *buffer);
     int (*read)(const char *name, struct sol_buffer *buffer);
@@ -83,12 +87,22 @@ static const struct storage_fn efivars_fn = {
 };
 #endif
 
+#ifdef USE_MEMMAP
+static const struct storage_fn memmap_fn = {
+    .write = sol_memmap_write_raw,
+    .read = sol_memmap_read_raw
+};
+#endif
+
 static const struct sol_str_table_ptr storage_fn_table[] = {
 #ifdef USE_FILESYSTEM
     SOL_STR_TABLE_PTR_ITEM("fs", &fs_fn),
 #endif
 #ifdef USE_EFIVARS
     SOL_STR_TABLE_PTR_ITEM("efivars", &efivars_fn),
+#endif
+#ifdef USE_MEMMAP
+    SOL_STR_TABLE_PTR_ITEM("memmap", &memmap_fn),
 #endif
     { }
 };
