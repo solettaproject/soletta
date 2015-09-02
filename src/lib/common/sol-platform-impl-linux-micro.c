@@ -784,6 +784,99 @@ sol_platform_impl_set_target(const char *target)
     return 0;
 }
 
+static int
+validate_machine_id(char id[static 33])
+{
+    id[32] = '\0';
+
+    if (!sol_util_uuid_str_valid(id))
+        return -EINVAL;
+
+    return 0;
+}
+
+int
+sol_platform_impl_get_machine_id(char id[static 33])
+{
+    const char *etc_path, *run_path;
+    int r;
+
+    etc_path = "/etc/machine-id";
+    run_path = "/run/machine-id";
+
+    r = sol_util_read_file(etc_path, "%33c", id);
+    if (r < 0) {
+        /* We can only tolerate the file not existing or being
+         * malformed on /etc/, otherwise it's got more serious
+         * problems and it's better to fail */
+        if (r != -ENOENT && r != EOF)
+            goto run;
+    } else
+        return validate_machine_id(id);
+
+run:
+    r = sol_util_read_file(run_path, "%33c", id);
+    if (r < 0) {
+        return r;
+    } else
+        return validate_machine_id(id);
+}
+
+int
+sol_platform_impl_get_serial_number(char **number)
+{
+    int r;
+    char id[37];
+
+    /* root access required for this */
+    r = sol_util_read_file("/sys/class/dmi/id/product_uuid", "%37c", id);
+    SOL_INT_CHECK(r, < 0, r);
+
+    *number = strdup(id);
+    if (!*number)
+        return -errno;
+
+    return r;
+}
+
+char *
+sol_platform_impl_get_os_version(void)
+{
+    char *ptr, *end, *str, *ret;
+    static const char version[] = "VERSION_ID";
+
+    str = sol_util_load_file_string("/etc/os-release", NULL);
+    if (!str) {
+        str = sol_util_load_file_string("/usr/lib/os-release", NULL);
+        if (!str)
+            goto err;
+    }
+
+    ptr = strstr(str, version);
+    if (!ptr)
+        goto err;
+
+    ptr += sizeof(version);
+
+    if (!*ptr)
+        goto err;
+
+    end = strstr(ptr, "\n");
+    if (!end || end == ptr)
+        goto err;
+
+    ret = strndup(ptr, end - ptr);
+    if (!ret)
+        goto err;
+
+    free(str);
+    return ret;
+
+err:
+    free(str);
+    goto err;
+}
+
 SOL_API void
 sol_platform_linux_micro_inform_service_state(const char *service, enum sol_platform_service_state state)
 {

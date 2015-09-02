@@ -443,6 +443,73 @@ sol_platform_impl_set_target(const char *target)
 }
 
 int
+sol_platform_impl_get_machine_id(char id[static 33])
+{
+    return sol_util_read_file("/etc/machine-id", "%33c", id);
+}
+
+int
+sol_platform_impl_get_serial_number(char **number)
+{
+    int r;
+    char id[37];
+
+    /* root access required for this */
+    r = sol_util_read_file("/sys/class/dmi/id/product_uuid", "%37c", id);
+    SOL_INT_CHECK(r, < 0, r);
+
+    *number = strdup(id);
+    if (!*number)
+        return -errno;
+
+    return r;
+}
+
+char *
+sol_platform_impl_get_os_version(void)
+{
+    int r;
+    char *ptr, *end, *str, *ret;
+    static const char version[] = "VERSION_ID";
+
+    str = sol_util_load_file_string("/etc/os-release", NULL);
+    if (!str)
+        str = sol_util_load_file_string("/usr/lib/os-release", NULL);
+    if (!str)
+        goto err;
+
+    ptr = strstr(str, version);
+    if (!ptr)
+        goto err;
+
+    ptr += sizeof(version);
+
+    if (!*ptr)
+        goto err;
+
+    if (*ptr == '"')
+        ptr++;
+
+    end = strstr(ptr, '\n');
+    if (!end || end == ptr)
+        goto err;
+
+    if (*end == '"')
+        end--;
+
+    ret = strndup(ptr, end - ptr);
+    if (!ret)
+        goto err;
+
+    free(str);
+    return str;
+
+err:
+    free(str);
+    goto err;
+}
+
+int
 sol_platform_impl_init(void)
 {
     /* For systemd backend we do nothing: we will only attach its mainloop to

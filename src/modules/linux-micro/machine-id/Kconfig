@@ -1,0 +1,9 @@
+config LINUX_MICRO_MACHINE_ID
+	tristate "machine-id"
+	depends on LINUX_MICRO
+	default m if MODULES=y
+	help
+            After fstab service is up, this one will start and
+            guarantee the presence and validity of a unique machine
+            identifier in the file system. This UUID is made available
+            for the rest of Soletta by an utility function.

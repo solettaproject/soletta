@@ -30,33 +30,50 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <ctype.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
-#define SOL_LOG_DOMAIN &_sol_platform_log_domain
-#include "sol-log-internal.h"
+#include "sol-flow-internal.h"
 #include "sol-platform.h"
 
-extern struct sol_log_domain _sol_platform_log_domain;
+#include "string-gen.h"
+#include "string-uuid.h"
 
-int sol_platform_impl_init(void);
-void sol_platform_impl_shutdown(void);
+int
+string_uuid_gen(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    char id[37] = { 0 };
+    struct string_uuid_data *mdata = data;
 
-int sol_platform_impl_get_state(void);
+    r = sol_util_uuid_gen(mdata->upcase, mdata->with_hyphens, id);
+    SOL_INT_CHECK(r, < 0, r);
 
-int sol_platform_impl_add_service_monitor(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_del_service_monitor(const char *service) SOL_ATTR_NONNULL(1);
+    return sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_STRING_UUID__OUT__OUT, id);
+}
 
-int sol_platform_impl_start_service(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_stop_service(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_restart_service(const char *service) SOL_ATTR_NONNULL(1);
+int
+string_uuid_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct string_uuid_data *mdata = data;
+    const struct sol_flow_node_type_string_uuid_options *opts;
 
-int sol_platform_impl_set_target(const char *target) SOL_ATTR_NONNULL(1);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
+        (options, SOL_FLOW_NODE_TYPE_STRING_UUID_OPTIONS_API_VERSION, -EINVAL);
+    opts = (const struct sol_flow_node_type_string_uuid_options *)options;
 
-int sol_platform_impl_get_machine_id(char id[static 33]);
-int sol_platform_impl_get_serial_number(char **number);
-char *sol_platform_impl_get_os_version(void);
+    mdata->node = node;
+    mdata->with_hyphens = opts->with_hyphens;
+    mdata->upcase = opts->upcase;
 
-/* callbacks into generic platform abstraction */
-void sol_platform_inform_state_monitors(enum sol_platform_state state);
-void sol_platform_inform_service_monitors(const char *service,
-    enum sol_platform_service_state state);
+    return string_uuid_gen(node, data, 0, 0, NULL);
+}

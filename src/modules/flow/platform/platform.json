@@ -88,6 +88,22 @@
       ],
       "private_data_type": "platform_service_data",
       "url": "http://solettaproject.org/doc/latest/node_types/platform_service.html"
+    },
+    {
+      "category": "input/sw",
+      "description": "Outputs the machine-id of the system Soletta is being run on. The returned string is assured to be a valid, 16 bytes-long (128 bits) UUID. The output string packet is sent upon node creation.",
+      "methods": {
+        "open": "platform_machine_id_open"
+      },
+      "name": "platform/machine-id",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The machine-id (UUID) string",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/platform/machine-id.html"
     }
   ]
 }

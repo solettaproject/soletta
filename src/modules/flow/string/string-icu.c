@@ -38,6 +38,7 @@
 #include "string-gen.h"
 #include "string-icu.h"
 #include "string-regexp.h"
+#include "string-uuid.h"
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
