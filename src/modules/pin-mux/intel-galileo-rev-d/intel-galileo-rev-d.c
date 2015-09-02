@@ -30,96 +30,97 @@
  * DAMAGE.
  */
 
-#include "sol-util.h"
+#include "intel-common.h"
 #include "sol-pin-mux-modules.h"
+#include "sol-util.h"
 
 // =============================================================================
 // Galileo Gen1 Multiplexer Description
 // =============================================================================
 
-static struct sol_pin_mux_description desc_16[] = {
-    { 42, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
-    { 42, SOL_PIN_LOW, SOL_PIN_MODE_SPI },
+static struct mux_description desc_16[] = {
+    { 42, PIN_HIGH, MODE_GPIO | MODE_PWM },
+    { 42, PIN_LOW, MODE_SPI },
     { }
 };
 
-static struct sol_pin_mux_description desc_18[] = {
-    { 30, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
+static struct mux_description desc_18[] = {
+    { 30, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
 
-static struct sol_pin_mux_description desc_25[] = {
-    { 43, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
-    { 43, SOL_PIN_LOW, SOL_PIN_MODE_SPI },
+static struct mux_description desc_25[] = {
+    { 43, PIN_HIGH, MODE_GPIO | MODE_PWM },
+    { 43, PIN_LOW, MODE_SPI },
     { }
 };
 
-static struct sol_pin_mux_description desc_32[] = {
-    { 31, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
+static struct mux_description desc_32[] = {
+    { 31, PIN_HIGH, MODE_GPIO },
     { }
 };
 
-static struct sol_pin_mux_description desc_38 [] = {
-    { 54, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 54, SOL_PIN_LOW, SOL_PIN_MODE_SPI },
+static struct mux_description desc_38 [] = {
+    { 54, PIN_HIGH, MODE_GPIO },
+    { 54, PIN_LOW, MODE_SPI },
     { }
 };
 
-static struct sol_pin_mux_description desc_39[] = {
-    { 55, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
-    { 55, SOL_PIN_LOW, SOL_PIN_MODE_SPI },
+static struct mux_description desc_39[] = {
+    { 55, PIN_HIGH, MODE_GPIO | MODE_PWM },
+    { 55, PIN_LOW, MODE_SPI },
     { }
 };
 
-static struct sol_pin_mux_description desc_44[] = {
-    { 37, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 37, SOL_PIN_LOW, SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_44[] = {
+    { 37, PIN_HIGH, MODE_GPIO },
+    { 37, PIN_LOW, MODE_ANALOG },
     { }
 };
 
-static struct sol_pin_mux_description desc_45[] = {
-    { 36, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 36, SOL_PIN_LOW, SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_45[] = {
+    { 36, PIN_HIGH, MODE_GPIO },
+    { 36, PIN_LOW, MODE_ANALOG },
     { }
 };
 
-static struct sol_pin_mux_description desc_46[] = {
-    { 23, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 23, SOL_PIN_LOW, SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_46[] = {
+    { 23, PIN_HIGH, MODE_GPIO },
+    { 23, PIN_LOW, MODE_ANALOG },
     { }
 };
 
-static struct sol_pin_mux_description desc_47[] = {
-    { 22, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 22, SOL_PIN_LOW, SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_47[] = {
+    { 22, PIN_HIGH, MODE_GPIO },
+    { 22, PIN_LOW, MODE_ANALOG },
     { }
 };
 
-static struct sol_pin_mux_description desc_48[] = {
-    { 21, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 21, SOL_PIN_LOW, SOL_PIN_MODE_ANALOG },
-    { 29, SOL_PIN_HIGH, SOL_PIN_MODE_ANALOG | SOL_PIN_MODE_GPIO },
-    { 29, SOL_PIN_LOW, SOL_PIN_MODE_I2C },
+static struct mux_description desc_48[] = {
+    { 21, PIN_HIGH, MODE_GPIO },
+    { 21, PIN_LOW, MODE_ANALOG },
+    { 29, PIN_HIGH, MODE_ANALOG | MODE_GPIO },
+    { 29, PIN_LOW, MODE_I2C },
     { }
 };
 
-static struct sol_pin_mux_description desc_49[] = {
-    { 20, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 20, SOL_PIN_LOW, SOL_PIN_MODE_ANALOG },
-    { 29, SOL_PIN_HIGH, SOL_PIN_MODE_ANALOG | SOL_PIN_MODE_GPIO },
-    { 29, SOL_PIN_LOW, SOL_PIN_MODE_I2C },
+static struct mux_description desc_49[] = {
+    { 20, PIN_HIGH, MODE_GPIO },
+    { 20, PIN_LOW, MODE_ANALOG },
+    { 29, PIN_HIGH, MODE_ANALOG | MODE_GPIO },
+    { 29, PIN_LOW, MODE_I2C },
     { }
 };
 
-static struct sol_pin_mux_description desc_50[] = {
-    { 40, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 40, SOL_PIN_LOW, SOL_PIN_MODE_UART },
+static struct mux_description desc_50[] = {
+    { 40, PIN_HIGH, MODE_GPIO },
+    { 40, PIN_LOW, MODE_UART },
     { }
 };
 
-static struct sol_pin_mux_description desc_51[] = {
-    { 41, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 41, SOL_PIN_LOW, SOL_PIN_MODE_UART },
+static struct mux_description desc_51[] = {
+    { 41, PIN_HIGH, MODE_GPIO },
+    { 41, PIN_LOW, MODE_UART },
     { }
 };
 
@@ -128,16 +129,16 @@ static struct sol_pin_mux_description desc_51[] = {
 // =============================================================================
 
 //AIO
-static struct sol_pin_mux_description *aio_0[] = {
+static struct mux_description *aio_dev_0[] = {
     desc_44, desc_45, desc_46, desc_47, desc_48, desc_49
 };
 
-static struct sol_pin_mux_controller galileo_gen1_mux_aio[] = {
-    { ARRAY_SIZE(aio_0), aio_0 },
+static struct mux_controller aio_controller_list[] = {
+    { ARRAY_SIZE(aio_dev_0), aio_dev_0 },
 };
 
 //GPIO
-static struct sol_pin_mux_description *galileo_gen1_mux_gpio[52] = {
+static struct mux_description *gpio_dev_0[52] = {
     [16] = desc_16,
     [18] = desc_18,
     [25] = desc_25,
@@ -155,25 +156,51 @@ static struct sol_pin_mux_description *galileo_gen1_mux_gpio[52] = {
 };
 
 //I2C
-static struct sol_pin_mux_description *galileo_gen1_mux_i2c[][2] = {
+static struct mux_description *i2c_dev_0[][2] = {
     { desc_48, desc_49 }
 };
 
 //PWM
-static struct sol_pin_mux_description *pwm_0[8] = {
+static struct mux_description *pwm_dev_0[8] = {
     [3] = desc_18,
     [4] = desc_25,
     [7] = desc_16,
 };
 
-static struct sol_pin_mux_controller galileo_gen1_mux_pwm[] = {
-    { ARRAY_SIZE(pwm_0), pwm_0 },
+static struct mux_controller pwm_controller_list[] = {
+    { ARRAY_SIZE(pwm_dev_0), pwm_dev_0 },
 };
+
+// =============================================================================
+
+static int
+_set_aio(const int device, const int pin)
+{
+    return set_aio(device, pin, aio_controller_list, (int)ARRAY_SIZE(aio_controller_list));
+}
+
+static int
+_set_gpio(const int pin, const enum sol_gpio_direction dir)
+{
+    return set_gpio(pin, dir, gpio_dev_0, (int)ARRAY_SIZE(gpio_dev_0));
+}
+
+static int
+_set_i2c(const uint8_t bus)
+{
+    return set_i2c(bus, i2c_dev_0, ARRAY_SIZE(i2c_dev_0));
+}
+
+static int
+_set_pwm(const int device, const int channel)
+{
+    return set_pwm(device, channel, pwm_controller_list, (int)ARRAY_SIZE(pwm_controller_list));
+}
 
 SOL_PIN_MUX_DECLARE(INTEL_GALILEO_REV_D,
     .plat_name = "intel-galileo-rev-d",
-    .aio = { ARRAY_SIZE(galileo_gen1_mux_aio), galileo_gen1_mux_aio },
-    .gpio = { ARRAY_SIZE(galileo_gen1_mux_gpio), galileo_gen1_mux_gpio },
-    .i2c = { ARRAY_SIZE(galileo_gen1_mux_i2c), galileo_gen1_mux_i2c },
-    .pwm = { ARRAY_SIZE(galileo_gen1_mux_pwm), galileo_gen1_mux_pwm },
+    .aio = _set_aio,
+    .gpio = _set_gpio,
+    .i2c = _set_i2c,
+    .pwm = _set_pwm
     );

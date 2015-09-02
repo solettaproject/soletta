@@ -37,74 +37,21 @@ extern "C" {
 #endif
 
 /**
- * Pin logical value to be used
- */
-enum sol_pin_val {
-    SOL_PIN_LOW = 0, /**< Logical zero */
-    SOL_PIN_HIGH, /**< Logical one */
-    SOL_PIN_NONE /**< Pin should be disable i.e. set to high impedance input */
-};
-
-/**
- * Mode in which the pin will be set to operate
- */
-enum sol_pin_mode {
-    SOL_PIN_MODE_GPIO_INPUT_PULLUP = 0x01, /**< GPIO Input (Pull-up) */
-    SOL_PIN_MODE_GPIO_INPUT_PULLDOWN = 0x02, /**< GPIO Input (Pull-down) */
-    SOL_PIN_MODE_GPIO_INPUT_HIZ = 0x04, /**< GPIO Input (High impedance) */
-    SOL_PIN_MODE_GPIO_OUTPUT = 0x08, /**< GPIO Output */
-    SOL_PIN_MODE_PWM = 0x10, /**< PWM */
-    SOL_PIN_MODE_I2C = 0x20, /**< I2C */
-    SOL_PIN_MODE_ANALOG = 0x40, /**< Analog Reader */
-    SOL_PIN_MODE_UART = 0x80, /**< UART */
-    SOL_PIN_MODE_SPI = 0x100, /**< SPI */
-    SOL_PIN_MODE_SWITCH = 0x200, /**< SWITCH */
-    SOL_PIN_MODE_RESERVED = 0x400 /**< Reserved */
-};
-
-/* Combinations of the above for convenience */
-#define SOL_PIN_MODE_GPIO_INPUT (SOL_PIN_MODE_GPIO_INPUT_PULLUP | \
-    SOL_PIN_MODE_GPIO_INPUT_PULLDOWN | SOL_PIN_MODE_GPIO_INPUT_HIZ)
-#define SOL_PIN_MODE_GPIO (SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_GPIO_OUTPUT)
-
-struct sol_pin_mux_description {
-    int gpio_pin; /**< GPIO pin that controls the mux */
-    enum sol_pin_val val; /**< Pin value */
-    enum sol_pin_mode mode; /**< Combination of possible pin operation modes */
-}; /**< Description of a rule to be applied to setup the multiplexer of a given pin */
-
-/**
- * Structure containing recipes list for the controller's pin set. Controller is the 'chipset'
- * controlling a set of pins of a given protocol, mode or technology.
- */
-struct sol_pin_mux_controller {
-    unsigned int len; /**< Size of the pin set list */
-    struct sol_pin_mux_description **recipe; /**< A list of mux recipes for each pin */
-};
-
-/**
  * Structure containing the recipes (lists of rules) that should be used
  * to multiplex the pins of a given platform
  */
-#define SOL_PIN_MUX_API_VERSION (1UL)
+#define SOL_PIN_MUX_API_VERSION (2UL)
 struct sol_pin_mux {
     unsigned long int api_version; /**< API version */
     const char *plat_name; /**< Name this multiplexer target platform */
 
-    struct sol_pin_mux_controller gpio;
+    int (*init)(void);
+    void (*shutdown)(void);
 
-    /**
-     * Structure containing the controller's list used by aio and pwm
-     */
-    struct {
-        unsigned int len; /**< Size of controller list */
-        struct sol_pin_mux_controller *controllers; /**< A list of mux recipes for each device/pin pair */
-    } aio, pwm;
-
-    struct {
-        unsigned int len; /**< Size of i2c bus map */
-        struct sol_pin_mux_description *(*recipe)[2]; /**< A list of mux recipes pairs (one for each i2c wire: scl and sda) for each i2c bus */
-    } i2c;
+    int (*aio)(const int device, const int pin);
+    int (*gpio)(const int pin, const enum sol_gpio_direction dir);
+    int (*i2c)(const uint8_t bus);
+    int (*pwm)(const int device, const int channel);
 };
 
 #ifdef SOL_PIN_MUX_MODULE_EXTERNAL

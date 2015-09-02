@@ -37,7 +37,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 
 #include "sol-log-internal.h"
 #include "sol-util.h"
@@ -45,13 +44,6 @@
 #include "sol-pin-mux-modules.h"
 #include "sol-pin-mux-builtins-gen.h"
 #include "sol-platform.h"
-
-#define GPIO_DRIVE_PULLUP   0
-#define GPIO_DRIVE_PULLDOWN 1
-#define GPIO_DRIVE_STRONG   2
-#define GPIO_DRIVE_HIZ      3
-
-#define BASE "/sys/class/gpio"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_pin_mux_log_domain, "pin-mux");
 
@@ -138,11 +130,25 @@ sol_pin_mux_select_mux(const char *_board)
     if (!_board || _board[0] == '\0')
         return true;
 
-    if (mux && streq(_board, mux->plat_name))
-        return true;
+    if (mux) {
+        if (streq(_board, mux->plat_name))
+            return true;
 
-    // it only returns error if found a mux but failed to setup it.
-    return _find_mux(_board) ? true : _load_mux(_board);
+        if (mux->shutdown)
+            mux->shutdown();
+
+        mux = NULL;
+    }
+
+    // 'load_mux' only returns error if found a mux but failed to setup it.
+    if (_find_mux(_board) || _load_mux(_board)) {
+        if (mux && mux->init && mux->init())
+            return false;
+
+        return true;
+    }
+
+    return false;
 }
 
 int
@@ -161,6 +167,9 @@ sol_pin_mux_init(void)
 void
 sol_pin_mux_shutdown(void)
 {
+    if (mux && mux->shutdown)
+        mux->shutdown();
+
     mux = NULL;
 #ifdef ENABLE_DYNAMIC_MODULES
     if (dl_handle)
@@ -169,156 +178,26 @@ sol_pin_mux_shutdown(void)
 #endif
 }
 
-static int
-_set_gpio(int pin, enum sol_gpio_direction dir, int drive, bool val)
-{
-    int ret = 0;
-    int len;
-    struct stat st;
-    char path[PATH_MAX];
-    struct sol_gpio *gpio;
-    const char *drive_str;
-    struct sol_gpio_config gpio_config = { 0 };
-
-    gpio_config.api_version = SOL_GPIO_CONFIG_API_VERSION;
-    gpio_config.dir = dir;
-    gpio_config.out.value = val;
-
-    gpio = sol_gpio_open_raw(pin, &gpio_config);
-    if (!gpio)
-        return -EINVAL;
-
-    // Drive:
-    // This is not standard interface in upstream Linux, so the
-    // Linux implementation of sol-gpio doesn't handle it, thus the need
-    // to set it here manually
-    //
-    // Not all platforms will have this (this will move in the future)
-    // so its no problem to fail the if bellow
-    len = snprintf(path, sizeof(path), BASE "/gpio%d/drive", pin);
-    if (len < 0 || len > PATH_MAX || stat(path, &st) == -1)
-        goto err;
-
-    switch (drive) {
-    case GPIO_DRIVE_PULLUP:
-        drive_str = "pullup";
-        break;
-    case GPIO_DRIVE_PULLDOWN:
-        drive_str = "pulldown";
-        break;
-    case GPIO_DRIVE_HIZ:
-        drive_str = "hiz";
-        break;
-    default:
-        drive_str = "strong";
-    }
-
-    ret = sol_util_write_file(path, "%s", drive_str);
-
-err:
-    sol_gpio_close(gpio);
-    return ret;
-}
-
-static int
-_apply_mux_desc(struct sol_pin_mux_description *desc, unsigned int mode)
-{
-    int ret;
-
-    while (desc->mode) {
-        if (desc->mode & mode) {
-            if (desc->val == SOL_PIN_NONE) {
-                ret = _set_gpio(desc->gpio_pin, SOL_GPIO_DIR_IN, GPIO_DRIVE_HIZ, false);
-            } else {
-                ret = _set_gpio(desc->gpio_pin, SOL_GPIO_DIR_OUT, GPIO_DRIVE_STRONG, desc->val);
-            }
-            if (ret < 0)
-                return ret;
-        }
-        desc++;
-    }
-
-    return 0;
-}
-
 SOL_API int
 sol_pin_mux_setup_aio(const int device, const int pin)
 {
-    struct sol_pin_mux_controller *ctl;
-
-    if (device < 0) {
-        SOL_WRN("Invalid AIO device: %d", device);
-        return -EINVAL;
-    }
-
-    if (pin < 0) {
-        SOL_WRN("Invalid AIO pin: %d", pin);
-        return -EINVAL;
-    }
-
-    if (!mux || device >= (int)mux->aio.len)
-        return 0;
-
-    ctl = &mux->aio.controllers[device];
-    if (pin >= (int)ctl->len || !ctl->recipe[pin])
-        return 0;
-
-    return _apply_mux_desc(ctl->recipe[pin], SOL_PIN_MODE_ANALOG);
+    return (mux && mux->aio) ? mux->aio(device, pin) : 0;
 }
 
 SOL_API int
 sol_pin_mux_setup_gpio(const int pin, const enum sol_gpio_direction dir)
 {
-    if (pin < 0) {
-        SOL_WRN("Invalid GPIO pin: %d", pin);
-        return -EINVAL;
-    }
-
-    if (!mux || pin >= (int)mux->gpio.len || !mux->gpio.recipe[pin])
-        return 0;
-
-    return _apply_mux_desc(mux->gpio.recipe[pin], dir == SOL_GPIO_DIR_OUT ?
-        SOL_PIN_MODE_GPIO_OUTPUT : SOL_PIN_MODE_GPIO_INPUT_PULLUP);
+    return (mux && mux->gpio) ? mux->gpio(pin, dir) : 0;
 }
 
 SOL_API int
 sol_pin_mux_setup_i2c(const uint8_t bus)
 {
-    int ret;
-
-    if (!mux || (unsigned int)bus >= mux->i2c.len ||
-        (!mux->i2c.recipe[bus][0] && !mux->i2c.recipe[bus][1]))
-        return 0;
-
-    ret = _apply_mux_desc(mux->i2c.recipe[bus][0], SOL_PIN_MODE_I2C);
-
-    if (ret < 0)
-        return ret;
-
-    return _apply_mux_desc(mux->i2c.recipe[bus][1], SOL_PIN_MODE_I2C);
+    return (mux && mux->i2c) ? mux->i2c(bus) : 0;
 }
 
 SOL_API int
 sol_pin_mux_setup_pwm(const int device, const int channel)
 {
-    struct sol_pin_mux_controller *ctl;
-
-    if (device < 0) {
-        SOL_WRN("Invalid PWM device: %d", device);
-        return -EINVAL;
-    }
-
-    if (channel < 0) {
-        SOL_WRN("Invalid PWM channel: %d", channel);
-        return -EINVAL;
-    }
-
-    if (!mux || device >= (int)mux->pwm.len)
-        return 0;
-
-    ctl = &mux->pwm.controllers[device];
-    if (channel >= (int)ctl->len || !ctl->recipe[channel])
-        return 0;
-
-    return _apply_mux_desc(ctl->recipe[channel], SOL_PIN_MODE_PWM);
+    return (mux && mux->pwm) ? mux->pwm(device, channel) : 0;
 }

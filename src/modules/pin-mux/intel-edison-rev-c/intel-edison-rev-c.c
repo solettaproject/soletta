@@ -30,255 +30,256 @@
  * DAMAGE.
  */
 
-#include "sol-util.h"
+#include "intel-common.h"
 #include "sol-pin-mux-modules.h"
+#include "sol-util.h"
 
 // =============================================================================
 // Edison Multiplexer Descriptions
 // =============================================================================
 
-static struct sol_pin_mux_description desc_0[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_UART },
-    { 248, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 248, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_UART },
-    { 216, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 216, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN | SOL_PIN_MODE_UART },
-    { 216, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_UART },
+static struct mux_description desc_0[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_UART },
+    { 248, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 248, PIN_LOW, MODE_GPIO_INPUT | MODE_UART },
+    { 216, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 216, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN | MODE_UART },
+    { 216, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_UART },
     { }
 };
 
-static struct sol_pin_mux_description desc_1[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_UART },
-    { 249, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_UART },
-    { 249, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 217, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 217, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 217, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_UART },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_UART },
+static struct mux_description desc_1[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_UART },
+    { 249, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_UART },
+    { 249, PIN_LOW, MODE_GPIO_INPUT },
+    { 217, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 217, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 217, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_UART },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_UART },
     { }
 };
 
-static struct sol_pin_mux_description desc_2[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 250, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 250, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 218, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 218, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 218, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
+static struct mux_description desc_2[] = {
+    { 214, PIN_LOW, MODE_GPIO },
+    { 250, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 250, PIN_LOW, MODE_GPIO_INPUT },
+    { 218, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 218, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 218, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    { 214, PIN_HIGH, MODE_GPIO },
     { }
 };
 
-static struct sol_pin_mux_description desc_3[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
-    { 251, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_PWM },
-    { 251, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 219, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 219, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 219, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_PWM },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
+static struct mux_description desc_3[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
+    { 251, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
+    { 251, PIN_LOW, MODE_GPIO_INPUT },
+    { 219, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 219, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 219, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_PWM },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
 
-static struct sol_pin_mux_description desc_4[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 252, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 252, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 220, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 220, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 220, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
+static struct mux_description desc_4[] = {
+    { 214, PIN_LOW, MODE_GPIO },
+    { 252, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 252, PIN_LOW, MODE_GPIO_INPUT },
+    { 220, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 220, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 220, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    { 214, PIN_HIGH, MODE_GPIO },
     { }
 };
 
-static struct sol_pin_mux_description desc_5[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
-    { 253, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_PWM },
-    { 253, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 221, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 221, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 221, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_PWM },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
+static struct mux_description desc_5[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
+    { 253, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
+    { 253, PIN_LOW, MODE_GPIO_INPUT },
+    { 221, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 221, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 221, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_PWM },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
 
-static struct sol_pin_mux_description desc_6[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
-    { 254, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_PWM },
-    { 254, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 222, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 222, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 222, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_PWM },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
+static struct mux_description desc_6[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
+    { 254, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
+    { 254, PIN_LOW, MODE_GPIO_INPUT },
+    { 222, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 222, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 222, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_PWM },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
 
-static struct sol_pin_mux_description desc_7[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 255, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 255, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 223, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 223, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 223, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
+static struct mux_description desc_7[] = {
+    { 214, PIN_LOW, MODE_GPIO },
+    { 255, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 255, PIN_LOW, MODE_GPIO_INPUT },
+    { 223, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 223, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 223, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    { 214, PIN_HIGH, MODE_GPIO },
     { }
 };
 
-static struct sol_pin_mux_description desc_8[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 256, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 256, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 224, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 224, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 224, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
+static struct mux_description desc_8[] = {
+    { 214, PIN_LOW, MODE_GPIO },
+    { 256, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 256, PIN_LOW, MODE_GPIO_INPUT },
+    { 224, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 224, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 224, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    { 214, PIN_HIGH, MODE_GPIO },
     { }
 };
 
-static struct sol_pin_mux_description desc_9[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
-    { 257, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_PWM },
-    { 257, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 225, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 225, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 225, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_PWM },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
+static struct mux_description desc_9[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
+    { 257, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
+    { 257, PIN_LOW, MODE_GPIO_INPUT },
+    { 225, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 225, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 225, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_PWM },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
 
-static struct sol_pin_mux_description desc_10[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
-    { 258, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_PWM },
-    { 258, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 226, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 226, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 226, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_PWM },
-    { 240, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 263, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO },
-    { 263, SOL_PIN_LOW, SOL_PIN_MODE_PWM },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_PWM },
+static struct mux_description desc_10[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_PWM },
+    { 258, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_PWM },
+    { 258, PIN_LOW, MODE_GPIO_INPUT },
+    { 226, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 226, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 226, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_PWM },
+    { 240, PIN_LOW, MODE_GPIO },
+    { 263, PIN_HIGH, MODE_GPIO },
+    { 263, PIN_LOW, MODE_PWM },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
 
-static struct sol_pin_mux_description desc_11[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_SPI | SOL_PIN_MODE_PWM },
-    { 259, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_SPI | SOL_PIN_MODE_PWM },
-    { 259, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 227, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 227, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 227, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_SPI },
-    { 241, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 241, SOL_PIN_HIGH, SOL_PIN_MODE_SPI },
-    { 262, SOL_PIN_LOW, SOL_PIN_MODE_PWM },
-    { 262, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_SPI },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_SPI | SOL_PIN_MODE_PWM },
+static struct mux_description desc_11[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_SPI | MODE_PWM },
+    { 259, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_SPI | MODE_PWM },
+    { 259, PIN_LOW, MODE_GPIO_INPUT },
+    { 227, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 227, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 227, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_SPI },
+    { 241, PIN_LOW, MODE_GPIO },
+    { 241, PIN_HIGH, MODE_SPI },
+    { 262, PIN_LOW, MODE_PWM },
+    { 262, PIN_HIGH, MODE_GPIO | MODE_SPI },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_SPI | MODE_PWM },
     { }
 };
 
-static struct sol_pin_mux_description desc_12[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_SPI },
-    { 260, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 260, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_SPI },
-    { 228, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 228, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 228, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_SPI },
-    { 242, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 242, SOL_PIN_HIGH, SOL_PIN_MODE_SPI },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_SPI },
+static struct mux_description desc_12[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_SPI },
+    { 260, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 260, PIN_LOW, MODE_GPIO_INPUT | MODE_SPI },
+    { 228, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 228, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 228, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_SPI },
+    { 242, PIN_LOW, MODE_GPIO },
+    { 242, PIN_HIGH, MODE_SPI },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_SPI },
     { }
 };
 
-static struct sol_pin_mux_description desc_13[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_SPI },
-    { 261, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_SPI },
-    { 261, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT },
-    { 229, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 229, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 229, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_SPI },
-    { 243, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 243, SOL_PIN_HIGH, SOL_PIN_MODE_SPI },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_SPI },
+static struct mux_description desc_13[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_SPI },
+    { 261, PIN_HIGH, MODE_GPIO_OUTPUT | MODE_SPI },
+    { 261, PIN_LOW, MODE_GPIO_INPUT },
+    { 229, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 229, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 229, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_SPI },
+    { 243, PIN_LOW, MODE_GPIO },
+    { 243, PIN_HIGH, MODE_SPI },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_SPI },
     { }
 };
 
-static struct sol_pin_mux_description desc_14[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_ANALOG },
-    { 200, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 200, SOL_PIN_HIGH, SOL_PIN_MODE_ANALOG },
-    { 232, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 232, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_ANALOG },
-    { 208, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 208, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 208, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_ANALOG },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_14[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_ANALOG },
+    { 200, PIN_LOW, MODE_GPIO },
+    { 200, PIN_HIGH, MODE_ANALOG },
+    { 232, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 232, PIN_LOW, MODE_GPIO_INPUT | MODE_ANALOG },
+    { 208, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 208, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 208, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_ANALOG },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_ANALOG },
     { }
 };
 
-static struct sol_pin_mux_description desc_15[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_ANALOG },
-    { 201, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 201, SOL_PIN_HIGH, SOL_PIN_MODE_ANALOG },
-    { 233, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 233, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_ANALOG },
-    { 209, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 209, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 209, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_ANALOG },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_15[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_ANALOG },
+    { 201, PIN_LOW, MODE_GPIO },
+    { 201, PIN_HIGH, MODE_ANALOG },
+    { 233, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 233, PIN_LOW, MODE_GPIO_INPUT | MODE_ANALOG },
+    { 209, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 209, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 209, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_ANALOG },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_ANALOG },
     { }
 };
 
-static struct sol_pin_mux_description desc_16[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_ANALOG },
-    { 202, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 202, SOL_PIN_HIGH, SOL_PIN_MODE_ANALOG },
-    { 234, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 234, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_ANALOG },
-    { 210, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 210, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 210, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_ANALOG },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_16[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_ANALOG },
+    { 202, PIN_LOW, MODE_GPIO },
+    { 202, PIN_HIGH, MODE_ANALOG },
+    { 234, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 234, PIN_LOW, MODE_GPIO_INPUT | MODE_ANALOG },
+    { 210, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 210, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 210, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_ANALOG },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_ANALOG },
     { }
 };
 
-static struct sol_pin_mux_description desc_17[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_ANALOG },
-    { 203, SOL_PIN_LOW, SOL_PIN_MODE_GPIO },
-    { 203, SOL_PIN_HIGH, SOL_PIN_MODE_ANALOG },
-    { 235, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 235, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_ANALOG },
-    { 211, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 211, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 211, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_ANALOG },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_17[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_ANALOG },
+    { 203, PIN_LOW, MODE_GPIO },
+    { 203, PIN_HIGH, MODE_ANALOG },
+    { 235, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 235, PIN_LOW, MODE_GPIO_INPUT | MODE_ANALOG },
+    { 211, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 211, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 211, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_ANALOG },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_ANALOG },
     { }
 };
 
-static struct sol_pin_mux_description desc_18[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_I2C | SOL_PIN_MODE_ANALOG },
-    {  14, SOL_PIN_NONE, SOL_PIN_MODE_I2C },
-    { 204, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_I2C },
-    { 204, SOL_PIN_HIGH, SOL_PIN_MODE_ANALOG },
-    { 236, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 236, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_I2C | SOL_PIN_MODE_ANALOG },
-    { 212, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 212, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 212, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_I2C | SOL_PIN_MODE_ANALOG },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_I2C | SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_18[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_I2C | MODE_ANALOG },
+    {  14, PIN_NONE, MODE_I2C },
+    { 204, PIN_LOW, MODE_GPIO | MODE_I2C },
+    { 204, PIN_HIGH, MODE_ANALOG },
+    { 236, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 236, PIN_LOW, MODE_GPIO_INPUT | MODE_I2C | MODE_ANALOG },
+    { 212, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 212, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 212, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_I2C | MODE_ANALOG },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_I2C | MODE_ANALOG },
     { }
 };
 
-static struct sol_pin_mux_description desc_19[] = {
-    { 214, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_I2C | SOL_PIN_MODE_ANALOG },
-    { 165, SOL_PIN_NONE, SOL_PIN_MODE_I2C },
-    { 205, SOL_PIN_LOW, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_I2C },
-    { 205, SOL_PIN_HIGH, SOL_PIN_MODE_ANALOG },
-    { 237, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_OUTPUT },
-    { 237, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT | SOL_PIN_MODE_I2C | SOL_PIN_MODE_ANALOG },
-    { 213, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO_INPUT_PULLUP },
-    { 213, SOL_PIN_LOW, SOL_PIN_MODE_GPIO_INPUT_PULLDOWN },
-    { 213, SOL_PIN_NONE, SOL_PIN_MODE_GPIO_OUTPUT | SOL_PIN_MODE_GPIO_INPUT_HIZ | SOL_PIN_MODE_I2C | SOL_PIN_MODE_ANALOG },
-    { 214, SOL_PIN_HIGH, SOL_PIN_MODE_GPIO | SOL_PIN_MODE_I2C | SOL_PIN_MODE_ANALOG },
+static struct mux_description desc_19[] = {
+    { 214, PIN_LOW, MODE_GPIO | MODE_I2C | MODE_ANALOG },
+    { 165, PIN_NONE, MODE_I2C },
+    { 205, PIN_LOW, MODE_GPIO | MODE_I2C },
+    { 205, PIN_HIGH, MODE_ANALOG },
+    { 237, PIN_HIGH, MODE_GPIO_OUTPUT },
+    { 237, PIN_LOW, MODE_GPIO_INPUT | MODE_I2C | MODE_ANALOG },
+    { 213, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
+    { 213, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
+    { 213, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_I2C | MODE_ANALOG },
+    { 214, PIN_HIGH, MODE_GPIO | MODE_I2C | MODE_ANALOG },
     { }
 };
 
@@ -287,17 +288,19 @@ static struct sol_pin_mux_description desc_19[] = {
 // =============================================================================
 
 //AIO
-static struct sol_pin_mux_description *aio_0[] = {
+
+// Recipe List for AIO device 1
+static struct mux_description *aio_dev_1[] = {
     desc_14, desc_15, desc_16, desc_17, desc_18, desc_19
 };
 
-static struct sol_pin_mux_controller edison_rev_c_mux_aio[] = {
+static struct mux_controller aio_controller_list[] = {
     { 0, NULL },
-    { ARRAY_SIZE(aio_0), aio_0 },
+    { ARRAY_SIZE(aio_dev_1), aio_dev_1 },
 };
 
 //GPIO
-static struct sol_pin_mux_description *edison_rev_c_mux_gpio[184] = {
+static struct mux_description *gpio_dev_0[184] = {
     [12] = desc_3,
     [13] = desc_5,
     [14] = desc_18,
@@ -321,23 +324,49 @@ static struct sol_pin_mux_description *edison_rev_c_mux_gpio[184] = {
 };
 
 //I2C
-static struct sol_pin_mux_description *edison_rev_c_mux_i2c[][2] = {
+static struct mux_description *i2c_dev_0[][2] = {
     { desc_18, desc_19 }
 };
 
 //PWM
-static struct sol_pin_mux_description *pwm_0[] = {
+static struct mux_description *pwm_dev_0[] = {
     desc_3, desc_5, desc_6, desc_9,
 };
 
-static struct sol_pin_mux_controller edison_rev_c_mux_pwm[] = {
-    { ARRAY_SIZE(pwm_0), pwm_0 },
+static struct mux_controller pwm_controller_list[] = {
+    { ARRAY_SIZE(pwm_dev_0), pwm_dev_0 },
 };
+
+// =============================================================================
+
+static int
+_set_aio(const int device, const int pin)
+{
+    return set_aio(device, pin, aio_controller_list, (int)ARRAY_SIZE(aio_controller_list));
+}
+
+static int
+_set_gpio(const int pin, const enum sol_gpio_direction dir)
+{
+    return set_gpio(pin, dir, gpio_dev_0, (int)ARRAY_SIZE(gpio_dev_0));
+}
+
+static int
+_set_i2c(const uint8_t bus)
+{
+    return set_i2c(bus, i2c_dev_0, ARRAY_SIZE(i2c_dev_0));
+}
+
+static int
+_set_pwm(const int device, const int channel)
+{
+    return set_pwm(device, channel, pwm_controller_list, (int)ARRAY_SIZE(pwm_controller_list));
+}
 
 SOL_PIN_MUX_DECLARE(INTEL_EDISON_REV_C,
     .plat_name = "intel-edison-rev-c",
-    .aio = { ARRAY_SIZE(edison_rev_c_mux_aio), edison_rev_c_mux_aio },
-    .gpio = { ARRAY_SIZE(edison_rev_c_mux_gpio), edison_rev_c_mux_gpio },
-    .i2c = { ARRAY_SIZE(edison_rev_c_mux_i2c), edison_rev_c_mux_i2c },
-    .pwm = { ARRAY_SIZE(edison_rev_c_mux_pwm), edison_rev_c_mux_pwm },
+    .aio = _set_aio,
+    .gpio = _set_gpio,
+    .i2c = _set_i2c,
+    .pwm = _set_pwm
     );
