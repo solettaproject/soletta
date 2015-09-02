@@ -40,6 +40,24 @@ any_true_buffer OUT -> RESULT t3(test/result)
 input4(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN any_false_buffer(boolean/buffer:operation=any_false)
 any_false_buffer OUT -> RESULT t4(test/result)
 
+# Multiple outputs tests
+
+gen(test/boolean-generator:sequence="TTTFTTTTF")
+
+buffer_not_circular(boolean/buffer:samples=3)
+validator_not_circular(test/boolean-validator:sequence="TFF")
+
+gen OUT -> IN buffer_not_circular
+buffer_not_circular OUT -> IN validator_not_circular
+validator_not_circular OUT -> RESULT test_not_circular(test/result)
+
+buffer_circular(boolean/buffer:samples=3,circular=true)
+validator_circular(test/boolean-validator:sequence="TFFFTTF")
+
+gen OUT -> IN buffer_circular
+buffer_circular OUT -> IN validator_circular
+validator_circular OUT -> RESULT test_circular(test/result)
+
 # Negative tests
 
 input5(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN nall_false_buffer(boolean/buffer:operation=all_false)
