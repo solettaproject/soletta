@@ -292,6 +292,9 @@ struct boolean_buffer_data {
     size_t cur_len;
     size_t n_samples;
     uint32_t timeout;
+    bool circular : 1;
+    bool all_initialized : 1;
+    bool changed : 1;
 };
 
 // =============================================================================
@@ -350,7 +353,16 @@ _boolean_buffer_do(struct boolean_buffer_data *mdata)
     if (!mdata->cur_len)
         return 0;
 
-    result = mdata->normalize_cb(mdata->input_queue, mdata->cur_len);
+    if (mdata->circular && !mdata->changed)
+        return 0;
+
+    if (mdata->circular && mdata->all_initialized)
+        result = mdata->normalize_cb(mdata->input_queue, mdata->n_samples);
+    else
+        result = mdata->normalize_cb(mdata->input_queue, mdata->cur_len);
+
+    mdata->changed = false;
+
     return sol_flow_send_boolean_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_BOOLEAN_BUFFER__OUT__OUT, result);
 }
@@ -361,23 +373,35 @@ _timeout(void *data)
     struct boolean_buffer_data *mdata = data;
 
     _boolean_buffer_do(mdata);
-    mdata->cur_len = 0;
+
+    if (!mdata->circular)
+        mdata->cur_len = 0;
+
     return true;
 }
 
 static void
-_reset(void *data)
+_reset_len(struct boolean_buffer_data *mdata)
 {
-    struct boolean_buffer_data *mdata = data;
-
     mdata->cur_len = 0;
+}
 
+static void
+_reset_timer(struct boolean_buffer_data *mdata)
+{
     if (mdata->timer) {
         sol_timeout_del(mdata->timer);
         mdata->timer = NULL;
     }
     if (mdata->timeout)
         mdata->timer = sol_timeout_add(mdata->timeout, _timeout, mdata);
+}
+
+static void
+_reset(struct boolean_buffer_data *mdata)
+{
+    _reset_len(mdata);
+    _reset_timer(mdata);
 }
 
 static int
@@ -424,12 +448,23 @@ boolean_buffer_process(struct sol_flow_node *node, void *data, uint16_t port, ui
     int r;
     struct boolean_buffer_data *mdata = data;
 
-    r = sol_flow_packet_get_boolean(packet, &mdata->input_queue[mdata->cur_len]);
+    r = sol_flow_packet_get_boolean(packet,
+        &mdata->input_queue[mdata->cur_len]);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (mdata->n_samples <= ++mdata->cur_len) {
+    mdata->cur_len++;
+    mdata->changed = true;
+
+    if (mdata->circular && mdata->all_initialized) {
         r = _boolean_buffer_do(mdata);
-        _reset(data);
+        _reset_timer(mdata);
+        if (mdata->n_samples == mdata->cur_len) {
+            _reset_len(mdata);
+        }
+    } else if (mdata->n_samples == mdata->cur_len) {
+        mdata->all_initialized = true;
+        r = _boolean_buffer_do(mdata);
+        _reset(mdata);
     }
 
     return r;
@@ -483,6 +518,8 @@ boolean_buffer_open(struct sol_flow_node *node, void *data,
 
     mdata->input_queue = calloc(mdata->n_samples, sizeof(*mdata->input_queue));
     SOL_NULL_CHECK(mdata->input_queue, -ENOMEM);
+
+    mdata->circular = opts->circular;
 
     if (mdata->timeout > 0)
         mdata->timer = sol_timeout_add(mdata->timeout, _timeout, mdata);

@@ -63,3 +63,23 @@ mean_buffer OUT -> IN[0] mean_equal
 mean_result OUT -> IN[1] mean_equal
 
 mean_equal OUT -> RESULT test_mean(test/result)
+
+# --------------------------
+
+gen4(test/int-generator:sequence="0 4 5 8 10 3")
+
+validator_not_circular(test/int-validator:sequence="3 7")
+mean_buffer_not_circular(int/buffer:samples=3)
+
+gen4 OUT -> IN mean_buffer_not_circular
+mean_buffer_not_circular OUT -> IN validator_not_circular
+validator_not_circular OUT -> RESULT test_not_circular(test/result)
+
+# --------------------------
+
+validator_circular(test/int-validator:sequence="3 5 7 7")
+mean_buffer_circular(int/buffer:samples=3,circular=true)
+
+gen4 OUT -> IN mean_buffer_circular
+mean_buffer_circular OUT -> IN validator_circular
+validator_circular OUT -> RESULT test_circular(test/result)
