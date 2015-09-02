@@ -243,6 +243,7 @@
         "members": [
           {
             "data_type": "int",
+            "default": 4,
             "description": "Number of samples that the buffer should hold.",
             "name": "samples"
           },
