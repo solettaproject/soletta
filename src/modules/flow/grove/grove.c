@@ -147,23 +147,31 @@ rotary_converter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 {
     int r;
     struct sol_irange in_value;
-    float degrees;
+    struct sol_drange degrees, radians;
     struct rotary_converter_data *mdata = data;
 
     r = sol_flow_packet_get_irange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    degrees = (float)in_value.val * (float)mdata->angular_range / mdata->input_range;
+    degrees.step = DBL_MIN;
+    degrees.min = 0;
+    degrees.max = mdata->angular_range;
+    degrees.val = (float)in_value.val * (float)mdata->angular_range /
+        mdata->input_range;
 
-    sol_flow_send_drange_value_packet(node,
+    radians = degrees;
+    radians.val *= M_PI / 180.0;
+    radians.max *= M_PI / 180.0;
+
+    sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__DEG,
-        degrees);
-    sol_flow_send_drange_value_packet(node,
+        &degrees);
+    sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAD,
-        degrees * M_PI / 180.0);
-    sol_flow_send_irange_value_packet(node,
+        &radians);
+    sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER__OUT__RAW,
-        in_value.val);
+        &in_value);
 
     return 0;
 }
