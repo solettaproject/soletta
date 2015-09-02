@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "sol-platform-impl.h"
 
@@ -89,6 +90,24 @@ sol_platform_shutdown(void)
     sol_platform_impl_shutdown();
 }
 
+static bool
+sol_board_name_is_valid(const char *name)
+{
+    unsigned int i;
+
+    if (name[0] == '\0')
+        return false;
+
+    for (i = 0; name[i] != '\0'; i++) {
+        if (isalnum(name[i]) || name[i] == '_' || name[i] == '-')
+            continue;
+
+        return false;
+    }
+
+    return true;
+}
+
 SOL_API const char *
 sol_platform_get_board_name(void)
 {
@@ -97,21 +116,47 @@ sol_platform_get_board_name(void)
 
 #ifdef SOL_PLATFORM_LINUX
     board_name = getenv(SOL_BOARD_NAME_ENVVAR);
-    if (board_name && *board_name != '\0')
+    if (board_name && sol_board_name_is_valid(board_name)) {
         board_name = strdup(board_name);
-    else
-        board_name = sol_board_detect();
-
-    if (board_name && sol_board_invalid_name(board_name)) {
-        free(board_name);
+        SOL_DBG("envvar SOL_BOARD_NAME=%s", board_name);
+    } else {
+        if (board_name)
+            SOL_WRN("envvar SOL_BOARD_NAME=%s contains invalid chars.",
+                board_name);
         board_name = NULL;
     }
 #endif
 
-#ifdef BOARD_NAME
-    if (!board_name)
-        board_name = strdup(BOARD_NAME);
+#ifdef DETECT_BOARD_NAME
+    if (!board_name) {
+        board_name = sol_board_detect();
+        if (board_name && sol_board_name_is_valid(board_name))
+            SOL_DBG("detected board name=%s", board_name);
+        else if (board_name) {
+            SOL_WRN("detected board name=%s contains invalid chars.",
+                board_name);
+            free(board_name);
+            board_name = NULL;
+        }
+    }
 #endif
+
+#ifdef BOARD_NAME
+    if (!board_name && strlen(BOARD_NAME) > 0) {
+        if (sol_board_name_is_valid(BOARD_NAME)) {
+            board_name = strdup(BOARD_NAME);
+            SOL_DBG("pre-defined BOARD_NAME=%s", board_name);
+        } else {
+            SOL_WRN("pre-defined BOARD_NAME=%s contains invalid chars.",
+                BOARD_NAME);
+        }
+    }
+#endif
+
+    if (board_name)
+        SOL_DBG("using board name=%s", board_name);
+    else
+        SOL_DBG("board name is unknown");
 
     return board_name;
 }
