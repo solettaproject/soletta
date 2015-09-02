@@ -104,13 +104,9 @@ parse-builtin-module = \
 		$(eval builtin-flow-metatype += $(1))) \
 
 parse-mod-output = \
-	$(if $(filter yes,$(obj-$(1)-static)), \
-		$(eval $(3)-out := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(subdir)),$(1)).a) \
-		$(eval mod-ar     += $(1)), \
-		$(eval out-prefix := $(build_modulesdir)$(strip $(call module-type,$(2)))) \
-	        $(eval $(3)-out   := $(out-prefix)/$(1).so) \
-		$(eval mod-so     += $(3)) \
-	) \
+	$(eval out-prefix := $(build_modulesdir)$(strip $(call module-type,$(2)))) \
+        $(eval $(3)-out   := $(out-prefix)/$(1).so) \
+	$(eval mod-so     += $(3)) \
 
 parse-mod-module = \
 	$(call parse-common-module,$(1),$(2),m,$(3)) \
@@ -338,14 +334,6 @@ $($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $($(1)-objs) -shared -o $($(1)-out) $(sort $($(1)-ldflags))
 endef
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
-
-define make-mod-ar
-$($(1)-out): $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
-	$(Q)echo "      "AR"   "$$@
-	$(Q)$(MKDIR) -p $(dir $($(1)-out))
-	$(Q)$(TARGETAR) $(TARGET_ARFLAGS) $($(1)-out) $($(1)-objs)
-endef
-$(foreach curr,$(mod-ar),$(eval $(call make-mod-ar,$(curr))))
 
 $(SOL_LIB_AR): $(all-objs)
 	$(Q)echo "      "AR"   "$(@)
