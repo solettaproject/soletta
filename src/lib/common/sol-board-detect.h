@@ -35,4 +35,3 @@
 #include <stdbool.h>
 
 char *sol_board_detect(void);
-bool sol_board_invalid_name(const char *name);

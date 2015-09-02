@@ -51,7 +51,9 @@ obj-core-$(PLATFORM_CONTIKI) += \
     sol-platform-impl-contiki.o
 
 obj-core-$(PLATFORM_LINUX) += \
-    sol-platform-linux-common.o \
+    sol-platform-linux-common.o
+
+obj-core-$(DETECT_BOARD_NAME) += \
     sol-board-detect.o
 
 obj-core-$(PLATFORM_SYSTEMD) += \

@@ -6,12 +6,28 @@ config BOARD_NAME
             'sol_platform_get_board_name()' to improve board behavior.
             Namely Pin Multiplexer will load modules based on the board name.
 
-            Usually the board name is detected using either SOL_BOARD_NAME
-            environment variable or the rules defined in 'board_detect.json'.
-            Soletta searches for 'board_detect.json' first at PKGSYSCONFDIR
-            ('/etc/soletta' in most cases) and then at '$PREFIX/share/soletta/',
-            but some platforms such as RIOT may not provide it,
-            then this string is used as a fallback.
+            Usually the board name is detected using either
+            SOL_BOARD_NAME environment variable or instructions from
+            'board_detect.json' if DETECT_BOARD_NAME is enabled. Both
+            have precedence over this value.
+
+            This value is good as a fallback or is the only option
+            for systems such as RIOT and Contiki, where the
+            auto-detection is not possible.
+
+config DETECT_BOARD_NAME
+	bool "Automatically detect board name"
+	default y
+	depends on FEATURE_FILESYSTEM
+	help
+            Soletta will use instructions from 'board_detect.json'
+            located at '$PREFIX/share/soletta' or '/etc/soletta' in
+            order to detect board name.
+
+            If enabled, boards auto-detected will have precedence over
+            the string set at compile time 'BOARD_NAME'. However, the
+            environment variable SOL_BOARD_NAME name has precedence
+            over auto-detection.
 
 config PLATFORM_LINUX
 	bool
