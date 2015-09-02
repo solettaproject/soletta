@@ -21,10 +21,16 @@
           "name": "OPERAND[32]"
         }
       ],
-      "methods": {
-        "open": "addition_open"
-      },
       "name": "float/addition",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_drange_addition"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -56,10 +62,16 @@
           "name": "DIVISOR"
         }
       ],
-      "methods": {
-        "open": "division_open"
-      },
       "name": "float/division",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_drange_division"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -91,10 +103,16 @@
           "name": "DIVISOR"
         }
       ],
-      "methods": {
-        "open": "modulo_open"
-      },
       "name": "float/modulo",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_drange_modulo"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -119,10 +137,16 @@
           "name": "OPERAND[32]"
         }
       ],
-      "methods": {
-        "open": "multiplication_open"
-      },
       "name": "float/multiplication",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_drange_multiplication"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -154,10 +178,16 @@
           "name": "SUBTRAHEND"
         }
       ],
-      "methods": {
-        "open": "subtraction_open"
-      },
       "name": "float/subtraction",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_arithmetic_node_type",
+        "extra_methods": {
+          "func": "sol_drange_subtraction"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -327,10 +357,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "max_open"
-      },
       "name": "float/max",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_comparison_node_type",
+        "extra_methods": {
+          "func": "drange_val_greater"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -338,7 +374,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_min_max_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/drange/max.html"
     },
     {
@@ -354,10 +390,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "min_open"
-      },
       "name": "float/min",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_comparison_node_type",
+        "extra_methods": {
+          "func": "drange_val_less"
+        }
+      },
       "out_ports": [
         {
           "data_type": "float",
@@ -365,7 +407,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_min_max_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/drange/min.html"
     },
     {
@@ -397,7 +439,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_pow_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/math/drange/pow.html"
     },
     {
@@ -436,10 +478,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "equal_open"
-      },
       "name": "float/equal",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_comparison_node_type",
+        "extra_methods": {
+          "func": "sol_drange_val_equal"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -447,7 +495,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/equal.html"
     },
     {
@@ -463,10 +511,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "greater_or_equal_open"
-      },
       "name": "float/greater-or-equal",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_comparison_node_type",
+        "extra_methods": {
+          "func": "drange_val_greater_or_equal"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -474,7 +528,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/greater_or_equal.html"
     },
     {
@@ -490,10 +544,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "greater_open"
-      },
       "name": "float/greater",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_comparison_node_type",
+        "extra_methods": {
+          "func": "drange_val_greater"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -501,7 +561,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/greater.html"
     },
     {
@@ -517,10 +577,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "less_or_equal_open"
-      },
       "name": "float/less-or-equal",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_comparison_node_type",
+        "extra_methods": {
+          "func": "drange_val_less_or_equal"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -528,7 +594,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/less_or_equal.html"
     },
     {
@@ -544,10 +610,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "less_open"
-      },
       "name": "float/less",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_comparison_node_type",
+        "extra_methods": {
+          "func": "drange_val_less"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -555,7 +627,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/less.html"
     },
     {
@@ -571,10 +643,16 @@
           "name": "IN[2]"
         }
       ],
-      "methods": {
-        "open": "not_equal_open"
-      },
       "name": "float/not-equal",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct drange_comparison_node_type",
+        "extra_methods": {
+          "func": "drange_val_not_equal"
+        }
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -582,7 +660,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "drange_comparison_data",
+      "private_data_type": "drange_two_vars_data",
       "url": "http://solettaproject.org/doc/latest/node_types/comparison/drange/not_equal.html"
     },
     {
