@@ -1,0 +1,9 @@
+{{
+import os
+
+for curr in os.environ.get("builtin-linux-micro").split():
+  st.println(curr)
+
+for curr in os.environ.get("modules-linux-micro").split():
+  st.println("%s?" % curr)
+}}
