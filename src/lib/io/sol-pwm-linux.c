@@ -193,6 +193,7 @@ _pwm_config(struct sol_pwm *pwm, const struct sol_pwm_config *config)
 {
     const char *pol_str;
     char path[PATH_MAX];
+    char pol_value[10];
 
     sol_pwm_set_enabled(pwm, false);
 
@@ -208,7 +209,13 @@ _pwm_config(struct sol_pwm *pwm, const struct sol_pwm_config *config)
         return -EINVAL;
     }
 
-    if (_pwm_write(pwm, "polarity", "%s", pol_str) < 0) {
+    if (_pwm_read(pwm, "polarity", "%9[^\n]", pol_value) < 1) {
+        SOL_WRN("pwm #%d,%d: could not get polarity value", pwm->device,
+            pwm->channel);
+        return -EIO;
+    }
+    if (strcmp(pol_str, pol_value) != 0 &&
+        _pwm_write(pwm, "polarity", "%s", pol_str) < 0) {
         // TODO: Check if we get a meaningful error when it fails due to
         // lack of support to change polarity
         SOL_WRN("pwm #%d,%d: could not change polarity", pwm->device, pwm->channel);
