@@ -56,6 +56,7 @@
 #define SOL_ATTR_UNUSED __attribute__((__unused__))
 #define SOL_ATTR_SENTINEL __attribute__((sentinel))
 #define SOL_ATTR_NORETURN __attribute__((noreturn))
+#define SOL_ATTR_PURE __attribute__((pure))
 #else
 #define SOL_API
 #define SOL_ATTR_WARN_UNUSED_RESULT
@@ -69,6 +70,7 @@
 #define SOL_ATTR_UNUSED
 #define SOL_ATTR_SENTINEL
 #define SOL_ATTR_NORETURN
+#define SOL_ATTR_PURE
 #endif
 
 /**
