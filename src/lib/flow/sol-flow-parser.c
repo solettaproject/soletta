@@ -369,7 +369,7 @@ append_node_options(
 
         m->name = mdesc->name;
 
-        r = sol_flow_node_named_options_parse_member(m, value.data);
+        r = sol_flow_node_named_options_parse_member(m, value.data, mdesc);
         if (r < 0) {
             sol_fbp_log_print(state->filename, meta->position.line, meta->position.column,
                 "Couldn't parse value '%.*s' for option '%.*s' (%s) of node '%.*s'",

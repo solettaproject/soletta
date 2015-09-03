@@ -189,8 +189,6 @@ irange_parse(const char *value, struct sol_flow_node_named_options_member *m)
 
     buf = strdup(value);
 
-    irange_init(ret);
-
     ASSIGN_KEY_VAL(int32_t, min, STRTOL_DECIMAL, false,
         INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
         INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
@@ -251,8 +249,6 @@ drange_parse(const char *value, struct sol_flow_node_named_options_member *m)
     double *store_vals[] = { &ret->val, &ret->min, &ret->max, &ret->step };
 
     buf = strdup(value);
-
-    drange_init(ret);
 
     ASSIGN_KEY_VAL(double, min, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
@@ -316,8 +312,6 @@ rgb_parse(const char *value, struct sol_flow_node_named_options_member *m)
                                &ret->red_max, &ret->green_max, &ret->blue_max };
 
     buf = strdup(value);
-
-    rgb_init(ret);
 
     ASSIGN_KEY_VAL(int32_t, red, STRTOL_DECIMAL, true,
         INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
@@ -390,8 +384,6 @@ direction_vector_parse(const char *value, struct sol_flow_node_named_options_mem
     double *store_vals[] = { &ret->x, &ret->y, &ret->z, &ret->min, &ret->max };
 
     buf = strdup(value);
-
-    direction_vector_init(ret);
 
     ASSIGN_KEY_VAL(double, x, strtod_no_locale, false,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
@@ -489,17 +481,79 @@ static int(*const options_parse_functions[]) (const char *, struct sol_flow_node
     [SOL_FLOW_NODE_OPTIONS_MEMBER_STRING] = string_parse,
 };
 
+/* Options with suboptions may have only some fields overriden.
+ * The remaining should use values set as default on node type
+ * description */
+static void
+set_default_option(struct sol_flow_node_named_options_member *m,
+    const struct sol_flow_node_options_member_description *mdesc)
+{
+    switch (m->type) {
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
+        m->drange = mdesc->defvalue.f;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR:
+        m->direction_vector = mdesc->defvalue.direction_vector;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
+        m->irange = mdesc->defvalue.i;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
+        m->rgb = mdesc->defvalue.rgb;
+        break;
+    default:
+        break;
+    }
+}
+
+static void
+init_member_suboptions(struct sol_flow_node_named_options_member *m)
+{
+    switch (m->type) {
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
+        drange_init(&m->drange);
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR:
+        direction_vector_init(&m->direction_vector);
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
+        irange_init(&m->irange);
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
+        rgb_init(&m->rgb);
+        break;
+    default:
+        break;
+    }
+}
+
 SOL_API int
 sol_flow_node_named_options_parse_member(
     struct sol_flow_node_named_options_member *m,
-    const char *value)
+    const char *value,
+    const struct sol_flow_node_options_member_description *mdesc)
 {
     int r;
+
+    if (!m) {
+        SOL_DBG("Options member must be a valid pointer.");
+        return -EINVAL;
+    }
+
+    if (!mdesc) {
+        SOL_DBG("Options member description must be a valid pointer.");
+        return -EINVAL;
+    }
 
     if (m->type == 0) {
         r = -EINVAL;
         SOL_DBG("Unitialized member type for name=\"%s\": \"%s\"", m->name, value);
     } else if (m->type < ARRAY_SIZE(options_parse_functions)) {
+        if (mdesc->required)
+            init_member_suboptions(m);
+        else
+            set_default_option(m, mdesc);
+
         r = options_parse_functions[m->type](value, m);
         if (r < 0) {
             SOL_DBG("Invalid value '%s' for option name='%s' of type='%s'",
@@ -809,7 +863,7 @@ sol_flow_node_named_options_init_from_strv(
         m->type = sol_flow_node_options_member_type_from_string(mdesc->data_type);
         m->name = mdesc->name;
 
-        r = sol_flow_node_named_options_parse_member(m, value);
+        r = sol_flow_node_named_options_parse_member(m, value, mdesc);
         if (r < 0) {
             SOL_DBG("Could not parse member #%u "
                 "name=\"%s\", type=\"%s\", option=\"%s\": %s",
