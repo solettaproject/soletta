@@ -38,6 +38,12 @@
 #include "sol-log.h"
 #include "sol-util.h"
 
+SOL_ATTR_PURE static inline size_t
+nul_byte_size(struct sol_buffer *buf)
+{
+    return (buf->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE) ? 0 : 1;
+}
+
 SOL_API int
 sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
 {
@@ -66,12 +72,12 @@ sol_buffer_ensure(struct sol_buffer *buf, size_t min_size)
 
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    if (min_size >= SIZE_MAX - 1)
+    if (min_size >= SIZE_MAX - nul_byte_size(buf))
         return -EINVAL;
     if (buf->capacity >= min_size)
         return 0;
 
-    err = sol_buffer_resize(buf, align_power2(min_size + 1));
+    err = sol_buffer_resize(buf, align_power2(min_size + nul_byte_size(buf)));
     if (err == -EPERM)
         return -ENOMEM;
     return err;
@@ -85,9 +91,9 @@ sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
     SOL_NULL_CHECK(buf, -EINVAL);
 
     /* Extra room for the ending NUL-byte. */
-    if (slice.len >= SIZE_MAX - 1)
+    if (slice.len >= SIZE_MAX - nul_byte_size(buf))
         return -EOVERFLOW;
-    err = sol_buffer_ensure(buf, slice.len + 1);
+    err = sol_buffer_ensure(buf, slice.len + nul_byte_size(buf));
     if (err < 0)
         return err;
 
@@ -99,6 +105,7 @@ sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 SOL_API int
 sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 {
+    const size_t nul_size = nul_byte_size(buf);
     char *p;
     size_t new_size;
     int err;
@@ -110,15 +117,17 @@ sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice
         return err;
 
     /* Extra room for the ending NUL-byte. */
-    if (new_size >= SIZE_MAX - 1)
+    if (new_size >= SIZE_MAX - nul_size)
         return -EOVERFLOW;
-    err = sol_buffer_ensure(buf, new_size + 1);
+    err = sol_buffer_ensure(buf, new_size + nul_size);
     if (err < 0)
         return err;
 
     p = sol_buffer_at_end(buf);
     memcpy(p, slice.data, slice.len);
-    p[slice.len] = '\0';
+
+    if (nul_size)
+        p[slice.len] = '\0';
     buf->used += slice.len;
     return 0;
 }
@@ -126,6 +135,7 @@ sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice
 SOL_API int
 sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice)
 {
+    const size_t nul_size = nul_byte_size(buf);
     char *p;
     size_t new_size;
     int err;
@@ -141,9 +151,9 @@ sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str
         return err;
 
     /* Extra room for the ending NUL-byte. */
-    if (new_size >= SIZE_MAX - 1)
+    if (new_size >= SIZE_MAX - nul_size)
         return -EOVERFLOW;
-    err = sol_buffer_ensure(buf, new_size + 1);
+    err = sol_buffer_ensure(buf, new_size + nul_size);
     if (err < 0)
         return err;
 
@@ -151,8 +161,12 @@ sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str
     memmove(p + slice.len, p, buf->used - pos);
     memcpy(p, slice.data, slice.len);
     buf->used += slice.len;
-    p = sol_buffer_at_end(buf);
-    p[0] = '\0';
+
+    if (nul_size) {
+        p = sol_buffer_at_end(buf);
+        p[0] = '\0';
+    }
+
     return 0;
 }
 
@@ -189,11 +203,11 @@ sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args)
             goto end;
 
         /* Extra room for the ending NUL-byte. */
-        if (new_size >= SIZE_MAX - 1) {
+        if (new_size >= SIZE_MAX - nul_byte_size(buf)) {
             r = -EOVERFLOW;
             goto end;
         }
-        r = sol_buffer_ensure(buf, new_size + 1);
+        r = sol_buffer_ensure(buf, new_size + nul_byte_size(buf));
         if (r < 0)
             goto end;
 

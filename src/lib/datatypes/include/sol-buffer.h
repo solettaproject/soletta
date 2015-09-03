@@ -99,7 +99,11 @@ enum sol_buffer_flags {
      * is, it can't be resized and free() should not be called at it
      * at sol_buffer_fini().
      */
-    SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED = (SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_FREE)
+    SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED = (SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_FREE),
+    /**
+     * do not reserve space for the NUL byte
+     */
+    SOL_BUFFER_FLAGS_NO_NUL_BYTE = (1 << 2)
 };
 
 struct sol_buffer {
