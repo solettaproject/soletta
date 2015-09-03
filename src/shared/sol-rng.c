@@ -295,12 +295,13 @@ const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_DEFAULT = NULL;
 struct sol_rng_engine *
 sol_rng_engine_new(const struct sol_rng_engine_impl *impl, uint64_t seed)
 {
-    struct sol_rng_engine *engine = malloc(impl->struct_size);
-
-    SOL_NULL_CHECK(engine, NULL);
+    struct sol_rng_engine *engine;
 
     if (!impl)
         impl = SOL_RNG_ENGINE_IMPL_MT19937;
+
+    engine = malloc(impl->struct_size);
+    SOL_NULL_CHECK(engine, NULL);
 
     engine->impl = impl;
 
