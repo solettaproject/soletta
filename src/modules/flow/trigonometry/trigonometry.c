@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "trigonometry-gen.h"
+#include "sol-flow/trigonometry.h"
 
 #include "sol-flow-internal.h"
 

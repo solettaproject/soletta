@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "boolean-gen.h"
+#include "sol-flow/boolean.h"
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
 #include "sol-vector.h"

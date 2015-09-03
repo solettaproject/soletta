@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "color-gen.h"
+#include "sol-flow/color.h"
 
 #include "sol-flow-internal.h"
 

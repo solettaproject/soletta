@@ -31,7 +31,7 @@
  */
 
 #include "toggle.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 
 static void
 on_toggle_changed(GtkRange *range, gpointer data)

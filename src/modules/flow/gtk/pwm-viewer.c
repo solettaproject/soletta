@@ -31,7 +31,7 @@
  */
 
 #include "pwm-viewer.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 
 #define CHART_HEIGHT 42
 #define CHART_WIDTH 340

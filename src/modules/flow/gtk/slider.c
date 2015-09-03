@@ -31,7 +31,7 @@
  */
 
 #include "slider.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 
 static void
 on_slider_changed(GtkRange *range, gpointer data)

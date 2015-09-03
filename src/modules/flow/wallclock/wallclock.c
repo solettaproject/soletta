@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "wallclock-gen.h"
+#include "sol-flow/wallclock.h"
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
 #include "sol-vector.h"

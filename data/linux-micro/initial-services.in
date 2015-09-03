@@ -1,7 +1,7 @@
 {{
 import os
 
-for curr in os.environ.get("builtin-linux-micro").split():
+for curr in os.environ.get("builtins-linux-micro").split():
   st.println(curr)
 
 for curr in os.environ.get("modules-linux-micro").split():

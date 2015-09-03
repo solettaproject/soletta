@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "freegeoip-gen.h"
+#include "sol-flow/freegeoip.h"
 #include "sol-flow-internal.h"
 
 #include <errno.h>
