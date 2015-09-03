@@ -48,6 +48,7 @@ int
 fs_write(const char *name, struct sol_buffer *buffer)
 {
     FILE *file;
+    int ret = 0;
 
     file = fopen(name, "w+e");
     if (!file) {
@@ -58,7 +59,7 @@ fs_write(const char *name, struct sol_buffer *buffer)
     fwrite(buffer->data, buffer->used, 1, file);
     if (ferror(file)) {
         SOL_WRN("Could not write to persistence file [%s]", name);
-        return -EIO;
+        ret = -EIO;
     }
 
     if (fclose(file)) {
@@ -66,7 +67,7 @@ fs_write(const char *name, struct sol_buffer *buffer)
         return -errno;
     }
 
-    return 0;
+    return ret;
 }
 
 int
