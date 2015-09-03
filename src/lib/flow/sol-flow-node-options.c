@@ -103,12 +103,27 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
         _max_val, _max_str, _max_str_len,        \
         _min_val, _min_str, _min_str_len)        \
     do {                                                        \
-        bool is_max = false, is_min = false;                    \
-        _key = strstr(buf, #_key);                              \
-        if (_key) {                                             \
-            keys_schema = true;                                 \
-            _key = strchr(_key, ':');                           \
-        } else break;                                           \
+        bool is_max = false, is_min = false; \
+        char *key_name, *remaining, *i; \
+        remaining = buf; \
+        while ((key_name = strstr(remaining, #_key))) { \
+            keys_schema = true; \
+            _key = strchr(key_name, ':'); \
+            if (!_key) { \
+                key_name = NULL; \
+                break; \
+            } \
+            i = key_name + strlen(#_key); \
+            for (; i < _key; i++) \
+                if (!isspace(*i)) { \
+                    remaining = _key; \
+                    break; \
+                } \
+            if (remaining != _key) \
+                break; \
+        } \
+        if (!key_name) \
+            break; \
         if (_key && _key[0] && _key[1]) {                       \
             _key++;                                             \
             while (_key && isspace(*_key)) _key++;              \
