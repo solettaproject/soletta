@@ -121,6 +121,12 @@ JSON_TO_SOL_JSON = {
     "number": "double"
 }
 
+def props_are_equivalent(p1, p2):
+    # This disconsiders comments
+    p1 = {k: get_type_from_property(v) for k, v in p1.items()}
+    p2 = {k: get_type_from_property(v) for k, v in p2.items()}
+    return p1 == p2
+
 def object_fields_common_c(state_struct_name, name, props):
     fields = []
     for prop_name, descr in props.items():
@@ -205,12 +211,6 @@ def get_type_from_property(prop):
     raise ValueError('Unknown type for property')
 
 def object_serialize_fn_common_c(state_struct_name, name, props, client, equivalent={}):
-    def props_are_equivalent(p1, p2):
-        # This disconsiders comments
-        p1 = {k: get_type_from_property(v) for k, v in p1.items()}
-        p2 = {k: get_type_from_property(v) for k, v in p2.items()}
-        return p1 == p2
-
     for item_name, item_props in equivalent.items():
         if item_props[0] == client and props_are_equivalent(props, item_props[1]):
             return '''static uint8_t *
@@ -387,10 +387,6 @@ out:
     }
 
 def object_deserialize_fn_common_c(name, props, equivalent={}):
-    def props_are_equivalent(p1, p2):
-        p1 = {k: get_type_from_property(v) for k, v in p1.items()}
-        p2 = {k: get_type_from_property(v) for k, v in p2.items()}
-        return p1 == p2
 
     for item_name, item_props in equivalent.items():
         if props_are_equivalent(props, item_props):
