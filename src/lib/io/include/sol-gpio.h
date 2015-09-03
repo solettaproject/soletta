@@ -94,11 +94,56 @@ struct sol_gpio_config {
     };
 };
 
+/**
+ * Opens a given pin as general purpose input or output.
+ *
+ * A pin should be opened just once, if this is called more than once
+ * for the same pin, the behaviour will be undefined per platform.
+ *
+ * @param pin The pin to be opened.
+ * @param config Contains the configuration of the pin.
+ *
+ * @return A new sol_gpio instance on success, otherwise @c NULL.
+ */
 struct sol_gpio *sol_gpio_open(int pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * Opens a given pin as general purpose input or output.
+ *
+ * A pin should be opened just once, if this is called more than once
+ * for the same pin, the behaviour will be undefined per platform.
+ *
+ * @param pin The pin to be opened.
+ * @param config Contains the configuration of the pin.
+ *
+ * @return A new sol_gpio instance on success, otherwise @c NULL.
+ */
 struct sol_gpio *sol_gpio_open_raw(int pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * Closes a given GPIO pin.
+ *
+ * @param gpio The opened @c sol_gpio that contains the pin that should be closed.
+ */
 void sol_gpio_close(struct sol_gpio *gpio);
 
+/**
+ * Set the given value to the given pin.
+ *
+ * @param gpio The opened @c sol_gpio that contains the pin that will be used.
+ * @param value The value that will be set to the pin.
+ *
+ * @return @c true on success, otherwise @c false.
+ */
 bool sol_gpio_write(struct sol_gpio *gpio, bool value);
+
+/**
+ * Get the current value of the given pin.
+ *
+ * @param gpio The opened @c sol_gpio that contains the pin that will be read.
+ *
+ * @return The value of the pin on success, otherwise a negative errno value.
+ */
 int sol_gpio_read(struct sol_gpio *gpio);
 
 /**
