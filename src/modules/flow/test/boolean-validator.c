@@ -39,7 +39,7 @@
 #include "sol-util.h"
 
 #include "boolean-validator.h"
-#include "test-gen.h"
+#include "sol-flow/test.h"
 
 int
 boolean_validator_open(

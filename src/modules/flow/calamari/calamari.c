@@ -35,8 +35,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "calamari-gen.h"
-#include "gpio-gen.h"
+#include "sol-flow/calamari.h"
+#include "sol-flow/gpio.h"
 
 #include "sol-flow.h"
 #include "sol-flow-static.h"

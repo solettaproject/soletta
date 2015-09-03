@@ -32,7 +32,7 @@
 
 #include <errno.h>
 
-#include "persistence-gen.h"
+#include "sol-flow/persistence.h"
 
 #include "sol-buffer.h"
 #include "sol-flow.h"

@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "iio-gen.h"
+#include "sol-flow/iio.h"
 #include "sol-flow-internal.h"
 
 #include <sol-util.h>

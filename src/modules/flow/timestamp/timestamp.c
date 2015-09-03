@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "timestamp-gen.h"
+#include "sol-flow/timestamp.h"
 #include "sol-flow-internal.h"
 
 #include <sol-util.h>

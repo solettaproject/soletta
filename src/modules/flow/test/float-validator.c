@@ -40,7 +40,7 @@
 
 #include "test-module.h"
 #include "float-validator.h"
-#include "test-gen.h"
+#include "sol-flow/test.h"
 
 int
 float_validator_open(

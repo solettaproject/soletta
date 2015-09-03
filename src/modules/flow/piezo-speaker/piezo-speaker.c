@@ -37,7 +37,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "piezo-speaker-gen.h"
+#include "sol-flow/piezo-speaker.h"
 
 #include "sol-flow.h"
 #include "sol-mainloop.h"

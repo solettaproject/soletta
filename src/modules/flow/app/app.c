@@ -32,7 +32,7 @@
 
 #include <errno.h>
 
-#include "app-gen.h"
+#include "sol-flow/app.h"
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"

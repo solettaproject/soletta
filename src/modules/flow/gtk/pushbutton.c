@@ -31,7 +31,7 @@
  */
 
 #include "pushbutton.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 
 static void
 on_pushbutton_pressed(GtkButton *button, gpointer data)
