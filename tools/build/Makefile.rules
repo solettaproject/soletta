@@ -1,14 +1,5 @@
 find-deps = $(foreach dep,$($(1)-deps),$($(filter %$(dep),$(modules))-out)$($(dep)-out))
 
-known-module-type = \
-	$(foreach curr,$(module-types), \
-		$(if $(filter $(curr)/%,$(subst ./src/modules/,,$(1))),$(strip $(curr))) \
-	) \
-
-module-type = \
-	$(eval curr-mod-type:=$(call known-module-type,$(1))) \
-	$(if $(curr-mod-type),$(curr-mod-type),external) \
-
 all-gen-hdrs = $(foreach gen,$(all-gens),$($(gen)-hdr))
 
 gen-artifact = \
@@ -81,6 +72,8 @@ parse-common-module = \
 	$(eval $(4)-bs      := $(addprefix $(2),Makefile)) \
 	$(eval $(4)-bs      += $(if $(wildcard $(2)/Kconfig),$(addprefix $(2),Kconfig))) \
 	$(eval $(4)-hdrs    := $(filter %.h,$(artifacts))) \
+	$(eval $(5)         := $(if $(obj-$(1)-$(3)-type),$(obj-$(1)-$(3)-type),$(mod-type))) \
+	$(eval $(4)-type    := $($(5))) \
 	$(foreach obj,$(mod-objs), \
 		$(call object-path,$(obj),$(2),dest-obj) \
 		$(eval $(dest-obj)-src := $(subst .o,.c,$(obj))) \
@@ -90,31 +83,23 @@ parse-common-module = \
 	)\
 
 parse-builtin-module = \
-	$(call parse-common-module,$(1),$(2),y,$(3)) \
+	$(call parse-common-module,$(1),$(2),y,$(3),curr-mod-type) \
 	$(eval builtin-cflags      += $($(3)-cflags)) \
 	$(eval builtin-ldflags     += $($(3)-ldflags)) \
 	$(eval builtin-objs        += $($(3)-objs)) \
-	$(if $(filter $(flow-dir)%,$(2)), \
-		$(eval builtin-flows += $(1))) \
-	$(if $(filter $(linux-micro-dir)%,$(2)), \
-		$(eval builtin-linux-micro += $(1))) \
-	$(if $(filter $(pin-mux-dir)%,$(2)), \
-		$(eval builtin-pin-mux += $(1))) \
-	$(if $(filter $(flow-metatype-dir)%,$(2)), \
-		$(eval builtin-flow-metatype += $(1))) \
+	$(eval export builtins-$(curr-mod-type) += $(1)) \
 
 parse-mod-output = \
-	$(eval out-prefix := $(build_modulesdir)$(strip $(call module-type,$(2)))) \
+	$(eval out-prefix := $(build_modulesdir)$($(3)-type)) \
         $(eval $(3)-out   := $(out-prefix)/$(1).so) \
 	$(eval mod-so     += $(3)) \
 
 parse-mod-module = \
-	$(call parse-common-module,$(1),$(2),m,$(3)) \
+	$(call parse-common-module,$(1),$(2),m,$(3),curr-mod-type) \
 	$(eval $(3)-deps     := $(subst .mod,,$(obj-$(1)-m-deps))) \
 	$(call parse-mod-output,$(1),$(2),$(3)) \
 	$(eval modules-out += $($(3)-out)) \
-	$(if $(filter $(linux-micro-dir)%,$(2)), \
-		$(eval modules-linux-micro += $(1))) \
+	$(eval export modules-$(curr-mod-type) += $(1)) \
 
 parse-bin = \
 	$(eval bin-$(1)-srcs := $(addprefix $(2),$(bin-$(1)-y))) \
@@ -165,7 +150,7 @@ parse-warnings = \
 clean-control = $(eval headers-y:=) $(eval obj-y:=) $(eval obj-m:=) $(eval bin-y:=) \
 		$(eval test-y:=) $(eval test-internal-y:=) $(eval sample-y:=) $(eval headers-m:=) \
 		$(eval warning-msg:=) $(eval warning-msg-y:=) $(eval warning-msg-m:=) \
-		$(eval requires-private-y:=)
+		$(eval requires-private-y:=) $(eval mod-type:=)
 
 inc-subdirs = \
 	$(foreach subdir,$(SUBDIRS), $(clean-control) \
@@ -221,12 +206,6 @@ endif # $(M)
 
 $(eval $(call inc-subdirs))
 $(eval $(call extra-bins))
-
-export builtin-flows
-export builtin-linux-micro
-export modules-linux-micro
-export builtin-pin-mux
-export builtin-flow-metatype
 
 PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin)
 
@@ -379,7 +358,7 @@ $(foreach gen,$(all-fbp-gens),$(eval $(call make-fbp-gen,$(gen))))
 $(FLOW_BUILTINS_DESC): $(SOL_LIB_OUTPUT) $(all-mod-descs) $(JSON_FORMAT_SCRIPT)
 	$(Q)echo "     "GEN"   "$@
 	$(Q)$(MKDIR) -p $(dir $(@))
-	$(Q)$(PYTHON) $(FLOW_MERGE_BUILTINS_SCRIPT) --modules-dir=$(build_descdir) $(@) $(builtin-flows)
+	$(Q)$(PYTHON) $(FLOW_MERGE_BUILTINS_SCRIPT) --modules-dir=$(build_descdir) $(@) $(builtins-flow)
 
 define install-resource
 $(2): $(1)

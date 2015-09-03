@@ -5,5 +5,5 @@ array = "static const struct sol_pin_mux *SOL_PIN_MUX_BUILTINS_ALL[]"
 count = "SOL_PIN_MUX_BUILTIN_COUNT"
 decl = "const struct sol_pin_mux SOL_PIN_MUX_@NAME@"
 item = "&SOL_PIN_MUX_@NAME@"
-gen_builtins(decl, item, array, count, "builtin-pin-mux")
+gen_builtins(decl, item, array, count, "builtins-pin-mux")
 }}
