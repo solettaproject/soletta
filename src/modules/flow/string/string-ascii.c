@@ -39,7 +39,7 @@
 
 #include "sol-flow-internal.h"
 
-#include "string-gen.h"
+#include "sol-flow/string.h"
 #include "string-ascii.h"
 #include "string-regexp.h"
 #include "string-uuid.h"

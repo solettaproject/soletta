@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "timer-gen.h"
+#include "sol-flow/timer.h"
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
 

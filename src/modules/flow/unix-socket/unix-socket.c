@@ -37,7 +37,7 @@
 #include <unistd.h>
 
 #include "unix-socket.h"
-#include "unix-socket-gen.h"
+#include "sol-flow/unix-socket.h"
 #include "sol-buffer.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"

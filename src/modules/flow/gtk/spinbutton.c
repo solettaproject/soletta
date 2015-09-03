@@ -31,7 +31,7 @@
  */
 
 #include "spinbutton.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 
 static void
 on_spinbutton_changed(GtkSpinButton *spin, gpointer data)

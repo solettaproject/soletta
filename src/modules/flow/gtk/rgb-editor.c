@@ -31,7 +31,7 @@
  */
 
 #include "rgb-editor.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 #include "sol-types.h"
 
 #define COLOR_VALUE_MIN (0)

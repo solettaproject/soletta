@@ -31,7 +31,7 @@
  */
 
 #include "sol-flower-power.h"
-#include "flower-power-gen.h"
+#include "sol-flow/flower-power.h"
 #include "sol-flow-internal.h"
 
 #include <sol-http-client.h>

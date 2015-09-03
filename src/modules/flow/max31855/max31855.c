@@ -30,12 +30,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "max31855-gen.h"
+#include "sol-flow/max31855.h"
 
 #include "sol-flow-internal.h"
+#include "sol-flow/max31855.h"
 #include "sol-spi.h"
 #include "sol-types.h"
-#include "max31855-gen.h"
 
 #include <sol-util.h>
 #include <errno.h>

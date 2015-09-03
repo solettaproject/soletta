@@ -33,7 +33,7 @@
 #include <math.h>
 
 #include "led.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 #include "sol-types.h"
 
 #define LED_VIEW_DIMENSION (50)

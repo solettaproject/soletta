@@ -33,7 +33,7 @@
 #include <errno.h>
 #include <math.h>
 
-#include "accelerometer-gen.h"
+#include "sol-flow/accelerometer.h"
 
 #include "sol-i2c.h"
 #include "sol-mainloop.h"

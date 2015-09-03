@@ -38,7 +38,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "network-gen.h"
+#include "sol-flow/network.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"

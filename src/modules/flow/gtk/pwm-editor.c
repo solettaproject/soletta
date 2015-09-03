@@ -31,7 +31,7 @@
  */
 
 #include "pwm-editor.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 
 static void
 on_pwm_editor_toggle_changed(GtkToggleButton *toggle, gpointer data)

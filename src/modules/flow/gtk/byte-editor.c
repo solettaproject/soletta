@@ -31,7 +31,7 @@
  */
 
 #include "byte-editor.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 
 #define INT_VALUE_MAX (0xF)
 static const char *BIT_POSITION_KEY = "bit_position";

@@ -785,7 +785,7 @@ generate(struct sol_vector *fbp_data_vector)
 
     /* Header name is currently inferred from the module name. */
     SOL_VECTOR_FOREACH_IDX (&ctx->modules, module, i) {
-        out("#include \"%.*s-gen.h\"\n", SOL_STR_SLICE_PRINT(*module));
+        out("#include \"sol-flow/%.*s.h\"\n", SOL_STR_SLICE_PRINT(*module));
     }
 
     /* Reverse since the dependencies appear later in the vector. */

@@ -35,7 +35,7 @@
 #include <string.h>
 
 #include "common.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 
 SOL_LOG_INTERNAL_DECLARE(_gtk_log_domain, "flow-gtk");
 

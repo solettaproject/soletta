@@ -32,7 +32,7 @@
 
 #include <errno.h>
 
-#include "switcher-gen.h"
+#include "sol-flow/switcher.h"
 #include "sol-flow-internal.h"
 #include "sol-util.h"
 
