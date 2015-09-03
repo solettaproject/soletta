@@ -306,5 +306,29 @@ test_memory_not_owned(void)
     sol_buffer_fini(&buf);
 }
 
+DEFINE_TEST(test_no_nul_byte);
+
+static void
+test_no_nul_byte(void)
+{
+    struct sol_buffer buf;
+    int32_t backend;
+    int32_t value = 0xdeadbeef;
+    int err;
+
+    sol_buffer_init_flags(&buf, &backend, sizeof(backend),
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
+    err = sol_buffer_ensure(&buf, sizeof(int32_t));
+    ASSERT_INT_EQ(err, 0);
+
+    err = sol_buffer_append_slice(&buf, SOL_STR_SLICE_STR((const char *)&value, sizeof(value)));
+    ASSERT_INT_EQ(err, 0);
+
+    err = sol_buffer_append_slice(&buf, SOL_STR_SLICE_STR((const char *)&value, sizeof(value)));
+    ASSERT_INT_NE(err, 0);
+
+    sol_buffer_fini(&buf);
+}
 
 TEST_MAIN();
