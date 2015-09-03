@@ -82,6 +82,7 @@ led_setup(struct gtk_common_data *data,
         return -EINVAL;
     }
 
+    mdata->on = true;
     mdata->r = color.red;
     mdata->g = color.green;
     mdata->b = color.blue;
