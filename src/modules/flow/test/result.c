@@ -38,7 +38,7 @@
 
 #include "test-module.h"
 #include "result.h"
-#include "test-gen.h"
+#include "sol-flow/test.h"
 
 static int node_count;
 

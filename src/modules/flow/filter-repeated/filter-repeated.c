@@ -32,7 +32,7 @@
 
 #include <errno.h>
 
-#include "filter-repeated-gen.h"
+#include "sol-flow/filter-repeated.h"
 #include "sol-flow-internal.h"
 #include "sol-util.h"
 

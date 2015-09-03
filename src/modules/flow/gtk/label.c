@@ -31,7 +31,7 @@
  */
 
 #include "label.h"
-#include "gtk-gen.h"
+#include "sol-flow/gtk.h"
 
 static void
 set_min_size(GtkWidget *widget)

@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "led-strip-gen.h"
+#include "sol-flow/led-strip.h"
 #include "sol-flow-internal.h"
 
 #include <sol-spi.h>

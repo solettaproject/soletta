@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "constant-gen.h"
+#include "sol-flow/constant.h"
 #include "sol-flow-internal.h"
 
 #include <sol-util.h>

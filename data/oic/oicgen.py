@@ -907,7 +907,7 @@ def master_c_as_string(generated):
 #include <stdlib.h>
 #include <sys/socket.h>
 
-#include "oic-gen.h"
+#include "sol-flow/oic.h"
 
 #include "sol-coap.h"
 #include "sol-json.h"

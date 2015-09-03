@@ -34,8 +34,8 @@
 #include <errno.h>
 #include <math.h>
 
-#include "grove-gen.h"
-#include "aio-gen.h"
+#include "sol-flow/grove.h"
+#include "sol-flow/aio.h"
 
 #include "sol-flow-static.h"
 #include "sol-flow-internal.h"

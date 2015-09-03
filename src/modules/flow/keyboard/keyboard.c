@@ -41,7 +41,7 @@
 #include <inttypes.h>
 #include <fcntl.h>
 
-#include "keyboard-gen.h"
+#include "sol-flow/keyboard.h"
 
 #include "sol-flow.h"
 #include "sol-buffer.h"

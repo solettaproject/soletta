@@ -38,7 +38,7 @@
 #include "sol-flow-internal.h"
 #include "sol-platform.h"
 
-#include "string-gen.h"
+#include "sol-flow/string.h"
 #include "string-uuid.h"
 
 int

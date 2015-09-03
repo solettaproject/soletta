@@ -560,7 +560,7 @@ def generate_code_head(outfile, data):
  * types are defined.
  */
 #ifndef %(NAME_C)s_DEFINED
-#include "%(header)s"
+#include "%(namespace)s%(header)s"
 #endif
 #include <sol-flow-packet.h>
 #include <sol-macros.h>
@@ -594,6 +594,7 @@ log_init(void)
 """ % {
     "input": data["input"],
     "header": os.path.basename(data["header"]),
+    "namespace": data["namespace"],
     "NAME_C": data["NAME_C"],
     "float_h": uses_float(data),
     "domain": "flow-" + c_clean(data["name"].lower())
@@ -1204,6 +1205,13 @@ using the sol-flow-node-type-stub-gen.py tool.
                               "'struct sol_flow_node_options' and "
                               "C pre-processor (CPP) defines for all ports."),
                         type=argparse.FileType('w', encoding='UTF-8'))
+    parser.add_argument("--namespace",
+                        help=("The module's namespace i.e sol-flow, for Soletta's "
+                              "in tree modules it makes sense to have the namespace "
+                              "but for cases where an application is generating a "
+                              "custom node type - like it's done in samples we'll "
+                              "not want to have the namespace prefix."),
+                        type=str, default=None)
     parser.add_argument("output_code",
                         help=("Boilerplate output code (.c) file. This file "
                               "will contain only the declaration of "
@@ -1263,6 +1271,12 @@ using the sol-flow-node-type-stub-gen.py tool.
 
         data["input"] = args.genspec.name
         data["header"] = args.output_header.name
+
+        if args.namespace:
+            data["namespace"] = "%s/" % args.namespace
+        else:
+            data["namespace"] = ""
+        
         data["source"] = args.output_code.name
 
         ntypes = len(data["types"])
@@ -1277,6 +1291,7 @@ using the sol-flow-node-type-stub-gen.py tool.
             t.setdefault("author", meta.get("author"))
             t.setdefault("version", meta.get("version"))
             t["header"] = data["header"]
+            t["namespace"] = data["namespace"]
             t["source"] = data["source"]
             t["input"] = data["input"]
             t["name_c"] = data["prefix_c"] + "_" + c_clean(t["name"].lower())
