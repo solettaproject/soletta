@@ -28,37 +28,76 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-input1(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN all_false_buffer(boolean/buffer:samples=4,operation=all_false)
+# Regular operation tests
+
+input1(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN all_false_buffer(boolean/buffer:operation=all_false)
 all_false_buffer OUT -> RESULT t1(test/result)
 
-input2(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN all_true_buffer(boolean/buffer:samples=4,operation=all_true)
+input2(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN all_true_buffer(boolean/buffer:operation=all_true)
 all_true_buffer OUT -> RESULT t2(test/result)
 
-input3(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN any_true_buffer(boolean/buffer:samples=4,operation=any_true)
+input3(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN any_true_buffer(boolean/buffer:operation=any_true)
 any_true_buffer OUT -> RESULT t3(test/result)
 
-input4(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN any_false_buffer(boolean/buffer:samples=4,operation=any_false)
+input4(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN any_false_buffer(boolean/buffer:operation=any_false)
 any_false_buffer OUT -> RESULT t4(test/result)
+
+# Multiple outputs tests
+
+gen(test/boolean-generator:sequence="TTTFTTTTF")
+
+buffer_not_circular(boolean/buffer:samples=3)
+validator_not_circular(test/boolean-validator:sequence="TFF")
+
+gen OUT -> IN buffer_not_circular
+buffer_not_circular OUT -> IN validator_not_circular
+validator_not_circular OUT -> RESULT test_not_circular(test/result)
+
+buffer_circular(boolean/buffer:samples=3,circular=true)
+validator_circular(test/boolean-validator:sequence="TFFFTTF")
+
+gen OUT -> IN buffer_circular
+buffer_circular OUT -> IN validator_circular
+validator_circular OUT -> RESULT test_circular(test/result)
 
 # Negative tests
 
-input5(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN nall_false_buffer(boolean/buffer:samples=4,operation=all_false)
+input5(test/boolean-generator:sequence=FFTF,interval=50) OUT -> IN nall_false_buffer(boolean/buffer:operation=all_false)
 nall_false_buffer OUT -> IN _(boolean/not) OUT -> RESULT t5(test/result)
 
-input6(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN nall_true_buffer(boolean/buffer:samples=4,operation=all_true)
+input6(test/boolean-generator:sequence=TFTT,interval=50) OUT -> IN nall_true_buffer(boolean/buffer:operation=all_true)
 nall_true_buffer OUT -> IN _(boolean/not) OUT -> RESULT t6(test/result)
 
-input7(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN nany_true_buffer(boolean/buffer:samples=4,operation=any_true)
+input7(test/boolean-generator:sequence=FFFF,interval=50) OUT -> IN nany_true_buffer(boolean/buffer:operation=any_true)
 nany_true_buffer OUT -> IN _(boolean/not) OUT -> RESULT t7(test/result)
 
-input8(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN nany_false_buffer(boolean/buffer:samples=4,operation=any_false)
+input8(test/boolean-generator:sequence=TTTT,interval=50) OUT -> IN nany_false_buffer(boolean/buffer:operation=any_false)
 nany_false_buffer OUT -> IN _(boolean/not) OUT -> RESULT t8(test/result)
 
+# Timeout tests
 
-#timeout test
+buffer_timeout(boolean/buffer:timeout=100, operation=any_true)
 
-input9(test/boolean-generator:sequence="FT", interval=20) OUT -> IN buffer(boolean/buffer:samples=6, timeout=50, operation=any_true) OUT -> RESULT t9(test/result)
+input9(test/boolean-generator:sequence="FT", interval=40)
+input9 OUT -> IN buffer_timeout OUT -> RESULT t9(test/result)
 
-#timeout error
+buffer_timeout2(boolean/buffer:timeout=100, operation=any_true)
+
+input10(test/boolean-generator:sequence="TTF", interval=40)
+validator_timeout(test/boolean-validator:sequence="TF")
+
+input10 OUT -> IN buffer_timeout2
+buffer_timeout2 OUT -> IN validator_timeout OUT -> RESULT t10(test/result)
+
+buffer_timeout3(boolean/buffer:timeout=100, operation=any_true, circular=true)
+
+input11(test/boolean-generator:sequence="TTF", interval=60)
+validator_timeout2(test/boolean-validator:sequence="TT")
+
+input11 OUT -> IN buffer_timeout3
+buffer_timeout3 OUT -> IN validator_timeout2 OUT -> RESULT t11(test/result)
+
+# Timeout error
+
 negative_number(constant/int:value=-2) OUT -> TIMEOUT buffer_error(boolean/buffer:samples=6, operation=any_true)
-buffer_error ERROR -> IN trigger(converter/empty-to-boolean) OUT -> PASS t10(test/result)
+buffer_error ERROR -> IN trigger(converter/empty-to-boolean) OUT -> PASS t12(test/result)

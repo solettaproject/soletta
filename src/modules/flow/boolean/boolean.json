@@ -243,6 +243,7 @@
         "members": [
           {
             "data_type": "int",
+            "default": 4,
             "description": "Number of samples that the buffer should hold.",
             "name": "samples"
           },
@@ -257,6 +258,12 @@
             "default": "all_true",
             "description": "Operation to be applied in the buffer elements to compute the output. Supported operations are: all_true, all_false, any_true, any_false.",
             "name": "operation"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If enabled, it will work just like a circular buffer, so after samples ammount is reached it will send a new packet every time a new value is received, reusing last received values. If set to false, after a packet is sent it needs to wait for all samples again (or timeout) since it resets the buffer when samples ammount is reached.",
+            "name": "circular"
           }
         ],
         "version": 1
@@ -271,6 +278,5 @@
       "private_data_type": "boolean_buffer_data",
       "url": "http://solettaproject.org/doc/latest/node_types/boolean/buffer.html"
     }
-
   ]
 }
