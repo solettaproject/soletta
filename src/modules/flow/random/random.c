@@ -35,13 +35,13 @@
 
 #include <errno.h>
 #include <float.h>
-#include <sol-rng.h>
+#include <sol-random.h>
 #include <sol-util.h>
 #include <stdlib.h>
 #include <time.h>
 
 struct random_node_data {
-    struct sol_rng_engine *engine;
+    struct sol_random *engine;
 };
 
 static int
@@ -54,8 +54,7 @@ random_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
        multiple node types */
     opts = (const struct sol_flow_node_type_random_int_options *)options;
 
-    mdata->engine = sol_rng_engine_new(SOL_RNG_ENGINE_IMPL_DEFAULT,
-        opts->seed.val);
+    mdata->engine = sol_random_new(SOL_RANDOM_DEFAULT, opts->seed.val);
     SOL_NULL_CHECK(mdata->engine, -EINVAL);
 
     return 0;
@@ -66,7 +65,7 @@ random_close(struct sol_flow_node *node, void *data)
 {
     struct random_node_data *mdata = data;
 
-    sol_rng_engine_del(mdata->engine);
+    sol_random_del(mdata->engine);
 }
 
 /*
@@ -78,7 +77,8 @@ random_int_generate(struct sol_flow_node *node, void *data, uint16_t port, uint1
     struct sol_irange value = { 0, 0, INT32_MAX, 1 };
     struct random_node_data *mdata = data;
 
-    sol_rng_engine_generate_bytes(mdata->engine, &value.val, sizeof(value.val));
+    if (!sol_random_get_int32(mdata->engine, &value.val))
+        return -EINVAL;
 
     return sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_INT__OUT__OUT,
@@ -93,13 +93,9 @@ random_float_generate(struct sol_flow_node *node, void *data, uint16_t port, uin
 {
     struct random_node_data *mdata = data;
     struct sol_drange out_value = { 0, 0, INT32_MAX, 1 };
-    int value, fraction;
 
-    sol_rng_engine_generate_bytes(mdata->engine, &value, sizeof(value));
-    sol_rng_engine_generate_bytes(mdata->engine, &fraction, sizeof(fraction));
-
-    out_value.val = value * ((double)(INT32_MAX - 1) / INT32_MAX) +
-        (double)fraction / INT32_MAX;
+    if (!sol_random_get_double(mdata->engine, &out_value.val))
+        return -EINVAL;
 
     return sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_FLOAT__OUT__OUT,
@@ -113,10 +109,10 @@ static int
 random_byte_generate(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct random_node_data *mdata = data;
-    unsigned int value;
+    uint8_t value;
 
-    sol_rng_engine_generate_bytes(mdata->engine, &value, sizeof(value));
-    value &= 0xff;
+    if (!sol_random_get_byte(mdata->engine, &value))
+        return -EINVAL;
 
     return sol_flow_send_byte_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_BYTE__OUT__OUT,
@@ -130,13 +126,14 @@ static int
 random_boolean_generate(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct random_node_data *mdata = data;
-    unsigned int value;
+    bool value;
 
-    sol_rng_engine_generate_bytes(mdata->engine, &value, sizeof(value));
+    if (!sol_random_get_bool(mdata->engine, &value))
+        return -EINVAL;
 
     return sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_RANDOM_BOOLEAN__OUT__OUT,
-        value % 2);
+        value);
 }
 
 static int
@@ -149,9 +146,8 @@ random_seed_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    sol_rng_engine_del(mdata->engine);
-    mdata->engine = sol_rng_engine_new(SOL_RNG_ENGINE_IMPL_DEFAULT,
-        in_value);
+    sol_random_del(mdata->engine);
+    mdata->engine = sol_random_new(SOL_RANDOM_DEFAULT, in_value);
     SOL_NULL_CHECK(mdata->engine, -EINVAL);
 
     return 0;

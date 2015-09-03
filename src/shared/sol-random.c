@@ -42,16 +42,16 @@
 #include <unistd.h>
 #endif
 
-#include "sol-rng.h"
+#include "sol-random.h"
 
-struct sol_rng_engine {
-    const struct sol_rng_engine_impl *impl;
+struct sol_random {
+    const struct sol_random_impl *impl;
 };
 
-struct sol_rng_engine_impl {
-    bool (*init)(struct sol_rng_engine *engine, uint64_t seed);
-    void (*shutdown)(struct sol_rng_engine *engine);
-    size_t (*generate_bytes)(struct sol_rng_engine *engine, unsigned char *buffer, size_t len);
+struct sol_random_impl {
+    bool (*init)(struct sol_random *engine, uint64_t seed);
+    void (*shutdown)(struct sol_random *engine);
+    uint32_t (*generate_uint32)(struct sol_random *engine);
     size_t struct_size;
 };
 
@@ -105,22 +105,16 @@ get_platform_seed(uint64_t seed)
     return (uint64_t)time(NULL);
 }
 
-static inline size_t
-min(size_t a, size_t b)
-{
-    return a < b ? a : b;
-}
-
-struct sol_rng_engine_mt19937 {
-    struct sol_rng_engine base;
+struct sol_random_mt19937 {
+    struct sol_random base;
     unsigned int state[624];
     int index;
 };
 
 static bool
-engine_mt19937_init(struct sol_rng_engine *generic, uint64_t seed)
+engine_mt19937_init(struct sol_random *generic, uint64_t seed)
 {
-    struct sol_rng_engine_mt19937 *engine = (struct sol_rng_engine_mt19937 *)generic;
+    struct sol_random_mt19937 *engine = (struct sol_random_mt19937 *)generic;
     const size_t state_array_size = ARRAY_SIZE(engine->state);
     size_t i;
 
@@ -132,11 +126,12 @@ engine_mt19937_init(struct sol_rng_engine *generic, uint64_t seed)
     return true;
 }
 
-static unsigned int
-engine_mt19937_generate_uint(struct sol_rng_engine_mt19937 *engine)
+static uint32_t
+engine_mt19937_generate_uint32(struct sol_random *generic)
 {
+    struct sol_random_mt19937 *engine = (struct sol_random_mt19937 *)generic;
     const size_t state_array_size = ARRAY_SIZE(engine->state);
-    unsigned int y;
+    uint32_t y;
 
     if (engine->index == 0) {
         size_t i;
@@ -162,46 +157,27 @@ engine_mt19937_generate_uint(struct sol_rng_engine_mt19937 *engine)
     return y;
 }
 
-static size_t
-engine_mt19937_generate(struct sol_rng_engine *generic, unsigned char *buffer,
-    size_t length)
-{
-    struct sol_rng_engine_mt19937 *engine = (struct sol_rng_engine_mt19937 *)generic;
-    ssize_t total = (ssize_t)length;
-
-    while (total > 0) {
-        unsigned int value = engine_mt19937_generate_uint(engine);
-        size_t to_copy = min(sizeof(value), (size_t)total);
-
-        memcpy(buffer, &value, to_copy);
-        total -= to_copy;
-        buffer += to_copy;
-    }
-
-    return length;
-}
-
-const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_MT19937 =
-    &(struct sol_rng_engine_impl) {
+const struct sol_random_impl *SOL_RANDOM_MT19937 =
+    &(struct sol_random_impl) {
     .init = engine_mt19937_init,
     .shutdown = NULL,
-    .generate_bytes = engine_mt19937_generate,
-    .struct_size = sizeof(struct sol_rng_engine_mt19937)
+    .generate_uint32 = engine_mt19937_generate_uint32,
+    .struct_size = sizeof(struct sol_random_mt19937)
 };
 
-#ifdef HAVE_RANDOMR
-struct sol_rng_engine_randomr {
-    struct sol_rng_engine base;
-    unsigned char buffer[32];
+#ifdef HAVE_RANDOM_R
+struct sol_random_randomr {
+    struct sol_random base;
+    char buffer[32];
     struct random_data state;
 };
 
 static bool
-engine_randomr_init(struct sol_rng_engine *generic)
+engine_randomr_init(struct sol_random *generic, uint64_t seed)
 {
-    struct sol_rng_engine_randomr *engine = (struct sol_rng_engine_randomr *)generic;
+    struct sol_random_randomr *engine = (struct sol_random_randomr *)generic;
 
-    memset(engine->state, 0, sizeof(engine->state));
+    memset(&engine->state, 0, sizeof(engine->state));
 
     /* Return code ignored: no error case is possible at this point. */
     (void)initstate_r(seed, engine->buffer, sizeof(engine->buffer), &engine->state);
@@ -209,49 +185,39 @@ engine_randomr_init(struct sol_rng_engine *generic)
     return true;
 }
 
-static size_t
-engine_randomr_generate(struct sol_rng_engine *generic,
-    unsigned char *buffer, size_t length)
+static uint32_t
+engine_randomr_generate_uint32(struct sol_random *generic)
 {
-    struct sol_rng_engine_randomr *engine = (struct sol_rng_engine_randomr *)generic;
-    ssize_t total = (ssize_t)length;
+    struct sol_random_randomr *engine = (struct sol_random_randomr *)generic;
+    int32_t value;
 
-    while (total > 0) {
-        int32_t value;
-        size_t to_copy = min(sizeof(value), (size_t)total);
+    /* Return code ignored: no error case is possible at this point. */
+    (void)random_r(&engine->state, &value);
 
-        /* Return code ignored: no error case is possible at this point. */
-        (void)random_r(&engine->state, &value);
-
-        memcpy(buffer, &value, to_copy);
-        total -= to_copy;
-        buffer += to_copy;
-    }
-
-    return length;
+    return (uint32_t)value;
 }
 
-struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_URANDOM =
-    &(struct sol_rng_engine_impl) {
+const struct sol_random_impl *SOL_RANDOM_RANDOMR =
+    &(struct sol_random_impl) {
     .init = engine_randomr_init,
     .shutdown = NULL,
-    .generate_bytes = engine_randomr_generate,
-    .struct_size = sizeof(struct sol_rng_engine_randomr)
+    .generate_uint32 = engine_randomr_generate_uint32,
+    .struct_size = sizeof(struct sol_random_randomr)
 };
 #else
-const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_RANDOMR = NULL;
+const struct sol_random_impl *SOL_RANDOM_RANDOMR = NULL;
 #endif
 
 #ifdef SOL_PLATFORM_LINUX
-struct sol_rng_engine_urandom {
-    struct sol_rng_engine base;
+struct sol_random_urandom {
+    struct sol_random base;
     int fd;
 };
 
 static bool
-engine_urandom_init(struct sol_rng_engine *generic, uint64_t seed)
+engine_urandom_init(struct sol_random *generic, uint64_t seed)
 {
-    struct sol_rng_engine_urandom *engine = (struct sol_rng_engine_urandom *)generic;
+    struct sol_random_urandom *engine = (struct sol_random_urandom *)generic;
 
     engine->fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
     if (engine->fd < 0) {
@@ -263,50 +229,63 @@ engine_urandom_init(struct sol_rng_engine *generic, uint64_t seed)
 }
 
 static void
-engine_urandom_shutdown(struct sol_rng_engine *generic)
+engine_urandom_shutdown(struct sol_random *generic)
 {
-    struct sol_rng_engine_urandom *engine = (struct sol_rng_engine_urandom *)generic;
+    struct sol_random_urandom *engine = (struct sol_random_urandom *)generic;
 
     close(engine->fd);
 }
 
-static size_t
-engine_urandom_generate(struct sol_rng_engine *generic,
-    unsigned char *buffer, size_t length)
+static uint32_t
+engine_urandom_generate_uint32(struct sol_random *generic)
 {
-    struct sol_rng_engine_urandom *engine = (struct sol_rng_engine_urandom *)generic;
+    struct sol_random_urandom *engine = (struct sol_random_urandom *)generic;
 
-    return read(engine->fd, buffer, length);
+    while (true) {
+        uint32_t value;
+        ssize_t n = read(engine->fd, &value, sizeof(value));
+
+        if (n < 0) {
+            if (errno == EAGAIN || errno == EINTR)
+                continue;
+            break;
+        }
+
+        if (n == sizeof(value))
+            return value;
+    }
+
+    SOL_ERR("Could not read from /dev/urandom: %s", sol_util_strerrora(errno));
+    return 0;
 }
 
-const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_URANDOM =
-    &(struct sol_rng_engine_impl) {
+const struct sol_random_impl *SOL_RANDOM_URANDOM =
+    &(struct sol_random_impl) {
     .init = engine_urandom_init,
     .shutdown = engine_urandom_shutdown,
-    .generate_bytes = engine_urandom_generate,
-    .struct_size = sizeof(struct sol_rng_engine_urandom)
+    .generate_uint32 = engine_urandom_generate_uint32,
+    .struct_size = sizeof(struct sol_random_urandom)
 };
 #else
-const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_URANDOM = NULL;
+const struct sol_random_impl *SOL_RANDOM_URANDOM = NULL;
 #endif
 
-const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_DEFAULT = NULL;
+const struct sol_random_impl *SOL_RANDOM_DEFAULT = NULL;
 
-struct sol_rng_engine *
-sol_rng_engine_new(const struct sol_rng_engine_impl *impl, uint64_t seed)
+struct sol_random *
+sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
 {
-    struct sol_rng_engine *engine;
+    struct sol_random *engine;
 
     if (!impl)
-        impl = SOL_RNG_ENGINE_IMPL_MT19937;
+        impl = SOL_RANDOM_MT19937;
 
     engine = malloc(impl->struct_size);
     SOL_NULL_CHECK(engine, NULL);
 
     engine->impl = impl;
-
     seed = get_platform_seed(seed);
-    if (!impl->init(engine, seed)) {
+    if (!engine->impl->init(engine, seed)) {
         free(engine);
         return NULL;
     }
@@ -315,7 +294,7 @@ sol_rng_engine_new(const struct sol_rng_engine_impl *impl, uint64_t seed)
 }
 
 void
-sol_rng_engine_del(struct sol_rng_engine *engine)
+sol_random_del(struct sol_random *engine)
 {
     SOL_NULL_CHECK(engine);
 
@@ -324,13 +303,25 @@ sol_rng_engine_del(struct sol_rng_engine *engine)
     free(engine);
 }
 
-size_t
-sol_rng_engine_generate_bytes(struct sol_rng_engine *engine, void *buffer,
+ssize_t
+sol_random_fill_buffer(struct sol_random *engine, struct sol_buffer *buffer,
     size_t len)
 {
+    uint32_t value;
+    struct sol_str_slice slice = SOL_STR_SLICE_STR((const char *)&value, sizeof(value));
+    ssize_t total;
+
     SOL_NULL_CHECK(engine, 0);
     SOL_NULL_CHECK(engine->impl, 0);
-    SOL_NULL_CHECK(engine->impl->generate_bytes, 0);
 
-    return engine->impl->generate_bytes(engine, buffer, len);
+    for (total = (ssize_t)len; total > 0; total -= sizeof(value)) {
+        int r;
+
+        value = engine->impl->generate_uint32(engine);
+        r = sol_buffer_append_slice(buffer, slice);
+        if (r < 0)
+            return r;
+    }
+
+    return len;
 }
