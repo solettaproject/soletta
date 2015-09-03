@@ -6,7 +6,7 @@
 import os
 
 def gen_builtins(decl, item, array, count, builtins):
-    builtins = os.environ.get(builtins)
+    builtins = os.environ.get(builtins, "")
     builtins = builtins.strip()
     if builtins:
         builtins = builtins.replace("-","_").split(" ")

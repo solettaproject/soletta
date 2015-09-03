@@ -32,6 +32,7 @@ endif
 
 obj-string-$(FLOW_NODE_TYPE_STRING)-extra-cflags += $(LOCALE_CFLAGS) $(ICU_CFLAGS) $(LIBPCRE_CFLAGS)
 obj-string-$(FLOW_NODE_TYPE_STRING)-extra-ldflags += $(LOCALE_LDFLAGS) $(ICU_LDFLAGS) $(LIBPCRE_LDFLAGS)
+obj-string-$(FLOW_NODE_TYPE_STRING)-type := flow
 
 requires-private-$(FLOW_NODE_TYPE_STRING) := \
     $(ICU_REQUIRES_PRIVATE) \
