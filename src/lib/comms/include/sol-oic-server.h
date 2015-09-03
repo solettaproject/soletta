@@ -56,9 +56,6 @@ extern "C" {
 #ifndef OIC_DEVICE_RESOURCE_TYPE
 #define OIC_DEVICE_RESOURCE_TYPE "oc.core"
 #endif
-#ifndef OIC_DEVICE_ID
-#define OIC_DEVICE_ID "soletta0"
-#endif
 #ifndef OIC_MANUFACTURER_NAME
 #define OIC_MANUFACTURER_NAME "Custom"
 #endif
