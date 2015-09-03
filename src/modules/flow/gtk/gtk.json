@@ -48,7 +48,7 @@
     },
     {
       "category": "output/sw",
-      "description": "Gtk widget that immitates a led. It's turned on by a true boolea packet and off by a false one.",
+      "description": "Gtk widget that immitates a led. It can receive a rgb or int (1 byte per channel) packet to set its color and turn it on. Or it can receive a boolean packet to turn it on or off. Led's turned off are drawn as black.",
       "in_ports": [
         {
           "data_type": "any",
@@ -73,7 +73,7 @@
             "default": {
               "red": 0,
               "green": 0,
-              "blue": 255
+              "blue": 0
             }
           }
         ],
