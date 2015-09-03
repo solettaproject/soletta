@@ -30,8 +30,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sol-buffer.h"
 #include "sol-log.h"
-#include "sol-rng.h"
+#include "sol-random.h"
 #include "sol-util.h"
 
 #include <ctype.h>
@@ -67,21 +68,23 @@ assert_uuid_v4(struct sol_uuid id)
 static int
 uuid_gen(struct sol_uuid *ret)
 {
-    struct sol_rng_engine *engine;
-    size_t size;
+    struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(ret, sizeof(*ret),
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    struct sol_random *engine;
+    ssize_t size;
 
     SOL_NULL_CHECK(ret, -EINVAL);
-    engine = sol_rng_engine_new(SOL_RNG_ENGINE_IMPL_DEFAULT, 0);
+    engine = sol_random_new(SOL_RANDOM_DEFAULT, 0);
+    SOL_NULL_CHECK(engine, -errno);
 
-    size = sol_rng_engine_generate_bytes(engine, ret, sizeof(*ret));
-    if (size != sizeof(*ret)) {
-        sol_rng_engine_del(engine);
+    size = sol_random_fill_buffer(engine, &buf, sizeof(*ret));
+    sol_random_del(engine);
+    sol_buffer_fini(&buf);
+
+    if (size != (ssize_t)sizeof(*ret))
         return -EIO;
-    }
 
     *ret = assert_uuid_v4(*ret);
-
-    sol_rng_engine_del(engine);
     return 0;
 }
 

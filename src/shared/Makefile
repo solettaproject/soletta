@@ -3,7 +3,7 @@ obj-y += libshared.mod
 obj-libshared-y := \
     sol-monitors.o \
     sol-util.o \
-    sol-rng.o
+    sol-random.o
 
 obj-libshared-$(FLOW_SUPPORT) += \
     sol-fbp-graph.o \
