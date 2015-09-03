@@ -164,7 +164,7 @@ engine_mt19937_generate_uint(struct sol_rng_engine_mt19937 *engine)
 
 static size_t
 engine_mt19937_generate(struct sol_rng_engine *generic, unsigned char *buffer,
-	size_t length)
+    size_t length)
 {
     struct sol_rng_engine_mt19937 *engine = (struct sol_rng_engine_mt19937 *)generic;
     ssize_t total = (ssize_t)length;
@@ -183,11 +183,11 @@ engine_mt19937_generate(struct sol_rng_engine *generic, unsigned char *buffer,
 
 const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_MT19937 =
     &(struct sol_rng_engine_impl) {
-        .init = engine_mt19937_init,
-        .shutdown = NULL,
-        .generate_bytes = engine_mt19937_generate,
-        .struct_size = sizeof(struct sol_rng_engine_mt19937)
-    };
+    .init = engine_mt19937_init,
+    .shutdown = NULL,
+    .generate_bytes = engine_mt19937_generate,
+    .struct_size = sizeof(struct sol_rng_engine_mt19937)
+};
 
 #ifdef HAVE_RANDOMR
 struct sol_rng_engine_randomr {
@@ -233,11 +233,11 @@ engine_randomr_generate(struct sol_rng_engine *generic,
 
 struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_URANDOM =
     &(struct sol_rng_engine_impl) {
-        .init = engine_randomr_init,
-        .shutdown = NULL,
-        .generate_bytes = engine_randomr_generate,
-        .struct_size = sizeof(struct sol_rng_engine_randomr)
-    };
+    .init = engine_randomr_init,
+    .shutdown = NULL,
+    .generate_bytes = engine_randomr_generate,
+    .struct_size = sizeof(struct sol_rng_engine_randomr)
+};
 #else
 const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_RANDOMR = NULL;
 #endif
@@ -281,11 +281,11 @@ engine_urandom_generate(struct sol_rng_engine *generic,
 
 const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_URANDOM =
     &(struct sol_rng_engine_impl) {
-        .init = engine_urandom_init,
-        .shutdown = engine_urandom_shutdown,
-        .generate_bytes = engine_urandom_generate,
-        .struct_size = sizeof(struct sol_rng_engine_urandom)
-    };
+    .init = engine_urandom_init,
+    .shutdown = engine_urandom_shutdown,
+    .generate_bytes = engine_urandom_generate,
+    .struct_size = sizeof(struct sol_rng_engine_urandom)
+};
 #else
 const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_URANDOM = NULL;
 #endif
