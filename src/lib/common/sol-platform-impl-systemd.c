@@ -443,6 +443,41 @@ sol_platform_impl_set_target(const char *target)
 }
 
 int
+sol_platform_impl_get_machine_id(char id[static 33])
+{
+    return sol_util_read_file("/etc/machine-id", "%33c", id);
+}
+
+int
+sol_platform_impl_get_serial_number(char **number)
+{
+    int r;
+    char id[37];
+
+    /* root access required for this */
+    r = sol_util_read_file("/sys/class/dmi/id/product_uuid", "%37c", id);
+    SOL_INT_CHECK(r, < 0, r);
+
+    *number = strdup(id);
+    if (!*number)
+        return -errno;
+
+    return r;
+}
+
+char *
+sol_platform_impl_get_os_version(void)
+{
+    char *ret = NULL;
+    int r;
+
+    r = sol_util_get_os_version(&ret);
+    SOL_INT_CHECK(r, < 0, NULL);
+
+    return ret;
+}
+
+int
 sol_platform_impl_init(void)
 {
     /* For systemd backend we do nothing: we will only attach its mainloop to

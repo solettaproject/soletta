@@ -68,3 +68,14 @@ sol_util_timespec_get_realtime(struct timespec *t)
     return -1;
 #endif
 }
+
+int
+sol_util_uuid_gen(bool upcase,
+    bool with_hyphens,
+    char id[static 37])
+{
+    //FIXME: use whatever source there is of pseudo-random numbers on
+    //Riot
+    SOL_WRN("Not implemented");
+    return -ENOSYS;
+}

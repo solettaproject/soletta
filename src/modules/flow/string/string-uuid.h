@@ -32,31 +32,14 @@
 
 #pragma once
 
-#define SOL_LOG_DOMAIN &_sol_platform_log_domain
-#include "sol-log-internal.h"
-#include "sol-platform.h"
+#include "sol-flow.h"
 
-extern struct sol_log_domain _sol_platform_log_domain;
+int string_uuid_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
 
-int sol_platform_impl_init(void);
-void sol_platform_impl_shutdown(void);
+int string_uuid_gen(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
 
-int sol_platform_impl_get_state(void);
-
-int sol_platform_impl_add_service_monitor(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_del_service_monitor(const char *service) SOL_ATTR_NONNULL(1);
-
-int sol_platform_impl_start_service(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_stop_service(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_restart_service(const char *service) SOL_ATTR_NONNULL(1);
-
-int sol_platform_impl_set_target(const char *target) SOL_ATTR_NONNULL(1);
-
-int sol_platform_impl_get_machine_id(char id[static 33]);
-int sol_platform_impl_get_serial_number(char **number);
-char *sol_platform_impl_get_os_version(void);
-
-/* callbacks into generic platform abstraction */
-void sol_platform_inform_state_monitors(enum sol_platform_state state);
-void sol_platform_inform_service_monitors(const char *service,
-    enum sol_platform_service_state state);
+struct string_uuid_data {
+    struct sol_flow_node *node;
+    bool with_hyphens : 1;
+    bool upcase : 1;
+};

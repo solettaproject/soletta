@@ -40,42 +40,42 @@ result_kk(constant/string:value="K K")
 
 str_err(constant/string:value="Fail on matching regular expression 'no_possible_match' on string Ħěĺļō Ɯőŗŀď")
 
-str_hello_world OUT -> IN regexp_search_01(string/regexp-replace:regexp="(\\p{L}+)\\s(\\p{L}+)",to="Hello World")
-regexp_search_01 OUT -> IN[0] cmp_01(string/compare)
+str_hello_world OUT -> IN regexp_replace_01(string/regexp-replace:regexp="(\\p{L}+)\\s(\\p{L}+)",to="Hello World")
+regexp_replace_01 OUT -> IN[0] cmp_01(string/compare)
 result_hello_world OUT -> IN[1] cmp_01
 cmp_01 EQUAL -> RESULT result_01(test/result)
 
-str_substitute OUT -> IN regexp_search_02(string/regexp-replace:regexp="t",to="★")
-regexp_search_02 OUT -> IN[0] cmp_02(string/compare)
+str_substitute OUT -> IN regexp_replace_02(string/regexp-replace:regexp="t",to="★")
+regexp_replace_02 OUT -> IN[0] cmp_02(string/compare)
 result_substitute_3 OUT -> IN[1] cmp_02
 cmp_02 EQUAL -> RESULT result_02(test/result)
 
-str_substitute OUT -> IN regexp_search_03(string/regexp-replace:regexp="t",to="★",max_regexp_replace=1)
-regexp_search_03 OUT -> IN[0] cmp_03(string/compare)
+str_substitute OUT -> IN regexp_replace_03(string/regexp-replace:regexp="t",to="★",max_regexp_replace=1)
+regexp_replace_03 OUT -> IN[0] cmp_03(string/compare)
 result_substitute_1 OUT -> IN[1] cmp_03
 cmp_03 EQUAL -> RESULT result_03(test/result)
 
-str_double_hello_world OUT -> IN regexp_search_04(string/regexp-replace:regexp="(\\p{L}+)\\s(\\p{L}+)",to="K",max_regexp_replace=0)
-regexp_search_04 OUT -> IN[0] cmp_04(string/compare)
+str_double_hello_world OUT -> IN regexp_replace_04(string/regexp-replace:regexp="(\\p{L}+)\\s(\\p{L}+)",to="K",max_regexp_replace=0)
+regexp_replace_04 OUT -> IN[0] cmp_04(string/compare)
 result_kk OUT -> IN[1] cmp_04
 cmp_04 EQUAL -> RESULT result_04(test/result)
 
-str_hello_world OUT -> IN regexp_search_05(string/regexp-replace:regexp="(\\p{L}+)\\s(\\p{L}+)",to="\\1 ★")
-regexp_search_05 OUT -> IN[0] cmp_05(string/compare)
+str_hello_world OUT -> IN regexp_replace_05(string/regexp-replace:regexp="(\\p{L}+)\\s(\\p{L}+)",to="\\1 ★")
+regexp_replace_05 OUT -> IN[0] cmp_05(string/compare)
 result_hello_star OUT -> IN[1] cmp_05
 cmp_05 EQUAL -> RESULT result_05(test/result)
 
-str_hello_world OUT -> IN regexp_search_06(string/regexp-replace:regexp="(\\p{L}+)\\s(\\p{L}+)",to="\\g1 ★")
-regexp_search_06 OUT -> IN[0] cmp_06(string/compare)
+str_hello_world OUT -> IN regexp_replace_06(string/regexp-replace:regexp="(\\p{L}+)\\s(\\p{L}+)",to="\\g1 ★")
+regexp_replace_06 OUT -> IN[0] cmp_06(string/compare)
 result_hello_star OUT -> IN[1] cmp_06
 cmp_06 EQUAL -> RESULT result_06(test/result)
 
-str_hello_world OUT -> IN regexp_search_07(string/regexp-replace:regexp="no_possible_match",to="whatever")
-regexp_search_07 OUT -> IN[0] cmp_07(string/compare)
+str_hello_world OUT -> IN regexp_replace_07(string/regexp-replace:regexp="no_possible_match",to="whatever")
+regexp_replace_07 OUT -> IN[0] cmp_07(string/compare)
 str_hello_world OUT -> IN[1] cmp_07
 cmp_07 EQUAL -> RESULT result_07(test/result)
 
-str_hello_world OUT -> IN regexp_search_08(string/regexp-replace:regexp="no_possible_match",to="whatever",forward_on_no_match=false)
-regexp_search_08 ERROR -> IN _(converter/error) MESSAGE -> IN[0] cmp_08(string/compare)
+str_hello_world OUT -> IN regexp_replace_08(string/regexp-replace:regexp="no_possible_match",to="whatever",forward_on_no_match=false)
+regexp_replace_08 ERROR -> IN _(converter/error) MESSAGE -> IN[0] cmp_08(string/compare)
 str_err OUT -> IN[1] cmp_08
 cmp_08 EQUAL -> RESULT result_08(test/result)

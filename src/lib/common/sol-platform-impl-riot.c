@@ -118,3 +118,24 @@ sol_platform_impl_set_target(const char *target)
     SOL_CRI("Unsupported set target %s.", target);
     return -ENOTSUP;
 }
+
+int
+sol_platform_impl_get_machine_id(char id[static 33])
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_get_serial_number(char **number)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+char *
+sol_platform_impl_get_os_version(void)
+{
+    SOL_WRN("Not implemented");
+    return NULL;
+}

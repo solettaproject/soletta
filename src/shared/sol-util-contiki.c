@@ -54,3 +54,14 @@ sol_util_timespec_get_realtime(struct timespec *t)
     errno = ENOSYS;
     return -1;
 }
+
+int
+sol_util_uuid_gen(bool upcase,
+    bool with_hyphens,
+    char id[static 37])
+{
+    //FIXME: use whatever source there is of pseudo-random numbers on
+    //Contiki
+    SOL_WRN("Not implemented");
+    return -ENOSYS;
+}

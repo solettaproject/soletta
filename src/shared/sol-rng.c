@@ -62,7 +62,7 @@ getrandom_shim(void *buf, size_t buflen, unsigned int flags)
     int fd;
     ssize_t ret;
 
-#ifdef SYS_getrandom
+#ifdef HAVE_GETRANDOM
     /* No wrappers are commonly available for this system call yet, so
      * use syscall(2) directly. */
     long gr_ret = syscall(SYS_getrandom, buf, buflen, flags);
@@ -164,7 +164,7 @@ engine_mt19937_generate_uint(struct sol_rng_engine_mt19937 *engine)
 
 static size_t
 engine_mt19937_generate(struct sol_rng_engine *generic, unsigned char *buffer,
-	size_t length)
+    size_t length)
 {
     struct sol_rng_engine_mt19937 *engine = (struct sol_rng_engine_mt19937 *)generic;
     ssize_t total = (ssize_t)length;
@@ -183,11 +183,11 @@ engine_mt19937_generate(struct sol_rng_engine *generic, unsigned char *buffer,
 
 const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_MT19937 =
     &(struct sol_rng_engine_impl) {
-        .init = engine_mt19937_init,
-        .shutdown = NULL,
-        .generate_bytes = engine_mt19937_generate,
-        .struct_size = sizeof(struct sol_rng_engine_mt19937)
-    };
+    .init = engine_mt19937_init,
+    .shutdown = NULL,
+    .generate_bytes = engine_mt19937_generate,
+    .struct_size = sizeof(struct sol_rng_engine_mt19937)
+};
 
 #ifdef HAVE_RANDOMR
 struct sol_rng_engine_randomr {
@@ -233,11 +233,11 @@ engine_randomr_generate(struct sol_rng_engine *generic,
 
 struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_URANDOM =
     &(struct sol_rng_engine_impl) {
-        .init = engine_randomr_init,
-        .shutdown = NULL,
-        .generate_bytes = engine_randomr_generate,
-        .struct_size = sizeof(struct sol_rng_engine_randomr)
-    };
+    .init = engine_randomr_init,
+    .shutdown = NULL,
+    .generate_bytes = engine_randomr_generate,
+    .struct_size = sizeof(struct sol_rng_engine_randomr)
+};
 #else
 const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_RANDOMR = NULL;
 #endif
@@ -281,11 +281,11 @@ engine_urandom_generate(struct sol_rng_engine *generic,
 
 const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_URANDOM =
     &(struct sol_rng_engine_impl) {
-        .init = engine_urandom_init,
-        .shutdown = engine_urandom_shutdown,
-        .generate_bytes = engine_urandom_generate,
-        .struct_size = sizeof(struct sol_rng_engine_urandom)
-    };
+    .init = engine_urandom_init,
+    .shutdown = engine_urandom_shutdown,
+    .generate_bytes = engine_urandom_generate,
+    .struct_size = sizeof(struct sol_rng_engine_urandom)
+};
 #else
 const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_URANDOM = NULL;
 #endif
@@ -295,12 +295,13 @@ const struct sol_rng_engine_impl *SOL_RNG_ENGINE_IMPL_DEFAULT = NULL;
 struct sol_rng_engine *
 sol_rng_engine_new(const struct sol_rng_engine_impl *impl, uint64_t seed)
 {
-    struct sol_rng_engine *engine = malloc(impl->struct_size);
-
-    SOL_NULL_CHECK(engine, NULL);
+    struct sol_rng_engine *engine;
 
     if (!impl)
         impl = SOL_RNG_ENGINE_IMPL_MT19937;
+
+    engine = malloc(impl->struct_size);
+    SOL_NULL_CHECK(engine, NULL);
 
     engine->impl = impl;
 

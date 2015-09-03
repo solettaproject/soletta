@@ -143,6 +143,7 @@ static int
 udp_bind_cmp_cb(const void *a, const void *b)
 {
     const struct sol_socket *s1 = a, *s2 = b;
+
     return s1->entry.demux_ctx < s2->entry.demux_ctx ? -1 : 1;
 }
 
