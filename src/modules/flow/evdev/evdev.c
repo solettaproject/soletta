@@ -40,7 +40,7 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-#include "evdev-gen.h"
+#include "sol-flow/evdev.h"
 #include "sol-buffer.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"

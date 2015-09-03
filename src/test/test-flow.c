@@ -36,11 +36,11 @@
 #include "sol-util.h"
 #include "sol-vector.h"
 
-#include "console-gen.h"
+#include "sol-flow/console.h"
 #ifdef USE_PWM
-#include "pwm-gen.h"
+#include "sol-flow/pwm.h"
 #endif
-#include "timer-gen.h"
+#include "sol-flow/timer.h"
 
 #include "test.h"
 

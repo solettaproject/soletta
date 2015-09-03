@@ -40,7 +40,7 @@
 #include "sol-util.h"
 
 #include "int-validator.h"
-#include "test-gen.h"
+#include "sol-flow/test.h"
 
 static int
 _populate_values(void *data)

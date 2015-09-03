@@ -41,7 +41,7 @@
 
 #include "test-module.h"
 #include "int-generator.h"
-#include "test-gen.h"
+#include "sol-flow/test.h"
 
 static bool
 timer_tick(void *data)

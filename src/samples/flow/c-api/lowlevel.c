@@ -45,7 +45,7 @@
  * Since we're at the low-level API we can't use the foreach
  * functions, as they rely on node type descriptions.
  */
-#include "console-gen.h"
+#include "sol-flow/console.h"
 #include "sol-mainloop.h"
 
 /**

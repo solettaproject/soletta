@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "platform-gen.h"
+#include "sol-flow/platform.h"
 #include "sol-platform.h"
 #include "sol-flow-internal.h"
 

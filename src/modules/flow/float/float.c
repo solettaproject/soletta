@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "float-gen.h"
+#include "sol-flow/float.h"
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
 

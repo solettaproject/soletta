@@ -37,7 +37,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "servo-motor-gen.h"
+#include "sol-flow/servo-motor.h"
 
 struct servo_motor_data {
     struct sol_irange duty_cycle_range;

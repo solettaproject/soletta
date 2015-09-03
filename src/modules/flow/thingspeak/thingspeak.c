@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "thingspeak-gen.h"
+#include "sol-flow/thingspeak.h"
 #include "sol-flow-internal.h"
 
 #include <errno.h>

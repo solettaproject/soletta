@@ -39,7 +39,7 @@
 #include "sol-util.h"
 
 #include "blob-validator.h"
-#include "test-gen.h"
+#include "sol-flow/test.h"
 
 int
 blob_validator_open(

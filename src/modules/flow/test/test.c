@@ -38,7 +38,7 @@
 
 #include "test-module.h"
 
-#include "test-gen.h"
+#include "sol-flow/test.h"
 
 SOL_LOG_INTERNAL_DECLARE(_test_log_domain, "flow-test");
 

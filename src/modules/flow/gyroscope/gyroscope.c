@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "gyroscope-gen.h"
+#include "sol-flow/gyroscope.h"
 
 #include <errno.h>
 

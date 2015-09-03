@@ -36,7 +36,7 @@
 #include "sol-log-internal.h"
 extern struct sol_log_domain _process_log_domain;
 
-#include "process-gen.h"
+#include "sol-flow/process.h"
 #include "sol-mainloop.h"
 #include "sol-flow-internal.h"
 

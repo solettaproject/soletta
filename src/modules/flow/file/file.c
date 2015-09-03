@@ -37,7 +37,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-#include "file-gen.h"
+#include "sol-flow/file.h"
 
 #include "sol-file-reader.h"
 #include "sol-flow-internal.h"

@@ -38,7 +38,7 @@
 
 #include <libudev.h>
 
-#include "udev-gen.h"
+#include "sol-flow/udev.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"

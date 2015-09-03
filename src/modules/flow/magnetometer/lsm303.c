@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "magnetometer-gen.h"
+#include "sol-flow/magnetometer.h"
 #include "sol-flow-internal.h"
 
 #include <sol-i2c.h>
