@@ -37,14 +37,14 @@
 #include <stdio.h>
 
 #define SOL_LOG_DOMAIN &_sol_oic_server_log_domain
+#include "sol-coap.h"
+#include "sol-json.h"
 #include "sol-log-internal.h"
-#include "sol-vector.h"
+#include "sol-oic-server.h"
+#include "sol-platform.h"
 #include "sol-str-slice.h"
 #include "sol-util.h"
-#include "sol-oic-server.h"
-#include "sol-json.h"
-
-#include "sol-coap.h"
+#include "sol-vector.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
@@ -349,11 +349,12 @@ static const struct sol_coap_resource rts_coap_resorce = {
 static struct sol_oic_server_information *
 init_static_info(void)
 {
+    static char machine_id[33];
     struct sol_oic_server_information information = {
         .device = {
             .name = OIC_DEVICE_NAME,
             .resource_type = OIC_DEVICE_RESOURCE_TYPE,
-            .id = OIC_DEVICE_ID
+            .id = machine_id
         },
         .manufacturer = {
             .name = OIC_MANUFACTURER_NAME,
@@ -373,9 +374,16 @@ init_static_info(void)
         .location = OIC_LOCATION,
         .epi = OIC_EPI
     };
+    struct sol_oic_server_information *info;
+    int r;
 
-    struct sol_oic_server_information *info = sol_util_memdup(&information, sizeof(*info));
+    r = sol_platform_get_machine_id(machine_id);
+    if (r < 0) {
+        SOL_WRN("Could not get machine ID to initialize OIC server");
+        return NULL;
+    }
 
+    info = sol_util_memdup(&information, sizeof(*info));
     SOL_NULL_CHECK(info, NULL);
 
     return info;
