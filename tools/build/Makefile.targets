@@ -8,6 +8,12 @@ check-fbp: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out)
 
 PHONY += check-fbp
 
+check-fbp-bin: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out) $(all-tests-fbp-bin-out)
+	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --compiled --compiled-dir $(abspath $(build_stagedir)test-fbp/) \
+		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND
+
+PHONY += check-fbp-bin
+
 ifeq (y,$(HAVE_VALGRIND))
 check-valgrind: $(SOL_LIB_OUTPUT) $(tests-out)
 	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)" \
@@ -15,6 +21,10 @@ check-valgrind: $(SOL_LIB_OUTPUT) $(tests-out)
 
 check-fbp-valgrind: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --runner="$(abspath $(SOL_FBP_RUNNER_BIN))" --valgrind="$(VALGRIND)" --valgrind-supp="$(abspath $(TEST_VALGRIND_SUPP))"
+
+check-fbp-bin-valgrind: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out) $(all-tests-fbp-bin-out)
+	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --compiled --compiled-dir $(abspath $(build_stagedir)test-fbp/) \
+		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND  --valgrind="$(VALGRIND)" --valgrind-supp="$(abspath $(TEST_VALGRIND_SUPP))"
 else
 check-valgrind:
 	$(Q)echo "No such valgrind installation: $(VALGRIND), either make sure your valgrind"
@@ -22,9 +32,10 @@ check-valgrind:
 	$(Q)echo "If you've just installed it, run: make reconf"
 
 check-fbp-valgrind: check-valgrind
+check-fbp-bin-valgrind: check-valgrind
 endif # HAVE_VALGRIND
 
-PHONY += check-valgrind check-fbp-valgrind
+PHONY += check-valgrind check-fbp-valgrind check-fbp-bin-valgrind
 
 ifneq (,$(LCOV))
 run-coverage: check check-fbp
@@ -177,6 +188,8 @@ soletta_help:
 	$(Q)echo  "  check-valgrind     - Runs test suite - with valgrind"
 	$(Q)echo  "  check-fbp          - Runs fbp (Flow Based Programming) tests"
 	$(Q)echo  "  check-fbp-valgrind - Runs fbp (Flow Based Programming) tests - with valgrind"
+	$(Q)echo  "  check-fbp-bin      - Generates + compiles + runs fbp (Flow Based Programming) tests"
+	$(Q)echo  "  check-fbp-bin-valgrind - Generates + compiles + runs fbp (Flow Based Programming) tests - with valgrind"
 	$(Q)echo  "  coverage           - Builds soletta with gcov and generates the coverage report"
 	$(Q)echo  "  samples            - Builds the samples directory"
 	$(Q)echo  "  doxygen            - Generates doxygen documentation"
