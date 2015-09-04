@@ -74,20 +74,25 @@ efivars_write(const char *name, struct sol_buffer *buffer)
         SOL_WRN("Could not create path for efivars persistence file [%s]", path);
         return -EINVAL;
     }
-    if (!check_realpath(path)) {
-        SOL_WRN("Invalid name for efivars persistence packet [%s]", name);
-        return -EINVAL;
-    }
 
     file = fopen(path, "w+e");
     if (!file) {
         SOL_WRN("Could not open persistence file [%s]", path);
         return -errno;
     }
+    if (!check_realpath(path)) {
+        /* At this point, a file on an invalid location may have been created.
+         * Should we care about it? Is there a 'realpath()' that doesn't need
+         * the file to exist? Or a string path santiser? */
+        SOL_WRN("Invalid name for efivars persistence packet [%s]", name);
+        r = -EINVAL;
+        goto end;
+    }
 
     fwrite(&EFIVARS_DEFAULT_ATTR, sizeof(EFIVARS_DEFAULT_ATTR), 1, file);
     if (ferror(file)) {
         SOL_WRN("Coud not write peristence file [%s] attributes", path);
+        r = -EIO;
         goto end;
     }
 
@@ -99,7 +104,7 @@ end:
         return -errno;
     }
 
-    return 0;
+    return r;
 }
 
 int
