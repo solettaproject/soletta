@@ -217,6 +217,54 @@ test_insert_slice(void)
     sol_buffer_fini(&buf);
 }
 
+DEFINE_TEST(test_set_slice_at);
+
+static void
+test_set_slice_at(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    int err;
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("World");
+    err = sol_buffer_set_slice_at(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("World"));
+    ASSERT_STR_EQ(buf.data, "World");
+
+    slice = sol_str_slice_from_str("Hello");
+    err = sol_buffer_set_slice_at(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("Hello"));
+    ASSERT_STR_EQ(buf.data, "Hello");
+
+    slice = sol_str_slice_from_str("World");
+    err = sol_buffer_set_slice_at(&buf, strlen("Hello"), slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("HelloWorld"));
+    ASSERT_STR_EQ(buf.data, "HelloWorld");
+
+    slice = sol_str_slice_from_str(" -*- ");
+    err = sol_buffer_set_slice_at(&buf, 2, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("He -*- rld"));
+    ASSERT_STR_EQ(buf.data, "He -*- rld");
+
+    //overlapping
+    slice = SOL_STR_SLICE_STR((char *)buf.data + 3, 3);
+    err = sol_buffer_set_slice_at(&buf, 7, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("He -*- -*-"));
+    ASSERT_STR_EQ(buf.data, "He -*- -*-");
+
+    slice = sol_str_slice_from_str("whatever");
+    err = sol_buffer_set_slice_at(&buf, 222, slice);
+    ASSERT_INT_EQ(err, -EINVAL);
+
+    sol_buffer_fini(&buf);
+}
+
 DEFINE_TEST(test_append_printf);
 
 static void
