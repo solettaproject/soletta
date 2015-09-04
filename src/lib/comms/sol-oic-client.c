@@ -47,12 +47,14 @@
 #include "sol-util.h"
 
 #include "sol-oic-client.h"
+#include "sol-oic-server.h"
 
 #define POLL_OBSERVE_TIMEOUT_MS 10000
 
-#define IOTIVITY_CON_REQ_MID 0xd42
+#define IOTIVITY_CON_REQ_MID 0x7d42
 #define IOTIVITY_CON_REQ_OBS_MID 0x7d44
 #define IOTIVITY_NONCON_REQ_MID 0x7d40
+#define SOLETTA_SERVER_INFO_MID 0xda51 /* devapp server info */
 
 #define OIC_RESOURCE_CHECK_API(ptr, ...) \
     do {                                        \
@@ -78,6 +80,12 @@
 struct find_resource_ctx {
     struct sol_oic_client *client;
     void (*cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data);
+    void *data;
+};
+
+struct server_info_ctx {
+    struct sol_oic_client *client;
+    void (*cb)(struct sol_oic_client *cli, const struct sol_oic_server_information *info, void *data);
     void *data;
 };
 
@@ -229,6 +237,144 @@ sol_oic_resource_unref(struct sol_oic_resource *r)
 }
 
 static bool
+_parse_server_info_payload(struct sol_oic_server_information *info,
+    uint8_t *payload, uint16_t payload_len)
+{
+    struct sol_json_scanner scanner;
+    struct sol_json_token token, key, value;
+    enum sol_json_loop_reason reason;
+
+    sol_json_scanner_init(&scanner, payload, payload_len);
+    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
+        if (sol_json_token_get_type(&token) != SOL_JSON_TYPE_STRING)
+            continue;
+
+        sol_json_token_remove_quotes(&value);
+
+        if (sol_json_token_str_eq(&key, "dt", 2)) {
+            info->device.name = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "drt", 3)) {
+            info->device.resource_type = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "id", 2)) {
+            info->device.id = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "mnmn", 4)) {
+            info->manufacturer.name = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "mnmo", 4)) {
+            info->manufacturer.model = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "mndt", 4)) {
+            info->manufacturer.date = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "mnpv", 4)) {
+            info->platform.version = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "mnfv", 4)) {
+            info->firmware.version = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "icv", 3)) {
+            info->interface.version = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "mnsl", 4)) {
+            info->support_link = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "loc", 3)) {
+            info->location = sol_json_token_to_slice(&value);
+        } else if (sol_json_token_str_eq(&key, "epi", 3)) {
+            info->epi = sol_json_token_to_slice(&value);
+        } else {
+            SOL_WRN("Unknown key in JSON payload: %.*s",
+                (int)sol_json_token_get_size(&key), key.start);
+            continue;
+        }
+    }
+
+    return reason == SOL_JSON_LOOP_REASON_OK;
+}
+
+static int
+_server_info_reply_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+    void *data)
+{
+    struct server_info_ctx *ctx = data;
+    uint8_t *payload;
+    uint16_t payload_len;
+    struct sol_oic_server_information info = {
+        .api_version = SOL_OIC_SERVER_INFORMATION_API_VERSION
+    };
+    int error = 0;
+
+    if (!ctx->cb) {
+        SOL_WRN("No user callback provided");
+        error = -ENOENT;
+        goto free_ctx;
+    }
+
+    if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
+        SOL_WRN("Could not get pkt payload");
+        error = -ENOMEM;
+        goto free_ctx;
+    }
+
+    if (_parse_server_info_payload(&info, payload, payload_len)) {
+        ctx->cb(ctx->client, &info, ctx->data);
+    } else {
+        SOL_WRN("Could not parse payload");
+        error = -EINVAL;
+    }
+
+free_ctx:
+    free(ctx);
+    return error;
+}
+
+SOL_API bool
+sol_oic_client_get_server_info(struct sol_oic_client *client,
+    struct sol_oic_resource *resource,
+    void (*info_received_cb)(struct sol_oic_client *cli,
+    const struct sol_oic_server_information *info, void *data),
+    void *data)
+{
+    static const char d_uri[] = "/d";
+    struct sol_coap_packet *req;
+    struct server_info_ctx *ctx;
+    int r;
+
+    SOL_LOG_INTERNAL_INIT_ONCE;
+
+    SOL_NULL_CHECK(client, false);
+    OIC_CLIENT_CHECK_API(client, false);
+    OIC_RESOURCE_CHECK_API(resource, false);
+
+    ctx = sol_util_memdup(&(struct server_info_ctx) {
+            .client = client,
+            .cb = info_received_cb,
+            .data = data
+        }, sizeof(*ctx));
+    SOL_NULL_CHECK(ctx, false);
+
+    req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
+    if (!req) {
+        SOL_WRN("Could not create CoAP packet");
+        goto out_no_pkt;
+    }
+
+    sol_coap_header_set_id(req, SOLETTA_SERVER_INFO_MID);
+
+    if (sol_coap_packet_add_uri_path_option(req, d_uri) < 0) {
+        SOL_WRN("Invalid URI: %s", d_uri);
+        goto out;
+    }
+
+    sol_coap_add_option(req, SOL_COAP_OPTION_ACCEPT, json_type, sizeof(json_type) - 1);
+
+    r = sol_coap_send_packet_with_reply(client->server, req, &resource->addr, _server_info_reply_cb, ctx);
+    if (!r)
+        return true;
+
+    goto out_no_pkt;
+
+out:
+    sol_coap_packet_unref(req);
+out_no_pkt:
+    free(ctx);
+    return false;
+}
+
+static bool
 _has_observable_option(struct sol_coap_packet *pkt)
 {
     const uint8_t *ptr;
@@ -285,7 +431,7 @@ _find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_li
         ctx->cb(ctx->client, res, ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
-        error = -1;
+        error = -EINVAL;
     }
 
     sol_oic_resource_unref(res);
@@ -377,7 +523,7 @@ _call_request_context_for_response_array(struct resource_request_ctx *ctx,
             if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_STRING && sol_json_token_str_eq(&key, "href", 4)) {
                 href = SOL_STR_SLICE_STR(value.start + 1, value.end - value.start - 2);
             } else if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_OBJECT_START && sol_json_token_str_eq(&key, "rep", 3)) {
-                rep = SOL_STR_SLICE_STR(value.start, value.end - value.start);
+                rep = sol_json_token_to_slice(&value);
             }
         }
 

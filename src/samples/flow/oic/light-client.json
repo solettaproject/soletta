@@ -4,9 +4,9 @@
   {
    "name": "Light",
    "options": {
-    "hwaddr": "08:00:27:ab:45:32"
+    "device_id": "580a3d6a9d194a23b90a24573558d2f4"
    },
-   "type": "oic/client-core-brightlight"
+   "type": "oic/client-brightlight"
   }
  ]
 }
