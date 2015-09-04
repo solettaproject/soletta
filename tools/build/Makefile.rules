@@ -132,13 +132,16 @@ parse-test = \
 	$(eval $(1)-deps      := $(subst .mod,,$($(3)-$(1)-y-deps))) \
 	$(eval tests-out      += $(test-$(1)-out)) \
 
+gen-fbp-common = \
+	$(eval $(1)-src     := $(subst $(top_srcdir)src/,$(build_stagedir),$(subst .fbp,-gen.c,$(1)))) \
+	$(eval all-fbp-gens += $(1)) \
+
 gen-fbp-artifact = \
 	$(foreach fbp,$(filter %.fbp,$(2)), \
-		$(eval $(fbp)-src       := $(subst $(top_srcdir)src/,$(build_stagedir),$(subst .fbp,-gen.c,$(fbp)))) \
+		$(call gen-fbp-common,$(fbp)) \
 		$(eval $(fbp)-conffile  := $(4)) \
 		$(eval $(3)             += $($(fbp)-src)) \
 		$(eval sample-$(1)-gens += $(fbp)) \
-		$(eval all-fbp-gens     += $(fbp)) \
 	) \
 
 parse-sample = \
@@ -215,12 +218,22 @@ extra-bins = \
 		$(eval all-dest-bin += $($(bin)-dest)) \
 	) \
 
+parse-tests-fbp-bin = \
+	$(foreach fbp,$(tests-fbp-bin), \
+		$(eval curr := $(subst $(abspath $(top_srcdir))/,$(top_srcdir),$(fbp))) \
+		$(call gen-fbp-common,$(curr)) \
+		$(eval $(curr)-out := $(subst -gen.c,,$($(curr)-src))) \
+		$(eval all-tests-fbp-bin += $(curr)) \
+		$(eval all-tests-fbp-bin-out += $($(curr)-out)) \
+	) \
+
 ifneq ($(M),)
 SUBDIRS += $(M)/
 endif # $(M)
 
 $(eval $(call inc-subdirs))
 $(eval $(call extra-bins))
+$(eval $(call parse-tests-fbp-bin))
 
 export builtin-flows
 export builtin-linux-micro
@@ -283,6 +296,14 @@ $(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(sample-$(1)-srcs) $(call find-deps,$(1))
 	$(sample-$(1)-ldflags) $(sort $(builtin-ldflags))
 endef
 $(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
+
+define make-test-fbp-bin
+$($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out)
+	$(Q)echo "     " CC"   "$$@
+	$(Q)$(MKDIR) -p $(dir $($(1)-out))
+	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(modules-out) $($(1)-src) -o $($(1)-out) $(SAMPLE_LDFLAGS)
+endef
+$(foreach test-fbp-bin,$(all-tests-fbp-bin),$(eval $(call make-test-fbp-bin,$(test-fbp-bin))))
 
 ifeq (y,$(STATIC_LIBRARY))
 use-builtin-ldflags = $(sort $(builtin-ldflags))
