@@ -34,3 +34,4 @@ _(constant/int:value=1) OUT -> INTERVAL _(timer) OUT -> QUIT _(app/quit)
 ## TEST-OUTPUT
 # -=-=- soletta -=-=-4 (integer range)
 
+## TEST-SKIP-COMPILE Generator will not know how to resolve TestConsole

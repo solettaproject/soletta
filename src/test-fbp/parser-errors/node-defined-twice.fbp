@@ -35,3 +35,5 @@ foo(boolean/not)
 
 ## TEST-OUTPUT
 # node-defined-twice.fbp:32:1 Node 'foo' already declared with type 'boolean/and' at 31:1
+## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
+
