@@ -28,6 +28,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+## TEST-SKIP-COMPILE Due to path resolution to test-blob-data.txt we're disabling this test until we get it right
+
 reader(file/reader)
 blob_validator(test/blob-validator:expected="test validator data")
 file(constant/string:value="test-blob-data.txt") OUT -> PATH reader

@@ -28,6 +28,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+## TEST-SKIP-COMPILE Generator failing to properly generate code
+
 RedFloat(constant/float:value=20|0|100|1)
 GreenFloat(constant/float:value=40|0|100|1)
 BlueFloat(constant/float:value=70|0|100|1)

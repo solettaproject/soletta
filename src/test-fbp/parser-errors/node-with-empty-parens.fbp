@@ -34,3 +34,5 @@ foo()
 
 ## TEST-OUTPUT
 # node-with-empty-parens.fbp:31:1 Node 'foo' doesn't have a type, Node type must be defined. e.g. 'node(nodetype)'
+## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
+
