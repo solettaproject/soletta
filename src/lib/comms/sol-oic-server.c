@@ -48,26 +48,6 @@
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
-struct sol_oic_server_information {
-    /* All fields are required by the spec. */
-    struct {
-        const char *name;
-        const char *resource_type;
-        const char *id;
-    } device;
-    struct {
-        const char *name;
-        const char *model;
-        const char *date;
-    } manufacturer;
-    struct {
-        const char *version;
-    } interface, platform, firmware;
-    const char *support_link;
-    const char *location;
-    const char *epi;
-};
-
 struct sol_oic_server {
     struct sol_coap_server *server;
     struct sol_vector device_definitions;
@@ -154,7 +134,7 @@ _sol_oic_server_d(const struct sol_coap_resource *resource,
     if (sol_coap_packet_get_payload(response, &payload, &payload_size) < 0)
         goto no_memory;
 
-    if (payload_len + 1 < payload_size)
+    if (payload_len + 1 > payload_size)
         goto no_memory;
     *payload++ = '{';
     payload_len++;
@@ -163,7 +143,7 @@ _sol_oic_server_d(const struct sol_coap_resource *resource,
     do { \
         uint16_t r; \
         r = _append_json_key_value(payload, payload_size, payload_len, k, \
-            sol_str_slice_from_str(oic_server.information->v)); \
+            oic_server.information->v); \
         if (!r) goto no_memory; \
         payload += (r - payload_len); \
         payload_len = r; \
@@ -185,7 +165,10 @@ _sol_oic_server_d(const struct sol_coap_resource *resource,
 #undef APPEND_KEY_VALUE
 
     /* Do not advance payload/payload_len: substitute last "," to "}" */
-    *payload = '}';
+    *(payload - 1) = '}'; /* Finalize info object */
+
+    sol_coap_header_set_type(response, SOL_COAP_TYPE_ACK);
+    sol_coap_header_set_code(response, SOL_COAP_RSPCODE_CONTENT);
 
     sol_coap_packet_set_payload_used(response, payload_len);
     return sol_coap_send_packet(oic_server.server, response, cliaddr);
@@ -351,27 +334,27 @@ init_static_info(void)
     static char machine_id[33];
     struct sol_oic_server_information information = {
         .device = {
-            .name = OIC_DEVICE_NAME,
-            .resource_type = OIC_DEVICE_RESOURCE_TYPE,
-            .id = machine_id
+            .name = SOL_STR_SLICE_LITERAL(OIC_DEVICE_NAME),
+            .resource_type = SOL_STR_SLICE_LITERAL(OIC_DEVICE_RESOURCE_TYPE),
+            .id = SOL_STR_SLICE_STR(machine_id, (sizeof(machine_id) - 1))
         },
         .manufacturer = {
-            .name = OIC_MANUFACTURER_NAME,
-            .model = OIC_MANUFACTORER_MODEL,
-            .date = OIC_MANUFACTORER_DATE
+            .name = SOL_STR_SLICE_LITERAL(OIC_MANUFACTURER_NAME),
+            .model = SOL_STR_SLICE_LITERAL(OIC_MANUFACTORER_MODEL),
+            .date = SOL_STR_SLICE_LITERAL(OIC_MANUFACTORER_DATE)
         },
         .interface = {
-            .version = OIC_INTERFACE_VERSION
+            .version = SOL_STR_SLICE_LITERAL(OIC_INTERFACE_VERSION)
         },
         .platform = {
-            .version = OIC_PLATFORM_VERSION
+            .version = SOL_STR_SLICE_LITERAL(OIC_PLATFORM_VERSION)
         },
         .firmware = {
-            .version = OIC_FIRMWARE_VERSION
+            .version = SOL_STR_SLICE_LITERAL(OIC_FIRMWARE_VERSION)
         },
-        .support_link = OIC_SUPPORT_LINK,
-        .location = OIC_LOCATION,
-        .epi = OIC_EPI
+        .support_link = SOL_STR_SLICE_LITERAL(OIC_SUPPORT_LINK),
+        .location = SOL_STR_SLICE_LITERAL(OIC_LOCATION),
+        .epi = SOL_STR_SLICE_LITERAL(OIC_EPI)
     };
     struct sol_oic_server_information *info;
     int r;

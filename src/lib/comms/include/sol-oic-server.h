@@ -86,10 +86,35 @@ extern "C" {
 
 struct sol_oic_device_definition;
 
+struct sol_oic_server_information {
+#define SOL_OIC_SERVER_INFORMATION_API_VERSION (1)
+    uint16_t api_version;
+    int : 0; /* save possible hole for a future field */
+
+    /* All fields are required by the spec. */
+    struct {
+        struct sol_str_slice name;
+        struct sol_str_slice resource_type;
+        struct sol_str_slice id;
+    } device;
+    struct {
+        struct sol_str_slice name;
+        struct sol_str_slice model;
+        struct sol_str_slice date;
+    } manufacturer;
+    struct {
+        struct sol_str_slice version;
+    } interface, platform, firmware;
+    struct sol_str_slice support_link;
+    struct sol_str_slice location;
+    struct sol_str_slice epi;
+};
+
 struct sol_oic_resource_type {
 #define SOL_OIC_RESOURCE_TYPE_API_VERSION (1)
     uint16_t api_version;
     int : 0; /* save possible hole for a future field */
+
     struct sol_str_slice endpoint;
     struct sol_str_slice resource_type;
     struct sol_str_slice iface;

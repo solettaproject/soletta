@@ -95,6 +95,13 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
     void *data),
     void *data);
 
+struct sol_oic_server_information;
+bool sol_oic_client_get_server_info(struct sol_oic_client *client,
+    struct sol_oic_resource *resource,
+    void (*info_received_cb)(struct sol_oic_client *cli,
+    const struct sol_oic_server_information *info, void *data),
+    void *data);
+
 bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     sol_coap_method_t method, uint8_t *payload, size_t payload_len,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,

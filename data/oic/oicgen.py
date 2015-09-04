@@ -513,7 +513,7 @@ def object_open_fn_client_c(state_struct_name, resource_type, name, props):
     struct %(struct_name)s *resource = data;
     int r;
 
-    r = client_resource_init(node, &resource->base, "%(resource_type)s", node_opts->hwaddr, &funcs);
+    r = client_resource_init(node, &resource->base, "%(resource_type)s", node_opts->device_id, &funcs);
     if (!r) {
         %(field_init)s
     }
@@ -822,8 +822,8 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
                 'members': [
                     {
                         'data_type': 'string',
-                        'description': 'Hardware address of the device (MAC address, etc)',
-                        'name': 'hwaddr'
+                        'description': 'Unique device ID (UUID, MAC address, etc)',
+                        'name': 'device_id'
                     }
                 ]
             }
@@ -942,7 +942,7 @@ struct client_resource {
     struct sol_flow_node *node;
     const struct client_resource_funcs *funcs;
 
-    struct sol_oic_resource *resource;
+    struct sol_oic_resource *resource, *tentative_resource;
 
     struct sol_timeout *find_timeout;
     struct sol_timeout *update_schedule_timeout;
@@ -950,7 +950,7 @@ struct client_resource {
     struct sol_oic_client client;
 
     const char *rt;
-    char *hwaddr;
+    char *device_id;
 };
 
 struct server_resource {
@@ -991,145 +991,6 @@ initialize_multicast_addresses_once(void)
 
     multicast_addresses_initialized = true;
     return true;
-}
-
-/* FIXME: These should go into sol-network so it's OS-agnostic. */
-static bool
-find_device_by_hwaddr_arp_cache(const char *hwaddr, struct sol_network_link_addr *addr)
-{
-    static const size_t hwaddr_len = sizeof("00:00:00:00:00:00") - 1;
-    FILE *arpcache;
-    char buffer[128];
-    bool success = false;
-
-    arpcache = fopen("/proc/net/arp", "re");
-    if (!arpcache) {
-        SOL_WRN("Could not open arp cache file");
-        return false;
-    }
-
-    /* IP address       HW type     Flags       HW address            Mask     Device */
-    if (!fgets(buffer, sizeof(buffer), arpcache)) {
-        SOL_WRN("Could not discard header line from arp cache file");
-        goto out;
-    }
-
-    /* 0000000000011111111122222222223333333333444444444455555555556666666666777777 */
-    /* 0123456789012345678901234567890123456789012345678901234567890123456789012345 */
-    /* xxx.xxx.xxx.xxx  0x0         0x0         00:00:00:00:00:00     *        eth0 */
-    while (fgets(buffer, sizeof(buffer), arpcache)) {
-        buffer[58] = '\\0';
-        if (strncmp(&buffer[41], hwaddr, hwaddr_len))
-            continue;
-
-        buffer[15] = '\\0';
-        if (!sol_network_addr_from_str(addr, buffer)) {
-            SOL_WRN("Could not parse IP address '%%s'", buffer);
-            goto out;
-        }
-
-        SOL_INF("Found device %%s with IP address %%s", hwaddr, buffer);
-        success = true;
-        break;
-    }
-
-out:
-    fclose(arpcache);
-    return success;
-}
-
-static bool
-link_has_address(const struct sol_network_link *link, const struct sol_network_link_addr *addr)
-{
-    struct sol_network_link_addr *iter;
-    uint16_t idx;
-
-    SOL_VECTOR_FOREACH_IDX(&link->addrs, iter, idx) {
-        if (sol_network_link_addr_eq(addr, iter))
-            return true;
-    }
-
-    return false;
-}
-
-static bool
-has_link_with_address(const struct sol_network_link_addr *addr)
-{
-    const struct sol_vector *links = sol_network_get_available_links();
-    struct sol_network_link *link;
-    uint16_t idx;
-
-    if (!links)
-        return false;
-
-    SOL_VECTOR_FOREACH_IDX(links, link, idx) {
-        if (link_has_address(link, addr))
-            return true;
-    }
-
-    return false;
-}
-
-static bool
-find_device_by_hwaddr_ipv4(const char *hwaddr, struct sol_network_link_addr *addr)
-{
-    if (has_link_with_address(addr))
-        return true;
-    return find_device_by_hwaddr_arp_cache(hwaddr, addr);
-}
-
-static bool
-find_device_by_hwaddr_ipv6(const char *hwaddr, struct sol_network_link_addr *addr)
-{
-    char addrstr[SOL_INET_ADDR_STRLEN] = {0};
-
-    if (!sol_network_addr_to_str(addr, addrstr, sizeof(addrstr))) {
-        SOL_WRN("Could not convert network address to string");
-        return false;
-    }
-
-    if (!strncmp(addrstr, "::ffff:", sizeof("::ffff:") - 1)) {
-        struct sol_network_link_addr tentative_addr = { .family = AF_INET };
-        const char *ipv4addr = addrstr + sizeof("::ffff:") - 1;
-
-        if (!sol_network_addr_from_str(&tentative_addr, ipv4addr))
-            return false;
-        return find_device_by_hwaddr_ipv4(hwaddr, &tentative_addr);
-    }
-
-    /* Link local format
-     *             MAC address: xx:xx:xx:xx:xx:xx
-     * IPv6 Link local address: fe80::xyxx:xxff:fexx:xxxx
-     *                          0000000000111111111122222
-     *                          0123456789012345678901234
-     */
-    if (strncmp(addrstr, "fe80::", sizeof("fe80::") - 1))
-        goto not_link_local;
-    if (strncmp(&addrstr[13], "ff:fe", sizeof("ff:fe") - 1))
-        goto not_link_local;
-
-    /* FIXME: There's one additional check for the last byte that's missing here, but
-     * this is temporary until proper NDP is impemented. */
-    return (hwaddr[16] == addrstr[23] && hwaddr[15] == addrstr[22])
-        && (hwaddr[13] == addrstr[21] && hwaddr[12] == addrstr[20])
-        && (hwaddr[10] == addrstr[18] && hwaddr[9] == addrstr[17])
-        && (hwaddr[7] == addrstr[11] && hwaddr[6] == addrstr[10])
-        && (hwaddr[4] == addrstr[8] && hwaddr[3] == addrstr[7]);
-
-not_link_local:
-    SOL_WRN("NDP not implemented and client has an IPv6 address: %%s. Ignoring.", addrstr);
-    return false;
-}
-
-static bool
-find_device_by_hwaddr(const char *hwaddr, struct sol_network_link_addr *addr)
-{
-    if (addr->family == AF_INET)
-        return find_device_by_hwaddr_ipv4(hwaddr, addr);
-    if (addr->family == AF_INET6)
-        return find_device_by_hwaddr_ipv6(hwaddr, addr);
-    SOL_WRN("Unknown address family: %%d", addr->family);
-    return false;
 }
 
 static bool
@@ -1184,6 +1045,51 @@ state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr
 }
 
 static void
+server_info_received(struct sol_oic_client *oic_cli, const struct sol_oic_server_information *info,
+    void *data)
+{
+    struct client_resource *resource = data;
+    int r;
+
+    /* Some OIC device sent this node a discovery response packet but node's already set up. */
+    if (resource->resource)
+        return;
+
+    if (info->api_version != SOL_OIC_SERVER_INFORMATION_API_VERSION) {
+        SOL_WRN("OIC server information API version mismatch");
+        goto out;
+    }
+
+    if (!info->device.id.len) {
+        SOL_WRN("No device ID present in server info");
+        goto out;
+    }
+
+    if (!sol_str_slice_str_eq(info->device.id, resource->device_id)) {
+        /* Not the droid we're looking for. */
+        return;
+    }
+
+    SOL_INF("Found resource matching device_id %%s", resource->device_id);
+    resource->resource = resource->tentative_resource;
+    resource->tentative_resource = NULL;
+
+    if (resource->find_timeout) {
+        sol_timeout_del(resource->find_timeout);
+        resource->find_timeout = NULL;
+    }
+
+    r = sol_oic_client_resource_set_observable(oic_cli, resource->resource, state_changed, resource, true);
+    if (!r)
+        SOL_WRN("Could not observe resource as requested, will try again");
+
+out:
+    r = sol_flow_send_boolean_packet(resource->node, resource->funcs->found_port, !!resource->resource);
+    if (r < 0)
+        SOL_WRN("Could not send flow packet, will try again");
+}
+
+static void
 found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, void *data)
 {
     struct client_resource *resource = data;
@@ -1193,30 +1099,20 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
     if (resource->resource)
         goto out;
 
-    /* Not the droid we're looking for. */
-    if (!find_device_by_hwaddr(resource->hwaddr, &oic_res->addr))
-        goto out;
-
     /* FIXME: Should this check move to sol-oic-client? Does it actually make sense? */
     if (resource->rt && !client_resource_implements_type(oic_res, resource->rt)) {
         SOL_WRN("Received resource that does not implement rt=%%s, ignoring", resource->rt);
         goto out;
     }
 
-    SOL_INF("Found resource matching hwaddr %%s", resource->hwaddr);
-    resource->resource = sol_oic_resource_ref(oic_res);
+    resource->tentative_resource = sol_oic_resource_ref(oic_res);
+    if (sol_oic_client_get_server_info(oic_cli, oic_res, server_info_received, data))
+        return;
 
-    if (resource->find_timeout) {
-        sol_timeout_del(resource->find_timeout);
-        resource->find_timeout = NULL;
-    }
-
-    r = sol_oic_client_resource_set_observable(oic_cli, oic_res, state_changed, resource, true);
-    if (!r)
-        SOL_WRN("Could not observe resource as requested");
+    SOL_WRN("Could not create packet to obtain server information");
 
 out:
-    r = sol_flow_send_boolean_packet(resource->node, resource->funcs->found_port, !!resource->resource);
+    r = sol_flow_send_boolean_packet(resource->node, resource->funcs->found_port, false);
     if (r < 0)
         SOL_WRN("Could not send flow packet, will try again");
 }
@@ -1398,7 +1294,7 @@ server_resource_close(struct server_resource *resource)
 
 static int
 client_resource_init(struct sol_flow_node *node, struct client_resource *resource, const char *resource_type,
-    const char *hwaddr, const struct client_resource_funcs *funcs)
+    const char *device_id, const struct client_resource_funcs *funcs)
 {
     log_init();
     if (!initialize_multicast_addresses_once()) {
@@ -1408,15 +1304,15 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
 
     assert(resource_type);
 
-    if (!hwaddr)
+    if (!device_id)
         return -EINVAL;
 
     resource->client.api_version = SOL_OIC_CLIENT_API_VERSION;
     resource->client.server = sol_coap_server_new(0);
     SOL_NULL_CHECK(resource->client.server, -ENOMEM);
 
-    resource->hwaddr = strdup(hwaddr);
-    SOL_NULL_CHECK_GOTO(resource->hwaddr, nomem);
+    resource->device_id = strdup(device_id);
+    SOL_NULL_CHECK_GOTO(resource->device_id, nomem);
 
     resource->node = node;
     resource->find_timeout = NULL;
@@ -1425,8 +1321,8 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
     resource->funcs = funcs;
     resource->rt = resource_type;
 
-    SOL_INF("Sending multicast packets to find resource with hwaddr %%s (rt=%%s)",
-        resource->hwaddr, resource->rt);
+    SOL_INF("Sending multicast packets to find resource with device_id %%s (rt=%%s)",
+        resource->device_id, resource->rt);
     resource->find_timeout = sol_timeout_add(FIND_PERIOD_MS, find_timer, resource);
     if (resource->find_timeout) {
         /* Perform a find now instead of waiting FIND_PERIOD_MS the first time.  If the
@@ -1436,7 +1332,7 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
     }
 
     SOL_ERR("Could not create timeout to find resource");
-    free(resource->hwaddr);
+    free(resource->device_id);
 
 nomem:
     sol_coap_server_unref(resource->client.server);
@@ -1446,7 +1342,7 @@ nomem:
 static void
 client_resource_close(struct client_resource *resource)
 {
-    free(resource->hwaddr);
+    free(resource->device_id);
 
     if (resource->find_timeout)
         sol_timeout_del(resource->find_timeout);
