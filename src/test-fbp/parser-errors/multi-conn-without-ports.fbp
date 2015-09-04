@@ -34,3 +34,5 @@ foo(Foo) OUT -> IN bar(Bar) -> xpto(Xpto)
 
 ## TEST-OUTPUT
 # multi-conn-without-ports.fbp:31:29 Arrow symbol must appear between two port names
+## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
+

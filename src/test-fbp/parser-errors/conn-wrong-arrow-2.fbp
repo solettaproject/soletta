@@ -34,3 +34,5 @@ foo(Foo) OUT > IN bar(Bar)
 
 ## TEST-OUTPUT
 # conn-wrong-arrow-2.fbp:31:14 Expected '->' between connection statement. e.g. 'node(nodetype) OUTPUT_PORT_NAME -> INPUT_PORT_NAME node2(nodetype2)'
+## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
+
