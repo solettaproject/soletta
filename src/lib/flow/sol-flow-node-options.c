@@ -53,30 +53,6 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
 
 #define STRTOL_DECIMAL(_ptr, _endptr) strtol(_ptr, _endptr, 0)
 
-#define KEY_VALUES_RECAP(_max_val, _min_val)    \
-    do {                                        \
-        if (keys_schema) {                      \
-            if (!min_done) ret->min = _min_val; \
-            if (!max_done) ret->max = _max_val; \
-            if (!step_done) ret->step = 1;      \
-            if (!val_done) ret->val = 0;        \
-        }                                       \
-    } while (0)                                 \
-
-#define LINEAR_VALUES_RECAP(_max_val, _min_val) \
-    do {                                        \
-        switch (field_cnt) {                    \
-        case 1:                                 \
-            ret->min = _min_val;                \
-        case 2:                                 \
-            ret->max = _max_val;                \
-        case 3:                                 \
-            ret->step = 1;                      \
-        default:                                \
-            break;                              \
-        }                                       \
-    } while (0)                                 \
-
 #define ASSIGN_LINEAR_VALUES(_parse_func, \
         _max_val, _max_str, _max_str_len,          \
         _min_val, _min_str, _min_str_len)          \
@@ -127,12 +103,27 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
         _max_val, _max_str, _max_str_len,        \
         _min_val, _min_str, _min_str_len)        \
     do {                                                        \
-        bool is_max = false, is_min = false;                    \
-        _key = strstr(buf, #_key);                              \
-        if (_key) {                                             \
-            keys_schema = true;                                 \
-            _key = strchr(_key, ':');                           \
-        } else break;                                           \
+        bool is_max = false, is_min = false; \
+        char *key_name, *remaining, *i; \
+        remaining = buf; \
+        while ((key_name = strstr(remaining, #_key))) { \
+            keys_schema = true; \
+            _key = strchr(key_name, ':'); \
+            if (!_key) { \
+                key_name = NULL; \
+                break; \
+            } \
+            i = key_name + strlen(#_key); \
+            for (; i < _key; i++) \
+                if (!isspace(*i)) { \
+                    remaining = _key; \
+                    break; \
+                } \
+            if (remaining != _key) \
+                break; \
+        } \
+        if (!key_name) \
+            break; \
         if (_key && _key[0] && _key[1]) {                       \
             _key++;                                             \
             while (_key && isspace(*_key)) _key++;              \
@@ -178,7 +169,6 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
                     goto err; \
             } \
             ret->_key = parsed_val; \
-            _key ## _done = true;                               \
             if (_key ## _end)                                   \
                 *_key ## _end = _key ## _backup;                \
         }                                                       \
@@ -190,6 +180,15 @@ strtod_no_locale(const char *nptr, char **endptr)
     return sol_util_strtodn(nptr, endptr, -1, false);
 }
 
+static void
+irange_init(struct sol_irange *ret)
+{
+    ret->val = 0;
+    ret->min = INT32_MIN;
+    ret->max = INT32_MAX;
+    ret->step = 1;
+}
+
 static int
 irange_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
@@ -197,8 +196,6 @@ irange_parse(const char *value, struct sol_flow_node_named_options_member *m)
     int field_cnt = 0;
     bool keys_schema = false;
     char *min, *max, *step, *val;
-    bool min_done = false, max_done = false,
-        step_done = false, val_done = false;
     static const char INT_MAX_STR[] = "INT32_MAX";
     static const char INT_MIN_STR[] = "INT32_MIN";
     static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
@@ -220,13 +217,9 @@ irange_parse(const char *value, struct sol_flow_node_named_options_member *m)
         INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
         INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
 
-    KEY_VALUES_RECAP(INT32_MAX, INT32_MIN);
-
     ASSIGN_LINEAR_VALUES(STRTOL_DECIMAL,
         INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
         INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
-
-    LINEAR_VALUES_RECAP(INT32_MAX, INT32_MIN);
 
     SOL_DBG("irange opt ends up as min=%" PRId32 ", max=%" PRId32
         ", step=%" PRId32 ", val=%" PRId32 "\n",
@@ -247,6 +240,15 @@ err:
     return -EINVAL;
 }
 
+static void
+drange_init(struct sol_drange *ret)
+{
+    ret->val = 0;
+    ret->min = -DBL_MAX;
+    ret->max = DBL_MAX;
+    ret->step = DBL_MIN;
+}
+
 static int
 drange_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
@@ -254,8 +256,6 @@ drange_parse(const char *value, struct sol_flow_node_named_options_member *m)
     int field_cnt = 0;
     bool keys_schema = false;
     char *min, *max, *step, *val;
-    bool min_done = false, max_done = false,
-        step_done = false, val_done = false;
     static const char DBL_MAX_STR[] = "DBL_MAX";
     static const char DBL_MIN_STR[] = "-DBL_MAX";
     static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
@@ -278,13 +278,9 @@ drange_parse(const char *value, struct sol_flow_node_named_options_member *m)
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
 
-    KEY_VALUES_RECAP(DBL_MAX, -DBL_MAX);
-
     ASSIGN_LINEAR_VALUES(strtod_no_locale,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
-
-    LINEAR_VALUES_RECAP(DBL_MAX, -DBL_MAX);
 
     SOL_DBG("drange opt ends up as min=%lf, max=%lf, step=%lf, val=%lf\n",
         ret->min, ret->max, ret->step, ret->val);
@@ -305,6 +301,17 @@ err:
     return -EINVAL;
 }
 
+static void
+rgb_init(struct sol_rgb *ret)
+{
+    ret->red = 0;
+    ret->green = 0;
+    ret->blue = 0;
+    ret->red_max = 255;
+    ret->green_max = 255;
+    ret->blue_max = 255;
+}
+
 static int
 rgb_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
@@ -312,8 +319,6 @@ rgb_parse(const char *value, struct sol_flow_node_named_options_member *m)
     int field_cnt = 0;
     bool keys_schema = false;
     char *red, *green, *blue, *red_max, *green_max, *blue_max;
-    bool red_done = false, green_done = false, blue_done = false,
-        red_max_done = false, green_max_done = false, blue_max_done = false;
     static const char INT_MAX_STR[] = "INT32_MAX";
     static const char INT_MIN_STR[] = "INT32_MIN";
     static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
@@ -342,38 +347,9 @@ rgb_parse(const char *value, struct sol_flow_node_named_options_member *m)
         INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
         INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
 
-    if (keys_schema) {
-        if (!red_done) ret->red = 0;
-        if (!red_max_done) ret->red_max = 255;
-        if (!green_done) ret->green = 0;
-        if (!green_max_done) ret->green_max = 255;
-        if (!blue_done) ret->blue = 0;
-        if (!blue_max_done) ret->blue_max = 255;
-    }
-
     ASSIGN_LINEAR_VALUES(STRTOL_DECIMAL,
         INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
         INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
-
-    /* field_cnt shouldn't start from 0 in switch,
-     * since if no value was declared, it doesn't make
-     * sense to declare the option. Also, if values were
-     * assigned by ASSIGN_KEY_VAL field_cnt would stay 0, and the whole
-     * option would be set to default values */
-    switch (field_cnt) {
-    case 1:
-        ret->green = 0;
-    case 2:
-        ret->blue = 0;
-    case 3:
-        ret->red_max = 255;
-    case 4:
-        ret->green_max = 255;
-    case 5:
-        ret->blue_max = 255;
-    default:
-        break;
-    }
 
     SOL_DBG("rgb opt ends up as red=%" PRIu32 ", green=%" PRIu32
         ", blue=%" PRIu32 " red_max=%" PRIu32 ", green_max=%" PRIu32
@@ -398,6 +374,15 @@ err:
     return -EINVAL;
 }
 
+static void
+direction_vector_init(struct sol_direction_vector *ret)
+{
+    ret->x = 0;
+    ret->y = 0;
+    ret->z = 0;
+    ret->min = -DBL_MAX;
+    ret->max = DBL_MAX;
+}
 
 static int
 direction_vector_parse(const char *value, struct sol_flow_node_named_options_member *m)
@@ -406,8 +391,6 @@ direction_vector_parse(const char *value, struct sol_flow_node_named_options_mem
     int field_cnt = 0;
     bool keys_schema = false;
     char *min, *max, *x, *y, *z;
-    bool min_done = false, max_done = false,
-        x_done = false, y_done = false, z_done = false;
     static const char DBL_MAX_STR[] = "DBL_MAX";
     static const char DBL_MIN_STR[] = "-DBL_MAX";
     static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
@@ -433,39 +416,19 @@ direction_vector_parse(const char *value, struct sol_flow_node_named_options_mem
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
 
-    if (keys_schema) {
-        if (!x_done) ret->x = 0;
-        if (!y_done) ret->y = 0;
-        if (!z_done) ret->z = 0;
-        if (!min_done) ret->min = -DBL_MAX;
-        if (!max_done) ret->max = DBL_MAX;
-    }
-
     ASSIGN_LINEAR_VALUES(strtod_no_locale,
         DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
         -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
 
-    switch (field_cnt) {
-    case 1:
-        ret->y = 0;
-    case 2:
-        ret->z = 0;
-    case 3:
-        ret->min = -DBL_MAX;
-    case 4:
-        ret->max = DBL_MAX;
-    default:
-        break;
-    }
-
-    SOL_DBG("direction_vector opt ends up as x=%lf, y=%lf, z=%lf, min=%lf, max=%lf\n",
+    SOL_DBG("direction_vector opt ends up as "
+        "x=%lf, y=%lf, z=%lf, min=%lf, max=%lf\n",
         ret->x, ret->y, ret->z, ret->min, ret->max);
 
     free(buf);
     return 0;
 
 err:
-    SOL_ERR("Invalid direction_vector value for option name=\"%s\": \"%s\"."
+    SOL_DBG("Invalid direction_vector value for option name=\"%s\": \"%s\"."
         " Please use the formats"
         " \"<x_value>|<y_value>|<z_value>|<min_value>|<max_value>\","
         " in that order, or \"<key>:<value>|<...>\", for keys in "
@@ -478,8 +441,6 @@ err:
 }
 
 #undef STRTOL_DECIMAL
-#undef KEY_VALUES_RECAP
-#undef LINEAR_VALUES_RECAP
 #undef ASSIGN_LINEAR_VALUES
 #undef ASSIGN_KEY_VAL
 
@@ -535,17 +496,79 @@ static int(*const options_parse_functions[]) (const char *, struct sol_flow_node
     [SOL_FLOW_NODE_OPTIONS_MEMBER_STRING] = string_parse,
 };
 
+/* Options with suboptions may have only some fields overriden.
+ * The remaining should use values set as default on node type
+ * description */
+static void
+set_default_option(struct sol_flow_node_named_options_member *m,
+    const struct sol_flow_node_options_member_description *mdesc)
+{
+    switch (m->type) {
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
+        m->drange = mdesc->defvalue.f;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR:
+        m->direction_vector = mdesc->defvalue.direction_vector;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
+        m->irange = mdesc->defvalue.i;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
+        m->rgb = mdesc->defvalue.rgb;
+        break;
+    default:
+        break;
+    }
+}
+
+static void
+init_member_suboptions(struct sol_flow_node_named_options_member *m)
+{
+    switch (m->type) {
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
+        drange_init(&m->drange);
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR:
+        direction_vector_init(&m->direction_vector);
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
+        irange_init(&m->irange);
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
+        rgb_init(&m->rgb);
+        break;
+    default:
+        break;
+    }
+}
+
 SOL_API int
 sol_flow_node_named_options_parse_member(
     struct sol_flow_node_named_options_member *m,
-    const char *value)
+    const char *value,
+    const struct sol_flow_node_options_member_description *mdesc)
 {
     int r;
+
+    if (!m) {
+        SOL_DBG("Options member must be a valid pointer.");
+        return -EINVAL;
+    }
+
+    if (!mdesc) {
+        SOL_DBG("Options member description must be a valid pointer.");
+        return -EINVAL;
+    }
 
     if (m->type == 0) {
         r = -EINVAL;
         SOL_DBG("Unitialized member type for name=\"%s\": \"%s\"", m->name, value);
     } else if (m->type < ARRAY_SIZE(options_parse_functions)) {
+        if (mdesc->required)
+            init_member_suboptions(m);
+        else
+            set_default_option(m, mdesc);
+
         r = options_parse_functions[m->type](value, m);
         if (r < 0) {
             SOL_DBG("Invalid value '%s' for option name='%s' of type='%s'",
@@ -855,7 +878,7 @@ sol_flow_node_named_options_init_from_strv(
         m->type = sol_flow_node_options_member_type_from_string(mdesc->data_type);
         m->name = mdesc->name;
 
-        r = sol_flow_node_named_options_parse_member(m, value);
+        r = sol_flow_node_named_options_parse_member(m, value, mdesc);
         if (r < 0) {
             SOL_DBG("Could not parse member #%u "
                 "name=\"%s\", type=\"%s\", option=\"%s\": %s",

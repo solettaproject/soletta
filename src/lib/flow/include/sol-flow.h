@@ -232,10 +232,6 @@ struct sol_flow_node_named_options {
     uint16_t count;
 };
 
-int sol_flow_node_named_options_parse_member(
-    struct sol_flow_node_named_options_member *m,
-    const char *value);
-
 int sol_flow_node_options_new(
     const struct sol_flow_node_type *type,
     const struct sol_flow_node_named_options *named_opts,
@@ -369,6 +365,11 @@ struct sol_flow_node_type {
     const struct sol_flow_node_type_description *description; /**< pointer to node's description */
 #endif
 };
+
+int sol_flow_node_named_options_parse_member(
+    struct sol_flow_node_named_options_member *m,
+    const char *value,
+    const struct sol_flow_node_options_member_description *mdesc);
 
 /**
  * Get a node type's input port definiton struct, given a port index.
