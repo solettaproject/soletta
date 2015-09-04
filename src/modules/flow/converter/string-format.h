@@ -59,6 +59,6 @@ struct string_converter {
 };
 
 void auto_number_init(struct auto_number *auto_number);
-int do_integer_markup(struct string_converter *mdata, const char *format, struct sol_irange *args, struct auto_number *auto_number, char **out_value) SOL_ATTR_WARN_UNUSED_RESULT;
-int do_float_markup(struct string_converter *mdata, const char *format, struct sol_drange *args, struct auto_number *auto_number, char **out_value) SOL_ATTR_WARN_UNUSED_RESULT;
+int do_integer_markup(struct string_converter *mdata, const char *format, struct sol_irange *args, struct auto_number *auto_number, struct sol_buffer *out) SOL_ATTR_WARN_UNUSED_RESULT;
+int do_float_markup(struct string_converter *mdata, const char *format, struct sol_drange *args, struct auto_number *auto_number, struct sol_buffer *out) SOL_ATTR_WARN_UNUSED_RESULT;
 
