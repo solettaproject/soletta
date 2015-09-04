@@ -446,8 +446,8 @@ int
 sol_platform_impl_get_machine_id(char id[static 33])
 {
     int r;
-    r = sol_util_read_file("/etc/machine-id", "%33c", id);
-    id[32] = '\0';
+    r = sol_util_read_file("/etc/machine-id", "%32s", id);
+    /* that id should have already been validated by systemd */
 
     return r;
 }
@@ -459,7 +459,7 @@ sol_platform_impl_get_serial_number(char **number)
     char id[37];
 
     /* root access required for this */
-    r = sol_util_read_file("/sys/class/dmi/id/product_uuid", "%37c", id);
+    r = sol_util_read_file("/sys/class/dmi/id/product_uuid", "%36s", id);
     SOL_INT_CHECK(r, < 0, r);
 
     *number = strdup(id);

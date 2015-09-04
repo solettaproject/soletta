@@ -799,8 +799,6 @@ sol_platform_impl_set_target(const char *target)
 static int
 validate_machine_id(char id[static 33])
 {
-    id[32] = '\0';
-
     if (!sol_util_uuid_str_valid(id))
         return -EINVAL;
 
@@ -814,7 +812,7 @@ sol_platform_impl_get_machine_id(char id[static 33])
     *run_path = "/run/machine-id";
     int r;
 
-    r = sol_util_read_file(etc_path, "%33c", id);
+    r = sol_util_read_file(etc_path, "%32s", id);
     if (r < 0) {
         /* We can only tolerate the file not existing or being
          * malformed on /etc/, otherwise it's got more serious
@@ -824,7 +822,7 @@ sol_platform_impl_get_machine_id(char id[static 33])
     } else
         return validate_machine_id(id);
 
-    r = sol_util_read_file(run_path, "%33c", id);
+    r = sol_util_read_file(run_path, "%32s", id);
     if (r < 0) {
         return r;
     } else
@@ -838,7 +836,7 @@ sol_platform_impl_get_serial_number(char **number)
     char id[37];
 
     /* root access required for this */
-    r = sol_util_read_file("/sys/class/dmi/id/product_uuid", "%37c", id);
+    r = sol_util_read_file("/sys/class/dmi/id/product_uuid", "%36s", id);
     SOL_INT_CHECK(r, < 0, r);
 
     *number = strdup(id);

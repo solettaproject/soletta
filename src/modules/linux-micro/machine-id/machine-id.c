@@ -81,7 +81,7 @@ run_do(void)
     char id[33];
     int r;
 
-    r = sol_util_read_file(etc_path, "%33c", id);
+    r = sol_util_read_file(etc_path, "%32s", id);
     if (r < 0) {
         /* We can only tolerate the file not existing or being
          * malformed on /etc/, otherwise it's got more serious
