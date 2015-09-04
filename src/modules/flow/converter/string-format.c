@@ -273,7 +273,7 @@ parse_internal_render_format_spec(struct string_converter *mdata,
 }
 
 /* describes the layout for an integer, see the comment in
-   calc_number_widths() for details */
+   calc_number_spec() for details */
 struct number_field_widths {
     ssize_t n_lpadding;
     ssize_t n_prefix;
@@ -361,23 +361,23 @@ get_locale_info(int type, struct locale_info *locale_info)
 }
 
 static int
-int32_to_char(int32_t input,
-    char **p_output)
+int32_to_char_conv_and_append(int32_t input,
+    struct sol_buffer *output)
 {
-    int r = asprintf(p_output, "%c", (int)input);
+    int r = sol_buffer_append_printf(output, "%c", (int)input);
 
-    SOL_INT_CHECK(r, < 0, -EINVAL);
+    SOL_INT_CHECK(r, < 0, r);
 
     return 0;
 }
 
 static int
-int32_to_decimal_string(int32_t input,
-    char **p_output)
+int32_to_decimal_str_conv_and_append(int32_t input,
+    struct sol_buffer *out)
 {
-    int r = asprintf(p_output, "%" PRId32, input);
+    int r = sol_buffer_append_printf(out, "%" PRId32, input);
 
-    SOL_INT_CHECK(r, < 0, -EINVAL);
+    SOL_INT_CHECK(r, < 0, r);
 
     return 0;
 }
@@ -407,15 +407,17 @@ byte_to_binary(int32_t input)
     return ret;
 }
 
-/* Convert an integer to a string, using a given conversion base,
+/*
+ * Convert an integer to a string, using a given conversion base,
  * which should be one of 2, 8 or 16. If base is 2, 8 or 16, add the
- * proper prefix '0b', '0o' or '0x' if alternate is nonzero.
+ * proper prefix '0b', '0o' or '0x' if alternate is nonzero. The
+ * resulting string is then appended to @a out.
  */
 static int
-int32_to_binary_string(int32_t input,
+int32_to_binary_str_conv_and_append(int32_t input,
     int base,
     bool alternate,
-    char **p_output)
+    struct sol_buffer *out)
 {
     bool negative = input < 0;
     const char *to_bin = NULL;
@@ -443,7 +445,7 @@ int32_to_binary_string(int32_t input,
 
 #define FORMAT_EVAL(_fmt, _arg) \
     do { \
-        r = asprintf(p_output, _fmt, sign, base_prefix, _arg); \
+        r = sol_buffer_append_printf(out, _fmt, sign, base_prefix, _arg); \
         SOL_INT_CHECK(r, < 0, -EINVAL); \
     } while (0)
 
@@ -468,47 +470,60 @@ int32_to_binary_string(int32_t input,
 }
 
 static int
-int32_format_base(int32_t in_value, int base, int alternate, char **out_value)
+int32_format_base_append(int32_t in_value,
+    int base,
+    int alternate,
+    struct sol_buffer *out)
 {
     int r;
 
     if (base == 10)
-        r = int32_to_decimal_string(in_value, out_value);
+        r = int32_to_decimal_str_conv_and_append(in_value, out);
     else
-        r = int32_to_binary_string(in_value, base, alternate, out_value);
+        r = int32_to_binary_str_conv_and_append(in_value, base, alternate,
+            out);
 
     return r;
 }
 
-static void
-fast_fill(char *buffer,
+static int
+fast_fill(struct sol_buffer *buffer,
     ssize_t start,
     ssize_t length,
     unsigned char fill_char)
 {
-    assert(start >= 0);
-    memset(buffer + start, fill_char, length);
-}
+    char *str = NULL;
+    struct sol_str_slice slice;
 
-static void
-write(char **data, ssize_t index, unsigned char value)
-{
-    (*data)[index] = value;
+    assert(start >= 0);
+
+    str = alloca(length + 1);
+    SOL_NULL_CHECK(str, -ENOMEM);
+    memset(str, fill_char, length);
+    str[length] = 0;
+
+    slice = SOL_STR_SLICE_STR(str, strlen(str));
+
+    return sol_buffer_set_slice_at(buffer, start, slice);
 }
 
 static int
-copy_characters(char **to,
-    size_t to_start,
-    const char *from,
-    size_t from_start,
-    size_t how_many)
+write_char(struct sol_buffer *out, size_t index, char value)
 {
-    if (how_many == 0)
+    struct sol_str_slice slice = SOL_STR_SLICE_STR(&value, 1);
+
+    return sol_buffer_set_slice_at(out, index, slice);
+}
+
+static int
+copy_characters(struct sol_buffer *to,
+    size_t to_start,
+    struct sol_str_slice from)
+{
+    if (!from.len)
         return 0;
 
-    memcpy(*to + to_start, from + from_start, how_many);
-
-    return 0;
+    return sol_buffer_set_slice_at(to, to_start, from);
 }
 
 struct group_generator {
@@ -548,30 +563,48 @@ group_generator_next(struct group_generator *self)
     }
 }
 
-/* Fill in some digits, leading zeros, and thousands separator. All
-   are optional, depending on when we're called. */
-static void
-ascii_fill(char **digits_end, char **buffer_end,
-    size_t n_chars, size_t n_zeros, const char *thousands_sep,
+/*
+ * Insert into @a out, at @a pos position, digits, leading zeros, and
+ * thousands separator. @a digits_ptr is always updated being
+ * decremented by the number of chars written (@a n_chars).
+ */
+static int
+insert_numbers(struct sol_buffer *out,
+    size_t pos,
+    char **digits_ptr,
+    size_t n_chars,
+    size_t n_zeros,
+    const char *thousands_sep,
     size_t thousands_sep_len)
 {
-    size_t i;
+    int r;
+    struct sol_str_slice slice;
 
     if (thousands_sep) {
-        *buffer_end -= thousands_sep_len;
-
         /* Copy the thousands_sep chars into the buffer. */
-        memcpy(*buffer_end, thousands_sep,
-            thousands_sep_len * sizeof(unsigned char));
+        slice = SOL_STR_SLICE_STR(thousands_sep, thousands_sep_len);
+        r = sol_buffer_insert_slice(out, pos, slice);
+        SOL_INT_CHECK(r, < 0, r);
     }
 
-    *buffer_end -= n_chars;
-    *digits_end -= n_chars;
-    memcpy(*buffer_end, *digits_end, n_chars * sizeof(unsigned char));
+    *digits_ptr -= n_chars;
 
-    *buffer_end -= n_zeros;
-    for (i = 0; i < n_zeros; i++)
-        (*buffer_end)[i] = '0';
+    slice = SOL_STR_SLICE_STR(*digits_ptr, n_chars);
+    r = sol_buffer_insert_slice(out, pos, slice);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (n_zeros) {
+        char *str = alloca(n_zeros + 1);
+
+        SOL_NULL_CHECK(str, -ENOMEM);
+        r = snprintf(str, n_zeros + 1, "%0*d", (int)(long)n_zeros, 0);
+        SOL_INT_CHECK(r, < 0, r);
+
+        slice = SOL_STR_SLICE_STR(str, strlen(str));
+        return sol_buffer_insert_slice(out, pos, slice);
+    }
+
+    return 0;
 }
 
 /*
@@ -593,12 +626,13 @@ ascii_fill(char **digits_end, char **buffer_end,
  * thousand grouping characters (as defined by grouping and
  * thousands_sep) into the string between buffer and buffer+n_digits.
  *
- * Return value: 0 on error, else 1. Note that no error can occur if
- * count is non-NULL.
+ * Return value: negative error code on error, the required buffer
+ * size otherwise.
  */
 static ssize_t
 insert_thousands_grouping(
-    char **buffer,
+    struct sol_buffer *out,
+    size_t out_start,
     ssize_t n_buffer,
     char *digits,
     ssize_t n_digits,
@@ -608,14 +642,13 @@ insert_thousands_grouping(
 {
     ssize_t count = 0;
     ssize_t n_zeros;
-    int loop_broken = 0;
-    int use_separator = 0; /* First time through, don't append the
-                              separator. They only go between
-                              groups. */
-    char *buffer_end = NULL;
-    char *digits_end = NULL;
+    bool loop_broken = false;
+    bool use_separator = 0; /* First time through, don't append the
+                               separator. They only go between
+                               groups. */
     ssize_t l;
     ssize_t n_chars;
+    char *digits_ptr = NULL;
     ssize_t remaining = n_digits; /* Number of chars remaining to be
                                      looked at */
     /* A generator that returns all of the grouping widths, until it
@@ -623,13 +656,12 @@ insert_thousands_grouping(
     struct group_generator groupgen;
 
     size_t thousands_sep_len = strlen(thousands_sep);
+    int r = 0;
 
     group_generator_init(&groupgen, grouping);
 
-    if (buffer && *buffer) {
-        buffer_end = *buffer + n_buffer;
-        digits_end = digits + n_digits;
-    }
+    if (out)
+        digits_ptr = digits + n_digits;
 
     while ((l = group_generator_next(&groupgen)) > 0) {
         l = SF_MIN(l, SF_MAX(SF_MAX(remaining, min_width), 1));
@@ -640,136 +672,154 @@ insert_thousands_grouping(
         /* Count only, don't do anything. */
         count += (use_separator ? thousands_sep_len : 0) + n_zeros + n_chars;
 
-        if (buffer && *buffer) {
+        if (out) {
             /* Copy into the output buffer. */
-            ascii_fill(&digits_end, &buffer_end, n_chars, n_zeros,
-                use_separator ? thousands_sep : NULL, thousands_sep_len);
+            r = insert_numbers(out, out_start, &digits_ptr, n_chars,
+                n_zeros, use_separator ? thousands_sep : NULL,
+                thousands_sep_len);
+            SOL_INT_CHECK(r, < 0, r);
         }
 
         /* Use a separator next time. */
-        use_separator = 1;
+        use_separator = true;
 
         remaining -= n_chars;
         min_width -= l;
 
         if (remaining <= 0 && min_width <= 0) {
-            loop_broken = 1;
+            loop_broken = true;
             break;
         }
         min_width -= thousands_sep_len;
     }
     if (!loop_broken) {
-        /* We left the loop without using a break statement. */
-
         l = SF_MAX(SF_MAX(remaining, min_width), 1);
         n_zeros = SF_MAX(0, l - remaining);
         n_chars = SF_MAX(0, SF_MIN(remaining, l));
 
         /* Use n_zero zero's and n_chars chars */
         count += (use_separator ? thousands_sep_len : 0) + n_zeros + n_chars;
-        if (buffer && *buffer) {
+        if (out) {
             /* Copy into the output buffer. */
-            ascii_fill(&digits_end, &buffer_end, n_chars, n_zeros,
-                use_separator ? thousands_sep : NULL, thousands_sep_len);
+            r = insert_numbers(out, out_start, &digits_ptr, n_chars,
+                n_zeros, use_separator ? thousands_sep : NULL,
+                thousands_sep_len);
+            SOL_INT_CHECK(r, < 0, r);
         }
     }
     return count;
 }
 
-/* Fill in the digit parts of a numbers's string representation,
-   as determined in calc_number_widths().
-   Returns negative code on error, or 0 on success. */
+/*
+ * Append to @a out the digit parts of a numbers's string
+ * representation, as determined in calc_number_spec(). Returns
+ * negative code on error, or 0 on success.
+ */
 static int
-fill_number(char **out_value, const struct number_field_widths *spec,
-    char *digits, ssize_t d_start, ssize_t d_end,
-    char *prefix, ssize_t p_start, int fill_char,
-    struct locale_info *locale, bool to_upper)
+append_number(struct sol_buffer *out,
+    const struct number_field_widths *spec,
+    char *digits,
+    ssize_t d_start,
+    ssize_t d_end,
+    char *prefix,
+    ssize_t p_start,
+    int fill_char,
+    struct locale_info *locale,
+    bool to_upper)
 {
     /* Used to keep track of digits, decimal, and remainder. */
     ssize_t d_pos = d_start;
-    ssize_t r, pos = 0;
+    ssize_t r, pos = out->used;
 
     if (spec->n_lpadding) {
-        fast_fill(*out_value, pos, spec->n_lpadding, fill_char);
+        r = fast_fill(out, pos, spec->n_lpadding, fill_char);
+        SOL_INT_CHECK(r, < 0, r);
         pos += spec->n_lpadding;
     }
     if (spec->n_sign == 1) {
-        write(out_value, pos, spec->sign);
+        r = write_char(out, pos, spec->sign);
+        SOL_INT_CHECK(r, < 0, r);
         pos++;
     }
     if (spec->n_prefix) {
-        copy_characters(out_value, pos, prefix, p_start, spec->n_prefix);
+        r = copy_characters(out, pos, SOL_STR_SLICE_STR(prefix + p_start,
+            spec->n_prefix));
+        SOL_INT_CHECK(r, < 0, r);
         if (to_upper) {
             ssize_t t;
             for (t = 0; t < spec->n_prefix; t++) {
-                char c = (*out_value)[pos + t];
+                char c = *(char *)sol_buffer_at(out, pos + t);
+
                 c = toupper(c);
-                write(out_value, pos + t, c);
+                write_char(out, pos + t, c);
             }
         }
         pos += spec->n_prefix;
     }
     if (spec->n_spadding) {
-        fast_fill(*out_value, pos, spec->n_spadding, fill_char);
+        r = fast_fill(out, pos, spec->n_spadding, fill_char);
+        SOL_INT_CHECK(r, < 0, r);
         pos += spec->n_spadding;
     }
 
     /* Only for type 'c' special case, it has no digits. */
     if (spec->n_digits != 0) {
         /* Fill the digits with insert_thousands_grouping(). */
-        char *pvalue = *out_value + pos;
-
-        r = insert_thousands_grouping(
-            &pvalue,
+        ssize_t ret = insert_thousands_grouping(
+            out,
+            pos,
             spec->n_grouped_digits,
             digits + d_pos,
             spec->n_digits,
             spec->n_min_width,
             locale->grouping,
             locale->thousands_sep);
-        if (r == -1)
-            return -1;
-        assert(r == spec->n_grouped_digits);
+        SOL_INT_CHECK(ret, < 0, -EINVAL);
+        assert(ret == spec->n_grouped_digits);
         d_pos += spec->n_digits;
     }
     if (to_upper) {
         ssize_t t;
         for (t = 0; t < spec->n_grouped_digits; t++) {
-            unsigned char c = (*out_value)[pos + t];
+            char c = *(char *)sol_buffer_at(out, pos + t);
+
             c = toupper(c);
-            write(out_value, pos + t, c);
+            write_char(out, pos + t, c);
         }
     }
     pos += spec->n_grouped_digits;
 
     if (spec->n_decimal) {
-        copy_characters(out_value, pos,
-            locale->decimal_point, 0, spec->n_decimal);
+        r = copy_characters(out, pos,
+            SOL_STR_SLICE_STR(locale->decimal_point, spec->n_decimal));
+        SOL_INT_CHECK(r, < 0, r);
         pos += spec->n_decimal;
         d_pos += 1;
     }
 
     if (spec->n_remainder) {
-        copy_characters(out_value, pos, digits, d_pos, spec->n_remainder);
+        r = copy_characters(out, pos, SOL_STR_SLICE_STR
+                (digits + d_pos, spec->n_remainder));
+        SOL_INT_CHECK(r, < 0, r);
         pos += spec->n_remainder;
     }
 
     if (spec->n_rpadding) {
-        fast_fill(*out_value, pos, spec->n_rpadding, fill_char);
+        r = fast_fill(out, pos, spec->n_rpadding, fill_char);
+        SOL_INT_CHECK(r, < 0, r);
         pos += spec->n_rpadding;
     }
     return 0;
 }
 
-static ssize_t
-calc_number_widths(struct number_field_widths *spec,
+static void
+calc_number_spec(struct number_field_widths *spec,
     ssize_t n_prefix,
     char sign_char,
-    char *number,
     ssize_t n_start,
     ssize_t n_end,
     ssize_t n_remainder,
-    int has_decimal,
+    bool has_decimal,
     const struct locale_info *locale,
     const struct format_spec_data *format)
 {
@@ -842,7 +892,7 @@ calc_number_widths(struct number_field_widths *spec,
         spec->n_grouped_digits = 0;
     else {
         spec->n_grouped_digits = insert_thousands_grouping(
-            NULL, 0, NULL, spec->n_digits, spec->n_min_width,
+            NULL, 0, 0, NULL, spec->n_digits, spec->n_min_width,
             locale->grouping, locale->thousands_sep);
     }
 
@@ -875,27 +925,22 @@ calc_number_widths(struct number_field_widths *spec,
             break;
         }
     }
-
-    return spec->n_lpadding + spec->n_sign + spec->n_prefix +
-           spec->n_spadding + spec->n_grouped_digits + spec->n_decimal +
-           spec->n_remainder + spec->n_rpadding;
 }
 
 static int
-int32_format_do(struct string_converter *mdata,
+int32_format_append_do(struct string_converter *mdata,
     int32_t in_value,
     const struct format_spec_data *format,
-    char **out_value)
+    struct sol_buffer *out)
 {
-    int result = -EINVAL;
-    char *tmp = NULL;
+    int r = -EINVAL;
+    struct sol_buffer digits = SOL_BUFFER_INIT_EMPTY;
     ssize_t inumeric_chars;
     char sign_char = '\0';
     ssize_t n_digits;
     ssize_t n_remainder = 0; /* Used only for 'c' formatting, which
                               * produces non-digits */
     ssize_t n_prefix = 0; /* Count of prefix chars, (e.g., '0x') */
-    ssize_t n_total;
     ssize_t prefix = 0;
     struct number_field_widths spec;
 
@@ -932,13 +977,13 @@ int32_format_do(struct string_converter *mdata,
                 "%%c arg not in range(0x110000)");
             goto done;
         }
-        result = int32_to_char(in_value, &tmp);
-        SOL_INT_CHECK_GOTO(result, < 0, done);
+        r = int32_to_char_conv_and_append(in_value, &digits);
+        SOL_INT_CHECK_GOTO(r, < 0, done);
 
         inumeric_chars = 0;
         n_digits = 1;
 
-        /* As a sort-of hack, we tell calc_number_widths() that we
+        /* As a sort-of hack, we tell calc_number_spec() that we
            only have "remainder" characters and it thinks these are
            characters that don't get formatted, only copied into the
            output string. We do this for 'c' formatting, because the
@@ -978,8 +1023,8 @@ int32_format_do(struct string_converter *mdata,
             && !format->thousands_separators) {
 
             /* Fast path */
-            return int32_format_base(in_value, base, format->alternate,
-                out_value);
+            return int32_format_base_append(in_value, base, format->alternate,
+                out);
         }
 
         /* The number of prefix chars is the same as the leading
@@ -988,17 +1033,17 @@ int32_format_do(struct string_converter *mdata,
             n_prefix = leading_chars_to_skip;
 
         /* Do the hard part, converting to a string in a given base */
-        result = int32_format_base(in_value, base, true, &tmp);
-        SOL_INT_CHECK_GOTO(result, < 0, done);
+        r = int32_format_base_append(in_value, base, true, &digits);
+        SOL_INT_CHECK_GOTO(r, < 0, done);
 
         inumeric_chars = 0;
-        n_digits = strlen(tmp);
+        n_digits = digits.used;
 
         prefix = inumeric_chars;
 
         /* Is a sign character present in the output? If so, remember it
            and skip it */
-        if (tmp[0] == '-') {
+        if (*(char *)sol_buffer_at(&digits, 0) == '-') {
             sign_char = '-';
             ++prefix;
             ++leading_chars_to_skip;
@@ -1015,23 +1060,19 @@ int32_format_do(struct string_converter *mdata,
         &locale) == -1)
         goto done;
 
-    /* Calculate how much memory we'll need. */
-    n_total = calc_number_widths(&spec, n_prefix, sign_char, tmp,
+    calc_number_spec(&spec, n_prefix, sign_char,
         inumeric_chars, inumeric_chars + n_digits, n_remainder, 0,
         &locale, format);
 
-    *out_value = calloc(n_total + 1, sizeof(char));
-    SOL_NULL_CHECK_GOTO(out_value, done);
-
     /* Populate the memory. */
-    result = fill_number(out_value, &spec,
-        tmp, inumeric_chars, inumeric_chars + n_digits,
-        tmp, prefix, format->fill_char, &locale, format->type == 'X');
+    r = append_number(out, &spec, digits.data, inumeric_chars,
+        inumeric_chars + n_digits, digits.data, prefix, format->fill_char,
+        &locale, format->type == 'X');
 
 done:
-    free(tmp);
+    sol_buffer_fini(&digits);
 
-    return result;
+    return r;
 }
 
 /* double_to_string's "flags" parameter can be set to 0 or more of: */
@@ -1049,8 +1090,8 @@ done:
  * change it back to a dot. Since the string cannot get longer, no
  * need for a maximum buffer size parameter.
  */
-static inline void
-change_decimal_from_locale_to_dot(char *buffer)
+static inline int
+change_decimal_from_locale_to_dot(struct sol_buffer *buffer)
 {
 #ifdef HAVE_LOCALE
     struct lconv *locale_data = localeconv();
@@ -1058,25 +1099,33 @@ change_decimal_from_locale_to_dot(char *buffer)
 #else
     const char *decimal_point = DECIMAL_POINT_DEFAULT;
 #endif
+    int r;
 
     if (decimal_point[0] != '.' || decimal_point[1] != 0) {
         size_t decimal_point_len = strlen(decimal_point);
 
-        if (*buffer == '+' || *buffer == '-')
-            buffer++;
-        while (isdigit(*buffer))
-            buffer++;
-        if (strncmp(buffer, decimal_point, decimal_point_len) == 0) {
-            *buffer = '.';
-            buffer++;
+        char *p = (char *)sol_buffer_at(buffer, 0);
+
+        if (*p == '+' || *p == '-')
+            p++;
+        while (isdigit(*p))
+            p++;
+        if (strncmp(p, decimal_point, decimal_point_len) == 0) {
+            *p = '.';
+            p++;
             if (decimal_point_len > 1) {
                 /* buffer needs to get smaller */
-                size_t rest_len = strlen(buffer + (decimal_point_len - 1));
-                memmove(buffer, buffer + (decimal_point_len - 1), rest_len);
-                buffer[rest_len] = 0;
+                size_t rest_len = buffer->used - (decimal_point_len - 1);
+                struct sol_str_slice slice = SOL_STR_SLICE_STR
+                        ((char *)buffer->data + (decimal_point_len - 1),
+                        rest_len);
+                r = sol_buffer_set_slice(buffer, slice);
+                SOL_INT_CHECK(r, < 0, r);
             }
         }
     }
+
+    return 0;
 }
 
 /* From the C99 standard, section 7.19.6: The exponent always contains
@@ -1087,10 +1136,11 @@ change_decimal_from_locale_to_dot(char *buffer)
 
 /* Ensure that any exponent, if present, is at least
    MIN_EXPONENT_DIGITS in length. */
-static inline void
-ensure_minimum_exponent_length(char *buffer, size_t buf_size)
+static inline int
+ensure_minimum_exponent_length(struct sol_buffer *buffer)
 {
-    char *p = strpbrk(buffer, "eE");
+    char *p = strpbrk(buffer->data, "eE");
+    int r;
 
     if (p && (*(p + 1) == '-' || *(p + 1) == '+')) {
         char *start = p + 2;
@@ -1119,6 +1169,7 @@ ensure_minimum_exponent_length(char *buffer, size_t buf_size)
                regardless of what they contain */
         } else if (exponent_digit_cnt > MIN_EXPONENT_DIGITS) {
             int extra_zeros_cnt;
+            struct sol_str_slice slice;
 
             /* There are more than 2 digits in the exponent.  See
                if we can delete some of the leading zeros */
@@ -1130,19 +1181,24 @@ ensure_minimum_exponent_length(char *buffer, size_t buf_size)
                front of the exponent */
             assert(extra_zeros_cnt >= 0);
 
-            /* Add one to significant_digit_cnt to copy the
-               trailing 0 byte, thus setting the length */
-            memmove(start, start + extra_zeros_cnt, significant_digit_cnt + 1);
+            slice = SOL_STR_SLICE_STR
+                    (start + extra_zeros_cnt, significant_digit_cnt);
+            r = sol_buffer_set_slice_at
+                    (buffer, start + extra_zeros_cnt - (char *)buffer->data,
+                    slice);
+            SOL_INT_CHECK(r, < 0, r);
         } else {
             /* If there are fewer than 2 digits, add zeros until there
                are 2, if there's enough room */
             int zeros = MIN_EXPONENT_DIGITS - exponent_digit_cnt;
-            if (start + zeros + exponent_digit_cnt + 1 < buffer + buf_size) {
-                memmove(start + zeros, start, exponent_digit_cnt + 1);
-                memset(start, '0', zeros);
-            }
+
+            r = sol_buffer_insert_printf
+                    (buffer, start - (char *)buffer->data, "%0*d", zeros, 0);
+            SOL_INT_CHECK(r, < 0, r);
         }
     }
+
+    return 0;
 }
 
 /* Remove trailing zeros after the decimal point from a numeric
@@ -1151,12 +1207,13 @@ ensure_minimum_exponent_length(char *buffer, size_t buf_size)
  * any leading or trailing whitespace. Assumes that the decimal point
  * is '.'.
  */
-static inline void
-remove_trailing_zeros(char *buffer)
+static inline int
+remove_trailing_zeros(struct sol_buffer *buffer)
 {
     char *old_fraction_end, *new_fraction_end, *end, *p;
+    struct sol_str_slice slice;
 
-    p = buffer;
+    p = buffer->data;
     if (*p == '-' || *p == '+')
         /* Skip leading sign, if present */
         ++p;
@@ -1165,7 +1222,7 @@ remove_trailing_zeros(char *buffer)
 
     /* if there's no decimal point there's nothing to do */
     if (*p++ != '.')
-        return;
+        return 0;
 
     /* scan any digits after the point */
     while (isdigit(*p))
@@ -1187,7 +1244,10 @@ remove_trailing_zeros(char *buffer)
         --p;
     new_fraction_end = p;
 
-    memmove(new_fraction_end, old_fraction_end, end - old_fraction_end);
+    slice = SOL_STR_SLICE_STR(old_fraction_end, end - old_fraction_end);
+
+    return sol_buffer_set_slice_at
+               (buffer, new_fraction_end - (char *)buffer->data, slice);
 }
 
 /*
@@ -1196,18 +1256,17 @@ remove_trailing_zeros(char *buffer)
  * a decimal point if an exponent is present. Also, convert to
  * exponential notation where adding a '.0' would produce too many
  * significant digits.
- *
- * Returns a pointer to the fixed buffer, or NULL on failure.
  */
-static inline char *
-ensure_decimal_point(char *buffer, size_t buf_size, int precision)
+static inline int
+ensure_decimal_point(struct sol_buffer *buffer, int precision)
 {
     int digit_count, insert_count = 0, convert_to_exp = 0;
     const char *chars_to_insert;
     char *digits_start;
 
     /* search for the first non-digit character */
-    char *p = buffer;
+    char *p = buffer->data;
+    int r;
 
     /* Skip leading sign, if present. I think this could only ever be
        '-', but it can't hurt to check for both. */
@@ -1246,39 +1305,35 @@ ensure_decimal_point(char *buffer, size_t buf_size, int precision)
         }
     }
     if (insert_count) {
-        size_t buf_len = strlen(buffer);
-        if (buf_len + insert_count + 1 >= buf_size) {
-            /* If there is not enough room in the buffer for the
-               additional text, just skip it. It's not worth
-               generating an error over. */
-        } else {
-            memmove(p + insert_count, p, buffer + strlen(buffer) - p + 1);
-            memcpy(p, chars_to_insert, insert_count);
-        }
+        struct sol_str_slice slice = SOL_STR_SLICE_STR
+                (chars_to_insert, insert_count);
+        r = sol_buffer_insert_slice(buffer, p - (char *)buffer->data, slice);
+        SOL_INT_CHECK(r, < 0, r);
     }
+
     if (convert_to_exp) {
-        int written;
-        size_t buf_avail;
+        static struct sol_str_slice slice = SOL_STR_SLICE_LITERAL(".");
+
         p = digits_start;
         /* insert decimal point */
         assert(digit_count >= 1);
-        memmove(p + 2, p + 1, digit_count); /* safe, but overwrites nul */
-        p[1] = '.';
+
+        r = sol_buffer_insert_slice(buffer, p - (char *)buffer->data + 1,
+            slice);
+        SOL_INT_CHECK(r, < 0, r);
+
         p += digit_count + 1;
-        assert(p <= buf_size + buffer);
-        buf_avail = buf_size + buffer - p;
-        if (buf_avail == 0)
-            return NULL;
         /* Add exponent. It's okay to use lower case 'e': we only
            arrive here as a result of using the empty format code or
            repr/str builtins and those never want an upper case 'E' */
-        written = snprintf(p, buf_avail, "e%+.02d", digit_count - 1);
-        if (!(0 <= written && written < (int)buf_avail))
-            /* output truncated, or something else bad happened */
-            return NULL;
-        remove_trailing_zeros(buffer);
+        r = sol_buffer_insert_printf(buffer, p - (char *)buffer->data,
+            "e%+.02d", digit_count - 1);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = remove_trailing_zeros(buffer);
+        SOL_INT_CHECK(r, < 0, r);
     }
-    return buffer;
+    return 0;
 }
 
 #define FLOAT_FORMATBUFLEN 120
@@ -1303,12 +1358,12 @@ ensure_decimal_point(char *buffer, size_t buf_size, int precision)
  * Return value: 0 on success, negative error code otherwise.
  **/
 static int
-ascii_format_double(char **buffer,
-    size_t buf_size,
+ascii_format_double(struct sol_buffer *buffer,
     const char *format,
     double d,
     int precision)
 {
+    int r;
     char format_char;
     size_t format_len = strlen(format);
 
@@ -1347,44 +1402,48 @@ ascii_format_double(char **buffer,
 
     #pragma GCC diagnostic ignored "-Wformat-nonliteral"
     /* Have snprintf do the hard work */
-    snprintf(*buffer, buf_size, format, d);
+    r = sol_buffer_append_printf(buffer, format, d);
+    SOL_INT_CHECK(r, < 0, r);
     #pragma GCC diagnostic warning "-Wformat-nonliteral"
 
     /* Do various fixups on the return string */
 
     /* Get the current locale, and find the decimal point string.
        Convert that string back to a dot. */
-    change_decimal_from_locale_to_dot(*buffer);
+    r = change_decimal_from_locale_to_dot(buffer);
+    SOL_INT_CHECK(r, < 0, r);
 
     /* If an exponent exists, ensure that the exponent is at least
        MIN_EXPONENT_DIGITS digits, providing the buffer is large
        enough for the extra zeros. Also, if there are more than
        MIN_EXPONENT_DIGITS, remove as many zeros as possible until we
        get back to MIN_EXPONENT_DIGITS */
-    ensure_minimum_exponent_length(*buffer, buf_size);
+    r = ensure_minimum_exponent_length(buffer);
+    SOL_INT_CHECK(r, < 0, r);
 
     /* If format_char is 'Z', make sure we have at least one character
        after the decimal point (and make sure we have a decimal
        point); also switch to exponential notation in some edge cases
        where the extra character would produce more significant digits
        that we really want. */
-    if (format_char == 'Z')
-        *buffer = ensure_decimal_point(*buffer, buf_size, precision);
+    if (format_char == 'Z') {
+        r = ensure_decimal_point(buffer, precision);
+        SOL_INT_CHECK(r, < 0, r);
+    }
 
     return 0;
 }
 
-static char *
-double_to_string(double val,
+static int
+double_to_buffer(double val,
     char format_code,
     int precision,
     int flags,
-    int *type)
+    int *type,
+    struct sol_buffer *out)
 {
+    int t, r;
     char format[32];
-    ssize_t bufsize;
-    char *buf;
-    int t, exp;
     bool upper = false;
 
     /* Validate format_code, and map upper and lower case */
@@ -1407,69 +1466,25 @@ double_to_string(double val,
         break;
     //No 'r' case here
     default:
-        return NULL;
+        return -EINVAL;
     }
-
-    /* Here's a quick-and-dirty calculation to figure out how big a
-     * buffer we need. In general, for a finite float we need:
-     *
-     *   1 byte for each digit of the decimal significand, and
-     *
-     *   1 for a possible sign
-     *   1 for a possible decimal point
-     *   2 for a possible [eE][+-]
-     *   1 for each digit of the exponent; if we allow 19 digits
-     *     total then we're safe up to exponents of 2**63.
-     *   1 for the trailing nul byte
-     *
-     * This gives a total of 24 + the number of digits in the
-     * significand, and the number of digits in the significand is:
-     *
-     *   for 'g' format: at most precision, except possibly
-     *     when precision == 0, when it's 1.
-     *   for 'e' format: precision+1
-     *   for 'f' format: precision digits after the point, at least 1
-     *   before. To figure out how many digits appear before the point
-     *   we have to examine the size of the number. If fabs(val) < 1.0
-     *   then there will be only one digit before the point. If
-     *   fabs(val) >= 1.0, then there are at most
-     *
-     *   1+floor(log10(ceiling(fabs(val))))
-     *
-     *   digits before the point (where the 'ceiling' allows for the
-     *   possibility that the rounding rounds the integer part of val
-     *   up). A safe upper bound for the above quantity is
-     *   1+floor(exp/3), where exp is the unique integer such that 0.5
-     *   <= fabs(val)/2**exp < 1.0. This exp can be obtained from
-     *   frexp.
-     *
-     * So we allow room for precision+1 digits for all formats, plus
-     * an extra floor(exp/3) digits for 'f' format.
-     */
-
-    if (fpclassify(val) == FP_NAN || fpclassify(val) == FP_INFINITE) {
-        /* 3 for 'inf'/'nan', 1 for sign, 1 for '\0' */
-        bufsize = 5;
-    } else {
-        bufsize = 25 + precision;
-        if (format_code == 'f' && fabs(val) >= 1.0) {
-            frexp(val, &exp);
-            bufsize += exp / 3;
-        }
-    }
-
-    buf = calloc(1, bufsize);
-    SOL_NULL_CHECK(buf, NULL);
 
     /* Handle nan and inf. */
     if (fpclassify(val) == FP_NAN) {
-        strcpy(buf, "nan");
+        static struct sol_str_slice slice = SOL_STR_SLICE_LITERAL("nan");
+        r = sol_buffer_append_slice(out, slice);
+        SOL_INT_CHECK(r, < 0, r);
         t = DTST_NAN;
     } else if (fpclassify(val) == FP_INFINITE) {
-        if (sol_drange_val_equal(copysign(1., val), 1.))
-            strcpy(buf, "inf");
-        else
-            strcpy(buf, "-inf");
+        if (sol_drange_val_equal(copysign(1., val), 1.)) {
+            static struct sol_str_slice slice = SOL_STR_SLICE_LITERAL("nan");
+            r = sol_buffer_append_slice(out, slice);
+            SOL_INT_CHECK(r, < 0, r);
+        } else {
+            static struct sol_str_slice slice = SOL_STR_SLICE_LITERAL("nan");
+            r = sol_buffer_append_slice(out, slice);
+            SOL_INT_CHECK(r, < 0, r);
+        }
         t = DTST_INFINITE;
     } else {
         t = DTST_FINITE;
@@ -1478,40 +1493,38 @@ double_to_string(double val,
 
         snprintf(format, sizeof(format), "%%%s.%i%c",
             (flags & DTSF_ALT ? "#" : ""), precision, format_code);
-        ascii_format_double(&buf, bufsize, format, val, precision);
+        r = ascii_format_double(out, format, val, precision);
+        SOL_INT_CHECK(r, < 0, r);
     }
 
     /* Add sign when requested.  It's convenient (esp. when formatting
        complex numbers) to include a sign even for inf and nan. */
-    if (flags & DTSF_SIGN && buf[0] != '-') {
-        size_t len = strlen(buf);
-        /* the bufsize calculations above should ensure that we've got
-           space to add a sign */
-        assert((size_t)bufsize >= len + 2);
-        memmove(buf + 1, buf, len + 1);
-        buf[0] = '+';
+    if (flags & DTSF_SIGN && *(char *)sol_buffer_at(out, 0) != '-') {
+        static struct sol_str_slice slice = SOL_STR_SLICE_LITERAL("+");
+        r = sol_buffer_insert_slice(out, 0, slice);
+        SOL_INT_CHECK(r, < 0, r);
     }
     if (upper) {
         /* Convert to upper case. */
         char *p1;
-        for (p1 = buf; *p1; p1++)
+        for (p1 = (char *)sol_buffer_at(out, 0); *p1; p1++)
             *p1 = toupper(*p1);
     }
 
     if (type)
         *type = t;
-    return buf;
+
+    return 0;
 }
 
-static char *
-string_alloc_init(const char *buffer, size_t size)
+static int
+buf_append(struct sol_buffer *buffer, struct sol_str_slice from)
 {
-    char *out = calloc(1, size);
+    int r = sol_buffer_append_slice(buffer, from);
 
-    SOL_NULL_CHECK(out, NULL);
-    memcpy(out, buffer, size);
+    SOL_INT_CHECK(r, < 0, r);
 
-    return out;
+    return 0;
 }
 
 static void
@@ -1519,7 +1532,7 @@ parse_number(char *s,
     ssize_t pos,
     ssize_t end,
     ssize_t *n_remainder,
-    int *has_decimal)
+    bool *has_decimal)
 {
     ssize_t remainder;
 
@@ -1538,27 +1551,29 @@ parse_number(char *s,
 }
 
 static int
-float_format_do(struct string_converter *mdata,
+float_format_append_do(struct string_converter *mdata,
     double in_value,
     const struct format_spec_data *format,
-    char **out_value)
+    struct sol_buffer *out)
 {
-    char *buf = NULL;
-    ssize_t n_digits;
-    ssize_t n_remainder;
-    ssize_t n_total;
-    int has_decimal;
-    double val;
+    struct sol_buffer digits = SOL_BUFFER_INIT_EMPTY;
+    struct sol_buffer tmp = SOL_BUFFER_INIT_EMPTY;
     int precision, default_precision = 6;
+    struct number_field_widths spec;
     char type = format->type;
+    char sign_char = '\0';
+    int result = -EINVAL;
+    ssize_t n_remainder;
+    ssize_t n_digits;
+    bool has_decimal;
     int add_pct = 0;
     ssize_t index;
-    struct number_field_widths spec;
     int flags = 0;
-    int result = -EINVAL;
-    char sign_char = '\0';
-    int float_type; /* Used to see if we have a nan, inf, or regular float. */
-    char *tmp = NULL;
+    double val;
+    int r;
+
+    int float_type; /* Used to see if we have a nan, inf, or regular
+                     * float. */
 
     /* Locale settings, either from the actual locale or
        from a hard-coded pseudo-locale */
@@ -1600,16 +1615,18 @@ float_format_do(struct string_converter *mdata,
     else if (type == 'r')
         type = 'g';
 
-    buf = double_to_string(val, (char)type, precision, flags, &float_type);
-    if (buf == NULL)
-        goto done;
-    n_digits = strlen(buf);
+    r = double_to_buffer(val, (char)type, precision, flags, &float_type,
+        &digits);
+    SOL_INT_CHECK_GOTO(r, < 0, done);
+    n_digits = digits.used;
 
     if (add_pct) {
-        /* We know that buf has a trailing zero (since we just called
-           strlen() on it), and we don't use that fact any more. So we
-           can just write over the trailing zero. */
-        buf[n_digits] = '%';
+        static struct sol_str_slice slice = SOL_STR_SLICE_LITERAL("%");
+        r = sol_buffer_append_slice(&digits, slice);
+        if (r < 0) {
+            sol_buffer_fini(&digits);
+            goto done;
+        }
         n_digits += 1;
     }
 
@@ -1619,26 +1636,25 @@ float_format_do(struct string_converter *mdata,
         && format->type != 'n'
         && !format->thousands_separators) {
         /* Fast path */
-        *out_value = string_alloc_init(buf, n_digits + 1); //one more for \0
-        if (!*out_value) {
-            free(buf);
+        r = buf_append(out, sol_buffer_get_slice(&digits));
+        if (r < 0) {
+            sol_buffer_fini(&digits);
             return -ENOMEM;
         }
-        free(buf);
+        sol_buffer_fini(&digits);
         return 0;
     }
 
-    /* Since there is no char * version of double_to_string, just use
+    /* Since there is no char * version of double_to_buffer, just use
        the 8 bit version and then convert to char *. */
-    tmp = string_alloc_init(buf, n_digits);
-    free(buf);
-    if (tmp == NULL)
-        goto done;
+    r = buf_append(&tmp, sol_buffer_get_slice(&digits));
+    sol_buffer_fini(&digits);
+    SOL_INT_CHECK_GOTO(r, < 0, done);
 
     /* Is a sign character present in the output? If so, remember it
        and skip it */
     index = 0;
-    if (tmp[index] == '-') {
+    if (*(char *)sol_buffer_at(&tmp, index) == '-') {
         sign_char = '-';
         ++index;
         --n_digits;
@@ -1646,7 +1662,8 @@ float_format_do(struct string_converter *mdata,
 
     /* Determine if we have any "remainder" (after the digits, might
        include decimal or exponent or both (or neither)) */
-    parse_number(tmp, index, index + n_digits, &n_remainder, &has_decimal);
+    parse_number(tmp.data, index, index + n_digits, &n_remainder,
+        &has_decimal);
 
     /* Determine the grouping, separator, and decimal point, if any. */
     if (get_locale_info(format->type == 'n' ? LT_CURRENT_LOCALE :
@@ -1654,20 +1671,15 @@ float_format_do(struct string_converter *mdata,
         &locale) == -1)
         goto done;
 
-    /* Calculate how much memory we'll need. */
-    n_total = calc_number_widths(&spec, 0, sign_char, tmp, index,
-        index + n_digits, n_remainder, has_decimal,
-        &locale, format);
-
-    *out_value = calloc(n_total + 1, sizeof(char));
-    SOL_NULL_CHECK_GOTO(out_value, done);
+    calc_number_spec(&spec, 0, sign_char, index,
+        index + n_digits, n_remainder, has_decimal, &locale, format);
 
     /* Populate the memory. */
-    result = fill_number(out_value, &spec, tmp, index, index + n_digits,
-        NULL, 0, format->fill_char, &locale, 0);
+    result = append_number(out, &spec, tmp.data, index, index + n_digits,
+        NULL, 0, format->fill_char, &locale, false);
 
 done:
-    free(tmp);
+    sol_buffer_fini(&tmp);
     return result;
 }
 
@@ -1688,10 +1700,10 @@ unknown_presentation_type(struct string_converter *mdata,
 }
 
 static int
-float_format(struct string_converter *mdata,
+float_format_append(struct string_converter *mdata,
     double in_value,
     struct sol_str_slice *format_spec,
-    char **out_value)
+    struct sol_buffer *out)
 {
     struct sol_str_slice *fs = format_spec;
     struct sol_str_slice def = { .data = "f", .len = 1 };
@@ -1722,7 +1734,7 @@ float_format(struct string_converter *mdata,
     case 'n':
     case '%':
         /* no conversion, already a float. do the formatting */
-        return float_format_do(mdata, in_value, &format, out_value);
+        return float_format_append_do(mdata, in_value, &format, out);
 
     default:
         /* unknown */
@@ -1735,10 +1747,10 @@ done:
 }
 
 static int
-int32_format(struct string_converter *mdata,
+int32_format_append(struct string_converter *mdata,
     int32_t in_value,
     struct sol_str_slice *format_spec,
-    char **out_value)
+    struct sol_buffer *out)
 {
     struct format_spec_data format;
     int ret = -EINVAL;
@@ -1749,7 +1761,7 @@ int32_format(struct string_converter *mdata,
     /* check for the special case of zero length format spec (as in
        "{:}"), make it equivalent to "{:d}" */
     if (!format_spec->len)
-        return int32_format_base(in_value, 10, 0, out_value);
+        return int32_format_base_append(in_value, 10, 0, out);
 
     /* parse the format_spec */
     ret = parse_internal_render_format_spec
@@ -1766,7 +1778,7 @@ int32_format(struct string_converter *mdata,
     case 'X':
     case 'n':
         /* no type conversion needed, already an int. do the formatting */
-        ret = int32_format_do(mdata, in_value, &format, out_value);
+        ret = int32_format_append_do(mdata, in_value, &format, out);
         break;
 
     case 'e':
@@ -1777,7 +1789,7 @@ int32_format(struct string_converter *mdata,
     case 'G':
     case '%':
         /* convert to float */
-        ret = float_format_do(mdata, (double)in_value, &format, out_value);
+        ret = float_format_append_do(mdata, (double)in_value, &format, out);
         break;
 
     default:
@@ -2148,33 +2160,27 @@ end:
     return obj;
 }
 
-/* given:
- *
- * {field_name:format_spec}
- *
- * compute the result and write it to out_value. field_name is allowed
- * to be zero length, in which case we are doing auto field numbering.
+/*
+ * Given: {field_name:format_spec}, compute the result and append it
+ * it to out buffer. field_name is allowed to have zero length, in
+ * which case we are doing auto field numbering.
  */
 static int
-output_integer_markup(struct string_converter *mdata,
+append_integer_markup(struct string_converter *mdata,
     struct sol_str_slice *field_name,
     struct sol_str_slice *format_spec,
     struct sol_irange *args,
     struct auto_number *auto_number,
-    char **out_value)
+    struct sol_buffer *out)
 {
     int32_t *field_obj = NULL;
-    int result = -EINVAL;
 
     /* convert field_name to an actual int32_t ptr */
     field_obj = get_integer_field(mdata, field_name, args, auto_number);
     if (field_obj == NULL)
-        return result;
+        return -EINVAL;
 
-    result = int32_format(mdata, *field_obj, format_spec, out_value);
-    SOL_INT_CHECK(result, < 0, result);
-
-    return result;
+    return int32_format_append(mdata, *field_obj, format_spec, out);
 }
 
 int
@@ -2182,54 +2188,31 @@ do_integer_markup(struct string_converter *mdata,
     const char *format,
     struct sol_irange *args,
     struct auto_number *auto_number,
-    char **out_value)
+    struct sol_buffer *out)
 {
     struct sol_str_slice format_spec = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice field_name = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice literal = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice iter;
     bool field_present;
-    size_t size = 1; //reserve the null byte space
     int result;
 
     iter = SOL_STR_SLICE_STR(format, strlen(format));
 
     while ((result = markup_iterator_next(mdata, &iter, &literal, &field_name,
             &format_spec, &field_present)) == 1) {
-        char *tmp_out = NULL, *tmp = NULL;
         int r;
 
         /* literal sub string in format, no markup */
         if (literal.len > 0) {
-            tmp = realloc(*out_value, size + literal.len);
-            if (!tmp)
-                return -ENOMEM;
-
-            *out_value = tmp;
-            strncpy((*out_value) + size - 1, literal.data, literal.len);
-
-            size += literal.len;
-            (*out_value)[size - 1] = '\0';
+            r = sol_buffer_append_slice(out, literal);
+            SOL_INT_CHECK(r, < 0, r);
         }
 
         if (field_present) {
-            size_t tmp_sz;
-
-            r = output_integer_markup(mdata, &field_name, &format_spec, args,
-                auto_number, &tmp_out);
+            r = append_integer_markup(mdata, &field_name, &format_spec, args,
+                auto_number, out);
             SOL_INT_CHECK(r, < 0, r);
-            tmp_sz = strlen(tmp_out);
-
-            tmp = realloc(*out_value, size + tmp_sz);
-            if (!tmp)
-                return -ENOMEM;
-
-            *out_value = tmp;
-            strncpy((*out_value) + size - 1, tmp_out, tmp_sz);
-            free(tmp_out);
-
-            size += tmp_sz;
-            (*out_value)[size - 1] = '\0';
         }
     }
 
@@ -2244,25 +2227,21 @@ do_integer_markup(struct string_converter *mdata,
  * to be zero length, in which case we are doing auto field numbering.
  */
 static int
-output_float_markup(struct string_converter *mdata,
+append_float_markup(struct string_converter *mdata,
     struct sol_str_slice *field_name,
     struct sol_str_slice *format_spec,
     struct sol_drange *args,
     struct auto_number *auto_number,
-    char **out_value)
+    struct sol_buffer *out)
 {
     double *field_obj = NULL;
-    int result = -EINVAL;
 
     /* convert field_name to an actual float_t ptr */
     field_obj = get_float_field(mdata, field_name, args, auto_number);
     if (field_obj == NULL)
-        return result;
+        return -EINVAL;
 
-    result = float_format(mdata, *field_obj, format_spec, out_value);
-    SOL_INT_CHECK(result, < 0, result);
-
-    return result;
+    return float_format_append(mdata, *field_obj, format_spec, out);
 }
 
 int
@@ -2270,54 +2249,31 @@ do_float_markup(struct string_converter *mdata,
     const char *format,
     struct sol_drange *args,
     struct auto_number *auto_number,
-    char **out_value)
+    struct sol_buffer *out)
 {
     struct sol_str_slice format_spec = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice field_name = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice literal = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice iter;
     bool field_present;
-    size_t size = 1; //reserve the null byte space
     int result;
 
     iter = SOL_STR_SLICE_STR(format, strlen(format));
 
     while ((result = markup_iterator_next(mdata, &iter, &literal, &field_name,
             &format_spec, &field_present)) == 1) {
-        char *tmp_out = NULL, *tmp = NULL;
         int r;
 
         /* literal sub string in format, no markup */
         if (literal.len > 0) {
-            tmp = realloc(*out_value, size + literal.len);
-            if (!tmp)
-                return -ENOMEM;
-
-            *out_value = tmp;
-            strncpy((*out_value) + size - 1, literal.data, literal.len);
-
-            size += literal.len;
-            (*out_value)[size - 1] = '\0';
+            r = sol_buffer_append_slice(out, literal);
+            SOL_INT_CHECK(r, < 0, r);
         }
 
         if (field_present) {
-            size_t tmp_sz;
-
-            r = output_float_markup(mdata, &field_name, &format_spec, args,
-                auto_number, &tmp_out);
+            r = append_float_markup(mdata, &field_name, &format_spec, args,
+                auto_number, out);
             SOL_INT_CHECK(r, < 0, r);
-            tmp_sz = strlen(tmp_out);
-
-            tmp = realloc(*out_value, size + tmp_sz);
-            if (!tmp)
-                return -ENOMEM;
-
-            *out_value = tmp;
-            strncpy((*out_value) + size - 1, tmp_out, tmp_sz);
-            free(tmp_out);
-
-            size += tmp_sz;
-            (*out_value)[size - 1] = '\0';
         }
     }
 
