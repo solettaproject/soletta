@@ -1,0 +1,91 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "led-7seg",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD 3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "output/hw",
+      "description": "Receives packages with values to be displayed on 7-segments display",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Define segments to be on and off. The order expected by the display for each bit is 'abcdefgX', where X is the DP, as described in http://en.wikipedia.org/wiki/Seven-segment_display_character_representations.",
+          "methods": {
+            "process": "segments_set"
+          },
+          "name": "SEGMENTS"
+        },
+        {
+          "data_type": "int",
+          "description": "Set value to be displayed.",
+          "methods": {
+            "process": "value_set"
+          },
+          "name": "VALUE"
+        }
+      ],
+      "methods": {
+        "close": "led_close",
+        "open": "led_open"
+      },
+      "name": "led-7seg/led",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Set this option to true if type of led is common cathode or set it to false if it's common anode (it'll invert gpio low and high states).",
+            "name": "common_cathode"
+          },
+          {
+            "data_type": "int",
+            "description": "Pin used to set segment 'A' state.",
+            "name": "pin_a"
+          },
+          {
+            "data_type": "int",
+            "description": "Pin used to set segment 'B' state.",
+            "name": "pin_b"
+          },
+          {
+            "data_type": "int",
+            "description": "Pin used to set segment 'C' state.",
+            "name": "pin_c"
+          },
+          {
+            "data_type": "int",
+            "description": "Pin used to set segment 'D' state.",
+            "name": "pin_d"
+          },
+          {
+            "data_type": "int",
+            "description": "Pin used to set segment 'E' state.",
+            "name": "pin_e"
+          },
+          {
+            "data_type": "int",
+            "description": "Pin used to set segment 'F' state.",
+            "name": "pin_f"
+          },
+          {
+            "data_type": "int",
+            "description": "Pin used to set segment 'G' state.",
+            "name": "pin_g"
+          },
+          {
+            "data_type": "int",
+            "description": "Pin used to set segment 'DP' state.",
+            "name": "pin_dp"
+          }
+        ],
+        "version": 1
+      },
+      "private_data_type": "led_7seg_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/led_7seg/led.html"
+    }
+  ]
+}
