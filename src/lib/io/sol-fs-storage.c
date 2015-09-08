@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "fs-storage.h"
+#include "sol-fs-storage.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -44,11 +44,14 @@
 #include "sol-util.h"
 #include "sol-util-file.h"
 
-int
-fs_write_raw(const char *name, const struct sol_buffer *buffer)
+SOL_API int
+sol_fs_write_raw(const char *name, const struct sol_buffer *buffer)
 {
     FILE *file;
     int ret = 0;
+
+    SOL_NULL_CHECK(name, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
     file = fopen(name, "w+e");
     if (!file) {
@@ -70,10 +73,13 @@ fs_write_raw(const char *name, const struct sol_buffer *buffer)
     return ret;
 }
 
-int
-fs_read_raw(const char *name, struct sol_buffer *buffer)
+SOL_API int
+sol_fs_read_raw(const char *name, struct sol_buffer *buffer)
 {
     int r, fd;
+
+    SOL_NULL_CHECK(name, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
     fd = open(name, O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
