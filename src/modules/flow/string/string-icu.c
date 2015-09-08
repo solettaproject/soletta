@@ -802,15 +802,6 @@ string_replace_open(struct sol_flow_node *node,
     }
     mdata->max_replace = opts->max_replace.val ? : INT32_MAX;
 
-    if (!opts->from_string) {
-        SOL_WRN("Option 'from_string' must not be NULL");
-        return -EINVAL;
-    }
-    if (!opts->to_string) {
-        SOL_WRN("Option 'to_string' must not be NULL");
-        return -EINVAL;
-    }
-
     r = icu_str_from_utf8(opts->from_string, &mdata->from_string, &err);
     SOL_INT_CHECK(r, < 0, r);
 
