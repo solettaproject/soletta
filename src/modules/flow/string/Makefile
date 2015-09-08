@@ -1,7 +1,8 @@
-#  The string node implementation is split in three files, namely:
+#  The string node implementation is split in the following files:
 #  - string-{icu,ascii}.c
 #  - string-replace-{icu,ascii}.c
 #  - string-regexp.c
+#  - string-uuid.c
 #
 #  string-regexp.c contains the code for nodes dealing with regular
 #  expressions and only one RE backend is supported: libpcre. If that
