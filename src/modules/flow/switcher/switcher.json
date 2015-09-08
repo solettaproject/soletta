@@ -653,6 +653,76 @@
       ],
       "private_data_type": "switcher_data",
       "url": "http://solettaproject.org/doc/latest/node_types/switcher/string.html"
+    },
+    {
+      "category": "switcher",
+      "description": "Forward timestamp packets on to output port set by index.",
+      "in_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Where to receive the timestamp packet to be forwarded.",
+          "methods": {
+            "process": "timestamp_forward"
+          },
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of output port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_output_index"
+          },
+          "name": "OUT_PORT"
+        }
+      ],
+      "methods": {
+        "open": "switcher_open"
+      },
+      "name": "switcher/timestamp",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "out_port"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "Forwarded timestamp packets.",
+          "name": "OUT[256]"
+        }
+      ],
+      "private_data_type": "switcher_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/switcher/timestamp.html"
     }
   ]
 }
