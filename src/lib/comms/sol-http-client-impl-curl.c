@@ -131,7 +131,7 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
     long response_code;
     char *tmp;
 
-    if (!connection->cb)
+    if (sol_ptr_vector_remove(&global.connections, connection) < 0)
         return;
 
     if (connection->error) {
@@ -168,7 +168,7 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
 
 out:
     connection->cb((void *)connection->data, connection, param);
-    connection->cb = NULL; /* Don't call again. */
+    destroy_connection(connection);
 }
 
 static size_t
@@ -295,10 +295,6 @@ error_cb(void *data)
     struct sol_http_client_connection *connection = data;
 
     call_connection_finish_cb(connection);
-
-    sol_ptr_vector_remove(&global.connections, connection);
-
-    destroy_connection(connection);
 
     return false;
 }
