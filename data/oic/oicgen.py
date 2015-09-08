@@ -1414,6 +1414,7 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
     if (!hwaddr)
         return -EINVAL;
 
+    resource->client.api_version = SOL_OIC_CLIENT_API_VERSION;
     resource->client.server = sol_coap_server_new(0);
     SOL_NULL_CHECK(resource->client.server, -ENOMEM);
 

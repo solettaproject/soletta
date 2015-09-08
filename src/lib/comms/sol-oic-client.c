@@ -277,6 +277,8 @@ _find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_li
 
     res->refcnt = 1;
 
+    res->api_version = SOL_OIC_RESOURCE_API_VERSION;
+
     if (_parse_resource_reply_payload(res, payload, payload_len)) {
         res->observable = res->observable || _has_observable_option(req);
         res->addr = *cliaddr;
