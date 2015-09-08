@@ -30,124 +30,129 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#pragma once
+
 #include <stddef.h>
 #include <stdint.h>
 
 #include "sol-buffer.h"
 #include "sol-types.h"
 
-int efivars_write_raw(const char *name, struct sol_buffer *buffer);
-int efivars_read_raw(const char *name, struct sol_buffer *buffer);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int sol_efivars_write_raw(const char *name, struct sol_buffer *buffer);
+int sol_efivars_read_raw(const char *name, struct sol_buffer *buffer);
 
 #define CREATE_BUFFER(_val, _empty) \
-    struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(_val,\
-        sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED); \
-    buf.capacity = sizeof(*(_val)); \
+    struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(_val, \
+    sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED); \
     buf.used = (_empty) ? 0 : sizeof(*(_val));
 
 static inline int
-efivars_read_uint8_t(const char *name, uint8_t *value)
+sol_efivars_read_uint8(const char *name, uint8_t *value)
 {
     CREATE_BUFFER(value, true);
 
-    return efivars_read_raw(name, &buf);
+    return sol_efivars_read_raw(name, &buf);
 }
 
 static inline int
-efivars_write_uint8_t(const char *name, uint8_t value)
+sol_efivars_write_uint8(const char *name, uint8_t value)
 {
     CREATE_BUFFER(&value, false);
 
-    return efivars_write_raw(name, &buf);
+    return sol_efivars_write_raw(name, &buf);
 }
 
 static inline int
-efivars_read_bool(const char *name, bool *value)
+sol_efivars_read_bool(const char *name, bool *value)
 {
     CREATE_BUFFER(value, true);
 
-    return efivars_read_raw(name, &buf);
+    return sol_efivars_read_raw(name, &buf);
 }
 
 static inline int
-efivars_write_bool(const char *name, bool value)
+sol_efivars_write_bool(const char *name, bool value)
 {
     CREATE_BUFFER(&value, false);
 
-    return efivars_write_raw(name, &buf);
+    return sol_efivars_write_raw(name, &buf);
 }
 
 static inline int
-efivars_read_int32_t(const char *name, int32_t *value)
+sol_efivars_read_int32(const char *name, int32_t *value)
 {
     CREATE_BUFFER(value, true);
 
-    return efivars_read_raw(name, &buf);
+    return sol_efivars_read_raw(name, &buf);
 }
 
 static inline int
-efivars_write_int32_t(const char *name, int32_t value)
+sol_efivars_write_int32(const char *name, int32_t value)
 {
     CREATE_BUFFER(&value, false);
 
-    return efivars_write_raw(name, &buf);
+    return sol_efivars_write_raw(name, &buf);
 }
 
 static inline int
-efivars_read_irange(const char *name, struct sol_irange *value)
+sol_efivars_read_irange(const char *name, struct sol_irange *value)
 {
     CREATE_BUFFER(value, true);
 
-    return efivars_read_raw(name, &buf);
+    return sol_efivars_read_raw(name, &buf);
 }
 
 static inline int
-efivars_write_irange(const char *name, struct sol_irange *value)
+sol_efivars_write_irange(const char *name, struct sol_irange *value)
 {
     CREATE_BUFFER(value, false);
 
-    return efivars_write_raw(name, &buf);
+    return sol_efivars_write_raw(name, &buf);
 }
 
 static inline int
-efivars_read_drange(const char *name, struct sol_drange *value)
+sol_efivars_read_drange(const char *name, struct sol_drange *value)
 {
     CREATE_BUFFER(value, true);
 
-    return efivars_read_raw(name, &buf);
+    return sol_efivars_read_raw(name, &buf);
 }
 
 static inline int
-efivars_write_drange(const char *name, struct sol_drange *value)
+sol_efivars_write_drange(const char *name, struct sol_drange *value)
 {
     CREATE_BUFFER(value, false);
 
-    return efivars_write_raw(name, &buf);
+    return sol_efivars_write_raw(name, &buf);
 }
 
 static inline int
-efivars_read_double(const char *name, double *value)
+sol_efivars_read_double(const char *name, double *value)
 {
     CREATE_BUFFER(value, true);
 
-    return efivars_read_raw(name, &buf);
+    return sol_efivars_read_raw(name, &buf);
 }
 
 static inline int
-efivars_write_double(const char *name, double value)
+sol_efivars_write_double(const char *name, double value)
 {
     CREATE_BUFFER(&value, false);
 
-    return efivars_write_raw(name, &buf);
+    return sol_efivars_write_raw(name, &buf);
 }
 
 static inline int
-efivars_read_string(const char *name, char **value)
+sol_efivars_read_string(const char *name, char **value)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     int r;
 
-    r = efivars_read_raw(name, &buf);
+    r = sol_efivars_read_raw(name, &buf);
     if (r < 0) {
         sol_buffer_fini(&buf);
         return r;
@@ -159,14 +164,18 @@ efivars_read_string(const char *name, char **value)
 }
 
 static inline int
-efivars_write_string(const char *name, const char *value)
+sol_efivars_write_string(const char *name, const char *value)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS((void *)value, strlen(value),
         SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
 
     buf.used = buf.capacity;
 
-    return efivars_write_raw(name, &buf);
+    return sol_efivars_write_raw(name, &buf);
 }
 
 #undef CREATE_BUFFER
+
+#ifdef __cplusplus
+}
+#endif

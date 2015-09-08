@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "efivarfs-storage.h"
+#include "sol-efivarfs-storage.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -62,12 +62,15 @@ check_realpath(const char *path)
     return false;
 }
 
-int
-efivars_write_raw(const char *name, struct sol_buffer *buffer)
+SOL_API int
+sol_efivars_write_raw(const char *name, struct sol_buffer *buffer)
 {
     FILE *file;
     char path[PATH_MAX];
     int r;
+
+    SOL_NULL_CHECK(name, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
     r = snprintf(path, sizeof(path), EFIVARFS_VAR_PATH, name);
     if (r < 0 || r >= PATH_MAX) {
@@ -107,14 +110,17 @@ end:
     return r;
 }
 
-int
-efivars_read_raw(const char *name, struct sol_buffer *buffer)
+SOL_API int
+sol_efivars_read_raw(const char *name, struct sol_buffer *buffer)
 {
     int r, fd;
     char path[PATH_MAX];
     uint32_t b;
     struct sol_buffer attr = SOL_BUFFER_INIT_FLAGS(&b, sizeof(uint32_t),
         SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+
+    SOL_NULL_CHECK(name, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
     r = snprintf(path, sizeof(path), EFIVARFS_VAR_PATH, name);
     if (r < 0 || r >= PATH_MAX) {

@@ -52,3 +52,18 @@ menuconfig USE_PIN_MUX
 source "src/modules/pin-mux/intel-galileo-rev-d/Kconfig"
 source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
 source "src/modules/pin-mux/intel-edison-rev-c/Kconfig"
+
+menuconfig USE_STORAGE
+    bool "Persistence Storage Support"
+    depends on LINUX
+    default y
+
+config USE_FILESYSTEM
+    bool "File system persistence storage"
+    depends on USE_STORAGE
+    default y
+
+config USE_EFIVARS
+    bool "EFI vars persistence storage"
+    depends on USE_STORAGE
+    default y

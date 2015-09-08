@@ -16,6 +16,9 @@ obj-$(USE_I2C) += \
 obj-$(USE_SPI) += \
     io-spi.mod
 
+obj-$(USE_STORAGE) += \
+    io-storage.mod
+
 obj-io-aio-$(USE_AIO) := \
     sol-aio-common.o
 obj-io-aio-$(PLATFORM_RIOTOS) += \
@@ -56,6 +59,11 @@ obj-io-uart-$(PLATFORM_RIOTOS) := \
 obj-io-uart-$(PLATFORM_LINUX) := \
     sol-uart-linux.o
 
+obj-io-storage-$(USE_FILESYSTEM) += \
+    sol-fs-storage.o
+obj-io-storage-$(USE_EFIVARS) += \
+    sol-efivarfs-storage.o
+
 headers-$(USE_AIO) += \
     include/sol-aio.h
 headers-$(USE_GPIO) += \
@@ -68,3 +76,7 @@ headers-$(USE_SPI) += \
     include/sol-spi.h
 headers-$(USE_UART) += \
     include/sol-uart.h
+headers-$(USE_FILESYSTEM) += \
+    include/sol-fs-storage.h
+headers-$(USE_EFIVARS) += \
+    include/sol-efivarfs-storage.h
