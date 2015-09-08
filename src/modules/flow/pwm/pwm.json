@@ -2,7 +2,7 @@
   "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
   "category": "io/hw",
   "author": "Intel Corporation",
-  "license": "BSD 3-Clause",
+  "license": "BSD-3-Clause",
   "description": "PWM",
   "in_ports": [
   {
