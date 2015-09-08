@@ -268,6 +268,154 @@
     },
     {
       "category": "string",
+      "description": "Output a boolean packet indicating whether a given input string starts with a given prefix or not.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String to have a prefix searched for.",
+          "methods": {
+            "process": "string_prefix_suffix_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "Prefix string to be searched on the one received on the 'IN' port.",
+          "methods": {
+            "process": "set_prefix_suffix_sub_str"
+          },
+          "name": "PREFIX"
+        },
+        {
+          "data_type": "int",
+          "description": "Index, on the string received on the 'IN' port, where to start the prefix matching. It must be non-negative. Make sure to use a valid index for the input string.",
+          "methods": {
+            "process": "set_prefix_suffix_start"
+          },
+          "name": "START"
+        },
+        {
+          "data_type": "int",
+          "description": "Index, on the string received on the 'IN' port, where to end the prefix matching. Any negative value means it's not set, i.e. do the matching until the end of the input string. It must not be less than the value set on the 'START' port.",
+          "methods": {
+            "process": "set_prefix_suffix_end"
+          },
+          "name": "END"
+        }
+      ],
+      "methods": {
+        "close": "string_prefix_suffix_close",
+        "open": "string_starts_with_open"
+      },
+      "name": "string/starts-with",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Index where to start the prefix matching. Any negative value means it's not set, i.e. start the matching from the input's start. It must not be greater than the value set for the end index (if that one is non-negative). This value may be overriden by the string received on the 'START' port.",
+            "name": "start"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "Index where to end the prefix matching. Any negative value means it's not set, i.e. do the matching until the end of the input string. It must not be less than the value set for the start index. This value may be overriden by the string received on the 'END' port.",
+            "name": "end"
+          },
+          {
+            "data_type": "string",
+            "description": "Prefix string to be searched on the one received on the 'IN' port. It can be overriden by values received on 'PREFIX' port.",
+            "name": "prefix"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Whether the input string has the indicated prefix or not.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_prefix_suffix_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/starts_with.html"
+    },
+    {
+      "category": "string",
+      "description": "Output a boolean packet indicating whether a given input string ends with a given suffix or not.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "String to have a suffix searched for.",
+          "methods": {
+            "process": "string_prefix_suffix_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "Suffix string to be searched on the one received on the 'IN' port.",
+          "methods": {
+            "process": "set_prefix_suffix_sub_str"
+          },
+          "name": "SUFFIX"
+        },
+        {
+          "data_type": "int",
+          "description": "Index where to start the suffix matching. Any negative value means it's not set, i.e. start the matching from the input's end minus the size of the suffix. It must not be greater than the value set on the 'END' port (if that one is non-negative).",
+          "methods": {
+            "process": "set_prefix_suffix_start"
+          },
+          "name": "START"
+        },
+        {
+          "data_type": "int",
+          "description": "Index, on the string received on the 'IN' port, where to end the suffix matching. Any negative value means it's not set, i.e. do the matching until the end of the input string. It must not be less than the value set on the 'START' port (if that one is non-negative).",
+          "methods": {
+            "process": "set_prefix_suffix_end"
+          },
+          "name": "END"
+        }
+      ],
+      "methods": {
+        "close": "string_prefix_suffix_close",
+        "open": "string_ends_with_open"
+      },
+      "name": "string/ends-with",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "Index where to start the suffix matching. Any negative value means it's not set, i.e. start the matching from the input's end minus the size of the suffix. It must not be greater than the value set for the end index (if that one is non-negative). This value may be overriden by the string received on the 'START' port.",
+            "name": "start"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "Index where to end the suffix matching. Any negative value means it's not set, i.e. end the matching at the input's string end. It must not be less than the value set for the start index (if that one is non-negative). This value may be overriden by the string received on the 'END' port.",
+            "name": "end"
+          },
+          {
+            "data_type": "string",
+            "description": "Suffix string to be searched on the one received on the 'IN' port. It can be overriden by values received on 'SUFFIX' port.",
+            "name": "suffix"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Whether the input string has the indicated suffix or not.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_prefix_suffix_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/ends_with.html"
+    },
+    {
+      "category": "string",
       "description": "Replace a pattern in a string for another.",
       "in_ports": [
         {
