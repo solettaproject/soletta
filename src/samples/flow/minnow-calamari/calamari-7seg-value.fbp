@@ -36,4 +36,3 @@ accumulator(int/accumulator:setup_value=val:0|min:0|max:15|step:1)
 
 timer(wallclock/second) OUT -> INC accumulator
 accumulator OUT -> VALUE seg(SevenSegments)
-

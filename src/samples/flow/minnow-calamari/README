@@ -8,12 +8,14 @@ sol-fbp-runner will read the options from sol-flow.json.
 ### Special note if your Linux Kernel version is >=  3.18.
 
 The following samples make use of GPIOs and require special attention:
- * calamari-7seg.fbp
+ * calamari-7seg-segments.fbp
+ * calamari-7seg-value.fbp
  * calamari-buttons-rgb-led.fbp
  * calamari-rgb-led.fbp
  * calamari-lever.fbp
 
 ### Why?
+
 The GPIO pins numbers have changed in Linux Kernel 3.18,
 the original pin numbers were added by 256.
 
@@ -32,7 +34,3 @@ Basically, there are two methods of doing that:
 contents from sol-flow.json:
         cp sol-flow-new.json sol-flow.json
         sol-fbp-runner example.fbp
-
-
-
-
