@@ -583,16 +583,18 @@ string_replace_open(struct sol_flow_node *node,
         return -EINVAL;
     }
 
-    mdata->from_string = strdup(opts->from_string);
-    if (!opts->from_string) {
-        SOL_WRN("Option 'from_string' must not be NULL");
-        return -ENOMEM;
+    if (!opts->to_string) {
+        SOL_WRN("Option 'to_string' must not be NULL");
+        return -EINVAL;
     }
+
+    mdata->from_string = strdup(opts->from_string);
+    if (!opts->from_string)
+        return -ENOMEM;
 
     mdata->to_string = strdup(opts->to_string);
     if (!opts->to_string) {
         free(mdata->from_string);
-        SOL_WRN("Option 'to_string' must not be NULL");
         return -ENOMEM;
     }
 
