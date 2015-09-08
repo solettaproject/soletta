@@ -83,7 +83,7 @@ for f in $(cat $DIFF_LIST); do
         if [ $(grep -c -m 1 "config.schema" $f) -ne 0 ]; then
             continue;
         fi
-        r=$(grep -c -m 1 "\"license\": \"BSD 3\-Clause\"" $f);
+        r=$(grep -c -m 1 "\"license\": \"BSD-3-Clause\"" $f);
     else
         r=$(grep -c -m 1 "This file is part of the Soletta Project" $f)
     fi
