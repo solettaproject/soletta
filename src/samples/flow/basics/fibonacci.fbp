@@ -79,7 +79,7 @@
 # | zero |OUT---+-->OPERAND[0]|      |ERROR--'  |  .------------------------|------------------'
 # |      |                    | sum  |          |  '          .----------.  |            .-----.
 # `------'   .---+->OPERAND[1]|      |          |  `->OUT_PORT| switcher |OUT[0]         |     |
-#            |   |            `------'OUT-------+---------->IN|          |OUT[1]  +--->IN| fib |
+#            |   |            `------'OUT-------+------->IN[0]|          |OUT[1]  +--->IN| fib |
 #            |   |                              |             `----------' |      |      |     |
 # .------.   `---|------------------------------|--------------------------'      |      `-----'
 # | one  |OUT----+------------------------------+---------------------------------'
@@ -110,7 +110,7 @@ toggle OUT -> IN _(converter/boolean-to-int) OUT -> OUT_PORT switcher
 sum OUT -> IN toggle
 
 # base: sum + last var (switcher does the trick)
-sum OUT -> IN switcher
+sum OUT -> IN[0] switcher
 
 ### output the results
 # first output the '1' only once (since it's a constant)

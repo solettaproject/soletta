@@ -29,21 +29,75 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Write char 'P' on Intel MinnowBoard's Calamari Lure 7-segment display.
+# Write 'Play' on Intel MinnowBoard's Calamari Lure 7-segment display.
 
-Byte(converter/bits-to-byte)
-True(constant/boolean:value=true)
-False(constant/boolean:value=false)
 Led(SevenSegments)
+Timer(timer:interval=2000)
+Switcher(switcher/byte)
+Index(int/accumulator:setup_value=val:0|min:0|max:4)
+
+True(converter/empty-to-boolean:output_value=true)
+False(converter/empty-to-boolean:output_value=false)
+
+ByteOff(converter/empty-to-byte:output_value=0)
+ByteP(converter/bits-to-byte)
+ByteL(converter/bits-to-byte)
+ByteA(converter/bits-to-byte)
+ByteY(converter/bits-to-byte)
+
+
+Timer OUT -> INC Index OUT -> IN_PORT Switcher
+Switcher OUT[0] -> Segments Led
+Timer OUT -> IN ByteOff
+Timer OUT -> IN True
+Timer OUT -> IN False
+
+ByteOff OUT -> IN[0] Switcher
 
 # Create byte to represet char 'P' using bits format: "degabXcf"
-True OUT -> IN[0] Byte
-False OUT -> IN[1] Byte
-False OUT -> IN[2] Byte
-True OUT -> IN[3] Byte
-True OUT -> IN[4] Byte
-True OUT -> IN[5] Byte
-True OUT -> IN[6] Byte
-False OUT -> IN[7] Byte
+True OUT -> IN[0] ByteP
+False OUT -> IN[1] ByteP
+False OUT -> IN[2] ByteP
+True OUT -> IN[3] ByteP
+True OUT -> IN[4] ByteP
+True OUT -> IN[5] ByteP
+True OUT -> IN[6] ByteP
+False OUT -> IN[7] ByteP
 
-Byte OUT -> SEGMENTS Led
+ByteP OUT -> IN[1] Switcher
+
+# Char 'l'
+False OUT -> IN[0] ByteL
+True OUT -> IN[1] ByteL
+False OUT -> IN[2] ByteL
+True OUT -> IN[3] ByteL
+False OUT -> IN[4] ByteL
+False OUT -> IN[5] ByteL
+False OUT -> IN[6] ByteL
+False OUT -> IN[7] ByteL
+
+ByteL OUT -> IN[2] Switcher
+
+# Char 'A'
+True OUT -> IN[0] ByteA
+True OUT -> IN[1] ByteA
+False OUT -> IN[2] ByteA
+True OUT -> IN[3] ByteA
+True OUT -> IN[4] ByteA
+True OUT -> IN[5] ByteA
+True OUT -> IN[6] ByteA
+False OUT -> IN[7] ByteA
+
+ByteA OUT -> IN[3] Switcher
+
+# Char 'y'
+True OUT -> IN[0] ByteY
+True OUT -> IN[1] ByteY
+False OUT -> IN[2] ByteY
+True OUT -> IN[3] ByteY
+False OUT -> IN[4] ByteY
+True OUT -> IN[5] ByteY
+False OUT -> IN[6] ByteY
+True OUT -> IN[7] ByteY
+
+ByteY OUT -> IN[4] Switcher
