@@ -276,6 +276,25 @@ string_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
         in_value);
 }
 
+static int
+timestamp_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct switcher_data *mdata = data;
+    struct timespec in_value;
+    int r;
+
+    if (port != mdata->in_port_index)
+        return 0;
+
+    r = sol_flow_packet_get_timestamp(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_flow_send_timestamp_packet(node,
+        SOL_FLOW_NODE_TYPE_SWITCHER_TIMESTAMP__OUT__OUT_0 +
+        mdata->out_port_index,
+        &in_value);
+}
+
 #undef PORT_MAX
 
 #include "switcher-gen.c"

@@ -38,6 +38,9 @@ const_rgb(constant/rgb:value=255|10|100)
 const_direction_vector(constant/direction-vector:value=255|10|100)
 const_string(constant/string:value="Hello")
 const_error(constant/string:value="Numerical argument out of domain")
+const_timestamp(constant/string:value="2016-09-23T09:30:00")
+conv_timestamp(converter/string-to-timestamp)
+conv_timestamp_str(converter/timestamp-to-string:format="%Y-%m-%dT%H:%M:%S")
 
 hub_boolean(switcher/boolean)
 hub_blob(switcher/blob)
@@ -49,6 +52,7 @@ hub_int(switcher/int)
 hub_rgb(switcher/rgb)
 hub_direction_vector(switcher/direction-vector)
 hub_string(switcher/string)
+hub_timestamp(switcher/timestamp)
 
 empty_to_boolean(converter/empty-to-boolean)
 
@@ -94,6 +98,12 @@ str_to_blob(converter/string-to-blob)
 blob_validator(test/blob-validator:expected="Hello",expect_terminating_null_byte=true)
 const_string OUT -> IN str_to_blob OUT -> IN blob_validator
 blob_validator OUT -> RESULT result_switcher_blob(test/result)
+
+const_timestamp OUT -> IN conv_timestamp
+conv_timestamp OUT -> IN[0] hub_timestamp
+const_timestamp OUT -> IN[0] timestamp_equal(string/compare)
+hub_timestamp OUT[0] -> IN conv_timestamp_str OUT -> IN[1] timestamp_equal
+timestamp_equal EQUAL -> RESULT result_switcher_timestamp(test/result)
 
 const_int OUT -> DIVIDEND div(int/division)
 const_zero(constant/int:value=0) OUT -> DIVISOR div
