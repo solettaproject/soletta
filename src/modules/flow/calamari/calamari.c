@@ -119,6 +119,24 @@ _write_byte(struct sol_flow_node *node, unsigned char byte)
     _latch(node);
 }
 
+// Convert byte from 'abcdefgX' to 'degabXcf'
+static unsigned char
+_convert_order(unsigned char byte)
+{
+    unsigned char conv_byte = 0;
+
+    conv_byte |= (byte & (1 << 7)) >> 3;
+    conv_byte |= (byte & (1 << 6)) >> 3;
+    conv_byte |= (byte & (1 << 5)) >> 4;
+    conv_byte |= (byte & (1 << 4)) << 3;
+    conv_byte |= (byte & (1 << 3)) << 3;
+    conv_byte |= (byte & (1 << 2)) >> 2;
+    conv_byte |= (byte & (1 << 1)) << 4;
+    conv_byte |= (byte & 1) << 2;
+
+    return conv_byte;
+}
+
 static int
 segments_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
@@ -133,7 +151,7 @@ segments_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
 
     r = sol_flow_packet_get_byte(packet, &byte);
     SOL_INT_CHECK(r, < 0, r);
-    _write_byte(node, byte);
+    _write_byte(node, _convert_order(byte));
 
     return 0;
 }

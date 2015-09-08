@@ -171,7 +171,7 @@
       "in_ports": [
         {
           "data_type": "byte",
-          "description": "Define segments to be on and off.",
+          "description": "Define segments to be on and off. The order expected by the display for each bit is 'abcdefgX', where X is the DP, as described in http://en.wikipedia.org/wiki/Seven-segment_display_character_representations.",
           "methods": {
             "process": "segments_set"
           },
@@ -221,7 +221,7 @@
       "in_ports": [
         {
           "data_type": "byte",
-          "description": "Define segments to be on and off.",
+          "description": "Define segments to be on and off. The order expected by the display for each bit is 'abcdefgX', where X is the DP, as described in http://en.wikipedia.org/wiki/Seven-segment_display_character_representations.",
           "methods": {
             "process": "segments_set"
           },
