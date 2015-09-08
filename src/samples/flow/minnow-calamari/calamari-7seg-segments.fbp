@@ -33,7 +33,7 @@
 
 Led(SevenSegments)
 Timer(timer:interval=2000)
-Switcher(switcher/int)
+Switcher(switcher/byte)
 Index(int/accumulator:setup_value=val:0|min:0|max:4)
 
 True(converter/empty-to-boolean:output_value=true)
@@ -47,57 +47,57 @@ ByteY(converter/bits-to-byte)
 
 
 Timer OUT -> INC Index OUT -> IN_PORT Switcher
-Switcher OUT[0] -> Segments Led
+Switcher OUT[0] -> SEGMENTS Led
 Timer OUT -> IN ByteOff
 Timer OUT -> IN True
 Timer OUT -> IN False
 
 ByteOff OUT -> IN[0] Switcher
 
-# Create byte to represet char 'P' using bits format: "degabXcf"
-True OUT -> IN[0] ByteP
-False OUT -> IN[1] ByteP
-False OUT -> IN[2] ByteP
+# Create byte to represet char 'P' using bits format: "abcdefgX"
+False OUT -> IN[0] ByteP
+True OUT -> IN[1] ByteP
+True OUT -> IN[2] ByteP
 True OUT -> IN[3] ByteP
-True OUT -> IN[4] ByteP
-True OUT -> IN[5] ByteP
+False OUT -> IN[4] ByteP
+False OUT -> IN[5] ByteP
 True OUT -> IN[6] ByteP
-False OUT -> IN[7] ByteP
+True OUT -> IN[7] ByteP
 
 ByteP OUT -> IN[1] Switcher
 
 # Char 'l'
 False OUT -> IN[0] ByteL
-True OUT -> IN[1] ByteL
+False OUT -> IN[1] ByteL
 False OUT -> IN[2] ByteL
-True OUT -> IN[3] ByteL
+False OUT -> IN[3] ByteL
 False OUT -> IN[4] ByteL
-False OUT -> IN[5] ByteL
-False OUT -> IN[6] ByteL
+True OUT -> IN[5] ByteL
+True OUT -> IN[6] ByteL
 False OUT -> IN[7] ByteL
 
 ByteL OUT -> IN[2] Switcher
 
 # Char 'A'
-True OUT -> IN[0] ByteA
+False OUT -> IN[0] ByteA
 True OUT -> IN[1] ByteA
-False OUT -> IN[2] ByteA
+True OUT -> IN[2] ByteA
 True OUT -> IN[3] ByteA
-True OUT -> IN[4] ByteA
+False OUT -> IN[4] ByteA
 True OUT -> IN[5] ByteA
 True OUT -> IN[6] ByteA
-False OUT -> IN[7] ByteA
+True OUT -> IN[7] ByteA
 
 ByteA OUT -> IN[3] Switcher
 
 # Char 'y'
-True OUT -> IN[0] ByteY
+False OUT -> IN[0] ByteY
 True OUT -> IN[1] ByteY
-False OUT -> IN[2] ByteY
-True OUT -> IN[3] ByteY
-False OUT -> IN[4] ByteY
+True OUT -> IN[2] ByteY
+False OUT -> IN[3] ByteY
+True OUT -> IN[4] ByteY
 True OUT -> IN[5] ByteY
-False OUT -> IN[6] ByteY
-True OUT -> IN[7] ByteY
+True OUT -> IN[6] ByteY
+False OUT -> IN[7] ByteY
 
 ByteY OUT -> IN[4] Switcher
