@@ -50,40 +50,40 @@ hub_string(switcher/string)
 
 empty_to_boolean(converter/empty-to-boolean)
 
-const_boolean OUT -> IN hub_boolean
+const_boolean OUT -> IN[0] hub_boolean
 const_boolean OUT -> IN[0] and(boolean/and)
 hub_boolean OUT[0] -> IN[1] and
 and OUT -> RESULT result_switcher_boolean(test/result)
 
-const_boolean OUT -> IN hub_empty
+const_boolean OUT -> IN[0] hub_empty
 hub_empty OUT[0] -> IN empty_to_boolean OUT -> RESULT result_switcher_empty(test/result)
 
-const_byte OUT -> IN hub_byte
+const_byte OUT -> IN[0] hub_byte
 const_int OUT -> IN[0] byte_equal(int/equal)
 hub_byte OUT[0] -> IN _(converter/byte-to-int) OUT -> IN[1] byte_equal
 byte_equal OUT -> RESULT result_switcher_byte(test/result)
 
-const_float OUT -> IN hub_float
+const_float OUT -> IN[0] hub_float
 const_float OUT -> IN[0] float_equal(float/equal)
 hub_float OUT[0] -> IN[1] float_equal
 float_equal OUT -> RESULT result_switcher_float(test/result)
 
-const_int OUT -> IN hub_int
+const_int OUT -> IN[0] hub_int
 const_int OUT -> IN[0] int_equal(int/equal)
 hub_int OUT[0] -> IN[1] int_equal
 int_equal OUT -> RESULT result_switcher_int(test/result)
 
-const_rgb OUT -> IN hub_rgb
+const_rgb OUT -> IN[0] hub_rgb
 const_int OUT -> IN[0] rgb_equal
 hub_rgb OUT[0] -> IN _(converter/rgb-to-int) GREEN -> IN[1] rgb_equal(int/equal)
 rgb_equal OUT -> RESULT result_switcher_rgb(test/result)
 
-const_direction_vector OUT -> IN hub_direction_vector
+const_direction_vector OUT -> IN[0] hub_direction_vector
 const_int OUT -> IN[0] direction_vector_equal
 hub_direction_vector OUT[0] -> IN _(converter/direction-vector-to-int) Y -> IN[1] direction_vector_equal(int/equal)
 direction_vector_equal OUT -> RESULT result_switcher_direction_vector(test/result)
 
-const_string OUT -> IN hub_string
+const_string OUT -> IN[0] hub_string
 const_string OUT -> IN[0] string_equal(string/compare)
 hub_string OUT[0] -> IN[1] string_equal
 string_equal EQUAL -> RESULT result_switcher_string(test/result)
@@ -95,7 +95,7 @@ blob_validator OUT -> RESULT result_switcher_blob(test/result)
 
 const_int OUT -> DIVIDEND div(int/division)
 const_zero(constant/int:value=0) OUT -> DIVISOR div
-div ERROR -> IN hub_error
+div ERROR -> IN[0] hub_error
 hub_error ERROR -> IN conv_error(converter/error)
 conv_error MESSAGE -> IN[0] error_msg_equal(string/compare)
 const_error OUT -> IN[1] error_msg_equal

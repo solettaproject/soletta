@@ -40,20 +40,21 @@
 #define PORT_MAX (256)
 
 struct switcher_data {
-    int port_index;
+    int in_port_index;
+    int out_port_index;
 };
 
 static void
-set_port_index(struct switcher_data *mdata, int port_index)
+set_port_index(int *port_index, int index_value)
 {
-    mdata->port_index = port_index;
-    if (mdata->port_index < 0) {
+    *port_index = index_value;
+    if (*port_index < 0) {
         SOL_WRN("Output port index must be greater or equal to zero. Using 0.");
-        mdata->port_index = 0;
-    } else if (mdata->port_index >= PORT_MAX) {
+        *port_index = 0;
+    } else if (*port_index >= PORT_MAX) {
         SOL_WRN("Output port index must be less than %d. Using %d.",
             PORT_MAX, PORT_MAX - 1);
-        mdata->port_index = PORT_MAX - 1;
+        *port_index = PORT_MAX - 1;
     }
 }
 
@@ -61,6 +62,7 @@ static int
 switcher_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     const struct sol_flow_node_type_switcher_boolean_options *opts;
+    struct switcher_data *mdata = data;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_SWITCHER_BOOLEAN_OPTIONS_API_VERSION,
@@ -68,20 +70,36 @@ switcher_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 
     opts = (const struct sol_flow_node_type_switcher_boolean_options *)options;
 
-    set_port_index(data, opts->out_port.val);
+    set_port_index(&mdata->out_port_index, opts->out_port.val);
+    set_port_index(&mdata->in_port_index, opts->in_port.val);
 
     return 0;
 }
 
 static int
-switcher_set_index(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+switcher_set_output_index(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
+    struct switcher_data *mdata = data;
     int32_t in_value;
     int r;
 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
-    set_port_index(data, in_value);
+    set_port_index(&mdata->out_port_index, in_value);
+
+    return 0;
+}
+
+static int
+switcher_set_input_index(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct switcher_data *mdata = data;
+    int32_t in_value;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+    set_port_index(&mdata->in_port_index, in_value);
 
     return 0;
 }
@@ -93,11 +111,14 @@ boolean_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
     int r;
     bool in_value;
 
+    if (port != mdata->in_port_index)
+        return 0;
+
     r = sol_flow_packet_get_boolean(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_boolean_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_BOOLEAN__OUT__OUT_0 + mdata->port_index,
+        SOL_FLOW_NODE_TYPE_SWITCHER_BOOLEAN__OUT__OUT_0 + mdata->out_port_index,
         in_value);
 }
 
@@ -108,11 +129,14 @@ byte_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     int r;
     unsigned char in_value;
 
+    if (port != mdata->in_port_index)
+        return 0;
+
     r = sol_flow_packet_get_byte(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_byte_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_BYTE__OUT__OUT_0 + mdata->port_index,
+        SOL_FLOW_NODE_TYPE_SWITCHER_BYTE__OUT__OUT_0 + mdata->out_port_index,
         in_value);
 }
 
@@ -123,11 +147,14 @@ blob_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     int r;
     struct sol_blob *in_value;
 
+    if (port != mdata->in_port_index)
+        return 0;
+
     r = sol_flow_packet_get_blob(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_blob_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_BLOB__OUT__OUT_0 + mdata->port_index,
+        SOL_FLOW_NODE_TYPE_SWITCHER_BLOB__OUT__OUT_0 + mdata->out_port_index,
         in_value);
 }
 
@@ -138,11 +165,14 @@ rgb_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     int r;
     struct sol_rgb in_value;
 
+    if (port != mdata->in_port_index)
+        return 0;
+
     r = sol_flow_packet_get_rgb(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_rgb_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_RGB__OUT__OUT_0 + mdata->port_index,
+        SOL_FLOW_NODE_TYPE_SWITCHER_RGB__OUT__OUT_0 + mdata->out_port_index,
         &in_value);
 }
 
@@ -153,12 +183,15 @@ direction_vector_forward(struct sol_flow_node *node, void *data, uint16_t port, 
     int r;
     struct sol_direction_vector in_value;
 
+    if (port != mdata->in_port_index)
+        return 0;
+
     r = sol_flow_packet_get_direction_vector(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_direction_vector_packet(node,
         SOL_FLOW_NODE_TYPE_SWITCHER_DIRECTION_VECTOR__OUT__OUT_0 +
-        mdata->port_index, &in_value);
+        mdata->out_port_index, &in_value);
 }
 
 static int
@@ -166,16 +199,22 @@ empty_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
 {
     struct switcher_data *mdata = data;
 
+    if (port != mdata->in_port_index)
+        return 0;
+
     return sol_flow_send_empty_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_EMPTY__OUT__OUT_0 + mdata->port_index);
+        SOL_FLOW_NODE_TYPE_SWITCHER_EMPTY__OUT__OUT_0 + mdata->out_port_index);
 }
 
 static int
 error_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    int r;
-    int code_value;
+    struct switcher_data *mdata = data;
     const char *msg;
+    int code_value, r;
+
+    if (port != mdata->in_port_index)
+        return 0;
 
     r = sol_flow_packet_get_error(packet, &code_value, &msg);
     SOL_INT_CHECK(r, < 0, r);
@@ -190,11 +229,14 @@ float_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     int r;
     struct sol_drange in_value;
 
+    if (port != mdata->in_port_index)
+        return 0;
+
     r = sol_flow_packet_get_drange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_drange_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_FLOAT__OUT__OUT_0 + mdata->port_index,
+        SOL_FLOW_NODE_TYPE_SWITCHER_FLOAT__OUT__OUT_0 + mdata->out_port_index,
         &in_value);
 }
 
@@ -205,11 +247,14 @@ int_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
     int r;
     struct sol_irange in_value;
 
+    if (port != mdata->in_port_index)
+        return 0;
+
     r = sol_flow_packet_get_irange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_irange_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_INT__OUT__OUT_0 + mdata->port_index,
+        SOL_FLOW_NODE_TYPE_SWITCHER_INT__OUT__OUT_0 + mdata->out_port_index,
         &in_value);
 }
 
@@ -220,11 +265,14 @@ string_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     int r;
     const char *in_value;
 
+    if (port != mdata->in_port_index)
+        return 0;
+
     r = sol_flow_packet_get_string(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_STRING__OUT__OUT_0 + mdata->port_index,
+        SOL_FLOW_NODE_TYPE_SWITCHER_STRING__OUT__OUT_0 + mdata->out_port_index,
         in_value);
 }
 

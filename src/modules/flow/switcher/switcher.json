@@ -17,13 +17,21 @@
           "methods": {
             "process": "blob_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
         },
         {
           "data_type": "int",
           "description": "Index of output port to be used to forward input packet.",
           "methods": {
-            "process": "switcher_set_index"
+            "process": "switcher_set_output_index"
           },
           "name": "OUT_PORT"
         }
@@ -34,6 +42,17 @@
       "name": "switcher/blob",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
           {
             "data_type": "int",
             "default": {
@@ -68,13 +87,21 @@
           "methods": {
             "process": "boolean_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
         },
         {
           "data_type": "int",
           "description": "Index of output port to be used to forward input packet.",
           "methods": {
-            "process": "switcher_set_index"
+            "process": "switcher_set_output_index"
           },
           "name": "OUT_PORT"
         }
@@ -85,6 +112,17 @@
       "name": "switcher/boolean",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
           {
             "data_type": "int",
             "default": {
@@ -119,13 +157,21 @@
           "methods": {
             "process": "byte_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
         },
         {
           "data_type": "int",
           "description": "Index of output port to be used to forward input packet.",
           "methods": {
-            "process": "switcher_set_index"
+            "process": "switcher_set_output_index"
           },
           "name": "OUT_PORT"
         }
@@ -136,6 +182,17 @@
       "name": "switcher/byte",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
           {
             "data_type": "int",
             "default": {
@@ -170,13 +227,21 @@
           "methods": {
             "process": "empty_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
         },
         {
           "data_type": "int",
           "description": "Index of output port to be used to forward input packet.",
           "methods": {
-            "process": "switcher_set_index"
+            "process": "switcher_set_output_index"
           },
           "name": "OUT_PORT"
         }
@@ -187,6 +252,17 @@
       "name": "switcher/empty",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
           {
             "data_type": "int",
             "default": {
@@ -221,7 +297,7 @@
           "methods": {
             "process": "error_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
         }
       ],
       "name": "switcher/error",
@@ -238,13 +314,21 @@
           "methods": {
             "process": "float_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
         },
         {
           "data_type": "int",
           "description": "Index of output port to be used to forward input packet.",
           "methods": {
-            "process": "switcher_set_index"
+            "process": "switcher_set_output_index"
           },
           "name": "OUT_PORT"
         }
@@ -255,6 +339,17 @@
       "name": "switcher/float",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
           {
             "data_type": "int",
             "default": {
@@ -289,13 +384,21 @@
           "methods": {
             "process": "int_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
         },
         {
           "data_type": "int",
           "description": "Index of output port to be used to forward input packet.",
           "methods": {
-            "process": "switcher_set_index"
+            "process": "switcher_set_output_index"
           },
           "name": "OUT_PORT"
         }
@@ -306,6 +409,17 @@
       "name": "switcher/int",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
           {
             "data_type": "int",
             "default": {
@@ -340,13 +454,21 @@
           "methods": {
             "process": "rgb_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
         },
         {
           "data_type": "int",
           "description": "Index of output port to be used to forward input packet.",
           "methods": {
-            "process": "switcher_set_index"
+            "process": "switcher_set_output_index"
           },
           "name": "OUT_PORT"
         }
@@ -357,6 +479,17 @@
       "name": "switcher/rgb",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
           {
             "data_type": "int",
             "default": {
@@ -391,13 +524,21 @@
           "methods": {
             "process": "direction_vector_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
         },
         {
           "data_type": "int",
           "description": "Index of output port to be used to forward input packet.",
           "methods": {
-            "process": "switcher_set_index"
+            "process": "switcher_set_output_index"
           },
           "name": "OUT_PORT"
         }
@@ -408,6 +549,17 @@
       "name": "switcher/direction-vector",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
           {
             "data_type": "int",
             "default": {
@@ -442,13 +594,21 @@
           "methods": {
             "process": "string_forward"
           },
-          "name": "IN"
+          "name": "IN[256]"
+        },
+        {
+          "data_type": "int",
+          "description": "Index of input port to be used to forward input packet.",
+          "methods": {
+            "process": "switcher_set_input_index"
+          },
+          "name": "IN_PORT"
         },
         {
           "data_type": "int",
           "description": "Index of output port to be used to forward input packet.",
           "methods": {
-            "process": "switcher_set_index"
+            "process": "switcher_set_output_index"
           },
           "name": "OUT_PORT"
         }
@@ -459,6 +619,17 @@
       "name": "switcher/string",
       "options": {
         "members": [
+          {
+            "data_type": "int",
+            "default": {
+              "max": 255,
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
+            "name": "in_port"
+          },
           {
             "data_type": "int",
             "default": {
