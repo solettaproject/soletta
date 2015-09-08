@@ -36,3 +36,5 @@ foo(console:prefix="prefix",suffix=10,output_on_stdout="really!",random_option=t
 # options-wrong-types.fbp:31:39 Option 'output_on_stdout' (boolean) of node 'foo' must not be quoted since it's not a string
 # options-wrong-types.fbp:31:66 Unknown option name 'random_option' of node 'foo'
 # options-wrong-types.fbp:31:85 Couldn't parse value 'now' for option 'flush' (boolean) of node 'foo'
+## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
+

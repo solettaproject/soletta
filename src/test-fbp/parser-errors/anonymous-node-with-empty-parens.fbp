@@ -34,3 +34,5 @@ _()
 
 ## TEST-OUTPUT
 # anonymous-node-with-empty-parens.fbp:31:1 Anonymous node type must be defined. e.g. '_(nodetype)'
+## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
+

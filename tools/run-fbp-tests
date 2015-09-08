@@ -44,6 +44,104 @@ import re
 import subprocess
 import sys
 
+valgrind_opts = [
+    "--show-reachable=no",
+    "--quiet",
+    "--error-exitcode=1",
+    "--leak-check=full",
+]
+
+class FbpTest:
+    SKIP_NONE = 0
+    SKIP_SIMPLE = 1
+    SKIP_VALGRIND = 2
+    SKIP_COMPILE = 3
+
+    supported_skip = {
+        "TEST-SKIP": SKIP_SIMPLE,
+        "TEST-SKIP-VALGRIND": SKIP_VALGRIND,
+        "TEST-SKIP-COMPILE": SKIP_COMPILE,
+    }
+
+    def __init__(self, test_file):
+        self.test_file = test_file
+        self.skip_msg = None
+        self.skip = self.SKIP_NONE
+        self.output = False
+        self.output_regex = False
+        self.output_spec = ""
+        self.exit_code = 0
+
+        self.__parse_test__()
+
+    def __parse_skip__(self, cmd, splitted):
+        self.skip = self.supported_skip.get(cmd, self.SKIP_NONE)
+        if not self.skip:
+            return
+
+        if len(splitted) > 2:
+            self.skip_msg = splitted[2]
+
+    def __parse_command__(self, line):
+        splitted = line.split(None, 2)
+        cmd = splitted[1]
+
+        if cmd == "TEST-OUTPUT-REGEX":
+            self.output_regex = True
+        elif cmd == "TEST-OUTPUT":
+            self.output = True
+        elif cmd == "TEST-EXPECTS-ERROR":
+            self.exit_code = 1
+        elif cmd.startswith("TEST-SKIP"):
+            self.__parse_skip__(cmd, splitted)
+        else:
+            print("Ignoring unknown test command '%s' in test %s" %
+                  (cmd, self.test_file))
+
+    def __parse_test__(self):
+        f = open(self.test_file, encoding="UTF-8")
+        for line in f:
+            if line.startswith("## "):
+                self.__parse_command__(line)
+            elif (self.output or self.output_regex) and line.startswith("#"):
+                self.output_spec += line[2:] or "\n"
+
+    def is_skip(self, skips):
+        if self.skip == self.SKIP_NONE:
+            return False
+        elif self.skip in skips:
+            return True
+        return False
+
+    def check_result(self, out, code):
+        if self.output and self.output_spec != out:
+            orig = out.splitlines(True)
+            dest = self.output_spec.splitlines(True)
+            print("FAILED running %s: wrong output" % os.path.basename(self.test_file))
+            for line in difflib.unified_diff(orig, dest):
+                sys.stdout.write(line)
+            print()
+            return "failed"
+        elif self.output_regex and not re.match(self.output_spec, out):
+            print("FAILED running %s: wrong output" % os.path.basename(self.test_file))
+            print("Expected expression:")
+            print(self.output_spec)
+            print("Output:")
+            print(out)
+            print()
+            return "failed"
+        elif self.exit_code != code:
+            print("FAILED running %s: wrong exit code, got %d but expected %d" %
+                  (os.path.basename(self.test_file), code, self.exit_code))
+            print("Output:")
+            print(out)
+            print()
+            return "failed"
+        elif self.output is None and len(out) > 0:
+            print("IGNORING unexpected output from", os.path.basename(self.test_file))
+            print(out)
+        return "passed"
+
 def sh(cmd, cwd=None):
     try:
         out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, cwd=cwd).decode('utf-8')
@@ -76,137 +174,130 @@ def collect_tests(tests):
             result.append(t)
     return result
 
-def get_expected(t, args):
-    code = 0
-    out = None
-    skip = None
-    is_regex = False
-
-    f = open(t, encoding="UTF-8")
-    for line in f:
-        if not line.startswith("## "):
-            continue
-        splitted = line.split(None, 2)
-        cmd = splitted[1]
-
-        if cmd == "TEST-OUTPUT-REGEX":
-            is_regex = True
-
-        if cmd == "TEST-EXPECTS-ERROR":
-            code = 1
-        elif cmd == "TEST-SKIP-VALGRIND":
-            if args.valgrind:
-                if len(splitted) > 2:
-                    skip = splitted[2]
-                else:
-                    skip = ""
-        elif cmd == "TEST-SKIP":
-            if len(splitted) > 2:
-                skip = splitted[2]
-            else:
-                skip = ""
-        elif cmd in ["TEST-OUTPUT", "TEST-OUTPUT-REGEX"]:
-            out = ""
-            break
-        else:
-            print("Ignoring unknown test command '%s' in test %s" % (cmd, t))
-            continue
-
-    if out is not None:
-        for line in f:
-            if not line.startswith("#"):
-                break
-            out += line[2:] or '\n'
-    f.close()
-
-    return out, code, skip, is_regex
-
-if __name__ == "__main__":
+def valgrind_prepare(args):
     cmd_prefix = []
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--runner", help="Path to the sol-fbp-runner program", default="build/soletta_sysroot/usr/bin/sol-fbp-runner", type=str)
-    parser.add_argument("--valgrind", help="Enable valgrind, if path not passed, assume default location in the system", nargs='?', const="/usr/bin/valgrind", type=str)
-    parser.add_argument("--valgrind-supp", help="Path to valgrind's suppression file", type=str)
-    parser.add_argument("--verbose", help="Be verbose", dest="verbose", action="store_true")
-    parser.add_argument("tests", metavar="TEST", help="Path to FBP file or directory containing FBP file to be tested.", nargs='*', default=["src/test-fbp/"])
+    if not args.valgrind:
+        return cmd_prefix
 
-    args = parser.parse_args()
-    if args.valgrind:
-        valgrind = os.path.abspath(args.valgrind)
-        if not os.path.isfile(valgrind):
-            sys.exit("Couldn't find valgrind program at", valgrind)
-        cmd_prefix.extend([
-            valgrind,
-            "--show-reachable=no",
-            "--quiet",
-            "--error-exitcode=1",
-            "--leak-check=full",
-        ])
+    valgrind = os.path.abspath(args.valgrind)
+    if not os.path.isfile(valgrind):
+        sys.exit("Couldn't find valgrind program at", valgrind)
+    valgrind_opts.insert(0, valgrind)
+    cmd_prefix.extend(valgrind_opts)
 
-        if args.valgrind_supp:
-            supp = os.path.abspath(args.valgrind_supp)
-            if not os.path.abspath(supp):
-                sys.exit("Couldn't find valgrind suppression file at", supp)
-            cmd_prefix.append("--suppressions=%s" % supp)
+    if args.valgrind_supp:
+        supp = os.path.abspath(args.valgrind_supp)
+        if not os.path.abspath(supp):
+            sys.exit("Couldn't find valgrind suppression file at", supp)
+        cmd_prefix.append("--suppressions=%s" % supp)
 
-    runner = os.path.abspath(args.runner)
-    if not os.path.isfile(runner):
-        sys.exit("Couldn't find runner program at %s" % runner)
+    return cmd_prefix
+
+def run_tests(args):
+    failures = False
+    runner = None
+
+    if not args.compiled:
+        runner = os.path.abspath(args.runner)
+        if not os.path.isfile(runner):
+            sys.exit("Couldn't find runner program at %s" % runner)
 
     tests = collect_tests(args.tests)
     if not tests:
         sys.exit("No test files found.")
 
-    passed = 0
-    failed = 0
-    skipped = 0
+    cmd_prefix = valgrind_prepare(args)
+    status = {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+    }
+
+    skips = get_skip_list(args)
+    if args.valgrind:
+        skips.append(FbpTest.SKIP_VALGRIND)
 
     for t in sorted(set(tests)):
-        dir = os.path.dirname(t)
-        file = os.path.basename(t)
+        path = {
+            "dir": os.path.dirname(t),
+            "file": os.path.basename(t),
+        }
+
         if args.verbose:
-            print("Testing file: %s/%s" % (dir, file))
-        expected_out, expected_code, skip, is_regex = get_expected(t, args)
-        if skip is not None:
-            print("SKIPPED running %s: %s" % (t, skip))
-            skipped += 1
+            print("Testing file: %s/%s" % (path["dir"], path["file"]))
+
+        curr = FbpTest(t)
+        if curr.is_skip(skips):
+            print("SKIPPED running %s: %s" % (t, curr.skip_msg))
+            status["skipped"] += 1
             continue
 
-        out, code = sh(cmd_prefix + [runner, file], cwd=dir)
-        if expected_out is not None:
-            if is_regex:
-                if not re.match(expected_out, out):
-                    failed += 1
-                    print("FAILED running %s: wrong output" % t)
-                    print("Expected expression:")
-                    print(expected_out)
-                    print("Output:")
-                    print(out)
-                    print()
-                    continue
-            elif out != expected_out:
-                failed += 1
-                print("FAILED running %s: wrong output" % t)
-                for line in difflib.unified_diff(out.splitlines(True), expected_out.splitlines(True)):
-                    sys.stdout.write(line)
-                print()
-                continue
-        if expected_code != code:
-            failed += 1
-            print("FAILED running %s: wrong exit code, got %d but expected %d" % (t, code, expected_code))
-            print("Output:")
-            print(out)
-            print()
-            continue
-        if expected_out is None and len(out) > 0:
-            print("IGNORING unexpected output from", t)
-            print(out)
-        passed += 1
+        if not args.compiled:
+            cmd = cmd_prefix + [runner, path["file"]]
+            test_cwd = path["dir"]
+        else:
+            exe = "%s/%s" % (args.compiled_dir, path["file"].replace(".fbp", ""))
+            cmd = cmd_prefix + [exe]
+            test_cwd = "./"
 
-    print("%d tests passed." % passed)
-    if skipped > 0:
-        print("%d tests skipped." % skipped)
-    if failed > 0:
-        print("%d tests failed." % failed)
+        out, code = sh(cmd, cwd=test_cwd)
+        result = curr.check_result(out, code)
+        status[result] += 1
+        if result == "failed":
+            failures = True
+
+    for k,v in status.items():
+        if v > 0:
+            print("%d tests %s." % (v, k))
+
+    if failures:
         sys.exit(1)
+
+def get_skip_list(args):
+    result = []
+    for curr in args.skip:
+        skip = getattr(FbpTest, curr.upper(), None)
+        if isinstance(skip, int):
+            result.append(skip)
+        else:
+            print("Unknown skip spec: %s" % curr)
+    return result
+
+def query_tests(args):
+    result = []
+    skips = get_skip_list(args)
+    tests = collect_tests(args.tests)
+    for t in sorted(set(tests)):
+        curr = FbpTest(t)
+        if curr.is_skip(skips):
+            continue
+        result.append(t)
+    print(" ".join(result))
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--runner", help="Path to the sol-fbp-runner program",
+                        default="build/soletta_sysroot/usr/bin/sol-fbp-runner", type=str)
+    parser.add_argument("--valgrind", help="Enable valgrind, if path not passed, assume "
+                        "default location in the system", nargs='?', const="/usr/bin/valgrind",
+                        type=str)
+    parser.add_argument("--valgrind-supp", help="Path to valgrind's suppression file",
+                        type=str)
+    parser.add_argument("--verbose", help="Be verbose", dest="verbose", action="store_true")
+    parser.add_argument("--query-only", help="Only query for tests to be run", action="store_true")
+    parser.add_argument("--skip", help="Skips to consider, valid values are: SKIP_SIMPLE, "
+                        "SKIP_VALGRIND, SKIP_COMPILE. SKIP_SIMPLE and SKIP_VALGRIND are considered "
+                        "by default", nargs="*", default=["SKIP_SIMPLE"])
+    parser.add_argument("tests", metavar="TEST", help="Path to FBP file or directory containing "
+                        "FBP file to be tested.", nargs='*', default=["src/test-fbp/"])
+    parser.add_argument("--compiled", help="Run compiled tests - not the FBPs themselves.",
+                        action="store_true")
+    parser.add_argument("--compiled-dir", help="Where to find the compiled tests.", type=str,
+                        default="build/stage/test-fbp")
+
+    args = parser.parse_args()
+    if args.query_only:
+        query_tests(args)
+    else:
+        run_tests(args)

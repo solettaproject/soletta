@@ -8,6 +8,13 @@ check-fbp: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out)
 
 PHONY += check-fbp
 
+check-fbp-bin: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out) $(all-tests-fbp-bin-out)
+	$(Q)$(CP) $(top_srcdir)src/test-fbp/*.txt $(build_stagedir)test-fbp/
+	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --compiled --compiled-dir $(abspath $(build_stagedir)test-fbp/) \
+		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND
+
+PHONY += check-fbp-bin
+
 ifeq (y,$(HAVE_VALGRIND))
 check-valgrind: $(SOL_LIB_OUTPUT) $(tests-out)
 	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)" \
