@@ -30,43 +30,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <errno.h>
 
-#include <sol-http.h>
+#include "sol-http.h"
+#include "sol-log.h"
+#include "sol-util.h"
+#include "sol-vector.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+SOL_API bool
+sol_http_param_add(struct sol_http_param *params,
+    struct sol_http_param_value value)
+{
+    struct sol_http_param_value *ptr;
 
-/**
- * @file
- * @brief HTTP client
- * Library to perform HTTP(s) requests. Buffers whole response in memory,
- * so it's more suitable to remote API calls rather than file transfer.
- */
+    SOL_NULL_CHECK(params, -EINVAL);
 
-/**
- * @defgroup HTTP
- * @ingroup Comms
- *
- * @{
- */
+    if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
+        SOL_ERR("API version mistmatch; expected %u, got %u",
+            SOL_HTTP_PARAM_API_VERSION, params->api_version);
+        return false;
+    }
 
+    ptr = sol_vector_append(&params->params);
+    if (!ptr) {
+        SOL_WRN("Could not append option to parameter vector");
+        return false;
+    }
 
-struct sol_http_client_connection;
-
-struct sol_http_client_connection *sol_http_client_request(enum sol_http_method method,
-    const char *base_uri, const struct sol_http_param *params,
-    void (*cb)(void *data, const struct sol_http_client_connection *connection,
-    struct sol_http_response *response),
-    const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
-
-void sol_http_client_connection_cancel(struct sol_http_client_connection *pending);
-
-/**
- * @}
- */
-
-#ifdef __cplusplus
+    memcpy(ptr, &value, sizeof(value));
+    return true;
 }
-#endif
+
+SOL_API void
+sol_http_param_free(struct sol_http_param *params)
+{
+    SOL_NULL_CHECK(params);
+
+    if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
+        SOL_ERR("API version mistmatch; expected %u, got %u",
+            SOL_HTTP_PARAM_API_VERSION, params->api_version);
+        return;
+    }
+    sol_vector_clear(&params->params);
+}

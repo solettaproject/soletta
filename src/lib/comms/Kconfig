@@ -51,9 +51,27 @@ config OIC
 
             Both client and server sides are covered by this library.
 
+config HTTP
+        bool
+	default n
+
 config HTTP_CLIENT
 	bool "HTTP Client"
 	default y
+	select HTTP
 	depends on NETWORK && FEATURE_HTTP_CLIENT
 	help
             Client API for both HTTP and HTTPS.
+
+config HTTP_SERVER
+	bool "HTTP Server"
+	default y
+	select HTTP
+	depends on NETWORK && FEATURE_HTTP_SERVER
+	help
+            Server API for both HTTP and HTTPS.
+
+config HTTP_SERVER_PORT
+	depends on HTTP_SERVER
+	int "Default server port"
+	default "80"
