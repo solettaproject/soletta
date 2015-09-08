@@ -40,8 +40,13 @@
 #include "sol-str-table.h"
 #include "sol-util.h"
 
-#include "fs-storage.h"
-#include "efivarfs-storage.h"
+#ifdef USE_FILESYSTEM
+#include "sol-fs-storage.h"
+#endif
+
+#ifdef USE_EFIVARS
+#include "sol-efivarfs-storage.h"
+#endif
 
 struct storage_fn {
     int (*write)(const char *name, struct sol_buffer *buffer);
@@ -64,19 +69,27 @@ struct persist_data {
     size_t packet_data_size;
 };
 
+#ifdef USE_FILESYSTEM
 static const struct storage_fn fs_fn = {
-    .write = fs_write_raw,
-    .read = fs_read_raw
+    .write = sol_fs_write_raw,
+    .read = sol_fs_read_raw
 };
+#endif
 
+#ifdef USE_EFIVARS
 static const struct storage_fn efivars_fn = {
-    .write = efivars_write_raw,
-    .read = efivars_read_raw
+    .write = sol_efivars_write_raw,
+    .read = sol_efivars_read_raw
 };
+#endif
 
 static const struct sol_str_table_ptr storage_fn_table[] = {
+#ifdef USE_FILESYSTEM
     SOL_STR_TABLE_PTR_ITEM("fs", &fs_fn),
+#endif
+#ifdef USE_EFIVARS
     SOL_STR_TABLE_PTR_ITEM("efivars", &efivars_fn),
+#endif
     { }
 };
 
@@ -117,7 +130,7 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value)
     if (mdata->packet_data_size)
         size = mdata->packet_data_size;
     else
-        size = strlen(value) + 1;
+        size = strlen(value);
 
     r = storage_write(mdata, value, size);
     SOL_INT_CHECK(r, < 0, r);
