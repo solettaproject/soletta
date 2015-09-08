@@ -1276,7 +1276,7 @@ using the sol-flow-node-type-stub-gen.py tool.
             data["namespace"] = "%s/" % args.namespace
         else:
             data["namespace"] = ""
-        
+
         data["source"] = args.output_code.name
 
         ntypes = len(data["types"])
