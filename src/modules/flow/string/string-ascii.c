@@ -727,4 +727,234 @@ set_max_replace(struct sol_flow_node *node,
     return string_replace_do(mdata, NULL);
 }
 
+struct string_prefix_suffix_data {
+    struct sol_flow_node *node;
+    char *in_str, *sub_str;
+    int32_t start, end;
+};
+
+static int
+prefix_suffix_open(struct string_prefix_suffix_data *mdata,
+    int32_t start,
+    int32_t end)
+{
+    mdata->start = start;
+    if (mdata->start < 0)
+        mdata->start = 0;
+
+    if (start > 0 && end > 0 && end < start) {
+        SOL_WRN("'end' option (%" PRId32 ") must be greater than "
+            "the 'start' (%" PRId32 ") one", end, start);
+        return -EINVAL;
+    }
+    mdata->end = end;
+    if (mdata->end < 0)
+        mdata->end = INT32_MAX;
+
+    return 0;
+}
+
+static void
+string_prefix_suffix_close(struct sol_flow_node *node, void *data)
+{
+    struct string_prefix_suffix_data *mdata = data;
+
+    free(mdata->in_str);
+    free(mdata->sub_str);
+}
+
+static int
+string_starts_with_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    struct string_prefix_suffix_data *mdata = data;
+    const struct sol_flow_node_type_string_starts_with_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_STRING_STARTS_WITH_OPTIONS_API_VERSION, -EINVAL);
+
+    opts = (const struct sol_flow_node_type_string_starts_with_options *)options;
+
+    mdata->node = node;
+    r = prefix_suffix_open(mdata, opts->start.val, opts->end.val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!opts->prefix) {
+        SOL_WRN("Option 'prefix' must not be NULL");
+        return -EINVAL;
+    }
+
+    mdata->sub_str = strdup(opts->prefix);
+    if (!opts->prefix)
+        return -ENOMEM;
+
+    return 0;
+}
+
+static int
+string_ends_with_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    struct string_prefix_suffix_data *mdata = data;
+    const struct sol_flow_node_type_string_ends_with_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_STRING_ENDS_WITH_OPTIONS_API_VERSION, -EINVAL);
+
+    opts = (const struct sol_flow_node_type_string_ends_with_options *)options;
+
+    mdata->node = node;
+    r = prefix_suffix_open(mdata, opts->start.val, opts->end.val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!opts->suffix) {
+        SOL_WRN("Option 'suffix' must not be NULL");
+        return -EINVAL;
+    }
+
+    mdata->sub_str = strdup(opts->suffix);
+    if (!opts->suffix)
+        return -ENOMEM;
+
+    return 0;
+}
+
+static int
+prefix_suffix_match_do(struct string_prefix_suffix_data *mdata,
+    const char *new_in_str,
+    bool start)
+{
+    int32_t end;
+    bool ret = false;
+    int32_t in_str_len, sub_str_len, off;
+
+    if (!new_in_str)
+        goto starts_with;
+
+    free(mdata->in_str);
+    mdata->in_str = strdup(new_in_str);
+    if (!mdata->in_str)
+        return -ENOMEM;
+    in_str_len = strlen(mdata->in_str);
+
+starts_with:
+    if (mdata->start > in_str_len || mdata->end < mdata->start)
+        goto end;
+
+    sub_str_len = strlen(mdata->sub_str);
+    end = mdata->end > 0 ? mdata->end : in_str_len;
+    if (end > in_str_len)
+        end = in_str_len;
+    end -= sub_str_len;
+
+    if (end < mdata->start)
+        goto end;
+
+    if (!start)
+        off = end;
+    else
+        off = mdata->start;
+
+    ret = memcmp(mdata->in_str + off, mdata->sub_str, sub_str_len) == 0;
+
+end:
+    return sol_flow_send_boolean_packet(mdata->node,
+        start ? SOL_FLOW_NODE_TYPE_STRING_STARTS_WITH__OUT__OUT :
+        SOL_FLOW_NODE_TYPE_STRING_ENDS_WITH__OUT__OUT, ret);
+}
+
+static int
+string_prefix_suffix_process(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_prefix_suffix_data *mdata = data;
+    const char *in_value;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return prefix_suffix_match_do(mdata, in_value, true);
+}
+
+static int
+set_prefix_suffix_sub_str(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_prefix_suffix_data *mdata = data;
+    const char *sub_str;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &sub_str);
+    SOL_INT_CHECK(r, < 0, r);
+
+    free(mdata->sub_str);
+    mdata->sub_str = strdup(sub_str);
+    if (!mdata->sub_str)
+        return -ENOMEM;
+
+    if (!mdata->in_str)
+        return 0;
+
+    return prefix_suffix_match_do(mdata, NULL, true);
+}
+
+static int
+set_prefix_suffix_start(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_prefix_suffix_data *mdata = data;
+    int32_t value;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->start = value;
+    if (mdata->start < 0)
+        mdata->start = 0;
+
+    if (!mdata->in_str || !mdata->sub_str)
+        return 0;
+
+    return prefix_suffix_match_do(mdata, NULL, true);
+}
+
+static int
+set_prefix_suffix_end(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_prefix_suffix_data *mdata = data;
+    int32_t value;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->end = value;
+    if (mdata->end < 0)
+        mdata->end = INT32_MAX;
+
+    if (!mdata->in_str || !mdata->sub_str)
+        return 0;
+
+    return prefix_suffix_match_do(mdata, NULL, true);
+}
+
 #include "string-gen.c"
