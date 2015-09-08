@@ -808,10 +808,10 @@ static int
 drange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     int r;
-    char *out_value = NULL;
     struct sol_drange in_value;
     struct auto_number auto_number;
     struct string_converter *mdata = data;
+    struct sol_buffer out = SOL_BUFFER_INIT_EMPTY;
 
     mdata->node = node;
 
@@ -819,15 +819,15 @@ drange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     SOL_INT_CHECK(r, < 0, r);
 
     auto_number_init(&auto_number);
-    r = do_float_markup(mdata, mdata->format, &in_value, &auto_number,
-        &out_value);
-    SOL_INT_CHECK(r, < 0, r);
+    r = do_float_markup(mdata, mdata->format, &in_value, &auto_number, &out);
+    SOL_INT_CHECK_GOTO(r, < 0, end);
 
-    r = sol_flow_send_string_packet(node,
+    r = sol_flow_send_string_slice_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_FLOAT_TO_STRING__OUT__OUT,
-        out_value);
+        sol_buffer_get_slice(&out));
 
-    free(out_value);
+end:
+    sol_buffer_fini(&out);
     return r;
 }
 
@@ -867,10 +867,10 @@ irange_to_string_convert(struct sol_flow_node *node,
     const struct sol_flow_packet *packet)
 {
     int r;
-    char *out_value = NULL;
     struct sol_irange in_value;
     struct auto_number auto_number;
     struct string_converter *mdata = data;
+    struct sol_buffer out = SOL_BUFFER_INIT_EMPTY;
 
     mdata->node = node;
 
@@ -878,15 +878,15 @@ irange_to_string_convert(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     auto_number_init(&auto_number);
-    r = do_integer_markup(mdata, mdata->format, &in_value, &auto_number,
-        &out_value);
-    SOL_INT_CHECK(r, < 0, r);
+    r = do_integer_markup(mdata, mdata->format, &in_value, &auto_number, &out);
+    SOL_INT_CHECK_GOTO(r, < 0, end);
 
-    r = sol_flow_send_string_packet(node,
+    r = sol_flow_send_string_slice_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_INT_TO_STRING__OUT__OUT,
-        out_value);
+        sol_buffer_get_slice(&out));
 
-    free(out_value);
+end:
+    sol_buffer_fini(&out);
     return r;
 }
 
