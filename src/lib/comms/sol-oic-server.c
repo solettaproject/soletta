@@ -90,12 +90,12 @@ struct resource_type_data {
 
 static struct sol_oic_server oic_server;
 
-#define OIC_SERVER_CHECK(ret)                               \
-    do {                                                    \
-        if (oic_server.refcnt == 0) {                       \
-            SOL_WRN("OIC API used before initialization");   \
-            return ret;                                     \
-        }                                                   \
+#define OIC_SERVER_CHECK(ret) \
+    do { \
+        if (oic_server.refcnt == 0) { \
+            SOL_WRN("OIC API used before initialization"); \
+            return ret; \
+        } \
     } while (0)
 
 static uint16_t
@@ -159,14 +159,14 @@ _sol_oic_server_d(const struct sol_coap_resource *resource,
     *payload++ = '{';
     payload_len++;
 
-#define APPEND_KEY_VALUE(k, v)                          \
-    do {                                    \
-        uint16_t r;                             \
-        r = _append_json_key_value(payload, payload_size, payload_len, k,   \
-            sol_str_slice_from_str(oic_server.information->v));     \
-        if (!r) goto no_memory;                     \
-        payload += (r - payload_len);                   \
-        payload_len = r;                            \
+#define APPEND_KEY_VALUE(k, v) \
+    do { \
+        uint16_t r; \
+        r = _append_json_key_value(payload, payload_size, payload_len, k, \
+            sol_str_slice_from_str(oic_server.information->v)); \
+        if (!r) goto no_memory; \
+        payload += (r - payload_len); \
+        payload_len = r; \
     } while (0)
 
     APPEND_KEY_VALUE("dt", device.name);
@@ -195,7 +195,6 @@ no_memory:
     sol_coap_packet_unref(response);
     return -ENOMEM;
 }
-
 
 static int
 _sol_oic_server_res(const struct sol_coap_resource *resource,
