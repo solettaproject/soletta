@@ -407,14 +407,14 @@
         "value": "-fsanitize=undefined"
       },
       "ldflags": {
-        "value": "-fsanitize=undefined"
+        "value": "-fsanitize=undefined -lasan"
       }
     },
     {
       "dependency": "no_sanitize",
       "type": "ccode",
       "cflags": {
-        "value": "-fno-sanitize=all"
+        "value": "-fno-sanitize=all -lasan"
       }
     },
     {
@@ -424,7 +424,7 @@
         "value": "-fsanitize=address"
       },
       "ldflags": {
-        "value": "-fsanitize=address"
+        "value": "-fsanitize=address -lasan"
       }
     },
     {
