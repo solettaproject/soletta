@@ -47,7 +47,7 @@ static int
 pcre_compile_do(struct sol_flow_node *node,
     const char *regexp,
     pcre **compiled_re,
-    pcre_extra **pcre_extra,
+    pcre_extra **p_extra,
     int *sub_match_count)
 {
     int r;
@@ -55,11 +55,11 @@ pcre_compile_do(struct sol_flow_node *node,
     const char *pcre_error_str = NULL;
 
     SOL_NULL_CHECK(compiled_re, -EINVAL);
-    SOL_NULL_CHECK(pcre_extra, -EINVAL);
+    SOL_NULL_CHECK(p_extra, -EINVAL);
     SOL_NULL_CHECK(sub_match_count, -EINVAL);
 
     *compiled_re = NULL;
-    *pcre_extra = NULL;
+    *p_extra = NULL;
     *sub_match_count = 0;
 
     *compiled_re = pcre_compile(regexp, PCRE_UTF8,
@@ -81,7 +81,7 @@ pcre_compile_do(struct sol_flow_node *node,
 
     //A null pcre_extra is fine (no optimization possible), errors are
     //reported on the last argument
-    *pcre_extra = pcre_study(*compiled_re, 0, &pcre_error_str);
+    *p_extra = pcre_study(*compiled_re, 0, &pcre_error_str);
     if (pcre_error_str != NULL) {
         sol_flow_send_error_packet(node, EINVAL,
             "Error optimizing '%s': %s", regexp, pcre_error_str);
@@ -98,7 +98,7 @@ string_regexp_search_and_split(struct string_regexp_search_data *mdata)
     int r;
     size_t str_len, match_sz;
     pcre *compiled_re = NULL;
-    pcre_extra *pcre_extra = NULL;
+    pcre_extra *p_extra = NULL;
     int *match_vector, sub_match_count = 0;
     struct sol_vector v = SOL_VECTOR_INIT(struct sol_str_slice);
 
@@ -118,13 +118,13 @@ string_regexp_search_and_split(struct string_regexp_search_data *mdata)
         return v;
 
     r = pcre_compile_do(mdata->node, mdata->regexp, &compiled_re,
-        &pcre_extra, &sub_match_count);
+        &p_extra, &sub_match_count);
     SOL_INT_CHECK(r, < 0, v);
 
     match_sz = (sub_match_count + 1) * 3;
     match_vector = alloca(match_sz * sizeof(*match_vector));
 
-    r = pcre_exec(compiled_re, pcre_extra, mdata->string, str_len,
+    r = pcre_exec(compiled_re, p_extra, mdata->string, str_len,
         0, 0, match_vector, match_sz);
 
     if (r < 0) {
@@ -155,8 +155,8 @@ string_regexp_search_and_split(struct string_regexp_search_data *mdata)
     }
 
 err:
-    if (pcre_extra != NULL)
-        pcre_free(pcre_extra);
+    if (p_extra != NULL)
+        pcre_free(p_extra);
     pcre_free(compiled_re);
 
     return v;
@@ -210,7 +210,7 @@ string_regexp_replace_get_matches(struct string_regexp_replace_data *mdata,
     int r;
     size_t str_len, match_sz;
     pcre *compiled_re = NULL;
-    pcre_extra *pcre_extra = NULL;
+    pcre_extra *p_extra = NULL;
     int *matchv = NULL, sub_match_count = 0;
 
     *match_cnt = 0;
@@ -222,7 +222,7 @@ string_regexp_replace_get_matches(struct string_regexp_replace_data *mdata,
         return -EINVAL;
 
     r = pcre_compile_do(mdata->node, mdata->regexp, &compiled_re,
-        &pcre_extra, &sub_match_count);
+        &p_extra, &sub_match_count);
     SOL_INT_CHECK(r, < 0, -EINVAL);
 
     match_sz = (sub_match_count + 1) * 3;
@@ -232,7 +232,7 @@ string_regexp_replace_get_matches(struct string_regexp_replace_data *mdata,
         goto err;
     }
 
-    r = pcre_exec(compiled_re, pcre_extra, mdata->orig_string + whence,
+    r = pcre_exec(compiled_re, p_extra, mdata->orig_string + whence,
         str_len, 0, 0, matchv, match_sz);
     if (r < 0)
         goto err;
@@ -255,16 +255,16 @@ string_regexp_replace_get_matches(struct string_regexp_replace_data *mdata,
         *match_vector = matchv;
     }
 
-    if (pcre_extra != NULL)
-        pcre_free(pcre_extra);
+    if (p_extra != NULL)
+        pcre_free(p_extra);
     pcre_free(compiled_re);
 
     return 0;
 
 err:
     free(matchv);
-    if (pcre_extra != NULL)
-        pcre_free(pcre_extra);
+    if (p_extra != NULL)
+        pcre_free(p_extra);
     pcre_free(compiled_re);
 
     return r;
