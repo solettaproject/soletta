@@ -1542,10 +1542,8 @@ escape_json_string(const char *s, char *buf)
     return out;
 }
 
-#define ESCAPE_STRING(s) ({ \\
-        char buffer ## __COUNT__[calculate_escaped_len(s)]; \\
-        escape_json_string(s, buffer ## __COUNT__); \\
-    })
+#define ESCAPE_STRING(s) \
+    escape_json_string(s, alloca(calculate_escaped_len(s)))
 
 SOL_ATTR_USED static bool
 json_token_to_string(struct sol_json_token *token, char **out)
