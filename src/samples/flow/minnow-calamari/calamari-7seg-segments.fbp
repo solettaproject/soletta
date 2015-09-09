@@ -40,10 +40,10 @@ True(converter/empty-to-boolean:output_value=true)
 False(converter/empty-to-boolean:output_value=false)
 
 ByteOff(converter/empty-to-byte:output_value=0)
-ByteP(converter/bits-to-byte)
-ByteL(converter/bits-to-byte)
-ByteA(converter/bits-to-byte)
-ByteY(converter/bits-to-byte)
+ByteP(led-7seg/char-to-byte)
+ByteL(led-7seg/char-to-byte)
+ByteA(led-7seg/char-to-byte)
+ByteY(led-7seg/char-to-byte)
 
 
 Timer OUT -> INC Index OUT -> IN_PORT Switcher
@@ -53,51 +53,11 @@ Timer OUT -> IN True
 Timer OUT -> IN False
 
 ByteOff OUT -> IN[0] Switcher
-
-# Create byte to represet char 'P' using bits format: "abcdefgX"
-False OUT -> IN[0] ByteP
-True OUT -> IN[1] ByteP
-True OUT -> IN[2] ByteP
-True OUT -> IN[3] ByteP
-False OUT -> IN[4] ByteP
-False OUT -> IN[5] ByteP
-True OUT -> IN[6] ByteP
-True OUT -> IN[7] ByteP
-
+_(constant/string:value="P") OUT -> IN ByteP
 ByteP OUT -> IN[1] Switcher
-
-# Char 'l'
-False OUT -> IN[0] ByteL
-False OUT -> IN[1] ByteL
-False OUT -> IN[2] ByteL
-False OUT -> IN[3] ByteL
-False OUT -> IN[4] ByteL
-True OUT -> IN[5] ByteL
-True OUT -> IN[6] ByteL
-False OUT -> IN[7] ByteL
-
+_(constant/string:value="l") OUT -> IN ByteL
 ByteL OUT -> IN[2] Switcher
-
-# Char 'A'
-False OUT -> IN[0] ByteA
-True OUT -> IN[1] ByteA
-True OUT -> IN[2] ByteA
-True OUT -> IN[3] ByteA
-False OUT -> IN[4] ByteA
-True OUT -> IN[5] ByteA
-True OUT -> IN[6] ByteA
-True OUT -> IN[7] ByteA
-
+_(constant/string:value="a") OUT -> IN ByteA
 ByteA OUT -> IN[3] Switcher
-
-# Char 'y'
-False OUT -> IN[0] ByteY
-True OUT -> IN[1] ByteY
-True OUT -> IN[2] ByteY
-False OUT -> IN[3] ByteY
-True OUT -> IN[4] ByteY
-True OUT -> IN[5] ByteY
-True OUT -> IN[6] ByteY
-False OUT -> IN[7] ByteY
-
+_(constant/string:value="y") OUT -> IN ByteY
 ByteY OUT -> IN[4] Switcher

@@ -86,6 +86,29 @@
       },
       "private_data_type": "led_7seg_data",
       "url": "http://solettaproject.org/doc/latest/node_types/led_7seg/led.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives packages with char and convert them on bytes following the format required to be displayed on 7-segments display",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Character to be converted. Some characters can't be represented on 7 segments display so it won't send a package on port OUT. Instead, it will send an error packet. For characters that have uppercase and lowercase representations, it'll be respected, otherwise case will be ignored. If the string has more than a character, the others will be disconsidered. If string is empty, all segments will be turned off. Supported chars: ' 0123456789AbCcdEFGgHhIiJLlnOoPrStUuy'",
+          "methods": {
+            "process": "convert_char"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "led-7seg/char-to-byte",
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Byte with converted value.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/led_7seg/char_to_byte.html"
     }
   ]
 }

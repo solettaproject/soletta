@@ -175,4 +175,91 @@ led_close(struct sol_flow_node *node, void *data)
         sol_gpio_close(mdata->gpio[i]);
 }
 
+/* Conversion table between chars and bytes in format 'abcdefgX' */
+static unsigned char conversion_table[][2] = {
+    { '\0', 0x0 },
+    { ' ', 0x0 },
+    { '0', 0xfc },
+    { '1', 0x60 },
+    { '2', 0xda },
+    { '3', 0xf2 },
+    { '4', 0x66 },
+    { '5', 0xb6 },
+    { '6', 0xbe },
+    { '7', 0xe0 },
+    { '8', 0xfe },
+    { '9', 0xf6 },
+    { 'A', 0xee },
+    { 'B', 0x3e },
+    { 'C', 0x9c },
+    { 'D', 0x7a },
+    { 'E', 0x9e },
+    { 'F', 0x8e },
+    { 'G', 0xbe },
+    { 'H', 0x6e },
+    { 'I', 0xc },
+    { 'J', 0x78 },
+    { 'L', 0x1c },
+    { 'N', 0x2a },
+    { 'O', 0xfc },
+    { 'P', 0xce },
+    { 'R', 0xa },
+    { 'S', 0xb6 },
+    { 'T', 0x1e },
+    { 'U', 0x7c },
+    { 'Y', 0x76 },
+    { 'a', 0xee },
+    { 'b', 0x3e },
+    { 'c', 0x1a },
+    { 'd', 0x7a },
+    { 'e', 0x9e },
+    { 'f', 0x8e },
+    { 'g', 0xf6 },
+    { 'h', 0x2e },
+    { 'i', 0x8 },
+    { 'j', 0x78 },
+    { 'l', 0x60 },
+    { 'n', 0x2a },
+    { 'o', 0x3a },
+    { 'p', 0xce },
+    { 'r', 0xa },
+    { 's', 0xb6 },
+    { 't', 0x1e },
+    { 'u', 0x38 },
+    { 'y', 0x76 }
+};
+
+static int
+convert_char(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    unsigned char *byte = NULL;
+    const char *in_value;
+    int r;
+    unsigned int i, array_size;
+    char c_index;
+
+    r = sol_flow_packet_get_string(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    c_index = in_value[0];
+
+    array_size = ARRAY_SIZE(conversion_table);
+    for (i = 0; i < array_size; i++) {
+        if (c_index == conversion_table[i][0]) {
+            byte = &(conversion_table[i][1]);
+            break;
+        }
+    }
+
+    if (!byte) {
+        sol_flow_send_error_packet(node, EINVAL,
+            "Char '%c' can't be represented with 7 segments.", c_index);
+        return 0;
+    }
+
+    return sol_flow_send_byte_packet(node,
+        SOL_FLOW_NODE_TYPE_LED_7SEG_CHAR_TO_BYTE__OUT__OUT,
+        *byte);
+}
+
 #include "led-7seg-gen.c"
