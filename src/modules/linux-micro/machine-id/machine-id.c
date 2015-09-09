@@ -94,7 +94,7 @@ run_do(void)
         SOL_INT_CHECK(r, == 0, 0);
     }
 
-    r = sol_util_uuid_gen(false, true, id);
+    r = sol_util_uuid_gen(false, false, id);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     if (write_machine_id(etc_path, id) >= 0)
