@@ -135,26 +135,46 @@ struct fd_wrap_data {
     const void *data;
 };
 
+static GIOCondition
+sol_to_glib_flags(unsigned int sol_flags)
+{
+    GIOCondition glib_flags = 0;
+
+    if (sol_flags & SOL_FD_FLAGS_IN) glib_flags |= G_IO_IN;
+    if (sol_flags & SOL_FD_FLAGS_OUT) glib_flags |= G_IO_OUT;
+    if (sol_flags & SOL_FD_FLAGS_PRI) glib_flags |= G_IO_PRI;
+    if (sol_flags & SOL_FD_FLAGS_ERR) glib_flags |= G_IO_ERR;
+    if (sol_flags & SOL_FD_FLAGS_HUP) glib_flags |= G_IO_HUP;
+    if (sol_flags & SOL_FD_FLAGS_NVAL) glib_flags |= G_IO_NVAL;
+
+    return glib_flags;
+}
+
+static unsigned int
+glib_to_sol_flags(GIOCondition glib_flags)
+{
+    unsigned int sol_flags = 0;
+
+    if (glib_flags & G_IO_IN) sol_flags |= SOL_FD_FLAGS_IN;
+    if (glib_flags & G_IO_OUT) sol_flags |= SOL_FD_FLAGS_OUT;
+    if (glib_flags & G_IO_PRI) sol_flags |= SOL_FD_FLAGS_PRI;
+    if (glib_flags & G_IO_ERR) sol_flags |= SOL_FD_FLAGS_ERR;
+    if (glib_flags & G_IO_HUP) sol_flags |= SOL_FD_FLAGS_HUP;
+    if (glib_flags & G_IO_NVAL) sol_flags |= SOL_FD_FLAGS_NVAL;
+
+    return sol_flags;
+}
+
 static gboolean
 on_fd(gint fd, GIOCondition cond, gpointer data)
 {
     struct fd_wrap_data *wrap_data = data;
-    unsigned int sol_flags = 0;
-
-    if (cond & G_IO_IN) sol_flags |= SOL_FD_FLAGS_IN;
-    if (cond & G_IO_OUT) sol_flags |= SOL_FD_FLAGS_OUT;
-    if (cond & G_IO_PRI) sol_flags |= SOL_FD_FLAGS_PRI;
-    if (cond & G_IO_ERR) sol_flags |= SOL_FD_FLAGS_ERR;
-    if (cond & G_IO_HUP) sol_flags |= SOL_FD_FLAGS_HUP;
-    if (cond & G_IO_NVAL) sol_flags |= SOL_FD_FLAGS_NVAL;
-
-    return wrap_data->cb((void *)wrap_data->data, fd, sol_flags);
+    return wrap_data->cb((void *)wrap_data->data, fd, glib_to_sol_flags(cond));
 }
 
 void *
 sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data)
 {
-    GIOCondition glib_flags = 0;
     struct fd_wrap_data *wrap_data = malloc(sizeof(*wrap_data));
 
     SOL_NULL_CHECK(wrap_data, NULL);
@@ -162,14 +182,7 @@ sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int 
     wrap_data->cb = cb;
     wrap_data->data = data;
 
-    if (flags & SOL_FD_FLAGS_IN) glib_flags |= G_IO_IN;
-    if (flags & SOL_FD_FLAGS_OUT) glib_flags |= G_IO_OUT;
-    if (flags & SOL_FD_FLAGS_PRI) glib_flags |= G_IO_PRI;
-    if (flags & SOL_FD_FLAGS_ERR) glib_flags |= G_IO_ERR;
-    if (flags & SOL_FD_FLAGS_HUP) glib_flags |= G_IO_HUP;
-    if (flags & SOL_FD_FLAGS_NVAL) glib_flags |= G_IO_NVAL;
-
-    return (void *)(long)g_unix_fd_add_full(0, fd, glib_flags, on_fd, wrap_data,
+    return (void *)(long)g_unix_fd_add_full(0, fd, sol_to_glib_flags(flags), on_fd, wrap_data,
         free);
 }
 
