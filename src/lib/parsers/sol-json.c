@@ -32,8 +32,12 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_LOCALE
+#include <locale.h>
+#endif
 
 #include "sol-json.h"
 #include "sol-log.h"
@@ -506,4 +510,35 @@ sol_json_escape_string(const char *str, char *buf, size_t len)
     }
     *buf++ = '\0';
     return out;
+}
+
+SOL_API int
+sol_json_double_to_str(const double value, char *buf, size_t len)
+{
+    int ret;
+    char *decimal_point;
+
+#ifdef HAVE_LOCALE
+    struct lconv *lc = localeconv();
+#endif
+
+    ret = snprintf(buf, len, "%f", value);
+    if (ret < 0 || ret > (int)len)
+        return -ENOMEM;
+
+#ifdef HAVE_LOCALE
+    if (lc->decimal_point && streq(lc->decimal_point, "."))
+        return 0;
+
+
+    if ((decimal_point = strstr(buf, lc->decimal_point))) {
+        size_t decimal_len = strlen(lc->decimal_point);
+        char *fraction = decimal_point + decimal_len;
+        *decimal_point = '.';
+
+        memmove(decimal_point + 1, fraction, (buf + ret + 1) - fraction);
+    }
+#endif
+
+    return 0;
 }
