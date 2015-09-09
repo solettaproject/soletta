@@ -1,0 +1,80 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+null_str(constant/string:value="")
+null_byte(constant/int:value=0)
+null_conv(led-7seg/char-to-byte)
+null_equal(int/equal)
+space_str(constant/string:value=" ")
+space_byte(constant/int:value=0)
+space_conv(led-7seg/char-to-byte)
+space_equal(int/equal)
+five_str(constant/string:value="5")
+five_byte(constant/int:value=0xb6)
+five_conv(led-7seg/char-to-byte)
+five_equal(int/equal)
+J_str(constant/string:value="J")
+J_byte(constant/int:value=0x78)
+J_conv(led-7seg/char-to-byte)
+J_equal(int/equal)
+l_str(constant/string:value="l")
+l_byte(constant/int:value=0x60)
+l_conv(led-7seg/char-to-byte)
+l_equal(int/equal)
+w_str(constant/string:value="w")
+w_conv(led-7seg/char-to-byte)
+
+null_str OUT -> IN null_conv
+null_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] null_equal
+null_byte OUT -> IN[1] null_equal
+null_equal OUT -> RESULT led_char_byte_null(test/result)
+
+space_str OUT -> IN space_conv
+space_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] space_equal
+space_byte OUT -> IN[1] space_equal
+space_equal OUT -> RESULT led_char_byte_space(test/result)
+
+five_str OUT -> IN five_conv
+five_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] five_equal
+five_byte OUT -> IN[1] five_equal
+five_equal OUT -> RESULT led_char_byte_five(test/result)
+
+J_str OUT -> IN J_conv
+J_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] J_equal
+J_byte OUT -> IN[1] J_equal
+J_equal OUT -> RESULT led_char_byte_J(test/result)
+
+l_str OUT -> IN l_conv
+l_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] l_equal
+l_byte OUT -> IN[1] l_equal
+l_equal OUT -> RESULT led_char_byte_l(test/result)
+
+w_str OUT -> IN w_conv
+w_conv ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS led_char_byte_invalid(test/result)
