@@ -41,6 +41,8 @@
 #include <float.h>
 #include <math.h>
 
+static const char sol_json_escapable_chars[] = { '\\', '\"', '/', '\b', '\f', '\n', '\r', '\t' };
+
 static bool
 check_symbol(struct sol_json_scanner *scanner, struct sol_json_token *token,
     const char *symname, unsigned symlen)
@@ -459,4 +461,49 @@ sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
 
     value->start = start;
     return true;
+}
+
+SOL_API size_t
+sol_json_calculate_escaped_string_len(const char *str)
+{
+    size_t len = 0;
+
+    SOL_NULL_CHECK(str, 0);
+
+    for (; *str; str++) {
+        if (memchr(sol_json_escapable_chars, *str, sizeof(sol_json_escapable_chars)))
+            len++;
+        len++;
+    }
+    return len + 1;
+}
+
+SOL_API char *
+sol_json_escape_string(const char *str, char *buf, size_t len)
+{
+    char *out = buf;
+    size_t i;
+
+    SOL_NULL_CHECK(str, NULL);
+    SOL_NULL_CHECK(buf, NULL);
+
+    for (i = 0; *str && i < len; str++, i++) {
+        if (memchr(sol_json_escapable_chars, *str, sizeof(sol_json_escapable_chars))) {
+            *buf++ = '\\';
+            switch (*str) {
+            case '"':  *buf++ = '"'; break;
+            case '\\': *buf++ = '\\'; break;
+            case '/':  *buf++ = '/'; break;
+            case '\b': *buf++ = 'b'; break;
+            case '\f': *buf++ = 'f'; break;
+            case '\n': *buf++ = 'n'; break;
+            case '\r': *buf++ = 'r'; break;
+            case '\t': *buf++ = 't'; break;
+            }
+        } else {
+            *buf++ = *str;
+        }
+    }
+    *buf++ = '\0';
+    return out;
 }
