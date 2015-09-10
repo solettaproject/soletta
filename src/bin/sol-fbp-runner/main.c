@@ -35,10 +35,19 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include "sol-arena.h"
+#include "sol-conffile.h"
+#include "sol-file-reader.h"
 #include "sol-flow-buildopts.h"
+#include "sol-json.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
+#include "sol-util.h"
 #include "sol-vector.h"
+
+#ifdef USE_MEMMAP
+#include "sol-memmap-storage.h"
+#endif
 
 #include "runner.h"
 
@@ -46,6 +55,8 @@
 
 static struct {
     const char *name;
+
+    const char *memory_map_file;
 
     const char *options[MAX_OPTS + 1];
     int options_count;
@@ -57,6 +68,7 @@ static struct {
 } args;
 
 static struct runner *the_runner;
+static struct sol_arena *str_arena;
 
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
 /* defined in inspector.c */
@@ -150,10 +162,36 @@ parse_args(int argc, char *argv[])
 }
 
 static bool
+load_memory_maps(const struct sol_ptr_vector *maps)
+{
+#ifdef USE_MEMMAP
+    struct sol_memmap_map *map;
+    int i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (maps, map, i) {
+        if (sol_memmap_add_map(map) < 0)
+            return false;
+    }
+
+    return true;
+#else
+    SOL_WRN("Memory map defined on config file, but Solleta was built without support to it");
+    return true;
+#endif
+}
+
+static bool
 startup(void *data)
 {
     bool finished = true;
     int result = EXIT_FAILURE;
+    struct sol_ptr_vector *memory_maps;
+
+    str_arena = sol_arena_new();
+    if (!str_arena) {
+        fprintf(stderr, "Cannot create str arena\n");
+        goto end;
+    }
 
     if (args.execute_type) {
         the_runner = runner_new_from_type(args.name, args.options);
@@ -180,6 +218,13 @@ startup(void *data)
         }
     }
 
+    if (sol_conffile_resolve_memmap(&memory_maps)) {
+        SOL_ERR("Couldn't resolve memory mappings on config file");
+        goto end;
+    }
+    if (memory_maps)
+        load_memory_maps(memory_maps);
+
     if (runner_run(the_runner) < 0) {
         fprintf(stderr, "Failed to run\n");
         goto end;
@@ -199,6 +244,9 @@ shutdown(void)
 {
     if (the_runner)
         runner_del(the_runner);
+
+    if (str_arena)
+        sol_arena_del(str_arena);
 
     sol_ptr_vector_clear(&args.fbp_search_paths);
 }
