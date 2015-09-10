@@ -1,5 +1,5 @@
-config FLOW_NODE_TYPE_FREEGEOIP
-	tristate "Node type: freegeoip"
+config FLOW_NODE_TYPE_LOCATION
+	tristate "Node type: location"
 	depends on HTTP_CLIENT
 	default y
 	help
