@@ -143,6 +143,8 @@ enum sol_fd_flags {
 struct sol_fd;
 struct sol_fd *sol_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data);
 bool sol_fd_del(struct sol_fd *handle);
+bool sol_fd_set_flags(struct sol_fd *handle, unsigned int flags);
+unsigned int sol_fd_get_flags(const struct sol_fd *handle);
 #endif
 
 #ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
