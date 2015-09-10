@@ -115,17 +115,17 @@ struct sol_http_response {
     int response_code;
 };
 
-#define SOL_HTTP_RESPONSE_CHECK_API(response_) \
+#define SOL_HTTP_RESPONSE_CHECK_API(response_, ...) \
     do { \
         if (unlikely(!response_)) { \
             SOL_WRN("Error while reaching service."); \
-            return; \
+            return __VA_ARGS__; \
         } \
         if (unlikely(response_->api_version != \
             SOL_HTTP_RESPONSE_API_VERSION)) { \
             SOL_ERR("Unexpected API version (response is %u, expected %u)", \
                 response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
-            return; \
+            return __VA_ARGS__; \
         } \
     } while (0)
 
