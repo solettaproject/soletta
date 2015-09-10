@@ -42,7 +42,7 @@
 # Location: latitude=37.354, longitude=-121.956 altitude=0 (location)
 #
 
-_(constant/empty) OUT -> IN F(location/freegeoip)
+_(constant/empty) OUT -> IN F(freegeoip/location)
 
 F IP -> IN _(console:prefix="IP address: ")
 F COUNTRY_CODE -> IN _(console:prefix="Country code: ")

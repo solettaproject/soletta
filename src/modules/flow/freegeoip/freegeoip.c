@@ -90,7 +90,7 @@ freegeoip_query_finished(void *data,
 #define JSON_FIELD_TO_FLOW_PORT(json_field_, flow_field_) \
     if (sol_json_token_str_eq(&key, json_field_, strlen(json_field_))) { \
         sol_flow_send_string_slice_packet(mdata->node, \
-            SOL_FLOW_NODE_TYPE_LOCATION_FREEGEOIP__OUT__ ## flow_field_, \
+            SOL_FLOW_NODE_TYPE_FREEGEOIP_LOCATION__OUT__ ## flow_field_, \
             SOL_STR_SLICE_STR(value.start + 1, value.end - value.start - 2)); \
         continue; \
     }
@@ -121,7 +121,7 @@ freegeoip_query_finished(void *data,
     /* `reason` is ignored here; only the following matters now: */
     if (!isnan(location.lat) && !isnan(location.lon)) {
         sol_flow_send_location_packet(mdata->node,
-            SOL_FLOW_NODE_TYPE_LOCATION_FREEGEOIP__OUT__LOCATION, &location);
+            SOL_FLOW_NODE_TYPE_FREEGEOIP_LOCATION__OUT__LOCATION, &location);
     }
 
     return;
@@ -205,11 +205,11 @@ static int
 freegeoip_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct freegeoip_data *mdata = data;
-    const struct sol_flow_node_type_location_freegeoip_options *opts;
+    const struct sol_flow_node_type_freegeoip_location_options *opts;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_LOCATION_FREEGEOIP_OPTIONS_API_VERSION,
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_FREEGEOIP_LOCATION_OPTIONS_API_VERSION,
         -EINVAL);
-    opts = (const struct sol_flow_node_type_location_freegeoip_options *)options;
+    opts = (const struct sol_flow_node_type_freegeoip_location_options *)options;
 
     mdata->node = node;
     mdata->endpoint = strdup(opts->endpoint);
