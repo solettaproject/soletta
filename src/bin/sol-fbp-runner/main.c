@@ -35,10 +35,17 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include "sol-file-reader.h"
 #include "sol-flow-buildopts.h"
+#include "sol-json.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
+#include "sol-util.h"
 #include "sol-vector.h"
+
+#ifdef USE_MEMMAP
+#include "sol-memmap-storage.h"
+#endif
 
 #include "runner.h"
 
@@ -46,6 +53,8 @@
 
 static struct {
     const char *name;
+
+    const char *memory_map_file;
 
     const char *options[MAX_OPTS + 1];
     int options_count;
@@ -57,6 +66,10 @@ static struct {
 } args;
 
 static struct runner *the_runner;
+
+#ifdef USE_MEMMAP
+static struct sol_ptr_vector memory_maps = SOL_PTR_VECTOR_INIT;
+#endif
 
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
 /* defined in inspector.c */
@@ -73,6 +86,8 @@ usage(const char *program)
         "Options:\n"
         "    -c            Check syntax only. The program will exit as soon as the flow\n"
         "                  is built and the syntax is verified.\n"
+        "    -m            Uses memory map MAP .json file to map 'persistence' fields on\n"
+        "                  persistent storage, like NVRAM and EEPROM"
         "    -s            Provide simulation nodes for flows with exported ports.\n"
         "    -t            Instead of reading a file, execute a node type with the name\n"
         "                  passed as first argument. Implies -s.\n"
@@ -89,7 +104,7 @@ static bool
 parse_args(int argc, char *argv[])
 {
     int opt, err;
-    const char known_opts[] = "cho:stI:"
+    const char known_opts[] = "cho:stI:m:"
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
         "D"
 #endif
@@ -131,6 +146,14 @@ parse_args(int argc, char *argv[])
                 exit(1);
             }
             break;
+        case 'm':
+            if (access(optarg, R_OK) == -1) {
+                fprintf(stderr, "Can't access memory map file '%s': %s",
+                    optarg, sol_util_strerrora(errno));
+                return false;
+            }
+            args.memory_map_file = optarg;
+            break;
         default:
             return false;
         }
@@ -148,6 +171,180 @@ parse_args(int argc, char *argv[])
 
     return true;
 }
+
+#ifdef USE_MEMMAP
+static void
+clear_memory_maps(void)
+{
+    const struct sol_str_table_ptr *iter;
+    struct sol_memmap_map *map;
+    int i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&memory_maps, map, i) {
+        for (iter = map->entries; iter->key; iter++) {
+            free((void *)iter->key);
+            free((void *)iter->val);
+        }
+
+        free(map->path);
+        free(map);
+    }
+
+    sol_ptr_vector_clear(&memory_maps);
+}
+
+static bool
+load_memory_map_file(const char *json_file)
+{
+    struct sol_file_reader *fr = NULL;
+    struct sol_json_scanner scanner, entries;
+    struct sol_str_slice contents;
+    struct sol_json_token token, key, value;
+    enum sol_json_loop_reason reason;
+    struct sol_vector entries_vector = SOL_VECTOR_INIT(struct sol_str_table_ptr);
+    struct sol_memmap_map *map;
+    struct sol_memmap_entry *memmap_entry;
+    struct sol_str_table_ptr *ptr_table_entry;
+    uint32_t version;
+    size_t entries_vector_size;
+    void *data;
+    int i;
+    char *path;
+
+    fr = sol_file_reader_open(json_file);
+    if (!fr) {
+        SOL_ERR("Couldn't open json file '%s': %s\n", json_file, sol_util_strerrora(errno));
+        return false;
+    }
+
+    contents = sol_file_reader_get_all(fr);
+    sol_json_scanner_init(&scanner, contents.data, contents.len);
+
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
+            if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "path")) {
+                sol_json_token_remove_quotes(&value);
+                path = strndupa(value.start,
+                    sol_json_token_get_size(&value));
+                if (!path) {
+                    SOL_WRN("Couldn't get map path");
+                    goto error;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "version")) {
+                if (sol_json_token_get_uint32(&value, &version) < 0) {
+                    SOL_WRN("Couldn't get memory map version");
+                    goto error;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "entries")) {
+                sol_json_scanner_init_from_token(&entries, &value);
+
+                SOL_JSON_SCANNER_ARRAY_LOOP (&entries, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+                    uint32_t size = 0, offset = 0, bit_offset = 0;
+                    bool is_bool = false;
+                    char *name = NULL;
+
+                    SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&entries, &token, &key, &value, reason) {
+                        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "name")) {
+                            sol_json_token_remove_quotes(&value);
+                            name = strndupa(value.start,
+                                sol_json_token_get_size(&value));
+                            if (!name) {
+                                SOL_WRN("Couldn't get entry name");
+                                goto error;
+                            }
+                        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "offset")) {
+                            if (sol_json_token_get_uint32(&value, &offset) < 0) {
+                                SOL_WRN("Couldn't get entry offset");
+                                goto error;
+                            }
+                        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "size")) {
+                            if (sol_json_token_get_uint32(&value, &size) < 0) {
+                                SOL_WRN("Couldn't get entry size");
+                                goto error;
+                            }
+                        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "bit_offset")) {
+                            if (sol_json_token_get_uint32(&value, &bit_offset) < 0) {
+                                SOL_WRN("Couldn't get entry size");
+                                goto error;
+                            }
+                            if (bit_offset > 7) {
+                                SOL_WRN("Entry bit offset cannot be greater than 7");
+                                goto error;
+                            }
+                        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "is_bool")) {
+                            is_bool = sol_json_token_get_type(&token) == SOL_JSON_TYPE_TRUE;
+                        }
+                    }
+
+                    ptr_table_entry = sol_vector_append(&entries_vector);
+                    SOL_NULL_CHECK_GOTO(ptr_table_entry, error);
+
+                    memmap_entry = calloc(sizeof(struct sol_memmap_entry), 1);
+                    SOL_NULL_CHECK_GOTO(memmap_entry, error);
+
+                    memmap_entry->offset = offset;
+                    memmap_entry->is_bool = is_bool;
+                    if (is_bool) {
+                        memmap_entry->bit_offset = bit_offset;
+                        memmap_entry->size = sizeof(uint8_t);
+                    } else {
+                        if (!size) {
+                            SOL_WRN("Invalid size for entry");
+                            free(memmap_entry);
+                            goto error;
+                        }
+                        memmap_entry->size = size;
+                    }
+
+                    ptr_table_entry->key = strdup(name);
+                    ptr_table_entry->len = strlen(name);
+                    ptr_table_entry->val = memmap_entry;
+                }
+            }
+        }
+
+        /* Add ptr_table guard element */
+        ptr_table_entry = sol_vector_append(&entries_vector);
+        SOL_NULL_CHECK_GOTO(ptr_table_entry, error);
+
+        entries_vector_size = sizeof(struct sol_str_table_ptr) * entries_vector.len;
+        map = calloc(sizeof(struct sol_memmap_map) + entries_vector_size, 1);
+        SOL_NULL_CHECK_GOTO(map, error);
+
+        map->version = version;
+        map->path = strdup(path);
+        SOL_NULL_CHECK_GOTO(map->path, error_path);
+        data = sol_vector_take_data(&entries_vector);
+        memmove(map->entries, data, entries_vector_size);
+        free(data);
+
+        if (sol_memmap_add_map(map) < 0)
+            goto error_add_map;
+        if (sol_ptr_vector_append(&memory_maps, map) < 0)
+            goto error_add_map;
+    }
+
+    sol_file_reader_close(fr);
+
+    return true;
+
+error_add_map:
+    free(path);
+error_path:
+    free(map);
+error:
+    SOL_VECTOR_FOREACH_IDX (&entries_vector, ptr_table_entry, i) {
+        free((void *)ptr_table_entry->key);
+        free((void *)ptr_table_entry->val);
+    }
+    sol_vector_clear(&entries_vector);
+
+    sol_file_reader_close(fr);
+
+    return false;
+}
+
+#endif
 
 static bool
 startup(void *data)
@@ -180,6 +377,17 @@ startup(void *data)
         }
     }
 
+    if (args.memory_map_file) {
+#ifdef USE_MEMMAP
+        if (!load_memory_map_file(args.memory_map_file)) {
+            fprintf(stderr, "Could not load memory map file\n");
+            goto end;
+        }
+#else
+        fprintf(stderr, "Memory map file defined, but Soletta has been built without Memory map support.\n");
+#endif
+    }
+
     if (runner_run(the_runner) < 0) {
         fprintf(stderr, "Failed to run\n");
         goto end;
@@ -199,6 +407,10 @@ shutdown(void)
 {
     if (the_runner)
         runner_del(the_runner);
+
+#ifdef USE_MEMMAP
+    clear_memory_maps();
+#endif
 
     sol_ptr_vector_clear(&args.fbp_search_paths);
 }
