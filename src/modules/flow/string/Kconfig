@@ -6,13 +6,15 @@ config FLOW_NODE_TYPE_STRING
 		on your flow, acting on the strings contained in
 		string packets:
 
-		 - compare/concatenate two strings
+		 - generate UUID strings
 		 - split a string in others
+		 - compare/concatenate two strings
 		 - replace a substring in a string
 		 - measure the lenght of the string
-		 - change the string to lower/uppercase
-		 - search for regular expression patterns in a string
+		 - change a string to lower/uppercase
+		 - check whether a string stards/ends with another
 		 - replace regular expression patterns in a string
+		 - search for regular expression patterns in a string
 
 		For the nodes dealing with regular expressions, only
 		one RE backend is supported: libpcre. If that
