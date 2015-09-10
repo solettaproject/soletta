@@ -65,7 +65,7 @@ check-stub: $(SOL_LIB_OUTPUT) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $
 	$(Q)$(MKDIR) -p $(NODE_TYPE_STUB_GEN_DIR)
 	$(Q)$(PYTHON) $(NODE_TYPE_GEN_SCRIPT) --prefix=sol-flow-node-type \
 		--genspec-schema=$(NODE_TYPE_SCHEMA) $(NODE_TYPE_STUB_GEN_TEST) \
-		$(NODE_TYPE_STUB_GEN_DIR)dummy-gen.h \
+		$(NODE_TYPE_STUB_GEN_DIR)dummy.h \
 		$(NODE_TYPE_STUB_GEN_DIR)dummy-gen.c \
 		$(NODE_TYPE_STUB_GEN_DIR)dummy.json
 	$(Q)$(PYTHON) $(NODE_TYPE_STUB_GEN_SCRIPT) --prefix=sol-flow-node-type \

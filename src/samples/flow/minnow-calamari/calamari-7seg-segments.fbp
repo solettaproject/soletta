@@ -1,3 +1,4 @@
+#!/usr/bin/env sol-fbp-runner
 # This file is part of the Soletta Project
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
@@ -28,30 +29,35 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# Write 'Play' on Intel MinnowBoard's Calamari Lure 7-segment display.
 
-two(constant/int:value=2)
-six(constant/int:value=6)
+Led(SevenSegments)
+Timer(timer:interval=2000)
+Switcher(switcher/byte)
+Index(int/accumulator:setup_value=val:0|min:0|max:4)
 
-mod(int/modulo)
-less(int/less)
-pulse(converter/boolean-to-empty)
-accumulator(int/accumulator)
-switcher(switcher/int)
+True(converter/empty-to-boolean:output_value=true)
+False(converter/empty-to-boolean:output_value=false)
 
-val0(test/int-validator:sequence="0 1 3 5")
-val1(test/int-validator:sequence="2 4 6")
+ByteOff(converter/empty-to-byte:output_value=0)
+ByteP(led-7seg/char-to-byte)
+ByteL(led-7seg/char-to-byte)
+ByteA(led-7seg/char-to-byte)
+ByteY(led-7seg/char-to-byte)
 
-accumulator OUT -> DIVIDEND mod
-two OUT -> DIVISOR mod
 
-mod OUT -> OUT_PORT switcher
+Timer OUT -> INC Index OUT -> IN_PORT Switcher
+Switcher OUT[0] -> SEGMENTS Led
+Timer OUT -> IN ByteOff
+Timer OUT -> IN True
+Timer OUT -> IN False
 
-accumulator OUT -> IN[0] switcher
-
-accumulator OUT -> IN[0] less
-six OUT -> IN[1] less
-
-less OUT -> PULSE_IF_TRUE pulse OUT -> INC accumulator
-
-switcher OUT[0] -> IN val0 OUT -> RESULT switcher_port0(test/result)
-switcher OUT[1] -> IN val1 OUT -> RESULT switcher_port1(test/result)
+ByteOff OUT -> IN[0] Switcher
+_(constant/string:value="P") OUT -> IN ByteP
+ByteP OUT -> IN[1] Switcher
+_(constant/string:value="l") OUT -> IN ByteL
+ByteL OUT -> IN[2] Switcher
+_(constant/string:value="a") OUT -> IN ByteA
+ByteA OUT -> IN[3] Switcher
+_(constant/string:value="y") OUT -> IN ByteY
+ByteY OUT -> IN[4] Switcher

@@ -143,10 +143,10 @@ def include_source(outfile, base_name):
 """ % (base_name + '-gen.c'))
 
 
-def include_header(outfile, base_name):
+def include_header(outfile, namespace, base_name):
     outfile.write("""\
 #include "%s"
-""" % (base_name + '-gen.h'))
+""" % (namespace + base_name + '.h'))
 
 
 def add_empty_line(outfile):
@@ -457,7 +457,7 @@ static int
 """)
 
 
-def generate_stub(stub_file, inputs_list, prefix, is_module):
+def generate_stub(stub_file, inputs_list, prefix, is_module, namespace):
     data = []
     base_names = []
     methods = []
@@ -476,7 +476,7 @@ def generate_stub(stub_file, inputs_list, prefix, is_module):
     license_header(stub_file)
 
     for base_name in base_names:
-        include_header(stub_file, base_name)
+        include_header(stub_file, namespace, base_name)
 
     include_common_headers(stub_file)
 
@@ -528,6 +528,14 @@ if __name__ == "__main__":
                         help="Force stub file rewrite.",
                         default=False,
                         type=bool)
+    parser.add_argument("--namespace",
+                        help=("The module's namespace i.e sol-flow, for "
+                              "Soletta's in tree modules it makes sense to "
+                              "have the namespace but for cases where an "
+                              "application is generating a custom node type - "
+                              "like it's done in samples we'll "
+                              "not want to have the namespace prefix."),
+                        type=str, default=None)
     parser.add_argument("output_stub",
                         help="Output stub code (.c) file",
                         type=str)
@@ -544,8 +552,14 @@ if __name__ == "__main__":
     except:
         raise
 
+    if args.namespace:
+        args.namespace = "%s/" % args.namespace
+    else:
+        args.namespace = ""
+
     try:
-        generate_stub(stub_file, args.inputs_list, args.prefix, args.module)
+        generate_stub(stub_file, args.inputs_list, args.prefix, args.module,
+                      args.namespace)
     except:
         raise
     finally:
