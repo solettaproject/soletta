@@ -275,7 +275,6 @@ _on_event(void *data, int nl_socket, unsigned int cond)
 static void
 _netlink_request(int event)
 {
-    size_t n;
     char buf[NLMSG_ALIGN(sizeof(struct nlmsghdr) + sizeof(struct rtgenmsg))] = { 0 };
     struct iovec iov = { buf, sizeof(buf) };
     struct sockaddr_nl snl = { .nl_family = AF_NETLINK };
@@ -290,9 +289,6 @@ _netlink_request(int event)
     };
     struct nlmsghdr *h;
     struct rtgenmsg *rt;
-    char buffer_receive_back[4096]; /* Backing storage for next sol_buffer */
-    struct sol_buffer buffer_receive = SOL_BUFFER_INIT_FLAGS(buffer_receive_back,
-        sizeof(buffer_receive_back), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
 
     h = (struct nlmsghdr *)buf;
 
@@ -308,22 +304,7 @@ _netlink_request(int event)
     if (sendmsg(network->nl_socket, (struct msghdr *)&msg, 0) <= 0)
         SOL_WRN("Failed on send message to get the links");
 
-    while ((sol_util_fill_buffer(network->nl_socket, &buffer_receive, buffer_receive.capacity)) > 0) {
-        n = buffer_receive.used;
-        for (h = buffer_receive.data; NLMSG_OK(h, n); h = NLMSG_NEXT(h, n)) {
-            if (h->nlmsg_type == NLMSG_DONE)
-                return;
-            if (h->nlmsg_type == NLMSG_ERROR) {
-                SOL_WRN("netlink error");
-                return;
-            }
-            if ((h->nlmsg_type == RTM_NEWLINK) || (h->nlmsg_type == RTM_DELLINK))
-                _on_link_event(h);
-            if ((h->nlmsg_type == RTM_NEWADDR) || (h->nlmsg_type == RTM_DELADDR))
-                _on_addr_event(h);
-        }
-        sol_buffer_reset(&buffer_receive);
-    }
+    _on_event(network, network->nl_socket, SOL_FD_FLAGS_IN);
 }
 
 SOL_API int
