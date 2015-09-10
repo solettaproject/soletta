@@ -1,7 +1,7 @@
 config FLOW_NODE_TYPE_THINGSPEAK
 	tristate "Node type: thingspeak"
 	depends on HTTP_CLIENT
-	default y
+	default m
 	help
 		ThingSpeak is a service that allows publishing data via HTTP
 		to be consumed by IoT devices.
