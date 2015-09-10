@@ -44,8 +44,8 @@ temp(int/map:output_range=min:-40|max:100|step:1)
 led_map(int/map:use_input_range=false,input_range=min:-40|max:100,output_range=min:0|max:31|step:1)
 less(int/less)
 counter(int/accumulator:setup_value=max:31)
-blue(converter/empty-to-rgb:output_value=blue:200,green:0,red:0)
-red(converter/empty-to-rgb:output_value=red:200,green:0,blue:0)
+blue(converter/empty-to-rgb:output_value=blue:200|green:0|red:0)
+red(converter/empty-to-rgb:output_value=red:200|green:0|blue:0)
 led_strip(led-strip/lpd8806)
 
 temp OUT -> IN led_map
