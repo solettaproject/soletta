@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-flow/freegeoip.h"
+#include "sol-flow/location.h"
 #include "sol-flow-internal.h"
 
 #include <errno.h>
@@ -221,4 +221,4 @@ freegeoip_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     return 0;
 }
 
-#include "freegeoip-gen.c"
+#include "location-gen.c"
