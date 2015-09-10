@@ -37,3 +37,5 @@ node(boolean/filter)
 
 ## TEST-OUTPUT
 # duplicated-exported-port-3.fbp:32:20 Exported output port with name 'OUT' already declared in 31:19
+## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
+
