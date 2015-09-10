@@ -236,35 +236,36 @@ _on_event(void *data, int nl_socket, unsigned int cond)
         return false;
     }
 
-    status = recvmsg(nl_socket, &msg, MSG_WAITALL);
-    if (status <= 0) {
-        if (errno == EWOULDBLOCK || errno == EAGAIN)
-            return true;
+    while ((status = recvmsg(nl_socket, &msg, MSG_WAITALL))) {
+        if (status < 0) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN)
+                return true;
 
-        SOL_WRN("Read netlink error");
-        return false;
-    }
+            SOL_WRN("Read netlink error");
+            return false;
+        }
 
-    for (h = (struct nlmsghdr *)buf; NLMSG_OK(h, (unsigned int)status);
-        h = NLMSG_NEXT(h, status)) {
+        for (h = (struct nlmsghdr *)buf; NLMSG_OK(h, (unsigned int)status);
+            h = NLMSG_NEXT(h, status)) {
 
-        switch (h->nlmsg_type) {
-        case NLMSG_ERROR:
-            SOL_WRN("read_netlink: Message is an error");
-        case NLMSG_DONE:
-            return true;
-        case RTM_NEWADDR:
-        case RTM_DELADDR:
-            _on_addr_event(h);
-            break;
-        case RTM_NEWLINK:
-        case RTM_SETLINK:
-        case RTM_DELLINK:
-            _on_link_event(h);
-            break;
-        default:
-            SOL_WRN("Unexpected message");
-            break;
+            switch (h->nlmsg_type) {
+            case NLMSG_ERROR:
+                SOL_WRN("read_netlink: Message is an error");
+            case NLMSG_DONE:
+                return true;
+            case RTM_NEWADDR:
+            case RTM_DELADDR:
+                _on_addr_event(h);
+                break;
+            case RTM_NEWLINK:
+            case RTM_SETLINK:
+            case RTM_DELLINK:
+                _on_link_event(h);
+                break;
+            default:
+                SOL_WRN("Unexpected message");
+                break;
+            }
         }
     }
 
