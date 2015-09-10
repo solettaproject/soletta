@@ -14,7 +14,7 @@
         "open": "freegeoip_open",
         "close": "freegeoip_close"
       },
-      "name": "location/freegeoip",
+      "name": "freegeoip/location",
       "options": {
         "members": [
           {
