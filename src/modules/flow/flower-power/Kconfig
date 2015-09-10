@@ -1,7 +1,7 @@
 config FLOW_NODE_TYPE_FLOWER_POWER
 	tristate "Node type: flower-power"
 	depends on HTTP_CLIENT
-	default y
+	default m
 	help
 		Parrot Flower Power is a wireless plant monitor that measures
 		and analyses the four elements crucial to plant's health:
