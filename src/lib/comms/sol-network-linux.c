@@ -238,8 +238,11 @@ _on_event(void *data, int nl_socket, unsigned int cond)
 
     while ((status = recvmsg(nl_socket, &msg, MSG_WAITALL))) {
         if (status < 0) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN)
+            if (errno == EAGAIN)
                 return true;
+
+            if (errno == EINTR)
+                continue;
 
             SOL_WRN("Read netlink error");
             return false;
