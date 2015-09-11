@@ -367,7 +367,9 @@ sol_platform_get_machine_id(char id[static 33])
 SOL_API int
 sol_platform_get_serial_number(char **number)
 {
+#ifdef SOL_PLATFORM_LINUX
     char *env_id;
+#endif
 
     SOL_NULL_CHECK(number, -EINVAL);
 
