@@ -65,13 +65,13 @@ struct persist_data {
 };
 
 static const struct storage_fn fs_fn = {
-    .write = fs_write,
-    .read = fs_read
+    .write = fs_write_raw,
+    .read = fs_read_raw
 };
 
 static const struct storage_fn efivars_fn = {
-    .write = efivars_write,
-    .read = efivars_read
+    .write = efivars_write_raw,
+    .read = efivars_read_raw
 };
 
 static const struct sol_str_table_ptr storage_fn_table[] = {

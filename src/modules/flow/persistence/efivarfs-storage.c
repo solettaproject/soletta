@@ -63,7 +63,7 @@ check_realpath(const char *path)
 }
 
 int
-efivars_write(const char *name, struct sol_buffer *buffer)
+efivars_write_raw(const char *name, struct sol_buffer *buffer)
 {
     FILE *file;
     char path[PATH_MAX];
@@ -108,7 +108,7 @@ end:
 }
 
 int
-efivars_read(const char *name, struct sol_buffer *buffer)
+efivars_read_raw(const char *name, struct sol_buffer *buffer)
 {
     int r, fd;
     char path[PATH_MAX];
