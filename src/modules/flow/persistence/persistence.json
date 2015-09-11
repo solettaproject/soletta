@@ -146,6 +146,12 @@
             "default": 0.0,
             "description": "Default value for this node, when there's no previous value persisted",
             "name": "default_value"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Store only drange val, discarding min, max and step values",
+            "name": "storage_only_val"
           }
         ],
         "version": 1
@@ -203,6 +209,12 @@
             "default": 0,
             "description": "Default value for this node, when there's no previous value persisted",
             "name": "default_value"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Store only irange val, discarding min, max and step values",
+            "name": "storage_only_val"
           }
         ],
         "version": 1
