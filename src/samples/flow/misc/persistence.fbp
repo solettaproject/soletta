@@ -46,7 +46,7 @@ map_byte OUT -> IN byte_persist(persistence/byte:storage="fs",name="save_byte") 
 wallclock OUT -> IN int_persist(persistence/int:storage="fs",name="save_int",default_value=-1) OUT -> IN console_int(console:prefix="persist int: ")
 
 wallclock OUT -> IN map_float(converter/int-to-float)
-map_float OUT -> IN float_persist(persistence/float:storage="fs",name="save_float") OUT -> IN console_float(console:prefix="persist float: ")
+map_float OUT -> IN float_persist(persistence/float:storage="fs",name="save_float",store_only_val=true) OUT -> IN console_float(console:prefix="persist float: ")
 
 wallclock OUT -> IN map_string(converter/int-to-string)
 map_string OUT -> IN string_persist(persistence/string:storage="fs",name="save_string") OUT -> IN console_string(console:prefix="persist string: ")
