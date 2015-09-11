@@ -44,7 +44,13 @@ extern "C" {
 enum pin_val {
     PIN_LOW = 0, /**< Logical zero */
     PIN_HIGH, /**< Logical one */
-    PIN_NONE /**< Pin should be disable i.e. set to high impedance input */
+    PIN_NONE, /**< Pin should be disable i.e. set to high impedance input */
+    PIN_MODE_0,
+    PIN_MODE_1,
+    PIN_MODE_2,
+    PIN_MODE_3,
+    PIN_MODE_4,
+    PIN_MODE_5
 };
 
 /**

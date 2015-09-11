@@ -45,6 +45,7 @@ SOL_LOG_INTERNAL_DECLARE(_intel_mux_log_domain, "intel-mux");
 #define GPIO_DRIVE_HIZ      3
 
 #define BASE "/sys/class/gpio"
+#define MODE_PATH "/sys/kernel/debug/gpio_debug/gpio%d/current_pinmux"
 
 static int
 _set_gpio(int pin, enum sol_gpio_direction dir, int drive, bool val)
@@ -97,6 +98,23 @@ end:
 }
 
 static int
+_set_mode(int pin, int mode)
+{
+    int len;
+    struct stat st;
+    char path[PATH_MAX];
+    char mode_str[] = "mode0";
+
+    len = snprintf(path, sizeof(path), MODE_PATH, pin);
+    if (len < 0 || len > PATH_MAX || stat(path, &st) == -1)
+        return -EINVAL;
+
+    mode_str[4] = '0' + (mode - PIN_MODE_0);
+
+    return sol_util_write_file(path, "%s", mode_str);
+}
+
+static int
 _apply_mux_desc(struct mux_description *desc, unsigned int mode)
 {
     int ret;
@@ -105,6 +123,8 @@ _apply_mux_desc(struct mux_description *desc, unsigned int mode)
         if (desc->mode & mode) {
             if (desc->val == PIN_NONE) {
                 ret = _set_gpio(desc->gpio_pin, SOL_GPIO_DIR_IN, GPIO_DRIVE_HIZ, false);
+            } else if (desc->val > PIN_NONE) {
+                ret = _set_mode(desc->gpio_pin, desc->val);
             } else {
                 ret = _set_gpio(desc->gpio_pin, SOL_GPIO_DIR_OUT, GPIO_DRIVE_STRONG, desc->val);
             }

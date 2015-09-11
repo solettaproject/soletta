@@ -45,6 +45,8 @@ static struct mux_description desc_0[] = {
     { 216, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 216, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN | MODE_UART },
     { 216, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    { 130, PIN_MODE_0, MODE_GPIO },
+    { 130, PIN_MODE_1, MODE_UART },
     { 214, PIN_HIGH, MODE_GPIO | MODE_UART },
     { }
 };
@@ -56,6 +58,8 @@ static struct mux_description desc_1[] = {
     { 217, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 217, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 217, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_UART },
+    { 131, PIN_MODE_0, MODE_GPIO },
+    { 131, PIN_MODE_1, MODE_UART },
     { 214, PIN_HIGH, MODE_GPIO | MODE_UART },
     { }
 };
@@ -67,6 +71,7 @@ static struct mux_description desc_2[] = {
     { 218, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 218, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 218, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    { 128, PIN_MODE_0, MODE_GPIO },
     { 214, PIN_HIGH, MODE_GPIO },
     { }
 };
@@ -78,6 +83,8 @@ static struct mux_description desc_3[] = {
     { 219, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 219, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 219, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_PWM },
+    {  12, PIN_MODE_0, MODE_GPIO },
+    {  12, PIN_MODE_1, MODE_PWM },
     { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
@@ -89,6 +96,7 @@ static struct mux_description desc_4[] = {
     { 220, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 220, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 220, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    { 129, PIN_MODE_0, MODE_GPIO },
     { 214, PIN_HIGH, MODE_GPIO },
     { }
 };
@@ -100,6 +108,8 @@ static struct mux_description desc_5[] = {
     { 221, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 221, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 221, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_PWM },
+    {  13, PIN_MODE_0, MODE_GPIO },
+    {  13, PIN_MODE_1, MODE_PWM },
     { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
@@ -111,6 +121,8 @@ static struct mux_description desc_6[] = {
     { 222, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 222, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 222, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_PWM },
+    { 182, PIN_MODE_0, MODE_GPIO },
+    { 182, PIN_MODE_1, MODE_PWM },
     { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
@@ -122,6 +134,7 @@ static struct mux_description desc_7[] = {
     { 223, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 223, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 223, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    {  48, PIN_MODE_0, MODE_GPIO },
     { 214, PIN_HIGH, MODE_GPIO },
     { }
 };
@@ -133,6 +146,7 @@ static struct mux_description desc_8[] = {
     { 224, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 224, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 224, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ },
+    {  49, PIN_MODE_0, MODE_GPIO },
     { 214, PIN_HIGH, MODE_GPIO },
     { }
 };
@@ -144,6 +158,8 @@ static struct mux_description desc_9[] = {
     { 225, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 225, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 225, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_PWM },
+    { 183, PIN_MODE_0, MODE_GPIO },
+    { 183, PIN_MODE_1, MODE_PWM },
     { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
@@ -158,6 +174,7 @@ static struct mux_description desc_10[] = {
     { 240, PIN_LOW, MODE_GPIO },
     { 263, PIN_HIGH, MODE_GPIO },
     { 263, PIN_LOW, MODE_PWM },
+    {  41, PIN_MODE_0, MODE_GPIO },
     { 214, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
@@ -173,6 +190,8 @@ static struct mux_description desc_11[] = {
     { 241, PIN_HIGH, MODE_SPI },
     { 262, PIN_LOW, MODE_PWM },
     { 262, PIN_HIGH, MODE_GPIO | MODE_SPI },
+    {  43, PIN_MODE_0, MODE_GPIO },
+    { 115, PIN_MODE_1, MODE_SPI },
     { 214, PIN_HIGH, MODE_GPIO | MODE_SPI | MODE_PWM },
     { }
 };
@@ -186,6 +205,8 @@ static struct mux_description desc_12[] = {
     { 228, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_SPI },
     { 242, PIN_LOW, MODE_GPIO },
     { 242, PIN_HIGH, MODE_SPI },
+    {  42, PIN_MODE_0, MODE_GPIO },
+    { 114, PIN_MODE_1, MODE_SPI },
     { 214, PIN_HIGH, MODE_GPIO | MODE_SPI },
     { }
 };
@@ -199,6 +220,8 @@ static struct mux_description desc_13[] = {
     { 229, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_SPI },
     { 243, PIN_LOW, MODE_GPIO },
     { 243, PIN_HIGH, MODE_SPI },
+    {  40, PIN_MODE_0, MODE_GPIO },
+    { 109, PIN_MODE_1, MODE_GPIO },
     { 214, PIN_HIGH, MODE_GPIO | MODE_SPI },
     { }
 };
@@ -212,6 +235,7 @@ static struct mux_description desc_14[] = {
     { 208, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 208, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 208, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_ANALOG },
+    {  44, PIN_MODE_0, MODE_GPIO | MODE_ANALOG },
     { 214, PIN_HIGH, MODE_GPIO | MODE_ANALOG },
     { }
 };
@@ -225,6 +249,7 @@ static struct mux_description desc_15[] = {
     { 209, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 209, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 209, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_ANALOG },
+    {  45, PIN_MODE_0, MODE_GPIO | MODE_ANALOG },
     { 214, PIN_HIGH, MODE_GPIO | MODE_ANALOG },
     { }
 };
@@ -238,6 +263,7 @@ static struct mux_description desc_16[] = {
     { 210, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 210, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 210, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_ANALOG },
+    {  46, PIN_MODE_0, MODE_GPIO | MODE_ANALOG },
     { 214, PIN_HIGH, MODE_GPIO | MODE_ANALOG },
     { }
 };
@@ -251,6 +277,7 @@ static struct mux_description desc_17[] = {
     { 211, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 211, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 211, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_ANALOG },
+    {  47, PIN_MODE_0, MODE_GPIO | MODE_ANALOG },
     { 214, PIN_HIGH, MODE_GPIO | MODE_ANALOG },
     { }
 };
@@ -265,6 +292,8 @@ static struct mux_description desc_18[] = {
     { 212, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 212, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 212, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_I2C | MODE_ANALOG },
+    {  14, PIN_MODE_0, MODE_GPIO | MODE_ANALOG },
+    {  27, PIN_MODE_1, MODE_I2C },
     { 214, PIN_HIGH, MODE_GPIO | MODE_I2C | MODE_ANALOG },
     { }
 };
@@ -279,6 +308,8 @@ static struct mux_description desc_19[] = {
     { 213, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 213, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { 213, PIN_NONE, MODE_GPIO_OUTPUT | MODE_GPIO_INPUT_HIZ | MODE_I2C | MODE_ANALOG },
+    { 165, PIN_MODE_0, MODE_GPIO | MODE_ANALOG },
+    {  28, PIN_MODE_1, MODE_I2C },
     { 214, PIN_HIGH, MODE_GPIO | MODE_I2C | MODE_ANALOG },
     { }
 };
