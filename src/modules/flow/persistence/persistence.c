@@ -362,6 +362,7 @@ struct persist_irange_data {
     struct persist_data base;
     struct sol_irange last_value;
     struct sol_irange default_value;
+    bool store_only_val;
 };
 
 static void *
@@ -369,7 +370,7 @@ persist_irange_node_get_default(struct sol_flow_node *node)
 {
     struct persist_irange_data *mdata = sol_flow_node_get_private_data(node);
 
-    return &mdata->default_value.val;
+    return &mdata->default_value;
 }
 
 static int
@@ -386,11 +387,24 @@ persist_irange_packet_data_get(const struct sol_flow_packet *packet,
 static int
 persist_irange_packet_send(struct sol_flow_node *node)
 {
-    struct persist_data *mdata = sol_flow_node_get_private_data(node);
+    struct persist_irange_data *mdata = sol_flow_node_get_private_data(node);
+
+    if (mdata->store_only_val) {
+        struct sol_irange value = {
+            .val = *(int32_t *)mdata->base.value_ptr,
+            .step = mdata->default_value.step,
+            .min = mdata->default_value.min,
+            .max = mdata->default_value.max
+        };
+
+        return sol_flow_send_irange_packet(node,
+            SOL_FLOW_NODE_TYPE_PERSISTENCE_INT__OUT__OUT,
+            &value);
+    }
 
     return sol_flow_send_irange_packet
                (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_INT__OUT__OUT,
-               (struct sol_irange *)mdata->value_ptr);
+               (struct sol_irange *)mdata->base.value_ptr);
 }
 
 static struct sol_flow_packet *
@@ -411,13 +425,17 @@ persist_irange_open(struct sol_flow_node *node,
     const struct sol_flow_node_type_persistence_int_options *opts =
         (const struct sol_flow_node_type_persistence_int_options *)options;
 
-    mdata->base.packet_data_size = sizeof(struct sol_irange);
+    if (opts->store_only_val)
+        mdata->base.packet_data_size = sizeof(int32_t);
+    else
+        mdata->base.packet_data_size = sizeof(struct sol_irange);
     mdata->base.value_ptr = &mdata->last_value;
     mdata->base.packet_new_fn = persist_irange_packet_new;
     mdata->base.packet_data_get_fn = persist_irange_packet_data_get;
     mdata->base.packet_send_fn = persist_irange_packet_send;
     mdata->base.node_get_default_fn = persist_irange_node_get_default;
     mdata->default_value = opts->default_value;
+    mdata->store_only_val = opts->store_only_val;
 
     return persist_open(node, data, opts->storage, opts->name);
 }
@@ -426,6 +444,7 @@ struct persist_drange_data {
     struct persist_data base;
     struct sol_drange last_value;
     struct sol_drange default_value;
+    bool store_only_val;
 };
 
 static void *
@@ -433,7 +452,7 @@ persist_drange_node_get_default(struct sol_flow_node *node)
 {
     struct persist_drange_data *mdata = sol_flow_node_get_private_data(node);
 
-    return &mdata->default_value.val;
+    return &mdata->default_value;
 }
 
 static int
@@ -450,11 +469,24 @@ persist_drange_packet_data_get(const struct sol_flow_packet *packet,
 static int
 persist_drange_packet_send(struct sol_flow_node *node)
 {
-    struct persist_data *mdata = sol_flow_node_get_private_data(node);
+    struct persist_drange_data *mdata = sol_flow_node_get_private_data(node);
+
+    if (mdata->store_only_val) {
+        struct sol_drange value = {
+            .val = *(double *)mdata->base.value_ptr,
+            .step = mdata->default_value.step,
+            .min = mdata->default_value.min,
+            .max = mdata->default_value.max
+        };
+
+        return sol_flow_send_drange_packet(node,
+            SOL_FLOW_NODE_TYPE_PERSISTENCE_FLOAT__OUT__OUT,
+            &value);
+    }
 
     return sol_flow_send_drange_packet
                (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_FLOAT__OUT__OUT,
-               (struct sol_drange *)mdata->value_ptr);
+               (struct sol_drange *)mdata->base.value_ptr);
 }
 
 static struct sol_flow_packet *
@@ -475,13 +507,17 @@ persist_drange_open(struct sol_flow_node *node,
     const struct sol_flow_node_type_persistence_float_options *opts =
         (const struct sol_flow_node_type_persistence_float_options *)options;
 
-    mdata->base.packet_data_size = sizeof(struct sol_drange);
+    if (opts->store_only_val)
+        mdata->base.packet_data_size = sizeof(double);
+    else
+        mdata->base.packet_data_size = sizeof(struct sol_drange);
     mdata->base.value_ptr = &mdata->last_value;
     mdata->base.packet_new_fn = persist_drange_packet_new;
     mdata->base.packet_data_get_fn = persist_drange_packet_data_get;
     mdata->base.packet_send_fn = persist_drange_packet_send;
     mdata->base.node_get_default_fn = persist_drange_node_get_default;
     mdata->default_value = opts->default_value;
+    mdata->store_only_val = opts->store_only_val;
 
     return persist_open(node, data, opts->storage, opts->name);
 }
