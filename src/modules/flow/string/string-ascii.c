@@ -822,8 +822,10 @@ prefix_suffix_match_do(struct string_prefix_suffix_data *mdata,
     bool ret = false;
     int32_t in_str_len, sub_str_len, off;
 
-    if (!new_in_str)
+    if (!new_in_str) {
+        in_str_len = strlen(mdata->in_str);
         goto starts_with;
+    }
 
     free(mdata->in_str);
     mdata->in_str = strdup(new_in_str);
