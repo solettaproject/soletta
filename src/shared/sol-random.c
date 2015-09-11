@@ -86,7 +86,9 @@ getrandom_shim(void *buf, size_t buflen, unsigned int flags)
 static uint64_t
 get_platform_seed(uint64_t seed)
 {
+#ifdef SOL_PLATFORM_LINUX
     int ret;
+#endif /* SOL_PLATFORM_LINUX */
 
     /* If a seed is provided, use it. */
     if (seed)
