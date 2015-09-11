@@ -132,17 +132,16 @@ install: post-install
 PHONY += install post-install pre-install
 
 ifeq (yyy,$(HAVE_DOXYGEN)$(HAVE_BZIP2)$(HAVE_TAR))
-doxygen: $(DOXYGEN_RESOURCES)
-	$(Q)$(RM) -rf $(DOXYGEN_GENERATED)
+$(DOXYGEN_GENERATED): $(DOXYGEN_RESOURCES)
+	$(Q)$(MKDIR) -p $(build_doxygen_targetdir)
+	$(Q)$(RM) -rf $(build_doxygen_targetdir)/*
 	$(Q)$(DOXYGEN) doc/doxygen/Doxyfile
-	$(Q)$(RM) -rf $(PACKAGE_DOCNAME).tar*
-	$(Q)$(MKDIR) -p $(PACKAGE_DOCNAME)/doc
-	$(Q)$(CP) -R $(DOXYGEN_GENERATED) $(PACKAGE_DOCNAME)/doc
-	$(Q)$(TAR) cf $(PACKAGE_DOCNAME).tar $(PACKAGE_DOCNAME)/
-	$(Q)$(BZIP2) -9 $(PACKAGE_DOCNAME).tar
-	$(Q)$(RM) -rf $(PACKAGE_DOCNAME)/
-	$(Q)$(MKDIR) -p $(top_builddir)
-	$(Q)$(MV) $(PACKAGE_DOCNAME).tar.bz2 $(top_builddir)
+
+$(build_doxygendir)$(PACKAGE_DOCNAME).tar.bz2: $(DOXYGEN_GENERATED)
+	$(Q)$(RM) -f $(build_doxygendir)$(PACKAGE_DOCNAME).tar.bz2
+	$(Q)$(TAR) cfj $(build_doxygendir)$(PACKAGE_DOCNAME).tar.bz2 -C $(build_doxygendir) $(PACKAGE_DOCNAME)
+
+doxygen: $(build_doxygendir)$(PACKAGE_DOCNAME).tar.bz2
 else
 doxygen:
 	$(Q)echo "     ERROR: Make sure to have bzip2, tar and doxygen installed and reconfigure"
