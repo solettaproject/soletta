@@ -1,0 +1,117 @@
+[
+    {
+        "version": 2,
+        "path": "nvram3.bin",
+        "entries": [
+            {
+                "name": "_version",
+                "offset": 53,
+                "size": 1
+            },
+            {
+                "name": "save3_bool",
+                "offset": 54,
+                "size": 1,
+                "bit_offset": 0,
+                "is_bool": true
+            },
+            {
+                "name": "save3_bool2",
+                "offset": 54,
+                "size": 1,
+                "bit_offset": 1,
+                "is_bool": true
+            },
+            {
+                "name": "save3_byte",
+                "offset": 55,
+                "size": 1
+            },
+            {
+                "name": "save3_int",
+                "offset": 56,
+                "size": 4
+            },
+            {
+                "name": "save3_double",
+                "offset": 60,
+                "size": 8
+            },
+            {
+                "name": "save3_string",
+                "offset": 68,
+                "size": 2
+            },
+            {
+                "name": "save3_irange",
+                "offset": 70,
+                "size": 16
+            },
+            {
+                "name": "save3_drange",
+                "offset": 86,
+                "size": 32
+            },
+            {
+                "name": "save_float",
+                "offset": 118,
+                "size": 8
+            }
+        ]
+    },
+    {
+        "version": 2,
+        "path": "nvram.bin",
+        "entries": [
+            {
+                "name": "_version",
+                "offset": 53,
+                "size": 1
+            },
+            {
+                "name": "save_bool",
+                "offset": 54,
+                "size": 1,
+                "bit_offset": 0,
+                "is_bool": true
+            },
+            {
+                "name": "save_bool2",
+                "offset": 54,
+                "size": 1,
+                "bit_offset": 1,
+                "is_bool": true
+            },
+            {
+                "name": "save_byte",
+                "offset": 55,
+                "size": 1
+            },
+            {
+                "name": "save_int",
+                "offset": 56,
+                "size": 4
+            },
+            {
+                "name": "save_double",
+                "offset": 60,
+                "size": 8
+            },
+            {
+                "name": "save_string",
+                "offset": 68,
+                "size": 2
+            },
+            {
+                "name": "save_irange",
+                "offset": 70,
+                "size": 16
+            },
+            {
+                "name": "save_drange",
+                "offset": 86,
+                "size": 32
+            }
+        ]
+    }
+]
