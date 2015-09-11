@@ -1063,7 +1063,7 @@ prefix_suffix_match_do(struct string_prefix_suffix_data *mdata,
     int32_t end;
     UErrorCode err;
     bool ret = false;
-    int32_t in_str_len, sub_str_len, off;
+    int32_t in_str_len = 0, sub_str_len, off;
 
     if (!new_in_str) {
         in_str_len = u_strlen(mdata->in_str);
