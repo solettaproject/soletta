@@ -271,6 +271,21 @@ sol_buffer_trim(struct sol_buffer *buf)
  */
 void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);
 
+/**
+ *  Allocate a new sol_buffer and a new data block and copy the
+ *  contents of the provided sol_buffer
+ *
+ *  After this call, user is responsible for calling fini on the
+ *  buffer and freeing it afterwards. For it's memory to be freed
+ *  properly, the new buffer will have its flags set to
+ *  SOL_BUFFER_FLAGS_DEFAULT
+ *
+ *  @param buf buffer to be copied
+ *
+ *  @return A copy of buf or NULL on error.
+ */
+struct sol_buffer *sol_buffer_copy(const struct sol_buffer *buf);
+
 static inline void
 sol_buffer_reset(struct sol_buffer *buf)
 {

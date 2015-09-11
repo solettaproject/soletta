@@ -301,3 +301,24 @@ sol_buffer_steal(struct sol_buffer *buf, size_t *size)
 
     return r;
 }
+
+SOL_API struct sol_buffer *
+sol_buffer_copy(const struct sol_buffer *buf)
+{
+    struct sol_buffer *b_copy;
+
+    if (!buf) return NULL;
+
+    b_copy = sol_util_memdup(buf, sizeof(*buf));
+    if (!b_copy) return NULL;
+
+    b_copy->data = sol_util_memdup(buf->data, buf->used);
+    if (!b_copy->data) {
+        free(b_copy);
+        return NULL;
+    }
+
+    b_copy->flags &= ~SOL_BUFFER_FLAGS_NO_FREE;
+
+    return b_copy;
+}
