@@ -29,50 +29,50 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 null_str(constant/string:value="")
-null_byte(constant/int:value=0)
+null_byte(constant/byte:value=0)
 null_conv(led-7seg/char-to-byte)
-null_equal(int/equal)
+null_equal(byte/equal)
 space_str(constant/string:value=" ")
-space_byte(constant/int:value=0)
+space_byte(constant/byte:value=0)
 space_conv(led-7seg/char-to-byte)
-space_equal(int/equal)
+space_equal(byte/equal)
 five_str(constant/string:value="5")
-five_byte(constant/int:value=0xb6)
+five_byte(constant/byte:value=0xb6)
 five_conv(led-7seg/char-to-byte)
-five_equal(int/equal)
+five_equal(byte/equal)
 J_str(constant/string:value="J")
-J_byte(constant/int:value=0x78)
+J_byte(constant/byte:value=0x78)
 J_conv(led-7seg/char-to-byte)
-J_equal(int/equal)
+J_equal(byte/equal)
 l_str(constant/string:value="l")
-l_byte(constant/int:value=0x60)
+l_byte(constant/byte:value=0x60)
 l_conv(led-7seg/char-to-byte)
-l_equal(int/equal)
+l_equal(byte/equal)
 w_str(constant/string:value="w")
 w_conv(led-7seg/char-to-byte)
 
 null_str OUT -> IN null_conv
-null_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] null_equal
+null_conv OUT -> IN[0] null_equal
 null_byte OUT -> IN[1] null_equal
 null_equal OUT -> RESULT led_char_byte_null(test/result)
 
 space_str OUT -> IN space_conv
-space_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] space_equal
+space_conv OUT -> IN[0] space_equal
 space_byte OUT -> IN[1] space_equal
 space_equal OUT -> RESULT led_char_byte_space(test/result)
 
 five_str OUT -> IN five_conv
-five_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] five_equal
+five_conv OUT -> IN[0] five_equal
 five_byte OUT -> IN[1] five_equal
 five_equal OUT -> RESULT led_char_byte_five(test/result)
 
 J_str OUT -> IN J_conv
-J_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] J_equal
+J_conv OUT -> IN[0] J_equal
 J_byte OUT -> IN[1] J_equal
 J_equal OUT -> RESULT led_char_byte_J(test/result)
 
 l_str OUT -> IN l_conv
-l_conv OUT -> IN _(converter/byte-to-int) OUT -> IN[0] l_equal
+l_conv OUT -> IN[0] l_equal
 l_byte OUT -> IN[1] l_equal
 l_equal OUT -> RESULT led_char_byte_l(test/result)
 

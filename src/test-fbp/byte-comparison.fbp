@@ -14,7 +14,7 @@
 #     distribution.
 #   * Neither the name of Intel Corporation nor the names of its
 #     contributors may be used to endorse or promote products derived
-#     from this software without specific prior written permission.
+#     from this software without specific prior writmed permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -28,13 +28,38 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-const_byte(constant/byte:value=14)
-const_byte_str(constant/string:value=0x0e)
+med(constant/byte:value=0x80)
+low(constant/byte:value=0x0c)
+high(constant/byte:value=0xde)
 
-const_byte OUT -> IN byte_to_str(converter/byte-to-string) OUT -> IN[0] str_cmp(string/compare)
-const_byte_str OUT -> IN[1] str_cmp EQUAL -> RESULT byte_converts_to_string(test/result)
+low OUT -> IN[0] equal(byte/equal)
+low OUT -> IN[1] equal
+equal OUT -> RESULT r_equal(test/result)
 
-byte_to_str OUT -> IN str_to_byte(converter/string-to-byte)
-str_to_byte OUT -> IN[0] is_byte_equal(byte/equal)
-const_byte OUT -> IN[1] is_byte_equal
-is_byte_equal OUT -> RESULT string_converts_to_byte(test/result)
+med OUT -> IN[0] not_equal(byte/not-equal)
+high OUT -> IN[1] not_equal
+not_equal OUT -> RESULT r_not_equal(test/result)
+
+med OUT -> IN[0] greater(byte/greater)
+low OUT -> IN[1] greater
+greater OUT -> RESULT r_greater(test/result)
+
+med OUT -> IN[0] greater_or_equal_greater(byte/greater-or-equal)
+low OUT -> IN[1] greater_or_equal_greater
+greater_or_equal_greater OUT -> RESULT r_greater_or_equal_greater(test/result)
+
+low OUT -> IN[0] greater_or_equal_equal(byte/greater-or-equal)
+low OUT -> IN[1] greater_or_equal_equal
+greater_or_equal_equal OUT -> RESULT r_greater_or_equal_equal(test/result)
+
+low OUT -> IN[0] less(byte/less)
+high OUT -> IN[1] less
+less OUT -> RESULT r_less(test/result)
+
+low OUT -> IN[0] less_or_equal_less(byte/less-or-equal)
+med OUT -> IN[1] less_or_equal_less
+less_or_equal_less OUT -> RESULT r_less_or_equal_less(test/result)
+
+high OUT -> IN[0] less_or_equal_equal(byte/less-or-equal)
+high OUT -> IN[1] less_or_equal_equal
+less_or_equal_equal OUT -> RESULT r_less_or_equal_equal(test/result)

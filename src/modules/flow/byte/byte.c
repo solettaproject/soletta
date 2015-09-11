@@ -227,7 +227,6 @@ byte_filter_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     return 0;
 }
 
-
 static int
 byte_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct  sol_flow_packet *packet)
 {
@@ -244,5 +243,76 @@ byte_filter_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
     return 0;
 }
 
+// =============================================================================
+// BYTE COMPARISON
+// =============================================================================
+
+struct byte_comparison_node_type {
+    struct sol_flow_node_type base;
+    bool (*func) (unsigned char var0, unsigned char var1);
+};
+
+struct byte_comparison_data {
+    unsigned char val[2];
+    bool val_initialized[2];
+};
+
+static bool
+byte_val_equal(unsigned char var0, unsigned char var1)
+{
+    return var0 == var1;
+}
+
+static bool
+byte_val_less(unsigned char var0, unsigned char var1)
+{
+    return var0 < var1;
+}
+
+static bool
+byte_val_less_or_equal(unsigned char var0, unsigned char var1)
+{
+    return var0 <= var1;
+}
+
+static bool
+byte_val_greater(unsigned char var0, unsigned char var1)
+{
+    return var0 > var1;
+}
+
+static bool
+byte_val_greater_or_equal(unsigned char var0, unsigned char var1)
+{
+    return var0 >= var1;
+}
+
+static bool
+byte_val_not_equal(unsigned char var0, unsigned char var1)
+{
+    return var0 != var1;
+}
+
+static int
+comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct byte_comparison_data *mdata = data;
+    bool output;
+    const struct byte_comparison_node_type *type;
+    int r;
+
+    r = sol_flow_packet_get_byte(packet, &mdata->val[port]);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->val_initialized[port] = true;
+    if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
+        return 0;
+
+    type = (const struct byte_comparison_node_type *)
+        sol_flow_node_get_type(node);
+
+    output = type->func(mdata->val[0], mdata->val[1]);
+    return sol_flow_send_boolean_packet(node, 0, output);
+}
 
 #include "byte-gen.c"

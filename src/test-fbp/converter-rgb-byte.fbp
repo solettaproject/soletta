@@ -37,17 +37,17 @@ RedByte OUT -> RED byte_to_rgb
 GreenByte OUT -> GREEN byte_to_rgb
 BlueByte OUT -> BLUE byte_to_rgb
 
-match_twenty(constant/int:value=20)
-match_eighty(constant/int:value=80)
-match_seventy(constant/int:value=70)
+match_twenty(constant/byte:value=20)
+match_eighty(constant/byte:value=80)
+match_seventy(constant/byte:value=70)
 
 byte_to_rgb OUT -> IN rgb_to_byte(converter/rgb-to-byte)
 
-rgb_to_byte RED -> IN _(converter/byte-to-int) OUT -> IN[0] eq_twenty(int/equal)
+rgb_to_byte RED -> IN[0] eq_twenty(byte/equal)
 match_twenty OUT -> IN[1] eq_twenty OUT -> RESULT red(test/result)
 
-rgb_to_byte GREEN -> IN _(converter/byte-to-int) OUT -> IN[0] eq_eighty(int/equal)
+rgb_to_byte GREEN -> IN[0] eq_eighty(byte/equal)
 match_eighty OUT -> IN[1] eq_eighty OUT -> IN _(boolean/not) OUT -> RESULT green(test/result)
 
-rgb_to_byte BLUE -> IN _(converter/byte-to-int) OUT -> IN[0] eq_seventy(int/equal)
+rgb_to_byte BLUE -> IN[0] eq_seventy(byte/equal)
 match_seventy OUT -> IN[1] eq_seventy OUT -> RESULT blue(test/result)

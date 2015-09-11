@@ -37,17 +37,17 @@ XByte OUT -> X byte_to_direction_vector
 YByte OUT -> Y byte_to_direction_vector
 ZByte OUT -> Z byte_to_direction_vector
 
-match_twenty(constant/int:value=20)
-match_eighty(constant/int:value=80)
-match_seventy(constant/int:value=70)
+match_twenty(constant/byte:value=20)
+match_eighty(constant/byte:value=80)
+match_seventy(constant/byte:value=70)
 
 byte_to_direction_vector OUT -> IN direction_vector_to_byte(converter/direction-vector-to-byte)
 
-direction_vector_to_byte X -> IN _(converter/byte-to-int) OUT -> IN[0] eq_twenty(int/equal)
+direction_vector_to_byte X -> IN[0] eq_twenty(byte/equal)
 match_twenty OUT -> IN[1] eq_twenty OUT -> RESULT x(test/result)
 
-direction_vector_to_byte Y -> IN _(converter/byte-to-int) OUT -> IN[0] eq_eighty(int/equal)
+direction_vector_to_byte Y -> IN[0] eq_eighty(byte/equal)
 match_eighty OUT -> IN[1] eq_eighty OUT -> IN _(boolean/not) OUT -> RESULT y(test/result)
 
-direction_vector_to_byte Z -> IN _(converter/byte-to-int) OUT -> IN[0] eq_seventy(int/equal)
+direction_vector_to_byte Z -> IN[0] eq_seventy(byte/equal)
 match_seventy OUT -> IN[1] eq_seventy OUT -> RESULT z(test/result)

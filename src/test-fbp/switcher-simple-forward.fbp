@@ -65,8 +65,8 @@ const_boolean OUT -> IN[0] hub_empty
 hub_empty OUT[0] -> IN empty_to_boolean OUT -> RESULT result_switcher_empty(test/result)
 
 const_byte OUT -> IN[0] hub_byte
-const_int OUT -> IN[0] byte_equal(int/equal)
-hub_byte OUT[0] -> IN _(converter/byte-to-int) OUT -> IN[1] byte_equal
+const_byte OUT -> IN[0] byte_equal(byte/equal)
+hub_byte OUT[0] -> IN[1] byte_equal
 byte_equal OUT -> RESULT result_switcher_byte(test/result)
 
 const_float OUT -> IN[0] hub_float
