@@ -49,13 +49,13 @@ byte_to_boolean_within OUT -> RESULT result_within_range(test/result)
 
 true(constant/boolean:value=true)
 false(constant/boolean:value=false)
-true_value(constant/int:value=117)
-false_value(constant/int:value=254)
+true_value(constant/byte:value=117)
+false_value(constant/byte:value=254)
 boolean_to_byte_true(converter/boolean-to-byte:true_value=117,false_value=254)
 boolean_to_byte_false(converter/boolean-to-byte:true_value=117,false_value=254)
 
-true OUT -> IN boolean_to_byte_true OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_true(int/equal)
+true OUT -> IN boolean_to_byte_true OUT -> IN[0] cmp_true(byte/equal)
 true_value OUT -> IN[1] cmp_true OUT -> RESULT result_true(test/result)
 
-false OUT -> IN boolean_to_byte_false OUT -> IN _(converter/byte-to-int) OUT -> IN[0] cmp_false(int/equal)
+false OUT -> IN boolean_to_byte_false OUT -> IN[0] cmp_false(byte/equal)
 false_value OUT -> IN[1] cmp_false OUT -> RESULT result_false(test/result)
