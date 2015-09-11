@@ -1,6 +1,6 @@
 {
   "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
-  "name": "freegeoip",
+  "name": "location",
   "meta": {
     "author": "Intel Corporation",
     "license": "BSD 3-Clause",
