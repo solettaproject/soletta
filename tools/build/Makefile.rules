@@ -164,12 +164,14 @@ inc-subdirs = \
 		$(call extra-headers,$(addprefix $(subdir),$(headers-m))) \
 		$(call parse-warnings,$(subdir),$(warnings)) \
 		$(eval curr-builtins        := $(subst .mod,,$(filter %.mod,$(obj-y)))) \
+		$(eval all-mod-names += $(curr-builtins)) \
 		$(foreach buin,$(curr-builtins), \
 			$(eval mod-id := $(patsubst %/,%,$(subdir)$(buin))) \
 			$(call parse-builtin-module,$(buin),$(subdir),$(mod-id)) \
 			$(eval builtins += $(mod-id)) \
 		) \
 		$(eval curr-modules        := $(subst .mod,,$(filter %.mod,$(obj-m)))) \
+		$(eval all-mod-names += $(curr-modules)) \
 		$(foreach mod,$(curr-modules), \
 			$(eval mod-id := $(patsubst %/,%,$(subdir)$(buin))) \
 			$(call parse-mod-module,$(mod),$(subdir),$(mod-id)) \
@@ -209,6 +211,7 @@ parse-tests-fbp-bin = \
 		$(eval curr := $(subst $(abspath $(top_srcdir))/,$(top_srcdir),$(fbp))) \
 		$(call gen-fbp-common,$(curr)) \
 		$(eval $(curr)-out := $(subst -gen.c,,$($(curr)-src))) \
+		$(eval $(curr)-deps := $(all-mod-names)) \
 		$(eval all-tests-fbp-bin += $(curr)) \
 		$(eval all-tests-fbp-bin-out += $($(curr)-out)) \
 	) \
@@ -278,10 +281,10 @@ endef
 $(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
 
 define make-test-fbp-bin
-$($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out)
+$($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out) $(call find-deps,$(1))
 	$(Q)echo "     " CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
-	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(modules-out) $($(1)-src) -o $($(1)-out) $(SAMPLE_LDFLAGS)
+	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(modules-out) $($(1)-src) $(call find-deps,$(1)) -o $($(1)-out) $(SAMPLE_LDFLAGS)
 endef
 $(foreach test-fbp-bin,$(all-tests-fbp-bin),$(eval $(call make-test-fbp-bin,$(test-fbp-bin))))
 
