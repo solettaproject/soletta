@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <sol-macros.h>
+#include <sol-str-slice.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -316,6 +317,21 @@ sol_json_token_get_int32(const struct sol_json_token *token, int32_t *value)
  * @see sol_json_token_get_int32()
  */
 int sol_json_token_get_double(const struct sol_json_token *token, double *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2);
+
+/**
+ * Converts a JSON token to a string slice.
+ *
+ * @param token the token to convert to string slice.
+ *
+ * @return A string slice struct.
+ *
+ * @see sol_str_slice
+ */
+static inline struct sol_str_slice
+sol_json_token_to_slice(const struct sol_json_token *token)
+{
+    return SOL_STR_SLICE_STR(token->start, token->end - token->start);
+}
 
 
 bool sol_json_scanner_next(struct sol_json_scanner *scanner,
