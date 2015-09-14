@@ -36,8 +36,10 @@
 
 #include "sol-platform.h"
 #include "sol-platform-impl.h"
+#include "sol-util.h"
 
 #include "lpm.h"
+#include "periph/cpuid.h"
 
 int
 sol_platform_impl_init(void)
@@ -119,23 +121,68 @@ sol_platform_impl_set_target(const char *target)
     return -ENOTSUP;
 }
 
+static inline char
+to_hex(int num)
+{
+    return num > 9 ? num - 10 + 'a' : num + '0';
+}
+
+static void
+serial_to_string(const char *buf, size_t len, char *dst)
+{
+    char *ptr;
+    int i;
+
+    for (ptr = dst, i = 0; i < len; i++) {
+        int h, l;
+
+        h = ((unsigned)buf[i] & 0xf0) >> 4;
+        l = buf[i] & 0x0f;
+        *(ptr++) = to_hex(h);
+        *(ptr++) = to_hex(l);
+    }
+    *ptr = 0;
+}
+
 int
 sol_platform_impl_get_machine_id(char id[static 33])
 {
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
+#ifdef CPUID_ID_LEN
+    char cpuid[CPUID_ID_LEN];
+
+    /* Assume, for now, the the cpuid we get is a valid UUID */
+    cpuid_get(cpuid);
+    serial_to_string(cpuid, CPUID_ID_LEN, id);
+
+    return 0;
+#else
+    return -ENOSYS;
+#endif
 }
 
 int
 sol_platform_impl_get_serial_number(char **number)
 {
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
+#ifdef CPUID_ID_LEN
+    char cpuid[CPUID_ID_LEN];
+
+    if (!number)
+        return -EINVAL;
+
+    *number = malloc(CPUID_ID_LEN * 2 + 1);
+    SOL_NULL_CHECK(*number, -ENOMEM);
+
+    cpuid_get(cpuid);
+    serial_to_string(cpuid, CPUID_ID_LEN, *number);
+
+    return 0;
+#else
+    return -ENOSYS;
+#endif
 }
 
 char *
 sol_platform_impl_get_os_version(void)
 {
-    SOL_WRN("Not implemented");
-    return NULL;
+    return strdup(RIOT_VERSION);
 }
