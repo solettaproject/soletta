@@ -1,5 +1,5 @@
 # FIXME: Skipping it because generator has a bug with array ports
 config FLOW_FOOSBALL_SAMPLE
 	bool
-	depends on FLOW_FBP_GENERATOR_SAMPLES && FLOW_NODE_TYPE_GTK && SKIP
+	depends on FLOW_FBP_GENERATOR_SAMPLES && FLOW_NODE_TYPE_GTK
 	default y
