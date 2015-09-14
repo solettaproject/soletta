@@ -1129,7 +1129,7 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
         p->name = strndupa(e->exported_name.data, e->exported_name.len);
 
         SOL_VECTOR_FOREACH_IDX (&desc->in_ports, port, j) {
-            if (streqn(e->port.data, port->name, e->port.len)) {
+            if (sol_str_slice_str_eq(e->port, port->name)) {
                 p->data_type = strdupa(port->data_type);
                 p->array_size = port->array_size;
                 p->base_port_idx = port->base_port_idx;
@@ -1148,7 +1148,7 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
         p->name = strndupa(e->exported_name.data, e->exported_name.len);
 
         SOL_VECTOR_FOREACH_IDX (&desc->out_ports, port, j) {
-            if (streqn(e->port.data, port->name, e->port.len)) {
+            if (sol_str_slice_str_eq(e->port, port->name)) {
                 p->data_type = strdupa(port->data_type);
                 p->array_size = port->array_size;
                 p->base_port_idx = port->base_port_idx;
