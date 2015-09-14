@@ -1107,7 +1107,7 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
     struct type_description type;
     bool ret = false;
     char node_type[2048];
-    int r;
+    int r, base_port_idx;
     uint16_t i, j;
 
     type.name = data->name;
@@ -1121,6 +1121,7 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
     /* useless for fbp type */
     type.options_symbol = (char *)"";
 
+    base_port_idx = 0;
     sol_vector_init(&type.in_ports, sizeof(struct port_description));
     SOL_VECTOR_FOREACH_IDX (&data->graph.exported_in_ports, e, i) {
         struct type_description *desc = get_node_type_description(data, e->node);
@@ -1134,12 +1135,15 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
             if (sol_str_slice_str_eq(e->port, port->name)) {
                 p->data_type = strdupa(port->data_type);
                 p->array_size = port->array_size;
-                p->base_port_idx = port->base_port_idx;
+                p->base_port_idx = base_port_idx++;
+                if (port->array_size > 1)
+                    base_port_idx += port->array_size - 1;
             }
         }
         SOL_NULL_CHECK_GOTO(p->data_type, fail_in_ports);
     }
 
+    base_port_idx = 0;
     sol_vector_init(&type.out_ports, sizeof(struct port_description));
     SOL_VECTOR_FOREACH_IDX (&data->graph.exported_out_ports, e, i) {
         struct type_description *desc = get_node_type_description(data, e->node);
@@ -1153,7 +1157,9 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
             if (sol_str_slice_str_eq(e->port, port->name)) {
                 p->data_type = strdupa(port->data_type);
                 p->array_size = port->array_size;
-                p->base_port_idx = port->base_port_idx;
+                p->base_port_idx = base_port_idx++;
+                if (port->array_size > 1)
+                    base_port_idx += port->array_size - 1;
             }
         }
         SOL_NULL_CHECK_GOTO(p->data_type, fail_out_ports);
