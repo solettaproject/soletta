@@ -501,8 +501,10 @@ generate_connections(const struct fbp_data *data)
         }
 
         if (!port_types_compatible(src_port_desc->data_type, dst_port_desc->data_type)) {
-            sol_fbp_log_print(data->filename, conn->position.line, conn->position.column,
-                "Couldn't connect '%s %.*s -> %.*s %s'. Source port type '%s' doesn't match destiny port type '%s'",
+            sol_fbp_log_print(data->filename,
+                conn->position.line, conn->position.column,
+                "Couldn't connect '%s %.*s -> %.*s %s'. Source port "
+                "type '%s' doesn't match destination port type '%s'",
                 src_desc->name, SOL_STR_SLICE_PRINT(conn->src_port),
                 SOL_STR_SLICE_PRINT(conn->dst_port), dst_desc->name,
                 src_port_desc->data_type, dst_port_desc->data_type);
@@ -1161,6 +1163,10 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
     sol_vector_init(&type.options, sizeof(struct option_description));
 
     ret = type_store_add_type(parent_store, &type);
+    if (!ret)
+        SOL_WRN("Failed to add type %s to store", type.name);
+    else
+        SOL_DBG("Type %s added to store", type.name);
 
     sol_vector_clear(&type.options);
 fail_out_ports:
@@ -1181,6 +1187,7 @@ resolve_node(struct fbp_data *data, struct type_store *common_store)
         n->user_data = sol_fbp_generator_resolve_type(common_store, data->store, n, data->filename);
         if (!n->user_data)
             return false;
+        SOL_DBG("Node %.*s resolved", SOL_STR_SLICE_PRINT(n->name));
     }
 
     return true;
@@ -1251,6 +1258,7 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
     }
 
     data->id = fbp_id_count++;
+    SOL_DBG("Creating fbp data for %s (%s)", data->name, data->filename);
 
     if (data->graph.declarations.len > 0) {
         struct declared_fbp_type *dec_type;
