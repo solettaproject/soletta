@@ -5,9 +5,10 @@ includedir={{@INCLUDEDIR@}}
 modulesdir={{@MODULESDIR@}}
 pkgdatadir={{@DATADIR@}}soletta
 nodeschemapath=${pkgdatadir}/flow/schemas/node-type-genspec.schema
+nodedescriptionpath={{@DESCDIR@}}
 
 Name: {{@PKGNAME@}}
-Description: SOLETTA io library
+Description: Soletta Project is a framework for making IoT devices.
 Version: {{@VERSION@}}
 Libs: -L${libdir} -lsoletta
 Cflags: -I${includedir}/soletta
