@@ -7,9 +7,9 @@
     "chip": "0",
     "duty_cycle_range": "min:544|max:2400",
     "period": "22000",
-    "pin": "1"
+    "pin": "0"
    },
-   "type": "servo-motor"
+   "type": "servo-motor/controller"
   }
  ]
 }
