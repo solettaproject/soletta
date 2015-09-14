@@ -44,6 +44,7 @@
 #include "sol-json.h"
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
+#include "sol-random.h"
 #include "sol-util.h"
 
 #include "sol-oic-client.h"
@@ -81,12 +82,14 @@ struct find_resource_ctx {
     struct sol_oic_client *client;
     void (*cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data);
     void *data;
+    int32_t token;
 };
 
 struct server_info_ctx {
     struct sol_oic_client *client;
     void (*cb)(struct sol_oic_client *cli, const struct sol_oic_server_information *info, void *data);
     void *data;
+    int32_t token;
 };
 
 struct resource_request_ctx {
@@ -99,7 +102,25 @@ struct resource_request_ctx {
 
 static const char json_type[] = "application/json";
 
+static struct sol_random *random_gen;
+
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
+
+static int32_t
+_get_random_token(void)
+{
+    int32_t number;
+
+    if (unlikely(!random_gen)) {
+        random_gen = sol_random_new(SOL_RANDOM_DEFAULT, 0);
+        if (unlikely(!random_gen)) {
+            SOL_ERR("Could not create random engine");
+            return 0;
+        }
+    }
+
+    return sol_random_get_int32(random_gen, &number) ? number : 0;
+}
 
 static bool
 _parse_json_array(const char *data, unsigned int size, struct sol_vector *vec)
@@ -285,6 +306,21 @@ _parse_server_info_payload(struct sol_oic_server_information *info,
     return reason == SOL_JSON_LOOP_REASON_OK;
 }
 
+static bool
+_pkt_has_same_token(const struct sol_coap_packet *pkt, int32_t token)
+{
+    uint8_t *token_data, token_len;
+
+    token_data = sol_coap_header_get_token(pkt, &token_len);
+    if (!token_data)
+        return false;
+
+    if (token_len != sizeof(token))
+        return false;
+
+    return memcmp(token_data, &token, sizeof(token)) == 0;
+}
+
 static int
 _server_info_reply_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
@@ -300,6 +336,11 @@ _server_info_reply_cb(struct sol_coap_packet *req, const struct sol_network_link
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
         error = -ENOENT;
+        goto free_ctx;
+    }
+
+    if (!_pkt_has_same_token(req, ctx->token)) {
+        error = -EINVAL;
         goto free_ctx;
     }
 
@@ -342,7 +383,8 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
     ctx = sol_util_memdup(&(struct server_info_ctx) {
             .client = client,
             .cb = info_received_cb,
-            .data = data
+            .data = data,
+            .token = _get_random_token()
         }, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, false);
 
@@ -352,6 +394,7 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
         goto out_no_pkt;
     }
 
+    sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
     sol_coap_header_set_id(req, SOLETTA_SERVER_INFO_MID);
 
     if (sol_coap_packet_add_uri_path_option(req, d_uri) < 0) {
@@ -398,6 +441,11 @@ _find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_li
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
         error = -ENOENT;
+        goto free_ctx;
+    }
+
+    if (!_pkt_has_same_token(req, ctx->token)) {
+        error = -EINVAL;
         goto free_ctx;
     }
 
@@ -462,7 +510,8 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     ctx = sol_util_memdup(&(struct find_resource_ctx) {
             .client = client,
             .cb = resource_found_cb,
-            .data = data
+            .data = data,
+            .token = _get_random_token()
         }, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, false);
 
@@ -473,6 +522,7 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
         goto out_no_pkt;
     }
 
+    sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
     sol_coap_header_set_id(req, IOTIVITY_NONCON_REQ_MID);
 
     if (sol_coap_packet_add_uri_path_option(req, oc_core_uri) < 0) {
