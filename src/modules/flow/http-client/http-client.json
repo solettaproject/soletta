@@ -1,0 +1,65 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "http-client",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "name": "http-client/boolean",
+      "category": "output/network",
+      "description": "HTTP Client for boolean",
+      "methods": {
+        "close": "boolean_close",
+        "open": "boolean_open"
+      },
+      "options": {
+	"members": [
+	  {
+	    "data_type": "string",
+	    "description": "The url that will be used",
+	    "name": "url"
+	  }
+	],
+	"version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Url wich request will be done",
+          "methods": {
+            "process": "boolean_url_process"
+          },
+          "name": "URL"
+        },
+        {
+          "data_type": "any",
+          "description": "Get the contents of the specified url",
+          "methods": {
+            "process": "boolean_get_process"
+          },
+          "name": "GET"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Post into the url",
+          "methods": {
+            "process": "boolean_post_process"
+          },
+          "name": "POST"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "The value received from the url",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/boolean.html"
+    }
+  ]
+}
