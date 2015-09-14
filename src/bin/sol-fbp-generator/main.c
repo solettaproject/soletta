@@ -1130,6 +1130,7 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
         SOL_NULL_CHECK_GOTO(p, fail_in_ports);
 
         p->name = strndupa(e->exported_name.data, e->exported_name.len);
+        SOL_NULL_CHECK_GOTO(p->name, fail_in_ports);
 
         SOL_VECTOR_FOREACH_IDX (&desc->in_ports, port, j) {
             if (sol_str_slice_str_eq(e->port, port->name)) {
@@ -1157,6 +1158,7 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
         SOL_NULL_CHECK_GOTO(p, fail_out_ports);
 
         p->name = strndupa(e->exported_name.data, e->exported_name.len);
+        SOL_NULL_CHECK_GOTO(p->name, fail_out_ports);
 
         SOL_VECTOR_FOREACH_IDX (&desc->out_ports, port, j) {
             if (sol_str_slice_str_eq(e->port, port->name)) {
