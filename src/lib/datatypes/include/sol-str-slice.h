@@ -48,7 +48,7 @@ extern "C" {
  */
 
 /**
- * @defgroup Str_Slice
+ * @defgroup Str_Slice String slice
  * @ingroup Datatypes
  *
  * It's a slice of a string with explicit length. It doesn't necessarily ends

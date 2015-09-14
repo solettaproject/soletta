@@ -109,7 +109,7 @@ struct sol_flow_simplectype_event {
  *
  * @param name the type name, will be used in debug. Often this is the
  *        name of the function you're using.
- * @param private_data_size the amount of bytes to store for each node
+ * @param context_data_size the amount of bytes to store for each node
  *        instance. This memory can be retrieved from a node with
  *        sol_flow_node_get_private_data() and is given to @a func as
  *        the last argument. If zero is given, then this node

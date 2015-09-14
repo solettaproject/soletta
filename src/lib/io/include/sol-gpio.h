@@ -51,6 +51,14 @@ extern "C" {
  * These routines are used for general I/O access under Solleta
  * (namely GPIO, PWM, SPI, UART and I2C).
  *
+ */
+
+/**
+ * @defgroup GPIO GPIO
+ * @ingroup IO
+ *
+ * GPIO (General Purpose Input/Output) API for Solleta.
+ *
  * @{
  */
 

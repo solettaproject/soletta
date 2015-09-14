@@ -45,7 +45,7 @@ extern "C" {
  */
 
 /**
- * @defgroup Arena
+ * @defgroup Arena Arena
  * @ingroup Datatypes
  *
  * An arena is an object that does allocation on user behalf and can

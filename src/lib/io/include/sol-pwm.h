@@ -45,10 +45,12 @@ extern "C" {
  */
 
 /**
+ * @defgroup PWM PWM
  * @ingroup IO
  *
- * @{
+ * PWM (Pulse-width modulation) API for Solleta.
  *
+ * @{
  */
 
 struct sol_pwm;

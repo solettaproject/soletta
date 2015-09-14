@@ -149,8 +149,12 @@ uint8_t sol_i2c_get_slave_address(struct sol_i2c *i2c);
  * This sends a single bit to a device (command designed to turn on
  * and off simple devices)
  *
- * @param i2c bus The I2C bus handle
+ * @param i2c The I2C bus handle
  * @param rw The value to write
+ * @param write_quick_cb The callback to be issued when the operation
+ * finishes. The status parameter should be equal to one in case of
+ * success
+ * @param cb_data Data to be passed to @a write_quick_cb
  *
  * @return pending handle if operation was started otherwise a NULL pointer
  */
@@ -267,7 +271,7 @@ struct sol_i2c_pending *sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg,
  * @param i2c bus The I2C bus handle
  * @param reg The register to start reading from
  * @param values Where to store the read bytes
- * @param len The size of a single read block
+ * @param count The size of a single read block
  * @param times How many reads of size @a len to perform (on success,
  *              @a len * @a times bytes will be read)
  * @param read_reg_multiple_cb The callback to be called when operation finish,

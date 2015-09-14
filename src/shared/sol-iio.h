@@ -43,6 +43,15 @@ extern "C" {
  * @brief Routines to access Linux Industrial I/O (iio) devices under Solleta
  */
 
+/**
+ * @defgroup IIO IIO
+ * @ingroup IO
+ *
+ * IIO (Linux Industrial I/O) API for Solleta.
+ *
+ * @{
+ */
+
 struct sol_iio_device;
 struct sol_iio_channel;
 
@@ -69,7 +78,7 @@ struct sol_iio_channel_config {
 /**
  * Open an IIO device
  *
- * @param device_id Id of iio device. It's the number which identifies device
+ * @param id Id of iio device. It's the number which identifies device
  * on file system. Can be found at '/sys/bus/iio/devices/iio:deviceX'.
  * @param config IIO config.
  *
@@ -156,7 +165,7 @@ bool sol_iio_device_start_buffer(struct sol_iio_device *device);
  * 'name' file on sysfs.
  * Finally, it can describe a command to @a create an IIO device. In this case,
  * command is a combination on the form
- * <tt> create,<bus_type>,<rel_path>,<devnumber>,<devname> </tt>
+ * <tt> create,\<bus_type\>,\<rel_path\>,\<devnumber\>,\<devname\> </tt>
  *
  * @arg @a bus_type is the bus type, supported values are: i2c
  * @arg @a rel_path is the relative path for device on '/sys/devices',
@@ -195,6 +204,10 @@ bool sol_iio_address_device(const char *commands, void (*cb)(void *data, int dev
  */
 struct sol_str_slice
 sol_iio_read_channel_raw_buffer(struct sol_iio_channel *channel);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

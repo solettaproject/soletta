@@ -45,10 +45,12 @@ extern "C" {
  */
 
 /**
+ * @defgroup UART UART
  * @ingroup IO
  *
- * @{
+ * UART (Universal Asynchronous Receiver/Transmitter) API for Solleta.
  *
+ * @{
  */
 
 struct sol_uart;

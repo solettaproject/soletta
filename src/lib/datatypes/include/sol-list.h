@@ -42,7 +42,7 @@ extern "C" {
  */
 
 /**
- * @defgroup List
+ * @defgroup List List
  * @ingroup Datatypes
  *
  * Doubly linked list.

@@ -48,7 +48,7 @@ extern "C" {
  */
 
 /**
- * @defgroup CoAP
+ * @defgroup CoAP CoAP
  * @ingroup Comms
  *
  * The Constrained Application Protocol (CoAP) is a

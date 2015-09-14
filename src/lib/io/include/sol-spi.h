@@ -45,7 +45,10 @@ extern "C" {
  */
 
 /**
+ * @defgroup SPI SPI
  * @ingroup IO
+ *
+ * SPI (Serial Peripheral Interface) API for Solleta.
  *
  * @{
  */

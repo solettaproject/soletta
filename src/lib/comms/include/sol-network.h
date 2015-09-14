@@ -49,13 +49,13 @@ extern "C" {
  */
 
 /**
- * @defgroup Comms Communication Libraries
+ * @defgroup Comms Communication Modules
  *
  * Comms consists on a few communication modules.
  * It provides ways to deal with network, CoAP protocol and
  * OIC protocol (server and client sides).
  *
- * @defgroup Network
+ * @defgroup Network Network
  * @ingroup Comms
  *
  * Network module provides a way to handle network link interfaces,

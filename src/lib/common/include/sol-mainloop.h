@@ -67,7 +67,6 @@ extern "C" {
  * @li @ref Log
  * @li @ref Macros
  * @li @ref Mainloop
- * @li @ref Missing
  * @li @ref Parsers
  * @li @ref Platform
  * @li @ref Types

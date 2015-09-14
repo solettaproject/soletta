@@ -54,7 +54,7 @@ extern "C" {
  * Focused on low memory footprints, they're a good choice for
  * node types development.
  *
- * @defgroup Buffer
+ * @defgroup Buffer Buffer
  *
  * Buffer is a dynamic array, that can be resized if needed.
  * See also \ref Arena if you are allocating multiple pieces of data that will
@@ -265,7 +265,7 @@ sol_buffer_trim(struct sol_buffer *buf)
  *  @return @a buffer internal buffer. It's caller responsibility now
  *  to free this memory
  *
- *  @Note If @a buffer was allocated with @c sol_buffer_new(), it still
+ *  @note If @a buffer was allocated with @c sol_buffer_new(), it still
  *  needs to be freed by calling @c sol_buffer_free();
  */
 void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);

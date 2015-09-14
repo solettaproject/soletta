@@ -46,7 +46,7 @@ extern "C" {
  */
 
 /**
- * @defgroup Vector
+ * @defgroup Vector Vector
  * @ingroup Datatypes
  *
  * It's an array that grows dynamically. It's suited for

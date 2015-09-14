@@ -34,6 +34,24 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @file
+ * @brief These routines are used for analog I/O access under Solleta.
+ */
+
+/**
+ * @defgroup AIO AIO
+ * @ingroup IO
+ *
+ * Analog I/O API for Solleta.
+ *
+ * @{
+ */
+
 struct sol_aio; /**< Structure of the AIO handler */
 
 /**
@@ -43,7 +61,7 @@ struct sol_aio; /**< Structure of the AIO handler */
  * the current platform was previously loaded.
  *
  * @param device The AIO device number.
- * @param device The AIO pin on device.
+ * @param pin The AIO pin on device.
  * @param precision The number of valid bits on the data received from the analog to digital converter.
  * @return A new AIO handler
  *
@@ -59,7 +77,7 @@ struct sol_aio *sol_aio_open(const int device, const int pin, const unsigned int
  * the output range because is applied to the least significant bits.
  *
  * @param device The AIO device number
- * @param device The AIO pin on device
+ * @param pin The AIO pin on device
  * @param precision The number of valid bits on the data received from the analog to digital converter.
  * @return A new AIO handler
  */
@@ -79,3 +97,11 @@ void sol_aio_close(struct sol_aio *aio);
  * @return The value read. -1 in case of error.
  */
 int32_t sol_aio_get_value(const struct sol_aio *aio);
+
+/**
+ * @}
+ */
+
+#ifdef __cplusplus
+}
+#endif
