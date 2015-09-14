@@ -32,14 +32,20 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_LOCALE
+#include <locale.h>
+#endif
 
 #include "sol-json.h"
 #include "sol-log.h"
 #include "sol-util.h"
 #include <float.h>
 #include <math.h>
+
+static const char sol_json_escapable_chars[] = { '\\', '\"', '/', '\b', '\f', '\n', '\r', '\t' };
 
 static bool
 check_symbol(struct sol_json_scanner *scanner, struct sol_json_token *token,
@@ -459,4 +465,80 @@ sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
 
     value->start = start;
     return true;
+}
+
+SOL_API size_t
+sol_json_calculate_escaped_string_len(const char *str)
+{
+    size_t len = 0;
+
+    SOL_NULL_CHECK(str, 0);
+
+    for (; *str; str++) {
+        if (memchr(sol_json_escapable_chars, *str, sizeof(sol_json_escapable_chars)))
+            len++;
+        len++;
+    }
+    return len + 1;
+}
+
+SOL_API char *
+sol_json_escape_string(const char *str, char *buf, size_t len)
+{
+    char *out = buf;
+    size_t i;
+
+    SOL_NULL_CHECK(str, NULL);
+    SOL_NULL_CHECK(buf, NULL);
+
+    for (i = 0; *str && i < len; str++, i++) {
+        if (memchr(sol_json_escapable_chars, *str, sizeof(sol_json_escapable_chars))) {
+            *buf++ = '\\';
+            switch (*str) {
+            case '"':  *buf++ = '"'; break;
+            case '\\': *buf++ = '\\'; break;
+            case '/':  *buf++ = '/'; break;
+            case '\b': *buf++ = 'b'; break;
+            case '\f': *buf++ = 'f'; break;
+            case '\n': *buf++ = 'n'; break;
+            case '\r': *buf++ = 'r'; break;
+            case '\t': *buf++ = 't'; break;
+            }
+        } else {
+            *buf++ = *str;
+        }
+    }
+    *buf++ = '\0';
+    return out;
+}
+
+SOL_API int
+sol_json_double_to_str(const double value, char *buf, size_t len)
+{
+    int ret;
+    char *decimal_point;
+
+#ifdef HAVE_LOCALE
+    struct lconv *lc = localeconv();
+#endif
+
+    ret = snprintf(buf, len, "%f", value);
+    if (ret < 0 || ret > (int)len)
+        return -ENOMEM;
+
+#ifdef HAVE_LOCALE
+    if (lc->decimal_point && streq(lc->decimal_point, "."))
+        return 0;
+
+
+    if ((decimal_point = strstr(buf, lc->decimal_point))) {
+        size_t decimal_len = strlen(lc->decimal_point);
+        char *fraction = decimal_point + decimal_len;
+        *decimal_point = '.';
+
+        memmove(decimal_point + 1, fraction, (buf + ret + 1) - fraction);
+    }
+#endif
+
+    return 0;
 }

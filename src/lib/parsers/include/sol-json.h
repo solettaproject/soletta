@@ -406,6 +406,17 @@ _sol_json_loop_helper_init(struct sol_json_scanner *scanner, struct sol_json_tok
     return SOL_JSON_LOOP_REASON_OK;
 }
 
+size_t sol_json_calculate_escaped_string_len(const char *str) SOL_ATTR_NONNULL(1);
+
+char *sol_json_escape_string(const char *str, char *buf, size_t len) SOL_ATTR_NONNULL(1, 2);
+
+#define SOL_JSON_ESCAPE_STRING(s) ({ \
+        size_t str_len ## __COUNT__  = sol_json_calculate_escaped_string_len(s); \
+        sol_json_escape_string(s, alloca(str_len ## __COUNT__), str_len ## __COUNT__); \
+    })
+
+int sol_json_double_to_str(const double value, char *buf, size_t buf_len);
+
 /**
  * @}
  */

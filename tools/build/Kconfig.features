@@ -19,6 +19,9 @@ config FEATURE_COAP
 config FEATURE_HTTP_CLIENT
     bool
 
+config FEATURE_HTTP_SERVER
+    bool
+
 config FEATURE_HW_AIO
     bool
 

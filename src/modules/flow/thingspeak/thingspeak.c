@@ -137,7 +137,7 @@ thingspeak_execute_poll_finished(void *data,
         return;
     }
 
-    if (response->response_code != 200) {
+    if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
             "Thingspeak returned an unknown response code: %d",
             response->response_code);
@@ -238,7 +238,7 @@ thingspeak_add_request_finished(void *data,
         return;
     }
 
-    if (response->response_code != 200) {
+    if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
             "Thingspeak returned an unknown response code: %d",
             response->response_code);

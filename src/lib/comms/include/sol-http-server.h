@@ -33,6 +33,7 @@
 #pragma once
 
 #include <sol-http.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,28 +41,33 @@ extern "C" {
 
 /**
  * @file
- * @brief HTTP client
- * Library to perform HTTP(s) requests. Buffers whole response in memory,
- * so it's more suitable to remote API calls rather than file transfer.
+ * @brief HTTP server
+ * Library to make possible run an HTTP server to deliver and
+ * set values from others components.
  */
 
 /**
- * @defgroup HTTP HTTP
+ * @defgroup HTTP
  * @ingroup Comms
  *
  * @{
  */
 
+struct sol_http_server;
+struct sol_http_request;
 
-struct sol_http_client_connection;
+struct sol_http_server *sol_http_server_new(uint16_t port);
+void sol_http_server_del(struct sol_http_server *server);
+int sol_http_server_register_handler(struct sol_http_server *server, const char *path,
+    int (*request_cb)(void *data, struct sol_http_request *request),
+    const void *data);
+int sol_http_server_unregister_handler(struct sol_http_server *server, const char *path);
+int sol_http_server_set_last_modified(struct sol_http_server *server, const char *path, time_t modified);
 
-struct sol_http_client_connection *sol_http_client_request(enum sol_http_method method,
-    const char *base_uri, const struct sol_http_param *params,
-    void (*cb)(void *data, const struct sol_http_client_connection *connection,
-    struct sol_http_response *response),
-    const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
-
-void sol_http_client_connection_cancel(struct sol_http_client_connection *pending);
+int sol_http_server_send_response(struct sol_http_request *request, struct sol_http_response *response);
+const char *sol_http_request_get_url(const struct sol_http_request *request);
+const struct sol_http_param *sol_http_request_get_params(const struct sol_http_request *request);
+enum sol_http_method sol_http_request_get_method(const struct sol_http_request *request);
 
 /**
  * @}
