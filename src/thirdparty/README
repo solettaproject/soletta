@@ -8,3 +8,10 @@ Thirdparty
       - Duktape is an embeddable Javascript engine, with focus on
         portabillity and compact footprint. This is used in order
         to create JS node types in flow.
+
+- TinyCBOR
+      - Repository: https://github.com/01org/tinycbor
+      - License: MIT - src/thirdparty/tinycbor/src/cbor.h
+      - CBOR is the "Concise Binary Object Representation", and is the
+        format used by OIC to encode network payload. TinyCBOR is a library
+        to encode and decode data in CBOR.

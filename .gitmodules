@@ -1,3 +1,6 @@
 [submodule "src/thirdparty/duktape"]
 	path = src/thirdparty/duktape
 	url = https://github.com/solettaproject/duktape-release.git
+[submodule "src/thirdparty/tinycbor"]
+	path = src/thirdparty/tinycbor
+	url = https://github.com/01org/tinycbor/

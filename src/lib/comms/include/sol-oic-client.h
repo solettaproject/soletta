@@ -43,6 +43,8 @@
 extern "C" {
 #endif
 
+#include "sol-oic-common.h"
+
 /**
  * @file
  * @brief Routines to create clients talking OIC protocol.
@@ -78,6 +80,7 @@ struct sol_oic_resource {
     int : 0; /* save possible hole for a future field */
     struct sol_network_link_addr addr;
     struct sol_str_slice href;
+    struct sol_str_slice device_id;
     struct sol_vector types;
     struct sol_vector interfaces;
     struct {
@@ -86,6 +89,9 @@ struct sol_oic_resource {
     } observe;
     int refcnt;
     bool observable : 1;
+    bool active : 1;
+    bool slow : 1;
+    bool secure : 1;
 };
 
 bool sol_oic_client_find_resource(struct sol_oic_client *client,
@@ -95,7 +101,6 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
     void *data),
     void *data);
 
-struct sol_oic_server_information;
 bool sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(struct sol_oic_client *cli,
@@ -103,14 +108,14 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
     void *data);
 
 bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method, uint8_t *payload, size_t payload_len,
+    sol_coap_method_t method, const struct sol_vector *reprs,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
     void *data);
 
 bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
     void *data, bool observe);
 
 struct sol_oic_resource *sol_oic_resource_ref(struct sol_oic_resource *r);
