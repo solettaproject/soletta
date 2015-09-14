@@ -1133,11 +1133,16 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
 
         SOL_VECTOR_FOREACH_IDX (&desc->in_ports, port, j) {
             if (sol_str_slice_str_eq(e->port, port->name)) {
+                int array_size = 0;
+                /* case the whole array was exported */
+                if (e->port_idx == -1)
+                    array_size = port->array_size;
+
                 p->data_type = strdupa(port->data_type);
-                p->array_size = port->array_size;
+                p->array_size = array_size;
                 p->base_port_idx = base_port_idx++;
-                if (port->array_size > 1)
-                    base_port_idx += port->array_size - 1;
+                if (array_size > 1)
+                    base_port_idx += array_size - 1;
             }
         }
         SOL_NULL_CHECK_GOTO(p->data_type, fail_in_ports);
@@ -1155,11 +1160,16 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
 
         SOL_VECTOR_FOREACH_IDX (&desc->out_ports, port, j) {
             if (sol_str_slice_str_eq(e->port, port->name)) {
+                int array_size = 0;
+                /* case the whole array was exported */
+                if (e->port_idx == -1)
+                    array_size = port->array_size;
+
                 p->data_type = strdupa(port->data_type);
-                p->array_size = port->array_size;
+                p->array_size = array_size;
                 p->base_port_idx = base_port_idx++;
-                if (port->array_size > 1)
-                    base_port_idx += port->array_size - 1;
+                if (array_size > 1)
+                    base_port_idx += array_size - 1;
             }
         }
         SOL_NULL_CHECK_GOTO(p->data_type, fail_out_ports);
