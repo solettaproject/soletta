@@ -40,22 +40,60 @@
 
 static void
 got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
-    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data)
+    const struct sol_str_slice *href, const struct sol_vector *repr, void *data)
 {
+    struct sol_oic_repr_field *field;
     char addr[SOL_INET_ADDR_STRLEN];
+    uint16_t idx;
 
     if (!sol_network_addr_to_str(cliaddr, addr, sizeof(addr))) {
         SOL_WRN("Could not convert network address to string");
         return;
     }
 
-    printf("Received payload for GET from %s (%.*s): %.*s\n",
-        addr, SOL_STR_SLICE_PRINT(*href), SOL_STR_SLICE_PRINT(*payload));
+    printf("Dumping payload received from addr %s {\n", addr);
+    SOL_VECTOR_FOREACH_IDX (repr, field, idx) {
+        printf("\tkey: '%s', value: ", field->key);
+
+        switch (field->type) {
+        case SOL_OIC_REPR_TYPE_UINT:
+            printf("uint(%" PRIu64 ")\n", field->v_uint);
+            break;
+        case SOL_OIC_REPR_TYPE_INT:
+            printf("int(%" PRIi64 ")\n", field->v_int);
+            break;
+        case SOL_OIC_REPR_TYPE_SIMPLE:
+            printf("simple(%d)\n", field->v_simple);
+            break;
+        case SOL_OIC_REPR_TYPE_TEXT_STRING:
+            printf("str(%.*s)\n", (int)field->v_slice.len, field->v_slice.data);
+            break;
+        case SOL_OIC_REPR_TYPE_BYTE_STRING:
+            printf("bytestr() [not dumping]\n");
+            break;
+        case SOL_OIC_REPR_TYPE_HALF_FLOAT:
+            printf("hfloat(%p)\n", field->v_voidptr);
+            break;
+        case SOL_OIC_REPR_TYPE_FLOAT:
+            printf("float(%f)\n", field->v_float);
+            break;
+        case SOL_OIC_REPR_TYPE_DOUBLE:
+            printf("float(%g)\n", field->v_double);
+            break;
+        case SOL_OIC_REPR_TYPE_BOOLEAN:
+            printf("boolean(%s)\n", field->v_boolean ? "true" : "false");
+            break;
+        default:
+            printf("unknown(%d)\n", field->type);
+        }
+    }
+    printf("}\n\n");
 }
 
 static void
 found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data)
 {
+    static const char digits[] = "0123456789abcdef";
     struct sol_str_slice *slice;
     uint16_t idx;
     char addr[SOL_INET_ADDR_STRLEN];
@@ -65,8 +103,26 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
         return;
     }
 
-    printf("Found resource: coap://%s%.*s <observable: %s>\n", addr,
-        SOL_STR_SLICE_PRINT(res->href), res->observable ? "yes" : "no");
+    printf("Found resource: coap://%s%.*s\n", addr,
+        SOL_STR_SLICE_PRINT(res->href));
+
+    printf("Flags:\n"
+        " - observable: %s\n"
+        " - active: %s\n"
+        " - slow: %s\n"
+        " - secure: %s\n",
+        res->observable ? "yes" : "no",
+        res->active ? "yes" : "no",
+        res->slow ? "yes" : "no",
+        res->secure ? "yes" : "no");
+
+    printf("Device ID: ");
+    for (idx = 0; idx < 16; idx++) {
+        unsigned int digit = res->device_id.data[idx];
+        putchar(digits[(digit >> 4) & 0x0f]);
+        putchar(digits[digit & 0x0f]);
+    }
+    putchar('\n');
 
     printf("Resource types:\n");
     SOL_VECTOR_FOREACH_IDX (&res->types, slice, idx)
@@ -77,7 +133,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
         printf("\t\t%.*s\n", SOL_STR_SLICE_PRINT(*slice));
 
     printf("Issuing GET %.*s on resource...\n", SOL_STR_SLICE_PRINT(res->href));
-    sol_oic_client_resource_request(cli, res, SOL_COAP_METHOD_GET, NULL, 0,
+    sol_oic_client_resource_request(cli, res, SOL_COAP_METHOD_GET, NULL,
         got_get_response, data);
 
     printf("\n");
@@ -86,7 +142,9 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
 int
 main(int argc, char *argv[])
 {
-    struct sol_oic_client client;
+    struct sol_oic_client client = {
+        .api_version = SOL_OIC_CLIENT_API_VERSION
+    };
     struct sol_network_link_addr cliaddr = { .family = AF_INET, .port = 5683 };
     const char *resource_type;
 

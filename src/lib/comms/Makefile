@@ -16,8 +16,20 @@ obj-networking-$(COAP) += \
     sol-coap.o
 
 obj-networking-$(OIC) += \
+    sol-oic-cbor.o \
     sol-oic-client.o \
-    sol-oic-server.o
+    sol-oic-server.o \
+    $(TINYCBOR_SRC_PATH)/cborencoder.o \
+    $(TINYCBOR_SRC_PATH)/cborerrorstrings.o \
+    $(TINYCBOR_SRC_PATH)/cborparser.o \
+    $(TINYCBOR_SRC_PATH)/cborpretty.o
+
+obj-networking-$(OIC)-extra-cflags := \
+    -I$(TINYCBOR_SRC_PATH) \
+    -Wno-cpp \
+    -Wno-declaration-after-statement \
+    -Wno-float-equal \
+    -Wno-undef
 
 obj-networking-$(HTTP) += \
     sol-http-common.o
@@ -53,8 +65,10 @@ headers-networking-$(COAP) += \
     include/sol-coap.h
 
 headers-networking-$(OIC) += \
+    include/sol-oic-common.h \
     include/sol-oic-client.h \
-    include/sol-oic-server.h
+    include/sol-oic-server.h \
+    sol-oic-cbor.h
 
 headers-networking-$(HTTP) += \
     include/sol-http.h

@@ -54,11 +54,15 @@
 #define DEFAULT_UDP_PORT 5683
 
 static int console_fd;
+static bool led_state;
 
 static bool
 get_scrolllock_led(void)
 {
     char value;
+
+    if (console_fd < 0)
+        return led_state;
 
     if (ioctl(console_fd, KDGETLED, (char *)&value)) {
         perror("Could not get led state");
@@ -72,6 +76,12 @@ static int
 set_scrolllock_led(bool on)
 {
     char old;
+
+    if (console_fd < 0) {
+        printf("setting LED to %s\n", on ? "true" : "false");
+        led_state = on;
+        return 0;
+    }
 
     if (ioctl(console_fd, KDGETLED, (char *)&old)) {
         perror("Could not get led state");
@@ -88,50 +98,53 @@ set_scrolllock_led(bool on)
 
 static sol_coap_responsecode_t
 user_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
-    uint8_t *payload, uint16_t *payload_len)
+    const struct sol_vector *input, struct sol_vector *output)
 {
-    static const uint8_t response_on[] = "{\"oc\":[{\"rep\":{\"power\":13,\"state\":true}}]}";
-    static const uint8_t response_off[] = "{\"oc\":[{\"rep\":{\"power\":13,\"state\":false}}]}";
+    struct sol_oic_repr_field *field;
 
-    if (get_scrolllock_led()) {
-        if ((sizeof(response_on) - 1) > *payload_len)
-            return SOL_COAP_RSPCODE_UNAUTHORIZED;
+    field = sol_vector_append(output);
+    SOL_NULL_CHECK(field, SOL_COAP_RSPCODE_INTERNAL_ERROR);
 
-        memcpy(payload, response_on, sizeof(response_on) - 1);
-        *payload_len = sizeof(response_on) - 1;
-    } else {
-        if ((sizeof(response_off) - 1) > *payload_len)
-            return SOL_COAP_RSPCODE_UNAUTHORIZED;
+    *field = SOL_OIC_REPR_BOOLEAN("state", get_scrolllock_led());
 
-        memcpy(payload, response_off, sizeof(response_off) - 1);
-        *payload_len = sizeof(response_off) - 1;
-    }
+    field = sol_vector_append(output);
+    SOL_NULL_CHECK(field, SOL_COAP_RSPCODE_INTERNAL_ERROR);
+
+    *field = SOL_OIC_REPR_INT("power", 13);
 
     return SOL_COAP_RSPCODE_CONTENT;
 }
 
 static sol_coap_responsecode_t
 user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
-    uint8_t *payload, uint16_t *payload_len)
+    const struct sol_vector *input, struct sol_vector *output)
 {
-    static const char on_state[] = "\"state\":true";
-    bool new_state = memmem(payload, *payload_len, on_state, sizeof(on_state) - 1);
+    struct sol_oic_repr_field *iter;
+    uint16_t idx;
 
-    return set_scrolllock_led(new_state) ? SOL_COAP_RSPCODE_OK : SOL_COAP_RSPCODE_INTERNAL_ERROR;
+    SOL_VECTOR_FOREACH_IDX (input, iter, idx) {
+        if (streq(iter->key, "state") && iter->type == SOL_OIC_REPR_TYPE_BOOLEAN) {
+            if (set_scrolllock_led(iter->v_boolean))
+                return SOL_COAP_RSPCODE_OK;
+
+            return SOL_COAP_RSPCODE_INTERNAL_ERROR;
+        }
+    }
+
+    return SOL_COAP_RSPCODE_BAD_REQUEST;
 }
 
-static bool
+static struct sol_oic_server_resource *
 register_light_resource_type(
-    sol_coap_responsecode_t (*handle_get)(const struct sol_network_link_addr *cliaddr, const void *data, uint8_t *payload, uint16_t *payload_len),
-    sol_coap_responsecode_t (*handle_put)(const struct sol_network_link_addr *cliaddr, const void *data, uint8_t *payload, uint16_t *payload_len))
+    sol_coap_responsecode_t (*handle_get)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_vector *input, struct sol_vector *output),
+    sol_coap_responsecode_t (*handle_put)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_vector *input, struct sol_vector *output))
 {
     /* This function will be auto-generated from the RAML definitions. */
 
-    struct sol_oic_resource_type resource_type = {
+    struct sol_oic_resource_type rt = {
         .api_version = SOL_OIC_RESOURCE_TYPE_API_VERSION,
-        .endpoint = SOL_STR_SLICE_LITERAL("/a/light"),
         .resource_type = SOL_STR_SLICE_LITERAL("core.light"),
-        .iface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
+        .interface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
         .get = {
             .handle = handle_get    /* User-provided. */
         },
@@ -139,19 +152,15 @@ register_light_resource_type(
             .handle = handle_put    /* User-provided. */
         }
     };
-    struct sol_oic_device_definition *def;
 
-    def = sol_oic_server_register_definition((struct sol_str_slice)SOL_STR_SLICE_LITERAL("/l"),
-        (struct sol_str_slice)SOL_STR_SLICE_LITERAL("oic.light"),
-        SOL_COAP_FLAGS_OC_CORE | SOL_COAP_FLAGS_WELL_KNOWN);
-    SOL_NULL_CHECK(def, false);
-
-    return sol_oic_device_definition_register_resource_type(def, &resource_type, NULL, SOL_COAP_FLAGS_OC_CORE);
+    return sol_oic_server_add_resource(&rt, NULL,
+        SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_OBSERVABLE | SOL_OIC_FLAG_ACTIVE);
 }
 
 int
 main(int argc, char *argv[])
 {
+    struct sol_oic_server_resource *res;
     char old_led_state;
 
     sol_init();
@@ -161,27 +170,26 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    if (!register_light_resource_type(user_handle_get, user_handle_put)) {
+    res = register_light_resource_type(user_handle_get, user_handle_put);
+    if (!res) {
         SOL_WRN("Could not register light resource type.");
         return -1;
     }
 
     console_fd = open("/dev/console", O_RDWR);
     if (console_fd < 0) {
-        SOL_ERR("Could not open '/dev/console'");
-        return -1;
-    }
-
-    if (ioctl(console_fd, KDGETLED, (char *)&old_led_state)) {
+        SOL_WRN("Could not open '/dev/console', printing to stdout");
+    } else if (ioctl(console_fd, KDGETLED, (char *)&old_led_state)) {
         SOL_ERR("Could not get the keyboard leds state");
         return -1;
     }
 
     sol_run();
 
+    sol_oic_server_del_resource(res);
     sol_oic_server_release();
 
-    if (ioctl(console_fd, KDSETLED, old_led_state)) {
+    if (console_fd >= 0 && ioctl(console_fd, KDSETLED, old_led_state)) {
         SOL_ERR("Could not return the leds to the old state");
         return -1;
     }
