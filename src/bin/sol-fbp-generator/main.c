@@ -1100,15 +1100,70 @@ parse_args(int argc, char *argv[])
 }
 
 static bool
-add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *data)
+store_exported_ports(struct fbp_data *data, struct sol_vector *type_ports, struct sol_vector *exported_ports, bool desc_in_ports)
 {
     struct port_description *p, *port;
     struct sol_fbp_exported_port *e;
-    struct type_description type;
-    bool ret = false;
-    char node_type[2048];
-    int r, base_port_idx;
+    int base_port_idx = 0;
     uint16_t i, j;
+
+    sol_vector_init(type_ports, sizeof(struct port_description));
+    SOL_VECTOR_FOREACH_IDX (exported_ports, e, i) {
+        struct type_description *desc = get_node_type_description(data,
+            e->node);
+        struct sol_vector *desc_ports;
+
+        p = sol_vector_append(type_ports);
+        SOL_NULL_CHECK(p, false);
+
+        p->name = strndup(e->exported_name.data, e->exported_name.len);
+        SOL_NULL_CHECK(p->name, false);
+
+        if (desc_in_ports)
+            desc_ports = &desc->in_ports;
+        else
+            desc_ports = &desc->out_ports;
+
+        SOL_VECTOR_FOREACH_IDX (desc_ports, port, j) {
+            if (sol_str_slice_str_eq(e->port, port->name)) {
+                int array_size = 0;
+                /* case the whole array was exported */
+                if (e->port_idx == -1)
+                    array_size = port->array_size;
+
+                p->data_type = strdup(port->data_type);
+                p->array_size = array_size;
+                p->base_port_idx = base_port_idx++;
+                if (array_size > 1)
+                    base_port_idx += array_size - 1;
+            }
+        }
+        SOL_NULL_CHECK(p->data_type, false);
+    }
+
+    return true;
+}
+
+static void
+ports_clear(struct sol_vector *ports)
+{
+    struct port_description *port;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (ports, port, i) {
+        free(port->name);
+        free(port->data_type);
+    }
+    sol_vector_clear(ports);
+}
+
+static bool
+add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *data)
+{
+    struct type_description type;
+    int r;
+    char node_type[2048];
+    bool ret = false;
 
     type.name = data->name;
 
@@ -1121,61 +1176,13 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
     /* useless for fbp type */
     type.options_symbol = (char *)"";
 
-    base_port_idx = 0;
-    sol_vector_init(&type.in_ports, sizeof(struct port_description));
-    SOL_VECTOR_FOREACH_IDX (&data->graph.exported_in_ports, e, i) {
-        struct type_description *desc = get_node_type_description(data, e->node);
+    if (!store_exported_ports(data, &type.in_ports,
+        &data->graph.exported_in_ports, true))
+        goto fail_in_ports;
 
-        p = sol_vector_append(&type.in_ports);
-        SOL_NULL_CHECK_GOTO(p, fail_in_ports);
-
-        p->name = strndupa(e->exported_name.data, e->exported_name.len);
-        SOL_NULL_CHECK_GOTO(p->name, fail_in_ports);
-
-        SOL_VECTOR_FOREACH_IDX (&desc->in_ports, port, j) {
-            if (sol_str_slice_str_eq(e->port, port->name)) {
-                int array_size = 0;
-                /* case the whole array was exported */
-                if (e->port_idx == -1)
-                    array_size = port->array_size;
-
-                p->data_type = strdupa(port->data_type);
-                p->array_size = array_size;
-                p->base_port_idx = base_port_idx++;
-                if (array_size > 1)
-                    base_port_idx += array_size - 1;
-            }
-        }
-        SOL_NULL_CHECK_GOTO(p->data_type, fail_in_ports);
-    }
-
-    base_port_idx = 0;
-    sol_vector_init(&type.out_ports, sizeof(struct port_description));
-    SOL_VECTOR_FOREACH_IDX (&data->graph.exported_out_ports, e, i) {
-        struct type_description *desc = get_node_type_description(data, e->node);
-
-        p = sol_vector_append(&type.out_ports);
-        SOL_NULL_CHECK_GOTO(p, fail_out_ports);
-
-        p->name = strndupa(e->exported_name.data, e->exported_name.len);
-        SOL_NULL_CHECK_GOTO(p->name, fail_out_ports);
-
-        SOL_VECTOR_FOREACH_IDX (&desc->out_ports, port, j) {
-            if (sol_str_slice_str_eq(e->port, port->name)) {
-                int array_size = 0;
-                /* case the whole array was exported */
-                if (e->port_idx == -1)
-                    array_size = port->array_size;
-
-                p->data_type = strdupa(port->data_type);
-                p->array_size = array_size;
-                p->base_port_idx = base_port_idx++;
-                if (array_size > 1)
-                    base_port_idx += array_size - 1;
-            }
-        }
-        SOL_NULL_CHECK_GOTO(p->data_type, fail_out_ports);
-    }
+    if (!store_exported_ports(data, &type.out_ports,
+        &data->graph.exported_out_ports, false))
+        goto fail_out_ports;
 
     /* useless for fbp type */
     sol_vector_init(&type.options, sizeof(struct option_description));
@@ -1188,9 +1195,9 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
 
     sol_vector_clear(&type.options);
 fail_out_ports:
-    sol_vector_clear(&type.out_ports);
+    ports_clear(&type.out_ports);
 fail_in_ports:
-    sol_vector_clear(&type.in_ports);
+    ports_clear(&type.in_ports);
 
     return ret;
 }
