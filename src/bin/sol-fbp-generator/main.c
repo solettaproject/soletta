@@ -221,7 +221,7 @@ handle_option(const struct sol_fbp_meta *meta, struct sol_vector *options, const
             meta = &unquoted_meta;
         }
 
-        if (streq(o->data_type, "int") || streq(o->data_type, "double")) {
+        if (streq(o->data_type, "int") || streq(o->data_type, "float")) {
             if (memchr(meta->value.data, ':', meta->value.len))
                 handle_suboptions(meta, handle_suboption_with_explicit_fields, fbp_file);
             else
