@@ -32,6 +32,6 @@
 # On a timeout (every second) create a byte and send to the socket.
 # See byte-reader.fbp
 
-Timer(timer:interval=1000) OUT -> INC Acc(int/accumulator:setup_value=val:0|min:0|max:254:step:1)
+Timer(timer:interval=1000) OUT -> INC Acc(int/accumulator:setup_value=val:0|min:0|max:254|step:1)
 Acc OUT -> IN Byte(converter/int-to-byte)
 Byte OUT -> IN socket_byte(unix-socket/byte-writer:path=/tmp/byte_socket)
