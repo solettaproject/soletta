@@ -37,9 +37,9 @@
 #include <pcre.h>
 #endif
 
+#include "sol-flow/string.h"
 #include "sol-flow-internal.h"
 
-#include "sol-flow/string.h"
 #include "string-regexp.h"
 
 #ifdef USE_LIBPCRE
