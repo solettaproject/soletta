@@ -3,6 +3,7 @@ test-test-arena-$(TEST_ARENA) := test.c test-arena.c
 
 test-internal-$(TEST_COAP) += test-coap
 test-internal-test-coap-$(TEST_COAP) := test.c test-coap.c
+test-internal-test-coap-$(TEST_COAP)-deps := lib/comms/coap.o lib/comms/sol-coap.o
 
 test-$(TEST_FBP) += test-fbp
 test-test-fbp-$(TEST_FBP) := test.c test-fbp.c

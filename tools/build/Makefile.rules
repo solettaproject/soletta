@@ -1,4 +1,4 @@
-find-deps = $(foreach dep,$($(1)-deps),$($(filter %$(dep),$(modules))-out)$($(dep)-out))
+find-deps = $(foreach dep,$($(1)-deps),$($(filter %$(dep),$(modules))-out) $($(dep)-out))
 
 all-gen-hdrs = $(foreach gen,$(all-gens),$($(gen)-hdr))
 
@@ -80,6 +80,7 @@ parse-common-module = \
 		$(eval $(dest-obj)-src := $(subst .o,.c,$(obj))) \
 		$(eval $(4)-srcs       := $($(dest-obj)-src)) \
 	        $(eval $(4)-objs       += $(dest-obj)) \
+		$(eval $(dest-obj)-module := $(4)) \
 		$(eval all-objs        += $(dest-obj)) \
 	)\
 
@@ -95,9 +96,13 @@ parse-mod-output = \
         $(eval $(3)-out   := $(out-prefix)/$(1).so) \
 	$(eval mod-so     += $(3)) \
 
+external-module-flags := -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 \
+		-DSOL_PIN_MUX_MODULE_EXTERNAL=1 -DSOL_FLOW_METATYPE_MODULE_EXTERNAL=1
+
 parse-mod-module = \
 	$(call parse-common-module,$(1),$(2),m,$(3),curr-mod-type) \
 	$(eval $(3)-deps     := $(subst .mod,,$(obj-$(1)-m-deps))) \
+	$(eval $(3)-external-flags := $(external-module-flags)) \
 	$(call parse-mod-output,$(1),$(2),$(3)) \
 	$(eval modules-out += $($(3)-out)) \
 	$(eval export modules-$(curr-mod-type) += $(1)) \
@@ -166,13 +171,15 @@ inc-subdirs = \
 		$(call parse-warnings,$(subdir),$(warnings)) \
 		$(eval curr-builtins        := $(subst .mod,,$(filter %.mod,$(obj-y)))) \
 		$(foreach buin,$(curr-builtins), \
-			$(eval mod-id := $(patsubst %/,%,$(subdir)$(buin))) \
+			$(eval type := $(obj-$(buin)-y-type)) \
+			$(eval mod-id := $(type)/$(buin)) \
 			$(call parse-builtin-module,$(buin),$(subdir),$(mod-id)) \
 			$(eval builtins += $(mod-id)) \
 		) \
 		$(eval curr-modules        := $(subst .mod,,$(filter %.mod,$(obj-m)))) \
 		$(foreach mod,$(curr-modules), \
-			$(eval mod-id := $(patsubst %/,%,$(subdir)$(buin))) \
+			$(eval type := $(obj-$(mod)-m-type)) \
+			$(eval mod-id := $(type)/$(mod)) \
 			$(call parse-mod-module,$(mod),$(subdir),$(mod-id)) \
 			$(eval modules += $(mod-id)) \
 		) \
@@ -300,16 +307,17 @@ $(test-$(1)-out): $(SOL_LIB_OUTPUT) $(test-$(1)-srcs) $(call find-deps,$(1))
 endef
 $(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
 
+internal-deps = $(foreach curr,$(1),$(filter %$(curr),$(builtin-objs)))
+
 define make-test-internal
 $(test-$(1)-out): $(SOL_LIB_OUTPUT) $(test-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "TST"   "$$@
-	$(Q)$(TARGETCC) $(TEST_INT_CFLAGS) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) \
-	$(builtin-objs) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_INT_LDFLAGS) $(test-$(1)-ldflags)
+	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(test-$(1)-cflags) $(filter-out %.h,$(test-$(1)-srcs)) \
+	$(call internal-deps,$($(1)-deps)) $(call find-deps,$(1)) -o $$@ $(sort $(builtin-ldflags)) $(TEST_LDFLAGS) $(test-$(1)-ldflags)
 endef
 $(foreach curr,$(tests-internal),$(eval $(call make-test-internal,$(curr))))
 
 find-gen-hdrs = $(foreach gen,$($(2)-gens),$($(gen)-hdr))
-external-module-flags = -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 -DSOL_PIN_MUX_MODULE_EXTERNAL=1 -DSOL_FLOW_METATYPE_MODULE_EXTERNAL=1
 
 define make-object
 $(1): $(PRE_GEN) $($(1)-src) $(call find-deps,$(2)) $(find-gen-hdrs) $(all-hdr)
@@ -321,20 +329,19 @@ $(1).dep: $(PRE_GEN) $($(1)-src) $(all-hdr) $(KCONFIG_CONFIG)
 	$(Q)$(MKDIR) -p $(dir $(1))
 	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) -MM -MG $($(1)-src) -MT "$(1)" > $(1).dep
 endef
-$(foreach mod,$(modules), \
-	$(foreach obj,$($(mod)-objs),$(eval $(call make-object,$(obj),$(mod),$(external-module-flags)))) \
-)
-
-$(foreach buin,$(builtins), \
-	$(foreach obj,$($(buin)-objs), $(eval $(call make-object,$(obj),$(buin)))) \
+$(foreach obj,$(sort $(all-objs)), \
+	$(eval $(call make-object,$(obj),$($(obj)-module),$($($(obj)-module)-external-flags))) \
 )
 
 define make-mod-so
 $($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)echo "     "MOD"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
-	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $($(1)-objs) -shared -o $($(1)-out) $(sort $($(1)-ldflags))
+	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $($(1)-objs) \
+		-shared -o $($(1)-out) $(sort $($(1)-ldflags))
 endef
+#	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $(filter-out $(builtin-objs),$($(1)-objs)) \
+#		-shared -o $($(1)-out) $(sort $($(1)-ldflags))
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
 
 $(SOL_LIB_AR): $(all-objs)
@@ -345,7 +352,7 @@ $(SOL_LIB_AR): $(all-objs)
 $(SOL_LIB_SO): $(builtin-objs)
 	$(Q)echo "      "LD"   "$(@)
 	$(Q)$(MKDIR) -p $(dir $(SOL_LIB_SO))
-	$(Q)$(TARGETCC) -shared $(builtin-objs) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
+	$(Q)$(TARGETCC) -shared $(sort $(builtin-objs)) $(sort $(builtin-ldflags)) $(LIB_LDFLAGS) -o $(@).$(VERSION)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@).$(VERSION_MAJOR)
 	$(Q)$(LN) -fs $(notdir $(@).$(VERSION)) $(@)
 
