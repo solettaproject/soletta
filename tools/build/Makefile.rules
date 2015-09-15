@@ -144,6 +144,7 @@ parse-sample = \
 	$(eval sample-$(1)-srcs := $(subst .o,.c,$(sample-$(1)-srcs))) \
 	$(eval $(1)-deps        := $(subst .mod,,$(sample-$(1)-y-deps))) \
 	$(eval samples-out      += $(sample-$(1)-out)) \
+	$(eval $(1)-dir         += $(2)) \
 
 parse-warnings = \
 	$(if $(2), \
@@ -268,7 +269,7 @@ sample-out = $(if $(filter %.o,$(sample-$(1)-out)), -c -o $(sample-$(1)-out),-o 
 sample-src = $(filter-out %.json,$(filter-out %.h,$(sample-$(1)-srcs)))
 
 define make-sample
-$(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(sample-$(1)-srcs) $(call find-deps,$(1))
+$(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(sample-$(1)-srcs) $(call find-deps,$(1)) $(addprefix $($(1)-dir),$(filter %.fbp,$($(1)-deps)))
 	$(Q)echo "     "SMP"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(sample-$(1)-out))
 	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(sample-$(1)-cflags) $(sample-$(1)-includedir) $(sample-src) \
