@@ -35,6 +35,6 @@
 
 RedByte(constant/byte:value=255) OUT -> RED ColorByte(converter/byte-to-rgb)
 GreenByte(constant/byte:value=100) OUT -> GREEN ColorByte
-Timer(timer:interval=1000) OUT -> INC Acc(int/accumulator:setup_value=val:0|min:0|max:254:step:5)
+Timer(timer:interval=1000) OUT -> INC Acc(int/accumulator:setup_value=val:0|min:0|max:254|step:5)
 Acc OUT -> IN int_to_str(converter/int-to-byte) OUT -> BLUE ColorByte
 ColorByte OUT -> IN socket_rgb(unix-socket/rgb-writer:path=/tmp/rgb_socket)

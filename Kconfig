@@ -168,6 +168,7 @@ source "src/samples/flow/led-strip/Kconfig"
 source "src/samples/flow/minnow-calamari/Kconfig"
 source "src/samples/flow/misc/Kconfig"
 source "src/samples/flow/trash-disposer/Kconfig"
+source "src/samples/flow/unix-socket/Kconfig"
 
 endmenu
 
