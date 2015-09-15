@@ -101,8 +101,10 @@ _load_mux(const char *name)
 
 error:
     dlclose(handle);
-#endif
     return false;
+#else
+    return true;
+#endif
 }
 
 static bool
