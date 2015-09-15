@@ -39,7 +39,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "aio");
 #include "sol-aio.h"
 #include "sol-pin-mux.h"
 
-struct sol_aio *
+SOL_API struct sol_aio *
 sol_aio_open(const int device, const int pin, const unsigned int precision)
 {
     struct sol_aio *aio;
