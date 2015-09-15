@@ -31,4 +31,3 @@
 
 drange(http-server/float:path=/drange,value=val:1.0|min:0|max:100.2|step:1.2)
 drange OUT -> IN console(console)
-
