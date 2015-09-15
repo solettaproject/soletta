@@ -35,10 +35,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "sol-flow/string.h"
 #include "sol-flow-internal.h"
 #include "sol-platform.h"
 
-#include "sol-flow/string.h"
 #include "string-uuid.h"
 
 int

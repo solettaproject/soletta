@@ -33,9 +33,9 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include "sol-flow/string.h"
 #include "sol-flow-internal.h"
 
-#include "sol-flow/string.h"
 #include "string-icu.h"
 #include "string-regexp.h"
 #include "string-uuid.h"
