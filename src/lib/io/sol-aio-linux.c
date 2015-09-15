@@ -82,7 +82,7 @@ _aio_open_fp(struct sol_aio *aio)
     return true;
 }
 
-struct sol_aio *
+SOL_API struct sol_aio *
 sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
 {
     char path[PATH_MAX];
@@ -120,7 +120,7 @@ sol_aio_open_raw(const int device, const int pin, const unsigned int precision)
     return aio;
 }
 
-void
+SOL_API void
 sol_aio_close(struct sol_aio *aio)
 {
     SOL_NULL_CHECK(aio);
@@ -131,7 +131,7 @@ sol_aio_close(struct sol_aio *aio)
     free(aio);
 }
 
-int32_t
+SOL_API int32_t
 sol_aio_get_value(const struct sol_aio *aio)
 {
     unsigned int val;
