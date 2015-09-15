@@ -40,8 +40,6 @@
 # We split the duty_cycle of 2040816 ns (490 Hz for full intensity),
 # into 256 slices of 7971, mimicking analogWrite()'s range: 0 to 255
 
-constant_duty_cycle_step(constant/int:value=7971)
-
 false(constant/boolean:value=false)
 constant_max(constant/int:value=255)
 constant_min(constant/int:value=0)
@@ -53,7 +51,7 @@ timer_final_delay(timer:interval=500) OUT -> RESET timer_inc
 false OUT -> ENABLED timer_final_delay
 
 timer_inc(timer:interval=5)
-timer_inc OUT -> INC acc(int/accumulator:setup_value=min:0|max:255|step:1)
+timer_inc OUT -> INC acc(int/accumulator:setup_value=min:0|max:2032605|step:7971)
 timer_inc OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer_final_delay
 
 timer_dec(timer:interval=5)
@@ -61,8 +59,7 @@ timer_dec OUT -> DEC acc
 timer_dec OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer_mid_delay
 false OUT -> ENABLED timer_dec
 
-acc OUT -> OPERAND[0] mult(int/multiplication) OUT -> DUTY_CYCLE led(LED_PWM)
-constant_duty_cycle_step OUT -> OPERAND[1] mult
+acc OUT -> DUTY_CYCLE led(LED_PWM)
 
 acc OUT -> IN[0] comp_max(int/equal)
 constant_max OUT -> IN[1] comp_max

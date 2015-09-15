@@ -32,8 +32,8 @@
 # On a timeout (every second) create a direction_vector array (sol_direction_vector)
 # and send to the socket. See direction-vector-reader.fbp
 
-x_float(constant/float:value=255) OUT -> X float_to_direction_vector(converter/float-to-direction_vector)
+x_float(constant/float:value=255) OUT -> X float_to_direction_vector(converter/float-to-direction-vector)
 y_float(constant/float:value=100) OUT -> Y float_to_direction_vector
-Timer(timer:interval=1000) OUT -> INC Acc(int/accumulator:setup_value=val:0|min:0|max:254:step:5)
+Timer(timer:interval=1000) OUT -> INC Acc(int/accumulator:setup_value=val:0|min:0|max:254|step:5)
 Acc OUT -> IN int_to_float(converter/int-to-float) OUT -> Z float_to_direction_vector
 float_to_direction_vector OUT -> IN socket_direction_vector(unix-socket/direction-vector-writer:path=/tmp/direction_vector_socket)

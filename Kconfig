@@ -160,13 +160,16 @@ source "src/samples/flow/c-api/Kconfig"
 source "src/samples/flow/compass/Kconfig"
 source "src/samples/flow/foosball/Kconfig"
 source "src/samples/flow/iio/Kconfig"
+source "src/samples/flow/io/Kconfig"
 source "src/samples/flow/galileo-grove-kit/Kconfig"
 source "src/samples/flow/galileo-grove-kit/lcd/Kconfig"
 source "src/samples/flow/gtk-gallery/Kconfig"
+source "src/samples/flow/http-server/Kconfig"
 source "src/samples/flow/led-strip/Kconfig"
 source "src/samples/flow/minnow-calamari/Kconfig"
 source "src/samples/flow/misc/Kconfig"
 source "src/samples/flow/trash-disposer/Kconfig"
+source "src/samples/flow/unix-socket/Kconfig"
 
 endmenu
 
