@@ -33,6 +33,6 @@
 ## TEST-EXPECTS-ERROR
 
 ## TEST-OUTPUT
-# brackets-instead-of-parens.fbp:31:1 Couldn't parse statement.
+# brackets-instead-of-parens.fbp:31:1 Couldn't parse statement '[F'.
 ## TEST-SKIP-COMPILE This test should not be generated + compiled, test parser errors is its sole purpose
 

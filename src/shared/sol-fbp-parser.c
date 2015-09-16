@@ -655,7 +655,8 @@ parse_stmt(struct sol_fbp_parser *p)
     default:
         /* Ensure error is at the token that couldn't be parsed. */
         next_token(p);
-        return set_parse_error(p, "Couldn't parse statement.");
+        return set_parse_error(p, "Couldn't parse statement '%.*s'.",
+            SOL_FBP_TOKEN_PRINT(p->current_token));
     }
 }
 
