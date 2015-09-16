@@ -114,6 +114,7 @@ struct sol_buffer {
 
 #define SOL_BUFFER_INIT_EMPTY (struct sol_buffer){.data = NULL, .capacity = 0, .used = 0, .flags = SOL_BUFFER_FLAGS_DEFAULT }
 #define SOL_BUFFER_INIT_FLAGS(data_, size_, flags_) (struct sol_buffer){.data = data_, .capacity = size_, .used = 0, .flags = flags_ }
+#define SOL_BUFFER_INIT_CONST(data_, size_) (struct sol_buffer){.data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED }
 
 static inline void
 sol_buffer_init(struct sol_buffer *buf)
@@ -269,6 +270,21 @@ sol_buffer_trim(struct sol_buffer *buf)
  *  needs to be freed by calling @c sol_buffer_free();
  */
 void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);
+
+/**
+ *  Allocate a new sol_buffer and a new data block and copy the
+ *  contents of the provided sol_buffer
+ *
+ *  After this call, user is responsible for calling fini on the
+ *  buffer and freeing it afterwards. For it's memory to be freed
+ *  properly, the new buffer will have its flags set to
+ *  SOL_BUFFER_FLAGS_DEFAULT
+ *
+ *  @param buf buffer to be copied
+ *
+ *  @return A copy of buf or NULL on error.
+ */
+struct sol_buffer *sol_buffer_copy(const struct sol_buffer *buf);
 
 static inline void
 sol_buffer_reset(struct sol_buffer *buf)

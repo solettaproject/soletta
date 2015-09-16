@@ -40,6 +40,12 @@ obj-networking-$(HTTP_SERVER)-extra-ldflags += \
 requires-private-$(HTTP_SERVER) := \
     $(LIBMICROHTTPD_REQUIRES_PRIVATE)
 
+obj-networking-$(MQTT) += \
+	sol-mqtt-impl-mosquitto.o
+
+obj-networking-$(MQTT)-extra-ldflags += \
+	$(MOSQUITTO_LDFLAGS)
+
 headers-networking-$(NETWORK) += \
     include/sol-network.h
 
@@ -58,3 +64,6 @@ headers-networking-$(HTTP_CLIENT) += \
 
 headers-networking-$(HTTP_SERVER) += \
     include/sol-http-server.h
+
+headers-networking-$(MQTT) += \
+	include/sol-mqtt.h
