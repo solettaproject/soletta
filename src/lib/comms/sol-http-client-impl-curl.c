@@ -64,7 +64,6 @@ static struct {
 struct sol_http_client_connection {
     CURL *curl;
     struct sol_fd *watch;
-    struct sol_idle *idle;
     struct sol_arena *arena;
     struct curl_slist *headers;
     struct sol_buffer buffer;
@@ -73,7 +72,6 @@ struct sol_http_client_connection {
     const void *data;
 
     bool error;
-    bool pending_error_cb;
 };
 
 static void
@@ -88,8 +86,6 @@ destroy_connection(struct sol_http_client_connection *c)
 
     if (c->watch)
         sol_fd_del(c->watch);
-    if (c->idle)
-        sol_idle_del(c->idle);
 
     free(c);
 }
@@ -243,9 +239,7 @@ timer_cb(CURLM *multi, long timeout_ms, void *userp)
             sol_timeout_del(global.multi_perform_timeout);
             global.multi_perform_timeout = NULL;
         }
-    } else if (timeout_ms > 0) {
-        if (timeout_ms < 100)
-            timeout_ms = 100;
+    } else if (timeout_ms >= 0) {
         if (global.timeout_ms == timeout_ms)
             return 0;
 
@@ -260,9 +254,6 @@ timer_cb(CURLM *multi, long timeout_ms, void *userp)
 
             return global.multi_perform_timeout ? 0 : -1;
         }
-    } else if (!timeout_ms) {
-        /* Timer expired; pump cURL immediately. */
-        return multi_perform_cb(NULL) ? 0 : -1;
     }
 
     return 0;
@@ -295,16 +286,6 @@ cleanup:
 }
 
 static bool
-error_cb(void *data)
-{
-    struct sol_http_client_connection *connection = data;
-
-    call_connection_finish_cb(connection);
-
-    return false;
-}
-
-static bool
 connection_watch_cb(void *data, int fd, unsigned int flags)
 {
     struct sol_http_client_connection *connection = data;
@@ -317,22 +298,16 @@ connection_watch_cb(void *data, int fd, unsigned int flags)
     if (flags & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_NVAL | SOL_FD_FLAGS_HUP))
         action |= CURL_CSELECT_ERR;
 
+    if (action) {
+        int running;
+        curl_multi_socket_action(global.multi, fd, action, &running);
+    }
+
     if (action & CURL_CSELECT_ERR || connection->error) {
         connection->watch = NULL;
         connection->error = (flags & (SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_ERR)) | connection->error;
 
-        /* Cleanup is performed in an idler to avoid race conditions */
-        if (!connection->pending_error_cb) {
-            connection->pending_error_cb = true;
-            connection->idle = sol_idle_add(error_cb, connection);
-            if (!connection->idle)
-                SOL_WRN("Could not create error idler, this may leak");
-        }
-    }
-
-    if (action) {
-        int running;
-        curl_multi_socket_action(global.multi, fd, action, &running);
+        call_connection_finish_cb(connection);
     }
 
     return !(action & CURL_CSELECT_ERR);
