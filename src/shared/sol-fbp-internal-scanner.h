@@ -76,6 +76,9 @@ struct sol_fbp_token {
     unsigned int column;
 };
 
+/* To be used together with "%.*s" formatting in printf family of functions. */
+#define SOL_FBP_TOKEN_PRINT(_s) (int)((_s).end - (_s).start + 1), (_s).start
+
 struct sol_fbp_scanner {
     const char *input_end;
     struct sol_fbp_token token;
