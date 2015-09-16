@@ -238,7 +238,12 @@ out:
 static int
 timer_cb(CURLM *multi, long timeout_ms, void *userp)
 {
-    if (timeout_ms > 0) {
+    if (timeout_ms == -1) {
+        if (global.multi_perform_timeout) {
+            sol_timeout_del(global.multi_perform_timeout);
+            global.multi_perform_timeout = NULL;
+        }
+    } else if (timeout_ms > 0) {
         if (timeout_ms < 100)
             timeout_ms = 100;
         if (global.timeout_ms == timeout_ms)
