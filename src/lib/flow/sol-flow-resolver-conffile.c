@@ -261,9 +261,17 @@ resolver_conffile_resolve_by_id(const char *id,
 
     /* TODO: replace strv in sol_conffile interface with something
     * that holds line/column number information for each entry. */
-    if (sol_conffile_resolve(id, &type_name, &opts_strv) < 0) {
-        SOL_DBG("could not resolve a type name for id='%s'", id);
-        return -EINVAL;
+    r = sol_conffile_resolve(id, &type_name, &opts_strv);
+    if (r < 0) {
+        /* the resolver may fail because there's no entry with the given
+         * name, but that may be because it's the name of a single type
+         * module, like console or timer, so treat that case especially */
+        if (r != -ENOENT) {
+            SOL_DBG("could not resolve a type name for id='%s'", id);
+            return -EINVAL;
+        }
+        type_name = id;
+        r = 0;
     }
 
     /* TODO: is this needed given we already handle builtins from the outside? */

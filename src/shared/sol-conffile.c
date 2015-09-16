@@ -485,7 +485,7 @@ _resolve_config(const char *id, const char **type, const char ***opts)
     void **vector_pointer;
 
     if (sol_ptr_vector_get_len(&_conffile_entry_vector) <= 0) {
-        return -EINVAL;
+        return -ENOENT;
     }
 
     key.id = (char *)id;
@@ -496,7 +496,7 @@ _resolve_config(const char *id, const char **type, const char ***opts)
         _bsearch_entry_cb);
     if (!vector_pointer) {
         SOL_DBG("could not find entry [%s]", id);
-        return -EINVAL;
+        return -ENOENT;
     }
 
     entry = *vector_pointer;
