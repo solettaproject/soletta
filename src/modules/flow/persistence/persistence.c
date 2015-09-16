@@ -40,8 +40,276 @@
 #include "sol-str-table.h"
 #include "sol-util.h"
 
-#include "fs-storage.h"
-#include "efivarfs-storage.h"
+#ifdef USE_FILESYSTEM
+#include "sol-fs-storage.h"
+#endif
+
+#ifdef USE_EFIVARS
+#include "sol-efivarfs-storage.h"
+#endif
+
+#ifdef USE_MEMMAP
+#include "sol-memmap-storage.h"
+#endif
+
+static bool once = true;
+
+#ifdef USE_FILESYSTEM
+static void
+test_fs(void)
+{
+    uint8_t out_byte = 4;
+    uint8_t in_byte;
+    bool out_bool = true;
+    bool in_bool;
+    int32_t out_int32_t = 42;
+    int32_t in_int32_t;
+    double out_double = 666;
+    double in_double;
+    const char *out_string = "ss";
+    char *in_string;
+    struct sol_irange out_irange = { .val = 70, .min = 0, .max = 100, .step = 2 };
+    struct sol_irange in_irange;
+    struct sol_drange out_drange = { .val = 32.6, .min = -6.6, .max = 89.5, .step = 0.6 };
+    struct sol_drange in_drange;
+    int ret1, ret2;
+
+    SOL_DBG("fs write uint8_t %d", out_byte);
+    ret1 = sol_fs_write_uint8("save_byte", out_byte);
+    ret2 = sol_fs_read_uint8("save_byte", &in_byte);
+    SOL_DBG("fs read uint8_t %d [%d %d]", in_byte, ret1, ret2);
+
+    SOL_DBG("fs write bool %d", out_bool);
+    ret1 = sol_fs_write_bool("save_bool", out_bool);
+    ret2 = sol_fs_read_bool("save_bool", &in_bool);
+    SOL_DBG("fs read bool %d [%d %d]", in_bool, ret1, ret2);
+
+    SOL_DBG("fs write int32_t %d", out_int32_t);
+    ret1 = sol_fs_write_int32("save_int", out_int32_t);
+    ret2 = sol_fs_read_int32("save_int", &in_int32_t);
+    SOL_DBG("fs read int32_t %d [%d %d]", in_int32_t, ret1, ret2);
+
+    SOL_DBG("fs write double %f", out_double);
+    ret1 = sol_fs_write_double("save_double", out_double);
+    ret2 = sol_fs_read_double("save_double", &in_double);
+    SOL_DBG("fs read double %f [%d %d]", in_double, ret1, ret2);
+
+    SOL_DBG("fs write string %s", out_string);
+    sol_fs_write_string("save_string", out_string);
+    sol_fs_read_string("save_string", &in_string);
+    SOL_DBG("fs read string %s", in_string);
+    free(in_string);
+
+    SOL_DBG("fs write irange %d %d %d %d", out_irange.val, out_irange.min, out_irange.max, out_irange.step);
+    ret1 = sol_fs_write_irange("save_irange", &out_irange);
+    ret2 = sol_fs_read_irange("save_irange", &in_irange);
+    SOL_DBG("fs read irange %d %d %d %d [%d %d]", in_irange.val, in_irange.min, in_irange.max, in_irange.step, ret1, ret2);
+
+    SOL_DBG("fs write drange %f %f %f %f", out_drange.val, out_drange.min, out_drange.max, out_drange.step);
+    ret1 = sol_fs_write_drange("save_drange", &out_drange);
+    ret2 = sol_fs_read_drange("save_drange", &in_drange);
+    SOL_DBG("fs read drange %f %f %f %f [%d %d]", in_drange.val, in_drange.min, in_drange.max, in_drange.step, ret1, ret2);
+}
+#endif
+
+#ifdef USE_EFIVARS
+static void
+test_efivars(void)
+{
+    uint8_t out_byte = 4;
+    uint8_t in_byte;
+    bool out_bool = true;
+    bool in_bool;
+    int32_t out_int32_t = 42;
+    int32_t in_int32_t;
+    double out_double = 666;
+    double in_double;
+    const char *out_string = "ss";
+    char *in_string = NULL;
+    struct sol_irange out_irange = { .val = 70, .min = 0, .max = 100, .step = 2 };
+    struct sol_irange in_irange;
+    struct sol_drange out_drange = { .val = 32.6, .min = -6.6, .max = 89.5, .step = 0.6 };
+    struct sol_drange in_drange;
+
+    SOL_DBG("efivars write uint8_t %d", out_byte);
+    sol_efivars_write_uint8("../../../../root/blah", out_byte);
+    sol_efivars_read_uint8("../../../../root/blah", &in_byte);
+    SOL_DBG("efivars read uint8_t %d", in_byte);
+
+    SOL_DBG("efivars write bool %d", out_bool);
+    sol_efivars_write_bool("save_bool", out_bool);
+    sol_efivars_read_bool("save_bool", &in_bool);
+    SOL_DBG("efivars read bool %d", in_bool);
+
+    SOL_DBG("efivars write int32_t %d", out_int32_t);
+    sol_efivars_write_int32("save_int", out_int32_t);
+    sol_efivars_read_int32("save_int", &in_int32_t);
+    SOL_DBG("efivars read int32_t %d", in_int32_t);
+
+    SOL_DBG("efivars write double %f", out_double);
+    sol_efivars_write_double("save_double", out_double);
+    sol_efivars_read_double("save_double", &in_double);
+    SOL_DBG("efivars read double %f", in_double);
+
+    SOL_DBG("efivars write string %s", out_string);
+    sol_efivars_write_string("save_string", out_string);
+    sol_efivars_read_string("save_string", &in_string);
+    SOL_DBG("efivars read string %s", in_string);
+    free(in_string);
+
+    SOL_DBG("efivars write irange %d %d %d %d", out_irange.val, out_irange.min, out_irange.max, out_irange.step);
+    sol_efivars_write_irange("save_irange", &out_irange);
+    sol_efivars_read_irange("save_irange", &in_irange);
+    SOL_DBG("efivars read irange %d %d %d %d", in_irange.val, in_irange.min, in_irange.max, in_irange.step);
+
+    SOL_DBG("efivars write drange %f %f %f %f", out_drange.val, out_drange.min, out_drange.max, out_drange.step);
+    sol_efivars_write_drange("save_drange", &out_drange);
+    sol_efivars_read_drange("save_drange", &in_drange);
+    SOL_DBG("efivars read drange %f %f %f %f", in_drange.val, in_drange.min, in_drange.max, in_drange.step);
+}
+#endif
+
+#ifdef USE_MEMMAP
+static void
+test_nvram(void)
+{
+    uint8_t out_byte = 4;
+    uint8_t in_byte;
+    bool out_bool = true;
+    bool in_bool;
+    int32_t out_int32_t = 42;
+    int32_t in_int32_t;
+    double out_double = 666;
+    double in_double;
+    const char *out_string = "ss";
+    char *in_string;
+    struct sol_irange out_irange = { .val = 70, .min = 0, .max = 100, .step = 2 };
+    struct sol_irange in_irange;
+    struct sol_drange out_drange = { .val = 32.6, .min = -6.6, .max = 89.5, .step = 0.6 };
+    struct sol_drange in_drange;
+    int ret;
+
+    SOL_DBG("memmap write uint8_t %d", out_byte);
+    sol_memmap_write_uint8("save_byte", out_byte);
+    sol_memmap_read_uint8("save_byte", &in_byte);
+    SOL_DBG("memmap read uint8_t %d", in_byte);
+
+    SOL_DBG("memmap write bool %d", out_bool);
+    sol_memmap_write_bool("save_bool", out_bool);
+    sol_memmap_read_bool("save_bool", &in_bool);
+    SOL_DBG("memmap read bool %d", in_bool);
+
+    SOL_DBG("memmap write int32_t %d", out_int32_t);
+    sol_memmap_write_int32("save_int", out_int32_t);
+    sol_memmap_read_int32("save_int", &in_int32_t);
+    SOL_DBG("memmap read int32_t %d", in_int32_t);
+
+    SOL_DBG("memmap write double %f", out_double);
+    sol_memmap_write_double("save_double", out_double);
+    sol_memmap_read_double("save_double", &in_double);
+    SOL_DBG("memmap read double %f", in_double);
+
+    SOL_DBG("memmap write string %s", out_string);
+    sol_memmap_write_string("save_string", out_string);
+    ret = sol_memmap_read_string("save_string", &in_string);
+    if (ret < 0)
+        SOL_DBG("memmap NOT read string: %d", ret);
+    else {
+        SOL_DBG("memmap read string %s", in_string);
+        free(in_string);
+    }
+
+    SOL_DBG("memmap write irange %d %d %d %d", out_irange.val, out_irange.min, out_irange.max, out_irange.step);
+    sol_memmap_write_irange("save_irange", &out_irange);
+    sol_memmap_read_irange("save_irange", &in_irange);
+    SOL_DBG("memmap read irange %d %d %d %d", in_irange.val, in_irange.min, in_irange.max, in_irange.step);
+
+    SOL_DBG("memmap write drange %f %f %f %f", out_drange.val, out_drange.min, out_drange.max, out_drange.step);
+    sol_memmap_write_drange("save_drange", &out_drange);
+    sol_memmap_read_drange("save_drange", &in_drange);
+    SOL_DBG("memmap read drange %f %f %f %f", in_drange.val, in_drange.min, in_drange.max, in_drange.step);
+}
+
+static void
+test_nvram3(void)
+{
+    uint8_t out_byte = 4;
+    uint8_t in_byte;
+    bool out_bool = true;
+    bool in_bool;
+    int32_t out_int32_t = 42;
+    int32_t in_int32_t;
+    double out_double = 666;
+    double in_double;
+    const char *out_string = "ss";
+    char *in_string;
+    struct sol_irange out_irange = { .val = 70, .min = 0, .max = 100, .step = 2 };
+    struct sol_irange in_irange;
+    struct sol_drange out_drange = { .val = 32.6, .min = -6.6, .max = 89.5, .step = 0.6 };
+    struct sol_drange in_drange;
+    int ret;
+
+    SOL_DBG("memmap write uint8_t %d", out_byte);
+    sol_memmap_write_uint8("save3_byte", out_byte);
+    sol_memmap_read_uint8("save3_byte", &in_byte);
+    SOL_DBG("memmap read uint8_t %d", in_byte);
+
+    SOL_DBG("memmap write bool %d", out_bool);
+    sol_memmap_write_bool("save3_bool", out_bool);
+    sol_memmap_read_bool("save3_bool", &in_bool);
+    SOL_DBG("memmap read bool %d", in_bool);
+
+    SOL_DBG("memmap write int32_t %d", out_int32_t);
+    sol_memmap_write_int32("save3_int", out_int32_t);
+    sol_memmap_read_int32("save3_int", &in_int32_t);
+    SOL_DBG("memmap read int32_t %d", in_int32_t);
+
+    SOL_DBG("memmap write double %f", out_double);
+    sol_memmap_write_double("save3_double", out_double);
+    sol_memmap_read_double("save3_double", &in_double);
+    SOL_DBG("memmap read double %f", in_double);
+
+    SOL_DBG("memmap write string %s", out_string);
+    sol_memmap_write_string("save3_string", out_string);
+    ret = sol_memmap_read_string("save3_string", &in_string);
+    if (ret < 0)
+        SOL_DBG("memmap NOT read string: %d", ret);
+    else {
+        SOL_DBG("memmap read string %s", in_string);
+        free(in_string);
+    }
+
+    SOL_DBG("memmap write irange %d %d %d %d", out_irange.val, out_irange.min, out_irange.max, out_irange.step);
+    sol_memmap_write_irange("save3_irange", &out_irange);
+    sol_memmap_read_irange("save3_irange", &in_irange);
+    SOL_DBG("memmap read irange %d %d %d %d", in_irange.val, in_irange.min, in_irange.max, in_irange.step);
+
+    SOL_DBG("memmap write drange %f %f %f %f", out_drange.val, out_drange.min, out_drange.max, out_drange.step);
+    sol_memmap_write_drange("save3_drange", &out_drange);
+    sol_memmap_read_drange("save3_drange", &in_drange);
+    SOL_DBG("memmap read drange %f %f %f %f", in_drange.val, in_drange.min, in_drange.max, in_drange.step);
+}
+#endif
+
+static void
+test(void)
+{
+    if (!once) return;
+    once = false;
+
+#ifdef USE_FILESYSTEM
+    test_fs();
+#endif
+
+#ifdef USE_EFIVARS
+    test_efivars();
+#endif
+
+#ifdef USE_MEMMAP
+    test_nvram();
+    test_nvram3();
+#endif
+}
 
 struct storage_fn {
     int (*write)(const char *name, struct sol_buffer *buffer);
@@ -64,19 +332,37 @@ struct persist_data {
     size_t packet_data_size;
 };
 
+#ifdef USE_FILESYSTEM
 static const struct storage_fn fs_fn = {
-    .write = fs_write,
-    .read = fs_read
+    .write = sol_fs_write_raw,
+    .read = sol_fs_read_raw
 };
+#endif
 
+#ifdef USE_EFIVARS
 static const struct storage_fn efivars_fn = {
-    .write = efivars_write,
-    .read = efivars_read
+    .write = sol_efivars_write_raw,
+    .read = sol_efivars_read_raw
 };
+#endif
+
+#ifdef USE_MEMMAP
+static const struct storage_fn memmap_fn = {
+    .write = sol_memmap_write_raw,
+    .read = sol_memmap_read_raw
+};
+#endif
 
 static const struct sol_str_table_ptr storage_fn_table[] = {
+#ifdef USE_FILESYSTEM
     SOL_STR_TABLE_PTR_ITEM("fs", &fs_fn),
+#endif
+#ifdef USE_EFIVARS
     SOL_STR_TABLE_PTR_ITEM("efivars", &efivars_fn),
+#endif
+#ifdef USE_MEMMAP
+    SOL_STR_TABLE_PTR_ITEM("memmap", &memmap_fn),
+#endif
     { }
 };
 
@@ -117,7 +403,7 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value)
     if (mdata->packet_data_size)
         size = mdata->packet_data_size;
     else
-        size = strlen(value) + 1;
+        size = strlen(value);
 
     r = storage_write(mdata, value, size);
     SOL_INT_CHECK(r, < 0, r);
@@ -188,6 +474,9 @@ persist_open(struct sol_flow_node *node,
     struct persist_data *mdata = data;
     struct sol_str_slice storage_slice;
     int r;
+
+    test();
+    SOL_DBG("\n\n\n\n\n\n");
 
     if (!storage || *storage == '\0') {
         SOL_WRN("Must define a storage type");
@@ -411,7 +700,10 @@ persist_irange_open(struct sol_flow_node *node,
     const struct sol_flow_node_type_persistence_int_options *opts =
         (const struct sol_flow_node_type_persistence_int_options *)options;
 
-    mdata->base.packet_data_size = sizeof(struct sol_irange);
+    if (opts->storage_only_val)
+        mdata->base.packet_data_size = sizeof(int32_t);
+    else
+        mdata->base.packet_data_size = sizeof(struct sol_irange);
     mdata->base.value_ptr = &mdata->last_value;
     mdata->base.packet_new_fn = persist_irange_packet_new;
     mdata->base.packet_data_get_fn = persist_irange_packet_data_get;
@@ -475,7 +767,10 @@ persist_drange_open(struct sol_flow_node *node,
     const struct sol_flow_node_type_persistence_float_options *opts =
         (const struct sol_flow_node_type_persistence_float_options *)options;
 
-    mdata->base.packet_data_size = sizeof(struct sol_drange);
+    if (opts->storage_only_val)
+        mdata->base.packet_data_size = sizeof(double);
+    else
+        mdata->base.packet_data_size = sizeof(struct sol_drange);
     mdata->base.value_ptr = &mdata->last_value;
     mdata->base.packet_new_fn = persist_drange_packet_new;
     mdata->base.packet_data_get_fn = persist_drange_packet_data_get;
