@@ -115,7 +115,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             } \
             i = key_name + strlen(#_key); \
             for (; i < _key; i++) \
-                if (!isspace(*i)) { \
+                if (!(isspace(*i) || *i == '"')) { \
                     remaining = _key; \
                     break; \
                 } \
