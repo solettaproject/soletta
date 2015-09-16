@@ -109,7 +109,7 @@ error_state(struct sol_fbp_scanner *s)
 static inline bool
 is_node_ident(char c)
 {
-    return isalnum((unsigned char)c) || c == '_';
+    return isalnum((unsigned char)c) || c == '_' || c == '-';
 }
 
 static void *
