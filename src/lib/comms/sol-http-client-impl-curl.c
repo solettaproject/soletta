@@ -319,7 +319,7 @@ connection_watch_cb(void *data, int fd, unsigned int flags)
 
     if (action & CURL_CSELECT_ERR || connection->error) {
         connection->watch = NULL;
-        connection->error = flags & (SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_ERR);
+        connection->error |= flags & (SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_ERR);
 
         /* Cleanup is performed in an idler to avoid race conditions */
         if (!connection->pending_error_cb) {
