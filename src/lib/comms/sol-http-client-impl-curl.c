@@ -398,9 +398,6 @@ xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
         return 1;
     }
 
-    if (dltotal && dltotal == dlnow)
-        call_connection_finish_cb(connection);
-
     return 0;
 }
 
