@@ -58,13 +58,13 @@ initial_color(constant/rgb:value=0|0|0|255|255|255) OUT -> COLOR lcd
 
 # 1520 = 2 * (2 * 100 + 2 * 255) + 100
 
-red_wave(wave-generator/trapezoidal:tick_start=1520,min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=1520,ticks_at_max=100)
+red_wave(float/wave-generator-trapezoidal:tick_start=1520,min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=1520,ticks_at_max=100)
 
 # 1520 - (2 * 100 + 2 * 255) = 810
-green_wave(wave-generator/trapezoidal:tick_start=810,min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=1520,ticks_at_max=100)
+green_wave(float/wave-generator-trapezoidal:tick_start=810,min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=1520,ticks_at_max=100)
 
 # 1520 - 2 * (2 * 100 + 2 * 255) = 100
-blue_wave(wave-generator/trapezoidal:tick_start=100,min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=1520,ticks_at_max=100)
+blue_wave(float/wave-generator-trapezoidal:tick_start=100,min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=1520,ticks_at_max=100)
 
 timer OUT -> TICK red_wave OUT -> RED converter
 timer OUT -> TICK green_wave OUT -> GREEN converter

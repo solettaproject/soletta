@@ -34,17 +34,17 @@
 tick_gen(test/boolean-generator:sequence="TTTTTTTTTTTTTTT",interval=0)
 
 square_validate(test/float-validator:sequence="-5.0 -5.0 0.0 -5.0 -5.0 0.0 -5.0 -5.0 0.0 -5.0 -5.0 0.0 -5.0 -5.0 0.0")
-square_wave(wave-generator/trapezoidal:min=-5,max=0,ticks_inc=1,ticks_dec=1,ticks_at_min=1,ticks_at_max=0)
+square_wave(float/wave-generator-trapezoidal:min=-5,max=0,ticks_inc=1,ticks_dec=1,ticks_at_min=1,ticks_at_max=0)
 
 triangle_validate(test/float-validator:sequence="3.0 4.0 3.0 2.0 1.0 0.0 -1.0 0.0 1.0 2.0 3.0 4.0 3.0 2.0 1.0")
-triangle_wave(wave-generator/trapezoidal:tick_start=4,min=-1,max=4,ticks_inc=5,ticks_dec=5,ticks_at_min=0,ticks_at_max=0)
+triangle_wave(float/wave-generator-trapezoidal:tick_start=4,min=-1,max=4,ticks_inc=5,ticks_dec=5,ticks_at_min=0,ticks_at_max=0)
 
 trapezoid_validate(test/float-validator:sequence="1.0 4.0 4.0 4.0 1.0 -2.0 -2.0 1.0 4.0 4.0 4.0 1.0 -2.0 -2.0 1.0")
-trapezoid_wave(wave-generator/trapezoidal:tick_start=2,min=-2,max=4,ticks_inc=2,ticks_dec=2,ticks_at_min=1,ticks_at_max=2)
+trapezoid_wave(float/wave-generator-trapezoidal:tick_start=2,min=-2,max=4,ticks_inc=2,ticks_dec=2,ticks_at_min=1,ticks_at_max=2)
 
 # writing sine values up to double precision
 sine_validate(test/float-validator:sequence="0.0 0.06279051952931337 0.12533323356430426 0.18738131458572463 0.24868988716485479 0.30901699437494740 0.36812455268467792 0.42577929156507260 0.48175367410171521 0.53582679497899655 0.58778525229247303 0.63742398974868963 0.68454710592868850 0.72896862742141133 0.77051324277578903")
-sine_wave(wave-generator/sinusoidal:ticks_per_period=100,amplitude=1)
+sine_wave(float/wave-generator-sinusoidal:ticks_per_period=100,amplitude=1)
 
 tick_gen OUT -> TICK square_wave OUT -> IN square_validate OUT -> RESULT _(test/result)
 tick_gen OUT -> TICK triangle_wave OUT -> IN triangle_validate OUT -> RESULT _(test/result)

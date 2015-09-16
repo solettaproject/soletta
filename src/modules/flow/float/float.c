@@ -670,7 +670,7 @@ wave_generator_trapezoidal_process(struct sol_flow_node *node,
     trapezoidal_iterate(mdata);
 
     return sol_flow_send_drange_packet
-               (node, SOL_FLOW_NODE_TYPE_WAVE_GENERATOR_TRAPEZOIDAL__OUT__OUT,
+               (node, SOL_FLOW_NODE_TYPE_FLOAT_WAVE_GENERATOR_TRAPEZOIDAL__OUT__OUT,
                &mdata->t_state.val);
 }
 
@@ -680,12 +680,12 @@ wave_generator_trapezoidal_open(struct sol_flow_node *node,
     const struct sol_flow_node_options *options)
 {
     struct drange_wave_generator_trapezoidal_data *mdata = data;
-    const struct sol_flow_node_type_wave_generator_trapezoidal_options *opts = (const struct sol_flow_node_type_wave_generator_trapezoidal_options *)options;
+    const struct sol_flow_node_type_float_wave_generator_trapezoidal_options *opts = (const struct sol_flow_node_type_float_wave_generator_trapezoidal_options *)options;
     uint32_t tick_start;
     struct t_state *t_state;
     struct sol_drange *val;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts, SOL_FLOW_NODE_TYPE_WAVE_GENERATOR_TRAPEZOIDAL_OPTIONS_API_VERSION, -EINVAL);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts, SOL_FLOW_NODE_TYPE_FLOAT_WAVE_GENERATOR_TRAPEZOIDAL_OPTIONS_API_VERSION, -EINVAL);
 
     if (isgreaterequal(opts->min.val, opts->max.val)) {
         SOL_ERR("Trapezoidal wave generator's min must be less than its max");
@@ -808,7 +808,7 @@ wave_generator_sinusoidal_process(struct sol_flow_node *node,
     sinusoidal_iterate(mdata);
 
     return sol_flow_send_drange_packet
-               (node, SOL_FLOW_NODE_TYPE_WAVE_GENERATOR_SINUSOIDAL__OUT__OUT,
+               (node, SOL_FLOW_NODE_TYPE_FLOAT_WAVE_GENERATOR_SINUSOIDAL__OUT__OUT,
                &mdata->s_state.val);
 }
 
@@ -818,13 +818,13 @@ wave_generator_sinusoidal_open(struct sol_flow_node *node,
     const struct sol_flow_node_options *options)
 {
     struct drange_wave_generator_sinusoidal_data *mdata = data;
-    const struct sol_flow_node_type_wave_generator_sinusoidal_options *opts = (const struct sol_flow_node_type_wave_generator_sinusoidal_options *)options;
+    const struct sol_flow_node_type_float_wave_generator_sinusoidal_options *opts = (const struct sol_flow_node_type_float_wave_generator_sinusoidal_options *)options;
     uint32_t tick_start;
     struct s_state *s_state;
     struct sol_drange *val;
     unsigned i;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts, SOL_FLOW_NODE_TYPE_WAVE_GENERATOR_SINUSOIDAL_OPTIONS_API_VERSION, -EINVAL);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts, SOL_FLOW_NODE_TYPE_FLOAT_WAVE_GENERATOR_SINUSOIDAL_OPTIONS_API_VERSION, -EINVAL);
 
     if (islessequal(opts->amplitude.val, 0)) {
         SOL_ERR("Sinusoidal wave generator's multiplier must be greater "

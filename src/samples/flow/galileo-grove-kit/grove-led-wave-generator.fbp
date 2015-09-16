@@ -46,7 +46,7 @@ constant_duty_cycle_step(constant/float:value=7971)
 timer(timer:interval=5)
 
 # min_ticks: 100 * 5 ms = 500 ms. max_ticks: 20 * 5 ms = 100 ms
-wave(wave-generator/trapezoidal:min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=100,ticks_at_max=20,tick_start=100)
+wave(float/wave-generator-trapezoidal:min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=100,ticks_at_max=20,tick_start=100)
 
 timer OUT -> TICK wave
 

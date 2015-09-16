@@ -734,7 +734,7 @@
       "methods": {
         "open": "wave_generator_trapezoidal_open"
       },
-      "name": "wave-generator/trapezoidal",
+      "name": "float/wave-generator-trapezoidal",
       "options": {
         "members": [
           {
@@ -798,7 +798,7 @@
         }
       ],
       "private_data_type": "drange_wave_generator_trapezoidal_data",
-      "url": "http://solettaproject.org/doc/latest/node_types/wave-generator/trapezoidal.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/float/wave-generator-trapezoidal.html"
     },
     {
       "category": "wave-generator",
@@ -816,7 +816,7 @@
       "methods": {
         "open": "wave_generator_sinusoidal_open"
       },
-      "name": "wave-generator/sinusoidal",
+      "name": "float/wave-generator-sinusoidal",
       "options": {
         "members": [
           {
@@ -851,7 +851,7 @@
         }
       ],
       "private_data_type": "drange_wave_generator_sinusoidal_data",
-      "url": "http://solettaproject.org/doc/latest/node_types/wave-generator/sinusoidal.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/float/wave-generator-sinusoidal.html"
     },
     {
       "category": "float/classify",
