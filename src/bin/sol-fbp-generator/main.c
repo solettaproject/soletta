@@ -53,6 +53,10 @@
 
 #include "type-store.h"
 
+#ifdef USE_MEMMAP
+#include "sol-memmap-storage.h"
+#endif
+
 static struct {
     const char *conf_file;
     const char *output_file;
@@ -757,6 +761,39 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
     return true;
 }
 
+#ifdef USE_MEMMAP
+static void
+generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
+{
+    const struct sol_memmap_map *map;
+    const struct sol_str_table_ptr *iter;
+    const struct sol_memmap_entry *entry;
+    int i;
+
+    *elements = 0;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (maps, map, i) {
+        out("\nstatic const struct sol_memmap_map _memmap%d = {\n", i);
+        out("   .version = %d,\n"
+            "   .path = \"%s\"\n"
+            "   .entries {\n",
+            map->version, map->path);
+
+        for (iter = map->entries; iter->key; iter++) {
+            entry = iter->val;
+            out("       SOL_MEMMAP_ENTRY_BIT_SIZE(\"%s\", %lu, %lu, %u, %u),\n",
+                iter->key, entry->offset, entry->size, entry->bit_offset,
+                entry->bit_size);
+        }
+
+        out("    }\n"
+            "};\n");
+    }
+
+    *elements = i;
+}
+#endif
+
 static int
 generate(struct sol_vector *fbp_data_vector)
 {
@@ -767,8 +804,9 @@ generate(struct sol_vector *fbp_data_vector)
 
     struct fbp_data *data;
     struct sol_str_slice *module, *symbol;
+    struct sol_ptr_vector *memory_maps;
     uint16_t i;
-    int r;
+    int r, memmap_elems = 0;
 
     out(
         "#include \"sol-flow.h\"\n"
@@ -776,6 +814,11 @@ generate(struct sol_vector *fbp_data_vector)
 
     if (!args.export_symbol) {
         out("#include \"sol-mainloop.h\"\n");
+    }
+
+    if (sol_conffile_resolve_memmap_path(&memory_maps, args.conf_file) < 0) {
+        SOL_ERR("Couldn't resolve memory mappings on file [%s]", args.conf_file);
+        return EXIT_FAILURE;
     }
 
     out("\n");
@@ -789,6 +832,13 @@ generate(struct sol_vector *fbp_data_vector)
     SOL_VECTOR_FOREACH_IDX (&ctx->modules, module, i) {
         out("#include \"sol-flow/%.*s.h\"\n", SOL_STR_SLICE_PRINT(*module));
     }
+
+#ifdef USE_MEMMAP
+    if (memory_maps) {
+        out("#include \"sol-memmap-storage.h\"\n");
+        generate_memory_map_struct(memory_maps, &memmap_elems);
+    }
+#endif
 
     /* Reverse since the dependencies appear later in the vector. */
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
@@ -809,6 +859,11 @@ generate(struct sol_vector *fbp_data_vector)
             "        %.*s->init_type();\n",
             SOL_STR_SLICE_PRINT(*symbol),
             SOL_STR_SLICE_PRINT(*symbol));
+    }
+    if (memmap_elems) {
+        out("\n");
+        for (i = 0; i < memmap_elems; i++)
+            out("   sol_memmap_add_map(&_memmap%d);\n", i);
     }
     out(
         "}\n\n");
