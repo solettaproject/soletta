@@ -300,9 +300,9 @@ static int
 get_libname(char *out, size_t size)
 {
 #ifdef HAVE_DECL_DLADDR
+    char path[PATH_MAX];
     Dl_info info;
     int r;
-    char *path;
 
     r = dladdr(sol_init, &info);
     if (!r)
@@ -313,8 +313,9 @@ get_libname(char *out, size_t size)
         return -EINVAL;
     }
 
-    /* dirname() may modify path, copy it to a local memory. */
-    path = strdupa(info.dli_fname);
+    /* It may be a symlink, resolve it. dirname() may modify it
+     * afterwards. */
+    SOL_NULL_CHECK(realpath(info.dli_fname, path), -errno);
 
     return snprintf(out, size, "%s", dirname(path));
 #endif /* HAVE_DECL_DLADDR */
