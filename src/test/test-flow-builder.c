@@ -460,7 +460,8 @@ custom_resolve(void *data, const char *id, struct sol_flow_node_type const **typ
         *named_opts = (struct sol_flow_node_named_options){};
         return 0;
     }
-    return -ENOENT;
+
+    return sol_flow_resolve(NULL, id, type, named_opts);
 }
 
 static const struct sol_flow_resolver custom_resolver = {

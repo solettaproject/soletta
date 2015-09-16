@@ -296,7 +296,6 @@ parse_with_string(void)
 {
     struct sol_flow_node *flow;
     struct sol_flow_parser *parser;
-    const struct sol_flow_resolver *builtins_resolver;
     unsigned int i;
 
     static const char *tests[] = {
@@ -305,10 +304,7 @@ parse_with_string(void)
         "a(boolean/not) OUT -> IN b(boolean/not) OUT -> IN c(boolean/not)",
     };
 
-    builtins_resolver = sol_flow_get_builtins_resolver();
-    ASSERT(builtins_resolver);
-
-    parser = sol_flow_parser_new(NULL, builtins_resolver);
+    parser = sol_flow_parser_new(NULL, NULL);
     ASSERT(parser);
 
     for (i = 0; i < ARRAY_SIZE(tests); i++) {
@@ -339,7 +335,6 @@ static void
 parse_and_fail_with_invalid_string(void)
 {
     struct sol_flow_parser *parser;
-    const struct sol_flow_resolver *builtins_resolver;
     unsigned int i;
 
     static const char *tests[] = {
@@ -351,10 +346,7 @@ parse_and_fail_with_invalid_string(void)
         "a(boolean/not) PORT_THAT_DOESNT-exist -> IN b(boolean/not)",
     };
 
-    builtins_resolver = sol_flow_get_builtins_resolver();
-    ASSERT(builtins_resolver);
-
-    parser = sol_flow_parser_new(NULL, builtins_resolver);
+    parser = sol_flow_parser_new(NULL, NULL);
     ASSERT(parser);
 
     for (i = 0; i < ARRAY_SIZE(tests); i++) {
