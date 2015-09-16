@@ -59,7 +59,6 @@ struct sol_http_request {
     struct sol_http_param params;
     enum sol_http_method method;
     time_t if_since_modified;
-    bool handled;
 };
 
 struct sol_http_server {
@@ -243,16 +242,13 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     struct sol_http_request *req = *ptr;
     enum sol_http_status_code status = SOL_HTTP_STATUS_NOT_FOUND;
 
-    if (req && req->handled)
-        return MHD_YES;
-    else if (!req) {
+    if (!req) {
         req = sol_vector_append(&server->requests);
         SOL_NULL_CHECK(req, MHD_NO);
 
         sol_http_param_init(&req->params);
         req->url = url;
         req->connection = connection;
-        req->handled = false;
         *ptr = req;
         return MHD_YES;
     }
@@ -289,7 +285,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             status = SOL_HTTP_STATUS_NOT_MODIFIED;
             goto end;
         } else {
-            req->handled = true;
+            MHD_suspend_connection(connection);
             ret = handler->request_cb((void *)handler->user_data, req);
             SOL_INT_CHECK(ret, < 0, MHD_NO);
         }
@@ -562,6 +558,8 @@ sol_http_server_send_response(struct sol_http_request *request, struct sol_http_
     SOL_NULL_CHECK(request, -EINVAL);
     SOL_NULL_CHECK(request->connection, -EINVAL);
     SOL_NULL_CHECK(response, -EINVAL);
+
+    MHD_resume_connection(request->connection);
 
     mhd_response = build_mhd_response(response);
     SOL_NULL_CHECK(mhd_response, -1);
