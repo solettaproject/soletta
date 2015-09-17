@@ -8,5 +8,88 @@
                 "prefix":"-=-=- soletta -=-=-"
             }
         }
+    ],
+    "maps": [
+        {
+            "version": 1,
+            "path": "memmap-test.bin",
+            "entries": [
+                {
+                    "name": "_version",
+                    "offset": 2,
+                    "size": 1
+                },
+                {
+                    "name": "boolean",
+                    "offset": 3,
+                    "size": 1,
+                    "bit_size": 1,
+                    "bit_offset": 0
+                },
+                {
+                    "name": "int_only_val",
+                    "offset": 3,
+                    "size": 4,
+                    "bit_size": 30,
+                    "bit_offset": 1
+                },
+                {
+                    "name": "byte",
+                    "size": 1
+                },
+                {
+                    "name": "int",
+                    "size": 16
+                },
+                {
+                    "name": "irange",
+                    "size": 16
+                },
+                {
+                    "name": "string",
+                    "size": 10
+                },
+                {
+                    "name": "double",
+                    "size": 32
+                },
+                {
+                    "name": "double_only_val",
+                    "size": 8
+                },
+                {
+                    "name": "drange",
+                    "size": 32
+                },
+                {
+                    "name": "int_def",
+                    "size": 16
+                },
+                {
+                    "name": "irange_def",
+                    "size": 16
+                },
+                {
+                    "name": "byte_def",
+                    "size": 1
+                },
+                {
+                    "name": "boolean_def",
+                    "size": 1
+                },
+                {
+                    "name": "string_def",
+                    "size": 10
+                },
+                {
+                    "name": "double_def",
+                    "size": 32
+                },
+                {
+                    "name": "drange_def",
+                    "size": 32
+                }
+            ]
+        }
     ]
 }
