@@ -125,7 +125,7 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value)
     /* No packet_data_size means dynamic content (string). Let's reallocate if needed */
     if (!mdata->packet_data_size) {
         if (!mdata->value_ptr || strlen(mdata->value_ptr) + 1 < size) {
-            void *tmp = realloc(mdata->value_ptr, size);
+            void *tmp = realloc(mdata->value_ptr, size + 1);
             SOL_NULL_CHECK(tmp, -ENOMEM);
             mdata->value_ptr = tmp;
         }
