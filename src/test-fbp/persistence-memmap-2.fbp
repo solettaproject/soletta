@@ -1,0 +1,90 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# This test will write to following file:
+# memmap-test.bin
+# This test also depends on sol-flow.json, which contains its memory map.
+# memmap-test.bin need to exist and have previously written by
+# persistence-memmap.fbp
+# Note: memory mapped storage does not support default values. They are
+# meant to be sent when there's no previous saved value. However, memory mapped
+# storage does not support 'not previously saved value', as we only get a bunch
+# of zeros and have no way to know if they mean something or not.
+
+## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
+## TEST-SKIP-VALGRIND Some float operations yield to [-]NaN on valgrind
+
+validator_int(test/int-validator:sequence="-12")
+validator_irange(test/int-validator:sequence="-13")
+validator_byte(test/int-validator:sequence="73")
+validator_boolean(test/boolean-validator:sequence="T")
+validator_string(test/string-validator:sequence="string")
+validator_double(test/float-validator:sequence="2.568")
+validator_float_map(test/float-validator:sequence="50.0")
+validator_float_val_only_map(test/float-validator:sequence="0.0")
+validator_drange(test/float-validator:sequence="5.5")
+validator_drange_map(test/float-validator:sequence="56.0")
+validator_int_map(test/int-validator:sequence="49")
+validator_int_val_only_map(test/int-validator:sequence="100")
+validator_irange_map(test/int-validator:sequence="37")
+
+int_map(int/map:output_range=min:0|max:100|step:1)
+int_only_val_map(int/map:output_range=min:0|max:100|step:1)
+irange_map(int/map:output_range=min:0|max:100|step:1)
+
+double_map(float/map:output_range=min:0|max:100|step:1)
+double_only_val_map(float/map:output_range=min:0|max:100|step:1)
+drange_map(float/map:output_range=min:0|max:100|step:1)
+
+persist_int(persistence/int:storage="memmap",name="int")
+persist_int_only_val(persistence/int:storage="memmap",name="int_only_val",store_only_val=true,default_value=30|-12|30|1)
+persist_irange(persistence/int:storage="memmap",name="irange")
+persist_byte(persistence/byte:storage="memmap",name="byte")
+persist_boolean(persistence/boolean:storage="memmap",name="boolean")
+persist_string(persistence/string:storage="memmap",name="string")
+persist_double(persistence/float:storage="memmap",name="double")
+persist_double_only_val(persistence/float:storage="memmap",name="double_only_val",store_only_val=true,default_value=1023.22|1|1024|0.5)
+persist_drange(persistence/float:storage="memmap",name="drange")
+
+persist_int OUT -> IN validator_int OUT -> RESULT _(test/result)
+persist_irange OUT -> IN validator_irange OUT -> RESULT _(test/result)
+persist_byte OUT -> IN _(converter/byte-to-int) OUT -> IN validator_byte OUT -> RESULT _(test/result)
+persist_boolean OUT -> IN validator_boolean OUT -> RESULT _(test/result)
+persist_string OUT -> IN validator_string OUT -> RESULT _(test/result)
+persist_double OUT -> IN validator_double OUT -> RESULT _(test/result)
+persist_drange OUT -> IN validator_drange OUT -> RESULT _(test/result)
+
+persist_int OUT -> IN int_map OUT -> IN validator_int_map OUT -> RESULT _(test/result)
+persist_irange OUT -> IN irange_map OUT -> IN validator_irange_map OUT -> RESULT _(test/result)
+persist_double OUT -> IN double_map OUT -> IN validator_float_map OUT -> RESULT _(test/result)
+persist_drange OUT -> IN drange_map OUT -> IN validator_drange_map OUT -> RESULT _(test/result)
+
+persist_int_only_val OUT -> IN int_only_val_map OUT -> IN validator_int_val_only_map OUT -> RESULT _(test/result)
+persist_double_only_val OUT -> IN double_only_val_map OUT -> IN validator_float_val_only_map OUT -> RESULT _(test/result)

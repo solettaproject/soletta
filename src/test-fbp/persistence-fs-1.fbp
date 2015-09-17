@@ -1,0 +1,144 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# This test will write to following files:
+# int, int_only_val, irange, byte, boolean, string, double, double_only_val,
+# drange, int_def, irange_def, byte_def, boolean_def, string_def, double_def,
+# drange_def
+# Those files need to not exist (or have size 0) prior running this test 
+
+## TEST-PRECONDITION rm -f int int_only_val irange byte boolean string double double_only_val drange int_def irange_def byte_def boolean_def string_def double_def drange_def
+## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
+## TEST-SKIP-VALGRIND Some float operations yield to [-]NaN on valgrind
+
+int(constant/int:value=-12)
+irange(constant/int:value=-13|-50|50|3)
+byte(constant/byte:value=73)
+boolean(constant/boolean:value=true)
+string(constant/string:value="string")
+double(constant/float:value=2.568)
+drange(constant/float:value=5.5|-40.0|40.0|0.4)
+
+validator_int(test/int-validator:sequence="0 -12")
+validator_int_def(test/int-validator:sequence="400000000 -12")
+validator_irange(test/int-validator:sequence="0 -13")
+validator_irange_def(test/int-validator:sequence="-50 -13")
+validator_byte(test/int-validator:sequence="0 73")
+validator_byte_def(test/int-validator:sequence="7 73")
+validator_boolean(test/boolean-validator:sequence="FT")
+validator_boolean_def(test/boolean-validator:sequence="TT")
+validator_string(test/string-validator:sequence="|string")
+validator_string_def(test/string-validator:sequence="default|string")
+validator_double(test/float-validator:sequence="0 2.568")
+validator_double_def(test/float-validator:sequence="-179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.000000 2.568")
+
+int_map(int/map:output_range=min:0|max:100|step:1)
+int_def_map(int/map:output_range=min:0|max:100|step:1)
+int_only_val_map(int/map:output_range=min:0|max:100|step:1)
+irange_map(int/map:output_range=min:0|max:100|step:1)
+irange_def_map(int/map:output_range=min:0|max:100|step:1)
+
+validator_int_map(test/int-validator:sequence="50 49")
+validator_int_val_only_map(test/int-validator:sequence="100 0")
+validator_int_map_def(test/int-validator:sequence="59 49")
+validator_irange_map(test/int-validator:sequence="50 37")
+validator_irange_map_def(test/int-validator:sequence="0 37")
+
+double_map(float/map:output_range=min:0|max:100|step:1)
+double_def_map(float/map:output_range=min:0|max:100|step:1)
+double_only_val_map(float/map:output_range=min:0|max:100|step:1)
+drange_map(float/map:output_range=min:0|max:100|step:1)
+drange_def_map(float/map:output_range=min:0|max:100|step:1)
+
+validator_float_map(test/float-validator:sequence="50.0 50.0")
+validator_float_def_map(test/float-validator:sequence="0.0 50.0")
+validator_float_val_only_map(test/float-validator:sequence="99.0 0.0")
+validator_drange(test/float-validator:sequence="0.0 5.5")
+validator_drange_map(test/float-validator:sequence="50.0 56.0")
+validator_drange_def(test/float-validator:sequence="-4.5 5.5")
+validator_drange_def_map(test/float-validator:sequence="5.0 56.0")
+
+persist_int(persistence/int:storage="fs",name="int")
+int OUT -> IN persist_int OUT -> IN validator_int OUT -> RESULT _(test/result)
+persist_int OUT -> IN int_map OUT -> IN validator_int_map OUT -> RESULT _(test/result)
+
+persist_int_only_val(persistence/int:storage="fs",name="int_only_val",store_only_val=true,default_value=30|-12|30|1)
+int OUT -> IN persist_int_only_val OUT -> IN int_only_val_map OUT -> IN validator_int_val_only_map OUT -> RESULT _(test/result)
+
+persist_irange(persistence/int:storage="fs",name="irange")
+irange OUT -> IN persist_irange OUT -> IN validator_irange OUT -> RESULT _(test/result)
+persist_irange OUT -> IN irange_map OUT -> IN validator_irange_map OUT -> RESULT _(test/result)
+
+persist_byte(persistence/byte:storage="fs",name="byte")
+byte OUT -> IN persist_byte OUT -> IN _(converter/byte-to-int) OUT -> IN validator_byte OUT -> RESULT _(test/result)
+
+persist_boolean(persistence/boolean:storage="fs",name="boolean")
+boolean OUT -> IN persist_boolean OUT -> IN validator_boolean OUT -> RESULT _(test/result)
+
+persist_string(persistence/string:storage="fs",name="string")
+string OUT -> IN persist_string OUT -> IN validator_string OUT -> RESULT _(test/result)
+
+persist_double(persistence/float:storage="fs",name="double")
+double OUT -> IN persist_double OUT -> IN validator_double OUT -> RESULT _(test/result)
+persist_double OUT -> IN double_map OUT -> IN validator_float_map OUT -> RESULT _(test/result)
+
+persist_double_only_val(persistence/float:storage="fs",name="double_only_val",store_only_val=true,default_value=1023.22|1|1024|0.5)
+double OUT -> IN persist_double_only_val OUT -> IN double_only_val_map OUT -> IN validator_float_val_only_map OUT -> RESULT _(test/result)
+
+persist_drange(persistence/float:storage="fs",name="drange")
+drange OUT -> IN persist_drange OUT -> IN validator_drange OUT -> RESULT _(test/result)
+persist_drange OUT -> IN drange_map OUT -> IN validator_drange_map OUT -> RESULT _(test/result)
+
+# -----------------------------------------------------------------------------
+
+persist_int_def(persistence/int:storage="fs",name="int_def",default_value=400000000)
+int OUT -> IN persist_int_def OUT -> IN validator_int_def OUT -> RESULT _(test/result)
+persist_int_def OUT -> IN int_def_map OUT -> IN validator_int_map_def OUT -> RESULT _(test/result)
+
+persist_irange_def(persistence/int:storage="fs",name="irange_def",default_value=-50|-50|-40|1)
+irange OUT -> IN persist_irange_def OUT -> IN validator_irange_def OUT -> RESULT _(test/result)
+persist_irange_def OUT -> IN irange_def_map OUT -> IN validator_irange_map_def OUT -> RESULT _(test/result)
+
+persist_byte_def(persistence/byte:storage="fs",name="byte_def",default_value=7)
+byte OUT -> IN persist_byte_def OUT -> IN _(converter/byte-to-int) OUT -> IN validator_byte_def OUT -> RESULT _(test/result)
+
+persist_boolean_def(persistence/boolean:storage="fs",name="boolean_def",default_value=true)
+boolean OUT -> IN persist_boolean_def OUT -> IN validator_boolean_def OUT -> RESULT _(test/result)
+
+persist_string_def(persistence/string:storage="fs",name="string_def",default_value="default")
+string OUT -> IN persist_string_def OUT -> IN validator_string_def OUT -> RESULT _(test/result)
+
+persist_double_def(persistence/float:storage="fs",name="double_def",default_value=-DBL_MAX)
+double OUT -> IN persist_double_def OUT -> IN validator_double_def OUT -> RESULT _(test/result)
+persist_double_def OUT -> IN double_def_map OUT -> IN validator_float_def_map OUT -> RESULT _(test/result)
+
+persist_drange_def(persistence/float:storage="fs",name="drange_def",default_value=-4.5|-5.0|5.0|0.5)
+drange OUT -> IN persist_drange_def OUT -> IN validator_drange_def OUT -> RESULT _(test/result)
+persist_drange_def OUT -> IN drange_def_map OUT -> IN validator_drange_def_map OUT -> RESULT _(test/result)
