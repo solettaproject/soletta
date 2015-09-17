@@ -52,6 +52,61 @@ struct http_data {
 };
 
 static void
+common_close(struct sol_flow_node *node, void *data)
+{
+    struct sol_http_client_connection *connection;
+    struct http_data *mdata = data;
+    uint16_t i;
+
+    free(mdata->url);
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
+        sol_http_client_connection_cancel(connection);
+    sol_ptr_vector_clear(&mdata->pending_conns);
+}
+
+static int
+common_open(struct http_data *mdata, const char *url)
+{
+    mdata->url = strdup(url);
+    SOL_NULL_CHECK(mdata->url, -ENOMEM);
+
+    sol_ptr_vector_init(&mdata->pending_conns);
+
+    return 0;
+}
+
+static int
+check_response(struct http_data *mdata,
+    const struct sol_http_client_connection *connection,
+    struct sol_http_response *response)
+{
+    if (sol_ptr_vector_remove(&mdata->pending_conns, connection) < 0)
+        SOL_WRN("Failed to find pending connection %p", connection);
+
+    if (!response) {
+        sol_flow_send_error_packet(mdata->node, EINVAL,
+            "Error while reaching %s", mdata->url);
+        return -EINVAL;
+    }
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
+    if (!response->content.used) {
+        sol_flow_send_error_packet(mdata->node, EINVAL,
+            "Empty response from %s", mdata->url);
+        return -EINVAL;
+    }
+
+    if (response->response_code != SOL_HTTP_STATUS_OK) {
+        sol_flow_send_error_packet(mdata->node, EINVAL,
+            "%s returned an unknown response code: %d",
+            mdata->url, response->response_code);
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+static void
 boolean_request_finished(void *data,
     const struct sol_http_client_connection *connection,
     struct sol_http_response *response)
@@ -59,28 +114,8 @@ boolean_request_finished(void *data,
     struct http_data *mdata = data;
     bool result = true;
 
-    if (sol_ptr_vector_remove(&mdata->pending_conns, connection) < 0)
-        SOL_WRN("Failed to find pending connection %p", connection);
-
-    if (!response) {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Error while reaching %s", mdata->url);
+    if (check_response(mdata, connection, response) < 0)
         return;
-    }
-    SOL_HTTP_RESPONSE_CHECK_API(response);
-
-    if (!response->content.used) {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Empty response from %s", mdata->url);
-        return;
-    }
-
-    if (response->response_code != SOL_HTTP_STATUS_OK) {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "%s returned an unknown response code: %d",
-            mdata->url, response->response_code);
-        return;
-    }
 
     if (streq(response->content_type, "application/json")) {
         struct sol_json_scanner scanner;
@@ -188,33 +223,135 @@ boolean_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint
     return 0;
 }
 
-static void
-boolean_close(struct sol_flow_node *node, void *data)
-{
-    struct sol_http_client_connection *connection;
-    struct http_data *mdata = data;
-    uint16_t i;
-
-    free(mdata->url);
-    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
-        sol_http_client_connection_cancel(connection);
-    sol_ptr_vector_clear(&mdata->pending_conns);
-}
-
 static int
 boolean_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct http_data *mdata = data;
     struct sol_flow_node_type_http_client_boolean_options *opts =
         (struct sol_flow_node_type_http_client_boolean_options *)options;
-
     mdata->node = node;
-    mdata->url = strdup(opts->url);
-    SOL_NULL_CHECK(mdata->url, -ENOMEM);
 
-    sol_ptr_vector_init(&mdata->pending_conns);
+    return common_open(mdata, opts->url);
+}
+
+
+/*
+ * --------------------------------- string node -----------------------------
+ */
+static void
+string_request_finished(void *data,
+    const struct sol_http_client_connection *connection,
+    struct sol_http_response *response)
+{
+    struct http_data *mdata = data;
+    char *result = NULL;
+
+    if (check_response(mdata, connection, response) < 0)
+        return;
+
+    if (streq(response->content_type, "application/json")) {
+        struct sol_json_scanner scanner;
+        struct sol_json_token token, key, value;
+        enum sol_json_loop_reason reason;
+
+        sol_json_scanner_init(&scanner, response->content.data, response->content.used);
+        SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
+            result = strndup(value.start + 1, value.end - value.start - 2);
+        }
+    } else {
+        result = strndup(response->content.data, response->content.used);
+    }
+
+    if (result) {
+        sol_flow_send_string_take_packet(mdata->node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
+    } else {
+        sol_flow_send_error_packet(mdata->node, -ENOMEM,
+            "%s Could not parser the url's contents ", mdata->url);
+    }
+}
+
+static int
+string_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_http_param params;
+    struct http_data *mdata = data;
+    struct sol_http_client_connection *connection;
+
+    sol_http_param_init(&params);
+    if (!sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) {
+        SOL_WRN("Failed to set query params");
+        sol_http_param_free(&params);
+        return -ENOMEM;
+    }
+
+    connection = sol_http_client_request(SOL_HTTP_METHOD_GET, mdata->url,
+        &params, string_request_finished, mdata);
+
+    sol_http_param_free(&params);
+
+    SOL_NULL_CHECK(connection, -ENOTCONN);
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_connection_cancel(connection);
+        return -ENOMEM;
+    }
 
     return 0;
 }
 
+static int
+string_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    const char *value;
+    struct sol_http_param params;
+    struct http_data *mdata = data;
+    struct sol_http_client_connection *connection;
+
+    r = sol_flow_packet_get_string(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    sol_http_param_init(&params);
+    if (!(sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) ||
+        !(sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("value", value)))) {
+        SOL_WRN("Failed to set query params");
+        sol_http_param_free(&params);
+        return -ENOMEM;
+    }
+
+    connection = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->url,
+        &params, string_request_finished, mdata);
+    sol_http_param_free(&params);
+
+    SOL_NULL_CHECK(connection, -ENOTCONN);
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_connection_cancel(connection);
+        return -ENOMEM;
+    }
+
+    return 0;
+}
+
+static int
+string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_client_string_options *opts =
+        (struct sol_flow_node_type_http_client_string_options *)options;
+    mdata->node = node;
+
+    return common_open(mdata, opts->url);
+}
 #include "http-client-gen.c"

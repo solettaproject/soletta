@@ -11,7 +11,7 @@
       "category": "output/network",
       "description": "HTTP Client for boolean",
       "methods": {
-        "close": "boolean_close",
+        "close": "common_close",
         "open": "boolean_open"
       },
       "name": "http-client/boolean",
@@ -52,6 +52,52 @@
       ],
       "private_data_type": "http_data",
       "url": "http://solettaproject.org/doc/latest/node_types/http-client/boolean.html"
+    },
+    {
+      "category": "output/network",
+      "description": "HTTP Client for string",
+      "methods": {
+        "close": "common_close",
+        "open": "string_open"
+      },
+      "name": "http-client/string",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The http url",
+            "name": "url"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+	{
+	  "data_type": "any",
+	  "description": "Get the contents of the specified url",
+          "methods": {
+            "process": "string_get_process"
+          },
+          "name": "GET"
+        },
+	{
+	  "data_type": "string",
+	  "description": "Post into the url",
+          "methods": {
+            "process": "string_post_process"
+          },
+          "name": "POST"
+        }
+      ],
+      "out_ports": [
+	{
+          "data_type": "string",
+          "description": "The value received from the url",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/string.html"
     }
   ]
 }
