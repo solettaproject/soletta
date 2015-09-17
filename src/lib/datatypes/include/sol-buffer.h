@@ -277,8 +277,8 @@ void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);
  *
  *  After this call, user is responsible for calling fini on the
  *  buffer and freeing it afterwards. For it's memory to be freed
- *  properly, the new buffer will have its flags set to
- *  SOL_BUFFER_FLAGS_DEFAULT
+ *  properly, the flag SOL_BUFFER_FLAGS_NO_FREE will always be
+ *  unset, despite the original buffer
  *
  *  @param buf buffer to be copied
  *
