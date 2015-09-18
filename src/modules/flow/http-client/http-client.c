@@ -146,7 +146,7 @@ check_response(struct http_data *mdata, struct sol_flow_node *node,
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(node, EINVAL,
-            "%s returned an unknown response code: %d",
+            "%s returned an unhandled response code: %d",
             mdata->url, response->response_code);
         return -EINVAL;
     }
@@ -372,4 +372,75 @@ string_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
     return common_post_process(node, data, "value", value, NULL);
 }
 
-#include "http-client-gen.c"
+/*
+ * --------------------------------- irange node -----------------------------
+ */
+static int
+int_process_token(struct sol_flow_node *node,
+    struct sol_json_token *key, struct sol_json_token *value)
+{
+    struct sol_irange irange = SOL_IRANGE_INIT();
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token sub_key, sub_value, token;
+
+    sol_json_scanner_init(&sub_scanner, value->start, value->end - value->start);
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key, &sub_value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "value")) {
+            if (sol_json_token_get_int32(&sub_value, &irange.val) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "min")) {
+            if (sol_json_token_get_int32(&sub_value, &irange.min) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "max")) {
+            if (sol_json_token_get_int32(&sub_value, &irange.max) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "step")) {
+            if (sol_json_token_get_int32(&sub_value, &irange.step) < 0)
+                return -EINVAL;
+        }
+    }
+
+    return sol_flow_send_irange_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_INT__OUT__OUT, &irange);
+}
+
+static int
+int_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    int value;
+
+    errno = 0;
+    value = strtol(response->content.data, NULL, 0);
+    if (errno)
+        return -EINVAL;
+
+    return sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_INT__OUT__OUT, value);
+}
+
+static int
+int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_irange value;
+    char min[3 * sizeof(int)], max[3 * sizeof(int)],
+        val[3 * sizeof(int)], step[3 * sizeof(int)];
+
+    r = sol_flow_packet_get_irange(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = snprintf(val, sizeof(val), "%d", value.val);
+    SOL_INT_CHECK(r, < 0, r);
+    r = snprintf(min, sizeof(min), "%d", value.min);
+    SOL_INT_CHECK(r, < 0, r);
+    r = snprintf(max, sizeof(max), "%d", value.max);
+    SOL_INT_CHECK(r, < 0, r);
+    r = snprintf(step, sizeof(step), "%d", value.step);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return common_post_process(node, data, "value", val, "min", min,
+        "max", max, "step", step, NULL);
+}
