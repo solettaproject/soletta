@@ -459,6 +459,27 @@ struct sol_flow_port_type_in {
     int (*disconnect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued everytime a connection is unmade on the port */
 };
 
+#ifdef SOL_DYNAMIC_MODULES
+
+/**
+ * Gets the specified node type, loading the necessary module if required.
+ *
+ * Checks if the node type @a _type is built-in, if not, it loads the module
+ * @a _mod and fetches the type's symbol there. The result is stored in @a _var.
+ *
+ * @param _mod The name of the module to load if the symbol is not built-in.
+ * @param _type The node type's symbol.
+ * @param _var Variable where to store the type.
+ *
+ * @return 0 on success, < 0 on error.
+ */
+#define sol_flow_get_node_type(_mod, _type, _var) sol_flow_internal_get_node_type(_mod, #_type, _var)
+
+int sol_flow_internal_get_node_type(const char *module, const char *symbol, const struct sol_flow_node_type **type);
+#else
+#define sol_flow_get_node_type(_mod, _type, _var) ({ (*(_var)) = _type; 0; })
+#endif /* SOL_DYNAMIC_MODULES */
+
 /**
  * @}
  */

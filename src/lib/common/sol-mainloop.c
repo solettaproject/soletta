@@ -34,6 +34,7 @@
 
 #include "sol-mainloop-impl.h"
 #include "sol-macros.h"
+#include "sol-modules.h"
 #include "sol-util.h"
 
 #include "sol-platform.h"
@@ -223,6 +224,7 @@ sol_shutdown(void)
     sol_pin_mux_shutdown();
     sol_platform_shutdown();
     sol_mainloop_impl_shutdown();
+    sol_modules_clear_cache();
     sol_log_shutdown();
 }
 
