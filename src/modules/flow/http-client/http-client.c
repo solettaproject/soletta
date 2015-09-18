@@ -444,3 +444,81 @@ int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     return common_post_process(node, data, "value", val, "min", min,
         "max", max, "step", step, NULL);
 }
+
+/*
+ * --------------------------------- drange node -----------------------------
+ */
+static int
+float_process_token(struct sol_flow_node *node,
+    struct sol_json_token *key, struct sol_json_token *value)
+{
+    struct sol_drange drange = SOL_DRANGE_INIT();
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token token, sub_key, sub_value;
+
+    sol_json_scanner_init(&sub_scanner, value->start, value->end - value->start);
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key, &sub_value, reason) {
+        int r;
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "value")) {
+            r = sol_json_token_get_double(&sub_value, &drange.val);
+            SOL_INT_CHECK(r, != 0, r);
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "min")) {
+            r = sol_json_token_get_double(&sub_value, &drange.min);
+            SOL_INT_CHECK(r, != 0, r);
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "max")) {
+            r = sol_json_token_get_double(&sub_value, &drange.max);
+            SOL_INT_CHECK(r, != 0, r);
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "step")) {
+            r = sol_json_token_get_double(&sub_value, &drange.step);
+            SOL_INT_CHECK(r, != 0, r);
+        }
+    }
+
+    return sol_flow_send_drange_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_FLOAT__OUT__OUT, &drange);
+}
+
+static int
+float_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    double value;
+
+    errno = 0;
+    value = sol_util_strtodn(response->content.data, NULL, -1, false);
+    if (errno)
+        return -errno;
+
+    return sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_FLOAT__OUT__OUT, value);
+}
+
+static int
+float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_drange value;
+    char val[100], min[100], max[100], step[100];
+
+    r = sol_flow_packet_get_drange(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(value.val, val, 100);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(value.min, min, 100);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(value.max, max, 100);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(value.step, step, 100);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return common_post_process(node, data, "value", val, "min", min,
+        "max", max, "step", step, NULL);
+}
+
+#include "http-client-gen.c"
