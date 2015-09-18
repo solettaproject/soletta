@@ -68,3 +68,9 @@ sol_util_timespec_get_realtime(struct timespec *t)
     return -1;
 #endif
 }
+
+int
+sol_util_get_os_version(char **out)
+{
+    return strdup(RIOT_VERSION);
+}

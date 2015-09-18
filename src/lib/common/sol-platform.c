@@ -394,7 +394,13 @@ sol_platform_get_sw_version(void)
 SOL_API char *
 sol_platform_get_os_version(void)
 {
-    return sol_platform_impl_get_os_version();
+    char *out = NULL;
+
+    int r = sol_util_get_os_version(&out);
+
+    SOL_INT_CHECK(r, < 0, NULL);
+
+    return out;
 }
 
 void

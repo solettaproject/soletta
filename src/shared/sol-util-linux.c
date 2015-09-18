@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <unistd.h>
 
 struct timespec
@@ -52,4 +53,20 @@ int
 sol_util_timespec_get_realtime(struct timespec *t)
 {
     return clock_gettime(CLOCK_REALTIME, t);
+}
+
+int
+sol_util_get_os_version(char **out)
+{
+    struct utsname hostinfo;
+    int r;
+
+    r = uname(&hostinfo);
+    SOL_INT_CHECK(r, == -1, -errno);
+
+    r = asprintf(out, "%s %s", hostinfo.sysname, hostinfo.release);
+    if (r == -1)
+        return -ENOMEM;
+
+    return 0;
 }

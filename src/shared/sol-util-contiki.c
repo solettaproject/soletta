@@ -54,3 +54,10 @@ sol_util_timespec_get_realtime(struct timespec *t)
     errno = ENOSYS;
     return -1;
 }
+
+int
+sol_util_get_os_version(char **out)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
