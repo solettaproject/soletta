@@ -144,6 +144,52 @@
       ],
       "private_data_type": "http_data",
       "url": "http://solettaproject.org/doc/latest/node_types/http-client/int.html"
+    },
+    {
+      "category": "output/network",
+      "description": "HTTP Client for float",
+      "methods": {
+        "close": "common_close",
+        "open": "float_open"
+      },
+      "name": "http-client/float",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The http url",
+            "name": "url"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+	{
+	  "data_type": "any",
+	  "description": "Get the contents of the specified url",
+          "methods": {
+            "process": "float_get_process"
+          },
+          "name": "GET"
+        },
+	{
+	  "data_type": "float",
+	  "description": "Post into the url",
+          "methods": {
+            "process": "float_post_process"
+          },
+          "name": "POST"
+        }
+      ],
+      "out_ports": [
+	{
+          "data_type": "float",
+          "description": "The value received from the url",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/float.html"
     }
   ]
 }
