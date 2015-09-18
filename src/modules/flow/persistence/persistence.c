@@ -418,8 +418,9 @@ static int
 persist_irange_packet_send(struct sol_flow_node *node)
 {
     struct persist_irange_data *mdata = sol_flow_node_get_private_data(node);
+    struct sol_irange *val = mdata->base.value_ptr;
 
-    if (mdata->store_only_val) {
+    if (mdata->store_only_val || (!val->step && !val->min && !val->max)) {
         struct sol_irange value = {
             .val = *(int32_t *)mdata->base.value_ptr,
             .step = mdata->default_value.step,
@@ -433,8 +434,7 @@ persist_irange_packet_send(struct sol_flow_node *node)
     }
 
     return sol_flow_send_irange_packet
-               (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_INT__OUT__OUT,
-               (struct sol_irange *)mdata->base.value_ptr);
+               (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_INT__OUT__OUT, val);
 }
 
 static struct sol_flow_packet *
@@ -500,8 +500,12 @@ static int
 persist_drange_packet_send(struct sol_flow_node *node)
 {
     struct persist_drange_data *mdata = sol_flow_node_get_private_data(node);
+    struct sol_drange *val = mdata->base.value_ptr;
+    bool no_defaults = sol_drange_val_equal(val->step, 0) &&
+        sol_drange_val_equal(val->min, 0) &&
+        sol_drange_val_equal(val->min, 0);
 
-    if (mdata->store_only_val) {
+    if (mdata->store_only_val || no_defaults) {
         struct sol_drange value = {
             .val = *(double *)mdata->base.value_ptr,
             .step = mdata->default_value.step,
@@ -515,8 +519,7 @@ persist_drange_packet_send(struct sol_flow_node *node)
     }
 
     return sol_flow_send_drange_packet
-               (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_FLOAT__OUT__OUT,
-               (struct sol_drange *)mdata->base.value_ptr);
+               (node, SOL_FLOW_NODE_TYPE_PERSISTENCE_FLOAT__OUT__OUT, val);
 }
 
 static struct sol_flow_packet *
