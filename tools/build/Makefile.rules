@@ -289,7 +289,7 @@ define make-test-fbp-bin
 $($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out)
 	$(Q)echo "     " CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
-	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $($(1)-src) -o $($(1)-out) $(SAMPLE_LDFLAGS) $(modules-out)
+	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $($(1)-src) -o $($(1)-out) $(SAMPLE_LDFLAGS)
 endef
 $(foreach test-fbp-bin,$(all-tests-fbp-bin),$(eval $(call make-test-fbp-bin,$(test-fbp-bin))))
 
