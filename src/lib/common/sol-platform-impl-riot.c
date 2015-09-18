@@ -180,9 +180,3 @@ sol_platform_impl_get_serial_number(char **number)
     return -ENOSYS;
 #endif
 }
-
-char *
-sol_platform_impl_get_os_version(void)
-{
-    return strdup(RIOT_VERSION);
-}

@@ -446,6 +446,7 @@ int
 sol_platform_impl_get_machine_id(char id[static 33])
 {
     int r;
+
     r = sol_util_read_file("/etc/machine-id", "%32s", id);
     /* that id should have already been validated by systemd */
 
@@ -467,18 +468,6 @@ sol_platform_impl_get_serial_number(char **number)
         return -errno;
 
     return r;
-}
-
-char *
-sol_platform_impl_get_os_version(void)
-{
-    char *ret = NULL;
-    int r;
-
-    r = sol_util_get_os_version(&ret);
-    SOL_INT_CHECK(r, < 0, NULL);
-
-    return ret;
 }
 
 int
