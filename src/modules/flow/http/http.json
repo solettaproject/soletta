@@ -1,0 +1,147 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "http",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "name": "http/get-string",
+      "private_data_type": "http_data",
+      "category": "http-generic",
+      "description": "Make a GET http request at a given URL and outputs its content as string",
+      "url": "http://solettaproject.org/doc/latest/node_types/http/get-string.html",
+      "methods": {
+        "close": "http_close",
+        "open": "http_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_node_type",
+        "extra_methods": {
+          "response_process_func": "get_string_process"
+        }
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The url to make a GET request",
+            "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
+            "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": "text/plain",
+            "description": "The desired content type of the request",
+            "name": "content_type"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The url to make a GET request",
+          "name": "URL",
+          "methods": {
+            "process": "url_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Execute the GET request",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "trigger_process"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The values received from the request.",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "name": "http/get-blob",
+      "private_data_type": "http_data",
+      "category": "http-generic",
+      "description": "Make a GET http request at a given URL and outputs its content as blob",
+      "url": "http://solettaproject.org/doc/latest/node_types/http/get-blob.html",
+      "methods": {
+        "close": "http_close",
+        "open": "http_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_node_type",
+        "extra_methods": {
+          "response_process_func": "get_blob_process"
+        }
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The url to make a GET request",
+            "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
+            "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The desired content type of the request",
+            "name": "content_type"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The url to make a GET request",
+          "name": "URL",
+          "methods": {
+            "process": "url_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Execute the GET request",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "trigger_process"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "The values received from the request.",
+          "name": "OUT"
+        }
+      ]
+    }
+  ]
+}
