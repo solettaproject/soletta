@@ -32,21 +32,15 @@
 
 #pragma once
 
-{{
-st.on_value("PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-}}
+#include "sol-common-buildopts.h"
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-}}
+#ifdef SOL_DYNAMIC_MODULES
+#define sol_symbol_get(_ns, _mod, _sym) sol_modules_get_symbol(_ns, _mod, #_sym)
 
-{{
-st.on_value("MODULES", "y", "#define SOL_DYNAMIC_MODULES 1", "")
-}}
+int sol_modules_init(void);
+void sol_modules_shutdown(void);
 
-#ifdef SOL_PLATFORM_LINUX
-#define SOL_MAINLOOP_FD_ENABLED 1
-#define SOL_MAINLOOP_FORK_WATCH_ENABLED 1
+void *sol_modules_get_symbol(const char *nspace, const char *modname, const char *symbol);
+#else
+#define sol_symbol_get(_ns, _mod, _sym) (void *)&_sym
 #endif

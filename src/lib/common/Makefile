@@ -76,6 +76,9 @@ obj-core-$(PTHREAD)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 obj-core-$(USE_PIN_MUX) += \
     sol-pin-mux.o
 
+obj-core-$(MODULES) += \
+    sol-modules.o
+
 requires-private-$(MAINLOOP_GLIB) += \
     $(GLIB_REQUIRES_PRIVATE)
 
@@ -91,6 +94,7 @@ headers-y := \
     include/sol-log.h \
     include/sol-macros.h \
     include/sol-mainloop.h \
+    include/sol-modules.h \
     include/sol-platform.h \
     include/sol-types.h \
     sol-common-buildopts.h.in

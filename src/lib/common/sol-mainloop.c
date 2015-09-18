@@ -34,6 +34,7 @@
 
 #include "sol-mainloop-impl.h"
 #include "sol-macros.h"
+#include "sol-modules.h"
 #include "sol-util.h"
 
 #include "sol-platform.h"
@@ -104,6 +105,12 @@ sol_init(void)
 
     sol_log_domain_init_level(SOL_LOG_DOMAIN);
 
+#ifdef MODULES
+    r = sol_modules_init();
+    if (r < 0)
+        goto modules_error;
+#endif
+
     r = sol_mainloop_impl_init();
     if (r < 0)
         goto impl_error;
@@ -151,6 +158,10 @@ pin_mux_error:
 platform_error:
     sol_mainloop_impl_shutdown();
 impl_error:
+#ifdef MODULES
+    sol_modules_shutdown();
+modules_error:
+#endif
     sol_log_shutdown();
 log_error:
     _init_count = 0;
@@ -221,6 +232,9 @@ sol_shutdown(void)
     sol_pin_mux_shutdown();
     sol_platform_shutdown();
     sol_mainloop_impl_shutdown();
+#ifdef MODULES
+    sol_modules_shutdown();
+#endif
     sol_log_shutdown();
 }
 
