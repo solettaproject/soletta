@@ -50,6 +50,8 @@ struct http_data {
     struct sol_ptr_vector pending_conns;
     struct sol_str_slice key;
     char *url;
+    char *content_type;
+    bool strict;
 };
 
 struct http_client_node_type {
@@ -82,6 +84,7 @@ common_close(struct sol_flow_node *node, void *data)
     uint16_t i;
 
     free(mdata->url);
+    free(mdata->content_type);
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
         sol_http_client_connection_cancel(connection);
     sol_ptr_vector_clear(&mdata->pending_conns);
@@ -519,6 +522,158 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
     return common_post_process(node, data, "value", val, "min", min,
         "max", max, "step", step, NULL);
+}
+
+/*
+ * --------------------------------- generic nodes  -----------------------------
+ */
+
+static int
+generic_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct http_data *mdata = data;
+
+    struct sol_flow_node_type_http_client_get_string_options *opts =
+        (struct sol_flow_node_type_http_client_get_string_options *)options;
+
+    if (opts->url) {
+        mdata->url = strdup(opts->url);
+        SOL_NULL_CHECK(mdata->url, -ENOMEM);
+    }
+
+    if (opts->content_type) {
+        mdata->content_type = strdup(opts->content_type);
+        SOL_NULL_CHECK_GOTO(mdata->content_type, err_content_type);
+    }
+
+    mdata->strict = opts->strict;
+    sol_ptr_vector_init(&mdata->pending_conns);
+    return 0;
+
+err_content_type:
+    free(mdata->url);
+    return -ENOMEM;
+}
+
+static int
+generic_url_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct http_data *mdata = data;
+    const char *url;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &url);
+    SOL_INT_CHECK(r, < 0, r);
+
+    SOL_DBG("New URL received:%s - old URL:%s", url, mdata->url);
+    free(mdata->url);
+    mdata->url = strdup(url);
+    SOL_NULL_CHECK(mdata->url, -ENOMEM);
+    return 0;
+}
+
+static int
+get_string_process(struct sol_flow_node *node, struct sol_http_response *response)
+{
+    char *result;
+
+    SOL_DBG("String process - response from: %s", response->url);
+    result = strndup(response->content.data, response->content.used);
+
+    if (!result) {
+        sol_flow_send_error_packet(node, ENOMEM,
+            "Could not alloc memory for the response from: %s", response->url);
+        return -ENOMEM;
+    }
+
+    sol_flow_send_string_take_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_STRING__OUT__OUT, result);
+
+    return 0;
+}
+
+static int
+get_blob_process(struct sol_flow_node *node, struct sol_http_response *response)
+{
+    struct sol_blob *blob;
+    size_t size;
+    void *data;
+
+    SOL_DBG("Blob process - response from: %s", response->url);
+
+    data = sol_buffer_steal(&response->content, &size);
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, data, size);
+    if (!blob) {
+        sol_flow_send_error_packet(node, ENOMEM,
+            "Could not alloc memory for the response from %s", response->url);
+        return -ENOMEM;
+    }
+
+    sol_flow_send_blob_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_BLOB__OUT__OUT, blob);
+    sol_blob_unref(blob);
+
+    return 0;
+}
+
+static void
+generic_request_finished(void *data,
+    const struct sol_http_client_connection *conn,
+    struct sol_http_response *response)
+{
+    struct sol_flow_node *node = data;
+    struct http_data *mdata = sol_flow_node_get_private_data(node);
+    const struct http_client_node_type *type;
+
+    SOL_INT_CHECK(check_response(mdata, node, conn, response), < 0);
+
+    if (mdata->strict && mdata->content_type && response->content_type &&
+        !streq(response->content_type, mdata->content_type)) {
+        sol_flow_send_error_packet(node, EINVAL,
+            "Response has different content type. Received: %s - Desired: %s",
+            response->content_type,
+            mdata->content_type);
+        return;
+    }
+
+    type = (const struct http_client_node_type *)
+        sol_flow_node_get_type(node);
+
+    type->process_data(node, response);
+}
+
+static int
+generic_get_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct http_data *mdata = data;
+    struct sol_http_client_connection *conn;
+    struct sol_http_param params;
+    int r;
+
+    sol_http_param_init(&params);
+    if (mdata->content_type && !sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->content_type))) {
+        SOL_ERR("Could not add the HTTP Accept's param");
+        sol_http_param_free(&params);
+        return -ENOMEM;
+    }
+
+    conn = sol_http_client_request(SOL_HTTP_METHOD_GET, mdata->url, &params,
+        generic_request_finished, node);
+    sol_http_param_free(&params);
+    SOL_NULL_CHECK(conn, -ENOMEM);
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, conn);
+    if (r < 0) {
+        SOL_ERR("Could not add store the pending connection. Aborting");
+        sol_http_client_connection_cancel(conn);
+        return -ENOMEM;
+    }
+    SOL_DBG("Making request to: %s", mdata->url);
+    return 0;
 }
 
 #include "http-client-gen.c"
