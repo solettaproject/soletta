@@ -38,15 +38,9 @@
 
 #include "sol-flow-static.h"
 #include "custom-node-types-gen.h"
-/* TODO: how to know if console is builtin?
- * before we had console-gen.h included by sol-flow-node-types.h,
- * that was created based on builtins list.
- *
- * Since we're at the low-level API we can't use the foreach
- * functions, as they rely on node type descriptions.
- */
 #include "sol-flow/console.h"
 #include "sol-mainloop.h"
+#include "sol-modules.h"
 
 /**
  * @file lowlevel.c
@@ -127,6 +121,8 @@ static struct sol_flow_node *flow;
 static void
 startup(void)
 {
+    const struct sol_flow_node_type **sym;
+
     /*
      * Since these symbols will be relocated in runtime, we can't
      * initialize them in the vector initialization, we must assign
@@ -135,7 +131,12 @@ startup(void)
     nodes[0 /* reader */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER;
     nodes[1 /* logic */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC;
     nodes[2 /* writer */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER;
-    nodes[3 /* console */].type = SOL_FLOW_NODE_TYPE_CONSOLE;
+
+    sym = sol_symbol_get("flow", "console", SOL_FLOW_NODE_TYPE_CONSOLE);
+    if (!sym || !(*sym))
+        return;
+
+    nodes[3 /* console */].type = *sym;
 
     flow = sol_flow_static_new(NULL, nodes, conns);
 }
