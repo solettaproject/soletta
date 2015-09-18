@@ -12,14 +12,12 @@ test-test-fbp-scanner-$(TEST_FBP_SCANNER) := test.c test-fbp-scanner.c
 
 test-$(TEST_FLOW) += test-flow
 test-test-flow-$(TEST_FLOW) := test.c test-flow.c
-test-test-flow-$(TEST_FLOW)-deps := flow/timer.mod flow/pwm.mod flow/console.mod
 
 test-$(TEST_FLOW_BUILDER) += test-flow-builder
 test-test-flow-builder-$(TEST_FLOW_BUILDER) := test.c test-flow-builder.c
 
 test-$(TEST_FLOW_PARSER) += test-flow-parser
 test-test-flow-parser-$(TEST_FLOW_PARSER) := test.c test-flow-parser.c
-test-test-flow-parser-$(TEST_FLOW_PARSER)-deps := flow/boolean.mod
 
 test-$(TEST_JAVASCRIPT) += test-javascript
 test-test-javascript-$(TEST_JAVASCRIPT) := test.c test-javascript.c
