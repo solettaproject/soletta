@@ -378,11 +378,6 @@ $($(1)-src): $(1) $(SOL_FBP_GENERATOR_BIN)
 endef
 $(foreach gen,$(all-fbp-gens),$(eval $(call make-fbp-gen,$(gen))))
 
-$(FLOW_BUILTINS_DESC): $(SOL_LIB_OUTPUT) $(all-mod-descs) $(JSON_FORMAT_SCRIPT)
-	$(Q)echo "     "GEN"   "$@
-	$(Q)$(MKDIR) -p $(dir $(@))
-	$(Q)$(PYTHON) $(FLOW_MERGE_BUILTINS_SCRIPT) --modules-dir=$(build_descdir) $(@) $(builtins-flow)
-
 define install-resource
 $(2): $(1)
 	$(Q)echo "    "INST"   "$(1)
