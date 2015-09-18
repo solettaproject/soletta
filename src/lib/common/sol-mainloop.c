@@ -83,6 +83,9 @@ extern int sol_comms_init(void);
 extern void sol_comms_shutdown(void);
 #endif
 
+extern int sol_modules_init(void);
+extern void sol_modules_shutdown(void);
+
 static int _init_count;
 static bool mainloop_running;
 static int mainloop_return_code;
@@ -103,6 +106,10 @@ sol_init(void)
         goto log_error;
 
     sol_log_domain_init_level(SOL_LOG_DOMAIN);
+
+    r = sol_modules_init();
+    if (r < 0)
+        goto modules_error;
 
     r = sol_mainloop_impl_init();
     if (r < 0)
@@ -151,6 +158,8 @@ pin_mux_error:
 platform_error:
     sol_mainloop_impl_shutdown();
 impl_error:
+    sol_modules_shutdown();
+modules_error:
     sol_log_shutdown();
 log_error:
     _init_count = 0;
@@ -221,6 +230,7 @@ sol_shutdown(void)
     sol_pin_mux_shutdown();
     sol_platform_shutdown();
     sol_mainloop_impl_shutdown();
+    sol_modules_shutdown();
     sol_log_shutdown();
 }
 
