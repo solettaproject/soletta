@@ -1,4 +1,5 @@
 {
+    "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
     "nodetypes": [
 	{ 
             "name": "TestConsole",
