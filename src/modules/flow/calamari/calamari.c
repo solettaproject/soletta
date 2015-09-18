@@ -41,6 +41,7 @@
 #include "sol-flow.h"
 #include "sol-flow-static.h"
 #include "sol-mainloop.h"
+#include "sol-modules.h"
 #include "sol-pwm.h"
 #include "sol-spi.h"
 #include "sol-util.h"
@@ -274,7 +275,7 @@ calamari_7seg_new_type(const struct sol_flow_node_type **current)
     };
 
     nodes[SEG_CTL].type = SOL_FLOW_NODE_TYPE_CALAMARI_SEGMENTS_CTL;
-    nodes[SEG_CLEAR].type = nodes[SEG_LATCH].type = nodes[SEG_CLOCK].type = nodes[SEG_DATA].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
+    nodes[SEG_CLEAR].type = nodes[SEG_LATCH].type = nodes[SEG_CLOCK].type = nodes[SEG_DATA].type = *(const struct sol_flow_node_type **)sol_symbol_get("flow", "gpio", SOL_FLOW_NODE_TYPE_GPIO_WRITER);
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);
@@ -601,7 +602,7 @@ calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
     };
 
     nodes[RGB_LED_CTL].type = SOL_FLOW_NODE_TYPE_CALAMARI_RGB_CTL;
-    nodes[RGB_LED_RED].type = nodes[RGB_LED_GREEN].type = nodes[RGB_LED_BLUE].type = SOL_FLOW_NODE_TYPE_GPIO_WRITER;
+    nodes[RGB_LED_RED].type = nodes[RGB_LED_GREEN].type = nodes[RGB_LED_BLUE].type = *(const struct sol_flow_node_type **)sol_symbol_get("flow", "gpio", SOL_FLOW_NODE_TYPE_GPIO_WRITER);
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);
