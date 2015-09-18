@@ -96,10 +96,6 @@ PHONY += samples
 PRE_INSTALL := $(PC_GEN) $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out) $(all-mod-descs)
 PRE_INSTALL += $(NODE_TYPE_SCHEMA_DEST) $(BOARD_DETECT_DEST) $(GDB_AUTOLOAD_PY_DEST)
 
-ifneq (,$(strip $(builtins-flow)))
-PRE_GEN += $(FLOW_BUILTINS_DESC)
-endif
-
 ifeq (y,$(RPATH))
 rpath-bins := $(subst $(build_sysroot)/,$(DESTDIR),$(bins-out))
 
