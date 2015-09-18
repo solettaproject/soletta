@@ -40,7 +40,7 @@ function die() {
 DIFF_LIST=$(mktemp /tmp/sol-tmp.XXXX)
 
 PATTERNS=".*\.*\([ch]\|py\|h\.in\|py\.in\|fbp\|sh\|json\|COPYING\|calc\-lib\-size\|generate\-svg\-from\-all\-fbps\)$"
-IGNORE="data\/oic\/\|data\/jsons\/\|.*\.ac|.*Makefile.*"
+IGNORE="src\/thirdparty\/\|tools\/kconfig\/\|data\/oic\/\|data\/jsons\/\|.*\.ac|.*Makefile.*\|.*-gen.h\.in"
 
 trap "rm -f $DIFF_LIST" EXIT
 
@@ -72,19 +72,24 @@ if [ ! -s "$DIFF_LIST" ]; then
         BASE_COMMIT="HEAD~1"
     fi
     echo "Working directory is clean, checking commit changes since $BASE_COMMIT"
-    git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep --color=never '^.*\.[ch]$' > $DIFF_LIST
+    git diff --diff-filter=ACMR --oneline --name-only $BASE_COMMIT HEAD | grep $PATTERNS | sed '/'${IGNORE}'/d' > $DIFF_LIST
 fi
 
+EXIT_CODE=0
 for f in $(cat $DIFF_LIST); do
     r=0
     if [ ${f##*.} = "json" ]; then
-        r=$(grep -c -m 1 "\"license\": \"BSD 3\-Clause\"" $f)
+        # There is no need of license in config files
+        if [ $(grep -c -m 1 "config.schema" $f) -ne 0 ]; then
+            continue;
+        fi
+        r=$(grep -c -m 1 "\"license\": \"BSD 3\-Clause\"" $f);
     else
         r=$(grep -c -m 1 "This file is part of the Soletta Project" $f)
     fi
-    if [ $r = 0 ]; then
+    if [ $r -eq 0 ]; then
         echo "$f has license issues"
-        exit 1
+        EXIT_CODE=1
     fi
-    exit 0
 done
+exit $EXIT_CODE
