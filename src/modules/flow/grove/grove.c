@@ -80,6 +80,7 @@ static void
 grove_rotary_sensor_new_type(const struct sol_flow_node_type **current)
 {
     struct sol_flow_node_type *type;
+    const struct sol_flow_node_type *aio_reader;
 
     static struct sol_flow_static_node_spec nodes[] = {
         { NULL, "rotary-converter", NULL },
@@ -107,8 +108,13 @@ grove_rotary_sensor_new_type(const struct sol_flow_node_type **current)
         .child_opts_set = rotary_child_opts_set,
     };
 
+    if (sol_flow_get_node_type("aio", SOL_FLOW_NODE_TYPE_AIO_READER, &aio_reader) < 0) {
+        *current = NULL;
+        return;
+    }
+
     nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER;
-    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+    nodes[1].type = aio_reader;
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);
@@ -208,6 +214,7 @@ static void
 grove_light_sensor_new_type(const struct sol_flow_node_type **current)
 {
     struct sol_flow_node_type *type;
+    const struct sol_flow_node_type *aio_reader;
 
     static struct sol_flow_static_node_spec nodes[] = {
         { NULL, "light-converter", NULL },
@@ -234,8 +241,13 @@ grove_light_sensor_new_type(const struct sol_flow_node_type **current)
         .child_opts_set = light_child_opts_set,
     };
 
+    if (sol_flow_get_node_type("aio", SOL_FLOW_NODE_TYPE_AIO_READER, &aio_reader) < 0) {
+        *current = NULL;
+        return;
+    }
+
     nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER;
-    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+    nodes[1].type = aio_reader;
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);
@@ -380,6 +392,7 @@ static void
 grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
 {
     struct sol_flow_node_type *type;
+    const struct sol_flow_node_type *aio_reader;
 
     static struct sol_flow_static_node_spec nodes[] = {
         { NULL, "temperature-converter", NULL },
@@ -406,8 +419,13 @@ grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
         .child_opts_set = temperature_child_opts_set,
     };
 
+    if (sol_flow_get_node_type("aio", SOL_FLOW_NODE_TYPE_AIO_READER, &aio_reader) < 0) {
+        *current = NULL;
+        return;
+    }
+
     nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER;
-    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+    nodes[1].type = aio_reader;
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);
