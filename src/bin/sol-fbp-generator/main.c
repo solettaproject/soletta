@@ -815,22 +815,23 @@ generate(struct sol_vector *fbp_data_vector)
 
     if (!args.export_symbol) {
         out(
+            "static const struct sol_flow_node_type *root_type;\n"
             "static struct sol_flow_node *flow;\n"
             "\n"
             "static void\n"
             "startup(void)\n"
             "{\n"
-            "    const struct sol_flow_node_type *type;\n\n"
             "    initialize_types();\n"
-            "    type = create_0_root_type();\n"
-            "    if (!type)\n"
+            "    root_type = create_0_root_type();\n"
+            "    if (!root_type)\n"
             "        return;\n\n"
-            "    flow = sol_flow_node_new(NULL, NULL, type, NULL);\n"
+            "    flow = sol_flow_node_new(NULL, NULL, root_type, NULL);\n"
             "}\n\n"
             "static void\n"
             "shutdown(void)\n"
             "{\n"
             "    sol_flow_node_del(flow);\n"
+            "    sol_flow_node_type_del((struct sol_flow_node_type *)root_type);\n"
             "}\n\n"
             "SOL_MAIN_DEFAULT(startup, shutdown);\n");
     } else {
