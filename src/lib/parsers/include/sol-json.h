@@ -433,6 +433,8 @@ char *sol_json_escape_string(const char *str, char *buf, size_t len) SOL_ATTR_NO
 
 int sol_json_double_to_str(const double value, char *buf, size_t buf_len);
 
+int sol_json_double_to_str_alloc(const double value, char **buf);
+
 /**
  * @}
  */
