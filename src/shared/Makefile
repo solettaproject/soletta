@@ -1,6 +1,7 @@
 obj-y += libshared.mod
 
 obj-libshared-y := \
+    sol-modules.o \
     sol-monitors.o \
     sol-util.o \
     sol-random.o

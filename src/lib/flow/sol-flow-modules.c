@@ -30,23 +30,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <errno.h>
 
-{{
-st.on_value("PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-}}
+#include "sol-flow-internal.h"
+#include "sol-modules.h"
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-}}
+SOL_API int
+sol_flow_internal_get_node_type(const char *modname, const char *symbol, const struct sol_flow_node_type **type)
+{
+    const struct sol_flow_node_type **ret;
 
-{{
-st.on_value("MODULES", "y", "#define SOL_DYNAMIC_MODULES 1", "")
-}}
+    ret = sol_modules_get_symbol("flow", modname, symbol);
+    if (!ret || !*ret)
+        return -errno;
 
-#ifdef SOL_PLATFORM_LINUX
-#define SOL_MAINLOOP_FD_ENABLED 1
-#define SOL_MAINLOOP_FORK_WATCH_ENABLED 1
-#endif
+    *type = *ret;
+    return 0;
+}

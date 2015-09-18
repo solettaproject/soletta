@@ -13,6 +13,7 @@ obj-flow-$(NODE_DESCRIPTION) += \
     sol-flow-builder.o
 
 obj-flow-$(ENABLE_DYNAMIC_MODULES) += \
+    sol-flow-modules.o \
     sol-flow-parser-dynamic.o
 
 ifeq (y,$(RESOLVER_CONFFILE))
