@@ -354,4 +354,177 @@ string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
 
     return common_open(mdata, opts->url);
 }
+
+/*
+ * --------------------------------- irange node -----------------------------
+ */
+static void
+int_request_finished(void *data,
+    const struct sol_http_client_connection *connection,
+    struct sol_http_response *response)
+{
+    struct http_data *mdata = data;
+    struct sol_irange irange;
+
+    if (check_response(mdata, connection, response) < 0)
+        return;
+
+    if (streq(response->content_type, "application/json")) {
+        struct sol_json_scanner scanner;
+        struct sol_json_token token, key, value;
+        enum sol_json_loop_reason reason;
+
+        sol_json_scanner_init(&scanner, response->content.data, response->content.used);
+        SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
+            struct sol_json_scanner sub_scanner;
+
+            sol_json_scanner_init(&sub_scanner, value.start, value.end - value.start);
+            SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &key, &value, reason) {
+                if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "value")) {
+                    if (sol_json_token_get_int32(&value, &irange.val) < 0)
+                        goto error;
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "min")) {
+                    if (sol_json_token_get_int32(&value, &irange.min) < 0)
+                        goto error;
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "max")) {
+                    if (sol_json_token_get_int32(&value, &irange.max) < 0)
+                        goto error;
+                } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "step")) {
+                    if (sol_json_token_get_int32(&value, &irange.step) < 0)
+                        goto error;
+                }
+            }
+        }
+    } else {
+        errno = 0;
+        irange.val = strtol(response->content.data, NULL, 0);
+        if (errno)
+            goto error;
+    }
+
+    sol_flow_send_irange_packet(mdata->node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_INT__OUT__OUT, &irange);
+    return;
+
+error:
+    sol_flow_send_error_packet(mdata->node, -ENOMEM,
+        "%s Could not parser the url's contents ", mdata->url);
+}
+
+static int
+int_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_http_param params;
+    struct http_data *mdata = data;
+    struct sol_http_client_connection *connection;
+
+    sol_http_param_init(&params);
+    if (!sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) {
+        SOL_WRN("Failed to set query params");
+        sol_http_param_free(&params);
+        return -ENOMEM;
+    }
+
+    connection = sol_http_client_request(SOL_HTTP_METHOD_GET, mdata->url,
+        &params, int_request_finished, mdata);
+
+    sol_http_param_free(&params);
+
+    SOL_NULL_CHECK(connection, -ENOTCONN);
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_connection_cancel(connection);
+        return -ENOMEM;
+    }
+
+    return 0;
+}
+
+static int
+int_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_irange value;
+    struct sol_http_param params;
+    struct http_data *mdata = data;
+    struct sol_http_client_connection *connection;
+    char *min, *max, *val, *step;
+
+    r = sol_flow_packet_get_irange(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = -ENOMEM;
+
+    if (asprintf(&val, "%d", value.val) == -1)
+        goto error;
+    if (asprintf(&min, "%d", value.min) == -1)
+        goto min_error;
+    if (asprintf(&max, "%d", value.max) == -1)
+        goto max_error;
+    if (asprintf(&step, "%d", value.step) == -1)
+        goto step_error;
+
+    sol_http_param_init(&params);
+    if (!(sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) ||
+        !(sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("value", val))) ||
+        !(sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("min", min))) ||
+        !(sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("max", max))) ||
+        !(sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD("step", step)))) {
+        SOL_WRN("Failed to set query params");
+        sol_http_param_free(&params);
+        goto param_error;
+    }
+
+    connection = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->url,
+        &params, int_request_finished, mdata);
+    sol_http_param_free(&params);
+
+    if (!connection) {
+        SOL_WRN("Could not create the request");
+        r = -ENOTCONN;
+        goto param_error;
+    }
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection.");
+        sol_http_client_connection_cancel(connection);
+        goto param_error;
+    }
+
+    r = 0;
+
+param_error:
+    free(step);
+step_error:
+    free(max);
+max_error:
+    free(min);
+min_error:
+    free(val);
+error:
+    return r;
+}
+
+static int
+int_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_client_int_options *opts =
+        (struct sol_flow_node_type_http_client_int_options *)options;
+    mdata->node = node;
+
+    return common_open(mdata, opts->url);
+}
 #include "http-client-gen.c"
