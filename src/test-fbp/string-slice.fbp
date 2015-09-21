@@ -1,0 +1,73 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+str(constant/string:value="0★2★4★6★8★")
+
+str OUT -> IN slice_01(string/slice:start=0,end=10)
+slice_01 OUT -> IN[0] cmp_01(string/compare)
+str OUT -> IN[1] cmp_01
+cmp_01 EQUAL -> RESULT result_01(test/result)
+
+str OUT -> IN slice_02(string/slice:start=0,end=3)
+slice_02 OUT -> IN[0] cmp_02(string/compare)
+_(constant/string:value="0★2") OUT -> IN[1] cmp_02
+cmp_02 EQUAL -> RESULT result_02(test/result)
+
+str OUT -> IN slice_03(string/slice:start=0,end=-3)
+slice_03 OUT -> IN[0] cmp_03(string/compare)
+_(constant/string:value="0★2★4★6") OUT -> IN[1] cmp_03
+cmp_03 EQUAL -> RESULT result_03(test/result)
+
+str OUT -> IN slice_04(string/slice:start=-7,end=-3)
+slice_04 OUT -> IN[0] cmp_04(string/compare)
+_(constant/string:value="★4★6") OUT -> IN[1] cmp_04
+cmp_04 EQUAL -> RESULT result_04(test/result)
+
+str OUT -> IN slice_05(string/slice:start=-22342,end=10)
+slice_05 OUT -> IN[0] cmp_05(string/compare)
+str OUT -> IN[1] cmp_05
+cmp_05 EQUAL -> RESULT result_05(test/result)
+
+str OUT -> IN slice_06(string/slice:start=0,end=-12)
+slice_06 OUT -> IN[0] cmp_06(string/compare)
+_(constant/string:value="") OUT -> IN[1] cmp_06
+cmp_06 EQUAL -> RESULT result_06(test/result)
+
+str OUT -> IN slice_07(string/slice:start=666,end=888)
+slice_07 OUT -> IN[0] cmp_07(string/compare)
+_(constant/string:value="") OUT -> IN[1] cmp_07
+cmp_07 EQUAL -> RESULT result_07(test/result)
+
+str OUT -> IN slice_08(string/slice:start=0,end=666)
+slice_08 OUT -> IN[0] cmp_08(string/compare)
+str OUT -> IN[1] cmp_08
+cmp_08 EQUAL -> RESULT result_08(test/result)
+
+

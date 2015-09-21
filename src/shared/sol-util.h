@@ -361,3 +361,13 @@ sol_util_uuid_str_valid(const char *str)
 
     return true;
 }
+
+static inline int32_t
+sol_util_int32_clamp(int32_t start, int32_t end, int32_t value)
+{
+    if (value < start)
+        return start;
+    if (value > end)
+        return end;
+    return value;
+}
