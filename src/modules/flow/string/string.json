@@ -142,6 +142,67 @@
     },
     {
       "category": "string",
+      "description": "Extract a slice from a given string",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Start index of the slice (counting starts from 0). Negative values are relative to the end of the input string. If the given indexes are not valid for the input string, an empty string output is produced.",
+          "methods": {
+            "process": "string_slice"
+          },
+          "name": "START"
+        },
+        {
+          "data_type": "int",
+          "description": "End index of the slice (counting starts from 0). Negative values are relative to the end of the input string. If the given indexes are not valid for the input string, an empty string output is produced.",
+          "methods": {
+            "process": "string_slice"
+          },
+          "name": "END"
+        },
+        {
+          "data_type": "string",
+          "description": "Input string to be sliced.",
+          "methods": {
+            "process": "string_slice_input"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "close": "string_slice_close",
+        "open": "string_slice_open"
+      },
+      "name": "string/slice",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Start index of the slice (counting starts from 0). Negative values are relative to the end of the input string. If the given indexes are not valid for the input string, an empty string output is produced. It can be overriden by values received on 'START' port.",
+            "name": "start"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "End index of the slice (counting starts from 0). Negative values are relative to the end of the input string. If the given indexes are not valid for the input string, an empty string output is produced. It can be overriden by values received on 'END' port.",
+            "name": "end"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "String slice given by the indexes in the IDX port array.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_slice_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/slice.html"
+    },
+    {
+      "category": "string",
       "description": "Split a string given a separator.",
       "in_ports": [
         {

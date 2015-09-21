@@ -236,6 +236,130 @@ string_compare(struct sol_flow_node *node,
         SOL_FLOW_NODE_TYPE_STRING_COMPARE__OUT__OUT, result);
 }
 
+struct string_slice_data {
+    struct sol_flow_node *node;
+    char *str;
+    int idx[2];
+};
+
+static int
+get_slice_idx_by_port(const struct sol_flow_packet *packet,
+    uint16_t port,
+    struct string_slice_data *mdata)
+{
+    int32_t in_value;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->idx[port] = in_value;
+
+    return 0;
+}
+
+static int
+slice_do(struct string_slice_data *mdata)
+{
+    struct sol_str_slice slice;
+    int32_t start = mdata->idx[0], end = mdata->idx[1],
+        len = strlen(mdata->str);
+
+#define BOUND_CHECK(_val) \
+    do { \
+        if (_val >= 0) { \
+            if (!len && _val) \
+                _val = 0; \
+            else if (_val > len) \
+                _val = len; \
+        } else if (_val < -len) { \
+            _val = 0; \
+        } else { \
+            _val = len + _val; \
+        } \
+    } while (0)
+
+    BOUND_CHECK(start);
+    BOUND_CHECK(end);
+#undef BOUND_CHECK
+
+    if (end < start)
+        return 0;
+
+    slice = SOL_STR_SLICE_STR(mdata->str + start, end - start);
+    return sol_flow_send_string_slice_packet(mdata->node,
+        SOL_FLOW_NODE_TYPE_STRING_SLICE__OUT__OUT, slice);
+}
+
+static int
+string_slice_input(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_slice_data *mdata = data;
+    const char *in_value;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    free(mdata->str);
+    mdata->str = strdup(in_value);
+
+    return slice_do(mdata);
+}
+
+static int
+string_slice(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_slice_data *mdata = data;
+    int r;
+
+    r = get_slice_idx_by_port(packet, port, mdata);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (mdata->str)
+        return slice_do(mdata);
+
+    return 0;
+}
+
+static int
+string_slice_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct string_slice_data *mdata = data;
+
+    const struct sol_flow_node_type_string_slice_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_STRING_SLICE_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    opts = (const struct sol_flow_node_type_string_slice_options *)options;
+
+    mdata->idx[0] = opts->start.val;
+    mdata->idx[1] = opts->end.val;
+    mdata->node = node;
+
+    return 0;
+}
+
+static void
+string_slice_close(struct sol_flow_node *node, void *data)
+{
+    struct string_slice_data *mdata = data;
+
+    free(mdata->str);
+}
+
 struct string_length_data {
     uint32_t n;
 };
