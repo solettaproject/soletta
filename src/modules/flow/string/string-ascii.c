@@ -94,6 +94,8 @@ get_string_by_port(const struct sol_flow_packet *packet,
     free(mdata->string[port]);
 
     mdata->string[port] = strdup(in_value);
+    if (!mdata->string[port])
+        return false;
 
     if (!mdata->string[0] || !mdata->string[1])
         return false;
@@ -307,6 +309,8 @@ string_slice_input(struct sol_flow_node *node,
 
     free(mdata->str);
     mdata->str = strdup(in_value);
+    if (!mdata->str)
+        return -ENOMEM;
 
     return slice_do(mdata);
 }
