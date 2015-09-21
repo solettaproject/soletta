@@ -908,12 +908,10 @@ def master_c_as_string(generated):
 #include "sol-coap.h"
 #include "sol-json.h"
 #include "sol-mainloop.h"
-#include "sol-missing.h"
 #include "sol-oic-client.h"
 #include "sol-oic-server.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
 
 #define DEFAULT_UDP_PORT 5683
 #define MULTICAST_ADDRESS_IPv4 "224.0.1.187"
