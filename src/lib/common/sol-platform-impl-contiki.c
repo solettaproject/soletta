@@ -110,9 +110,14 @@ sol_platform_impl_get_serial_number(char **number)
     return -ENOTSUP;
 }
 
-char *
-sol_platform_impl_get_os_version(void)
+int
+sol_platform_impl_get_os_version(char **version)
 {
-    SOL_WRN("Not implemented");
-    return NULL;
+    SOL_NULL_CHECK(version, -EINVAL);
+
+    *version = strdup(CONTIKI_VERSION_STRING);
+    if (!*version)
+        return -ENOMEM;
+
+    return 0;
 }
