@@ -32,8 +32,10 @@
 
 #include <errno.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -242,4 +244,22 @@ SOL_API void
 sol_platform_linux_fork_run_exit(int status)
 {
     _exit(status);
+}
+
+int
+sol_platform_linux_get_os_version(char **out)
+{
+    int r;
+    struct utsname hostinfo;
+
+    SOL_NULL_CHECK(out, -EINVAL);
+
+    r = uname(&hostinfo);
+    SOL_INT_CHECK(r, == -1, -errno);
+
+    r = asprintf(out, "%s", hostinfo.release);
+    if (r == -1)
+        return -ENOMEM;
+
+    return 0;
 }

@@ -159,6 +159,17 @@ uint64_t sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_for
  */
 void sol_platform_linux_fork_run_exit(int status) SOL_ATTR_NORETURN;
 
+/**
+ * Retrieve Linux kernel version.
+ *
+ * @param out Where to store the version string, that conforms to
+ *            uname(2)'s return (release utsname struct field). Must
+ *            de freed after usage.
+ *
+ * @return 0 on success, negative error code otherwise.
+ */
+int sol_platform_linux_get_os_version(char **out);
+
 #ifdef __cplusplus
 }
 #endif
