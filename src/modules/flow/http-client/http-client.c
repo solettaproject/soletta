@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <math.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +52,12 @@ struct http_data {
     char *url;
 };
 
+struct http_client_node_type {
+    struct sol_flow_node_type base;
+    int (*process_token)(struct sol_flow_node *node, struct sol_json_token *key, struct sol_json_token *value);
+    int (*process_data)(struct sol_flow_node *node, struct sol_http_response *response);
+};
+
 static void
 get_key(struct http_data *mdata)
 {
@@ -68,37 +75,99 @@ get_key(struct http_data *mdata)
 }
 
 static void
-boolean_request_finished(void *data,
+common_close(struct sol_flow_node *node, void *data)
+{
+    struct sol_http_client_connection *connection;
+    struct http_data *mdata = data;
+    uint16_t i;
+
+    free(mdata->url);
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
+        sol_http_client_connection_cancel(connection);
+    sol_ptr_vector_clear(&mdata->pending_conns);
+}
+
+static int
+common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_client_boolean_options *opts =
+        (struct sol_flow_node_type_http_client_boolean_options *)options;
+
+    mdata->url = strdup(opts->url);
+    SOL_NULL_CHECK(mdata->url, -ENOMEM);
+
+    get_key(mdata);
+    sol_ptr_vector_init(&mdata->pending_conns);
+
+    return 0;
+}
+
+static int
+common_url_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    const char *url;
+    struct http_data *mdata = data;
+
+    r = sol_flow_packet_get_string(packet, &url);
+    SOL_INT_CHECK(r, < 0, r);
+
+    free(mdata->url);
+    mdata->url = strdup(url);
+    SOL_NULL_CHECK(mdata->url, -ENOMEM);
+
+    get_key(mdata);
+
+    return 0;
+}
+
+static int
+check_response(struct http_data *mdata, struct sol_flow_node *node,
     const struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
-    struct sol_flow_node *node = data;
-    struct http_data *mdata = sol_flow_node_get_private_data(node);
-    bool result = true;
-
     if (sol_ptr_vector_remove(&mdata->pending_conns, connection) < 0)
         SOL_WRN("Failed to find pending connection %p", connection);
 
     if (!response) {
         sol_flow_send_error_packet(node, EINVAL,
             "Error while reaching %s", mdata->url);
-        return;
+        return -EINVAL;
     }
-    SOL_HTTP_RESPONSE_CHECK_API(response);
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     if (!response->content.used) {
         sol_flow_send_error_packet(node, EINVAL,
             "Empty response from %s", mdata->url);
-        return;
+        return -EINVAL;
     }
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(node, EINVAL,
             "%s returned an unknown response code: %d",
             mdata->url, response->response_code);
-        return;
+        return -EINVAL;
     }
 
+    return 0;
+}
+
+static void
+common_request_finished(void *data,
+    const struct sol_http_client_connection *connection,
+    struct sol_http_response *response)
+{
+    int ret;
+    struct sol_flow_node *node = data;
+    struct http_data *mdata = sol_flow_node_get_private_data(node);
+    const struct http_client_node_type *type;
+
+    if (check_response(mdata, node, connection, response) < 0)
+        return;
+
+    type = (const struct http_client_node_type *)sol_flow_node_get_type(node);
     if (streq(response->content_type, "application/json")) {
         struct sol_json_scanner scanner;
         struct sol_json_token token, key, value;
@@ -108,35 +177,25 @@ boolean_request_finished(void *data,
         SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
             if (!sol_json_token_str_eq(&token, mdata->key.data, mdata->key.len))
                 continue;
-            if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_TRUE)
-                result = true;
-            else if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_FALSE)
-                result = false;
-            else
+            ret = type->process_token(node, &key, &value);
+            if (ret < 0)
                 goto err;
-            sol_flow_send_boolean_packet(node,
-                SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
-            return;
         }
     } else {
-        if (!strncasecmp("true", response->content.data, response->content.used))
-            result = true;
-        else if (!strncasecmp("false", response->content.data, response->content.used))
-            result = false;
-        else
+        ret = type->process_data(node, response);
+        if (ret < 0)
             goto err;
-        sol_flow_send_boolean_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
-        return;
     }
 
+    return;
+
 err:
-    sol_flow_send_error_packet(node, EINVAL,
-        "%s Could not parser the url's contents ", mdata->url);
+    sol_flow_send_error_packet(node, ret,
+        "%s Could not parse url contents ", mdata->url);
 }
 
 static int
-boolean_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
     int r;
@@ -155,7 +214,7 @@ boolean_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
     }
 
     connection = sol_http_client_request(SOL_HTTP_METHOD_GET, mdata->url,
-        &params, boolean_request_finished, node);
+        &params, common_request_finished, node);
 
     sol_http_param_free(&params);
 
@@ -169,6 +228,90 @@ boolean_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
     }
 
     return 0;
+}
+
+static int
+common_post_process(struct sol_flow_node *node, void *data, ...)
+{
+    int r;
+    va_list ap;
+    char *key, *value;
+    struct sol_http_param params;
+    struct http_data *mdata = data;
+    struct sol_http_client_connection *connection;
+
+    sol_http_param_init(&params);
+    if (!(sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json")))) {
+        SOL_WRN("Could not add the header '%s:%s' into request to %s",
+            "Accept", "application/json", mdata->url);
+        goto err;
+    }
+
+    va_start(ap, data);
+    while ((key = va_arg(ap, char *))) {
+        value = va_arg(ap, char *);
+        if (!(sol_http_param_add(&params, SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value)))) {
+            SOL_WRN("Could not add header '%s:%s' into request to %s",
+                key, value, mdata->url);
+            va_end(ap);
+            goto err;
+        }
+    }
+    va_end(ap);
+
+    connection = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->url,
+        &params, common_request_finished, node);
+    sol_http_param_free(&params);
+
+    SOL_NULL_CHECK(connection, -ENOTCONN);
+
+    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
+    if (r < 0) {
+        SOL_WRN("Failed to keep pending connection for %s", mdata->url);
+        sol_http_client_connection_cancel(connection);
+        return r;
+    }
+
+    return 0;
+
+err:
+    sol_http_param_free(&params);
+    return -ENOMEM;
+}
+
+static int
+boolean_process_token(struct sol_flow_node *node,
+    struct sol_json_token *key, struct sol_json_token *value)
+{
+    bool result;
+
+    if (sol_json_token_get_type(value) == SOL_JSON_TYPE_TRUE)
+        result = true;
+    else if (sol_json_token_get_type(value) == SOL_JSON_TYPE_FALSE)
+        result = false;
+    else
+        return -EINVAL;
+
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
+}
+
+static int
+boolean_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    bool result;
+
+    if (!strncasecmp("true", response->content.data, response->content.used))
+        result = true;
+    else if (!strncasecmp("false", response->content.data, response->content.used))
+        result = false;
+    else
+        return -EINVAL;
+
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
 }
 
 static int
@@ -177,85 +320,56 @@ boolean_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint
 {
     int r;
     bool b;
-    struct sol_http_param params;
-    struct http_data *mdata = data;
-    struct sol_http_client_connection *connection;
-
-    SOL_NULL_CHECK(mdata->url, -EINVAL);
 
     r = sol_flow_packet_get_boolean(packet, &b);
     SOL_INT_CHECK(r, < 0, r);
 
-    sol_http_param_init(&params);
-    if (!(sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) ||
-        !(sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD("value", b ? "true" : "false")))) {
-        SOL_WRN("Failed to set query params");
-        sol_http_param_free(&params);
-        return -ENOMEM;
-    }
-    connection = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->url,
-        &params, boolean_request_finished, node);
-    sol_http_param_free(&params);
+    return common_post_process(node, data, "value", b ? "true" : "false", NULL);
+}
 
-    SOL_NULL_CHECK(connection, -ENOTCONN);
+/*
+ * --------------------------------- string node -----------------------------
+ */
+static int
+string_process_token(struct sol_flow_node *node,
+    struct sol_json_token *key, struct sol_json_token *value)
+{
+    char *result = NULL;
 
-    r = sol_ptr_vector_append(&mdata->pending_conns, connection);
-    if (r < 0) {
-        SOL_WRN("Failed to keep pending connection.");
-        sol_http_client_connection_cancel(connection);
-        return -ENOMEM;
+    result = strndup(value->start + 1, value->end - value->start - 2);
+    if (result) {
+        return sol_flow_send_string_take_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
     }
 
-    return 0;
+    return -ENOMEM;
 }
 
 static int
-boolean_url_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+string_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    char *result = strndup(response->content.data, response->content.used);
+
+    if (result) {
+        return sol_flow_send_string_take_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BOOLEAN__OUT__OUT, result);
+    }
+
+    return -ENOMEM;
+}
+
+static int
+string_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {
     int r;
-    const char *url;
-    struct http_data *mdata = data;
+    const char *value;
 
-    r = sol_flow_packet_get_string(packet, &url);
+    r = sol_flow_packet_get_string(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    mdata->url = strdup(url);
-    SOL_NULL_CHECK(mdata->url, -ENOMEM);
-    get_key(mdata);
-
-    return 0;
-}
-
-static void
-boolean_close(struct sol_flow_node *node, void *data)
-{
-    struct sol_http_client_connection *connection;
-    struct http_data *mdata = data;
-    uint16_t i;
-
-    free(mdata->url);
-    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
-        sol_http_client_connection_cancel(connection);
-    sol_ptr_vector_clear(&mdata->pending_conns);
-}
-
-static int
-boolean_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
-{
-    struct http_data *mdata = data;
-    struct sol_flow_node_type_http_client_boolean_options *opts =
-        (struct sol_flow_node_type_http_client_boolean_options *)options;
-
-    mdata->url = strdup(opts->url);
-    SOL_NULL_CHECK(mdata->url, -EINVAL);
-    get_key(mdata);
-
-    sol_ptr_vector_init(&mdata->pending_conns);
-
-    return 0;
+    return common_post_process(node, data, "value", value, NULL);
 }
 
 #include "http-client-gen.c"
