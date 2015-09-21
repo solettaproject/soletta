@@ -847,8 +847,8 @@ def generate_object(rt, title, props):
     elif rt.startswith('core.'):
         rt = rt[len('core.'):]
 
-    c_identifier = rt.replace(".", "_").lower()
-    flow_identifier = rt.replace(".", "-").lower()
+    c_identifier = rt.replace(".", "_").replace("-", "_").lower()
+    flow_identifier = rt.replace(".", "-").replace("_", "-").lower()
 
     client_node_name = "oic/client-%s" % flow_identifier
     client_struct_name = "oic_client_%s" % c_identifier
