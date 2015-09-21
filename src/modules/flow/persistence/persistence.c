@@ -222,7 +222,9 @@ persist_open(struct sol_flow_node *node,
     }
     if (r == -ENOENT) {
         /* No file. Send default value */
-        return persist_reset(mdata, node);
+        r = persist_reset(mdata, node);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+        return r;
     }
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
