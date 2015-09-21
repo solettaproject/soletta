@@ -181,8 +181,14 @@ sol_platform_impl_get_serial_number(char **number)
 #endif
 }
 
-char *
-sol_platform_impl_get_os_version(void)
+int
+sol_platform_impl_get_os_version(char **version)
 {
-    return strdup(RIOT_VERSION);
+    SOL_NULL_CHECK(version, -EINVAL);
+
+    *version = strdup(RIOT_VERSION);
+    if (!*version)
+        return -ENOMEM;
+
+    return 0;
 }

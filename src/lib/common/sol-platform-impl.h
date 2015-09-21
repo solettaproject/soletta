@@ -54,7 +54,7 @@ int sol_platform_impl_set_target(const char *target) SOL_ATTR_NONNULL(1);
 
 int sol_platform_impl_get_machine_id(char id[static 33]);
 int sol_platform_impl_get_serial_number(char **number);
-char *sol_platform_impl_get_os_version(void);
+int sol_platform_impl_get_os_version(char **version);
 
 /* callbacks into generic platform abstraction */
 void sol_platform_inform_state_monitors(enum sol_platform_state state);
