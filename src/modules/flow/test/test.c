@@ -50,5 +50,6 @@ SOL_LOG_INTERNAL_DECLARE(_test_log_domain, "flow-test");
 #include "int-validator.h"
 #include "int-generator.h"
 #include "blob-validator.h"
+#include "string-validator.h"
 
 #include "test-gen.c"

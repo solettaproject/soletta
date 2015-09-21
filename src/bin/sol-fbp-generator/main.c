@@ -57,6 +57,7 @@ static struct {
     const char *conf_file;
     const char *output_file;
     const char *export_symbol;
+    const char *memory_map_file;
 
     struct sol_ptr_vector json_files;
     struct sol_ptr_vector fbp_search_paths;
@@ -757,6 +758,134 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
     return true;
 }
 
+static bool
+generate_memory_map_struct(const char *json_file, int *elements)
+{
+    struct sol_file_reader *fr = NULL;
+    struct sol_json_scanner scanner, entries;
+    struct sol_str_slice contents;
+    struct sol_json_token token, key, value;
+    enum sol_json_loop_reason reason;
+    uint32_t version = 0;
+
+    *elements = 0;
+
+    fr = sol_file_reader_open(json_file);
+    if (!fr) {
+        SOL_ERR("Couldn't open json file '%s': %s\n", json_file, sol_util_strerrora(errno));
+        return false;
+    }
+
+    contents = sol_file_reader_get_all(fr);
+    sol_json_scanner_init(&scanner, contents.data, contents.len);
+
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+        struct sol_str_slice path = { };
+
+        out("static const struct sol_memmap_map _memmap%d = {\n", (*elements)++);
+
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
+
+            if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "path")) {
+                sol_json_token_remove_quotes(&value);
+                path = sol_json_token_to_slice(&value);
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "version")) {
+                if (sol_json_token_get_uint32(&value, &version) < 0) {
+                    SOL_WRN("Couldn't get memory map version");
+                    goto error;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "entries")) {
+                sol_json_scanner_init_from_token(&entries, &value);
+
+                out("    .entries = {\n");
+
+                SOL_JSON_SCANNER_ARRAY_LOOP (&entries, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+                    uint32_t size = 0, offset = 0, bit_offset = 0, bit_size = 0;
+                    struct sol_str_slice name = { };
+
+                    SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&entries, &token, &key, &value, reason) {
+                        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "name")) {
+                            sol_json_token_remove_quotes(&value);
+                            name = sol_json_token_to_slice(&value);
+                            if (!name.len) {
+                                SOL_WRN("Couldn't get entry name");
+                                goto error;
+                            }
+                        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "offset")) {
+                            if (sol_json_token_get_uint32(&value, &offset) < 0) {
+                                SOL_WRN("Couldn't get entry offset");
+                                goto error;
+                            }
+                        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "size")) {
+                            if (sol_json_token_get_uint32(&value, &size) < 0) {
+                                SOL_WRN("Couldn't get entry size");
+                                goto error;
+                            }
+                        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "bit_offset")) {
+                            if (sol_json_token_get_uint32(&value, &bit_offset) < 0) {
+                                SOL_WRN("Couldn't get entry size");
+                                goto error;
+                            }
+                            if (bit_offset > 7) {
+                                SOL_WRN("Entry bit offset cannot be greater than 7");
+                                goto error;
+                            }
+                        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "bit_size")) {
+                            if (sol_json_token_get_uint32(&value, &bit_size) < 0) {
+                                SOL_WRN("Couldn't get entry bit size");
+                                goto error;
+                            }
+                        }
+                    }
+
+                    if (reason != SOL_JSON_LOOP_REASON_OK)
+                        goto error;
+
+                    if (bit_size > (size * 8)) {
+                        SOL_WRN("Invalid bit size for entry. Must not be greater"
+                            "than size * 8 [%d]", size * 8);
+                        goto error;
+                    }
+                    if (!size) {
+                        SOL_WRN("Invalid size for entry");
+                        goto error;
+                    }
+
+                    out("       SOL_MEMMAP_ENTRY_BIT_SIZE(\"%.*s\", %u, %u, %u, %u),\n",
+                        SOL_STR_SLICE_PRINT(name), offset, size, bit_offset, bit_size);
+                }
+                if (reason != SOL_JSON_LOOP_REASON_OK)
+                    goto error;
+
+            }
+        }
+        if (reason != SOL_JSON_LOOP_REASON_OK)
+            goto error;
+
+
+        if (!version) {
+            SOL_WRN("Invalid map file version, it must be greater than 0");
+            goto error;
+        }
+
+        out("       { }\n"
+            "   },\n"
+            "   .version = %u,\n"
+            "   .path = \"%.*s\"\n"
+            "};\n", version, SOL_STR_SLICE_PRINT(path));
+    }
+    if (reason != SOL_JSON_LOOP_REASON_OK)
+        goto error;
+
+    sol_file_reader_close(fr);
+
+    return true;
+
+error:
+    sol_file_reader_close(fr);
+    return false;
+}
+
 static int
 generate(struct sol_vector *fbp_data_vector)
 {
@@ -768,7 +897,7 @@ generate(struct sol_vector *fbp_data_vector)
     struct fbp_data *data;
     struct sol_str_slice *module, *symbol;
     uint16_t i;
-    int r;
+    int r, memmap_elems;
 
     out(
         "#include \"sol-flow.h\"\n"
@@ -790,6 +919,14 @@ generate(struct sol_vector *fbp_data_vector)
         out("#include \"sol-flow/%.*s.h\"\n", SOL_STR_SLICE_PRINT(*module));
     }
 
+    if (args.memory_map_file) {
+        out("#include \"sol-memmap-storage.h\"\n\n");
+        if (!generate_memory_map_struct(args.memory_map_file, &memmap_elems)) {
+            r = EXIT_FAILURE;
+            goto end;
+        }
+    }
+
     /* Reverse since the dependencies appear later in the vector. */
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
         if (!generate_create_type_function(data)) {
@@ -809,6 +946,11 @@ generate(struct sol_vector *fbp_data_vector)
             "        %.*s->init_type();\n",
             SOL_STR_SLICE_PRINT(*symbol),
             SOL_STR_SLICE_PRINT(*symbol));
+    }
+    if (args.memory_map_file) {
+        out("\n");
+        for (i = 0; i < memmap_elems; i++)
+            out("   sol_memmap_add_map(&_memmap%d);\n", i);
     }
     out(
         "}\n\n");
@@ -1002,13 +1144,15 @@ search_fbp_file(char *fullpath, const char *basename)
 static void
 print_usage(const char *program)
 {
-    fprintf(stderr, "usage: %s [-c CONF] [-j DESC -j DESC...] [-s SYMBOL] INPUT OUTPUT\n"
+    fprintf(stderr, "usage: %s [-c CONF] [-j DESC -j DESC...] [-m MAP] [-s SYMBOL] INPUT OUTPUT\n"
         "Generates C code from INPUT into the OUTPUT file.\n\n"
         "Options:\n"
         "    -c  Uses the CONF .json file for resolving unknown types.\n"
         "    -j  When resolving types, use the passed DESC files. If DESC is\n"
         "        a directory then all the .json files in the directory will be used.\n"
         "        Multiple -j can be passed.\n"
+        "    -m  Uses memory map MAP .json file to map 'persistence' fields on.\n"
+        "        persistent storage, like NVRAM or EEPROM\n"
         "    -s  Define a function named SYMBOL that will return the type from FBP\n"
         "        and don't generate any main function or entry point.\n"
         "    -I  Define search path for FBP files\n"
@@ -1031,7 +1175,7 @@ parse_args(int argc, char *argv[])
     sol_ptr_vector_init(&args.json_files);
     sol_ptr_vector_init(&args.fbp_search_paths);
 
-    while ((opt = getopt(argc, argv, "s:c:j:I:")) != -1) {
+    while ((opt = getopt(argc, argv, "s:c:j:I:m:")) != -1) {
         switch (opt) {
         case 's':
             args.export_symbol = optarg;
@@ -1058,6 +1202,14 @@ parse_args(int argc, char *argv[])
                     optarg, sol_util_strerrora(errno));
                 return false;
             }
+            break;
+        case 'm':
+            if (access(optarg, R_OK) == -1) {
+                SOL_ERR("Can't access memory map file '%s': %s",
+                    optarg, sol_util_strerrora(errno));
+                return false;
+            }
+            args.memory_map_file = optarg;
             break;
         case '?':
             print_usage(argv[0]);
