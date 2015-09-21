@@ -1,0 +1,3 @@
+config FLOW_NODE_TYPE_KEY_VALUE
+	tristate "Node type: key-value"
+	default y

@@ -1,0 +1,74 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Ten(constant/int:value=10)
+Zero(constant/int:value=0)
+Value(constant/string:value="Value")
+KeyStr(constant/string:value="Key")
+
+_(key-value/int:key="Key", value=10) OUT -> IN T1Splitter(key-value/int-splitter)
+
+KeyStr OUT -> IN[0] Test1Key(string/compare)
+Ten OUT -> IN[0] Test1Value(int/equal)
+
+T1Splitter KEY -> IN[1] Test1Key EQUAL -> IN[0] Test1Result(boolean/and)
+T1Splitter VALUE -> IN[1] Test1Value OUT -> IN[1] Test1Result
+
+Test1Result OUT -> RESULT Test1(test/result)
+
+_(key-value/int:key="Key", default_is_valid=true) OUT -> IN T2Splitter(key-value/int-splitter)
+
+KeyStr OUT -> IN[0] Test2Key(string/compare)
+Zero OUT -> IN[0] Test2Value(int/equal)
+
+T2Splitter KEY -> IN[1] Test2Key EQUAL -> IN[0] Test2Result(boolean/and)
+T2Splitter VALUE -> IN[1] Test2Value OUT -> IN[1] Test2Result
+Test2Result OUT -> RESULT Test2(test/result)
+
+_(key-value/string:key="Key", value="Value") OUT -> IN T3Splitter(key-value/string-splitter)
+
+KeyStr OUT -> IN[0] Test3Key(string/compare)
+Value OUT -> IN[0] Test3Value(string/compare)
+
+T3Splitter KEY -> IN[1] Test3Key EQUAL -> IN[0] Test3Result(boolean/and)
+T3Splitter VALUE -> IN[1] Test3Value EQUAL -> IN[1] Test3Result
+Test3Result OUT -> RESULT Test3(test/result)
+
+KeyValueStr(key-value/string) OUT -> IN T4Splitter(key-value/string-splitter)
+
+KeyStr OUT -> IN[0] Test4Key(string/compare)
+Value OUT -> IN[0] Test4Value(string/compare)
+
+KeyStr OUT -> KEY KeyValueStr
+Value OUT -> VALUE KeyValueStr
+
+T4Splitter KEY -> IN[1] Test4Key EQUAL -> IN[0] Test4Result(boolean/and)
+T4Splitter VALUE -> IN[1] Test4Value EQUAL -> IN[1] Test4Result
+Test4Result OUT -> RESULT Test4(test/result)
