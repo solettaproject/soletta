@@ -12,8 +12,17 @@
       "category": "output/network",
       "description": "HTTP Client for boolean",
       "methods": {
-        "close": "boolean_close",
-        "open": "boolean_open"
+        "close": "common_close",
+        "open": "common_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_client_node_type",
+        "extra_methods": {
+          "request_finished_cb": "boolean_request_finished"
+        }
       },
       "options": {
 	"members": [
@@ -30,7 +39,7 @@
           "data_type": "string",
           "description": "Url wich request will be done",
           "methods": {
-            "process": "boolean_url_process"
+            "process": "common_url_process"
           },
           "name": "URL"
         },
@@ -38,7 +47,7 @@
           "data_type": "any",
           "description": "Get the contents of the specified url",
           "methods": {
-            "process": "boolean_get_process"
+            "process": "common_get_process"
           },
           "name": "GET"
         },
@@ -60,6 +69,69 @@
       ],
       "private_data_type": "http_data",
       "url": "http://solettaproject.org/doc/latest/node_types/http-client/boolean.html"
+    },
+    {
+      "name": "http-client/string",
+      "category": "output/network",
+      "description": "HTTP Client for string",
+      "methods": {
+        "close": "common_close",
+        "open": "common_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_client_node_type",
+        "extra_methods": {
+          "request_finished_cb": "string_request_finished"
+        }
+      },
+      "options": {
+	"members": [
+	  {
+	    "data_type": "string",
+	    "description": "The url that will be used",
+	    "name": "url"
+	  }
+	],
+	"version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Url wich request will be done",
+          "methods": {
+            "process": "common_url_process"
+          },
+          "name": "URL"
+        },
+        {
+          "data_type": "any",
+          "description": "Get the contents of the specified url",
+          "methods": {
+            "process": "common_get_process"
+          },
+          "name": "GET"
+        },
+        {
+          "data_type": "string",
+          "description": "Post into the url",
+          "methods": {
+            "process": "string_post_process"
+          },
+          "name": "POST"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The value received from the url",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/string.html"
     }
   ]
 }
