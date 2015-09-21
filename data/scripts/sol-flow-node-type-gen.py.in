@@ -259,6 +259,7 @@ data_type_to_c_map = {
     "string": "const char *",
     "location": "struct sol_location",
     "timestamp": "struct timespec",
+    "key-value": "struct sol_key_value"
     }
 def data_type_to_c(typename):
     return data_type_to_c_map[typename]
@@ -287,6 +288,7 @@ data_type_to_packet_type_map = {
     "direction-vector": "SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR",
     "location": "SOL_FLOW_PACKET_TYPE_LOCATION",
     "timestamp": "SOL_FLOW_PACKET_TYPE_TIMESTAMP",
+    "key-value": "SOL_FLOW_PACKET_TYPE_KEY_VALUE",
     "any": "SOL_FLOW_PACKET_TYPE_ANY",
     "error": "SOL_FLOW_PACKET_TYPE_ERROR"
     }

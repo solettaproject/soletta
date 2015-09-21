@@ -725,3 +725,51 @@ sol_flow_packet_get_error(const struct sol_flow_packet *packet, int *code, const
 
     return ret;
 }
+
+static int
+key_value_init(const struct sol_flow_packet_type *packet_type, void *mem, const void *input)
+{
+    const struct sol_key_value *kv = input;
+    struct sol_key_value *cpy = mem;
+    int r;
+
+    if (kv->type == SOL_KEY_VALUE_TYPE_STRING)
+        r = sol_key_value_string_init(cpy, kv->key, kv->value.s);
+    else
+        r = sol_key_value_int_init(cpy, kv->key, kv->value.i);
+
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static void
+key_value_dispose(const struct sol_flow_packet_type *packet_type, void *mem)
+{
+    struct sol_key_value *kv = mem;
+
+    sol_key_value_clear(kv);
+}
+
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_KEY_VALUE = {
+    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    .name = "KEY-VALUE",
+    .data_size = sizeof(struct sol_key_value),
+    .init = key_value_init,
+    .dispose = key_value_dispose
+};
+
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_KEY_VALUE = &_SOL_FLOW_PACKET_TYPE_KEY_VALUE;
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_key_value(const struct sol_key_value *key_value)
+{
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_KEY_VALUE, key_value);
+}
+
+SOL_API int
+sol_flow_packet_get_key_value(const struct sol_flow_packet *packet,
+    struct sol_key_value *key_value)
+{
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_KEY_VALUE, -EINVAL);
+    return sol_flow_packet_get(packet, key_value);
+}
