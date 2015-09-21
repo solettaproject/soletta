@@ -1483,7 +1483,9 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--schema-dir",
-                        help="Directory where JSON schemas are located",
+                        help="Directory where JSON schemas are located. "
+                        "Names must start with 'oic.r.' or 'core.' and use "
+                        "extension '.json'",
                         required=True)
     parser.add_argument("--node-type-json",
                         help="Path to store the master JSON with node type information",
