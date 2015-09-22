@@ -1418,19 +1418,6 @@ sol_coap_server_new(int port)
 }
 
 SOL_API int
-sol_coap_packet_get_buf(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len)
-{
-    SOL_NULL_CHECK(pkt, -EINVAL);
-    SOL_NULL_CHECK(buf, -EINVAL);
-    SOL_NULL_CHECK(len, -EINVAL);
-
-    *buf = pkt->buf;
-    *len = sizeof(pkt->buf);
-
-    return 0;
-}
-
-SOL_API int
 sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len)
 {
     SOL_NULL_CHECK(pkt, -EINVAL);

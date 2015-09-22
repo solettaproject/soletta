@@ -905,6 +905,7 @@ def master_c_as_string(generated):
 
 #include "sol-flow/oic.h"
 
+#include "sol-buffer.h"
 #include "sol-coap.h"
 #include "sol-json.h"
 #include "sol-mainloop.h"
@@ -1189,7 +1190,7 @@ server_resource_schedule_update(struct server_resource *resource)
 
 static sol_coap_responsecode_t
 server_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
-    uint8_t *payload, uint16_t *payload_len)
+    const struct sol_buffer *req_payload, struct sol_buffer *resp_payload)
 {
     const struct server_resource *resource = data;
     int r;
@@ -1197,10 +1198,10 @@ server_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
     if (!resource->funcs->deserialize)
         return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
 
-    r = resource->funcs->deserialize((struct server_resource *)resource, payload, *payload_len);
+    r = resource->funcs->deserialize((struct server_resource *)resource,
+        req_payload->data, req_payload->used);
     if (!r) {
         server_resource_schedule_update((struct server_resource *)resource);
-        *payload_len = 0;
         return SOL_COAP_RSPCODE_CHANGED;
     }
     return SOL_COAP_RSPCODE_PRECONDITION_FAILED;
@@ -1208,11 +1209,13 @@ server_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
 
 static sol_coap_responsecode_t
 server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
-    uint8_t *payload, uint16_t *payload_len)
+    const struct sol_buffer *req_payload, struct sol_buffer *resp_payload)
 {
     const struct server_resource *resource = data;
     uint16_t serialized_len;
     uint8_t *serialized;
+    struct sol_str_slice buf;
+    sol_coap_responsecode_t code;
 
     if (!resource->funcs->serialize)
         return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
@@ -1221,15 +1224,16 @@ server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
     if (!serialized)
         return SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
-    if (serialized_len > *payload_len) {
-        free(serialized);
-        return SOL_COAP_RSPCODE_INTERNAL_ERROR;
-    }
+    buf.data = (char *) serialized;
+    buf.len = serialized_len;
 
-    memcpy(payload, serialized, serialized_len);
-    *payload_len = serialized_len;
+    code = SOL_COAP_RSPCODE_CONTENT;
+    if (sol_buffer_set_slice(resp_payload, buf) < 0)
+        code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
+
     free(serialized);
-    return SOL_COAP_RSPCODE_CONTENT;
+
+    return code;
 }
 
 // log_init() implementation happens within oic-gen.c

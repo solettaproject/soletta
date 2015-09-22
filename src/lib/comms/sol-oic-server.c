@@ -695,14 +695,18 @@ out:
 static int
 _sol_oic_resource_type_handle(
     sol_coap_responsecode_t (*handle_fn)(const struct sol_network_link_addr *cliaddr, const void *data,
-    uint8_t *payload, uint16_t *payload_len),
+        const struct sol_buffer *req_payload, struct sol_buffer *resp_payload),
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     struct resource_type_data *res, bool expect_payload)
 {
     struct sol_coap_packet *response;
     sol_coap_responsecode_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
-    uint8_t *payload;
-    uint16_t payload_len;
+    uint8_t *payload, *response_payload;
+    uint16_t payload_len, response_len;
+    const char response_prefix[] = "{\"oc\":[{\"rep\":";
+    const char response_suffix[] = "}]}";
+    struct sol_buffer req_buf, resp_buf;
+    size_t len;
 
     OIC_SERVER_CHECK(-ENOTCONN);
 
@@ -712,9 +716,21 @@ _sol_oic_resource_type_handle(
         return -1;
     }
 
-    if (!handle_fn) {
-        code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+    len = strlen(response_prefix);
+
+    if (sol_coap_packet_get_payload(response, &response_payload, &response_len) < 0)
         goto done;
+
+    if (response_len <= (len + strlen(response_suffix)))
+        goto done;
+
+    memcpy(response_payload, response_prefix, len);
+    response_payload += len;
+    response_len -= len;
+
+    if (!handle_fn) {
+	    code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
+	    goto done;
     }
 
     if (expect_payload) {
@@ -727,31 +743,25 @@ _sol_oic_resource_type_handle(
             code = SOL_COAP_RSPCODE_BAD_REQUEST;
             goto done;
         }
-    } else {
-        if (sol_coap_packet_get_buf(req, &payload, &payload_len) < 0) {
-            code = SOL_COAP_RSPCODE_BAD_REQUEST;
-            goto done;
-        }
-        memset(payload, 0, payload_len);
     }
 
-    code = handle_fn(cliaddr, res->data, payload, &payload_len);
+    sol_buffer_init_flags(&req_buf, payload, payload_len, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+    req_buf.used = payload_len;
+
+    sol_buffer_init_flags(&resp_buf, response_payload, response_len, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+
+    code = handle_fn(cliaddr, res->data, &req_buf, &resp_buf);
+
+    len += resp_buf.used;
+    len += strlen(response_suffix);
+
+    if (len > response_len)
+        goto done;
+
     if (code == SOL_COAP_RSPCODE_CONTENT) {
-        uint8_t *response_payload;
-        uint16_t response_len;
-        int r;
+        memcpy(response_payload, response_suffix, strlen(response_suffix));
 
-        if (sol_coap_packet_get_payload(response, &response_payload, &response_len) < 0)
-            goto done;
-
-        r = snprintf((char *)response_payload, response_len, "{\"oc\":[{\"rep\":%.*s}]}",
-            (int)payload_len, payload);
-        if (r < 0 || r >= response_len) {
-            code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
-            goto done;
-        }
-
-        if (sol_coap_packet_set_payload_used(response, r) < 0) {
+        if (sol_coap_packet_set_payload_used(response, len) < 0) {
             code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
             goto done;
         }
