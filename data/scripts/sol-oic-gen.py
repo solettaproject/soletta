@@ -836,7 +836,7 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
 
     return output
 
-def generate_object(rt, title, props):
+def generate_object(rt, title, props, json_name):
     def type_value(item):
         return '%s %s' % (get_type_from_property(item[1]), item[0])
 
@@ -847,14 +847,16 @@ def generate_object(rt, title, props):
     elif rt.startswith('core.'):
         rt = rt[len('core.'):]
 
-    c_identifier = rt.replace(".", "_").lower()
-    flow_identifier = rt.replace(".", "-").lower()
+    c_identifier = rt.replace(".", "_").replace("-", "_").lower()
+    c_json_name = json_name.replace(".", "_").replace("-", "_").lower()
+    flow_identifier = rt.replace(".", "-").replace("_", "-").lower()
+    flow_json_name = json_name.replace(".", "-").replace("_", "-").lower()
 
-    client_node_name = "oic/client-%s" % flow_identifier
-    client_struct_name = "oic_client_%s" % c_identifier
-    server_node_name = "oic/server-%s" % flow_identifier
-    server_struct_name = "oic_server_%s" % c_identifier
-    state_struct_name = "oic_state_%s" % c_identifier
+    client_node_name = "%s/client-%s" % (flow_json_name, flow_identifier)
+    client_struct_name = "%s_client_%s" % (c_json_name, c_identifier)
+    server_node_name = "%s/server-%s" % (flow_json_name, flow_identifier)
+    server_struct_name = "%s_server_%s" % (c_json_name, c_identifier)
+    state_struct_name = "%s_state_%s" % (c_json_name, c_identifier)
 
     new_props = OrderedDict()
     for k, v in sorted(props.items(), key=type_value):
@@ -870,7 +872,7 @@ def generate_object(rt, title, props):
     }
     return retval
 
-def generate_for_schema(directory, path):
+def generate_for_schema(directory, path, json_name):
     j = load_json_schema(directory, path)
 
     for rt, defn in j.items():
@@ -878,12 +880,13 @@ def generate_for_schema(directory, path):
             raise ValueError("not an OIC resource definition")
 
         if defn.get('type') == 'object':
-            yield generate_object(rt, defn['title'], defn['properties'])
+            yield generate_object(rt, defn['title'], defn['properties'],
+                    json_name)
 
-def master_json_as_string(generated):
+def master_json_as_string(generated, json_name):
     master_json = {
         '$schema': 'http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema',
-        'name': 'oic',
+        'name': json_name,
         'meta': {
             'author': 'Intel Corporation',
             'license': 'BSD-3-Clause',
@@ -893,7 +896,7 @@ def master_json_as_string(generated):
     }
     return json.dumps(master_json, indent=4)
 
-def master_c_as_string(generated):
+def master_c_as_string(generated, oic_gen_c, oic_gen_h):
     generated = list(generated)
     code = '''#include <arpa/inet.h>
 #include <errno.h>
@@ -903,17 +906,15 @@ def master_c_as_string(generated):
 #include <stdlib.h>
 #include <sys/socket.h>
 
-#include "sol-flow/oic.h"
+#include "%(oic_gen_h)s"
 
 #include "sol-coap.h"
 #include "sol-json.h"
 #include "sol-mainloop.h"
-#include "sol-missing.h"
 #include "sol-oic-client.h"
 #include "sol-oic-server.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
 
 #define DEFAULT_UDP_PORT 5683
 #define MULTICAST_ADDRESS_IPv4 "224.0.1.187"
@@ -1467,11 +1468,13 @@ json_token_to_bool(struct sol_json_token *token, bool *out)
 %(generated_c_client)s
 %(generated_c_server)s
 
-#include "oic-gen.c"
+#include "%(oic_gen_c)s"
 ''' % {
         'generated_c_common': '\n'.join(t['c_common'] for t in generated),
         'generated_c_client': '\n'.join(t['c_client'] for t in generated),
         'generated_c_server': '\n'.join(t['c_server'] for t in generated),
+        'oic_gen_c': oic_gen_c,
+        'oic_gen_h': oic_gen_h,
     }
 
     return code.replace('\n\n\n', '\n')
@@ -1480,7 +1483,9 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--schema-dir",
-                        help="Directory where JSON schemas are located",
+                        help="Directory where JSON schemas are located. "
+                        "Names must starts with 'oic.r.' or 'core.' and use "
+                        "extension '.json'",
                         required=True)
     parser.add_argument("--node-type-json",
                         help="Path to store the master JSON with node type information",
@@ -1488,10 +1493,22 @@ if __name__ == '__main__':
     parser.add_argument("--node-type-impl",
                         help="Path to store the node type implementation",
                         required=True)
+    parser.add_argument("--node-type-gen-c",
+                        help="Relative path to source generated with "
+                        "sol-flow-node-type-gen for inclusion purposes.",
+                        required=True)
+    parser.add_argument("--node-type-gen-h",
+                        help="Relative path to header generated with "
+                        "sol-flow-node-type-gen for inclusion purposes.",
+                        required=True)
     args = parser.parse_args()
 
     def seems_schema(path):
         return path.endswith('.json') and (path.startswith('oic.r.') or path.startswith('core.'))
+
+    json_name = os.path.basename(args.node_type_json)
+    if (json_name[-5:] == ".json"):
+        json_name = json_name[:-5]
 
     generated = []
     print('Generating code for schemas: ', end='')
@@ -1499,7 +1516,7 @@ if __name__ == '__main__':
         print(path, end=', ')
 
         try:
-            for code in generate_for_schema(args.schema_dir, path):
+            for code in generate_for_schema(args.schema_dir, path, json_name):
                 generated.append(code)
         except KeyError as e:
             if e.args[0] == 'array':
@@ -1512,10 +1529,12 @@ if __name__ == '__main__':
             continue
 
     print('\nWriting master JSON: %s' % args.node_type_json)
-    open(args.node_type_json, 'w+').write(master_json_as_string(generated))
+    open(args.node_type_json, 'w+').write(master_json_as_string(generated,
+            json_name))
 
     print('Writing C: %s' % args.node_type_impl)
-    open(args.node_type_impl, 'w+').write(master_c_as_string(generated))
+    open(args.node_type_impl, 'w+').write(master_c_as_string(generated,
+            args.node_type_gen_c, args.node_type_gen_h))
     if os.path.exists('/usr/bin/indent'):
         print('Indenting generated C.')
         os.system("/usr/bin/indent -kr -l120 '%s'" % args.node_type_impl)
