@@ -524,7 +524,7 @@ sol_json_double_to_str(const double value, char *buf, size_t len)
 
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    ret = snprintf(buf, len, "%f", value);
+    ret = snprintf(buf, len, "%g", value);
     if (ret < 0 || ret > (int)len)
         return -ENOMEM;
 
