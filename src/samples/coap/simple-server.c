@@ -215,7 +215,7 @@ static struct sol_coap_resource light = {
     .put = light_method_put,
     .iface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
     .resource_type = SOL_STR_SLICE_LITERAL("core.light"),
-    .flags = SOL_COAP_FLAGS_WELL_KNOWN | SOL_COAP_FLAGS_OC_CORE,
+    .flags = SOL_COAP_FLAGS_WELL_KNOWN,
     .path = {
         SOL_STR_SLICE_LITERAL("a"),
         SOL_STR_SLICE_LITERAL("light"),
