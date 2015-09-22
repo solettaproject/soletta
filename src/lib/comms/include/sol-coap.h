@@ -144,11 +144,7 @@ typedef enum {
 enum sol_coap_flags {
     SOL_COAP_FLAGS_NONE       = 0,
     /* If the resource should be exported in the CoRE well-known registry. */
-    SOL_COAP_FLAGS_WELL_KNOWN = (1 << 1),
-    /* If the resource should be exported in the OIC well-known registry. */
-    SOL_COAP_FLAGS_OC_CORE    = (1 << 2),
-    /* If the resource is observable, i.e. it is able to notified. */
-    SOL_COAP_FLAGS_OBSERVABLE = (1 << 3)
+    SOL_COAP_FLAGS_WELL_KNOWN = (1 << 1)
 };
 
 struct sol_coap_packet;
