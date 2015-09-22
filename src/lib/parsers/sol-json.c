@@ -314,6 +314,8 @@ sol_json_token_get_double(const struct sol_json_token *token, double *value)
             sol_json_token_get_size(token), token->start);
         *value = 0;
         r = -EINVAL;
+    } else if (fpclassify(*value) == FP_SUBNORMAL) {
+        r = 0;
     }
 
     return r;
