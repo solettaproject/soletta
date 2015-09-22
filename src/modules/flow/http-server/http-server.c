@@ -31,6 +31,7 @@
  */
 
 #include <errno.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -536,7 +537,7 @@ float_response_cb(void *data, struct sol_http_request *request)
         modified = true; \
         mdata->value.d.field_ = sol_util_strtodn(value->value.key_value.value, NULL, \
             -1, false); \
-        if (errno != 0) { \
+        if ((fpclassify(mdata->value.d.field_) == FP_ZERO) && (errno != 0)) { \
             r = -errno; \
             goto end; \
         } \
