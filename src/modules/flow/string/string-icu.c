@@ -1195,4 +1195,21 @@ set_prefix_suffix_end(struct sol_flow_node *node,
     return prefix_suffix_match_do(mdata, NULL, mdata->starts_with);
 }
 
+static int
+string_is_empty(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    const char *in_value;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_STRING_IS_EMPTY__OUT__OUT, strlen(in_value) == 0);
+}
+
 #include "string-gen.c"
