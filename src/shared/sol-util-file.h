@@ -51,7 +51,6 @@ struct sol_buffer *sol_util_load_file_raw(const int fd) SOL_ATTR_WARN_UNUSED_RES
 char *sol_util_load_file_string(const char *filename, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
 char *sol_util_load_file_fd_string(const int fd, size_t *size) SOL_ATTR_WARN_UNUSED_RESULT;
 int sol_util_get_rootdir(char *out, size_t size) SOL_ATTR_WARN_UNUSED_RESULT;
-int sol_util_get_os_version(char **out) SOL_ATTR_WARN_UNUSED_RESULT;
 int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**

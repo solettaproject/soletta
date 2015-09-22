@@ -372,46 +372,6 @@ sol_util_get_rootdir(char *out, size_t size)
 }
 
 int
-sol_util_get_os_version(char **out)
-{
-    char *ptr, *end, *str;
-    static const char version[] = "VERSION_ID";
-
-    SOL_NULL_CHECK(out, -EINVAL);
-
-    str = sol_util_load_file_string("/etc/os-release", NULL);
-    if (!str) {
-        str = sol_util_load_file_string("/usr/lib/os-release", NULL);
-        if (!str)
-            goto err;
-    }
-
-    ptr = strstr(str, version);
-    if (!ptr)
-        goto err;
-
-    ptr += sizeof(version);
-
-    if (!*ptr)
-        goto err;
-
-    end = strstr(ptr, "\n");
-    if (!end || end == ptr)
-        goto err;
-
-    *out = strndup(ptr, end - ptr);
-    if (!*out)
-        goto err;
-
-    free(str);
-    return 0;
-
-err:
-    free(str);
-    return -ENOTSUP;
-}
-
-int
 sol_util_fd_set_flag(int fd, int flag)
 {
     int flags;

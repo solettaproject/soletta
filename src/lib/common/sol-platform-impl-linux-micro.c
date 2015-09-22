@@ -846,16 +846,10 @@ sol_platform_impl_get_serial_number(char **number)
     return r;
 }
 
-char *
-sol_platform_impl_get_os_version(void)
+int
+sol_platform_impl_get_os_version(char **version)
 {
-    char *ret = NULL;
-    int r;
-
-    r = sol_util_get_os_version(&ret);
-    SOL_INT_CHECK(r, < 0, NULL);
-
-    return ret;
+    return sol_platform_linux_get_os_version(version);
 }
 
 SOL_API void

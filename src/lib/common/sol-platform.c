@@ -51,6 +51,7 @@
 SOL_LOG_INTERNAL_DECLARE(_sol_platform_log_domain, "platform");
 
 static char *board_name = NULL;
+static char *os_version = NULL;
 
 struct service_monitor {
     struct sol_monitors_entry base;
@@ -85,6 +86,7 @@ void
 sol_platform_shutdown(void)
 {
     free(board_name);
+    free(os_version);
     sol_monitors_clear(&_ctx.state_monitors);
     sol_monitors_clear(&_ctx.service_monitors);
     sol_platform_impl_shutdown();
@@ -394,7 +396,14 @@ sol_platform_get_sw_version(void)
 SOL_API char *
 sol_platform_get_os_version(void)
 {
-    return sol_platform_impl_get_os_version();
+    int r;
+    char *out;
+
+    if (os_version) return os_version;
+    r = sol_platform_impl_get_os_version(&out);
+    SOL_INT_CHECK(r, < 0, NULL);
+    os_version = out;
+    return os_version;
 }
 
 void

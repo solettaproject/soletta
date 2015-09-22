@@ -132,7 +132,9 @@ sol_init(void)
         goto comms_error;
 #endif
 
-    SOL_DBG("Soletta %s initialized", sol_platform_get_sw_version());
+    SOL_DBG("Soletta %s, running os %s-%s, initialized",
+        sol_platform_get_sw_version(), BASE_OS,
+        sol_platform_get_os_version());
 
     return 0;
 
