@@ -41,6 +41,7 @@
 #include "sol-flow-internal.h"
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
+#include "sol-modules.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
@@ -108,7 +109,7 @@ grove_rotary_sensor_new_type(const struct sol_flow_node_type **current)
     };
 
     nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER;
-    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+    nodes[1].type = *(const struct sol_flow_node_type **)sol_symbol_get("flow", "aio", SOL_FLOW_NODE_TYPE_AIO_READER);
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);
@@ -235,7 +236,7 @@ grove_light_sensor_new_type(const struct sol_flow_node_type **current)
     };
 
     nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER;
-    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+    nodes[1].type = *(const struct sol_flow_node_type **)sol_symbol_get("flow", "aio", SOL_FLOW_NODE_TYPE_AIO_READER);
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);
@@ -407,7 +408,7 @@ grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
     };
 
     nodes[0].type = SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER;
-    nodes[1].type = SOL_FLOW_NODE_TYPE_AIO_READER;
+    nodes[1].type = *(const struct sol_flow_node_type **)sol_symbol_get("flow", "aio", SOL_FLOW_NODE_TYPE_AIO_READER);
 
     type = sol_flow_static_new_type(&spec);
     SOL_NULL_CHECK(type);
