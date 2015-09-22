@@ -512,23 +512,15 @@ sol_json_escape_string(const char *str, char *buf, size_t len)
     return out;
 }
 
-SOL_API int
-sol_json_double_to_str(const double value, char *buf, size_t len)
+static void
+double_to_str(char *buf, size_t len)
 {
-    int ret;
-    char *decimal_point;
-
 #ifdef HAVE_LOCALE
     struct lconv *lc = localeconv();
-#endif
+    char *decimal_point;
 
-    ret = snprintf(buf, len, "%f", value);
-    if (ret < 0 || ret > (int)len)
-        return -ENOMEM;
-
-#ifdef HAVE_LOCALE
     if (lc->decimal_point && streq(lc->decimal_point, "."))
-        return 0;
+        return;
 
 
     if ((decimal_point = strstr(buf, lc->decimal_point))) {
@@ -536,9 +528,37 @@ sol_json_double_to_str(const double value, char *buf, size_t len)
         char *fraction = decimal_point + decimal_len;
         *decimal_point = '.';
 
-        memmove(decimal_point + 1, fraction, (buf + ret + 1) - fraction);
+        memmove(decimal_point + 1, fraction, (buf + len + 1) - fraction);
     }
 #endif
+}
 
+SOL_API int
+sol_json_double_to_str(const double value, char *buf, size_t len)
+{
+    int ret;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    ret = snprintf(buf, len, "%f", value);
+    if (ret < 0 || ret > (int)len)
+        return -ENOMEM;
+
+    double_to_str(buf, (size_t)ret);
+    return 0;
+}
+
+SOL_API int
+sol_json_double_to_str_alloc(const double value, char **buf)
+{
+    int ret;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    ret = asprintf(buf, "%f", value);
+    if (ret < 0)
+        return -ENOMEM;
+
+    double_to_str(*buf, (size_t)ret);
     return 0;
 }
