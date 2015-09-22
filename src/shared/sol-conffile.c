@@ -36,6 +36,7 @@
 #include <unistd.h>
 #include <limits.h>
 
+#include "sol-arena.h"
 #include "sol-file-reader.h"
 #include "sol-conffile.h"
 #include "sol-log.h"
@@ -43,8 +44,17 @@
 #include "sol-vector.h"
 #include "sol-json.h"
 
+#ifdef USE_MEMMAP
+#include "sol-memmap-storage.h"
+#endif
+
 static struct sol_ptr_vector _conffile_entry_vector; /* entries created by conffiles */
 static struct sol_ptr_vector _conffiles_loaded; /* paths of the currently loaded conffiles */
+static struct sol_arena *str_arena;
+
+#ifdef USE_MEMMAP
+static struct sol_ptr_vector _memory_maps;
+#endif
 
 struct sol_conffile_entry {
     char *id;
@@ -152,23 +162,261 @@ _entry_vector_contains(const char *id)
     return false;
 }
 
+#ifdef USE_MEMMAP
+static void
+_clear_memory_maps(void)
+{
+    const struct sol_str_table_ptr *iter;
+    struct sol_memmap_map *map;
+    int i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&_memory_maps, map, i) {
+        for (iter = map->entries; iter->key; iter++) {
+            free((void *)iter->val);
+        }
+
+        free(map);
+    }
+
+    sol_ptr_vector_clear(&_memory_maps);
+}
+
+#define CURRENT_TOKEN (int)(value.end - token.start), token.start
+
+static bool
+_parse_memmap_entries(struct sol_vector *entries_vector, struct sol_json_token token)
+{
+    struct sol_json_scanner entries;
+    enum sol_json_loop_reason reason;
+    struct sol_json_token key, value;
+    struct sol_memmap_entry *memmap_entry = NULL;
+    struct sol_str_table_ptr *ptr_table_entry;
+    int i = 0;
+
+    sol_json_scanner_init_from_token(&entries, &token);
+
+    SOL_JSON_SCANNER_ARRAY_LOOP (&entries, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+        uint32_t size = 0, offset = 0, bit_offset = 0, bit_size = 0;
+        struct sol_str_slice name = { };
+
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&entries, &token, &key, &value, reason) {
+            if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "name")) {
+                sol_json_token_remove_quotes(&value);
+                name = sol_json_token_to_slice(&value);
+                if (!name.len) {
+                    SOL_ERR("Couldn't get entry #%d name at [%.*s]",
+                        i, CURRENT_TOKEN);
+                    goto error;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "offset")) {
+                if (sol_json_token_get_uint32(&value, &offset) < 0) {
+                    SOL_ERR("Couldn't get entry #%d offset at [%.*s]",
+                        i, CURRENT_TOKEN);
+                    goto error;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "size")) {
+                if (sol_json_token_get_uint32(&value, &size) < 0) {
+                    SOL_ERR("Couldn't get entry #%d size at [%.*s]", i,
+                        CURRENT_TOKEN);
+                    goto error;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "bit_offset")) {
+                if (sol_json_token_get_uint32(&value, &bit_offset) < 0) {
+                    SOL_ERR("Couldn't get entry #%d bit_offset at [%.*s]", i,
+                        CURRENT_TOKEN);
+                    goto error;
+                }
+                if (bit_offset > 7) {
+                    SOL_ERR("Entry #%d bit offset cannot be greater than 7, found: %d",
+                        i, bit_offset);
+                    goto error;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "bit_size")) {
+                if (sol_json_token_get_uint32(&value, &bit_size) < 0) {
+                    SOL_ERR("Couldn't get entry #%d bit size at [%.*s]",
+                        i, CURRENT_TOKEN);
+                    goto error;
+                }
+            }
+        }
+        if (reason != SOL_JSON_LOOP_REASON_OK) {
+            SOL_ERR("Invalid json on entry #%d at [%.*s]", i,
+                (int)(entries.current - entries.mem), entries.mem);
+            goto error;
+        }
+
+        if (!name.len) {
+            SOL_WRN("Memmap entry #%d must have a name", i);
+            goto error;
+        }
+        if (!size) {
+            SOL_ERR("Entry #%d size must be greater than zero [%.*s]", i,
+                SOL_STR_SLICE_PRINT(name));
+            goto error;
+        }
+        if (bit_size > (size * 8)) {
+            SOL_ERR("Invalid bit size for entry #%d [%.*s]. Must not be greater"
+                "than size * 8 [%d]", i, SOL_STR_SLICE_PRINT(name), size * 8);
+            goto error;
+        }
+
+        ptr_table_entry = sol_vector_append(entries_vector);
+        SOL_NULL_CHECK_GOTO(ptr_table_entry, error);
+
+        memmap_entry = calloc(sizeof(struct sol_memmap_entry), 1);
+        SOL_NULL_CHECK_GOTO(memmap_entry, error);
+
+        memmap_entry->offset = offset;
+        memmap_entry->size = size;
+        memmap_entry->bit_offset = bit_offset;
+        memmap_entry->bit_size = bit_size;
+
+        ptr_table_entry->key = sol_arena_strdup_slice(str_arena, name);
+        if (!ptr_table_entry->key) {
+            SOL_ERR("Could not copy entry #%d [%.*s] name", i,
+                SOL_STR_SLICE_PRINT(name));
+            goto error;
+        }
+        ptr_table_entry->len = name.len;
+        ptr_table_entry->val = memmap_entry;
+
+        i++;
+    }
+    if (reason != SOL_JSON_LOOP_REASON_OK) {
+        SOL_ERR("Invalid json after entry #%d at [%.*s]", i,
+            (int)(entries.current - entries.mem), entries.mem);
+        goto error;
+    }
+
+    /* Add ptr_table guard element */
+    ptr_table_entry = sol_vector_append(entries_vector);
+    SOL_NULL_CHECK_GOTO(ptr_table_entry, error);
+
+    return true;
+
+error:
+    return false;
+}
+
+static bool
+_parse_maps(struct sol_json_token token)
+{
+    struct sol_json_token key, value;
+    enum sol_json_loop_reason reason;
+    struct sol_vector entries_vector = SOL_VECTOR_INIT(struct sol_str_table_ptr);
+    struct sol_memmap_map *map;
+    struct sol_json_scanner scanner;
+    size_t entries_vector_size;
+    struct sol_str_table_ptr *ptr_table_entry;
+    void *data;
+    int i = 0;
+
+    sol_json_scanner_init_from_token(&scanner, &token);
+    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
+        struct sol_str_slice path = { };
+        uint32_t version = 0;
+
+        map = NULL;
+
+        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
+            if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "path")) {
+                sol_json_token_remove_quotes(&value);
+                path = sol_json_token_to_slice(&value);
+                if (!path.len) {
+                    SOL_ERR("Couldn't get map #%d path at [%.*s]", i,
+                        CURRENT_TOKEN);
+                    goto error;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "version")) {
+                if (sol_json_token_get_uint32(&value, &version) < 0) {
+                    SOL_ERR("Couldn't get map #%d version at [%.*s]", i,
+                        CURRENT_TOKEN);
+                    goto error;
+                }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "entries")) {
+                if (!_parse_memmap_entries(&entries_vector, value)) {
+                    SOL_ERR("Of map #%d", i);
+                    goto error;
+                }
+            }
+        }
+        if (reason != SOL_JSON_LOOP_REASON_OK) {
+            SOL_ERR("Invalid json on map #%d at [%.*s]", i,
+                (int)(scanner.current - scanner.mem), scanner.mem);
+            goto error;
+        }
+
+        entries_vector_size = sizeof(struct sol_str_table_ptr) * entries_vector.len;
+        map = calloc(1, sizeof(struct sol_memmap_map) + entries_vector_size);
+        SOL_NULL_CHECK_GOTO(map, error);
+
+        map->version = version;
+        map->path = sol_arena_strdup_slice(str_arena, path);
+        SOL_NULL_CHECK_GOTO(map->path, error);
+        data = sol_vector_take_data(&entries_vector);
+        memmove(map->entries, data, entries_vector_size);
+        free(data);
+
+        if (sol_ptr_vector_append(&_memory_maps, map) < 0) {
+            SOL_WRN("Could not add memory map #%d to internal vector", i);
+            goto error;
+        }
+
+        i++;
+    }
+
+    map = NULL;
+
+    if (reason != SOL_JSON_LOOP_REASON_OK) {
+        SOL_WRN("Invalid json after map #%d at [%.*s]", i,
+            (int)(scanner.current - scanner.mem), scanner.mem);
+        goto error;
+    }
+
+    return true;
+
+error:
+    free(map);
+    SOL_VECTOR_FOREACH_IDX (&entries_vector, ptr_table_entry, i) {
+        free((void *)ptr_table_entry->val);
+    }
+    sol_vector_clear(&entries_vector);
+
+    return false;
+}
+
+#undef CURRENT_TOKEN
+
+#else
+static bool
+_parse_maps(struct sol_json_token token)
+{
+    SOL_INF("Soletta built without memory mapped storage support");
+    return true;
+}
+#endif
+
 static int
 _json_to_vector(struct sol_json_scanner scanner)
 {
     struct sol_conffile_entry *entry = NULL;
     const char *node_group = "nodetypes";
+    const char *maps_group = "maps";
     const char *node_name = "name";
     const char *node_type = "type";
     const char *node_options = "options";
-    struct sol_json_token token, key, value;
+    struct sol_json_token token, key, value, nodes, maps;
     struct sol_json_scanner obj_scanner;
     enum sol_json_loop_reason reason;
-    bool found_nodes = false;
+    bool found_nodes = false, found_maps = false;
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (sol_json_token_str_eq(&key, node_group, strlen(node_group))) {
             found_nodes = true;
-            break;
+            nodes = value;
+        } else if (sol_json_token_str_eq(&key, maps_group, strlen(maps_group))) {
+            found_maps = true;
+            maps = value;
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
@@ -176,10 +424,20 @@ _json_to_vector(struct sol_json_scanner scanner)
         goto err;
     }
 
-    if (!found_nodes)
+    if (!found_nodes && !found_maps)
         return -ENOKEY;
 
-    sol_json_scanner_init_from_token(&obj_scanner, &value);
+    if (found_maps) {
+        if (!_parse_maps(maps)) {
+            SOL_WRN("Could not parse memory map values");
+            return -EINVAL;
+        }
+    }
+
+    if (!found_nodes)
+        return 0;
+
+    sol_json_scanner_init_from_token(&obj_scanner, &nodes);
     SOL_JSON_SCANNER_ARRAY_LOOP (&obj_scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         bool duplicate = false;
 
@@ -382,6 +640,12 @@ _clear_data(void)
         free(ptr);
     }
     sol_ptr_vector_clear(&_conffiles_loaded);
+
+    sol_arena_del(str_arena);
+
+#ifdef USE_MEMMAP
+    _clear_memory_maps();
+#endif
 }
 
 static struct sol_str_slice
@@ -445,8 +709,11 @@ free_for_all:
 static void
 _load_vector_defaults(void)
 {
-    _fill_vector(getenv("SOL_FLOW_MODULE_RESOLVER_CONFFILE"),
-        "sol-flow.json");
+    static bool first_call = true;
+
+    if (first_call)
+        _fill_vector(getenv("SOL_FLOW_MODULE_RESOLVER_CONFFILE"),
+            "sol-flow.json");
     /*
      * TODO: Add the following fill priority:
      * 1. Envvar
@@ -456,17 +723,28 @@ _load_vector_defaults(void)
      */
 }
 
-static void
+static int
 _init(void)
 {
     static int first_call = true;
 
     if (first_call) {
+        str_arena = sol_arena_new();
+        if (!str_arena) {
+            SOL_WRN("Could not create str arena\n");
+            return -ENOMEM;
+        }
+
         sol_ptr_vector_init(&_conffile_entry_vector);
         sol_ptr_vector_init(&_conffiles_loaded);
+#ifdef USE_MEMMAP
+        sol_ptr_vector_init(&_memory_maps);
+#endif
         atexit(_clear_data);
     }
     first_call = false;
+
+    return 0;
 }
 
 static int
@@ -521,11 +799,12 @@ _resolve_config(const char *id, const char **type, const char ***opts)
 int
 sol_conffile_resolve(const char *id, const char **type, const char ***opts)
 {
-    static bool first_call = true;
+    int r;
 
-    _init();
-    if (first_call)
-        _load_vector_defaults();
+    r = _init();
+    SOL_INT_CHECK(r, < 0, r);
+
+    _load_vector_defaults();
 
     return _resolve_config(id, type, opts);
 }
@@ -533,7 +812,53 @@ sol_conffile_resolve(const char *id, const char **type, const char ***opts)
 int
 sol_conffile_resolve_path(const char *id, const char **type, const char ***opts, const char *path)
 {
-    _init();
+    int r;
+
+    r = _init();
+    SOL_INT_CHECK(r, < 0, r);
+
     _fill_vector(path, NULL);
     return _resolve_config(id, type, opts);
+}
+
+int
+sol_conffile_resolve_memmap(struct sol_ptr_vector **memmaps)
+{
+#ifdef USE_MEMMAP
+    int r;
+
+    r = _init();
+    SOL_INT_CHECK(r, < 0, r);
+
+    _load_vector_defaults();
+
+    *memmaps = &_memory_maps;
+
+    return 0;
+#else
+    SOL_INF("Soletta built without memory mapped storage support");
+    *memmaps = NULL;
+    return 0;
+#endif
+}
+
+int
+sol_conffile_resolve_memmap_path(struct sol_ptr_vector **memmaps, const char *path)
+{
+#ifdef USE_MEMMAP
+    int r;
+
+    r = _init();
+    SOL_INT_CHECK(r, < 0, r);
+
+    _fill_vector(path, NULL);
+
+    *memmaps = &_memory_maps;
+
+    return 0;
+#else
+    SOL_INF("Soletta built without memory mapped storage support");
+    *memmaps = NULL;
+    return 0;
+#endif
 }
