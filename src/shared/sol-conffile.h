@@ -32,8 +32,14 @@
 
 #pragma once
 
+#include "sol-vector.h"
+
 /* This conffile resolve is used on resolver-conffile and sol-fbp-generator */
 
 int sol_conffile_resolve(const char *id, const char **type, const char ***opts);
 
 int sol_conffile_resolve_path(const char *id, const char **type, const char ***opts, const char *path);
+
+int sol_conffile_resolve_memmap(struct sol_ptr_vector **memmaps);
+
+int sol_conffile_resolve_memmap_path(struct sol_ptr_vector **memmaps, const char *path);
