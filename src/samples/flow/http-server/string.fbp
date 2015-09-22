@@ -29,5 +29,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# To make a post
+# curl --data "value=Hello World" http://localhost:80/string -v
+#
+# To make a get and ask for the response be a json
+# curl -H "Accept:application/json"  http://localhost:80/string -v
+#
+# To get only if the value has changed since Mon, 17 Aug 2015 15:05:38 GMT
+# curl  -H "If-Since-Modified:Mon, 17 Aug 2018 15:05:38 GMT"  http://localhost:80/string -v
 string(http-server/string:path=/string,value="Hello, Server")
 string OUT -> IN console(console)
