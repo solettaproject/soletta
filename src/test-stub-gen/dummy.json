@@ -141,6 +141,16 @@
         },
         "name": "TIMESTAMP"
        }
+       {
+        "data_type": "string-tuple",
+        "description": "Dummy string-tuple input port.",
+        "methods": {
+         "connect": "string_tuple_connect",
+         "disconnect": "string_tuple_disconnect",
+         "process": "string_tuple_process"
+        },
+        "name": "STRING_TUPLE"
+       }
       ],
       "methods": {
        "close": "dummy_close",
@@ -282,7 +292,12 @@
         "data_type": "timestamp",
         "description": "Dummy timestamp output port.",
         "name": "TIMESTAMP"
-       }
+       },
+       {
+        "data_type": "string-tuple",
+        "description": "Dummy string-tuple output port.",
+        "name": "STRING_TUPLE"
+       },
       ],
       "private_data_type": "dummy_data",
       "url": "http://soletta.org/doc/latest/node_types/dummy/type1.html"

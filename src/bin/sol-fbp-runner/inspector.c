@@ -217,6 +217,21 @@ inspector_show_packet(const struct sol_flow_packet *packet)
                 }
             }
         }
+    } else if (type == SOL_FLOW_PACKET_TYPE_STRING_TUPLE) {
+        struct sol_flow_packet *array[2];
+        const char *k, *v;
+        if (sol_flow_packet_get(packet, &array)) {
+            int r = sol_flow_packet_get(packet, &array);
+            if (r != 0)
+                return;
+            r = sol_flow_packet_get_string(array[0], &k);
+            if (r != 0)
+                return;
+            r = sol_flow_packet_get_string(array[1], &v);
+            if (r != 0)
+                return;
+            fprintf(stdout, "Key:%s Value:%s (String tuple)\n", k, v);
+        }
     }
 
     fputs("<?>", stdout);

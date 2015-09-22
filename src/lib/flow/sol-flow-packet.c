@@ -725,3 +725,55 @@ sol_flow_packet_get_error(const struct sol_flow_packet *packet, int *code, const
 
     return ret;
 }
+
+static int
+tuple_packet_init(const struct sol_flow_packet_type *packet_type, void *mem, const void *input)
+{
+    const struct sol_flow_packet **in = (void *)input;
+    struct sol_flow_packet **array = mem;
+    void **data;
+    uint16_t i, last;
+    const struct sol_flow_packet_type *type;
+
+    for (i = 0; i < packet_type->data_size / sizeof(struct sol_flow_packet *);
+        i++) {
+        data = sol_flow_packet_get_memory(in[i]);
+        SOL_NULL_CHECK_GOTO(data, err_exit);
+        type = sol_flow_packet_get_type(in[i]);
+        if (type == SOL_FLOW_PACKET_TYPE_STRING)
+            array[i] = sol_flow_packet_new_string(*data);
+        else
+            array[i] = sol_flow_packet_new(type, *data);
+        SOL_NULL_CHECK_GOTO(array[i], err_exit);
+    }
+
+    return 0;
+
+err_exit:
+
+    last = i;
+    for (i = 0; i < last; i++)
+        sol_flow_packet_del(array[i]);
+    return -ENOMEM;
+}
+
+static void
+tuple_packet_dispose(const struct sol_flow_packet_type *packet_type, void *mem)
+{
+    struct sol_flow_packet **array = mem;
+    uint16_t i;
+
+    for (i = 0; i < packet_type->data_size / sizeof(struct sol_flow_packet *);
+        i++)
+        sol_flow_packet_del(array[i]);
+}
+
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_STRING_TUPLE = {
+    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    .name = "STRING-TUPLE",
+    .data_size = 2 * sizeof(struct sol_flow_packet *),
+    .init = tuple_packet_init,
+    .dispose = tuple_packet_dispose,
+};
+
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_STRING_TUPLE = &_SOL_FLOW_PACKET_TYPE_STRING_TUPLE;
