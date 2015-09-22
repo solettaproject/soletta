@@ -36,6 +36,7 @@
 #include "sol-flow/string.h"
 #include "sol-flow-internal.h"
 
+#include "string-common.h"
 #include "string-icu.h"
 #include "string-regexp.h"
 #include "string-uuid.h"
