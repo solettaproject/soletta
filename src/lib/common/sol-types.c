@@ -405,6 +405,87 @@ sol_rgb_set_max(struct sol_rgb *color, uint32_t max_value)
     return 0;
 }
 
+/********** SOL_KEY_VALUE **********/
+
+SOL_API int
+sol_key_value_string_init(struct sol_key_value *kv, const char *key,
+    const char *value)
+{
+    memset(kv, 0, sizeof(struct sol_key_value));
+
+    if (key) {
+        kv->key = strdup(key);
+        SOL_NULL_CHECK_GOTO(kv->key, err_key);
+    }
+
+    if (value) {
+        kv->value.s = strdup(value);
+        SOL_NULL_CHECK_GOTO(kv->value.s, err_value);
+    }
+
+    kv->type = SOL_KEY_VALUE_TYPE_STRING;
+    return 0;
+
+err_value:
+    free(kv->key);
+err_key:
+    return -ENOMEM;
+}
+
+SOL_API int
+sol_key_value_int_init(struct sol_key_value *kv, const char *key, int32_t value)
+{
+    memset(kv, 0, sizeof(struct sol_key_value));
+
+    kv->type = SOL_KEY_VALUE_TYPE_INT;
+    kv->value.i = value;
+    if (key) {
+        kv->key = strdup(key);
+        SOL_NULL_CHECK(kv->key, -ENOMEM);
+    }
+    return 0;
+}
+
+static int
+replace_string(char **dst, const char *src)
+{
+    free(*dst);
+    *dst = strdup(src);
+    SOL_NULL_CHECK(*dst, -ENOMEM);
+    return 0;
+}
+
+SOL_API int
+sol_key_value_set_key(struct sol_key_value *kv, const char *key)
+{
+    return replace_string(&kv->key, key);
+}
+
+SOL_API int
+sol_key_value_set_string_value(struct sol_key_value *kv, const char *value)
+{
+    if (kv->type != SOL_KEY_VALUE_TYPE_STRING)
+        return -EINVAL;
+    return replace_string(&kv->value.s, value);
+}
+
+SOL_API int
+sol_key_value_set_int_value(struct sol_key_value *kv, int32_t value)
+{
+    if (kv->type != SOL_KEY_VALUE_TYPE_INT)
+        return -EINVAL;
+    kv->value.i = value;
+    return 0;
+}
+
+SOL_API void
+sol_key_value_clear(struct sol_key_value *kv)
+{
+    free(kv->key);
+    if (kv->type == SOL_KEY_VALUE_TYPE_STRING)
+        free(kv->value.s);
+}
+
 #undef SOL_IRANGE_ADDITION_OVERFLOW
 #undef SOL_IRANGE_ADDITION_UNDERFLOW
 #undef SOL_IRANGE_SUBTRACTION_OVERFLOW

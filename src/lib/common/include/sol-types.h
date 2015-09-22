@@ -249,6 +249,28 @@ struct sol_blob *sol_blob_ref(struct sol_blob *blob);
 void sol_blob_unref(struct sol_blob *blob);
 void sol_blob_set_parent(struct sol_blob *blob, struct sol_blob *parent);
 
+enum sol_key_value_type {
+    SOL_KEY_VALUE_TYPE_STRING,
+    SOL_KEY_VALUE_TYPE_INT,
+    SOL_KEY_VALUE_TYPE_INVALID
+};
+
+struct sol_key_value {
+    enum sol_key_value_type type;
+    char *key;
+    union {
+        char *s;
+        int32_t i;
+    } value;
+};
+
+int sol_key_value_string_init(struct sol_key_value *kv, const char *key, const char *value);
+int sol_key_value_int_init(struct sol_key_value *kv, const char *key, int32_t value);
+int sol_key_value_set_key(struct sol_key_value *kv, const char *key);
+int sol_key_value_set_string_value(struct sol_key_value *kv, const char *value);
+int sol_key_value_set_int_value(struct sol_key_value *kv, int32_t value);
+void sol_key_value_clear(struct sol_key_value *kv);
+
 /**
  * @}
  */

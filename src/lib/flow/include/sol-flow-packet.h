@@ -99,6 +99,7 @@ extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_RGB;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_LOCATION;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_TIMESTAMP;
+extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_KEY_VALUE;
 
 /* Convenience functions to use certain types of common packets. */
 struct sol_flow_packet *sol_flow_packet_new_empty(void);
@@ -145,6 +146,9 @@ int sol_flow_packet_get_location(const struct sol_flow_packet *packet, struct so
 
 struct sol_flow_packet *sol_flow_packet_new_timestamp(const struct timespec *timestamp);
 int sol_flow_packet_get_timestamp(const struct sol_flow_packet *packet, struct timespec *timestamp);
+
+struct sol_flow_packet *sol_flow_packet_new_key_value(const struct sol_key_value *key_value);
+int sol_flow_packet_get_key_value(const struct sol_flow_packet *packet, struct sol_key_value *key_value);
 
 /**
  * @}

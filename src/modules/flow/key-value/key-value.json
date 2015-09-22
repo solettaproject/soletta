@@ -1,0 +1,219 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "key-value",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "key-value",
+      "description": "Constructs a key-value packet",
+      "name": "key-value/string",
+      "private_data_type": "key_value_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/key-value/string.html",
+      "methods": {
+        "open": "key_value_open",
+        "close": "key_value_close"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct key_value_node_type",
+        "extra_methods": {
+          "open_func": "key_value_string_open",
+          "value_process_func": "key_value_string_process",
+          "can_send_packet_func": "key_value_string_can_send_packet"
+        }
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The initial key value of the tuple",
+            "name": "key"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The initial value of the tuple",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The key of the tuple",
+          "methods": {
+            "process": "key_process"
+          },
+          "name": "KEY"
+        },
+        {
+          "data_type": "string",
+          "description": "The value of the tuple",
+          "methods": {
+            "process": "value_process"
+          },
+          "name": "VALUE"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "key-value",
+          "description": "A key-value string tuple",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "category": "key-value",
+      "description": "Constructs a key-value packet",
+      "name": "key-value/int",
+      "private_data_type": "key_value_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/key-value/int.html",
+      "methods": {
+        "open": "key_value_open",
+        "close": "key_value_close"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct key_value_node_type",
+        "extra_methods": {
+          "open_func": "key_value_int_open",
+          "value_process_func": "key_value_int_value_process",
+          "can_send_packet_func": "key_value_int_can_send_packet"
+        }
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The initial key value of the tuple",
+            "name": "key"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "The initial value of the tuple",
+            "name": "value"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true and the int value is the default value, an initial packet will be sent.",
+            "name": "default_is_valid"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The key of the tuple",
+          "methods": {
+            "process": "key_process"
+          },
+          "name": "KEY"
+        },
+        {
+          "data_type": "int",
+          "description": "The value of the tuple",
+          "methods": {
+            "process": "value_process"
+          },
+          "name": "VALUE"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "key-value",
+          "description": "A key-value int tuple",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "category": "key-value",
+      "description": "Constructs a key-value packet",
+      "name": "key-value/string-splitter",
+      "url": "http://solettaproject.org/doc/latest/node_types/key-value/string_splitter",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct key_value_splitter_node_type",
+        "extra_methods": {
+          "send_value_packet_func": "send_string_value_packet"
+        }
+      },
+      "in_ports": [
+        {
+          "data_type": "key-value",
+          "description": "A key-value string tuple",
+          "methods": {
+            "process": "key_value_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The key of the tuple",
+          "name": "KEY"
+        },
+        {
+          "data_type": "string",
+          "description": "The value of the tuple",
+          "name": "VALUE"
+        }
+      ]
+    },
+    {
+      "category": "key-value",
+      "description": "Constructs a key-value packet",
+      "name": "key-value/int-splitter",
+      "url": "http://solettaproject.org/doc/latest/node_types/key-value/string_splitter",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct key_value_splitter_node_type",
+        "extra_methods": {
+          "send_value_packet_func": "send_int_value_packet"
+        }
+      },
+      "in_ports": [
+        {
+          "data_type": "key-value",
+          "description": "A key-value int tuple",
+          "methods": {
+            "process": "key_value_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The key of the tuple",
+          "name": "KEY"
+        },
+        {
+          "data_type": "int",
+          "description": "The value of the tuple",
+          "name": "VALUE"
+        }
+      ]
+    }
+  ]
+}

@@ -172,6 +172,8 @@ int sol_flow_send_direction_vector_components_packet(struct sol_flow_node *src, 
 
 int sol_flow_send_location_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_location *value);
 
+int sol_flow_send_key_value_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_key_value *value);
+
 int sol_flow_send_timestamp_packet(struct sol_flow_node *src, uint16_t src_port, const struct timespec *value);
 
 int sol_flow_send_empty_packet(struct sol_flow_node *src, uint16_t src_port);

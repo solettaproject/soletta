@@ -341,6 +341,12 @@ sol_flow_send_timestamp_packet(struct sol_flow_node *src, uint16_t src_port, con
 }
 
 SOL_API int
+sol_flow_send_key_value_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_key_value *value)
+{
+    SOL_FLOW_SEND_PACKET(key_value);
+}
+
+SOL_API int
 sol_flow_send_irange_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_irange *value)
 {
     SOL_FLOW_SEND_PACKET(irange);

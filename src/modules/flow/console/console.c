@@ -156,6 +156,14 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         SOL_INT_CHECK(r, < 0, r);
         fprintf(mdata->fp, "%s#%02x (error)%s - %s\n",
             mdata->prefix, code, mdata->suffix, msg ? : "");
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_KEY_VALUE) {
+        struct sol_key_value kv;
+        int r = sol_flow_packet_get_key_value(packet, &kv);
+        SOL_INT_CHECK(r, < 0, r);
+        if (kv.type == SOL_KEY_VALUE_TYPE_STRING)
+            fprintf(mdata->fp, "Key:%s-Value:%s (key-value string tuple)\n", kv.key, kv.value.s);
+        else
+            fprintf(mdata->fp, "Key:%s-Value:%" PRId32 "(key-value int tuple)\n", kv.key, kv.value.i);
     } else {
         sol_flow_send_error_packet(node, -EINVAL, "Unsupported packet=%p type=%p (%s)",
             packet, packet_type, packet_type->name);
