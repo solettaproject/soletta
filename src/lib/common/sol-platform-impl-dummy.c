@@ -109,10 +109,3 @@ sol_platform_impl_get_serial_number(char **number)
     SOL_WRN("Not implemented");
     return -ENOTSUP;
 }
-
-int
-sol_platform_impl_get_os_version(char **version)
-{
-    SOL_WRN("Not implemented");
-    return -ENOTSUP;
-}
