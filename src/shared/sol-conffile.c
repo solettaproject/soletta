@@ -31,17 +31,20 @@
  */
 
 #include <errno.h>
+#include <libgen.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <limits.h>
 
-#include "sol-file-reader.h"
 #include "sol-conffile.h"
+#include "sol-file-reader.h"
+#include "sol-json.h"
 #include "sol-log.h"
+#include "sol-mainloop.h"
+#include "sol-platform.h"
 #include "sol-util.h"
 #include "sol-vector.h"
-#include "sol-json.h"
 
 static struct sol_ptr_vector _conffile_entry_vector; /* entries created by conffiles */
 static struct sol_ptr_vector _conffiles_loaded; /* paths of the currently loaded conffiles */
@@ -250,7 +253,7 @@ static void
 _get_json_include_paths(
     struct sol_json_scanner json_scanner,
     char **include,
-    char **include_fallbacks)
+    struct sol_vector *include_fallbacks)
 {
     static const char *include_group = "config_includes";
     static const char *include_str = "include";
@@ -285,9 +288,21 @@ _get_json_include_paths(
             continue;
         }
         if (sol_json_token_str_eq(&key, include_fallback, strlen(include_fallback))) {
-            *include_fallbacks = strndup(value.start + 1, sol_json_token_get_size(&value) - 2);
-            if (!*include_fallbacks)
+            char *buff;
+            struct sol_str_slice *s;
+            sol_json_token_remove_quotes(&value);
+            buff = strndup(value.start, sol_json_token_get_size(&value));
+            if (!buff)
                 SOL_DBG("Error: couldn't allocate memory for string.");
+            else {
+                s = sol_vector_append(include_fallbacks);
+                if (s) {
+                    s->data = buff;
+                    s->len = strlen(buff);
+                } else {
+                    free(buff);
+                }
+            }
             continue;
         }
     }
@@ -386,7 +401,7 @@ _clear_data(void)
 
 static struct sol_str_slice
 _load_json_from_paths(const char *path,
-    const char *fallback_paths,
+    struct sol_vector *fallback_paths,
     char **full_path,
     struct sol_file_reader **file_reader)
 {
@@ -398,23 +413,26 @@ _load_json_from_paths(const char *path,
     if (fallback_paths && !config_file_contents.len) {
         uint16_t idx;
         struct sol_str_slice *s_ptr;
-        struct sol_vector str_splitted = sol_util_str_split(sol_str_slice_from_str(fallback_paths), ";", 0);
-        SOL_VECTOR_FOREACH_IDX (&str_splitted, s_ptr, idx) {
+        SOL_VECTOR_FOREACH_IDX (fallback_paths, s_ptr, idx) {
+            SOL_DBG("Trying to load conffile: %s", s_ptr->data);
             config_file_contents = _load_json_from_dirs(s_ptr->data, full_path, file_reader);
-            if (config_file_contents.len)
+            if (config_file_contents.len) {
+                SOL_DBG("Successfully loaded conffile: %s", s_ptr->data);
                 break;
+            }
         }
-        sol_vector_clear(&str_splitted);
     }
     return config_file_contents;
 }
 
 static void
-_fill_vector(const char *path, const char *fallback_paths)
+_fill_vector(const char *path, struct sol_vector *fallback_paths)
 {
     char *full_path = NULL;
     char *include = NULL;
-    char *include_fallbacks = NULL;
+    struct sol_str_slice *slice;
+    uint16_t i;
+    struct sol_vector include_fallbacks = SOL_VECTOR_INIT(struct sol_str_slice);
     struct sol_str_slice config_file_contents = SOL_STR_SLICE_EMPTY;
     struct sol_file_reader *file_reader = NULL;
     struct sol_json_scanner json_scanner;
@@ -432,28 +450,113 @@ _fill_vector(const char *path, const char *fallback_paths)
     if (_json_to_vector(json_scanner) != 0)
         goto free_for_all;
 
-    if (include || include_fallbacks)
-        _fill_vector(include, include_fallbacks);
+    if (include || include_fallbacks.len) {
+        _fill_vector(include, &include_fallbacks);
+    }
 
 free_for_all:
     sol_file_reader_close(file_reader);
     free(full_path);
     free(include);
-    free(include_fallbacks);
+
+    SOL_VECTOR_FOREACH_IDX (&include_fallbacks, slice, i) {
+        free((char *)slice->data);
+    }
+
+    sol_vector_clear(&include_fallbacks);
+}
+
+static void
+_add_lookup_path(struct sol_vector *vector, const char **search_dirs, char *appname, const char *board_name)
+{
+    size_t i;
+    struct sol_vector files = SOL_VECTOR_INIT(struct sol_str_slice);
+
+#define ADD_PATH_FMT(_vector, _fmt, ...) \
+    do { \
+        int _r; \
+        char *_buff; \
+        struct sol_str_slice *_s; \
+        _r = asprintf(&_buff, _fmt, ## __VA_ARGS__); \
+        if (_r < 0 || !_buff) \
+            SOL_WRN("Couldn't allocate memory for config file formatting."); \
+        else { \
+            _s = sol_vector_append(_vector); \
+            if (_s) { \
+                _s->data = _buff; \
+                _s->len = strlen(_buff); \
+            } else { \
+                free(_buff); \
+            } \
+        } \
+    } while (0) \
+
+    if (appname && board_name) {
+        ADD_PATH_FMT(&files, "sol-flow-%s-%s.json", appname, board_name);
+    }
+
+    if (appname) {
+        ADD_PATH_FMT(&files, "sol-flow-%s.json", appname);
+    }
+
+    if (board_name) {
+        ADD_PATH_FMT(&files, "sol-flow-%s.json", board_name);
+    }
+
+    ADD_PATH_FMT(&files, "sol-flow.json");
+
+    for (i = 0; i < ARRAY_SIZE(search_dirs); i++) {
+        struct sol_str_slice *curr_file;
+        uint16_t idx;
+        const char *dir = search_dirs[i];
+
+        if (!dir)
+            continue;
+
+        SOL_VECTOR_FOREACH_IDX (&files, curr_file, idx) {
+            ADD_PATH_FMT(vector, "%s/%s", dir, curr_file->data);
+            free((char *)curr_file->data);
+        }
+    }
+
+    sol_vector_clear(&files);
+
+#undef ADD_PATH_FMT
 }
 
 static void
 _load_vector_defaults(void)
 {
+    char *appname, **argv;
+    const char *board_name;
+    uint16_t i;
+    struct sol_str_slice *slice;
+    struct sol_vector fallback_paths = SOL_VECTOR_INIT(struct sol_str_slice);
+    const char *search_dirs[] = {
+        ".", /* $PWD */
+        NULL, /* appdir */
+        PKGSYSCONFDIR, /* i.e /etc/soletta/ */
+    };
+
+    board_name = sol_platform_get_board_name();
+    argv = sol_argv();
+    appname = NULL;
+
+    if (argv) {
+        appname = basename(argv[0]);
+        search_dirs[1] = dirname(argv[0]);
+    }
+
+    _add_lookup_path(&fallback_paths, search_dirs, appname, board_name);
+
     _fill_vector(getenv("SOL_FLOW_MODULE_RESOLVER_CONFFILE"),
-        "sol-flow.json");
-    /*
-     * TODO: Add the following fill priority:
-     * 1. Envvar
-     * 2. Arg0
-     * 3. Platform
-     * 4. Common/Fallback
-     */
+        &fallback_paths);
+
+    SOL_VECTOR_FOREACH_IDX (&fallback_paths, slice, i) {
+        free((char *)slice->data);
+    }
+
+    sol_vector_clear(&fallback_paths);
 }
 
 static void
