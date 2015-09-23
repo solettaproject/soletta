@@ -204,11 +204,6 @@ struct sol_coap_packet *sol_coap_packet_notification_new(struct sol_coap_server 
 struct sol_coap_packet *sol_coap_packet_ref(struct sol_coap_packet *pkt);
 void sol_coap_packet_unref(struct sol_coap_packet *pkt);
 
-/* FIXME - remove this function.
- * Some refactory will be needed before removing it, so it's exposed this
- * way by now - DO NOT add other users for this function. */
-int sol_coap_packet_get_buf(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len);
-
 int sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len);
 int sol_coap_packet_set_payload_used(struct sol_coap_packet *pkt, uint16_t len);
 bool sol_coap_packet_has_payload(struct sol_coap_packet *pkt);
