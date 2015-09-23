@@ -237,7 +237,7 @@ fail:
  * connect to the bus. Any fail on getting connected to the bus means the
  * mainloop terminates.
  */
-sd_bus *
+SOL_API sd_bus *
 sol_bus_get(void (*bus_initialized)(sd_bus *bus))
 {
     int r;
@@ -267,7 +267,7 @@ fail:
     return NULL;
 }
 
-void
+SOL_API void
 sol_bus_close(void)
 {
     _ctx.exiting = true;
@@ -389,9 +389,9 @@ _getall_properties(sd_bus_message *reply, void *userdata,
     return _message_map_all_properties(reply, t, ret_error);
 }
 
-int
 sol_bus_map_cached_properties(sd_bus *bus,
     const char *dest, const char *path, const char *iface,
+SOL_API int
     const struct sol_bus_properties property_table[],
     void (*changed)(void *data, uint64_t mask),
     const void *data)
@@ -460,8 +460,8 @@ fail_append:
     return r;
 }
 
-int
 sol_bus_unmap_cached_properties(const struct sol_bus_properties property_table[],
+SOL_API int
     const void *data)
 {
     struct property_table *t, *found = NULL;
