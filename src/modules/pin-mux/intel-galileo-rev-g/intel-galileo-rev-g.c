@@ -317,29 +317,30 @@ static struct mux_controller pwm_controller_list[] = {
 static int
 _set_aio(const int device, const int pin)
 {
-    return set_aio(device, pin, aio_controller_list, (int)ARRAY_SIZE(aio_controller_list));
+    return mux_set_aio(device, pin, aio_controller_list, (int)ARRAY_SIZE(aio_controller_list));
 }
 
 static int
 _set_gpio(const int pin, const enum sol_gpio_direction dir)
 {
-    return set_gpio(pin, dir, gpio_dev_0, (int)ARRAY_SIZE(gpio_dev_0));
+    return mux_set_gpio(pin, dir, gpio_dev_0, (int)ARRAY_SIZE(gpio_dev_0));
 }
 
 static int
 _set_i2c(const uint8_t bus)
 {
-    return set_i2c(bus, i2c_dev_0, ARRAY_SIZE(i2c_dev_0));
+    return mux_set_i2c(bus, i2c_dev_0, ARRAY_SIZE(i2c_dev_0));
 }
 
 static int
 _set_pwm(const int device, const int channel)
 {
-    return set_pwm(device, channel, pwm_controller_list, (int)ARRAY_SIZE(pwm_controller_list));
+    return mux_set_pwm(device, channel, pwm_controller_list, (int)ARRAY_SIZE(pwm_controller_list));
 }
 
 SOL_PIN_MUX_DECLARE(INTEL_GALILEO_REV_G,
     .plat_name = "intel-galileo-rev-g",
+    .shutdown = mux_shutdown,
     .aio = _set_aio,
     .gpio = _set_gpio,
     .i2c = _set_i2c,
