@@ -40,17 +40,30 @@ struct sol_bus_properties {
     bool (*set)(void *data, const char *path, sd_bus_message *m);
 };
 
+struct sol_bus_client;
+
 sd_bus *sol_bus_get(void (*bus_initialized)(sd_bus *bus));
 void sol_bus_close(void);
 
-int sol_bus_map_cached_properties(sd_bus *bus,
-    const char *dest, const char *path, const char *iface,
+struct sol_bus_client *sol_bus_client_new(sd_bus *bus, const char *service);
+
+void sol_bus_client_free(struct sol_bus_client *client);
+
+const char *sol_bus_client_get_service(struct sol_bus_client *client);
+
+sd_bus *sol_bus_client_get_bus(struct sol_bus_client *client);
+
+int sol_bus_map_cached_properties(struct sol_bus_client *client,
+    const char *path, const char *iface,
+    const struct sol_bus_properties property_table[],
     void (*changed)(void *data, const char *path, uint64_t mask),
+    const void *data);
+
+int sol_bus_unmap_cached_properties(struct sol_bus_client *client,
     const struct sol_bus_properties property_table[],
     const void *data);
 
 
-int sol_bus_unmap_cached_properties(const struct sol_bus_properties property_table[],
     const void *data);
 
 /* convenience methods */
