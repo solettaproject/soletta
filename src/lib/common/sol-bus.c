@@ -47,9 +47,11 @@
 struct property_table {
     const struct sol_bus_properties *properties;
     const void *data;
-    void (*changed)(void *data, uint64_t mask);
     sd_bus_slot *match_slot;
+    void (*changed)(void *data, const char *path, uint64_t mask);
     sd_bus_slot *getall_slot;
+    char *iface;
+    char *path;
 };
 
 struct ctx {
@@ -300,6 +302,15 @@ sol_bus_close(void)
     }
 }
 
+static void
+destroy_property_table(struct property_table *table)
+{
+    sd_bus_slot_unref(table->getall_slot);
+    free(table->path);
+    free(table->iface);
+    free(table);
+}
+
 static int
 _message_map_all_properties(sd_bus_message *m,
     struct property_table *t, sd_bus_error *ret_error)
@@ -331,7 +342,7 @@ _message_map_all_properties(sd_bus_message *m,
         if (iter->member) {
             bool changed;
 
-            changed = iter->set((void *)t->data, m);
+            changed = iter->set((void *)t->data, t->path, m);
             if (changed)
                 mask |= 1 << (iter - t->properties);
         } else {
@@ -345,7 +356,7 @@ _message_map_all_properties(sd_bus_message *m,
 
 end:
     if (mask > 0)
-        t->changed((void *)t->data, mask);
+        t->changed((void *)t->data, t->path, mask);
 
     if (r == 0)
         r = sd_bus_message_exit_container(m);
@@ -393,7 +404,7 @@ SOL_API int
 sol_bus_map_cached_properties(sd_bus *bus,
     const char *dest, const char *path, const char *iface,
     const struct sol_bus_properties property_table[],
-    void (*changed)(void *data, uint64_t mask),
+    void (*changed)(void *data, const char *path, uint64_t mask),
     const void *data)
 {
     sd_bus_message *m = NULL;
@@ -425,6 +436,12 @@ sol_bus_map_cached_properties(sd_bus *bus,
     t->data = data;
     t->changed = changed;
 
+    t->iface = strdup(iface);
+    SOL_NULL_CHECK_GOTO(t->iface, fail);
+
+    t->path = strdup(path);
+    SOL_NULL_CHECK_GOTO(t->path, fail);
+
     r = sol_ptr_vector_append(&_ctx.property_tables, t);
     SOL_INT_CHECK_GOTO(r, < 0, fail_append);
 
@@ -450,12 +467,11 @@ sol_bus_map_cached_properties(sd_bus *bus,
 
 fail_getall:
     sd_bus_message_unref(m);
-    sd_bus_slot_unref(t->match_slot);
-fail_match:
-    sol_ptr_vector_del(&_ctx.property_tables,
-        sol_ptr_vector_get_len(&_ctx.property_tables) - 1);
-fail_append:
-    free(t);
+    sol_ptr_vector_del(&client->property_tables,
+        sol_ptr_vector_get_len(&client->property_tables) - 1);
+
+fail:
+    destroy_property_table(t);
 
     return r;
 }
