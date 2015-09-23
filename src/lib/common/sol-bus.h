@@ -37,7 +37,7 @@
 
 struct sol_bus_properties {
     const char *member;
-    bool (*set)(void *data, sd_bus_message *m);
+    bool (*set)(void *data, const char *path, sd_bus_message *m);
 };
 
 sd_bus *sol_bus_get(void (*bus_initialized)(sd_bus *bus));
@@ -45,8 +45,8 @@ void sol_bus_close(void);
 
 int sol_bus_map_cached_properties(sd_bus *bus,
     const char *dest, const char *path, const char *iface,
+    void (*changed)(void *data, const char *path, uint64_t mask),
     const struct sol_bus_properties property_table[],
-    void (*changed)(void *data, uint64_t mask),
     const void *data);
 
 
