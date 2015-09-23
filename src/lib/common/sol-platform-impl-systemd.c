@@ -60,13 +60,14 @@ struct ctx {
         enum sol_platform_state system_state;
     } properties;
 
+    struct sol_bus_client *systemd;
     struct sol_ptr_vector services;
 };
 
 static struct ctx _ctx;
 
 static bool
-_manager_set_system_state(void *data, sd_bus_message *m)
+_manager_set_system_state(void *data, const char *path, sd_bus_message *m)
 {
     struct ctx *ctx = data;
     const char *str;
@@ -85,6 +86,9 @@ _manager_set_system_state(void *data, sd_bus_message *m)
     };
     int r;
 
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+    SOL_INT_CHECK(r, < 0, false);
+
     r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
     SOL_INT_CHECK(r, < 0, false);
 
@@ -92,6 +96,9 @@ _manager_set_system_state(void *data, sd_bus_message *m)
         SOL_PLATFORM_SERVICE_STATE_UNKNOWN);
     changed = state != ctx->properties.system_state;
     ctx->properties.system_state = state;
+
+    r = sd_bus_message_exit_container(m);
+    SOL_INT_CHECK(r, < 0, false);
 
     return changed;
 }
@@ -101,7 +108,7 @@ enum {
 };
 
 static void
-_manager_properties_changed(void *data, uint64_t mask)
+_manager_properties_changed(void *data, const char *path, uint64_t mask)
 {
     struct ctx *ctx = data;
 
@@ -116,7 +123,6 @@ _manager_properties_changed(void *data, uint64_t mask)
 static const struct sol_bus_properties _manager_properties[] = {
     [MANAGER_PROPERTY_SYSTEM_STATE] = {
         .member = "SystemState",
-        .type = 's',
         .set = _manager_set_system_state,
     },
     { }
@@ -130,6 +136,9 @@ _bus_initialized(sd_bus *bus)
 
     _ctx.properties.system_state = SOL_PLATFORM_STATE_UNKNOWN;
 
+    _ctx.systemd = sol_bus_client_new(bus, "org.freedesktop.systemd1");
+    SOL_NULL_CHECK_GOTO(_ctx.systemd, fail_new_client);
+
     r = sd_bus_message_new_method_call(bus, &m,
         "org.freedesktop.systemd1",
         "/org/freedesktop/systemd1",
@@ -141,8 +150,7 @@ _bus_initialized(sd_bus *bus)
     SOL_INT_CHECK_GOTO(r, < 0, fail_call);
     sd_bus_message_unref(m);
 
-    r = sol_bus_map_cached_properties(bus,
-        "org.freedesktop.systemd1",
+    r = sol_bus_map_cached_properties(_ctx.systemd,
         "/org/freedesktop/systemd1",
         "org.freedesktop.systemd1.Manager",
         _manager_properties,
@@ -156,6 +164,7 @@ fail_call:
     sd_bus_message_unref(m);
 fail_map_properties:
 fail_new_method:
+fail_new_client:
     sol_bus_close();
 }
 
@@ -202,7 +211,7 @@ sol_platform_impl_get_state(void)
 }
 
 static bool
-_service_set_state(void *data, sd_bus_message *m)
+_service_set_state(void *data, const char *path, sd_bus_message *m)
 {
     struct service *x = data;
     const char *str;
@@ -219,6 +228,9 @@ _service_set_state(void *data, sd_bus_message *m)
     };
     int r;
 
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+    SOL_INT_CHECK(r, < 0, false);
+
     r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
     SOL_INT_CHECK(r, < 0, false);
 
@@ -226,6 +238,9 @@ _service_set_state(void *data, sd_bus_message *m)
         SOL_PLATFORM_SERVICE_STATE_UNKNOWN);
     changed = state != x->properties.state;
     x->properties.state = state;
+
+    r = sd_bus_message_exit_container(m);
+    SOL_INT_CHECK(r, < 0, false);
 
     return changed;
 }
@@ -235,7 +250,7 @@ enum {
 };
 
 static void
-_service_properties_changed(void *data, uint64_t mask)
+_service_properties_changed(void *data, const char *path, uint64_t mask)
 {
     struct service *x = data;
 
@@ -251,7 +266,6 @@ _service_properties_changed(void *data, uint64_t mask)
 static const struct sol_bus_properties _service_properties[] = {
     [SERVICE_PROPERTY_STATE] = {
         .member = "ActiveState",
-        .type = 's',
         .set = _service_set_state,
     },
     { }
@@ -273,8 +287,7 @@ _add_service_monitor(sd_bus_message *reply, void *userdata,
     r = sd_bus_message_read(reply, "o", &path);
     SOL_INT_CHECK(r, < 0, r);
 
-    sol_bus_map_cached_properties(sd_bus_message_get_bus(reply),
-        "org.freedesktop.systemd1",
+    sol_bus_map_cached_properties(_ctx.systemd,
         path,
         "org.freedesktop.systemd1.Unit",
         _service_properties,
@@ -348,7 +361,7 @@ sol_platform_impl_del_service_monitor(const char *service)
     if (found->slot)
         sd_bus_slot_unref(found->slot);
     else
-        sol_bus_unmap_cached_properties(_service_properties, found);
+        sol_bus_unmap_cached_properties(_ctx.systemd, _service_properties, found);
 
     sol_ptr_vector_del(&_ctx.services, i);
     free(found);
