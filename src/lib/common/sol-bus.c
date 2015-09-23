@@ -628,6 +628,29 @@ sol_bus_unmap_cached_properties(struct sol_bus_client *client,
     return 0;
 }
 
+static int
+name_owner_changed(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct sol_bus_client *client = userdata;
+    const char *name, *old, *new;
+
+    if (sd_bus_message_read(m, "sss", &name, &old, &new) < 0)
+        return 0;
+
+    if (new && client->connect) {
+        /* Assuming that when a name is replaced, calling 'connected()' is
+         * the right thing to do.
+         */
+        client->connect(client->connect_data, new);
+        return 0;
+    }
+
+    if (client->disconnect)
+        client->disconnect(client->disconnect_data);
+
+    return 0;
+}
+
 static const struct sol_bus_interfaces *
 find_interface(const struct sol_bus_client *client, const char *iface)
 {
@@ -807,6 +830,92 @@ sol_bus_remove_interfaces_watch(struct sol_bus_client *client,
 
     client->interfaces = NULL;
     client->interfaces_data = NULL;
+
+    return 0;
+}
+
+static sd_bus_slot *
+add_name_owner_watch(struct sol_bus_client *client,
+    sd_bus_message_handler_t cb, void *userdata)
+{
+    sd_bus_slot *slot = NULL;
+    char matchstr[512];
+    int r;
+
+    r = snprintf(matchstr, sizeof(matchstr), SERVICE_NAME_OWNER_MATCH, client->service);
+    SOL_INT_CHECK(r, < 0, NULL);
+
+    r = sd_bus_add_match(client->bus, &slot, matchstr, cb, userdata);
+    SOL_INT_CHECK(r, < 0, NULL);
+
+    return slot;
+}
+
+static int
+get_name_owner_reply_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct sol_bus_client *client = userdata;
+    const char *unique;
+    int r;
+
+    client->name_owner_slot = sd_bus_slot_unref(client->name_owner_slot);
+
+    /* Do not error because the service may not exist yet. */
+    if (sd_bus_message_is_method_error(m, NULL)) {
+        const sd_bus_error *error = sd_bus_message_get_error(m);
+        SOL_DBG("Failed method call: %s: %s", error->name, error->message);
+        return 0;
+    }
+
+    r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &unique);
+    SOL_INT_CHECK(r, < 0, -EINVAL);
+
+    if (client->connect)
+        client->connect(client->connect_data, unique);
+
+    return 0;
+}
+
+SOL_API int
+sol_bus_client_set_connect_handler(struct sol_bus_client *client,
+    void (*connect)(void *data, const char *unique),
+    void *data)
+{
+    SOL_NULL_CHECK(client, -EINVAL);
+
+    client->connect = connect;
+    client->connect_data = data;
+
+    if (client->name_changed)
+        return 0;
+
+    client->name_changed = add_name_owner_watch(client, name_owner_changed, client);
+    SOL_NULL_CHECK(client->name_changed, -ENOMEM);
+
+    /* In case the name is already present in the bus. */
+    sd_bus_call_method_async(sol_bus_client_get_bus(client),
+        &client->name_owner_slot, "org.freedesktop.DBus",
+        "/", "org.freedesktop.DBus", "GetNameOwner",
+        get_name_owner_reply_cb, client, "s", sol_bus_client_get_service(client));
+
+    return 0;
+}
+
+SOL_API int
+sol_bus_client_set_disconnect_handler(struct sol_bus_client *client,
+    void (*disconnect)(void *data),
+    void *data)
+{
+    SOL_NULL_CHECK(client, -EINVAL);
+
+    client->disconnect = disconnect;
+    client->disconnect_data = data;
+
+    if (client->name_changed)
+        return 0;
+
+    client->name_changed = add_name_owner_watch(client, name_owner_changed, client);
+    SOL_NULL_CHECK(client->name_changed, -ENOMEM);
 
     return 0;
 }
