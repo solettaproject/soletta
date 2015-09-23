@@ -9,7 +9,7 @@
   "types": [
     {
       "category": "converter",
-      "description": "Receives a boolean packet and convert to float.",
+      "description": "Receives a boolean packet and converts it to a floating point one.",
       "in_ports": [
         {
           "data_type": "boolean",
@@ -69,7 +69,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a boolean packet and convert to byte.",
+      "description": "Receives a boolean packet and converts it to a byte one.",
       "in_ports": [
         {
           "data_type": "boolean",
@@ -160,7 +160,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a boolean packet and convert to int.",
+      "description": "Receives a boolean packet and converts it to an integer one.",
       "in_ports": [
         {
           "data_type": "boolean",
@@ -220,7 +220,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a boolean packet and convert to string.",
+      "description": "Receives a boolean packet and converts it to a string one.",
       "in_ports": [
         {
           "data_type": "boolean",
@@ -281,7 +281,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives byte packet and convert to a binary representaion in outputs.",
+      "description": "Receives byte packet and converts it to a binary representation in the output array port.",
       "in_ports": [
         {
           "data_type": "byte",
@@ -306,7 +306,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a byte packet and convert to boolean.",
+      "description": "Receives a byte packet and converts it to a boolean one.",
       "in_ports": [
         {
           "data_type": "byte",
@@ -366,7 +366,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a byte packet and convert to float.",
+      "description": "Receives a byte packet and converts it to a floating point one.",
       "in_ports": [
         {
           "data_type": "byte",
@@ -449,7 +449,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a byte packet and convert to int.",
+      "description": "Receives a byte packet and converts it to an integer one.",
       "in_ports": [
         {
           "data_type": "byte",
@@ -558,7 +558,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a byte packet and convert to string.",
+      "description": "Receives a byte packet and converts it to a string one.",
       "in_ports": [
         {
           "data_type": "byte",
@@ -581,7 +581,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives an float packet and convert to boolean.",
+      "description": "Receives an float packet and converts it to a boolean one.",
       "in_ports": [
         {
           "data_type": "float",
@@ -630,7 +630,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a float packet and convert to byte.",
+      "description": "Receives a float packet and converts it to a byte one.",
       "in_ports": [
         {
           "data_type": "float",
@@ -702,7 +702,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a float packet and convert to int.",
+      "description": "Receives a float packet and converts it to an integer one.",
       "in_ports": [
         {
           "data_type": "float",
@@ -848,7 +848,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a float packet and convert to string.",
+      "description": "Receives a float packet and converts it to a string one.",
       "in_ports": [
         {
           "data_type": "float",
@@ -1181,7 +1181,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives an int packet and convert to boolean.",
+      "description": "Receives an int packet and converts it to a boolean one.",
       "in_ports": [
         {
           "data_type": "int",
@@ -1230,7 +1230,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives an int packet and convert to byte.",
+      "description": "Receives an int packet and converts it to a byte one.",
       "in_ports": [
         {
           "data_type": "int",
@@ -1301,7 +1301,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives an int packet and convert to float.",
+      "description": "Receives an int packet and converts it to a floating point one.",
       "in_ports": [
         {
           "data_type": "int",
@@ -1546,7 +1546,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives an int packet and convert to string.",
+      "description": "Receives an int packet and converts it to a string one.",
       "in_ports": [
         {
           "data_type": "int",
@@ -1976,7 +1976,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a string packet and convert to blob (sub-type SOL_BLOB_TYPE_DEFAULT).",
+      "description": "Receives a string packet and converts it to a blob (sub-type SOL_BLOB_TYPE_DEFAULT) one.",
       "in_ports": [
         {
           "data_type": "string",
@@ -1999,7 +1999,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a timestamp packet and convert to string.",
+      "description": "Receives a timestamp packet and converts it to a string one.",
       "in_ports": [
         {
           "data_type": "timestamp",
@@ -2038,7 +2038,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a string packet and convert to timestamp.",
+      "description": "Receives a string packet and converts it to a timestamp one.",
       "in_ports": [
         {
           "data_type": "string",

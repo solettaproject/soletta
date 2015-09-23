@@ -190,7 +190,7 @@
         "members": [
           {
             "data_type": "string",
-            "description": "Name to persist a int packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
+            "description": "Name to persist an integer packet with. If 'storage' is 'fs', the name must be a fully fledged path to the file where the value will be stored.",
             "name": "name"
           },
           {
