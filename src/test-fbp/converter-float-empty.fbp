@@ -28,8 +28,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## TEST-SKIP-COMPILE Generator failing to properly generate code
-
 float_to_empty(converter/float-to-empty:range=min:0|max:20)
 match_ten(constant/float:value=10)
 
