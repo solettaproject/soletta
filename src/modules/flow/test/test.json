@@ -314,6 +314,44 @@
       ],
       "private_data_type": "blob_validator_data",
       "url": "http://solettaproject.org/doc/latest/components/blob-validator.html"
+    },
+    {
+      "category": "test",
+      "description": "Matches an expected sequence of strings.",
+      "methods": {
+        "close": "string_validator_close",
+        "open": "string_validator_open"
+      },
+      "name": "test/string-validator",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the expected sequence.",
+          "methods": {
+            "process": "string_validator_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Expected sequence to be matched, formatted as 'string 1|string 2|string 3'",
+            "name": "sequence"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Outputs true if there is a match, false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_validator_data",
+      "url": "http://solettaproject.org/doc/latest/components/string-validator.html"
     }
   ]
 }
