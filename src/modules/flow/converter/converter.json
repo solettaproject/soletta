@@ -272,7 +272,7 @@
       "out_ports": [
         {
           "data_type": "string",
-          "description": "Send string defined by option 'true_value' if input is true or by 'false_value' if input is false.",
+          "description": "Sends the string defined by the option 'true_value', if input is true, or by the option 'false_value', if input is false.",
           "name": "OUT"
         }
       ],
@@ -357,7 +357,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "Send true if input packet value is in range defined by min and max values or false otherwise.",
+          "description": "Sends true if the input packet value is in the range defined by 'min' and 'max' values or false, otherwise.",
           "name": "OUT"
         }
       ],
@@ -440,7 +440,7 @@
       "out_ports": [
         {
           "data_type": "empty",
-          "description": "Send an empty packet when input packet value in range defined by min and max values.",
+          "description": "Sends an empty packet when the input packet's value is in the range defined by 'min' and 'max' values.",
           "name": "OUT"
         }
       ],
@@ -621,7 +621,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "Send true if input packet value is in range defined by min and max values or false otherwise.",
+          "description": "Sends true if the input packet value is in the range defined by 'min' and 'max' values or false, otherwise.",
           "name": "OUT"
         }
       ],
@@ -693,7 +693,7 @@
       "out_ports": [
         {
           "data_type": "empty",
-          "description": "Send an empty packet when input packet value is in range defined by min and max values.",
+          "description": "Sends an empty packet when the input packet value is in the range defined by 'min' and 'max' values.",
           "name": "OUT"
         }
       ],
@@ -1221,7 +1221,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "Send true if input packet value is in range defined by min and max values or false otherwise.",
+          "description": "Sends true if the input packet value is in the range defined by 'min' and 'max' values or false, otherwise.",
           "name": "OUT"
         }
       ],
@@ -1364,7 +1364,7 @@
       "out_ports": [
         {
           "data_type": "empty",
-          "description": "Send an empty packet when input packet value is in range defined by min and max values.",
+          "description": "Sends an empty packet when the input packet value is in the range defined by 'min' and 'max' values.",
           "name": "OUT"
         }
       ],
@@ -1821,7 +1821,7 @@
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "Send true if received string is 'true' and false if 'false'. It ignores case. If string is different from those, no packet is sent.",
+          "description": "Sends true if the received string is 'true' and false, if 'false'. It ignores case. If that string is different from those, no packet is sent.",
           "name": "OUT"
         }
       ],
@@ -1844,7 +1844,7 @@
       "out_ports": [
         {
           "data_type": "byte",
-          "description": "Send converted value on success or do not send anything if a valid byte can't be parsed. It's expected to be on base 16 and may include '0x' prefix.",
+          "description": "Sends the byte-converted value on success. It does not send anything if a valid byte can't be parsed. The input value is expected to be on base 16 and may include '0x' prefix.",
           "name": "OUT"
         }
       ],
@@ -1867,7 +1867,7 @@
       "out_ports": [
         {
           "data_type": "float",
-          "description": "Send converted value on success or do not send anything if a valid number can't be parsed.",
+          "description": "Sends the float-converted value on success. It does not send anything if a valid number can't be parsed.",
           "name": "OUT"
         }
       ],
@@ -1875,7 +1875,7 @@
     },
     {
       "category": "converter",
-      "description": "Receives a string packet and send an empty packet.",
+      "description": "Receives a string packet and sends an empty packet.",
       "in_ports": [
         {
           "data_type": "string",
@@ -1890,7 +1890,7 @@
       "out_ports": [
         {
           "data_type": "empty",
-          "description": "Send a packet when any string is received.",
+          "description": "Sends an empty packet when any string is received.",
           "name": "OUT"
         }
       ],
@@ -1913,7 +1913,7 @@
       "out_ports": [
         {
           "data_type": "int",
-          "description": "Send converted value on success or do not send anything if a valid number can't be parsed.",
+          "description": "Sends the interger-converted value on success. It does not send anything if a valid number can't be parsed.",
           "name": "OUT"
         }
       ],
@@ -1966,7 +1966,7 @@
       "out_ports": [
         {
           "data_type": "byte",
-          "description": "Send the byte converted from bits received.",
+          "description": "Sends the byte-converted value from bits received.",
           "name": "OUT",
           "required": true
         }
@@ -1991,7 +1991,7 @@
       "out_ports": [
         {
           "data_type": "blob",
-          "description": "Send blob with the contents of the string received in the port IN.",
+          "description": "Sends a blob packet with the contents of the string received in the port IN.",
           "name": "OUT"
         }
       ],
