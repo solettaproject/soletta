@@ -45,7 +45,7 @@
 #include "sol-util-file.h"
 
 int
-fs_write(const char *name, struct sol_buffer *buffer)
+fs_write(const char *name, const struct sol_buffer *buffer)
 {
     FILE *file;
     int ret = 0;

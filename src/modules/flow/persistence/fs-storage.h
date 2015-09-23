@@ -34,5 +34,5 @@
 
 #include "sol-buffer.h"
 
-int fs_write(const char *name,  struct sol_buffer *buffer);
+int fs_write(const char *name, const struct sol_buffer *buffer);
 int fs_read(const char *name, struct sol_buffer *buffer);

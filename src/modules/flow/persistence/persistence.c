@@ -44,7 +44,7 @@
 #include "efivarfs-storage.h"
 
 struct storage_fn {
-    int (*write)(const char *name, struct sol_buffer *buffer);
+    int (*write)(const char *name, const struct sol_buffer *buffer);
     int (*read)(const char *name, struct sol_buffer *buffer);
 };
 
