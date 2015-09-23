@@ -116,7 +116,7 @@ get_node_type_description(const struct fbp_data *data, uint16_t i)
 
 static void
 handle_suboptions(const struct sol_fbp_meta *meta,
-    void (*handle_func)(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file), const char *fbp_file)
+    void (*handle_func)(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file, bool remaining), const char *fbp_file)
 {
     uint16_t i = 0;
     char *p, *remaining;
@@ -128,7 +128,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
         p = memchr(remaining, '|', strlen(remaining));
         if (p)
             *p = '\0';
-        handle_func(meta, remaining, i, fbp_file);
+        handle_func(meta, remaining, i, fbp_file, p != NULL);
 
         if (!p)
             break;
@@ -139,7 +139,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
 }
 
 static void
-handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
+handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file, bool remaining)
 {
     char *p = memchr(option, ':', strlen(option));
 
@@ -166,17 +166,23 @@ check_suboption(char *option, const struct sol_fbp_meta *meta, const char *fbp_f
 }
 
 static void
-handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
+handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file, bool remaining)
 {
     const char *irange_drange_fields[] = { "val", "min", "max", "step", NULL };
 
     if (check_suboption(option, meta, fbp_file))
         out("            .%.*s.%s = %s,\n", SOL_STR_SLICE_PRINT(meta->key),
             irange_drange_fields[index], option);
+
+    if (index == 0 && !remaining) {
+        out("            .%.*s.min = INT32_MIN,\n", SOL_STR_SLICE_PRINT(meta->key));
+        out("            .%.*s.max = INT32_MAX,\n", SOL_STR_SLICE_PRINT(meta->key));
+        out("            .%.*s.step = 1,\n", SOL_STR_SLICE_PRINT(meta->key));
+    }
 }
 
 static void
-handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
+handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file, bool remaining)
 {
     const char *rgb_fields[] = { "red", "green", "blue",
                                  "red_max", "green_max", "blue_max", NULL };
@@ -187,7 +193,7 @@ handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t ind
 }
 
 static void
-handle_direction_vector_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
+handle_direction_vector_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file, bool remaining)
 {
     const char *direction_vector_fields[] = { "x", "y", "z",
                                               "min", "max", NULL };
