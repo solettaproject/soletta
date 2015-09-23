@@ -36,6 +36,7 @@
 #include "sol-flow.h"
 #include "sol-flow-inspector.h"
 #include "sol-util.h"
+#include "sol-log.h"
 
 struct timespec start;
 
@@ -123,7 +124,7 @@ inspector_show_out_port(const struct sol_flow_node *node, uint16_t port_idx)
 }
 
 static void
-inspector_show_packet(const struct sol_flow_packet *packet)
+inspector_really_show_packet(const struct sol_flow_packet *packet)
 {
     const struct sol_flow_packet_type *type = sol_flow_packet_get_type(packet);
 
@@ -220,6 +221,28 @@ inspector_show_packet(const struct sol_flow_packet *packet)
     }
 
     fputs("<?>", stdout);
+}
+
+static void
+inspector_show_packet(const struct sol_flow_packet *packet)
+{
+    const struct sol_flow_packet_type *type = sol_flow_packet_get_type(packet);
+
+    if (sol_flow_packet_is_composed_type(type)) {
+        uint16_t len, i;
+        struct sol_flow_packet **packets;
+
+        sol_flow_packet_get_composed_members_len(type, &len);
+        packets = malloc(len * sizeof(struct sol_flow_packet *));
+        SOL_NULL_CHECK(packets);
+        sol_flow_packet_get(packet, packets);
+        fprintf(stdout,"<COMPOSED-PACKET {");
+        for (i = 0; i < len; i++)
+            inspector_really_show_packet(packets[i]);
+        fprintf(stdout, "}>");
+        free(packets);
+    } else
+        inspector_really_show_packet(packet);
 }
 
 static void
