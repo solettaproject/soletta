@@ -206,7 +206,8 @@ persist_open(struct sol_flow_node *node,
     /* a zero packet_data_size means dynamic size content */
     if (mdata->packet_data_size) {
         struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(mdata->value_ptr,
-            mdata->packet_data_size, SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            mdata->packet_data_size,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
         r = storage_read(mdata, &buf);
     } else {

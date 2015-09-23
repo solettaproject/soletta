@@ -322,3 +322,23 @@ sol_buffer_copy(const struct sol_buffer *buf)
 
     return b_copy;
 }
+
+SOL_API int
+sol_buffer_ensure_nul_byte(struct sol_buffer *buf)
+{
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    if (buf->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE)
+        return -EINVAL;
+
+    if (*((char *)sol_buffer_at_end(buf) - 1) == '\0')
+        return 0;
+
+    if (buf->used >= SIZE_MAX - 1 ||
+        sol_buffer_ensure(buf, buf->used + 1) < 0)
+        return -ENOMEM;
+
+    *((char *)buf->data + buf->used) = '\0';
+
+    return 0;
+}

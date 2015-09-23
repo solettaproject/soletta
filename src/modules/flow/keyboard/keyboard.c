@@ -231,7 +231,7 @@ keyboard_on_event(void *data, int fd, unsigned int cond)
     if (cond & SOL_FD_FLAGS_IN) {
         unsigned char buf[8];
         struct sol_buffer buffer = SOL_BUFFER_INIT_FLAGS(buf, sizeof(buf),
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         int r = sol_util_fill_buffer(STDIN_FILENO, &buffer, buffer.capacity);
         if (r < 0) {
             SOL_WRN("could not read stdin: %s", sol_util_strerrora(errno));

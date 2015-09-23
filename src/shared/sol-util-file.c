@@ -160,6 +160,14 @@ sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
     if (ret > 0)
         ret = bytes_read;
 
+    if (!(buffer->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE)) {
+        if (buffer->used == buffer->capacity)
+            SOL_WRN("sol_buffer %p asks for terminating NUL byte, but doesn't have space for it",
+                buffer);
+        else
+            *((char *)buffer->data + buffer->used) = '\0';
+    }
+
     return ret;
 }
 
@@ -174,6 +182,7 @@ sol_util_load_file_raw(const int fd)
         return NULL;
 
     buffer = sol_buffer_new();
+    buffer->flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE;
     SOL_NULL_CHECK(buffer, NULL);
 
     if (fstat(fd, &st) >= 0 && st.st_size) {
@@ -211,13 +220,10 @@ sol_util_load_file_fd_string(int fd, size_t *size)
         data = strdup("");
         size_read = 1;
     } else {
-        if (*((char *)sol_buffer_at_end(buffer) - 1) != '\0') {
-            if (buffer->used >= SIZE_MAX - 1 ||
-                sol_buffer_ensure(buffer, buffer->used + 1) < 0)
-                goto err;
-            *((char *)buffer->data + buffer->used) = '\0';
-            buffer->used++;
-        }
+        buffer->flags = SOL_BUFFER_FLAGS_DEFAULT;
+        if (sol_buffer_ensure_nul_byte(buffer) < 0)
+            goto err;
+
         data = sol_buffer_steal(buffer, &size_read);
         if (!data)
             goto err;
