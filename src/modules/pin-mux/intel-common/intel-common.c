@@ -47,6 +47,45 @@ SOL_LOG_INTERNAL_DECLARE(_intel_mux_log_domain, "intel-mux");
 #define BASE "/sys/class/gpio"
 #define MODE_PATH "/sys/kernel/debug/gpio_debug/gpio%d/current_pinmux"
 
+struct gpio_ref {
+    int pin;
+    struct sol_gpio *gpio;
+};
+
+static struct sol_vector _in_use = SOL_VECTOR_INIT(struct gpio_ref);
+
+static struct sol_gpio *
+_get_gpio(int pin, enum sol_gpio_direction dir, bool val)
+{
+    uint16_t i;
+    struct gpio_ref *ref;
+    struct sol_gpio *gpio;
+    struct sol_gpio_config gpio_config = { 0 };
+
+    SOL_VECTOR_FOREACH_IDX (&_in_use, ref, i) {
+        if (ref->pin == pin)
+            return ref->gpio;
+    }
+
+    gpio_config.api_version = SOL_GPIO_CONFIG_API_VERSION;
+    gpio_config.dir = dir;
+    gpio_config.out.value = val;
+
+    gpio = sol_gpio_open_raw(pin, &gpio_config);
+    if (gpio) {
+        ref = sol_vector_append(&_in_use);
+        if (!ref) {
+            sol_gpio_close(gpio);
+            return NULL;
+        }
+
+        ref->pin = pin;
+        ref->gpio = gpio;
+    }
+
+    return gpio;
+}
+
 static int
 _set_gpio(int pin, enum sol_gpio_direction dir, int drive, bool val)
 {
@@ -55,15 +94,12 @@ _set_gpio(int pin, enum sol_gpio_direction dir, int drive, bool val)
     char path[PATH_MAX];
     struct sol_gpio *gpio;
     const char *drive_str;
-    struct sol_gpio_config gpio_config = { 0 };
 
-    gpio_config.api_version = SOL_GPIO_CONFIG_API_VERSION;
-    gpio_config.dir = dir;
-    gpio_config.out.value = val;
-
-    gpio = sol_gpio_open_raw(pin, &gpio_config);
-    if (!gpio)
+    gpio = _get_gpio(pin, dir, val);
+    if (!gpio) {
+        SOL_WRN("Wasn't possible to open gpio=%d", pin);
         return -EINVAL;
+    }
 
     // Drive:
     // This is not standard interface in upstream Linux, so the
@@ -137,8 +173,21 @@ _apply_mux_desc(struct mux_description *desc, unsigned int mode)
     return 0;
 }
 
+void
+mux_shutdown(void)
+{
+    uint16_t i;
+    struct gpio_ref *ref;
+
+    SOL_VECTOR_FOREACH_IDX (&_in_use, ref, i) {
+        sol_gpio_close(ref->gpio);
+    }
+
+    sol_vector_clear(&_in_use);
+}
+
 int
-set_aio(const int device, const int pin, const struct mux_controller *ctl_list, const int s)
+mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_list, const int s)
 {
     const struct mux_controller *ctl;
 
@@ -163,8 +212,8 @@ set_aio(const int device, const int pin, const struct mux_controller *ctl_list, 
 }
 
 int
-set_gpio(const int pin, const enum sol_gpio_direction dir, struct mux_description **const desc_list,
-    const int s)
+mux_set_gpio(const int pin, const enum sol_gpio_direction dir,
+    struct mux_description **const desc_list, const int s)
 {
     if (pin < 0) {
         SOL_WRN("Invalid GPIO pin: %d", pin);
@@ -179,7 +228,7 @@ set_gpio(const int pin, const enum sol_gpio_direction dir, struct mux_descriptio
 }
 
 int
-set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2], const unsigned int s)
+mux_set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2], const unsigned int s)
 {
     int ret;
 
@@ -195,7 +244,7 @@ set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2], const
 }
 
 int
-set_pwm(const int device, const int channel, const struct mux_controller *ctl_list, const int s)
+mux_set_pwm(const int device, const int channel, const struct mux_controller *ctl_list, const int s)
 {
     const struct mux_controller *ctl;
 

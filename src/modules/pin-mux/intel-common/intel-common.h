@@ -41,7 +41,7 @@ extern "C" {
 /**
  * Pin logical value to be used
  */
-enum pin_val {
+enum mux_pin_val {
     PIN_LOW = 0, /**< Logical zero */
     PIN_HIGH, /**< Logical one */
     PIN_NONE, /**< Pin should be disable i.e. set to high impedance input */
@@ -56,7 +56,7 @@ enum pin_val {
 /**
  * Mode in which the pin will be set to operate
  */
-enum mode {
+enum mux_mode {
     MODE_GPIO_INPUT_PULLUP = 0x01, /**< GPIO Input (Pull-up) */
     MODE_GPIO_INPUT_PULLDOWN = 0x02, /**< GPIO Input (Pull-down) */
     MODE_GPIO_INPUT_HIZ = 0x04, /**< GPIO Input (High impedance) */
@@ -76,8 +76,8 @@ enum mode {
 
 struct mux_description {
     int gpio_pin; /**< GPIO pin that controls the mux */
-    enum pin_val val; /**< Pin value */
-    enum mode mode; /**< Combination of possible pin operation modes */
+    enum mux_pin_val val; /**< Pin value */
+    enum mux_mode mode; /**< Combination of possible pin operation modes */
 }; /**< Description of a rule to be applied to setup the multiplexer of a given pin */
 
 /**
@@ -89,14 +89,18 @@ struct mux_controller {
     struct mux_description **recipe; /**< A list of mux recipes for each pin */
 };
 
-int set_aio(const int device, const int pin, const struct mux_controller *ctl_list, const int s);
+void mux_shutdown(void);
 
-int set_gpio(const int pin, const enum sol_gpio_direction dir,
+int mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_list,
+    const int s);
+
+int mux_set_gpio(const int pin, const enum sol_gpio_direction dir,
     struct mux_description **const desc_list, const int s);
 
-int set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2], const unsigned int s);
+int mux_set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2],
+    const unsigned int s);
 
-int set_pwm(const int device, const int channel, const struct mux_controller *ctl_list,
+int mux_set_pwm(const int device, const int channel, const struct mux_controller *ctl_list,
     const int s);
 
 #ifdef __cplusplus
