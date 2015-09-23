@@ -473,19 +473,43 @@ end:
     return r;
 }
 
+static const struct property_table *
+find_property_table(struct sol_bus_client *client,
+    const char *iface, const char *path)
+{
+    struct property_table *t;
+    uint16_t i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&client->property_tables, t, i) {
+        if (streq(t->iface, iface) && streq(t->path, path))
+            return t;
+    }
+
+    return NULL;
+}
+
 static int
 _match_properties_changed(sd_bus_message *m, void *userdata,
     sd_bus_error *ret_error)
 {
-    struct property_table *t = userdata;
+    struct sol_bus_client *client = userdata;
+    const struct property_table *t;
+    const char *path;
+    const char *iface;
     int r;
+
+    path = sd_bus_message_get_path(m);
+    SOL_NULL_CHECK(path, -EINVAL);
+
+    r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &iface);
+    SOL_INT_CHECK(r, < 0, r);
+
+    t = find_property_table(client, iface, path);
+    SOL_NULL_CHECK(t, -ENOENT);
 
     /* Ignore PropertiesChanged signals until the GetAll() method returns */
     if (t->getall_slot)
         return 0;
-
-    r = sd_bus_message_skip(m, "s");
-    SOL_INT_CHECK(r, < 0, r);
 
     r = _message_map_all_properties(m, t, ret_error);
     SOL_INT_CHECK(r, < 0, r);
@@ -554,16 +578,12 @@ sol_bus_map_cached_properties(struct sol_bus_client *client,
         SOL_INT_CHECK(r, < 0, -ENOBUFS);
 
         r = sd_bus_add_match(client->bus, &client->properties_changed, matchstr,
-            _match_properties_changed, t);
+            _match_properties_changed, client);
         SOL_INT_CHECK_GOTO(r, < 0, fail);
     }
 
     r = sol_ptr_vector_append(&client->property_tables, t);
     SOL_INT_CHECK_GOTO(r, < 0, fail);
-
-    /* When GetManagedObjects return we will have info about all the properties. */
-    if (client->managed_objects)
-        return 0;
 
     r = sd_bus_message_new_method_call(client->bus, &m, client->service, path,
         "org.freedesktop.DBus.Properties",
@@ -610,6 +630,189 @@ sol_bus_unmap_cached_properties(struct sol_bus_client *client,
 
     sol_ptr_vector_del(&client->property_tables, i);
     destroy_property_table(found);
+
+    return 0;
+}
+
+static const struct sol_bus_interfaces *
+find_interface(const struct sol_bus_client *client, const char *iface)
+{
+    const struct sol_bus_interfaces *s;
+
+    for (s = client->interfaces; s && s->name; s++) {
+        if (streq(iface, s->name))
+            return s;
+    }
+    return NULL;
+}
+
+static bool
+filter_device_properties(sd_bus_message *m, const char *iface, const char *path,
+    struct sol_bus_client *client, sd_bus_error *ret_error)
+{
+    const struct property_table *t;
+
+    t = find_property_table(client, iface, path);
+    if (!t) {
+        sd_bus_message_skip(m, "a{sv}");
+        return false;
+    }
+
+    _message_map_all_properties(m, t, ret_error);
+
+    return true;
+}
+
+static void
+filter_interfaces(struct sol_bus_client *client, sd_bus_message *m, sd_bus_error *ret_error)
+{
+    const char *path;
+
+    if (sd_bus_message_read(m, "o", &path) < 0)
+        return;
+
+    if (sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sa{sv}}") < 0)
+        return;
+
+    do {
+        const struct sol_bus_interfaces *s;
+        const char *iface;
+
+        if (sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "sa{sv}") < 0)
+            break;
+
+        if (sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &iface) < 0)
+            return;
+
+        s = find_interface(client, iface);
+        if (s && s->appeared)
+            s->appeared((void *)client->interfaces_data, path);
+
+        filter_device_properties(m, iface, path, client, ret_error);
+
+        if (sd_bus_message_exit_container(m) < 0)
+            return;
+
+    } while (1);
+}
+
+static int
+interfaces_added_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct sol_bus_client *client = userdata;
+
+    if (sol_bus_log_callback(m, userdata, ret_error))
+        return -EINVAL;
+
+    filter_interfaces(client, m, ret_error);
+
+    return 0;
+}
+
+static int
+managed_objects_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
+{
+    struct sol_bus_client *client = userdata;
+    int err;
+
+    if (sol_bus_log_callback(m, userdata, ret_error)) {
+        err = -EINVAL;
+        goto end;
+    }
+
+    if (sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{oa{sa{sv}}}") < 0) {
+        err = -EINVAL;
+        goto end;
+    }
+
+    while (sd_bus_message_enter_container(m, SD_BUS_TYPE_DICT_ENTRY, "oa{sa{sv}}") > 0) {
+
+        filter_interfaces(client, m, ret_error);
+
+        if (sd_bus_message_exit_container(m) < 0) {
+            err = -EINVAL;
+            goto end;
+        }
+    }
+
+    if (sd_bus_message_exit_container(m) < 0) {
+        err = -EINVAL;
+        goto end;
+    }
+
+    err = 0;
+
+end:
+    client->managed_objects = sd_bus_slot_unref(client->managed_objects);
+    return err;
+}
+
+SOL_API int
+sol_bus_watch_interfaces(struct sol_bus_client *client,
+    const struct sol_bus_interfaces interfaces[],
+    const void *data)
+{
+    sd_bus_message *m = NULL;
+    const struct sol_bus_interfaces *iter;
+    char matchstr[512];
+    int r;
+
+    /* One set of 'interfaces' per client. Too limited? */
+    if (client->interfaces)
+        return -EALREADY;
+
+    for (iter = interfaces; iter->name;)
+        iter++;
+
+    SOL_INT_CHECK(iter - interfaces, >= (int)sizeof(uint64_t) * CHAR_BIT, -ENOBUFS);
+
+    r = snprintf(matchstr, sizeof(matchstr), INTERFACES_ADDED_MATCH, client->service);
+    SOL_INT_CHECK(r, < 0, -ENOMEM);
+
+    client->interfaces = interfaces;
+    client->interfaces_data = data;
+
+    if (client->interfaces_added)
+        return 0;
+
+    r = sd_bus_add_match(client->bus, &client->interfaces_added,
+        matchstr, interfaces_added_cb, client);
+    SOL_INT_CHECK(r, < 0, -ENOMEM);
+
+    if (client->managed_objects)
+        return 0;
+
+    r = sd_bus_message_new_method_call(client->bus, &m, client->service, "/",
+        "org.freedesktop.DBus.ObjectManager", "GetManagedObjects");
+    SOL_INT_CHECK_GOTO(r, < 0, error_message);
+
+    r = sd_bus_call_async(client->bus, &client->managed_objects,
+        m, managed_objects_cb, client, 0);
+    SOL_INT_CHECK_GOTO(r, < 0, error_call);
+
+    sd_bus_message_unref(m);
+
+    return 0;
+
+error_call:
+    sd_bus_message_unref(m);
+
+error_message:
+    client->interfaces_added = sd_bus_slot_unref(client->interfaces_added);
+
+    return -EINVAL;
+}
+
+SOL_API int
+sol_bus_remove_interfaces_watch(struct sol_bus_client *client,
+    const struct sol_bus_interfaces interfaces[],
+    const void *data)
+{
+    if (client->interfaces != interfaces || client->interfaces_data != data)
+        return -ENODATA;
+
+    client->interfaces = NULL;
+    client->interfaces_data = NULL;
 
     return 0;
 }
