@@ -235,6 +235,8 @@ int sol_coap_packet_send_notification(struct sol_coap_server *server,
 
 bool sol_coap_server_register_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, void *data);
+int sol_coap_server_unregister_resource(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource);
 
 int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen);

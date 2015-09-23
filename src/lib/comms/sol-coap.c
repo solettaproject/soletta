@@ -611,7 +611,7 @@ error:
 }
 
 static struct resource_context *
-find_context(struct sol_coap_server *server, struct sol_coap_resource *resource)
+find_context(struct sol_coap_server *server, const struct sol_coap_resource *resource)
 {
     struct resource_context *c;
     uint16_t i;
@@ -1484,6 +1484,11 @@ sol_coap_server_register_resource(struct sol_coap_server *server,
 
     COAP_RESOURCE_CHECK_API(false);
 
+    if (find_context(server, resource)) {
+        SOL_WRN("Attempting to register duplicate resource in CoAP server");
+        return false;
+    }
+
     c = sol_vector_append(&server->contexts);
     SOL_NULL_CHECK(c, false);
 
@@ -1494,4 +1499,29 @@ sol_coap_server_register_resource(struct sol_coap_server *server,
     sol_ptr_vector_init(&c->observers);
 
     return true;
+}
+
+SOL_API int
+sol_coap_server_unregister_resource(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource)
+{
+    struct resource_context *c;
+    uint16_t idx;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(resource, -EINVAL);
+
+    COAP_RESOURCE_CHECK_API(-EINVAL);
+
+    SOL_VECTOR_FOREACH_REVERSE_IDX (&server->contexts, c, idx) {
+        if (c->resource != resource)
+            continue;
+
+        destroy_context(c);
+        sol_vector_del(&server->contexts, idx);
+
+        return 0;
+    }
+
+    return -ENOENT;
 }
