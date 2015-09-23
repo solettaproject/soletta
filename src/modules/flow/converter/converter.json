@@ -1921,7 +1921,7 @@
     },
     {
       "category": "converter",
-      "description": "Extracts error code and string from an error packet.",
+      "description": "Extracts error code and message string from an error packet.",
       "in_ports": [
         {
           "data_type": "error",
@@ -2020,7 +2020,7 @@
           {
             "data_type": "string",
             "default": "%Y-%m-%dT%H:%M:%S%Z",
-            "description": "Format string to be used in the conversion. The syntax is the same as strftime().",
+            "description": "Format string to be used in the conversion. The syntax is the same as strftime()'s.",
             "name": "format"
           }
         ],
@@ -2059,7 +2059,7 @@
           {
             "data_type": "string",
             "default": "%Y-%m-%dT%H:%M:%S",
-            "description": "Format string to be used in the conversion. The syntax is the same as strftime().",
+            "description": "Format string to be used in the conversion. The syntax is the same as strftime()'s.",
             "name": "format"
           }
         ],
