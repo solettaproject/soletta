@@ -59,6 +59,14 @@ const char *sol_bus_client_get_service(struct sol_bus_client *client);
 
 sd_bus *sol_bus_client_get_bus(struct sol_bus_client *client);
 
+int sol_bus_client_set_connect_handler(struct sol_bus_client *client,
+    void (*connect)(void *data, const char *unique),
+    void *data);
+
+int sol_bus_client_set_disconnect_handler(struct sol_bus_client *client,
+    void (*disconnect)(void *data),
+    void *data);
+
 int sol_bus_map_cached_properties(struct sol_bus_client *client,
     const char *path, const char *iface,
     const struct sol_bus_properties property_table[],
