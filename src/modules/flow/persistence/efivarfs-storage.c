@@ -109,7 +109,7 @@ efivars_read(const char *name, struct sol_buffer *buffer)
     char path[PATH_MAX];
     uint32_t b;
     struct sol_buffer attr = SOL_BUFFER_INIT_FLAGS(&b, sizeof(uint32_t),
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
     r = snprintf(path, sizeof(path), EFIVARFS_VAR_PATH, name);
     if (r < 0 || r >= PATH_MAX) {

@@ -62,7 +62,7 @@ static ssize_t
 fill_buffer(const int fd, void *buf, const size_t size)
 {
     struct sol_buffer buffer = SOL_BUFFER_INIT_FLAGS(buf, size,
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
     ssize_t ret;
 
     ret = sol_util_fill_buffer(fd, &buffer, size);
