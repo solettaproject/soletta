@@ -48,6 +48,15 @@ def is_custom(typename):
 def custom_get_name(typename):
     return c_clean(typename[7:].lower())
 
+def is_composed(typename):
+    return typename.startswith("composed:")
+
+def get_composed_types_with_underscore(types):
+    return types[len("composed:"):].replace(",", "_")
+
+def get_composed_types_as_list(types):
+    return types[len("composed:"):].split(",")
+
 data_type_to_c_map = {
     "boolean": "bool ",
     "blob": "struct sol_blob *",
@@ -204,8 +213,33 @@ def include_common_headers(outfile):
 
 """)
 
+def get_composed_types_as_arguments(types_list):
+    s = ""
+    for i, type_name in enumerate(types_list):
+        if type_name == "string" or type_name == "blob":
+            pointer = ""
+        else:
+            pointer = "*"
+        s += "%s%s out_value_%d," % (data_type_to_c(type_name), pointer, i)
+    s = s[:-1]
+    return s
 
-def declare_packet(outfile, port, packets):
+def generate_new_packet_type_functions(types_list):
+    s = ""
+    for i, type_name in enumerate(types_list):
+        if type_name == "int":
+            final_type = "irange"
+        elif type_name == "float":
+            final_type = "drange"
+        else:
+            final_type = type_name
+        s += """\
+   children[%d] = sol_flow_packet_new_%s(out_value_%d);
+   SOL_NULL_CHECK_GOTO(children[%d], exit);
+\n""" % (i, final_type, i, i)
+    return s
+
+def declare_packet(outfile, port, packets, name_c):
     data_type = port.get("data_type");
     if (is_custom(data_type)):
         packet_name = custom_get_name(data_type)
@@ -296,15 +330,52 @@ send_%(name)s_packet(struct sol_flow_node *src, uint16_t src_port
     "NAME": packet_name.upper(),
     "name_data": packet_name + "_packet_data"
     })
+    elif is_composed(data_type):
+        data_type_with_underscore = get_composed_types_with_underscore(data_type)
+        data_type_as_list = get_composed_types_as_list(data_type)
+        outfile.write("""
+static int
+send_%s_packet(struct sol_flow_node *src, uint16_t src_port, %s)
+{
+   struct sol_flow_packet **children, *composed_packet;
+   const struct sol_flow_packet_type *p_type;
+   uint16_t len, i;
+   int r;
+
+   p_type = %s_get_composed_%s_packet_type();
+   r = sol_flow_packet_get_composed_members_len(p_type, &len);
+   SOL_INT_CHECK(r, < 0, r);
+   children = alloca(len * sizeof(struct sol_flow_packet *));
+   memset(children, 0, len * sizeof(struct sol_flow_packet *));
+
+   %s
+   composed_packet = sol_flow_packet_new(p_type, children);
+   SOL_NULL_CHECK_GOTO(composed_packet, exit);
+
+   r = sol_flow_send_packet(src, src_port, composed_packet);
+exit:
+   for (i = 0; i < len; i++) {
+        if (children[i] == NULL && r == 0) {
+          r = -ENOMEM;
+          break;
+        }
+        sol_flow_packet_del(children[i]);
+   }
+   return r;
+}
+""" % (data_type_with_underscore,
+       get_composed_types_as_arguments(data_type_as_list),
+       name_c, data_type_with_underscore,
+       generate_new_packet_type_functions(data_type_as_list)))
 
 
-def declare_packets(outfile, data, packets):
+def declare_packets(outfile, data, packets, prefix):
     if "in_ports" in data:
         for port in data["in_ports"]:
-            declare_packet(outfile, port, packets)
+            declare_packet(outfile, port, packets, prefix)
     if "out_ports" in data:
         for port in data["out_ports"]:
-            declare_packet(outfile, port, packets)
+            declare_packet(outfile, port, packets, prefix)
 
 
 def declare_structs(outfile, data, structs):
@@ -318,7 +389,6 @@ struct %s {
 
 """ % struct)
         structs.append(struct)
-
 
 def declare_methods(outfile, data, methods):
     struct = data.get("private_data_type", None)
@@ -442,9 +512,35 @@ static int
 """ % method_process)
         print_data_struct(outfile, struct)
         single_type = get_single_packet_type(methods_process[method_process])
-        if single_type:
-            outfile.write("""\
+        if single_type and is_composed(single_type):
+            types_list = get_composed_types_as_list(single_type)
+            for i, type in enumerate(types_list):
+                outfile.write("""
+    %sin_value_%d;""" % (data_type_to_c(type), i))
+            outfile.write("""
+    const struct sol_flow_packet_type *p_type;
+    struct sol_flow_packet **packets;
     int r;
+    uint16_t len;
+
+    p_type = sol_flow_packet_get_type(packet);
+    if (p_type != %s_get_composed_%s_packet_type())
+       return -EINVAL;
+    r = sol_flow_packet_get_composed_members_len(p_type, &len);
+    SOL_INT_CHECK(r, < 0, r);
+    packets = malloc(len * sizeof(struct sol_flow_packet *));
+    SOL_NULL_CHECK(packets, -ENOMEM);
+    r = sol_flow_packet_get(packet, &packets);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+""" % (data["name_c"], get_composed_types_with_underscore(single_type)))
+            for i, type in enumerate(types_list):
+                outfile.write("""
+    r = %s;
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);""" % (data_type_to_packet_getter(type).replace(")", (("_%d" % (i)))) + ")" ))
+        elif single_type:
+            outfile.write("""
+    int r;
+
     %sin_value;
 
     r = %s;
@@ -452,14 +548,18 @@ static int
 
 """ % (data_type_to_c(single_type),
        data_type_to_packet_getter(single_type)))
-        outfile.write("""\
+        outfile.write("""
     /* TODO: implement process method */
 
     return 0;
-}
-
 """)
-
+        if single_type and is_composed(single_type):
+            outfile.write("""
+err_exit:
+    free(packets);
+    return r;""")
+        outfile.write("""
+}\n""")
 
 def generate_stub(stub_file, inputs_list, prefix, is_module, namespace):
     data = []
@@ -489,10 +589,10 @@ def generate_stub(stub_file, inputs_list, prefix, is_module, namespace):
     # declare all custom packets - structs and functions
     for data_item in data:
         if not "types" in data_item:
-            declare_packets(stub_file, data_item, packets)
+            declare_packets(stub_file, data_item, packets, "")
         else:
             for t in data_item["types"]:
-                declare_packets(stub_file, t, packets)
+                declare_packets(stub_file, t, packets, data_item["name_c"] + "_" + c_clean(t["name"].split("/")[1]))
 
     # declare private data structs
     for data_item in data:

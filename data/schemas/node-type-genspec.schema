@@ -53,6 +53,10 @@
         {
           "type": "string",
           "pattern": "^custom:[a-zA-Z_][a-zA-Z0-9_]*$"
+        },
+        {
+          "type": "string",
+          "pattern": "^composed:([a-zA-Z]*?)((,[a-zA-Z]+)+)$"
         }
       ]
     },

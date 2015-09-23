@@ -56,6 +56,7 @@ sol_flow_shutdown(void)
 #ifdef ENABLE_DYNAMIC_MODULES
     loaded_metatype_cache_shutdown();
 #endif
+    sol_flow_packet_type_composed_shutdown();
 }
 
 #ifdef SOL_FLOW_INSPECTOR_ENABLED
