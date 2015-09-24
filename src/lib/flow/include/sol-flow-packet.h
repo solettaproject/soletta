@@ -99,6 +99,7 @@ extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_RGB;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_LOCATION;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_TIMESTAMP;
+extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_STRING_TUPLE;
 
 /* Convenience functions to use certain types of common packets. */
 struct sol_flow_packet *sol_flow_packet_new_empty(void);

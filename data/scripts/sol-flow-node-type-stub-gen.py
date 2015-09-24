@@ -60,6 +60,7 @@ data_type_to_c_map = {
     "location": "struct sol_location ",
     "string": "const char *",
     "error": "int code_value; const char *",
+    "string-tuple": "struct sol_flow_packet **"
     }
 def data_type_to_c(typename):
     if (is_custom(typename)):
@@ -126,6 +127,8 @@ def data_type_to_packet_getter(typename):
     if (is_custom(typename)):
         return "packet_get_" + custom_get_name(typename) + \
                "(packet /* TODO: add args */)"
+    if (typename == 'string-tuple'):
+        return "sol_flow_packet_get(packet, &in_value)"
     return "sol_flow_packet_get_" + data_type_to_packet_getter_map[typename]
 
 

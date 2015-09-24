@@ -259,6 +259,7 @@ data_type_to_c_map = {
     "string": "const char *",
     "location": "struct sol_location",
     "timestamp": "struct timespec",
+    "string-tuple": "struct sol_flow_packet *"
     }
 def data_type_to_c(typename):
     return data_type_to_c_map[typename]
@@ -288,7 +289,8 @@ data_type_to_packet_type_map = {
     "location": "SOL_FLOW_PACKET_TYPE_LOCATION",
     "timestamp": "SOL_FLOW_PACKET_TYPE_TIMESTAMP",
     "any": "SOL_FLOW_PACKET_TYPE_ANY",
-    "error": "SOL_FLOW_PACKET_TYPE_ERROR"
+    "error": "SOL_FLOW_PACKET_TYPE_ERROR",
+    "string-tuple": "SOL_FLOW_PACKET_TYPE_STRING_TUPLE"
     }
 def packet_type_from_data_type(typename):
     if typename.startswith("custom:"):

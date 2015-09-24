@@ -1,0 +1,3 @@
+config FLOW_NODE_TYPE_TUPLE
+	tristate "Node type: tuple"
+	default y

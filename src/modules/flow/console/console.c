@@ -156,6 +156,17 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         SOL_INT_CHECK(r, < 0, r);
         fprintf(mdata->fp, "%s#%02x (error)%s - %s\n",
             mdata->prefix, code, mdata->suffix, msg ? : "");
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_STRING_TUPLE) {
+        struct sol_flow_packet *array[2];
+        const char *k, *v;
+
+        int r = sol_flow_packet_get(packet, &array);
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_flow_packet_get_string(array[0], &k);
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_flow_packet_get_string(array[1], &v);
+        SOL_INT_CHECK(r, < 0, r);
+        fprintf(mdata->fp, "Key:%s Value:%s (String tuple)\n", k, v);
     } else {
         sol_flow_send_error_packet(node, -EINVAL, "Unsupported packet=%p type=%p (%s)",
             packet, packet_type, packet_type->name);
