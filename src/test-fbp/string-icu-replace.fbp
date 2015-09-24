@@ -85,7 +85,7 @@ out_07 OUT -> IN[1] cmp_07
 cmp_07 EQUAL -> RESULT test_07(test/result)
 
 sample_08(constant/string:value="whatever")
-out_08(constant/string:value="Fail on matching 'n' on string w")
+out_08(constant/string:value="Fail on matching 'no_match' on string whatever")
 
 sample_08 OUT -> IN replace_08(string/replace:from_string="no_match",to_string="★",forward_on_no_match=false)
 replace_08 ERROR -> IN _(converter/error) MESSAGE -> IN[0] cmp_08(string/compare)
