@@ -208,6 +208,7 @@ keyboard_irange_on_code(struct keyboard_common_data *data,
         return;
 
     keyboard_users_walking++;
+    mdata->common.last_code = (int32_t)code;
 
     SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, mdata, i) {
         struct sol_flow_node *handle;

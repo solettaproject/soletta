@@ -314,6 +314,8 @@ sol_json_token_get_double(const struct sol_json_token *token, double *value)
             sol_json_token_get_size(token), token->start);
         *value = 0;
         r = -EINVAL;
+    } else if (fpclassify(*value) == FP_SUBNORMAL) {
+        r = 0;
     }
 
     return r;
@@ -522,7 +524,9 @@ sol_json_double_to_str(const double value, char *buf, size_t len)
     struct lconv *lc = localeconv();
 #endif
 
-    ret = snprintf(buf, len, "%f", value);
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    ret = snprintf(buf, len, "%g", value);
     if (ret < 0 || ret > (int)len)
         return -ENOMEM;
 
