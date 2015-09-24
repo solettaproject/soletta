@@ -36,6 +36,22 @@
             "process": "gtk_label_in_process"
           },
           "name": "IN"
+        },
+        {
+          "data_type": "any",
+          "description": "Prints the packet's value to a label widget",
+          "methods": {
+            "process": "gtk_label_in_process"
+          },
+          "name": "VALUE"
+        },
+        {
+          "data_type": "any",
+          "description": "Prints the packet's value to a label widget",
+          "methods": {
+            "process": "gtk_label_in_process"
+          },
+          "name": "SEGMENTS"
         }
       ],
       "methods": {
