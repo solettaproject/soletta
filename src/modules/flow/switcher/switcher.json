@@ -37,9 +37,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_blob_close",
         "open": "switcher_open"
       },
       "name": "switcher/blob",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_blob_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -63,6 +73,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
@@ -107,9 +123,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_close",
         "open": "switcher_open"
       },
       "name": "switcher/boolean",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_boolean_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -133,6 +159,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
@@ -177,9 +209,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_close",
         "open": "switcher_open"
       },
       "name": "switcher/byte",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_byte_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -203,6 +245,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
@@ -247,9 +295,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_close",
         "open": "switcher_open"
       },
       "name": "switcher/empty",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_empty_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -273,6 +331,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
@@ -334,9 +398,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_close",
         "open": "switcher_open"
       },
       "name": "switcher/float",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_drange_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -360,6 +434,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
@@ -404,9 +484,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_close",
         "open": "switcher_open"
       },
       "name": "switcher/int",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_irange_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -430,6 +520,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
@@ -474,9 +570,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_close",
         "open": "switcher_open"
       },
       "name": "switcher/rgb",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_rgb_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -500,6 +606,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
@@ -544,9 +656,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_close",
         "open": "switcher_open"
       },
       "name": "switcher/direction-vector",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_direction_vector_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -570,6 +692,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
@@ -614,9 +742,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_close",
         "open": "switcher_open"
       },
       "name": "switcher/string",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_string_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -640,6 +778,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
@@ -684,9 +828,19 @@
         }
       ],
       "methods": {
+        "close": "switcher_close",
         "open": "switcher_open"
       },
       "name": "switcher/timestamp",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct switcher_node_type",
+        "extra_methods": {
+          "send_func": "send_timestamp_packet"
+        }
+      },
       "options": {
         "members": [
           {
@@ -710,6 +864,12 @@
             },
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "When enabled last packet received on each input port will be saved, so when index are changed, it'll send last received value, instead of only forward the next packet. If no packet was received at certain index, no packet will be sent.",
+            "name": "keep_state"
           }
         ],
         "version": 1
