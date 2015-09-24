@@ -1,0 +1,93 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+sample_01(constant/string:value="lalal")
+out_01(constant/string:value="*al")
+
+sample_01 OUT -> IN replace_01(string/replace:from_string="lal",to_string="*")
+replace_01 OUT -> IN[0] cmp_01(string/compare)
+out_01 OUT -> IN[1] cmp_01
+cmp_01 EQUAL -> RESULT test_01(test/result)
+
+sample_02(constant/string:value="llll")
+out_02(constant/string:value="**")
+
+sample_02 OUT -> IN replace_02(string/replace:from_string="ll",to_string="*")
+replace_02 OUT -> IN[0] cmp_02(string/compare)
+out_02 OUT -> IN[1] cmp_02
+cmp_02 EQUAL -> RESULT test_02(test/result)
+
+sample_03(constant/string:value="**")
+out_03(constant/string:value="**")
+
+sample_03 OUT -> IN replace_03(string/replace)
+replace_03 OUT -> IN[0] cmp_03(string/compare)
+out_03 OUT -> IN[1] cmp_03
+cmp_03 EQUAL -> RESULT test_03(test/result)
+
+sample_04(constant/string:value="*****")
+out_04(constant/string:value="*")
+
+sample_04 OUT -> IN replace_04(string/replace:from_string="**",to_string="")
+replace_04 OUT -> IN[0] cmp_04(string/compare)
+out_04 OUT -> IN[1] cmp_04
+cmp_04 EQUAL -> RESULT test_04(test/result)
+
+sample_05(constant/string:value="")
+out_05(constant/string:value="*")
+
+sample_05 OUT -> IN replace_05(string/replace:from_string="",to_string="*")
+replace_05 OUT -> IN[0] cmp_05(string/compare)
+out_05 OUT -> IN[1] cmp_05
+cmp_05 EQUAL -> RESULT test_05(test/result)
+
+sample_06(constant/string:value="** long string ** with stars ** to be changed **")
+out_06(constant/string:value="## long string ## with stars #* to be changed **")
+
+sample_06 OUT -> IN replace_06(string/replace:from_string="*",to_string="#",max_replace=5)
+replace_06 OUT -> IN[0] cmp_06(string/compare)
+out_06 OUT -> IN[1] cmp_06
+cmp_06 EQUAL -> RESULT test_06(test/result)
+
+sample_07(constant/string:value="whatever")
+out_07(constant/string:value="whatever")
+
+sample_07 OUT -> IN replace_07(string/replace:from_string="no_match",to_string="*")
+replace_07 OUT -> IN[0] cmp_07(string/compare)
+out_07 OUT -> IN[1] cmp_07
+cmp_07 EQUAL -> RESULT test_07(test/result)
+
+sample_08(constant/string:value="whatever")
+out_08(constant/string:value="Fail on matching 'no_match' on string whatever")
+
+sample_08 OUT -> IN replace_08(string/replace:from_string="no_match",to_string="*",forward_on_no_match=false)
+replace_08 ERROR -> IN _(converter/error) MESSAGE -> IN[0] cmp_08(string/compare)
+out_08 OUT -> IN[1] cmp_08
+cmp_08 EQUAL -> RESULT result_08(test/result)
