@@ -3,6 +3,7 @@ obj-y += core.mod
 obj-core-y := \
     sol-blob.o \
     sol-mainloop.o \
+    sol-modules.o \
     sol-platform.o \
     sol-types.o
 
@@ -91,6 +92,7 @@ headers-y := \
     include/sol-log.h \
     include/sol-macros.h \
     include/sol-mainloop.h \
+    include/sol-modules.h \
     include/sol-platform.h \
     include/sol-types.h \
     sol-common-buildopts.h.in

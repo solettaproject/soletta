@@ -32,21 +32,41 @@
 
 #pragma once
 
-{{
-st.on_value("PLATFORM_LINUX", "y", "#define SOL_PLATFORM_LINUX 1", "")
-st.on_value("PLATFORM_RIOTOS", "y", "#define SOL_PLATFORM_RIOT 1", "")
-st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
-}}
+#include "sol-common-buildopts.h"
 
-{{
-st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
-}}
+#ifdef SOL_DYNAMIC_MODULES
+/**
+ * Fetches the given symbol whether it's built-in or from a module.
+ *
+ * Returns the address where @a _sym is stored. This may come from the library
+ * itself if it was built-in, or loaded from the module @a _mod of type @a _ns.
+ */
+#define sol_symbol_get(_ns, _mod, _sym) sol_modules_get_symbol(_ns, _mod, #_sym)
 
-{{
-st.on_value("MODULES", "y", "#define SOL_DYNAMIC_MODULES 1", "")
-}}
-
-#ifdef SOL_PLATFORM_LINUX
-#define SOL_MAINLOOP_FD_ENABLED 1
-#define SOL_MAINLOOP_FORK_WATCH_ENABLED 1
+/**
+ * Returns the requested symbol, loading the respective module if needed.
+ *
+ * Checks if the @a symbol can be found in the library, returning its address
+ * in that case. If not, it loads the module @a modname of type @a nspace and
+ * tries to get the symbol there. Returns NULL on error or if the symbol
+ * could not be found, win which case errno is set to ENOENT.
+ *
+ * The module will be loaded from the @a nspace sub-directory under the main
+ * modules directory of the library. For example, if the library is installed
+ * under @c /usr, and the @c console module of type @c flow is requested, the path
+ * will be @c /usr/lib/soletta/modules/flow/console.so
+ *
+ * It is strongly recommended to avoid calling this function directly. Instead,
+ * use the macro #sol_symbol_get().
+ *
+ * @param nspace The namespace under which to look for the module
+ * @param modname The name of the module to load, if the symbol is not found
+ *                built-in.
+ * @param symbol The name of the symbol to look for.
+ *
+ * @return The address where the symbol is stored, or NULL on error.
+ */
+void *sol_modules_get_symbol(const char *nspace, const char *modname, const char *symbol);
+#else
+#define sol_symbol_get(_ns, _mod, _sym) (void *)&_sym
 #endif
