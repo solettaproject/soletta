@@ -20,8 +20,7 @@ obj-libshared-$(PLATFORM_LINUX) += \
     sol-file-reader.o \
     sol-lib-loader.o \
     sol-util-linux.o \
-    sol-util-file.o \
-    sol-iio.o
+    sol-util-file.o
 
 obj-libshared-$(PLATFORM_RIOTOS) += \
     sol-util-riot.o

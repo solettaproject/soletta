@@ -49,6 +49,11 @@ menuconfig USE_PIN_MUX
 
           If unsure, say Y.
 
+config USE_IIO
+    bool "Linux Industrial I/O Support"
+    depends on LINUX
+    default y
+
 source "src/modules/pin-mux/intel-galileo-rev-d/Kconfig"
 source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
 source "src/modules/pin-mux/intel-edison-rev-c/Kconfig"

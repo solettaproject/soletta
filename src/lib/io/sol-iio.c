@@ -613,7 +613,7 @@ iio_set_channel_offset(struct sol_iio_channel *channel, int offset)
     return result;
 }
 
-struct sol_iio_device *
+SOL_API struct sol_iio_device *
 sol_iio_open(int device_id, const struct sol_iio_config *config)
 {
     bool r;
@@ -856,7 +856,7 @@ iio_del_channel(struct sol_iio_channel *channel)
     free(channel);
 }
 
-void
+SOL_API void
 sol_iio_close(struct sol_iio_device *device)
 {
     int i;
@@ -893,7 +893,7 @@ read_channel_index_in_buffer(struct sol_iio_channel *channel)
     return true;
 }
 
-struct sol_iio_channel *
+SOL_API struct sol_iio_channel *
 sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struct sol_iio_channel_config *config)
 {
     struct sol_iio_channel *channel;
@@ -1022,7 +1022,7 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
     return true;
 }
 
-bool
+SOL_API bool
 sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
 {
     int len;
@@ -1071,7 +1071,7 @@ calc_channel_offset_in_buffer(const struct sol_iio_channel *channel)
     return offset;
 }
 
-bool
+SOL_API bool
 sol_iio_device_trigger_now(struct sol_iio_device *device)
 {
     char path[PATH_MAX];
@@ -1101,7 +1101,7 @@ sol_iio_device_trigger_now(struct sol_iio_device *device)
     return true;
 }
 
-bool
+SOL_API bool
 sol_iio_device_start_buffer(struct sol_iio_device *device)
 {
     struct sol_iio_channel *channel;
@@ -1404,7 +1404,7 @@ create_or_resolve_device_address_dispatch(void *data)
     return false;
 }
 
-bool
+SOL_API bool
 sol_iio_address_device(const char *commands, void (*cb)(void *data, int device_id), const void *data)
 {
     struct create_and_resolve_path_data *dispatcher_data;
@@ -1428,7 +1428,7 @@ sol_iio_address_device(const char *commands, void (*cb)(void *data, int device_i
     return true;
 }
 
-struct sol_str_slice
+SOL_API struct sol_str_slice
 sol_iio_read_channel_raw_buffer(struct sol_iio_channel *channel)
 {
     struct sol_str_slice slice = SOL_STR_SLICE_EMPTY;
