@@ -16,6 +16,9 @@ obj-$(USE_I2C) += \
 obj-$(USE_SPI) += \
     io-spi.mod
 
+obj-$(USE_IIO) += \
+    io-iio.mod
+
 obj-io-aio-$(USE_AIO) := \
     sol-aio-common.o
 obj-io-aio-$(PLATFORM_RIOTOS) += \
@@ -56,6 +59,9 @@ obj-io-uart-$(PLATFORM_RIOTOS) := \
 obj-io-uart-$(PLATFORM_LINUX) := \
     sol-uart-linux.o
 
+obj-io-iio-$(USE_IIO) := \
+    sol-iio.o
+
 headers-$(USE_AIO) += \
     include/sol-aio.h
 headers-$(USE_GPIO) += \
@@ -68,3 +74,5 @@ headers-$(USE_SPI) += \
     include/sol-spi.h
 headers-$(USE_UART) += \
     include/sol-uart.h
+headers-$(USE_IIO) += \
+    include/sol-iio.h
