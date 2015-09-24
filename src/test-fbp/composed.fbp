@@ -1,0 +1,18 @@
+DECLARE=ComposedCreator:composed-new:STRING_VALUE(String)|INT_VALUE(int)|FLOAT_VALUE(float)
+DECLARE=ComposedSplitter:composed-split:STRING_VALUE(String)|INT_VALUE(int)|FLOAT_VALUE(float)
+
+Creator(ComposedCreator) OUT -> IN Splitter(ComposedSplitter)
+
+StrValue(constant/string:value="My Key") OUT -> STRING_VALUE Creator
+IntValue(constant/int:value=999) OUT -> INT_VALUE Creator
+FloatValue(constant/float:value=2.5) OUT -> FLOAT_VALUE Creator
+
+StrValue OUT -> IN[0] StrCmp(string/compare) EQUAL -> IN[0] AndAux(boolean/and) OUT -> IN[0] AndFinal(boolean/and)
+IntValue OUT -> IN[0] IntCmp(int/equal) OUT -> IN[1] AndAux
+FloatValue OUT -> IN[0] FloatCmp(float/equal) OUT -> IN[1] AndFinal
+
+AndFinal OUT -> RESULT Test(test/result)
+
+Splitter FLOAT_VALUE -> IN[1] FloatCmp
+Splitter INT_VALUE -> IN[1] IntCmp
+Splitter STRING_VALUE -> IN[1] StrCmp

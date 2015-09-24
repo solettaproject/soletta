@@ -43,6 +43,7 @@
 #include "sol-log.h"
 #include "sol-util.h"
 #include "sol-vector.h"
+#include "sol-flow-composed.h"
 
 #include "sol-flow-metatype-builtins-gen.h"
 
@@ -535,6 +536,12 @@ get_create_type_func(const struct sol_str_slice name)
 {
     if (sol_str_slice_str_eq(name, "fbp"))
         return create_fbp_type;
+
+    if (sol_str_slice_str_eq(name, "composed-split"))
+        return create_composed_splitter_type;
+
+    if (sol_str_slice_str_eq(name, "composed-new"))
+        return create_composed_constructor_type;
 
 #if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
     {
