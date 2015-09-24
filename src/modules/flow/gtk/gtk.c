@@ -47,6 +47,7 @@ SOL_LOG_INTERNAL_DECLARE(_gtk_log_domain, "flow-gtk");
 #include "byte-editor.h"
 #include "label.h"
 #include "led.h"
+#include "led-7seg.h"
 #include "pushbutton.h"
 #include "pwm-editor.h"
 #include "pwm-viewer.h"

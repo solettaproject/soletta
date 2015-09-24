@@ -48,6 +48,35 @@
     },
     {
       "category": "output/sw",
+      "description": "Widget used to represent led 7 segments.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Set value to be displayed.",
+          "methods": {
+            "process": "gtk_led_7seg_value_process"
+          },
+          "name": "VALUE"
+        },
+        {
+          "data_type": "byte",
+          "description": "Define segments to be on and off. The order expected by the display for each bit is 'abcdefgX', where X is the DP, as described in http://en.wikipedia.org/wiki/Seven-segment_display_character_representations.",
+          "methods": {
+            "process": "gtk_led_7seg_segments_process"
+          },
+          "name": "SEGMENTS"
+        }
+      ],
+      "methods": {
+        "close": "gtk_led_7seg_close",
+        "open": "gtk_led_7seg_open"
+      },
+      "name": "gtk/led-7seg",
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/led-7seg.html"
+    },
+    {
+      "category": "output/sw",
       "description": "Gtk widget that immitates a led. It can receive a rgb or int (1 byte per channel) packet to set its color and turn it on. Or it can receive a boolean packet to turn it on or off. Led's turned off are drawn as black.",
       "in_ports": [
         {
