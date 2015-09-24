@@ -976,9 +976,13 @@ replace:
     }
 
     if (!mdata->forward_on_no_match && !replaced) {
+        char *from;
+        r = utf8_from_icu_str_slice(mdata->from_string, -1, &from, &err);
+        SOL_INT_CHECK(r, < 0, r);
+
         sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Fail on matching '%s' on string"
-            " %s", mdata->from_string, mdata->orig_string);
+            "Fail on matching '%s' on string" " %s", from, value);
+        free(from);
         free(orig_string_replaced);
         return -EINVAL;
     }
