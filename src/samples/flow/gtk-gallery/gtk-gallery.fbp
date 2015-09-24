@@ -50,3 +50,8 @@ rgb_editor(gtk/rgb-editor) OUT -> IN rgb_editor_output(gtk/led:rgb=0|0|0)
 
 pushbutton(gtk/pushbutton) OUT -> IN pushbutton_output(gtk/led)
 pushbutton PRESSED -> IN pushbutton_pressed_output(gtk/label)
+
+timer(timer:interval=3000)
+val(int/accumulator:setup_value=min:0|max:15)
+timer OUT -> INC val
+val OUT -> VALUE led_7seg(gtk/led-7seg)
