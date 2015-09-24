@@ -1178,8 +1178,9 @@ string_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port,
     if (!strcasecmp(in_value, "true"))
         out_value = true;
     else if (strcasecmp(in_value, "false")) {
-        SOL_WRN("String %s isn't a valid boolean", in_value);
-        return -EINVAL;
+        return sol_flow_send_error_packet
+                   (node, EINVAL, "Unhandled string to convert to a boolean "
+                   "value: %s", in_value);
     }
 
     return sol_flow_send_boolean_packet(node,
