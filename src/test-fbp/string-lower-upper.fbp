@@ -1,0 +1,57 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+test_01(constant/string:value="Hello, world")
+test_02(constant/string:value="cccCCC")
+test_03(constant/string:value="sssSSS")
+
+test_01 OUT -> IN test_01_lower(string/lowercase)
+test_01_lower_expected(constant/string:value="hello, world") OUT -> IN[0] test_01_lower_cmp(string/compare)
+test_01_lower OUT -> IN[1] test_01_lower_cmp EQUAL -> RESULT _(test/result)
+
+test_01 OUT -> IN test_01_upper(string/uppercase)
+test_01_upper_expected(constant/string:value="HELLO, WORLD") OUT -> IN[0] test_01_upper_cmp(string/compare)
+test_01_upper OUT -> IN[1] test_01_upper_cmp EQUAL -> RESULT _(test/result)
+
+test_02 OUT -> IN test_02_lower(string/lowercase)
+test_02_lower_expected(constant/string:value="cccccc") OUT -> IN[0] test_02_lower_cmp(string/compare)
+test_02_lower OUT -> IN[1] test_02_lower_cmp EQUAL -> RESULT _(test/result)
+
+test_02 OUT -> IN test_02_upper(string/uppercase)
+test_02_upper_expected(constant/string:value="CCCCCC") OUT -> IN[0] test_02_upper_cmp(string/compare)
+test_02_upper OUT -> IN[1] test_02_upper_cmp EQUAL -> RESULT _(test/result)
+
+test_03 OUT -> IN test_03_lower(string/lowercase)
+test_03_lower_expected(constant/string:value="ssssss") OUT -> IN[0] test_03_lower_cmp(string/compare)
+test_03_lower OUT -> IN[1] test_03_lower_cmp EQUAL -> RESULT _(test/result)
+
+test_03 OUT -> IN test_03_upper(string/uppercase)
+test_03_upper_expected(constant/string:value="SSSSSS") OUT -> IN[0] test_03_upper_cmp(string/compare)
+test_03_upper OUT -> IN[1] test_03_upper_cmp EQUAL -> RESULT _(test/result)

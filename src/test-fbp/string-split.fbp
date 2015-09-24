@@ -1,0 +1,59 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+HelloWorld(constant/string:value="Hello World")
+PrefixForSpaceSplit(constant/string:value="Hello")
+SuffixForMaxSplit(constant/string:value="d d d d d")
+SuffixForOtherSplit(constant/string:value="rld")
+Len(constant/int:value=2)
+LongString(constant/string:value="H d d d d d")
+
+HelloWorld OUT -> IN split(string/split)
+split OUT -> IN[0] cmp(string/compare)
+PrefixForSpaceSplit OUT -> IN[1] cmp
+cmp EQUAL -> RESULT split_first_word(test/result)
+
+HelloWorld OUT -> IN split2(string/split:separator="Wo",index=1)
+split2 OUT -> IN[0] cmp2(string/compare)
+SuffixForOtherSplit OUT -> IN[1] cmp2
+cmp2 EQUAL -> RESULT split_second_word(test/result)
+
+split2 LENGTH -> IN[0] equal(int/equal)
+Len OUT -> IN[1] equal
+equal OUT -> RESULT split_length(test/result)
+
+LongString OUT -> IN split3(string/split:max_split=1,index=1)
+split3 OUT -> IN[0] cmp3(string/compare)
+SuffixForMaxSplit OUT -> IN[1] cmp3
+cmp3 EQUAL -> RESULT split_with_max(test/result)
+
+split3 LENGTH -> IN[0] max_equal(int/equal)
+Len OUT -> IN[1] max_equal
+max_equal OUT -> RESULT split_max_length(test/result)
