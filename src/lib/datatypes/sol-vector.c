@@ -256,3 +256,12 @@ sol_ptr_vector_remove(struct sol_ptr_vector *pv, const void *ptr)
     }
     return -ENODATA;
 }
+
+SOL_API int
+sol_ptr_vector_init_n(struct sol_ptr_vector *pv, uint16_t n)
+{
+    sol_vector_init(&pv->base, sizeof(void *));
+    if (!sol_vector_append_n(&pv->base, n))
+        return -errno;
+    return 0;
+}
