@@ -1,0 +1,6 @@
+config FLOW_NODE_TYPE_OAUTH
+	tristate "Node type: oauth authenticator"
+	depends on HTTP_CLIENT && HTTP_SERVER
+	default m
+	help
+		Provides a HTTP OAUTH authentication
