@@ -95,7 +95,7 @@ float_generator_open(
         }
         if (it == tail) {
             SOL_WRN("Failed to convert option 'sequence' to int %s", it);
-            errno = -EINVAL;
+            errno = EINVAL;
             goto error;
         }
         it = tail;
@@ -107,10 +107,10 @@ float_generator_open(
     return 0;
 
 no_memory:
-    errno = -ENOMEM;
+    errno = ENOMEM;
 error:
     sol_vector_clear(&mdata->values);
-    return errno;
+    return -errno;
 }
 
 void
