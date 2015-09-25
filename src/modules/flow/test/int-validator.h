@@ -35,7 +35,6 @@
 
 struct int_validator_data {
     bool done;
-    char *sequence;
     uint16_t next_index;
     struct sol_vector values;
 };

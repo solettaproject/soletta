@@ -43,15 +43,15 @@
 #include "sol-flow/test.h"
 
 static int
-_populate_values(void *data)
+_populate_values(void *data, const char *sequence)
 {
     struct int_validator_data *mdata = data;
     char *tail;
-    char *it;
+    const char *it;
     int32_t *val;
 
     sol_vector_init(&mdata->values, sizeof(int32_t));
-    it = mdata->sequence;
+    it = sequence;
     do {
         val = sol_vector_append(&mdata->values);
         SOL_NULL_CHECK_GOTO(val, no_memory);
@@ -93,10 +93,8 @@ int_validator_open(
         SOL_ERR("Option 'sequence' is either NULL or empty.");
         return -EINVAL;
     }
-    mdata->sequence = strdup(opts->sequence);
-    SOL_NULL_CHECK(mdata->sequence, -errno);
 
-    return _populate_values(data);
+    return _populate_values(data, opts->sequence);
 }
 
 int
@@ -138,5 +136,4 @@ int_validator_close(struct sol_flow_node *node, void *data)
     struct int_validator_data *mdata = data;
 
     sol_vector_clear(&mdata->values);
-    free(mdata->sequence);
 }
