@@ -50,7 +50,6 @@ Minute OUT -> MINUTE MkTime
 Second OUT -> SECOND MkTime
 NanoSecond OUT -> NANO_SECOND MkTime
 
-Second OUT -> TRIGGER Time
 Time OUT -> IN[0] Delta
 MkTime OUT -> IN[1] Delta
 
