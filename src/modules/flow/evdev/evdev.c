@@ -115,7 +115,7 @@ evdev_fd_handler_cb(void *data, int fd, unsigned int active_flags)
         ssize_t ret;
         int i, count;
         struct sol_buffer buffer = SOL_BUFFER_INIT_FLAGS(ev, sizeof(ev),
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
         ret = sol_util_fill_buffer(fd, &buffer, buffer.capacity);
         if (ret < 0) {

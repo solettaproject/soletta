@@ -1,4 +1,4 @@
 config FLOW_NODE_TYPE_PERSISTENCE
 	tristate "Node type: persistence"
-	depends on PLATFORM_LINUX
+	depends on PLATFORM_LINUX && (USE_EFIVARS || USE_FILESYSTEM || USE_MEMMAP)
 	default m

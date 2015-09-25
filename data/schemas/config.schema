@@ -23,6 +23,25 @@
             "minItems": 1,
             "uniqueItems": true,
             "items": { "$ref": "#/definitions/nodetype" }
+        },
+
+        "map": {
+            "type": "object",
+            "properties": {
+                "name" : { "type" : "string" },
+                "size" : { "type" : "integer" },
+                "offset" : { "type" : "integer" },
+                "bit_size" : { "type" : "integer" },
+                "bit_offset" : { "type" : "integer" }
+            },
+            "required" : ["name", "size"]
+        },
+
+        "maps" : {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "$ref": "#/definitions/map"}
         }
     }
 }

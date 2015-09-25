@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "efivarfs-storage.h"
+#include "sol-efivarfs-storage.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -62,20 +62,19 @@ check_realpath(const char *path)
     return false;
 }
 
-int
-efivars_write(const char *name, struct sol_buffer *buffer)
+SOL_API int
+sol_efivars_write_raw(const char *name, const struct sol_buffer *buffer)
 {
     FILE *file;
     char path[PATH_MAX];
     int r;
 
+    SOL_NULL_CHECK(name, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
     r = snprintf(path, sizeof(path), EFIVARFS_VAR_PATH, name);
     if (r < 0 || r >= PATH_MAX) {
         SOL_WRN("Could not create path for efivars persistence file [%s]", path);
-        return -EINVAL;
-    }
-    if (!check_realpath(path)) {
-        SOL_WRN("Invalid name for efivars persistence packet [%s]", name);
         return -EINVAL;
     }
 
@@ -84,10 +83,19 @@ efivars_write(const char *name, struct sol_buffer *buffer)
         SOL_WRN("Could not open persistence file [%s]", path);
         return -errno;
     }
+    if (!check_realpath(path)) {
+        /* At this point, a file on an invalid location may have been created.
+         * Should we care about it? Is there a 'realpath()' that doesn't need
+         * the file to exist? Or a string path santiser? */
+        SOL_WRN("Invalid name for efivars persistence packet [%s]", name);
+        r = -EINVAL;
+        goto end;
+    }
 
     fwrite(&EFIVARS_DEFAULT_ATTR, sizeof(EFIVARS_DEFAULT_ATTR), 1, file);
     if (ferror(file)) {
         SOL_WRN("Coud not write peristence file [%s] attributes", path);
+        r = -EIO;
         goto end;
     }
 
@@ -99,17 +107,20 @@ end:
         return -errno;
     }
 
-    return 0;
+    return r;
 }
 
-int
-efivars_read(const char *name, struct sol_buffer *buffer)
+SOL_API int
+sol_efivars_read_raw(const char *name, struct sol_buffer *buffer)
 {
     int r, fd;
     char path[PATH_MAX];
     uint32_t b;
     struct sol_buffer attr = SOL_BUFFER_INIT_FLAGS(&b, sizeof(uint32_t),
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
+    SOL_NULL_CHECK(name, -EINVAL);
+    SOL_NULL_CHECK(buffer, -EINVAL);
 
     r = snprintf(path, sizeof(path), EFIVARFS_VAR_PATH, name);
     if (r < 0 || r >= PATH_MAX) {

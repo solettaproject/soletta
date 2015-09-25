@@ -72,6 +72,8 @@ class FbpTest:
         self.output_regex = False
         self.output_spec = ""
         self.exit_code = 0
+        self.extra_args = ""
+        self.precondition = ""
 
         self._parse_test()
 
@@ -84,7 +86,7 @@ class FbpTest:
             self.skip_msg = splitted[2]
 
     def _parse_command(self, line):
-        splitted = line.split(None, 2)
+        splitted = line.split(None)
         cmd = splitted[1]
 
         if cmd == "TEST-OUTPUT-REGEX":
@@ -95,6 +97,10 @@ class FbpTest:
             self.exit_code = 1
         elif cmd.startswith("TEST-SKIP"):
             self._parse_skip(cmd, splitted)
+        elif cmd.startswith("TEST-EXTRA-ARGS"):
+            self.extra_args = splitted[2:]
+        elif cmd.startswith("TEST-PRECONDITION"):
+            self.precondition = splitted[2:]
         else:
             logging.info("Ignoring unknown test command '%s' in test %s" %
                          (cmd, self.test_file))
@@ -232,15 +238,30 @@ def run_tests(args):
             continue
 
         if not args.compiled:
-            cmd = cmd_prefix + [runner, path["file"]]
+            cmd = cmd_prefix + [runner]
+
+            if curr.extra_args:
+                cmd += curr.extra_args
+
+            cmd += [path["file"]]
             test_cwd = path["dir"]
         else:
             exe = os.path.join(args.compiled_dir, path["file"].replace(".fbp", ""))
             cmd = cmd_prefix + [exe]
             test_cwd = "./"
 
-        out, code = sh(cmd, cwd=test_cwd)
-        result = curr.show_result_status(out, code)
+        result = ""
+        if curr.precondition:
+            out, code = sh(curr.precondition, cwd=test_cwd)
+            if code != 0:
+                logging.warning("Precondition failed for test %s: %d",
+                        curr.test_file, code)
+                result = "failed"
+
+        if not result:
+            out, code = sh(cmd, cwd=test_cwd)
+            result = curr.show_result_status(out, code)
+
         status[result] += 1
         if result == "failed":
             failures = True

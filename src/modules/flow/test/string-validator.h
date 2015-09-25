@@ -30,9 +30,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stddef.h>
+#include "test-module.h"
+#include "sol-vector.h"
 
-#include "sol-buffer.h"
+struct string_validator_data {
+    bool done;
+    char *sequence;
+    uint16_t next_index;
+    struct sol_vector values;
+};
 
-int fs_write(const char *name,  struct sol_buffer *buffer);
-int fs_read(const char *name, struct sol_buffer *buffer);
+DECLARE_OPEN_FUNCTION(string_validator_open);
+DECLARE_CLOSE_FUNCTION(string_validator_close);
+DECLARE_PROCESS_FUNCTION(string_validator_process);

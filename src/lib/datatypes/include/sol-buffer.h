@@ -312,6 +312,16 @@ sol_buffer_free(struct sol_buffer *buf)
 }
 
 /**
+ * Ensures that buffer has a terminating NUL byte, if
+ * flag SOL_BUFFER_FLAGS_NO_NUL_BYTE is not set.
+ *
+ * @return a negative number in case it was not possible to
+ * ensure a terminating NUL byte - if flag SOL_BUFFER_FLAGS_NO_NUL_BYTE
+ * is set for instance, or if it could not resize the buffer
+ */
+int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
+
+/**
  * @}
  */
 
