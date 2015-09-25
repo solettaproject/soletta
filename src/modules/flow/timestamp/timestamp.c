@@ -37,6 +37,36 @@
 #include <math.h>
 #include <time.h>
 
+static int
+timestamp_time_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    const struct sol_flow_node_type_timestamp_time_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TIMESTAMP_TIME_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    opts = (const struct sol_flow_node_type_timestamp_time_options *)options;
+
+    if (opts->initial_packet) {
+        struct timespec current_time;
+        int r;
+
+        r = sol_util_timespec_get_realtime(&current_time);
+        if (r < 0) {
+            sol_flow_send_error_packet(node, r,
+                "Could not fetch current time: %s", sol_util_strerrora(r));
+            return 0;
+        }
+
+        return sol_flow_send_timestamp_packet(node,
+            SOL_FLOW_NODE_TYPE_TIMESTAMP_TIME__OUT__OUT, &current_time);
+    }
+
+    return 0;
+}
 
 static int
 time_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
