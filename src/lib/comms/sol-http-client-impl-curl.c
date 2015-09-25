@@ -425,6 +425,9 @@ perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
     if (curl_multi_add_handle(global.multi, connection->curl) != CURLM_OK)
         goto free_buffer;
 
+    if (sol_ptr_vector_append(&global.connections, connection) < 0)
+        goto remove_handle;
+
     if (global.multi_perform_timeout)
         return connection;
 
@@ -435,12 +438,12 @@ perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
     global.multi_perform_timeout = sol_timeout_add(global.timeout_ms,
         multi_perform_cb, NULL);
     if (!global.multi_perform_timeout)
-        goto remove_handle;
-
-    if (sol_ptr_vector_append(&global.connections, connection) < 0)
-        goto remove_handle;
+        goto remove_connection;
 
     return connection;
+
+remove_connection:
+    sol_ptr_vector_remove(&global.connections, connection);
 
 remove_handle:
     curl_multi_remove_handle(global.multi, connection->curl);
