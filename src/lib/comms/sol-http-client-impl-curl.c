@@ -122,7 +122,7 @@ sol_http_client_shutdown(void)
 static void
 call_connection_finish_cb(struct sol_http_client_connection *connection)
 {
-    struct sol_http_response *param;
+    struct sol_http_response *response;
     CURLcode r;
     long response_code;
     char *tmp;
@@ -131,39 +131,39 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
         return;
 
     if (connection->error) {
-        param = NULL;
+        response = NULL;
         goto out;
     }
 
-    param = &(struct sol_http_response) {
+    response = &(struct sol_http_response) {
         .api_version = SOL_HTTP_RESPONSE_API_VERSION,
         .content = connection->buffer
     };
 
     r = curl_easy_getinfo(connection->curl, CURLINFO_CONTENT_TYPE, &tmp);
     if (r != CURLE_OK) {
-        param = NULL;
+        response = NULL;
         goto out;
     }
-    param->content_type = tmp ? strdupa(tmp) : "application/octet-stream";
+    response->content_type = tmp ? strdupa(tmp) : "application/octet-stream";
 
     r = curl_easy_getinfo(connection->curl, CURLINFO_EFFECTIVE_URL, &tmp);
     if (r != CURLE_OK || !tmp) {
-        param = NULL;
+        response = NULL;
         goto out;
     }
-    param->url = strdupa(tmp);
+    response->url = strdupa(tmp);
 
     r = curl_easy_getinfo(connection->curl, CURLINFO_RESPONSE_CODE,
         &response_code);
     if (r != CURLE_OK) {
-        param = NULL;
+        response = NULL;
         goto out;
     }
-    param->response_code = (int)response_code;
+    response->response_code = (int)response_code;
 
 out:
-    connection->cb((void *)connection->data, connection, param);
+    connection->cb((void *)connection->data, connection, response);
     destroy_connection(connection);
 }
 
