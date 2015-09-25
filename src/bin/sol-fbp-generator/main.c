@@ -83,6 +83,12 @@ struct declared_fbp_type {
     int id;
 };
 
+struct node_data {
+    struct type_description *desc;
+    int type_index;
+    bool is_declared;
+};
+
 static struct port_description error_port = {
     .name = (char *)SOL_FLOW_NODE_PORT_ERROR_NAME,
     .data_type = (char *)"error",
@@ -109,9 +115,11 @@ static struct type_description *
 get_node_type_description(const struct fbp_data *data, uint16_t i)
 {
     struct sol_fbp_node *n = sol_vector_get(&data->graph.nodes, i);
+    struct node_data *nd;
 
     assert(n);
-    return n->user_data;
+    nd = n->user_data;
+    return nd->desc;
 }
 
 static void
@@ -336,6 +344,23 @@ sol_fbp_generator_resolve_type(struct type_store *common_store, struct type_stor
     return type_store_find(parent_store, type_name);
 }
 
+static struct node_data *
+get_node_data(struct type_store *common_store, struct type_store *parent_store, struct sol_fbp_node *n, const char *fbp_file)
+{
+    struct node_data *nd;
+
+    nd = calloc(1, sizeof(*nd));
+    SOL_NULL_CHECK(nd, NULL);
+
+    nd->desc = sol_fbp_generator_resolve_type(common_store, parent_store, n, fbp_file);
+    SOL_NULL_CHECK_GOTO(nd->desc, resolve_error);
+
+    return nd;
+resolve_error:
+    free(nd);
+    return NULL;
+}
+
 static int
 compare_conn_specs(const void *a, const void *b)
 {
@@ -422,7 +447,7 @@ generate_options(const struct fbp_data *data)
     uint16_t i, j;
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
-        struct type_description *desc = n->user_data;
+        struct type_description *desc = ((struct node_data *)n->user_data)->desc;
 
         if (n->meta.len <= 0)
             continue;
@@ -633,8 +658,12 @@ generate_node_type_assignments(const struct fbp_data *data)
     out("\n");
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
-        struct type_description *desc = n->user_data;
-        out("    nodes[%d].type = %s;\n", i, desc->symbol);
+        struct node_data *nd = n->user_data;
+
+        if (nd->is_declared)
+            out("    nodes[%d].type = %s;\n", i, nd->desc->symbol);
+        else
+            out("    nodes[%d].type = external_types[%d];\n", i, nd->type_index);
     }
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
@@ -683,6 +712,11 @@ struct generate_context {
     struct sol_vector types_to_initialize;
 };
 
+struct type_to_init {
+    struct sol_str_slice symbol;
+    struct sol_str_slice module;
+};
+
 static bool
 is_declared_type(struct fbp_data *data, const struct sol_str_slice name)
 {
@@ -697,14 +731,16 @@ is_declared_type(struct fbp_data *data, const struct sol_str_slice name)
 }
 
 static bool
-contains_slice(const struct sol_vector *v, const struct sol_str_slice name)
+contains_slice(const struct sol_vector *v, const struct sol_str_slice name, uint16_t *idx)
 {
     struct sol_str_slice *slice;
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (v, slice, i) {
-        if (sol_str_slice_eq(*slice, name))
+        if (sol_str_slice_eq(*slice, name)) {
+            *idx = i;
             return true;
+        }
     }
     return false;
 }
@@ -716,28 +752,34 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, node, i) {
+        struct node_data *nd;
         struct type_description *desc;
         const char *sep;
         struct sol_str_slice name, module, symbol;
+        struct type_to_init *t = NULL;
+        uint16_t idx;
 
         /* Need to go via descriptions to get the real resolved name,
          * after conffile pass. */
-        desc = node->user_data;
+        nd = node->user_data;
+        desc = nd->desc;
         name = sol_str_slice_from_str(desc->name);
 
         /* Ignore since these are completely defined in the generated code. */
         if (is_declared_type(data, name)) {
+            nd->is_declared = true;
             continue;
         }
 
         symbol = sol_str_slice_from_str(desc->symbol);
-        if (!contains_slice(&ctx->types_to_initialize, symbol)) {
-            struct sol_str_slice *t;
+        if (!contains_slice(&ctx->types_to_initialize, symbol, &idx)) {
             t = sol_vector_append(&ctx->types_to_initialize);
             if (!t)
                 return false;
-            *t = symbol;
+            t->symbol = symbol;
+            idx = ctx->types_to_initialize.len - 1;
         }
+        nd->type_index = idx;
 
         module = name;
         sep = strstr(name.data, "/");
@@ -745,7 +787,10 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
             module.len = sep - module.data;
         }
 
-        if (!contains_slice(&ctx->modules, module)) {
+        if (t)
+            t->module = module;
+
+        if (!contains_slice(&ctx->modules, module, &idx)) {
             struct sol_str_slice *m;
             m = sol_vector_append(&ctx->modules);
             if (!m)
@@ -762,11 +807,13 @@ generate(struct sol_vector *fbp_data_vector)
 {
     struct generate_context _ctx = {
         .modules = SOL_VECTOR_INIT(struct sol_str_slice),
-        .types_to_initialize = SOL_VECTOR_INIT(struct sol_str_slice),
+        .types_to_initialize = SOL_VECTOR_INIT(struct type_to_init),
     }, *ctx = &_ctx;
 
     struct fbp_data *data;
-    struct sol_str_slice *module, *symbol;
+    struct sol_str_slice *module;
+    struct type_to_init *type;
+    int types_count;
     uint16_t i;
     int r;
 
@@ -790,6 +837,9 @@ generate(struct sol_vector *fbp_data_vector)
         out("#include \"sol-flow/%.*s.h\"\n", SOL_STR_SLICE_PRINT(*module));
     }
 
+    types_count = ctx->types_to_initialize.len;
+    out("\nstatic const struct sol_flow_node_type *external_types[%d];\n", types_count);
+
     /* Reverse since the dependencies appear later in the vector. */
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
         if (!generate_create_type_function(data)) {
@@ -800,37 +850,45 @@ generate(struct sol_vector *fbp_data_vector)
     }
 
     out(
-        "static void\n"
+        "static bool\n"
         "initialize_types(void)\n"
-        "{\n");
-    SOL_VECTOR_FOREACH_IDX (&ctx->types_to_initialize, symbol, i) {
+        "{\n"
+        "    const struct sol_flow_node_type *t;\n"
+        "    int i = 0;\n\n");
+    SOL_VECTOR_FOREACH_IDX (&ctx->types_to_initialize, type, i) {
         out(
-            "    if (%.*s->init_type)\n"
-            "        %.*s->init_type();\n",
-            SOL_STR_SLICE_PRINT(*symbol),
-            SOL_STR_SLICE_PRINT(*symbol));
+            "    if (sol_flow_get_node_type(\"%.*s\", %.*s, &t) < 0)\n"
+            "        return false;\n"
+            "    if (t->init_type)\n"
+            "        t->init_type();\n"
+            "    external_types[i++] = t;\n",
+            SOL_STR_SLICE_PRINT(type->module),
+            SOL_STR_SLICE_PRINT(type->symbol));
     }
     out(
+        "    return true;\n"
         "}\n\n");
 
     if (!args.export_symbol) {
         out(
+            "static const struct sol_flow_node_type *root_type;\n"
             "static struct sol_flow_node *flow;\n"
             "\n"
             "static void\n"
             "startup(void)\n"
             "{\n"
-            "    const struct sol_flow_node_type *type;\n\n"
-            "    initialize_types();\n"
-            "    type = create_0_root_type();\n"
-            "    if (!type)\n"
+            "    if (!initialize_types())\n"
+            "        return;\n"
+            "    root_type = create_0_root_type();\n"
+            "    if (!root_type)\n"
             "        return;\n\n"
-            "    flow = sol_flow_node_new(NULL, NULL, type, NULL);\n"
+            "    flow = sol_flow_node_new(NULL, NULL, root_type, NULL);\n"
             "}\n\n"
             "static void\n"
             "shutdown(void)\n"
             "{\n"
             "    sol_flow_node_del(flow);\n"
+            "    sol_flow_node_type_del((struct sol_flow_node_type *)root_type);\n"
             "}\n\n"
             "SOL_MAIN_DEFAULT(startup, shutdown);\n");
     } else {
@@ -839,7 +897,8 @@ generate(struct sol_vector *fbp_data_vector)
             "%s(void) {\n"
             "    static const struct sol_flow_node_type *type = NULL;\n"
             "    if (!type) {\n"
-            "        initialize_types();\n"
+            "        if (!initialize_types())\n"
+            "            return NULL;\n"
             "        type = create_0_root_type();\n"
             "    }\n"
             "\n"
@@ -1209,7 +1268,7 @@ resolve_node(struct fbp_data *data, struct type_store *common_store)
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
-        n->user_data = sol_fbp_generator_resolve_type(common_store, data->store, n, data->filename);
+        n->user_data = get_node_data(common_store, data->store, n, data->filename);
         if (!n->user_data)
             return false;
         SOL_DBG("Node %.*s resolved", SOL_STR_SLICE_PRINT(n->name));

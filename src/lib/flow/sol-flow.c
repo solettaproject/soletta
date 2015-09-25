@@ -55,6 +55,7 @@ sol_flow_shutdown(void)
 {
 #ifdef ENABLE_DYNAMIC_MODULES
     loaded_metatype_cache_shutdown();
+    sol_flow_modules_cache_shutdown();
 #endif
 }
 

@@ -276,7 +276,7 @@ sample-out = $(if $(filter %.o,$(sample-$(1)-out)), -c -o $(sample-$(1)-out),-o 
 sample-src = $(filter-out %.json,$(filter-out %.h,$(sample-$(1)-srcs)))
 
 define make-sample
-$(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(sample-$(1)-srcs) $(call find-deps,$(1)) $(addprefix $($(1)-dir),$(filter %.fbp,$($(1)-deps)))
+$(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(modules-out) $(sample-$(1)-srcs) $(call find-deps,$(1)) $(addprefix $($(1)-dir),$(filter %.fbp,$($(1)-deps)))
 	$(Q)echo "     "SMP"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(sample-$(1)-out))
 	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(sample-$(1)-cflags) $(sample-$(1)-includedir) $(sample-src) \
@@ -289,7 +289,7 @@ define make-test-fbp-bin
 $($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out)
 	$(Q)echo "     " CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
-	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $($(1)-src) -o $($(1)-out) $(SAMPLE_LDFLAGS) $(modules-out)
+	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $($(1)-src) -o $($(1)-out) $(SAMPLE_LDFLAGS)
 endef
 $(foreach test-fbp-bin,$(all-tests-fbp-bin),$(eval $(call make-test-fbp-bin,$(test-fbp-bin))))
 

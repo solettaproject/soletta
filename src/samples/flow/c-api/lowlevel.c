@@ -38,13 +38,6 @@
 
 #include "sol-flow-static.h"
 #include "custom-node-types-gen.h"
-/* TODO: how to know if console is builtin?
- * before we had console-gen.h included by sol-flow-node-types.h,
- * that was created based on builtins list.
- *
- * Since we're at the low-level API we can't use the foreach
- * functions, as they rely on node type descriptions.
- */
 #include "sol-flow/console.h"
 #include "sol-mainloop.h"
 
@@ -96,10 +89,8 @@ static struct sol_flow_static_node_spec nodes[] = {
             "logic", NULL },
     [2] = { NULL /* placeholder SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER */,
             "writer", &writer_opts.base },
-#ifdef SOL_FLOW_NODE_TYPE_CONSOLE_DEFINED
     [3] = { NULL /* placeholder SOL_FLOW_NODE_TYPE_CONSOLE */,
             "console", NULL },
-#endif
     SOL_FLOW_STATIC_NODE_SPEC_GUARD
 };
 
@@ -115,16 +106,12 @@ static struct sol_flow_static_node_spec nodes[] = {
 static const struct sol_flow_static_conn_spec conns[] = {
     { 0 /* reader */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER__OUT__OUT,
       1 /* logic */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC__IN__IN },
-#ifdef SOL_FLOW_NODE_TYPE_CONSOLE_DEFINED
     { 0 /* reader */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER__OUT__OUT,
       3 /* console */, SOL_FLOW_NODE_TYPE_CONSOLE__IN__IN },
-#endif
     { 1 /* logic */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC__OUT__OUT,
       2 /* writer */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER__IN__IN },
-#ifdef SOL_FLOW_NODE_TYPE_CONSOLE_DEFINED
     { 1 /* logic */, SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC__OUT__OUT,
       3 /* console */, SOL_FLOW_NODE_TYPE_CONSOLE__IN__IN },
-#endif
     SOL_FLOW_STATIC_CONN_SPEC_GUARD
 };
 
@@ -133,6 +120,11 @@ static struct sol_flow_node *flow;
 static void
 startup(void)
 {
+    const struct sol_flow_node_type *console_type;
+
+    if (sol_flow_get_node_type("console", SOL_FLOW_NODE_TYPE_CONSOLE, &console_type) < 0)
+        return;
+
     /*
      * Since these symbols will be relocated in runtime, we can't
      * initialize them in the vector initialization, we must assign
@@ -141,9 +133,7 @@ startup(void)
     nodes[0 /* reader */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER;
     nodes[1 /* logic */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_LOGIC;
     nodes[2 /* writer */].type = SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER;
-#ifdef SOL_FLOW_NODE_TYPE_CONSOLE_DEFINED
-    nodes[3 /* console */].type = SOL_FLOW_NODE_TYPE_CONSOLE;
-#endif
+    nodes[3 /* console */].type = console_type;
 
     flow = sol_flow_static_new(NULL, nodes, conns);
 }

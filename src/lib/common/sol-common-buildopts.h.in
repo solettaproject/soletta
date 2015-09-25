@@ -42,6 +42,10 @@ st.on_value("PLATFORM_CONTIKI", "y", "#define SOL_PLATFORM_CONTIKI 1", "")
 st.on_value("LOG", "y", "#define SOL_LOG_ENABLED 1", "")
 }}
 
+{{
+st.on_value("MODULES", "y", "#define SOL_DYNAMIC_MODULES 1", "")
+}}
+
 #ifdef SOL_PLATFORM_LINUX
 #define SOL_MAINLOOP_FD_ENABLED 1
 #define SOL_MAINLOOP_FORK_WATCH_ENABLED 1
