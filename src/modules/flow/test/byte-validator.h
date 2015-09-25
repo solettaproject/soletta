@@ -30,28 +30,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <float.h>
-
-
-#include "sol-util.h"
-#include "sol-log-internal.h"
-
 #include "test-module.h"
+#include "sol-vector.h"
 
-#include "sol-flow/test.h"
+struct byte_validator_data {
+    bool done;
+    uint16_t next_index;
+    struct sol_vector values;
+};
 
-SOL_LOG_INTERNAL_DECLARE(_test_log_domain, "flow-test");
-
-#include "result.h"
-#include "boolean-generator.h"
-#include "boolean-validator.h"
-#include "byte-validator.h"
-#include "byte-generator.h"
-#include "float-generator.h"
-#include "float-validator.h"
-#include "int-validator.h"
-#include "int-generator.h"
-#include "blob-validator.h"
-#include "string-validator.h"
-
-#include "test-gen.c"
+DECLARE_OPEN_FUNCTION(byte_validator_open);
+DECLARE_CLOSE_FUNCTION(byte_validator_close);
+DECLARE_PROCESS_FUNCTION(byte_validator_process);

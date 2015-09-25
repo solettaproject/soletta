@@ -129,6 +129,78 @@
     },
     {
       "category": "test",
+      "description": "Matches an expected sequence of byte values.",
+      "methods": {
+        "close": "byte_validator_close",
+        "open": "byte_validator_open"
+      },
+      "name": "test/byte-validator",
+      "in_ports": [
+        {
+          "data_type": "byte",
+          "description": "Where to receive the expected sequence.",
+          "methods": {
+            "process": "byte_validator_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Expected sequence to be matched, formatted as '1 2 3 20 70 255'. Only numbers on base 10.",
+            "name": "sequence"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Outputs true if there is a match, false otherwise.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "byte_validator_data",
+      "url": "http://solettaproject.org/doc/latest/components/byte-validator.html"
+    },
+    {
+      "category": "test",
+      "description": "Provides predefined input for testing",
+      "methods": {
+        "close": "byte_generator_close",
+        "open": "byte_generator_open"
+      },
+      "name": "test/byte-generator",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "String sequence to be generated, formatted as '10 20 255'. Only numbers on base 10.",
+            "name": "sequence"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Interval between packets.",
+            "name": "interval"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "byte",
+          "description": "Packets with bytes defined in the 'sequence' option.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "byte_generator_data",
+      "url": "http://solettaproject.org/doc/latest/components/byte_generator.html"
+    },
+    {
+      "category": "test",
       "description": "Matches an expected sequence of integer values.",
       "methods": {
         "close": "int_validator_close",
