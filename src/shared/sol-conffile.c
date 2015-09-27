@@ -639,6 +639,8 @@ _load_json_from_dirs(const char *file, char **full_path, struct sol_file_reader 
             free(filename);
             sol_file_reader_close(*file_reader);
             *file_reader = NULL;
+        } else {
+            free(filename);
         }
     }
 
