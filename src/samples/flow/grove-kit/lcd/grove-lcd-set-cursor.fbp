@@ -29,27 +29,39 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.json sol-fbp-runner grove-led-generator.fbp
+# sol-fbp-runner grove-lc-set-cursor.fbp
 
-# This is one of the translations of Grove_LED/Grove_LED.ino, from
+# This is a translation of
+# Grove_RGB_BackLight_LCD/setCursor/setCursor.ino, from
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
-# Here we exemplify the usage of the wave generator node type in order
-# to do the original file's looping. There's another example doing
-# that by means of the accumulator node -- check
-# grove-led-accumulator.fbp
 
-# We split the duty_cycle of 2040816 ns (490 Hz for full intensity),
-# into 256 slices of 7971, mimicking analogWrite()'s range: 0 to 255
+# This will loop from 'a' to 'z', filling in the whole display with
+# each single letter before changing to the next (to start again)
 
-constant_duty_cycle_step(constant/float:value=7971)
+timer_cols(timer:interval=200)
 
-timer(timer:interval=5)
+timer_chars(timer:interval=6400)
+timer_chars OUT -> INC chars
 
-# min_ticks: 100 * 5 ms = 500 ms. max_ticks: 20 * 5 ms = 100 ms
-wave(float/wave-generator-trapezoidal:min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=100,ticks_at_max=20,tick_start=100)
+timer_rows(timer:interval=3200)
+timer_rows OUT -> INC rows
 
-timer OUT -> TICK wave
+lcd(LCDChar)
 
-constant_duty_cycle_step OUT -> OPERAND[1] mult(float/multiplication)
-wave OUT -> OPERAND[0] mult
-mult OUT -> IN conv(converter/float-to-int) OUT -> DUTY_CYCLE led(LED_PWM)
+cols(int/accumulator:setup_value=min:0|max:15|step:1)
+rows(int/accumulator:setup_value=min:0|max:1|step:1)
+
+# 'a' to 'z'
+chars(int/accumulator:setup_value=val:97|min:97|max:122|step:1)
+chars OUT -> IN to_byte(converter/int-to-byte)
+
+# trick to keep a 'current char' state
+to_byte OUT -> OUTPUT_VALUE curr_char(converter/empty-to-byte:output_value=97)
+_(constant/empty) OUT -> IN curr_char
+curr_char OUT -> PUT_CHAR lcd
+
+timer_cols OUT -> INC cols
+timer_cols OUT -> IN curr_char
+
+cols OUT -> COL lcd
+rows OUT -> ROW lcd

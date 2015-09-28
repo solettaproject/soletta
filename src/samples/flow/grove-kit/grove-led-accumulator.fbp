@@ -29,55 +29,46 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.json sol-fbp-runner lcd/grove-lcd-autoscroll.fbp
+# sol-fbp-runner grove-led-accumulator.fbp
 
-# This is a translation of
-# Grove_RGB_BackLight_LCD/Autoscroll/Autoscroll.ino, from
+# This is one of the translations of Grove_LED/Grove_LED.ino, from
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
+# Here we exemplify the usage of the accumulator node type in order to
+# do the original file's looping. There's a more direct, less verbose
+# way of doing that, though -- check grove-led-wave-generator.fbp
 
-true(constant/boolean:value=true)
+# We split the duty_cycle of 2040816 ns (490 Hz for full intensity),
+# into 256 slices of 7971, mimicking analogWrite()'s range: 0 to 255
+
 false(constant/boolean:value=false)
-char_max(constant/int:value=57)
-loops_switch(boolean/toggle:initial_state=false)
+constant_max(constant/int:value=255)
+constant_min(constant/int:value=0)
 
-initial_color(constant/rgb:value=255|255|255|255|255|255)
-initial_color OUT -> COLOR lcd(LCDChar)
+timer_mid_delay(timer:interval=100) OUT -> RESET timer_dec
+false OUT -> ENABLED timer_mid_delay
 
-# 48 is decimal value for char '0', 57 is for '9'
-acc(int/accumulator:setup_value=val:48|min:48|max:57|step:1)
-timer_scroll(timer:interval=500) OUT -> INC acc
+timer_final_delay(timer:interval=500) OUT -> RESET timer_inc
+false OUT -> ENABLED timer_final_delay
 
-acc OUT -> IN accumulator_to_char(converter/int-to-byte)
+timer_inc(timer:interval=5)
+timer_inc OUT -> INC acc(int/accumulator:setup_value=min:0|max:2032605|step:7971)
+timer_inc OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer_final_delay
 
-accumulator_to_char OUT -> PUT_CHAR lcd
+timer_dec(timer:interval=5)
+timer_dec OUT -> DEC acc
+timer_dec OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer_mid_delay
+false OUT -> ENABLED timer_dec
 
-#take off
-true OUT -> RESET timer_scroll
-false OUT -> ENABLED timer_delay(timer:interval=500)
+acc OUT -> DUTY_CYCLE led(LED_PWM)
 
 acc OUT -> IN[0] comp_max(int/equal)
-char_max OUT -> IN[1] comp_max
+constant_max OUT -> IN[1] comp_max
+comp_max OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> IN at_max(converter/empty-to-boolean:output_value=true)
+at_max OUT -> IN _(boolean/not) OUT -> ENABLED timer_inc
+at_max OUT -> RESET timer_mid_delay
 
-comp_max OUT -> PULSE_IF_TRUE bool_to_pulse0(converter/boolean-to-empty) OUT -> IN loops_switch
-
-loops_switch OUT -> IN end_of_loop(boolean/filter)
-
-end_of_loop TRUE -> IN set_col(converter/boolean-to-int:true_value=16)
-end_of_loop TRUE -> IN set_row(converter/boolean-to-int:true_value=1)
-end_of_loop TRUE -> AUTO_SCROLL lcd
-set_row OUT -> ROW lcd
-set_col OUT -> COL lcd
-
-end_of_loop FALSE -> ENABLED timer_scroll
-end_of_loop FALSE -> RESET timer_delay
-
-timer_delay OUT -> IN unset_autoscroll(converter/empty-to-boolean:output_value=false)
-unset_autoscroll OUT -> AUTO_SCROLL lcd
-
-# this mimics the line 'acc OUT -> IN accumulator_to_char', where we
-# put a char into the LCD before we delay 500ms
-timer_delay OUT -> INC acc
-
-timer_delay OUT -> CLEAR lcd
-timer_delay OUT -> RESET timer_scroll
-timer_delay OUT -> IN end_of_delay(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer_delay
+acc OUT -> IN[0] comp_min(int/equal)
+constant_min OUT -> IN[1] comp_min
+comp_min OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> IN at_min(converter/empty-to-boolean:output_value=true)
+at_min OUT -> IN _(boolean/not) OUT -> ENABLED timer_dec
+at_min OUT -> RESET timer_final_delay
