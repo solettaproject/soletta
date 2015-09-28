@@ -1,4 +1,3 @@
 config FBP_GENERATOR
 	bool "fbp generator"
-	depends on NODE_DESCRIPTION
 	default y

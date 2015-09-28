@@ -261,6 +261,8 @@ void sol_flow_node_named_options_fini(struct sol_flow_node_named_options *named_
 
 #include "sol-flow-buildopts.h"
 
+#define SOL_FLOW_NODE_PORT_ERROR_NAME ("ERROR")
+
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 /* A node type description provides more information about a node
  * type, such as textual description, name, URL, version, author as
@@ -268,7 +270,6 @@ void sol_flow_node_named_options_fini(struct sol_flow_node_named_options *named_
  */
 
 struct sol_flow_port_description {
-#define SOL_FLOW_NODE_PORT_ERROR_NAME ("ERROR")
     const char *name; /**< port's name */
     const char *description; /**< port's description */
     const char *data_type; /**< textual representation of the port's accepted packet data type(s), e. g. "int" */
