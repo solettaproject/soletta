@@ -42,6 +42,8 @@ extern struct sol_log_domain _sol_flow_log_domain;
 
 #include "sol-flow-packet.h"
 #include "sol-util.h"
+#include "sol-vector.h"
+#include "sol-buffer.h"
 
 #define SOL_FLOW_PACKET_CHECK(packet, _type, ...)        \
     do {                                                \
@@ -59,6 +61,14 @@ struct sol_flow_packet {
     const struct sol_flow_packet_type *type;
     void *data;
 };
+
+struct sol_flow_packet_composed_type {
+    struct sol_flow_packet_type self;
+    const struct sol_flow_packet_type **members;
+    uint16_t members_len;
+};
+
+static struct sol_ptr_vector composed_types_cache = SOL_PTR_VECTOR_INIT;
 
 static inline void *
 sol_flow_packet_get_memory(const struct sol_flow_packet *packet)
@@ -326,10 +336,10 @@ sol_flow_packet_get_irange_value(const struct sol_flow_packet *packet, int32_t *
 static int
 string_packet_init(const struct sol_flow_packet_type *packet_type, void *mem, const void *input)
 {
-    const struct sol_str_slice *const slice = input;
+    const char *instring = input;
     char **pstring = mem;
 
-    *pstring = strndup(slice->data, slice->len);
+    *pstring = strdup(instring);
     return 0;
 }
 
@@ -354,9 +364,7 @@ SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_STRING = &_SOL_F
 SOL_API struct sol_flow_packet *
 sol_flow_packet_new_string(const char *value)
 {
-    struct sol_str_slice slice = SOL_STR_SLICE_STR(value, strlen(value));
-
-    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &slice);
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, value);
 }
 
 SOL_API int
@@ -369,7 +377,8 @@ sol_flow_packet_get_string(const struct sol_flow_packet *packet, const char **va
 SOL_API struct sol_flow_packet *
 sol_flow_packet_new_string_slice(struct sol_str_slice slice)
 {
-    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &slice);
+    char *str = strndupa(slice.data, slice.len);
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, str);
 }
 
 SOL_API struct
@@ -724,4 +733,127 @@ sol_flow_packet_get_error(const struct sol_flow_packet *packet, int *code, const
         *code = error.code;
 
     return ret;
+}
+
+static int
+composed_type_init(const struct sol_flow_packet_type *packet_type, void *mem, const void *input)
+{
+    const struct sol_flow_packet **in = (void *)input;
+    struct sol_flow_packet **array = mem;
+    void **data;
+    uint16_t i, last;
+    const struct sol_flow_packet_type *type;
+
+    for (i = 0; i < packet_type->data_size / sizeof(struct sol_flow_packet *);
+        i++) {
+        data = sol_flow_packet_get_memory(in[i]);
+        SOL_NULL_CHECK_GOTO(data, err_exit);
+        type = sol_flow_packet_get_type(in[i]);
+        array[i] = sol_flow_packet_new(type, type ==
+                                       SOL_FLOW_PACKET_TYPE_STRING ? *data : data);
+        SOL_NULL_CHECK_GOTO(array[i], err_exit);
+    }
+
+    return 0;
+
+err_exit:
+
+    last = i;
+    for (i = 0; i < last; i++)
+        sol_flow_packet_del(array[i]);
+    return -ENOMEM;
+}
+
+static void
+composed_type_dispose(const struct sol_flow_packet_type *packet_type, void *mem)
+{
+    struct sol_flow_packet **array = mem;
+    uint16_t i;
+
+    for (i = 0; i < packet_type->data_size / sizeof(struct sol_flow_packet *);
+        i++)
+        sol_flow_packet_del(array[i]);
+    free((void *)packet_type->name);
+}
+
+SOL_API const struct sol_flow_packet_type *
+sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types)
+{
+    struct sol_flow_packet_composed_type *ctype, *itr;
+    uint16_t i, types_len, members_bytes;
+    int r;
+    struct sol_buffer buf;
+
+    SOL_NULL_CHECK(types, NULL);
+
+    for (types_len = 0; types[types_len]; types_len++) ;
+
+    members_bytes = types_len * sizeof(struct sol_flow_packet_type *);
+    SOL_PTR_VECTOR_FOREACH_IDX (&composed_types_cache, itr, i) {
+        if (types_len != itr->members_len)
+            continue;
+        if (!memcmp(itr->members, types, members_bytes))
+            return &itr->self;
+    }
+
+    ctype = calloc(1, sizeof(struct sol_flow_packet_composed_type));
+    SOL_NULL_CHECK(ctype, NULL);
+
+    ctype->members_len = types_len;
+    ctype->members = malloc(members_bytes);
+    SOL_NULL_CHECK_GOTO(ctype->members, err_members);
+
+    memcpy(ctype->members, types, members_bytes);
+
+    sol_buffer_init(&buf);
+
+    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("COMPOSED-TYPE:"));
+    SOL_INT_CHECK_GOTO(r, < 0, err_buf);
+    for (i = 0; i < types_len; i++) {
+        if (i == types_len - 1)
+            r = sol_buffer_append_printf(&buf, "%s", types[i]->name);
+        else
+            r = sol_buffer_append_printf(&buf, "%s,", types[i]->name);
+        SOL_INT_CHECK_GOTO(r, < 0, err_buf);
+    }
+
+    ctype->self.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION;
+    ctype->self.name = sol_buffer_steal(&buf, NULL);
+    ctype->self.data_size = types_len * sizeof(struct sol_flow_packet *);
+    ctype->self.init = composed_type_init;
+    ctype->self.dispose = composed_type_dispose;
+
+    r = sol_ptr_vector_append(&composed_types_cache, ctype);
+    SOL_INT_CHECK_GOTO(r, < 0, err_buf);
+
+    return &ctype->self;
+
+err_buf:
+    sol_buffer_fini(&buf);
+    free(ctype->members);
+err_members:
+    free(ctype);
+    return NULL;
+}
+
+SOL_API bool
+sol_flow_packet_is_composed_type(const struct sol_flow_packet_type *type)
+{
+    SOL_NULL_CHECK(type, false);
+    return type->init == composed_type_init;
+}
+
+SOL_API int
+sol_flow_packet_get_composed_members_len(const struct sol_flow_packet_type *type, uint16_t *len)
+{
+    SOL_NULL_CHECK(type, -EINVAL);
+    SOL_NULL_CHECK(len, -EINVAL);
+
+    if (!sol_flow_packet_is_composed_type(type)) {
+        SOL_ERR("Not a composed packet type. Type name:%s", type->name);
+        return -EINVAL;
+    }
+
+    *len = type->data_size / sizeof(struct sol_flow_packet *);
+    return 0;
 }

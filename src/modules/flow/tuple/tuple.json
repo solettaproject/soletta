@@ -1,0 +1,92 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "tuple",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "tuple",
+      "description": "Constructs a string tuple packet",
+      "name": "tuple/string",
+      "private_data_type": "tuple_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/tuple/string.html",
+      "methods": {
+        "open": "tuple_open",
+        "close": "tuple_close"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The initial key value of the tuple",
+            "name": "key"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The initial value of the tuple",
+            "name": "value"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The key of the tuple",
+          "methods": {
+            "process": "key_process"
+          },
+          "name": "KEY"
+        },
+        {
+          "data_type": "string",
+          "description": "The value of the tuple",
+          "methods": {
+            "process": "value_process"
+          },
+          "name": "VALUE"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "composed:string,string",
+          "description": "A tuple string tuple",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "category": "tuple",
+      "description": "Splits a tuple packet",
+      "name": "tuple/splitter",
+      "url": "http://solettaproject.org/doc/latest/node_types/tuple/splitter",
+      "in_ports": [
+        {
+          "data_type": "composed:string,string",
+          "description": "A tuple",
+          "methods": {
+            "process": "tuple_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The key of the tuple",
+          "name": "KEY"
+        },
+        {
+          "data_type": "string",
+          "description": "The string value of the tuple",
+          "name": "STRING_VALUE"
+        }
+      ]
+    }
+  ]
+}

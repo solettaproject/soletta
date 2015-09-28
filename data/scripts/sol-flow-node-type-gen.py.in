@@ -272,6 +272,8 @@ data_type_to_default_member_map = {
     "rgb": "rgb",
     "direction-vector": "direction_vector",
     }
+composed_types_signatures = {}
+
 def data_type_to_default_member(typename):
     return data_type_to_default_member_map.get(typename, "ptr")
 
@@ -448,6 +450,14 @@ def generate_header_tail(outfile, data):
 #endif
 """)
 
+def generate_composed_type_get_signature(outfile, composed_type, prefix):
+    types = composed_type[len("composed:"):]
+    types_with_underscore = types.replace(",", "_")
+    sig = "%s_get_composed_%s_packet_type(void)" % (prefix, types_with_underscore)
+    if sig in composed_types_signatures:
+        return
+    composed_types_signatures[sig] = types
+    outfile.write("const struct sol_flow_packet_type *%s;\n" % (sig))
 
 def generate_header_entry(outfile, data):
     outfile.write("""\
@@ -528,6 +538,8 @@ struct %(name_c)s_options {
                     outfile.write("#define %s__IN__%s_LAST (%d)\n" % (
                         data["NAME_C"], c_clean(pname).upper(),
                         i + port_number_offset))
+            if (o["data_type"].startswith("composed:")):
+                generate_composed_type_get_signature(outfile, o["data_type"], data["name_c"])
         outfile.write("#define %s__IN_LAST (%d)\n" % (
             data["NAME_C"], i + port_number_offset))
 
@@ -549,6 +561,8 @@ struct %(name_c)s_options {
                     outfile.write("#define %s__OUT__%s_LAST (%d)\n" % (
                         data["NAME_C"], c_clean(pname).upper(),
                         i + port_number_offset))
+            if (o["data_type"].startswith("composed:")):
+                generate_composed_type_get_signature(outfile, o["data_type"], data["name_c"])
         outfile.write("#define %s__OUT_LAST (%d)\n" % (
             data["NAME_C"], i + port_number_offset))
 
@@ -663,6 +677,27 @@ sol_flow_foreach_builtin_node_type_%(name)s(bool (*cb)(void *data, const struct 
 #endif // SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 """)
 
+def generate_composed_type_get_function(outfile):
+    for key in sorted(composed_types_signatures.keys()):
+        packet_types = composed_types_signatures[key].split(",")
+        packet_type_final = []
+        type_names_underscore = composed_types_signatures[key].replace(",", "_")
+        for packet_type in packet_types:
+            packet_type_final.append(data_type_to_packet_type_map[packet_type])
+        outfile.write("""
+const struct sol_flow_packet_type *
+%s
+{
+    static const struct sol_flow_packet_type *composed_type = NULL;
+
+    if (composed_type == NULL) {
+        const struct sol_flow_packet_type *types[] = {%s, NULL};
+        composed_type = sol_flow_packet_type_composed_new(types);
+        SOL_NULL_CHECK(composed_type, NULL);
+    }
+
+    return composed_type;
+}\n""" % (key, ", ".join(packet_type_final)))
 
 def generate_code_entry(outfile, data):
     methods = data.get("methods", {})
@@ -706,7 +741,6 @@ static struct sol_flow_port_type_in %(type_c)s = {
     "connect": connect,
     "disconnect": disconnect,
     })
-
     out_ports_names = []
     out_ports_count = 0
     out_ports_get_port = ""
@@ -783,7 +817,10 @@ static void
         outfile.write("    if (%s.packet_type == NULL) {\n" % (all_ports_names[0]))
 
         for port, d_type in zip(all_ports_names, all_ports_types):
-            packet_type = packet_type_from_data_type(d_type)
+            if (d_type.startswith("composed:")):
+                packet_type = "%s_get_composed_%s_packet_type()" % (data["name_c"] , d_type.split(":", 1)[1].replace(",", "_"))
+            else:
+                packet_type = packet_type_from_data_type(d_type)
             outfile.write("        %s.packet_type = %s;\n"  % (port, packet_type))
         outfile.write("    }\n")
 
@@ -1303,6 +1340,7 @@ using the sol-flow-node-type-stub-gen.py tool.
             if t["category"] != "internal":
                 generate_description_entry(descriptions, t)
 
+        generate_composed_type_get_function(args.output_code)
         generate_header_tail(args.output_header, data)
         generate_code_tail(args.output_code, data)
         output_header.close()

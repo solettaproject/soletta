@@ -78,4 +78,5 @@ source "src/modules/flow/unix-socket/Kconfig"
 source "src/modules/flow/wallclock/Kconfig"
 source "src/modules/flow/http-server/Kconfig"
 source "src/modules/flow/http-client/Kconfig"
+source "src/modules/flow/tuple/Kconfig"
 endmenu
