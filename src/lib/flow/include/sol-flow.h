@@ -366,10 +366,12 @@ struct sol_flow_node_type {
 #endif
 };
 
+#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 int sol_flow_node_named_options_parse_member(
     struct sol_flow_node_named_options_member *m,
     const char *value,
     const struct sol_flow_node_options_member_description *mdesc);
+#endif
 
 /**
  * Get a node type's input port definiton struct, given a port index.

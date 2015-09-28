@@ -3,16 +3,26 @@ check: $(SOL_LIB_OUTPUT) $(tests-out) $(modules-out)
 
 PHONY += check
 
-check-fbp: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out)
+ifeq (y,$(FBP_RUNNER))
+check-fbp: $(SOL_LIB_OUTPUT) $(SOL_FBP_RUNNER_BIN) $(modules-out)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --runner="$(abspath $(SOL_FBP_RUNNER_BIN))"
+else
+check-fbp:
+	$(Q)echo "Could not run check-fbp, sol-fbp-runner is not enabled, enable it and run "
+	$(Q)echo "check-fbp target again"
+endif
 
-PHONY += check-fbp
-
-check-fbp-bin: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out) $(all-tests-fbp-bin-out)
+ifeq (y, $(FBP_GENERATOR))
+check-fbp-bin: $(SOL_LIB_OUTPUT) $(SOL_FBP_GENERATOR_BIN) $(modules-out) $(all-tests-fbp-bin-out)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --compiled --compiled-dir $(abspath $(build_stagedir)test-fbp/) \
 		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND
+else
+check-fbp-bin:
+	$(Q)echo "Could not run check-fbp-bin, sol-fbp-generator is not enabled, enable it and run "
+	$(Q)echo "check-fbp-bin target again"
+endif
 
-PHONY += check-fbp-bin
+PHONY += check-fbp check-fbp-bin
 
 ifeq (y,$(HAVE_VALGRIND))
 check-valgrind: $(SOL_LIB_OUTPUT) $(tests-out)

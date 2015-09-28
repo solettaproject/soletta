@@ -1144,6 +1144,7 @@ send_packets_match_packet_types(void)
 }
 
 
+#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 DEFINE_TEST(named_options_init_from_strv);
 
 static void
@@ -1280,8 +1281,10 @@ named_options_init_from_strv(void)
         ASSERT(r < 0);
     }
 }
+#endif
 
 
+#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 DEFINE_TEST(node_options_new);
 
 static void
@@ -1370,7 +1373,7 @@ node_options_new(void)
     r = sol_flow_node_options_new(SOL_FLOW_NODE_TYPE_TIMER, &named_opts, &opts);
     ASSERT(r < 0);
 }
-
+#endif
 
 DEFINE_TEST(need_a_valid_type_to_create_packets);
 
