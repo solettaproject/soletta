@@ -605,16 +605,23 @@ persist_string_open(struct sol_flow_node *node,
     struct persist_string_data *mdata = data;
     const struct sol_flow_node_type_persistence_string_options *opts =
         (const struct sol_flow_node_type_persistence_string_options *)options;
+    int r;
 
     mdata->base.packet_new_fn = persist_string_packet_new;
     mdata->base.packet_data_get_fn = persist_string_packet_data_get;
     mdata->base.packet_send_fn = persist_string_packet_send;
     mdata->base.node_get_default_fn = persist_string_node_get_default;
 
-    if (opts->default_value)
+    if (opts->default_value) {
         mdata->default_value = strdup((char *)opts->default_value);
+        SOL_NULL_CHECK(mdata->default_value, -ENOMEM);
+    }
 
-    return persist_open(node, data, opts->storage, opts->name);
+    r = persist_open(node, data, opts->storage, opts->name);
+    if (r < 0)
+        free(mdata->default_value);
+
+    return r;
 }
 
 static void
