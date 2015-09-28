@@ -29,9 +29,25 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.json sol-fbp-runner grove-buzzer.fbp
+# sol-fbp-runner lcd/grove-lcd-hello-world.fbp
 
-# This is a translation of Grove_Buzzer/Grove_Buzzer.ino, from
+# This is a translation of
+# Grove_RGB_BackLight_LCD/HelloWorld/HelloWorld.ino, from
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
 
-init_val(constant/boolean:value=true) OUT -> ENABLED buzzer(Buzzer:tune="ccggaagffeeddc |111111211111124|300")
+# The example prints the string on row 0 and keeps printing a number
+# (starting from 1) at each second at the beginning of row 1
+
+lcd(LCDChar:color=255|0|0|255|255|255)
+
+initial_string(constant/string:value="hello, world!") OUT -> PUT_STRING lcd
+
+timer(timer:interval=1000)
+
+timer OUT -> IN _(converter/empty-to-int:output_value=1) OUT -> ROW lcd
+timer OUT -> IN _(converter/empty-to-int:output_value=0) OUT -> COL lcd
+
+# filter node needed to bypass accumulator's initial packet, which
+# would override the initial string we put
+timer OUT -> INC acc(int/accumulator) OUT -> IN filter(int/filter:min=1)
+filter OUT -> IN _(converter/int-to-string) OUT -> PUT_STRING lcd

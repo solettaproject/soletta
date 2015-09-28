@@ -29,37 +29,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.json sol-fbp-runner grove-lc-text-direction.fbp
+# sol-fbp-runner grove-buzzer.fbp
 
-# This is a translation of
-# Grove_RGB_BackLight_LCD/TextDirection/TextDirection.ino, from
+# This is a translation of Grove_Buzzer/Grove_Buzzer.ino, from
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
 
-# In this sample, we start to print the alphabet from left to right,
-# switch the direction after m and then again after s, just to start
-# from the origin again.
-
-timer(timer:interval=1000)
-lcd(LCDChar:underline_cursor=true)
-
-# 'a' to 'z'
-chars(int/accumulator:setup_value=val:97|min:97|max:122|step:1)
-chars OUT -> IN to_byte(converter/int-to-byte)
-
-chars OUT -> IN[0] comp_m(int/equal)
-_(constant/int:value=109) OUT -> IN[1] comp_m
-
-to_byte OUT -> OUTPUT_VALUE curr_char(converter/empty-to-byte:output_value=97)
-curr_char OUT -> PUT_CHAR lcd
-
-timer OUT -> IN curr_char
-timer OUT -> INC chars
-
-comp_m OUT -> IN _(boolean/filter) TRUE -> IN _(boolean/not) OUT -> LEFT_TO_RIGHT lcd
-
-chars OUT -> IN[0] comp_s(int/equal)
-_(constant/int:value=115) OUT -> IN[1] comp_s
-
-comp_s OUT -> IN _(boolean/filter) TRUE -> LEFT_TO_RIGHT lcd
-
-chars OVERFLOW -> IN _(converter/empty-to-int:output_value=0) OUT -> COL lcd
+init_val(constant/boolean:value=true) OUT -> ENABLED buzzer(Buzzer:tune="ccggaagffeeddc |111111211111124|300")

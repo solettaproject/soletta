@@ -25,4 +25,4 @@ Alternatively you can define all your entries in a file called
 no environment variable is needed.
 
 Some boards have specific node types, they have their own examples in
-a sibling directory such as minnow-calamari or galileo-grove-kit.
+a sibling directory such as minnow-calamari or grove-kit.

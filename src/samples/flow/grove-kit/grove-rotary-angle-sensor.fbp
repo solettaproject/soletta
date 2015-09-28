@@ -29,45 +29,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.json sol-fbp-runner grove-led.fbp
+# sol-fbp-runner grove-rotary-angle-sensor.fbp
 
-# This is one of the translations of Grove_LED/Grove_LED.ino, from
-# https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
-# Here we exemplify the usage of the wave generator node type in order
-# to do the original file's looping. There's another example doing
-# that by means of the accumulator node -- check
-# grove-led-accumulator.fbp
+# This is a translation of
+# Grove_Rotary_Angle_Sensor/Grove_Rotary_Angle_Sensor.ino, from
+# https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git,
+# but showing degrees instead.
 
-# one picture explains what's happening:
-#   ___
-#  /   \
-# /     \_______________________
-#             ___
-#            /   \
-# __________/     \_____________
-#                       ___
-#                      /   \
-# ____________________/     \___
+sensor(RotaryAngleSensor) DEG -> IN converter(converter/float-to-string) OUT -> IN screen(LCDString)
 
-timer(timer:interval=5)
-converter(converter/float-to-rgb)
-lcd(LCDChar)
-
-initial_string(constant/string:value="fade demo") OUT -> PUT_STRING lcd
-initial_color(constant/rgb:value=0|0|0|255|255|255) OUT -> COLOR lcd
-
-# 1520 = 2 * (2 * 100 + 2 * 255) + 100
-
-red_wave(float/wave-generator-trapezoidal:tick_start=1520,min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=1520,ticks_at_max=100)
-
-# 1520 - (2 * 100 + 2 * 255) = 810
-green_wave(float/wave-generator-trapezoidal:tick_start=810,min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=1520,ticks_at_max=100)
-
-# 1520 - 2 * (2 * 100 + 2 * 255) = 100
-blue_wave(float/wave-generator-trapezoidal:tick_start=100,min=0,max=255,ticks_inc=255,ticks_dec=255,ticks_at_min=1520,ticks_at_max=100)
-
-timer OUT -> TICK red_wave OUT -> RED converter
-timer OUT -> TICK green_wave OUT -> GREEN converter
-timer OUT -> TICK blue_wave OUT -> BLUE converter
-
-converter OUT -> COLOR lcd
+initial_color(constant/rgb:value=255|255|255|255|255|255) OUT -> COLOR screen

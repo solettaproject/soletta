@@ -29,11 +29,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.json sol-fbp-runner grove-light-sensor.fbp
+# sol-fbp-runner grove-temperature-sensor.fbp
 
-# This is a translation of Grove_Light_Sensor/Grove_Light_Sensor.ino, from
+# This is a translation of
+# Grove_Temperature_Sensor/Grove_Temperature_Sensor.ino, from
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
 
-# The original 400 value maps to LUX ~6
+const_celsius_symbol(constant/string:value= C)
 
-lightSensor(LightSensor) LUX -> IN analogToBool(converter/float-to-boolean:true_range=min:6) OUT -> IN led(LED)
+temperatureSensor(TemperatureSensor) KELVIN -> KELVIN _(temperature/converter) CELSIUS -> IN converter(converter/float-to-string)
+converter OUT -> IN[0] concat(string/concatenate)
+const_celsius_symbol OUT -> IN[1] concat OUT -> IN screen(LCDString)

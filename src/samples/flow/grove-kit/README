@@ -1,4 +1,4 @@
-This showcases the Intel Galileo using the Grove Starter Kit
+This showcases the Intel boards using the Grove Starter Kit
 
 http://www.seeedstudio.com/depot/Grove-starter-kit-plus-Intel-IoT-Edition-for-Intel-Galileo-Gen-2-and-Edison-p-1978.html
 http://www.intel.com/content/www/us/en/embedded/products/galileo/galileo-overview.html
@@ -14,10 +14,9 @@ listed inside each script.
 
 Since the components may be assembled on different hardware I/O, one
 need to declare its configuration file with the correct pins to use.
-For instance, say you copied galileo-grove-kit.json to
-my-galileo-grove-kit.json and edited it to fit your needs, then run:
+For instance, say your board already has a configuration file or you have
+written your own, then run:
 
-   $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=my-galileo-grove-kit.json
    $ ./grove-button.fbp
 
 Same for other files with associated ".json". If you fail to do so,
@@ -31,5 +30,4 @@ configuration file supported by the system, you can define one using
 the environment variable.
 
 Alternatively you can define all your entries in a file called
-'sol-flow.json' and it will be looked up in the current folder, then
-no environment variable is needed.
+'sol-flow.json' and it will be looked up in the current folder.

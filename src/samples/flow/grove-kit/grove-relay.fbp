@@ -29,17 +29,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# SOL_FLOW_MODULE_RESOLVER_CONFFILE=galileo-grove-kit.json sol-fbp-runner grove-sound-sensor.fbp
+# sol-fbp-runner grove-relay.fbp
 
-# This is a translation of
-# Grove_Sound_Sensor/Grove_Sound_Sensor.ino, from
+# This is a translation of Grove_Relay/Grove_Relay.ino, from
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
 
-# Our range is 0-4096 for sound sensor's analog reading, so the
-# original 50 value maps to ~200
-
-threshold(constant/int:value=200)
-
-sensor(SoundSensor) OUT -> IN[0] compare(int/greater-or-equal)
-threshold OUT -> IN[1] compare
-compare OUT -> IN led(LED)
+button(Button) OUT -> IN relay(Relay)
