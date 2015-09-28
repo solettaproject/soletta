@@ -113,6 +113,7 @@ float_validator_process(
     r = sol_flow_packet_get_drange(packet, &input);
     SOL_INT_CHECK(r, < 0, r);
     op = sol_vector_get(&mdata->values, mdata->next_index);
+    SOL_NULL_CHECK(op, -EINVAL);
     match = sol_drange_val_equal(input.val, *op);
     mdata->next_index++;
 
