@@ -781,7 +781,7 @@ generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
 
         for (iter = map->entries; iter->key; iter++) {
             entry = iter->val;
-            out("       SOL_MEMMAP_ENTRY_BIT_SIZE(\"%s\", %lu, %lu, %u, %u),\n",
+            out("       SOL_MEMMAP_ENTRY_BIT_SIZE(\"%s\", %zu, %zu, %u, %u),\n",
                 iter->key, entry->offset, entry->size, entry->bit_offset,
                 entry->bit_size);
         }

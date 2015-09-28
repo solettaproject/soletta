@@ -252,7 +252,7 @@ sol_memmap_write_raw(const char *name, const struct sol_buffer *buffer)
         return -EINVAL;
 
     if (buffer->used > entry->size)
-        SOL_INF("Mapped size for [%s] is %ld, smaller than buffer contents: %ld",
+        SOL_INF("Mapped size for [%s] is %zd, smaller than buffer contents: %zd",
             name, entry->size, buffer->used);
 
     return sol_memmap_write_raw_do(map->path, entry, mask, buffer);
@@ -327,7 +327,7 @@ check_map(const struct sol_memmap_map *map)
             entry->offset = last_offset;
         last_offset = entry->offset + entry->size;
 
-        SOL_DBG("Entry [%s] starting on offset [%lu] with size [%lu]", iter->key,
+        SOL_DBG("Entry [%s] starting on offset [%zu] with size [%zu]", iter->key,
             entry->offset, entry->size);
     }
 
