@@ -57,6 +57,20 @@
 #include "sol-memmap-storage.h"
 #endif
 
+/**
+ * sol-flow-generator is a tool to generate C code from fbp files. This program
+ * doesn't use the Soletta internal node and flow descriptions due to run time
+ * requirements for cross-compiling environments.
+ *
+ * While cross-compiling Soletta where the application is generated from a fbp
+ * file the generator must not rely on libsoletta.so neither the node-type's
+ * modules since we may be dealing with different architectures for the host and
+ * the target binaries.
+ *
+ * Having said that, this program implements its own node-type (the .json files)
+ * parsing and has its own type data structure - namely type-store.c.
+ */
+
 static struct {
     const char *conf_file;
     const char *output_file;
