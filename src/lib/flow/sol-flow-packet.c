@@ -326,10 +326,13 @@ sol_flow_packet_get_irange_value(const struct sol_flow_packet *packet, int32_t *
 static int
 string_packet_init(const struct sol_flow_packet_type *packet_type, void *mem, const void *input)
 {
-    const struct sol_str_slice *const slice = input;
+    const char *const *instring = input;
     char **pstring = mem;
 
-    *pstring = strndup(slice->data, slice->len);
+    SOL_NULL_CHECK(instring, -EINVAL);
+    SOL_NULL_CHECK(*instring, -EINVAL);
+    *pstring = strdup(*instring);
+    SOL_NULL_CHECK(*pstring, -ENOMEM);
     return 0;
 }
 
@@ -354,9 +357,7 @@ SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_STRING = &_SOL_F
 SOL_API struct sol_flow_packet *
 sol_flow_packet_new_string(const char *value)
 {
-    struct sol_str_slice slice = SOL_STR_SLICE_STR(value, strlen(value));
-
-    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &slice);
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &value);
 }
 
 SOL_API int
@@ -369,7 +370,9 @@ sol_flow_packet_get_string(const struct sol_flow_packet *packet, const char **va
 SOL_API struct sol_flow_packet *
 sol_flow_packet_new_string_slice(struct sol_str_slice slice)
 {
-    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &slice);
+    char *str = strndupa(slice.data, slice.len);
+
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &str);
 }
 
 SOL_API struct
