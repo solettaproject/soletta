@@ -54,7 +54,7 @@ _populate_values(void *data)
     it = mdata->sequence;
     do {
         val = sol_vector_append(&mdata->values);
-        SOL_NULL_CHECK(val, -errno);
+        SOL_NULL_CHECK_GOTO(val, no_memory);
 
         errno = 0;
         *val = strtol(it, &tail, 10);
@@ -71,6 +71,10 @@ _populate_values(void *data)
     } while (*tail != '\0');
 
     return 0;
+
+no_memory:
+    sol_vector_clear(&mdata->values);
+    return -ENOMEM;
 }
 
 int
