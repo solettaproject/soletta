@@ -35,29 +35,27 @@ extra-headers = \
 	) \
 
 artifact-path = $(foreach curr,$(1), \
-			$(eval intree  := $(if $(filter $(abspath $(top_srcdir))%,$(abspath $(curr))),y,n)) \
+			$(if $(wildcard $(top_srcdir)/$(2)/$(subst .o,.c,$(curr))), \
+				$(eval intree := y), \
+				$(eval intree := $(if $(filter $(abspath $(top_srcdir))%,$(abspath $(curr))),y,n)) \
+			) \
 			$(eval abs_path := $(if $(filter /%,$(curr)),y,n)) \
 			$(if $(filter y,$(intree)), \
 				$(if $(filter y,$(abs_path)), \
-					$(eval cpath := $(curr)), \
+					$(eval cpath := $(curr)) \
+					$(eval normalized := $(subst $(abspath $(top_srcdir)),$(top_srcdir),$(curr))) \
+					$(eval dest-obj := $(subst $(top_srcdir)src/,$(build_stagedir),$(normalized))) \
+				, \
 					$(eval cpath := $(addprefix $(2),$(curr))) \
+					$(eval normalized := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(2)),$(curr))) \
+					$(eval dest-obj := $(subst $(abspath $(top_srcdir))/,$(top_srcdir),$(abspath $(normalized)))) \
 				), \
 				$(eval cpath := $(curr)) \
+				$(eval dest-obj := $(subst $(top_srcdir)src/,$(build_stagedir),$(curr))) \
 			) \
 			$(eval $(3) += $(cpath)) \
-			$(eval $(cpath)-intree  := $(intree)) \
-			$(eval $(cpath)-abs_path := $(abs_path)) \
+			$(eval $(cpath)-dest-obj := $(dest-obj)) \
 		 ) \
-
-object-path = $(if $(filter y,$(1)-intree), \
-		$(if $(filter y,$(1)-abs_path), \
-			$(eval relative := $(subst $(abspath $(top_srcdir)),$(top_srcdir),$(1))) \
-			$(eval $(3) := $(subst $(top_srcdir)src/,$(build_stagedir),$(relative))) \
-		, \
-			$(eval $(3) := $(subst $(top_srcdir)src/,$(build_stagedir),$(1))) \
-		), \
-		$(eval $(3) := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(2)),$(notdir $(1)))) \
-	) \
 
 parse-common-module = \
 	$(eval artifacts :=) \
@@ -76,7 +74,7 @@ parse-common-module = \
 	$(eval $(4)-type    := $($(5))) \
 	$(call gen-artifact,$(1),$(filter %.json,$(artifacts)),"",$(4)) \
 	$(foreach obj,$(mod-objs), \
-		$(call object-path,$(obj),$(2),dest-obj) \
+		$(eval dest-obj        := $($(obj)-dest-obj)) \
 		$(eval $(dest-obj)-src := $(subst .o,.c,$(obj))) \
 		$(eval $(4)-srcs       := $($(dest-obj)-src)) \
 	        $(eval $(4)-objs       += $(dest-obj)) \
