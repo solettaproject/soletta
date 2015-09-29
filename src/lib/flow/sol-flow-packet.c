@@ -739,31 +739,16 @@ composed_type_init(const struct sol_flow_packet_type *packet_type, void *mem, co
 {
     const struct sol_flow_packet **in = (void *)input;
     struct sol_flow_packet **array = mem;
-    void *data;
     uint16_t i, last;
-    const struct sol_flow_packet_type *type;
-    int r;
 
     for (i = 0; i < packet_type->data_size / sizeof(struct sol_flow_packet *);
         i++) {
-        type = sol_flow_packet_get_type(in[i]);
-        if (type->data_size == 0)
-            data = NULL;
-        else {
-            data = malloc(type->data_size);
-            SOL_NULL_CHECK_GOTO(data, err_exit);
-        }
-        r = sol_flow_packet_get(in[i], data);
-        SOL_INT_CHECK_GOTO(r, < 0, err_data);
-        array[i] = sol_flow_packet_new(type, data);
-        free(data);
+        array[i] = sol_flow_packet_dup(in[i]);
         SOL_NULL_CHECK_GOTO(array[i], err_exit);
     }
 
     return 0;
 
-err_data:
-    free(data);
 err_exit:
 
     last = i;
@@ -877,4 +862,32 @@ sol_flow_packet_get_composed_members_len(const struct sol_flow_packet_type *type
 
     *len = type->data_size / sizeof(struct sol_flow_packet *);
     return 0;
+}
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_dup(const struct sol_flow_packet *packet)
+{
+    int r;
+    void *data;
+    struct sol_flow_packet *out;
+    const struct sol_flow_packet_type *type;
+
+    SOL_NULL_CHECK(packet, NULL);
+
+    type = sol_flow_packet_get_type(packet);
+    if (type->data_size == 0)
+        data = NULL;
+    else {
+        data = malloc(type->data_size);
+        SOL_NULL_CHECK(data, NULL);
+    }
+    r = sol_flow_packet_get(packet, data);
+    SOL_INT_CHECK_GOTO(r, < 0, err_data);
+    out = sol_flow_packet_new(type, data);
+    free(data);
+    return out;
+
+err_data:
+    free(data);
+    return NULL;
 }
