@@ -6,3 +6,8 @@ config MQTT_PUBLISH_SUBSCRIBE_SAMPLES
 	bool "MQTT publish/subscribe samples"
 	depends on MQTT && MQTT_SAMPLES
 	default y
+
+config MQTT_BLUEMIX_SAMPLE
+	bool "MQTT bluemix sample"
+	depends on MQTT && MQTT_SAMPLES && HTTP_CLIENT
+	default y
