@@ -159,6 +159,7 @@ int sol_flow_packet_get_timestamp(const struct sol_flow_packet *packet, struct t
 const struct sol_flow_packet_type *sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types);
 bool sol_flow_packet_is_composed_type(const struct sol_flow_packet_type *type);
 int sol_flow_packet_get_composed_members_len(const struct sol_flow_packet_type *type, uint16_t *len);
+struct sol_flow_packet *sol_flow_packet_dup(const struct sol_flow_packet *packet);
 /**
  * @}
  */
