@@ -516,7 +516,6 @@ scan_errors(void)
         SOL_STR_SLICE_LITERAL("Something)"),
         SOL_STR_SLICE_LITERAL("DECLARE=A"),
         SOL_STR_SLICE_LITERAL("DECLARE=A:B"),
-        SOL_STR_SLICE_LITERAL("DECLARE=A:B:C:"),
         SOL_STR_SLICE_LITERAL("PORT["),
         SOL_STR_SLICE_LITERAL("PORT]"),
         SOL_STR_SLICE_LITERAL("PORT[NaN]"),
