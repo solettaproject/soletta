@@ -766,6 +766,23 @@ _add_formated_lookup_path(struct sol_vector *vector, const char *fmt, ...)
     }
 }
 
+static char *
+_sanitize_appname(const char *appname)
+{
+    char *name, *lastdot;
+
+    if (!appname || *appname == '/')
+        return NULL;
+
+    lastdot = strrchr(appname, '.');
+    if (lastdot && !strcmp(".fbp", lastdot))
+        name = strndup(appname, lastdot - appname);
+    else
+        name = strdup(appname);
+
+    return name;
+}
+
 static void
 _add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const char *board_name)
 {
@@ -773,6 +790,7 @@ _add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const c
     struct sol_vector files = SOL_VECTOR_INIT(struct sol_str_slice);
     struct sol_str_slice *curr_file;
     uint16_t idx;
+    char *sanitized_appname = NULL;
 
     const char *search_dirs[] = {
         ".", /* $PWD */
@@ -780,12 +798,14 @@ _add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const c
         PKGSYSCONFDIR, /* i.e /etc/soletta/ */
     };
 
-    if (appname && board_name) {
-        _add_formated_lookup_path(&files, "sol-flow-%s-%s.json", appname, board_name);
+    sanitized_appname = _sanitize_appname(appname);
+
+    if (sanitized_appname && board_name) {
+        _add_formated_lookup_path(&files, "sol-flow-%s-%s.json", sanitized_appname, board_name);
     }
 
-    if (appname) {
-        _add_formated_lookup_path(&files, "sol-flow-%s.json", appname);
+    if (sanitized_appname) {
+        _add_formated_lookup_path(&files, "sol-flow-%s.json", sanitized_appname);
     }
 
     if (board_name) {
@@ -808,6 +828,7 @@ _add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const c
     }
 
     sol_vector_clear(&files);
+    free(sanitized_appname);
 }
 
 static void
