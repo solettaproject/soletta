@@ -57,7 +57,7 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
         return 0;
 
     new_data = realloc(buf->data, new_size);
-    if (!new_data)
+    if (!new_data && new_size)
         return -errno;
 
     buf->data = new_data;
