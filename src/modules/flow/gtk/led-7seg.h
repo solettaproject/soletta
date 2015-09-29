@@ -30,28 +30,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <float.h>
+#include "common.h"
 
+DEFINE_DEFAULT_HEADER(led_7seg);
 
-#include "sol-util.h"
-#include "sol-log-internal.h"
+int gtk_led_7seg_value_process(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet);
 
-#include "test-module.h"
-
-#include "sol-flow/test.h"
-
-SOL_LOG_INTERNAL_DECLARE(_test_log_domain, "flow-test");
-
-#include "result.h"
-#include "boolean-generator.h"
-#include "boolean-validator.h"
-#include "byte-validator.h"
-#include "byte-generator.h"
-#include "float-generator.h"
-#include "float-validator.h"
-#include "int-validator.h"
-#include "int-generator.h"
-#include "blob-validator.h"
-#include "string-validator.h"
-
-#include "test-gen.c"
+int gtk_led_7seg_segments_process(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet);

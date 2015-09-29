@@ -78,7 +78,7 @@ boolean_generator_open(
 
     if (opts->sequence == NULL || *opts->sequence == '\0') {
         SOL_ERR("Option 'sequence' is either NULL or empty.");
-        return -1;
+        return -EINVAL;
     }
 
     mdata->it = mdata->sequence = strdup(opts->sequence);

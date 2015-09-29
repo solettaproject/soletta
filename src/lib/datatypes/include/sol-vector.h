@@ -133,6 +133,8 @@ sol_ptr_vector_init(struct sol_ptr_vector *pv)
     sol_vector_init(&pv->base, sizeof(void *));
 }
 
+int sol_ptr_vector_init_n(struct sol_ptr_vector *pv, uint16_t n);
+
 static inline uint16_t
 sol_ptr_vector_get_len(const struct sol_ptr_vector *pv)
 {

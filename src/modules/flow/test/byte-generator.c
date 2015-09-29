@@ -24,7 +24,7 @@
  * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
  * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * DATA, OR PROFITS; OR BUSINESS BYTEERRUPTION) HOWEVER CAUSED AND ON ANY
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -40,38 +40,35 @@
 #include "sol-util.h"
 
 #include "test-module.h"
-#include "int-generator.h"
+#include "byte-generator.h"
 #include "sol-flow/test.h"
 
 static bool
 timer_tick(void *data)
 {
     struct sol_flow_node *node = data;
-    struct int_generator_data *mdata = sol_flow_node_get_private_data(node);
-    struct sol_irange output = { };
-    int32_t *val;
+    struct byte_generator_data *mdata = sol_flow_node_get_private_data(node);
+    unsigned char *val;
 
     val = sol_vector_get(&mdata->values, mdata->next_index);
-    output.val = *val;
-    output.step = 1;
-    sol_flow_send_irange_packet(node, SOL_FLOW_NODE_TYPE_TEST_INT_GENERATOR__OUT__OUT, &output);
+    sol_flow_send_byte_packet(node,
+        SOL_FLOW_NODE_TYPE_TEST_BYTE_GENERATOR__OUT__OUT,
+        *val);
     mdata->next_index++;
 
     return mdata->next_index != mdata->values.len;
 }
 
 int
-int_generator_open(
-    struct sol_flow_node *node,
-    void *data,
+byte_generator_open(struct sol_flow_node *node, void *data,
     const struct sol_flow_node_options *options)
 {
-    struct int_generator_data *mdata = data;
-    const struct sol_flow_node_type_test_int_generator_options *opts =
-        (const struct sol_flow_node_type_test_int_generator_options *)options;
+    struct byte_generator_data *mdata = data;
+    const struct sol_flow_node_type_test_byte_generator_options *opts =
+        (const struct sol_flow_node_type_test_byte_generator_options *)options;
     const char *it;
     char *tail;
-    int32_t *val;
+    unsigned char *val;
 
     if (opts->sequence == NULL || *opts->sequence == '\0') {
         SOL_ERR("Option 'sequence' is either NULL or empty.");
@@ -85,23 +82,32 @@ int_generator_open(
     mdata->interval = opts->interval.val >= 0 ? opts->interval.val : 0;
     mdata->next_index = 0;
 
-    sol_vector_init(&mdata->values, sizeof(int32_t));
+    sol_vector_init(&mdata->values, sizeof(unsigned char));
     do {
+        int int_val;
+
         val = sol_vector_append(&mdata->values);
         SOL_NULL_CHECK_GOTO(val, no_memory);
 
         errno = 0;
-        *val = strtol(it, &tail, 10);
+        int_val = strtol(it, &tail, 10);
         if (errno) {
-            SOL_WRN("Failed do convert option 'sequence' to int %s: %d", it, errno);
+            SOL_WRN("Failed do convert option 'sequence' to byte %s: %d",
+                it, errno);
+            goto error;
+        }
+        if (int_val < 0 || int_val > 255) {
+            errno = ERANGE;
+            SOL_WRN("Byte value out of range %d", int_val);
             goto error;
         }
         if (it == tail) {
-            SOL_WRN("Failed to convert option 'sequence' to int %s", it);
-            errno = EINVAL;
+            SOL_WRN("Failed to convert option 'sequence' to byte %s", it);
+            errno = -EINVAL;
             goto error;
         }
         it = tail;
+        *val = int_val;
     } while (*tail != '\0');
 
     mdata->timer = sol_timeout_add(mdata->interval, timer_tick, node);
@@ -117,9 +123,9 @@ error:
 }
 
 void
-int_generator_close(struct sol_flow_node *node, void *data)
+byte_generator_close(struct sol_flow_node *node, void *data)
 {
-    struct int_generator_data *mdata = data;
+    struct byte_generator_data *mdata = data;
 
     if (mdata->values.len != mdata->next_index)
         sol_timeout_del(mdata->timer);

@@ -30,28 +30,78 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <float.h>
+#include "led-7seg.h"
+#include "sol-flow/gtk.h"
 
+static void
+set_min_size(GtkWidget *widget)
+{
+    GtkRequisition natural_size = {};
+    int width = 100;
 
-#include "sol-util.h"
-#include "sol-log-internal.h"
+    gtk_widget_get_preferred_size(widget, NULL, &natural_size);
 
-#include "test-module.h"
+    if (natural_size.width > width)
+        width = natural_size.width;
 
-#include "sol-flow/test.h"
+    gtk_widget_set_size_request(widget, width, natural_size.height);
+}
 
-SOL_LOG_INTERNAL_DECLARE(_test_log_domain, "flow-test");
+static int
+led_7seg_setup(struct gtk_common_data *mdata,
+    const struct sol_flow_node_options *options)
+{
 
-#include "result.h"
-#include "boolean-generator.h"
-#include "boolean-validator.h"
-#include "byte-validator.h"
-#include "byte-generator.h"
-#include "float-generator.h"
-#include "float-validator.h"
-#include "int-validator.h"
-#include "int-generator.h"
-#include "blob-validator.h"
-#include "string-validator.h"
+    mdata->widget = gtk_label_new(NULL);
+    g_object_set(mdata->widget, "halign", GTK_ALIGN_CENTER, NULL);
+    set_min_size(mdata->widget);
 
-#include "test-gen.c"
+    return 0;
+}
+
+int
+gtk_led_7seg_value_process(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct gtk_common_data *mdata = data;
+    int32_t val;
+    char buf[32];
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &val);
+    SOL_INT_CHECK(r, < 0, r);
+    snprintf(buf, sizeof(buf), "%d", val);
+    gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
+
+    return 0;
+}
+
+int
+gtk_led_7seg_segments_process(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct gtk_common_data *mdata = data;
+    char buf[9];
+    unsigned char value;
+    int r, i;
+
+    r = sol_flow_packet_get_byte(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    for (i = 7; i >= 0; i--) {
+        buf[i] = (value & 0x1) + '0';
+        value >>= 1;
+    }
+    buf[8] = '\0';
+    gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
+
+    return 0;
+}
+
+DEFINE_DEFAULT_OPEN_CLOSE(led_7seg);
