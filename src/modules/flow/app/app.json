@@ -95,6 +95,124 @@
       ],
       "name": "app/quit",
       "url": "http://solettaproject.org/doc/latest/node_types/app/quit.html"
+    },
+    {
+      "category": "app",
+      "description": "Get an environment variable",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Environment variable name.",
+          "methods": {
+            "process": "getenv_process"
+          },
+          "name": "NAME"
+        }
+      ],
+      "methods": {
+        "open": "getenv_open"
+      },
+      "name": "app/getenv",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Environment variable name to be searched for in the environment list. The corresponding value will be sent on 'VALUE' port. By default no name is set, so it waits until a name is received on 'NAME' port.",
+            "name": "variable_name"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Value corresponding to environment variable defined by name via options or input port.",
+          "name": "VALUE"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Packet sent if a environment variable with the specified name was found or not. If it isn't found, no packet is sent on 'VALUE' port.",
+          "name": "FOUND"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/app/getenv.html"
+    },
+    {
+      "category": "app",
+      "description": "Set an environment variable",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Environment variable name.",
+          "methods": {
+            "process": "setenv_name_process"
+          },
+          "name": "NAME"
+        },
+        {
+          "data_type": "string",
+          "description": "Environment variable value.",
+          "methods": {
+            "process": "setenv_value_process"
+          },
+          "name": "VALUE"
+        }
+      ],
+      "methods": {
+        "open": "setenv_open",
+        "close": "setenv_close"
+      },
+      "name": "app/setenv",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Name for variable to be added to environment when 'VALUE' packet is received. May be overwritten by packets received on port 'NAME'. If variable already exists on environement, behavior depends on 'overwrite' option.",
+            "name": "variable_name"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "If variable name does exist in the environment, then its value is changed to value if overwrite is 'true'; if overwrite is zero, then the value of name is not changed.",
+            "name": "overwrite"
+          }
+        ],
+        "version": 1
+      },
+      "private_data_type": "setenv_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/app/setenv.html"
+    },
+    {
+      "category": "app",
+      "description": "Remove a variable from environment",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Environment variable name.",
+          "methods": {
+            "process": "unsetenv_process"
+          },
+          "name": "NAME"
+        }
+      ],
+      "methods": {
+        "open": "unsetenv_open"
+      },
+      "name": "app/unsetenv",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Name of variable to be removed from to environment when flow is run.",
+            "name": "variable_name"
+          }
+        ],
+        "version": 1
+      },
+      "url": "http://solettaproject.org/doc/latest/node_types/app/unsetenv.html"
     }
   ]
 }
