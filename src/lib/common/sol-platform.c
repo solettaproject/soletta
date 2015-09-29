@@ -393,7 +393,7 @@ sol_platform_get_sw_version(void)
     return VERSION;
 }
 
-SOL_API char *
+SOL_API const char *
 sol_platform_get_os_version(void)
 {
     int r;

@@ -103,10 +103,10 @@ const char *sol_platform_get_sw_version(void);
  * Retrieves the operating system's version that Soletta is running
  * on top of.
  *
- * @return On success, it returns the version string, that must be
- * freed after usage. On error, it returns @c NULL.
+ * @return On success, it returns the version string. This string should
+ * not be freed after usage. On error, it returns @c NULL.
  */
-char *sol_platform_get_os_version(void);
+const char *sol_platform_get_os_version(void);
 
 enum sol_platform_state {
     SOL_PLATFORM_STATE_INITIALIZING,
