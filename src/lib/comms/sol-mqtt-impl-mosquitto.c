@@ -381,6 +381,15 @@ sol_mqtt_connect(const char *host, int port, const struct sol_mqtt_config *confi
         }
     }
 
+    if (config->username && config->password) {
+        r = mosquitto_username_pw_set(mqtt->mosq, config->username, config->password);
+
+        if (r != MOSQ_ERR_SUCCESS) {
+            SOL_WRN("Unable to set username and password");
+            goto error;
+        }
+    }
+
     mqtt->connection_status = SOL_MQTT_DISCONNECTED;
 
     r = mosquitto_connect_async(mqtt->mosq, host, port, mqtt->keepalive);
