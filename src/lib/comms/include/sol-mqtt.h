@@ -306,6 +306,16 @@ struct sol_mqtt_config {
     const char *client_id;
 
     /**
+     * NULL terminated string with the username
+     */
+    const char *username;
+
+    /**
+     * NULL terminated string with the password
+     */
+    const char *password;
+
+    /**
      * A message that the broker should send when the client disconnects.
      */
     const struct sol_mqtt_message *will;
