@@ -685,6 +685,48 @@ set_post_fields_from_params(CURL *curl, struct sol_arena *arena,
 }
 
 static bool
+set_post_data_from_params(CURL *curl, struct sol_arena *arena,
+    const struct sol_http_param *params)
+{
+    struct sol_str_slice data = SOL_STR_SLICE_EMPTY;
+    struct sol_http_param_value *iter;
+    uint16_t idx;
+    char *tmp;
+    bool type_set = false;
+
+    SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
+        const char *key = iter->value.key_value.key;
+        const struct sol_str_slice value = iter->value.data.value;
+
+        if (iter->type == SOL_HTTP_PARAM_POST_FIELD) {
+            SOL_WRN("SOL_HTTP_PARAM_POST_FIELD and SOL_HTTP_PARAM_POST_DATA found in parameters."
+                " Only one can be used at a time");
+            return false;
+        } else if (iter->type == SOL_HTTP_PARAM_HEADER) {
+            type_set = type_set || !strcasecmp(key, "content-type");
+        } else if (iter->type == SOL_HTTP_PARAM_POST_DATA) {
+            if (data.len != 0) {
+                SOL_WRN("More than one SOL_HTTP_PARAM_POST_DATA found.");
+                return false;
+            }
+
+            data = value;
+        }
+    }
+
+    if (data.len == 0)
+        return false;
+
+    if (!type_set)
+        SOL_WRN("POST request has data but no content-type was set");
+
+    tmp = strndup(data.data, data.len);
+    SOL_NULL_CHECK(tmp, false);
+
+    return set_string_option(curl, CURLOPT_POSTFIELDS, arena, tmp);
+}
+
+static bool
 check_param_api_version(const struct sol_http_param *params)
 {
     if (unlikely(params->api_version != SOL_HTTP_PARAM_API_VERSION)) {
@@ -766,8 +808,9 @@ sol_http_client_request(enum sol_http_method method,
     }
 
     if (method == SOL_HTTP_METHOD_POST) {
-        if (!set_post_fields_from_params(curl, arena, params)) {
-            SOL_WRN("Could not set POST fields from params");
+        if (!set_post_fields_from_params(curl, arena, params) &&
+            !set_post_data_from_params(curl, arena, params)) {
+            SOL_WRN("Could not set POST fields or data from params");
             goto invalid_option;
         }
     }
@@ -776,6 +819,9 @@ sol_http_client_request(enum sol_http_method method,
         switch (value->type) {
         case SOL_HTTP_PARAM_POST_FIELD:
             /* already handled by set_post_fields_from_params() */
+            continue;
+        case SOL_HTTP_PARAM_POST_DATA:
+            /* already handled by set_post_data_from_params() */
             continue;
         case SOL_HTTP_PARAM_QUERY_PARAM:
             /* already handled by set_uri_from_params() */

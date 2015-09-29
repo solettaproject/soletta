@@ -53,10 +53,16 @@ enum sol_http_method {
     SOL_HTTP_METHOD_INVALID
 };
 
+/**
+ * SOL_HTTP_PARAM_POST_FIELD and SOL_HTTP_PARAM_POST_DATA are both
+ * used for setting the data of a POST request, but only one can
+ * be used per request.
+ */
 enum sol_http_param_type {
     SOL_HTTP_PARAM_QUERY_PARAM,
     SOL_HTTP_PARAM_COOKIE,
     SOL_HTTP_PARAM_POST_FIELD,
+    SOL_HTTP_PARAM_POST_DATA,
     SOL_HTTP_PARAM_HEADER,
     SOL_HTTP_PARAM_AUTH_BASIC,
     SOL_HTTP_PARAM_ALLOW_REDIR,
@@ -100,6 +106,9 @@ struct sol_http_param_value {
         struct {
             int value;
         } integer;
+        struct {
+            const struct sol_str_slice value;
+        } data;
     } value;
 };
 
@@ -181,6 +190,12 @@ struct sol_http_response {
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_TIMEOUT, \
         .value.integer.value = (setting_) \
+    }
+
+#define SOL_HTTP_REQUEST_PARAM_POST_DATA(data_) \
+    (struct sol_http_param_value) { \
+        .type = SOL_HTTP_PARAM_POST_DATA, \
+        .value.data.value = (data_) \
     }
 
 #define SOL_HTTP_PARAM_FOREACH_IDX(param, itrvar, idx) \
