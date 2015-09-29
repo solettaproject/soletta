@@ -85,7 +85,7 @@ def print_option(outfile, option):
 """ % {
     "name": option["name"],
     "data_type": option["data_type"],
-    "description": option["description"],
+    "description": option["description"].replace("\"", "\\\""),
     "default": str(option.get("default", ""))
     })
 
@@ -114,7 +114,7 @@ def print_node_type(outfile, node_type, svgs):
                 inputs:[
 """ % {
     "name": node_type["name"],
-    "description": node_type["description"],
+    "description": node_type["description"].replace("\"", "\\\""),
     "group_id": str(group_id),
     "entry_id": str(entry_id),
     })
