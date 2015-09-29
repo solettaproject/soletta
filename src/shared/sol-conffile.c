@@ -813,7 +813,8 @@ _add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const c
 static void
 _load_vector_defaults(void)
 {
-    char *appdir, *appname, **argv;
+    char *appdir = NULL, *appname = NULL, **argv;
+    char *dir_str = NULL, *name_str = NULL;
     const char *board_name;
     uint16_t i;
     struct sol_str_slice *slice;
@@ -825,11 +826,12 @@ _load_vector_defaults(void)
 
     board_name = sol_platform_get_board_name();
     argv = sol_argv();
-    appname = appdir = NULL;
 
-    if (argv) {
-        appname = basename(argv[0]);
-        appdir = dirname(argv[0]);
+    if (argv && argv[0]) {
+        dir_str = strdup(argv[0]);
+        name_str = strdup(argv[0]);
+        appname = basename(name_str);
+        appdir = dirname(dir_str);
     }
 
     _add_lookup_path(&fallback_paths, appname, appdir, board_name);
@@ -843,6 +845,8 @@ _load_vector_defaults(void)
 
     sol_vector_clear(&fallback_paths);
     first_call = false;
+    free(dir_str);
+    free(name_str);
 }
 
 static int
