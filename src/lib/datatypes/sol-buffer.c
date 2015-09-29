@@ -331,7 +331,7 @@ sol_buffer_ensure_nul_byte(struct sol_buffer *buf)
     if (buf->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE)
         return -EINVAL;
 
-    if (*((char *)sol_buffer_at_end(buf) - 1) == '\0')
+    if (buf->used && *((char *)sol_buffer_at_end(buf) - 1) == '\0')
         return 0;
 
     if (buf->used >= SIZE_MAX - 1 ||
