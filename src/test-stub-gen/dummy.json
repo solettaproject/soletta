@@ -140,6 +140,16 @@
          "process": "timestamp_process"
         },
         "name": "TIMESTAMP"
+       },
+       {
+        "data_type": "composed:string,int,string,float,location",
+        "description": "Dummy composed input port.",
+        "methods": {
+         "connect": "composed_connect",
+         "disconnect": "composed_disconnect",
+         "process": "composed_process"
+        },
+        "name": "COMPOSED"
        }
       ],
       "methods": {
@@ -282,6 +292,11 @@
         "data_type": "timestamp",
         "description": "Dummy timestamp output port.",
         "name": "TIMESTAMP"
+       },
+       {
+        "data_type": "composed:string,int",
+        "description": "Dummy composed [string,int] output port.",
+        "name": "COMPOSED"
        }
       ],
       "private_data_type": "dummy_data",

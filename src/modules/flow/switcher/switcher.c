@@ -37,11 +37,13 @@
 #include "sol-util.h"
 
 
-#define PORT_MAX (256)
+#define PORT_MAX (SOL_FLOW_NODE_TYPE_SWITCHER_BOOLEAN__IN__IN_LAST + 1)
 
 struct switcher_data {
     int in_port_index;
     int out_port_index;
+    struct sol_ptr_vector last;
+    bool keep_state : 1;
 };
 
 static void
@@ -63,6 +65,7 @@ switcher_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 {
     const struct sol_flow_node_type_switcher_boolean_options *opts;
     struct switcher_data *mdata = data;
+    int r;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_SWITCHER_BOOLEAN_OPTIONS_API_VERSION,
@@ -73,7 +76,58 @@ switcher_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
     set_port_index(&mdata->out_port_index, opts->out_port.val);
     set_port_index(&mdata->in_port_index, opts->in_port.val);
 
+    if (opts->keep_state) {
+        r = sol_ptr_vector_init_n(&mdata->last, PORT_MAX);
+        SOL_INT_CHECK(r, < 0, r);
+        mdata->keep_state = true;
+    }
+
     return 0;
+}
+
+static void
+switcher_close(struct sol_flow_node *node, void *data)
+{
+    struct switcher_data *mdata = data;
+    void *last_packet;
+    int i;
+
+    if (!mdata->keep_state)
+        return;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->last, last_packet, i) {
+        if (last_packet)
+            sol_flow_packet_del(last_packet);
+    }
+    sol_ptr_vector_clear(&mdata->last);
+}
+
+static int
+send_packet(struct switcher_data *mdata, struct sol_flow_node *node, const struct sol_flow_packet *packet)
+{
+    struct sol_flow_packet *new_packet;
+
+    new_packet = sol_flow_packet_dup(packet);
+    SOL_NULL_CHECK(new_packet, -EINVAL);
+
+    return sol_flow_send_packet(node,
+        SOL_FLOW_NODE_TYPE_SWITCHER_BOOLEAN__OUT__OUT_0 + mdata->out_port_index,
+        new_packet);
+}
+
+static int
+send_last(struct switcher_data *mdata, struct sol_flow_node *node)
+{
+    const struct sol_flow_packet *last_packet;
+
+    if (!mdata->keep_state)
+        return 0;
+
+    last_packet = sol_ptr_vector_get(&mdata->last, mdata->in_port_index);
+    if (!last_packet)
+        return 0;
+
+    return send_packet(mdata, node, last_packet);
 }
 
 static int
@@ -87,7 +141,7 @@ switcher_set_output_index(struct sol_flow_node *node, void *data, uint16_t port,
     SOL_INT_CHECK(r, < 0, r);
     set_port_index(&mdata->out_port_index, in_value);
 
-    return 0;
+    return send_last(mdata, node);
 }
 
 static int
@@ -101,97 +155,31 @@ switcher_set_input_index(struct sol_flow_node *node, void *data, uint16_t port, 
     SOL_INT_CHECK(r, < 0, r);
     set_port_index(&mdata->in_port_index, in_value);
 
-    return 0;
+    return send_last(mdata, node);
 }
 
 static int
-boolean_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct switcher_data *mdata = data;
-    int r;
-    bool in_value;
+
+    if (mdata->keep_state) {
+        struct sol_flow_packet *new_packet, *last_packet;
+
+        new_packet = sol_flow_packet_dup(packet);
+        SOL_NULL_CHECK(new_packet, -EINVAL);
+
+        last_packet = sol_ptr_vector_get(&mdata->last, port);
+        if (last_packet)
+            sol_flow_packet_del(last_packet);
+
+        sol_ptr_vector_set(&mdata->last, port, new_packet);
+    }
 
     if (port != mdata->in_port_index)
         return 0;
 
-    r = sol_flow_packet_get_boolean(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return sol_flow_send_boolean_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_BOOLEAN__OUT__OUT_0 + mdata->out_port_index,
-        in_value);
-}
-
-static int
-byte_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct switcher_data *mdata = data;
-    int r;
-    unsigned char in_value;
-
-    if (port != mdata->in_port_index)
-        return 0;
-
-    r = sol_flow_packet_get_byte(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return sol_flow_send_byte_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_BYTE__OUT__OUT_0 + mdata->out_port_index,
-        in_value);
-}
-
-static int
-blob_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct switcher_data *mdata = data;
-    int r;
-    struct sol_blob *in_value;
-
-    if (port != mdata->in_port_index)
-        return 0;
-
-    r = sol_flow_packet_get_blob(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return sol_flow_send_blob_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_BLOB__OUT__OUT_0 + mdata->out_port_index,
-        in_value);
-}
-
-static int
-rgb_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct switcher_data *mdata = data;
-    int r;
-    struct sol_rgb in_value;
-
-    if (port != mdata->in_port_index)
-        return 0;
-
-    r = sol_flow_packet_get_rgb(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return sol_flow_send_rgb_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_RGB__OUT__OUT_0 + mdata->out_port_index,
-        &in_value);
-}
-
-static int
-direction_vector_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct switcher_data *mdata = data;
-    int r;
-    struct sol_direction_vector in_value;
-
-    if (port != mdata->in_port_index)
-        return 0;
-
-    r = sol_flow_packet_get_direction_vector(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return sol_flow_send_direction_vector_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_DIRECTION_VECTOR__OUT__OUT_0 +
-        mdata->out_port_index, &in_value);
+    return send_packet(mdata, node, packet);
 }
 
 static int
@@ -199,11 +187,68 @@ empty_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
 {
     struct switcher_data *mdata = data;
 
+    if (mdata->keep_state)
+        sol_ptr_vector_set(&mdata->last, port, (void *)1);
+
     if (port != mdata->in_port_index)
         return 0;
 
     return sol_flow_send_empty_packet(node,
         SOL_FLOW_NODE_TYPE_SWITCHER_EMPTY__OUT__OUT_0 + mdata->out_port_index);
+}
+
+static void
+empty_close(struct sol_flow_node *node, void *data)
+{
+    struct switcher_data *mdata = data;
+
+    if (!mdata->keep_state)
+        return;
+    sol_ptr_vector_clear(&mdata->last);
+}
+
+static int
+send_last_empty(struct switcher_data *mdata, struct sol_flow_node *node)
+{
+    const struct sol_flow_packet *last_packet;
+
+    if (!mdata->keep_state)
+        return 0;
+
+    last_packet = sol_ptr_vector_get(&mdata->last, mdata->in_port_index);
+    if (!last_packet)
+        return 0;
+
+    return sol_flow_send_empty_packet(node,
+        SOL_FLOW_NODE_TYPE_SWITCHER_EMPTY__OUT__OUT_0 + mdata->out_port_index);
+}
+
+static int
+empty_set_output_index(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct switcher_data *mdata = data;
+    int32_t in_value;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+    set_port_index(&mdata->out_port_index, in_value);
+
+    return send_last_empty(mdata, node);
+}
+
+static int
+empty_set_input_index(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct switcher_data *mdata = data;
+    int32_t in_value;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+    set_port_index(&mdata->in_port_index, in_value);
+
+    return send_last_empty(mdata, node);
 }
 
 static int
@@ -220,79 +265,6 @@ error_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_error_packet(node, code_value, msg);
-}
-
-static int
-float_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct switcher_data *mdata = data;
-    int r;
-    struct sol_drange in_value;
-
-    if (port != mdata->in_port_index)
-        return 0;
-
-    r = sol_flow_packet_get_drange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return sol_flow_send_drange_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_FLOAT__OUT__OUT_0 + mdata->out_port_index,
-        &in_value);
-}
-
-static int
-int_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct switcher_data *mdata = data;
-    int r;
-    struct sol_irange in_value;
-
-    if (port != mdata->in_port_index)
-        return 0;
-
-    r = sol_flow_packet_get_irange(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return sol_flow_send_irange_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_INT__OUT__OUT_0 + mdata->out_port_index,
-        &in_value);
-}
-
-static int
-string_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct switcher_data *mdata = data;
-    int r;
-    const char *in_value;
-
-    if (port != mdata->in_port_index)
-        return 0;
-
-    r = sol_flow_packet_get_string(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_STRING__OUT__OUT_0 + mdata->out_port_index,
-        in_value);
-}
-
-static int
-timestamp_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct switcher_data *mdata = data;
-    struct timespec in_value;
-    int r;
-
-    if (port != mdata->in_port_index)
-        return 0;
-
-    r = sol_flow_packet_get_timestamp(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return sol_flow_send_timestamp_packet(node,
-        SOL_FLOW_NODE_TYPE_SWITCHER_TIMESTAMP__OUT__OUT_0 +
-        mdata->out_port_index,
-        &in_value);
 }
 
 #undef PORT_MAX
