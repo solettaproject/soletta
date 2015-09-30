@@ -402,16 +402,16 @@ get_timestamp(struct sol_json_token *value, struct timespec *timestamp)
     struct tm time_tm = { 0 };
     time_t tmp_timestamp;
     char *timestamp_str;
+    char *p;
 
     sol_json_token_remove_quotes(value);
-    timestamp_str = strndupa(value->start, sol_json_token_get_size(value));
-    if (!timestamp_str) {
-        SOL_WRN("Failed to get timestamp");
-        return -EINVAL;
-    }
 
-    timestamp_str = strptime(timestamp_str, "%Y-%m-%dT%H:%M:%SZ", &time_tm);
-    if (!timestamp_str) {
+    timestamp_str = strndup(value->start, sol_json_token_get_size(value));
+    SOL_NULL_CHECK(timestamp_str, -EINVAL);
+    p = strptime(timestamp_str, "%Y-%m-%dT%H:%M:%SZ", &time_tm);
+    free(timestamp_str);
+
+    if (!p || *p) {
         SOL_WRN("Failed to convert timestamp");
         return -EINVAL;
     }
@@ -514,7 +514,8 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
                     if (!get_measure(&value, &fpd.fertilizer,
                         &fpd.fertilizer_min, &fpd.fertilizer_max)) {
                         SOL_WRN("Failed to get fertilizer info");
-                        goto error;
+                        r = -EINVAL;
+                        goto fpd_error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "light")) {
                     INIT_LIGHT(fpd.light);
@@ -524,7 +525,8 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
                     if (!get_measure(&value, &fpd.light,
                         &fpd.light_min, &fpd.light_max)) {
                         SOL_WRN("Failed to get light info");
-                        goto error;
+                        r = -EINVAL;
+                        goto fpd_error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "air_temperature")) {
@@ -535,7 +537,8 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
                     if (!get_measure(&value, &fpd.temperature,
                         &fpd.temperature_min, &fpd.temperature_max)) {
                         SOL_WRN("Failed to get temperature info");
-                        goto error;
+                        r = -EINVAL;
+                        goto fpd_error;
                     }
 
                     /* convert from Celsius to Kelvin */
@@ -554,26 +557,26 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
                     if (!get_measure(&value, &fpd.water, &fpd.water_min,
                         &fpd.water_max)) {
                         SOL_WRN("Failed to get water info");
-                        goto error;
+                        r = -EINVAL;
+                        goto fpd_error;
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "location_identifier")) {
                     sol_json_token_remove_quotes(&value);
-                    fpd.id = strndupa(value.start,
+                    fpd.id = strndup(value.start,
                         sol_json_token_get_size(&value));
-                    if (!fpd.id) {
-                        SOL_WRN("Failed to get id");
-                        goto error;
-                    }
+                    SOL_NULL_CHECK_GOTO(fpd.id, fpd_error);
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "last_sample_upload")) {
                     r = get_timestamp(&value, &fpd.timestamp);
-                    SOL_INT_CHECK_GOTO(r, < 0, error);
+                    SOL_INT_CHECK_GOTO(r, < 0, fpd_error);
                 }
             }
             r = sol_flower_power_send_packet(mdata->node,
                 SOL_FLOW_NODE_TYPE_FLOWER_POWER_HTTP_GET__OUT__OUT,
                 &fpd);
+fpd_error:
+            free(fpd.id);
             SOL_INT_CHECK_GOTO(r, < 0, error);
         }
     }
@@ -600,31 +603,30 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
                             if (sol_json_token_get_double(&value,
                                 &battery_level.val)) {
                                 SOL_DBG("Failed to get battery level");
-                                goto error;
+                                goto sensor_error;
                             }
                         } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                             "battery_end_of_life_date_utc")) {
                             r = get_timestamp(&value, &battery_end_of_life);
-                            SOL_INT_CHECK_GOTO(r, < 0, error);
+                            SOL_INT_CHECK_GOTO(r, < 0, sensor_error);
                         }
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "sensor_serial")) {
                     sol_json_token_remove_quotes(&value);
-                    id = strndupa(value.start, sol_json_token_get_size(&value));
-                    if (!id) {
-                        SOL_WRN("Failed to get id");
-                        goto error;
-                    }
+                    id = strndup(value.start, sol_json_token_get_size(&value));
+                    SOL_NULL_CHECK_GOTO(id, error);
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "last_upload_datetime_utc")) {
                     r = get_timestamp(&value, &timestamp);
-                    SOL_INT_CHECK_GOTO(r, < 0, error);
+                    SOL_INT_CHECK_GOTO(r, < 0, sensor_error);
                 }
             }
             r = sol_flower_power_sensor_send_packet_components(mdata->node,
                 SOL_FLOW_NODE_TYPE_FLOWER_POWER_HTTP_GET__OUT__DEVICE_INFO,
                 id, &timestamp, &battery_end_of_life, &battery_level);
+sensor_error:
+            free(id);
             SOL_INT_CHECK_GOTO(r, < 0, error);
         }
     }

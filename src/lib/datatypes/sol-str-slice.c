@@ -47,8 +47,6 @@ sol_str_slice_to_int(const struct sol_str_slice s, int *value)
         return -EINVAL;
 
     tmp = strndupa(s.data, s.len);
-    if (!tmp)
-        return -errno;
 
     errno = 0;
     v = strtol(tmp, &endptr, 0);

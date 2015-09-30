@@ -354,7 +354,7 @@ strrstr(const char *haystack, const char *needle)
 int
 sol_util_get_rootdir(char *out, size_t size)
 {
-    char progname[PATH_MAX] = { 0 }, *prefix;
+    char progname[PATH_MAX] = { 0 };
     const char *substr;
     int r;
 
@@ -370,11 +370,8 @@ sol_util_get_rootdir(char *out, size_t size)
         return -1;
     }
 
-    prefix = strndupa(progname, strlen(progname) - strlen(substr));
-    if (!prefix)
-        return -1;
-
-    return snprintf(out, size, "%s/", prefix);
+    r = snprintf(out, size, "%.*s/", (int)(strlen(progname) - strlen(substr)), progname);
+    return (r < 0 || r > (int)size) ? -ENOMEM : r;
 }
 
 int
