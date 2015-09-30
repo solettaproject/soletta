@@ -40,15 +40,31 @@
 
 #include "sol-buffer.h"
 #include "sol-log.h"
+#include "sol-mainloop.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
 #include "sol-util.h"
 #include "sol-util-file.h"
+#include "sol-vector.h"
+
+#ifdef USE_I2C
+#include <sol-i2c.h>
+#endif
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
+#define REL_PATH_IDX 2
+#define DEV_NUMBER_IDX 3
+#define DEV_NAME_IDX 4
+
+struct map_resolved_path {
+    const struct sol_memmap_map *map;
+    char *resolved_path;
+};
+
 static struct sol_ptr_vector memory_maps = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector checked_maps = SOL_PTR_VECTOR_INIT;
+static struct sol_ptr_vector resolved_path_maps = SOL_PTR_VECTOR_INIT;
 
 static bool
 get_entry_metadata_on_map(const char *name, const struct sol_memmap_map *map, const struct sol_memmap_entry **entry, uint64_t *mask)
@@ -83,6 +99,20 @@ get_entry_metadata(const char *name, const struct sol_memmap_map **map, const st
     map = NULL;
 
     return false;
+}
+
+static char *
+get_resolved_path(const struct sol_memmap_map *map)
+{
+    struct map_resolved_path *iter;
+    int i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&resolved_path_maps, iter, i) {
+        if (iter->map == map)
+            return iter->resolved_path;
+    }
+
+    return NULL;
 }
 
 static int
@@ -211,11 +241,11 @@ check_version(const struct sol_memmap_map *map)
         return false;
     }
 
-    ret = sol_memmap_read_raw_do(map->path, entry, mask, &buf);
+    ret = sol_memmap_read_raw_do(get_resolved_path(map), entry, mask, &buf);
     if (ret >= 0 && version == 0) {
         /* No version on file, we should be initialising it */
         version = map->version;
-        if (sol_memmap_write_raw_do(map->path, entry, mask, &buf) < 0) {
+        if (sol_memmap_write_raw_do(get_resolved_path(map), entry, mask, &buf) < 0) {
             SOL_WRN("Could not write current map version to file");
             return false;
         }
@@ -255,7 +285,7 @@ sol_memmap_write_raw(const char *name, const struct sol_buffer *buffer)
         SOL_INF("Mapped size for [%s] is %zd, smaller than buffer contents: %zd",
             name, entry->size, buffer->used);
 
-    return sol_memmap_write_raw_do(map->path, entry, mask, buffer);
+    return sol_memmap_write_raw_do(get_resolved_path(map), entry, mask, buffer);
 }
 
 SOL_API int
@@ -276,7 +306,7 @@ sol_memmap_read_raw(const char *name, struct sol_buffer *buffer)
     if (!check_version(map))
         return -EINVAL;
 
-    return sol_memmap_read_raw_do(map->path, entry, mask, buffer);
+    return sol_memmap_read_raw_do(get_resolved_path(map), entry, mask, buffer);
 }
 
 static bool
@@ -315,6 +345,8 @@ check_map(const struct sol_memmap_map *map)
     struct sol_memmap_entry *entry;
     uint32_t last_offset = 0;
 
+    SOL_DBG("Using memory file at [%s]", get_resolved_path(map));
+
     /* First, calculate any offset that was not set */
     for (iter = map->entries; iter->key; iter++) {
         entry = (void *)iter->val;
@@ -343,19 +375,155 @@ check_map(const struct sol_memmap_map *map)
     return true;
 }
 
+#ifdef USE_I2C
+static char *
+sol_slice_to_str(const struct sol_str_slice *slice)
+{
+    char *result = calloc(1, slice->len + 1);
+
+    SOL_NULL_CHECK(result, NULL);
+
+    memcpy(result, slice->data, slice->len);
+
+    return result;
+}
+#endif
+
+static int
+resolve_i2c_path(const struct sol_memmap_map *map, struct map_resolved_path *map_resolved_path)
+{
+#ifndef USE_I2C
+    SOL_WRN("No support for i2c");
+    return -ENOTSUP;
+#else
+    char *rel_path = NULL, *dev_number_s = NULL, *dev_name = NULL, *end_ptr;
+    unsigned int dev_number;
+    struct sol_vector instructions;
+    struct sol_buffer result_path = SOL_BUFFER_INIT_EMPTY;
+    struct sol_str_slice command = sol_str_slice_from_str(map->path);
+    int ret = -EINVAL;
+
+    instructions = sol_util_str_split(command, ",", 5);
+    if (instructions.len < 5) {
+        SOL_WRN("Invalid create device path. Expected 'create,i2c,<rel_path>,"
+            "<devnumber>,<devname>'");
+        goto end;
+    }
+
+    rel_path = sol_slice_to_str(sol_vector_get(&instructions, REL_PATH_IDX));
+    SOL_NULL_CHECK_GOTO(rel_path, end);
+
+    dev_number_s = sol_slice_to_str(sol_vector_get(&instructions, DEV_NUMBER_IDX));
+    SOL_NULL_CHECK_GOTO(dev_number_s, end);
+
+    errno = 0;
+    dev_number = strtoul(dev_number_s, &end_ptr, 0);
+    if (errno || *end_ptr != '\0')
+        goto end;
+
+    dev_name = sol_slice_to_str(sol_vector_get(&instructions, DEV_NAME_IDX));
+    SOL_NULL_CHECK_GOTO(dev_name, end);
+
+    ret = sol_i2c_create_device(rel_path, dev_name, dev_number,
+        &result_path);
+
+    if (ret >= 0 || ret == -EEXIST) {
+        const struct sol_str_slice ending = SOL_STR_SLICE_LITERAL("/eeprom");
+        struct timespec start;
+        struct stat st;
+
+        ret = sol_buffer_append_slice(&result_path, ending);
+        if (ret < 0)
+            goto end;
+
+        map_resolved_path->resolved_path = sol_buffer_steal(&result_path, NULL);
+
+        ret = 0;
+        start = sol_util_timespec_get_current();
+        while (stat(map_resolved_path->resolved_path, &st)) {
+            struct timespec elapsed, now = sol_util_timespec_get_current();
+
+            sol_util_timespec_sub(&now, &start, &elapsed);
+            /* Let's wait up to one second */
+            if (elapsed.tv_sec > 0) {
+                ret = -ENODEV;
+                goto end;
+            }
+        }
+    }
+
+end:
+    free(rel_path);
+    free(dev_number_s);
+    free(dev_name);
+    sol_vector_clear(&instructions);
+
+    return ret;
+#endif
+}
+
 SOL_API int
 sol_memmap_add_map(const struct sol_memmap_map *map)
 {
-    if (!check_map(map)) {
-        SOL_WRN("Invalid memory map. Map->path: [%s]", map->path);
-        return -EINVAL;
+    struct map_resolved_path *map_resolved_path;
+    int r;
+
+    SOL_NULL_CHECK(map, -EINVAL);
+
+    map_resolved_path = calloc(1, sizeof(struct map_resolved_path));
+    SOL_NULL_CHECK(map, -ENOMEM);
+
+    map_resolved_path->map = map;
+
+    if (strstartswith(map->path, "create,i2c,")) {
+        if (resolve_i2c_path(map, map_resolved_path) < 0) {
+            SOL_WRN("Could not create i2c EEPROM device using command [%s]", map->path);
+            r = -EINVAL;
+            goto error;
+        }
+    } else {
+        map_resolved_path->resolved_path = (void *)map->path;
     }
 
-    return sol_ptr_vector_append(&memory_maps, (void *)map);
+    r = sol_ptr_vector_append(&resolved_path_maps, map_resolved_path);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    if (!check_map(map)) {
+        SOL_WRN("Invalid memory map. Map->path: [%s]", map->path);
+        r = -EINVAL;
+        goto error;
+    }
+
+    r = sol_ptr_vector_append(&memory_maps, (void *)map);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return 0;
+
+error:
+    free(map_resolved_path);
+
+    return r;
 }
 
 SOL_API int
 sol_memmap_remove_map(const struct sol_memmap_map *map)
 {
+    struct map_resolved_path *iter;
+    int i;
+
+    SOL_NULL_CHECK(map, -EINVAL);
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&resolved_path_maps, iter, i) {
+        if (iter->map == map) {
+            if (iter->resolved_path != map->path)
+                free(iter->resolved_path);
+
+            sol_ptr_vector_del(&resolved_path_maps, i);
+            free(iter);
+
+            break;
+        }
+    }
+
     return sol_ptr_vector_remove(&memory_maps, map);
 }
