@@ -68,19 +68,26 @@ extern "C" {
 
 #define MEMMAP_VERSION_ENTRY "_version" /**< Name of property which contains stored map version */
 
+#define SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, _size, _bit_offset, _bit_size) \
+    (const struct sol_str_table_ptr)SOL_STR_TABLE_PTR_ITEM(_name, &((struct sol_memmap_entry){.offset = (_offset), .size = (_size), .bit_offset = (_bit_offset), .bit_size = (_bit_size) }))
+
 #define SOL_MEMMAP_ENTRY(_name, _offset, _size) \
-    SOL_STR_TABLE_PTR_ITEM(_name, &((struct sol_memmap_entry){.offset = (_offset), .size = (_size) }))
+    SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, _size, 0, 0)
 
 #define SOL_MEMMAP_BOOL_ENTRY(_name, _offset, _bit_offset) \
-    SOL_STR_TABLE_PTR_ITEM(_name, &((struct sol_memmap_entry){.offset = (_offset), .size = 1, .bit_offset = (_bit_offset), .bit_size = 1 }))
-
-#define SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, _size, _bit_offset, _bit_size) \
-    SOL_STR_TABLE_PTR_ITEM(_name, &((struct sol_memmap_entry){.offset = (_offset), .size = (_size), .bit_offset = (_bit_offset), .bit_size = (_bit_size) }))
+    SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, 1, _bit_offset, 1)
 
 struct sol_memmap_map {
     uint8_t version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
-    const char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram */
-    struct sol_str_table_ptr entries[]; /**< Entries on map, containing name, offset and size */
+    const char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram.
+                       * Optionally, it can also be of form <tt> create,\<bus_type\>,\<rel_path\>,\<devnumber\>,\<devname\> </tt>, where:
+                       * @arg @a bus_type is the bus type, supported values are: i2c
+                       * @arg @a rel_path is the relative path for device on '/sys/devices',
+                       * like 'platform/80860F41:05'
+                       * @arg @a devnumber is device number on bus, like 0x50
+                       * @arg @a devname is device name, the one recognized by its driver
+                       */
+    const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */
 };
 
 struct sol_memmap_entry {
