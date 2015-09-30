@@ -28,6 +28,11 @@ config USE_GPIO
     depends on FEATURE_HW_GPIO
     default y
 
+config USE_IIO
+    bool "Linux Industrial I/O Support"
+    depends on LINUX
+    default y
+
 menuconfig USE_PIN_MUX
     bool "Pin Multiplexer"
     depends on LINUX && USE_GPIO
@@ -48,11 +53,6 @@ menuconfig USE_PIN_MUX
           statically defined BOARD_NAME.
 
           If unsure, say Y.
-
-config USE_IIO
-    bool "Linux Industrial I/O Support"
-    depends on LINUX
-    default y
 
 source "src/modules/pin-mux/intel-galileo-rev-d/Kconfig"
 source "src/modules/pin-mux/intel-galileo-rev-g/Kconfig"
