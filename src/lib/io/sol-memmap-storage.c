@@ -454,7 +454,7 @@ sol_memmap_add_map(struct sol_memmap_map *map)
             return -EINVAL;
         }
     } else {
-        map->resolved_path = map->path;
+        map->resolved_path = (void *)map->path;
     }
 
     if (!check_map(map)) {
