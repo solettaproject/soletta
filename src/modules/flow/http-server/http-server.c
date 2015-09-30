@@ -368,6 +368,7 @@ string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     return 0;
 
 err:
+    free(mdata->value.s);
     free(mdata->path);
     return -1;
 }
