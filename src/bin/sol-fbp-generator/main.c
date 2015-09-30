@@ -833,8 +833,8 @@ generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
     SOL_PTR_VECTOR_FOREACH_IDX (maps, map, i) {
         out("\nstatic const struct sol_memmap_map _memmap%d = {\n", i);
         out("   .version = %d,\n"
-            "   .path = \"%s\"\n"
-            "   .entries {\n",
+            "   .path = \"%s\",\n"
+            "   .entries = {\n",
             map->version, map->path);
 
         for (iter = map->entries; iter->key; iter++) {
