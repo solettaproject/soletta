@@ -842,7 +842,7 @@ string_change_case(struct sol_flow_node *node,
     if (!u_lower) {
         errno = ENOMEM;
         free(u_orig);
-        sol_flow_send_error_packet(node, errno, "Out of memory");
+        sol_flow_send_error_packet_errno(node, errno);
         return -errno;
     }
 
@@ -860,7 +860,7 @@ string_change_case(struct sol_flow_node *node,
     if (r < 0) {
         free(u_orig);
         free(u_lower);
-        sol_flow_send_error_packet(node, -r, "%s", u_errorName(err));
+        sol_flow_send_error_packet_str(node, -r, u_errorName(err));
         return r;
     }
 

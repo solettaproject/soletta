@@ -30,7 +30,7 @@
 
 conv_error(converter/error)
 const_error_code(constant/int:value=33)
-const_error_msg(constant/string:value="Numerical argument out of domain")
+const_error_msg(constant/string:value="Numerical argument out of domain (errno 33)")
 const_int(constant/int:value=10)
 const_zero(constant/int:value=0)
 error_msg_equal(string/compare)
