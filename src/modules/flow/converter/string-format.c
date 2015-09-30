@@ -494,17 +494,21 @@ fast_fill(struct sol_buffer *buffer,
 {
     char *str = NULL;
     struct sol_str_slice slice;
+    int r;
 
     assert(start >= 0);
 
-    str = alloca(length + 1);
+    str = malloc(length + 1);
     SOL_NULL_CHECK(str, -ENOMEM);
     memset(str, fill_char, length);
     str[length] = 0;
 
     slice = SOL_STR_SLICE_STR(str, strlen(str));
 
-    return sol_buffer_set_slice_at(buffer, start, slice);
+    r = sol_buffer_set_slice_at(buffer, start, slice);
+    free(str);
+
+    return r;
 }
 
 static int
