@@ -232,6 +232,7 @@ bool sol_http_param_add(struct sol_http_param *params,
     struct sol_http_param_value value) SOL_ATTR_WARN_UNUSED_RESULT;
 void sol_http_param_free(struct sol_http_param *params);
 
+int sol_http_escape_string(char *buffer, size_t len, const char *value);
 
 /**
  * @}
