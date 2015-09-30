@@ -1,0 +1,57 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# This example showcases persistence usage. By clicking on Buttons 1 & 2,
+# one can increase/decrease a counter, that is displayed on 7 seg display.
+# Each change is also persisted to Calamari EEPROM, so this sample will, on
+# a second run, remembers counter last value.
+# Note that on sol-flow.json in this directory is defined the memory map used
+# to store information on EEPROM. Property 'path' contains the instructions
+# to 'create' the i2c device. Alternatively, it could be a path to EEPROM file
+# on sysfs, considering it's already created. In this case, path would be
+# '/sys/bus/i2c/devices/7-0050/eeprom'
+# Note also that for this sample to work, one must zero at least EEPROM position
+# where offset is saved (byte 200). Or use 255 as map version on sol-flow.json.
+
+btn1(Button1)
+btn2(Button2)
+accumulator(int/accumulator:send_initial_packet=false,setup_value=val:0|min:0|max:15|step:1)
+seg(SevenSegments)
+persistence(persistence/int:storage="memmap",name="accumulated",default_value=0)
+
+persistence OUT -> SET accumulator
+
+btn1 OUT -> IN _(boolean/filter) TRUE -> INC accumulator
+btn2 OUT -> IN _(boolean/filter) TRUE -> DEC accumulator
+
+accumulator OUT -> IN persistence
+
+persistence OUT -> VALUE seg
