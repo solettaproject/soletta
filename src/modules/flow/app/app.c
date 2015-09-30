@@ -188,10 +188,8 @@ unset_name(struct sol_flow_node *node, const char *var_name)
     int r;
 
     r = unsetenv(var_name);
-    if (r < 0) {
-        return sol_flow_send_error_packet(node, errno,
-            sol_util_strerrora(errno));
-    }
+    if (r < 0)
+        return sol_flow_send_error_packet_errno(node, errno);
 
     return 0;
 }
@@ -239,10 +237,8 @@ set_name(struct sol_flow_node *node, struct setenv_data *mdata)
         return 0;
 
     r = setenv(mdata->name, mdata->value, mdata->overwrite);
-    if (r < 0) {
-        return sol_flow_send_error_packet(node, errno,
-            sol_util_strerrora(errno));
-    }
+    if (r < 0)
+        return sol_flow_send_error_packet_errno(node, errno);
 
     return 0;
 }
