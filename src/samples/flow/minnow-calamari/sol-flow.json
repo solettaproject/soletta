@@ -112,5 +112,22 @@
    },
    "type": "calamari/lever"
   }
+ ],
+ "maps": [
+     {
+         "version": 1,
+         "path": "create,i2c,platform/80860F41:05,0x50,24c256",
+         "entries": [
+             {
+                 "name": "_version",
+                 "offset": 200,
+                 "size": 1
+             },
+             {
+                 "name": "accumulated",
+                 "size": 16
+             }
+         ]
+     }
  ]
 }
