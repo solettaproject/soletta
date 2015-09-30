@@ -122,7 +122,7 @@ string_regexp_search_and_split(struct string_regexp_search_data *mdata)
     SOL_INT_CHECK(r, < 0, v);
 
     match_sz = (sub_match_count + 1) * 3;
-    match_vector = alloca(match_sz * sizeof(*match_vector));
+    match_vector = calloc(match_sz, sizeof(*match_vector));
 
     r = pcre_exec(compiled_re, p_extra, mdata->string, str_len,
         0, 0, match_vector, match_sz);
@@ -158,6 +158,7 @@ err:
     if (p_extra != NULL)
         pcre_free(p_extra);
     pcre_free(compiled_re);
+    free(match_vector);
 
     return v;
 #undef CREATE_SLICE

@@ -66,15 +66,14 @@ join_unknown_mnt_opts(struct sol_ptr_vector *vec, char *to)
 static unsigned long
 get_mountflags(char *mnt_opts, bool *should_mount)
 {
-    char *p, *remaining;
+    char *remaining, *p;
     struct sol_ptr_vector specific_opts;
     unsigned long options = 0;
 
     sol_ptr_vector_init(&specific_opts);
 
     remaining = strdupa(mnt_opts);
-
-    while (remaining) {
+    do {
         p = strchr(remaining, ',');
         if (p) {
             *p = '\0';
@@ -125,12 +124,7 @@ get_mountflags(char *mnt_opts, bool *should_mount)
         } else {
             sol_ptr_vector_append(&specific_opts, remaining);
         }
-
-        if (!p)
-            break;
-
-        remaining = p;
-    }
+    } while ((remaining = p));
 
     join_unknown_mnt_opts(&specific_opts, mnt_opts);
 

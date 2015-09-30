@@ -185,6 +185,8 @@ persist_process(struct sol_flow_node *node,
     int r;
 
     if (mdata->packet_data_size) {
+        /* Using alloca() is OK here since packet_data_size is always a sizeof()
+         * of a fixed struct. */
         value = alloca(mdata->packet_data_size);
         r = mdata->packet_data_get_fn(packet, value);
     } else
