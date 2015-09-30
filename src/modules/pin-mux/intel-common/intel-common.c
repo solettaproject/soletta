@@ -101,6 +101,8 @@ _set_gpio(int pin, enum sol_gpio_direction dir, int drive, bool val)
         return -EINVAL;
     }
 
+    sol_gpio_write(gpio, val);
+
     // Drive:
     // This is not standard interface in upstream Linux, so the
     // Linux implementation of sol-gpio doesn't handle it, thus the need
