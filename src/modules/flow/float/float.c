@@ -96,7 +96,7 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     r = sol_flow_packet_get_drange(packet, &value);
 
     if (r < 0) {
-        sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+        sol_flow_send_error_packet(node, -r, "%s", sol_util_strerrora(-r));
         return r;
     }
 
@@ -174,7 +174,7 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
             result = alloca(sizeof(*result));
             if (!result) {
                 r = ENOMEM;
-                sol_flow_send_error_packet(node, r, sol_util_strerrora(r));
+                sol_flow_send_error_packet(node, r, "%s", sol_util_strerrora(r));
                 return -r;
             }
             *result = mdata->var[i];
@@ -182,7 +182,7 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
         } else {
             r = type->func(result, &mdata->var[i], result);
             if (r < 0) {
-                sol_flow_send_error_packet(node, -r, sol_util_strerrora(-r));
+                sol_flow_send_error_packet(node, -r, "%s", sol_util_strerrora(-r));
                 return r;
             }
         }
