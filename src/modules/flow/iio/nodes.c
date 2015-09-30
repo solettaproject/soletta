@@ -81,7 +81,7 @@ reader_cb(void *data, struct sol_iio_device *device)
     return;
 
 error:
-    sol_flow_send_error_packet(mdata->node, EIO, errmsg);
+    sol_flow_send_error_packet_str(mdata->node, EIO, errmsg);
     SOL_WRN("%s", errmsg);
 }
 
@@ -178,7 +178,7 @@ gyroscope_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     return 0;
 
 error:
-    sol_flow_send_error_packet(node, EIO, errmsg);
+    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
     SOL_WRN("%s", errmsg);
 
     return -EIO;

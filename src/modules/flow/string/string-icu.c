@@ -250,7 +250,7 @@ string_concat(struct sol_flow_node *node,
     r = utf8_from_icu_str_slice(dest, len, &final, &err);
     if (r < 0) {
         free(dest);
-        sol_flow_send_error_packet(node, -r, u_errorName(err));
+        sol_flow_send_error_packet_str(node, -r, u_errorName(err));
         return r;
     }
 
@@ -379,7 +379,7 @@ slice_do(struct string_slice_data *mdata)
     r = utf8_from_icu_str_slice((const UChar *)slice.data, slice.len,
         &outstr, &err);
     if (r < 0) {
-        sol_flow_send_error_packet(mdata->node, -r, u_errorName(err));
+        sol_flow_send_error_packet_str(mdata->node, -r, u_errorName(err));
         return r;
     }
 
@@ -406,7 +406,7 @@ string_slice_input(struct sol_flow_node *node,
     mdata->str = NULL;
     r = icu_str_from_utf8(in_value, &mdata->str, &err);
     if (r < 0) {
-        sol_flow_send_error_packet(mdata->node, -r, u_errorName(err));
+        sol_flow_send_error_packet_str(mdata->node, -r, u_errorName(err));
         return r;
     }
 
@@ -817,7 +817,7 @@ string_change_case(struct sol_flow_node *node,
 
     r = icu_str_from_utf8(value, &u_orig, &err);
     if (r < 0) {
-        sol_flow_send_error_packet(node, -r, u_errorName(err));
+        sol_flow_send_error_packet_str(node, -r, u_errorName(err));
         return -errno;
     }
 
@@ -835,7 +835,7 @@ string_change_case(struct sol_flow_node *node,
     if (U_FAILURE(err) && err != U_BUFFER_OVERFLOW_ERROR) {
         errno = EINVAL;
         free(u_orig);
-        sol_flow_send_error_packet(node, errno, u_errorName(err));
+        sol_flow_send_error_packet_str(node, errno, u_errorName(err));
         return -errno;
     }
     u_lower = calloc(u_changed_sz + 1, sizeof(*u_lower));
@@ -852,7 +852,7 @@ string_change_case(struct sol_flow_node *node,
         errno = EINVAL;
         free(u_orig);
         free(u_lower);
-        sol_flow_send_error_packet(node, errno, u_errorName(err));
+        sol_flow_send_error_packet_str(node, errno, u_errorName(err));
         return -errno;
     }
 
@@ -860,7 +860,7 @@ string_change_case(struct sol_flow_node *node,
     if (r < 0) {
         free(u_orig);
         free(u_lower);
-        sol_flow_send_error_packet(node, -r, u_errorName(err));
+        sol_flow_send_error_packet(node, -r, "%s", u_errorName(err));
         return r;
     }
 

@@ -110,10 +110,8 @@ file_reader_load(struct file_reader_data *mdata)
 
     reader = sol_file_reader_open(mdata->path);
     if (!reader) {
-        char errmsg[1024];
-        snprintf(errmsg, sizeof(errmsg), "Could not load \"%s\": %s",
-            mdata->path, sol_util_strerrora(errno));
-        sol_flow_send_error_packet(mdata->node, errno, errmsg);
+        sol_flow_send_error_packet(mdata->node, errno,
+            "Could not load \"%s\": %s", mdata->path, sol_util_strerrora(errno));
         return -errno;
     }
     slice = sol_file_reader_get_all(reader);
@@ -280,7 +278,7 @@ file_writer_worker_thread_setup(void *data)
         char *msg;
         mdata->error = errno;
         msg = sol_util_strerrora(errno);
-        sol_flow_send_error_packet(mdata->node, mdata->error, msg);
+        sol_flow_send_error_packet_str(mdata->node, mdata->error, msg);
         SOL_WRN("could not open '%s': %s", mdata->path, msg);
         return false;
     }
@@ -336,7 +334,7 @@ file_writer_worker_thread_iterate(void *data)
             msg = sol_util_strerrora(errno);
             SOL_WRN("could not write %zd bytes to fd=%d (%s): %s",
                 todo, mdata->fd, mdata->path, msg);
-            sol_flow_send_error_packet(mdata->node, mdata->error, msg);
+            sol_flow_send_error_packet_str(mdata->node, mdata->error, msg);
             return false;
         }
     }

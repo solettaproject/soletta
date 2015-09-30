@@ -2097,7 +2097,7 @@ get_integer_field(struct string_converter *mdata,
             break;
         default:
             sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Field index %d does not exist for integer type", index);
+                "Field index %zd does not exist for integer type", index);
         }
     }
 
@@ -2152,7 +2152,7 @@ get_float_field(struct string_converter *mdata,
             break;
         default:
             sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Field index %d does not exist for float type", index);
+                "Field index %zd does not exist for float type", index);
         }
     }
 

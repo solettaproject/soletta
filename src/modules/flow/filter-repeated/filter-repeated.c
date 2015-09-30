@@ -144,12 +144,12 @@ error_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     free(mdata->msg);
     mdata->msg = strdup(in_value);
     if (!mdata->msg) {
-        sol_flow_send_error_packet(node, errno, sol_util_strerrora(errno));
+        sol_flow_send_error_packet_errno(node, errno);
         return -errno;
     }
     mdata->code = code_value;
 
-    return sol_flow_send_error_packet(node, code_value, in_value);
+    return sol_flow_send_error_packet_str(node, code_value, in_value);
 }
 
 static int
@@ -258,7 +258,7 @@ string_filter(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     free(mdata->value);
     mdata->value = strdup(in_value);
     if (!mdata->value) {
-        sol_flow_send_error_packet(node, errno, sol_util_strerrora(errno));
+        sol_flow_send_error_packet_errno(node, errno);
         return -errno;
     }
 

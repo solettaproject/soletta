@@ -419,7 +419,7 @@ send_error_packet(duk_context *ctx)
         return 0;
     }
 
-    r = sol_flow_send_error_packet(node, value_code, value_msg);
+    r = sol_flow_send_error_packet_str(node, value_code, value_msg);
     if (r < 0)
         duk_error(ctx, DUK_ERR_ERROR, "Couldn't send error packet.");
 
