@@ -412,7 +412,17 @@
       "atleast-version": "7.32.0"
     },
     {
-      "dependency": "sanitize_undefined",
+      "dependency": "dynamic_sanitize_undefined",
+      "type": "ccode",
+      "cflags": {
+        "value": "-fsanitize=undefined"
+      },
+      "ldflags": {
+        "value": "-fsanitize=undefined"
+      }
+    },
+    {
+      "dependency": "static_sanitize_undefined",
       "type": "ccode",
       "cflags": {
         "value": "-fsanitize=undefined"
@@ -429,7 +439,17 @@
       }
     },
     {
-      "dependency": "sanitize_address",
+      "dependency": "dynamic_sanitize_address",
+      "type": "ccode",
+      "cflags": {
+        "value": "-fsanitize=address"
+      },
+      "ldflags": {
+        "value": "-fsanitize=address"
+      }
+    },
+    {
+      "dependency": "static_sanitize_address",
       "type": "ccode",
       "cflags": {
         "value": "-fsanitize=address"
