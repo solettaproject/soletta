@@ -79,7 +79,7 @@ extern "C" {
 
 struct sol_memmap_map {
     uint8_t version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
-    char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram */
+    const char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram */
     struct sol_str_table_ptr entries[]; /**< Entries on map, containing name, offset and size */
 };
 
