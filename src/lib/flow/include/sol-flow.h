@@ -149,7 +149,7 @@ int sol_flow_send_packet(struct sol_flow_node *src, uint16_t src_port, struct so
 /* Works exaclty as @sol_flow_send_packet(). This function is a helper
  * to send an error packet.
  */
-int sol_flow_send_error_packet(struct sol_flow_node *src, int code, const char *msg_fmt, ...);
+int sol_flow_send_error_packet(struct sol_flow_node *src, int code, const char *msg_fmt, ...) SOL_ATTR_PRINTF(3, 4);
 
 /* Helper functions to create and send packets of specific types. They
  * work like sol_flow_send_packet(), but besides creating, sending and

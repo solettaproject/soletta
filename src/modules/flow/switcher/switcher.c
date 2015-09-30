@@ -219,7 +219,7 @@ error_forward(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     r = sol_flow_packet_get_error(packet, &code_value, &msg);
     SOL_INT_CHECK(r, < 0, r);
 
-    return sol_flow_send_error_packet(node, code_value, msg);
+    return sol_flow_send_error_packet(node, code_value, "%s", msg);
 }
 
 static int
