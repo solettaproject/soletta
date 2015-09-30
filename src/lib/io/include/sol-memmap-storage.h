@@ -79,7 +79,15 @@ extern "C" {
 
 struct sol_memmap_map {
     uint8_t version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
-    const char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram */
+    const char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram.
+                       * Optionally, it can also be of form <tt> create,\<bus_type\>,\<rel_path\>,\<devnumber\>,\<devname\> </tt>, where:
+                       * @arg @a bus_type is the bus type, supported values are: i2c
+                       * @arg @a rel_path is the relative path for device on '/sys/devices',
+                       * like 'platform/80860F41:05'
+                       * @arg @a devnumber is device number on bus, like 0x50
+                       * @arg @a devname is device name, the one recognized by its driver
+                       */
+    char *resolved_path; /**< Reserved */
     struct sol_str_table_ptr entries[]; /**< Entries on map, containing name, offset and size */
 };
 
@@ -125,7 +133,7 @@ int sol_memmap_read_raw(const char *name, struct sol_buffer *buffer);
  *
  * @return 0 on success, a negative number on failure.
  */
-int sol_memmap_add_map(const struct sol_memmap_map *map);
+int sol_memmap_add_map(struct sol_memmap_map *map);
 
 /**
  * Removes a previously added map from internal list of available maps.
