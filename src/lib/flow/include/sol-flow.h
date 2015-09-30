@@ -37,7 +37,6 @@
 #include <stdint.h>
 #include <time.h>
 
-#include "sol-util.h"
 #include "sol-flow-packet.h"
 
 #ifdef __cplusplus
@@ -152,17 +151,9 @@ int sol_flow_send_packet(struct sol_flow_node *src, uint16_t src_port, struct so
  */
 int sol_flow_send_error_packet(struct sol_flow_node *src, int code, const char *msg_fmt, ...) SOL_ATTR_PRINTF(3, 4);
 
-static inline int sol_flow_send_error_packet_errno(struct sol_flow_node *src, int code)
-{
-    if (code < 0)
-        code = -code;
-    return sol_flow_send_error_packet(src, code, "%s (errno %d)", sol_util_strerrora(code), code);
-}
+int sol_flow_send_error_packet_errno(struct sol_flow_node *src, int code);
 
-static inline int sol_flow_send_error_packet_str(struct sol_flow_node *src, int code, const char *str)
-{
-    return sol_flow_send_error_packet(src, code, "%s", str);
-}
+int sol_flow_send_error_packet_str(struct sol_flow_node *src, int code, const char *str);
 
 /* Helper functions to create and send packets of specific types. They
  * work like sol_flow_send_packet(), but besides creating, sending and

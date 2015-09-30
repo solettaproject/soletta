@@ -413,6 +413,20 @@ sol_flow_send_error_packet(struct sol_flow_node *src, int code, const char *msg_
     return sol_flow_send_packet(src, SOL_FLOW_NODE_PORT_ERROR, packet);
 }
 
+SOL_API int
+sol_flow_send_error_packet_errno(struct sol_flow_node *src, int code)
+{
+    if (code < 0)
+        code = -code;
+    return sol_flow_send_error_packet(src, code, "%s (errno %d)", sol_util_strerrora(code), code);
+}
+
+SOL_API int
+sol_flow_send_error_packet_str(struct sol_flow_node *src, int code, const char *str)
+{
+    return sol_flow_send_error_packet(src, code, "%s", str);
+}
+
 static struct sol_flow_port_type_out port_error = {
     .api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION,
 };
