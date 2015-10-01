@@ -144,9 +144,12 @@ thingspeak_execute_poll_finished(void *data,
         return;
     }
 
-    body = strndupa(response->content.data, response->content.used);
+    body = strndup(response->content.data, response->content.used);
+    SOL_NULL_CHECK(body);
+
     sol_flow_send_string_packet(mdata->node,
         SOL_FLOW_NODE_TYPE_THINGSPEAK_TALKBACK_EXECUTE__OUT__OUT, body);
+    free(body);
 }
 
 static bool

@@ -31,6 +31,8 @@
  */
 
 #include <errno.h>
+#include <float.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -98,6 +100,11 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 
     if (len < 0)
         len = (ssize_t)strlen(nptr);
+
+    if (unlikely(len > (DBL_MANT_DIG - DBL_MIN_EXP + 3))) {
+        errno = EINVAL;
+        return FP_NAN;
+    }
 
     /* NOTE: Using a copy to ensure trailing \0 and strtod() so we
      * properly parse numbers with large precision.

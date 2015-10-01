@@ -146,8 +146,9 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
     struct drange_multiple_arithmetic_data *mdata = data;
     const struct drange_arithmetic_node_type *type;
     struct sol_drange value;
-    struct sol_drange *result = NULL;
+    struct sol_drange result;
     uint32_t i;
+    bool result_set = false;
     int r;
 
     r = sol_flow_packet_get_drange(packet, &value);
@@ -170,17 +171,12 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
         if (!(mdata->var_initialized & (1u << i)))
             continue;
 
-        if (!result) {
-            result = alloca(sizeof(*result));
-            if (!result) {
-                r = ENOMEM;
-                sol_flow_send_error_packet_errno(node, r);
-                return -r;
-            }
-            *result = mdata->var[i];
+        if (!result_set) {
+            result = mdata->var[i];
+            result_set = true;
             continue;
         } else {
-            r = type->func(result, &mdata->var[i], result);
+            r = type->func(&result, &mdata->var[i], &result);
             if (r < 0) {
                 sol_flow_send_error_packet_errno(node, -r);
                 return r;
@@ -188,7 +184,10 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
         }
     }
 
-    return sol_flow_send_drange_packet(node, 0, result);
+    if (!result_set)
+        return 0;
+
+    return sol_flow_send_drange_packet(node, 0, &result);
 }
 
 // =============================================================================

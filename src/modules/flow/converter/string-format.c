@@ -492,19 +492,16 @@ fast_fill(struct sol_buffer *buffer,
     ssize_t length,
     unsigned char fill_char)
 {
-    char *str = NULL;
-    struct sol_str_slice slice;
+    int r;
 
     assert(start >= 0);
 
-    str = alloca(length + 1);
-    SOL_NULL_CHECK(str, -ENOMEM);
-    memset(str, fill_char, length);
-    str[length] = 0;
+    r = sol_buffer_ensure(buffer, buffer->used + length + 1);
+    SOL_INT_CHECK(r, < 0, r);
 
-    slice = SOL_STR_SLICE_STR(str, strlen(str));
+    memset(sol_buffer_at(buffer, start), fill_char, length);
 
-    return sol_buffer_set_slice_at(buffer, start, slice);
+    return sol_buffer_ensure_nul_byte(buffer);
 }
 
 static int
@@ -594,14 +591,16 @@ insert_numbers(struct sol_buffer *out,
     SOL_INT_CHECK(r, < 0, r);
 
     if (n_zeros) {
-        char *str = alloca(n_zeros + 1);
+        char *str;
 
-        SOL_NULL_CHECK(str, -ENOMEM);
-        r = snprintf(str, n_zeros + 1, "%0*d", (int)(long)n_zeros, 0);
-        SOL_INT_CHECK(r, < 0, r);
+        r = asprintf(&str, "%0*d", (int)(long)n_zeros, 0);
+        SOL_INT_CHECK(r, < 0, -ENOMEM);
 
-        slice = SOL_STR_SLICE_STR(str, strlen(str));
-        return sol_buffer_insert_slice(out, pos, slice);
+        slice = SOL_STR_SLICE_STR(str, r);
+        r = sol_buffer_insert_slice(out, pos, slice);
+
+        free(str);
+        return r;
     }
 
     return 0;

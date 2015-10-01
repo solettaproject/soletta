@@ -315,7 +315,7 @@ load_initial_services_internal(struct sol_file_reader *reader)
         }
     }
     if (err == 0 && start < end)
-        err = load_initial_services_entry(start, end - start); ;
+        err = load_initial_services_entry(start, end - start);
 
     return err;
 }

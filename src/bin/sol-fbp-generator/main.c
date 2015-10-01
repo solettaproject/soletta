@@ -148,7 +148,6 @@ handle_suboptions(const struct sol_fbp_meta *meta,
     char *p, *remaining;
 
     remaining = strndupa(meta->value.data, meta->value.len);
-    SOL_NULL_CHECK(remaining);
 
     while (remaining) {
         p = memchr(remaining, '|', strlen(remaining));
