@@ -51,6 +51,8 @@ def custom_get_name(typename):
 data_type_to_c_map = {
     "boolean": "bool ",
     "blob": "struct sol_blob *",
+    "json-object": "struct sol_blob *",
+    "json-array": "struct sol_blob *",
     "byte": "unsigned char ",
     "timestamp": "struct timespec ",
     "int": "struct sol_irange ",
@@ -112,6 +114,8 @@ def print_data_struct(outfile, struct):
 data_type_to_packet_getter_map = {
     "boolean": "boolean(packet, &in_value)",
     "blob": "blob(packet, &in_value)",
+    "json-object": "json_object(packet, &in_value)",
+    "json-array": "json_array(packet, &in_value)",
     "timestamp": "timestamp(packet, &in_value)",
     "int": "irange(packet, &in_value)",
     "float": "drange(packet, &in_value)",

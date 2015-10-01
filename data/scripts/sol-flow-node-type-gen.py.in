@@ -282,6 +282,8 @@ data_type_to_packet_type_map = {
     "byte": "SOL_FLOW_PACKET_TYPE_BYTE",
     "string": "SOL_FLOW_PACKET_TYPE_STRING",
     "blob": "SOL_FLOW_PACKET_TYPE_BLOB",
+    "json-object": "SOL_FLOW_PACKET_TYPE_JSON_OBJECT",
+    "json-array": "SOL_FLOW_PACKET_TYPE_JSON_ARRAY",
     "float": "SOL_FLOW_PACKET_TYPE_DRANGE",
     "rgb": "SOL_FLOW_PACKET_TYPE_RGB",
     "direction-vector": "SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR",

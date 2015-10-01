@@ -163,6 +163,10 @@ int sol_flow_send_boolean_packet(struct sol_flow_node *src, uint16_t src_port, u
 
 int sol_flow_send_blob_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_blob *value);
 
+int sol_flow_send_json_object_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_blob *value);
+
+int sol_flow_send_json_array_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_blob *value);
+
 int sol_flow_send_byte_packet(struct sol_flow_node *src, uint16_t src_port, unsigned char value);
 
 int sol_flow_send_drange_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_drange *value);
