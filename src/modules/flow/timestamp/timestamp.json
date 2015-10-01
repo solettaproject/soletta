@@ -21,7 +21,27 @@
          "required": true
        }
       ],
+      "methods": {
+        "open": "timestamp_time_open"
+      },
       "name": "timestamp/time",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Whether to create an initial packet and send it upon connection to the port OUT or not (wait for packets in the TRIGGER port).",
+            "name": "initial_packet"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Ignore case when comparing strings.",
+            "name": "ignore_case"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "timestamp",
