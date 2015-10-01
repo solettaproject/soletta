@@ -61,7 +61,8 @@ enum sol_http_param_type {
     SOL_HTTP_PARAM_AUTH_BASIC,
     SOL_HTTP_PARAM_ALLOW_REDIR,
     SOL_HTTP_PARAM_TIMEOUT,
-    SOL_HTTP_PARAM_VERBOSE
+    SOL_HTTP_PARAM_VERBOSE,
+    SOL_HTTP_PARAM_POST_DATA
 };
 
 enum sol_http_status_code {
@@ -100,6 +101,9 @@ struct sol_http_param_value {
         struct {
             int value;
         } integer;
+        struct {
+            struct sol_buffer *value;
+        } data;
     } value;
 };
 
@@ -181,6 +185,12 @@ struct sol_http_response {
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_TIMEOUT, \
         .value.integer.value = (setting_) \
+    }
+
+#define SOL_HTTP_REQUEST_PARAM_POST_DATA(data_) \
+    (struct sol_http_param_value) { \
+        .type = SOL_HTTP_PARAM_POST_DATA, \
+        .value.data.value = (data_) \
     }
 
 #define SOL_HTTP_PARAM_FOREACH_IDX(param, itrvar, idx) \
