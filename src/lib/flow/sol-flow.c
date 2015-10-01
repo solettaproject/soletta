@@ -277,6 +277,18 @@ sol_flow_send_blob_packet(struct sol_flow_node *src, uint16_t src_port, const st
 }
 
 SOL_API int
+sol_flow_send_json_object_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_blob *value)
+{
+    SOL_FLOW_SEND_PACKET(json_object);
+}
+
+SOL_API int
+sol_flow_send_json_array_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_blob *value)
+{
+    SOL_FLOW_SEND_PACKET(json_array);
+}
+
+SOL_API int
 sol_flow_send_byte_packet(struct sol_flow_node *src, uint16_t src_port, unsigned char value)
 {
     SOL_FLOW_SEND_PACKET(byte);

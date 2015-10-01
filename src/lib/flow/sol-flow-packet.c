@@ -448,6 +448,54 @@ sol_flow_packet_get_blob(const struct sol_flow_packet *packet, struct sol_blob *
     return sol_flow_packet_get(packet, value);
 }
 
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_JSON_OBJECT  = {
+    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    .name = "Json-Object",
+    .data_size = sizeof(struct sol_blob *),
+    .init = blob_packet_init,
+    .dispose = blob_packet_dispose,
+};
+
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_JSON_OBJECT = &_SOL_FLOW_PACKET_TYPE_JSON_OBJECT;
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_json_object(const struct sol_blob *json_object)
+{
+    SOL_NULL_CHECK(json_object, NULL);
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_JSON_OBJECT, &json_object);
+}
+
+SOL_API int
+sol_flow_packet_get_json_object(const struct sol_flow_packet *packet, struct sol_blob **value)
+{
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_JSON_OBJECT, -EINVAL);
+    return sol_flow_packet_get(packet, value);
+}
+
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_JSON_ARRAY  = {
+    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    .name = "Json-array",
+    .data_size = sizeof(struct sol_blob *),
+    .init = blob_packet_init,
+    .dispose = blob_packet_dispose,
+};
+
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_JSON_ARRAY = &_SOL_FLOW_PACKET_TYPE_JSON_ARRAY;
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_json_array(const struct sol_blob *json_array)
+{
+    SOL_NULL_CHECK(json_array, NULL);
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_JSON_ARRAY, &json_array);
+}
+
+SOL_API int
+sol_flow_packet_get_json_array(const struct sol_flow_packet *packet, struct sol_blob **value)
+{
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_JSON_ARRAY, -EINVAL);
+    return sol_flow_packet_get(packet, value);
+}
+
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_DRANGE = {
     .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
     .name = "DRange",

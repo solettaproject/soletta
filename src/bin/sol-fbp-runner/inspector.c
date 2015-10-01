@@ -172,7 +172,9 @@ inspector_show_packet(const struct sol_flow_packet *packet)
             fprintf(stdout, "<\"%s\">", v);
             return;
         }
-    } else if (type == SOL_FLOW_PACKET_TYPE_BLOB) {
+    } else if (type == SOL_FLOW_PACKET_TYPE_BLOB ||
+        type == SOL_FLOW_PACKET_TYPE_JSON_OBJECT ||
+        type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY) {
         struct sol_blob *v;
         if (sol_flow_packet_get_blob(packet, &v) == 0) {
             fprintf(stdout, "<mem=%p|size=%zd|refcnt=%hu|type=%p|parent=%p>",
