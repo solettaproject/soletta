@@ -356,7 +356,13 @@ static struct mux_description *gpio_dev_0[184] = {
 
 //I2C
 static struct mux_description *i2c_dev_0[][2] = {
-    { desc_18, desc_19 }
+    { 0, NULL },
+    { 0, NULL },
+    { 0, NULL },
+    { 0, NULL },
+    { 0, NULL },
+    { 0, NULL },
+    { desc_18, desc_19 },
 };
 
 //PWM
