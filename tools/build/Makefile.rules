@@ -1,7 +1,5 @@
 find-deps = $(foreach dep,$($(1)-deps),$($(filter %$(dep),$(modules))-out) $($(dep)-out))
 
-all-gen-hdrs = $(foreach gen,$(all-gens),$($(gen)-hdr))
-
 gen-artifact = \
 	$(foreach json,$(filter %.json,$(2)), \
 		$(eval $(json)-src   := $(subst $(top_srcdir)src,$(build_stagedir),$(subst .json,-gen.c,$(json)))) \
@@ -15,6 +13,7 @@ gen-artifact = \
 			$(eval $(json)-desc  := $(build_descdir)$(1).json) \
 			$(eval all-mod-descs += $($(json)-desc)) \
 		) \
+		$(eval all-gen-hdrs  += $($(json)-hdr)) \
 		$(eval all-gens      += $(json)) \
 		$(eval $(4)-gens     += $(json)) \
 		$(eval $(4)-gen-cflags+= $(addprefix -I,$(dir $($(json)-src)))) \
@@ -278,7 +277,7 @@ $(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(modules-out) $(sample-$(1)-srcs) $(call 
 	$(Q)echo "     "SMP"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(sample-$(1)-out))
 	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(sample-$(1)-cflags) $(sample-$(1)-includedir) $(sample-src) \
-	$(call find-deps,$(1)) $(call find-deps,sample-$(1)) $(sample-out) $(SAMPLE_LDFLAGS) \
+	$(call find-deps,$(1)) $(sample-out) $(SAMPLE_LDFLAGS) \
 	$(sample-$(1)-ldflags) $(sort $(builtin-ldflags))
 endef
 $(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
@@ -301,7 +300,7 @@ $(test-$(1)-out): $(SOL_LIB_OUTPUT) $(test-$(1)-srcs) $(call find-deps,$(1))
 	$(Q)echo "     "TST"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(test-$(1)-out))
 	$(Q)$(TARGETCC) $(TEST_CFLAGS) $(test-$(1)-cflags) $(use-builtin-cflags) $(filter-out %.h,$(test-$(1)-srcs)) \
-	$(call find-deps,$(1)) -o $$@ $(TEST_LDFLAGS) $(test-$(1)-ldflags) $(use-builtin-ldflags)
+	-o $$@ $(TEST_LDFLAGS) $(test-$(1)-ldflags) $(use-builtin-ldflags)
 endef
 $(foreach curr,$(tests),$(eval $(call make-test,$(curr))))
 
@@ -338,8 +337,6 @@ $($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $($(1)-objs) \
 		-shared -o $($(1)-out) $(sort $($(1)-ldflags))
 endef
-#	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $(filter-out $(builtin-objs),$($(1)-objs)) \
-#		-shared -o $($(1)-out) $(sort $($(1)-ldflags))
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
 
 $(SOL_LIB_AR): $(all-objs)
@@ -396,11 +393,8 @@ $(eval $(call install-resource,$(GDB_AUTOLOAD_PY),$(GDB_AUTOLOAD_PY_DEST)))
 
 $(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT)
 	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) --schema-dir=$(FLOW_OIC_SPEC_DIR) --node-type-json=$(dir $(@))oic.json --node-type-impl=$(dir $(@))oic.c --node-type-gen-c=oic-gen.c --node-type-gen-h=sol-flow/oic.h &>/dev/null
-
-$(FLOW_NODE_TYPES_H): $(NODE_TYPE_H_GEN_SCRIPT) $(KCONFIG_CONFIG)
-	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(PYTHON) $(NODE_TYPE_H_GEN_SCRIPT) $(FLOW_NODE_TYPES_H) $(all-gen-hdrs)
+	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) --schema-dir=$(FLOW_OIC_SPEC_DIR) --node-type-json=$(dir $(@))oic.json \
+		--node-type-impl=$(dir $(@))oic.c --node-type-gen-c=oic-gen.c --node-type-gen-h=sol-flow/oic.h &>/dev/null
 
 $(KCONFIG_AUTOHEADER): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG) $(obj)/conf
 	$(Q)mkdir -p $(KCONFIG_INCLUDE)config $(KCONFIG_INCLUDE)generated
