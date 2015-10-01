@@ -54,11 +54,6 @@
 
 #define POLL_OBSERVE_TIMEOUT_MS 10000
 
-#define IOTIVITY_CON_REQ_MID 0x7d42
-#define IOTIVITY_CON_REQ_OBS_MID 0x7d44
-#define IOTIVITY_NONCON_REQ_MID 0x7d40
-#define SOLETTA_SERVER_INFO_MID 0xda51 /* devapp server info */
-
 #define OIC_RESOURCE_CHECK_API(ptr, ...) \
     do {                                        \
         if (unlikely(ptr->api_version != \
@@ -103,24 +98,38 @@ struct resource_request_ctx {
     int64_t token;
 };
 
-static struct sol_random *random_gen;
-
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
 
-static int32_t
-_get_random_token(void)
-{
-    int64_t number;
+static sol_ptr_vector pending_discovery = SOL_PTR_VECTOR_INIT;
 
-    if (unlikely(!random_gen)) {
-        random_gen = sol_random_new(SOL_RANDOM_DEFAULT, 0);
-        if (unlikely(!random_gen)) {
-            SOL_ERR("Could not create random engine");
-            return 0;
-        }
+static bool
+_set_token_and_mid(struct sol_coap_packet *pkt, int64_t *token)
+{
+    static struct sol_random *random = NULL;
+    int32_t mid;
+
+    if (unlikely(!random)) {
+        random = sol_random_new(SOL_RANDOM_DEFAULT, 0);
+        SOL_NULL_CHECK(random, false);
     }
 
-    return sol_random_get_int64(random_gen, &number) ? number : 0;
+    if (!sol_random_get_int64(random, token)) {
+        SOL_WRN("Could not generate CoAP token");
+        return false;
+    }
+    if (!sol_random_get_int32(random, &mid)) {
+        SOL_WRN("Could not generate CoAP message id");
+        return false;
+    }
+
+    if (!sol_coap_header_set_token(pkt, (uint8_t *)token, (uint8_t)sizeof(*token))) {
+        SOL_WRN("Could not set CoAP packet token");
+        return false;
+    }
+
+    sol_coap_header_set_id(pkt, (int16_t)mid);
+
+    return true;
 }
 
 static bool
@@ -363,7 +372,6 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
             .client = client,
             .cb = info_received_cb,
             .data = data,
-            .token = _get_random_token()
         }, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, false);
 
@@ -373,8 +381,8 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
         goto out_no_pkt;
     }
 
-    sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
-    sol_coap_header_set_id(req, SOLETTA_SERVER_INFO_MID);
+    if (!_set_token_and_mid(req, &ctx->token))
+        goto out;
 
     if (sol_coap_packet_add_uri_path_option(req, device_uri) < 0) {
         SOL_WRN("Invalid URI: %s", device_uri);
@@ -576,7 +584,6 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
             .client = client,
             .cb = resource_found_cb,
             .data = data,
-            .token = _get_random_token()
         }, sizeof(*ctx));
     SOL_NULL_CHECK(ctx, false);
 
@@ -587,8 +594,8 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
         goto out_no_pkt;
     }
 
-    sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
-    sol_coap_header_set_id(req, IOTIVITY_NONCON_REQ_MID);
+    if (!_set_token_and_mid(req, &ctx->token))
+        goto out;
 
     if (sol_coap_packet_add_uri_path_option(req, oic_well_known) < 0) {
         SOL_WRN("Invalid URI: %s", oic_well_known);
@@ -729,7 +736,6 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
             .cb = callback,
             .data = data,
             .res = res,
-            .token = _get_random_token()
         }, sizeof(*ctx));
 
     SOL_NULL_CHECK(ctx, false);
@@ -740,16 +746,15 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
         goto out_no_req;
     }
 
-    sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
+    if (!_set_token_and_mid(req, &ctx->token))
+        goto out;
 
     if (observe) {
         uint8_t reg = 0;
 
-        sol_coap_header_set_id(req, IOTIVITY_CON_REQ_OBS_MID);
         sol_coap_add_option(req, SOL_COAP_OPTION_OBSERVE, &reg, sizeof(reg));
         cb = _resource_request_cb;
     } else {
-        sol_coap_header_set_id(req, IOTIVITY_CON_REQ_MID);
         cb = _one_shot_resource_request_cb;
     }
 
