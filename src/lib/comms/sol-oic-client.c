@@ -432,13 +432,49 @@ _cbor_map_get_bytestr_value(const CborValue *map, const char *key,
     return cbor_value_dup_byte_string(&value, (uint8_t **)&slice->data, &slice->len, NULL) == CborNoError;
 }
 
+static struct sol_oic_resource *
+_new_resource(void)
+{
+    struct sol_oic_resource *res = malloc(sizeof(*res));
+
+    SOL_NULL_CHECK(res, NULL);
+
+    res->href = (struct sol_str_slice)SOL_STR_SLICE_EMPTY;
+    res->device_id = (struct sol_str_slice)SOL_STR_SLICE_EMPTY;
+    sol_vector_init(&res->types, sizeof(struct sol_str_slice));
+    sol_vector_init(&res->interfaces, sizeof(struct sol_str_slice));
+
+    res->observe.timeout = NULL;
+    res->observe.clear_data = 0;
+
+    res->observable = false;
+    res->slow = false;
+    res->secure = false;
+    res->active = false;
+
+    res->refcnt = 1;
+
+    res->api_version = SOL_OIC_RESOURCE_API_VERSION;
+
+    return res;
+}
+
 static bool
-_parse_resource_reply_payload(struct sol_oic_resource *res, uint8_t *payload, uint16_t payload_len)
+_iterate_over_resource_reply_payload(struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr,
+    const struct find_resource_ctx *ctx)
 {
     CborParser parser;
     CborError err;
     CborValue root, array, value, map;
     int payload_type;
+    uint8_t *payload;
+    uint16_t payload_len;
+
+    if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
+        SOL_WRN("Could not get payload form discovery packet response");
+        return false;
+    }
 
     err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
     if (err != CborNoError)
@@ -455,42 +491,52 @@ _parse_resource_reply_payload(struct sol_oic_resource *res, uint8_t *payload, ui
     if (payload_type != SOL_OIC_PAYLOAD_DISCOVERY)
         return false;
 
-    if (!cbor_value_is_map(&array))
-        return false;
+    for (; cbor_value_is_map(&array) && err == CborNoError;
+        err |= cbor_value_advance(&array)) {
+        struct sol_oic_resource *res = _new_resource();
 
-    if (!_cbor_map_get_str_value(&array, SOL_OIC_KEY_HREF, &res->href))
-        return false;
-    if (!_cbor_map_get_bytestr_value(&array, SOL_OIC_KEY_DEVICE_ID, &res->device_id))
-        return false;
+        SOL_NULL_CHECK(res, false);
 
-    err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_PROPERTIES, &value);
-    if (!cbor_value_is_map(&value))
-        return false;
+        if (!_cbor_map_get_str_value(&array, SOL_OIC_KEY_HREF, &res->href))
+            return false;
+        if (!_cbor_map_get_bytestr_value(&array, SOL_OIC_KEY_DEVICE_ID, &res->device_id))
+            return false;
 
-    if (!_cbor_map_get_array(&value, SOL_OIC_KEY_RESOURCE_TYPES, &res->types))
-        return false;
-    if (!_cbor_map_get_array(&value, SOL_OIC_KEY_INTERFACES, &res->interfaces))
-        return false;
+        err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_PROPERTIES, &value);
+        if (!cbor_value_is_map(&value))
+            return false;
 
-    err |= cbor_value_map_find_value(&value, SOL_OIC_KEY_POLICY, &map);
-    if (!cbor_value_is_map(&map)) {
-        err = CborErrorUnknownType;
-    } else {
-        CborValue bitmap_value;
-        uint64_t bitmap = 0;
+        if (!_cbor_map_get_array(&value, SOL_OIC_KEY_RESOURCE_TYPES, &res->types))
+            return false;
+        if (!_cbor_map_get_array(&value, SOL_OIC_KEY_INTERFACES, &res->interfaces))
+            return false;
 
-        err |= cbor_value_map_find_value(&map, SOL_OIC_KEY_BITMAP, &bitmap_value);
-        err |= cbor_value_get_uint64(&bitmap_value, &bitmap);
+        err |= cbor_value_map_find_value(&value, SOL_OIC_KEY_POLICY, &map);
+        if (!cbor_value_is_map(&map)) {
+            err = CborErrorUnknownType;
+        } else {
+            CborValue bitmap_value;
+            uint64_t bitmap = 0;
 
-        res->observable = (bitmap & SOL_OIC_FLAG_OBSERVABLE);
-        res->active = (bitmap & SOL_OIC_FLAG_ACTIVE);
-        res->slow = (bitmap & SOL_OIC_FLAG_SLOW);
-        res->secure = (bitmap & SOL_OIC_FLAG_SECURE);
+            err |= cbor_value_map_find_value(&map, SOL_OIC_KEY_BITMAP, &bitmap_value);
+            err |= cbor_value_get_uint64(&bitmap_value, &bitmap);
+
+            res->observable = (bitmap & SOL_OIC_FLAG_OBSERVABLE);
+            res->active = (bitmap & SOL_OIC_FLAG_ACTIVE);
+            res->slow = (bitmap & SOL_OIC_FLAG_SLOW);
+            res->secure = (bitmap & SOL_OIC_FLAG_SECURE);
+        }
+
+        if (err == CborNoError) {
+            res->observable = res->observable || _has_observable_option(req);
+            res->addr = *cliaddr;
+            ctx->cb(ctx->client, res, ctx->data);
+        }
+
+        sol_oic_resource_unref(res);
     }
 
-    /* No need to leave the containers: we're done with this payload. */
-
-    return err == CborNoError;
+    return (err | cbor_value_leave_container(&root, &array)) == CborNoError;
 }
 
 static bool
@@ -511,33 +557,13 @@ _is_discovery_pending_for_ctx(const struct find_resource_ctx *ctx)
     return false;
 }
 
-static bool
-_remove_from_pending_discovery_list(void *data)
-{
-    int r;
-
-    SOL_DBG("Removing context %p from pending discovery list after %dms",
-        data, DISCOVERY_RESPONSE_TIMEOUT_MS);
-
-    free(data);
-
-    r = sol_ptr_vector_remove(&pending_discovery, data);
-    SOL_INT_CHECK(r, < 0, false);
-
-    return false;
-}
-
 static int
-_find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data)
+_find_resource_reply_cb(struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr, void *data)
 {
     struct find_resource_ctx *ctx = data;
-    uint8_t *payload;
-    uint16_t payload_len;
-    struct sol_oic_resource *res;
-    int error = 0;
 
-    if (_is_discovery_pending_for_ctx(ctx)) {
+    if (!_is_discovery_pending_for_ctx(ctx)) {
         SOL_WRN("Received discovery response packet while not waiting for one");
         return -ENOTCONN;
     }
@@ -557,48 +583,28 @@ _find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_li
         return -EINVAL;
     }
 
-    if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
-        SOL_WRN("Could not get pkt payload");
-        return -ENOMEM;
+    if (!_iterate_over_resource_reply_payload(req, cliaddr, ctx)) {
+        SOL_WRN("Could not iterate over find resource reply packet");
+        return -EINVAL;
     }
 
-    /* FIXME: Support more than one resource per discovery reply. */
+    return 0;
+}
 
-    res = malloc(sizeof(*res));
-    if (!res) {
-        SOL_WRN("Not enough memory");
-        return -errno;
-    }
+static bool
+_remove_from_pending_discovery_list(void *data)
+{
+    int r;
 
-    res->href = (struct sol_str_slice)SOL_STR_SLICE_EMPTY;
-    res->device_id = (struct sol_str_slice)SOL_STR_SLICE_EMPTY;
-    sol_vector_init(&res->types, sizeof(struct sol_str_slice));
-    sol_vector_init(&res->interfaces, sizeof(struct sol_str_slice));
+    SOL_DBG("Removing context %p from pending discovery list after %dms",
+        data, DISCOVERY_RESPONSE_TIMEOUT_MS);
 
-    res->observe.timeout = NULL;
-    res->observe.clear_data = 0;
+    free(data);
 
-    res->observable = false;
-    res->slow = false;
-    res->secure = false;
-    res->active = false;
+    r = sol_ptr_vector_remove(&pending_discovery, data);
+    SOL_INT_CHECK(r, < 0, false);
 
-    res->refcnt = 1;
-
-    res->api_version = SOL_OIC_RESOURCE_API_VERSION;
-
-    if (_parse_resource_reply_payload(res, payload, payload_len)) {
-        res->observable = res->observable || _has_observable_option(req);
-        res->addr = *cliaddr;
-        ctx->cb(ctx->client, res, ctx->data);
-    } else {
-        SOL_WRN("Could not parse payload");
-        error = -EINVAL;
-    }
-
-    sol_oic_resource_unref(res);
-
-    return error;
+    return false;
 }
 
 SOL_API bool
