@@ -53,6 +53,7 @@
 #include "sol-oic-server.h"
 
 #define POLL_OBSERVE_TIMEOUT_MS 10000
+#define DISCOVERY_RESPONSE_TIMEOUT_MS 10000
 
 #define OIC_RESOURCE_CHECK_API(ptr, ...) \
     do {                                        \
@@ -100,7 +101,7 @@ struct resource_request_ctx {
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
 
-static sol_ptr_vector pending_discovery = SOL_PTR_VECTOR_INIT;
+static struct sol_ptr_vector pending_discovery = SOL_PTR_VECTOR_INIT;
 
 static struct sol_random *
 _get_random_instance(void)
@@ -492,6 +493,40 @@ _parse_resource_reply_payload(struct sol_oic_resource *res, uint8_t *payload, ui
     return err == CborNoError;
 }
 
+static bool
+_is_discovery_pending_for_ctx(const struct find_resource_ctx *ctx)
+{
+    void *iter;
+    uint16_t idx;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&pending_discovery, iter, idx) {
+        if (iter == ctx) {
+            SOL_DBG("Context %p is in pending discovery list", ctx);
+
+            return true;
+        }
+    }
+
+    SOL_DBG("Context %p is _not_ in pending discovery list", ctx);
+    return false;
+}
+
+static bool
+_remove_from_pending_discovery_list(void *data)
+{
+    int r;
+
+    SOL_DBG("Removing context %p from pending discovery list after %dms",
+        data, DISCOVERY_RESPONSE_TIMEOUT_MS);
+
+    free(data);
+
+    r = sol_ptr_vector_remove(&pending_discovery, data);
+    SOL_INT_CHECK(r, < 0, false);
+
+    return false;
+}
+
 static int
 _find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
@@ -502,26 +537,29 @@ _find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_li
     struct sol_oic_resource *res;
     int error = 0;
 
+    if (_is_discovery_pending_for_ctx(ctx)) {
+        SOL_WRN("Received discovery response packet while not waiting for one");
+        return -ENOTCONN;
+    }
+
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
-        error = -ENOENT;
-        goto free_ctx;
+        return -ENOENT;
     }
 
     if (!_pkt_has_same_token(req, ctx->token)) {
-        error = -EINVAL;
-        goto free_ctx;
+        SOL_WRN("Discovery packet token differs from expected");
+        return -ENOENT;
     }
 
     if (!sol_oic_pkt_has_cbor_content(req)) {
-        error = -EINVAL;
-        goto free_ctx;
+        SOL_WRN("Discovery packet not in CBOR format");
+        return -EINVAL;
     }
 
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
         SOL_WRN("Could not get pkt payload");
-        error = -ENOMEM;
-        goto free_ctx;
+        return -ENOMEM;
     }
 
     /* FIXME: Support more than one resource per discovery reply. */
@@ -529,8 +567,7 @@ _find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_li
     res = malloc(sizeof(*res));
     if (!res) {
         SOL_WRN("Not enough memory");
-        error = -errno;
-        goto free_ctx;
+        return -errno;
     }
 
     res->href = (struct sol_str_slice)SOL_STR_SLICE_EMPTY;
@@ -561,10 +598,6 @@ _find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_li
 
     sol_oic_resource_unref(res);
 
-free_ctx:
-    /* FIXME: ctx shouldn't be freed here. Add a timeout so it's freed
-     * after a while; maintain a list of pending contexts and check that. */
-    free(ctx);
     return error;
 }
 
@@ -620,8 +653,25 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     }
 
     r = sol_coap_send_packet_with_reply(client->server, req, cliaddr, _find_resource_reply_cb, ctx);
-    if (!r)
+    if (!r) {
+        /* Safe to free ctx, as _find_resource_cb() will not free if ctx
+         * is not on pending_discovery vector. */
+        if (sol_ptr_vector_append(&pending_discovery, ctx) < 0) {
+            SOL_WRN("Discovery responses will be blocked: couldn't save context to pending discovery response list.");
+
+            goto out_no_pkt;
+        }
+
+        /* 10s should be plenty. */
+        if (!sol_timeout_add(DISCOVERY_RESPONSE_TIMEOUT_MS, _remove_from_pending_discovery_list, ctx)) {
+            SOL_WRN("Could not create timeout to cancel discovery process");
+            sol_ptr_vector_remove(&pending_discovery, ctx);
+
+            goto out_no_pkt;
+        }
+
         return true;
+    }
 
     goto out_no_pkt;
 
