@@ -832,21 +832,22 @@ generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
     *elements = 0;
 
     SOL_PTR_VECTOR_FOREACH_IDX (maps, map, i) {
-        out("\nstatic const struct sol_memmap_map _memmap%d = {\n", i);
-        out("   .version = %d,\n"
-            "   .path = \"%s\"\n"
-            "   .entries {\n",
-            map->version, map->path);
-
+        out("\nstatic const struct sol_str_table_ptr _memmap%d_entries[] = {\n", i);
         for (iter = map->entries; iter->key; iter++) {
             entry = iter->val;
-            out("       SOL_MEMMAP_ENTRY_BIT_SIZE(\"%s\", %zu, %zu, %u, %u),\n",
+            out("   SOL_MEMMAP_ENTRY_BIT_SIZE(\"%s\", %zu, %zu, %u, %u),\n",
                 iter->key, entry->offset, entry->size, entry->bit_offset,
                 entry->bit_size);
         }
-
-        out("    }\n"
+        out("   (const struct sol_str_table_ptr) { }\n"
             "};\n");
+
+        out("\nstatic const struct sol_memmap_map _memmap%d = {\n"
+            "   .version = %d,\n"
+            "   .path = \"%s\",\n"
+            "   .entries = _memmap%d_entries\n"
+            "};\n",
+            i, map->version, map->path, i);
     }
 
     *elements = i;

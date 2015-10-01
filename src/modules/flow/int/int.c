@@ -160,9 +160,12 @@ accumulator_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 
     mdata->init_val = opts->setup_value.val;
 
-    return sol_flow_send_irange_packet(node,
-        SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR__OUT__OUT,
-        &mdata->val);
+    if (opts->send_initial_packet)
+        return sol_flow_send_irange_packet(node,
+            SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR__OUT__OUT,
+            &mdata->val);
+
+    return 0;
 }
 
 static int
@@ -206,6 +209,32 @@ reset_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     struct accumulator_data *mdata = data;
 
     mdata->val.val = mdata->init_val;
+
+    return sol_flow_send_irange_packet(node,
+        SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR__OUT__OUT,
+        &mdata->val);
+}
+
+static int
+set_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    int32_t value;
+    struct accumulator_data *mdata = data;
+
+    r = sol_flow_packet_get_irange_value(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (value == mdata->val.val) return 0;
+
+    if (value < mdata->val.min || value > mdata->val.max) {
+        SOL_WRN("Discarding value out of range [%" PRId32 "] to accumulator %p,"
+            " whose range is from [%" PRId32 "] to [%" PRId32 "]", value, node,
+            mdata->val.min, mdata->val.max);
+        return -EINVAL;
+    }
+    mdata->val.val = value;
 
     return sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR__OUT__OUT,
