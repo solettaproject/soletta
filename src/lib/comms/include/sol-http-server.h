@@ -62,6 +62,14 @@ int sol_http_server_register_handler(struct sol_http_server *server, const char 
     int (*request_cb)(void *data, struct sol_http_request *request),
     const void *data);
 int sol_http_server_unregister_handler(struct sol_http_server *server, const char *path);
+
+/* The http server will look first for a handler when a request come,
+ * if any valid handler is found it will try to find the file in the
+ * root dirs set. The response will be sent as soon as a file matches
+ * with the request.
+ */
+int sol_http_server_add_dir(struct sol_http_server *server, const char *rootdir);
+int sol_http_server_remove_dir(struct sol_http_server *server, const char *rootdir);
 int sol_http_server_set_last_modified(struct sol_http_server *server, const char *path, time_t modified);
 
 int sol_http_server_send_response(struct sol_http_request *request, struct sol_http_response *response);
