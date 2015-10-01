@@ -242,6 +242,17 @@ _sol_oic_server_res(const struct sol_coap_resource *resource, struct sol_coap_pa
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     uint8_t *payload;
     uint16_t idx;
+    const uint8_t *uri_query;
+    uint16_t uri_query_len;
+
+    uri_query = sol_coap_find_first_option(req, SOL_COAP_OPTION_URI_QUERY, &uri_query_len);
+    if (uri_query && uri_query_len > sizeof("rt=") - 1) {
+        uri_query += sizeof("rt=") - 1;
+        uri_query_len -= 3;
+    } else {
+        uri_query = NULL;
+        uri_query_len = 0;
+    }
 
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
@@ -252,14 +263,25 @@ _sol_oic_server_res(const struct sol_coap_resource *resource, struct sol_coap_pa
     sol_coap_packet_get_payload(resp, &payload, &size);
 
     cbor_encoder_init(&encoder, payload, size, 0);
-    /* FIXME: Filter results by resource type if `rt` query is present. Length
-     * might have to be indeterminate. */
-    err = cbor_encoder_create_array(&encoder, &array, 1 + oic_server.resources.len);
+    if (uri_query) {
+        err = cbor_encoder_create_array(&encoder, &array, CborIndefiniteLength);
+    } else {
+        err = cbor_encoder_create_array(&encoder, &array, 1 + oic_server.resources.len);
+    }
 
     err |= cbor_encode_uint(&array, SOL_OIC_PAYLOAD_DISCOVERY);
 
     SOL_VECTOR_FOREACH_IDX (&oic_server.resources, iter, idx) {
         CborEncoder map, prop_map, policy_map;
+
+        if (uri_query && iter->rt) {
+            size_t rt_len = strlen(iter->rt);
+
+            if (rt_len != uri_query_len)
+                continue;
+            if (memcmp(uri_query, iter->rt, rt_len) != 0)
+                continue;
+        }
 
         if (!(iter->flags & SOL_OIC_FLAG_DISCOVERABLE))
             continue;
