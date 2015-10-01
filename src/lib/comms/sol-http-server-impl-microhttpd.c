@@ -31,9 +31,13 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <microhttpd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "sol-http-server.h"
 #include "sol-log.h"
@@ -44,6 +48,7 @@
 
 #define SOL_HTTP_PARAM_IF_SINCE_MODIFIED "If-Since-Modified"
 #define SOL_HTTP_PARAM_LAST_MODIFIED "Last-Modified"
+#define READABLE_BY_EVERYONE (S_IRUSR | S_IRGRP | S_IROTH)
 
 struct http_handler {
     time_t last_modified;
@@ -63,6 +68,7 @@ struct sol_http_request {
 
 struct sol_http_server {
     struct MHD_Daemon *daemon;
+    struct sol_ptr_vector dirs;
     struct sol_vector handlers;
     struct sol_vector fds;
     struct sol_vector requests;
@@ -231,12 +237,47 @@ err:
 }
 
 static int
+get_static_file(const char *dir, const char *url)
+{
+    int ret;
+    char path[PATH_MAX], *real_path;
+
+    /* url given by microhttpd starts from /. e. g.
+     * https://www.solettaproject.com => url == /
+     * https://www.solettaproject.com/thankyou => url == /thankyou
+     */
+    while (*url == '/')
+        url++;
+
+    ret = snprintf(path, sizeof(path), "%s/%s", dir,
+        *url ? url : "index.html");
+    if (ret < 0 || ret >= (int)sizeof(path))
+        return -ENOMEM;
+
+    real_path = realpath(path, NULL);
+    if (!real_path)
+        return -errno;
+
+    if (!strstartswith(real_path, dir)) {
+        free(real_path);
+        return -EINVAL;
+    }
+    free(real_path);
+
+    /*  According with microhttpd fd will be closed when response is
+     *  destroyed and fd should be in 'blocking' mode
+     */
+    return open(path, O_RDONLY | O_CLOEXEC);
+}
+
+static int
 http_server_handler(void *data, struct MHD_Connection *connection, const char *url, const char *method,
     const char *version, const char *upload_data, size_t *upload_data_size, void **ptr)
 {
-    int ret;
+    int ret, fd;
     uint16_t i;
-    struct MHD_Response *mhd_response;
+    char *dir;
+    struct MHD_Response *mhd_response = NULL;
     struct sol_http_server *server = data;
     struct http_handler *handler;
     struct sol_http_request *req = *ptr;
@@ -293,10 +334,37 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         return MHD_YES;
     }
 
-end:
+    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        struct stat st;
+        fd = get_static_file(dir, url);
+        if (fd < 0 && errno == EACCES) {
+            status = SOL_HTTP_STATUS_FORBIDDEN;
+        } else if (fd > 0) {
+            ret = fstat(fd, &st);
+            if (ret < 0) {
+                close(fd);
+            } else {
+                if ((st.st_mode & READABLE_BY_EVERYONE) != READABLE_BY_EVERYONE) {
+                    status = SOL_HTTP_STATUS_FORBIDDEN;
+                    close(fd);
+                    break;
+                }
+
+                mhd_response = MHD_create_response_from_fd(st.st_size, fd);
+                if (mhd_response) {
+                    status = SOL_HTTP_STATUS_OK;
+                    goto end;
+                } else {
+                    close(fd);
+                }
+            }
+            break;
+        }
+    }
+
     mhd_response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
     SOL_NULL_CHECK(mhd_response, MHD_NO);
-
+end:
     ret = MHD_queue_response(connection, status, mhd_response);
     MHD_destroy_response(mhd_response);
     return ret;
@@ -433,6 +501,7 @@ sol_http_server_new(uint16_t port)
     sol_vector_init(&server->handlers, sizeof(struct http_handler));
     sol_vector_init(&server->fds, sizeof(struct http_connection));
     sol_vector_init(&server->requests, sizeof(struct sol_http_request));
+    sol_ptr_vector_init(&server->dirs);
 
     server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
         port, NULL, NULL,
@@ -468,6 +537,7 @@ SOL_API void
 sol_http_server_del(struct sol_http_server *server)
 {
     uint16_t i;
+    char *dir;
     struct http_handler *handler;
     struct http_connection *connection;
     struct sol_http_request *request;
@@ -487,6 +557,10 @@ sol_http_server_del(struct sol_http_server *server)
     SOL_VECTOR_FOREACH_IDX (&server->fds, connection, i)
         sol_fd_del(connection->watch);
     sol_vector_clear(&server->fds);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i)
+        free(dir);
+    sol_ptr_vector_clear(&server->dirs);
 
     MHD_stop_daemon(server->daemon);
 
@@ -584,6 +658,54 @@ sol_http_server_set_last_modified(struct sol_http_server *server, const char *pa
     SOL_VECTOR_FOREACH_IDX (&server->handlers, handler, idx) {
         if (sol_str_slice_str_eq(handler->path, path)) {
             handler->last_modified = modified;
+            return 0;
+        }
+    }
+
+    return -ENODATA;
+}
+
+SOL_API int
+sol_http_server_add_dir(struct sol_http_server *server, const char *rootdir)
+{
+    int r;
+    uint16_t i;
+    char *dir;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(rootdir, -EINVAL);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        if (streq(dir, rootdir))
+            return -EINVAL;
+    }
+
+    dir = realpath(rootdir, NULL);
+    SOL_NULL_CHECK(dir, -ENOMEM);
+
+    r = sol_ptr_vector_append(&server->dirs, dir);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+    return 0;
+
+err:
+    free(dir);
+    return r;
+}
+
+SOL_API int
+sol_http_server_remove_dir(struct sol_http_server *server, const char *rootdir)
+{
+    uint16_t i;
+    char *dir;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(rootdir, -EINVAL);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        if (streq(dir, rootdir)) {
+            free(dir);
+            sol_ptr_vector_del(&server->dirs, i);
             return 0;
         }
     }
