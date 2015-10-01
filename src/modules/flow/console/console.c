@@ -149,6 +149,22 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         }
 
         fprintf(mdata->fp, "} (blob)%s\n", mdata->suffix);
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_JSON_OBJECT) {
+        struct sol_blob *val;
+
+        int r = sol_flow_packet_get_json_object(packet, &val);
+        SOL_INT_CHECK(r, < 0, r);
+
+        console_output(mdata, "%.*s (JSON object)", (int)val->size,
+            (char *)val->mem);
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY) {
+        struct sol_blob *val;
+
+        int r = sol_flow_packet_get_json_array(packet, &val);
+        SOL_INT_CHECK(r, < 0, r);
+
+        console_output(mdata, "%.*s (JSON array)", (int)val->size,
+            (char *)val->mem);
     } else if (packet_type == SOL_FLOW_PACKET_TYPE_ERROR) {
         int code;
         const char *msg;
