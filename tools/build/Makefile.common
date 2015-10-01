@@ -30,8 +30,8 @@ define clean-resource
 
 endef
 
-cleanup-files := $(tests-out) $(CLEANUP_GEN) $(kconfig-clean-objs)
-cleanup-files += $(BUILDDIR) $(CHEAT_SHEET_INDEX_HTML) $(DOXYGEN_GENERATED)
+cleanup-files := $(tests-out) $(FLOW_OIC_GEN) $(kconfig-clean-objs)
+cleanup-files += $(BUILDDIR) $(DOXYGEN_GENERATED)
 
 clean:
 	$(foreach curr,$(wildcard $(cleanup-files)),$(call clean-resource,$(curr)))
