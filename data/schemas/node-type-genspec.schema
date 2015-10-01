@@ -39,7 +39,7 @@
     },
 
     "data_type": {
-      "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "direction-vector", "error", "location", "timestamp" ]
+      "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "direction-vector", "error", "location", "timestamp", "blob", "json-object", "json-array"]
     },
 
     "option_data_type": {
@@ -49,7 +49,7 @@
     "port_data_type": {
       "anyOf": [
         { "$ref": "#/definitions/data_type" },
-        { "enum": [ "any", "blob" ] },
+        { "enum": [ "any" ] },
         {
           "type": "string",
           "pattern": "^custom:[a-zA-Z_][a-zA-Z0-9_]*$"
