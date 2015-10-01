@@ -546,3 +546,24 @@ sol_json_double_to_str(const double value, char *buf, size_t len)
 
     return 0;
 }
+
+/* Check if scanner is pointing to a valid string with a json element of
+ * informed type. May or may not be NULL terminated */
+SOL_API bool
+sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type type)
+{
+    struct sol_json_token token;
+    const char *last_position;
+
+    SOL_NULL_CHECK(scanner->mem_end, -EINVAL);
+
+    if (*(scanner->mem_end - 1) == '\0')
+        last_position = scanner->mem_end - 1;
+    else
+        last_position = scanner->mem_end;
+
+    return sol_json_scanner_next(scanner, &token) &&
+           sol_json_token_get_type(&token) == type &&
+           sol_json_scanner_skip_over(scanner, &token) &&
+           token.end == last_position;
+}

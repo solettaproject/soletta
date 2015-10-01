@@ -37,6 +37,7 @@ SOL_LOG_INTERNAL_DECLARE(_converter_log_domain, "flow-converter");
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
 
+#include <sol-json.h>
 #include <limits.h>
 #include <math.h>
 #include <stdio.h>
@@ -2066,4 +2067,78 @@ timestamp_error:
     return 0;
 }
 
+static bool
+json_validate(struct sol_blob *blob, enum sol_json_type type)
+{
+    struct sol_json_scanner scanner;
+
+    sol_json_scanner_init(&scanner, blob->mem, blob->size);
+    return sol_json_is_valid_type(&scanner, type);
+}
+
+static int
+blob_to_json_object_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_blob *blob;
+    int ret;
+
+    ret = sol_flow_packet_get_blob(packet, &blob);
+    SOL_INT_CHECK(ret, < 0, -EINVAL);
+
+    if (!json_validate(blob, SOL_JSON_TYPE_OBJECT_START))
+        return sol_flow_send_error_packet(node, EINVAL,
+            "Blob isn't a valid JSON Object");
+
+    return sol_flow_send_json_object_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_BLOB_TO_JSON_OBJECT__OUT__OUT, blob);
+}
+
+static int
+json_object_to_blob_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_blob *blob;
+    int ret;
+
+    ret = sol_flow_packet_get_json_object(packet, &blob);
+    SOL_INT_CHECK(ret, < 0, -EINVAL);
+
+    ret = sol_flow_send_blob_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_JSON_OBJECT_TO_BLOB__OUT__OUT, blob);
+
+    return ret;
+}
+
+static int
+blob_to_json_array_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_blob *blob;
+    int ret;
+
+    ret = sol_flow_packet_get_blob(packet, &blob);
+    SOL_INT_CHECK(ret, < 0, -EINVAL);
+
+    if (!json_validate(blob, SOL_JSON_TYPE_ARRAY_START))
+        return sol_flow_send_error_packet(node, EINVAL,
+            "Blob isn't a valid JSON Array");
+
+    ret = sol_flow_send_json_array_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_BLOB_TO_JSON_ARRAY__OUT__OUT, blob);
+
+    return ret;
+}
+
+static int
+json_array_to_blob_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_blob *blob;
+    int ret;
+
+    ret = sol_flow_packet_get_json_array(packet, &blob);
+    SOL_INT_CHECK(ret, < 0, -EINVAL);
+
+    ret = sol_flow_send_blob_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_JSON_ARRAY_TO_BLOB__OUT__OUT, blob);
+
+    return ret;
+}
 #include "converter-gen.c"
