@@ -1,0 +1,78 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+json_object_str(constant/string:value="{\"int_val\": 123, \"float_val\": 1.23 \"string_val\" : \"hello\" \"false_val\": false, \"true_val\": true, \"null_val\": null, \"array_val\":[1,2,3], \"object_val\": {\"inner_int\": 456}}")
+json_object(converter/blob-to-json-object)
+
+int_validator(test/int-validator:sequence="123")
+float_validator(test/float-validator:sequence="123 1.23")
+string_validator(test/string-validator:sequence="hello")
+bool_validator(test/boolean-validator:sequence="FT")
+null_validator(converter/empty-to-boolean:output_value=true)
+object_validator(test/int-validator:sequence="456")
+array_validator(test/blob-validator:expected="[1,2,3]")
+
+get_key_int_val(json/object-get-key:key="int_val")
+get_key_float_val(json/object-get-key:key="float_val")
+get_key_string_val(json/object-get-key:key="string_val")
+get_key_false_val(json/object-get-key:key="false_val")
+get_key_true_val(json/object-get-key:key="true_val")
+get_key_null_val(json/object-get-key:key="null_val")
+get_key_object_val(json/object-get-key:key="object_val")
+get_key_array_val(json/object-get-key)
+
+json_object_str OUT -> IN _(converter/string-to-blob) OUT -> IN json_object
+json_object OUT -> IN get_key_int_val
+json_object OUT -> IN get_key_float_val
+json_object OUT -> IN get_key_string_val
+json_object OUT -> IN get_key_false_val
+json_object OUT -> IN get_key_true_val
+json_object OUT -> IN get_key_null_val
+json_object OUT -> IN get_key_object_val
+json_object OUT -> IN get_key_array_val
+
+get_key_int_val INT -> IN int_validator
+get_key_int_val FLOAT -> IN float_validator
+get_key_float_val FLOAT -> IN float_validator
+get_key_string_val STRING -> IN string_validator
+get_key_false_val BOOLEAN -> IN bool_validator
+get_key_true_val BOOLEAN -> IN bool_validator
+get_key_null_val NULL -> IN null_validator
+get_key_object_val OBJECT -> IN _(json/object-get-key:key="inner_int") INT -> IN object_validator
+get_key_array_val ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN array_validator
+_(constant/string:value="array_val") OUT -> KEY get_key_array_val
+
+int_validator OUT -> RESULT int_result(test/result)
+float_validator OUT -> RESULT float_result(test/result)
+string_validator OUT -> RESULT string_result(test/result)
+bool_validator OUT -> RESULT bool_result(test/result)
+null_validator OUT -> RESULT null_result(test/result)
+object_validator OUT -> RESULT object_result(test/result)
+array_validator OUT -> RESULT array_result(test/result)

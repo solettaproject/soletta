@@ -1,0 +1,3 @@
+config FLOW_NODE_TYPE_JSON
+	tristate "Node type: json"
+	default m
