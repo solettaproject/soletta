@@ -54,11 +54,6 @@
 
 #define POLL_OBSERVE_TIMEOUT_MS 10000
 
-#define IOTIVITY_CON_REQ_MID 0x7d42
-#define IOTIVITY_CON_REQ_OBS_MID 0x7d44
-#define IOTIVITY_NONCON_REQ_MID 0x7d40
-#define SOLETTA_SERVER_INFO_MID 0xda51 /* devapp server info */
-
 #define OIC_RESOURCE_CHECK_API(ptr, ...) \
     do {                                        \
         if (unlikely(ptr->api_version != \
@@ -103,24 +98,43 @@ struct resource_request_ctx {
     int64_t token;
 };
 
-static struct sol_random *random_gen;
-
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
+
+static sol_ptr_vector pending_discovery = SOL_PTR_VECTOR_INIT;
+
+static struct sol_random *
+_get_random_instance(void)
+{
+    static struct sol_random *random = NULL;
+
+    if (unlikely(!random))
+        random = sol_random_new(SOL_RANDOM_DEFAULT, 0);
+
+    return random;
+}
 
 static int32_t
 _get_random_token(void)
 {
+    struct sol_random *random;
     int64_t number;
 
-    if (unlikely(!random_gen)) {
-        random_gen = sol_random_new(SOL_RANDOM_DEFAULT, 0);
-        if (unlikely(!random_gen)) {
-            SOL_ERR("Could not create random engine");
-            return 0;
-        }
-    }
+    random = _get_random_instance();
+    SOL_NULL_CHECK(random, 0);
 
-    return sol_random_get_int64(random_gen, &number) ? number : 0;
+    return sol_random_get_int64(random, &number) ? number : 0;
+}
+
+static int16_t
+_get_random_mid(void)
+{
+    struct sol_random *random;
+    int32_t number;
+
+    random = _get_random_instance();
+    SOL_NULL_CHECK(random, 0);
+
+    return sol_random_get_int32(random, &number) ? (int16_t)number : 0;
 }
 
 static bool
@@ -374,7 +388,7 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
     }
 
     sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
-    sol_coap_header_set_id(req, SOLETTA_SERVER_INFO_MID);
+    sol_coap_header_set_id(req, _get_random_mid());
 
     if (sol_coap_packet_add_uri_path_option(req, device_uri) < 0) {
         SOL_WRN("Invalid URI: %s", device_uri);
@@ -588,7 +602,7 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     }
 
     sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
-    sol_coap_header_set_id(req, IOTIVITY_NONCON_REQ_MID);
+    sol_coap_header_set_id(req, _get_random_mid());
 
     if (sol_coap_packet_add_uri_path_option(req, oic_well_known) < 0) {
         SOL_WRN("Invalid URI: %s", oic_well_known);
@@ -745,11 +759,11 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     if (observe) {
         uint8_t reg = 0;
 
-        sol_coap_header_set_id(req, IOTIVITY_CON_REQ_OBS_MID);
+        sol_coap_header_set_id(req, _get_random_mid());
         sol_coap_add_option(req, SOL_COAP_OPTION_OBSERVE, &reg, sizeof(reg));
         cb = _resource_request_cb;
     } else {
-        sol_coap_header_set_id(req, IOTIVITY_CON_REQ_MID);
+        sol_coap_header_set_id(req, _get_random_mid());
         cb = _one_shot_resource_request_cb;
     }
 
