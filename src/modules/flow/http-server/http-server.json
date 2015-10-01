@@ -11,8 +11,19 @@
       "category": "output/network",
       "description": "HTTP Server for boolean",
       "methods": {
-        "close": "boolean_close",
-        "open": "boolean_open"
+        "close": "common_close",
+        "open": "common_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_server_node_type",
+        "extra_methods": {
+	  "response_cb": "boolean_response_cb",
+	  "post_cb": "boolean_post_cb",
+	  "process_cb": "boolean_process_cb"
+        }
       },
       "name": "http-server/boolean",
       "options": {
@@ -37,7 +48,7 @@
 	  "data_type": "boolean",
 	  "description": "The value that will be give on a GET",
           "methods": {
-            "process": "boolean_process"
+            "process": "common_process"
           },
           "name": "IN"
         }
@@ -58,6 +69,17 @@
       "methods": {
         "close": "string_close",
         "open": "string_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_server_node_type",
+        "extra_methods": {
+	  "response_cb": "string_response_cb",
+	  "post_cb": "string_post_cb",
+	  "process_cb": "string_process_cb"
+        }
       },
       "name": "http-server/string",
       "options": {
@@ -82,7 +104,7 @@
 	  "data_type": "string",
 	  "description": "The value that will be give on a GET",
           "methods": {
-            "process": "string_process"
+            "process": "common_process"
           },
           "name": "IN"
         }
@@ -101,8 +123,20 @@
       "category": "output/network",
       "description": "HTTP Server for integer",
       "methods": {
-        "close": "int_close",
-        "open": "int_open"
+        "close": "common_close",
+        "open": "common_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_server_node_type",
+        "extra_methods": {
+	  "response_cb": "int_response_cb",
+	  "post_cb": "int_post_cb",
+	  "process_cb": "int_process_cb",
+	  "send_packet_cb": "int_send_packet_cb"
+        }
       },
       "name": "http-server/int",
       "options": {
@@ -127,7 +161,7 @@
 	  "data_type": "int",
 	  "description": "The value that will be give on a GET",
           "methods": {
-            "process": "int_process"
+            "process": "common_process"
           },
           "name": "IN"
         }
@@ -146,8 +180,20 @@
       "category": "output/network",
       "description": "HTTP Server for float",
       "methods": {
-        "close": "float_close",
-        "open": "float_open"
+        "close": "common_close",
+        "open": "common_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_server_node_type",
+        "extra_methods": {
+	  "response_cb": "float_response_cb",
+	  "post_cb": "float_post_cb",
+	  "process_cb": "float_process_cb",
+	  "send_packet_cb": "float_send_packet_cb"
+        }
       },
       "name": "http-server/float",
       "options": {
@@ -172,7 +218,7 @@
 	  "data_type": "float",
 	  "description": "The value that will be give on a GET",
           "methods": {
-            "process": "float_process"
+            "process": "common_process"
           },
           "name": "IN"
         }
