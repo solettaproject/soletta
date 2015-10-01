@@ -2074,6 +2074,98 @@
       ],
       "private_data_type": "sol_converter_string",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-timestamp.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a blob packet, validates it and converts it to a JSON object.",
+      "in_ports": [
+        {
+          "data_type": "blob",
+          "description": "Where to receive the blob to be converted.",
+          "methods": {
+            "process": "blob_to_json_object_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/blob-to-json-object",
+      "out_ports": [
+        {
+          "data_type": "json-object",
+          "description": "Packet with JSON object converted from blob received on port IN.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/blob-to-json-object.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a json packet and converts it to a blob.",
+      "in_ports": [
+        {
+          "data_type": "json-object",
+          "description": "Where to receive the JSON object to be converted.",
+          "methods": {
+            "process": "json_object_to_blob_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/json-object-to-blob",
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "Packet with blob converted from JSON object received on port IN.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/json-object-to-blob.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a blob packet, validates it and converts it to a JSON array.",
+      "in_ports": [
+        {
+          "data_type": "blob",
+          "description": "Where to receive the blob to be converted.",
+          "methods": {
+            "process": "blob_to_json_array_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/blob-to-json-array",
+      "out_ports": [
+        {
+          "data_type": "json-array",
+          "description": "Packet with JSON array converted from blob received on port IN.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/blob-to-json-array.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a json packet and converts it to a blob.",
+      "in_ports": [
+        {
+          "data_type": "json-array",
+          "description": "Where to receive the JSON array to be converted.",
+          "methods": {
+            "process": "json_array_to_blob_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/json-array-to-blob",
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "Packet with blob converted from JSON array received on port IN.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/json-array-to-blob.html"
     }
   ]
 }
