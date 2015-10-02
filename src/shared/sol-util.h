@@ -202,6 +202,8 @@ align_power2(unsigned int u)
         return 1;
     if ((left_zeros = __builtin_clz(u - 1)) < 1)
         return 0;
+    if (unlikely(left_zeros <= 1))
+        return UINT_MAX;
     return 1 << ((sizeof(u) * 8) - left_zeros);
 }
 
