@@ -296,3 +296,5 @@ int sol_flow_builder_add_node_taking_options(
 sol_flow_metatype_create_type_func get_dynamic_create_type_func(const struct sol_str_slice name);
 void loaded_metatype_cache_shutdown(void);
 #endif
+
+void sol_flow_packet_type_composed_shutdown(void);
