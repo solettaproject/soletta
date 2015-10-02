@@ -118,7 +118,7 @@ sol_vector_shrink(struct sol_vector *v)
         return;
     }
 
-    old_cap = align_power2(v->len + 1);
+    old_cap = align_power2(v->len + 1U);
     new_cap = align_power2(v->len);
     if (new_cap == old_cap)
         return;
