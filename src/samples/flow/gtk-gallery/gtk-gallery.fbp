@@ -40,7 +40,7 @@ slider(gtk/slider) OUT -> IN slider_output(gtk/label)
 
 spinbutton(gtk/spinbutton:range=step:1|max:INT32_MAX|val:42|min:30) OUT -> IN spinbutton_output(gtk/label)
 
-pwm_editor(gtk/pwm-editor) ENABLED -> ENABLED pwm_viewer(gtk/pwm-viewer)
+pwm_editor(gtk/pwm-editor) ENABLED -> ENABLED pwm_viewer(gtk/pwm-viewer:duty_cycle=20,period=50,enabled=true)
 pwm_editor DUTY_CYCLE -> DUTY_CYCLE pwm_viewer
 pwm_editor PERIOD -> PERIOD pwm_viewer
 

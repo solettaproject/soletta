@@ -94,13 +94,22 @@ on_draw_event_pwm(GtkWidget *widget, cairo_t *cr, gpointer data)
 static int
 pwm_viewer_setup(struct gtk_common_data *data, const struct sol_flow_node_options *options)
 {
+    const struct sol_flow_node_type_gtk_pwm_viewer_options *opts;
     struct gtk_pwm_viewer_data *mdata = (struct gtk_pwm_viewer_data *)data;
 
     SOL_NULL_CHECK(mdata, -ENOMEM);
 
+    opts = (const struct sol_flow_node_type_gtk_pwm_viewer_options *)options;
+
+    mdata->enabled = opts->enabled;
+    mdata->duty_cycle = opts->duty_cycle.val;
+    mdata->period = opts->period.val;
+
     mdata->base.widget = gtk_drawing_area_new();
     gtk_widget_set_size_request(mdata->base.widget, 400, 50);
     g_signal_connect(G_OBJECT(mdata->base.widget), "draw", G_CALLBACK(on_draw_event_pwm), mdata);
+
+    gtk_widget_queue_draw(mdata->base.widget);
 
     return 0;
 }

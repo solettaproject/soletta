@@ -215,6 +215,29 @@
         "open": "gtk_pwm_viewer_open"
       },
       "name": "gtk/pwm-viewer",
+      "options": {
+       "members": [
+        {
+         "data_type": "boolean",
+         "default": false,
+         "description": "Initial enabled state",
+         "name": "enabled"
+        },
+        {
+         "data_type": "int",
+         "default": 0,
+         "description": "Initial period",
+         "name": "period"
+        },
+        {
+         "data_type": "int",
+         "default": 0,
+         "description": "Initial duty cycle",
+         "name": "duty_cycle"
+        }
+       ],
+       "version": 1
+      },
       "private_data_type": "gtk_pwm_viewer_data",
       "url": "http://solettaproject.org/doc/latest/node_types/gtk/pwm-viewer.html"
     },
