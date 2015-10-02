@@ -1289,7 +1289,7 @@ ensure_decimal_point(struct sol_buffer *buffer, int precision)
             /* We have a decimal point, but no following digit. Insert
                a zero after the decimal. */
             /* can't ever get here via double_to_string */
-            assert(precision == -1);
+            assert(precision == 0 || precision == -1);
             ++p;
             chars_to_insert = "0";
             insert_count = 1;
