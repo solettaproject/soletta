@@ -196,11 +196,8 @@ network_close(struct sol_flow_node *node, void *data)
 {
     struct network_data *mdata = data;
     struct sol_network_link *itr;
-    uint16_t idx;
 
     regfree(&mdata->regex);
-    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->links, itr, idx)
-        sol_ptr_vector_del(&mdata->links, idx);
     sol_ptr_vector_clear(&mdata->links);
     sol_network_unsubscribe_events(_on_network_event, mdata);
     sol_network_shutdown();
