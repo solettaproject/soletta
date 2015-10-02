@@ -67,11 +67,12 @@ test_align_power2(void)
         { 15, 16 },
         { 16, 16 },
         { 17, 32 },
+        { ((1U << (sizeof(unsigned int) * 8U - 1U)) - 42U), UINT_MAX }
     };
 
     for (i = 0; i < ARRAY_SIZE(table); i++) {
         unsigned int actual;
-        actual = align_power2(table[i].input);
+        actual = align_power2_uint(table[i].input);
 
         if (actual != table[i].output) {
             fprintf(stderr, "Error calling align_power2(%u), got %u but expected %u\n",
