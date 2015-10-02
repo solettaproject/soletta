@@ -1303,7 +1303,7 @@ ensure_decimal_point(struct sol_buffer *buffer, int precision)
                string. */
             assert(*p == '\0');
         } else {
-            assert(precision == -1 || digit_count < precision);
+            assert(precision <= 0 || digit_count < precision);
             chars_to_insert = ".0";
             insert_count = 2;
         }
