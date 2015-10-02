@@ -72,6 +72,65 @@
         "open": "gtk_led_7seg_open"
       },
       "name": "gtk/led-7seg",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Set this option to true if type of led is common cathode or set it to false if it's common anode (it'll invert gpio low and high states). It's a dummy option used for compatibility with 'led-7seg/led'.",
+            "name": "common_cathode"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin used to set segment 'A' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
+            "name": "pin_a"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin used to set segment 'B' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
+            "name": "pin_b"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin used to set segment 'C' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
+            "name": "pin_c"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin used to set segment 'D' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
+            "name": "pin_d"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin used to set segment 'E' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
+            "name": "pin_e"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin used to set segment 'F' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
+            "name": "pin_f"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin used to set segment 'G' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
+            "name": "pin_g"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin used to set segment 'DP' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
+            "name": "pin_dp"
+          }
+        ],
+        "version": 1
+      },
       "private_data_type": "gtk_common_data",
       "url": "http://solettaproject.org/doc/latest/node_types/gtk/led-7seg.html"
     },
@@ -104,6 +163,12 @@
               "green": 0,
               "blue": 0
             }
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin number. It's a dummy option used for compatibility with 'gpio/writer'.",
+            "name": "pin"
           }
         ],
         "version": 1
@@ -119,6 +184,17 @@
         "open": "gtk_pushbutton_open"
       },
       "name": "gtk/pushbutton",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin number. It's a dummy option used for compatibility with 'gpio/reader'.",
+            "name": "pin"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "boolean",
@@ -218,6 +294,24 @@
       "options": {
        "members": [
         {
+         "data_type": "int",
+         "default": 0,
+         "description": "PWM chip. It's a dummy option used for compatibility with 'pwm'.",
+         "name": "chip"
+        },
+        {
+         "data_type": "int",
+         "default": 0,
+         "description": "PWM pin channel. It's a dummy option used for compatibility with 'pwm'.",
+         "name": "pin"
+        },
+        {
+         "data_type": "boolean",
+         "default": false,
+         "description": "PWM polarity (normal or inversed). It's a dummy option used for compatibility with 'pwm'.",
+         "name": "inversed_polarity"
+        },
+        {
          "data_type": "boolean",
          "default": false,
          "description": "Initial enabled state",
@@ -277,6 +371,18 @@
             },
             "description": "Slider's range",
             "name": "range"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Device number on platform. It's a dummy option used for compatibility with 'aio/reader'.",
+            "name": "device"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin number. It's a dummy option used for compatibility with 'aio/reader'.",
+            "name": "pin"
           }
         ],
         "version": 1
@@ -311,6 +417,18 @@
             },
             "description": "Spinbutton's range",
             "name": "range"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Device number on platform. It's a dummy option used for compatibility with 'aio/reader'.",
+            "name": "device"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin number. It's a dummy option used for compatibility with 'aio/reader'.",
+            "name": "pin"
           }
         ],
         "version": 1
@@ -333,6 +451,17 @@
         "open": "gtk_toggle_open"
       },
       "name": "gtk/toggle",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Pin number. It's a dummy option used for compatibility with 'gpio/reader'.",
+            "name": "pin"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "boolean",
