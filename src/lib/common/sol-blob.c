@@ -175,4 +175,12 @@ static const struct sol_blob_type _SOL_BLOB_TYPE_DEFAULT = {
     .free = blob_free,
 };
 
+static const struct sol_blob_type _SOL_BLOB_TYPE_NOFREE = {
+    .api_version = SOL_BLOB_TYPE_API_VERSION,
+    .sub_api = 0,
+    .free = NULL,
+};
+
 SOL_API const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT = &_SOL_BLOB_TYPE_DEFAULT;
+
+SOL_API const struct sol_blob_type *SOL_BLOB_TYPE_NOFREE = &_SOL_BLOB_TYPE_NOFREE;
