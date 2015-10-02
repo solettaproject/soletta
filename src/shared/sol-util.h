@@ -193,17 +193,47 @@ char *sol_util_strerror(int errnum, char *buf, size_t buflen);
         sol_util_strerror((errnum), buf ## __COUNT__, sizeof(buf ## __COUNT__)); \
     })
 
-static inline unsigned int
-align_power2(unsigned int u)
-{
-    unsigned int left_zeros;
+/* Power of 2 alignment */
+#define DEFINE_ALIGN_POWER2(name_, type_, max_, clz_fn_) \
+    static inline type_ \
+    name_(type_ u) \
+    { \
+        unsigned int left_zeros; \
+        if (u == 1) \
+            return 1; \
+        if ((left_zeros = clz_fn_(u - 1)) < 1) \
+            return 0; \
+        if (unlikely(left_zeros == 1)) \
+            return max_; \
+        return 1 << ((sizeof(u) * 8) - left_zeros); \
+    }
 
-    if (u == 1)
-        return 1;
-    if ((left_zeros = __builtin_clz(u - 1)) < 1)
-        return 0;
-    return 1 << ((sizeof(u) * 8) - left_zeros);
+DEFINE_ALIGN_POWER2(align_power2_uint, unsigned int, UINT_MAX, __builtin_clz)
+#if SIZE_MAX == ULONG_MAX
+DEFINE_ALIGN_POWER2(align_power2_size, size_t, SIZE_MAX, __builtin_clzl)
+#elif SIZE_MAX == ULLONG_MAX
+DEFINE_ALIGN_POWER2(align_power2_size, size_t, SIZE_MAX, __builtin_clzll)
+#elif SIZE_MAX == UINT_MAX
+DEFINE_ALIGN_POWER2(align_power2_size, size_t, SIZE_MAX, __builtin_clz)
+#else
+#error Unsupported size_t size
+#endif
+
+#undef DEFINE_ALIGN_POWER2
+
+static inline int
+align_power2_short_uint(unsigned short u)
+{
+    unsigned int aligned = align_power2_uint(u);
+
+    return likely(aligned <= USHRT_MAX) ? aligned : USHRT_MAX;
 }
+
+#define align_power2(u_) \
+    _Generic((u_), \
+    short unsigned int : align_power2_short_uint, \
+    unsigned int : align_power2_uint, \
+size_t: align_power2_size) (u_)
 
 /**
  * Return a list of the words in a given string slice, using a given
