@@ -242,6 +242,12 @@ struct sol_blob_type {
  * The default type uses free() to release the blob's memory
  */
 extern const struct sol_blob_type *SOL_BLOB_TYPE_DEFAULT;
+/*
+ * The no-free type doesn't free blob's memory. Used when pointing to inner
+ * position of a pre existing blob or any other case when blob's memory
+ * shouldn't be freed
+ */
+extern const struct sol_blob_type *SOL_BLOB_TYPE_NOFREE;
 
 struct sol_blob *sol_blob_new(const struct sol_blob_type *type, struct sol_blob *parent, const void *mem, size_t size);
 int sol_blob_setup(struct sol_blob *blob, const struct sol_blob_type *type, const void *mem, size_t size);
