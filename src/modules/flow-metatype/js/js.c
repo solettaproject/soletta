@@ -1407,4 +1407,8 @@ js_create_type(
 SOL_FLOW_METATYPE(JS,
     .name = "js",
     .create_type = js_create_type,
+    .generate_type_start = NULL,
+    .generate_type_body = NULL,
+    .generate_type_end = NULL,
+    .ports_description = NULL,
     );

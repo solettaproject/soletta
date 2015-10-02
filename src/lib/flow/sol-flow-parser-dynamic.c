@@ -58,8 +58,8 @@ check_metatype(const char *path, const char *symbol_name, void *symbol)
     return true;
 }
 
-sol_flow_metatype_create_type_func
-get_dynamic_create_type_func(const struct sol_str_slice name)
+const struct sol_flow_metatype *
+get_dynamic_metatype(const struct sol_str_slice name)
 {
     const struct sol_flow_metatype *metatype;
     void *symbol;
@@ -79,7 +79,7 @@ get_dynamic_create_type_func(const struct sol_str_slice name)
         return NULL;
 
     metatype = *(const struct sol_flow_metatype **)symbol;
-    return metatype->create_type;
+    return metatype;
 }
 
 void

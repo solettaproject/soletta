@@ -531,9 +531,29 @@ metatype_store_type(
     return sol_ptr_vector_append(&internal_ctx->parser->types, type);
 }
 
+#if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
+static const struct sol_flow_metatype *
+get_metatype_by_name(const struct sol_str_slice name)
+{
+    const struct sol_flow_metatype *metatype, *const *itr;
+    int i;
+
+    for (i = 0, itr = SOL_FLOW_METATYPE_BUILTINS_ALL;
+        i < SOL_FLOW_METATYPE_BUILTINS_COUNT;
+        i++, itr++) {
+        metatype = *itr;
+        if (sol_str_slice_str_eq(name, metatype->name))
+            return metatype;
+    }
+    return NULL;
+}
+#endif
+
 static sol_flow_metatype_create_type_func
 get_create_type_func(const struct sol_str_slice name)
 {
+    const struct sol_flow_metatype *metatype;
+
     if (sol_str_slice_str_eq(name, "fbp"))
         return create_fbp_type;
 
@@ -544,23 +564,112 @@ get_create_type_func(const struct sol_str_slice name)
         return create_composed_constructor_type;
 
 #if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
-    {
-        const struct sol_flow_metatype *metatype, *const *itr;
-        int i;
-
-        for (i = 0, itr = SOL_FLOW_METATYPE_BUILTINS_ALL;
-            i < SOL_FLOW_METATYPE_BUILTINS_COUNT;
-            i++, itr++) {
-            metatype = *itr;
-            if (sol_str_slice_str_eq(name, metatype->name)) {
-                return metatype->create_type;
-            }
-        }
-    }
+    metatype = get_metatype_by_name(name);
+    if (metatype)
+        return metatype->create_type;
 #endif
 
 #ifdef ENABLE_DYNAMIC_MODULES
-    return get_dynamic_create_type_func(name);
+    metatype = get_dynamic_metatype(name);
+    if (metatype)
+        return metatype->create_type;
+    return NULL;
+#else
+    return NULL;
+#endif
+}
+
+SOL_API sol_flow_metatype_generate_code_func
+sol_flow_metatype_get_generate_code_start_func(const struct sol_str_slice name)
+{
+    const struct sol_flow_metatype *metatype;
+
+    if (sol_str_slice_str_eq(name, "composed-split"))
+        return composed_metatyoe_splitter_generate_code_start;
+    if (sol_str_slice_str_eq(name, "composed-new"))
+        return composed_metatyoe_constructor_generate_code_start;
+#if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
+    metatype = get_metatype_by_name(name);
+    if (metatype)
+        return metatype->generate_type_start;
+#endif
+#ifdef ENABLE_DYNAMIC_MODULES
+    metatype = get_dynamic_metatype(name);
+    if (metatype)
+        return metatype->generate_type_start;
+    return NULL;
+#else
+    return NULL;
+#endif
+}
+
+SOL_API sol_flow_metatype_generate_code_func
+sol_flow_metatype_get_generate_code_type_func(const struct sol_str_slice name)
+{
+    const struct sol_flow_metatype *metatype;
+
+    if (sol_str_slice_str_eq(name, "composed-split"))
+        return composed_metatype_splitter_generate_code_type;
+    if (sol_str_slice_str_eq(name, "composed-new"))
+        return composed_metatype_constructor_generate_code_type;
+#if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
+    metatype = get_metatype_by_name(name);
+    if (metatype)
+        return metatype->generate_type_body;
+#endif
+#ifdef ENABLE_DYNAMIC_MODULES
+    metatype = get_dynamic_metatype(name);
+    if (metatype)
+        return metatype->generate_type_body;
+    return NULL;
+#else
+    return NULL;
+#endif
+}
+
+SOL_API sol_flow_metatype_generate_code_func
+sol_flow_metatype_get_generate_code_end_func(const struct sol_str_slice name)
+{
+    const struct sol_flow_metatype *metatype;
+
+    if (sol_str_slice_str_eq(name, "composed-split"))
+        return composed_metatype_splitter_generate_code_end;
+    if (sol_str_slice_str_eq(name, "composed-new"))
+        return composed_metatype_constructor_generate_code_end;
+#if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
+    metatype = get_metatype_by_name(name);
+    if (metatype)
+        return metatype->generate_type_end;
+#endif
+#ifdef ENABLE_DYNAMIC_MODULES
+    metatype = get_dynamic_metatype(name);
+    if (metatype)
+        return metatype->generate_type_end;
+    return NULL;
+#else
+    return NULL;
+#endif
+}
+
+SOL_API sol_flow_metatype_ports_description_func
+sol_flow_metatype_get_ports_description_func(const struct sol_str_slice name)
+{
+    const struct sol_flow_metatype *metatype;
+
+    if (sol_str_slice_str_eq(name, "composed-split"))
+        return composed_metatype_splitter_get_ports_description;
+    if (sol_str_slice_str_eq(name, "composed-new"))
+        return composed_metatype_constructor_get_ports_description;
+#if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
+    metatype = get_metatype_by_name(name);
+    if (metatype)
+        return metatype->ports_description;
+#endif
+#ifdef ENABLE_DYNAMIC_MODULES
+    metatype = get_dynamic_metatype(name);
+    if (metatype)
+        return metatype->ports_description;
+    return NULL;
 #else
     return NULL;
 #endif
