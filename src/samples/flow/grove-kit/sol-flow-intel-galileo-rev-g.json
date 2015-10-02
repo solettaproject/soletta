@@ -3,10 +3,16 @@
  "nodetypes": [
   {
    "name": "LCDString",
+   "options": {
+    "bus": 0
+   },
    "type": "grove/lcd-string"
   },
   {
    "name": "LCDChar",
+   "options": {
+    "bus": 0
+   },
    "type": "grove/lcd-char"
   },
   {

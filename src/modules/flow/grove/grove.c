@@ -445,10 +445,6 @@ temperature_init_type(void)
 
 // ################################ LCD nodes
 
-/* TODO move me to options - speed only works for riot */
-#define I2C_BUS 0
-#define I2C_SPEED SOL_I2C_SPEED_10KBIT
-
 #define COL_MIN (0)
 #define COL_MAX (15)
 #define COL_EXTRA (16) /* when writing RTL, the cursor must be past
@@ -953,15 +949,11 @@ fail:
 #define TIME_TO_TURN_ON 55
 
 static int
-lcd_open(struct sol_flow_node *node,
-    void *data,
-    const struct sol_flow_node_options *options)
+lcd_open(struct lcd_data *mdata, uint8_t bus)
 {
-    struct lcd_data *mdata = data;
-
-    mdata->i2c = sol_i2c_open(I2C_BUS, I2C_SPEED);
+    mdata->i2c = sol_i2c_open(bus, SOL_I2C_SPEED_10KBIT);
     if (!mdata->i2c) {
-        SOL_WRN("Failed to open i2c bus");
+        SOL_WRN("Failed to open i2c bus %d", bus);
         return -EIO;
     }
 
@@ -977,11 +969,16 @@ lcd_string_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
-    return lcd_open(node, data, options);
+    struct lcd_data *mdata = data;
+    const struct sol_flow_node_type_grove_lcd_string_options *opts =
+        (const struct sol_flow_node_type_grove_lcd_string_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
+        (opts, SOL_FLOW_NODE_TYPE_GROVE_LCD_STRING_OPTIONS_API_VERSION, -EINVAL);
+
+    return lcd_open(mdata, (uint8_t)opts->bus.val);
 }
 
-#undef I2C_BUS
-#undef I2C_SPEED
 
 static void
 lcd_close(struct sol_flow_node *node, void *data)
@@ -1431,7 +1428,7 @@ lcd_char_open(struct sol_flow_node *node,
     else
         mdata->display_control &= ~LCD_CURSOR_ON;
 
-    r = lcd_open(node, data, options);
+    r = lcd_open(mdata, (uint8_t)opts->bus.val);
     SOL_INT_CHECK(r, < 0, r);
 
     r = command_cursor_position_queue_append(mdata, -1, opts->init_col.val);
