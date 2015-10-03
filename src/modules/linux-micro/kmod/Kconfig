@@ -1,0 +1,4 @@
+config LINUX_MICRO_KMOD
+	tristate "kmod"
+	depends on LINUX_MICRO && HAVE_LIBKMOD
+	default m if MODULES=y
