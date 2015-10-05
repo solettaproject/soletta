@@ -158,16 +158,16 @@ print_packet_content(const struct sol_flow_packet *packet, struct sol_flow_node 
         int r = sol_flow_packet_get_json_object(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
 
-        console_output(mdata, prefix, suffix, separator, "%.*s (JSON object)", (int)val->size,
-            (char *)val->mem);
+        console_output(mdata, prefix, suffix, separator, "%.*s (JSON object)",
+            SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(val)));
     } else if (packet_type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY) {
         struct sol_blob *val;
 
         int r = sol_flow_packet_get_json_array(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
 
-        console_output(mdata, prefix, suffix, separator, "%.*s (JSON array)", (int)val->size,
-            (char *)val->mem);
+        console_output(mdata, prefix, suffix, separator, "%.*s (JSON array)",
+            SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(val)));
     } else if (packet_type == SOL_FLOW_PACKET_TYPE_ERROR) {
         int code;
         const char *msg;
