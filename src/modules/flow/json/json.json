@@ -1,0 +1,89 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "json",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "json",
+      "description": "Receives a JSON object and send, to the appropriated port, the value of the child element pointed by key.",
+      "in_ports": [
+        {
+          "data_type": "json-object",
+          "description": "Port to receive the JSON object where key will be located.",
+          "methods": {
+            "process": "json_object_get_key_in_process"
+          },
+          "name": "IN",
+          "required": true
+        },
+        {
+          "data_type": "string",
+          "description": "Receives a string packet to override the key set as option.",
+          "methods": {
+            "process": "json_object_get_key_key_process"
+          },
+          "name": "KEY"
+        }
+      ],
+      "methods": {
+        "open": "json_object_get_key_open",
+        "close": "json_object_get_key_close"
+      },
+      "name": "json/object-get-key",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "The key of the JSON object child to access.",
+            "name": "key"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The integer value of a given key, if a number",
+          "name": "INT"
+        },
+        {
+          "data_type": "string",
+          "description": "The string value of a given key, if a string",
+          "name": "STRING"
+        },
+        {
+          "data_type": "boolean",
+          "description": "The boolean value of a given key, if a boolean",
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "float",
+          "description": "The float value of a given key, if a number",
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "json-object",
+          "description": "The JSON object of a given key, if a JSON object",
+          "name": "OBJECT"
+        },
+        {
+          "data_type": "json-array",
+          "description": "The JSON array of a given key, if a JSON array",
+          "name": "ARRAY"
+        },
+        {
+          "data_type": "empty",
+          "description": "An empty packet if value pointed by given key is null.",
+          "name": "NULL"
+        }
+      ],
+      "private_data_type": "sol_json_object_key",
+      "url": "http://solettaproject.org/doc/latest/node_types/json/json-object-get-key.html"
+    }
+  ]
+}

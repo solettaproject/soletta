@@ -68,10 +68,6 @@ static const struct sol_blob_type file_reader_blob_type = {
     .free = file_reader_blob_free
 };
 
-static const struct sol_blob_type file_reader_content_blob_type = {
-    .api_version = SOL_BLOB_TYPE_API_VERSION,
-};
-
 struct file_reader_data {
     struct sol_flow_node *node;
     char *path;
@@ -121,7 +117,7 @@ file_reader_load(struct file_reader_data *mdata)
         reader, sizeof(reader));
     SOL_NULL_CHECK_GOTO(mdata->reader_blob, err_reader);
 
-    mdata->content_blob = sol_blob_new(&file_reader_content_blob_type,
+    mdata->content_blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE,
         mdata->reader_blob,
         slice.data, slice.len);
     SOL_NULL_CHECK_GOTO(mdata->content_blob, err_content);

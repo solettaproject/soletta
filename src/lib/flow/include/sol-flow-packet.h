@@ -92,6 +92,8 @@ extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_BYTE;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_IRANGE;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_STRING;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_BLOB;
+extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_JSON_OBJECT;
+extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_JSON_ARRAY;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DRANGE;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_ANY;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_ERROR;
@@ -121,6 +123,14 @@ struct sol_flow_packet *sol_flow_packet_new_string_take(char *value);
 
 struct sol_flow_packet *sol_flow_packet_new_blob(const struct sol_blob *value);
 int sol_flow_packet_get_blob(const struct sol_flow_packet *packet, struct sol_blob **value);
+
+/* blob value mem should point to a string with a valid JSON object. May or may not be NULL terminated */
+struct sol_flow_packet *sol_flow_packet_new_json_object(const struct sol_blob *value);
+int sol_flow_packet_get_json_object(const struct sol_flow_packet *packet, struct sol_blob **value);
+
+/* blob value mem should point to a string with a valid JSON array. May or may not be NULL terminated */
+struct sol_flow_packet *sol_flow_packet_new_json_array(const struct sol_blob *value);
+int sol_flow_packet_get_json_array(const struct sol_flow_packet *packet, struct sol_blob **value);
 
 struct sol_flow_packet *sol_flow_packet_new_drange(const struct sol_drange *drange);
 struct sol_flow_packet *sol_flow_packet_new_drange_value(double value);

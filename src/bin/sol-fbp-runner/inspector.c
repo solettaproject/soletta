@@ -179,6 +179,18 @@ inspector_show_packet(const struct sol_flow_packet *packet)
                 v->mem, v->size, v->refcnt, v->type, v->parent);
             return;
         }
+    } else if (type == SOL_FLOW_PACKET_TYPE_JSON_OBJECT) {
+        struct sol_blob *v;
+        if (sol_flow_packet_get_json_object(packet, &v) == 0) {
+            fprintf(stdout, "<%.*s>", (int)v->size, (char *)v->mem);
+            return;
+        }
+    } else if (type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY) {
+        struct sol_blob *v;
+        if (sol_flow_packet_get_json_array(packet, &v) == 0) {
+            fprintf(stdout, "<%.*s>", (int)v->size, (char *)v->mem);
+            return;
+        }
     } else if (type == SOL_FLOW_PACKET_TYPE_RGB) {
         struct sol_rgb v;
         if (sol_flow_packet_get_rgb(packet, &v) == 0) {
