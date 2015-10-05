@@ -282,6 +282,9 @@ sol_json_token_get_double(const struct sol_json_token *token, double *value)
     char *endptr;
     int r;
 
+    SOL_NULL_CHECK(token, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+
     /* NOTE: Using a copy to ensure trailing \0 and strtod() so we
      * properly parse numbers with large precision.
      *
@@ -324,6 +327,9 @@ sol_json_token_get_double(const struct sol_json_token *token, double *value)
 SOL_API bool
 sol_json_scanner_next(struct sol_json_scanner *scanner, struct sol_json_token *token)
 {
+    SOL_NULL_CHECK(scanner, -EINVAL);
+    SOL_NULL_CHECK(token, -EINVAL);
+
     token->start = NULL;
     token->end = NULL;
 
@@ -378,6 +384,9 @@ sol_json_scanner_skip_over(struct sol_json_scanner *scanner,
 {
     int level = 0;
 
+    SOL_NULL_CHECK(scanner, -EINVAL);
+    SOL_NULL_CHECK(token, -EINVAL);
+
     scanner->current = token->end;
     do {
         switch (sol_json_token_get_type(token)) {
@@ -426,6 +435,10 @@ sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
     struct sol_json_token *value)
 {
     const char *start;
+
+    SOL_NULL_CHECK(scanner, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+    SOL_NULL_CHECK(key, -EINVAL);
 
     if (sol_json_mem_get_type(key->start) != SOL_JSON_TYPE_STRING) {
         SOL_ERR("offset %u: unexpected token '%c' (want string)",
