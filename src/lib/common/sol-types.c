@@ -174,11 +174,12 @@ sol_drange_equal(const struct sol_drange *var0, const struct sol_drange *var1)
     ((var1 > 0) && (var0 < INT32_MIN + var1))
 
 #define SOL_IRANGE_MULTIPLICATION_OVERFLOW(var0, var1) \
+    ((var0 == INT32_MAX) && (var1 == -1)) || \
     ((var0 > 0) && (var1 > 0) && (var0 > INT32_MAX / var1)) || \
     ((var0 < 0) && (var1 < 0) && (var0 < INT32_MAX / var1))
 
 #define SOL_IRANGE_MULTIPLICATION_UNDERFLOW(var0, var1) \
-    ((var0 > 0) && (var1 < 0) && (var0 > INT32_MIN / var1)) || \
+    ((var0 > 0) && (var1 < -1) && (var0 > INT32_MIN / var1)) || \
     ((var0 < 0) && (var1 > 0) && (var0 < INT32_MIN / var1))
 
 SOL_API int
@@ -237,6 +238,11 @@ sol_irange_division(const struct sol_irange *var0, const struct sol_irange *var1
     SOL_NULL_CHECK(var0, -EINVAL);
     SOL_NULL_CHECK(var1, -EINVAL);
     SOL_NULL_CHECK(result, -EINVAL);
+
+    if ((var0->val == INT32_MIN) && (var1->val == -1)) {
+        SOL_WRN("Division of most negative integer by -1");
+        return -EDOM;
+    }
 
     if (var1->val == 0) {
         SOL_WRN("Division by zero: %" PRId32 ", %" PRId32, var0->val, var1->val);

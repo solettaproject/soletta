@@ -48,26 +48,26 @@ sub OUT -> IN[0] equal_sub(int/equal)
 difference OUT -> IN[1] equal_sub
 equal_sub OUT -> RESULT r_sub(test/result)
 
-multiplicand(constant/int:value=37)
-multiplier(constant/int:value=5)
-product(constant/int:value=185)
+multiplicand(test/int-generator:sequence="0 1 2",interval=20)
+multiplier(test/int-generator:sequence="0 1 2 -1",interval=20)
+product(test/int-validator:sequence="0 0 1 2 4 -2")
 
 multiplicand OUT -> OPERAND[0] mul(int/multiplication)
 multiplier OUT -> OPERAND[1] mul
-mul OUT -> IN[0] equal_mul(int/equal)
-product OUT -> IN[1] equal_mul
-equal_mul OUT -> RESULT r_mul(test/result)
+mul OUT -> IN product OUT -> RESULT r_mul(test/result)
 
 dividend(constant/int:value=12)
 divisor(constant/int:value=3)
-quotient(constant/int:value=4)
+dividend2(constant/int:value=INT32_MIN)
+divisor2(constant/int:value=-1)
+quotient(test/int-validator:sequence="4 -715827882")
 remainder(constant/int:value=0)
 
 dividend OUT -> DIVIDEND div(int/division)
+dividend2 OUT -> DIVIDEND div
 divisor OUT -> DIVISOR div
-div OUT -> IN[0] equal_div(int/equal)
-quotient OUT -> IN[1] equal_div
-equal_div OUT -> RESULT r_div(test/result)
+divisor2 OUT -> DIVISOR div
+div OUT -> IN quotient OUT -> RESULT r_div(test/result)
 
 dividend OUT -> DIVIDEND mod(int/modulo)
 divisor OUT -> DIVISOR mod
