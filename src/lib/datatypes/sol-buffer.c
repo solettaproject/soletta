@@ -368,3 +368,34 @@ sol_buffer_append_char(struct sol_buffer *buf, const char c)
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
+
+SOL_API int
+sol_buffer_insert_char(struct sol_buffer *buf, size_t pos, const char c)
+{
+    char *p;
+    size_t new_size;
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_INT_CHECK(pos, > buf->used, -EINVAL);
+
+    if (pos == buf->used)
+        return sol_buffer_append_char(buf, c);
+
+    err = sol_util_size_add(buf->used, 1, &new_size);
+    if (err < 0)
+        return err;
+
+    err = sol_buffer_ensure(buf, new_size);
+    if (err < 0)
+        return err;
+
+    p = sol_buffer_at(buf, pos);
+    memmove(p + 1, p, buf->used - pos);
+    *p = c;
+    buf->used++;
+
+    if (nul_byte_size(buf))
+        return sol_buffer_ensure_nul_byte(buf);
+    return 0;
+}
