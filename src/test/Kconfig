@@ -92,3 +92,7 @@ config TEST_JSON
 config TEST_UTIL
 	bool "util"
 	default y
+
+config TEST_COMPOSED_TYPE
+      bool "composed-type"
+      default y

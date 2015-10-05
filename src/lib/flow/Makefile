@@ -9,6 +9,7 @@ obj-flow-$(FLOW_SUPPORT) := \
 
 obj-flow-$(NODE_DESCRIPTION) += \
     sol-flow-parser.o \
+    sol-flow-composed.o \
     sol-flow-resolver.o \
     sol-flow-builder.o
 

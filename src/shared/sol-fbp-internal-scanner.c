@@ -288,7 +288,7 @@ declare_contents_state(struct sol_fbp_scanner *s)
 {
     char c;
 
-    for (c = peek(s); is_node_ident(peek(s)) || c == '.'; c = peek(s))
+    for (c = peek(s); c != '\n' && c != 0 && c != ','; c = peek(s))
         next(s);
     set_token(s, SOL_FBP_TOKEN_IDENTIFIER);
     return declare_end_state;
