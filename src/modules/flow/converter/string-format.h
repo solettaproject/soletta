@@ -36,6 +36,7 @@
 #include "sol-log-internal.h"
 extern struct sol_log_domain _converter_log_domain;
 
+#include "sol-buffer.h"
 #include "sol-flow/converter.h"
 #include "sol-mainloop.h"
 #include "sol-flow-internal.h"

@@ -73,7 +73,7 @@ write_byte(struct led_7seg_data *mdata, struct sol_flow_node *node, unsigned cha
     for (i = 0; i < 8; i++) {
         bool val = (byte >> i) & 1;
         if (!sol_gpio_write(mdata->gpio[i], val)) {
-            SOL_WRN("Failed to write on gpio %" PRId32 ".", i);
+            SOL_WRN("Failed to write on gpio %d.", i);
             return -EIO;
         }
     }
@@ -108,7 +108,7 @@ value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_i
 
     if ((in_value < 0) || (in_value > array_size)) {
         sol_flow_send_error_packet(node, ERANGE,
-            "Range invalid, it should be between %d and %d but was %d",
+            "Range invalid, it should be between %d and %d but was %" PRId32,
             0, array_size, in_value);
         return 0;
     }

@@ -176,7 +176,7 @@ value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_i
 
     if ((value < RANGE_MIN) || (value > RANGE_MAX)) {
         sol_flow_send_error_packet(node, ERANGE,
-            "Range invalid, it should be between %d and %d but was %d",
+            "Range invalid, it should be between %d and %d but was %" PRId32,
             RANGE_MIN, RANGE_MAX, value);
         return 0;
     }
