@@ -1,0 +1,121 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+json_array_str(constant/string:value="[0,1,2.1,\"str\",false,true,null,{\"inner\": 456},[1,2,3]]")
+json_array(converter/blob-to-json-array)
+
+int_validator(test/int-validator:sequence="0 1")
+float_validator(test/float-validator:sequence="0 1 2.1")
+string_validator(test/string-validator:sequence="str")
+bool_validator(test/boolean-validator:sequence="FT")
+null_validator(converter/empty-to-boolean:output_value=true)
+object_validator(test/int-validator:sequence="456")
+array_validator(test/blob-validator:expected="[1,2,3]")
+
+get_index_int0_val(json/array-get-at-index:index=0)
+get_index_int1_val(json/array-get-at-index:index=1)
+get_index_float_val(json/array-get-at-index:index=2)
+get_index_string_val(json/array-get-at-index:index=3)
+get_index_false_val(json/array-get-at-index:index=4)
+get_index_true_val(json/array-get-at-index:index=5)
+get_index_null_val(json/array-get-at-index:index=6)
+get_index_object_val(json/array-get-at-index:index=7)
+get_index_array_val(json/array-get-at-index:index=8)
+
+# Test node json/array-get-at-index
+json_array_str OUT -> IN _(converter/string-to-blob) OUT -> IN json_array
+json_array OUT -> IN get_index_int0_val
+json_array OUT -> IN get_index_int1_val
+json_array OUT -> IN get_index_float_val
+json_array OUT -> IN get_index_string_val
+json_array OUT -> IN get_index_false_val
+json_array OUT -> IN get_index_true_val
+json_array OUT -> IN get_index_null_val
+json_array OUT -> IN get_index_object_val
+json_array OUT -> IN get_index_array_val
+
+get_index_int0_val INT -> IN int_validator
+get_index_int0_val FLOAT -> IN float_validator
+get_index_int1_val INT -> IN int_validator
+get_index_int1_val FLOAT -> IN float_validator
+get_index_float_val FLOAT -> IN float_validator
+get_index_string_val STRING -> IN string_validator
+get_index_false_val BOOLEAN -> IN bool_validator
+get_index_true_val BOOLEAN -> IN bool_validator
+get_index_null_val NULL -> IN null_validator
+get_index_object_val OBJECT -> IN _(json/object-get-key:key="inner") INT -> IN object_validator
+get_index_array_val ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN array_validator
+
+int_validator OUT -> RESULT int_result(test/result)
+float_validator OUT -> RESULT float_result(test/result)
+string_validator OUT -> RESULT string_result(test/result)
+bool_validator OUT -> RESULT bool_result(test/result)
+null_validator OUT -> RESULT null_result(test/result)
+object_validator OUT -> RESULT object_result(test/result)
+array_validator OUT -> RESULT array_result(test/result)
+
+# Test node json/array-length
+json_array OUT -> IN _(json/array-length) OUT -> IN array_length_validator(test/int-validator:sequence="9")
+array_length_validator OUT -> RESULT test_array_length(test/result)
+
+# Test node json/array-get-all-elements
+json_array_elements_str(constant/string:value="[0,1,{\"a\":123},2,3,null,[1,2,3],\"str1\",4,\"str2\",null,false,false,true,5.1,true,true,false,null]")
+json_array_elements(converter/blob-to-json-array)
+json_array_elements_str OUT -> IN _(converter/string-to-blob) OUT -> IN json_array_elements
+json_array_elements OUT -> IN json_array_all_elements(json/array-get-all-elements)
+
+int_validator_all(test/int-validator:sequence="0 1 2 3 4")
+float_validator_all(test/float-validator:sequence="0 1 2 3 4 5.1")
+string_validator_all(test/string-validator:sequence="str1|str2")
+bool_validator_all(test/boolean-validator:sequence="FFTTTF")
+null_validator_all(int/accumulator)
+object_validator_all(test/blob-validator:expected="{\"a\":123}")
+array_validator_all(test/blob-validator:expected="[1,2,3]")
+empty_validator_all(test/boolean-validator:sequence="FT")
+
+json_array_all_elements INT -> IN int_validator_all
+json_array_all_elements FLOAT -> IN float_validator_all
+json_array_all_elements STRING -> IN string_validator_all
+json_array_all_elements BOOLEAN -> IN bool_validator_all
+json_array_all_elements NULL -> INC null_validator_all
+json_array_all_elements OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN object_validator_all
+json_array_all_elements ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN array_validator_all
+json_array_all_elements EMPTY -> IN empty_validator_all
+
+_(constant/string:value="[]") OUT -> IN _(converter/string-to-blob) OUT -> IN _(converter/blob-to-json-array) OUT -> IN _(json/array-get-all-elements) EMPTY -> IN empty_validator_all
+
+int_validator_all OUT -> RESULT int_result_all(test/result)
+float_validator_all OUT -> RESULT float_result_all(test/result)
+string_validator_all OUT -> RESULT string_result_all(test/result)
+bool_validator_all OUT -> RESULT bool_result_all(test/result)
+null_validator_all OUT -> IN _(test/int-validator:sequence="0 1 2 3") OUT -> RESULT null_result_all(test/result)
+object_validator_all OUT -> RESULT object_result_all(test/result)
+array_validator_all OUT -> RESULT array_result_all(test/result)
+empty_validator_all OUT -> RESULT empty_result_all(test/result)
