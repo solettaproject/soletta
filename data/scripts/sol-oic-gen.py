@@ -569,7 +569,7 @@ def object_open_fn_server_c(state_struct_name, resource_type, name, props, defin
     struct %(struct_name)s *resource = data;
     int r;
 
-    r = server_resource_init(&resource->base, node, rt_slice, def_slice, &funcs);
+    r = server_resource_init(&resource->base, node, rt_slice, &funcs);
     if (!r) {
         %(field_init)s
     }
@@ -1186,8 +1186,7 @@ static void log_init(void);
 
 static int
 server_resource_init(struct server_resource *resource, struct sol_flow_node *node,
-    struct sol_str_slice resource_type, struct sol_str_slice defn_endpoint,
-    const struct server_resource_funcs *funcs)
+    struct sol_str_slice resource_type, const struct server_resource_funcs *funcs)
 {
     log_init();
 
