@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef MODULES
+
 #include <dlfcn.h>
 #include <errno.h>
 #include <limits.h>
@@ -41,8 +43,6 @@
 #include "sol-modules.h"
 #include "sol-util.h"
 #include "sol-vector.h"
-
-#ifdef MODULES
 
 SOL_LOG_INTERNAL_DECLARE(_sol_modules_log_domain, "modules");
 
