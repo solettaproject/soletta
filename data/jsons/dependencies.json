@@ -482,6 +482,11 @@
       "type": "pkg-config",
       "pkgname": "libmicrohttpd",
       "atleast-version": "0.9.43"
+    },
+    {
+      "dependency": "libkmod",
+      "type": "pkg-config",
+      "pkgname": "libkmod"
     }
   ]
 }
