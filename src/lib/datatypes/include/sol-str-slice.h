@@ -37,6 +37,7 @@
 #include <string.h>
 
 #include <sol-macros.h>
+#include <sol-types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -106,6 +107,12 @@ static SOL_ATTR_NONNULL(1) inline struct sol_str_slice
 sol_str_slice_from_str(const char *s)
 {
     return SOL_STR_SLICE_STR(s, strlen(s));
+}
+
+static SOL_ATTR_NONNULL(1) inline struct sol_str_slice
+sol_str_slice_from_blob(const struct sol_blob *blob)
+{
+    return SOL_STR_SLICE_STR(blob->mem, blob->size);
 }
 
 int sol_str_slice_to_int(const struct sol_str_slice s, int *value);
