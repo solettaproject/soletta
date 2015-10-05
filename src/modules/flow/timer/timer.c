@@ -53,7 +53,7 @@ timer_tick(void *data)
 }
 
 static int
-timer_start(struct timer_data *mdata)
+start_timer(struct timer_data *mdata)
 {
     if (mdata->timer) {
         sol_timeout_del(mdata->timer);
@@ -69,7 +69,7 @@ timer_start(struct timer_data *mdata)
 }
 
 static int
-timer_stop(struct timer_data *mdata)
+stop_timer(struct timer_data *mdata)
 {
     if (!mdata->timer)
         return 0;
@@ -93,7 +93,7 @@ timer_interval_process(struct sol_flow_node *node, void *data, uint16_t port, ui
         return 0;
 
     mdata->interval = val.val;
-    return timer_start(mdata);
+    return start_timer(mdata);
 }
 
 static int
@@ -101,7 +101,7 @@ timer_reset_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
 {
     struct timer_data *mdata = data;
 
-    return timer_start(mdata);
+    return start_timer(mdata);
 }
 
 static int
@@ -115,9 +115,9 @@ timer_enabled_process(struct sol_flow_node *node, void *data, uint16_t port, uin
     SOL_INT_CHECK(r, < 0, r);
 
     if (!val)
-        return timer_stop(mdata);
+        return stop_timer(mdata);
     else if (!mdata->timer)
-        return timer_start(mdata);
+        return start_timer(mdata);
 
     return 0;
 }
@@ -138,7 +138,7 @@ timer_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
         return 0;
 
     mdata->interval = opts->interval.val;
-    return timer_start(mdata);
+    return start_timer(mdata);
 }
 
 static void
@@ -146,7 +146,7 @@ timer_close(struct sol_flow_node *node, void *data)
 {
     struct timer_data *mdata = data;
 
-    timer_stop(mdata);
+    stop_timer(mdata);
 }
 
 #include "timer-gen.c"
