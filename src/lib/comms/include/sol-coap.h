@@ -137,17 +137,14 @@ typedef enum {
     SOL_COAP_CONTENTTYPE_NONE = -1,
     SOL_COAP_CONTENTTYPE_TEXT_PLAIN = 0,
     SOL_COAP_CONTENTTYPE_APPLICATION_LINKFORMAT = 40,
+    SOL_COAP_CONTENTTYPE_APPLICATION_CBOR = 60, /* RFC7049 */
     SOL_COAP_CONTENTTYPE_APPLICATION_JSON = 50,
 } sol_coap_content_type_t;
 
 enum sol_coap_flags {
     SOL_COAP_FLAGS_NONE       = 0,
     /* If the resource should be exported in the CoRE well-known registry. */
-    SOL_COAP_FLAGS_WELL_KNOWN = (1 << 1),
-    /* If the resource should be exported in the OIC well-known registry. */
-    SOL_COAP_FLAGS_OC_CORE    = (1 << 2),
-    /* If the resource is observable, i.e. it is able to notified. */
-    SOL_COAP_FLAGS_OBSERVABLE = (1 << 3)
+    SOL_COAP_FLAGS_WELL_KNOWN = (1 << 1)
 };
 
 struct sol_coap_packet;
@@ -207,11 +204,6 @@ struct sol_coap_packet *sol_coap_packet_notification_new(struct sol_coap_server 
 struct sol_coap_packet *sol_coap_packet_ref(struct sol_coap_packet *pkt);
 void sol_coap_packet_unref(struct sol_coap_packet *pkt);
 
-/* FIXME - remove this function.
- * Some refactory will be needed before removing it, so it's exposed this
- * way by now - DO NOT add other users for this function. */
-int sol_coap_packet_get_buf(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len);
-
 int sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len);
 int sol_coap_packet_set_payload_used(struct sol_coap_packet *pkt, uint16_t len);
 bool sol_coap_packet_has_payload(struct sol_coap_packet *pkt);
@@ -219,7 +211,7 @@ bool sol_coap_packet_has_payload(struct sol_coap_packet *pkt);
 int sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *value, uint16_t len);
 int sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char *uri);
 
-const void *sol_coap_find_first_option(struct sol_coap_packet *pkt, uint16_t code, uint16_t *len);
+const void *sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uint16_t *len);
 
 int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr);
@@ -235,6 +227,8 @@ int sol_coap_packet_send_notification(struct sol_coap_server *server,
 
 bool sol_coap_server_register_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, void *data);
+int sol_coap_server_unregister_resource(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource);
 
 int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen);

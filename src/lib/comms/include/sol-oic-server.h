@@ -39,6 +39,8 @@
 extern "C" {
 #endif
 
+#include "sol-oic-common.h"
+
 /**
  * @file
  * @brief Routines to create servers talking OIC protocol.
@@ -50,95 +52,57 @@ extern "C" {
  * @{
  */
 
-#ifndef OIC_DEVICE_NAME
-#define OIC_DEVICE_NAME "Soletta OIC Device"
-#endif
-#ifndef OIC_DEVICE_RESOURCE_TYPE
-#define OIC_DEVICE_RESOURCE_TYPE "oc.core"
-#endif
 #ifndef OIC_MANUFACTURER_NAME
-#define OIC_MANUFACTURER_NAME "Custom"
+# define OIC_MANUFACTURER_NAME "Soletta"
 #endif
-#ifndef OIC_MANUFACTORER_MODEL
-#define OIC_MANUFACTORER_MODEL "Custom"
+#ifndef OIC_MANUFACTURER_URL
+# define OIC_MANUFACTURER_URL "https://soletta-project.org"
 #endif
-#ifndef OIC_MANUFACTORER_DATE
-#define OIC_MANUFACTORER_DATE "2015-01-01"
+#ifndef OIC_MODEL_NUMBER
+# define OIC_MODEL_NUMBER "Unknown"
 #endif
-#ifndef OIC_INTERFACE_VERSION
-#define OIC_INTERFACE_VERSION "1.0"
+#ifndef OIC_MANUFACTURE_DATE
+# define OIC_MANUFACTURE_DATE "2015-01-01"
 #endif
 #ifndef OIC_PLATFORM_VERSION
-#define OIC_PLATFORM_VERSION "1.0"
+# define OIC_PLATFORM_VERSION "Unknown"
+#endif
+#ifndef OIC_HARDWARE_VERSION
+# define OIC_HARDWARE_VERSION "Unknown"
 #endif
 #ifndef OIC_FIRMWARE_VERSION
-#define OIC_FIRMWARE_VERSION "1.0"
+# define OIC_FIRMWARE_VERSION "Unknown"
 #endif
-#ifndef OIC_SUPPORT_LINK
-#define OIC_SUPPORT_LINK "http://solettaproject.org/support/"
-#endif
-#ifndef OIC_LOCATION
-#define OIC_LOCATION "Unknown"
-#endif
-#ifndef OIC_EPI
-#define OIC_EPI ""
+#ifndef OIC_SUPPORT_URL
+# define OIC_SUPPORT_URL "Unknown"
 #endif
 
-struct sol_oic_device_definition;
-
-struct sol_oic_server_information {
-#define SOL_OIC_SERVER_INFORMATION_API_VERSION (1)
-    uint16_t api_version;
-    int : 0; /* save possible hole for a future field */
-
-    /* All fields are required by the spec. */
-    struct {
-        struct sol_str_slice name;
-        struct sol_str_slice resource_type;
-        struct sol_str_slice id;
-    } device;
-    struct {
-        struct sol_str_slice name;
-        struct sol_str_slice model;
-        struct sol_str_slice date;
-    } manufacturer;
-    struct {
-        struct sol_str_slice version;
-    } interface, platform, firmware;
-    struct sol_str_slice support_link;
-    struct sol_str_slice location;
-    struct sol_str_slice epi;
-};
+struct sol_oic_server_resource;
 
 struct sol_oic_resource_type {
 #define SOL_OIC_RESOURCE_TYPE_API_VERSION (1)
     uint16_t api_version;
     int : 0; /* save possible hole for a future field */
 
-    struct sol_str_slice endpoint;
     struct sol_str_slice resource_type;
-    struct sol_str_slice iface;
+    struct sol_str_slice interface;
 
     struct {
         sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
-            const void *data, uint8_t *payload, uint16_t *payload_len);
+            const void *data, const struct sol_vector *input, struct sol_vector *output);
     } get, put, post, delete;
 };
 
 int sol_oic_server_init(int port);
 void sol_oic_server_release(void);
 
-struct sol_oic_device_definition *sol_oic_server_get_definition(struct sol_str_slice endpoint,
-    struct sol_str_slice resource_type_prefix);
-struct sol_oic_device_definition *sol_oic_server_register_definition(struct sol_str_slice endpoint,
-    struct sol_str_slice resource_type_prefix, enum sol_coap_flags flags);
-bool sol_oic_server_unregister_definition(const struct sol_oic_device_definition *definition);
+struct sol_oic_server_resource *sol_oic_server_add_resource(
+    const struct sol_oic_resource_type *rt, const void *handler_data,
+    enum sol_oic_resource_flag flags);
+void sol_oic_server_del_resource(struct sol_oic_server_resource *resource);
 
-struct sol_coap_resource *sol_oic_device_definition_register_resource_type(
-    struct sol_oic_device_definition *definition,
-    const struct sol_oic_resource_type *resource_type,
-    void *handler_data, enum sol_coap_flags flags);
-bool sol_oic_notify_observers(struct sol_coap_resource *resource, uint8_t *msg, uint16_t msg_len);
+bool sol_oic_notify_observers(struct sol_oic_server_resource *resource,
+    const struct sol_vector *repr);
 
 /**
  * @}

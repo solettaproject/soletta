@@ -59,15 +59,6 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
 #define IPV6_ALL_COAP_NODES_SCOPE_LOCAL "ff02::fd"
 #define IPV6_ALL_COAP_NODES_SCOPE_SITE "ff05::fd"
 
-#define OC_CORE_JSON_START "{\"oc\":["
-#define OC_CORE_ELEM_JSON_START "{\"href\":\"%s\",\"prop\":{"
-#define OC_CORE_PROP_JSON_STRING "\"%s\":[\"%s\"]"
-#define OC_CORE_PROP_JSON_SLICE "\"%s\":[\"%.*s\"]"
-#define OC_CORE_JSON_SEPARATOR ","
-#define OC_CORE_PROP_JSON_NUMBER "\"%s\":%d"
-#define OC_CORE_ELEM_JSON_END "}}"
-#define OC_CORE_JSON_END "]}"
-
 /*
  * FIXME: use a random number between ACK_TIMEOUT (2000ms)
  * and ACK_TIMEOUT * ACK_RANDOM_FACTOR (3000ms)
@@ -511,6 +502,7 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     struct outgoing *outgoing;
     int r;
 
+    SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(cliaddr, -EINVAL);
 
     outgoing = calloc(1, sizeof(*outgoing));
@@ -611,7 +603,7 @@ error:
 }
 
 static struct resource_context *
-find_context(struct sol_coap_server *server, struct sol_coap_resource *resource)
+find_context(struct sol_coap_server *server, const struct sol_coap_resource *resource)
 {
     struct resource_context *c;
     uint16_t i;
@@ -813,7 +805,7 @@ sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char *uri
 }
 
 SOL_API const void *
-sol_coap_find_first_option(struct sol_coap_packet *pkt, uint16_t code, uint16_t *len)
+sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uint16_t *len)
 {
     struct sol_coap_option_value option = {};
     uint16_t count = 1;
@@ -828,126 +820,6 @@ sol_coap_find_first_option(struct sol_coap_packet *pkt, uint16_t code, uint16_t 
 
     return option.value;
 }
-
-/* This expects that 'errno' is set to zero when it is called. */
-static int
-snprintf_safe(char *ptr, ssize_t len, const char *format, ...)
-{
-    va_list ap;
-    int r;
-
-    if (errno)
-        return 0;
-
-    if (len < 0) {
-        errno = ENOMEM;
-        return 0;
-    }
-
-    va_start(ap, format);
-    r = vsnprintf(ptr, len, format, ap);
-    va_end(ap);
-
-    /* The message got truncated. */
-    if (r >= len) {
-        errno = ENOBUFS;
-        return 0;
-    }
-
-    /* This expects that snprintf() sets errno when the return is negative. */
-    if (r < 0)
-        r = 0;
-
-    return r;
-}
-
-static int
-oc_core_get(const struct sol_coap_resource *resource, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
-{
-    struct sol_coap_server *server = data;
-    struct sol_vector *v = &server->contexts;
-    struct sol_coap_packet *resp;
-    uint16_t size, len;
-    uint8_t format_json = SOL_COAP_CONTENTTYPE_APPLICATION_JSON;
-    uint8_t *payload;
-    char *p;
-    int i;
-
-    resp = sol_coap_packet_new(req);
-    SOL_NULL_CHECK(resp, -ENOMEM);
-
-    sol_coap_header_set_type(resp, SOL_COAP_TYPE_ACK);
-    sol_coap_add_option(resp, SOL_COAP_OPTION_CONTENT_FORMAT, &format_json, sizeof(format_json));
-
-    sol_coap_packet_get_payload(resp, &payload, &size);
-    p = (char *)payload;
-
-    errno = 0;
-
-    len = snprintf_safe(p, size, OC_CORE_JSON_START);
-
-    for (i = 0; i < v->len && !errno; i++) {
-        struct resource_context *c = sol_vector_get(v, i);
-        const struct sol_coap_resource *r = c->resource;
-        uint8_t path[64];
-        int obs;
-
-        if (len >= size)
-            break;
-
-        if (!(r->flags & SOL_COAP_FLAGS_OC_CORE))
-            continue;
-
-        memset(&path, 0, sizeof(path));
-        sol_coap_uri_path_to_buf(r->path, path, sizeof(path));
-
-        len += snprintf_safe(p + len, size - len, OC_CORE_ELEM_JSON_START, path);
-
-        if (r->iface.len != 0) {
-            len += snprintf_safe(p + len, size - len, OC_CORE_PROP_JSON_SLICE, "if", r->iface.len, r->iface.data);
-            len += snprintf_safe(p + len, size - len, OC_CORE_JSON_SEPARATOR);
-        }
-
-        if (r->resource_type.len != 0) {
-            len += snprintf_safe(p + len, size - len, OC_CORE_PROP_JSON_SLICE, "rt", r->resource_type.len, r->resource_type.data);
-            len += snprintf_safe(p + len, size - len, OC_CORE_JSON_SEPARATOR);
-        }
-
-        obs = !!(r->flags & SOL_COAP_FLAGS_OBSERVABLE);
-
-        len += snprintf_safe(p + len, size - len, OC_CORE_PROP_JSON_NUMBER, "obs", obs);
-        len += snprintf_safe(p + len, size - len, OC_CORE_ELEM_JSON_END);
-
-        if (i + 1 < v->len)
-            len += snprintf_safe(p + len, size - len, OC_CORE_JSON_SEPARATOR);
-    }
-    len += snprintf_safe(p + len, size - len, OC_CORE_JSON_END);
-
-    /* 'snprintf_safe' sets errno when error occurs. */
-    if (errno) {
-        char addr[SOL_INET_ADDR_STRLEN];
-        sol_network_addr_to_str(cliaddr, addr, sizeof(addr));
-        SOL_WRN("Error building response for /oc/core, server %p client %s: %s", server,
-            addr, sol_util_strerrora(errno));
-
-        sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_INTERNAL_ERROR);
-    } else {
-        sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
-        sol_coap_packet_set_payload_used(resp, len);
-    }
-
-    return sol_coap_send_packet(server, resp, cliaddr);
-}
-
-static struct sol_coap_resource oc_core = {
-    .path = {
-        SOL_STR_SLICE_LITERAL("oc"),
-        SOL_STR_SLICE_LITERAL("core"),
-        SOL_STR_SLICE_EMPTY
-    },
-    .get = oc_core_get,
-};
 
 static int
 well_known_get(const struct sol_coap_resource *resource, struct sol_coap_packet *req,
@@ -1008,7 +880,7 @@ error:
     return sol_coap_send_packet(server, resp, cliaddr);
 }
 
-static struct sol_coap_resource well_known = {
+static const struct sol_coap_resource well_known = {
     .path = {
         SOL_STR_SLICE_LITERAL(".well-known"),
         SOL_STR_SLICE_LITERAL("core"),
@@ -1164,11 +1036,6 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
         }
         return 0;
     }
-
-    /* /oc/core well known resource */
-    cb = find_resource_cb(req, &oc_core);
-    if (cb)
-        return cb(&oc_core, req, cliaddr, server);
 
     /* /.well-known/core well known resource */
     cb = find_resource_cb(req, &well_known);
@@ -1418,19 +1285,6 @@ sol_coap_server_new(int port)
 }
 
 SOL_API int
-sol_coap_packet_get_buf(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len)
-{
-    SOL_NULL_CHECK(pkt, -EINVAL);
-    SOL_NULL_CHECK(buf, -EINVAL);
-    SOL_NULL_CHECK(len, -EINVAL);
-
-    *buf = pkt->buf;
-    *len = sizeof(pkt->buf);
-
-    return 0;
-}
-
-SOL_API int
 sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len)
 {
     SOL_NULL_CHECK(pkt, -EINVAL);
@@ -1484,6 +1338,11 @@ sol_coap_server_register_resource(struct sol_coap_server *server,
 
     COAP_RESOURCE_CHECK_API(false);
 
+    if (find_context(server, resource)) {
+        SOL_WRN("Attempting to register duplicate resource in CoAP server");
+        return false;
+    }
+
     c = sol_vector_append(&server->contexts);
     SOL_NULL_CHECK(c, false);
 
@@ -1494,4 +1353,29 @@ sol_coap_server_register_resource(struct sol_coap_server *server,
     sol_ptr_vector_init(&c->observers);
 
     return true;
+}
+
+SOL_API int
+sol_coap_server_unregister_resource(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource)
+{
+    struct resource_context *c;
+    uint16_t idx;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(resource, -EINVAL);
+
+    COAP_RESOURCE_CHECK_API(-EINVAL);
+
+    SOL_VECTOR_FOREACH_REVERSE_IDX (&server->contexts, c, idx) {
+        if (c->resource != resource)
+            continue;
+
+        destroy_context(c);
+        sol_vector_del(&server->contexts, idx);
+
+        return 0;
+    }
+
+    return -ENOENT;
 }

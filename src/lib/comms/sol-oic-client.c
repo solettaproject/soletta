@@ -40,22 +40,20 @@
 #include <string.h>
 #include <sys/socket.h>
 
+#include "cbor.h"
 #include "sol-coap.h"
-#include "sol-json.h"
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
 #include "sol-random.h"
 #include "sol-util.h"
 
 #include "sol-oic-client.h"
+#include "sol-oic-cbor.h"
+#include "sol-oic-common.h"
 #include "sol-oic-server.h"
 
 #define POLL_OBSERVE_TIMEOUT_MS 10000
-
-#define IOTIVITY_CON_REQ_MID 0x7d42
-#define IOTIVITY_CON_REQ_OBS_MID 0x7d44
-#define IOTIVITY_NONCON_REQ_MID 0x7d40
-#define SOLETTA_SERVER_INFO_MID 0xda51 /* devapp server info */
+#define DISCOVERY_RESPONSE_TIMEOUT_MS 10000
 
 #define OIC_RESOURCE_CHECK_API(ptr, ...) \
     do {                                        \
@@ -82,155 +80,126 @@ struct find_resource_ctx {
     struct sol_oic_client *client;
     void (*cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data);
     void *data;
-    int32_t token;
+    int64_t token;
 };
 
 struct server_info_ctx {
     struct sol_oic_client *client;
     void (*cb)(struct sol_oic_client *cli, const struct sol_oic_server_information *info, void *data);
     void *data;
-    int32_t token;
+    int64_t token;
 };
 
 struct resource_request_ctx {
     struct sol_oic_client *client;
     struct sol_oic_resource *res;
     void (*cb)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-        const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data);
+        const struct sol_str_slice *href, const struct sol_vector *reprs, void *data);
     void *data;
+    int64_t token;
 };
 
-static const char json_type[] = "application/json";
-
-static struct sol_random *random_gen;
-
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
+
+static struct sol_ptr_vector pending_discovery = SOL_PTR_VECTOR_INIT;
+
+static struct sol_random *
+_get_random_instance(void)
+{
+    static struct sol_random *random = NULL;
+
+    if (unlikely(!random))
+        random = sol_random_new(SOL_RANDOM_DEFAULT, 0);
+
+    return random;
+}
 
 static int32_t
 _get_random_token(void)
 {
+    struct sol_random *random;
+    int64_t number;
+
+    random = _get_random_instance();
+    SOL_NULL_CHECK(random, 0);
+
+    return sol_random_get_int64(random, &number) ? number : 0;
+}
+
+static int16_t
+_get_random_mid(void)
+{
+    struct sol_random *random;
     int32_t number;
 
-    if (unlikely(!random_gen)) {
-        random_gen = sol_random_new(SOL_RANDOM_DEFAULT, 0);
-        if (unlikely(!random_gen)) {
-            SOL_ERR("Could not create random engine");
-            return 0;
-        }
-    }
+    random = _get_random_instance();
+    SOL_NULL_CHECK(random, 0);
 
-    return sol_random_get_int32(random_gen, &number) ? number : 0;
+    return sol_random_get_int32(random, &number) ? (int16_t)number : 0;
 }
 
 static bool
-_parse_json_array(const char *data, unsigned int size, struct sol_vector *vec)
+_pkt_has_same_token(const struct sol_coap_packet *pkt, int64_t token)
 {
-    struct sol_json_scanner scanner;
-    struct sol_json_token token;
-    enum sol_json_loop_reason reason;
+    uint8_t *token_data, token_len;
 
-    sol_json_scanner_init(&scanner, data, size);
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_STRING, reason) {
-        struct sol_str_slice *slice = sol_vector_append(vec);
+    token_data = sol_coap_header_get_token(pkt, &token_len);
+    if (unlikely(!token_data))
+        return false;
+
+    if (unlikely(token_len != sizeof(token)))
+        return false;
+
+    return likely(memcmp(token_data, &token, sizeof(token)) == 0);
+}
+
+static bool
+_cbor_array_to_vector(CborValue *array, struct sol_vector *vector)
+{
+    CborError err;
+    CborValue iter;
+
+    for (err = cbor_value_enter_container(array, &iter);
+        cbor_value_is_text_string(&iter) && err == CborNoError;
+        err |= cbor_value_advance(&iter)) {
+        struct sol_str_slice *slice = sol_vector_append(vector);
 
         if (!slice) {
-            SOL_WRN("Could not append to vector");
-            return false;
+            err = CborErrorOutOfMemory;
+            break;
         }
-        slice->len = token.end - token.start - 2; /* 2 = "" */
-        slice->data = token.start + 1; /* 1 = " */
+
+        err |= cbor_value_dup_text_string(&iter, (char **)&slice->data, &slice->len, NULL);
     }
 
-    return reason == SOL_JSON_LOOP_REASON_OK;
+    return (err | cbor_value_leave_container(array, &iter)) == CborNoError;
 }
 
 static bool
-_parse_resource_reply_props(const char *data, unsigned int size, struct sol_oic_resource *res)
+_cbor_map_get_array(const CborValue *map, const char *key,
+    struct sol_vector *vector)
 {
-    struct sol_json_scanner scanner;
-    struct sol_json_token token, key, value;
-    enum sol_json_loop_reason reason;
+    CborValue value;
 
-    sol_json_scanner_init(&scanner, data, size);
-    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        if (sol_json_token_str_eq(&key, "obs", 3) && sol_json_token_get_type(&value) == SOL_JSON_TYPE_NUMBER) {
-            if (value.end - value.start != 1)
-                goto out;
-            res->observable = (*value.start != '0');
-        } else if (sol_json_token_str_eq(&key, "rt", 2)) {
-            if (!_parse_json_array(value.start, value.end - value.start, &res->types))
-                goto out;
-        } else if (sol_json_token_str_eq(&key, "if", 2)) {
-            if (!_parse_json_array(value.start, value.end - value.start, &res->interfaces))
-                goto out;
-        }
-    }
-    if (reason == SOL_JSON_LOOP_REASON_OK)
-        return true;
+    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
+        return false;
 
-out:
-    SOL_WRN("Invalid JSON");
-    return false;
+    if (!cbor_value_is_array(&value))
+        return false;
+
+    return _cbor_array_to_vector(&value, vector);
 }
 
 static bool
-_get_oc_response_array_from_payload(uint8_t **payload, uint16_t *payload_len)
+_cbor_map_get_str_value(const CborValue *map, const char *key,
+    struct sol_str_slice *slice)
 {
-    struct sol_json_scanner scanner;
-    struct sol_json_token token, key, value;
-    enum sol_json_loop_reason reason;
+    CborValue value;
 
-    sol_json_scanner_init(&scanner, *payload, *payload_len);
-    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        if (!sol_json_token_str_eq(&key, "oc", 2))
-            continue;
-        if (sol_json_token_get_type(&value) != SOL_JSON_TYPE_ARRAY_START)
-            goto out;
+    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
+        return false;
 
-        *payload = (uint8_t *)value.start;
-        *payload_len = (uint16_t)(value.end - value.start);
-        return true;
-    }
-
-out:
-    SOL_WRN("Invalid JSON");
-    return false;
-}
-
-static bool
-_parse_resource_reply_payload(struct sol_oic_resource *res, uint8_t *payload, uint16_t payload_len)
-{
-    struct sol_json_scanner scanner;
-    struct sol_json_token token;
-    enum sol_json_loop_reason reason;
-
-    if (!_get_oc_response_array_from_payload(&payload, &payload_len))
-        goto out;
-
-    sol_json_scanner_init(&scanner, payload, payload_len);
-
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
-        struct sol_json_token key, value;
-
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
-            if (sol_json_token_str_eq(&key, "href", 4) && sol_json_token_get_type(&value) == SOL_JSON_TYPE_STRING) {
-                res->href = SOL_STR_SLICE_STR(value.start + 1, (value.end - value.start) - 2);
-            } else if (sol_json_token_str_eq(&key, "prop", 4) && sol_json_token_get_type(&value) == SOL_JSON_TYPE_OBJECT_START) {
-                if (!_parse_resource_reply_props(value.start, value.end - value.start, res))
-                    goto out;
-            }
-        }
-
-        if (reason == SOL_JSON_LOOP_REASON_OK && !res->href.len)
-            goto out;
-    }
-
-    if (reason == SOL_JSON_LOOP_REASON_OK)
-        return true;
-
-out:
-    SOL_WRN("Invalid JSON");
-    return false;
+    return cbor_value_dup_text_string(&value, (char **)&slice->data, &slice->len, NULL) == CborNoError;
 }
 
 SOL_API struct sol_oic_resource *
@@ -251,8 +220,20 @@ sol_oic_resource_unref(struct sol_oic_resource *r)
 
     r->refcnt--;
     if (!r->refcnt) {
+        struct sol_str_slice *slice;
+        uint16_t idx;
+
+        free((char *)r->href.data);
+        free((char *)r->device_id.data);
+
+        SOL_VECTOR_FOREACH_IDX (&r->types, slice, idx)
+            free((char *)slice->data);
         sol_vector_clear(&r->types);
+
+        SOL_VECTOR_FOREACH_IDX (&r->interfaces, slice, idx)
+            free((char *)slice->data);
         sol_vector_clear(&r->interfaces);
+
         free(r);
     }
 }
@@ -261,64 +242,62 @@ static bool
 _parse_server_info_payload(struct sol_oic_server_information *info,
     uint8_t *payload, uint16_t payload_len)
 {
-    struct sol_json_scanner scanner;
-    struct sol_json_token token, key, value;
-    enum sol_json_loop_reason reason;
+    CborParser parser;
+    CborError err;
+    CborValue root, array, value, map;
+    int payload_type;
 
-    sol_json_scanner_init(&scanner, payload, payload_len);
-    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        if (sol_json_token_get_type(&token) != SOL_JSON_TYPE_STRING)
-            continue;
-
-        sol_json_token_remove_quotes(&value);
-
-        if (sol_json_token_str_eq(&key, "dt", 2)) {
-            info->device.name = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "drt", 3)) {
-            info->device.resource_type = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "id", 2)) {
-            info->device.id = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "mnmn", 4)) {
-            info->manufacturer.name = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "mnmo", 4)) {
-            info->manufacturer.model = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "mndt", 4)) {
-            info->manufacturer.date = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "mnpv", 4)) {
-            info->platform.version = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "mnfv", 4)) {
-            info->firmware.version = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "icv", 3)) {
-            info->interface.version = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "mnsl", 4)) {
-            info->support_link = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "loc", 3)) {
-            info->location = sol_json_token_to_slice(&value);
-        } else if (sol_json_token_str_eq(&key, "epi", 3)) {
-            info->epi = sol_json_token_to_slice(&value);
-        } else {
-            SOL_WRN("Unknown key in JSON payload: %.*s",
-                (int)sol_json_token_get_size(&key), key.start);
-            continue;
-        }
-    }
-
-    return reason == SOL_JSON_LOOP_REASON_OK;
-}
-
-static bool
-_pkt_has_same_token(const struct sol_coap_packet *pkt, int32_t token)
-{
-    uint8_t *token_data, token_len;
-
-    token_data = sol_coap_header_get_token(pkt, &token_len);
-    if (!token_data)
+    err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
+    if (err != CborNoError)
+        return false;
+    if (!cbor_value_is_array(&root))
         return false;
 
-    if (token_len != sizeof(token))
+    err |= cbor_value_enter_container(&root, &array);
+
+    err |= cbor_value_get_int(&array, &payload_type);
+    err |= cbor_value_advance_fixed(&array);
+    if (err != CborNoError)
+        return false;
+    if (payload_type != SOL_OIC_PAYLOAD_PLATFORM)
         return false;
 
-    return memcmp(token_data, &token, sizeof(token)) == 0;
+    if (!cbor_value_is_map(&array))
+        return false;
+
+    /* href is intentionally ignored */
+
+    err |= cbor_value_map_find_value(&map, SOL_OIC_KEY_REPRESENTATION, &value);
+    if (!cbor_value_is_map(&value))
+        return false;
+
+    if (err != CborNoError)
+        return false;
+
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_PLATFORM_ID, &info->platform_id))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_MANUF_NAME, &info->manufacturer_name))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_MANUF_URL, &info->manufacturer_url))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_MODEL_NUM, &info->model_number))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_MANUF_DATE, &info->manufacture_date))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_PLATFORM_VER, &info->platform_version))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_OS_VER, &info->os_version))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_HW_VER, &info->hardware_version))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_FIRMWARE_VER, &info->firmware_version))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_SUPPORT_URL, &info->support_url))
+        return false;
+    if (!_cbor_map_get_str_value(&value, SOL_OIC_KEY_SYSTEM_TIME, &info->system_time))
+        return false;
+
+    return err == CborNoError;
 }
 
 static int
@@ -328,9 +307,7 @@ _server_info_reply_cb(struct sol_coap_packet *req, const struct sol_network_link
     struct server_info_ctx *ctx = data;
     uint8_t *payload;
     uint16_t payload_len;
-    struct sol_oic_server_information info = {
-        .api_version = SOL_OIC_SERVER_INFORMATION_API_VERSION
-    };
+    struct sol_oic_server_information info = { 0 };
     int error = 0;
 
     if (!ctx->cb) {
@@ -344,6 +321,11 @@ _server_info_reply_cb(struct sol_coap_packet *req, const struct sol_network_link
         goto free_ctx;
     }
 
+    if (!sol_oic_pkt_has_cbor_content(req)) {
+        error = -EINVAL;
+        goto free_ctx;
+    }
+
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
         SOL_WRN("Could not get pkt payload");
         error = -ENOMEM;
@@ -351,11 +333,23 @@ _server_info_reply_cb(struct sol_coap_packet *req, const struct sol_network_link
     }
 
     if (_parse_server_info_payload(&info, payload, payload_len)) {
+        info.api_version = SOL_OIC_SERVER_INFORMATION_API_VERSION;
         ctx->cb(ctx->client, &info, ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
         error = -EINVAL;
     }
+
+    free((char *)info.platform_id.data);
+    free((char *)info.manufacturer_name.data);
+    free((char *)info.manufacturer_url.data);
+    free((char *)info.model_number.data);
+    free((char *)info.manufacture_date.data);
+    free((char *)info.platform_version.data);
+    free((char *)info.os_version.data);
+    free((char *)info.hardware_version.data);
+    free((char *)info.support_url.data);
+    free((char *)info.system_time.data);
 
 free_ctx:
     free(ctx);
@@ -369,7 +363,7 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
     const struct sol_oic_server_information *info, void *data),
     void *data)
 {
-    static const char d_uri[] = "/d";
+    static const char device_uri[] = "/oic/d";
     struct sol_coap_packet *req;
     struct server_info_ctx *ctx;
     int r;
@@ -395,14 +389,12 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
     }
 
     sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
-    sol_coap_header_set_id(req, SOLETTA_SERVER_INFO_MID);
+    sol_coap_header_set_id(req, _get_random_mid());
 
-    if (sol_coap_packet_add_uri_path_option(req, d_uri) < 0) {
-        SOL_WRN("Invalid URI: %s", d_uri);
+    if (sol_coap_packet_add_uri_path_option(req, device_uri) < 0) {
+        SOL_WRN("Invalid URI: %s", device_uri);
         goto out;
     }
-
-    sol_coap_add_option(req, SOL_COAP_OPTION_ACCEPT, json_type, sizeof(json_type) - 1);
 
     r = sol_coap_send_packet_with_reply(client->server, req, &resource->addr, _server_info_reply_cb, ctx);
     if (!r)
@@ -428,65 +420,191 @@ _has_observable_option(struct sol_coap_packet *pkt)
     return ptr && len == 1 && *ptr;
 }
 
-static int
-_find_resource_reply_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data)
+static bool
+_cbor_map_get_bytestr_value(const CborValue *map, const char *key,
+    struct sol_str_slice *slice)
 {
-    struct find_resource_ctx *ctx = data;
-    uint8_t *payload;
-    uint16_t payload_len;
-    struct sol_oic_resource *res;
-    int error = 0;
+    CborValue value;
 
-    if (!ctx->cb) {
-        SOL_WRN("No user callback provided");
-        error = -ENOENT;
-        goto free_ctx;
-    }
+    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
+        return false;
 
-    if (!_pkt_has_same_token(req, ctx->token)) {
-        error = -EINVAL;
-        goto free_ctx;
-    }
+    return cbor_value_dup_byte_string(&value, (uint8_t **)&slice->data, &slice->len, NULL) == CborNoError;
+}
 
-    if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
-        SOL_WRN("Could not get pkt payload");
-        error = -ENOMEM;
-        goto free_ctx;
-    }
-    res = malloc(sizeof(*res) + payload_len);
-    if (!res) {
-        SOL_WRN("Not enough memory");
-        error = -errno;
-        goto free_ctx;
-    }
+static struct sol_oic_resource *
+_new_resource(void)
+{
+    struct sol_oic_resource *res = malloc(sizeof(*res));
 
-    payload = memcpy(res + 1, payload, payload_len);
+    SOL_NULL_CHECK(res, NULL);
+
     res->href = (struct sol_str_slice)SOL_STR_SLICE_EMPTY;
+    res->device_id = (struct sol_str_slice)SOL_STR_SLICE_EMPTY;
     sol_vector_init(&res->types, sizeof(struct sol_str_slice));
     sol_vector_init(&res->interfaces, sizeof(struct sol_str_slice));
 
     res->observe.timeout = NULL;
     res->observe.clear_data = 0;
 
+    res->observable = false;
+    res->slow = false;
+    res->secure = false;
+    res->active = false;
+
     res->refcnt = 1;
 
     res->api_version = SOL_OIC_RESOURCE_API_VERSION;
 
-    if (_parse_resource_reply_payload(res, payload, payload_len)) {
-        res->observable = res->observable || _has_observable_option(req);
-        res->addr = *cliaddr;
-        ctx->cb(ctx->client, res, ctx->data);
-    } else {
-        SOL_WRN("Could not parse payload");
-        error = -EINVAL;
+    return res;
+}
+
+static bool
+_iterate_over_resource_reply_payload(struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr,
+    const struct find_resource_ctx *ctx)
+{
+    CborParser parser;
+    CborError err;
+    CborValue root, array, value, map;
+    int payload_type;
+    uint8_t *payload;
+    uint16_t payload_len;
+
+    if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
+        SOL_WRN("Could not get payload form discovery packet response");
+        return false;
     }
 
-    sol_oic_resource_unref(res);
+    err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
+    if (err != CborNoError)
+        return false;
+    if (!cbor_value_is_array(&root))
+        return false;
 
-free_ctx:
-    free(ctx);
-    return error;
+    err |= cbor_value_enter_container(&root, &array);
+
+    err |= cbor_value_get_int(&array, &payload_type);
+    err |= cbor_value_advance_fixed(&array);
+    if (err != CborNoError)
+        return false;
+    if (payload_type != SOL_OIC_PAYLOAD_DISCOVERY)
+        return false;
+
+    for (; cbor_value_is_map(&array) && err == CborNoError;
+        err |= cbor_value_advance(&array)) {
+        struct sol_oic_resource *res = _new_resource();
+
+        SOL_NULL_CHECK(res, false);
+
+        if (!_cbor_map_get_str_value(&array, SOL_OIC_KEY_HREF, &res->href))
+            return false;
+        if (!_cbor_map_get_bytestr_value(&array, SOL_OIC_KEY_DEVICE_ID, &res->device_id))
+            return false;
+
+        err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_PROPERTIES, &value);
+        if (!cbor_value_is_map(&value))
+            return false;
+
+        if (!_cbor_map_get_array(&value, SOL_OIC_KEY_RESOURCE_TYPES, &res->types))
+            return false;
+        if (!_cbor_map_get_array(&value, SOL_OIC_KEY_INTERFACES, &res->interfaces))
+            return false;
+
+        err |= cbor_value_map_find_value(&value, SOL_OIC_KEY_POLICY, &map);
+        if (!cbor_value_is_map(&map)) {
+            err = CborErrorUnknownType;
+        } else {
+            CborValue bitmap_value;
+            uint64_t bitmap = 0;
+
+            err |= cbor_value_map_find_value(&map, SOL_OIC_KEY_BITMAP, &bitmap_value);
+            err |= cbor_value_get_uint64(&bitmap_value, &bitmap);
+
+            res->observable = (bitmap & SOL_OIC_FLAG_OBSERVABLE);
+            res->active = (bitmap & SOL_OIC_FLAG_ACTIVE);
+            res->slow = (bitmap & SOL_OIC_FLAG_SLOW);
+            res->secure = (bitmap & SOL_OIC_FLAG_SECURE);
+        }
+
+        if (err == CborNoError) {
+            res->observable = res->observable || _has_observable_option(req);
+            res->addr = *cliaddr;
+            ctx->cb(ctx->client, res, ctx->data);
+        }
+
+        sol_oic_resource_unref(res);
+    }
+
+    return (err | cbor_value_leave_container(&root, &array)) == CborNoError;
+}
+
+static bool
+_is_discovery_pending_for_ctx(const struct find_resource_ctx *ctx)
+{
+    void *iter;
+    uint16_t idx;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&pending_discovery, iter, idx) {
+        if (iter == ctx) {
+            SOL_DBG("Context %p is in pending discovery list", ctx);
+
+            return true;
+        }
+    }
+
+    SOL_DBG("Context %p is _not_ in pending discovery list", ctx);
+    return false;
+}
+
+static int
+_find_resource_reply_cb(struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr, void *data)
+{
+    struct find_resource_ctx *ctx = data;
+
+    if (!_is_discovery_pending_for_ctx(ctx)) {
+        SOL_WRN("Received discovery response packet while not waiting for one");
+        return -ENOTCONN;
+    }
+
+    if (!ctx->cb) {
+        SOL_WRN("No user callback provided");
+        return -ENOENT;
+    }
+
+    if (!_pkt_has_same_token(req, ctx->token)) {
+        SOL_WRN("Discovery packet token differs from expected");
+        return -ENOENT;
+    }
+
+    if (!sol_oic_pkt_has_cbor_content(req)) {
+        SOL_WRN("Discovery packet not in CBOR format");
+        return -EINVAL;
+    }
+
+    if (!_iterate_over_resource_reply_payload(req, cliaddr, ctx)) {
+        SOL_WRN("Could not iterate over find resource reply packet");
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+static bool
+_remove_from_pending_discovery_list(void *data)
+{
+    int r;
+
+    SOL_DBG("Removing context %p from pending discovery list after %dms",
+        data, DISCOVERY_RESPONSE_TIMEOUT_MS);
+
+    free(data);
+
+    r = sol_ptr_vector_remove(&pending_discovery, data);
+    SOL_INT_CHECK(r, < 0, false);
+
+    return false;
 }
 
 SOL_API bool
@@ -497,7 +615,7 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     void *data),
     void *data)
 {
-    static const char oc_core_uri[] = "/oc/core";
+    static const char oic_well_known[] = "/oic/res";
     struct sol_coap_packet *req;
     struct find_resource_ctx *ctx;
     int r;
@@ -523,10 +641,10 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     }
 
     sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
-    sol_coap_header_set_id(req, IOTIVITY_NONCON_REQ_MID);
+    sol_coap_header_set_id(req, _get_random_mid());
 
-    if (sol_coap_packet_add_uri_path_option(req, oc_core_uri) < 0) {
-        SOL_WRN("Invalid URI: %s", oc_core_uri);
+    if (sol_coap_packet_add_uri_path_option(req, oic_well_known) < 0) {
+        SOL_WRN("Invalid URI: %s", oic_well_known);
         goto out;
     }
 
@@ -540,11 +658,26 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
         sol_coap_add_option(req, SOL_COAP_OPTION_URI_QUERY, query, r);
     }
 
-    sol_coap_add_option(req, SOL_COAP_OPTION_ACCEPT, json_type, sizeof(json_type) - 1);
-
     r = sol_coap_send_packet_with_reply(client->server, req, cliaddr, _find_resource_reply_cb, ctx);
-    if (!r)
+    if (!r) {
+        /* Safe to free ctx, as _find_resource_cb() will not free if ctx
+         * is not on pending_discovery vector. */
+        if (sol_ptr_vector_append(&pending_discovery, ctx) < 0) {
+            SOL_WRN("Discovery responses will be blocked: couldn't save context to pending discovery response list.");
+
+            goto out_no_pkt;
+        }
+
+        /* 10s should be plenty. */
+        if (!sol_timeout_add(DISCOVERY_RESPONSE_TIMEOUT_MS, _remove_from_pending_discovery_list, ctx)) {
+            SOL_WRN("Could not create timeout to cancel discovery process");
+            sol_ptr_vector_remove(&pending_discovery, ctx);
+
+            goto out_no_pkt;
+        }
+
         return true;
+    }
 
     goto out_no_pkt;
 
@@ -555,53 +688,87 @@ out_no_pkt:
     return false;
 }
 
-static void
-_call_request_context_for_response_array(struct resource_request_ctx *ctx,
-    const struct sol_network_link_addr *cliaddr, uint8_t *payload, uint16_t payload_len)
-{
-    struct sol_json_scanner scanner;
-    struct sol_json_token token;
-    enum sol_json_loop_reason reason;
-
-    sol_json_scanner_init(&scanner, payload, payload_len);
-    SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
-        struct sol_str_slice href = SOL_STR_SLICE_EMPTY;
-        struct sol_str_slice rep = SOL_STR_SLICE_EMPTY;
-        struct sol_json_token key, value;
-
-        SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
-            if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_STRING && sol_json_token_str_eq(&key, "href", 4)) {
-                href = SOL_STR_SLICE_STR(value.start + 1, value.end - value.start - 2);
-            } else if (sol_json_token_get_type(&value) == SOL_JSON_TYPE_OBJECT_START && sol_json_token_str_eq(&key, "rep", 3)) {
-                rep = sol_json_token_to_slice(&value);
-            }
-        }
-
-        if (reason == SOL_JSON_LOOP_REASON_OK && href.len && rep.len)
-            ctx->cb(ctx->client, cliaddr, &href, &rep, ctx->data);
-    }
-    if (reason != SOL_JSON_LOOP_REASON_OK)
-        SOL_WRN("Invalid JSON");
-}
-
 static int
 _resource_request_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
 {
     struct resource_request_ctx *ctx = data;
+    CborParser parser;
+    CborValue root, array;
+    CborError err;
     uint8_t *payload;
     uint16_t payload_len;
+    int payload_type;
 
     if (!ctx->cb)
         return -ENOENT;
+    if (!_pkt_has_same_token(req, ctx->token))
+        return -EINVAL;
+    if (!sol_oic_pkt_has_cbor_content(req))
+        return -EINVAL;
     if (!sol_coap_packet_has_payload(req))
         return 0;
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0)
         return 0;
-    if (_get_oc_response_array_from_payload(&payload, &payload_len))
-        _call_request_context_for_response_array(ctx, cliaddr, payload, payload_len);
 
-    return 0;
+    err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
+    if (err != CborNoError)
+        return -EINVAL;
+
+    if (!cbor_value_is_array(&root))
+        return -EINVAL;
+
+    err |= cbor_value_enter_container(&root, &array);
+
+    err |= cbor_value_get_int(&array, &payload_type);
+    err |= cbor_value_advance_fixed(&array);
+    if (err != CborNoError)
+        return -EINVAL;
+    if (payload_type != SOL_OIC_PAYLOAD_REPRESENTATION)
+        return -EINVAL;
+
+    while (cbor_value_is_map(&array) && err == CborNoError) {
+        struct sol_oic_repr_field *repr;
+        struct sol_vector reprs = SOL_VECTOR_INIT(struct sol_oic_repr_field);
+        CborValue value;
+        char *href;
+        size_t len;
+        uint16_t idx;
+
+        err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_HREF, &value);
+        err |= cbor_value_dup_text_string(&value, &href, &len, NULL);
+
+        err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_REPRESENTATION, &value);
+
+        err |= sol_oic_decode_cbor_repr_map(&value, &reprs);
+        if (err == CborNoError) {
+            struct sol_str_slice href_slice = sol_str_slice_from_str(href);
+
+            /* A sentinel item isn't needed since a sol_vector is passed. */
+            ctx->cb(ctx->client, cliaddr, &href_slice, &reprs, ctx->data);
+        }
+
+        free(href);
+        SOL_VECTOR_FOREACH_IDX (&reprs, repr, idx) {
+            free((char *)repr->key);
+
+            if (repr->type != SOL_OIC_REPR_TYPE_TEXT_STRING && repr->type != SOL_OIC_REPR_TYPE_BYTE_STRING)
+                continue;
+
+            free((char *)repr->v_slice.data);
+        }
+        sol_vector_clear(&reprs);
+
+        err |= cbor_value_advance(&array);
+    }
+
+    err |= cbor_value_leave_container(&root, &array);
+
+    if (err == CborNoError)
+        return 0;
+
+    SOL_ERR("Error while parsing CBOR repr packet: %s", cbor_error_string(err));
+    return -EINVAL;
 }
 
 static int
@@ -616,18 +783,23 @@ _one_shot_resource_request_cb(struct sol_coap_packet *req, const struct sol_netw
 
 static bool
 _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method, uint8_t *payload, size_t payload_len,
+    sol_coap_method_t method, const struct sol_vector *repr,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
     void *data, bool observe)
 {
+    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
+    CborError err;
+    char *href;
+
     int (*cb)(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data);
     struct sol_coap_packet *req;
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
             .client = client,
             .cb = callback,
             .data = data,
-            .res = res
+            .res = res,
+            .token = _get_random_token()
         }, sizeof(*ctx));
 
     SOL_NULL_CHECK(ctx, false);
@@ -638,48 +810,34 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
         goto out_no_req;
     }
 
+    sol_coap_header_set_token(req, (uint8_t *)&ctx->token, (uint8_t)sizeof(ctx->token));
+
     if (observe) {
         uint8_t reg = 0;
 
-        sol_coap_header_set_id(req, IOTIVITY_CON_REQ_OBS_MID);
+        sol_coap_header_set_id(req, _get_random_mid());
         sol_coap_add_option(req, SOL_COAP_OPTION_OBSERVE, &reg, sizeof(reg));
         cb = _resource_request_cb;
     } else {
-        sol_coap_header_set_id(req, IOTIVITY_CON_REQ_MID);
+        sol_coap_header_set_id(req, _get_random_mid());
         cb = _one_shot_resource_request_cb;
     }
 
-    if (sol_coap_packet_add_uri_path_option(req, strndupa(res->href.data, res->href.len)) < 0) {
-        SOL_WRN("Invalid URI: %.*s", SOL_STR_SLICE_PRINT(res->href));
+    href = strndupa(res->href.data, res->href.len);
+    if (sol_coap_packet_add_uri_path_option(req, href) < 0) {
+        SOL_WRN("Invalid URI: %s", href);
         goto out;
     }
 
-    if (payload && payload_len) {
-        uint8_t *coap_payload;
-        uint16_t coap_payload_len;
-        int r;
+    sol_coap_add_option(req, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
 
-        sol_coap_add_option(req, SOL_COAP_OPTION_ACCEPT, json_type, sizeof(json_type) - 1);
-
-        if (sol_coap_packet_get_payload(req, &coap_payload, &coap_payload_len) < 0) {
-            SOL_WRN("Could not get CoAP payload");
-            goto out;
-        }
-
-        r = snprintf((char *)coap_payload, coap_payload_len, "{\"oc\":[{\"rep\":%.*s}]}",
-            (int)payload_len, payload);
-        if (r < 0 || r >= coap_payload_len) {
-            SOL_WRN("Could not wrap payload");
-            goto out;
-        }
-
-        if (sol_coap_packet_set_payload_used(req, r) < 0) {
-            SOL_WRN("Request payload too large (have %d, want %zu)", r, payload_len);
-            goto out;
-        }
+    err = sol_oic_encode_cbor_repr(req, href, repr);
+    if (err == CborNoError) {
+        return sol_coap_send_packet_with_reply(client->server, req, &res->addr,
+            cb, ctx) == 0;
     }
 
-    return sol_coap_send_packet_with_reply(client->server, req, &res->addr, cb, ctx) == 0;
+    SOL_ERR("Could not encode CBOR representation: %s", cbor_error_string(err));
 
 out:
     sol_coap_packet_unref(req);
@@ -690,9 +848,9 @@ out_no_req:
 
 SOL_API bool
 sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method, uint8_t *payload, size_t payload_len,
+    sol_coap_method_t method, const struct sol_vector *repr,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
     void *data)
 {
     SOL_NULL_CHECK(client, false);
@@ -700,7 +858,7 @@ sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_re
     SOL_NULL_CHECK(res, false);
     OIC_RESOURCE_CHECK_API(res, false);
 
-    return _resource_request(client, res, method, payload, payload_len, callback, data, false);
+    return _resource_request(client, res, method, repr, callback, data, false);
 }
 
 static bool
@@ -715,7 +873,7 @@ _poll_resource(void *data)
         return false;
     }
 
-    r = _resource_request(ctx->client, ctx->res, SOL_COAP_METHOD_GET, NULL, 0, ctx->cb, ctx->data, false);
+    r = _resource_request(ctx->client, ctx->res, SOL_COAP_METHOD_GET, NULL, ctx->cb, ctx->data, false);
     if (!r)
         SOL_WRN("Could not send polling packet to observable resource");
 
@@ -725,7 +883,7 @@ _poll_resource(void *data)
 static bool
 _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
     void *data)
 {
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
@@ -766,7 +924,7 @@ _stop_observing_with_polling(struct sol_oic_resource *res)
 SOL_API bool
 sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_str_slice *payload, void *data),
+    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
     void *data, bool observe)
 {
     SOL_NULL_CHECK(client, false);
@@ -777,7 +935,7 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
     if (observe) {
         if (!res->observable)
             return _observe_with_polling(client, res, callback, data);
-        return _resource_request(client, res, SOL_COAP_METHOD_GET, NULL, 0, callback, data, true);
+        return _resource_request(client, res, SOL_COAP_METHOD_GET, NULL, callback, data, true);
     }
 
     if (res->observe.timeout)
@@ -788,5 +946,5 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
         return false;
     }
 
-    return _resource_request(client, res, SOL_COAP_METHOD_GET, NULL, 0, callback, data, false);
+    return _resource_request(client, res, SOL_COAP_METHOD_GET, NULL, callback, data, false);
 }

@@ -39,7 +39,7 @@ config COAP
 config OIC
 	bool "OIC"
 	default y
-	depends on COAP
+	depends on COAP && HAVE_TINYCBOR_SRC
 	help
             Implementation of protocol defined by Open Interconnect Consortium
             (OIC - http://openinterconnect.org/)

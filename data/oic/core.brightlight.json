@@ -5,6 +5,10 @@
     "core.brightlight": {
       "type": "object",
       "properties": {
+        "name": {
+          "type": "string",
+          "description": "Friendly device name (e.g. Kitchen Light)"
+        },
         "power": {
           "type": "integer",
           "description": "Current sensed or set value for Brightness"

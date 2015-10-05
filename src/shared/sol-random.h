@@ -64,6 +64,18 @@ sol_random_get_int32(struct sol_random *engine, int32_t *value)
 }
 
 static inline bool
+sol_random_get_int64(struct sol_random *engine, int64_t *value)
+{
+    struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(value, sizeof(*value),
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    ssize_t r = sol_random_fill_buffer(engine, &buf, sizeof(*value));
+
+    sol_buffer_fini(&buf);
+
+    return r == (ssize_t)sizeof(*value);
+}
+
+static inline bool
 sol_random_get_double(struct sol_random *engine, double *value)
 {
     int32_t num, den;
