@@ -84,12 +84,19 @@ sol_oic_encode_cbor_repr(struct sol_coap_packet *pkt,
             case SOL_OIC_REPR_TYPE_SIMPLE:
                 err |= cbor_encode_simple_value(&rep_map, repr->v_simple);
                 break;
-            case SOL_OIC_REPR_TYPE_TEXT_STRING:
-                err |= cbor_encode_text_string(&rep_map, repr->v_slice.data, repr->v_slice.len);
+            case SOL_OIC_REPR_TYPE_TEXT_STRING: {
+                const char *p = repr->v_slice.data ? repr->v_slice.data : "";
+
+                err |= cbor_encode_text_string(&rep_map, p, repr->v_slice.len);
                 break;
-            case SOL_OIC_REPR_TYPE_BYTE_STRING:
-                err |= cbor_encode_byte_string(&rep_map, (const uint8_t *)repr->v_slice.data, repr->v_slice.len);
+            }
+            case SOL_OIC_REPR_TYPE_BYTE_STRING: {
+                const uint8_t *empty = (const uint8_t *)"";
+                const uint8_t *p = repr->v_slice.data ? (const uint8_t *)repr->v_slice.data : empty;
+
+                err |= cbor_encode_byte_string(&rep_map, p, repr->v_slice.len);
                 break;
+            }
             case SOL_OIC_REPR_TYPE_HALF_FLOAT:
                 err |= cbor_encode_half_float(&rep_map, repr->v_voidptr);
                 break;
@@ -196,7 +203,7 @@ sol_oic_decode_cbor_repr(struct sol_coap_packet *pkt, struct sol_vector *reprs)
 {
     CborParser parser;
     CborError err;
-    CborValue root, array;
+    CborValue root, array, repr;
     uint8_t *payload;
     uint16_t size;
     int payload_type;
@@ -219,9 +226,11 @@ sol_oic_decode_cbor_repr(struct sol_coap_packet *pkt, struct sol_vector *reprs)
         return err;
     if (payload_type != SOL_OIC_PAYLOAD_REPRESENTATION)
         return CborErrorIllegalType;
+    if (cbor_value_map_find_value(&array, SOL_OIC_KEY_REPRESENTATION, &repr) != CborNoError)
+        return CborErrorIllegalType;
 
-    err |= sol_oic_decode_cbor_repr_map(&array, reprs);
-    return err | cbor_value_leave_container(&root, &array);
+    /* We're done with this CborParser, no need to close the container. */
+    return sol_oic_decode_cbor_repr_map(&repr, reprs);
 }
 
 bool
