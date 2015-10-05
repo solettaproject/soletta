@@ -494,10 +494,10 @@ _sol_oic_resource_type_handle(
 
     code = handle_fn(cliaddr, res->callback.data, &input, &output);
     if (code == SOL_COAP_RSPCODE_CONTENT) {
+        sol_coap_add_option(response, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
+
         if (sol_oic_encode_cbor_repr(response, res->href, &output) != CborNoError)
             code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
-        else
-            sol_coap_add_option(response, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
     }
 
 done:
@@ -685,10 +685,11 @@ sol_oic_notify_observers(struct sol_oic_server_resource *resource,
     pkt = sol_coap_packet_notification_new(oic_server.server, resource->coap);
     SOL_NULL_CHECK(pkt, false);
 
+    sol_coap_add_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
+
     if (sol_oic_encode_cbor_repr(pkt, resource->href, fields) != CborNoError) {
         sol_coap_header_set_code(pkt, SOL_COAP_RSPCODE_INTERNAL_ERROR);
     } else {
-        sol_coap_add_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
         sol_coap_header_set_code(pkt, SOL_COAP_RSPCODE_OK);
     }
 

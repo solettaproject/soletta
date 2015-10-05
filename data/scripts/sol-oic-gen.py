@@ -160,7 +160,7 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
             fargs = (val, )
         elif prop_descr['type'] == 'string':
             val = 'state->state.%s' % prop_name
-            vallen = 'strlen(%s)' % val
+            vallen = '%s ? strlen(%s) : 0' % (val, val)
 
             ftype = 'SOL_OIC_REPR_TEXT_STRING'
             fargs = (val, vallen)
@@ -177,10 +177,15 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
         else:
             raise ValueError('unknown field type: %s' % prop['type'])
 
+        vars = {
+            'ftype': ftype,
+            'key': prop_name,
+            'fargs': ', '.join(fargs)
+        }
         fields.append('''f = sol_vector_append(repr);
 SOL_NULL_CHECK(f, false);
 *f = %(ftype)s("%(key)s", %(fargs)s);
-''' % { 'ftype': ftype, 'key': prop_name, 'fargs': ', '.join(fargs) })
+''' % vars)
 
     if not fields:
         return ''
@@ -345,7 +350,7 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
         if 'enum' in field_props:
             fields_init.append('.%s = state->%s,' % (field_name, field_name))
         elif field_props['type'] == 'string':
-            fields_init.append('.%s = strdup(state->%s),' % (field_name, field_name))
+            fields_init.append('.%s = state->%s ? strdup(state->%s) : NULL,' % (field_name, field_name, field_name))
         else:
             fields_init.append('.%s = state->%s,' % (field_name, field_name))
 
@@ -368,7 +373,6 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
 {
     struct sol_oic_repr_field *field;
     uint16_t idx;
-    int err = 0;
     struct %(struct_name)s fields = {
         %(fields_init)s
     };
@@ -379,11 +383,11 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
 
     %(update_state)s
 
-    return 0;
+    return true;
 
 out:
     %(free_fields)s
-    return err;
+    return false;
 }
 ''' % {
         'struct_name': name,
@@ -1062,7 +1066,7 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
         return;
     }
 
-    if (!memcmp(oic_res->device_id.data, resource->device_id, 16)) {
+    if (memcmp(oic_res->device_id.data, resource->device_id, 16) != 0) {
         /* Not the droid we're looking for. */
         SOL_DBG("Received resource with an unknown device_id, ignoring");
         return;
@@ -1079,13 +1083,13 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
         resource->find_timeout = NULL;
     }
 
+    SOL_INF("Found resource matching device_id");
+    resource->resource = sol_oic_resource_ref(oic_res);
+
     if (!sol_oic_client_resource_set_observable(oic_cli, resource->resource,
         state_changed, resource, true)) {
         SOL_WRN("Could not observe resource as requested, will try again");
     }
-
-    SOL_INF("Found resource matching device_id %%s", resource->device_id);
-    resource->resource = sol_oic_resource_ref(oic_res);
 
     r = sol_flow_send_boolean_packet(resource->node,
         resource->funcs->found_port, true);
@@ -1096,6 +1100,11 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
 static void
 send_discovery_packets(struct client_resource *resource)
 {
+    if (resource->resource)
+        return;
+
+    sol_flow_send_boolean_packet(resource->node, resource->funcs->found_port, false);
+
     sol_oic_client_find_resource(&resource->client, &multicast_ipv4, resource->rt,
         found_resource, resource);
     sol_oic_client_find_resource(&resource->client, &multicast_ipv6_local, resource->rt,
@@ -1245,11 +1254,11 @@ hex_ascii_to_binary(const char *ascii)
     char *binary = malloc(16);
 
     if (likely(binary)) {
-        char *b;
-        const char *a;
+        const char *p;
+        size_t i;
 
-        for (a = ascii, b = binary; *a && (b - binary) < 16; a += 2)
-            *b++ = as_nibble(*a) << 4 | as_nibble(*(a + 1));
+        for (p = ascii, i = 0; i < 16; i++, p += 2)
+            binary[i] = as_nibble(*p) << 4 | as_nibble(*(p + 1));
     }
 
     return binary;
@@ -1286,7 +1295,7 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
     resource->rt = resource_type;
 
     SOL_INF("Sending multicast packets to find resource with device_id %%s (rt=%%s)",
-        resource->device_id, resource->rt);
+        device_id, resource->rt);
     resource->find_timeout = sol_timeout_add(FIND_PERIOD_MS, find_timer, resource);
     if (resource->find_timeout) {
         /* Perform a find now instead of waiting FIND_PERIOD_MS the first time.  If the
@@ -1362,7 +1371,7 @@ client_resource_schedule_update(struct client_resource *resource)
         client_resource_perform_update, resource);
 }
 
-#define RETURN_ERROR(errcode) do { err = (errcode); goto out; } while(0)
+#define RETURN_ERROR(errcode) do { goto out; } while(0)
 
 %(generated_c_common)s
 %(generated_c_client)s

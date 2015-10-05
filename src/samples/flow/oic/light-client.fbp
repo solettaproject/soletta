@@ -39,6 +39,7 @@
 # or save it as sol-flow.json
 
 timer(timer:interval=1000)
-light(Light)
+light(Light) FOUND -> ENABLED timer
+light FOUND -> IN _(console:prefix="Light found ")
 
 timer OUT -> IN toggle(boolean/toggle) OUT -> IN_STATE light
