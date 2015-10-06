@@ -111,7 +111,7 @@
           {
             "data_type": "int",
             "default": 0,
-            "description": "Interval between packets.",
+            "description": "Interval between packets, in miliseconds.",
             "name": "interval"
           }
          ],
@@ -183,7 +183,7 @@
           {
             "data_type": "int",
             "default": 0,
-            "description": "Interval between packets.",
+            "description": "Interval between packets, in miliseconds.",
             "name": "interval"
           }
          ],
@@ -255,7 +255,7 @@
           {
             "data_type": "int",
             "default": 0,
-            "description": "Interval between packets.",
+            "description": "Interval between packets, in miliseconds.",
             "name": "interval"
           }
          ],
@@ -289,7 +289,7 @@
           {
             "data_type": "float",
             "default": 0,
-            "description": "Interval between packets.",
+            "description": "Interval between packets, in miliseconds.",
             "name": "interval"
           }
          ],
@@ -386,6 +386,46 @@
       ],
       "private_data_type": "blob_validator_data",
       "url": "http://solettaproject.org/doc/latest/components/blob-validator.html"
+    },
+    {
+      "category": "test",
+      "description": "Provides a predefined string sequence input for testing",
+      "methods": {
+        "close": "string_generator_close",
+        "open": "string_generator_open"
+      },
+      "name": "test/string-generator",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "String sequence to be generated, formatted as 'str1<separator>str2<separator>...', where separator is set on the separator option..",
+            "name": "sequence"
+          },
+          {
+            "data_type": "string",
+            "default": " ",
+            "description": "String sequence separator.",
+            "name": "separator"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Interval between packets, in miliseconds.",
+            "name": "interval"
+          }
+         ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Where the predefined strings sequence is outputted.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_generator_data",
+      "url": "http://solettaproject.org/doc/latest/components/string_generator.html"
     },
     {
       "category": "test",

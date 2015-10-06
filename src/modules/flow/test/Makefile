@@ -11,6 +11,7 @@ obj-test-$(FLOW_NODE_TYPE_TEST) += \
 	int-generator.o \
 	int-validator.o \
 	result.o \
+	string-generator.o \
 	string-validator.o \
 	test.o \
 	test.json
