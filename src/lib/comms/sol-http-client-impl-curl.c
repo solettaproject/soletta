@@ -597,6 +597,30 @@ fail:
 }
 
 static bool
+set_uuid_header(CURL *curl, struct sol_arena *arena,
+    struct curl_slist **headers)
+{
+    int r;
+    char *tmp, id[37], key_colon_value[512];
+
+    r = sol_util_uuid_gen(false, true, id);
+    SOL_INT_CHECK(r, < 0, false);
+
+    r = snprintf(key_colon_value, sizeof(key_colon_value),
+        "%s: %s", "X-Soletta-UUID", id);
+    if (r < 0 || r >= (int)sizeof(key_colon_value))
+        return false;
+
+    tmp = sol_arena_strdup(arena, key_colon_value);
+    SOL_NULL_CHECK(tmp, false);
+
+    if (!curl_slist_append(*headers, tmp))
+        return false;
+
+    return true;
+}
+
+static bool
 set_auth_basic(CURL *curl, struct sol_arena *arena,
     const struct sol_http_param_value *value)
 {
@@ -804,6 +828,11 @@ sol_http_client_request(enum sol_http_method method,
 
     if (!set_headers_from_params(curl, arena, params, &headers)) {
         SOL_WRN("Could not set custom headers from params");
+        goto invalid_option;
+    }
+
+    if (!set_uuid_header(curl, arena, &headers)) {
+        SOL_WRN("Could not set uuid header");
         goto invalid_option;
     }
 
