@@ -108,5 +108,33 @@ test_str_slice_str_eq(void)
 #undef TEST_NOT_EQUAL
 }
 
+DEFINE_TEST(test_str_slice_to_string);
+
+static void
+test_str_slice_to_string(void)
+{
+    unsigned int i;
+
+    struct sol_str_slice input[] = {
+        SOL_STR_SLICE_LITERAL("alfa"),
+        SOL_STR_SLICE_LITERAL("a a"),
+        SOL_STR_SLICE_LITERAL("This is supposed to be a big string, "
+            "spanning long enought that it could be considered a long string, "
+            "whose only purpose is to test if a long slice can yeld to a"
+            "correct string. But why not? Maybe allocation problems, however, "
+            "are allocations problems something to be concerned at? If we "
+            "have no more memory availble, a slice that can't be coverted "
+            "to raw C string, the infamous array of char, is not application "
+            "main concern. I think that it's long enought, but maybe not. "
+            "In hindsight, I believed that I've should used some lorem ipsum "
+            "generator. Maybe I'll do that. Or not. Not sure really."),
+        SOL_STR_SLICE_LITERAL("")
+    };
+
+    for (i = 0; i < ARRAY_SIZE(input); i++) {
+        char *s = sol_str_slice_to_string(input[i]);
+        ASSERT(sol_str_slice_str_eq(input[i], s));
+    }
+}
 
 TEST_MAIN();
