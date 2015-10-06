@@ -200,6 +200,8 @@ sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str
     return 0;
 }
 
+/* Extra room for the ending NUL-byte, necessary even when the buffer has
+ * SOL_BUFFER_FLAGS_NO_NUL_BYTE because vsnprintf always write the '\0'. */
 SOL_API int
 sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args)
 {
@@ -233,11 +235,11 @@ sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args)
             goto end;
 
         /* Extra room for the ending NUL-byte. */
-        if (new_size >= SIZE_MAX - nul_byte_size(buf)) {
+        if (new_size >= SIZE_MAX - 1) {
             r = -EOVERFLOW;
             goto end;
         }
-        r = sol_buffer_ensure(buf, new_size + nul_byte_size(buf));
+        r = sol_buffer_ensure(buf, new_size + 1);
         if (r < 0)
             goto end;
 
