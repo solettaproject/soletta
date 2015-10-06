@@ -342,3 +342,33 @@ sol_buffer_ensure_nul_byte(struct sol_buffer *buf)
 
     return 0;
 }
+
+SOL_API int
+sol_buffer_append_char(struct sol_buffer *buf, const char c)
+{
+    const size_t nul_size = nul_byte_size(buf);
+    char *p;
+    size_t new_size;
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    err = sol_util_size_add(buf->used, 1, &new_size);
+    if (err < 0)
+        return err;
+
+    /* Extra room for the ending NUL-byte. */
+    if (new_size >= SIZE_MAX - nul_size)
+        return -EOVERFLOW;
+    err = sol_buffer_ensure(buf, new_size + nul_size);
+    if (err < 0)
+        return err;
+
+    p = sol_buffer_at_end(buf);
+    *p = c;
+
+    if (nul_size)
+        *(++p) = '\0';
+    buf->used++;
+    return 0;
+}

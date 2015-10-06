@@ -411,3 +411,5 @@ sol_util_int32_clamp(int32_t start, int32_t end, int32_t value)
         return end;
     return value;
 }
+
+int sol_util_replace_str_if_changed(char **str, const char *new_str);

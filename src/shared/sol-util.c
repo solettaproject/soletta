@@ -329,3 +329,36 @@ err:
     sol_buffer_fini(&buf);
     return r;
 }
+
+SOL_API int
+sol_util_replace_str_if_changed(char **str, const char *new_str)
+{
+    if (!str)
+        return -EINVAL;
+
+    if (!new_str) {
+        if (*str)
+            free(*str);
+        *str = NULL;
+        return 0;
+    }
+
+    if (*str) {
+        size_t str_len = strlen(*str);
+        size_t new_str_len = strlen(new_str);
+
+        if (str_len == new_str_len && memcmp(*str, new_str, str_len) == 0) {
+            return 0;
+        } else if (str_len < new_str_len) {
+            char *tmp = realloc(*str, new_str_len + 1);
+            SOL_NULL_CHECK(tmp, -ENOMEM);
+            *str = tmp;
+        }
+        memcpy(*str, new_str, new_str_len + 1);
+    } else {
+        *str = strdup(new_str);
+        SOL_NULL_CHECK(*str, -ENOMEM);
+    }
+
+    return 0;
+}

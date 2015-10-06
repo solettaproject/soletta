@@ -192,6 +192,9 @@ sol_buffer_get_slice_at(const struct sol_buffer *buf, size_t pos)
     return SOL_STR_SLICE_STR(sol_buffer_at(buf,  pos), buf->used - pos);
 }
 
+/* Appends the 'c' into 'buf', reallocating if necessary. */
+int sol_buffer_append_char(struct sol_buffer *buf, const char c);
+
 /* Appends the 'slice' into 'buf', reallocating if necessary. */
 int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
 
