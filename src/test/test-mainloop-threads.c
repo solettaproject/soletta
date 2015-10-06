@@ -87,9 +87,9 @@ stop_all(void *data)
 static void
 ops_test_loop(void)
 {
-    struct sol_timeout *dt;
-    struct sol_idle *di;
-    struct sol_fd *df;
+    struct sol_timeout *dt = NULL;
+    struct sol_idle *di = NULL;
+    struct sol_fd *df = NULL;
     bool tv, fv;
     int fds[2], cnt;
 

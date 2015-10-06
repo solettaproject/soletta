@@ -98,7 +98,7 @@ comparison_func(struct irange_comparison_data *mdata, struct sol_flow_node *node
     int r;
 
     r = sol_flow_packet_get_irange_value(packet, &mdata->val[port]);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(r, < 0, false);
 
     mdata->val_initialized[port] = true;
     if (!(mdata->val_initialized[0] && mdata->val_initialized[1]))
