@@ -208,10 +208,16 @@ int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice s
 
 /* Set a slice at at position @a pos of @a buf. If @a pos plus the @a
  * slice's length is greater than the used portion of @a buf, it
- * ensures that @a buf has the resulting new lenght. @a pos can't
+ * ensures that @a buf has the resulting new length. @a pos can't
  * start after the buffer's used portion. The memory regions of @a
  * slice and @a buf may overlap. */
 int sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice);
+
+/* Set a char at at position @a pos of @a buf. If @a pos plus one is
+ * greater than the used portion of @a buf, it ensures that @a buf has
+ * the resulting new length. @a pos can't start after the buffer's
+ * used portion. */
+int sol_buffer_set_char_at(struct sol_buffer *buf, size_t pos, char c);
 
 /* Insert the 'slice' into 'buf' at position 'pos', reallocating if necessary.
  *

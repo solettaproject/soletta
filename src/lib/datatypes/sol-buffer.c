@@ -163,6 +163,35 @@ sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str
 }
 
 SOL_API int
+sol_buffer_set_char_at(struct sol_buffer *buf, size_t pos, char c)
+{
+    int err;
+    const size_t nul_size = nul_byte_size(buf);
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    if (buf->used < pos) {
+        return -EINVAL;
+    }
+
+    /* Extra room for the ending NUL-byte. */
+    if (1 >= SIZE_MAX - nul_size - pos)
+        return -EOVERFLOW;
+    err = sol_buffer_ensure(buf, pos + 1 + nul_size);
+    if (err < 0)
+        return err;
+
+    *((char *)buf->data + pos) = c;
+
+    if (pos + 1 >= buf->used) {
+        buf->used = pos + 1;
+        /* only terminate if we're growing */
+        ((char *)buf->data)[buf->used] = 0;
+    }
+
+    return 0;
+}
+
+SOL_API int
 sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice)
 {
     const size_t nul_size = nul_byte_size(buf);
