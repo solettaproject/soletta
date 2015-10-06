@@ -123,6 +123,14 @@
             "process": "reset_process"
           },
           "name": "RESET"
+        },
+        {
+          "data_type": "int",
+          "description": "Set accumulator value.",
+          "methods": {
+            "process": "set_process"
+          },
+          "name": "SET"
         }
       ],
       "methods": {
@@ -141,6 +149,12 @@
             },
             "description": "The initial value, range and step to be used in operations. Only positive step values are allowed.",
             "name": "setup_value"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "If true, a packet containing initial value will be sent during initialization",
+            "name": "send_initial_packet"
           }
         ],
         "version": 1
