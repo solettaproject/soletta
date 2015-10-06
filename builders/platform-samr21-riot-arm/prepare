@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# If we're not being called from test-builders script, then we must set
+# these variables.
+if [[ -z "$1" ]]; then
+    export SOLETTA_TARGET="https://github.com/solettaproject/soletta.git"
+    export SOLETTA_BRANCH="master"
+fi
+
 PREPARE_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
 source $PREPARE_DIR/../common/common-prepare.sh
 source $PREPARE_DIR/../common/common-arduino-prepare.sh

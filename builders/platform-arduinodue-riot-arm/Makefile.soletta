@@ -1,6 +1,6 @@
 PKG_NAME=soletta
-PKG_URL=https://github.com/solettaproject/soletta.git
-PKG_VERSION=master
+PKG_URL=$(SOLETTA_TARGET)
+PKG_VERSION=$(SOLETTA_BRANCH)
 PKG_DIR=$(CURDIR)/$(PKG_NAME)
 
 export PKG_CONFIG_PATH=
