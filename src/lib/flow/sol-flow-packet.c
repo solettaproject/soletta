@@ -377,9 +377,20 @@ sol_flow_packet_get_string(const struct sol_flow_packet *packet, const char **va
 SOL_API struct sol_flow_packet *
 sol_flow_packet_new_string_slice(struct sol_str_slice slice)
 {
-    char *str = strndupa(slice.data, slice.len);
+    const size_t threshold = sizeof(void *) * 64;
+    struct sol_flow_packet *pkt;
+    char *str;
 
-    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &str);
+    if (likely(slice.len < threshold)) {
+        str = strndupa(slice.data, slice.len);
+        return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &str);
+    }
+
+    str = strndup(slice.data, slice.len);
+    pkt = sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &str);
+    free(str);
+
+    return pkt;
 }
 
 SOL_API struct
