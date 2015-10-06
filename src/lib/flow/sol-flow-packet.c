@@ -377,9 +377,9 @@ sol_flow_packet_get_string(const struct sol_flow_packet *packet, const char **va
 SOL_API struct sol_flow_packet *
 sol_flow_packet_new_string_slice(struct sol_str_slice slice)
 {
-    char *str = strndupa(slice.data, slice.len);
+    char *str = strndup(slice.data, slice.len);
 
-    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_STRING, &str);
+    return sol_flow_packet_new_string_take(str);
 }
 
 SOL_API struct
