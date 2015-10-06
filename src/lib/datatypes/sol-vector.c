@@ -56,8 +56,8 @@ sol_vector_grow(struct sol_vector *v, uint16_t amount)
         return -EOVERFLOW;
 
     new_len = v->len + amount;
-    old_cap = align_power2(v->len);
-    new_cap = align_power2(new_len);
+    old_cap = align_power2_short_uint(v->len);
+    new_cap = align_power2_short_uint(new_len);
 
     if (new_cap != old_cap) {
         void *data;
@@ -118,8 +118,8 @@ sol_vector_shrink(struct sol_vector *v)
         return;
     }
 
-    old_cap = align_power2(v->len + 1);
-    new_cap = align_power2(v->len);
+    old_cap = align_power2_short_uint(v->len + 1U);
+    new_cap = align_power2_short_uint(v->len);
     if (new_cap == old_cap)
         return;
 

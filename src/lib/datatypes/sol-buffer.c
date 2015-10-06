@@ -77,7 +77,7 @@ sol_buffer_ensure(struct sol_buffer *buf, size_t min_size)
     if (buf->capacity >= min_size)
         return 0;
 
-    err = sol_buffer_resize(buf, align_power2(min_size + nul_byte_size(buf)));
+    err = sol_buffer_resize(buf, align_power2_size(min_size + nul_byte_size(buf)));
     if (err == -EPERM)
         return -ENOMEM;
     return err;

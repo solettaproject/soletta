@@ -47,6 +47,7 @@
 #include <sol-mainloop.h>
 #include <sol-log.h>
 #include <sol-vector.h>
+#include <sol-util.h>
 
 static gboolean
 _sol_glib_integration_gsource_prepare(GSource *source, gint *timeout)
@@ -252,18 +253,6 @@ _sol_glib_integration_source_release(struct _sol_glib_integration_source_data *m
     g_main_context_release(ctx);
 }
 
-static inline unsigned int
-_sol_glib_integration_align_power2(unsigned int u)
-{
-    unsigned int left_zeros;
-
-    if (u == 1)
-        return 1;
-    if ((left_zeros = __builtin_clz(u - 1)) < 1)
-        return 0;
-    return 1 << ((sizeof(u) * 8) - left_zeros);
-}
-
 static bool
 _sol_glib_integration_source_prepare(void *data)
 {
@@ -286,7 +275,7 @@ _sol_glib_integration_source_prepare(void *data)
 
         mdata->n_poll = g_main_context_query(ctx,
             mdata->max_prio, &mdata->timeout, mdata->fds, mdata->n_fds);
-        req_n_fds = _sol_glib_integration_align_power2(mdata->n_poll);
+        req_n_fds = align_power2_uint(mdata->n_poll);
 
         if (req_n_fds == mdata->n_fds)
             break;
