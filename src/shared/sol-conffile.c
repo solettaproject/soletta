@@ -408,37 +408,35 @@ _json_to_vector(struct sol_json_scanner scanner)
     const char *node_name = "name";
     const char *node_type = "type";
     const char *node_options = "options";
-    struct sol_json_token token, key, value, nodes, maps;
+    struct sol_json_token token, key, value, nodes = { 0 }, maps = { 0 };
     struct sol_json_scanner obj_scanner;
     enum sol_json_loop_reason reason;
-    bool found_nodes = false, found_maps = false;
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         if (sol_json_token_str_eq(&key, node_group, strlen(node_group))) {
-            found_nodes = true;
             nodes = value;
         } else if (sol_json_token_str_eq(&key, maps_group, strlen(maps_group))) {
-            found_maps = true;
             maps = value;
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid Json.");
+        SOL_DBG("Error: Invalid JSON");
         goto err;
     }
 
-    if (!found_nodes && !found_maps)
-        return -ENOKEY;
-
-    if (found_maps) {
+    if (maps.start) {
         if (!_parse_maps(maps)) {
             SOL_WRN("Could not parse memory map values");
             return -EINVAL;
         }
+        if (!nodes.start) {
+            /* Has maps, no nodes. */
+            return 0;
+        }
+    } else if (!nodes.start) {
+        /* No maps, no nodes. */
+        return -ENOKEY;
     }
-
-    if (!found_nodes)
-        return 0;
 
     sol_json_scanner_init_from_token(&obj_scanner, &nodes);
     SOL_JSON_SCANNER_ARRAY_LOOP (&obj_scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
