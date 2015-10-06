@@ -122,10 +122,6 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
 /* number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000 */
 #define NSEC_PER_USEC 1000ULL
 
-struct sol_uuid {
-    uint8_t bytes[16];
-};
-
 static inline int
 sol_util_int_compare(const int a, const int b)
 {

@@ -47,6 +47,10 @@
 #include "sol-random.h"
 #include "sol-str-slice.h"
 
+struct sol_uuid {
+    uint8_t bytes[16];
+};
+
 #if defined(HAVE_NEWLOCALE) && defined(HAVE_STRTOD_L)
 static locale_t c_locale;
 static void
