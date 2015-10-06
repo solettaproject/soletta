@@ -265,6 +265,47 @@ test_set_slice_at(void)
     sol_buffer_fini(&buf);
 }
 
+DEFINE_TEST(test_set_char_at);
+
+static void
+test_set_char_at(void)
+{
+    struct sol_buffer buf;
+    int err;
+
+    sol_buffer_init(&buf);
+    err = sol_buffer_set_char_at(&buf, 0, 'a');
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, 1);
+    ASSERT_STR_EQ(buf.data, "a");
+
+    err = sol_buffer_set_char_at(&buf, 0, 'b');
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, 1);
+    ASSERT_STR_EQ(buf.data, "b");
+
+    err = sol_buffer_set_char_at(&buf, 1, 'c');
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("bc"));
+    ASSERT_STR_EQ(buf.data, "bc");
+
+    err = sol_buffer_set_char_at(&buf, 0, 'a');
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("ac"));
+    ASSERT_STR_EQ(buf.data, "ac");
+
+    //growing
+    err = sol_buffer_set_char_at(&buf, 2, 'd');
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("acd"));
+    ASSERT_STR_EQ(buf.data, "acd");
+
+    err = sol_buffer_set_char_at(&buf, 222, 'e');
+    ASSERT_INT_EQ(err, -EINVAL);
+
+    sol_buffer_fini(&buf);
+}
+
 DEFINE_TEST(test_append_printf);
 
 static void
