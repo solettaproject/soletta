@@ -1270,18 +1270,6 @@ create_and_resolver_data_del(struct create_and_resolve_path_data *data)
     free(data);
 }
 
-static char *
-sol_slice_to_str(const struct sol_str_slice *slice)
-{
-    char *result = calloc(1, slice->len + 1);
-
-    SOL_NULL_CHECK(result, NULL);
-
-    memcpy(result, slice->data, slice->len);
-
-    return result;
-}
-
 /* This ifdef is here to avoid warnings by not having I2C support.
  * It'll probably be extended for other supported hardware */
 #ifdef USE_I2C
@@ -1326,10 +1314,12 @@ create_device_address(struct sol_str_slice *command, struct create_and_resolve_p
             goto end;
         }
 
-        rel_path = sol_slice_to_str(sol_vector_get(&instructions, REL_PATH_IDX));
+        rel_path = sol_str_slice_to_string(
+            *(const struct sol_str_slice *)sol_vector_get(&instructions, REL_PATH_IDX));
         SOL_NULL_CHECK_GOTO(rel_path, end);
 
-        dev_number_s = sol_slice_to_str(sol_vector_get(&instructions, DEV_NUMBER_IDX));
+        dev_number_s = sol_str_slice_to_string(
+            *(const struct sol_str_slice *)sol_vector_get(&instructions, DEV_NUMBER_IDX));
         SOL_NULL_CHECK_GOTO(dev_number_s, end);
 
         errno = 0;
@@ -1337,7 +1327,8 @@ create_device_address(struct sol_str_slice *command, struct create_and_resolve_p
         if (errno || *end_ptr != '\0')
             goto end;
 
-        dev_name = sol_slice_to_str(sol_vector_get(&instructions, DEV_NAME_IDX));
+        dev_name = sol_str_slice_to_string(
+            *(const struct sol_str_slice *)sol_vector_get(&instructions, DEV_NAME_IDX));
         SOL_NULL_CHECK_GOTO(dev_name, end);
 
         r = sol_i2c_create_device(rel_path, dev_name, dev_number,
@@ -1389,7 +1380,7 @@ create_or_resolve_device_address_dispatch(void *data)
                 return false;
             }
         } else {
-            char *command_s = sol_slice_to_str(command);
+            char *command_s = sol_str_slice_to_string(*command);
             if (command_s) {
                 r = resolve_device_address(command_s);
                 if (r > -1) {
