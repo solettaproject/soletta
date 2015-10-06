@@ -20,13 +20,13 @@ obj-libshared-$(PLATFORM_LINUX) += \
     sol-conffile.o \
     sol-file-reader.o \
     sol-lib-loader.o \
-    sol-util-linux.o \
+    sol-util-impl-linux.o \
     sol-util-file.o
 
 obj-libshared-$(PLATFORM_RIOTOS) += \
-    sol-util-riot.o
+    sol-util-impl-riot.o
 
 obj-libshared-$(PLATFORM_CONTIKI) += \
-    sol-util-contiki.o
+    sol-util-impl-contiki.o
 
 obj-libshared-y-extra-cflags += -fvisibility=default

@@ -25,42 +25,42 @@ obj-$(USE_STORAGE) += \
 obj-io-aio-$(USE_AIO) := \
     sol-aio-common.o
 obj-io-aio-$(PLATFORM_RIOTOS) += \
-    sol-aio-riot.o
+    sol-aio-impl-riot.o
 obj-io-aio-$(PLATFORM_LINUX) += \
-    sol-aio-linux.o
+    sol-aio-impl-linux.o
 
 obj-io-gpio-$(USE_GPIO) := \
     sol-gpio-common.o
 obj-io-gpio-$(PLATFORM_RIOTOS) += \
-    sol-gpio-riot.o
+    sol-gpio-impl-riot.o
 obj-io-gpio-$(PLATFORM_CONTIKI) += \
-    sol-gpio-contiki.o
+    sol-gpio-impl-contiki.o
 obj-io-gpio-$(PLATFORM_LINUX) += \
-    sol-gpio-linux.o
+    sol-gpio-impl-linux.o
 
 obj-io-pwm-$(USE_PWM) := \
     sol-pwm-common.o
 obj-io-pwm-$(PLATFORM_RIOTOS) += \
-    sol-pwm-riot.o
+    sol-pwm-impl-riot.o
 obj-io-pwm-$(PLATFORM_LINUX) += \
-    sol-pwm-linux.o
+    sol-pwm-impl-linux.o
 
 obj-io-i2c-$(USE_I2C) := \
     sol-i2c-common.o
 obj-io-i2c-$(PLATFORM_RIOTOS) += \
-    sol-i2c-riot.o
+    sol-i2c-impl-riot.o
 obj-io-i2c-$(PLATFORM_LINUX) += \
-    sol-i2c-linux.o
+    sol-i2c-impl-linux.o
 
 obj-io-spi-$(PLATFORM_RIOTOS) := \
-    sol-spi-riot.o
+    sol-spi-impl-riot.o
 obj-io-spi-$(PLATFORM_LINUX) := \
-    sol-spi-linux.o
+    sol-spi-impl-linux.o
 
 obj-io-uart-$(PLATFORM_RIOTOS) := \
-    sol-uart-riot.o
+    sol-uart-impl-riot.o
 obj-io-uart-$(PLATFORM_LINUX) := \
-    sol-uart-linux.o
+    sol-uart-impl-linux.o
 
 obj-io-iio-$(USE_IIO) := \
     sol-iio.o
