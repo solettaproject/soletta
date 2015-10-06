@@ -67,6 +67,7 @@ string_generator_open(
     struct string_generator_data *mdata = data;
     const struct sol_flow_node_type_test_string_generator_options *opts =
         (const struct sol_flow_node_type_test_string_generator_options *)options;
+
     sol_vector_init(&mdata->values, sizeof(struct sol_str_slice));
     if (opts->sequence == NULL || *opts->sequence == '\0') {
         SOL_ERR("Option 'sequence' is either NULL or empty.");

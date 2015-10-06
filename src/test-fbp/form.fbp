@@ -1,0 +1,160 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#advance items
+selector_00(form/selector:rows=3,columns=10)
+items_00(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_00 OUT -> ADD_ITEM selector_00
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> NEXT selector_00
+validator_00(test/string-validator:sequence="> * item1 |> * item1 \n    item2 |> * item1 \n    item2 \n    item3 |  * item1 \n>   item2 \n    item3 |  * item1 \n    item2 \n>   item3 ")
+selector_00 STRING -> IN validator_00 OUT -> RESULT _(test/result)
+
+#go backwards on items (circular selector)
+selector_01(form/selector:rows=3,columns=10,circular=true)
+items_01(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_01 OUT -> ADD_ITEM selector_01
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> PREVIOUS selector_01
+validator_01(test/string-validator:sequence="> * item1 |> * item1 \n    item2 |> * item1 \n    item2 \n    item3 |  * item1 \n    item2 \n>   item3 |  * item1 \n>   item2 \n    item3 ")
+selector_01 STRING -> IN validator_01 OUT -> RESULT _(test/result)
+
+#advance items and select
+selector_02(form/selector:rows=3,columns=10)
+items_02(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_02 OUT -> ADD_ITEM selector_02
+_(test/boolean-generator:sequence="T",interval=10) OUT -> NEXT selector_02
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT selector_02
+validator_02(test/string-validator:sequence="> * item1 |> * item1 \n    item2 |> * item1 \n    item2 \n    item3 |  * item1 \n>   item2 \n    item3 |    item1 \n> * item2 \n    item3 ")
+validator_items_02(test/string-validator:sequence="item2")
+and_02(boolean/and)
+selector_02 STRING -> IN validator_02 OUT -> IN[0] and_02
+selector_02 SELECTED -> IN validator_items_02 OUT -> IN[1] and_02
+and_02 OUT -> RESULT _(test/result)
+
+#advance items and select, one row only
+selector_03(form/selector:rows=1,columns=10)
+items_03(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_03 OUT -> ADD_ITEM selector_03
+_(test/boolean-generator:sequence="T",interval=10) OUT -> NEXT selector_03
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT selector_03
+validator_03(test/string-validator:sequence="* item1   |* item1   |* item1   |item2     |* item2   ")
+validator_items_03(test/string-validator:sequence="item2")
+and_03(boolean/and)
+selector_03 STRING -> IN validator_03 OUT -> IN[0] and_03
+selector_03 SELECTED -> IN validator_items_03 OUT -> IN[1] and_03
+and_03 OUT -> RESULT _(test/result)
+
+#advance items and select, with title
+selector_04(form/selector:rows=2,columns=10,format="{title}{value}",title="Title")
+items_04(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_04 OUT -> ADD_ITEM selector_04
+_(test/boolean-generator:sequence="T",interval=10) OUT -> NEXT selector_04
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT selector_04
+validator_04(test/string-validator:sequence="Title     \n* item1   |Title     \n* item1   |Title     \n* item1   |Title     \nitem2     |Title     \n* item2   ")
+validator_items_04(test/string-validator:sequence="item2")
+and_04(boolean/and)
+selector_04 STRING -> IN validator_04 OUT -> IN[0] and_04
+selector_04 SELECTED -> IN validator_items_04 OUT -> IN[1] and_04
+and_04 OUT -> RESULT _(test/result)
+
+#advance items and select, with title and footer
+selector_05(form/selector:rows=3,columns=10,format="{title}{value}footer",title="Title")
+items_05(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_05 OUT -> ADD_ITEM selector_05
+_(test/boolean-generator:sequence="T",interval=10) OUT -> NEXT selector_05
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT selector_05
+validator_05(test/string-validator:sequence="Title     \n* item1   \nfooter    |Title     \n* item1   \nfooter    |Title     \n* item1   \nfooter    |Title     \nitem2     \nfooter    |Title     \n* item2   \nfooter    ")
+validator_items_05(test/string-validator:sequence="item2")
+and_05(boolean/and)
+selector_05 STRING -> IN validator_05 OUT -> IN[0] and_05
+selector_05 SELECTED -> IN validator_items_05 OUT -> IN[1] and_05
+and_05 OUT -> RESULT _(test/result)
+
+#advance items and select, with title and footer, more rows
+selector_06(form/selector:rows=5,columns=10,format="{title}{value}footer",title="Title")
+items_06(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_06 OUT -> ADD_ITEM selector_06
+_(test/boolean-generator:sequence="T",interval=10) OUT -> NEXT selector_06
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT selector_06
+validator_06(test/string-validator:sequence="Title     \n> * item1 \nfooter    |Title     \n> * item1 \n    item2 \nfooter    |Title     \n> * item1 \n    item2 \n    item3 \nfooter    |Title     \n  * item1 \n>   item2 \n    item3 \nfooter    |Title     \n    item1 \n> * item2 \n    item3 \nfooter    ")
+validator_items_06(test/string-validator:sequence="item2")
+and_06(boolean/and)
+selector_06 STRING -> IN validator_06 OUT -> IN[0] and_06
+selector_06 SELECTED -> IN validator_items_06 OUT -> IN[1] and_06
+and_06 OUT -> RESULT _(test/result)
+
+#advance items and select, with title and footer, more rows, less columns
+selector_07(form/selector:rows=5,columns=5,format="{title}{value}footer",title="Title")
+items_07(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_07 OUT -> ADD_ITEM selector_07
+_(test/boolean-generator:sequence="T",interval=10) OUT -> NEXT selector_07
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT selector_07
+validator_07(test/string-validator:sequence="Title\n> * i\nfoote|Title\n> * i\n    i\nfoote|Title\n> * i\n    i\n    i\nfoote|Title\n  * i\n>   i\n    i\nfoote|Title\n    i\n> * i\n    i\nfoote")
+validator_items_07(test/string-validator:sequence="item2")
+and_07(boolean/and)
+selector_07 STRING -> IN validator_07 OUT -> IN[0] and_07
+selector_07 SELECTED -> IN validator_items_07 OUT -> IN[1] and_07
+and_07 OUT -> RESULT _(test/result)
+
+#advance items and select, with title, footer and intermediate strings
+selector_08(form/selector:rows=10,columns=10,format="pre\ntitle{title}inter\nvalue{value}footer\nother_footer",title="Title")
+items_08(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_08 OUT -> ADD_ITEM selector_08
+_(test/boolean-generator:sequence="T",interval=10) OUT -> NEXT selector_08
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT selector_08
+validator_08(test/string-validator:sequence="pre       \ntitle     \nTitle     \ninter     \nvalue     \n> * item1 \nfooter    \nother_foot|pre       \ntitle     \nTitle     \ninter     \nvalue     \n> * item1 \n    item2 \nfooter    \nother_foot|pre       \ntitle     \nTitle     \ninter     \nvalue     \n> * item1 \n    item2 \n    item3 \nfooter    \nother_foot|pre       \ntitle     \nTitle     \ninter     \nvalue     \n  * item1 \n>   item2 \n    item3 \nfooter    \nother_foot|pre       \ntitle     \nTitle     \ninter     \nvalue     \n    item1 \n> * item2 \n    item3 \nfooter    \nother_foot")
+validator_items_08(test/string-validator:sequence="item2")
+and_08(boolean/and)
+selector_08 STRING -> IN validator_08 OUT -> IN[0] and_08
+selector_08 SELECTED -> IN validator_items_08 OUT -> IN[1] and_08
+and_08 OUT -> RESULT _(test/result)
+
+#advance items, while disabled
+selector_09(form/selector:rows=3,columns=10)
+_(constant/boolean:value=false) OUT -> ENABLED selector_09
+items_09(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_09 OUT -> ADD_ITEM selector_09
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> NEXT selector_09
+validator_09(test/string-validator:sequence="> * item1 |> * item1 \n    item2 |> * item1 \n    item2 \n    item3 ")
+selector_09 STRING -> IN validator_09 OUT -> RESULT _(test/result)
+
+#advance items and select, one row only, *with title*
+selector_10(form/selector:rows=1,columns=10,format="{title}{value}",title="Title")
+items_10(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_10 OUT -> ADD_ITEM selector_10
+_(test/boolean-generator:sequence="T",interval=10) OUT -> NEXT selector_10
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT selector_10
+validator_10(test/string-validator:sequence="Title * it|Title * it|Title * it|Title item|Title * it")
+validator_items_10(test/string-validator:sequence="item2")
+and_10(boolean/and)
+selector_10 STRING -> IN validator_10 OUT -> IN[0] and_10
+selector_10 SELECTED -> IN validator_items_10 OUT -> IN[1] and_10
+and_10 OUT -> RESULT _(test/result)
+
+## TEST-SKIP-VALGRIND The timing we're relying on for the string sequence is blown away by Valgrind, so skip it.
