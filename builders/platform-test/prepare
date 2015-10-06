@@ -1,0 +1,27 @@
+#!/bin/bash
+
+PREPARE_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
+source $PREPARE_DIR/../common/common-prepare.sh
+
+pushd $COMPILE_DIR
+
+git clone --dissociate --reference $COMPILE_DIR/soletta-host https://github.com/solettaproject/soletta.git soletta-target
+
+pushd soletta-target
+
+make alldefconfig
+
+make -j $PARALLEL_JOBS
+
+if [ $? -ne 0 ]; then
+    exit 1
+fi
+
+cp \
+   $PREPARE_DIR/compile \
+   $COMPILE_DIR
+
+# Make it easy to develop common-compile.sh
+ln -s $PREPARE_DIR/../common/common-compile.sh $COMPILE_DIR
+
+chmod +x $COMPILE_DIR/compile

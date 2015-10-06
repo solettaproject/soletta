@@ -1,0 +1,19 @@
+{
+ "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+ "nodetypes": [
+  {
+   "name": "TIMER",
+   "options": {
+    "interval": 3000
+   },
+   "type": "timer"
+  },
+  {
+   "name": "WRITER",
+   "options": {
+    "prefix": "blink: "
+   },
+   "type": "console"
+  }
+ ]
+}
