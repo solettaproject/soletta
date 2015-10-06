@@ -126,19 +126,22 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
     CURLcode r;
     long response_code;
     char *tmp;
+    size_t size = 0;
+    void *buffer;
 
     if (sol_ptr_vector_remove(&global.connections, connection) < 0)
         return;
+
+    buffer = sol_buffer_steal(&connection->buffer, &size);
+    response = &(struct sol_http_response) {
+        .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+        .content = SOL_BUFFER_INIT_CONST(buffer, size)
+    };
 
     if (connection->error) {
         response = NULL;
         goto out;
     }
-
-    response = &(struct sol_http_response) {
-        .api_version = SOL_HTTP_RESPONSE_API_VERSION,
-        .content = connection->buffer
-    };
 
     r = curl_easy_getinfo(connection->curl, CURLINFO_CONTENT_TYPE, &tmp);
     if (r != CURLE_OK) {
@@ -164,6 +167,7 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
 
 out:
     connection->cb((void *)connection->data, connection, response);
+    sol_buffer_fini(&response->content);
     destroy_connection(connection);
 }
 
