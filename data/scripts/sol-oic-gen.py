@@ -921,7 +921,6 @@ def master_c_as_string(generated, oic_gen_c, oic_gen_h):
 #include "sol-oic-server.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
 
 #define DEFAULT_UDP_PORT 5683
 #define MULTICAST_ADDRESS_IPv4 "224.0.1.187"
@@ -929,6 +928,9 @@ def master_c_as_string(generated, oic_gen_c, oic_gen_h):
 #define MULTICAST_ADDRESS_IPv6_SITE "ff05::fd"
 #define FIND_PERIOD_MS 5000
 #define UPDATE_TIMEOUT_MS 50
+
+#define streq(a, b) (strcmp((a), (b)) == 0)
+#define likely(x)   __builtin_expect(!!(x), 1)
 
 struct client_resource;
 struct server_resource;
