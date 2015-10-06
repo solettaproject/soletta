@@ -1,0 +1,6 @@
+INPORT=entry.IN:IN
+
+entry(switcher/boolean)
+
+entry OUT[0] -> IN led(gpio/writer:pin=15)
+entry OUT[0] -> IN _(console:prefix="hello curie ")
