@@ -360,3 +360,120 @@ sol_util_replace_str_if_changed(char **str, const char *new_str)
 
     return 0;
 }
+
+SOL_API ssize_t
+sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65])
+{
+    char *output;
+    const uint8_t *input;
+    size_t req_len;
+    size_t i, o;
+    uint8_t c;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(slice.data, -EINVAL);
+
+    if (slice.len == 0)
+        return 0;
+
+    req_len = sol_util_base64_calculate_encoded_len(slice, base64_map);
+    SOL_INT_CHECK(buflen, < req_len, -ENOMEM);
+
+    input = (const uint8_t *)slice.data;
+    output = buf;
+
+    for (i = 0, o = 0; i <= slice.len - 3; i += 3) {
+        c = (input[i] & (((1 << 6) - 1) << 2)) >> 2;
+        output[o++] = base64_map[c];
+
+        c = (input[i] & ((1 << 2) - 1)) << 4;
+        c |= (input[i + 1] & (((1 << 4) - 1) << 4)) >> 4;
+        output[o++] = base64_map[c];
+
+        c = (input[i + 1] & ((1 << 4) - 1)) << 2;
+        c |= (input[i + 2] & (((1 << 2) - 1) << 6)) >> 6;
+        output[o++] = base64_map[c];
+
+        c = input[i + 2] & ((1 << 6) - 1);
+        output[o++] = base64_map[c];
+    }
+
+    if (i + 1 == slice.len) {
+        c = (input[i] & (((1 << 6) - 1) << 2)) >> 2;
+        output[o++] = base64_map[c];
+
+        c = (input[i] & ((1 << 2) - 1)) << 4;
+        output[o++] = base64_map[c];
+
+        output[o++] = base64_map[64];
+        output[o++] = base64_map[64];
+    } else if (i + 2 == slice.len) {
+        c = (input[i] & (((1 << 6) - 1) << 2)) >> 2;
+        output[o++] = base64_map[c];
+
+        c = (input[i] & ((1 << 2) - 1)) << 4;
+        c |= (input[i + 1] & (((1 << 4) - 1) << 4)) >> 4;
+        output[o++] = base64_map[c];
+
+        c = (input[i + 1] & ((1 << 4) - 1)) << 2;
+        output[o++] = base64_map[c];
+
+        output[o++] = base64_map[64];
+    }
+
+    return o;
+}
+
+static inline uint8_t
+base64_index_of(char c, const char base64_map[static 65])
+{
+    const char *p = memchr(base64_map, c, 65);
+
+    if (unlikely(!p))
+        return UINT8_MAX;
+    return p - base64_map;
+}
+
+SOL_API ssize_t
+sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65])
+{
+    uint8_t *output;
+    const char *input;
+    size_t i, o, req_len;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(slice.data, -EINVAL);
+
+    if (slice.len == 0)
+        return 0;
+
+    req_len = sol_util_base64_calculate_decoded_len(slice, base64_map);
+    SOL_INT_CHECK(buflen, < req_len, -ENOMEM);
+
+    input = slice.data;
+    output = buf;
+
+    for (i = 0, o = 0; i < slice.len; i += 4) {
+        uint8_t _6bits[4];
+        uint8_t n;
+
+        /* precomputing reverse table would make lookup faster, but would need
+         * a setup that is potentially longer than the time we use during lookup
+         * as well as the need to allocate memory for the reverse table.
+         */
+        for (n = 0; n < 4; n++) {
+            _6bits[n] = base64_index_of(input[i + n], base64_map);
+            SOL_INT_CHECK(_6bits[n], == UINT8_MAX, -EINVAL);
+        }
+
+        output[o++] = (_6bits[0] << 2) | ((_6bits[1] & (((1 << 4) - 1) << 4)) >> 4);
+        if (_6bits[2] != 64) {
+            output[o++] = ((_6bits[1] & ((1 << 4) - 1)) << 4) | ((_6bits[2] & (((1 << 4) - 1) << 2)) >> 2);
+            if (_6bits[3] != 64) {
+                output[o++] = ((_6bits[2] & ((1 << 2) - 1)) << 6) | _6bits[3];
+            }
+        }
+    }
+
+    return o;
+}
