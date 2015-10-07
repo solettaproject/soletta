@@ -299,6 +299,12 @@ def packet_type_from_data_type(typename):
         return typename.split(':', 1)[1]
     return data_type_to_packet_type_map.get(typename, typename)
 
+def is_composed(typename):
+    return typename.startswith("composed:")
+
+def get_composed_types_with_underscore(types):
+    return types[len("composed:"):].replace(",", "_")
+
 def port_name_and_size(orig_name):
     m = re.match(r"([A-Z0-9_]+)(?:\[([0-9]+)\])?", orig_name)
     portname, size = m.groups('0')
@@ -540,7 +546,7 @@ struct %(name_c)s_options {
                     outfile.write("#define %s__IN__%s_LAST (%d)\n" % (
                         data["NAME_C"], c_clean(pname).upper(),
                         i + port_number_offset))
-            if o["data_type"].startswith("composed:"):
+            if is_composed(o["data_type"]):
                 generate_composed_type_get_signature(outfile, o["data_type"], data["name_c"])
         outfile.write("#define %s__IN_LAST (%d)\n" % (
             data["NAME_C"], i + port_number_offset))
@@ -563,7 +569,7 @@ struct %(name_c)s_options {
                     outfile.write("#define %s__OUT__%s_LAST (%d)\n" % (
                         data["NAME_C"], c_clean(pname).upper(),
                         i + port_number_offset))
-            if o["data_type"].startswith("composed:"):
+            if is_composed(o["data_type"]):
                 generate_composed_type_get_signature(outfile, o["data_type"], data["name_c"])
         outfile.write("#define %s__OUT_LAST (%d)\n" % (
             data["NAME_C"], i + port_number_offset))
@@ -819,8 +825,8 @@ static void
         outfile.write("    if (%s.packet_type == NULL) {\n" % (all_ports_names[0]))
 
         for port, d_type in zip(all_ports_names, all_ports_types):
-            if d_type.startswith("composed:"):
-                packet_type = "%s_get_composed_%s_packet_type()" % (data["name_c"] , d_type.split(":", 1)[1].replace(",", "_"))
+            if is_composed(d_type):
+                packet_type = "%s_get_composed_%s_packet_type()" % (data["name_c"] , get_composed_types_with_underscore(d_type))
             else:
                 packet_type = packet_type_from_data_type(d_type)
             outfile.write("        %s.packet_type = %s;\n"  % (port, packet_type))
