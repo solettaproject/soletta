@@ -221,6 +221,99 @@ int sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol
  */
 int sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice);
 
+
+// TODO: move this to some other file? where
+/**
+ * The default base 64 map to use. The last byte (position 64) is the
+ * padding character.
+ */
+extern const char SOL_BASE64_MAP[65];
+
+/**
+ * Insert the 'slice' into 'buf' at position 'pos' encoded as base64 using the given map.
+ *
+ * @param buf the already-initialized buffer to append the encoded
+ *        slice.
+ * @param pos the position in bytes from 0 up to @c buf->used. If pos
+ *        == buf->end, then the behavior is the same as
+ *        sol_buffer_append_as_base64().
+ * @param slice the byte string to encode, may contain null bytes
+ *        @c(\0), it will be encoded up the @c slice.len.
+ * @param base64_map the map to use, the default is available as
+ *        #SOL_BASE64_MAP. Note that the last char in the map (position 64)
+ *        is used as the padding char.
+ *
+ * @return 0 on success, -errno on failure.
+ *
+ * @see sol_buffer_append_as_base64()
+ * @see sol_buffer_insert_from_base64()
+ * @see sol_buffer_append_from_base64()
+ */
+int sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[static 65]);
+
+/**
+ * Append the 'slice' at the end of 'buf' encoded as base64 using the given map.
+ *
+ * See https://en.wikipedia.org/wiki/Base64
+ *
+ * @param buf the already-initialized buffer to append the encoded
+ *        slice.
+ * @param slice the byte string to encode, may contain null bytes
+ *        @c(\0), it will be encoded up the @c slice.len.
+ * @param base64_map the map to use, the default is available as
+ *        #SOL_BASE64_MAP. Note that the last char in the map (position 64)
+ *        is used as the padding char.
+ * @return 0 on success, -errno on failure.
+ *
+ * @see sol_buffer_insert_as_base64()
+ * @see sol_buffer_insert_from_base64()
+ * @see sol_buffer_append_from_base64()
+ */
+int sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[static 65]);
+
+/**
+ * Insert the 'slice' into 'buf' at position 'pos' decoded from base64 using the given map.
+ *
+ * @param buf the already-initialized buffer to append the decoded
+ *        slice.
+ * @param pos the position in bytes from 0 up to @c buf->used. If pos
+ *        == buf->end, then the behavior is the same as
+ *        sol_buffer_append_from_base64().
+ * @param slice the byte string to decode, may contain null bytes
+ *        @c(\0), it will be decoded up the @c slice.len.
+ * @param base64_map the map to use, the default is available as
+ *        #SOL_BASE64_MAP. Note that the last char in the map (position 64)
+ *        is used as the padding char.
+ *
+ * @return 0 on success, -errno on failure.
+ *
+ * @see sol_buffer_insert_as_base64()
+ * @see sol_buffer_append_as_base64()
+ * @see sol_buffer_append_from_base64()
+ */
+int sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[static 65]);
+
+/**
+ * Append the 'slice' at the end of 'buf' decoded from base64 using the given map.
+ *
+ * See https://en.wikipedia.org/wiki/Base64
+ *
+ * @param buf the already-initialized buffer to append the decoded
+ *        slice.
+ * @param slice the byte string to decode, may contain null bytes
+ *        @c(\0), it will be decoded up the @c slice.len.
+ * @param base64_map the map to use, the default is available as
+ *        #SOL_BASE64_MAP. Note that the last char in the map (position 64)
+ *        is used as the padding char.
+ * @return 0 on success, -errno on failure.
+ *
+ * @see sol_buffer_insert_as_base64()
+ * @see sol_buffer_append_as_base64()
+ * @see sol_buffer_insert_from_base64()
+ */
+int sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[static 65]);
+
+
 /* append the formatted string to buffer, including trailing \0 */
 int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args);
 static inline int sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
