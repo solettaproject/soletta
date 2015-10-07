@@ -497,4 +497,77 @@ float_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
     return sol_flow_packet_get_drange(packet, &mdata->value.d);
 }
 
+/* ---------------------------  static files ----------------------------------------- */
+
+static int
+static_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_server_static_options *opts =
+        (struct sol_flow_node_type_http_server_static_options *)options;
+
+    if (!server) {
+        server = sol_http_server_new(HTTP_SERVER_PORT);
+        SOL_NULL_CHECK(server, -1);
+    }
+    init_count++;
+
+    mdata->path = strdup(opts->path);
+    SOL_NULL_CHECK_GOTO(mdata->path, err);
+
+    mdata->value.b = opts->start;
+
+    if (opts->start)
+        return sol_http_server_add_dir(server, mdata->path);
+
+    return 0;
+
+err:
+    init_count--;
+    if (!init_count) {
+        sol_http_server_del(server);
+        server = NULL;
+    }
+    return -1;
+}
+
+static void
+static_close(struct sol_flow_node *node, void *data)
+{
+    struct http_data *mdata = data;
+
+    if (mdata->value.b)
+        sol_http_server_remove_dir(server, mdata->path);
+
+    init_count--;
+    if (!init_count) {
+        sol_http_server_del(server);
+        server = NULL;
+    }
+
+    free(mdata->path);
+}
+
+
+static int
+static_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    bool val;
+    struct http_data *mdata = data;
+
+    r = sol_flow_packet_get_boolean(packet, &val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (mdata->value.b == val)
+        return 0;
+
+    mdata->value.b = val;
+    if (mdata->value.b)
+        return sol_http_server_add_dir(server, mdata->path);
+    else
+        return sol_http_server_remove_dir(server, mdata->path);
+}
+
 #include "http-server-gen.c"
