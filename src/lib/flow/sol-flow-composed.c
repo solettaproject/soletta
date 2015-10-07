@@ -162,6 +162,10 @@ get_packet_type(const char *type)
         return SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
     if (!strcmp(type, "error"))
         return SOL_FLOW_PACKET_TYPE_ERROR;
+    if (!strcmp(type, "json-object"))
+        return SOL_FLOW_PACKET_TYPE_JSON_OBJECT;
+    if (!strcmp(type, "json-array"))
+        return SOL_FLOW_PACKET_TYPE_JSON_ARRAY;
     return NULL;
 }
 
