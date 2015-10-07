@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # This file is part of the Soletta Project
 #
 # Copyright (C) 2015 Intel Corporation. All rights reserved.
@@ -28,58 +30,51 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-if [ -z "$PREPARE_DIR" ]; then
-    echo "Prepare script need to set PREPARE_DIR before including ${BASH_SOURCE[0]}"
-    exit 1
-fi
-
-PLATFORM_NAME=$(echo "$(basename $PREPARE_DIR)" | sed -e 's/platform-//')
-COMPILE_DIR=$PREPARE_DIR/../out/platform-$PLATFORM_NAME
-
-if [ -n "$PARALLEL_JOBS" ]; then
-    PARALLEL_JOBS=8
-fi
-
-trap '
-    ret=$?;
-    set +e;
-    if [[ $ret -ne 0 ]]; then
-	echo FAILED TO PREPARE >&2
-    fi
-    exit $ret;
-    ' EXIT
-
 trap 'exit 1;' SIGINT
 
-rm -rf $COMPILE_DIR
-mkdir -p $COMPILE_DIR
-cd $COMPILE_DIR
+usage() {
+    echo "
+Usage:  ./$(basename $0) [OPTIONS]
+
+OPTIONS
+     -t             soletta target repo.
+     -b             soletta target branch.
+     -h             soletta host repo.
+     -r             soletta host branch.
+     -p             show this help.
+
+     Host and target repos default to this soletta repo, e.g. ../, while
+     host and target branches default to the current checked out branch.
+" 1>&$1
+}
+
+while getopts "t:b:h:r:p" o; do
+    case "${o}" in
+        t)
+            export SOLETTA_TARGET_REPO="$OPTARG";;
+        b)
+            export SOLETTA_TARGET_BRANCH="$OPTARG";;
+        h)
+            export SOLETTA_HOST_REPO="$OPTARG";;
+        r)
+            export SOLETTA_HOST_BRANCH="$OPTARG";;
+        p)
+            usage 1; exit 0;;
+        \?)
+            usage 2; exit 1;;
+    esac
+done
 
 if [[ -z "$SOLETTA_TARGET_REPO" ]]; then
-    export SOLETTA_TARGET_REPO="https://github.com/solettaproject/soletta.git"
-    export SOLETTA_TARGET_BRANCH="master"
+    export SOLETTA_TARGET_REPO="${PWD}/.."
 fi
 
 if [[ -z "$SOLETTA_HOST_REPO" ]]; then
-    export SOLETTA_HOST_REPO="https://github.com/solettaproject/soletta.git"
-    export SOLETTA_HOST_BRANCH="master"
+    export SOLETTA_HOST_REPO="${PWD}/.."
 fi
 
-git clone "$SOLETTA_HOST_REPO" soletta-host
-if [ $? -ne 0 ]; then
-    exit 1
-fi
-
-pushd soletta-host
-
-make alldefconfig
-if [ $? -ne 0 ]; then
-    exit 1
-fi
-
-make -j $PARALLEL_JOBS build/soletta_sysroot/usr/bin/sol-fbp-generator
-if [ $? -ne 0 ]; then
-    exit 1
-fi
-
-popd
+for dir in */; do
+    if [[ $dir =~ platform-* ]]; then
+        $dir/prepare
+    fi
+done
