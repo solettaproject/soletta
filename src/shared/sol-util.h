@@ -245,6 +245,25 @@ align_power2_short_uint(unsigned short u)
         pow2__aligned; \
     })
 
+/* These two macros will generate shadowing warnings if the same kind
+ * is nested, but the warnings on type mismatch are a fair benefit.
+ * Use temporary variables to address nested call cases. */
+#define sol_min(x, y) \
+    ({ \
+        typeof(x)_min1 = (x); \
+        typeof(y)_min2 = (y); \
+        (void)(&_min1 == &_min2); \
+        _min1 < _min2 ? _min1 : _min2; \
+    })
+
+#define sol_max(x, y) \
+    ({ \
+        typeof(x)_max1 = (x); \
+        typeof(y)_max2 = (y); \
+        (void)(&_max1 == &_max2); \
+        _max1 > _max2 ? _max1 : _max2; \
+    })
+
 /**
  * Return a list of the words in a given string slice, using a given
  * delimiter string. If @a maxsplit is given, at most that number of

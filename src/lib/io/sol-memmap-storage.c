@@ -47,12 +47,11 @@
 #include "sol-util.h"
 #include "sol-util-file.h"
 #include "sol-vector.h"
+#include "sol-util.h"
 
 #ifdef USE_I2C
 #include <sol-i2c.h>
 #endif
-
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 #define REL_PATH_IDX 2
 #define DEV_NUMBER_IDX 3
@@ -182,7 +181,7 @@ sol_memmap_write_raw_do(const char *path, const struct sol_memmap_entry *entry, 
         value |= (old_value & ~mask);
         fwrite(&value, entry->size, 1, file);
     } else {
-        fwrite(buffer->data, MIN(entry->size, buffer->used), 1, file);
+        fwrite(buffer->data, sol_min(entry->size, buffer->used), 1, file);
     }
 
     if (ferror(file)) {
