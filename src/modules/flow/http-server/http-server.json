@@ -232,6 +232,44 @@
       ],
       "private_data_type": "http_data",
       "url": "http://solettaproject.org/doc/latest/node_types/http-server/float.html"
+    },
+    {
+      "category": "output/network",
+      "description": "HTTP Server for static files",
+      "methods": {
+        "close": "static_close",
+        "open": "static_open"
+      },
+      "name": "http-server/static",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The path where the server will look for the files",
+            "name": "path"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "If the files will be served as soon as the node opens",
+            "name": "start"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Enables or disables serve files from the path set",
+          "methods": {
+            "process": "static_process"
+          },
+          "name": "ENABLED",
+          "required": false
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-server/float.html"
     }
   ]
 }
