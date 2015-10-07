@@ -413,3 +413,75 @@ sol_util_int32_clamp(int32_t start, int32_t end, int32_t value)
 }
 
 int sol_util_replace_str_if_changed(char **str, const char *new_str);
+
+/**
+ * Encode the binary slice to base64 using the given map.
+ *
+ * https://en.wikipedia.org/wiki/Base64
+ *
+ * @note @b no trailing null '\0' is added!
+ *
+ * @param buf a buffer of size @a buflen that is big enough to hold
+ *        the encoded string.
+ * @param buflen the number of bytes available in buffer. Must be
+ *        large enough to contain the encoded slice, that is:
+ *        (slice.len / 3 + 1) * 4
+ * @param slice the slice to encode, it may contain null-bytes (\0),
+ *        the whole size of the slice will be used (slice.len).
+ * @param base64_map the map to use. The last char is used as the
+ *        padding character if slice length is not multiple of 3 bytes.
+ *
+ * @return the number of bytes written or -errno if failed.
+ */
+ssize_t sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65]);
+
+/**
+ * Decode the binary slice from base64 using the given map.
+ *
+ * https://en.wikipedia.org/wiki/Base64
+ *
+ * @note @b no trailing null '\0' is added!
+ *
+ * @param buf a buffer of size @a buflen that is big enough to hold
+ *        the decoded string.
+ * @param buflen the number of bytes available in buffer. Must be
+ *        large enough to contain the decoded slice, that is:
+ *        (slice.len / 4) * 3
+ * @param slice the slice to encode, it may contain null-bytes (\0),
+ *        the whole size of the slice will be used (slice.len).
+ * @param base64_map the map to use. The last char is used as the
+ *        padding character if slice length is not multiple of 3 bytes.
+ *
+ * @return the number of bytes written or -errno if failed.
+ */
+ssize_t sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65]);
+
+static inline ssize_t
+sol_util_base64_calculate_encoded_len(const struct sol_str_slice slice, const char base64_map[static 65])
+{
+    ssize_t req_len = slice.len / 3;
+    int err;
+
+    if (slice.len % 3 != 0)
+        req_len++;
+    err = sol_util_ssize_mul(req_len, 4, &req_len);
+    if (err < 0)
+        return err;
+    return req_len;
+}
+
+static inline ssize_t
+sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const char base64_map[static 65])
+{
+    size_t req_len = (slice.len / 4) * 3;
+    size_t i;
+
+    for (i = slice.len; i > 0; i--) {
+        if (slice.data[i - 1] != base64_map[64])
+            break;
+        req_len--;
+    }
+    if (req_len > SSIZE_MAX)
+        return -EOVERFLOW;
+    return req_len;
+}

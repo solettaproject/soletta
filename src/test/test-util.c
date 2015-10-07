@@ -301,5 +301,71 @@ test_strtodn(void)
     }
 }
 
+DEFINE_TEST(test_base64_encode);
+
+static void
+test_base64_encode(void)
+{
+    const char base64_map[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    const char instr[] = "This is a message that is multiple of 3 chars";
+    const char *expectstrs[] = {
+        "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYXJz",
+        "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYXI=",
+        "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYQ==",
+        "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNo"
+    };
+    struct sol_str_slice slice;
+    char outstr[(sizeof(instr) / 3 + 1) * 4 + 1];
+    size_t r, i;
+
+    slice = sol_str_slice_from_str(instr);
+
+    for (i = 0; i < ARRAY_SIZE(expectstrs); i++) {
+        struct sol_str_slice exp = sol_str_slice_from_str(expectstrs[i]);
+
+        memset(outstr, 0xff, sizeof(outstr));
+        r = sol_util_base64_encode(outstr, sizeof(outstr), slice, base64_map);
+        ASSERT_INT_EQ(r, exp.len);
+        ASSERT_INT_EQ(outstr[r], (char)0xff);
+        outstr[r] = '\0';
+        ASSERT_STR_EQ(outstr, exp.data);
+
+        slice.len--;
+    }
+}
+
+DEFINE_TEST(test_base64_decode);
+
+static void
+test_base64_decode(void)
+{
+    const char base64_map[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    char expstr[] = "This is a message that is multiple of 3 chars";
+    const char *instrs[] = {
+        "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYXJz",
+        "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYXI=",
+        "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYQ==",
+        "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNo"
+    };
+    struct sol_str_slice exp;
+    char outstr[sizeof(expstr)];
+    size_t r, i;
+
+    exp = sol_str_slice_from_str(expstr);
+
+    for (i = 0; i < ARRAY_SIZE(instrs); i++) {
+        struct sol_str_slice slice = sol_str_slice_from_str(instrs[i]);
+
+        memset(outstr, 0xff, sizeof(outstr));
+        r = sol_util_base64_decode(outstr, sizeof(outstr), slice, base64_map);
+        ASSERT_INT_EQ(r, exp.len);
+        ASSERT_INT_EQ(outstr[r], (char)0xff);
+        outstr[r] = '\0';
+        ASSERT_STR_EQ(outstr, exp.data);
+
+        exp.len--;
+        expstr[exp.len] = '\0';
+    }
+}
 
 TEST_MAIN();
