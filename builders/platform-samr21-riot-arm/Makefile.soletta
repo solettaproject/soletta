@@ -1,0 +1,43 @@
+PKG_NAME=soletta
+PKG_URL=$(SOLETTA_TARGET_REPO)
+PKG_VERSION=$(SOLETTA_TARGET_BRANCH)
+PKG_DIR=$(CURDIR)/$(PKG_NAME)
+
+export PKG_CONFIG_PATH=
+export PKG_CONFIG_LIBDIR=/dev/null
+
+export CFLAGS += $(INCLUDES)
+export LDFLAGS += $(LINKFLAGS)
+export TOOLCHAIN_PREFIX=$(PREFIX)
+
+.PHONY: all clean prepare
+
+LIBSOLETTA_ARCHIVE=$(PKG_DIR)/build/soletta_sysroot/usr/lib/libsoletta.a
+
+all: $(LIBSOLETTA_ARCHIVE)
+	cp $(LIBSOLETTA_ARCHIVE) $(BINDIR)/libsoletta.a
+
+$(LIBSOLETTA_ARCHIVE): $(PKG_DIR)/.git/config
+	"$(MAKE)" -C $(PKG_DIR) alldefconfig
+	sed -i 's/^USE_AIO=y/USE_AIO=n/' $(PKG_DIR)/.config
+	"$(MAKE)" -C $(PKG_DIR) oldconfig
+	"$(MAKE)" -C $(PKG_DIR)
+
+$(PKG_DIR)/.git/config:
+	test -d "$(PKG_DIR)" || git clone "$(PKG_URL)" "$(PKG_DIR)"; \
+		cd "$(PKG_DIR)" && git checkout -f "$(PKG_VERSION)"
+
+clean::
+	@echo "Cleaning up soletta package..."
+	@cd "$(PKG_DIR)" 2> /dev/null > /dev/null && \
+		git clean -x -f && \
+		git am --abort && \
+		git reset --hard "$(PKG_VERSION)" && \
+		$(MAKE) patch || true
+
+
+distclean::
+	rm -rf "$(PKG_DIR)"
+
+Makefile.include:
+	@true
