@@ -93,10 +93,24 @@ struct fbp_data {
     struct type_store *store;
     char *filename;
     char *name;
+    char *exported_options_symbol;
     struct sol_fbp_graph graph;
     struct sol_vector declared_fbp_types;
     struct sol_vector declared_meta_types;
+    struct sol_vector exported_options;
     int id;
+};
+
+struct exported_option_description {
+    struct option_description *description;
+    struct sol_str_slice node_option;
+};
+
+struct exported_option {
+    int node;
+    struct sol_fbp_node *node_ptr;
+    struct sol_str_slice node_options_symbol;
+    struct sol_vector options;
 };
 
 struct declared_fbp_type {
@@ -129,6 +143,20 @@ static struct port_description error_port = {
     .data_type = (char *)"error",
     .base_port_idx = SOL_FLOW_NODE_PORT_ERROR,
 };
+
+static struct exported_option *
+get_exported_option_description_by_node(struct fbp_data *data, int node)
+{
+    struct exported_option *ex_op;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (&data->exported_options, ex_op, i) {
+        if (ex_op->node == node)
+            return ex_op;
+    }
+
+    return NULL;
+}
 
 static int
 to_c_symbol(const char *str, struct sol_buffer *buf)
@@ -204,7 +232,8 @@ get_node_type_description(const struct fbp_data *data, uint16_t i)
 
 static void
 handle_suboptions(const struct sol_fbp_meta *meta,
-    void (*handle_func)(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file), const char *fbp_file)
+    void (*handle_func)(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file),
+    const char *opt_name, const char *fbp_file)
 {
     uint16_t i = 0;
     char *p, *remaining;
@@ -215,7 +244,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
         p = memchr(remaining, '|', strlen(remaining));
         if (p)
             *p = '\0';
-        handle_func(meta, remaining, i, fbp_file);
+        handle_func(meta, remaining, i, opt_name, fbp_file);
 
         if (!p)
             break;
@@ -226,7 +255,7 @@ handle_suboptions(const struct sol_fbp_meta *meta,
 }
 
 static void
-handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
+handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file)
 {
     char *p = memchr(option, ':', strlen(option));
 
@@ -237,7 +266,7 @@ handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *opt
     }
 
     *p = '=';
-    out("            .%.*s.%s,\n", SOL_STR_SLICE_PRINT(meta->key), option);
+    out("            .%s.%s,\n", opt_name, option);
 }
 
 static bool
@@ -253,92 +282,131 @@ check_suboption(char *option, const struct sol_fbp_meta *meta, const char *fbp_f
 }
 
 static void
-handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
+handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file)
 {
     const char *irange_drange_fields[] = { "val", "min", "max", "step", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        out("            .%.*s.%s = %s,\n", SOL_STR_SLICE_PRINT(meta->key),
+        out("            .%s.%s = %s,\n", opt_name,
             irange_drange_fields[index], option);
 }
 
 static void
-handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
+handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file)
 {
     const char *rgb_fields[] = { "red", "green", "blue",
                                  "red_max", "green_max", "blue_max", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        out("            .%.*s.%s = %s,\n", SOL_STR_SLICE_PRINT(meta->key),
+        out("            .%s.%s = %s,\n", opt_name,
             rgb_fields[index], option);
 }
 
 static void
-handle_direction_vector_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *fbp_file)
+handle_direction_vector_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file)
 {
     const char *direction_vector_fields[] = { "x", "y", "z",
                                               "min", "max", NULL };
 
     if (check_suboption(option, meta, fbp_file))
-        out("            .%.*s.%s = %s,\n", SOL_STR_SLICE_PRINT(meta->key),
+        out("            .%s.%s = %s,\n", opt_name,
             direction_vector_fields[index], option);
 }
 
+static void *
+has_explicit_fields(const struct sol_str_slice slice)
+{
+    return memchr(slice.data, ':', slice.len);
+}
+
 static bool
-handle_option(const struct sol_fbp_meta *meta, struct sol_vector *options, const char *fbp_file)
+handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
+    const char *name_prefix,
+    const struct sol_str_slice opt_name,
+    const char *fbp_file)
+{
+    char aux_name[2048];
+    struct sol_buffer buf;
+    struct sol_fbp_meta unquoted_meta;
+    int err;
+    bool r = false;
+
+    if (!sol_str_slice_eq(meta->key, opt_name))
+        return true;
+
+    /* Option values from the conffile other than strings might
+    * have quotes. E.g. 0|3 is currently represented as a string
+    * "0|3" in JSON. When reading we don't have the type
+    * information, but at this point we do, so unquote them. */
+    if (!streq(o->data_type, "string") && meta->value.len > 1
+        && meta->value.data[0] == '"' && meta->value.data[meta->value.len - 1] == '"') {
+        unquoted_meta = *meta;
+        unquoted_meta.value.data += 1;
+        unquoted_meta.value.len -= 2;
+        meta = &unquoted_meta;
+    }
+
+    err = snprintf(aux_name, sizeof(aux_name), "%s%s", name_prefix, o->name);
+    SOL_INT_CHECK(err, < 0, false);
+    SOL_INT_CHECK(err, >= (int)sizeof(aux_name), false);
+    sol_buffer_init(&buf);
+    if (to_c_symbol(aux_name, &buf)) {
+        SOL_ERR("Could not convert %s to C symbol", aux_name);
+        goto exit;
+    }
+
+    if (streq(o->data_type, "int") || streq(o->data_type, "float")) {
+        r = true;
+        if (has_explicit_fields(meta->value))
+            handle_suboptions(meta, handle_suboption_with_explicit_fields, (const char *)buf.data, fbp_file);
+        else
+            handle_suboptions(meta, handle_irange_drange_suboption, (const char *)buf.data, fbp_file);
+    } else if (streq(o->data_type, "rgb")) {
+        r = true;
+        if (has_explicit_fields(meta->value))
+            handle_suboptions(meta, handle_suboption_with_explicit_fields, (const char *)buf.data, fbp_file);
+        else
+            handle_suboptions(meta, handle_rgb_suboption, (const char *)buf.data, fbp_file);
+    } else if (streq(o->data_type, "direction-vector")) {
+        r = true;
+        if (has_explicit_fields(meta->value))
+            handle_suboptions(meta, handle_suboption_with_explicit_fields, (const char *)buf.data, fbp_file);
+        else
+            handle_suboptions(meta, handle_direction_vector_suboption, (const char *)buf.data, fbp_file);
+    } else if (streq(o->data_type, "string")) {
+        r = true;
+        if (meta->value.data[0] == '"')
+            out("            .%s = %.*s,\n", (const char *)buf.data, SOL_STR_SLICE_PRINT(meta->value));
+        else
+            out("            .%s = \"%.*s\",\n", (const char *)buf.data, SOL_STR_SLICE_PRINT(meta->value));
+    } else {
+        r = true;
+        out("            .%s = %.*s,\n", (const char *)buf.data, SOL_STR_SLICE_PRINT(meta->value));
+    }
+exit:
+    sol_buffer_fini(&buf);
+    return r;
+}
+
+static bool
+handle_options(const struct sol_fbp_meta *meta, struct sol_vector *options,
+    const char *name_prefix, const char *fbp_file)
 {
     struct option_description *o;
     uint16_t i;
+    bool r = false;
 
     SOL_VECTOR_FOREACH_IDX (options, o, i) {
-        struct sol_fbp_meta unquoted_meta;
-
-        if (!sol_str_slice_str_eq(meta->key, o->name))
-            continue;
-
-        /* Option values from the conffile other than strings might
-        * have quotes. E.g. 0|3 is currently represented as a string
-        * "0|3" in JSON. When reading we don't have the type
-        * information, but at this point we do, so unquote them. */
-        if (!streq(o->data_type, "string") && meta->value.len > 1
-            && meta->value.data[0] == '"' && meta->value.data[meta->value.len - 1] == '"') {
-            unquoted_meta = *meta;
-            unquoted_meta.value.data += 1;
-            unquoted_meta.value.len -= 2;
-            meta = &unquoted_meta;
+        r = handle_option(meta, o, name_prefix, sol_str_slice_from_str(o->name),
+            fbp_file);
+        if (!r) {
+            sol_fbp_log_print(fbp_file, meta->position.line,
+                meta->position.column, "Invalid option key '%.*s'",
+                SOL_STR_SLICE_PRINT(meta->key));
+            break;
         }
-
-        if (streq(o->data_type, "int") || streq(o->data_type, "float")) {
-            if (memchr(meta->value.data, ':', meta->value.len))
-                handle_suboptions(meta, handle_suboption_with_explicit_fields, fbp_file);
-            else
-                handle_suboptions(meta, handle_irange_drange_suboption, fbp_file);
-        } else if (streq(o->data_type, "rgb")) {
-            if (memchr(meta->value.data, ':', meta->value.len))
-                handle_suboptions(meta, handle_suboption_with_explicit_fields, fbp_file);
-            else
-                handle_suboptions(meta, handle_rgb_suboption, fbp_file);
-        } else if (streq(o->data_type, "direction-vector")) {
-            if (memchr(meta->value.data, ':', meta->value.len))
-                handle_suboptions(meta, handle_suboption_with_explicit_fields, fbp_file);
-            else
-                handle_suboptions(meta, handle_direction_vector_suboption, fbp_file);
-        } else if (streq(o->data_type, "string")) {
-            if (meta->value.data[0] == '"')
-                out("            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
-            else
-                out("            .%.*s = \"%.*s\",\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
-
-        } else {
-            out("            .%.*s = %.*s,\n", SOL_STR_SLICE_PRINT(meta->key), SOL_STR_SLICE_PRINT(meta->value));
-        }
-
-        return true;
     }
-
-    sol_fbp_log_print(fbp_file, meta->position.line, meta->position.column,
-        "Invalid option key '%.*s'", SOL_STR_SLICE_PRINT(meta->key));
-    return false;
+    return r;
 }
 
 static void
@@ -521,20 +589,45 @@ handle_port_index_error(struct sol_fbp_position *p, struct port_description *por
 static bool
 generate_options(const struct fbp_data *data)
 {
+    struct exported_option *exported_opts;
+    struct exported_option_description *exported_desc;
     struct sol_fbp_meta *m;
     struct sol_fbp_node *n;
-    uint16_t i, j;
+    uint16_t i, j, k;
 
+    if (data->exported_options.len > 0) {
+        out("    static const struct %s exported_opts = GENERATED_%s_OPTIONS_DEFAULT(\n",
+            data->exported_options_symbol, data->exported_options_symbol);
+        SOL_VECTOR_FOREACH_IDX (&data->exported_options, exported_opts, i) {
+            SOL_VECTOR_FOREACH_IDX (&exported_opts->node_ptr->meta, m, j) {
+                SOL_VECTOR_FOREACH_IDX (&exported_opts->options,
+                    exported_desc, k) {
+                    if (!handle_option(m, exported_desc->description,
+                        "opt_", exported_desc->node_option, data->filename))
+                        return EXIT_FAILURE;
+                }
+            }
+        }
+        out("        );\n\n");
+    }
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
+        const char *name_prefix = "";
         struct type_description *desc = ((struct node_data *)n->user_data)->desc;
 
         if (n->meta.len <= 0)
             continue;
 
         out("    static const struct %s opts%d =\n", desc->options_symbol, i);
-        out("        %s_OPTIONS_DEFAULTS(\n", desc->symbol);
+        if (!desc->generated_options)
+            out("        %s_OPTIONS_DEFAULTS(\n", desc->symbol);
+        else {
+            out("         GENERATED_%s_OPTIONS_DEFAULT(\n",
+                desc->options_symbol);
+            name_prefix = "opt_";
+        }
+
         SOL_VECTOR_FOREACH_IDX (&n->meta, m, j) {
-            if (!handle_option(m, &desc->options, data->filename))
+            if (!handle_options(m, &desc->options, name_prefix, data->filename))
                 return EXIT_FAILURE;
         }
         out("        );\n\n");
@@ -760,18 +853,139 @@ generate_node_type_assignments(const struct fbp_data *data)
     }
 }
 
+static const char *
+get_type_data_by_name(const char *type)
+{
+    if (streq(type, "int"))
+        return "struct sol_irange";
+    if (streq(type, "float"))
+        return "struct sol_drange";
+    if (streq(type, "string"))
+        return "const char *";
+    if (streq(type, "rgb"))
+        return "struct sol_rgb";
+    if (streq(type, "direction-vector"))
+        return "struct sol_direction_vector";
+    if (streq(type, "boolean"))
+        return "bool";
+    if (streq(type, "byte"))
+        return "unsigned char";
+    return NULL;
+}
+
+static bool
+generate_fbp_node_options(struct fbp_data *data)
+{
+    struct exported_option *ex_opt;
+    struct exported_option_description *op_desc;
+    uint16_t i, j;
+    const char *data_type;
+    struct sol_buffer buf;
+
+    out("struct %s {\n"
+        "    struct sol_flow_node_options base;\n"
+        "    #define OPTIONS_%s_API_VERSION (1)\n",
+        data->exported_options_symbol, data->exported_options_symbol);
+
+    SOL_VECTOR_FOREACH_IDX (&data->exported_options, ex_opt, i) {
+        SOL_VECTOR_FOREACH_IDX (&ex_opt->options, op_desc, j) {
+            data_type = get_type_data_by_name(op_desc->description->data_type);
+            if (!data_type) {
+                SOL_ERR("Unknown option type:%s", op_desc->description->data_type);
+                return false;
+            }
+            if (to_c_symbol(op_desc->description->name, &buf)) {
+                SOL_ERR("Could not convert %s to C symbol",
+                    op_desc->description->name);
+                sol_buffer_fini(&buf);
+                return false;
+            }
+            out("    %s opt_%s;\n", data_type, (const char *)buf.data);
+            sol_buffer_fini(&buf);
+        }
+    }
+
+    out("};\n\n");
+    out("#define GENERATED_%s_OPTIONS_DEFAULT(...) { \\\n"
+        "    .base = { \\\n"
+        "        .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION, \\\n"
+        "        .sub_api = OPTIONS_%s_API_VERSION \\\n"
+        "    }, \\\n"
+        "    __VA_ARGS__ \\\n"
+        "}\n\n", data->exported_options_symbol, data->exported_options_symbol);
+
+    return true;
+}
+
+static void
+generate_child_opts(struct fbp_data *data,
+    const char *opts_func)
+{
+    uint16_t i, j;
+    struct exported_option *ex_opt;
+    struct exported_option_description *opt_desc;
+    struct sol_buffer buf;
+
+    out("static int\n"
+        "%s(const struct sol_flow_node_type *type, uint16_t child_index, const struct sol_flow_node_options *opts, struct sol_flow_node_options *child_opts)\n"
+        "{\n"
+        "    struct %s *node_opts = (struct %s *)opts;\n\n",
+        opts_func, data->exported_options_symbol,
+        data->exported_options_symbol);
+
+    SOL_VECTOR_FOREACH_IDX (&data->exported_options, ex_opt, i) {
+        out("     %s (child_index == %d) {\n"
+            "         struct %.*s *child = (struct %.*s *) child_opts;\n",
+            !i ? "if" : "else if",
+            ex_opt->node, SOL_STR_SLICE_PRINT(ex_opt->node_options_symbol),
+            SOL_STR_SLICE_PRINT(ex_opt->node_options_symbol));
+        SOL_VECTOR_FOREACH_IDX (&ex_opt->options, opt_desc, j) {
+            if (to_c_symbol(opt_desc->description->name, &buf)) {
+                SOL_ERR("Could not convert %s to C symbol",
+                    opt_desc->description->name);
+                sol_buffer_fini(&buf);
+                return false;
+            }
+            out("        child->%.*s =  node_opts->opt_%s;\n",
+                SOL_STR_SLICE_PRINT(opt_desc->node_option),
+                (const char *)buf.data);
+            sol_buffer_fini(&buf);
+        }
+        out("     }\n");
+    }
+
+    out("    return 0;\n"
+        "}\n\n");
+    return true;
+}
+
 static bool
 generate_create_type_function(struct fbp_data *data)
 {
     struct sol_buffer c_name;
+    int r;
+    char opts_func[2048];
 
     to_c_symbol(data->name, &c_name);
+    if (data->exported_options.len) {
+        r = snprintf(opts_func, sizeof(opts_func), "child_opts_set_%d_%s",
+            data->id, (const char *)c_name.data);
+        SOL_INT_CHECK(r, < 0, false);
+        SOL_INT_CHECK(r, >= (int)sizeof(opts_func), false);
+
+        if (!generate_fbp_node_options(data))
+            return false;
+        generate_child_opts(data, opts_func);
+    }
+
     out("\nstatic const struct sol_flow_node_type *\n"
         "create_%d_%s_type(void)\n"
         "{\n",
         data->id,
         (const char *)c_name.data);
     sol_buffer_fini(&c_name);
+
+    out("    struct sol_flow_node_type *node_type;\n");
 
     if (!generate_options(data) || !generate_connections(data) || !generate_exports(data))
         return false;
@@ -785,14 +999,26 @@ generate_create_type_function(struct fbp_data *data)
         "        .conns = conns,\n"
         "        .exported_in = %s,\n"
         "        .exported_out = %s,\n"
+        "        .child_opts_set = %s,\n"
         "    };\n",
         data->graph.exported_in_ports.len > 0 ? "exported_in" : "NULL",
-        data->graph.exported_out_ports.len > 0 ? "exported_out" : "NULL");
+        data->graph.exported_out_ports.len > 0 ? "exported_out" : "NULL",
+        data->exported_options.len > 0 ? opts_func : "NULL");
 
     generate_node_type_assignments(data);
 
     out("\n"
-        "    return sol_flow_static_new_type(&spec);\n"
+        "    node_type = sol_flow_static_new_type(&spec);\n");
+
+    if (data->exported_options.len > 0) {
+        out("\n"
+            "    node_type->options_size = sizeof(struct %s);\n"
+            "    node_type->default_options = &exported_opts;\n",
+            data->exported_options_symbol);
+    }
+
+    out("\n"
+        "    return node_type;\n"
         "}\n\n");
 
     return true;
@@ -1538,7 +1764,100 @@ ports_clear(struct sol_vector *ports)
 }
 
 static bool
-add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *data)
+store_exported_options(struct type_store *common_store,
+    struct type_store *parent_store,
+    struct fbp_data *data,
+    struct sol_vector *sol_options,
+    struct sol_vector *type_options)
+{
+    struct type_description *node_desc;
+    struct sol_fbp_option *fbp_option;
+    struct sol_fbp_node *n;
+    struct option_description *op_desc, *node_op_desc, *to_export;
+    struct exported_option *exported_option;
+    struct exported_option_description *exported_description;
+    uint16_t i, j;
+
+    sol_vector_init(type_options, sizeof(struct option_description));
+
+    SOL_VECTOR_FOREACH_IDX (sol_options, fbp_option, i) {
+        exported_option = get_exported_option_description_by_node(data,
+            fbp_option->node);
+
+        if (!exported_option) {
+            exported_option = sol_vector_append(&data->exported_options);
+            if (!exported_option) {
+                SOL_ERR("Could not create an option to be exported");
+                return NULL;
+            }
+            exported_option->node = fbp_option->node;
+            sol_vector_init(&exported_option->options,
+                sizeof(struct exported_option_description));
+        }
+
+        op_desc = calloc(1, sizeof(struct option_description));
+        if (!op_desc) {
+            SOL_ERR("Could not create an option description");
+            return false;
+        }
+
+        to_export = sol_vector_append(type_options);
+
+        if (!to_export) {
+            SOL_ERR("Could not create a option to be exported");
+            return false;
+        }
+
+        exported_description = sol_vector_append(&exported_option->options);
+
+        if (!exported_description) {
+            SOL_ERR("Could not create the exported option description");
+            return false;
+        }
+
+        exported_description->node_option = fbp_option->node_option;
+        exported_description->description = op_desc;
+
+        n = sol_vector_get(&data->graph.nodes, fbp_option->node);
+
+        if (!n) {
+            SOL_ERR("Could not find node that provides the option:%.*s",
+                SOL_STR_SLICE_PRINT(fbp_option->node_option));
+            return false;
+        }
+
+        exported_option->node_ptr = n;
+        node_desc = sol_fbp_generator_resolve_type(common_store,
+            parent_store, n,  data->filename);
+        if (!node_desc) {
+            SOL_ERR("Could not get description for a type for: %.*s",
+                SOL_STR_SLICE_PRINT(n->name));
+            return false;
+        }
+        exported_option->node_options_symbol =
+            sol_str_slice_from_str(node_desc->options_symbol);
+        SOL_VECTOR_FOREACH_IDX (&node_desc->options, node_op_desc, j) {
+            /* Only set exported options */
+            if (!sol_str_slice_str_eq(fbp_option->node_option,
+                node_op_desc->name))
+                continue;
+            if (!type_store_copy_option_description(op_desc, node_op_desc,
+                fbp_option->name)) {
+                SOL_ERR("Could not copy the description %.*s",
+                    SOL_STR_SLICE_PRINT(fbp_option->name));
+                return false;
+            }
+        }
+        *to_export = *op_desc;
+    }
+
+    return true;
+}
+
+static bool
+add_fbp_type_to_type_store(struct type_store *common_store,
+    struct type_store *parent_store,
+    struct fbp_data *data)
 {
     struct type_description type;
     struct sol_buffer c_name;
@@ -1554,10 +1873,23 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
     if (r < 0 || r >= (int)sizeof(node_type))
         return false;
 
-    type.symbol = node_type;
+    if (data->graph.options.len > 0) {
+        r = asprintf(&data->exported_options_symbol, "options_%d_%s",
+            data->id, node_type);
+        if (r < 0) {
+            data->exported_options_symbol = NULL;
+            SOL_ERR("Could not create the exporter options symbol for:%s",
+                data->name);
+            return false;
+        }
+        type.options_symbol = data->exported_options_symbol;
+        type.generated_options = true;
+    } else {
+        type.options_symbol = (char *)"";
+        type.generated_options = false;
+    }
 
-    /* useless for fbp type */
-    type.options_symbol = (char *)"";
+    type.symbol = node_type;
 
     if (!store_exported_ports(data, &type.in_ports,
         &data->graph.exported_in_ports, true))
@@ -1567,15 +1899,19 @@ add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *dat
         &data->graph.exported_out_ports, false))
         goto fail_out_ports;
 
-    /* useless for fbp type */
-    sol_vector_init(&type.options, sizeof(struct option_description));
+    if (!store_exported_options(common_store, parent_store, data,
+        &data->graph.options, &type.options))
+        goto fail_options;
 
-    ret = type_store_add_type(parent_store, &type);
+    ret = type_store_add_type(common_store, &type);
+
     if (!ret)
         SOL_WRN("Failed to add type %s to store", type.name);
     else
         SOL_DBG("Type %s added to store", type.name);
 
+fail_options:
+    //Do not free the options elements. It will be freed during the exit.
     sol_vector_clear(&type.options);
 fail_out_ports:
     ports_clear(&type.out_ports);
@@ -1639,7 +1975,7 @@ add_metatype_to_type_store(struct type_store *store,
     type.name = name;
     type.symbol = meta->c_name;
     type.options_symbol = (char *)"";
-
+    type.generated_options = false;
     sol_vector_init(&type.options, sizeof(struct option_description));
 
     r = type_store_add_type(store, &type);
@@ -1714,6 +2050,7 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
 
     sol_vector_init(&data->declared_fbp_types, sizeof(struct declared_fbp_type));
     sol_vector_init(&data->declared_meta_types, sizeof(struct declared_metatype));
+    sol_vector_init(&data->exported_options, sizeof(struct exported_option));
 
     data->name = sol_arena_strdup(str_arena, name);
     if (!data->name) {
@@ -1758,7 +2095,7 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
                  * this changes the position of data pointers since it's a sol_vector. */
                 data = sol_vector_get(fbp_data_vector, data_idx);
 
-                if (!add_fbp_type_to_type_store(data->store, d)) {
+                if (!add_fbp_type_to_type_store(common_store, data->store, d)) {
                     SOL_ERR("Couldn't create fbp data.");
                     return NULL;
                 }
@@ -1860,7 +2197,9 @@ main(int argc, char *argv[])
     struct sol_vector fbp_data_vector;
     struct type_store *common_store;
     struct declared_metatype *meta;
-    uint16_t i, j;
+    struct exported_option *exported_opt;
+    struct exported_option_description *opt_description;
+    uint16_t i, j, k;
     uint8_t result = EXIT_FAILURE;
     int err;
 
@@ -1915,6 +2254,17 @@ fail_data:
         SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, j)
             free(meta->c_name);
         sol_vector_clear(&data->declared_meta_types);
+        SOL_VECTOR_FOREACH_IDX (&data->exported_options, exported_opt, j) {
+            SOL_VECTOR_FOREACH_IDX (&exported_opt->options, opt_description,
+                k) {
+                free(opt_description->description->name);
+                free(opt_description->description->data_type);
+                free(opt_description->description);
+            }
+            sol_vector_clear(&exported_opt->options);
+        }
+        sol_vector_clear(&data->exported_options);
+        free(data->exported_options_symbol);
     }
     sol_vector_clear(&fbp_data_vector);
     sol_vector_clear(&declared_metatypes_control_vector);

@@ -28,30 +28,34 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-DECLARE=MyAdder:fbp:_adder22.fbp
+OPTION=Bool.value:bool-ahoi
+OPTION=Int.value:MyInt
+OPTION=Float.value:Float
+OPTION=String.value:AString
+OPTION=Byte.value:Byte
+OPTION=DirectionVector.value:Direction
 
-_(constant/int:value=20) OUT -> IN adder(MyAdder)
+Int(constant/int:value=0) OUT -> IN[0] IntEqual(int/equal) OUT -> RESULT TestInt(test/result)
+_(constant/int:value=20) OUT -> IN[1] IntEqual
 
-adder OUT -> IN[0] equal_sum(int/equal)
-_(constant/int:value=42) OUT -> IN[1] equal_sum
+Float(constant/float:value=0.0) OUT -> IN[0] FloatEqual(float/equal) OUT -> RESULT TestFloat(test/result)
+_(constant/float:value=2.4) OUT -> IN[1] FloatEqual
 
-equal_sum OUT -> RESULT using_adder_22_fbp_works(test/result)
+String(constant/string:value=null) OUT -> IN[0] StrEqual(string/compare) EQUAL -> RESULT TestString(test/result)
+_(constant/string:value="Soletta is awesome") OUT -> IN[1] StrEqual
 
+Byte(constant/byte:value=0x00) OUT -> IN[0] ByteEqual(byte/equal) OUT -> RESULT TestByte(test/result)
+_(constant/byte:value=0x02) OUT -> IN[1] ByteEqual
 
-# Check that we can use the type twice.
+DirectionVector(constant/direction-vector:value=0|199|22) OUT -> IN ConverterDirection(converter/direction-vector-to-int)
 
-_(constant/int:value=1) OUT -> IN other_adder(MyAdder)
+ConverterDirection X -> IN[0] DirXEqual(int/equal) OUT -> RESULT TestDirectionVectorX(test/result)
+_(constant/int:value=1) OUT -> IN[1] DirXEqual
 
-other_adder OUT -> IN[0] other_equal_sum(int/equal)
-_(constant/int:value=23) OUT -> IN[1] other_equal_sum
+ConverterDirection Y -> IN[0] DirYEqual(int/equal) OUT -> RESULT TestDirectionVectorY(test/result)
+_(constant/int:value=2) OUT -> IN[1] DirYEqual
 
-other_equal_sum OUT -> RESULT using_other_adder_22_fbp_works(test/result)
+ConverterDirection Z -> IN[0] DirZEqual(int/equal) OUT -> RESULT TestDirectionVectorZ(test/result)
+_(constant/int:value=3) OUT -> IN[1] DirZEqual
 
-# Check that the type works with options.
-
-_(constant/int:value=1) OUT -> IN adder_with_opts(MyAdder:add_value=666)
-
-adder_with_opts OUT -> IN[0] third_equal(int/equal)
-_(constant/int:value=667) OUT -> IN[1] third_equal
-
-third_equal OUT -> RESULT using_adder_22_with_options(test/result)
+Bool(constant/boolean:value=false) OUT -> RESULT TestBool(test/result)
