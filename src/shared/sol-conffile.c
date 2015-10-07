@@ -318,6 +318,7 @@ _parse_maps(struct sol_json_token token)
     SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         struct sol_str_slice path = { };
         uint32_t version = 0;
+        void *entries_destination;
 
         map = NULL;
 
@@ -357,7 +358,9 @@ _parse_maps(struct sol_json_token token)
         map->path = sol_arena_strdup_slice(str_arena, path);
         SOL_NULL_CHECK_GOTO(map->path, error);
         data = sol_vector_take_data(&entries_vector);
-        memmove(map->entries, data, entries_vector_size);
+        entries_destination = &map->entries + 1;
+        memmove(entries_destination, data, entries_vector_size);
+        map->entries = entries_destination;
         free(data);
 
         if (sol_ptr_vector_append(&_memory_maps, map) < 0) {

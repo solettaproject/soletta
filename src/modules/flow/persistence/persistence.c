@@ -144,14 +144,13 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value)
     if (mdata->packet_data_size)
         size = mdata->packet_data_size;
     else
-        size = strlen(value);
+        size = strlen(value) + 1; //To include the null terminating char
 
     r = storage_write(mdata, value, size);
     SOL_INT_CHECK(r, < 0, r);
 
     /* No packet_data_size means dynamic content (string). Let's reallocate if needed */
     if (!mdata->packet_data_size) {
-        size++; //To include the null terminating char
         if (!mdata->value_ptr || strlen(mdata->value_ptr) + 1 < size) {
             void *tmp = realloc(mdata->value_ptr, size);
             SOL_NULL_CHECK(tmp, -ENOMEM);
