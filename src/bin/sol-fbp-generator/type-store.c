@@ -872,6 +872,7 @@ type_store_add_type(struct type_store *store, const struct type_description *typ
     t->options_symbol = strdup(type->options_symbol);
     SOL_NULL_CHECK_GOTO(t->options_symbol, fail_options_symbol);
 
+    t->generated_options = type->generated_options;
     sol_vector_init(&t->in_ports, sizeof(struct port_description));
     SOL_VECTOR_FOREACH_IDX (&type->in_ports, p, i) {
         port = sol_vector_append(&t->in_ports);
@@ -906,35 +907,9 @@ type_store_add_type(struct type_store *store, const struct type_description *typ
     SOL_VECTOR_FOREACH_IDX (&type->options, o, i) {
         option = sol_vector_append(&t->options);
         SOL_NULL_CHECK_GOTO(option, fail_options);
-
-        option->name = strdup(o->name);
-        SOL_NULL_CHECK_GOTO(option->name, fail_options);
-
-        option->data_type = strdup(o->data_type);
-        SOL_NULL_CHECK_GOTO(option->data_type, fail_options);
-
-        option->default_value_type = o->default_value_type;
-
-        switch (o->default_value_type) {
-        case OPTION_VALUE_TYPE_STRING:
-            option->default_value.string = strdup(o->default_value.string);
-            SOL_NULL_CHECK_GOTO(option->default_value.string, fail_options);
-            break;
-        case OPTION_VALUE_TYPE_RANGE:
-            option->default_value.range = o->default_value.range;
-            break;
-        case OPTION_VALUE_TYPE_RGB:
-            option->default_value.rgb = o->default_value.rgb;
-            break;
-        case OPTION_VALUE_TYPE_DIRECTION_VECTOR:
-            option->default_value.direction_vector = o->default_value.direction_vector;
-            break;
-        case OPTION_VALUE_TYPE_UNPARSED_JSON:
-            option->default_value.token = o->default_value.token;
-            break;
-        case OPTION_VALUE_TYPE_NONE:
-            break;
-        }
+        if (!type_store_copy_option_description(option, o,
+            sol_str_slice_from_str(o->name)))
+            goto fail_options;
     }
 
     return true;
@@ -1052,4 +1027,52 @@ type_store_print(struct type_store *store)
         type_description_print(desc);
         printf("\n");
     }
+}
+
+bool
+type_store_copy_option_description(struct option_description *dst,
+    const struct option_description *src,
+    const struct sol_str_slice opt_name)
+{
+    dst->name = strndup(opt_name.data, opt_name.len);
+    SOL_NULL_CHECK_GOTO(dst->name, fail_name);
+
+    dst->data_type = strdup(src->data_type);
+    SOL_NULL_CHECK_GOTO(dst->data_type, fail_type);
+
+    dst->default_value_type = src->default_value_type;
+
+    switch (src->default_value_type) {
+    case OPTION_VALUE_TYPE_STRING:
+        if (src->default_value.string)
+            dst->default_value.string = strdup(src->default_value.string);
+        else
+            dst->default_value.string = strdup("NULL");
+        SOL_NULL_CHECK_GOTO(dst->default_value.string, fail_string);
+        break;
+    case OPTION_VALUE_TYPE_RANGE:
+        dst->default_value.range = src->default_value.range;
+        break;
+    case OPTION_VALUE_TYPE_RGB:
+        dst->default_value.rgb = src->default_value.rgb;
+        break;
+    case OPTION_VALUE_TYPE_DIRECTION_VECTOR:
+        dst->default_value.direction_vector = src->default_value.direction_vector;
+        break;
+    case OPTION_VALUE_TYPE_UNPARSED_JSON:
+        dst->default_value.token = src->default_value.token;
+        break;
+    case OPTION_VALUE_TYPE_NONE:
+        break;
+    }
+    return true;
+
+fail_string:
+    free(dst->data_type);
+    dst->data_type = NULL;
+fail_type:
+    free(dst->name);
+    dst->name = NULL;
+fail_name:
+    return false;
 }

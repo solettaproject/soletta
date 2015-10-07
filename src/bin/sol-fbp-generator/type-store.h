@@ -98,6 +98,7 @@ struct type_description {
     char *name;
     char *symbol;
     char *options_symbol;
+    bool generated_options;
     struct sol_vector in_ports;
     struct sol_vector out_ports;
     struct sol_vector options;
@@ -116,3 +117,5 @@ bool type_store_add_type(struct type_store *store, const struct type_description
 void type_store_del(struct type_store *store);
 
 void type_store_print(struct type_store *store);
+
+bool type_store_copy_option_description(struct option_description *dst, const struct option_description *src, const struct sol_str_slice opt_name);
