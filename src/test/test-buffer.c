@@ -377,6 +377,16 @@ test_no_nul_byte(void)
     ASSERT_INT_NE(err, 0);
 
     sol_buffer_fini(&buf);
+
+    sol_buffer_init_flags(&buf, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    err = sol_buffer_append_printf(&buf, "123");
+    ASSERT_INT_EQ(err, 0);
+    err = sol_buffer_append_printf(&buf, "4");
+    ASSERT_INT_EQ(err, 0);
+
+    ASSERT(sol_str_slice_eq(sol_buffer_get_slice(&buf),
+        SOL_STR_SLICE_STR("1234", 4)));
+    sol_buffer_fini(&buf);
 }
 
 TEST_MAIN();
