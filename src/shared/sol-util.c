@@ -222,6 +222,9 @@ sol_util_str_split(const struct sol_str_slice slice,
         return v;
 
     maxsplit = (maxsplit) ? : slice.len - 1;
+    if (maxsplit == SIZE_MAX) //once we compare to maxsplit + 1
+        maxsplit--;
+
     dlen = strlen(delim);
     len = slice.len;
 

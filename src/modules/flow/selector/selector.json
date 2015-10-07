@@ -1,0 +1,124 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "selector",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "io/sw",
+      "description": "Receives packages defining a strings listing and the actual string selection to then output the selection's contents.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Defines the sequency of items to be selected by the user. Each incoming packet is added to an internal list. Use the CLEAR port to start over. The strings here will fill in the '{value}' field of the format option (e. g. '{title}:\\n{value} px'), when sent to output. Any line breaking characters is the input strings for this port will be translated to a space instead.",
+          "methods": {
+            "process": "add_item"
+          },
+          "name": "ADD_ITEM"
+        },
+        {
+          "data_type": "any",
+          "description": "Change selection to the next one in the sequence",
+          "methods": {
+            "process": "clear_set"
+          },
+          "name": "CLEAR"
+        },
+        {
+          "data_type": "any",
+          "description": "Change selection to the next one in the sequence",
+          "methods": {
+            "process": "next_set"
+          },
+          "name": "NEXT"
+        },
+        {
+          "data_type": "any",
+          "description": "Change selection to the previous one in the sequence",
+          "methods": {
+            "process": "previous_set"
+          },
+          "name": "PREVIOUS"
+        },
+        {
+          "data_type": "any",
+          "description": "Confirm the selection to be current one, generating an output packet.",
+          "methods": {
+            "process": "select_set"
+          },
+          "name": "SELECT"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Make the interaction possible, otherwise don't produce strings or process NEXT/PREVIOUS/SELECT inputs. In other words, enabled/disable the node at run-time. The node starts in the enabled state. Note that this does not affect the use of the ADD_ITEM/CLEAR ports.",
+          "methods": {
+            "process": "enable_set"
+          },
+          "name": "ENABLE"
+        }
+      ],
+      "methods": {
+        "close": "selector_close",
+        "open": "selector_open"
+      },
+      "name": "selector",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
+            "name": "columns"
+          },
+          {
+            "data_type": "int",
+            "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
+            "name": "rows"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters is this string will be translated to a space instead.",
+            "name": "title"
+          },
+          {
+            "data_type": "string",
+            "default": "* ",
+            "description": "If set, selected items will be laid out with this string pre-fixed, separated by a space",
+            "name": "selection_marker"
+          },
+          {
+            "data_type": "string",
+            "default": "> ",
+            "description": "If set, selected items will be laid out with this string pre-fixed, separated by a space",
+            "name": "cursor_marker"
+          },
+          {
+            "data_type": "string",
+            "default": "{value}",
+            "description": "The format string to produce the final output with. The syntax is a free-form string with one '{value}' sub-string in it, to be replaced by the actual string items that came in the ITEMS port.",
+            "name": "format"
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, this makes a circular menu, where after the last option it goes back to the first, in any direction (next or previous).",
+            "name": "circular"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The formatted, selected entry. This is meant to feed real display nodes (like grove/lcd-string).",
+          "name": "STRING"
+        }
+      ],
+      "private_data_type": "selector_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/selector.html"
+    }
+  ]
+}
