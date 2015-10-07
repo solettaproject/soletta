@@ -53,28 +53,28 @@ extern "C" {
  */
 
 #ifndef OIC_MANUFACTURER_NAME
-# define OIC_MANUFACTURER_NAME "Soletta"
+#define OIC_MANUFACTURER_NAME "Soletta"
 #endif
 #ifndef OIC_MANUFACTURER_URL
-# define OIC_MANUFACTURER_URL "https://soletta-project.org"
+#define OIC_MANUFACTURER_URL "https://soletta-project.org"
 #endif
 #ifndef OIC_MODEL_NUMBER
-# define OIC_MODEL_NUMBER "Unknown"
+#define OIC_MODEL_NUMBER "Unknown"
 #endif
 #ifndef OIC_MANUFACTURE_DATE
-# define OIC_MANUFACTURE_DATE "2015-01-01"
+#define OIC_MANUFACTURE_DATE "2015-01-01"
 #endif
 #ifndef OIC_PLATFORM_VERSION
-# define OIC_PLATFORM_VERSION "Unknown"
+#define OIC_PLATFORM_VERSION "Unknown"
 #endif
 #ifndef OIC_HARDWARE_VERSION
-# define OIC_HARDWARE_VERSION "Unknown"
+#define OIC_HARDWARE_VERSION "Unknown"
 #endif
 #ifndef OIC_FIRMWARE_VERSION
-# define OIC_FIRMWARE_VERSION "Unknown"
+#define OIC_FIRMWARE_VERSION "Unknown"
 #endif
 #ifndef OIC_SUPPORT_URL
-# define OIC_SUPPORT_URL "Unknown"
+#define OIC_SUPPORT_URL "Unknown"
 #endif
 
 struct sol_oic_server_resource;

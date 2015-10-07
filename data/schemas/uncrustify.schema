@@ -88,6 +88,8 @@ align_var_def_amp_style       = 1 # number
 align_var_def_star_style      = 1 # number
 align_with_tabs               = false  # don't use tabs to align
 
+pp_space                      = remove
+
 #
 # Soletta-specific constructs
 #

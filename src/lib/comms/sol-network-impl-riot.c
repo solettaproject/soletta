@@ -34,8 +34,8 @@
 #include <errno.h>
 
 #if MODULE_GNRC_IPV6_NETIF
-# include "net/ipv6/addr.h"
-# include "net/gnrc/ipv6/netif.h"
+#include "net/ipv6/addr.h"
+#include "net/gnrc/ipv6/netif.h"
 #endif
 #include "net/gnrc/netif.h"
 
