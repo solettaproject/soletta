@@ -1,0 +1,2 @@
+timer(TIMER) OUT -> IN toggle(boolean/toggle)
+toggle OUT -> IN writer(WRITER)

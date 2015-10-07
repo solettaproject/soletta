@@ -1,0 +1,3 @@
+DECLARE=LED:fbp:led.fbp
+
+timer(timer:interval=333) OUT -> IN _(boolean/toggle) OUT -> IN led(LED)

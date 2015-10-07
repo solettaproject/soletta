@@ -1,0 +1,6 @@
+INPORT=entry.IN:IN
+
+entry(boolean/buffer:samples=1)
+
+entry OUT -> IN _(boolean/not) OUT -> IN _(gpio/writer:pin=31)
+entry OUT -> IN _(gpio/writer:pin=15)

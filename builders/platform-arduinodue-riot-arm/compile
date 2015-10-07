@@ -1,0 +1,15 @@
+#!/bin/bash
+
+COMPILE_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
+SOLETTA_TARGET=$COMPILE_DIR/RIOT/pkg/libsoletta/soletta/build/soletta_sysroot
+source $COMPILE_DIR/common-compile.sh
+source $COMPILE_DIR/common-arduino-compile.sh
+
+cp \
+    $COMPILE_DIR/RIOT/examples/soletta_app/bin/arduino-due/soletta_app.hex \
+    $COMPILE_DIR/RIOT/boards/arduino-due/dist/* \
+    $COMPILE_DIR/flash.sh \
+    $PLATFORM_NAME
+
+zip -r output.zip $PLATFORM_NAME
+rm -rf $PLATFORM_NAME
