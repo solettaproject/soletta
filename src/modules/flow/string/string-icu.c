@@ -41,8 +41,6 @@
 #include "string-regexp.h"
 #include "string-uuid.h"
 
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-
 //ret_icu_str must be freed after usage
 int
 icu_str_from_utf8(const char *utf_str,
@@ -511,7 +509,7 @@ string_length_process(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     if (mdata->n)
-        result = MIN((uint32_t)u_strlen(value), mdata->n);
+        result = sol_min((uint32_t)u_strlen(value), mdata->n);
     else
         result = u_strlen(value);
 
