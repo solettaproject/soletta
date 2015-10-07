@@ -389,4 +389,142 @@ test_no_nul_byte(void)
     sol_buffer_fini(&buf);
 }
 
+DEFINE_TEST(test_insert_as_base64);
+
+static void
+test_insert_as_base64(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    const char to_encode[] = "This is a message that is multiple of 3 chars";
+    int err;
+
+#define B64_ENCODED "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYXJz"
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("World");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("World"));
+    ASSERT_STR_EQ(buf.data, "World");
+
+    slice = sol_str_slice_from_str("Hello");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("HelloWorld"));
+    ASSERT_STR_EQ(buf.data, "HelloWorld");
+
+    slice = sol_str_slice_from_str(to_encode);
+    err = sol_buffer_insert_as_base64(&buf, strlen("Hello"), slice, SOL_BASE64_MAP);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("Hello" B64_ENCODED "World"));
+    ASSERT_STR_EQ(buf.data, "Hello" B64_ENCODED "World");
+
+    sol_buffer_fini(&buf);
+
+#undef B64_ENCODED
+}
+
+DEFINE_TEST(test_append_as_base64);
+
+static void
+test_append_as_base64(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    const char to_encode[] = "This is a message that is multiple of 3 chars";
+    int err;
+
+#define B64_ENCODED "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYXJz"
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("XYZ");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("XYZ"));
+    ASSERT_STR_EQ(buf.data, "XYZ");
+
+    slice = sol_str_slice_from_str(to_encode);
+    err = sol_buffer_append_as_base64(&buf, slice, SOL_BASE64_MAP);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("XYZ" B64_ENCODED));
+    ASSERT_STR_EQ(buf.data, "XYZ" B64_ENCODED);
+
+    sol_buffer_fini(&buf);
+
+#undef B64_ENCODED
+}
+
+DEFINE_TEST(test_insert_from_base64);
+
+static void
+test_insert_from_base64(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    const char to_decode[] = "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYXJz";
+    int err;
+
+#define B64_DECODED "This is a message that is multiple of 3 chars"
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("World");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("World"));
+    ASSERT_STR_EQ(buf.data, "World");
+
+    slice = sol_str_slice_from_str("Hello");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("HelloWorld"));
+    ASSERT_STR_EQ(buf.data, "HelloWorld");
+
+    slice = sol_str_slice_from_str(to_decode);
+    err = sol_buffer_insert_from_base64(&buf, strlen("Hello"), slice, SOL_BASE64_MAP);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("Hello" B64_DECODED "World"));
+    ASSERT_STR_EQ(buf.data, "Hello" B64_DECODED "World");
+
+    slice = sol_str_slice_from_str("VGhpcy--"); /* broken base64 */
+    err = sol_buffer_insert_from_base64(&buf, strlen("Hello"), slice, SOL_BASE64_MAP);
+    ASSERT_INT_NE(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("Hello" B64_DECODED "World"));
+    ASSERT_STR_EQ(buf.data, "Hello" B64_DECODED "World");
+
+    sol_buffer_fini(&buf);
+
+#undef B64_DECODED
+}
+
+DEFINE_TEST(test_append_from_base64);
+
+static void
+test_append_from_base64(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    const char to_decode[] = "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYXJz";
+    int err;
+
+#define B64_DECODED "This is a message that is multiple of 3 chars"
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("XYZ");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("XYZ"));
+    ASSERT_STR_EQ(buf.data, "XYZ");
+
+    slice = sol_str_slice_from_str(to_decode);
+    err = sol_buffer_append_from_base64(&buf, slice, SOL_BASE64_MAP);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("XYZ" B64_DECODED));
+    ASSERT_STR_EQ(buf.data, "XYZ" B64_DECODED);
+
+    sol_buffer_fini(&buf);
+
+#undef B64_DECODED
+}
+
 TEST_MAIN();
