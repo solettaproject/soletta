@@ -86,16 +86,16 @@ composed_node_open(struct sol_flow_node *node, void *data,
     const struct sol_flow_node_options *options)
 {
     struct composed_node_data *cdata = data;
-    const struct composed_node_type *ctype;
+    const struct composed_node_type *self;
     const struct composed_node_port_type *port_type;
 
-    ctype = (const struct composed_node_type *)
+    self = (const struct composed_node_type *)
         sol_flow_node_get_type(node);
 
-    cdata->inputs_len = ctype->in_ports.len;
+    cdata->inputs_len = self->in_ports.len;
     cdata->inputs = calloc(cdata->inputs_len, sizeof(struct sol_flow_packet *));
     SOL_NULL_CHECK(cdata->inputs, -ENOMEM);
-    port_type = sol_vector_get(&ctype->out_ports, 0);
+    port_type = sol_vector_get(&self->out_ports, 0);
     cdata->composed_type = port_type->type.out.packet_type;
 
     return 0;
@@ -104,22 +104,22 @@ composed_node_open(struct sol_flow_node *node, void *data,
 static void
 composed_node_type_dispose(struct sol_flow_node_type *type)
 {
-    struct composed_node_type *ctype = (struct composed_node_type *)type;
+    struct composed_node_type *self = (struct composed_node_type *)type;
     struct composed_node_port_type *port_type;
     uint16_t i;
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
     struct sol_flow_node_type_description *desc;
 
-    desc = (struct sol_flow_node_type_description *)ctype->base.description;
+    desc = (struct sol_flow_node_type_description *)self->base.description;
     if (desc) {
         if (desc->ports_in) {
-            for (i = 0; i < ctype->in_ports.len; i++)
+            for (i = 0; i < self->in_ports.len; i++)
                 free((struct sol_flow_port_description *)desc->ports_in[i]);
             free((struct sol_flow_port_description **)desc->ports_in);
         }
         if (desc->ports_out) {
-            for (i = 0; i < ctype->out_ports.len; i++)
+            for (i = 0; i < self->out_ports.len; i++)
                 free((struct sol_flow_port_description *)desc->ports_out[i]);
             free((struct sol_flow_port_description **)desc->ports_out);
         }
@@ -127,40 +127,40 @@ composed_node_type_dispose(struct sol_flow_node_type *type)
     }
 #endif
 
-    SOL_VECTOR_FOREACH_IDX (&ctype->in_ports, port_type, i)
+    SOL_VECTOR_FOREACH_IDX (&self->in_ports, port_type, i)
         free(port_type->name);
-    SOL_VECTOR_FOREACH_IDX (&ctype->out_ports, port_type, i)
+    SOL_VECTOR_FOREACH_IDX (&self->out_ports, port_type, i)
         free(port_type->name);
 
-    sol_vector_clear(&ctype->in_ports);
-    sol_vector_clear(&ctype->out_ports);
-    free(ctype);
+    sol_vector_clear(&self->in_ports);
+    sol_vector_clear(&self->out_ports);
+    free(self);
 }
 
 static const struct sol_flow_packet_type *
 get_packet_type(const char *type)
 {
-    if (!strcasecmp(type, "int"))
+    if (!strcmp(type, "int"))
         return SOL_FLOW_PACKET_TYPE_IRANGE;
-    if (!strcasecmp(type, "float"))
+    if (!strcmp(type, "float"))
         return SOL_FLOW_PACKET_TYPE_DRANGE;
-    if (!strcasecmp(type, "string"))
+    if (!strcmp(type, "string"))
         return SOL_FLOW_PACKET_TYPE_STRING;
-    if (!strcasecmp(type, "boolean"))
+    if (!strcmp(type, "boolean"))
         return SOL_FLOW_PACKET_TYPE_BOOLEAN;
-    if (!strcasecmp(type, "byte"))
+    if (!strcmp(type, "byte"))
         return SOL_FLOW_PACKET_TYPE_BYTE;
-    if (!strcasecmp(type, "blob"))
+    if (!strcmp(type, "blob"))
         return SOL_FLOW_PACKET_TYPE_BLOB;
-    if (!strcasecmp(type, "rgb"))
+    if (!strcmp(type, "rgb"))
         return SOL_FLOW_PACKET_TYPE_RGB;
-    if (!strcasecmp(type, "location"))
+    if (!strcmp(type, "location"))
         return SOL_FLOW_PACKET_TYPE_LOCATION;
-    if (!strcasecmp(type, "timestamp"))
+    if (!strcmp(type, "timestamp"))
         return SOL_FLOW_PACKET_TYPE_TIMESTAMP;
-    if (!strcasecmp(type, "direction-vector"))
+    if (!strcmp(type, "direction-vector"))
         return SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
-    if (!strcasecmp(type, "error"))
+    if (!strcmp(type, "error"))
         return SOL_FLOW_PACKET_TYPE_ERROR;
     return NULL;
 }
@@ -225,7 +225,7 @@ static int
 setup_simple_ports(struct sol_vector *in_ports, const struct sol_str_slice contents, bool is_input)
 {
     struct sol_vector tokens;
-    struct sol_str_slice *slice;
+    struct sol_str_slice *slice, pending_slice;
     struct composed_node_port_type *port_type;
     const struct sol_flow_packet_type *packet_type;
     struct sol_buffer buf;
@@ -235,16 +235,41 @@ setup_simple_ports(struct sol_vector *in_ports, const struct sol_str_slice conte
     int r;
 
     sol_buffer_init(&buf);
+
+    pending_slice.data = contents.data;
+    pending_slice.len = 0;
+
     for (i_slice = 0; i_slice < contents.len; i_slice++) {
-        if (isspace(contents.data[i_slice]))
-            continue;
-        sol_buffer_append_slice(&buf, SOL_STR_SLICE_STR(contents.data + i_slice, 1));
+        pending_slice.len++;
+        if (isspace(contents.data[i_slice])) {
+            if (pending_slice.len != 0) {
+                pending_slice.len--;
+                r = sol_buffer_append_slice(&buf, pending_slice);
+                if (r) {
+                    SOL_ERR("Could not append a slice in the buffer");
+                    sol_buffer_fini(&buf);
+                    return r;
+                }
+            }
+            pending_slice.data = contents.data + i_slice + 1;
+            pending_slice.len = 0;
+        }
+    }
+
+    if (pending_slice.len > 0) {
+        r = sol_buffer_append_slice(&buf, pending_slice);
+        if (r) {
+            SOL_ERR("Could not append slice to the buffer");
+            sol_buffer_fini(&buf);
+            return r;
+        }
     }
 
     tokens = sol_util_str_split(sol_buffer_get_slice(&buf), DELIM, 0);
 
     if (tokens.len < 2) {
-        SOL_ERR("A composed node must have at least two ports.");
+        SOL_ERR("A composed node must have at least two ports. Contents:%.*s",
+            SOL_STR_SLICE_PRINT(contents));
         sol_vector_clear(&tokens);
         sol_buffer_fini(&buf);
         return -EINVAL;
@@ -348,10 +373,10 @@ setup_composed_port(struct sol_vector *simple_ports,
 static const struct sol_flow_port_type_in *
 composed_get_port_in(const struct sol_flow_node_type *type, uint16_t port)
 {
-    struct composed_node_type *ctype = (struct composed_node_type *)type;
+    struct composed_node_type *self = (struct composed_node_type *)type;
     struct composed_node_port_type *port_type;
 
-    port_type = sol_vector_get(&ctype->in_ports, port);
+    port_type = sol_vector_get(&self->in_ports, port);
     SOL_NULL_CHECK(port_type, NULL);
     return &port_type->type.in;
 }
@@ -359,10 +384,10 @@ composed_get_port_in(const struct sol_flow_node_type *type, uint16_t port)
 static const struct sol_flow_port_type_out *
 composed_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
 {
-    struct composed_node_type *ctype = (struct composed_node_type *)type;
+    struct composed_node_type *self = (struct composed_node_type *)type;
     struct composed_node_port_type *port_type;
 
-    port_type = sol_vector_get(&ctype->out_ports, port);
+    port_type = sol_vector_get(&self->out_ports, port);
     SOL_NULL_CHECK(port_type, NULL);
     return &port_type->type.out;
 }
@@ -379,7 +404,7 @@ static const struct sol_flow_node_type_description sol_flow_node_type_composed_d
 
 static int
 setup_port_description(struct sol_vector *ports,
-    struct sol_flow_port_description **p_desc)
+    struct sol_flow_port_description **p_desc, bool required)
 {
     uint16_t i;
     struct composed_node_port_type *port_type;
@@ -395,13 +420,13 @@ setup_port_description(struct sol_vector *ports,
             port_type->type.out.packet_type->name;
         p_desc[i]->array_size = 0;
         p_desc[i]->base_port_idx = i;
-        p_desc[i]->required = false;
+        p_desc[i]->required = required;
     }
     return 0;
 }
 
 static int
-setup_description(struct composed_node_type *ctype)
+setup_description(struct composed_node_type *self)
 {
     struct sol_flow_port_description **p;
     struct sol_flow_node_type_description *desc;
@@ -414,23 +439,23 @@ setup_description(struct composed_node_type *ctype)
     memcpy(desc, &sol_flow_node_type_composed_description,
         sizeof(struct sol_flow_node_type_description));
 
-    desc->ports_in = calloc(ctype->in_ports.len + 1,
+    desc->ports_in = calloc(self->in_ports.len + 1,
         sizeof(struct sol_flow_port_description *));
     SOL_NULL_CHECK_GOTO(desc->ports_in, err_ports_in);
 
-    r = setup_port_description(&ctype->in_ports,
-        (struct sol_flow_port_description **)desc->ports_in);
+    r = setup_port_description(&self->in_ports,
+        (struct sol_flow_port_description **)desc->ports_in, true);
     SOL_INT_CHECK_GOTO(r, < 0, err_ports_in_desc);
 
-    desc->ports_out = calloc(ctype->out_ports.len + 1,
+    desc->ports_out = calloc(self->out_ports.len + 1,
         sizeof(struct sol_flow_port_description *));
     SOL_NULL_CHECK_GOTO(desc->ports_out, err_ports_out);
 
-    r = setup_port_description(&ctype->out_ports,
-        (struct sol_flow_port_description **)desc->ports_out);
+    r = setup_port_description(&self->out_ports,
+        (struct sol_flow_port_description **)desc->ports_out, false);
     SOL_INT_CHECK_GOTO(r, < 0, err_ports_out_desc);
 
-    ctype->base.description = desc;
+    self->base.description = desc;
 
     return 0;
 
@@ -457,15 +482,15 @@ create_type(const struct sol_flow_metatype_context *ctx,
     struct sol_flow_node_type **type,
     bool is_splitter)
 {
-    struct composed_node_type *ctype;
+    struct composed_node_type *self;
     struct sol_vector *composed_vector, *simple_ports;
     struct composed_node_port_type *composed_port;
     int r;
 
-    ctype = calloc(1, sizeof(struct composed_node_type));
-    SOL_NULL_CHECK(ctype, -ENOMEM);
+    self = calloc(1, sizeof(struct composed_node_type));
+    SOL_NULL_CHECK(self, -ENOMEM);
 
-    ctype->base = (struct sol_flow_node_type) {
+    self->base = (struct sol_flow_node_type) {
         .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
         .data_size = is_splitter ? 0 : sizeof(struct composed_node_data),
         .dispose_type = composed_node_type_dispose,
@@ -476,17 +501,17 @@ create_type(const struct sol_flow_metatype_context *ctx,
         .close = is_splitter ? NULL : composed_node_close
     };
 
-    sol_vector_init(&ctype->in_ports, sizeof(struct composed_node_port_type));
-    sol_vector_init(&ctype->out_ports, sizeof(struct composed_node_port_type));
+    sol_vector_init(&self->in_ports, sizeof(struct composed_node_port_type));
+    sol_vector_init(&self->out_ports, sizeof(struct composed_node_port_type));
 
     if (!is_splitter) {
-        r = setup_simple_ports(&ctype->in_ports, ctx->contents, true);
-        composed_vector = &ctype->out_ports;
-        simple_ports = &ctype->in_ports;
+        r = setup_simple_ports(&self->in_ports, ctx->contents, true);
+        composed_vector = &self->out_ports;
+        simple_ports = &self->in_ports;
     } else {
-        r = setup_simple_ports(&ctype->out_ports, ctx->contents, false);
-        composed_vector = &ctype->in_ports;
-        simple_ports = &ctype->out_ports;
+        r = setup_simple_ports(&self->out_ports, ctx->contents, false);
+        composed_vector = &self->in_ports;
+        simple_ports = &self->out_ports;
     }
 
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
@@ -497,21 +522,21 @@ create_type(const struct sol_flow_metatype_context *ctx,
     r = setup_composed_port(simple_ports, composed_port, is_splitter);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    ctype->base.ports_in_count = ctype->in_ports.len;
-    ctype->base.ports_out_count = ctype->out_ports.len;
+    self->base.ports_in_count = self->in_ports.len;
+    self->base.ports_out_count = self->out_ports.len;
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
-    r = setup_description(ctype);
+    r = setup_description(self);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 #endif
 
-    r = ctx->store_type(ctx, &ctype->base);
+    r = ctx->store_type(ctx, &self->base);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-    *type = &ctype->base;
+    *type = &self->base;
     return 0;
 
 err_exit:
-    sol_flow_node_type_del(&ctype->base);
+    sol_flow_node_type_del(&self->base);
     return r;
 }
 

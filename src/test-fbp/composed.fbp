@@ -30,8 +30,8 @@
 
 ## TEST-SKIP-COMPILE The generate has no support for the composed-new and composed-split yet.
 
-DECLARE=ComposedCreator:composed-new:STRING_VALUE(String)|INT_VALUE(int)|FLOAT_VALUE(float)
-DECLARE=ComposedSplitter:composed-split:STRING_VALUE(String)|INT_VALUE(int)|FLOAT_VALUE(float)
+DECLARE=ComposedCreator:composed-new:STRING_VALUE(string)|INT_VALUE(int)|FLOAT_VALUE(float)
+DECLARE=ComposedSplitter:composed-split:STRING_VALUE(string)|INT_VALUE(int)|FLOAT_VALUE(float)
 
 Creator(ComposedCreator) OUT -> IN Splitter(ComposedSplitter)
 
