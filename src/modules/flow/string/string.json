@@ -781,6 +781,105 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/string/is-empty.html"
+    },
+    {
+      "category": "string",
+      "description": "Encode a string to Base64",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Input string to be encoded to Base64. It will stop at the first null byte (\\0), for binary data use BLOB port.",
+          "methods": {
+            "process": "string_b64encode_string"
+          },
+          "name": "STRING"
+        },
+        {
+          "data_type": "blob",
+          "description": "Input blob to be encoded to Base64",
+          "methods": {
+            "process": "string_b64encode_blob"
+          },
+          "name": "BLOB"
+        }
+      ],
+      "methods": {
+        "open": "string_b64_open",
+        "close": "string_b64_close"
+      },
+      "name": "string/b64encode",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+            "description": "If non-null must be a map with exactly 65 characters, the first 64 are the map for the 6-bits numbers and the last (position 64) is the padding if input string is not multiple of 3 bytes.",
+            "name": "base64_map"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The Base64 encoded string",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_b64_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/b64encode.html"
+    },
+    {
+      "category": "string",
+      "description": "Decode a string from Base64",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Input Base64 string to be decoded",
+          "methods": {
+            "process": "string_b64decode"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "string_b64_open",
+        "close": "string_b64_close"
+      },
+      "name": "string/b64decode",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+            "description": "If non-null must be a map with exactly 65 characters, the first 64 are the map for the 6-bits numbers and the last (position 64) is the padding if input string is not multiple of 3 bytes.",
+            "name": "base64_map"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The decoded Base64 as textual string. It will stop at the first null byte (\\0), for binary data use BLOB port.",
+          "name": "STRING",
+          "methods": {
+            "connect": "string_b64decode_port_connect",
+            "disconnect": "string_b64decode_port_disconnect"
+          }
+        },
+        {
+          "data_type": "blob",
+          "description": "The decoded Base64 as binary blob.",
+          "name": "BLOB",
+          "methods": {
+            "connect": "string_b64decode_port_connect",
+            "disconnect": "string_b64decode_port_disconnect"
+          }
+        }
+      ],
+      "private_data_type": "string_b64decode_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/b64decode.html"
     }
   ]
 }
