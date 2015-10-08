@@ -39,6 +39,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdint.h>
+#include <sol-buffer.h>
 #include <sol-macros.h>
 #include <sol-str-slice.h>
 
@@ -434,6 +435,11 @@ char *sol_json_escape_string(const char *str, char *buf, size_t len) SOL_ATTR_NO
 int sol_json_double_to_str(const double value, char *buf, size_t buf_len);
 
 bool sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type start_type) SOL_ATTR_NONNULL(1);
+
+int sol_json_serialize_string(struct sol_buffer *buffer, const char *str) SOL_ATTR_NONNULL(1, 2);
+int sol_json_serialize_double(struct sol_buffer *buffer, double val) SOL_ATTR_NONNULL(1);
+int sol_json_serialize_int(struct sol_buffer *buffer, int val) SOL_ATTR_NONNULL(1);
+int sol_json_serialize_boolean(struct sol_buffer *buffer, bool val) SOL_ATTR_NONNULL(1);
 
 /**
  * @}
