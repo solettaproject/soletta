@@ -251,6 +251,112 @@ sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_netwo
     return r;
 }
 
+static bool
+sendmsg_multicast_addrs(int fd, struct sol_network_link *net_link,
+    struct msghdr *msg)
+{
+    struct ip_mreqn ip4_mreq = { .imr_ifindex = net_link->index };
+    struct ipv6_mreq ip6_mreq = { .ipv6mr_interface = net_link->index };
+    struct ip_mreqn orig_ip4_mreq;
+    struct ipv6_mreq orig_ip6_mreq;
+    struct sol_network_link_addr *addr;
+    uint16_t idx;
+    bool success = false;
+
+    SOL_VECTOR_FOREACH_IDX (&net_link->addrs, addr, idx) {
+        void *p_orig, *p_new;
+        int level, option;
+        socklen_t l, l_orig;
+
+        if (addr->family == AF_INET) {
+            level = IPPROTO_IP;
+            option = IP_MULTICAST_IF;
+            p_orig = &orig_ip4_mreq;
+            p_new = &ip4_mreq;
+            l = sizeof(orig_ip4_mreq);
+        } else if (addr->family == AF_INET6) {
+            level = IPPROTO_IPV6;
+            option = IPV6_MULTICAST_IF;
+            p_orig = &orig_ip6_mreq;
+            p_new = &ip6_mreq;
+            l = sizeof(orig_ip6_mreq);
+        } else {
+            SOL_WRN("Unknown address family: %d", addr->family);
+            continue;
+        }
+
+        l_orig = l;
+        if (getsockopt(fd, level, option, p_orig, &l_orig) < 0) {
+            SOL_DBG("Error while getting socket interface: %s",
+                sol_util_strerrora(errno));
+            continue;
+        }
+
+        if (setsockopt(fd, level, option, p_new, l) < 0) {
+            SOL_DBG("Error while setting socket interface: %s",
+                sol_util_strerrora(errno));
+            continue;
+        }
+
+        if (sendmsg(fd, msg, 0) < 0) {
+            SOL_DBG("Error while sending multicast message: %s",
+                sol_util_strerrora(errno));
+            continue;
+        }
+
+        if (setsockopt(fd, level, option, p_orig, l_orig) < 0) {
+            SOL_DBG("Error while restoring socket interface: %s",
+                sol_util_strerrora(errno));
+            continue;
+        }
+
+        success = true;
+    }
+
+    return success;
+}
+
+static int
+sendmsg_multicast(int fd, struct msghdr *msg)
+{
+    const unsigned int running_multicast = SOL_NETWORK_LINK_RUNNING | SOL_NETWORK_LINK_MULTICAST;
+    const struct sol_vector *net_links = sol_network_get_available_links();
+    struct sol_network_link *net_link;
+    uint16_t idx;
+    bool had_success = false;
+
+    if (!net_links || !net_links->len)
+        return -ENOTCONN;
+
+    SOL_VECTOR_FOREACH_IDX (net_links, net_link, idx) {
+        if ((net_link->flags & running_multicast) == running_multicast) {
+            if (sendmsg_multicast_addrs(fd, net_link, msg))
+                had_success = true;
+        }
+    }
+
+    return had_success ? 0 : -EIO;
+}
+
+static bool
+is_multicast(int family, const struct sockaddr *sockaddr)
+{
+    if (family == AF_INET6) {
+        const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)sockaddr;
+
+        return IN6_IS_ADDR_MULTICAST(&addr6->sin6_addr);
+    }
+
+    if (family == AF_INET) {
+        const struct sockaddr_in *addr4 = (const struct sockaddr_in *)sockaddr;
+
+        return IN_MULTICAST(htonl(addr4->sin_addr.s_addr));
+    }
+
+    SOL_WRN("Unknown address family (%d)", family);
+    return false;
+}
+
 SOL_API int
 sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
     const struct sol_network_link_addr *cliaddr)
@@ -271,6 +377,9 @@ sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
 
     msg.msg_name = &sockaddr;
     msg.msg_namelen = l;
+
+    if (is_multicast(cliaddr->family, (struct sockaddr *)sockaddr))
+        return sendmsg_multicast(s->fd, &msg);
 
     if (sendmsg(s->fd, &msg, 0) < 0)
         return -errno;
@@ -301,7 +410,6 @@ sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_networ
         l = sizeof(ip_join);
         level = IPPROTO_IP;
         option = IP_ADD_MEMBERSHIP;
-
     } else {
         memcpy(&ip6_join.ipv6mr_multiaddr, group->addr.in6, sizeof(group->addr.in6));
         ip6_join.ipv6mr_interface = ifindex;
