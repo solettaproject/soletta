@@ -21,19 +21,25 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-	  "process_token": "boolean_process_token",
-	  "process_data": "boolean_process_data"
+          "process_token": "boolean_process_token",
+          "process_data": "boolean_process_data"
         }
       },
       "options": {
-	"members": [
-	  {
-	    "data_type": "string",
-	    "description": "The url that will be used on request and posts",
-	    "name": "url"
-	  }
-	],
-	"version": 1
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
+          }
+        ],
+        "version": 1
       },
       "in_ports": [
         {
@@ -85,19 +91,25 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-	  "process_token": "string_process_token",
-	  "process_data": "string_process_data"
+          "process_token": "string_process_token",
+          "process_data": "string_process_data"
         }
       },
       "options": {
-	"members": [
-	  {
-	    "data_type": "string",
-	    "description": "The url that will be used on request and posts",
-	    "name": "url"
-	  }
-	],
-	"version": 1
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
+          }
+        ],
+        "version": 1
       },
       "in_ports": [
         {
@@ -149,19 +161,25 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-	  "process_token": "int_process_token",
-	  "process_data": "int_process_data"
+          "process_token": "int_process_token",
+          "process_data": "int_process_data"
         }
       },
       "options": {
-	"members": [
-	  {
-	    "data_type": "string",
-	    "description": "The url that will be used on request and posts",
-	    "name": "url"
-	  }
-	],
-	"version": 1
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
+          }
+        ],
+        "version": 1
       },
       "in_ports": [
         {
@@ -213,19 +231,25 @@
         ],
         "data_type": "struct http_client_node_type",
         "extra_methods": {
-	  "process_token": "float_process_token",
-	  "process_data": "float_process_data"
+          "process_token": "float_process_token",
+          "process_data": "float_process_data"
         }
       },
       "options": {
-	"members": [
-	  {
-	    "data_type": "string",
-	    "description": "The url that will be used on request and posts",
-	    "name": "url"
-	  }
-	],
-	"version": 1
+        "members": [
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
+          }
+        ],
+        "version": 1
       },
       "in_ports": [
         {
@@ -289,6 +313,12 @@
             "default": null,
             "description": "The url to make a GET request",
             "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
           },
           {
             "data_type": "boolean",
@@ -357,6 +387,12 @@
             "default": null,
             "description": "The url to make a GET request",
             "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
           },
           {
             "data_type": "boolean",
