@@ -223,6 +223,7 @@ generate_token_cb(void *data,
     struct http_get_data *mdata = data;
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
+    struct sol_buffer buffer;
     enum sol_json_loop_reason reason;
     const size_t auth_len = strlen(AUTH_START);
 
@@ -253,12 +254,14 @@ generate_token_cb(void *data,
         response->content.used);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
         size_t value_size, token_size;
+        int r;
 
         if (!SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "access_token"))
             continue;
 
-        sol_json_token_remove_quotes(&value);
-        value_size = sol_json_token_get_size(&value);
+        r = sol_json_token_get_unescaped_string(&value, &buffer);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        value_size = buffer.used;
         token_size = value_size + auth_len + 1;
 
         free(mdata->token);
@@ -266,12 +269,14 @@ generate_token_cb(void *data,
         SOL_NULL_CHECK(mdata->token);
 
         strcpy(mdata->token, AUTH_START);
-        memcpy(mdata->token + auth_len, value.start, value_size);
+        memcpy(mdata->token + auth_len, buffer.data, buffer.used);
         *(mdata->token + token_size - 1) = '\0';
+        sol_buffer_fini(&buffer);
 
         return;
     }
 
+error:
     sol_flow_send_error_packet(mdata->node, ENOKEY,
         "Server response doesn't contain a token.");
 }
@@ -401,12 +406,9 @@ get_timestamp(struct sol_json_token *value, struct timespec *timestamp)
 {
     struct tm time_tm = { 0 };
     time_t tmp_timestamp;
-    char *timestamp_str;
-    char *p;
+    char *p, *timestamp_str;
 
-    sol_json_token_remove_quotes(value);
-
-    timestamp_str = strndup(value->start, sol_json_token_get_size(value));
+    timestamp_str = sol_json_token_get_unescaped_string_copy(value);
     SOL_NULL_CHECK(timestamp_str, -EINVAL);
     p = strptime(timestamp_str, "%Y-%m-%dT%H:%M:%SZ", &time_tm);
     free(timestamp_str);
@@ -562,9 +564,7 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "location_identifier")) {
-                    sol_json_token_remove_quotes(&value);
-                    fpd.id = strndup(value.start,
-                        sol_json_token_get_size(&value));
+                    fpd.id = sol_json_token_get_unescaped_string_copy(&value);
                     SOL_NULL_CHECK_GOTO(fpd.id, fpd_error);
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "last_sample_upload")) {
@@ -613,8 +613,7 @@ fpd_error:
                     }
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "sensor_serial")) {
-                    sol_json_token_remove_quotes(&value);
-                    id = strndup(value.start, sol_json_token_get_size(&value));
+                    id = sol_json_token_get_unescaped_string_copy(&value);
                     SOL_NULL_CHECK_GOTO(id, error);
                 } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key,
                     "last_upload_datetime_utc")) {

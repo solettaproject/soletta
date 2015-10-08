@@ -42,6 +42,7 @@
 #include <sol-buffer.h>
 #include <sol-macros.h>
 #include <sol-str-slice.h>
+#include <sol-buffer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -194,17 +195,6 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsig
 
 #define SOL_JSON_TOKEN_STR_LITERAL_EQ(token_, str_) \
     sol_json_token_str_eq(token_, str_, sizeof(str_) - 1)
-
-static inline void
-sol_json_token_remove_quotes(struct sol_json_token *token)
-{
-    if (sol_json_token_get_size(token) < 3)
-        return;
-    if (*token->start == '"')
-        token->start++;
-    if (*(token->end - 1) == '"')
-        token->end--;
-}
 
 /**
  * Get the numeric value of the given token as an 64 bits unsigned integer.
@@ -443,6 +433,34 @@ int sol_json_serialize_uint32(struct sol_buffer *buffer, uint32_t val) SOL_ATTR_
 int sol_json_serialize_int64(struct sol_buffer *buffer, int64_t val) SOL_ATTR_NONNULL(1);
 int sol_json_serialize_uint64(struct sol_buffer *buffer, uint64_t val) SOL_ATTR_NONNULL(1);
 int sol_json_serialize_boolean(struct sol_buffer *buffer, bool val) SOL_ATTR_NONNULL(1);
+
+/**
+ *  Get in a sol_buffer the string value of informed token. If token type is
+ *  a JSON string, quotes are removed and string is unescaped. If not
+ *  full token value is returned as a string.
+ *
+ *  If necessary memory will be allocated to place unescaped string, so
+ *  caller is responsable to call sol_buffer_fini after using the buffer
+ *  content.
+ *
+ *  @param token A token to get string from
+ *  @param buf An unitialized buffer. sol_buffer_init will be called internally
+ *
+ *  @return 0 on sucess, a negative error code on failure.
+ */
+int sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct sol_buffer *buffer);
+
+/**
+ *  Helper function to get a copy of the unescaped and no-quotes string
+ *  produced by sol_json_token_get_unescaped_string.
+ *
+ *  Caller is responsable to free string memory.
+ *
+ *  @param token A string type token
+ *
+ *  @return A a copy of the unescaped string on sucess, NULL on failure.
+ */
+char *sol_json_token_get_unescaped_string_copy(const struct sol_json_token *value);
 
 /**
  * @}

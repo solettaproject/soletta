@@ -689,3 +689,139 @@ sol_json_serialize_boolean(struct sol_buffer *buffer, bool val)
 
     return 0;
 }
+
+SOL_API int
+sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct sol_buffer *buffer)
+{
+    int r;
+    const char *start, *p;
+    bool is_escaped = false;
+    char new_char;
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+    sol_buffer_init_flags(buffer, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
+    SOL_NULL_CHECK(token, -EINVAL);
+    SOL_NULL_CHECK(token->start, -EINVAL);
+    SOL_NULL_CHECK(token->end, -EINVAL);
+
+    if (*token->start != '"' || *(token->end - 1) != '"')
+        goto invalid_json_string;
+
+    for (start = p = token->start + 1; p < token->end - 1; p++) {
+        if (!is_escaped && *p == '\\') {
+            struct sol_str_slice slice = { .data = start, .len = p - start };
+
+            r = sol_buffer_append_slice(buffer, slice);
+            SOL_INT_CHECK_GOTO(r, < 0, error);
+            is_escaped = true;
+        } else if (is_escaped) {
+            is_escaped = false;
+            start = p + 1;
+            switch (*p) {
+            case '\\':
+                new_char = '\\';
+                break;
+            case '/':
+                new_char = '/';
+                break;
+            case '"':
+                new_char = '"';
+                break;
+            case 'b':
+                new_char = '\b';
+                break;
+            case 'r':
+                new_char = '\r';
+                break;
+            case 'n':
+                new_char = '\n';
+                break;
+            case 'f':
+                new_char = '\f';
+                break;
+            case 't':
+                new_char = '\t';
+                break;
+            case 'u':
+                if (p + 4 < token->end - 1) {
+                    char hexdigits[3], *endptr;
+                    uint16_t n;
+                    hexdigits[2] = '\0';
+
+                    //Add first unicode byte
+                    memcpy(hexdigits, p + 3, 2);
+                    errno = 0;
+                    n = strtoul(hexdigits, &endptr, 16);
+                    SOL_INT_CHECK(errno, > 0, -errno);
+                    if (n > 0) {
+                        r = sol_buffer_append_char(buffer, (char)n);
+                        SOL_INT_CHECK(r, < 0, r);
+                    }
+
+                    //Add second unicode byte
+                    memcpy(hexdigits, p + 1, 2);
+                    errno = 0;
+                    n = strtoul(hexdigits, &endptr, 16);
+                    SOL_INT_CHECK(errno, > 0, -errno);
+                    r = sol_buffer_append_char(buffer, (char)n);
+                    SOL_INT_CHECK(r, < 0, r);
+
+                    start += 4;
+                    p += 4;
+                    continue;
+                }
+            default:
+                goto invalid_json_string;
+            }
+            r = sol_buffer_append_char(buffer, new_char);
+            SOL_INT_CHECK_GOTO(r, < 0, error);
+        }
+    }
+
+    if (is_escaped)
+        goto invalid_json_string;
+
+    if (start == token->start + 1) {
+        sol_buffer_init_flags(buffer, (char *)start, p - start,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        buffer->used = buffer->capacity;
+    } else {
+        struct sol_str_slice slice = { .data = start, .len = p - start };
+        r = sol_buffer_append_slice(buffer, slice);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+    }
+    return 0;
+
+error:
+    sol_buffer_fini(buffer);
+    return r;
+
+invalid_json_string:
+    SOL_WRN("Invalid JSON string: %.*s", (int)sol_json_token_get_size(token),
+        (char *)token->start);
+    return -EINVAL;
+}
+
+SOL_API char *
+sol_json_token_get_unescaped_string_copy(const struct sol_json_token *value)
+{
+    struct sol_buffer buffer;
+    int r;
+
+    r = sol_json_token_get_unescaped_string(value, &buffer);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    if (buffer.flags & SOL_BUFFER_FLAGS_NO_FREE)
+        return strndup(buffer.data, buffer.used);
+
+    buffer.flags = SOL_BUFFER_FLAGS_DEFAULT;
+    r = sol_buffer_ensure_nul_byte(&buffer);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    return sol_buffer_steal(&buffer, NULL);
+
+error:
+    sol_buffer_fini(&buffer);
+    return NULL;
+}
