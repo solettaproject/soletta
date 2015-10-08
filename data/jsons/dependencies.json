@@ -484,6 +484,11 @@
         "in-tree": "{TOP_SRCDIR}/src/thirdparty/tinydtls",
         "out-of-tree": "{TINYDTLS_SRC}"
       }
+    },
+    {
+      "dependency": "libkmod",
+      "type": "pkg-config",
+      "pkgname": "libkmod"
     }
   ]
 }
