@@ -697,18 +697,23 @@ SOL_API int
 sol_http_server_remove_dir(struct sol_http_server *server, const char *rootdir)
 {
     uint16_t i;
-    char *dir;
+    char *dir, *aux;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(rootdir, -EINVAL);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
-        if (streq(dir, rootdir)) {
+    dir = realpath(rootdir, NULL);
+    SOL_NULL_CHECK(dir, -ENOMEM);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, aux, i) {
+        if (streq(dir, aux)) {
             free(dir);
+            free(aux);
             sol_ptr_vector_del(&server->dirs, i);
             return 0;
         }
     }
 
+    free(dir);
     return -ENODATA;
 }
