@@ -42,6 +42,7 @@
 #include "sol-http-client.h"
 #include "sol-json.h"
 #include "sol-mainloop.h"
+#include "sol-platform.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 #include "sol_config.h"
@@ -51,6 +52,7 @@ struct http_data {
     struct sol_str_slice key;
     char *url;
     char *content_type;
+    bool machine_id;
     bool strict;
 };
 
@@ -59,6 +61,22 @@ struct http_client_node_type {
     int (*process_token)(struct sol_flow_node *node, struct sol_json_token *key, struct sol_json_token *value);
     int (*process_data)(struct sol_flow_node *node, struct sol_http_response *response);
 };
+
+static int
+machine_id_header_add(struct sol_http_param *params)
+{
+    int r;
+    const char *id;
+
+    id = sol_platform_get_machine_id();
+    SOL_NULL_CHECK(id, -errno);
+
+    r = sol_http_param_add(params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("X-Soletta-Machine-ID", id));
+    SOL_INT_CHECK(r, != true, -ENOMEM);
+
+    return 0;
+}
 
 static void
 get_key(struct http_data *mdata)
@@ -99,6 +117,8 @@ common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
 
     mdata->url = strdup(opts->url);
     SOL_NULL_CHECK(mdata->url, -ENOMEM);
+
+    mdata->machine_id = opts->machine_id;
 
     get_key(mdata);
     sol_ptr_vector_init(&mdata->pending_conns);
@@ -212,8 +232,13 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     if (!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) {
         SOL_WRN("Failed to set query params");
-        sol_http_param_free(&params);
-        return -ENOMEM;
+        r = -ENOMEM;
+        goto err;
+    }
+
+    if (mdata->machine_id) {
+        r = machine_id_header_add(&params);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
     }
 
     connection = sol_http_client_request(SOL_HTTP_METHOD_GET, mdata->url,
@@ -231,6 +256,10 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     }
 
     return 0;
+
+err:
+    sol_http_param_free(&params);
+    return r;
 }
 
 static int
@@ -249,6 +278,11 @@ common_post_process(struct sol_flow_node *node, void *data, ...)
         SOL_WRN("Could not add the header '%s:%s' into request to %s",
             "Accept", "application/json", mdata->url);
         goto err;
+    }
+
+    if (mdata->machine_id) {
+        r = machine_id_header_add(&params);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
     }
 
     va_start(ap, data);
@@ -548,6 +582,7 @@ generic_open(struct sol_flow_node *node, void *data,
     }
 
     mdata->strict = opts->strict;
+    mdata->machine_id = opts->machine_id;
     sol_ptr_vector_init(&mdata->pending_conns);
     return 0;
 
@@ -657,8 +692,12 @@ generic_get_process(struct sol_flow_node *node, void *data, uint16_t port,
     if (mdata->content_type && !sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->content_type))) {
         SOL_ERR("Could not add the HTTP Accept's param");
-        sol_http_param_free(&params);
-        return -ENOMEM;
+        goto err;
+    }
+
+    if (mdata->machine_id) {
+        r = machine_id_header_add(&params);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
     }
 
     conn = sol_http_client_request(SOL_HTTP_METHOD_GET, mdata->url, &params,
@@ -674,6 +713,10 @@ generic_get_process(struct sol_flow_node *node, void *data, uint16_t port,
     }
     SOL_DBG("Making request to: %s", mdata->url);
     return 0;
+
+err:
+    sol_http_param_free(&params);
+    return -ENOMEM;
 }
 
 #include "http-client-gen.c"
