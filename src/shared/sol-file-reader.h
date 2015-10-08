@@ -38,6 +38,7 @@
 struct sol_file_reader;
 
 struct sol_file_reader *sol_file_reader_open(const char *filename);
+struct sol_file_reader *sol_file_reader_from_fd(int fd);
 void sol_file_reader_close(struct sol_file_reader *fr);
 struct sol_str_slice sol_file_reader_get_all(const struct sol_file_reader *fr);
 const struct stat *sol_file_reader_get_stat(const struct sol_file_reader *fr);
