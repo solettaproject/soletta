@@ -135,7 +135,7 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
     buffer = sol_buffer_steal(&connection->buffer, &size);
     response = &(struct sol_http_response) {
         .api_version = SOL_HTTP_RESPONSE_API_VERSION,
-        .content = SOL_BUFFER_INIT_CONST(buffer, size)
+        .content = SOL_BUFFER_INIT_DATA(buffer, size)
     };
 
     if (connection->error) {
