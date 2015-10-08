@@ -567,3 +567,75 @@ sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type type
            sol_json_scanner_skip_over(scanner, &token) &&
            token.end == last_position;
 }
+
+SOL_API int
+sol_json_serialize_string(struct sol_buffer *buffer, const char *str)
+{
+    int r;
+    size_t escaped_len, new_size;
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+    SOL_NULL_CHECK(str, -EINVAL);
+
+    escaped_len = sol_json_calculate_escaped_string_len(str);
+    r = sol_util_size_add(buffer->used, escaped_len + 2, &new_size);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_ensure(buffer, buffer->used + escaped_len + 2);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_char(buffer, '\"');
+    SOL_INT_CHECK(r, < 0, r);
+
+    sol_json_escape_string(str, sol_buffer_at_end(buffer), escaped_len);
+    buffer->used += escaped_len - 1; /* remove \0 in the result */
+
+    r = sol_buffer_append_char(buffer, '\"');
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+SOL_API int
+sol_json_serialize_double(struct sol_buffer *buffer, double val)
+{
+    int r;
+    char val_str[64];
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    r = sol_json_double_to_str(val, val_str, sizeof(val_str));
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_slice(buffer, SOL_STR_SLICE_STR(val_str, strlen(val_str)));
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+SOL_API int
+sol_json_serialize_int(struct sol_buffer *buffer, int val)
+{
+    int r;
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    r = sol_buffer_append_printf(buffer, "%d", val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+SOL_API int
+sol_json_serialize_boolean(struct sol_buffer *buffer, bool val)
+{
+    int r;
+    const char *val_str = (val) ? "true" : "false";
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    r = sol_buffer_append_slice(buffer, SOL_STR_SLICE_STR(val_str, strlen(val_str)));
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
