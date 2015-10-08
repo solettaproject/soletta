@@ -108,6 +108,80 @@ test_str_slice_str_eq(void)
 #undef TEST_NOT_EQUAL
 }
 
+DEFINE_TEST(test_str_slice_remove_leading_whitespace);
+
+static void
+test_str_slice_remove_leading_whitespace(void)
+{
+    unsigned int i;
+
+#define TEST_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), true }
+#define TEST_NOT_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), false }
+
+    static const struct {
+        struct sol_str_slice input;
+        bool equal;
+    } table[] = {
+        TEST_NOT_EQUAL(" with one leading whitespace"),
+        TEST_NOT_EQUAL("  with two leading whitespace"),
+        TEST_NOT_EQUAL(" "),
+        TEST_NOT_EQUAL("\twith one leading whitespace"),
+        TEST_NOT_EQUAL("\t\twith two leading whitespace"),
+        TEST_NOT_EQUAL("\t"),
+        TEST_NOT_EQUAL("\nwith one leading whitespace"),
+        TEST_NOT_EQUAL("\n\nwith two leading whitespace"),
+        TEST_NOT_EQUAL("\n"),
+        TEST_EQUAL(""),
+        TEST_EQUAL("without leading whitespace"),
+    };
+
+    for (i = 0; i < ARRAY_SIZE(table); i++) {
+        struct sol_str_slice slice;
+        slice = sol_str_slice_remove_leading_whitespace(table[i].input);
+        ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
+    }
+
+#undef TEST_EQUAL
+#undef TEST_NOT_EQUAL
+}
+
+DEFINE_TEST(test_str_slice_remove_trailing_whitespace);
+
+static void
+test_str_slice_remove_trailing_whitespace(void)
+{
+    unsigned int i;
+
+#define TEST_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), true }
+#define TEST_NOT_EQUAL(X) { SOL_STR_SLICE_LITERAL(X), false }
+
+    static const struct {
+        struct sol_str_slice input;
+        bool equal;
+    } table[] = {
+        TEST_NOT_EQUAL("with one trailing whitespace "),
+        TEST_NOT_EQUAL("with two trailing whitespace  "),
+        TEST_NOT_EQUAL(" "),
+        TEST_NOT_EQUAL("with one trailing whitespace\t"),
+        TEST_NOT_EQUAL("with two trailing whitespace\t\t"),
+        TEST_NOT_EQUAL("\t"),
+        TEST_NOT_EQUAL("with one trailing whitespace\n"),
+        TEST_NOT_EQUAL("with two trailing whitespace\n\n"),
+        TEST_NOT_EQUAL("\n"),
+        TEST_EQUAL(""),
+        TEST_EQUAL("without trailing whitespace"),
+    };
+
+    for (i = 0; i < ARRAY_SIZE(table); i++) {
+        struct sol_str_slice slice;
+        slice = sol_str_slice_remove_trailing_whitespace(table[i].input);
+        ASSERT(sol_str_slice_eq(table[i].input, slice) == table[i].equal);
+    }
+
+#undef TEST_EQUAL
+#undef TEST_NOT_EQUAL
+}
+
 DEFINE_TEST(test_str_slice_to_string);
 
 static void
