@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <sol-macros.h>
 #include <sol-str-slice.h>
+#include <sol-buffer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -193,17 +194,6 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsig
 
 #define SOL_JSON_TOKEN_STR_LITERAL_EQ(token_, str_) \
     sol_json_token_str_eq(token_, str_, sizeof(str_) - 1)
-
-static inline void
-sol_json_token_remove_quotes(struct sol_json_token *token)
-{
-    if (sol_json_token_get_size(token) < 3)
-        return;
-    if (*token->start == '"')
-        token->start++;
-    if (*(token->end - 1) == '"')
-        token->end--;
-}
 
 /**
  * Get the numeric value of the given token as an 64 bits unsigned integer.
@@ -434,6 +424,34 @@ char *sol_json_escape_string(const char *str, char *buf, size_t len) SOL_ATTR_NO
 int sol_json_double_to_str(const double value, char *buf, size_t buf_len);
 
 bool sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type start_type) SOL_ATTR_NONNULL(1);
+
+/**
+ *  Get in a sol_buffer the string value of informed token. If token type is
+ *  a JSON string, quotes are removed and string is unescaped. If not
+ *  full token value is returned as a string.
+ *
+ *  If necessary memory will be allocated to place unescaped string, so
+ *  caller is responsable to call sol_buffer_fini after using the buffer
+ *  content.
+ *
+ *  @param token A token to get string from
+ *  @param buf An unitialized buffer. sol_buffer_init will be called internally
+ *
+ *  @return 0 on sucess, a negative error code on failure.
+ */
+int sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct sol_buffer *buffer);
+
+/**
+ *  Helper function to get a copy of the unescaped and no-quotes string
+ *  produced by sol_json_token_get_unescaped_string.
+ *
+ *  Caller is responsable to free string memory.
+ *
+ *  @param token A string type token
+ *
+ *  @return A a copy of the unescaped string on sucess, NULL on failure.
+ */
+char *sol_json_token_get_unescaped_string_copy(struct sol_json_token *value);
 
 /**
  * @}

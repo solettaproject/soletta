@@ -104,21 +104,28 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
 
     sol_json_scanner_init_from_token(&scanner, &options_object);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        int key_len, value_len;
+        int key_ret, value_ret, r;
+        struct sol_buffer key_buf, value_buf;
         char *tmp;
 
-        sol_json_token_remove_quotes(&key);
-        key_len = sol_json_token_get_size(&key);
-        sol_json_token_remove_quotes(&value);
-        value_len = sol_json_token_get_size(&value);
+        key_ret = sol_json_token_get_unescaped_string(&key, &key_buf);
+        value_ret = sol_json_token_get_unescaped_string(&value, &value_buf);
 
-        if (!key_len || !value_len) {
+        if (key_ret < 0 || value_ret < 0 || !key_buf.used || !value_buf.used) {
+            sol_buffer_fini(&key_buf);
+            sol_buffer_fini(&value_buf);
             reason = SOL_JSON_LOOP_REASON_INVALID;
             break;
         }
 
-        if (asprintf(&tmp, "%.*s=%.*s", key_len, key.start, value_len, value.start) <= 0) {
-            SOL_WRN("Couldn't allocate memory for the config file, ignoring options.");
+        r = asprintf(&tmp, "%.*s=%.*s",
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&key_buf)),
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&value_buf)));
+        sol_buffer_fini(&key_buf);
+        sol_buffer_fini(&value_buf);
+        if (r <= 0) {
+            SOL_WRN("Couldn't allocate memory for the config file, "
+                "ignoring options.");
             return -ENOMEM;
             break;
         }
@@ -194,23 +201,18 @@ _parse_memmap_entries(struct sol_vector *entries_vector, struct sol_json_token t
     struct sol_json_token key, value;
     struct sol_memmap_entry *memmap_entry = NULL;
     struct sol_str_table_ptr *ptr_table_entry;
-    int i = 0;
+    struct sol_buffer name_buffer = SOL_BUFFER_INIT_EMPTY;
+    int i = 0, r;
 
     sol_json_scanner_init_from_token(&entries, &token);
 
     SOL_JSON_SCANNER_ARRAY_LOOP (&entries, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         uint32_t size = 0, offset = 0, bit_offset = 0, bit_size = 0;
-        struct sol_str_slice name = { };
+        struct sol_json_token name = { NULL, NULL };
 
         SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&entries, &token, &key, &value, reason) {
             if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "name")) {
-                sol_json_token_remove_quotes(&value);
-                name = sol_json_token_to_slice(&value);
-                if (!name.len) {
-                    SOL_ERR("Couldn't get entry #%d name at [%.*s]",
-                        i, CURRENT_TOKEN);
-                    goto error;
-                }
+                name = value;
             } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "offset")) {
                 if (sol_json_token_get_uint32(&value, &offset) < 0) {
                     SOL_ERR("Couldn't get entry #%d offset at [%.*s]",
@@ -248,18 +250,20 @@ _parse_memmap_entries(struct sol_vector *entries_vector, struct sol_json_token t
             goto error;
         }
 
-        if (!name.len) {
-            SOL_WRN("Memmap entry #%d must have a name", i);
+        r = sol_json_token_get_unescaped_string(&name, &name_buffer);
+        if (r < 0 || !name_buffer.used) {
+            SOL_WRN("Memmap entry #%d must have a name_buffer", i);
             goto error;
         }
         if (!size) {
             SOL_ERR("Entry #%d size must be greater than zero [%.*s]", i,
-                SOL_STR_SLICE_PRINT(name));
+                SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&name_buffer)));
             goto error;
         }
         if (bit_size > (size * 8)) {
             SOL_ERR("Invalid bit size for entry #%d [%.*s]. Must not be greater"
-                "than size * 8 [%d]", i, SOL_STR_SLICE_PRINT(name), size * 8);
+                "than size * 8 [%d]", i,
+                SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&name_buffer)), size * 8);
             goto error;
         }
 
@@ -274,16 +278,18 @@ _parse_memmap_entries(struct sol_vector *entries_vector, struct sol_json_token t
         memmap_entry->bit_offset = bit_offset;
         memmap_entry->bit_size = bit_size;
 
-        ptr_table_entry->key = sol_arena_strdup_slice(str_arena, name);
+        ptr_table_entry->key = sol_arena_strdup_slice(str_arena,
+            sol_buffer_get_slice(&name_buffer));
         if (!ptr_table_entry->key) {
-            SOL_ERR("Could not copy entry #%d [%.*s] name", i,
-                SOL_STR_SLICE_PRINT(name));
+            SOL_ERR("Could not copy entry #%d [%.*s] name_buffer", i,
+                SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&name_buffer)));
             goto error;
         }
-        ptr_table_entry->len = name.len;
+        ptr_table_entry->len = name_buffer.used;
         ptr_table_entry->val = memmap_entry;
 
         i++;
+        sol_buffer_fini(&name_buffer);
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
         SOL_ERR("Invalid json after entry #%d at [%.*s]", i,
@@ -298,6 +304,7 @@ _parse_memmap_entries(struct sol_vector *entries_vector, struct sol_json_token t
     return true;
 
 error:
+    sol_buffer_fini(&name_buffer);
     return false;
 }
 
@@ -311,27 +318,23 @@ _parse_maps(struct sol_json_token token)
     struct sol_json_scanner scanner;
     size_t entries_vector_size;
     struct sol_str_table_ptr *ptr_table_entry;
+    struct sol_buffer path_buffer;
     void *data;
     int i = 0;
+    int r;
 
     sol_json_scanner_init_from_token(&scanner, &token);
     SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
-        struct sol_str_slice path = { };
+        struct sol_json_token path = { NULL, NULL };
         uint32_t version = 0;
         void *entries_destination;
 
         map = NULL;
 
         SOL_JSON_SCANNER_OBJECT_LOOP_NEST (&scanner, &token, &key, &value, reason) {
-            if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "path")) {
-                sol_json_token_remove_quotes(&value);
-                path = sol_json_token_to_slice(&value);
-                if (!path.len) {
-                    SOL_ERR("Couldn't get map #%d path at [%.*s]", i,
-                        CURRENT_TOKEN);
-                    goto error;
-                }
-            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "version")) {
+            if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "path"))
+                path = value;
+            else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "version")) {
                 if (sol_json_token_get_uint32(&value, &version) < 0) {
                     SOL_ERR("Couldn't get map #%d version at [%.*s]", i,
                         CURRENT_TOKEN);
@@ -355,7 +358,11 @@ _parse_maps(struct sol_json_token token)
         SOL_NULL_CHECK_GOTO(map, error);
 
         map->version = version;
-        map->path = sol_arena_strdup_slice(str_arena, path);
+        r = sol_json_token_get_unescaped_string(&path, &path_buffer);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        map->path = sol_arena_strdup_slice(str_arena,
+            sol_buffer_get_slice(&path_buffer));
+        sol_buffer_fini(&path_buffer);
         SOL_NULL_CHECK_GOTO(map->path, error);
         data = sol_vector_take_data(&entries_vector);
         entries_destination = &map->entries + 1;
@@ -387,6 +394,7 @@ error:
         free((void *)ptr_table_entry->val);
     }
     sol_vector_clear(&entries_vector);
+    sol_buffer_fini(&path_buffer);
 
     return false;
 }
@@ -563,8 +571,7 @@ _get_json_include_paths(
         if (sol_json_token_str_eq(&key, include_fallback, strlen(include_fallback))) {
             char *buff;
             struct sol_str_slice *s;
-            sol_json_token_remove_quotes(&value);
-            buff = strndup(value.start, sol_json_token_get_size(&value));
+            buff = sol_json_token_get_unescaped_string_copy(&value);
             if (!buff) {
                 SOL_DBG("Error: couldn't allocate memory for string.");
                 continue;
