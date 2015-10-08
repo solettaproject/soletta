@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -121,6 +122,36 @@ static inline char *
 sol_str_slice_to_string(const struct sol_str_slice slice)
 {
     return strndup(slice.data, slice.len);
+}
+
+static inline struct sol_str_slice
+sol_str_slice_remove_leading_whitespace(struct sol_str_slice slice)
+{
+    struct sol_str_slice copy = slice;
+
+    while (isspace(*copy.data) && copy.len) {
+        copy.data++;
+        copy.len--;
+    }
+
+    return copy;
+}
+
+static inline struct sol_str_slice
+sol_str_slice_remove_trailing_whitespace(struct sol_str_slice slice)
+{
+    struct sol_str_slice copy = slice;
+    int len = copy.len;
+
+    if (copy.data[len] == '\0')
+        len--;
+
+    while (isspace(copy.data[len])) {
+        copy.len--;
+        len--;
+    }
+
+    return copy;
 }
 
 /**
