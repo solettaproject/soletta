@@ -52,7 +52,20 @@ struct sol_file_reader {
 struct sol_file_reader *
 sol_file_reader_open(const char *filename)
 {
-    int fd = -1, saved_errno;
+    int fd = -1;
+    struct sol_file_reader *ret;
+
+    fd = open(filename, O_RDONLY | O_CLOEXEC);
+    if (fd < 0)
+        return NULL;
+
+    return sol_file_reader_from_fd(fd);
+}
+
+struct sol_file_reader *
+sol_file_reader_from_fd(int fd)
+{
+    int saved_errno;
     struct sol_file_reader *fr, *result = NULL;
     struct sol_buffer *buffer;
     size_t size;
@@ -62,10 +75,6 @@ sol_file_reader_open(const char *filename)
         return NULL;
 
     fr->mmapped = false;
-
-    fd = open(filename, O_RDONLY | O_CLOEXEC);
-    if (fd < 0)
-        goto err;
 
     if (fstat(fd, &fr->st) < 0)
         goto err;
@@ -91,8 +100,6 @@ success:
 err:
     saved_errno = errno;
     free(fr);
-    if (fd >= 0)
-        close(fd);
     errno = saved_errno;
     return result;
 }
