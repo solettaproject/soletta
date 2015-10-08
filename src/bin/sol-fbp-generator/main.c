@@ -113,6 +113,51 @@ static struct port_description error_port = {
     .base_port_idx = SOL_FLOW_NODE_PORT_ERROR,
 };
 
+static int
+to_c_symbol(const char *str, struct sol_buffer *buf)
+{
+    const char *start, *p;
+
+    sol_buffer_init(buf);
+
+    for (start = p = str; *p; p++) {
+        if (isalnum(*p) || *p == '_')
+            continue;
+        else {
+            struct sol_str_slice slice = {
+                .data = start,
+                .len = p - start
+            };
+            int r;
+
+            r = sol_buffer_append_slice(buf, slice);
+            SOL_INT_CHECK(r, < 0, r);
+
+            r = sol_buffer_append_printf(buf, "__X%02X__", *p);;
+            SOL_INT_CHECK(r, < 0, r);
+
+            start = p + 1;
+        }
+    }
+
+    if (buf->used == 0) {
+        sol_buffer_init_flags(buf, (char *)str, p - str,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        buf->used = buf->capacity;
+    } else if (start < p) {
+        struct sol_str_slice slice = {
+            .data = start,
+            .len = p - start
+        };
+        int r;
+
+        r = sol_buffer_append_slice(buf, slice);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return 0;
+}
+
 SOL_ATTR_PRINTF(1, 2) static void
 out(const char *fmt, ...)
 {
@@ -644,8 +689,11 @@ generate_node_specs(const struct fbp_data *data)
     uint16_t i;
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
+        struct sol_buffer c_name;
+        to_c_symbol(dec_type->name, &c_name);
         out("    const struct sol_flow_node_type *type_%s = create_%d_%s_type();\n",
-            dec_type->name, dec_type->id, dec_type->name);
+            (const char *)c_name.data, dec_type->id, (const char *)c_name.data);
+        sol_buffer_fini(&c_name);
     }
 
     /* We had to create this node spec as static in order to keep it alive,
@@ -684,20 +732,27 @@ generate_node_type_assignments(const struct fbp_data *data)
     }
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_fbp_types, dec_type, i) {
+        struct sol_buffer c_name;
+        to_c_symbol(dec_type->name, &c_name);
         out("\n    if (!type_%s)\n"
             "        return NULL;\n",
-            dec_type->name);
+            (const char *)c_name.data);
+        sol_buffer_fini(&c_name);
     }
 }
 
 static bool
 generate_create_type_function(struct fbp_data *data)
 {
+    struct sol_buffer c_name;
+
+    to_c_symbol(data->name, &c_name);
     out("\nstatic const struct sol_flow_node_type *\n"
         "create_%d_%s_type(void)\n"
         "{\n",
         data->id,
-        data->name);
+        (const char *)c_name.data);
+    sol_buffer_fini(&c_name);
 
     if (!generate_options(data) || !generate_connections(data) || !generate_exports(data))
         return false;
@@ -1296,13 +1351,16 @@ static bool
 add_fbp_type_to_type_store(struct type_store *parent_store, struct fbp_data *data)
 {
     struct type_description type;
+    struct sol_buffer c_name;
     int r;
     char node_type[2048];
     bool ret = false;
 
     type.name = data->name;
 
-    r = snprintf(node_type, sizeof(node_type), "type_%s", data->name);
+    to_c_symbol(data->name, &c_name);
+    r = snprintf(node_type, sizeof(node_type), "type_%s", (const char *)c_name.data);
+    sol_buffer_fini(&c_name);
     if (r < 0 || r >= (int)sizeof(node_type))
         return false;
 
