@@ -1,0 +1,61 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# This file will output Soletta's semaphore monitor status.
+#
+# It will check the build status by getting the semaphore SVG and
+# applying a regular expression to see if it failed or passed.
+#
+# It is only the base component, one still need to call its exported
+# input port UPDATE to trigger the action and wait for output packets
+# on the STATUS port. See semaphore-monitor-console.fbp for an example
+# that uses this.
+#
+# It is an example of:
+#
+#  - http-client/get-string node type (get the SVG as plain text)
+#
+#  - string/regexp-search node type (extract passed/failed string)
+#
+# Diagram:
+#
+#       .------------------------------------------------.
+#       |      .---------.         .--------------.      |
+# UPDATE|-->GET| get_svg |OUT-+->IN| check_status |OUT-->|STATUS
+#       |      `---------'         `--------------'      |
+#       `------------------------------------------------'
+
+
+INPORT=get_svg.GET:UPDATE
+OUTPORT=check_status.OUT:STATUS
+OPTION=get_svg.url:url
+
+get_svg(http-client/get-string:content_type=null)
+get_svg OUT -> IN check_status(string/regexp-search:regexp="(<text [^>]+>(passed|failed)</text>)",index=2)

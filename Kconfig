@@ -186,6 +186,7 @@ source "src/samples/flow/misc/Kconfig"
 source "src/samples/flow/oic/Kconfig"
 source "src/samples/flow/trash-disposer/Kconfig"
 source "src/samples/flow/unix-socket/Kconfig"
+source "src/samples/flow/semaphore-monitor/Kconfig"
 
 endmenu
 

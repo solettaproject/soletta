@@ -1,0 +1,4 @@
+config FLOW_SEMAPHORE_MONITOR_SEMAPHORE_MONITOR_CONSOLE_SAMPLE
+        bool
+        depends on FLOW_FBP_GENERATOR_SAMPLES
+        default y
