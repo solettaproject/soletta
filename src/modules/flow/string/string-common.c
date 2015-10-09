@@ -242,7 +242,7 @@ string_b64_open(struct sol_flow_node *node,
      */
     opts = (const struct sol_flow_node_type_string_b64encode_options *)options;
 
-    if (!opts->base64_map &&
+    if (!opts->base64_map ||
         (opts->base64_map[0] == '\0' ||
         streq(opts->base64_map, SOL_BASE64_MAP)))
         mdata->base64_map = SOL_BASE64_MAP;
