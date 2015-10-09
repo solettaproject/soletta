@@ -48,6 +48,7 @@ get_key_null_val(json/object-get-key:key="null_val")
 get_key_object_val(json/object-get-key:key="object_val")
 get_key_array_val(json/object-get-key)
 
+# Test node json/object-get-key
 json_object_str OUT -> IN _(converter/string-to-blob) OUT -> IN json_object
 json_object OUT -> IN get_key_int_val
 json_object OUT -> IN get_key_float_val
@@ -76,3 +77,20 @@ bool_validator OUT -> RESULT bool_result(test/result)
 null_validator OUT -> RESULT null_result(test/result)
 object_validator OUT -> RESULT object_result(test/result)
 array_validator OUT -> RESULT array_result(test/result)
+
+# Test node json/object-length
+json_object OUT -> IN _(json/object-length) OUT -> IN object_length_validator(test/int-validator:sequence="8")
+object_length_validator OUT -> RESULT test_object_length(test/result)
+
+# Test node json/object-get-all-keys
+empty_str(constant/string:value="{}")
+empty_json_object(converter/blob-to-json-object)
+key_validator(test/string-validator:sequence="int_val|float_val|string_val|false_val|true_val|null_val|array_val|object_val")
+
+json_object OUT -> IN get_all_keys(json/object-get-all-keys)
+get_all_keys EMPTY -> IN _(boolean/not) OUT -> RESULT get_all_keys_empty_validator(test/result)
+get_all_keys OUT -> IN key_validator OUT -> RESULT get_all_keys_validator(test/result)
+
+empty_str OUT -> IN _(converter/string-to-blob) OUT -> IN empty_json_object
+empty_json_object OUT -> IN get_all_keys2(json/object-get-all-keys)
+get_all_keys2 EMPTY -> RESULT get_all_keys_empty_validator2(test/result)
