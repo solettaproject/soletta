@@ -527,4 +527,142 @@ test_append_from_base64(void)
 #undef B64_DECODED
 }
 
+DEFINE_TEST(test_insert_as_base16);
+
+static void
+test_insert_as_base16(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    const char to_encode[] = "Test \x01\x09\x0a\x0f Hello";
+    int err;
+
+#define B16_ENCODED "546573742001090a0f2048656c6c6f"
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("World");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("World"));
+    ASSERT_STR_EQ(buf.data, "World");
+
+    slice = sol_str_slice_from_str("Hello");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("HelloWorld"));
+    ASSERT_STR_EQ(buf.data, "HelloWorld");
+
+    slice = sol_str_slice_from_str(to_encode);
+    err = sol_buffer_insert_as_base16(&buf, strlen("Hello"), slice, false);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("Hello" B16_ENCODED "World"));
+    ASSERT_STR_EQ(buf.data, "Hello" B16_ENCODED "World");
+
+    sol_buffer_fini(&buf);
+
+#undef B16_ENCODED
+}
+
+DEFINE_TEST(test_append_as_base16);
+
+static void
+test_append_as_base16(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    const char to_encode[] = "Test \x01\x09\x0a\x0f Hello";
+    int err;
+
+#define B16_ENCODED "546573742001090a0f2048656c6c6f"
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("XYZ");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("XYZ"));
+    ASSERT_STR_EQ(buf.data, "XYZ");
+
+    slice = sol_str_slice_from_str(to_encode);
+    err = sol_buffer_append_as_base16(&buf, slice, false);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("XYZ" B16_ENCODED));
+    ASSERT_STR_EQ(buf.data, "XYZ" B16_ENCODED);
+
+    sol_buffer_fini(&buf);
+
+#undef B16_ENCODED
+}
+
+DEFINE_TEST(test_insert_from_base16);
+
+static void
+test_insert_from_base16(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    const char to_decode[] = "546573742001090a0f2048656c6c6f";
+    int err;
+
+#define B16_DECODED "Test \x01\x09\x0a\x0f Hello"
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("World");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("World"));
+    ASSERT_STR_EQ(buf.data, "World");
+
+    slice = sol_str_slice_from_str("Hello");
+    err = sol_buffer_insert_slice(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("HelloWorld"));
+    ASSERT_STR_EQ(buf.data, "HelloWorld");
+
+    slice = sol_str_slice_from_str(to_decode);
+    err = sol_buffer_insert_from_base16(&buf, strlen("Hello"), slice, false);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("Hello" B16_DECODED "World"));
+    ASSERT_STR_EQ(buf.data, "Hello" B16_DECODED "World");
+
+    slice = sol_str_slice_from_str("12x"); /* broken base16 */
+    err = sol_buffer_insert_from_base16(&buf, strlen("Hello"), slice, false);
+    ASSERT_INT_NE(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("Hello" B16_DECODED "World"));
+    ASSERT_STR_EQ(buf.data, "Hello" B16_DECODED "World");
+
+    sol_buffer_fini(&buf);
+
+#undef B16_DECODED
+}
+
+DEFINE_TEST(test_append_from_base16);
+
+static void
+test_append_from_base16(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    const char to_decode[] = "546573742001090a0f2048656c6c6f";
+    int err;
+
+#define B16_DECODED "Test \x01\x09\x0a\x0f Hello"
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("XYZ");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("XYZ"));
+    ASSERT_STR_EQ(buf.data, "XYZ");
+
+    slice = sol_str_slice_from_str(to_decode);
+    err = sol_buffer_append_from_base16(&buf, slice, false);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("XYZ" B16_DECODED));
+    ASSERT_STR_EQ(buf.data, "XYZ" B16_DECODED);
+
+    sol_buffer_fini(&buf);
+
+#undef B16_DECODED
+}
+
 TEST_MAIN();

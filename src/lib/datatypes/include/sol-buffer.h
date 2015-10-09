@@ -314,6 +314,85 @@ int sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const stru
  */
 int sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[static 65]);
 
+/**
+ * Insert the 'slice' into 'buf' at position 'pos' encoded as base16 (hexadecimal).
+ *
+ * @param buf the already-initialized buffer to append the encoded
+ *        slice.
+ * @param pos the position in bytes from 0 up to @c buf->used. If pos
+ *        == buf->end, then the behavior is the same as
+ *        sol_buffer_append_as_base16().
+ * @param slice the byte string to encode, may contain null bytes
+ *        @c(\0), it will be encoded up the @c slice.len.
+ * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
+ *        lowercase abcdef are used instead.
+ *
+ * @return 0 on success, -errno on failure.
+ *
+ * @see sol_buffer_append_as_base16()
+ * @see sol_buffer_insert_from_base16()
+ * @see sol_buffer_append_from_base16()
+ */
+int sol_buffer_insert_as_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, bool uppercase);
+
+/**
+ * Append the 'slice' at the end of 'buf' encoded as base16 (hexadecimal).
+ *
+ * See https://en.wikipedia.org/wiki/Base16
+ *
+ * @param buf the already-initialized buffer to append the encoded
+ *        slice.
+ * @param slice the byte string to encode, may contain null bytes
+ *        @c(\0), it will be encoded up the @c slice.len.
+ * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
+ *        lowercase abcdef are used instead.
+ * @return 0 on success, -errno on failure.
+ *
+ * @see sol_buffer_insert_as_base16()
+ * @see sol_buffer_insert_from_base16()
+ * @see sol_buffer_append_from_base16()
+ */
+int sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_slice slice, bool uppercase);
+
+/**
+ * Insert the 'slice' into 'buf' at position 'pos' decoded from base16 (hexadecimal).
+ *
+ * @param buf the already-initialized buffer to append the decoded
+ *        slice.
+ * @param pos the position in bytes from 0 up to @c buf->used. If pos
+ *        == buf->end, then the behavior is the same as
+ *        sol_buffer_append_from_base16().
+ * @param slice the slice to decode, it must be a set of 0-9 or
+ *        letters A-F (if uppercase) or a-f, otherwise decode fails.
+ * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
+ *        lowercase abcdef are used instead.
+ *
+ * @return 0 on success, -errno on failure.
+ *
+ * @see sol_buffer_insert_as_base16()
+ * @see sol_buffer_append_as_base16()
+ * @see sol_buffer_append_from_base16()
+ */
+int sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, bool uppercase);
+
+/**
+ * Append the 'slice' at the end of 'buf' decoded from base16 (hexadecimal).
+ *
+ * See https://en.wikipedia.org/wiki/Base16
+ *
+ * @param buf the already-initialized buffer to append the decoded
+ *        slice.
+ * @param slice the slice to decode, it must be a set of 0-9 or
+ *        letters A-F (if uppercase) or a-f, otherwise decode fails.
+ * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
+ *        lowercase abcdef are used instead.
+ * @return 0 on success, -errno on failure.
+ *
+ * @see sol_buffer_insert_as_base16()
+ * @see sol_buffer_append_as_base16()
+ * @see sol_buffer_insert_from_base16()
+ */
+int sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice slice, bool uppercase);
 
 /* append the formatted string to buffer, including trailing \0 */
 int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args);
