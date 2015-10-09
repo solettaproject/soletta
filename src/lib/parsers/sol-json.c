@@ -567,3 +567,86 @@ sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type type
            sol_json_scanner_skip_over(scanner, &token) &&
            token.end == last_position;
 }
+
+SOL_API int
+sol_json_serialize_string(struct sol_buffer *buffer, const char *str)
+{
+    int r;
+    size_t escaped_len, new_size;
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+    SOL_NULL_CHECK(str, -EINVAL);
+
+    escaped_len = sol_json_calculate_escaped_string_len(str);
+    r = sol_util_size_add(buffer->used, escaped_len + 2, &new_size);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_ensure(buffer, new_size);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_char(buffer, '\"');
+    SOL_INT_CHECK(r, < 0, r);
+
+    sol_json_escape_string(str, sol_buffer_at_end(buffer), escaped_len);
+    buffer->used += escaped_len - 1; /* remove \0 in the result */
+
+    r = sol_buffer_append_char(buffer, '\"');
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+SOL_API int
+sol_json_serialize_double(struct sol_buffer *buffer, double val)
+{
+    int r;
+    char *p;
+    size_t new_size;
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+#define STR_DOUBLE_LEN 64
+    r = sol_util_size_add(buffer->used, STR_DOUBLE_LEN, &new_size);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_ensure(buffer, new_size);
+    SOL_INT_CHECK(r, < 0, r);
+
+    p = sol_buffer_at_end(buffer);
+
+    r = sol_json_double_to_str(val, p, STR_DOUBLE_LEN);
+    SOL_INT_CHECK(r, < 0, r);
+#undef STR_DOUBLE_LEN
+
+    buffer->used += strlen(p);
+
+    return 0;
+}
+
+SOL_API int
+sol_json_serialize_int32(struct sol_buffer *buffer, int32_t val)
+{
+    int r;
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    r = sol_buffer_append_printf(buffer, "%" PRId32, val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+SOL_API int
+sol_json_serialize_boolean(struct sol_buffer *buffer, bool val)
+{
+    int r;
+    static const struct sol_str_slice t_str = SOL_STR_SLICE_LITERAL("true");
+    static const struct sol_str_slice f_str = SOL_STR_SLICE_LITERAL("false");
+
+    SOL_NULL_CHECK(buffer, -EINVAL);
+
+    r = sol_buffer_append_slice(buffer, val ? t_str : f_str);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
