@@ -90,6 +90,12 @@ gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     gpio_conf.in.user_data = node;
     gpio_conf.in.poll_timeout = opts->poll_timeout.val;
 
+    if (gpio_conf.in.trigger_mode == SOL_GPIO_EDGE_NONE) {
+        SOL_WRN("gpio reader #%" PRId32 ": either edge_rising or edge_falling need to be"
+            " set for the node to generate events.", opts->pin.val);
+        return -EINVAL;
+    }
+
     if (streq(opts->pull, "up"))
         gpio_conf.drive_mode = SOL_GPIO_DRIVE_PULL_UP;
     else if (streq(opts->pull, "down"))
