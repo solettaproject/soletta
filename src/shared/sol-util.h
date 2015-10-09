@@ -447,8 +447,8 @@ ssize_t sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_sl
  * @param buflen the number of bytes available in buffer. Must be
  *        large enough to contain the decoded slice, that is:
  *        (slice.len / 4) * 3
- * @param slice the slice to encode, it may contain null-bytes (\0),
- *        the whole size of the slice will be used (slice.len).
+ * @param slice the slice to decode, it must be composed solely of the
+ *        base64_map characters or it will fail.
  * @param base64_map the map to use. The last char is used as the
  *        padding character if slice length is not multiple of 3 bytes.
  *

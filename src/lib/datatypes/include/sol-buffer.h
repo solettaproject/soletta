@@ -279,8 +279,8 @@ int sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_sli
  * @param pos the position in bytes from 0 up to @c buf->used. If pos
  *        == buf->end, then the behavior is the same as
  *        sol_buffer_append_from_base64().
- * @param slice the byte string to decode, may contain null bytes
- *        @c(\0), it will be decoded up the @c slice.len.
+ * @param slice the slice to decode, it must be composed solely of the
+ *        base64_map characters or it will fail.
  * @param base64_map the map to use, the default is available as
  *        #SOL_BASE64_MAP. Note that the last char in the map (position 64)
  *        is used as the padding char.
@@ -300,8 +300,8 @@ int sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const stru
  *
  * @param buf the already-initialized buffer to append the decoded
  *        slice.
- * @param slice the byte string to decode, may contain null bytes
- *        @c(\0), it will be decoded up the @c slice.len.
+ * @param slice the slice to decode, it must be composed solely of the
+ *        base64_map characters or it will fail.
  * @param base64_map the map to use, the default is available as
  *        #SOL_BASE64_MAP. Note that the last char in the map (position 64)
  *        is used as the padding char.
