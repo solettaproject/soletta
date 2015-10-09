@@ -81,15 +81,13 @@ int sol_platform_get_machine_id(char id[static 33]);
  * Retrieves, in @a number, the platform's main board serial
  * number/identifier.
  *
- * @param number On success, it's set to returning serial number
- *               string. It must be freed after usage.
- *
  * @note: If the environment variable SOL_SERIAL_NUMBER is set, its
  * value is returned by this call.
  *
- * @return 0 on success, negative error code otherwise.
+ * @return On success, it returns the serial number string, that must not be
+ * modified. On error, it returns @c NULL.
  */
-int sol_platform_get_serial_number(char **number);
+const char *sol_platform_get_serial_number(void);
 
 /**
  * Retrieves the version of Soletta that is running.

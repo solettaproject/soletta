@@ -52,6 +52,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_platform_log_domain, "platform");
 
 static char *board_name = NULL;
 static char *os_version = NULL;
+static char *serial_number = NULL;
 
 struct service_monitor {
     struct sol_monitors_entry base;
@@ -87,6 +88,7 @@ sol_platform_shutdown(void)
 {
     free(board_name);
     free(os_version);
+    free(serial_number);
     sol_monitors_clear(&_ctx.state_monitors);
     sol_monitors_clear(&_ctx.service_monitors);
     sol_platform_impl_shutdown();
@@ -366,25 +368,24 @@ sol_platform_get_machine_id(char id[static 33])
     return sol_platform_impl_get_machine_id(id);
 }
 
-SOL_API int
-sol_platform_get_serial_number(char **number)
+SOL_API const char *
+sol_platform_get_serial_number(void)
 {
+    int r;
+    char *out;
+
 #ifdef SOL_PLATFORM_LINUX
     char *env_id;
-#endif
-
-    SOL_NULL_CHECK(number, -EINVAL);
-
-#ifdef SOL_PLATFORM_LINUX
     env_id = getenv("SOL_SERIAL_NUMBER");
     if (env_id) {
-        *number = strdup(env_id);
-        SOL_NULL_CHECK(*number, -errno);
-
-        return 0;
+        return env_id;
     }
 #endif
-    return sol_platform_impl_get_serial_number(number);
+    if (serial_number) return serial_number;
+    r = sol_platform_impl_get_serial_number(&out);
+    SOL_INT_CHECK(r, < 0, NULL);
+    serial_number = out;
+    return serial_number;
 }
 
 SOL_API const char *
