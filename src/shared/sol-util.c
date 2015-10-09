@@ -479,3 +479,101 @@ sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slic
 
     return o;
 }
+
+static inline char
+base16_encode_digit(const uint8_t nibble, const char a)
+{
+    if (likely(nibble < 10))
+        return '0' + nibble;
+    return a + (nibble - 10);
+}
+
+SOL_API ssize_t
+sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase)
+{
+    char *output, a;
+    const uint8_t *input;
+    size_t req_len;
+    size_t i, o;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(slice.data, -EINVAL);
+
+    if (slice.len == 0)
+        return 0;
+
+    req_len = sol_util_base16_calculate_encoded_len(slice);
+    SOL_INT_CHECK(buflen, < req_len, -ENOMEM);
+
+    input = (const uint8_t *)slice.data;
+    output = buf;
+    a = uppercase ? 'A' : 'a';
+
+    for (i = 0, o = 0; i < slice.len; i++) {
+        const uint8_t b = input[i];
+        const uint8_t nibble[2] = {
+            (b & 0xf0) >> 4,
+            (b & 0x0f)
+        };
+        uint8_t n;
+        for (n = 0; n < 2; n++)
+            output[o++] = base16_encode_digit(nibble[n], a);
+    }
+
+    return o;
+}
+
+static inline uint8_t
+base16_decode_digit(const char digit, const char a, const char f)
+{
+    if (likely('0' <= digit && digit <= '9'))
+        return digit - '0';
+    else if (a <= digit && digit <= f)
+        return 10 + (digit - a);
+    else
+        return UINT8_MAX;
+}
+
+SOL_API ssize_t
+sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase)
+{
+    uint8_t *output;
+    const char *input;
+    char a, f;
+    size_t i, o, req_len;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(slice.data, -EINVAL);
+
+    if (slice.len == 0)
+        return 0;
+
+    req_len = sol_util_base16_calculate_decoded_len(slice);
+    SOL_INT_CHECK(buflen, < req_len, -ENOMEM);
+
+    input = slice.data;
+    output = buf;
+    a = uppercase ? 'A' : 'a';
+    f = a + 5;
+
+    for (i = 0, o = 0; i + 2 <= slice.len; i += 2) {
+        uint8_t n, b = 0;
+        for (n = 0; n < 2; n++) {
+            const uint8_t c = input[i + n];
+            uint8_t nibble = base16_decode_digit(c, a, f);
+            if (unlikely(nibble == UINT8_MAX)) {
+                SOL_WRN("Invalid base16 char %c, index: %zd", c, i + n);
+                return -EINVAL;
+            }
+            if (n == 0)
+                b |= nibble << 4;
+            else
+                b |= nibble;
+        }
+        output[o++] = b;
+    }
+
+    SOL_INT_CHECK(i, != slice.len, -EINVAL);
+
+    return o;
+}

@@ -485,3 +485,58 @@ sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const ch
         return -EOVERFLOW;
     return req_len;
 }
+
+/**
+ * Encode the binary slice to base16 (hexadecimal).
+ *
+ * @note @b no trailing null '\0' is added!
+ *
+ * @param buf a buffer of size @a buflen that is big enough to hold
+ *        the encoded string.
+ * @param buflen the number of bytes available in buffer. Must be
+ *        large enough to contain the encoded slice, that is:
+ *        slice.len * 2
+ * @param slice the slice to encode, it may contain null-bytes (\0),
+ *        the whole size of the slice will be used (slice.len).
+ * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
+ *        lowercase abcdef are used instead.
+ *
+ * @return the number of bytes written or -errno if failed.
+ */
+ssize_t sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase);
+
+/**
+ * Decode the binary slice from base16 (hexadecimal).
+ *
+ * @note @b no trailing null '\0' is added!
+ *
+ * @param buf a buffer of size @a buflen that is big enough to hold
+ *        the decoded string.
+ * @param buflen the number of bytes available in buffer. Must be
+ *        large enough to contain the decoded slice, that is:
+ *        slice.len / 2.
+ * @param slice the slice to decode, it must be a set of 0-9 or
+ *        letters A-F (if uppercase) or a-f, otherwise decode fails.
+ * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
+ *        lowercase abcdef are used instead.
+ *
+ * @return the number of bytes written or -errno if failed.
+ */
+ssize_t sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase);
+
+static inline ssize_t
+sol_util_base16_calculate_encoded_len(const struct sol_str_slice slice)
+{
+    ssize_t req_len;
+    int err = sol_util_ssize_mul(slice.len, 2, &req_len);
+
+    if (err < 0)
+        return err;
+    return req_len;
+}
+
+static inline ssize_t
+sol_util_base16_calculate_decoded_len(const struct sol_str_slice slice)
+{
+    return slice.len / 2;
+}

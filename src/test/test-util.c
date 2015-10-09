@@ -380,4 +380,72 @@ test_base64_decode(void)
     ASSERT_INT_EQ(r, -EINVAL);
 }
 
+DEFINE_TEST(test_base16_encode);
+
+static void
+test_base16_encode(void)
+{
+    const char instr[] = "Test \x01\x09\x0a\x0f Hello";
+    const char *expstrs[] = {
+        "546573742001090a0f2048656c6c6f",
+        "546573742001090A0F2048656C6C6F"
+    };
+    char outstr[(sizeof(instr) - 1) * 2 + 1];
+    struct sol_str_slice slice;
+    ssize_t r, i;
+
+    slice = sol_str_slice_from_str(instr);
+
+    for (i = 0; i < 2; i++) {
+
+        memset(outstr, 0xff, sizeof(outstr));
+        r = sol_util_base16_encode(outstr, sizeof(outstr), slice, !!i);
+        ASSERT_INT_EQ(r, strlen(expstrs[i]));
+        ASSERT_INT_EQ(outstr[r], (char)0xff);
+        outstr[r] = '\0';
+        ASSERT_STR_EQ(outstr, expstrs[i]);
+    }
+}
+
+DEFINE_TEST(test_base16_decode);
+
+static void
+test_base16_decode(void)
+{
+    const char expstr[] = "Test \x01\x09\x0a\x0f Hello";
+    const char *instrs[] = {
+        "546573742001090a0f2048656c6c6f",
+        "546573742001090A0F2048656C6C6F"
+    };
+    char outstr[sizeof(expstr)];
+    struct sol_str_slice slice;
+    ssize_t r, i;
+
+    for (i = 0; i < 2; i++) {
+        slice = sol_str_slice_from_str(instrs[i]);
+
+        memset(outstr, 0xff, sizeof(outstr));
+        r = sol_util_base16_decode(outstr, sizeof(outstr), slice, !!i);
+        ASSERT_INT_EQ(r, strlen(expstr));
+        ASSERT_INT_EQ(outstr[r], (char)0xff);
+        outstr[r] = '\0';
+        ASSERT_STR_EQ(outstr, expstr);
+    }
+
+    /* negative test (case swap) */
+    for (i = 0; i < 2; i++) {
+        slice = sol_str_slice_from_str(instrs[i]);
+
+        memset(outstr, 0xff, sizeof(outstr));
+        r = sol_util_base16_decode(outstr, sizeof(outstr), slice, !i);
+        ASSERT_INT_EQ(r, -EINVAL);
+    }
+
+    /* short sequence (not multiple of 2) */
+    slice = sol_str_slice_from_str("1");
+    memset(outstr, 0xff, sizeof(outstr));
+    r = sol_util_base16_decode(outstr, sizeof(outstr), slice, true);
+    ASSERT_INT_EQ(r, -EINVAL);
+}
+
 TEST_MAIN();
