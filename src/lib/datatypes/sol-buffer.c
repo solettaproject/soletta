@@ -402,7 +402,7 @@ sol_buffer_insert_char(struct sol_buffer *buf, size_t pos, const char c)
     return 0;
 }
 
-SOL_API const char SOL_BASE64_MAP[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+SOL_API const char SOL_BASE64_MAP[66] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
 SOL_API int
 sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[static 65])

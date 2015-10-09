@@ -226,9 +226,9 @@ int sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol
 // TODO: move this to some other file? where
 /**
  * The default base 64 map to use. The last byte (position 64) is the
- * padding character.
+ * padding character. This is a NUL terminated string.
  */
-extern const char SOL_BASE64_MAP[65];
+extern const char SOL_BASE64_MAP[66];
 
 /**
  * Insert the 'slice' into 'buf' at position 'pos' encoded as base64 using the given map.
