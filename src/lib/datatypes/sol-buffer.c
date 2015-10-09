@@ -616,3 +616,215 @@ sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice
     return 0;
 }
 
+SOL_API int
+sol_buffer_insert_as_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, bool uppercase)
+{
+    char *p;
+    size_t new_size;
+    ssize_t encoded_size, r;
+    const size_t nul_size = nul_byte_size(buf);
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_INT_CHECK(pos, > buf->used, -EINVAL);
+
+    if (slice.len == 0)
+        return 0;
+
+    if (pos == buf->used)
+        return sol_buffer_append_as_base16(buf, slice, uppercase);
+
+    encoded_size = sol_util_base16_calculate_encoded_len(slice);
+    if (encoded_size < 0)
+        return encoded_size;
+
+    err = sol_util_size_add(buf->used, encoded_size, &new_size);
+    if (err < 0)
+        return err;
+
+    if (nul_size) {
+        err = sol_util_size_add(new_size, nul_size, &new_size);
+        if (err < 0)
+            return err;
+    }
+
+    err = sol_buffer_ensure(buf, new_size);
+    if (err < 0)
+        return err;
+
+    p = sol_buffer_at(buf, pos);
+    memmove(p + encoded_size, p, buf->used - pos);
+    r = sol_util_base16_encode(p, encoded_size, slice, uppercase);
+    if (r != encoded_size) {
+        memmove(p, p + encoded_size, buf->used - pos);
+        if (nul_size)
+            sol_buffer_ensure_nul_byte(buf);
+        if (r < 0)
+            return r;
+        else
+            return -EINVAL;
+    }
+
+    buf->used += encoded_size;
+
+    if (nul_size)
+        return sol_buffer_ensure_nul_byte(buf);
+    return 0;
+}
+
+SOL_API int
+sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_slice slice, bool uppercase)
+{
+    char *p;
+    size_t new_size;
+    ssize_t encoded_size, r;
+    const size_t nul_size = nul_byte_size(buf);
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    if (slice.len == 0)
+        return 0;
+
+    encoded_size = sol_util_base16_calculate_encoded_len(slice);
+    if (encoded_size < 0)
+        return encoded_size;
+
+    err = sol_util_size_add(buf->used, encoded_size, &new_size);
+    if (err < 0)
+        return err;
+
+    if (nul_size) {
+        err = sol_util_size_add(new_size, nul_size, &new_size);
+        if (err < 0)
+            return err;
+    }
+
+    err = sol_buffer_ensure(buf, new_size);
+    if (err < 0)
+        return err;
+
+    p = sol_buffer_at_end(buf);
+    r = sol_util_base16_encode(p, encoded_size, slice, uppercase);
+    if (r != encoded_size) {
+        if (nul_size)
+            sol_buffer_ensure_nul_byte(buf);
+        if (r < 0)
+            return r;
+        else
+            return -EINVAL;
+    }
+
+    buf->used += encoded_size;
+
+    if (nul_size)
+        return sol_buffer_ensure_nul_byte(buf);
+    return 0;
+}
+
+SOL_API int
+sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, bool uppercase)
+{
+    char *p;
+    size_t new_size;
+    ssize_t decoded_size, r;
+    const size_t nul_size = nul_byte_size(buf);
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_INT_CHECK(pos, > buf->used, -EINVAL);
+
+    if (slice.len == 0)
+        return 0;
+
+    if (pos == buf->used)
+        return sol_buffer_append_from_base16(buf, slice, uppercase);
+
+    decoded_size = sol_util_base16_calculate_decoded_len(slice);
+    if (decoded_size < 0)
+        return decoded_size;
+
+    err = sol_util_size_add(buf->used, decoded_size, &new_size);
+    if (err < 0)
+        return err;
+
+    if (nul_size) {
+        err = sol_util_size_add(new_size, nul_size, &new_size);
+        if (err < 0)
+            return err;
+    }
+
+    err = sol_buffer_ensure(buf, new_size);
+    if (err < 0)
+        return err;
+
+    p = sol_buffer_at(buf, pos);
+    memmove(p + decoded_size, p, buf->used - pos);
+    r = sol_util_base16_decode(p, decoded_size, slice, uppercase);
+    if (r != decoded_size) {
+        memmove(p, p + decoded_size, buf->used - pos);
+        if (nul_size)
+            sol_buffer_ensure_nul_byte(buf);
+        if (r < 0)
+            return r;
+        else
+            return -EINVAL;
+    }
+
+    buf->used += decoded_size;
+
+    if (nul_size)
+        return sol_buffer_ensure_nul_byte(buf);
+    return 0;
+}
+
+SOL_API int
+sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice slice, bool uppercase)
+{
+    char *p;
+    size_t new_size;
+    ssize_t decoded_size, r;
+    const size_t nul_size = nul_byte_size(buf);
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    if (slice.len == 0)
+        return 0;
+
+    decoded_size = sol_util_base16_calculate_decoded_len(slice);
+    if (decoded_size < 0)
+        return decoded_size;
+
+    err = sol_util_size_add(buf->used, decoded_size, &new_size);
+    if (err < 0)
+        return err;
+
+    if (nul_size) {
+        err = sol_util_size_add(new_size, nul_size, &new_size);
+        if (err < 0)
+            return err;
+    }
+
+    err = sol_buffer_ensure(buf, new_size);
+    if (err < 0)
+        return err;
+
+    p = sol_buffer_at_end(buf);
+    r = sol_util_base16_decode(p, decoded_size, slice, uppercase);
+    if (r != decoded_size) {
+        if (nul_size)
+            sol_buffer_ensure_nul_byte(buf);
+        if (r < 0)
+            return r;
+        else
+            return -EINVAL;
+    }
+
+    buf->used += decoded_size;
+
+    if (nul_size)
+        return sol_buffer_ensure_nul_byte(buf);
+    return 0;
+}
+
