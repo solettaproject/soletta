@@ -208,16 +208,16 @@ get_machine_id(void)
 {
     static uint8_t machine_id[16] = { 0 };
     static bool machine_id_set = false;
-    char machine_id_buf[33];
+    const char *machine_id_buf;
 
     if (unlikely(!machine_id_set)) {
-        int r = sol_platform_get_machine_id(machine_id_buf);
+        machine_id_buf = sol_platform_get_machine_id();
 
-        if (r < 0) {
+        if (!machine_id_buf) {
             SOL_WRN("Could not get machine ID");
             memset(machine_id, 0xFF, sizeof(machine_id));
         } else {
-            char *p;
+            const char *p;
             size_t i;
 
             for (p = machine_id_buf, i = 0; i < 16; i++, p += 2)

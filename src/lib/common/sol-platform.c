@@ -348,9 +348,11 @@ sol_platform_set_target(const char *target)
     return sol_platform_impl_set_target(target);
 }
 
-SOL_API int
-sol_platform_get_machine_id(char id[static 33])
+SOL_API const char *
+sol_platform_get_machine_id(void)
 {
+    static char id[33];
+
 #ifdef SOL_PLATFORM_LINUX
     char *env_id = getenv("SOL_MACHINE_ID");
 
@@ -358,14 +360,20 @@ sol_platform_get_machine_id(char id[static 33])
         if (strlen(env_id) > 32 || !sol_util_uuid_str_valid(env_id)) {
             SOL_WRN("Malformed UUID passed on environment variable "
                 "SOL_MACHINE_ID: %s", env_id);
-            return -EINVAL;
+            return NULL;
         }
-        memcpy(id, env_id, 33);
-
-        return 0;
+        return env_id;
     }
 #endif
-    return sol_platform_impl_get_machine_id(id);
+    if (!id[0]) {
+        int r = sol_platform_impl_get_machine_id(id);
+        if (r < 0) {
+            id[0] = '\0';
+            return NULL;
+        }
+    }
+
+    return id;
 }
 
 SOL_API const char *
