@@ -84,6 +84,10 @@ struct sol_converter_boolean_string {
     char *true_value;
 };
 
+struct sol_converter_string_blob {
+    bool include_null_terminator;
+};
+
 static int
 irange_min_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
@@ -1949,18 +1953,29 @@ bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
 static int
 string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
+    struct sol_converter_string_blob *mdata = data;
     char *mem;
     const char *str;
     struct sol_blob *blob;
+    size_t len;
     int ret;
 
     ret = sol_flow_packet_get_string(packet, &str);
     SOL_INT_CHECK(ret, < 0, -EINVAL);
 
-    mem = strdup(str);
-    SOL_NULL_CHECK(mem, -ENOMEM);
+    len = strlen(str);
+    if (mdata->include_null_terminator)
+        len++;
 
-    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, strlen(mem) + 1);
+    if (len == 0)
+        mem = NULL;
+    else {
+        mem = malloc(len);
+        SOL_NULL_CHECK(mem, -ENOMEM);
+        memcpy(mem, str, len);
+    }
+
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, len);
     if (!blob) {
         free(mem);
         return -ENOMEM;

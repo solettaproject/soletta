@@ -1987,7 +1987,21 @@
           "name": "IN"
         }
       ],
+      "methods": {
+        "open": "string_to_blob_open"
+      },
       "name": "converter/string-to-blob",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Include the terminating NULL byte (\\0) in the blob size.",
+            "name": "include_null_terminator"
+          }
+        ],
+        "version": 1
+      },
       "out_ports": [
         {
           "data_type": "blob",
@@ -1995,6 +2009,7 @@
           "name": "OUT"
         }
       ],
+      "private_data_type": "sol_converter_string_blob",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-blob.html"
     },
     {
