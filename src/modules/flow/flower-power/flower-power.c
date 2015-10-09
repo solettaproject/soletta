@@ -453,7 +453,7 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
     struct http_get_data *mdata = data;
     struct sol_json_scanner scanner, locations_scanner, sensors_scanner;
     struct sol_json_token token, key, value, locations, sensors;
-    int r;
+    int r = 0;
     enum sol_json_loop_reason reason;
     bool found_locations = false, found_sensors = false;
 
