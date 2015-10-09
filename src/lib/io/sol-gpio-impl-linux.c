@@ -183,8 +183,27 @@ _gpio_on_timeout(void *userdata)
 static int
 _gpio_in_config(struct sol_gpio *gpio, const struct sol_gpio_config *config, int fd)
 {
+    const char *mode_str;
     char gpio_dir[PATH_MAX];
     struct stat st;
+    enum sol_gpio_edge trig = config->in.trigger_mode;
+
+    switch (trig) {
+    case SOL_GPIO_EDGE_RISING:
+        mode_str = "rising";
+        break;
+    case SOL_GPIO_EDGE_FALLING:
+        mode_str = "falling";
+        break;
+    case SOL_GPIO_EDGE_BOTH:
+        mode_str = "both";
+        break;
+    case SOL_GPIO_EDGE_NONE:
+        return 0;
+    default:
+        SOL_WRN("gpio #%d: Unsupported edge mode '%d'", gpio->pin, trig);
+        return -EINVAL;
+    }
 
     // clear any pending interrupts
     gpio->irq.last_value = sol_gpio_read(gpio);
@@ -193,38 +212,27 @@ _gpio_in_config(struct sol_gpio *gpio, const struct sol_gpio_config *config, int
 
     snprintf(gpio_dir, sizeof(gpio_dir), GPIO_BASE "/gpio%d/edge", gpio->pin);
     if (!stat(gpio_dir, &st)) {
-        const char *mode_str;
-
-        switch (config->in.trigger_mode) {
-        case SOL_GPIO_EDGE_NONE:
-            mode_str = "none";
-            break;
-        case SOL_GPIO_EDGE_RISING:
-            mode_str = "rising";
-            break;
-        case SOL_GPIO_EDGE_FALLING:
-            mode_str = "falling";
-            break;
-        default:
-            mode_str = "both";
-            break;
-        }
-
         if (sol_util_write_file(gpio_dir, "%s", mode_str) < 0) {
-            SOL_WRN("gpio #%d: could not set requested edge mode", gpio->pin);
-            return -EINVAL;
+            SOL_WRN("gpio #%d: could not set requested edge mode, falling back to timeout mode",
+                gpio->pin);
+            goto timeout_mode;
         }
         gpio->irq.fd_watch = sol_fd_add(fd, SOL_FD_FLAGS_PRI, _gpio_on_event,
             gpio);
-    } else {
-        enum sol_gpio_edge trig = config->in.trigger_mode;
-        if (trig == SOL_GPIO_EDGE_NONE)
-            return 0;
-        gpio->irq.on_raise = (trig == SOL_GPIO_EDGE_BOTH || trig == SOL_GPIO_EDGE_RISING);
-        gpio->irq.on_fall = (trig == SOL_GPIO_EDGE_BOTH || trig == SOL_GPIO_EDGE_FALLING);
-        gpio->irq.timer = sol_timeout_add(config->in.poll_timeout,
-            _gpio_on_timeout, gpio);
+
+        return 0;
     }
+
+timeout_mode:
+    if (config->in.poll_timeout <= 0) {
+        SOL_WRN("gpio #%d: Timeout value '%d' is invalid, must be a positive number of milliseconds.",
+            gpio->pin, config->in.poll_timeout);
+        return -EINVAL;
+    }
+
+    gpio->irq.on_raise = (trig == SOL_GPIO_EDGE_BOTH || trig == SOL_GPIO_EDGE_RISING);
+    gpio->irq.on_fall = (trig == SOL_GPIO_EDGE_BOTH || trig == SOL_GPIO_EDGE_FALLING);
+    gpio->irq.timer = sol_timeout_add(config->in.poll_timeout, _gpio_on_timeout, gpio);
 
     return 0;
 }
