@@ -199,11 +199,10 @@ platform_machine_id_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
-    int r;
-    char id[33] = { 0 };
+    const char *id;
 
-    r = sol_platform_get_machine_id(id);
-    if (r < 0) {
+    id = sol_platform_get_machine_id();
+    if (!id) {
         sol_flow_send_error_packet(node, ENOSYS,
             "Fail on retrieving machine id -- not available");
         return 0; /* do not fail to create node */

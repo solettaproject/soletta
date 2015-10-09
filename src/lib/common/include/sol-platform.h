@@ -66,30 +66,25 @@ const char *sol_platform_get_board_name(void);
  * returned string is assured to be a valid, 16 bytes-long (128 bits)
  * UUID.
  *
- * @param id Where to store the found machine id. It's 33 bytes in lenght
- *           so it accomodates the maximum lenght case -- 2 * 16
- *           (chars) + 1 (\0)
- *
  * @note: If the environment variable SOL_MACHINE_ID is set and is
  * properly formatted as a UUID, its value is returned by this call.
  *
- * @return 0 on success, negative error code otherwise.
+ * @return On success, it returns the machine id string, that must not be
+ * modified. On error, it returns @c NULL.
  */
-int sol_platform_get_machine_id(char id[static 33]);
+const char *sol_platform_get_machine_id(void);
 
 /**
  * Retrieves, in @a number, the platform's main board serial
  * number/identifier.
  *
- * @param number On success, it's set to returning serial number
- *               string. It must be freed after usage.
- *
  * @note: If the environment variable SOL_SERIAL_NUMBER is set, its
  * value is returned by this call.
  *
- * @return 0 on success, negative error code otherwise.
+ * @return On success, it returns the serial number string, that must not be
+ * modified. On error, it returns @c NULL.
  */
-int sol_platform_get_serial_number(char **number);
+const char *sol_platform_get_serial_number(void);
 
 /**
  * Retrieves the version of Soletta that is running.
