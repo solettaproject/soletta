@@ -58,6 +58,15 @@
        "match": [ "^MNW2CRB1" ]
       }
      ]
+    },
+    {
+     "name": "broadcom-bcm2708",
+     "validation": [
+      {
+       "file_path": "/proc/cpuinfo",
+       "match": [ "BCM2708" ]
+      }
+     ]
     }
   ]
 }
