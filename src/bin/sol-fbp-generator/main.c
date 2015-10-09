@@ -50,6 +50,7 @@
 #include "sol-missing.h"
 #include "sol-str-slice.h"
 #include "sol-util.h"
+#include "sol-flow-metatype.h"
 
 #include "type-store.h"
 
@@ -83,6 +84,7 @@ static struct {
 
 static struct sol_arena *str_arena;
 static struct sol_buffer output_buffer;
+static struct sol_vector declared_metatypes_control_vector;
 
 /* In order to ensure that each generated fbp type has an unique id. */
 static unsigned int fbp_id_count;
@@ -93,6 +95,7 @@ struct fbp_data {
     char *name;
     struct sol_fbp_graph graph;
     struct sol_vector declared_fbp_types;
+    struct sol_vector declared_meta_types;
     int id;
 };
 
@@ -101,10 +104,23 @@ struct declared_fbp_type {
     int id;
 };
 
+struct declared_metatype_control {
+    struct sol_str_slice type;
+    bool start_generated;
+    bool end_generated;
+};
+
+struct declared_metatype {
+    struct sol_str_slice type;
+    struct sol_str_slice contents;
+    struct sol_str_slice name;
+};
+
 struct node_data {
     struct type_description *desc;
     int type_index;
-    bool is_declared;
+    bool is_fbp;
+    bool is_metatype;
 };
 
 static struct port_description error_port = {
@@ -725,8 +741,10 @@ generate_node_type_assignments(const struct fbp_data *data)
     SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, i) {
         struct node_data *nd = n->user_data;
 
-        if (nd->is_declared)
+        if (nd->is_fbp)
             out("    nodes[%d].type = %s;\n", i, nd->desc->symbol);
+        else if (nd->is_metatype)
+            out("    nodes[%d].type = &%s;\n", i, nd->desc->symbol);
         else
             out("    nodes[%d].type = external_types[%d];\n", i, nd->type_index);
     }
@@ -790,7 +808,7 @@ struct type_to_init {
 };
 
 static bool
-is_declared_type(struct fbp_data *data, const struct sol_str_slice name)
+is_fbp_type(struct fbp_data *data, const struct sol_str_slice name)
 {
     struct declared_fbp_type *dec_type;
     uint16_t i;
@@ -799,6 +817,21 @@ is_declared_type(struct fbp_data *data, const struct sol_str_slice name)
         if (sol_str_slice_str_eq(name, dec_type->name))
             return true;
     }
+
+    return false;
+}
+
+static bool
+is_metatype(struct fbp_data *data, const struct sol_str_slice name)
+{
+    struct declared_metatype *meta;
+    uint16_t i;
+
+    SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, i) {
+        if (sol_str_slice_eq(name, meta->name))
+            return true;
+    }
+
     return false;
 }
 
@@ -838,8 +871,13 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
         name = sol_str_slice_from_str(desc->name);
 
         /* Ignore since these are completely defined in the generated code. */
-        if (is_declared_type(data, name)) {
-            nd->is_declared = true;
+        if (is_fbp_type(data, name)) {
+            nd->is_fbp = true;
+            continue;
+        }
+
+        if (is_metatype(data, name)) {
+            nd->is_metatype = true;
             continue;
         }
 
@@ -915,6 +953,125 @@ generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
 }
 #endif
 
+static bool
+generate_metatypes_start(struct fbp_data *data)
+{
+    struct declared_metatype_control *control;
+    struct declared_metatype *meta;
+    uint16_t i, j;
+    sol_flow_metatype_generate_code_func generate_func;
+
+    SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, i) {
+        bool has_start = false;
+
+        SOL_VECTOR_FOREACH_IDX (&declared_metatypes_control_vector,
+            control, j) {
+            if (sol_str_slice_eq(control->type, meta->type) &&
+                control->start_generated) {
+                has_start = true;
+                break;
+            }
+        }
+
+        if (has_start)
+            continue;
+
+        control = sol_vector_append(&declared_metatypes_control_vector);
+        if (!control) {
+            SOL_ERR("Could not create metatype control variable for:%.*s",
+                SOL_STR_SLICE_PRINT(meta->name));
+            return false;
+        }
+        control->type = meta->type;
+        control->start_generated = true;
+        generate_func =
+            sol_flow_metatype_get_generate_code_start_func(meta->type);
+        if (!generate_func) {
+            SOL_ERR("The meta-type:%.*s does not provide a generate code"
+                " start function", SOL_STR_SLICE_PRINT(meta->type));
+            return false;
+        }
+        if (generate_func(&output_buffer, meta->name, meta->contents)) {
+            SOL_ERR("Could not generate the start code for meta type:%.*s-%.*s",
+                SOL_STR_SLICE_PRINT(meta->name),
+                SOL_STR_SLICE_PRINT(meta->type));
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool
+generate_metatypes_body(struct fbp_data *data)
+{
+    struct declared_metatype *meta;
+    uint16_t i;
+    sol_flow_metatype_generate_code_func generate_func;
+
+    SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, i) {
+        generate_func =
+            sol_flow_metatype_get_generate_code_type_func(meta->type);
+        if (!generate_func) {
+            SOL_ERR("The meta-type:%.*s does not provide a generate code"
+                " type function", SOL_STR_SLICE_PRINT(meta->type));
+            return false;
+        }
+        if (generate_func(&output_buffer, meta->name, meta->contents)) {
+            SOL_ERR("Could not generate the body code for meta type:%.*s-%.*s",
+                SOL_STR_SLICE_PRINT(meta->name),
+                SOL_STR_SLICE_PRINT(meta->type));
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool
+generate_metatypes_end(struct fbp_data *data)
+{
+    struct declared_metatype_control *control, *found;
+    struct declared_metatype *meta;
+    uint16_t i, j;
+    sol_flow_metatype_generate_code_func generate_func;
+
+    SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, i) {
+        found = NULL;
+        SOL_VECTOR_FOREACH_IDX (&declared_metatypes_control_vector,
+            control, j) {
+            if (sol_str_slice_eq(control->type, meta->type)) {
+                found = control;
+                break;
+            }
+        }
+
+        if (!found) {
+            SOL_ERR("Could not find the metatype:%.*s in metatypes control"
+                " vector", SOL_STR_SLICE_PRINT(meta->type));
+            return false;
+        }
+
+        if (found->end_generated)
+            continue;
+
+        found->end_generated = true;
+        generate_func =
+            sol_flow_metatype_get_generate_code_end_func(meta->type);
+        if (!generate_func) {
+            SOL_ERR("The meta-type:%.*s does not provide a generate code"
+                " end function", SOL_STR_SLICE_PRINT(meta->type));
+            return false;
+        }
+        if (generate_func(&output_buffer, meta->name, meta->contents)) {
+            SOL_ERR("Could not generate the end code for meta type:%.*s-%.*s",
+                SOL_STR_SLICE_PRINT(meta->name),
+                SOL_STR_SLICE_PRINT(meta->type));
+            return false;
+        }
+    }
+    return true;
+}
+
 static int
 generate(struct sol_vector *fbp_data_vector)
 {
@@ -928,8 +1085,9 @@ generate(struct sol_vector *fbp_data_vector)
     struct sol_ptr_vector *memory_maps;
     struct type_to_init *type;
     int types_count;
-    uint16_t i;
+    uint16_t i, j;
     int r, memmap_elems = 0;
+    struct declared_metatype *meta;
 
     out(
         "#include \"sol-flow.h\"\n"
@@ -966,6 +1124,24 @@ generate(struct sol_vector *fbp_data_vector)
     types_count = ctx->types_to_initialize.len;
     out("\nstatic const struct sol_flow_node_type *external_types[%d];\n", types_count);
 
+    SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
+        if (!generate_metatypes_start(data)) {
+            r = EXIT_FAILURE;
+            goto end;
+        }
+        if (!generate_metatypes_body(data)) {
+            r = EXIT_FAILURE;
+            goto end;
+        }
+    }
+
+    SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
+        if (!generate_metatypes_end(data)) {
+            r = EXIT_FAILURE;
+            goto end;
+        }
+    }
+
     /* Reverse since the dependencies appear later in the vector. */
     SOL_VECTOR_FOREACH_REVERSE_IDX (fbp_data_vector, data, i) {
         if (!generate_create_type_function(data)) {
@@ -991,6 +1167,16 @@ generate(struct sol_vector *fbp_data_vector)
             SOL_STR_SLICE_PRINT(type->module),
             SOL_STR_SLICE_PRINT(type->symbol));
     }
+
+    SOL_VECTOR_FOREACH_IDX (fbp_data_vector, data, i) {
+        SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, j) {
+            out("    if (%.*s.init_type)\n"
+                "        %.*s.init_type();\n",
+                SOL_STR_SLICE_PRINT(meta->name),
+                SOL_STR_SLICE_PRINT(meta->name));
+        }
+    }
+
     if (memmap_elems) {
         out("\n");
         for (i = 0; i < memmap_elems; i++)
@@ -1411,6 +1597,74 @@ resolve_node(struct fbp_data *data, struct type_store *common_store)
     return true;
 }
 
+static bool
+add_metatype_to_type_store(struct type_store *store,
+    struct sol_fbp_declaration *dec)
+{
+    struct type_description type;
+    char name[2048], node_type[2048];
+    sol_flow_metatype_ports_description_func get_ports;
+    int wrote;
+    bool r = false;
+    struct port_description *port;
+    uint16_t i;
+
+    get_ports = sol_flow_metatype_get_ports_description_func(dec->metatype);
+
+    if (!get_ports) {
+        SOL_ERR("Could not get ports description function for:%.*s",
+            SOL_STR_SLICE_PRINT(dec->name));
+        return r;
+    }
+
+    wrote = snprintf(name, sizeof(name), "%.*s",
+        SOL_STR_SLICE_PRINT(dec->name));
+    if (wrote < 0 || wrote >= (int)sizeof(name)) {
+        SOL_ERR("Could not copy the meta-type name. Name:%.*s",
+            SOL_STR_SLICE_PRINT(dec->name));
+        return r;
+    }
+
+    wrote = snprintf(node_type, sizeof(node_type), "%.*s",
+        SOL_STR_SLICE_PRINT(dec->name));
+    if (wrote < 0 || wrote >= (int)sizeof(node_type)) {
+        SOL_ERR("Could not copy the meta-type name. Name:%.*s",
+            SOL_STR_SLICE_PRINT(dec->name));
+        return r;
+    }
+
+    /* Beware that struct sol_flow_metatype_port_description is a copy of struct port_description */
+    if (get_ports(dec->contents, &type.in_ports, &type.out_ports)) {
+        SOL_ERR("Could not get ports from metatype:%.*s",
+            SOL_STR_SLICE_PRINT(dec->name));
+        goto exit;
+    }
+
+    type.name = name;
+    type.symbol = node_type;
+    type.options_symbol = (char *)"";
+    sol_vector_init(&type.options, sizeof(struct option_description));
+
+    r = type_store_add_type(store, &type);
+    if (!r) {
+        SOL_ERR("Could not store the type %.*s",
+            SOL_STR_SLICE_PRINT(dec->name));
+    }
+exit:
+    SOL_VECTOR_FOREACH_IDX (&type.in_ports, port, i) {
+        free(port->name);
+        free(port->data_type);
+    }
+
+    SOL_VECTOR_FOREACH_IDX (&type.out_ports, port, i) {
+        free(port->name);
+        free(port->data_type);
+    }
+    sol_vector_clear(&type.out_ports);
+    sol_vector_clear(&type.in_ports);
+    return r;
+}
+
 static struct fbp_data *
 create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_readers,
     struct type_store *common_store, const char *name, const char *fbp_basename)
@@ -1462,6 +1716,7 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
     }
 
     sol_vector_init(&data->declared_fbp_types, sizeof(struct declared_fbp_type));
+    sol_vector_init(&data->declared_meta_types, sizeof(struct declared_metatype));
 
     data->name = sol_arena_strdup(str_arena, name);
     if (!data->name) {
@@ -1484,40 +1739,49 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
         struct sol_fbp_declaration *dec;
         char *dec_file, *dec_name;
         uint16_t i, data_idx;
+        struct declared_metatype *meta;
 
         /* Get data index in order to use it after we handle the declarations. */
         data_idx = fbp_data_vector->len - 1;
 
         SOL_VECTOR_FOREACH_IDX (&data->graph.declarations, dec, i) {
-            if (!sol_str_slice_str_eq(dec->metatype, "fbp")) {
-                SOL_ERR("DECLARE metatype '%.*s' not supported.", SOL_STR_SLICE_PRINT(dec->metatype));
-                return NULL;
+            if (sol_str_slice_str_eq(dec->metatype, "fbp")) {
+
+                dec_file = strndupa(dec->contents.data, dec->contents.len);
+                dec_name = strndupa(dec->name.data, dec->name.len);
+
+                d = create_fbp_data(fbp_data_vector, file_readers, common_store, dec_name, dec_file);
+                if (!d)
+                    return NULL;
+
+                /* We need to do this because we may have appended new data to fbp_data_vector,
+                 * this changes the position of data pointers since it's a sol_vector. */
+                data = sol_vector_get(fbp_data_vector, data_idx);
+
+                if (!add_fbp_type_to_type_store(data->store, d)) {
+                    SOL_ERR("Couldn't create fbp data.");
+                    return NULL;
+                }
+
+                dec_type = sol_vector_append(&data->declared_fbp_types);
+                if (!dec_type) {
+                    SOL_ERR("Couldn't create fbp data.");
+                    return NULL;
+                }
+
+                dec_type->name = d->name;
+                dec_type->id = d->id;
+            } else {
+                meta = sol_vector_append(&data->declared_meta_types);
+                if (!meta) {
+                    SOL_ERR("Could not create the metatype info");
+                    return NULL;
+                }
+                meta->type = dec->metatype;
+                meta->contents = dec->contents;
+                meta->name = dec->name;
+                add_metatype_to_type_store(data->store, dec);
             }
-
-            dec_file = strndupa(dec->contents.data, dec->contents.len);
-            dec_name = strndupa(dec->name.data, dec->name.len);
-
-            d = create_fbp_data(fbp_data_vector, file_readers, common_store, dec_name, dec_file);
-            if (!d)
-                return NULL;
-
-            /* We need to do this because we may have appended new data to fbp_data_vector,
-             * this changes the position of data pointers since it's a sol_vector. */
-            data = sol_vector_get(fbp_data_vector, data_idx);
-
-            if (!add_fbp_type_to_type_store(data->store, d)) {
-                SOL_ERR("Couldn't create fbp data.");
-                return NULL;
-            }
-
-            dec_type = sol_vector_append(&data->declared_fbp_types);
-            if (!dec_type) {
-                SOL_ERR("Couldn't create fbp data.");
-                return NULL;
-            }
-
-            dec_type->name = d->name;
-            dec_type->id = d->id;
         }
     }
 
@@ -1592,6 +1856,8 @@ main(int argc, char *argv[])
         goto fail_store_load;
 
     sol_vector_init(&fbp_data_vector, sizeof(struct fbp_data));
+    sol_vector_init(&declared_metatypes_control_vector,
+        sizeof(struct declared_metatype_control));
     sol_ptr_vector_init(&file_readers);
     if (!create_fbp_data(&fbp_data_vector, &file_readers, common_store, "root", args.fbp_basename))
         goto fail_data;
@@ -1617,8 +1883,10 @@ fail_data:
             type_store_del(data->store);
         sol_fbp_graph_fini(&data->graph);
         sol_vector_clear(&data->declared_fbp_types);
+        sol_vector_clear(&data->declared_meta_types);
     }
     sol_vector_clear(&fbp_data_vector);
+    sol_vector_clear(&declared_metatypes_control_vector);
     SOL_PTR_VECTOR_FOREACH_IDX (&file_readers, fr, i)
         sol_file_reader_close(fr);
     sol_ptr_vector_clear(&file_readers);

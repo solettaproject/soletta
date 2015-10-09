@@ -293,7 +293,7 @@ int sol_flow_builder_add_node_taking_options(
     const struct sol_flow_node_options *options);
 
 #ifdef ENABLE_DYNAMIC_MODULES
-sol_flow_metatype_create_type_func get_dynamic_create_type_func(const struct sol_str_slice name);
+const struct sol_flow_metatype *get_dynamic_metatype(const struct sol_str_slice name);
 void loaded_metatype_cache_shutdown(void);
 #endif
 

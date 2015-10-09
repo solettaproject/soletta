@@ -33,6 +33,10 @@
 #pragma once
 
 #include "sol-flow.h"
+#include "sol-str-slice.h"
+#include "sol-buffer.h"
+#include "sol-vector.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,9 +59,26 @@ struct sol_flow_metatype_context {
         struct sol_flow_node_type *type);
 };
 
+struct sol_flow_metatype_port_description {
+    char *name;
+    char *type;
+    int array_size;
+    int idx;
+};
+
 typedef int (*sol_flow_metatype_create_type_func)(
     const struct sol_flow_metatype_context *,
     struct sol_flow_node_type **);
+
+typedef int (*sol_flow_metatype_generate_code_func)(struct sol_buffer *,
+    const struct sol_str_slice, const struct sol_str_slice);
+
+typedef int (*sol_flow_metatype_ports_description_func)(const struct sol_str_slice, struct sol_vector *, struct sol_vector *);
+
+sol_flow_metatype_generate_code_func sol_flow_metatype_get_generate_code_start_func(const struct sol_str_slice);
+sol_flow_metatype_generate_code_func sol_flow_metatype_get_generate_code_type_func(const struct sol_str_slice);
+sol_flow_metatype_generate_code_func sol_flow_metatype_get_generate_code_end_func(const struct sol_str_slice);
+sol_flow_metatype_ports_description_func sol_flow_metatype_get_ports_description_func(const struct sol_str_slice);
 
 #define SOL_FLOW_METATYPE_API_VERSION (1)
 
@@ -67,6 +88,10 @@ struct sol_flow_metatype {
     const char *name;
 
     sol_flow_metatype_create_type_func create_type;
+    sol_flow_metatype_generate_code_func generate_type_start;
+    sol_flow_metatype_generate_code_func generate_type_body;
+    sol_flow_metatype_generate_code_func generate_type_end;
+    sol_flow_metatype_ports_description_func ports_description;
 };
 
 #ifdef SOL_FLOW_METATYPE_MODULE_EXTERNAL
