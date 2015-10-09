@@ -1,4 +1,5 @@
-sample-$(FLOW_SEMAPHORE_MONITOR_SEMAPHORE_MONITOR_CONSOLE_SAMPLE) += semaphore-monitor-console
+# TODO: this code uses DECLARE and options, this is still not supported -- disable the build until it is
+#sample-$(FLOW_SEMAPHORE_MONITOR_SEMAPHORE_MONITOR_CONSOLE_SAMPLE) += semaphore-monitor-console
 sample-semaphore-monitor-console-$(FLOW_SEMAPHORE_MONITOR_SEMAPHORE_MONITOR_CONSOLE_SAMPLE) := semaphore-monitor-console.fbp
 sample-semaphore-monitor-console-$(FLOW_SEMAPHORE_MONITOR_SEMAPHORE_MONITOR_CONSOLE_SAMPLE)-deps := \
 	flow/console.mod \
