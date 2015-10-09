@@ -347,14 +347,14 @@ test_base64_decode(void)
         "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNoYQ==",
         "VGhpcyBpcyBhIG1lc3NhZ2UgdGhhdCBpcyBtdWx0aXBsZSBvZiAzIGNo"
     };
-    struct sol_str_slice exp;
+    struct sol_str_slice exp, slice;
     char outstr[sizeof(expstr)];
     size_t r, i;
 
     exp = sol_str_slice_from_str(expstr);
 
     for (i = 0; i < ARRAY_SIZE(instrs); i++) {
-        struct sol_str_slice slice = sol_str_slice_from_str(instrs[i]);
+        slice = sol_str_slice_from_str(instrs[i]);
 
         memset(outstr, 0xff, sizeof(outstr));
         r = sol_util_base64_decode(outstr, sizeof(outstr), slice, base64_map);
@@ -366,6 +366,18 @@ test_base64_decode(void)
         exp.len--;
         expstr[exp.len] = '\0';
     }
+
+    /* negative test (invalid char) */
+    slice = sol_str_slice_from_str("****");
+    memset(outstr, 0xff, sizeof(outstr));
+    r = sol_util_base64_decode(outstr, sizeof(outstr), slice, base64_map);
+    ASSERT_INT_EQ(r, -EINVAL);
+
+    /* short sequence (not multiple of 4) */
+    slice = sol_str_slice_from_str("123");
+    memset(outstr, 0xff, sizeof(outstr));
+    r = sol_util_base64_decode(outstr, sizeof(outstr), slice, base64_map);
+    ASSERT_INT_EQ(r, -EINVAL);
 }
 
 TEST_MAIN();

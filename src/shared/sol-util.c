@@ -382,7 +382,7 @@ sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slic
     input = (const uint8_t *)slice.data;
     output = buf;
 
-    for (i = 0, o = 0; i <= slice.len - 3; i += 3) {
+    for (i = 0, o = 0; i + 3 <= slice.len; i += 3) {
         c = (input[i] & (((1 << 6) - 1) << 2)) >> 2;
         output[o++] = base64_map[c];
 
@@ -453,7 +453,7 @@ sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slic
     input = slice.data;
     output = buf;
 
-    for (i = 0, o = 0; i < slice.len; i += 4) {
+    for (i = 0, o = 0; i + 4 <= slice.len; i += 4) {
         uint8_t _6bits[4];
         uint8_t n;
 
@@ -474,6 +474,8 @@ sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slic
             }
         }
     }
+
+    SOL_INT_CHECK(i, != slice.len, -EINVAL);
 
     return o;
 }
