@@ -251,6 +251,95 @@ sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_netwo
     return r;
 }
 
+static int
+sendmsg_multicast_addrs(int fd, const struct sol_network_link *link,
+    struct msghdr *msg)
+{
+    union {
+        char cmsg_ipv4[CMSG_SPACE(sizeof(struct in_pktinfo))];
+        char cmsg_ipv6[CMSG_SPACE(sizeof(struct in6_pktinfo))];
+    } cmsghdr_data;
+    struct cmsghdr *cmsg;
+    struct sol_network_link_addr *addr;
+    uint16_t i;
+    bool had_success = false;
+
+    msg->msg_control = &cmsghdr_data;
+    msg->msg_controllen = sizeof(cmsghdr_data);
+
+    cmsg = CMSG_FIRSTHDR(msg);
+    cmsg->cmsg_type = 1;
+
+    SOL_VECTOR_FOREACH_IDX (&link->addrs, addr, i) {
+        int r;
+
+        if (addr->family == AF_INET) {
+            struct in_pktinfo *pktinfo;
+
+            cmsg->cmsg_level = IPPROTO_IP;
+            cmsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+
+            pktinfo = (struct in_pktinfo *)CMSG_DATA(cmsg);
+            memset(pktinfo, 0, sizeof(struct in_pktinfo));
+            pktinfo->ipi_ifindex = link->index;
+        } else if (addr->family == AF_INET6) {
+            struct in6_pktinfo *pktinfo;
+
+            cmsg->cmsg_level = IPPROTO_IPV6;
+            cmsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+
+            pktinfo = (struct in6_pktinfo *)CMSG_DATA(cmsg);
+            memset(pktinfo, 0, sizeof(struct in6_pktinfo));
+            pktinfo->ipi6_ifindex = link->index;
+        }
+
+        r = sendmsg(fd, msg, 0);
+        if (r >= 0)
+            had_success = true;
+    }
+
+    return had_success;
+}
+
+static int
+sendmsg_multicast(int fd, struct msghdr *msg)
+{
+    const unsigned int running_multicast = SOL_NETWORK_LINK_RUNNING | SOL_NETWORK_LINK_MULTICAST;
+    const struct sol_vector *links = sol_network_get_available_links();
+    struct sol_network_link *link;
+    uint16_t i;
+    bool had_success = false;
+
+    if (!links || !links->len)
+        return -ENOTCONN;
+
+    SOL_VECTOR_FOREACH_IDX (links, link, i) {
+        if ((link->flags & running_multicast) == running_multicast)
+            had_success = sendmsg_multicast_addrs(fd, link, msg);
+    }
+
+    return had_success ? 0 : -EIO;
+}
+
+static bool
+is_multicast(int family, const struct sockaddr *sockaddr)
+{
+    if (family == AF_INET6) {
+        const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)sockaddr;
+
+        return IN6_IS_ADDR_MULTICAST(&addr6->sin6_addr);
+    }
+
+    if (family == AF_INET) {
+        const struct sockaddr_in *addr4 = (const struct sockaddr_in *)sockaddr;
+
+        return IN_MULTICAST(htonl(addr4->sin_addr.s_addr));
+    }
+
+    SOL_WRN("Unknown address family (%d)", family);
+    return false;
+}
+
 SOL_API int
 sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
     const struct sol_network_link_addr *cliaddr)
@@ -271,6 +360,9 @@ sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
 
     msg.msg_name = &sockaddr;
     msg.msg_namelen = l;
+
+    if (is_multicast(cliaddr->family, (struct sockaddr *)sockaddr))
+        return sendmsg_multicast(s->fd, &msg);
 
     if (sendmsg(s->fd, &msg, 0) < 0)
         return -errno;
@@ -301,7 +393,6 @@ sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_networ
         l = sizeof(ip_join);
         level = IPPROTO_IP;
         option = IP_ADD_MEMBERSHIP;
-
     } else {
         memcpy(&ip6_join.ipv6mr_multiaddr, group->addr.in6, sizeof(group->addr.in6));
         ip6_join.ipv6mr_interface = ifindex;
