@@ -1,0 +1,12 @@
+config LINUX_MICRO_KMOD
+	tristate "kmod"
+	depends on LINUX_MICRO && HAVE_LIBKMOD
+	default m if MODULES=y
+	help
+            Implements the modprobe process following the systemd's modules-load.d
+            specification, also does the coldplug module loading - which consists in
+            looking up devices described in the sysfs and loading their respective
+            modules based on the modalias descriptors.
+
+            This module will also handle the hotplug events, notified by the kernel
+            via uevent netlink channel.
