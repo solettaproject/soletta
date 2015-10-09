@@ -134,6 +134,7 @@ test_str_slice_to_string(void)
     for (i = 0; i < ARRAY_SIZE(input); i++) {
         char *s = sol_str_slice_to_string(input[i]);
         ASSERT(sol_str_slice_str_eq(input[i], s));
+        free(s);
     }
 }
 
