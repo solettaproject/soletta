@@ -2014,6 +2014,29 @@
     },
     {
       "category": "converter",
+      "description": "Receives a blob packet and try to convert it to a string by scanning up to the first null byte (\\0) or the end of the blob.",
+      "in_ports": [
+        {
+          "data_type": "blob",
+          "description": "Where to receive the blob value to be converted.",
+          "methods": {
+            "process": "blob_to_string_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "name": "converter/blob-to-string",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Sends a string packet with the contents of the blob received in the port IN, up to the first null byte (\\0) or the end of the blob.",
+          "name": "OUT"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/blob-to-string.html"
+    },
+    {
+      "category": "converter",
       "description": "Receives a timestamp packet and converts it to a string one.",
       "in_ports": [
         {

@@ -1989,6 +1989,51 @@ string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
 }
 
 static int
+string_to_blob_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct sol_converter_string_blob *mdata = data;
+    const struct sol_flow_node_type_converter_string_to_blob_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_BLOB_OPTIONS_API_VERSION,
+        -EINVAL);
+    opts = (const struct sol_flow_node_type_converter_string_to_blob_options *)
+        options;
+    mdata->include_null_terminator = opts->include_null_terminator;
+    return 0;
+}
+
+static int
+blob_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    char *mem;
+    struct sol_blob *blob;
+    size_t len;
+    int ret;
+
+    ret = sol_flow_packet_get_blob(packet, &blob);
+    SOL_INT_CHECK(ret, < 0, -EINVAL);
+
+    if (blob->size == 0)
+        return sol_flow_send_string_packet(node,
+            SOL_FLOW_NODE_TYPE_CONVERTER_BLOB_TO_STRING__OUT__OUT, "");
+
+    mem = memchr(blob->mem, '\0', blob->size);
+    if (mem)
+        len = mem - (char *)blob->mem;
+    else
+        len = blob->size;
+
+    mem = malloc(len + 1);
+    SOL_NULL_CHECK(mem, -ENOMEM);
+    memcpy(mem, blob->mem, len);
+    mem[len] = '\0';
+
+    return sol_flow_send_string_take_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_BLOB_TO_STRING__OUT__OUT, mem);
+}
+
+static int
 timestamp_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     struct sol_converter_string *mdata = data;
