@@ -56,3 +56,23 @@ int string_b64decode_port_connect(struct sol_flow_node *node, void *data, uint16
 int string_b64decode_port_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
 int string_b64_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
 void string_b64_close(struct sol_flow_node *node, void *data);
+
+struct string_b16_data {
+    bool uppercase;
+};
+
+/* NOTE: string_b16decode_data is handled to functions such as open/close that will expect a
+ * string_b16_data, thus keep the same header (uppercase).
+ */
+struct string_b16decode_data {
+    bool uppercase;
+    uint32_t string_conns;
+    uint32_t blob_conns;
+};
+
+int string_b16encode_string(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+int string_b16encode_blob(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+int string_b16decode(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet);
+int string_b16decode_port_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
+int string_b16decode_port_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id);
+int string_b16_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options);
