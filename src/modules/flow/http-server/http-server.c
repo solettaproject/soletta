@@ -78,6 +78,27 @@ static struct sol_http_server *server = NULL;
 static int init_count = 0;
 
 static int
+server_ref(void)
+{
+    if (!server) {
+        server = sol_http_server_new(HTTP_SERVER_PORT);
+        SOL_NULL_CHECK(server, -ENOMEM);
+    }
+    init_count++;
+    return 0;
+}
+
+static void
+server_unref(void)
+{
+    init_count--;
+    if (!init_count) {
+        sol_http_server_del(server);
+        server = NULL;
+    }
+}
+
+static int
 common_response_cb(void *data, struct sol_http_request *request)
 {
     int r = 0;
@@ -157,12 +178,9 @@ start_server(struct http_data *http, struct sol_flow_node *node,
 {
     int r;
 
-    if (!server) {
-        server = sol_http_server_new(HTTP_SERVER_PORT);
-        SOL_NULL_CHECK(server, -1);
-    }
+    r = server_ref();
+    SOL_INT_CHECK(r, < 0, r);
 
-    init_count++;
     http->path = strdup(path);
     SOL_NULL_CHECK_GOTO(http->path, err);
 
@@ -174,11 +192,7 @@ start_server(struct http_data *http, struct sol_flow_node *node,
 err_handler:
     free(http->path);
 err:
-    init_count--;
-    if (!init_count) {
-        sol_http_server_del(server);
-        server = NULL;
-    }
+    server_unref();
     return -1;
 }
 
@@ -187,11 +201,7 @@ stop_server(struct http_data *http)
 {
     sol_http_server_unregister_handler(server, http->path);
     free(http->path);
-    init_count--;
-    if (!init_count) {
-        sol_http_server_del(server);
-        server = NULL;
-    }
+    server_unref();
 }
 
 static void
@@ -502,15 +512,13 @@ float_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 static int
 static_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
+    int r;
     struct http_data *mdata = data;
     struct sol_flow_node_type_http_server_static_options *opts =
         (struct sol_flow_node_type_http_server_static_options *)options;
 
-    if (!server) {
-        server = sol_http_server_new(HTTP_SERVER_PORT);
-        SOL_NULL_CHECK(server, -1);
-    }
-    init_count++;
+    r = server_ref();
+    SOL_INT_CHECK(r, < 0, r);
 
     mdata->path = strdup(opts->path);
     SOL_NULL_CHECK_GOTO(mdata->path, err);
@@ -523,11 +531,7 @@ static_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     return 0;
 
 err:
-    init_count--;
-    if (!init_count) {
-        sol_http_server_del(server);
-        server = NULL;
-    }
+    server_unref();
     return -1;
 }
 
@@ -539,12 +543,7 @@ static_close(struct sol_flow_node *node, void *data)
     if (mdata->value.b)
         sol_http_server_remove_dir(server, mdata->path);
 
-    init_count--;
-    if (!init_count) {
-        sol_http_server_del(server);
-        server = NULL;
-    }
-
+    server_unref();
     free(mdata->path);
 }
 
