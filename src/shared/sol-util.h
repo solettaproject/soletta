@@ -204,7 +204,7 @@ char *sol_util_strerror(int errnum, char *buf, size_t buflen);
         left_zeros = clz_fn_(u - 1); \
         if (unlikely(left_zeros <= 1)) \
             return max_; \
-        return 1 << ((sizeof(u) * 8) - left_zeros); \
+        return (type_)1 << ((sizeof(u) * 8) - left_zeros); \
     }
 
 DEFINE_ALIGN_POWER2(align_power2_uint, unsigned int, UINT_MAX, __builtin_clz)
