@@ -880,6 +880,104 @@
       ],
       "private_data_type": "string_b64decode_data",
       "url": "http://solettaproject.org/doc/latest/node_types/string/b64decode.html"
+    },
+
+    {
+      "category": "string",
+      "description": "Encode a string to Base16",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Input string to be encoded to Base16. It will stop at the first null byte (\\0), for binary data use BLOB port.",
+          "methods": {
+            "process": "string_b16encode_string"
+          },
+          "name": "STRING"
+        },
+        {
+          "data_type": "blob",
+          "description": "Input blob to be encoded to Base16",
+          "methods": {
+            "process": "string_b16encode_blob"
+          },
+          "name": "BLOB"
+        }
+      ],
+      "methods": {
+        "open": "string_b16_open"
+      },
+      "name": "string/b16encode",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If the letters (abcdef) should be uppercase.",
+            "name": "uppercase"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The Base16 encoded string",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "string_b16_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/b16encode.html"
+    },
+    {
+      "category": "string",
+      "description": "Decode a string from Base16",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Input Base16 string to be decoded",
+          "methods": {
+            "process": "string_b16decode"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "string_b16_open"
+      },
+      "name": "string/b16decode",
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If the letters (abcdef) should be uppercase.",
+            "name": "uppercase"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The decoded Base16 as textual string. It will stop at the first null byte (\\0), for binary data use BLOB port.",
+          "name": "STRING",
+          "methods": {
+            "connect": "string_b16decode_port_connect",
+            "disconnect": "string_b16decode_port_disconnect"
+          }
+        },
+        {
+          "data_type": "blob",
+          "description": "The decoded Base16 as binary blob.",
+          "name": "BLOB",
+          "methods": {
+            "connect": "string_b16decode_port_connect",
+            "disconnect": "string_b16decode_port_disconnect"
+          }
+        }
+      ],
+      "private_data_type": "string_b16decode_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/string/b16decode.html"
     }
   ]
 }
