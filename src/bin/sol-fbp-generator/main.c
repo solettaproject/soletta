@@ -318,7 +318,7 @@ handle_option(const struct sol_fbp_meta *meta, struct sol_vector *options, const
                 handle_suboptions(meta, handle_suboption_with_explicit_fields, fbp_file);
             else
                 handle_suboptions(meta, handle_rgb_suboption, fbp_file);
-        } else if (streq(o->data_type, "direction_vector")) {
+        } else if (streq(o->data_type, "direction-vector")) {
             if (memchr(meta->value.data, ':', meta->value.len))
                 handle_suboptions(meta, handle_suboption_with_explicit_fields, fbp_file);
             else
