@@ -132,7 +132,7 @@ struct timespec sol_util_timespec_get_current(void);
 int sol_util_timespec_get_realtime(struct timespec *t);
 
 static inline void
-sol_util_timespec_sum(struct timespec *t1, struct timespec *t2, struct timespec *result)
+sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
     result->tv_nsec = t1->tv_nsec + t2->tv_nsec;
     result->tv_sec = t1->tv_sec + t2->tv_sec;
@@ -143,7 +143,7 @@ sol_util_timespec_sum(struct timespec *t1, struct timespec *t2, struct timespec 
 }
 
 static inline void
-sol_util_timespec_sub(struct timespec *t1, struct timespec *t2, struct timespec *result)
+sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
     result->tv_nsec = t1->tv_nsec - t2->tv_nsec;
     result->tv_sec = t1->tv_sec - t2->tv_sec;
