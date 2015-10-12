@@ -75,6 +75,8 @@ extern int sol_platform_init(void);
 extern void sol_platform_shutdown(void);
 extern int sol_blob_init(void);
 extern void sol_blob_shutdown(void);
+extern int sol_crypto_init(void);
+extern void sol_crypto_shutdown(void);
 #ifdef FLOW_SUPPORT
 extern int sol_flow_init(void);
 extern void sol_flow_shutdown(void);
@@ -121,6 +123,10 @@ sol_init(void)
     if (r < 0)
         goto blob_error;
 
+    r = sol_crypto_init();
+    if (r < 0)
+        goto crypto_error;
+
 #ifdef FLOW_SUPPORT
     r = sol_flow_init();
     if (r < 0)
@@ -146,6 +152,8 @@ comms_error:
     sol_flow_shutdown();
 flow_error:
 #endif
+    sol_crypto_shutdown();
+crypto_error:
     sol_blob_shutdown();
 blob_error:
     sol_pin_mux_shutdown();
@@ -220,6 +228,7 @@ sol_shutdown(void)
 #ifdef FLOW_SUPPORT
     sol_flow_shutdown();
 #endif
+    sol_crypto_shutdown();
     sol_blob_shutdown();
     sol_pin_mux_shutdown();
     sol_platform_shutdown();

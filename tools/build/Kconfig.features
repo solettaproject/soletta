@@ -10,6 +10,9 @@ config FEATURE_WORKER_THREADS
 config FEATURE_UNIX_SOCKETS
     bool
 
+config FEATURE_CRYPTO_MESSAGE_DIGEST
+    bool
+
 config FEATURE_NETWORK
     bool
 
