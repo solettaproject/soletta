@@ -24,6 +24,13 @@ config CRYPTO_MESSAGE_DIGEST_LINUX_KCAPI
             provided by Linux. Linux implementation are often very optimized
             and in some case are hardware-accelerated.
 
+config CRYPTO_MESSAGE_DIGEST_OPENSSL
+	bool "OpenSSL"
+	depends on HAVE_OPENSSL && FEATURE_CRYPTO_MESSAGE_DIGEST
+	select CRYPTO_MESSAGE_DIGEST
+	help
+            This implementation will use OpenSSL.
+
 config CRYPTO_MESSAGE_DIGEST_NONE
 	bool "None"
 	depends on FEATURE_CRYPTO_MESSAGE_DIGEST

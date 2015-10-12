@@ -493,6 +493,11 @@
         "in-tree": "{TOP_SRCDIR}/src/thirdparty/tinycbor/src",
         "out-of-tree": "{TINYCBOR_SRC}"
       }
+    },
+    {
+      "dependency": "openssl",
+      "type": "pkg-config",
+      "pkgname": "openssl"
     }
   ]
 }
