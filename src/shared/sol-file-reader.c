@@ -121,3 +121,41 @@ sol_file_reader_get_stat(const struct sol_file_reader *fr)
 {
     return &fr->st;
 }
+
+struct sol_blob_file_reader {
+    struct sol_blob base;
+    struct sol_file_reader *fr;
+};
+
+static void
+_sol_blob_type_file_reader_close(struct sol_blob *blob)
+{
+    struct sol_blob_file_reader *b = (struct sol_blob_file_reader *)blob;
+
+    sol_file_reader_close(b->fr);
+    free(blob);
+}
+
+static const struct sol_blob_type _SOL_BLOB_TYPE_FILE_READER = {
+    .api_version = SOL_BLOB_TYPE_API_VERSION,
+    .sub_api = 1,
+    .free = _sol_blob_type_file_reader_close
+};
+
+SOL_API struct sol_blob *
+sol_file_reader_to_blob(struct sol_file_reader *fr)
+{
+    struct sol_blob_file_reader *b;
+    struct sol_str_slice c = sol_file_reader_get_all(fr);
+
+    b = calloc(1, sizeof(struct sol_blob_file_reader));
+    SOL_NULL_CHECK_GOTO(b, error);
+
+    sol_blob_setup(&b->base, &_SOL_BLOB_TYPE_FILE_READER, c.data, c.len);
+    b->fr = fr;
+    return &b->base;
+
+error:
+    sol_file_reader_close(fr);
+    return NULL;
+}
