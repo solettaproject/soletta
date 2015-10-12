@@ -891,12 +891,13 @@ _sol_message_digest_thread_start(struct sol_message_digest *handle)
     };
 
     if (handle->thread)
-        return 0;
+        goto end;
 
     _sol_message_digest_ref(handle);
     handle->thread = sol_worker_thread_new(&spec);
     SOL_NULL_CHECK_GOTO(handle->thread, error);
 
+end:
     _sol_message_digest_thread_send(handle, 'a');
 
     return 0;
