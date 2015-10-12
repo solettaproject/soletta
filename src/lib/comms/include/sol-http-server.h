@@ -56,25 +56,126 @@ extern "C" {
 struct sol_http_server;
 struct sol_http_request;
 
+/**
+ * It creates a http's server on that will bind on all interfaces in the given port.
+ * With the returned handle it's possible to register paths using @c sol_http_server_register_handler
+ * and dirs with @c sol_http_server_add_dir.
+ *
+ * @note Only one instance of sol_http_server is possible per port. Try to run a second instance in the
+ * same port will result in fail.
+ *
+ * @param port The port where the server will bind.
+ *
+ * @return a handle to the server on success, otherwise @c NULL is returned.
+ */
 struct sol_http_server *sol_http_server_new(uint16_t port);
+
+/**
+ * Deletes the server and consequently all handlers and dir added.
+ *
+ * @param server The value got with @c sol_http_server_new
+ */
 void sol_http_server_del(struct sol_http_server *server);
+
+/**
+ * Register a handler for a specific path.
+ *
+ * @param server The value got with @c sol_http_server_new
+ * @param path The path where the handler will serve, it means, when a request comes in this path the
+ * callback set will be called and a response should be sent back
+ * @param request_cb The callback for the request received on the specified path
+ * @param data The user data passed in the callback
+ *
+ * @return '0' on success, error code (always negative) otherwise.
+ */
 int sol_http_server_register_handler(struct sol_http_server *server, const char *path,
     int (*request_cb)(void *data, struct sol_http_request *request),
     const void *data);
+
+/**
+ * Removes a handler registered with @c sol_http_server_register_handler
+ *
+ * @param server The value got with @c sol_http_server_new
+ * @param path The same path given on @c sol_http_server_register_handler
+ *
+ * @return '0' on success, error code (always negative) otherwise.
+ */
 int sol_http_server_unregister_handler(struct sol_http_server *server, const char *path);
 
-/* The http server will look first for a handler when a request comes,
+/**
+ * Add a root dir where the server will look for static files to serve.
+ *
+ * @note: The http server will look first for a handler when a request comes,
  * if no valid handler is found it will try to find the file in the
  * root dirs set. The response will be sent as soon as a file matches
  * with the request.
+ *
+ * @param server The value got with @c sol_http_server_new
+ * @param rootdir The dir where the server will look for static files
+ *
+ * @return '0' on success, error code (always negative) otherwise.
  */
 int sol_http_server_add_dir(struct sol_http_server *server, const char *rootdir);
+
+/**
+ * Removes a dir registered with @c sol_http_server_add_dir
+ *
+ * @param server The value got with @c sol_http_server_new
+ * @param rootdir The same rootdir given on @c sol_http_server_add_dir
+ *
+ * @return '0' on success, error code (always negative) otherwise.
+ */
 int sol_http_server_remove_dir(struct sol_http_server *server, const char *rootdir);
+
+/**
+ * Set the last time the specified path had its value modified. It'll make the server
+ * return automatically a response with the code 304 (not modified) when the request contains the header
+ * If-Since-Modified greater than the value given in this function.
+ *
+ * @param server The value got with @c sol_http_server_new
+ * @param path The same path given on @c sol_http_server_register_handler
+ * @param modified The time it was modified
+ *
+ * @return '0' on success, error code (always negative) otherwise.
+ */
 int sol_http_server_set_last_modified(struct sol_http_server *server, const char *path, time_t modified);
 
+/**
+ * Send the response to request given in the callback registered on @c sol_http_server_register_handler.
+ * After this call, @a request should not be used anymore.
+ *
+ * @param request The request given on the callback of @c sol_http_server_register_handler
+ * @param response The response for the request containing the data and parameters (e.g http headers)
+ *
+ * @return '0' on success, error code (always negative) otherwise.
+ */
 int sol_http_server_send_response(struct sol_http_request *request, struct sol_http_response *response);
+
+/**
+ * Gets the URL from a given request.
+ *
+ * @param request The request which the URL is wanted.
+ *
+ * @return the URL on success, @c NULL otherwise
+ */
 const char *sol_http_request_get_url(const struct sol_http_request *request);
+
+/**
+ * Gets the parameters from a given request.
+ *
+ * @param request The request which the URL is wanted.
+ *
+ * @return the parameters on success, @c NULL otherwise
+ */
 const struct sol_http_param *sol_http_request_get_params(const struct sol_http_request *request);
+
+/**
+ * Gets the method (GET, POST, ...) from a given request.
+ *
+ * @param request The request which the URL is wanted.
+ *
+ * @return the method on success, @c SOL_HTTP_METHOD_INVALID otherwise
+ */
 enum sol_http_method sol_http_request_get_method(const struct sol_http_request *request);
 
 /**
