@@ -33,6 +33,7 @@
 #pragma once
 
 #include "sol-str-slice.h"
+#include "sol-types.h"
 
 struct sol_file_reader;
 
@@ -40,3 +41,17 @@ struct sol_file_reader *sol_file_reader_open(const char *filename);
 void sol_file_reader_close(struct sol_file_reader *fr);
 struct sol_str_slice sol_file_reader_get_all(const struct sol_file_reader *fr);
 const struct stat *sol_file_reader_get_stat(const struct sol_file_reader *fr);
+
+/**
+ * convert an open file reader to a blob.
+ *
+ * This will convert a valid and opened file reader to a blob, thus no
+ * further explicit calls to sol_file_reader_close() should be done as
+ * the blob will automatically close once its last reference is gone.
+ *
+ * @param fr valid opened file reader.
+ *
+ * @return NULL on error (and fr is closed) or new blob instance that should
+ *         be sol_blob_unref() once it's not needed.
+ */
+struct sol_blob *sol_file_reader_to_blob(struct sol_file_reader *fr);
