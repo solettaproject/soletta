@@ -1,0 +1,45 @@
+config CRYPTO_MESSAGE_DIGEST
+	bool
+
+choice
+	prompt "Message Digest (Hash)"
+	depends on FEATURE_CRYPTO_MESSAGE_DIGEST
+	default CRYPTO_MESSAGE_DIGEST_LINUX_KCAPI if LINUX
+	help
+            Message Digest algorithms will take a byte stream and
+            compute a hash that may be used to later validate the
+            identity. Even the smallest variation of the input data
+            will have an avalanche effect that drastically change the
+            output data.
+
+            Wikipedia says (https://en.wikipedia.org/wiki/Cryptographic_hash_function):
+            The ideal cryptographic hash function has four main properties:
+             - it is easy to compute the hash value for any given message
+             - it is infeasible to generate a message from its hash
+             - it is infeasible to modify a message without changing the hash
+             - it is infeasible to find two different messages with the same hash.
+
+            Common Message Digest algorithms are CRC32, MD5, SHA1,
+            SHA256 and SHA512. Most of these are already broken, such
+            as CRC32 and nowadays MD5 and even SHA1, then before
+            picking one for your application, check the one that is
+            more secure and hard to break, such as SHA512.
+
+
+config CRYPTO_MESSAGE_DIGEST_LINUX_KCAPI
+	bool "Linux Kernel Crypto API"
+	depends on LINUX && FEATURE_CRYPTO_MESSAGE_DIGEST
+	select CRYPTO_MESSAGE_DIGEST
+	help
+            This implementation will use the Kernel-Userspace interface
+            provided by Linux. Linux implementation are often very optimized
+            and in some case are hardware-accelerated.
+
+config CRYPTO_MESSAGE_DIGEST_NONE
+	bool "None"
+	depends on FEATURE_CRYPTO_MESSAGE_DIGEST
+	select CRYPTO_MESSAGE_DIGEST
+	help
+            No implementation is to be used, all functions will return error.
+
+endchoice
