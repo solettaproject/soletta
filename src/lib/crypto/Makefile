@@ -6,6 +6,13 @@ obj-crypto-y := \
 obj-crypto-$(CRYPTO_MESSAGE_DIGEST_LINUX_KCAPI) += \
    sol-message-digest-impl-linux-kcapi.o
 
+obj-crypto-$(CRYPTO_MESSAGE_DIGEST_OPENSSL) += \
+   sol-message-digest-impl-openssl.o
+obj-crypto-$(CRYPTO_MESSAGE_DIGEST_OPENSSL)-extra-ldflags += \
+    $(OPENSSL_LDFLAGS)
+obj-crypto-$(CRYPTO_MESSAGE_DIGEST_OPENSSL)-extra-cflags += \
+    $(OPENSSL_CFLAGS)
+
 obj-crypto-$(CRYPTO_MESSAGE_DIGEST_NONE) += \
    sol-message-digest-impl-none.o
 
