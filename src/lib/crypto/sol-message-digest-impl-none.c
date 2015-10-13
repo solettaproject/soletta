@@ -30,28 +30,61 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include <errno.h>
 
-#include "sol-str-slice.h"
-#include "sol-types.h"
+#define SOL_LOG_DOMAIN &_log_domain
+#include "sol-log-internal.h"
 
-struct sol_file_reader;
+SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "message-digest");
 
-struct sol_file_reader *sol_file_reader_open(const char *filename);
-void sol_file_reader_close(struct sol_file_reader *fr);
-struct sol_str_slice sol_file_reader_get_all(const struct sol_file_reader *fr);
-const struct stat *sol_file_reader_get_stat(const struct sol_file_reader *fr);
+#include "sol-crypto.h"
+#include "sol-message-digest.h"
 
-/**
- * convert an open file reader to a blob.
- *
- * This will convert a valid and opened file reader to a blob, thus no
- * further explicit calls to sol_file_reader_close() should be done as
- * the blob will automatically close once its last reference is gone.
- *
- * @param fr valid opened file reader.
- *
- * @return NULL on error (and fr is closed) or new blob instance that should
- *         be sol_blob_unref() once it's not needed.
- */
-struct sol_blob *sol_file_reader_to_blob(struct sol_file_reader *fr);
+int
+sol_message_digest_init(void)
+{
+    SOL_LOG_INTERNAL_INIT_ONCE;
+    return 0;
+}
+
+void
+sol_message_digest_shutdown(void)
+{
+}
+
+SOL_API struct sol_message_digest *
+sol_message_digest_new(const struct sol_message_digest_config *config)
+{
+    errno = EINVAL;
+    SOL_NULL_CHECK(config, NULL);
+    SOL_NULL_CHECK(config->on_digest_ready, NULL);
+    SOL_NULL_CHECK(config->algorithm, NULL);
+
+    if (config->api_version != SOL_MESSAGE_DIGEST_CONFIG_API_VERSION) {
+        SOL_WRN("sol_message_digest_config->api_version=%hu, "
+            "expected version is %hu.",
+            config->api_version, SOL_MESSAGE_DIGEST_CONFIG_API_VERSION);
+        return NULL;
+    }
+
+    SOL_WRN("not implemented.");
+    errno = ENOTSUP;
+    return NULL;
+}
+
+SOL_API void
+sol_message_digest_del(struct sol_message_digest *handle)
+{
+    SOL_NULL_CHECK(handle);
+    SOL_WRN("not implemented.");
+    errno = ENOTSUP;
+}
+
+SOL_API int
+sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *input, bool is_last)
+{
+    SOL_NULL_CHECK(handle, -EINVAL);
+    SOL_NULL_CHECK(input, -EINVAL);
+    SOL_WRN("not implemented.");
+    return -ENOTSUP;
+}

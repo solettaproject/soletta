@@ -149,6 +149,10 @@ depends on FEATURE_FLOW
 source "src/lib/flow/Kconfig"
 endmenu
 
+menu "Cryptography and Signatures"
+source "src/lib/crypto/Kconfig"
+endmenu
+
 menu "Networking"
 depends on FEATURE_NETWORK
 source "src/lib/comms/Kconfig"
@@ -158,6 +162,7 @@ menu "Samples"
 depends on FEATURE_RUNNABLE_PROGRAMS
 source "src/samples/coap/Kconfig"
 source "src/samples/common/Kconfig"
+source "src/samples/crypto/Kconfig"
 source "src/samples/mqtt/Kconfig"
 
 config FLOW_SAMPLES

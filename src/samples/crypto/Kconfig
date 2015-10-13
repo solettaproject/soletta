@@ -1,0 +1,8 @@
+config CRYPTO_SAMPLES
+	bool "Cryptography & Signatures Samples"
+	default y
+
+config MESSAGE_DIGEST_SAMPLE
+	bool "Message Digest (Hash) samples"
+	depends on CRYPTO_MESSAGE_DIGEST && CRYPTO_SAMPLES
+	default y
