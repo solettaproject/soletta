@@ -1,6 +1,9 @@
 config CRYPTO_MESSAGE_DIGEST
 	bool
 
+config CRYPTO_MESSAGE_DIGEST_COMMON
+	bool
+
 choice
 	prompt "Message Digest (Hash)"
 	depends on FEATURE_CRYPTO_MESSAGE_DIGEST
@@ -30,6 +33,7 @@ config CRYPTO_MESSAGE_DIGEST_LINUX_KCAPI
 	bool "Linux Kernel Crypto API"
 	depends on LINUX && FEATURE_CRYPTO_MESSAGE_DIGEST
 	select CRYPTO_MESSAGE_DIGEST
+	select CRYPTO_MESSAGE_DIGEST_COMMON
 	help
             This implementation will use the Kernel-Userspace interface
             provided by Linux. Linux implementation are often very optimized
@@ -39,6 +43,7 @@ config CRYPTO_MESSAGE_DIGEST_OPENSSL
 	bool "OpenSSL"
 	depends on HAVE_OPENSSL && FEATURE_CRYPTO_MESSAGE_DIGEST
 	select CRYPTO_MESSAGE_DIGEST
+	select CRYPTO_MESSAGE_DIGEST_COMMON
 	help
             This implementation will use OpenSSL.
 
