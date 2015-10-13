@@ -46,14 +46,8 @@
 #define SOL_ALG 279
 #endif
 
-#define SOL_LOG_DOMAIN &_log_domain
-#include "sol-log-internal.h"
-
-SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "message-digest");
-
+#include "sol-message-digest-common.h"
 #include "sol-crypto.h"
-#include "sol-mainloop.h"
-#include "sol-message-digest.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
@@ -122,16 +116,16 @@ sol_message_digest_init(void)
 {
     struct sockaddr_alg sa;
 
-    SOL_LOG_INTERNAL_INIT_ONCE;
-
     assert(sizeof(sa.salg_name) == CRYPTO_MAX_ALG_NAME);
 
-    return 0;
+    return sol_message_digest_common_init();
 }
 
 void
 sol_message_digest_shutdown(void)
 {
+    sol_message_digest_common_shutdown();
+
     sol_vector_clear(&_algorithms_info);
 }
 
@@ -160,7 +154,7 @@ _sol_message_digest_fill_algorithm_info(struct sol_message_digest_algorithm_info
     if (bind(fd, (struct sockaddr *)&snl, sizeof(snl)) < 0) {
         SOL_WRN("bind(%d, {AF_NETLINK}): %s",
             fd, sol_util_strerrora(errno));
-        goto error_bind;
+        goto error;
     }
 
     memset(&req, 0, sizeof(req));
@@ -180,7 +174,7 @@ _sol_message_digest_fill_algorithm_info(struct sol_message_digest_algorithm_info
     if (sendmsg(fd, &msg, 0) < 0) {
         SOL_WRN("sendmsg(%d, {AF_NETLINK, iov=%p}): %s",
             fd, &iov, sol_util_strerrora(errno));
-        goto error_sendmsg;
+        goto error;
     }
 
     while (!ret) {
@@ -197,7 +191,7 @@ _sol_message_digest_fill_algorithm_info(struct sol_message_digest_algorithm_info
 
             SOL_WRN("recvmsg(%d, {AF_NETLINK, iov=%p}): %s",
                 fd, &iov, sol_util_strerrora(errno));
-            goto error_recvmsg;
+            goto error;
         } else if (len == 0) {
             SOL_WRN("recvmsg(%d, {AF_NETLINK, iov=%p}): no data",
                 fd, &iov);
@@ -207,7 +201,7 @@ _sol_message_digest_fill_algorithm_info(struct sol_message_digest_algorithm_info
         len = h->nlmsg_len;
         if (h->nlmsg_type == NLMSG_ERROR) {
             SOL_WRN("read_netlink: Message is an error");
-            goto error_recvmsg;
+            goto error;
         }
 
         if (h->nlmsg_type == CRYPTO_MSG_GETALG) {
@@ -217,7 +211,7 @@ _sol_message_digest_fill_algorithm_info(struct sol_message_digest_algorithm_info
             len -= NLMSG_SPACE(sizeof(*cua));
             if (len < 0) {
                 SOL_WRN("read_netlink: message is too small: %zd", len);
-                goto error_recvmsg;
+                goto error;
             }
 
             for (rta = CR_RTA(cua);
@@ -236,9 +230,7 @@ _sol_message_digest_fill_algorithm_info(struct sol_message_digest_algorithm_info
         }
     }
 
-error_sendmsg:
-error_recvmsg:
-error_bind:
+error:
     close(fd);
 
     return ret;
@@ -274,155 +266,52 @@ _sol_message_digest_get_algorithm_info(const char *name)
     return info;
 }
 
-#if defined(PTHREAD) && defined(WORKER_THREAD)
-#define MESSAGE_DIGEST_USE_THREAD
-#endif
+static ssize_t
+_sol_message_digest_linux_kcapi_feed(struct sol_message_digest *handle, const void *mem, size_t len, bool is_last)
+{
+    int *pfd = sol_message_digest_common_get_context(handle);
+    ssize_t n = send(*pfd, mem, len, is_last ? 0 : MSG_MORE);
 
-#ifdef MESSAGE_DIGEST_USE_THREAD
-#include <pthread.h>
-#include "sol-worker-thread.h"
-#endif
+    if (n >= 0)
+        return n;
+    else
+        return -errno;
+}
 
-struct sol_message_digest_pending_feed {
-    struct sol_blob *blob;
-    size_t offset;
-    bool is_last;
+static ssize_t
+_sol_message_digest_linux_kcapi_read_digest(struct sol_message_digest *handle, void *mem, size_t len)
+{
+    int *pfd = sol_message_digest_common_get_context(handle);
+    ssize_t n = recv(*pfd, mem, len, 0);
+
+    if (n >= 0)
+        return n;
+    else
+        return -errno;
+}
+
+static void
+_sol_message_digest_linux_kcapi_cleanup(struct sol_message_digest *handle)
+{
+    int *pfd = sol_message_digest_common_get_context(handle);
+
+    close(*pfd);
+}
+
+static const struct sol_message_digest_common_ops _sol_message_digest_linux_kcapi_ops = {
+    .feed = _sol_message_digest_linux_kcapi_feed,
+    .read_digest = _sol_message_digest_linux_kcapi_read_digest,
+    .cleanup = _sol_message_digest_linux_kcapi_cleanup
 };
-
-#ifdef MESSAGE_DIGEST_USE_THREAD
-struct sol_message_digest_pending_dispatch {
-    struct sol_blob *blob;
-    bool is_digest;
-};
-#endif
-
-struct sol_message_digest {
-    void (*on_digest_ready)(void *data, struct sol_message_digest *handle, struct sol_blob *output);
-    void (*on_feed_done)(void *data, struct sol_message_digest *handle, struct sol_blob *input);
-    const void *data;
-#ifdef MESSAGE_DIGEST_USE_THREAD
-    struct sol_worker_thread *thread; /* current kcapi is not poll() friendly, it won't report IN/OUT, thus we use a thread */
-    struct sol_vector pending_dispatch;
-    int thread_pipe[2];
-    pthread_mutex_t lock;
-#else
-    struct sol_timeout *timer; /* current kcapi is not poll() friendly, it won't report IN/OUT, thus we use a timer to poll */
-#endif
-    struct sol_vector pending_feed;
-    struct sol_blob *digest;
-    size_t digest_offset; /* allows partial digest receive */
-    size_t digest_size;
-    uint32_t refcnt;
-    int fd;
-    bool deleted;
-};
-
-static void
-_sol_message_digest_lock(struct sol_message_digest *handle)
-{
-#ifdef MESSAGE_DIGEST_USE_THREAD
-    pthread_mutex_lock(&handle->lock);
-#endif
-}
-
-static void
-_sol_message_digest_unlock(struct sol_message_digest *handle)
-{
-#ifdef MESSAGE_DIGEST_USE_THREAD
-    pthread_mutex_unlock(&handle->lock);
-#endif
-}
-
-#ifdef MESSAGE_DIGEST_USE_THREAD
-static void
-_sol_message_digest_thread_send(struct sol_message_digest *handle, char cmd)
-{
-    while (write(handle->thread_pipe[1], &cmd, 1) != 1) {
-        if (errno != EAGAIN && errno != EINTR) {
-            SOL_WRN("handle %p fd=%d couldn't send thread command %c: %s",
-                handle, handle->fd, cmd, sol_util_strerrora(errno));
-            return;
-        }
-    }
-}
-
-static char
-_sol_message_digest_thread_recv(struct sol_message_digest *handle)
-{
-    char cmd;
-
-    while (read(handle->thread_pipe[0], &cmd, 1) != 1) {
-        if (errno != EAGAIN && errno != EINTR) {
-            SOL_WRN("handle %p fd=%d couldn't receive thread command: %s",
-                handle, handle->fd, sol_util_strerrora(errno));
-            return 0;
-        }
-    }
-
-    return cmd;
-}
-#endif
-
-static int
-_sol_message_digest_thread_init(struct sol_message_digest *handle)
-{
-#ifdef MESSAGE_DIGEST_USE_THREAD
-    if (pipe2(handle->thread_pipe, O_CLOEXEC) < 0)
-        return errno;
-
-    sol_vector_init(&handle->pending_dispatch,
-        sizeof(struct sol_message_digest_pending_dispatch));
-    errno = pthread_mutex_init(&handle->lock, NULL);
-    if (errno) {
-        close(handle->thread_pipe[0]);
-        close(handle->thread_pipe[1]);
-    }
-    return errno;
-#else
-    return 0;
-#endif
-}
-
-static void
-_sol_message_digest_thread_fini(struct sol_message_digest *handle)
-{
-#ifdef MESSAGE_DIGEST_USE_THREAD
-    struct sol_message_digest_pending_dispatch *pd;
-    uint16_t i;
-
-    _sol_message_digest_thread_send(handle, 'c');
-    close(handle->thread_pipe[0]);
-    close(handle->thread_pipe[1]);
-
-    if (handle->thread)
-        sol_worker_thread_cancel(handle->thread);
-    pthread_mutex_destroy(&handle->lock);
-
-    SOL_VECTOR_FOREACH_IDX (&handle->pending_dispatch, pd, i) {
-        sol_blob_unref(pd->blob);
-    }
-    sol_vector_clear(&handle->pending_dispatch);
-#else
-    if (handle->timer)
-        sol_timeout_del(handle->timer);
-#endif
-}
-
-static void
-_sol_message_digest_thread_stop(struct sol_message_digest *handle)
-{
-#ifdef MESSAGE_DIGEST_USE_THREAD
-    _sol_message_digest_thread_send(handle, 'c');
-#endif
-}
 
 SOL_API struct sol_message_digest *
 sol_message_digest_new(const struct sol_message_digest_config *config)
 {
+    struct sol_message_digest_common_new_params params;
     const struct sol_message_digest_algorithm_info *info;
     struct sol_message_digest *handle;
     struct sockaddr_alg sa;
-    int bfd, errno_bkp;
+    int afd, bfd, errno_bkp;
 
     errno = EINVAL;
     SOL_NULL_CHECK(config, NULL);
@@ -455,7 +344,7 @@ sol_message_digest_new(const struct sol_message_digest_config *config)
     if (bind(bfd, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
         SOL_WRN("bind(%d, {AF_ALG, hash, \"%s\"}): %s",
             bfd, config->algorithm, sol_util_strerrora(errno));
-        goto error_bfd;
+        goto error;
     }
 
     if (config->key.len > 0) {
@@ -465,493 +354,39 @@ sol_message_digest_new(const struct sol_message_digest_config *config)
             SOL_WRN("algorithm \"%s\", failed to set key len=%zd \"%.*s\"",
                 config->algorithm, config->key.len,
                 SOL_STR_SLICE_PRINT(config->key));
-            goto error_bfd;
+            goto error;
         }
     }
 
-    handle = calloc(1, sizeof(struct sol_message_digest));
-    SOL_NULL_CHECK_GOTO(handle, error_bfd);
-
-    handle->refcnt = 1;
-    handle->on_digest_ready = config->on_digest_ready;
-    handle->on_feed_done = config->on_feed_done;
-    handle->data = config->data;
-    sol_vector_init(&handle->pending_feed,
-        sizeof(struct sol_message_digest_pending_feed));
-
     info = _sol_message_digest_get_algorithm_info(config->algorithm);
-    SOL_NULL_CHECK_GOTO(info, error_info);
+    SOL_NULL_CHECK_GOTO(info, error);
 
-    handle->digest_size = info->digest_size;
-
-    handle->fd = accept4(bfd, NULL, 0, SOCK_CLOEXEC | SOCK_NONBLOCK);
-    if (handle->fd < 0) {
+    afd = accept4(bfd, NULL, 0, SOCK_CLOEXEC | SOCK_NONBLOCK);
+    if (afd < 0) {
         SOL_WRN("algorithm \"%s\" failed accept4(%d): %s",
             config->algorithm, bfd, sol_util_strerrora(errno));
-        goto error_accept;
+        goto error;
     }
 
-    errno = _sol_message_digest_thread_init(handle);
-    if (errno)
-        goto error_thread_init;
+    params.config = config;
+    params.ops = &_sol_message_digest_linux_kcapi_ops;
+    params.context_template = &afd;
+    params.context_size = sizeof(afd);
+    params.digest_size = info->digest_size;
 
-    SOL_DBG("handle %p fd=%d algorithm=\"%s\"",
-        handle, handle->fd, config->algorithm);
+    handle = sol_message_digest_common_new(params);
+    SOL_NULL_CHECK_GOTO(handle, error_handle);
 
-    errno = 0;
     return handle;
 
-error_thread_init:
+error_handle:
     errno_bkp = errno;
-    close(handle->fd);
+    close(afd);
     errno = errno_bkp;
 
-error_accept:
-error_info:
-    errno_bkp = errno;
-    free(handle);
-    errno = errno_bkp;
-
-error_bfd:
+error:
     errno_bkp = errno;
     close(bfd);
     errno = errno_bkp;
     return NULL;
-}
-
-static void
-_sol_message_digest_free(struct sol_message_digest *handle)
-{
-    struct sol_message_digest_pending_feed *pf;
-    uint16_t i;
-
-    SOL_DBG("free handle %p fd=%d, pending_feed=%hu, digest=%p",
-        handle, handle->fd, handle->pending_feed.len, handle->digest);
-
-    _sol_message_digest_thread_fini(handle);
-
-    SOL_VECTOR_FOREACH_IDX (&handle->pending_feed, pf, i) {
-        sol_blob_unref(pf->blob);
-    }
-    sol_vector_clear(&handle->pending_feed);
-
-    if (handle->digest)
-        sol_blob_unref(handle->digest);
-
-    close(handle->fd);
-    free(handle);
-}
-
-static inline void
-_sol_message_digest_unref(struct sol_message_digest *handle)
-{
-    handle->refcnt--;
-    if (handle->refcnt == 0)
-        _sol_message_digest_free(handle);
-}
-
-static inline void
-_sol_message_digest_ref(struct sol_message_digest *handle)
-{
-    handle->refcnt++;
-}
-
-SOL_API void
-sol_message_digest_del(struct sol_message_digest *handle)
-{
-    SOL_NULL_CHECK(handle);
-    SOL_EXP_CHECK(handle->deleted);
-    SOL_INT_CHECK(handle->refcnt, < 1);
-
-    handle->deleted = true;
-
-    _sol_message_digest_thread_stop(handle);
-
-    SOL_DBG("del handle %p fd=%d, refcnt=%" PRIu32
-        ", pending_feed=%hu, digest=%p",
-        handle, handle->fd, handle->refcnt,
-        handle->pending_feed.len, handle->digest);
-    _sol_message_digest_unref(handle);
-}
-
-static void
-_sol_message_digest_setup_receive_digest(struct sol_message_digest *handle)
-{
-    void *mem;
-
-    if (handle->digest) {
-        SOL_WRN("handle %p fd=%d already have a digest to be received (%p).",
-            handle, handle->fd, handle->digest);
-        return;
-    }
-
-    mem = malloc(handle->digest_size);
-    SOL_NULL_CHECK(mem);
-
-    handle->digest = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL,
-        mem, handle->digest_size);
-    SOL_NULL_CHECK_GOTO(handle->digest, error);
-
-    handle->digest_offset = 0;
-
-    SOL_DBG("handle %p fd=%d to receive digest of %zd bytes at blob %p mem=%p",
-        handle, handle->fd, handle->digest_size,
-        handle->digest, handle->digest->mem);
-
-    return;
-
-error:
-    free(mem);
-}
-
-static void
-_sol_message_digest_report_feed_blob(struct sol_message_digest *handle, struct sol_blob *input)
-{
-#ifdef MESSAGE_DIGEST_USE_THREAD
-    struct sol_message_digest_pending_dispatch *pd;
-
-    _sol_message_digest_lock(handle);
-
-    pd = sol_vector_append(&handle->pending_dispatch);
-    SOL_NULL_CHECK_GOTO(pd, error);
-    pd->blob = input;
-    pd->is_digest = false;
-
-    _sol_message_digest_unlock(handle);
-    sol_worker_thread_feedback(handle->thread);
-    return;
-
-error:
-    _sol_message_digest_unlock(handle);
-    sol_blob_unref(input); /* this may cause problems if main thread changes blob refcnt */
-
-#else
-    _sol_message_digest_ref(handle);
-
-    if (handle->on_feed_done)
-        handle->on_feed_done((void *)handle->data, handle, input);
-
-    sol_blob_unref(input);
-    _sol_message_digest_unref(handle);
-#endif
-}
-
-static void
-_sol_message_digest_report_digest_ready(struct sol_message_digest *handle)
-{
-#ifdef MESSAGE_DIGEST_USE_THREAD
-    struct sol_message_digest_pending_dispatch *pd;
-
-    _sol_message_digest_lock(handle);
-
-    pd = sol_vector_append(&handle->pending_dispatch);
-    SOL_NULL_CHECK_GOTO(pd, end);
-    pd->blob = handle->digest;
-    pd->is_digest = true;
-
-    handle->digest = NULL;
-    handle->digest_offset = 0;
-
-end:
-    _sol_message_digest_unlock(handle);
-    sol_worker_thread_feedback(handle->thread);
-
-#else
-    _sol_message_digest_ref(handle);
-
-    handle->on_digest_ready((void *)handle->data, handle, handle->digest);
-
-    sol_blob_unref(handle->digest);
-    handle->digest = NULL;
-    handle->digest_offset = 0;
-
-    _sol_message_digest_unref(handle);
-#endif
-}
-
-static void
-_sol_message_digest_feed_blob(struct sol_message_digest *handle)
-{
-    struct sol_message_digest_pending_feed *pf;
-    struct sol_blob *input;
-    const uint8_t *mem;
-    bool is_last;
-    size_t len;
-    ssize_t n;
-    int flags;
-
-    _sol_message_digest_lock(handle);
-    pf = sol_vector_get(&handle->pending_feed, 0);
-    SOL_NULL_CHECK_GOTO(pf, error);
-
-    input = pf->blob;
-    mem = input->mem;
-    mem += pf->offset;
-    len = input->size - pf->offset;
-    is_last = pf->is_last;
-    flags = is_last ? 0 : MSG_MORE;
-
-    _sol_message_digest_unlock(handle);
-
-    /* TODO: change this to sendmsg() using iov with all blobs.  then
-     * check the return to see which blobs were consumed (they may be
-     * partial), and adjust pending_feed accordingly.
-     */
-
-    n = send(handle->fd, mem, len, flags);
-    SOL_DBG("handle %p fd=%d sent mem=%p of %zd bytes (pending=%hu) flags=%#x:"
-        " %zd",
-        handle, handle->fd, mem, len, handle->pending_feed.len, flags, n);
-    if (n >= 0) {
-        if ((size_t)n < len) { /* not fully sent, need to try again later */
-            /* fetch first pending again as it's a sol_vector and
-             * calls to sol_message_digest_feed() may realloc() the vector,
-             * resulting in new pointer for the first element.
-             */
-            _sol_message_digest_lock(handle);
-            pf = sol_vector_get(&handle->pending_feed, 0);
-            SOL_NULL_CHECK_GOTO(pf, error);
-            pf->offset += n;
-            _sol_message_digest_unlock(handle);
-            return;
-        }
-
-        if (is_last)
-            _sol_message_digest_setup_receive_digest(handle);
-
-        _sol_message_digest_lock(handle);
-        sol_vector_del(&handle->pending_feed, 0);
-        _sol_message_digest_unlock(handle);
-
-        _sol_message_digest_report_feed_blob(handle, input);
-
-    } else if (errno != EAGAIN && errno != EINTR) {
-        SOL_WRN("couldn't feed handle %p fd=%d with %p of %zd bytes: %s",
-            handle, handle->fd, mem, len, sol_util_strerrora(errno));
-    }
-
-    return;
-
-error:
-    _sol_message_digest_unlock(handle);
-    SOL_WRN("no pending feed for handle %p fd=%d", handle, handle->fd);
-}
-
-static void
-_sol_message_digest_receive_digest(struct sol_message_digest *handle)
-{
-    uint8_t *mem;
-    size_t len;
-    ssize_t n;
-
-    mem = handle->digest->mem;
-    mem += handle->digest_offset;
-    len = handle->digest->size - handle->digest_offset;
-
-    n = recv(handle->fd, mem, len, 0);
-    SOL_DBG("handle %p fd=%d recv mem=%p of %zd bytes: %zd",
-        handle, handle->fd, mem, len, n);
-    if (n >= 0) {
-        handle->digest_offset += n;
-        if (handle->digest_offset < handle->digest->size) /* more to do... */
-            return;
-
-        _sol_message_digest_report_digest_ready(handle);
-
-    } else if (errno != EAGAIN && errno != EINTR) {
-        SOL_WRN("couldn't recv digest handle %p fd=%d with %p of %zd bytes: %s",
-            handle, handle->fd, mem, len, sol_util_strerrora(errno));
-    }
-}
-
-#ifdef MESSAGE_DIGEST_USE_THREAD
-
-static struct sol_blob *
-_sol_message_digest_peek_first_pending_blob(struct sol_message_digest *handle)
-{
-    struct sol_message_digest_pending_feed *pf;
-    struct sol_blob *blob = NULL;
-
-    _sol_message_digest_lock(handle);
-    if (handle->pending_feed.len) {
-        pf = sol_vector_get(&handle->pending_feed, 0);
-        if (pf)
-            blob = pf->blob;
-    }
-    _sol_message_digest_unlock(handle);
-
-    return blob;
-}
-
-static bool
-_sol_message_digest_thread_iterate(void *data)
-{
-    struct sol_message_digest *handle = data;
-    struct sol_blob *current = NULL;
-    char cmd;
-
-    cmd = _sol_message_digest_thread_recv(handle);
-    if (cmd == 'c' || cmd == 0)
-        return false;
-
-    current = _sol_message_digest_peek_first_pending_blob(handle);
-    while (current && !sol_worker_thread_cancel_check(handle->thread)) {
-        struct sol_blob *blob;
-
-        _sol_message_digest_feed_blob(handle);
-
-        blob = _sol_message_digest_peek_first_pending_blob(handle);
-        if (blob != current)
-            break;
-    }
-
-    while (handle->digest && !sol_worker_thread_cancel_check(handle->thread))
-        _sol_message_digest_receive_digest(handle);
-
-    return true;
-}
-
-static void
-_sol_message_digest_thread_finished(void *data)
-{
-    struct sol_message_digest *handle = data;
-
-    handle->thread = NULL;
-    _sol_message_digest_unref(handle);
-}
-
-static void
-_sol_message_digest_thread_feedback(void *data)
-{
-    struct sol_message_digest *handle = data;
-    struct sol_message_digest_pending_dispatch *pd;
-    struct sol_vector v;
-    uint16_t i;
-
-    _sol_message_digest_lock(handle);
-    v = handle->pending_dispatch;
-    sol_vector_init(&handle->pending_dispatch,
-        sizeof(struct sol_message_digest_pending_dispatch));
-    _sol_message_digest_unlock(handle);
-
-    _sol_message_digest_ref(handle);
-
-    SOL_VECTOR_FOREACH_IDX (&v, pd, i) {
-        if (!handle->deleted) {
-            if (pd->is_digest)
-                handle->on_digest_ready((void *)handle->data, handle, pd->blob);
-            else if (handle->on_feed_done)
-                handle->on_feed_done((void *)handle->data, handle, pd->blob);
-        }
-        sol_blob_unref(pd->blob);
-    }
-
-    _sol_message_digest_unref(handle);
-
-    sol_vector_clear(&v);
-}
-
-#else
-static bool
-_sol_message_digest_on_timer(void *data)
-{
-    struct sol_message_digest *handle = data;
-    bool ret;
-
-    SOL_DBG("handle %p fd=%d pending=%hu, digest=%p",
-        handle, handle->fd, handle->pending_feed.len, handle->digest);
-
-    _sol_message_digest_ref(handle);
-
-    if (handle->pending_feed.len > 0)
-        _sol_message_digest_feed_blob(handle);
-
-    if (handle->digest)
-        _sol_message_digest_receive_digest(handle);
-
-    ret = (handle->pending_feed.len > 0 || handle->digest);
-    if (!ret)
-        handle->timer = NULL;
-
-    _sol_message_digest_unref(handle);
-    return ret;
-}
-#endif
-
-static int
-_sol_message_digest_thread_start(struct sol_message_digest *handle)
-{
-#ifdef MESSAGE_DIGEST_USE_THREAD
-    struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
-        .data = handle,
-        .iterate = _sol_message_digest_thread_iterate,
-        .finished = _sol_message_digest_thread_finished,
-        .feedback = _sol_message_digest_thread_feedback
-    };
-
-    if (handle->thread)
-        goto end;
-
-    _sol_message_digest_ref(handle);
-    handle->thread = sol_worker_thread_new(&spec);
-    SOL_NULL_CHECK_GOTO(handle->thread, error);
-
-end:
-    _sol_message_digest_thread_send(handle, 'a');
-
-    return 0;
-
-error:
-    _sol_message_digest_unref(handle);
-    return -ENOMEM;
-
-#else
-    if (handle->timer)
-        return 0;
-
-    handle->timer = sol_timeout_add(0, _sol_message_digest_on_timer, handle);
-    SOL_NULL_CHECK(handle->timer, -ENOMEM);
-
-    return 0;
-#endif
-}
-
-SOL_API int
-sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *input, bool is_last)
-{
-    struct sol_message_digest_pending_feed *pf;
-    int r;
-
-    SOL_NULL_CHECK(handle, -EINVAL);
-    SOL_EXP_CHECK(handle->deleted, -EINVAL);
-    SOL_INT_CHECK(handle->refcnt, < 1, -EINVAL);
-    SOL_NULL_CHECK(input, -EINVAL);
-
-    _sol_message_digest_lock(handle);
-    pf = sol_vector_append(&handle->pending_feed);
-    SOL_NULL_CHECK_GOTO(pf, error_append);
-
-    pf->blob = sol_blob_ref(input);
-    pf->offset = 0;
-    pf->is_last = is_last;
-
-    r = _sol_message_digest_thread_start(handle);
-    SOL_INT_CHECK_GOTO(r, < 0, error);
-
-    _sol_message_digest_unlock(handle);
-
-    SOL_DBG("handle %p fd=%d blob=%p (%zd bytes), pending %hu",
-        handle, handle->fd, input, input->size, handle->pending_feed.len);
-
-    return 0;
-
-error:
-    sol_blob_unref(input);
-    sol_vector_del(&handle->pending_feed, handle->pending_feed.len - 1);
-
-error_append:
-    _sol_message_digest_unlock(handle);
-
-    return -ENOMEM;
 }

@@ -3,6 +3,9 @@ obj-y += crypto.mod
 obj-crypto-y := \
     sol-crypto.o
 
+obj-crypto-$(CRYPTO_MESSAGE_DIGEST_COMMON) += \
+   sol-message-digest-common.o
+
 obj-crypto-$(CRYPTO_MESSAGE_DIGEST_LINUX_KCAPI) += \
    sol-message-digest-impl-linux-kcapi.o
 
