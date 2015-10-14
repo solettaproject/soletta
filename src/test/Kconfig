@@ -96,3 +96,7 @@ config TEST_UTIL
 config TEST_COMPOSED_TYPE
       bool "composed-type"
       default y
+
+config TEST_MESSAGE_DIGEST
+      bool "crypto message-digest"
+      default y
