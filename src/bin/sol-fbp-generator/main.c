@@ -281,6 +281,16 @@ check_suboption(char *option, const struct sol_fbp_meta *meta, const char *fbp_f
     return true;
 }
 
+static const char *
+get_irange_drange_option_value(const char *option)
+{
+    if (!strcasecmp(option, "nan"))
+        return "NAN";
+    if (!strcasecmp(option, "inf"))
+        return "INFINITY";
+    return option;
+}
+
 static void
 handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file)
 {
@@ -288,7 +298,8 @@ handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, ui
 
     if (check_suboption(option, meta, fbp_file))
         out("            .%s.%s = %s,\n", opt_name,
-            irange_drange_fields[index], option);
+            irange_drange_fields[index],
+            get_irange_drange_option_value(option));
 }
 
 static void
@@ -1325,6 +1336,7 @@ generate(struct sol_vector *fbp_data_vector)
     struct declared_metatype *meta;
 
     out(
+        "#include <math.h>\n"
         "#include \"sol-flow.h\"\n"
         "#include \"sol-flow-static.h\"\n");
 
