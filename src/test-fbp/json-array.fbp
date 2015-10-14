@@ -31,7 +31,7 @@
 json_array_str(constant/string:value="[0,1,2.1,\"str\",false,true,null,{\"inner\": 456},[1,2,3]]")
 json_array(converter/string-to-json-array)
 
-int_validator(test/int-validator:sequence="0 1")
+int_validator(test/int-validator:sequence="0 1 2")
 float_validator(test/float-validator:sequence="0 1 2.1")
 string_validator(test/string-validator:sequence="str")
 bool_validator(test/boolean-validator:sequence="FT")
@@ -65,6 +65,7 @@ get_index_int0_val INT -> IN int_validator
 get_index_int0_val FLOAT -> IN float_validator
 get_index_int1_val INT -> IN int_validator
 get_index_int1_val FLOAT -> IN float_validator
+get_index_float_val INT -> IN int_validator
 get_index_float_val FLOAT -> IN float_validator
 get_index_string_val STRING -> IN string_validator
 get_index_false_val BOOLEAN -> IN bool_validator
