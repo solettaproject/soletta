@@ -377,6 +377,8 @@ sol_message_digest_new(const struct sol_message_digest_config *config)
     handle = sol_message_digest_common_new(params);
     SOL_NULL_CHECK_GOTO(handle, error_handle);
 
+    close(bfd);
+
     return handle;
 
 error_handle:
