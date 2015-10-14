@@ -369,7 +369,7 @@ json_array_index_process(struct sol_flow_node *node, struct sol_json_array_index
             (char *)mdata->json_array->mem);
 
     return sol_flow_send_error_packet(node, EINVAL,
-        "JSON array index out of bounds: %d", mdata->index);
+        "JSON array index out of bounds: %" PRId32, mdata->index);
 }
 
 static int
@@ -384,7 +384,7 @@ json_array_get_index_index_process(struct sol_flow_node *node, void *data, uint1
 
     if (in_value.val < 0)
         return sol_flow_send_error_packet(node, EINVAL,
-            "Invalid negative JSON array index: %d", in_value.val);
+            "Invalid negative JSON array index: %" PRId32, in_value.val);
 
     mdata->index = in_value.val;
     return json_array_index_process(node, mdata);
