@@ -374,6 +374,19 @@
          "data_type": "int",
          "description": "I2C bus to be used.",
          "name": "bus"
+        },
+        {
+          "data_type": "rgb",
+          "default": {
+            "red": 255,
+            "green": 255,
+            "blue": 255,
+            "red_max": 255,
+            "green_max": 255,
+            "blue_max": 255
+          },
+          "description": "Initial background color.",
+          "name": "color"
         }
        ],
        "version": 1
