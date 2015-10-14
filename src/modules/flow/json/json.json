@@ -87,6 +87,162 @@
     },
     {
       "category": "json",
+      "description": "Receives a JSON object and send, to the appropriated port, the value of the child element pointed by path.",
+      "in_ports": [
+        {
+          "data_type": "json-object",
+          "description": "Port to receive the JSON object where path will be located.",
+          "methods": {
+            "process": "json_object_get_key_in_process"
+          },
+          "name": "IN",
+          "required": true
+        },
+        {
+          "data_type": "string",
+          "description": "Receives a string packet to override the path set as option.",
+          "methods": {
+            "process": "json_object_get_key_key_process"
+          },
+          "name": "PATH"
+        }
+      ],
+      "methods": {
+        "open": "json_object_get_path_open",
+        "close": "json_object_get_key_close"
+      },
+      "name": "json/object-get-path",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "The path of the JSON object child to access.",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The integer value of a given path, if a number",
+          "name": "INT"
+        },
+        {
+          "data_type": "string",
+          "description": "The string value of a given path, if a string",
+          "name": "STRING"
+        },
+        {
+          "data_type": "boolean",
+          "description": "The boolean value of a given path, if a boolean",
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "float",
+          "description": "The float value of a given path, if a number",
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "json-object",
+          "description": "The JSON object of a given path, if a JSON object",
+          "name": "OBJECT"
+        },
+        {
+          "data_type": "json-array",
+          "description": "The JSON array of a given path, if a JSON array",
+          "name": "ARRAY"
+        },
+        {
+          "data_type": "empty",
+          "description": "An empty packet if value pointed by given path is null.",
+          "name": "NULL"
+        }
+      ],
+      "private_data_type": "sol_json_object_key",
+      "url": "http://solettaproject.org/doc/latest/node_types/json/json-object-get-path.html"
+    },
+    {
+      "category": "json",
+      "description": "Receives a JSON array and send, to the appropriated port, the value of the child element pointed by path.",
+      "in_ports": [
+        {
+          "data_type": "json-array",
+          "description": "Port to receive the JSON array where path will be located.",
+          "methods": {
+            "process": "json_array_get_path_in_process"
+          },
+          "name": "IN",
+          "required": true
+        },
+        {
+          "data_type": "string",
+          "description": "Receives a string packet to override the path set as option.",
+          "methods": {
+            "process": "json_object_get_key_key_process"
+          },
+          "name": "PATH"
+        }
+      ],
+      "methods": {
+        "open": "json_object_get_path_open",
+        "close": "json_object_get_key_close"
+      },
+      "name": "json/array-get-path",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "The path of the JSON array child to access.",
+            "name": "path"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The integer value of a given path, if a number",
+          "name": "INT"
+        },
+        {
+          "data_type": "string",
+          "description": "The string value of a given path, if a string",
+          "name": "STRING"
+        },
+        {
+          "data_type": "boolean",
+          "description": "The boolean value of a given path, if a boolean",
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "float",
+          "description": "The float value of a given path, if a number",
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "json-object",
+          "description": "The JSON object of a given path, if a JSON object",
+          "name": "OBJECT"
+        },
+        {
+          "data_type": "json-array",
+          "description": "The JSON array of a given path, if a JSON array",
+          "name": "ARRAY"
+        },
+        {
+          "data_type": "empty",
+          "description": "An empty packet if value pointed by given path is null.",
+          "name": "NULL"
+        }
+      ],
+      "private_data_type": "sol_json_object_key",
+      "url": "http://solettaproject.org/doc/latest/node_types/json/json-array-get-path.html"
+    },
+    {
+      "category": "json",
       "description": "Get the number of children elements in a JSON object.",
       "in_ports": [
         {
