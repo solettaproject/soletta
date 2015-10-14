@@ -1,0 +1,10 @@
+[{
+    "data1": {
+        "array": [0,1,2,3,4,5,6,7,8,9],
+        "array2": [{"data": [{"data": [14, 15]}]}],
+        "": 8
+    },
+    "my data's info\nwith\tescapes": [10,11],
+    "my.data": 12,
+    "": 13
+}]

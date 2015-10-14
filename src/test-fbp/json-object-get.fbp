@@ -31,7 +31,7 @@
 json_object_str(constant/string:value="{\"int_val\": 123, \"float_val\": 1.23 \"string_val\" : \"hello\" \"false_val\": false, \"true_val\": true, \"null_val\": null, \"array_val\":[1,2,3], \"object_val\": {\"inner_int\": 456}}")
 json_object(converter/blob-to-json-object)
 
-int_validator(test/int-validator:sequence="123")
+int_validator(test/int-validator:sequence="123 1")
 float_validator(test/float-validator:sequence="123 1.23")
 string_validator(test/string-validator:sequence="hello")
 bool_validator(test/boolean-validator:sequence="FT")
@@ -62,6 +62,7 @@ json_object OUT -> IN get_key_array_val
 
 get_key_int_val INT -> IN int_validator
 get_key_int_val FLOAT -> IN float_validator
+get_key_float_val INT -> IN int_validator
 get_key_float_val FLOAT -> IN float_validator
 get_key_string_val STRING -> IN string_validator
 get_key_false_val BOOLEAN -> IN bool_validator
