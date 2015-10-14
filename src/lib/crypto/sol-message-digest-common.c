@@ -101,6 +101,7 @@ struct sol_message_digest {
     size_t digest_offset;
     size_t digest_size;
     uint32_t refcnt;
+    bool finished;
     bool deleted;
 };
 
@@ -679,6 +680,7 @@ sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *inpu
 
     SOL_NULL_CHECK(handle, -EINVAL);
     SOL_EXP_CHECK(handle->deleted, -EINVAL);
+    SOL_EXP_CHECK(handle->finished, -EINVAL);
     SOL_INT_CHECK(handle->refcnt, < 1, -EINVAL);
     SOL_NULL_CHECK(input, -EINVAL);
 
@@ -694,6 +696,9 @@ sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *inpu
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     _sol_message_digest_unlock(handle);
+
+    if (is_last)
+        handle->finished = true;
 
     SOL_DBG("handle %p blob=%p (%zd bytes), pending %hu",
         handle, input, input->size, handle->pending_feed.len);
