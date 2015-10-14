@@ -2203,6 +2203,7 @@ main(int argc, char *argv[])
     struct declared_metatype *meta;
     struct exported_option *exported_opt;
     struct exported_option_description *opt_description;
+    struct sol_fbp_node *n;
     uint16_t i, j, k;
     uint8_t result = EXIT_FAILURE;
     int err;
@@ -2253,6 +2254,8 @@ fail_data:
     SOL_VECTOR_FOREACH_IDX (&fbp_data_vector, data, i) {
         if (data->store)
             type_store_del(data->store);
+        SOL_VECTOR_FOREACH_IDX (&data->graph.nodes, n, j)
+            free(n->user_data);
         sol_fbp_graph_fini(&data->graph);
         sol_vector_clear(&data->declared_fbp_types);
         SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, j)
