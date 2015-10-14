@@ -1,0 +1,80 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+## TEST-SKIP-COMPILE Due to path resolution to test-blob-data.txt we're disabling this test until we get it right
+
+reader(file/reader:path="json-path.txt")
+json_array(converter/blob-to-json-array)
+json_object(json/array-get-at-index:index=0)
+
+int_validator(test/int-validator:sequence="0 1 2 3 4 5 6 7 8 9")
+int_validator2(test/int-validator:sequence="10 11 12 13 14 15")
+
+reader OUT -> IN json_array
+json_array OUT -> IN json_object
+
+json_array OUT -> IN _(json/array-get-path:path="$[0].data1.array[0]") INT -> IN int_validator
+json_array OUT -> IN _(json/array-get-path:path="$[0]['data1'].array[1]") INT -> IN int_validator
+json_array OUT -> IN _(json/array-get-path:path="$[0]['data1']['array'][2]") INT -> IN int_validator
+json_array OUT -> IN _(json/array-get-path:path="$[0].data1['array'][3]") INT -> IN int_validator
+json_object OBJECT -> IN _(json/object-get-path:path="$.data1['array'][4]") INT -> IN int_validator
+json_object OBJECT -> IN _(json/object-get-path:path="$['data1'].array[5]") INT -> IN int_validator
+json_object OBJECT -> IN _(json/object-get-path:path="$.data1.array[6]") INT -> IN int_validator
+json_object OBJECT -> IN _(json/object-get-path:path="$['data1']['array'][7]") INT -> IN int_validator
+
+json_array OUT -> IN _(json/array-get-path:path="$") ARRAY -> IN _(json/array-get-path:path="$[0].data1['array'][8]") INT -> IN int_validator
+json_object OBJECT -> IN _(json/object-get-path:path="$") OBJECT -> IN _(json/object-get-path:path="$['data1']['array'][9]") INT -> IN int_validator
+
+json_array OUT -> IN _(json/array-get-path:path="$[0].my data's info\\nwith\\tescapes[0]") INT -> IN int_validator2
+json_array OUT -> IN _(json/array-get-path:path="$[0]['my data\\'s info\\nwith\\tescapes'][1]") INT -> IN int_validator2
+json_array OUT -> IN _(json/array-get-path:path="$[0]['my.data']") INT -> IN int_validator2
+
+json_array OUT -> IN array_get_path(json/array-get-path) INT -> IN int_validator2
+_(constant/string:value="$[0]['']") OUT -> PATH array_get_path
+
+json_array OUT -> IN _(json/array-get-path:path="$[0]['data1'].array2[0].data[0].data[0]") INT -> IN int_validator2
+json_object OBJECT -> IN _(json/object-get-path:path="$['data1'].array2[0].data[0].data[1]") INT -> IN int_validator2
+
+int_validator OUT -> RESULT int_result(test/result)
+int_validator2 OUT -> RESULT int_result2(test/result)
+
+#Errors
+json_object OBJECT -> IN _(json/object-get-path:path="invalid_path") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error1(test/result)
+json_array OUT -> IN _(json/array-get-path:path="invalid_path") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error2(test/result)
+
+json_array OUT -> IN _(json/array-get-path:path="$[1]") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS array_out_of_bounds(test/result)
+json_array OUT -> IN _(json/array-get-path:path="$[-1]") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS array_out_of_bounds2(test/result)
+
+json_object OBJECT -> IN _(json/object-get-path:path="$.invalid") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error3(test/result)
+json_object OBJECT -> IN _(json/object-get-path:path="$['invalid']") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error4(test/result)
+json_object OBJECT -> IN _(json/object-get-path:path="$[''']") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error5(test/result)
+json_object OBJECT -> IN _(json/object-get-path:path="$['invalid'quote']") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error6(test/result)
+json_object OBJECT -> IN _(json/object-get-path:path="$[']") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error7(test/result)
+json_object OBJECT -> IN _(json/object-get-path:path="$[invalid_index]") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error8(test/result)
