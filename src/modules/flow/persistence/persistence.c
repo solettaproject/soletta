@@ -53,7 +53,9 @@
 #endif
 
 struct storage_fn {
-    int (*write)(const char *name, const struct sol_buffer *buffer);
+    int (*write)(const char *name, struct sol_blob *blob,
+        void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+        const void *data);
     int (*read)(const char *name, struct sol_buffer *buffer);
 };
 
@@ -71,6 +73,11 @@ struct persist_data {
     const struct storage_fn *storage;
 
     size_t packet_data_size;
+};
+
+struct write_cb_data {
+    struct persist_data *mdata;
+    struct sol_flow_node *node;
 };
 
 #ifdef USE_FILESYSTEM
@@ -107,15 +114,73 @@ static const struct sol_str_table_ptr storage_fn_table[] = {
     { }
 };
 
-static int
-storage_write(struct persist_data *mdata, void *data, size_t size)
+static void
+write_cb(void *data, const char *name, struct sol_blob *blob, int status)
 {
-    struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(data, size,
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+    struct write_cb_data *cb_data = data;
+    struct persist_data *mdata = cb_data->mdata;
+    struct sol_flow_node *node = cb_data->node;
 
-    buf.used = size;
+    if (status < 0) {
+        if (status == -ECANCELED)
+            SOL_WRN("Writing to [%s] superseeded by another write", name);
+        else
+            SOL_WRN("Could not write [%s], error: %d", name, status);
 
-    return mdata->storage->write(mdata->name, &buf);
+        goto end;
+    }
+
+    /* No packet_data_size means dynamic content (string). Let's reallocate if needed */
+    if (!mdata->packet_data_size) {
+        if (!mdata->value_ptr || strlen(mdata->value_ptr) + 1 < blob->size) {
+            void *tmp = realloc(mdata->value_ptr, blob->size);
+            SOL_NULL_CHECK_GOTO(tmp, end);
+            mdata->value_ptr = tmp;
+        }
+    }
+    memcpy(mdata->value_ptr, blob->mem, blob->size);
+
+    mdata->packet_send_fn(node);
+
+end:
+    free(cb_data);
+}
+
+static int
+storage_write(struct persist_data *mdata, void *data, size_t size, struct sol_flow_node *node)
+{
+    void *cp_data = NULL;
+    struct write_cb_data *cb_data = NULL;
+    struct sol_blob *blob = NULL;
+    int r;
+
+    cp_data = malloc(size);
+    SOL_NULL_CHECK(cp_data, -ENOMEM);
+
+    memcpy(cp_data, data, size);
+
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cp_data, size);
+    SOL_NULL_CHECK_GOTO(blob, error);
+
+    cb_data = malloc(sizeof(struct write_cb_data));
+    SOL_NULL_CHECK_GOTO(cb_data, error);
+
+    cb_data->mdata = mdata;
+    cb_data->node = node;
+
+    r = mdata->storage->write(mdata->name, blob, write_cb, cb_data);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    sol_blob_unref(blob);
+
+    return r;
+
+error:
+    if (blob)
+        sol_blob_unref(blob);
+    free(cb_data);
+
+    return -ENOMEM;
 }
 
 static int
@@ -146,20 +211,10 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value)
     else
         size = strlen(value) + 1; //To include the null terminating char
 
-    r = storage_write(mdata, value, size);
+    r = storage_write(mdata, value, size, node);
     SOL_INT_CHECK(r, < 0, r);
 
-    /* No packet_data_size means dynamic content (string). Let's reallocate if needed */
-    if (!mdata->packet_data_size) {
-        if (!mdata->value_ptr || strlen(mdata->value_ptr) + 1 < size) {
-            void *tmp = realloc(mdata->value_ptr, size);
-            SOL_NULL_CHECK(tmp, -ENOMEM);
-            mdata->value_ptr = tmp;
-        }
-    }
-    memcpy(mdata->value_ptr, value, size);
-
-    return mdata->packet_send_fn(node);
+    return 0;
 }
 
 static int
