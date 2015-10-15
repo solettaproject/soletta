@@ -101,7 +101,7 @@ headers-$(PLATFORM_LINUX) += \
 headers-$(USE_PIN_MUX) += \
     include/sol-pin-mux-modules.h
 
-headers-$(PTHREAD) += \
+headers-$(WORKER_THREAD) += \
     include/sol-worker-thread.h
 
 headers-$(MAINLOOP_CONTIKI) += \
