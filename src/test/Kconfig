@@ -100,3 +100,8 @@ config TEST_COMPOSED_TYPE
 config TEST_MESSAGE_DIGEST
       bool "crypto message-digest"
       default y
+
+config TEST_PERSISTENCE_MEMMAP
+	bool "Memmap persistence API"
+	depends on USE_MEMMAP
+	default y
