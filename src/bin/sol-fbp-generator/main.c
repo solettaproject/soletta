@@ -1788,7 +1788,7 @@ store_exported_options(struct type_store *common_store,
             exported_option = sol_vector_append(&data->exported_options);
             if (!exported_option) {
                 SOL_ERR("Could not create an option to be exported");
-                return NULL;
+                return false;
             }
             exported_option->node = fbp_option->node;
             sol_vector_init(&exported_option->options,
@@ -1805,14 +1805,14 @@ store_exported_options(struct type_store *common_store,
 
         if (!to_export) {
             SOL_ERR("Could not create a option to be exported");
-            return false;
+            goto err;
         }
 
         exported_description = sol_vector_append(&exported_option->options);
 
         if (!exported_description) {
             SOL_ERR("Could not create the exported option description");
-            return false;
+            goto err;
         }
 
         exported_description->node_option = fbp_option->node_option;
@@ -1852,6 +1852,10 @@ store_exported_options(struct type_store *common_store,
     }
 
     return true;
+
+err:
+    free(op_desc);
+    return false;
 }
 
 static bool
