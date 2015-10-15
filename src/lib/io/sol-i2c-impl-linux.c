@@ -903,11 +903,11 @@ sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *values, 
 
 #ifdef WORKER_THREAD
     i2c->async.worker = sol_worker_thread_new(&spec);
-    SOL_NULL_CHECK(i2c->async.worker, false);
+    SOL_NULL_CHECK(i2c->async.worker, NULL);
     return (struct sol_i2c_pending *)i2c->async.worker;
 #else
     i2c->async.timeout = sol_timeout_add(0, i2c_write_reg_timeout_cb, i2c);
-    SOL_NULL_CHECK(i2c->async.timeout, false);
+    SOL_NULL_CHECK(i2c->async.timeout, NULL);
     return (struct sol_i2c_pending *)i2c->async.timeout;
 #endif
 }
