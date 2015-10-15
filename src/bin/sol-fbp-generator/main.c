@@ -917,7 +917,7 @@ generate_fbp_node_options(struct fbp_data *data)
     return true;
 }
 
-static void
+static bool
 generate_child_opts(struct fbp_data *data,
     const char *opts_func)
 {
@@ -963,19 +963,21 @@ static bool
 generate_create_type_function(struct fbp_data *data)
 {
     struct sol_buffer c_name;
-    int r;
+    int err;
     char opts_func[2048];
+    bool r = false;
 
     to_c_symbol(data->name, &c_name);
     if (data->exported_options.len) {
-        r = snprintf(opts_func, sizeof(opts_func), "child_opts_set_%d_%s",
+        err = snprintf(opts_func, sizeof(opts_func), "child_opts_set_%d_%s",
             data->id, (const char *)c_name.data);
-        SOL_INT_CHECK(r, < 0, false);
-        SOL_INT_CHECK(r, >= (int)sizeof(opts_func), false);
+        SOL_INT_CHECK_GOTO(err, < 0, exit);
+        SOL_INT_CHECK_GOTO(err, >= (int)sizeof(opts_func), exit);
 
         if (!generate_fbp_node_options(data))
-            return false;
-        generate_child_opts(data, opts_func);
+            goto exit;
+        if (!generate_child_opts(data, opts_func))
+            goto exit;
     }
 
     out("\nstatic const struct sol_flow_node_type *\n"
@@ -988,7 +990,7 @@ generate_create_type_function(struct fbp_data *data)
     out("    struct sol_flow_node_type *node_type;\n");
 
     if (!generate_options(data) || !generate_connections(data) || !generate_exports(data))
-        return false;
+        goto exit;
 
     generate_node_specs(data);
 
@@ -1020,8 +1022,10 @@ generate_create_type_function(struct fbp_data *data)
     out("\n"
         "    return node_type;\n"
         "}\n\n");
-
-    return true;
+    r = true;
+exit:
+    sol_buffer_fini(&c_name);
+    return r;
 }
 
 struct generate_context {
