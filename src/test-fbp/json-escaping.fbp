@@ -1,0 +1,43 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+json_object_str(constant/string:value="{\"escape\": \"escape: \\\\\\/\\\"\\b\\r\\n\\f\\t\", \"unicode\": \"\\u0055\\u006E\\u0069\\u0063\\u006f\\u0064\\u0065\\u0020\\u00c0\\u00CA\\u00CD\\u00f6\\u00FA\\u010e\\u01e7\\u0275\\u0722\\u0788\\u085E\\u0936\\u0f4c\\u2764\\u264e\\u2600\\u2691\\u20ac\\u266b\"}")
+json_object(converter/blob-to-json-object)
+
+string_validator(test/string-validator:sequence="escape: \\/\"\b\r\n\f\t|Unicode ÀÊÍöúĎǧɵܢވ࡞शཌ❤♎☀⚑€♫")
+
+# Test node json/object-get-key
+json_object_str OUT -> IN _(converter/string-to-blob) OUT -> IN json_object
+json_object OUT -> IN _(json/object-get-key:key="escape") STRING -> IN string_validator
+json_object OUT -> IN _(json/object-get-key:key="unicode") STRING -> IN string_validator
+string_validator OUT -> RESULT string_result(test/result)
+
+json_object_error(constant/string:value="{\"x\": \"a\\u123x\"}")
+json_object_error OUT -> IN _(converter/string-to-blob) OUT -> IN _(converter/blob-to-json-object) OUT -> IN _(json/object-get-key:key="x") ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS invalid_json_array_test(test/result)
