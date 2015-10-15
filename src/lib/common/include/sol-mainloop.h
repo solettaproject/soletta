@@ -349,6 +349,19 @@ struct sol_main_callbacks {
         sol_shutdown();                                   \
         PROCESS_END();                                    \
     }
+#elif defined(SOL_PLATFORM_RIOT)
+#define SOL_MAIN(CALLBACKS) \
+    int main(void) { \
+        return sol_mainloop_default_main(&(CALLBACKS), 0, NULL); \
+    }
+
+#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN) \
+    static const struct sol_main_callbacks sol_main_callbacks_instance = { \
+        .api_version = SOL_MAIN_CALLBACKS_API_VERSION, \
+        .startup = (STARTUP), \
+        .shutdown = (SHUTDOWN), \
+    }; \
+    SOL_MAIN(sol_main_callbacks_instance)
 #else
 #define SOL_MAIN(CALLBACKS)                                          \
     int main(int argc, char *argv[]) {                              \
