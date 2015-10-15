@@ -1590,7 +1590,7 @@ handle_include_path(char *path)
 }
 
 static bool
-search_fbp_file(char *fullpath, const char *basename)
+search_fbp_file(char *fullpath, const struct sol_str_slice basename)
 {
     struct stat s;
     const char *p;
@@ -1598,7 +1598,8 @@ search_fbp_file(char *fullpath, const char *basename)
     int err;
 
     SOL_PTR_VECTOR_FOREACH_IDX (&args.fbp_search_paths, p, i) {
-        err = snprintf(fullpath, PATH_MAX, "%s/%s", p, basename);
+        err = snprintf(fullpath, PATH_MAX, "%s/%.*s", p,
+            SOL_STR_SLICE_PRINT(basename));
         if (err < 0 || err >= PATH_MAX)
             return false;
 
@@ -2008,7 +2009,8 @@ exit:
 
 static struct fbp_data *
 create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_readers,
-    struct type_store *common_store, const char *name, const char *fbp_basename)
+    struct type_store *common_store, const struct sol_str_slice name,
+    const struct sol_str_slice fbp_basename)
 {
     struct fbp_data *data;
     struct sol_fbp_error *fbp_error;
@@ -2016,7 +2018,8 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
     char filename[PATH_MAX];
 
     if (!search_fbp_file(filename, fbp_basename)) {
-        SOL_ERR("Couldn't find file '%s': %s\n", fbp_basename, sol_util_strerrora(errno));
+        SOL_ERR("Couldn't find file '%.*s': %s\n",
+            SOL_STR_SLICE_PRINT(fbp_basename), sol_util_strerrora(errno));
         return NULL;
     }
 
@@ -2060,7 +2063,7 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
     sol_vector_init(&data->declared_meta_types, sizeof(struct declared_metatype));
     sol_vector_init(&data->exported_options, sizeof(struct exported_option));
 
-    data->name = sol_arena_strdup(str_arena, name);
+    data->name = sol_arena_strdup_slice(str_arena, name);
     if (!data->name) {
         SOL_ERR("Couldn't create fbp data.");
         return NULL;
@@ -2079,7 +2082,6 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
         struct declared_fbp_type *dec_type;
         struct fbp_data *d;
         struct sol_fbp_declaration *dec;
-        char *dec_file, *dec_name;
         uint16_t i, data_idx;
         struct declared_metatype *meta;
         struct sol_buffer buf;
@@ -2092,10 +2094,8 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
         SOL_VECTOR_FOREACH_IDX (&data->graph.declarations, dec, i) {
             if (sol_str_slice_str_eq(dec->metatype, "fbp")) {
 
-                dec_file = strndupa(dec->contents.data, dec->contents.len);
-                dec_name = strndupa(dec->name.data, dec->name.len);
-
-                d = create_fbp_data(fbp_data_vector, file_readers, common_store, dec_name, dec_file);
+                d = create_fbp_data(fbp_data_vector, file_readers,
+                    common_store, dec->name, dec->contents);
                 if (!d)
                     return NULL;
 
@@ -2236,7 +2236,9 @@ main(int argc, char *argv[])
     sol_vector_init(&declared_metatypes_control_vector,
         sizeof(struct declared_metatype_control));
     sol_ptr_vector_init(&file_readers);
-    if (!create_fbp_data(&fbp_data_vector, &file_readers, common_store, "root", args.fbp_basename))
+    if (!create_fbp_data(&fbp_data_vector, &file_readers, common_store,
+        sol_str_slice_from_str("root"),
+        sol_str_slice_from_str(args.fbp_basename)))
         goto fail_data;
 
     result = generate(&fbp_data_vector);
