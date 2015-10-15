@@ -71,3 +71,6 @@ test-test-composed-type-$(TEST_COMPOSED_TYPE) := test.c test-composed-type.c
 
 test-$(TEST_MESSAGE_DIGEST) += test-message-digest
 test-test-message-digest-$(TEST_MESSAGE_DIGEST) := test.c test-message-digest.c
+
+test-$(TEST_PERSISTENCE_MEMMAP) += test-persistence-memmap
+test-test-persistence-memmap-$(TEST_PERSISTENCE_MEMMAP) := test.c test-persistence-memmap.c
