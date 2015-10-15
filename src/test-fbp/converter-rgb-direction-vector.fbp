@@ -28,8 +28,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## TEST-SKIP-COMPILE Generator failing to properly generate code
-
 color(constant/rgb:value=255|255|255)
 rgb_to_direction_vector(converter/rgb-to-direction-vector)
 

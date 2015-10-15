@@ -86,6 +86,32 @@ static struct sol_arena *str_arena;
 static struct sol_buffer output_buffer;
 static struct sol_vector declared_metatypes_control_vector;
 
+struct sol_type_default_value {
+    const char *field;
+    const char *value;
+};
+
+static const struct sol_type_default_value irange_default_values[] = {
+    { "val", "0" }, { "min", "INT32_MIN" }, { "max", "INT32_MAX" },
+    { "step", "1" }
+};
+static const struct sol_type_default_value drange_default_values[] = {
+    { "val", "0" }, { "min", "-DBL_MAX" }, { "max", "DBL_MAX" },
+    { "step", "DBL_MIN" }
+};
+static const struct sol_type_default_value direction_vector_default_values[] = {
+    { "x", "0" }, { "y", "0" }, { "z", "0" }, { "min", "-DBL_MAX" },
+    { "max", "DBL_MAX" }
+};
+static const struct sol_type_default_value rgb_default_values[] = {
+    { "red", "0" }, { "green", "0" }, { "blue", "0" },
+    { "red_max", "255" }, { "green_max", "255" }, { "blue_max", "255" }
+};
+
+typedef void (*handle_func)(const struct sol_fbp_meta *meta,
+    const char *field,  const struct sol_str_slice option, uint16_t index,
+    const char *opt_name, const char *fbp_file);
+
 /* In order to ensure that each generated fbp type has an unique id. */
 static unsigned int fbp_id_count;
 
@@ -231,48 +257,130 @@ get_node_type_description(const struct fbp_data *data, uint16_t i)
 }
 
 static void
-handle_suboptions(const struct sol_fbp_meta *meta,
-    void (*handle_func)(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file),
-    const char *opt_name, const char *fbp_file)
+handle_suboptions(const struct sol_fbp_meta *meta, handle_func func,
+    const char *opt_name, const char *fbp_file,
+    const struct sol_type_default_value *default_values,
+    uint16_t default_values_size,
+    bool has_default_option)
 {
-    uint16_t i = 0;
-    char *p, *remaining;
+    struct sol_vector tokens;
+    struct sol_str_slice *token;
+    uint16_t i;
 
-    remaining = strndupa(meta->value.data, meta->value.len);
+    tokens = sol_util_str_split(meta->value, "|", 0);
 
-    while (remaining) {
-        p = memchr(remaining, '|', strlen(remaining));
-        if (p)
-            *p = '\0';
-        handle_func(meta, remaining, i, opt_name, fbp_file);
-
-        if (!p)
-            break;
-
-        remaining = p + 1;
-        i++;
+    if (tokens.len == 0) {
+        SOL_ERR("Could not split the tokens for option:%s", opt_name);
+        return;
     }
+
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i)
+        func(meta, default_values[i].field, *token, i, opt_name, fbp_file);
+
+    if (i != default_values_size && !has_default_option) {
+        for (; i < default_values_size; i++)
+            func(meta, default_values[i].field,
+                sol_str_slice_from_str(default_values[i].value), i,
+                opt_name, fbp_file);
+    }
+    sol_vector_clear(&tokens);
 }
 
-static void
-handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file)
+static bool
+explicit_option_already_used(struct sol_vector *used_fields,
+    const struct sol_str_slice opt)
 {
-    char *p = memchr(option, ':', strlen(option));
+    uint16_t i;
+    struct sol_str_slice *slice;
+
+    SOL_VECTOR_FOREACH_IDX (used_fields, slice, i) {
+        if (sol_str_slice_eq(*slice, opt))
+            return true;
+    }
+    return false;
+}
+
+static bool
+handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta,
+    const struct sol_str_slice option, const char *opt_name,
+    const char *fbp_file, struct sol_vector *used_fields)
+{
+    struct sol_str_slice *slice, opt_subfield, opt_value;
+    char *p = memchr(option.data, ':', option.len);
 
     if (!p) {
         sol_fbp_log_print(fbp_file, meta->position.line, meta->position.column, "Wrong suboption format, ignoring"
             " value '%s'. You cannot mix the formats, choose one 'opt1:val1|opt2:val2...' or 'val1|val2...'", option);
+        return false;
+    }
+
+    opt_subfield.data = option.data;
+    opt_subfield.len = p - option.data;
+
+    opt_value.data = p + 1;
+    opt_value.len = option.len - opt_subfield.len - 1;
+
+    out("            .%s.%.*s = %.*s,\n", opt_name,
+        SOL_STR_SLICE_PRINT(opt_subfield), SOL_STR_SLICE_PRINT(opt_value));
+
+    if (explicit_option_already_used(used_fields, opt_subfield))
+        return true;
+
+    slice = sol_vector_append(used_fields);
+    if (!slice) {
+        SOL_ERR("Could not create an slice with the option field for:%s",
+            opt_name);
+        return false;
+    }
+
+    *slice = opt_subfield;
+    return true;
+}
+
+static void
+handle_explicit_suboptions(const struct sol_fbp_meta *meta, handle_func func,
+    const char *opt_name, const char *fbp_file,
+    const struct sol_type_default_value *default_values,
+    uint16_t default_values_size,
+    bool has_default_option)
+{
+    struct sol_vector tokens, used_fields;
+    struct sol_str_slice *token;
+    uint16_t i;
+
+    sol_vector_init(&used_fields, sizeof(struct sol_str_slice));
+    tokens = sol_util_str_split(meta->value, "|", 0);
+    if (tokens.len == 0) {
+        SOL_ERR("Could not split the tokens for option:%s", opt_name);
         return;
     }
 
-    *p = '=';
-    out("            .%s.%s,\n", opt_name, option);
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
+        if (!handle_suboption_with_explicit_fields(meta, *token, opt_name,
+            fbp_file, &used_fields))
+            goto exit;
+    }
+
+    if (used_fields.len != default_values_size && !has_default_option) {
+        for (i = 0; i < default_values_size; i++) {
+            if (explicit_option_already_used(&used_fields,
+                sol_str_slice_from_str(default_values[i].field)))
+                continue;
+            func(meta, default_values[i].field,
+                sol_str_slice_from_str(default_values[i].value), i,
+                opt_name, fbp_file);
+        }
+    }
+exit:
+    sol_vector_clear(&used_fields);
+    sol_vector_clear(&tokens);
 }
 
 static bool
-check_suboption(char *option, const struct sol_fbp_meta *meta, const char *fbp_file)
+check_suboption(const struct sol_str_slice option,
+    const struct sol_fbp_meta *meta, const char *fbp_file)
 {
-    if (memchr(option, ':', strlen(option))) {
+    if (memchr(option.data, ':', option.len)) {
         sol_fbp_log_print(fbp_file, meta->position.line, meta->position.column, "Wrong suboption format, ignoring"
             "value '%s'. You cannot mix the formats, choose one 'opt1:val1|opt2:val2...' or 'val1|val2...'", option);
         return false;
@@ -281,53 +389,66 @@ check_suboption(char *option, const struct sol_fbp_meta *meta, const char *fbp_f
     return true;
 }
 
-static const char *
-get_irange_drange_option_value(const char *option)
+static struct sol_str_slice
+get_irange_drange_option_value(const struct sol_str_slice option)
 {
-    if (!strcasecmp(option, "nan"))
-        return "NAN";
-    if (!strcasecmp(option, "inf"))
-        return "INFINITY";
+    if (!strncasecmp(option.data, "nan", option.len))
+        return sol_str_slice_from_str("NAN");
+    if (!strncasecmp(option.data, "inf", option.len))
+        return sol_str_slice_from_str("INFINITY");
     return option;
 }
 
 static void
-handle_irange_drange_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file)
+handle_irange_drange_suboption(const struct sol_fbp_meta *meta,
+    const char *field,  const struct sol_str_slice option,
+    uint16_t index, const char *opt_name, const char *fbp_file)
 {
-    const char *irange_drange_fields[] = { "val", "min", "max", "step", NULL };
-
     if (check_suboption(option, meta, fbp_file))
-        out("            .%s.%s = %s,\n", opt_name,
-            irange_drange_fields[index],
-            get_irange_drange_option_value(option));
+        out("            .%s.%s = %.*s,\n", opt_name,
+            field, SOL_STR_SLICE_PRINT(get_irange_drange_option_value(option)));
 }
 
 static void
-handle_rgb_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file)
+handle_rgb_suboption(const struct sol_fbp_meta *meta,
+    const char *field, const struct sol_str_slice option, uint16_t index,
+    const char *opt_name, const char *fbp_file)
 {
-    const char *rgb_fields[] = { "red", "green", "blue",
-                                 "red_max", "green_max", "blue_max", NULL };
-
     if (check_suboption(option, meta, fbp_file))
-        out("            .%s.%s = %s,\n", opt_name,
-            rgb_fields[index], option);
+        out("            .%s.%s = %.*s,\n", opt_name,
+            field, SOL_STR_SLICE_PRINT(option));
 }
 
 static void
-handle_direction_vector_suboption(const struct sol_fbp_meta *meta, char *option, uint16_t index, const char *opt_name, const char *fbp_file)
+handle_direction_vector_suboption(const struct sol_fbp_meta *meta,
+    const char *field, const struct sol_str_slice option,
+    uint16_t index, const char *opt_name, const char *fbp_file)
 {
-    const char *direction_vector_fields[] = { "x", "y", "z",
-                                              "min", "max", NULL };
-
     if (check_suboption(option, meta, fbp_file))
-        out("            .%s.%s = %s,\n", opt_name,
-            direction_vector_fields[index], option);
+        out("            .%s.%s = %.*s,\n", opt_name,
+            field, SOL_STR_SLICE_PRINT(option));
 }
 
 static void *
 has_explicit_fields(const struct sol_str_slice slice)
 {
     return memchr(slice.data, ':', slice.len);
+}
+
+static void
+dispatch_handle_suboptions(const struct sol_fbp_meta *meta,
+    const char *fbp_file,  const char *name,
+    const struct sol_type_default_value *default_values,
+    uint16_t default_values_size, handle_func func,
+    bool has_default_option)
+{
+    if (has_explicit_fields(meta->value))
+        handle_explicit_suboptions(meta, func, name, fbp_file, default_values,
+            default_values_size, has_default_option);
+    else
+        handle_suboptions(meta, func,
+            name, fbp_file, default_values, default_values_size,
+            has_default_option);
 }
 
 static bool
@@ -340,7 +461,7 @@ handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
     struct sol_buffer buf;
     struct sol_fbp_meta unquoted_meta;
     int err;
-    bool r = false;
+    bool r = false, has_default_option = false;
 
     if (!sol_str_slice_eq(meta->key, opt_name))
         return true;
@@ -366,33 +487,46 @@ handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
         goto exit;
     }
 
-    if (streq(o->data_type, "int") || streq(o->data_type, "float")) {
+    if (o->default_value_type != OPTION_VALUE_TYPE_NONE)
+        has_default_option = true;
+
+    if (streq(o->data_type, "int")) {
         r = true;
-        if (has_explicit_fields(meta->value))
-            handle_suboptions(meta, handle_suboption_with_explicit_fields, (const char *)buf.data, fbp_file);
-        else
-            handle_suboptions(meta, handle_irange_drange_suboption, (const char *)buf.data, fbp_file);
+        dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
+            irange_default_values, sizeof(irange_default_values) /
+            sizeof(irange_default_values[0]),
+            handle_irange_drange_suboption, has_default_option);
+    } else if (streq(o->data_type, "float")) {
+        r = true;
+        dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
+            drange_default_values, sizeof(drange_default_values) /
+            sizeof(drange_default_values[0]),
+            handle_irange_drange_suboption, has_default_option);
     } else if (streq(o->data_type, "rgb")) {
         r = true;
-        if (has_explicit_fields(meta->value))
-            handle_suboptions(meta, handle_suboption_with_explicit_fields, (const char *)buf.data, fbp_file);
-        else
-            handle_suboptions(meta, handle_rgb_suboption, (const char *)buf.data, fbp_file);
+        dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
+            rgb_default_values, sizeof(rgb_default_values) /
+            sizeof(rgb_default_values[0]), handle_rgb_suboption,
+            has_default_option);
     } else if (streq(o->data_type, "direction-vector")) {
         r = true;
-        if (has_explicit_fields(meta->value))
-            handle_suboptions(meta, handle_suboption_with_explicit_fields, (const char *)buf.data, fbp_file);
-        else
-            handle_suboptions(meta, handle_direction_vector_suboption, (const char *)buf.data, fbp_file);
+        dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
+            direction_vector_default_values,
+            sizeof(direction_vector_default_values) /
+            sizeof(direction_vector_default_values[0]),
+            handle_direction_vector_suboption, has_default_option);
     } else if (streq(o->data_type, "string")) {
         r = true;
         if (meta->value.data[0] == '"')
-            out("            .%s = %.*s,\n", (const char *)buf.data, SOL_STR_SLICE_PRINT(meta->value));
+            out("            .%s = %.*s,\n", (const char *)buf.data,
+                SOL_STR_SLICE_PRINT(meta->value));
         else
-            out("            .%s = \"%.*s\",\n", (const char *)buf.data, SOL_STR_SLICE_PRINT(meta->value));
+            out("            .%s = \"%.*s\",\n", (const char *)buf.data,
+                SOL_STR_SLICE_PRINT(meta->value));
     } else {
         r = true;
-        out("            .%s = %.*s,\n", (const char *)buf.data, SOL_STR_SLICE_PRINT(meta->value));
+        out("            .%s = %.*s,\n", (const char *)buf.data,
+            SOL_STR_SLICE_PRINT(meta->value));
     }
 exit:
     sol_buffer_fini(&buf);
@@ -1337,6 +1471,8 @@ generate(struct sol_vector *fbp_data_vector)
 
     out(
         "#include <math.h>\n"
+        "#include <stdint.h>\n"
+        "#include <float.h>\n"
         "#include \"sol-flow.h\"\n"
         "#include \"sol-flow-static.h\"\n");
 
