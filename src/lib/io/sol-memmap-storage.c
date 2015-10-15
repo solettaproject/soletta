@@ -57,14 +57,21 @@
 #define DEV_NUMBER_IDX 3
 #define DEV_NAME_IDX 4
 
-struct map_resolved_path {
-    const struct sol_memmap_map *map;
-    char *resolved_path;
+struct pending_write_data {
+    char *name;
+    const char *path;
+    struct sol_blob *blob;
+    const struct sol_memmap_entry *entry;
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status);
+    const void *data;
+    uint64_t mask;
 };
 
 static struct sol_ptr_vector memory_maps = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector checked_maps = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector resolved_maps_to_free = SOL_PTR_VECTOR_INIT;
+static struct sol_vector pending_writes = SOL_VECTOR_INIT(struct pending_write_data);
+static struct sol_timeout *write_timeout;
 
 static bool
 get_entry_metadata_on_map(const char *name, const struct sol_memmap_map *map, const struct sol_memmap_entry **entry, uint64_t *mask)
@@ -147,16 +154,25 @@ error:
 }
 
 static int
-sol_memmap_write_raw_do(const char *path, const struct sol_memmap_entry *entry, uint64_t mask, const struct sol_buffer *buffer)
+sol_memmap_write_raw_do(const char *path, const char *name, const struct sol_memmap_entry *entry, uint64_t mask, struct sol_blob *blob,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data, FILE *reuse_file)
 {
-    FILE *file;
+    FILE *file = NULL;
     int ret = 0;
 
-    file = fopen(path, "r+e");
-    if (!file) {
-        SOL_WRN("Could not open memory file [%s]: %s", path,
-            sol_util_strerrora(errno));
-        return -errno;
+    if (!sol_blob_ref(blob))
+        return -ENOMEM;
+
+    if (reuse_file) {
+        file = reuse_file;
+    } else {
+        file = fopen(path, "r+e");
+        if (!file) {
+            SOL_WRN("Could not open memory file [%s]: %s", path,
+                sol_util_strerrora(errno));
+            goto error;
+        }
     }
 
     if (fseek(file, entry->offset, SEEK_SET) < 0)
@@ -170,7 +186,7 @@ sol_memmap_write_raw_do(const char *path, const struct sol_memmap_entry *entry, 
         assert(entry->size <= 8);
 
         for (i = 0, j = 0; i < entry->size; i++, j += 8)
-            value |= (uint64_t)((uint8_t *)buffer->data)[i] << j;
+            value |= (uint64_t)((uint8_t *)blob->mem)[i] << j;
 
         ret = fread(&old_value, entry->size, 1, file);
         if (!ret || ferror(file) || feof(file)) {
@@ -187,7 +203,7 @@ sol_memmap_write_raw_do(const char *path, const struct sol_memmap_entry *entry, 
         value |= (old_value & ~mask);
         fwrite(&value, entry->size, 1, file);
     } else {
-        fwrite(buffer->data, sol_min(entry->size, buffer->used), 1, file);
+        fwrite(blob->mem, sol_min(entry->size, blob->size), 1, file);
     }
 
     if (ferror(file)) {
@@ -195,16 +211,37 @@ sol_memmap_write_raw_do(const char *path, const struct sol_memmap_entry *entry, 
         goto error;
     }
 
-    if (fclose(file) != 0)
-        return -errno;
+    errno = 0;
+    if (!reuse_file)
+        fclose(file);
 
-    return 0;
+    if (cb)
+        cb((void *)data, name, blob, -errno);
+
+    sol_blob_unref(blob);
+
+    return -errno;
 
 error:
+    SOL_DBG("Error writing to file [%s]: %s", path, sol_util_strerrora(errno));
     ret = -errno;
-    fclose(file);
+    if (file && !reuse_file)
+        fclose(file);
+
+    if (cb)
+        cb((void *)data, name, blob, ret);
+
+    sol_blob_unref(blob);
 
     return ret;
+}
+
+static void
+version_write_cb(void *data, const char *name, struct sol_blob *blob, int status)
+{
+    if (status < 0)
+        SOL_WRN("Could not write version to file: %d", status);
+    sol_blob_unref(blob);
 }
 
 static bool
@@ -217,6 +254,7 @@ check_version(const struct sol_memmap_map *map)
     const struct sol_memmap_entry *entry;
     int ret, i;
     uint64_t mask;
+    struct sol_blob *blob;
 
     if (!map->version || map->version == 255) {
         SOL_WRN("Invalid memory_map_version. Should be between 1 and 255. Found %d",
@@ -236,10 +274,14 @@ check_version(const struct sol_memmap_map *map)
 
     ret = sol_memmap_read_raw_do(map->path, entry, mask, &buf);
     if (ret >= 0 && (version == 0 || version == 255)) {
+        blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE, NULL, &map->version, sizeof(uint8_t));
+        SOL_NULL_CHECK(blob, false);
+
         /* No version on file, we should be initialising it */
         version = map->version;
-        if (sol_memmap_write_raw_do(map->path, entry, mask, &buf) < 0) {
+        if (sol_memmap_write_raw_do(map->path, MEMMAP_VERSION_ENTRY, entry, mask, blob, version_write_cb, NULL, NULL) < 0) {
             SOL_WRN("Could not write current map version to file");
+            sol_blob_unref(blob);
             return false;
         }
     } else if (ret < 0) {
@@ -256,15 +298,153 @@ check_version(const struct sol_memmap_map *map)
     return sol_ptr_vector_append(&checked_maps, (void *)map) == 0;
 }
 
+static int
+pending_cmp(const void *e1, const void *e2)
+{
+    const struct pending_write_data *p1 = e1;
+    const struct pending_write_data *p2 = e2;
+
+    return strcmp(p1->path, p2->path);
+}
+
+static bool
+perform_pending_writes(void *data)
+{
+    int i, r;
+    struct pending_write_data *pending;
+    FILE *file = NULL;
+    const char *last_path = "";
+
+    write_timeout = NULL;
+
+    /* Order writes by path, so we can open each file only once */
+    qsort(pending_writes.data, pending_writes.len, pending_writes.elem_size, pending_cmp);
+
+    SOL_VECTOR_FOREACH_IDX (&pending_writes, pending, i) {
+        if (!streq(last_path, pending->path)) {
+            if (file) {
+                r = fclose(file);
+                if (r)
+                    SOL_WRN("Error closing file [%s]: %s", last_path,
+                        sol_util_strerrora(errno));
+            }
+            last_path = pending->path;
+            file = fopen(last_path, "r+e");
+            if (!file)
+                SOL_WRN("Error opening file [%s]: %s", last_path,
+                    sol_util_strerrora(errno));
+        }
+
+        sol_memmap_write_raw_do(pending->path, pending->name, pending->entry,
+            pending->mask, pending->blob, pending->cb, pending->data, file);
+        free(pending->name);
+        sol_blob_unref(pending->blob);
+    }
+    if (file) {
+        r = fclose(file);
+        if (r)
+            SOL_WRN("Error closing file [%s]: %s", last_path,
+                sol_util_strerrora(errno));
+    }
+
+    sol_vector_clear(&pending_writes);
+
+    return false;
+}
+
+static bool
+replace_pending_write(const char *path, const char *name,
+    const struct sol_memmap_entry *entry, uint64_t mask, struct sol_blob *blob,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
+{
+    struct pending_write_data *pending;
+    int i;
+
+    SOL_VECTOR_FOREACH_IDX (&pending_writes, pending, i) {
+        if (streq(pending->name, name)) {
+            if (pending->cb)
+                pending->cb((void *)pending->data, pending->name, pending->blob,
+                    -ECANCELED);
+            sol_blob_unref(pending->blob);
+            pending->blob = sol_blob_ref(blob);
+            if (!pending->blob) {
+                /* If we couldn't ref, let's delete this entry and let
+                 * the caller re-add this write */
+                free(pending->name);
+                sol_vector_del(&pending_writes, i);
+                return false;
+            }
+            pending->cb = cb;
+            pending->data = data;
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static int
+fill_pending_write(struct pending_write_data *pending, const char *path,
+    const char *name, const struct sol_memmap_entry *entry, uint64_t mask,
+    struct sol_blob *blob,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
+{
+    pending->blob = sol_blob_ref(blob);
+    SOL_NULL_CHECK(pending->blob, -ENOMEM);
+
+    pending->name = strdup(name);
+    SOL_NULL_CHECK(name, -ENOMEM);
+
+    pending->path = path;
+    pending->entry = entry;
+    pending->mask = mask;
+    pending->cb = cb;
+    pending->data = data;
+
+    return 0;
+}
+
+static int
+add_write(const char *path, const char *name,
+    const struct sol_memmap_entry *entry, uint64_t mask, struct sol_blob *blob,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
+{
+    struct pending_write_data *pending;
+
+    /* If there's a pending write for the very same entry, we replace it */
+    if (replace_pending_write(path, name, entry, mask, blob, cb, data))
+        return 0;
+
+    pending = sol_vector_append(&pending_writes);
+
+    SOL_NULL_CHECK(pending, -ENOMEM);
+
+    if (fill_pending_write(pending, path, name, entry, mask, blob, cb, data) < 0)
+        return -ENOMEM;
+
+    if (!write_timeout)
+        write_timeout = sol_timeout_add(0, perform_pending_writes, NULL);
+
+    SOL_NULL_CHECK(write_timeout, -ENOMEM);
+
+    return 0;
+}
+
 SOL_API int
-sol_memmap_write_raw(const char *name, const struct sol_buffer *buffer)
+sol_memmap_write_raw(const char *name, struct sol_blob *blob,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
 {
     const struct sol_memmap_map *map;
     const struct sol_memmap_entry *entry;
     uint64_t mask;
 
     SOL_NULL_CHECK(name, -EINVAL);
-    SOL_NULL_CHECK(buffer, -EINVAL);
+    SOL_NULL_CHECK(blob, -EINVAL);
 
     if (!get_entry_metadata(name, &map, &entry, &mask)) {
         SOL_WRN("No entry on memory map to property [%s]", name);
@@ -274,11 +454,33 @@ sol_memmap_write_raw(const char *name, const struct sol_buffer *buffer)
     if (!check_version(map))
         return -EINVAL;
 
-    if (buffer->used > entry->size)
+    if (blob->size > entry->size)
         SOL_INF("Mapped size for [%s] is %zd, smaller than buffer contents: %zd",
-            name, entry->size, buffer->used);
+            name, entry->size, blob->size);
 
-    return sol_memmap_write_raw_do(map->path, entry, mask, buffer);
+    return add_write(map->path, name, entry, mask, blob, cb, data);
+}
+
+static bool
+read_from_pending(const char *name, struct sol_buffer *buffer)
+{
+    struct pending_write_data *pending;
+    int i;
+
+    SOL_VECTOR_FOREACH_IDX (&pending_writes, pending, i) {
+        if (streq(name, pending->name)) {
+            // TODO maybe a sol_buffer_append_blob?
+            if (sol_buffer_ensure(buffer, pending->blob->size) < 0) {
+                // TODO how bad is this? return old value? fail reading?
+                SOL_WRN("Could not ensure buffer size to fit pending blob");
+                return false;
+            }
+            memcpy(buffer->data, pending->blob->mem, pending->blob->size);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 SOL_API int
@@ -298,6 +500,9 @@ sol_memmap_read_raw(const char *name, struct sol_buffer *buffer)
 
     if (!check_version(map))
         return -EINVAL;
+
+    if (read_from_pending(name, buffer))
+        return 0;
 
     return sol_memmap_read_raw_do(map->path, entry, mask, buffer);
 }
