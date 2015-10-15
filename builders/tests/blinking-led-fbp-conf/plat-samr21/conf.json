@@ -1,0 +1,19 @@
+{
+ "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+ "nodetypes": [
+  {
+   "name": "TIMER",
+   "options": {
+    "interval": 200
+   },
+   "type": "timer"
+  },
+  {
+   "name": "WRITER",
+   "options": {
+    "pin": 1090536467
+   },
+   "type": "gpio/writer"
+  }
+ ]
+}
