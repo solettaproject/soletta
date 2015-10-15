@@ -1268,6 +1268,8 @@ get_member_alignment(const struct sol_flow_node_options_member_description *memb
         SOL_STR_TABLE_ITEM("int", __alignof__(member->defvalue.i)),
         SOL_STR_TABLE_ITEM("rgb", __alignof__(member->defvalue.rgb)),
         SOL_STR_TABLE_ITEM("string", __alignof__(member->defvalue.s)),
+        SOL_STR_TABLE_ITEM("direction-vector", __alignof__(member->defvalue.direction_vector)),
+        SOL_STR_TABLE_ITEM("blob", __alignof__(member->defvalue.ptr)),
     };
 
     t = SOL_STR_SLICE_STR(member->data_type, strlen(member->data_type));
