@@ -442,6 +442,14 @@ int sol_json_serialize_int64(struct sol_buffer *buffer, int64_t val) SOL_ATTR_NO
 int sol_json_serialize_uint64(struct sol_buffer *buffer, uint64_t val) SOL_ATTR_NONNULL(1);
 int sol_json_serialize_boolean(struct sol_buffer *buffer, bool val) SOL_ATTR_NONNULL(1);
 
+static inline int
+sol_json_serialize_null(struct sol_buffer *buffer)
+{
+    static const struct sol_str_slice null = SOL_STR_SLICE_LITERAL("null");
+
+    return sol_buffer_append_slice(buffer, null);
+}
+
 /**
  *  Get in a sol_buffer the string value of informed token. If token type is
  *  a JSON string, quotes are removed and string is unescaped. If not
