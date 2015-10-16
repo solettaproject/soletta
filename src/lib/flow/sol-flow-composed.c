@@ -323,6 +323,7 @@ setup_simple_ports(struct sol_vector *in_ports, const struct sol_str_slice conte
     }
 
     SOL_VECTOR_FOREACH_IDX (&tokens, slice, i) {
+        name = NULL;
         r = get_name_and_type_from_token(slice, &name, &type_slice);
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
@@ -353,7 +354,6 @@ setup_simple_ports(struct sol_vector *in_ports, const struct sol_str_slice conte
         }
 
         port_type->name = name;
-        name = NULL;
     }
 
     sol_vector_clear(&tokens);
