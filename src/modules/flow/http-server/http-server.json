@@ -46,7 +46,7 @@
       "in_ports": [
 	{
 	  "data_type": "boolean",
-	  "description": "The value that will be give on a GET",
+	  "description": "The value that will be given on a GET",
           "methods": {
             "process": "common_process"
           },
@@ -102,7 +102,7 @@
       "in_ports": [
 	{
 	  "data_type": "string",
-	  "description": "The value that will be give on a GET",
+	  "description": "The value that will be given on a GET",
           "methods": {
             "process": "common_process"
           },
@@ -159,7 +159,7 @@
       "in_ports": [
 	{
 	  "data_type": "int",
-	  "description": "The value that will be give on a GET",
+	  "description": "The value that will be given on a GET",
           "methods": {
             "process": "common_process"
           },
@@ -216,7 +216,7 @@
       "in_ports": [
 	{
 	  "data_type": "float",
-	  "description": "The value that will be give on a GET",
+	  "description": "The value that will be given on a GET",
           "methods": {
             "process": "common_process"
           },
