@@ -190,6 +190,7 @@ file_reader_close(struct sol_flow_node *node, void *data)
 struct file_writer_data {
     struct sol_flow_node *node;
     char *path;
+    char *err_msg;
     struct sol_blob *pending_blob;
     struct sol_worker_thread *worker;
     size_t size;
@@ -248,7 +249,8 @@ file_writer_worker_thread_finished(void *data)
     if (mdata->canceled)
         return;
     mdata->worker = NULL;
-    file_writer_send(mdata);
+    if (mdata->error == 0)
+        file_writer_send(mdata);
 }
 
 static void
@@ -256,7 +258,10 @@ file_writer_worker_thread_feedback(void *data)
 {
     struct file_writer_data *mdata = data;
 
-    file_writer_send(mdata);
+    if (mdata->error == 0)
+        file_writer_send(mdata);
+    else
+        sol_flow_send_error_packet_str(mdata->node, mdata->error, mdata->err_msg);
 }
 
 static bool
@@ -271,11 +276,13 @@ file_writer_worker_thread_setup(void *data)
         mdata->permissions);
     SOL_DBG("open \"%s\" fd=%d, permissions=%#o", mdata->path, mdata->fd, mdata->permissions);
     if (mdata->fd < 0) {
-        char *msg;
         mdata->error = errno;
-        msg = sol_util_strerrora(errno);
-        sol_flow_send_error_packet_str(mdata->node, mdata->error, msg);
-        SOL_WRN("could not open '%s': %s", mdata->path, msg);
+        mdata->err_msg = strdup(sol_util_strerrora(errno));
+        if (mdata->err_msg)
+            sol_worker_thread_feedback(mdata->worker);
+        else
+            SOL_ERR("Could not copy the error message");
+        SOL_WRN("could not open '%s': %s", mdata->path, mdata->err_msg);
         return false;
     }
 
@@ -325,12 +332,14 @@ file_writer_worker_thread_iterate(void *data)
         sol_worker_thread_feedback(mdata->worker);
     } else if (w < 0) {
         if (errno != EAGAIN && errno != EINTR) {
-            char *msg;
             mdata->error = errno;
-            msg = sol_util_strerrora(errno);
+            mdata->err_msg = strdup(sol_util_strerrora(errno));
+            if (mdata->err_msg)
+                sol_worker_thread_feedback(mdata->worker);
+            else
+                SOL_ERR("Could not copy the error message");
             SOL_WRN("could not write %zd bytes to fd=%d (%s): %s",
-                todo, mdata->fd, mdata->path, msg);
-            sol_flow_send_error_packet_str(mdata->node, mdata->error, msg);
+                todo, mdata->fd, mdata->path, mdata->err_msg);
             return false;
         }
     }
@@ -358,6 +367,8 @@ file_writer_load(struct file_writer_data *mdata)
     mdata->size = mdata->pending_blob->size;
     mdata->done = 0;
     mdata->canceled = false;
+    free(mdata->err_msg);
+    mdata->err_msg = NULL;
     file_writer_send(mdata);
 
     mdata->worker = sol_worker_thread_new(&spec);
@@ -451,6 +462,7 @@ file_writer_close(struct sol_flow_node *node, void *data)
 
     file_writer_unload(mdata);
     free(mdata->path);
+    free(mdata->err_msg);
 }
 
 
