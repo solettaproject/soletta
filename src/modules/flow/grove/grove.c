@@ -1505,6 +1505,10 @@ lcd_string_open(struct sol_flow_node *node,
         (opts, SOL_FLOW_NODE_TYPE_GROVE_LCD_STRING_OPTIONS_API_VERSION,
         -EINVAL);
 
+    mdata->display_mode = LCD_ENTRY_MODE_SET | LCD_MODE_SET_LTR;
+    mdata->display_control = (LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON)
+        & (~LCD_BLINK_ON | ~LCD_CURSOR_ON);
+
     r = lcd_open(mdata, (uint8_t)opts->bus.val);
     SOL_INT_CHECK(r, < 0, r);
 
@@ -1528,9 +1532,8 @@ lcd_char_open(struct sol_flow_node *node,
     mdata->display_mode = LCD_ENTRY_MODE_SET | LCD_MODE_SET_LTR;
     mdata->display_control = (LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON)
         & (~LCD_BLINK_ON | ~LCD_CURSOR_ON);
-    if (opts->ltr)
-        mdata->display_mode |= LCD_MODE_SET_LTR;
-    else
+
+    if (!opts->ltr)
         mdata->display_mode &= ~LCD_MODE_SET_LTR;
 
     if (opts->auto_scroll)
