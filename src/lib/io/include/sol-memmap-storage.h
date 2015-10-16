@@ -61,7 +61,8 @@ extern "C" {
  * which will store version of map stored. This API will refuse to work if
  * stored map is different from map version. Note that @c _version field
  * is a @c uint8_t and that versions should start on 1, so Soletta will know
- * if dealing with a totally new storage.
+ * if dealing with a totally new storage. It also considers 255 (0xff) as a
+ * non-value, so fit new EEPROMs.
  *
  * @{
  */
