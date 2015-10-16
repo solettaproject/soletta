@@ -56,7 +56,7 @@
         },
         {
           "type": "string",
-          "pattern": "^composed:([a-zA-Z]*?)((,[a-zA-Z]+)+)$"
+          "pattern": "^composed:([\\-a-zA-Z]*?)((,[\\-a-zA-Z]+)+)$"
         }
       ]
     },
