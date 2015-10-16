@@ -528,15 +528,16 @@ static int
        return -EINVAL;
     r = sol_flow_packet_get_composed_members_len(p_type, &len);
     SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(len, < %d, -EINVAL);
     packets = malloc(len * sizeof(struct sol_flow_packet *));
     SOL_NULL_CHECK(packets, -ENOMEM);
     r = sol_flow_packet_get(packet, &packets);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-""" % (data["name_c"], get_composed_types_with_underscore(single_type)))
+""" % (data["name_c"], get_composed_types_with_underscore(single_type), len(types_list)))
             for i, type in enumerate(types_list):
                 outfile.write("""
     r = %s;
-    SOL_INT_CHECK_GOTO(r, < 0, err_exit);""" % (data_type_to_packet_getter(type).replace(")", (("_%d" % (i)))) + ")" ))
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);""" % (data_type_to_packet_getter(type).replace(")", (("_%d)" % (i)))).replace("(packet", "(packets[%d]" % (i))))
         elif single_type:
             outfile.write("""
     int r;
