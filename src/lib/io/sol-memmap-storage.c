@@ -281,7 +281,7 @@ check_version(const struct sol_memmap_map *map)
     }
 
     ret = sol_memmap_read_raw_do(map->path, entry, mask, &buf);
-    if (ret >= 0 && version == 0) {
+    if (ret >= 0 && (version == 0 || version == 255)) {
         v = malloc(sizeof(uint8_t));
         SOL_NULL_CHECK(v, false);
         memcpy(v, &map->version, sizeof(uint8_t));
