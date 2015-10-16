@@ -234,7 +234,7 @@ check_version(const struct sol_memmap_map *map)
     }
 
     ret = sol_memmap_read_raw_do(map->path, entry, mask, &buf);
-    if (ret >= 0 && version == 0) {
+    if (ret >= 0 && (version == 0 || version == 255)) {
         /* No version on file, we should be initialising it */
         version = map->version;
         if (sol_memmap_write_raw_do(map->path, entry, mask, &buf) < 0) {
