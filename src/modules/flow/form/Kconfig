@@ -1,0 +1,13 @@
+config FLOW_NODE_TYPE_FORM
+	tristate "Node type: form"
+	default m
+	help
+		It is common to have IoT products with LCD display and
+		buttons (arrows) and the need to ask for user input.
+		This is a collection of high-level node types to deal
+		with that, the *form* nodes.
+
+		These node types format a multi-line string to be
+		used by other node types doing visual output, such as
+		LCD display (grove/lcd-string), in conjuntion with others
+		providing input.
