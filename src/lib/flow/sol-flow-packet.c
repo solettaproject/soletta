@@ -410,6 +410,23 @@ error:
     return NULL;
 }
 
+SOL_API int
+sol_flow_packet_get_composed_members(const struct sol_flow_packet *packet, struct sol_flow_packet ***children, uint16_t *len)
+{
+    SOL_NULL_CHECK(packet, -EINVAL);
+    SOL_NULL_CHECK(packet->type, -EINVAL);
+
+    if (!sol_flow_packet_is_composed_type(packet->type)) {
+        SOL_WRN("Not a composed packet type. Type name:%s", packet->type->name);
+        return -EINVAL;
+    }
+
+    if (len)
+        *len = ((const struct sol_flow_packet_composed_type *)packet->type)->members_len;
+
+    return sol_flow_packet_get(packet, children);
+}
+
 static int
 blob_packet_init(const struct sol_flow_packet_type *packet_type, void *mem, const void *input)
 {
@@ -787,13 +804,19 @@ sol_flow_packet_get_error(const struct sol_flow_packet *packet, int *code, const
 static int
 composed_type_init(const struct sol_flow_packet_type *packet_type, void *mem, const void *input)
 {
-    const struct sol_flow_packet **in = (void *)input;
-    struct sol_flow_packet **array = mem;
+    const struct sol_flow_packet_composed_type *composed_type;
+    const struct sol_flow_packet ***in = (void *)input;
+    struct sol_flow_packet ***composed = mem;
+    struct sol_flow_packet **array;
     uint16_t i, last;
 
-    for (i = 0; i < packet_type->data_size / sizeof(struct sol_flow_packet *);
-        i++) {
-        array[i] = sol_flow_packet_dup(in[i]);
+    composed_type = (struct sol_flow_packet_composed_type *)packet_type;
+    *composed = calloc(sizeof(struct sol_flow_packet *),
+        composed_type->members_len);
+    SOL_NULL_CHECK(*composed, -ENOMEM);
+    array = *composed;
+    for (i = 0; i < composed_type->members_len; i++) {
+        array[i] = sol_flow_packet_dup((*in)[i]);
         SOL_NULL_CHECK_GOTO(array[i], err_exit);
     }
 
@@ -804,18 +827,21 @@ err_exit:
     last = i;
     for (i = 0; i < last; i++)
         sol_flow_packet_del(array[i]);
+    free(*composed);
     return -ENOMEM;
 }
 
 static void
 composed_type_dispose(const struct sol_flow_packet_type *packet_type, void *mem)
 {
-    struct sol_flow_packet **array = mem;
+    const struct sol_flow_packet_composed_type *composed_type;
+    struct sol_flow_packet **composed = *((struct sol_flow_packet ***)mem);
     uint16_t i;
 
-    for (i = 0; i < packet_type->data_size / sizeof(struct sol_flow_packet *);
-        i++)
-        sol_flow_packet_del(array[i]);
+    composed_type = (struct sol_flow_packet_composed_type *)packet_type;
+    for (i = 0; i < composed_type->members_len; i++)
+        sol_flow_packet_del(composed[i]);
+    free(composed);
 }
 
 SOL_API const struct sol_flow_packet_type *
@@ -861,7 +887,7 @@ sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types)
 
     ctype->self.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION;
     ctype->self.name = sol_buffer_steal(&buf, NULL);
-    ctype->self.data_size = types_len * sizeof(struct sol_flow_packet *);
+    ctype->self.data_size = sizeof(struct sol_flow_packet **);
     ctype->self.init = composed_type_init;
     ctype->self.dispose = composed_type_dispose;
 
@@ -910,7 +936,7 @@ sol_flow_packet_get_composed_members_len(const struct sol_flow_packet_type *type
         return -EINVAL;
     }
 
-    *len = type->data_size / sizeof(struct sol_flow_packet *);
+    *len = ((const struct sol_flow_packet_composed_type *)type)->members_len;
     return 0;
 }
 
