@@ -121,6 +121,7 @@ sol_platform_impl_set_target(const char *target)
     return -ENOTSUP;
 }
 
+#ifdef CPUID_ID_LEN
 static inline char
 to_hex(int num)
 {
@@ -143,6 +144,7 @@ serial_to_string(const char *buf, size_t len, char *dst)
     }
     *ptr = 0;
 }
+#endif
 
 int
 sol_platform_impl_get_machine_id(char id[static 33])
