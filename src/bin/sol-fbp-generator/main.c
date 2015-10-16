@@ -1470,6 +1470,7 @@ generate(struct sol_vector *fbp_data_vector)
     struct declared_metatype *meta;
 
     out(
+        "#include <errno.h>\n"
         "#include <math.h>\n"
         "#include <stdint.h>\n"
         "#include <float.h>\n"
@@ -1498,7 +1499,7 @@ generate(struct sol_vector *fbp_data_vector)
     }
 
 #ifdef USE_MEMMAP
-    if (memory_maps) {
+    if (memory_maps && sol_ptr_vector_get_len(memory_maps)) {
         out("#include \"sol-memmap-storage.h\"\n");
         generate_memory_map_struct(memory_maps, &memmap_elems);
     }
