@@ -192,6 +192,8 @@ int sol_flow_send_string_slice_packet(struct sol_flow_node *src, uint16_t src_po
 
 int sol_flow_send_string_take_packet(struct sol_flow_node *src, uint16_t src_port, char *value);
 
+int sol_flow_send_composed_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_flow_packet_type *composed_type, struct sol_flow_packet **children);
+
 /**
  * Get a node's type.
  *
