@@ -103,11 +103,13 @@ struct sol_memmap_entry {
  * @param name name of property. must be present in one of maps previoulsy
  * added via @c sol_memmap_add_map (if present in more than one,
  * behaviour is undefined)
- * @param buffer buffer that will be written, according to its entry on map.
+ * @param blob blob that will be written, according to its entry on map.
  *
  * return 0 on success, a negative number on failure
  */
-int sol_memmap_write_raw(const char *name, const struct sol_buffer *buffer);
+int sol_memmap_write_raw(const char *name, struct sol_blob *blob,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data);
 
 /**
  * Read storage contents to buffer.
@@ -143,105 +145,149 @@ int sol_memmap_add_map(const struct sol_memmap_map *map);
  */
 int sol_memmap_remove_map(const struct sol_memmap_map *map);
 
-#define CREATE_BUFFER(_val, _empty) \
+#define CREATE_BUFFER(_val) \
     struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(_val, \
-    sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE); \
-    buf.used = (_empty) ? 0 : sizeof(*(_val));
+    sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
+#define CREATE_BLOB(_val) \
+    struct sol_blob *blob; \
+    size_t _s = sizeof(*_val); \
+    void *v = malloc(_s); \
+    SOL_NULL_CHECK(v, -EINVAL); \
+    memcpy(v, _val, _s); \
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, v, _s); \
+    SOL_NULL_CHECK(blob, -EINVAL);
 
 static inline int
 sol_memmap_read_uint8(const char *name, uint8_t *value)
 {
-    CREATE_BUFFER(value, true);
+    CREATE_BUFFER(value);
 
     return sol_memmap_read_raw(name, &buf);
 }
 
 static inline int
-sol_memmap_write_uint8(const char *name, uint8_t value)
+sol_memmap_write_uint8(const char *name, uint8_t value,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
 {
-    CREATE_BUFFER(&value, false);
+    int r;
 
-    return sol_memmap_write_raw(name, &buf);
+    CREATE_BLOB(&value);
+
+    r = sol_memmap_write_raw(name, blob, cb, data);
+    sol_blob_unref(blob);
+    return r;
 }
 
 static inline int
 sol_memmap_read_bool(const char *name, bool *value)
 {
-    CREATE_BUFFER(value, true);
+    CREATE_BUFFER(value);
 
     return sol_memmap_read_raw(name, &buf);
 }
 
 static inline int
-sol_memmap_write_bool(const char *name, bool value)
+sol_memmap_write_bool(const char *name, bool value,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
 {
-    CREATE_BUFFER(&value, false);
+    int r;
 
-    return sol_memmap_write_raw(name, &buf);
+    CREATE_BLOB(&value);
+
+    r = sol_memmap_write_raw(name, blob, cb, data);
+    sol_blob_unref(blob);
+    return r;
 }
 
 static inline int
 sol_memmap_read_int32(const char *name, int32_t *value)
 {
-    CREATE_BUFFER(value, true);
+    CREATE_BUFFER(value);
 
     return sol_memmap_read_raw(name, &buf);
 }
 
 static inline int
-sol_memmap_write_int32(const char *name, int32_t value)
+sol_memmap_write_int32(const char *name, int32_t value,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
 {
-    CREATE_BUFFER(&value, false);
+    int r;
 
-    return sol_memmap_write_raw(name, &buf);
+    CREATE_BLOB(&value);
+
+    r = sol_memmap_write_raw(name, blob, cb, data);
+    sol_blob_unref(blob);
+    return r;
 }
 
 static inline int
 sol_memmap_read_irange(const char *name, struct sol_irange *value)
 {
-    CREATE_BUFFER(value, true);
+    CREATE_BUFFER(value);
 
     return sol_memmap_read_raw(name, &buf);
 }
 
 static inline int
-sol_memmap_write_irange(const char *name, struct sol_irange *value)
+sol_memmap_write_irange(const char *name, struct sol_irange *value,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
 {
-    CREATE_BUFFER(value, false);
+    int r;
 
-    return sol_memmap_write_raw(name, &buf);
+    CREATE_BLOB(value);
+
+    r = sol_memmap_write_raw(name, blob, cb, data);
+    sol_blob_unref(blob);
+    return r;
 }
 
 static inline int
 sol_memmap_read_drange(const char *name, struct sol_drange *value)
 {
-    CREATE_BUFFER(value, true);
+    CREATE_BUFFER(value);
 
     return sol_memmap_read_raw(name, &buf);
 }
 
 static inline int
-sol_memmap_write_drange(const char *name, struct sol_drange *value)
+sol_memmap_write_drange(const char *name, struct sol_drange *value,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
 {
-    CREATE_BUFFER(value, false);
+    int r;
 
-    return sol_memmap_write_raw(name, &buf);
+    CREATE_BLOB(value);
+
+    r = sol_memmap_write_raw(name, blob, cb, data);
+    sol_blob_unref(blob);
+    return r;
 }
 
 static inline int
 sol_memmap_read_double(const char *name, double *value)
 {
-    CREATE_BUFFER(value, true);
+    CREATE_BUFFER(value);
 
     return sol_memmap_read_raw(name, &buf);
 }
 
 static inline int
-sol_memmap_write_double(const char *name, double value)
+sol_memmap_write_double(const char *name, double value,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
 {
-    CREATE_BUFFER(&value, false);
+    int r;
 
-    return sol_memmap_write_raw(name, &buf);
+    CREATE_BLOB(&value);
+
+    r = sol_memmap_write_raw(name, blob, cb, data);
+    sol_blob_unref(blob);
+    return r;
 }
 
 static inline int
@@ -262,14 +308,23 @@ sol_memmap_read_string(const char *name, char **value)
 }
 
 static inline int
-sol_memmap_write_string(const char *name, const char *value)
+sol_memmap_write_string(const char *name, const char *value,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
 {
-    struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS((void *)value, strlen(value),
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+    int r;
+    struct sol_blob *blob;
+    char *string;
 
-    buf.used = buf.capacity;
+    string = strdup(value);
+    SOL_NULL_CHECK(string, -ENOMEM);
 
-    return sol_memmap_write_raw(name, &buf);
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, string, strlen(value) + 1);
+    SOL_NULL_CHECK(blob, -ENOMEM);
+
+    r = sol_memmap_write_raw(name, blob, cb, data);
+    sol_blob_unref(blob);
+    return r;
 }
 
 /**
@@ -277,6 +332,8 @@ sol_memmap_write_string(const char *name, const char *value)
  */
 
 #undef CREATE_BUFFER
+
+#undef CREATE_BLOB
 
 #ifdef __cplusplus
 }

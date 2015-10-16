@@ -19,6 +19,7 @@
 /test-mainloop-linux
 /test-monitors
 /test-parser
+/test-persistence-memmap
 /test-scanner
 /test-str-slice
 /test-str-split
