@@ -844,6 +844,38 @@ composed_type_dispose(const struct sol_flow_packet_type *packet_type, void *mem)
     free(composed);
 }
 
+static const char *
+convert_sol_type_to_composed_type(const struct sol_flow_packet_type *type)
+{
+    if (type == SOL_FLOW_PACKET_TYPE_IRANGE)
+        return "int";
+    if (type == SOL_FLOW_PACKET_TYPE_DRANGE)
+        return "float";
+    if (type == SOL_FLOW_PACKET_TYPE_STRING)
+        return "string";
+    if (type == SOL_FLOW_PACKET_TYPE_BOOLEAN)
+        return "boolean";
+    if (type == SOL_FLOW_PACKET_TYPE_BYTE)
+        return "byte";
+    if (type == SOL_FLOW_PACKET_TYPE_BLOB)
+        return "blob";
+    if (type == SOL_FLOW_PACKET_TYPE_RGB)
+        return "rgb";
+    if (type == SOL_FLOW_PACKET_TYPE_LOCATION)
+        return "location";
+    if (type == SOL_FLOW_PACKET_TYPE_TIMESTAMP)
+        return "timestamp";
+    if (type == SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR)
+        return "direction-vector";
+    if (type == SOL_FLOW_PACKET_TYPE_ERROR)
+        return "error";
+    if (type == SOL_FLOW_PACKET_TYPE_JSON_OBJECT)
+        return "json-object";
+    if (type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY)
+        return "json-array";
+    return NULL;
+}
+
 SOL_API const struct sol_flow_packet_type *
 sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types)
 {
@@ -851,6 +883,7 @@ sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types)
     uint16_t i, types_len, members_bytes;
     int r;
     struct sol_buffer buf;
+    const char *type_name;
 
     SOL_NULL_CHECK(types, NULL);
 
@@ -875,13 +908,15 @@ sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types)
 
     sol_buffer_init(&buf);
 
-    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("COMPOSED-TYPE:"));
+    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("composed:"));
     SOL_INT_CHECK_GOTO(r, < 0, err_buf);
     for (i = 0; i < types_len; i++) {
+        type_name = convert_sol_type_to_composed_type(types[i]);
+        SOL_NULL_CHECK_GOTO(type_name, err_buf);
         if (i == types_len - 1)
-            r = sol_buffer_append_printf(&buf, "%s", types[i]->name);
+            r = sol_buffer_append_printf(&buf, "%s", type_name);
         else
-            r = sol_buffer_append_printf(&buf, "%s,", types[i]->name);
+            r = sol_buffer_append_printf(&buf, "%s,", type_name);
         SOL_INT_CHECK_GOTO(r, < 0, err_buf);
     }
 
