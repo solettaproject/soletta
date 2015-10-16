@@ -705,7 +705,7 @@ write_string(struct lcd_data *mdata, char *str)
 #define LCD_COLOR_G (1)
 #define LCD_COLOR_B (2)
 
-#define TIME_TO_CLEAR (2)
+#define TIME_TO_CLEAR (15)
 #define I2C_STEP_TIME (1)
 #define TIME_TO_TURN_ON (55)
 
