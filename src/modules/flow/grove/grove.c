@@ -446,7 +446,8 @@ temperature_init_type(void)
 #define COL_MIN (0)
 #define COL_MAX (15)
 #define COL_EXTRA (16) /* when writing RTL, the cursor must be past
-                        * the screen to get it right */
+                        * the screen to start in the last cell
+                        * right */
 #define ROW_MIN (0)
 #define ROW_MAX (1)
 
@@ -483,8 +484,7 @@ struct lcd_data {
     struct sol_i2c_pending *i2c_pending;
     struct sol_timeout *timer;
     struct sol_vector cmd_queue;
-    unsigned char row, col;
-    uint8_t display_mode, display_control;
+    uint8_t row, col, display_mode, display_control;
     bool error : 1;
     bool ready : 1;
 };
@@ -546,7 +546,7 @@ command_string_queue_append(struct lcd_data *mdata, char *string)
     return 0;
 }
 
-/* just row or col at time */
+/* update only one of row/col */
 static int
 command_cursor_position_queue_append(struct lcd_data *mdata, int row, int col)
 {
@@ -571,43 +571,72 @@ command_cursor_position_queue_append(struct lcd_data *mdata, int row, int col)
     return 0;
 }
 
+/* update both row and col */
 static int
-write_position(struct lcd_data *mdata, uint8_t row, uint8_t col)
+pos_cmd_queue(struct lcd_data *mdata, uint8_t row, uint8_t col)
 {
     uint8_t command = col | ROW_ADDR[row];
 
     return command_queue_append(mdata, DISPLAY_ADDR, SEND_COMMAND, command);
 }
 
+static int
+char_cmd_queue(struct lcd_data *mdata, uint8_t value)
+{
+    return command_queue_append(mdata, DISPLAY_ADDR, SEND_DATA, value);
+}
+
 /* Returns the number of chars behind the current cursor position, if
- * in ltr, or after that, if in rtl. If autoscroll is on, it will
+ * in LTR, or after that, if in RTL. If autoscroll is on, it will
  * return 0 on success. */
 static int
 write_char(struct lcd_data *mdata, char value)
 {
+    bool right_to_left = false, autoscroll = false, newline = false;
     int r;
-    bool rtl;
-    bool autoscroll;
 
-    r = command_queue_append(mdata, DISPLAY_ADDR, SEND_DATA, value);
-    SOL_INT_CHECK(r, < 0, r);
+    right_to_left = !(mdata->display_mode & LCD_MODE_SET_LTR);
+
+    if (value != '\n') {
+        r = char_cmd_queue(mdata, value);
+        SOL_INT_CHECK(r, < 0, r);
+    } else {
+        if (right_to_left) {
+            mdata->row--;
+            if (mdata->row == UINT8_MAX)
+                mdata->row = 0;
+            mdata->col = COL_MAX;
+        } else {
+            mdata->row++;
+            if (mdata->row > ROW_MAX)
+                mdata->row = ROW_MAX;
+            mdata->col = COL_MIN;
+        }
+        newline = true;
+    }
 
     autoscroll = mdata->display_mode & LCD_MODE_SET_AUTO_SCROLL;
-    /* when autoscrolling, don't advance in either way */
+    /* When autoscrolling, don't advance in either way */
     if (autoscroll)
         return 0;
 
-    rtl = !(mdata->display_mode & LCD_MODE_SET_LTR);
+    if (newline) {
+        r = pos_cmd_queue(mdata, mdata->row, mdata->col);
+        if (r < 0) {
+            SOL_WRN("Failed to change cursor position");
+            return r;
+        }
+        goto end;
+    }
 
-    if (rtl) {
+    if (right_to_left) {
         mdata->col--;
-        /* going rtl case (checking underflow on unsigned):
-         * jump to end of 1st line or keep overriding first
-         * col */
+        /* Going RTL case (checking underflow on unsigned): jump to
+         * end of 1st line or keep overriding first col */
         if (mdata->col == UINT8_MAX) {
-            if (mdata->row == ROW_MAX) {
-                mdata->col = COL_EXTRA;
-                r = write_position(mdata, mdata->row--, mdata->col);
+            if (mdata->row > ROW_MIN) {
+                mdata->col = COL_MAX;
+                r = pos_cmd_queue(mdata, mdata->row--, mdata->col);
                 if (r < 0) {
                     SOL_WRN("Failed to change cursor position");
                     return r;
@@ -616,13 +645,14 @@ write_char(struct lcd_data *mdata, char value)
                 mdata->col = COL_MIN;
         }
     } else {
-        mdata->col++;
-        /* going ltr case: jump to start of second line or
-         * keep overriding last col */
+        if (mdata->col < UINT8_MAX)
+            mdata->col++;
+        /* Going LTR case: jump to start of second line or keep
+         * overriding last col */
         if (mdata->col > COL_MAX) {
             if (mdata->row < ROW_MAX) {
                 mdata->col = COL_MIN;
-                r = write_position(mdata, mdata->row++, mdata->col);
+                r = pos_cmd_queue(mdata, mdata->row++, mdata->col);
                 if (r < 0) {
                     SOL_WRN("Failed to change cursor position");
                     return r;
@@ -632,7 +662,8 @@ write_char(struct lcd_data *mdata, char value)
         }
     }
 
-    if (rtl)
+end:
+    if (right_to_left)
         return mdata->col + (1 + COL_MAX) * mdata->row;
     else
         return (ROW_MAX - mdata->row) * (1 + COL_MAX) + (COL_MAX - mdata->col);
@@ -1235,7 +1266,6 @@ char_entry_cmd_queue(struct lcd_data *mdata)
         mdata->display_mode);
 }
 
-
 /* LCD API */
 static int
 set_ltr(struct sol_flow_node *node,
@@ -1262,7 +1292,6 @@ set_ltr(struct sol_flow_node *node,
     return command_queue_start(mdata);
 }
 
-
 /* LCD API */
 static int
 set_autoscroll(struct sol_flow_node *node,
@@ -1287,12 +1316,6 @@ set_autoscroll(struct sol_flow_node *node,
     SOL_INT_CHECK(r, < 0, r);
 
     return command_queue_start(mdata);
-}
-
-static int
-char_cmd_queue(struct lcd_data *mdata, uint8_t value)
-{
-    return command_queue_append(mdata, DISPLAY_ADDR, SEND_DATA, value);
 }
 
 /* LCD API */
@@ -1375,9 +1398,9 @@ set_string(struct sol_flow_node *node,
     const struct sol_flow_packet *packet)
 {
     struct lcd_data *mdata = data;
-    int r;
     const char *in_value;
     char *string;
+    int r;
 
     r = sol_flow_packet_get_string(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
