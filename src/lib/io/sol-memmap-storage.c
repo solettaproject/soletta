@@ -166,6 +166,9 @@ sol_memmap_write_raw_do(const char *path, const struct sol_memmap_entry *entry, 
         uint64_t value = 0, old_value;
         uint32_t i, j;
 
+        /* entry->size > 8 implies that no mask should be used */
+        assert(entry->size <= 8);
+
         for (i = 0, j = 0; i < entry->size; i++, j += 8)
             value |= (uint64_t)((uint8_t *)buffer->data)[i] << j;
 
