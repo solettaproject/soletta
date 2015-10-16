@@ -1,0 +1,94 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+DECLARE=int_pair:composed-new:KEY(string)|VALUE(int)
+DECLARE=float_pair:composed-new:KEY(string)|VALUE(float)
+DECLARE=boolean_pair:composed-new:KEY(string)|VALUE(boolean)
+DECLARE=string_pair:composed-new:KEY(string)|VALUE(string)
+DECLARE=json_array_pair:composed-new:KEY(string)|VALUE(json-array)
+DECLARE=json_object_pair:composed-new:KEY(string)|VALUE(json-object)
+
+
+json_object_str(constant/string:value="{\"index\":3}")
+json_array_str(constant/string:value="[1,2,3]")
+json_object_blob(converter/string-to-blob)
+json_object(converter/blob-to-json-object)
+json_array_blob(converter/string-to-blob)
+json_array(converter/blob-to-json-array)
+json_object_str OUT -> IN json_object_blob OUT -> IN json_object
+json_array_str OUT -> IN json_array_blob OUT -> IN json_array
+
+validator_json_object(test/blob-validator:expected="{\"null_value\":null,\"int_value\":892,\"boolean_value\":1,\"float_value\":1.23,\"string_value\":\"str\",\"json_object_value\":{\"index\":3},\"json_array_value\":[1,2,3]}")
+validator_json_array(test/blob-validator:expected="[892,1,1.23,\"str\",null,{\"index\":3},[1,2,3]]")
+create_obj(json/create-object)
+create_array(json/create-array)
+
+int_val(int_pair) OUT -> INT create_obj
+_(constant/string:value="int_value") OUT -> KEY int_val
+int_const(constant/int:value=892) OUT -> VALUE int_val
+int_const OUT -> INT create_array
+
+boolean_val(boolean_pair) OUT -> BOOLEAN create_obj
+_(constant/string:value="boolean_value") OUT -> KEY boolean_val
+boolean_const(constant/boolean:value=true) OUT -> VALUE boolean_val
+boolean_const OUT -> BOOLEAN create_array
+
+float_val(float_pair) OUT -> FLOAT create_obj
+_(constant/string:value="float_value") OUT -> KEY float_val
+float_const(constant/float:value=1.23) OUT -> VALUE float_val
+float_const OUT -> FLOAT create_array
+
+string_val(string_pair) OUT -> STRING create_obj
+_(constant/string:value="string_value") OUT -> KEY string_val
+str_const(constant/string:value="str") OUT -> VALUE string_val
+str_const OUT -> STRING create_array
+
+json_object_val(json_object_pair) OUT -> OBJECT create_obj
+_(constant/string:value="json_object_value") OUT -> KEY json_object_val
+json_object OUT -> VALUE json_object_val
+json_object OUT -> OBJECT create_array
+
+json_array_val(json_array_pair) OUT -> ARRAY create_obj
+_(constant/string:value="json_array_value") OUT -> KEY json_array_val
+json_array OUT -> VALUE json_array_val
+json_array OUT -> ARRAY create_array
+
+null_const(constant/string:value="null_value") OUT -> NULL create_obj
+null_const OUT -> NULL create_array
+
+timer(timer:interval=1)
+timer OUT -> CREATE create_obj
+timer OUT -> CREATE create_array
+timer OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer
+
+create_obj OUT -> IN _(converter/json-object-to-blob) OUT -> IN validator_json_object
+create_array OUT -> IN _(converter/json-array-to-blob) OUT -> IN validator_json_array
+validator_json_object OUT -> RESULT json_object_test(test/result)
+validator_json_array OUT -> RESULT json_array_test(test/result)
