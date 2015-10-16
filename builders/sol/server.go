@@ -58,6 +58,12 @@ var cleanEnv []string = []string{
 }
 
 func runServer() {
+	if len(listPlatforms()) == 0 {
+		log.Fatal("Couldn't find any prepared directory. " +
+			"Verify if you are running from inside the right directory (usually out/) or " +
+			"That you have called prepare scripts.")
+	}
+
 	for _, k := range cleanEnvImportedKeys {
 		cleanEnv = append(cleanEnv, k+"="+os.Getenv(k))
 	}
@@ -80,8 +86,18 @@ func listPlatforms() []string {
 
 	var platforms []string
 	for _, fi := range fis {
-		if fi.IsDir() && strings.HasPrefix(fi.Name(), "platform-") {
-			platforms = append(platforms, fi.Name())
+		name := fi.Name()
+		if fi.IsDir() && strings.HasPrefix(name, "platform-") {
+			cinfo, err := os.Stat(name + "/compile")
+			if err != nil {
+				fmt.Println("Ignoring " + name + " because 'compile' file couldn't be found")
+				continue
+			}
+			if (cinfo.Mode() & 0111) == 0 {
+				fmt.Println("Ignoring " + name + " because 'compile' file is not executable")
+				continue
+			}
+			platforms = append(platforms, name)
 		}
 	}
 
