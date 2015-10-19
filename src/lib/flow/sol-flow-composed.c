@@ -354,6 +354,7 @@ setup_simple_ports(struct sol_vector *in_ports, const struct sol_str_slice conte
         }
 
         port_type->name = name;
+        port_type->is_input = is_input;
     }
 
     sol_vector_clear(&tokens);
@@ -394,7 +395,7 @@ setup_composed_port(struct sol_vector *simple_ports,
         composed_port->name = strdup(OUTPUT_PORT_NAME);
         composed_port->type.out.api_version =
             SOL_FLOW_PORT_TYPE_OUT_API_VERSION;
-        composed_port->type.in.packet_type = composed_type;
+        composed_port->type.out.packet_type = composed_type;
     }
 
     SOL_NULL_CHECK(composed_port->name, -ENOMEM);
