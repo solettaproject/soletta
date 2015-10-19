@@ -690,6 +690,43 @@ sol_json_serialize_boolean(struct sol_buffer *buffer, bool val)
     return 0;
 }
 
+static bool
+parse_hex_digit(uint8_t digit, uint8_t *nibble)
+{
+    if (digit >= '0' && digit <= '9') {
+        *nibble = digit - '0';
+        return true;
+    }
+    if (digit >= 'a' && digit <= 'f') {
+        *nibble = digit - 'a' + 10;
+        return true;
+    }
+    if (digit >= 'A' && digit <= 'F') {
+        *nibble = digit - 'A' + 10;
+        return true;
+    }
+
+    return false;
+}
+
+static int
+parse_hex(const char *in, uint8_t *out)
+{
+    uint8_t nibble;
+
+    if (!parse_hex_digit(in[0], &nibble))
+        return -EINVAL;
+
+    *out = nibble;
+
+    if (!parse_hex_digit(in[1], &nibble))
+        return -EINVAL;
+
+    *out = (*out << 4) | nibble;
+
+    return 0;
+}
+
 SOL_API int
 sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct sol_buffer *buffer)
 {
@@ -745,27 +782,46 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
                 break;
             case 'u':
                 if (p + 4 < token->end - 1) {
-                    char hexdigits[3], *endptr;
-                    uint16_t n;
-                    hexdigits[2] = '\0';
+                    uint8_t n1, n2, b;
 
-                    //Add first unicode byte
-                    memcpy(hexdigits, p + 3, 2);
-                    errno = 0;
-                    n = strtoul(hexdigits, &endptr, 16);
-                    SOL_INT_CHECK(errno, > 0, -errno);
-                    if (n > 0) {
-                        r = sol_buffer_append_char(buffer, (char)n);
+                    r = parse_hex(p + 1, &n1);
+                    SOL_INT_CHECK(r, < 0, r);
+                    r = parse_hex(p + 3, &n2);
+                    SOL_INT_CHECK(r, < 0, r);
+
+                    if (n1 >= 0x08) {
+                        //Three bytes
+                        b = 0xe0;
+                        b |= (n1 & 0xF0) >> 4;
+                        r = sol_buffer_append_char(buffer, b);
+                        SOL_INT_CHECK(r, < 0, r);
+
+                        b = 0x80;
+                        b |= (n1 & 0x0F) << 2;
+                        b |= (n2 & 0xc0) >> 6;
+                        r = sol_buffer_append_char(buffer, b);
+                        SOL_INT_CHECK(r, < 0, r);
+
+                        b = 0x80;
+                        b |= (n2 & 0x3F);
+                        r = sol_buffer_append_char(buffer, b);
+                        SOL_INT_CHECK(r, < 0, r);
+                    } else if (!n1 && n2 < 0x80) {
+                        //Just one byte
+                        r = sol_buffer_append_char(buffer, n2);
+                        SOL_INT_CHECK(r, < 0, r);
+                    } else {
+                        //Two bytes
+                        b = 0xc0;
+                        b |= (n1 & 0x7) << 2;
+                        b |= ((0xc0 & n2) >> 6);
+                        r = sol_buffer_append_char(buffer, b);
+                        SOL_INT_CHECK(r, < 0, r);
+
+                        b = 0x80 | (n2 & 0x3f);
+                        r = sol_buffer_append_char(buffer, b);
                         SOL_INT_CHECK(r, < 0, r);
                     }
-
-                    //Add second unicode byte
-                    memcpy(hexdigits, p + 1, 2);
-                    errno = 0;
-                    n = strtoul(hexdigits, &endptr, 16);
-                    SOL_INT_CHECK(errno, > 0, -errno);
-                    r = sol_buffer_append_char(buffer, (char)n);
-                    SOL_INT_CHECK(r, < 0, r);
 
                     start += 4;
                     p += 4;
