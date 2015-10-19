@@ -40,17 +40,9 @@
 #include "net/gnrc/ipv6.h"
 #include "net/gnrc/udp.h"
 
-struct sol_socket_class {
-    gnrc_nettype_t type;
-    int (*recvmsg)(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *addr);
-    gnrc_pktsnip_t *(*sendmsg)(struct sol_socket *s, const void *buf, size_t len, const struct sol_network_link_addr *addr);
-    int (*join_group)(struct sol_socket *s, kernel_pid_t iface, const struct sol_network_link_addr *group);
-    int (*bind)(struct sol_socket *s, const struct sol_network_link_addr *addr);
-    void (*delete)(struct sol_socket *s);
-};
+struct sol_socket_riot {
+    struct sol_socket base;
 
-struct sol_socket {
-    const struct sol_socket_class *class;
     struct {
         bool (*cb)(void *data, struct sol_socket *s);
         const void *data;
@@ -58,6 +50,7 @@ struct sol_socket {
     struct sol_timeout *write_timeout;
     gnrc_pktsnip_t *curr_pkt;
     gnrc_netreg_entry_t entry;
+    gnrc_nettype_t type;
 };
 
 static struct sol_ptr_vector ipv6_udp_bound_sockets = SOL_PTR_VECTOR_INIT;
@@ -65,7 +58,8 @@ static struct sol_ptr_vector ipv6_udp_bound_sockets = SOL_PTR_VECTOR_INIT;
 static int
 ipv6_udp_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
-    gnrc_pktsnip_t *pkt = s->curr_pkt, *udp, *ipv6;
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
+    gnrc_pktsnip_t *pkt = socket->curr_pkt, *udp, *ipv6;
     ipv6_hdr_t *iphdr;
     udp_hdr_t *udphdr;
     size_t copysize;
@@ -98,12 +92,13 @@ riotize_port(uint16_t port, uint8_t buf[2])
 static gnrc_pktsnip_t *
 ipv6_udp_sendmsg(struct sol_socket *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
 {
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
     gnrc_pktsnip_t *payload, *udp, *ipv6;
     ipv6_addr_t addr;
     uint8_t dstport[2], srcport[2];
 
     riotize_port(cliaddr->port, dstport);
-    riotize_port((uint16_t)s->entry.demux_ctx, srcport);
+    riotize_port((uint16_t)socket->entry.demux_ctx, srcport);
 
     memcpy(addr.u8, cliaddr->addr.in6, sizeof(addr.u8));
 
@@ -142,7 +137,7 @@ ipv6_udp_join_group(struct sol_socket *s, kernel_pid_t iface, const struct sol_n
 static int
 udp_bind_cmp_cb(const void *a, const void *b)
 {
-    const struct sol_socket *s1 = a, *s2 = b;
+    const struct sol_socket_riot *s1 = a, *s2 = b;
 
     return s1->entry.demux_ctx < s2->entry.demux_ctx ? -1 : 1;
 }
@@ -150,59 +145,64 @@ udp_bind_cmp_cb(const void *a, const void *b)
 static int
 ipv6_udp_bind(struct sol_socket *s, const struct sol_network_link_addr *addr)
 {
+    struct sol_socket_riot *socket;
     uint32_t first_unused = 1025;
     int ret;
     uint16_t i, port = addr->port;
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&ipv6_udp_bound_sockets, s, i) {
-        if (port && (s->entry.demux_ctx == (uint32_t)port))
+    SOL_PTR_VECTOR_FOREACH_IDX (&ipv6_udp_bound_sockets, socket, i) {
+        if (port && (socket->entry.demux_ctx == (uint32_t)port))
             return -EADDRINUSE;
-        if (s->entry.demux_ctx == first_unused)
+        if (socket->entry.demux_ctx == first_unused)
             first_unused++;
     }
 
-    s->entry.demux_ctx = port ? port : first_unused;
-    ret = sol_ptr_vector_insert_sorted(&ipv6_udp_bound_sockets, s, udp_bind_cmp_cb);
+    socket->entry.demux_ctx = port ? port : first_unused;
+    ret = sol_ptr_vector_insert_sorted(&ipv6_udp_bound_sockets, socket, udp_bind_cmp_cb);
     SOL_INT_CHECK_GOTO(ret, < 0, append_error);
 
     return 0;
 append_error:
-    s->entry.demux_ctx = GNRC_NETREG_DEMUX_CTX_ALL;
+    socket->entry.demux_ctx = GNRC_NETREG_DEMUX_CTX_ALL;
     return -ENOMEM;
 }
 
 static void
 ipv6_udp_delete(struct sol_socket *s)
 {
-    if (s->entry.demux_ctx != GNRC_NETREG_DEMUX_CTX_ALL)
-        sol_ptr_vector_remove(&ipv6_udp_bound_sockets, s);
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
+
+    if (socket->entry.demux_ctx != GNRC_NETREG_DEMUX_CTX_ALL)
+        sol_ptr_vector_remove(&ipv6_udp_bound_sockets, socket);
 }
 
 static void
 socket_udp_recv(struct sol_socket *s, gnrc_pktsnip_t *pkt)
 {
-    s->curr_pkt = pkt;
-    if (s->read.cb)
-        s->read.cb((void *)s->read.data, s);
-    s->curr_pkt = NULL;
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
+
+    socket->curr_pkt = pkt;
+    if (socket->read.cb)
+        socket->read.cb((void *)socket->read.data, s);
+    socket->curr_pkt = NULL;
 }
 
 static bool
 write_timeout_cb(void *data)
 {
-    struct sol_socket *s = data;
+    struct sol_socket_riot *socket = data;
 
-    if (s->write.cb((void *)s->write.data, s))
+    if (socket->write.cb((void *)socket->write.data, s))
         return true;
 
-    s->write_timeout = NULL;
+    socket->write_timeout = NULL;
     return false;
 }
 
 static void
 udp_dispatch(gnrc_pktsnip_t *udp, gnrc_pktsnip_t *pkt)
 {
-    struct sol_socket *s;
+    struct sol_socket_riot *s;
     udp_hdr_t *udphdr;
     uint32_t port;
     uint16_t i;
@@ -236,122 +236,100 @@ the_end:
     gnrc_pktbuf_release(pkt);
 }
 
-static const struct sol_socket_class *
-ipv6_get_socket_class(enum sol_socket_type type, int protocol)
+struct sol_socket *
+sol_socket_riot_new(int domain, enum sol_socket_type type, int protocol)
 {
-    static const struct sol_socket_class ipv6_udp_socket_class = {
-        .type = GNRC_NETTYPE_UDP,
-        .recvmsg = ipv6_udp_recvmsg,
-        .sendmsg = ipv6_udp_sendmsg,
-        .join_group = ipv6_udp_join_group,
-        .bind = ipv6_udp_bind,
-        .delete = ipv6_udp_delete,
-    };
+    struct sol_socket_riot *socket;
 
-    switch (type) {
-    case SOL_SOCKET_UDP:
-        return &ipv6_udp_socket_class;
-    default:
-        errno = EPROTOTYPE;
-    }
-
-    return NULL;
-}
-
-static const struct sol_socket_class *
-get_socket_class(int domain, enum sol_socket_type type, int protocol)
-{
-    switch (domain) {
-    case AF_INET6:
-        return ipv6_get_socket_class(type, protocol);
-    default:
-        errno = EAFNOSUPPORT;
-    }
-
-    return NULL;
-}
-
-SOL_API struct sol_socket *
-sol_socket_new(int domain, enum sol_socket_type type, int protocol)
-{
-    struct sol_socket *socket;
-    const struct sol_socket_class *class;
-
-    class = get_socket_class(domain, type, protocol);
-    SOL_NULL_CHECK(class, NULL);
+    SOL_INT_CHECK(domain, != AF_INET6, unsupported_family);
 
     socket = calloc(1, sizeof(*socket));
     SOL_NULL_CHECK_GOTO(socket, socket_error);
 
-    socket->class = class;
     socket->entry.demux_ctx = GNRC_NETREG_DEMUX_CTX_ALL;
     socket->entry.pid = KERNEL_PID_UNDEF;
+    socket->type = GNRC_NETTYPE_UDP;
 
-    return socket;
+    return &socket.base;
+
 socket_error:
     errno = ENOMEM;
     return NULL;
+
+unsupported_family:
+    errno = EAFNOSUPPORT;
+    return NULL;
 }
 
-SOL_API void
-sol_socket_del(struct sol_socket *s)
+static void
+sol_socket_riot_del(struct sol_socket *s)
 {
-    if (s->entry.pid != KERNEL_PID_UNDEF)
-        gnrc_netreg_unregister(s->class->type, &s->entry);
-    s->class->delete(s);
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
+
+    if (socket->entry.pid != KERNEL_PID_UNDEF)
+        gnrc_netreg_unregister(socket->type, &socket->entry);
+    ipv6_udp_delete(socket);
     free(s);
 }
 
-SOL_API int
-sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
+static int
+sol_socket_riot_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
 {
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
+
     SOL_NULL_CHECK(s, -EINVAL);
 
-    s->read.cb = cb;
-    s->read.data = data;
+    socket->read.cb = cb;
+    socket->read.data = data;
 
     return 0;
 }
 
-SOL_API int
-sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
+static int
+sol_socket_riot_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
 {
-    SOL_NULL_CHECK(s, -EINVAL);
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
 
-    if (cb && !s->write_timeout) {
-        s->write_timeout = sol_timeout_add(0, write_timeout_cb, s);
-        SOL_NULL_CHECK(s->write_timeout, -ENOMEM);
-    } else if (!cb && s->write_timeout) {
-        sol_timeout_del(s->write_timeout);
-        s->write_timeout = NULL;
+    SOL_NULL_CHECK(socket, -EINVAL);
+
+    if (cb && !socket->write_timeout) {
+        socket->write_timeout = sol_timeout_add(0, write_timeout_cb, socket);
+        SOL_NULL_CHECK(socket->write_timeout, -ENOMEM);
+    } else if (!cb && socket->write_timeout) {
+        sol_timeout_del(socket->write_timeout);
+        socket->write_timeout = NULL;
     }
 
-    s->write.cb = cb;
-    s->write.data = data;
+    socket->write.cb = cb;
+    socket->write.data = data;
 
     return 0;
 }
 
-SOL_API int
-sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
+static int
+sol_socket_riot_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
-    SOL_NULL_CHECK(s, -EINVAL);
-    return s->class->recvmsg(s, buf, len, cliaddr);
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
+
+    SOL_NULL_CHECK(socket, -EINVAL);
+
+    return ipv6_udp_recvmsg(socket, buf, len, cliaddr);
 }
 
-SOL_API int
-sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
+static int
+sol_socket_riot_sendmsg(struct sol_socket *s, const void *buf, size_t len, const struct sol_network_link_addr *cliaddr)
 {
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
     gnrc_netreg_entry_t *sendto;
     gnrc_pktsnip_t *pkt;
 
-    SOL_NULL_CHECK(s, -EINVAL);
+    SOL_NULL_CHECK(socket, -EINVAL);
 
-    pkt = s->class->sendmsg(s, buf, len, cliaddr);
+    pkt = ipv6_udp_sendmsg(socket, buf, len, cliaddr);
     SOL_NULL_CHECK(pkt, -ENOMEM);
 
-    sendto = gnrc_netreg_lookup(s->class->type, GNRC_NETREG_DEMUX_CTX_ALL);
-    gnrc_pktbuf_hold(pkt, gnrc_netreg_num(s->class->type, GNRC_NETREG_DEMUX_CTX_ALL) - 1);
+    sendto = gnrc_netreg_lookup(socket->type, GNRC_NETREG_DEMUX_CTX_ALL);
+    gnrc_pktbuf_hold(pkt, gnrc_netreg_num(socket->type, GNRC_NETREG_DEMUX_CTX_ALL) - 1);
     while (sendto != NULL) {
         gnrc_netapi_send(sendto->pid, pkt);
         sendto = gnrc_netreg_getnext(sendto);
@@ -360,28 +338,46 @@ sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len, const stru
     return len;
 }
 
-SOL_API int
-sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group)
+static int
+sol_socket_riot_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group)
 {
-    SOL_NULL_CHECK(s, -EINVAL);
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
 
-    if (!s->class->join_group)
-        return -ENOSYS;
-    return s->class->join_group(s, (kernel_pid_t)ifindex, group);
+    SOL_NULL_CHECK(socket, -EINVAL);
+
+    return ipv6_udp_join_group(socket, (kernel_pid_t)ifindex, group);
 }
 
-SOL_API int
-sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr)
+static int
+sol_socket_riot_bind(struct sol_socket *s, const struct sol_network_link_addr *addr)
 {
+    struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
     int ret;
 
-    SOL_NULL_CHECK(s, -EINVAL);
+    SOL_NULL_CHECK(socket, -EINVAL);
 
-    ret = s->class->bind(s, addr);
+    ret = ipv6_udp_bind(socket, addr);
     SOL_INT_CHECK(ret, < 0, ret);
 
-    s->entry.pid = sol_interrupt_scheduler_get_pid();
-    gnrc_netreg_register(s->class->type, &s->entry);
+    socket->entry.pid = sol_interrupt_scheduler_get_pid();
+    gnrc_netreg_register(socket->type, &socket->entry);
 
     return 0;
+}
+
+const struct sol_socket_impl *
+sol_socket_riot_get_impl(void)
+{
+    static struct sol_socket_impl impl = {
+        .bind = sol_socket_riot_bind,
+        .join_group = sol_socket_riot_join_group,
+        .sendmsg = sol_socket_riot_sendmsg,
+        .recvmsg = sol_socket_riot_recvmsg,
+        .set_on_write = sol_socket_riot_set_on_write,
+        .set_on_read = sol_socket_riot_set_on_read,
+        .del = sol_socket_riot_del,
+        .new = sol_socket_riot_new
+    };
+
+    return &impl;
 }

@@ -33,28 +33,27 @@
 #pragma once
 
 #include "sol-network.h"
+#include "sol-socket.h"
 
-struct sol_socket_impl;
+struct sol_socket_impl {
+    struct sol_socket *(*new)(int domain, enum sol_socket_type type, int protocol);
+    void (*del)(struct sol_socket *s);
 
-struct sol_socket {
-    const struct sol_socket_impl *impl;
+    int (*set_on_read)(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
+    int (*set_on_write)(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
+
+    int (*recvmsg)(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
+
+    int (*sendmsg)(struct sol_socket *s, const void *buf, size_t len,
+        const struct sol_network_link_addr *cliaddr);
+
+    int (*join_group)(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group);
+
+    int (*bind)(struct sol_socket *s, const struct sol_network_link_addr *addr);
 };
 
-enum sol_socket_type {
-    SOL_SOCKET_UDP
-};
-
-struct sol_socket *sol_socket_new(int domain, enum sol_socket_type type, int protocol);
-void sol_socket_del(struct sol_socket *s);
-
-int sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
-int sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
-
-int sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
-
-int sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
-    const struct sol_network_link_addr *cliaddr);
-
-int sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group);
-
-int sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr);
+#ifdef SOL_PLATFORM_LINUX
+const struct sol_socket_impl *sol_socket_linux_get_impl(void);
+#elif SOL_PLATFORM_RIOT
+const struct sol_socket_impl *sol_socket_riot_get_impl(void);
+#endif
