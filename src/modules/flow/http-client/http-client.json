@@ -434,6 +434,360 @@
           "name": "OUT"
         }
       ]
+    },
+    {
+      "name": "http-client/request",
+      "private_data_type": "http_request_data",
+      "category": "http-generic",
+      "description": "Make a HTTP request at a given URL and outputs its content as http-response",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-request.html",
+      "methods": {
+        "close": "common_close",
+        "open": "request_node_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_client_node_type",
+        "extra_methods": {
+          "close_node": "request_node_close",
+          "setup_params": "request_node_setup_params",
+          "http_response" : "request_node_http_response"
+        }
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The URL to make a request",
+            "name": "url"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The HTTP Method: GET, POST, HEAD, PUT,..",
+            "name": "method"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "The number of milliseconds to wait for the request to be completed",
+            "name": "timeout"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Allow redirections to be followed",
+            "name": "allow_redir"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The URL to make a GET request",
+          "name": "URL",
+          "methods": {
+            "process": "generic_url_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The http method to use while making the request",
+          "name": "METHOD",
+          "methods": {
+            "process": "request_node_method_process"
+          }
+        },
+        {
+          "data_type": "int",
+          "description": "The HTTP request timeout",
+          "name": "TIMEOUT",
+          "methods": {
+            "process": "request_node_timeout_process"
+          }
+        },
+        {
+          "data_type": "composed:string,string",
+          "description": "Appends a new query parameter",
+          "name": "PARAM_QUERY",
+          "methods": {
+            "process": "request_node_param_query_process"
+          }
+        },
+        {
+          "data_type": "composed:string,string",
+          "description": "Appends a new cookie parameter",
+          "name": "PARAM_COOKIE",
+          "methods": {
+            "process": "request_node_param_cookie_process"
+          }
+        },
+        {
+          "data_type": "composed:string,string",
+          "description": "Appends a new post parameter",
+          "name": "PARAM_POST",
+          "methods": {
+            "process": "request_node_param_post_process"
+          }
+        },
+        {
+          "data_type": "composed:string,string",
+          "description": "Appends a new header parameter",
+          "name": "PARAM_HEADER",
+          "methods": {
+            "process": "request_node_param_header_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The user name to authenticate",
+          "name": "USER",
+          "methods": {
+            "process": "request_node_user_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The password to authenticate",
+          "name": "PASSWORD",
+          "methods": {
+            "process": "request_node_password_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The content-type of the payload",
+          "name": "CONTENT_TYPE",
+          "methods": {
+            "process": "request_node_content_type_process"
+          }
+        },
+        {
+          "data_type": "blob",
+          "description": "The payload",
+          "name": "CONTENT",
+          "methods": {
+            "process": "request_node_content_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Execute the request",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "request_node_trigger_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Clear all accumulated params, content-type and content",
+          "name": "CLEAR",
+          "methods": {
+            "process": "request_node_clear_process"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "http-response",
+          "description": "The HTTP response",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "name": "http-client/get-response-code",
+      "category": "http-generic",
+      "description": "Get the response code from a HTTP response",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-response-code.html",
+      "in_ports": [
+        {
+          "data_type": "http-response",
+          "description": "The http response",
+          "methods": {
+            "process": "get_response_code"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The http response code",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "name": "http-client/get-url",
+      "category": "http-generic",
+      "description": "Get the URL from a HTTP response",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-url.html",
+      "in_ports": [
+        {
+          "data_type": "http-response",
+          "description": "The http response",
+          "methods": {
+            "process": "get_url"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The http response URL",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "name": "http-client/get-content-type",
+      "category": "http-generic",
+      "description": "Get the content type from a HTTP response",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-content-type.html",
+      "in_ports": [
+        {
+          "data_type": "http-response",
+          "description": "The http response",
+          "methods": {
+            "process": "get_content_type"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The http response content type",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "name": "http-client/get-content",
+      "category": "http-generic",
+      "description": "Get the content from a HTTP response",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-blob.html",
+      "in_ports": [
+        {
+          "data_type": "http-response",
+          "description": "The http response",
+          "methods": {
+            "process": "get_blob"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "The http response blob",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "name": "http-client/get-headers",
+      "category": "http-generic",
+      "private_data_type": "http_response_get_data",
+      "description": "Get the a header value given a key from a HTTP response",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-headers.html",
+      "methods": {
+        "close": "common_get_close",
+        "open": "common_get_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "They header key to be filtered",
+            "name": "key"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "http-response",
+          "description": "The http response",
+          "methods": {
+            "process": "get_headers_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "The header key to be filtered",
+          "methods": {
+            "process": "get_key_process"
+          },
+          "name": "KEY"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The http response header value",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
+      "name": "http-client/get-cookies",
+      "category": "http-generic",
+      "private_data_type": "http_response_get_data",
+      "description": "Get the a cookie value given a key from a HTTP response",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-cookies.html",
+      "methods": {
+        "close": "common_get_close",
+        "open": "common_get_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "They cookie key to be filtered",
+            "name": "key"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "http-response",
+          "description": "The http response",
+          "methods": {
+            "process": "get_cookies_process"
+          },
+          "name": "IN"
+        },
+        {
+          "data_type": "string",
+          "description": "The cookie key to be filtered",
+          "methods": {
+            "process": "get_key_process"
+          },
+          "name": "KEY"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The http response cookie value",
+          "name": "OUT"
+        }
+      ]
     }
   ]
 }
