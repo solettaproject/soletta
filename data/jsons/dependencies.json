@@ -498,6 +498,17 @@
       "dependency": "openssl",
       "type": "pkg-config",
       "pkgname": "openssl"
+    },
+    {
+      "dependency": "tinydtls_src",
+      "type": "filesystem",
+      "files": [
+        "dtls.h"
+      ],
+      "path": {
+        "in-tree": "{TOP_SRCDIR}/src/thirdparty/tinydtls",
+        "out-of-tree": "{TINYDTLS_SRC}"
+      }
     }
   ]
 }
