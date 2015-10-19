@@ -464,4 +464,507 @@ json_array_get_all_elements_process(struct sol_flow_node *node, void *data, uint
         SOL_FLOW_NODE_TYPE_JSON_ARRAY_GET_ALL_ELEMENTS__OUT__EMPTY, empty);
 }
 
+enum json_element_type {
+    JSON_TYPE_INT = 0,
+    JSON_TYPE_STRING,
+    JSON_TYPE_BOOLEAN,
+    JSON_TYPE_FLOAT,
+    JSON_TYPE_ARRAY,
+    JSON_TYPE_OBJECT,
+    JSON_TYPE_ARRAY_BLOB,
+    JSON_TYPE_OBJECT_BLOB,
+    JSON_TYPE_NULL,
+};
+
+struct json_element {
+    enum json_element_type type;
+    union {
+        int32_t int_value;
+        char *str;
+        bool bool_value;
+        double float_value;
+        struct sol_vector children;
+        struct sol_blob *blob;
+    };
+};
+
+struct json_key_element {
+    char *key;
+    struct json_element element;
+};
+
+static void
+json_element_clear(struct json_element *element)
+{
+    struct json_element *var;
+    struct json_key_element *key_element;
+    uint16_t i;
+
+    switch (element->type) {
+    case JSON_TYPE_STRING:
+        free(element->str);
+        break;
+    case JSON_TYPE_OBJECT:
+        SOL_VECTOR_FOREACH_IDX (&element->children, key_element, i) {
+            free(key_element->key);
+            json_element_clear(&key_element->element);
+        }
+        sol_vector_clear(&element->children);
+        break;
+    case JSON_TYPE_ARRAY:
+        SOL_VECTOR_FOREACH_IDX (&element->children, var, i)
+            json_element_clear(var);
+        sol_vector_clear(&element->children);
+        break;
+    case JSON_TYPE_ARRAY_BLOB:
+    case JSON_TYPE_OBJECT_BLOB:
+        sol_blob_unref(element->blob);
+        break;
+    default:
+        break;
+    }
+}
+
+static int
+json_array_create_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct json_element *mdata = data;
+
+    mdata->type = JSON_TYPE_ARRAY;
+    sol_vector_init(&mdata->children, sizeof(struct json_element));
+
+    return 0;
+}
+
+static int
+json_object_create_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct json_element *mdata = data;
+
+    mdata->type = JSON_TYPE_OBJECT;
+    sol_vector_init(&mdata->children, sizeof(struct json_key_element));
+
+    return 0;
+}
+
+static void
+json_create_close(struct sol_flow_node *node, void *data)
+{
+    struct json_element *mdata = data;
+
+    json_element_clear(mdata);
+}
+
+static int
+json_array_create_count(struct sol_flow_node *node, struct json_element *mdata)
+{
+    struct sol_irange count = SOL_IRANGE_INIT();
+
+    count.val = mdata->children.len;
+    return sol_flow_send_irange_packet(node,
+        SOL_FLOW_NODE_TYPE_JSON_CREATE_ARRAY__OUT__COUNT,
+        &count);
+}
+
+static int
+json_array_int_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct json_element *new, *mdata = data;
+    struct sol_irange in_value;
+    int r;
+
+    r = sol_flow_packet_get_irange(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    new = sol_vector_append(&mdata->children);
+    SOL_NULL_CHECK(new, -errno);
+    new->type = JSON_TYPE_INT;
+    new->int_value = in_value.val;
+
+    return json_array_create_count(node, mdata);
+}
+
+static int
+json_array_string_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct json_element *new, *mdata = data;
+    const char *in_value;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    new = sol_vector_append(&mdata->children);
+    SOL_NULL_CHECK(new, -errno);
+    new->type = JSON_TYPE_STRING;
+    new->str = strdup(in_value);
+
+    return json_array_create_count(node, mdata);
+}
+
+static int
+json_array_bool_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct json_element *new, *mdata = data;
+    bool in_value;
+    int r;
+
+    r = sol_flow_packet_get_boolean(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    new = sol_vector_append(&mdata->children);
+    SOL_NULL_CHECK(new, -errno);
+    new->type = JSON_TYPE_BOOLEAN;
+    new->bool_value = in_value;
+
+    return json_array_create_count(node, mdata);
+}
+
+static int
+json_array_float_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct json_element *new, *mdata = data;
+    struct sol_drange in_value;
+    int r;
+
+    r = sol_flow_packet_get_drange(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    new = sol_vector_append(&mdata->children);
+    SOL_NULL_CHECK(new, -errno);
+    new->type = JSON_TYPE_FLOAT;
+    new->float_value = in_value.val;
+
+    return json_array_create_count(node, mdata);
+}
+
+static int
+json_array_array_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct json_element *new, *mdata = data;
+    struct sol_blob *in_value;
+    int r;
+
+    r = sol_flow_packet_get_json_array(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    new = sol_vector_append(&mdata->children);
+    SOL_NULL_CHECK(new, -errno);
+    new->type = JSON_TYPE_ARRAY_BLOB;
+    new->blob = sol_blob_ref(in_value);
+    SOL_NULL_CHECK_GOTO(new->blob, error);
+
+    return json_array_create_count(node, mdata);
+
+error:
+    sol_vector_del(&mdata->children, mdata->children.len - 1);
+    return -errno;
+}
+
+static int
+json_array_obj_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct json_element *new, *mdata = data;
+    struct sol_blob *in_value;
+    int r;
+
+    r = sol_flow_packet_get_json_object(packet, &in_value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    new = sol_vector_append(&mdata->children);
+    SOL_NULL_CHECK(new, -errno);
+    new->type = JSON_TYPE_OBJECT_BLOB;
+    new->blob = sol_blob_ref(in_value);
+    SOL_NULL_CHECK_GOTO(new->blob, error);
+
+    return json_array_create_count(node, mdata);
+
+error:
+    sol_vector_del(&mdata->children, mdata->children.len - 1);
+    return -errno;
+}
+
+static int
+json_array_null_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct json_element *new, *mdata = data;
+
+    new = sol_vector_append(&mdata->children);
+    SOL_NULL_CHECK(new, -errno);
+    new->type = JSON_TYPE_NULL;
+
+    return json_array_create_count(node, mdata);
+}
+
+static int
+json_serialize_blob(struct sol_buffer *buffer, struct sol_blob *blob)
+{
+    int r;
+    char *p;
+
+    if (!blob->size)
+        return 0;
+
+    r = sol_buffer_append_slice(buffer, sol_str_slice_from_blob(blob));
+    SOL_INT_CHECK(r, < 0, r);
+
+    p = sol_buffer_at_end(buffer);
+    if (p && *p == '\0')
+        buffer->used--;
+
+    return 0;
+}
+
+static int json_serialize(struct sol_buffer *buffer, struct json_element *element);
+
+static int
+json_serialize_key_element(struct sol_buffer *buffer, struct json_key_element *key_element)
+{
+    int r;
+
+    r = sol_json_serialize_string(buffer, key_element->key);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_char(buffer, ':');
+    SOL_INT_CHECK(r, < 0, r);
+
+    return json_serialize(buffer, &key_element->element);
+}
+
+static int
+json_serialize(struct sol_buffer *buffer, struct json_element *element)
+{
+    struct json_element *var;
+    struct json_key_element *key_element;
+    uint16_t i;
+    int r;
+
+    switch (element->type) {
+    case JSON_TYPE_OBJECT:
+        r = sol_buffer_append_char(buffer, '{');
+        SOL_INT_CHECK(r, < 0, r);
+
+        SOL_VECTOR_FOREACH_IDX (&element->children, key_element, i) {
+            if (i > 0)
+                r = sol_buffer_append_char(buffer, ',');
+            r = json_serialize_key_element(buffer, key_element);
+            SOL_INT_CHECK(r, < 0, r);
+        }
+        return sol_buffer_append_char(buffer, '}');
+    case JSON_TYPE_ARRAY:
+        r = sol_buffer_append_char(buffer, '[');
+        SOL_INT_CHECK(r, < 0, r);
+
+        SOL_VECTOR_FOREACH_IDX (&element->children, var, i) {
+            if (i > 0)
+                r = sol_buffer_append_char(buffer, ',');
+            r = json_serialize(buffer, var);
+            SOL_INT_CHECK(r, < 0, r);
+        }
+        return sol_buffer_append_char(buffer, ']');
+    case JSON_TYPE_NULL:
+        return sol_json_serialize_null(buffer);
+    case JSON_TYPE_INT:
+        return sol_json_serialize_int32(buffer, element->int_value);
+    case JSON_TYPE_FLOAT:
+        return sol_json_serialize_double(buffer, element->float_value);
+    case JSON_TYPE_BOOLEAN:
+        return sol_json_serialize_int32(buffer, element->bool_value);
+    case JSON_TYPE_STRING:
+        return sol_json_serialize_string(buffer, element->str);
+    case JSON_TYPE_ARRAY_BLOB:
+    case JSON_TYPE_OBJECT_BLOB:
+        return json_serialize_blob(buffer, element->blob);
+    }
+
+    return -EINVAL;
+}
+
+static int
+json_array_create_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_buffer buffer = SOL_BUFFER_INIT_EMPTY;
+    struct sol_blob *blob;
+    char *str;
+    size_t size;
+    int r;
+    struct json_element *mdata = data;
+
+    r = json_serialize(&buffer, mdata);
+    if (r < 0) {
+        sol_buffer_fini(&buffer);
+        return r;
+    }
+
+    str = sol_buffer_steal(&buffer, &size);
+    SOL_NULL_CHECK(str, -ENOMEM);
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, str, size);
+    SOL_NULL_CHECK(blob, -errno);
+
+    r = sol_flow_send_json_array_packet(node,
+        SOL_FLOW_NODE_TYPE_JSON_CREATE_ARRAY__OUT__OUT, blob);
+    sol_blob_unref(blob);
+    return r;
+}
+
+static int
+json_object_in_process(void *data, const struct sol_flow_packet *packet, enum json_element_type type)
+{
+    struct json_key_element *new;
+    struct json_element *mdata = data;
+    const char *key;
+    uint16_t len;
+    struct sol_flow_packet **packets;
+    struct sol_blob *blob;
+    struct sol_irange val;
+    struct sol_drange dval;
+    const char *str;
+    int r;
+
+    r = sol_flow_packet_get_composed_members(packet, &packets, &len);
+    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(len, < 2, -EINVAL);
+
+    r = sol_flow_packet_get_string(packets[0], &key);
+    SOL_INT_CHECK(r, < 0, r);
+
+    new = sol_vector_append(&mdata->children);
+    SOL_NULL_CHECK(new, -errno);
+
+    new->element.type = type;
+    switch (type) {
+    case JSON_TYPE_INT:
+        r = sol_flow_packet_get_irange(packets[1], &val);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        new->element.int_value = val.val;
+        break;
+    case JSON_TYPE_FLOAT:
+        r = sol_flow_packet_get_drange(packets[1], &dval);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        new->element.float_value = dval.val;
+        break;
+    case JSON_TYPE_BOOLEAN:
+        r = sol_flow_packet_get_boolean(packets[1], &new->element.bool_value);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        break;
+    case JSON_TYPE_STRING:
+        r = sol_flow_packet_get_string(packets[1], &str);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        new->element.str = strdup(str);
+        break;
+    case JSON_TYPE_ARRAY_BLOB:
+        r = sol_flow_packet_get_json_array(packets[1], &blob);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        new->element.blob = sol_blob_ref(blob);
+        SOL_NULL_CHECK_GOTO(new->element.blob, error);
+        break;
+    case JSON_TYPE_OBJECT_BLOB:
+        r = sol_flow_packet_get_json_object(packets[1], &blob);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        new->element.blob = sol_blob_ref(blob);
+        SOL_NULL_CHECK_GOTO(new->element.blob, error);
+        break;
+    default:
+        r = -EINVAL;
+        goto error;
+    }
+    new->key = strdup(key);
+    return 0;
+
+error:
+    sol_vector_del(&mdata->children, mdata->children.len - 1);
+    return r;
+}
+
+static int
+json_object_int_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return json_object_in_process(data, packet, JSON_TYPE_INT);
+}
+
+static int
+json_object_string_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return json_object_in_process(data, packet, JSON_TYPE_STRING);
+}
+
+static int
+json_object_bool_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return json_object_in_process(data, packet, JSON_TYPE_BOOLEAN);
+}
+
+static int
+json_object_float_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return json_object_in_process(data, packet, JSON_TYPE_FLOAT);
+}
+
+static int
+json_object_json_array_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return json_object_in_process(data, packet, JSON_TYPE_ARRAY_BLOB);
+}
+
+static int
+json_object_json_object_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return json_object_in_process(data, packet, JSON_TYPE_OBJECT_BLOB);
+}
+
+static int
+json_object_null_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct json_key_element *new;
+    struct json_element *mdata = data;
+    const char *key;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &key);
+    SOL_INT_CHECK(r, < 0, r);
+
+    new = sol_vector_append(&mdata->children);
+    SOL_NULL_CHECK(new, -errno);
+
+    new->element.type = JSON_TYPE_NULL;
+    new->key = strdup(key);
+    return 0;
+}
+
+static int
+json_object_create_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_buffer buffer = SOL_BUFFER_INIT_EMPTY;
+    struct sol_blob *blob;
+    char *str;
+    size_t size;
+    int r;
+    struct json_element *mdata = data;
+
+    r = json_serialize(&buffer, mdata);
+    if (r < 0) {
+        sol_buffer_fini(&buffer);
+        return r;
+    }
+
+    str = sol_buffer_steal(&buffer, &size);
+    SOL_NULL_CHECK(str, -ENOMEM);
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, str, size);
+    SOL_NULL_CHECK(blob, -errno);
+
+    r = sol_flow_send_json_object_packet(node,
+        SOL_FLOW_NODE_TYPE_JSON_CREATE_OBJECT__OUT__OUT, blob);
+    sol_blob_unref(blob);
+    return r;
+}
+
+static int
+json_flush_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct json_element *mdata = data;
+
+    json_element_clear(mdata);
+
+    return 0;
+}
+
 #include "json-gen.c"

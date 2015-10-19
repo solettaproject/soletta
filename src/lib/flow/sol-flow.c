@@ -377,6 +377,17 @@ sol_flow_send_string_slice_packet(struct sol_flow_node *src, uint16_t src_port, 
     SOL_FLOW_SEND_PACKET(string_slice);
 }
 
+SOL_API int
+sol_flow_send_composed_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_flow_packet_type *composed_type, struct sol_flow_packet **children)
+{
+    struct sol_flow_packet *out_packet;
+
+    out_packet = sol_flow_packet_new(composed_type, &children);
+    SOL_NULL_CHECK(out_packet, -ENOMEM);
+
+    return sol_flow_send_packet(src, src_port, out_packet);
+}
+
 #undef SOL_FLOW_SEND_PACKET
 
 SOL_API int

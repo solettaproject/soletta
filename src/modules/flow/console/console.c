@@ -194,10 +194,9 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
         uint16_t len, i;
         struct sol_flow_packet **packets;
 
-        sol_flow_packet_get_composed_members_len(packet_type, &len);
-        packets = malloc(len * sizeof(struct sol_flow_packet *));
-        SOL_NULL_CHECK(packets, -ENOMEM);
-        sol_flow_packet_get(packet, packets);
+        r = sol_flow_packet_get_composed_members(packet, &packets, &len);
+        SOL_INT_CHECK(r, < 0, r);
+
         console_output(mdata, mdata->prefix, NULL, 0, "Composed packet {");
         for (i = 0; i < len; i++) {
             char sep = ',';
@@ -207,7 +206,6 @@ console_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
             SOL_INT_CHECK(r, < 0, r);
         }
         console_output(mdata, NULL, mdata->suffix, '\n',  "} (%s)", packet_type->name);
-        free(packets);
     } else {
         r = print_packet_content(packet, node, mdata, mdata->prefix, mdata->suffix,  '\n');
         SOL_INT_CHECK(r, < 0, r);

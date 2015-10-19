@@ -337,7 +337,7 @@ send_%(name)s_packet(struct sol_flow_node *src, uint16_t src_port
 static int
 send_%s_packet(struct sol_flow_node *src, uint16_t src_port, %s)
 {
-   struct sol_flow_packet **children, *composed_packet;
+   struct sol_flow_packet **children;
    const struct sol_flow_packet_type *p_type;
    uint16_t len, i;
    int r;
@@ -348,11 +348,8 @@ send_%s_packet(struct sol_flow_node *src, uint16_t src_port, %s)
    children = alloca(len * sizeof(struct sol_flow_packet *));
    memset(children, 0, len * sizeof(struct sol_flow_packet *));
 
-   %s
-   composed_packet = sol_flow_packet_new(p_type, children);
-   SOL_NULL_CHECK_GOTO(composed_packet, exit);
-
-   r = sol_flow_send_packet(src, src_port, composed_packet);
+%s
+   r = sol_flow_send_composed_packet(src, src_port, p_type, children);
 exit:
    for (i = 0; i < len; i++) {
         if (children[i] == NULL && r == 0) {
@@ -526,17 +523,15 @@ static int
     p_type = sol_flow_packet_get_type(packet);
     if (p_type != %s_get_composed_%s_packet_type())
        return -EINVAL;
-    r = sol_flow_packet_get_composed_members_len(p_type, &len);
+
+    r = sol_flow_packet_get_composed_members(packet, &packets, &len);
     SOL_INT_CHECK(r, < 0, r);
-    packets = malloc(len * sizeof(struct sol_flow_packet *));
-    SOL_NULL_CHECK(packets, -ENOMEM);
-    r = sol_flow_packet_get(packet, &packets);
-    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
-""" % (data["name_c"], get_composed_types_with_underscore(single_type)))
+    SOL_INT_CHECK(len, < %d, -EINVAL);
+""" % (data["name_c"], get_composed_types_with_underscore(single_type), len(types_list)))
             for i, type in enumerate(types_list):
                 outfile.write("""
     r = %s;
-    SOL_INT_CHECK_GOTO(r, < 0, err_exit);""" % (data_type_to_packet_getter(type).replace(")", (("_%d" % (i)))) + ")" ))
+    SOL_INT_CHECK(r, < 0, r);""" % (data_type_to_packet_getter(type).replace(")", (("_%d)" % (i)))).replace("(packet", "(packets[%d]" % (i))))
         elif single_type:
             outfile.write("""
     int r;
@@ -552,14 +547,8 @@ static int
     /* TODO: implement process method */
 
     return 0;
+}
 """)
-        if single_type and is_composed(single_type):
-            outfile.write("""
-err_exit:
-    free(packets);
-    return r;""")
-        outfile.write("""
-}\n""")
 
 def generate_stub(stub_file, inputs_list, prefix, is_module, namespace):
     data = []
