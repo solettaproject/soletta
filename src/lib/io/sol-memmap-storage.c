@@ -57,6 +57,8 @@
 #define DEV_NUMBER_IDX 3
 #define DEV_NAME_IDX 4
 
+#define SOL_PERSISTENCE_DEFAULT_WRITE_TIMEOUT 100
+
 struct map_resolved_path {
     const struct sol_memmap_map *map;
     char *resolved_path;
@@ -83,8 +85,10 @@ struct pending_write_data {
 static struct sol_ptr_vector memory_maps = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector checked_maps = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector resolved_maps_to_free = SOL_PTR_VECTOR_INIT;
-static struct sol_vector pending_writes = SOL_VECTOR_INIT(struct pending_write_data);
-static struct sol_timeout *write_timeout;
+static struct sol_vector soon_pending_writes = SOL_VECTOR_INIT(struct pending_write_data);
+static struct sol_vector delayed_pending_writes = SOL_VECTOR_INIT(struct pending_write_data);
+static struct sol_timeout *soon_write_timeout;
+static struct sol_timeout *delayed_write_timeout;
 
 static bool
 get_entry_metadata_on_map(const char *name, const struct sol_memmap_map *map, const struct sol_memmap_entry **entry, uint64_t *mask)
@@ -321,20 +325,18 @@ pending_cmp(const void *e1, const void *e2)
     return strcmp(p1->path, p2->path);
 }
 
-static bool
-perform_pending_writes(void *data)
+static void
+perform_pending_writes(struct sol_vector *pending_writes)
 {
     int i, r;
     struct pending_write_data *pending;
     FILE *file = NULL;
     const char *last_path = "";
 
-    write_timeout = NULL;
-
     /* Order writes by path, so we can open each file only once */
-    qsort(pending_writes.data, pending_writes.len, pending_writes.elem_size, pending_cmp);
+    qsort(pending_writes->data, pending_writes->len, pending_writes->elem_size, pending_cmp);
 
-    SOL_VECTOR_FOREACH_IDX (&pending_writes, pending, i) {
+    SOL_VECTOR_FOREACH_IDX (pending_writes, pending, i) {
         if (!streq(last_path, pending->path)) {
             if (file) {
                 r = fclose(file);
@@ -360,9 +362,7 @@ perform_pending_writes(void *data)
                 sol_util_strerrora(errno));
     }
 
-    sol_vector_clear(&pending_writes);
-
-    return false;
+    sol_vector_clear(pending_writes);
 }
 
 static bool
@@ -372,26 +372,30 @@ replace_pending_write(const char *path, const char *name,
     const void *data)
 {
     struct pending_write_data *pending;
+    struct sol_vector *all_pending_writes[] = { &soon_pending_writes, &delayed_pending_writes };
+    size_t j;
     int i;
 
-    SOL_VECTOR_FOREACH_IDX (&pending_writes, pending, i) {
-        if (streq(pending->name, name)) {
-            if (pending->cb)
-                pending->cb((void *)pending->data, pending->name, pending->blob,
-                    -ECANCELED);
-            sol_blob_unref(pending->blob);
-            pending->blob = sol_blob_ref(blob);
-            if (!pending->blob) {
-                /* If we couldn't ref, let's delete this entry and let
-                 * the caller re-add this write */
-                free(pending->name);
-                sol_vector_del(&pending_writes, i);
-                return false;
-            }
-            pending->cb = cb;
-            pending->data = data;
+    for (j = 0; j < ARRAY_SIZE(all_pending_writes); j++) {
+        SOL_VECTOR_FOREACH_IDX (all_pending_writes[j], pending, i) {
+            if (streq(pending->name, name)) {
+                if (pending->cb)
+                    pending->cb((void *)pending->data, pending->name, pending->blob,
+                        -ECANCELED);
+                sol_blob_unref(pending->blob);
+                pending->blob = sol_blob_ref(blob);
+                if (!pending->blob) {
+                    /* If we couldn't ref, let's delete this entry and let
+                     * the caller re-add this write */
+                    free(pending->name);
+                    sol_vector_del(all_pending_writes[j], i);
+                    return false;
+                }
+                pending->cb = cb;
+                pending->data = data;
 
-            return true;
+                return true;
+            }
         }
     }
 
@@ -420,6 +424,74 @@ fill_pending_write(struct pending_write_data *pending, const char *path,
     return 0;
 }
 
+static bool
+soon_write_cb(void *data)
+{
+    soon_write_timeout = NULL;
+
+    perform_pending_writes(&soon_pending_writes);
+
+    return false;
+}
+
+static bool
+delayed_write_cb(void *data)
+{
+    delayed_write_timeout = NULL;
+
+    perform_pending_writes(&delayed_pending_writes);
+
+    return false;
+}
+
+static unsigned int
+get_delayed_timeout(void)
+{
+    unsigned int t;
+    char *end_ptr;
+    char *env_val;
+
+    /* Not sure if this work for the small */
+    env_val = getenv("SOL_PERSISTENCE_WRITE_TIMEOUT");
+    if (!env_val)
+        return SOL_PERSISTENCE_DEFAULT_WRITE_TIMEOUT;
+
+    errno = 0;
+    t = strtoul(env_val, &end_ptr, 0);
+    if (errno || *end_ptr != '\0')
+        return SOL_PERSISTENCE_DEFAULT_WRITE_TIMEOUT;
+
+    return t;
+}
+
+static int
+add_delayed_write(const char *path, const char *name,
+    const struct sol_memmap_entry *entry, uint64_t mask, struct sol_blob *blob,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
+{
+    struct pending_write_data *pending;
+
+    /* If there's a pending write for the very same entry, we replace it */
+    if (replace_pending_write(path, name, entry, mask, blob, cb, data))
+        return 0;
+
+    pending = sol_vector_append(&delayed_pending_writes);
+
+    SOL_NULL_CHECK(pending, -ENOMEM);
+
+    if (fill_pending_write(pending, path, name, entry, mask, blob, cb, data) < 0)
+        return -ENOMEM;
+
+    if (!delayed_write_timeout)
+        delayed_write_timeout = sol_timeout_add(get_delayed_timeout(),
+            delayed_write_cb, NULL);
+
+    SOL_NULL_CHECK(delayed_write_timeout, -ENOMEM);
+
+    return 0;
+}
+
 static int
 add_write(const char *path, const char *name,
     const struct sol_memmap_entry *entry, uint64_t mask, struct sol_blob *blob,
@@ -432,17 +504,17 @@ add_write(const char *path, const char *name,
     if (replace_pending_write(path, name, entry, mask, blob, cb, data))
         return 0;
 
-    pending = sol_vector_append(&pending_writes);
+    pending = sol_vector_append(&soon_pending_writes);
 
     SOL_NULL_CHECK(pending, -ENOMEM);
 
     if (fill_pending_write(pending, path, name, entry, mask, blob, cb, data) < 0)
         return -ENOMEM;
 
-    if (!write_timeout)
-        write_timeout = sol_timeout_add(0, perform_pending_writes, NULL);
+    if (!soon_write_timeout)
+        soon_write_timeout = sol_timeout_add(0, soon_write_cb, NULL);
 
-    SOL_NULL_CHECK(write_timeout, -ENOMEM);
+    SOL_NULL_CHECK(soon_write_timeout, -ENOMEM);
 
     return 0;
 }
@@ -450,7 +522,7 @@ add_write(const char *path, const char *name,
 SOL_API int
 sol_memmap_write_raw(const char *name, struct sol_blob *blob,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     const struct sol_memmap_map *map;
     const struct sol_memmap_entry *entry;
@@ -471,6 +543,9 @@ sol_memmap_write_raw(const char *name, struct sol_blob *blob,
         SOL_INF("Mapped size for [%s] is %zd, smaller than buffer contents: %zd",
             name, entry->size, blob->size);
 
+    if (delayed)
+        return add_delayed_write(map->path, name, entry, mask, blob, cb, data);
+
     return add_write(map->path, name, entry, mask, blob, cb, data);
 }
 
@@ -478,18 +553,22 @@ static bool
 read_from_pending(const char *name, struct sol_buffer *buffer)
 {
     struct pending_write_data *pending;
+    struct sol_vector *all_pending_writes[] = { &soon_pending_writes, &delayed_pending_writes };
+    size_t j;
     int i;
 
-    SOL_VECTOR_FOREACH_IDX (&pending_writes, pending, i) {
-        if (streq(name, pending->name)) {
-            // TODO maybe a sol_buffer_append_blob?
-            if (sol_buffer_ensure(buffer, pending->blob->size) < 0) {
-                // TODO how bad is this? return old value? fail reading?
-                SOL_WRN("Could not ensure buffer size to fit pending blob");
-                return false;
+    for (j = 0; j < ARRAY_SIZE(all_pending_writes); j++) {
+        SOL_VECTOR_FOREACH_IDX (all_pending_writes[j], pending, i) {
+            if (streq(name, pending->name)) {
+                // TODO maybe a sol_buffer_append_blob?
+                if (sol_buffer_ensure(buffer, pending->blob->size) < 0) {
+                    // TODO how bad is this? return old value? fail reading?
+                    SOL_WRN("Could not ensure buffer size to fit pending blob");
+                    return false;
+                }
+                memcpy(buffer->data, pending->blob->mem, pending->blob->size);
+                return true;
             }
-            memcpy(buffer->data, pending->blob->mem, pending->blob->size);
-            return true;
         }
     }
 

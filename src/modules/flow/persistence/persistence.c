@@ -55,7 +55,7 @@
 struct storage_fn {
     int (*write)(const char *name, struct sol_blob *blob,
         void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-        const void *data);
+        const void *data, bool delayed);
     int (*read)(const char *name, struct sol_buffer *buffer);
 };
 
@@ -168,7 +168,7 @@ storage_write(struct persist_data *mdata, void *data, size_t size, struct sol_fl
     cb_data->mdata = mdata;
     cb_data->node = node;
 
-    r = mdata->storage->write(mdata->name, blob, write_cb, cb_data);
+    r = mdata->storage->write(mdata->name, blob, write_cb, cb_data, true);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     sol_blob_unref(blob);

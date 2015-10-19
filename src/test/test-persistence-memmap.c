@@ -125,25 +125,25 @@ write_one(void)
 {
     int r;
 
-    r = sol_memmap_write_bool("boolean", true, write_cb, NULL);
+    r = sol_memmap_write_bool("boolean", true, write_cb, NULL, false);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_uint8("byte", 78, write_cb, NULL);
+    r = sol_memmap_write_uint8("byte", 78, write_cb, NULL, false);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_int32("int_only_val", 7804, write_cb, NULL);
+    r = sol_memmap_write_int32("int_only_val", 7804, write_cb, NULL, false);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_irange("irange", &irange_not_delayed, write_cb, NULL);
+    r = sol_memmap_write_irange("irange", &irange_not_delayed, write_cb, NULL, false);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_drange("drange", &drange_not_delayed, write_cb, NULL);
+    r = sol_memmap_write_drange("drange", &drange_not_delayed, write_cb, NULL, false);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_double("double_only_val", 97.36, write_cb, NULL);
+    r = sol_memmap_write_double("double_only_val", 97.36, write_cb, NULL, false);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_string("string", "gama delta", write_cb, NULL);
+    r = sol_memmap_write_string("string", "gama delta", write_cb, NULL, false);
     ASSERT_INT_EQ(r, 0);
 }
 
@@ -193,25 +193,25 @@ write_two(void)
 {
     int r;
 
-    r = sol_memmap_write_bool("boolean", false, write_cb, NULL);
+    r = sol_memmap_write_bool("boolean", false, write_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_uint8("byte", 88, write_cb, NULL);
+    r = sol_memmap_write_uint8("byte", 88, write_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_int32("int_only_val", 7814, write_cb, NULL);
+    r = sol_memmap_write_int32("int_only_val", 7814, write_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_irange("irange", &irange_delayed, write_cb, NULL);
+    r = sol_memmap_write_irange("irange", &irange_delayed, write_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_drange("drange", &drange_delayed, write_cb, NULL);
+    r = sol_memmap_write_drange("drange", &drange_delayed, write_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_double("double_only_val", 107.36, write_cb, NULL);
+    r = sol_memmap_write_double("double_only_val", 107.36, write_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_string("string", "alfa beta", write_cb, NULL);
+    r = sol_memmap_write_string("string", "alfa beta", write_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 }
 
@@ -271,25 +271,25 @@ write_one_cancelled(void)
 
     sol_memmap_add_map(&_memmap0);
 
-    r = sol_memmap_write_bool("boolean", true, write_cancelled_cb, NULL);
+    r = sol_memmap_write_bool("boolean", true, write_cancelled_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_uint8("byte", 78, write_cancelled_cb, NULL);
+    r = sol_memmap_write_uint8("byte", 78, write_cancelled_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_int32("int_only_val", 7804, write_cancelled_cb, NULL);
+    r = sol_memmap_write_int32("int_only_val", 7804, write_cancelled_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_irange("irange", &irange_not_delayed, write_cancelled_cb, NULL);
+    r = sol_memmap_write_irange("irange", &irange_not_delayed, write_cancelled_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_drange("drange", &drange_not_delayed, write_cancelled_cb, NULL);
+    r = sol_memmap_write_drange("drange", &drange_not_delayed, write_cancelled_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_double("double_only_val", 97.36, write_cancelled_cb, NULL);
+    r = sol_memmap_write_double("double_only_val", 97.36, write_cancelled_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 
-    r = sol_memmap_write_string("string", "gama delta", write_cancelled_cb, NULL);
+    r = sol_memmap_write_string("string", "gama delta", write_cancelled_cb, NULL, true);
     ASSERT_INT_EQ(r, 0);
 }
 

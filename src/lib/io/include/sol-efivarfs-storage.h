@@ -59,12 +59,13 @@ extern "C" {
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
  * @param data user data to be sent to callback @c cb
+ * @param delayed currently ignored by efivarfs storage
  *
  * return 0 on success, a negative number on failure
  */
 int sol_efivars_write_raw(const char *name, struct sol_blob *blob,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data);
+    const void *data, bool delayed);
 int sol_efivars_read_raw(const char *name, struct sol_buffer *buffer);
 
 #define CREATE_BUFFER(_val) \
@@ -93,13 +94,13 @@ sol_efivars_read_uint8(const char *name, uint8_t *value)
 static inline int
 sol_efivars_write_uint8(const char *name, uint8_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(&value);
 
-    r = sol_efivars_write_raw(name, blob, cb, data);
+    r = sol_efivars_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -115,13 +116,13 @@ sol_efivars_read_bool(const char *name, bool *value)
 static inline int
 sol_efivars_write_bool(const char *name, bool value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(&value);
 
-    r = sol_efivars_write_raw(name, blob, cb, data);
+    r = sol_efivars_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -137,13 +138,13 @@ sol_efivars_read_int32(const char *name, int32_t *value)
 static inline int
 sol_efivars_write_int32(const char *name, int32_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(&value);
 
-    r = sol_efivars_write_raw(name, blob, cb, data);
+    r = sol_efivars_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -159,13 +160,13 @@ sol_efivars_read_irange(const char *name, struct sol_irange *value)
 static inline int
 sol_efivars_write_irange(const char *name, struct sol_irange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(value);
 
-    r = sol_efivars_write_raw(name, blob, cb, data);
+    r = sol_efivars_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -181,13 +182,13 @@ sol_efivars_read_drange(const char *name, struct sol_drange *value)
 static inline int
 sol_efivars_write_drange(const char *name, struct sol_drange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(value);
 
-    r = sol_efivars_write_raw(name, blob, cb, data);
+    r = sol_efivars_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -203,13 +204,13 @@ sol_efivars_read_double(const char *name, double *value)
 static inline int
 sol_efivars_write_double(const char *name, double value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(&value);
 
-    r = sol_efivars_write_raw(name, blob, cb, data);
+    r = sol_efivars_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -234,7 +235,7 @@ sol_efivars_read_string(const char *name, char **value)
 static inline int
 sol_efivars_write_string(const char *name, const char *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
     struct sol_blob *blob;
@@ -246,7 +247,7 @@ sol_efivars_write_string(const char *name, const char *value,
     blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, string, strlen(value));
     SOL_NULL_CHECK(blob, -ENOMEM);
 
-    r = sol_efivars_write_raw(name, blob, cb, data);
+    r = sol_efivars_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }

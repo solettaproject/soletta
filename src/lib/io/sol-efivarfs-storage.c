@@ -90,7 +90,7 @@ write_cb(void *data)
 SOL_API int
 sol_efivars_write_raw(const char *name, struct sol_blob *blob,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     FILE *file = NULL;
     char path[PATH_MAX];

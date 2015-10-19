@@ -115,12 +115,18 @@ extern "C" {
  * @param cb callback to be called when writing finishes. It contains status
  * of writing: if failed, is lesser than zero.
  * @param data user data to be sent to callback @c cb
+ * @param if writing operation should happen only after a given timeout or
+ * right on next Soletta mainloop iteration. Timeout value given by environment
+ * variable SOL_PERSISTENCE_WRITE_TIMEOUT, in miliseconds. Note that when a
+ * timeout is running, all writings will be grouped into that timeout, so it's
+ * possible, for instance, that even with @c delayed @c true, writing will be
+ * performed on next Soletta mainloop iteration.
  *
  * return 0 on success, a negative number on failure
  */
 int sol_memmap_write_raw(const char *name, struct sol_blob *blob,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data);
+    const void *data, bool delayed);
 
 /**
  * Read storage contents to buffer.
@@ -182,13 +188,13 @@ sol_memmap_read_uint8(const char *name, uint8_t *value)
 static inline int
 sol_memmap_write_uint8(const char *name, uint8_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(&value);
 
-    r = sol_memmap_write_raw(name, blob, cb, data);
+    r = sol_memmap_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -204,13 +210,13 @@ sol_memmap_read_bool(const char *name, bool *value)
 static inline int
 sol_memmap_write_bool(const char *name, bool value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(&value);
 
-    r = sol_memmap_write_raw(name, blob, cb, data);
+    r = sol_memmap_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -226,13 +232,13 @@ sol_memmap_read_int32(const char *name, int32_t *value)
 static inline int
 sol_memmap_write_int32(const char *name, int32_t value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(&value);
 
-    r = sol_memmap_write_raw(name, blob, cb, data);
+    r = sol_memmap_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -248,13 +254,13 @@ sol_memmap_read_irange(const char *name, struct sol_irange *value)
 static inline int
 sol_memmap_write_irange(const char *name, struct sol_irange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(value);
 
-    r = sol_memmap_write_raw(name, blob, cb, data);
+    r = sol_memmap_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -270,13 +276,13 @@ sol_memmap_read_drange(const char *name, struct sol_drange *value)
 static inline int
 sol_memmap_write_drange(const char *name, struct sol_drange *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(value);
 
-    r = sol_memmap_write_raw(name, blob, cb, data);
+    r = sol_memmap_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -292,13 +298,13 @@ sol_memmap_read_double(const char *name, double *value)
 static inline int
 sol_memmap_write_double(const char *name, double value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
 
     CREATE_BLOB(&value);
 
-    r = sol_memmap_write_raw(name, blob, cb, data);
+    r = sol_memmap_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
@@ -323,7 +329,7 @@ sol_memmap_read_string(const char *name, char **value)
 static inline int
 sol_memmap_write_string(const char *name, const char *value,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
-    const void *data)
+    const void *data, bool delayed)
 {
     int r;
     struct sol_blob *blob;
@@ -335,7 +341,7 @@ sol_memmap_write_string(const char *name, const char *value,
     blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, string, strlen(value) + 1);
     SOL_NULL_CHECK(blob, -ENOMEM);
 
-    r = sol_memmap_write_raw(name, blob, cb, data);
+    r = sol_memmap_write_raw(name, blob, cb, data, delayed);
     sol_blob_unref(blob);
     return r;
 }
