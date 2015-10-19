@@ -1,7 +1,8 @@
 obj-$(NETWORK) += networking.mod
 
 obj-networking-$(NETWORK) := \
-    sol-comms.o
+    sol-comms.o \
+    sol-socket.o
 
 obj-networking-$(PLATFORM_RIOTOS) += \
     sol-network-impl-riot.o \
