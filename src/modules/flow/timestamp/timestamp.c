@@ -94,6 +94,20 @@ struct make_time_data {
 #define ALL_PORTS_INITIALIZED ((int)pow(2, SOL_FLOW_NODE_TYPE_TIMESTAMP_MAKE_TIME__IN_LAST + 1) - 1)
 
 static int
+timestamp_make_time_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct make_time_data *mdata = data;
+
+    /* Always check for daylight saving when assembling a time
+     * packet */
+    mdata->received_time.tm_isdst = -1;
+
+    return 0;
+}
+
+static int
 send_timestamp(struct sol_flow_node *node, uint16_t port, struct make_time_data *mdata)
 {
     struct timespec timestamp;

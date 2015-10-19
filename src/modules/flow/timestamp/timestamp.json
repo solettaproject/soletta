@@ -113,6 +113,9 @@
          "required": true
        }
       ],
+      "methods": {
+        "open": "timestamp_make_time_open"
+      },
       "name": "timestamp/make-time",
       "out_ports": [
         {
