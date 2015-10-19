@@ -15,3 +15,11 @@ Thirdparty
       - CBOR is the "Concise Binary Object Representation", and is the
         format used by OIC to encode network payload. TinyCBOR is a library
         to encode and decode data in CBOR.
+
+- TinyDTLS
+      - Repository: http://sourceforge.net/projects/tinydtls/
+      - License: MIT
+      - "Provides a very simple datagram server with DTLS support. It is
+        designed to support session multiplexing in single-threaded
+        applications and thus targets specifically on embedded systems."
+        (copied as is from its documentation)

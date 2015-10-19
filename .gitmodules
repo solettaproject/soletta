@@ -4,3 +4,6 @@
 [submodule "src/thirdparty/tinycbor"]
 	path = src/thirdparty/tinycbor
 	url = https://github.com/01org/tinycbor/
+[submodule "src/thirdparty/tinydtls"]
+	path = src/thirdparty/tinydtls
+	url = git://git.code.sf.net/p/tinydtls/code
