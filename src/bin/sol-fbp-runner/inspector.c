@@ -241,20 +241,19 @@ static void
 inspector_show_packet(const struct sol_flow_packet *packet)
 {
     const struct sol_flow_packet_type *type = sol_flow_packet_get_type(packet);
+    int r;
 
     if (sol_flow_packet_is_composed_type(type)) {
         uint16_t len, i;
         struct sol_flow_packet **packets;
 
-        sol_flow_packet_get_composed_members_len(type, &len);
-        packets = malloc(len * sizeof(struct sol_flow_packet *));
-        SOL_NULL_CHECK(packets);
-        sol_flow_packet_get(packet, packets);
+        r = sol_flow_packet_get_composed_members(packet, &packets, &len);
+        SOL_INT_CHECK(r, < 0);
+
         fprintf(stdout, "<COMPOSED-PACKET {");
         for (i = 0; i < len; i++)
             inspector_show_packet_value(packets[i]);
         fprintf(stdout, "}>");
-        free(packets);
     } else
         inspector_show_packet_value(packet);
 }

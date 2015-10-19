@@ -206,7 +206,6 @@ simple_port_process(struct sol_flow_node *node, void *data, uint16_t port,
     uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct composed_node_data *cdata = data;
-    struct sol_flow_packet *composed;
     uint16_t i;
 
     if (cdata->inputs[port]) {
@@ -225,9 +224,8 @@ simple_port_process(struct sol_flow_node *node, void *data, uint16_t port,
     if (i != cdata->inputs_len)
         return 0;
 
-    composed = sol_flow_packet_new(cdata->composed_type, cdata->inputs);
-    SOL_NULL_CHECK(composed, -ENOMEM);
-    return sol_flow_send_packet(node, 0, composed);
+    return sol_flow_send_composed_packet(node, 0, cdata->composed_type,
+        cdata->inputs);
 }
 
 static int
@@ -238,13 +236,7 @@ composed_port_process(struct sol_flow_node *node, void *data, uint16_t port,
     uint16_t len, i;
     struct sol_flow_packet **children, *out_packet;
 
-    r = sol_flow_packet_get_composed_members_len(
-        sol_flow_packet_get_type(packet), &len);
-    SOL_INT_CHECK(r, < 0, r);
-
-    children = alloca(len * sizeof(struct sol_flow_packet *));
-
-    r = sol_flow_packet_get(packet, children);
+    r = sol_flow_packet_get_composed_members(packet, &children, &len);
     SOL_INT_CHECK(r, < 0, r);
 
     for (i = 0; i < len; i++) {
@@ -675,10 +667,8 @@ generate_metatype_composed_process(struct sol_buffer *out)
         "    int r;\n"
         "    uint16_t i, len;\n"
         "    struct sol_flow_packet **children, *out_packet;\n"
-        "    r = sol_flow_packet_get_composed_members_len(sol_flow_packet_get_type(packet), &len);\n"
-        "    SOL_INT_CHECK(r, < 0, r);\n"
-        "    children = alloca(len * sizeof(struct sol_flow_packet *));\n"
-        "    r = sol_flow_packet_get(packet, children);\n"
+        "    r = sol_flow_packet_get_composed_members(packet, &children,"
+        "        &len);\n"
         "    SOL_INT_CHECK(r, < 0, r);\n"
         "    for (i = 0; i < len; i++) {\n"
         "        out_packet = sol_flow_packet_dup(children[i]);\n"
@@ -862,7 +852,6 @@ generate_metatype_simple_process(struct sol_buffer *out)
         "simple_port_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)\n"
         "{\n"
         "    struct composed_data *cdata = data;\n"
-        "    struct sol_flow_packet *composed;\n"
         "    uint16_t i;\n"
         "    if (cdata->inputs[port]) {\n"
         "        sol_flow_packet_del(cdata->inputs[port]);\n"
@@ -876,9 +865,8 @@ generate_metatype_simple_process(struct sol_buffer *out)
         "    }\n"
         "    if (i != cdata->inputs_len)\n"
         "        return 0;\n"
-        "    composed = sol_flow_packet_new(cdata->composed_type, cdata->inputs);\n"
-        "    SOL_NULL_CHECK(composed, -ENOMEM);\n"
-        "    return sol_flow_send_packet(node, 0, composed);\n"
+        "    return sol_flow_send_composed_packet(node, 0, "
+        "        cdata->composed_type, cdata->inputs);\n"
         "}\n");
 }
 
