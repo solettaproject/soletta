@@ -38,8 +38,10 @@
 # to 'create' the i2c device. Alternatively, it could be a path to EEPROM file
 # on sysfs, considering it's already created. In this case, path would be
 # '/sys/bus/i2c/devices/7-0050/eeprom'
-# Note also that for this sample to work, one must zero at least EEPROM position
-# where offset is saved (byte 200). Or use 255 as map version on sol-flow.json.
+# Note that to handle EEPROM initial value being 0xff (255), we catch accumulator
+# ERROR packet to reset value to zero. Accumulator will send an error packet
+# because it will receive a value (255) out of its range [0-15], so we can
+# handle properly.
 
 btn1(Button1)
 btn2(Button2)
@@ -48,10 +50,10 @@ seg(SevenSegments)
 persistence(persistence/int:storage="memmap",name="accumulated",default_value=0)
 
 persistence OUT -> SET accumulator
+persistence OUT -> VALUE seg
 
 btn1 OUT -> IN _(boolean/filter) TRUE -> INC accumulator
 btn2 OUT -> IN _(boolean/filter) TRUE -> DEC accumulator
 
 accumulator OUT -> IN persistence
-
-persistence OUT -> VALUE seg
+accumulator ERROR -> RESET accumulator
