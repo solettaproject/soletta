@@ -398,6 +398,7 @@ file_writer_path_process(struct sol_flow_node *node, void *data, uint16_t port, 
     free(mdata->path);
 
     mdata->path = path ? strdup(path) : NULL;
+    SOL_NULL_CHECK(mdata->path, -ENOMEM);
     return file_writer_load(mdata);
 }
 
