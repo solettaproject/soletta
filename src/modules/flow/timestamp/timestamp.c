@@ -104,6 +104,9 @@ send_timestamp(struct sol_flow_node *node, uint16_t port, struct make_time_data 
     if (mdata->initialized != ALL_PORTS_INITIALIZED)
         return 0;
 
+    /* Always check for daylight saving when assembling a time
+     * packet */
+    mdata->received_time.tm_isdst = -1;
     timestamp_sec = mktime(&mdata->received_time);
     if (timestamp_sec < 0) {
         sol_flow_send_error_packet(node, EINVAL,
