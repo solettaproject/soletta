@@ -67,7 +67,8 @@ enum sol_http_param_type {
     SOL_HTTP_PARAM_AUTH_BASIC,
     SOL_HTTP_PARAM_ALLOW_REDIR,
     SOL_HTTP_PARAM_TIMEOUT,
-    SOL_HTTP_PARAM_VERBOSE
+    SOL_HTTP_PARAM_VERBOSE,
+    SOL_HTTP_PARAM_POST_DATA
 };
 
 enum sol_http_status_code {
