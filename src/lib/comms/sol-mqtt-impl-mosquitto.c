@@ -180,7 +180,7 @@ remove:
 
 /*
  * When mosquitto calls the a user provided callback, its internal lock is held
- * so we need to go back to solleta mainloop before calling our user callback
+ * so we need to go back to Soletta mainloop before calling our user callback
  * in order to prevent a deadlock.
  */
 

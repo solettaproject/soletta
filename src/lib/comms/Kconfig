@@ -93,5 +93,5 @@ config MQTT
             of its small size, low power usage, minimised data packets, and
             efficient distribution of information to one or many receivers.
 
-            The solleta implementation of MQTT depends on the mosquitto library
+            The Soletta implementation of MQTT depends on the mosquitto library
             (http://mosquitto.org/)
