@@ -32,11 +32,12 @@
 
 #pragma once
 
-#include "sol-platform.h"
-#include "sol-macros.h"
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "sol-macros.h"
+#include "sol-platform.h"
+#include "sol-str-slice.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -160,6 +161,37 @@ uint64_t sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_for
 void sol_platform_linux_fork_run_exit(int status) SOL_ATTR_NORETURN;
 
 int sol_platform_linux_mount(const char *dev, const char *mpoint, const char *fstype, void (*cb)(void *data, const char *mpoint, int status), const void *data);
+
+struct sol_uevent {
+    struct sol_str_slice modalias;
+    struct sol_str_slice action;
+    struct sol_str_slice subsystem;
+    struct sol_str_slice devtype;
+    struct sol_str_slice devname;
+};
+
+/**
+ * Subscribe to monitor linux's uevent events
+ *
+ * @param action The action desired to monitor - i.e add, remove etc
+ * @param subsystem The subsystem of interest
+ * @param cb The callback to be issued after event catch
+ * @param data The context pointer to be provided to @c cb
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_linux_uevent_subscribe(const char *action, const char *subsystem, void (*cb)(void *data, struct sol_uevent *uevent), const void *data);
+
+/**
+ * Unsubscribe @c uevent_cb() for @c action and @c subsystem events monitoring
+ *
+ * @param action The action we're monitoring and want to release the callback
+ * @param subsystem The subsystem we're monitoring and want to release the callback
+ * @param cb The callback itself
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_linux_uevent_unsubscribe(const char *action, const char *subsystem, void (*cb)(void *data, struct sol_uevent *uevent), const void *data);
 
 #ifdef __cplusplus
 }
