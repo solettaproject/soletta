@@ -248,7 +248,7 @@ def run_tests(args):
         else:
             exe = os.path.join(args.compiled_dir, path["file"].replace(".fbp", ""))
             cmd = cmd_prefix + [exe]
-            test_cwd = "./"
+            test_cwd = path["dir"]
 
         result = ""
         if curr.precondition:
