@@ -30,8 +30,8 @@
           {
             "data_type": "int",
             "default": 0,
-            "description": "Amount of bytes to be compared between strings. If zero, the whole strings will be compared.",
-            "name": "bytes"
+            "description": "Amount of chars to be compared between strings. If zero, the whole strings will be compared.",
+            "name": "chars"
           },
           {
             "data_type": "boolean",
@@ -79,8 +79,8 @@
           {
             "data_type": "int",
             "default": 0,
-            "description": "Amount of bytes to be copied from string received on IN[1]. If zero, the whole string will be concatenated to the string received on IN[0]",
-            "name": "bytes"
+            "description": "Amount of chars to be copied to destination string. If zero, no chars limit will be defined.",
+            "name": "chars"
           },
           {
             "data_type": "string",
