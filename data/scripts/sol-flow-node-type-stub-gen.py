@@ -71,6 +71,7 @@ data_type_to_c_map = {
     "location": "struct sol_location ",
     "string": "const char *",
     "error": "int code_value; const char *",
+    "http-response": "int response_code; const char *url, *content_type; const struct sol_blob *blob; struct sol_vector cookies,  "
     }
 def data_type_to_c(typename):
     if (is_custom(typename)):
@@ -134,6 +135,7 @@ data_type_to_packet_getter_map = {
     "rgb": "rgb(packet, &in_value)",
     "direction-vector": "direction_vector(packet, &in_value)",
     "location": "location(packet, &in_value)",
+    "http-response": "http_response(packet, &response_code, &url, &content_type, &blob, &cookies, &in_value)"
     }
 def data_type_to_packet_getter(typename):
     if (is_custom(typename)):

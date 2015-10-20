@@ -63,6 +63,46 @@ console_output(struct console_data *mdata, const char *prefix, const char *suffi
         fprintf(mdata->fp, "%c", separator);
 }
 
+static void
+console_print_blob(struct console_data *mdata, const struct sol_blob *blob,
+    char separator, bool print_blob_str)
+{
+    const char *buf, *bufend, *blob_str;
+
+    fprintf(mdata->fp, "%stype=%p, parent=%p, size=%zd, refcnt=%hu, mem=%p {",
+        mdata->prefix, blob->type, blob->parent, blob->size, blob->refcnt, blob->mem);
+
+    buf = blob->mem;
+    bufend = buf + blob->size;
+    for (; buf < bufend; buf++) {
+        if (isprint(*buf))
+            fprintf(mdata->fp, "%#x(%c)", *buf, *buf);
+        else
+            fprintf(mdata->fp, "%#x", *buf);
+        if (buf + 1 < bufend)
+            fputs(", ", mdata->fp);
+    }
+    if (print_blob_str)
+        blob_str = "(blob)";
+    else
+        blob_str = "";
+    fprintf(mdata->fp, "} %s%s%c", blob_str, mdata->suffix, separator);
+}
+
+static void
+print_http_params(struct console_data *mdata, const struct sol_vector *vector)
+{
+    char sep = ',';
+    uint16_t i;
+    struct sol_key_value *param;
+
+    SOL_VECTOR_FOREACH_IDX (vector, param, i) {
+        if (i == vector->len - 1)
+            sep = 0;
+        fprintf(mdata->fp, "%s:%s%c", param->key, param->value, sep);
+    }
+}
+
 static int
 print_packet_content(const struct sol_flow_packet *packet, struct sol_flow_node *node, struct console_data *mdata,
     const char *prefix, const char *suffix, char separator)
@@ -134,24 +174,10 @@ print_packet_content(const struct sol_flow_packet *packet, struct sol_flow_node 
         console_output(mdata, prefix, suffix, separator, "%s (timestamp)", buf);
     } else if (packet_type == SOL_FLOW_PACKET_TYPE_BLOB) {
         struct sol_blob *val;
-        const char *buf, *bufend;
 
         int r = sol_flow_packet_get_blob(packet, &val);
         SOL_INT_CHECK(r, < 0, r);
-        fprintf(mdata->fp, "%stype=%p, parent=%p, size=%zd, refcnt=%hu, mem=%p {",
-            mdata->prefix, val->type, val->parent, val->size, val->refcnt, val->mem);
-
-        buf = val->mem;
-        bufend = buf + val->size;
-        for (; buf < bufend; buf++) {
-            if (isprint(*buf))
-                fprintf(mdata->fp, "%#x(%c)", *buf, *buf);
-            else
-                fprintf(mdata->fp, "%#x", *buf);
-            if (buf + 1 < bufend)
-                fputs(", ", mdata->fp);
-        }
-        fprintf(mdata->fp, "} (blob)%s%c", mdata->suffix, separator);
+        console_print_blob(mdata, val, separator, true);
     } else if (packet_type == SOL_FLOW_PACKET_TYPE_JSON_OBJECT) {
         struct sol_blob *val;
 
@@ -175,6 +201,25 @@ print_packet_content(const struct sol_flow_packet *packet, struct sol_flow_node 
         SOL_INT_CHECK(r, < 0, r);
         fprintf(mdata->fp, "%s#%02x (error)%s - %s%c",
             mdata->prefix, code, mdata->suffix, msg ? : "", separator);
+    } else if (packet_type == SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE) {
+        int code;
+        const char *url, *content_type;
+        const struct sol_blob *content;
+        struct sol_vector headers, cookies;
+
+        int r = sol_flow_packet_get_http_response(packet, &code, &url,
+            &content_type, &content, &cookies, &headers);
+        SOL_INT_CHECK(r, < 0, r);
+
+        fprintf(mdata->fp, "%s HTTP response:%d, url:%s, content type:%s,",
+            prefix, code, url, content_type);
+        fprintf(mdata->fp, " headers:{");
+        print_http_params(mdata, &headers);
+        fprintf(mdata->fp, "}, cookies:{");
+        print_http_params(mdata, &cookies);
+        fprintf(mdata->fp, "}, blob:");
+        console_print_blob(mdata, content, separator, false);
+        fprintf(mdata->fp, "(HTTP response) %s%c", suffix, separator);
     } else {
         sol_flow_send_error_packet(node, -EINVAL, "Unsupported packet=%p type=%p (%s)",
             packet, packet_type, packet_type->name);

@@ -150,6 +150,16 @@
          "process": "composed_process"
         },
         "name": "COMPOSED"
+       },
+       {
+        "data_type": "http-response",
+        "description": "Dummy http-response input port.",
+        "methods": {
+         "connect": "http_response_connect",
+         "disconnect": "http_response_disconnect",
+         "process": "http_response_process"
+        },
+        "name": "HTTP_RESPONSE"
        }
       ],
       "methods": {
@@ -297,6 +307,11 @@
         "data_type": "composed:string,int",
         "description": "Dummy composed [string,int] output port.",
         "name": "COMPOSED"
+       },
+       {
+        "data_type": "http-response",
+        "description": "Dummy http-response output port.",
+        "name": "HTTP_RESPONSE"
        }
       ],
       "private_data_type": "dummy_data",

@@ -391,6 +391,20 @@ sol_flow_send_composed_packet(struct sol_flow_node *src, uint16_t src_port, cons
 #undef SOL_FLOW_SEND_PACKET
 
 SOL_API int
+sol_flow_send_http_response_packet(struct sol_flow_node *src, uint16_t src_port,
+    int response_code, const char *url, const char *content_type,
+    const struct sol_blob *content, const struct sol_vector *cookies,
+    const struct sol_vector *headers)
+{
+    struct sol_flow_packet *http_packet;
+
+    http_packet = sol_flow_packet_new_http_response(response_code, url,
+        content_type, content, cookies, headers);
+    SOL_NULL_CHECK(http_packet, -ENOMEM);
+    return sol_flow_send_packet(src, src_port, http_packet);
+}
+
+SOL_API int
 sol_flow_send_string_take_packet(struct sol_flow_node *src, uint16_t src_port, char *value)
 {
     struct sol_flow_packet *string_packet;
