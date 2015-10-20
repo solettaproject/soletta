@@ -46,6 +46,7 @@
         "direction-vector",
         "error",
         "float",
+        "http-response",
         "int",
         "json-object",
         "json-array",

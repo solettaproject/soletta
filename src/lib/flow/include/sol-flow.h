@@ -194,6 +194,8 @@ int sol_flow_send_string_take_packet(struct sol_flow_node *src, uint16_t src_por
 
 int sol_flow_send_composed_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_flow_packet_type *composed_type, struct sol_flow_packet **children);
 
+int sol_flow_send_http_response_packet(struct sol_flow_node *src, uint16_t src_port, int response_code, const char *url, const char *content_type, const struct sol_blob *content, const struct sol_vector *cookies, const struct sol_vector *headers);
+
 /**
  * Get a node's type.
  *

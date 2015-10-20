@@ -101,6 +101,7 @@ extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_RGB;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_LOCATION;
 extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_TIMESTAMP;
+extern const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE;
 
 /* Convenience functions to use certain types of common packets. */
 struct sol_flow_packet *sol_flow_packet_new_empty(void);
@@ -161,6 +162,10 @@ bool sol_flow_packet_is_composed_type(const struct sol_flow_packet_type *type);
 int sol_flow_packet_get_composed_members_len(const struct sol_flow_packet_type *type, uint16_t *len);
 int sol_flow_packet_get_composed_members(const struct sol_flow_packet *packet, struct sol_flow_packet ***children, uint16_t *len);
 struct sol_flow_packet *sol_flow_packet_dup(const struct sol_flow_packet *packet);
+
+struct sol_flow_packet *sol_flow_packet_new_http_response(int response_code, const char *url, const char *content_type, const struct sol_blob *content, const struct sol_vector *cookies, const struct sol_vector *headers);
+
+int sol_flow_packet_get_http_response(const struct sol_flow_packet *packet, int *response_code, const char **url, const char **content_type, const struct sol_blob **content, struct sol_vector *cookies, struct sol_vector *headers);
 /**
  * @}
  */
