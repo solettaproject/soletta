@@ -223,6 +223,16 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
             SOL_HTTP_REQUEST_PARAM_COOKIE(k, v)))
             goto param_err;
         break;
+    case MHD_GET_ARGUMENT_KIND:
+        if (!sol_http_param_add(&request->params,
+            SOL_HTTP_REQUEST_PARAM_QUERY(k, v)))
+            goto param_err;
+        break;
+    case MHD_POSTDATA_KIND:
+        if (!sol_http_param_add(&request->params,
+            SOL_HTTP_REQUEST_PARAM_POST_FIELD(k, v)))
+            goto param_err;
+        break;
     default:
         goto param_err;
     }
@@ -322,6 +332,9 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             continue;
 
         MHD_get_connection_values(connection, MHD_HEADER_KIND, headers_iterator, req);
+        MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND, headers_iterator, req);
+        MHD_get_connection_values(connection, MHD_COOKIE_KIND, headers_iterator, req);
+        MHD_get_connection_values(connection, MHD_POSTDATA_KIND, headers_iterator, req);
         if (handler->last_modified && (req->if_since_modified > handler->last_modified)) {
             status = SOL_HTTP_STATUS_NOT_MODIFIED;
             goto end;
