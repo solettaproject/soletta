@@ -7,6 +7,7 @@ config CRYPTO_MESSAGE_DIGEST_COMMON
 choice
 	prompt "Message Digest (Hash)"
 	depends on FEATURE_CRYPTO_MESSAGE_DIGEST
+	default CRYPTO_MESSAGE_DIGEST_OPENSSL if LINUX && HAVE_OPENSSL
 	default CRYPTO_MESSAGE_DIGEST_LINUX_KCAPI if LINUX
 	help
             Message Digest algorithms will take a byte stream and
