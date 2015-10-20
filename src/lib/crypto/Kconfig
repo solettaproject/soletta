@@ -8,6 +8,7 @@ choice
 	prompt "Message Digest (Hash)"
 	depends on FEATURE_CRYPTO_MESSAGE_DIGEST
 	default CRYPTO_MESSAGE_DIGEST_LINUX_KCAPI if LINUX
+	default CRYPTO_MESSAGE_DIGEST_RIOT if RIOT
 	help
             Message Digest algorithms will take a byte stream and
             compute a hash that may be used to later validate the
@@ -46,6 +47,15 @@ config CRYPTO_MESSAGE_DIGEST_OPENSSL
 	select CRYPTO_MESSAGE_DIGEST_COMMON
 	help
             This implementation will use OpenSSL.
+
+config CRYPTO_MESSAGE_DIGEST_RIOT
+	bool "RIOT"
+	depends on RIOT && FEATURE_CRYPTO_MESSAGE_DIGEST
+	select CRYPTO_MESSAGE_DIGEST
+	select CRYPTO_MESSAGE_DIGEST_COMMON
+	help
+            This implementation will use the algorithms natively supported by
+            RIOT-OS.
 
 config CRYPTO_MESSAGE_DIGEST_NONE
 	bool "None"
