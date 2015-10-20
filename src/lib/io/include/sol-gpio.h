@@ -42,13 +42,13 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for GPIO access under Solleta.
+ * @brief These routines are used for GPIO access under Soletta.
  */
 
 /**
  * @defgroup IO I/O
  *
- * These routines are used for general I/O access under Solleta
+ * These routines are used for general I/O access under Soletta
  * (namely GPIO, PWM, SPI, UART and I2C).
  *
  */
@@ -57,7 +57,7 @@ extern "C" {
  * @defgroup GPIO GPIO
  * @ingroup IO
  *
- * GPIO (General Purpose Input/Output) API for Solleta.
+ * GPIO (General Purpose Input/Output) API for Soletta.
  *
  * @{
  */

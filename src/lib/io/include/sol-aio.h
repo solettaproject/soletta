@@ -40,14 +40,14 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for analog I/O access under Solleta.
+ * @brief These routines are used for analog I/O access under Soletta.
  */
 
 /**
  * @defgroup AIO AIO
  * @ingroup IO
  *
- * Analog I/O API for Solleta.
+ * Analog I/O API for Soletta.
  *
  * @{
  */

@@ -42,7 +42,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for Solleta flow language's .conf file entries resolving.
+ * @brief These routines are used for Soletta flow language's .conf file entries resolving.
  */
 
 /**

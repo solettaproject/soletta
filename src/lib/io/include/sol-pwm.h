@@ -41,14 +41,14 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for PWM access under Solleta.
+ * @brief These routines are used for PWM access under Soletta.
  */
 
 /**
  * @defgroup PWM PWM
  * @ingroup IO
  *
- * PWM (Pulse-width modulation) API for Solleta.
+ * PWM (Pulse-width modulation) API for Soletta.
  *
  * @{
  */

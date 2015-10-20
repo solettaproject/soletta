@@ -105,7 +105,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for Solleta's mainloop manipulation.
+ * @brief These routines are used for Soletta's mainloop manipulation.
  */
 
 /**

@@ -45,7 +45,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for I2C access under Solleta.
+ * @brief These routines are used for I2C access under Soletta.
  */
 
 /**

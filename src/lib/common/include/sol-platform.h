@@ -38,7 +38,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for Solleta platform interaction.
+ * @brief These routines are used for Soletta platform interaction.
  */
 
 /**

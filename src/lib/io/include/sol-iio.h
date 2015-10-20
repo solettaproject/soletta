@@ -40,14 +40,14 @@ extern "C" {
 
 /**
  * @file
- * @brief Routines to access Linux Industrial I/O (iio) devices under Solleta
+ * @brief Routines to access Linux Industrial I/O (iio) devices under Soletta
  */
 
 /**
  * @defgroup IIO IIO
  * @ingroup IO
  *
- * IIO (Linux Industrial I/O) API for Solleta.
+ * IIO (Linux Industrial I/O) API for Soletta.
  *
  * @{
  */

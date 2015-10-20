@@ -45,7 +45,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for Solleta flows manipulation.
+ * @brief These routines are used for Soletta flows manipulation.
  */
 
 /**

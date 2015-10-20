@@ -44,7 +44,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These are routines that Solleta provides for its buffer implementation.
+ * @brief These are routines that Soletta provides for its buffer implementation.
  */
 
 /**

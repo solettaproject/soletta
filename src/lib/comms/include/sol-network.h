@@ -43,7 +43,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These are routines that Solleta provides for handling network
+ * @brief These are routines that Soletta provides for handling network
  * link interfaces, making it possible to observe events,
  * to inquire available links and to set their states.
  */

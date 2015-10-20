@@ -41,14 +41,14 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for UART access under Solleta.
+ * @brief These routines are used for UART access under Soletta.
  */
 
 /**
  * @defgroup UART UART
  * @ingroup IO
  *
- * UART (Universal Asynchronous Receiver/Transmitter) API for Solleta.
+ * UART (Universal Asynchronous Receiver/Transmitter) API for Soletta.
  *
  * @{
  */

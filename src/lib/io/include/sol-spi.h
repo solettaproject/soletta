@@ -41,14 +41,14 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for SPI access under Solleta.
+ * @brief These routines are used for SPI access under Soletta.
  */
 
 /**
  * @defgroup SPI SPI
  * @ingroup IO
  *
- * SPI (Serial Peripheral Interface) API for Solleta.
+ * SPI (Serial Peripheral Interface) API for Soletta.
  *
  * @{
  */

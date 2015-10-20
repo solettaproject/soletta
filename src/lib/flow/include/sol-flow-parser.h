@@ -43,7 +43,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for Solleta flow language (flow based programming) parsing.
+ * @brief These routines are used for Soletta flow language (flow based programming) parsing.
  */
 
 /**

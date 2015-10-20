@@ -42,7 +42,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These are routines that Solleta provides for its string table implementation.
+ * @brief These are routines that Soletta provides for its string table implementation.
  */
 
 /**

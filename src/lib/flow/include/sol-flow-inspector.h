@@ -42,7 +42,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for Solleta flow's runtime inspector.
+ * @brief These routines are used for Soletta flow's runtime inspector.
  */
 
 /**

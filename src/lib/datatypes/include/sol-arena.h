@@ -41,7 +41,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These are routines that Solleta provides for its arena implementation.
+ * @brief These are routines that Soletta provides for its arena implementation.
  */
 
 /**

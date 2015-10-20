@@ -43,7 +43,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for Solleta types' manipulation.
+ * @brief These routines are used for Soletta types' manipulation.
  */
 
 /**

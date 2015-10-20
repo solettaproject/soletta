@@ -47,7 +47,7 @@ extern "C" {
 
 /**
  * @file
- * @brief These routines are used for Solleta logging.
+ * @brief These routines are used for Soletta logging.
  */
 
 /**

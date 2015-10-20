@@ -175,7 +175,7 @@ load_memory_maps(const struct sol_ptr_vector *maps)
 
     return true;
 #else
-    SOL_WRN("Memory map defined on config file, but Solleta was built without support to it");
+    SOL_WRN("Memory map defined on config file, but Soletta was built without support to it");
     return true;
 #endif
 }
