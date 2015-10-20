@@ -16,6 +16,9 @@ obj-crypto-$(CRYPTO_MESSAGE_DIGEST_OPENSSL)-extra-ldflags += \
 obj-crypto-$(CRYPTO_MESSAGE_DIGEST_OPENSSL)-extra-cflags += \
     $(OPENSSL_CFLAGS)
 
+obj-crypto-$(CRYPTO_MESSAGE_DIGEST_RIOT) += \
+    sol-message-digest-impl-riot.o
+
 obj-crypto-$(CRYPTO_MESSAGE_DIGEST_NONE) += \
    sol-message-digest-impl-none.o
 
