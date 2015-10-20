@@ -192,13 +192,13 @@ string_concatenate_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_string_concatenate_options *)options;
 
-    if (opts->bytes.val < 0) {
-        SOL_WRN("Option 'bytes' (%" PRId32 ") must be a positive "
-            "amount of bytes to be copied or zero if whole strings "
-            "should be concatenated. Considering zero.", opts->bytes.val);
+    if (opts->chars.val < 0) {
+        SOL_WRN("Option 'chars' (%" PRId32 ") must be a positive "
+            "amount of chars to be copied or zero if whole strings "
+            "should be concatenated. Considering zero.", opts->chars.val);
         mdata->base.n = 0;
     } else
-        mdata->base.n = opts->bytes.val;
+        mdata->base.n = opts->chars.val;
 
     if (opts->separator) {
         UErrorCode err;
@@ -273,13 +273,13 @@ string_compare_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_string_compare_options *)options;
 
-    if (opts->bytes.val < 0) {
-        SOL_WRN("Option 'bytes' (%" PRId32 ") must be a positive "
-            "amount of bytes to be compared or zero if whole strings "
-            "should be compared. Considering zero.", opts->bytes.val);
+    if (opts->chars.val < 0) {
+        SOL_WRN("Option 'chars' (%" PRId32 ") must be a positive "
+            "amount of chars to be compared or zero if whole strings "
+            "should be compared. Considering zero.", opts->chars.val);
         mdata->base.n = 0;
     } else
-        mdata->base.n = opts->bytes.val;
+        mdata->base.n = opts->chars.val;
 
     mdata->ignore_case = opts->ignore_case;
 
