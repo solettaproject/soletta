@@ -1,4 +1,0 @@
-config FLOW_NODE_TYPES
-	bool "flow node types"
-	depends on NODE_DESCRIPTION
-	default y

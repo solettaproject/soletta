@@ -200,7 +200,6 @@ depends on FEATURE_RUNNABLE_PROGRAMS
 source "src/bin/sol-fbp-generator/Kconfig"
 source "src/bin/sol-fbp-runner/Kconfig"
 source "src/bin/sol-fbp-to-dot/Kconfig"
-source "src/bin/sol-flow-node-types/Kconfig"
 endmenu
 
 menu "Test suite"
