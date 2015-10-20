@@ -44,6 +44,7 @@
 #include "sol-types.h"
 #include "sol-flow-composed.h"
 #include "sol-log.h"
+#include "sol-str-table.h"
 
 #define DELIM ("|")
 #define INPUT_PORT_NAME ("IN")
@@ -172,33 +173,24 @@ get_packet_type(const struct sol_str_slice type)
 static const char *
 get_packet_type_as_string(const struct sol_str_slice type)
 {
-    if (sol_str_slice_str_eq(type, "int"))
-        return "SOL_FLOW_PACKET_TYPE_IRANGE";
-    if (sol_str_slice_str_eq(type, "float"))
-        return "SOL_FLOW_PACKET_TYPE_DRANGE";
-    if (sol_str_slice_str_eq(type, "string"))
-        return "SOL_FLOW_PACKET_TYPE_STRING";
-    if (sol_str_slice_str_eq(type, "boolean"))
-        return "SOL_FLOW_PACKET_TYPE_BOOLEAN";
-    if (sol_str_slice_str_eq(type, "byte"))
-        return "SOL_FLOW_PACKET_TYPE_BYTE";
-    if (sol_str_slice_str_eq(type, "blob"))
-        return "SOL_FLOW_PACKET_TYPE_BLOB";
-    if (sol_str_slice_str_eq(type, "rgb"))
-        return "SOL_FLOW_PACKET_TYPE_RGB";
-    if (sol_str_slice_str_eq(type, "location"))
-        return "SOL_FLOW_PACKET_TYPE_LOCATION";
-    if (sol_str_slice_str_eq(type, "timestamp"))
-        return "SOL_FLOW_PACKET_TYPE_TIMESTAMP";
-    if (sol_str_slice_str_eq(type, "direction-vector"))
-        return "SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR";
-    if (sol_str_slice_str_eq(type, "error"))
-        return "SOL_FLOW_PACKET_TYPE_ERROR";
-    if (sol_str_slice_str_eq(type, "json-object"))
-        return "SOL_FLOW_PACKET_TYPE_JSON_OBJECT";
-    if (sol_str_slice_str_eq(type, "json-array"))
-        return "SOL_FLOW_PACKET_TYPE_JSON_ARRAY";
-    return NULL;
+    static const struct sol_str_table_ptr map[] = {
+        SOL_STR_TABLE_PTR_ITEM("int", "SOL_FLOW_PACKET_TYPE_IRANGE"),
+        SOL_STR_TABLE_PTR_ITEM("float", "SOL_FLOW_PACKET_TYPE_DRANGE"),
+        SOL_STR_TABLE_PTR_ITEM("string", "SOL_FLOW_PACKET_TYPE_STRING"),
+        SOL_STR_TABLE_PTR_ITEM("boolean", "SOL_FLOW_PACKET_TYPE_BOOLEAN"),
+        SOL_STR_TABLE_PTR_ITEM("byte", "SOL_FLOW_PACKET_TYPE_BYTE"),
+        SOL_STR_TABLE_PTR_ITEM("blob", "SOL_FLOW_PACKET_TYPE_BLOB"),
+        SOL_STR_TABLE_PTR_ITEM("rgb", "SOL_FLOW_PACKET_TYPE_RGB"),
+        SOL_STR_TABLE_PTR_ITEM("location", "SOL_FLOW_PACKET_TYPE_LOCATION"),
+        SOL_STR_TABLE_PTR_ITEM("timestamp", "SOL_FLOW_PACKET_TYPE_TIMESTAMP"),
+        SOL_STR_TABLE_PTR_ITEM("direction-vector",
+            "SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR"),
+        SOL_STR_TABLE_PTR_ITEM("error", "SOL_FLOW_PACKET_TYPE_ERROR"),
+        SOL_STR_TABLE_PTR_ITEM("json-object", "SOL_FLOW_PACKET_TYPE_JSON_OBJECT"),
+        SOL_STR_TABLE_PTR_ITEM("json-array", "SOL_FLOW_PACKET_TYPE_JSON_ARRAY"),
+    };
+
+    return sol_str_table_ptr_lookup_fallback(map, type, NULL);
 }
 
 static int
