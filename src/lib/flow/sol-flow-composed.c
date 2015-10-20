@@ -166,6 +166,8 @@ get_packet_type(const struct sol_str_slice type)
         return SOL_FLOW_PACKET_TYPE_JSON_OBJECT;
     if (sol_str_slice_str_eq(type, "json-array"))
         return SOL_FLOW_PACKET_TYPE_JSON_ARRAY;
+    if (sol_str_slice_str_eq(type, "http-request"))
+        return SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE;
     return NULL;
 }
 
@@ -198,6 +200,8 @@ get_packet_type_as_string(const struct sol_str_slice type)
         return "SOL_FLOW_PACKET_TYPE_JSON_OBJECT";
     if (sol_str_slice_str_eq(type, "json-array"))
         return "SOL_FLOW_PACKET_TYPE_JSON_ARRAY";
+    if (sol_str_slice_str_eq(type, "http-request"))
+        return "SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE";
     return NULL;
 }
 

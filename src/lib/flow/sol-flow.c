@@ -388,6 +388,12 @@ sol_flow_send_composed_packet(struct sol_flow_node *src, uint16_t src_port, cons
     return sol_flow_send_packet(src, src_port, out_packet);
 }
 
+SOL_API int
+sol_flow_send_http_response_packet(struct sol_flow_node *src, uint16_t src_port, const struct sol_http_response_type *value)
+{
+    SOL_FLOW_SEND_PACKET(http_response);
+}
+
 #undef SOL_FLOW_SEND_PACKET
 
 SOL_API int

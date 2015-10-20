@@ -801,6 +801,125 @@ sol_flow_packet_get_error(const struct sol_flow_packet *packet, int *code, const
     return ret;
 }
 
+static void
+clear_http_params(struct sol_vector *vector)
+{
+    uint16_t i;
+    struct sol_http_response_param *param;
+
+    SOL_VECTOR_FOREACH_IDX (vector, param, i) {
+        free((char *)param->key);
+        free((char *)param->value);
+    }
+    sol_vector_clear(vector);
+}
+
+static int
+copy_http_params(struct sol_vector *dst, const struct sol_vector *src)
+{
+    uint16_t i;
+    struct sol_http_response_param *param, *new_param;
+
+    SOL_VECTOR_FOREACH_IDX (src, param, i) {
+        new_param = sol_vector_append(dst);
+        SOL_NULL_CHECK_GOTO(new_param, err_append);
+        SOL_NULL_CHECK_GOTO(param->key, err_key);
+        new_param->key = strdup(param->key);
+        SOL_NULL_CHECK_GOTO(new_param->key, err_key);
+        SOL_NULL_CHECK_GOTO(param->value, err_key);
+        new_param->value = strdup(param->value);
+        SOL_NULL_CHECK_GOTO(new_param->value, err_value);
+    }
+
+    return 0;
+
+err_value:
+    free((char *)new_param->key);
+err_key:
+    (void)sol_vector_del(dst, i);
+err_append:
+    return -ENOMEM;
+}
+
+static int
+http_response_type_init(const struct sol_flow_packet_type *packet_type,
+    void *mem, const void *input)
+{
+    const struct sol_http_response_type *in = input;
+    struct sol_http_response_type *resp = mem;
+    int r;
+
+    SOL_NULL_CHECK(in->url, -EINVAL);
+    SOL_NULL_CHECK(in->content_type, -EINVAL);
+    SOL_NULL_CHECK(in->content, -EINVAL);
+
+    resp->url = strdup(in->url);
+    SOL_NULL_CHECK(resp->url, -ENOMEM);
+
+    resp->content_type = strdup(in->content_type);
+    SOL_NULL_CHECK_GOTO(resp->content_type, err_content_type);
+
+    resp->content = sol_blob_ref(in->content);
+    SOL_NULL_CHECK_GOTO(resp->content, err_blob);
+
+    resp->code = in->code;
+
+    sol_vector_init(&resp->cookies, sizeof(struct sol_http_response_param));
+    sol_vector_init(&resp->headers, sizeof(struct sol_http_response_param));
+    r = copy_http_params(&resp->cookies, &in->cookies);
+    SOL_INT_CHECK_GOTO(r, < 0, err_cookies);
+    r = copy_http_params(&resp->headers, &in->headers);
+    SOL_INT_CHECK_GOTO(r, < 0, err_headers);
+
+    return 0;
+err_headers:
+    clear_http_params(&resp->headers);
+err_cookies:
+    clear_http_params(&resp->cookies);
+err_blob:
+    free((void *)resp->content_type);
+err_content_type:
+    free((void *)resp->url);
+    return -ENOMEM;
+}
+
+static void
+http_response_type_dispose(const struct sol_flow_packet_type *packet_type,
+    void *mem)
+{
+    struct sol_http_response_type *resp = mem;
+
+    free((void *)resp->content_type);
+    free((void *)resp->url);
+    clear_http_params(&resp->cookies);
+    clear_http_params(&resp->headers);
+    sol_blob_unref(resp->content);
+}
+
+SOL_API struct sol_flow_packet *
+sol_flow_packet_new_http_response(const struct sol_http_response_type *resp)
+{
+    return sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE, resp);
+}
+
+SOL_API int
+sol_flow_packet_get_http_response(const struct sol_flow_packet *packet,
+    struct sol_http_response_type *resp)
+{
+    SOL_FLOW_PACKET_CHECK(packet, SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE, -EINVAL);
+    return sol_flow_packet_get(packet, resp);
+}
+
+static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE = {
+    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    .name = "HTTP_RESPONSE",
+    .data_size = sizeof(struct sol_http_response_type),
+    .init = http_response_type_init,
+    .dispose = http_response_type_dispose,
+};
+
+SOL_API const struct sol_flow_packet_type *SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE = &_SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE;
+
 static int
 composed_type_init(const struct sol_flow_packet_type *packet_type, void *mem, const void *input)
 {

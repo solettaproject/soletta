@@ -36,6 +36,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <float.h>
+#include <sol-vector.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -256,6 +257,22 @@ int sol_blob_setup(struct sol_blob *blob, const struct sol_blob_type *type, cons
 struct sol_blob *sol_blob_ref(struct sol_blob *blob);
 void sol_blob_unref(struct sol_blob *blob);
 void sol_blob_set_parent(struct sol_blob *blob, struct sol_blob *parent);
+
+struct sol_http_response_param {
+    const char *key;
+    const char *value;
+};
+
+struct sol_http_response_type {
+    int code;
+    const char *content_type;
+    const char *url;
+    struct sol_blob *content;
+    /* vector of struct sol_http_response_param */
+    struct sol_vector headers;
+    /* vector of struct sol_http_response_param */
+    struct sol_vector cookies;
+};
 
 /**
  * @}

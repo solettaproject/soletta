@@ -39,7 +39,7 @@
     },
 
     "data_type": {
-      "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "direction-vector", "error", "location", "timestamp", "blob", "json-object", "json-array"]
+      "enum": [ "boolean", "int", "http-response", "byte", "string", "float", "rgb", "direction-vector", "error", "location", "timestamp", "blob", "json-object", "json-array"]
     },
 
     "option_data_type": {
