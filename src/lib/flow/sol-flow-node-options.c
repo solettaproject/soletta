@@ -51,7 +51,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
     return (uint8_t *)opts + member->offset;
 }
 
-#define STRTOL_DECIMAL(_ptr, _endptr) strtol(_ptr, _endptr, 0)
+#define STRTOL_DECIMAL(_ptr, _endptr) strtoll(_ptr, _endptr, 0)
 
 #define ASSIGN_LINEAR_VALUES(_parse_func, \
         _max_val, _max_str, _max_str_len,          \
