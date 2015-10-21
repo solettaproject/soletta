@@ -59,15 +59,16 @@
     },
     {
       "category": "string",
-      "description": "Concatenate two strings",
+      "description": "Concatenate strings",
       "in_ports": [
         {
           "data_type": "string",
-          "description": "Two strings to be concatenated. Indexed from 0 to 1.",
+          "description": "Strings to be concatenated. Indexed from 0 to 31.",
           "methods": {
+            "connect": "string_concat_connect",
             "process": "string_concat"
           },
-          "name": "IN[2]"
+          "name": "IN[32]"
         }
       ],
       "methods": {
@@ -77,15 +78,9 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
-            "default": 0,
-            "description": "Amount of chars to be copied to destination string. If zero, no chars limit will be defined.",
-            "name": "chars"
-          },
-          {
             "data_type": "string",
             "default": null,
-            "description": "Separator string to be used between the two concatenated strings. It's set to null by default (no separator).",
+            "description": "Separator string to be used between the concatenated strings. It's set to null by default (no separator).",
             "name": "separator"
           }
         ],
@@ -95,7 +90,7 @@
       "out_ports": [
         {
           "data_type": "string",
-          "description": "String IN[0] concatenated to string IN[1].",
+          "description": "Strings received on pors IN[0] to IN[31] concatenated.",
           "name": "OUT"
         }
       ],

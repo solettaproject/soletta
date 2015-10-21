@@ -335,6 +335,20 @@ sol_util_size_add(const size_t a, const size_t b, size_t *out)
 }
 
 static inline int
+sol_util_size_sub(const size_t a, const size_t b, size_t *out)
+{
+#ifdef HAVE_BUILTIN_SUB_OVERFLOW
+    if (__builtin_sub_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if (b > a)
+        return -EOVERFLOW;
+    *out = a - b;
+#endif
+    return 0;
+}
+
+static inline int
 sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
 {
 #ifdef HAVE_BUILTIN_MUL_OVERFLOW
