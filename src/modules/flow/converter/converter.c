@@ -1950,18 +1950,17 @@ bits_to_byte_convert(struct sol_flow_node *node, void *data, uint16_t port, uint
 
 #undef SET_BIT
 
-static int
-string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+static struct sol_blob *
+get_string_convert_blob(struct sol_converter_string_blob *mdata, const struct sol_flow_packet *packet)
 {
-    struct sol_converter_string_blob *mdata = data;
-    char *mem;
-    const char *str;
     struct sol_blob *blob;
-    size_t len;
+    const char *str;
+    char *mem;
     int ret;
+    size_t len;
 
     ret = sol_flow_packet_get_string(packet, &str);
-    SOL_INT_CHECK(ret, < 0, -EINVAL);
+    SOL_INT_CHECK(ret, < 0, NULL);
 
     len = strlen(str);
     if (mdata->include_null_terminator)
@@ -1971,20 +1970,34 @@ string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, ui
         mem = NULL;
     else {
         mem = malloc(len);
-        SOL_NULL_CHECK(mem, -ENOMEM);
+        SOL_NULL_CHECK(mem, NULL);
         memcpy(mem, str, len);
     }
 
     blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, len);
     if (!blob) {
         free(mem);
-        return -ENOMEM;
+        return NULL;
     }
+
+    return blob;
+}
+
+static int
+string_to_blob_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_converter_string_blob *mdata = data;
+    struct sol_blob *blob;
+    int ret;
+
+    blob = get_string_convert_blob(mdata, packet);
+    SOL_NULL_CHECK(blob, -ENOMEM);
 
     ret = sol_flow_send_blob_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_BLOB__OUT__OUT, blob);
 
     sol_blob_unref(blob);
+
     return ret;
 }
 
@@ -2201,4 +2214,63 @@ json_array_to_blob_process(struct sol_flow_node *node, void *data, uint16_t port
 
     return ret;
 }
+
+static int
+string_to_json_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct sol_converter_string_blob *mdata = data;
+
+    mdata->include_null_terminator = true;
+
+    return 0;
+}
+
+static int
+string_to_json_object_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_converter_string_blob *mdata = data;
+    struct sol_blob *blob;
+    int ret;
+
+    blob = get_string_convert_blob(mdata, packet);
+    SOL_NULL_CHECK(blob, -ENOMEM);
+
+    if (!json_validate(blob, SOL_JSON_TYPE_OBJECT_START)) {
+        sol_blob_unref(blob);
+        return sol_flow_send_error_packet(node, EINVAL,
+            "Blob isn't a valid JSON Object");
+    }
+
+    ret = sol_flow_send_json_object_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_JSON_OBJECT__OUT__OUT, blob);
+
+    sol_blob_unref(blob);
+
+    return ret;
+}
+
+static int
+string_to_json_array_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_converter_string_blob *mdata = data;
+    struct sol_blob *blob;
+    int ret;
+
+    blob = get_string_convert_blob(mdata, packet);
+    SOL_NULL_CHECK(blob, -ENOMEM);
+
+    if (!json_validate(blob, SOL_JSON_TYPE_ARRAY_START)) {
+        sol_blob_unref(blob);
+        return sol_flow_send_error_packet(node, EINVAL,
+            "Blob isn't a valid JSON Array");
+    }
+
+    ret = sol_flow_send_json_array_packet(node,
+        SOL_FLOW_NODE_TYPE_CONVERTER_STRING_TO_JSON_ARRAY__OUT__OUT, blob);
+
+    sol_blob_unref(blob);
+
+    return ret;
+}
+
 #include "converter-gen.c"

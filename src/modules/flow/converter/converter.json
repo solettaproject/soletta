@@ -2204,6 +2204,60 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/converter/json-array-to-blob.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a string packet, validates it and converts it to a JSON object.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string value to be converted.",
+          "methods": {
+            "process": "string_to_json_object_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "string_to_json_open"
+      },
+      "name": "converter/string-to-json-object",
+      "out_ports": [
+        {
+          "data_type": "json-object",
+          "description": "Packet with JSON object converted from string received on port IN.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_string_blob",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-json-object.html"
+    },
+    {
+      "category": "converter",
+      "description": "Receives a string packet, validates it and converts it to a JSON array.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Where to receive the string value to be converted.",
+          "methods": {
+            "process": "string_to_json_array_convert"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "string_to_json_open"
+      },
+      "name": "converter/string-to-json-array",
+      "out_ports": [
+        {
+          "data_type": "json-array",
+          "description": "Packet with JSON array converted from string received on port IN.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "sol_converter_string_blob",
+      "url": "http://solettaproject.org/doc/latest/node_types/converter/string-to-json-array.html"
     }
   ]
 }

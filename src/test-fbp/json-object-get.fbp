@@ -29,7 +29,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 json_object_str(constant/string:value="{\"int_val\": 123, \"float_val\": 1.23 \"string_val\" : \"hello\" \"false_val\": false, \"true_val\": true, \"null_val\": null, \"array_val\":[1,2,3], \"object_val\": {\"inner_int\": 456}}")
-json_object(converter/blob-to-json-object)
+json_object(converter/string-to-json-object)
 
 int_validator(test/int-validator:sequence="123")
 float_validator(test/float-validator:sequence="123 1.23")
@@ -49,7 +49,7 @@ get_key_object_val(json/object-get-key:key="object_val")
 get_key_array_val(json/object-get-key)
 
 # Test node json/object-get-key
-json_object_str OUT -> IN _(converter/string-to-blob) OUT -> IN json_object
+json_object_str OUT -> IN json_object
 json_object OUT -> IN get_key_int_val
 json_object OUT -> IN get_key_float_val
 json_object OUT -> IN get_key_string_val
@@ -84,13 +84,13 @@ object_length_validator OUT -> RESULT test_object_length(test/result)
 
 # Test node json/object-get-all-keys
 empty_str(constant/string:value="{}")
-empty_json_object(converter/blob-to-json-object)
+empty_json_object(converter/string-to-json-object)
 key_validator(test/string-validator:sequence="int_val|float_val|string_val|false_val|true_val|null_val|array_val|object_val")
 
 json_object OUT -> IN get_all_keys(json/object-get-all-keys)
 get_all_keys EMPTY -> IN _(boolean/not) OUT -> RESULT get_all_keys_empty_validator(test/result)
 get_all_keys OUT -> IN key_validator OUT -> RESULT get_all_keys_validator(test/result)
 
-empty_str OUT -> IN _(converter/string-to-blob) OUT -> IN empty_json_object
+empty_str OUT -> IN empty_json_object
 empty_json_object OUT -> IN get_all_keys2(json/object-get-all-keys)
 get_all_keys2 EMPTY -> RESULT get_all_keys_empty_validator2(test/result)
