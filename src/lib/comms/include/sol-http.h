@@ -72,6 +72,8 @@ enum sol_http_param_type {
 
 enum sol_http_status_code {
     SOL_HTTP_STATUS_OK = 200,
+    SOL_HTTP_STATUS_FOUND = 302,
+    SOL_HTTP_STATUS_SEE_OTHER = 303,
     SOL_HTTP_STATUS_NOT_MODIFIED = 304,
     SOL_HTTP_STATUS_BAD_REQUEST = 400,
     SOL_HTTP_STATUS_FORBIDDEN = 403,
