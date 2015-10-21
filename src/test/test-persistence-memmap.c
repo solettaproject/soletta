@@ -80,6 +80,51 @@ static const struct sol_memmap_map _memmap0 = {
     .entries = _memmap0_entries
 };
 
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry0, 2, 1, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry1, 3, 1, 0, 1);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry2, 3, 4, 1, 30);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry3, 0, 1, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry4, 0, 16, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry5, 0, 16, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry6, 0, 10, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry7, 0, 32, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry8, 0, 8, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry9, 0, 32, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry10, 0, 16, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry11, 0, 16, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry12, 0, 1, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry13, 0, 1, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry14, 0, 10, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry15, 0, 32, 0, 0);
+SOL_MEMMAP_ENTRY_BIT_SIZE(map1_entry16, 0, 32, 0, 0);
+
+static const struct sol_str_table_ptr _memmap1_entries[] = {
+    SOL_STR_TABLE_PTR_ITEM("_version", &map1_entry0),
+    SOL_STR_TABLE_PTR_ITEM("boolean2", &map1_entry1),
+    SOL_STR_TABLE_PTR_ITEM("int_only_val2", &map1_entry2),
+    SOL_STR_TABLE_PTR_ITEM("byte2", &map1_entry3),
+    SOL_STR_TABLE_PTR_ITEM("int2", &map1_entry4),
+    SOL_STR_TABLE_PTR_ITEM("irange2", &map1_entry5),
+    SOL_STR_TABLE_PTR_ITEM("string2", &map1_entry6),
+    SOL_STR_TABLE_PTR_ITEM("double2", &map1_entry7),
+    SOL_STR_TABLE_PTR_ITEM("double_only_val2", &map1_entry8),
+    SOL_STR_TABLE_PTR_ITEM("drange2", &map1_entry9),
+    SOL_STR_TABLE_PTR_ITEM("int_def2", &map1_entry10),
+    SOL_STR_TABLE_PTR_ITEM("irange_def2", &map1_entry11),
+    SOL_STR_TABLE_PTR_ITEM("byte_def2", &map1_entry12),
+    SOL_STR_TABLE_PTR_ITEM("boolean_def2", &map1_entry13),
+    SOL_STR_TABLE_PTR_ITEM("string_def2", &map1_entry14),
+    SOL_STR_TABLE_PTR_ITEM("double_def2", &map1_entry15),
+    SOL_STR_TABLE_PTR_ITEM("drange_def2", &map1_entry16),
+    { }
+};
+
+static const struct sol_memmap_map _memmap1 = {
+    .version = 1,
+    .path = "memmap-test2.bin",
+    .entries = _memmap1_entries
+};
+
 static struct sol_irange irange_not_delayed = {
     .val = -23,
     .min = -1000,
@@ -145,6 +190,27 @@ write_one(void)
 
     r = sol_memmap_write_string("string", "gama delta", write_cb, NULL);
     ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_bool("boolean2", true, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_uint8("byte2", 78, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_int32("int_only_val2", 7804, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_irange("irange2", &irange_not_delayed, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_drange("drange2", &drange_not_delayed, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_double("double_only_val2", 97.36, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_string("string2", "gama delta", write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
 }
 
 static void
@@ -186,6 +252,35 @@ read_one(void)
     ASSERT_INT_EQ(r, 0);
     ASSERT_STR_EQ(string, "gama delta");
     free(string);
+
+    r = sol_memmap_read_bool("boolean2", &b);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT(b);
+
+    r = sol_memmap_read_uint8("byte2", &u);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(u, 78);
+
+    r = sol_memmap_read_int32("int_only_val2", &i);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(i, 7804);
+
+    r = sol_memmap_read_irange("irange2", &irange);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT(sol_irange_equal(&irange, &irange_not_delayed));
+
+    r = sol_memmap_read_drange("drange2", &drange);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT(sol_drange_equal(&drange, &drange_not_delayed));
+
+    r = sol_memmap_read_double("double_only_val2", &d);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT(sol_drange_val_equal(d, 97.36));
+
+    r = sol_memmap_read_string("string2", &string);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_STR_EQ(string, "gama delta");
+    free(string);
 }
 
 static void
@@ -212,6 +307,27 @@ write_two(void)
     ASSERT_INT_EQ(r, 0);
 
     r = sol_memmap_write_string("string", "alfa beta", write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_bool("boolean2", false, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_uint8("byte2", 88, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_int32("int_only_val2", 7814, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_irange("irange2", &irange_delayed, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_drange("drange2", &drange_delayed, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_double("double_only_val2", 107.36, write_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_string("string2", "alfa beta", write_cb, NULL);
     ASSERT_INT_EQ(r, 0);
 }
 
@@ -254,6 +370,35 @@ read_two(void)
     ASSERT_INT_EQ(r, 0);
     ASSERT_STR_EQ(string, "alfa beta");
     free(string);
+
+    r = sol_memmap_read_bool("boolean2", &b);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT(!b);
+
+    r = sol_memmap_read_uint8("byte2", &u);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(u, 88);
+
+    r = sol_memmap_read_int32("int_only_val2", &i);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(i, 7814);
+
+    r = sol_memmap_read_irange("irange2", &irange);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT(sol_irange_equal(&irange, &irange_delayed));
+
+    r = sol_memmap_read_drange("drange2", &drange);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT(sol_drange_equal(&drange, &drange_delayed));
+
+    r = sol_memmap_read_double("double_only_val2", &d);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT(sol_drange_val_equal(d, 107.36));
+
+    r = sol_memmap_read_string("string2", &string);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_STR_EQ(string, "alfa beta");
+    free(string);
 }
 
 static bool
@@ -288,6 +433,27 @@ write_one_cancelled(void)
     ASSERT_INT_EQ(r, 0);
 
     r = sol_memmap_write_string("string", "gama delta", write_cancelled_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_bool("boolean2", true, write_cancelled_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_uint8("byte2", 78, write_cancelled_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_int32("int_only_val2", 7804, write_cancelled_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_irange("irange2", &irange_not_delayed, write_cancelled_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_drange("drange2", &drange_not_delayed, write_cancelled_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_double("double_only_val2", 97.36, write_cancelled_cb, NULL);
+    ASSERT_INT_EQ(r, 0);
+
+    r = sol_memmap_write_string("string2", "gama delta", write_cancelled_cb, NULL);
     ASSERT_INT_EQ(r, 0);
 }
 
@@ -329,9 +495,17 @@ perform_tests(void *data)
     int n;
 
     sol_memmap_add_map(&_memmap0);
+    sol_memmap_add_map(&_memmap1);
 
     n = snprintf(command, sizeof(command), "truncate -s0 %s && truncate -s128 %s",
         _memmap0.path, _memmap0.path);
+    ASSERT(n > 0 && (size_t)n < sizeof(command));
+
+    n = system(command);
+    ASSERT(!n);
+
+    n = snprintf(command, sizeof(command), "truncate -s0 %s && truncate -s128 %s",
+        _memmap1.path, _memmap1.path);
     ASSERT(n > 0 && (size_t)n < sizeof(command));
 
     n = system(command);

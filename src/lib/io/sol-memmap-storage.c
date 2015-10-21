@@ -59,7 +59,6 @@
 
 struct pending_write_data {
     char *name;
-    const char *path;
     struct sol_blob *blob;
     const struct sol_memmap_entry *entry;
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status);
@@ -67,11 +66,16 @@ struct pending_write_data {
     uint64_t mask;
 };
 
+struct map_timeout {
+    const struct sol_memmap_map *map;
+    struct sol_timeout *timeout;
+    struct sol_vector pending_writes;
+};
+
 static struct sol_ptr_vector memory_maps = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector checked_maps = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector resolved_maps_to_free = SOL_PTR_VECTOR_INIT;
-static struct sol_vector pending_writes = SOL_VECTOR_INIT(struct pending_write_data);
-static struct sol_timeout *write_timeout;
+static struct sol_vector write_timeouts = SOL_VECTOR_INIT(struct map_timeout);
 
 static bool
 get_entry_metadata_on_map(const char *name, const struct sol_memmap_map *map, const struct sol_memmap_entry **entry, uint64_t *mask)
@@ -297,13 +301,20 @@ check_version(const struct sol_memmap_map *map)
     return sol_ptr_vector_append(&checked_maps, (void *)map) == 0;
 }
 
-static int
-pending_cmp(const void *e1, const void *e2)
+static struct map_timeout *
+get_map_timeout(const struct sol_memmap_map *map)
 {
-    const struct pending_write_data *p1 = e1;
-    const struct pending_write_data *p2 = e2;
+    struct map_timeout *map_timeout;
+    int i;
 
-    return strcmp(p1->path, p2->path);
+    SOL_VECTOR_FOREACH_IDX (&write_timeouts, map_timeout, i) {
+        if (map_timeout->map == map)
+            return map_timeout;
+    }
+
+    assert(false); /* Should never get here */
+
+    return NULL;
 }
 
 static bool
@@ -312,47 +323,38 @@ perform_pending_writes(void *data)
     int i, r;
     struct pending_write_data *pending;
     FILE *file = NULL;
-    const char *last_path = "";
+    const struct sol_memmap_map *map = data;
+    struct map_timeout *map_timeout = get_map_timeout(map);
 
-    write_timeout = NULL;
+    map_timeout->timeout = NULL;
 
-    /* Order writes by path, so we can open each file only once */
-    qsort(pending_writes.data, pending_writes.len, pending_writes.elem_size, pending_cmp);
+    file = fopen(map->path, "r+e");
+    if (!file) {
+        SOL_WRN("Error opening file [%s]: %s", map->path,
+            sol_util_strerrora(errno));
+        return false;
+    }
 
-    SOL_VECTOR_FOREACH_IDX (&pending_writes, pending, i) {
-        if (!streq(last_path, pending->path)) {
-            if (file) {
-                r = fclose(file);
-                if (r)
-                    SOL_WRN("Error closing file [%s]: %s", last_path,
-                        sol_util_strerrora(errno));
-            }
-            last_path = pending->path;
-            file = fopen(last_path, "r+e");
-            if (!file)
-                SOL_WRN("Error opening file [%s]: %s", last_path,
-                    sol_util_strerrora(errno));
-        }
-
-        sol_memmap_write_raw_do(pending->path, pending->name, pending->entry,
+    SOL_VECTOR_FOREACH_IDX (&map_timeout->pending_writes, pending, i) {
+        sol_memmap_write_raw_do(map->path, pending->name, pending->entry,
             pending->mask, pending->blob, pending->cb, pending->data, file);
         free(pending->name);
         sol_blob_unref(pending->blob);
     }
-    if (file) {
-        r = fclose(file);
-        if (r)
-            SOL_WRN("Error closing file [%s]: %s", last_path,
-                sol_util_strerrora(errno));
-    }
 
-    sol_vector_clear(&pending_writes);
+    r = fclose(file);
+    if (r)
+        SOL_WRN("Error closing file [%s]: %s", map->path,
+            sol_util_strerrora(errno));
+
+    SOL_DBG("Performed pending writes on [%s]", map->path);
+    sol_vector_clear(&map_timeout->pending_writes);
 
     return false;
 }
 
 static bool
-replace_pending_write(const char *path, const char *name,
+replace_pending_write(struct sol_vector *pending_writes, const char *name,
     const struct sol_memmap_entry *entry, uint64_t mask, struct sol_blob *blob,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
     const void *data)
@@ -360,7 +362,7 @@ replace_pending_write(const char *path, const char *name,
     struct pending_write_data *pending;
     int i;
 
-    SOL_VECTOR_FOREACH_IDX (&pending_writes, pending, i) {
+    SOL_VECTOR_FOREACH_IDX (pending_writes, pending, i) {
         if (streq(pending->name, name)) {
             if (pending->cb)
                 pending->cb((void *)pending->data, pending->name, pending->blob,
@@ -371,7 +373,7 @@ replace_pending_write(const char *path, const char *name,
                 /* If we couldn't ref, let's delete this entry and let
                  * the caller re-add this write */
                 free(pending->name);
-                sol_vector_del(&pending_writes, i);
+                sol_vector_del(pending_writes, i);
                 return false;
             }
             pending->cb = cb;
@@ -385,9 +387,8 @@ replace_pending_write(const char *path, const char *name,
 }
 
 static int
-fill_pending_write(struct pending_write_data *pending, const char *path,
-    const char *name, const struct sol_memmap_entry *entry, uint64_t mask,
-    struct sol_blob *blob,
+fill_pending_write(struct pending_write_data *pending, const char *name,
+    const struct sol_memmap_entry *entry, uint64_t mask, struct sol_blob *blob,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
     const void *data)
 {
@@ -397,7 +398,6 @@ fill_pending_write(struct pending_write_data *pending, const char *path,
     pending->name = strdup(name);
     SOL_NULL_CHECK(name, -ENOMEM);
 
-    pending->path = path;
     pending->entry = entry;
     pending->mask = mask;
     pending->cb = cb;
@@ -407,28 +407,30 @@ fill_pending_write(struct pending_write_data *pending, const char *path,
 }
 
 static int
-add_write(const char *path, const char *name,
+add_write(const struct sol_memmap_map *map, const char *name,
     const struct sol_memmap_entry *entry, uint64_t mask, struct sol_blob *blob,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
     const void *data)
 {
     struct pending_write_data *pending;
+    struct map_timeout *map_timeout = get_map_timeout(map);
 
     /* If there's a pending write for the very same entry, we replace it */
-    if (replace_pending_write(path, name, entry, mask, blob, cb, data))
+    if (replace_pending_write(&map_timeout->pending_writes, name, entry, mask, blob, cb, data))
         return 0;
 
-    pending = sol_vector_append(&pending_writes);
+    pending = sol_vector_append(&map_timeout->pending_writes);
 
     SOL_NULL_CHECK(pending, -ENOMEM);
 
-    if (fill_pending_write(pending, path, name, entry, mask, blob, cb, data) < 0)
+    if (fill_pending_write(pending, name, entry, mask, blob, cb, data) < 0)
         return -ENOMEM;
 
-    if (!write_timeout)
-        write_timeout = sol_timeout_add(0, perform_pending_writes, NULL);
+    if (!map_timeout->timeout)
+        map_timeout->timeout = sol_timeout_add(map->timeout,
+            perform_pending_writes, map);
 
-    SOL_NULL_CHECK(write_timeout, -ENOMEM);
+    SOL_NULL_CHECK(map_timeout->timeout, -ENOMEM);
 
     return 0;
 }
@@ -457,25 +459,31 @@ sol_memmap_write_raw(const char *name, struct sol_blob *blob,
         SOL_INF("Mapped size for [%s] is %zd, smaller than buffer contents: %zd",
             name, entry->size, blob->size);
 
-    return add_write(map->path, name, entry, mask, blob, cb, data);
+    return add_write(map, name, entry, mask, blob, cb, data);
 }
 
 static bool
 read_from_pending(const char *name, struct sol_buffer *buffer)
 {
     struct pending_write_data *pending;
-    int i;
+    struct map_timeout *map_timeout;
+    int i, j;
 
-    SOL_VECTOR_FOREACH_IDX (&pending_writes, pending, i) {
-        if (streq(name, pending->name)) {
-            // TODO maybe a sol_buffer_append_blob?
-            if (sol_buffer_ensure(buffer, pending->blob->size) < 0) {
-                // TODO how bad is this? return old value? fail reading?
-                SOL_WRN("Could not ensure buffer size to fit pending blob");
-                return false;
+    SOL_VECTOR_FOREACH_IDX (&write_timeouts, map_timeout, i) {
+        if (!map_timeout->pending_writes.len)
+            continue;
+
+        SOL_VECTOR_FOREACH_IDX (&map_timeout->pending_writes, pending, j) {
+            if (streq(name, pending->name)) {
+                // TODO maybe a sol_buffer_append_blob?
+                if (sol_buffer_ensure(buffer, pending->blob->size) < 0) {
+                    // TODO how bad is this? return old value? fail reading?
+                    SOL_WRN("Could not ensure buffer size to fit pending blob");
+                    return false;
+                }
+                memcpy(buffer->data, pending->blob->mem, pending->blob->size);
+                return true;
             }
-            memcpy(buffer->data, pending->blob->mem, pending->blob->size);
-            return true;
         }
     }
 
@@ -660,6 +668,7 @@ resolve_map(const struct sol_memmap_map *map)
 
         resolved_map->version = map->version;
         resolved_map->entries = map->entries;
+        resolved_map->timeout = map->timeout;
 
         if (resolve_i2c_path(map->path, resolved_map) < 0) {
             SOL_WRN("Could not create i2c EEPROM device using command [%s]", map->path);
@@ -686,6 +695,7 @@ SOL_API int
 sol_memmap_add_map(const struct sol_memmap_map *map)
 {
     struct sol_memmap_map *resolved_map;
+    struct map_timeout *timeout;
     int r;
 
     SOL_NULL_CHECK(map, -EINVAL);
@@ -698,19 +708,40 @@ sol_memmap_add_map(const struct sol_memmap_map *map)
         return -EINVAL;
     }
 
+    timeout = sol_vector_append(&write_timeouts);
+    SOL_NULL_CHECK(timeout, -ENOMEM);
+
+    timeout->map = resolved_map;
+    sol_vector_init(&timeout->pending_writes, sizeof(struct pending_write_data));
+
     r = sol_ptr_vector_append(&memory_maps, (void *)resolved_map);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     return 0;
+
+error:
+    sol_vector_del(&write_timeouts, write_timeouts.len - 1);
+    return r;
 }
 
 SOL_API int
 sol_memmap_remove_map(const struct sol_memmap_map *map)
 {
     struct sol_memmap_map *iter;
+    struct map_timeout *map_timeout;
     int i;
 
     SOL_NULL_CHECK(map, -EINVAL);
+
+    SOL_VECTOR_FOREACH_IDX (&write_timeouts, map_timeout, i) {
+        if (map_timeout->map->entries == map->entries) {
+            if (map_timeout->timeout) {
+                perform_pending_writes((void *)map_timeout->map);
+                sol_timeout_del(map_timeout->timeout);
+                break;
+            }
+        }
+    }
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&resolved_maps_to_free, iter, i) {
         if (iter->entries == map->entries) {
@@ -721,4 +752,48 @@ sol_memmap_remove_map(const struct sol_memmap_map *map)
     }
 
     return sol_ptr_vector_remove(&memory_maps, map);
+}
+
+SOL_API bool
+sol_memmap_set_timeout(struct sol_memmap_map *map, unsigned int timeout)
+{
+    struct sol_memmap_map *iter;
+    int i;
+
+    SOL_NULL_CHECK(map, false);
+
+    /* Rememeber, as we may have a copy of map (due to device resolving),
+     * we need to update our proper copy */
+    SOL_PTR_VECTOR_FOREACH_IDX (&memory_maps, iter, i) {
+        if (iter->entries == map->entries) {
+            map->timeout = timeout;
+            iter->timeout = timeout;
+            return true;
+        }
+    }
+
+    SOL_WRN("Map %p was not previously added. Call 'sol_memmap_add_map' before.",
+        map);
+    return false;
+}
+
+SOL_API unsigned int
+sol_memmap_get_timeout(struct sol_memmap_map *map)
+{
+    struct sol_memmap_map *iter;
+    int i;
+
+    SOL_NULL_CHECK(map, false);
+
+    /* Rememeber, as we may have a copy of map (due to device resolving),
+     * we need to check our proper copy */
+    SOL_PTR_VECTOR_FOREACH_IDX (&memory_maps, iter, i) {
+        if (iter->entries == map->entries) {
+            return iter->timeout;
+        }
+    }
+
+    SOL_WRN("Map %p was not previously added. Call 'sol_memmap_add_map' before.",
+        map);
+    return 0;
 }
