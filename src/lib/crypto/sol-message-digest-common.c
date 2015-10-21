@@ -56,7 +56,7 @@ sol_message_digest_common_shutdown(void)
 {
 }
 
-#if defined(PTHREAD) && defined(WORKER_THREAD)
+#ifdef WORKER_THREAD
 #define MESSAGE_DIGEST_USE_THREAD
 #endif
 
@@ -66,7 +66,12 @@ sol_message_digest_common_shutdown(void)
 
 
 #ifdef MESSAGE_DIGEST_USE_THREAD
+#ifdef LINUX
 #include <pthread.h>
+#elif defined(RIOT)
+#include <mutex.h>
+#include <thread.h>
+#endif
 #include "sol-worker-thread.h"
 #endif
 
@@ -91,8 +96,14 @@ struct sol_message_digest {
 #ifdef MESSAGE_DIGEST_USE_THREAD
     struct sol_worker_thread *thread; /* current kcapi is not poll() friendly, it won't report IN/OUT, thus we use a thread */
     struct sol_vector pending_dispatch;
+#ifdef LINUX
     int thread_pipe[2];
     pthread_mutex_t lock;
+#elif defined(RIOT)
+    kernel_pid_t waiting_pid;
+    char cmd;
+    mutex_t lock;
+#endif
 #else
     struct sol_timeout *timer; /* current kcapi is not poll() friendly, it won't report IN/OUT, thus we use a timer to poll */
 #endif
@@ -109,7 +120,11 @@ static void
 _sol_message_digest_lock(struct sol_message_digest *handle)
 {
 #ifdef MESSAGE_DIGEST_USE_THREAD
+#ifdef LINUX
     pthread_mutex_lock(&handle->lock);
+#elif defined(RIOT)
+    mutex_lock(&handle->lock);
+#endif
 #endif
 }
 
@@ -117,7 +132,11 @@ static void
 _sol_message_digest_unlock(struct sol_message_digest *handle)
 {
 #ifdef MESSAGE_DIGEST_USE_THREAD
+#ifdef LINUX
     pthread_mutex_unlock(&handle->lock);
+#elif defined(RIOT)
+    mutex_unlock(&handle->lock);
+#endif
 #endif
 }
 
@@ -125,6 +144,7 @@ _sol_message_digest_unlock(struct sol_message_digest *handle)
 static void
 _sol_message_digest_thread_send(struct sol_message_digest *handle, char cmd)
 {
+#ifdef LINUX
     while (write(handle->thread_pipe[1], &cmd, 1) != 1) {
         if (errno != EAGAIN && errno != EINTR) {
             SOL_WRN("handle %p couldn't send thread command %c: %s",
@@ -132,13 +152,25 @@ _sol_message_digest_thread_send(struct sol_message_digest *handle, char cmd)
             return;
         }
     }
+#elif defined(RIOT)
+    kernel_pid_t waiting_pid;
+
+    _sol_message_digest_lock(handle);
+    waiting_pid = handle->waiting_pid;
+    handle->waiting_pid = KERNEL_PID_UNDEF;
+    handle->cmd = cmd;
+    _sol_message_digest_unlock(handle);
+    if (waiting_pid != KERNEL_PID_UNDEF)
+        thread_wakeup(waiting_pid);
+#endif
 }
 
 static char
 _sol_message_digest_thread_recv(struct sol_message_digest *handle)
 {
-    char cmd;
+    char cmd = 0;
 
+#ifdef LINUX
     while (read(handle->thread_pipe[0], &cmd, 1) != 1) {
         if (errno != EAGAIN && errno != EINTR) {
             SOL_WRN("handle %p couldn't receive thread command: %s",
@@ -146,6 +178,18 @@ _sol_message_digest_thread_recv(struct sol_message_digest *handle)
             return 0;
         }
     }
+#elif defined(RIOT)
+    do {
+        _sol_message_digest_lock(handle);
+        cmd = handle->cmd;
+        handle->cmd = 0;
+        if (!cmd)
+            handle->waiting_pid = thread_getpid();
+        _sol_message_digest_unlock(handle);
+        if (!cmd)
+            thread_sleep();
+    } while (!cmd);
+#endif
 
     return cmd;
 }
@@ -155,17 +199,22 @@ static int
 _sol_message_digest_thread_init(struct sol_message_digest *handle)
 {
 #ifdef MESSAGE_DIGEST_USE_THREAD
-    int err;
-    if (pipe2(handle->thread_pipe, O_CLOEXEC) < 0)
-        return errno;
+    int err = 0;
 
     sol_vector_init(&handle->pending_dispatch,
         sizeof(struct sol_message_digest_pending_dispatch));
+#ifdef LINUX
+    if (pipe2(handle->thread_pipe, O_CLOEXEC) < 0)
+        return errno;
+
     err = pthread_mutex_init(&handle->lock, NULL);
     if (err) {
         close(handle->thread_pipe[0]);
         close(handle->thread_pipe[1]);
     }
+#elif defined(RIOT)
+    mutex_init(&handle->lock);
+#endif
     return err;
 #else
     return 0;
@@ -179,13 +228,11 @@ _sol_message_digest_thread_fini(struct sol_message_digest *handle)
     struct sol_message_digest_pending_dispatch *pd;
     uint16_t i;
 
-    _sol_message_digest_thread_send(handle, 'c');
+#ifdef LINUX
     close(handle->thread_pipe[0]);
     close(handle->thread_pipe[1]);
-
-    if (handle->thread)
-        sol_worker_thread_cancel(handle->thread);
     pthread_mutex_destroy(&handle->lock);
+#endif
 
     SOL_VECTOR_FOREACH_IDX (&handle->pending_dispatch, pd, i) {
         sol_blob_unref(pd->blob);
@@ -201,7 +248,10 @@ static void
 _sol_message_digest_thread_stop(struct sol_message_digest *handle)
 {
 #ifdef MESSAGE_DIGEST_USE_THREAD
+    if (!handle->thread)
+        return;
     _sol_message_digest_thread_send(handle, 'c');
+    sol_worker_thread_cancel(handle->thread);
 #endif
 }
 
@@ -692,10 +742,10 @@ sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *inpu
     pf->offset = 0;
     pf->is_last = is_last;
 
+    _sol_message_digest_unlock(handle);
+
     r = _sol_message_digest_thread_start(handle);
     SOL_INT_CHECK_GOTO(r, < 0, error);
-
-    _sol_message_digest_unlock(handle);
 
     if (is_last)
         handle->finished = true;
@@ -708,6 +758,8 @@ sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *inpu
 error:
     sol_blob_unref(input);
     sol_vector_del(&handle->pending_feed, handle->pending_feed.len - 1);
+
+    return -ENOMEM;
 
 error_append:
     _sol_message_digest_unlock(handle);
