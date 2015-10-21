@@ -122,10 +122,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
     SOL_NULL_CHECK(sockaddr, -EINVAL);
     SOL_NULL_CHECK(socklen, -EINVAL);
 
-    if (addr->family != AF_INET && addr->family != AF_INET6)
-        return -EINVAL;
-
-    if (addr->family == AF_INET ) {
+    if (addr->family == AF_INET) {
         struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in))
             return -EINVAL;
@@ -134,7 +131,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
         sock4->sin_port = htons(addr->port);
         sock4->sin_family = AF_INET;
         *socklen = sizeof(*sock4);
-    } else {
+    } else if (addr->family == AF_INET6) {
         struct sockaddr_in6 *sock6 = (struct sockaddr_in6 *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in6))
             return -EINVAL;
@@ -143,6 +140,8 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
         sock6->sin6_port = htons(addr->port);
         sock6->sin6_family = AF_INET6;
         *socklen = sizeof(*sock6);
+    } else {
+        return -EINVAL;
     }
 
     return *socklen;
