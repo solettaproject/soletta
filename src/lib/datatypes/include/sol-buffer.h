@@ -207,6 +207,9 @@ int sol_buffer_append_char(struct sol_buffer *buf, const char c);
 /* Appends the 'slice' into 'buf', reallocating if necessary. */
 int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
 
+/* Appends the 'bytes' array to the end of buffer, reallocating if necessary */
+int sol_buffer_append_bytes(struct sol_buffer *buf, const void *bytes, size_t size);
+
 /* Set a slice at at position @a pos of @a buf. If @a pos plus the @a
  * slice's length is greater than the used portion of @a buf, it
  * ensures that @a buf has the resulting new length. @a pos can't
@@ -219,6 +222,15 @@ int sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol
  * the resulting new length. @a pos can't start after the buffer's
  * used portion. */
 int sol_buffer_set_char_at(struct sol_buffer *buf, size_t pos, char c);
+
+/* Insert the 'bytes' array into 'buf' at position 'pos', reallocating if
+ * necessary.
+ *
+ * If pos == buf->end, then the behavior is the same as
+ * sol_buffer_append_bytes() and a trailing '\0' is
+ * guaranteed.
+ */
+int sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const void *bytes, size_t size);
 
 /* Insert the 'slice' into 'buf' at position 'pos', reallocating if necessary.
  *
