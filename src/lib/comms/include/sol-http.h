@@ -140,6 +140,20 @@ struct sol_http_response {
         } \
     } while (0)
 
+#define SOL_HTTP_RESPONSE_CHECK_API_GOTO(response_, label) \
+    do { \
+        if (unlikely(!response_)) { \
+            SOL_WRN("Error while reaching service."); \
+            goto label; \
+        } \
+        if (unlikely(response_->api_version != \
+            SOL_HTTP_RESPONSE_API_VERSION)) { \
+            SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+                response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
+            goto label; \
+        } \
+    } while (0)
+
 #define SOL_HTTP_REQUEST_PARAM_INIT   \
     (struct sol_http_param) { \
         .api_version = SOL_HTTP_PARAM_API_VERSION, \
