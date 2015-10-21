@@ -67,7 +67,7 @@ timeout_compare(const void *data1, const void *data2)
     return sol_util_timespec_compare(&a->expire, &b->expire);
 }
 
-#ifdef PTHREAD
+#ifdef THREADS
 
 static struct sol_ptr_vector source_v_process = SOL_PTR_VECTOR_INIT;
 static struct sol_ptr_vector timeout_v_process = SOL_PTR_VECTOR_INIT;
@@ -91,7 +91,7 @@ timeout_vector_update(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
     sol_ptr_vector_clear(from);
 }
 
-#else  /* !PTHREAD */
+#else  /* !THREADS */
 
 #define SOURCE_PROCESS source_vector
 #define SOURCE_ACUM source_vector
@@ -107,7 +107,7 @@ timeout_vector_update(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
 bool
 sol_mainloop_common_loop_check(void)
 {
-#ifdef PTHREAD
+#ifdef THREADS
     return __atomic_load_n(&run_loop, __ATOMIC_SEQ_CST);
 #else
     return run_loop;
@@ -117,7 +117,7 @@ sol_mainloop_common_loop_check(void)
 void
 sol_mainloop_common_loop_set(bool val)
 {
-#ifdef PTHREAD
+#ifdef THREADS
     __atomic_store_n(&run_loop, (val), __ATOMIC_SEQ_CST);
 #else
     run_loop = val;
