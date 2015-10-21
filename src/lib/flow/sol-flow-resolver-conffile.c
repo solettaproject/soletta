@@ -33,10 +33,13 @@
 #include <assert.h>
 #include <dlfcn.h>
 #include <limits.h>
+#include <sys/stat.h>
 
 #include "sol-conffile.h"
 #include "sol-flow-internal.h"
 #include "sol-flow-resolver.h"
+#include "sol-flow-parser.h"
+#include "sol-file-reader.h"
 #include "sol-str-slice.h"
 #include "sol-util.h"
 
@@ -107,6 +110,7 @@ resolver_conffile_clear_data(void)
 }
 
 const char MODULE_NAME_SEPARATOR = '/';
+const char *META_TYPE_BEGIN = "fbp:";
 
 static struct sol_str_slice
 get_module_for_type(const char *type)
@@ -249,10 +253,145 @@ resolver_conffile_resolve_by_type_name(const char *id,
     return 0;
 }
 
+static char *
+stat_fullpath(const char *path, const char *basename)
+{
+    int err;
+    struct stat s;
+    char *fullpath;
+
+    err = asprintf(&fullpath, "%s/%s", path, basename);
+    if (err < 0) {
+        errno = ENOMEM;
+        return NULL;
+    }
+
+    if (stat(fullpath, &s) == 0 && S_ISREG(s.st_mode))
+        return fullpath;
+
+    free(fullpath);
+    return NULL;
+}
+
+struct search_fbp_file_data {
+    struct sol_ptr_vector *fbp_paths;
+    struct sol_ptr_vector file_readers;
+};
+
+static char *
+search_fbp_file(void *data, const char *basename)
+{
+    struct search_fbp_file_data *search_data = data;
+    char *fullpath, *p;
+    int i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (search_data->fbp_paths, p, i) {
+        fullpath = stat_fullpath(p, basename);
+        if (fullpath)
+            return fullpath;
+    }
+
+    SOL_ERR("Couldn't find file '%s'", basename);
+    errno = EINVAL;
+    return NULL;
+}
+
+static int
+read_file(void *data, const char *name, const char **buf, size_t *size)
+{
+    struct search_fbp_file_data *search_data = data;
+    struct sol_file_reader *fr = NULL;
+    struct sol_str_slice slice;
+    char *path;
+    int err;
+
+    path = search_fbp_file(search_data, name);
+    if (!path) {
+        err = -errno;
+        goto error;
+    }
+
+    fr = sol_file_reader_open(path);
+    if (!fr) {
+        err = -errno;
+        SOL_DBG("Couldn't open input file '%s': %s", path,
+            sol_util_strerrora(errno));
+        goto error;
+    }
+
+    err = sol_ptr_vector_append(&search_data->file_readers, fr);
+    if (err < 0)
+        goto error;
+
+    free(path);
+    slice = sol_file_reader_get_all(fr);
+    *buf = slice.data;
+    *size = slice.len;
+    return 0;
+
+error:
+    free(path);
+    if (fr)
+        sol_file_reader_close(fr);
+    return err;
+}
+
+static int
+get_type_from_fbp(const char *id,
+    struct sol_flow_node_type const **node_type,
+    void *data)
+{
+    const char *id_file = id + strlen(META_TYPE_BEGIN);
+    struct sol_flow_parser_client parser_client;
+    struct search_fbp_file_data search_data;
+    const struct sol_flow_node_type *type;
+    struct sol_flow_parser *parser;
+    struct sol_file_reader *fr;
+    const char *buf = NULL;
+    size_t size = 0;
+    int err, i;
+
+    SOL_DBG("Resolving type declared on '%s'.", id_file);
+
+    parser_client.api_version = SOL_FLOW_PARSER_CLIENT_API_VERSION;
+    parser_client.read_file = read_file;
+    parser_client.data = &search_data;
+
+    search_data.fbp_paths = data;
+    sol_ptr_vector_init(&search_data.file_readers);
+
+    parser = sol_flow_parser_new(&parser_client, NULL);
+    if (!parser)
+        return -EINVAL;
+
+    err = read_file(&search_data, id_file, &buf, &size);
+    if (err < 0)
+        goto read_fail;
+
+    type = sol_flow_parse_buffer(parser, buf, size, id_file);
+    if (!type) {
+        err = -ENOENT;
+        goto type_fail;
+    }
+
+    *node_type = type;
+
+type_fail:
+    SOL_PTR_VECTOR_FOREACH_IDX (&search_data.file_readers, fr, i)
+        sol_file_reader_close(fr);
+    sol_ptr_vector_clear(&search_data.file_readers);
+
+read_fail:
+    sol_flow_parser_del(parser);
+
+    return err;
+}
+
 static int
 resolver_conffile_resolve_by_id(const char *id,
     struct sol_flow_node_type const **node_type,
-    struct sol_flow_node_named_options *named_opts)
+    struct sol_flow_node_named_options *named_opts,
+    void *data)
 {
     const struct sol_flow_node_type *tmp_type;
     const char **opts_strv = NULL;
@@ -274,20 +413,32 @@ resolver_conffile_resolve_by_id(const char *id,
         r = 0;
     }
 
-    /* TODO: is this needed given we already handle builtins from the outside? */
-    tmp_type = resolve_module_type_by_component(type_name, sol_flow_foreach_builtin_node_type);
-
-    if (!tmp_type) {
-        tmp_type = _resolver_conffile_get_module(type_name);
-        if (!tmp_type) {
-            r = -EINVAL;
-            SOL_DBG("could not resolve a node module for Type='%s'", type_name);
+    if (!strncmp(META_TYPE_BEGIN, type_name, strlen(META_TYPE_BEGIN))) {
+        r = get_type_from_fbp(type_name, &tmp_type, data);
+        if (r < 0) {
+            SOL_DBG("could not resolve a type name for id='%s'", id);
             goto end;
+        }
+    } else {
+        /* TODO: is this needed given we already handle builtins
+         * from the outside? */
+        tmp_type = resolve_module_type_by_component(type_name,
+            sol_flow_foreach_builtin_node_type);
+
+        if (!tmp_type) {
+            tmp_type = _resolver_conffile_get_module(type_name);
+            if (!tmp_type) {
+                r = -EINVAL;
+                SOL_DBG("could not resolve a node module for Type='%s'",
+                    type_name);
+                goto end;
+            }
         }
     }
 
     if (opts_strv) {
-        r = sol_flow_node_named_options_init_from_strv(named_opts, tmp_type, opts_strv);
+        r = sol_flow_node_named_options_init_from_strv(named_opts, tmp_type,
+            opts_strv);
         if (r < 0)
             goto end;
     } else
@@ -305,7 +456,7 @@ resolver_conffile_resolve(void *data, const char *id,
 {
     if (strchr(id, MODULE_NAME_SEPARATOR))
         return resolver_conffile_resolve_by_type_name(id, node_type, named_opts);
-    return resolver_conffile_resolve_by_id(id, node_type, named_opts);
+    return resolver_conffile_resolve_by_id(id, node_type, named_opts, data);
 }
 
 static const struct sol_flow_resolver _resolver_conffile = {

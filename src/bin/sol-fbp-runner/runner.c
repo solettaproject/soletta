@@ -92,10 +92,6 @@ search_fbp_file(struct runner *r, const char *basename)
     char *fullpath;
     uint16_t i;
 
-    fullpath = stat_fullpath(r->dir, basename);
-    if (fullpath)
-        return fullpath;
-
     SOL_PTR_VECTOR_FOREACH_IDX (r->fbp_paths, p, i) {
         fullpath = stat_fullpath(p, basename);
         if (fullpath)
@@ -379,6 +375,8 @@ runner_new_from_file(
     const char **options_strv,
     struct sol_ptr_vector *fbps)
 {
+    const struct sol_flow_resolver *resolver;
+    struct sol_flow_resolver resolver_with_paths;
     struct runner *r;
     const char *buf;
     size_t size;
@@ -396,7 +394,10 @@ runner_new_from_file(
     r->parser_client.data = r;
     r->parser_client.read_file = read_file;
 
-    r->parser = sol_flow_parser_new(&r->parser_client, NULL);
+    resolver = sol_flow_get_default_resolver();
+    resolver_with_paths = *resolver;
+    resolver_with_paths.data = fbps;
+    r->parser = sol_flow_parser_new(&r->parser_client, &resolver_with_paths);
     if (!r->parser)
         goto error;
 
@@ -404,6 +405,15 @@ runner_new_from_file(
 
     r->dir = strdup(dirname(strdupa(filename)));
     SOL_NULL_CHECK_GOTO(r->dir, error);
+    /* Ideally we would prepend it here so dirname of file is search
+     * before other directories passed as arguments for runner. But
+     * it should matter much since users shouldn't have name clashes
+     * and trust on this order to solve it. */
+    err = sol_ptr_vector_append(fbps, r->dir);
+    if (err < 0) {
+        errno = -err;
+        goto error;
+    }
 
     r->basename = strdup(basename(strdupa(filename)));
 
