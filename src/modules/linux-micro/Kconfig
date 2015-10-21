@@ -28,6 +28,7 @@ menuconfig LINUX_MICRO
             whole unless the line contains a suffix '?', making that
             service optional (may fail to start).
 
+source "src/modules/linux-micro/automount/Kconfig"
 source "src/modules/linux-micro/bluetooth/Kconfig"
 source "src/modules/linux-micro/console/Kconfig"
 source "src/modules/linux-micro/dbus/Kconfig"
