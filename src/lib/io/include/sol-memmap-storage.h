@@ -62,7 +62,17 @@ extern "C" {
  * which will store version of map stored. This API will refuse to work if
  * stored map is different from map version. Note that @c _version field
  * is a @c uint8_t and that versions should start on 1, so Soletta will know
- * if dealing with a totally new storage.
+ * if dealing with a totally new storage. It also considers 255 (0xff) as a
+ * non-value, so fit new EEPROMs.
+ * Note that a map may define a timeout value to perform writes. This way,
+ * writings can be grouped together, as all writing operations will be
+ * performed at timeout end. That said, it's important to note that when
+ * writing is performed, no order is guaranteed for different keys, i.e.,
+ * writing to 'a' and 'b' can be performed, at timeout end, as 'b' and 'a'
+ * - but for a given key, only the last write will be performed at timeout end.
+ * Multiple writes for the same key before timeout end will result in previous
+ * writes being replaced, and their callbacks will be informed with status
+ * -ECANCELED.
  *
  * @{
  */
@@ -88,7 +98,9 @@ struct sol_memmap_map {
                        * @arg @a devnumber is device number on bus, like 0x50
                        * @arg @a devname is device name, the one recognized by its driver
                        */
-    const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */
+    unsigned int timeout; /**< Timeout, in milliseconds, of writing operations. After a write is requested, a timer will run and group all
+                           * writing operations until it expires, when real writing will be performed */
+    const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */ /* Memory trick in place, must be last on struct*/
 };
 
 struct sol_memmap_entry {
@@ -154,6 +166,21 @@ int sol_memmap_add_map(const struct sol_memmap_map *map);
  * @return 0 on success, a negative number on failure.
  */
 int sol_memmap_remove_map(const struct sol_memmap_map *map);
+
+/**
+ * Defines map timeout to actually perform write.
+ *
+ * @param map map to have its timeout changed
+ * @param timeout new timeout, in milliseconds.
+ *
+ * @return true if successfuly set map timeout.
+ *
+ * @note This change will take effect after current active timer expires.
+ * Active ones will remain unchanged
+ */
+bool sol_memmap_set_timeout(struct sol_memmap_map *map, unsigned int timeout);
+
+unsigned int sol_memmap_get_timeout(const struct sol_memmap_map *map);
 
 #define CREATE_BUFFER(_val) \
     struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(_val, \
