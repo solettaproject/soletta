@@ -1,0 +1,4 @@
+config LINUX_MICRO_AUTOMOUNT
+	tristate "automount"
+	depends on LINUX_MICRO
+	default m if MODULES=y
