@@ -103,7 +103,7 @@ sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 }
 
 SOL_API int
-sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
+sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t size)
 {
     const size_t nul_size = nul_byte_size(buf);
     char *p;
@@ -112,7 +112,7 @@ sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice
 
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    err = sol_util_size_add(buf->used, slice.len, &new_size);
+    err = sol_util_size_add(buf->used, size, &new_size);
     if (err < 0)
         return err;
 
@@ -124,14 +124,19 @@ sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice
         return err;
 
     p = sol_buffer_at_end(buf);
-    memcpy(p, slice.data, slice.len);
+    memcpy(p, bytes, size);
 
     if (nul_size)
-        p[slice.len] = '\0';
-    buf->used += slice.len;
+        p[size] = '\0';
+    buf->used += size;
     return 0;
 }
 
+SOL_API int
+sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
+{
+    return sol_buffer_append_bytes(buf, (uint8_t *)slice.data, slice.len);
+}
 SOL_API int
 sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice)
 {
@@ -192,7 +197,7 @@ sol_buffer_set_char_at(struct sol_buffer *buf, size_t pos, char c)
 }
 
 SOL_API int
-sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice)
+sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const uint8_t *bytes, size_t size)
 {
     const size_t nul_size = nul_byte_size(buf);
     char *p;
@@ -203,9 +208,9 @@ sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str
     SOL_INT_CHECK(pos, > buf->used, -EINVAL);
 
     if (pos == buf->used)
-        return sol_buffer_append_slice(buf, slice);
+        return sol_buffer_append_bytes(buf, bytes, size);
 
-    err = sol_util_size_add(buf->used, slice.len, &new_size);
+    err = sol_util_size_add(buf->used, size, &new_size);
     if (err < 0)
         return err;
 
@@ -217,9 +222,9 @@ sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str
         return err;
 
     p = sol_buffer_at(buf, pos);
-    memmove(p + slice.len, p, buf->used - pos);
-    memcpy(p, slice.data, slice.len);
-    buf->used += slice.len;
+    memmove(p + size, p, buf->used - pos);
+    memcpy(p, bytes, size);
+    buf->used += size;
 
     if (nul_size) {
         p = sol_buffer_at_end(buf);
@@ -227,6 +232,12 @@ sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str
     }
 
     return 0;
+}
+
+SOL_API int
+sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice)
+{
+    return sol_buffer_insert_bytes(buf, pos, (uint8_t *)slice.data, slice.len);
 }
 
 /* Extra room for the ending NUL-byte, necessary even when the buffer has
