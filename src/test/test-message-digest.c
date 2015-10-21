@@ -60,7 +60,7 @@ struct md_test {
     const char *hex_digest;
 #define MD_TEST(a, k, m, h) { a, k, m, sizeof(m), h }
 #define MD_TEST_SIZE(a, k, m, s, h) { a, k, m, s, h }
-#define MD_TEST_END { NULL, SOL_STR_SLICE_EMPTY, 0, NULL }
+#define MD_TEST_END { NULL, SOL_STR_SLICE_EMPTY, NULL, 0, NULL }
 };
 
 static uint32_t pending;
