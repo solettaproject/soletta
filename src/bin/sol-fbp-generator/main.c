@@ -1320,9 +1320,10 @@ generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
         out("\nstatic const struct sol_memmap_map _memmap%d = {\n"
             "   .version = %d,\n"
             "   .path = \"%s\",\n"
+            "   .timeout = %u,\n"
             "   .entries = _memmap%d_entries\n"
             "};\n",
-            i, map->version, map->path, i);
+            i, map->version, map->path, map->timeout, i);
     }
 
     *elements = i;

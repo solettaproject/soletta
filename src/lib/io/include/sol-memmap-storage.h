@@ -89,7 +89,9 @@ struct sol_memmap_map {
                        * @arg @a devnumber is device number on bus, like 0x50
                        * @arg @a devname is device name, the one recognized by its driver
                        */
-    const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */
+    unsigned int timeout; /**< Timeout, in miliseconds, of writing operations. After a write is requested, a timer will run and group all
+                           * writing operations until it expires, when real writing will be performed */
+    const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */ /* Memory trick in place, must be last on struct*/
 };
 
 struct sol_memmap_entry {
@@ -155,6 +157,31 @@ int sol_memmap_add_map(const struct sol_memmap_map *map);
  * @return 0 on success, a negative number on failure.
  */
 int sol_memmap_remove_map(const struct sol_memmap_map *map);
+
+/**
+ * Defines map timeout to actually perform write.
+ *
+ * @param map map to have its timeout changed
+ * @param timeout new timeout, in miliseconds.
+ *
+ * @note This change will take effect after current active timer expires.
+ * Active ones will remain unchanged
+ */
+static inline void
+sol_memmap_set_timeout(struct sol_memmap_map *map, unsigned int timeout)
+{
+    SOL_NULL_CHECK(map);
+
+    map->timeout = timeout;
+}
+
+static inline unsigned int
+sol_memmap_get_timeout(struct sol_memmap_map *map)
+{
+    SOL_NULL_CHECK(map, 0);
+
+    return map->timeout;
+}
 
 #define CREATE_BUFFER(_val) \
     struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(_val, \
