@@ -29,7 +29,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 json_array_str(constant/string:value="[0,1,2.1,\"str\",false,true,null,{\"inner\": 456},[1,2,3]]")
-json_array(converter/blob-to-json-array)
+json_array(converter/string-to-json-array)
 
 int_validator(test/int-validator:sequence="0 1")
 float_validator(test/float-validator:sequence="0 1 2.1")
@@ -50,7 +50,7 @@ get_index_object_val(json/array-get-at-index:index=7)
 get_index_array_val(json/array-get-at-index:index=8)
 
 # Test node json/array-get-at-index
-json_array_str OUT -> IN _(converter/string-to-blob) OUT -> IN json_array
+json_array_str OUT -> IN json_array
 json_array OUT -> IN get_index_int0_val
 json_array OUT -> IN get_index_int1_val
 json_array OUT -> IN get_index_float_val
@@ -87,8 +87,8 @@ array_length_validator OUT -> RESULT test_array_length(test/result)
 
 # Test node json/array-get-all-elements
 json_array_elements_str(constant/string:value="[0,1,{\"a\":123},2,3,null,[1,2,3],\"str1\",4,\"str2\",null,false,false,true,5.1,true,true,false,null]")
-json_array_elements(converter/blob-to-json-array)
-json_array_elements_str OUT -> IN _(converter/string-to-blob) OUT -> IN json_array_elements
+json_array_elements(converter/string-to-json-array)
+json_array_elements_str OUT -> IN json_array_elements
 json_array_elements OUT -> IN json_array_all_elements(json/array-get-all-elements)
 
 int_validator_all(test/int-validator:sequence="0 1 2 3 4")
@@ -109,7 +109,7 @@ json_array_all_elements OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN 
 json_array_all_elements ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN array_validator_all
 json_array_all_elements EMPTY -> IN empty_validator_all
 
-_(constant/string:value="[]") OUT -> IN _(converter/string-to-blob) OUT -> IN _(converter/blob-to-json-array) OUT -> IN _(json/array-get-all-elements) EMPTY -> IN empty_validator_all
+_(constant/string:value="[]") OUT -> IN _(converter/string-to-json-array) OUT -> IN _(json/array-get-all-elements) EMPTY -> IN empty_validator_all
 
 int_validator_all OUT -> RESULT int_result_all(test/result)
 float_validator_all OUT -> RESULT float_result_all(test/result)
