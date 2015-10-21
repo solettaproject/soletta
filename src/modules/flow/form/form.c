@@ -94,7 +94,7 @@ selector_open(struct sol_flow_node *node,
 
     if (opts->columns.val <= 0) {
         SOL_WRN("Selector columns number must be a positive integer, "
-            "but %d was given. Fallbacking to minimum value of 1.",
+            "but %" PRId32 " was given. Fallbacking to minimum value of 1.",
             opts->columns.val);
         mdata->columns = 1;
     } else
@@ -102,7 +102,7 @@ selector_open(struct sol_flow_node *node,
 
     if (opts->rows.val <= 0) {
         SOL_WRN("Selector rows number must be a positive integer, "
-            "but %d was given. Fallbacking to minimum value of 1.",
+            "but %" PRId32 " was given. Fallbacking to minimum value of 1.",
             opts->rows.val);
         mdata->rows = 1;
     } else
