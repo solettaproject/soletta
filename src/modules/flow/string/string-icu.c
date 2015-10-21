@@ -119,8 +119,11 @@ struct string_data {
 };
 
 struct string_concatenate_data {
-    struct string_data base;
+    uint32_t n;
+    UChar *string[32];
     UChar *separator;
+    uint32_t var_initialized;
+    uint32_t var_connected;
 };
 
 struct string_compare_data {
@@ -141,15 +144,17 @@ static void
 string_concatenate_close(struct sol_flow_node *node, void *data)
 {
     struct string_concatenate_data *mdata = data;
+    uint8_t i;
 
-    string_close(node, data);
+    for (i = 0; i < 32; i++)
+        free(mdata->string[i]);
     free(mdata->separator);
 }
 
-static bool
+static int
 get_string_by_port(const struct sol_flow_packet *packet,
     uint16_t port,
-    struct string_data *mdata)
+    UChar **string)
 {
     UChar *new_str = NULL;
     const char *in_value;
@@ -157,24 +162,19 @@ get_string_by_port(const struct sol_flow_packet *packet,
     int r;
 
     r = sol_flow_packet_get_string(packet, &in_value);
-    SOL_INT_CHECK(r, < 0, false);
+    SOL_INT_CHECK(r, < 0, r);
 
     r = icu_str_from_utf8(in_value, &new_str, &err);
-    SOL_INT_CHECK(r, < 0, false);
+    SOL_INT_CHECK(r, < 0, r);
 
-    if (mdata->string[port] && !u_strCompare(mdata->string[port],
-        -1, new_str, -1, false)) {
+    if (string[port] && !u_strCompare(string[port],
+        -1, new_str, -1, r)) {
         free(new_str);
-        return false;
+        return 0;
     }
 
-    free(mdata->string[port]);
-
-    mdata->string[port] = new_str;
-
-    if (!mdata->string[0] || !mdata->string[1])
-        return false;
-
+    free(string[port]);
+    string[port] = new_str;
     return true;
 }
 
@@ -196,9 +196,9 @@ string_concatenate_open(struct sol_flow_node *node,
         SOL_WRN("Option 'chars' (%" PRId32 ") must be a positive "
             "amount of chars to be copied or zero if whole strings "
             "should be concatenated. Considering zero.", opts->chars.val);
-        mdata->base.n = 0;
+        mdata->n = 0;
     } else
-        mdata->base.n = opts->chars.val;
+        mdata->n = opts->chars.val;
 
     if (opts->separator) {
         UErrorCode err;
@@ -212,6 +212,39 @@ string_concatenate_open(struct sol_flow_node *node,
 }
 
 static int
+string_concat_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+{
+    struct string_concatenate_data *mdata = data;
+
+    mdata->var_connected |= 1u << port;
+    return 0;
+}
+
+static size_t
+string_list_len(UChar **string, int32_t var_initialized, size_t sep_len, size_t len_limit)
+{
+    size_t len;
+    uint8_t i;
+    int r;
+
+    for (i = 0; i < 32; i++) {
+        if (!(var_initialized & (1u << i)))
+            continue;
+
+        r = sol_util_size_add(len, sep_len, &len);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_util_size_add(len, u_strlen(string[i]), &len);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    if (len_limit && len_limit < len)
+        return len_limit;
+
+    return len;
+}
+
+static int
 string_concat(struct sol_flow_node *node,
     void *data,
     uint16_t port,
@@ -222,30 +255,46 @@ string_concat(struct sol_flow_node *node,
     UChar *dest = NULL;
     char *final = NULL;
     UErrorCode err;
-    int r, len;
+    int r;
+    uint8_t i, count = 0;
+    size_t len = 0, sep_len = 0, final_len;
 
-    if (!get_string_by_port(packet, port, &mdata->base))
+    r = get_string_by_port(packet, port, mdata->string);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->var_initialized |= 1u << port;
+    if (mdata->var_initialized != mdata->var_connected)
         return 0;
 
-    len = u_strlen(mdata->base.string[0])
-        + u_strlen(mdata->base.string[1]) + 1;
     if (mdata->separator)
-        len += u_strlen(mdata->separator);
+        sep_len = u_strlen(mdata->separator);
+    final_len = len = string_list_len(mdata->string, mdata->var_initialized,
+        sep_len, mdata->n);
 
-    dest = calloc(len, sizeof(*dest));
+    if (len > SIZE_MAX - 1)
+        return -EOVERFLOW;
+    dest = calloc(len + 1, sizeof(*dest));
     SOL_NULL_CHECK(dest, -ENOMEM);
 
-    dest = u_strcpy(dest, mdata->base.string[0]);
+    for (i = 0; i < 32; i++) {
+        if (!(mdata->var_initialized & (1u << i)))
+            continue;
 
-    if (mdata->separator)
-        dest = u_strcat(dest, mdata->separator);
+        if (count && mdata->separator) {
+            dest = u_strncat(dest, mdata->separator, len);
+            r = sol_util_size_sub(len, sep_len, &len);
+            if (r < 0)
+                break;
+        }
 
-    if (!mdata->base.n)
-        dest = u_strcat(dest, mdata->base.string[1]);
-    else
-        dest = u_strncat(dest, mdata->base.string[1], mdata->base.n);
+        dest = u_strncat(dest, mdata->string[i], len);
+        r = sol_util_size_sub(len, u_strlen(mdata->string[i]), &len);
+        if (r < 0)
+            break;
+        count++;
+    }
 
-    r = utf8_from_icu_str_slice(dest, len, &final, &err);
+    r = utf8_from_icu_str_slice(dest, final_len, &final, &err);
     if (r < 0) {
         free(dest);
         sol_flow_send_error_packet_str(node, -r, u_errorName(err));
@@ -298,8 +347,11 @@ string_compare(struct sol_flow_node *node,
     UErrorCode err;
     int r;
 
-    if (!get_string_by_port(packet, port, &mdata->base))
-        return 0;
+    r = get_string_by_port(packet, port, mdata->base.string);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!mdata->base.string[0] || !mdata->base.string[1])
+        return false;
 
     if (mdata->base.n) {
         if (mdata->ignore_case) {
