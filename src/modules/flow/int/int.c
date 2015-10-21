@@ -415,15 +415,9 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
     SOL_INT_CHECK(r, < 0, r);
 
     if (port == 0) {
-        if (mdata->var0_initialized &&
-            sol_irange_equal(&mdata->var0, &value))
-            return 0;
         mdata->var0 = value;
         mdata->var0_initialized = true;
     } else {
-        if (mdata->var1_initialized &&
-            sol_irange_equal(&mdata->var1, &value))
-            return 0;
         mdata->var1 = value;
         mdata->var1_initialized = true;
     }
@@ -447,8 +441,10 @@ operator_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
 // IRANGE ARITHMETIC - ADDITION / MULTIPLICATION
 // =============================================================================
 
+#define MULTIPLE_LEN (SOL_FLOW_NODE_TYPE_INT_ADDITION__IN__OPERAND_LAST + 1)
+
 struct irange_multiple_arithmetic_data {
-    struct sol_irange var[32];
+    struct sol_irange var[MULTIPLE_LEN];
     uint32_t var_initialized;
     uint32_t var_connected;
 };
@@ -467,21 +463,15 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
 {
     struct irange_multiple_arithmetic_data *mdata = data;
     const struct irange_arithmetic_node_type *type;
-    struct sol_irange value;
     struct sol_irange result;
     uint32_t i;
     bool result_set = false;
     int r;
 
-    r = sol_flow_packet_get_irange(packet, &value);
+    r = sol_flow_packet_get_irange(packet, &mdata->var[port]);
     SOL_INT_CHECK(r, < 0, r);
 
-    if ((mdata->var_initialized & (1u << port)) &&
-        sol_irange_equal(&mdata->var[port], &value))
-        return 0;
-
     mdata->var_initialized |= 1u << port;
-    mdata->var[port] = value;
 
     if (mdata->var_initialized != mdata->var_connected)
         return 0;
@@ -489,7 +479,7 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
     type = (const struct irange_arithmetic_node_type *)
         sol_flow_node_get_type(node);
 
-    for (i = 0; i < 32; i++) {
+    for (i = 0; i < MULTIPLE_LEN; i++) {
         if (!(mdata->var_initialized & (1u << i)))
             continue;
 
@@ -497,17 +487,14 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
             result = mdata->var[i];
             result_set = true;
             continue;
-        } else {
-            r = type->func(&result, &mdata->var[i], &result);
-            if (r < 0) {
-                sol_flow_send_error_packet_errno(node, -r);
-                return r;
-            }
+        }
+
+        r = type->func(&result, &mdata->var[i], &result);
+        if (r < 0) {
+            sol_flow_send_error_packet_errno(node, -r);
+            return r;
         }
     }
-
-    if (!result_set)
-        return 0;
 
     return sol_flow_send_irange_packet(node, 0, &result);
 }
