@@ -30,13 +30,21 @@
 
 hello(constant/string:value="Ħěĺļō")
 world(constant/string:value=" Ɯőŗŀď")
+end(constant/string:value="♫♫♫")
 
 hello OUT -> IN[0] concat(string/concatenate)
 world OUT -> IN[1] concat
 hello_world(constant/string:value="Ħěĺļō Ɯőŗŀď") OUT -> IN[0] concat_cmp(string/compare)
 concat OUT -> IN[1] concat_cmp EQUAL -> RESULT concat_entire_strings(test/result)
 
-hello OUT -> IN[0] concat_n(string/concatenate:bytes=2)
+hello OUT -> IN[0] concat_n(string/concatenate:chars=7)
 world OUT -> IN[1] concat_n
+end OUT -> IN[2] concat_n
 hello_w(constant/string:value="Ħěĺļō Ɯ") OUT -> IN[0] concat_n_cmp(string/compare)
 concat_n OUT -> IN[1] concat_n_cmp EQUAL -> RESULT concat_some_bytes(test/result)
+
+hello OUT -> IN[0] concat_3(string/concatenate)
+world OUT -> IN[1] concat_3
+end OUT -> IN[2] concat_3
+hello_world_3(constant/string:value="Ħěĺļō Ɯőŗŀď♫♫♫") OUT -> IN[0] concat_3_cmp(string/compare)
+concat_3 OUT -> IN[1] concat_3_cmp EQUAL -> RESULT concat_3_entire_strings(test/result)
