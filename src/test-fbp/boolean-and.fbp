@@ -29,7 +29,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 false(constant/boolean:value=false)
-true(constant/boolean:value=true) 
+true(constant/boolean:value=true)
 
 false OUT -> IN[0] and_ff(boolean/and)
 false OUT -> IN[1] and_ff
@@ -46,3 +46,15 @@ and_tf OUT -> IN not3(boolean/not) OUT -> RESULT true_and_false_is_false(test/re
 true OUT -> IN[0] and_tt(boolean/and)
 true OUT -> IN[1] and_tt
 and_tt OUT -> RESULT true_and_true_is_true(test/result)
+
+and_ttt(boolean/and)
+true OUT -> IN[5] and_ttt
+true OUT -> IN[31] and_ttt
+true OUT -> IN[17] and_ttt
+and_ttt OUT -> RESULT true_and_true_and_true_is_true(test/result)
+
+and_tff(boolean/and)
+false OUT -> IN[0] and_tff
+false OUT -> IN[8] and_tff
+false OUT -> IN[31] and_tff
+and_tff OUT -> IN _(boolean/not) OUT -> RESULT true_and_false_and_false_is_false(test/result)

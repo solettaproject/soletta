@@ -46,6 +46,14 @@ struct boolean_data {
     bool in1 : 1;
 };
 
+#define MULTI_LEN (SOL_FLOW_NODE_TYPE_BOOLEAN_AND__IN__IN_LAST + 1)
+
+struct multi_boolean_data {
+    uint32_t initialized;
+    uint32_t connected;
+    bool vals[MULTI_LEN];
+};
+
 static int
 two_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out,
     const struct sol_flow_packet *packet, bool (*func) (bool in0, bool in1))
@@ -73,6 +81,47 @@ two_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint
     return 0;
 }
 
+static int
+multi_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+{
+    struct multi_boolean_data *mdata = data;
+
+    mdata->connected |= 1u << port;
+    return 0;
+}
+
+static int
+multi_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out, const struct sol_flow_packet *packet, bool (*func) (bool in0, bool in1))
+{
+    struct multi_boolean_data *mdata = data;
+    int r;
+    uint8_t i;
+    bool result, result_set = false;
+
+    r = sol_flow_packet_get_boolean(packet, &mdata->vals[port_in]);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->initialized |= 1u << port_in;
+    /* waits until at least a packet is received in each connected port */
+    if (mdata->initialized != mdata->connected)
+        return 0;
+
+    for (i = 0; i < MULTI_LEN; i++) {
+        if (!(mdata->initialized & (1u << i)))
+            continue;
+
+        if (!result_set) {
+            result = mdata->vals[i];
+            result_set = true;
+            continue;
+        }
+
+        result = func(result, mdata->vals[i]);
+    }
+
+    return sol_flow_send_boolean_packet(node, port_out, result);
+}
+
 /* AND *****************************************************************/
 
 static bool
@@ -82,10 +131,10 @@ and_func(bool in0, bool in1)
 }
 
 static int
-and_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
-    const struct sol_flow_packet *packet)
+and_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    return two_ports_process(node, data, port, SOL_FLOW_NODE_TYPE_BOOLEAN_AND__OUT__OUT, packet,
+    return multi_ports_process(node, data, port,
+        SOL_FLOW_NODE_TYPE_BOOLEAN_AND__OUT__OUT, packet,
         and_func);
 }
 
@@ -98,10 +147,10 @@ or_func(bool in0, bool in1)
 }
 
 static int
-or_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
-    const struct sol_flow_packet *packet)
+or_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    return two_ports_process(node, data, port, SOL_FLOW_NODE_TYPE_BOOLEAN_OR__OUT__OUT, packet,
+    return multi_ports_process(node, data, port,
+        SOL_FLOW_NODE_TYPE_BOOLEAN_OR__OUT__OUT, packet,
         or_func);
 }
 
