@@ -89,3 +89,4 @@ pthread_mutex_unlock(pthread_mutex_t *mtx)
 #define HAVE_ASSERT_H 1
 #define HAVE_SYS_TIME_H 1
 #define HAVE_TIME_H 1
+#define HAVE_VPRINTF 1

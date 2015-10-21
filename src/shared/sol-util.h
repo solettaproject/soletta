@@ -569,3 +569,13 @@ sol_util_base16_calculate_decoded_len(const struct sol_str_slice slice)
 {
     return slice.len / 2;
 }
+
+static inline void
+sol_util_secure_clear_memory(void *buf, size_t len)
+{
+    memset(buf, 0, len);
+
+    /* Clobber memory pointed to by `buf` to prevent the optimizer from
+     * eliding the memset() call.  */
+    asm volatile ("" : : "g" (buf) : "memory");
+}

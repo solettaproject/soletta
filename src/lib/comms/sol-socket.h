@@ -41,7 +41,10 @@ struct sol_socket {
 };
 
 enum sol_socket_type {
-    SOL_SOCKET_UDP
+    SOL_SOCKET_UDP,
+#ifdef DTLS
+    SOL_SOCKET_DTLS,
+#endif
 };
 
 struct sol_socket *sol_socket_new(int domain, enum sol_socket_type type, int protocol);

@@ -38,6 +38,10 @@
 #include "sol-network.h"
 #include "sol-socket-impl.h"
 
+#ifdef DTLS
+struct sol_socket *sol_socket_dtls_wrap_socket(struct sol_socket *socket);
+#endif
+
 #include <errno.h>
 
 SOL_API struct sol_socket *
@@ -45,6 +49,15 @@ sol_socket_new(int domain, enum sol_socket_type type, int protocol)
 {
     const struct sol_socket_impl *impl = NULL;
     struct sol_socket *socket;
+
+#ifdef DTLS
+    bool dtls = false;
+
+    if (type == SOL_SOCKET_DTLS) {
+        dtls = true;
+        type = SOL_SOCKET_UDP;
+    }
+#endif
 
 #ifdef SOL_PLATFORM_LINUX
     impl = sol_socket_linux_get_impl();
@@ -57,6 +70,18 @@ sol_socket_new(int domain, enum sol_socket_type type, int protocol)
     socket = impl->new(domain, type, protocol);
     if (socket)
         socket->impl = impl;
+
+#ifdef DTLS
+    if (dtls) {
+        struct sol_socket *dtls_wrapped = sol_socket_dtls_wrap_socket(socket);
+
+        if (dtls_wrapped)
+            return dtls_wrapped;
+
+        sol_socket_del(socket);
+        socket = NULL;
+    }
+#endif
 
     return socket;
 }
