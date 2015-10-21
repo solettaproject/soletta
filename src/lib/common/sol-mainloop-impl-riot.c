@@ -41,6 +41,11 @@
 #include <sched.h>
 #include <vtimer.h>
 
+#ifdef THREADS
+#include <mutex.h>
+#include <thread.h>
+#endif
+
 #include "sol-mainloop-common.h"
 #include "sol-interrupt_scheduler_riot.h"
 #include "sol-mainloop-impl.h"
@@ -51,20 +56,35 @@
 #define MSG_BUFFER_SIZE 32
 static msg_t msg_buffer[MSG_BUFFER_SIZE];
 
+#ifdef THREADS
+static mutex_t _lock;
+static kernel_pid_t _main_pid;
+#endif
+
 void
 sol_mainloop_impl_lock(void)
 {
+#ifdef THREADS
+    mutex_lock(&_lock);
+#endif
 }
 
 void
 sol_mainloop_impl_unlock(void)
 {
+#ifdef THREADS
+    mutex_unlock(&_lock);
+#endif
 }
 
 bool
 sol_mainloop_impl_main_thread_check(void)
 {
+#ifdef THREADS
+    return thread_getpid() == _main_pid;
+#else
     return true;
+#endif
 }
 
 void
@@ -75,6 +95,10 @@ sol_mainloop_impl_main_thread_notify(void)
 int
 sol_mainloop_impl_platform_init(void)
 {
+#ifdef THREADS
+    mutex_init(&_lock);
+    _main_pid = thread_getpid();
+#endif
     sol_interrupt_scheduler_set_pid(sched_active_pid);
     msg_init_queue(msg_buffer, MSG_BUFFER_SIZE);
     return 0;
@@ -83,6 +107,9 @@ sol_mainloop_impl_platform_init(void)
 void
 sol_mainloop_impl_platform_shutdown(void)
 {
+#ifdef THREADS
+    _main_pid = KERNEL_PID_UNDEF;
+#endif
     sol_mainloop_common_source_shutdown();
 }
 
@@ -90,8 +117,13 @@ static inline void
 timex_set_until_next_timeout(timex_t *timex)
 {
     struct timespec ts;
+    bool ret;
 
-    if (!sol_mainloop_common_timespec_first(&ts)) {
+    sol_mainloop_impl_lock();
+    ret = sol_mainloop_common_timespec_first(&ts);
+    sol_mainloop_impl_unlock();
+
+    if (!ret) {
         *timex = timex_set(0, DEFAULT_USLEEP_TIME);
         return;
     }
