@@ -29,11 +29,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 false(constant/boolean:value=false)
-true(constant/boolean:value=true) 
+true(constant/boolean:value=true)
 
 false OUT -> IN[0] or_ff(boolean/or)
 false OUT -> IN[1] or_ff
-or_ff OUT -> IN not1(boolean/not) OUT -> RESULT false_or_false_is_false(test/result)
+or_ff OUT -> IN _(boolean/not) OUT -> RESULT false_or_false_is_false(test/result)
 
 false OUT -> IN[0] or_ft(boolean/or)
 true OUT -> IN[1] or_ft
@@ -46,3 +46,15 @@ or_tf OUT -> RESULT true_or_false_is_true(test/result)
 true OUT -> IN[0] or_tt(boolean/or)
 true OUT -> IN[1] or_tt
 or_tt OUT -> RESULT true_or_true_is_true(test/result)
+
+or_fft(boolean/or)
+false OUT -> IN[5] or_fft
+true OUT -> IN[31] or_fft
+false OUT -> IN[17] or_fft
+or_fft OUT -> RESULT false_or_false_or_true_is_true(test/result)
+
+or_fff(boolean/or)
+false OUT -> IN[0] or_fff
+false OUT -> IN[8] or_fff
+false OUT -> IN[31] or_fff
+or_fff OUT -> IN _(boolean/not) OUT -> RESULT false_or_false_or_false_is_false(test/result)

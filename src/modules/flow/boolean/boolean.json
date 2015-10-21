@@ -13,22 +13,23 @@
       "in_ports": [
         {
           "data_type": "boolean",
-          "description": "Two ports for logical operation AND. Indexed from 0 to 1.",
+          "description": "Ports for logical operation 'AND', indexed from 0 to 31.",
           "methods": {
+            "connect": "multi_connect",
             "process": "and_process"
           },
-          "name": "IN[2]"
+          "name": "IN[32]"
         }
       ],
       "name": "boolean/and",
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if both IN[0] and IN[1] are true.",
+          "description": "True if the last packet received in all connected ports are true. False otherwise.",
           "name": "OUT"
         }
       ],
-      "private_data_type": "boolean_data",
+      "private_data_type": "multi_boolean_data",
       "url": "http://solettaproject.org/doc/latest/node_types/boolean/and.html"
     },
     {
@@ -124,22 +125,23 @@
       "in_ports": [
         {
           "data_type": "boolean",
-          "description": "Two ports for logical operation OR. Indexed from 0 to 1.",
+          "description": "Ports for logical operation 'OR', indexed from 0 to 31.",
           "methods": {
+            "connect": "multi_connect",
             "process": "or_process"
           },
-          "name": "IN[2]"
+          "name": "IN[32]"
         }
       ],
       "name": "boolean/or",
       "out_ports": [
         {
           "data_type": "boolean",
-          "description": "True if either IN[0] or IN[1] is true.",
+          "description": "True if the last packet received in any input port is true. False otherwise.",
           "name": "OUT"
         }
       ],
-      "private_data_type": "boolean_data",
+      "private_data_type": "multi_boolean_data",
       "url": "http://solettaproject.org/doc/latest/node_types/boolean/or.html"
     },
     {
