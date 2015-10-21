@@ -305,13 +305,8 @@ connection_watch_cb(void *data, int fd, unsigned int flags)
     if (action) {
         int running;
         curl_multi_socket_action(global.multi, fd, action, &running);
-    }
-
-    if (action & CURL_CSELECT_ERR || connection->error) {
-        connection->watch = NULL;
         connection->error |= flags & (SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_ERR);
-
-        call_connection_finish_cb(connection);
+        pump_multi_info_queue();
     }
 
     return !(action & CURL_CSELECT_ERR);
