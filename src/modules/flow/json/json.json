@@ -298,6 +298,213 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/node_types/json/json-array-get-all-elements.html"
+    },
+    {
+     "category": "json",
+      "description": "Create a JSON array using data from input ports. JSON array is only created and sent to OUT port when CREATE port is triggered.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "A integer number to append as last element",
+          "methods": {
+            "process": "json_array_in_process"
+          },
+          "name": "INT"
+        },
+        {
+          "data_type": "string",
+          "description": "A string to append as last element",
+          "methods": {
+            "process": "json_array_in_process"
+          },
+          "name": "STRING"
+        },
+        {
+          "data_type": "boolean",
+          "description": "A boolean value to append as last element",
+          "methods": {
+            "process": "json_array_in_process"
+          },
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "float",
+          "description": "A float number to append as last element",
+          "methods": {
+            "process": "json_array_in_process"
+          },
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "json-object",
+          "description": "A JSON object to append as last element",
+          "methods": {
+            "process": "json_array_in_process"
+          },
+          "name": "OBJECT"
+        },
+        {
+          "data_type": "json-array",
+          "description": "A JSON array to append as last element",
+          "methods": {
+            "process": "json_array_in_process"
+          },
+          "name": "ARRAY"
+        },
+        {
+          "data_type": "any",
+          "description": "A null element will be appended each time a packet is received in this port",
+          "methods": {
+            "process": "json_array_in_process"
+          },
+          "name": "NULL"
+        },
+        {
+          "data_type": "any",
+          "description": "Clear the JSON array.",
+          "methods": {
+            "process": "json_clear_process"
+          },
+          "name": "CLEAR"
+        },
+        {
+          "data_type": "any",
+          "description": "Create a JSON array with data received in input ports and send it to OUT port.",
+          "methods": {
+            "process": "json_node_create_process"
+          },
+          "name": "CREATE"
+        }
+      ],
+      "methods": {
+        "open": "json_array_create_open",
+        "close": "json_create_close"
+      },
+      "name": "json/create-array",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct json_node_create_type",
+        "extra_methods": {
+          "send_json_packet": "sol_flow_send_json_array_packet"
+        }
+      },
+      "out_ports": [
+        {
+          "data_type": "json-array",
+          "description": "A JSON array created and sent by CREATE trigger.",
+          "name": "OUT"
+        },
+        {
+          "data_type": "int",
+          "description": "Number of elements added to this array so far.",
+          "name": "COUNT"
+        }
+      ],
+      "private_data_type": "json_element",
+      "url": "http://solettaproject.org/doc/latest/node_types/json/json-create-array.html"
+    },
+    {
+      "category": "json",
+      "description": "Create a JSON object using data from input ports. JSON object is only created and sent to OUT port when CREATE port is triggered.",
+      "in_ports": [
+        {
+          "data_type": "composed:string,int",
+          "description": "A string with the key and the int number value",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "INT"
+        },
+        {
+          "data_type": "composed:string,string",
+          "description": "A string with the key and the string value",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "STRING"
+        },
+        {
+          "data_type": "composed:string,boolean",
+          "description": "A string with the key and the boolean value",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "composed:string,float",
+          "description": "A string with the key and the float number value",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "composed:string,json-object",
+          "description": "A string with the key and the JSON array value",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "OBJECT"
+        },
+        {
+          "data_type": "composed:string,json-array",
+          "description": "A string with the key and the JSON object value",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "ARRAY"
+        },
+        {
+          "data_type": "string",
+          "description": "A string with the key of null value",
+          "methods": {
+            "process": "json_object_null_process"
+          },
+          "name": "NULL"
+        },
+        {
+          "data_type": "any",
+          "description": "Clear the JSON object",
+          "methods": {
+            "process": "json_clear_process"
+          },
+          "name": "CLEAR"
+        },
+        {
+          "data_type": "any",
+          "description": "Create a JSON object with data received in input ports and send it to OUT port.",
+          "methods": {
+            "process": "json_node_create_process"
+          },
+          "name": "CREATE"
+        }
+      ],
+      "methods": {
+        "open": "json_object_create_open",
+        "close": "json_create_close"
+      },
+      "name": "json/create-object",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct json_node_create_type",
+        "extra_methods": {
+          "send_json_packet": "sol_flow_send_json_object_packet"
+        }
+      },
+      "out_ports": [
+        {
+          "data_type": "json-object",
+          "description": "A JSON object created and sent by CREATE trigger.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "json_element",
+      "url": "http://solettaproject.org/doc/latest/node_types/json/json-create-object.html"
     }
   ]
 }
