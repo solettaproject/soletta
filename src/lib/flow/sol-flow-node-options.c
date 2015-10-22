@@ -505,7 +505,7 @@ set_default_option(struct sol_flow_node_named_options_member *m,
 {
     switch (m->type) {
     case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
-        m->drange = mdesc->defvalue.f;
+        m->drange = mdesc->defvalue.drange;
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR:
         m->direction_vector = mdesc->defvalue.direction_vector;
@@ -626,7 +626,7 @@ static const struct sol_str_table member_str_to_type[] = {
     SOL_STR_TABLE_ITEM("boolean", SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN),
     SOL_STR_TABLE_ITEM("byte", SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE),
     SOL_STR_TABLE_ITEM("int", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE),
-    SOL_STR_TABLE_ITEM("float", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE),
+    SOL_STR_TABLE_ITEM("drange", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE),
     SOL_STR_TABLE_ITEM("rgb", SOL_FLOW_NODE_OPTIONS_MEMBER_RGB),
     SOL_STR_TABLE_ITEM("direction-vector", SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR),
     SOL_STR_TABLE_ITEM("string", SOL_FLOW_NODE_OPTIONS_MEMBER_STRING),

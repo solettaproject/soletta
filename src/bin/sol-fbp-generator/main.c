@@ -496,7 +496,7 @@ handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
             irange_default_values, sizeof(irange_default_values) /
             sizeof(irange_default_values[0]),
             handle_irange_drange_suboption, has_default_option);
-    } else if (streq(o->data_type, "float")) {
+    } else if (streq(o->data_type, "drange")) {
         r = true;
         dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
             drange_default_values, sizeof(drange_default_values) /
@@ -1003,7 +1003,7 @@ get_type_data_by_name(const char *type)
 {
     if (streq(type, "int"))
         return "struct sol_irange";
-    if (streq(type, "float"))
+    if (streq(type, "drange"))
         return "struct sol_drange";
     if (streq(type, "string"))
         return "const char *";

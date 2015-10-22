@@ -182,7 +182,7 @@
          "name": "opt_byte"
         },
         {
-         "data_type": "float",
+         "data_type": "drange",
          "default": {
              "val": 20.5,
              "min": -10,

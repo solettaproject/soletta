@@ -69,7 +69,7 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "description": "Value of constant.",
             "name": "value"
           }

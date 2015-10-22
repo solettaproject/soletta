@@ -42,7 +42,7 @@
             "name": "resistance"
           },
           {
-            "data_type": "float",
+            "data_type": "drange",
             "description": "Thermistor reference temperature",
             "name": "reference_temperature"
           },
@@ -114,7 +114,7 @@
             "name": "resistance"
           },
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": 298.15,
             "description": "Thermistor reference temperature",
             "name": "reference_temperature"

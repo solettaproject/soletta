@@ -241,7 +241,7 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": {
               "max": 1023,
               "min": 0
@@ -311,7 +311,7 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": {
               "max": "DBL_MAX",
               "min": "-DBL_MAX",
@@ -321,7 +321,7 @@
             "name": "input_range"
           },
           {
-            "data_type": "float",
+            "data_type": "drange",
             "description": "Output's range.",
             "name": "output_range"
           },
@@ -690,7 +690,7 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "description": "Minimum value (inclusive)",
             "name": "min",
             "default" : {
@@ -698,7 +698,7 @@
             }
           },
           {
-            "data_type": "float",
+            "data_type": "drange",
             "description": "Maximum value (inclusive)",
             "name": "max",
             "default" : {
@@ -746,7 +746,7 @@
             "name": "ticks_inc"
           },
           {
-            "data_type": "float",
+            "data_type": "drange",
             "description": "The maximum value of the wave. This must be greater than min.",
             "name": "max"
           },
@@ -759,7 +759,7 @@
             "name": "ticks_dec"
           },
           {
-            "data_type": "float",
+            "data_type": "drange",
             "description": "The minimum value of the wave. This must be less than max.",
             "name": "min"
           },
@@ -825,7 +825,7 @@
             "name": "ticks_per_period"
           },
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": {
               "val": 1.0
             },
