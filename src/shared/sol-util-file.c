@@ -182,8 +182,9 @@ sol_util_load_file_raw(const int fd)
         return NULL;
 
     buffer = sol_buffer_new();
-    buffer->flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE;
     SOL_NULL_CHECK(buffer, NULL);
+
+    buffer->flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE;
 
     if (fstat(fd, &st) >= 0 && st.st_size) {
         ret = sol_util_fill_buffer(fd, buffer, st.st_size);
