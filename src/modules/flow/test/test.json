@@ -287,7 +287,7 @@
             "name": "sequence"
           },
           {
-            "data_type": "float",
+            "data_type": "int",
             "default": 0,
             "description": "Interval between packets, in miliseconds.",
             "name": "interval"
