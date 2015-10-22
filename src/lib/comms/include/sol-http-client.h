@@ -33,6 +33,7 @@
 #pragma once
 
 #include <sol-http.h>
+#include <sol-types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,6 +61,13 @@ struct sol_http_client_connection *sol_http_client_request(enum sol_http_method 
     void (*cb)(void *data, const struct sol_http_client_connection *connection,
     struct sol_http_response *response),
     const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
+
+struct sol_http_client_connection *sol_http_client_request_with_data(enum sol_http_method method,
+    struct sol_blob *blob,
+    const char *base_uri, const struct sol_http_param *params,
+    void (*cb)(void *data, const struct sol_http_client_connection *connection,
+    struct sol_http_response *response),
+    const void *data) SOL_ATTR_NONNULL(3, 5) SOL_ATTR_WARN_UNUSED_RESULT;
 
 void sol_http_client_connection_cancel(struct sol_http_client_connection *pending);
 

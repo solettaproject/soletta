@@ -61,12 +61,25 @@ static struct {
     .connections = SOL_PTR_VECTOR_INIT,
 };
 
+struct curl_http_method_opt {
+    CURLoption method;
+    union {
+        long enabled;
+        const char *request_name;
+    } args;
+};
+
 struct sol_http_client_connection {
     CURL *curl;
     struct sol_fd *watch;
     struct sol_arena *arena;
     struct curl_slist *headers;
     struct sol_buffer buffer;
+    struct sol_http_param response_params;
+    struct {
+        struct sol_blob *content;
+        size_t pos;
+    } content_data;
 
     void (*cb)(void *data, const struct sol_http_client_connection *connection, struct sol_http_response *response);
     const void *data;
@@ -77,12 +90,24 @@ struct sol_http_client_connection {
 static void
 destroy_connection(struct sol_http_client_connection *c)
 {
+    uint16_t i;
+    struct sol_http_param_value *param;
+
+    SOL_HTTP_PARAM_FOREACH_IDX (&c->response_params, param, i) {
+        curl_free((char *)param->value.key_value.key);
+        curl_free((char *)param->value.key_value.value);
+    }
+
     curl_multi_remove_handle(global.multi, c->curl);
     curl_slist_free_all(c->headers);
     curl_easy_cleanup(c->curl);
+    if (c->content_data.content)
+        sol_blob_unref(c->content_data.content);
 
     sol_buffer_fini(&c->buffer);
     sol_arena_del(c->arena);
+
+    sol_http_param_free(&c->response_params);
 
     if (c->watch)
         sol_fd_del(c->watch);
@@ -163,6 +188,8 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
         response = NULL;
         goto out;
     }
+
+    response->param = connection->response_params;
     response->response_code = (int)response_code;
 
 out:
@@ -380,8 +407,88 @@ xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
     return 0;
 }
 
+static size_t
+header_cb(char *data, size_t size, size_t nmemb, void *connp)
+{
+    struct sol_http_client_connection *connection = connp;
+    struct sol_http_param_value param;
+    size_t data_size, key_size, discarted, i;
+    char *sep;
+    int r;
+
+    r = sol_util_size_mul(size, nmemb, &data_size);
+    SOL_INT_CHECK(r, < 0, 0);
+
+    sep = memchr(data, ':', data_size);
+    if (!sep)
+        return data_size;
+
+    key_size = sep - data;
+    param.value.key_value.key = curl_easy_unescape(connection->curl,
+        data, key_size, NULL);
+    SOL_NULL_CHECK(param.value.key_value.key, 0);
+
+    // The ':'
+    discarted = 1;
+    sep++;
+
+    //Trim spaces
+    while (isspace(*sep)) {
+        sep++;
+        discarted++;
+    }
+
+    for (i = data_size - 1; isspace(data[i]); i--)
+        discarted++;
+
+    param.value.key_value.value = curl_easy_unescape(connection->curl, sep,
+        data_size - key_size - discarted, NULL);
+    SOL_NULL_CHECK_GOTO(param.value.key_value.value, err_value);
+
+    if (strstr(param.value.key_value.key, "Cookie"))
+        param.type = SOL_HTTP_PARAM_COOKIE;
+    else
+        param.type = SOL_HTTP_PARAM_HEADER;
+
+    if (!sol_http_param_add(&connection->response_params, param)) {
+        SOL_ERR("Could not add the http param - key:%s:value%s",
+            param.value.key_value.key, param.value.key_value.value);
+        goto err_add;
+    }
+
+    return data_size;
+
+err_add:
+    curl_free((char *)param.value.key_value.value);
+err_value:
+    curl_free((char *)param.value.key_value.key);
+    return 0;
+}
+
+static size_t
+read_cb(char *buffer, size_t size, size_t nmemb, void *connp)
+{
+    struct sol_http_client_connection *connection = connp;
+    size_t data_size, left, written;
+    int r;
+
+    left = connection->content_data.content->size -
+        connection->content_data.pos;
+    r = sol_util_size_mul(size, nmemb, &data_size);
+    SOL_INT_CHECK(r, < 0, 0);
+
+    written = sol_min(left, data_size);
+
+    memcpy(buffer, (char *)connection->content_data.content->mem +
+        connection->content_data.pos, written);
+    connection->content_data.pos += written;
+
+    return written;
+}
+
 static struct sol_http_client_connection *
-perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
+perform_multi(CURL *curl, struct sol_blob *blob,
+    struct sol_arena *arena, struct curl_slist *headers,
     void (*cb)(void *data, const struct sol_http_client_connection *connection,
     struct sol_http_response *response),
     const void *data)
@@ -403,9 +510,13 @@ perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
     connection->error = false;
 
     sol_buffer_init(&connection->buffer);
+    sol_http_param_init(&connection->response_params);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, connection);
+
+    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_cb);
+    curl_easy_setopt(curl, CURLOPT_HEADERDATA, connection);
 
     curl_easy_setopt(curl, CURLOPT_OPENSOCKETFUNCTION, open_socket_cb);
     curl_easy_setopt(curl, CURLOPT_OPENSOCKETDATA, connection);
@@ -425,6 +536,15 @@ perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
         CURLPROTO_HTTP | CURLPROTO_HTTPS);
 
     curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+
+    if (blob) {
+        connection->content_data.content = sol_blob_ref(blob);
+        SOL_NULL_CHECK_GOTO(connection->content_data.content, free_buffer);
+        curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE,
+            (curl_off_t)connection->content_data.content->size);
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_cb);
+        curl_easy_setopt(curl, CURLOPT_READDATA, connection);
+    }
 
     if (curl_multi_add_handle(global.multi, connection->curl) != CURLM_OK)
         goto free_buffer;
@@ -555,16 +675,17 @@ build_post_fields(CURL *curl, const struct sol_http_param *params)
 
 static bool
 set_headers_from_params(CURL *curl, struct sol_arena *arena,
-    const struct sol_http_param *params, struct curl_slist **headers)
+    const struct sol_http_param *params, struct sol_blob *blob,
+    struct curl_slist **headers)
 {
     struct sol_http_param_value *iter;
     struct curl_slist *list = NULL;
+    struct curl_slist *tmp_list;
     uint16_t idx;
 
     SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
         const char *key = iter->value.key_value.key;
         const char *value = iter->value.key_value.value;
-        struct curl_slist *tmp_list;
         char key_colon_value[512];
         char *tmp;
         int r;
@@ -582,6 +703,13 @@ set_headers_from_params(CURL *curl, struct sol_arena *arena,
             goto fail;
 
         tmp_list = curl_slist_append(list, tmp);
+        if (!tmp_list)
+            goto fail;
+        list = tmp_list;
+    }
+
+    if (blob) {
+        tmp_list = curl_slist_append(list, "Transfer-Encoding: chunked");
         if (!tmp_list)
             goto fail;
         list = tmp_list;
@@ -749,13 +877,40 @@ sol_http_client_request(enum sol_http_method method,
     struct sol_http_response *response),
     const void *data)
 {
+    return sol_http_client_request_with_data(method, NULL,
+        base_uri, params, cb, data);
+}
+
+SOL_API struct sol_http_client_connection *
+sol_http_client_request_with_data(enum sol_http_method method,
+    struct sol_blob *blob,
+    const char *base_uri, const struct sol_http_param *params,
+    void (*cb)(void *data, const struct sol_http_client_connection *connection,
+    struct sol_http_response *response),
+    const void *data)
+{
     static const struct sol_http_param empty_params = {
         .params = SOL_VECTOR_INIT(struct sol_http_param_value)
     };
-    static const CURLoption sol_to_curl_method[] = {
-        [SOL_HTTP_METHOD_GET] = CURLOPT_HTTPGET,
-        [SOL_HTTP_METHOD_POST] = CURLOPT_HTTPPOST,
-        [SOL_HTTP_METHOD_HEAD] = CURLOPT_NOBODY,
+    static const struct curl_http_method_opt sol_to_curl_method[] = {
+        [SOL_HTTP_METHOD_GET] = { .method = CURLOPT_HTTPGET,
+                                  .args.enabled = 1L },
+        [SOL_HTTP_METHOD_POST] = { .method = CURLOPT_HTTPPOST,
+                                   .args.enabled = 1L },
+        [SOL_HTTP_METHOD_HEAD] = { .method = CURLOPT_NOBODY,
+                                   .args.enabled = 1L },
+        [SOL_HTTP_METHOD_DELETE] = { .method = CURLOPT_CUSTOMREQUEST,
+                                     .args.request_name = "DELETE" },
+        [SOL_HTTP_METHOD_PUT] = { .method = CURLOPT_CUSTOMREQUEST,
+                                  .args.request_name = "PUT" },
+        [SOL_HTTP_METHOD_CONNECT] = { .method = CURLOPT_CUSTOMREQUEST,
+                                      .args.request_name = "CONNECT" },
+        [SOL_HTTP_METHOD_OPTIONS] = { .method = CURLOPT_CUSTOMREQUEST,
+                                      .args.request_name = "OPTIONS" },
+        [SOL_HTTP_METHOD_TRACE] = { .method = CURLOPT_CUSTOMREQUEST,
+                                    .args.request_name = "TRACE" },
+        [SOL_HTTP_METHOD_PATCH] = { .method = CURLOPT_CUSTOMREQUEST,
+                                    .args.request_name = "PATCH" }
     };
     struct sol_http_param_value *value;
     struct sol_arena *arena;
@@ -763,6 +918,14 @@ sol_http_client_request(enum sol_http_method method,
     struct sol_http_client_connection *pending;
     CURL *curl;
     uint16_t idx;
+    struct curl_http_method_opt method_opt;
+    CURLcode code;
+
+
+    if (method >= SOL_HTTP_METHOD_INVALID) {
+        SOL_WRN("The HTTP method is set to invalid");
+        return NULL;
+    }
 
     if (!strstartswith(base_uri, "http://")
         && !strstartswith(base_uri, "https://")) {
@@ -791,7 +954,16 @@ sol_http_client_request(enum sol_http_method method,
         goto no_curl_easy;
     }
 
-    if (curl_easy_setopt(curl, sol_to_curl_method[method], 1L) != CURLE_OK) {
+    method_opt = sol_to_curl_method[method];
+
+    if (method <= SOL_HTTP_METHOD_HEAD)
+        code = curl_easy_setopt(curl, method_opt.method,
+            method_opt.args.enabled);
+    else
+        code = curl_easy_setopt(curl, method_opt.method,
+            method_opt.args.request_name);
+
+    if (code != CURLE_OK) {
         SOL_WRN("Could not set HTTP method");
         goto invalid_option;
     }
@@ -806,7 +978,7 @@ sol_http_client_request(enum sol_http_method method,
         goto invalid_option;
     }
 
-    if (!set_headers_from_params(curl, arena, params, &headers)) {
+    if (!set_headers_from_params(curl, arena, params, blob, &headers)) {
         SOL_WRN("Could not set custom headers from params");
         goto invalid_option;
     }
@@ -814,8 +986,8 @@ sol_http_client_request(enum sol_http_method method,
     if (method == SOL_HTTP_METHOD_POST) {
         if (!set_post_fields_from_params(curl, arena, params) &&
             !set_post_data_from_params(curl, arena, params)) {
-            SOL_WRN("Could not set POST fields or data from params");
-            goto invalid_option;
+            SOL_WRN("Sending post with empty params");
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, NULL);
         }
     }
 
@@ -855,7 +1027,7 @@ sol_http_client_request(enum sol_http_method method,
         }
     }
 
-    pending = perform_multi(curl, arena, headers, cb, data);
+    pending = perform_multi(curl, blob, arena, headers, cb, data);
     if (pending)
         return pending;
 

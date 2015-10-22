@@ -124,6 +124,16 @@ inspector_show_out_port(const struct sol_flow_node *node, uint16_t port_idx)
 }
 
 static void
+inpector_print_key_value_array(struct sol_vector *vector)
+{
+    uint16_t i;
+    struct sol_http_response_param *param;
+
+    SOL_VECTOR_FOREACH_IDX (vector, param, i)
+        fprintf(stdout, "%s:%s,", param->key, param->value);
+}
+
+static void
 inspector_show_packet_value(const struct sol_flow_packet *packet)
 {
     const struct sol_flow_packet_type *type = sol_flow_packet_get_type(packet);
@@ -231,6 +241,20 @@ inspector_show_packet_value(const struct sol_flow_packet *packet)
                     return;
                 }
             }
+        }
+    } else if (type == SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE) {
+        struct sol_http_response_type resp;
+        if (sol_flow_packet_get_http_response(packet, &resp) == 0) {
+            fprintf(stdout, "<response_code:%d, content type:%s, url:%s,",
+                resp.code, resp.content_type, resp.url);
+            fprintf(stdout, "cookies: {");
+            inpector_print_key_value_array(&resp.cookies);
+            fprintf(stdout, "}, headers:{");
+            inpector_print_key_value_array(&resp.headers);
+            fprintf(stdout,
+                "}, content:{mem=%p|size=%zd|refcnt=%hu|type=%p|parent=%p}>",
+                resp.content->mem, resp.content->size, resp.content->refcnt,
+                resp.content->type, resp.content->parent);
         }
     }
 

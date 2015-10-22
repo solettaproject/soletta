@@ -46,6 +46,9 @@ requires-private-$(HTTP_CLIENT) := \
 obj-networking-$(HTTP_SERVER) += \
     sol-http-server-impl-microhttpd.o
 
+obj-networking-$(HTTP_SERVER)-extra-cflags += \
+    $(LIBMICROHTTPD_CFLAGS)
+
 obj-networking-$(HTTP_SERVER)-extra-ldflags += \
     $(LIBMICROHTTPD_LDFLAGS)
 
