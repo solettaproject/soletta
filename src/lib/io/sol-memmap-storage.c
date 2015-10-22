@@ -110,7 +110,8 @@ sol_memmap_read_raw_do(const char *path, const struct sol_memmap_entry *entry, u
 
     fd = open(path, O_RDWR | O_CLOEXEC);
     if (fd < 0) {
-        SOL_WRN("Could not open memory file [%s]", path);
+        SOL_WRN("Could not open memory file [%s]: %s", path,
+            sol_util_strerrora(errno));
         return -errno;
     }
 
@@ -152,7 +153,8 @@ sol_memmap_write_raw_do(const char *path, const struct sol_memmap_entry *entry, 
 
     file = fopen(path, "r+e");
     if (!file) {
-        SOL_WRN("Could not open memory file [%s]", path);
+        SOL_WRN("Could not open memory file [%s]: %s", path,
+            sol_util_strerrora(errno));
         return -errno;
     }
 

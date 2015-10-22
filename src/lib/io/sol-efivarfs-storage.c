@@ -80,7 +80,8 @@ sol_efivars_write_raw(const char *name, const struct sol_buffer *buffer)
 
     file = fopen(path, "w+e");
     if (!file) {
-        SOL_WRN("Could not open persistence file [%s]", path);
+        SOL_WRN("Could not open persistence file [%s]: %s", path,
+            sol_util_strerrora(errno));
         return -errno;
     }
     if (!check_realpath(path)) {
@@ -103,7 +104,8 @@ sol_efivars_write_raw(const char *name, const struct sol_buffer *buffer)
 
 end:
     if (fclose(file)) {
-        SOL_WRN("Could not close persistence file [%s]", path);
+        SOL_WRN("Could not close persistence file [%s]: %s", path,
+            sol_util_strerrora(errno));
         return -errno;
     }
 
@@ -134,7 +136,8 @@ sol_efivars_read_raw(const char *name, struct sol_buffer *buffer)
 
     fd = open(path, O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
-        SOL_WRN("Could not open persistence file [%s]", path);
+        SOL_WRN("Could not open persistence file [%s]: %s", path,
+            sol_util_strerrora(errno));
         return -errno;
     }
 
