@@ -157,4 +157,16 @@ selector_10 STRING -> IN validator_10 OUT -> IN[0] and_10
 selector_10 SELECTED -> IN validator_items_10 OUT -> IN[1] and_10
 and_10 OUT -> RESULT _(test/result)
 
+#advance items and select, one row only, *with title and
+#pre-selection*. 3 1st packets are from ADD_ITEM, the last two are
+#from NEXT. note that as soon as the item3-packet gets processed by
+#the node, the selection is updated
+selector_11(form/selector:rows=1,columns=15,format="{title}{value}",title="Title",circular=true)
+_(constant/string:value="item3") OUT -> SELECTED selector_11
+items_11(test/string-generator:sequence="item1 item2 item3",separator=" ")
+items_11 OUT -> ADD_ITEM selector_11
+_(test/boolean-generator:sequence="TT",interval=10) OUT -> NEXT selector_11
+validator_11(test/string-validator:sequence="Title * item1  |Title * item1  |Title item1    |Title item2    |Title * item3  ")
+selector_11 STRING -> IN validator_11 OUT -> RESULT _(test/result)
+
 ## TEST-SKIP-VALGRIND The timing we're relying on for the string sequence is blown away by Valgrind, so skip it.
