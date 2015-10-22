@@ -78,6 +78,7 @@ struct sol_pwm_config {
     bool enabled;
 };
 
+struct sol_pwm *sol_pwm_label_open(const char *label, const struct sol_pwm_config *config);
 struct sol_pwm *sol_pwm_open(int device, int channel, const struct sol_pwm_config *config);
 struct sol_pwm *sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config);
 void sol_pwm_close(struct sol_pwm *pwm);

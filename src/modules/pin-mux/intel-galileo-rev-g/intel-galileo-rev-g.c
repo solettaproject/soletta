@@ -312,7 +312,37 @@ static struct mux_controller pwm_controller_list[] = {
     { ARRAY_SIZE(pwm_dev_0), pwm_dev_0 },
 };
 
+static struct mux_pin_map pin_map[] = {
+    { .label = "A0", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 0, 0 }, .gpio = 14 },
+    { .label = "A1", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 0, 1 }, .gpio = 15 },
+    { .label = "A2", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 0, 2 }, .gpio = 16 },
+    { .label = "A3", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 0, 3 }, .gpio = 17 },
+    { .label = "A4", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 0, 4 }, .gpio = 18 },
+    { .label = "A5", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 0, 5 }, .gpio = 19 },
+    { .label = "0", .cap = SOL_IO_GPIO, .gpio = 11 },
+    { .label = "1", .cap = SOL_IO_GPIO, .gpio = 12 },
+    { .label = "2", .cap = SOL_IO_GPIO, .gpio = 61 },
+    { .label = "3", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 62, .pwm = { 0, 1 } },
+    { .label = "4", .cap = SOL_IO_GPIO, .gpio = 6 },
+    { .label = "5", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 0, .pwm = { 0, 3 } },
+    { .label = "6", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 1, .pwm = { 0, 5 } },
+    { .label = "7", .cap = SOL_IO_GPIO, .gpio = 38 },
+    { .label = "8", .cap = SOL_IO_GPIO, .gpio = 40 },
+    { .label = "9", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 4, .pwm = { 0, 7 } },
+    { .label = "10", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 10, .pwm = { 0, 11 } },
+    { .label = "11", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 5, .pwm = { 0, 9 } },
+    { .label = "12", .cap = SOL_IO_GPIO, .gpio = 15 },
+    { .label = "13", .cap = SOL_IO_GPIO, .gpio = 7 },
+    { }
+};
+
 // =============================================================================
+
+static int
+_pin_map(const char *label, const enum sol_io_protocol prot, va_list args)
+{
+    return mux_pin_map(pin_map, label, prot, args);
+}
 
 static int
 _set_aio(const int device, const int pin)
@@ -341,6 +371,7 @@ _set_pwm(const int device, const int channel)
 SOL_PIN_MUX_DECLARE(INTEL_GALILEO_REV_G,
     .plat_name = "intel-galileo-rev-g",
     .shutdown = mux_shutdown,
+    .pin_map = _pin_map,
     .aio = _set_aio,
     .gpio = _set_gpio,
     .i2c = _set_i2c,

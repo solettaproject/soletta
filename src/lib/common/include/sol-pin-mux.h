@@ -36,6 +36,15 @@
 
 #include "sol-gpio.h"
 
+enum sol_io_protocol {
+    SOL_IO_AIO = 0x01,
+    SOL_IO_GPIO = 0x02,
+    SOL_IO_I2C = 0x04,
+    SOL_IO_PWM = 0x08,
+    SOL_IO_SPI = 0x10,
+    SOL_IO_UART = 0x20,
+};
+
 /**
  * Select Pin Multiplexer instructions of a given board.
  *
@@ -47,6 +56,19 @@
  * @return 'true' on success, 'false' otherwise.
  */
 bool sol_pin_mux_select_mux(const char *board);
+
+/**
+ * Maps a pin label to the parameters necessary so it works on the desired protocol.
+ *
+ * Find if a given pin labeled 'label' is capable of operate on protocol 'prot' and return
+ * the parameters needed to setup the protocol.
+ *
+ * @param label The label of the pin as see on the board
+ * @param prot Protocol on which the pin should operate
+ *
+ * @return '0' on success, error code (always negative) otherwise.
+ */
+int sol_pin_mux_map(const char *label, const enum sol_io_protocol prot, ...);
 
 /**
  * Setup the given pin to operate as Analog I/O.

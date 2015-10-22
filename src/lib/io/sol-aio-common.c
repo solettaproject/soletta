@@ -40,6 +40,25 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "aio");
 #include "sol-pin-mux.h"
 
 SOL_API struct sol_aio *
+sol_aio_label_open(const char *label, const unsigned int precision)
+{
+    int device, pin;
+
+    SOL_LOG_INTERNAL_INIT_ONCE;
+
+#ifdef USE_PIN_MUX
+    if (!sol_pin_mux_map(label, SOL_IO_AIO, &device, &pin))
+        return sol_aio_open(device, pin, precision);
+
+    SOL_WRN("Label '%s' couldn't be mapped or can't be used as Analog I/O", label);
+#else
+    SOL_INF("Pin Multiplexer support is necessary to open a 'board pin'.");
+#endif
+
+    return NULL;
+}
+
+SOL_API struct sol_aio *
 sol_aio_open(const int device, const int pin, const unsigned int precision)
 {
     struct sol_aio *aio;

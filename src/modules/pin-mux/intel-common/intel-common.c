@@ -188,6 +188,49 @@ mux_shutdown(void)
     sol_vector_clear(&_in_use);
 }
 
+static inline void
+_set_int_arg(va_list *args, const int v)
+{
+    int *i = va_arg(*args, int *);
+
+    if (i) *i = v;
+}
+
+int
+mux_pin_map(const struct mux_pin_map *map, const char *label, const enum sol_io_protocol prot, va_list args)
+{
+    if (!map || !label || *label == '\0')
+        return -EINVAL;
+
+    while (map->label) {
+        if (streq(map->label, label)) {
+
+            if (!(map->cap & prot))
+                break;
+
+            switch (prot) {
+            case SOL_IO_AIO:
+                _set_int_arg(&args, map->aio.device);
+                _set_int_arg(&args, map->aio.pin);
+                break;
+            case SOL_IO_GPIO:
+                _set_int_arg(&args, map->gpio);
+                break;
+            case SOL_IO_PWM:
+                _set_int_arg(&args, map->pwm.device);
+                _set_int_arg(&args, map->pwm.pin);
+                break;
+            default:
+                break;
+            }
+            return 0;
+        }
+        map++;
+    }
+
+    return -EINVAL;
+}
+
 int
 mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_list, const int s)
 {
