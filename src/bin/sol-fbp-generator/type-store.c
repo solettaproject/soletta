@@ -572,7 +572,7 @@ parse_default_value(struct option_description *o)
      * scanner state. */
     sol_json_scanner_init_from_token(&value_scanner, &o->default_value.token);
 
-    if (streq(o->data_type, "int") || streq(o->data_type, "float")) {
+    if (streq(o->data_type, "int") || streq(o->data_type, "drange")) {
         o->default_value_type = OPTION_VALUE_TYPE_RANGE;
         return parse_range_default_value(&value_scanner, o);
     }

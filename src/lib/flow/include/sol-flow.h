@@ -296,7 +296,7 @@ struct sol_flow_node_options_member_description {
         bool b; /**< option member's default boolean value */
         unsigned char byte; /**< option member's default byte value */
         struct sol_irange i; /**< option member's default integer range value */
-        struct sol_drange f; /**< option member's default float range value */
+        struct sol_drange drange; /**< option member's default float range value */
         struct sol_direction_vector direction_vector; /**< option member's default direction vector value */
         struct sol_rgb rgb; /**< option member's default RGB value */
         const char *s; /**< option member's default string value */

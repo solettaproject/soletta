@@ -142,7 +142,7 @@
             "name": "storage"
           },
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": 0.0,
             "description": "Default value for this node, when there's no previous value persisted",
             "name": "default_value"

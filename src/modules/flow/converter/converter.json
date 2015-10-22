@@ -43,13 +43,13 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": 0,
             "description": "DRange value of output when input is false.",
             "name": "false_value"
           },
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": 1,
             "description": "DRange value of output when input is true.",
             "name": "true_value"
@@ -607,7 +607,7 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": {
               "max": 255,
               "min": 1
@@ -679,7 +679,7 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": {
               "max": 255,
               "min": 1
@@ -825,7 +825,7 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": {
               "max": "DBL_MAX",
               "min": "-DBL_MAX"
@@ -1058,7 +1058,7 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": {
               "max": 1,
               "min": 1,
@@ -1523,7 +1523,7 @@
       "options": {
         "members": [
           {
-            "data_type": "float",
+            "data_type": "drange",
             "default": {
               "max": "DBL_MAX",
               "min": "-DBL_MAX"

@@ -205,7 +205,7 @@
             "name": "path"
           },
 	  {
-            "data_type": "float",
+            "data_type": "drange",
 	    "default": 0,
             "description": "The initial node's value",
             "name": "value"

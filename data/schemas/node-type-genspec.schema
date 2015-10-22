@@ -61,7 +61,7 @@
         "boolean",
         "byte",
         "direction-vector",
-        "float",
+        "drange",
         "int",
         "rgb",
         "string"
@@ -217,9 +217,9 @@
       }
     },
 
-    "options_members_float": {
+    "options_members_drange": {
       "properties": {
-        "data_type": { "enum": [ "float" ] },
+        "data_type": { "enum": [ "drange" ] },
         "default": {
           "oneOf": [
             { "$ref": "#/definitions/float_or_limit" },
@@ -318,7 +318,7 @@
             { "$ref": "#/definitions/options_members_byte" },
             { "$ref": "#/definitions/options_members_custom" },
             { "$ref": "#/definitions/options_members_direction_vector" },
-            { "$ref": "#/definitions/options_members_float" },
+            { "$ref": "#/definitions/options_members_drange" },
             { "$ref": "#/definitions/options_members_int" },
             { "$ref": "#/definitions/options_members_rgb" },
             { "$ref": "#/definitions/options_members_string" }
