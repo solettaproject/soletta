@@ -32,6 +32,9 @@
 
 #pragma once
 
+#include "sol-gpio.h"
+#include "sol-pin-mux.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
