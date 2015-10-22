@@ -480,14 +480,42 @@ string_parse(const char *value, struct sol_flow_node_named_options_member *m)
     return 0;
 }
 
+static int
+float_parse(const char *value, struct sol_flow_node_named_options_member *m)
+{
+    char *endptr;
+    double v;
+
+    if (!strcmp(DBL_MAX_STR, value)) {
+        m->f = DBL_MAX;
+        return 0;
+    }
+
+    if (!strcmp(DBL_MIN_STR, value)) {
+        m->f = -DBL_MAX;
+        return 0;
+    }
+
+    errno = 0;
+    v = strtod_no_locale(value, &endptr);
+    if (value == endptr)
+        return -EINVAL;
+    if (errno != 0)
+        return -errno;
+
+    m->f = v;
+    return 0;
+}
+
 static int(*const options_parse_functions[]) (const char *, struct sol_flow_node_named_options_member *) = {
     [SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN] = NULL,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN] = boolean_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE] = byte_parse,
-    [SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE] = irange_parse,
-    [SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE] = drange_parse,
-    [SOL_FLOW_NODE_OPTIONS_MEMBER_RGB] = rgb_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR] = direction_vector_parse,
+    [SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE] = drange_parse,
+    [SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT] = float_parse,
+    [SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE] = irange_parse,
+    [SOL_FLOW_NODE_OPTIONS_MEMBER_RGB] = rgb_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_STRING] = string_parse,
 };
 
@@ -594,11 +622,14 @@ set_member(
     case SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE:
         *(unsigned char *)mem = m->byte;
         break;
-    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
-        *(struct sol_irange *)mem = m->irange;
-        break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
         *(struct sol_drange *)mem = m->drange;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT:
+        *(double *)mem = m->f;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
+        *(struct sol_irange *)mem = m->irange;
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
         *(struct sol_rgb *)mem = m->rgb;
@@ -620,10 +651,11 @@ set_member(
 static const struct sol_str_table member_str_to_type[] = {
     SOL_STR_TABLE_ITEM("boolean", SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN),
     SOL_STR_TABLE_ITEM("byte", SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE),
-    SOL_STR_TABLE_ITEM("int", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE),
-    SOL_STR_TABLE_ITEM("drange", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE),
-    SOL_STR_TABLE_ITEM("rgb", SOL_FLOW_NODE_OPTIONS_MEMBER_RGB),
     SOL_STR_TABLE_ITEM("direction-vector", SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR),
+    SOL_STR_TABLE_ITEM("drange", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE),
+    SOL_STR_TABLE_ITEM("float", SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT),
+    SOL_STR_TABLE_ITEM("int", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE),
+    SOL_STR_TABLE_ITEM("rgb", SOL_FLOW_NODE_OPTIONS_MEMBER_RGB),
     SOL_STR_TABLE_ITEM("string", SOL_FLOW_NODE_OPTIONS_MEMBER_STRING),
     {}
 };

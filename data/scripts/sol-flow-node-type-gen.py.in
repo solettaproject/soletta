@@ -252,8 +252,9 @@ def c_clean(string):
 data_type_to_c_map = {
     "boolean": "bool",
     "byte": "unsigned char",
-    "int": "struct sol_irange",
     "drange": "struct sol_drange",
+    "float": "double",
+    "int": "struct sol_irange",
     "rgb": "struct sol_rgb",
     "direction-vector": "struct sol_direction_vector",
     "string": "const char *",
@@ -266,8 +267,9 @@ def data_type_to_c(typename):
 data_type_to_default_member_map = {
     "boolean": "b",
     "byte": "byte",
-    "int": "i",
     "drange": "drange",
+    "float": "f",
+    "int": "i",
     "string": "s",
     "rgb": "rgb",
     "direction-vector": "direction_vector",
@@ -402,7 +404,7 @@ def uses_float(data):
                 return header
     elif "options" in data and "members" in data["options"]:
         for o in data["options"]["members"]:
-            if o["data_type"] == "drange" or o["data_type"] == "direction-vector":
+            if o["data_type"] in ["direction-vector", "drange", "float"]:
                 return "#include <float.h>\n"
     return ""
 
