@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <stdarg.h>
+
 #include "sol-gpio.h"
 #include "sol-pin-mux.h"
 
@@ -51,10 +53,13 @@ struct sol_pin_mux {
     int (*init)(void);
     void (*shutdown)(void);
 
+    int (*pin_map)(const char *label, const enum sol_io_protocol prot, va_list args);
+
     int (*aio)(const int device, const int pin);
     int (*gpio)(const int pin, const enum sol_gpio_direction dir);
     int (*i2c)(const uint8_t bus);
     int (*pwm)(const int device, const int channel);
+
 };
 
 #ifdef SOL_PIN_MUX_MODULE_EXTERNAL
