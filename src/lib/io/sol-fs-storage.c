@@ -55,7 +55,8 @@ sol_fs_write_raw(const char *name, const struct sol_buffer *buffer)
 
     file = fopen(name, "w+e");
     if (!file) {
-        SOL_WRN("Could not open persistence file [%s]", name);
+        SOL_WRN("Could not open persistence file [%s]: %s", name,
+            sol_util_strerrora(errno));
         return -errno;
     }
 
@@ -66,7 +67,8 @@ sol_fs_write_raw(const char *name, const struct sol_buffer *buffer)
     }
 
     if (fclose(file)) {
-        SOL_WRN("Could not close persistence file [%s]", name);
+        SOL_WRN("Could not close persistence file [%s]: %s", name,
+            sol_util_strerrora(errno));
         return -errno;
     }
 
@@ -83,7 +85,8 @@ sol_fs_read_raw(const char *name, struct sol_buffer *buffer)
 
     fd = open(name, O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
-        SOL_WRN("Could not open persistence file [%s]", name);
+        SOL_WRN("Could not open persistence file [%s]: %s", name,
+            sol_util_strerrora(errno));
         return -errno;
     }
 
