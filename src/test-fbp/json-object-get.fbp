@@ -36,8 +36,9 @@ float_validator(test/float-validator:sequence="123 1.23")
 string_validator(test/string-validator:sequence="hello")
 bool_validator(test/boolean-validator:sequence="FT")
 null_validator(converter/empty-to-boolean:output_value=true)
-object_validator(test/int-validator:sequence="456")
+object_validator_int(test/int-validator:sequence="456")
 array_validator(test/blob-validator:expected="[1,2,3]")
+object_validator(test/blob-validator:expected="{\"inner_int\": 456}")
 
 get_key_int_val(json/object-get-key:key="int_val")
 get_key_float_val(json/object-get-key:key="float_val")
@@ -66,7 +67,8 @@ get_key_string_val STRING -> IN string_validator
 get_key_false_val BOOLEAN -> IN bool_validator
 get_key_true_val BOOLEAN -> IN bool_validator
 get_key_null_val NULL -> IN null_validator
-get_key_object_val OBJECT -> IN _(json/object-get-key:key="inner_int") INT -> IN object_validator
+get_key_object_val OBJECT -> IN _(json/object-get-key:key="inner_int") INT -> IN object_validator_int
+get_key_object_val OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN object_validator
 get_key_array_val ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN array_validator
 _(constant/string:value="array_val") OUT -> KEY get_key_array_val
 
@@ -75,8 +77,9 @@ float_validator OUT -> RESULT float_result(test/result)
 string_validator OUT -> RESULT string_result(test/result)
 bool_validator OUT -> RESULT bool_result(test/result)
 null_validator OUT -> RESULT null_result(test/result)
-object_validator OUT -> RESULT object_result(test/result)
+object_validator OUT -> RESULT object_int_result(test/result)
 array_validator OUT -> RESULT array_result(test/result)
+object_validator OUT -> RESULT object_result(test/result)
 
 # Test node json/object-length
 json_object OUT -> IN _(json/object-length) OUT -> IN object_length_validator(test/int-validator:sequence="8")
