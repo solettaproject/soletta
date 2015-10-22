@@ -99,6 +99,7 @@ headers-$(PLATFORM_LINUX) += \
     include/sol-glib-integration.h
 
 headers-$(USE_PIN_MUX) += \
+    include/sol-pin-mux.h \
     include/sol-pin-mux-modules.h
 
 headers-$(PTHREAD) += \
