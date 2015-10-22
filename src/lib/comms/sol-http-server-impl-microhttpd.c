@@ -71,7 +71,7 @@ struct sol_http_server {
     struct sol_ptr_vector dirs;
     struct sol_vector handlers;
     struct sol_vector fds;
-    struct sol_vector requests;
+    struct sol_ptr_vector requests;
 };
 
 struct http_connection {
@@ -294,8 +294,15 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     enum sol_http_status_code status = SOL_HTTP_STATUS_NOT_FOUND;
 
     if (!req) {
-        req = sol_vector_append(&server->requests);
+        req = calloc(1, sizeof(struct sol_http_request));
         SOL_NULL_CHECK(req, MHD_NO);
+
+        ret = sol_ptr_vector_append(&server->requests, req);
+        if (ret < 0) {
+            SOL_WRN("Could not append request for: %s", url);
+            free(req);
+            return MHD_NO;
+        }
 
         sol_http_param_init(&req->params);
         req->url = url;
@@ -477,6 +484,7 @@ free_request(struct sol_http_request *request)
     }
 
     sol_http_param_free(&request->params);
+    free(request);
 }
 
 static void
@@ -484,18 +492,12 @@ notify_connection_finished_cb(void *data, struct MHD_Connection *connection,
     void **con_data, enum MHD_RequestTerminationCode code)
 {
     struct sol_http_server *server = data;
-    struct sol_http_request *itr, *request = *con_data;
-    uint16_t idx;
+    struct sol_http_request *request = *con_data;
 
     SOL_NULL_CHECK(request);
 
+    sol_ptr_vector_remove(&server->requests, request);
     free_request(request);
-    SOL_VECTOR_FOREACH_IDX (&server->requests, itr, idx) {
-        if (itr == request) {
-            sol_vector_del(&server->requests, idx);
-            return;
-        }
-    }
 }
 
 SOL_API struct sol_http_server *
@@ -513,7 +515,7 @@ sol_http_server_new(uint16_t port)
 
     sol_vector_init(&server->handlers, sizeof(struct http_handler));
     sol_vector_init(&server->fds, sizeof(struct http_connection));
-    sol_vector_init(&server->requests, sizeof(struct sol_http_request));
+    sol_ptr_vector_init(&server->requests);
     sol_ptr_vector_init(&server->dirs);
 
     server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
@@ -541,7 +543,7 @@ err:
 err_daemon:
     sol_vector_clear(&server->handlers);
     sol_vector_clear(&server->fds);
-    sol_vector_clear(&server->requests);
+    sol_ptr_vector_clear(&server->requests);
     free(server);
     return NULL;
 }
@@ -557,11 +559,11 @@ sol_http_server_del(struct sol_http_server *server)
 
     SOL_NULL_CHECK(server);
 
-    SOL_VECTOR_FOREACH_IDX (&server->requests, request, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&server->requests, request, i) {
         MHD_resume_connection(request->connection);
         free_request(request);
     }
-    sol_vector_clear(&server->requests);
+    sol_ptr_vector_clear(&server->requests);
 
     SOL_VECTOR_FOREACH_IDX (&server->handlers, handler, i)
         free((char *)handler->path.data);
