@@ -201,7 +201,7 @@
         "data_type": { "enum": [ "int" ] },
         "default": {
           "oneOf": [
-            { "type": "integer" },
+            { "$ref": "#/definitions/int_or_limit" },
             {
               "type": "object",
               "properties": {
@@ -222,7 +222,7 @@
         "data_type": { "enum": [ "float" ] },
         "default": {
           "oneOf": [
-            { "type": "number" },
+            { "$ref": "#/definitions/float_or_limit" },
             {
               "type": "object",
               "properties": {
