@@ -32,11 +32,14 @@
 
 #pragma once
 
+#include <stdarg.h>
+
+#include "sol-gpio.h"
+#include "sol-pin-mux.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "sol-gpio.h"
 
 /**
  * Pin logical value to be used
@@ -89,7 +92,20 @@ struct mux_controller {
     struct mux_description **recipe; /**< A list of mux recipes for each pin */
 };
 
+struct mux_pin_map {
+    const char *label; /**< Pin label on the board */
+    int cap; /**< Combination of protocols that share the pin */
+    int gpio; /**< GPIO internal value */
+    struct {
+        int device;
+        int pin;
+    } aio, pwm; /**< AIO and PWM mapping */
+};
+
 void mux_shutdown(void);
+
+int mux_pin_map(const struct mux_pin_map *map, const char *label, const enum sol_io_protocol prot,
+    va_list args);
 
 int mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_list,
     const int s);
