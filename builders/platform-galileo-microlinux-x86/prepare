@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# TODO: Prepare script should handle this automatically.
+
+PREPARE_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
+
+source $PREPARE_DIR/../common/common-prepare.sh
+
+####################### TODO ##########################
+# Clone soletta-target as we do for the other platforms
+# and compile it with the toolchain provided by
+# Barbieri's SDK (i586-quark-linux-musl). Replace the
+# libsoletta.a within the SDK by the generated one.
+#######################################################
+
+wget http://ab02.bz.intel.com/~lsywata/base.img -P $PREPARE_DIR
+
+which i586-quark-linux-musl-gcc
+
+if [ $? -ne 0 ]; then
+    echo "
+          Cross compiler not found. Please install SDK: 
+          http://ab02.bz.intel.com/~gbarbier/solda-intel-galileo-gen2-soletta-master.tar.bz2
+         "
+    exit 1
+fi
+
+cp \
+    $PREPARE_DIR/../common/common-compile.sh \
+    $PREPARE_DIR/compile \
+    $PREPARE_DIR/base.img \
+    $PREPARE_DIR/flash.sh \
+    $COMPILE_DIR
+
+cp -r \
+    $PREPARE_DIR/opt \
+    $COMPILE_DIR
+
+chmod +x $COMPILE_DIR/compile
+chmod +x $COMPILE_DIR/flash.sh
+
+rm -rf $PREPARE_DIR/opt*
