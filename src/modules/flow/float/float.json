@@ -690,20 +690,16 @@
       "options": {
         "members": [
           {
-            "data_type": "drange",
+            "data_type": "float",
             "description": "Minimum value (inclusive)",
             "name": "min",
-            "default" : {
-              "val" : "-DBL_MAX"
-            }
+            "default" : "-DBL_MAX"
           },
           {
-            "data_type": "drange",
+            "data_type": "float",
             "description": "Maximum value (inclusive)",
             "name": "max",
-            "default" : {
-              "val" : "DBL_MAX"
-            }
+            "default" : "DBL_MAX"
           },
           {
             "data_type": "boolean",
@@ -746,7 +742,7 @@
             "name": "ticks_inc"
           },
           {
-            "data_type": "drange",
+            "data_type": "float",
             "description": "The maximum value of the wave. This must be greater than min.",
             "name": "max"
           },
@@ -759,7 +755,7 @@
             "name": "ticks_dec"
           },
           {
-            "data_type": "drange",
+            "data_type": "float",
             "description": "The minimum value of the wave. This must be less than max.",
             "name": "min"
           },
@@ -825,10 +821,8 @@
             "name": "ticks_per_period"
           },
           {
-            "data_type": "drange",
-            "default": {
-              "val": 1.0
-            },
+            "data_type": "float",
+            "default": 1.0,
             "description": "The sine wave's amplitude. This must be a positive number, which will multiply the values in the pristine [-1.0, 1.0] range.",
             "name": "amplitude"
           },

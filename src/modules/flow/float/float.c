@@ -534,14 +534,14 @@ float_filter_open(struct sol_flow_node *node, void *data, const struct sol_flow_
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_FLOAT_FILTER_OPTIONS_API_VERSION, -EINVAL);
 
     opts = (const struct sol_flow_node_type_float_filter_options *)options;
-    if (isgreater(opts->max.val, opts->min.val)) {
-        mdata->min = opts->min.val;
-        mdata->max = opts->max.val;
+    if (isgreater(opts->max, opts->min)) {
+        mdata->min = opts->min;
+        mdata->max = opts->max;
     } else {
         SOL_DBG("min (%f) should be smaller than max (%f).",
-            opts->min.val, opts->max.val);
-        mdata->min = opts->max.val;
-        mdata->max = opts->min.val;
+            opts->min, opts->max);
+        mdata->min = opts->max;
+        mdata->max = opts->min;
     }
     mdata->range_override = opts->range_override;
     return 0;
@@ -697,7 +697,7 @@ wave_generator_trapezoidal_open(struct sol_flow_node *node,
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts, SOL_FLOW_NODE_TYPE_FLOAT_WAVE_GENERATOR_TRAPEZOIDAL_OPTIONS_API_VERSION, -EINVAL);
 
-    if (isgreaterequal(opts->min.val, opts->max.val)) {
+    if (isgreaterequal(opts->min, opts->max)) {
         SOL_ERR("Trapezoidal wave generator's min must be less than its max");
         return -EDOM;
     }
@@ -735,8 +735,8 @@ wave_generator_trapezoidal_open(struct sol_flow_node *node,
 
     t_state->did_first = false;
 
-    val->min = opts->min.val;
-    val->max = opts->max.val;
+    val->min = opts->min;
+    val->max = opts->max;
 
     mdata->ticks_inc = opts->ticks_inc.val;
     mdata->ticks_dec = opts->ticks_dec.val;
@@ -836,7 +836,7 @@ wave_generator_sinusoidal_open(struct sol_flow_node *node,
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts, SOL_FLOW_NODE_TYPE_FLOAT_WAVE_GENERATOR_SINUSOIDAL_OPTIONS_API_VERSION, -EINVAL);
 
-    if (islessequal(opts->amplitude.val, 0)) {
+    if (islessequal(opts->amplitude, 0)) {
         SOL_ERR("Sinusoidal wave generator's multiplier must be greater "
             "than zero");
         return -EDOM;
@@ -852,7 +852,7 @@ wave_generator_sinusoidal_open(struct sol_flow_node *node,
         return -EDOM;
     }
 
-    mdata->amplitude = opts->amplitude.val;
+    mdata->amplitude = opts->amplitude;
     s_state = &mdata->s_state;
     val = &s_state->val;
 

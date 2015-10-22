@@ -197,7 +197,7 @@ magnetometer_lsm303_open(struct sol_flow_node *node, void *data, const struct so
     }
 
     mdata->slave = opts->i2c_slave.val;
-    mdata->scale = opts->scale.val;
+    mdata->scale = opts->scale;
     mdata->node = node;
 
     lsm303_init(mdata);
