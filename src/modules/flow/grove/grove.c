@@ -332,7 +332,7 @@ temperature_converter_open(struct sol_flow_node *node, void *data, const struct 
     mdata->thermistor_constant = opts->thermistor_constant.val;
     mdata->input_range = 1 << opts->input_range_mask.val;
     mdata->resistance = opts->resistance.val;
-    mdata->reference_temperature = opts->reference_temperature.val;
+    mdata->reference_temperature = opts->reference_temperature;
     mdata->thermistor_resistance = opts->thermistor_resistance.val;
 
     return 0;
