@@ -32,7 +32,7 @@
 # memmap-test.bin
 # This test also depends on sol-flow.json, which contains its memory map.
 # memmap-test.bin need to exist and have previously written by
-# persistence-memmap.fbp
+# persistence-memmap-1.fbp
 # Note: memory mapped storage does not support default values. They are
 # meant to be sent when there's no previous saved value. However, memory mapped
 # storage does not support 'not previously saved value', as we only get a bunch
@@ -40,6 +40,7 @@
 
 ## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
 ## TEST-SKIP-VALGRIND Some float operations yield to [-]NaN on valgrind
+## TEST-DEPENDS-ON persistence-memmap-1.fbp
 
 validator_int(test/int-validator:sequence="-12")
 validator_irange(test/int-validator:sequence="-13")

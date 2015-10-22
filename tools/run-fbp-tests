@@ -74,6 +74,7 @@ class FbpTest:
         self.exit_code = 0
         self.extra_args = ""
         self.precondition = ""
+        self.depends = ""
 
         self._parse_test()
 
@@ -101,6 +102,8 @@ class FbpTest:
             self.extra_args = splitted[2:]
         elif cmd.startswith("TEST-PRECONDITION"):
             self.precondition = splitted[2:]
+        elif cmd.startswith("TEST-DEPENDS-ON"):
+            self.depends = splitted[2]
         else:
             logging.info("Ignoring unknown test command '%s' in test %s" %
                          (cmd, self.test_file))
@@ -202,6 +205,7 @@ def valgrind_prepare(args):
 def run_tests(args):
     failures = False
     runner = None
+    successful = []
 
     if not args.compiled:
         runner = os.path.abspath(args.runner)
@@ -259,12 +263,20 @@ def run_tests(args):
                 result = "failed"
 
         if not result:
+            if curr.depends and curr.depends not in successful:
+                logging.warning("Dependence test %s for test %s failed. Skipping it",
+                        curr.depends, curr.test_file)
+                status["skipped"] += 1
+                continue
+
             out, code = sh(cmd, cwd=test_cwd)
             result = curr.show_result_status(out, code)
 
         status[result] += 1
         if result == "failed":
             failures = True
+        else:
+            successful.append(path['file'])
 
     for k,v in status.items():
         if v > 0:
