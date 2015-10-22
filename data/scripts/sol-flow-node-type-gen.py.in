@@ -303,7 +303,7 @@ def is_composed(typename):
     return typename.startswith("composed:")
 
 def get_composed_types_with_underscore(types):
-    return types[len("composed:"):].replace(",", "_")
+    return types[len("composed:"):].replace(",", "_").replace("-", "_")
 
 def port_name_and_size(orig_name):
     m = re.match(r"([A-Z0-9_]+)(?:\[([0-9]+)\])?", orig_name)
@@ -460,7 +460,7 @@ def generate_header_tail(outfile, data):
 
 def generate_composed_type_get_signature(outfile, composed_type, prefix):
     types = composed_type[len("composed:"):]
-    types_with_underscore = types.replace(",", "_")
+    types_with_underscore = types.replace(",", "_").replace("-", "_")
     sig = "%s_get_composed_%s_packet_type(void)" % (prefix, types_with_underscore)
     if sig in composed_types_signatures:
         return
