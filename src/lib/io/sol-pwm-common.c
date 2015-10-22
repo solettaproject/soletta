@@ -41,12 +41,37 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
 #include "sol-pin-mux.h"
 #endif
 
+static void
+_log_init(void)
+{
+    SOL_LOG_INTERNAL_INIT_ONCE;
+}
+
+SOL_API struct sol_pwm *
+sol_pwm_open_by_label(const char *label, const struct sol_pwm_config *config)
+{
+    int device, channel;
+
+    _log_init();
+
+#ifdef USE_PIN_MUX
+    if (!sol_pin_mux_map(label, SOL_IO_PWM, &device, &channel))
+        return sol_pwm_open(device, channel, config);
+
+    SOL_WRN("Label '%s' couldn't be mapped or can't be used as PWM", label);
+#else
+    SOL_INF("Pin Multiplexer support is necessary to open a 'board pin'.");
+#endif
+
+    return NULL;
+}
+
 SOL_API struct sol_pwm *
 sol_pwm_open(int device, int channel, const struct sol_pwm_config *config)
 {
     struct sol_pwm *pwm;
 
-    SOL_LOG_INTERNAL_INIT_ONCE;
+    _log_init();
 
     pwm = sol_pwm_open_raw(device, channel, config);
 #ifdef USE_PIN_MUX
