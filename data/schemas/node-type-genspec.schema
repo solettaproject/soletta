@@ -39,11 +39,33 @@
     },
 
     "data_type": {
-      "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "direction-vector", "error", "location", "timestamp", "blob", "json-object", "json-array"]
+      "enum": [
+        "blob",
+        "boolean",
+        "byte",
+        "direction-vector",
+        "error",
+        "float",
+        "int",
+        "json-object",
+        "json-array",
+        "location",
+        "rgb",
+        "string",
+        "timestamp"
+      ]
     },
 
     "option_data_type": {
-      "enum": [ "boolean", "int", "byte", "string", "float", "rgb", "direction-vector"]
+      "enum": [
+        "boolean",
+        "byte",
+        "direction-vector",
+        "float",
+        "int",
+        "rgb",
+        "string"
+      ]
     },
 
     "port_data_type": {
@@ -293,13 +315,13 @@
         {
           "oneOf": [
             { "$ref": "#/definitions/options_members_boolean" },
-            { "$ref": "#/definitions/options_members_int" },
-            { "$ref": "#/definitions/options_members_float" },
-            { "$ref": "#/definitions/options_members_string" },
             { "$ref": "#/definitions/options_members_byte" },
-            { "$ref": "#/definitions/options_members_rgb" },
+            { "$ref": "#/definitions/options_members_custom" },
             { "$ref": "#/definitions/options_members_direction_vector" },
-            { "$ref": "#/definitions/options_members_custom" }
+            { "$ref": "#/definitions/options_members_float" },
+            { "$ref": "#/definitions/options_members_int" },
+            { "$ref": "#/definitions/options_members_rgb" },
+            { "$ref": "#/definitions/options_members_string" }
           ]
         }
       ]
