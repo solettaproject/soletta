@@ -45,6 +45,15 @@
 
 static const char SUBOPTION_SEPARATOR = '|';
 
+static const char INT_MAX_STR[] = "INT32_MAX";
+static const char INT_MIN_STR[] = "INT32_MIN";
+static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
+
+static const char DBL_MAX_STR[] = "DBL_MAX";
+static const char DBL_MIN_STR[] = "-DBL_MAX";
+static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
+static const size_t DBL_MIN_STR_LEN = sizeof(DBL_MIN_STR) - 1;
+
 static void *
 get_member_memory(const struct sol_flow_node_options_member_description *member, struct sol_flow_node_options *opts)
 {
@@ -196,9 +205,6 @@ irange_parse(const char *value, struct sol_flow_node_named_options_member *m)
     int field_cnt = 0;
     bool keys_schema = false;
     char *min, *max, *step, *val;
-    static const char INT_MAX_STR[] = "INT32_MAX";
-    static const char INT_MIN_STR[] = "INT32_MIN";
-    static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
     struct sol_irange *ret = &m->irange;
     int32_t *store_vals[] = { &ret->val, &ret->min, &ret->max, &ret->step };
 
@@ -256,10 +262,6 @@ drange_parse(const char *value, struct sol_flow_node_named_options_member *m)
     int field_cnt = 0;
     bool keys_schema = false;
     char *min, *max, *step, *val;
-    static const char DBL_MAX_STR[] = "DBL_MAX";
-    static const char DBL_MIN_STR[] = "-DBL_MAX";
-    static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
-    static const size_t DBL_MIN_STR_LEN = sizeof(DBL_MIN_STR) - 1;
     struct sol_drange *ret = &m->drange;
     double *store_vals[] = { &ret->val, &ret->min, &ret->max, &ret->step };
 
@@ -319,9 +321,6 @@ rgb_parse(const char *value, struct sol_flow_node_named_options_member *m)
     int field_cnt = 0;
     bool keys_schema = false;
     char *red, *green, *blue, *red_max, *green_max, *blue_max;
-    static const char INT_MAX_STR[] = "INT32_MAX";
-    static const char INT_MIN_STR[] = "INT32_MIN";
-    static const size_t INT_LIMIT_STR_LEN = sizeof(INT_MAX_STR) - 1;
     struct sol_rgb *ret = &m->rgb;
     uint32_t *store_vals[] = { &ret->red, &ret->green, &ret->blue,
                                &ret->red_max, &ret->green_max, &ret->blue_max };
@@ -391,10 +390,6 @@ direction_vector_parse(const char *value, struct sol_flow_node_named_options_mem
     int field_cnt = 0;
     bool keys_schema = false;
     char *min, *max, *x, *y, *z;
-    static const char DBL_MAX_STR[] = "DBL_MAX";
-    static const char DBL_MIN_STR[] = "-DBL_MAX";
-    static const size_t DBL_MAX_STR_LEN = sizeof(DBL_MAX_STR) - 1;
-    static const size_t DBL_MIN_STR_LEN = sizeof(DBL_MIN_STR) - 1;
     struct sol_direction_vector *ret = &m->direction_vector;
     double *store_vals[] = { &ret->x, &ret->y, &ret->z, &ret->min, &ret->max };
 
