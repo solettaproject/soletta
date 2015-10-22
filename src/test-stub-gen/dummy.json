@@ -189,6 +189,12 @@
              "max": 33,
              "step": 0.5
          },
+         "description": "Dummy drange option.",
+         "name": "opt_drange"
+        },
+        {
+         "data_type": "float",
+         "default": 66.6,
          "description": "Dummy float option.",
          "name": "opt_float"
         },

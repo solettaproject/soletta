@@ -1262,14 +1262,16 @@ get_member_alignment(const struct sol_flow_node_options_member_description *memb
 {
     struct sol_str_slice t;
     static const struct sol_str_table alignments[] = {
+        SOL_STR_TABLE_ITEM("blob", __alignof__(member->defvalue.ptr)),
         SOL_STR_TABLE_ITEM("boolean", __alignof__(member->defvalue.b)),
         SOL_STR_TABLE_ITEM("byte", __alignof__(member->defvalue.byte)),
+        SOL_STR_TABLE_ITEM("direction-vector",
+            __alignof__(member->defvalue.direction_vector)),
         SOL_STR_TABLE_ITEM("drange", __alignof__(member->defvalue.drange)),
+        SOL_STR_TABLE_ITEM("float", __alignof__(member->defvalue.f)),
         SOL_STR_TABLE_ITEM("int", __alignof__(member->defvalue.i)),
         SOL_STR_TABLE_ITEM("rgb", __alignof__(member->defvalue.rgb)),
         SOL_STR_TABLE_ITEM("string", __alignof__(member->defvalue.s)),
-        SOL_STR_TABLE_ITEM("direction-vector", __alignof__(member->defvalue.direction_vector)),
-        SOL_STR_TABLE_ITEM("blob", __alignof__(member->defvalue.ptr)),
     };
 
     t = SOL_STR_SLICE_STR(member->data_type, strlen(member->data_type));
