@@ -96,7 +96,7 @@ multi_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, ui
     struct multi_boolean_data *mdata = data;
     int r;
     uint8_t i;
-    bool result, result_set = false;
+    bool result = false, result_set = false;
 
     r = sol_flow_packet_get_boolean(packet, &mdata->vals[port_in]);
     SOL_INT_CHECK(r, < 0, r);
