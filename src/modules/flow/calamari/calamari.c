@@ -216,6 +216,7 @@ calamari_7seg_child_opts_set(const struct sol_flow_node_type *type,
     const struct sol_flow_node_options *opts,
     struct sol_flow_node_options *child_opts)
 {
+    char buf[32];
     const struct sol_flow_node_type_calamari_7seg_options *calamari_7seg_opts =
         (const struct sol_flow_node_type_calamari_7seg_options *)opts;
 
@@ -232,7 +233,11 @@ calamari_7seg_child_opts_set(const struct sol_flow_node_type *type,
     if (child_index == SEG_CTL || child_index > SEG_DATA)
         return 0;
 
-    gpio_opts->pin.val = pins[child_index];
+    gpio_opts->raw = true;
+    if (!snprintf(buf, sizeof(buf), "%d", pins[child_index]))
+        return -1;
+
+    gpio_opts->pin = strdup(buf);
 
     return 0;
 }
@@ -550,6 +555,7 @@ calamari_rgb_child_opts_set(const struct sol_flow_node_type *type,
     const struct sol_flow_node_options *opts,
     struct sol_flow_node_options *child_opts)
 {
+    char buf[32];
     const struct sol_flow_node_type_calamari_rgb_led_options *calamari_rgb_opts =
         (const struct sol_flow_node_type_calamari_rgb_led_options *)opts;
 
@@ -566,7 +572,11 @@ calamari_rgb_child_opts_set(const struct sol_flow_node_type *type,
     if (child_index == RGB_LED_CTL || child_index > RGB_LED_BLUE)
         return 0;
 
-    gpio_opts->pin.val = pins[child_index];
+    gpio_opts->raw = true;
+    if (!snprintf(buf, sizeof(buf), "%d", pins[child_index]))
+        return -1;
+
+    gpio_opts->pin = strdup(buf);
 
     return 0;
 }

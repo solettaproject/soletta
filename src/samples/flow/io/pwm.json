@@ -4,8 +4,7 @@
   {
    "name": "Led1",
    "options": {
-    "chip": 0,
-    "pin": 0,
+    "pin": "3",
     "period": 1020408,
     "duty_cycle": 510204
    },
@@ -14,8 +13,7 @@
   {
    "name": "Led2",
    "options": {
-    "chip": 0,
-    "pin": 1,
+    "pin": "5",
     "period": 2040816,
     "duty_cycle": 0,
     "enabled": true
