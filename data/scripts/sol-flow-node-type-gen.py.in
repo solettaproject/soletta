@@ -253,6 +253,7 @@ data_type_to_c_map = {
     "boolean": "bool",
     "byte": "unsigned char",
     "drange": "struct sol_drange",
+    "drange-spec": "struct sol_drange_spec",
     "float": "double",
     "int": "struct sol_irange",
     "rgb": "struct sol_rgb",
@@ -268,6 +269,7 @@ data_type_to_default_member_map = {
     "boolean": "b",
     "byte": "byte",
     "drange": "drange",
+    "drange-spec": "drange_spec",
     "float": "f",
     "int": "i",
     "string": "s",
@@ -359,6 +361,10 @@ def expand_value(value, data_type):
         value.setdefault("step", "DBL_MIN")
         value.setdefault("min", "-DBL_MAX")
         value.setdefault("max", "DBL_MAX")
+    elif data_type == "drange-spec":
+        value.setdefault("step", "DBL_MIN")
+        value.setdefault("min", "-DBL_MAX")
+        value.setdefault("max", "DBL_MAX")
 
     return value
 
@@ -373,7 +379,7 @@ def value_to_c(value, data_type):
         return str_to_c_or_null(value)
     elif data_type == "boolean":
         return bool_to_c(value)
-    elif data_type in ("rgb", "direction-vector", "int", "drange"):
+    elif data_type in ("rgb", "direction-vector", "int", "drange", "drange-spec"):
         return json_to_c_struct(value)
     else:
         return "%s" % (value)
@@ -404,7 +410,7 @@ def uses_float(data):
                 return header
     elif "options" in data and "members" in data["options"]:
         for o in data["options"]["members"]:
-            if o["data_type"] in ["direction-vector", "drange", "float"]:
+            if o["data_type"] in ["direction-vector", "drange", "drange-spec", "float"]:
                 return "#include <float.h>\n"
     return ""
 

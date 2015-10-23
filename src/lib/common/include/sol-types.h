@@ -156,6 +156,12 @@ struct sol_drange {
     double step;
 };
 
+struct sol_drange_spec {
+    double min;
+    double max;
+    double step;
+};
+
 #define SOL_DRANGE_INIT() \
     { \
         .min = -DBL_MAX, \

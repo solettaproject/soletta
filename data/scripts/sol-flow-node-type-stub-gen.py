@@ -555,8 +555,8 @@ def generate_stub(stub_file, inputs_list, prefix, is_module, namespace):
     base_names = []
     methods = []
     # blacklist our types that are often used
-    structs = ['sol_drange', 'sol_irange', 'sol_rgb', 'sol_direction_vector',
-               'sol_location']
+    structs = ['sol_drange', 'sol_drange_spec' 'sol_irange',
+               'sol_rgb', 'sol_direction_vector', 'sol_location']
     packets = []
 
     try:

@@ -304,6 +304,59 @@ err:
 }
 
 static void
+drange_spec_init(struct sol_drange_spec *ret)
+{
+    ret->min = -DBL_MAX;
+    ret->max = DBL_MAX;
+    ret->step = DBL_MIN;
+}
+
+static int
+drange_spec_parse(const char *value, struct sol_flow_node_named_options_member *m)
+{
+    char *buf;
+    int field_cnt = 0;
+    bool keys_schema = false;
+    char *min, *max, *step;
+    struct sol_drange_spec *ret = &m->drange_spec;
+    double *store_vals[] = { &ret->min, &ret->max, &ret->step };
+
+    buf = strdup(value);
+
+    ASSIGN_KEY_VAL(double, min, strtod_no_locale, false,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+    ASSIGN_KEY_VAL(double, max, strtod_no_locale, false,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+    ASSIGN_KEY_VAL(double, step, strtod_no_locale, false,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+
+    ASSIGN_LINEAR_VALUES(strtod_no_locale,
+        DBL_MAX, DBL_MAX_STR, DBL_MAX_STR_LEN,
+        -DBL_MAX, DBL_MIN_STR, DBL_MIN_STR_LEN);
+
+    SOL_DBG("drange opt ends up as min=%lf, max=%lf, step=%lf",
+        ret->min, ret->max, ret->step);
+
+    free(buf);
+    return 0;
+
+err:
+    SOL_DBG("Invalid drange value for option name=\"%s\": \"%s\"."
+        " Please use the formats"
+        " \"<min_value>|<max_value>|<step_value>\","
+        " in that order, or \"<key>:<value>|<...>\", for keys in "
+        "[min, max, step], in any order. Values may be the "
+        "special strings DBL_MAX and -DBL_MAX. Don't use commas "
+        "on the numbers",
+        m->name, value);
+    free(buf);
+    return -EINVAL;
+}
+
+static void
 rgb_init(struct sol_rgb *ret)
 {
     ret->red = 0;
@@ -513,6 +566,7 @@ static int(*const options_parse_functions[]) (const char *, struct sol_flow_node
     [SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE] = byte_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR] = direction_vector_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE] = drange_parse,
+    [SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC] = drange_spec_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT] = float_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE] = irange_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_RGB] = rgb_parse,
@@ -529,6 +583,9 @@ set_default_option(struct sol_flow_node_named_options_member *m,
     switch (m->type) {
     case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
         m->drange = mdesc->defvalue.drange;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC:
+        m->drange_spec = mdesc->defvalue.drange_spec;
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR:
         m->direction_vector = mdesc->defvalue.direction_vector;
@@ -550,6 +607,9 @@ init_member_suboptions(struct sol_flow_node_named_options_member *m)
     switch (m->type) {
     case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
         drange_init(&m->drange);
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC:
+        drange_spec_init(&m->drange_spec);
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR:
         direction_vector_init(&m->direction_vector);
@@ -625,6 +685,9 @@ set_member(
     case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE:
         *(struct sol_drange *)mem = m->drange;
         break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC:
+        *(struct sol_drange_spec *)mem = m->drange_spec;
+        break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT:
         *(double *)mem = m->f;
         break;
@@ -653,6 +716,7 @@ static const struct sol_str_table member_str_to_type[] = {
     SOL_STR_TABLE_ITEM("byte", SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE),
     SOL_STR_TABLE_ITEM("direction-vector", SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR),
     SOL_STR_TABLE_ITEM("drange", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE),
+    SOL_STR_TABLE_ITEM("drange-spec", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC),
     SOL_STR_TABLE_ITEM("float", SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT),
     SOL_STR_TABLE_ITEM("int", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE),
     SOL_STR_TABLE_ITEM("rgb", SOL_FLOW_NODE_OPTIONS_MEMBER_RGB),
