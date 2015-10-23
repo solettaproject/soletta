@@ -258,7 +258,7 @@ data_type_to_c_map = {
     "direction-vector": "struct sol_direction_vector",
     "string": "const char *",
     "location": "struct sol_location",
-    "timestamp": "struct timespec",
+    "timestamp": "struct timespec"
     }
 def data_type_to_c(typename):
     return data_type_to_c_map[typename]
@@ -270,7 +270,7 @@ data_type_to_default_member_map = {
     "float": "f",
     "string": "s",
     "rgb": "rgb",
-    "direction-vector": "direction_vector",
+    "direction-vector": "direction_vector"
     }
 composed_types_signatures = {}
 
@@ -292,7 +292,8 @@ data_type_to_packet_type_map = {
     "location": "SOL_FLOW_PACKET_TYPE_LOCATION",
     "timestamp": "SOL_FLOW_PACKET_TYPE_TIMESTAMP",
     "any": "SOL_FLOW_PACKET_TYPE_ANY",
-    "error": "SOL_FLOW_PACKET_TYPE_ERROR"
+    "error": "SOL_FLOW_PACKET_TYPE_ERROR",
+    "http-response": "SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE"
     }
 def packet_type_from_data_type(typename):
     if typename.startswith("custom:"):
