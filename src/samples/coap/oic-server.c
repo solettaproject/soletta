@@ -50,9 +50,6 @@
 #include "sol-coap.h"
 #include "sol-oic-server.h"
 
-
-#define DEFAULT_UDP_PORT 5683
-
 static int console_fd;
 static bool led_state;
 
@@ -165,7 +162,7 @@ main(int argc, char *argv[])
 
     sol_init();
 
-    if (sol_oic_server_init(DEFAULT_UDP_PORT) != 0) {
+    if (sol_oic_server_init() != 0) {
         SOL_WRN("Could not create OIC server.");
         return -1;
     }

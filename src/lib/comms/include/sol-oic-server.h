@@ -93,7 +93,7 @@ struct sol_oic_resource_type {
     } get, put, post, delete;
 };
 
-int sol_oic_server_init(int port);
+int sol_oic_server_init(void);
 void sol_oic_server_release(void);
 
 struct sol_oic_server_resource *sol_oic_server_add_resource(
