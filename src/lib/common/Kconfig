@@ -246,6 +246,7 @@ config THREADS
 	bool "Thread safety"
 	depends on (HAVE_PTHREAD_H && LINUX) || RIOT
 	select PTHREAD if LINUX
+	default n if RIOT
 	default y
 	help
             Allow usage of threads in Soletta applications.
