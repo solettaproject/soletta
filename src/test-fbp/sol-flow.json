@@ -13,6 +13,7 @@
         {
             "version": 1,
             "path": "memmap-test.bin",
+            "timeout": 25,
             "entries": [
                 {
                     "name": "_version",

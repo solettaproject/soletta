@@ -236,12 +236,9 @@ set_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
      */
     if (value == mdata->val.val) return 0;
 
-    if (value < mdata->val.min || value > mdata->val.max) {
-        SOL_WRN("Discarding value out of range [%" PRId32 "] to accumulator %p,"
-            " whose range is from [%" PRId32 "] to [%" PRId32 "]", value, node,
-            mdata->val.min, mdata->val.max);
-        return -EINVAL;
-    }
+    if (value < mdata->val.min || value > mdata->val.max)
+        return sol_flow_send_error_packet_errno(node, ERANGE);
+
     mdata->val.val = value;
 
     return sol_flow_send_irange_packet(node,

@@ -331,7 +331,7 @@ _parse_maps(struct sol_json_token token)
     struct sol_json_scanner scanner;
     size_t entries_vector_size;
     struct sol_str_table_ptr *ptr_table_entry;
-    struct sol_buffer path_buffer;
+    struct sol_buffer path_buffer = { };
     void *data;
     int i = 0;
     int r;
@@ -339,7 +339,7 @@ _parse_maps(struct sol_json_token token)
     sol_json_scanner_init_from_token(&scanner, &token);
     SOL_JSON_SCANNER_ARRAY_LOOP (&scanner, &token, SOL_JSON_TYPE_OBJECT_START, reason) {
         struct sol_json_token path = { NULL, NULL };
-        uint32_t version = 0;
+        uint32_t version = 0, timeout = 0;
         void *entries_destination;
 
         map = NULL;
@@ -358,6 +358,12 @@ _parse_maps(struct sol_json_token token)
                     SOL_ERR("Of map #%d", i);
                     goto error;
                 }
+            } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "timeout")) {
+                if (sol_json_token_get_uint32(&value, &timeout) < 0) {
+                    SOL_ERR("Couldn't get map #%d timeout at [%.*s]", i,
+                        CURRENT_TOKEN);
+                    goto error;
+                }
             }
         }
         if (reason != SOL_JSON_LOOP_REASON_OK) {
@@ -371,6 +377,7 @@ _parse_maps(struct sol_json_token token)
         SOL_NULL_CHECK_GOTO(map, error);
 
         map->version = version;
+        map->timeout = timeout;
         r = sol_json_token_get_unescaped_string(&path, &path_buffer);
         SOL_INT_CHECK_GOTO(r, < 0, error);
         map->path = sol_arena_strdup_slice(str_arena,
