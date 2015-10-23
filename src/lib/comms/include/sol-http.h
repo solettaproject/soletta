@@ -72,6 +72,8 @@ enum sol_http_param_type {
 
 enum sol_http_status_code {
     SOL_HTTP_STATUS_OK = 200,
+    SOL_HTTP_STATUS_FOUND = 302,
+    SOL_HTTP_STATUS_SEE_OTHER = 303,
     SOL_HTTP_STATUS_NOT_MODIFIED = 304,
     SOL_HTTP_STATUS_BAD_REQUEST = 400,
     SOL_HTTP_STATUS_FORBIDDEN = 403,
@@ -135,6 +137,20 @@ struct sol_http_response {
             SOL_ERR("Unexpected API version (response is %u, expected %u)", \
                 response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
             return __VA_ARGS__; \
+        } \
+    } while (0)
+
+#define SOL_HTTP_RESPONSE_CHECK_API_GOTO(response_, label) \
+    do { \
+        if (unlikely(!response_)) { \
+            SOL_WRN("Error while reaching service."); \
+            goto label; \
+        } \
+        if (unlikely(response_->api_version != \
+            SOL_HTTP_RESPONSE_API_VERSION)) { \
+            SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+                response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
+            goto label; \
         } \
     } while (0)
 
@@ -216,6 +232,7 @@ bool sol_http_param_add(struct sol_http_param *params,
     struct sol_http_param_value value) SOL_ATTR_WARN_UNUSED_RESULT;
 void sol_http_param_free(struct sol_http_param *params);
 
+int sol_http_escape_string(char *buffer, size_t len, const char *value);
 
 /**
  * @}
