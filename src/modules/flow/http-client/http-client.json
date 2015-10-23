@@ -436,6 +436,69 @@
       ]
     },
     {
+      "name": "http-client/build-url",
+      "private_data_type": "build_url_data",
+      "category": "http-generic",
+      "description": "Builds an encoded URL",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/build-url.html",
+      "methods": {
+        "close": "build_url_close",
+        "open": "build_url_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The base URL, it will not be encoded",
+            "name": "url"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The base URL, it will not be encoded",
+          "name": "URL",
+          "methods": {
+            "process": "build_url_url_process"
+          }
+        },
+        {
+          "data_type": "composed:string,string",
+          "description": "The URL parameters to be encoded",
+          "name": "PARAM",
+          "methods": {
+            "process": "build_url_param_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Clear all URL parameters",
+          "name": "CLEAR",
+          "methods": {
+            "process": "build_url_clear_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Process the params and generate an encoded URL",
+          "name": "TRIGGER",
+          "methods": {
+            "process": "build_url_trigger"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The enconded URL",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
       "name": "http-client/request",
       "private_data_type": "http_request_data",
       "category": "http-generic",
