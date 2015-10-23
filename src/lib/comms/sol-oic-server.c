@@ -587,10 +587,11 @@ create_coap_resource(struct sol_oic_server_resource *resource)
 static char *
 create_endpoint(void)
 {
+    static unsigned int id = 0;
     char *buffer = NULL;
     int r;
 
-    r = asprintf(&buffer, "/sol/%x", oic_server.resources.len);
+    r = asprintf(&buffer, "/sol/%x", id++);
     return r < 0 ? NULL : buffer;
 }
 
