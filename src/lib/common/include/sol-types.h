@@ -191,6 +191,8 @@ int sol_drange_subtraction(const struct sol_drange *var0, const struct sol_drang
 bool sol_drange_val_equal(double var0, double var1);
 bool sol_drange_equal(const struct sol_drange *var0, const struct sol_drange *var1);
 
+int sol_drange_compose(const struct sol_drange_spec *spec, double value, struct sol_drange *result);
+
 /*** SOL_IRANGE ***/
 
 struct sol_irange {

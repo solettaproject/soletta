@@ -43,15 +43,15 @@
       "options": {
         "members": [
           {
-            "data_type": "drange",
+            "data_type": "float",
             "default": 0,
-            "description": "DRange value of output when input is false.",
+            "description": "Float value of output when input is false.",
             "name": "false_value"
           },
           {
-            "data_type": "drange",
+            "data_type": "float",
             "default": 1,
-            "description": "DRange value of output when input is true.",
+            "description": "Float value of output when input is true.",
             "name": "true_value"
           }
         ],
@@ -64,7 +64,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "sol_drange",
+      "private_data_type": "sol_drange_spec",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/boolean-to-drange.html"
     },
     {
@@ -607,7 +607,7 @@
       "options": {
         "members": [
           {
-            "data_type": "drange",
+            "data_type": "drange-spec",
             "default": {
               "max": 255,
               "min": 1
@@ -679,7 +679,7 @@
       "options": {
         "members": [
           {
-            "data_type": "drange",
+            "data_type": "drange-spec",
             "default": {
               "max": 255,
               "min": 1
@@ -697,7 +697,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "sol_drange",
+      "private_data_type": "sol_drange_spec",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/drange-to-empty.html"
     },
     {
@@ -825,7 +825,7 @@
       "options": {
         "members": [
           {
-            "data_type": "drange",
+            "data_type": "drange-spec",
             "default": {
               "max": "DBL_MAX",
               "min": "-DBL_MAX"
@@ -1058,13 +1058,18 @@
       "options": {
         "members": [
           {
-            "data_type": "drange",
+            "data_type": "drange-spec",
             "default": {
               "max": 1,
               "min": 1,
-              "step": 1,
-              "val": 1
+              "step": 1
             },
+            "description": "Float range and step of output when an empty packet is received.",
+            "name": "output_value_spec"
+          },
+          {
+            "data_type": "float",
+            "default": 1,
             "description": "Float value of output when an empty packet is received.",
             "name": "output_value"
           }
@@ -1523,7 +1528,7 @@
       "options": {
         "members": [
           {
-            "data_type": "drange",
+            "data_type": "drange-spec",
             "default": {
               "max": "DBL_MAX",
               "min": "-DBL_MAX"
