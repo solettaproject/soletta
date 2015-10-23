@@ -1286,6 +1286,12 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
     resource->client.server = sol_coap_server_new(0);
     SOL_NULL_CHECK(resource->client.server, -ENOMEM);
 
+    resource->client.dtls_server = sol_coap_secure_server_new(0);
+    if (!resource->client.dtls_server) {
+        SOL_INT_CHECK_GOTO(errno, != ENOSYS, nomem);
+        SOL_INF("DTLS support not built-in, only making non-secure requests");
+    }
+
     resource->device_id = hex_ascii_to_binary(device_id);
     SOL_NULL_CHECK_GOTO(resource->device_id, nomem);
 
@@ -1334,6 +1340,8 @@ client_resource_close(struct client_resource *resource)
     }
 
     sol_coap_server_unref(resource->client.server);
+    if (resource->client.dtls_server)
+        sol_coap_server_unref(resource->client.dtls_server);
 }
 
 static bool
