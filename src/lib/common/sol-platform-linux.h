@@ -159,6 +159,8 @@ uint64_t sol_platform_linux_fork_run_get_pid(const struct sol_platform_linux_for
  */
 void sol_platform_linux_fork_run_exit(int status) SOL_ATTR_NORETURN;
 
+int sol_platform_linux_mount(const char *dev, const char *mpoint, const char *fstype, void (*cb)(void *data, const char *mpoint, int status), const void *data);
+
 #ifdef __cplusplus
 }
 #endif
