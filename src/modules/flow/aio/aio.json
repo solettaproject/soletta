@@ -31,7 +31,7 @@
           {
             "data_type": "int",
             "default": 12,
-            "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
+            "description": "Number of valid bits. This number is used to filter data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
             "name": "mask"
           },
           {
