@@ -684,6 +684,21 @@ wave_generator_trapezoidal_process(struct sol_flow_node *node,
                &mdata->t_state.val);
 }
 
+static void
+wave_generator_set_option(int32_t opt, uint32_t *var, int32_t limit,
+    const char *opt_name)
+{
+    if (opt < limit) {
+        SOL_WRN("Wave generator's %s value (%" PRId32 ") "
+            "cannot be less than %" PRId32 ". Assuming %" PRId32 ".",
+            opt_name, opt, limit, limit);
+        *var = limit;
+        return;
+    }
+
+    *var = opt;
+}
+
 static int
 wave_generator_trapezoidal_open(struct sol_flow_node *node,
     void *data,
@@ -701,34 +716,17 @@ wave_generator_trapezoidal_open(struct sol_flow_node *node,
         SOL_ERR("Trapezoidal wave generator's min must be less than its max");
         return -EDOM;
     }
-    if (opts->ticks_inc.val < 1) {
-        SOL_ERR("Trapezoidal wave generator's ticks_inc value (%" PRId32 ") cannot"
-            " be less than 1)", opts->ticks_inc.val);
-        return -EDOM;
-    }
-    if (opts->ticks_dec.val < 1) {
-        SOL_ERR("Trapezoidal wave generator's ticks_dec value (%" PRId32 ") cannot"
-            " be less than 1)", opts->ticks_dec.val);
-        return -EDOM;
-    }
-    if (opts->tick_start.val < 0) {
-        SOL_ERR("Trapezoidal wave generator's tick_start value (%" PRId32 ") cannot"
-            " be less than 0)", opts->tick_start.val);
-        return -EDOM;
-    }
-    if (opts->ticks_at_max.val < 0) {
-        SOL_ERR("Trapezoidal wave generator's ticks_at_max value (%" PRId32 ") cannot"
-            " be less than 0)", opts->ticks_at_max.val);
-        return -EDOM;
-    }
-    if (opts->ticks_at_min.val < 0) {
-        SOL_ERR("Trapezoidal wave generator's ticks_at_min value (%" PRId32 ") cannot"
-            " be less than 0)", opts->ticks_at_min.val);
-        return -EDOM;
-    }
 
-    mdata->ticks_at_min = opts->ticks_at_min.val;
-    mdata->ticks_at_max = opts->ticks_at_max.val;
+    wave_generator_set_option(opts->ticks_inc.val, &mdata->ticks_inc, 1,
+        "ticks_inc");
+    wave_generator_set_option(opts->ticks_dec.val, &mdata->ticks_dec, 1,
+        "ticks_dec");
+    wave_generator_set_option(opts->tick_start.val, &tick_start, 0,
+        "tick_start");
+    wave_generator_set_option(opts->ticks_at_max.val, &mdata->ticks_at_max, 0,
+        "ticks_at_max");
+    wave_generator_set_option(opts->ticks_at_min.val, &mdata->ticks_at_min, 0,
+        "ticks_at_min");
 
     t_state = &mdata->t_state;
     val = &t_state->val;
@@ -738,8 +736,6 @@ wave_generator_trapezoidal_open(struct sol_flow_node *node,
     val->min = opts->min;
     val->max = opts->max;
 
-    mdata->ticks_inc = opts->ticks_inc.val;
-    mdata->ticks_dec = opts->ticks_dec.val;
     mdata->inc_step = (val->max - val->min) / mdata->ticks_inc;
     mdata->dec_step = (val->min - val->max) / mdata->ticks_dec;
 
@@ -748,7 +744,7 @@ wave_generator_trapezoidal_open(struct sol_flow_node *node,
     mdata->period_in_ticks = mdata->ticks_at_min + mdata->ticks_inc
         + mdata->ticks_at_max + mdata->ticks_dec;
 
-    tick_start = opts->tick_start.val % mdata->period_in_ticks;
+    tick_start %= mdata->period_in_ticks;
 
     t_state->max_tick_cnt = 0;
     t_state->min_tick_cnt = mdata->ticks_at_min;
@@ -829,7 +825,7 @@ wave_generator_sinusoidal_open(struct sol_flow_node *node,
 {
     struct drange_wave_generator_sinusoidal_data *mdata = data;
     const struct sol_flow_node_type_float_wave_generator_sinusoidal_options *opts = (const struct sol_flow_node_type_float_wave_generator_sinusoidal_options *)options;
-    uint32_t tick_start;
+    uint32_t tick_start, ticks_per_period;
     struct s_state *s_state;
     struct sol_drange *val;
     unsigned i;
@@ -841,16 +837,11 @@ wave_generator_sinusoidal_open(struct sol_flow_node *node,
             "than zero");
         return -EDOM;
     }
-    if (opts->ticks_per_period.val < 1) {
-        SOL_ERR("Sinusoidal wave generator's ticks_per_period value (%" PRId32 ") cannot"
-            " be less than 1)", opts->ticks_per_period.val);
-        return -EDOM;
-    }
-    if (opts->tick_start.val < 0) {
-        SOL_ERR("Sinusoidal wave generator's tick_start value (%" PRId32 ") cannot"
-            " be less than 0)", opts->tick_start.val);
-        return -EDOM;
-    }
+
+    wave_generator_set_option(opts->ticks_per_period.val, &ticks_per_period, 1,
+        "ticks_per_period");
+    wave_generator_set_option(opts->tick_start.val, &tick_start, 0,
+        "tick_start");
 
     mdata->amplitude = opts->amplitude;
     s_state = &mdata->s_state;
@@ -861,11 +852,11 @@ wave_generator_sinusoidal_open(struct sol_flow_node *node,
     val->min = mdata->amplitude * -1.0;
     val->max = mdata->amplitude;
 
-    mdata->rad_step = 2 * M_PI / opts->ticks_per_period.val;
+    mdata->rad_step = 2 * M_PI / ticks_per_period;
 
     /* calculating starting val from tick_start */
     val->val = 0;
-    tick_start = opts->tick_start.val % opts->ticks_per_period.val;
+    tick_start %= ticks_per_period;
 
     for (i = 0; i < tick_start; i++)
         sinusoidal_calc_next(mdata);
