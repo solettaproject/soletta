@@ -99,6 +99,9 @@ static const struct sol_type_default_value drange_default_values[] = {
     { "val", "0" }, { "min", "-DBL_MAX" }, { "max", "DBL_MAX" },
     { "step", "DBL_MIN" }
 };
+static const struct sol_type_default_value drange_spec_default_values[] = {
+    { "min", "-DBL_MAX" }, { "max", "DBL_MAX" }, { "step", "DBL_MIN" }
+};
 static const struct sol_type_default_value direction_vector_default_values[] = {
     { "x", "0" }, { "y", "0" }, { "z", "0" }, { "min", "-DBL_MAX" },
     { "max", "DBL_MAX" }
@@ -501,6 +504,12 @@ handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
         dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
             drange_default_values, sizeof(drange_default_values) /
             sizeof(drange_default_values[0]),
+            handle_irange_drange_suboption, has_default_option);
+    } else if (streq(o->data_type, "drange-spec")) {
+        r = true;
+        dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
+            drange_spec_default_values, sizeof(drange_spec_default_values) /
+            sizeof(drange_spec_default_values[0]),
             handle_irange_drange_suboption, has_default_option);
     } else if (streq(o->data_type, "rgb")) {
         r = true;
@@ -1005,6 +1014,8 @@ get_type_data_by_name(const char *type)
         return "struct sol_irange";
     if (streq(type, "drange"))
         return "struct sol_drange";
+    if (streq(type, "drange-spec"))
+        return "struct sol_drange_spec";
     if (streq(type, "string"))
         return "const char *";
     if (streq(type, "rgb"))

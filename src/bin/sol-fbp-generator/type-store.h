@@ -50,6 +50,7 @@ enum option_value_type {
 
     OPTION_VALUE_TYPE_STRING,
     OPTION_VALUE_TYPE_RANGE,
+    OPTION_VALUE_TYPE_SPEC_RANGE,
     OPTION_VALUE_TYPE_RGB,
     OPTION_VALUE_TYPE_DIRECTION_VECTOR
 };
@@ -58,6 +59,12 @@ enum option_value_type {
  * generator. */
 struct option_range_value {
     char *val;
+    char *min;
+    char *max;
+    char *step;
+};
+
+struct option_spec_range_value {
     char *min;
     char *max;
     char *step;
@@ -88,6 +95,7 @@ struct option_description {
     union {
         char *string;
         struct option_range_value range;
+        struct option_spec_range_value spec_range;
         struct option_rgb_value rgb;
         struct option_direction_vector_value direction_vector;
         struct sol_json_token token;

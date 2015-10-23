@@ -225,6 +225,7 @@ option_description_fini(struct option_description *o)
 {
     struct option_direction_vector_value *direction_vector;
     struct option_range_value *range;
+    struct option_spec_range_value *spec_range;
     struct option_rgb_value *rgb;
 
     free(o->name);
@@ -240,6 +241,12 @@ option_description_fini(struct option_description *o)
         free(range->min);
         free(range->max);
         free(range->step);
+        break;
+    case OPTION_VALUE_TYPE_SPEC_RANGE:
+        spec_range = &o->default_value.spec_range;
+        free(spec_range->min);
+        free(spec_range->max);
+        free(spec_range->step);
         break;
     case OPTION_VALUE_TYPE_RGB:
         rgb = &o->default_value.rgb;
@@ -456,6 +463,38 @@ parse_range_default_value(struct sol_json_scanner *s, struct option_description 
 }
 
 static bool
+parse_spec_range_default_value(struct sol_json_scanner *s, struct option_description *o)
+{
+    struct option_spec_range_value *spec_range;
+    struct sol_json_token tmp, key, value;
+    struct sol_str_slice key_slice;
+    enum sol_json_loop_reason reason;
+    char *value_data;
+
+    spec_range = &o->default_value.spec_range;
+    memset(spec_range, 0, sizeof(struct option_spec_range_value));
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (s, &tmp, &key, &value, reason) {
+        if (!get_value(&value, &value_data, &key, &key_slice))
+            return false;
+
+        if (sol_str_slice_eq(key_slice, MIN_SLICE))
+            spec_range->min = value_data;
+        else if (sol_str_slice_eq(key_slice, MAX_SLICE))
+            spec_range->max = value_data;
+        else if (sol_str_slice_eq(key_slice, STEP_SLICE))
+            spec_range->step = value_data;
+        else
+            free(value_data);
+
+        if (reason != SOL_JSON_LOOP_REASON_OK)
+            return false;
+    }
+
+    return true;
+}
+
+static bool
 parse_rgb_default_value(struct sol_json_scanner *s, struct option_description *o)
 {
     struct option_rgb_value *rgb;
@@ -575,6 +614,11 @@ parse_default_value(struct option_description *o)
     if (streq(o->data_type, "int") || streq(o->data_type, "drange")) {
         o->default_value_type = OPTION_VALUE_TYPE_RANGE;
         return parse_range_default_value(&value_scanner, o);
+    }
+
+    if (streq(o->data_type, "drange-spec")) {
+        o->default_value_type = OPTION_VALUE_TYPE_SPEC_RANGE;
+        return parse_spec_range_default_value(&value_scanner, o);
     }
 
     if (streq(o->data_type, "rgb")) {
@@ -982,6 +1026,7 @@ type_description_print(struct type_description *desc)
         printf("options\n");
     SOL_VECTOR_FOREACH_IDX (&desc->options, o, i) {
         struct option_range_value *range;
+        struct option_spec_range_value *spec_range;
         struct option_rgb_value *rgb;
         struct option_direction_vector_value *direction_vector;
 
@@ -995,6 +1040,11 @@ type_description_print(struct type_description *desc)
             range = &o->default_value.range;
             printf(", default val=%s  min=%s  max=%s  step=%s)\n",
                 range->val, range->min, range->max, range->step);
+            break;
+        case OPTION_VALUE_TYPE_SPEC_RANGE:
+            spec_range = &o->default_value.spec_range;
+            printf(", default min=%s  max=%s  step=%s)\n",
+                spec_range->min, spec_range->max, spec_range->step);
             break;
         case OPTION_VALUE_TYPE_RGB:
             rgb = &o->default_value.rgb;
@@ -1052,6 +1102,9 @@ type_store_copy_option_description(struct option_description *dst,
         break;
     case OPTION_VALUE_TYPE_RANGE:
         dst->default_value.range = src->default_value.range;
+        break;
+    case OPTION_VALUE_TYPE_SPEC_RANGE:
+        dst->default_value.spec_range = src->default_value.spec_range;
         break;
     case OPTION_VALUE_TYPE_RGB:
         dst->default_value.rgb = src->default_value.rgb;

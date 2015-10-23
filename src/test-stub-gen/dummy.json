@@ -193,6 +193,16 @@
          "name": "opt_drange"
         },
         {
+         "data_type": "drange-spec",
+         "default": {
+             "min": -100.5,
+             "max": "DBL_MAX",
+             "step": "DBL_MIN"
+         },
+         "description": "Dummy drange spec option.",
+         "name": "opt_drange_spec"
+        },
+        {
          "data_type": "float",
          "default": 66.6,
          "description": "Dummy float option.",
