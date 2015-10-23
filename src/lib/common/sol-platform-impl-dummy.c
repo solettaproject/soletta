@@ -109,3 +109,24 @@ sol_platform_impl_get_serial_number(char **number)
     SOL_WRN("Not implemented");
     return -ENOTSUP;
 }
+
+int
+sol_platform_impl_get_mount_points(bool hplug_only, struct sol_ptr_vector *vector)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_umount(const char *mpoint, void (*async_cb)(const char *mpoint, void *data, uint64_t pid, int status), void *data)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_mount(const char *dev, const char *mpoint, const char *fstype, unsigned long flags, const char *opts, void (*async_cb)(const char *dev, const char *mpoint, void *data, uint64_t pid, int status), void *data)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}

@@ -31,26 +31,50 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
+#include <mntent.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "sol-file-reader.h"
 #include "sol-mainloop.h"
 #include "sol-platform-impl.h"
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
-#include "sol-vector.h"
 #include "sol-util.h"
+#include "sol-vector.h"
+
+#define SOL_MTAB_FILE P_tmpdir "/mtab.sol"
+#define SYS_MTAB_FILE "/etc/mtab"
 
 struct sol_platform_linux_fork_run {
     pid_t pid;
     void (*on_child_exit)(void *data, uint64_t pid, int status);
     const void *data;
     struct sol_child_watch *watch;
+};
+
+struct umount_data {
+    void *data;
+    char *mpoint;
+    void (*async_cb)(const char *mpoint, void *data, uint64_t pid, int status);
+};
+
+struct mount_data {
+    void *data;
+    char *dev;
+    char *mpoint;
+    char *fstype;
+    char *opts;
+    unsigned long flags;
+    void (*async_cb)(const char *dev, const char *mpoint, void *data, uint64_t pid, int status);
 };
 
 static struct sol_ptr_vector fork_runs = SOL_PTR_VECTOR_INIT;
@@ -261,5 +285,417 @@ sol_platform_impl_get_os_version(char **version)
     if (!*version)
         return -ENOMEM;
 
+    return 0;
+}
+
+static bool
+mountopt_str_to_mask(const struct sol_str_slice slice, unsigned long *flags)
+{
+    unsigned int i;
+    struct opt_mapping {
+        const char *opt;
+        unsigned long flag;
+    } table[] = {
+        { "bind", MS_BIND },
+        { "dirsync", MS_DIRSYNC },
+        { "mand", MS_MANDLOCK },
+        { "move", MS_MOVE },
+        { "noatime", MS_NOATIME },
+        { "nodev", MS_NODEV },
+        { "nodiratime", MS_NODIRATIME },
+        { "noexec", MS_NOEXEC },
+        { "nosuid", MS_NOSUID },
+        { "ro", MS_RDONLY },
+        { "relatime", MS_RELATIME },
+        { "remount", MS_REMOUNT },
+        { "silent", MS_SILENT },
+        { "strictatime", MS_STRICTATIME },
+        { "sync", MS_SYNCHRONOUS },
+        { "defaults", ~MS_RDONLY | ~MS_NOSUID | ~MS_NODEV | ~MS_NOEXEC | ~MS_SYNCHRONOUS },
+    };
+
+    for (i = 0; i < ARRAY_SIZE(table); i++) {
+        if (sol_str_slice_str_eq(slice, table[i].opt)) {
+            *flags |= table[i].flag;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static unsigned long
+get_mountflags(char *mnt_opts, struct sol_buffer *custom_opts, bool *noauto)
+{
+    struct sol_vector opts;
+    struct sol_str_slice *itr;
+    unsigned long flags = 0;
+    uint16_t idx;
+    bool first_custom = true;
+    struct sol_str_slice slice = sol_str_slice_from_str(mnt_opts);
+
+    opts = sol_util_str_split(slice, ",", 0);
+    SOL_VECTOR_FOREACH_IDX (&opts, itr, idx) {
+        if (mountopt_str_to_mask(*itr, &flags)) {
+            continue;
+        } else if (sol_str_slice_str_eq(*itr, "noauto")) {
+            *noauto = true;
+            continue;
+        }
+
+        if (!first_custom)
+            sol_buffer_append_char(custom_opts, ',');
+        sol_buffer_append_slice(custom_opts, *itr);
+        first_custom = false;
+
+    }
+    return flags;
+}
+
+static int
+parse_mount_point_file(const char *file, struct sol_ptr_vector *vector)
+{
+    struct mntent mbuf;
+    struct mntent *m;
+    char strings[4096];
+    struct sol_mount_point *mp;
+    uint16_t i;
+    FILE *tab = setmntent(file, "re");
+
+    if (!tab) {
+        if (errno == ENOENT) {
+            SOL_INF("No such %s", file);
+            return -errno;
+        } else {
+            SOL_WRN("Unable to open %s file: %s", file,
+                sol_util_strerrora(-errno));
+            return -errno;
+        }
+    }
+
+    while ((m = getmntent_r(tab, &mbuf, strings, sizeof(strings)))) {
+        struct sol_buffer custom_opts;
+        struct sol_mount_point *mpoint;
+        bool noauto = false;
+
+        mpoint = calloc(1, sizeof(struct sol_mount_point));
+        if (!mpoint) {
+            SOL_ERR("Could not allocate mount point memory");
+            goto err;
+        }
+
+        if (mbuf.mnt_fsname)
+            mpoint->dev = strdup(mbuf.mnt_fsname);
+
+        if (mbuf.mnt_dir)
+            mpoint->mpoint = strdup(mbuf.mnt_dir);
+
+        if (mbuf.mnt_type)
+            mpoint->fstype = strdup(mbuf.mnt_type);
+
+        sol_buffer_init(&custom_opts);
+        mpoint->flags = get_mountflags(mbuf.mnt_opts, &custom_opts, &noauto);
+        mpoint->noauto = noauto;
+
+        if (custom_opts.used)
+            mpoint->opts = sol_buffer_steal(&custom_opts, NULL);
+
+        sol_buffer_fini(&custom_opts);
+
+        if (sol_ptr_vector_append(vector, mpoint) < 0) {
+            SOL_ERR("Could not append mount point to vector");
+            goto err;
+        }
+    }
+    endmntent(tab);
+    return 0;
+
+err:
+    SOL_PTR_VECTOR_FOREACH_IDX (vector, mp, i) {
+        sol_mount_point_free(mp);
+    }
+    sol_ptr_vector_clear(vector);
+    return -ENOMEM;
+}
+
+int
+sol_platform_impl_get_mount_points(bool hplug_only, struct sol_ptr_vector *vector)
+{
+    struct sol_ptr_vector mtab, sol_mtab, delete;
+    struct sol_mount_point *mp, *mp2;
+    uint16_t i, j;
+    int err;
+
+    if (!hplug_only) {
+        return parse_mount_point_file(SYS_MTAB_FILE, vector);
+    }
+
+    sol_ptr_vector_init(&mtab);
+    err = parse_mount_point_file(SYS_MTAB_FILE, &mtab);
+    SOL_INT_CHECK_GOTO(err, < 0, err_mtab);
+
+    sol_ptr_vector_init(&sol_mtab);
+    err = parse_mount_point_file(SOL_MTAB_FILE, &sol_mtab);
+    SOL_INT_CHECK_GOTO(err, < 0, err_sol_mtab);
+
+    sol_ptr_vector_init(&delete);
+    SOL_PTR_VECTOR_FOREACH_IDX (&sol_mtab, mp, i) {
+        SOL_PTR_VECTOR_FOREACH_IDX (&mtab, mp2, j) {
+            if (streq(mp2->dev, mp->dev) && streq(mp2->mpoint, mp->mpoint)) {
+                sol_ptr_vector_append(vector, mp2);
+                sol_ptr_vector_remove(&mtab, mp2);
+            } else {
+                sol_ptr_vector_append(&delete, mp2);
+            }
+        }
+        sol_mount_point_free(mp);
+    }
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&delete, mp, i) {
+        sol_mount_point_free(mp);
+    }
+
+    sol_ptr_vector_clear(&delete);
+    sol_ptr_vector_clear(&sol_mtab);
+    sol_ptr_vector_clear(&mtab);
+
+    return 0;
+
+err_sol_mtab:
+    sol_ptr_vector_clear(&sol_mtab);
+err_mtab:
+    sol_ptr_vector_clear(&mtab);
+    return err;
+}
+
+static int
+sol_mtab_remove_entry(const char *mpoint, struct sol_buffer *output)
+{
+    int fd = 0;
+    struct sol_vector lines;
+    struct sol_str_slice content = SOL_STR_SLICE_EMPTY;
+    struct sol_str_slice *itr;
+    struct sol_file_reader *reader;
+    uint16_t idx;
+
+    fd = open(SOL_MTAB_FILE, O_RDONLY | O_CLOEXEC);
+    if (!fd) {
+        SOL_ERR("Could not open "SOL_MTAB_FILE " - %s",
+            sol_util_strerrora(errno));
+        return -errno;
+    }
+
+    reader = sol_file_reader_fd(fd);
+    if (!reader) {
+        SOL_ERR("Could not read "SOL_MTAB_FILE " file - %s",
+            sol_util_strerrora(errno));
+        return -errno;
+    }
+
+    content = sol_file_reader_get_all(reader);
+    lines = sol_util_str_split(content, "\n", 0);
+    SOL_VECTOR_FOREACH_IDX (&lines, itr, idx) {
+        char buff[512];
+        snprintf(buff, itr->len, "%s", itr->data);
+        if (!strstr(buff, mpoint))
+            sol_buffer_append_printf(output, "%s", buff);
+    }
+
+    sol_vector_clear(&lines);
+    sol_file_reader_close(reader);
+    close(fd);
+    return 0;
+}
+
+// since we don't have a mtab entry remove function we must implement it ourselves
+static int
+sol_mtab_cleanup(const char *mpoint)
+{
+    int res, err, fd;
+    struct sol_buffer output;
+
+    res = fd = 0;
+    sol_buffer_init(&output);
+
+    err = sol_mtab_remove_entry(mpoint, &output);
+    SOL_INT_CHECK(err, < 0, err);
+
+    fd = open(SOL_MTAB_FILE, O_RDWR | O_CLOEXEC | O_TRUNC);
+    if (!fd) {
+        SOL_ERR("Could not open " SOL_MTAB_FILE);
+        return -errno;
+    }
+
+    err = write(fd, output.data, sizeof(output.data));
+    if (err < -1) {
+        SOL_ERR("Could not write "SOL_MTAB_FILE " file - %s",
+            sol_util_strerrora(errno));
+        res = -errno;
+    }
+
+    err = close(fd);
+    if (err < -1) {
+        SOL_ERR("Could not close "SOL_MTAB_FILE " file - %s",
+            sol_util_strerrora(errno));
+        res = -errno;
+    }
+
+    sol_buffer_fini(&output);
+    return res;
+}
+
+static int
+run_umount(const char *mpoint)
+{
+    int err;
+
+    err = sol_mtab_cleanup(mpoint);
+    SOL_INT_CHECK(err, < 0, err);
+
+    err = umount(mpoint);
+    if (err != 0) {
+        SOL_ERR("Couldn't umount %s - %s", mpoint, sol_util_strerrora(errno));
+        return -errno;
+    }
+
+    return err;
+}
+
+static void
+on_umount_fork(void *data)
+{
+    int err;
+    struct umount_data *udata = data;
+
+    err = run_umount(udata->mpoint);
+    sol_platform_linux_fork_run_exit(err);
+}
+
+static void
+on_umount_fork_exit(void *data, uint64_t pid, int status)
+{
+    struct umount_data *udata = data;
+
+    udata->async_cb(udata->mpoint, udata->data, pid, status);
+    free(udata->mpoint);
+    free(udata);
+}
+
+int
+sol_platform_impl_umount(const char *mpoint, void (*async_cb)(const char *mpoint, void *data, uint64_t pid, int status), void *data)
+{
+    struct umount_data *udata;
+
+    SOL_NULL_CHECK(mpoint, -EINVAL);
+
+    if (!async_cb)
+        return run_umount(mpoint);
+
+    udata = calloc(1, sizeof(struct umount_data));
+    SOL_NULL_CHECK(udata, -ENOMEM);
+
+    udata->data = data;
+    udata->mpoint = strdup(mpoint);
+    udata->async_cb = async_cb;
+
+    sol_platform_linux_fork_run(on_umount_fork, on_umount_fork_exit, udata);
+    return 0;
+}
+
+static int
+sol_mtab_add_entry(const char *dev, const char *mpoint, const char *fstype, unsigned long flags)
+{
+    struct mntent mbuf = { 0 };
+    FILE *sol_mtab;
+    int err;
+
+    sol_mtab = setmntent(SOL_MTAB_FILE, "w+");
+    if (!sol_mtab) {
+        SOL_WRN("Unable to open "SOL_MTAB_FILE " file: %s",
+            sol_util_strerrora(-errno));
+        return -ENOENT;
+    }
+
+    mbuf.mnt_fsname = (char *)dev;
+    mbuf.mnt_dir = (char *)mpoint;
+    mbuf.mnt_type = (char *)fstype;
+    mbuf.mnt_opts = (char *)"";
+
+    err = addmntent(sol_mtab, &mbuf);
+    if (err != 0)
+        SOL_ERR("Could not add mnt entry - %s", sol_util_strerrora(-errno));
+
+    endmntent(sol_mtab);
+    return err;
+}
+
+static int
+run_mount(const char *dev, const char *mpoint, const char *fstype, unsigned long flags, const char *opts)
+{
+    int err;
+
+    err = sol_mtab_add_entry(dev, mpoint, fstype, flags);
+    SOL_INT_CHECK(err, < 0, err);
+
+    err = mount(dev, mpoint, fstype, flags, opts);
+    if (err != 0) {
+        SOL_ERR("Couldn't mount %s to %s - %s", dev, mpoint,
+            sol_util_strerrora(errno));
+        return -errno;
+    }
+
+    return err;
+}
+
+static void
+on_mount_fork(void *data)
+{
+    int err;
+    struct mount_data *mdata = data;
+
+    err = run_mount(mdata->dev, mdata->mpoint, mdata->fstype, mdata->flags, mdata->opts);
+    sol_platform_linux_fork_run_exit(err);
+}
+
+static void
+on_mount_fork_exit(void *data, uint64_t pid, int status)
+{
+    struct mount_data *mdata = data;
+
+    mdata->async_cb(mdata->dev, mdata->mpoint, mdata->data, pid, status);
+    free(mdata->opts);
+    free(mdata->fstype);
+    free(mdata->mpoint);
+    free(mdata->dev);
+    free(mdata);
+}
+
+int
+sol_platform_impl_mount(const char *dev, const char *mpoint, const char *fstype, unsigned long flags, const char *opts, void (*async_cb)(const char *dev, const char *mpoint, void *data, uint64_t pid, int status), void *data)
+{
+    struct mount_data *mdata;
+
+    SOL_NULL_CHECK(dev, -EINVAL);
+    SOL_NULL_CHECK(mpoint, -EINVAL);
+    SOL_NULL_CHECK(fstype, -EINVAL);
+
+    if (!async_cb)
+        return run_mount(dev, mpoint, fstype, flags, opts);
+
+    mdata = calloc(1, sizeof(struct mount_data));
+    SOL_NULL_CHECK(mdata, -ENOMEM);
+
+    mdata->data = data;
+    mdata->dev = strdup(dev);
+    mdata->mpoint = strdup(mpoint);
+    mdata->fstype = strdup(fstype);
+
+    if (opts)
+        mdata->opts = strdup(opts);
+    
+    mdata->flags = flags;
+    mdata->async_cb = async_cb;
+
+    sol_platform_linux_fork_run(on_mount_fork, on_mount_fork_exit, mdata);
     return 0;
 }
