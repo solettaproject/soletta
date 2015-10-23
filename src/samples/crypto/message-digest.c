@@ -98,7 +98,7 @@ print_time(const struct feed_ctx *ctx, size_t amount, const char *prefix)
         r_unit = "b";
     }
 
-    printf("%s chunk{#%zd, %zdb] %0.1f%s done in %0.3fseconds: %0.1f%s/s\n",
+    printf("%s chunk{#%" PRIu32 ", %zdb] %0.1f%s done in %0.3fseconds: %0.1f%s/s\n",
         prefix, ctx->idx, ctx->chunk_size, size, s_unit, seconds, rate, r_unit);
 }
 
