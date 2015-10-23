@@ -35,6 +35,7 @@
 
 #include <errno.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "sol-flow/servo-motor.h"
@@ -49,6 +50,7 @@ struct servo_motor_data {
 static int
 servo_motor_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
+    int device, channel;
     const struct sol_flow_node_type_servo_motor_controller_options *opts;
     struct servo_motor_data *mdata = data;
     struct sol_pwm_config pwm_config = { 0 };
@@ -72,8 +74,27 @@ servo_motor_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     pwm_config.period_ns = opts->period * 1000;
     pwm_config.duty_cycle_ns = 0;
 
-    mdata->pwm = sol_pwm_open(opts->chip, opts->pin, &pwm_config);
-    SOL_NULL_CHECK(mdata->pwm, -ENOMEM);
+    mdata->pwm = NULL;
+    if (!opts->pin || *opts->pin == '\0') {
+        SOL_WRN("pwm: Option 'pin' cannot be neither 'null' nor empty.");
+        return -EINVAL;
+    }
+
+    if (opts->raw) {
+        if (sscanf(opts->pin, "%d %d", &device, &channel) == 2) {
+            mdata->pwm = sol_pwm_open(device, channel, &pwm_config);
+        } else {
+            SOL_WRN("pwm (%s): 'raw' option was set, but 'pin' value=%s couldn't be parsed as "
+                "\"<device> <channel>\" pair.", opts->pin, opts->pin);
+        }
+    } else {
+        mdata->pwm = sol_pwm_open_by_label(opts->pin, &pwm_config);
+    }
+
+    if (!mdata->pwm) {
+        SOL_WRN("Could not open pwm (%s)", opts->pin);
+        return -ENOMEM;
+    }
 
     return 0;
 }

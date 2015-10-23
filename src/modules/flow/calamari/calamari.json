@@ -243,22 +243,22 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "string",
             "description": "CLOCK GPIO pin",
             "name": "clock_pin"
           },
           {
-            "data_type": "int",
+            "data_type": "string",
             "description": "CLEAR GPIO pin",
             "name": "clear_pin"
           },
           {
-            "data_type": "int",
+            "data_type": "string",
             "description": "DATA GPIO pin",
             "name": "data_pin"
           },
           {
-            "data_type": "int",
+            "data_type": "string",
             "description": "LATCH GPIO pin",
             "name": "latch_pin"
           }
@@ -306,17 +306,17 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "string",
             "description": "Red LED GPIO pin",
             "name": "red_pin"
           },
           {
-            "data_type": "int",
+            "data_type": "string",
             "description": "Green LED GPIO pin",
             "name": "green_pin"
           },
           {
-            "data_type": "int",
+            "data_type": "string",
             "description": "Blue LED GPIO pin",
             "name": "blue_pin"
           }

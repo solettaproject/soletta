@@ -1228,21 +1228,21 @@ named_options_init_from_strv(void)
 #ifdef USE_PWM
     ASSERT(sol_flow_get_node_type("pwm", SOL_FLOW_NODE_TYPE_PWM, &node_type) == 0);
     {
-        const char *strv[] = { "chip=2", "pin=7", "enabled=true", "period=42", "duty_cycle=88", NULL };
+        const char *strv[] = { "pin=2 7", "raw=true", "enabled=true", "period=42", "duty_cycle=88", NULL };
 
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
         ASSERT(r >= 0);
         ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
 
         m = named_opts.members;
-        ASSERT_STR_EQ(m->name, "chip");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_INT);
-        ASSERT_INT_EQ(m->i, 2);
+        ASSERT_STR_EQ(m->name, "pin");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_STRING);
+        ASSERT_STR_EQ(m->string, "2 7");
 
         m++;
-        ASSERT_STR_EQ(m->name, "pin");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_INT);
-        ASSERT_INT_EQ(m->i, 7);
+        ASSERT_STR_EQ(m->name, "raw");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN);
+        ASSERT(m->boolean);
 
         m++;
         ASSERT_STR_EQ(m->name, "enabled");
@@ -1303,8 +1303,8 @@ node_options_new(void)
     };
 
     struct sol_flow_node_named_options_member multiple_options[] = {
-        { .name = "chip", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 2 },
-        { .name = "pin", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 7 },
+        { .name = "pin", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_STRING, .string = "2 7" },
+        { .name = "raw", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
         { .name = "enabled", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
         { .name = "period", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 42 },
         { .name = "duty_cycle", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 88 },
@@ -1365,8 +1365,8 @@ node_options_new(void)
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     pwm_opts = (struct sol_flow_node_type_pwm_options *)opts;
-    ASSERT_INT_EQ(pwm_opts->chip, 2);
-    ASSERT_INT_EQ(pwm_opts->pin, 7);
+    ASSERT_STR_EQ(pwm_opts->pin, "2 7");
+    ASSERT_INT_EQ(pwm_opts->raw, true);
     ASSERT_INT_EQ(pwm_opts->enabled, true);
     ASSERT_INT_EQ(pwm_opts->period, 42);
     ASSERT_INT_EQ(pwm_opts->duty_cycle, 88);

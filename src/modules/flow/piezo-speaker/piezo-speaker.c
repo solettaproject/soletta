@@ -387,7 +387,7 @@ piezo_speaker_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
-    int r;
+    int r, device, channel;
     struct piezo_speaker_data *mdata = data;
     const struct sol_flow_node_type_piezo_speaker_sound_options *opts =
         (const struct sol_flow_node_type_piezo_speaker_sound_options *)options;
@@ -397,10 +397,25 @@ piezo_speaker_open(struct sol_flow_node *node,
     pwm_config.period_ns = -1;
     pwm_config.duty_cycle_ns = 0;
 
-    mdata->pwm = sol_pwm_open(opts->chip, opts->pin, &pwm_config);
+    mdata->pwm = NULL;
+    if (!opts->pin || *opts->pin == '\0') {
+        SOL_WRN("pwm: Option 'pin' cannot be neither 'null' nor empty.");
+        goto _error;
+    }
+
+    if (opts->raw) {
+        if (sscanf(opts->pin, "%d %d", &device, &channel) == 2) {
+            mdata->pwm = sol_pwm_open(device, channel, &pwm_config);
+        } else {
+            SOL_WRN("pwm (%s): 'raw' option was set, but 'pin' value=%s couldn't be parsed as "
+                "\"<device> <channel>\" pair.", opts->pin, opts->pin);
+        }
+    } else {
+        mdata->pwm = sol_pwm_open_by_label(opts->pin, &pwm_config);
+    }
+
     if (!mdata->pwm) {
-        SOL_WRN("could not open pwm (chip=%" PRId32 ", pin=%" PRId32 ")\n",
-            opts->chip, opts->pin);
+        SOL_WRN("Could not open pwm (%s)", opts->pin);
         goto _error;
     }
 
@@ -412,8 +427,7 @@ piezo_speaker_open(struct sol_flow_node *node,
     } else
         SOL_WRN("No tune in opts, awaiting string package\n");
 
-    SOL_DBG("Piezo open ok (chip=%" PRId32 ", pin=%" PRId32 ")\n",
-        opts->chip, opts->pin);
+    SOL_DBG("Piezo open ok (pin=%s)\n", opts->pin);
 
     return 0;
 

@@ -48,8 +48,7 @@ struct aio_data {
     struct sol_flow_node *node;
     struct sol_timeout *timer;
     struct sol_aio *aio;
-    int device;
-    int pin;
+    char *pin;
     int mask;
     int last_value;
     bool is_first;
@@ -61,6 +60,8 @@ aio_close(struct sol_flow_node *node, void *data)
     struct aio_data *mdata = data;
 
     SOL_NULL_CHECK(mdata);
+
+    free(mdata->pin);
 
     if (mdata->aio)
         sol_aio_close(mdata->aio);
@@ -83,7 +84,7 @@ _on_reader_timeout(void *data)
     i.val = sol_aio_get_value(mdata->aio);
     if (i.val < 0) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
-            "aio #%d,%d: Could not read value.", mdata->device, mdata->pin);
+            "aio (%s): Could not read value.", mdata->pin);
         return false;
     }
 
@@ -103,35 +104,53 @@ _on_reader_timeout(void *data)
 static int
 aio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
+    int device, pin;
     struct aio_data *mdata = data;
     const struct sol_flow_node_type_aio_reader_options *opts =
         (const struct sol_flow_node_type_aio_reader_options *)options;
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts, SOL_FLOW_NODE_TYPE_AIO_READER_OPTIONS_API_VERSION, -EINVAL);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(opts,
+        SOL_FLOW_NODE_TYPE_AIO_READER_OPTIONS_API_VERSION, -EINVAL);
 
+    mdata->aio = NULL;
     mdata->is_first = true;
     mdata->node = node;
 
-    if (opts->mask <= 0) {
-        SOL_WRN("aio #%d,%d: Invalid bit mask value=%" PRId32 ".",
-            opts->device, opts->pin, opts->mask);
+    if (!opts->pin || *opts->pin == '\0') {
+        SOL_WRN("aio: Option 'pin' cannot be neither 'null' nor empty.");
         return -EINVAL;
     }
 
-    mdata->aio = sol_aio_open(opts->device, opts->pin, opts->mask);
-    SOL_NULL_CHECK(mdata->aio, -EINVAL);
+    if (opts->mask <= 0) {
+        SOL_WRN("aio (%s): Invalid bit mask value=%" PRId32 ".", opts->pin, opts->mask);
+        return -EINVAL;
+    }
 
     if (opts->poll_timeout <= 0) {
-        SOL_WRN("aio #%d,%d: Invalid polling time=%" PRId32 ".",
-            opts->device, opts->pin, opts->poll_timeout);
+        SOL_WRN("aio (%s): Invalid polling time=%" PRId32 ".", opts->pin, opts->poll_timeout);
         return -EINVAL;
     }
 
-    mdata->device = opts->device;
-    mdata->pin = opts->pin;
+    if (opts->raw) {
+        if (sscanf(opts->pin, "%d %d", &device, &pin) == 2) {
+            mdata->aio = sol_aio_open(device, pin, opts->mask);
+        } else {
+            SOL_WRN("aio (%s): 'raw' option was set, but 'pin' value=%s couldn't be parsed as "
+                "\"<device> <pin>\" pair.", opts->pin, opts->pin);
+        }
+    } else {
+        mdata->aio = sol_aio_open_by_label(opts->pin, opts->mask);
+    }
+
+    if (!mdata->aio) {
+        SOL_WRN("aio (%s): Couldn't be open. Maybe you used an invalid 'pin'=%s?",
+            opts->pin, opts->pin);
+        return -EINVAL;
+    }
+
+    mdata->pin = opts->pin ? strdup(opts->pin) : NULL;
     mdata->mask = (0x01 << opts->mask) - 1;
-    mdata->timer = sol_timeout_add(opts->poll_timeout,
-        _on_reader_timeout, mdata);
+    mdata->timer = sol_timeout_add(opts->poll_timeout, _on_reader_timeout, mdata);
 
     return 0;
 }
