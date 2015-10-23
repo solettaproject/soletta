@@ -188,6 +188,7 @@ void sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code);
 void sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
 
 struct sol_coap_server *sol_coap_server_new(int port);
+struct sol_coap_server *sol_coap_secure_server_new(int port);
 struct sol_coap_server *sol_coap_server_ref(struct sol_coap_server *server);
 void sol_coap_server_unref(struct sol_coap_server *server);
 
