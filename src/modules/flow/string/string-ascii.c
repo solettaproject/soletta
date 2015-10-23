@@ -51,8 +51,10 @@ struct string_data {
 };
 
 struct string_concatenate_data {
-    struct string_data base;
+    char *string[32];
     char *separator;
+    uint32_t var_initialized;
+    uint32_t var_connected;
 };
 
 struct string_compare_data {
@@ -73,15 +75,17 @@ static void
 string_concatenate_close(struct sol_flow_node *node, void *data)
 {
     struct string_concatenate_data *mdata = data;
+    uint8_t i;
 
-    string_close(node, data);
+    for (i = 0; i < 32; i++)
+        free(mdata->string[i]);
     free(mdata->separator);
 }
 
-static bool
+static int
 get_string_by_port(const struct sol_flow_packet *packet,
     uint16_t port,
-    struct string_data *mdata)
+    char **string)
 {
     const char *in_value;
     int r;
@@ -89,19 +93,16 @@ get_string_by_port(const struct sol_flow_packet *packet,
     r = sol_flow_packet_get_string(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (mdata->string[port] && !strcmp(mdata->string[port], in_value))
-        return false;
+    if (string[port] && !strcmp(string[port], in_value))
+        return 0;
 
-    free(mdata->string[port]);
+    free(string[port]);
 
-    mdata->string[port] = strdup(in_value);
-    if (!mdata->string[port])
-        return false;
+    string[port] = strdup(in_value);
+    if (!string[port])
+        return -ENOMEM;
 
-    if (!mdata->string[0] || !mdata->string[1])
-        return false;
-
-    return true;
+    return 0;
 }
 
 static int
@@ -118,20 +119,47 @@ string_concatenate_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_string_concatenate_options *)options;
 
-    if (opts->bytes.val < 0) {
-        SOL_WRN("Option 'bytes' (%" PRId32 ") must be a positive "
-            "amount of bytes to be copied or zero if whole strings "
-            "should be concatenated. Considering zero.", opts->bytes.val);
-        mdata->base.n = 0;
-    } else
-        mdata->base.n = opts->bytes.val;
-
     if (opts->separator) {
         mdata->separator = strdup(opts->separator);
         if (!mdata->separator) {
             SOL_WRN("Failed to duplicate separator string");
             return -ENOMEM;
         }
+    }
+
+    return 0;
+}
+
+static int
+string_concat_connect(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id)
+{
+    struct string_concatenate_data *mdata = data;
+
+    mdata->var_connected |= 1u << port;
+    return 0;
+}
+
+static int
+string_concat_to_buffer(struct sol_buffer *buffer, char **string, uint32_t var_initialized, const char *separator)
+{
+    int r;
+    struct sol_str_slice sep_slice;
+    uint8_t i, count = 0;
+
+    if (separator)
+        sep_slice = sol_str_slice_from_str(separator);
+    for (i = 0; i < 32; i++) {
+        if (!(var_initialized & (1u << i)))
+            continue;
+
+        if (count && separator) {
+            r = sol_buffer_append_slice(buffer, sep_slice);
+            SOL_INT_CHECK(r, < 0, r);
+        }
+
+        r = sol_buffer_append_slice(buffer, sol_str_slice_from_str(string[i]));
+        SOL_INT_CHECK(r, < 0, r);
+        count++;
     }
 
     return 0;
@@ -145,33 +173,26 @@ string_concat(struct sol_flow_node *node,
     const struct sol_flow_packet *packet)
 {
     struct string_concatenate_data *mdata = data;
-    char *dest;
-    int r, len;
+    int r;
+    struct sol_buffer buffer = SOL_BUFFER_INIT_EMPTY;
 
-    if (!get_string_by_port(packet, port, &mdata->base))
+    r = get_string_by_port(packet, port, mdata->string);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->var_initialized |= 1u << port;
+    if (mdata->var_initialized != mdata->var_connected)
         return 0;
 
-    len = strlen(mdata->base.string[0]) + strlen(mdata->base.string[1]) + 1;
-    if (mdata->separator)
-        len += strlen(mdata->separator);
-
-    dest = calloc(len, sizeof(*dest));
-    SOL_NULL_CHECK(dest, -ENOMEM);
-
-    dest = strcpy(dest, mdata->base.string[0]);
-
-    if (mdata->separator)
-        dest = strcat(dest, mdata->separator);
-
-    if (!mdata->base.n)
-        dest = strcat(dest, mdata->base.string[1]);
-    else
-        dest = strncat(dest, mdata->base.string[1], mdata->base.n);
+    r = string_concat_to_buffer(&buffer, mdata->string,
+        mdata->var_initialized, mdata->separator);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     r = sol_flow_send_string_take_packet(node,
         SOL_FLOW_NODE_TYPE_STRING_CONCATENATE__OUT__OUT,
-        dest);
+        sol_buffer_steal(&buffer, NULL));
 
+error:
+    sol_buffer_fini(&buffer);
     return r;
 }
 
@@ -189,13 +210,13 @@ string_compare_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_string_compare_options *)options;
 
-    if (opts->bytes.val < 0) {
-        SOL_WRN("Option 'bytes' (%" PRId32 ") must be a positive "
-            "amount of bytes to be compared or zero if whole strings "
-            "should be compared. Considering zero.", opts->bytes.val);
+    if (opts->chars.val < 0) {
+        SOL_WRN("Option 'chars' (%" PRId32 ") must be a positive "
+            "amount of chars to be compared or zero if whole strings "
+            "should be compared. Considering zero.", opts->chars.val);
         mdata->base.n = 0;
     } else
-        mdata->base.n = opts->bytes.val;
+        mdata->base.n = opts->chars.val;
 
     mdata->ignore_case = opts->ignore_case;
 
@@ -213,8 +234,11 @@ string_compare(struct sol_flow_node *node,
     uint32_t result;
     int r;
 
-    if (!get_string_by_port(packet, port, &mdata->base))
-        return 0;
+    r = get_string_by_port(packet, port, mdata->base.string);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!mdata->base.string[0] || !mdata->base.string[1])
+        return false;
 
     if (mdata->base.n) {
         if (mdata->ignore_case)
