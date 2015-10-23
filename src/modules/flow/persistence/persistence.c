@@ -64,7 +64,7 @@ struct persist_data {
     char *fs_dir_path;
 
     struct sol_flow_packet *(*packet_new_fn)(const struct persist_data *data);
-    int (*packet_data_get_fn)(const struct sol_flow_packet *packet, void *value_ptr);
+    int (*packet_data_get_fn)(size_t packet_data_size, const struct sol_flow_packet *packet, void *value_ptr);
     int (*packet_send_fn)(struct sol_flow_node *node);
     void *(*node_get_default_fn)(struct sol_flow_node *node);
 
@@ -184,12 +184,12 @@ persist_process(struct sol_flow_node *node,
     int r;
 
     if (mdata->packet_data_size) {
-        /* Using alloca() is OK here since packet_data_size is always a sizeof()
-         * of a fixed struct. */
+        /* Using alloca() is OK here since packet_data_size is always
+         * a sizeof() of a fixed struct. */
         value = alloca(mdata->packet_data_size);
-        r = mdata->packet_data_get_fn(packet, value);
+        r = mdata->packet_data_get_fn(mdata->packet_data_size, packet, value);
     } else
-        r = mdata->packet_data_get_fn(packet, &value);
+        r = mdata->packet_data_get_fn(mdata->packet_data_size, packet, &value);
 
     SOL_INT_CHECK(r, < 0, r);
 
@@ -278,7 +278,8 @@ persist_boolean_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_boolean_packet_data_get(const struct sol_flow_packet *packet,
+persist_boolean_packet_data_get(size_t packet_data_size,
+    const struct sol_flow_packet *packet,
     void *value_ptr)
 {
     int r = sol_flow_packet_get_boolean(packet, value_ptr);
@@ -342,7 +343,8 @@ persist_byte_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_byte_packet_data_get(const struct sol_flow_packet *packet,
+persist_byte_packet_data_get(size_t packet_data_size,
+    const struct sol_flow_packet *packet,
     void *value_ptr)
 {
     int r = sol_flow_packet_get_byte(packet, value_ptr);
@@ -406,10 +408,16 @@ persist_irange_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_irange_packet_data_get(const struct sol_flow_packet *packet,
+persist_irange_packet_data_get(size_t packet_data_size,
+    const struct sol_flow_packet *packet,
     void *value_ptr)
 {
-    int r = sol_flow_packet_get_irange(packet, value_ptr);
+    int r;
+
+    if (packet_data_size == sizeof(struct sol_irange))
+        r = sol_flow_packet_get_irange(packet, value_ptr);
+    else
+        r = sol_flow_packet_get_irange_value(packet, value_ptr);
 
     SOL_INT_CHECK(r, < 0, r);
 
@@ -488,10 +496,16 @@ persist_drange_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_drange_packet_data_get(const struct sol_flow_packet *packet,
+persist_drange_packet_data_get(size_t packet_data_size,
+    const struct sol_flow_packet *packet,
     void *value_ptr)
 {
-    int r = sol_flow_packet_get_drange(packet, value_ptr);
+    int r;
+
+    if (packet_data_size == sizeof(struct sol_drange))
+        r = sol_flow_packet_get_drange(packet, value_ptr);
+    else
+        r = sol_flow_packet_get_drange_value(packet, value_ptr);
 
     SOL_INT_CHECK(r, < 0, r);
 
@@ -572,7 +586,8 @@ persist_string_node_get_default(struct sol_flow_node *node)
 }
 
 static int
-persist_string_packet_data_get(const struct sol_flow_packet *packet,
+persist_string_packet_data_get(size_t packet_data_size,
+    const struct sol_flow_packet *packet,
     void *value_ptr)
 {
     int r = sol_flow_packet_get_string(packet, value_ptr);
