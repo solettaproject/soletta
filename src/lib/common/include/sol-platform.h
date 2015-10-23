@@ -32,6 +32,10 @@
 
 #pragma once
 
+#include <stdlib.h>
+
+#include "sol-vector.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -155,6 +159,26 @@ int sol_platform_restart_service(const char *service);
 #define SOL_PLATFORM_TARGET_SUSPEND    "suspend"
 
 int sol_platform_set_target(const char *target);
+
+/**
+ * List mount points mounted by us on hotplug events
+ *
+ * @param vector Initialized sol_vector used to store the resulting list
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_get_mount_points(struct sol_ptr_vector *vector);
+
+/**
+ * Umount a @c mpoint
+ *
+ * @param mpoint The mount point to be unmounted
+ * @param cb Callback to be called when unmount operation finishes
+ * @param data Context data to be provided to @c async_cb function
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_unmount(const char *mpoint, void (*cb)(void *data, const char *mpoint, int error), const void *data);
 
 /**
  * @}
