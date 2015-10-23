@@ -2140,7 +2140,7 @@ timestamp_error:
     return 0;
 }
 
-static struct sol_blob *
+static bool
 json_validate(struct sol_blob *blob, enum sol_json_type type)
 {
     struct sol_json_scanner scanner;
@@ -2152,15 +2152,10 @@ json_validate(struct sol_blob *blob, enum sol_json_type type)
         p--;
     size = p - (char *)blob->mem + 1;
     if (size == 0)
-        return NULL;
+        return false;
 
-    if (size < blob->size)
-        blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE, blob, blob->mem, size);
-
-    sol_json_scanner_init(&scanner, blob->mem, blob->size);
-    if (sol_json_is_valid_type(&scanner, type))
-        return blob;
-    return NULL;
+    sol_json_scanner_init(&scanner, blob->mem, size);
+    return sol_json_is_valid_type(&scanner, type);
 }
 
 static int
@@ -2172,8 +2167,7 @@ blob_to_json_object_process(struct sol_flow_node *node, void *data, uint16_t por
     ret = sol_flow_packet_get_blob(packet, &blob);
     SOL_INT_CHECK(ret, < 0, -EINVAL);
 
-    blob = json_validate(blob, SOL_JSON_TYPE_OBJECT_START);
-    if (!blob)
+    if (!json_validate(blob, SOL_JSON_TYPE_OBJECT_START))
         return sol_flow_send_error_packet(node, EINVAL,
             "Blob isn't a valid JSON Object");
 
@@ -2205,15 +2199,12 @@ blob_to_json_array_process(struct sol_flow_node *node, void *data, uint16_t port
     ret = sol_flow_packet_get_blob(packet, &blob);
     SOL_INT_CHECK(ret, < 0, -EINVAL);
 
-    blob = json_validate(blob, SOL_JSON_TYPE_ARRAY_START);
-    if (!blob)
+    if (!json_validate(blob, SOL_JSON_TYPE_ARRAY_START))
         return sol_flow_send_error_packet(node, EINVAL,
             "Blob isn't a valid JSON Array");
 
-    ret = sol_flow_send_json_array_packet(node,
+    return sol_flow_send_json_array_packet(node,
         SOL_FLOW_NODE_TYPE_CONVERTER_BLOB_TO_JSON_ARRAY__OUT__OUT, blob);
-
-    return ret;
 }
 
 static int
