@@ -72,6 +72,7 @@ struct sol_oic_client {
     uint16_t api_version;
     int : 0; /* save possible hole for a future field */
     struct sol_coap_server *server;
+    struct sol_coap_server *dtls_server;
 };
 
 struct sol_oic_resource {
