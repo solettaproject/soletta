@@ -158,6 +158,20 @@ sol_drange_equal(const struct sol_drange *var0, const struct sol_drange *var1)
     return false;
 }
 
+SOL_API int
+sol_drange_compose(const struct sol_drange_spec *spec, double value, struct sol_drange *result)
+{
+    SOL_NULL_CHECK(spec, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
+
+    result->min = spec->min;
+    result->max = spec->max;
+    result->step = spec->step;
+    result->val = value;
+
+    return 0;
+}
+
 
 /********** SOL_IRANGE **********/
 

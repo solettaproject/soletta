@@ -241,7 +241,7 @@
       "options": {
         "members": [
           {
-            "data_type": "drange",
+            "data_type": "drange-spec",
             "default": {
               "max": 1023,
               "min": 0
@@ -311,7 +311,7 @@
       "options": {
         "members": [
           {
-            "data_type": "drange",
+            "data_type": "drange-spec",
             "default": {
               "max": "DBL_MAX",
               "min": "-DBL_MAX",
@@ -321,7 +321,7 @@
             "name": "input_range"
           },
           {
-            "data_type": "drange",
+            "data_type": "drange-spec",
             "description": "Output's range.",
             "name": "output_range"
           },

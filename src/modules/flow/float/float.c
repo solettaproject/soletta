@@ -271,8 +271,8 @@ abs_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 }
 
 struct drange_map_data {
-    struct sol_drange input;
-    struct sol_drange output;
+    struct sol_drange_spec input;
+    struct sol_drange_spec output;
     struct sol_drange output_value;
     bool use_input_range : 1;
 };
@@ -373,7 +373,7 @@ map_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
 }
 
 struct drange_constrain_data {
-    struct sol_drange val;
+    struct sol_drange_spec val;
     bool use_input_range : 1;
 };
 
@@ -435,11 +435,9 @@ constrain_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_
     r = _constrain(&value);
     SOL_INT_CHECK(r, < 0, r);
 
-    mdata->val = value;
-
     return sol_flow_send_drange_packet(node,
         SOL_FLOW_NODE_TYPE_FLOAT_CONSTRAIN__OUT__OUT,
-        &mdata->val);
+        &value);
 }
 
 static int

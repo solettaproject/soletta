@@ -129,7 +129,7 @@ irange_true_range_set(struct sol_flow_node *node, void *data, uint16_t port, uin
 static int
 drange_min_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct sol_drange *mdata = data;
+    struct sol_drange_spec *mdata = data;
     double value;
     int r;
 
@@ -143,7 +143,7 @@ drange_min_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint
 static int
 drange_max_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct sol_irange *mdata = data;
+    struct sol_drange_spec *mdata = data;
     double value;
     int r;
 
@@ -274,7 +274,7 @@ irange_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port,
 static int
 boolean_to_drange_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_drange *mdata = data;
+    struct sol_drange_spec *mdata = data;
     const struct sol_flow_node_type_converter_boolean_to_float_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
@@ -283,8 +283,8 @@ boolean_to_drange_open(struct sol_flow_node *node, void *data, const struct sol_
 
     opts = (const struct sol_flow_node_type_converter_boolean_to_float_options *)options;
 
-    mdata->min = opts->false_value.val;
-    mdata->max = opts->true_value.val;
+    mdata->min = opts->false_value;
+    mdata->max = opts->true_value;
 
     return 0;
 }
@@ -292,7 +292,7 @@ boolean_to_drange_open(struct sol_flow_node *node, void *data, const struct sol_
 static int
 boolean_to_drange_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct sol_drange *mdata = data;
+    struct sol_drange_spec *mdata = data;
     int r;
     bool in_value;
 
@@ -596,12 +596,15 @@ empty_to_drange_open(struct sol_flow_node *node, void *data, const struct sol_fl
     const struct sol_flow_node_type_converter_empty_to_float_options *opts =
         (const struct sol_flow_node_type_converter_empty_to_float_options *)
         options;
+    int r;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_FLOAT_OPTIONS_API_VERSION,
         -EINVAL);
 
-    *mdata = opts->output_value;
+    r = sol_drange_compose(&opts->output_value_spec, opts->output_value, mdata);
+    SOL_INT_CHECK(r, < 0, r);
+
     return 0;
 }
 
@@ -641,7 +644,7 @@ byte_to_empty_open(struct sol_flow_node *node, void *data, const struct sol_flow
 static int
 drange_to_empty_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_drange *mdata = data;
+    struct sol_drange_spec *mdata = data;
     const struct sol_flow_node_type_converter_float_to_empty_options *opts =
         (const struct sol_flow_node_type_converter_float_to_empty_options *)
         options;
@@ -778,7 +781,7 @@ byte_to_empty_convert(struct sol_flow_node *node, void *data, uint16_t port, uin
 static int
 drange_to_empty_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct sol_drange *mdata = data;
+    struct sol_drange_spec *mdata = data;
     double in_value;
     int r;
 
