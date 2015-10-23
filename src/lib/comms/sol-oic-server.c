@@ -55,6 +55,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
 struct sol_oic_server {
     struct sol_coap_server *server;
+    struct sol_coap_server *dtls_server;
     struct sol_vector resources;
     struct sol_oic_server_information *information;
     int refcnt;
@@ -87,6 +88,9 @@ static struct sol_oic_server oic_server;
             return ret; \
         } \
     } while (0)
+
+#define OIC_COAP_SERVER_UDP_PORT  5683
+#define OIC_COAP_SERVER_DTLS_PORT 5684
 
 static int
 _sol_oic_server_d(const struct sol_coap_resource *resource,
@@ -380,7 +384,7 @@ init_static_info(void)
 }
 
 SOL_API int
-sol_oic_server_init(int port)
+sol_oic_server_init(void)
 {
     struct sol_oic_server_information *info;
 
@@ -394,7 +398,7 @@ sol_oic_server_init(int port)
     info = init_static_info();
     SOL_NULL_CHECK(info, -1);
 
-    oic_server.server = sol_coap_server_new(port);
+    oic_server.server = sol_coap_server_new(OIC_COAP_SERVER_UDP_PORT);
     if (!oic_server.server)
         goto error;
 
@@ -403,6 +407,22 @@ sol_oic_server_init(int port)
     if (!sol_coap_server_register_resource(oic_server.server, &oic_res_coap_resource, NULL)) {
         sol_coap_server_unregister_resource(oic_server.server, &oic_d_coap_resource);
         goto error;
+    }
+
+    oic_server.dtls_server = sol_coap_secure_server_new(OIC_COAP_SERVER_DTLS_PORT);
+    if (!oic_server.dtls_server) {
+        if (errno == ENOSYS) {
+            SOL_INF("DTLS support not built in, OIC server running in insecure mode");
+        } else {
+            SOL_INF("DTLS server could not be created for OIC server: %s",
+                sol_util_strerrora(errno));
+        }
+    } else {
+        if (!sol_coap_server_register_resource(oic_server.dtls_server, &oic_d_coap_resource, NULL)) {
+            SOL_WRN("Could not register device info secure resource, OIC server running in insecure mode");
+            sol_coap_server_unref(oic_server.dtls_server);
+            oic_server.dtls_server = NULL;
+        }
     }
 
     oic_server.information = info;
@@ -429,6 +449,13 @@ sol_oic_server_release(void)
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
         sol_coap_server_unregister_resource(oic_server.server, res->coap);
+    if (oic_server.dtls_server) {
+        SOL_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
+            sol_coap_server_unregister_resource(oic_server.dtls_server, res->coap);
+
+        sol_coap_server_unregister_resource(oic_server.dtls_server, &oic_d_coap_resource);
+        sol_coap_server_unref(oic_server.dtls_server);
+    }
     sol_vector_clear(&oic_server.resources);
 
     sol_coap_server_unregister_resource(oic_server.server, &oic_d_coap_resource);
@@ -578,6 +605,9 @@ create_coap_resource(struct sol_oic_server_resource *resource)
     if (resource->flags & SOL_OIC_FLAG_DISCOVERABLE)
         res->flags |= SOL_COAP_FLAGS_WELL_KNOWN;
 
+    if (oic_server.dtls_server)
+        resource->flags |= SOL_OIC_FLAG_SECURE;
+
     res->iface = sol_str_slice_from_str(resource->iface);
     res->resource_type = sol_str_slice_from_str(resource->rt);
 
@@ -633,8 +663,15 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
     res->coap = create_coap_resource(res);
     SOL_NULL_CHECK_GOTO(res->coap, free_coap);
 
-    if (sol_coap_server_register_resource(oic_server.server, res->coap, res))
-        return res;
+    if (!sol_coap_server_register_resource(oic_server.server, res->coap, res))
+        goto free_coap;
+
+    if (oic_server.dtls_server) {
+        if (sol_coap_server_register_resource(oic_server.dtls_server, res->coap, res))
+            return res;
+    }
+
+    sol_coap_server_unregister_resource(oic_server.server, res->coap);
 
 free_coap:
     free(res->coap);
@@ -658,6 +695,8 @@ sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
     SOL_NULL_CHECK(resource);
 
     sol_coap_server_unregister_resource(oic_server.server, resource->coap);
+    if (oic_server.dtls_server)
+        sol_coap_server_unregister_resource(oic_server.dtls_server, resource->coap);
     free(resource->coap);
 
     free(resource->href);

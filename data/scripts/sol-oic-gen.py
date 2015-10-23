@@ -1201,7 +1201,7 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
 {
     log_init();
 
-    if (sol_oic_server_init(DEFAULT_UDP_PORT) != 0) {
+    if (sol_oic_server_init() != 0) {
         SOL_WRN("Could not create %%.*s server", SOL_STR_SLICE_PRINT(resource_type));
         return -ENOTCONN;
     }
