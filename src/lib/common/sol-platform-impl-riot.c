@@ -194,3 +194,17 @@ sol_platform_impl_get_os_version(char **version)
 
     return 0;
 }
+
+int
+sol_platform_impl_get_mount_points(struct sol_ptr_vector *vector)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_umount(const char *mpoint, void (*cb)(void *data, const char *mpoint, int error), const void *data)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}

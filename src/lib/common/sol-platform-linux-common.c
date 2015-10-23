@@ -31,26 +31,47 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
+#include <mntent.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "sol-file-reader.h"
 #include "sol-mainloop.h"
 #include "sol-platform-impl.h"
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
-#include "sol-vector.h"
 #include "sol-util.h"
+#include "sol-vector.h"
+
+#define SOL_MTAB_FILE P_tmpdir "/mtab.sol"
 
 struct sol_platform_linux_fork_run {
     pid_t pid;
     void (*on_child_exit)(void *data, uint64_t pid, int status);
     const void *data;
     struct sol_child_watch *watch;
+};
+
+struct umount_data {
+    const void *data;
+    char *mpoint;
+    void (*cb)(void *data, const char *mpoint, int error);
+};
+
+struct mount_data {
+    const void *data;
+    char *dev;
+    char *mpoint;
+    char *fstype;
+    void (*cb)(void *data, const char *mpoint, int status);
 };
 
 static struct sol_ptr_vector fork_runs = SOL_PTR_VECTOR_INIT;
@@ -262,4 +283,269 @@ sol_platform_impl_get_os_version(char **version)
         return -ENOMEM;
 
     return 0;
+}
+
+static int
+parse_mount_point_file(const char *file, struct sol_ptr_vector *vector)
+{
+    struct mntent mbuf;
+    struct mntent *m;
+    char strings[4096];
+    struct sol_buffer *itr;
+    uint16_t i;
+    FILE *tab = setmntent(file, "re");
+
+    if (!tab) {
+        if (errno == ENOENT) {
+            SOL_INF("No such %s", file);
+            return -errno;
+        } else {
+            SOL_WRN("Unable to open %s file: %s", file,
+                sol_util_strerrora(errno));
+            return -errno;
+        }
+    }
+
+    while ((m = getmntent_r(tab, &mbuf, strings, sizeof(strings)))) {
+        struct sol_buffer *buff = NULL;
+        int r;
+
+        buff = sol_buffer_new();
+        SOL_NULL_CHECK_GOTO(buff, err);
+
+        r = sol_buffer_append_printf(buff, "%s", mbuf.mnt_dir);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+
+        r = sol_ptr_vector_append(vector, buff);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+    }
+    endmntent(tab);
+    return 0;
+
+err:
+    SOL_PTR_VECTOR_FOREACH_IDX (vector, itr, i) {
+        sol_buffer_fini(itr);
+    }
+    sol_ptr_vector_clear(vector);
+    endmntent(tab);
+    return -ENOMEM;
+}
+
+int
+sol_platform_impl_get_mount_points(struct sol_ptr_vector *vector)
+{
+    return parse_mount_point_file(SOL_MTAB_FILE, vector);
+}
+
+static int
+sol_mtab_remove_entry(const char *mpoint, struct sol_buffer *output)
+{
+    struct sol_vector lines;
+    struct sol_str_slice content = SOL_STR_SLICE_EMPTY;
+    struct sol_str_slice *itr;
+    struct sol_file_reader *reader;
+    uint16_t idx;
+
+    reader = sol_file_reader_open(SOL_MTAB_FILE);
+    if (!reader) {
+        SOL_ERR("Could not read "SOL_MTAB_FILE " file - %s",
+            sol_util_strerrora(errno));
+        return -errno;
+    }
+
+    content = sol_file_reader_get_all(reader);
+    lines = sol_util_str_split(content, "\n", 0);
+    SOL_VECTOR_FOREACH_IDX (&lines, itr, idx) {
+        if (!strstr(itr->data, mpoint) || strstartswith(itr->data, "#"))
+            sol_buffer_append_printf(output, "%s", itr->data);
+    }
+
+    sol_vector_clear(&lines);
+    sol_file_reader_close(reader);
+    return 0;
+}
+
+// since we don't have a mtab entry remove function we must implement it ourselves
+static int
+sol_mtab_cleanup(const char *mpoint)
+{
+    int err, fd, res = 0;
+    size_t len;
+    struct sol_buffer output;
+
+    sol_buffer_init(&output);
+
+    err = sol_mtab_remove_entry(mpoint, &output);
+    SOL_INT_CHECK(err, < 0, err);
+
+    fd = open(SOL_MTAB_FILE, O_RDWR | O_CLOEXEC | O_TRUNC);
+    if (fd < 0) {
+        SOL_ERR("Could not open " SOL_MTAB_FILE);
+        res = -errno;
+        goto finish;
+    }
+
+    len = write(fd, output.data, sizeof(output.data));
+    if (!len || len != sizeof(output.data)) {
+        SOL_ERR("Could not write "SOL_MTAB_FILE " file - %s",
+            sol_util_strerrora(errno));
+        res = -errno;
+    }
+
+    err = close(fd);
+    if (err < 0) {
+        SOL_ERR("Could not close "SOL_MTAB_FILE " file - %s",
+            sol_util_strerrora(errno));
+        res = -errno;
+    }
+
+finish:
+    sol_buffer_fini(&output);
+    return res;
+}
+
+static void
+on_umount_fork(void *data)
+{
+    int err;
+    struct umount_data *udata = data;
+
+    err = sol_mtab_cleanup(udata->mpoint);
+    if (err < 0)
+        sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+
+    err = umount(udata->mpoint);
+    if (err != 0) {
+        SOL_ERR("Couldn't umount %s - %s", udata->mpoint, sol_util_strerrora(errno));
+        sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+    }
+
+    sol_platform_linux_fork_run_exit(EXIT_SUCCESS);
+}
+
+static void
+on_umount_fork_exit(void *data, uint64_t pid, int status)
+{
+    struct umount_data *udata = data;
+
+    udata->cb((void *)udata->data, udata->mpoint, status);
+    free(udata->mpoint);
+    free(udata);
+}
+
+int
+sol_platform_impl_umount(const char *mpoint, void (*cb)(void *data, const char *mpoint, int error), const void *data)
+{
+    struct umount_data *udata;
+
+    udata = calloc(1, sizeof(struct umount_data));
+    SOL_NULL_CHECK(udata, -ENOMEM);
+
+    udata->data = data;
+    udata->mpoint = strdup(mpoint);
+    SOL_NULL_CHECK_GOTO(udata->mpoint, err);
+    udata->cb = cb;
+
+    sol_platform_linux_fork_run(on_umount_fork, on_umount_fork_exit, udata);
+    return 0;
+
+err:
+    free(udata);
+    return -ENOMEM;
+}
+
+static int
+sol_mtab_add_entry(const char *dev, const char *mpoint, const char *fstype)
+{
+    struct mntent mbuf = { 0 };
+    FILE *sol_mtab;
+    int err;
+
+    sol_mtab = setmntent(SOL_MTAB_FILE, "w+");
+    if (!sol_mtab) {
+        SOL_WRN("Unable to open "SOL_MTAB_FILE " file: %s",
+            sol_util_strerrora(errno));
+        return -ENOENT;
+    }
+
+    mbuf.mnt_fsname = (char *)dev;
+    mbuf.mnt_dir = (char *)mpoint;
+    mbuf.mnt_type = (char *)fstype;
+    mbuf.mnt_opts = (char *)"";
+
+    err = addmntent(sol_mtab, &mbuf);
+    if (err != 0)
+        SOL_ERR("Could not add mnt entry - %s", sol_util_strerrora(errno));
+
+    endmntent(sol_mtab);
+    return err;
+}
+
+static void
+on_mount_fork(void *data)
+{
+    int err;
+    struct mount_data *mdata = data;
+
+    err = sol_mtab_add_entry(mdata->dev, mdata->mpoint, mdata->fstype);
+    if (err < 0)
+        sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+
+    err = mount(mdata->dev, mdata->mpoint, mdata->fstype, 0, NULL);
+    if (err != 0) {
+        SOL_ERR("Couldn't mount %s to %s - %s", mdata->dev, mdata->mpoint,
+            sol_util_strerrora(errno));
+        sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+    }
+
+    sol_platform_linux_fork_run_exit(EXIT_SUCCESS);
+}
+
+static void
+on_mount_fork_exit(void *data, uint64_t pid, int status)
+{
+    struct mount_data *mdata = data;
+
+    mdata->cb((void *)mdata->data, mdata->mpoint, status);
+    free(mdata->fstype);
+    free(mdata->mpoint);
+    free(mdata->dev);
+    free(mdata);
+}
+
+SOL_API int
+sol_platform_linux_mount(const char *dev, const char *mpoint, const char *fstype, void (*cb)(void *data, const char *mpoint, int status), const void *data)
+{
+    struct mount_data *mdata;
+
+    SOL_NULL_CHECK(dev, -EINVAL);
+    SOL_NULL_CHECK(mpoint, -EINVAL);
+    SOL_NULL_CHECK(fstype, -EINVAL);
+    SOL_NULL_CHECK(cb, -EINVAL);
+
+    mdata = calloc(1, sizeof(struct mount_data));
+    SOL_NULL_CHECK(mdata, -ENOMEM);
+
+    mdata->data = data;
+    mdata->dev = strdup(dev);
+    SOL_NULL_CHECK_GOTO(mdata->dev, dev_err);
+
+    mdata->mpoint = strdup(mpoint);
+    SOL_NULL_CHECK_GOTO(mdata->mpoint, mpoint_err);
+
+    mdata->fstype = strdup(fstype);
+    SOL_NULL_CHECK_GOTO(mdata->fstype, fstype_err);
+
+    mdata->cb = cb;
+
+    sol_platform_linux_fork_run(on_mount_fork, on_mount_fork_exit, mdata);
+    return 0;
+
+fstype_err:
+    free(mdata->mpoint);
+mpoint_err:
+    free(mdata->dev);
+dev_err:
+    free(mdata);
+    return -ENOMEM;
 }

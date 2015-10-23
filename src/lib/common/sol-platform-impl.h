@@ -60,3 +60,6 @@ int sol_platform_impl_get_os_version(char **version);
 void sol_platform_inform_state_monitors(enum sol_platform_state state);
 void sol_platform_inform_service_monitors(const char *service,
     enum sol_platform_service_state state);
+
+int sol_platform_impl_get_mount_points(struct sol_ptr_vector *vector);
+int sol_platform_impl_umount(const char *mpoint, void (*cb)(void *data, const char *mpoint, int error), const void *data);
