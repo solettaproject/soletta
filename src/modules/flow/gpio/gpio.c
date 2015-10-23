@@ -70,8 +70,10 @@ gpio_reader_event(void *data, struct sol_gpio *gpio)
 static int
 gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
+    int pin;
     struct gpio_data *mdata = data;
-    const struct sol_flow_node_type_gpio_reader_options *opts = (const struct sol_flow_node_type_gpio_reader_options *)options;
+    const struct sol_flow_node_type_gpio_reader_options *opts =
+        (const struct sol_flow_node_type_gpio_reader_options *)options;
     struct sol_gpio_config gpio_conf = { 0 };
     static const enum sol_gpio_edge mode_lut[] = {
         [0 + 2 * 0] = SOL_GPIO_EDGE_NONE,
@@ -91,8 +93,8 @@ gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     gpio_conf.in.poll_timeout = opts->poll_timeout.val;
 
     if (gpio_conf.in.trigger_mode == SOL_GPIO_EDGE_NONE) {
-        SOL_WRN("gpio reader #%" PRId32 ": either edge_rising or edge_falling need to be"
-            " set for the node to generate events.", opts->pin.val);
+        SOL_WRN("gpio reader #%s: either edge_rising or edge_falling need to be"
+            " set for the node to generate events.", opts->pin);
         return -EINVAL;
     }
 
@@ -101,11 +103,28 @@ gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     else if (streq(opts->pull, "down"))
         gpio_conf.drive_mode = SOL_GPIO_DRIVE_PULL_DOWN;
 
-    mdata->gpio = sol_gpio_open(opts->pin.val, &gpio_conf);
+    mdata->gpio = NULL;
+    if (!opts->pin || *opts->pin == '\0') {
+        SOL_WRN("gpio: Option 'pin' cannot be neither 'null' nor empty.");
+        return -EINVAL;
+    }
+
+    if (opts->raw) {
+        if (!sscanf(opts->pin, "%d", &pin)) {
+            SOL_WRN("gpio (%s): 'raw' option was set, but 'pin' value=%s couldn't be parsed as "
+                "integer.", opts->pin, opts->pin);
+        } else {
+            mdata->gpio = sol_gpio_open(pin, &gpio_conf);
+        }
+    } else {
+        mdata->gpio = sol_gpio_open_by_label(opts->pin, &gpio_conf);
+    }
+
     if (!mdata->gpio) {
-        SOL_WRN("could not open gpio #%" PRId32, opts->pin.val);
+        SOL_WRN("Could not open gpio #%s", opts->pin);
         return -EIO;
     }
+
     return 0;
 }
 
@@ -128,8 +147,10 @@ gpio_writer_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
 static int
 gpio_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
+    int pin;
     struct gpio_data *mdata = data;
-    const struct sol_flow_node_type_gpio_writer_options *opts = (const struct sol_flow_node_type_gpio_writer_options *)options;
+    const struct sol_flow_node_type_gpio_writer_options *opts =
+        (const struct sol_flow_node_type_gpio_writer_options *)options;
     struct sol_gpio_config gpio_conf = { 0 };
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION, -EINVAL);
@@ -138,11 +159,28 @@ gpio_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     gpio_conf.dir = SOL_GPIO_DIR_OUT;
     gpio_conf.active_low = opts->active_low;
 
-    mdata->gpio = sol_gpio_open(opts->pin.val, &gpio_conf);
+    mdata->gpio = NULL;
+    if (!opts->pin || *opts->pin == '\0') {
+        SOL_WRN("gpio: Option 'pin' cannot be neither 'null' nor empty.");
+        return -EINVAL;
+    }
+
+    if (opts->raw) {
+        if (!sscanf(opts->pin, "%d", &pin)) {
+            SOL_WRN("gpio (%s): 'raw' option was set, but 'pin' value=%s couldn't be parsed as "
+                "integer.", opts->pin, opts->pin);
+        } else {
+            mdata->gpio = sol_gpio_open(pin, &gpio_conf);
+        }
+    } else {
+        mdata->gpio = sol_gpio_open_by_label(opts->pin, &gpio_conf);
+    }
+
     if (!mdata->gpio) {
-        SOL_WRN("could not open gpio #%" PRId32, opts->pin.val);
+        SOL_WRN("Could not open gpio #%s", opts->pin);
         return -EIO;
     }
+
     return 0;
 }
 

@@ -18,7 +18,7 @@
   {
    "name": "RotaryAngleSensor",
    "options": {
-    "pin": 0,
+    "pin": "A0",
     "poll_timeout": 50
    },
    "type": "grove/rotary-sensor"
@@ -26,7 +26,7 @@
   {
    "name": "LightSensor",
    "options": {
-    "pin": 1,
+    "pin": "A1",
     "poll_timeout": 50
    },
    "type": "grove/light-sensor"
@@ -34,7 +34,7 @@
   {
    "name": "TemperatureSensor",
    "options": {
-    "pin": 2,
+    "pin": "A2",
     "poll_timeout": 50
    },
    "type": "grove/temperature-sensor"
@@ -42,7 +42,7 @@
   {
    "name": "SoundSensor",
    "options": {
-    "pin": 3,
+    "pin": "A3",
     "poll_timeout": 50
    },
    "type": "aio/reader"
@@ -53,7 +53,7 @@
     "active_low": false,
     "edge_falling": true,
     "edge_rising": true,
-    "pin": 61
+    "pin": "3"
    },
    "type": "gpio/reader"
   },
@@ -63,7 +63,7 @@
     "active_low": false,
     "edge_falling": true,
     "edge_rising": true,
-    "pin": 6
+    "pin": "6"
    },
    "type": "gpio/reader"
   },
@@ -71,7 +71,7 @@
    "name": "LED",
    "options": {
     "active_low": false,
-    "pin": 1
+    "pin": "7"
    },
    "type": "gpio/writer"
   },
@@ -79,36 +79,33 @@
    "name": "Relay",
    "options": {
     "active_low": false,
-    "pin": 38
+    "pin": "7"
    },
    "type": "gpio/writer"
   },
   {
    "name": "Servo",
    "options": {
-    "chip": 0,
     "duty_cycle_range": "min:544|max:2400",
     "period": 22000,
-    "pin": 1
+    "pin": "5"
    },
    "type": "servo-motor"
   },
   {
    "name": "Buzzer",
    "options": {
-    "chip": 0,
-    "pin": 3
+    "pin": "5"
    },
    "type": "piezo-speaker/sound"
   },
   {
    "name": "LED_PWM",
    "options": {
-    "chip": 0,
     "duty_cycle": 0,
     "enabled": true,
     "period": 2040816,
-    "pin": 5
+    "pin": "6"
    },
    "type": "pwm"
   }
