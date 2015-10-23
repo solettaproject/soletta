@@ -1206,8 +1206,8 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
     join_mcast_groups(server->socket, link);
 }
 
-SOL_API struct sol_coap_server *
-sol_coap_server_new(int port)
+static struct sol_coap_server *
+sol_coap_server_new_full(enum sol_socket_type type, int port)
 {
     struct sol_network_link_addr servaddr = { .family = AF_INET6,
                                               .port = port };
@@ -1219,7 +1219,7 @@ sol_coap_server_new(int port)
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
-    s = sol_socket_new(servaddr.family, SOL_SOCKET_UDP, 0);
+    s = sol_socket_new(servaddr.family, type, 0);
     if (!s) {
         SOL_WRN("Could not create socket (%d): %s", errno, sol_util_strerrora(errno));
         return NULL;
@@ -1251,37 +1251,58 @@ sol_coap_server_new(int port)
         return NULL;
     }
 
-    /* From man 7 ip:
-     *
-     *   imr_address is the address of the local interface with which the
-     *   system should join the  multicast  group;  if  it  is  equal  to
-     *   INADDR_ANY,  an  appropriate  interface is chosen by the system.
-     *
-     * We can't join a multicast group on every interface. In the future
-     * we may want to add a default multicast route to the system and use
-     * that interface.
-     */
-    links = sol_network_get_available_links();
+    /* If type is SOL_SOCKET_DTLS, then it's only a unicast server. */
+    if (type == SOL_SOCKET_UDP) {
+        /* From man 7 ip:
+         *
+         *   imr_address is the address of the local interface with which the
+         *   system should join the  multicast  group;  if  it  is  equal  to
+         *   INADDR_ANY,  an  appropriate  interface is chosen by the system.
+         *
+         * We can't join a multicast group on every interface. In the future
+         * we may want to add a default multicast route to the system and use
+         * that interface.
+         */
+        links = sol_network_get_available_links();
 
-    if (links) {
-        SOL_VECTOR_FOREACH_IDX (links, link, i) {
-            /* Not considering an error,
-             * because direct packets will work still.
-             */
-            if (join_mcast_groups(s, link) < 0) {
-                char *name = sol_network_link_get_name(link);
-                SOL_WRN("Could not join multicast group, iface %s (%d): %s",
-                    name, errno, sol_util_strerrora(errno));
-                free(name);
+        if (links) {
+            SOL_VECTOR_FOREACH_IDX (links, link, i) {
+                /* Not considering an error,
+                 * because direct packets will work still.
+                 */
+                if (join_mcast_groups(s, link) < 0) {
+                    char *name = sol_network_link_get_name(link);
+                    SOL_WRN("Could not join multicast group, iface %s (%d): %s",
+                        name, errno, sol_util_strerrora(errno));
+                    free(name);
+                }
             }
         }
     }
 
     sol_network_subscribe_events(network_event, server);
 
-    SOL_DBG("New server %p on port %d", server, port);
+    SOL_DBG("New server %p on port %d%s", server, port,
+        type == SOL_SOCKET_UDP ? "" : " (secure)");
 
     return server;
+}
+
+SOL_API struct sol_coap_server *
+sol_coap_server_new(int port)
+{
+    return sol_coap_server_new_full(SOL_SOCKET_UDP, port);
+}
+
+SOL_API struct sol_coap_server *
+sol_coap_secure_server_new(int port)
+{
+#ifdef DTLS
+    return sol_coap_server_new_full(SOL_SOCKET_DTLS, port);
+#else
+    errno = ENOSYS;
+    return NULL;
+#endif
 }
 
 SOL_API int
