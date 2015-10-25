@@ -286,7 +286,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
 {
     int ret, fd;
     uint16_t i;
-    char *dir;
+    char *dir, buf[32];
     struct MHD_Response *mhd_response = NULL;
     struct sol_http_server *server = data;
     struct http_handler *handler;
@@ -382,7 +382,13 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         }
     }
 
-    mhd_response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
+    ret = snprintf(buf, sizeof(buf), "status - %d", status);
+    if (ret < 0 || ret > (int)sizeof(buf)) {
+        SOL_WRN("Could not set the status code on response body");
+        mhd_response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
+    } else {
+        mhd_response = MHD_create_response_from_buffer(strlen(buf), buf, MHD_RESPMEM_MUST_COPY);
+    }
     SOL_NULL_CHECK(mhd_response, MHD_NO);
 end:
     ret = MHD_queue_response(connection, status, mhd_response);
