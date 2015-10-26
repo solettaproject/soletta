@@ -130,6 +130,33 @@ int sol_http_server_add_dir(struct sol_http_server *server, const char *basename
  */
 int sol_http_server_remove_dir(struct sol_http_server *server, const char *basename, const char *rootdir);
 
+#ifdef FEATURE_FILESYSTEM
+
+/**
+ * Add a  page for a specific error code
+ *
+ * @param server The value got with @c sol_http_server_new
+ * @param error The error code which @page_path will be served
+ * @param page The path to a html file
+ *
+ * @return '0' on success, error code (always negative) otherwise.
+ */
+int sol_http_server_set_error_page(struct sol_http_server *server,
+    const enum sol_http_status_code error, const char *page);
+
+/**
+ * Removes a default error page registered with @c sol_http_server_add_default_error_page
+ *
+ * @param server The value got with @c sol_http_server_new
+ * @param error The same error given on @c sol_http_server_add_default_error_page
+ *
+ * @return '0' on success, error code (always negative) otherwise.
+ */
+int sol_http_server_remove_error_page(struct sol_http_server *server,
+    const enum sol_http_status_code error);
+
+#endif /*FEATURE_FILESYSTEM*/
+
 /**
  * Set the last time the specified path had its value modified. It'll make the server
  * return automatically a response with the code 304 (not modified) when the request contains the header
