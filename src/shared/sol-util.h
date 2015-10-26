@@ -50,6 +50,12 @@
 #include "sol-util-file.h"
 #endif
 
+enum sol_decode_case {
+    SOL_DECODE_UPERCASE,
+    SOL_DECODE_LOWERCASE,
+    SOL_DECODE_BOTH
+};
+
 /**
  * Constants used to calculate mul/add operations overflow
  *
@@ -121,6 +127,8 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
 #define NSEC_PER_MSEC 1000000ULL
 /* number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000 */
 #define NSEC_PER_USEC 1000ULL
+
+typedef int asd;
 
 static inline int
 sol_util_int_compare(const int a, const int b)
@@ -546,12 +554,14 @@ ssize_t sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_sl
  *        slice.len / 2.
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
- *        lowercase abcdef are used instead.
+ * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
+ *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
+ *        used.
  *
  * @return the number of bytes written or -errno if failed.
  */
-ssize_t sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase);
+ssize_t sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, enum sol_decode_case decode_case);
 
 static inline ssize_t
 sol_util_base16_calculate_encoded_len(const struct sol_str_slice slice)

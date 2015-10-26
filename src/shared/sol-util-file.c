@@ -35,6 +35,7 @@
 #include "sol-mainloop.h"
 #include "sol-log.h"
 #include "sol-util.h"
+#include "sol-buffer.h"
 
 #include <dlfcn.h>
 #include <errno.h>
