@@ -311,13 +311,24 @@ map_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
     return 0;
 }
 
-static int
-_map(long double in_value, long double in_min, long double in_max, long double out_min, long double out_max, long double out_step, double *out_value)
+static double
+_midpoint(double min, double max)
 {
-    long double result;
+    if (min < 0 && max > 0)
+        return (max + min) / 2.0;
 
-    result = (in_value - in_min) * (out_max - out_min) /
-        (in_max - in_min) + out_min;
+    return ((max - min) / 2.0) + min;
+}
+
+static int
+_map(double in_value, double in_min, double in_max, double out_min, double out_max, double out_step, double *out_value)
+{
+    double in_mid = _midpoint(in_min, in_max);
+    double out_mid = _midpoint(out_min, out_max);
+    double in_distance = (in_value - in_mid) / (in_max - in_mid);
+    double result;
+
+    result = out_mid + (out_max - out_mid) * in_distance;
 
     errno = 0;
     result -= fmodl((result - out_min), out_step);
