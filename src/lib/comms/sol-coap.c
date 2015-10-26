@@ -64,7 +64,8 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
  * and ACK_TIMEOUT * ACK_RANDOM_FACTOR (3000ms)
  */
 #define ACK_TIMEOUT_MS 2345
-#define MAX_RETRANSMIT 4
+#define MAX_RETRANSMIT_UDP 4
+#define MAX_RETRANSMIT_DTLS 8
 
 #define COAP_RESOURCE_CHECK_API(...) \
     do { \
@@ -82,6 +83,7 @@ struct sol_coap_server {
     struct sol_ptr_vector pending; /* waiting pending replies */
     struct sol_ptr_vector outgoing; /* in case we need to retransmit */
     struct sol_socket *socket;
+    int max_retransmit;
     int refcnt;
 };
 
@@ -435,7 +437,7 @@ setup_timeout(struct sol_coap_server *server, struct outgoing *outgoing)
     int timeout;
     uint16_t i;
 
-    if (outgoing->counter >= MAX_RETRANSMIT) {
+    if (outgoing->counter >= server->max_retransmit) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
             if (o == outgoing) {
                 SOL_DBG("packet id %d dropped, after %d retransmissions",
@@ -1291,14 +1293,28 @@ sol_coap_server_new_full(enum sol_socket_type type, int port)
 SOL_API struct sol_coap_server *
 sol_coap_server_new(int port)
 {
-    return sol_coap_server_new_full(SOL_SOCKET_UDP, port);
+    struct sol_coap_server *server;
+
+    server = sol_coap_server_new_full(SOL_SOCKET_UDP, port);
+    if (!server)
+        return NULL;
+
+    server->max_retransmit = MAX_RETRANSMIT_UDP;
+    return server;
 }
 
 SOL_API struct sol_coap_server *
 sol_coap_secure_server_new(int port)
 {
 #ifdef DTLS
-    return sol_coap_server_new_full(SOL_SOCKET_DTLS, port);
+    struct sol_coap_server *server;
+
+    server = sol_coap_server_new_full(SOL_SOCKET_DTLS, port);
+    if (!server)
+        return NULL;
+
+    server->max_retransmit = MAX_RETRANSMIT_DTLS;
+    return server;
 #else
     errno = ENOSYS;
     return NULL;
