@@ -471,7 +471,7 @@
             "name": "method"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "The number of milliseconds to wait for the request to be completed",
             "name": "timeout"

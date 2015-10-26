@@ -148,7 +148,7 @@
             "name": "path"
           },
 	  {
-            "data_type": "int",
+            "data_type": "irange",
 	    "default": 0,
             "description": "The initial node's value",
             "name": "value"

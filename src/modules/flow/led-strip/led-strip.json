@@ -44,19 +44,19 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "SPI Bus number.",
             "name": "bus"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "SPI chip to operate.",
             "name": "chip_select"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 32,
             "description": "Pixel count. How many LEDs are on the strip.",
             "name": "pixel_count"

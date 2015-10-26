@@ -301,7 +301,7 @@ struct sol_flow_node_options_member_description {
     union {
         bool b; /**< option member's default boolean value */
         unsigned char byte; /**< option member's default byte value */
-        struct sol_irange i; /**< option member's default integer range value */
+        struct sol_irange irange; /**< option member's default integer range value */
         struct sol_drange drange; /**< option member's default float range value. Deprecated. Use drange_spec and / or f. */
         struct sol_drange_spec drange_spec; /**< option member's default float range spec */
         struct sol_direction_vector direction_vector; /**< option member's default direction vector value */

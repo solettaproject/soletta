@@ -41,7 +41,7 @@
  "options": {
   "members": [
    {
-    "data_type": "int",
+    "data_type": "irange",
     "default": 1000,
     "description": "Tick interval the timer will start with, in milliseconds.",
     "name": "interval"

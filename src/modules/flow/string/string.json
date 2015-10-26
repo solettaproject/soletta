@@ -28,7 +28,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Amount of chars to be compared between strings. If zero, the whole strings will be compared.",
             "name": "chars"
@@ -117,7 +117,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Maximum length to be checked. If a string is greater than that, maxlen value will be sent. If zero, no limit is applied.",
             "name": "maxlen"
@@ -172,13 +172,13 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Start index of the slice (counting starts from 0). Negative values are relative to the end of the input string. If the given indexes are not valid for the input string, an empty string output is produced. It can be overriden by values received on 'START' port.",
             "name": "start"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "End index of the slice (counting starts from 0). Negative values are relative to the end of the input string. If the given indexes are not valid for the input string, an empty string output is produced. It can be overriden by values received on 'END' port.",
             "name": "end"
@@ -241,13 +241,13 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "A string can be split in many substrings. This value defines which substring should be sent. It must be non-negative. It can be overriden by values received on 'INDEX' port.",
             "name": "index"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "A string can be split in many substrings. This value defines the maximum number of splits (separated by the separator option) to generate, and must be non-negative. The default value of zero means to generate all substrings between the given separator. This option can be overriden by values received on the 'MAX_SPLIT' port.",
             "name": "max_split"
@@ -367,13 +367,13 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Index where to start the prefix matching. Any negative value means it's not set, i.e. start the matching from the input's start. It must not be greater than the value set for the end index (if that one is non-negative). This value may be overriden by the string received on the 'START' port.",
             "name": "start"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": -1,
             "description": "Index where to end the prefix matching. Any negative value means it's not set, i.e. do the matching until the end of the input string. It must not be less than the value set for the start index. This value may be overriden by the string received on the 'END' port.",
             "name": "end"
@@ -441,13 +441,13 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": -1,
             "description": "Index where to start the suffix matching. Any negative value means it's not set, i.e. start the matching from the input's end minus the size of the suffix. It must not be greater than the value set for the end index (if that one is non-negative). This value may be overriden by the string received on the 'START' port.",
             "name": "start"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": -1,
             "description": "Index where to end the suffix matching. Any negative value means it's not set, i.e. end the matching at the input's string end. It must not be less than the value set for the start index (if that one is non-negative). This value may be overriden by the string received on the 'END' port.",
             "name": "end"
@@ -515,7 +515,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "A string can have a substring replaced in many points. This value defines the maximum number of replacements to attempt, and must be non-negative. The default value of zero means to replace all possible substrings. This option can be overriden by values received on the 'MAX_REPLACE' port.",
             "name": "max_replace"
@@ -597,13 +597,13 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "This value defines which substring match (by index, starting from 0) inside the one that was fed to the 'IN' port should be output in the 'OUT' port. It must be non-negative. It can be overriden by values received on 'INDEX' port.",
             "name": "index"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "The regular expression matching against the input string can result in various substring matches. This value defines the maximum number of them to generate and make available for selection by the 'INDEX' port. This option can be overriden by values received on the 'MAX_REGEXP_SEARCH' port. The value of zero (default one) will be interpreted as to generate all possible matches.",
             "name": "max_regexp_search"
@@ -676,7 +676,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "The regular expression matching against the input string can result in various substring matches. This value defines the maximum number of them to replace for the string given in the 'to' option. This option can be overriden by values received on the 'MAX_REGEXP_REPLACE' port. The value of zero (default one) will be interpreted as to replace all possible matches.",
             "name": "max_regexp_replace"

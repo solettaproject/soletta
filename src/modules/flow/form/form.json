@@ -76,12 +76,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
             "name": "columns"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
             "name": "rows"
           },
@@ -178,12 +178,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
             "name": "columns"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
             "name": "rows"
           },

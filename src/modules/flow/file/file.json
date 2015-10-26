@@ -89,7 +89,7 @@
             "name": "path"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": "INT32_MAX",
               "min": "INT32_MIN",

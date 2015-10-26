@@ -42,12 +42,12 @@
             "name": "tune"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "PWM pin number",
             "name": "pin"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "PWM chip number",
             "name": "chip"
           },

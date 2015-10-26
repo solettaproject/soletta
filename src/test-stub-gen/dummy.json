@@ -221,7 +221,7 @@
          "name": "opt_direction_vector"
         },
         {
-         "data_type": "int",
+         "data_type": "irange",
          "default": {
              "val": 20,
              "min": -10,

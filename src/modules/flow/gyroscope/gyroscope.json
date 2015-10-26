@@ -28,7 +28,7 @@
       "options": {
        "members": [
          {
-           "data_type": "int",
+           "data_type": "irange",
            "description": "I2C bus number",
            "name": "i2c_bus"
          },

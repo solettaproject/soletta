@@ -42,42 +42,42 @@
             "name": "common_cathode"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Pin used to set segment 'A' state.",
             "name": "pin_a"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Pin used to set segment 'B' state.",
             "name": "pin_b"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Pin used to set segment 'C' state.",
             "name": "pin_c"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Pin used to set segment 'D' state.",
             "name": "pin_d"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Pin used to set segment 'E' state.",
             "name": "pin_e"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Pin used to set segment 'F' state.",
             "name": "pin_f"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Pin used to set segment 'G' state.",
             "name": "pin_g"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Pin used to set segment 'DP' state.",
             "name": "pin_dp"
           }

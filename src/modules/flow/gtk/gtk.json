@@ -81,49 +81,49 @@
             "name": "common_cathode"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin used to set segment 'A' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
             "name": "pin_a"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin used to set segment 'B' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
             "name": "pin_b"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin used to set segment 'C' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
             "name": "pin_c"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin used to set segment 'D' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
             "name": "pin_d"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin used to set segment 'E' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
             "name": "pin_e"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin used to set segment 'F' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
             "name": "pin_f"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin used to set segment 'G' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
             "name": "pin_g"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin used to set segment 'DP' state. It's a dummy option used for compatibility with 'led-7seg/led'.",
             "name": "pin_dp"
@@ -165,7 +165,7 @@
             }
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin number. It's a dummy option used for compatibility with 'gpio/writer'.",
             "name": "pin"
@@ -187,7 +187,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin number. It's a dummy option used for compatibility with 'gpio/reader'.",
             "name": "pin"
@@ -226,7 +226,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 100,
               "min": 0
@@ -294,13 +294,13 @@
       "options": {
        "members": [
         {
-         "data_type": "int",
+         "data_type": "irange",
          "default": 0,
          "description": "PWM chip. It's a dummy option used for compatibility with 'pwm'.",
          "name": "chip"
         },
         {
-         "data_type": "int",
+         "data_type": "irange",
          "default": 0,
          "description": "PWM pin channel. It's a dummy option used for compatibility with 'pwm'.",
          "name": "pin"
@@ -318,13 +318,13 @@
          "name": "enabled"
         },
         {
-         "data_type": "int",
+         "data_type": "irange",
          "default": 0,
          "description": "Initial period",
          "name": "period"
         },
         {
-         "data_type": "int",
+         "data_type": "irange",
          "default": 0,
          "description": "Initial duty cycle",
          "name": "duty_cycle"
@@ -364,7 +364,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 100,
               "min": 0
@@ -373,13 +373,13 @@
             "name": "range"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Device number on platform. It's a dummy option used for compatibility with 'aio/reader'.",
             "name": "device"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin number. It's a dummy option used for compatibility with 'aio/reader'.",
             "name": "pin"
@@ -408,7 +408,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "val": 0,
               "max": "INT32_MAX",
@@ -419,13 +419,13 @@
             "name": "range"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Device number on platform. It's a dummy option used for compatibility with 'aio/reader'.",
             "name": "device"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin number. It's a dummy option used for compatibility with 'aio/reader'.",
             "name": "pin"
@@ -454,7 +454,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Pin number. It's a dummy option used for compatibility with 'gpio/reader'.",
             "name": "pin"
