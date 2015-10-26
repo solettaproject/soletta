@@ -39,7 +39,6 @@
 # of zeros and have no way to know if they mean something or not.
 
 ## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
-## TEST-SKIP-VALGRIND Some float operations yield to [-]NaN on valgrind
 ## TEST-DEPENDS-ON persistence-memmap-1.fbp
 
 validator_int(test/int-validator:sequence="-12")

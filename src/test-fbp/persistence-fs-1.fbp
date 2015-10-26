@@ -36,7 +36,6 @@
 
 ## TEST-PRECONDITION rm -f int int_only_val irange byte boolean string double double_only_val drange int_def irange_def byte_def boolean_def string_def double_def drange_def
 ## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
-## TEST-SKIP-VALGRIND Some float operations yield to [-]NaN on valgrind
 
 int(constant/int:value=-12)
 irange(constant/int:value=-13|-50|50|3)

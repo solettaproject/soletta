@@ -40,7 +40,6 @@
 
 ## TEST-PRECONDITION truncate -s0 memmap-test.bin
 ## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
-## TEST-SKIP-VALGRIND Some float operations yield to [-]NaN on valgrind
 
 int(constant/int:value=-12)
 int_only(constant/int:value=30)

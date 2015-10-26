@@ -35,7 +35,6 @@
 # Those files need to have been created by persistence-fs-1.fbp
 
 ## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
-## TEST-SKIP-VALGRIND Some float operations yield to [-]NaN on valgrind
 ## TEST-DEPENDS-ON persistence-fs-1.fbp
 
 validator_int(test/int-validator:sequence="-12")
