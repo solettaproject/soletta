@@ -123,3 +123,93 @@ end:
     sol_buffer_fini(&buf);
     return r;
 }
+
+SOL_API int
+sol_http_encode_params(char **encoded_params, enum sol_http_param_type type,
+    const struct sol_http_param *params)
+{
+    struct sol_buffer buf;
+    struct sol_http_param_value *iter;
+    char *encoded_key, *encoded_value;
+    uint16_t idx;
+    bool first = true;
+    int r;
+
+    SOL_NULL_CHECK(encoded_params, -EINVAL);
+    SOL_NULL_CHECK(params, -EINVAL);
+
+    if (type != SOL_HTTP_PARAM_QUERY_PARAM &&
+        type != SOL_HTTP_PARAM_POST_FIELD &&
+        type != SOL_HTTP_PARAM_COOKIE) {
+        return -EINVAL;
+    }
+
+    sol_buffer_init(&buf);
+
+    SOL_HTTP_PARAM_FOREACH_IDX (params, iter, idx) {
+        if (iter->type != type)
+            continue;
+
+        r = sol_http_escape_string(&encoded_key, iter->value.key_value.key);
+        SOL_INT_CHECK_GOTO(r, < 0, clean_up);
+
+        r = sol_http_escape_string(&encoded_value, iter->value.key_value.value);
+        SOL_INT_CHECK_GOTO(r, < 0, clean_up);
+
+        if (type == SOL_HTTP_PARAM_COOKIE) {
+            r = sol_buffer_append_printf(&buf, "%s%s=%s;", first ? "" : " ",
+                encoded_key, encoded_value);
+        } else {
+            r = sol_buffer_append_printf(&buf, "%s%s=%s", first ? "" : "&",
+                encoded_key, encoded_value);
+        }
+
+        SOL_INT_CHECK_GOTO(r, < 0, clean_up);
+
+        first = false;
+        free(encoded_key);
+        free(encoded_value);
+        encoded_value = encoded_key = NULL;
+    }
+
+    r = sol_buffer_ensure_nul_byte(&buf);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    *encoded_params = sol_buffer_steal(&buf, NULL);
+
+    sol_buffer_fini(&buf);
+
+    return 0;
+
+clean_up:
+    free(encoded_key);
+    free(encoded_value);
+err_exit:
+    sol_buffer_fini(&buf);
+    return r;
+}
+
+SOL_API int
+sol_http_build_uri(char **uri, const char *base,
+    const struct sol_http_param *params)
+{
+    char *encoded_params;
+    int r;
+
+    SOL_NULL_CHECK(uri, -EINVAL);
+    SOL_NULL_CHECK(base, -EINVAL);
+    SOL_NULL_CHECK(params, -EINVAL);
+
+    r = sol_http_encode_params(&encoded_params, SOL_HTTP_PARAM_QUERY_PARAM,
+        params);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (asprintf(uri, "%s%s%s", base, *encoded_params ? "?" : "",
+        encoded_params) < 0) {
+        r = -ENOMEM;
+        SOL_ERR("Could not create the URL with the encoded parameters."
+            "URL:%s, parameters:%s", base, encoded_params);
+    }
+
+    free(encoded_params);
+    return r;
+}
