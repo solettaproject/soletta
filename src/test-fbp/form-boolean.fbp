@@ -1,0 +1,147 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#toggle selection
+boolean_00(form/boolean:rows=3,columns=10)
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> TOGGLE boolean_00
+validator_00(test/string-validator:sequence="true      |false     |true      ")
+boolean_00 STRING -> IN validator_00 OUT -> RESULT _(test/result)
+
+#toggle selection and select
+boolean_01(form/boolean:rows=3,columns=10)
+_(test/boolean-generator:sequence="T",interval=10) OUT -> TOGGLE boolean_01
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT boolean_01
+validator_01(test/string-validator:sequence="true      |false     |false     ")
+validator_items_01(test/boolean-validator:sequence="F")
+and_01(boolean/and)
+boolean_01 STRING -> IN validator_01 OUT -> IN[0] and_01
+boolean_01 SELECTED -> IN validator_items_01 OUT -> IN[1] and_01
+and_01 OUT -> RESULT _(test/result)
+
+#toggle selection and select, one row only
+boolean_02(form/boolean:rows=1,columns=10)
+_(test/boolean-generator:sequence="T",interval=10) OUT -> TOGGLE boolean_02
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT boolean_02
+validator_02(test/string-validator:sequence="true      |false     |false     ")
+validator_items_02(test/boolean-validator:sequence="F")
+and_02(boolean/and)
+boolean_02 STRING -> IN validator_02 OUT -> IN[0] and_02
+boolean_02 SELECTED -> IN validator_items_02 OUT -> IN[1] and_02
+and_02 OUT -> RESULT _(test/result)
+
+#toggle selection and select, with title
+boolean_03(form/boolean:rows=2,columns=10,format="{title}{value}",title="Title")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> TOGGLE boolean_03
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT boolean_03
+validator_03(test/string-validator:sequence="Title     \ntrue      |Title     \nfalse     |Title     \nfalse     ")
+validator_items_03(test/boolean-validator:sequence="F")
+and_03(boolean/and)
+boolean_03 STRING -> IN validator_03 OUT -> IN[0] and_03
+boolean_03 SELECTED -> IN validator_items_03 OUT -> IN[1] and_03
+and_03 OUT -> RESULT _(test/result)
+
+#toggle selection and select, with title and footer
+boolean_04(form/boolean:rows=3,columns=10,format="{title}{value}footer",title="Title")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> TOGGLE boolean_04
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT boolean_04
+validator_04(test/string-validator:sequence="Title     \ntrue      \nfooter    |Title     \nfalse     \nfooter    |Title     \nfalse     \nfooter    ")
+validator_items_04(test/boolean-validator:sequence="F")
+and_04(boolean/and)
+boolean_04 STRING -> IN validator_04 OUT -> IN[0] and_04
+boolean_04 SELECTED -> IN validator_items_04 OUT -> IN[1] and_04
+and_04 OUT -> RESULT _(test/result)
+
+#toggle selection and select, with title and footer, more rows
+boolean_05(form/boolean:rows=5,columns=10,format="{title}{value}footer",title="Title")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> TOGGLE boolean_05
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT boolean_05
+validator_05(test/string-validator:sequence="Title     \ntrue      \nfooter    |Title     \nfalse     \nfooter    |Title     \nfalse     \nfooter    ")
+validator_items_05(test/boolean-validator:sequence="F")
+and_05(boolean/and)
+boolean_05 STRING -> IN validator_05 OUT -> IN[0] and_05
+boolean_05 SELECTED -> IN validator_items_05 OUT -> IN[1] and_05
+and_05 OUT -> RESULT _(test/result)
+
+#toggle selection and select, with title and footer, more rows, less columns
+boolean_06(form/boolean:rows=5,columns=5,format="{title}{value}footer",title="Title")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> TOGGLE boolean_06
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT boolean_06
+validator_06(test/string-validator:sequence="Title\ntrue \nfoote|Title\nfalse\nfoote|Title\nfalse\nfoote")
+validator_items_06(test/boolean-validator:sequence="F")
+and_06(boolean/and)
+boolean_06 STRING -> IN validator_06 OUT -> IN[0] and_06
+boolean_06 SELECTED -> IN validator_items_06 OUT -> IN[1] and_06
+and_06 OUT -> RESULT _(test/result)
+
+#toggle selection and select, with title, footer and intermediate strings
+boolean_07(form/boolean:rows=10,columns=10,format="pre\ntitle{title}inter\nvalue{value}footer\nother_footer",title="Title")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> TOGGLE boolean_07
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT boolean_07
+validator_07(test/string-validator:sequence="pre       \ntitle     \nTitle     \ninter     \nvalue     \ntrue      \nfooter    \nother_foot|pre       \ntitle     \nTitle     \ninter     \nvalue     \nfalse     \nfooter    \nother_foot|pre       \ntitle     \nTitle     \ninter     \nvalue     \nfalse     \nfooter    \nother_foot")
+validator_items_07(test/boolean-validator:sequence="F")
+and_07(boolean/and)
+boolean_07 STRING -> IN validator_07 OUT -> IN[0] and_07
+boolean_07 SELECTED -> IN validator_items_07 OUT -> IN[1] and_07
+and_07 OUT -> RESULT _(test/result)
+
+#toggle selection, while disabled
+boolean_08(form/boolean:rows=3,columns=10)
+_(constant/boolean:value=false) OUT -> ENABLED boolean_08
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> TOGGLE boolean_08
+validator_08(test/string-validator:sequence="true      ")
+boolean_08 STRING -> IN validator_08 OUT -> RESULT _(test/result)
+
+#toggle selection and select, one row only, *with title*
+boolean_09(form/boolean:rows=1,columns=10,format="{title}{value}",title="Title")
+_(test/boolean-generator:sequence="T",interval=09) OUT -> TOGGLE boolean_09
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT boolean_09
+validator_09(test/string-validator:sequence="Title true|Title fals|Title fals")
+validator_items_09(test/boolean-validator:sequence="F")
+and_09(boolean/and)
+boolean_09 STRING -> IN validator_09 OUT -> IN[0] and_09
+boolean_09 SELECTED -> IN validator_items_09 OUT -> IN[1] and_09
+and_09 OUT -> RESULT _(test/result)
+
+#toggle selection, custom labels
+boolean_10(form/boolean:rows=3,columns=10,true_str="yeppers",false_str="nope")
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> TOGGLE boolean_10
+validator_10(test/string-validator:sequence="yeppers   |nope      |yeppers   ")
+boolean_10 STRING -> IN validator_10 OUT -> RESULT _(test/result)
+
+#toggle selection, custom labels, pre-selection (note that the initial
+#status is always the default one, to be update quickly by the
+#SELECTED port's processing afterwards)
+boolean_11(form/boolean:rows=3,columns=10,true_str="yeppers",false_str="nope")
+_(constant/boolean:value=false) OUT -> SELECTED boolean_11
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> TOGGLE boolean_11
+validator_11(test/string-validator:sequence="yeppers   |nope      |yeppers   |nope      ")
+boolean_11 STRING -> IN validator_11 OUT -> RESULT _(test/result)
+
+## TEST-SKIP-VALGRIND The timing we're relying on for the string sequence is blown away by Valgrind, so skip it.
