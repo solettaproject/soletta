@@ -70,6 +70,7 @@ struct http_data {
 
     struct server_data *sdata;
     char *path;
+    char *namespace;
 };
 
 struct http_server_node_type {
@@ -648,14 +649,24 @@ static_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
 
     mdata->path = strdup(opts->path);
     SOL_NULL_CHECK_GOTO(mdata->path, err);
+    mdata->namespace = strdup(opts->namespace);
+    SOL_NULL_CHECK_GOTO(mdata->namespace, err_namespace);
 
     mdata->value.b = opts->start;
 
-    if (opts->start)
-        return sol_http_server_add_dir(mdata->sdata->server, mdata->path);
+    if (opts->start) {
+        int r;
+        r = sol_http_server_add_dir(mdata->sdata->server,
+            mdata->namespace, mdata->path);
+        SOL_INT_CHECK_GOTO(r, < 0, err_add);
+    }
 
     return 0;
 
+err_add:
+    free(mdata->namespace);
+err_namespace:
+    free(mdata->path);
 err:
     server_unref(mdata->sdata);
     return -ENOMEM;
@@ -667,10 +678,12 @@ static_close(struct sol_flow_node *node, void *data)
     struct http_data *mdata = data;
 
     if (mdata->value.b)
-        sol_http_server_remove_dir(mdata->sdata->server, mdata->path);
+        sol_http_server_remove_dir(mdata->sdata->server,
+            mdata->namespace, mdata->path);
 
     server_unref(mdata->sdata);
     free(mdata->path);
+    free(mdata->namespace);
 }
 
 static int
@@ -689,9 +702,9 @@ static_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
 
     mdata->value.b = val;
     if (mdata->value.b)
-        return sol_http_server_add_dir(mdata->sdata->server, mdata->path);
+        return sol_http_server_add_dir(mdata->sdata->server, mdata->namespace, mdata->path);
     else
-        return sol_http_server_remove_dir(mdata->sdata->server, mdata->path);
+        return sol_http_server_remove_dir(mdata->sdata->server, mdata->namespace, mdata->path);
 }
 
 #include "http-server-gen.c"
