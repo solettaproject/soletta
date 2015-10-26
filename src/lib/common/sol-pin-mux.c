@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <dlfcn.h>
 #include <limits.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -178,6 +179,19 @@ sol_pin_mux_shutdown(void)
         dlclose(dl_handle);
     dl_handle = NULL;
 #endif
+}
+
+SOL_API int
+sol_pin_mux_map(const char *label, const enum sol_io_protocol prot, ...)
+{
+    int ret;
+    va_list args;
+
+    va_start(args, prot);
+    ret = (mux && mux->pin_map) ? mux->pin_map(label, prot, args) : -EINVAL;
+    va_end(args);
+
+    return ret;
 }
 
 SOL_API int
