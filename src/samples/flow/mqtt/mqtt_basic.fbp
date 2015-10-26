@@ -1,0 +1,60 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# NOTE: This sample expects that a MQTT broker is running on 
+# the local machine on the default port (1883)
+
+# subscribe
+sub(mqtt/client:host="127.0.0.1",topic="soletta/mqtt/test")
+# publish
+pub(mqtt/client:host="127.0.0.1",topic="soletta/mqtt/test")
+
+# Message
+hello_world(constant/string:value="Hello World")
+
+# output
+pub_out(console:prefix="pub=")
+sub_out(console:prefix="sub=")
+
+# Use "Hello World" as the message payload
+hello_world OUT -> IN _(converter/string-to-blob) OUT -> DATA pub
+
+# Subscribe to topic on start
+_(constant/empty) OUT -> SUBSCRIBE sub
+
+# Publish a message every 1 second
+timer(timer:interval=1000) OUT -> PUBLISH pub
+
+# print to console received message
+sub OUTDATA -> IN _(converter/blob-to-string) OUT -> IN sub_out
+
+# print error to console
+pub ERROR -> IN _(converter/error) MESSAGE -> IN pub_out
+sub ERROR -> IN _(converter/error) MESSAGE -> IN sub_out
