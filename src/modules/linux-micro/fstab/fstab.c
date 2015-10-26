@@ -42,6 +42,7 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-fstab");
 
 #include "sol-platform-linux-micro.h"
+#include "sol-platform.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
@@ -133,6 +134,19 @@ get_mountflags(char *mnt_opts, bool *should_mount)
     return options;
 }
 
+static void
+mount_async_cb(const char *dev, const char *mpoint, void *data, uint64_t pid, int status)
+{
+    const char *service = data;
+
+    if (status == 0)
+        SOL_INF("Successfully mounted %s to %s", dev, mpoint);
+    else {
+        SOL_ERR("Could not mount %s to %s", dev, mpoint);
+        sol_platform_linux_micro_inform_service_state(service, SOL_PLATFORM_SERVICE_STATE_FAILED);
+    }
+}
+
 static int
 fstab_start(const struct sol_platform_linux_micro_module *mod, const char *service)
 {
@@ -160,18 +174,20 @@ fstab_start(const struct sol_platform_linux_micro_module *mod, const char *servi
         if (!should_mount)
             continue;
 
-        ret = mount(mbuf.mnt_fsname, mbuf.mnt_dir, mbuf.mnt_type, mountflags, mbuf.mnt_opts);
+        ret = sol_platform_mount(mbuf.mnt_fsname, mbuf.mnt_dir, mbuf.mnt_type, mountflags,
+                                 mbuf.mnt_opts, mount_async_cb, (void *)service);
         if (ret != 0) {
-            SOL_WRN("Couldn't mount %s to %s", mbuf.mnt_fsname, mbuf.mnt_dir);
+            SOL_WRN("Couldn't spaw mount process to mount %s to %s",
+                    mbuf.mnt_fsname, mbuf.mnt_dir);
             err = ret;
             continue;
         }
     }
 
+    endmntent(fstab);
+
     sol_platform_linux_micro_inform_service_state(service,
         err == 0 ? SOL_PLATFORM_SERVICE_STATE_ACTIVE : SOL_PLATFORM_SERVICE_STATE_FAILED);
-
-    endmntent(fstab);
 
     return err;
 }
