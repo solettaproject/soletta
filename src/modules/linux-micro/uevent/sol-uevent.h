@@ -33,26 +33,14 @@
 #pragma once
 
 #include "sol-str-slice.h"
-#include "sol-types.h"
 
-struct sol_file_reader;
+struct sol_uevent {
+    struct sol_str_slice modalias;
+    struct sol_str_slice action;
+    struct sol_str_slice subsystem;
+    struct sol_str_slice devtype;
+    struct sol_str_slice devname;
+};
 
-struct sol_file_reader *sol_file_reader_open(const char *filename);
-struct sol_file_reader *sol_file_reader_fd(int fd);
-void sol_file_reader_close(struct sol_file_reader *fr);
-struct sol_str_slice sol_file_reader_get_all(const struct sol_file_reader *fr);
-const struct stat *sol_file_reader_get_stat(const struct sol_file_reader *fr);
-
-/**
- * convert an open file reader to a blob.
- *
- * This will convert a valid and opened file reader to a blob, thus no
- * further explicit calls to sol_file_reader_close() should be done as
- * the blob will automatically close once its last reference is gone.
- *
- * @param fr valid opened file reader.
- *
- * @return NULL on error (and fr is closed) or new blob instance that should
- *         be sol_blob_unref() once it's not needed.
- */
-struct sol_blob *sol_file_reader_to_blob(struct sol_file_reader *fr);
+int sol_uevent_subscribe_events(const char *action, const char *subsystem, void (*uevent_cb)(void *cb_data, struct sol_uevent *uevent), const void *cb_data);
+int sol_uevent_unsubscribe_events(const char *action, const char *subsystem, void (*uevent_cb)(void *cb_data, struct sol_uevent *uevent));
