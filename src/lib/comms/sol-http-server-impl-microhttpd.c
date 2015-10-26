@@ -66,9 +66,15 @@ struct sol_http_request {
     time_t if_since_modified;
 };
 
+struct static_dir {
+    size_t basename_len;
+    char *basename;
+    char *root;
+};
+
 struct sol_http_server {
     struct MHD_Daemon *daemon;
-    struct sol_ptr_vector dirs;
+    struct sol_vector dirs;
     struct sol_vector handlers;
     struct sol_vector fds;
     struct sol_ptr_vector requests;
@@ -276,7 +282,7 @@ err:
 }
 
 static int
-get_static_file(const char *dir, const char *url)
+get_static_file(const struct static_dir *dir, const char *url)
 {
     int ret;
     char path[PATH_MAX], *real_path;
@@ -285,10 +291,21 @@ get_static_file(const char *dir, const char *url)
      * https://www.solettaproject.com => url == /
      * https://www.solettaproject.com/thankyou => url == /thankyou
      */
+    while (*url && *(url + 1) == '/')
+        url++;
+
+    if (!streqn(url, dir->basename, dir->basename_len))
+        return -EINVAL;
+
+    url += dir->basename_len;
+    if (*(dir->basename + dir->basename_len - 1) != '/' &&
+        *url != '/')
+        return -EINVAL;
+
     while (*url == '/')
         url++;
 
-    ret = snprintf(path, sizeof(path), "%s/%s", dir,
+    ret = snprintf(path, sizeof(path), "%s/%s", dir->root,
         *url ? url : "index.html");
     if (ret < 0 || ret >= (int)sizeof(path))
         return -ENOMEM;
@@ -297,7 +314,7 @@ get_static_file(const char *dir, const char *url)
     if (!real_path)
         return -errno;
 
-    if (!strstartswith(real_path, dir)) {
+    if (!strstartswith(real_path, dir->root)) {
         free(real_path);
         return -EINVAL;
     }
@@ -315,7 +332,8 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
 {
     int ret, fd;
     uint16_t i;
-    char buf[32], *dir, *path = NULL;
+    char buf[32], *path = NULL;
+    struct static_dir *dir;
     struct MHD_Response *mhd_response = NULL;
     struct sol_http_server *server = data;
     struct http_handler *handler;
@@ -391,7 +409,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     }
 
     free(path);
-    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
         struct stat st;
         fd = get_static_file(dir, url);
         if (fd < 0 && errno == EACCES) {
@@ -558,8 +576,8 @@ sol_http_server_new(uint16_t port)
 
     sol_vector_init(&server->handlers, sizeof(struct http_handler));
     sol_vector_init(&server->fds, sizeof(struct http_connection));
+    sol_vector_init(&server->dirs, sizeof(struct static_dir));
     sol_ptr_vector_init(&server->requests);
-    sol_ptr_vector_init(&server->dirs);
 
     server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
         port, NULL, NULL,
@@ -586,6 +604,7 @@ err:
 err_daemon:
     sol_vector_clear(&server->handlers);
     sol_vector_clear(&server->fds);
+    sol_vector_clear(&server->dirs);
     sol_ptr_vector_clear(&server->requests);
     free(server);
     return NULL;
@@ -595,7 +614,7 @@ SOL_API void
 sol_http_server_del(struct sol_http_server *server)
 {
     uint16_t i;
-    char *dir;
+    struct static_dir *dir;
     struct http_handler *handler;
     struct http_connection *connection;
     struct sol_http_request *request;
@@ -616,9 +635,11 @@ sol_http_server_del(struct sol_http_server *server)
         sol_fd_del(connection->watch);
     sol_vector_clear(&server->fds);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i)
-        free(dir);
-    sol_ptr_vector_clear(&server->dirs);
+    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        free(dir->root);
+        free(dir->basename);
+    }
+    sol_vector_clear(&server->dirs);
 
     MHD_stop_daemon(server->daemon);
 
@@ -730,54 +751,78 @@ sol_http_server_set_last_modified(struct sol_http_server *server, const char *pa
 }
 
 SOL_API int
-sol_http_server_add_dir(struct sol_http_server *server, const char *rootdir)
+sol_http_server_add_dir(struct sol_http_server *server, const char *basename, const char *rootdir)
 {
-    int r;
     uint16_t i;
-    char *dir;
+    char *p;
+    struct static_dir *dir;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(rootdir, -EINVAL);
+    SOL_NULL_CHECK(basename, -EINVAL);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
-        if (streq(dir, rootdir))
+    p = sanitize_path(basename);
+    SOL_NULL_CHECK(p, -ENOMEM);
+
+    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        if (streq(dir->root, rootdir) &&
+            streq(dir->basename, p)) {
+            free(p);
             return -EINVAL;
-    }
-
-    dir = realpath(rootdir, NULL);
-    SOL_NULL_CHECK(dir, -ENOMEM);
-
-    r = sol_ptr_vector_append(&server->dirs, dir);
-    SOL_INT_CHECK_GOTO(r, < 0, err);
-
-    return 0;
-
-err:
-    free(dir);
-    return r;
-}
-
-SOL_API int
-sol_http_server_remove_dir(struct sol_http_server *server, const char *rootdir)
-{
-    uint16_t i;
-    char *dir, *aux;
-
-    SOL_NULL_CHECK(server, -EINVAL);
-    SOL_NULL_CHECK(rootdir, -EINVAL);
-
-    dir = realpath(rootdir, NULL);
-    SOL_NULL_CHECK(dir, -ENOMEM);
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, aux, i) {
-        if (streq(dir, aux)) {
-            free(dir);
-            free(aux);
-            sol_ptr_vector_del(&server->dirs, i);
-            return 0;
         }
     }
 
-    free(dir);
-    return -ENODATA;
+    dir = sol_vector_append(&server->dirs);
+    SOL_NULL_CHECK_GOTO(dir, err);
+
+    dir->basename_len = strlen(p);
+    dir->basename = p;
+    dir->root = realpath(rootdir, NULL);
+    SOL_NULL_CHECK_GOTO(dir->root, err_path);
+
+    return 0;
+
+err_path:
+    if (sol_vector_del(&server->dirs, server->dirs.len - 1) < 0)
+        SOL_WRN("Could not remove %s/%s correctly",
+            basename, rootdir);
+err:
+    free(p);
+    return -ENOMEM;
+}
+
+SOL_API int
+sol_http_server_remove_dir(struct sol_http_server *server, const char *basename, const char *rootdir)
+{
+    int r = -ENOMEM;
+    uint16_t i;
+    char *root = NULL, *p = NULL;
+    struct static_dir *dir;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(rootdir, -EINVAL);
+    SOL_NULL_CHECK(basename, -EINVAL);
+
+    p = sanitize_path(basename);
+    SOL_NULL_CHECK(p, -ENOMEM);
+
+    root = realpath(rootdir, NULL);
+    SOL_NULL_CHECK_GOTO(root, end);
+
+    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        if (streq(dir->root, root) &&
+            streq(dir->basename, p)) {
+            free(dir->root);
+            free(dir->basename);
+            sol_vector_del(&server->dirs, i);
+            r = 0;
+            goto end;
+        }
+    }
+
+    r = -ENODATA;
+end:
+    free(root);
+    free(p);
+    return r;
 }

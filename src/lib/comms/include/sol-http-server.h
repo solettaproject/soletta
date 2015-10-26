@@ -111,21 +111,23 @@ int sol_http_server_unregister_handler(struct sol_http_server *server, const cha
  * with the request.
  *
  * @param server The value got with @c sol_http_server_new
+ * @param basename The base path of the requests where the server will look for files on @c rootdir
  * @param rootdir The dir where the server will look for static files
  *
  * @return '0' on success, error code (always negative) otherwise.
  */
-int sol_http_server_add_dir(struct sol_http_server *server, const char *rootdir);
+int sol_http_server_add_dir(struct sol_http_server *server, const char *basename, const char *rootdir);
 
 /**
  * Removes a dir registered with @c sol_http_server_add_dir
  *
  * @param server The value got with @c sol_http_server_new
+ * @param basename The same basename given on @c sol_http_server_add_dir
  * @param rootdir The same rootdir given on @c sol_http_server_add_dir
  *
  * @return '0' on success, error code (always negative) otherwise.
  */
-int sol_http_server_remove_dir(struct sol_http_server *server, const char *rootdir);
+int sol_http_server_remove_dir(struct sol_http_server *server, const char *basename, const char *rootdir);
 
 /**
  * Set the last time the specified path had its value modified. It'll make the server

@@ -300,6 +300,12 @@
             "description": "The port used to bind the server. If a negative value, default port will be used.",
             "name": "port"
           },
+	  {
+            "data_type": "string",
+	    "default": "/",
+            "description": "The http namespace (prefix path) where it will be served",
+            "name": "namespace"
+          },
           {
             "data_type": "boolean",
             "default": true,
