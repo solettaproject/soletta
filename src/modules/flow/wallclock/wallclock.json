@@ -192,7 +192,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Time block interval. Defines the length of a frame in minutes. Last block may be smaller than others. For example, if interval is set to 50 minutes, it would tick 29 times a day, but interval for last one is just 48 minutes.",
             "name": "interval"
           },

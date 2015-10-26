@@ -1271,7 +1271,7 @@ get_member_alignment(const struct sol_flow_node_options_member_description *memb
         SOL_STR_TABLE_ITEM("drange-spec",
             __alignof__(member->defvalue.drange_spec)),
         SOL_STR_TABLE_ITEM("float", __alignof__(member->defvalue.f)),
-        SOL_STR_TABLE_ITEM("int", __alignof__(member->defvalue.i)),
+        SOL_STR_TABLE_ITEM("irange", __alignof__(member->defvalue.irange)),
         SOL_STR_TABLE_ITEM("rgb", __alignof__(member->defvalue.rgb)),
         SOL_STR_TABLE_ITEM("string", __alignof__(member->defvalue.s)),
     };

@@ -18,12 +18,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Bus",
             "name": "bus"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Chip Select",
             "name": "chip_select"
           }

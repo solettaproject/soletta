@@ -194,13 +194,13 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "IRange value of output when input is false.",
             "name": "false_value"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 1,
             "description": "IRange value of output when input is true.",
             "name": "true_value"
@@ -759,19 +759,19 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 255,
             "description": "Max value of red component. Minimum is set to zero.",
             "name": "red_max"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 255,
             "description": "Max value of green component. Minimum is set to zero.",
             "name": "green_max"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 255,
             "description": "Max value of blue component. Minimum is set to zero.",
             "name": "blue_max"
@@ -1114,7 +1114,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 1,
               "min": 1,
@@ -1212,7 +1212,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 1
@@ -1355,7 +1355,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 1
@@ -1412,19 +1412,19 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 255,
             "description": "Max value of red component. Minimum is set to zero.",
             "name": "red_max"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 255,
             "description": "Max value of green component. Minimum is set to zero.",
             "name": "green_max"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 255,
             "description": "Max value of blue component. Minimum is set to zero.",
             "name": "blue_max"
@@ -1462,19 +1462,19 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 255,
             "description": "Max value of red component. Minimum is set to zero.",
             "name": "red_max"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 255,
             "description": "Max value of green component. Minimum is set to zero.",
             "name": "green_max"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 255,
             "description": "Max value of blue component. Minimum is set to zero.",
             "name": "blue_max"

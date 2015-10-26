@@ -44,7 +44,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -55,7 +55,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -121,7 +121,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -132,7 +132,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -198,7 +198,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -209,7 +209,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -275,7 +275,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -286,7 +286,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -369,7 +369,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -380,7 +380,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -446,7 +446,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -457,7 +457,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -523,7 +523,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -534,7 +534,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -600,7 +600,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -611,7 +611,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -677,7 +677,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -688,7 +688,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -754,7 +754,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,
@@ -765,7 +765,7 @@
             "name": "in_port"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": 0,

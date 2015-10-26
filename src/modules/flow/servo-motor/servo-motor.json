@@ -36,7 +36,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 2400,
               "min": 544
@@ -45,18 +45,18 @@
             "name": "duty_cycle_range"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 22000,
             "description": "Period, in microseconds. A pulse repetition rate of 50 Hz should work with most servos.",
             "name": "period"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "PWM chip",
             "name": "chip"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "PWM pin channel",
             "name": "pin"
           }

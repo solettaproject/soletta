@@ -591,7 +591,7 @@ set_default_option(struct sol_flow_node_named_options_member *m,
         m->direction_vector = mdesc->defvalue.direction_vector;
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
-        m->irange = mdesc->defvalue.i;
+        m->irange = mdesc->defvalue.irange;
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
         m->rgb = mdesc->defvalue.rgb;
@@ -718,7 +718,7 @@ static const struct sol_str_table member_str_to_type[] = {
     SOL_STR_TABLE_ITEM("drange", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE),
     SOL_STR_TABLE_ITEM("drange-spec", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC),
     SOL_STR_TABLE_ITEM("float", SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT),
-    SOL_STR_TABLE_ITEM("int", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE),
+    SOL_STR_TABLE_ITEM("irange", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE),
     SOL_STR_TABLE_ITEM("rgb", SOL_FLOW_NODE_OPTIONS_MEMBER_RGB),
     SOL_STR_TABLE_ITEM("string", SOL_FLOW_NODE_OPTIONS_MEMBER_STRING),
     {}

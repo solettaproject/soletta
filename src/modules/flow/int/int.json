@@ -140,7 +140,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": "INT32_MAX",
               "min": "INT32_MIN",
@@ -567,13 +567,13 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 4,
             "description": "Number of samples that the buffer should hold.",
             "name": "samples"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Timeout time in milliseconds. Default is zero which means that timeout is disabled.",
             "name": "timeout"
@@ -821,7 +821,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 1023,
               "min": 0
@@ -875,7 +875,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Minimum value (inclusive)",
             "name": "min",
             "default" : {
@@ -883,7 +883,7 @@
             }
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Maximum value (inclusive)",
             "name": "max",
             "default" : {
@@ -923,7 +923,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": 255,
               "min": -255
@@ -964,7 +964,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": {
               "max": "INT32_MAX",
               "min": "INT32_MIN"
@@ -973,7 +973,7 @@
             "name": "input_range"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Output's range.",
             "name": "output_range"
           },

@@ -28,12 +28,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "I2C bus number",
             "name": "i2c_bus"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "I2C bus slave on which the sensor answers.",
             "name": "i2c_slave",
             "default": 92
@@ -71,12 +71,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "I2C bus number",
             "name": "i2c_bus"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "I2C bus slave on which the sensor answers.",
             "name": "i2c_slave",
             "default": 92

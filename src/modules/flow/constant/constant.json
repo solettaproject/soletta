@@ -111,7 +111,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "Value of constant.",
             "name": "value"
           }

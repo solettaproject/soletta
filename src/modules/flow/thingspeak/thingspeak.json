@@ -34,7 +34,7 @@
             "name": "endpoint"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 1000,
             "description": "Poll interval in milliseconds. Default to one request every 1000ms.",
             "name": "interval"
@@ -79,7 +79,7 @@
             "name": "endpoint"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": -1,
             "description": "Position for this command to appear in the queue. Default is end of queue",
             "name": "position"

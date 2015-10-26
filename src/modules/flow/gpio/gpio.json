@@ -18,12 +18,12 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "GPIO pin",
             "name": "pin"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 1000,
             "description": "Polling time",
             "name": "poll_timeout"
@@ -86,7 +86,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "description": "GPIO pin",
             "name": "pin"
           },

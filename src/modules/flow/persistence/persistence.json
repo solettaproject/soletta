@@ -205,7 +205,7 @@
             "name": "storage"
           },
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 0,
             "description": "Default value for this node, when there's no previous value persisted",
             "name": "default_value"

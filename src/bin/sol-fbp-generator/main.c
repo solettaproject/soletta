@@ -493,7 +493,7 @@ handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
     if (o->default_value_type != OPTION_VALUE_TYPE_NONE)
         has_default_option = true;
 
-    if (streq(o->data_type, "int")) {
+    if (streq(o->data_type, "irange")) {
         r = true;
         dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
             irange_default_values, sizeof(irange_default_values) /
@@ -1010,7 +1010,7 @@ generate_node_type_assignments(const struct fbp_data *data)
 static const char *
 get_type_data_by_name(const char *type)
 {
-    if (streq(type, "int"))
+    if (streq(type, "irange"))
         return "struct sol_irange";
     if (streq(type, "drange"))
         return "struct sol_drange";

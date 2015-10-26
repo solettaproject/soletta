@@ -36,7 +36,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 1,
             "description": "Seed value. Sequences are repeatable by using the same seed.",
             "name": "seed"
@@ -83,7 +83,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 1,
             "description": "Seed value. Sequences are repeatable by using the same seed.",
             "name": "seed"
@@ -130,7 +130,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 1,
             "description": "Seed value. Sequences are repeatable by using the same seed.",
             "name": "seed"
@@ -177,7 +177,7 @@
       "options": {
         "members": [
           {
-            "data_type": "int",
+            "data_type": "irange",
             "default": 1,
             "description": "Seed value. Sequences are repeatable by using the same seed.",
             "name": "seed"
