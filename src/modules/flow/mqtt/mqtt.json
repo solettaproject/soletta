@@ -1,0 +1,204 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "mqtt",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "iot/cloud",
+      "description": "MQTT client for publishing messages and subscribing to topics",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Publish a message with {data} to {topic} when an empty packet is received",
+          "methods": {
+            "process": "publish_process"
+          },
+          "name": "PUBLISH"
+        },
+        {
+          "data_type": "any",
+          "description": "Subscribe to {topic} when an empty packet is received",
+          "methods": {
+            "process": "subscribe_process"
+          },
+          "name": "SUBSCRIBE"
+        },
+        {
+          "data_type": "string",
+          "description": "Configure the address of the MQTT Broker",
+          "methods": {
+            "process": "host_process"
+          },
+          "name": "HOST"
+        },
+        {
+          "data_type": "int",
+          "description": "Configure the port of the MQTT Broker",
+          "methods": {
+            "process": "port_process"
+          },
+          "name": "PORT"
+        },
+        {
+          "data_type": "string",
+          "description": "Username for authenticating the connection",
+          "methods": {
+            "process": "user_process"
+          },
+          "name": "USER"
+        },
+        {
+          "data_type": "string",
+          "description": "Password for authenticating the connection",
+          "methods": {
+            "process": "pass_process"
+          },
+          "name": "PASS"
+        },
+        {
+          "data_type": "string",
+          "description": "MQTT client ID. Must be valid if {clean_session} is not set",
+          "methods": {
+            "process": "id_process"
+          },
+          "name": "ID"
+        },
+        {
+          "data_type": "int",
+          "description": "Time in milliseconds between PING messages from the Broker to the client",
+          "methods": {
+            "process": "keepalive_process"
+          },
+          "name": "KEEPALIVE"
+        },
+        {
+          "data_type": "boolean",
+          "description": "If set, start a new session in the broker. Restore previous session otherwise. Must be set if {client_id} isn't provided",
+          "methods": {
+            "process": "clean_process"
+          },
+          "name": "CLEAN"
+        },
+        {
+          "data_type": "int",
+          "description": "QoS for the MQTT messages sent. 0: AT_MOST_ONCE, 1: AT_LEST_ONCE, 2: EXACTLY_ONCE",
+          "methods": {
+            "process": "qos_process"
+          },
+          "name": "QOS"
+        },
+        {
+          "data_type": "string",
+          "description": "Configure the Topic to send messages to / subscribe to",
+          "methods": {
+            "process": "topic_process"
+          },
+          "name": "TOPIC"
+        },
+        {
+          "data_type": "blob",
+          "description": "Data to be sent",
+          "methods": {
+            "process": "data_process"
+          },
+          "name": "DATA"
+        }
+      ],
+      "methods": {
+        "open": "mqtt_client_open",
+        "close": "mqtt_client_close"
+      },
+      "name": "mqtt/client",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Configure the address of the MQTT Broker",
+            "name": "host"
+          },
+          {
+            "data_type": "int",
+            "default": 1883,
+            "description": "Configure the port of the MQTT Broker",
+            "name": "port"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Username for authenticating the connection",
+            "name": "username"
+          },
+          {
+            "data_type": "string",
+            "default" : null,
+            "description": "Password for authenticating the connection",
+            "name": "password"
+          },
+          {
+            "data_type": "string",
+            "default" : null,
+            "description": "MQTT client ID. Must be valid if {clean_session} is not set",
+            "name": "client_id"
+          },
+          {
+            "data_type": "int",
+            "default": 60000,
+            "description": "Time in milliseconds between PING messages from the Broker to the client",
+            "name": "keepalive"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "If set, start a new session in the broker. Restore previous session otherwise. Must be set if {client_id} isn't provided",
+            "name": "clean_session"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "QoS for the MQTT messages sent. 0: AT_MOST_ONCE, 1: AT_LEST_ONCE, 2: EXACTLY_ONCE",
+            "name": "qos"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "CA Certificate for TLS connection",
+            "name": "ca_cert"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Client Certificate for TLS connection",
+            "name": "client_cert"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Private key for TLS connection",
+            "name": "private_key"
+          },
+          {
+            "data_type": "string",
+            "description": "Configure the Topic to send messages to / subscribe to",
+            "name": "topic"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "Send data received from subscribed topic",
+          "name": "OUTDATA"
+        }
+      ],
+      "private_data_type": "client_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/mqtt/client.html"
+    }
+  ]
+}
+
