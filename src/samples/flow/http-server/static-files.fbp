@@ -31,4 +31,4 @@
 
 # Reads key 'a' (code 97) from keyboard (stdin) to enable/disable.
 
-keyboard(keyboard/boolean:binary_code=97,toggle=true) OUT -> ENABLED static(http-server/static:path="/tmp/www/",start=false)
+keyboard(keyboard/boolean:binary_code=97,toggle=true) OUT -> ENABLED static(http-server/static:path="/tmp/www/",namespace="/static",start=false)
