@@ -385,6 +385,9 @@ sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, 
 {
     int r;
 
+    _argc = argc;
+    _argv = argv;
+
     if (unlikely(!callbacks || !callbacks->startup)) {
         SOL_CRI("Missing startup function.");
         return EXIT_FAILURE;
@@ -395,8 +398,6 @@ sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, 
         return EXIT_FAILURE;
     }
 
-    _argc = argc;
-    _argv = argv;
     sol_idle_add(idle_startup, (void *)callbacks);
 
     r = sol_run();
