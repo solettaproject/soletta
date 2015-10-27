@@ -2147,17 +2147,11 @@ static bool
 json_validate(struct sol_blob *blob, enum sol_json_type type)
 {
     struct sol_json_scanner scanner;
-    char *p;
-    size_t size;
+    struct sol_str_slice trimmed_str;
 
-    p = (char *)blob->mem + blob->size - 1;
-    while (isspace(*p) && p >= (char *)blob->mem)
-        p--;
-    size = p - (char *)blob->mem + 1;
-    if (size == 0)
-        return false;
+    trimmed_str = sol_str_slice_trim(sol_str_slice_from_blob(blob));
 
-    sol_json_scanner_init(&scanner, blob->mem, size);
+    sol_json_scanner_init(&scanner, trimmed_str.data, trimmed_str.len);
     return sol_json_is_valid_type(&scanner, type);
 }
 
