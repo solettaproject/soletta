@@ -616,7 +616,8 @@ parse_default_value(struct option_description *o)
         return parse_range_default_value(&value_scanner, o);
     }
 
-    if (streq(o->data_type, "drange-spec")) {
+    if (streq(o->data_type, "drange-spec") ||
+        streq(o->data_type, "irange-spec")) {
         o->default_value_type = OPTION_VALUE_TYPE_SPEC_RANGE;
         return parse_spec_range_default_value(&value_scanner, o);
     }

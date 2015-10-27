@@ -255,7 +255,9 @@ data_type_to_c_map = {
     "drange": "struct sol_drange",
     "drange-spec": "struct sol_drange_spec",
     "float": "double",
+    "int": "int32_t",
     "irange": "struct sol_irange",
+    "irange-spec": "struct sol_irange_spec",
     "rgb": "struct sol_rgb",
     "direction-vector": "struct sol_direction_vector",
     "string": "const char *",
@@ -271,7 +273,9 @@ data_type_to_default_member_map = {
     "drange": "drange",
     "drange-spec": "drange_spec",
     "float": "f",
+    "int": "i",
     "irange": "irange",
+    "irange-spec": "irange_spec",
     "string": "s",
     "rgb": "rgb",
     "direction-vector": "direction_vector"
@@ -355,6 +359,10 @@ def expand_value(value, data_type):
         value.setdefault("step", 1)
         value.setdefault("min", "INT32_MIN")
         value.setdefault("max", "INT32_MAX")
+    elif data_type == "irange-spec":
+        value.setdefault("step", 1)
+        value.setdefault("min", "INT32_MIN")
+        value.setdefault("max", "INT32_MAX")
     elif data_type == "drange":
         if isinstance(value, (float, int)):
             value = {"val": float(value)}
@@ -380,7 +388,7 @@ def value_to_c(value, data_type):
         return str_to_c_or_null(value)
     elif data_type == "boolean":
         return bool_to_c(value)
-    elif data_type in ("rgb", "direction-vector", "irange",
+    elif data_type in ("rgb", "direction-vector", "irange", "irange-spec",
         "drange", "drange-spec"):
         return json_to_c_struct(value)
     else:

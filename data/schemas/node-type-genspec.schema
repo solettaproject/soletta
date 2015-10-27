@@ -65,7 +65,9 @@
         "drange",
         "drange-spec",
         "float",
+        "int",
         "irange",
+        "irange-spec",
         "rgb",
         "string"
       ]
@@ -220,6 +222,32 @@
       }
     },
 
+    "options_members_irange_spec": {
+      "properties": {
+        "data_type": { "enum": [ "irange-spec" ] },
+        "default": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "min": { "$ref": "#/definitions/int_or_limit" },
+                "max": { "$ref": "#/definitions/int_or_limit" },
+                "step": { "$ref": "#/definitions/int_or_limit" }
+              },
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+
+    "options_members_int": {
+      "properties": {
+        "data_type": { "enum": [ "int" ] },
+        "default": { "$ref": "#/definitions/int_or_limit" }
+      }
+    },
+
     "options_members_drange": {
       "properties": {
         "data_type": { "enum": [ "drange" ] },
@@ -350,7 +378,9 @@
             { "$ref": "#/definitions/options_members_drange" },
             { "$ref": "#/definitions/options_members_drange_spec" },
             { "$ref": "#/definitions/options_members_float" },
+            { "$ref": "#/definitions/options_members_int" },
             { "$ref": "#/definitions/options_members_irange" },
+            { "$ref": "#/definitions/options_members_irange_spec" },
             { "$ref": "#/definitions/options_members_rgb" },
             { "$ref": "#/definitions/options_members_string" }
           ]

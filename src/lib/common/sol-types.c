@@ -377,6 +377,20 @@ sol_irange_subtraction(const struct sol_irange *var0, const struct sol_irange *v
     return 0;
 }
 
+SOL_API int
+sol_irange_compose(const struct sol_irange_spec *spec, int32_t value, struct sol_irange *result)
+{
+    SOL_NULL_CHECK(spec, -EINVAL);
+    SOL_NULL_CHECK(result, -EINVAL);
+
+    result->min = spec->min;
+    result->max = spec->max;
+    result->step = spec->step;
+    result->val = value;
+
+    return 0;
+}
+
 /********** SOL_RGB **********/
 
 SOL_API int

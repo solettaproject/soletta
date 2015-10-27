@@ -488,10 +488,6 @@ err:
     return -EINVAL;
 }
 
-#undef STRTOL_DECIMAL
-#undef ASSIGN_LINEAR_VALUES
-#undef ASSIGN_KEY_VAL
-
 static int
 boolean_parse(const char *value, struct sol_flow_node_named_options_member *m)
 {
@@ -560,6 +556,87 @@ float_parse(const char *value, struct sol_flow_node_named_options_member *m)
     return 0;
 }
 
+static void
+irange_spec_init(struct sol_irange_spec *ret)
+{
+    ret->min = INT32_MIN;
+    ret->max = INT32_MAX;
+    ret->step = 1;
+}
+
+static int
+irange_spec_parse(const char *value, struct sol_flow_node_named_options_member *m)
+{
+    char *buf;
+    int field_cnt = 0;
+    bool keys_schema = false;
+    char *min, *max, *step;
+    struct sol_irange_spec *ret = &m->irange_spec;
+    int32_t *store_vals[] = { &ret->min, &ret->max, &ret->step };
+
+    buf = strdup(value);
+
+    ASSIGN_KEY_VAL(int32_t, min, STRTOL_DECIMAL, false,
+        INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
+        INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
+    ASSIGN_KEY_VAL(int32_t, max, STRTOL_DECIMAL, false,
+        INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
+        INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
+    ASSIGN_KEY_VAL(int32_t, step, STRTOL_DECIMAL, false,
+        INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
+        INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
+
+    ASSIGN_LINEAR_VALUES(STRTOL_DECIMAL,
+        INT32_MAX, INT_MAX_STR, INT_LIMIT_STR_LEN,
+        INT32_MIN, INT_MIN_STR, INT_LIMIT_STR_LEN);
+
+
+    SOL_DBG("irange spec opt ends up as min=%" PRId32 ", max=%" PRId32
+        ", step=%" PRId32 "\n", ret->min, ret->max, ret->step);
+
+    free(buf);
+    return 0;
+
+err:
+    SOL_DBG("Invalid irange value for option name=\"%s\": \"%s\"."
+        " Please use the formats"
+        " \"<min_value>|<max_value>|<step_value>\","
+        " in that order, or \"<key>:<value>|<...>\", for keys in "
+        "[min, max, step], in any order. Values may be the "
+        "special strings INT32_MIN and INT32_MAX.",
+        m->name, value);
+    free(buf);
+    return -EINVAL;
+}
+
+static int
+int_parse(const char *value, struct sol_flow_node_named_options_member *m)
+{
+    char *endptr;
+    int32_t v;
+
+    if (!strcmp(INT_MAX_STR, value)) {
+        m->i = INT32_MAX;
+        return 0;
+    }
+
+    if (!strcmp(INT_MIN_STR, value)) {
+        m->i = INT32_MIN;
+        return 0;
+    }
+
+    errno = 0;
+    v = strtoll(value, &endptr, 0);
+
+    if (value == endptr)
+        return -EINVAL;
+    if (errno != 0)
+        return -errno;
+
+    m->i = v;
+    return 0;
+}
+
 static int(*const options_parse_functions[]) (const char *, struct sol_flow_node_named_options_member *) = {
     [SOL_FLOW_NODE_OPTIONS_MEMBER_UNKNOWN] = NULL,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN] = boolean_parse,
@@ -568,7 +645,9 @@ static int(*const options_parse_functions[]) (const char *, struct sol_flow_node
     [SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE] = drange_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC] = drange_spec_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT] = float_parse,
+    [SOL_FLOW_NODE_OPTIONS_MEMBER_INT] = int_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE] = irange_parse,
+    [SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC] = irange_spec_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_RGB] = rgb_parse,
     [SOL_FLOW_NODE_OPTIONS_MEMBER_STRING] = string_parse,
 };
@@ -593,6 +672,9 @@ set_default_option(struct sol_flow_node_named_options_member *m,
     case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
         m->irange = mdesc->defvalue.irange;
         break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC:
+        m->irange_spec = mdesc->defvalue.irange_spec;
+        break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
         m->rgb = mdesc->defvalue.rgb;
         break;
@@ -616,6 +698,9 @@ init_member_suboptions(struct sol_flow_node_named_options_member *m)
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
         irange_init(&m->irange);
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC:
+        irange_spec_init(&m->irange_spec);
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
         rgb_init(&m->rgb);
@@ -691,8 +776,14 @@ set_member(
     case SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT:
         *(double *)mem = m->f;
         break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_INT:
+        *(int32_t *)mem = m->i;
+        break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE:
         *(struct sol_irange *)mem = m->irange;
+        break;
+    case SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC:
+        *(struct sol_irange_spec *)mem = m->irange_spec;
         break;
     case SOL_FLOW_NODE_OPTIONS_MEMBER_RGB:
         *(struct sol_rgb *)mem = m->rgb;
@@ -718,7 +809,9 @@ static const struct sol_str_table member_str_to_type[] = {
     SOL_STR_TABLE_ITEM("drange", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE),
     SOL_STR_TABLE_ITEM("drange-spec", SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC),
     SOL_STR_TABLE_ITEM("float", SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT),
+    SOL_STR_TABLE_ITEM("int", SOL_FLOW_NODE_OPTIONS_MEMBER_INT),
     SOL_STR_TABLE_ITEM("irange", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE),
+    SOL_STR_TABLE_ITEM("irange-spec", SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC),
     SOL_STR_TABLE_ITEM("rgb", SOL_FLOW_NODE_OPTIONS_MEMBER_RGB),
     SOL_STR_TABLE_ITEM("string", SOL_FLOW_NODE_OPTIONS_MEMBER_STRING),
     {}
@@ -1054,3 +1147,8 @@ sol_flow_node_named_options_fini(struct sol_flow_node_named_options *named_opts)
     named_opts->members = NULL;
     named_opts->count = 0;
 }
+
+#undef STRTOL_DECIMAL
+#undef ASSIGN_LINEAR_VALUES
+#undef ASSIGN_KEY_VAL
+
