@@ -784,16 +784,17 @@ set_post_data_from_params(CURL *curl, struct sol_arena *arena,
     bool type_set = false;
 
     SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
-        const char *key = iter->value.key_value.key;
-        const struct sol_str_slice value = iter->value.data.value;
+        struct sol_str_slice value = SOL_STR_SLICE_EMPTY;
 
         if (iter->type == SOL_HTTP_PARAM_POST_FIELD) {
             SOL_WRN("SOL_HTTP_PARAM_POST_FIELD and SOL_HTTP_PARAM_POST_DATA found in parameters."
                 " Only one can be used at a time");
             return false;
         } else if (iter->type == SOL_HTTP_PARAM_HEADER) {
+            const char *key = iter->value.key_value.key;
             type_set = type_set || !strcasecmp(key, "content-type");
         } else if (iter->type == SOL_HTTP_PARAM_POST_DATA) {
+            value = iter->value.data.value;
             if (data.len != 0) {
                 SOL_WRN("More than one SOL_HTTP_PARAM_POST_DATA found.");
                 return false;
