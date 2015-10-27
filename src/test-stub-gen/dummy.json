@@ -221,6 +221,12 @@
          "name": "opt_direction_vector"
         },
         {
+         "data_type": "int",
+         "default": 666,
+         "description": "Dummy int option.",
+         "name": "opt_int"
+        },
+        {
          "data_type": "irange",
          "default": {
              "val": 20,
@@ -228,8 +234,18 @@
              "max": 33,
              "step": 1
          },
-         "description": "Dummy int option.",
-         "name": "opt_int"
+         "description": "Dummy irange option.",
+         "name": "opt_irange"
+        },
+        {
+         "data_type": "irange-spec",
+         "default": {
+             "min": -10,
+             "max": 33,
+             "step": 1
+         },
+         "description": "Dummy irange spec option.",
+         "name": "opt_irange_spec"
         },
         {
          "data_type": "rgb",

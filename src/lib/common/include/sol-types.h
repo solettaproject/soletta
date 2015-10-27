@@ -203,6 +203,12 @@ struct sol_irange {
     int32_t step;
 };
 
+struct sol_irange_spec {
+    int32_t min;
+    int32_t max;
+    int32_t step;
+};
+
 #define SOL_IRANGE_INIT() \
     { \
         .min = INT32_MIN, \
@@ -230,6 +236,8 @@ int sol_irange_multiplication(const struct sol_irange *var0, const struct sol_ir
 int sol_irange_subtraction(const struct sol_irange *var0, const struct sol_irange *var1, struct sol_irange *result);
 
 bool sol_irange_equal(const struct sol_irange *var0, const struct sol_irange *var1);
+
+int sol_irange_compose(const struct sol_irange_spec *spec, int32_t value, struct sol_irange *result);
 
 struct sol_blob_type;
 struct sol_blob {
