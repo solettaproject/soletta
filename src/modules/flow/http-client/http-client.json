@@ -436,6 +436,85 @@
       ]
     },
     {
+      "name": "http-client/get-json",
+      "private_data_type": "http_data",
+      "category": "http-generic",
+      "description": "Make a GET http request at a given URL and outputs its content as json",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/get-json.html",
+      "methods": {
+        "close": "common_close",
+        "open": "generic_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_client_node_type",
+        "extra_methods": {
+          "process_data": "get_json_process"
+        }
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The URL to make a GET request",
+            "name": "url"
+          },
+          {
+            "data_type": "boolean",
+            "description": "If the machine_id should be set on every request made",
+            "name": "machine_id",
+            "default": false
+          },
+          {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
+            "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The desired content type of the request",
+            "name": "content_type"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The url to make a GET request",
+          "name": "URL",
+          "methods": {
+            "process": "generic_url_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Execute the GET request",
+          "name": "GET",
+          "methods": {
+            "process": "generic_get_process"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "json-object",
+          "description": "The response as json-object",
+          "name": "JSON_OBJECT"
+        },
+        {
+          "data_type": "json-array",
+          "description": "The response as json-array",
+          "name": "JSON_ARRAY"
+        }
+      ]
+    },
+    {
       "name": "http-client/request",
       "private_data_type": "http_request_data",
       "category": "http-generic",
