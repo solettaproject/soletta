@@ -1108,16 +1108,12 @@ param_process(const struct sol_flow_packet *packet, struct sol_vector *vector,
     const char *key, *value;
     uint16_t len;
     struct sol_http_param_value *param;
-    struct sol_flow_packet *children[2];
+    struct sol_flow_packet **children;
     int r;
 
-    r = sol_flow_packet_get_composed_members_len(
-        sol_flow_packet_get_type(packet), &len);
+    r = sol_flow_packet_get_composed_members(packet, &children, &len);
     SOL_INT_CHECK(r, < 0, r);
     SOL_INT_CHECK(len, != 2, -EINVAL);
-
-    r = sol_flow_packet_get(packet, children);
-    SOL_INT_CHECK(r, < 0, r);
 
     r = sol_flow_packet_get_string(children[0], &key);
     SOL_INT_CHECK(r, < 0, r);
