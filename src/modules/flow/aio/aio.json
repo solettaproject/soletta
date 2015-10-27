@@ -18,23 +18,23 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Device number on platform.",
             "name": "device"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Pin",
             "name": "pin"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 12,
             "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
             "name": "mask"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 1000,
             "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
             "name": "poll_timeout"

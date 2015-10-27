@@ -194,13 +194,13 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "IRange value of output when input is false.",
             "name": "false_value"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 1,
             "description": "IRange value of output when input is true.",
             "name": "true_value"
@@ -759,19 +759,19 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 255,
             "description": "Max value of red component. Minimum is set to zero.",
             "name": "red_max"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 255,
             "description": "Max value of green component. Minimum is set to zero.",
             "name": "green_max"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 255,
             "description": "Max value of blue component. Minimum is set to zero.",
             "name": "blue_max"
@@ -1114,13 +1114,18 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "default": {
               "max": 1,
               "min": 1,
-              "step": 1,
-              "val": 1
+              "step": 1
             },
+            "description": "Int range and step of output when an empty packet is received.",
+            "name": "output_value_spec"
+          },
+          {
+            "data_type": "int",
+            "default": 1,
             "description": "Int value of output when an empty packet is received.",
             "name": "output_value"
           }
@@ -1212,7 +1217,7 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "default": {
               "max": 255,
               "min": 1
@@ -1230,7 +1235,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "sol_irange",
+      "private_data_type": "sol_irange_spec",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-to-boolean.html"
     },
     {
@@ -1343,7 +1348,7 @@
           "data_type": "int",
           "description": "Int range that generates a pulse.",
           "methods": {
-            "process": "empty_irange_value_set"
+            "process": "irange_empty_value_set"
           },
           "name": "RANGE"
         }
@@ -1355,7 +1360,7 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "default": {
               "max": 255,
               "min": 1
@@ -1373,7 +1378,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "sol_irange",
+      "private_data_type": "sol_irange_spec",
       "url": "http://solettaproject.org/doc/latest/node_types/converter/irange-to-empty.html"
     },
     {
@@ -1412,19 +1417,19 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 255,
             "description": "Max value of red component. Minimum is set to zero.",
             "name": "red_max"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 255,
             "description": "Max value of green component. Minimum is set to zero.",
             "name": "green_max"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 255,
             "description": "Max value of blue component. Minimum is set to zero.",
             "name": "blue_max"
@@ -1462,19 +1467,19 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 255,
             "description": "Max value of red component. Minimum is set to zero.",
             "name": "red_max"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 255,
             "description": "Max value of green component. Minimum is set to zero.",
             "name": "green_max"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 255,
             "description": "Max value of blue component. Minimum is set to zero.",
             "name": "blue_max"

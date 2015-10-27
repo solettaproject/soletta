@@ -451,7 +451,7 @@ file_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
         mdata->path = strdup(opts->path);
         SOL_NULL_CHECK(mdata->path, -ENOMEM);
     }
-    mdata->permissions = opts->permissions.val;
+    mdata->permissions = opts->permissions;
 
     return 0;
 }

@@ -86,7 +86,7 @@ humidity_am2315_open(struct sol_flow_node *node, void *data, const struct sol_fl
         -EINVAL);
     opts = (const struct sol_flow_node_type_am2315_humidity_options *)options;
 
-    mdata->device = am2315_open(opts->i2c_bus.val, opts->i2c_slave.val);
+    mdata->device = am2315_open(opts->i2c_bus, opts->i2c_slave);
     if (!mdata->device) {
         return -EINVAL;
     }
@@ -159,7 +159,7 @@ temperature_am2315_open(struct sol_flow_node *node, void *data, const struct sol
         -EINVAL);
     opts = (const struct sol_flow_node_type_am2315_temperature_options *)options;
 
-    mdata->device = am2315_open(opts->i2c_bus.val, opts->i2c_slave.val);
+    mdata->device = am2315_open(opts->i2c_bus, opts->i2c_slave);
     if (!mdata->device) {
         return -EINVAL;
     }

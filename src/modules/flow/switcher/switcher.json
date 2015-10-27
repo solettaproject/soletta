@@ -44,24 +44,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },
@@ -121,24 +111,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },
@@ -198,24 +178,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },
@@ -275,24 +245,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },
@@ -369,24 +329,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },
@@ -446,24 +396,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },
@@ -523,24 +463,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },
@@ -600,24 +530,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },
@@ -677,24 +597,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },
@@ -754,24 +664,14 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial input port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "in_port"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "max": 255,
-              "min": 0,
-              "step": 1,
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "Initial output port index used to forward packets. Value must be greater or equal to 0 and less than 256.",
             "name": "out_port"
           },

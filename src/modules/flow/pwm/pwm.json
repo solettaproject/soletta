@@ -38,12 +38,12 @@
  "options": {
   "members": [
    {
-    "data_type": "irange",
+    "data_type": "int",
     "description": "PWM chip",
     "name": "chip"
    },
    {
-    "data_type": "irange",
+    "data_type": "int",
     "description": "PWM pin channel",
     "name": "pin"
    },
@@ -60,13 +60,13 @@
     "name": "inversed_polarity"
    },
    {
-    "data_type": "irange",
+    "data_type": "int",
     "default": 0,
     "description": "Initial period",
     "name": "period"
    },
    {
-    "data_type": "irange",
+    "data_type": "int",
     "default": 0,
     "description": "Initial duty cycle",
     "name": "duty_cycle"

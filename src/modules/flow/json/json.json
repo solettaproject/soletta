@@ -354,7 +354,7 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": -1,
             "description": "The index of the element to be sent to OUT port. If negative, no value will be sent before setting index using INDEX port",
             "name": "index"

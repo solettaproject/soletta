@@ -33,7 +33,7 @@
            "name": "iio_device"
          },
          {
-           "data_type": "irange",
+           "data_type": "int",
            "description": "IIO buffer size. If -1, buffering is disabled. If 0, will use default buffer size. If enabled (> 0), a trigger is necessary to perform readings. Set it using 'iio_trigger_name'; if no trigger name is set, it will attempt to create a default one, which is activated via TICK port.",
            "default": 0,
            "name": "buffer_size"
@@ -69,7 +69,7 @@
              "name": "offset"
          },
          {
-             "data_type": "irange",
+             "data_type": "int",
              "default": -1,
              "description": "Sampling frequency of the sensor. If -1, use device default",
              "name": "sampling_frequency"

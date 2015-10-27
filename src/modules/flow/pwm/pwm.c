@@ -100,26 +100,26 @@ pwm_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_PWM_OPTIONS_API_VERSION, -EINVAL);
 
     // Use values from options. Period = 0 considered invalid.
-    if (opts->period.val <= 0) {
-        SOL_WRN("Invalid value for period - pwm #%" PRId32 ":%" PRId32, opts->chip.val, opts->pin.val);
+    if (opts->period <= 0) {
+        SOL_WRN("Invalid value for period - pwm #%" PRId32 ":%" PRId32, opts->chip, opts->pin);
         return -EINVAL;
     }
 
-    if (opts->duty_cycle.val < 0) {
-        SOL_WRN("Invalid value for duty_cycle - pwm #%" PRId32 ":%" PRId32, opts->chip.val, opts->pin.val);
+    if (opts->duty_cycle < 0) {
+        SOL_WRN("Invalid value for duty_cycle - pwm #%" PRId32 ":%" PRId32, opts->chip, opts->pin);
         return -EINVAL;
     }
 
     pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION;
-    pwm_config.period_ns = opts->period.val;
-    pwm_config.duty_cycle_ns = opts->duty_cycle.val;
+    pwm_config.period_ns = opts->period;
+    pwm_config.duty_cycle_ns = opts->duty_cycle;
     if (opts->inversed_polarity)
         pwm_config.polarity = SOL_PWM_POLARITY_INVERSED;
     pwm_config.enabled = opts->enabled;
 
-    mdata->pwm = sol_pwm_open(opts->chip.val, opts->pin.val, &pwm_config);
+    mdata->pwm = sol_pwm_open(opts->chip, opts->pin, &pwm_config);
     if (!mdata->pwm) {
-        SOL_WRN("could not open pwm #%" PRId32 ":%" PRId32, opts->chip.val, opts->pin.val);
+        SOL_WRN("could not open pwm #%" PRId32 ":%" PRId32, opts->chip, opts->pin);
         return -ENXIO;
     }
 

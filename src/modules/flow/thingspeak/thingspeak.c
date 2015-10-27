@@ -206,12 +206,12 @@ thingspeak_execute_open(struct sol_flow_node *node, void *data, const struct sol
         opts->endpoint, "commands/execute"))
         return -ENOMEM;
 
-    if (opts->interval.val < 1000) {
+    if (opts->interval < 1000) {
         SOL_WRN("Throttling polling interval from %dms to 1000ms to not flood Thingspeak",
-            opts->interval.val);
+            opts->interval);
         interval = 1000;
     } else {
-        interval = opts->interval.val;
+        interval = opts->interval;
     }
 
     mdata->timeout = sol_timeout_add(interval, thingspeak_execute_poll, mdata);
@@ -350,7 +350,7 @@ thingspeak_add_open(struct sol_flow_node *node, void *data, const struct sol_flo
         return -EINVAL;
 
     mdata->node = node;
-    mdata->position = opts->position.val;
+    mdata->position = opts->position;
     sol_ptr_vector_init(&mdata->pending_conns);
 
     return 0;

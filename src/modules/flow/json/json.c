@@ -605,7 +605,7 @@ json_array_get_index_open(struct sol_flow_node *node, void *data, const struct s
     opts = (const struct sol_flow_node_type_json_array_get_at_index_options *)
         options;
 
-    mdata->index = opts->index.val;
+    mdata->index = opts->index;
 
     return 0;
 }

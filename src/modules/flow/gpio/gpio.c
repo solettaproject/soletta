@@ -88,11 +88,11 @@ gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     gpio_conf.in.trigger_mode = mode_lut[opts->edge_rising + 2 * opts->edge_falling];
     gpio_conf.in.cb = gpio_reader_event;
     gpio_conf.in.user_data = node;
-    gpio_conf.in.poll_timeout = opts->poll_timeout.val;
+    gpio_conf.in.poll_timeout = opts->poll_timeout;
 
     if (gpio_conf.in.trigger_mode == SOL_GPIO_EDGE_NONE) {
         SOL_WRN("gpio reader #%" PRId32 ": either edge_rising or edge_falling need to be"
-            " set for the node to generate events.", opts->pin.val);
+            " set for the node to generate events.", opts->pin);
         return -EINVAL;
     }
 
@@ -101,9 +101,9 @@ gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     else if (streq(opts->pull, "down"))
         gpio_conf.drive_mode = SOL_GPIO_DRIVE_PULL_DOWN;
 
-    mdata->gpio = sol_gpio_open(opts->pin.val, &gpio_conf);
+    mdata->gpio = sol_gpio_open(opts->pin, &gpio_conf);
     if (!mdata->gpio) {
-        SOL_WRN("could not open gpio #%" PRId32, opts->pin.val);
+        SOL_WRN("could not open gpio #%" PRId32, opts->pin);
         return -EIO;
     }
     return 0;
@@ -138,9 +138,9 @@ gpio_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     gpio_conf.dir = SOL_GPIO_DIR_OUT;
     gpio_conf.active_low = opts->active_low;
 
-    mdata->gpio = sol_gpio_open(opts->pin.val, &gpio_conf);
+    mdata->gpio = sol_gpio_open(opts->pin, &gpio_conf);
     if (!mdata->gpio) {
-        SOL_WRN("could not open gpio #%" PRId32, opts->pin.val);
+        SOL_WRN("could not open gpio #%" PRId32, opts->pin);
         return -EIO;
     }
     return 0;

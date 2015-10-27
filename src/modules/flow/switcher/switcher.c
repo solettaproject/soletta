@@ -73,8 +73,8 @@ switcher_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 
     opts = (const struct sol_flow_node_type_switcher_boolean_options *)options;
 
-    set_port_index(&mdata->out_port_index, opts->out_port.val);
-    set_port_index(&mdata->in_port_index, opts->in_port.val);
+    set_port_index(&mdata->out_port_index, opts->out_port);
+    set_port_index(&mdata->in_port_index, opts->in_port);
 
     if (opts->keep_state) {
         r = sol_ptr_vector_init_n(&mdata->last, PORT_MAX);

@@ -360,14 +360,14 @@ string_regexp_search_open(struct sol_flow_node *node,
         -EINVAL);
     opts = (const struct sol_flow_node_type_string_regexp_search_options *)options;
 
-    if (opts->index.val < 0) {
+    if (opts->index < 0) {
         SOL_WRN("Index (%" PRId32 ") must be a non-negative value",
-            opts->index.val);
+            opts->index);
         return -EINVAL;
     }
-    if (opts->max_regexp_search.val < 0) {
+    if (opts->max_regexp_search < 0) {
         SOL_WRN("Max regexp matches (%" PRId32 ") must be"
-            " a non-negative value", opts->max_regexp_search.val);
+            " a non-negative value", opts->max_regexp_search);
         return -EINVAL;
     }
     if (!opts->regexp || !strlen(opts->regexp)) {
@@ -376,9 +376,9 @@ string_regexp_search_open(struct sol_flow_node *node,
     }
 
     mdata->node = node;
-    mdata->index = opts->index.val;
-    mdata->max_regexp_search = opts->max_regexp_search.val > 0 ?
-        (size_t)opts->max_regexp_search.val : SIZE_MAX;
+    mdata->index = opts->index;
+    mdata->max_regexp_search = opts->max_regexp_search > 0 ?
+        (size_t)opts->max_regexp_search : SIZE_MAX;
     mdata->regexp = strdup(opts->regexp);
 
     sol_vector_init(&mdata->substrings, sizeof(struct sol_str_slice));
@@ -545,13 +545,13 @@ string_regexp_replace_open(struct sol_flow_node *node,
     mdata->node = node;
     mdata->forward_on_no_match = opts->forward_on_no_match;
 
-    if (opts->max_regexp_replace.val < 0) {
+    if (opts->max_regexp_replace < 0) {
         SOL_WRN("Max regexp matches (%" PRId32 ") must be"
-            " a non-negative value", opts->max_regexp_replace.val);
+            " a non-negative value", opts->max_regexp_replace);
         return -EINVAL;
     }
-    mdata->max_regexp_replace = opts->max_regexp_replace.val > 0 ?
-        (size_t)opts->max_regexp_replace.val : SIZE_MAX;
+    mdata->max_regexp_replace = opts->max_regexp_replace > 0 ?
+        (size_t)opts->max_regexp_replace : SIZE_MAX;
 
     if (!opts->regexp || !strlen(opts->regexp)) {
         SOL_WRN("A non-empty regular expression string must be provided");

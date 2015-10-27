@@ -130,12 +130,12 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
     mdata->node = node;
 
-    mdata->buffer_enabled = opts->buffer_size.val > -1;
+    mdata->buffer_enabled = opts->buffer_size > -1;
 
     mdata->config.api_version = SOL_IIO_CONFIG_API_VERSION;
     mdata->config.trigger_name = opts->iio_trigger_name;
-    mdata->config.buffer_size = opts->buffer_size.val;
-    mdata->config.sampling_frequency = opts->sampling_frequency.val;
+    mdata->config.buffer_size = opts->buffer_size;
+    mdata->config.sampling_frequency = opts->sampling_frequency;
     if (mdata->buffer_enabled) {
         mdata->config.sol_iio_reader_cb = reader_cb;
         mdata->config.data = mdata;

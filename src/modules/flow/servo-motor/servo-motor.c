@@ -55,7 +55,9 @@ servo_motor_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 
     opts = (const struct sol_flow_node_type_servo_motor_controller_options *)options;
 
-    mdata->duty_cycle_range = opts->duty_cycle_range;
+    mdata->duty_cycle_range.min = opts->duty_cycle_range.min;
+    mdata->duty_cycle_range.max = opts->duty_cycle_range.max;
+    mdata->duty_cycle_range.step = opts->duty_cycle_range.step;
 
     if (mdata->duty_cycle_range.min > mdata->duty_cycle_range.max) {
         SOL_WRN("Max pulse width shouldn't be less than min. Swapping values.");
@@ -67,10 +69,10 @@ servo_motor_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
         mdata->duty_cycle_range.min;
 
     pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION;
-    pwm_config.period_ns = opts->period.val * 1000;
+    pwm_config.period_ns = opts->period * 1000;
     pwm_config.duty_cycle_ns = 0;
 
-    mdata->pwm = sol_pwm_open(opts->chip.val, opts->pin.val, &pwm_config);
+    mdata->pwm = sol_pwm_open(opts->chip, opts->pin, &pwm_config);
     SOL_NULL_CHECK(mdata->pwm, -ENOMEM);
 
     return 0;

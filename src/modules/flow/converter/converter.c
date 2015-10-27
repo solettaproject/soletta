@@ -119,10 +119,16 @@ irange_max_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint
 static int
 irange_true_range_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct sol_irange *mdata = data;
-    int r = sol_flow_packet_get_irange(packet, mdata);
+    struct sol_irange_spec *mdata = data;
+    struct sol_irange value;
+    int r;
 
+    r = sol_flow_packet_get_irange(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
+
+    mdata->min = value.min;
+    mdata->max = value.max;
+
     return 0;
 }
 
@@ -204,8 +210,8 @@ boolean_to_irange_open(struct sol_flow_node *node, void *data, const struct sol_
 
     opts = (const struct sol_flow_node_type_converter_boolean_to_int_options *)options;
 
-    mdata->min = opts->false_value.val;
-    mdata->max = opts->true_value.val;
+    mdata->min = opts->false_value;
+    mdata->max = opts->true_value;
 
     return 0;
 }
@@ -228,7 +234,7 @@ boolean_to_irange_convert(struct sol_flow_node *node, void *data, uint16_t port,
 static int
 irange_to_boolean_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_irange *mdata = data;
+    struct sol_irange_spec *mdata = data;
     const struct sol_flow_node_type_converter_int_to_boolean_options *opts;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
@@ -253,7 +259,7 @@ irange_to_boolean_open(struct sol_flow_node *node, void *data, const struct sol_
 static int
 irange_to_boolean_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct sol_irange *mdata = data;
+    struct sol_irange_spec *mdata = data;
     int32_t in_value;
     int r;
     bool out_value;
@@ -615,12 +621,15 @@ empty_to_irange_open(struct sol_flow_node *node, void *data, const struct sol_fl
     const struct sol_flow_node_type_converter_empty_to_int_options *opts =
         (const struct sol_flow_node_type_converter_empty_to_int_options *)
         options;
+    int r;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONVERTER_EMPTY_TO_INT_OPTIONS_API_VERSION,
         -EINVAL);
 
-    *mdata = opts->output_value;
+    r = sol_irange_compose(&opts->output_value_spec, opts->output_value, mdata);
+    SOL_INT_CHECK(r, < 0, r);
+
     return 0;
 }
 
@@ -660,7 +669,7 @@ drange_to_empty_open(struct sol_flow_node *node, void *data, const struct sol_fl
 static int
 irange_to_empty_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    struct sol_irange *mdata = data;
+    struct sol_irange_spec *mdata = data;
     const struct sol_flow_node_type_converter_int_to_empty_options *opts =
         (const struct sol_flow_node_type_converter_int_to_empty_options *)
         options;
@@ -798,7 +807,7 @@ drange_to_empty_convert(struct sol_flow_node *node, void *data, uint16_t port, u
 static int
 irange_to_empty_convert(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct sol_irange *mdata = data;
+    struct sol_irange_spec *mdata = data;
     int32_t in_value;
     int r;
 
@@ -1136,6 +1145,22 @@ empty_drange_value_set(struct sol_flow_node *node, void *data, uint16_t port, ui
 }
 
 static int
+irange_empty_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_irange_spec *mdata = data;
+    struct sol_irange value;
+    int r;
+
+    r = sol_flow_packet_get_irange(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->min = value.min;
+    mdata->max = value.max;
+
+    return 0;
+}
+
+static int
 empty_irange_value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct sol_irange *mdata = data;
@@ -1310,9 +1335,9 @@ irange_to_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow
 
     opts = (const struct sol_flow_node_type_converter_int_to_rgb_options *)options;
 
-    mdata->output_value.red_max = opts->red_max.val;
-    mdata->output_value.green_max = opts->green_max.val;
-    mdata->output_value.blue_max = opts->blue_max.val;
+    mdata->output_value.red_max = opts->red_max;
+    mdata->output_value.green_max = opts->green_max;
+    mdata->output_value.blue_max = opts->blue_max;
 
     return 0;
 }
@@ -1329,9 +1354,9 @@ drange_to_rgb_open(struct sol_flow_node *node, void *data, const struct sol_flow
 
     opts = (const struct sol_flow_node_type_converter_float_to_rgb_options *)options;
 
-    mdata->output_value.red_max = opts->red_max.val;
-    mdata->output_value.green_max = opts->green_max.val;
-    mdata->output_value.blue_max = opts->blue_max.val;
+    mdata->output_value.red_max = opts->red_max;
+    mdata->output_value.green_max = opts->green_max;
+    mdata->output_value.blue_max = opts->blue_max;
 
     return 0;
 }
@@ -1348,9 +1373,9 @@ direction_vector_to_rgb_open(struct sol_flow_node *node, void *data, const struc
 
     opts = (const struct sol_flow_node_type_converter_float_to_rgb_options *)options;
 
-    mdata->output_value.red_max = opts->red_max.val;
-    mdata->output_value.green_max = opts->green_max.val;
-    mdata->output_value.blue_max = opts->blue_max.val;
+    mdata->output_value.red_max = opts->red_max;
+    mdata->output_value.green_max = opts->green_max;
+    mdata->output_value.blue_max = opts->blue_max;
 
     return 0;
 }

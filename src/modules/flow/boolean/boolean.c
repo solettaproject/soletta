@@ -543,17 +543,17 @@ boolean_buffer_open(struct sol_flow_node *node, void *data,
         (options, SOL_FLOW_NODE_TYPE_BOOLEAN_BUFFER_OPTIONS_API_VERSION,
         -EINVAL);
 
-    mdata->n_samples = opts->samples.val;
-    if (opts->samples.val <= 0) {
+    mdata->n_samples = opts->samples;
+    if (opts->samples <= 0) {
         SOL_WRN("Invalid samples (%" PRId32 "). Must be positive. "
-            "Set to %" PRId32 ".", opts->samples.val, def_opts->samples.val);
-        mdata->n_samples = def_opts->samples.val;
+            "Set to %" PRId32 ".", opts->samples, def_opts->samples);
+        mdata->n_samples = def_opts->samples;
     }
 
-    mdata->timeout = opts->timeout.val;
-    if (opts->timeout.val < 0) {
+    mdata->timeout = opts->timeout;
+    if (opts->timeout < 0) {
         SOL_WRN("Invalid timeout (%" PRId32 "). Must be non negative. "
-            "Set to 0.", opts->timeout.val);
+            "Set to 0.", opts->timeout);
         mdata->timeout = 0;
     }
 

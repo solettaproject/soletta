@@ -99,7 +99,7 @@ test_result_open(
     const struct sol_flow_node_type_test_result_options *opts =
         (const struct sol_flow_node_type_test_result_options *)options;
 
-    d->timer = sol_timeout_add(opts->timeout.val, on_timeout, node);
+    d->timer = sol_timeout_add(opts->timeout, on_timeout, node);
     SOL_NULL_CHECK_GOTO(d->timer, error);
 
     node_count++;

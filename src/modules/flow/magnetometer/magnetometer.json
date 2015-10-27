@@ -28,12 +28,12 @@
       "options": {
        "members": [
          {
-           "data_type": "irange",
+           "data_type": "int",
            "description": "I2C bus number",
            "name": "i2c_bus"
          },
          {
-           "data_type": "irange",
+           "data_type": "int",
            "description": "I2C bus slave on which the magnetometer answers.",
            "name": "i2c_slave",
            "default": 25

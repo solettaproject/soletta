@@ -27,17 +27,17 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Thermistor constant",
             "name": "thermistor_constant"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Input range mask",
             "name": "input_range_mask"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Potential divider resistance",
             "name": "resistance"
           },
@@ -47,7 +47,7 @@
             "name": "reference_temperature"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Thermistor reference resistance",
             "name": "thermistor_resistance"
           }
@@ -78,37 +78,37 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "Device number",
             "name": "device"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 2,
             "description": "Pin",
             "name": "pin"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 12,
             "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
             "name": "mask"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 1000,
             "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
             "name": "poll_timeout"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 3975,
             "description": "Thermistor constant",
             "name": "thermistor_constant"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 10000,
             "description": "Potential divider resistance",
             "name": "resistance"
@@ -120,7 +120,7 @@
             "name": "reference_temperature"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 10000,
             "description": "Thermistor reference resistance",
             "name": "thermistor_resistance"
@@ -161,7 +161,7 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Input range mask",
             "name": "input_range_mask"
           }
@@ -192,25 +192,25 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "Device number",
             "name": "device"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 1,
             "description": "Pin",
             "name": "pin"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 12,
             "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
             "name": "mask"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 1000,
             "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
             "name": "poll_timeout"
@@ -251,12 +251,12 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Angular range",
             "name": "angular_range"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Input range mask",
             "name": "input_range_mask"
           }
@@ -292,31 +292,31 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "Device number",
             "name": "device"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "Pin",
             "name": "pin"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 12,
             "description": "Valid bits mask. This mask is used to filter the valid bits from the data received from hardware (which is manufacturer dependent), therefore should not be used as a way to change the output range because the mask is applied to the least significant bits.",
             "name": "mask"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 1000,
             "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
             "name": "poll_timeout"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 300,
             "description": "Angular range",
             "name": "angular_range"
@@ -371,7 +371,7 @@
       "options": {
        "members": [
         {
-         "data_type": "irange",
+         "data_type": "int",
          "description": "I2C bus to be used.",
          "name": "bus"
         },
@@ -511,23 +511,19 @@
       "options": {
        "members": [
         {
-          "data_type": "irange",
+          "data_type": "int",
           "description": "I2C bus to be used.",
           "name": "bus"
         },
         {
-          "data_type": "irange",
-          "default": {
-            "val": 0
-          },
+          "data_type": "int",
+          "default": 0,
           "description": "Initial column of the cursor.",
           "name": "init_col"
         },
         {
-          "data_type": "irange",
-          "default": {
-            "val": 0
-          },
+          "data_type": "int",
+          "default": 0,
           "description": "Initial row of the cursor.",
           "name": "init_row"
         },
