@@ -54,6 +54,14 @@
 
 #include "sol-platform-linux-micro-builtins-gen.h"
 
+#define SOL_DEBUG_ARG "sol-debug=1"
+#define SOL_DEBUG_COMM_ARG "sol-debug-comm="
+
+struct gdbserver {
+    pid_t pid;
+    char *comm;
+};
+
 static enum sol_platform_state platform_state = SOL_PLATFORM_STATE_INITIALIZING;
 static int reboot_cmd = RB_AUTOBOOT;
 static const char *reboot_exec;
@@ -514,16 +522,137 @@ end:
     reboot(reboot_cmd);
 }
 
+static bool
+sol_platform_linux_micro_should_debug(struct gdbserver *gdb)
+{
+    struct sol_file_reader *fr;
+    struct sol_str_slice file;
+    struct sol_vector tokens;
+    struct sol_str_slice *token;
+    uint16_t i;
+    bool res = false;
+
+    fr = sol_file_reader_open("/proc/cmdline");
+    if (!fr) {
+        SOL_ERR("Could not open /proc/cmdline");
+        return false;
+    }
+
+    file = sol_file_reader_get_all(fr);
+    // remove the \n in the end of the file (this is a single line file - always)
+    file.len--;
+    tokens = sol_util_str_split(file, " ", 0);
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
+        char arg[PATH_MAX] = { 0 };
+        int err;
+
+        err = snprintf(arg, sizeof(arg), "%.*s", SOL_STR_SLICE_PRINT(*token));
+        if (err < 0 || err >= (int)sizeof(arg)) {
+            SOL_ERR("Could not format arg");
+            continue;
+        }
+
+        if (streq(arg, SOL_DEBUG_ARG)) {
+            res = true;
+        } else if (strstartswith(arg, SOL_DEBUG_COMM_ARG)) {
+            gdb->comm = strdup(arg);
+            if (res) {
+                SOL_DBG("Got "SOL_DEBUG_ARG " flag and comm: %s", arg);
+                break;
+            }
+        }
+    }
+
+    // if no comm is provided set the default one
+    if (!gdb->comm) {
+        gdb->comm = strdup("/dev/tty0");
+        if (!gdb->comm) {
+            SOL_INF("Could not allocate gdbserver comm desc memory");
+            return false;
+        }
+        SOL_INF("No debug comm provided, using default one (/dev/tty0)");
+    }
+
+    sol_file_reader_close(fr);
+    return res;
+}
+
+static void
+on_fork(void *data)
+{
+    int err;
+    unsigned int i;
+    char pids[PATH_MAX];
+    struct gdbserver *gdb = data;
+
+    const char *paths[] = {
+        "/usr/bin/gdbserver",
+        "/bin/gdbserver",
+    };
+
+    err = snprintf(pids, sizeof(pids), "%d", gdb->pid);
+    if (err < 0 || err >= (int)sizeof(pids)) {
+        SOL_ERR("Could not format pid string to attach gdbserver");
+        sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+    }
+
+    if (setenv("SOL_LOAD_INITIAL_SERVICES", "1", 1) == -1) {
+        SOL_ERR("Could not set SOL_LOAD_INITIAL_SERVICES");
+        sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+    }
+
+    for (i = 0; i < ARRAY_SIZE(paths); i++) {
+        if (execl(paths[i], paths[i], "--attach", gdb->comm, pids, NULL) == -1) {
+            SOL_ERR("failed to exec gdbserver - %s", sol_util_strerrora(errno));
+            continue;
+        }
+    }
+
+    SOL_ERR("Failed to exec() gdbserver");
+    sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+}
+
+static void
+on_fork_exit(void *data, uint64_t pid, int status)
+{
+    SOL_ERR("gdbserver exited... %" PRIu64, pid);
+}
+
 int
 sol_platform_impl_init(void)
 {
     bool want_load_initial_services = false;
+    struct gdbserver gdb;
+    pid_t pid = getpid();
 
-    if (getpid() == 1 && getppid() == 0) {
+    if (pid == 1 && getppid() == 0) {
         int err = setup_pid1();
         SOL_INT_CHECK(err, < 0, err);
 
         want_load_initial_services = true;
+
+        gdb.pid = pid;
+        gdb.comm = NULL;
+
+        if (sol_platform_linux_micro_should_debug(&gdb)) {
+            struct sol_platform_linux_fork_run *fork;
+
+            fork = sol_platform_linux_fork_run(on_fork, on_fork_exit, &gdb);
+            if (!fork) {
+                SOL_ERR("Could not launch gdbserver - %s",
+                    sol_util_strerrora(errno));
+            } else {
+                while (true) {
+                    int status;
+                    pid_t child = wait(&status);
+
+                    SOL_DBG("child pid=%" PRIu64 " status=%d",
+                        (uint64_t)child, status);
+                }
+                free(gdb.comm);
+                gdb.comm = NULL;
+            }
+        }
     } else {
         const char *s = getenv("SOL_LOAD_INITIAL_SERVICES");
         if (s && streq(s, "1"))
