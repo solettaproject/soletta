@@ -28,13 +28,13 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 10000,
             "description": "PWM period",
             "name": "period"
           },
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "default": {
               "max": 10000,
               "min": 0
@@ -43,7 +43,7 @@
             "name": "range"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Hardware address of the PWN output",
             "name": "address"
           }
@@ -75,13 +75,13 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "Intervel between polling the SPI chip in the lure.",
             "name": "poll_interval"
           },
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "default": {
               "max": 1023,
               "min": 0
@@ -90,13 +90,13 @@
             "name": "range"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "SPI bus.",
             "name": "bus"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "SPI chip select.",
             "name": "chip_select"
@@ -243,22 +243,22 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "CLOCK GPIO pin",
             "name": "clock_pin"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "CLEAR GPIO pin",
             "name": "clear_pin"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "DATA GPIO pin",
             "name": "data_pin"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "LATCH GPIO pin",
             "name": "latch_pin"
           }
@@ -306,17 +306,17 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Red LED GPIO pin",
             "name": "red_pin"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Green LED GPIO pin",
             "name": "green_pin"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Blue LED GPIO pin",
             "name": "blue_pin"
           }

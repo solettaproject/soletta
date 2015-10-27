@@ -244,13 +244,13 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 4,
             "description": "Number of samples that the buffer should hold.",
             "name": "samples"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "Timeout time in milliseconds. Default is zero which means that timeout is disabled.",
             "name": "timeout"

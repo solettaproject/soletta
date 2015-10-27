@@ -140,8 +140,8 @@ rotary_converter_open(struct sol_flow_node *node, void *data, const struct sol_f
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER_OPTIONS_API_VERSION, -EINVAL);
 
-    mdata->angular_range = opts->angular_range.val;
-    mdata->input_range = 1 << opts->input_range_mask.val;
+    mdata->angular_range = opts->angular_range;
+    mdata->input_range = 1 << opts->input_range_mask;
 
     return 0;
 }
@@ -273,7 +273,7 @@ light_converter_open(struct sol_flow_node *node, void *data, const struct sol_fl
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER_OPTIONS_API_VERSION, -EINVAL);
 
-    mdata->input_range = 1 << opts->input_range_mask.val;
+    mdata->input_range = 1 << opts->input_range_mask;
 
     return 0;
 }
@@ -329,11 +329,11 @@ temperature_converter_open(struct sol_flow_node *node, void *data, const struct 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER_OPTIONS_API_VERSION, -EINVAL);
 
-    mdata->thermistor_constant = opts->thermistor_constant.val;
-    mdata->input_range = 1 << opts->input_range_mask.val;
-    mdata->resistance = opts->resistance.val;
+    mdata->thermistor_constant = opts->thermistor_constant;
+    mdata->input_range = 1 << opts->input_range_mask;
+    mdata->resistance = opts->resistance;
     mdata->reference_temperature = opts->reference_temperature;
-    mdata->thermistor_resistance = opts->thermistor_resistance.val;
+    mdata->thermistor_resistance = opts->thermistor_resistance;
 
     return 0;
 }
@@ -1509,7 +1509,7 @@ lcd_string_open(struct sol_flow_node *node,
     mdata->display_control = (LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON)
         & (~LCD_BLINK_ON | ~LCD_CURSOR_ON);
 
-    r = lcd_open(mdata, (uint8_t)opts->bus.val);
+    r = lcd_open(mdata, (uint8_t)opts->bus);
     SOL_INT_CHECK(r, < 0, r);
 
     return color_cmd_queue(mdata,
@@ -1551,13 +1551,13 @@ lcd_char_open(struct sol_flow_node *node,
     else
         mdata->display_control &= ~LCD_CURSOR_ON;
 
-    r = lcd_open(mdata, (uint8_t)opts->bus.val);
+    r = lcd_open(mdata, (uint8_t)opts->bus);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = command_cursor_position_queue_append(mdata, -1, opts->init_col.val);
+    r = command_cursor_position_queue_append(mdata, -1, opts->init_col);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = command_cursor_position_queue_append(mdata, opts->init_row.val, -1);
+    r = command_cursor_position_queue_append(mdata, opts->init_row, -1);
     SOL_INT_CHECK(r, < 0, r);
 
     r = char_entry_cmd_queue(mdata);

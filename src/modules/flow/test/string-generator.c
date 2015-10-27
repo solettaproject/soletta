@@ -76,10 +76,10 @@ string_generator_open(
     mdata->sequence = strdup(opts->sequence);
     SOL_NULL_CHECK_GOTO(mdata->sequence, no_memory);
 
-    if (opts->interval.val < 0)
+    if (opts->interval < 0)
         SOL_WRN("Option 'interval' < 0, setting it to 0.");
 
-    mdata->interval = opts->interval.val >= 0 ? opts->interval.val : 0;
+    mdata->interval = opts->interval >= 0 ? opts->interval : 0;
     mdata->next_index = 0;
 
     mdata->values = sol_util_str_split(sol_str_slice_from_str

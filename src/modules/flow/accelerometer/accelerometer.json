@@ -28,7 +28,7 @@
       "options": {
        "members": [
          {
-           "data_type": "irange",
+           "data_type": "int",
            "description": "I2C bus number",
            "name": "i2c_bus"
          }
@@ -66,18 +66,18 @@
       "options": {
        "members": [
          {
-           "data_type": "irange",
+           "data_type": "int",
            "description": "I2C bus number",
            "name": "i2c_bus"
          },
          {
-           "data_type": "irange",
+           "data_type": "int",
            "description": "I2C bus slave on which the accelerometer answers.",
            "name": "i2c_slave",
            "default": 25
          },
          {
-           "data_type": "irange",
+           "data_type": "int",
            "description": "Scale selection (in factor of g). Must be one of 2, 4, 8 or 16. The scales ranges from -value to +value",
            "name": "scale",
            "default": 8

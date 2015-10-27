@@ -82,8 +82,8 @@ led_strip_controler_open(struct sol_flow_node *node, void *data, const struct so
 
     opts = (const struct sol_flow_node_type_led_strip_lpd8806_options *)options;
 
-    SOL_INT_CHECK(opts->pixel_count.val, < 0, -EINVAL);
-    mdata->pixel_count = opts->pixel_count.val;
+    SOL_INT_CHECK(opts->pixel_count, < 0, -EINVAL);
+    mdata->pixel_count = opts->pixel_count;
 
     data_bytes = mdata->pixel_count * 3;
     SOL_INT_CHECK(data_bytes, > UINT16_MAX, -EINVAL);
@@ -100,11 +100,11 @@ led_strip_controler_open(struct sol_flow_node *node, void *data, const struct so
     memset(&mdata->pixels[data_bytes], 0, latch_bytes); // Clear latch bytes
 
     spi_config.api_version = SOL_SPI_CONFIG_API_VERSION;
-    spi_config.chip_select = opts->chip_select.val;
+    spi_config.chip_select = opts->chip_select;
     spi_config.mode = SOL_SPI_MODE_0;
     spi_config.frequency = 100 * 1000; //100KHz
     spi_config.bits_per_word = SOL_SPI_DATA_BITS_DEFAULT;
-    mdata->spi = sol_spi_open(opts->bus.val, &spi_config);
+    mdata->spi = sol_spi_open(opts->bus, &spi_config);
     if (mdata->spi) {
         // Initial reset
         sol_spi_transfer(mdata->spi, &mdata->pixels[mdata->pixel_count * 3],

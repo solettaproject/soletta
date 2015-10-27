@@ -298,13 +298,13 @@ string_compare_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_string_compare_options *)options;
 
-    if (opts->chars.val < 0) {
+    if (opts->chars < 0) {
         SOL_WRN("Option 'chars' (%" PRId32 ") must be a positive "
             "amount of chars to be compared or zero if whole strings "
-            "should be compared. Considering zero.", opts->chars.val);
+            "should be compared. Considering zero.", opts->chars);
         mdata->base.n = 0;
     } else
-        mdata->base.n = opts->chars.val;
+        mdata->base.n = opts->chars;
 
     mdata->ignore_case = opts->ignore_case;
 
@@ -472,8 +472,8 @@ string_slice_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_string_slice_options *)options;
 
-    mdata->idx[0] = opts->start.val;
-    mdata->idx[1] = opts->end.val;
+    mdata->idx[0] = opts->start;
+    mdata->idx[1] = opts->end;
     mdata->node = node;
 
     return 0;
@@ -505,13 +505,13 @@ string_length_open(struct sol_flow_node *node,
 
     opts = (const struct sol_flow_node_type_string_length_options *)options;
 
-    if (opts->maxlen.val < 0) {
+    if (opts->maxlen < 0) {
         SOL_WRN("Option 'maxlen' (%" PRId32 ") must be a positive "
             "or zero if the whole string should be measured. "
-            "Considering zero.", opts->maxlen.val);
+            "Considering zero.", opts->maxlen);
         mdata->n = 0;
     } else
-        mdata->n = opts->maxlen.val;
+        mdata->n = opts->maxlen;
 
     return 0;
 }
@@ -567,18 +567,18 @@ string_split_open(struct sol_flow_node *node,
         -EINVAL);
     opts = (const struct sol_flow_node_type_string_split_options *)options;
 
-    if (opts->index.val < 0) {
+    if (opts->index < 0) {
         SOL_WRN("Index (%" PRId32 ") must be a non-negative value",
-            opts->index.val);
+            opts->index);
         return -EINVAL;
     }
-    if (opts->max_split.val < 0) {
+    if (opts->max_split < 0) {
         SOL_WRN("Max split (%" PRId32 ") must be a non-negative value",
-            opts->max_split.val);
+            opts->max_split);
         return -EINVAL;
     }
-    mdata->index = opts->index.val;
-    mdata->max_split = opts->max_split.val;
+    mdata->index = opts->index;
+    mdata->max_split = opts->max_split;
 
     if (opts->separator) {
         UErrorCode err;
@@ -946,12 +946,12 @@ string_replace_open(struct sol_flow_node *node,
 
     mdata->node = node;
     mdata->forward_on_no_match = opts->forward_on_no_match;
-    if (opts->max_replace.val < 0) {
+    if (opts->max_replace < 0) {
         SOL_WRN("Max replace (%" PRId32 ") must be a non-negative value",
-            opts->max_replace.val);
+            opts->max_replace);
         return -EINVAL;
     }
-    mdata->max_replace = opts->max_replace.val ? : INT32_MAX;
+    mdata->max_replace = opts->max_replace ? : INT32_MAX;
 
     r = icu_str_from_utf8(opts->from_string, &mdata->from_string, &err);
     SOL_INT_CHECK(r, < 0, r);
@@ -1161,7 +1161,7 @@ string_starts_with_open(struct sol_flow_node *node,
     opts = (const struct sol_flow_node_type_string_starts_with_options *)options;
 
     mdata->node = node;
-    r = prefix_suffix_open(mdata, opts->start.val, opts->end.val);
+    r = prefix_suffix_open(mdata, opts->start, opts->end);
     SOL_INT_CHECK(r, < 0, r);
 
     if (!opts->prefix) {
@@ -1193,7 +1193,7 @@ string_ends_with_open(struct sol_flow_node *node,
     opts = (const struct sol_flow_node_type_string_ends_with_options *)options;
 
     mdata->node = node;
-    r = prefix_suffix_open(mdata, opts->start.val, opts->end.val);
+    r = prefix_suffix_open(mdata, opts->start, opts->end);
     SOL_INT_CHECK(r, < 0, r);
 
     if (!opts->suffix) {

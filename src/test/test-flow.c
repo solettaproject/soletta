@@ -1232,13 +1232,13 @@ named_options_init_from_strv(void)
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "chip");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
-        ASSERT_INT_EQ(m->irange.val, 2);
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_INT);
+        ASSERT_INT_EQ(m->i, 2);
 
         m++;
         ASSERT_STR_EQ(m->name, "pin");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
-        ASSERT_INT_EQ(m->irange.val, 7);
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_INT);
+        ASSERT_INT_EQ(m->i, 7);
 
         m++;
         ASSERT_STR_EQ(m->name, "enabled");
@@ -1247,13 +1247,13 @@ named_options_init_from_strv(void)
 
         m++;
         ASSERT_STR_EQ(m->name, "period");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
-        ASSERT_INT_EQ(m->irange.val, 42);
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_INT);
+        ASSERT_INT_EQ(m->i, 42);
 
         m++;
         ASSERT_STR_EQ(m->name, "duty_cycle");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
-        ASSERT_INT_EQ(m->irange.val, 88);
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_INT);
+        ASSERT_INT_EQ(m->i, 88);
 
         sol_flow_node_named_options_fini(&named_opts);
     }
@@ -1299,11 +1299,11 @@ node_options_new(void)
     };
 
     struct sol_flow_node_named_options_member multiple_options[] = {
-        { .name = "chip", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val = 2 } },
-        { .name = "pin", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val = 7 } },
+        { .name = "chip", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 2 },
+        { .name = "pin", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 7 },
         { .name = "enabled", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN, .boolean = true },
-        { .name = "period", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val = 42 } },
-        { .name = "duty_cycle", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val = 88 } },
+        { .name = "period", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 42 },
+        { .name = "duty_cycle", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 88 },
     };
 
     struct sol_flow_node_named_options_member string_options[] = {
@@ -1361,11 +1361,11 @@ node_options_new(void)
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     pwm_opts = (struct sol_flow_node_type_pwm_options *)opts;
-    ASSERT_INT_EQ(pwm_opts->chip.val, 2);
-    ASSERT_INT_EQ(pwm_opts->pin.val, 7);
+    ASSERT_INT_EQ(pwm_opts->chip, 2);
+    ASSERT_INT_EQ(pwm_opts->pin, 7);
     ASSERT_INT_EQ(pwm_opts->enabled, true);
-    ASSERT_INT_EQ(pwm_opts->period.val, 42);
-    ASSERT_INT_EQ(pwm_opts->duty_cycle.val, 88);
+    ASSERT_INT_EQ(pwm_opts->period, 42);
+    ASSERT_INT_EQ(pwm_opts->duty_cycle, 88);
     sol_flow_node_options_del(node_type, opts);
 #endif
 

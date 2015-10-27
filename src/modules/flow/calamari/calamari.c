@@ -223,16 +223,16 @@ calamari_7seg_child_opts_set(const struct sol_flow_node_type *type,
         (struct sol_flow_node_type_gpio_writer_options *)child_opts;
 
     const int pins[] = {
-        [SEG_CLEAR] = calamari_7seg_opts->clear_pin.val,
-        [SEG_LATCH] = calamari_7seg_opts->latch_pin.val,
-        [SEG_CLOCK] = calamari_7seg_opts->clock_pin.val,
-        [SEG_DATA] = calamari_7seg_opts->data_pin.val
+        [SEG_CLEAR] = calamari_7seg_opts->clear_pin,
+        [SEG_LATCH] = calamari_7seg_opts->latch_pin,
+        [SEG_CLOCK] = calamari_7seg_opts->clock_pin,
+        [SEG_DATA] = calamari_7seg_opts->data_pin
     };
 
     if (child_index == SEG_CTL || child_index > SEG_DATA)
         return 0;
 
-    gpio_opts->pin.val = pins[child_index];
+    gpio_opts->pin = pins[child_index];
 
     return 0;
 }
@@ -345,8 +345,10 @@ calamari_led_open(struct sol_flow_node *node, void *data, const struct sol_flow_
         (const struct sol_flow_node_type_calamari_led_options *)options;
     struct sol_pwm_config pwm_config = { 0 };
 
-    mdata->period = opts->period.val;
-    mdata->val = opts->range;
+    mdata->period = opts->period;
+    mdata->val.min = opts->range.min;
+    mdata->val.max = opts->range.max;
+    mdata->val.step = opts->range.step;
     mdata->node = node;
 
     pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION;
@@ -354,7 +356,7 @@ calamari_led_open(struct sol_flow_node *node, void *data, const struct sol_flow_
     pwm_config.duty_cycle_ns = 0;
     pwm_config.enabled = true;
 
-    mdata->pwm = sol_pwm_open(opts->address.val - 1, 0, &pwm_config);
+    mdata->pwm = sol_pwm_open(opts->address - 1, 0, &pwm_config);
 
     return 0;
 }
@@ -469,16 +471,18 @@ calamari_lever_open(struct sol_flow_node *node, void *data, const struct sol_flo
     mdata->node = node;
     mdata->last_value = 0;
     mdata->forced = true;
-    mdata->val = opts->range;
-    mdata->poll_interval = opts->poll_interval.val;
+    mdata->val.min = opts->range.min;
+    mdata->val.max = opts->range.max;
+    mdata->val.step = opts->range.step;
+    mdata->poll_interval = opts->poll_interval;
     spi_config.api_version = SOL_SPI_CONFIG_API_VERSION;
-    spi_config.chip_select = opts->chip_select.val;
+    spi_config.chip_select = opts->chip_select;
     spi_config.mode = SOL_SPI_MODE_0;
     spi_config.frequency = 100 * 1000; //100KHz
     spi_config.bits_per_word = SOL_SPI_DATA_BITS_DEFAULT;
-    mdata->spi = sol_spi_open(opts->bus.val, &spi_config);
+    mdata->spi = sol_spi_open(opts->bus, &spi_config);
 
-    if (opts->poll_interval.val != 0)
+    if (opts->poll_interval != 0)
         mdata->timer = sol_timeout_add(mdata->poll_interval,
             calamari_lever_spi_poll, mdata);
 
@@ -557,16 +561,16 @@ calamari_rgb_child_opts_set(const struct sol_flow_node_type *type,
         (struct sol_flow_node_type_gpio_writer_options *)child_opts;
 
     const int pins[] = {
-        [RGB_LED_RED] = calamari_rgb_opts->red_pin.val,
-        [RGB_LED_GREEN] = calamari_rgb_opts->green_pin.val,
-        [RGB_LED_BLUE] = calamari_rgb_opts->blue_pin.val,
+        [RGB_LED_RED] = calamari_rgb_opts->red_pin,
+        [RGB_LED_GREEN] = calamari_rgb_opts->green_pin,
+        [RGB_LED_BLUE] = calamari_rgb_opts->blue_pin,
     };
 
     // There is nothing to do for node 0, which is rgb-ctl
     if (child_index == RGB_LED_CTL || child_index > RGB_LED_BLUE)
         return 0;
 
-    gpio_opts->pin.val = pins[child_index];
+    gpio_opts->pin = pins[child_index];
 
     return 0;
 }

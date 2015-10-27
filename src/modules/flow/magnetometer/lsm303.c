@@ -190,13 +190,13 @@ magnetometer_lsm303_open(struct sol_flow_node *node, void *data, const struct so
         -EINVAL);
     opts = (const struct sol_flow_node_type_magnetometer_lsm303_options *)options;
 
-    mdata->i2c = sol_i2c_open(opts->i2c_bus.val, SOL_I2C_SPEED_10KBIT);
+    mdata->i2c = sol_i2c_open(opts->i2c_bus, SOL_I2C_SPEED_10KBIT);
     if (!mdata->i2c) {
         SOL_WRN("Failed to open i2c bus");
         return -EINVAL;
     }
 
-    mdata->slave = opts->i2c_slave.val;
+    mdata->slave = opts->i2c_slave;
     mdata->scale = opts->scale;
     mdata->node = node;
 
