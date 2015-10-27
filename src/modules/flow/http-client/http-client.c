@@ -720,7 +720,8 @@ generic_request_finished(void *data,
     struct http_data *mdata = sol_flow_node_get_private_data(node);
     const struct http_client_node_type *type;
 
-    SOL_INT_CHECK(check_response(mdata, node, conn, response), < 0);
+    if (check_response(mdata, node, conn, response) < 0)
+        return;
 
     if (mdata->strict && mdata->content_type && response->content_type &&
         !streq(response->content_type, mdata->content_type)) {
