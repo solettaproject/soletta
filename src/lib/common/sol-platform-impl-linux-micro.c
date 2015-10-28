@@ -54,6 +54,13 @@
 
 #include "sol-platform-linux-micro-builtins-gen.h"
 
+#define SOL_DEBUG_ARG "sol-debug=1"
+#define SOL_DEBUG_COMM_ARG "sol-debug-comm="
+struct gdbserver {
+    pid_t pid;
+    const char *comm;
+};
+
 static enum sol_platform_state platform_state = SOL_PLATFORM_STATE_INITIALIZING;
 static int reboot_cmd = RB_AUTOBOOT;
 static const char *reboot_exec;
@@ -514,16 +521,108 @@ end:
     reboot(reboot_cmd);
 }
 
+static bool
+sol_platform_linux_micro_should_debug(struct gdbserver *gdb)
+{
+    int idx, argc = sol_argc();
+    char **argv = sol_argv();
+    bool res = false;
+
+    for (idx = 1; idx < argc; idx++) {
+        if (streq(argv[idx], SOL_DEBUG_ARG))
+            res = true;
+        else if (strstartswith(argv[idx], SOL_DEBUG_COMM_ARG)) {
+            gdb->comm = argv[idx] + strlen(SOL_DEBUG_COMM_ARG);
+            if (res) {
+                SOL_DBG("Got "SOL_DEBUG_ARG" flag and comm");
+                return res;
+            }
+        }
+    }
+
+    return res;
+}
+
+static void
+on_fork(void *data)
+{
+    int err;
+    unsigned int i;
+    char pids[PATH_MAX];
+    const char *gdbserver = NULL;
+    struct gdbserver *gdb = data;
+
+    const char *paths[] = {
+        "/usr/bin/gdbserver",
+        "/bin/gdbserver",
+    };
+
+    for (i = 0; i < ARRAY_SIZE(paths); i++) {
+        struct stat st;
+        err = stat(paths[i], &st);
+        if (err < 0) {
+            if (errno == ENOENT) {
+                SOL_DBG("Could not find gdbserver executable at: %s", paths[i]);
+                continue;
+            } else {
+                SOL_DBG("Could not stat gdbserver executable at: %s - %s",
+                        paths[i], sol_util_strerrora(errno));
+                continue;
+            }
+        } else if (!(st.st_mode & S_IXUSR)) {
+            SOL_DBG("gdbserver executable at: %s - is not executable", paths[i]);
+            sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+            continue;
+        }
+
+        gdbserver = paths[i];
+        break;
+    }
+
+    if (!gdbserver) {
+        SOL_DBG("Could not find any gdbserver executable installed");
+        sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+    }
+
+    err = snprintf(pids, sizeof(pids), "%d", gdb->pid);
+    if (err < 0 || err >= (int)sizeof(pids)) {
+        SOL_ERR("Could not format pid string to attach gdbserver");
+        sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+    }
+
+    if (execl(gdbserver, gdbserver, "--attach", gdb->comm, pids, (char *)0) == -1) {
+        SOL_ERR("failed to exec gdbserver - %s", sol_util_strerrora(errno));
+        sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+    }
+
+    SOL_ERR("Failed to exec() gdbserver");
+    sol_platform_linux_fork_run_exit(EXIT_FAILURE);
+}
+
+static void
+on_fork_exit(void *data, uint64_t pid, int status)
+{
+    SOL_ERR("gdbserver exited... %"PRIu64, pid);
+}
+
 int
 sol_platform_impl_init(void)
 {
     bool want_load_initial_services = false;
+    struct gdbserver gdb;
+    pid_t pid = getpid();
 
-    if (getpid() == 1 && getppid() == 0) {
+    if (pid == 1 && getppid() == 0) {
         int err = setup_pid1();
         SOL_INT_CHECK(err, < 0, err);
 
         want_load_initial_services = true;
+
+        gdb.pid = pid;
+        gdb.comm = "/dev/tty0";
+
+        if (sol_platform_linux_micro_should_debug(&gdb))
+            sol_platform_linux_fork_run(on_fork, on_fork_exit, &gdb);
     } else {
         const char *s = getenv("SOL_LOAD_INITIAL_SERVICES");
         if (s && streq(s, "1"))
