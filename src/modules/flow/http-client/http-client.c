@@ -693,6 +693,7 @@ get_blob_process(struct sol_flow_node *node, struct sol_http_response *response)
     struct sol_blob *blob;
     size_t size;
     void *data;
+    int r;
 
     SOL_DBG("Blob process - response from: %s", response->url);
 
@@ -704,11 +705,55 @@ get_blob_process(struct sol_flow_node *node, struct sol_http_response *response)
         return -ENOMEM;
     }
 
-    sol_flow_send_blob_packet(node,
+    r = sol_flow_send_blob_packet(node,
         SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_BLOB__OUT__OUT, blob);
     sol_blob_unref(blob);
 
-    return 0;
+    return r;
+}
+
+static int
+get_json_process(struct sol_flow_node *node, struct sol_http_response *response)
+{
+    struct sol_blob *blob;
+    struct sol_json_scanner object_scanner, array_scanner;
+    struct sol_str_slice trimmed_str;
+    int r;
+
+    SOL_DBG("Json process - response from: %s", response->url);
+
+    trimmed_str = sol_str_slice_trim(sol_buffer_get_slice(&response->content));
+    sol_json_scanner_init(&object_scanner, trimmed_str.data, trimmed_str.len);
+    sol_json_scanner_init(&array_scanner, trimmed_str.data, trimmed_str.len);
+
+    (void)sol_buffer_steal(&response->content, NULL);
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, trimmed_str.data,
+        trimmed_str.len);
+
+    if (!blob) {
+        sol_flow_send_error_packet(node, ENOMEM,
+            "Could not create the json blob packet from:%s", response->url);
+        SOL_ERR("Could not create the json blob packet from:%s", response->url);
+        return -ENOMEM;
+    }
+
+    if (sol_json_is_valid_type(&object_scanner, SOL_JSON_TYPE_OBJECT_START)) {
+        r = sol_flow_send_json_object_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_JSON__OUT__JSON_OBJECT, blob);
+    } else if (sol_json_is_valid_type(&array_scanner,
+        SOL_JSON_TYPE_ARRAY_START)) {
+        r = sol_flow_send_json_array_packet(node,
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_JSON__OUT__JSON_ARRAY, blob);
+    } else {
+        sol_flow_send_error_packet(node, EINVAL, "The json received from:%s"
+            " is not valid json-object or json-array", response->url);
+        SOL_ERR("The json received from:%s is not valid json-object or"
+            " json-array", response->url);
+        r = -EINVAL;
+    }
+
+    sol_blob_unref(blob);
+    return r;
 }
 
 static void

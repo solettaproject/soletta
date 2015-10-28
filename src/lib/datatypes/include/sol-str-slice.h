@@ -118,6 +118,8 @@ sol_str_slice_from_blob(const struct sol_blob *blob)
 
 int sol_str_slice_to_int(const struct sol_str_slice s, int *value);
 
+struct sol_str_slice sol_str_slice_trim(struct sol_str_slice s);
+
 static inline char *
 sol_str_slice_to_string(const struct sol_str_slice slice)
 {

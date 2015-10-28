@@ -257,4 +257,27 @@ test_str_slice_to_string(void)
     }
 }
 
+DEFINE_TEST(test_str_slice_trim);
+
+static void
+test_str_slice_trim(void)
+{
+    struct sol_str_slice r;
+
+    r = sol_str_slice_trim(sol_str_slice_from_str("DO NOT TRIM THIS"));
+    ASSERT(sol_str_slice_str_eq(r, "DO NOT TRIM THIS"));
+
+    r = sol_str_slice_trim(sol_str_slice_from_str("                  Trim the slice start"));
+    ASSERT(sol_str_slice_str_eq(r, "Trim the slice start"));
+
+    r = sol_str_slice_trim(sol_str_slice_from_str("Trim the slice end                     "));
+    ASSERT(sol_str_slice_str_eq(r, "Trim the slice end"));
+
+    r = sol_str_slice_trim(sol_str_slice_from_str("                  Trim the slice start and end                   "));
+    ASSERT(sol_str_slice_str_eq(r, "Trim the slice start and end"));
+
+    r = sol_str_slice_trim(sol_str_slice_from_str("                            "));
+    ASSERT(r.len == 0);
+}
+
 TEST_MAIN();

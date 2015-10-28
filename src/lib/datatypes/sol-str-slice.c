@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include "sol-str-slice.h"
 
@@ -62,4 +63,23 @@ sol_str_slice_to_int(const struct sol_str_slice s, int *value)
 
     *value = v;
     return 0;
+}
+
+SOL_API struct sol_str_slice
+sol_str_slice_trim(struct sol_str_slice s)
+{
+    struct sol_str_slice new_slice;
+    size_t i, ignore_front, ignore_back;
+
+    ignore_front = ignore_back = 0;
+    for (i = 0; isspace(s.data[i]) && i < s.len; i++, ignore_front++) ;
+
+    if (i != s.len) {
+        for (i = s.len - 1; isspace(s.data[i]); i--, ignore_back++) ;
+    }
+
+    new_slice.data = s.data + ignore_front;
+    new_slice.len = (s.len - (ignore_front + ignore_back));
+
+    return new_slice;
 }
