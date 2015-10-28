@@ -91,16 +91,8 @@ struct sol_type_default_value {
     const char *value;
 };
 
-static const struct sol_type_default_value irange_default_values[] = {
-    { "val", "0" }, { "min", "INT32_MIN" }, { "max", "INT32_MAX" },
-    { "step", "1" }
-};
 static const struct sol_type_default_value irange_spec_default_values[] = {
     { "min", "INT32_MIN" }, { "max", "INT32_MAX" }, { "step", "1" }
-};
-static const struct sol_type_default_value drange_default_values[] = {
-    { "val", "0" }, { "min", "-DBL_MAX" }, { "max", "DBL_MAX" },
-    { "step", "DBL_MIN" }
 };
 static const struct sol_type_default_value drange_spec_default_values[] = {
     { "min", "-DBL_MAX" }, { "max", "DBL_MAX" }, { "step", "DBL_MIN" }
@@ -496,23 +488,11 @@ handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
     if (o->default_value_type != OPTION_VALUE_TYPE_NONE)
         has_default_option = true;
 
-    if (streq(o->data_type, "irange")) {
-        r = true;
-        dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
-            irange_default_values, sizeof(irange_default_values) /
-            sizeof(irange_default_values[0]),
-            handle_irange_drange_suboption, has_default_option);
-    } else if (streq(o->data_type, "irange-spec")) {
+    if (streq(o->data_type, "irange-spec")) {
         r = true;
         dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
             irange_spec_default_values, sizeof(irange_spec_default_values) /
             sizeof(irange_spec_default_values[0]),
-            handle_irange_drange_suboption, has_default_option);
-    } else if (streq(o->data_type, "drange")) {
-        r = true;
-        dispatch_handle_suboptions(meta, fbp_file, (const char *)buf.data,
-            drange_default_values, sizeof(drange_default_values) /
-            sizeof(drange_default_values[0]),
             handle_irange_drange_suboption, has_default_option);
     } else if (streq(o->data_type, "drange-spec")) {
         r = true;
@@ -541,6 +521,10 @@ handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
         else
             out("            .%s = \"%.*s\",\n", (const char *)buf.data,
                 SOL_STR_SLICE_PRINT(meta->value));
+    } else if (streq(o->data_type, "float")) {
+        r = true;
+        out("            .%s = %.*s,\n", (const char *)buf.data,
+            SOL_STR_SLICE_PRINT(get_irange_drange_option_value(meta->value)));
     } else {
         r = true;
         out("            .%s = %.*s,\n", (const char *)buf.data,
@@ -1021,12 +1005,8 @@ get_type_data_by_name(const char *type)
 {
     if (streq(type, "int"))
         return "int32_t";
-    if (streq(type, "irange"))
-        return "struct sol_irange";
     if (streq(type, "irange-spec"))
         return "struct sol_irange_spec";
-    if (streq(type, "drange"))
-        return "struct sol_drange";
     if (streq(type, "drange-spec"))
         return "struct sol_drange_spec";
     if (streq(type, "float"))

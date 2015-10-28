@@ -49,7 +49,6 @@ enum option_value_type {
     OPTION_VALUE_TYPE_UNPARSED_JSON,
 
     OPTION_VALUE_TYPE_STRING,
-    OPTION_VALUE_TYPE_RANGE,
     OPTION_VALUE_TYPE_SPEC_RANGE,
     OPTION_VALUE_TYPE_RGB,
     OPTION_VALUE_TYPE_DIRECTION_VECTOR
@@ -57,13 +56,6 @@ enum option_value_type {
 
 /* Options are stored as strings because that's convenient for the
  * generator. */
-struct option_range_value {
-    char *val;
-    char *min;
-    char *max;
-    char *step;
-};
-
 struct option_spec_range_value {
     char *min;
     char *max;
@@ -94,7 +86,6 @@ struct option_description {
     enum option_value_type default_value_type;
     union {
         char *string;
-        struct option_range_value range;
         struct option_spec_range_value spec_range;
         struct option_rgb_value rgb;
         struct option_direction_vector_value direction_vector;
