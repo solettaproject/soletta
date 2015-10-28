@@ -732,18 +732,19 @@ get_json_process(struct sol_flow_node *node, struct sol_http_response *response)
 
     if (!blob) {
         sol_flow_send_error_packet(node, ENOMEM,
-            "Could not create the json blob packet from:%s", response->url);
-        SOL_ERR("Could not create the json blob packet from:%s", response->url);
+            "Could not create the json blob packet from: %s", response->url);
+        SOL_ERR("Could not create the json blob packet from: %s",
+            response->url);
         return -ENOMEM;
     }
 
     if (sol_json_is_valid_type(&object_scanner, SOL_JSON_TYPE_OBJECT_START)) {
         r = sol_flow_send_json_object_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_JSON__OUT__JSON_OBJECT, blob);
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_JSON__OUT__OBJECT, blob);
     } else if (sol_json_is_valid_type(&array_scanner,
         SOL_JSON_TYPE_ARRAY_START)) {
         r = sol_flow_send_json_array_packet(node,
-            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_JSON__OUT__JSON_ARRAY, blob);
+            SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_JSON__OUT__ARRAY, blob);
     } else {
         sol_flow_send_error_packet(node, EINVAL, "The json received from:%s"
             " is not valid json-object or json-array", response->url);

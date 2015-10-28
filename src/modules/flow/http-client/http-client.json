@@ -476,7 +476,7 @@
           },
           {
             "data_type": "string",
-            "default": null,
+            "default": "application/json",
             "description": "The desired content type of the request",
             "name": "content_type"
           }
@@ -505,12 +505,12 @@
         {
           "data_type": "json-object",
           "description": "The response as json-object",
-          "name": "JSON_OBJECT"
+          "name": "OBJECT"
         },
         {
           "data_type": "json-array",
           "description": "The response as json-array",
-          "name": "JSON_ARRAY"
+          "name": "ARRAY"
         }
       ]
     },
