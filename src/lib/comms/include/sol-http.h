@@ -34,6 +34,7 @@
 
 #include <sol-buffer.h>
 #include <sol-vector.h>
+#include <sol-str-slice.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,12 +102,12 @@ struct sol_http_param_value {
     enum sol_http_param_type type;
     union {
         struct {
-            const char *key;
-            const char *value;
+            struct sol_str_slice key;
+            struct sol_str_slice value;
         } key_value;
         struct {
-            const char *user;
-            const char *password;
+            struct sol_str_slice user;
+            struct sol_str_slice password;
         } auth;
         struct {
             bool value;
@@ -170,8 +171,8 @@ struct sol_http_response {
     (struct sol_http_param_value) { \
         .type = type_, \
         .value.key_value = { \
-            .key = (key_), \
-            .value = (value_) \
+            .key = sol_str_slice_from_str((key_)),      \
+            .value = sol_str_slice_from_str((value_))   \
         } \
     }
 
@@ -191,8 +192,8 @@ struct sol_http_response {
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_AUTH_BASIC, \
         .value.auth = { \
-            .user = (username_), \
-            .password = (password_) \
+            .user = sol_str_slice_from_str((username_)),        \
+            .password = sol_str_slice_from_str((password_))     \
         } \
     }
 

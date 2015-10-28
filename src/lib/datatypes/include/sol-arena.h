@@ -66,6 +66,7 @@ struct sol_arena;
 
 struct sol_arena *sol_arena_new(void);
 void sol_arena_del(struct sol_arena *arena);
+void sol_arena_clear(struct sol_arena *arena);
 
 int sol_arena_slice_dup_str(struct sol_arena *arena, struct sol_str_slice *dst, const char *str);
 int sol_arena_slice_dup_str_n(struct sol_arena *arena, struct sol_str_slice *dst, const char *str, size_t n);

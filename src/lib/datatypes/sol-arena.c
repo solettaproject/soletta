@@ -59,6 +59,13 @@ sol_arena_new(void)
 SOL_API void
 sol_arena_del(struct sol_arena *arena)
 {
+    sol_arena_clear(arena);
+    free(arena);
+}
+
+SOL_API void
+sol_arena_clear(struct sol_arena *arena)
+{
     char *s;
     uint16_t i;
 
@@ -68,7 +75,6 @@ sol_arena_del(struct sol_arena *arena)
         free(s);
 
     sol_ptr_vector_clear(&arena->str_vector);
-    free(arena);
 }
 
 SOL_API int

@@ -212,8 +212,9 @@ common_response_cb(void *data, struct sol_http_request *request)
             SOL_INT_CHECK_GOTO(r, < 0, end);
             break;
         case SOL_HTTP_PARAM_HEADER:
-            if (streq(value->value.key_value.key, HTTP_HEADER_ACCEPT)) {
-                if (strstr(value->value.key_value.value, HTTP_HEADER_CONTENT_TYPE_JSON))
+            if (sol_str_slice_str_eq(value->value.key_value.key, HTTP_HEADER_ACCEPT)) {
+                if (memmem(value->value.key_value.value.data, value->value.key_value.value.len,
+                   HTTP_HEADER_CONTENT_TYPE_JSON, strlen(HTTP_HEADER_CONTENT_TYPE_JSON)))
                     send_json = true;
             }
             break;
@@ -371,9 +372,9 @@ static int
 boolean_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     struct sol_http_param_value *value)
 {
-    if (streq(value->value.key_value.value, "true"))
+    if (sol_str_slice_str_eq(value->value.key_value.value, "true"))
         mdata->value.b = true;
-    else if (streq(value->value.key_value.value, "false"))
+    else if (sol_str_slice_str_eq(value->value.key_value.value, "false"))
         mdata->value.b = false;
     else
         return -EINVAL;
@@ -437,8 +438,8 @@ static int
 string_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     struct sol_http_param_value *value)
 {
-    if (streq(value->value.key_value.key, "value")) {
-        int ret = sol_util_replace_str_if_changed(&mdata->value.s,
+    if (sol_str_slice_str_eq(value->value.key_value.key, "value")) {
+        int ret = sol_util_replace_str_from_slice_if_changed(&mdata->value.s,
             value->value.key_value.value);
         SOL_INT_CHECK(ret, < 0, ret);
     } else {
@@ -512,19 +513,19 @@ int_post_cb(struct http_data *mdata, struct sol_flow_node *node,
 #define STRTOL_(field_) \
     do { \
         errno = 0; \
-        mdata->value.i.field_ = strtol(value->value.key_value.value, NULL, 0); \
+        mdata->value.i.field_ = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
         if (errno != 0) { \
             return -errno; \
         } \
     } while (0)
 
-    if (streq(value->value.key_value.key, "value"))
+    if (sol_str_slice_str_eq(value->value.key_value.key, "value"))
         STRTOL_(val);
-    else if (streq(value->value.key_value.key, "min"))
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "min"))
         STRTOL_(min);
-    else if (streq(value->value.key_value.key, "max"))
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "max"))
         STRTOL_(max);
-    else if (streq(value->value.key_value.key, "step"))
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "step"))
         STRTOL_(step);
     else
         return -EINVAL;
@@ -570,20 +571,20 @@ float_post_cb(struct http_data *mdata, struct sol_flow_node *node,
 #define STRTOD_(field_) \
     do { \
         errno = 0; \
-        mdata->value.d.field_ = sol_util_strtodn(value->value.key_value.value, NULL, \
-            -1, false); \
+        mdata->value.d.field_ = sol_util_strtodn(value->value.key_value.value.data, NULL, \
+            value->value.key_value.value.len, false); \
         if ((fpclassify(mdata->value.d.field_) == FP_ZERO) && (errno != 0)) { \
             return -errno; \
         } \
     } while (0)
 
-    if (streq(value->value.key_value.key, "value"))
+    if (sol_str_slice_str_eq(value->value.key_value.key, "value"))
         STRTOD_(val);
-    else if (streq(value->value.key_value.key, "min"))
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "min"))
         STRTOD_(min);
-    else if (streq(value->value.key_value.key, "max"))
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "max"))
         STRTOD_(max);
-    else if (streq(value->value.key_value.key, "step"))
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "step"))
         STRTOD_(step);
     else
         return -EINVAL;

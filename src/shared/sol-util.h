@@ -103,6 +103,8 @@
  */
 double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale);
 
+long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base);
+
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -443,6 +445,8 @@ sol_util_int32_clamp(int32_t start, int32_t end, int32_t value)
 }
 
 int sol_util_replace_str_if_changed(char **str, const char *new_str);
+
+int sol_util_replace_str_from_slice_if_changed(char **str, const struct sol_str_slice);
 
 /**
  * Encode the binary slice to base64 using the given map.
