@@ -236,7 +236,7 @@ sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_netwo
         .msg_iov = &iov,
         .msg_iovlen = 1
     };
-    int r;
+    ssize_t r;
 
     SOL_NULL_CHECK(s, -EINVAL);
 
@@ -248,7 +248,10 @@ sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_netwo
     if (from_sockaddr((struct sockaddr *)sockaddr, sizeof(sockaddr), cliaddr) < 0)
         return -EINVAL;
 
-    return r;
+    if ((ssize_t)(int)r != r)
+        return -EOVERFLOW;
+
+    return (int)r;
 }
 
 static bool
