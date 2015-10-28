@@ -240,6 +240,10 @@ void sol_http_param_free(struct sol_http_param *params);
 
 int sol_http_escape_string(char **escaped, const char *value);
 
+int sol_http_build_uri(char **uri, const char *base, const struct sol_http_param *params);
+
+int sol_http_encode_params(char **encoded_params, enum sol_http_param_type type, const struct sol_http_param *params);
+
 /**
  * @}
  */

@@ -72,6 +72,12 @@ struct http_response_get_data {
     char *key;
 };
 
+struct build_url_data {
+    char *base_url;
+    char *encoded_url;
+    struct sol_http_param params;
+};
+
 struct http_client_node_type {
     struct sol_flow_node_type base;
     int (*process_token)(struct sol_flow_node *node, struct sol_json_token *key,
@@ -1337,6 +1343,154 @@ get_key_process(struct sol_flow_node *node, void *data,
     r = replace_string_from_packet(packet, &mdata->key);
     SOL_INT_CHECK(r, < 0, r);
     return 0;
+}
+
+static void
+clear_http_params(struct sol_http_param *params)
+{
+    struct sol_http_param_value *param;
+    uint16_t i;
+
+    SOL_HTTP_PARAM_FOREACH_IDX (params, param, i) {
+        free((void *)param->value.key_value.key);
+        free((void *)param->value.key_value.value);
+    }
+    sol_http_param_free(params);
+}
+
+static void
+free_encoded_url(char **encoded_url)
+{
+    free(*encoded_url);
+    *encoded_url = NULL;
+}
+
+static void
+build_url_close(struct sol_flow_node *node, void *data)
+{
+    struct build_url_data *mdata = data;
+
+    free(mdata->base_url);
+    free(mdata->encoded_url);
+    clear_http_params(&mdata->params);
+}
+
+static int
+build_url_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct build_url_data *mdata = data;
+    struct sol_flow_node_type_http_client_build_url_options *opts =
+        (struct sol_flow_node_type_http_client_build_url_options *)options;
+
+    mdata->params = SOL_HTTP_REQUEST_PARAM_INIT;
+    if (!opts->url)
+        return 0;
+
+    mdata->base_url = strdup(opts->url);
+    SOL_NULL_CHECK(mdata->base_url, -ENOMEM);
+    return 0;
+}
+
+static int
+build_url_url_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct build_url_data *mdata = data;
+
+    free_encoded_url(&mdata->encoded_url);
+    return replace_string_from_packet(packet, &mdata->base_url);
+}
+
+static struct sol_http_param_value *
+key_already_present(struct sol_http_param *params, const char *key)
+{
+    struct sol_http_param_value *param;
+    uint16_t i;
+
+    SOL_HTTP_PARAM_FOREACH_IDX (params, param, i) {
+        if (!strcasecmp(key, param->value.key_value.key))
+            return param;
+    }
+    return NULL;
+}
+
+static int
+build_url_param_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct build_url_data *mdata = data;
+    const char *ckey, *cvalue;
+    char *key, *value;
+    uint16_t len;
+    struct sol_flow_packet **children;
+    struct sol_http_param_value *old_param;
+    int r;
+
+    r = sol_flow_packet_get_composed_members(packet, &children, &len);
+    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(len, != 2, -EINVAL);
+
+    r = sol_flow_packet_get_string(children[0], &ckey);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_packet_get_string(children[1], &cvalue);
+    SOL_INT_CHECK(r, < 0, r);
+
+    value = strdup(cvalue);
+    SOL_NULL_CHECK(value, -ENOMEM);
+
+    old_param = key_already_present(&mdata->params, ckey);
+    if (old_param) {
+        free((void *)old_param->value.key_value.value);
+        old_param->value.key_value.value = value;
+    } else {
+        key = strdup(ckey);
+        SOL_NULL_CHECK_GOTO(key, err_key);
+
+        if (!sol_http_param_add(&mdata->params,
+            SOL_HTTP_REQUEST_PARAM_QUERY(key, value))) {
+            SOL_ERR("Could not add the HTTP param %s:%s", key, value);
+            goto err_add;
+        }
+    }
+
+    free_encoded_url(&mdata->encoded_url);
+    return 0;
+
+err_add:
+    free(key);
+err_key:
+    free(value);
+    return -ENOMEM;
+}
+
+static int
+build_url_clear_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct build_url_data *mdata = data;
+
+    free_encoded_url(&mdata->encoded_url);
+    clear_http_params(&mdata->params);
+    return 0;
+}
+
+static int
+build_url_trigger(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct build_url_data *mdata = data;
+
+    if (!mdata->encoded_url) {
+        r = sol_http_build_uri(&mdata->encoded_url, mdata->base_url,
+            &mdata->params);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_BUILD_URL__OUT__OUT, mdata->encoded_url);
 }
 
 #include "http-client-gen.c"
