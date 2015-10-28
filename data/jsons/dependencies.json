@@ -141,7 +141,7 @@
       "headers": [
         "<mosquitto.h>"
       ],
-      "fragment": "mosquitto_lib_init();",
+      "fragment": "mosquitto_opts_set(0, 0, 0);",
       "ldflags": {
         "value": "-lmosquitto"
       }
