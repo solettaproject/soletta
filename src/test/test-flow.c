@@ -41,6 +41,7 @@
 #include "sol-flow/pwm.h"
 #endif
 #include "sol-flow/timer.h"
+#include "sol-flow/int.h"
 
 #include "test.h"
 
@@ -1155,54 +1156,55 @@ named_options_init_from_strv(void)
     const struct sol_flow_node_type *node_type;
     int r;
 
-    ASSERT(sol_flow_get_node_type("timer", SOL_FLOW_NODE_TYPE_TIMER, &node_type) == 0);
+    ASSERT(sol_flow_get_node_type("int", SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR, &node_type) == 0);
     {
-        const char *strv[] = { "interval=1000", NULL };
+        const char *strv[] = { "initial_value=1000", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+            strv);
         ASSERT(r >= 0);
         ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
 
         m = named_opts.members;
-        ASSERT_STR_EQ(m->name, "interval");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
-        ASSERT_INT_EQ(m->irange.val, 1000);
+        ASSERT_STR_EQ(m->name, "initial_value");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_INT);
+        ASSERT_INT_EQ(m->i, 1000);
 
         sol_flow_node_named_options_fini(&named_opts);
     }
 
     {
-        const char *strv[] = { "interval=50|20|60|2", NULL };
+        const char *strv[] = { "setup_value=20|60|2", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+            strv);
         ASSERT(r >= 0);
         ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
 
         m = named_opts.members;
-        ASSERT_STR_EQ(m->name, "interval");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
-        ASSERT_INT_EQ(m->irange.val, 50);
-        ASSERT_INT_EQ(m->irange.min, 20);
-        ASSERT_INT_EQ(m->irange.max, 60);
-        ASSERT_INT_EQ(m->irange.step, 2);
+        ASSERT_STR_EQ(m->name, "setup_value");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC);
+        ASSERT_INT_EQ(m->irange_spec.min, 20);
+        ASSERT_INT_EQ(m->irange_spec.max, 60);
+        ASSERT_INT_EQ(m->irange_spec.step, 2);
 
         sol_flow_node_named_options_fini(&named_opts);
     }
 
     {
-        const char *strv[2] = { "interval=val:100|min:10|max:200|step:5", NULL };
+        const char *strv[] = { "setup_value=min:10|max:200|step:5", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+            strv);
         ASSERT(r >= 0);
         ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
 
         m = named_opts.members;
-        ASSERT_STR_EQ(m->name, "interval");
-        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE);
-        ASSERT_INT_EQ(m->irange.val, 100);
-        ASSERT_INT_EQ(m->irange.min, 10);
-        ASSERT_INT_EQ(m->irange.max, 200);
-        ASSERT_INT_EQ(m->irange.step, 5);
+        ASSERT_STR_EQ(m->name, "setup_value");
+        ASSERT(m->type == SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC);
+        ASSERT_INT_EQ(m->irange_spec.min, 10);
+        ASSERT_INT_EQ(m->irange_spec.max, 200);
+        ASSERT_INT_EQ(m->irange_spec.step, 5);
 
         sol_flow_node_named_options_fini(&named_opts);
     }
@@ -1210,14 +1212,16 @@ named_options_init_from_strv(void)
     {
         const char *strv[] = { "this_is_not_a_valid_field=100", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+            strv);
         ASSERT(r < 0);
     }
 
     {
-        const char *wrong_formatting_strv[] = { "interval = 1000", NULL };
+        const char *wrong_formatting_strv[] = { "initial_value = 1000", NULL };
 
-        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, wrong_formatting_strv);
+        r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
+            wrong_formatting_strv);
         ASSERT(r < 0);
     }
 
@@ -1295,7 +1299,7 @@ static void
 node_options_new(void)
 {
     struct sol_flow_node_named_options_member one_option[] = {
-        { .name = "interval", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE, .irange = { .val = 1000 } },
+        { .name = "interval", .type = SOL_FLOW_NODE_OPTIONS_MEMBER_INT, .i = 1000 },
     };
 
     struct sol_flow_node_named_options_member multiple_options[] = {
@@ -1338,7 +1342,7 @@ node_options_new(void)
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     timer_opts = (struct sol_flow_node_type_timer_options *)opts;
-    ASSERT_INT_EQ(timer_opts->interval.val, 1000);
+    ASSERT_INT_EQ(timer_opts->interval, 1000);
     sol_flow_node_options_del(node_type, opts);
 
     /* Unknown option */

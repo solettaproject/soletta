@@ -319,7 +319,7 @@ keyboard_boolean_open(struct sol_flow_node *node,
 
     SOL_NULL_CHECK(options, -EINVAL);
 
-    mdata->binary_code = opts->binary_code.val;
+    mdata->binary_code = opts->binary_code;
     mdata->toggle = opts->toggle;
     mdata->common.on_code = keyboard_boolean_on_code;
 

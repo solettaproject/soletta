@@ -37,5 +37,5 @@
 #
 # To get only if the value has changed since Mon, 17 Aug 2015 15:05:38 GMT
 # curl  -H "If-Since-Modified:Mon, 17 Aug 2015 15:05:38 GMT"  http://localhost:80/drange -v
-drange(http-server/float:path=/drange,value=val:1.0|min:0|max:100.2|step:1.2)
+drange(http-server/float:path=/drange,value=1.0,value_spec=min:0|max:100.2|step:1.2)
 drange OUT -> IN console(console)

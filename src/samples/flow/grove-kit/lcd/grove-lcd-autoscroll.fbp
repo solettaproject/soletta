@@ -44,7 +44,7 @@ initial_color(constant/rgb:value=255|255|255|255|255|255)
 initial_color OUT -> COLOR lcd(LCDChar)
 
 # 48 is decimal value for char '0', 57 is for '9'
-acc(int/accumulator:setup_value=val:48|min:48|max:57|step:1)
+acc(int/accumulator:setup_value=min:48|max:57|step:1,initial_value=48)
 timer_scroll(timer:interval=500) OUT -> INC acc
 
 acc OUT -> IN accumulator_to_char(converter/int-to-byte)

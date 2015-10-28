@@ -39,7 +39,7 @@
 #
 # or save it as sol-flow.json
 
-inc(int/accumulator:setup_value=min:0|max:170|step:10|val:0)
+inc(int/accumulator:setup_value=min:0|max:170|step:10)
 
 timer(timer:interval=2000) OUT -> INC inc OUT -> IN converter(converter/int-to-float)
 converter OUT -> ANGLE servo(Servo)

@@ -54,7 +54,7 @@ random_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
        multiple node types */
     opts = (const struct sol_flow_node_type_random_int_options *)options;
 
-    mdata->engine = sol_random_new(SOL_RANDOM_DEFAULT, opts->seed.val);
+    mdata->engine = sol_random_new(SOL_RANDOM_DEFAULT, opts->seed);
     SOL_NULL_CHECK(mdata->engine, -EINVAL);
 
     return 0;

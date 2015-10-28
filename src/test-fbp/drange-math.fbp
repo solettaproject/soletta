@@ -60,14 +60,14 @@ cmp_pow OUT -> RESULT pow_result(test/result)
 
 radicand(constant/float:value=16.00)
 sqrt_expected(constant/float:value=4.00)
-radicand OUT -> IN sqrt(float/sqrt) 
+radicand OUT -> IN sqrt(float/sqrt)
 sqrt OUT -> IN[0] cmp_sqrt(float/equal)
 sqrt_expected OUT -> IN[1] cmp_sqrt
 cmp_sqrt OUT -> RESULT sqrt_result(test/result)
 
-over(constant/float:value=566|0|565|1)
-within_range(constant/float:value=128|0|256|1)
-under(constant/float:value=-10|50|100|1)
+over(constant/float:value=566,value_spec=0|565|1)
+within_range(constant/float:value=128,value_spec=0|256|1)
+under(constant/float:value=-10,value_spec=50|100|1)
 
 c1(constant/float:value=565)
 c2(constant/float:value=128)
@@ -82,7 +82,7 @@ c2 OUT -> IN[1] cmp_within_range OUT -> RESULT r_within_range(test/result)
 under OUT -> IN _(float/constrain) OUT -> IN[0] cmp_under(float/equal)
 c3 OUT -> IN[1] cmp_under OUT -> RESULT r_under(test/result)
 
-sixty_percent(constant/float:value=60|0|100|1)
+sixty_percent(constant/float:value=60,value_spec=0|100|1)
 sixty_percent_of_sixty(constant/float:value=36)
 sixty_percent OUT -> IN map(float/map:use_input_range=true,output_range=min:0|max:60|step:1)
 map OUT -> IN[0] cmp(float/equal)

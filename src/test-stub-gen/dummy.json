@@ -182,17 +182,6 @@
          "name": "opt_byte"
         },
         {
-         "data_type": "drange",
-         "default": {
-             "val": 20.5,
-             "min": -10,
-             "max": 33,
-             "step": 0.5
-         },
-         "description": "Dummy drange option.",
-         "name": "opt_drange"
-        },
-        {
          "data_type": "drange-spec",
          "default": {
              "min": -100.5,
@@ -225,17 +214,6 @@
          "default": 666,
          "description": "Dummy int option.",
          "name": "opt_int"
-        },
-        {
-         "data_type": "irange",
-         "default": {
-             "val": 20,
-             "min": -10,
-             "max": 33,
-             "step": 1
-         },
-         "description": "Dummy irange option.",
-         "name": "opt_irange"
         },
         {
          "data_type": "irange-spec",

@@ -42,7 +42,7 @@
 t1(timer:interval=1000)
 t2(timer:interval=250)
 toggle(boolean/toggle)
-acc(int/accumulator:setup_value=val:0|min:0|max:2032605|step:7971)
+acc(int/accumulator:setup_value=min:0|max:2032605|step:7971)
 
 t1 OUT -> IN toggle OUT -> ENABLED led1(Led1)
 toggle OUT -> IN c1(console:prefix="Led1 ")

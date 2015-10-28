@@ -102,8 +102,8 @@ pwm_viewer_setup(struct gtk_common_data *data, const struct sol_flow_node_option
     opts = (const struct sol_flow_node_type_gtk_pwm_viewer_options *)options;
 
     mdata->enabled = opts->enabled;
-    mdata->duty_cycle = opts->duty_cycle.val;
-    mdata->period = opts->period.val;
+    mdata->duty_cycle = opts->duty_cycle;
+    mdata->period = opts->period;
 
     mdata->base.widget = gtk_drawing_area_new();
     gtk_widget_set_size_request(mdata->base.widget, 400, 50);

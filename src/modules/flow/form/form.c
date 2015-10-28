@@ -85,6 +85,7 @@ buffer_re_init(struct sol_buffer *buf,
     size_t size;
 
     int r = get_buf_size(rows, columns, &size);
+
     SOL_INT_CHECK(r, < 0, r);
 
     /* We choose to do the ending nul byte ourselves, since we're
@@ -599,9 +600,9 @@ selector_open(struct sol_flow_node *node,
     sol_ptr_vector_init(&mdata->items);
     mdata->enabled = true;
 
-    r = common_form_init(opts->rows.val,
+    r = common_form_init(opts->rows,
         &mdata->rows,
-        opts->columns.val,
+        opts->columns,
         &mdata->columns,
         opts->format,
         &mdata->format,
@@ -962,9 +963,9 @@ boolean_open(struct sol_flow_node *node,
         return -ENOMEM;
     }
 
-    r = common_form_init(opts->rows.val,
+    r = common_form_init(opts->rows,
         &mdata->rows,
-        opts->columns.val,
+        opts->columns,
         &mdata->columns,
         opts->format,
         &mdata->format,

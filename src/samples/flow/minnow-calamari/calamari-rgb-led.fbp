@@ -34,7 +34,7 @@
 # second, then converting the accumulator integer value to bits, the
 # first bit goes to Red, the second to Green and the third to Blue.
 
-accumulator(int/accumulator:setup_value=val:0|min:0|max:255|step:1)
+accumulator(int/accumulator:setup_value=min:0|max:255|step:1)
 
 timer(wallclock/second) OUT -> INC accumulator
 accumulator OUT -> IN int_to_byte(converter/int-to-byte)

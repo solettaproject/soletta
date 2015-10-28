@@ -134,10 +134,10 @@ timer_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
         return 0;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_TIMER_OPTIONS_API_VERSION, -EINVAL);
-    if (opts->interval.val < 1)
+    if (opts->interval < 1)
         return 0;
 
-    mdata->interval = opts->interval.val;
+    mdata->interval = opts->interval;
     return start_timer(mdata);
 }
 

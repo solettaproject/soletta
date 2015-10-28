@@ -987,20 +987,20 @@ translate_http_method(const char *method)
 }
 
 static int
-request_node_get_timeout_as_int(struct sol_irange timeout, int *out_timeout)
+request_node_get_timeout(int32_t timeout, int *out_timeout)
 {
-    if (timeout.val > INT_MAX) {
+    if (timeout > INT_MAX) {
         SOL_WRN("The timeout is bigger than %d", INT_MAX);
         *out_timeout = INT_MAX;
         return 0;
     }
 
-    if (timeout.val < 0) {
+    if (timeout < 0) {
         SOL_ERR("Timeout can not be a negative number!");
         return -EINVAL;
     }
 
-    *out_timeout = timeout.val;
+    *out_timeout = timeout;
     return 0;
 }
 
@@ -1013,7 +1013,7 @@ request_node_open(struct sol_flow_node *node, void *data,
     struct sol_flow_node_type_http_client_request_options *opts =
         (struct sol_flow_node_type_http_client_request_options *)options;
 
-    r = request_node_get_timeout_as_int(opts->timeout, &mdata->timeout);
+    r = request_node_get_timeout(opts->timeout, &mdata->timeout);
     SOL_INT_CHECK(r, < 0, r);
 
     if (opts->url) {
@@ -1096,7 +1096,7 @@ request_node_timeout_process(struct sol_flow_node *node, void *data,
 
     r = sol_flow_packet_get_irange(packet, &irange);
     SOL_INT_CHECK(r, < 0, r);
-    r = request_node_get_timeout_as_int(irange, &mdata->timeout);
+    r = request_node_get_timeout(irange.val, &mdata->timeout);
     SOL_INT_CHECK(r, < 0, r);
     return 0;
 }

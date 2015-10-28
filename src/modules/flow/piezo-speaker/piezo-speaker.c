@@ -397,10 +397,10 @@ piezo_speaker_open(struct sol_flow_node *node,
     pwm_config.period_ns = -1;
     pwm_config.duty_cycle_ns = 0;
 
-    mdata->pwm = sol_pwm_open(opts->chip.val, opts->pin.val, &pwm_config);
+    mdata->pwm = sol_pwm_open(opts->chip, opts->pin, &pwm_config);
     if (!mdata->pwm) {
         SOL_WRN("could not open pwm (chip=%" PRId32 ", pin=%" PRId32 ")\n",
-            opts->chip.val, opts->pin.val);
+            opts->chip, opts->pin);
         goto _error;
     }
 
@@ -413,7 +413,7 @@ piezo_speaker_open(struct sol_flow_node *node,
         SOL_WRN("No tune in opts, awaiting string package\n");
 
     SOL_DBG("Piezo open ok (chip=%" PRId32 ", pin=%" PRId32 ")\n",
-        opts->chip.val, opts->pin.val);
+        opts->chip, opts->pin);
 
     return 0;
 

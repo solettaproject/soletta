@@ -715,15 +715,15 @@ wave_generator_trapezoidal_open(struct sol_flow_node *node,
         return -EDOM;
     }
 
-    wave_generator_set_option(opts->ticks_inc.val, &mdata->ticks_inc, 1,
+    wave_generator_set_option(opts->ticks_inc, &mdata->ticks_inc, 1,
         "ticks_inc");
-    wave_generator_set_option(opts->ticks_dec.val, &mdata->ticks_dec, 1,
+    wave_generator_set_option(opts->ticks_dec, &mdata->ticks_dec, 1,
         "ticks_dec");
-    wave_generator_set_option(opts->tick_start.val, &tick_start, 0,
+    wave_generator_set_option(opts->tick_start, &tick_start, 0,
         "tick_start");
-    wave_generator_set_option(opts->ticks_at_max.val, &mdata->ticks_at_max, 0,
+    wave_generator_set_option(opts->ticks_at_max, &mdata->ticks_at_max, 0,
         "ticks_at_max");
-    wave_generator_set_option(opts->ticks_at_min.val, &mdata->ticks_at_min, 0,
+    wave_generator_set_option(opts->ticks_at_min, &mdata->ticks_at_min, 0,
         "ticks_at_min");
 
     t_state = &mdata->t_state;
@@ -836,9 +836,9 @@ wave_generator_sinusoidal_open(struct sol_flow_node *node,
         return -EDOM;
     }
 
-    wave_generator_set_option(opts->ticks_per_period.val, &ticks_per_period, 1,
+    wave_generator_set_option(opts->ticks_per_period, &ticks_per_period, 1,
         "ticks_per_period");
-    wave_generator_set_option(opts->tick_start.val, &tick_start, 0,
+    wave_generator_set_option(opts->tick_start, &tick_start, 0,
         "tick_start");
 
     mdata->amplitude = opts->amplitude;

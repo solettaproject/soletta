@@ -124,7 +124,7 @@
       "description": "HTTP Server for integer",
       "methods": {
         "close": "common_close",
-        "open": "common_open"
+        "open": "int_open"
       },
       "node_type": {
         "access": [
@@ -147,12 +147,22 @@
             "description": "The http path where it will be served",
             "name": "path"
           },
-	  {
-            "data_type": "irange",
-	    "default": 0,
+        {
+            "data_type": "int",
+            "default": 0,
             "description": "The initial node's value",
             "name": "value"
-          }
+        },
+        {
+            "data_type": "irange-spec",
+            "default": {
+                "min": "INT32_MIN",
+                "max": "INT32_MAX",
+                "step": 1
+            },
+            "description": "The initial node's range",
+            "name": "value_spec"
+        }
         ],
         "version": 1
       },
@@ -181,7 +191,7 @@
       "description": "HTTP Server for float",
       "methods": {
         "close": "common_close",
-        "open": "common_open"
+        "open": "float_open"
       },
       "node_type": {
         "access": [
@@ -204,12 +214,22 @@
             "description": "The http path where it will be served",
             "name": "path"
           },
-	  {
-            "data_type": "drange",
-	    "default": 0,
+        {
+            "data_type": "float",
+            "default": 0,
             "description": "The initial node's value",
             "name": "value"
-          }
+        },
+        {
+            "data_type": "drange-spec",
+            "default": {
+                "min": "-DBL_MAX",
+                "max": "DBL_MAX",
+                "step": "DBL_MIN"
+            },
+            "description": "The initial node's range",
+            "name": "value_spec"
+        }
         ],
         "version": 1
       },

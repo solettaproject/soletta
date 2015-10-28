@@ -43,7 +43,7 @@
 
 btn1(Button1)
 btn2(Button2)
-accumulator(int/accumulator:send_initial_packet=false,setup_value=val:0|min:0|max:15|step:1)
+accumulator(int/accumulator:send_initial_packet=false,setup_value=min:0|max:15|step:1)
 seg(SevenSegments)
 persistence(persistence/int:storage="memmap",name="accumulated",default_value=0)
 
