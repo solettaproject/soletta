@@ -71,6 +71,8 @@ obj-thread-$(MAINLOOP_GLIB)-extra-cflags += $(GLIB_CFLAGS)
 obj-thread-$(MAINLOOP_GLIB)-extra-ldflags += $(GLIB_LDFLAGS)
 obj-thread-$(MAINLOOP_POSIX) += \
     sol-worker-thread-impl-posix.o
+obj-thread-$(MAINLOOP_RIOTOS) += \
+    sol-worker-thread-impl-riot.o
 obj-core-$(PTHREAD)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 
 obj-core-$(USE_PIN_MUX) += \
@@ -101,7 +103,7 @@ headers-$(PLATFORM_LINUX) += \
 headers-$(USE_PIN_MUX) += \
     include/sol-pin-mux-modules.h
 
-headers-$(PTHREAD) += \
+headers-$(WORKER_THREAD) += \
     include/sol-worker-thread.h
 
 headers-$(MAINLOOP_CONTIKI) += \

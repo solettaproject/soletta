@@ -34,28 +34,51 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef THREADS
+#include <mutex.h>
+#include <thread.h>
+#endif
+
 #include "sol-log-impl.h"
+
+#ifdef THREADS
+static kernel_pid_t _main_thread;
+static mutex_t _mutex;
+#endif
 
 int
 sol_log_impl_init(void)
 {
+#ifdef THREADS
+    _main_thread = thread_getpid();
+    mutex_init(&_mutex);
+#endif
     return 0;
 }
 
 void
 sol_log_impl_shutdown(void)
 {
+#ifdef THREADS
+    _main_thread = KERNEL_PID_UNDEF;
+#endif
 }
 
 bool
 sol_log_impl_lock(void)
 {
+#ifdef THREADS
+    mutex_lock(&_mutex);
+#endif
     return true;
 }
 
 void
 sol_log_impl_unlock(void)
 {
+#ifdef THREADS
+    mutex_unlock(&_mutex);
+#endif
 }
 
 void
@@ -72,7 +95,17 @@ sol_log_impl_print_function_stderr(void *data, const struct sol_log_domain *doma
     size_t len;
     int errno_bkp = errno;
 
+#ifdef THREADS
+    kernel_pid_t thread;
+#endif
+
     sol_log_level_to_str(message_level, level_str, sizeof(level_str));
+
+#ifdef THREADS
+    thread = thread_getpid();
+    if (thread != _main_thread)
+        fprintf(stderr, "T%" PRId16 " ", thread);
+#endif
 
     if (_show_file && _show_function && _show_line) {
         fprintf(stderr, "%s:%s %s:%d %s() ",

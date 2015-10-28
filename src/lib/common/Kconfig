@@ -240,11 +240,16 @@ config MAINLOOP_CONTIKI
 endchoice
 
 config PTHREAD
-	bool "POSIX threads (pthread)"
-	depends on HAVE_PTHREAD_H && LINUX
+	bool
+
+config THREADS
+	bool "Thread safety"
+	depends on (HAVE_PTHREAD_H && LINUX) || RIOT
+	select PTHREAD if LINUX
+	default n if RIOT
 	default y
 	help
-            Allow usage of POSIX threads (pthreads) in Soletta applications.
+            Allow usage of threads in Soletta applications.
 
             While Soletta doesn't use threads extensively, it needs to
             be aware that threads would be used to make some
@@ -273,7 +278,7 @@ config PTHREAD
 
 config WORKER_THREAD
     bool "Worker thread support"
-    depends on FEATURE_WORKER_THREADS && (!LINUX || (LINUX && PTHREAD))
+    depends on FEATURE_WORKER_THREADS && THREADS
     default y
     help
             Enable support for worker threads.

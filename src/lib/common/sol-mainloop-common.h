@@ -55,7 +55,7 @@ struct sol_idler_common {
 static inline void
 sol_ptr_vector_steal(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
 {
-#ifdef PTHREAD
+#ifdef THREADS
     *to = *from;
     sol_ptr_vector_init(from);
 #endif
@@ -65,7 +65,7 @@ sol_ptr_vector_steal(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
 static inline void
 sol_ptr_vector_update(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
 {
-#ifdef PTHREAD
+#ifdef THREADS
     void *itr;
     uint16_t i;
 
@@ -102,7 +102,7 @@ void sol_mainloop_impl_iter(void);
 static inline void
 sol_mainloop_common_main_thread_check_notify(void)
 {
-#ifdef PTHREAD
+#ifdef THREADS
     if (!sol_mainloop_impl_main_thread_check())
         sol_mainloop_impl_main_thread_notify();
 #endif
