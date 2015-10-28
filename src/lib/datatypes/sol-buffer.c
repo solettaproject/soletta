@@ -763,7 +763,7 @@ sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_slice s
 }
 
 SOL_API int
-sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, bool uppercase)
+sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, enum sol_decode_case decode_case)
 {
     char *p;
     size_t new_size;
@@ -778,7 +778,7 @@ sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct s
         return 0;
 
     if (pos == buf->used)
-        return sol_buffer_append_from_base16(buf, slice, uppercase);
+        return sol_buffer_append_from_base16(buf, slice, decode_case);
 
     decoded_size = sol_util_base16_calculate_decoded_len(slice);
     if (decoded_size < 0)
@@ -800,7 +800,7 @@ sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct s
 
     p = sol_buffer_at(buf, pos);
     memmove(p + decoded_size, p, buf->used - pos);
-    r = sol_util_base16_decode(p, decoded_size, slice, uppercase);
+    r = sol_util_base16_decode(p, decoded_size, slice, decode_case);
     if (r != decoded_size) {
         memmove(p, p + decoded_size, buf->used - pos);
         if (nul_size)
@@ -819,7 +819,7 @@ sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct s
 }
 
 SOL_API int
-sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice slice, bool uppercase)
+sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice slice, enum sol_decode_case decode_case)
 {
     char *p;
     size_t new_size;
@@ -851,7 +851,7 @@ sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice
         return err;
 
     p = sol_buffer_at_end(buf);
-    r = sol_util_base16_decode(p, decoded_size, slice, uppercase);
+    r = sol_util_base16_decode(p, decoded_size, slice, decode_case);
     if (r != decoded_size) {
         if (nul_size)
             sol_buffer_ensure_nul_byte(buf);

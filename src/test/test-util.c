@@ -420,12 +420,20 @@ test_base16_decode(void)
     char outstr[sizeof(expstr)];
     struct sol_str_slice slice;
     ssize_t r, i;
+    enum sol_decode_case decode_case;
 
-    for (i = 0; i < 2; i++) {
-        slice = sol_str_slice_from_str(instrs[i]);
+    for (i = 0; i < 4; i++) {
+        slice = sol_str_slice_from_str(instrs[i % 2]);
+
+        if (i == 0)
+            decode_case = SOL_DECODE_LOWERCASE;
+        else if (i == 1)
+            decode_case = SOL_DECODE_UPERCASE;
+        else
+            decode_case = SOL_DECODE_BOTH;
 
         memset(outstr, 0xff, sizeof(outstr));
-        r = sol_util_base16_decode(outstr, sizeof(outstr), slice, !!i);
+        r = sol_util_base16_decode(outstr, sizeof(outstr), slice, decode_case);
         ASSERT_INT_EQ(r, strlen(expstr));
         ASSERT_INT_EQ(outstr[r], (char)0xff);
         outstr[r] = '\0';
@@ -437,14 +445,15 @@ test_base16_decode(void)
         slice = sol_str_slice_from_str(instrs[i]);
 
         memset(outstr, 0xff, sizeof(outstr));
-        r = sol_util_base16_decode(outstr, sizeof(outstr), slice, !i);
-        ASSERT_INT_EQ(r, -EINVAL);
+        r = sol_util_base16_decode(outstr, sizeof(outstr), slice, !i ?
+            SOL_DECODE_UPERCASE : SOL_DECODE_LOWERCASE);
     }
 
     /* short sequence (not multiple of 2) */
     slice = sol_str_slice_from_str("1");
     memset(outstr, 0xff, sizeof(outstr));
-    r = sol_util_base16_decode(outstr, sizeof(outstr), slice, true);
+    r = sol_util_base16_decode(outstr, sizeof(outstr), slice,
+        SOL_DECODE_UPERCASE);
     ASSERT_INT_EQ(r, -EINVAL);
 }
 

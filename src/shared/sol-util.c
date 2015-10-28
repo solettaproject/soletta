@@ -531,22 +531,24 @@ sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slic
 }
 
 static inline uint8_t
-base16_decode_digit(const char digit, const char a, const char f)
+base16_decode_digit(const char digit, const char a, const char f, const char A, const char F)
 {
     if (likely('0' <= digit && digit <= '9'))
         return digit - '0';
     else if (a <= digit && digit <= f)
         return 10 + (digit - a);
+    else if (A != a && A <= digit && digit <= F)
+        return 10 + (digit - A);
     else
         return UINT8_MAX;
 }
 
 SOL_API ssize_t
-sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase)
+sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, enum sol_decode_case decode_case)
 {
     uint8_t *output;
     const char *input;
-    char a, f;
+    char a, f, A, F;
     size_t i, o, req_len;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -560,14 +562,16 @@ sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slic
 
     input = slice.data;
     output = buf;
-    a = uppercase ? 'A' : 'a';
+    a = decode_case == SOL_DECODE_UPERCASE ? 'A' : 'a';
     f = a + 5;
+    A = decode_case == SOL_DECODE_BOTH ? 'A' : a;
+    F = A + 5;
 
     for (i = 0, o = 0; i + 2 <= slice.len; i += 2) {
         uint8_t n, b = 0;
         for (n = 0; n < 2; n++) {
             const uint8_t c = input[i + n];
-            uint8_t nibble = base16_decode_digit(c, a, f);
+            uint8_t nibble = base16_decode_digit(c, a, f, A, F);
             if (unlikely(nibble == UINT8_MAX)) {
                 SOL_WRN("Invalid base16 char %c, index: %zd", c, i + n);
                 return -EINVAL;
