@@ -1,0 +1,62 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+DECLARE=UrlParam:composed-new:KEY(string)|VALUE(string)
+
+INPORT=location_query.IN[1]:LOCATION
+OUTPORT=temp_avg.CELSIUS:TEMP_AVG
+OUTPORT=temp_low.CELSIUS:TEMP_LOW
+OUTPORT=temp_high.CELSIUS:TEMP_HIGH
+
+#Create Url
+url(http-client/create-url:base_uri="https://query.yahooapis.com/v1/public/yql")
+
+location_query(string/concatenate)
+_(constant/string:value="select * from weather.forecast where woeid in (select woeid from geo.places(1) where text=\"") OUT -> IN[0] location_query
+_(constant/string:value="\")") OUT -> IN[2] location_query
+
+_(constant/string:value="format") OUT -> KEY format_param(UrlParam)
+_(constant/string:value="json") OUT -> VALUE format_param
+format_param OUT -> PARAM url
+_(constant/string:value="q") OUT -> KEY location_param(UrlParam)
+location_query OUT -> VALUE location_param
+location_param OUT -> PARAM url
+location_param OUT -> CREATE url
+
+#Request
+url OUT -> URL get_json(http-client/get-json:content_type="application/json")
+url OUT -> GET get_json
+
+#Parse results
+get_json OBJECT -> IN result(json/object-get-path:path="$.query.results.channel.item")
+
+result OBJECT -> IN _(json/object-get-path:path="$.condition.temp") STRING -> IN _(converter/string-to-float) OUT -> FAHRENHEIT temp_avg(temperature/converter)
+result OBJECT -> IN _(json/object-get-path:path="$.forecast[0].low") STRING -> IN _(converter/string-to-float) OUT -> FAHRENHEIT temp_low(temperature/converter)
+result OBJECT -> IN _(json/object-get-path:path="$.forecast[0].high") STRING -> IN _(converter/string-to-float) OUT -> FAHRENHEIT temp_high(temperature/converter)

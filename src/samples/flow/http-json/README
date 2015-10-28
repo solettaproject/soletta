@@ -1,0 +1,20 @@
+This directory contains a sample to illustrate a simple usage of a web service
+providing information in JSON format.
+
+The sample uses node location/freegeoip to get information about users
+location and then uses 3 different weather providers to retrieve weather
+information from user's city.
+
+To run the sample, you need to have in hands the OpenWeatherMap and Temboo
+credentials.
+OpenWeatherMap AppID can be obtained in openweathermap website
+(http://openweathermap.org/api).
+Temboo Username, AppName and AppID can be obtained in Temboo website
+(http://www.temboo.com/). Registering at Temboo website will be needed.
+
+Then run:
+
+$ sol-fbp-runner weather_from_location.fbp OpenWeatherMap_AppID Temboo_Username
+Temboo_AppName Temboo_AppID
+
+Weather information from current location will be printed in console.

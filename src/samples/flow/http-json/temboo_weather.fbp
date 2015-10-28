@@ -1,0 +1,91 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+DECLARE=UrlParam:composed-new:KEY(string)|VALUE(string)
+DECLARE=ArrayParam:composed-new:KEY(string)|VALUE(json-array)
+
+INPORT=Username.IN[0]:USERNAME
+INPORT=url.USER:APP_NAME
+INPORT=url.PASSWORD:APPID
+INPORT=value.VALUE:LOCATION
+OUTPORT=temp_avg.CELSIUS:TEMP_AVG
+OUTPORT=temp_low.CELSIUS:TEMP_LOW
+OUTPORT=temp_high.CELSIUS:TEMP_HIGH
+
+#Build url and request parameters
+url(http-client/create-url:base_uri="https://temboolive.com/temboo-api/1.0/choreos/Library/Labs/GetWeather/ByAddress")
+Username(switcher/string) OUT[0] -> IN[0] server(string/concatenate)
+_(constant/string:value=".temboolive.com") OUT -> IN[1] server
+
+server OUT -> SERVER url
+server OUT -> CREATE url
+
+temboo_request(http-client/request:method="POST") ERROR -> IN error(console)
+url OUT -> URL temboo_request
+
+_(constant/string:value="x-temboo-domain") OUT -> KEY temboo_domain_param(UrlParam)
+_(constant/string:value="/") OUT -> IN[0] temboo_domain(string/concatenate)
+Username OUT[0] -> IN[1] temboo_domain
+_(constant/string:value="/master") OUT -> IN[2] temboo_domain
+temboo_domain OUT -> VALUE temboo_domain_param
+temboo_domain_param OUT -> PARAM_HEADER temboo_request
+
+#Forcing content-type in header to bypass a bug in http-client.
+_(constant/string:value="Content-Type") OUT -> KEY content_type_param(UrlParam)
+_(constant/string:value="application/json") OUT -> VALUE content_type_param
+content_type_param OUT -> PARAM_HEADER temboo_request
+_(constant/string:value="application/json") OUT -> CONTENT_TYPE temboo_request
+
+#Create request JSON
+json_input(json/create-object)
+name(UrlParam) OUT -> STRING json_input
+_(constant/string:value="name") OUT -> KEY name
+_(constant/string:value="Address") OUT -> VALUE name
+value(UrlParam) OUT -> STRING json_input
+_(constant/string:value="value") OUT -> KEY value
+value OUT -> CREATE json_input
+json_input OUT -> OBJECT inputs_array(json/create-array)
+json_input OUT -> CREATE inputs_array
+_(constant/string:value="inputs") OUT -> KEY inputs_field(ArrayParam)
+inputs_array OUT -> VALUE inputs_field
+inputs_field OUT -> ARRAY json_request(json/create-object)
+inputs_field OUT -> CREATE json_request
+json_request OUT -> IN blob(converter/json-object-to-blob) OUT -> CONTENT temboo_request
+
+#Trigger request
+blob OUT -> TRIGGER temboo_request
+
+#Parse results
+temboo_request OUT -> IN _(http-client/get-content) OUT -> IN result(converter/blob-to-json-object)
+
+result OUT -> IN _(json/object-get-path:path="$.output.Response") STRING -> IN temboo_content(converter/string-to-json-object)
+temboo_content OUT -> IN _(json/object-get-path:path="$.temperature") STRING -> IN _(converter/string-to-float) OUT -> FAHRENHEIT temp_avg(temperature/converter)
+temboo_content OUT -> IN _(json/object-get-path:path="$.low") STRING -> IN _(converter/string-to-float) OUT -> FAHRENHEIT temp_low(temperature/converter)
+temboo_content OUT -> IN _(json/object-get-path:path="$.high") STRING -> IN _(converter/string-to-float) OUT -> FAHRENHEIT temp_high(temperature/converter)
