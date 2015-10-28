@@ -373,7 +373,8 @@ string_b16decode(struct sol_flow_node *node,
     slice = sol_str_slice_from_str(in_value);
 
     sol_buffer_init(&buf);
-    r = sol_buffer_append_from_base16(&buf, slice, mdata->uppercase);
+    r = sol_buffer_append_from_base16(&buf, slice,
+        mdata->uppercase ? SOL_DECODE_UPERCASE : SOL_DECODE_LOWERCASE);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
     output = sol_buffer_steal(&buf, &outputlen);

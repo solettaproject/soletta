@@ -36,6 +36,7 @@
 #include "sol-macros.h"
 #include "sol-str-slice.h"
 #include "sol-vector.h"
+#include "sol-buffer.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -546,12 +547,14 @@ ssize_t sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_sl
  *        slice.len / 2.
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
- *        lowercase abcdef are used instead.
+ * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
+ *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
+ *        used.
  *
  * @return the number of bytes written or -errno if failed.
  */
-ssize_t sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase);
+ssize_t sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, enum sol_decode_case decode_case);
 
 static inline ssize_t
 sol_util_base16_calculate_encoded_len(const struct sol_str_slice slice)
