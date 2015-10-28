@@ -36,6 +36,7 @@
 #include "sol-macros.h"
 #include "sol-str-slice.h"
 #include "sol-vector.h"
+#include "sol-buffer.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -546,12 +547,43 @@ ssize_t sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_sl
  *        slice.len / 2.
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
- *        lowercase abcdef are used instead.
+ * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
+ *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
+ *        used.
  *
  * @return the number of bytes written or -errno if failed.
  */
-ssize_t sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase);
+ssize_t sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, enum sol_decode_case decode_case);
+
+/**
+ * Convert from unicode code to utf-8 string.
+ *
+ * Write at string buf the bytes needed to represent the unicode charater
+ * informed as utf-8. One to four characters will be written on success. No
+ * character is written on error.
+ *
+ * @note @b no trailing null '\0' is added!
+ *
+ * @param buf Buffer to write the utf-8 representation of the unicode character
+ * @param buf_len The buffer length
+ * @param unicode_code Code from unicode table of the character to be converted
+ *
+ * @return The number of bytes written in 'buf' or a negative number on error.
+ */
+int8_t sol_util_utf8_from_unicode_code(uint8_t *buf, size_t buf_len, uint32_t unicode_code);
+
+/**
+ * Convert a utf-8 character to unicode code.
+ *
+ * @param buf Buffer with the utf-8 representation of the unicode character.
+ * @param buf_len The buffer length
+ * @param bytes_read Optional pointer to variable to write number of bytes read
+ * from buf.
+ *
+ * @return The code from unicode table of the character in 'buf' or a negative number on error.
+ */
+int32_t sol_util_unicode_code_from_utf8(uint8_t *buf, size_t buf_len, uint8_t *bytes_read);
 
 static inline ssize_t
 sol_util_base16_calculate_encoded_len(const struct sol_str_slice slice)

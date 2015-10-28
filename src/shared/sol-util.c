@@ -531,22 +531,24 @@ sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slic
 }
 
 static inline uint8_t
-base16_decode_digit(const char digit, const char a, const char f)
+base16_decode_digit(const char digit, const char a, const char f, const char A, const char F)
 {
     if (likely('0' <= digit && digit <= '9'))
         return digit - '0';
     else if (a <= digit && digit <= f)
         return 10 + (digit - a);
+    else if (A != a && A <= digit && digit <= F)
+        return 10 + (digit - A);
     else
         return UINT8_MAX;
 }
 
 SOL_API ssize_t
-sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase)
+sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, enum sol_decode_case decode_case)
 {
     uint8_t *output;
     const char *input;
-    char a, f;
+    char a, f, A, F;
     size_t i, o, req_len;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -560,14 +562,16 @@ sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slic
 
     input = slice.data;
     output = buf;
-    a = uppercase ? 'A' : 'a';
+    a = decode_case == SOL_DECODE_UPERCASE ? 'A' : 'a';
     f = a + 5;
+    A = decode_case == SOL_DECODE_BOTH ? 'A' : a;
+    F = A + 5;
 
     for (i = 0, o = 0; i + 2 <= slice.len; i += 2) {
         uint8_t n, b = 0;
         for (n = 0; n < 2; n++) {
             const uint8_t c = input[i + n];
-            uint8_t nibble = base16_decode_digit(c, a, f);
+            uint8_t nibble = base16_decode_digit(c, a, f, A, F);
             if (unlikely(nibble == UINT8_MAX)) {
                 SOL_WRN("Invalid base16 char %c, index: %zd", c, i + n);
                 return -EINVAL;
@@ -583,4 +587,102 @@ sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slic
     SOL_INT_CHECK(i, != slice.len, -EINVAL);
 
     return o;
+}
+
+SOL_API int8_t
+sol_util_utf8_from_unicode_code(uint8_t *buf, size_t buf_len, uint32_t unicode_code)
+{
+    uint8_t b;
+    uint8_t len = 0;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_INT_CHECK(buf_len, == 0, -EINVAL);
+
+    if (unicode_code > 0x10FFFF)
+        return -EINVAL;
+
+    if (unicode_code < 0x80) {
+        //Just one byte
+        b = unicode_code & 0xFF;
+        buf[len++] = b;
+    } else if (unicode_code >= 0x0800) {
+        if (unicode_code > 0xFFFF) {
+            //Four bytes
+            if (buf_len < 4)
+                return -EINVAL;
+            buf[len++] = 0xF0;
+            buf[len++] = 0x90;
+        } else {
+            //Three bytes
+            if (buf_len < 3)
+                return -EINVAL;
+            b = 0xe0;
+            b |= (unicode_code & 0xF000) >> 12;
+            buf[len++] = b;
+        }
+
+        b = 0x80;
+        b |= (unicode_code & 0x0F00) >> 6;
+        b |= (unicode_code & 0xC0) >> 6;
+        buf[len++] = b;
+
+        b = 0x80;
+        b |= (unicode_code & 0x3F);
+        buf[len++] = b;
+    } else {
+        //Two bytes
+        if (buf_len < 2)
+            return -EINVAL;
+        b = 0xc0;
+        b |= (unicode_code & 0x700) >> 6;
+        b |= ((0xC0 & unicode_code) >> 6);
+        buf[len++] = b;
+
+        b = 0x80 | (unicode_code & 0x3F);
+        buf[len++] = b;
+    }
+
+    return len;
+}
+
+SOL_API int32_t
+sol_util_unicode_code_from_utf8(uint8_t *buf, size_t buf_len, uint8_t *bytes_read)
+{
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_INT_CHECK(buf_len, == 0, -EINVAL);
+
+    if (buf[0] < 0x80) {
+        if (bytes_read)
+            *bytes_read = 1;
+        return buf[0];
+    }
+
+    if (buf[0] < 0xE0) {
+        if (buf_len < 2)
+            goto error;
+        if (bytes_read)
+            *bytes_read = 2;
+        return ((buf[0] & 0x1F) << 6) | (buf[1] & 0x3F);
+    }
+
+    if (buf[0] < 0xF0) {
+        if (buf_len < 3)
+            goto error;
+        if (bytes_read)
+            *bytes_read = 3;
+        return ((buf[0] & 0x0F) << 12) | ((buf[1] & 0x3F) << 6) |
+               (buf[2] & 0x3F);
+    }
+
+    if (buf[0] == 0xF0 && buf[1] == 0x90) {
+        if (buf_len < 4)
+            goto error;
+        if (bytes_read)
+            *bytes_read = 4;
+        return 0x10000 | ((buf[2] & 0x3F) << 6) | (buf[3] & 0x3F);
+    }
+
+error:
+    SOL_WRN("Invalid unicode character in buffer");
+    return -EINVAL;
 }
