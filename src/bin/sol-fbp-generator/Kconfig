@@ -1,4 +1,4 @@
 config FBP_GENERATOR
 	bool "fbp generator"
-	depends on FLOW
+	depends on FLOW_SUPPORT
 	default y
