@@ -98,6 +98,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             if (errno != 0) goto err;                                   \
             field_cnt++;                                                \
             *end = backup;                                              \
+            start = NULL; \
             if (backup == '\0') break;                                  \
             start = end + 1;                                            \
             if (!start) break;                                          \
@@ -106,6 +107,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             backup = *end;                                              \
             *end = '\0';                                                \
         }                                                               \
+        if (start) goto err; \
     } while (0)
 
 #define ASSIGN_KEY_VAL(_type, _key, _parse_func, _only_not_negative, \
