@@ -28,9 +28,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-XFloat(constant/float:value=20|0|100|1)
-YFloat(constant/float:value=40|0|100|1)
-ZFloat(constant/float:value=70|0|100|1)
+XFloat(constant/float:value=20,value_spec=0|100|1)
+YFloat(constant/float:value=40,value_spec=0|100|1)
+ZFloat(constant/float:value=70,value_spec=0|100|1)
 float_to_direction_vector(converter/float-to-direction-vector:out_range=0|200|1)
 
 XFloat OUT -> X float_to_direction_vector

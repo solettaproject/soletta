@@ -224,7 +224,6 @@ static void
 option_description_fini(struct option_description *o)
 {
     struct option_direction_vector_value *direction_vector;
-    struct option_range_value *range;
     struct option_spec_range_value *spec_range;
     struct option_rgb_value *rgb;
 
@@ -234,13 +233,6 @@ option_description_fini(struct option_description *o)
     switch (o->default_value_type) {
     case OPTION_VALUE_TYPE_STRING:
         free(o->default_value.string);
-        break;
-    case OPTION_VALUE_TYPE_RANGE:
-        range = &o->default_value.range;
-        free(range->val);
-        free(range->min);
-        free(range->max);
-        free(range->step);
         break;
     case OPTION_VALUE_TYPE_SPEC_RANGE:
         spec_range = &o->default_value.spec_range;
@@ -429,40 +421,6 @@ get_value(struct sol_json_token *value, char **value_data, struct sol_json_token
 }
 
 static bool
-parse_range_default_value(struct sol_json_scanner *s, struct option_description *o)
-{
-    struct option_range_value *range;
-    struct sol_json_token tmp, key, value;
-    struct sol_str_slice key_slice;
-    enum sol_json_loop_reason reason;
-    char *value_data;
-
-    range = &o->default_value.range;
-    memset(range, 0, sizeof(struct option_range_value));
-
-    SOL_JSON_SCANNER_OBJECT_LOOP (s, &tmp, &key, &value, reason) {
-        if (!get_value(&value, &value_data, &key, &key_slice))
-            return false;
-
-        if (sol_str_slice_eq(key_slice, VAL_SLICE))
-            range->val = value_data;
-        else if (sol_str_slice_eq(key_slice, MIN_SLICE))
-            range->min = value_data;
-        else if (sol_str_slice_eq(key_slice, MAX_SLICE))
-            range->max = value_data;
-        else if (sol_str_slice_eq(key_slice, STEP_SLICE))
-            range->step = value_data;
-        else
-            free(value_data);
-
-        if (reason != SOL_JSON_LOOP_REASON_OK)
-            return false;
-    }
-
-    return true;
-}
-
-static bool
 parse_spec_range_default_value(struct sol_json_scanner *s, struct option_description *o)
 {
     struct option_spec_range_value *spec_range;
@@ -610,11 +568,6 @@ parse_default_value(struct option_description *o)
     /* Use a new scanner to parse the value, to not disrupt our main
      * scanner state. */
     sol_json_scanner_init_from_token(&value_scanner, &o->default_value.token);
-
-    if (streq(o->data_type, "irange") || streq(o->data_type, "drange")) {
-        o->default_value_type = OPTION_VALUE_TYPE_RANGE;
-        return parse_range_default_value(&value_scanner, o);
-    }
 
     if (streq(o->data_type, "drange-spec") ||
         streq(o->data_type, "irange-spec")) {
@@ -1026,7 +979,6 @@ type_description_print(struct type_description *desc)
     if (desc->options.len > 0)
         printf("options\n");
     SOL_VECTOR_FOREACH_IDX (&desc->options, o, i) {
-        struct option_range_value *range;
         struct option_spec_range_value *spec_range;
         struct option_rgb_value *rgb;
         struct option_direction_vector_value *direction_vector;
@@ -1036,11 +988,6 @@ type_description_print(struct type_description *desc)
         switch (o->default_value_type) {
         case OPTION_VALUE_TYPE_STRING:
             printf(", default=%s)\n", o->default_value.string);
-            break;
-        case OPTION_VALUE_TYPE_RANGE:
-            range = &o->default_value.range;
-            printf(", default val=%s  min=%s  max=%s  step=%s)\n",
-                range->val, range->min, range->max, range->step);
             break;
         case OPTION_VALUE_TYPE_SPEC_RANGE:
             spec_range = &o->default_value.spec_range;
@@ -1100,9 +1047,6 @@ type_store_copy_option_description(struct option_description *dst,
         else
             dst->default_value.string = strdup("NULL");
         SOL_NULL_CHECK_GOTO(dst->default_value.string, fail_string);
-        break;
-    case OPTION_VALUE_TYPE_RANGE:
-        dst->default_value.range = src->default_value.range;
         break;
     case OPTION_VALUE_TYPE_SPEC_RANGE:
         dst->default_value.spec_range = src->default_value.spec_range;

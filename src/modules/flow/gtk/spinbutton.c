@@ -53,7 +53,8 @@ on_spinbutton_changed(GtkSpinButton *spin, gpointer data)
 static int
 spinbutton_setup(struct gtk_common_data *data, const struct sol_flow_node_options *options)
 {
-    struct sol_irange range;
+    struct sol_irange_spec range;
+    int32_t value;
 
     struct gtk_common_data *mdata = (struct gtk_common_data *)data;
     const struct sol_flow_node_type_gtk_spinbutton_options *opts =
@@ -63,6 +64,7 @@ spinbutton_setup(struct gtk_common_data *data, const struct sol_flow_node_option
         return -EINVAL;
 
     range = opts->range;
+    value = opts->value;
 
     if (range.min > range.max) {
         SOL_WRN("invalid range min=%d max=%d for spinbutton id=%s\n",
@@ -70,9 +72,9 @@ spinbutton_setup(struct gtk_common_data *data, const struct sol_flow_node_option
         return -EINVAL;
     }
 
-    if (range.val < range.min || range.val > range.max) {
+    if (value < range.min || value > range.max) {
         SOL_WRN("invalid value min=%d max=%d val=%d for spinbutton id=%s\n",
-            range.min, range.max, range.val, sol_flow_node_get_id(mdata->node));
+            range.min, range.max, value, sol_flow_node_get_id(mdata->node));
         return -EINVAL;
     }
 
@@ -86,7 +88,7 @@ spinbutton_setup(struct gtk_common_data *data, const struct sol_flow_node_option
     g_signal_connect(mdata->widget, "value-changed", G_CALLBACK(on_spinbutton_changed), mdata);
     g_object_set(mdata->widget, "hexpand", true, NULL);
 
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(mdata->widget), range.val);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(mdata->widget), value);
 
     return 0;
 }

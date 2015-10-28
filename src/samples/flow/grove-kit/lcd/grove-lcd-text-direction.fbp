@@ -43,7 +43,7 @@ timer(timer:interval=1000)
 lcd(LCDChar:underline_cursor=true)
 
 # 'a' to 'z'
-chars(int/accumulator:setup_value=val:97|min:97|max:122|step:1)
+chars(int/accumulator:initial_value=97,setup_value=min:97|max:122|step:1)
 chars OUT -> IN to_byte(converter/int-to-byte)
 
 chars OUT -> IN[0] comp_m(int/equal)

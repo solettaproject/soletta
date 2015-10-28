@@ -142,10 +142,20 @@
             "name": "storage"
           },
           {
-            "data_type": "drange",
+            "data_type": "float",
             "default": 0.0,
             "description": "Default value for this node, when there's no previous value persisted",
             "name": "default_value"
+          },
+          {
+            "data_type": "drange-spec",
+            "default": {
+              "min": "-DBL_MAX",
+              "max": "DBL_MAX",
+              "step": "DBL_MIN"
+            },
+            "description": "Default range for this node, when there's no previous value persisted",
+            "name": "default_value_spec"
           },
           {
             "data_type": "boolean",
@@ -205,10 +215,20 @@
             "name": "storage"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "Default value for this node, when there's no previous value persisted",
             "name": "default_value"
+          },
+          {
+            "data_type": "irange-spec",
+            "default": {
+              "min": "INT32_MIN",
+              "max": "INT32_MAX",
+              "step": 1
+            },
+            "description": "Default range for this node, when there's no previous value persisted",
+            "name": "default_value_spec"
           },
           {
             "data_type": "boolean",

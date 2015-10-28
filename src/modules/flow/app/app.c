@@ -70,11 +70,11 @@ argv_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opt
         -EINVAL);
     opts = (const struct sol_flow_node_type_app_argv_options *)options;
 
-    r = check_index(node, opts->index.val);
+    r = check_index(node, opts->index);
     SOL_INT_CHECK(r, < 0, r);
 
     return sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_APP_ARGV__OUT__OUT, sol_argv()[opts->index.val]);
+        SOL_FLOW_NODE_TYPE_APP_ARGV__OUT__OUT, sol_argv()[opts->index]);
 }
 
 static int

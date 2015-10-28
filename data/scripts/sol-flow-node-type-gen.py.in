@@ -252,11 +252,9 @@ def c_clean(string):
 data_type_to_c_map = {
     "boolean": "bool",
     "byte": "unsigned char",
-    "drange": "struct sol_drange",
     "drange-spec": "struct sol_drange_spec",
     "float": "double",
     "int": "int32_t",
-    "irange": "struct sol_irange",
     "irange-spec": "struct sol_irange_spec",
     "rgb": "struct sol_rgb",
     "direction-vector": "struct sol_direction_vector",
@@ -270,11 +268,9 @@ def data_type_to_c(typename):
 data_type_to_default_member_map = {
     "boolean": "b",
     "byte": "byte",
-    "drange": "drange",
     "drange-spec": "drange_spec",
     "float": "f",
     "int": "i",
-    "irange": "irange",
     "irange-spec": "irange_spec",
     "string": "s",
     "rgb": "rgb",
@@ -283,9 +279,6 @@ data_type_to_default_member_map = {
 composed_types_signatures = {}
 
 def data_type_to_default_member(typename):
-    if (typename in ["drange", "irange"]):
-        sys.stderr.write("Warning: using deprecated option type \"%s\"\n" %
-                         typename)
     return data_type_to_default_member_map.get(typename, "ptr")
 
 data_type_to_packet_type_map = {
@@ -352,24 +345,10 @@ def expand_value(value, data_type):
         value.setdefault("red_max", 255)
         value.setdefault("green_max", 255)
         value.setdefault("blue_max", 255)
-    elif data_type == "irange":
-        if isinstance(value, int):
-            value = {"val": value}
-        value.setdefault("val", 0)
-        value.setdefault("step", 1)
-        value.setdefault("min", "INT32_MIN")
-        value.setdefault("max", "INT32_MAX")
     elif data_type == "irange-spec":
         value.setdefault("step", 1)
         value.setdefault("min", "INT32_MIN")
         value.setdefault("max", "INT32_MAX")
-    elif data_type == "drange":
-        if isinstance(value, (float, int)):
-            value = {"val": float(value)}
-        value.setdefault("val", 0.0)
-        value.setdefault("step", "DBL_MIN")
-        value.setdefault("min", "-DBL_MAX")
-        value.setdefault("max", "DBL_MAX")
     elif data_type == "drange-spec":
         value.setdefault("step", "DBL_MIN")
         value.setdefault("min", "-DBL_MAX")
@@ -388,8 +367,7 @@ def value_to_c(value, data_type):
         return str_to_c_or_null(value)
     elif data_type == "boolean":
         return bool_to_c(value)
-    elif data_type in ("rgb", "direction-vector", "irange", "irange-spec",
-        "drange", "drange-spec"):
+    elif data_type in ("rgb", "direction-vector", "irange-spec", "drange-spec"):
         return json_to_c_struct(value)
     else:
         return "%s" % (value)

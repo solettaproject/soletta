@@ -32,7 +32,7 @@
 # Uses a timer to loop an accumulator from 0 to 15 and display using
 # Intel MinnowBoard's Calamari Lure 7-segment display.
 
-accumulator(int/accumulator:setup_value=val:0|min:0|max:15|step:1)
+accumulator(int/accumulator:setup_value=min:0|max:15|step:1)
 
 timer(wallclock/second) OUT -> INC accumulator
 accumulator OUT -> VALUE seg(SevenSegments)

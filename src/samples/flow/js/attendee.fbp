@@ -43,11 +43,11 @@ DECLARE=MyAttendee:js:attendee.js
 _(constant/int:value=999) OUT -> IN[0] common_eq(int/equal)
 _(constant/int:value=99) OUT -> IN[0] preferential_eq(int/equal)
 
-common_btn(gtk/pushbutton) OUT -> IN _(boolean/filter) TRUE -> INC common_acc(int/accumulator:setup_value=val:100|min:100|max:999|step:1)
+common_btn(gtk/pushbutton) OUT -> IN _(boolean/filter) TRUE -> INC common_acc(int/accumulator:initial_value=100,setup_value=min:100|max:999|step:1)
 common_acc OUT -> IN[1] common_eq OUT -> IN _(boolean/filter) TRUE -> INC common_acc
 common_acc OUT -> IN _(int/filter:min=101) OUT -> IN_COMMON attendee(MyAttendee) OUT_COMMON -> IN common_out(gtk/label)
 
-preferential_btn(gtk/pushbutton) OUT -> IN _(boolean/filter) TRUE -> INC preferential_acc(int/accumulator:setup_value=val:0|min:0|max:99|step:1)
+preferential_btn(gtk/pushbutton) OUT -> IN _(boolean/filter) TRUE -> INC preferential_acc(int/accumulator:setup_value=min:0|max:99|step:1)
 preferential_acc OUT -> IN[1] preferential_eq OUT -> IN _(boolean/filter) TRUE -> INC preferential_acc
 preferential_acc OUT -> IN _(int/filter:min=1) OUT -> IN_PREFERENTIAL attendee OUT_PREFERENTIAL -> IN preferential_out(gtk/label)
 

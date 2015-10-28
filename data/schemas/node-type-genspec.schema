@@ -62,11 +62,9 @@
         "boolean",
         "byte",
         "direction-vector",
-        "drange",
         "drange-spec",
         "float",
         "int",
-        "irange",
         "irange-spec",
         "rgb",
         "string"
@@ -201,27 +199,6 @@
       }
     },
 
-    "options_members_irange": {
-      "properties": {
-        "data_type": { "enum": [ "irange" ] },
-        "default": {
-          "oneOf": [
-            { "$ref": "#/definitions/int_or_limit" },
-            {
-              "type": "object",
-              "properties": {
-                "val": { "$ref": "#/definitions/int_or_limit" },
-                "min": { "$ref": "#/definitions/int_or_limit" },
-                "max": { "$ref": "#/definitions/int_or_limit" },
-                "step": { "$ref": "#/definitions/int_or_limit" }
-              },
-              "additionalProperties": false
-            }
-          ]
-        }
-      }
-    },
-
     "options_members_irange_spec": {
       "properties": {
         "data_type": { "enum": [ "irange-spec" ] },
@@ -245,27 +222,6 @@
       "properties": {
         "data_type": { "enum": [ "int" ] },
         "default": { "$ref": "#/definitions/int_or_limit" }
-      }
-    },
-
-    "options_members_drange": {
-      "properties": {
-        "data_type": { "enum": [ "drange" ] },
-        "default": {
-          "oneOf": [
-            { "$ref": "#/definitions/float_or_limit" },
-            {
-              "type": "object",
-              "properties": {
-                "val": { "$ref": "#/definitions/float_or_limit" },
-                "min": { "$ref": "#/definitions/float_or_limit" },
-                "max": { "$ref": "#/definitions/float_or_limit" },
-                "step": { "$ref": "#/definitions/float_or_limit" }
-              },
-              "additionalProperties": false
-            }
-          ]
-        }
       }
     },
 
@@ -375,11 +331,9 @@
             { "$ref": "#/definitions/options_members_byte" },
             { "$ref": "#/definitions/options_members_custom" },
             { "$ref": "#/definitions/options_members_direction_vector" },
-            { "$ref": "#/definitions/options_members_drange" },
             { "$ref": "#/definitions/options_members_drange_spec" },
             { "$ref": "#/definitions/options_members_float" },
             { "$ref": "#/definitions/options_members_int" },
-            { "$ref": "#/definitions/options_members_irange" },
             { "$ref": "#/definitions/options_members_irange_spec" },
             { "$ref": "#/definitions/options_members_rgb" },
             { "$ref": "#/definitions/options_members_string" }

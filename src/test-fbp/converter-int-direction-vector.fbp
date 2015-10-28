@@ -28,9 +28,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-XInt(constant/int:value=20|0|100|1)
-YInt(constant/int:value=40|0|100|1)
-ZInt(constant/int:value=70|0|100|1)
+XInt(constant/int:value=20,value_spec=0|100|1)
+YInt(constant/int:value=40,value_spec=0|100|1)
+ZInt(constant/int:value=70,value_spec=0|100|1)
 int_to_direction_vector(converter/int-to-direction-vector:out_range=0|200|1)
 
 XInt OUT -> X int_to_direction_vector

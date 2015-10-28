@@ -48,7 +48,7 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Argument position.",
             "name": "index"
           }

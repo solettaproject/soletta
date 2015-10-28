@@ -121,11 +121,11 @@ value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_i
 
 #define OPEN_GPIO(_pin, _option) \
     do { \
-        mdata->gpio[_pin] = sol_gpio_open(opts->pin_ ## _option.val, \
+        mdata->gpio[_pin] = sol_gpio_open(opts->pin_ ## _option, \
             &gpio_conf); \
         if (!mdata->gpio[_pin]) { \
             SOL_WRN("could not open gpio #%" PRId32, \
-                opts->pin_ ## _option.val); \
+                opts->pin_ ## _option); \
             goto port_error; \
         } \
     } while (0)

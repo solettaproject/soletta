@@ -28,9 +28,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-RedFloat(constant/float:value=20|0|100|1)
-GreenFloat(constant/float:value=40|0|100|1)
-BlueFloat(constant/float:value=70|0|100|1)
+RedFloat(constant/float:value=20,value_spec=0|100|1)
+GreenFloat(constant/float:value=40,value_spec=0|100|1)
+BlueFloat(constant/float:value=70,value_spec=0|100|1)
 float_to_rgb(converter/float-to-rgb:red_max=100,green_max=200,blue_max=50)
 
 RedFloat OUT -> RED float_to_rgb

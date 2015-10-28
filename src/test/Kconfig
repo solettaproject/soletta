@@ -23,7 +23,7 @@ config TEST_FBP_SCANNER
 
 config TEST_FLOW
 	bool "flow"
-	depends on FLOW_SUPPORT
+	depends on FLOW_SUPPORT && FLOW_NODE_TYPE_INT && FLOW_NODE_TYPE_TIMER
 	default y
 
 config TEST_FLOW_BUILDER
