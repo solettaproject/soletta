@@ -229,6 +229,40 @@ common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
 }
 
 static int
+int_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    int r;
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_server_int_options *opts =
+        (struct sol_flow_node_type_http_server_int_options *)options;
+
+    r = start_server(mdata, node, opts->path);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_irange_compose(&opts->value_spec, opts->value, &mdata->value.i);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+float_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    int r;
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_server_float_options *opts =
+        (struct sol_flow_node_type_http_server_float_options *)options;
+
+    r = start_server(mdata, node, opts->path);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_drange_compose(&opts->value_spec, opts->value, &mdata->value.d);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
 common_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
     const struct sol_flow_packet *packet)
 {

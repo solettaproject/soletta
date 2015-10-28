@@ -128,10 +128,15 @@ accumulator_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     struct accumulator_data *mdata = data;
     const struct sol_flow_node_type_int_accumulator_options *opts =
         (const struct sol_flow_node_type_int_accumulator_options *)options;
+    int r;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
-        (options, SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR_OPTIONS_API_VERSION, -EINVAL);
-    mdata->val = opts->setup_value;
+        (options, SOL_FLOW_NODE_TYPE_INT_ACCUMULATOR_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    r = sol_irange_compose(&opts->setup_value, opts->initial_value,
+        &mdata->val);
+    SOL_INT_CHECK(r, < 0, r);
 
     // Sanitizing options input
     if (mdata->val.max < mdata->val.min) {
@@ -158,7 +163,7 @@ accumulator_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
             mdata->val.step, mdata->val.step);
     }
 
-    mdata->init_val = opts->setup_value.val;
+    mdata->init_val = opts->initial_value;
 
     if (opts->send_initial_packet)
         return sol_flow_send_irange_packet(node,
@@ -348,14 +353,14 @@ int_filter_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_INT_FILTER_OPTIONS_API_VERSION, -EINVAL);
 
     opts = (const struct sol_flow_node_type_int_filter_options *)options;
-    if (opts->max.val >= opts->min.val) {
-        mdata->min = opts->min.val;
-        mdata->max = opts->max.val;
+    if (opts->max >= opts->min) {
+        mdata->min = opts->min;
+        mdata->max = opts->max;
     } else {
         SOL_DBG("min (%" PRId32 ") should be smaller than max (%" PRId32 ").",
-            opts->min.val, opts->max.val);
-        mdata->min = opts->max.val;
-        mdata->max = opts->min.val;
+            opts->min, opts->max);
+        mdata->min = opts->max;
+        mdata->max = opts->min;
     }
     mdata->range_override = opts->range_override;
 
@@ -502,7 +507,7 @@ multiple_operator_process(struct sol_flow_node *node, void *data, uint16_t port,
 // =============================================================================
 
 struct irange_constrain_data {
-    struct sol_irange val;
+    struct sol_irange_spec range;
     bool use_input_range : 1;
 };
 
@@ -513,7 +518,7 @@ irange_constrain_open(struct sol_flow_node *node, void *data, const struct sol_f
     const struct sol_flow_node_type_int_constrain_options *opts;
 
     opts = (const struct sol_flow_node_type_int_constrain_options *)options;
-    mdata->val = opts->range;
+    mdata->range = opts->range;
     mdata->use_input_range = opts->use_input_range;
 
     return 0;
@@ -539,17 +544,16 @@ irange_constrain_process(struct sol_flow_node *node, void *data, uint16_t port, 
     SOL_INT_CHECK(r, < 0, r);
 
     if (!mdata->use_input_range) {
-        value.min = mdata->val.min;
-        value.max = mdata->val.max;
-        value.step = mdata->val.step;
+        value.min = mdata->range.min;
+        value.max = mdata->range.max;
+        value.step = mdata->range.step;
     }
 
     irange_constrain(&value);
-    mdata->val = value;
 
     return sol_flow_send_irange_packet(node,
         SOL_FLOW_NODE_TYPE_INT_CONSTRAIN__OUT__OUT,
-        &mdata->val);
+        &value);
 }
 
 // =============================================================================
@@ -764,17 +768,17 @@ irange_buffer_open(struct sol_flow_node *node, void *data,
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK
         (options, SOL_FLOW_NODE_TYPE_INT_BUFFER_OPTIONS_API_VERSION, -EINVAL);
 
-    mdata->n_samples = opts->samples.val;
-    if (opts->samples.val <= 0) {
+    mdata->n_samples = opts->samples;
+    if (opts->samples <= 0) {
         SOL_WRN("Invalid samples (%" PRId32 "). Must be positive. "
-            "Set to %" PRId32 ".", opts->samples.val, def_opts->samples.val);
-        mdata->n_samples = def_opts->samples.val;
+            "Set to %" PRId32 ".", opts->samples, def_opts->samples);
+        mdata->n_samples = def_opts->samples;
     }
 
-    mdata->timeout = opts->timeout.val;
-    if (opts->timeout.val < 0) {
+    mdata->timeout = opts->timeout;
+    if (opts->timeout < 0) {
         SOL_WRN("Invalid timeout (%" PRId32 "). Must be non negative."
-            "Set to 0.", opts->timeout.val);
+            "Set to 0.", opts->timeout);
         mdata->timeout = 0;
     }
 
@@ -981,8 +985,8 @@ comparison_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 
 
 struct irange_map_data {
-    struct sol_irange input;
-    struct sol_irange output;
+    struct sol_irange_spec input;
+    struct sol_irange_spec output;
     struct sol_irange output_value;
     bool use_input_range : 1;
 };

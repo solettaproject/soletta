@@ -734,10 +734,8 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
-            "default": {
-              "val": 1
-            },
+            "data_type": "int",
+            "default": 1,
             "description": "In how many function iterations (ticks) it should go from max to min values. The value must be greater than or equal to 1 (which means go from max to min instantly). With this value, the node will calculate the 'increasing step' of the function for you.",
             "name": "ticks_inc"
           },
@@ -747,10 +745,8 @@
             "name": "max"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "val": 1
-            },
+            "data_type": "int",
+            "default": 1,
             "description": "In how many function iterations (ticks) it should go from min to max values. The value must be greater than or equal to 1 (which means go from min to max instantly). With this value, the node will calculate the 'increasing step' of the function for you.",
             "name": "ticks_dec"
           },
@@ -760,26 +756,20 @@
             "name": "min"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "The starting point of the wave, in ticks (must be greater or equal to 0). Zero means to start at min value, when no ticks have happened yet. Use this to shift the starting point and overwrite the default behavior.",
             "name": "tick_start"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "The number of (extra) input ticks the wave will hold its output at max value when it reaches it. The value must be greater than or equal to 0.",
             "name": "ticks_at_max"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "The number of (extra) input ticks the wave will hold its output at min value when it reaches it. The value must be greater than or equal to 0.",
             "name": "ticks_at_min"
           }
@@ -816,7 +806,7 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "In how many function iterations (ticks) it should go from the starting to the ending value of each function period (AKA function's resolution). The value must be greater than or equal to 1 (which means go from start to end in one step only), but note that waves very small values for this option tend to be useless.",
             "name": "ticks_per_period"
           },
@@ -827,10 +817,8 @@
             "name": "amplitude"
           },
           {
-            "data_type": "irange",
-            "default": {
-              "val": 0
-            },
+            "data_type": "int",
+            "default": 0,
             "description": "The starting point of the wave, in ticks (must be greater or equal to 0). Zero means to start at the beginning of the sive wave, when no ticks have happened yet. Use this to shift the starting point and overwrite the default behavior.",
             "name": "tick_start"
           }

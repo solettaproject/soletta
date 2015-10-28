@@ -69,12 +69,12 @@ max31855_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
         -EINVAL);
     opts = (struct sol_flow_node_type_max31855_temperature_options *)options;
 
-    config.chip_select = opts->chip_select.val;
+    config.chip_select = opts->chip_select;
     config.frequency = 2000000;
     config.bits_per_word = 8;
     config.mode = 0;
 
-    mdata->device = sol_spi_open(opts->bus.val, &config);
+    mdata->device = sol_spi_open(opts->bus, &config);
     mdata->node = node;
     mdata->pending_packets = 0;
 

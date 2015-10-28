@@ -34,7 +34,7 @@ within_range(constant/float:value=15.38)
 float_to_boolean_below(converter/float-to-boolean:true_range=min:10|max:20)
 float_to_boolean_above(converter/float-to-boolean:true_range=min:10|max:20)
 float_to_boolean_within(converter/float-to-boolean)
-true_range(constant/float:value=min:10|max:20) OUT -> TRUE_RANGE float_to_boolean_within
+true_range(constant/float:value_spec=min:10|max:20) OUT -> TRUE_RANGE float_to_boolean_within
 
 boolean_to_float_false(converter/boolean-to-float)
 const_true_value(constant/float:value=117.83) OUT -> TRUE_VALUE boolean_to_float_false

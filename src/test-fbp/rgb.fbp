@@ -29,7 +29,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Color(color/luminance-rgb:color=255|100|0|255|255|255)
-Luminance(constant/int:value=50|0|100|1) OUT -> IN Color
+Luminance(constant/int:value=50,value_spec=0|100|1) OUT -> IN Color
 
 RedByte(constant/byte:value=255) OUT -> RED ColorByte(converter/byte-to-rgb)
 GreenByte(constant/byte:value=100) OUT -> GREEN ColorByte
@@ -44,9 +44,9 @@ _(constant/int:value=255) OUT -> IN[1] cmpRedBytes
 _(constant/int:value=0) OUT -> IN[1] cmpBlueBytes
 _(constant/int:value=100) OUT -> IN[1] cmpGreenBytes
 
-RedFloat(constant/float:value=1|0|1|1) OUT -> RED ColorFloat(converter/float-to-rgb:blue_max=64)
-GreenFloat(constant/float:value=0.5|0|1|1) OUT -> GREEN ColorFloat
-BlueFloat(constant/float:value=100|0|100|1) OUT -> BLUE ColorFloat
+RedFloat(constant/float:value=1,value_spec=0|1|1) OUT -> RED ColorFloat(converter/float-to-rgb:blue_max=64)
+GreenFloat(constant/float:value=0.5,value_spec=0|1|1) OUT -> GREEN ColorFloat
+BlueFloat(constant/float:value=100,value_spec=0|100|1) OUT -> BLUE ColorFloat
 ColorFloat OUT -> IN Floats(converter/rgb-to-int)
 
 Floats RED -> IN[0] cmpRedFloats(int/equal) OUT -> RESULT test_compare_red_float(test/result)
@@ -57,9 +57,9 @@ _(constant/int:value=255) OUT -> IN[1] cmpRedFloats
 _(constant/int:value=64) OUT -> IN[1] cmpBlueFloats
 _(constant/int:value=127) OUT -> IN[1] cmpGreenFloats
 
-RedInt(constant/int:value=20|0|100|1) OUT -> RED ColorInt(converter/int-to-rgb:red_max=32,green_max=64,blue_max=32)
-GreenInt(constant/int:value=50|0|100|1) OUT -> GREEN ColorInt
-BlueInt(constant/int:value=100|0|100|1) OUT -> BLUE ColorInt
+RedInt(constant/int:value=20,value_spec=0|100|1) OUT -> RED ColorInt(converter/int-to-rgb:red_max=32,green_max=64,blue_max=32)
+GreenInt(constant/int:value=50,value_spec=0|100|1) OUT -> GREEN ColorInt
+BlueInt(constant/int:value=100,value_spec=0|100|1) OUT -> BLUE ColorInt
 ColorInt OUT -> IN Ints(converter/rgb-to-int)
 
 Ints RED -> IN[0] cmpRedInts(int/equal) OUT -> RESULT test_compare_red_int(test/result)
@@ -70,7 +70,7 @@ _(constant/int:value=6) OUT -> IN[1] cmpRedInts
 _(constant/int:value=32) OUT -> IN[1] cmpBlueInts
 _(constant/int:value=32) OUT -> IN[1] cmpGreenInts
 
-invalid_min_max(constant/int:value=min:10|max:5|val:10) OUT -> IN _(color/luminance-rgb:color=255|100|0|255|255|255) ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS invalid_test_result(test/result)
+invalid_min_max(constant/int:value_spec=min:10|max:5,value=10) OUT -> IN _(color/luminance-rgb:color=255|100|0|255|255|255) ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS invalid_test_result(test/result)
 
-invalid_value(constant/int:value=min:5|max:10|val:11) OUT -> IN _(color/luminance-rgb:color=255|100|0|255|255|255) ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS invalid_test_result2(test/result)
+invalid_value(constant/int:value_spec=min:5|max:10,value=11) OUT -> IN _(color/luminance-rgb:color=255|100|0|255|255|255) ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS invalid_test_result2(test/result)
 

@@ -64,7 +64,7 @@ startup(void)
     struct sol_flow_builder *builder;
     struct sol_flow_node_type_custom_node_types_reader_options reader_opts =
         SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_READER_OPTIONS_DEFAULTS(
-        .intopt.val = 1
+        .intopt = 1
         );
     struct sol_flow_node_type_custom_node_types_writer_options writer_opts =
         SOL_FLOW_NODE_TYPE_CUSTOM_NODE_TYPES_WRITER_OPTIONS_DEFAULTS(

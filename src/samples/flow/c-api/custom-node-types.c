@@ -172,7 +172,7 @@ reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     mdata->timer = sol_timeout_add(1000, reader_on_timeout, node);
 
     /* the initial value comes from options. */
-    mdata->val = opts->intopt.val;
+    mdata->val = opts->intopt;
 
     /* Note that an 'int' port is actually an integer range or a
      * 'struct sol_irange', as it carries not only the value, but how

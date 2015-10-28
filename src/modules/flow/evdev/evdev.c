@@ -304,10 +304,10 @@ evdev_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     const struct sol_flow_node_type_evdev_boolean_options *opts =
         (const struct sol_flow_node_type_evdev_boolean_options *)options;
 
-    if (opts->ev_code.val >= KEY_MAX)
+    if (opts->ev_code >= KEY_MAX)
         return -EINVAL;
 
-    mdata->handler = handler_evdev_open(node, opts->path, EV_KEY, opts->ev_code.val);
+    mdata->handler = handler_evdev_open(node, opts->path, EV_KEY, opts->ev_code);
     SOL_NULL_CHECK(mdata->handler, -EINVAL);
 
     if (!sol_monitors_append(&mdata->handler->monitors,
@@ -319,7 +319,7 @@ evdev_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     mdata->value = 0;
 
     mdata->ev_type = EV_KEY;
-    mdata->ev_code = opts->ev_code.val;
+    mdata->ev_code = opts->ev_code;
     mdata->on_press = opts->on_press;
     mdata->on_release = opts->on_release;
 

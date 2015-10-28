@@ -13,6 +13,9 @@ test-test-fbp-scanner-$(TEST_FBP_SCANNER) := test.c test-fbp-scanner.c
 
 test-$(TEST_FLOW) += test-flow
 test-test-flow-$(TEST_FLOW) := test.c test-flow.c
+test-test-flow-$(TEST_FLOW)-deps := \
+	int.mod \
+	timer.mod
 
 test-$(TEST_FLOW_BUILDER) += test-flow-builder
 test-test-flow-builder-$(TEST_FLOW_BUILDER) := test.c test-flow-builder.c

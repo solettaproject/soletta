@@ -140,15 +140,20 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "default": {
               "max": "INT32_MAX",
               "min": "INT32_MIN",
-              "step": 1,
-              "val": 0
+              "step": 1
             },
-            "description": "The initial value, range and step to be used in operations. Only positive step values are allowed.",
+            "description": "Range and step to be used in operations. Only positive step values are allowed.",
             "name": "setup_value"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "The initial value. An initial packet will be sent with this value.",
+            "name": "initial_value"
           },
           {
             "data_type": "boolean",
@@ -567,13 +572,13 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 4,
             "description": "Number of samples that the buffer should hold.",
             "name": "samples"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "default": 0,
             "description": "Timeout time in milliseconds. Default is zero which means that timeout is disabled.",
             "name": "timeout"
@@ -821,7 +826,7 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "default": {
               "max": 1023,
               "min": 0
@@ -875,20 +880,16 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Minimum value (inclusive)",
             "name": "min",
-            "default" : {
-              "val" : "INT32_MIN"
-            }
+            "default" : "INT32_MIN"
           },
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "Maximum value (inclusive)",
             "name": "max",
-            "default" : {
-              "val" : "INT32_MAX"
-            }
+            "default" : "INT32_MAX"
           },
           {
             "data_type": "boolean",
@@ -923,12 +924,12 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "default": {
               "max": 255,
               "min": -255
             },
-            "description": "maximum range value.",
+            "description": "Range values.",
             "name": "range"
           }
         ],
@@ -964,7 +965,7 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "default": {
               "max": "INT32_MAX",
               "min": "INT32_MIN"
@@ -973,7 +974,7 @@
             "name": "input_range"
           },
           {
-            "data_type": "irange",
+            "data_type": "irange-spec",
             "description": "Output's range.",
             "name": "output_range"
           },

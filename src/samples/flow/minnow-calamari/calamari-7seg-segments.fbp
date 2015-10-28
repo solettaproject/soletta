@@ -34,7 +34,7 @@
 Led(SevenSegments)
 Timer(timer:interval=2000)
 Switcher(switcher/byte)
-Index(int/accumulator:setup_value=val:0|min:0|max:4)
+Index(int/accumulator:setup_value=min:0|max:4)
 
 True(converter/empty-to-boolean:output_value=true)
 False(converter/empty-to-boolean:output_value=false)

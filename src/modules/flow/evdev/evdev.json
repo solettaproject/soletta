@@ -18,7 +18,7 @@
       "options": {
         "members": [
           {
-            "data_type": "irange",
+            "data_type": "int",
             "description": "The event code to be monitored",
             "name": "ev_code"
           },

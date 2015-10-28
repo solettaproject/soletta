@@ -32,6 +32,6 @@
 # On a timeout (every second) create a string and send to the socket.
 # See string-reader.fbp
 
-Timer(timer:interval=1000) OUT -> INC Acc(int/accumulator:setup_value=val:0|min:0|max:100|step:10)
+Timer(timer:interval=1000) OUT -> INC Acc(int/accumulator:setup_value=min:0|max:100|step:10)
 Acc OUT -> IN String(converter/int-to-string)
 String OUT -> IN socket_string(unix-socket/string-writer:path=/tmp/string_socket)

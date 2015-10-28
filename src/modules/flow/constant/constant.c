@@ -40,26 +40,36 @@ static int
 constant_irange_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     const struct sol_flow_node_type_constant_int_options *opts;
+    struct sol_irange value;
+    int r;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONSTANT_INT_OPTIONS_API_VERSION, -EINVAL);
     opts = (const struct sol_flow_node_type_constant_int_options *)options;
 
+    r = sol_irange_compose(&opts->value_spec, opts->value, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
     return sol_flow_send_irange_packet(node,
-        SOL_FLOW_NODE_TYPE_CONSTANT_INT__OUT__OUT, &opts->value);
+        SOL_FLOW_NODE_TYPE_CONSTANT_INT__OUT__OUT, &value);
 }
 
 static int
 constant_drange_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     const struct sol_flow_node_type_constant_float_options *opts;
+    struct sol_drange value;
+    int r;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_CONSTANT_FLOAT_OPTIONS_API_VERSION, -EINVAL);
     opts = (const struct sol_flow_node_type_constant_float_options *)options;
 
+    r = sol_drange_compose(&opts->value_spec, opts->value, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
     return sol_flow_send_drange_packet(node,
-        SOL_FLOW_NODE_TYPE_CONSTANT_FLOAT__OUT__OUT, &opts->value);
+        SOL_FLOW_NODE_TYPE_CONSTANT_FLOAT__OUT__OUT, &value);
 }
 
 static int

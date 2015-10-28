@@ -38,12 +38,12 @@
 ## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
 
 int(constant/int:value=-12)
-irange(constant/int:value=-13|-50|50|3)
+irange(constant/int:value=-13,value_spec=-50|50|3)
 byte(constant/byte:value=73)
 boolean(constant/boolean:value=true)
 string(constant/string:value="string")
 double(constant/float:value=2.568)
-drange(constant/float:value=5.5|-40.0|40.0|0.4)
+drange(constant/float:value=5.5,value_spec=-40.0|40.0|0.4)
 
 validator_int(test/int-validator:sequence="0 -12")
 validator_int_def(test/int-validator:sequence="400000000 -12")
@@ -88,7 +88,7 @@ persist_int(persistence/int:storage="fs",name="int")
 int OUT -> IN persist_int OUT -> IN validator_int OUT -> RESULT _(test/result)
 persist_int OUT -> IN int_map OUT -> IN validator_int_map OUT -> RESULT _(test/result)
 
-persist_int_only_val(persistence/int:storage="fs",name="int_only_val",store_only_val=true,default_value=30|-12|30|1)
+persist_int_only_val(persistence/int:storage="fs",name="int_only_val",store_only_val=true,default_value=30,default_value_spec=-12|30|1)
 int OUT -> IN persist_int_only_val OUT -> IN int_only_val_map OUT -> IN validator_int_val_only_map OUT -> RESULT _(test/result)
 
 persist_irange(persistence/int:storage="fs",name="irange")
@@ -108,7 +108,7 @@ persist_double(persistence/float:storage="fs",name="double")
 double OUT -> IN persist_double OUT -> IN validator_double OUT -> RESULT _(test/result)
 persist_double OUT -> IN double_map OUT -> IN validator_float_map OUT -> RESULT _(test/result)
 
-persist_double_only_val(persistence/float:storage="fs",name="double_only_val",store_only_val=true,default_value=1023.22|1|1024|0.5)
+persist_double_only_val(persistence/float:storage="fs",name="double_only_val",store_only_val=true,default_value=1023.22,default_value_spec=1|1024|0.5)
 double OUT -> IN persist_double_only_val OUT -> IN double_only_val_map OUT -> IN validator_float_val_only_map OUT -> RESULT _(test/result)
 
 persist_drange(persistence/float:storage="fs",name="drange")
@@ -121,7 +121,7 @@ persist_int_def(persistence/int:storage="fs",name="int_def",default_value=400000
 int OUT -> IN persist_int_def OUT -> IN validator_int_def OUT -> RESULT _(test/result)
 persist_int_def OUT -> IN int_def_map OUT -> IN validator_int_map_def OUT -> RESULT _(test/result)
 
-persist_irange_def(persistence/int:storage="fs",name="irange_def",default_value=-50|-50|-40|1)
+persist_irange_def(persistence/int:storage="fs",name="irange_def",default_value=-50,default_value_spec=-50|-40|1)
 irange OUT -> IN persist_irange_def OUT -> IN validator_irange_def OUT -> RESULT _(test/result)
 persist_irange_def OUT -> IN irange_def_map OUT -> IN validator_irange_map_def OUT -> RESULT _(test/result)
 
@@ -138,6 +138,6 @@ persist_double_def(persistence/float:storage="fs",name="double_def",default_valu
 double OUT -> IN persist_double_def OUT -> IN validator_double_def OUT -> RESULT _(test/result)
 persist_double_def OUT -> IN double_def_map OUT -> IN validator_float_def_map OUT -> RESULT _(test/result)
 
-persist_drange_def(persistence/float:storage="fs",name="drange_def",default_value=-4.5|-5.0|5.0|0.5)
+persist_drange_def(persistence/float:storage="fs",name="drange_def",default_value=-4.5,default_value_spec=-5.0|5.0|0.5)
 drange OUT -> IN persist_drange_def OUT -> IN validator_drange_def OUT -> RESULT _(test/result)
 persist_drange_def OUT -> IN drange_def_map OUT -> IN validator_drange_def_map OUT -> RESULT _(test/result)
