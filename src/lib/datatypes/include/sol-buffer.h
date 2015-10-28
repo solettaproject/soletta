@@ -112,6 +112,16 @@ struct sol_buffer {
     enum sol_buffer_flags flags;
 };
 
+/*
+ * Case of a string to be decoded by functions sol_buffer_append_from_base16
+ * or sol_buffer_insert_from_base16
+ */
+enum sol_decode_case {
+    SOL_DECODE_UPERCASE,
+    SOL_DECODE_LOWERCASE,
+    SOL_DECODE_BOTH
+};
+
 #define SOL_BUFFER_INIT_EMPTY (struct sol_buffer){.data = NULL, .capacity = 0, .used = 0, .flags = SOL_BUFFER_FLAGS_DEFAULT }
 #define SOL_BUFFER_INIT_FLAGS(data_, size_, flags_) (struct sol_buffer){.data = data_, .capacity = size_, .used = 0, .flags = flags_ }
 #define SOL_BUFFER_INIT_CONST(data_, size_) (struct sol_buffer){.data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED }
@@ -380,8 +390,10 @@ int sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_sli
  *        sol_buffer_append_from_base16().
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
- *        lowercase abcdef are used instead.
+ * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
+ *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
+ *        used.
  *
  * @return 0 on success, -errno on failure.
  *
@@ -389,7 +401,8 @@ int sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_sli
  * @see sol_buffer_append_as_base16()
  * @see sol_buffer_append_from_base16()
  */
-int sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, bool uppercase);
+
+int sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, enum sol_decode_case decode_case);
 
 /**
  * Append the 'slice' at the end of 'buf' decoded from base16 (hexadecimal).
@@ -400,15 +413,17 @@ int sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const stru
  *        slice.
  * @param slice the slice to decode, it must be a set of 0-9 or
  *        letters A-F (if uppercase) or a-f, otherwise decode fails.
- * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
- *        lowercase abcdef are used instead.
+ * @param decode_case if SOL_DECODE_UPERCASE, uppercase letters ABCDEF are
+ *        used, if SOL_DECODE_LOWERCASE, lowercase abcdef are used instead.
+ *        If SOL_DECODE_BOTH both, lowercase and uppercase, letters can be
+ *        used.
  * @return 0 on success, -errno on failure.
  *
  * @see sol_buffer_insert_as_base16()
  * @see sol_buffer_append_as_base16()
  * @see sol_buffer_insert_from_base16()
  */
-int sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice slice, bool uppercase);
+int sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice slice, enum sol_decode_case decode_case);
 
 /* append the formatted string to buffer, including trailing \0 */
 int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args);

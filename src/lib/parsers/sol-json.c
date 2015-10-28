@@ -745,19 +745,15 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
                 break;
             case 'u':
                 if (p + 4 < token->end - 1) {
-                    uint8_t n1, n2, b, i;
-                    char hex_digits[4];
-
-                    for (i = 0; i < 4; i++) {
-                        p++;
-                        hex_digits[i] = toupper(*p);
-                    }
+                    uint8_t n1, n2, b;
 
                     r = sol_util_base16_decode(&n1, 1,
-                        SOL_STR_SLICE_STR(hex_digits, 2), true);
+                        SOL_STR_SLICE_STR(p + 1, 2),
+                        SOL_DECODE_BOTH);
                     SOL_INT_CHECK(r, != 1, r);
                     r = sol_util_base16_decode(&n2, 1,
-                        SOL_STR_SLICE_STR(hex_digits + 2, 2), true);
+                        SOL_STR_SLICE_STR(p + 3, 2),
+                        SOL_DECODE_BOTH);
                     SOL_INT_CHECK(r, != 1, r);
 
                     if (n1 >= 0x08) {
@@ -795,6 +791,7 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
                     }
 
                     start += 4;
+                    p += 4;
                     continue;
                 }
             default:
