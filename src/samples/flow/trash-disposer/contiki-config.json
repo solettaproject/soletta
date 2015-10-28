@@ -4,27 +4,26 @@
   {
    "name": "BaseServo",
    "options": {
-    "chip": 0,
     "duty_cycle_range": "min:1000|max:2000",
     "period": 20000,
-    "pin": 0
+    "pin": "3"
    },
    "type": "servo-motor/controller"
   },
   {
    "name": "TopServo",
    "options": {
-    "chip": 0,
     "duty_cycle_range": "min:1000|max:2000",
     "period": 20000,
-    "pin": 1
+    "pin": "5"
    },
    "type": "servo-motor/controller"
   },
   {
    "name": "Led",
    "options": {
-    "pin": 16
+    "pin": "16",
+    "raw": true
    },
    "type": "gpio/writer"
   },
@@ -34,7 +33,8 @@
     "active_low": false,
     "edge_falling": false,
     "edge_rising": true,
-    "pin": 15
+    "pin": "15",
+    "raw": true
    },
    "type": "gpio/reader"
   }

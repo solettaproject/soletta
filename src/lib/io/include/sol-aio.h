@@ -55,10 +55,27 @@ extern "C" {
 struct sol_aio; /**< Structure of the AIO handler */
 
 /**
+ * Open the given board 'pin' by its label to be used as Analog I/O.
+ *
+ * This function only works when the board was successfully detect by Soletta and a corresponding
+ * pin multiplexer module was found.
+ *
+ * This function also applies any Pin Multiplexer rules needed if a multiplexer for
+ * the current board was previously loaded.
+ *
+ * @param label Label of the pin on the board.
+ * @param precision The number of valid bits on the data received from the analog to digital converter.
+ * @return A new AIO handler
+ *
+ * @see sol_aio_open_raw
+ */
+struct sol_aio *sol_aio_open_by_label(const char *label, const unsigned int precision);
+
+/**
  * Open the given Analog I/O 'pin' on 'device' to be used.
  *
  * This function also applies any Pin Multiplexer rules needed if a multiplexer for
- * the current platform was previously loaded.
+ * the current board was previously loaded.
  *
  * @param device The AIO device number.
  * @param pin The AIO pin on device.
