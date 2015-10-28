@@ -457,4 +457,69 @@ test_base16_decode(void)
     ASSERT_INT_EQ(r, -EINVAL);
 }
 
+DEFINE_TEST(test_unicode_utf_conversion);
+
+static void
+test_unicode_utf_conversion(void)
+{
+    const char utf8_string[] = "Unicode ÀÊÍöúĎǧɵܢވ࡞शཌ❤♎☀⚑€♫𐄣𐿿鿿𐀀";
+    const uint8_t invalid_utf8[][4] = {
+        { 0xA0, 0x01, 0x0, 0x0 },
+        { 0xA0, 0xFF, 0x0, 0x0 },
+        { 0xE5, 0x01, 0x80, 0x0 },
+        { 0xE5, 0xFF, 0x80, 0x0 },
+        { 0xE5, 0x80, 0x01, 0x0 },
+        { 0xE5, 0x80, 0xFF, 0x0 },
+        { 0xF2, 0x0, 0x0, 0x0 },
+        { 0xF0, 0x0, 0x0, 0x0 },
+        { 0xF0, 0x90, 0x0, 0x0 },
+        { 0xF0, 0x90, 0x80, 0x0 },
+    };
+    uint8_t utf8_buf[4];
+    const int32_t unicode_codes[] = {
+        0x0055, 0x006E, 0x0069, 0x0063, 0x006f, 0x0064, 0x0065, 0x0020, 0x00c0,
+        0x00CA, 0x00CD, 0x00f6, 0x00FA, 0x010e, 0x01e7, 0x0275, 0x0722, 0x0788,
+        0x085E, 0x0936, 0x0f4c, 0x2764, 0x264e, 0x2600, 0x2691, 0x20ac, 0x266b,
+        0x10123, 0x10fff, 0x9fff, 0x10000, 0x0
+    };
+
+    size_t i, str_len, r;
+    const uint8_t *p = (const uint8_t *)utf8_string;
+    int32_t code;
+    uint8_t read, written;
+
+    str_len = sizeof(utf8_string);
+    for (i = 0; i < ARRAY_SIZE(unicode_codes); i++) {
+        code = sol_util_unicode_code_from_utf8(p, str_len, &read);
+        ASSERT_INT_EQ(code, unicode_codes[i]);
+
+        written = sol_util_utf8_from_unicode_code(utf8_buf, 4,
+            unicode_codes[i]);
+        ASSERT_INT_EQ(read, written);
+        ASSERT_INT_EQ(memcmp(utf8_buf, p, written), 0);
+
+        p += read;
+        str_len += read;
+
+    }
+
+    //Invalid values
+    r = sol_util_utf8_from_unicode_code(utf8_buf, 4, 0x110000);
+    ASSERT_INT_EQ(r, -EINVAL);
+    r = sol_util_utf8_from_unicode_code(utf8_buf, 3, 0x10000);
+    ASSERT_INT_EQ(r, -EINVAL);
+    r = sol_util_utf8_from_unicode_code(utf8_buf, 2, 0x0800);
+    ASSERT_INT_EQ(r, -EINVAL);
+    r = sol_util_utf8_from_unicode_code(utf8_buf, 1, 0x080);
+    ASSERT_INT_EQ(r, -EINVAL);
+    r = sol_util_utf8_from_unicode_code(utf8_buf, 0, 0x0);
+    ASSERT_INT_EQ(r, -EINVAL);
+
+    for (i = 0; i < ARRAY_SIZE(invalid_utf8); i++) {
+        code = sol_util_unicode_code_from_utf8(invalid_utf8[i],
+            sizeof(invalid_utf8[i]), NULL);
+        ASSERT_INT_EQ(code, -EINVAL);
+    }
+}
+
 TEST_MAIN();
