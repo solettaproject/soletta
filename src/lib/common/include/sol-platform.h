@@ -32,6 +32,10 @@
 
 #pragma once
 
+#include <stdlib.h>
+
+#include "sol-vector.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -155,6 +159,75 @@ int sol_platform_restart_service(const char *service);
 #define SOL_PLATFORM_TARGET_SUSPEND    "suspend"
 
 int sol_platform_set_target(const char *target);
+
+struct sol_mount_point {
+    char *dev;
+    char *mpoint;
+    char *fstype;
+    unsigned long flags;
+    char *opts;
+    bool noauto;
+};
+
+static inline void
+sol_mount_point_free(struct sol_mount_point *mp)
+{
+    if (!mp)
+        return;
+
+    free(mp->dev);
+    free(mp->mpoint);
+    free(mp->fstype);
+    free(mp->opts);
+    free(mp);
+}
+
+/**
+ * List mounted mount points, if @c hplug_only is provided this function will list
+ * only mount points mounted by us, all mounted mount points are listed otherwise.
+ *
+ * @param hplug_only List only mount points only mounted by us?
+ * @param vector Initialized sol_vector where we store the resulting list
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_get_mount_points(bool hplug_only, struct sol_ptr_vector *vector);
+
+/**
+ * Umount a @c mpoint. If @c async_cb is provided the operation is run asynchronously
+ * in a spawned process and the @c async_cb function is called when @c mpoint
+ * is actually umounted.
+ *
+ * If the umount operation is desired to be run synchronously just provide @c async_cb
+ * as NULL.
+ *
+ * @param mpoint The mount point to be unmounted.
+ * @param async_cb The async callback to be called when async operation is required.
+ * @param data Context data to be provided to @c async_cb function.
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_umount(const char *mpoint, void (*async_cb)(const char *mpoint, void *data, uint64_t pid, int status), void *data);
+
+/**
+ * Mount a @c dev nodedev on @c mpoint. If @c async_cb is provided the operation is
+ * run asynchronously in a spawned process and the @c async_cb function is called
+ * when @c dev is actually mounted on @c mpoint.
+ *
+ * If the mount operation is desired to be run synchronously just provide @c async_cb
+ * as NULL.
+ *
+ * @param dev The nodedev to be mounted.
+ * @param mpoint The mount point where this block device is to be mounted on
+ * @param fstype The filesystem type (i.e vfat, ext2, ext3 etc)
+ * @param flags The mount flags
+ * @param opts File system's custom options
+ * @param async_cb The async callback to be called when async operation is required.
+ * @param data Context data to be provided to @c async_cb function
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_mount(const char *dev, const char *mpoint, const char *fstype, unsigned long flags, const char *opts, void (*async_cb)(const char *dev, const char *mpoint, void *data, uint64_t pid, int status), void *data);
 
 /**
  * @}

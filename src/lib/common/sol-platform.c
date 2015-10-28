@@ -442,3 +442,21 @@ sol_platform_inform_service_monitors(const char *service,
         ((void (*)(void *data, const char *service, enum sol_platform_service_state state))m->base.cb)((void *)m->base.data, service, state);
     }
 }
+
+SOL_API int
+sol_platform_get_mount_points(bool hplug_only, struct sol_ptr_vector *vector)
+{
+    return sol_platform_impl_get_mount_points(hplug_only, vector);
+}
+
+SOL_API int
+sol_platform_umount(const char *mpoint, void (*async_cb)(const char *mpoint, void *data, uint64_t pid, int status), void *data)
+{
+    return sol_platform_impl_umount(mpoint, async_cb, data);
+}
+
+SOL_API int
+sol_platform_mount(const char *dev, const char *mpoint, const char *fstype, unsigned long flags, const char *opts, void (*async_cb)(const char *dev, const char *mpoint, void *data, uint64_t pid, int status), void *data)
+{
+    return sol_platform_impl_mount(dev, mpoint, fstype, flags, opts, async_cb, data);
+}
