@@ -1,0 +1,7 @@
+config FLOW_NODE_TYPE_TWITTER
+	tristate "Node type: twitter"
+	depends on HTTP_CLIENT
+	default m
+	help
+		Provides a basic twitter client node. It allows one
+		post tweets and get its own timeline.
