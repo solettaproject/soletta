@@ -216,11 +216,9 @@ enum sol_flow_node_options_member_type {
     SOL_FLOW_NODE_OPTIONS_MEMBER_BOOLEAN,
     SOL_FLOW_NODE_OPTIONS_MEMBER_BYTE,
     SOL_FLOW_NODE_OPTIONS_MEMBER_DIRECTION_VECTOR,
-    SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE,
     SOL_FLOW_NODE_OPTIONS_MEMBER_DRANGE_SPEC,
     SOL_FLOW_NODE_OPTIONS_MEMBER_FLOAT,
     SOL_FLOW_NODE_OPTIONS_MEMBER_INT,
-    SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE,
     SOL_FLOW_NODE_OPTIONS_MEMBER_IRANGE_SPEC,
     SOL_FLOW_NODE_OPTIONS_MEMBER_RGB,
     SOL_FLOW_NODE_OPTIONS_MEMBER_STRING,
@@ -236,9 +234,7 @@ struct sol_flow_node_named_options_member {
         bool boolean;
         unsigned char byte;
         int32_t i;
-        struct sol_irange irange;
         struct sol_irange_spec irange_spec;
-        struct sol_drange drange;
         struct sol_drange_spec drange_spec;
         struct sol_rgb rgb;
         struct sol_direction_vector direction_vector;
@@ -306,9 +302,7 @@ struct sol_flow_node_options_member_description {
         bool b; /**< option member's default boolean value */
         unsigned char byte; /**< option member's default byte value */
         int32_t i; /**< option member's default int value */
-        struct sol_irange irange; /**< option member's default integer range value */
         struct sol_irange_spec irange_spec; /**< option member's default integer range spec */
-        struct sol_drange drange; /**< option member's default float range value. Deprecated. Use drange_spec and / or f. */
         struct sol_drange_spec drange_spec; /**< option member's default float range spec */
         struct sol_direction_vector direction_vector; /**< option member's default direction vector value */
         struct sol_rgb rgb; /**< option member's default RGB value */
