@@ -42,12 +42,37 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");
 #include "sol-pin-mux.h"
 #endif
 
+static void
+_log_init(void)
+{
+    SOL_LOG_INTERNAL_INIT_ONCE;
+}
+
+SOL_API struct sol_gpio *
+sol_gpio_open_by_label(const char *label, const struct sol_gpio_config *config)
+{
+    int pin;
+
+    _log_init();
+
+#ifdef USE_PIN_MUX
+    if (!sol_pin_mux_map(label, SOL_IO_GPIO, &pin))
+        return sol_gpio_open(pin, config);
+
+    SOL_WRN("Label '%s' couldn't be mapped or can't be used as GPIO", label);
+#else
+    SOL_INF("Pin Multiplexer support is necessary to open a 'board pin'.");
+#endif
+
+    return NULL;
+}
+
 SOL_API struct sol_gpio *
 sol_gpio_open(int pin, const struct sol_gpio_config *config)
 {
     struct sol_gpio *gpio;
 
-    SOL_LOG_INTERNAL_INIT_ONCE;
+    _log_init();
 
     SOL_NULL_CHECK(config, NULL);
 

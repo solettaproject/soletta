@@ -93,20 +93,23 @@ pwm_process_duty_cycle(struct sol_flow_node *node, void *data, uint16_t port, ui
 static int
 pwm_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    const struct sol_flow_node_type_pwm_options *opts = (const struct sol_flow_node_type_pwm_options *)options;
+    int device, channel;
+    const struct sol_flow_node_type_pwm_options *opts =
+        (const struct sol_flow_node_type_pwm_options *)options;
     struct pwm_data *mdata = data;
     struct sol_pwm_config pwm_config = { 0 };
 
-    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_PWM_OPTIONS_API_VERSION, -EINVAL);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PWM_OPTIONS_API_VERSION, -EINVAL);
 
     // Use values from options. Period = 0 considered invalid.
     if (opts->period.val <= 0) {
-        SOL_WRN("Invalid value for period - pwm #%" PRId32 ":%" PRId32, opts->chip.val, opts->pin.val);
+        SOL_WRN("Invalid value for period - pwm (%s)", opts->pin);
         return -EINVAL;
     }
 
     if (opts->duty_cycle.val < 0) {
-        SOL_WRN("Invalid value for duty_cycle - pwm #%" PRId32 ":%" PRId32, opts->chip.val, opts->pin.val);
+        SOL_WRN("Invalid value for duty_cycle - pwm (%s)", opts->pin);
         return -EINVAL;
     }
 
@@ -117,9 +120,25 @@ pwm_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
         pwm_config.polarity = SOL_PWM_POLARITY_INVERSED;
     pwm_config.enabled = opts->enabled;
 
-    mdata->pwm = sol_pwm_open(opts->chip.val, opts->pin.val, &pwm_config);
+    mdata->pwm = NULL;
+    if (!opts->pin || *opts->pin == '\0') {
+        SOL_WRN("pwm: Option 'pin' cannot be neither 'null' nor empty.");
+        return -EINVAL;
+    }
+
+    if (opts->raw) {
+        if (sscanf(opts->pin, "%d %d", &device, &channel) == 2) {
+            mdata->pwm = sol_pwm_open(device, channel, &pwm_config);
+        } else {
+            SOL_WRN("pwm (%s): 'raw' option was set, but 'pin' value=%s couldn't be parsed as "
+                "\"<device> <channel>\" pair.", opts->pin, opts->pin);
+        }
+    } else {
+        mdata->pwm = sol_pwm_open_by_label(opts->pin, &pwm_config);
+    }
+
     if (!mdata->pwm) {
-        SOL_WRN("could not open pwm #%" PRId32 ":%" PRId32, opts->chip.val, opts->pin.val);
+        SOL_WRN("Could not open pwm (%s)", opts->pin);
         return -ENXIO;
     }
 

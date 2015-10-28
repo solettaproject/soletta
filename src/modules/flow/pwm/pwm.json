@@ -38,14 +38,15 @@
  "options": {
   "members": [
    {
-    "data_type": "int",
-    "description": "PWM chip",
-    "name": "chip"
+    "data_type": "string",
+    "description": "Label of the desired pin on the board. If raw is set to true, this should be \"<device> <channel>\" pair, e.g. \"0 3\".",
+    "name": "pin"
    },
    {
-    "data_type": "int",
-    "description": "PWM pin channel",
-    "name": "pin"
+    "data_type": "boolean",
+    "default": false,
+    "description": "Change 'pin' meaning to be the system parameters needed to address the desired pin. Use it if you know what you are doing.",
+    "name": "raw"
    },
    {
     "data_type": "boolean",

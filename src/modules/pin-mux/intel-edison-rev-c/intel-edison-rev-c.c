@@ -374,7 +374,37 @@ static struct mux_controller pwm_controller_list[] = {
     { ARRAY_SIZE(pwm_dev_0), pwm_dev_0 },
 };
 
+static struct mux_pin_map pin_map[] = {
+    { .label = "A0", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 1, 0 }, .gpio = 44 },
+    { .label = "A1", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 1, 1 }, .gpio = 45 },
+    { .label = "A2", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 1, 2 }, .gpio = 46 },
+    { .label = "A3", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 1, 3 }, .gpio = 47 },
+    { .label = "A4", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 1, 4 }, .gpio = 14 },
+    { .label = "A5", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 1, 5 }, .gpio = 165 },
+    { .label = "0", .cap = SOL_IO_GPIO, .gpio = 130 },
+    { .label = "1", .cap = SOL_IO_GPIO, .gpio = 131 },
+    { .label = "2", .cap = SOL_IO_GPIO, .gpio = 128 },
+    { .label = "3", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 12, .pwm = { 0, 0 } },
+    { .label = "4", .cap = SOL_IO_GPIO, .gpio = 129 },
+    { .label = "5", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 13, .pwm = { 0, 1 } },
+    { .label = "6", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 182, .pwm = { 0, 2 } },
+    { .label = "7", .cap = SOL_IO_GPIO, .gpio = 48 },
+    { .label = "8", .cap = SOL_IO_GPIO, .gpio = 49 },
+    { .label = "9", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 183, .pwm = { 0, 9 } },
+    { .label = "10", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 41, .pwm = { 0, 0 } }, //TODO: Swizzler
+    { .label = "11", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 43, .pwm = { 0, 1 } }, //TODO: Swizzler
+    { .label = "12", .cap = SOL_IO_GPIO, .gpio = 42 },
+    { .label = "13", .cap = SOL_IO_GPIO, .gpio = 40 },
+    { }
+};
+
 // =============================================================================
+
+static int
+_pin_map(const char *label, const enum sol_io_protocol prot, va_list args)
+{
+    return mux_pin_map(pin_map, label, prot, args);
+}
 
 static int
 _set_aio(const int device, const int pin)
@@ -403,6 +433,7 @@ _set_pwm(const int device, const int channel)
 SOL_PIN_MUX_DECLARE(INTEL_EDISON_REV_C,
     .plat_name = "intel-edison-rev-c",
     .shutdown = mux_shutdown,
+    .pin_map = _pin_map,
     .aio = _set_aio,
     .gpio = _set_gpio,
     .i2c = _set_i2c,
