@@ -74,6 +74,7 @@ config HTTP_SERVER
 config HTTP_SERVER_PORT
 	depends on HTTP_SERVER
 	int "Default server port"
+	default "8080" if BUILD_TYPE_DEBUG=y
 	default "80"
 
 config MQTT
