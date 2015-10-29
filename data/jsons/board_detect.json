@@ -60,6 +60,28 @@
      ]
     },
     {
+     "name": "intel-minnow-max-linux_gt_3_19",
+     "validation": [
+      {
+       "file_path": "/sys/devices/virtual/dmi/id/board_name",
+       "match": [ "MinnowBoard MAX" ]
+      },
+      {
+       "file_path": "/proc/sys/kernel/osrelease",
+       "dont_match": [ "^[0-2][.]", "^3[.][0-9][.]", "^3[.][0-1][0-8]" ]
+      }
+     ]
+    },
+    {
+     "name": "intel-minnow-max",
+     "validation": [
+      {
+       "file_path": "/sys/devices/virtual/dmi/id/board_name",
+       "match": [ "MinnowBoard MAX" ]
+      }
+     ]
+    },
+    {
      "name": "broadcom-bcm2708",
      "validation": [
       {
