@@ -43,6 +43,7 @@
 #endif
 
 #include "sol-random.h"
+#include "sol-util.h"
 
 struct sol_random {
     const struct sol_random_impl *impl;
@@ -288,6 +289,7 @@ sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
     engine->impl = impl;
     seed = get_platform_seed(seed);
     if (!engine->impl->init(engine, seed)) {
+        sol_util_secure_clear_memory(engine, impl->struct_size);
         free(engine);
         return NULL;
     }
@@ -302,6 +304,8 @@ sol_random_del(struct sol_random *engine)
 
     if (engine->impl->shutdown)
         engine->impl->shutdown(engine);
+
+    sol_util_secure_clear_memory(engine, engine->impl->struct_size);
     free(engine);
 }
 
