@@ -199,7 +199,7 @@ _resolver_conffile_get_module(const char *type)
 
     entry->handle = dlopen(path, RTLD_LAZY | RTLD_LOCAL | RTLD_NODELETE);
     if (!entry->handle) {
-        SOL_WRN("could not load module '%s': %s", path, dlerror());
+        SOL_WRN("Could not load module '%s':\n    %s", name, dlerror());
         goto error;
     }
     entry->foreach = dlsym(entry->handle, "sol_flow_foreach_module_node_type");
