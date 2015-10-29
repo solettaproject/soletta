@@ -66,11 +66,22 @@ struct sol_http_request {
     time_t if_since_modified;
 };
 
+struct static_dir {
+    char *namespace;
+    char *root;
+};
+
+struct default_page {
+    char *page;
+    enum sol_http_status_code error;
+};
+
 struct sol_http_server {
     struct MHD_Daemon *daemon;
-    struct sol_ptr_vector dirs;
+    struct sol_vector dirs;
     struct sol_vector handlers;
     struct sol_vector fds;
+    struct sol_vector defaults;
     struct sol_ptr_vector requests;
 };
 
@@ -247,10 +258,10 @@ err:
 }
 
 static int
-get_static_file(const char *dir, const char *url)
+get_static_file(const struct static_dir *dir, const char *url)
 {
     int ret;
-    char path[PATH_MAX], *real_path;
+    char path[PATH_MAX], *real_path, *namespace;
 
     /* url given by microhttpd starts from /. e. g.
      * https://www.solettaproject.com => url == /
@@ -259,7 +270,18 @@ get_static_file(const char *dir, const char *url)
     while (*url == '/')
         url++;
 
-    ret = snprintf(path, sizeof(path), "%s/%s", dir,
+    namespace = dir->namespace;
+    while (*namespace == '/')
+        namespace++;
+
+    if (!streqn(url, namespace, strlen(namespace)))
+        return -EINVAL;
+
+    url += strlen(namespace);
+    while (*url == '/')
+        url++;
+
+    ret = snprintf(path, sizeof(path), "%s/%s", dir->root,
         *url ? url : "index.html");
     if (ret < 0 || ret >= (int)sizeof(path))
         return -ENOMEM;
@@ -268,7 +290,7 @@ get_static_file(const char *dir, const char *url)
     if (!real_path)
         return -errno;
 
-    if (!strstartswith(real_path, dir)) {
+    if (!strstartswith(real_path, dir->root)) {
         free(real_path);
         return -EINVAL;
     }
@@ -280,13 +302,60 @@ get_static_file(const char *dir, const char *url)
     return open(path, O_RDONLY | O_CLOEXEC);
 }
 
+static struct MHD_Response *
+get_default_response(const struct sol_http_server *server, enum sol_http_status_code error)
+{
+    int r;
+    uint16_t i;
+    char buf[32];
+    struct stat st;
+    struct default_page *def;
+    struct MHD_Response *response = NULL;
+
+    SOL_VECTOR_FOREACH_IDX (&server->defaults, def, i) {
+        int fd;
+
+        if (def->error != error)
+            continue;
+
+        fd = open(def->page, O_RDONLY | O_CLOEXEC);
+        SOL_INT_CHECK(fd, < 0, NULL);
+
+        r = fstat(fd, &st);
+        if (r < 0) {
+            close(fd);
+            SOL_WRN("Failed to status the file: %s (%s)", def->page,
+                sol_util_strerrora(errno));
+            return NULL;
+        }
+
+        response = MHD_create_response_from_fd(st.st_size, fd);
+        if (!response) {
+            close(fd);
+            SOL_WRN("Could not create the response with: %s", def->page);
+            return NULL;
+        }
+        return response;
+    }
+
+    r = snprintf(buf, sizeof(buf), "status - %d", error);
+    if (r < 0 || r > (int)sizeof(buf)) {
+        SOL_WRN("Could not set the status code on response body");
+        response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
+    } else {
+        response = MHD_create_response_from_buffer(strlen(buf), buf, MHD_RESPMEM_MUST_COPY);
+    }
+
+    return response;
+}
+
 static int
 http_server_handler(void *data, struct MHD_Connection *connection, const char *url, const char *method,
     const char *version, const char *upload_data, size_t *upload_data_size, void **ptr)
 {
     int ret, fd;
     uint16_t i;
-    char *dir;
+    struct static_dir *dir;
     struct MHD_Response *mhd_response = NULL;
     struct sol_http_server *server = data;
     struct http_handler *handler;
@@ -354,7 +423,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         return MHD_YES;
     }
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
         struct stat st;
         fd = get_static_file(dir, url);
         if (fd < 0 && errno == EACCES) {
@@ -382,7 +451,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         }
     }
 
-    mhd_response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
+    mhd_response = get_default_response(server, status);
     SOL_NULL_CHECK(mhd_response, MHD_NO);
 end:
     ret = MHD_queue_response(connection, status, mhd_response);
@@ -515,8 +584,9 @@ sol_http_server_new(uint16_t port)
 
     sol_vector_init(&server->handlers, sizeof(struct http_handler));
     sol_vector_init(&server->fds, sizeof(struct http_connection));
+    sol_vector_init(&server->dirs, sizeof(struct static_dir));
+    sol_vector_init(&server->defaults, sizeof(struct default_page));
     sol_ptr_vector_init(&server->requests);
-    sol_ptr_vector_init(&server->dirs);
 
     server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
         port, NULL, NULL,
@@ -543,6 +613,7 @@ err:
 err_daemon:
     sol_vector_clear(&server->handlers);
     sol_vector_clear(&server->fds);
+    sol_vector_clear(&server->dirs);
     sol_ptr_vector_clear(&server->requests);
     free(server);
     return NULL;
@@ -552,7 +623,8 @@ SOL_API void
 sol_http_server_del(struct sol_http_server *server)
 {
     uint16_t i;
-    char *dir;
+    struct static_dir *dir;
+    struct default_page *def;
     struct http_handler *handler;
     struct http_connection *connection;
     struct sol_http_request *request;
@@ -573,9 +645,15 @@ sol_http_server_del(struct sol_http_server *server)
         sol_fd_del(connection->watch);
     sol_vector_clear(&server->fds);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i)
-        free(dir);
-    sol_ptr_vector_clear(&server->dirs);
+    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        free(dir->root);
+        free(dir->namespace);
+    }
+    sol_vector_clear(&server->dirs);
+
+    SOL_VECTOR_FOREACH_IDX (&server->defaults, def, i)
+        free(def->page);
+    sol_vector_clear(&server->defaults);
 
     MHD_stop_daemon(server->daemon);
 
@@ -681,54 +759,129 @@ sol_http_server_set_last_modified(struct sol_http_server *server, const char *pa
 }
 
 SOL_API int
-sol_http_server_add_dir(struct sol_http_server *server, const char *rootdir)
+sol_http_server_add_dir(struct sol_http_server *server, const char *namespace, const char *rootdir)
 {
-    int r;
     uint16_t i;
-    char *dir;
+    struct static_dir *dir;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(rootdir, -EINVAL);
+    SOL_NULL_CHECK(namespace, -EINVAL);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
-        if (streq(dir, rootdir))
+    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        if (streq(dir->root, rootdir) &&
+            streq(dir->namespace, namespace))
             return -EINVAL;
     }
 
-    dir = realpath(rootdir, NULL);
+    dir = sol_vector_append(&server->dirs);
     SOL_NULL_CHECK(dir, -ENOMEM);
 
-    r = sol_ptr_vector_append(&server->dirs, dir);
-    SOL_INT_CHECK_GOTO(r, < 0, err);
+    dir->root = realpath(rootdir, NULL);
+    SOL_NULL_CHECK_GOTO(dir->root, err);
+
+    dir->namespace = strdup(namespace);
+    SOL_NULL_CHECK_GOTO(dir->namespace, err_namespace);
 
     return 0;
 
+err_namespace:
+    free(dir->root);
 err:
-    free(dir);
-    return r;
+    if (sol_vector_del(&server->dirs, server->dirs.len - 1) < 0)
+        SOL_WRN("Could not remove %s/%s correctly",
+            namespace, rootdir);
+    return -ENOMEM;
 }
 
 SOL_API int
-sol_http_server_remove_dir(struct sol_http_server *server, const char *rootdir)
+sol_http_server_remove_dir(struct sol_http_server *server, const char *namespace, const char *rootdir)
 {
     uint16_t i;
-    char *dir, *aux;
+    char *root;
+    struct static_dir *dir;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(rootdir, -EINVAL);
+    SOL_NULL_CHECK(namespace, -EINVAL);
 
-    dir = realpath(rootdir, NULL);
-    SOL_NULL_CHECK(dir, -ENOMEM);
+    root = realpath(rootdir, NULL);
+    SOL_NULL_CHECK(root, -ENOMEM);
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, aux, i) {
-        if (streq(dir, aux)) {
-            free(dir);
-            free(aux);
-            sol_ptr_vector_del(&server->dirs, i);
+    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        if (streq(dir->root, root) &&
+            streq(dir->namespace, namespace)) {
+            free(dir->root);
+            free(dir->namespace);
+            free(root);
+            sol_vector_del(&server->dirs, i);
             return 0;
         }
     }
 
-    free(dir);
+    free(root);
+    return -ENODATA;
+}
+
+SOL_API int
+sol_http_server_add_default_error_page(struct sol_http_server *server,
+    const enum sol_http_status_code error, const char *page)
+{
+    int r;
+    uint16_t i;
+    char *p;
+    struct default_page *def;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(page, -EINVAL);
+
+    SOL_VECTOR_FOREACH_IDX (&server->defaults, def, i) {
+        if (def->error == error) {
+            SOL_WRN("There a page already registered for this error (%d)", error);
+            return -EINVAL;
+        }
+    }
+
+    p = realpath(page, NULL);
+    SOL_NULL_CHECK(p, -ENOMEM);
+
+    r = access(p, R_OK);
+    if (r < 0) {
+        r = -errno;
+        SOL_WRN("Error on check file's permission: %s", sol_util_strerrora(errno));
+        goto err;
+    }
+
+    r = -ENOMEM;
+    def = sol_vector_append(&server->defaults);
+    SOL_NULL_CHECK_GOTO(def, err);
+
+    def->page = p;
+    def->error = error;
+
+    return 0;
+
+err:
+    free(p);
+    return -ENOMEM;
+}
+
+SOL_API int
+sol_http_server_remove_default_error_page(struct sol_http_server *server,
+    const enum sol_http_status_code error)
+{
+    uint16_t i;
+    struct default_page *def;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+
+    SOL_VECTOR_FOREACH_IDX (&server->defaults, def, i) {
+        if (def->error == error) {
+            free(def->page);
+            sol_vector_del(&server->defaults, i);
+            return 0;
+        }
+    }
+
     return -ENODATA;
 }
