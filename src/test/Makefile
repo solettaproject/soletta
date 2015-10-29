@@ -74,3 +74,6 @@ test-test-composed-type-$(TEST_COMPOSED_TYPE) := test.c test-composed-type.c
 
 test-$(TEST_MESSAGE_DIGEST) += test-message-digest
 test-test-message-digest-$(TEST_MESSAGE_DIGEST) := test.c test-message-digest.c
+
+test-$(TEST_HTTP) += test-http
+test-test-http-$(TEST_HTTP) := test.c test-http.c

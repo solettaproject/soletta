@@ -239,7 +239,15 @@ bool sol_http_param_add(struct sol_http_param *params,
     struct sol_http_param_value value) SOL_ATTR_WARN_UNUSED_RESULT;
 void sol_http_param_free(struct sol_http_param *params);
 
-int sol_http_escape_string(char **escaped, const char *value);
+int sol_http_escape_string(char **escaped, const struct sol_str_slice value);
+
+int sol_http_create_uri(char **uri, const char *protocol, const char *server, const char *path, const char *fragment, int port, const struct sol_http_param *params);
+
+int sol_http_create_simple_uri(char **uri, const char *base_url, const struct sol_http_param *params);
+
+int sol_http_encode_params(char **encoded_params, enum sol_http_param_type type, const struct sol_http_param *params);
+
+int sol_http_split_uri(const char *uri, struct sol_str_slice *protocol, struct sol_str_slice *server, struct sol_str_slice *path, struct sol_str_slice *fragment, struct sol_http_param *query_params, int *port);
 
 /**
  * @}

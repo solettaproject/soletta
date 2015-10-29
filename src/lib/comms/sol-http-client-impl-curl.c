@@ -531,101 +531,6 @@ free_buffer:
     return NULL;
 }
 
-static char *
-encode_key_values(CURL *curl, enum sol_http_param_type type,
-    const struct sol_http_param *params, char *initial_value)
-{
-    struct sol_http_param_value *iter;
-    uint16_t idx;
-    bool first = true;
-
-    if (type != SOL_HTTP_PARAM_QUERY_PARAM &&
-        type != SOL_HTTP_PARAM_POST_FIELD &&
-        type != SOL_HTTP_PARAM_COOKIE) {
-        free(initial_value);
-        errno = EINVAL;
-        return NULL;
-    }
-
-    SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
-        struct sol_str_slice key = iter->value.key_value.key;
-        struct sol_str_slice value = iter->value.key_value.value;
-        char *tmp, *encoded_key, *encoded_value;
-        int r;
-
-        if (iter->type != type)
-            continue;
-
-        encoded_key = curl_easy_escape(curl, key.data, key.len);
-        if (!encoded_key)
-            goto cleanup;
-        encoded_value = curl_easy_escape(curl, value.data, value.len);
-        if (!encoded_value) {
-            curl_free(encoded_key);
-            goto cleanup;
-        }
-
-        if (type == SOL_HTTP_PARAM_COOKIE) {
-            r = asprintf(&tmp, "%s%s%s=%s;", initial_value, first ? "" : " ",
-                encoded_key, encoded_value);
-        } else {
-            r = asprintf(&tmp, "%s%s%s=%s", initial_value, first ? "" : "&",
-                encoded_key, encoded_value);
-        }
-
-        curl_free(encoded_key);
-        curl_free(encoded_value);
-
-        if (r < 0)
-            goto cleanup;
-
-        free(initial_value);
-        initial_value = tmp;
-        first = false;
-    }
-
-    return initial_value;
-
-cleanup:
-    free(initial_value);
-    errno = ENOMEM;
-    return NULL;
-}
-
-static char *
-build_uri(CURL *curl, const char *base, const struct sol_http_param *params)
-{
-    char *initial_value;
-    char *built_uri;
-
-    if (asprintf(&initial_value, "%s?", base) < 0) {
-        errno = ENOMEM;
-        return NULL;
-    }
-
-    built_uri = encode_key_values(curl, SOL_HTTP_PARAM_QUERY_PARAM, params,
-        initial_value);
-    if (built_uri == initial_value) {
-        free(initial_value);
-        return strdup(base);
-    }
-
-    return built_uri;
-}
-
-static char *
-build_cookies(CURL *curl, const struct sol_http_param *params)
-{
-    return encode_key_values(curl, SOL_HTTP_PARAM_COOKIE, params, strdup(""));
-}
-
-static char *
-build_post_fields(CURL *curl, const struct sol_http_param *params)
-{
-    return encode_key_values(curl, SOL_HTTP_PARAM_POST_FIELD, params,
-        strdup(""));
-}
-
 static bool
 set_headers_from_params(CURL *curl, struct sol_arena *arena,
     const struct sol_http_param *params, struct curl_slist **headers)
@@ -734,9 +639,13 @@ static bool
 set_cookies_from_params(CURL *curl, struct sol_arena *arena,
     const struct sol_http_param *params)
 {
-    char *cookies = build_cookies(curl, params);
+    char *cookies;
+    int r;
 
-    if (cookies && !*cookies) {
+    r = sol_http_encode_params(&cookies, SOL_HTTP_PARAM_COOKIE, params);
+    SOL_INT_CHECK(r, < 0, false);
+
+    if (!*cookies) {
         free(cookies);
         return true;
     }
@@ -747,7 +656,11 @@ static bool
 set_uri_from_params(CURL *curl, struct sol_arena *arena, const char *base,
     const struct sol_http_param *params)
 {
-    char *full_uri = build_uri(curl, base, params);
+    char *full_uri;
+    int r;
+
+    r = sol_http_create_simple_uri(&full_uri, base, params);
+    SOL_INT_CHECK(r, < 0, false);
 
     return set_string_option(curl, CURLOPT_URL, arena, full_uri);
 }
@@ -756,7 +669,11 @@ static bool
 set_post_fields_from_params(CURL *curl, struct sol_arena *arena,
     const struct sol_http_param *params)
 {
-    char *post = build_post_fields(curl, params);
+    char *post;
+    int r;
+
+    r = sol_http_encode_params(&post, SOL_HTTP_PARAM_POST_FIELD, params);
+    SOL_INT_CHECK(r, < 0, false);
 
     return set_string_option(curl, CURLOPT_POSTFIELDS, arena, post);
 }
