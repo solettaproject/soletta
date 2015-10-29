@@ -135,7 +135,18 @@ struct sol_http_response {
     int response_code;
 };
 
-#define SOL_HTTP_RESPONSE_CHECK_API(response_, ...) \
+struct sol_http_url {
+    struct sol_str_slice scheme;
+    struct sol_str_slice user;
+    struct sol_str_slice password;
+    struct sol_str_slice host;
+    struct sol_str_slice path;
+    struct sol_str_slice query;
+    struct sol_str_slice fragment;
+    int port; //If < 0 ignore
+};
+
+#define SOL_HTTP_RESPONSE_CHECK_API(response_, ...)  \
     do { \
         if (unlikely(!response_)) { \
             SOL_WRN("Error while reaching service."); \
@@ -242,7 +253,23 @@ bool sol_http_param_add(struct sol_http_param *params,
 bool sol_http_param_add_copy(struct sol_http_param *params, struct sol_http_param_value value);
 void sol_http_param_free(struct sol_http_param *params);
 
-int sol_http_escape_string(char **escaped, const char *value);
+int sol_http_encode_slice(struct sol_buffer *buf, const struct sol_str_slice value);
+int sol_http_decode_slice(struct sol_buffer *buf, const struct sol_str_slice value);
+
+int sol_http_create_uri(char **url_out, const struct sol_http_url url, const struct sol_http_param *params);
+
+int sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_url, const struct sol_http_param *params);
+
+int sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type, const struct sol_http_param *params);
+int sol_http_decode_params(const struct sol_str_slice params_slice, enum sol_http_param_type type, struct sol_http_param *params);
+
+int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url *url);
+
+static inline int
+sol_http_create_simple_uri_from_str(char **uri, const char *base_url, const struct sol_http_param *params)
+{
+    return sol_http_create_simple_uri(uri, sol_str_slice_from_str(base_url ? base_url : ""), params);
+}
 
 /**
  * @}

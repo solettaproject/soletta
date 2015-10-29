@@ -480,6 +480,7 @@ v1_request_start_cb(void *data, struct sol_http_request *request)
     int r;
     char *escaped_url, *signature, *params, *escaped_params, *escaped_callback;
     struct sol_flow_node *node = data;
+    struct sol_buffer buf;
     struct v1_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_message_digest *digest;
     struct sol_blob *blob;
@@ -511,8 +512,11 @@ v1_request_start_cb(void *data, struct sol_http_request *request)
     r = sol_ptr_vector_append(&mdata->pending_digests, digest);
     SOL_INT_CHECK_GOTO(r, < 0, err_append);
 
-    r = sol_http_escape_string(&escaped_callback, req_data->callback_url);
+    r = sol_http_encode_slice(&buf, sol_str_slice_from_str(req_data->callback_url));
     SOL_INT_CHECK_GOTO(r, < 0, err_escape_callback);
+    escaped_callback = sol_buffer_steal_or_copy(&buf, NULL);
+    sol_buffer_fini(&buf);
+    SOL_NULL_CHECK_GOTO(escaped_callback, err_escape_callback);
 
     r  = asprintf(&params,
         "oauth_callback=%s"
@@ -525,11 +529,17 @@ v1_request_start_cb(void *data, struct sol_http_request *request)
         req_data->timestamp);
     SOL_INT_CHECK_GOTO(r, < 0, err_params);
 
-    r = sol_http_escape_string(&escaped_params, params);
+    r = sol_http_encode_slice(&buf, sol_str_slice_from_str(params));
     SOL_INT_CHECK_GOTO(r, < 0, err_escape_params);
+    escaped_params = sol_buffer_steal_or_copy(&buf, NULL);
+    sol_buffer_fini(&buf);
+    SOL_NULL_CHECK_GOTO(escaped_params, err_escape_params);
 
-    r = sol_http_escape_string(&escaped_url, mdata->request_token_url);
+    r = sol_http_encode_slice(&buf, sol_str_slice_from_str(mdata->request_token_url));
     SOL_INT_CHECK_GOTO(r, < 0, err_escape);
+    escaped_url = sol_buffer_steal_or_copy(&buf, NULL);
+    sol_buffer_fini(&buf);
+    SOL_NULL_CHECK_GOTO(escaped_url, err_escape);
 
     r = asprintf(&signature, "POST&%s&%s", escaped_url, escaped_params);
     SOL_INT_CHECK_GOTO(r, < 0, err_signature);
