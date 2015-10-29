@@ -361,6 +361,9 @@ common_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
         mdata->path, time(NULL));
     SOL_INT_CHECK(r, < 0, r);
 
+    if (type->send_packet_cb)
+        type->send_packet_cb(mdata, node);
+
     return 0;
 }
 
@@ -375,10 +378,6 @@ boolean_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     else
         return -EINVAL;
 
-    sol_flow_send_boolean_packet(node,
-        SOL_FLOW_NODE_TYPE_HTTP_SERVER_BOOLEAN__OUT__OUT,
-        mdata->value.b);
-
     return 0;
 }
 
@@ -391,6 +390,14 @@ boolean_response_cb(struct http_data *mdata, struct sol_buffer *content, bool js
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
+}
+
+static void
+boolean_send_packet_cb(struct http_data *mdata, struct sol_flow_node *node)
+{
+    sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_BOOLEAN__OUT__OUT,
+        mdata->value.b);
 }
 
 static int
@@ -438,10 +445,6 @@ string_post_cb(struct http_data *mdata, struct sol_flow_node *node,
         return -EINVAL;
     }
 
-    sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_HTTP_SERVER_STRING__OUT__OUT,
-        mdata->value.s);
-
     return 0;
 }
 
@@ -459,6 +462,14 @@ string_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
     SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
 
     return 0;
+}
+
+static void
+string_send_packet_cb(struct http_data *mdata, struct sol_flow_node *node)
+{
+    sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_STRING__OUT__OUT,
+        mdata->value.s);
 }
 
 static void
