@@ -38,7 +38,7 @@
      ]
     },
     {
-     "name": "intel-minnow-max-linux_gt_3_19",
+     "name": "intel-minnow-max-linux_gt_3_17",
      "validation": [
       {
        "file_path": "/sys/devices/virtual/dmi/id/bios_version",
@@ -46,7 +46,7 @@
       },
       {
        "file_path": "/proc/sys/kernel/osrelease",
-       "dont_match": [ "^[0-2][.]", "^3[.][0-9][.]", "^3[.][0-1][0-8]" ]
+       "dont_match": [ "^[0-2][.]", "^3[.][0-9][.]", "^3[.][0-1][0-7]" ]
       }
      ]
     },
