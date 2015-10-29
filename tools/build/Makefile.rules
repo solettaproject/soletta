@@ -34,7 +34,7 @@ extra-headers = \
 	) \
 
 artifact-path = $(foreach curr,$(1), \
-			$(if $(wildcard $(top_srcdir)/$(2)/$(subst .o,.c,$(curr))), \
+			$(if $(wildcard $(top_srcdir)$(2)/$(subst .o,.c,$(curr))), \
 				$(eval intree := y), \
 				$(eval intree := $(if $(filter $(abspath $(top_srcdir))%,$(abspath $(curr))),y,n)) \
 			) \

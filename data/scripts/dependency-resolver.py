@@ -479,44 +479,6 @@ def vars_expand(origin, dest, maxrec):
     if remaining:
         vars_expand(remaining, dest, maxrec - 1)
 
-def handle_definitions(args, conf, context):
-    definitions = conf.get("definitions")
-
-    context.debug("\n\n## ------------------- ##")
-    context.debug("## Project definitions ##")
-    context.debug("## ------------------- ##\n\n")
-
-    variables = {"PREFIX": args.prefix}
-
-    # environment variables get priority, so set it beforehand
-    for k,v in os.environ.items():
-        found = definitions.get(k)
-        if not found:
-            continue
-        definitions[k] = v
-
-    vars_expand(definitions, variables, len(definitions))
-
-    header = ""
-    for k,v in variables.items():
-        if k == "PREFIX":
-            continue
-
-        if isinstance(v, str):
-            value = "\"%s\"" % v
-        else:
-            value = "%d" % v
-        context.add_cond_makefile_var(k, v, True)
-        header += "#define %s %s\n" % (k, value)
-
-    dirname = os.path.dirname(args.definitions_header)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-
-    f = open(args.definitions_header, "w")
-    f.write(header)
-    f.close()
-
 def cache_persist(args, context):
     cache = open(args.cache, "wb")
     pickle.dump(context, cache, pickle.HIGHEST_PROTOCOL)
@@ -573,10 +535,6 @@ if __name__ == "__main__":
                         default=".config-cache")
     parser.add_argument("--prefix", help="The installation prefix",
                         type=str, default="/usr")
-    parser.add_argument("--definitions-header",
-                        help=("File containing definitions propagated to source code"),
-                        type=str,
-                        default="include/generated/sol_definitions.h")
     parser.add_argument("--makefile-gen", help="Should generate Makefile.gen?",
                         action="store_true")
     parser.add_argument("--kconfig-gen", help="Should generate Kconfig.gen?",
@@ -612,7 +570,6 @@ if __name__ == "__main__":
         cache_persist(args, context)
 
     if args.makefile_gen:
-        handle_definitions(args, conf, context)
         makefile_gen(args, context)
         cache_persist(args, context)
 

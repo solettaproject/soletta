@@ -8,17 +8,17 @@ $(KCONFIG_GEN): $(DEPENDENCY_CACHE)
 		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
 		--pkg-config="$(PKG_CONFIG)" --kconfig-gen
 
-$(MAKEFILE_GEN): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG)
+$(MAKEFILE_GEN): $(DEPENDENCY_CACHE)
 	$(Q)$(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
 		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --cache="$(DEPENDENCY_CACHE)" \
-		--pkg-config="$(PKG_CONFIG)" --definitions-header="$(DEFINITIONS_H)" --makefile-gen
+		--pkg-config="$(PKG_CONFIG)" --makefile-gen
 
 reconf: $(DEPENDENCY_SCRIPT)
 	$(Q)echo "[re]running dependency-resolver..."
 	$(Q)$(RM) -f $(DEPENDENCY_FILES)
 	$(Q)$(RM) $(DEPENDENCY_CACHE)
 	$(Q) V=1 $(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
-		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" --definitions-header="$(DEFINITIONS_H)" \
+		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" \
 		--cache="$(DEPENDENCY_CACHE)" --kconfig-gen --makefile-gen
 
 PHONY += reconf
