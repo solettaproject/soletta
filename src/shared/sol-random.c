@@ -274,6 +274,15 @@ const struct sol_random_impl *SOL_RANDOM_URANDOM = NULL;
 
 const struct sol_random_impl *SOL_RANDOM_DEFAULT = NULL;
 
+static void
+clear_memory(void *ptr, size_t sz)
+{
+    memset(ptr, 0, sz);
+    /* Clobber memory pointed to by `buf` to prevent the optimizer from
+     * eliding the memset() call.  */
+    asm volatile("" : : "g" (ptr) : "memory");
+}
+
 struct sol_random *
 sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
 {
@@ -288,6 +297,7 @@ sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
     engine->impl = impl;
     seed = get_platform_seed(seed);
     if (!engine->impl->init(engine, seed)) {
+        clear_memory(engine, impl->struct_size);
         free(engine);
         return NULL;
     }
@@ -302,6 +312,9 @@ sol_random_del(struct sol_random *engine)
 
     if (engine->impl->shutdown)
         engine->impl->shutdown(engine);
+
+    clear_memory(engine, engine->impl->struct_size);
+
     free(engine);
 }
 
