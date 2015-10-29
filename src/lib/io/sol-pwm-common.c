@@ -61,6 +61,8 @@ sol_pwm_open_by_label(const char *label, const struct sol_pwm_config *config)
     SOL_WRN("Label '%s' couldn't be mapped or can't be used as PWM", label);
 #else
     SOL_INF("Pin Multiplexer support is necessary to open a 'board pin'.");
+    (void)device;
+    (void)channel;
 #endif
 
     return NULL;
