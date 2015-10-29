@@ -41,35 +41,95 @@
 
 #include "sol-buffer.h"
 #include "sol-log.h"
+#include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-util-file.h"
 
-SOL_API int
-sol_fs_write_raw(const char *name, const struct sol_buffer *buffer)
+struct cb_data {
+    char *name;
+    struct sol_blob *blob;
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status);
+    const void *data;
+    int status;
+};
+
+static bool
+write_cb(void *data)
 {
-    FILE *file;
-    int ret = 0;
+    struct cb_data *cb_data = data;
+
+    if (cb_data->cb)
+        cb_data->cb((void *)cb_data->data, cb_data->name, cb_data->blob,
+            cb_data->status);
+    sol_blob_unref(cb_data->blob);
+
+    free(cb_data->name);
+    free(cb_data);
+
+    return false;
+}
+
+SOL_API int
+sol_fs_write_raw(const char *name, struct sol_blob *blob,
+    void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+    const void *data)
+{
+    FILE *file = NULL;
+    struct cb_data *cb_data;
+    int ret = 0, status = 0;
 
     SOL_NULL_CHECK(name, -EINVAL);
-    SOL_NULL_CHECK(buffer, -EINVAL);
+    SOL_NULL_CHECK(blob, -EINVAL);
+
+    if (cb) {
+        cb_data = calloc(1, sizeof(struct cb_data));
+        SOL_NULL_CHECK(cb_data, -ENOMEM);
+
+        cb_data->blob = sol_blob_ref(blob);
+        if (!cb_data->blob) {
+            free(cb_data);
+            return -ENOMEM;
+        }
+
+        cb_data->blob = blob;
+        cb_data->data = data;
+        cb_data->cb = cb;
+        cb_data->name = strdup(name);
+        if (!cb_data->name) {
+            sol_blob_unref(blob);
+            free(cb_data);
+            return -ENOMEM;
+        }
+    }
+
+    /* From this point on, we return success even on failure, and report
+     * failure on cb, if any. So we have a uniform behaviour among storage
+     * api */
 
     file = fopen(name, "w+e");
     if (!file) {
         SOL_WRN("Could not open persistence file [%s]: %s", name,
             sol_util_strerrora(errno));
-        return -errno;
+        status = -errno;
+        goto end;
     }
 
-    fwrite(buffer->data, buffer->used, 1, file);
+    fwrite(blob->mem, blob->size, 1, file);
     if (ferror(file)) {
         SOL_WRN("Could not write to persistence file [%s]", name);
-        ret = -EIO;
+        status = -EIO;
     }
 
-    if (fclose(file)) {
+end:
+    if (file && fclose(file)) {
         SOL_WRN("Could not close persistence file [%s]: %s", name,
             sol_util_strerrora(errno));
-        return -errno;
+        status = -errno;
+    }
+
+    if (cb) {
+        cb_data->status = status;
+        sol_timeout_add(0, write_cb, cb_data);
     }
 
     return ret;
