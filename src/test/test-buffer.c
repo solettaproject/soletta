@@ -660,13 +660,15 @@ test_insert_from_base16(void)
     ASSERT_STR_EQ(buf.data, "HelloWorld");
 
     slice = sol_str_slice_from_str(to_decode);
-    err = sol_buffer_insert_from_base16(&buf, strlen("Hello"), slice, false);
+    err = sol_buffer_insert_from_base16(&buf, strlen("Hello"), slice,
+        SOL_DECODE_LOWERCASE);
     ASSERT_INT_EQ(err, 0);
     ASSERT_INT_EQ(buf.used, strlen("Hello" B16_DECODED "World"));
     ASSERT_STR_EQ(buf.data, "Hello" B16_DECODED "World");
 
     slice = sol_str_slice_from_str("12x"); /* broken base16 */
-    err = sol_buffer_insert_from_base16(&buf, strlen("Hello"), slice, false);
+    err = sol_buffer_insert_from_base16(&buf, strlen("Hello"), slice,
+        SOL_DECODE_LOWERCASE);
     ASSERT_INT_NE(err, 0);
     ASSERT_INT_EQ(buf.used, strlen("Hello" B16_DECODED "World"));
     ASSERT_STR_EQ(buf.data, "Hello" B16_DECODED "World");
@@ -696,7 +698,7 @@ test_append_from_base16(void)
     ASSERT_STR_EQ(buf.data, "XYZ");
 
     slice = sol_str_slice_from_str(to_decode);
-    err = sol_buffer_append_from_base16(&buf, slice, false);
+    err = sol_buffer_append_from_base16(&buf, slice, SOL_DECODE_LOWERCASE);
     ASSERT_INT_EQ(err, 0);
     ASSERT_INT_EQ(buf.used, strlen("XYZ" B16_DECODED));
     ASSERT_STR_EQ(buf.data, "XYZ" B16_DECODED);

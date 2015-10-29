@@ -122,7 +122,7 @@ on_timeout_do_single(void *data)
     return false;
 }
 
-#define CHUNK_SIZE 64
+#define MSG_CHUNK_SIZE 64
 struct chunked_ctx {
     const struct md_test *t;
     struct sol_message_digest *md;
@@ -151,11 +151,11 @@ on_timeout_do_chunked_internal(void *data)
     for (i = 0; i < 3; i++) {
         struct sol_blob *blob;
         bool is_final = false;
-        size_t len = CHUNK_SIZE;
+        size_t len = MSG_CHUNK_SIZE;
         const void *mem;
         int r;
 
-        if (ctx->offset + CHUNK_SIZE >= ctx->t->len) {
+        if (ctx->offset + MSG_CHUNK_SIZE >= ctx->t->len) {
             is_final = true;
             len = ctx->t->len - ctx->offset;
         }

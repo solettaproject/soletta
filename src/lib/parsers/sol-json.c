@@ -690,6 +690,8 @@ sol_json_serialize_boolean(struct sol_buffer *buffer, bool val)
     return 0;
 }
 
+#define MAX_BYTES_UNICODE 3
+
 SOL_API int
 sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct sol_buffer *buffer)
 {
@@ -697,6 +699,7 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
     const char *start, *p;
     bool is_escaped = false;
     char new_char;
+    int8_t unicode_len;
 
     SOL_NULL_CHECK(buffer, -EINVAL);
     sol_buffer_init_flags(buffer, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
@@ -745,56 +748,33 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
                 break;
             case 'u':
                 if (p + 4 < token->end - 1) {
-                    uint8_t n1, n2, b, i;
-                    char hex_digits[4];
-
-                    for (i = 0; i < 4; i++) {
-                        p++;
-                        hex_digits[i] = toupper(*p);
-                    }
+                    uint8_t n1, n2;
+                    void *buffer_end;
 
                     r = sol_util_base16_decode(&n1, 1,
-                        SOL_STR_SLICE_STR(hex_digits, 2), true);
+                        SOL_STR_SLICE_STR(p + 1, 2),
+                        SOL_DECODE_BOTH);
                     SOL_INT_CHECK(r, != 1, r);
                     r = sol_util_base16_decode(&n2, 1,
-                        SOL_STR_SLICE_STR(hex_digits + 2, 2), true);
+                        SOL_STR_SLICE_STR(p + 3, 2),
+                        SOL_DECODE_BOTH);
                     SOL_INT_CHECK(r, != 1, r);
+                    if (buffer->used > SIZE_MAX - MAX_BYTES_UNICODE)
+                        return -EOVERFLOW;
 
-                    if (n1 >= 0x08) {
-                        //Three bytes
-                        b = 0xe0;
-                        b |= (n1 & 0xF0) >> 4;
-                        r = sol_buffer_append_char(buffer, b);
-                        SOL_INT_CHECK(r, < 0, r);
-
-                        b = 0x80;
-                        b |= (n1 & 0x0F) << 2;
-                        b |= (n2 & 0xc0) >> 6;
-                        r = sol_buffer_append_char(buffer, b);
-                        SOL_INT_CHECK(r, < 0, r);
-
-                        b = 0x80;
-                        b |= (n2 & 0x3F);
-                        r = sol_buffer_append_char(buffer, b);
-                        SOL_INT_CHECK(r, < 0, r);
-                    } else if (!n1 && n2 < 0x80) {
-                        //Just one byte
-                        r = sol_buffer_append_char(buffer, n2);
-                        SOL_INT_CHECK(r, < 0, r);
-                    } else {
-                        //Two bytes
-                        b = 0xc0;
-                        b |= (n1 & 0x7) << 2;
-                        b |= ((0xc0 & n2) >> 6);
-                        r = sol_buffer_append_char(buffer, b);
-                        SOL_INT_CHECK(r, < 0, r);
-
-                        b = 0x80 | (n2 & 0x3f);
-                        r = sol_buffer_append_char(buffer, b);
-                        SOL_INT_CHECK(r, < 0, r);
-                    }
+                    r = sol_buffer_ensure(buffer,
+                        buffer->used + MAX_BYTES_UNICODE);
+                    SOL_INT_CHECK(r, < 0, r);
+                    buffer_end = sol_buffer_at_end(buffer);
+                    SOL_NULL_CHECK(buffer_end, -EINVAL);
+                    unicode_len = sol_util_utf8_from_unicode_code(buffer_end,
+                        MAX_BYTES_UNICODE, n1 << 8 | n2);
+                    if (unicode_len < 0)
+                        return unicode_len;
+                    buffer->used += unicode_len;
 
                     start += 4;
+                    p += 4;
                     continue;
                 }
             default:
@@ -817,6 +797,7 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
         r = sol_buffer_append_slice(buffer, slice);
         SOL_INT_CHECK_GOTO(r, < 0, error);
     }
+
     return 0;
 
 error:
@@ -828,6 +809,8 @@ invalid_json_string:
         (char *)token->start);
     return -EINVAL;
 }
+
+#undef MAX_BYTES_UNICODE
 
 SOL_API char *
 sol_json_token_get_unescaped_string_copy(const struct sol_json_token *value)

@@ -33,7 +33,6 @@
 #pragma once
 
 #include "sol-macros.h"
-#include "sol-buffer.h"
 
 #include <dirent.h>
 #include <sys/types.h>
