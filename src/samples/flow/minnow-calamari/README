@@ -21,16 +21,17 @@ the original pin numbers were added by 256.
 
 sol-flow.json contains the original numbers, prior to Linux Kernel 3.18.
 
-sol-flow-new.json contains the same content, but with the GPIO pin numbers
-added by 256. So, if your Linux Kernel >= 3.18, please,
-use this file.
+sol-flow-intel-minnow-max-linux_gt_3_19.json contains the same content,
+but with the GPIO pin numbers added by 256.  So, if your Linux Kernel >= 3.18,
+please, use this file.
 
-Basically, there are two methods of doing that:
+If for any given reason the correct config files is not being autodetect,
+there are two methods of enforce the use of a specific config file:
 
  * Method 1 [recommended] - Run:
-        SOL_FLOW_MODULE_RESOLVER_CONFFILE=sol-flow-new.json sol-fbp-runner example.fbp
+        SOL_FLOW_MODULE_RESOLVER_CONFFILE=sol-flow-intel-minnow-max-linux_gt_3_19.json sol-fbp-runner example.fbp
 
  * Method 2 - Update the sol-flow.json file manually. You can edit it manually or copy the
 contents from sol-flow.json:
-        cp sol-flow-new.json sol-flow.json
+        cp sol-flow-intel-minnow-max-linux_gt_3_19.json sol-flow.json
         sol-fbp-runner example.fbp
