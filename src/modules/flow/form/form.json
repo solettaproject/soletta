@@ -61,7 +61,7 @@
         },
         {
           "data_type": "boolean",
-          "description": "Make the interaction possible, otherwise don't produce strings or process NEXT/PREVIOUS/SELECT inputs. In other words, enabled/disable the node at run-time. The node starts in the enabled state. Note that this does not affect the use of the ADD_ITEM/CLEAR/SELECTED ports.",
+          "description": "Make the interaction possible, otherwise don't produce strings or process NEXT/PREVIOUS/SELECT inputs. In other words, enable/disable the node at run-time. The node starts in the enabled state. Note that this does not affect the use of the ADD_ITEM/CLEAR/SELECTED ports.",
           "methods": {
             "process": "selector_enabled_set"
           },
@@ -131,7 +131,7 @@
         }
       ],
       "private_data_type": "selector_data",
-      "url": "http://solettaproject.org/doc/latest/node_types/selector.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/form/selector.html"
     },
     {
       "category": "io/sw",
@@ -163,7 +163,7 @@
         },
         {
           "data_type": "boolean",
-          "description": "Make the interaction possible, otherwise don't produce strings or process TOGGLE/SELECT inputs. In other words, enabled/disable the node at run-time. The node starts in the enabled state. Note that this does not affect the use of the SELECTED port.",
+          "description": "Make the interaction possible, otherwise don't produce strings or process TOGGLE/SELECT inputs. In other words, enable/disable the node at run-time. The node starts in the enabled state. Note that this does not affect the use of the SELECTED port.",
           "methods": {
             "process": "boolean_enabled_set"
           },
@@ -227,7 +227,116 @@
         }
       ],
       "private_data_type": "boolean_data",
-      "url": "http://solettaproject.org/doc/latest/node_types/boolean.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/form/boolean.html"
+    },
+    {
+      "category": "io/sw",
+      "description": "Receives packages to control an integer state. One of the input ports will commit to a state when trigerred, and the integer value will be outputted. A string output with the current state, defined by a format string, is also outputted.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "Change the current state (useful for initial setups on a flow).",
+          "methods": {
+            "process": "integer_selected_set"
+          },
+          "name": "SELECTED"
+        },
+        {
+          "data_type": "any",
+          "description": "Increase the internal integer state.",
+          "methods": {
+            "process": "up_set"
+          },
+          "name": "UP"
+        },
+        {
+          "data_type": "any",
+          "description": "Decrease the internal integer state.",
+          "methods": {
+            "process": "down_set"
+          },
+          "name": "DOWN"
+        },
+        {
+          "data_type": "any",
+          "description": "Confirm the selection to be current one, generating output packets on both STRING and SELECTED output ports.",
+          "methods": {
+            "process": "integer_select_set"
+          },
+          "name": "SELECT"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Make the interaction possible, otherwise don't produce strings or process UP/DOWN/SELECT inputs. In other words, enable/disable the node at run-time. The node starts in the enabled state. Note that this does not affect the use of the SELECTED port.",
+          "methods": {
+            "process": "integer_enabled_set"
+          },
+          "name": "ENABLED"
+        }
+      ],
+      "methods": {
+        "close": "integer_close",
+        "open": "integer_open"
+      },
+      "name": "form/int",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
+            "name": "columns"
+          },
+          {
+            "data_type": "int",
+            "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
+            "name": "rows"
+          },
+          {
+            "data_type": "int",
+            "default": {
+              "max": "INT32_MAX",
+              "min": 0,
+              "step": 1,
+              "val": 0
+            },
+            "description": "The integer range that the node may store.",
+            "name": "range"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters is this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
+            "name": "title"
+          },
+          {
+            "data_type": "string",
+            "default": "{value}",
+            "description": "The format string to produce the final STRING output with. The syntax is a free-form string with one '{value}' sub-string in it (and one optional '{title}' one). The value tag will be replaced by the actual true/false strings defined for the node (true_str/false_str options), while the title one will be replaced by the title string option, if set. The title tag must occur before the value one.",
+            "name": "format"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Whether the integer selection by the UP/DOWN ports is circular or not.",
+            "name": "circular"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The formatted integer state output. This is meant to feed real display nodes (like grove/lcd-string).",
+          "name": "STRING"
+        },
+        {
+          "data_type": "int",
+          "description": "The current integer state.",
+          "name": "SELECTED"
+        }
+      ],
+      "private_data_type": "integer_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/form/int.html"
     }
   ]
 }
