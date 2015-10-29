@@ -543,101 +543,6 @@ free_buffer:
     return NULL;
 }
 
-static char *
-encode_key_values(CURL *curl, enum sol_http_param_type type,
-    const struct sol_http_param *params, char *initial_value)
-{
-    struct sol_http_param_value *iter;
-    uint16_t idx;
-    bool first = true;
-
-    if (type != SOL_HTTP_PARAM_QUERY_PARAM &&
-        type != SOL_HTTP_PARAM_POST_FIELD &&
-        type != SOL_HTTP_PARAM_COOKIE) {
-        free(initial_value);
-        errno = EINVAL;
-        return NULL;
-    }
-
-    SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
-        struct sol_str_slice key = iter->value.key_value.key;
-        struct sol_str_slice value = iter->value.key_value.value;
-        char *tmp, *encoded_key, *encoded_value;
-        int r;
-
-        if (iter->type != type)
-            continue;
-
-        encoded_key = curl_easy_escape(curl, key.data, key.len);
-        if (!encoded_key)
-            goto cleanup;
-        encoded_value = curl_easy_escape(curl, value.data, value.len);
-        if (!encoded_value) {
-            curl_free(encoded_key);
-            goto cleanup;
-        }
-
-        if (type == SOL_HTTP_PARAM_COOKIE) {
-            r = asprintf(&tmp, "%s%s%s=%s;", initial_value, first ? "" : " ",
-                encoded_key, encoded_value);
-        } else {
-            r = asprintf(&tmp, "%s%s%s=%s", initial_value, first ? "" : "&",
-                encoded_key, encoded_value);
-        }
-
-        curl_free(encoded_key);
-        curl_free(encoded_value);
-
-        if (r < 0)
-            goto cleanup;
-
-        free(initial_value);
-        initial_value = tmp;
-        first = false;
-    }
-
-    return initial_value;
-
-cleanup:
-    free(initial_value);
-    errno = ENOMEM;
-    return NULL;
-}
-
-static char *
-build_uri(CURL *curl, const char *base, const struct sol_http_param *params)
-{
-    char *initial_value;
-    char *built_uri;
-
-    if (asprintf(&initial_value, "%s?", base) < 0) {
-        errno = ENOMEM;
-        return NULL;
-    }
-
-    built_uri = encode_key_values(curl, SOL_HTTP_PARAM_QUERY_PARAM, params,
-        initial_value);
-    if (built_uri == initial_value) {
-        free(initial_value);
-        return strdup(base);
-    }
-
-    return built_uri;
-}
-
-static char *
-build_cookies(CURL *curl, const struct sol_http_param *params)
-{
-    return encode_key_values(curl, SOL_HTTP_PARAM_COOKIE, params, strdup(""));
-}
-
-static char *
-build_post_fields(CURL *curl, const struct sol_http_param *params)
-{
-    return encode_key_values(curl, SOL_HTTP_PARAM_POST_FIELD, params,
-        strdup(""));
-}
-
 static bool
 set_headers_from_params(CURL *curl, struct sol_arena *arena,
     const struct sol_http_param *params, struct curl_slist **headers)
@@ -743,23 +648,43 @@ set_string_option(CURL *curl, CURLoption option, struct sol_arena *arena,
 }
 
 static bool
+set_string_slice_option(CURL *curl, CURLoption option, struct sol_arena *arena,
+    const struct sol_str_slice slice)
+{
+    char *tmp;
+
+    if (!slice.len)
+        return true;
+    tmp = sol_arena_strdup_slice(arena, slice);
+    SOL_NULL_CHECK(tmp, false);
+    return curl_easy_setopt(curl, option, tmp) == CURLE_OK;
+}
+
+static bool
 set_cookies_from_params(CURL *curl, struct sol_arena *arena,
     const struct sol_http_param *params)
 {
-    char *cookies = build_cookies(curl, params);
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+    bool r;
+    int err;
 
-    if (cookies && !*cookies) {
-        free(cookies);
-        return true;
-    }
-    return set_string_option(curl, CURLOPT_COOKIE, arena, cookies);
+    err = sol_http_encode_params(&buf, SOL_HTTP_PARAM_COOKIE, params);
+    SOL_INT_CHECK(err, < 0, false);
+    r = set_string_slice_option(curl, CURLOPT_COOKIE, arena,
+        sol_buffer_get_slice(&buf));
+    sol_buffer_fini(&buf);
+    return r;
 }
 
 static bool
 set_uri_from_params(CURL *curl, struct sol_arena *arena, const char *base,
     const struct sol_http_param *params)
 {
-    char *full_uri = build_uri(curl, base, params);
+    char *full_uri;
+    int r;
+
+    r = sol_http_create_simple_uri_from_str(&full_uri, base, params);
+    SOL_INT_CHECK(r, < 0, false);
 
     return set_string_option(curl, CURLOPT_URL, arena, full_uri);
 }
@@ -768,9 +693,24 @@ static bool
 set_post_fields_from_params(CURL *curl, struct sol_arena *arena,
     const struct sol_http_param *params)
 {
-    char *post = build_post_fields(curl, params);
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+    int err;
+    bool r;
 
-    return set_string_option(curl, CURLOPT_POSTFIELDS, arena, post);
+    err = sol_http_encode_params(&buf, SOL_HTTP_PARAM_POST_FIELD, params);
+    SOL_INT_CHECK(err, < 0, false);
+
+    if (!buf.used) {
+        if (curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, 0) != CURLE_OK ||
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "") != CURLE_OK)
+            r = false;
+        else
+            r = true;
+    } else
+        r = set_string_slice_option(curl, CURLOPT_POSTFIELDS, arena,
+            sol_buffer_get_slice(&buf));
+    sol_buffer_fini(&buf);
+    return r;
 }
 
 static bool
@@ -781,14 +721,13 @@ set_post_data_from_params(CURL *curl, struct sol_arena *arena,
     struct sol_http_param_value *iter;
     uint16_t idx;
     char *tmp;
-    bool type_set = false;
+    bool type_set, has_post_fields, hast_post_data;
 
+    type_set = has_post_fields = hast_post_data = false;
     SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
         struct sol_str_slice value = SOL_STR_SLICE_EMPTY;
         if (iter->type == SOL_HTTP_PARAM_POST_FIELD) {
-            SOL_WRN("SOL_HTTP_PARAM_POST_FIELD and SOL_HTTP_PARAM_POST_DATA found in parameters."
-                " Only one can be used at a time");
-            return false;
+            has_post_fields = true;
         } else if (iter->type == SOL_HTTP_PARAM_HEADER) {
             struct sol_str_slice key = iter->value.key_value.key;
             type_set = type_set || sol_str_slice_str_caseeq(key, "content-type");
@@ -800,11 +739,21 @@ set_post_data_from_params(CURL *curl, struct sol_arena *arena,
             }
 
             data = value;
+            hast_post_data = true;
         }
     }
 
-    if (data.len == 0)
+    if (!hast_post_data)
+        return true;
+
+    if (hast_post_data && data.len == 0)
         return false;
+
+    if (has_post_fields && hast_post_data) {
+        SOL_WRN("SOL_HTTP_PARAM_POST_FIELD and SOL_HTTP_PARAM_POST_DATA found in parameters."
+            " Only one can be used at a time");
+        return false;
+    }
 
     if (!type_set)
         SOL_WRN("POST request has data but no content-type was set");
@@ -934,7 +883,7 @@ sol_http_client_request(enum sol_http_method method,
     }
 
     if (method == SOL_HTTP_METHOD_POST) {
-        if (!set_post_fields_from_params(curl, arena, params) &&
+        if (!set_post_fields_from_params(curl, arena, params) ||
             !set_post_data_from_params(curl, arena, params)) {
             SOL_WRN("Could not set POST fields or data from params");
             goto invalid_option;
