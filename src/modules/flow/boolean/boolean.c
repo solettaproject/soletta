@@ -94,9 +94,10 @@ static int
 multi_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, uint16_t port_out, const struct sol_flow_packet *packet, bool (*func) (bool in0, bool in1))
 {
     struct multi_boolean_data *mdata = data;
+    uint32_t ports;
     int r;
     uint8_t i;
-    bool result, result_set = false;
+    bool result;
 
     r = sol_flow_packet_get_boolean(packet, &mdata->vals[port_in]);
     SOL_INT_CHECK(r, < 0, r);
@@ -106,17 +107,17 @@ multi_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, ui
     if (mdata->initialized != mdata->connected)
         return 0;
 
-    for (i = 0; i < MULTI_LEN; i++) {
-        if (!(mdata->initialized & (1u << i)))
-            continue;
+    if (unlikely(!(ports = mdata->initialized)))
+        return 0;
 
-        if (!result_set) {
-            result = mdata->vals[i];
-            result_set = true;
-            continue;
-        }
+    for (i = 0; !(ports & 1); i++)
+        ports >>= 1;
 
-        result = func(result, mdata->vals[i]);
+    result = mdata->vals[i++];
+    while ((ports >>= 1)) {
+        if (ports & 1)
+            result = func(result, mdata->vals[i]);
+        i++;
     }
 
     return sol_flow_send_boolean_packet(node, port_out, result);
