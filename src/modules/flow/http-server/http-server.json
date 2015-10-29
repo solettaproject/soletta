@@ -34,7 +34,13 @@
             "description": "The http path where it will be served",
             "name": "path"
           },
-	  {
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
+          },
+          {
             "data_type": "boolean",
 	    "default": true,
             "description": "The initial node's value",
@@ -90,7 +96,13 @@
             "description": "The http path where it will be served",
             "name": "path"
           },
-	  {
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
+          },
+          {
             "data_type": "string",
 	    "default": "",
             "description": "The initial node's value",
@@ -146,6 +158,12 @@
 	    "default": "string",
             "description": "The http path where it will be served",
             "name": "path"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
           },
         {
             "data_type": "int",
@@ -214,6 +232,12 @@
             "description": "The http path where it will be served",
             "name": "path"
           },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
+          },
         {
             "data_type": "float",
             "default": 0,
@@ -267,6 +291,12 @@
             "data_type": "string",
             "description": "The path where the server will look for the files",
             "name": "path"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
           },
           {
             "data_type": "boolean",

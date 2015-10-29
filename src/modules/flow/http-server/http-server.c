@@ -54,6 +54,12 @@
 
 #define DOUBLE_STRING_LEN 64
 
+struct server_data {
+    struct sol_http_server *server;
+    int port;
+    int refcount;
+};
+
 struct http_data {
     union {
         struct sol_irange i;
@@ -62,6 +68,7 @@ struct http_data {
         char *s;
     } value;
 
+    struct server_data *sdata;
     char *path;
 };
 
@@ -74,28 +81,82 @@ struct http_server_node_type {
     void (*send_packet_cb)(struct http_data *mdata, struct sol_flow_node *node);
 };
 
-static struct sol_http_server *server = NULL;
-static int init_count = 0;
+static struct sol_ptr_vector *servers = NULL;
 
-static int
-server_ref(void)
+static void
+servers_free(void)
 {
-    if (!server) {
-        server = sol_http_server_new(HTTP_SERVER_PORT);
-        SOL_NULL_CHECK(server, -ENOMEM);
+    if (!servers)
+        return;
+
+    if (sol_ptr_vector_get_len(servers) != 0)
+        return;
+
+    sol_ptr_vector_clear(servers);
+    free(servers);
+    servers = NULL;
+}
+
+static struct server_data *
+server_ref(uint16_t port)
+{
+    struct server_data *idata, *sdata = NULL;
+    uint16_t i;
+
+    if (!servers) {
+        servers = calloc(1, sizeof(struct sol_ptr_vector));
+        SOL_NULL_CHECK(servers, NULL);
+        sol_ptr_vector_init(servers);
     }
-    init_count++;
-    return 0;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (servers, idata, i) {
+        if (idata->port == port) {
+            sdata = idata;
+            break;
+        }
+    }
+
+    if (!sdata) {
+        int r;
+
+        sdata = calloc(1, sizeof(struct server_data));
+        SOL_NULL_CHECK_GOTO(sdata, err_sdata);
+
+        r = sol_ptr_vector_append(servers, sdata);
+        SOL_INT_CHECK_GOTO(r, < 0, err_vec);
+
+        sdata->server = sol_http_server_new(port);
+        SOL_NULL_CHECK_GOTO(sdata->server, err_server);
+
+        sdata->port = port;
+    }
+
+    sdata->refcount++;
+
+    return sdata;
+
+err_server:
+    sol_ptr_vector_remove(servers, sdata);
+err_vec:
+    free(sdata);
+err_sdata:
+    servers_free();
+
+    return NULL;
 }
 
 static void
-server_unref(void)
+server_unref(struct server_data *sdata)
 {
-    init_count--;
-    if (!init_count) {
-        sol_http_server_del(server);
-        server = NULL;
-    }
+    sdata->refcount--;
+
+    if (sdata->refcount > 0)
+        return;
+
+    sol_ptr_vector_remove(servers, sdata);
+    sol_http_server_del(sdata->server);
+    free(sdata);
+    servers_free();
 }
 
 static int
@@ -128,7 +189,8 @@ common_response_cb(void *data, struct sol_http_request *request)
             r = type->post_cb(mdata, node, value);
             SOL_INT_CHECK_GOTO(r, < 0, end);
 
-            r = sol_http_server_set_last_modified(server, mdata->path, time(NULL));
+            r = sol_http_server_set_last_modified(mdata->sdata->server,
+                mdata->path, time(NULL));
             SOL_INT_CHECK_GOTO(r, < 0, end);
             break;
         case SOL_HTTP_PARAM_HEADER:
@@ -173,35 +235,54 @@ end:
 }
 
 static int
-start_server(struct http_data *http, struct sol_flow_node *node,
-    const char *path)
+validate_port(int32_t port)
 {
-    int r;
+    if (port > UINT16_MAX) {
+        SOL_WRN("Invalid server port (%" PRId32 "). It must be in range "
+            "0 - (%" PRId32 "). Using default port  (%" PRId32 ").",
+            port, UINT16_MAX, HTTP_SERVER_PORT);
+        return HTTP_SERVER_PORT;
+    }
 
-    r = server_ref();
-    SOL_INT_CHECK(r, < 0, r);
+    if (port < 0)
+        return HTTP_SERVER_PORT;
+
+    return port;
+}
+
+static int
+start_server(struct http_data *http, struct sol_flow_node *node,
+    const char *path, int32_t opt_port)
+{
+    int r, port;
+
+    port = validate_port(opt_port);
+
+    http->sdata = server_ref(port);
+    SOL_NULL_CHECK(http->sdata, -ENOMEM);
 
     http->path = strdup(path);
-    SOL_NULL_CHECK_GOTO(http->path, err);
+    SOL_NULL_CHECK_GOTO(http->path, err_path);
 
-    r = sol_http_server_register_handler(server, http->path, common_response_cb, node);
+    r = sol_http_server_register_handler(http->sdata->server, http->path,
+        common_response_cb, node);
     SOL_INT_CHECK_GOTO(r, < 0, err_handler);
 
     return 0;
 
 err_handler:
     free(http->path);
-err:
-    server_unref();
-    return -1;
+err_path:
+    server_unref(http->sdata);
+    return -ENOMEM;
 }
 
 static void
 stop_server(struct http_data *http)
 {
-    sol_http_server_unregister_handler(server, http->path);
+    sol_http_server_unregister_handler(http->sdata->server, http->path);
     free(http->path);
-    server_unref();
+    server_unref(http->sdata);
 }
 
 static void
@@ -220,7 +301,7 @@ common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     struct sol_flow_node_type_http_server_boolean_options *opts =
         (struct sol_flow_node_type_http_server_boolean_options *)options;
 
-    r = start_server(mdata, node, opts->path);
+    r = start_server(mdata, node, opts->path, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     mdata->value.b = opts->value;
@@ -236,7 +317,7 @@ int_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
     struct sol_flow_node_type_http_server_int_options *opts =
         (struct sol_flow_node_type_http_server_int_options *)options;
 
-    r = start_server(mdata, node, opts->path);
+    r = start_server(mdata, node, opts->path, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_irange_compose(&opts->value_spec, opts->value, &mdata->value.i);
@@ -253,7 +334,7 @@ float_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     struct sol_flow_node_type_http_server_float_options *opts =
         (struct sol_flow_node_type_http_server_float_options *)options;
 
-    r = start_server(mdata, node, opts->path);
+    r = start_server(mdata, node, opts->path, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_drange_compose(&opts->value_spec, opts->value, &mdata->value.d);
@@ -276,7 +357,8 @@ common_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
     r = type->process_cb(mdata, packet);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_http_server_set_last_modified(server, mdata->path, time(NULL));
+    r = sol_http_server_set_last_modified(mdata->sdata->server,
+        mdata->path, time(NULL));
     SOL_INT_CHECK(r, < 0, r);
 
     return 0;
@@ -399,7 +481,7 @@ string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     mdata->value.s = strdup(opts->value);
     SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
 
-    r = start_server(mdata, node, opts->path);
+    r = start_server(mdata, node, opts->path, opts->port);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     return 0;
@@ -546,13 +628,15 @@ float_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 static int
 static_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    int r;
     struct http_data *mdata = data;
     struct sol_flow_node_type_http_server_static_options *opts =
         (struct sol_flow_node_type_http_server_static_options *)options;
+    int port;
 
-    r = server_ref();
-    SOL_INT_CHECK(r, < 0, r);
+    port = validate_port(opts->port);
+
+    mdata->sdata = server_ref(port);
+    SOL_NULL_CHECK(mdata->sdata, -ENOMEM);
 
     mdata->path = strdup(opts->path);
     SOL_NULL_CHECK_GOTO(mdata->path, err);
@@ -560,13 +644,13 @@ static_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     mdata->value.b = opts->start;
 
     if (opts->start)
-        return sol_http_server_add_dir(server, mdata->path);
+        return sol_http_server_add_dir(mdata->sdata->server, mdata->path);
 
     return 0;
 
 err:
-    server_unref();
-    return -1;
+    server_unref(mdata->sdata);
+    return -ENOMEM;
 }
 
 static void
@@ -575,12 +659,11 @@ static_close(struct sol_flow_node *node, void *data)
     struct http_data *mdata = data;
 
     if (mdata->value.b)
-        sol_http_server_remove_dir(server, mdata->path);
+        sol_http_server_remove_dir(mdata->sdata->server, mdata->path);
 
-    server_unref();
+    server_unref(mdata->sdata);
     free(mdata->path);
 }
-
 
 static int
 static_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
@@ -598,9 +681,9 @@ static_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
 
     mdata->value.b = val;
     if (mdata->value.b)
-        return sol_http_server_add_dir(server, mdata->path);
+        return sol_http_server_add_dir(mdata->sdata->server, mdata->path);
     else
-        return sol_http_server_remove_dir(server, mdata->path);
+        return sol_http_server_remove_dir(mdata->sdata->server, mdata->path);
 }
 
 #include "http-server-gen.c"
