@@ -1,29 +1,4 @@
 {
-  "definitions": {
-    "PKGNAME": "soletta",
-    "VERSION_MAJOR": "0",
-    "VERSION_MINOR": "0",
-    "VERSION_RELEASE": "1",
-    "VERSION": "{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_RELEASE}",
-    "DESTDIR": "/",
-    "SYSCONF": "/etc/",
-    "LIBDIR": "{PREFIX}/lib/",
-    "DATADIR": "{PREFIX}/share/",
-    "BINDIR": "{PREFIX}/bin/",
-    "INCLUDEDIR": "{PREFIX}/include/",
-    "SOL_DATADIR": "{DATADIR}/{PKGNAME}/",
-    "SOL_INCLUDEDIR": "{INCLUDEDIR}/{PKGNAME}/",
-    "MODULESDIR": "{LIBDIR}/{PKGNAME}/modules/",
-    "SOL_FLOW_DATADIR": "{SOL_DATADIR}/flow/",
-    "DESCDIR": "{SOL_FLOW_DATADIR}/descriptions/",
-    "SCHEMADIR": "{SOL_FLOW_DATADIR}/schema/",
-    "PCDIR": "{LIBDIR}/pkgconfig/",
-    "PKGSYSCONFDIR": "{SYSCONF}/{PKGNAME}/",
-    "FLOWMODULESDIR": "{MODULESDIR}/flow/",
-    "PINMUXDIR": "{MODULESDIR}/pin-mux/",
-    "LINUXMICROMODULESDIR": "{MODULESDIR}/linux-micro/",
-    "FLOWMETATYPEMODULESDIR": "{MODULESDIR}/flow-metatype/"
-  },
   "pre-dependencies": [
     {
       "dependency": "gnu_source",
