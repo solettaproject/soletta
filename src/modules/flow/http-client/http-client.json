@@ -777,6 +777,161 @@
       ]
     },
     {
+      "name": "http-client/create-url",
+      "private_data_type": "create_url_data",
+      "category": "http-generic",
+      "description": "Creates an encoded URL",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-client/create-url.html",
+      "methods": {
+        "close": "create_url_close",
+        "open": "create_url_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "http",
+            "description": "The URL protocol",
+            "name": "scheme"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "The server port",
+            "name": "port"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The server to connect with",
+            "name": "host"
+          },
+          {
+            "data_type": "string",
+            "default": "/",
+            "description": "The serve path",
+            "name": "path"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The URL fragment",
+            "name": "fragment"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The URL parameters to be encoded",
+            "name": "query"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "A base URL",
+            "name": "base_uri"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The URL protocol",
+          "name": "PROTOCOL",
+          "methods": {
+            "process": "create_url_scheme_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The user name to authenticate",
+          "name": "USER",
+          "methods": {
+            "process": "create_url_user_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The password to authenticate",
+          "name": "PASSWORD",
+          "methods": {
+            "process": "create_url_password_process"
+          }
+        },
+        {
+          "data_type": "int",
+          "description": "The server port",
+          "name": "PORT",
+          "methods": {
+            "process": "create_url_port_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The server to connect with",
+          "name": "SERVER",
+          "methods": {
+            "process": "create_url_host_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The server path",
+          "name": "PATH",
+          "methods": {
+            "process": "create_url_path_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The URL fragment",
+          "name": "FRAGMENT",
+          "methods": {
+            "process": "create_url_fragment_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "A base uri",
+          "name": "BASE_URI",
+          "methods": {
+            "process": "create_url_base_uri_process"
+          }
+        },
+        {
+          "data_type": "composed:string,string",
+          "description": "The URL parameters to be encoded",
+          "name": "PARAM",
+          "methods": {
+            "process": "create_url_query_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Clear all URL parameters",
+          "name": "CLEAR",
+          "methods": {
+            "process": "create_url_clear_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Process the params and generate an encoded URL",
+          "name": "CREATE",
+          "methods": {
+            "process": "create_url_create_process"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The enconded URL",
+          "name": "OUT"
+        }
+      ]
+    },
+    {
       "name": "http-client/get-headers",
       "category": "http-generic",
       "private_data_type": "http_response_get_data",

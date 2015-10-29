@@ -47,7 +47,6 @@
 #include "sol-vector.h"
 #include "sol_config.h"
 #include "sol-str-table.h"
-#include "sol-arena.h"
 
 struct http_data {
     struct sol_ptr_vector pending_conns;
@@ -71,6 +70,17 @@ struct http_request_data {
 
 struct http_response_get_data {
     char *key;
+};
+
+struct create_url_data {
+    char *scheme;
+    char *host;
+    char *path;
+    char *fragment;
+    char *user;
+    char *password;
+    uint32_t port;
+    struct sol_http_param params;
 };
 
 struct http_client_node_type {
@@ -1348,6 +1358,316 @@ get_key_process(struct sol_flow_node *node, void *data,
     r = replace_string_from_packet(packet, &mdata->key);
     SOL_INT_CHECK(r, < 0, r);
     return 0;
+}
+
+static void
+create_url_close(struct sol_flow_node *node, void *data)
+{
+    struct create_url_data *mdata = data;
+
+    free(mdata->scheme);
+    free(mdata->host);
+    free(mdata->path);
+    free(mdata->fragment);
+    free(mdata->user);
+    free(mdata->password);
+    sol_http_param_free(&mdata->params);
+}
+
+static int
+add_query(struct sol_http_param *params,
+    const struct sol_str_slice key, const struct sol_str_slice value)
+{
+    struct sol_http_param_value param;
+
+    param.type = SOL_HTTP_PARAM_QUERY_PARAM;
+    param.value.key_value.key = key;
+    param.value.key_value.value = value;
+
+    if (!sol_http_param_add_copy(params, param)) {
+        SOL_ERR("Could not add the HTTP param %.*s:%.*s",
+            SOL_STR_SLICE_PRINT(key), SOL_STR_SLICE_PRINT(value));
+        return -ENOMEM;
+    }
+
+    return 0;
+}
+
+static int
+replace_uri(struct create_url_data *mdata, const char *uri)
+{
+    struct sol_http_url url;
+    int r;
+
+    r = sol_http_split_uri(sol_str_slice_from_str(uri), &url);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_util_replace_str_from_slice_if_changed(&mdata->scheme,
+        url.scheme);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_util_replace_str_from_slice_if_changed(&mdata->host, url.host);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_util_replace_str_from_slice_if_changed(&mdata->fragment,
+        url.fragment);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_util_replace_str_from_slice_if_changed(&mdata->path, url.path);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_util_replace_str_from_slice_if_changed(&mdata->user, url.user);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_util_replace_str_from_slice_if_changed(&mdata->password,
+        url.password);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_http_decode_params(url.query,
+        SOL_HTTP_PARAM_QUERY_PARAM, &mdata->params);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->port = url.port;
+    return 0;
+}
+
+static int
+split_query(const char *query, struct sol_http_param *params)
+{
+    struct sol_vector tokens;
+    struct sol_str_slice *token;
+    char *sep;
+    uint16_t i;
+    int r;
+
+    tokens = sol_util_str_split(sol_str_slice_from_str(query), "&", 0);
+
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
+        struct sol_str_slice key, value;
+
+        sep = memchr(token->data, '=', token->len);
+        key.data = token->data;
+        if (sep) {
+            key.len = sep - key.data;
+            value.data = sep + 1;
+            value.len = token->len - key.len - 1;
+        } else {
+            key.len = token->len;
+            value.data = NULL;
+            value.len = 0;
+        }
+
+        r = add_query(params, key, value);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+exit:
+    sol_vector_clear(&tokens);
+    return 0;
+}
+
+static int
+create_url_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    struct create_url_data *mdata = data;
+    struct sol_flow_node_type_http_client_create_url_options *opts =
+        (struct sol_flow_node_type_http_client_create_url_options *)options;
+
+    mdata->params = SOL_HTTP_REQUEST_PARAM_INIT;
+    SOL_INT_CHECK(opts->port, < 0, -EINVAL);
+    mdata->port = opts->port;
+    r = -ENOMEM;
+
+    if (opts->scheme) {
+        mdata->scheme = strdup(opts->scheme);
+        SOL_NULL_CHECK(mdata->scheme, -ENOMEM);
+    }
+
+    if (opts->host) {
+        mdata->host = strdup(opts->host);
+        SOL_NULL_CHECK_GOTO(mdata->host, err_host);
+    }
+
+    if (opts->path) {
+        mdata->path = strdup(opts->path);
+        SOL_NULL_CHECK_GOTO(mdata->path, err_path);
+    }
+
+    if (opts->fragment) {
+        mdata->fragment = strdup(opts->fragment);
+        SOL_NULL_CHECK_GOTO(mdata->fragment, err_fragment);
+    }
+
+    if (opts->query) {
+        r = split_query(opts->query, &mdata->params);
+        SOL_INT_CHECK_GOTO(r, < 0, err_query);
+    }
+
+    if (opts->base_uri) {
+        r = replace_uri(mdata, opts->base_uri);
+        SOL_INT_CHECK_GOTO(r, < 0, err_query);
+    }
+
+    return 0;
+
+err_query:
+    sol_http_param_free(&mdata->params);
+    free(mdata->fragment);
+err_fragment:
+    free(mdata->path);
+err_path:
+    free(mdata->host);
+err_host:
+    free(mdata->scheme);
+    return r;
+}
+
+static int
+create_url_scheme_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+
+    return replace_string_from_packet(packet, &mdata->scheme);
+}
+
+static int
+create_url_port_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+    struct sol_irange irange;
+    int r;
+
+    r = sol_flow_packet_get_irange(packet, &irange);
+    SOL_INT_CHECK(r, < 0, r);
+
+    SOL_INT_CHECK(irange.val, < 0, -EINVAL);
+    mdata->port = irange.val;
+    return 0;
+}
+
+static int
+create_url_host_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+
+    return replace_string_from_packet(packet, &mdata->host);
+}
+
+static int
+create_url_path_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+
+    return replace_string_from_packet(packet, &mdata->path);
+}
+
+static int
+create_url_fragment_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+
+    return replace_string_from_packet(packet, &mdata->fragment);
+}
+
+
+static int
+create_url_user_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+
+    return replace_string_from_packet(packet, &mdata->user);
+}
+
+static int
+create_url_password_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+
+    return replace_string_from_packet(packet, &mdata->password);
+}
+
+static int
+create_url_base_uri_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+    int r;
+    const char *uri;
+
+    r = sol_flow_packet_get_string(packet, &uri);
+    SOL_INT_CHECK(r, < 0, r);
+    return replace_uri(mdata, uri);
+}
+
+static int
+create_url_query_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+    const char *key, *value;
+    uint16_t len;
+    struct sol_flow_packet **children;
+    int r;
+
+    r = sol_flow_packet_get_composed_members(packet, &children, &len);
+    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(len, != 2, -EINVAL);
+
+    r = sol_flow_packet_get_string(children[0], &key);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_packet_get_string(children[1], &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = add_query(&mdata->params, sol_str_slice_from_str(key),
+        sol_str_slice_from_str(value));
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+create_url_clear_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+
+    sol_http_param_free(&mdata->params);
+    return 0;
+}
+
+static int
+create_url_create_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct create_url_data *mdata = data;
+    int r;
+    char *uri;
+    struct sol_http_url url;
+
+    url.scheme = sol_str_slice_from_str(mdata->scheme ? : "http");
+    url.user = sol_str_slice_from_str(mdata->user ? : "");
+    url.password = sol_str_slice_from_str(mdata->password ? : "");
+    url.host = sol_str_slice_from_str(mdata->host ? : "");
+    url.path = sol_str_slice_from_str(mdata->path ? : "");
+    url.fragment = sol_str_slice_from_str(mdata->fragment ? :  "");
+    url.port = mdata->port;
+
+    r = sol_http_create_uri(&uri, url, &mdata->params);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_flow_send_string_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL__OUT__OUT, uri);
+    free(uri);
+    return r;
 }
 
 #include "http-client-gen.c"
