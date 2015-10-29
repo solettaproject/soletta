@@ -135,7 +135,18 @@ struct sol_http_response {
     int response_code;
 };
 
-#define SOL_HTTP_RESPONSE_CHECK_API(response_, ...) \
+struct sol_http_url {
+    struct sol_str_slice scheme;
+    struct sol_str_slice user;
+    struct sol_str_slice password;
+    struct sol_str_slice host;
+    struct sol_str_slice path;
+    struct sol_str_slice query;
+    struct sol_str_slice fragment;
+    uint32_t port; //If == 0 ignore
+};
+
+#define SOL_HTTP_RESPONSE_CHECK_API(response_, ...)  \
     do { \
         if (unlikely(!response_)) { \
             SOL_WRN("Error while reaching service."); \
@@ -242,7 +253,105 @@ bool sol_http_param_add(struct sol_http_param *params,
 bool sol_http_param_add_copy(struct sol_http_param *params, struct sol_http_param_value value);
 void sol_http_param_free(struct sol_http_param *params);
 
-int sol_http_escape_string(char **escaped, const char *value);
+/**
+ * Encodes an URL string.
+ *
+ * If the string was not encoded this function will simple copy
+ * the slices content to the buffer and set @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNE.D
+ *
+ * @param buf The buffer that will hold the encoded string.
+ * @param value A slice to be encoded.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_encode_slice(struct sol_buffer *buf, const struct sol_str_slice value);
+
+/**
+ * Decodes an URL string.
+ *
+ * If the string was not decoded this function will simple copy
+ * the slices contents to the buffer and set @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED.
+ *
+ * @param buf The buffer that will hold the decoded string.
+ * @param value A slice to be decoded.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_decode_slice(struct sol_buffer *buf, const struct sol_str_slice value);
+
+/**
+ *  Creates an URI based on struct sol_http_url and its params
+ *
+ * @param url_out The created URI - it should be freed using free().
+ * @param url The url parameters.
+ * @param params The query and cookies params.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_create_uri(char **uri_out, const struct sol_http_url url, const struct sol_http_param *params);
+
+/**
+ * A simpler version of sol_http_create_uri().
+ *
+ *
+ * @param uri The created URI - it should be freed using free().
+ * @param base_uri The base uri to be used.
+ * @param params The query and cookies params.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri, const struct sol_http_param *params);
+
+/**
+ * Encodes http parameters of a given type.
+ *
+ * @param buf Where the encoded parameters will be stored as string.
+ * @param type The parameter that should be encoded.
+ * @param params The parameters to be encoded.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type, const struct sol_http_param *params);
+
+/**
+ * Decodes http parameters of a given type.
+ *
+ * @param buf Where the decoded parameters will be stored as string.
+ * @param type The parameter that should be decoded.
+ * @param params The parameters to be decoded.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_decode_params(const struct sol_str_slice params_slice, enum sol_http_param_type type, struct sol_http_param *params);
+
+/**
+ * Split an URI.
+ *
+ * This function will receive a complete URI and split and store its values in the sol_http_url struct.
+ *
+ * @param full_uri An URI to be splitted.
+ * @param url Where the URL parts will be stored.
+ *
+ *
+ * @return 0 on success, negative number on error.
+ * @note This function will not decoded the URI.
+ */
+int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url *url);
+
+/**
+ * An wrapper of over sol_http_create_simple_uri()
+ *
+ * @param uri The created URI - it should be freed using free().
+ * @param base_uri The base uri to be used.
+ * @param params The query and cookies params.
+ *
+ * @return 0 on success, negative number on error.
+ */
+static inline int
+sol_http_create_simple_uri_from_str(char **uri, const char *base_url, const struct sol_http_param *params)
+{
+    return sol_http_create_simple_uri(uri, sol_str_slice_from_str(base_url ? base_url : ""), params);
+}
 
 /**
  * @}
