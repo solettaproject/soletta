@@ -64,8 +64,10 @@ parse-common-module = \
 	$(eval mod-headers  := $(addprefix $(2),$(headers-$(1)-$(3)))) \
 	$(call extra-headers,$(mod-headers)) \
 	$(eval mod-objs     := $(filter %.o,$(artifacts))) \
-	$(eval $(4)-cflags  := $(obj-$(1)-$(3)-extra-cflags)) \
-	$(eval $(4)-ldflags := $(obj-$(1)-$(3)-extra-ldflags)) \
+	$(eval $(4)-cflags  := $(obj-$(1)-y-extra-cflags)) \
+	$(eval $(4)-cflags  += $(obj-$(1)-m-extra-cflags)) \
+	$(eval $(4)-ldflags := $(obj-$(1)-y-extra-ldflags)) \
+	$(eval $(4)-ldflags += $(obj-$(1)-m-extra-ldflags)) \
 	$(eval $(4)-bs      := $(addprefix $(2),Makefile)) \
 	$(eval $(4)-bs      += $(if $(wildcard $(2)/Kconfig),$(addprefix $(2),Kconfig))) \
 	$(eval $(4)-hdrs    := $(filter %.h,$(artifacts))) \
