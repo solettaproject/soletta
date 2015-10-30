@@ -20,9 +20,10 @@
         ],
         "data_type": "struct http_server_node_type",
         "extra_methods": {
-	  "response_cb": "boolean_response_cb",
-	  "post_cb": "boolean_post_cb",
-	  "process_cb": "boolean_process_cb"
+            "response_cb": "boolean_response_cb",
+            "post_cb": "boolean_post_cb",
+            "process_cb": "boolean_process_cb",
+            "send_packet_cb": "boolean_send_packet_cb"
         }
       },
       "name": "http-server/boolean",
@@ -34,7 +35,13 @@
             "description": "The http path where it will be served",
             "name": "path"
           },
-	  {
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
+          },
+          {
             "data_type": "boolean",
 	    "default": true,
             "description": "The initial node's value",
@@ -76,9 +83,10 @@
         ],
         "data_type": "struct http_server_node_type",
         "extra_methods": {
-	  "response_cb": "string_response_cb",
-	  "post_cb": "string_post_cb",
-	  "process_cb": "string_process_cb"
+            "response_cb": "string_response_cb",
+            "post_cb": "string_post_cb",
+            "process_cb": "string_process_cb",
+            "send_packet_cb": "string_send_packet_cb"
         }
       },
       "name": "http-server/string",
@@ -90,7 +98,13 @@
             "description": "The http path where it will be served",
             "name": "path"
           },
-	  {
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
+          },
+          {
             "data_type": "string",
 	    "default": "",
             "description": "The initial node's value",
@@ -146,6 +160,12 @@
 	    "default": "string",
             "description": "The http path where it will be served",
             "name": "path"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
           },
         {
             "data_type": "int",
@@ -214,6 +234,12 @@
             "description": "The http path where it will be served",
             "name": "path"
           },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
+          },
         {
             "data_type": "float",
             "default": 0,
@@ -267,6 +293,12 @@
             "data_type": "string",
             "description": "The path where the server will look for the files",
             "name": "path"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
           },
           {
             "data_type": "boolean",

@@ -29,17 +29,23 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# On this sample two server instances, binded to ports 8040 for
+# /irange and 8050 for /drange
 
-# To make a post
-# curl --data "value=true" http://localhost:80/boolean -v
+# Post:
+# curl --data "value=10&min=3&max=100&step=1" http://localhost:8040/irange -v
 #
-# To make a get and ask for the response be a json
-# curl -H "Accept:application/json"  http://localhost:80/boolean -v
+# JSON response:
+# curl -H "Accept:application/json"  http://localhost:8040/irange -v
+
+irange(http-server/int:path=/irange,port=8040,value=1,value_spec=min:0|max:100|step:1)
+irange OUT -> IN Int(console)
+
+# Post:
+# curl --data "value=10.2&min=3.4&max=100.000&step=1.1" http://localhost:8050/drange -v
 #
-# To get only if the value has changed since Mon, 17 Aug 2015 15:05:38 GMT
-# curl  -H "If-Since-Modified:Mon, 17 Aug 2015 15:05:38 GMT"  http://localhost:80/boolean -v
+# JSON response:
+# curl -H "Accept:application/json"  http://localhost:8050/drange -v
 
-# Reads key 'a' (code 97) from keyboard (stdin) and toggles state,
-
-keyboard(keyboard/boolean:binary_code=97,toggle=true) OUT -> IN boolean(http-server/boolean:path=/boolean,value=false)
-boolean OUT -> IN console(console)
+drange(http-server/float:path=/drange,port=8050,value=1.0,value_spec=min:0|max:100.2|step:1.2)
+drange OUT -> IN Float(console)

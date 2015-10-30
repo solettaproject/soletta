@@ -29,17 +29,48 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# On this sample a server binded to default port (80 by default)
+# will serve on paths /boolean, /irange, /drange, /string, and
+# /tmp/www at the same time.
 
-# To make a post
+key_a(keyboard/boolean:binary_code=97,toggle=true)
+key_s(keyboard/boolean:binary_code=115,toggle=true)
+
+# Post:
 # curl --data "value=true" http://localhost:80/boolean -v
 #
-# To make a get and ask for the response be a json
+# JSON response:
 # curl -H "Accept:application/json"  http://localhost:80/boolean -v
+
+# Press key 'a' to toggle state
+
+key_a OUT -> IN boolean(http-server/boolean:path=/boolean,value=false)
+boolean OUT -> IN Boolean(console)
+
+# Post:
+# curl --data "value=10.2&min=3.4&max=100.000&step=1.1" http://localhost:80/drange -v
 #
-# To get only if the value has changed since Mon, 17 Aug 2015 15:05:38 GMT
-# curl  -H "If-Since-Modified:Mon, 17 Aug 2015 15:05:38 GMT"  http://localhost:80/boolean -v
+# JSON response:
+# curl -H "Accept:application/json"  http://localhost:80/drange -v
+drange(http-server/float:path=/drange,value=1.0,value_spec=min:0|max:100.2|step:1.2)
+drange OUT -> IN Float(console)
 
-# Reads key 'a' (code 97) from keyboard (stdin) and toggles state,
+# Post:
+# curl --data "value=10&min=3&max=100&step=1" http://localhost:80/irange -v
+#
+# JSON response:
+# curl -H "Accept:application/json"  http://localhost:80/irange -v
+irange(http-server/int:path=/irange,value=1,value_spec=min:0|max:100|step:1)
+irange OUT -> IN Int(console)
 
-keyboard(keyboard/boolean:binary_code=97,toggle=true) OUT -> IN boolean(http-server/boolean:path=/boolean,value=false)
-boolean OUT -> IN console(console)
+# Post:
+# curl --data "value=Hello World" http://localhost:80/string -v
+#
+# JSON response:
+# curl -H "Accept:application/json"  http://localhost:80/string -v
+string(http-server/string:path=/string,value="Hello, Server")
+string OUT -> IN String(console)
+
+# Press key 's' to enable/disable
+
+key_s OUT -> ENABLED static(http-server/static:path="/tmp/www/",start=false)
