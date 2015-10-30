@@ -473,6 +473,11 @@
       "dependency": "openssl",
       "type": "pkg-config",
       "pkgname": "openssl"
+    },
+    {
+      "dependency": "libkmod",
+      "type": "pkg-config",
+      "pkgname": "libkmod"
     }
   ]
 }
