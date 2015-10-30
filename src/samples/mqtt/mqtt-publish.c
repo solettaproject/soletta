@@ -97,7 +97,7 @@ on_disconnect(void *data, struct sol_mqtt *mqtt)
 }
 
 const struct sol_mqtt_config config = {
-    .api_version = SOL_MQTT_CONFIG_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_MQTT_CONFIG_API_VERSION, )
     .clean_session = true,
     .keepalive = 60,
     .handlers = {

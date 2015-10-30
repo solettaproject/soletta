@@ -621,11 +621,13 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
     struct sol_iio_device *device = NULL;
 
     SOL_NULL_CHECK(config, NULL);
+#ifndef SOL_NO_API_VERSION
     if (unlikely(config->api_version != SOL_IIO_CONFIG_API_VERSION)) {
         SOL_WRN("IIO config version '%u' is unexpected, expected '%u'",
             config->api_version, SOL_IIO_CONFIG_API_VERSION);
         return NULL;
     }
+#endif
 
     device = calloc(1, sizeof(struct sol_iio_device));
     SOL_NULL_CHECK(device, NULL);
@@ -902,11 +904,13 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     SOL_NULL_CHECK(name, NULL);
     SOL_NULL_CHECK(config, NULL);
 
+#ifndef SOL_NO_API_VERSION
     if (unlikely(config->api_version != SOL_IIO_CHANNEL_CONFIG_API_VERSION)) {
         SOL_WRN("IIO channel config version '%u' is unexpected, expected '%u'",
             config->api_version, SOL_IIO_CHANNEL_CONFIG_API_VERSION);
         return NULL;
     }
+#endif
 
     if (!check_file_existence(CHANNEL_RAW_PATH, device->device_id, name)) {
         SOL_WRN("Could not find channel [%s] for device%d", name,

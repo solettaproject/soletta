@@ -194,6 +194,7 @@ extern const struct sol_flow_node_options sol_flow_node_options_empty;
         }                                                               \
     } while (0)
 
+#ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...)      \
     do {                                                                \
         SOL_NULL_CHECK(options, __VA_ARGS__);                            \
@@ -284,6 +285,15 @@ extern const struct sol_flow_node_options sol_flow_node_options_empty;
             return __VA_ARGS__;                                         \
         }                                                               \
     } while (0)
+#else
+#define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...)
+#define SOL_FLOW_NODE_OPTIONS_API_CHECK(options, expected, ...)
+#define SOL_FLOW_NODE_TYPE_DESCRIPTION_API_CHECK(description, expected, ...)
+#define SOL_FLOW_NODE_TYPE_API_CHECK(type, expected, ...)
+#define SOL_FLOW_PORT_TYPE_OUT_API_CHECK(out, expected, ...)
+#define SOL_FLOW_PORT_TYPE_IN_API_CHECK(in, expected, ...)
+#define SOL_FLOW_RESOLVER_API_CHECK(resolver, expected, ...)
+#endif
 
 struct sol_flow_builder;
 int sol_flow_builder_add_node_taking_options(

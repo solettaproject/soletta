@@ -34,6 +34,7 @@
 
 #include <stdarg.h>
 
+#include "sol-common-buildopts.h"
 #include "sol-gpio.h"
 #include "sol-pin-mux.h"
 
@@ -45,9 +46,11 @@ extern "C" {
  * Structure containing the recipes (lists of rules) that should be used
  * to multiplex the pins of a given platform
  */
-#define SOL_PIN_MUX_API_VERSION (2UL)
 struct sol_pin_mux {
+#ifndef SOL_NO_API_VERSION
+#define SOL_PIN_MUX_API_VERSION (2UL)
     unsigned long int api_version; /**< API version */
+#endif
     const char *plat_name; /**< Name this multiplexer target platform */
 
     int (*init)(void);
@@ -64,10 +67,16 @@ struct sol_pin_mux {
 
 #ifdef SOL_PIN_MUX_MODULE_EXTERNAL
 #define SOL_PIN_MUX_DECLARE(_NAME, decl ...) \
-    SOL_API const struct sol_pin_mux SOL_PIN_MUX = { SOL_PIN_MUX_API_VERSION, decl }
+    SOL_API const struct sol_pin_mux SOL_PIN_MUX = { \
+        SOL_SET_API_VERSION(SOL_PIN_MUX_API_VERSION, ) \
+        decl \
+    }
 #else
 #define SOL_PIN_MUX_DECLARE(_NAME, decl ...) \
-    SOL_API const struct sol_pin_mux SOL_PIN_MUX_ ## _NAME = { SOL_PIN_MUX_API_VERSION, decl }
+    SOL_API const struct sol_pin_mux SOL_PIN_MUX_ ## _NAME = { \
+        SOL_SET_API_VERSION(SOL_PIN_MUX_API_VERSION, ) \
+        decl \
+    }
 #endif
 
 #ifdef __cplusplus

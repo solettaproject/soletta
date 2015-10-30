@@ -103,7 +103,7 @@ v1_access_finished(void *data,
     struct v1_request_data *req_data = data;
     struct v1_data *mdata = sol_flow_node_get_private_data(req_data->node);
     struct sol_http_response access_response = {
-        .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
         .param = SOL_HTTP_REQUEST_PARAM_INIT,
         .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR,
@@ -219,7 +219,7 @@ err:
     free(token);
     free(verifier);
     r = sol_http_server_send_response(request, &((struct sol_http_response) {
-            .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+            SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
             .param = SOL_HTTP_REQUEST_PARAM_INIT,
             .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
@@ -268,7 +268,7 @@ v1_parse_response(struct v1_request_data *req_data, const struct sol_http_respon
     struct v1_data *mdata = sol_flow_node_get_private_data(req_data->node);
     char *token = NULL, *url = NULL;
     struct sol_http_response start_response = {
-        .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
         .param = SOL_HTTP_REQUEST_PARAM_INIT,
         .response_code = SOL_HTTP_STATUS_FOUND,
@@ -333,7 +333,7 @@ v1_request_finished(void *data,
 
 err:
     r = sol_http_server_send_response(req_data->request, &((struct sol_http_response) {
-            .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+            SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
             .param = SOL_HTTP_REQUEST_PARAM_INIT,
             .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
@@ -421,7 +421,7 @@ err:
     free(req_data->timestamp);
     free(req_data->nonce);
     r = sol_http_server_send_response(req_data->request, &((struct sol_http_response) {
-            .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+            SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
             .param = SOL_HTTP_REQUEST_PARAM_INIT,
             .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
@@ -484,7 +484,7 @@ v1_request_start_cb(void *data, struct sol_http_request *request)
     struct sol_message_digest *digest;
     struct sol_blob *blob;
     struct sol_message_digest_config *digest_config = &(struct sol_message_digest_config) {
-        .api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION, )
         .algorithm = "hmac(sha1)",
         .on_digest_ready = digest_ready_cb,
         .key = sol_str_slice_from_str(mdata->consumer_key_secret),
@@ -574,7 +574,7 @@ err_callback:
     free(req_data);
 err:
     r = sol_http_server_send_response(request, &((struct sol_http_response) {
-            .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+            SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
             .param = SOL_HTTP_REQUEST_PARAM_INIT,
             .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR

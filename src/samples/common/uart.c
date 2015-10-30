@@ -87,7 +87,7 @@ main(int argc, char *argv[])
 
     sol_init();
 
-    config.api_version = SOL_UART_CONFIG_API_VERSION;
+    SOL_SET_API_VERSION(config.api_version = SOL_UART_CONFIG_API_VERSION; )
     config.baud_rate = SOL_UART_BAUD_RATE_9600;
     config.data_bits = SOL_UART_DATA_BITS_8;
     config.parity = SOL_UART_PARITY_NONE;

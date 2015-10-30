@@ -388,7 +388,9 @@ _sol_glib_integration_source_dispose(void *data)
 }
 
 static const struct sol_mainloop_source_type _sol_glib_integration_source_type = {
+#ifndef SOL_NO_API_VERSION
     .api_version = SOL_MAINLOOP_SOURCE_TYPE_API_VERSION,
+#endif
     .prepare = _sol_glib_integration_source_prepare,
     .get_next_timeout = _sol_glib_integration_source_get_next_timeout,
     .check = _sol_glib_integration_source_check,

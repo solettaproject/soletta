@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include "sol-common-buildopts.h"
 #include "sol-platform.h"
 #include "sol-platform-linux.h"
 #include <stdbool.h>
@@ -43,8 +44,10 @@ extern "C" {
 #endif
 
 struct sol_platform_linux_micro_module {
+#ifndef SOL_NO_API_VERSION
     unsigned long int api_version;
 #define SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION (1UL)
+#endif
     const char *name;
     int (*init)(const struct sol_platform_linux_micro_module *module, const char *service);
     void (*shutdown)(const struct sol_platform_linux_micro_module *module, const char *service);
@@ -59,10 +62,16 @@ void sol_platform_linux_micro_inform_service_state(const char *service, enum sol
 
 #ifdef SOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL
 #define SOL_PLATFORM_LINUX_MICRO_MODULE(_NAME, decl ...)                  \
-    SOL_API const struct sol_platform_linux_micro_module *SOL_PLATFORM_LINUX_MICRO_MODULE = &((const struct sol_platform_linux_micro_module){.api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, decl })
+    SOL_API const struct sol_platform_linux_micro_module *SOL_PLATFORM_LINUX_MICRO_MODULE = &((const struct sol_platform_linux_micro_module) { \
+            SOL_SET_API_VERSION(.api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, ) \
+            decl \
+        })
 #else
 #define SOL_PLATFORM_LINUX_MICRO_MODULE(_NAME, decl ...)                    \
-    const struct sol_platform_linux_micro_module SOL_PLATFORM_LINUX_MICRO_MODULE_ ## _NAME = { .api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, decl }
+    const struct sol_platform_linux_micro_module SOL_PLATFORM_LINUX_MICRO_MODULE_ ## _NAME = { \
+        SOL_SET_API_VERSION(.api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, ) \
+        decl \
+    }
 #endif
 
 #ifdef __cplusplus

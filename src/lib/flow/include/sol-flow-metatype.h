@@ -83,7 +83,9 @@ sol_flow_metatype_ports_description_func sol_flow_metatype_get_ports_description
 #define SOL_FLOW_METATYPE_API_VERSION (1)
 
 struct sol_flow_metatype {
+#ifndef SOL_NO_API_VERSION
     uint16_t api_version;
+#endif
 
     const char *name;
 
@@ -98,13 +100,13 @@ struct sol_flow_metatype {
 #define SOL_FLOW_METATYPE(_NAME, decl ...) \
     SOL_API const struct sol_flow_metatype *SOL_FLOW_METATYPE = \
         &((const struct sol_flow_metatype) { \
-            .api_version = SOL_FLOW_METATYPE_API_VERSION, \
+            SOL_SET_API_VERSION(.api_version = SOL_FLOW_METATYPE_API_VERSION, ) \
             decl \
         })
 #else
 #define SOL_FLOW_METATYPE(_NAME, decl ...) \
     const struct sol_flow_metatype SOL_FLOW_METATYPE_ ## _NAME = { \
-        .api_version = SOL_FLOW_METATYPE_API_VERSION, \
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_METATYPE_API_VERSION, ) \
         decl \
     }
 #endif

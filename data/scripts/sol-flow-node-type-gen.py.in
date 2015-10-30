@@ -507,8 +507,8 @@ struct %(name_c)s_options {
         outfile.write("""
 #define %(NAME_C)s_OPTIONS_DEFAULTS(...) { \\
     .base = { \\
-        .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION, \\
-        .sub_api = %(NAME_C)s_OPTIONS_API_VERSION \\
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION, ) \\
+        SOL_SET_API_VERSION(.sub_api = %(NAME_C)s_OPTIONS_API_VERSION) \\
     }, \\
 """ % {
     "name_c": data["name_c"],
@@ -737,7 +737,7 @@ def generate_code_entry(outfile, data):
             process = port_methods.get("process", "NULL")
             outfile.write("""
 static struct sol_flow_port_type_in %(type_c)s = {
-    .api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )
     .process = %(process)s,
     .connect = %(connect)s,
     .disconnect = %(disconnect)s,
@@ -774,7 +774,7 @@ static struct sol_flow_port_type_in %(type_c)s = {
             disconnect = port_methods.get("disconnect", "NULL")
             outfile.write("""
 static struct sol_flow_port_type_out %(type_c)s = {
-    .api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
     .connect = %(connect)s,
     .disconnect = %(disconnect)s,
 };
@@ -855,7 +855,7 @@ static const struct %(name_c)s_options %(name_c)s_options_defaults = %(NAME_C)s_
     outfile.write("""
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 static const struct sol_flow_node_type_description %(name_c)s_description = {
-    .api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION, )
     .name = %(name)s,
     .category = %(category)s,
     .symbol = %(symbol)s,
@@ -980,7 +980,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
         outfile.write("""\
     .options = &((const struct sol_flow_node_options_description){
         .data_size = sizeof(struct %(name_c)s_options),
-        .sub_api = %(NAME_C)s_OPTIONS_API_VERSION,
+        SOL_SET_API_VERSION(.sub_api = %(NAME_C)s_OPTIONS_API_VERSION, )
         .required = %(required)s,
         .members = (const struct sol_flow_node_options_member_description[]){
             %(member_options)s
@@ -1026,7 +1026,7 @@ static const struct sol_flow_node_type_description %(name_c)s_description = {
 
     outfile.write("""\
 static const %(node_type)s %(name_c)s = {%(node_base_type_access_open)s
-    .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
     .data_size = %(data_size)s,
     .options_size = %(options_size)s,
     .default_options = %(default_options)s,

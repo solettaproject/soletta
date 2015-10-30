@@ -32,6 +32,7 @@
 
 #pragma once
 
+#include <sol-common-buildopts.h>
 #include <sol-vector.h>
 
 #ifdef __cplusplus
@@ -39,9 +40,11 @@ extern "C" {
 #endif
 
 struct sol_oic_server_information {
+#ifndef SOL_NO_API_VERSION
 #define SOL_OIC_SERVER_INFORMATION_API_VERSION (1)
     uint16_t api_version;
     int : 0; /* save possible hole for a future field */
+#endif
 
     /* All fields are required by the spec.  Some of the fields are
      * obtained in runtime (such as system time, OS version), and are

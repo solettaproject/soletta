@@ -94,7 +94,7 @@ on_timeout_do_single(void *data)
 
     for (; itr->mem != NULL; itr++) {
         struct sol_message_digest_config cfg = {
-            .api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION,
+            SOL_SET_API_VERSION(.api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION, )
             .algorithm = itr->algorithm,
             .key = itr->key,
             .on_digest_ready = on_digest_ready_simple,
@@ -213,7 +213,7 @@ on_timeout_do_chunked(void *data)
     for (; itr->mem != NULL; itr++) {
         struct chunked_ctx *ctx;
         struct sol_message_digest_config cfg = {
-            .api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION,
+            SOL_SET_API_VERSION(.api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION, )
             .algorithm = itr->algorithm,
             .key = itr->key,
             .on_digest_ready = on_digest_ready_chunked,
@@ -391,7 +391,7 @@ static bool
 on_timeout_feed_after_last(void *data)
 {
     struct sol_message_digest_config cfg = {
-        .api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION, )
         .algorithm = "md5",
         .on_digest_ready = on_digest_ready_feed_after_last,
     };

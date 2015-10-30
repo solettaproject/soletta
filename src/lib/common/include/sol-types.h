@@ -36,6 +36,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <float.h>
+#include <sol-common-buildopts.h>
 #include <sol-vector.h>
 
 #ifdef __cplusplus
@@ -249,9 +250,11 @@ struct sol_blob {
 };
 
 struct sol_blob_type {
+#ifndef SOL_NO_API_VERSION
 #define SOL_BLOB_TYPE_API_VERSION (1)
     uint16_t api_version;
     uint16_t sub_api;
+#endif
     void (*free)(struct sol_blob *blob);
 };
 

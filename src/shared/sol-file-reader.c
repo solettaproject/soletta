@@ -40,6 +40,7 @@
 
 #include "sol-log.h"
 #include "sol-buffer.h"
+#include "sol-common-buildopts.h"
 #include "sol-util.h"
 #include "sol-file-reader.h"
 
@@ -137,8 +138,10 @@ _sol_blob_type_file_reader_close(struct sol_blob *blob)
 }
 
 static const struct sol_blob_type _SOL_BLOB_TYPE_FILE_READER = {
+#ifndef SOL_NO_API_VERSION
     .api_version = SOL_BLOB_TYPE_API_VERSION,
     .sub_api = 1,
+#endif
     .free = _sol_blob_type_file_reader_close
 };
 

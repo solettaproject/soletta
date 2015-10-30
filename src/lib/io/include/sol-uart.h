@@ -35,6 +35,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <sol-common-buildopts.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -82,8 +84,10 @@ enum sol_uart_stop_bits {
 };
 
 struct sol_uart_config {
+#ifndef SOL_NO_API_VERSION
 #define SOL_UART_CONFIG_API_VERSION (1)
     uint16_t api_version;
+#endif
     enum sol_uart_baud_rate baud_rate;
     enum sol_uart_data_bits data_bits;
     enum sol_uart_parity parity;

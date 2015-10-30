@@ -688,7 +688,7 @@ _sol_message_digest_thread_start(struct sol_message_digest *handle)
 {
 #ifdef MESSAGE_DIGEST_USE_THREAD
     struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
         .data = handle,
         .iterate = _sol_message_digest_thread_iterate,
         .finished = _sol_message_digest_thread_finished,

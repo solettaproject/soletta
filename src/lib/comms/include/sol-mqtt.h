@@ -33,6 +33,7 @@
 #pragma once
 
 #include <sol-buffer.h>
+#include <sol-common-buildopts.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -151,11 +152,13 @@ struct sol_mqtt;
  * publishing and receiving data to/from the broker.
  */
 struct sol_mqtt_message {
+#ifndef SOL_NO_API_VERSION
 #define SOL_MQTT_MESSAGE_API_VERSION (1)
     /**
      * Should always be set to SOL_MQTT_MESSAGE_API_VERSION
      */
     uint16_t api_version;
+#endif
 
     /**
      * The topic which the message was/will be posted to
@@ -189,11 +192,13 @@ struct sol_mqtt_message {
  * @brief MQTT callback handlers
  */
 struct sol_mqtt_handlers {
+#ifndef SOL_NO_API_VERSION
 #define SOL_MQTT_HANDLERS_API_VERSION (1)
     /**
      * Should always be set to SOL_MQTT_HANDLERS_API_VERSION
      */
     uint16_t api_version;
+#endif
 
     /**
      * @brief On connect callback
@@ -281,11 +286,13 @@ struct sol_mqtt_handlers {
  * @brief Server Configuration
  */
 struct sol_mqtt_config {
+#ifndef SOL_NO_API_VERSION
 #define SOL_MQTT_CONFIG_API_VERSION (1)
     /**
      * Should always be set to SOL_MQTT_CONFIG_API_VERSION
      */
     uint16_t api_version;
+#endif
 
     /**
      * If set, the broker will drop all messages and subscriptions when

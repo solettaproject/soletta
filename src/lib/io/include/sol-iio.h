@@ -33,6 +33,7 @@
 #pragma once
 
 #include <sol-buffer.h>
+#include <sol-common-buildopts.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,8 +57,10 @@ struct sol_iio_device;
 struct sol_iio_channel;
 
 struct sol_iio_config {
+#ifndef SOL_NO_API_VERSION
 #define SOL_IIO_CONFIG_API_VERSION (1)
     uint16_t api_version;
+#endif
     const char *trigger_name; /**< Name of IIO trigger to be used on this device. If NULL or empty, will try to use device current trigger. If device has no current trigger, will create a 'sysfs_trigger' and use it. */
     void (*sol_iio_reader_cb)(void *data, struct sol_iio_device *device); /**< Callback to be called when get new device readings on buffer */
     const void *data; /**< User defined data to be sent to sol_iio_reader_cb */
@@ -66,14 +69,18 @@ struct sol_iio_config {
 };
 
 struct sol_iio_channel_config {
+#ifndef SOL_NO_API_VERSION
 #define SOL_IIO_CHANNEL_CONFIG_API_VERSION (1)
     uint16_t api_version;
+#endif
     double scale; /**< Channel scale, to be applied to raw readings. -1 uses device default. Some devices share scale among all channels, so changing one will change all. If, in this case, different channels set different scales the result is unknown. */
     int offset; /**< Channel offset, to be added to raw readings. Some devices share offset among all channels, so changing one will change all. If, in this case, different channels set different offsets the result is unknown. */
     bool use_custom_offset; /**< If true, will use user defined offset on member #offset of this struct */
 };
 
-#define SOL_IIO_CHANNEL_CONFIG_INIT { .api_version = SOL_IIO_CHANNEL_CONFIG_API_VERSION, .scale = -1.0, .use_custom_offset = false }
+#define SOL_IIO_CHANNEL_CONFIG_INIT { \
+        SOL_SET_API_VERSION(.api_version = SOL_IIO_CHANNEL_CONFIG_API_VERSION, ) \
+        .scale = -1.0, .use_custom_offset = false }
 
 /**
  * Open an IIO device

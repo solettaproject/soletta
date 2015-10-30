@@ -822,7 +822,9 @@ sol_flow_node_options_new(
     SOL_NULL_CHECK(type, -EINVAL);
     SOL_NULL_CHECK(named_opts, -EINVAL);
     SOL_FLOW_NODE_TYPE_API_CHECK(type, SOL_FLOW_NODE_TYPE_API_VERSION, -EINVAL);
+#ifndef SOL_NO_API_VERSION
     SOL_INT_CHECK(type->options_size, < sizeof(struct sol_flow_node_options), -EINVAL);
+#endif
 
     if (type->init_type)
         type->init_type();

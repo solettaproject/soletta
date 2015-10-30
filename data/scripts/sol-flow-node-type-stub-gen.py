@@ -275,7 +275,7 @@ static int
 #define %(NAME)s_PACKET_TYPE_API_VERSION (1)
 
 static const struct sol_flow_packet_type _%(NAME)s = {
-    .api_version = %(NAME)s_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = %(NAME)s_PACKET_TYPE_API_VERSION, )
     .name = "%(NAME)s",
     .data_size = sizeof(struct %(name_data)s),
     .init = %(name)s_packet_init,

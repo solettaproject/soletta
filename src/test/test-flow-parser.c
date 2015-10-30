@@ -112,14 +112,14 @@ test_port_disconnect(struct sol_flow_node *node, void *data, uint16_t port, uint
 }
 
 static struct sol_flow_port_type_out test_port_out = {
-    .api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
     .connect = test_port_out_connect,
     .disconnect = test_port_disconnect,
 };
 
 static struct sol_flow_port_type_in test_port_in = {
-    .api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
     .connect = test_port_in_connect,
     .disconnect = test_port_disconnect,
@@ -182,7 +182,7 @@ static const struct sol_flow_node_type_description test_node_description = {
     },
     .options = &((const struct sol_flow_node_options_description){
             .data_size = sizeof(struct test_node_options),
-            .sub_api = 1,
+            SOL_SET_API_VERSION(.sub_api = 1, )
             .required = false,
             .members = (const struct sol_flow_node_options_member_description[]){
                 {
@@ -201,14 +201,16 @@ static const struct sol_flow_node_type_description test_node_description = {
 
 static const struct test_node_options default_opts = {
     .base = {
+#ifndef SOL_NO_API_VERSION
         .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
         .sub_api = 1,
+#endif
     },
     .opt = true,
 };
 
 static const struct sol_flow_node_type test_node_type = {
-    .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
 
     .options_size = sizeof(struct test_node_options),
     .default_options = &default_opts,
@@ -236,7 +238,7 @@ static const struct sol_flow_node_type_description test_wrong_out_node_descripti
 };
 
 static const struct sol_flow_node_type test_wrong_out_node_type = {
-    .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
     .description = &test_wrong_out_node_description,
 };
 
@@ -252,7 +254,7 @@ static const struct sol_flow_node_type_description test_wrong_out2_node_descript
 };
 
 static const struct sol_flow_node_type test_wrong_out2_node_type = {
-    .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
     .description = &test_wrong_out2_node_description,
 };
 
@@ -269,7 +271,7 @@ static const struct sol_flow_node_type_description test_wrong_in_node_descriptio
 };
 
 static const struct sol_flow_node_type test_wrong_in_node_type = {
-    .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
     .description = &test_wrong_in_node_description,
 };
 
@@ -285,7 +287,7 @@ static const struct sol_flow_node_type_description test_wrong_in2_node_descripti
 };
 
 static const struct sol_flow_node_type test_wrong_in2_node_type = {
-    .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
     .description = &test_wrong_in2_node_description,
 };
 
@@ -374,7 +376,7 @@ test_resolve(void *data, const char *id,
 }
 
 static const struct sol_flow_resolver test_resolver = {
-    .api_version = SOL_FLOW_RESOLVER_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_RESOLVER_API_VERSION, )
     .name = "test_resolver",
     .resolve = test_resolve,
 };
@@ -461,7 +463,7 @@ declare_fbp_read_file(void *data, const char *name, const char **buf, size_t *si
 }
 
 struct sol_flow_parser_client declare_fbp_client = {
-    .api_version = SOL_FLOW_PARSER_CLIENT_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PARSER_CLIENT_API_VERSION, )
     .read_file = declare_fbp_read_file,
 };
 

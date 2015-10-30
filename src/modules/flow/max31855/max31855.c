@@ -62,7 +62,9 @@ max31855_open(struct sol_flow_node *node, void *data, const struct sol_flow_node
 {
     struct max31855_data *mdata = data;
     struct sol_flow_node_type_max31855_temperature_options *opts;
-    struct sol_spi_config config = { .api_version = SOL_SPI_CONFIG_API_VERSION };
+    struct sol_spi_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_SPI_CONFIG_API_VERSION)
+    };
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_MAX31855_TEMPERATURE_OPTIONS_API_VERSION,

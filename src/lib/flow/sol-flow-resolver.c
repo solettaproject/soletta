@@ -70,7 +70,7 @@ builtins_resolve(void *data, const char *id, struct sol_flow_node_type const **t
 }
 
 static const struct sol_flow_resolver builtins_resolver = {
-    .api_version = SOL_FLOW_RESOLVER_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_RESOLVER_API_VERSION, )
     .name = "builtins_resolver",
     .resolve = builtins_resolve,
 };

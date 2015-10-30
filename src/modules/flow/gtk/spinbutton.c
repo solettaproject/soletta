@@ -32,6 +32,7 @@
 
 #include "spinbutton.h"
 #include "sol-flow/gtk.h"
+#include "sol-flow-internal.h"
 
 static void
 on_spinbutton_changed(GtkSpinButton *spin, gpointer data)
@@ -60,8 +61,7 @@ spinbutton_setup(struct gtk_common_data *data, const struct sol_flow_node_option
     const struct sol_flow_node_type_gtk_spinbutton_options *opts =
         (const struct sol_flow_node_type_gtk_spinbutton_options *)options;
 
-    if (options->sub_api != SOL_FLOW_NODE_TYPE_GTK_SPINBUTTON_OPTIONS_API_VERSION)
-        return -EINVAL;
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_GTK_SPINBUTTON_OPTIONS_API_VERSION, -EINVAL);
 
     range = opts->range;
     value = opts->value;

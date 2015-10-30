@@ -47,6 +47,7 @@
 
 #include "sol-flow-metatype-builtins-gen.h"
 
+#ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...)          \
     do {                                                                \
         if ((client)->api_version != (expected)) {                      \
@@ -56,6 +57,9 @@
             return __VA_ARGS__;                                         \
         }                                                               \
     } while (0)
+#else
+#define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...)
+#endif
 
 struct sol_flow_parser {
     const struct sol_flow_resolver *resolver;
@@ -130,7 +134,7 @@ parse_state_init_resolver(struct parse_state *state)
 {
     struct sol_flow_resolver *r = &state->resolver;
 
-    r->api_version = SOL_FLOW_RESOLVER_API_VERSION;
+    SOL_SET_API_VERSION(r->api_version = SOL_FLOW_RESOLVER_API_VERSION; )
     r->name = "parse-state-resolver-with-declares";
     r->data = state;
     r->resolve = parse_state_resolve;

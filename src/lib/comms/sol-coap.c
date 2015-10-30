@@ -66,6 +66,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
 #define ACK_TIMEOUT_MS 2345
 #define MAX_RETRANSMIT 4
 
+#ifndef SOL_NO_API_VERSION
 #define COAP_RESOURCE_CHECK_API(...) \
     do { \
         if (unlikely(resource->api_version != \
@@ -76,6 +77,9 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
             return __VA_ARGS__; \
         } \
     } while (0)
+#else
+#define COAP_RESOURCE_CHECK_API(...)
+#endif
 
 struct sol_coap_server {
     struct sol_vector contexts;

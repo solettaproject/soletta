@@ -96,7 +96,7 @@ entry_new(const char *filename)
 {
     struct entry *entry;
     struct sol_message_digest_config cfg = {
-        .api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION, )
         .algorithm = algorithm,
         .on_digest_ready = store_digest,
     };

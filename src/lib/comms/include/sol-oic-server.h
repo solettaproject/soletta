@@ -80,9 +80,11 @@ extern "C" {
 struct sol_oic_server_resource;
 
 struct sol_oic_resource_type {
+#ifndef SOL_NO_API_VERSION
 #define SOL_OIC_RESOURCE_TYPE_API_VERSION (1)
     uint16_t api_version;
     int : 0; /* save possible hole for a future field */
+#endif
 
     struct sol_str_slice resource_type;
     struct sol_str_slice interface;
