@@ -92,7 +92,7 @@ json_array_elements(converter/string-to-json-array)
 json_array_elements_str OUT -> IN json_array_elements
 json_array_elements OUT -> IN json_array_all_elements(json/array-get-all-elements)
 
-int_validator_all(test/int-validator:sequence="0 1 2 3 4")
+int_validator_all(test/int-validator:sequence="0 1 2 3 4 5")
 float_validator_all(test/float-validator:sequence="0 1 2 3 4 5.1")
 string_validator_all(test/string-validator:sequence="str1|str2")
 bool_validator_all(test/boolean-validator:sequence="FFTTTF")
