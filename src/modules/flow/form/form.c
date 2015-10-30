@@ -31,6 +31,7 @@
  */
 
 #include <errno.h>
+#include <stdio.h>
 
 #include "sol-flow/form.h"
 #include "sol-flow-internal.h"
@@ -265,8 +266,8 @@ static int
 format_chunk(struct sol_buffer *buf,
     size_t n_rows,
     size_t n_cols,
-    char **ptr,
-    char *end_ptr,
+    const char *ptr,
+    const char *end_ptr,
     size_t *row,
     size_t *col,
     bool calc_only,
@@ -275,10 +276,10 @@ format_chunk(struct sol_buffer *buf,
     size_t sz = buf->capacity;
     int r;
 
-    while (*ptr < end_ptr && CUR_POS < sz && *row < n_rows) {
+    while (ptr < end_ptr && CUR_POS < sz && *row < n_rows) {
         /* translate middle-of-line \n's to spaces till the end +
          * \n */
-        if (**ptr == CR || **ptr == NL) {
+        if (*ptr == CR || *ptr == NL) {
             if (ditch_new_lines) {
                 if (!calc_only) {
                     r = sol_buffer_set_char_at(buf, CUR_POS, SPC);
@@ -289,18 +290,18 @@ format_chunk(struct sol_buffer *buf,
                 r = fill_line(buf, n_rows, n_cols, row, col, calc_only);
                 SOL_INT_CHECK(r, < 0, r);
             }
-            if (**ptr == CR)
-                (*ptr)++;
-            if (**ptr == NL)
-                (*ptr)++;
+            if (*ptr == CR)
+                ptr++;
+            if (*ptr == NL)
+                ptr++;
             goto col_check;
         }
         if (!calc_only) {
-            r = sol_buffer_set_char_at(buf, CUR_POS, **ptr);
+            r = sol_buffer_set_char_at(buf, CUR_POS, *ptr);
             SOL_INT_CHECK(r, < 0, r);
         }
         (*col)++;
-        (*ptr)++;
+        ptr++;
 
 col_check:
         /* crop lines that don't fit */
@@ -313,16 +314,16 @@ col_check:
             }
             *col = 0;
             (*row)++;
-            while (**ptr && **ptr != CR && **ptr != NL) {
-                (*ptr)++;
+            while (*ptr && *ptr != CR && *ptr != NL) {
+                ptr++;
             }
-            if (**ptr == CR)
-                (*ptr)++;
-            if (**ptr == NL)
-                (*ptr)++;
+            if (*ptr == CR)
+                ptr++;
+            if (*ptr == NL)
+                ptr++;
             if (ditch_new_lines) /* if ditching NL's, stop at 1st crop */
                 break;
-        } else if (*ptr == end_ptr && !ditch_new_lines) {
+        } else if (ptr == end_ptr && !ditch_new_lines) {
             /* the source ended before the line */
             r = fill_line(buf, n_rows, n_cols, row, col, calc_only);
             SOL_INT_CHECK(r, < 0, r);
@@ -338,7 +339,7 @@ static int
 calculate_n_values(struct selector_data *mdata, size_t *row, size_t *col)
 {
     int r;
-    char *tmp_ptr = NULL;
+    const char *tmp_ptr = NULL;
     size_t tmp_row = 0, tmp_col = 0, row_span;
 
     /* Calculate row span of post-value chunk */
@@ -346,7 +347,7 @@ calculate_n_values(struct selector_data *mdata, size_t *row, size_t *col)
     tmp_row = *row + 1; /* + 1 so we get at least one value line */
     tmp_col = 0;
     r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
-        &tmp_ptr, mdata->format + strlen(mdata->format),
+        tmp_ptr, mdata->format + strlen(mdata->format),
         &tmp_row, &tmp_col, CALC_ONLY, KEEP_NL);
     SOL_INT_CHECK(r, < 0, r);
     row_span = tmp_row - (*row + 1);
@@ -363,6 +364,110 @@ calculate_n_values(struct selector_data *mdata, size_t *row, size_t *col)
     return 0;
 }
 
+static int
+format_title(struct sol_buffer *buf,
+    size_t buf_size,
+    size_t n_rows,
+    size_t n_cols,
+    size_t *row_ptr,
+    size_t *col_ptr,
+    const char *format,
+    const char *title,
+    const char *title_tag,
+    const char *value_tag,
+    bool *no_more_space)
+{
+    int r;
+    const char *ptr = format;
+
+    *no_more_space = false;
+
+    /* Format pre-title/value chunk */
+    r = format_chunk(buf, n_rows, n_cols, ptr,
+        title_tag ? title_tag : value_tag,
+        row_ptr, col_ptr, DO_FORMAT, KEEP_NL);
+    SOL_INT_CHECK(r, < 0, r);
+    if (r >= (int)buf_size || *row_ptr >= n_rows) {
+        *no_more_space = true;
+        return 0;
+    }
+
+    /* Format title */
+    if (title && title_tag) {
+        const char *value = title;
+        r = format_chunk(buf, n_rows, n_cols, value, title + strlen(title),
+            row_ptr, col_ptr, DO_FORMAT, DITCH_NL);
+        SOL_INT_CHECK(r, < 0, r);
+        if (r >= (int)buf_size || *row_ptr >= n_rows) {
+            *no_more_space = true;
+            return 0;
+        }
+
+        if (n_rows > 1) {
+            r = go_to_new_line(buf, n_rows, n_cols, row_ptr, col_ptr);
+            SOL_INT_CHECK(r, < 0, r);
+        } else {
+            r = fill_spaces(buf, n_cols, row_ptr, col_ptr, 1);
+            SOL_INT_CHECK(r, < 0, r);
+        }
+
+        /* Format post-title, pre-value chunk. If we got only one
+         * line, ditch new lines in an attempt to have both title and
+         * value in it */
+        ptr = title_tag + strlen(TITLE_TAG);
+        r = format_chunk(buf, n_rows, n_cols, ptr, value_tag, row_ptr,
+            col_ptr, DO_FORMAT, n_rows > 1 ? KEEP_NL : DITCH_NL);
+        SOL_INT_CHECK(r, < 0, r);
+        if (r >= (int)buf_size || *row_ptr >= n_rows)
+            *no_more_space = true;
+    }
+
+    return 0;
+}
+
+static int
+format_post_value(struct sol_buffer *buf,
+    size_t n_rows,
+    size_t n_cols,
+    size_t *row_ptr,
+    size_t *col_ptr,
+    const char *format,
+    const char *value_tag)
+{
+    const char *ptr = value_tag + sizeof(VALUE_TAG) - 1;
+    int r;
+
+    r = go_to_new_line(buf, n_rows, n_cols, row_ptr, col_ptr);
+    SOL_INT_CHECK(r, < 0, r);
+
+    /* Format post-value chunk */
+    return format_chunk(buf, n_rows, n_cols, ptr,
+        format + strlen(format), row_ptr, col_ptr, DO_FORMAT, KEEP_NL);
+}
+
+static int
+format_send(struct sol_flow_node *node,
+    struct sol_buffer *buf,
+    uint16_t out_port)
+{
+    int r;
+
+    /* Don't ever end with NL and guarantee ending NUL byte */
+    if (buf->used) {
+        char *value = (char *)sol_buffer_at_end(buf);
+        *value = NUL;
+        value = (char *)sol_buffer_at_end(buf) - 1;
+        if (*value == NL)
+            *value = NUL;
+    } else {
+        r = sol_buffer_set_char_at(buf, 0, NUL);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return sol_flow_send_string_packet(node,
+        out_port, sol_buffer_steal(buf, NULL));
+}
+
 //FIXME: - autoscroll/markee effect on tags
 //       - minimum formatting abilities for the value tag itself
 //         (think printf "%-10.10s" "aoeiu")
@@ -371,50 +476,16 @@ selector_format_do(struct sol_flow_node *node)
 {
     struct selector_data *mdata = sol_flow_node_get_private_data(node);
     uint16_t len = sol_ptr_vector_get_len(&mdata->items);
+    bool skip_cursor = false, no_more_space = false;
+    size_t row = 0, col = 0, n_values = 0, idx = 0;
     int r, buf_size = mdata->text_grid.capacity;
-    size_t row = 0, col = 0, n_values = 0, idx = 0,
-        format_len = strlen(mdata->format);
-    char *ptr = mdata->format, *it_value = NULL;
-    bool skip_cursor = false;
+    const char *it_value = NULL;
 
-    /* Format pre-title/value chunk */
-    r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns, &ptr,
-        mdata->title_tag ? mdata->title_tag : mdata->value_tag,
-        &row, &col, DO_FORMAT, KEEP_NL);
+    r = format_title(&mdata->text_grid, buf_size, mdata->rows, mdata->columns,
+        &row, &col, mdata->format, mdata->title, mdata->title_tag,
+        mdata->value_tag, &no_more_space);
     SOL_INT_CHECK_GOTO(r, < 0, err);
-    if (r >= buf_size || row >= mdata->rows)
-        goto send;
-
-    /* Format title */
-    if (mdata->title && mdata->title_tag) {
-        char *value = mdata->title;
-        r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
-            &value, mdata->title + strlen(mdata->title),
-            &row, &col, DO_FORMAT, DITCH_NL);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-        if (r >= buf_size || row >= mdata->rows)
-            goto send;
-
-        if (mdata->rows > 1) {
-            r = go_to_new_line(&mdata->text_grid, mdata->rows, mdata->columns,
-                &row, &col);
-            SOL_INT_CHECK_GOTO(r, < 0, err);
-        } else {
-            r = fill_spaces(&mdata->text_grid, mdata->columns, &row, &col, 1);
-            SOL_INT_CHECK_GOTO(r, < 0, err);
-        }
-
-        /* Format post-title, pre-value chunk. If we got only one
-         * line, ditch new lines in an attempt to have both title and
-         * value in it */
-        ptr = mdata->title_tag + strlen(TITLE_TAG);
-        r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
-            &ptr, mdata->value_tag, &row, &col,
-            DO_FORMAT, mdata->rows > 1 ? KEEP_NL : DITCH_NL);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-        if (r >= buf_size || row >= mdata->rows)
-            goto send;
-    }
+    SOL_EXP_CHECK_GOTO(no_more_space, send);
 
     if (!len) {
         n_values = 0;
@@ -443,7 +514,7 @@ selector_format_do(struct sol_flow_node *node)
 
     /* Format values, while we can */
     while (n_values && (it_value = sol_ptr_vector_get(&mdata->items, idx))) {
-        char *value = NULL;
+        const char *value = NULL;
         size_t curr_row = row;
         bool did_cursor = false, did_sel = false;
         size_t cursor_len =
@@ -455,7 +526,7 @@ selector_format_do(struct sol_flow_node *node)
         if (!skip_cursor && idx == mdata->cursor && mdata->cursor_mark) {
             value = mdata->cursor_mark;
             r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
-                &value, mdata->cursor_mark + cursor_len,
+                value, mdata->cursor_mark + cursor_len,
                 &row, &col, DO_FORMAT, DITCH_NL);
             SOL_INT_CHECK_GOTO(r, < 0, err);
             if (r >= buf_size || row >= mdata->rows)
@@ -477,7 +548,7 @@ selector_format_do(struct sol_flow_node *node)
 
             value = mdata->sel_mark;
             r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
-                &value, mdata->sel_mark + sel_len, &row, &col, DO_FORMAT,
+                value, mdata->sel_mark + sel_len, &row, &col, DO_FORMAT,
                 DITCH_NL);
             SOL_INT_CHECK_GOTO(r, < 0, err);
             if (r >= buf_size || row >= mdata->rows)
@@ -508,7 +579,7 @@ selector_format_do(struct sol_flow_node *node)
         }
 
         r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
-            &it_value, it_value + strlen(it_value), &row, &col, DO_FORMAT,
+            it_value, it_value + strlen(it_value), &row, &col, DO_FORMAT,
             DITCH_NL);
         SOL_INT_CHECK_GOTO(r, < 0, err);
         if (r >= buf_size || row >= mdata->rows)
@@ -526,32 +597,13 @@ next:
     }
 
 post_value:
-    r = go_to_new_line(&mdata->text_grid, mdata->rows, mdata->columns,
-        &row, &col);
-    SOL_INT_CHECK_GOTO(r, < 0, err);
-
-    /* Format post-value chunk */
-    ptr = mdata->value_tag + sizeof(VALUE_TAG) - 1;
-    r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns, &ptr,
-        mdata->format + format_len, &row, &col, DO_FORMAT, KEEP_NL);
+    r = format_post_value(&mdata->text_grid, mdata->rows, mdata->columns,
+        &row, &col, mdata->format, mdata->value_tag);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
 send:
-    /* Don't ever end with NL and guarantee ending NUL byte */
-    if (mdata->text_grid.used) {
-        char *value = (char *)sol_buffer_at_end(&mdata->text_grid);
-        *value = NUL;
-        value = (char *)sol_buffer_at_end(&mdata->text_grid) - 1;
-        if (*value == NL)
-            *value = NUL;
-    } else {
-        r = sol_buffer_set_char_at(&mdata->text_grid, 0, NUL);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-    }
-
-    r = sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_FORM_SELECTOR__OUT__STRING,
-        sol_buffer_steal(&mdata->text_grid, NULL));
+    r = format_send(node, &mdata->text_grid,
+        SOL_FLOW_NODE_TYPE_FORM_SELECTOR__OUT__STRING);
 
 err:
     /* we got to re-init because of the error cases. if this function
@@ -828,7 +880,6 @@ struct boolean_data {
     char *title, *text_mem, *format, *title_tag, *value_tag, *true_str,
     *false_str;
     struct sol_buffer text_grid;
-    struct sol_idle *idler;
     size_t columns, rows;
     bool selection : 1;
     bool enabled : 1;
@@ -839,83 +890,32 @@ boolean_format_do(struct sol_flow_node *node)
 {
     struct boolean_data *mdata = sol_flow_node_get_private_data(node);
     int r, buf_size = mdata->text_grid.capacity;
-    size_t row = 0, col = 0, format_len = strlen(mdata->format);
-    char *ptr = mdata->format, *it_value = NULL;
+    const char *it_value = NULL;
+    bool no_more_space = false;
+    size_t row = 0, col = 0;
 
-    /* Format pre-title/value chunk */
-    r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns, &ptr,
-        mdata->title_tag ? mdata->title_tag : mdata->value_tag,
-        &row, &col, DO_FORMAT, KEEP_NL);
+    r = format_title(&mdata->text_grid, buf_size, mdata->rows, mdata->columns,
+        &row, &col, mdata->format, mdata->title, mdata->title_tag,
+        mdata->value_tag, &no_more_space);
     SOL_INT_CHECK_GOTO(r, < 0, err);
-    if (r >= buf_size || row >= mdata->rows)
-        goto send;
-
-    /* Format title */
-    if (mdata->title && mdata->title_tag) {
-        char *value = mdata->title;
-        r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
-            &value, mdata->title + strlen(mdata->title),
-            &row, &col, DO_FORMAT, DITCH_NL);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-        if (r >= buf_size || row >= mdata->rows)
-            goto send;
-
-        if (mdata->rows > 1) {
-            r = go_to_new_line(&mdata->text_grid, mdata->rows, mdata->columns,
-                &row, &col);
-            SOL_INT_CHECK_GOTO(r, < 0, err);
-        } else {
-            r = fill_spaces(&mdata->text_grid, mdata->columns, &row, &col, 1);
-            SOL_INT_CHECK_GOTO(r, < 0, err);
-        }
-
-        /* Format post-title, pre-value chunk. If we got only one
-         * line, ditch new lines in an attempt to have both title and
-         * value in it */
-        ptr = mdata->title_tag + strlen(TITLE_TAG);
-        r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
-            &ptr, mdata->value_tag, &row, &col,
-            DO_FORMAT, mdata->rows > 1 ? KEEP_NL : DITCH_NL);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-        if (r >= buf_size || row >= mdata->rows)
-            goto send;
-    }
+    SOL_EXP_CHECK_GOTO(no_more_space, send);
 
     it_value = mdata->selection ? mdata->true_str : mdata->false_str;
 
     r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
-        &it_value, it_value + strlen(it_value), &row, &col, DO_FORMAT,
+        it_value, it_value + strlen(it_value), &row, &col, DO_FORMAT,
         DITCH_NL);
     SOL_INT_CHECK_GOTO(r, < 0, err);
     if (r >= buf_size || row >= mdata->rows)
         goto send;
 
-    r = go_to_new_line(&mdata->text_grid, mdata->rows, mdata->columns,
-        &row, &col);
-    SOL_INT_CHECK_GOTO(r, < 0, err);
-
-    /* Format post-value chunk */
-    ptr = mdata->value_tag + sizeof(VALUE_TAG) - 1;
-    r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns, &ptr,
-        mdata->format + format_len, &row, &col, DO_FORMAT, KEEP_NL);
+    r = format_post_value(&mdata->text_grid, mdata->rows, mdata->columns,
+        &row, &col, mdata->format, mdata->value_tag);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
 send:
-    /* Don't ever end with NL and guarantee ending NUL byte */
-    if (mdata->text_grid.used) {
-        char *value = (char *)sol_buffer_at_end(&mdata->text_grid);
-        *value = NUL;
-        value = (char *)sol_buffer_at_end(&mdata->text_grid) - 1;
-        if (*value == NL)
-            *value = NUL;
-    } else {
-        r = sol_buffer_set_char_at(&mdata->text_grid, 0, NUL);
-        SOL_INT_CHECK_GOTO(r, < 0, err);
-    }
-
-    r = sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_FORM_BOOLEAN__OUT__STRING,
-        sol_buffer_steal(&mdata->text_grid, NULL));
+    r = format_send(node, &mdata->text_grid,
+        SOL_FLOW_NODE_TYPE_FORM_BOOLEAN__OUT__STRING);
 
 err:
     /* we got to re-init because of the error cases. if this function
@@ -1068,5 +1068,282 @@ boolean_enabled_set(struct sol_flow_node *node,
 
     return 0;
 }
+
+struct integer_data {
+    char *title, *text_mem, *format, *title_tag, *value_tag;
+    struct sol_buffer text_grid;
+    struct sol_irange state;
+    size_t columns, rows;
+    bool circular : 1;
+    bool enabled : 1;
+};
+
+static int
+integer_format_do(struct sol_flow_node *node)
+{
+    struct integer_data *mdata = sol_flow_node_get_private_data(node);
+    int r, buf_size = mdata->text_grid.capacity;
+    bool no_more_space = false;
+    size_t row = 0, col = 0;
+    char *it_value = NULL;
+
+    r = format_title(&mdata->text_grid, buf_size, mdata->rows, mdata->columns,
+        &row, &col, mdata->format, mdata->title, mdata->title_tag,
+        mdata->value_tag, &no_more_space);
+    SOL_INT_CHECK(r, < 0, r);
+    SOL_EXP_CHECK_GOTO(no_more_space, send);
+
+    r = asprintf(&it_value, "%" PRId32 "", mdata->state.val);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    r = format_chunk(&mdata->text_grid, mdata->rows, mdata->columns,
+        it_value, it_value + strlen(it_value), &row, &col, DO_FORMAT,
+        DITCH_NL);
+    free(it_value);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    if (r >= buf_size || row >= mdata->rows)
+        goto send;
+
+    r = format_post_value(&mdata->text_grid, mdata->rows, mdata->columns,
+        &row, &col, mdata->format, mdata->value_tag);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+send:
+    r = format_send(node, &mdata->text_grid,
+        SOL_FLOW_NODE_TYPE_FORM_INT__OUT__STRING);
+
+err:
+    /* we got to re-init because of the error cases. if this function
+     * fails we're no better, so don't check. */
+    buffer_re_init(&mdata->text_grid, mdata->text_mem, mdata->rows,
+        mdata->columns);
+
+    return r;
+}
+
+static void
+integer_close(struct sol_flow_node *node, void *data)
+{
+    struct integer_data *mdata = data;
+
+    sol_buffer_fini(&mdata->text_grid);
+
+    free(mdata->title);
+    free(mdata->format);
+}
+
+static int
+integer_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    int32_t range;
+    struct integer_data *mdata = data;
+    const struct sol_flow_node_type_form_int_options *opts =
+        (const struct sol_flow_node_type_form_int_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_FORM_INT_OPTIONS_API_VERSION, -EINVAL);
+
+    if (mdata->state.min > mdata->state.max) {
+        SOL_WRN("Maximum range value shouldn't be less than min."
+            " Swapping values.");
+        mdata->state.max = opts->range.min;
+        mdata->state.min = opts->range.max;
+    } else {
+        mdata->state.max = opts->range.max;
+        mdata->state.min = opts->range.min;
+    }
+
+    mdata->state.step = opts->range.step;
+    if (mdata->state.step == 0) {
+        SOL_WRN("Step value must be non-zero. Assuming 1 for it.");
+        mdata->state.step = 1;
+    }
+
+    range = mdata->state.max - mdata->state.min;
+    if ((mdata->state.step > 0 && mdata->state.step > range)
+        || (mdata->state.step < 0 && mdata->state.step < -range)) {
+        SOL_WRN("Step value must fit the given range. Assuming 1 for it.");
+        mdata->state.step = 1;
+    }
+
+    mdata->state.val = opts->start_value;
+    if (mdata->state.val < mdata->state.min) {
+        SOL_INF("Start value must be in the given range"
+            " (%" PRId32 "-%" PRId32 "). Assuming the minimum for it.",
+            mdata->state.min, mdata->state.max);
+        mdata->state.val = mdata->state.min;
+    }
+    if (mdata->state.val > mdata->state.max) {
+        SOL_INF("Start value must be in the given range"
+            " (%" PRId32 "-%" PRId32 "). Assuming the maximum for it.",
+            mdata->state.min, mdata->state.max);
+        mdata->state.val = mdata->state.max;
+    }
+
+    mdata->circular = opts->circular;
+
+    r = common_form_init(opts->rows,
+        &mdata->rows,
+        opts->columns,
+        &mdata->columns,
+        opts->format,
+        &mdata->format,
+        opts->title,
+        &mdata->title,
+        &mdata->title_tag,
+        &mdata->value_tag,
+        &mdata->text_mem);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = buffer_re_init(&mdata->text_grid, mdata->text_mem, mdata->rows,
+        mdata->columns);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+    mdata->enabled = true;
+
+    return integer_format_do(node);;
+
+err:
+    integer_close(node, mdata);
+
+    return r;
+}
+
+/* Either step > 0 && step < max-min or step < 0 && step > min-max */
+
+static int
+up_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_data *mdata = data;
+
+    if (!mdata->enabled)
+        return 0;
+
+    if (mdata->state.step > 0) {
+        /* step > 0 && max - step > min, so no overflow */
+        if (mdata->state.val <= mdata->state.max - mdata->state.step) {
+            mdata->state.val += mdata->state.step;
+        } else {
+            if (mdata->circular)
+                mdata->state.val = mdata->state.min;
+        }
+    } else {
+        /* step < 0 && min - step > max, so no overflow */
+        if (mdata->state.val >= mdata->state.min - mdata->state.step) {
+            mdata->state.val += mdata->state.step;
+        } else {
+            if (mdata->circular)
+                mdata->state.val = mdata->state.max;
+        }
+    }
+
+    return integer_format_do(node);
+}
+
+static int
+down_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_data *mdata = data;
+
+    if (!mdata->enabled)
+        return 0;
+
+    if (mdata->state.step > 0) {
+        /* step > 0 && min + step < max, so no overflow */
+        if (mdata->state.val >= mdata->state.min + mdata->state.step) {
+            mdata->state.val -= mdata->state.step;
+        } else {
+            if (mdata->circular)
+                mdata->state.val = mdata->state.max;
+        }
+    } else {
+        /* step < 0 && max + step < min, so no overflow */
+        if (mdata->state.val <= mdata->state.max + mdata->state.step) {
+            mdata->state.val -= mdata->state.step;
+        } else {
+            if (mdata->circular)
+                mdata->state.val = mdata->state.min;
+        }
+    }
+
+    return integer_format_do(node);
+}
+
+static int
+integer_selected_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_data *mdata = data;
+    int32_t value;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->state.val = value;
+    if (mdata->state.val > mdata->state.max)
+        mdata->state.val = mdata->state.max;
+    if (mdata->state.val < mdata->state.min)
+        mdata->state.val = mdata->state.min;
+
+    if (!mdata->enabled)
+        return 0;
+
+    return integer_format_do(node);
+}
+
+static int
+integer_select_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_data *mdata = data;
+    int r;
+
+    if (!mdata->enabled)
+        return 0;
+
+    r = integer_format_do(node);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_flow_send_irange_packet(node,
+        SOL_FLOW_NODE_TYPE_FORM_INT__OUT__SELECTED,
+        &mdata->state);
+}
+
+static int
+integer_enabled_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_data *mdata = data;
+    bool value;
+    int r;
+
+    r = sol_flow_packet_get_boolean(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->enabled = value;
+
+    return 0;
+}
+
 
 #include "form-gen.c"

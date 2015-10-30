@@ -136,7 +136,7 @@ validator_10(test/string-validator:sequence="yeppers   |nope      |yeppers   ")
 boolean_10 STRING -> IN validator_10 OUT -> RESULT _(test/result)
 
 #toggle selection, custom labels, pre-selection (note that the initial
-#status is always the default one, to be update quickly by the
+#status is always the default one, to be updated quickly by the
 #SELECTED port's processing afterwards)
 boolean_11(form/boolean:rows=3,columns=10,true_str="yeppers",false_str="nope")
 _(constant/boolean:value=false) OUT -> SELECTED boolean_11
