@@ -284,18 +284,19 @@ $(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(modules-out) $(sample-$(1)-srcs) $(call 
 endef
 $(foreach sample,$(samples),$(eval $(call make-sample,$(sample))))
 
-define make-test-fbp-bin
-$($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out)
-	$(Q)echo "     " CC"   "$$@
-	$(Q)$(MKDIR) -p $(dir $($(1)-out))
-	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $($(1)-src) -o $($(1)-out) $(SAMPLE_LDFLAGS)
-endef
-$(foreach test-fbp-bin,$(all-tests-fbp-bin),$(eval $(call make-test-fbp-bin,$(test-fbp-bin))))
-
 ifeq (y,$(STATIC_LIBRARY))
 use-builtin-ldflags = $(sort $(builtin-ldflags))
 use-builtin-cflags = $(sort $(builtin-cflags))
 endif
+
+define make-test-fbp-bin
+$($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out)
+	$(Q)echo "     " CC"   "$$@
+	$(Q)$(MKDIR) -p $(dir $($(1)-out))
+	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(use-builtin-cflags) $($(1)-src) -o $($(1)-out) \
+	$(SAMPLE_LDFLAGS) $(use-builtin-ldflags)
+endef
+$(foreach test-fbp-bin,$(all-tests-fbp-bin),$(eval $(call make-test-fbp-bin,$(test-fbp-bin))))
 
 define make-test
 $(test-$(1)-out): $(SOL_LIB_OUTPUT) $(test-$(1)-srcs) $(call find-deps,$(1))
