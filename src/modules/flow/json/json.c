@@ -1008,11 +1008,46 @@ json_serialize(struct sol_buffer *buffer, struct json_element *element)
     return -EINVAL;
 }
 
+static struct json_key_element *
+json_object_get_child_element(struct json_element *element, const char *key)
+{
+    uint16_t i;
+    struct json_key_element *key_element;
+
+    SOL_VECTOR_FOREACH_IDX(&element->children, key_element, i)
+        if (strcmp(key, key_element->key) == 0)
+            return key_element;
+
+    return NULL;
+}
+
+static int
+json_object_add_new_element(struct json_element *base_element, const char *key, struct json_element *new_element)
+{
+    struct json_key_element *new;
+
+    new = json_object_get_child_element(base_element, key);
+    if (!new) {
+        new = sol_vector_append(&base_element->children);
+        SOL_NULL_CHECK(new, -errno);
+        new->key = strdup(key);
+        SOL_NULL_CHECK_GOTO(new->key, str_error);
+    } else
+        json_element_clear(&new->element);
+    new->element = *new_element;
+
+    return 0;
+
+str_error:
+    sol_vector_del(&base_element->children, base_element->children.len - 1);
+    return -ENOMEM;
+}
+
 static int
 json_object_in_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
-    struct json_key_element *new;
     struct json_element *mdata = data;
+    struct json_element new_element;
     const char *key;
     uint16_t len;
     struct sol_flow_packet **packets;
@@ -1025,20 +1060,16 @@ json_object_in_process(struct sol_flow_node *node, void *data, uint16_t port, ui
     r = sol_flow_packet_get_string(packets[0], &key);
     SOL_INT_CHECK(r, < 0, r);
 
-    new = sol_vector_append(&mdata->children);
-    SOL_NULL_CHECK(new, -errno);
+    r = json_node_fill_element(packets[1], port, &new_element);
+    SOL_INT_CHECK(r, < 0, r);
 
-    r = json_node_fill_element(packets[1], port, &new->element);
+    r = json_object_add_new_element(mdata, key, &new_element);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    new->key = strdup(key);
-    SOL_NULL_CHECK_GOTO(new->key, str_error);
     return 0;
 
-str_error:
-    r = -ENOMEM;
 error:
-    sol_vector_del(&mdata->children, mdata->children.len - 1);
+    json_element_clear(&new_element);
     return r;
 }
 

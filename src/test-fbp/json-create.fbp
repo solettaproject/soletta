@@ -51,6 +51,10 @@ create_array(json/create-array)
 null_const(constant/string:value="null_value") OUT -> NULL create_obj
 null_const OUT -> NULL create_array
 
+int_replace(int_pair) OUT -> INT create_obj
+_(constant/string:value="int_value") OUT -> KEY int_replace
+int_const_replace(constant/int:value=999) OUT -> VALUE int_replace
+
 int_val(int_pair) OUT -> INT create_obj
 _(constant/string:value="int_value") OUT -> KEY int_val
 int_const(constant/int:value=892) OUT -> VALUE int_val
@@ -65,6 +69,10 @@ float_val(float_pair) OUT -> FLOAT create_obj
 _(constant/string:value="float_value") OUT -> KEY float_val
 float_const(constant/float:value=1.23) OUT -> VALUE float_val
 float_const OUT -> FLOAT create_array
+
+string_replace(string_pair) OUT -> STRING create_obj
+_(constant/string:value="string_value") OUT -> KEY string_replace
+str_replace_const(constant/string:value="error") OUT -> VALUE string_replace
 
 string_val(string_pair) OUT -> STRING create_obj
 _(constant/string:value="string_value") OUT -> KEY string_val
