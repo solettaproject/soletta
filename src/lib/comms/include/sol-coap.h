@@ -158,16 +158,20 @@ struct sol_coap_resource {
     /*
      * handlers for the CoAP defined methods.
      */
-    int (*get)(const struct sol_coap_resource *resource,
+    int (*get)(struct sol_coap_server *server,
+        const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
-    int (*post)(const struct sol_coap_resource *resource,
+    int (*post)(struct sol_coap_server *server,
+        const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
-    int (*put)(const struct sol_coap_resource *resource,
+    int (*put)(struct sol_coap_server *server,
+        const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
-    int (*delete)(const struct sol_coap_resource *resource,
+    int (*delete)(struct sol_coap_server *server,
+        const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     enum sol_coap_flags flags;
@@ -219,9 +223,9 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
 
 int sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
-    int (*reply_cb)(struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data),
-    void *data);
+    int (*reply_cb)(struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+    void *data), void *data);
 
 int sol_coap_packet_send_notification(struct sol_coap_server *server,
     struct sol_coap_resource *resource, struct sol_coap_packet *pkt);

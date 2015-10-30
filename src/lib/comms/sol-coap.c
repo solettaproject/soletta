@@ -304,6 +304,7 @@ sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
 
 static int(*find_resource_cb(const struct sol_coap_packet *req,
     const struct sol_coap_resource *resource)) (
+    struct sol_coap_server *server,
     const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data){
@@ -530,10 +531,9 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
 SOL_API int
 sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
-    int (*reply_cb)(struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr,
-    void *data),
-    void *data)
+    int (*reply_cb)(struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+    void *data), void *data)
 {
     struct sol_coap_option_value option = {};
     struct pending_reply *reply = NULL;
@@ -993,7 +993,8 @@ static int
 respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
 {
-    int (*cb)(const struct sol_coap_resource *resource,
+    int (*cb)(struct sol_coap_server *server,
+        const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr,
         void *data);
@@ -1042,7 +1043,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     /* /.well-known/core well known resource */
     cb = find_resource_cb(req, &well_known);
     if (cb)
-        return cb(&well_known, req, cliaddr, server);
+        return cb(server, &well_known, req, cliaddr, server);
 
     SOL_VECTOR_FOREACH_IDX (&server->contexts, c, i) {
         const struct sol_coap_resource *resource = c->resource;
@@ -1054,7 +1055,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
         if (observe >= 0)
             register_observer(c, req, cliaddr, observe);
 
-        return cb(resource, req, cliaddr, (void *)c->data);
+        return cb(server, resource, req, cliaddr, (void *)c->data);
     }
 
     return resource_not_found(req, cliaddr, server);

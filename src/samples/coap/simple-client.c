@@ -52,11 +52,6 @@
 
 #define DEFAULT_UDP_PORT 5683
 
-struct context {
-    struct sol_coap_server *server;
-    struct sol_str_slice *path;
-};
-
 static void
 disable_observing(struct sol_coap_packet *req, struct sol_coap_server *server,
     struct sol_str_slice path[], const struct sol_network_link_addr *cliaddr)
@@ -82,10 +77,10 @@ disable_observing(struct sol_coap_packet *req, struct sol_coap_server *server,
 }
 
 static int
-reply_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data)
+reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr, void *data)
 {
-    struct context *context = data;
+    struct sol_str_slice *path = data;
     static int count;
     char addr[SOL_INET_ADDR_STRLEN];
     uint8_t *payload;
@@ -99,7 +94,7 @@ reply_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliadd
     SOL_INF("Payload: %.*s", len, payload);
 
     if (++count == 10)
-        disable_observing(req, context->server, context->path, cliaddr);
+        disable_observing(req, server, path, cliaddr);
 
     return 0;
 }
@@ -107,7 +102,8 @@ reply_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliadd
 int
 main(int argc, char *argv[])
 {
-    struct context context = { };
+    struct sol_coap_server *server;
+    struct sol_str_slice *path;
     struct sol_network_link_addr cliaddr = { };
     struct sol_coap_packet *req;
     uint8_t observe = 0;
@@ -122,8 +118,8 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    context.server = sol_coap_server_new(0);
-    if (!context.server) {
+    server = sol_coap_server_new(0);
+    if (!server) {
         SOL_WRN("Could not create a coap server.");
         return -1;
     }
@@ -136,25 +132,25 @@ main(int argc, char *argv[])
 
     sol_coap_header_set_token(req, token, sizeof(token));
 
-    context.path = calloc(argc - 1, sizeof(*context.path));
-    if (!context.path) {
+    path = calloc(argc - 1, sizeof(*path));
+    if (!path) {
         sol_coap_packet_unref(req);
         return -1;
     }
 
     for (i = 2; i < argc; i++) {
-        context.path[i - 2] = sol_str_slice_from_str(argv[i]);
+        path[i - 2] = sol_str_slice_from_str(argv[i]);
     }
 
     sol_coap_add_option(req, SOL_COAP_OPTION_OBSERVE, &observe, sizeof(observe));
 
-    for (i = 0; context.path[i].data; i++)
-        sol_coap_add_option(req, SOL_COAP_OPTION_URI_PATH, context.path[i].data, context.path[i].len);
+    for (i = 0; path[i].data; i++)
+        sol_coap_add_option(req, SOL_COAP_OPTION_URI_PATH, path[i].data, path[i].len);
 
     cliaddr.family = AF_INET;
     if (!sol_network_addr_from_str(&cliaddr, argv[1])) {
         SOL_WRN("%s is an invalid IPv4 address", argv[1]);
-        free(context.path);
+        free(path);
         sol_coap_packet_unref(req);
         return -1;
     }
@@ -162,12 +158,12 @@ main(int argc, char *argv[])
     cliaddr.port = DEFAULT_UDP_PORT;
 
     /* Takes the ownership of 'req'. */
-    sol_coap_send_packet_with_reply(context.server, req, &cliaddr, reply_cb, &context);
+    sol_coap_send_packet_with_reply(server, req, &cliaddr, reply_cb, path);
 
     sol_run();
 
-    sol_coap_server_unref(context.server);
-    free(context.path);
+    sol_coap_server_unref(server);
+    free(path);
 
     return 0;
 }
