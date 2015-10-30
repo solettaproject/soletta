@@ -79,6 +79,35 @@ struct http_connection {
     int fd;
 };
 
+static char *
+sanitize_path(const char *str)
+{
+    char *handler, *aux;
+
+    /*
+     * Ensure that will have at least space for the first /
+     * and nul char at end.
+     */
+    handler = calloc(1, strlen(str) + 2);
+    SOL_NULL_CHECK(handler, NULL);
+
+    aux = handler;
+    *aux = '/';
+    while (str && (*str != '\0')) {
+        if ((*str == '/') && (*aux == '/')) {
+            str++;
+            continue;
+        }
+
+        aux++;
+        *aux = *str;
+        str++;
+    }
+    *(++aux) = '\0';
+
+    return handler;
+}
+
 SOL_API const char *
 sol_http_request_get_url(const struct sol_http_request *request)
 {
@@ -286,7 +315,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
 {
     int ret, fd;
     uint16_t i;
-    char *dir, buf[32];
+    char buf[32], *dir, *path = NULL;
     struct MHD_Response *mhd_response = NULL;
     struct sol_http_server *server = data;
     struct http_handler *handler;
@@ -334,10 +363,17 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         goto end;
     }
 
+    path = sanitize_path(url);
+    if (!path) {
+        status = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
+        goto end;
+    }
+
     SOL_VECTOR_FOREACH_IDX (&server->handlers, handler, i) {
-        if (!sol_str_slice_str_eq(handler->path, url))
+        if (!sol_str_slice_str_eq(handler->path, path))
             continue;
 
+        free(path);
         MHD_get_connection_values(connection, MHD_HEADER_KIND, headers_iterator, req);
         MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND, headers_iterator, req);
         MHD_get_connection_values(connection, MHD_COOKIE_KIND, headers_iterator, req);
@@ -354,6 +390,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         return MHD_YES;
     }
 
+    free(path);
     SOL_PTR_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
         struct stat st;
         fd = get_static_file(dir, url);
@@ -601,15 +638,19 @@ sol_http_server_register_handler(struct sol_http_server *server, const char *pat
     SOL_NULL_CHECK(path, -EINVAL);
     SOL_NULL_CHECK(request_cb, -EINVAL);
 
+    p = sanitize_path(path);
+    SOL_NULL_CHECK(p, -ENOMEM);
+
     SOL_VECTOR_FOREACH_IDX (&server->handlers, handler, i) {
-        if (sol_str_slice_str_eq(handler->path, path))
+        if (sol_str_slice_str_eq(handler->path, p)) {
+            free(p);
             return -EINVAL;
+        }
     }
 
     handler = sol_vector_append(&server->handlers);
-    SOL_NULL_CHECK(handler, -ENOMEM);
+    SOL_NULL_CHECK_GOTO(handler, err);
 
-    p = strdup(path);
     SOL_NULL_CHECK_GOTO(p, error);
     handler->path = sol_str_slice_from_str(p);
 
@@ -621,6 +662,8 @@ sol_http_server_register_handler(struct sol_http_server *server, const char *pat
 
 error:
     sol_vector_del(&server->handlers, server->handlers.len - 1);
+err:
+    free(p);
     return -ENOMEM;
 }
 
