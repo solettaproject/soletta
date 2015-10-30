@@ -60,12 +60,14 @@ sol_message_digest_new(const struct sol_message_digest_config *config)
     SOL_NULL_CHECK(config->on_digest_ready, NULL);
     SOL_NULL_CHECK(config->algorithm, NULL);
 
+#ifndef SOL_NO_API_VERSION
     if (config->api_version != SOL_MESSAGE_DIGEST_CONFIG_API_VERSION) {
         SOL_WRN("sol_message_digest_config->api_version=%hu, "
             "expected version is %hu.",
             config->api_version, SOL_MESSAGE_DIGEST_CONFIG_API_VERSION);
         return NULL;
     }
+#endif
 
     SOL_WRN("not implemented.");
     errno = ENOTSUP;

@@ -94,7 +94,7 @@ add_ip6_link(int idx, gnrc_ipv6_netif_t *if_ip6)
 
     sol_vector_init(&link->addrs, sizeof(struct sol_network_link_addr));
 
-    link->api_version = SOL_NETWORK_LINK_API_VERSION;
+    SOL_SET_API_VERSION(link->api_version = SOL_NETWORK_LINK_API_VERSION; )
     link->index = idx;
     link->flags = 0;
 

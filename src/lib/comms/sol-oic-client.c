@@ -55,6 +55,7 @@
 #define POLL_OBSERVE_TIMEOUT_MS 10000
 #define DISCOVERY_RESPONSE_TIMEOUT_MS 10000
 
+#ifndef SOL_NO_API_VERSION
 #define OIC_RESOURCE_CHECK_API(ptr, ...) \
     do {                                        \
         if (unlikely(ptr->api_version != \
@@ -75,6 +76,10 @@
             return __VA_ARGS__; \
         } \
     } while (0)
+#else
+#define OIC_RESOURCE_CHECK_API(ptr, ...)
+#define OIC_CLIENT_CHECK_API(ptr, ...)
+#endif
 
 struct find_resource_ctx {
     struct sol_oic_client *client;
@@ -328,7 +333,7 @@ _server_info_reply_cb(struct sol_coap_packet *req, const struct sol_network_link
     }
 
     if (_parse_server_info_payload(&info, payload, payload_len)) {
-        info.api_version = SOL_OIC_SERVER_INFORMATION_API_VERSION;
+        SOL_SET_API_VERSION(info.api_version = SOL_OIC_SERVER_INFORMATION_API_VERSION; )
         ctx->cb(ctx->client, &info, ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
@@ -448,7 +453,7 @@ _new_resource(void)
 
     res->refcnt = 1;
 
-    res->api_version = SOL_OIC_RESOURCE_API_VERSION;
+    SOL_SET_API_VERSION(res->api_version = SOL_OIC_RESOURCE_API_VERSION; )
 
     return res;
 }

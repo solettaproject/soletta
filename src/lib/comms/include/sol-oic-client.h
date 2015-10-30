@@ -68,16 +68,20 @@ extern "C" {
  */
 
 struct sol_oic_client {
+#ifndef SOL_NO_API_VERSION
 #define SOL_OIC_CLIENT_API_VERSION (1)
     uint16_t api_version;
     int : 0; /* save possible hole for a future field */
+#endif
     struct sol_coap_server *server;
 };
 
 struct sol_oic_resource {
+#ifndef SOL_NO_API_VERSION
 #define SOL_OIC_RESOURCE_API_VERSION (1)
     uint16_t api_version;
     int : 0; /* save possible hole for a future field */
+#endif
     struct sol_network_link_addr addr;
     struct sol_str_slice href;
     struct sol_str_slice device_id;

@@ -165,7 +165,7 @@ startup(void)
 
     if (pin >= 0) {
         struct sol_gpio_config cfg = {
-            .api_version = SOL_GPIO_CONFIG_API_VERSION,
+            SOL_SET_API_VERSION(.api_version = SOL_GPIO_CONFIG_API_VERSION, )
             .dir = SOL_GPIO_DIR_OUT,
         };
         gpio = sol_gpio_open(pin, &cfg);

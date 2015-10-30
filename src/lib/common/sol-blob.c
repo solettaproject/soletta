@@ -41,6 +41,20 @@
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_sol_blob_log_domain, "blob");
 
+#ifndef SOL_NO_API_VERSION
+#define SOL_BLOB_CHECK_API_VERSION(blob, ...) \
+    if (!(blob)->type->api_version) {               \
+        SOL_WRN("" # blob                            \
+            "(%p)->type->api_version(%hu) != "   \
+            "SOL_BLOB_TYPE_API_VERSION(%hu)",     \
+            (blob), (blob)->type->api_version,   \
+            SOL_BLOB_TYPE_API_VERSION);           \
+        return __VA_ARGS__;                         \
+    }
+#else
+#define SOL_BLOB_CHECK_API_VERSION(blob, ...)
+#endif
+
 #define SOL_BLOB_CHECK(blob, ...)                        \
     do {                                                \
         if (!(blob)) {                                  \
@@ -52,14 +66,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_sol_blob_log_domain, "blob");
                 (blob));                             \
             return __VA_ARGS__;                         \
         }                                               \
-        if (!(blob)->type->api_version) {               \
-            SOL_WRN("" # blob                            \
-                "(%p)->type->api_version(%hu) != "   \
-                "SOL_BLOB_TYPE_API_VERSION(%hu)",     \
-                (blob), (blob)->type->api_version,   \
-                SOL_BLOB_TYPE_API_VERSION);           \
-            return __VA_ARGS__;                         \
-        }                                               \
+        SOL_BLOB_CHECK_API_VERSION((blob), __VA_ARGS__) \
         if ((blob)->refcnt == 0) {                      \
             SOL_WRN("" # blob "(%p)->refcnt == 0",       \
                 (blob));                             \
@@ -88,7 +95,9 @@ sol_blob_new(const struct sol_blob_type *type, struct sol_blob *parent, const vo
     struct sol_blob *blob;
 
     SOL_NULL_CHECK(type, NULL);
+#ifndef SOL_NO_API_VERSION
     SOL_INT_CHECK(type->api_version, != SOL_BLOB_TYPE_API_VERSION, NULL);
+#endif
 
     blob = calloc(1, sizeof(struct sol_blob));
     SOL_NULL_CHECK(blob, NULL);
@@ -108,7 +117,9 @@ sol_blob_setup(struct sol_blob *blob, const struct sol_blob_type *type, const vo
 {
     SOL_NULL_CHECK(blob, -EINVAL);
     SOL_NULL_CHECK(type, -EINVAL);
+#ifndef SOL_NO_API_VERSION
     SOL_INT_CHECK(type->api_version, != SOL_BLOB_TYPE_API_VERSION, -EINVAL);
+#endif
 
     blob->type = type;
     blob->mem = (void *)mem;
@@ -170,14 +181,14 @@ blob_free(struct sol_blob *blob)
 }
 
 static const struct sol_blob_type _SOL_BLOB_TYPE_DEFAULT = {
-    .api_version = SOL_BLOB_TYPE_API_VERSION,
-    .sub_api = 0,
+    SOL_SET_API_VERSION(.api_version = SOL_BLOB_TYPE_API_VERSION, )
+    SOL_SET_API_VERSION(.sub_api = 0, )
     .free = blob_free,
 };
 
 static const struct sol_blob_type _SOL_BLOB_TYPE_NOFREE = {
-    .api_version = SOL_BLOB_TYPE_API_VERSION,
-    .sub_api = 0,
+    SOL_SET_API_VERSION(.api_version = SOL_BLOB_TYPE_API_VERSION, )
+    SOL_SET_API_VERSION(.sub_api = 0, )
     .free = NULL,
 };
 

@@ -22,7 +22,12 @@ config SHARED_LIBRARY
 
 config STATIC_LIBRARY
 	bool "Static"
+	select NO_API_VERSION_NEEDED
 endchoice
+
+config NO_API_VERSION_NEEDED
+    bool
+    default n
 
 # backward compatibility with autotools vars
 config ENABLE_DYNAMIC_MODULES

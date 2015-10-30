@@ -116,7 +116,9 @@ sol_flow_builder_init(struct sol_flow_builder *builder)
 static int
 sol_flow_builder_init_type_data(struct sol_flow_builder *builder)
 {
+#ifndef SOL_NO_API_VERSION
     struct sol_flow_node_options *default_opts;
+#endif
     int r;
 
     builder->type_data = calloc(1, sizeof(struct builder_type_data));
@@ -130,12 +132,14 @@ sol_flow_builder_init_type_data(struct sol_flow_builder *builder)
     r = sol_buffer_ensure(&builder->type_data->default_opts_buf, builder->type_data->options_size);
     if (r < 0)
         goto error_default_opts;
+#ifndef SOL_NO_API_VERSION
     default_opts = builder->type_data->default_opts_buf.data;
     default_opts->api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION;
     default_opts->sub_api = SOL_FLOW_BUILDER_OPTIONS_API_VERSION;
 
     builder->type_data->spec.api_version = SOL_FLOW_STATIC_API_VERSION;
     builder->type_data->desc.api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION;
+#endif
 
     return 0;
 
@@ -743,7 +747,7 @@ fill_options_description(struct sol_flow_builder *builder,
     struct sol_flow_node_options_member_description *member;
     bool required = false;
 
-    opts->sub_api = SOL_FLOW_BUILDER_OPTIONS_API_VERSION;
+    SOL_SET_API_VERSION(opts->sub_api = SOL_FLOW_BUILDER_OPTIONS_API_VERSION; )
 
     for (member = builder->options_description.data; member->name; member++) {
         if (member->required) {

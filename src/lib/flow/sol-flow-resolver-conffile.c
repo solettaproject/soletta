@@ -309,7 +309,7 @@ resolver_conffile_resolve(void *data, const char *id,
 }
 
 static const struct sol_flow_resolver _resolver_conffile = {
-    .api_version = SOL_FLOW_RESOLVER_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_RESOLVER_API_VERSION, )
     .name = "conffile",
     .resolve = resolver_conffile_resolve,
 };

@@ -52,6 +52,7 @@ static int init_ref;
         } \
     } while (0)
 
+#ifndef SOL_NO_API_VERSION
 #define MQTT_CHECK_API(ptr, ...) \
     do {                                        \
         if (unlikely(ptr->api_version != \
@@ -62,6 +63,9 @@ static int init_ref;
             return __VA_ARGS__; \
         } \
     } while (0)
+#else
+#define MQTT_CHECK_API(ptr, ...)
+#endif
 
 struct sol_mqtt {
     struct mosquitto *mosq;

@@ -153,7 +153,7 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
 
     buffer = sol_buffer_steal(&connection->buffer, &size);
     response = &(struct sol_http_response) {
-        .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_DATA(buffer, size)
     };
 
@@ -822,11 +822,13 @@ set_post_data_from_params(CURL *curl, struct sol_arena *arena,
 static bool
 check_param_api_version(const struct sol_http_param *params)
 {
+#ifndef SOL_NO_API_VERSION
     if (unlikely(params->api_version != SOL_HTTP_PARAM_API_VERSION)) {
         SOL_ERR("Parameter has an invalid API version. Expected %u, got %u",
             SOL_HTTP_PARAM_API_VERSION, params->api_version);
         return false;
     }
+#endif
 
     return true;
 }

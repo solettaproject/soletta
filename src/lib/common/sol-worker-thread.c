@@ -46,12 +46,14 @@ sol_worker_thread_new(const struct sol_worker_thread_spec *spec)
     SOL_NULL_CHECK(spec, NULL);
     SOL_NULL_CHECK(spec->iterate, NULL);
 
+#ifndef SOL_NO_API_VERSION
     if (unlikely(spec->api_version != SOL_WORKER_THREAD_SPEC_API_VERSION)) {
         SOL_WRN("Couldn't create worker thread with unsupported version '%u', "
             "expected version is '%u'",
             spec->api_version, SOL_WORKER_THREAD_SPEC_API_VERSION);
         return NULL;
     }
+#endif
 
     return sol_worker_thread_impl_new(spec);
 }

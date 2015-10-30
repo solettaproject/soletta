@@ -35,6 +35,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <sol-common-buildopts.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -69,8 +71,10 @@ enum sol_pwm_polarity {
 };
 
 struct sol_pwm_config {
+#ifndef SOL_NO_API_VERSION
 #define SOL_PWM_CONFIG_API_VERSION (1)
     uint16_t api_version;
+#endif
     int32_t period_ns; /* if == -1, won't set */
     int32_t duty_cycle_ns; /* if == -1, won't set, but if period is set, duty cycle is zeroed */
     enum sol_pwm_alignment alignment;

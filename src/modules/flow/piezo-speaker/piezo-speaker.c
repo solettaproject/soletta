@@ -393,7 +393,7 @@ piezo_speaker_open(struct sol_flow_node *node,
         (const struct sol_flow_node_type_piezo_speaker_sound_options *)options;
     struct sol_pwm_config pwm_config = { 0 };
 
-    pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION;
+    SOL_SET_API_VERSION(pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION; )
     pwm_config.period_ns = -1;
     pwm_config.duty_cycle_ns = 0;
 

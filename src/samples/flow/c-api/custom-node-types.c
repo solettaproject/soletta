@@ -69,6 +69,7 @@
 #include <sol-util.h>
 
 /* macro to check if option's sub_api is the one we expect */
+#ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...)      \
     do {                                                                \
         SOL_NULL_CHECK(options, __VA_ARGS__);                            \
@@ -81,6 +82,9 @@
             return __VA_ARGS__;                                         \
         }                                                               \
     } while (0)
+#else
+#define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...)
+#endif
 
 
 /**

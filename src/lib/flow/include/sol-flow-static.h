@@ -76,13 +76,15 @@ struct sol_flow_static_port_spec {
 #define SOL_FLOW_STATIC_CONN_SPEC_GUARD { .src = UINT16_MAX }
 #define SOL_FLOW_STATIC_PORT_SPEC_GUARD { .node = UINT16_MAX }
 
-#define SOL_FLOW_STATIC_API_VERSION (1)
 
 /** Specification of how a static flow should work. Note that the
  * arrays and functions provided are assumed to be available and valid
  * while the static flow type created from it is being used. */
 struct sol_flow_static_spec {
+#ifndef SOL_NO_API_VERSION
+#define SOL_FLOW_STATIC_API_VERSION (1)
     uint16_t api_version;
+#endif
     uint16_t flags;
 
     /** Array specifying the node types that are used by the static

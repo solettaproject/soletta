@@ -339,12 +339,11 @@ setup_simple_ports(struct sol_vector *in_ports, const struct sol_str_slice conte
         }
 
         if (is_input) {
-            port_type->type.in.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION;
+            SOL_SET_API_VERSION(port_type->type.in.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
             port_type->type.in.packet_type = packet_type;
             port_type->type.in.process = simple_port_process;
         } else {
-            port_type->type.out.api_version =
-                SOL_FLOW_PORT_TYPE_OUT_API_VERSION;
+            SOL_SET_API_VERSION(port_type->type.out.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
             port_type->type.out.packet_type = packet_type;
         }
 
@@ -384,12 +383,11 @@ setup_composed_port(struct sol_vector *simple_ports,
     if (is_splitter) {
         composed_port->name = strdup(INPUT_PORT_NAME);
         composed_port->type.in.process = composed_port_process;
-        composed_port->type.in.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION;
+        SOL_SET_API_VERSION(composed_port->type.in.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
         composed_port->type.in.packet_type = composed_type;
     } else {
         composed_port->name = strdup(OUTPUT_PORT_NAME);
-        composed_port->type.out.api_version =
-            SOL_FLOW_PORT_TYPE_OUT_API_VERSION;
+        SOL_SET_API_VERSION(composed_port->type.out.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
         composed_port->type.out.packet_type = composed_type;
     }
 
@@ -421,7 +419,7 @@ composed_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 static const struct sol_flow_node_type_description sol_flow_node_type_composed_description = {
-    .api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION, )
     .name = "composed",
     .category = "composed",
     .symbol = "SOL_FLOW_NODE_TYPE_COMPOSED",
@@ -518,7 +516,7 @@ create_type(const struct sol_flow_metatype_context *ctx,
     SOL_NULL_CHECK(self, -ENOMEM);
 
     self->base = (struct sol_flow_node_type) {
-        .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
         .data_size = is_splitter ? 0 : sizeof(struct composed_node_data),
         .dispose_type = composed_node_type_dispose,
         .get_port_in = composed_get_port_in,
@@ -751,7 +749,7 @@ generate_metatype_port(struct sol_buffer *out,
 
     return sol_buffer_append_printf(out,
         "static struct sol_flow_port_type_%s metatype_composed_%.*s_%s_port = {\n"
-        "   .api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION,\n"
+        "   SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )\n"
         "   .connect = NULL,\n"
         "   %s"
         "   .disconnect = NULL\n"
@@ -961,7 +959,7 @@ composed_metatype_generate_type_code(struct sol_buffer *out,
 
     r = sol_buffer_append_printf(out,
         "static const struct sol_flow_node_type %.*s = {\n"
-        "   .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,\n"
+        "   SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )\n"
         "   .options_size = sizeof(struct sol_flow_node_options),\n"
         "   .data_size = %s,\n"
         "   .ports_out_count = %u,\n"

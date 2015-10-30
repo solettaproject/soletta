@@ -1059,8 +1059,8 @@ generate_fbp_node_options(struct fbp_data *data)
     out("};\n\n");
     out("#define GENERATED_%s_OPTIONS_DEFAULT(...) { \\\n"
         "    .base = { \\\n"
-        "        .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION, \\\n"
-        "        .sub_api = OPTIONS_%s_API_VERSION \\\n"
+        "        SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION, ) \\\n"
+        "        SOL_SET_API_VERSION(.sub_api = OPTIONS_%s_API_VERSION) \\\n"
         "    }, \\\n"
         "    __VA_ARGS__ \\\n"
         "}\n\n", data->exported_options_symbol, data->exported_options_symbol);
@@ -1147,7 +1147,7 @@ generate_create_type_function(struct fbp_data *data)
 
     out("\n"
         "    struct sol_flow_static_spec spec = {\n"
-        "        .api_version = SOL_FLOW_STATIC_API_VERSION,\n"
+        "        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )\n"
         "        .nodes = nodes,\n"
         "        .conns = conns,\n"
         "        .exported_in = %s,\n"

@@ -392,7 +392,7 @@ runner_new_from_file(
     sol_ptr_vector_init(&r->file_readers);
     r->fbp_paths = fbps;
 
-    r->parser_client.api_version = SOL_FLOW_PARSER_CLIENT_API_VERSION;
+    SOL_SET_API_VERSION(r->parser_client.api_version = SOL_FLOW_PARSER_CLIENT_API_VERSION; )
     r->parser_client.data = r;
     r->parser_client.read_file = read_file;
 

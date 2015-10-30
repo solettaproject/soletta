@@ -132,7 +132,7 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
     mdata->buffer_enabled = opts->buffer_size > -1;
 
-    mdata->config.api_version = SOL_IIO_CONFIG_API_VERSION;
+    SOL_SET_API_VERSION(mdata->config.api_version = SOL_IIO_CONFIG_API_VERSION; )
     mdata->config.trigger_name = opts->iio_trigger_name;
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;

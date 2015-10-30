@@ -943,7 +943,7 @@ flow_js_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 static const struct sol_flow_node_type_description sol_flow_node_type_js_description = {
-    .api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION, )
     .name = "js",
     .category = "js",
     .symbol = "SOL_FLOW_NODE_TYPE_JS",
@@ -1138,7 +1138,7 @@ setup_ports_in(struct duk_context *duk_ctx, struct sol_arena *str_arena, struct 
         port_type = sol_vector_append(ports_in);
         SOL_NULL_CHECK(port_type, false);
 
-        port_type->type.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION;
+        SOL_SET_API_VERSION(port_type->type.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
         port_type->type.packet_type = packet_type;
         port_type->type.process = flow_js_port_process;
         port_type->type.connect = flow_js_port_in_connect;
@@ -1223,7 +1223,7 @@ setup_ports_out(struct duk_context *duk_ctx, struct sol_arena *str_arena, struct
         port_type = sol_vector_append(ports_out);
         SOL_NULL_CHECK(port_type, false);
 
-        port_type->type.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION;
+        SOL_SET_API_VERSION(port_type->type.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
         port_type->type.packet_type = packet_type;
         port_type->type.connect = flow_js_port_out_connect;
         port_type->type.disconnect = flow_js_port_out_disconnect;
@@ -1325,7 +1325,7 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
 
     *type = (const struct flow_js_type) {
         .base = {
-            .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+            SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
             .data_size = sizeof(struct flow_js_data),
             .open = flow_js_open,
             .close = flow_js_close,

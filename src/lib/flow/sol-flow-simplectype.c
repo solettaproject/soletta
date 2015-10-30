@@ -132,7 +132,7 @@ simplectype_create_description(struct sol_flow_node_type *type, const char *name
     type->description = desc = calloc(1, sizeof(*desc));
     SOL_NULL_CHECK(type->description, false);
 
-    desc->api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION;
+    SOL_SET_API_VERSION(desc->api_version = SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION; )
 
     desc->name = strdup(name);
     SOL_NULL_CHECK_GOTO(desc->name, error);
@@ -346,8 +346,10 @@ simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t 
         int direction = va_arg(args, int);
 
         SOL_NULL_CHECK_GOTO(pt, error);
+#ifndef SOL_NO_API_VERSION
         SOL_INT_CHECK_GOTO(pt->api_version,
             != SOL_FLOW_PACKET_TYPE_API_VERSION, error);
+#endif
 
         if (direction == SOL_FLOW_SIMPLECTYPE_PORT_TYPE_IN) {
             port_in = sol_vector_append(&ports_in);
@@ -356,7 +358,7 @@ simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t 
             port_in->name = strdup(port_name);
             SOL_NULL_CHECK_GOTO(port_in->name, error);
 
-            port_in->base.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION;
+            SOL_SET_API_VERSION(port_in->base.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
             port_in->base.packet_type = pt;
             port_in->base.connect = simplectype_port_in_connect;
             port_in->base.disconnect = simplectype_port_in_disconnect;
@@ -368,7 +370,7 @@ simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t 
             port_out->name = strdup(port_name);
             SOL_NULL_CHECK_GOTO(port_out->name, error);
 
-            port_out->base.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION;
+            SOL_SET_API_VERSION(port_out->base.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
             port_out->base.packet_type = pt;
             port_out->base.connect = simplectype_port_out_connect;
             port_out->base.disconnect = simplectype_port_out_disconnect;
@@ -392,7 +394,7 @@ simplectype_new_full_inner(const char *name, size_t private_data_size, uint16_t 
     type = calloc(1, sizeof(*type));
     SOL_NULL_CHECK_GOTO(type, error);
 
-    type->api_version = SOL_FLOW_NODE_TYPE_API_VERSION;
+    SOL_SET_API_VERSION(type->api_version = SOL_FLOW_NODE_TYPE_API_VERSION; )
     type->data_size = private_data_size;
 
     type->type_data = type_data = calloc(1, sizeof(*type_data));
@@ -443,7 +445,9 @@ sol_flow_simplectype_new_full(const char *name, size_t private_data_size, uint16
     va_list ap;
 
     SOL_NULL_CHECK(func, NULL);
+#ifndef SOL_NO_API_VERSION
     SOL_INT_CHECK(options_size, < sizeof(struct sol_flow_node_options), NULL);
+#endif
 
     va_start(ap, func);
     type = simplectype_new_full_inner(name, private_data_size, options_size, func, ap);

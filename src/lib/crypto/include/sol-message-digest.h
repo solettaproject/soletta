@@ -34,6 +34,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sol-common-buildopts.h>
 #include <sol-types.h>
 #include <sol-str-slice.h>
 
@@ -87,12 +88,14 @@ struct sol_message_digest;
  * @see sol_message_digest_new()
  */
 struct sol_message_digest_config {
+#ifndef SOL_NO_API_VERSION
 #define SOL_MESSAGE_DIGEST_CONFIG_API_VERSION (1)
     /**
      * api_version must match SOL_MESSAGE_DIGEST_CONFIG_API_VERSION
      * at runtime.
      */
     uint16_t api_version;
+#endif
     /**
      * Algorithm name.
      *

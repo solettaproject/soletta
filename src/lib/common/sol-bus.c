@@ -103,7 +103,7 @@ source_dispose(void *data)
 }
 
 static const struct sol_mainloop_source_type source_type = {
-    .api_version = SOL_MAINLOOP_SOURCE_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_MAINLOOP_SOURCE_TYPE_API_VERSION, )
     .prepare = source_prepare,
     .check = source_check,
     .dispatch = source_dispatch,

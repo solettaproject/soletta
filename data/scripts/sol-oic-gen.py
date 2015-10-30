@@ -1211,7 +1211,7 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
     resource->funcs = funcs;
 
     resource->type = (struct sol_oic_resource_type) {
-        .api_version = SOL_OIC_RESOURCE_TYPE_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_OIC_RESOURCE_TYPE_API_VERSION, )
         .resource_type = resource_type,
         .interface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
         .get = { .handle = server_handle_get },
@@ -1282,7 +1282,7 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
     if (!device_id || strlen(device_id) != 32)
         return -EINVAL;
 
-    resource->client.api_version = SOL_OIC_CLIENT_API_VERSION;
+    SOL_SET_API_VERSION(resource->client.api_version = SOL_OIC_CLIENT_API_VERSION; )
     resource->client.server = sol_coap_server_new(0);
     SOL_NULL_CHECK(resource->client.server, -ENOMEM);
 

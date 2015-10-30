@@ -143,7 +143,7 @@ int
 main(int argc, char *argv[])
 {
     struct sol_oic_client client = {
-        .api_version = SOL_OIC_CLIENT_API_VERSION
+        SOL_SET_API_VERSION(.api_version = SOL_OIC_CLIENT_API_VERSION)
     };
     struct sol_network_link_addr cliaddr = { .family = AF_INET, .port = 5683 };
     const char *resource_type;

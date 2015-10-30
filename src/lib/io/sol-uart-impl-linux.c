@@ -111,12 +111,14 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
+#ifndef SOL_NO_API_VERSION
     if (unlikely(config->api_version != SOL_UART_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open UART that has unsupported version '%u', "
             "expected version is '%u'",
             config->api_version, SOL_UART_CONFIG_API_VERSION);
         return NULL;
     }
+#endif
 
     SOL_NULL_CHECK(port_name, NULL);
 

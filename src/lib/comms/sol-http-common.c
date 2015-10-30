@@ -47,11 +47,13 @@ sol_http_param_add(struct sol_http_param *params,
 
     SOL_NULL_CHECK(params, -EINVAL);
 
+#ifndef SOL_NO_API_VERSION
     if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
         SOL_ERR("API version mistmatch; expected %u, got %u",
             SOL_HTTP_PARAM_API_VERSION, params->api_version);
         return false;
     }
+#endif
 
     ptr = sol_vector_append(&params->params);
     if (!ptr) {
@@ -68,11 +70,13 @@ sol_http_param_free(struct sol_http_param *params)
 {
     SOL_NULL_CHECK(params);
 
+#ifndef SOL_NO_API_VERSION
     if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
         SOL_ERR("API version mistmatch; expected %u, got %u",
             SOL_HTTP_PARAM_API_VERSION, params->api_version);
         return;
     }
+#endif
     sol_vector_clear(&params->params);
 }
 

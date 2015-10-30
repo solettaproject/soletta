@@ -85,11 +85,13 @@ _load_mux(const char *name)
         goto error;
     }
 
+#ifndef SOL_NO_API_VERSION
     if (p_sym->api_version != SOL_PIN_MUX_API_VERSION) {
         SOL_WRN("Mux '%s' has incorrect api_version: %lu expected %lu", path, p_sym->api_version,
             SOL_PIN_MUX_API_VERSION);
         goto error;
     }
+#endif
 
     if (dl_handle)
         dlclose(dl_handle);

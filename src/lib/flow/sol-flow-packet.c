@@ -143,11 +143,13 @@ sol_flow_packet_new(const struct sol_flow_packet_type *type, const void *value)
         return NULL;
     }
 
+#ifndef SOL_NO_API_VERSION
     if (unlikely(type->api_version != SOL_FLOW_PACKET_TYPE_API_VERSION)) {
         SOL_WRN("Couldn't create packet with type '%s' that has unsupported version '%u', expected version is '%u'",
             type->name ? : "", type->api_version, SOL_FLOW_PACKET_TYPE_API_VERSION);
         return NULL;
     }
+#endif
 
     if (type->get_constant)
         return type->get_constant(type, value);
@@ -226,7 +228,7 @@ packet_empty_get_constant(const struct sol_flow_packet_type *packet_type, const 
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_EMPTY = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "empty",
     .get = packet_empty_get,
     .get_constant = packet_empty_get_constant,
@@ -264,7 +266,7 @@ packet_boolean_get_constant(const struct sol_flow_packet_type *packet_type, cons
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BOOLEAN = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "boolean",
     .data_size = sizeof(bool),
     .get_constant = packet_boolean_get_constant,
@@ -285,7 +287,7 @@ sol_flow_packet_get_boolean(const struct sol_flow_packet *packet, bool *boolean)
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_IRANGE = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "int",
     .data_size = sizeof(struct sol_irange),
 };
@@ -352,7 +354,7 @@ string_packet_dispose(const struct sol_flow_packet_type *packet_type, void *mem)
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_STRING = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "string",
     .data_size = sizeof(char *),
     .init = string_packet_init,
@@ -452,7 +454,7 @@ blob_packet_dispose(const struct sol_flow_packet_type *packet_type, void *mem)
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BLOB = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "blob",
     .data_size = sizeof(struct sol_blob *),
     .init = blob_packet_init,
@@ -476,7 +478,7 @@ sol_flow_packet_get_blob(const struct sol_flow_packet *packet, struct sol_blob *
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_JSON_OBJECT  = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "json-object",
     .data_size = sizeof(struct sol_blob *),
     .init = blob_packet_init,
@@ -500,7 +502,7 @@ sol_flow_packet_get_json_object(const struct sol_flow_packet *packet, struct sol
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_JSON_ARRAY  = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "json-array",
     .data_size = sizeof(struct sol_blob *),
     .init = blob_packet_init,
@@ -524,7 +526,7 @@ sol_flow_packet_get_json_array(const struct sol_flow_packet *packet, struct sol_
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_DRANGE = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "float",
     .data_size = sizeof(struct sol_drange),
 };
@@ -570,7 +572,7 @@ sol_flow_packet_get_drange_value(const struct sol_flow_packet *packet, double *v
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_BYTE = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "byte",
     .data_size = sizeof(unsigned char),
 };
@@ -590,7 +592,7 @@ sol_flow_packet_get_byte(const struct sol_flow_packet *packet, unsigned char *by
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_RGB = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "rgb",
     .data_size = sizeof(struct sol_rgb),
 };
@@ -642,7 +644,7 @@ sol_flow_packet_get_rgb_components(const struct sol_flow_packet *packet, uint32_
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "direction-vector",
     .data_size = sizeof(struct sol_direction_vector),
 };
@@ -693,7 +695,7 @@ sol_flow_packet_get_direction_vector_components(const struct sol_flow_packet *pa
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_LOCATION = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "location",
     .data_size = sizeof(struct sol_location),
 };
@@ -713,7 +715,7 @@ sol_flow_packet_get_location(const struct sol_flow_packet *packet, struct sol_lo
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_TIMESTAMP = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "timestamp",
     .data_size = sizeof(struct timespec),
 };
@@ -733,7 +735,7 @@ sol_flow_packet_get_timestamp(const struct sol_flow_packet *packet, struct times
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_ANY = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "any",
     .data_size = sizeof(void *)
 };
@@ -765,7 +767,7 @@ error_packet_init(const struct sol_flow_packet_type *packet_type, void *mem, con
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_ERROR = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "error",
     .data_size = sizeof(struct error_data),
     .init = error_packet_init,
@@ -959,7 +961,7 @@ sol_flow_packet_get_http_response(const struct sol_flow_packet *packet,
 }
 
 static const struct sol_flow_packet_type _SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE = {
-    .api_version = SOL_FLOW_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION, )
     .name = "http-response",
     .data_size = sizeof(struct http_response),
     .init = http_response_type_init,
@@ -1055,7 +1057,7 @@ sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types)
         SOL_INT_CHECK_GOTO(r, < 0, err_buf);
     }
 
-    ctype->self.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION;
+    SOL_SET_API_VERSION(ctype->self.api_version = SOL_FLOW_PACKET_TYPE_API_VERSION; )
     ctype->self.name = sol_buffer_steal(&buf, NULL);
     ctype->self.data_size = sizeof(struct sol_flow_packet **);
     ctype->self.init = composed_type_init;

@@ -189,7 +189,7 @@ common_response_cb(void *data, struct sol_http_request *request)
     const struct http_server_node_type *type;
     struct sol_http_param_value *value;
     struct sol_http_response response = {
-        .api_version = SOL_HTTP_RESPONSE_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
         .param = SOL_HTTP_REQUEST_PARAM_INIT,
         .response_code = SOL_HTTP_STATUS_OK

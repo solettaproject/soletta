@@ -99,7 +99,7 @@ grove_rotary_sensor_new_type(const struct sol_flow_node_type **current)
     };
 
     static const struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )
         .nodes = nodes,
         .conns = conns,
         .exported_out = exported_out,
@@ -232,7 +232,7 @@ grove_light_sensor_new_type(const struct sol_flow_node_type **current)
     };
 
     static const struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )
         .nodes = nodes,
         .conns = conns,
         .exported_out = exported_out,
@@ -411,7 +411,7 @@ grove_temperature_sensor_new_type(const struct sol_flow_node_type **current)
     };
 
     static const struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )
         .nodes = nodes,
         .conns = conns,
         .exported_out = exported_out,

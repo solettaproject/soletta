@@ -435,7 +435,9 @@ flow_node_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
         if (type->child_opts_set) {
             uint16_t options_size = spec->type->options_size;
+#ifndef SOL_NO_API_VERSION
             SOL_INT_CHECK_GOTO(options_size, < sizeof(struct sol_flow_node_options), error_nodes);
+#endif
 
             r = sol_buffer_ensure(&opts_buf, options_size);
             if (r < 0) {
@@ -971,7 +973,7 @@ setup_exported_ports_specs(struct flow_static_type *type)
             node = type->exported_in_specs[u].node;
             port = type->exported_in_specs[u].port;
             port_type = &type->ports_in[u];
-            port_type->api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION;
+            SOL_SET_API_VERSION(port_type->api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
             port_type->packet_type = sol_flow_node_type_get_port_in(type->node_specs[node].type, port)->packet_type;
             port_type->process = flow_exported_port_process;
             port_type->connect = flow_exported_port_in_connect;
@@ -991,7 +993,7 @@ setup_exported_ports_specs(struct flow_static_type *type)
             node = type->exported_out_specs[u].node;
             port = type->exported_out_specs[u].port;
             port_type = &type->ports_out[u];
-            port_type->api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION;
+            SOL_SET_API_VERSION(port_type->api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
             port_type->packet_type = sol_flow_node_type_get_port_out(type->node_specs[node].type, port)->packet_type;
             port_type->connect = flow_exported_port_out_connect;
             port_type->disconnect = flow_exported_port_out_disconnect;
@@ -1027,7 +1029,7 @@ flow_static_type_init(
     *type = (const struct flow_static_type) {
         .base = {
             .base = {
-                .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+                SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
                 .data_size = sizeof(struct flow_static_data),
                 .flags = SOL_FLOW_NODE_TYPE_FLAGS_CONTAINER,
                 .open = flow_node_open,
@@ -1083,7 +1085,7 @@ sol_flow_static_new(struct sol_flow_node *parent, const struct sol_flow_static_n
     struct flow_static_type *type;
 
     struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )
         .nodes = nodes,
         .conns = conns,
     };
@@ -1149,12 +1151,14 @@ sol_flow_static_new_type(
 
     SOL_NULL_CHECK(spec, NULL);
 
+#ifndef SOL_NO_API_VERSION
     if (spec->api_version != SOL_FLOW_STATIC_API_VERSION) {
         SOL_WRN("spec(%p)->api_version(%u) != "
             "SOL_FLOW_STATIC_API_VERSION(%u)",
             spec, spec->api_version, SOL_FLOW_STATIC_API_VERSION);
         return NULL;
     }
+#endif
 
     type = calloc(1, sizeof(*type));
     if (!type)

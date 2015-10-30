@@ -206,9 +206,11 @@ int sol_flow_send_http_response_packet(struct sol_flow_node *src, uint16_t src_p
 const struct sol_flow_node_type *sol_flow_node_get_type(const struct sol_flow_node *node);
 
 struct sol_flow_node_options {
+#ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_NODE_OPTIONS_API_VERSION (1) /**< compile time API version to be checked during runtime */
     uint16_t api_version; /**< must match SOL_FLOW_NODE_OPTIONS_API_VERSION at runtime */
     uint16_t sub_api; /**< to version each subclass */
+#endif
 };
 
 enum sol_flow_node_options_member_type {
@@ -318,11 +320,14 @@ struct sol_flow_node_options_member_description {
 struct sol_flow_node_options_description {
     const struct sol_flow_node_options_member_description *members; /** @c NULL terminated */
     uint16_t data_size; /**< size of the whole sol_flow_node_options derivate */
+#ifndef SOL_NO_API_VERSION
     uint16_t sub_api; /**< what goes in sol_flow_node_options::sub_api */
+#endif
     bool required; /**< if true then options must be given for the node (if not, the node has no parameters) */
 };
 
 struct sol_flow_node_type_description {
+#ifndef SOL_NO_API_VERSION
     /* both sol_flow_node_type_description, sol_flow_port_description
      * and sol_flow_node_options_description are subject to
      * SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION, then whenever one of
@@ -331,6 +336,7 @@ struct sol_flow_node_type_description {
      */
 #define SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION (1)
     unsigned long api_version;
+#endif
     const char *name; /**< mandatory, the user-visible name */
     const char *category; /**< mandatory, convention is: category/subcategory/..., such as input/hw/sensor for a pressure sensor or input/sw/oic/switch for an OIC compliant on/off switch */
     const char *symbol; /**< the symbol that exports this type, useful to code that generates C code.  */
@@ -356,8 +362,10 @@ enum sol_flow_node_type_flags {
 
 struct sol_flow_node_type {
 #define SOL_FLOW_NODE_PORT_ERROR (UINT16_MAX - 1) /**< built-in output port's number, common to every node, meant to output error packets */
+#ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_NODE_TYPE_API_VERSION (1) /**< compile time API version to be checked during runtime */
     uint16_t api_version; /**< must match SOL_FLOW_NODE_TYPE_API_VERSION at runtime */
+#endif
     uint16_t data_size; /**< size of the whole sol_flow_node_type derivate */
     uint16_t options_size;
     uint16_t flags; /**< @see #sol_flow_node_type_flags */
@@ -460,8 +468,10 @@ struct sol_flow_node_container_type {
 };
 
 struct sol_flow_port_type_out {
+#ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_PORT_TYPE_OUT_API_VERSION (1) /**< compile time API version to be checked during runtime */
     uint16_t api_version; /**< must match SOL_FLOW_PORT_TYPE_OUT_API_VERSION at runtime */
+#endif
     const struct sol_flow_packet_type *packet_type; /**< the packet type that the port will deliver */
 
     int (*connect)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id); /**< member function issued everytime a new connection is made to the port */
@@ -469,8 +479,10 @@ struct sol_flow_port_type_out {
 };
 
 struct sol_flow_port_type_in {
+#ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_PORT_TYPE_IN_API_VERSION (1) /**< compile time API version to be checked during runtime */
     uint16_t api_version; /**< must match SOL_FLOW_PORT_TYPE_OUT_API_VERSION at runtime */
+#endif
     const struct sol_flow_packet_type *packet_type; /**< the packet type that the port will receive */
 
     int (*process)(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet); /**< member function issued everytime a new packet arrives to the port */
