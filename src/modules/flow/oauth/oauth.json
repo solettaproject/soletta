@@ -1,0 +1,75 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "oauth",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "name": "oauth/v1",
+      "category": "output/network",
+      "description": "OAuth authentication version 1",
+      "methods": {
+        "close": "v1_close",
+        "open": "v1_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct oauth_node_type"
+      },
+      "options": {
+	"members": [
+	  {
+	    "data_type": "string",
+	    "description": "The url of the service that will be used to request the token",
+	    "name": "request_token_url"
+	  },
+	  {
+	    "data_type": "string",
+	    "description": "The url of the service that will be used to authorize",
+	    "name": "authorize_token_url"
+	  },
+	  {
+	    "data_type": "string",
+	    "description": "The url of the service that will be used to exchange the request token for an access token",
+	    "name": "access_token_url"
+	  },
+	  {
+            "data_type": "string",
+            "description": "The namespace will be used for the start and callback url",
+            "name": "namespace"
+	  },
+	  {
+            "data_type": "string",
+            "description": "The consumer application's key",
+            "name": "consumer_key"
+	  },
+	  {
+            "data_type": "string",
+            "description": "The consumer application's key secret",
+            "name": "consumer_key_secret"
+	  }
+	],
+	"version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Authentication's result",
+          "name": "AUTHENTICATED"
+        },
+        {
+          "data_type": "string",
+          "description": "Access token",
+          "name": "TOKEN"
+        }
+      ],
+      "private_data_type": "v1_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/oauth/v1.html"
+    }
+  ]
+}
