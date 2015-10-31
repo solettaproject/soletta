@@ -54,6 +54,9 @@
 
 #include "sol-platform-linux-micro-builtins-gen.h"
 
+#define SOL_DEBUG_ARG "sol-debug=1"
+#define SOL_DEBUG_COMM_ARG "sol-debug-comm="
+
 static enum sol_platform_state platform_state = SOL_PLATFORM_STATE_INITIALIZING;
 static int reboot_cmd = RB_AUTOBOOT;
 static const char *reboot_exec;
@@ -514,16 +517,141 @@ end:
     reboot(reboot_cmd);
 }
 
+static bool
+sol_platform_linux_micro_should_debug(char **gdb_comm)
+{
+    struct sol_file_reader *fr;
+    struct sol_str_slice file;
+    struct sol_vector tokens;
+    struct sol_str_slice *token;
+    uint16_t i;
+    bool res = false;
+
+    fr = sol_file_reader_open("/proc/cmdline");
+    if (!fr) {
+        SOL_ERR("Could not open /proc/cmdline");
+        return false;
+    }
+
+    file = sol_file_reader_get_all(fr);
+    // remove the \n in the end of the file (this is a single line file - always)
+    file.len--;
+    tokens = sol_util_str_split(file, " ", 0);
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
+        if (sol_str_slice_str_eq(*token, SOL_DEBUG_ARG)) {
+            res = true;
+        } else if (strstartswith(token->data, SOL_DEBUG_COMM_ARG)) {
+            size_t id_len = sizeof(SOL_DEBUG_COMM_ARG);
+            *gdb_comm = strndup(token->data + id_len, token->len - id_len);
+        }
+    }
+
+    if (!*gdb_comm) {
+        SOL_ERR("No comm set, trying to set default one: /dev/ttyS0");
+        *gdb_comm = strdup("/dev/ttyS0");
+        if (!*gdb_comm) {
+            SOL_ERR("Could not allocate comm string memory, not debugging.");
+            res = false;
+        }
+    }
+
+    sol_file_reader_close(fr);
+    return res;
+}
+
+static void
+gdb_wait(pid_t gdb_pid)
+{
+    while (true) {
+        int status;
+        pid_t child = wait(&status);
+        if (child < 0) {
+            if (errno == EINTR)
+                continue;
+            SOL_WRN("wait() failed: %s", sol_util_strerrora(errno));
+            // no more child process, they are all dead, restart gdbserver --
+            // it is just to be complete, it should never happen as we check if
+            // gdbserver is dead to restart it
+            return;
+        } else {
+            SOL_DBG("child pid=%" PRIu64 " status=%d", (uint64_t)child, status);
+            if (child == gdb_pid) {
+                SOL_INF("gdbserver exited, restart it");
+                return;
+            }
+        }
+    }
+}
+
+static void
+gdb_exec(const char *gdb_comm)
+{
+    char **argv;
+    int argc;
+    size_t i;
+    const char *paths[] = {
+        "/usr/bin/gdbserver",
+        "/bin/gdbserver",
+    };
+
+    if (setenv("SOL_LOAD_INITIAL_SERVICES", "1", 1) == -1) {
+        SOL_ERR("Could not set SOL_LOAD_INITIAL_SERVICES");
+        _exit(EXIT_FAILURE);
+    }
+
+    argc = sol_argc();
+    argv = sol_argv();
+    if (argc < 1 || !argv || !argv[0]) {
+        SOL_ERR("Invalid argc=%d, argv=%p, argv[0]=%p", argc, argv,
+            argv ? argv[0] : NULL);
+        _exit(EXIT_FAILURE);
+    }
+
+    for (i = 0; i < ARRAY_SIZE(paths); i++) {
+        if (execl(paths[i], paths[i], gdb_comm, argv[0], NULL) == -1)
+            SOL_DBG("failed to exec %s - %s", paths[i],
+                sol_util_strerrora(errno));
+    }
+
+    SOL_WRN("no gdb server found, execute the application without it");
+    execv(argv[0], argv);
+    SOL_CRI("could not execute the application %s: %s", argv[0],
+        sol_util_strerrora(errno));
+    _exit(EXIT_FAILURE);
+}
+
+SOL_ATTR_NORETURN static void
+gdb_debug(const char *gdb_comm)
+{
+    while (true) {
+        pid_t gdb_pid = fork();
+        if (gdb_pid < 0) {
+            SOL_WRN("could not fork(): %s", sol_util_strerrora(errno));
+            // give the system some time to breath
+            sleep(1);
+        } else if (gdb_pid > 0) {
+            gdb_wait(gdb_pid);
+        } else {
+            gdb_exec(gdb_comm);
+        }
+    }
+}
+
 int
 sol_platform_impl_init(void)
 {
     bool want_load_initial_services = false;
+    pid_t pid = getpid();
 
-    if (getpid() == 1 && getppid() == 0) {
+    if (pid == 1 && getppid() == 0) {
+        char *gdb_comm = NULL;
         int err = setup_pid1();
         SOL_INT_CHECK(err, < 0, err);
 
         want_load_initial_services = true;
+        if (sol_platform_linux_micro_should_debug(&gdb_comm)) {
+            gdb_debug(gdb_comm);
+        }
     } else {
         const char *s = getenv("SOL_LOAD_INITIAL_SERVICES");
         if (s && streq(s, "1"))
