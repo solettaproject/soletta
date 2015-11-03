@@ -90,6 +90,22 @@ extern "C" {
         }                                       \
     } while (0)
 
+#define SOL_NULL_CHECK_MSG(ptr, ret, fmt, ...) \
+    do { \
+        if (log_unlikely(!(ptr))) { \
+            SOL_WRN(fmt, ## __VA_ARGS__); \
+            return ret; \
+        } \
+    } while (0)
+
+#define SOL_NULL_CHECK_MSG_GOTO(ptr, label, fmt, ...) \
+    do { \
+        if (log_unlikely(!(ptr))) { \
+            SOL_WRN(fmt, ## __VA_ARGS__); \
+            goto label; \
+        } \
+    } while (0)
+
 #define _SOL_INT_CHECK_FMT(var, exp)                                     \
     __builtin_choose_expr(                                             \
     __builtin_types_compatible_p(typeof(var), int),                \
