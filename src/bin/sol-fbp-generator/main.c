@@ -390,9 +390,9 @@ check_suboption(const struct sol_str_slice option,
 static struct sol_str_slice
 get_irange_drange_option_value(const struct sol_str_slice option)
 {
-    if (!strncasecmp(option.data, "nan", option.len))
+    if (sol_str_slice_str_caseeq(option, "nan"))
         return sol_str_slice_from_str("NAN");
-    if (!strncasecmp(option.data, "inf", option.len))
+    if (sol_str_slice_str_caseeq(option, "inf"))
         return sol_str_slice_from_str("INFINITY");
     return option;
 }

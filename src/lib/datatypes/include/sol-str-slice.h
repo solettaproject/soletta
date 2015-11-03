@@ -97,11 +97,49 @@ sol_str_slice_eq(const struct sol_str_slice a, const struct sol_str_slice b)
     return a.len == b.len && (memcmp(a.data, b.data, a.len) == 0);
 }
 
+static inline bool
+sol_str_slice_str_caseeq(const struct sol_str_slice a, const char *b)
+{
+    return b && a.len == strlen(b) && (strncasecmp(a.data, b, a.len) == 0);
+}
+
+static inline bool
+sol_str_slice_caseeq(const struct sol_str_slice a, const struct sol_str_slice b)
+{
+    return a.len == b.len && (strncasecmp(a.data, b.data, a.len) == 0);
+}
+
+static inline bool
+sol_str_slice_contains(const struct sol_str_slice haystack, const struct sol_str_slice needle)
+{
+    return memmem(haystack.data, haystack.len, needle.data, needle.len) != NULL;
+}
+
+static inline bool
+sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *needle)
+{
+    return memmem(haystack.data, haystack.len, needle, strlen(needle)) != NULL;
+}
+
 static inline void
 sol_str_slice_copy(char *dst, const struct sol_str_slice src)
 {
     memcpy(dst, src.data, src.len);
     dst[src.len] = 0;
+}
+
+static inline bool
+sol_str_slice_starts_with(const struct sol_str_slice slice, const struct sol_str_slice prefix)
+{
+    return slice.len >= prefix.len && strncmp(slice.data, prefix.data, prefix.len);
+}
+
+static inline bool
+sol_str_slice_str_starts_with(const struct sol_str_slice slice, const char *prefix)
+{
+    size_t len = strlen(prefix);
+
+    return slice.len >= len && strncmp(slice.data, prefix, len) == 0;
 }
 
 static SOL_ATTR_NONNULL(1) inline struct sol_str_slice
