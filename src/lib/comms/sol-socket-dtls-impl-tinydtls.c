@@ -41,6 +41,7 @@
 #include "sol-util.h"
 
 #include "sol-socket.h"
+#include "sol-socket-dtls.h"
 #include "sol-socket-impl.h"
 
 #include "dtls.h"
@@ -48,9 +49,11 @@
 #define DTLS_PSK_ID_LEN 16
 #define DTLS_PSK_KEY_LEN 16
 
-struct sol_socket *sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap);
+static const uint32_t dtls_magic = 'D' << 24 | 't' << 16 | 'L' << 8 | 's';
 
 static bool encrypt_payload(void *data, struct sol_socket *wrapped);
+
+struct sol_socket *sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap);
 
 struct queue_item {
     struct sol_buffer buffer;
@@ -59,6 +62,8 @@ struct queue_item {
 
 struct sol_socket_dtls {
     struct sol_socket base;
+    uint32_t dtls_magic;
+
     struct sol_socket *wrapped;
     struct sol_timeout *retransmit_timeout;
     dtls_context_t *context;
@@ -815,9 +820,70 @@ sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap)
     socket->retransmit_timeout = NULL;
     socket->wrapped = to_wrap;
     socket->base.impl = &impl;
+    socket->dtls_magic = dtls_magic;
 
     sol_vector_init(&socket->write.queue, sizeof(struct queue_item));
     sol_vector_init(&socket->read.queue, sizeof(struct queue_item));
 
     return &socket->base;
+}
+
+int
+sol_socket_dtls_set_handshake_cipher(struct sol_socket *s,
+    enum sol_socket_dtls_cipher cipher)
+{
+    static const dtls_cipher_t conv_tbl[] = {
+        [SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256] = TLS_ECDH_anon_WITH_AES_128_CBC_SHA_256,
+        [SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8] = TLS_PSK_WITH_AES_128_CCM_8,
+        [SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8] = TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
+    };
+    struct sol_socket_dtls *socket = (struct sol_socket_dtls *)s;
+
+    SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
+
+    if ((size_t)cipher >= ARRAY_SIZE(conv_tbl))
+        return -EINVAL;
+
+    dtls_select_cipher(socket->context, conv_tbl[cipher]);
+
+    return 0;
+}
+
+int
+sol_socket_dtls_set_anon_ecdh_enabled(struct sol_socket *s, bool setting)
+{
+    struct sol_socket_dtls *socket = (struct sol_socket_dtls *)s;
+
+    SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
+
+    dtls_enables_anon_ecdh(socket->context,
+        setting ? DTLS_CIPHER_ENABLE : DTLS_CIPHER_DISABLE);
+
+    return 0;
+}
+
+int
+sol_socket_dtls_prf_keyblock(struct sol_socket *s,
+    const struct sol_network_link_addr *addr, struct sol_str_slice label,
+    struct sol_str_slice random1, struct sol_str_slice random2,
+    struct sol_buffer *buffer)
+{
+    struct sol_socket_dtls *socket = (struct sol_socket_dtls *)s;
+    session_t session;
+    size_t r;
+
+    SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
+
+    if (!session_from_linkaddr(addr, &session))
+        return -EINVAL;
+
+    r = dtls_prf_with_current_keyblock(socket->context, &session,
+        label.data, label.len, random1.data, random1.len,
+        random2.data, random1.len, buffer->data, buffer->capacity);
+    if (!r)
+        return -EINVAL;
+
+    buffer->used = r;
+
+    return 0;
 }

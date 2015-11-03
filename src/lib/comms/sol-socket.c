@@ -39,7 +39,7 @@
 #include "sol-socket-impl.h"
 
 #ifdef DTLS
-struct sol_socket *sol_socket_dtls_wrap_socket(struct sol_socket *socket);
+#include "sol-socket-dtls.h"
 #endif
 
 #include <errno.h>
