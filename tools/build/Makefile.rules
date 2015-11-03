@@ -395,8 +395,10 @@ $(eval $(call install-resource,$(GDB_AUTOLOAD_PY),$(GDB_AUTOLOAD_PY_DEST)))
 
 $(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT)
 	$(Q)echo "     "GEN"   "$(@)
-	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) --schema-dir=$(FLOW_OIC_SPEC_DIR) --node-type-json=$(dir $(@))oic.json \
-		--node-type-impl=$(dir $(@))oic.c --node-type-gen-c=oic-gen.c --node-type-gen-h=sol-flow/oic.h &>/dev/null
+	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) --schema-dir=$(FLOW_OIC_SPEC_DIR) \
+		--node-type-json=$(dir $(@))oic.json \
+		--node-type-impl=$(dir $(@))oic.c --node-type-gen-c=oic-gen.c \
+		--node-type-gen-h=sol-flow/oic.h >/dev/null
 
 $(KCONFIG_AUTOHEADER): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG) $(obj)/conf
 	$(Q)mkdir -p $(KCONFIG_INCLUDE)config $(KCONFIG_INCLUDE)generated

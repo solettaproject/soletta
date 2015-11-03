@@ -1445,7 +1445,8 @@ if __name__ == '__main__':
             else:
                 raise e
         except Exception as e:
-            print('Ignoring due to exception in generator. Traceback follows:')
+            print('Ignoring %s due to exception in generator. '
+                  'Traceback follows:' % path, file=sys.stderr)
             traceback.print_exc(e, file=sys.stderr)
             continue
 
