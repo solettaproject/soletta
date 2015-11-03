@@ -33,6 +33,7 @@
 #pragma once
 
 #include <sol-http.h>
+#include <sol-network.h>
 #include <time.h>
 
 #ifdef __cplusplus
@@ -181,6 +182,17 @@ const struct sol_http_param *sol_http_request_get_params(const struct sol_http_r
  * @return the method on success, @c SOL_HTTP_METHOD_INVALID otherwise.
  */
 enum sol_http_method sol_http_request_get_method(const struct sol_http_request *request);
+
+/**
+ * Gets the address of the interface that request comes.
+ *
+ * @param request The request which the URL is wanted.
+ * @param address Will be filled with the interface address
+ *
+ * @return '0' on success, error code (always negative) otherwise.
+ */
+int sol_http_request_get_interface_address(const struct sol_http_request *request,
+    struct sol_network_link_addr *address);
 
 /**
  * @}

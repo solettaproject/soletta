@@ -30,11 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <microhttpd.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -824,5 +827,49 @@ sol_http_server_remove_dir(struct sol_http_server *server, const char *basename,
 end:
     free(root);
     free(p);
+    return r;
+}
+
+SOL_API int
+sol_http_request_get_interface_address(const struct sol_http_request *request,
+    struct sol_network_link_addr *address)
+{
+    int r = 0;
+    const union MHD_ConnectionInfo *info;
+
+    union {
+        struct sockaddr_in6 in6;
+        struct sockaddr_in in4;
+    } addr;
+    socklen_t addrlen = sizeof(addr);
+
+    SOL_NULL_CHECK(request, -EINVAL);
+    SOL_NULL_CHECK(address, -EINVAL);
+
+    info = MHD_get_connection_info(request->connection, MHD_CONNECTION_INFO_CONNECTION_FD);
+    SOL_NULL_CHECK(info, -EINVAL);
+
+    r = getsockname(info->connect_fd, (struct sockaddr *)&addr, &addrlen);
+    if (r < 0 || addrlen > sizeof(addr)) {
+        SOL_WRN("Could not get the address for request: %s", request->url);
+        return -EINVAL;
+    }
+
+    address->family = ((struct sockaddr *)&addr)->sa_family;
+    switch (address->family) {
+    case AF_INET:
+        address->port = ntohs(addr.in4.sin_port);
+        memcpy(&(address->addr.in), &addr.in4.sin_addr, sizeof(addr.in4.sin_addr));
+        break;
+    case AF_INET6:
+        address->port = ntohs(addr.in6.sin6_port);
+        memcpy(&(address->addr.in6), &addr.in6.sin6_addr, sizeof(addr.in6.sin6_addr));
+        break;
+    default:
+        SOL_WRN("Unsupported family for request: %s", request->url);
+        r = -EINVAL;
+        break;
+    }
+
     return r;
 }
