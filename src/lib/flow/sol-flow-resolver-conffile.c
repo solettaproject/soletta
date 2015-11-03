@@ -170,7 +170,7 @@ _resolver_conffile_get_module(const char *type)
     /* the hash entry keys are the type part only */
     entry = find_entry_by_name(&resolver_conffile_dlopens, name);
     if (entry) {
-        SOL_DBG("module named '%s' previoulsy loaded", name);
+        SOL_DBG("module named '%s' previously loaded", name);
         free(name);
         goto found;
     }
