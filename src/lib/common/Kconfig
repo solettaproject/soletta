@@ -60,17 +60,6 @@ choice
             Each platform should document what is supported and
             behavior changes.
 
-config PLATFORM_DUMMY
-	bool "dummy"
-	select PLATFORM_LINUX if LINUX
-	help
-            This platform is an empty stub and will not do any state
-            transition or manage any service.
-
-            It is highly recommended to use either linux-micro or
-            systemd if running on Linux. Small OSes will provide their
-            own platform as well.
-
 
 config PLATFORM_LINUX_MICRO
 	bool "linux-micro"
