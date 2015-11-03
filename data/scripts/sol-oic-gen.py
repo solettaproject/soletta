@@ -518,7 +518,8 @@ def object_open_fn_client_c(state_struct_name, resource_type, name, props):
         .to_repr_vec = %(to_repr_vec_fn)s,
         .from_repr_vec = %(struct_name)s_from_repr_vec,
         .inform_flow = %(struct_name)s_inform_flow,
-        .found_port = SOL_FLOW_NODE_TYPE_%(STRUCT_NAME)s__OUT__FOUND
+        .found_port = SOL_FLOW_NODE_TYPE_%(STRUCT_NAME)s__OUT__FOUND,
+        .device_id_port = SOL_FLOW_NODE_TYPE_%(STRUCT_NAME)s__OUT__DEVICE_ID
     };
     struct %(struct_name)s *resource = data;
     int r;
@@ -695,6 +696,20 @@ def object_setters_fn_client_c(state_struct_name, name, props):
 def object_setters_fn_server_c(state_struct_name, name, props):
     return object_setters_fn_common_c(state_struct_name, name, props, False)
 
+def object_scan_fn_client_c():
+    return '''
+static int
+scan(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct client_resource *resource = data;
+
+    send_scan_packets(resource);
+
+    return 0;
+}
+'''
+
 def generate_enums_common_c(name, props):
     output = []
     for field, descr in props.items():
@@ -731,6 +746,7 @@ def generate_object_client_c(resource_type, state_struct_name, name, props):
 %(open_fn)s
 %(close_fn)s
 %(setters_fn)s
+%(scan_fn)s
 """ % {
     'state_struct_name': state_struct_name,
     'struct_name': name,
@@ -739,7 +755,8 @@ def generate_object_client_c(resource_type, state_struct_name, name, props):
     'inform_flow_fn': object_inform_flow_fn_client_c(state_struct_name, name, props),
     'open_fn': object_open_fn_client_c(state_struct_name, resource_type, name, props),
     'close_fn': object_close_fn_client_c(name, props),
-    'setters_fn': object_setters_fn_client_c(state_struct_name, name, props)
+    'setters_fn': object_setters_fn_client_c(state_struct_name, name, props),
+    'scan_fn': object_scan_fn_client_c()
     }
 
 def generate_object_server_c(resource_type, state_struct_name, name, props):
@@ -779,7 +796,20 @@ struct %(struct_name)s {
     }
 
 def generate_object_json(resource_type, struct_name, node_name, title, props, server):
-    in_ports = []
+    if server:
+        in_ports = []
+    else:
+        in_ports = [{
+            'data_type': 'any',
+            'description':
+                'Scan all reachable resources that matches the interface. '
+                'Packets with IDs are sent through output port DEVICE_ID.',
+            'methods': {
+                'process': 'scan'
+            },
+            'name': 'SCAN'
+        }]
+
     for prop_name, prop_descr in props.items():
         if not server and prop_descr['read_only']:
             continue
@@ -800,6 +830,11 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
             'data_type': 'boolean',
             'description': 'Outputs true if resource was found, false if not, or if unreachable',
             'name': 'FOUND'
+        },
+        {
+            'data_type': 'string',
+            'description': 'Send packets with IDs for all servers that respond to scan request. Such IDs can be used to connect to a client to a different server through input port DEVICE_ID',
+            'name': 'DEVICE_ID'
         }]
     for prop_name, prop_descr in props.items():
         out_ports.append({
@@ -933,6 +968,8 @@ def master_c_as_string(generated, oic_gen_c, oic_gen_h):
 #define FIND_PERIOD_MS 5000
 #define UPDATE_TIMEOUT_MS 50
 
+#define DEVICE_ID_LEN (16)
+
 #define streq(a, b) (strcmp((a), (b)) == 0)
 #define likely(x)   __builtin_expect(!!(x), 1)
 
@@ -944,6 +981,7 @@ struct client_resource_funcs {
     bool (*from_repr_vec)(struct client_resource *resource, const struct sol_vector *repr);
     void (*inform_flow)(struct client_resource *resource);
     int found_port;
+    int device_id_port;
 };
 
 struct server_resource_funcs {
@@ -1130,6 +1168,68 @@ find_timer(void *data)
     return true;
 }
 
+static inline char
+base16_encode_digit(const uint8_t nibble, const char a)
+{
+    if (likely(nibble < 10))
+        return '0' + nibble;
+    return a + (nibble - 10);
+}
+
+static void
+binary_to_hex_ascii(const char *binary, char *ascii)
+{
+    const uint8_t *input = (const uint8_t *)binary;
+    size_t i, o = 0;
+
+    for (i = 0; i < DEVICE_ID_LEN; i++) {
+        const uint8_t b = input[i];
+        uint8_t n;
+
+        const uint8_t nibble[2] = {
+            (b & 0xf0) >> 4,
+            (b & 0x0f)
+        };
+
+        for (n = 0; n < 2; n++)
+            ascii[o++] = base16_encode_digit(nibble[n], 'a');
+    }
+
+    ascii[o] = 0;
+}
+
+static void
+scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, void *data)
+{
+    struct client_resource *resource = data;
+    char ascii[DEVICE_ID_LEN * 2 + 1];
+    int r;
+
+    /* FIXME: Should this check move to sol-oic-client? Does it actually make sense? */
+    if (resource->rt && !client_resource_implements_type(oic_res, resource->rt)) {
+        SOL_DBG("Received resource that does not implement rt=%%s, ignoring", resource->rt);
+        return;
+    }
+
+    binary_to_hex_ascii(oic_res->device_id.data, ascii);
+
+    r = sol_flow_send_string_packet(resource->node,
+        resource->funcs->device_id_port, ascii);
+    if (r < 0)
+        SOL_WRN("Could not send server id.");
+}
+
+static void
+send_scan_packets(struct client_resource *resource)
+{
+    sol_oic_client_find_resource(&resource->client, &multicast_ipv4,
+         resource->rt, scan_callback, resource);
+    sol_oic_client_find_resource(&resource->client, &multicast_ipv6_local,
+         resource->rt, scan_callback, resource);
+    sol_oic_client_find_resource(&resource->client, &multicast_ipv6_site,
+         resource->rt, scan_callback, resource);
+}
+
 static bool
 server_resource_perform_update(void *data)
 {
@@ -1253,13 +1353,13 @@ as_nibble(const char c)
 static char *
 hex_ascii_to_binary(const char *ascii)
 {
-    char *binary = malloc(16);
+    char *binary = malloc(DEVICE_ID_LEN);
 
     if (likely(binary)) {
         const char *p;
         size_t i;
 
-        for (p = ascii, i = 0; i < 16; i++, p += 2)
+        for (p = ascii, i = 0; i < DEVICE_ID_LEN; i++, p += 2)
             binary[i] = as_nibble(*p) << 4 | as_nibble(*(p + 1));
     }
 
