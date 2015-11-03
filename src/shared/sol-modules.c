@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sol-modules.h"
+
 #ifdef MODULES
 
 #include <dlfcn.h>
@@ -40,7 +42,6 @@
 
 #include "sol-log-internal.h"
 
-#include "sol-modules.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
