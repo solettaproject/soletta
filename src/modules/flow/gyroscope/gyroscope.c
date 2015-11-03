@@ -463,10 +463,7 @@ gyroscope_l3g4200d_open(struct sol_flow_node *node,
     SOL_NULL_CHECK(options, -EINVAL);
 
     mdata->i2c = sol_i2c_open(opts->i2c_bus, I2C_SPEED);
-    if (!mdata->i2c) {
-        SOL_WRN("Failed to open i2c bus");
-        return -EIO;
-    }
+    SOL_NULL_CHECK_MSG(mdata->i2c, -EIO, "Failed to open i2c bus");
 
     mdata->use_rad = opts->output_radians;
     mdata->init_sampling_cnt = 3;

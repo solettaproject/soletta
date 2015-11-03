@@ -102,10 +102,7 @@ am2315_open(uint8_t bus, uint8_t slave)
     }
 
     i2c = sol_i2c_open(bus, SOL_I2C_SPEED_10KBIT);
-    if (!i2c) {
-        SOL_WRN("Failed to open i2c bus");
-        return NULL;
-    }
+    SOL_NULL_CHECK_MSG(i2c, NULL, "Failed to open i2c bus");
 
     device = calloc(1, sizeof(struct am2315));
     if (!device)
@@ -253,7 +250,6 @@ _read_data(void *data)
 
     if (!sol_i2c_set_slave_address(device->i2c, device->slave)) {
         SOL_WRN("Failed to set slave at address 0x%02x", device->slave);
-        device->success = false;
         goto error;
     }
 
@@ -262,15 +258,12 @@ _read_data(void *data)
      * hi/lo, 7th and 8th are CRC code to validade data. */
     device->i2c_pending = sol_i2c_read(device->i2c, device->buffer,
         sizeof(device->buffer), read_data_cb, device);
-    if (!device->i2c_pending) {
-        SOL_WRN("Could not read sensor data");
-        device->success = false;
-        goto error;
-    }
+    SOL_NULL_CHECK_MSG_GOTO(device->i2c_pending, error, "Could not read sensor data");
 
     return false;
 
 error:
+    device->success = false;
     _send_readings(device);
 
     return false;

@@ -96,10 +96,7 @@ _set_gpio(int pin, enum sol_gpio_direction dir, int drive, bool val)
     const char *drive_str;
 
     gpio = _get_gpio(pin, dir, val);
-    if (!gpio) {
-        SOL_WRN("Wasn't possible to open gpio=%d", pin);
-        return -EINVAL;
-    }
+    SOL_NULL_CHECK_MSG(gpio, -EINVAL, "Wasn't possible to open gpio=%d", pin);
 
     sol_gpio_write(gpio, val);
 

@@ -100,8 +100,7 @@ get_string_by_port(const struct sol_flow_packet *packet,
     free(string[port]);
 
     string[port] = strdup(in_value);
-    if (!string[port])
-        return -ENOMEM;
+    SOL_NULL_CHECK(string[port], -ENOMEM);
 
     return 0;
 }
@@ -122,10 +121,7 @@ string_concatenate_open(struct sol_flow_node *node,
 
     if (opts->separator) {
         mdata->separator = strdup(opts->separator);
-        if (!mdata->separator) {
-            SOL_WRN("Failed to duplicate separator string");
-            return -ENOMEM;
-        }
+        SOL_NULL_CHECK_MSG(mdata->separator, -ENOMEM, "Failed to duplicate separator string");
     }
 
     return 0;
@@ -319,8 +315,7 @@ string_slice_input(struct sol_flow_node *node,
 
     free(mdata->str);
     mdata->str = strdup(in_value);
-    if (!mdata->str)
-        return -ENOMEM;
+    SOL_NULL_CHECK(mdata->str, -ENOMEM);
 
     return slice_do(mdata);
 }
@@ -909,14 +904,10 @@ string_starts_with_open(struct sol_flow_node *node,
     r = prefix_suffix_open(mdata, opts->start, opts->end);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (!opts->prefix) {
-        SOL_WRN("Option 'prefix' must not be NULL");
-        return -EINVAL;
-    }
+    SOL_NULL_CHECK_MSG(opts->prefix, -EINVAL, "Option 'prefix' must not be NULL");
 
     mdata->sub_str = strdup(opts->prefix);
-    if (!mdata->sub_str)
-        return -ENOMEM;
+    SOL_NULL_CHECK(mdata->sub_str, -ENOMEM);
 
     return 0;
 }
@@ -939,14 +930,10 @@ string_ends_with_open(struct sol_flow_node *node,
     r = prefix_suffix_open(mdata, opts->start, opts->end);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (!opts->suffix) {
-        SOL_WRN("Option 'suffix' must not be NULL");
-        return -EINVAL;
-    }
+    SOL_NULL_CHECK_MSG(opts->suffix, -EINVAL, "Option 'suffix' must not be NULL");
 
     mdata->sub_str = strdup(opts->suffix);
-    if (!mdata->sub_str)
-        return -ENOMEM;
+    SOL_NULL_CHECK(mdata->sub_str, -ENOMEM);
 
     return 0;
 }
@@ -967,8 +954,7 @@ prefix_suffix_match_do(struct string_prefix_suffix_data *mdata,
 
     free(mdata->in_str);
     mdata->in_str = strdup(new_in_str);
-    if (!mdata->in_str)
-        return -ENOMEM;
+    SOL_NULL_CHECK(mdata->in_str, -ENOMEM);
     in_str_len = strlen(mdata->in_str);
 
 starts_with:
@@ -1030,11 +1016,9 @@ set_prefix_suffix_sub_str(struct sol_flow_node *node,
 
     free(mdata->sub_str);
     mdata->sub_str = strdup(sub_str);
-    if (!mdata->sub_str)
-        return -ENOMEM;
+    SOL_NULL_CHECK(mdata->sub_str, -ENOMEM);
 
-    if (!mdata->in_str)
-        return 0;
+    SOL_NULL_CHECK(mdata->in_str, 0);
 
     return prefix_suffix_match_do(mdata, NULL, true);
 }

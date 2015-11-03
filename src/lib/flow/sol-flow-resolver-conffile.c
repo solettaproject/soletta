@@ -198,20 +198,16 @@ _resolver_conffile_get_module(const char *type)
     }
 
     entry->handle = dlopen(path, RTLD_LAZY | RTLD_LOCAL | RTLD_NODELETE);
-    if (!entry->handle) {
-        SOL_WRN("Could not load module '%s':\n    %s", name, dlerror());
-        goto error;
-    }
+    SOL_NULL_CHECK_MSG_GOTO(entry->handle, error,
+        "Could not load module '%s':\n    %s", name, dlerror());
+
     entry->foreach = dlsym(entry->handle, "sol_flow_foreach_module_node_type");
-    if (!entry->foreach) {
-        SOL_WRN("could not find symbol "
-            "sol_flow_foreach_module_node_type() "
-            "in module '%s': %s", path, dlerror());
-        goto error;
-    }
+
+    SOL_NULL_CHECK_MSG_GOTO(entry->foreach, error,
+        "Could not find symbol sol_flow_foreach_module_node_type() in module '%s': %s",
+        path, dlerror());
 
     SOL_DBG("module named '%s' loaded from '%s'", entry->name, path);
-
 found:
     ret = resolve_module_type_by_component(type, entry->foreach);
     SOL_NULL_CHECK_MSG_GOTO(ret, error, "Type='%s' not found.", type);

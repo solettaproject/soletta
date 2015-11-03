@@ -142,11 +142,8 @@ aio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
         mdata->aio = sol_aio_open_by_label(opts->pin, opts->mask);
     }
 
-    if (!mdata->aio) {
-        SOL_WRN("aio (%s): Couldn't be open. Maybe you used an invalid 'pin'=%s?",
-            opts->pin, opts->pin);
-        return -EINVAL;
-    }
+    SOL_NULL_CHECK_MSG(mdata->aio, -EINVAL,
+        "aio (%s): Couldn't be open. Maybe you used an invalid 'pin'=%s?", opts->pin, opts->pin);
 
     mdata->pin = opts->pin ? strdup(opts->pin) : NULL;
     mdata->mask = (0x01 << opts->mask) - 1;

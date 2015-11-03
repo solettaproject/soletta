@@ -129,10 +129,7 @@ get_in_port_name(const struct sol_flow_node *node, uint16_t port)
     const struct flow_js_port_in *p;
 
     p = sol_vector_get(&type->ports_in, port);
-    if (!p) {
-        SOL_WRN("Couldn't get input port %d name.", port);
-        return "";
-    }
+    SOL_NULL_CHECK_MSG(p, "", "Couldn't get input port %d name.", port);
 
     return p->name;
 }
@@ -144,10 +141,7 @@ get_out_port_name(const struct sol_flow_node *node, uint16_t port)
     const struct flow_js_port_out *p;
 
     p = sol_vector_get(&type->ports_out, port);
-    if (!p) {
-        SOL_WRN("Couldn't get output port %d name.", port);
-        return "";
-    }
+    SOL_NULL_CHECK_MSG(p, "", "Couldn't get output port %d name.", port);
 
     return p->name;
 }

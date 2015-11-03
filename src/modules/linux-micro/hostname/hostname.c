@@ -51,10 +51,7 @@ hostname_start(const struct sol_platform_linux_micro_module *mod, const char *se
     int err = 0;
 
     reader = sol_file_reader_open("/etc/hostname");
-    if (!reader) {
-        SOL_WRN("could not read /etc/hostname");
-        return -errno;
-    }
+    SOL_NULL_CHECK_MSG(reader, -errno, "could not read /etc/hostname");
 
     str = sol_file_reader_get_all(reader);
     s = p = str.data;

@@ -559,11 +559,8 @@ string_regexp_replace_open(struct sol_flow_node *node,
     }
     mdata->regexp = strdup(opts->regexp);
 
-    if (!opts->to) {
-        SOL_WRN("A non-null substitution regular expression string"
-            " must be provided");
-        return -EINVAL;
-    }
+    SOL_NULL_CHECK_MSG(opts->to, -EINVAL, "A non-null substitution regular expression string"
+        " must be provided");
     mdata->to_regexp = strdup(opts->to);
 
     return 0;

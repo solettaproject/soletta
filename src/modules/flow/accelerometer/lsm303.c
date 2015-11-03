@@ -183,10 +183,7 @@ accelerometer_lsm303_open(struct sol_flow_node *node, void *data, const struct s
     opts = (const struct sol_flow_node_type_accelerometer_lsm303_options *)options;
 
     mdata->i2c = sol_i2c_open(opts->i2c_bus, SOL_I2C_SPEED_10KBIT);
-    if (!mdata->i2c) {
-        SOL_WRN("Failed to open i2c bus");
-        return -EINVAL;
-    }
+    SOL_NULL_CHECK_MSG(mdata->i2c, -EINVAL, "Failed to open i2c bus");
 
     mdata->node = node;
     mdata->scale = opts->scale;

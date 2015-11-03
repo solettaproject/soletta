@@ -162,11 +162,7 @@ platform_service_open(struct sol_flow_node *node, void *data, const struct sol_f
     struct platform_service_data *mdata = data;
     const struct sol_flow_node_type_platform_service_options *opts;
 
-    if (!options) {
-        SOL_WRN("Platform Service Node: Options not found.");
-        return -1;
-    }
-
+    SOL_NULL_CHECK_MSG(options, -1, "Platform Service Node: Options not found.");
     opts = (const struct sol_flow_node_type_platform_service_options *)options;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_PLATFORM_SERVICE_OPTIONS_API_VERSION, -EINVAL);

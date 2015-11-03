@@ -942,10 +942,7 @@ sol_flow_builder_get_node_type(struct sol_flow_builder *builder)
     spec->dispose = dispose_builder_type;
 
     builder->node_type = sol_flow_static_new_type(spec);
-    if (!builder->node_type) {
-        SOL_WRN("Failed to create new type");
-        goto error;
-    }
+    SOL_NULL_CHECK_MSG_GOTO(builder->node_type, error, "Failed to create new type");
 
     builder->node_type->options_size = builder->type_data->options_size;
     builder->node_type->default_options = builder->type_data->default_opts_buf.data;

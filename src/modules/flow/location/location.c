@@ -148,10 +148,7 @@ query_addr(struct freegeoip_data *mdata, const char *addr)
     connection = sol_http_client_request(SOL_HTTP_METHOD_GET, json_endpoint,
         NULL, freegeoip_query_finished, mdata);
 
-    if (!connection) {
-        SOL_WRN("Could not create HTTP request");
-        return -ENOTCONN;
-    }
+    SOL_NULL_CHECK_MSG(connection, -ENOTCONN, "Could not create HTTP request");
 
     r = sol_ptr_vector_append(&mdata->pending_conns, connection);
     if (r < 0) {
@@ -213,8 +210,7 @@ freegeoip_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
 
     mdata->node = node;
     mdata->endpoint = strdup(opts->endpoint);
-    if (!mdata->endpoint)
-        return -ENOMEM;
+    SOL_NULL_CHECK(mdata->endpoint, -ENOMEM);
 
     sol_ptr_vector_init(&mdata->pending_conns);
 

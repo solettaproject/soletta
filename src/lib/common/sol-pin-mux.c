@@ -80,10 +80,8 @@ _load_mux(const char *name)
     }
 
     p_sym = dlsym(handle, "SOL_PIN_MUX");
-    if (!p_sym) {
-        SOL_WRN("Could not find symbol SOL_PIN_MUX in module '%s': %s", path, dlerror());
-        goto error;
-    }
+    SOL_NULL_CHECK_MSG_GOTO(p_sym, error,
+        "Could not find symbol SOL_PIN_MUX in module '%s': %s", path, dlerror());
 
     if (p_sym->api_version != SOL_PIN_MUX_API_VERSION) {
         SOL_WRN("Mux '%s' has incorrect api_version: %lu expected %lu", path, p_sym->api_version,

@@ -1090,10 +1090,7 @@ static int
 lcd_open(struct lcd_data *mdata, uint8_t bus)
 {
     mdata->i2c = sol_i2c_open(bus, SOL_I2C_SPEED_10KBIT);
-    if (!mdata->i2c) {
-        SOL_WRN("Failed to open i2c bus %d", bus);
-        return -EIO;
-    }
+    SOL_NULL_CHECK_MSG(mdata->i2c, -EIO, "Failed to open i2c bus %d", bus);
 
     sol_vector_init(&mdata->cmd_queue, sizeof(struct command));
 

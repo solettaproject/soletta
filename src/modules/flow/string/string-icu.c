@@ -60,8 +60,7 @@ icu_str_from_utf8(const char *utf_str,
         return -EINVAL;
 
     *ret_icu_str = calloc(icu_sz + 1, sizeof(UChar));
-    if (!*ret_icu_str)
-        return -ENOMEM;
+    SOL_NULL_CHECK(*ret_icu_str, -ENOMEM);
 
     *ret_icu_err = U_ZERO_ERROR;
     u_strFromUTF8(*ret_icu_str, icu_sz + 1, NULL, utf_str, -1,
@@ -94,8 +93,7 @@ utf8_from_icu_str_slice(const UChar *icu_str,
         return -EINVAL;
 
     *ret_utf_str = calloc(utf_sz + 1, sizeof(char));
-    if (!*ret_utf_str)
-        return -ENOMEM;
+    SOL_NULL_CHECK(*ret_utf_str, -ENOMEM);
 
     *ret_icu_err = U_ZERO_ERROR;
     u_strToUTF8(*ret_utf_str, utf_sz + 1, NULL, icu_str, icu_str_sz,
@@ -1164,10 +1162,7 @@ string_starts_with_open(struct sol_flow_node *node,
     r = prefix_suffix_open(mdata, opts->start, opts->end);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (!opts->prefix) {
-        SOL_WRN("Option 'prefix' must not be NULL");
-        return -EINVAL;
-    }
+    SOL_NULL_CHECK_MSG(opts->prefix, -EINVAL, "Option 'prefix' must not be NULL");
 
     r = icu_str_from_utf8(opts->prefix, &mdata->sub_str, &err);
     SOL_INT_CHECK(r, < 0, r);
@@ -1196,10 +1191,7 @@ string_ends_with_open(struct sol_flow_node *node,
     r = prefix_suffix_open(mdata, opts->start, opts->end);
     SOL_INT_CHECK(r, < 0, r);
 
-    if (!opts->suffix) {
-        SOL_WRN("Option 'suffix' must not be NULL");
-        return -EINVAL;
-    }
+    SOL_NULL_CHECK_MSG(opts->suffix, -EINVAL, "Option 'suffix' must not be NULL");
 
     r = icu_str_from_utf8(opts->suffix, &mdata->sub_str, &err);
     SOL_INT_CHECK(r, < 0, r);

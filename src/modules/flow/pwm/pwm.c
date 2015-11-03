@@ -137,10 +137,7 @@ pwm_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
         mdata->pwm = sol_pwm_open_by_label(opts->pin, &pwm_config);
     }
 
-    if (!mdata->pwm) {
-        SOL_WRN("Could not open pwm (%s)", opts->pin);
-        return -ENXIO;
-    }
+    SOL_NULL_CHECK_MSG(mdata->pwm, -ENXIO, "Could not open pwm (%s)", opts->pin);
 
     return 0;
 }

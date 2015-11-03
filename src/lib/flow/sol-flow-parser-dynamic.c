@@ -43,11 +43,9 @@ check_metatype(const char *path, const char *symbol_name, void *symbol)
     p_metatype = symbol;
     metatype = *p_metatype;
 
-    if (!metatype) {
-        SOL_WRN("Symbol '%s' in module '%s' is points to NULL instead of a valid metatype",
-            symbol_name, path);
-        return false;
-    }
+    SOL_NULL_CHECK_MSG(metatype, false,
+        "Symbol '%s' in module '%s' is points to NULL instead of a valid metatype",
+        symbol_name, path);
 
     if (metatype->api_version != SOL_FLOW_METATYPE_API_VERSION) {
         SOL_WRN("Module '%s' has incorrect api_version: %u expected %u",

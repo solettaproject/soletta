@@ -138,10 +138,7 @@ sol_flow_packet_new(const struct sol_flow_packet_type *type, const void *value)
         return NULL;
     }
 
-    if (unlikely(!type)) {
-        SOL_WRN("Couldn't create packet with NULL type");
-        return NULL;
-    }
+    SOL_NULL_CHECK_MSG(type, NULL, "Couldn't create packet with NULL type");
 
     if (unlikely(type->api_version != SOL_FLOW_PACKET_TYPE_API_VERSION)) {
         SOL_WRN("Couldn't create packet with type '%s' that has unsupported version '%u', expected version is '%u'",

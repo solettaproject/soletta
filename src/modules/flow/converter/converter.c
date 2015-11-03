@@ -947,15 +947,8 @@ boolean_to_string_open(struct sol_flow_node *node, void *data, const struct sol_
 
     opts = (const struct sol_flow_node_type_converter_boolean_to_string_options *)options;
 
-    if (!opts->false_value) {
-        SOL_WRN("A valid string is required as 'false_value'");
-        return -EINVAL;
-    }
-
-    if (!opts->true_value) {
-        SOL_WRN("A valid string is required as 'true_value'");
-        return -EINVAL;
-    }
+    SOL_NULL_CHECK_MSG(opts->false_value, -EINVAL, "A valid string is required as 'false_value'");
+    SOL_NULL_CHECK_MSG(opts->true_value, -EINVAL, "A valid string is required as 'true_value'");
 
     mdata->false_value = strdup(opts->false_value);
     SOL_NULL_CHECK(mdata->false_value, -ENOMEM);
@@ -1062,8 +1055,7 @@ empty_to_string_open(struct sol_flow_node *node, void *data, const struct sol_fl
         options;
 
     mdata->string = strdup(opts->output_value);
-    if (!mdata->string)
-        return -ENOMEM;
+    SOL_NULL_CHECK(mdata->string, -ENOMEM);
 
     return 0;
 }
@@ -2150,8 +2142,7 @@ string_to_timestamp_convert(struct sol_flow_node *node, void *data, uint16_t por
     SOL_INT_CHECK(r, < 0, r);
 
     timestamp_str = strptime(in_value, mdata->string, &time_tm);
-    if (!timestamp_str)
-        goto timestamp_error;
+    SOL_NULL_CHECK_GOTO(timestamp_str, timestamp_error);
 
     out_value.tv_sec = mktime(&time_tm);
     if (out_value.tv_sec < 0)
