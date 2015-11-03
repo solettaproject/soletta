@@ -214,7 +214,7 @@ _resolver_conffile_get_module(const char *type)
 
 found:
     ret = resolve_module_type_by_component(type, entry->foreach);
-    SOL_NULL_CHECK_GOTO(ret, error);
+    SOL_NULL_CHECK_MSG_GOTO(ret, error, "Type='%s' not found.", type);
     return ret;
 
 entry_error:
