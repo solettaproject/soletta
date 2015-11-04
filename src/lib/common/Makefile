@@ -76,6 +76,9 @@ obj-core-$(PTHREAD)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 obj-core-$(USE_PIN_MUX) += \
     sol-pin-mux.o
 
+obj-core-$(PLATFORM_LINUX) += \
+	sol-certificate-impl-linux.o
+
 requires-private-$(MAINLOOP_GLIB) += \
     $(GLIB_REQUIRES_PRIVATE)
 
@@ -96,6 +99,7 @@ headers-y := \
     sol-common-buildopts.h.in
 
 headers-$(PLATFORM_LINUX) += \
+    include/sol-certificate.h \
     include/sol-glib-integration.h
 
 headers-$(USE_PIN_MUX) += \
