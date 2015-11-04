@@ -43,8 +43,8 @@ json_array(converter/string-to-json-array)
 json_object_str OUT -> IN json_object
 json_array_str OUT -> IN json_array
 
-validator_json_object(test/blob-validator:expected="{\"null_value\":null,\"int_value\":892,\"boolean_value\":1,\"float_value\":1.23,\"string_value\":\"str\",\"json_object_value\":{\"index\":3},\"json_array_value\":[1,2,3]}")
-validator_json_array(test/blob-validator:expected="[null,892,1,1.23,\"str\",{\"index\":3},[1,2,3]]")
+validator_json_object(test/blob-validator:expected="{\"null_value\":null,\"int_value\":892,\"boolean_value\":true,\"float_value\":1.23,\"string_value\":\"str\",\"json_object_value\":{\"index\":3},\"json_array_value\":[1,2,3]}")
+validator_json_array(test/blob-validator:expected="[null,892,true,1.23,\"str\",{\"index\":3},[1,2,3]]")
 create_obj(json/create-object)
 create_array(json/create-array)
 

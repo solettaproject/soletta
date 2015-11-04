@@ -999,7 +999,7 @@ json_serialize(struct sol_buffer *buffer, struct json_element *element)
     case JSON_TYPE_FLOAT:
         return sol_json_serialize_double(buffer, element->float_value);
     case JSON_TYPE_BOOLEAN:
-        return sol_json_serialize_int32(buffer, element->bool_value);
+        return sol_json_serialize_boolean(buffer, element->bool_value);
     case JSON_TYPE_STRING:
         return sol_json_serialize_string(buffer, element->str);
     case JSON_TYPE_ARRAY_BLOB:
