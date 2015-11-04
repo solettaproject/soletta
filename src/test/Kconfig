@@ -110,3 +110,8 @@ config TEST_HTTP
        bool "http"
        depends on NETWORK
        default y
+
+config TEST_CERTIFICATE
+    bool "Certificate API"
+    depends on PLATFORM_LINUX
+    default y
