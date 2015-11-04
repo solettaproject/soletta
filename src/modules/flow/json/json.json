@@ -322,7 +322,7 @@
           "name": "EMPTY"
         }
       ],
-      "url": "http://solettaproject.org/doc/latest/node_types/json/json-object-length.html"
+      "url": "http://solettaproject.org/doc/latest/node_types/json/json-object-get-all-keys.html"
     },
     {
       "category": "json",
