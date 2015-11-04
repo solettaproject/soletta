@@ -172,9 +172,9 @@ v1_authorize_response_cb(void *data, struct sol_http_request *request)
     SOL_HTTP_PARAM_FOREACH_IDX (sol_http_request_get_params(request), value, idx) {
         switch (value->type) {
         case SOL_HTTP_PARAM_QUERY_PARAM:
-            if (streq(value->value.key_value.key, "oauth_verifier")) {
+            if (streq(value->value.key_value.key, "oauth_verifier") && !verifier) {
                 verifier = strdup(value->value.key_value.value);
-            } else if (streq(value->value.key_value.key, "oauth_token")) {
+            } else if (streq(value->value.key_value.key, "oauth_token") && !token) {
                 token = strdup(value->value.key_value.value);
             }
             break;
