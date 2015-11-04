@@ -53,7 +53,9 @@
 #endif
 
 struct storage_fn {
-    int (*write)(const char *name, const struct sol_buffer *buffer);
+    int (*write)(const char *name, struct sol_blob *blob,
+        void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
+        const void *data);
     int (*read)(const char *name, struct sol_buffer *buffer);
 };
 
@@ -71,6 +73,12 @@ struct persist_data {
     const struct storage_fn *storage;
 
     size_t packet_data_size;
+};
+
+struct write_cb_data {
+    struct persist_data *mdata;
+    struct sol_flow_node *node;
+    bool send_packet;
 };
 
 #ifdef USE_FILESYSTEM
@@ -107,15 +115,83 @@ static const struct sol_str_table_ptr storage_fn_table[] = {
     { }
 };
 
-static int
-storage_write(struct persist_data *mdata, void *data, size_t size)
+static bool
+update_node_value(struct persist_data *mdata, void *data, size_t len)
 {
-    struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(data, size,
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+    /* No packet_data_size means dynamic content (string). Let's reallocate if needed */
+    if (!mdata->packet_data_size) {
+        if (!mdata->value_ptr || strlen(mdata->value_ptr) + 1 < len) {
+            void *tmp = realloc(mdata->value_ptr, len);
+            SOL_NULL_CHECK(tmp, false);
+            mdata->value_ptr = tmp;
+        }
+    }
+    memcpy(mdata->value_ptr, data, len);
 
-    buf.used = size;
+    return true;
+}
 
-    return mdata->storage->write(mdata->name, &buf);
+static void
+write_cb(void *data, const char *name, struct sol_blob *blob, int status)
+{
+    struct write_cb_data *cb_data = data;
+    struct persist_data *mdata = cb_data->mdata;
+    struct sol_flow_node *node = cb_data->node;
+
+    if (status < 0) {
+        if (status == -ECANCELED)
+            SOL_WRN("Writing to [%s] superseeded by another write", name);
+        else
+            SOL_WRN("Could not write [%s], error: %d", name, status);
+
+        goto end;
+    }
+
+    if (update_node_value(mdata, blob->mem, blob->size)) {
+        if (cb_data->send_packet)
+            mdata->packet_send_fn(node);
+    }
+
+end:
+    free(cb_data);
+}
+
+static int
+storage_write(struct persist_data *mdata, void *data, size_t size, struct sol_flow_node *node, bool send_packet)
+{
+    void *cp_data = NULL;
+    struct write_cb_data *cb_data = NULL;
+    struct sol_blob *blob = NULL;
+    int r;
+
+    cp_data = malloc(size);
+    SOL_NULL_CHECK(cp_data, -ENOMEM);
+
+    memcpy(cp_data, data, size);
+
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cp_data, size);
+    SOL_NULL_CHECK_GOTO(blob, error);
+
+    cb_data = malloc(sizeof(struct write_cb_data));
+    SOL_NULL_CHECK_GOTO(cb_data, error);
+
+    cb_data->mdata = mdata;
+    cb_data->node = node;
+    cb_data->send_packet = send_packet;
+
+    r = mdata->storage->write(mdata->name, blob, write_cb, cb_data);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
+
+    sol_blob_unref(blob);
+
+    return r;
+
+error:
+    if (blob)
+        sol_blob_unref(blob);
+    free(cb_data);
+
+    return -ENOMEM;
 }
 
 static int
@@ -136,7 +212,8 @@ persist_close(struct sol_flow_node *node, void *data)
 }
 
 static int
-persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value)
+persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value,
+    bool send_packet)
 {
     size_t size = 0;
     int r;
@@ -146,30 +223,29 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value)
     else
         size = strlen(value) + 1; //To include the null terminating char
 
-    r = storage_write(mdata, value, size);
+    r = storage_write(mdata, value, size, node, send_packet);
     SOL_INT_CHECK(r, < 0, r);
 
-    /* No packet_data_size means dynamic content (string). Let's reallocate if needed */
-    if (!mdata->packet_data_size) {
-        if (!mdata->value_ptr || strlen(mdata->value_ptr) + 1 < size) {
-            void *tmp = realloc(mdata->value_ptr, size);
-            SOL_NULL_CHECK(tmp, -ENOMEM);
-            mdata->value_ptr = tmp;
-        }
-    }
-    memcpy(mdata->value_ptr, value, size);
-
-    return mdata->packet_send_fn(node);
+    return 0;
 }
 
 static int
 persist_reset(struct persist_data *mdata, struct sol_flow_node *node)
 {
     void *value;
+    size_t size;
 
     value = mdata->node_get_default_fn(node);
 
-    return persist_do(mdata, node, value);
+    if (mdata->packet_data_size)
+        size = mdata->packet_data_size;
+    else
+        size = strlen(value) + 1;
+
+    if (update_node_value(mdata, value, size))
+        mdata->packet_send_fn(node);
+
+    return persist_do(mdata, node, value, false);
 }
 
 static int
@@ -193,7 +269,7 @@ persist_process(struct sol_flow_node *node,
 
     SOL_INT_CHECK(r, < 0, r);
 
-    return persist_do(mdata, node, value);
+    return persist_do(mdata, node, value, true);
 }
 
 static int
