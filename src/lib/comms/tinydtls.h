@@ -32,32 +32,8 @@
 
 #pragma once
 
-#include "sol-network.h"
+/* This file is required to build TinyDLS, and uses the constants defined
+ * by Soletta's build system to create one that TinyDTLS will be happy
+ * with, without actually running or generating its configure script. */
 
-struct sol_socket_impl;
-
-struct sol_socket {
-    const struct sol_socket_impl *impl;
-};
-
-enum sol_socket_type {
-    SOL_SOCKET_UDP,
-#ifdef DTLS
-    SOL_SOCKET_DTLS,
-#endif
-};
-
-struct sol_socket *sol_socket_new(int domain, enum sol_socket_type type, int protocol);
-void sol_socket_del(struct sol_socket *s);
-
-int sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
-int sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
-
-int sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
-
-int sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
-    const struct sol_network_link_addr *cliaddr);
-
-int sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group);
-
-int sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr);
+#include "dtls_config.h"

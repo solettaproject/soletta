@@ -55,6 +55,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
 struct sol_oic_server {
     struct sol_coap_server *server;
+    struct sol_coap_server *dtls_server;
     struct sol_vector resources;
     struct sol_oic_server_information *information;
     int refcnt;
@@ -88,11 +89,13 @@ static struct sol_oic_server oic_server;
         } \
     } while (0)
 
+#define OIC_COAP_SERVER_UDP_PORT  5683
+#define OIC_COAP_SERVER_DTLS_PORT 5684
+
 static int
-_sol_oic_server_d(const struct sol_coap_resource *resource,
-    struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr,
-    void *data)
+_sol_oic_server_d(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource, struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr, void *data)
 {
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     CborEncoder encoder, root, map, rep_map;
@@ -167,7 +170,7 @@ _sol_oic_server_d(const struct sol_coap_resource *resource,
         sol_coap_header_set_code(response, SOL_COAP_RSPCODE_OK);
 
         sol_coap_packet_set_payload_used(response, encoder.ptr - payload);
-        return sol_coap_send_packet(oic_server.server, response, cliaddr);
+        return sol_coap_send_packet(server, response, cliaddr);
     }
 
     SOL_WRN("Error encoding platform CBOR response: %s",
@@ -231,7 +234,8 @@ get_machine_id(void)
 }
 
 static int
-_sol_oic_server_res(const struct sol_coap_resource *resource, struct sol_coap_packet *req,
+_sol_oic_server_res(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
     CborEncoder encoder, array;
@@ -342,7 +346,7 @@ _sol_oic_server_res(const struct sol_coap_resource *resource, struct sol_coap_pa
         sol_coap_packet_set_payload_used(resp, encoder.ptr - payload);
     }
 
-    return sol_coap_send_packet(oic_server.server, resp, cliaddr);
+    return sol_coap_send_packet(server, resp, cliaddr);
 }
 
 static const struct sol_coap_resource oic_res_coap_resource = {
@@ -380,7 +384,7 @@ init_static_info(void)
 }
 
 SOL_API int
-sol_oic_server_init(int port)
+sol_oic_server_init(void)
 {
     struct sol_oic_server_information *info;
 
@@ -394,7 +398,7 @@ sol_oic_server_init(int port)
     info = init_static_info();
     SOL_NULL_CHECK(info, -1);
 
-    oic_server.server = sol_coap_server_new(port);
+    oic_server.server = sol_coap_server_new(OIC_COAP_SERVER_UDP_PORT);
     if (!oic_server.server)
         goto error;
 
@@ -403,6 +407,22 @@ sol_oic_server_init(int port)
     if (!sol_coap_server_register_resource(oic_server.server, &oic_res_coap_resource, NULL)) {
         sol_coap_server_unregister_resource(oic_server.server, &oic_d_coap_resource);
         goto error;
+    }
+
+    oic_server.dtls_server = sol_coap_secure_server_new(OIC_COAP_SERVER_DTLS_PORT);
+    if (!oic_server.dtls_server) {
+        if (errno == ENOSYS) {
+            SOL_INF("DTLS support not built in, OIC server running in insecure mode");
+        } else {
+            SOL_INF("DTLS server could not be created for OIC server: %s",
+                sol_util_strerrora(errno));
+        }
+    } else {
+        if (!sol_coap_server_register_resource(oic_server.dtls_server, &oic_d_coap_resource, NULL)) {
+            SOL_WRN("Could not register device info secure resource, OIC server running in insecure mode");
+            sol_coap_server_unref(oic_server.dtls_server);
+            oic_server.dtls_server = NULL;
+        }
     }
 
     oic_server.information = info;
@@ -429,6 +449,13 @@ sol_oic_server_release(void)
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
         sol_coap_server_unregister_resource(oic_server.server, res->coap);
+    if (oic_server.dtls_server) {
+        SOL_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
+            sol_coap_server_unregister_resource(oic_server.dtls_server, res->coap);
+
+        sol_coap_server_unregister_resource(oic_server.dtls_server, &oic_d_coap_resource);
+        sol_coap_server_unref(oic_server.dtls_server);
+    }
     sol_vector_clear(&oic_server.resources);
 
     sol_coap_server_unregister_resource(oic_server.server, &oic_d_coap_resource);
@@ -459,7 +486,8 @@ static int
 _sol_oic_resource_type_handle(
     sol_coap_responsecode_t (*handle_fn)(const struct sol_network_link_addr *cliaddr, const void *data,
     const struct sol_vector *input, struct sol_vector *output),
-    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+    struct sol_coap_server *server, struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr,
     struct sol_oic_server_resource *res, bool expect_payload)
 {
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
@@ -511,17 +539,18 @@ done:
      * items.*/
     sol_vector_clear(&output);
 
-    return sol_coap_send_packet(oic_server.server, response, cliaddr);
+    return sol_coap_send_packet(server, response, cliaddr);
 }
 
 #define DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(method, expect_payload) \
     static int \
-    _sol_oic_resource_type_ ## method(const struct sol_coap_resource *resource, \
-    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data) \
+    _sol_oic_resource_type_ ## method(struct sol_coap_server *server, \
+    const struct sol_coap_resource *resource, struct sol_coap_packet *req, \
+    const struct sol_network_link_addr *cliaddr, void *data) \
     { \
         struct sol_oic_server_resource *res = data; \
         return _sol_oic_resource_type_handle(res->callback.method.handle, \
-            req, cliaddr, res, expect_payload); \
+            server, req, cliaddr, res, expect_payload); \
     }
 
 DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(get, false)
@@ -578,6 +607,9 @@ create_coap_resource(struct sol_oic_server_resource *resource)
     if (resource->flags & SOL_OIC_FLAG_DISCOVERABLE)
         res->flags |= SOL_COAP_FLAGS_WELL_KNOWN;
 
+    if (oic_server.dtls_server)
+        resource->flags |= SOL_OIC_FLAG_SECURE;
+
     res->iface = sol_str_slice_from_str(resource->iface);
     res->resource_type = sol_str_slice_from_str(resource->rt);
 
@@ -587,10 +619,11 @@ create_coap_resource(struct sol_oic_server_resource *resource)
 static char *
 create_endpoint(void)
 {
+    static unsigned int id = 0;
     char *buffer = NULL;
     int r;
 
-    r = asprintf(&buffer, "/sol/%x", oic_server.resources.len);
+    r = asprintf(&buffer, "/sol/%x", id++);
     return r < 0 ? NULL : buffer;
 }
 
@@ -632,8 +665,15 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
     res->coap = create_coap_resource(res);
     SOL_NULL_CHECK_GOTO(res->coap, free_coap);
 
-    if (sol_coap_server_register_resource(oic_server.server, res->coap, res))
-        return res;
+    if (!sol_coap_server_register_resource(oic_server.server, res->coap, res))
+        goto free_coap;
+
+    if (oic_server.dtls_server) {
+        if (sol_coap_server_register_resource(oic_server.dtls_server, res->coap, res))
+            return res;
+    }
+
+    sol_coap_server_unregister_resource(oic_server.server, res->coap);
 
 free_coap:
     free(res->coap);
@@ -657,6 +697,8 @@ sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
     SOL_NULL_CHECK(resource);
 
     sol_coap_server_unregister_resource(oic_server.server, resource->coap);
+    if (oic_server.dtls_server)
+        sol_coap_server_unregister_resource(oic_server.dtls_server, resource->coap);
     free(resource->coap);
 
     free(resource->href);
@@ -673,14 +715,12 @@ sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
         resource);
 }
 
-SOL_API bool
-sol_oic_notify_observers(struct sol_oic_server_resource *resource,
-    const struct sol_vector *fields)
+static bool
+send_notification_to_server(struct sol_oic_server_resource *resource,
+    const struct sol_vector *fields, struct sol_coap_server *server)
 {
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     struct sol_coap_packet *pkt;
-
-    SOL_NULL_CHECK(resource, false);
 
     pkt = sol_coap_packet_notification_new(oic_server.server, resource->coap);
     SOL_NULL_CHECK(pkt, false);
@@ -696,4 +736,20 @@ sol_oic_notify_observers(struct sol_oic_server_resource *resource,
     sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
 
     return !sol_coap_packet_send_notification(oic_server.server, resource->coap, pkt);
+}
+
+SOL_API bool
+sol_oic_notify_observers(struct sol_oic_server_resource *resource,
+    const struct sol_vector *fields)
+{
+    bool sent_server = false;
+    bool sent_dtls_server = false;
+
+    SOL_NULL_CHECK(resource, false);
+
+    sent_server = send_notification_to_server(resource, fields, oic_server.server);
+    if (oic_server.dtls_server)
+        sent_dtls_server = send_notification_to_server(resource, fields, oic_server.dtls_server);
+
+    return sent_server || sent_dtls_server;
 }

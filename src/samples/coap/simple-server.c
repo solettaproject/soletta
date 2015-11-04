@@ -123,10 +123,10 @@ light_resource_to_rep(const struct sol_coap_resource *resource,
 }
 
 static int
-light_method_put(const struct sol_coap_resource *resource, struct sol_coap_packet *req,
+light_method_put(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
-    struct sol_coap_server *server = (void *)data;
     struct sol_coap_packet *resp;
     char *sub = NULL;
     uint8_t *p;
@@ -186,10 +186,10 @@ update_light(void *data)
 }
 
 static int
-light_method_get(const struct sol_coap_resource *resource, struct sol_coap_packet *req,
+light_method_get(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
-    struct sol_coap_server *server = (void *)data;
     struct sol_coap_packet *resp;
     uint8_t *payload;
     uint16_t len;
@@ -238,7 +238,7 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    if (!sol_coap_server_register_resource(server, &light, server)) {
+    if (!sol_coap_server_register_resource(server, &light, NULL)) {
         SOL_WRN("Could not register resource for the light");
         return -1;
     }

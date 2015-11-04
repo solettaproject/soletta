@@ -6,6 +6,16 @@ config NETWORK
             making it possible to observe events, to inquire available links
             and to set their states.
 
+config DTLS
+	bool "Enable DTLS (Datagram Transport Layer Security) support"
+	default y
+	depends on HAVE_TINYDTLS_SRC
+	help
+	    This enables support for DTLS (a derivation from the SSL protocol)
+	    support in the socket abstraction layer.
+
+	    If unsure, say Y.
+
 config COAP
 	bool "CoAP"
 	default y

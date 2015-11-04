@@ -103,6 +103,26 @@ SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
 
 static struct sol_ptr_vector pending_discovery = SOL_PTR_VECTOR_INIT;
 
+static struct sol_coap_server *
+_best_server_for_resource(const struct sol_oic_client *client,
+    const struct sol_oic_resource *res, struct sol_network_link_addr *addr)
+{
+    *addr = res->addr;
+
+    if (client->dtls_server && res->secure) {
+        addr->port = 5684;
+        SOL_DBG("Resource has secure flag and we have DTLS support (using port %d)",
+            addr->port);
+        return client->dtls_server;
+    }
+
+    SOL_DBG("Resource %s secure flag and we %s DTLS support (using port %d)",
+        res->secure ? "has" : "does not have",
+        client->dtls_server ? "have" : "do not have",
+        addr->port);
+    return client->server;
+}
+
 static bool
 _set_token_and_mid(struct sol_coap_packet *pkt, int64_t *token)
 {
@@ -359,8 +379,10 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
     void *data)
 {
     static const char device_uri[] = "/oic/d";
-    struct sol_coap_packet *req;
     struct server_info_ctx *ctx;
+    struct sol_coap_packet *req;
+    struct sol_coap_server *server;
+    struct sol_network_link_addr addr;
     int r;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
@@ -390,7 +412,8 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
         goto out;
     }
 
-    r = sol_coap_send_packet_with_reply(client->server, req, &resource->addr, _server_info_reply_cb, ctx);
+    server = _best_server_for_resource(client, resource,  &addr);
+    r = sol_coap_send_packet_with_reply(server, req, &addr, _server_info_reply_cb, ctx);
     if (!r)
         return true;
 
@@ -651,6 +674,7 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
         sol_coap_add_option(req, SOL_COAP_OPTION_URI_QUERY, query, r);
     }
 
+    /* Discovery packets can't be sent through a DTLS server. */
     r = sol_coap_send_packet_with_reply(client->server, req, cliaddr, _find_resource_reply_cb, ctx);
     if (!r) {
         /* Safe to free ctx, as _find_resource_cb() will not free if ctx
@@ -824,7 +848,16 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
 
     err = sol_oic_encode_cbor_repr(req, href, repr);
     if (err == CborNoError) {
-        return sol_coap_send_packet_with_reply(client->server, req, &res->addr,
+        struct sol_coap_server *server;
+        struct sol_network_link_addr addr;
+
+        server = _best_server_for_resource(client, res, &addr);
+
+        SOL_DBG("Sending CoAP packet through %s server (port %d)",
+            server == client->dtls_server ? "secure" : "non-secure",
+            addr.port);
+
+        return sol_coap_send_packet_with_reply(server, req, &addr,
             cb, ctx) == 0;
     }
 

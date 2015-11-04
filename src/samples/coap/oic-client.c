@@ -156,6 +156,9 @@ main(int argc, char *argv[])
     }
 
     client.server = sol_coap_server_new(0);
+    client.dtls_server = sol_coap_secure_server_new(0);
+
+    printf("DTLS support %s\n", client.dtls_server ? "available" : "unavailable");
 
     if (argc < 2) {
         printf("No rt filter specified, assuming everything\n");

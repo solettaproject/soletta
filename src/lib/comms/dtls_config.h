@@ -32,32 +32,61 @@
 
 #pragma once
 
-#include "sol-network.h"
+#include "sol-common-buildopts.h"
+#include "sol_config.h"
 
-struct sol_socket_impl;
+/* This file is required to build TinyDLS, and uses the constants defined
+ * by Soletta's build system to create one that TinyDTLS will be happy
+ * with, without actually running or generating its configure script. */
 
-struct sol_socket {
-    const struct sol_socket_impl *impl;
-};
+#define NDEBUG
 
-enum sol_socket_type {
-    SOL_SOCKET_UDP,
-#ifdef DTLS
-    SOL_SOCKET_DTLS,
+#define DTLSv12 1
+
+#define DTLS_ECC 1
+#define DTLS_PSK 1
+
+#define SHA2_USE_INTTYPES_H 1
+#define WITH_SHA256 1
+
+#ifdef SOL_PLATFORM_CONTIKI
+/* Enabling WITH_CONTIKI will generate Contiki-only code paths, including
+ * generating code that does not depend on pthreads.  */
+#define WITH_CONTIKI 1
+#elif defined(PTHREAD) && PTHREAD == 1
+/* Pthread implementation exists, so use it.  */
+#else
+/* For TinyDTLS, if platform is not Contiki, it requires pthread because of
+ * a mutex in crypto.c.  Provide stub versions of pthread_mutex_t in this
+ * case, as Soletta is single-threaded.
+ *
+ * This is not optimal, though. Some cleanup must be performed in TinyDTLS
+ * in order to make it not assume Contiki when working with small embedded
+ * systems.  */
+typedef char pthread_mutex_t;
+
+static inline void
+pthread_mutex_lock(pthread_mutex_t *mtx)
+{
+    (void)mtx;
+}
+
+static inline void
+pthread_mutex_unlock(pthread_mutex_t *mtx)
+{
+    (void)mtx;
+}
 #endif
-};
 
-struct sol_socket *sol_socket_new(int domain, enum sol_socket_type type, int protocol);
-void sol_socket_del(struct sol_socket *s);
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#define WORDS_BIGENDIAN 1
+#elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#undef WORDS_BIGENDIAN
+#else
+#error "Unknown byte order"
+#endif
 
-int sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
-int sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
-
-int sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
-
-int sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
-    const struct sol_network_link_addr *cliaddr);
-
-int sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group);
-
-int sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr);
+#define HAVE_ASSERT_H 1
+#define HAVE_SYS_TIME_H 1
+#define HAVE_TIME_H 1
+#define HAVE_VPRINTF 1
