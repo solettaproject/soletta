@@ -48,6 +48,7 @@
 #include "sol-str-slice.h"
 #include "sol-util.h"
 #include "sol-vector.h"
+#include "sol-arena.h"
 
 #define SOL_HTTP_PARAM_IF_SINCE_MODIFIED "If-Since-Modified"
 #define SOL_HTTP_PARAM_LAST_MODIFIED "Last-Modified"
@@ -66,6 +67,7 @@ struct sol_http_request {
     const char *url;
     struct sol_http_param params;
     enum sol_http_method method;
+    struct sol_arena *str_arena;
     time_t if_since_modified;
 };
 
@@ -155,21 +157,28 @@ build_mhd_response(const struct sol_http_response *response)
 
     SOL_HTTP_PARAM_FOREACH_IDX (&response->param, value, idx) {
         int ret;
-        char buffer[512];
+        char buffer[512], key[512], value_str[512];
 
         switch (value->type) {
         case SOL_HTTP_PARAM_HEADER:
-            if (MHD_add_response_header(r, value->value.key_value.key, value->value.key_value.value) == MHD_NO) {
-                SOL_WRN("Could not add the header: %s", value->value.key_value.key);
+            ret = snprintf(key, sizeof(key), "%.*s", SOL_STR_SLICE_PRINT(value->value.key_value.key));
+            if (ret < 0 || ret >= (int)sizeof(key))
+                goto err;
+            ret = snprintf(value_str, sizeof(value_str), "%.*s", SOL_STR_SLICE_PRINT(value->value.key_value.value));
+            if (ret < 0 || ret >= (int)sizeof(value_str))
+                goto err;
+            if (MHD_add_response_header(r, key, value_str) == MHD_NO) {
+                SOL_WRN("Could not add the header: %.*s", SOL_STR_SLICE_PRINT(value->value.key_value.key));
                 goto err;
             }
             break;
         case SOL_HTTP_PARAM_COOKIE:
-            ret = snprintf(buffer, sizeof(buffer), "%s=%s", value->value.key_value.key, value->value.key_value.value);
+            ret = snprintf(buffer, sizeof(buffer), "%.*s=%.*s", SOL_STR_SLICE_PRINT(value->value.key_value.key),
+                SOL_STR_SLICE_PRINT(value->value.key_value.value));
             if (ret < 0 || ret >= (int)sizeof(buffer))
                 goto err;
             if (MHD_add_response_header(r, MHD_HTTP_HEADER_SET_COOKIE, buffer) == MHD_NO) {
-                SOL_WRN("Could not add the cookie: %s", value->value.key_value.key);
+                SOL_WRN("Could not add the cookie: %.*s", SOL_STR_SLICE_PRINT(value->value.key_value.key));
                 goto err;
             }
             break;
@@ -200,25 +209,19 @@ post_iterator(void *data, enum MHD_ValueKind kind, const char *key,
     if (!size)
         return MHD_NO;
 
-    v = strdup(value);
+    v = sol_arena_strdup(request->str_arena, value);
     SOL_NULL_CHECK(v, MHD_NO);
 
-    k = strdup(key);
-    SOL_NULL_CHECK_GOTO(k, err);
+    k = sol_arena_strdup(request->str_arena, key);
+    SOL_NULL_CHECK(k, MHD_NO);
 
     if (!sol_http_param_add(&request->params,
         SOL_HTTP_REQUEST_PARAM_POST_FIELD(k, v))) {
         SOL_WRN("Could not add %s key", key);
-        goto param_err;
+        return MHD_NO;
     }
 
     return MHD_YES;
-
-param_err:
-    free(k);
-err:
-    free(v);
-    return MHD_NO;
 }
 
 static time_t
@@ -240,11 +243,11 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
     struct sol_http_request *request = data;
     char *v, *k = NULL;
 
-    v = strdup(value);
+    v = sol_arena_strdup(request->str_arena, value);
     SOL_NULL_CHECK(v, MHD_NO);
 
-    k = strdup(key);
-    SOL_NULL_CHECK_GOTO(k, err);
+    k = sol_arena_strdup(request->str_arena, key);
+    SOL_NULL_CHECK(k, MHD_NO);
 
     switch (kind) {
     case MHD_HEADER_KIND:
@@ -278,9 +281,6 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
     return MHD_YES;
 
 param_err:
-    free(k);
-err:
-    free(v);
     return MHD_NO;
 }
 
@@ -347,9 +347,16 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         req = calloc(1, sizeof(struct sol_http_request));
         SOL_NULL_CHECK(req, MHD_NO);
 
+        req->str_arena = sol_arena_new();
+        if (!req->str_arena) {
+            SOL_ERR("Could not alloc the sol_arena for url: %s", url);
+            free(req);
+            return MHD_NO;
+        }
         ret = sol_ptr_vector_append(&server->requests, req);
         if (ret < 0) {
             SOL_WRN("Could not append request for: %s", url);
+            sol_arena_del(req->str_arena);
             free(req);
             return MHD_NO;
         }
@@ -528,25 +535,9 @@ notify_connection_cb(void *data, struct MHD_Connection *connection, void **socke
 static void
 free_request(struct sol_http_request *request)
 {
-    struct sol_http_param_value *value;
-    uint16_t idx;
-
     if (request->pp)
         MHD_destroy_post_processor(request->pp);
-
-    SOL_HTTP_PARAM_FOREACH_IDX (&request->params, value, idx) {
-        switch (value->type) {
-        case SOL_HTTP_PARAM_POST_FIELD:
-        case SOL_HTTP_PARAM_HEADER:
-        case SOL_HTTP_PARAM_COOKIE:
-            free((char *)value->value.key_value.value);
-            free((char *)value->value.key_value.key);
-            break;
-        default:
-            break;
-        }
-    }
-
+    sol_arena_del(request->str_arena);
     sol_http_param_free(&request->params);
     free(request);
 }
