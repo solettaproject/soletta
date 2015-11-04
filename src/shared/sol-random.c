@@ -123,7 +123,7 @@ engine_mt19937_init(struct sol_random *generic, uint64_t seed)
     engine->index = 0;
     engine->state[0] = (unsigned int)seed;
     for (i = 1; i < state_array_size; i++)
-        engine->state[i] = i + 0x6c078965UL * (engine->state[i - 1] ^ (engine->state[i - 1] >> 30UL));
+        engine->state[i] = i + 0x6c078965U * (engine->state[i - 1] ^ (engine->state[i - 1] >> 30U));
 
     return true;
 }
@@ -139,20 +139,20 @@ engine_mt19937_generate_uint32(struct sol_random *generic)
         size_t i;
 
         for (i = 0; i < state_array_size; i++) {
-            y = (engine->state[i] & 0x80000000UL);
-            y += (engine->state[(i + 1UL) % state_array_size] & 0x7fffffffUL);
+            y = (engine->state[i] & 0x80000000U);
+            y += (engine->state[(i + 1U) % state_array_size] & 0x7fffffffU);
 
-            engine->state[i] = engine->state[(i + 397UL) % state_array_size] ^ (y >> 1UL);
+            engine->state[i] = engine->state[(i + 397U) % state_array_size] ^ (y >> 1U);
             if (y % 2 != 0)
-                engine->state[i] ^= 0x9908b0dfUL;
+                engine->state[i] ^= 0x9908b0dfU;
         }
     }
 
     y = engine->state[engine->index];
-    y ^= y >> 11UL;
-    y ^= (y << 7UL) & 0x9d2c5680UL;
-    y ^= (y << 15UL) & 0xefc60000UL;
-    y ^= (y >> 18UL);
+    y ^= y >> 11U;
+    y ^= (y << 7U) & 0x9d2c5680U;
+    y ^= (y << 15U) & 0xefc60000U;
+    y ^= (y >> 18U);
 
     engine->index = (engine->index + 1) % state_array_size;
 
@@ -274,6 +274,15 @@ const struct sol_random_impl *SOL_RANDOM_URANDOM = NULL;
 
 const struct sol_random_impl *SOL_RANDOM_DEFAULT = NULL;
 
+static void
+clear_memory(void *ptr, size_t sz)
+{
+    memset(ptr, 0, sz);
+    /* Clobber memory pointed to by `buf` to prevent the optimizer from
+     * eliding the memset() call.  */
+    asm volatile("" : : "g" (ptr) : "memory");
+}
+
 struct sol_random *
 sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
 {
@@ -288,6 +297,7 @@ sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
     engine->impl = impl;
     seed = get_platform_seed(seed);
     if (!engine->impl->init(engine, seed)) {
+        clear_memory(engine, impl->struct_size);
         free(engine);
         return NULL;
     }
@@ -302,6 +312,9 @@ sol_random_del(struct sol_random *engine)
 
     if (engine->impl->shutdown)
         engine->impl->shutdown(engine);
+
+    clear_memory(engine, engine->impl->struct_size);
+
     free(engine);
 }
 
