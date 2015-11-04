@@ -141,7 +141,11 @@ mytype_func(struct sol_flow_node *node, const struct sol_flow_simplectype_event 
 
     switch (ev->type) {
     case SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_OPEN: {
-        if (ev->options && ev->options->sub_api == MYTYPE_OPTIONS_SUB_API) {
+        if (ev->options
+#ifndef SOL_NO_API_VERSION
+            && ev->options->sub_api == MYTYPE_OPTIONS_SUB_API
+#endif
+            ) {
             struct mytype_options *opt = (struct mytype_options *)ev->options;
             ctx->someint = opt->someint;
             ctx->somebool = opt->somebool;
@@ -216,8 +220,10 @@ startup(void)
      */
     struct mytype_options mystuff_opts = {
         .base = {
+#ifndef SOL_NO_API_VERSION
             .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
             .sub_api = MYTYPE_OPTIONS_SUB_API,
+#endif
         },
         .someint = 12,
         .somebool = true,

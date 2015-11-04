@@ -154,12 +154,13 @@ bool sol_child_watch_del(struct sol_child_watch *handle);
 #endif
 
 struct sol_mainloop_source_type {
+#ifndef SOL_NO_API_VERSION
 #define SOL_MAINLOOP_SOURCE_TYPE_API_VERSION (1)  /**< compile time API version to be checked during runtime */
     /**
      * must match #SOL_MAINLOOP_SOURCE_TYPE_API_VERSION at runtime.
      */
     uint16_t api_version;
-
+#endif
     /**
      * Function to be called to prepare to check for events.
      *
@@ -322,8 +323,10 @@ char **sol_argv(void);
 void sol_args_set(int argc, char *argv[]);
 
 struct sol_main_callbacks {
+#ifndef SOL_NO_API_VERSION
 #define SOL_MAIN_CALLBACKS_API_VERSION (1)
     uint16_t api_version;
+#endif
     uint16_t flags;
     void (*startup)(void);
     void (*shutdown)(void);
@@ -349,33 +352,26 @@ struct sol_main_callbacks {
         sol_shutdown();                                   \
         PROCESS_END();                                    \
     }
-#elif defined(SOL_PLATFORM_RIOT)
+#else
+#ifdef SOL_PLATFORM_RIOT
 #define SOL_MAIN(CALLBACKS) \
     int main(void) { \
         return sol_mainloop_default_main(&(CALLBACKS), 0, NULL); \
     }
-
-#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN) \
-    static const struct sol_main_callbacks sol_main_callbacks_instance = { \
-        .api_version = SOL_MAIN_CALLBACKS_API_VERSION, \
-        .startup = (STARTUP), \
-        .shutdown = (SHUTDOWN), \
-    }; \
-    SOL_MAIN(sol_main_callbacks_instance)
 #else
 #define SOL_MAIN(CALLBACKS)                                          \
     int main(int argc, char *argv[]) {                              \
         return sol_mainloop_default_main(&(CALLBACKS), argc, argv);  \
     }
-
+#endif /* SOL_PLATFORM_RIOT */
 #define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN)                              \
     static const struct sol_main_callbacks sol_main_callbacks_instance = { \
-        .api_version = SOL_MAIN_CALLBACKS_API_VERSION,                   \
+        SOL_SET_API_VERSION(.api_version = SOL_MAIN_CALLBACKS_API_VERSION, ) \
         .startup = (STARTUP),                                           \
         .shutdown = (SHUTDOWN),                                         \
     };                                                                  \
     SOL_MAIN(sol_main_callbacks_instance)
-#endif
+#endif /* SOL_PLATFORM_CONTIKI */
 
 /* Internal. */
 int sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, char *argv[]);

@@ -99,7 +99,7 @@ led_strip_controler_open(struct sol_flow_node *node, void *data, const struct so
     memset(mdata->pixels, 0x80, data_bytes); // Init to RGB 'off' state
     memset(&mdata->pixels[data_bytes], 0, latch_bytes); // Clear latch bytes
 
-    spi_config.api_version = SOL_SPI_CONFIG_API_VERSION;
+    SOL_SET_API_VERSION(spi_config.api_version = SOL_SPI_CONFIG_API_VERSION; )
     spi_config.chip_select = opts->chip_select;
     spi_config.mode = SOL_SPI_MODE_0;
     spi_config.frequency = 100 * 1000; //100KHz

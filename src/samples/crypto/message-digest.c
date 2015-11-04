@@ -156,7 +156,7 @@ startup(void)
     for (i = 1; i < argc; i++) {
         struct feed_ctx *ctx;
         struct sol_message_digest_config cfg = {
-            .api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION,
+            SOL_SET_API_VERSION(.api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION, )
             .algorithm = algorithm,
             .on_feed_done = on_feed_done,
             .on_digest_ready = on_digest_ready,

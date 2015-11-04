@@ -36,6 +36,7 @@
 #include <stddef.h>
 #include <time.h>
 
+#include "sol-common-buildopts.h"
 #include "sol-str-slice.h"
 #include "sol-types.h"
 
@@ -64,8 +65,10 @@ extern "C" {
 struct sol_flow_packet;
 
 struct sol_flow_packet_type {
+#ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_PACKET_TYPE_API_VERSION (1)
     uint16_t api_version;
+#endif
     uint16_t data_size;
     const char *name;
 

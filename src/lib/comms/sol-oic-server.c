@@ -179,7 +179,7 @@ out:
 }
 
 static const struct sol_coap_resource oic_d_coap_resource = {
-    .api_version = SOL_COAP_RESOURCE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_COAP_RESOURCE_API_VERSION, )
     .path = {
         SOL_STR_SLICE_LITERAL("oic"),
         SOL_STR_SLICE_LITERAL("d"),
@@ -346,7 +346,7 @@ _sol_oic_server_res(const struct sol_coap_resource *resource, struct sol_coap_pa
 }
 
 static const struct sol_coap_resource oic_res_coap_resource = {
-    .api_version = SOL_COAP_RESOURCE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_COAP_RESOURCE_API_VERSION, )
     .path = {
         SOL_STR_SLICE_LITERAL("oic"),
         SOL_STR_SLICE_LITERAL("res"),
@@ -560,7 +560,7 @@ create_coap_resource(struct sol_oic_server_resource *resource)
     res = calloc(1, sizeof(struct sol_coap_resource) + (count + 1) * sizeof(struct sol_str_slice));
     SOL_NULL_CHECK(res, NULL);
 
-    res->api_version = SOL_COAP_RESOURCE_API_VERSION;
+    SOL_SET_API_VERSION(res->api_version = SOL_COAP_RESOURCE_API_VERSION; )
 
     res->path[0].data = &endpoint.data[1];
     for (i = 1, current = 0; i < endpoint.len; i++) {
@@ -603,12 +603,14 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
     OIC_SERVER_CHECK(NULL);
     SOL_NULL_CHECK(rt, NULL);
 
+#ifndef SOL_NO_API_VERSION
     if (unlikely(rt->api_version != SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
         SOL_WRN("Couldn't add resource_type with "
             "version '%u'. Expected version '%u'.",
             rt->api_version, SOL_OIC_RESOURCE_TYPE_API_VERSION);
         return NULL;
     }
+#endif
 
     res = sol_vector_append(&oic_server.resources);
     SOL_NULL_CHECK(res, NULL);

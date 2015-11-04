@@ -274,7 +274,7 @@ sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *c
 {
 #ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_write_quick_worker_thread_iterate,
@@ -397,7 +397,7 @@ sol_i2c_read(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*read_cb)
 {
 #ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_read_worker_thread_iterate,
@@ -471,7 +471,7 @@ sol_i2c_write(struct sol_i2c *i2c, uint8_t *values, size_t count, void (*write_c
 {
 #ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_write_worker_thread_iterate,
@@ -623,7 +623,7 @@ sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t 
 {
 #ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_read_reg_worker_thread_iterate,
@@ -737,7 +737,7 @@ sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values
 {
 #ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_read_reg_multiple_worker_thread_iterate,
@@ -877,7 +877,7 @@ sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *values, 
 {
 #ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = i2c_write_reg_worker_thread_iterate,

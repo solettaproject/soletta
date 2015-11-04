@@ -64,7 +64,7 @@ file_reader_blob_free(struct sol_blob *blob)
 }
 
 static const struct sol_blob_type file_reader_blob_type = {
-    .api_version = SOL_BLOB_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_BLOB_TYPE_API_VERSION, )
     .free = file_reader_blob_free
 };
 
@@ -351,7 +351,7 @@ static int
 file_writer_load(struct file_writer_data *mdata)
 {
     struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
         .setup = file_writer_worker_thread_setup,
         .cleanup = file_writer_worker_thread_cleanup,
         .iterate = file_writer_worker_thread_iterate,

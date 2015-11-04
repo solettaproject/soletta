@@ -412,7 +412,7 @@ inspector_will_deliver_packet(const struct sol_flow_inspector *inspector, const 
 }
 
 static const struct sol_flow_inspector inspector = {
-    .api_version = SOL_FLOW_INSPECTOR_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_INSPECTOR_API_VERSION, )
     .did_open_node = inspector_did_open_node,
     .will_close_node = inspector_will_close_node,
     .did_connect_port = inspector_did_connect_port,

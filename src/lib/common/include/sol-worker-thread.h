@@ -35,6 +35,8 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
+#include "sol-common-buildopts.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -47,11 +49,13 @@ struct sol_worker_thread;
  * @brief Worker thread functions and context data specification.
  */
 struct sol_worker_thread_spec {
+#ifndef SOL_NO_API_VERSION
 #define SOL_WORKER_THREAD_SPEC_API_VERSION (1)
     /** must match SOL_WORKER_THREAD_SPEC_API_VERSION in runtime */
     uint16_t api_version;
     /* hole reserved for future use */
     int : 0;
+#endif
     /** the context data to give to all functions. */
     const void *data;
     /**

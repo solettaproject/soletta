@@ -139,7 +139,7 @@ sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t siz
 {
 #ifdef WORKER_THREAD
     struct sol_worker_thread_spec spec = {
-        .api_version = SOL_WORKER_THREAD_SPEC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_WORKER_THREAD_SPEC_API_VERSION, )
         .setup = NULL,
         .cleanup = NULL,
         .iterate = spi_worker_thread_iterate,
@@ -203,12 +203,14 @@ sol_spi_open(unsigned int bus, const struct sol_spi_config *config)
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
+#ifndef SOL_NO_API_VERSION
     if (unlikely(config->api_version != SOL_SPI_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open SPI that has unsupported version '%u', "
             "expected version is '%u'",
             config->api_version, SOL_SPI_CONFIG_API_VERSION);
         return NULL;
     }
+#endif
 
     spi = malloc(sizeof(*spi));
     if (!spi) {

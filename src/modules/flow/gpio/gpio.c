@@ -84,7 +84,7 @@ gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_GPIO_READER_OPTIONS_API_VERSION, -EINVAL);
 
-    gpio_conf.api_version = SOL_GPIO_CONFIG_API_VERSION;
+    SOL_SET_API_VERSION(gpio_conf.api_version = SOL_GPIO_CONFIG_API_VERSION; )
     gpio_conf.dir = SOL_GPIO_DIR_IN;
     gpio_conf.active_low = opts->active_low;
     gpio_conf.in.trigger_mode = mode_lut[opts->edge_rising + 2 * opts->edge_falling];
@@ -155,7 +155,7 @@ gpio_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION, -EINVAL);
 
-    gpio_conf.api_version = SOL_GPIO_CONFIG_API_VERSION;
+    SOL_SET_API_VERSION(gpio_conf.api_version = SOL_GPIO_CONFIG_API_VERSION; )
     gpio_conf.dir = SOL_GPIO_DIR_OUT;
     gpio_conf.active_low = opts->active_low;
 

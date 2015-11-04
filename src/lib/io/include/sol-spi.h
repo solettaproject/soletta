@@ -35,6 +35,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <sol-common-buildopts.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -65,8 +67,10 @@ enum sol_spi_mode {
 #define SOL_SPI_DATA_BITS_DEFAULT 8
 
 struct sol_spi_config {
+#ifndef SOL_NO_API_VERSION
 #define SOL_SPI_CONFIG_API_VERSION (1)
     uint16_t api_version;
+#endif
     unsigned int chip_select; /** Also know as slave select */
     enum sol_spi_mode mode;
     uint32_t frequency; /** Clock frequency in Hz */

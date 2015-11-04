@@ -142,7 +142,7 @@ led_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_LED_7SEG_LED_OPTIONS_API_VERSION, -EINVAL);
 
-    gpio_conf.api_version = SOL_GPIO_CONFIG_API_VERSION;
+    SOL_SET_API_VERSION(gpio_conf.api_version = SOL_GPIO_CONFIG_API_VERSION; )
     gpio_conf.dir = SOL_GPIO_DIR_OUT;
 
     OPEN_GPIO(0, dp);

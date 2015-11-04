@@ -167,14 +167,14 @@ test_port_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_
 }
 
 static struct sol_flow_port_type_out test_port_out = {
-    .api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
     .connect = test_port_out_connect,
     .disconnect = test_port_out_disconnect,
 };
 
 static struct sol_flow_port_type_in test_port_in = {
-    .api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
     .disconnect = test_port_in_disconnect,
     .connect = test_port_in_connect,
@@ -182,7 +182,7 @@ static struct sol_flow_port_type_in test_port_in = {
 };
 
 static struct sol_flow_port_type_in test_port_match_in = {
-    .api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
     .connect = test_port_in_connect,
     .disconnect = test_port_in_disconnect,
@@ -190,14 +190,14 @@ static struct sol_flow_port_type_in test_port_match_in = {
 };
 
 static struct sol_flow_port_type_out test_port_match_out = {
-    .api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
     .connect = test_port_out_connect,
     .disconnect = test_port_out_disconnect,
 };
 
 static struct sol_flow_port_type_in test_port_any_in = {
-    .api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
     .connect = test_port_in_connect,
     .disconnect = test_port_in_disconnect,
@@ -205,7 +205,7 @@ static struct sol_flow_port_type_in test_port_any_in = {
 };
 
 static struct sol_flow_port_type_out test_port_any_out = {
-    .api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
     .packet_type = NULL, /* placeholder for SOL_FLOW_PACKET_TYPE_EMTPY */
     .connect = test_port_out_connect,
     .disconnect = test_port_out_disconnect,
@@ -251,7 +251,7 @@ test_node_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
 }
 
 static const struct sol_flow_node_type test_node_type = {
-    .api_version = SOL_FLOW_NODE_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )
 
     /* Forces unaligned size, so the storage need to take that into account. */
     .data_size = sizeof(char),
@@ -292,7 +292,7 @@ test_flow_new_type(void)
     };
 
     static const struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )
         .nodes = nodes,
         .conns = conns,
         .exported_in = exported_in,
@@ -762,7 +762,7 @@ test_other_flow_new_type(void)
     };
 
     static const struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )
         .nodes = nodes,
         .conns = conns,
         .exported_in = exported_in,
@@ -1017,7 +1017,7 @@ exported_specs_must_be_ordered(void)
     };
 
     static const struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )
         .nodes = nodes,
         .conns = conns,
         .exported_in = exported_in,
@@ -1392,11 +1392,15 @@ DEFINE_TEST(need_a_valid_type_to_create_packets);
 static void
 need_a_valid_type_to_create_packets(void)
 {
-    struct sol_flow_packet *packet_null, *packet_any, *packet_invalid_type;
+    struct sol_flow_packet *packet_null, *packet_any;
+
+#ifndef SOL_NO_API_VERSION
+    struct sol_flow_packet *packet_invalid_type;
 
     static const struct sol_flow_packet_type invalid_type = {
         .api_version = 0, /* Invalid API version */
     };
+#endif
 
     packet_null = sol_flow_packet_new(NULL, NULL);
     ASSERT(!packet_null);
@@ -1404,8 +1408,10 @@ need_a_valid_type_to_create_packets(void)
     packet_any = sol_flow_packet_new(SOL_FLOW_PACKET_TYPE_ANY, NULL);
     ASSERT(!packet_any);
 
+#ifndef SOL_NO_API_VERSION
     packet_invalid_type = sol_flow_packet_new(&invalid_type, NULL);
     ASSERT(!packet_invalid_type);
+#endif
 }
 
 

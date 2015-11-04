@@ -90,7 +90,7 @@ packet_type_flower_power_packet_init(
 #define PACKET_TYPE_FLOWER_POWER_PACKET_TYPE_API_VERSION (1)
 
 static const struct sol_flow_packet_type _PACKET_TYPE_FLOWER_POWER = {
-    .api_version = PACKET_TYPE_FLOWER_POWER_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = PACKET_TYPE_FLOWER_POWER_PACKET_TYPE_API_VERSION, )
     .name = "PACKET_TYPE_FLOWER_POWER",
     .data_size = sizeof(struct sol_flower_power_data),
     .init = packet_type_flower_power_packet_init,
@@ -902,7 +902,7 @@ packet_type_flower_power_sensor_packet_init(
 #define PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION (1)
 
 static const struct sol_flow_packet_type _PACKET_TYPE_FLOWER_POWER_SENSOR = {
-    .api_version = PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION, )
     .name = "PACKET_TYPE_FLOWER_POWER_SENSOR",
     .data_size = sizeof(struct sol_flower_power_sensor_data),
     .init = packet_type_flower_power_sensor_packet_init,

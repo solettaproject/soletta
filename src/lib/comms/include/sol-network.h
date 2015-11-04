@@ -35,6 +35,7 @@
 #include <stdbool.h>
 #include <sys/socket.h>
 
+#include <sol-common-buildopts.h>
 #include <sol-vector.h>
 
 #ifdef __cplusplus
@@ -91,9 +92,11 @@ struct sol_network_link_addr {
 };
 
 struct sol_network_link {
+#ifndef SOL_NO_API_VERSION
 #define SOL_NETWORK_LINK_API_VERSION (1)
     uint16_t api_version;
     int : 0; /* save possible hole for a future field */
+#endif
     int index;
     enum sol_network_link_flags flags;
     struct sol_vector addrs;       /* struct sol_network_link_addr */

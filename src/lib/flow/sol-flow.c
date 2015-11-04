@@ -66,6 +66,7 @@ SOL_API bool
 sol_flow_set_inspector(const struct sol_flow_inspector *inspector)
 {
     if (inspector) {
+#ifndef SOL_NO_API_VERSION
         if (inspector->api_version != SOL_FLOW_INSPECTOR_API_VERSION) {
             SOL_WRN("inspector(%p)->api_version(%lu) != "
                 "SOL_FLOW_INSPECTOR_API_VERSION(%lu)",
@@ -73,6 +74,7 @@ sol_flow_set_inspector(const struct sol_flow_inspector *inspector)
                 SOL_FLOW_INSPECTOR_API_VERSION);
             return false;
         }
+#endif
     }
     _sol_flow_inspector = inspector;
     return true;
@@ -150,8 +152,10 @@ sol_flow_node_init(struct sol_flow_node *node, struct sol_flow_node *parent, con
 }
 
 const struct sol_flow_node_options sol_flow_node_options_empty = {
+#ifndef SOL_NO_API_VERSION
     .api_version = SOL_FLOW_NODE_OPTIONS_API_VERSION,
     .sub_api = 0,
+#endif
 };
 
 SOL_API struct sol_flow_node *
@@ -466,7 +470,7 @@ sol_flow_send_error_packet_str(struct sol_flow_node *src, int code, const char *
 }
 
 static struct sol_flow_port_type_out port_error = {
-    .api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION,
+    SOL_SET_API_VERSION(.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION, )
 };
 
 /* If this function or parameters change, update data/gdb/libsoletta-gdb.py. */

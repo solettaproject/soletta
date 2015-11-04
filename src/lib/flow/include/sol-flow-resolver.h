@@ -63,8 +63,10 @@ extern "C" {
  */
 
 struct sol_flow_resolver {
+#ifndef SOL_NO_API_VERSION
 #define SOL_FLOW_RESOLVER_API_VERSION (1UL)
     unsigned long api_version;
+#endif
     const char *name;
     void *data;
 

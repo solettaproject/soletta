@@ -34,6 +34,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sol-common-buildopts.h>
 #include <sol-macros.h>
 
 #ifdef __cplusplus
@@ -84,8 +85,10 @@ enum sol_gpio_drive {
 };
 
 struct sol_gpio_config {
+#ifndef SOL_NO_API_VERSION
 #define SOL_GPIO_CONFIG_API_VERSION (1)
     uint16_t api_version;
+#endif
     enum sol_gpio_direction dir;
     bool active_low;
     enum sol_gpio_drive drive_mode;

@@ -152,9 +152,11 @@ struct sol_coap_packet;
 struct sol_coap_server;
 
 struct sol_coap_resource {
+#ifndef SOL_NO_API_VERSION
 #define SOL_COAP_RESOURCE_API_VERSION (1)
     uint16_t api_version;
     uint16_t reserved; /* save this hole for a future field */
+#endif
     /*
      * handlers for the CoAP defined methods.
      */

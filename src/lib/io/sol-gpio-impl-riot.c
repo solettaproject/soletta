@@ -76,12 +76,14 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
+#ifndef SOL_NO_API_VERSION
     if (unlikely(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
             "expected version is '%u'",
             config->api_version, SOL_GPIO_CONFIG_API_VERSION);
         return NULL;
     }
+#endif
 
     gpio = malloc(sizeof(struct sol_gpio));
     SOL_NULL_CHECK(gpio, NULL);

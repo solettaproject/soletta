@@ -52,8 +52,10 @@ extern "C" {
  */
 
 struct sol_flow_inspector {
+#ifndef SOL_NO_API_VERSION
     unsigned long api_version;
 #define SOL_FLOW_INSPECTOR_API_VERSION (1UL)
+#endif
     void (*did_open_node)(const struct sol_flow_inspector *inspector, const struct sol_flow_node *node, const struct sol_flow_node_options *options);
     void (*will_close_node)(const struct sol_flow_inspector *inspector, const struct sol_flow_node *node);
     void (*did_connect_port)(const struct sol_flow_inspector *inspector, const struct sol_flow_node *src_node, uint16_t src_port, uint16_t src_conn_id, const struct sol_flow_node *dst_node, uint16_t dst_port, uint16_t dst_conn_id);

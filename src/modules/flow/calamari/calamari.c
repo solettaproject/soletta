@@ -268,7 +268,7 @@ calamari_7seg_new_type(const struct sol_flow_node_type **current)
     };
 
     static const struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )
         .nodes = nodes,
         .conns = conns,
         .exported_in = exported_in,
@@ -352,7 +352,7 @@ calamari_led_open(struct sol_flow_node *node, void *data, const struct sol_flow_
     mdata->val.step = opts->range.step;
     mdata->node = node;
 
-    pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION;
+    SOL_SET_API_VERSION(pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION; )
     pwm_config.period_ns = mdata->period;
     pwm_config.duty_cycle_ns = 0;
     pwm_config.enabled = true;
@@ -476,7 +476,7 @@ calamari_lever_open(struct sol_flow_node *node, void *data, const struct sol_flo
     mdata->val.max = opts->range.max;
     mdata->val.step = opts->range.step;
     mdata->poll_interval = opts->poll_interval;
-    spi_config.api_version = SOL_SPI_CONFIG_API_VERSION;
+    SOL_SET_API_VERSION(spi_config.api_version = SOL_SPI_CONFIG_API_VERSION; )
     spi_config.chip_select = opts->chip_select;
     spi_config.mode = SOL_SPI_MODE_0;
     spi_config.frequency = 100 * 1000; //100KHz
@@ -606,7 +606,7 @@ calamari_rgb_led_new_type(const struct sol_flow_node_type **current)
     };
 
     static const struct sol_flow_static_spec spec = {
-        .api_version = SOL_FLOW_STATIC_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_FLOW_STATIC_API_VERSION, )
         .nodes = nodes,
         .conns = conns,
         .exported_in = exported_in,

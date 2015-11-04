@@ -324,6 +324,7 @@ sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void 
 {
     SOL_NULL_CHECK(type, NULL);
 
+#ifndef SOL_NO_API_VERSION
     if (type->api_version != SOL_MAINLOOP_SOURCE_TYPE_API_VERSION) {
         SOL_WRN("type(%p)->api_version(%hu) != "
             "SOL_MAINLOOP_SOURCE_TYPE_API_VERSION(%hu)",
@@ -331,6 +332,7 @@ sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void 
             SOL_MAINLOOP_SOURCE_TYPE_API_VERSION);
         return NULL;
     }
+#endif
 
     SOL_NULL_CHECK(type->check, NULL);
     SOL_NULL_CHECK(type->dispatch, NULL);

@@ -110,7 +110,7 @@ _get_link(int index)
     link = sol_vector_append(&network->links);
     SOL_NULL_CHECK(link, NULL);
 
-    link->api_version = SOL_NETWORK_LINK_API_VERSION;
+    SOL_SET_API_VERSION(link->api_version = SOL_NETWORK_LINK_API_VERSION; )
     link->flags = 0;
     sol_vector_init(&link->addrs, sizeof(struct sol_network_link_addr));
     link->index = index;
@@ -454,12 +454,14 @@ sol_network_link_get_name(const struct sol_network_link *link)
 
     SOL_NULL_CHECK(link, NULL);
 
+#ifndef SOL_NO_API_VERSION
     if (unlikely(link->api_version != SOL_NETWORK_LINK_API_VERSION)) {
         SOL_WRN("Couldn't link that has unsupported version '%u', "
             "expected version is '%u'",
             link->api_version, SOL_NETWORK_LINK_API_VERSION);
         return NULL;
     }
+#endif
 
     if (if_indextoname(link->index, name))
         return strdup(name);
