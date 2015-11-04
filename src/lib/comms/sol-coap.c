@@ -99,7 +99,7 @@ struct resource_observer {
 };
 
 struct pending_reply {
-    int (*cb)(struct sol_coap_packet *req,
+    int (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     const void *data;
     bool observing;
@@ -822,10 +822,10 @@ sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uin
 }
 
 static int
-well_known_get(const struct sol_coap_resource *resource, struct sol_coap_packet *req,
+well_known_get(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
-    struct sol_coap_server *server = data;
     struct resource_context *c;
     struct sol_coap_packet *resp;
     uint8_t *payload;
@@ -1027,7 +1027,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
             if (!match_reply(reply, req))
                 continue;
 
-            reply->cb(req, cliaddr, (void *)reply->data);
+            reply->cb(server, req, cliaddr, (void *)reply->data);
 
             /* Keeps calling observing is enabled. */
             if (!reply->observing) {
@@ -1041,7 +1041,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     /* /.well-known/core well known resource */
     cb = find_resource_cb(req, &well_known);
     if (cb)
-        return cb(server, &well_known, req, cliaddr, server);
+        return cb(server, &well_known, req, cliaddr, NULL);
 
     SOL_VECTOR_FOREACH_IDX (&server->contexts, c, i) {
         const struct sol_coap_resource *resource = c->resource;

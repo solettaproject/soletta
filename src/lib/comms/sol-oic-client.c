@@ -319,7 +319,8 @@ _parse_server_info_payload(struct sol_oic_server_information *info,
 }
 
 static int
-_server_info_reply_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+_server_info_reply_cb(struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
 {
     struct server_info_ctx *ctx = data;
@@ -578,8 +579,9 @@ _is_discovery_pending_for_ctx(const struct find_resource_ctx *ctx)
 }
 
 static int
-_find_resource_reply_cb(struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+_find_resource_reply_cb(struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+    void *data)
 {
     struct find_resource_ctx *ctx = data;
 
@@ -709,7 +711,8 @@ out_no_pkt:
 }
 
 static int
-_resource_request_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+_resource_request_cb(struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
 {
     struct resource_request_ctx *ctx = data;
@@ -792,10 +795,11 @@ _resource_request_cb(struct sol_coap_packet *req, const struct sol_network_link_
 }
 
 static int
-_one_shot_resource_request_cb(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+_one_shot_resource_request_cb(struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
 {
-    int ret = _resource_request_cb(req, cliaddr, data);
+    int ret = _resource_request_cb(server, req, cliaddr, data);
 
     free(data);
     return ret;
@@ -812,7 +816,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     CborError err;
     char *href;
 
-    int (*cb)(struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data);
+    int (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data);
     struct sol_coap_packet *req;
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
             .client = client,

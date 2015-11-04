@@ -16,7 +16,6 @@ obj-networking-$(DTLS) += \
     $(TINYDTLS_SRC_PATH)/ecc/ecc.o \
     $(TINYDTLS_SRC_PATH)/aes/rijndael.o \
     $(TINYDTLS_SRC_PATH)/sha2/sha2.o \
-    $(TINYDTLS_SRC_PATH)/debug.o \
     sol-socket-dtls-impl-tinydtls.o
 
 obj-networking-$(DTLS)-extra-cflags += \
