@@ -28,11 +28,13 @@ menuconfig LINUX_MICRO
             whole unless the line contains a suffix '?', making that
             service optional (may fail to start).
 
+source "src/modules/linux-micro/automount/Kconfig"
 source "src/modules/linux-micro/bluetooth/Kconfig"
 source "src/modules/linux-micro/console/Kconfig"
 source "src/modules/linux-micro/dbus/Kconfig"
 source "src/modules/linux-micro/fstab/Kconfig"
 source "src/modules/linux-micro/hostname/Kconfig"
+source "src/modules/linux-micro/kmod/Kconfig"
 source "src/modules/linux-micro/locale/Kconfig"
 source "src/modules/linux-micro/machine-id/Kconfig"
 source "src/modules/linux-micro/network-up/Kconfig"

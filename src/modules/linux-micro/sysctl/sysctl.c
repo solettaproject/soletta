@@ -179,23 +179,28 @@ static void
 read_directory_to_vector(DIR *dir, struct sol_ptr_vector *vec)
 {
     struct dirent ent, *entbuf;
+    int r;
 
-    while (!readdir_r(dir, &ent, &entbuf)) {
-        char *dot = strrchr(ent.d_name, '.');
+    r = readdir_r(dir, &ent, &entbuf);
+    while (r == 0 && entbuf) {
+        char *s, *dot = strrchr(ent.d_name, '.');
 
-        if (dot && streq(dot, ".conf")) {
-            int ret;
-            char *s;
-
-            s = strdup(ent.d_name);
-            SOL_NULL_CHECK(s);
-
-            ret = sol_ptr_vector_insert_sorted(vec, s, sysctl_conf_cmp);
-            if (ret < 0)
-                continue;
-        } else {
-            SOL_DBG("File name does not end in '.conf', ignoring: %s", ent.d_name);
+        if (!dot || !streq(dot, ".conf")) {
+            SOL_DBG("File name does not end in '.conf', ignoring: %s",
+                ent.d_name);
+            goto next;
         }
+
+        s = strdup(ent.d_name);
+        if (!s) {
+            SOL_WRN("Could not allocate memory to hold dir entry: %s, skipping.",
+                ent.d_name);
+            goto next;
+        }
+
+        sol_ptr_vector_insert_sorted(vec, s, sysctl_conf_cmp);
+next:
+        r = readdir_r(dir, &ent, &entbuf);
     }
 }
 
