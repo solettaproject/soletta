@@ -483,6 +483,8 @@ sol_buffer_trim(struct sol_buffer *buf)
  *
  *  @note If @a buffer was allocated with @c sol_buffer_new(), it still
  *  needs to be freed by calling @c sol_buffer_free();
+ *  @note If the buffer flags are set to @c SOL_BUFFER_FLAGS_NO_FREE, this function
+ *  will return NULL.
  */
 void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);
 
