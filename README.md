@@ -54,33 +54,36 @@ Before you start, check the [build requirements](https://github.com/solettaproje
 The build system is based on linux kernel's kconfig. To configure it
 with default configuration values run:
 
-        make alldefconfig
+    make alldefconfig
 
 To update the configurations using a curses based interface run:
-        make menuconfig
+
+    make menuconfig
 
 To update the configurations using a line-oriented interface run:
-        make config
+
+    make config
 
 More options and variables are available with:
 
-        make help
+    make help
 
 To compile use (from top directory)
 
-        make
+    make
 
 or to be verbose and get all the commands being executed:
 
-        make V=1
+    make V=1
 
 To install run:
-        make install
+
+    make install
 
 the default behavior is to install in the root dir (namely /), but
 to install in a different root dir run install as:
 
-        make install DESTDIR=/path/to/install/root/
+    make install DESTDIR=/path/to/install/root/
 
 ## Debug
 
@@ -209,8 +212,7 @@ The broker is not covered by the wrapper, only the client.
 #### flow
 
 Implementation of [Flow-Based Programming (FBP)](#flow-based-programming),
-allowing the
-programmer to express business logic as a directional graph of
+allowing the programmer to express business logic as a directional graph of
 nodes connected to type-specific ports.
 
 
@@ -249,9 +251,9 @@ one lacks hardware PWM, in Linux it should be a kernel driver "soft
 pwm" while in RIOT it would be a kernel thread.
 
 While most of Soletta is not thread-safe, main loop functions
-sol_timeout_add(), sol_timeout_del(), sol_idle_add(), sol_idle_del(),
-sol_fd_add() and sol_fd_del() are thread-safe and can be used from
-worker threads.
+`sol_timeout_add()`, `sol_timeout_del()`, `sol_idle_add()`,
+`sol_idle_del()`, `sol_fd_add()` and `sol_fd_del()` are
+thread-safe and can be used from worker threads.
 
 
 #### GLib (kconfig: Core library -> Mainloop -> glib)
@@ -268,11 +270,11 @@ See
 [Running GLib Applications](https://developer.gnome.org/glib/stable/glib-running.html)
 for in-depth information, the summary of environment variables to use:
 
-        export G_DEBUG="all" # fatal-warnings, gc-friendly...
-        export G_SLICE="all" # always-malloc, debug-blocks
-        export G_MESSAGES_DEBUG="all" # print all debug
+    export G_DEBUG="all" # fatal-warnings, gc-friendly...
+    export G_SLICE="all" # always-malloc, debug-blocks
+    export G_MESSAGES_DEBUG="all" # print all debug
 
-	make CFLAGS="-O0 -ggdb3" # disable optimizations
+    make CFLAGS="-O0 -ggdb3" # disable optimizations
 
 Users of `GMainLoop` (ie: gtk, libsoup) should use the function
 `sol_glib_integration()` from the header file `sol-glib-integration.h`
@@ -282,7 +284,7 @@ was compiled.
 #### POSIX (kconfig: Core library -> Mainloop -> posix)
 
 If GLib is too big then you can use a simpler implementation based
-solely on POSIX syscalls (poll(2)/ppoll(2)). As it's fully implemented in
+solely on POSIX syscalls (`poll(2)`/`ppoll(2)`). As it's fully implemented in
 Soletta there are no extra variables to debug it.
 
 ## Platforms
@@ -311,13 +313,8 @@ started it will call systemd. The D-Bus events from systemd will be
 used to notify monitors.
 
 Thus both targets and services are implemented according to systemd
-using units in standard locations such as
-
-        /usr/lib/systemd/system
-
-and
-
-        /etc/systemd/system
+using units in standard locations such as `/usr/lib/systemd/system`
+and `/etc/systemd/system`.
 
 #### Linux-micro (kconfig: Core library -> Target Platform -> linux-micro)
 
@@ -326,8 +323,8 @@ PID1, it will do required initialization and will handle services as
 modules, so you can have a very small system that works.
 
 Targets will be handled by calling Linux's reboot(2) or executing
-binaries with well known target name such as "/sbin/rescue" or
-"/sbin/emergency".
+binaries with well known target name such as `/sbin/rescue` or
+`/sbin/emergency`.
 
 Services are handled as modules, they can be compiled into Soletta
 by selecting them using config or menuconfig as builtin or as dynamically
@@ -342,13 +339,13 @@ a service all one needs to do is symlink the service name to rc-d.so,
 as an example to enable /etc/init.d/myservice to be used by
 Linux-micro:
 
-        ln -s /usr/lib/soletta/modules/linux-micro/rc-d.so \
-              /usr/lib/soletta/modules/linux-micro/myservice.so
+    ln -s /usr/lib/soletta/modules/linux-micro/rc-d.so \
+          /usr/lib/soletta/modules/linux-micro/myservice.so
 
 A set of services are started automatically by Soletta in order to do
 initialization, these are listed in
 
-        /usr/lib/soletta/modules/linux-micro/initial-services
+    /usr/lib/soletta/modules/linux-micro/initial-services
 
 ## Flow Based Programming
 
@@ -380,26 +377,22 @@ presence sensor only by replacing that node given that they all have
 the same ports.
 
 Nodes can be created from builtin or third party types distributed as
-shared objects (.so) stored at
-
-        /usr/lib/soletta/modules/flow/
+shared objects (.so) stored at `/usr/lib/soletta/modules/flow/`.
 
 Builtin nodes include boolean logic,
 converters, math, GPIO, Analog I/O, PWM, timers and even Soletta's
 platform and services. External modules usually covers board or
 operating system specific support such as udev or evdev for Linux,
 calamari support for Intel's MinnowBoard extension shield. Node
-descriptons can be found in JSON files stored at
-
-        /usr/share/soletta/flow/descriptions/
+descriptons can be found in JSON files stored at `/usr/share/soletta/flow/descriptions/`.
 
 One can query the node types
 database using the Python tool sol-flow-node-type-find.py, as an
 example say we want to query the nodes with at least the same ports as
 gpio/writer (a single boolean OUT port):
 
-        sol-flow-node-type-find.py --format=simple \
-                --similar-ports=gpio/writer
+    sol-flow-node-type-find.py --format=simple \
+        --similar-ports=gpio/writer
 
 Flow can be created directly in C using low-level primitives from
 sol-flow.h or using a higher-level API in sol-flow-builder.h. An
@@ -408,14 +401,14 @@ language—"FBP"<sup>[1](#footnote_01)</sup>—that is easier to express.
 As an example imagine one wants to blink an LED linked to GPIO pin 123
 every 200ms:
 
-        MyTimer(timer:interval=200) OUT -> IN MyToggler(boolean/toggle)
-        MyToggler OUT -> IN MyLED(gpio/writer:pin=123)
+    MyTimer(timer:interval=200) OUT -> IN MyToggler(boolean/toggle)
+    MyToggler OUT -> IN MyLED(gpio/writer:pin=123)
 
 This can be ran directly with sol-fbp-runner or generate C code using
 sol-fbp-generator. The syntax is pretty simple:
 
-        Instance1(Type1) OUT_PORT_NAME -> IN_PORT_NAME Instance2(Type2)
-        Instance1 OTHER_OUT_PORT -> IN_PORT_NAME Instance3(Type3)
+    Instance1(Type1) OUT_PORT_NAME -> IN_PORT_NAME Instance2(Type2)
+    Instance1 OTHER_OUT_PORT -> IN_PORT_NAME Instance3(Type3)
 
 The Type1 and Type2 should only be used once when first defining the
 Instance1 or Instance2. They can be just the type name or give
@@ -425,60 +418,60 @@ information set by using "SomeIntOption=min:0|max:100|step:2|val:50"
 
 One can link multiple segments at once:
 
-        a out_port -> in_port b out_port -> in_port c
+    a out_port -> in_port b out_port -> in_port c
 
 It is much simpler than a program using the high-level C API, even if
 we're omitting error checking, as we can see below. For the low-level
 API see the output of sol-fbp-generator.
 ```C
-        #include "sol-mainloop.h"
-        #include "sol-flow-builder.h"
+    #include "sol-mainloop.h"
+    #include "sol-flow-builder.h"
 
-        int main(void) {
-            struct sol_flow_node_type *node_type;
-            struct sol_flow_builder *builder;
-            struct sol_flow_node *flow;
-            struct sol_flow_node_type_timer_options timer_opts =
-                SOL_FLOW_NODE_TYPE_TIMER_OPTIONS_DEFAULTS(.interval.val=200);
-            struct sol_flow_node_type_gpio_writer_options gpio_opts =
-                SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_DEFAULTS(.pin.val=123);
+    int main(void) {
+        struct sol_flow_node_type *node_type;
+        struct sol_flow_builder *builder;
+        struct sol_flow_node *flow;
+        struct sol_flow_node_type_timer_options timer_opts =
+            SOL_FLOW_NODE_TYPE_TIMER_OPTIONS_DEFAULTS(.interval.val=200);
+        struct sol_flow_node_type_gpio_writer_options gpio_opts =
+            SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_DEFAULTS(.pin.val=123);
 
-            sol_init();
+        sol_init();
 
-            builder = sol_flow_builder_new();
-            sol_flow_builder_add_node(builder, "MyTimer",
-                                     SOL_FLOW_NODE_TYPE_TIMER,
-                                     &timer_opts.base);
-            sol_flow_builder_add_node(builder, "MyToggler",
-                                     SOL_FLOW_NODE_TYPE_BOOLEAN_TOGGLE,
-                                     NULL);
-            sol_flow_builder_add_node(builder, "MyLED",
-                                     SOL_FLOW_NODE_TYPE_GPIO_WRITER,
-                                     &gpio_opts.base);
+        builder = sol_flow_builder_new();
+        sol_flow_builder_add_node(builder, "MyTimer",
+                                 SOL_FLOW_NODE_TYPE_TIMER,
+                                 &timer_opts.base);
+        sol_flow_builder_add_node(builder, "MyToggler",
+                                 SOL_FLOW_NODE_TYPE_BOOLEAN_TOGGLE,
+                                 NULL);
+        sol_flow_builder_add_node(builder, "MyLED",
+                                 SOL_FLOW_NODE_TYPE_GPIO_WRITER,
+                                 &gpio_opts.base);
 
-            sol_flow_builder_connect(builder,
-                                    "MyTimer", "OUT", "MyToggler", "IN");
-            sol_flow_builder_connect(builder,
-                                    "MyToggler", "OUT", "MyLED", "IN");
+        sol_flow_builder_connect(builder,
+                                "MyTimer", "OUT", "MyToggler", "IN");
+        sol_flow_builder_connect(builder,
+                                "MyToggler", "OUT", "MyLED", "IN");
 
 
-            node_type = sol_flow_builder_get_node_type(builder);
-            flow = sol_flow_node_new(NULL, "simple", node_type, NULL);
+        node_type = sol_flow_builder_get_node_type(builder);
+        flow = sol_flow_node_new(NULL, "simple", node_type, NULL);
 
-            sol_run();
+        sol_run();
 
-            sol_flow_node_del(flow);
-            sol_flow_builder_del(builder);
-            sol_shutdown();
-            return 0;
-        }
+        sol_flow_node_del(flow);
+        sol_flow_builder_del(builder);
+        sol_shutdown();
+        return 0;
+    }
 ```
 
 ## Contributing
 
 When submitting code to this project, please indicate that you certify you are able to contribute the code by adding a signed-off-by line at the end of your commit message (using your real name) such as:
 
-Signed-off-by: Random J Developer <random@developer.example.org>
+    Signed-off-by: Random J Developer <random@developer.example.org>
 
 This indicates that your contribution abides to the following rules:
 
@@ -524,3 +517,4 @@ By making a contribution to this project, I certify that:
 <a name="footnote_01">1</a>: Soletta expects that FBP files are
 UTF-8-encoded and that all floating point numbers in them are in the
 POSIX locale format.
+
