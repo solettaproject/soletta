@@ -65,6 +65,62 @@ sol_http_param_add(struct sol_http_param *params,
     return true;
 }
 
+SOL_API bool
+sol_http_param_add_copy(struct sol_http_param *params,
+    struct sol_http_param_value value)
+{
+    struct sol_http_param_value *ptr;
+    int r;
+
+    SOL_NULL_CHECK(params, -EINVAL);
+
+    if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
+        SOL_ERR("API version mistmatch; expected %u, got %u",
+            SOL_HTTP_PARAM_API_VERSION, params->api_version);
+        return false;
+    }
+
+    if (!params->arena) {
+        params->arena = sol_arena_new();
+        SOL_NULL_CHECK(params->arena, false);
+    }
+
+    if (value.type == SOL_HTTP_PARAM_QUERY_PARAM ||
+        value.type == SOL_HTTP_PARAM_COOKIE ||
+        value.type == SOL_HTTP_PARAM_POST_FIELD ||
+        value.type == SOL_HTTP_PARAM_HEADER) {
+        r = sol_arena_slice_dup(params->arena, &value.value.key_value.key,
+            value.value.key_value.key);
+        SOL_INT_CHECK(r, < 0, false);
+        if (value.value.key_value.value.len) {
+            r = sol_arena_slice_dup(params->arena, &value.value.key_value.value,
+                value.value.key_value.value);
+            SOL_INT_CHECK(r, < 0, false);
+        }
+    } else if (value.type == SOL_HTTP_PARAM_POST_DATA) {
+        r = sol_arena_slice_dup(params->arena,
+            (struct sol_str_slice *)&value.value.data.value,
+            value.value.data.value);
+        SOL_INT_CHECK(r, < 0, false);
+    } else if (value.type == SOL_HTTP_PARAM_AUTH_BASIC) {
+        r = sol_arena_slice_dup(params->arena, &value.value.auth.user,
+            value.value.auth.user);
+        SOL_INT_CHECK(r, < 0, false);
+        r = sol_arena_slice_dup(params->arena, &value.value.auth.password,
+            value.value.auth.password);
+        SOL_INT_CHECK(r, < 0, false);
+    }
+
+    ptr = sol_vector_append(&params->params);
+    if (!ptr) {
+        SOL_WRN("Could not append option to parameter vector");
+        return false;
+    }
+
+    memcpy(ptr, &value, sizeof(value));
+    return true;
+}
+
 SOL_API void
 sol_http_param_free(struct sol_http_param *params)
 {
@@ -78,6 +134,10 @@ sol_http_param_free(struct sol_http_param *params)
     }
 #endif
     sol_vector_clear(&params->params);
+    if (params->arena) {
+        sol_arena_del(params->arena);
+        params->arena = NULL;
+    }
 }
 
 SOL_API int

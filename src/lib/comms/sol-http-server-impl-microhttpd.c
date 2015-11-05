@@ -48,6 +48,7 @@
 #include "sol-str-slice.h"
 #include "sol-util.h"
 #include "sol-vector.h"
+#include "sol-arena.h"
 
 #define SOL_HTTP_PARAM_IF_SINCE_MODIFIED "If-Since-Modified"
 #define SOL_HTTP_PARAM_LAST_MODIFIED "Last-Modified"
@@ -150,6 +151,7 @@ sol_http_request_get_method(const struct sol_http_request *request)
 static struct MHD_Response *
 build_mhd_response(const struct sol_http_response *response)
 {
+    struct sol_buffer buf;
     uint16_t idx;
     struct MHD_Response *r;
     struct sol_http_param_value *value;
@@ -159,23 +161,35 @@ build_mhd_response(const struct sol_http_response *response)
     if (!r)
         return NULL;
 
+    sol_buffer_init(&buf);
     SOL_HTTP_PARAM_FOREACH_IDX (&response->param, value, idx) {
         int ret;
-        char buffer[512];
-
+        buf.used = 0;
         switch (value->type) {
         case SOL_HTTP_PARAM_HEADER:
-            if (MHD_add_response_header(r, value->value.key_value.key, value->value.key_value.value) == MHD_NO) {
-                SOL_WRN("Could not add the header: %s", value->value.key_value.key);
+            ret = sol_buffer_append_slice(&buf, value->value.key_value.key);
+            SOL_INT_CHECK_GOTO(ret, < 0, err);
+            ret = sol_buffer_append_char(&buf, 0);
+            SOL_INT_CHECK_GOTO(ret, < 0, err);
+            ret = sol_buffer_append_slice(&buf, value->value.key_value.value);
+            SOL_INT_CHECK_GOTO(ret, < 0, err);
+            if (MHD_add_response_header(r, sol_buffer_at(&buf, 0), sol_buffer_at(&buf,
+                value->value.key_value.key.len + 1)) == MHD_NO) {
+                SOL_WRN("Could not add the header: %.*s", SOL_STR_SLICE_PRINT(value->value.key_value.key));
                 goto err;
             }
             break;
         case SOL_HTTP_PARAM_COOKIE:
-            ret = snprintf(buffer, sizeof(buffer), "%s=%s", value->value.key_value.key, value->value.key_value.value);
-            if (ret < 0 || ret >= (int)sizeof(buffer))
-                goto err;
-            if (MHD_add_response_header(r, MHD_HTTP_HEADER_SET_COOKIE, buffer) == MHD_NO) {
-                SOL_WRN("Could not add the cookie: %s", value->value.key_value.key);
+            ret = sol_buffer_append_slice(&buf, value->value.key_value.key);
+            SOL_INT_CHECK_GOTO(ret, < 0, err);
+            ret = sol_buffer_append_char(&buf, '=');
+            SOL_INT_CHECK_GOTO(ret, < 0, err);
+            ret = sol_buffer_append_slice(&buf, value->value.key_value.value);
+            SOL_INT_CHECK_GOTO(ret, < 0, err);
+            ret = sol_buffer_append_char(&buf, 0);
+            SOL_INT_CHECK_GOTO(ret, < 0, err);
+            if (MHD_add_response_header(r, MHD_HTTP_HEADER_SET_COOKIE, sol_buffer_at(&buf, 0)) == MHD_NO) {
+                SOL_WRN("Could not add the cookie: %.*s", SOL_STR_SLICE_PRINT(value->value.key_value.key));
                 goto err;
             }
             break;
@@ -188,9 +202,11 @@ build_mhd_response(const struct sol_http_response *response)
         }
     }
 
+    sol_buffer_fini(&buf);
     return r;
 
 err:
+    sol_buffer_fini(&buf);
     MHD_destroy_response(r);
     return NULL;
 }
@@ -201,30 +217,17 @@ post_iterator(void *data, enum MHD_ValueKind kind, const char *key,
     const char *encoding, const char *value, uint64_t off, size_t size)
 {
     struct sol_http_request *request = data;
-    char *v, *k;
 
     if (!size)
         return MHD_NO;
 
-    v = strdup(value);
-    SOL_NULL_CHECK(v, MHD_NO);
-
-    k = strdup(key);
-    SOL_NULL_CHECK_GOTO(k, err);
-
-    if (!sol_http_param_add(&request->params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD(k, v))) {
+    if (!sol_http_param_add_copy(&request->params,
+        SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value))) {
         SOL_WRN("Could not add %s key", key);
-        goto param_err;
+        return MHD_NO;
     }
 
     return MHD_YES;
-
-param_err:
-    free(k);
-err:
-    free(v);
-    return MHD_NO;
 }
 
 static time_t
@@ -244,37 +247,30 @@ static int
 headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const char *value)
 {
     struct sol_http_request *request = data;
-    char *v, *k = NULL;
-
-    v = strdup(value);
-    SOL_NULL_CHECK(v, MHD_NO);
-
-    k = strdup(key);
-    SOL_NULL_CHECK_GOTO(k, err);
 
     switch (kind) {
     case MHD_HEADER_KIND:
-        if (streq(k, SOL_HTTP_PARAM_IF_SINCE_MODIFIED)) {
-            request->if_since_modified = process_if_modified_since(v);
+        if (!strcasecmp(key, SOL_HTTP_PARAM_IF_SINCE_MODIFIED)) {
+            request->if_since_modified = process_if_modified_since(key);
             SOL_INT_CHECK_GOTO(request->if_since_modified, == 0, param_err);
         }
-        if (!sol_http_param_add(&request->params,
-            SOL_HTTP_REQUEST_PARAM_HEADER(k, v)))
+        if (!sol_http_param_add_copy(&request->params,
+            SOL_HTTP_REQUEST_PARAM_HEADER(key, value)))
             goto param_err;
         break;
     case MHD_COOKIE_KIND:
-        if (!sol_http_param_add(&request->params,
-            SOL_HTTP_REQUEST_PARAM_COOKIE(k, v)))
+        if (!sol_http_param_add_copy(&request->params,
+            SOL_HTTP_REQUEST_PARAM_COOKIE(key, value)))
             goto param_err;
         break;
     case MHD_GET_ARGUMENT_KIND:
-        if (!sol_http_param_add(&request->params,
-            SOL_HTTP_REQUEST_PARAM_QUERY(k, v)))
+        if (!sol_http_param_add_copy(&request->params,
+            SOL_HTTP_REQUEST_PARAM_QUERY(key, value)))
             goto param_err;
         break;
     case MHD_POSTDATA_KIND:
-        if (!sol_http_param_add(&request->params,
-            SOL_HTTP_REQUEST_PARAM_POST_FIELD(k, v)))
+        if (!sol_http_param_add_copy(&request->params,
+            SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value)))
             goto param_err;
         break;
     default:
@@ -284,9 +280,6 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
     return MHD_YES;
 
 param_err:
-    free(k);
-err:
-    free(v);
     return MHD_NO;
 }
 
@@ -575,25 +568,8 @@ notify_connection_cb(void *data, struct MHD_Connection *connection, void **socke
 static void
 free_request(struct sol_http_request *request)
 {
-    struct sol_http_param_value *value;
-    uint16_t idx;
-
     if (request->pp)
         MHD_destroy_post_processor(request->pp);
-
-    SOL_HTTP_PARAM_FOREACH_IDX (&request->params, value, idx) {
-        switch (value->type) {
-        case SOL_HTTP_PARAM_POST_FIELD:
-        case SOL_HTTP_PARAM_HEADER:
-        case SOL_HTTP_PARAM_COOKIE:
-            free((char *)value->value.key_value.value);
-            free((char *)value->value.key_value.key);
-            break;
-        default:
-            break;
-        }
-    }
-
     sol_http_param_free(&request->params);
     free(request);
 }
