@@ -464,8 +464,8 @@ format_send(struct sol_flow_node *node,
         SOL_INT_CHECK(r, < 0, r);
     }
 
-    return sol_flow_send_string_packet(node,
-        out_port, sol_buffer_steal(buf, NULL));
+    return sol_flow_send_string_slice_packet(node,
+        out_port, sol_buffer_get_slice(buf));
 }
 
 //FIXME: - autoscroll/markee effect on tags
