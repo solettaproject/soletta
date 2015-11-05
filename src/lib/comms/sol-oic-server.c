@@ -669,12 +669,16 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
         goto free_coap;
 
     if (oic_server.dtls_server) {
-        if (sol_coap_server_register_resource(oic_server.dtls_server, res->coap, res))
-            return res;
+        if (!sol_coap_server_register_resource(oic_server.dtls_server, res->coap, res)) {
+            SOL_WRN("Could not register resource in DTLS server");
+            goto unregister_resource;
+        }
     }
 
-    sol_coap_server_unregister_resource(oic_server.server, res->coap);
+    return res;
 
+unregister_resource:
+    sol_coap_server_unregister_resource(oic_server.server, res->coap);
 free_coap:
     free(res->coap);
 free_iface:
