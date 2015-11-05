@@ -86,14 +86,6 @@ struct sol_http_client_connection {
 static void
 destroy_connection(struct sol_http_client_connection *c)
 {
-    uint16_t i;
-    struct sol_http_param_value *param;
-
-    SOL_HTTP_PARAM_FOREACH_IDX (&c->response_params, param, i) {
-        curl_free((char *)param->value.key_value.key);
-        curl_free((char *)param->value.key_value.value);
-    }
-
     curl_multi_remove_handle(global.multi, c->curl);
     curl_slist_free_all(c->headers);
     curl_easy_cleanup(c->curl);
@@ -431,33 +423,29 @@ header_cb(char *data, size_t size, size_t nmemb, void *connp)
         param.type = SOL_HTTP_PARAM_COOKIE;
         cookie_name_size = 0;
         while (sep[cookie_name_size++] != '=') ;
-        param.value.key_value.key = curl_easy_unescape(connection->curl,
-            sep, cookie_name_size - 1, NULL);
+        param.value.key_value.key.data = sep;
+        param.value.key_value.key.len = cookie_name_size - 1;
         sep += cookie_name_size + 1;
         discarted += cookie_name_size + 1;
     } else {
         param.type = SOL_HTTP_PARAM_HEADER;
-        param.value.key_value.key = curl_easy_unescape(connection->curl,
-            data, key_size, NULL);
+        param.value.key_value.key.data = data;
+        param.value.key_value.key.len = key_size;
     }
-    SOL_NULL_CHECK(param.value.key_value.key, 0);
 
-    param.value.key_value.value = curl_easy_unescape(connection->curl, sep,
-        data_size - key_size - discarted, NULL);
-    SOL_NULL_CHECK_GOTO(param.value.key_value.value, err_value);
+    param.value.key_value.value.data = sep;
+    param.value.key_value.value.len = data_size - key_size - discarted;
 
-    if (!sol_http_param_add(&connection->response_params, param)) {
-        SOL_ERR("Could not add the http param - key:%s:value%s",
-            param.value.key_value.key, param.value.key_value.value);
-        goto err_add;
+    if (!sol_http_param_add_copy(&connection->response_params, param)) {
+        SOL_ERR("Could not add the http param - key: %.*s value: %.*s",
+            SOL_STR_SLICE_PRINT(param.value.key_value.key),
+            SOL_STR_SLICE_PRINT(param.value.key_value.value));
+        goto err_exit;
     }
 
     return data_size;
 
-err_add:
-    curl_free((char *)param.value.key_value.value);
-err_value:
-    curl_free((char *)param.value.key_value.key);
+err_exit:
     return 0;
 }
 
@@ -560,18 +548,18 @@ encode_key_values(CURL *curl, enum sol_http_param_type type,
     }
 
     SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
-        const char *key = iter->value.key_value.key;
-        const char *value = iter->value.key_value.value;
+        struct sol_str_slice key = iter->value.key_value.key;
+        struct sol_str_slice value = iter->value.key_value.value;
         char *tmp, *encoded_key, *encoded_value;
         int r;
 
         if (iter->type != type)
             continue;
 
-        encoded_key = curl_easy_escape(curl, key, strlen(key));
+        encoded_key = curl_easy_escape(curl, key.data, key.len);
         if (!encoded_key)
             goto cleanup;
-        encoded_value = curl_easy_escape(curl, value, strlen(value));
+        encoded_value = curl_easy_escape(curl, value.data, value.len);
         if (!encoded_value) {
             curl_free(encoded_key);
             goto cleanup;
@@ -647,8 +635,8 @@ set_headers_from_params(CURL *curl, struct sol_arena *arena,
     uint16_t idx;
 
     SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
-        const char *key = iter->value.key_value.key;
-        const char *value = iter->value.key_value.value;
+        struct sol_str_slice key = iter->value.key_value.key;
+        struct sol_str_slice value = iter->value.key_value.value;
         struct curl_slist *tmp_list;
         char key_colon_value[512];
         char *tmp;
@@ -658,7 +646,7 @@ set_headers_from_params(CURL *curl, struct sol_arena *arena,
             continue;
 
         r = snprintf(key_colon_value, sizeof(key_colon_value),
-            "%s: %s", key, value);
+            "%.*s: %.*s", SOL_STR_SLICE_PRINT(key), SOL_STR_SLICE_PRINT(value));
         if (r < 0 || r >= (int)sizeof(key_colon_value))
             goto fail;
 
@@ -689,8 +677,8 @@ static bool
 set_auth_basic(CURL *curl, struct sol_arena *arena,
     const struct sol_http_param_value *value)
 {
-    char *user = sol_arena_strdup(arena, value->value.auth.user);
-    char *password = sol_arena_strdup(arena, value->value.auth.password);
+    char *user = sol_arena_strdup_slice(arena, value->value.auth.user);
+    char *password = sol_arena_strdup_slice(arena, value->value.auth.password);
 
     if (!user || !password)
         return false;
@@ -785,14 +773,13 @@ set_post_data_from_params(CURL *curl, struct sol_arena *arena,
 
     SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
         struct sol_str_slice value = SOL_STR_SLICE_EMPTY;
-
         if (iter->type == SOL_HTTP_PARAM_POST_FIELD) {
             SOL_WRN("SOL_HTTP_PARAM_POST_FIELD and SOL_HTTP_PARAM_POST_DATA found in parameters."
                 " Only one can be used at a time");
             return false;
         } else if (iter->type == SOL_HTTP_PARAM_HEADER) {
-            const char *key = iter->value.key_value.key;
-            type_set = type_set || !strcasecmp(key, "content-type");
+            struct sol_str_slice key = iter->value.key_value.key;
+            type_set = type_set || sol_str_slice_str_caseeq(key, "content-type");
         } else if (iter->type == SOL_HTTP_PARAM_POST_DATA) {
             value = iter->value.data.value;
             if (data.len != 0) {
