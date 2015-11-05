@@ -1,0 +1,74 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+constant-server(constant/float:value=1.5,value_spec=min:0|max:100|step:2.1415)
+constant-client(test/float-generator:sequence="5.4")
+string(constant/string:value="1.5")
+json-str(constant/string:value="{\"/test\":{\"value\":1.5,\"min\":0,\"max\":100,\"step\":2.1415}}")
+
+json-blob(converter/json-object-to-blob)
+blob-str(converter/blob-to-string)
+blob-to-str(converter/blob-to-string)
+
+server(http-server/float:path=/test,port=8080)
+
+get-blob(http-client/get-blob:url="http://localhost:8080/test")
+get-string(http-client/get-string:url="http://localhost:8080/test")
+get-json(http-client/get-json:url="http://localhost:8080/test")
+post(http-client/float:url="http://localhost:8080/test")
+
+server-validator(test/float-validator:sequence="1.5 5.4")
+string-compare(string/compare)
+blob-compare(string/compare)
+json-compare(string/compare)
+
+constant-server OUT -> IN server
+constant-server OUT -> GET get-string
+constant-server OUT -> GET get-json
+constant-server OUT -> GET get-blob
+
+server OUT -> IN server-validator
+
+string OUT -> IN[0] string-compare
+get-string OUT -> IN[1] string-compare
+
+string OUT -> IN[0] blob-compare
+get-blob OUT -> IN blob-to-str OUT -> IN[1] blob-compare
+
+json-str OUT -> IN[0] json-compare
+get-json OBJECT -> IN json-blob OUT -> IN blob-str
+blob-str OUT -> IN[1] json-compare
+
+constant-client OUT -> POST post
+
+server-validator OUT -> RESULT test_server_output(test/result)
+string-compare EQUAL -> RESULT test_string_output(test/result)
+blob-compare EQUAL -> RESULT test_blob_output(test/result)
+json-compare EQUAL -> RESULT test_json_output(test/result)
