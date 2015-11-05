@@ -112,7 +112,7 @@ struct sol_http_param_value {
             bool value;
         } boolean;
         struct {
-            int value;
+            int32_t value;
         } integer;
         struct {
             const struct sol_str_slice value;
