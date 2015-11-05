@@ -45,8 +45,6 @@ obj-core-$(PLATFORM_LINUX_MICRO) += \
     sol-platform-impl-linux-micro.o
 obj-core-$(PLATFORM_RIOTOS) += \
     sol-platform-impl-riot.o
-obj-core-$(PLATFORM_DUMMY) += \
-    sol-platform-impl-dummy.o
 obj-core-$(PLATFORM_CONTIKI) += \
     sol-platform-impl-contiki.o
 
