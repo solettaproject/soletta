@@ -29,18 +29,45 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# This will timely (every 3 seconds) trigger scan for OIC lights. This node type
-# is resolved using the light-client.json, please adjust to your network
-# configuration:
+# This will timely (every 3 seconds) trigger scan for OIC lights.
+# The oic node type and IO node types are resolved using the
+# light-client-scan-gtk.json or light-client-scan-edison.json files.
 #
-#    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=light-client-mynet.json
+# To run this sample using a gtk backend, use light-client-scan-gtk.json.
+# To run this sample in an edison device, use light-client-scan-edison.json
+# and connect an LCD to I2C port, 3 buttons in ports IO3, IO4 and IO7 and a
+# LED to IO8.
+#
+# Then run:
+#
+#    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=light-client-backend.json
 #    $ ./light-client-scan.fbp
 #
-# or save it as sol-flow.json
+# or save the desired json file as sol-flow.json
 
-timer(timer:interval=3000)
+#Input/Output nodes
+lcd(LCD)
+next(BtnNext)
+select(BtnSelect)
+light_button(BtnLight)
+status(LEDStatus)
+_(constant/boolean:value=false) OUT -> IN status
+
+#Scanning
 light(Light)
+light_selector(form/selector:rows=2,columns=16,circular=true)
 
-timer OUT -> IN Scanning(console)
-timer OUT -> SCAN light
-light DEVICE_ID -> IN DeviceFound(console)
+_(constant/empty) OUT -> SCAN light
+light DEVICE_ID -> ADD_ITEM light_selector
+light_selector STRING -> IN lcd
+
+next OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> NEXT light_selector
+select OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> SELECT light_selector
+light FOUND -> IN status
+light_button OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> IN toggle(boolean/toggle) OUT -> IN_STATE light
+
+#DeviceID Persistence
+timer OUT -> IN selected_send(converter/empty-to-string) OUT -> SELECTED light_selector
+persistence OUT -> OUTPUT_VALUE selected_send
+light_selector SELECTED -> IN persistence(DeviceIDPersistence)
+persistence OUT -> DEVICE_ID light
