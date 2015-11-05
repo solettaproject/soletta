@@ -1031,6 +1031,7 @@ struct client_resource {
 
     const char *rt;
     char *device_id;
+    struct sol_ptr_vector scanned_ids;
 };
 
 struct server_resource {
@@ -1231,6 +1232,8 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
 {
     struct client_resource *resource = data;
     char ascii[DEVICE_ID_LEN * 2 + 1];
+    char *id;
+    uint16_t i;
     int r;
 
     /* FIXME: Should this check move to sol-oic-client? Does it actually make sense? */
@@ -1238,6 +1241,15 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
         SOL_DBG("Received resource that does not implement rt=%%s, ignoring", resource->rt);
         return;
     }
+
+    SOL_PTR_VECTOR_FOREACH_IDX(&resource->scanned_ids, id, i)
+        if (memcmp(id, oic_res->device_id.data, DEVICE_ID_LEN) == 0)
+            return;
+
+    id = malloc(DEVICE_ID_LEN);
+    SOL_NULL_CHECK(id);
+    memcpy(id, oic_res->device_id.data, DEVICE_ID_LEN);
+    sol_ptr_vector_append(&resource->scanned_ids, id);
 
     binary_to_hex_ascii(oic_res->device_id.data, ascii);
 
@@ -1248,8 +1260,20 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
 }
 
 static void
+clear_scanned_ids(struct sol_ptr_vector *scanned_ids)
+{
+    char *id;
+    uint16_t i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX(scanned_ids, id, i)
+        free(id);
+    sol_ptr_vector_clear(scanned_ids);
+}
+
+static void
 send_scan_packets(struct client_resource *resource)
 {
+    clear_scanned_ids(&resource->scanned_ids);
     sol_oic_client_find_resource(&resource->client, &multicast_ipv4,
          resource->rt, scan_callback, resource);
     sol_oic_client_find_resource(&resource->client, &multicast_ipv6_local,
@@ -1456,6 +1480,7 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
         SOL_INF("DTLS support not built-in, only making non-secure requests");
     }
 
+    sol_ptr_vector_init(&resource->scanned_ids);
     resource->node = node;
     resource->find_timeout = NULL;
     resource->device_id = NULL;
@@ -1490,6 +1515,7 @@ client_resource_close(struct client_resource *resource)
         sol_oic_resource_unref(resource->resource);
     }
 
+    clear_scanned_ids(&resource->scanned_ids);
     sol_coap_server_unref(resource->client.server);
     if (resource->client.dtls_server)
         sol_coap_server_unref(resource->client.dtls_server);
