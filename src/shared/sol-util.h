@@ -103,6 +103,26 @@
  */
 double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale);
 
+/**
+ * Wrapper over strtol() that consumes up to @c len bytes
+ *
+ * This variation of strtol() will work with buffers that are not
+ * null-terminated.
+ *
+ * All the formats accepted by strtol() are accepted and the behavior
+ * should be the same.
+ *
+ * @param nptr the string containing the number to convert.
+ * @param endptr if non-NULL, it will contain the last character used
+ *        in the conversion. If no conversion was done, endptr is @a nptr.
+ *
+ * @param len use at most this amount of bytes of @a nptr. If -1, assumes
+ *        nptr has a trailing NUL and calculate the string length.
+ *
+ * @return the converted value, if any.
+ */
+long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base);
+
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -443,6 +463,8 @@ sol_util_int32_clamp(int32_t start, int32_t end, int32_t value)
 }
 
 int sol_util_replace_str_if_changed(char **str, const char *new_str);
+
+int sol_util_replace_str_from_slice_if_changed(char **str, const struct sol_str_slice);
 
 /**
  * Encode the binary slice to base64 using the given map.

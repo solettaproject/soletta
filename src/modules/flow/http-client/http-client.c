@@ -47,6 +47,7 @@
 #include "sol-vector.h"
 #include "sol_config.h"
 #include "sol-str-table.h"
+#include "sol-arena.h"
 
 struct http_data {
     struct sol_ptr_vector pending_conns;
@@ -60,8 +61,8 @@ struct http_data {
 
 struct http_request_data {
     struct http_data base;
-    struct sol_vector params;
     struct sol_blob *content;
+    struct sol_http_param params;
     bool allow_redir;
     int32_t timeout;
     char *user;
@@ -84,28 +85,6 @@ struct http_client_node_type {
         const struct sol_http_client_connection *conn,
         struct sol_http_response *response);
 };
-
-static int
-http_param_value_init(struct sol_http_param_value *param, const char *key,
-    const char *value)
-{
-    param->value.key_value.key = strdup(key);
-    SOL_NULL_CHECK(param->value.key_value.key, -ENOMEM);
-    param->value.key_value.value = strdup(value);
-    SOL_NULL_CHECK_GOTO(param->value.key_value.value, err_exit);
-    return 0;
-
-err_exit:
-    free((char *)param->value.key_value.key);
-    return -ENOMEM;
-}
-
-static void
-http_param_value_free(struct sol_http_param_value *param)
-{
-    free((char *)param->value.key_value.key);
-    free((char *)param->value.key_value.value);
-}
 
 static int
 replace_string_from_packet(const struct sol_flow_packet *packet, char **dst)
@@ -848,10 +827,11 @@ request_node_setup_params(struct http_data *data, struct sol_http_param *params)
     struct sol_http_param_value *param;
     uint16_t i;
 
-    SOL_VECTOR_FOREACH_IDX (&mdata->params, param, i) {
+    SOL_HTTP_PARAM_FOREACH_IDX (&mdata->params, param, i) {
         if (!sol_http_param_add(params, *param)) {
-            SOL_ERR("Could not append the param - %s:%s",
-                param->value.key_value.key, param->value.key_value.value);
+            SOL_ERR("Could not append the param - %.*s:%.*s",
+                SOL_STR_SLICE_PRINT(param->value.key_value.key),
+                SOL_STR_SLICE_PRINT(param->value.key_value.value));
             return -ENOMEM;
         }
     }
@@ -903,14 +883,29 @@ setup_response_headers_and_cookies(struct sol_http_param *params,
 
         resp_param = sol_vector_append(to_append);
         SOL_NULL_CHECK_GOTO(resp_param, err_exit);
-        resp_param->key = param->value.key_value.key;
-        resp_param->value = param->value.key_value.value;
+        resp_param->key = sol_str_slice_to_string(param->value.key_value.key);
+        resp_param->value =
+            sol_str_slice_to_string(param->value.key_value.value);
     }
 
     return 0;
 
 err_exit:
     return -ENOMEM;
+}
+
+static void
+clear_sol_key_value_vector(struct sol_vector *vector)
+{
+    uint16_t i;
+    struct sol_key_value *param;
+
+    SOL_VECTOR_FOREACH_IDX (vector, param, i) {
+        free((void *)param->key);
+        free((void *)param->value);
+    }
+
+    sol_vector_clear(vector);
 }
 
 static void
@@ -958,8 +953,8 @@ request_node_http_response(void *data,
     }
 
 err_exit:
-    sol_vector_clear(&cookies);
-    sol_vector_clear(&headers);
+    clear_sol_key_value_vector(&cookies);
+    clear_sol_key_value_vector(&headers);
     sol_blob_unref(blob);
     return;
 
@@ -1011,7 +1006,7 @@ request_node_open(struct sol_flow_node *node, void *data,
     } else if (!opts->method)
         mdata->base.method = SOL_HTTP_METHOD_INVALID;
 
-    sol_vector_init(&mdata->params, sizeof(struct sol_http_param_value));
+    sol_http_param_init(&mdata->params);
     sol_ptr_vector_init(&mdata->base.pending_conns);
     mdata->allow_redir = opts->allow_redir;
     mdata->base.machine_id = opts->machine_id;
@@ -1025,9 +1020,6 @@ err_method:
 static void
 request_node_clear_params(struct http_request_data *mdata)
 {
-    struct sol_http_param_value *param;
-    uint16_t i;
-
     if (mdata->content) {
         sol_blob_unref(mdata->content);
         mdata->content = NULL;
@@ -1035,11 +1027,7 @@ request_node_clear_params(struct http_request_data *mdata)
 
     free(mdata->base.content_type);
     mdata->base.content_type = NULL;
-
-    SOL_VECTOR_FOREACH_IDX (&mdata->params, param, i)
-        http_param_value_free(param);
-
-    sol_vector_clear(&mdata->params);
+    sol_http_param_free(&mdata->params);
 }
 
 static void
@@ -1084,13 +1072,13 @@ request_node_timeout_process(struct sol_flow_node *node, void *data,
 }
 
 static int
-param_process(const struct sol_flow_packet *packet, struct sol_vector *vector,
+param_process(const struct sol_flow_packet *packet, struct sol_http_param *params,
     enum sol_http_param_type type)
 {
     const char *key, *value;
     uint16_t len;
-    struct sol_http_param_value *param;
     struct sol_flow_packet **children;
+    struct sol_http_param_value param;
     int r;
 
     r = sol_flow_packet_get_composed_members(packet, &children, &len);
@@ -1103,19 +1091,15 @@ param_process(const struct sol_flow_packet *packet, struct sol_vector *vector,
     r = sol_flow_packet_get_string(children[1], &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    param = sol_vector_append(vector);
-    SOL_NULL_CHECK(param, -ENOMEM);
-
-    param->type = type;
-    r = http_param_value_init(param, key, value);
-    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    param.type = type;
+    param.value.key_value.key = sol_str_slice_from_str(key);
+    param.value.key_value.value = sol_str_slice_from_str(value);
+    if (!sol_http_param_add_copy(params, param)) {
+        SOL_ERR("Could not add the param %s : %s", key, value);
+        return -ENOMEM;
+    }
 
     return 0;
-
-err_exit:
-    if (sol_vector_del(vector, vector->len - 1))
-        SOL_WRN("Could not remove a http param.");
-    return r;
 }
 
 static int
