@@ -223,9 +223,15 @@ const void *sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16
 int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr);
 
+/*
+ * Send a coap packet and wait for a reply.
+ *
+ * reply_cb should return true if more packets are expected or false if no more
+ * packets are expected.
+ */
 int sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
-    int (*reply_cb)(struct sol_coap_server *server,
+    bool (*reply_cb)(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data), void *data);
 

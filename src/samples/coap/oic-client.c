@@ -90,7 +90,7 @@ got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr 
     printf("}\n\n");
 }
 
-static void
+static bool
 found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data)
 {
     static const char digits[] = "0123456789abcdef";
@@ -100,7 +100,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
 
     if (!sol_network_addr_to_str(&res->addr, addr, sizeof(addr))) {
         SOL_WRN("Could not convert network address to string");
-        return;
+        return false;
     }
 
     printf("Found resource: coap://%s%.*s\n", addr,
@@ -137,6 +137,8 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
         got_get_response, data);
 
     printf("\n");
+
+    return false;
 }
 
 int
