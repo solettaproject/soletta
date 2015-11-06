@@ -675,7 +675,6 @@ sol_http_server_del(struct sol_http_server *server)
 
     SOL_PTR_VECTOR_FOREACH_IDX (&server->requests, request, i) {
         MHD_resume_connection(request->connection);
-        free_request(request);
     }
     sol_ptr_vector_clear(&server->requests);
 
