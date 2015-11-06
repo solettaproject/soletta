@@ -537,6 +537,17 @@ sol_buffer_free(struct sol_buffer *buf)
 int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
 
 /**
+ * Steals or copy the buffer memory.
+ *
+ * If the buffer memory is set to SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED, memory
+ * will be duplicated and returned. Otherwise it's stealed.
+ *
+ * @return @a buffer internal buffer. It's caller responsibility now
+ *  to free this memory.
+ */
+
+void *sol_buffer_steal_or_copy(struct sol_buffer *buf, size_t *size);
+/**
  * @}
  */
 

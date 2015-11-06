@@ -332,6 +332,9 @@ sol_buffer_steal(struct sol_buffer *buf, size_t *size)
 
     SOL_NULL_CHECK(buf, NULL);
 
+    if (buf->flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED)
+        return NULL;
+
     r = buf->data;
 
     if (size)
@@ -342,6 +345,20 @@ sol_buffer_steal(struct sol_buffer *buf, size_t *size)
     buf->capacity = 0;
 
     return r;
+}
+
+SOL_API void *
+sol_buffer_steal_or_copy(struct sol_buffer *buf, size_t *size)
+{
+    SOL_NULL_CHECK(buf, NULL);
+
+    if (buf->flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED) {
+        void *r = sol_util_memdup(buf->data, buf->used);
+        if (size)
+            *size = buf->used;
+        return r;
+    }
+    return sol_buffer_steal(buf, size);
 }
 
 SOL_API struct sol_buffer *

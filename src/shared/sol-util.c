@@ -86,6 +86,24 @@ sol_util_memdup(const void *data, size_t len)
     return ptr;
 }
 
+SOL_API long int
+sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
+{
+    char *tmpbuf, *tmpbuf_endptr;
+    long int r;
+
+    if (len < 0)
+        len = (ssize_t)strlen(nptr);
+
+    tmpbuf = strndupa(nptr, len);
+    r = strtol(tmpbuf, &tmpbuf_endptr, base);
+
+    if (endptr)
+        *endptr = (char *)nptr + (tmpbuf_endptr - tmpbuf);
+
+    return r;
+}
+
 double
 sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 {
@@ -340,28 +358,41 @@ err:
 SOL_API int
 sol_util_replace_str_if_changed(char **str, const char *new_str)
 {
+    struct sol_str_slice slice = SOL_STR_SLICE_EMPTY;
+
+    if (new_str)
+        slice = sol_str_slice_from_str(new_str);
+
+    return sol_util_replace_str_from_slice_if_changed(str, slice);
+}
+
+SOL_API int
+sol_util_replace_str_from_slice_if_changed(char **str,
+    const struct sol_str_slice slice)
+{
     SOL_NULL_CHECK(str, -EINVAL);
 
-    if (!new_str) {
+    if (!slice.len) {
         free(*str);
         *str = NULL;
         return 0;
     }
 
     if (*str) {
+        char *tmp = *str;
         size_t str_len = strlen(*str);
-        size_t new_str_len = strlen(new_str);
 
-        if (str_len == new_str_len && memcmp(*str, new_str, str_len) == 0) {
+        if (str_len == slice.len && memcmp(*str, slice.data, str_len) == 0) {
             return 0;
-        } else if (str_len < new_str_len) {
-            char *tmp = realloc(*str, new_str_len + 1);
+        } else if (str_len < slice.len) {
+            tmp = realloc(*str, slice.len + 1);
             SOL_NULL_CHECK(tmp, -ENOMEM);
-            *str = tmp;
         }
-        memcpy(*str, new_str, new_str_len + 1);
+        memcpy(tmp, slice.data, slice.len);
+        tmp[slice.len] = '\0';
+        *str = tmp;
     } else {
-        *str = strdup(new_str);
+        *str = sol_str_slice_to_string(slice);
         SOL_NULL_CHECK(*str, -ENOMEM);
     }
 

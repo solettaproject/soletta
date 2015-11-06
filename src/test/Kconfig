@@ -105,3 +105,8 @@ config TEST_PERSISTENCE_MEMMAP
 	bool "Memmap persistence API"
 	depends on USE_MEMMAP
 	default y
+
+config TEST_HTTP
+       bool "http"
+       depends on NETWORK
+       default y
