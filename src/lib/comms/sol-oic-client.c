@@ -86,7 +86,7 @@
 
 struct find_resource_ctx {
     struct sol_oic_client *client;
-    void (*cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data);
+    bool (*cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data);
     void *data;
     int64_t token;
 };
@@ -323,7 +323,7 @@ _parse_server_info_payload(struct sol_oic_server_information *info,
     return err == CborNoError;
 }
 
-static int
+static bool
 _server_info_reply_cb(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
@@ -332,27 +332,22 @@ _server_info_reply_cb(struct sol_coap_server *server,
     uint8_t *payload;
     uint16_t payload_len;
     struct sol_oic_server_information info = { 0 };
-    int error = 0;
 
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
-        error = -ENOENT;
         goto free_ctx;
     }
 
     if (!_pkt_has_same_token(req, ctx->token)) {
-        error = -EINVAL;
         goto free_ctx;
     }
 
     if (!sol_oic_pkt_has_cbor_content(req)) {
-        error = -EINVAL;
         goto free_ctx;
     }
 
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
         SOL_WRN("Could not get pkt payload");
-        error = -ENOMEM;
         goto free_ctx;
     }
 
@@ -361,7 +356,6 @@ _server_info_reply_cb(struct sol_coap_server *server,
         ctx->cb(ctx->client, &info, ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
-        error = -EINVAL;
     }
 
     free((char *)info.platform_id.data);
@@ -377,7 +371,7 @@ _server_info_reply_cb(struct sol_coap_server *server,
 
 free_ctx:
     free(ctx);
-    return error;
+    return false;
 }
 
 SOL_API bool
@@ -488,7 +482,7 @@ _new_resource(void)
 static bool
 _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr,
-    const struct find_resource_ctx *ctx)
+    const struct find_resource_ctx *ctx, bool *cb_return)
 {
     CborParser parser;
     CborError err;
@@ -496,6 +490,8 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     int payload_type;
     uint8_t *payload;
     uint16_t payload_len;
+
+    *cb_return  = true;
 
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
         SOL_WRN("Could not get payload form discovery packet response");
@@ -556,7 +552,11 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
         if (err == CborNoError) {
             res->observable = res->observable || _has_observable_option(req);
             res->addr = *cliaddr;
-            ctx->cb(ctx->client, res, ctx->data);
+            if (!ctx->cb(ctx->client, res, ctx->data)) {
+                sol_oic_resource_unref(res);
+                *cb_return  = false;
+                return true;
+            }
         }
 
         sol_oic_resource_unref(res);
@@ -583,39 +583,40 @@ _is_discovery_pending_for_ctx(const struct find_resource_ctx *ctx)
     return false;
 }
 
-static int
+static bool
 _find_resource_reply_cb(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
 {
     struct find_resource_ctx *ctx = data;
+    bool cb_return;
 
     if (!_is_discovery_pending_for_ctx(ctx)) {
         SOL_WRN("Received discovery response packet while not waiting for one");
-        return -ENOTCONN;
+        return false;
     }
 
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
-        return -ENOENT;
+        return false;
     }
 
     if (!_pkt_has_same_token(req, ctx->token)) {
         SOL_WRN("Discovery packet token differs from expected");
-        return -ENOENT;
+        return false;
     }
 
     if (!sol_oic_pkt_has_cbor_content(req)) {
         SOL_WRN("Discovery packet not in CBOR format");
-        return -EINVAL;
+        return true;
     }
 
-    if (!_iterate_over_resource_reply_payload(req, cliaddr, ctx)) {
+    if (!_iterate_over_resource_reply_payload(req, cliaddr, ctx, &cb_return)) {
         SOL_WRN("Could not iterate over find resource reply packet");
-        return -EINVAL;
+        return true;
     }
 
-    return 0;
+    return cb_return;
 }
 
 static bool
@@ -637,7 +638,7 @@ _remove_from_pending_discovery_list(void *data)
 SOL_API bool
 sol_oic_client_find_resource(struct sol_oic_client *client,
     struct sol_network_link_addr *cliaddr, const char *resource_type,
-    void (*resource_found_cb)(struct sol_oic_client *cli,
+    bool (*resource_found_cb)(struct sol_oic_client *cli,
     struct sol_oic_resource *res,
     void *data),
     void *data)
@@ -715,7 +716,7 @@ out_no_pkt:
     return false;
 }
 
-static int
+static bool
 _resource_request_cb(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
@@ -729,31 +730,31 @@ _resource_request_cb(struct sol_coap_server *server,
     int payload_type;
 
     if (!ctx->cb)
-        return -ENOENT;
+        return false;
     if (!_pkt_has_same_token(req, ctx->token))
-        return -EINVAL;
+        return true;
     if (!sol_oic_pkt_has_cbor_content(req))
-        return -EINVAL;
+        return true;
     if (!sol_coap_packet_has_payload(req))
-        return 0;
+        return true;
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0)
-        return 0;
+        return true;
 
     err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
     if (err != CborNoError)
-        return -EINVAL;
+        return true;
 
     if (!cbor_value_is_array(&root))
-        return -EINVAL;
+        return true;
 
     err |= cbor_value_enter_container(&root, &array);
 
     err |= cbor_value_get_int(&array, &payload_type);
     err |= cbor_value_advance_fixed(&array);
     if (err != CborNoError)
-        return -EINVAL;
+        return true;
     if (payload_type != SOL_OIC_PAYLOAD_REPRESENTATION)
-        return -EINVAL;
+        return true;
 
     while (cbor_value_is_map(&array) && err == CborNoError) {
         struct sol_oic_repr_field *repr;
@@ -793,21 +794,21 @@ _resource_request_cb(struct sol_coap_server *server,
     err |= cbor_value_leave_container(&root, &array);
 
     if (err == CborNoError)
-        return 0;
+        return true;
 
     SOL_ERR("Error while parsing CBOR repr packet: %s", cbor_error_string(err));
-    return -EINVAL;
+    return true;
 }
 
-static int
+static bool
 _one_shot_resource_request_cb(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
 {
-    int ret = _resource_request_cb(server, req, cliaddr, data);
+    _resource_request_cb(server, req, cliaddr, data);
 
     free(data);
-    return ret;
+    return false;
 }
 
 static bool
@@ -821,7 +822,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     CborError err;
     char *href;
 
-    int (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data);
+    bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data);
     struct sol_coap_packet *req;
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
             .client = client,
