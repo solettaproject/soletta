@@ -101,7 +101,7 @@ struct sol_oic_resource {
 
 bool sol_oic_client_find_resource(struct sol_oic_client *client,
     struct sol_network_link_addr *cliaddr, const char *resource_type,
-    void (*resource_found_cb)(struct sol_oic_client *cli,
+    bool (*resource_found_cb)(struct sol_oic_client *cli,
     struct sol_oic_resource *res,
     void *data),
     void *data);

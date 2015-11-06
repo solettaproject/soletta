@@ -76,7 +76,7 @@ disable_observing(struct sol_coap_packet *req, struct sol_coap_server *server,
     SOL_INF("Disabled observing");
 }
 
-static int
+static bool
 reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
@@ -96,7 +96,7 @@ reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
     if (++count == 10)
         disable_observing(req, server, path, cliaddr);
 
-    return 0;
+    return false;
 }
 
 int

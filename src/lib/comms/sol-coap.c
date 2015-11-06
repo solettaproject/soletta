@@ -103,7 +103,7 @@ struct resource_observer {
 };
 
 struct pending_reply {
-    int (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req,
+    bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     const void *data;
     bool observing;
@@ -533,7 +533,7 @@ enqueue_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt,
 SOL_API int
 sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_packet *pkt,
     const struct sol_network_link_addr *cliaddr,
-    int (*reply_cb)(struct sol_coap_server *server,
+    bool (*reply_cb)(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data), void *data)
 {
@@ -1031,12 +1031,12 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
             if (!match_reply(reply, req))
                 continue;
 
-            reply->cb(server, req, cliaddr, (void *)reply->data);
-
-            /* Keeps calling observing is enabled. */
-            if (!reply->observing) {
-                sol_ptr_vector_del(&server->pending, i);
-                free(reply);
+            if (!reply->cb(server, req, cliaddr, (void *)reply->data)) {
+                /* Keeps calling observing is enabled. */
+                if (!reply->observing) {
+                    sol_ptr_vector_del(&server->pending, i);
+                    free(reply);
+                }
             }
         }
         return 0;
