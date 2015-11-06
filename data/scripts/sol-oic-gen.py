@@ -1123,7 +1123,7 @@ state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr
         resource->funcs->inform_flow(resource);
 }
 
-static void
+static bool
 found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, void *data)
 {
     struct client_resource *resource = data;
@@ -1132,19 +1132,19 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
     /* Some OIC device sent this node a discovery response packet but node's already set up. */
     if (resource->resource) {
         SOL_DBG("Received discovery packet when resource already set up, ignoring");
-        return;
+        return false;
     }
 
     if (memcmp(oic_res->device_id.data, resource->device_id, 16) != 0) {
         /* Not the droid we're looking for. */
         SOL_DBG("Received resource with an unknown device_id, ignoring");
-        return;
+        return true;
     }
 
     /* FIXME: Should this check move to sol-oic-client? Does it actually make sense? */
     if (resource->rt && !client_resource_implements_type(oic_res, resource->rt)) {
         SOL_DBG("Received resource that does not implement rt=%%s, ignoring", resource->rt);
-        return;
+        return true;
     }
 
     if (resource->find_timeout) {
@@ -1164,6 +1164,8 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
         resource->funcs->found_port, true);
     if (r < 0)
         SOL_WRN("Could not send flow packet, will try again");
+
+    return false;
 }
 
 static void
@@ -1227,7 +1229,7 @@ binary_to_hex_ascii(const char *binary, char *ascii)
     ascii[o] = 0;
 }
 
-static void
+static bool
 scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, void *data)
 {
     struct client_resource *resource = data;
@@ -1239,15 +1241,15 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
     /* FIXME: Should this check move to sol-oic-client? Does it actually make sense? */
     if (resource->rt && !client_resource_implements_type(oic_res, resource->rt)) {
         SOL_DBG("Received resource that does not implement rt=%%s, ignoring", resource->rt);
-        return;
+        return true;
     }
 
     SOL_PTR_VECTOR_FOREACH_IDX(&resource->scanned_ids, id, i)
         if (memcmp(id, oic_res->device_id.data, DEVICE_ID_LEN) == 0)
-            return;
+            return true;
 
     id = malloc(DEVICE_ID_LEN);
-    SOL_NULL_CHECK(id);
+    SOL_NULL_CHECK(id, true);
     memcpy(id, oic_res->device_id.data, DEVICE_ID_LEN);
     sol_ptr_vector_append(&resource->scanned_ids, id);
 
@@ -1257,6 +1259,8 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
         resource->funcs->device_id_port, ascii);
     if (r < 0)
         SOL_WRN("Could not send server id.");
+
+    return true;
 }
 
 static void
