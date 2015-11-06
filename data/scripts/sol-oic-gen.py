@@ -524,12 +524,11 @@ def object_open_fn_client_c(state_struct_name, resource_type, name, props):
     struct %(struct_name)s *resource = data;
     int r;
 
-    r = client_resource_init(node, &resource->base, "%(resource_type)s", node_opts->device_id, &funcs);
-    if (!r) {
-        %(field_init)s
-    }
+    r = client_resource_init(node, &resource->base, "%(resource_type)s", &funcs);
+    SOL_INT_CHECK(r, < 0, r);
+    %(field_init)s
 
-    return 0;
+    return client_connect(&resource->base, node_opts->device_id);
 }
 ''' % {
         'struct_name': name,
@@ -710,6 +709,23 @@ scan(struct sol_flow_node *node, void *data, uint16_t port,
 }
 '''
 
+def object_device_id_fn_client_c():
+    return '''
+static int
+device_id_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct client_resource *resource = data;
+    const char *device_id;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &device_id);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return client_connect(resource, device_id);
+}
+'''
+
 def generate_enums_common_c(name, props):
     output = []
     for field, descr in props.items():
@@ -747,6 +763,7 @@ def generate_object_client_c(resource_type, state_struct_name, name, props):
 %(close_fn)s
 %(setters_fn)s
 %(scan_fn)s
+%(device_id_fn)s
 """ % {
     'state_struct_name': state_struct_name,
     'struct_name': name,
@@ -756,7 +773,8 @@ def generate_object_client_c(resource_type, state_struct_name, name, props):
     'open_fn': object_open_fn_client_c(state_struct_name, resource_type, name, props),
     'close_fn': object_close_fn_client_c(name, props),
     'setters_fn': object_setters_fn_client_c(state_struct_name, name, props),
-    'scan_fn': object_scan_fn_client_c()
+    'scan_fn': object_scan_fn_client_c(),
+    'device_id_fn': object_device_id_fn_client_c()
     }
 
 def generate_object_server_c(resource_type, state_struct_name, name, props):
@@ -808,6 +826,15 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
                 'process': 'scan'
             },
             'name': 'SCAN'
+        },
+        {
+            'data_type': 'string',
+            'description':
+                'Set current server device ID to connect to. Override device ID set in device_id option.',
+            'methods': {
+                'process': 'device_id_process'
+            },
+            'name': 'DEVICE_ID'
         }]
 
     for prop_name, prop_descr in props.items():
@@ -867,7 +894,8 @@ def generate_object_json(resource_type, struct_name, node_name, title, props, se
                     {
                         'data_type': 'string',
                         'description': 'Unique device ID (UUID, MAC address, etc)',
-                        'name': 'device_id'
+                        'name': 'device_id',
+                        'default': ''
                     }
                 ]
             }
@@ -1003,6 +1031,7 @@ struct client_resource {
 
     const char *rt;
     char *device_id;
+    struct sol_ptr_vector scanned_ids;
 };
 
 struct server_resource {
@@ -1203,6 +1232,8 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
 {
     struct client_resource *resource = data;
     char ascii[DEVICE_ID_LEN * 2 + 1];
+    char *id;
+    uint16_t i;
     int r;
 
     /* FIXME: Should this check move to sol-oic-client? Does it actually make sense? */
@@ -1210,6 +1241,15 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
         SOL_DBG("Received resource that does not implement rt=%%s, ignoring", resource->rt);
         return;
     }
+
+    SOL_PTR_VECTOR_FOREACH_IDX(&resource->scanned_ids, id, i)
+        if (memcmp(id, oic_res->device_id.data, DEVICE_ID_LEN) == 0)
+            return;
+
+    id = malloc(DEVICE_ID_LEN);
+    SOL_NULL_CHECK(id);
+    memcpy(id, oic_res->device_id.data, DEVICE_ID_LEN);
+    sol_ptr_vector_append(&resource->scanned_ids, id);
 
     binary_to_hex_ascii(oic_res->device_id.data, ascii);
 
@@ -1220,8 +1260,20 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
 }
 
 static void
+clear_scanned_ids(struct sol_ptr_vector *scanned_ids)
+{
+    char *id;
+    uint16_t i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX(scanned_ids, id, i)
+        free(id);
+    sol_ptr_vector_clear(scanned_ids);
+}
+
+static void
 send_scan_packets(struct client_resource *resource)
 {
+    clear_scanned_ids(&resource->scanned_ids);
     sol_oic_client_find_resource(&resource->client, &multicast_ipv4,
          resource->rt, scan_callback, resource);
     sol_oic_client_find_resource(&resource->client, &multicast_ipv6_local,
@@ -1367,40 +1419,29 @@ hex_ascii_to_binary(const char *ascii)
 }
 
 static int
-client_resource_init(struct sol_flow_node *node, struct client_resource *resource, const char *resource_type,
-    const char *device_id, const struct client_resource_funcs *funcs)
+client_connect(struct client_resource *resource, const char *device_id)
 {
-    log_init();
-
-    if (!initialize_multicast_addresses_once()) {
-        SOL_ERR("Could not initialize multicast addresses");
-        return -ENOTCONN;
-    }
-
-    assert(resource_type);
-
-    if (!device_id || strlen(device_id) != 32)
-        return -EINVAL;
-
-    SOL_SET_API_VERSION(resource->client.api_version = SOL_OIC_CLIENT_API_VERSION; )
-    resource->client.server = sol_coap_server_new(0);
-    SOL_NULL_CHECK(resource->client.server, -ENOMEM);
-
-    resource->client.dtls_server = sol_coap_secure_server_new(0);
-    if (!resource->client.dtls_server) {
-        SOL_INT_CHECK_GOTO(errno, != ENOSYS, nomem);
-        SOL_INF("DTLS support not built-in, only making non-secure requests");
+    if (!device_id || strlen(device_id) != 32) {
+        SOL_DBG("Invalid or empty device_id. Not trying to connect.");
+        return 0;
     }
 
     resource->device_id = hex_ascii_to_binary(device_id);
-    SOL_NULL_CHECK_GOTO(resource->device_id, nomem);
+    SOL_NULL_CHECK(resource->device_id, -ENOMEM);
 
-    resource->node = node;
-    resource->find_timeout = NULL;
-    resource->update_schedule_timeout = NULL;
-    resource->resource = NULL;
-    resource->funcs = funcs;
-    resource->rt = resource_type;
+    if (resource->find_timeout)
+        sol_timeout_del(resource->find_timeout);
+
+    if (resource->resource) {
+        if (!sol_oic_client_resource_set_observable(&resource->client,
+            resource->resource, NULL, NULL, false)) {
+            SOL_WRN("Could not unobserve resource");
+            return -ENOTCONN;
+        }
+
+        sol_oic_resource_unref(resource->resource);
+        resource->resource = NULL;
+    }
 
     SOL_INF("Sending multicast packets to find resource with device_id %%s (rt=%%s)",
         device_id, resource->rt);
@@ -1414,6 +1455,42 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
 
     SOL_ERR("Could not create timeout to find resource");
     free(resource->device_id);
+    return -ENOMEM;
+}
+
+static int
+client_resource_init(struct sol_flow_node *node, struct client_resource *resource, const char *resource_type,
+    const struct client_resource_funcs *funcs)
+{
+    log_init();
+
+    if (!initialize_multicast_addresses_once()) {
+        SOL_ERR("Could not initialize multicast addresses");
+        return -ENOTCONN;
+    }
+
+    assert(resource_type);
+
+    SOL_SET_API_VERSION(resource->client.api_version = SOL_OIC_CLIENT_API_VERSION; )
+    resource->client.server = sol_coap_server_new(0);
+    SOL_NULL_CHECK(resource->client.server, -ENOMEM);
+
+    resource->client.dtls_server = sol_coap_secure_server_new(0);
+    if (!resource->client.dtls_server) {
+        SOL_INT_CHECK_GOTO(errno, != ENOSYS, nomem);
+        SOL_INF("DTLS support not built-in, only making non-secure requests");
+    }
+
+    sol_ptr_vector_init(&resource->scanned_ids);
+    resource->node = node;
+    resource->find_timeout = NULL;
+    resource->device_id = NULL;
+    resource->update_schedule_timeout = NULL;
+    resource->resource = NULL;
+    resource->funcs = funcs;
+    resource->rt = resource_type;
+
+    return 0;
 
 nomem:
     sol_coap_server_unref(resource->client.server);
@@ -1439,6 +1516,7 @@ client_resource_close(struct client_resource *resource)
         sol_oic_resource_unref(resource->resource);
     }
 
+    clear_scanned_ids(&resource->scanned_ids);
     sol_coap_server_unref(resource->client.server);
     if (resource->client.dtls_server)
         sol_coap_server_unref(resource->client.dtls_server);

@@ -1,0 +1,66 @@
+{
+ "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+ "nodetypes": [
+  {
+   "name": "Light",
+   "type": "oic/client-brightlight"
+  },
+  {
+   "name": "LCD",
+   "options": {
+    "bus": 6
+   },
+   "type": "grove/lcd-string"
+  },
+  {
+   "name": "BtnNext",
+   "options":
+   {
+    "active_low": false,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": "3"
+   },
+  "type": "gpio/reader"
+  },
+  {
+   "name": "BtnSelect",
+   "options":
+   {
+    "active_low": false,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": "4"
+   },
+   "type": "gpio/reader"
+  },
+  {
+   "name": "BtnLight",
+   "options":
+   {
+    "active_low": false,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": "7"
+   },
+   "type": "gpio/reader"
+  },
+  {
+   "name": "LEDStatus",
+   "options":
+   {
+    "active_low": false,
+    "pin": "8"
+   },
+   "type": "gpio/writer"
+  },
+  {
+   "name": "DeviceIDPersistence",
+   "options": {
+    "storage": "fs",
+    "name": "device_id"
+   },
+   "type": "persistence/string"
+  }
+ ]
+}
