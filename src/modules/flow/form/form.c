@@ -1159,14 +1159,7 @@ integer_common_open(struct sol_irange_spec range,
         out->state.step = 1;
     }
 
-    if (out->state.max > 0) {
-        if (out->state.min < 0)
-            total_range = (int64_t)out->state.max - (int64_t)out->state.min;
-        else
-            total_range = (int64_t)out->state.max + (int64_t)out->state.min;
-    } else /* min can only be negative too */
-        total_range = (int64_t)(-out->state.max) - (int64_t)out->state.min;
-
+    total_range = (int64_t)out->state.max - (int64_t)out->state.min;
     if ((out->state.step > 0 && out->state.step > total_range)
         || (out->state.step < 0 && out->state.step < -total_range)) {
         SOL_WRN("Step value must fit the given range. Assuming 1 for it.");
