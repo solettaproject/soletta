@@ -72,7 +72,6 @@ struct curl_http_method_opt {
 struct sol_http_client_connection {
     CURL *curl;
     struct sol_fd *watch;
-    struct sol_arena *arena;
     struct curl_slist *headers;
     struct sol_buffer buffer;
     struct sol_http_param response_params;
@@ -91,7 +90,6 @@ destroy_connection(struct sol_http_client_connection *c)
     curl_easy_cleanup(c->curl);
 
     sol_buffer_fini(&c->buffer);
-    sol_arena_del(c->arena);
 
     sol_http_param_free(&c->response_params);
 
@@ -462,7 +460,7 @@ err_exit:
 }
 
 static struct sol_http_client_connection *
-perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
+perform_multi(CURL *curl, struct curl_slist *headers,
     void (*cb)(void *data, const struct sol_http_client_connection *connection,
     struct sol_http_response *response),
     const void *data)
@@ -476,7 +474,6 @@ perform_multi(CURL *curl, struct sol_arena *arena, struct curl_slist *headers,
     connection = calloc(1, sizeof(*connection));
     SOL_NULL_CHECK(connection, NULL);
 
-    connection->arena = arena;
     connection->headers = headers;
     connection->curl = curl;
     connection->cb = cb;
@@ -544,9 +541,10 @@ free_buffer:
 }
 
 static bool
-set_headers_from_params(CURL *curl, struct sol_arena *arena,
-    const struct sol_http_param *params, struct curl_slist **headers)
+set_headers_from_params(CURL *curl, const struct sol_http_param *params,
+    struct curl_slist **headers)
 {
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     struct sol_http_param_value *iter;
     struct curl_slist *list = NULL;
     uint16_t idx;
@@ -555,23 +553,20 @@ set_headers_from_params(CURL *curl, struct sol_arena *arena,
         struct sol_str_slice key = iter->value.key_value.key;
         struct sol_str_slice value = iter->value.key_value.value;
         struct curl_slist *tmp_list;
-        char key_colon_value[512];
-        char *tmp;
         int r;
 
         if (iter->type != SOL_HTTP_PARAM_HEADER)
             continue;
 
-        r = snprintf(key_colon_value, sizeof(key_colon_value),
-            "%.*s: %.*s", SOL_STR_SLICE_PRINT(key), SOL_STR_SLICE_PRINT(value));
-        if (r < 0 || r >= (int)sizeof(key_colon_value))
-            goto fail;
+        buf.used = 0;
+        r = sol_buffer_append_slice(&buf, key);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+        r = sol_buffer_append_char(&buf, ':');
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
+        r = sol_buffer_append_slice(&buf, value);
+        SOL_INT_CHECK_GOTO(r, < 0, fail);
 
-        tmp = sol_arena_strdup(arena, key_colon_value);
-        if (!tmp)
-            goto fail;
-
-        tmp_list = curl_slist_append(list, tmp);
+        tmp_list = curl_slist_append(list, sol_buffer_at(&buf, 0));
         if (!tmp_list)
             goto fail;
         list = tmp_list;
@@ -583,29 +578,46 @@ set_headers_from_params(CURL *curl, struct sol_arena *arena,
     }
 
     *headers = list;
+    sol_buffer_fini(&buf);
     return true;
 
 fail:
+    sol_buffer_fini(&buf);
     curl_slist_free_all(list);
     return false;
 }
 
 static bool
-set_auth_basic(CURL *curl, struct sol_arena *arena,
-    const struct sol_http_param_value *value)
+set_auth_basic(CURL *curl, const struct sol_http_param_value *param)
 {
-    char *user = sol_arena_strdup_slice(arena, value->value.auth.user);
-    char *password = sol_arena_strdup_slice(arena, value->value.auth.password);
+    char *user, *password;
+    bool r = false;
 
-    if (!user || !password)
-        return false;
+    user = password = NULL;
+
+    if (param->value.auth.user.len) {
+        user = sol_str_slice_to_string(param->value.auth.user);
+        SOL_NULL_CHECK(user, false);
+    }
+
+    if (param->value.auth.password.len) {
+        password = sol_str_slice_to_string(param->value.auth.password);
+        SOL_NULL_CHECK_GOTO(password, exit);
+    }
+
     if (curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC) != CURLE_OK)
-        return false;
-    if (curl_easy_setopt(curl, CURLOPT_USERNAME, user) != CURLE_OK)
-        return false;
-    if (curl_easy_setopt(curl, CURLOPT_PASSWORD, password) != CURLE_OK)
-        return false;
-    return true;
+        goto exit;
+    if (user && curl_easy_setopt(curl, CURLOPT_USERNAME, user) != CURLE_OK)
+        goto exit;
+    if (password && curl_easy_setopt(curl, CURLOPT_PASSWORD,
+        password) != CURLE_OK)
+        goto exit;
+
+    r = true;
+exit:
+    free(password);
+    free(user);
+    return r;
 }
 
 static bool
@@ -627,42 +639,19 @@ set_verbose(CURL *curl, long setting)
 }
 
 static bool
-set_string_option(CURL *curl, CURLoption option, struct sol_arena *arena,
-    char *value)
+set_postfields(CURL *curl, const struct sol_str_slice slice)
 {
-    char *tmp;
 
-    if (!value)
+    if (curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE,
+        slice.len) != CURLE_OK)
         return false;
-    if (!*value) {
-        free(value);
-        return false;
-    }
 
-    tmp = sol_arena_strdup(arena, value);
-    free(value);
-    if (tmp && *tmp)
-        return curl_easy_setopt(curl, option, tmp) == CURLE_OK;
-
-    return true;
+    return curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS,
+        slice.len ? slice.data : "") == CURLE_OK;
 }
 
 static bool
-set_string_slice_option(CURL *curl, CURLoption option, struct sol_arena *arena,
-    const struct sol_str_slice slice)
-{
-    char *tmp;
-
-    if (!slice.len)
-        return true;
-    tmp = sol_arena_strdup_slice(arena, slice);
-    SOL_NULL_CHECK(tmp, false);
-    return curl_easy_setopt(curl, option, tmp) == CURLE_OK;
-}
-
-static bool
-set_cookies_from_params(CURL *curl, struct sol_arena *arena,
-    const struct sol_http_param *params)
+set_cookies_from_params(CURL *curl, const struct sol_http_param *params)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     bool r;
@@ -670,28 +659,29 @@ set_cookies_from_params(CURL *curl, struct sol_arena *arena,
 
     err = sol_http_encode_params(&buf, SOL_HTTP_PARAM_COOKIE, params);
     SOL_INT_CHECK(err, < 0, false);
-    r = set_string_slice_option(curl, CURLOPT_COOKIE, arena,
-        sol_buffer_get_slice(&buf));
+
+    r = curl_easy_setopt(curl, CURLOPT_COOKIE, buf.data) == CURLE_OK;
     sol_buffer_fini(&buf);
     return r;
 }
 
 static bool
-set_uri_from_params(CURL *curl, struct sol_arena *arena, const char *base,
+set_uri_from_params(CURL *curl, const char *base,
     const struct sol_http_param *params)
 {
     char *full_uri;
-    int r;
+    int err;
+    bool r;
 
-    r = sol_http_create_simple_uri_from_str(&full_uri, base, params);
-    SOL_INT_CHECK(r, < 0, false);
-
-    return set_string_option(curl, CURLOPT_URL, arena, full_uri);
+    err = sol_http_create_simple_uri_from_str(&full_uri, base, params);
+    SOL_INT_CHECK(err, < 0, false);
+    r = curl_easy_setopt(curl, CURLOPT_URL, full_uri) == CURLE_OK;
+    free(full_uri);
+    return r;
 }
 
 static bool
-set_post_fields_from_params(CURL *curl, struct sol_arena *arena,
-    const struct sol_http_param *params)
+set_post_fields_from_params(CURL *curl, const struct sol_http_param *params)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     int err;
@@ -699,28 +689,17 @@ set_post_fields_from_params(CURL *curl, struct sol_arena *arena,
 
     err = sol_http_encode_params(&buf, SOL_HTTP_PARAM_POST_FIELD, params);
     SOL_INT_CHECK(err, < 0, false);
-
-    if (!buf.used) {
-        if (curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, 0) != CURLE_OK ||
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "") != CURLE_OK)
-            r = false;
-        else
-            r = true;
-    } else
-        r = set_string_slice_option(curl, CURLOPT_POSTFIELDS, arena,
-            sol_buffer_get_slice(&buf));
+    r = set_postfields(curl, sol_buffer_get_slice(&buf));
     sol_buffer_fini(&buf);
     return r;
 }
 
 static bool
-set_post_data_from_params(CURL *curl, struct sol_arena *arena,
-    const struct sol_http_param *params)
+set_post_data_from_params(CURL *curl, const struct sol_http_param *params)
 {
     struct sol_str_slice data = SOL_STR_SLICE_EMPTY;
     struct sol_http_param_value *iter;
     uint16_t idx;
-    char *tmp;
     bool type_set, has_post_fields, hast_post_data;
 
     type_set = has_post_fields = hast_post_data = false;
@@ -758,13 +737,7 @@ set_post_data_from_params(CURL *curl, struct sol_arena *arena,
     if (!type_set)
         SOL_WRN("POST request has data but no content-type was set");
 
-    tmp = malloc(data.len);
-    SOL_NULL_CHECK(tmp, false);
-    memcpy(tmp, data.data, data.len);
-
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, data.len);
-
-    return set_string_option(curl, CURLOPT_POSTFIELDS, arena, tmp);
+    return set_postfields(curl, data);
 }
 
 static bool
@@ -812,7 +785,6 @@ sol_http_client_request(enum sol_http_method method,
                                     .args.request_name = "PATCH" }
     };
     struct sol_http_param_value *value;
-    struct sol_arena *arena;
     struct curl_slist *headers = NULL;
     struct sol_http_client_connection *pending;
     CURL *curl;
@@ -842,16 +814,10 @@ sol_http_client_request(enum sol_http_method method,
         params = &empty_params;
     }
 
-    arena = sol_arena_new();
-    if (!arena) {
-        SOL_WRN("Could not create arena");
-        return NULL;
-    }
-
     curl = curl_easy_init();
     if (!curl) {
         SOL_WRN("Could not create cURL handle");
-        goto no_curl_easy;
+        return NULL;
     }
 
     method_opt = sol_to_curl_method[method];
@@ -868,24 +834,24 @@ sol_http_client_request(enum sol_http_method method,
         goto invalid_option;
     }
 
-    if (!set_uri_from_params(curl, arena, base_uri, params)) {
+    if (!set_uri_from_params(curl, base_uri, params)) {
         SOL_WRN("Could not set URI from params");
         goto invalid_option;
     }
 
-    if (!set_cookies_from_params(curl, arena, params)) {
+    if (!set_cookies_from_params(curl, params)) {
         SOL_WRN("Could not set cookies from params");
         goto invalid_option;
     }
 
-    if (!set_headers_from_params(curl, arena, params, &headers)) {
+    if (!set_headers_from_params(curl, params, &headers)) {
         SOL_WRN("Could not set custom headers from params");
         goto invalid_option;
     }
 
     if (method == SOL_HTTP_METHOD_POST) {
-        if (!set_post_fields_from_params(curl, arena, params) ||
-            !set_post_data_from_params(curl, arena, params)) {
+        if (!set_post_fields_from_params(curl, params) ||
+            !set_post_data_from_params(curl, params)) {
             SOL_WRN("Could not set POST fields or data from params");
             goto invalid_option;
         }
@@ -909,7 +875,7 @@ sol_http_client_request(enum sol_http_method method,
             /* already handled by set_header_from_params() */
             continue;
         case SOL_HTTP_PARAM_AUTH_BASIC:
-            if (!set_auth_basic(curl, arena, value))
+            if (!set_auth_basic(curl, value))
                 goto invalid_option;
             continue;
         case SOL_HTTP_PARAM_ALLOW_REDIR:
@@ -927,15 +893,13 @@ sol_http_client_request(enum sol_http_method method,
         }
     }
 
-    pending = perform_multi(curl, arena, headers, cb, data);
+    pending = perform_multi(curl, headers, cb, data);
     if (pending)
         return pending;
 
 invalid_option:
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
-no_curl_easy:
-    sol_arena_del(arena);
     return NULL;
 }
 
