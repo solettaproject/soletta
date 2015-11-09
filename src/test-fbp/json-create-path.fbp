@@ -1,0 +1,142 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+DECLARE=int_pair:composed-new:KEY(string)|VALUE(int)
+DECLARE=float_pair:composed-new:KEY(string)|VALUE(float)
+DECLARE=boolean_pair:composed-new:KEY(string)|VALUE(boolean)
+DECLARE=string_pair:composed-new:KEY(string)|VALUE(string)
+DECLARE=json_array_pair:composed-new:KEY(string)|VALUE(json-array)
+DECLARE=json_object_pair:composed-new:KEY(string)|VALUE(json-object)
+
+create_obj1(json/create-object-path)
+create_obj1 OUT -> IN _(converter/json-object-to-blob) OUT -> IN _(test/blob-validator:expected="{\"val\":3}") OUT -> RESULT create_obj1_validator(test/result)
+
+_(constant/string:value="$.val") OUT -> KEY int_pair1(int_pair)
+_(constant/int:value=3) OUT -> VALUE int_pair1
+int_pair1 OUT -> INT create_obj1
+int_pair1 OUT -> CREATE create_obj1
+
+create_array1(json/create-array-path)
+create_array1 OUT -> IN _(converter/json-array-to-blob) OUT -> IN _(test/blob-validator:expected="[3]") OUT -> RESULT create_array1_validator(test/result)
+
+_(constant/string:value="$[0]") OUT -> KEY int_array_pair1(int_pair)
+_(constant/int:value=3) OUT -> VALUE int_array_pair1
+int_array_pair1 OUT -> INT create_array1
+int_array_pair1 OUT -> CREATE create_array1
+
+
+create_obj2(json/create-object-path)
+create_obj2 OUT -> IN _(converter/json-object-to-blob) OUT -> IN _(test/blob-validator:expected="{\"my_json\":[{\"json_array_value\":[3]},{\"json_object_value\":{\"val\":3}},{\"float_value\":456.789,\"string_value\":\"hello\"},{\"int_value\":123,\"boolean_value\":false}]}") OUT -> RESULT create_obj2_validator(test/result)
+
+_(constant/string:value="$.my_json[3].int_value") OUT -> KEY int_pair2(int_pair)
+_(constant/int:value=123) OUT -> VALUE int_pair2
+int_pair2 OUT -> INT create_obj2
+
+int_pair2 OUT -> IN _(converter/empty-to-string:output_value="$.my_json[2].float_value") OUT -> KEY float_pair2(float_pair)
+_(constant/float:value=456.789) OUT -> VALUE float_pair2
+float_pair2 OUT -> FLOAT create_obj2
+
+float_pair2 OUT -> IN _(converter/empty-to-string:output_value="$.my_json[3].boolean_value") OUT -> KEY boolean_pair2(boolean_pair)
+_(constant/boolean:value=false) OUT -> VALUE boolean_pair2
+boolean_pair2 OUT -> BOOLEAN create_obj2
+
+boolean_pair2 OUT -> IN _(converter/empty-to-string:output_value="$.my_json[2].string_value") OUT -> KEY string_pair2(string_pair)
+_(constant/string:value="hello") OUT -> VALUE string_pair2
+string_pair2 OUT -> STRING create_obj2
+
+string_pair2 OUT -> IN _(converter/empty-to-string:output_value="$.my_json[0].json_array_value") OUT -> KEY json_array_pair2(json_array_pair)
+create_array1 OUT -> VALUE json_array_pair2
+json_array_pair2 OUT -> ARRAY create_obj2
+
+json_array_pair2 OUT -> IN _(converter/empty-to-string:output_value="$.my_json[1].json_object_value") OUT -> KEY json_object_pair2(json_object_pair)
+create_obj1 OUT -> VALUE json_object_pair2
+json_object_pair2 OUT -> OBJECT create_obj2
+
+json_object_pair2 OUT -> CREATE create_obj2
+
+
+create_array2(json/create-array-path)
+create_array2 OUT -> IN _(converter/json-array-to-blob) OUT -> IN _(test/blob-validator:expected="[{\"json_array_value\":[3]},{\"json_object_value\":{\"val\":3}},{\"float_value\":456.789,\"string_value\":\"hello\"},{\"int_value\":123,\"boolean_value\":false}]") OUT -> RESULT create_array2_validator(test/result)
+
+_(constant/string:value="$[3].int_value") OUT -> KEY int_array_pair2(int_pair)
+_(constant/int:value=123) OUT -> VALUE int_array_pair2
+int_array_pair2 OUT -> INT create_array2
+
+int_array_pair2 OUT -> IN _(converter/empty-to-string:output_value="$[2].float_value") OUT -> KEY float_array_pair2(float_pair)
+_(constant/float:value=456.789) OUT -> VALUE float_array_pair2
+float_array_pair2 OUT -> FLOAT create_array2
+
+float_array_pair2 OUT -> IN _(converter/empty-to-string:output_value="$[3].boolean_value") OUT -> KEY boolean_array_pair2(boolean_pair)
+_(constant/boolean:value=false) OUT -> VALUE boolean_array_pair2
+boolean_array_pair2 OUT -> BOOLEAN create_array2
+
+boolean_array_pair2 OUT -> IN _(converter/empty-to-string:output_value="$[2].string_value") OUT -> KEY string_array_pair2(string_pair)
+_(constant/string:value="hello") OUT -> VALUE string_array_pair2
+string_array_pair2 OUT -> STRING create_array2
+
+string_array_pair2 OUT -> IN _(converter/empty-to-string:output_value="$[0].json_array_value") OUT -> KEY json_array_array_pair2(json_array_pair)
+create_array1 OUT -> VALUE json_array_array_pair2
+json_array_array_pair2 OUT -> ARRAY create_array2
+
+json_array_array_pair2 OUT -> IN _(converter/empty-to-string:output_value="$[1].json_object_value") OUT -> KEY json_object_array_pair2(json_object_pair)
+create_obj1 OUT -> VALUE json_object_array_pair2
+json_object_array_pair2 OUT -> OBJECT create_array2
+
+json_object_array_pair2 OUT -> CREATE create_array2
+
+#Errors
+create_obj3(json/create-object-path)
+create_obj3 ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error1(test/result)
+
+_(constant/string:value="$[0]") OUT -> KEY int_pair3(int_pair)
+_(constant/int:value=3) OUT -> VALUE int_pair3
+int_pair3 OUT -> INT create_obj3
+int_pair3 OUT -> CREATE create_obj3
+
+create_array3(json/create-array-path)
+create_array3 ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error2(test/result)
+
+_(constant/string:value="$.a") OUT -> KEY int_array_pair3(int_pair)
+_(constant/int:value=3) OUT -> VALUE int_array_pair3
+int_array_pair3 OUT -> INT create_array3
+int_array_pair3 OUT -> CREATE create_array3
+
+create_obj4(json/create-object-path)
+create_obj4 ERROR -> IN _(converter/empty-to-boolean) OUT -> PASS error3(test/result)
+
+_(constant/string:value="$.a") OUT -> KEY int_pair4(int_pair)
+_(constant/int:value=4) OUT -> VALUE int_pair4
+int_pair4 OUT -> INT create_obj4
+
+_(constant/string:value="$.a.b") OUT -> KEY int_pair5(int_pair)
+_(constant/int:value=5) OUT -> VALUE int_pair5
+int_pair5 OUT -> INT create_obj4
+
+int_pair5 OUT -> CREATE create_obj4

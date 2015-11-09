@@ -679,7 +679,8 @@
         ],
         "data_type": "struct json_node_create_type",
         "extra_methods": {
-          "send_json_packet": "sol_flow_send_json_object_packet"
+          "send_json_packet": "sol_flow_send_json_object_packet",
+          "add_new_element": "json_object_add_new_element"
         }
       },
       "out_ports": [
@@ -691,6 +692,210 @@
       ],
       "private_data_type": "json_element",
       "url": "http://solettaproject.org/doc/latest/node_types/json/json-create-object.html"
+    },
+    {
+     "category": "json",
+      "description": "Create a JSON array using data from input ports. JSON array is only created and sent to OUT port when CREATE port is triggered. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+      "in_ports": [
+        {
+          "data_type": "composed:string,int",
+          "description": "A string with the JSONPath and the int number value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "INT"
+        },
+        {
+          "data_type": "composed:string,string",
+          "description": "A string with the JSONPath and the string value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "STRING"
+        },
+        {
+          "data_type": "composed:string,boolean",
+          "description": "A string with the JSONPath and the boolean value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "composed:string,float",
+          "description": "A string with the JSONPath and the float number value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "composed:string,json-object",
+          "description": "A string with the JSONPath and the JSON array value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "OBJECT"
+        },
+        {
+          "data_type": "composed:string,json-array",
+          "description": "A string with the JSONPath and the JSON object value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "ARRAY"
+        },
+        {
+          "data_type": "string",
+          "description": "A string with the JSONPath of null value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_null_process"
+          },
+          "name": "NULL"
+        },
+        {
+          "data_type": "any",
+          "description": "Clear the JSON object",
+          "methods": {
+            "process": "json_clear_process"
+          },
+          "name": "CLEAR"
+        },
+        {
+          "data_type": "any",
+          "description": "Create a JSON object with data received in input ports and send it to OUT port.",
+          "methods": {
+            "process": "json_node_create_process"
+          },
+          "name": "CREATE"
+        }
+      ],
+      "methods": {
+        "open": "json_array_create_open",
+        "close": "json_create_close"
+      },
+      "name": "json/create-array-path",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct json_node_create_type",
+        "extra_methods": {
+          "send_json_packet": "sol_flow_send_json_array_packet",
+          "add_new_element": "json_path_add_new_element"
+        }
+      },
+      "out_ports": [
+        {
+          "data_type": "json-array",
+          "description": "A JSON array created and sent by CREATE trigger.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "json_element",
+      "url": "http://solettaproject.org/doc/latest/node_types/json/json-create-array-path.html"
+    },
+    {
+      "category": "json",
+      "description": "Create a JSON object using data from input ports. JSON object is only created and sent to OUT port when CREATE port is triggered. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+      "in_ports": [
+        {
+          "data_type": "composed:string,int",
+          "description": "A string with the JSONPath and the int number value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "INT"
+        },
+        {
+          "data_type": "composed:string,string",
+          "description": "A string with the JSONPath and the string value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "STRING"
+        },
+        {
+          "data_type": "composed:string,boolean",
+          "description": "A string with the JSONPath and the boolean value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "BOOLEAN"
+        },
+        {
+          "data_type": "composed:string,float",
+          "description": "A string with the JSONPath and the float number value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "FLOAT"
+        },
+        {
+          "data_type": "composed:string,json-object",
+          "description": "A string with the JSONPath and the JSON array value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "OBJECT"
+        },
+        {
+          "data_type": "composed:string,json-array",
+          "description": "A string with the JSONPath and the JSON object value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_in_process"
+          },
+          "name": "ARRAY"
+        },
+        {
+          "data_type": "string",
+          "description": "A string with the JSONPath of null value. Path for inputs needs to be a valid JSONPath as documented in http://goessner.net/articles/JsonPath/",
+          "methods": {
+            "process": "json_object_null_process"
+          },
+          "name": "NULL"
+        },
+        {
+          "data_type": "any",
+          "description": "Clear the JSON object",
+          "methods": {
+            "process": "json_clear_process"
+          },
+          "name": "CLEAR"
+        },
+        {
+          "data_type": "any",
+          "description": "Create a JSON object with data received in input ports and send it to OUT port.",
+          "methods": {
+            "process": "json_node_create_process"
+          },
+          "name": "CREATE"
+        }
+      ],
+      "methods": {
+        "open": "json_object_create_open",
+        "close": "json_create_close"
+      },
+      "name": "json/create-object-path",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct json_node_create_type",
+        "extra_methods": {
+          "send_json_packet": "sol_flow_send_json_object_packet",
+          "add_new_element": "json_path_add_new_element"
+        }
+      },
+      "out_ports": [
+        {
+          "data_type": "json-object",
+          "description": "A JSON object created and sent by CREATE trigger.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "json_element",
+      "url": "http://solettaproject.org/doc/latest/node_types/json/json-create-object-path.html"
     }
   ]
 }
