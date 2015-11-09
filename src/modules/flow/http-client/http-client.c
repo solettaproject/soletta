@@ -53,6 +53,7 @@ struct http_data {
     enum sol_http_method method;
     char *url;
     char *content_type;
+    char *accept;
     bool machine_id;
     bool strict;
 };
@@ -155,6 +156,7 @@ common_close(struct sol_flow_node *node, void *data)
 
     free(mdata->url);
     free(mdata->content_type);
+    free(mdata->accept);
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
         sol_http_client_connection_cancel(connection);
     sol_ptr_vector_clear(&mdata->pending_conns);
@@ -635,12 +637,19 @@ generic_open(struct sol_flow_node *node, void *data,
         SOL_NULL_CHECK_GOTO(mdata->content_type, err_content_type);
     }
 
+    if (opts->accept) {
+        mdata->accept = strdup(opts->accept);
+        SOL_NULL_CHECK_GOTO(mdata->accept, err_accept);
+    }
+
     mdata->strict = opts->strict;
     mdata->machine_id = opts->machine_id;
     sol_ptr_vector_init(&mdata->pending_conns);
     mdata->method = SOL_HTTP_METHOD_GET;
     return 0;
 
+err_accept:
+    free(mdata->content_type);
 err_content_type:
     free(mdata->url);
     return -ENOMEM;
@@ -759,12 +768,12 @@ generic_request_finished(void *data,
         return;
     }
 
-    if (mdata->strict && mdata->content_type && response->content_type &&
-        !streq(response->content_type, mdata->content_type)) {
+    if (mdata->strict && mdata->accept && response->content_type &&
+        !streq(response->content_type, mdata->accept)) {
         sol_flow_send_error_packet(node, EINVAL,
             "Response has different content type. Received: %s - Desired: %s",
             response->content_type,
-            mdata->content_type);
+            mdata->accept);
         return;
     }
 
@@ -786,9 +795,17 @@ make_http_request(struct sol_flow_node *node, struct http_data *mdata)
         sol_flow_node_get_type(node);
 
     sol_http_params_init(&params);
-    if (mdata->content_type && !sol_http_param_add(&params,
-        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->content_type))) {
-        SOL_ERR("Could not add the HTTP Accept's param");
+    if (mdata->accept && !sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->accept))) {
+        SOL_ERR("Could not add the HTTP Accept param");
+        goto err;
+    }
+
+    if ((mdata->method == SOL_HTTP_METHOD_POST ||
+        mdata->method == SOL_HTTP_METHOD_PUT) &&
+        mdata->content_type && !sol_http_param_add(&params,
+        SOL_HTTP_REQUEST_PARAM_HEADER("Content-Type", mdata->content_type))) {
+        SOL_ERR("Could not add the HTTP Content-Type param");
         goto err;
     }
 
@@ -1172,6 +1189,15 @@ request_node_content_type_process(struct sol_flow_node *node, void *data,
     struct http_request_data *mdata = data;
 
     return replace_string_from_packet(packet, &mdata->base.content_type);
+}
+
+static int
+request_node_accept_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct http_request_data *mdata = data;
+
+    return replace_string_from_packet(packet, &mdata->base.accept);
 }
 
 static int
