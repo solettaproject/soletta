@@ -86,6 +86,9 @@ reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
     uint8_t *payload;
     uint16_t len;
 
+    if (!req || !cliaddr) //timeout
+        return false;
+
     sol_network_addr_to_str(cliaddr, addr, sizeof(addr));
 
     SOL_INF("Got response from %s", addr);

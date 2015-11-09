@@ -98,6 +98,9 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     uint16_t idx;
     char addr[SOL_INET_ADDR_STRLEN];
 
+    if (!res)
+        return false;
+
     if (!sol_network_addr_to_str(&res->addr, addr, sizeof(addr))) {
         SOL_WRN("Could not convert network address to string");
         return false;
