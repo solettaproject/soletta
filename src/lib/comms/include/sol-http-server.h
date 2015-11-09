@@ -199,7 +199,7 @@ const char *sol_http_request_get_url(const struct sol_http_request *request);
  *
  * @return the parameters on success, @c NULL otherwise.
  */
-const struct sol_http_param *sol_http_request_get_params(const struct sol_http_request *request);
+const struct sol_http_params *sol_http_request_get_params(const struct sol_http_request *request);
 
 /**
  * Gets the method (GET, POST, ...) from a given request.

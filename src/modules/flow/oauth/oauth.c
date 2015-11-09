@@ -105,7 +105,7 @@ v1_access_finished(void *data,
     struct sol_http_response access_response = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
-        .param = SOL_HTTP_REQUEST_PARAM_INIT,
+        .param = SOL_HTTP_REQUEST_PARAMS_INIT,
         .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR,
     };
 
@@ -162,14 +162,14 @@ v1_authorize_response_cb(void *data, struct sol_http_request *request)
     char *verifier = NULL, *token = NULL;
     struct sol_http_param_value *value;
     struct sol_http_client_connection *connection;
-    struct sol_http_param params = SOL_HTTP_REQUEST_PARAM_INIT;
+    struct sol_http_params params = SOL_HTTP_REQUEST_PARAMS_INIT;
     struct sol_flow_node *node = data;
     struct v1_data *mdata = sol_flow_node_get_private_data(node);
     struct v1_request_data *req_data = calloc(1, sizeof(struct v1_request_data));
 
     SOL_NULL_CHECK_GOTO(req_data, err);
 
-    SOL_HTTP_PARAM_FOREACH_IDX (sol_http_request_get_params(request), value, idx) {
+    SOL_HTTP_PARAMS_FOREACH_IDX (sol_http_request_get_params(request), value, idx) {
         switch (value->type) {
         case SOL_HTTP_PARAM_QUERY_PARAM:
             if (sol_str_slice_str_eq(value->value.key_value.key, "oauth_verifier") && !verifier) {
@@ -202,7 +202,7 @@ v1_authorize_response_cb(void *data, struct sol_http_request *request)
     r = sol_ptr_vector_append(&mdata->pending_conns, connection);
     SOL_INT_CHECK_GOTO(r, < 0, err_append);
 
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
     free(verifier);
     free(token);
     return 0;
@@ -211,7 +211,7 @@ err_append:
     sol_http_client_connection_cancel(connection);
 err_connection:
 err_params:
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
 err:
     free(req_data->timestamp);
     free(req_data->nonce);
@@ -221,7 +221,7 @@ err:
     r = sol_http_server_send_response(request, &((struct sol_http_response) {
             SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
-            .param = SOL_HTTP_REQUEST_PARAM_INIT,
+            .param = SOL_HTTP_REQUEST_PARAMS_INIT,
             .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
         }));
     return r;
@@ -270,7 +270,7 @@ v1_parse_response(struct v1_request_data *req_data, const struct sol_http_respon
     struct sol_http_response start_response = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
-        .param = SOL_HTTP_REQUEST_PARAM_INIT,
+        .param = SOL_HTTP_REQUEST_PARAMS_INIT,
         .response_code = SOL_HTTP_STATUS_FOUND,
     };
 
@@ -297,7 +297,7 @@ v1_parse_response(struct v1_request_data *req_data, const struct sol_http_respon
     SOL_INT_CHECK_GOTO(r, < 0, err_send);
 
 err_send:
-    sol_http_param_free(&start_response.param);
+    sol_http_params_clear(&start_response.param);
 err_param:
     free(url);
 err:
@@ -335,7 +335,7 @@ err:
     r = sol_http_server_send_response(req_data->request, &((struct sol_http_response) {
             SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
-            .param = SOL_HTTP_REQUEST_PARAM_INIT,
+            .param = SOL_HTTP_REQUEST_PARAMS_INIT,
             .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
         }));
     if (r < 0) {
@@ -372,7 +372,7 @@ static void
 digest_ready_cb(void *data, struct sol_message_digest *handle, struct sol_blob *output)
 {
     int r;
-    struct sol_http_param params;
+    struct sol_http_params params;
     struct sol_http_client_connection *connection;
     struct v1_request_data *req_data = data;
     struct v1_data *mdata = sol_flow_node_get_private_data(req_data->node);
@@ -384,7 +384,7 @@ digest_ready_cb(void *data, struct sol_message_digest *handle, struct sol_blob *
     r = sol_buffer_append_as_base64(&buffer, sol_str_slice_from_blob(output), SOL_BASE64_MAP);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
-    sol_http_param_init(&params);
+    sol_http_params_init(&params);
     if (!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_QUERY("oauth_callback", req_data->callback_url)) ||
         !sol_http_param_add(&params,
@@ -400,7 +400,7 @@ digest_ready_cb(void *data, struct sol_message_digest *handle, struct sol_blob *
         !sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_POST_FIELD("oauth_signature", buffer.data))) {
         SOL_WRN("Failed to set query params");
-        sol_http_param_free(&params);
+        sol_http_params_clear(&params);
         sol_buffer_fini(&buffer);
         goto err;
     }
@@ -408,7 +408,7 @@ digest_ready_cb(void *data, struct sol_message_digest *handle, struct sol_blob *
     connection = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->request_token_url,
         &params, v1_request_finished, req_data);
     sol_buffer_fini(&buffer);
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
     SOL_NULL_CHECK_GOTO(connection, err);
 
     r = sol_ptr_vector_append(&mdata->pending_conns, connection);
@@ -423,7 +423,7 @@ err:
     r = sol_http_server_send_response(req_data->request, &((struct sol_http_response) {
             SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
-            .param = SOL_HTTP_REQUEST_PARAM_INIT,
+            .param = SOL_HTTP_REQUEST_PARAMS_INIT,
             .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
         }));
     if (r < 0) {
@@ -580,7 +580,7 @@ err:
     r = sol_http_server_send_response(request, &((struct sol_http_response) {
             SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
             .content = SOL_BUFFER_INIT_EMPTY,
-            .param = SOL_HTTP_REQUEST_PARAM_INIT,
+            .param = SOL_HTTP_REQUEST_PARAMS_INIT,
             .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
         }));
     return r;
