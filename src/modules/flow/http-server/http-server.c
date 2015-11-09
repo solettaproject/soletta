@@ -191,7 +191,7 @@ common_response_cb(void *data, struct sol_http_request *request)
     struct sol_http_response response = {
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
-        .param = SOL_HTTP_REQUEST_PARAM_INIT,
+        .param = SOL_HTTP_REQUEST_PARAMS_INIT,
         .response_code = SOL_HTTP_STATUS_OK
     };
 
@@ -201,7 +201,7 @@ common_response_cb(void *data, struct sol_http_request *request)
     method = sol_http_request_get_method(request);
     response.url = sol_http_request_get_url(request);
 
-    SOL_HTTP_PARAM_FOREACH_IDX (sol_http_request_get_params(request), value, idx) {
+    SOL_HTTP_PARAMS_FOREACH_IDX (sol_http_request_get_params(request), value, idx) {
         switch (value->type) {
         case SOL_HTTP_PARAM_POST_FIELD:
             r = type->post_cb(mdata, node, value);
@@ -247,7 +247,7 @@ common_response_cb(void *data, struct sol_http_request *request)
 
 end:
     sol_buffer_fini(&response.content);
-    sol_http_param_free(&response.param);
+    sol_http_params_clear(&response.param);
 
     return 0;
 }
