@@ -29,7 +29,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 constant-server(constant/boolean:value=true)
-constant-client(test/boolean-generator:sequence="F")
+response-count(int/accumulator:setup_value=0|2)
+constant-client(converter/empty-to-boolean:output_value=false)
 string(constant/string:value="true")
 json-str(constant/string:value="{\"/test\":true}")
 
@@ -66,6 +67,10 @@ json-str OUT -> IN[0] json-compare
 get-json OBJECT -> IN json-blob OUT -> IN blob-str
 blob-str OUT -> IN[1] json-compare
 
+get-blob OUT -> INC response-count
+get-string OUT -> INC response-count
+get-json OBJECT -> INC response-count
+response-count OVERFLOW -> IN constant-client
 constant-client OUT -> POST post
 
 server-validator OUT -> RESULT test_server_output(test/result)
