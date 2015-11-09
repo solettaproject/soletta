@@ -433,21 +433,54 @@ timeout_cb(void *data)
     return false;
 }
 
-static void
-setup_timeout(struct sol_coap_server *server, struct outgoing *outgoing)
+static bool
+call_reply_timeout_cb(struct sol_coap_server *server, struct sol_coap_packet *pkt)
+{
+    uint16_t i;
+    struct pending_reply *reply;
+    const uint16_t id = sol_coap_header_get_id(pkt);
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
+        if (reply->observing || reply->id != id)
+            continue;
+
+        if (reply->cb(server, NULL, NULL, (void *)reply->data))
+            return false;
+        sol_ptr_vector_del(&server->pending, i);
+        free(reply);
+    }
+
+    return true;
+}
+
+static bool
+timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
 {
     struct outgoing *o;
     int timeout;
     uint16_t i;
+    int max_retransmit;
+    bool expired = false;
 
-    if (outgoing->counter >= MAX_RETRANSMIT) {
+    if (sol_coap_header_get_type(outgoing->pkt) == SOL_COAP_TYPE_CON)
+        max_retransmit = MAX_RETRANSMIT;
+    else
+        max_retransmit = 0;
+
+    if (outgoing->counter > max_retransmit) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
             if (o == outgoing) {
-                SOL_DBG("packet id %d dropped, after %d retransmissions",
+                SOL_DBG("packet id %d dropped, after %d transmissions",
                     sol_coap_header_get_id(outgoing->pkt), outgoing->counter);
+
+                if (!call_reply_timeout_cb(server, outgoing->pkt)) {
+                    expired = true;
+                    break;
+                }
+
                 sol_ptr_vector_del(&server->outgoing, i);
                 outgoing_free(o);
-                return;
+                return true;
             }
         }
     }
@@ -456,6 +489,7 @@ setup_timeout(struct sol_coap_server *server, struct outgoing *outgoing)
     outgoing->timeout = sol_timeout_add(timeout, timeout_cb, outgoing);
 
     SOL_DBG("waiting %d ms to re-try packet id %d", timeout, sol_coap_header_get_id(outgoing->pkt));
+    return expired;
 }
 
 static bool
@@ -469,7 +503,10 @@ on_can_write(void *data, struct sol_socket *s)
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
         return false;
 
-    outgoing = next_in_queue(server, &idx);
+    while ((outgoing = next_in_queue(server, &idx))) {
+        if (!timeout_expired(server, outgoing))
+            break;
+    }
     if (!outgoing)
         return false;
 
@@ -485,13 +522,6 @@ on_can_write(void *data, struct sol_socket *s)
         SOL_WRN("Could not send packet %d to %s (%d): %s", sol_coap_header_get_id(outgoing->pkt),
             addr, errno, sol_util_strerrora(errno));
         return false;
-    }
-
-    if (sol_coap_header_get_type(outgoing->pkt) != SOL_COAP_TYPE_CON) {
-        sol_ptr_vector_del(&server->outgoing, idx);
-        outgoing_free(outgoing);
-    } else {
-        setup_timeout(server, outgoing);
     }
 
     if (sol_ptr_vector_get_len(&server->outgoing) == 0)
@@ -991,6 +1021,27 @@ resource_not_found(struct sol_coap_packet *req,
     return sol_coap_send_packet(server, resp, cliaddr);
 }
 
+static void
+remove_outgoing_packet(struct sol_coap_server *server, struct sol_coap_packet *req)
+{
+    uint16_t i, id;
+    struct outgoing *o;
+
+    id = sol_coap_header_get_id(req);
+    /* If it has the same 'id' as a packet that we are trying to send we will stop now. */
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
+        if (id != sol_coap_header_get_id(o->pkt)) {
+            continue;
+        }
+
+        SOL_DBG("Received ACK for packet id %d", id);
+
+        sol_ptr_vector_del(&server->outgoing, i);
+        outgoing_free(o);
+        return;
+    }
+}
+
 static int
 respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
@@ -1002,28 +1053,14 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
         void *data);
     struct pending_reply *reply;
     struct resource_context *c;
-    struct outgoing *o;
     int observe;
-    uint16_t i, id;
+    uint16_t i;
     uint8_t code;
+    bool ret, remove_outgoing = true;
 
-    id = sol_coap_header_get_id(req);
     code = sol_coap_header_get_code(req);
 
     observe = get_observe_option(req);
-
-    /* If it has the same 'id' as a packet that we are trying to send we will stop now. */
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
-        if (id != sol_coap_header_get_id(o->pkt)) {
-            continue;
-        }
-
-        SOL_DBG("Received ACK for packet id %d", id);
-
-        sol_ptr_vector_del(&server->outgoing, i);
-        outgoing_free(o);
-        break;
-    }
 
     /* If it isn't a request. */
     if (code & ~SOL_COAP_REQUEST_MASK) {
@@ -1031,17 +1068,23 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
             if (!match_reply(reply, req))
                 continue;
 
-            if (!reply->cb(server, req, cliaddr, (void *)reply->data)) {
-                /* Keeps calling observing is enabled. */
-                if (!reply->observing) {
+            ret = reply->cb(server, req, cliaddr, (void *)reply->data);
+            /* Keeps calling observing is enabled. */
+            if (!reply->observing) {
+                if (!ret) {
                     sol_ptr_vector_del(&server->pending, i);
                     free(reply);
-                }
+                } else
+                    remove_outgoing = false;
             }
         }
+
+        if (remove_outgoing)
+            remove_outgoing_packet(server, req);
         return 0;
     }
 
+    remove_outgoing_packet(server, req);
     /* /.well-known/core well known resource */
     cb = find_resource_cb(req, &well_known);
     if (cb)
