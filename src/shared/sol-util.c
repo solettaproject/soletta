@@ -307,7 +307,7 @@ sol_util_uuid_gen(bool upcase,
     static struct sol_str_slice hyphen = SOL_STR_SLICE_LITERAL("-");
     /* hyphens on positions 8, 13, 18, 23 (from 0) */
     static const int hyphens_pos[] = { 8, 13, 18, 23 };
-    struct sol_uuid uuid = { 0 };
+    struct sol_uuid uuid = { { 0 } };
     unsigned i;
     int r;
 
