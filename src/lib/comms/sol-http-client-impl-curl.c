@@ -74,7 +74,7 @@ struct sol_http_client_connection {
     struct sol_fd *watch;
     struct curl_slist *headers;
     struct sol_buffer buffer;
-    struct sol_http_param response_params;
+    struct sol_http_params response_params;
 
     void (*cb)(void *data, const struct sol_http_client_connection *connection, struct sol_http_response *response);
     const void *data;
@@ -91,7 +91,7 @@ destroy_connection(struct sol_http_client_connection *c)
 
     sol_buffer_fini(&c->buffer);
 
-    sol_http_param_free(&c->response_params);
+    sol_http_params_clear(&c->response_params);
 
     if (c->watch)
         sol_fd_del(c->watch);
@@ -481,7 +481,7 @@ perform_multi(CURL *curl, struct curl_slist *headers,
     connection->error = false;
 
     sol_buffer_init(&connection->buffer);
-    sol_http_param_init(&connection->response_params);
+    sol_http_params_init(&connection->response_params);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, connection);
@@ -541,7 +541,7 @@ free_buffer:
 }
 
 static bool
-set_headers_from_params(CURL *curl, const struct sol_http_param *params,
+set_headers_from_params(CURL *curl, const struct sol_http_params *params,
     struct curl_slist **headers)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
@@ -654,7 +654,7 @@ set_postfields(CURL *curl, const struct sol_str_slice slice)
 }
 
 static bool
-set_cookies_from_params(CURL *curl, const struct sol_http_param *params)
+set_cookies_from_params(CURL *curl, const struct sol_http_params *params)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     char *cookie = NULL;
@@ -677,7 +677,7 @@ exit:
 
 static bool
 set_uri_from_params(CURL *curl, const char *base,
-    const struct sol_http_param *params)
+    const struct sol_http_params *params)
 {
     char *full_uri;
     int err;
@@ -691,7 +691,7 @@ set_uri_from_params(CURL *curl, const char *base,
 }
 
 static bool
-set_post_fields_from_params(CURL *curl, const struct sol_http_param *params)
+set_post_fields_from_params(CURL *curl, const struct sol_http_params *params)
 {
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     int err;
@@ -705,7 +705,7 @@ set_post_fields_from_params(CURL *curl, const struct sol_http_param *params)
 }
 
 static bool
-set_post_data_from_params(CURL *curl, const struct sol_http_param *params)
+set_post_data_from_params(CURL *curl, const struct sol_http_params *params)
 {
     struct sol_str_slice data = SOL_STR_SLICE_EMPTY;
     struct sol_http_param_value *iter;
@@ -751,7 +751,7 @@ set_post_data_from_params(CURL *curl, const struct sol_http_param *params)
 }
 
 static bool
-check_param_api_version(const struct sol_http_param *params)
+check_param_api_version(const struct sol_http_params *params)
 {
 #ifndef SOL_NO_API_VERSION
     if (unlikely(params->api_version != SOL_HTTP_PARAM_API_VERSION)) {
@@ -766,12 +766,12 @@ check_param_api_version(const struct sol_http_param *params)
 
 SOL_API struct sol_http_client_connection *
 sol_http_client_request(enum sol_http_method method,
-    const char *base_uri, const struct sol_http_param *params,
+    const char *base_uri, const struct sol_http_params *params,
     void (*cb)(void *data, const struct sol_http_client_connection *connection,
     struct sol_http_response *response),
     const void *data)
 {
-    static const struct sol_http_param empty_params = {
+    static const struct sol_http_params empty_params = {
         .params = SOL_VECTOR_INIT(struct sol_http_param_value)
     };
     static const struct curl_http_method_opt sol_to_curl_method[] = {

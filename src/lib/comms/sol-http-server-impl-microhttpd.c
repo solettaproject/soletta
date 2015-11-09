@@ -65,7 +65,7 @@ struct sol_http_request {
     struct MHD_Connection *connection;
     struct MHD_PostProcessor *pp;
     const char *url;
-    struct sol_http_param params;
+    struct sol_http_params params;
     enum sol_http_method method;
     time_t if_since_modified;
 };
@@ -132,7 +132,7 @@ sol_http_request_get_url(const struct sol_http_request *request)
     return request->url;
 }
 
-SOL_API const struct sol_http_param *
+SOL_API const struct sol_http_params *
 sol_http_request_get_params(const struct sol_http_request *request)
 {
     SOL_NULL_CHECK(request, NULL);
@@ -162,8 +162,9 @@ build_mhd_response(const struct sol_http_response *response)
         return NULL;
 
     sol_buffer_init(&buf);
-    SOL_HTTP_PARAM_FOREACH_IDX (&response->param, value, idx) {
+    SOL_HTTP_PARAMS_FOREACH_IDX(&response->param, value, idx) {
         int ret;
+
         buf.used = 0;
         switch (value->type) {
         case SOL_HTTP_PARAM_HEADER:
@@ -402,7 +403,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             return MHD_NO;
         }
 
-        sol_http_param_init(&req->params);
+        sol_http_params_init(&req->params);
         req->url = url;
         req->connection = connection;
         *ptr = req;
@@ -572,7 +573,7 @@ free_request(struct sol_http_request *request)
 {
     if (request->pp)
         MHD_destroy_post_processor(request->pp);
-    sol_http_param_free(&request->params);
+    sol_http_params_clear(&request->params);
     free(request);
 }
 

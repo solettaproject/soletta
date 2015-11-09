@@ -41,7 +41,7 @@
 #include "sol-vector.h"
 
 SOL_API bool
-sol_http_param_add(struct sol_http_param *params,
+sol_http_param_add(struct sol_http_params *params,
     struct sol_http_param_value value)
 {
     struct sol_http_param_value *ptr;
@@ -67,7 +67,7 @@ sol_http_param_add(struct sol_http_param *params,
 }
 
 SOL_API bool
-sol_http_param_add_copy(struct sol_http_param *params,
+sol_http_param_add_copy(struct sol_http_params *params,
     struct sol_http_param_value value)
 {
     struct sol_http_param_value *ptr;
@@ -129,7 +129,7 @@ sol_http_param_add_copy(struct sol_http_param *params,
 }
 
 SOL_API void
-sol_http_param_free(struct sol_http_param *params)
+sol_http_params_clear(struct sol_http_params *params)
 {
     SOL_NULL_CHECK(params);
 
@@ -242,7 +242,7 @@ err_exit:
 
 SOL_API int
 sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type,
-    const struct sol_http_param *params)
+    const struct sol_http_params *params)
 {
     const char *prefix, *suffix;
     struct sol_buffer encoded_key, encoded_value;
@@ -270,7 +270,7 @@ sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type,
         suffix = "";
     }
 
-    SOL_HTTP_PARAM_FOREACH_IDX (params, iter, idx) {
+    SOL_HTTP_PARAMS_FOREACH_IDX(params, iter, idx) {
         if (iter->type != type)
             continue;
 
@@ -310,7 +310,7 @@ clean_up:
 
 SOL_API int
 sol_http_decode_params(const struct sol_str_slice params_slice,
-    enum sol_http_param_type type, struct sol_http_param *params)
+    enum sol_http_param_type type, struct sol_http_params *params)
 {
     struct sol_buffer decoded_key, decoded_value;
     struct sol_str_slice *token;
@@ -393,7 +393,7 @@ err_exit:
 
 SOL_API int
 sol_http_create_uri(char **uri_out, const struct sol_http_url url,
-    const struct sol_http_param *params)
+    const struct sol_http_params *params)
 {
     struct sol_str_slice scheme;
     struct sol_buffer buf, buf_encoded;
@@ -487,7 +487,7 @@ exit:
 
 SOL_API int
 sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri,
-    const struct sol_http_param *params)
+    const struct sol_http_params *params)
 {
     struct sol_buffer buf;
     int r;

@@ -61,7 +61,7 @@ struct http_data {
 struct http_request_data {
     struct http_data base;
     struct sol_blob *content;
-    struct sol_http_param params;
+    struct sol_http_params params;
     bool allow_redir;
     int32_t timeout;
     char *user;
@@ -80,7 +80,7 @@ struct create_url_data {
     char *user;
     char *password;
     uint32_t port;
-    struct sol_http_param params;
+    struct sol_http_params params;
 };
 
 struct http_client_node_type {
@@ -90,7 +90,7 @@ struct http_client_node_type {
     int (*process_data)(struct sol_flow_node *node,
         struct sol_http_response *response);
     void (*close_node)(struct sol_flow_node *node, void *data);
-    int (*setup_params)(struct http_data *mdata, struct sol_http_param *params);
+    int (*setup_params)(struct http_data *mdata, struct sol_http_params *params);
     void (*http_response)(void *data,
         const struct sol_http_client_connection *conn,
         struct sol_http_response *response);
@@ -110,7 +110,7 @@ replace_string_from_packet(const struct sol_flow_packet *packet, char **dst)
 }
 
 static int
-machine_id_header_add(struct sol_http_param *params)
+machine_id_header_add(struct sol_http_params *params)
 {
     int r;
     const char *id;
@@ -277,13 +277,13 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     const struct sol_flow_packet *packet)
 {
     int r;
-    struct sol_http_param params;
+    struct sol_http_params params;
     struct http_data *mdata = data;
     struct sol_http_client_connection *connection;
 
     SOL_NULL_CHECK(mdata->url, -EINVAL);
 
-    sol_http_param_init(&params);
+    sol_http_params_init(&params);
     if (!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json"))) {
         SOL_WRN("Failed to set query params");
@@ -299,7 +299,7 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     connection = sol_http_client_request(SOL_HTTP_METHOD_GET, mdata->url,
         &params, common_request_finished, node);
 
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
 
     SOL_NULL_CHECK(connection, -ENOTCONN);
 
@@ -313,7 +313,7 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     return 0;
 
 err:
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
     return r;
 }
 
@@ -323,11 +323,11 @@ common_post_process(struct sol_flow_node *node, void *data, ...)
     int r;
     va_list ap;
     char *key, *value;
-    struct sol_http_param params;
+    struct sol_http_params params;
     struct http_data *mdata = data;
     struct sol_http_client_connection *connection;
 
-    sol_http_param_init(&params);
+    sol_http_params_init(&params);
     if (!(sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Accept", "application/json")))) {
         SOL_WRN("Could not add the header '%s:%s' into request to %s",
@@ -354,7 +354,7 @@ common_post_process(struct sol_flow_node *node, void *data, ...)
 
     connection = sol_http_client_request(SOL_HTTP_METHOD_POST, mdata->url,
         &params, common_request_finished, node);
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
 
     SOL_NULL_CHECK(connection, -ENOTCONN);
 
@@ -368,7 +368,7 @@ common_post_process(struct sol_flow_node *node, void *data, ...)
     return 0;
 
 err:
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
     return -ENOMEM;
 }
 
@@ -780,13 +780,13 @@ make_http_request(struct sol_flow_node *node, struct http_data *mdata)
 {
     const struct http_client_node_type *type;
     struct sol_http_client_connection *conn;
-    struct sol_http_param params;
+    struct sol_http_params params;
     int r;
 
     type = (const struct http_client_node_type *)
         sol_flow_node_get_type(node);
 
-    sol_http_param_init(&params);
+    sol_http_params_init(&params);
     if (mdata->content_type && !sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Accept", mdata->content_type))) {
         SOL_ERR("Could not add the HTTP Accept's param");
@@ -806,7 +806,7 @@ make_http_request(struct sol_flow_node *node, struct http_data *mdata)
     conn = sol_http_client_request(mdata->method, mdata->url,
         &params, type->http_response ? type->http_response :
         generic_request_finished, node);
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
     SOL_NULL_CHECK(conn, -ENOMEM);
 
     r = sol_ptr_vector_append(&mdata->pending_conns, conn);
@@ -819,7 +819,7 @@ make_http_request(struct sol_flow_node *node, struct http_data *mdata)
     return 0;
 
 err:
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
     return -ENOMEM;
 }
 
@@ -831,13 +831,13 @@ generic_get_process(struct sol_flow_node *node, void *data, uint16_t port,
 }
 
 static int
-request_node_setup_params(struct http_data *data, struct sol_http_param *params)
+request_node_setup_params(struct http_data *data, struct sol_http_params *params)
 {
     struct http_request_data *mdata = (struct http_request_data *)data;
     struct sol_http_param_value *param;
     uint16_t i;
 
-    SOL_HTTP_PARAM_FOREACH_IDX (&mdata->params, param, i) {
+    SOL_HTTP_PARAMS_FOREACH_IDX(&mdata->params, param, i) {
         if (!sol_http_param_add(params, *param)) {
             SOL_ERR("Could not append the param - %.*s:%.*s",
                 SOL_STR_SLICE_PRINT(param->value.key_value.key),
@@ -875,7 +875,7 @@ request_node_setup_params(struct http_data *data, struct sol_http_param *params)
 }
 
 static int
-setup_response_headers_and_cookies(struct sol_http_param *params,
+setup_response_headers_and_cookies(struct sol_http_params *params,
     struct sol_vector *cookies, struct sol_vector *headers)
 {
     uint16_t i;
@@ -883,7 +883,7 @@ setup_response_headers_and_cookies(struct sol_http_param *params,
     struct sol_key_value *resp_param;
     struct sol_http_param_value *param;
 
-    SOL_HTTP_PARAM_FOREACH_IDX (params, param, i) {
+    SOL_HTTP_PARAMS_FOREACH_IDX(params, param, i) {
         if (param->type == SOL_HTTP_PARAM_HEADER)
             to_append = headers;
         else if (param->type == SOL_HTTP_PARAM_COOKIE)
@@ -1016,7 +1016,7 @@ request_node_open(struct sol_flow_node *node, void *data,
     } else if (!opts->method)
         mdata->base.method = SOL_HTTP_METHOD_INVALID;
 
-    sol_http_param_init(&mdata->params);
+    sol_http_params_init(&mdata->params);
     sol_ptr_vector_init(&mdata->base.pending_conns);
     mdata->allow_redir = opts->allow_redir;
     mdata->base.machine_id = opts->machine_id;
@@ -1037,7 +1037,7 @@ request_node_clear_params(struct http_request_data *mdata)
 
     free(mdata->base.content_type);
     mdata->base.content_type = NULL;
-    sol_http_param_free(&mdata->params);
+    sol_http_params_clear(&mdata->params);
 }
 
 static void
@@ -1082,7 +1082,7 @@ request_node_timeout_process(struct sol_flow_node *node, void *data,
 }
 
 static int
-param_process(const struct sol_flow_packet *packet, struct sol_http_param *params,
+param_process(const struct sol_flow_packet *packet, struct sol_http_params *params,
     enum sol_http_param_type type)
 {
     const char *key, *value;
@@ -1371,11 +1371,11 @@ create_url_close(struct sol_flow_node *node, void *data)
     free(mdata->fragment);
     free(mdata->user);
     free(mdata->password);
-    sol_http_param_free(&mdata->params);
+    sol_http_params_clear(&mdata->params);
 }
 
 static int
-add_query(struct sol_http_param *params,
+add_query(struct sol_http_params *params,
     const struct sol_str_slice key, const struct sol_str_slice value)
 {
     struct sol_http_param_value param;
@@ -1432,7 +1432,7 @@ replace_uri(struct create_url_data *mdata, const char *uri)
 }
 
 static int
-split_query(const char *query, struct sol_http_param *params)
+split_query(const char *query, struct sol_http_params *params)
 {
     struct sol_vector tokens;
     struct sol_str_slice *token;
@@ -1475,7 +1475,7 @@ create_url_open(struct sol_flow_node *node, void *data,
     struct sol_flow_node_type_http_client_create_url_options *opts =
         (struct sol_flow_node_type_http_client_create_url_options *)options;
 
-    mdata->params = SOL_HTTP_REQUEST_PARAM_INIT;
+    mdata->params = SOL_HTTP_REQUEST_PARAMS_INIT;
     SOL_INT_CHECK(opts->port, < 0, -EINVAL);
     mdata->port = opts->port;
     r = -ENOMEM;
@@ -1513,7 +1513,7 @@ create_url_open(struct sol_flow_node *node, void *data,
     return 0;
 
 err_query:
-    sol_http_param_free(&mdata->params);
+    sol_http_params_clear(&mdata->params);
     free(mdata->fragment);
 err_fragment:
     free(mdata->path);
@@ -1641,7 +1641,7 @@ create_url_clear_process(struct sol_flow_node *node, void *data,
 {
     struct create_url_data *mdata = data;
 
-    sol_http_param_free(&mdata->params);
+    sol_http_params_clear(&mdata->params);
     return 0;
 }
 
