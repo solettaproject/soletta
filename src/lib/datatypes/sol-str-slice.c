@@ -35,26 +35,24 @@
 #include <errno.h>
 
 #include "sol-str-slice.h"
+#include "sol-util.h"
+#include "sol-log.h"
 
 SOL_API int
 sol_str_slice_to_int(const struct sol_str_slice s, int *value)
 {
-    const char *tmp;
     char *endptr = NULL;
-    long v;
+    long int v;
 
-    if (!s.len)
-        return -EINVAL;
+    SOL_INT_CHECK(s.len, == 0, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
 
-    tmp = strndupa(s.data, s.len);
-
-    errno = 0;
-    v = strtol(tmp, &endptr, 0);
+    v = sol_util_strtol(s.data, &endptr, s.len, 0);
 
     if (errno)
         return -errno;
 
-    if (*endptr != 0)
+    if (endptr == s.data || endptr != s.data + s.len)
         return -EINVAL;
 
     if ((long)(int)v != v)
