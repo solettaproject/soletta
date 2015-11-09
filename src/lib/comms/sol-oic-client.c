@@ -333,6 +333,9 @@ _server_info_reply_cb(struct sol_coap_server *server,
     uint16_t payload_len;
     struct sol_oic_server_information info = { 0 };
 
+    if (!req || !cliaddr)
+        goto free_ctx;
+
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
         goto free_ctx;
@@ -601,6 +604,9 @@ _find_resource_reply_cb(struct sol_coap_server *server,
         return false;
     }
 
+    if (!req || !cliaddr)
+        return ctx->cb(ctx->client, NULL, ctx->data);
+
     if (!_pkt_has_same_token(req, ctx->token)) {
         SOL_WRN("Discovery packet token differs from expected");
         return false;
@@ -729,6 +735,8 @@ _resource_request_cb(struct sol_coap_server *server,
     int payload_type;
 
     if (!ctx->cb)
+        return false;
+    if (!req || !cliaddr)
         return false;
     if (!_pkt_has_same_token(req, ctx->token))
         return true;

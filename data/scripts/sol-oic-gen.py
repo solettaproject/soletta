@@ -1129,6 +1129,11 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
     struct client_resource *resource = data;
     int r;
 
+    if (!oic_res) {
+        SOL_WRN("resource discovery timeout");
+        return false;
+    }
+
     /* Some OIC device sent this node a discovery response packet but node's already set up. */
     if (resource->resource) {
         SOL_DBG("Received discovery packet when resource already set up, ignoring");
@@ -1237,6 +1242,11 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
     char *id;
     uint16_t i;
     int r;
+
+    if (!oic_res) {
+        SOL_WRN("Scanning timeout");
+        return false;
+    }
 
     /* FIXME: Should this check move to sol-oic-client? Does it actually make sense? */
     if (resource->rt && !client_resource_implements_type(oic_res, resource->rt)) {

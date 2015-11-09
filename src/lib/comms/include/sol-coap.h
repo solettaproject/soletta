@@ -651,6 +651,11 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
  * for more responses. When the function returns @c false, the internal response
  * handler will be freed and any new replies that arrive for this request
  * will be ignored.
+ * After internal timeout is reached reply_cb will be called with @c NULL
+ * req and cliaddr. The same behavior is expected for reply_cb return, if
+ * reply_cb returns @c true, @a server will continue waiting responses until
+ * next timeout. If reply_cb returns @c false, @a server will terminate
+ * response waiting.
  *
  * @note This function will take the reference of the given @a pkt.
  *
