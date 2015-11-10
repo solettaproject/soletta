@@ -392,35 +392,35 @@ format_title(struct sol_buffer *buf,
         return 0;
     }
 
+    if (!title || !title_tag)
+        return 0;
+
     /* Format title */
-    if (title && title_tag) {
-        const char *value = title;
-        r = format_chunk(buf, n_rows, n_cols, value, title + strlen(title),
-            row_ptr, col_ptr, DO_FORMAT, DITCH_NL);
-        SOL_INT_CHECK(r, < 0, r);
-        if (r >= (int)buf_size || *row_ptr >= n_rows) {
-            *no_more_space = true;
-            return 0;
-        }
-
-        if (n_rows > 1) {
-            r = go_to_new_line(buf, n_rows, n_cols, row_ptr, col_ptr);
-            SOL_INT_CHECK(r, < 0, r);
-        } else {
-            r = fill_spaces(buf, n_cols, row_ptr, col_ptr, 1);
-            SOL_INT_CHECK(r, < 0, r);
-        }
-
-        /* Format post-title, pre-value chunk. If we got only one
-         * line, ditch new lines in an attempt to have both title and
-         * value in it */
-        ptr = title_tag + strlen(TITLE_TAG);
-        r = format_chunk(buf, n_rows, n_cols, ptr, value_tag, row_ptr,
-            col_ptr, DO_FORMAT, n_rows > 1 ? KEEP_NL : DITCH_NL);
-        SOL_INT_CHECK(r, < 0, r);
-        if (r >= (int)buf_size || *row_ptr >= n_rows)
-            *no_more_space = true;
+    r = format_chunk(buf, n_rows, n_cols, title, title + strlen(title),
+        row_ptr, col_ptr, DO_FORMAT, DITCH_NL);
+    SOL_INT_CHECK(r, < 0, r);
+    if (r >= (int)buf_size || *row_ptr >= n_rows) {
+        *no_more_space = true;
+        return 0;
     }
+
+    if (n_rows > 1) {
+        r = go_to_new_line(buf, n_rows, n_cols, row_ptr, col_ptr);
+        SOL_INT_CHECK(r, < 0, r);
+    } else {
+        r = fill_spaces(buf, n_cols, row_ptr, col_ptr, 1);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    /* Format post-title, pre-value chunk. If we got only one
+     * line, ditch new lines in an attempt to have both title and
+     * value in it */
+    ptr = title_tag + strlen(TITLE_TAG);
+    r = format_chunk(buf, n_rows, n_cols, ptr, value_tag, row_ptr,
+        col_ptr, DO_FORMAT, n_rows > 1 ? KEEP_NL : DITCH_NL);
+    SOL_INT_CHECK(r, < 0, r);
+    if (r >= (int)buf_size || *row_ptr >= n_rows)
+        *no_more_space = true;
 
     return 0;
 }
@@ -464,8 +464,8 @@ format_send(struct sol_flow_node *node,
         SOL_INT_CHECK(r, < 0, r);
     }
 
-    return sol_flow_send_string_packet(node,
-        out_port, sol_buffer_steal(buf, NULL));
+    return sol_flow_send_string_slice_packet(node,
+        out_port, sol_buffer_get_slice(buf));
 }
 
 //FIXME: - autoscroll/markee effect on tags
@@ -602,7 +602,7 @@ post_value:
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
 send:
-    r = format_send(node, &mdata->text_grid,
+    return format_send(node, &mdata->text_grid,
         SOL_FLOW_NODE_TYPE_FORM_SELECTOR__OUT__STRING);
 
 err:
@@ -914,7 +914,7 @@ boolean_format_do(struct sol_flow_node *node)
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
 send:
-    r = format_send(node, &mdata->text_grid,
+    return format_send(node, &mdata->text_grid,
         SOL_FLOW_NODE_TYPE_FORM_BOOLEAN__OUT__STRING);
 
 err:
@@ -982,7 +982,7 @@ boolean_open(struct sol_flow_node *node,
 
     mdata->enabled = true;
 
-    return boolean_format_do(node);;
+    return boolean_format_do(node);
 
 err:
     boolean_close(node, mdata);
@@ -1108,7 +1108,7 @@ integer_format_do(struct sol_flow_node *node)
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
 send:
-    r = format_send(node, &mdata->text_grid,
+    return format_send(node, &mdata->text_grid,
         SOL_FLOW_NODE_TYPE_FORM_INT__OUT__STRING);
 
 err:
@@ -1132,12 +1132,82 @@ integer_close(struct sol_flow_node *node, void *data)
 }
 
 static int
+integer_common_open(struct sol_irange_spec range,
+    int32_t start_value,
+    int32_t rows,
+    int32_t columns,
+    const char *format,
+    const char *title,
+    struct integer_data *out)
+{
+    int64_t total_range;
+    int r;
+
+    if (range.min > range.max) {
+        SOL_WRN("Maximum range value shouldn't be less than min."
+            " Swapping values.");
+        out->state.max = range.min;
+        out->state.min = range.max;
+    } else {
+        out->state.max = range.max;
+        out->state.min = range.min;
+    }
+
+    out->state.step = range.step;
+    if (out->state.step == 0) {
+        SOL_WRN("Step value must be non-zero. Assuming 1 for it.");
+        out->state.step = 1;
+    }
+
+    total_range = (int64_t)out->state.max - (int64_t)out->state.min;
+    if ((out->state.step > 0 && out->state.step > total_range)
+        || (out->state.step < 0 && out->state.step < -total_range)) {
+        SOL_WRN("Step value must fit the given range. Assuming 1 for it.");
+        out->state.step = 1;
+    }
+
+    out->state.val = start_value;
+    if (out->state.val < out->state.min) {
+        SOL_INF("Start value must be in the given range"
+            " (%" PRId32 "-%" PRId32 "). Assuming the minimum for it.",
+            out->state.min, out->state.max);
+        out->state.val = out->state.min;
+    }
+    if (out->state.val > out->state.max) {
+        SOL_INF("Start value must be in the given range"
+            " (%" PRId32 "-%" PRId32 "). Assuming the maximum for it.",
+            out->state.min, out->state.max);
+        out->state.val = out->state.max;
+    }
+
+    r = common_form_init(rows,
+        &out->rows,
+        columns,
+        &out->columns,
+        format,
+        &out->format,
+        title,
+        &out->title,
+        &out->title_tag,
+        &out->value_tag,
+        &out->text_mem);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = buffer_re_init(&out->text_grid, out->text_mem, out->rows,
+        out->columns);
+    SOL_INT_CHECK(r, < 0, r);
+
+    out->enabled = true;
+
+    return 0;
+}
+
+static int
 integer_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
     int r;
-    int32_t range;
     struct integer_data *mdata = data;
     const struct sol_flow_node_type_form_int_options *opts =
         (const struct sol_flow_node_type_form_int_options *)options;
@@ -1145,65 +1215,13 @@ integer_open(struct sol_flow_node *node,
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_FORM_INT_OPTIONS_API_VERSION, -EINVAL);
 
-    if (opts->range.min > opts->range.max) {
-        SOL_WRN("Maximum range value shouldn't be less than min."
-            " Swapping values.");
-        mdata->state.max = opts->range.min;
-        mdata->state.min = opts->range.max;
-    } else {
-        mdata->state.max = opts->range.max;
-        mdata->state.min = opts->range.min;
-    }
-
-    mdata->state.step = opts->range.step;
-    if (mdata->state.step == 0) {
-        SOL_WRN("Step value must be non-zero. Assuming 1 for it.");
-        mdata->state.step = 1;
-    }
-
-    range = mdata->state.max - mdata->state.min;
-    if ((mdata->state.step > 0 && mdata->state.step > range)
-        || (mdata->state.step < 0 && mdata->state.step < -range)) {
-        SOL_WRN("Step value must fit the given range. Assuming 1 for it.");
-        mdata->state.step = 1;
-    }
-
-    mdata->state.val = opts->start_value;
-    if (mdata->state.val < mdata->state.min) {
-        SOL_INF("Start value must be in the given range"
-            " (%" PRId32 "-%" PRId32 "). Assuming the minimum for it.",
-            mdata->state.min, mdata->state.max);
-        mdata->state.val = mdata->state.min;
-    }
-    if (mdata->state.val > mdata->state.max) {
-        SOL_INF("Start value must be in the given range"
-            " (%" PRId32 "-%" PRId32 "). Assuming the maximum for it.",
-            mdata->state.min, mdata->state.max);
-        mdata->state.val = mdata->state.max;
-    }
+    r = integer_common_open(opts->range, opts->start_value, opts->rows,
+        opts->columns, opts->format, opts->title, mdata);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
 
     mdata->circular = opts->circular;
 
-    r = common_form_init(opts->rows,
-        &mdata->rows,
-        opts->columns,
-        &mdata->columns,
-        opts->format,
-        &mdata->format,
-        opts->title,
-        &mdata->title,
-        &mdata->title_tag,
-        &mdata->value_tag,
-        &mdata->text_mem);
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = buffer_re_init(&mdata->text_grid, mdata->text_mem, mdata->rows,
-        mdata->columns);
-    SOL_INT_CHECK_GOTO(r, < 0, err);
-
-    mdata->enabled = true;
-
-    return integer_format_do(node);;
+    return integer_format_do(node);
 
 err:
     integer_close(node, mdata);
@@ -1214,7 +1232,7 @@ err:
 /* Either step > 0 && step < max-min or step < 0 && step > min-max */
 
 static int
-up_set(struct sol_flow_node *node,
+integer_up_set(struct sol_flow_node *node,
     void *data,
     uint16_t port,
     uint16_t conn_id,
@@ -1247,7 +1265,7 @@ up_set(struct sol_flow_node *node,
 }
 
 static int
-down_set(struct sol_flow_node *node,
+integer_down_set(struct sol_flow_node *node,
     void *data,
     uint16_t port,
     uint16_t conn_id,
@@ -1345,5 +1363,572 @@ integer_enabled_set(struct sol_flow_node *node,
     return 0;
 }
 
+struct integer_custom_data {
+    struct integer_data base;
+    struct sol_timeout *timer;
+    char *chars;
+    size_t cursor_row, cursor_col, value_prefix_len;
+    int blink_time;
+    uint8_t n_digits;
+    bool blink_on : 1;
+    bool state_changed : 1;
+    bool cursor_initialized : 1;
+};
+
+static int
+integer_custom_format_do(struct sol_flow_node *node)
+{
+    struct integer_custom_data *mdata = sol_flow_node_get_private_data(node);
+    int r, buf_size = mdata->base.text_grid.capacity;
+    bool no_more_space = false;
+    size_t row = 0, col = 0, tmp;
+    char *it_value = NULL;
+    char format[PATH_MAX];
+
+    if (!mdata->state_changed) {
+        char *value;
+        size_t pos;
+
+        if (mdata->cursor_col > mdata->base.columns - 1)
+            goto send;
+
+        pos = coords_to_pos
+                (mdata->base.columns, mdata->cursor_row, mdata->cursor_col);
+
+        value = (char *)sol_buffer_at(&mdata->base.text_grid, pos);
+
+        if (mdata->blink_on) {
+            mdata->blink_on = false;
+            *value = SPC;
+        } else {
+            mdata->blink_on = true;
+            pos -= coords_to_pos(mdata->base.columns, mdata->cursor_row, 0);
+            pos -= mdata->value_prefix_len;
+            *value = mdata->chars[pos];
+        }
+
+        goto send;
+    }
+
+    r = format_title(&mdata->base.text_grid, buf_size, mdata->base.rows,
+        mdata->base.columns, &row, &col, mdata->base.format, mdata->base.title,
+        mdata->base.title_tag, mdata->base.value_tag, &no_more_space);
+    SOL_INT_CHECK(r, < 0, r);
+    SOL_EXP_CHECK_GOTO(no_more_space, send);
+
+    mdata->value_prefix_len = col;
+    if (mdata->base.state.val < 0)
+        mdata->value_prefix_len++;
+
+    if (mdata->base.state.val >= 0)
+        r = snprintf(format, sizeof(format), "%%0%" PRIu8 "" PRId32 "",
+            mdata->n_digits);
+    else
+        r = snprintf(format, sizeof(format), "%% 0%" PRIu8 "" PRId32 "",
+            mdata->n_digits + 1);
+    if (r < 0 || r > (int)sizeof(format))
+        return -EINVAL;
+
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+    r = asprintf(&it_value, format, mdata->base.state.val);
+#pragma GCC diagnostic pop
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+    if (mdata->base.state.val >= 0)
+        memcpy(mdata->chars, it_value, mdata->n_digits);
+    else
+        memcpy(mdata->chars, it_value + 1, mdata->n_digits);
+
+    tmp = strlen(it_value);
+    if (!mdata->cursor_initialized) {
+        mdata->cursor_row = row;
+        mdata->cursor_col = mdata->base.text_grid.used
+            - coords_to_pos(mdata->base.columns, mdata->cursor_row, 0)
+            + tmp - 1;
+        mdata->cursor_initialized = true;
+    }
+    r = format_chunk(&mdata->base.text_grid, mdata->base.rows,
+        mdata->base.columns, it_value, it_value + tmp, &row, &col,
+        DO_FORMAT, DITCH_NL);
+    free(it_value);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    if (r >= buf_size || row >= mdata->base.rows)
+        goto send;
+
+    r = format_post_value(&mdata->base.text_grid, mdata->base.rows,
+        mdata->base.columns, &row, &col, mdata->base.format,
+        mdata->base.value_tag);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+    mdata->state_changed = false;
+
+send:
+    r = format_send(node, &mdata->base.text_grid,
+        SOL_FLOW_NODE_TYPE_FORM_INT__OUT__STRING);
+
+    return r;
+
+err:
+    /* we got to re-init because of the error cases. if this function
+     * fails we're no better, so don't check. */
+    buffer_re_init(&mdata->base.text_grid, mdata->base.text_mem,
+        mdata->base.rows, mdata->base.columns);
+
+    return r;
+}
+
+static bool
+integer_custom_timeout(void *data)
+{
+    return integer_custom_format_do(data) == 0;
+}
+
+static void
+force_imediate_format(struct integer_custom_data *mdata, bool re_init)
+{
+    if (re_init)
+        buffer_re_init(&mdata->base.text_grid, mdata->base.text_mem,
+            mdata->base.rows, mdata->base.columns);
+    if (mdata->timer) {
+        sol_timeout_del(mdata->timer);
+        mdata->timer = NULL;
+    }
+}
+
+static int
+integer_custom_format(struct sol_flow_node *node)
+{
+    struct integer_custom_data *mdata = sol_flow_node_get_private_data(node);
+
+    if (!mdata->timer) {
+        mdata->timer = sol_timeout_add
+                (mdata->blink_time, integer_custom_timeout, node);
+        SOL_NULL_CHECK(mdata->timer, -ENOMEM);
+        return integer_custom_format_do(node);
+    }
+
+    return 0;
+}
+
+static void
+integer_custom_close(struct sol_flow_node *node, void *data)
+{
+    struct integer_custom_data *mdata = data;
+
+    sol_buffer_fini(&mdata->base.text_grid);
+    free(mdata->chars);
+
+    if (mdata->timer)
+        sol_timeout_del(mdata->timer);
+
+    free(mdata->base.title);
+    free(mdata->base.format);
+}
+
+static int
+integer_custom_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    char sbuf[2];
+    int n_max, n_min;
+    struct integer_custom_data *mdata = data;
+    const struct sol_flow_node_type_form_int_custom_options *opts =
+        (const struct sol_flow_node_type_form_int_custom_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_FORM_INT_OPTIONS_API_VERSION, -EINVAL);
+
+    r = integer_common_open(opts->range, opts->start_value, opts->rows,
+        opts->columns, opts->format, opts->title, &mdata->base);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+    mdata->blink_time = opts->blink_time;
+    if (opts->blink_time < 0) {
+        SOL_WRN("Invalid blink_time (%" PRId32 "), that must be positive. "
+            "Setting to 1ms.", opts->blink_time);
+        mdata->blink_time = 1;
+    }
+
+    mdata->blink_on = true;
+
+    n_max = snprintf(sbuf, 1, "%+" PRId32 "", mdata->base.state.max);
+    SOL_INT_CHECK_GOTO(n_max, < 0, err);
+
+    n_min = snprintf(sbuf, 1, "%+" PRId32 "", mdata->base.state.min);
+    SOL_INT_CHECK_GOTO(n_min, < 0, err);
+
+    /* -1 to take away sign */
+    mdata->n_digits = sol_max(n_min, n_max) - 1;
+
+    mdata->chars = calloc(1, mdata->n_digits);
+    SOL_NULL_CHECK_GOTO(mdata->chars, err);
+
+    mdata->state_changed = true;
+
+    return integer_custom_format(node);
+
+err:
+    integer_custom_close(node, mdata);
+
+    return r;
+}
+
+static int64_t
+ten_pow(unsigned int exp)
+{
+    int64_t result = 1;
+
+    while (exp) {
+        result *= 10;
+        exp--;
+    }
+
+    return result;
+}
+
+static int
+char_remove(struct integer_custom_data *mdata,
+    size_t cursor_pos,
+    char *out)
+{
+    int64_t tmp;
+    bool negative = mdata->base.state.val < 0;
+
+    *out = mdata->chars[cursor_pos];
+    tmp = ten_pow(mdata->n_digits - cursor_pos - 1);
+    if (tmp > INT32_MAX)
+        return -EDOM;
+
+    tmp = (int64_t)(*out - '0') * tmp;
+    if ((negative
+        && tmp > (int64_t)mdata->base.state.max - mdata->base.state.val)
+        || (!negative
+        && tmp > (int64_t)mdata->base.state.val - mdata->base.state.min))
+        return -EDOM;
+
+    if (!negative)
+        mdata->base.state.val -= (int32_t)tmp;
+    else
+        mdata->base.state.val += (int32_t)tmp;
+
+    return 0;
+}
+
+static int
+char_re_insert(struct integer_custom_data *mdata,
+    size_t cursor_pos,
+    char c,
+    bool negative)
+{
+    int64_t tmp;
+
+    tmp = (int64_t)(c - '0') * ten_pow(mdata->n_digits - cursor_pos - 1);
+    if ((!negative && tmp > mdata->base.state.max - mdata->base.state.val)
+        || (negative
+        && tmp > (int64_t)mdata->base.state.val - mdata->base.state.min))
+        return -EDOM;
+
+    if (!negative)
+        mdata->base.state.val += (int32_t)tmp;
+    else
+        mdata->base.state.val -= (int32_t)tmp;
+
+    return 0;
+}
+
+static void
+cursor_pos_calc(struct integer_custom_data *mdata,
+    size_t *cursor_pos)
+{
+    *cursor_pos = coords_to_pos
+            (mdata->base.columns, mdata->cursor_row, mdata->cursor_col);
+    *cursor_pos -= coords_to_pos(mdata->base.columns, mdata->cursor_row, 0);
+    *cursor_pos -= mdata->value_prefix_len;
+}
+
+static int
+digit_flip_post(struct sol_flow_node *node,
+    size_t cursor_pos,
+    char c,
+    char orig_c,
+    bool negative)
+{
+    int r;
+    struct integer_custom_data *mdata = sol_flow_node_get_private_data(node);
+
+    mdata->chars[cursor_pos] = c;
+
+    r = char_re_insert(mdata, cursor_pos, c, negative);
+    if (r < 0) {
+        char_re_insert(mdata, cursor_pos, orig_c, negative);
+        c = orig_c;
+        mdata->chars[cursor_pos] = orig_c;
+
+        return sol_flow_send_empty_packet(node,
+            SOL_FLOW_NODE_TYPE_FORM_INT__OUT__OUT_OF_RANGE);
+    }
+
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    force_imediate_format(mdata, true);
+    return integer_custom_format(node);
+}
+
+static int
+integer_custom_up_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    char c, old_c;
+    size_t cursor_pos = 0;
+    bool negative, sign_change = false;
+    struct integer_custom_data *mdata = data;
+
+    if (!mdata->base.enabled)
+        return 0;
+
+    negative = mdata->base.state.val < 0;
+
+    cursor_pos_calc(mdata, &cursor_pos);
+
+    if ((mdata->base.state.val == -1 || mdata->base.state.val == -9)
+        && cursor_pos == (size_t)(mdata->n_digits - 1))
+        sign_change = true;
+
+    r = char_remove(mdata, cursor_pos, &c);
+    if (r < 0)
+        return sol_flow_send_empty_packet(node,
+            SOL_FLOW_NODE_TYPE_FORM_INT__OUT__OUT_OF_RANGE);
+
+    old_c = c;
+
+    c++;
+    if (c > '9')
+        c = '0';
+
+    if (negative && sign_change)
+        mdata->cursor_initialized = false;
+
+    return digit_flip_post(node, cursor_pos, c, old_c, negative);
+}
+
+static int
+integer_custom_down_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    char c, old_c;
+    size_t cursor_pos;
+    bool negative, sign_change = false;
+    struct integer_custom_data *mdata = data;
+
+    if (!mdata->base.enabled)
+        return 0;
+
+    negative = mdata->base.state.val < 0;
+
+    cursor_pos_calc(mdata, &cursor_pos);
+
+    if ((mdata->base.state.val == 0 || mdata->base.state.val == -1)
+        && cursor_pos == (size_t)(mdata->n_digits - 1))
+        sign_change = true;
+
+    r = char_remove(mdata, cursor_pos, &c);
+    if (r < 0)
+        return sol_flow_send_empty_packet(node,
+            SOL_FLOW_NODE_TYPE_FORM_INT__OUT__OUT_OF_RANGE);
+
+    old_c = c;
+
+    c--;
+    if (c < '0')
+        c = '9';
+
+    if (sign_change) {
+        /* We're going from -1 to 0. Since the least significant digit
+         * has already been taken, stay on zero. */
+        if (negative)
+            c = '0';
+        /* We're going from 0 to -1. We want to add (minus) 1, then. */
+        else
+            c = '1';
+        negative = !negative;
+        mdata->cursor_initialized = false;
+    }
+
+    return digit_flip_post(node, cursor_pos, c, old_c, negative);
+}
+
+static int
+integer_custom_next_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_custom_data *mdata = data;
+
+    if (!mdata->base.enabled)
+        return 0;
+
+    mdata->cursor_col++;
+    if (mdata->cursor_col >
+        (size_t)(mdata->n_digits + mdata->value_prefix_len - 1)) {
+        mdata->cursor_col--;
+        return 0;
+    }
+
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    force_imediate_format(mdata, true);
+    return integer_custom_format(node);
+}
+
+static int
+integer_custom_previous_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_custom_data *mdata = data;
+
+    if (!mdata->base.enabled)
+        return 0;
+
+    if (mdata->cursor_col > (mdata->base.state.val > 0 ? 0 : 1))
+        mdata->cursor_col--;
+    else
+        return 0;
+
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    force_imediate_format(mdata, true);
+    return integer_custom_format(node);
+}
+
+static int
+sign_toggle(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_custom_data *mdata = data;
+    int64_t tmp;
+
+    if (!mdata->base.enabled)
+        return 0;
+
+    tmp = mdata->base.state.val * -1;
+
+    if (tmp < 0) {
+        if (tmp < mdata->base.state.min)
+            mdata->base.state.val = mdata->base.state.min;
+        else
+            mdata->base.state.val = tmp;
+    } else {
+        if (tmp > mdata->base.state.max)
+            mdata->base.state.val = mdata->base.state.max;
+        else
+            mdata->base.state.val = tmp;
+    }
+
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+    /* calculate it again, now accounting for sign char */
+    mdata->cursor_initialized = false;
+
+    force_imediate_format(mdata, true);
+    return integer_custom_format(node);
+}
+
+static int
+integer_custom_selected_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_custom_data *mdata = data;
+    int32_t value;
+    int r;
+
+    r = sol_flow_packet_get_irange_value(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->base.state.val = value;
+    if (mdata->base.state.val > mdata->base.state.max)
+        mdata->base.state.val = mdata->base.state.max;
+    if (mdata->base.state.val < mdata->base.state.min)
+        mdata->base.state.val = mdata->base.state.min;
+
+    if (!mdata->base.enabled)
+        return 0;
+
+    /* force from scratch because sign may change */
+    force_imediate_format(mdata, true);
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    return integer_custom_format(node);
+}
+
+static int
+integer_custom_select_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_custom_data *mdata = data;
+    int r;
+
+    if (!mdata->base.enabled)
+        return 0;
+
+    /* force new format with state changed and blink state on, so we
+     * always get the full output here */
+    force_imediate_format(mdata, false);
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    r = integer_custom_format(node);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_flow_send_irange_packet(node,
+        SOL_FLOW_NODE_TYPE_FORM_INT__OUT__SELECTED,
+        &mdata->base.state);
+}
+
+static int
+integer_custom_enabled_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct integer_custom_data *mdata = data;
+    bool value;
+    int r;
+
+    r = sol_flow_packet_get_boolean(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->base.enabled = value;
+
+    return 0;
+}
 
 #include "form-gen.c"
