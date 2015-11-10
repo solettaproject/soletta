@@ -34,6 +34,8 @@
 
 #include <sol-buffer.h>
 #include <sol-vector.h>
+#include <sol-str-slice.h>
+#include <sol-arena.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -95,24 +97,25 @@ struct sol_http_param {
     uint16_t reserved;
 
     struct sol_vector params;
+    struct sol_arena *arena;
 };
 
 struct sol_http_param_value {
     enum sol_http_param_type type;
     union {
         struct {
-            const char *key;
-            const char *value;
+            struct sol_str_slice key;
+            struct sol_str_slice value;
         } key_value;
         struct {
-            const char *user;
-            const char *password;
+            struct sol_str_slice user;
+            struct sol_str_slice password;
         } auth;
         struct {
             bool value;
         } boolean;
         struct {
-            int value;
+            int32_t value;
         } integer;
         struct {
             const struct sol_str_slice value;
@@ -132,7 +135,18 @@ struct sol_http_response {
     int response_code;
 };
 
-#define SOL_HTTP_RESPONSE_CHECK_API(response_, ...) \
+struct sol_http_url {
+    struct sol_str_slice scheme;
+    struct sol_str_slice user;
+    struct sol_str_slice password;
+    struct sol_str_slice host;
+    struct sol_str_slice path;
+    struct sol_str_slice query;
+    struct sol_str_slice fragment;
+    uint32_t port; //If == 0 ignore
+};
+
+#define SOL_HTTP_RESPONSE_CHECK_API(response_, ...)  \
     do { \
         if (unlikely(!response_)) { \
             SOL_WRN("Error while reaching service."); \
@@ -170,8 +184,8 @@ struct sol_http_response {
     (struct sol_http_param_value) { \
         .type = type_, \
         .value.key_value = { \
-            .key = (key_), \
-            .value = (value_) \
+            .key = sol_str_slice_from_str((key_ ? : "")),        \
+            .value = sol_str_slice_from_str((value_ ? : ""))        \
         } \
     }
 
@@ -191,8 +205,8 @@ struct sol_http_response {
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_AUTH_BASIC, \
         .value.auth = { \
-            .user = (username_), \
-            .password = (password_) \
+            .user = sol_str_slice_from_str((username_ ? : "")),    \
+            .password = sol_str_slice_from_str((password_ ? : ""))    \
         } \
     }
 
@@ -236,9 +250,108 @@ sol_http_param_init(struct sol_http_param *params)
 
 bool sol_http_param_add(struct sol_http_param *params,
     struct sol_http_param_value value) SOL_ATTR_WARN_UNUSED_RESULT;
+bool sol_http_param_add_copy(struct sol_http_param *params, struct sol_http_param_value value);
 void sol_http_param_free(struct sol_http_param *params);
 
-int sol_http_escape_string(char **escaped, const char *value);
+/**
+ * Encodes an URL string.
+ *
+ * If the string was not encoded this function will simple copy
+ * the slices content to the buffer and set @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNE.D
+ *
+ * @param buf The buffer that will hold the encoded string.
+ * @param value A slice to be encoded.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_encode_slice(struct sol_buffer *buf, const struct sol_str_slice value);
+
+/**
+ * Decodes an URL string.
+ *
+ * If the string was not decoded this function will simple copy
+ * the slices contents to the buffer and set @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED.
+ *
+ * @param buf The buffer that will hold the decoded string.
+ * @param value A slice to be decoded.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_decode_slice(struct sol_buffer *buf, const struct sol_str_slice value);
+
+/**
+ *  Creates an URI based on struct sol_http_url and its params
+ *
+ * @param url_out The created URI - it should be freed using free().
+ * @param url The url parameters.
+ * @param params The query and cookies params.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_create_uri(char **uri_out, const struct sol_http_url url, const struct sol_http_param *params);
+
+/**
+ * A simpler version of sol_http_create_uri().
+ *
+ *
+ * @param uri The created URI - it should be freed using free().
+ * @param base_uri The base uri to be used.
+ * @param params The query and cookies params.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri, const struct sol_http_param *params);
+
+/**
+ * Encodes http parameters of a given type.
+ *
+ * @param buf Where the encoded parameters will be stored as string.
+ * @param type The parameter that should be encoded.
+ * @param params The parameters to be encoded.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type, const struct sol_http_param *params);
+
+/**
+ * Decodes http parameters of a given type.
+ *
+ * @param buf Where the decoded parameters will be stored as string.
+ * @param type The parameter that should be decoded.
+ * @param params The parameters to be decoded.
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_decode_params(const struct sol_str_slice params_slice, enum sol_http_param_type type, struct sol_http_param *params);
+
+/**
+ * Split an URI.
+ *
+ * This function will receive a complete URI and split and store its values in the sol_http_url struct.
+ *
+ * @param full_uri An URI to be splitted.
+ * @param url Where the URL parts will be stored.
+ *
+ *
+ * @return 0 on success, negative number on error.
+ * @note This function will not decoded the URI.
+ */
+int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url *url);
+
+/**
+ * An wrapper of over sol_http_create_simple_uri()
+ *
+ * @param uri The created URI - it should be freed using free().
+ * @param base_uri The base uri to be used.
+ * @param params The query and cookies params.
+ *
+ * @return 0 on success, negative number on error.
+ */
+static inline int
+sol_http_create_simple_uri_from_str(char **uri, const char *base_url, const struct sol_http_param *params)
+{
+    return sol_http_create_simple_uri(uri, sol_str_slice_from_str(base_url ? base_url : ""), params);
+}
 
 /**
  * @}

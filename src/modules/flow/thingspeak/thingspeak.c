@@ -284,6 +284,7 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
 
     if (mdata->position >= 0) {
         char position_str[3 * sizeof(int)];
+        char *pos_str;
 
         r = snprintf(position_str, sizeof(position_str), "%d", mdata->position);
         if (r < 0 || r >= (int)sizeof(position_str)) {
@@ -292,8 +293,12 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
             goto out;
         }
 
+        /* Use pos_str at SOL_HTTP_REQUEST_PARAM_POST_FIELD macro, otherwise
+           the compiler will complain about an "always true" comparison.
+         */
+        pos_str = position_str;
         if (!sol_http_param_add(&params,
-            SOL_HTTP_REQUEST_PARAM_POST_FIELD("position", position_str))) {
+            SOL_HTTP_REQUEST_PARAM_POST_FIELD("position", pos_str))) {
             SOL_WRN("Could not add position");
             error_code = -ENOMEM;
             goto out;

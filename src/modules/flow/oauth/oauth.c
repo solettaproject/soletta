@@ -172,10 +172,10 @@ v1_authorize_response_cb(void *data, struct sol_http_request *request)
     SOL_HTTP_PARAM_FOREACH_IDX (sol_http_request_get_params(request), value, idx) {
         switch (value->type) {
         case SOL_HTTP_PARAM_QUERY_PARAM:
-            if (streq(value->value.key_value.key, "oauth_verifier") && !verifier) {
-                verifier = strdup(value->value.key_value.value);
-            } else if (streq(value->value.key_value.key, "oauth_token") && !token) {
-                token = strdup(value->value.key_value.value);
+            if (sol_str_slice_str_eq(value->value.key_value.key, "oauth_verifier") && !verifier) {
+                verifier = sol_str_slice_to_string(value->value.key_value.value);
+            } else if (sol_str_slice_str_eq(value->value.key_value.key, "oauth_token") && !token) {
+                token = sol_str_slice_to_string(value->value.key_value.value);
             }
             break;
         default:
@@ -478,8 +478,9 @@ static int
 v1_request_start_cb(void *data, struct sol_http_request *request)
 {
     int r;
-    char *escaped_url, *signature, *params, *escaped_params, *escaped_callback;
+    char *signature, *params;
     struct sol_flow_node *node = data;
+    struct sol_buffer escaped_callback, escaped_params, escaped_url;
     struct v1_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_message_digest *digest;
     struct sol_blob *blob;
@@ -511,27 +512,30 @@ v1_request_start_cb(void *data, struct sol_http_request *request)
     r = sol_ptr_vector_append(&mdata->pending_digests, digest);
     SOL_INT_CHECK_GOTO(r, < 0, err_append);
 
-    r = sol_http_escape_string(&escaped_callback, req_data->callback_url);
+    r = sol_http_encode_slice(&escaped_callback, sol_str_slice_from_str(req_data->callback_url));
     SOL_INT_CHECK_GOTO(r, < 0, err_escape_callback);
 
     r  = asprintf(&params,
-        "oauth_callback=%s"
+        "oauth_callback=%.*s"
         "&oauth_consumer_key=%s"
         "&oauth_nonce=%s"
         "&oauth_signature_method=HMAC-SHA1"
         "&oauth_timestamp=%s"
         "&oauth_version=1.0",
-        escaped_callback, mdata->consumer_key, req_data->nonce,
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&escaped_callback)),
+        mdata->consumer_key, req_data->nonce,
         req_data->timestamp);
     SOL_INT_CHECK_GOTO(r, < 0, err_params);
 
-    r = sol_http_escape_string(&escaped_params, params);
+    r = sol_http_encode_slice(&escaped_params, sol_str_slice_from_str(params));
     SOL_INT_CHECK_GOTO(r, < 0, err_escape_params);
 
-    r = sol_http_escape_string(&escaped_url, mdata->request_token_url);
+    r = sol_http_encode_slice(&escaped_url, sol_str_slice_from_str(mdata->request_token_url));
     SOL_INT_CHECK_GOTO(r, < 0, err_escape);
 
-    r = asprintf(&signature, "POST&%s&%s", escaped_url, escaped_params);
+    r = asprintf(&signature, "POST&%.*s&%.*s",
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&escaped_url)),
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&escaped_params)));
     SOL_INT_CHECK_GOTO(r, < 0, err_signature);
 
     blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, signature, strlen(signature));
@@ -541,10 +545,10 @@ v1_request_start_cb(void *data, struct sol_http_request *request)
     SOL_INT_CHECK_GOTO(r, < 0, err_feed);
 
     sol_blob_unref(blob);
-    free(escaped_params);
-    free(escaped_callback);
+    sol_buffer_fini(&escaped_params);
+    sol_buffer_fini(&escaped_callback);
     free(params);
-    free(escaped_url);
+    sol_buffer_fini(&escaped_url);
 
     return 0;
 
@@ -553,13 +557,13 @@ err_feed:
 err_blob:
     free(signature);
 err_signature:
-    free(escaped_url);
+    sol_buffer_fini(&escaped_url);
 err_escape:
-    free(escaped_params);
+    sol_buffer_fini(&escaped_params);
 err_escape_params:
     free(params);
 err_params:
-    free(escaped_callback);
+    sol_buffer_fini(&escaped_callback);
 err_escape_callback:
     sol_ptr_vector_remove(&mdata->pending_digests, digest);
 err_append:
