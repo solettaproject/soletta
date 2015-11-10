@@ -592,18 +592,26 @@ fail:
 static bool
 set_auth_basic(CURL *curl, const struct sol_http_param_value *param)
 {
+    struct sol_buffer buf;
+    int err;
     char *user, *password;
     bool r = false;
 
     user = password = NULL;
 
     if (param->value.auth.user.len) {
-        user = sol_str_slice_to_string(param->value.auth.user);
+        err = sol_http_encode_slice(&buf, param->value.auth.user);
+        SOL_INT_CHECK(err, < 0, false);
+        user = sol_str_slice_to_string(sol_buffer_get_slice(&buf));
+        sol_buffer_fini(&buf);
         SOL_NULL_CHECK(user, false);
     }
 
     if (param->value.auth.password.len) {
-        password = sol_str_slice_to_string(param->value.auth.password);
+        err = sol_http_encode_slice(&buf, param->value.auth.password);
+        SOL_INT_CHECK_GOTO(err, < 0, exit);
+        password = sol_str_slice_to_string(sol_buffer_get_slice(&buf));
+        sol_buffer_fini(&buf);
         SOL_NULL_CHECK_GOTO(password, exit);
     }
 
