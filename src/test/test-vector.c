@@ -33,6 +33,7 @@
 #include "test.h"
 #include "sol-vector.h"
 #include "sol-util.h"
+#include "sol-log.h"
 
 struct s {
     int a;
@@ -359,5 +360,52 @@ vector_initializes_elements_to_zero(void)
     sol_vector_clear(v);
 }
 
+
+DEFINE_TEST(test_vector_del_element);
+
+static void
+test_vector_del_element(void)
+{
+    static const unsigned int N = 16;
+    struct sol_vector v;
+    struct s *s;
+    uint16_t i;
+    int r;
+
+    sol_vector_init(&v, sizeof(struct s));
+
+    // Add elements.
+    for (i = 0; i < N; i++) {
+        s = sol_vector_append(&v);
+        s->a = i;
+    }
+    ASSERT_INT_EQ(v.len, N);
+
+    // Delete two first elements.
+    sol_vector_del_element(&v, sol_vector_get(&v, 1));
+    sol_vector_del_element(&v, sol_vector_get(&v, 0));
+    ASSERT_INT_EQ(v.len, N - 2);
+
+    // Verify elements.
+    for (i = 0; i < N - 2; i++) {
+        s = sol_vector_get(&v, i);
+        ASSERT_INT_EQ(s->a, i + 2);
+    }
+
+    r = sol_vector_del_element(&v, 0);
+    ASSERT_INT_EQ(r, -EINVAL);
+
+    r = sol_vector_del_element(&v, (const char *)v.data + v.elem_size * N);
+    ASSERT_INT_EQ(r, -EINVAL);
+
+    r = sol_vector_del_element(&v, (const char *)v.data + v.elem_size * (-1));
+    ASSERT_INT_EQ(r, -EINVAL);
+
+    r = sol_vector_del_element(&v, (const char *)v.data +
+        (int)(v.elem_size / 2));
+    ASSERT_INT_EQ(r, -EINVAL);
+
+    ASSERT_INT_EQ(v.len, N - 2);
+}
 
 TEST_MAIN();

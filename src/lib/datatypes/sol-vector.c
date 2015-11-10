@@ -265,3 +265,19 @@ sol_ptr_vector_init_n(struct sol_ptr_vector *pv, uint16_t n)
         return -errno;
     return 0;
 }
+
+SOL_API int
+sol_vector_del_element(struct sol_vector *v, const void *elem)
+{
+    ssize_t offset;
+
+    offset = (const char *)elem - (const char *)v->data;
+    if (offset % v->elem_size)
+        return -EINVAL;
+
+    offset = offset / v->elem_size;
+    if (offset < 0 || offset >= v->len)
+        return -EINVAL;
+
+    return sol_vector_del(v, offset);
+}
