@@ -326,8 +326,6 @@ struct sol_coap_resource {
      * Bitwise OR-ed flags from #sol_coap_flags, if any is necessary.
      */
     enum sol_coap_flags flags;
-    struct sol_str_slice iface;
-    struct sol_str_slice resource_type;
     /**
      * Path representing the resource.
      *
