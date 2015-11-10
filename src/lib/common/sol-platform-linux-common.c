@@ -405,8 +405,8 @@ sol_mtab_cleanup(const char *mpoint)
         goto finish;
     }
 
-    len = write(fd, output.data, sizeof(output.data));
-    if (!len || len != sizeof(output.data)) {
+    len = write(fd, output.data, output.used);
+    if (!len || len != output.used) {
         SOL_ERR("Could not write "SOL_MTAB_FILE " file - %s",
             sol_util_strerrora(errno));
         res = -errno;
