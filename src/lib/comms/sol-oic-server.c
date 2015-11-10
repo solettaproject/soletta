@@ -610,9 +610,6 @@ create_coap_resource(struct sol_oic_server_resource *resource)
     if (oic_server.dtls_server)
         resource->flags |= SOL_OIC_FLAG_SECURE;
 
-    res->iface = sol_str_slice_from_str(resource->iface);
-    res->resource_type = sol_str_slice_from_str(resource->rt);
-
     return res;
 }
 
