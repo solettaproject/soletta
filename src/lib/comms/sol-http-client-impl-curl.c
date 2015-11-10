@@ -820,6 +820,7 @@ sol_http_client_request(enum sol_http_method method,
     struct curl_http_method_opt method_opt;
     CURLcode code;
 
+    SOL_NULL_CHECK(base_uri, NULL);
 
     if (method >= SOL_HTTP_METHOD_INVALID) {
         SOL_WRN("The HTTP method is set to invalid");
