@@ -485,11 +485,26 @@ exit:
     return r;
 }
 
+static struct sol_str_slice *
+_find_fragment(const struct sol_http_params *params)
+{
+    uint16_t idx;
+    struct sol_http_param_value *itr;
+
+    SOL_HTTP_PARAMS_FOREACH_IDX(params, itr, idx) {
+        if (itr->type == SOL_HTTP_PARAM_FRAGMENT)
+            return &itr->value.key_value.key;
+    }
+
+    return NULL;
+}
+
 SOL_API int
 sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri,
     const struct sol_http_params *params)
 {
     struct sol_buffer buf;
+    struct sol_str_slice *fragment;
     int r;
 
     SOL_NULL_CHECK(uri, -EINVAL);
@@ -511,8 +526,18 @@ sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri,
         r = sol_http_encode_params(&buf, SOL_HTTP_PARAM_QUERY_PARAM,
             params);
         SOL_INT_CHECK_GOTO(r, < 0, exit);
+
         if (used == buf.used) {
             r = sol_buffer_resize(&buf, used - 1);
+            SOL_INT_CHECK_GOTO(r, < 0, exit);
+        }
+
+        fragment = _find_fragment(params);
+
+        if (fragment && fragment->len) {
+            r = sol_buffer_append_char(&buf, '#');
+            SOL_INT_CHECK_GOTO(r, < 0, exit);
+            r = sol_buffer_append_slice(&buf, *fragment);
             SOL_INT_CHECK_GOTO(r, < 0, exit);
         }
     }
