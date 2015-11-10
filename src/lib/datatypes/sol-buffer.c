@@ -62,6 +62,8 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
 
     buf->data = new_data;
     buf->capacity = new_size;
+    if (buf->used > new_size)
+        buf->used = new_size;
     return 0;
 }
 
