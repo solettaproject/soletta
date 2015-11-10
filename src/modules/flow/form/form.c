@@ -46,8 +46,9 @@
 #define DO_FORMAT (false)
 #define CALC_ONLY (true)
 
-static const char CR = '\r', NL = '\n', SPC = ' ', NUL = '\0';
-static const char TITLE_TAG[] = "{title}", VALUE_TAG[] = "{value}";
+static const char CR = '\r', NL = '\n', SPC = ' ', UNDERSCORE = '_', NUL = '\0';
+static const char TITLE_TAG[] = "{title}", VALUE_TAG[] = "{value}",
+    EMPTY_STR[] = "";
 
 struct selector_data {
     char *title, *sel_mark, *cursor_mark, *text_mem;
@@ -99,7 +100,8 @@ buffer_re_init(struct sol_buffer *buf,
 }
 
 static int
-common_form_init(int32_t in_rows,
+common_form_init(struct sol_buffer *buf,
+    int32_t in_rows,
     size_t *out_rows,
     int32_t in_cols,
     size_t *out_cols,
@@ -113,6 +115,8 @@ common_form_init(int32_t in_rows,
 {
     int r = 0;
     size_t size;
+
+    SOL_NULL_CHECK(in_format, -EINVAL);
 
     if (in_rows <= 0) {
         SOL_WRN("Form rows number must be a positive integer, "
@@ -166,6 +170,12 @@ common_form_init(int32_t in_rows,
             r = -ENOMEM;
             goto err_title;
         }
+    }
+
+    r = buffer_re_init(buf, *out_text_mem, *out_rows, *out_cols);
+    if (r < 0) {
+        sol_buffer_fini(buf);
+        goto err_tags;
     }
 
     return 0;
@@ -652,7 +662,8 @@ selector_open(struct sol_flow_node *node,
     sol_ptr_vector_init(&mdata->items);
     mdata->enabled = true;
 
-    r = common_form_init(opts->rows,
+    r = common_form_init(&mdata->text_grid,
+        opts->rows,
         &mdata->rows,
         opts->columns,
         &mdata->columns,
@@ -680,10 +691,6 @@ selector_open(struct sol_flow_node *node,
             goto err;
         }
     }
-
-    r = buffer_re_init(&mdata->text_grid, mdata->text_mem, mdata->rows,
-        mdata->columns);
-    SOL_INT_CHECK_GOTO(r, < 0, err);
 
     /* we don't issue selector_format_do() until the 1st add_item()
      * call is done, there's no point in doing so */
@@ -963,7 +970,8 @@ boolean_open(struct sol_flow_node *node,
         return -ENOMEM;
     }
 
-    r = common_form_init(opts->rows,
+    r = common_form_init(&mdata->text_grid,
+        opts->rows,
         &mdata->rows,
         opts->columns,
         &mdata->columns,
@@ -976,18 +984,9 @@ boolean_open(struct sol_flow_node *node,
         &mdata->text_mem);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = buffer_re_init(&mdata->text_grid, mdata->text_mem, mdata->rows,
-        mdata->columns);
-    SOL_INT_CHECK_GOTO(r, < 0, err);
-
     mdata->enabled = true;
 
     return boolean_format_do(node);
-
-err:
-    boolean_close(node, mdata);
-
-    return r;
 }
 
 static int
@@ -1090,7 +1089,7 @@ integer_format_do(struct sol_flow_node *node)
     r = format_title(&mdata->text_grid, buf_size, mdata->rows, mdata->columns,
         &row, &col, mdata->format, mdata->title, mdata->title_tag,
         mdata->value_tag, &no_more_space);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
     SOL_EXP_CHECK_GOTO(no_more_space, send);
 
     r = asprintf(&it_value, "%" PRId32 "", mdata->state.val);
@@ -1132,7 +1131,8 @@ integer_close(struct sol_flow_node *node, void *data)
 }
 
 static int
-integer_common_open(struct sol_irange_spec range,
+integer_common_open(struct sol_buffer *buf,
+    struct sol_irange_spec range,
     int32_t start_value,
     int32_t rows,
     int32_t columns,
@@ -1180,7 +1180,8 @@ integer_common_open(struct sol_irange_spec range,
         out->state.val = out->state.max;
     }
 
-    r = common_form_init(rows,
+    r = common_form_init(buf,
+        rows,
         &out->rows,
         columns,
         &out->columns,
@@ -1191,10 +1192,6 @@ integer_common_open(struct sol_irange_spec range,
         &out->title_tag,
         &out->value_tag,
         &out->text_mem);
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = buffer_re_init(&out->text_grid, out->text_mem, out->rows,
-        out->columns);
     SOL_INT_CHECK(r, < 0, r);
 
     out->enabled = true;
@@ -1215,8 +1212,8 @@ integer_open(struct sol_flow_node *node,
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_FORM_INT_OPTIONS_API_VERSION, -EINVAL);
 
-    r = integer_common_open(opts->range, opts->start_value, opts->rows,
-        opts->columns, opts->format, opts->title, mdata);
+    r = integer_common_open(&mdata->text_grid, opts->range, opts->start_value,
+        opts->rows, opts->columns, opts->format, opts->title, mdata);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     mdata->circular = opts->circular;
@@ -1412,7 +1409,7 @@ integer_custom_format_do(struct sol_flow_node *node)
     r = format_title(&mdata->base.text_grid, buf_size, mdata->base.rows,
         mdata->base.columns, &row, &col, mdata->base.format, mdata->base.title,
         mdata->base.title_tag, mdata->base.value_tag, &no_more_space);
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
     SOL_EXP_CHECK_GOTO(no_more_space, send);
 
     mdata->value_prefix_len = col;
@@ -1478,7 +1475,8 @@ integer_custom_timeout(void *data)
 }
 
 static void
-force_imediate_format(struct integer_custom_data *mdata, bool re_init)
+integer_custom_force_imediate_format(struct integer_custom_data *mdata,
+    bool re_init)
 {
     if (re_init)
         buffer_re_init(&mdata->base.text_grid, mdata->base.text_mem,
@@ -1529,20 +1527,24 @@ integer_custom_open(struct sol_flow_node *node,
     int n_max, n_min;
     struct integer_custom_data *mdata = data;
     const struct sol_flow_node_type_form_int_custom_options *opts =
-        (const struct sol_flow_node_type_form_int_custom_options *)options;
+        (const struct sol_flow_node_type_form_int_custom_options *)options,
+    *def_opts;
+
+    def_opts = node->type->default_options;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_FORM_INT_OPTIONS_API_VERSION, -EINVAL);
 
-    r = integer_common_open(opts->range, opts->start_value, opts->rows,
-        opts->columns, opts->format, opts->title, &mdata->base);
+    r = integer_common_open(&mdata->base.text_grid, opts->range,
+        opts->start_value, opts->rows, opts->columns, opts->format,
+        opts->title, &mdata->base);
     SOL_INT_CHECK_GOTO(r, < 0, err);
 
     mdata->blink_time = opts->blink_time;
     if (opts->blink_time < 0) {
         SOL_WRN("Invalid blink_time (%" PRId32 "), that must be positive. "
-            "Setting to 1ms.", opts->blink_time);
-        mdata->blink_time = 1;
+            "Setting to %" PRId32 ".", opts->blink_time, def_opts->blink_time);
+        mdata->blink_time = def_opts->blink_time;
     }
 
     mdata->blink_on = true;
@@ -1633,13 +1635,15 @@ char_re_insert(struct integer_custom_data *mdata,
 }
 
 static void
-cursor_pos_calc(struct integer_custom_data *mdata,
+cursor_pos_calc(size_t columns,
+    size_t cursor_row,
+    size_t cursor_col,
+    size_t prefix_len,
     size_t *cursor_pos)
 {
-    *cursor_pos = coords_to_pos
-            (mdata->base.columns, mdata->cursor_row, mdata->cursor_col);
-    *cursor_pos -= coords_to_pos(mdata->base.columns, mdata->cursor_row, 0);
-    *cursor_pos -= mdata->value_prefix_len;
+    *cursor_pos = coords_to_pos(columns, cursor_row, cursor_col);
+    *cursor_pos -= coords_to_pos(columns, cursor_row, 0);
+    *cursor_pos -= prefix_len;
 }
 
 static int
@@ -1667,7 +1671,7 @@ digit_flip_post(struct sol_flow_node *node,
     mdata->state_changed = true;
     mdata->blink_on = true;
 
-    force_imediate_format(mdata, true);
+    integer_custom_force_imediate_format(mdata, true);
     return integer_custom_format(node);
 }
 
@@ -1689,7 +1693,8 @@ integer_custom_up_set(struct sol_flow_node *node,
 
     negative = mdata->base.state.val < 0;
 
-    cursor_pos_calc(mdata, &cursor_pos);
+    cursor_pos_calc(mdata->base.columns, mdata->cursor_row, mdata->cursor_col,
+        mdata->value_prefix_len, &cursor_pos);
 
     if ((mdata->base.state.val == -1 || mdata->base.state.val == -9)
         && cursor_pos == (size_t)(mdata->n_digits - 1))
@@ -1730,7 +1735,8 @@ integer_custom_down_set(struct sol_flow_node *node,
 
     negative = mdata->base.state.val < 0;
 
-    cursor_pos_calc(mdata, &cursor_pos);
+    cursor_pos_calc(mdata->base.columns, mdata->cursor_row, mdata->cursor_col,
+        mdata->value_prefix_len, &cursor_pos);
 
     if ((mdata->base.state.val == 0 || mdata->base.state.val == -1)
         && cursor_pos == (size_t)(mdata->n_digits - 1))
@@ -1784,7 +1790,7 @@ integer_custom_next_set(struct sol_flow_node *node,
     mdata->state_changed = true;
     mdata->blink_on = true;
 
-    force_imediate_format(mdata, true);
+    integer_custom_force_imediate_format(mdata, true);
     return integer_custom_format(node);
 }
 
@@ -1808,7 +1814,7 @@ integer_custom_previous_set(struct sol_flow_node *node,
     mdata->state_changed = true;
     mdata->blink_on = true;
 
-    force_imediate_format(mdata, true);
+    integer_custom_force_imediate_format(mdata, true);
     return integer_custom_format(node);
 }
 
@@ -1844,7 +1850,7 @@ sign_toggle(struct sol_flow_node *node,
     /* calculate it again, now accounting for sign char */
     mdata->cursor_initialized = false;
 
-    force_imediate_format(mdata, true);
+    integer_custom_force_imediate_format(mdata, true);
     return integer_custom_format(node);
 }
 
@@ -1872,7 +1878,7 @@ integer_custom_selected_set(struct sol_flow_node *node,
         return 0;
 
     /* force from scratch because sign may change */
-    force_imediate_format(mdata, true);
+    integer_custom_force_imediate_format(mdata, true);
     mdata->state_changed = true;
     mdata->blink_on = true;
 
@@ -1894,7 +1900,7 @@ integer_custom_select_set(struct sol_flow_node *node,
 
     /* force new format with state changed and blink state on, so we
      * always get the full output here */
-    force_imediate_format(mdata, false);
+    integer_custom_force_imediate_format(mdata, false);
     mdata->state_changed = true;
     mdata->blink_on = true;
 
@@ -1923,6 +1929,640 @@ integer_custom_enabled_set(struct sol_flow_node *node,
     mdata->base.enabled = value;
 
     return 0;
+}
+
+/* let's use a custom sentinel ptr value, instead of NULL, to avoid
+ * hiding bugs on sol_ptr_vector_get() code paths */
+#define EMPTY_SENTINEL ((char *)0xdeadbeef)
+
+struct string_data {
+    size_t columns, rows, cursor_row, cursor_col, value_prefix_len,
+        hidden_prefix_len, min_length, max_length;
+    char *title, *text_mem, *format, *title_tag, *value_tag;
+    struct sol_buffer text_grid;
+    struct sol_ptr_vector chars; /* ptrs to charset or void sentinel */
+    struct sol_timeout *timer;
+    int blink_time;
+    char *charset;
+    bool enabled : 1;
+    bool blink_on : 1;
+    bool state_changed : 1;
+    bool cursor_initialized : 1;
+};
+
+static int
+string_format_do(struct sol_flow_node *node)
+{
+    struct string_data *mdata = sol_flow_node_get_private_data(node);
+    int r, buf_size = mdata->text_grid.capacity;
+    char *it_value = NULL, *tmp = NULL;
+    bool no_more_space = false;
+    size_t row = 0, col = 0;
+    bool empty = false;
+    uint16_t len;
+
+    if (!mdata->state_changed) {
+        char *value;
+        size_t pos;
+
+        if (mdata->cursor_col - mdata->hidden_prefix_len > mdata->columns - 1)
+            goto send;
+
+        pos = coords_to_pos
+                (mdata->columns, mdata->cursor_row, mdata->cursor_col);
+
+        value = (char *)sol_buffer_at(&mdata->text_grid, pos);
+
+        if (mdata->blink_on) {
+            mdata->blink_on = false;
+            *value = UNDERSCORE;
+        } else {
+            char *v;
+
+            mdata->blink_on = true;
+            pos -= coords_to_pos(mdata->columns, mdata->cursor_row, 0);
+            pos -= mdata->value_prefix_len;
+            pos += mdata->hidden_prefix_len;
+
+            v = sol_ptr_vector_get(&mdata->chars, pos);
+            *value = v != EMPTY_SENTINEL ? *v : SPC;
+        }
+
+        goto send;
+    }
+
+    r = format_title(&mdata->text_grid, buf_size, mdata->rows,
+        mdata->columns, &row, &col, mdata->format, mdata->title,
+        mdata->title_tag, mdata->value_tag, &no_more_space);
+    SOL_INT_CHECK(r, < 0, r);
+    SOL_EXP_CHECK_GOTO(no_more_space, send);
+
+    mdata->value_prefix_len = col;
+
+    empty = (sol_ptr_vector_get(&mdata->chars, 0) == EMPTY_SENTINEL);
+    len = sol_ptr_vector_get_len(&mdata->chars);
+    it_value = malloc(len + 1);
+    SOL_NULL_CHECK_GOTO(it_value, err);
+
+    if (empty)
+        it_value[0] = SPC;
+    else
+        for (int i = 0; i < len; i++) {
+            char *v = sol_ptr_vector_get(&mdata->chars, i);
+            it_value[i] = *v;
+        }
+
+    it_value[len] = NUL;
+
+    if (!mdata->cursor_initialized) {
+        mdata->cursor_row = row;
+        mdata->cursor_col = mdata->text_grid.used
+            - coords_to_pos(mdata->columns, mdata->cursor_row, 0) + len - 1;
+        mdata->cursor_initialized = true;
+    }
+
+    tmp = it_value;
+    len -= mdata->hidden_prefix_len;
+    tmp += mdata->hidden_prefix_len;
+    r = format_chunk(&mdata->text_grid, mdata->rows,
+        mdata->columns, tmp, tmp + len, &row, &col, DO_FORMAT, DITCH_NL);
+    free(it_value);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    if (r >= buf_size || row >= mdata->rows)
+        goto send;
+
+    r = format_post_value(&mdata->text_grid, mdata->rows,
+        mdata->columns, &row, &col, mdata->format,
+        mdata->value_tag);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+    mdata->state_changed = false;
+
+send:
+    r = format_send(node, &mdata->text_grid,
+        SOL_FLOW_NODE_TYPE_FORM_INT__OUT__STRING);
+
+    return r;
+
+err:
+    /* we got to re-init because of the error cases. if this function
+     * fails we're no better, so don't check. */
+    buffer_re_init(&mdata->text_grid, mdata->text_mem,
+        mdata->rows, mdata->columns);
+
+    return r;
+}
+
+static bool
+string_timeout(void *data)
+{
+    return string_format_do(data) == 0;
+}
+
+static void
+string_force_imediate_format(struct string_data *mdata, bool re_init)
+{
+    if (re_init)
+        buffer_re_init(&mdata->text_grid, mdata->text_mem,
+            mdata->rows, mdata->columns);
+    if (mdata->timer) {
+        sol_timeout_del(mdata->timer);
+        mdata->timer = NULL;
+    }
+}
+
+static int
+string_format(struct sol_flow_node *node)
+{
+    struct string_data *mdata = sol_flow_node_get_private_data(node);
+
+    if (!mdata->timer) {
+        mdata->timer = sol_timeout_add
+                (mdata->blink_time, string_timeout, node);
+        SOL_NULL_CHECK(mdata->timer, -ENOMEM);
+        return string_format_do(node);
+    }
+
+    return 0;
+}
+
+static void
+string_close(struct sol_flow_node *node, void *data)
+{
+    struct string_data *mdata = data;
+
+    sol_buffer_fini(&mdata->text_grid);
+    sol_ptr_vector_clear(&mdata->chars);
+
+    if (mdata->timer)
+        sol_timeout_del(mdata->timer);
+
+    free(mdata->charset);
+    free(mdata->title);
+    free(mdata->format);
+}
+
+static int
+string_open(struct sol_flow_node *node,
+    void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    size_t start_len;
+    struct string_data *mdata = data;
+    const struct sol_flow_node_type_form_string_options *opts =
+        (const struct sol_flow_node_type_form_string_options *)options,
+    *def_opts;
+
+    def_opts = node->type->default_options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_FORM_INT_OPTIONS_API_VERSION, -EINVAL);
+
+    r = common_form_init(&mdata->text_grid,
+        opts->rows,
+        &mdata->rows,
+        opts->columns,
+        &mdata->columns,
+        opts->format,
+        &mdata->format,
+        opts->title,
+        &mdata->title,
+        &mdata->title_tag,
+        &mdata->value_tag,
+        &mdata->text_mem);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->enabled = true;
+
+    mdata->blink_time = opts->blink_time;
+    if (opts->blink_time < 0) {
+        SOL_WRN("Invalid blink_time (%" PRId32 "), that must be positive. "
+            "Setting to %" PRId32 "", opts->blink_time, def_opts->blink_time);
+        mdata->blink_time = def_opts->blink_time;
+    }
+
+    mdata->min_length = opts->min_length;
+    if (opts->min_length < 0) {
+        SOL_WRN("Invalid minimum output size (%" PRId32 "), "
+            "that must be positive. Setting to %" PRId32 ".",
+            opts->min_length, def_opts->min_length);
+        mdata->min_length = def_opts->min_length;
+    }
+
+    mdata->max_length = opts->max_length;
+    if (opts->max_length < 0) {
+        SOL_WRN("Invalid maximum output size (%" PRId32 "), "
+            "that must be positive. Setting to %" PRId32 ".",
+            opts->max_length, def_opts->max_length);
+        mdata->max_length = def_opts->max_length;
+    }
+
+    if (mdata->max_length && mdata->max_length < mdata->min_length) {
+        SOL_WRN("Invalid maximum output size (%" PRId32 "), "
+            "that must be greater than the minimum (%" PRId32 ")."
+            " Setting both of them to that minimum value.",
+            opts->max_length, def_opts->max_length);
+        mdata->max_length = mdata->min_length;
+    }
+
+    mdata->blink_on = true;
+    mdata->state_changed = true;
+
+    if (!strlen(opts->charset)) {
+        SOL_WRN("The char set must not be empty, fallbacking to default one");
+        mdata->charset = strdup(def_opts->charset);
+    } else
+        mdata->charset = strdup(opts->charset);
+    if (!mdata->charset) {
+        r = -ENOMEM;
+        goto err;
+    }
+
+    sol_ptr_vector_init(&mdata->chars);
+
+    start_len = opts->start_value ? strlen(opts->start_value) : 0;
+
+    if (!start_len && !mdata->min_length) {
+        /* start at empty state */
+        r = sol_ptr_vector_append(&mdata->chars, EMPTY_SENTINEL);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+    } else {
+        size_t charset_len = strlen(mdata->charset);
+        size_t start_cnt = 0;
+
+        size_t charset_cnt = 0;
+
+        for (; start_cnt < start_len; start_cnt++) {
+            bool found = false;
+
+            if (mdata->max_length && start_cnt >= mdata->max_length)
+                goto end;
+
+            for (charset_cnt = 0; charset_cnt < charset_len;
+                charset_cnt++) {
+                if (mdata->charset[charset_cnt]
+                    == opts->start_value[start_cnt]) {
+                    found = true;
+                    break;
+                }
+            }
+            r = sol_ptr_vector_append(&mdata->chars,
+                found ? &mdata->charset[charset_cnt] : mdata->charset);
+            SOL_INT_CHECK_GOTO(r, < 0, err);
+        }
+
+        for (size_t i = start_cnt; i < mdata->min_length; i++) {
+            if (mdata->max_length && start_cnt >= mdata->max_length)
+                goto end;
+
+            r = sol_ptr_vector_append(&mdata->chars, mdata->charset);
+            SOL_INT_CHECK_GOTO(r, < 0, err);
+        }
+    }
+
+end:
+    return string_format(node);
+
+err:
+    string_close(node, mdata);
+
+    return r;
+}
+
+static int
+string_up_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    char *value;
+    size_t cursor_pos = 0;
+    struct string_data *mdata = data;
+
+    if (!mdata->enabled)
+        return 0;
+
+    cursor_pos_calc(mdata->columns, mdata->cursor_row, mdata->cursor_col,
+        mdata->value_prefix_len, &cursor_pos);
+
+    cursor_pos += mdata->hidden_prefix_len;
+
+    value = sol_ptr_vector_get(&mdata->chars, cursor_pos);
+    if (value == EMPTY_SENTINEL) {
+        value = mdata->charset;
+        goto set;
+    }
+
+    value++;
+    if ((size_t)(value - mdata->charset) >= strlen(mdata->charset))
+        value = mdata->charset;
+
+set:
+    r = sol_ptr_vector_set(&mdata->chars, cursor_pos, value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    string_force_imediate_format(mdata, true);
+    return string_format(node);
+}
+
+static int
+string_down_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    char *value;
+    size_t cursor_pos = 0;
+    struct string_data *mdata = data;
+
+    if (!mdata->enabled)
+        return 0;
+
+    cursor_pos_calc(mdata->columns, mdata->cursor_row, mdata->cursor_col,
+        mdata->value_prefix_len, &cursor_pos);
+
+    cursor_pos += mdata->hidden_prefix_len;
+
+    value = sol_ptr_vector_get(&mdata->chars, cursor_pos);
+    if (value == EMPTY_SENTINEL)
+        goto last;
+
+    value--;
+    if (value >= mdata->charset)
+        goto set;
+
+last:
+    value = mdata->charset + strlen(mdata->charset) - 1;
+
+set:
+    r = sol_ptr_vector_set(&mdata->chars, cursor_pos, value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    string_force_imediate_format(mdata, true);
+    return string_format(node);
+}
+
+static int
+string_next_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_data *mdata = data;
+    size_t cursor_pos = 0, len = sol_ptr_vector_get_len(&mdata->chars);
+    size_t cursor_col, hidden_prefix_len;
+    char *v;
+
+    if (!mdata->enabled)
+        return 0;
+
+    v = sol_ptr_vector_get(&mdata->chars, 0);
+    if (v == EMPTY_SENTINEL)
+        return 0;
+
+    /* backups -- only commit changes if we can advance */
+    cursor_col = mdata->cursor_col;
+    hidden_prefix_len = mdata->hidden_prefix_len;
+
+    if (mdata->cursor_col >= mdata->columns - 1)
+        hidden_prefix_len++;
+    else
+        cursor_col++;
+
+    cursor_pos_calc(mdata->columns, mdata->cursor_row, cursor_col,
+        mdata->value_prefix_len, &cursor_pos);
+
+    cursor_pos += hidden_prefix_len;
+
+    if (cursor_pos > len - 1) {
+        int r;
+
+        if (mdata->max_length && cursor_pos >= mdata->max_length)
+            return 0;
+
+        r = sol_ptr_vector_append(&mdata->chars, mdata->charset);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    mdata->hidden_prefix_len = hidden_prefix_len;
+    mdata->cursor_col = cursor_col;
+
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    string_force_imediate_format(mdata, true);
+    return string_format(node);
+}
+
+static int
+string_previous_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_data *mdata = data;
+
+    if (!mdata->enabled)
+        return 0;
+
+    if (mdata->cursor_col > 0) {
+        if (mdata->hidden_prefix_len)
+            mdata->hidden_prefix_len--;
+        else
+            mdata->cursor_col--;
+    } else {
+        char *v = sol_ptr_vector_get(&mdata->chars, 0);
+        if (v != EMPTY_SENTINEL && sol_ptr_vector_get_len(&mdata->chars) == 1) {
+            int r = sol_ptr_vector_set(&mdata->chars, 0, EMPTY_SENTINEL);
+            SOL_INT_CHECK(r, < 0, r);
+        } else
+            return 0;
+    }
+
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    string_force_imediate_format(mdata, true);
+    return string_format(node);
+}
+
+static int
+string_selected_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_data *mdata = data;
+    size_t len, set_len;
+    const char *value;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    sol_ptr_vector_clear(&mdata->chars);
+
+    set_len = strlen(mdata->charset);
+    len = strlen(value);
+    for (size_t i = 0; i < len; i++) {
+        bool found = false;
+        for (size_t j = 0; j < set_len; j++) {
+            if (value[i] == mdata->charset[j]) {
+                r = sol_ptr_vector_append(&mdata->chars, mdata->charset + j);
+                SOL_INT_CHECK_GOTO(r, < 0, error);
+                found = true;
+                continue;
+            }
+        }
+        if (!found) {
+            /* a character not in the charset ocurred, arbitrate
+             * charset[0] */
+            r = sol_ptr_vector_append(&mdata->chars, mdata->charset);
+            SOL_INT_CHECK_GOTO(r, < 0, error);
+        }
+    }
+
+    if (!mdata->enabled)
+        return 0;
+
+    string_force_imediate_format(mdata, true);
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    return string_format(node);
+
+error:
+    sol_ptr_vector_clear(&mdata->chars);
+    return r;
+}
+
+static int
+string_select_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_data *mdata = data;
+    char *value;
+    size_t len;
+    int r;
+
+    if (!mdata->enabled)
+        return 0;
+
+    /* force new format with state changed and blink state on, so we
+     * always get the full output here */
+    string_force_imediate_format(mdata, false);
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    r = string_format(node);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (sol_ptr_vector_get(&mdata->chars, 0) == EMPTY_SENTINEL) {
+        value = (char *)EMPTY_STR;
+        return sol_flow_send_string_packet(node,
+            SOL_FLOW_NODE_TYPE_FORM_INT__OUT__SELECTED, value);
+    }
+
+    len = sol_ptr_vector_get_len(&mdata->chars);
+    value = malloc(len + 1);
+    SOL_NULL_CHECK(value, -ENOMEM);
+
+    for (size_t i = 0; i < len; i++) {
+        char *v = sol_ptr_vector_get(&mdata->chars, i);
+        value[i] = *v;
+    }
+    value[len] = NUL;
+
+    return sol_flow_send_string_take_packet(node,
+        SOL_FLOW_NODE_TYPE_FORM_INT__OUT__SELECTED, value);
+}
+
+static int
+string_enabled_set(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_data *mdata = data;
+    bool value;
+    int r;
+
+    r = sol_flow_packet_get_boolean(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->enabled = value;
+
+    return 0;
+}
+
+static int
+string_delete(struct sol_flow_node *node,
+    void *data,
+    uint16_t port,
+    uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    struct string_data *mdata = data;
+    size_t cursor_pos = 0, len = sol_ptr_vector_get_len(&mdata->chars);
+    int r;
+
+    if (!mdata->enabled || len <= mdata->min_length)
+        return 0;
+
+    cursor_pos_calc(mdata->columns, mdata->cursor_row, mdata->cursor_col,
+        mdata->value_prefix_len, &cursor_pos);
+
+    if (!cursor_pos) {
+        char *v = sol_ptr_vector_get(&mdata->chars, cursor_pos);
+        if (v == EMPTY_SENTINEL)
+            return 0;
+        else if (len == 1) {
+            r = sol_ptr_vector_set(&mdata->chars, cursor_pos, EMPTY_SENTINEL);
+            SOL_INT_CHECK(r, < 0, r);
+            goto send;
+        } else {
+            r = sol_ptr_vector_del(&mdata->chars, cursor_pos);
+            SOL_INT_CHECK(r, < 0, r);
+            if (mdata->hidden_prefix_len)
+                mdata->hidden_prefix_len--;
+            goto send;
+        }
+    }
+
+    cursor_pos += mdata->hidden_prefix_len;
+
+    r = sol_ptr_vector_del(&mdata->chars, cursor_pos);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (mdata->hidden_prefix_len)
+        mdata->hidden_prefix_len--;
+    else
+        mdata->cursor_col--;
+
+send:
+    mdata->state_changed = true;
+    mdata->blink_on = true;
+
+    string_force_imediate_format(mdata, true);
+    return string_format(node);
 }
 
 #include "form-gen.c"
