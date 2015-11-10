@@ -890,6 +890,9 @@ sol_http_client_request(enum sol_http_method method,
             if (!set_verbose(curl, value->value.boolean.value))
                 goto invalid_option;
             continue;
+        case SOL_HTTP_PARAM_FRAGMENT:
+            /* already handle by  set_uri_from_params() */
+            continue;
         }
     }
 
