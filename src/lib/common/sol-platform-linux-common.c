@@ -311,7 +311,7 @@ parse_mount_point_file(const char *file, struct sol_ptr_vector *vector)
     struct mntent mbuf;
     struct mntent *m;
     char strings[4096];
-    struct sol_buffer *itr;
+    struct sol_buffer *itr, *buff = NULL;
     uint16_t i;
     FILE *tab = setmntent(file, "re");
 
@@ -327,7 +327,6 @@ parse_mount_point_file(const char *file, struct sol_ptr_vector *vector)
     }
 
     while ((m = getmntent_r(tab, &mbuf, strings, sizeof(strings)))) {
-        struct sol_buffer *buff = NULL;
         int r;
 
         buff = sol_buffer_new();
@@ -343,6 +342,7 @@ parse_mount_point_file(const char *file, struct sol_ptr_vector *vector)
     return 0;
 
 err:
+    sol_buffer_fini(buff);
     SOL_PTR_VECTOR_FOREACH_IDX (vector, itr, i) {
         sol_buffer_fini(itr);
     }
