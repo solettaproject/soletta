@@ -215,12 +215,12 @@ json_path_get_next_slice(struct json_path_scanner *scanner, struct sol_str_slice
 }
 
 static bool
-json_object_search_for_token(struct sol_json_scanner *scanner, const struct sol_str_slice key_slice, struct sol_json_token *value)
+json_object_search_for_token(struct sol_json_scanner *scanner, struct sol_json_token *token, const struct sol_str_slice key_slice, struct sol_json_token *value)
 {
-    struct sol_json_token token, key;
+    struct sol_json_token key;
     enum sol_json_loop_reason reason;
 
-    SOL_JSON_SCANNER_OBJECT_LOOP_NEST (scanner, &token, &key, value, reason)
+    SOL_JSON_SCANNER_OBJECT_LOOP_NEST (scanner, token, &key, value, reason)
         if (sol_json_token_str_eq(&key, key_slice.data, key_slice.len))
             return true;
 
@@ -320,7 +320,7 @@ json_object_key_process(struct sol_flow_node *node, struct sol_json_node_data *m
         SOL_JSON_TYPE_OBJECT_START) != SOL_JSON_LOOP_REASON_OK)
         return false;
 
-    if (json_object_search_for_token(&scanner,
+    if (json_object_search_for_token(&scanner, &token,
         sol_str_slice_from_str(mdata->key), &value))
         return send_token_packet(node, &scanner, mdata->json_element, &value);
 
@@ -441,7 +441,7 @@ json_object_path_process(struct sol_flow_node *node, struct sol_json_node_data *
             r = json_path_parse_object_key(key_slice, &current_key);
             SOL_INT_CHECK(r, < 0, r);
 
-            found = json_object_search_for_token(&json_scanner,
+            found = json_object_search_for_token(&json_scanner, &token,
                 sol_buffer_get_slice(&current_key), &value);
             sol_buffer_fini(&current_key);
             if (!found)
