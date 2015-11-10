@@ -46,7 +46,7 @@
         "members": [
           {
             "data_type": "int",
-            "default": 500,
+            "default": 3000,
             "description": "Time allotted for a fbp test to run in ms. Expiration of the timer is considered a failure.",
             "name": "timeout"
           }
