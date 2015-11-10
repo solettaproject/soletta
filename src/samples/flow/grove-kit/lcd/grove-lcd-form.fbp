@@ -1,0 +1,49 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# sol-fbp-runner lcd/grove-lcd-form.fbp
+
+selector(form/int-custom:rows=2,columns=16,format="{title}{value}",title="Title",range=INT32_MIN|6|1)
+
+keyboard_u(keyboard/boolean:binary_code=117,toggle=true) OUT -> UP selector
+keyboard_d(keyboard/boolean:binary_code=100,toggle=true) OUT -> DOWN selector
+keyboard_n(keyboard/boolean:binary_code=110,toggle=true) OUT -> NEXT selector
+keyboard_p(keyboard/boolean:binary_code=112,toggle=true) OUT -> PREVIOUS selector
+keyboard_t(keyboard/boolean:binary_code=116,toggle=true) OUT -> TOGGLE_SIGN selector
+keyboard_s(keyboard/boolean:binary_code=115,toggle=true) OUT -> SELECT selector
+
+selector STRING -> IN lcd(LCDString:bus=6)
+
+_(constant/boolean:value=false) OUT -> ENABLED timer(timer:interval=100)
+selector OUT_OF_RANGE -> IN _(converter/empty-to-rgb:output_value=255|0|0|255|255|255) OUT -> COLOR lcd
+selector OUT_OF_RANGE -> IN _(converter/empty-to-boolean:output_value=true) OUT -> ENABLED timer
+timer OUT -> IN _(converter/empty-to-rgb:output_value=255|255|255|255|255|255) OUT -> COLOR lcd
+timer OUT -> IN _(converter/empty-to-boolean:output_value=false) OUT -> ENABLED timer
