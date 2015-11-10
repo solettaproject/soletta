@@ -43,13 +43,17 @@ json_array(converter/string-to-json-array)
 json_object_str OUT -> IN json_object
 json_array_str OUT -> IN json_array
 
-validator_json_object(test/blob-validator:expected="{\"null_value\":null,\"int_value\":892,\"boolean_value\":1,\"float_value\":1.23,\"string_value\":\"str\",\"json_object_value\":{\"index\":3},\"json_array_value\":[1,2,3]}")
-validator_json_array(test/blob-validator:expected="[null,892,1,1.23,\"str\",{\"index\":3},[1,2,3]]")
+validator_json_object(test/blob-validator:expected="{\"null_value\":null,\"int_value\":892,\"boolean_value\":true,\"float_value\":1.23,\"string_value\":\"str\",\"json_object_value\":{\"index\":3},\"json_array_value\":[1,2,3]}")
+validator_json_array(test/blob-validator:expected="[null,892,true,1.23,\"str\",{\"index\":3},[1,2,3]]")
 create_obj(json/create-object)
 create_array(json/create-array)
 
 null_const(constant/string:value="null_value") OUT -> NULL create_obj
 null_const OUT -> NULL create_array
+
+int_replace(int_pair) OUT -> INT create_obj
+_(constant/string:value="int_value") OUT -> KEY int_replace
+int_const_replace(constant/int:value=999) OUT -> VALUE int_replace
 
 int_val(int_pair) OUT -> INT create_obj
 _(constant/string:value="int_value") OUT -> KEY int_val
@@ -65,6 +69,10 @@ float_val(float_pair) OUT -> FLOAT create_obj
 _(constant/string:value="float_value") OUT -> KEY float_val
 float_const(constant/float:value=1.23) OUT -> VALUE float_val
 float_const OUT -> FLOAT create_array
+
+string_replace(string_pair) OUT -> STRING create_obj
+_(constant/string:value="string_value") OUT -> KEY string_replace
+str_replace_const(constant/string:value="error") OUT -> VALUE string_replace
 
 string_val(string_pair) OUT -> STRING create_obj
 _(constant/string:value="string_value") OUT -> KEY string_val
