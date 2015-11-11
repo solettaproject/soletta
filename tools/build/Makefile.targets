@@ -99,7 +99,7 @@ check-stub: $(SOL_LIB_OUTPUT) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $
 
 PHONY += check-stub
 
-samples: $(SOL_LIB_OUTPUT) $(samples-out)
+samples: $(SOL_LIB_OUTPUT) $(samples-out) $(PRE_GEN)
 
 PHONY += samples
 

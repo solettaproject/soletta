@@ -45,7 +45,6 @@
 #include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-vector.h"
-#include "sol_config.h"
 
 #define HTTP_HEADER_ACCEPT "Accept"
 #define HTTP_HEADER_CONTENT_TYPE "Content-Type"

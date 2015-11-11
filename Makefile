@@ -28,10 +28,6 @@ else
 include $(top_srcdir)tools/build/Makefile.kconfig
 endif
 
-ifeq (,$(filter $(dep-avoid-targets),$(MAKECMDGOALS)))
--include ${all-objs:.o=.o.dep}
-endif
-
 ifneq (,$(NOT_FOUND))
 warning:
 	$(Q)echo -e "The following (required) dependencies were not met:\n"
@@ -58,6 +54,10 @@ endif # HAVE_KCONFIG_CONFIG
 endif # NOT_FOUND
 
 $(KCONFIG_CONFIG): $(KCONFIG_GEN)
+
+ifeq (,$(filter $(dep-avoid-targets),$(MAKECMDGOALS)))
+-include ${all-objs:.o=.o.dep}
+endif
 
 .DEFAULT_GOAL = all
 .PHONY = $(PHONY) default_target
