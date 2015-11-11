@@ -599,7 +599,7 @@ set_auth_basic(CURL *curl, struct sol_arena *arena,
 
     if (!user || !password)
         return false;
-    if (curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC | CURLAUTH_ONLY) != CURLE_OK)
+    if (curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC) != CURLE_OK)
         return false;
     if (curl_easy_setopt(curl, CURLOPT_USERNAME, user) != CURLE_OK)
         return false;
