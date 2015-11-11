@@ -89,7 +89,7 @@ out_write(struct subprocess_data *mdata)
 }
 
 static bool
-on_write(void *data, int fd, unsigned int active_flags)
+on_write(void *data, int fd, uint32_t active_flags)
 {
     struct subprocess_data *mdata = data;
     int err = 0;
@@ -227,7 +227,7 @@ blob_error:
 }
 
 static bool
-on_in_read(void *data, int fd, unsigned int active_flags)
+on_in_read(void *data, int fd, uint32_t active_flags)
 {
     struct subprocess_data *mdata = data;
     struct sol_blob *blob = NULL;
@@ -253,7 +253,7 @@ on_in_read(void *data, int fd, unsigned int active_flags)
 }
 
 static bool
-on_err_read(void *data, int fd, unsigned int active_flags)
+on_err_read(void *data, int fd, uint32_t active_flags)
 {
     struct subprocess_data *mdata = data;
     struct sol_blob *blob = NULL;

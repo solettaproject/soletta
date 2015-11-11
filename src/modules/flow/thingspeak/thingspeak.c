@@ -196,7 +196,7 @@ thingspeak_execute_open(struct sol_flow_node *node, void *data, const struct sol
 {
     struct thingspeak_execute_data *mdata = data;
     const struct sol_flow_node_type_thingspeak_talkback_execute_options *opts;
-    int interval;
+    uint32_t interval;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_THINGSPEAK_TALKBACK_EXECUTE_OPTIONS_API_VERSION,
         -EINVAL);
@@ -207,7 +207,7 @@ thingspeak_execute_open(struct sol_flow_node *node, void *data, const struct sol
         return -ENOMEM;
 
     if (opts->interval < 1000) {
-        SOL_WRN("Throttling polling interval from %dms to 1000ms to not flood Thingspeak",
+        SOL_WRN("Throttling polling interval from %" PRId32 "ms to 1000ms to not flood Thingspeak",
             opts->interval);
         interval = 1000;
     } else {

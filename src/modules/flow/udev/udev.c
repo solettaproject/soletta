@@ -53,7 +53,7 @@ struct udev_data {
 };
 
 static bool
-_on_event(void *data, int fd, unsigned int cond)
+_on_event(void *data, int fd, uint32_t cond)
 {
     struct udev_data *mdata = data;
     struct udev_device *device;

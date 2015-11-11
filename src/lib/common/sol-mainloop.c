@@ -238,7 +238,7 @@ sol_shutdown(void)
 }
 
 SOL_API struct sol_timeout *
-sol_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data)
+sol_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const void *data)
 {
     SOL_NULL_CHECK(cb, NULL);
     return sol_mainloop_impl_timeout_add(timeout_ms, cb, data);
@@ -267,7 +267,7 @@ sol_idle_del(struct sol_idle *handle)
 
 #ifdef SOL_MAINLOOP_FD_ENABLED
 SOL_API struct sol_fd *
-sol_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data)
+sol_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data)
 {
     SOL_NULL_CHECK(cb, NULL);
     return sol_mainloop_impl_fd_add(fd, flags, cb, data);
@@ -281,13 +281,13 @@ sol_fd_del(struct sol_fd *handle)
 }
 
 SOL_API bool
-sol_fd_set_flags(struct sol_fd *handle, unsigned int flags)
+sol_fd_set_flags(struct sol_fd *handle, uint32_t flags)
 {
     SOL_NULL_CHECK(handle, false);
     return sol_mainloop_impl_fd_set_flags(handle, flags);
 }
 
-SOL_API unsigned int
+SOL_API uint32_t
 sol_fd_get_flags(const struct sol_fd *handle)
 {
     SOL_NULL_CHECK(handle, false);
@@ -295,7 +295,7 @@ sol_fd_get_flags(const struct sol_fd *handle)
 }
 
 SOL_API bool
-sol_fd_unset_flags(struct sol_fd *handle, unsigned int flags)
+sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags)
 {
     SOL_NULL_CHECK(handle, false);
     return sol_mainloop_impl_fd_set_flags(handle, sol_mainloop_impl_fd_get_flags(handle) & ~flags);

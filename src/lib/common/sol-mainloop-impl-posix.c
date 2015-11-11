@@ -64,9 +64,9 @@ struct sol_child_watch_posix {
 
 struct sol_fd_posix {
     const void *data;
-    bool (*cb)(void *data, int fd, unsigned int active_flags);
+    bool (*cb)(void *data, int fd, uint32_t active_flags);
     int fd;
-    unsigned int flags;
+    uint32_t flags;
     bool remove_me;
     bool invalid;
 };
@@ -133,7 +133,7 @@ sol_mainloop_impl_main_thread_notify(void)
 }
 
 static inline bool
-main_thread_ack(void *data, int fd, unsigned int active_flags)
+main_thread_ack(void *data, int fd, uint32_t active_flags)
 {
     char tok;
     int r;
@@ -511,7 +511,7 @@ child_watch_process(void)
 }
 
 static short int
-fd_flags_to_poll_events(unsigned int flags)
+fd_flags_to_poll_events(uint32_t flags)
 {
     short int events = 0;
 
@@ -529,10 +529,10 @@ fd_flags_to_poll_events(unsigned int flags)
     return events;
 }
 
-static unsigned int
+static uint32_t
 poll_events_to_fd_flags(short int events)
 {
-    unsigned int flags = 0;
+    uint32_t flags = 0;
 
 #define MAP(a, b) if (events & b) flags |= a
 
@@ -676,7 +676,7 @@ fd_process(void)
 
     j = 0;
     SOL_PTR_VECTOR_FOREACH_IDX (&FD_PROCESS, handler, i) {
-        unsigned int active_flags;
+        uint32_t active_flags;
         const struct pollfd *pfd;
 
         if (!sol_mainloop_common_loop_check())
@@ -737,7 +737,7 @@ sol_mainloop_impl_iter(void)
 }
 
 void *
-sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data)
+sol_mainloop_impl_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data)
 {
     struct sol_fd_posix *handle = malloc(sizeof(struct sol_fd_posix));
     int ret;
@@ -787,7 +787,7 @@ sol_mainloop_impl_fd_del(void *handle)
 }
 
 bool
-sol_mainloop_impl_fd_set_flags(void *handle, unsigned int flags)
+sol_mainloop_impl_fd_set_flags(void *handle, uint32_t flags)
 {
     struct sol_fd_posix *fd_handle = handle;
 
@@ -803,7 +803,7 @@ sol_mainloop_impl_fd_set_flags(void *handle, unsigned int flags)
     return true;
 }
 
-unsigned int
+uint32_t
 sol_mainloop_impl_fd_get_flags(const void *handle)
 {
     const struct sol_fd_posix *fd_handle = handle;

@@ -376,7 +376,7 @@ struct calamari_lever_data {
     struct sol_flow_node *node;
     struct sol_spi *spi;
     struct sol_timeout *timer;
-    unsigned int poll_interval;
+    uint32_t poll_interval;
 
     struct sol_irange val;
 

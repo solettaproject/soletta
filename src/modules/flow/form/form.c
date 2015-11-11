@@ -1368,7 +1368,7 @@ struct integer_custom_data {
     struct sol_timeout *timer;
     char *chars;
     size_t cursor_row, cursor_col, value_prefix_len;
-    int blink_time;
+    uint32_t blink_time;
     uint8_t n_digits;
     bool blink_on : 1;
     bool state_changed : 1;

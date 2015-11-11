@@ -45,17 +45,17 @@ void sol_mainloop_impl_run(void);
 void sol_mainloop_impl_quit(void);
 void sol_mainloop_impl_shutdown(void);
 
-void *sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data);
+void *sol_mainloop_impl_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const void *data);
 bool sol_mainloop_impl_timeout_del(void *handle);
 
 void *sol_mainloop_impl_idle_add(bool (*cb)(void *data), const void *data);
 bool sol_mainloop_impl_idle_del(void *handle);
 
 #ifdef SOL_MAINLOOP_FD_ENABLED
-void *sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data);
+void *sol_mainloop_impl_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data);
 bool sol_mainloop_impl_fd_del(void *handle);
-bool sol_mainloop_impl_fd_set_flags(void *handle, unsigned int flags);
-unsigned int sol_mainloop_impl_fd_get_flags(const void *handle);
+bool sol_mainloop_impl_fd_set_flags(void *handle, uint32_t flags);
+uint32_t sol_mainloop_impl_fd_get_flags(const void *handle);
 #endif
 
 #ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED

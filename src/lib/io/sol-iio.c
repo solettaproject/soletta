@@ -395,7 +395,7 @@ calc_buffer_size(const struct sol_iio_device *device)
 }
 
 static bool
-device_reader_cb(void *data, int fd, unsigned int active_flags)
+device_reader_cb(void *data, int fd, uint32_t active_flags)
 {
     struct sol_iio_device *device = data;
     bool result = true;

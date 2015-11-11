@@ -725,7 +725,7 @@ timer_cb(void *data)
 
 static int
 timer_reschedule(struct lcd_data *mdata,
-    unsigned int timeout_ms,
+    uint32_t timeout_ms,
     bool delete_prev)
 {
     if (mdata->timer) {

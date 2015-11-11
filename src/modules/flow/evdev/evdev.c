@@ -102,7 +102,7 @@ evdev_add_handler_check(void)
 }
 
 static bool
-evdev_fd_handler_cb(void *data, int fd, unsigned int active_flags)
+evdev_fd_handler_cb(void *data, int fd, uint32_t active_flags)
 {
     struct evdev_fd_handler *fdh = data;
     bool retval = true;

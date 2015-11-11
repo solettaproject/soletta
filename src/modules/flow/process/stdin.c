@@ -103,7 +103,7 @@ stdin_monitor_in_use(const struct stdin_monitor *m)
 }
 
 static bool
-stdin_watch_cb(void *data, int fd, unsigned int active_flags)
+stdin_watch_cb(void *data, int fd, uint32_t active_flags)
 {
     struct stdin_monitor *m;
     struct sol_blob *blob = NULL;

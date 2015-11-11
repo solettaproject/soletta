@@ -145,7 +145,7 @@ _gpio_open_fd(struct sol_gpio *gpio, enum sol_gpio_direction dir)
 }
 
 static bool
-_gpio_on_event(void *userdata, int fd, unsigned int cond)
+_gpio_on_event(void *userdata, int fd, uint32_t cond)
 {
     struct sol_gpio *gpio = userdata;
 
@@ -224,8 +224,8 @@ _gpio_in_config(struct sol_gpio *gpio, const struct sol_gpio_config *config, int
     }
 
 timeout_mode:
-    if (config->in.poll_timeout <= 0) {
-        SOL_WRN("gpio #%d: Timeout value '%d' is invalid, must be a positive number of milliseconds.",
+    if (config->in.poll_timeout == 0) {
+        SOL_WRN("gpio #%d: Timeout value '%" PRIu32 "' is invalid, must be a positive number of milliseconds.",
             gpio->pin, config->in.poll_timeout);
         return -EINVAL;
     }

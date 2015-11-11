@@ -107,7 +107,7 @@ output_write(struct output_data *output)
 }
 
 static bool
-watch_cb(void *data, int fd, unsigned int active_flags)
+watch_cb(void *data, int fd, uint32_t active_flags)
 {
     struct output_data *output = data;
     int err = 0;

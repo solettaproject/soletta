@@ -160,7 +160,7 @@ struct sol_timeout;
  *
  * @return A handle that can be used to delete the timeout.
  */
-struct sol_timeout *sol_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data);
+struct sol_timeout *sol_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const void *data);
 
 /**
  * Deletes the given timeout.
@@ -260,7 +260,7 @@ struct sol_fd;
  *
  * @return A handle that can be used to delete the file descriptor watcher.
  */
-struct sol_fd *sol_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data);
+struct sol_fd *sol_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data);
 
 /**
  * Deletes the given file descriptor watcher.
@@ -279,7 +279,7 @@ bool sol_fd_del(struct sol_fd *handle);
  *
  * @return True on success, false if the handle is invalid.
  */
-bool sol_fd_set_flags(struct sol_fd *handle, unsigned int flags);
+bool sol_fd_set_flags(struct sol_fd *handle, uint32_t flags);
 
 /**
  * Removes the given flags from those being watched.
@@ -289,7 +289,7 @@ bool sol_fd_set_flags(struct sol_fd *handle, unsigned int flags);
  *
  * @return True on success, false if the handle is invalid.
  */
-bool sol_fd_unset_flags(struct sol_fd *handle, unsigned int flags);
+bool sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags);
 
 /**
  * Gets the flags being watched for the given handle.
@@ -298,7 +298,7 @@ bool sol_fd_unset_flags(struct sol_fd *handle, unsigned int flags);
  *
  * @return The flags that are currently being watched for by the handle.
  */
-unsigned int sol_fd_get_flags(const struct sol_fd *handle);
+uint32_t sol_fd_get_flags(const struct sol_fd *handle);
 #endif
 
 #ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED

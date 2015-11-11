@@ -93,7 +93,7 @@ socket_write(int fd, const void *data, size_t count)
 }
 
 static bool
-on_client_data(void *data, int fd, unsigned int cond)
+on_client_data(void *data, int fd, uint32_t cond)
 {
     struct unix_socket *un_socket = data;
 
@@ -114,7 +114,7 @@ err:
 }
 
 static bool
-on_server_data(void *data, int fd, unsigned int cond)
+on_server_data(void *data, int fd, uint32_t cond)
 {
     struct unix_socket_server *server = data;
     struct client_data *c;
@@ -137,7 +137,7 @@ on_server_data(void *data, int fd, unsigned int cond)
 }
 
 static bool
-on_server_connect(void *data, int fd, unsigned int cond)
+on_server_connect(void *data, int fd, uint32_t cond)
 {
     struct unix_socket_server *server = data;
     struct client_data *c = sol_vector_append(&server->clients);

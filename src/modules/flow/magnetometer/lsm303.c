@@ -65,7 +65,7 @@ struct magnetometer_lsm303_data {
 static bool magnetometer_lsm303_tick_do(void *data);
 
 static int
-timer_sched(struct magnetometer_lsm303_data *mdata, unsigned int timeout_ms, bool (*cb)(void *data))
+timer_sched(struct magnetometer_lsm303_data *mdata, uint32_t timeout_ms, bool (*cb)(void *data))
 {
     mdata->timer = sol_timeout_add(timeout_ms, cb, mdata);
     SOL_NULL_CHECK(mdata->timer, -ENOMEM);

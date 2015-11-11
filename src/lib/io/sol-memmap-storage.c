@@ -715,7 +715,7 @@ sol_memmap_remove_map(const struct sol_memmap_map *map)
 }
 
 SOL_API bool
-sol_memmap_set_timeout(struct sol_memmap_map *map, unsigned int timeout)
+sol_memmap_set_timeout(struct sol_memmap_map *map, uint32_t timeout)
 {
     struct map_internal *map_internal;
     int i;
@@ -736,7 +736,7 @@ sol_memmap_set_timeout(struct sol_memmap_map *map, unsigned int timeout)
     return false;
 }
 
-SOL_API unsigned int
+SOL_API uint32_t
 sol_memmap_get_timeout(const struct sol_memmap_map *map)
 {
     struct map_internal *map_internal;

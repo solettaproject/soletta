@@ -68,7 +68,7 @@ idler_dn(void *data)
 }
 
 static bool
-fd_watch_dn(void *data, int fd, unsigned int flags)
+fd_watch_dn(void *data, int fd, uint32_t flags)
 {
     bool *val = data;
 
@@ -156,7 +156,7 @@ thr5_run(void *data)
 }
 
 static bool
-on_fd(void *data, int fd, unsigned int active_flags)
+on_fd(void *data, int fd, uint32_t active_flags)
 {
     if (active_flags & SOL_FD_FLAGS_IN) {
         int err;

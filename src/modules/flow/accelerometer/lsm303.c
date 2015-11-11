@@ -70,7 +70,7 @@ struct accelerometer_lsm303_data {
 static bool lsm303_read_data(void *data);
 
 static int
-lsm303_timer_resched(struct accelerometer_lsm303_data *mdata, unsigned int timeout_ms, bool (*cb)(void *data))
+lsm303_timer_resched(struct accelerometer_lsm303_data *mdata, uint32_t timeout_ms, bool (*cb)(void *data))
 {
     mdata->timer = sol_timeout_add(timeout_ms, cb, mdata);
     SOL_NULL_CHECK(mdata->timer, -ENOMEM);

@@ -1212,7 +1212,7 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
 }
 
 static struct sol_coap_server *
-sol_coap_server_new_full(enum sol_socket_type type, int port)
+sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
 {
     struct sol_network_link_addr servaddr = { .family = AF_INET6,
                                               .port = port };
@@ -1294,13 +1294,13 @@ sol_coap_server_new_full(enum sol_socket_type type, int port)
 }
 
 SOL_API struct sol_coap_server *
-sol_coap_server_new(int port)
+sol_coap_server_new(uint16_t port)
 {
     return sol_coap_server_new_full(SOL_SOCKET_UDP, port);
 }
 
 SOL_API struct sol_coap_server *
-sol_coap_secure_server_new(int port)
+sol_coap_secure_server_new(uint16_t port)
 {
 #ifdef DTLS
     return sol_coap_server_new_full(SOL_SOCKET_DTLS, port);
