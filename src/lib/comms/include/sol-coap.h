@@ -738,6 +738,19 @@ int sol_coap_server_unregister_resource(struct sol_coap_server *server,
 int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen);
 
+/*
+ * Cancel a packet sent using sol_coap_send_packet() or
+ * sol_coap_send_packet_with_reply() functions.
+ *
+ * @param server The server through which the packet was sent.
+ * @param pkt The packet sent.
+ *
+ * @return 0 on success
+ *         -ENOENT if the packet was already canceled
+ *         -EINVAL if some parameter is invalid.
+ */
+int sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt);
+
 /**
  * @}
  */
