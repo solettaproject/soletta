@@ -342,7 +342,7 @@ parse_mount_point_file(const char *file, struct sol_ptr_vector *vector)
     return 0;
 
 err:
-    sol_buffer_fini(buff);
+    sol_buffer_free(buff);
     SOL_PTR_VECTOR_FOREACH_IDX (vector, itr, i) {
         sol_buffer_fini(itr);
     }
