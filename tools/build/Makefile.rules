@@ -1,4 +1,5 @@
 find-deps = $(foreach dep,$($(1)-deps),$($(filter %$(dep),$(modules))-out) $($(dep)-out))
+find-obj-deps = $(foreach dep,$($(1)-deps),$($(dep)-objs))
 
 gen-artifact = \
 	$(foreach json,$(filter %.json,$(2)), \
@@ -61,8 +62,6 @@ parse-common-module = \
 	$(call artifact-path,$(obj-$(1)-$(3)),$(2),artifacts) \
 	$(eval obj-$(1)-$(3) :=) \
 	$(eval all-artifacts += $(artifacts)) \
-	$(eval mod-headers  := $(addprefix $(2),$(headers-$(1)-$(3)))) \
-	$(call extra-headers,$(mod-headers)) \
 	$(eval mod-objs     := $(filter %.o,$(artifacts))) \
 	$(eval $(4)-cflags  := $(obj-$(1)-y-extra-cflags)) \
 	$(eval $(4)-cflags  += $(obj-$(1)-m-extra-cflags)) \
@@ -82,6 +81,7 @@ parse-common-module = \
 		$(eval $(dest-obj)-module := $(4)) \
 		$(eval all-objs        += $(dest-obj)) \
 	)\
+	$(eval $(4)-deps    := $(subst .mod,,$(obj-$(1)-$(3)-deps)))
 
 parse-builtin-module = \
 	$(call parse-common-module,$(1),$(2),y,$(3),curr-mod-type) \
@@ -100,7 +100,6 @@ external-module-flags := -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_L
 
 parse-mod-module = \
 	$(call parse-common-module,$(1),$(2),m,$(3),curr-mod-type) \
-	$(eval $(3)-deps     := $(subst .mod,,$(obj-$(1)-m-deps))) \
 	$(eval $(3)-external-flags := $(external-module-flags)) \
 	$(call parse-mod-output,$(1),$(2),$(3)) \
 	$(eval modules-out += $($(3)-out)) \
@@ -274,8 +273,9 @@ $(foreach curr,$(bins),$(eval $(call make-bin,$(curr))))
 sample-out = $(if $(filter %.o,$(sample-$(1)-out)), -c -o $(sample-$(1)-out),-o $(sample-$(1)-out))
 sample-src = $(filter-out %.json,$(filter-out %.h,$(sample-$(1)-srcs)))
 
+#TODO: in the future declare deps individually for samples and remove this $(modules-out) dependency here (for every module)
 define make-sample
-$(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(modules-out) $(sample-$(1)-srcs) $(call find-deps,$(1)) $(addprefix $($(1)-dir),$(filter %.fbp,$($(1)-deps)))
+$(sample-$(1)-out): $(SOL_LIB_OUTPUT) $(modules-out) $(sample-$(1)-srcs) $(call find-deps,$(1)) $(addprefix $($(1)-dir),$(filter %.fbp,$($(1)-deps))) $($(filter %.json,$(sample-$(1)-srcs))-hdr)
 	$(Q)echo "     "SMP"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(sample-$(1)-out))
 	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $(sample-$(1)-cflags) $(sample-$(1)-includedir) $(sample-src) \
@@ -320,12 +320,12 @@ $(foreach curr,$(tests-internal),$(eval $(call make-test-internal,$(curr))))
 find-gen-hdrs = $(foreach gen,$($(2)-gens),$($(gen)-hdr))
 
 define make-object
-$(1): $($(1)-src) $(1).dep $(call find-deps,$(2)) $(find-gen-hdrs) $(KCONFIG_AUTOHEADER) $(HEADER_GEN) $(all-dest-hdr)
+$(1): $($(1)-src) $(1).dep
 	$(Q)echo "      "CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $(1))
 	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) $($(1)-src) -c -o $(1) $(3)
 
-$(1).dep: $($(1)-src) $(all-hdr) $(KCONFIG_CONFIG)
+$(1).dep: $($(1)-src) $(all-hdr) $(find-gen-hdrs) $(call find-obj-deps,$(2)) $(all-dest-hdr) $(KCONFIG_CONFIG) $(HEADER_GEN)
 	$(Q)$(MKDIR) -p $(dir $(1))
 	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) -MM -MG $($(1)-src) -MT "$(1)" > $(1).dep
 endef
@@ -394,7 +394,7 @@ $(eval $(call install-resource,$(NODE_TYPE_SCHEMA),$(NODE_TYPE_SCHEMA_DEST)))
 $(eval $(call install-resource,$(BOARD_DETECT),$(BOARD_DETECT_DEST)))
 $(eval $(call install-resource,$(GDB_AUTOLOAD_PY),$(GDB_AUTOLOAD_PY_DEST)))
 
-$(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT)
+$(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT) $(KCONFIG_AUTOHEADER)
 	$(Q)echo "     "GEN"   "$(@)
 	$(Q)$(PYTHON) $(FLOW_OIC_GEN_SCRIPT) --schema-dir=$(FLOW_OIC_SPEC_DIR) \
 		--node-type-json=$(dir $(@))oic.json \

@@ -33,7 +33,6 @@
 #pragma once
 
 #include "sol-common-buildopts.h"
-#include "sol_config.h"
 
 /* This file is required to build TinyDLS, and uses the constants defined
  * by Soletta's build system to create one that TinyDTLS will be happy

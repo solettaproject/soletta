@@ -45,7 +45,6 @@
 #include "sol-platform.h"
 #include "sol-util.h"
 #include "sol-vector.h"
-#include "sol_config.h"
 #include "sol-str-table.h"
 
 struct http_data {
