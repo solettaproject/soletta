@@ -651,9 +651,9 @@ static_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     mdata->namespace = strdup(opts->namespace);
     SOL_NULL_CHECK_GOTO(mdata->namespace, err_namespace);
 
-    mdata->value.b = opts->start;
+    mdata->value.b = opts->enabled;
 
-    if (opts->start) {
+    if (opts->enabled) {
         int r;
         r = sol_http_server_add_dir(mdata->sdata->server,
             mdata->namespace, mdata->path);
