@@ -39,7 +39,6 @@
 #include "sol-log.h"
 #include "sol-str-table.h"
 #include "sol-types.h"
-#include "sol-util.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -189,8 +188,9 @@ unsigned int sol_memmap_get_timeout(const struct sol_memmap_map *map);
 #define CREATE_BLOB(_val) \
     struct sol_blob *blob; \
     size_t _s = sizeof(*_val); \
-    void *v = sol_util_memdup(_val, _s); \
-    SOL_NULL_CHECK(v, -EINVAL); \
+    void *v = malloc(_s); \
+    SOL_NULL_CHECK(v, -ENOMEM); \
+    memcpy(v, _val, _s); \
     blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, v, _s); \
     if (!blob) { \
         free(v); \
