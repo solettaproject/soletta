@@ -33,6 +33,7 @@
 #pragma once
 
 #include <sol-buffer.h>
+#include <sol-certificate.h>
 #include <sol-common-buildopts.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -326,6 +327,21 @@ struct sol_mqtt_config {
      * A message that the broker should send when the client disconnects.
      */
     const struct sol_mqtt_message *will;
+
+    /**
+     * CA Certificate for SSL connections
+     */
+    const struct sol_cert *ca_cert;
+
+    /**
+     * Client certificate for SSL connections
+     */
+    const struct sol_cert *client_cert;
+
+    /**
+     * Private key for SSL connections
+     */
+    const struct sol_cert *private_key;
 
     /**
      * Handlers to be used with this connection
