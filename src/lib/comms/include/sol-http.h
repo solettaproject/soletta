@@ -75,7 +75,8 @@ enum sol_http_param_type {
     SOL_HTTP_PARAM_AUTH_BASIC,
     SOL_HTTP_PARAM_ALLOW_REDIR,
     SOL_HTTP_PARAM_TIMEOUT,
-    SOL_HTTP_PARAM_VERBOSE
+    SOL_HTTP_PARAM_VERBOSE,
+    SOL_HTTP_PARAM_FRAGMENT
 };
 
 enum sol_http_status_code {
@@ -91,7 +92,7 @@ enum sol_http_status_code {
     SOL_HTTP_STATUS_NOT_IMPLEMENTED = 501
 };
 
-struct sol_http_param {
+struct sol_http_params {
 #define SOL_HTTP_PARAM_API_VERSION (1)
     uint16_t api_version;
     uint16_t reserved;
@@ -131,7 +132,7 @@ struct sol_http_response {
     const char *content_type;
     const char *url;
     struct sol_buffer content;
-    struct sol_http_param param;
+    struct sol_http_params param;
     int response_code;
 };
 
@@ -174,8 +175,8 @@ struct sol_http_url {
         } \
     } while (0)
 
-#define SOL_HTTP_REQUEST_PARAM_INIT   \
-    (struct sol_http_param) { \
+#define SOL_HTTP_REQUEST_PARAMS_INIT   \
+    (struct sol_http_params) { \
         .api_version = SOL_HTTP_PARAM_API_VERSION, \
         .params = SOL_VECTOR_INIT(struct sol_http_param_value) \
     }
@@ -234,24 +235,24 @@ struct sol_http_url {
         .value.data.value = (data_) \
     }
 
-#define SOL_HTTP_PARAM_FOREACH_IDX(param, itrvar, idx) \
+#define SOL_HTTP_PARAMS_FOREACH_IDX(param, itrvar, idx) \
     for (idx = 0; \
         param && idx < (param)->params.len && (itrvar = sol_vector_get(&(param)->params, idx), true); \
         idx++)
 
 static inline void
-sol_http_param_init(struct sol_http_param *params)
+sol_http_params_init(struct sol_http_params *params)
 {
-    *params = (struct sol_http_param) {
+    *params = (struct sol_http_params) {
         .api_version = SOL_HTTP_PARAM_API_VERSION,
         .params = SOL_VECTOR_INIT(struct sol_http_param_value)
     };
 }
 
-bool sol_http_param_add(struct sol_http_param *params,
+bool sol_http_param_add(struct sol_http_params *params,
     struct sol_http_param_value value) SOL_ATTR_WARN_UNUSED_RESULT;
-bool sol_http_param_add_copy(struct sol_http_param *params, struct sol_http_param_value value);
-void sol_http_param_free(struct sol_http_param *params);
+bool sol_http_param_add_copy(struct sol_http_params *params, struct sol_http_param_value value);
+void sol_http_params_clear(struct sol_http_params *params);
 
 /**
  * Encodes an URL string.
@@ -288,7 +289,7 @@ int sol_http_decode_slice(struct sol_buffer *buf, const struct sol_str_slice val
  *
  * @return 0 on success, negative number on error.
  */
-int sol_http_create_uri(char **uri_out, const struct sol_http_url url, const struct sol_http_param *params);
+int sol_http_create_uri(char **uri_out, const struct sol_http_url url, const struct sol_http_params *params);
 
 /**
  * A simpler version of sol_http_create_uri().
@@ -300,7 +301,7 @@ int sol_http_create_uri(char **uri_out, const struct sol_http_url url, const str
  *
  * @return 0 on success, negative number on error.
  */
-int sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri, const struct sol_http_param *params);
+int sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri, const struct sol_http_params *params);
 
 /**
  * Encodes http parameters of a given type.
@@ -313,7 +314,7 @@ int sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri, 
  *
  * @note The buf must be initialized in order to use this function.
  */
-int sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type, const struct sol_http_param *params);
+int sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type, const struct sol_http_params *params);
 
 /**
  * Decodes http parameters of a given type.
@@ -324,7 +325,7 @@ int sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type
  *
  * @return 0 on success, negative number on error.
  */
-int sol_http_decode_params(const struct sol_str_slice params_slice, enum sol_http_param_type type, struct sol_http_param *params);
+int sol_http_decode_params(const struct sol_str_slice params_slice, enum sol_http_param_type type, struct sol_http_params *params);
 
 /**
  * Split an URI.
@@ -350,7 +351,7 @@ int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url 
  * @return 0 on success, negative number on error.
  */
 static inline int
-sol_http_create_simple_uri_from_str(char **uri, const char *base_url, const struct sol_http_param *params)
+sol_http_create_simple_uri_from_str(char **uri, const char *base_url, const struct sol_http_params *params)
 {
     return sol_http_create_simple_uri(uri, sol_str_slice_from_str(base_url ? base_url : ""), params);
 }

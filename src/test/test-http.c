@@ -89,7 +89,7 @@ test_split_urls(void)
 
     for (i = 0; i < ARRAY_SIZE(test_split); i++) {
         struct sol_http_url splitted;
-        struct sol_http_param params;
+        struct sol_http_params params;
         char *out_uri;
         r = sol_http_split_uri(test_split[i].url, &splitted);
         ASSERT_INT_EQ(r, test_split[i].result);
@@ -105,13 +105,13 @@ test_split_urls(void)
         ASSERT_INT_EQ(splitted.port, test_split[i].splitted_url.port);
         if (!test_split[i].check_url)
             continue;
-        sol_http_param_init(&params);
+        sol_http_params_init(&params);
         r = sol_http_decode_params(splitted.query, SOL_HTTP_PARAM_QUERY_PARAM, &params);
         ASSERT_INT_EQ(r, 0);
         r = sol_http_create_uri(&out_uri, splitted, &params);
         ASSERT_INT_EQ(r, 0);
         ASSERT(sol_str_slice_str_eq(test_split[i].url, out_uri));
-        sol_http_param_free(&params);
+        sol_http_params_clear(&params);
         free(out_uri);
     }
 

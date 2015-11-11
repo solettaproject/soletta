@@ -156,16 +156,16 @@ static bool
 thingspeak_execute_poll(void *data)
 {
     struct thingspeak_execute_data *mdata = data;
-    struct sol_http_param params;
+    struct sol_http_params params;
     struct sol_http_client_connection *connection;
     int r;
 
-    sol_http_param_init(&params);
+    sol_http_params_init(&params);
     if (!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_POST_FIELD("api_key", mdata->talkback.api_key))) {
         SOL_WRN("Could not set API key");
         mdata->timeout = NULL;
-        sol_http_param_free(&params);
+        sol_http_params_clear(&params);
         return false;
     }
 
@@ -173,7 +173,7 @@ thingspeak_execute_poll(void *data)
         mdata->talkback.endpoint, &params,
         thingspeak_execute_poll_finished, mdata);
 
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
 
     if (!connection) {
         SOL_WRN("Could not create HTTP request");
@@ -255,7 +255,7 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
 {
     struct thingspeak_add_data *mdata = data;
     const char *cmd_str;
-    struct sol_http_param params;
+    struct sol_http_params params;
     struct sol_http_client_connection *connection;
     int error_code = 0;
     int r;
@@ -266,7 +266,7 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
         return -EINVAL;
     }
 
-    sol_http_param_init(&params);
+    sol_http_params_init(&params);
 
     if (!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_POST_FIELD("api_key", mdata->talkback.api_key))) {
@@ -322,7 +322,7 @@ thingspeak_add_in_process(struct sol_flow_node *node, void *data,
     }
 
 out:
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
     return error_code;
 }
 
@@ -380,13 +380,13 @@ static bool
 thingspeak_channel_update_send(void *data)
 {
     struct thingspeak_channel_update_data *mdata = data;
-    struct sol_http_param params;
+    struct sol_http_params params;
     struct sol_http_client_connection *connection;
     char field_name[] = "fieldX";
     size_t i;
     int r;
 
-    sol_http_param_init(&params);
+    sol_http_params_init(&params);
 
     if (!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_POST_FIELD("api_key", mdata->api_key))) {
@@ -429,7 +429,7 @@ thingspeak_channel_update_send(void *data)
     }
 
 out:
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
 
     mdata->timeout = NULL;
     return false;

@@ -331,6 +331,12 @@
             "default": "text/plain",
             "description": "The desired content type of the request",
             "name": "content_type"
+          },
+          {
+            "data_type": "string",
+            "default": "text/plain",
+            "description": "The desired content type of the response",
+            "name": "accept"
           }
         ],
         "version": 1
@@ -405,6 +411,12 @@
             "default": null,
             "description": "The desired content type of the request",
             "name": "content_type"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The desired content type of the response",
+            "name": "accept"
           }
         ],
         "version": 1
@@ -479,6 +491,12 @@
             "default": "application/json",
             "description": "The desired content type of the request",
             "name": "content_type"
+          },
+          {
+            "data_type": "string",
+            "default": "application/json",
+            "description": "The desired content type of the response",
+            "name": "accept"
           }
         ],
         "version": 1
@@ -629,7 +647,7 @@
         },
         {
           "data_type": "string",
-          "description": "The user name to authenticate",
+          "description": "The user name to authenticate. If the URL provided using the URL port or the opiton already contains an user, it will be overrided.",
           "name": "USER",
           "methods": {
             "process": "request_node_user_process"
@@ -637,7 +655,7 @@
         },
         {
           "data_type": "string",
-          "description": "The password to authenticate",
+          "description": "The password to authenticate. If the URL provided using the URL port or the opiton already contains a password, it will be overrided.",
           "name": "PASSWORD",
           "methods": {
             "process": "request_node_password_process"
@@ -649,6 +667,14 @@
           "name": "CONTENT_TYPE",
           "methods": {
             "process": "request_node_content_type_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "The acceptable response type",
+          "name": "ACCEPT",
+          "methods": {
+            "process": "request_node_accept_process"
           }
         },
         {

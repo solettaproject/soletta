@@ -284,11 +284,11 @@ error:
 static int
 generate_token(struct http_get_data *mdata)
 {
-    struct sol_http_param params;
+    struct sol_http_params params;
     struct sol_http_client_connection *connection;
     int r;
 
-    sol_http_param_init(&params);
+    sol_http_params_init(&params);
     if ((!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_QUERY("grant_type", "password"))) ||
         (!sol_http_param_add(&params,
@@ -301,14 +301,14 @@ generate_token(struct http_get_data *mdata)
         SOL_HTTP_REQUEST_PARAM_QUERY("client_secret",
         mdata->client_secret)))) {
         SOL_WRN("Failed to set query params");
-        sol_http_param_free(&params);
+        sol_http_params_clear(&params);
         return -ENOMEM;
     }
 
     connection = sol_http_client_request(SOL_HTTP_METHOD_GET, AUTH_URL,
         &params, generate_token_cb, mdata);
 
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
 
     if (!connection) {
         SOL_WRN("Could not create HTTP request for %s", AUTH_URL);
@@ -646,7 +646,7 @@ static int
 http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     struct http_get_data *mdata = data;
-    struct sol_http_param params;
+    struct sol_http_params params;
     struct sol_http_client_connection *connection;
     int r;
 
@@ -655,18 +655,18 @@ http_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
         return 0;
     }
 
-    sol_http_param_init(&params);
+    sol_http_params_init(&params);
     if (!sol_http_param_add(&params,
         SOL_HTTP_REQUEST_PARAM_HEADER("Authorization", mdata->token))) {
         SOL_WRN("Failed to set query params");
-        sol_http_param_free(&params);
+        sol_http_params_clear(&params);
         return -ENOMEM;
     }
 
     connection = sol_http_client_request(SOL_HTTP_METHOD_GET, STATUS_URL,
         &params, http_get_cb, mdata);
 
-    sol_http_param_free(&params);
+    sol_http_params_clear(&params);
 
     if (!connection) {
         SOL_WRN("Could not create HTTP request for %s", STATUS_URL);
