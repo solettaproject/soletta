@@ -1448,3 +1448,35 @@ sol_coap_server_unregister_resource(struct sol_coap_server *server,
 
     return -ENOENT;
 }
+
+SOL_API int
+sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt)
+{
+    uint16_t id, i, cancel = 0;
+    struct pending_reply *reply;
+    struct outgoing *o;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    id = sol_coap_header_get_id(pkt);
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
+        if (o->pkt != pkt)
+            continue;
+
+        SOL_DBG("packet id %d canceled", id);
+        sol_ptr_vector_del(&server->outgoing, i);
+        outgoing_free(o);
+        cancel++;
+    }
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
+        if (reply->observing || reply->id != id)
+            continue;
+
+        sol_ptr_vector_del(&server->pending, i);
+        free(reply);
+    }
+
+    return cancel ? 0 : -ENOENT;
+}
