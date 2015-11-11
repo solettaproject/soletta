@@ -288,7 +288,7 @@ init_graph_from_file(struct sol_fbp_graph *g,  struct sol_file_reader *fr, const
 
     fbp_error = sol_fbp_parse(sol_file_reader_get_all(fr), g);
     if (fbp_error) {
-        sol_fbp_log_print(filename, fbp_error->position.line, fbp_error->position.column, fbp_error->msg);
+        sol_fbp_log_print(filename, fbp_error->position.line, fbp_error->position.column, "%s", fbp_error->msg);
         sol_fbp_error_free(fbp_error);
         sol_file_reader_close(fr);
         return EXIT_FAILURE;

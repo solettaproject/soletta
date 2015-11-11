@@ -765,7 +765,7 @@ build_flow(struct parse_state *state)
 
     fbp_error = sol_fbp_parse(state->input, &state->graph);
     if (fbp_error) {
-        sol_fbp_log_print(state->filename, fbp_error->position.line, fbp_error->position.column, fbp_error->msg);
+        sol_fbp_log_print(state->filename, fbp_error->position.line, fbp_error->position.column, "%s", fbp_error->msg);
         sol_fbp_error_free(fbp_error);
         errno = -err;
         return NULL;
@@ -802,8 +802,8 @@ build_flow(struct parse_state *state)
         if (err < 0) {
             sol_fbp_log_print(state->filename, c->position.line, c->position.column,
                 "Couldn't connect '%s %s -> %s %s'",
-                state->node_names[c->src], src_port_buf.data,
-                state->node_names[c->dst], dst_port_buf.data);
+                state->node_names[c->src], (const char *)src_port_buf.data,
+                state->node_names[c->dst], (const char *)dst_port_buf.data);
             goto end;
         }
     }
