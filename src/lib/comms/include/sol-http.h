@@ -92,9 +92,11 @@ enum sol_http_status_code {
 };
 
 struct sol_http_param {
+#ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_PARAM_API_VERSION (1)
     uint16_t api_version;
     uint16_t reserved;
+#endif
 
     struct sol_vector params;
     struct sol_arena *arena;
@@ -124,9 +126,11 @@ struct sol_http_param_value {
 };
 
 struct sol_http_response {
+#ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_RESPONSE_API_VERSION (1)
     uint16_t api_version;
     uint16_t reserved;
+#endif
 
     const char *content_type;
     const char *url;
@@ -146,19 +150,38 @@ struct sol_http_url {
     uint32_t port; //If == 0 ignore
 };
 
-#define SOL_HTTP_RESPONSE_CHECK_API(response_, ...)  \
+#ifndef SOL_NO_API_VERSION
+#define SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, ...) \
+    if (unlikely(response_->api_version != \
+        SOL_HTTP_RESPONSE_API_VERSION)) { \
+        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+            response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
+        return __VA_ARGS__; \
+    }
+#else
+#define SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, ...)
+#endif
+
+#define SOL_HTTP_RESPONSE_CHECK_API(response_, ...) \
     do { \
         if (unlikely(!response_)) { \
             SOL_WRN("Error while reaching service."); \
             return __VA_ARGS__; \
         } \
-        if (unlikely(response_->api_version != \
-            SOL_HTTP_RESPONSE_API_VERSION)) { \
-            SOL_ERR("Unexpected API version (response is %u, expected %u)", \
-                response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
-            return __VA_ARGS__; \
-        } \
+        SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, __VA_ARGS__) \
     } while (0)
+
+#ifndef SOL_NO_API_VERSION
+#define SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label) \
+    if (unlikely(response_->api_version != \
+        SOL_HTTP_RESPONSE_API_VERSION)) { \
+        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+            response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
+        goto label; \
+    }
+#else
+#define SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label)
+#endif
 
 #define SOL_HTTP_RESPONSE_CHECK_API_GOTO(response_, label) \
     do { \
@@ -166,17 +189,12 @@ struct sol_http_url {
             SOL_WRN("Error while reaching service."); \
             goto label; \
         } \
-        if (unlikely(response_->api_version != \
-            SOL_HTTP_RESPONSE_API_VERSION)) { \
-            SOL_ERR("Unexpected API version (response is %u, expected %u)", \
-                response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
-            goto label; \
-        } \
+        SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label) \
     } while (0)
 
 #define SOL_HTTP_REQUEST_PARAM_INIT   \
     (struct sol_http_param) { \
-        .api_version = SOL_HTTP_PARAM_API_VERSION, \
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, ) \
         .params = SOL_VECTOR_INIT(struct sol_http_param_value) \
     }
 
@@ -243,7 +261,7 @@ static inline void
 sol_http_param_init(struct sol_http_param *params)
 {
     *params = (struct sol_http_param) {
-        .api_version = SOL_HTTP_PARAM_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, )
         .params = SOL_VECTOR_INIT(struct sol_http_param_value)
     };
 }

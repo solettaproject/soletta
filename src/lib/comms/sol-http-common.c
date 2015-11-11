@@ -75,11 +75,13 @@ sol_http_param_add_copy(struct sol_http_param *params,
 
     SOL_NULL_CHECK(params, -EINVAL);
 
+#ifndef SOL_NO_API_VERSION
     if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
         SOL_ERR("API version mistmatch; expected %u, got %u",
             SOL_HTTP_PARAM_API_VERSION, params->api_version);
         return false;
     }
+#endif
 
     if (!params->arena) {
         params->arena = sol_arena_new();
