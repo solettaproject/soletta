@@ -383,6 +383,7 @@ on_digest_ready_feed_after_last(void *data, struct sol_message_digest *handle, s
     r = sol_message_digest_feed(handle, blob, true);
     ASSERT_INT_EQ(r, -EINVAL);
 
+    sol_message_digest_del(handle);
     sol_blob_unref(blob);
     sol_quit();
 }
