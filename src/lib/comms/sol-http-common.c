@@ -211,6 +211,7 @@ sol_http_decode_slice(struct sol_buffer *buf,
             hex.len = 2;
             err = sol_util_base16_decode(&chex, 1, hex,
                 SOL_DECODE_BOTH);
+            r = (int)err;
             SOL_INT_CHECK_GOTO(err, < 0, err_exit);
 
             r = sol_buffer_append_slice(buf,
