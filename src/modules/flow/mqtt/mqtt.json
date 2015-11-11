@@ -1,0 +1,185 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "mqtt",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "iot/cloud",
+      "description": "MQTT client for publishing messages and subscribing to topics",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Trigger a push operation",
+          "methods": {
+            "process": "publish_process"
+          },
+          "name": "PUBLISH"
+        },
+        {
+          "data_type": "any",
+          "description": "Trigger a subscribe operation",
+          "methods": {
+            "process": "subscribe_process"
+          },
+          "name": "SUBSCRIBE"
+        },
+        {
+          "data_type": "string",
+          "description": "Broker address",
+          "methods": {
+            "process": "host_process"
+          },
+          "name": "HOST"
+        },
+        {
+          "data_type": "int",
+          "description": "Broker port",
+          "methods": {
+            "process": "port_process"
+          },
+          "name": "PORT"
+        },
+        {
+          "data_type": "string",
+          "description": "Username",
+          "methods": {
+            "process": "user_process"
+          },
+          "name": "USER"
+        },
+        {
+          "data_type": "string",
+          "description": "Password",
+          "methods": {
+            "process": "pass_process"
+          },
+          "name": "PASS"
+        },
+        {
+          "data_type": "string",
+          "description": "Client ID",
+          "methods": {
+            "process": "id_process"
+          },
+          "name": "ID"
+        },
+        {
+          "data_type": "int",
+          "description": "Keepalive",
+          "methods": {
+            "process": "keepalive_process"
+          },
+          "name": "KEEPALIVE"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Clean Session",
+          "methods": {
+            "process": "clean_process"
+          },
+          "name": "CLEAN"
+        },
+        {
+          "data_type": "int",
+          "description": "QOS",
+          "methods": {
+            "process": "qos_process"
+          },
+          "name": "QOS"
+        },
+        {
+          "data_type": "string",
+          "description": "Topic where the messages should be posted",
+          "methods": {
+            "process": "topic_process"
+          },
+          "name": "TOPIC"
+        },
+        {
+          "data_type": "blob",
+          "description": "Data to be sent",
+          "methods": {
+            "process": "data_process"
+          },
+          "name": "DATA"
+        }
+      ],
+      "methods": {
+        "open": "mqtt_client_open",
+        "close": "mqtt_client_close"
+      },
+      "name": "mqtt/client",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Broker address",
+            "name": "host"
+          },
+          {
+            "data_type": "int",
+            "default": 1883,
+            "description": "Broker port",
+            "name": "port"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Username",
+            "name": "username"
+          },
+          {
+            "data_type": "string",
+            "default" : null,
+            "description": "Password",
+            "name": "password"
+          },
+          {
+            "data_type": "string",
+            "default" : null,
+            "description": "Client ID",
+            "name": "client_id"
+          },
+          {
+            "data_type": "int",
+            "default": 60,
+            "description": "Keepalive",
+            "name": "keepalive"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Clean Session",
+            "name": "clean_session"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "QOS",
+            "name": "qos"
+          },
+          {
+            "data_type": "string",
+            "description": "Topic where the messages should be posted",
+            "name": "topic"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "blob",
+          "description": "Send data reveived from subscribed topic",
+          "name": "OUTDATA"
+        }
+      ],
+      "private_data_type": "client_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/mqtt/client.html"
+    }
+  ]
+}
+
