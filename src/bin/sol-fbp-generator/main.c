@@ -2428,6 +2428,8 @@ fail_data:
                 k) {
                 free(opt_description->description->name);
                 free(opt_description->description->data_type);
+                if (opt_description->description->default_value_type == OPTION_VALUE_TYPE_STRING)
+                    free(opt_description->description->default_value.string);
                 free(opt_description->description);
             }
             sol_vector_clear(&exported_opt->options);
