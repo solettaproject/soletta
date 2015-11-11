@@ -53,13 +53,16 @@ struct sol_file_reader {
 struct sol_file_reader *
 sol_file_reader_open(const char *filename)
 {
-    int fd = -1;
+    struct sol_file_reader *fr;
+    int fd;
 
     fd = open(filename, O_RDONLY | O_CLOEXEC);
     if (fd < 0)
         return NULL;
 
-    return sol_file_reader_from_fd(fd);
+    fr = sol_file_reader_from_fd(fd);
+    close(fd);
+    return fr;
 }
 
 struct sol_file_reader *

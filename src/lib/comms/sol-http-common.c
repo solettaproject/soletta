@@ -92,7 +92,7 @@ sol_http_param_add_copy(struct sol_http_param *params,
         value.type == SOL_HTTP_PARAM_COOKIE ||
         value.type == SOL_HTTP_PARAM_POST_FIELD ||
         value.type == SOL_HTTP_PARAM_HEADER) {
-        if (value.value.key_value.value.len) {
+        if (value.value.key_value.key.len) {
             r = sol_arena_slice_dup(params->arena, &value.value.key_value.key,
                 value.value.key_value.key);
             SOL_INT_CHECK(r, < 0, false);
@@ -213,7 +213,11 @@ sol_http_decode_slice(struct sol_buffer *buf,
             hex.len = 2;
             err = sol_util_base16_decode(&chex, 1, hex,
                 SOL_DECODE_BOTH);
-            SOL_INT_CHECK_GOTO(err, < 0, err_exit);
+            if (err < 0) {
+                SOL_WRN("Failed to decode slice");
+                r = err;
+                goto err_exit;
+            }
 
             r = sol_buffer_append_slice(buf,
                 SOL_STR_SLICE_STR(value.data + last_append, i - last_append));
