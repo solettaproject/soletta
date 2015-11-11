@@ -146,6 +146,7 @@ end:
             sol_http_request_get_url(req_data->request));
 
     }
+    sol_buffer_fini(&access_response.content);
     free(req_data->timestamp);
     free(req_data->callback_url);
     free(req_data->nonce);
@@ -280,6 +281,7 @@ v1_parse_response(struct v1_request_data *req_data, const struct sol_http_respon
             break;
         }
     }
+    sol_vector_clear(&tokens);
     SOL_NULL_CHECK(token, -EINVAL);
 
     r = asprintf(&url, "%s?%s", mdata->authorize_token_url, token);
