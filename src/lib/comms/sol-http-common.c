@@ -466,10 +466,8 @@ sol_http_create_uri(char **uri_out, const struct sol_http_url url,
         r = sol_http_encode_params(&buf, SOL_HTTP_PARAM_QUERY_PARAM,
             params);
         SOL_INT_CHECK_GOTO(r, < 0, exit);
-        if (used == buf.used) {
-            sol_buffer_resize(&buf, used - 1);
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
-        }
+        if (used == buf.used)
+            buf.used--;
     }
 
     if (url.fragment.len) {
@@ -534,10 +532,8 @@ sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri,
             params);
         SOL_INT_CHECK_GOTO(r, < 0, exit);
 
-        if (used == buf.used) {
-            r = sol_buffer_resize(&buf, used - 1);
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
-        }
+        if (used == buf.used)
+            buf.used--;
 
         fragment = _find_fragment(params);
 
