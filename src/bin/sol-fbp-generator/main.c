@@ -308,7 +308,8 @@ handle_suboption_with_explicit_fields(const struct sol_fbp_meta *meta,
 
     if (!p) {
         sol_fbp_log_print(fbp_file, meta->position.line, meta->position.column, "Wrong suboption format, ignoring"
-            " value '%s'. You cannot mix the formats, choose one 'opt1:val1|opt2:val2...' or 'val1|val2...'", option);
+            " value '%.*s'. You cannot mix the formats, choose one 'opt1:val1|opt2:val2...' or 'val1|val2...'",
+            SOL_STR_SLICE_PRINT(option));
         return false;
     }
 
@@ -380,7 +381,8 @@ check_suboption(const struct sol_str_slice option,
 {
     if (memchr(option.data, ':', option.len)) {
         sol_fbp_log_print(fbp_file, meta->position.line, meta->position.column, "Wrong suboption format, ignoring"
-            "value '%s'. You cannot mix the formats, choose one 'opt1:val1|opt2:val2...' or 'val1|val2...'", option);
+            "value '%.*s'. You cannot mix the formats, choose one 'opt1:val1|opt2:val2...' or 'val1|val2...'",
+            SOL_STR_SLICE_PRINT(option));
         return false;
     }
 
@@ -2204,7 +2206,7 @@ create_fbp_data(struct sol_vector *fbp_data_vector, struct sol_ptr_vector *file_
 
     fbp_error = sol_fbp_parse(sol_file_reader_get_all(fr), &data->graph);
     if (fbp_error) {
-        sol_fbp_log_print(filename, fbp_error->position.line, fbp_error->position.column, fbp_error->msg);
+        sol_fbp_log_print(filename, fbp_error->position.line, fbp_error->position.column, "%s", fbp_error->msg);
         sol_fbp_error_free(fbp_error);
         return NULL;
     }

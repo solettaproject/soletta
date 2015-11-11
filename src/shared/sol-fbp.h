@@ -33,6 +33,7 @@
 #pragma once
 
 #include "sol-arena.h"
+#include "sol-macros.h"
 #include "sol-str-slice.h"
 #include "sol-vector.h"
 
@@ -167,5 +168,5 @@ int sol_fbp_graph_option(struct sol_fbp_graph *g,
 struct sol_fbp_error *sol_fbp_parse(struct sol_str_slice input, struct sol_fbp_graph *g);
 
 /* Print out a message of a given FBP file. */
-void sol_fbp_log_print(const char *file, unsigned int line, unsigned int column, const char *format, ...);
+void sol_fbp_log_print(const char *file, unsigned int line, unsigned int column, const char *format, ...) SOL_ATTR_PRINTF(4, 5);
 void sol_fbp_error_free(struct sol_fbp_error *e);
