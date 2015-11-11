@@ -90,7 +90,7 @@ sol_http_param_add_copy(struct sol_http_param *params,
         value.type == SOL_HTTP_PARAM_COOKIE ||
         value.type == SOL_HTTP_PARAM_POST_FIELD ||
         value.type == SOL_HTTP_PARAM_HEADER) {
-        if (value.value.key_value.value.len) {
+        if (value.value.key_value.key.len) {
             r = sol_arena_slice_dup(params->arena, &value.value.key_value.key,
                 value.value.key_value.key);
             SOL_INT_CHECK(r, < 0, false);
