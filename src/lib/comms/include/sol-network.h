@@ -83,7 +83,7 @@ enum sol_network_link_flags {
 };
 
 struct sol_network_link_addr {
-    unsigned short int family;
+    uint16_t family;
     union {
         uint8_t in[4];
         uint8_t in6[16];
@@ -97,7 +97,7 @@ struct sol_network_link {
     uint16_t api_version;
     int : 0; /* save possible hole for a future field */
 #endif
-    int index;
+    uint16_t index;
     enum sol_network_link_flags flags;
     struct sol_vector addrs;       /* struct sol_network_link_addr */
 };
@@ -120,7 +120,7 @@ bool sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_netw
 const struct sol_vector *sol_network_get_available_links(void);
 char *sol_network_link_get_name(const struct sol_network_link *link);
 
-bool sol_network_link_up(unsigned int link_index);
+bool sol_network_link_up(uint16_t link_index);
 
 /**
  * @}

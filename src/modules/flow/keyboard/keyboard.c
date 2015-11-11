@@ -224,7 +224,7 @@ keyboard_irange_on_code(struct keyboard_common_data *data,
 }
 
 static bool
-keyboard_on_event(void *data, int fd, unsigned int cond)
+keyboard_on_event(void *data, int fd, uint32_t cond)
 {
     struct keyboard_common_data *mdata = data;
 

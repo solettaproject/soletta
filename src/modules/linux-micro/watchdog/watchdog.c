@@ -140,7 +140,7 @@ watchdog_start(const struct sol_platform_linux_micro_module *mod, const char *se
 {
     int err = 0;
     int timeout = 60;
-    unsigned int timeout_ms;
+    uint32_t timeout_ms;
 
     if (watchdog_fd >= 0)
         return 0;
@@ -165,9 +165,9 @@ watchdog_start(const struct sol_platform_linux_micro_module *mod, const char *se
     }
 
     if (timeout > 5)
-        timeout_ms = (unsigned)(timeout - 5) * 1000U;
+        timeout_ms = (uint32_t)(timeout - 5) * 1000U;
     else
-        timeout_ms = (unsigned)timeout * 900U;
+        timeout_ms = (uint32_t)timeout * 900U;
 
     watchdog_timeout = sol_timeout_add(timeout_ms, watchdog_keep_alive, NULL);
     if (!watchdog_timeout) {

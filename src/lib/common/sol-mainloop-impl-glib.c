@@ -131,17 +131,17 @@ sol_mainloop_impl_idle_del(void *handle)
 }
 
 struct sol_fd_glib {
-    bool (*cb)(void *data, int fd, unsigned int active_flags);
+    bool (*cb)(void *data, int fd, uint32_t active_flags);
     const void *data;
     int fd;
-    unsigned int flags;
+    uint32_t flags;
     gint id;
 
     int refcnt;
 };
 
 static GIOCondition
-sol_to_glib_flags(unsigned int sol_flags)
+sol_to_glib_flags(uint32_t sol_flags)
 {
     GIOCondition glib_flags = 0;
 
@@ -155,10 +155,10 @@ sol_to_glib_flags(unsigned int sol_flags)
     return glib_flags;
 }
 
-static unsigned int
+static uint32_t
 glib_to_sol_flags(GIOCondition glib_flags)
 {
-    unsigned int sol_flags = 0;
+    uint32_t sol_flags = 0;
 
     if (glib_flags & G_IO_IN) sol_flags |= SOL_FD_FLAGS_IN;
     if (glib_flags & G_IO_OUT) sol_flags |= SOL_FD_FLAGS_OUT;
@@ -192,7 +192,7 @@ unref_fd(void *data)
 }
 
 void *
-sol_mainloop_impl_fd_add(int fd, unsigned int flags, bool (*cb)(void *data, int fd, unsigned int active_flags), const void *data)
+sol_mainloop_impl_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data)
 {
     struct sol_fd_glib *fd_handle = malloc(sizeof(*fd_handle));
 
@@ -221,7 +221,7 @@ sol_mainloop_impl_fd_del(void *handle)
 }
 
 bool
-sol_mainloop_impl_fd_set_flags(void *handle, unsigned int flags)
+sol_mainloop_impl_fd_set_flags(void *handle, uint32_t flags)
 {
     struct sol_fd_glib *fd_handle = handle;
 
@@ -246,7 +246,7 @@ sol_mainloop_impl_fd_set_flags(void *handle, unsigned int flags)
     return true;
 }
 
-unsigned int
+uint32_t
 sol_mainloop_impl_fd_get_flags(const void *handle)
 {
     const struct sol_fd_glib *fd_handle = handle;

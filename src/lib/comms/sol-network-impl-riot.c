@@ -83,7 +83,7 @@ sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
 }
 
 static int
-add_ip6_link(int idx, gnrc_ipv6_netif_t *if_ip6)
+add_ip6_link(uint16_t idx, gnrc_ipv6_netif_t *if_ip6)
 {
 #if MODULE_GNRC_IPV6_NETIF
     int i;

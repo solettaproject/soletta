@@ -139,7 +139,7 @@ check_stdin(void)
 }
 
 static bool
-on_stdin_hash(void *data, int fd, unsigned int flags)
+on_stdin_hash(void *data, int fd, uint32_t flags)
 {
     struct entry *entry = data;
     struct sol_blob *b = NULL;

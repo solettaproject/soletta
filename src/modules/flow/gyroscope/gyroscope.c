@@ -109,7 +109,7 @@ static bool gyro_tick_do(void *data);
 
 static int
 gyro_timer_resched(struct gyroscope_l3g4200d_data *mdata,
-    unsigned int timeout_ms,
+    uint32_t timeout_ms,
     bool (*cb)(void *data))
 {
     mdata->timer = sol_timeout_add(timeout_ms, cb, mdata);

@@ -89,7 +89,7 @@ watchdog(void *data)
 }
 
 static bool
-on_fd(void *data, int fd, unsigned int active_flags)
+on_fd(void *data, int fd, uint32_t active_flags)
 {
     if (active_flags & SOL_FD_FLAGS_IN) {
         int err;

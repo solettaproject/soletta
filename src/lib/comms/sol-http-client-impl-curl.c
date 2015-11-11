@@ -303,7 +303,7 @@ cleanup:
 }
 
 static bool
-connection_watch_cb(void *data, int fd, unsigned int flags)
+connection_watch_cb(void *data, int fd, uint32_t flags)
 {
     struct sol_http_client_connection *connection = data;
     int action = 0;

@@ -102,10 +102,10 @@ struct _sol_glib_integration_source_data {
     gint max_prio;
 };
 
-static unsigned int
+static uint32_t
 _sol_glib_integration_gpoll_events_to_fd_flags(gushort gpoll_events)
 {
-    unsigned int sol_flags = 0;
+    uint32_t sol_flags = 0;
 
     if (gpoll_events & G_IO_IN) sol_flags |= SOL_FD_FLAGS_IN;
     if (gpoll_events & G_IO_OUT) sol_flags |= SOL_FD_FLAGS_OUT;
@@ -118,7 +118,7 @@ _sol_glib_integration_gpoll_events_to_fd_flags(gushort gpoll_events)
 }
 
 static gushort
-_sol_glib_integration_fd_flags_to_gpoll_events(unsigned int sol_flags)
+_sol_glib_integration_fd_flags_to_gpoll_events(uint32_t sol_flags)
 {
     gushort glib_flags = 0;
 
@@ -161,7 +161,7 @@ _sol_glib_integration_source_fd_handler_data_find(struct _sol_glib_integration_s
 }
 
 static bool
-_sol_glib_integration_on_source_fd(void *data, int fd, unsigned int active_flags)
+_sol_glib_integration_on_source_fd(void *data, int fd, uint32_t active_flags)
 {
     struct _sol_glib_integration_fd_handler *h = data;
     GPollFD *gpfd = _sol_glib_integration_source_gpollfd_find(h->mdata, fd);
@@ -197,7 +197,7 @@ _sol_glib_integration_source_fd_handlers_adjust(struct _sol_glib_integration_sou
     // 2 - create fd handlers for new or changed fds
     for (i = 0; i < (uint16_t)mdata->n_poll; i++) {
         const GPollFD *gpfd = mdata->fds + i;
-        unsigned int flags;
+        uint32_t flags;
         int r;
 
         h = _sol_glib_integration_source_fd_handler_data_find(mdata, gpfd->fd);

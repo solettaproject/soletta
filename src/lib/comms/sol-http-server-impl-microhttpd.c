@@ -497,7 +497,7 @@ end:
 }
 
 static bool
-connection_watch_cb(void *data, int fd, unsigned int flags)
+connection_watch_cb(void *data, int fd, uint32_t flags)
 {
     uint16_t i;
     fd_set rs, ws, es;

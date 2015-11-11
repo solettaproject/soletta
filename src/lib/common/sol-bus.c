@@ -111,7 +111,7 @@ static const struct sol_mainloop_source_type source_type = {
 };
 
 static bool
-on_sd_event_fd(void *data, int fd, unsigned int active_flags)
+on_sd_event_fd(void *data, int fd, uint32_t active_flags)
 {
     /* just used to wake up main loop */
     return true;

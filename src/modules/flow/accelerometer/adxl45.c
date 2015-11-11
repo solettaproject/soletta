@@ -97,7 +97,7 @@ static bool accel_tick_do(void *data);
 
 static int
 accel_timer_resched(struct accelerometer_adxl345_data *mdata,
-    unsigned int timeout_ms,
+    uint32_t timeout_ms,
     bool (*cb)(void *data))
 {
     mdata->timer = sol_timeout_add(timeout_ms, cb, mdata);

@@ -66,7 +66,7 @@ struct sol_uart {
 };
 
 static bool
-uart_rx_callback(void *data, int fd, unsigned int active_flags)
+uart_rx_callback(void *data, int fd, uint32_t active_flags)
 {
     struct sol_uart *uart = data;
 
@@ -205,7 +205,7 @@ uart_tx_dispatch(struct sol_uart *uart, int status)
 }
 
 static bool
-uart_tx_callback(void *data, int fd, unsigned int active_flags)
+uart_tx_callback(void *data, int fd, uint32_t active_flags)
 {
     struct sol_uart *uart = data;
     int ret;

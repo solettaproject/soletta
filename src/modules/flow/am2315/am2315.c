@@ -78,7 +78,7 @@ struct am2315 {
 static struct sol_ptr_vector devices = SOL_PTR_VECTOR_INIT;
 
 static int
-timer_sched(struct am2315 *device, unsigned int timeout_ms, bool (*cb)(void *data))
+timer_sched(struct am2315 *device, uint32_t timeout_ms, bool (*cb)(void *data))
 {
     device->timer = sol_timeout_add(timeout_ms, cb, device);
     SOL_NULL_CHECK(device->timer, -ENOMEM);

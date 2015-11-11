@@ -154,7 +154,7 @@ sol_mqtt_shutdown(void)
 }
 
 static bool
-sol_mqtt_event_loop(void *data, int fd, unsigned int active_flags)
+sol_mqtt_event_loop(void *data, int fd, uint32_t active_flags)
 {
     struct sol_mqtt *mqtt = data;
     int r;
@@ -343,7 +343,7 @@ sol_mqtt_on_unsubscribe(struct mosquitto *mosq, void *data, int id)
 }
 
 SOL_API struct sol_mqtt *
-sol_mqtt_connect(const char *host, int port, const struct sol_mqtt_config *config, void *data)
+sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config, void *data)
 {
     struct sol_mqtt *mqtt;
     int r;
@@ -398,7 +398,7 @@ sol_mqtt_connect(const char *host, int port, const struct sol_mqtt_config *confi
 
     r = mosquitto_connect_async(mqtt->mosq, host, port, mqtt->keepalive);
     if (r != MOSQ_ERR_SUCCESS)
-        SOL_WRN("Unable to connect to %s:%d", host, port);
+        SOL_WRN("Unable to connect to %s:%" PRIu16, host, port);
 
     mqtt->socket_fd = mosquitto_socket(mqtt->mosq);
     if (mqtt->socket_fd == -1) {

@@ -435,7 +435,7 @@ void sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
  *
  * @see sol_coap_secure_server_new()
  */
-struct sol_coap_server *sol_coap_server_new(int port);
+struct sol_coap_server *sol_coap_server_new(uint16_t port);
 
 /**
  * Creates a new secure CoAP server instance.
@@ -452,7 +452,7 @@ struct sol_coap_server *sol_coap_server_new(int port);
  *
  * @see sol_coap_secure_server_new()
  */
-struct sol_coap_server *sol_coap_secure_server_new(int port);
+struct sol_coap_server *sol_coap_secure_server_new(uint16_t port);
 
 /**
  * Take a reference of the given server.

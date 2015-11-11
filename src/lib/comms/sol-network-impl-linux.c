@@ -214,7 +214,7 @@ _on_addr_event(struct nlmsghdr *header)
 }
 
 static bool
-_on_event(void *data, int nl_socket, unsigned int cond)
+_on_event(void *data, int nl_socket, uint32_t cond)
 {
     int status;
     char buf[4096];
@@ -470,7 +470,7 @@ sol_network_link_get_name(const struct sol_network_link *link)
 }
 
 SOL_API bool
-sol_network_link_up(unsigned int link_index)
+sol_network_link_up(uint16_t link_index)
 {
     char buf[NLMSG_ALIGN(sizeof(struct nlmsghdr) + sizeof(struct ifinfomsg) + 512)] = { 0 };
     struct iovec iov = { buf, sizeof(buf) };

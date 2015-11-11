@@ -633,7 +633,7 @@ next:
 }
 
 static bool
-sol_uevent_handler(void *data, int fd, unsigned int cond)
+sol_uevent_handler(void *data, int fd, uint32_t cond)
 {
     int len;
     struct uevent_context *ctx = data;
