@@ -48,8 +48,6 @@
 #include "sol-random.h"
 #include "sol-util.h"
 #include "sol-vector.h"
-#include "sol_config.h"
-
 
 struct v1_data {
     struct sol_ptr_vector pending_conns;

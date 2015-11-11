@@ -87,26 +87,26 @@ obj-networking-$(MQTT) += \
 obj-networking-$(MQTT)-extra-ldflags += \
 	$(MOSQUITTO_LDFLAGS)
 
-headers-networking-$(NETWORK) += \
+headers-$(NETWORK) += \
     include/sol-network.h
 
-headers-networking-$(COAP) += \
+headers-$(COAP) += \
     include/sol-coap.h
 
-headers-networking-$(OIC) += \
+headers-$(OIC) += \
     include/sol-oic-common.h \
     include/sol-oic-client.h \
     include/sol-oic-server.h \
     sol-oic-cbor.h
 
-headers-networking-$(HTTP) += \
+headers-$(HTTP) += \
     include/sol-http.h
 
-headers-networking-$(HTTP_CLIENT) += \
+headers-$(HTTP_CLIENT) += \
     include/sol-http-client.h
 
-headers-networking-$(HTTP_SERVER) += \
+headers-$(HTTP_SERVER) += \
     include/sol-http-server.h
 
-headers-networking-$(MQTT) += \
+headers-$(MQTT) += \
 	include/sol-mqtt.h
