@@ -1006,8 +1006,10 @@ json_serialize(struct sol_buffer *buffer, struct json_element *element)
         SOL_INT_CHECK(r, < 0, r);
 
         SOL_VECTOR_FOREACH_IDX (&element->children, var, i) {
-            if (i > 0)
+            if (i > 0) {
                 r = sol_buffer_append_char(buffer, ',');
+                SOL_INT_CHECK(r, < 0, r);
+            }
             r = json_serialize(buffer, var);
             SOL_INT_CHECK(r, < 0, r);
         }
