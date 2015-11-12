@@ -829,6 +829,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     CborError err;
     char *href;
+    int r;
 
     bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data);
     struct sol_coap_packet *req;
@@ -880,9 +881,11 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
 
         return sol_coap_send_packet_with_reply(server, req, &addr,
             cb, ctx) == 0;
-    }
-
-    SOL_ERR("Could not encode CBOR representation: %s", cbor_error_string(err));
+        if (r)
+            return 0;
+    } else
+        SOL_ERR("Could not encode CBOR representation: %s",
+            cbor_error_string(err));
 
 out:
     sol_coap_packet_unref(req);
