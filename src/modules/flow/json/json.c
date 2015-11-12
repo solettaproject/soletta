@@ -939,7 +939,7 @@ json_array_in_process(struct sol_flow_node *node, void *data, uint16_t port, uin
     return json_array_create_count(node, mdata);
 
 error:
-    sol_vector_del(&mdata->children, mdata->children.len - 1);
+    sol_vector_del_element(&mdata->children, new);
     return r;
 }
 
@@ -1053,7 +1053,7 @@ json_object_get_or_create_child_element(struct json_element *element, const stru
     return key_element;
 
 str_error:
-    sol_vector_del(&element->children, element->children.len - 1);
+    sol_vector_del_element(&element->children, key_element);
     return NULL;
 }
 
@@ -1333,7 +1333,7 @@ json_object_add_new_element(struct sol_flow_node *node, struct json_element *bas
     return 0;
 
 str_error:
-    sol_vector_del(&base_element->children, base_element->children.len - 1);
+    sol_vector_del_element(&base_element->children, new);
     return -ENOMEM;
 }
 
@@ -1389,7 +1389,7 @@ json_object_null_process(struct sol_flow_node *node, void *data, uint16_t port, 
     return 0;
 
 error:
-    sol_vector_del(&mdata->children, mdata->children.len - 1);
+    sol_vector_del_element(&mdata->children, new);
     return -ENOMEM;
 }
 

@@ -95,6 +95,7 @@ sol_vector_get(const struct sol_vector *v, uint16_t i)
 }
 
 int sol_vector_del(struct sol_vector *v, uint16_t i);
+int sol_vector_del_element(struct sol_vector *v, const void *elem);
 
 void sol_vector_clear(struct sol_vector *v);
 
@@ -164,6 +165,12 @@ static inline int
 sol_ptr_vector_del(struct sol_ptr_vector *pv, uint16_t i)
 {
     return sol_vector_del(&pv->base, i);
+}
+
+static inline int
+sol_ptr_vector_del_element(struct sol_ptr_vector *pv, const void *elem)
+{
+    return sol_vector_del_element(&pv->base, elem);
 }
 
 static inline void *
