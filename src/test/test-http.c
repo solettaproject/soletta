@@ -85,6 +85,9 @@ test_split_urls(void)
         SET_PARAMS("mailto:user@server.com", "mailto", "", "", "", "user@server.com", "", "", 0, 0, true),
         SET_PARAMS("file://localhost/usr/home/user/hi.txt", "file", "", "", "localhost", "/usr/home/user/hi.txt", "", "", 0, 0, true),
         SET_PARAMS("foo://localhost/?go", "foo", "", "", "localhost", "/", "go", "", 0, 0, true),
+        SET_PARAMS("foo://:password@localhost", "foo", "", "password", "localhost", "", "", "", 0, 0, true),
+        SET_PARAMS("foo://:@localhost", "foo", "", "", "localhost", "", "", "", 0, 0, false),
+        SET_PARAMS("foo://@localhost", "foo", "", "", "localhost", "", "", "", 0, 0, false),
     };
 
     for (i = 0; i < ARRAY_SIZE(test_split); i++) {

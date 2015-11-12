@@ -428,16 +428,20 @@ sol_http_create_uri(char **uri_out, const struct sol_http_url url,
                 sol_buffer_get_slice(&buf_encoded));
             sol_buffer_fini(&buf_encoded);
             SOL_INT_CHECK_GOTO(r, < 0, exit);
-            if (url.password.len > 0) {
-                r = sol_buffer_append_char(&buf, ':');
-                SOL_INT_CHECK_GOTO(r, < 0, exit);
-                r = sol_http_encode_slice(&buf_encoded, url.password);
-                SOL_INT_CHECK_GOTO(r, < 0, exit);
-                r = sol_buffer_append_slice(&buf,
-                    sol_buffer_get_slice(&buf_encoded));
-                sol_buffer_fini(&buf_encoded);
-                SOL_INT_CHECK_GOTO(r, < 0, exit);
-            }
+        }
+
+        if (url.password.len > 0) {
+            r = sol_buffer_append_char(&buf, ':');
+            SOL_INT_CHECK_GOTO(r, < 0, exit);
+            r = sol_http_encode_slice(&buf_encoded, url.password);
+            SOL_INT_CHECK_GOTO(r, < 0, exit);
+            r = sol_buffer_append_slice(&buf,
+                sol_buffer_get_slice(&buf_encoded));
+            sol_buffer_fini(&buf_encoded);
+            SOL_INT_CHECK_GOTO(r, < 0, exit);
+        }
+
+        if (url.user.len > 0 || url.password.len > 0) {
             r = sol_buffer_append_char(&buf, '@');
             SOL_INT_CHECK_GOTO(r, < 0, exit);
         }
@@ -580,7 +584,7 @@ _get_authority(const struct sol_str_slice partial_uri,
     uint32_t *port)
 {
     struct sol_str_slice auth, port_slice = SOL_STR_SLICE_EMPTY;
-    const char *itr, *itr_end;
+    const char *itr, *itr_end, *port_start;
     size_t discarted = 2;
     bool parsing_ipv6;
 
@@ -599,6 +603,7 @@ _get_authority(const struct sol_str_slice partial_uri,
     auth.data += 2;
     auth.len -= 2;
     itr_end = auth.data + auth.len;
+    port_start = NULL;
     parsing_ipv6 = false;
 
     for (itr = auth.data, host->data = auth.data; itr < itr_end; itr++) {
@@ -610,7 +615,7 @@ _get_authority(const struct sol_str_slice partial_uri,
             host->len = itr - host->data;
         } else if (*itr == '@') {
             *user = *host;
-            if (!user->len)
+            if (!user->len && port_slice.data != port_start)
                 user->len = itr - user->data;
             *pass = port_slice;
             pass->len = itr > pass->data ? itr - pass->data : 0;
@@ -623,7 +628,8 @@ _get_authority(const struct sol_str_slice partial_uri,
             if (host->len > 0)
                 return -EINVAL;
             host->len = itr - host->data;
-            port_slice.data = itr + 1;
+            port_start = itr + 1;
+            port_slice.data = port_start;
             discarted++;
         } else if (*itr == '/' || *itr == '?' || *itr == '#')
             break;
@@ -650,7 +656,7 @@ _get_authority(const struct sol_str_slice partial_uri,
         }
     }
 
-    SOL_DBG("User:%.*s Host:%.*s Pass%.*s Port:%.*s",
+    SOL_DBG("User: %.*s Host: %.*s Pass: %.*s Port: %.*s",
         SOL_STR_SLICE_PRINT(*user), SOL_STR_SLICE_PRINT(*host),
         SOL_STR_SLICE_PRINT(*pass), SOL_STR_SLICE_PRINT(port_slice));
 
