@@ -152,7 +152,7 @@ uart_rx_cb(void *data, char char_read)
 {
     msg_t m;
     struct uart_interrupt_data *int_data = data;
-    struct uart_rx_interrupt_data *rx_int_data = malloc(sizeof(struct uart_rx_interrupt_data));
+    struct uart_rx_interrupt_data *rx_int_data;
 
     rx_int_data = malloc(sizeof(struct uart_rx_interrupt_data));
     if (!rx_int_data)
