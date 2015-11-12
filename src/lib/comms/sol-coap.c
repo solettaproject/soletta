@@ -952,6 +952,23 @@ get_observe_option(struct sol_coap_packet *pkt)
 }
 
 static int
+unregister_observer(struct resource_context *c, const struct sol_network_link_addr *cliaddr)
+{
+    struct resource_observer *o;
+    uint16_t i;
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&c->observers, o, i) {
+        if (!memcmp(&o->cliaddr, cliaddr, sizeof(*cliaddr))) {
+            sol_ptr_vector_del(&c->observers, i);
+            free(o);
+            return 0;
+        }
+    }
+
+    return -ENOENT;
+}
+
+static int
 register_observer(struct resource_context *c, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, int observe)
 {
@@ -1099,6 +1116,8 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
 
         if (observe >= 0)
             register_observer(c, req, cliaddr, observe);
+        else if (sol_coap_header_get_code(req) == SOL_COAP_METHOD_GET)
+            unregister_observer(c, cliaddr);
 
         return cb(server, resource, req, cliaddr, (void *)c->data);
     }
