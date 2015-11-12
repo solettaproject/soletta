@@ -802,7 +802,7 @@ type_store_read_from_json(struct type_store *store, struct sol_str_slice input)
         type_description_init(desc);
         if (!read_type(&decoder, desc)) {
             type_description_fini(desc);
-            sol_vector_del(&store->types, store->types.len - 1);
+            sol_vector_del_last(&store->types);
         }
 
         if (peek(d) != SOL_JSON_TYPE_ELEMENT_SEP)
@@ -938,7 +938,7 @@ fail_options_symbol:
 fail_symbol:
     free(t->name);
 fail_name:
-    sol_vector_del(&store->types, store->types.len - 1);
+    sol_vector_del_last(&store->types);
 
     return false;
 }

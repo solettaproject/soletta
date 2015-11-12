@@ -119,7 +119,7 @@ add_ip6_link(uint16_t idx, gnrc_ipv6_netif_t *if_ip6)
     return 0;
 addr_error:
     sol_vector_clear(&link->addrs);
-    sol_vector_del(&links, links.len - 1);
+    sol_vector_del_last(&links);
     return -ENOMEM;
 #else
     return -ENOSYS;

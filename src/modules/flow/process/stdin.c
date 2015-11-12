@@ -208,7 +208,7 @@ stdin_common_connect(struct sol_flow_node *node, struct stdin_monitor **p_monito
 
     ret = stdin_watch_start();
     if (ret < 0) {
-        sol_vector_del(&stdin_monitors, stdin_monitors.len - 1);
+        sol_vector_del_last(&stdin_monitors);
         *p_monitor = NULL;
     }
 

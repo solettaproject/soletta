@@ -140,7 +140,7 @@ process_subprocess_in_process(struct sol_flow_node *node, void *data, uint16_t p
     mdata->watches.out = sol_fd_add(mdata->pipes.out[1], SOL_FD_FLAGS_OUT | SOL_FD_FLAGS_ERR, on_write, mdata);
     if (!mdata->watches.out) {
         sol_blob_unref(w->blob);
-        sol_vector_del(&mdata->write_data, mdata->write_data.len - 1);
+        sol_vector_del_last(&mdata->write_data);
         return -1;
     }
 

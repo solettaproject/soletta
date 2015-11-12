@@ -199,7 +199,7 @@ new_external_service_module(const char *name)
 error_init:
     free(mod->name);
 error_name:
-    sol_vector_del(&service_modules, service_modules.len - 1);
+    sol_vector_del_last(&service_modules);
 error:
     dlclose(handle);
     return NULL;
@@ -260,7 +260,7 @@ find_service_instance(const char *name)
     return inst;
 
 error_name:
-    sol_vector_del(&service_instances, service_instances.len - 1);
+    sol_vector_del_last(&service_instances);
     return NULL;
 }
 #endif

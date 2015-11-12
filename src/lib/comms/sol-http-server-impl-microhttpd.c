@@ -563,7 +563,7 @@ notify_connection_cb(void *data, struct MHD_Connection *connection, void **socke
     if (!conn->watch) {
         char error_str[128];
         SOL_WRN("Could not watch file descriptor: %s", sol_util_strerror(errno, error_str, sizeof(error_str)));
-        sol_vector_del(&server->fds, server->fds.len - 1);
+        sol_vector_del_last(&server->fds);
     }
 }
 
@@ -715,7 +715,7 @@ sol_http_server_register_handler(struct sol_http_server *server, const char *pat
     return 0;
 
 error:
-    sol_vector_del(&server->handlers, server->handlers.len - 1);
+    sol_vector_del_last(&server->handlers);
 err:
     free(p);
     return -ENOMEM;
@@ -816,7 +816,7 @@ sol_http_server_add_dir(struct sol_http_server *server, const char *basename, co
     return 0;
 
 err_path:
-    if (sol_vector_del(&server->dirs, server->dirs.len - 1) < 0)
+    if (sol_vector_del_last(&server->dirs) < 0)
         SOL_WRN("Could not remove %s/%s correctly",
             basename, rootdir);
 err:
