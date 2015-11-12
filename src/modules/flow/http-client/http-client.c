@@ -955,7 +955,7 @@ request_node_setup_params(struct http_data *data, struct sol_http_params *params
         }
     }
 
-    if (mdata->user && mdata->password && !sol_http_param_add(params,
+    if ((mdata->user || mdata->password) && !sol_http_param_add(params,
         SOL_HTTP_REQUEST_PARAM_AUTH_BASIC(mdata->user, mdata->password))) {
         SOL_ERR("Could not set user and password params");
         return -ENOMEM;
