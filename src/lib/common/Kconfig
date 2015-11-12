@@ -277,6 +277,15 @@ config WORKER_THREAD
             so, allowing the developer to not worry about manually
             handling threads or locks.
 
+config POWER_SUPPLY
+    bool "Power supply support"
+    default y
+    help
+          Enable support for power supply.
+
+          Power supply is used to get information from battery, UPS,
+          AC or DC power supplies.
+
 config LOG
 	bool "Log"
 	default y
