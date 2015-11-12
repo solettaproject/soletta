@@ -95,7 +95,7 @@ struct sol_gpio_config {
     union {
         struct {
             enum sol_gpio_edge trigger_mode;
-            void (*cb)(void *data, struct sol_gpio *gpio);
+            void (*cb)(void *data, struct sol_gpio *gpio, bool value);
             const void *user_data;
             uint32_t poll_timeout; /* Will be used if interruptions are not possible */
         } in;

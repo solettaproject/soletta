@@ -49,7 +49,7 @@ struct sol_gpio {
     int pin;
     bool active_low;
     struct {
-        void (*cb)(void *data, struct sol_gpio *gpio);
+        void (*cb)(void *data, struct sol_gpio *gpio, bool value);
         const void *data;
         void *int_handler;
     } irq;
@@ -59,8 +59,10 @@ static void
 gpio_process_cb(void *data)
 {
     struct sol_gpio *gpio = data;
+    bool val;
 
-    gpio->irq.cb((void *)gpio->irq.data, gpio);
+    val = sol_gpio_read(gpio);
+    gpio->irq.cb((void *)gpio->irq.data, gpio, val);
 }
 
 SOL_API struct sol_gpio *

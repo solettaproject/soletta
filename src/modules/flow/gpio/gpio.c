@@ -54,14 +54,9 @@ gpio_close(struct sol_flow_node *node, void *data)
 
 /* GPIO READER ********************************************************************/
 static void
-gpio_reader_event(void *data, struct sol_gpio *gpio)
+gpio_reader_event(void *data, struct sol_gpio *gpio, bool value)
 {
-    int value;
     struct sol_flow_node *node = data;
-    struct gpio_data *mdata = sol_flow_node_get_private_data(node);
-
-    value = sol_gpio_read(mdata->gpio);
-    SOL_INT_CHECK(value, < 0);
 
     sol_flow_send_boolean_packet(node,
         SOL_FLOW_NODE_TYPE_GPIO_READER__OUT__OUT, value);
