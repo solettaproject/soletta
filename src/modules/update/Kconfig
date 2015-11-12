@@ -1,0 +1,12 @@
+menuconfig USE_AUTO_UPDATE
+    bool "Auto Update Options"
+    default y
+    help
+        Allow Soletta built apps to be updated via HTTP connection.
+
+        Soletta can check a given URL to see if there is an update
+        available and update itself.
+        Different update modules are provided for different Soletta
+        app scenarios.
+
+source "src/modules/update/linux-micro-efi/Kconfig"

@@ -82,6 +82,9 @@ obj-core-$(PTHREAD)-extra-ldflags += $(PTHREAD_H_LDFLAGS)
 obj-core-$(USE_PIN_MUX) += \
     sol-pin-mux.o
 
+obj-core-$(USE_AUTO_UPDATE) += \
+    sol-update.o
+
 requires-private-$(MAINLOOP_GLIB) += \
     $(GLIB_REQUIRES_PRIVATE)
 
@@ -114,3 +117,7 @@ headers-$(WORKER_THREAD) += \
 
 headers-$(MAINLOOP_CONTIKI) += \
     include/sol-mainloop-contiki.h
+
+headers-$(USE_AUTO_UPDATE) += \
+    include/sol-update.h \
+    include/sol-update-modules.h

@@ -96,7 +96,7 @@ parse-mod-output = \
 	$(eval mod-so     += $(3)) \
 
 external-module-flags := -DSOL_FLOW_NODE_TYPE_MODULE_EXTERNAL=1 -DSOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL=1 \
-		-DSOL_PIN_MUX_MODULE_EXTERNAL=1 -DSOL_FLOW_METATYPE_MODULE_EXTERNAL=1
+		-DSOL_PIN_MUX_MODULE_EXTERNAL=1 -DSOL_FLOW_METATYPE_MODULE_EXTERNAL=1 -DSOL_UPDATE_MODULE_EXTERNAL=1
 
 parse-mod-module = \
 	$(call parse-common-module,$(1),$(2),m,$(3),curr-mod-type) \
