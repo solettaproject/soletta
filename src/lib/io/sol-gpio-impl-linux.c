@@ -61,7 +61,7 @@ struct sol_gpio {
     struct {
         struct sol_fd *fd_watch;
         struct sol_timeout *timer;
-        void (*cb)(void *data, struct sol_gpio *gpio);
+        void (*cb)(void *data, struct sol_gpio *gpio, bool value);
         const void *data;
         bool last_value : 1;
         bool on_raise : 1;
@@ -150,10 +150,8 @@ _gpio_on_event(void *userdata, int fd, uint32_t cond)
     struct sol_gpio *gpio = userdata;
 
     if (cond & SOL_FD_FLAGS_PRI) {
-        gpio->irq.cb((void *)gpio->irq.data, gpio);
-        // Read the value, in case the callbacks don't do it, or poll will
-        // keep on triggering forever
-        sol_gpio_read(gpio);
+        bool val = sol_gpio_read(gpio);
+        gpio->irq.cb((void *)gpio->irq.data, gpio, val);
     }
 
     /*
@@ -175,7 +173,7 @@ _gpio_on_timeout(void *userdata)
         gpio->irq.last_value = val;
         if ((val && gpio->irq.on_raise)
             || (!val && gpio->irq.on_fall))
-            gpio->irq.cb((void *)gpio->irq.data, gpio);
+            gpio->irq.cb((void *)gpio->irq.data, gpio, val);
     }
     return true;
 }

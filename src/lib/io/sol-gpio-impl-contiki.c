@@ -52,7 +52,7 @@ struct sol_gpio {
     struct sensors_sensor *button_sensor;
     bool active_low;
     struct {
-        void (*cb)(void *data, struct sol_gpio *gpio);
+        void (*cb)(void *data, struct sol_gpio *gpio, bool value);
         void *data;
     } irq;
 };
@@ -61,8 +61,10 @@ static void
 event_handler_cb(void *user_data, process_event_t ev, process_data_t ev_data)
 {
     struct sol_gpio *gpio = user_data;
+    bool val;
 
-    gpio->irq.cb(gpio->irq.data, gpio);
+    val = sol_gpio_read(gpio);
+    gpio->irq.cb(gpio->irq.data, gpio, val);
 }
 
 struct sol_gpio *
