@@ -97,6 +97,14 @@ sol_vector_get(const struct sol_vector *v, uint16_t i)
 int sol_vector_del(struct sol_vector *v, uint16_t i);
 int sol_vector_del_element(struct sol_vector *v, const void *elem);
 
+static inline int
+sol_vector_del_last(struct sol_vector *v)
+{
+    if (v->len == 0)
+        return 0;
+    return sol_vector_del(v, v->len - 1);
+}
+
 void sol_vector_clear(struct sol_vector *v);
 
 static inline void *
@@ -170,6 +178,14 @@ sol_ptr_vector_del(struct sol_ptr_vector *pv, uint16_t i)
 /* Remove all occurrences of elem in this sol_ptr_vector */
 int sol_ptr_vector_del_element(struct sol_ptr_vector *pv, const void *elem);
 
+static inline int
+sol_ptr_vector_del_last(struct sol_ptr_vector *pv)
+{
+    if (pv->base.len == 0)
+        return 0;
+    return sol_ptr_vector_del(pv, pv->base.len - 1);
+}
+
 static inline void *
 sol_ptr_vector_take(struct sol_ptr_vector *pv, uint16_t i)
 {
@@ -177,6 +193,14 @@ sol_ptr_vector_take(struct sol_ptr_vector *pv, uint16_t i)
 
     sol_ptr_vector_del(pv, i);
     return result;
+}
+
+static inline void *
+sol_ptr_vector_take_last(struct sol_ptr_vector *pv)
+{
+    if (pv->base.len == 0)
+        return NULL;
+    return sol_ptr_vector_take(pv, pv->base.len - 1);
 }
 
 static inline void
