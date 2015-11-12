@@ -349,6 +349,25 @@ sol_buffer_steal(struct sol_buffer *buf, size_t *size)
     return r;
 }
 
+SOL_API void *
+sol_buffer_steal_or_copy(struct sol_buffer *buf, size_t *size)
+{
+    void *r;
+
+    SOL_NULL_CHECK(buf, NULL);
+
+    r = sol_buffer_steal(buf, size);
+    if (!r) {
+        r = sol_util_memdup(buf->data, buf->used);
+        SOL_NULL_CHECK(r, NULL);
+
+        if (size)
+            *size = buf->used;
+    }
+
+    return r;
+}
+
 SOL_API struct sol_buffer *
 sol_buffer_copy(const struct sol_buffer *buf)
 {
