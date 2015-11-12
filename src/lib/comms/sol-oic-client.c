@@ -877,11 +877,12 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
             server == client->dtls_server ? "secure" : "non-secure",
             addr.port);
 
-        return sol_coap_send_packet_with_reply(server, req, &addr,
-            cb, ctx) == 0;
-    }
-
-    SOL_ERR("Could not encode CBOR representation: %s", cbor_error_string(err));
+        if (sol_coap_send_packet_with_reply(server, req, &addr,
+            cb, ctx) == 0)
+            return true;
+    } else
+        SOL_ERR("Could not encode CBOR representation: %s",
+            cbor_error_string(err));
 
 out:
     sol_coap_packet_unref(req);
