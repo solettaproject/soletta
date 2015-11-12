@@ -439,7 +439,6 @@ err:
 static char *
 generate_nonce(void)
 {
-    int r;
     ssize_t size;
     char *nonce = NULL;
     struct sol_random *engine;
@@ -460,8 +459,8 @@ generate_nonce(void)
     nonce = calloc(1, size + 1);
     SOL_NULL_CHECK_GOTO(nonce, end);
 
-    r = sol_util_base16_encode(nonce, size, slice, false);
-    if (r < 0) {
+    size = sol_util_base16_encode(nonce, size, slice, false);
+    if (size < 0) {
         SOL_WRN("Could not enconde the oauth_nonce");
         free(nonce);
         nonce = NULL;
