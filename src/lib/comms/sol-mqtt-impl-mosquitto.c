@@ -396,7 +396,7 @@ sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *
 
     mqtt->connection_status = SOL_MQTT_DISCONNECTED;
 
-    r = mosquitto_connect_async(mqtt->mosq, host, port, mqtt->keepalive);
+    r = mosquitto_connect_async(mqtt->mosq, host, port, mqtt->keepalive / 1000);
     if (r != MOSQ_ERR_SUCCESS)
         SOL_WRN("Unable to connect to %s:%" PRIu16, host, port);
 

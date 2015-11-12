@@ -302,7 +302,7 @@ struct sol_mqtt_config {
 
     /**
      * Time interval between PING messages that should be sent by the
-     * broker to the client.
+     * broker to the client in miliseconds.
      */
     time_t keepalive;
 
