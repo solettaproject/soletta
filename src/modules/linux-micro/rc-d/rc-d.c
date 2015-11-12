@@ -135,7 +135,7 @@ rc_d_run(const char *service, const char *arg, void (*cb)(void *data, const char
 
 error_fork_run:
     err = -errno;
-    sol_vector_del(&pendings, pendings.len - 1);
+    sol_vector_del_last(&pendings);
     return err;
 }
 

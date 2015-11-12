@@ -680,7 +680,7 @@ no_psk:
     free(item->id);
 no_id:
     sol_util_secure_clear_memory(item, sizeof(*item));
-    sol_vector_del(&creds->items, creds->items.len - 1);
+    sol_vector_del_last(&creds->items);
 
     return false;
 }

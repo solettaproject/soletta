@@ -259,7 +259,7 @@ _sol_message_digest_get_algorithm_info(const char *name)
     memcpy(info->name, name, namelen + 1);
 
     if (!_sol_message_digest_fill_algorithm_info(info)) {
-        sol_vector_del(&_algorithms_info, _algorithms_info.len - 1);
+        sol_vector_del_last(&_algorithms_info);
         return NULL;
     }
 

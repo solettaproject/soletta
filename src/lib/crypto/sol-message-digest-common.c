@@ -757,7 +757,7 @@ sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *inpu
 
 error:
     sol_blob_unref(input);
-    sol_vector_del(&handle->pending_feed, handle->pending_feed.len - 1);
+    sol_vector_del_last(&handle->pending_feed);
 
     return -ENOMEM;
 
