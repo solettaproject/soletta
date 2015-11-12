@@ -265,3 +265,38 @@ sol_ptr_vector_init_n(struct sol_ptr_vector *pv, uint16_t n)
         return -errno;
     return 0;
 }
+
+SOL_API int
+sol_vector_del_element(struct sol_vector *v, const void *elem)
+{
+    ssize_t offset, index;
+
+    offset = (const char *)elem - (const char *)v->data;
+    if (offset % v->elem_size || offset < 0)
+        return -ENOENT;
+
+    index = offset / v->elem_size;
+    if (index >= v->len)
+        return -ENOENT;
+
+    return sol_vector_del(v, index);
+}
+
+SOL_API int
+sol_ptr_vector_del_element(struct sol_ptr_vector *pv, const void *elem)
+{
+    int r;
+    uint16_t i, removed = 0;
+    void *cur;
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (pv, cur, i)
+        if (cur == elem) {
+            r = sol_ptr_vector_del(pv, i);
+            SOL_INT_CHECK(r, < 0, r);
+            removed++;
+        }
+
+    if (!removed)
+        return -ENOENT;
+    return 0;
+}

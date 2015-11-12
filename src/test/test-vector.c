@@ -360,4 +360,128 @@ vector_initializes_elements_to_zero(void)
 }
 
 
+DEFINE_TEST(test_vector_del);
+
+static void
+test_vector_del(void)
+{
+    static const unsigned int N = 16;
+    struct sol_vector v;
+    struct s *s;
+    uint16_t i;
+    int r;
+
+    sol_vector_init(&v, sizeof(struct s));
+
+    // Add elements.
+    s = sol_vector_append(&v);
+    s->a = 999;
+    for (i = 0; i < N; i++) {
+        if (i == 10) {
+            s = sol_vector_append(&v);
+            s->a = 999;
+        }
+        s = sol_vector_append(&v);
+        s->a = i;
+    }
+    s = sol_vector_append(&v);
+    s->a = 999;
+    ASSERT_INT_EQ(v.len, N + 3);
+
+    // Delete elements.
+    sol_vector_del_element(&v, sol_vector_get(&v, 0));
+    sol_vector_del_element(&v, sol_vector_get(&v, 10));
+    sol_vector_del_element(&v, sol_vector_get(&v, N));
+    ASSERT_INT_EQ(v.len, N);
+
+    // Verify elements.
+    for (i = 0; i < N; i++) {
+        s = sol_vector_get(&v, i);
+        ASSERT_INT_EQ(s->a, i);
+    }
+
+    r = sol_vector_del_element(&v, 0);
+    ASSERT_INT_EQ(r, -ENOENT);
+
+    r = sol_vector_del_element(&v, (const char *)v.data + v.elem_size * N);
+    ASSERT_INT_EQ(r, -ENOENT);
+
+    r = sol_vector_del_element(&v, (const char *)v.data + v.elem_size * (-1));
+    ASSERT_INT_EQ(r, -ENOENT);
+
+    r = sol_vector_del_element(&v, (const char *)v.data +
+        (int)(v.elem_size / 2));
+    ASSERT_INT_EQ(r, -ENOENT);
+
+    ASSERT_INT_EQ(v.len, N);
+    sol_vector_clear(&v);
+}
+
+
+DEFINE_TEST(test_ptr_vector_del);
+
+static void
+test_ptr_vector_del(void)
+{
+    static const unsigned int N = 16;
+    struct sol_ptr_vector pv;
+    struct s *s;
+    uint16_t i;
+    int r;
+
+    sol_ptr_vector_init(&pv);
+
+    // Add two elements.
+    sol_ptr_vector_append(&pv, create_s(999));
+
+    // Add more elements.
+    for (i = 0; i < N; i++) {
+        if (i == 10)
+            sol_ptr_vector_append(&pv, create_s(999));
+        sol_ptr_vector_append(&pv, create_s(i));
+    }
+    sol_ptr_vector_append(&pv, create_s(999));
+    ASSERT_INT_EQ(pv.base.len, N + 3);
+
+    // Delete elements
+    s = sol_ptr_vector_get(&pv, 0);
+    r = sol_ptr_vector_del_element(&pv, s);
+    ASSERT_INT_EQ(r, 0);
+    free(s);
+
+    s = sol_ptr_vector_get(&pv, 10);
+    r = sol_ptr_vector_del_element(&pv, s);
+    ASSERT_INT_EQ(r, 0);
+    free(s);
+
+    s = sol_ptr_vector_get(&pv, N);
+    r = sol_ptr_vector_del_element(&pv, s);
+    ASSERT_INT_EQ(r, 0);
+    free(s);
+    ASSERT_INT_EQ(pv.base.len, N);
+
+    r = sol_ptr_vector_del_element(&pv, &pv);
+    ASSERT_INT_EQ(r, -ENOENT);
+    ASSERT_INT_EQ(pv.base.len, N);
+
+    s = create_s(999);
+    sol_ptr_vector_append(&pv, s);
+    sol_ptr_vector_append(&pv, s);
+    sol_ptr_vector_append(&pv, s);
+    r = sol_ptr_vector_del_element(&pv, s);
+    ASSERT_INT_EQ(r, 0);
+    ASSERT_INT_EQ(pv.base.len, N);
+    free(s);
+
+    // Verify elements.
+    SOL_PTR_VECTOR_FOREACH_IDX (&pv, s, i) {
+        ASSERT_INT_EQ(s->a, i);
+    }
+
+    // Delete remaining elements.
+    while (pv.base.len > 0)
+        free(sol_ptr_vector_take(&pv, 0));
+    ASSERT_INT_EQ(pv.base.len, 0);
+}
+
 TEST_MAIN();
