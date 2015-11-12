@@ -182,7 +182,7 @@ common_process(struct output_data *output, const struct sol_flow_packet *packet)
 watch_err:
     sol_blob_unref(d->blob);
 err:
-    sol_vector_del(&output->data, output->data.len - 1);
+    sol_vector_del_last(&output->data);
     return -ENOMEM;
 }
 

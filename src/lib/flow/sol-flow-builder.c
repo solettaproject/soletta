@@ -504,7 +504,7 @@ sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, co
 
     node_extra = sol_vector_append(&builder->node_extras);
     if (!node_extra) {
-        sol_vector_del(&builder->nodes, builder->nodes.len - 1);
+        sol_vector_del_last(&builder->nodes);
         free(node_name);
         return -ENOMEM;
     }
@@ -788,24 +788,6 @@ builder_child_opts_set(const struct sol_flow_node_type *type, uint16_t child, co
     return 0;
 }
 
-static void
-vector_del_last(struct sol_vector *v)
-{
-    if (v->len == 0)
-        return;
-    sol_vector_del(v, v->len - 1);
-}
-
-static void
-ptr_vector_del_last(struct sol_ptr_vector *v)
-{
-    const uint16_t len = sol_ptr_vector_get_len(v);
-
-    if (len == 0)
-        return;
-    sol_ptr_vector_del(v, len - 1);
-}
-
 static int
 add_guards(struct sol_flow_builder *builder)
 {
@@ -854,22 +836,22 @@ add_guards(struct sol_flow_builder *builder)
     return 0;
 
 error_options:
-    ptr_vector_del_last(&builder->ports_out_desc);
+    sol_ptr_vector_del_last(&builder->ports_out_desc);
 
 error_exported_out_desc:
-    vector_del_last(&builder->exported_out);
+    sol_vector_del_last(&builder->exported_out);
 
 error_exported_out:
-    ptr_vector_del_last(&builder->ports_in_desc);
+    sol_ptr_vector_del_last(&builder->ports_in_desc);
 
 error_exported_in_desc:
-    vector_del_last(&builder->exported_in);
+    sol_vector_del_last(&builder->exported_in);
 
 error_exported_in:
-    vector_del_last(&builder->conns);
+    sol_vector_del_last(&builder->conns);
 
 error_conns:
-    vector_del_last(&builder->nodes);
+    sol_vector_del_last(&builder->nodes);
 
 error_nodes:
     return -ENOMEM;
@@ -878,13 +860,13 @@ error_nodes:
 static void
 remove_guards(struct sol_flow_builder *builder)
 {
-    vector_del_last(&builder->options_description);
-    ptr_vector_del_last(&builder->ports_out_desc);
-    vector_del_last(&builder->exported_out);
-    ptr_vector_del_last(&builder->ports_in_desc);
-    vector_del_last(&builder->exported_in);
-    vector_del_last(&builder->conns);
-    vector_del_last(&builder->nodes);
+    sol_vector_del_last(&builder->options_description);
+    sol_ptr_vector_del_last(&builder->ports_out_desc);
+    sol_vector_del_last(&builder->exported_out);
+    sol_ptr_vector_del_last(&builder->ports_in_desc);
+    sol_vector_del_last(&builder->exported_in);
+    sol_vector_del_last(&builder->conns);
+    sol_vector_del_last(&builder->nodes);
 }
 
 SOL_API struct sol_flow_node_type *
@@ -1127,8 +1109,8 @@ export_port(struct sol_flow_builder *builder, uint16_t node, uint16_t port,
 
 error_export:
     for (; i > 0; i--)
-        sol_vector_del(exported_vector, exported_vector->len - 1);
-    sol_ptr_vector_del(desc_vector, sol_ptr_vector_get_len(desc_vector) - 1);
+        sol_vector_del_last(exported_vector);
+    sol_ptr_vector_del_last(desc_vector);
 
 error_desc_append:
     free(port_desc);
@@ -1362,7 +1344,7 @@ sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *nod
 
     r = node_spec_add_options_reference(builder, node, exported_opt, opt);
     if (r < 0) {
-        sol_vector_del(&builder->options_description, builder->options_description.len - 1);
+        sol_vector_del_last(&builder->options_description);
         SOL_ERR("Failed to export option '%s' from node '%s'", option_name, node_name);
         return r;
     }

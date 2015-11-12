@@ -209,7 +209,7 @@ sol_platform_linux_fork_run(void (*on_fork)(void *data), void (*on_child_exit)(v
 
 error_wpipe:
         status = errno;
-        sol_ptr_vector_del(&fork_runs, sol_ptr_vector_get_len(&fork_runs) - 1);
+        sol_ptr_vector_del_last(&fork_runs);
         errno = status;
 error_append:
         status = errno;

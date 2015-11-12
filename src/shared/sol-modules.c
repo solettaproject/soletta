@@ -198,7 +198,7 @@ get_module(struct nspace_cache *ns, const char *module)
 dlopen_error:
     free(mod->name);
 strdup_error:
-    sol_vector_del(&ns->modules, ns->modules.len - 1);
+    sol_vector_del_last(&ns->modules);
     return NULL;
 }
 

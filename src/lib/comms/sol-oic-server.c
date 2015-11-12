@@ -688,7 +688,7 @@ free_iface:
 free_rt:
     free(res->rt);
 remove_res:
-    sol_vector_del(&oic_server.resources, oic_server.resources.len - 1);
+    sol_vector_del_last(&oic_server.resources);
 
     return NULL;
 }

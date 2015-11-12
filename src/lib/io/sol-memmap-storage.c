@@ -689,7 +689,7 @@ sol_memmap_add_map(const struct sol_memmap_map *map)
     return 0;
 
 error:
-    sol_vector_del(&memory_maps, memory_maps.len - 1);
+    sol_vector_del_last(&memory_maps);
     return -ENOMEM;
 }
 
