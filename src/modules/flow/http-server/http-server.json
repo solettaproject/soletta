@@ -310,7 +310,7 @@
             "data_type": "boolean",
             "default": true,
             "description": "If the files will be served as soon as the node opens",
-            "name": "start"
+            "name": "enabled"
           }
         ],
         "version": 1
