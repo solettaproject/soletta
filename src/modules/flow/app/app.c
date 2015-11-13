@@ -71,7 +71,8 @@ argv_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opt
     opts = (const struct sol_flow_node_type_app_argv_options *)options;
 
     r = check_index(node, opts->index);
-    SOL_INT_CHECK(r, < 0, r);
+    if (r < 0)
+        return 0;
 
     return sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_APP_ARGV__OUT__OUT, sol_argv()[opts->index]);
@@ -94,7 +95,8 @@ argv_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     SOL_INT_CHECK(r, < 0, r);
 
     r = check_index(node, in_value);
-    SOL_INT_CHECK(r, < 0, r);
+    if (r < 0)
+        return 0;
 
     return sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_APP_ARGC_ARGV__OUT__OUT, sol_argv()[in_value]);
