@@ -149,9 +149,9 @@ sol_platform_get_board_name(void)
     if (!board_name && strlen(BOARD_NAME) > 0) {
         if (sol_board_name_is_valid(BOARD_NAME)) {
             board_name = strdup(BOARD_NAME);
-            SOL_DBG("pre-defined BOARD_NAME=%s", board_name);
+            SOL_DBG("predefined BOARD_NAME=%s", board_name);
         } else {
-            SOL_WRN("pre-defined BOARD_NAME=%s contains invalid chars.",
+            SOL_WRN("predefined BOARD_NAME=%s contains invalid chars.",
                 BOARD_NAME);
         }
     }
