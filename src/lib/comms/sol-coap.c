@@ -107,6 +107,7 @@ struct pending_reply {
         const struct sol_network_link_addr *cliaddr, void *data);
     const void *data;
     bool observing;
+    struct sol_coap_packet *req; //used only for observing replies
     uint16_t id;
     uint8_t tkl;
     uint8_t token[0];
@@ -433,6 +434,14 @@ timeout_cb(void *data)
     return false;
 }
 
+static void
+pending_reply_free(struct pending_reply *reply)
+{
+    if (reply->observing)
+        sol_coap_packet_unref(reply->req);
+    free(reply);
+}
+
 static bool
 call_reply_timeout_cb(struct sol_coap_server *server, struct sol_coap_packet *pkt)
 {
@@ -447,7 +456,7 @@ call_reply_timeout_cb(struct sol_coap_server *server, struct sol_coap_packet *pk
         if (reply->cb(server, NULL, NULL, (void *)reply->data))
             return false;
         sol_ptr_vector_del(&server->pending, i);
-        free(reply);
+        pending_reply_free(reply);
     }
 
     return true;
@@ -607,6 +616,8 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     reply->tkl = tkl;
     if (token)
         memcpy(reply->token, token, tkl);
+    if (observing)
+        reply->req = sol_coap_packet_ref(pkt);
 
 done:
     err = enqueue_packet(server, pkt, cliaddr);
@@ -1060,6 +1071,38 @@ remove_outgoing_packet(struct sol_coap_server *server, struct sol_coap_packet *r
 }
 
 static int
+send_unobserve_packet(struct sol_coap_server *server, const struct sol_coap_packet *pkt, const struct sol_network_link_addr *cliaddr)
+{
+    struct sol_coap_packet *req;
+    struct sol_coap_option_value options[16];
+    uint16_t count = 16, i;
+    int r;
+
+    r = coap_find_options(pkt, SOL_COAP_OPTION_URI_PATH, options, count);
+    SOL_INT_CHECK(r, < 0, -EINVAL);
+    if ((int)(uint16_t)r != r)
+        return -EINVAL;
+    count = r;
+
+    req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
+    SOL_NULL_CHECK(req, -ENOMEM);
+
+    for (i = 0; i < count; i++) {
+        const struct sol_coap_option_value *v = &options[i];
+
+        r = sol_coap_add_option(req, SOL_COAP_OPTION_URI_PATH, v->value,
+            v->len);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+    }
+
+    return sol_coap_send_packet(server, req, cliaddr);
+
+error:
+    sol_coap_packet_unref(req);
+    return -EINVAL;
+}
+
+static int
 respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
 {
@@ -1070,10 +1113,10 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
         void *data);
     struct pending_reply *reply;
     struct resource_context *c;
-    int observe;
+    int observe, r = 0;
     uint16_t i;
     uint8_t code;
-    bool ret, remove_outgoing = true;
+    bool remove_outgoing = true;
 
     code = sol_coap_header_get_code(req);
 
@@ -1085,15 +1128,17 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
             if (!match_reply(reply, req))
                 continue;
 
-            ret = reply->cb(server, req, cliaddr, (void *)reply->data);
-            /* Keeps calling observing is enabled. */
-            if (!reply->observing) {
-                if (!ret) {
-                    sol_ptr_vector_del(&server->pending, i);
-                    free(reply);
-                } else
-                    remove_outgoing = false;
-            }
+            if (!reply->cb(server, req, cliaddr, (void *)reply->data)) {
+                sol_ptr_vector_del(&server->pending, i);
+                pending_reply_free(reply);
+
+                if (reply->observing) {
+                    r = send_unobserve_packet(server, reply->req, cliaddr);
+                    if (r < 0)
+                        SOL_WRN("Could not unobserve packet.");
+                }
+            } else if (!reply->observing)
+                remove_outgoing = false;
         }
 
         if (remove_outgoing)
@@ -1202,7 +1247,7 @@ sol_coap_server_destroy(struct sol_coap_server *server)
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
         sol_ptr_vector_del(&server->pending, i);
-        free(reply);
+        pending_reply_free(reply);
     }
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (&server->contexts, c, i) {
@@ -1469,11 +1514,12 @@ sol_coap_server_unregister_resource(struct sol_coap_server *server,
 }
 
 SOL_API int
-sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt)
+sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt, struct sol_network_link_addr *cliaddr)
 {
     uint16_t id, i, cancel = 0;
     struct pending_reply *reply;
     struct outgoing *o;
+    int r;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(pkt, -EINVAL);
@@ -1490,11 +1536,17 @@ sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_pack
     }
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
-        if (reply->observing || reply->id != id)
+        if (!match_reply(reply, pkt))
             continue;
 
+        if (reply->observing) {
+            r = send_unobserve_packet(server, reply->req, cliaddr);
+            if (r < 0)
+                SOL_WRN("Could not unobserve packet.");
+        }
+
         sol_ptr_vector_del(&server->pending, i);
-        free(reply);
+        pending_reply_free(reply);
     }
 
     return cancel ? 0 : -ENOENT;
