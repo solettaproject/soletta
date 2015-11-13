@@ -120,7 +120,7 @@ def load_context(files):
 
     # also consider env vars in the context
     for k,v in os.environ.items():
-        result[k] = v
+        result[k.lower()] = v
 
     return result
 
