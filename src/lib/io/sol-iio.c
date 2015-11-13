@@ -721,7 +721,7 @@ enable_channel_scan(struct sol_iio_channel *channel)
 {
     struct sol_iio_device *device = channel->device;
     char path[PATH_MAX];
-    int current_value;
+    int current_value, len;
 
     if (!craft_filename_path(path, sizeof(path), CHANNEL_SCAN_ENABLE_PATH,
         device->device_id, channel->name)) {
@@ -730,7 +730,12 @@ enable_channel_scan(struct sol_iio_channel *channel)
     }
 
     /* First, check if not already enabled */
-    sol_util_read_file(path, "%d", &current_value);
+    len = sol_util_read_file(path, "%d", &current_value);
+    if (len < 0) {
+        SOL_WRN("Could not read from %s", path);
+        return false;
+    }
+
     if (current_value != 1)
         return sol_util_write_file(path, "%d", 1) > 0;
 
