@@ -1,0 +1,13 @@
+config FLOW_NODE_TYPE_POWER_SUPPLY
+	tristate "Node type: power-supply"
+	depends on POWER_SUPPLY
+	default m
+	help
+		Power supply is used to get information from battery, UPS,
+		AC or DC power supplies.
+
+		This option enables node types:
+
+			* power-supply/get-list, to query the name of all
+			  power supply attached to the board.
+			* power-supply/get-capacity, to get batteries capacity.

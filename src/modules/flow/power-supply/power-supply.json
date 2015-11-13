@@ -1,0 +1,166 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "power-supply",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "power-supply",
+      "description": "Send list of all power supplies attached to board.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Trigger to get list of power supplies.",
+          "methods": {
+            "process": "get_list_process"
+          },
+          "name": "TRIGGER"
+        },
+        {
+          "data_type": "string",
+          "description": "Name of type to be used to filter power supplies. It can be 'Any', 'Unknown', 'Battery', 'UPS', 'Mains', 'USB', 'USB_DCP', 'USB_CDP', 'USB_ACA'.",
+          "methods": {
+            "process": "set_type_process"
+          },
+          "name": "TYPE"
+        }
+      ],
+      "methods": {
+        "open": "get_list_open"
+      },
+      "name": "power-supply/get-list",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Name of type to be used to filter power supplies. It can be 'Any', 'Unknown', 'Battery', 'UPS', 'Mains', 'USB', 'USB_DCP', 'USB_CDP', 'USB_ACA'. If 'null', no filter is applied.",
+            "name": "type"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Name of power supplies that match specified type.",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "get_list_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/power-supply/get-list.html"
+    },
+    {
+      "category": "power-supply",
+      "description": "Get capacity of a power supply. Usually provided by batteries.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Trigger to get capacity.",
+          "methods": {
+            "process": "get_capacity"
+          },
+          "name": "TRIGGER"
+        },
+        {
+          "data_type": "string",
+          "description": "Name of power supply.",
+          "methods": {
+            "process": "set_supply_name"
+          },
+          "name": "NAME"
+        }
+      ],
+      "methods": {
+        "open": "get_props_open",
+        "close": "get_props_close"
+      },
+      "name": "power-supply/get-capacity",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Name of power supply from where capacity will be fetched.",
+            "name": "name"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Supply capacity percentage.",
+          "name": "CAPACITY"
+        },
+        {
+          "data_type": "string",
+          "description": "Textual description of capacity. May vary between 'Unknown', 'Critical', 'Low', 'Normal', 'High' and 'Full'.",
+          "name": "CAPACITY_LEVEL"
+        }
+      ],
+      "private_data_type": "get_props_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/power-supply/get-capacity.html"
+    },
+    {
+      "category": "power-supply",
+      "description": "Get information about a power supply: model, serial number and manufacturer.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Trigger to get info.",
+          "methods": {
+            "process": "get_info"
+          },
+          "name": "TRIGGER"
+        },
+        {
+          "data_type": "string",
+          "description": "Name of power supply.",
+          "methods": {
+            "process": "set_supply_name"
+          },
+          "name": "NAME"
+        }
+      ],
+      "methods": {
+        "open": "get_props_open",
+        "close": "get_props_close"
+      },
+      "name": "power-supply/get-info",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Name of power supply from where information will be fetched.",
+            "name": "name"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Supply manufacturer.",
+          "name": "MANUFACTURER"
+        },
+        {
+          "data_type": "string",
+          "description": "Supply model name.",
+          "name": "MODEL"
+        },
+        {
+          "data_type": "string",
+          "description": "Supply serial number.",
+          "name": "SERIAL"
+        }
+      ],
+      "private_data_type": "get_props_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/power-supply/get-info.html"
+    }
+  ]
+}
