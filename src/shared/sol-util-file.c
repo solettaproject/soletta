@@ -414,7 +414,7 @@ sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const 
 
     dir = opendir(path);
     if (!dir) {
-        SOL_WRN("Could not open dir [%s] to iterate: %s", path,
+        SOL_INF("Could not open dir [%s] to iterate: %s", path,
             sol_util_strerrora(errno));
         free(ent);
         return false;
