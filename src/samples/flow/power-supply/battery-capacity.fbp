@@ -1,0 +1,114 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# This program will display in a display (gtk window) the current
+# capacity level of a battery defined in the first parameter.
+# When level is low a led will turn on, and if critical level is reached
+# it will start to blink.
+#
+# Names can be found running:
+#   $ ./power-supplies-list.fbp Battery
+#
+# Example:
+#   $ ./battery-capacity.fbp BAT0
+#
+# IO node types are resolved by sol-flow.json, using gtk backend, or
+# sol-flow-intel-edison-rev-c.json, where an LCD is connected to I2C port,
+# and a LED to IO8.
+
+name(app/argv:index=1)
+error-msg(converter/empty-to-string:output_value="Power supply name is mandatory")
+Error(console)
+quit(app/quit)
+
+false(constant/boolean:value=false)
+name_sep(constant/string:value=": ")
+cap_sep(constant/string:value=" (")
+cap_end(constant/string:value="%)")
+low(constant/string:value="Low")
+critical(constant/string:value="Critical")
+
+battery(power-supply/get-capacity)
+polling_timer(timer:interval=5000)
+blink_timer(timer:interval=2000)
+strcat(string/concatenate)
+is_low(string/compare)
+is_critical(string/compare)
+good(boolean/and)
+toggle(boolean/toggle)
+
+display(Display)
+led(LED)
+
+# check if name was provided
+
+name ERROR -> IN error-msg OUT -> IN Error
+battery ERROR -> ERROR quit
+
+# get information about battery
+
+name OUT -> NAME battery
+false OUT -> TRIGGER battery
+polling_timer OUT -> TRIGGER battery
+
+# print info on display
+
+name OUT -> IN[0] strcat
+name_sep OUT -> IN[1] strcat
+battery CAPACITY_LEVEL -> IN[2] strcat
+cap_sep OUT -> IN[3] strcat
+battery CAPACITY -> IN _(converter/int-to-string) OUT -> IN[4] strcat
+cap_end OUT -> IN[5] strcat
+
+strcat OUT -> IN display
+
+# control LED to turn it off in capacity is better than 'low', turn it on
+# if 'low', or blink it if 'critical'.
+
+false OUT -> IN led
+
+# turn on
+low OUT -> IN[0] is_low
+battery CAPACITY_LEVEL -> IN[1] is_low
+is_low EQUAL -> IN _(boolean/filter) TRUE -> IN led
+
+# blink
+false OUT -> ENABLED blink_timer
+critical OUT -> IN[0] is_critical
+battery CAPACITY_LEVEL -> IN[1] is_critical
+is_critical EQUAL -> ENABLED blink_timer
+blink_timer OUT -> IN toggle
+toggle OUT -> IN led
+
+# turn off
+is_low EQUAL -> IN _(boolean/not) OUT -> IN[0] good
+is_critical EQUAL -> IN _(boolean/not) OUT -> IN[1] good
+good OUT -> IN _(boolean/filter) TRUE -> IN _(boolean/not) OUT -> IN led
