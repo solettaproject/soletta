@@ -101,6 +101,22 @@ struct delayed_packet {
     uint16_t source_port_idx;
 };
 
+static void
+delete_delayed_packets(struct flow_static_data *fsd)
+{
+    if (fsd->delay_send)
+        sol_timeout_del(fsd->delay_send);
+
+    while (!sol_list_is_empty(&fsd->delayed_packets)) {
+        struct delayed_packet *dp;
+        struct sol_list *itr = fsd->delayed_packets.next;
+        dp = SOL_LIST_GET_CONTAINER(itr, struct delayed_packet, list);
+        sol_list_remove(itr);
+        sol_flow_packet_del(dp->packet);
+        free(dp);
+    }
+}
+
 static int
 dispatch_connect_out(struct sol_flow_node *node, uint16_t port, uint16_t conn_id,
     const struct sol_flow_port_type_out *port_type)
@@ -483,7 +499,7 @@ error_nodes:
     for (i--; i >= 0; i--)
         sol_flow_node_fini(fsd->nodes[i]);
 
-    sol_timeout_del(fsd->delay_send);
+    delete_delayed_packets(fsd);
 
 error_setup:
     teardown_flow_data(type, fsd);
@@ -530,17 +546,7 @@ flow_node_close(struct sol_flow_node *node, void *data)
     struct flow_static_data *fsd = data;
     int i;
 
-    if (fsd->delay_send)
-        sol_timeout_del(fsd->delay_send);
-    while (!sol_list_is_empty(&fsd->delayed_packets)) {
-        struct delayed_packet *dp;
-        struct sol_list *itr = fsd->delayed_packets.next;
-        dp = SOL_LIST_GET_CONTAINER(itr, struct delayed_packet, list);
-        sol_list_remove(itr);
-        sol_flow_packet_del(dp->packet);
-        free(dp);
-    }
-
+    delete_delayed_packets(fsd);
     teardown_connections(type, fsd);
 
     for (i = type->node_count - 1; i >= 0; i--)
