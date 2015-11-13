@@ -45,7 +45,7 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "$schema": { "type": "string", "format": "uri" }
+    "$schema": { "type": "string", "format": "uri" },
     "boards": {
       "type": "array",
       "items": { "$ref": "#/definitions/board" }
