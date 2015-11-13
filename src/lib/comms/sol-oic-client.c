@@ -627,9 +627,8 @@ _remove_from_pending_discovery_list(void *data)
     SOL_DBG("Removing context %p from pending discovery list after %dms",
         data, DISCOVERY_RESPONSE_TIMEOUT_MS);
 
-    free(data);
-
     r = sol_ptr_vector_remove(&pending_discovery, data);
+    free(data);
     SOL_INT_CHECK(r, < 0, false);
 
     return false;
