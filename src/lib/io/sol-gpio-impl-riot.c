@@ -52,6 +52,10 @@ struct sol_gpio {
         void (*cb)(void *data, struct sol_gpio *gpio, bool value);
         const void *data;
         void *int_handler;
+        struct sol_timeout *timeout;
+        bool last_value : 1;
+        bool on_raise : 1;
+        bool on_fall : 1;
     } irq;
 };
 
@@ -63,6 +67,22 @@ gpio_process_cb(void *data)
 
     val = sol_gpio_read(gpio);
     gpio->irq.cb((void *)gpio->irq.data, gpio, val);
+}
+
+static bool
+gpio_timeout_cb(void *data)
+{
+    struct sol_gpio *gpio = data;
+    int val;
+
+    val = sol_gpio_read(gpio);
+    if (gpio->irq.last_value != val) {
+        gpio->irq.last_value = val;
+        if ((val && gpio->irq.on_raise)
+            || (!val && gpio->irq.on_fall))
+            gpio->irq.cb((void *)gpio->irq.data, gpio, val);
+    }
+    return true;
 }
 
 SOL_API struct sol_gpio *
@@ -87,12 +107,11 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
     }
 #endif
 
-    gpio = malloc(sizeof(struct sol_gpio));
+    gpio = calloc(1, sizeof(struct sol_gpio));
     SOL_NULL_CHECK(gpio, NULL);
 
     gpio->pin = pin;
     gpio->active_low = config->active_low;
-    gpio->irq.int_handler = NULL;
 
     pull = drive_table[config->drive_mode];
 
@@ -101,10 +120,10 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
             goto error;
         sol_gpio_write(gpio, config->out.value);
     } else {
-        if (config->in.trigger_mode == SOL_GPIO_EDGE_NONE) {
-            if (gpio_init(gpio->pin, GPIO_DIR_IN, pull) < 0)
-                goto error;
-        } else {
+        uint32_t poll_timeout = 0;
+        enum sol_gpio_edge trig = config->in.trigger_mode;
+
+        if (trig != SOL_GPIO_EDGE_NONE) {
             gpio_flank_t flank;
             const unsigned int trigger_table[] = {
                 [SOL_GPIO_EDGE_RISING] = GPIO_RISING,
@@ -112,17 +131,35 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
                 [SOL_GPIO_EDGE_BOTH] = GPIO_BOTH
             };
 
-            flank = trigger_table[config->in.trigger_mode];
+            flank = trigger_table[trig];
 
             gpio->irq.cb = config->in.cb;
             gpio->irq.data = config->in.user_data;
-            if (sol_interrupt_scheduler_gpio_init_int(gpio->pin, pull, flank,
-                gpio_process_cb, gpio,
-                &gpio->irq.int_handler) < 0)
+            if (!sol_interrupt_scheduler_gpio_init_int(gpio->pin, pull, flank,
+                gpio_process_cb, gpio, &gpio->irq.int_handler))
+                goto end;
+
+            SOL_WRN("gpio #%d: Could not set interrupt mode, falling back to polling", pin);
+
+            if (!(poll_timeout = config->in.poll_timeout)) {
+                SOL_WRN("gpio #%d: No timeout set, cannot fallback to polling mode", pin);
                 goto error;
+            }
+        }
+
+        if (gpio_init(gpio->pin, GPIO_DIR_IN, pull) < 0)
+            goto error;
+        if (poll_timeout) {
+            gpio->irq.timeout = sol_timeout_add(poll_timeout, gpio_timeout_cb, gpio);
+            SOL_NULL_CHECK_GOTO(gpio->irq.timeout, error);
+
+            gpio->irq.on_raise = (trig == SOL_GPIO_EDGE_BOTH || trig == SOL_GPIO_EDGE_RISING);
+            gpio->irq.on_fall = (trig == SOL_GPIO_EDGE_BOTH || trig == SOL_GPIO_EDGE_FALLING);
+            gpio->irq.last_value = sol_gpio_read(gpio);
         }
     }
 
+end:
     return gpio;
 error:
     free(gpio);
@@ -136,6 +173,8 @@ sol_gpio_close(struct sol_gpio *gpio)
     if (gpio->irq.int_handler != NULL) {
         sol_interrupt_scheduler_gpio_stop(gpio->pin, gpio->irq.int_handler);
     }
+    if (gpio->irq.timeout)
+        sol_timeout_del(gpio->irq.timeout);
     free(gpio);
 }
 
