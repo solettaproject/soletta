@@ -109,17 +109,9 @@ sol_str_slice_caseeq(const struct sol_str_slice a, const struct sol_str_slice b)
     return a.len == b.len && (strncasecmp(a.data, b.data, a.len) == 0);
 }
 
-static inline bool
-sol_str_slice_contains(const struct sol_str_slice haystack, const struct sol_str_slice needle)
-{
-    return memmem(haystack.data, haystack.len, needle.data, needle.len) != NULL;
-}
+bool sol_str_slice_contains(const struct sol_str_slice haystack, const struct sol_str_slice needle);
 
-static inline bool
-sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *needle)
-{
-    return memmem(haystack.data, haystack.len, needle, strlen(needle)) != NULL;
-}
+bool sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *needle);
 
 static inline void
 sol_str_slice_copy(char *dst, const struct sol_str_slice src)
