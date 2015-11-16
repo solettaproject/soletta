@@ -69,11 +69,16 @@ struct curl_http_method_opt {
     } args;
 };
 
+struct connection_watch {
+    struct sol_fd *watch;
+    int fd;
+};
+
 struct sol_http_client_connection {
     CURL *curl;
-    struct sol_fd *watch;
     struct curl_slist *headers;
     struct sol_buffer buffer;
+    struct sol_vector watches;
     struct sol_http_params response_params;
 
     void (*cb)(void *data, const struct sol_http_client_connection *connection, struct sol_http_response *response);
@@ -85,6 +90,9 @@ struct sol_http_client_connection {
 static void
 destroy_connection(struct sol_http_client_connection *c)
 {
+    uint16_t idx;
+    struct connection_watch *cwatch;
+
     curl_multi_remove_handle(global.multi, c->curl);
     curl_slist_free_all(c->headers);
     curl_easy_cleanup(c->curl);
@@ -93,8 +101,10 @@ destroy_connection(struct sol_http_client_connection *c)
 
     sol_http_params_clear(&c->response_params);
 
-    if (c->watch)
-        sol_fd_del(c->watch);
+    SOL_VECTOR_FOREACH_IDX (&c->watches, cwatch, idx)
+        sol_fd_del(cwatch->watch);
+
+    sol_vector_clear(&c->watches);
 
     free(c);
 }
@@ -299,6 +309,8 @@ cleanup:
 static bool
 connection_watch_cb(void *data, int fd, uint32_t flags)
 {
+    bool value;
+    int running;
     struct sol_http_client_connection *connection = data;
     int action = 0;
 
@@ -309,14 +321,24 @@ connection_watch_cb(void *data, int fd, uint32_t flags)
     if (flags & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_NVAL | SOL_FD_FLAGS_HUP))
         action |= CURL_CSELECT_ERR;
 
-    if (action) {
-        int running;
-        curl_multi_socket_action(global.multi, fd, action, &running);
-        connection->error |= flags & (SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_ERR);
-        pump_multi_info_queue();
+    value = !(action & CURL_CSELECT_ERR);
+    if (!value) {
+        uint16_t idx;
+        struct connection_watch *cwatch;
+
+        SOL_VECTOR_FOREACH_IDX (&connection->watches, cwatch, idx) {
+            if (cwatch->fd == fd) {
+                sol_fd_del(cwatch->watch);
+                sol_vector_del(&connection->watches, idx);
+                break;
+            }
+        }
     }
 
-    return !(action & CURL_CSELECT_ERR);
+    curl_multi_socket_action(global.multi, fd, action, &running);
+    pump_multi_info_queue();
+
+    return value;
 }
 
 static void
@@ -334,34 +356,41 @@ print_connection_info_wrn(struct sol_http_client_connection *connection)
 static curl_socket_t
 open_socket_cb(void *clientp, curlsocktype purpose, struct curl_sockaddr *addr)
 {
+    struct connection_watch *cwatch;
+
     /* FIXME: Should the easy handle be removed from multi on failure? */
     static const enum sol_fd_flags fd_flags =
         SOL_FD_FLAGS_IN | SOL_FD_FLAGS_OUT | SOL_FD_FLAGS_ERR |
         SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_NVAL;
     struct sol_http_client_connection *connection = clientp;
-    int fd;
 
     if (purpose != CURLSOCKTYPE_IPCXN) {
         errno = -EINVAL;
         return -1;
     }
 
-    fd = socket(addr->family, addr->socktype | SOCK_CLOEXEC, addr->protocol);
-    if (fd < 0) {
+    cwatch = sol_vector_append(&connection->watches);
+    SOL_NULL_CHECK(cwatch, -ENOMEM);
+
+    cwatch->fd = socket(addr->family, addr->socktype | SOCK_CLOEXEC, addr->protocol);
+    if (cwatch->fd < 0) {
         SOL_WRN("Could not create socket (family %d, type %d, protocol %d)",
             addr->family, addr->socktype, addr->protocol);
         print_connection_info_wrn(connection);
-        return -1;
+        goto err;
     }
 
-    connection->watch = sol_fd_add(fd, fd_flags, connection_watch_cb,
-        connection);
-    if (!connection->watch) {
-        close(fd);
-        return -1;
-    }
+    cwatch->watch = sol_fd_add(cwatch->fd, fd_flags,
+        connection_watch_cb, connection);
+    SOL_NULL_CHECK_GOTO(cwatch->watch, err_watch);
 
-    return fd;
+    return cwatch->fd;
+
+err_watch:
+    close(cwatch->fd);
+err:
+    sol_vector_del_last(&connection->watches);
+    return -1;
 }
 
 static int
@@ -475,6 +504,7 @@ perform_multi(CURL *curl, struct curl_slist *headers,
     connection->cb = cb;
     connection->data = data;
     connection->error = false;
+    sol_vector_init(&connection->watches, sizeof(struct connection_watch));
 
     sol_buffer_init(&connection->buffer);
     sol_http_params_init(&connection->response_params);
