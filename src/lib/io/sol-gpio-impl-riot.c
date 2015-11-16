@@ -126,8 +126,8 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
         if (trig != SOL_GPIO_EDGE_NONE) {
             gpio_flank_t flank;
             const unsigned int trigger_table[] = {
-                [SOL_GPIO_EDGE_RISING] = GPIO_RISING,
-                [SOL_GPIO_EDGE_FALLING] = GPIO_FALLING,
+                [SOL_GPIO_EDGE_RISING] = gpio->active_low ? GPIO_FALLING : GPIO_RISING,
+                [SOL_GPIO_EDGE_FALLING] = gpio->active_low ? GPIO_RISING : GPIO_FALLING,
                 [SOL_GPIO_EDGE_BOTH] = GPIO_BOTH
             };
 
