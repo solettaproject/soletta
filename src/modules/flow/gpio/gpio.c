@@ -65,7 +65,7 @@ gpio_reader_event(void *data, struct sol_gpio *gpio, bool value)
 static int
 gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    int pin;
+    uint32_t pin;
     struct gpio_data *mdata = data;
     const struct sol_flow_node_type_gpio_reader_options *opts =
         (const struct sol_flow_node_type_gpio_reader_options *)options;
@@ -105,7 +105,7 @@ gpio_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     }
 
     if (opts->raw) {
-        if (!sscanf(opts->pin, "%d", &pin)) {
+        if (!sscanf(opts->pin, "%" SCNu32, &pin)) {
             SOL_WRN("gpio (%s): 'raw' option was set, but 'pin' value=%s couldn't be parsed as "
                 "integer.", opts->pin, opts->pin);
         } else {
@@ -142,7 +142,7 @@ gpio_writer_process(struct sol_flow_node *node, void *data, uint16_t port, uint1
 static int
 gpio_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
-    int pin;
+    uint32_t pin;
     struct gpio_data *mdata = data;
     const struct sol_flow_node_type_gpio_writer_options *opts =
         (const struct sol_flow_node_type_gpio_writer_options *)options;
@@ -161,7 +161,7 @@ gpio_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     }
 
     if (opts->raw) {
-        if (!sscanf(opts->pin, "%d", &pin)) {
+        if (!sscanf(opts->pin, "%" SCNu32, &pin)) {
             SOL_WRN("gpio (%s): 'raw' option was set, but 'pin' value=%s couldn't be parsed as "
                 "integer.", opts->pin, opts->pin);
         } else {

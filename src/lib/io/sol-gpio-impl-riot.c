@@ -46,7 +46,7 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");
 
 struct sol_gpio {
-    int pin;
+    uint32_t pin;
     bool active_low;
     struct {
         void (*cb)(void *data, struct sol_gpio *gpio, bool value);
@@ -86,7 +86,7 @@ gpio_timeout_cb(void *data)
 }
 
 SOL_API struct sol_gpio *
-sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
+sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
 {
     struct sol_gpio *gpio;
     gpio_pp_t pull;
@@ -139,10 +139,10 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
                 gpio_process_cb, gpio, &gpio->irq.int_handler))
                 goto end;
 
-            SOL_WRN("gpio #%d: Could not set interrupt mode, falling back to polling", pin);
+            SOL_WRN("gpio #%" PRIu32 ": Could not set interrupt mode, falling back to polling", pin);
 
             if (!(poll_timeout = config->in.poll_timeout)) {
-                SOL_WRN("gpio #%d: No timeout set, cannot fallback to polling mode", pin);
+                SOL_WRN("gpio #%" PRIu32 ": No timeout set, cannot fallback to polling mode", pin);
                 goto error;
             }
         }

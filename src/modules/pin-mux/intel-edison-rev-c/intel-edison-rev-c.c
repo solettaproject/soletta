@@ -413,9 +413,9 @@ _set_aio(const int device, const int pin)
 }
 
 static int
-_set_gpio(const int pin, const enum sol_gpio_direction dir)
+_set_gpio(const uint32_t pin, const enum sol_gpio_direction dir)
 {
-    return mux_set_gpio(pin, dir, gpio_dev_0, (int)ARRAY_SIZE(gpio_dev_0));
+    return mux_set_gpio(pin, dir, gpio_dev_0, (uint32_t)ARRAY_SIZE(gpio_dev_0));
 }
 
 static int

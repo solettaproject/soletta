@@ -51,7 +51,7 @@ _log_init(void)
 SOL_API struct sol_gpio *
 sol_gpio_open_by_label(const char *label, const struct sol_gpio_config *config)
 {
-    int pin;
+    uint32_t pin;
 
     _log_init();
 
@@ -69,7 +69,7 @@ sol_gpio_open_by_label(const char *label, const struct sol_gpio_config *config)
 }
 
 SOL_API struct sol_gpio *
-sol_gpio_open(int pin, const struct sol_gpio_config *config)
+sol_gpio_open(uint32_t pin, const struct sol_gpio_config *config)
 {
     struct sol_gpio *gpio;
 
