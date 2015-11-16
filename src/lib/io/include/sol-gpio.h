@@ -65,15 +65,54 @@ extern "C" {
 
 struct sol_gpio;
 
+/**
+ * Possible values for the direction of a GPIO.
+ */
 enum sol_gpio_direction {
+    /**
+     * The GPIO is an output.
+     *
+     * For things like LEDs.
+     */
     SOL_GPIO_DIR_OUT = 0,
+    /**
+     * The GPIO is an input.
+     *
+     * For buttons or similar devices.
+     */
     SOL_GPIO_DIR_IN = 1
 };
 
+/**
+ * Possible values for the edge mode of a GPIO.
+ *
+ * This indicate when an interrupt event should be generated.
+ */
 enum sol_gpio_edge {
+    /**
+     * Don't generate events.
+     *
+     * When using this mode, no interrupt handler will be registered and it's
+     * up to the user to read the GPIO manually.
+     */
     SOL_GPIO_EDGE_NONE = 0,
+    /**
+     * Events will be triggered on a rising edge.
+     *
+     * That is, when the state of the GPIO goes from low to high.
+     */
     SOL_GPIO_EDGE_RISING,
+    /**
+     * Events will be triggered onf a falling edge.
+     *
+     * That is, when the state of the GPIO goes from high to low.
+     */
     SOL_GPIO_EDGE_FALLING,
+    /**
+     * Events will be triggered for both edge levels.
+     *
+     * Both rising and falling edges will trigger events.
+     */
     SOL_GPIO_EDGE_BOTH
 };
 
@@ -83,22 +122,96 @@ enum sol_gpio_drive {
     SOL_GPIO_DRIVE_PULL_DOWN
 };
 
+/**
+ * Structure to hold the configuration of a GPIO device.
+ *
+ * When opening a GPIO with sol_gpio_open_by_label(), sol_gpio_open() or
+ * sol_gpio_open_raw(), the parameters with which the GPIO is configured are
+ * those defined in this structure.
+ *
+ * If there's a need to change any of these parameters, the GPIO must be closed
+ * and opened again with a new configuration.
+ */
 struct sol_gpio_config {
 #ifndef SOL_NO_API_VERSION
 #define SOL_GPIO_CONFIG_API_VERSION (1)
     uint16_t api_version;
 #endif
+    /**
+     * The direction in which to open the GPIO.
+     */
     enum sol_gpio_direction dir;
+    /**
+     * Whether the GPIO is considered active when it's in a low state.
+     *
+     * If set, then the logical state of the GPIO will be reversed in relation
+     * to the physical state. That is, for input GPIOs, when the current on
+     * the wire goes to a low state, the value returned by sol_gpio_read() will
+     * be @c true. Conversely, it will be @c false when the physical state is
+     * high.
+     *
+     * The same logic applies for output GPIOs when a value is written through
+     * sol_gpio_write().
+     *
+     * This is useful to keep the application logic simpler in the face of
+     * different hardware configurations.
+     */
     bool active_low;
     enum sol_gpio_drive drive_mode;
     union {
+        /**
+         * Configuration parameters for input GPIOs.
+         */
         struct {
+            /**
+             * When to trigger events for this GPIO.
+             *
+             * One of #sol_gpio_drive. If the value set is anything other
+             * than #SOL_GPIO_DRIVE_NONE, then the @c cb member must be set.
+             */
             enum sol_gpio_edge trigger_mode;
+            /**
+             * The function to call when an event happens.
+             *
+             * Different systems handle interruptions differently, and so to
+             * maintain consistency across them, there is no queue of values
+             * triggered by interruptions. Instead, when an interruption
+             * happens, the main loop will handle it and call the user function
+             * provided here, with the value of the GPIO at that time.
+             * This means that the if the application takes too long to return
+             * to the main loop while interruptions are happening, some of those
+             * values will be lost.
+             *
+             * @param data The user data pointer provided in @c user_data.
+             * @param gpio The GPIO instance that triggered the event.
+             * @param value The value of the GPIO at the moment the function
+             *              is called.
+             */
             void (*cb)(void *data, struct sol_gpio *gpio, bool value);
+            /**
+             * User data poinetr to pass to the @c cb function.
+             */
             const void *user_data;
-            uint32_t poll_timeout; /* Will be used if interruptions are not possible */
+            /**
+             * Time to poll for events, in milliseconds.
+             *
+             * In the case that interruptions are not supported by the selected
+             * GPIO, the implementation will fall back to polling the pin for
+             * changes in its value.
+             *
+             * The @c cb function provided will be called only when a change
+             * in the value is detected, so if the timeout is too long, it may
+             * lose events.
+             */
+            uint32_t poll_timeout;
         } in;
+        /**
+         * Configuration parameters for output GPIOs.
+         */
         struct {
+            /**
+             * The initial value to write when the GPIO is opened.
+             */
             bool value;
         } out;
     };
