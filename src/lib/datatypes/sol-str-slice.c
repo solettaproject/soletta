@@ -61,3 +61,15 @@ sol_str_slice_to_int(const struct sol_str_slice s, int *value)
     *value = v;
     return 0;
 }
+
+SOL_API bool
+sol_str_slice_contains(const struct sol_str_slice haystack, const struct sol_str_slice needle)
+{
+    return memmem(haystack.data, haystack.len, needle.data, needle.len) != NULL;
+}
+
+SOL_API bool
+sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *needle)
+{
+    return memmem(haystack.data, haystack.len, needle, strlen(needle)) != NULL;
+}
