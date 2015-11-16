@@ -39,19 +39,16 @@ _(constant/int:value=42) OUT -> IN_INT s
 _(constant/rgb:value=0|125|255) OUT -> IN_RGB s
 _(constant/string:value="my string") OUT -> IN_STRING s
 
-s OUT_BOOLEAN -> IN c(console)
-s OUT_BYTE -> IN c
-s OUT_FLOAT -> IN c
-s OUT_INT -> IN c
-s OUT_RGB -> IN c
-s OUT_STRING -> IN c
+s OUT_BOOLEAN -> IN _(test/boolean-validator:sequence="T") OUT -> RESULT TestBoolean(test/result)
 
-_(constant/int:value=1) OUT -> INTERVAL _(timer) OUT -> QUIT _(app/quit)
+s OUT_BYTE -> IN _(test/byte-validator:sequence="66") OUT -> RESULT TestByte(test/result)
 
-## TEST-OUTPUT
-# c true (boolean)
-# c #42 (byte)
-# c 0.420000 (float range)
-# c 42 (integer range)
-# c (0, 125, 255) (rgb)
-# c my string (string)
+s OUT_FLOAT -> IN _(test/float-validator:sequence="0.42") OUT -> RESULT TestFloat(test/result)
+
+s OUT_INT -> IN I_(test/int-validator:sequence="42") OUT -> RESULT TestInt(test/result)
+
+s OUT_RGB -> IN ConverterRgbJs(converter/rgb-to-int) RED -> IN RgbValidator(test/int-validator:sequence="0 125 255") OUT -> RESULT TestRgb(test/result)
+ConverterRgbJs GREEN -> IN RgbValidator
+ConverterRgbJs BLUE -> IN RgbValidator
+
+s OUT_STRING -> IN _(test/string-validator:sequence="my string") OUT -> RESULT TestString(test/result)
