@@ -477,9 +477,6 @@ sol_http_create_uri(char **uri_out, const struct sol_http_url url,
         SOL_INT_CHECK_GOTO(r, < 0, exit);
     }
 
-    r = sol_buffer_ensure_nul_byte(&buf);
-    SOL_INT_CHECK_GOTO(r, < 0, exit);
-
     *uri_out = sol_buffer_steal(&buf, NULL);
 
     if (!*uri_out)
@@ -544,9 +541,6 @@ sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri,
             SOL_INT_CHECK_GOTO(r, < 0, exit);
         }
     }
-
-    r = sol_buffer_ensure_nul_byte(&buf);
-    SOL_INT_CHECK_GOTO(r, < 0, exit);
 
     *uri = sol_buffer_steal(&buf, NULL);
 
