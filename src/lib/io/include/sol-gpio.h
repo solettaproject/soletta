@@ -66,7 +66,6 @@ extern "C" {
 struct sol_gpio;
 
 enum sol_gpio_direction {
-    SOL_GPIO_DIR_UNDEFINED = -1,
     SOL_GPIO_DIR_OUT = 0,
     SOL_GPIO_DIR_IN = 1
 };
