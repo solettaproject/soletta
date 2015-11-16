@@ -236,7 +236,8 @@ multi_perform_cb(void *data)
 
     pump_multi_info_queue();
 
-    if (curl_multi_perform(global.multi, &running) == CURLM_OK) {
+    if (curl_multi_socket_action(global.multi, CURL_SOCKET_TIMEOUT,
+        0, &running) == CURLM_OK) {
         if (running > 0)
             return true;
     }
@@ -249,26 +250,21 @@ out:
 static int
 timer_cb(CURLM *multi, long timeout_ms, void *userp)
 {
-    if (timeout_ms == -1) {
-        if (global.multi_perform_timeout) {
-            sol_timeout_del(global.multi_perform_timeout);
-            global.multi_perform_timeout = NULL;
-        }
-    } else if (timeout_ms >= 0) {
-        if (global.timeout_ms == timeout_ms)
-            return 0;
+    if (global.multi_perform_timeout) {
+        sol_timeout_del(global.multi_perform_timeout);
+        global.multi_perform_timeout = NULL;
+    }
 
+    if (timeout_ms > 0) {
         /* cURL requested a timeout value change. */
         global.timeout_ms = timeout_ms;
 
-        if (global.multi_perform_timeout) {
-            /* Change sol_timeout if there's already one in place. */
-            sol_timeout_del(global.multi_perform_timeout);
-            global.multi_perform_timeout = sol_timeout_add(global.timeout_ms,
-                multi_perform_cb, NULL);
+        global.multi_perform_timeout = sol_timeout_add(global.timeout_ms,
+            multi_perform_cb, NULL);
 
-            return global.multi_perform_timeout ? 0 : -1;
-        }
+        return global.multi_perform_timeout ? 0 : -1;
+    } else {
+        multi_perform_cb(NULL);
     }
 
     return 0;
