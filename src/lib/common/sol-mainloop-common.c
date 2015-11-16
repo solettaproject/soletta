@@ -555,7 +555,7 @@ sol_mainloop_impl_quit(void)
 }
 
 void *
-sol_mainloop_impl_timeout_add(unsigned int timeout_ms, bool (*cb)(void *data), const void *data)
+sol_mainloop_impl_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const void *data)
 {
     struct timespec now;
     int ret;
