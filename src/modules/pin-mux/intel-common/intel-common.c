@@ -45,17 +45,17 @@ SOL_LOG_INTERNAL_DECLARE(_intel_mux_log_domain, "intel-mux");
 #define GPIO_DRIVE_HIZ      3
 
 #define BASE "/sys/class/gpio"
-#define MODE_PATH "/sys/kernel/debug/gpio_debug/gpio%d/current_pinmux"
+#define MODE_PATH "/sys/kernel/debug/gpio_debug/gpio%u/current_pinmux"
 
 struct gpio_ref {
-    int pin;
+    uint32_t pin;
     struct sol_gpio *gpio;
 };
 
 static struct sol_vector _in_use = SOL_VECTOR_INIT(struct gpio_ref);
 
 static struct sol_gpio *
-_get_gpio(int pin, enum sol_gpio_direction dir, bool val)
+_get_gpio(uint32_t pin, enum sol_gpio_direction dir, bool val)
 {
     uint16_t i;
     struct gpio_ref *ref;
@@ -87,7 +87,7 @@ _get_gpio(int pin, enum sol_gpio_direction dir, bool val)
 }
 
 static int
-_set_gpio(int pin, enum sol_gpio_direction dir, int drive, bool val)
+_set_gpio(uint32_t pin, enum sol_gpio_direction dir, int drive, bool val)
 {
     int len;
     struct stat st;
@@ -133,7 +133,7 @@ end:
 }
 
 static int
-_set_mode(int pin, int mode)
+_set_mode(uint32_t pin, int mode)
 {
     int len;
     struct stat st;
@@ -191,11 +191,18 @@ mux_shutdown(void)
         if (i) *i = v; \
     } while (0)
 
+#define SET_UINT_ARG(args, u, v) \
+    do { \
+        u = va_arg(args, uint32_t *); \
+        if (u) *u = v; \
+    } while (0)
+
 int
 mux_pin_map(const struct mux_pin_map *map, const char *label, const enum sol_io_protocol prot,
     va_list args)
 {
     int *i;
+    uint32_t *u;
 
     if (!map || !label || *label == '\0')
         return -EINVAL;
@@ -212,7 +219,7 @@ mux_pin_map(const struct mux_pin_map *map, const char *label, const enum sol_io_
                 SET_INT_ARG(args, i, map->aio.pin);
                 break;
             case SOL_IO_GPIO:
-                SET_INT_ARG(args, i, map->gpio);
+                SET_UINT_ARG(args, u, map->gpio);
                 break;
             case SOL_IO_PWM:
                 SET_INT_ARG(args, i, map->pwm.device);
@@ -256,14 +263,9 @@ mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_li
 }
 
 int
-mux_set_gpio(const int pin, const enum sol_gpio_direction dir,
-    struct mux_description **const desc_list, const int s)
+mux_set_gpio(const uint32_t pin, const enum sol_gpio_direction dir,
+    struct mux_description **const desc_list, const uint32_t s)
 {
-    if (pin < 0) {
-        SOL_WRN("Invalid GPIO pin: %d", pin);
-        return -EINVAL;
-    }
-
     if (pin >= s || !desc_list[pin])
         return 0;
 

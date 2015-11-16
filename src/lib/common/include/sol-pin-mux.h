@@ -95,7 +95,7 @@ int sol_pin_mux_setup_aio(const int device, const int pin);
  *
  * @return '0' on success, error code (always negative) otherwise.
  */
-int sol_pin_mux_setup_gpio(const int pin, const enum sol_gpio_direction dir);
+int sol_pin_mux_setup_gpio(const uint32_t pin, const enum sol_gpio_direction dir);
 
 /**
  * Setup the pins used of the given i2c bus number to operate in I2C mode.

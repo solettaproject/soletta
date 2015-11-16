@@ -78,7 +78,7 @@ enum mux_mode {
 #define MODE_GPIO (MODE_GPIO_INPUT | MODE_GPIO_OUTPUT)
 
 struct mux_description {
-    int gpio_pin; /**< GPIO pin that controls the mux */
+    uint32_t gpio_pin; /**< GPIO pin that controls the mux */
     enum mux_pin_val val; /**< Pin value */
     enum mux_mode mode; /**< Combination of possible pin operation modes */
 }; /**< Description of a rule to be applied to setup the multiplexer of a given pin */
@@ -95,7 +95,7 @@ struct mux_controller {
 struct mux_pin_map {
     const char *label; /**< Pin label on the board */
     int cap; /**< Combination of protocols that share the pin */
-    int gpio; /**< GPIO internal value */
+    uint32_t gpio; /**< GPIO internal value */
     struct {
         int device;
         int pin;
@@ -110,8 +110,8 @@ int mux_pin_map(const struct mux_pin_map *map, const char *label, const enum sol
 int mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_list,
     const int s);
 
-int mux_set_gpio(const int pin, const enum sol_gpio_direction dir,
-    struct mux_description **const desc_list, const int s);
+int mux_set_gpio(const uint32_t pin, const enum sol_gpio_direction dir,
+    struct mux_description **const desc_list, const uint32_t s);
 
 int mux_set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2],
     const unsigned int s);

@@ -48,7 +48,7 @@
 static SOL_LOG_INTERNAL_DECLARE(_log_domain, "gpio");
 
 struct sol_gpio {
-    int pin;
+    uint32_t pin;
     struct sensors_sensor *button_sensor;
     bool active_low;
     struct {
@@ -68,7 +68,7 @@ event_handler_cb(void *user_data, process_event_t ev, process_data_t ev_data)
 }
 
 struct sol_gpio *
-sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
+sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
 {
     struct sol_gpio *gpio;
     struct sensors_sensor *found = NULL;
@@ -78,7 +78,7 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
     process_start(&sensors_process, NULL);
 
     if (config->drive_mode != SOL_GPIO_DRIVE_NONE) {
-        SOL_ERR("Unable to set pull resistor on pin=%d", pin);
+        SOL_ERR("Unable to set pull resistor on pin=%" PRIu32, pin);
         return NULL;
     }
 
@@ -100,12 +100,12 @@ sol_gpio_open_raw(int pin, const struct sol_gpio_config *config)
         }
 
         if (!found) {
-            SOL_ERR("GPIO pin=%d not found.", pin);
+            SOL_ERR("GPIO pin=%" PRIu32 " not found.", pin);
             return NULL;
         }
     } else {
         if (pin < 0 || pin > 7) {
-            SOL_ERR("GPIO pin=%d not found.", pin);
+            SOL_ERR("GPIO pin=%" PRIu32 " not found.", pin);
             return NULL;
         }
     }

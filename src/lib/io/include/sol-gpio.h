@@ -135,7 +135,7 @@ struct sol_gpio *sol_gpio_open_by_label(const char *label, const struct sol_gpio
  *
  * @return A new @c sol_gpio instance on success, @c NULL otherwise.
  */
-struct sol_gpio *sol_gpio_open(int pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_gpio *sol_gpio_open(uint32_t pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
 
 
 /**
@@ -151,7 +151,7 @@ struct sol_gpio *sol_gpio_open(int pin, const struct sol_gpio_config *config) SO
  *
  * @return A new @c sol_gpio instance on success, @c NULL otherwise.
  */
-struct sol_gpio *sol_gpio_open_raw(int pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
+struct sol_gpio *sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * Closes a given GPIO pin.

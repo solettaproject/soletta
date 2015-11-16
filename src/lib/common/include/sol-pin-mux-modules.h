@@ -59,7 +59,7 @@ struct sol_pin_mux {
     int (*pin_map)(const char *label, const enum sol_io_protocol prot, va_list args);
 
     int (*aio)(const int device, const int pin);
-    int (*gpio)(const int pin, const enum sol_gpio_direction dir);
+    int (*gpio)(const uint32_t pin, const enum sol_gpio_direction dir);
     int (*i2c)(const uint8_t bus);
     int (*pwm)(const int device, const int channel);
 
