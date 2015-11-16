@@ -54,6 +54,6 @@ struct sol_socket_impl {
 
 #ifdef SOL_PLATFORM_LINUX
 const struct sol_socket_impl *sol_socket_linux_get_impl(void);
-#elif SOL_PLATFORM_RIOT
+#elif defined(SOL_PLATFORM_RIOT)
 const struct sol_socket_impl *sol_socket_riot_get_impl(void);
 #endif
