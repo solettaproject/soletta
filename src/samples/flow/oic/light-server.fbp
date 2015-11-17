@@ -30,13 +30,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # This will print in console when OIC light's state is changed by a client.
-# This node type is resolved using the light-server.json,
-# please adjust to your network configuration:
 #
-#    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=light-server-mynet.json
+#    $ export SOL_MACHINE_ID="580a3d6a9d194a23b90a24573558d2f4"
 #    $ ./light-server.fbp
-#
-# or save it as sol-flow.json
 
-light(Light)
+light(oic/server-brightlight)
 light OUT_STATE -> IN LightState(console)

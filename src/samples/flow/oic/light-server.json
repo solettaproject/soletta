@@ -1,9 +1,0 @@
-{
- "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
- "nodetypes": [
-  {
-   "name": "Light",
-   "type": "oic/server-brightlight"
-  }
- ]
-}

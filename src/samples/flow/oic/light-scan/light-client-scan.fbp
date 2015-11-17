@@ -52,7 +52,7 @@ _(constant/boolean:value=false) OUT -> IN status
 wait(constant/string:value="Wait...") OUT -> IN lcd
 
 #Scanning
-light(Light)
+light(oic/client-brightlight)
 light_selector(form/selector:rows=2,columns=16,circular=true)
 
 scan(timer:interval=3000) OUT -> SCAN light
