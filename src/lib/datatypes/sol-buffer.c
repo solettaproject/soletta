@@ -138,6 +138,7 @@ sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice
 {
     return sol_buffer_append_bytes(buf, (uint8_t *)slice.data, slice.len);
 }
+
 SOL_API int
 sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice)
 {
@@ -915,6 +916,19 @@ sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset)
 
     buf->used -= size;
 
-
     return 0;
+}
+
+SOL_API void
+sol_buffer_fini(struct sol_buffer *buf)
+{
+    if (!buf)
+        return;
+    if (buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY)
+        sol_util_secure_clear_memory(buf->data, buf->capacity);
+    if (!(buf->flags & SOL_BUFFER_FLAGS_NO_FREE))
+        free(buf->data);
+    buf->data = NULL;
+    buf->used = 0;
+    buf->capacity = 0;
 }
