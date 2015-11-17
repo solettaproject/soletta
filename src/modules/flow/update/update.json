@@ -1,0 +1,205 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "update",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/network",
+      "description": "Check a given URL to see if there's update available. Outputs version found on URL, or a raw JSON object containing more information found, like hash of new file or URL to get it, to be used to get the file.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Start a check on current URL to see if update is available.",
+          "name": "CHECK",
+          "methods": {
+            "process": "check_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Cancel an ongoing check operation. No output packets shall be sent, unless a new CHECK is issued",
+          "name": "CANCEL",
+          "methods": {
+            "process": "cancel_check_process"
+          }
+        },
+        {
+          "data_type": "string",
+          "description": "URL to check for updates",
+          "name": "URL",
+          "methods": {
+            "process": "url_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Causes task current progress to be sent to PROGRESS port",
+          "name": "GET_PROGRESS",
+          "methods": {
+            "process": "common_get_progress"
+          }
+        }
+      ],
+      "methods": {
+        "close": "check_close",
+        "open": "check_open"
+      },
+      "name": "update/check",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "URL to check for updates",
+            "name": "url"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Version found on URL.",
+          "name": "VERSION"
+        },
+        {
+          "data_type": "json-object",
+          "description": "Raw update information got from URL. Is a JSON containing, at least, URL of update file, its hash and hash algorithm used, besides its version. This one should be passed as UPDATE_INFO to update/fetch node.",
+          "name": "UPDATE_INFO"
+        },
+        {
+          "data_type": "int",
+          "description": "Current progress of task, a number between 0 and 100. An output of -1 indicates that current progress is not available",
+          "name": "PROGRESS"
+        }
+      ],
+      "private_data_type": "check_data"
+    },
+    {
+      "category": "input/network",
+      "description": "Fetch an update file using given update information. If eveything goes well, it should output path of update file, to be used by update/install node.",
+      "in_ports": [
+        {
+          "data_type": "json-object",
+          "description": "JSON object contaning information about how to fetch update file. It can be obtained via update/check node",
+          "name": "UPDATE_INFO",
+          "methods": {
+            "process": "update_info_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Start fetching update file",
+          "name": "FETCH",
+          "methods": {
+            "process": "fetch_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Cancel an ongoing fetch operation. No output packets shall be sent, unless a new FETCH is issued",
+          "name": "CANCEL",
+          "methods": {
+            "process": "cancel_fetch_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Causes task current progress to be sent to PROGRESS port",
+          "name": "GET_PROGRESS",
+          "methods": {
+            "process": "common_get_progress"
+          }
+        }
+      ],
+      "methods": {
+        "close": "fetch_close",
+        "open": "fetch_open"
+      },
+      "name": "update/fetch",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Path of update file. This one should be passed as FILE_PATH to update/install",
+          "name": "FILE_PATH"
+        },
+        {
+          "data_type": "int",
+          "description": "Current progress of task, a number between 0 and 100. An output of -1 indicates that current progress is not available",
+          "name": "PROGRESS"
+        }
+      ],
+      "private_data_type": "fetch_data"
+    },
+    {
+      "category": "output/sw",
+      "description": "Install update. Process of installing update depends on current underlying update module.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Path of update file to be installed. Can be the one got via update/fetch node",
+          "name": "FILE_PATH",
+          "methods": {
+            "process": "file_path_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Cancel an ongoing install operation. Note that this is dependent on current underlying update module and may not be possible.",
+          "name": "CANCEL",
+          "methods": {
+            "process": "cancel_install_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Causes task current progress to be sent to PROGRESS port",
+          "name": "GET_PROGRESS",
+          "methods": {
+            "process": "common_get_progress"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Install update file.",
+          "name": "INSTALL",
+          "methods": {
+            "process": "install_process"
+          }
+        }
+      ],
+      "methods": {
+        "close": "install_close",
+        "open": "install_open"
+      },
+      "name": "update/install",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Path of update file to be installed",
+            "name": "file_path",
+            "default": null
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "If install completed successfuly, sends true, false otherwise. Note that errors packet may be sent in case of failure",
+          "name": "SUCCESS"
+        },
+        {
+          "data_type": "int",
+          "description": "Current progress of task, a number between 0 and 100. An output of -1 indicates that current progress is not available",
+          "name": "PROGRESS"
+        }
+      ],
+      "private_data_type": "install_data"
+    }
+  ]
+}
