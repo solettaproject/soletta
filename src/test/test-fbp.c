@@ -742,7 +742,7 @@ run_parse_tests(void)
 
         fbp_error = sol_fbp_parse(*parse_tests[i].input, &g);
         if (fbp_error) {
-            sol_fbp_log_print(NULL, fbp_error->position.line, fbp_error->position.column, fbp_error->msg);
+            sol_fbp_log_print(NULL, fbp_error->position.line, fbp_error->position.column, "%s",fbp_error->msg);
             sol_fbp_error_free(fbp_error);
             SOL_ERR("Failed to parse string '%.*s'.", SOL_STR_SLICE_PRINT(*parse_tests[i].input));
             ASSERT(false);
