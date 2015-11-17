@@ -31,6 +31,9 @@
 ## TEST-SKIP-COMPILE It seems generator doesn't know about metatype 'js'
 
 DECLARE=MyScript:js:javascript.js
+DECLARE=Composed:composed-new:KEY(string)|VALUE(string)
+
+http-server(http-server/string:port=8080, path="/", value="Hi from localhost")
 
 _(constant/boolean:value=true) OUT -> IN_BOOLEAN s(MyScript)
 _(constant/byte:value=66) OUT -> IN_BYTE s
@@ -38,6 +41,13 @@ _(constant/float:value=0.42) OUT -> IN_FLOAT s
 _(constant/int:value=42) OUT -> IN_INT s
 _(constant/rgb:value=0|125|255) OUT -> IN_RGB s
 _(constant/string:value="my string") OUT -> IN_STRING s
+Timestamp(timestamp/time) OUT -> IN_TIMESTAMP s
+_(constant/direction-vector:value=10|5|3) OUT -> IN_DIRECTION_VECTOR s
+_(constant/string:value="This will become a blob!") OUT -> IN _(converter/string-to-blob) OUT -> IN_BLOB s
+_(constant/string:value="[1,2,3]") OUT -> IN _(converter/string-to-json-array) OUT -> IN_JSON_ARRAY s
+_(constant/string:value="{\"required\":true, \"number\": 2}") OUT -> IN _(converter/string-to-json-object) OUT -> IN_JSON_OBJECT s
+_(constant/string:value="http://localhost:8080/") OUT -> URL requester(http-client/request:method="GET") OUT -> IN_HTTP_RESPONSE s
+_(constant/empty) OUT -> TRIGGER requester
 
 s OUT_BOOLEAN -> IN _(test/boolean-validator:sequence="T") OUT -> RESULT TestBoolean(test/result)
 
@@ -52,3 +62,22 @@ ConverterRgbJs GREEN -> IN RgbValidator
 ConverterRgbJs BLUE -> IN RgbValidator
 
 s OUT_STRING -> IN _(test/string-validator:sequence="my string") OUT -> RESULT TestString(test/result)
+
+s OUT_TIMESTAMP -> IN[0] TimestampEqual(timestamp/equal) OUT -> RESULT TestTimestamp(test/result)
+Timestamp OUT -> IN[1] TimestampEqual
+
+s OUT_BLOB -> IN _(test/blob-validator:expected="This will become a blob!", expect_terminating_null_byte=true) OUT -> RESULT TestBlob(test/result)
+
+s OUT_JSON_OBJECT -> IN _(converter/json-object-to-blob) OUT -> IN _(test/blob-validator:expected="{\"required\":true, \"number\": 2}") OUT -> RESULT TestJsonObject(test/result)
+
+s OUT_JSON_ARRAY -> IN _(converter/json-array-to-blob) OUT -> IN _(test/blob-validator:expected="[1,2,3]") OUT -> RESULT TestJsonArray(test/result)
+
+s OUT_DIRECTION_VECTOR -> IN DirectionVectorConverter(converter/direction-vector-to-int) X -> IN DirectionValidator(test/int-validator:sequence="10 5 3") OUT -> RESULT TestDirectionVector(test/result)
+DirectionVectorConverter Y -> IN DirectionValidator
+DirectionVectorConverter Z -> IN DirectionValidator
+
+s OUT_HTTP_RESPONSE -> IN _(http-client/get-url) OUT -> IN _(test/string-validator:sequence="http://localhost:8080/") OUT -> RESULT TestUrl(test/result)
+s OUT_HTTP_RESPONSE -> IN _(http-client/get-content-type) OUT -> IN _(test/string-validator:sequence="text/plain") OUT -> RESULT TestContentType(test/result)
+s OUT_HTTP_RESPONSE -> IN _(http-client/get-response-code) OUT -> IN _(test/int-validator:sequence="200") OUT -> RESULT TestResponseCode(test/result)
+s OUT_HTTP_RESPONSE -> IN _(http-client/get-content) OUT -> IN _(test/blob-validator:expected="Hi from localhost") OUT -> RESULT TestContent(test/result)
+s OUT_HTTP_RESPONSE -> IN _(http-client/get-headers:key="Content-Type") OUT -> IN _(test/string-validator:sequence="text/plain") OUT -> RESULT TestHeader(test/result)

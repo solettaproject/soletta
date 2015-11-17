@@ -304,6 +304,237 @@ send_string_packet(struct sol_flow_node *node, uint16_t port, duk_context *ctx)
     return r;
 }
 
+
+static duk_ret_t
+send_timestamp_packet(struct sol_flow_node *node, uint16_t port,
+    duk_context *ctx)
+{
+    struct timespec timestamp;
+    int r;
+
+    duk_require_object_coercible(ctx, 1);
+
+    duk_get_prop_string(ctx, -1, "tv_sec");
+    duk_get_prop_string(ctx, -2, "tv_nsec");
+
+    timestamp.tv_sec = duk_require_number(ctx, -2);
+    timestamp.tv_nsec = duk_require_number(ctx, -1);
+
+    duk_pop_n(ctx, 2);
+
+    r = sol_flow_send_timestamp_packet(node, port, &timestamp);
+    if (r < 0) {
+        duk_error(ctx, DUK_ERR_ERROR,
+            "Couldn't send string packet on '%s' port.",
+            get_out_port_name(node, port));
+    }
+    return r;
+}
+
+static duk_ret_t
+send_direction_vector_packet(struct sol_flow_node *node, uint16_t port,
+    duk_context *ctx)
+{
+    struct sol_direction_vector dir;
+    int r;
+
+    duk_require_object_coercible(ctx, 1);
+
+    duk_get_prop_string(ctx, -1, "x");
+    duk_get_prop_string(ctx, -2, "y");
+    duk_get_prop_string(ctx, -3, "z");
+    duk_get_prop_string(ctx, -4, "min");
+    duk_get_prop_string(ctx, -5, "max");
+
+    dir.x = duk_require_number(ctx, -5);
+    dir.y = duk_require_number(ctx, -4);
+    dir.z = duk_require_number(ctx, -3);
+    dir.min = duk_require_number(ctx, -2);
+    dir.max = duk_require_number(ctx, -1);
+
+    duk_pop_n(ctx, 5);
+
+    r = sol_flow_send_direction_vector_packet(node, port, &dir);
+    if (r < 0) {
+        duk_error(ctx, DUK_ERR_ERROR,
+            "Couldn't send string packet on '%s' port.",
+            get_out_port_name(node, port));
+    }
+    return r;
+}
+
+static duk_ret_t
+send_location_packet(struct sol_flow_node *node, uint16_t port,
+    duk_context *ctx)
+{
+    struct sol_location loc;
+    int r;
+
+    duk_require_object_coercible(ctx, 1);
+
+    duk_get_prop_string(ctx, -1, "lat");
+    duk_get_prop_string(ctx, -2, "lon");
+    duk_get_prop_string(ctx, -3, "alt");
+
+    loc.lat = duk_require_number(ctx, -3);
+    loc.lon = duk_require_number(ctx, -2);
+    loc.alt = duk_require_number(ctx, -1);
+
+    duk_pop_n(ctx, 3);
+
+    r = sol_flow_send_location_packet(node, port, &loc);
+    if (r < 0) {
+        duk_error(ctx, DUK_ERR_ERROR,
+            "Couldn't send string packet on '%s' port.",
+            get_out_port_name(node, port));
+    }
+    return r;
+}
+
+static int
+send_blob(struct sol_flow_node *node, uint16_t port,
+    const void *mem, size_t size, const struct sol_flow_packet_type *type)
+{
+    struct sol_blob *blob;
+    int r;
+
+    blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem, size);
+    SOL_NULL_CHECK(blob, -ENOMEM);
+
+    if (type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY)
+        r = sol_flow_send_json_array_packet(node, port, blob);
+    else if (type == SOL_FLOW_PACKET_TYPE_JSON_OBJECT)
+        r = sol_flow_send_json_object_packet(node, port, blob);
+    else
+        r = sol_flow_send_blob_packet(node, port, blob);
+    sol_blob_unref(blob);
+    return r;
+}
+
+static duk_ret_t
+send_blob_packet(struct sol_flow_node *node, uint16_t port, duk_context *ctx)
+{
+    void *mem, *cpy;
+    size_t size;
+    int r;
+
+    mem = duk_require_buffer(ctx, 1, &size);
+    cpy = malloc(size);
+    SOL_NULL_CHECK(cpy, -ENOMEM);
+    memcpy(cpy, mem, size);
+    r = send_blob(node, port, cpy, size, SOL_FLOW_PACKET_TYPE_BLOB);
+    if (r < 0)
+        free(cpy);
+    return r;
+}
+
+static int
+js_array_to_sol_key_value_vector(duk_context *ctx, struct sol_vector *vector,
+    const char *prop_name)
+{
+    int length, i;
+    struct sol_key_value *key_value;
+
+    duk_get_prop_string(ctx, -1, prop_name);
+
+    duk_require_object_coercible(ctx, -1);
+
+    duk_get_prop_string(ctx, -1, "length");
+    length = duk_require_int(ctx, -1);
+    duk_pop(ctx);
+
+    for (i = 0; i < length; i++) {
+        duk_get_prop_index(ctx, -1, i);
+
+        duk_require_object_coercible(ctx, -1);
+
+        duk_get_prop_string(ctx, -1, "key");
+        duk_get_prop_string(ctx, -2, "value");
+
+        key_value = sol_vector_append(vector);
+        SOL_NULL_CHECK(key_value, -ENOMEM);
+        key_value->key = duk_require_string(ctx, -2);
+        key_value->value = duk_require_string(ctx, -1);
+
+        duk_pop_n(ctx, 3);
+    }
+
+    duk_pop(ctx);
+    return 0;
+}
+
+static duk_ret_t
+send_http_response_packet(struct sol_flow_node *node, uint16_t port,
+    duk_context *ctx)
+{
+    int r;
+    int code;
+    struct sol_blob *content;
+    const char *url, *content_type;
+    struct sol_vector cookies, headers;
+    void *mem, *cpy;
+    size_t size;
+
+    sol_vector_init(&cookies, sizeof(struct sol_key_value));
+    sol_vector_init(&headers, sizeof(struct sol_key_value));
+
+    duk_require_object_coercible(ctx, 1);
+
+    duk_get_prop_string(ctx, -1, "response_code");
+    duk_get_prop_string(ctx, -2, "url");
+    duk_get_prop_string(ctx, -3, "content-type");
+    duk_get_prop_string(ctx, -4, "content");
+
+    code = duk_require_int(ctx, -4);
+    url = duk_require_string(ctx, -3);
+    content_type = duk_require_string(ctx, -2);
+    mem = duk_require_buffer(ctx, -1, &size);
+
+    duk_pop_n(ctx, 4);
+
+    js_array_to_sol_key_value_vector(ctx, &cookies, "cookies");
+    js_array_to_sol_key_value_vector(ctx, &headers, "headers");
+
+    cpy = malloc(size);
+    SOL_NULL_CHECK(cpy, -ENOMEM);
+    memcpy(cpy, mem, size);
+    content = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, cpy, size);
+    SOL_NULL_CHECK_GOTO(content, err_exit);
+
+    r = sol_flow_send_http_response_packet(node, port, code, url,
+        content_type, content, &cookies, &headers);
+    if (r < 0) {
+        duk_error(ctx, DUK_ERR_ERROR,
+            "Couldn't send string packet on '%s' port.",
+            get_out_port_name(node, port));
+    }
+    sol_blob_unref(content);
+    return r;
+
+err_exit:
+    sol_vector_clear(&cookies);
+    sol_vector_clear(&headers);
+    free(cpy);
+    return -ENOMEM;
+}
+
+static duk_ret_t
+send_json_packet(struct sol_flow_node *node, uint16_t port,
+    duk_context *ctx, const struct sol_flow_packet_type *type)
+{
+    const char *value;
+    char *cpy;
+    int r;
+
+    value = duk_require_string(ctx, 1);
+    cpy = strdup(value);
+    SOL_NULL_CHECK(cpy, -ENOMEM);
+    r = send_blob(node, port, cpy, strlen(value), type);
+    if (r < 0)
+        free(cpy);
+    return r;
+}
+
 static struct sol_flow_node *
 get_node_from_duk_ctx(duk_context *ctx)
 {
@@ -384,6 +615,20 @@ send_packet(duk_context *ctx)
         return send_rgb_packet(node, port_number, ctx);
     if (port->type.packet_type == SOL_FLOW_PACKET_TYPE_STRING)
         return send_string_packet(node, port_number, ctx);
+    if (port->type.packet_type == SOL_FLOW_PACKET_TYPE_BLOB)
+        return send_blob_packet(node, port_number, ctx);
+    if (port->type.packet_type == SOL_FLOW_PACKET_TYPE_LOCATION)
+        return send_location_packet(node, port_number, ctx);
+    if (port->type.packet_type == SOL_FLOW_PACKET_TYPE_TIMESTAMP)
+        return send_timestamp_packet(node, port_number, ctx);
+    if (port->type.packet_type == SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR)
+        return send_direction_vector_packet(node, port_number, ctx);
+    if (port->type.packet_type == SOL_FLOW_PACKET_TYPE_JSON_OBJECT ||
+        port->type.packet_type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY)
+        return send_json_packet(node, port_number, ctx,
+            port->type.packet_type);
+    if (port->type.packet_type == SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE)
+        return send_http_response_packet(node, port_number, ctx);
 
     /* TODO: Create a way to let the user define custom packets. Maybe we could
      * use the same techniques we do for option parsing, and provide an object
@@ -607,7 +852,7 @@ flow_js_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
 static void
 flow_js_close(struct sol_flow_node *node, void *data)
 {
-    const struct flow_js_data *mdata = (struct flow_js_data *)data;
+    struct flow_js_data *mdata = (struct flow_js_data *)data;
 
     if (duk_has_prop_string(mdata->duk_ctx, -1, "close")) {
         duk_push_string(mdata->duk_ctx, "close");
@@ -827,6 +1072,225 @@ string_process(struct sol_flow_node *node, void *data, uint16_t port,
     return process_boilerplate_post(mdata->duk_ctx, node, port, 1);
 }
 
+static int
+timestamp_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    const struct flow_js_data *mdata = data;
+    struct timespec timestamp;
+    duk_idx_t obj_idx;
+    int r;
+
+    r = sol_flow_packet_get_timestamp(packet, &timestamp);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = process_boilerplate_pre(mdata->duk_ctx, node, port);
+    SOL_INT_CHECK(r, <= 0, r);
+
+    obj_idx = duk_push_object(mdata->duk_ctx);
+
+    duk_push_number(mdata->duk_ctx, timestamp.tv_sec);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "tv_sec");
+
+    duk_push_number(mdata->duk_ctx, timestamp.tv_nsec);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "tv_nsec");
+
+    return process_boilerplate_post(mdata->duk_ctx, node, port, 1);
+}
+
+static int
+direction_vector_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    const struct flow_js_data *mdata = data;
+    struct sol_direction_vector dir;
+    duk_idx_t obj_idx;
+    int r;
+
+    r = sol_flow_packet_get_direction_vector(packet, &dir);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = process_boilerplate_pre(mdata->duk_ctx, node, port);
+    SOL_INT_CHECK(r, <= 0, r);
+
+    obj_idx = duk_push_object(mdata->duk_ctx);
+
+    duk_push_number(mdata->duk_ctx, dir.x);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "x");
+
+    duk_push_number(mdata->duk_ctx, dir.y);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "y");
+
+    duk_push_number(mdata->duk_ctx, dir.z);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "z");
+
+    duk_push_number(mdata->duk_ctx, dir.min);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "min");
+
+    duk_push_number(mdata->duk_ctx, dir.max);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "max");
+
+    return process_boilerplate_post(mdata->duk_ctx, node, port, 1);
+}
+
+static void
+push_blob(const struct sol_blob *blob, struct duk_context *duk_ctx)
+{
+    void *mem;
+
+    mem = duk_push_fixed_buffer(duk_ctx, blob->size);
+    memcpy(mem, blob->mem, blob->size);
+}
+
+static int
+blob_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct flow_js_data *mdata = data;
+    struct sol_blob *blob;
+    int r;
+
+    r = sol_flow_packet_get_blob(packet, &blob);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = process_boilerplate_pre(mdata->duk_ctx, node, port);
+    SOL_INT_CHECK(r, <= 0, r);
+
+    /* FIXME: Should we add the other fields, like parent, ref count and size? */
+    /* FIXME: If we bump the version use duk_push_external_buffer() */
+    push_blob(blob, mdata->duk_ctx);
+
+    return process_boilerplate_post(mdata->duk_ctx, node, port, 1);
+}
+
+static int
+location_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    const struct flow_js_data *mdata = data;
+    struct sol_location loc;
+    duk_idx_t obj_idx;
+    int r;
+
+    r = sol_flow_packet_get_location(packet, &loc);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = process_boilerplate_pre(mdata->duk_ctx, node, port);
+    SOL_INT_CHECK(r, <= 0, r);
+
+    obj_idx = duk_push_object(mdata->duk_ctx);
+
+    duk_push_number(mdata->duk_ctx, loc.lat);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "lat");
+
+    duk_push_number(mdata->duk_ctx, loc.lon);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "lon");
+
+    duk_push_number(mdata->duk_ctx, loc.alt);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "alt");
+
+    return process_boilerplate_post(mdata->duk_ctx, node, port, 1);
+}
+
+static int
+json_array_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    const struct flow_js_data *mdata = data;
+    struct sol_blob *blob;
+    int r;
+
+    r = sol_flow_packet_get_json_array(packet, &blob);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = process_boilerplate_pre(mdata->duk_ctx, node, port);
+    SOL_INT_CHECK(r, <= 0, r);
+
+    duk_push_lstring(mdata->duk_ctx, (const char *)blob->mem, blob->size);
+    return process_boilerplate_post(mdata->duk_ctx, node, port, 1);
+}
+
+static int
+json_object_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    const struct flow_js_data *mdata = data;
+    struct sol_blob *blob;
+    int r;
+
+    r = sol_flow_packet_get_json_object(packet, &blob);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = process_boilerplate_pre(mdata->duk_ctx, node, port);
+    SOL_INT_CHECK(r, <= 0, r);
+
+    duk_push_lstring(mdata->duk_ctx, (const char *)blob->mem, blob->size);
+    return process_boilerplate_post(mdata->duk_ctx, node, port, 1);
+}
+
+static void
+add_sol_key_valueto_js_array(const struct sol_vector *vector,
+    struct duk_context *duk_ctx, duk_idx_t request_idx, const char *prop_name)
+{
+    uint16_t i;
+    duk_idx_t obj_idx, array_idx;
+    struct sol_key_value *key_value;
+
+    array_idx = duk_push_array(duk_ctx);
+
+    SOL_VECTOR_FOREACH_IDX (vector, key_value, i) {
+        obj_idx = duk_push_object(duk_ctx);
+        duk_push_string(duk_ctx, key_value->key);
+        duk_put_prop_string(duk_ctx, obj_idx, "key");
+        duk_push_string(duk_ctx, key_value->value);
+        duk_put_prop_string(duk_ctx, obj_idx, "value");
+        duk_put_prop_index(duk_ctx, array_idx, i);
+    }
+
+    duk_put_prop_string(duk_ctx, request_idx, prop_name);
+}
+
+static int
+http_response_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    const struct flow_js_data *mdata = data;
+    const char *url, *content_type;
+    const struct sol_blob *content;
+    struct sol_vector cookies, headers;
+    duk_idx_t obj_idx;
+    int r, code;
+
+    sol_vector_init(&cookies, sizeof(struct sol_key_value));
+    sol_vector_init(&headers, sizeof(struct sol_key_value));
+    r = sol_flow_packet_get_http_response(packet, &code, &url, &content_type,
+        &content, &cookies, &headers);
+    SOL_INT_CHECK(r, < 0, r);
+    r = process_boilerplate_pre(mdata->duk_ctx, node, port);
+    SOL_INT_CHECK(r, <= 0, r);
+
+    obj_idx = duk_push_object(mdata->duk_ctx);
+
+    duk_push_number(mdata->duk_ctx, code);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "response_code");
+
+    duk_push_string(mdata->duk_ctx, url);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "url");
+
+    duk_push_string(mdata->duk_ctx, content_type);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "content-type");
+
+    push_blob(content, mdata->duk_ctx);
+    duk_put_prop_string(mdata->duk_ctx, obj_idx, "content");
+
+    add_sol_key_valueto_js_array(&cookies, mdata->duk_ctx, obj_idx, "cookies");
+    add_sol_key_valueto_js_array(&headers, mdata->duk_ctx, obj_idx, "headers");
+
+    r = process_boilerplate_post(mdata->duk_ctx, node, port, 1);
+
+    return r;
+}
+
 /* process() methods on JS may throw exceptions. */
 static int
 flow_js_port_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id,
@@ -849,8 +1313,22 @@ flow_js_port_process(struct sol_flow_node *node, void *data, uint16_t port, uint
         return rgb_process(node, data, port, conn_id, packet);
     if (packet_type == SOL_FLOW_PACKET_TYPE_STRING)
         return string_process(node, data, port, conn_id, packet);
+    if (packet_type == SOL_FLOW_PACKET_TYPE_BLOB)
+        return blob_process(node, data, port, conn_id, packet);
+    if (packet_type == SOL_FLOW_PACKET_TYPE_LOCATION)
+        return location_process(node, data, port, conn_id, packet);
+    if (packet_type == SOL_FLOW_PACKET_TYPE_TIMESTAMP)
+        return timestamp_process(node, data, port, conn_id, packet);
+    if (packet_type == SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR)
+        return direction_vector_process(node, data, port, conn_id, packet);
+    if (packet_type == SOL_FLOW_PACKET_TYPE_JSON_OBJECT)
+        return json_object_process(node, data, port, conn_id, packet);
+    if (packet_type == SOL_FLOW_PACKET_TYPE_JSON_ARRAY)
+        return json_array_process(node, data, port, conn_id, packet);
+    if (packet_type == SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE)
+        return http_response_process(node, data, port, conn_id, packet);
 
-    return 0;
+    return -EINVAL;
 }
 
 /* connect() and disconnect() port methods on JS may throw exceptions. */
@@ -1063,6 +1541,20 @@ get_packet_type(const char *type)
         return SOL_FLOW_PACKET_TYPE_RGB;
     if (!strcasecmp(type, "string"))
         return SOL_FLOW_PACKET_TYPE_STRING;
+    if (!strcasecmp(type, "blob"))
+        return SOL_FLOW_PACKET_TYPE_BLOB;
+    if (!strcasecmp(type, "location"))
+        return SOL_FLOW_PACKET_TYPE_LOCATION;
+    if (!strcasecmp(type, "timestamp"))
+        return SOL_FLOW_PACKET_TYPE_TIMESTAMP;
+    if (!strcasecmp(type, "direction-vector"))
+        return SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR;
+    if (!strcasecmp(type, "json-object"))
+        return SOL_FLOW_PACKET_TYPE_JSON_OBJECT;
+    if (!strcasecmp(type, "json-array"))
+        return SOL_FLOW_PACKET_TYPE_JSON_ARRAY;
+    if (!strcasecmp(type, "http-response"))
+        return SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE;
 
     return NULL;
 }
