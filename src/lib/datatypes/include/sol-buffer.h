@@ -103,7 +103,12 @@ enum sol_buffer_flags {
     /**
      * do not reserve space for the NUL byte
      */
-    SOL_BUFFER_FLAGS_NO_NUL_BYTE = (1 << 2)
+    SOL_BUFFER_FLAGS_NO_NUL_BYTE = (1 << 2),
+    /**
+     * securely clear buffer data before finishing; this implies the flag
+     * SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED
+     */
+    SOL_BUFFER_FLAGS_CLEAR_MEMORY = (1 << 3) | SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED,
 };
 
 struct sol_buffer {
@@ -141,23 +146,14 @@ static inline void
 sol_buffer_init_flags(struct sol_buffer *buf, void *data, size_t data_size, enum sol_buffer_flags flags)
 {
     assert(buf);
+    assert((flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED) ? !!data : 1);
     buf->data = data;
     buf->capacity = data_size;
     buf->used = 0;
     buf->flags = flags;
 }
 
-static inline void
-sol_buffer_fini(struct sol_buffer *buf)
-{
-    if (!buf)
-        return;
-    if (!(buf->flags & SOL_BUFFER_FLAGS_NO_FREE))
-        free(buf->data);
-    buf->data = NULL;
-    buf->used = 0;
-    buf->capacity = 0;
-}
+void sol_buffer_fini(struct sol_buffer *buf);
 
 static inline void *
 sol_buffer_at(const struct sol_buffer *buf, size_t pos)
