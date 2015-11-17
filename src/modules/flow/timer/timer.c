@@ -114,6 +114,9 @@ timer_enabled_process(struct sol_flow_node *node, void *data, uint16_t port, uin
     r = sol_flow_packet_get_boolean(packet, &val);
     SOL_INT_CHECK(r, < 0, r);
 
+    if (val == !!mdata->timer)
+        return 0;
+
     if (!val)
         return stop_timer(mdata);
     else if (!mdata->timer)
