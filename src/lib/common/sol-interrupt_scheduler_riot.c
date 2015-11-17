@@ -175,6 +175,9 @@ uart_rx_cb(void *data, char char_read)
     struct uart_interrupt_data *int_data = data;
     struct uart_rx_interrupt_data *rx_int_data;
 
+    if (!int_data)
+        return;
+
     rx_int_data = malloc(sizeof(struct uart_rx_interrupt_data));
     if (!rx_int_data)
         return;
@@ -194,6 +197,9 @@ uart_tx_cb(void *data)
 {
     msg_t m;
     struct uart_interrupt_data *int_data = data;
+
+    if (!int_data)
+        return 0;
 
     int_data->base.refcount++;
     m.type = UART_TX;
@@ -232,7 +238,16 @@ sol_interrupt_scheduler_uart_init_int(uart_t uart, uint32_t baudrate, uart_rx_cb
 void
 sol_interrupt_scheduler_uart_stop(uart_t uart, void *handler)
 {
-    uart_init_blocking(uart, 9600);
+    /*
+     * Looking at RIOT's code, there are not guarantees that using
+     * uart_init_blocking() will not keep the previously set interruptions
+     * alive, and uart_poweroff() may not always be implemented, so the only
+     * safe way to stop handling interruptions is to keep using our functions
+     * with a NULL data pointer and check for that there, doing nothing if
+     * that's the case. If uart_poweroff() works, it will be called by the
+     * sol_uart implementation after this function.
+     */
+    uart_init(uart, 9600, uart_rx_cb, uart_tx_cb, NULL);
     interrupt_scheduler_handler_free(handler);
 }
 #endif
