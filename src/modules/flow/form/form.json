@@ -9,7 +9,7 @@
   "types": [
     {
       "category": "io/sw",
-      "description": "Receives packages defining a strings listing and the actual string selection to then output the selection's contents. It will also output the listing itself formatted to fit in character displays.",
+      "description": "Receives packages defining a strings listing and the actual string selection to then output the selection's contents. It will also output the listing itself formatted to fit in character displays. All strings in this node should be ASCII only, as it is meant to output to LCD displays.",
       "in_ports": [
         {
           "data_type": "string",
@@ -135,7 +135,7 @@
     },
     {
       "category": "io/sw",
-      "description": "Receives packages to control a boolean state. One of the input ports will commit to a state when trigerred, and the boolean value will be outputted. A string output with the current state, defined by a format string, is also outputted.",
+      "description": "Receives packages to control a boolean state. One of the input ports will commit to a state when trigerred, and the boolean value will be outputted. A string output with the current state, defined by a format string, is also outputted. All strings in this node should be ASCII only, as it is meant to output to LCD displays.",
       "in_ports": [
         {
           "data_type": "boolean",
@@ -231,7 +231,7 @@
     },
     {
       "category": "io/sw",
-      "description": "Receives packages to control an integer state. Two ports increment/decrement the saved integer state, while another one commits to the state when trigerred (and the integer value is outputted). A string output with the current state, defined by a format string, is also outputted.",
+      "description": "Receives packages to control an integer state. Two ports increment/decrement the saved integer state, while another one commits to the state when trigerred (and the integer value is outputted). A string output with the current state, defined by a format string, is also outputted. All strings in this node should be ASCII only, as it is meant to output to LCD displays.",
       "in_ports": [
         {
           "data_type": "int",
@@ -350,7 +350,7 @@
     },
     {
       "category": "io/sw",
-      "description": "Receives packages to control an integer state. Four input ports control the position in the digits (and the digits themselves) of a forming integer number. One of the input ports will commit to a state when trigerred, and the integer value will be outputted. A string output with the current state, defined by a format string, is also outputted (one time per second, to emulate a blinking cursor).",
+      "description": "Receives packages to control an integer state. Four input ports control the position in the digits (and the digits themselves) of a forming integer number. One of the input ports will commit to a state when trigerred, and the integer value will be outputted. A string output with the current state, defined by a format string, is also outputted (one time per second, to emulate a blinking cursor). All strings in this node should be ASCII only, as it is meant to output to LCD displays.",
       "in_ports": [
         {
           "data_type": "int",
@@ -490,6 +490,152 @@
       ],
       "private_data_type": "integer_custom_data",
       "url": "http://solettaproject.org/doc/latest/node_types/form/int-custom.html"
+    },
+    {
+      "category": "io/sw",
+      "description": "Receives packages to control the formation/edition of a string. Four input ports control the position on the characters (and the characters themselves) of a forming string. There is one dedicated port for deleting the character under the cursor. If no starting string value is given, or if all characters are deleted, the node will go into a state where no character is present, and either UP or DOWN ports have to be exercized to have at least one character again. One of the input ports will commit to a state when trigerred, and the string will be outputted. A (broader) string output with the current state, defined by a format string, is also outputted (one time per second, to emulate a blinking cursor). All strings in this node should be ASCII only, as it is meant to output to LCD displays.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Change the current state (useful for initial setups on a flow).",
+          "methods": {
+            "process": "string_selected_set"
+          },
+          "name": "SELECTED"
+        },
+        {
+          "data_type": "any",
+          "description": "Increase the character under the cursor position. The order of the characters list is given by the 'charset' option.",
+          "methods": {
+            "process": "string_up_set"
+          },
+          "name": "UP"
+        },
+        {
+          "data_type": "any",
+          "description": "Decrease the character under the cursor position.  The order of the characters list is given by the 'charset' option.",
+          "methods": {
+            "process": "string_down_set"
+          },
+          "name": "DOWN"
+        },
+        {
+          "data_type": "any",
+          "description": "Advance the cursor position (to the right). If the last character was under the cursor, this action grows the string by one character.",
+          "methods": {
+            "process": "string_next_set"
+          },
+          "name": "NEXT"
+        },
+        {
+          "data_type": "any",
+          "description": "Retract the cursor position (to the left).",
+          "methods": {
+            "process": "string_previous_set"
+          },
+          "name": "PREVIOUS"
+        },
+        {
+          "data_type": "any",
+          "description": "Delete the current char, retracting the cursor (to the left).",
+          "methods": {
+            "process": "string_delete"
+          },
+          "name": "DELETE"
+        },
+        {
+          "data_type": "any",
+          "description": "Confirm the selection to be current one, generating output packets on both STRING and SELECTED output ports.",
+          "methods": {
+            "process": "string_select_set"
+          },
+          "name": "SELECT"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Make the interaction possible, otherwise don't produce strings or process UP/DOWN/SELECT inputs. In other words, enable/disable the node at run-time. The node starts in the enabled state. Note that this does not affect the use of the SELECTED port.",
+          "methods": {
+            "process": "string_enabled_set"
+          },
+          "name": "ENABLED"
+        }
+      ],
+      "methods": {
+        "close": "string_close",
+        "open": "string_open"
+      },
+      "name": "form/string",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
+            "name": "columns"
+          },
+          {
+            "data_type": "int",
+            "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
+            "name": "rows"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Cursor blinking time, in miliseconds.",
+            "name": "blink_time"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Minimum output string length (must be non-negative and less than or equal to 'max_length' option's value).",
+            "name": "min_length"
+          },
+          {
+            "data_type": "int",
+            "default": 0,
+            "description": "Maximum output string length (must be non-negative and greater than or equal to 'min_length' option's value). The special value of 0 means no maximum will be applied.",
+            "name": "max_length"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The initial string value (all characters must be inside the 'charset' option's set of chars) to start at. It may be overriden by a value in the SELECTED input port.",
+            "name": "start_value"
+          },
+          {
+            "data_type": "string",
+            "default": " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?.:;,-()[]{}|\\\\^~`_\"'#$%&*+/<>=@",
+            "description": "The character set to build the strings with in this node. The order is important: this is the sequence the UP/DOWN ports will cycle through.",
+            "name": "charset"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters is this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
+            "name": "title"
+          },
+          {
+            "data_type": "string",
+            "default": "{value}",
+            "description": "The format string to produce the final STRING output with. The syntax is a free-form string with one '{value}' sub-string in it (and one optional '{title}' one). The value tag will be replaced by the actual true/false strings defined for the node (true_str/false_str options), while the title one will be replaced by the title string option, if set. The title tag must occur before the value one.",
+            "name": "format"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The formatted string output. This is meant to feed real display nodes (like grove/lcd-string).",
+          "name": "STRING"
+        },
+        {
+          "data_type": "string",
+          "description": "The current string state.",
+          "name": "SELECTED"
+        }
+      ],
+      "private_data_type": "string_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/form/string.html"
     }
   ]
 }
