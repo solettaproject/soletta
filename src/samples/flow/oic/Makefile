@@ -9,5 +9,3 @@ sample-light-client-$(FLOW_OIC_SAMPLE)-conffile := \
 
 sample-light-server-$(FLOW_OIC_SAMPLE) := \
 	light-server.fbp
-sample-light-server-$(FLOW_OIC_SAMPLE)-conffile := \
-	light-server.json

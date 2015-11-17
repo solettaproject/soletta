@@ -2,10 +2,6 @@
  "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
  "nodetypes": [
   {
-   "name": "Light",
-   "type": "oic/client-brightlight"
-  },
-  {
    "name": "LCD",
    "options": {
     "bus": 6
