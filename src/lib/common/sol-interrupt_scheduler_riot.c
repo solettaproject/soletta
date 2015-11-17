@@ -30,16 +30,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-interrupt_scheduler_riot.h"
-
+#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
 #include <thread.h>
+
+#include "sol-interrupt_scheduler_riot.h"
+#include "sol-log.h"
 
 static kernel_pid_t pid;
 
 enum interrupt_type {
+#ifdef USE_GPIO
     GPIO,
+#endif
 #ifdef USE_UART
     UART_RX,
     UART_TX
@@ -50,11 +55,14 @@ struct interrupt_data_base {
     uint16_t deleted : 1, refcount : 15;
 };
 
-struct interrupt_data {
-    struct interrupt_data_base base;
+#ifdef USE_GPIO
+struct gpio_interrupt_data {
     void *cb;
     void *data;
+    bool pending : 1;
+    bool deleted : 1;
 };
+#endif
 
 #ifdef USE_UART
 struct uart_interrupt_data {
@@ -83,43 +91,6 @@ sol_interrupt_scheduler_get_pid(void)
     return pid;
 }
 
-/* Run in interrupt context */
-static void
-gpio_cb(void *data)
-{
-    msg_t m;
-    struct interrupt_data *int_data = data;
-
-    int_data->base.refcount++;
-    m.type = GPIO;
-    m.content.ptr = data;
-    msg_send_int(&m, pid);
-}
-
-int
-sol_interrupt_scheduler_gpio_init_int(gpio_t dev, gpio_pp_t pullup, gpio_flank_t flank, gpio_cb_t cb, void *arg, void **handler)
-{
-    int retval = -1;
-    struct interrupt_data *int_data = malloc(sizeof(struct interrupt_data));
-
-    if (!int_data)
-        return retval;
-
-    int_data->cb = cb;
-    int_data->data = arg;
-    int_data->base.deleted = false;
-    int_data->base.refcount = 1;
-    retval = gpio_init_int(dev, pullup, flank, gpio_cb, int_data);
-    if (retval != 0) {
-        free(int_data);
-        int_data = NULL;
-    }
-
-    if (handler != NULL && int_data != NULL)
-        *handler = int_data;
-    return retval;
-}
-
 static void
 interrupt_data_base_unref(struct interrupt_data_base *base)
 {
@@ -138,12 +109,62 @@ interrupt_scheduler_handler_free(void *handler)
     interrupt_data_base_unref(base);
 }
 
+#ifdef USE_GPIO
+/* Run in interrupt context */
+static void
+gpio_cb(void *data)
+{
+    msg_t m;
+    struct gpio_interrupt_data *int_data = data;
+
+    if (int_data->pending)
+        return;
+
+    int_data->pending = true;
+
+    m.type = GPIO;
+    m.content.ptr = data;
+    msg_send_int(&m, pid);
+}
+
+int
+sol_interrupt_scheduler_gpio_init_int(gpio_t dev, gpio_pp_t pullup, gpio_flank_t flank, gpio_cb_t cb, void *arg, void **handler)
+{
+    struct gpio_interrupt_data *int_data;
+    int ret;
+
+    int_data = calloc(1, sizeof(*int_data));
+    SOL_NULL_CHECK(int_data, -ENOMEM);
+
+    int_data->cb = cb;
+    int_data->data = arg;
+
+    ret = gpio_init_int(dev, pullup, flank, gpio_cb, int_data);
+    SOL_INT_CHECK_GOTO(ret, < 0, error);
+
+    *handler = int_data;
+
+    return 0;
+error:
+    free(int_data);
+    return ret;
+}
+
 void
 sol_interrupt_scheduler_gpio_stop(gpio_t dev, void *handler)
 {
-    gpio_init(dev, GPIO_DIR_IN, GPIO_NOPULL);
-    interrupt_scheduler_handler_free(handler);
+    struct gpio_interrupt_data *int_data = handler;
+    unsigned int state;
+
+    state = disableIRQ();
+    gpio_irq_disable(dev);
+    if (int_data->pending)
+        int_data->deleted = true;
+    else
+        free(int_data);
+    restoreIRQ(state);
 }
+#endif
 
 /* Run in interrupt context */
 #ifdef USE_UART
@@ -220,14 +241,23 @@ void
 sol_interrupt_scheduler_process(msg_t *msg)
 {
     switch (msg->type) {
+#ifdef USE_GPIO
     case GPIO: {
-        struct interrupt_data *int_data = (void *)msg->content.ptr;
+        unsigned int state;
+        struct gpio_interrupt_data *int_data = (void *)msg->content.ptr;
         gpio_cb_t cb = int_data->cb;
-        if (!int_data->base.deleted)
+
+        state = disableIRQ();
+        int_data->pending = false;
+        restoreIRQ(state);
+
+        if (int_data->deleted)
+            free(int_data);
+        else
             cb(int_data->data);
-        interrupt_data_base_unref(&int_data->base);
         break;
     }
+#endif
 #ifdef USE_UART
     case UART_RX: {
         struct uart_rx_interrupt_data *rx_data = (void *)msg->content.ptr;
