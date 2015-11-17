@@ -1,0 +1,160 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "update",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "system/update",
+      "description": "Check if there's update available. How check is performed depends on current update module implementation. Outputs update file version and its size.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Start a check on current URL to see if update is available.",
+          "name": "CHECK",
+          "methods": {
+            "process": "check_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Cancel an ongoing check operation. No output packets shall be sent, unless a new CHECK is issued",
+          "name": "CANCEL",
+          "methods": {
+            "process": "cancel_check_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Causes task current progress to be sent to PROGRESS port",
+          "name": "GET_PROGRESS",
+          "methods": {
+            "process": "common_get_progress"
+          }
+        }
+      ],
+      "methods": {
+        "close": "check_close",
+        "open": "check_open"
+      },
+      "name": "update/check",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "Update version.",
+          "name": "VERSION"
+        },
+        {
+          "data_type": "int",
+          "description": "Update size, in bytes.",
+          "name": "SIZE"
+        },
+        {
+          "data_type": "int",
+          "description": "Current progress of task, a number between 0 and 100. An output of -1 indicates that current progress is not available",
+          "name": "PROGRESS"
+        }
+      ],
+      "private_data_type": "update_data"
+    },
+    {
+      "category": "system/update",
+      "description": "Fetch an update. If eveything goes well, it should output true on port SUCCESS.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Start fetching update.",
+          "name": "FETCH",
+          "methods": {
+            "process": "fetch_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Cancel an ongoing fetch operation. No output packets shall be sent, unless a new FETCH is issued",
+          "name": "CANCEL",
+          "methods": {
+            "process": "cancel_fetch_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Causes task current progress to be sent to PROGRESS port",
+          "name": "GET_PROGRESS",
+          "methods": {
+            "process": "common_get_progress"
+          }
+        }
+      ],
+      "methods": {
+        "close": "fetch_close",
+        "open": "fetch_open"
+      },
+      "name": "update/fetch",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "If FETCH was successfuly completed",
+          "name": "SUCCESS"
+        },
+        {
+          "data_type": "int",
+          "description": "Current progress of task, a number between 0 and 100. An output of -1 indicates that current progress is not available",
+          "name": "PROGRESS"
+        }
+      ],
+      "private_data_type": "update_data"
+    },
+    {
+      "category": "system/update",
+      "description": "Install update. Process of installing update depends on current underlying update module.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Cancel an ongoing install operation. Note that this is dependent on current underlying update module and may not be possible.",
+          "name": "CANCEL",
+          "methods": {
+            "process": "cancel_install_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Causes task current progress to be sent to PROGRESS port",
+          "name": "GET_PROGRESS",
+          "methods": {
+            "process": "common_get_progress"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Install update file.",
+          "name": "INSTALL",
+          "methods": {
+            "process": "install_process"
+          }
+        }
+      ],
+      "methods": {
+        "close": "install_close",
+        "open": "install_open"
+      },
+      "name": "update/install",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "If install completed successfuly, sends true, false otherwise. Note that errors packet may be sent in case of failure",
+          "name": "SUCCESS"
+        },
+        {
+          "data_type": "int",
+          "description": "Current progress of task, a number between 0 and 100. An output of -1 indicates that current progress is not available",
+          "name": "PROGRESS"
+        }
+      ],
+      "private_data_type": "update_data"
+    }
+  ]
+}
