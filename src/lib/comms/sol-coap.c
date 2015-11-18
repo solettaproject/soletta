@@ -1060,6 +1060,15 @@ match_reply(struct pending_reply *reply, struct sol_coap_packet *pkt)
     return reply->id == id;
 }
 
+static bool
+match_observe_reply(struct pending_reply *reply, uint8_t *token, uint8_t tkl)
+{
+    if (!reply->observing)
+        return false;
+
+    return tkl == reply->tkl && !memcmp(token, reply->token, tkl);
+}
+
 static int
 resource_not_found(struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr,
@@ -1569,4 +1578,27 @@ sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_pack
     }
 
     return cancel ? 0 : -ENOENT;
+}
+
+SOL_API int
+sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl)
+{
+    int r;
+    uint16_t i;
+    struct pending_reply *reply;
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
+        if (!match_observe_reply(reply, token, tkl))
+            continue;
+
+        sol_ptr_vector_del(&server->pending, i);
+
+        r = send_unobserve_packet(server, cliaddr, reply->path, token, tkl);
+        if (r < 0)
+            SOL_WRN("Could not unobserve packet.");
+        pending_reply_free(reply);
+        return r;
+    }
+
+    return -ENOENT;
 }

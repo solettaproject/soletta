@@ -755,6 +755,29 @@ size_t sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
  */
 int sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt, struct sol_network_link_addr *cliaddr);
 
+/*
+ * Remove observation identified by @a token from server.
+ *
+ * Send to server an unobserve packet so client identified by @a token will be
+ * removed from the server's observation list. We are suppose to stop receiving
+ * new notifications.
+ *
+ * If observation was added using sol_coap_send_packet_with_reply() function
+ * we will have no more calls to reply_cb.
+ *
+ * @param server The server through which the observation packet was sent.
+ * @param cliaddr The source address of the observation packet sent.
+ * @param token The observation token
+ * @param tkl The observation token length
+ *
+ * @return 0 on success.
+ *         -ENOENT if there is no observe packet registered with @a token and
+ *         no unobserve packet was sent.
+ *         -ENOMEM Out of memory
+ *         -EINVAL if some parameter is invalid.
+ */
+int sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl);
+
 /**
  * @}
  */

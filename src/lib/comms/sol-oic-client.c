@@ -474,6 +474,7 @@ _new_resource(void)
     res->slow = false;
     res->secure = false;
     res->active = false;
+    res->is_observing = false;
 
     res->refcnt = 1;
 
@@ -819,6 +820,20 @@ _one_shot_resource_request_cb(struct sol_coap_server *server,
 }
 
 static bool
+_resource_request_unobserve(struct sol_oic_client *client, struct sol_oic_resource *res)
+{
+    struct sol_coap_server *server;
+    struct sol_network_link_addr addr;
+    int r;
+
+    server = _best_server_for_resource(client, res, &addr);
+    r = sol_coap_unobserve_server(server, &addr,
+        (uint8_t *)&res->observe.token, (uint8_t)sizeof(res->observe.token));
+
+    return r == 0;
+}
+
+static bool
 _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     sol_coap_method_t method, const struct sol_vector *repr,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
@@ -852,6 +867,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     if (observe) {
         uint8_t reg = 0;
 
+        res->observe.token = ctx->token;
         sol_coap_add_option(req, SOL_COAP_OPTION_OBSERVE, &reg, sizeof(reg));
         cb = _resource_request_cb;
     } else {
@@ -978,18 +994,28 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
     OIC_RESOURCE_CHECK_API(res, false);
 
     if (observe) {
+        if (res->is_observing)
+            return false;
+
         if (!res->observable)
-            return _observe_with_polling(client, res, callback, data);
-        return _resource_request(client, res, SOL_COAP_METHOD_GET, NULL, callback, data, true);
+            res->is_observing = _observe_with_polling(client, res, callback,
+                data);
+        else
+            res->is_observing = _resource_request(client, res,
+                SOL_COAP_METHOD_GET, NULL, callback, data, true);
+        return res->is_observing;
     }
 
-    if (res->observe.timeout)
-        return _stop_observing_with_polling(res);
-
-    if (!res->observable) {
-        SOL_WRN("Attempting to stop observing non-observable resource without ever being observed");
+    if (!res->is_observing) {
+        SOL_WRN("Attempting to stop observing resource without ever being "
+            "observed");
         return false;
     }
 
-    return _resource_request(client, res, SOL_COAP_METHOD_GET, NULL, callback, data, false);
+    if (res->observe.timeout)
+        res->is_observing = !_stop_observing_with_polling(res);
+    else if (res->observable)
+        res->is_observing = !_resource_request_unobserve(client, res);
+
+    return !res->is_observing;
 }
