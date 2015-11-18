@@ -91,12 +91,14 @@ struct sol_oic_resource {
     struct {
         struct sol_timeout *timeout;
         int clear_data;
+        int64_t token;
     } observe;
     int refcnt;
     bool observable : 1;
     bool active : 1;
     bool slow : 1;
     bool secure : 1;
+    bool is_observing : 1;
 };
 
 bool sol_oic_client_find_resource(struct sol_oic_client *client,
