@@ -6,6 +6,12 @@ obj-core-y := \
     sol-platform.o \
     sol-types.o
 
+obj-$(POWER_SUPPLY) += \
+    power-supply.mod
+
+obj-power-supply-$(PLATFORM_LINUX) += \
+    sol-power-supply-impl-linux.o
+
 obj-$(LOG) += \
     log.mod
 
@@ -92,6 +98,7 @@ headers-y := \
     include/sol-macros.h \
     include/sol-mainloop.h \
     include/sol-platform.h \
+    include/sol-power-supply.h \
     include/sol-types.h \
     sol-common-buildopts.h.in
 

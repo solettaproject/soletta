@@ -1,0 +1,16 @@
+{
+ "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+ "nodetypes": [
+  {
+   "name": "Display",
+   "type": "gtk/label"
+  },
+  {
+   "name": "LED",
+   "options": {
+    "rgb": "255|0|0"
+   },
+   "type": "gtk/led"
+  }
+ ]
+}
