@@ -971,6 +971,7 @@
         "members": [
           {
             "data_type": "string",
+            "default": null,
             "description": "They header key to be filtered",
             "name": "key"
           }
@@ -1017,6 +1018,7 @@
         "members": [
           {
             "data_type": "string",
+            "default": null,
             "description": "They cookie key to be filtered",
             "name": "key"
           }
