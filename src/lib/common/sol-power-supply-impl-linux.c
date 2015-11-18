@@ -91,7 +91,7 @@ _get_file_path(char *file_path, size_t size, const char *name,
 
     len = snprintf(file_path, size, SYSFS_POWER_SUPPLY "/%s/%s", name,
         prop_files[prop]);
-    if (len < 0 || len >= size)
+    if (len < 0 || (size_t) len >= size)
         return -EINVAL;
 
     return 0;
@@ -292,7 +292,7 @@ sol_power_supply_exist(const char *name, bool *exist)
 
     len = snprintf(file_path, sizeof(file_path), SYSFS_POWER_SUPPLY "/%s/",
         name);
-    if (len < 0 || len >= sizeof(file_path)) {
+    if (len < 0 || (size_t) len >= sizeof(file_path)) {
         SOL_WRN("Couldn't test path for %s.", name);
         return -EINVAL;
     }
