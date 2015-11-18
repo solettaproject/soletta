@@ -104,7 +104,7 @@ light_resource_to_rep(const struct sol_coap_resource *resource,
     int len = 0;
 
     memset(&path, 0, sizeof(path));
-    sol_coap_uri_path_to_buf(resource->path, path, sizeof(path));
+    sol_coap_uri_path_to_buf(resource->path, path, sizeof(path), NULL);
 
     len += snprintf(buf + len, buflen - len, OC_CORE_ELEM_JSON_START, path);
 

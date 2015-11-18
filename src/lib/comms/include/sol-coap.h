@@ -733,11 +733,16 @@ int sol_coap_server_unregister_resource(struct sol_coap_server *server,
  * @param path Array of slices, last one empty, representing the path.
  * @param buf Buffer where to store the string version of the path.
  * @param buflen Size of the buffer.
+ * @param size Pointer where to store the number of bytes written to @a buf
+ *        If NULL, it will be ignored.
  *
- * @return Size written to @a buf.
+ * @return 0 on success
+ *         -EOVERFLOW if buflen is smaller than the number of bytes needed to
+ *         store all strings from @a path in @a buf.
+ *         -EINVAL if some parameter is invalid.
  */
 int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
-    uint8_t *buf, size_t buflen);
+    uint8_t *buf, size_t buflen, size_t *size);
 
 /*
  * Cancel a packet sent using sol_coap_send_packet() or

@@ -279,30 +279,33 @@ uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[]
 
 SOL_API int
 sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
-    uint8_t *buf, size_t buflen)
+    uint8_t *buf, size_t buflen, size_t *size)
 {
-    size_t cur;
+    size_t cur, new_cur;
     unsigned int i;
+    int r = 0;
 
-    SOL_NULL_CHECK(path, 0);
-    SOL_NULL_CHECK(buf, 0);
+    SOL_NULL_CHECK(path, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
 
     cur = 0;
+    for (i = 0; path[i].len; i++) {
+        r = sol_util_size_add(cur, path[i].len + 1, &new_cur);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+        if (new_cur > buflen) {
+            r = -EOVERFLOW;
+            goto end;
+        }
 
-    for (i = 0; path[i].len && cur < buflen; i++) {
-        buf[cur] = '/';
-        buflen--;
-        cur++;
-
-        if (path[i].len >= buflen)
-            return cur;
-
+        buf[cur++] = '/';
         memcpy(buf + cur, path[i].data, path[i].len);
-        cur += path[i].len;
-        buflen -= path[i].len;
+        cur = new_cur;
     }
 
-    return cur;
+end:
+    if (size)
+        *size = cur;
+    return r;
 }
 
 static char *
@@ -337,14 +340,15 @@ packet_extract_path(const struct sol_coap_packet *req)
     path_str = malloc(path_len);
     SOL_NULL_CHECK(path_str, NULL);
 
-    if (sol_coap_uri_path_to_buf(path, (uint8_t *)path_str, path_len)
-        != path_len - 1) {
-        free(path_str);
-        return NULL;
-    }
+    r = sol_coap_uri_path_to_buf(path, (uint8_t *)path_str, path_len - 1, NULL);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     path_str[path_len - 1] = 0;
     return path_str;
+
+error:
+    free(path_str);
+    return NULL;
 }
 
 static int(*find_resource_cb(const struct sol_coap_packet *req,
@@ -918,7 +922,8 @@ well_known_get(struct sol_coap_server *server,
     struct resource_context *c;
     struct sol_coap_packet *resp;
     uint8_t *payload;
-    uint16_t i, size, len;
+    uint16_t i, size;
+    size_t len;
     int err;
 
     resp = sol_coap_packet_new(req);
@@ -948,8 +953,9 @@ well_known_get(struct sol_coap_server *server,
         payload[len] = '<';
         len++;
 
-        len += sol_coap_uri_path_to_buf(r->path, payload + len, size - len);
-        if (len >= size - 2)
+        err = sol_coap_uri_path_to_buf(r->path, payload + len, size - len, &len);
+        SOL_INT_CHECK_GOTO(err, < 0, error);
+        if (len + 2 >= size)
             goto error;
 
         payload[len] = '>';
