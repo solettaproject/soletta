@@ -174,8 +174,6 @@ build_mhd_response(const struct sol_http_response *response)
             SOL_INT_CHECK_GOTO(ret, < 0, err);
             ret = sol_buffer_append_slice(&buf, value->value.key_value.value);
             SOL_INT_CHECK_GOTO(ret, < 0, err);
-            ret = sol_buffer_append_char(&buf, 0);
-            SOL_INT_CHECK_GOTO(ret, < 0, err);
             if (MHD_add_response_header(r, sol_buffer_at(&buf, 0), sol_buffer_at(&buf,
                 value->value.key_value.key.len + 1)) == MHD_NO) {
                 SOL_WRN("Could not add the header: %.*s", SOL_STR_SLICE_PRINT(value->value.key_value.key));
@@ -188,8 +186,6 @@ build_mhd_response(const struct sol_http_response *response)
             ret = sol_buffer_append_char(&buf, '=');
             SOL_INT_CHECK_GOTO(ret, < 0, err);
             ret = sol_buffer_append_slice(&buf, value->value.key_value.value);
-            SOL_INT_CHECK_GOTO(ret, < 0, err);
-            ret = sol_buffer_append_char(&buf, 0);
             SOL_INT_CHECK_GOTO(ret, < 0, err);
             if (MHD_add_response_header(r, MHD_HTTP_HEADER_SET_COOKIE, sol_buffer_at(&buf, 0)) == MHD_NO) {
                 SOL_WRN("Could not add the cookie: %.*s", SOL_STR_SLICE_PRINT(value->value.key_value.key));
