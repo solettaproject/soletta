@@ -8,7 +8,7 @@ config BOARD_NAME
 
             Usually the board name is detected using either
             SOL_BOARD_NAME environment variable or instructions from
-            'board_detect.json' if DETECT_BOARD_NAME is enabled. Both
+            '99_board_detect.json' if DETECT_BOARD_NAME is enabled. Both
             have precedence over this value.
 
             This value is good as a fallback or is the only option
@@ -20,9 +20,9 @@ config DETECT_BOARD_NAME
 	default y
 	depends on FEATURE_FILESYSTEM
 	help
-            Soletta will use instructions from 'board_detect.json'
-            located at '$PREFIX/share/soletta' or '/etc/soletta' in
-            order to detect board name.
+            Soletta will use instructions from files located
+            at '$PREFIX/share/soletta/boards' or '/etc/soletta/boards'
+            in order to detect board name.
 
             If enabled, boards auto-detected will have precedence over
             the string set at compile time 'BOARD_NAME'. However, the
