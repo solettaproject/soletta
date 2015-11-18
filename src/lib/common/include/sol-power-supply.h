@@ -164,7 +164,7 @@ int sol_power_supply_is_online(const char *name, bool *online);
  * @param name Name of power supply. A list of all board supplies names may be
  * fetched with sol_power_supply_get_list().
  *
- * @param online On success, if power supply is present this pointer will
+ * @param present On success, if power supply is present this pointer will
  * be set to @c True or to @c False if not attached to the board at the moment.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
@@ -243,7 +243,7 @@ int sol_power_supply_get_model_name(const char *name, char **model_name);
  * @param name Name of power supply. A list of all board supplies names may be
  * fetched with sol_power_supply_get_list().
  *
- * @param model_name Manufacturer of power supply will be set on
+ * @param manufacturer Manufacturer of power supply will be set on
  * this pointer on success. It must be freed after usage.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
@@ -257,7 +257,7 @@ int sol_power_supply_get_manufacturer(const char *name, char **manufacturer);
  * @param name Name of power supply. A list of all board supplies names may be
  * fetched with sol_power_supply_get_list().
  *
- * @param model_name Serial number of power supply will be set on
+ * @param serial_number Serial number of power supply will be set on
  * this pointer on success. It must be freed after usage.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
