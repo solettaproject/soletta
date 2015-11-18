@@ -735,7 +735,7 @@ int sol_coap_server_unregister_resource(struct sol_coap_server *server,
  *
  * @return Size written to @a buf.
  */
-int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
+size_t sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen);
 
 /*

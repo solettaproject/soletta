@@ -276,7 +276,7 @@ uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[]
     return path[i].len == 0 && i == count;
 }
 
-SOL_API int
+SOL_API size_t
 sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen)
 {
@@ -293,12 +293,11 @@ sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
         buflen--;
         cur++;
 
-        if (path[i].len >= buflen)
+        if (path[i].len > buflen)
             return cur;
 
         memcpy(buf + cur, path[i].data, path[i].len);
         cur += path[i].len;
-        buflen -= path[i].len;
     }
 
     return cur;
@@ -863,7 +862,8 @@ well_known_get(struct sol_coap_server *server,
     struct resource_context *c;
     struct sol_coap_packet *resp;
     uint8_t *payload;
-    uint16_t i, size, len;
+    uint16_t i, size;
+    size_t len;
     int err;
 
     resp = sol_coap_packet_new(req);
@@ -894,7 +894,7 @@ well_known_get(struct sol_coap_server *server,
         len++;
 
         len += sol_coap_uri_path_to_buf(r->path, payload + len, size - len);
-        if (len >= size - 2)
+        if (len + 2 >= size)
             goto error;
 
         payload[len] = '>';
