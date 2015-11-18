@@ -157,37 +157,35 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
         .content = SOL_BUFFER_INIT_DATA(buffer, size)
     };
 
-    if (connection->error) {
-        response = NULL;
-        goto out;
-    }
+    if (connection->error)
+        goto err;
 
     r = curl_easy_getinfo(connection->curl, CURLINFO_CONTENT_TYPE, &tmp);
-    if (r != CURLE_OK) {
-        response = NULL;
-        goto out;
-    }
+    if (r != CURLE_OK)
+        goto err;
+
     response->content_type = tmp ? strdupa(tmp) : "application/octet-stream";
 
     r = curl_easy_getinfo(connection->curl, CURLINFO_EFFECTIVE_URL, &tmp);
-    if (r != CURLE_OK || !tmp) {
-        response = NULL;
-        goto out;
-    }
+    if (r != CURLE_OK || !tmp)
+        goto err;
+
     response->url = strdupa(tmp);
 
     r = curl_easy_getinfo(connection->curl, CURLINFO_RESPONSE_CODE,
         &response_code);
-    if (r != CURLE_OK) {
-        response = NULL;
-        goto out;
-    }
+    if (r != CURLE_OK)
+        goto err;
 
     response->param = connection->response_params;
     response->response_code = (int)response_code;
 
-out:
     connection->cb((void *)connection->data, connection, response);
+    goto end;
+
+err:
+    connection->cb((void *)connection->data, connection, NULL);
+end:
     sol_buffer_fini(&response->content);
     destroy_connection(connection);
 }
