@@ -301,7 +301,7 @@ int sol_http_decode_slice(struct sol_buffer *buf, const struct sol_str_slice val
 /**
  *  Creates an URI based on struct sol_http_url and its params
  *
- * @param url_out The created URI - it should be freed using free().
+ * @param uri_out The created URI - it should be freed using free().
  * @param url The url parameters.
  * @param params The query and cookies params.
  *
@@ -337,7 +337,7 @@ int sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type
 /**
  * Decodes http parameters of a given type.
  *
- * @param buf Where the decoded parameters will be stored as string.
+ * @param params_slice Where the decoded parameters will be stored as string.
  * @param type The parameter that should be decoded.
  * @param params The parameters to be decoded.
  *

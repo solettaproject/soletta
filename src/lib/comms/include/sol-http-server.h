@@ -58,11 +58,13 @@ struct sol_http_server;
 struct sol_http_request;
 
 /**
- * Creates a HTTP server, binding on all interfaces in the specified @port.
- * With the returned handle it's possible to register paths using @c sol_http_server_register_handler
+ * Creates a HTTP server, binding on all interfaces in the specified @p port.
+ * With the returned handle it's possible to register paths using
+ * @c sol_http_server_register_handler
  * and dirs with @c sol_http_server_add_dir.
  *
- * @note Only one instance of sol_http_server is possible per port. Try to run a second instance in the
+ * @note Only one instance of sol_http_server is possible per port.
+ * Try to run a second instance in the
  * same port will result in fail.
  *
  * @param port The port where the server will bind.
@@ -72,7 +74,7 @@ struct sol_http_request;
 struct sol_http_server *sol_http_server_new(uint16_t port);
 
 /**
- * Destroy the @server instance.
+ * Destroy the @p server instance.
  *
  * @param server The value got with @c sol_http_server_new
  */
@@ -159,10 +161,11 @@ int sol_http_server_remove_error_page(struct sol_http_server *server,
 
 /**
  * Set the last time the specified path had its value modified. It'll make the server
- * return automatically a response with the code 304 (not modified) when the request contains the header
+ * return automatically a response with the code 304 (not modified)
+ * when the request contains the header
  * If-Since-Modified greater than the value given in this function.
  *
- * @note: This is specific per @server/@path.
+ * @note: This is specific per @p server/@p path.
  *
  * @param server The value got with @c sol_http_server_new
  * @param path The same path given on @c sol_http_server_register_handler
