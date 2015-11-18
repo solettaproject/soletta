@@ -1438,8 +1438,10 @@ common_get_open(struct sol_flow_node *node, void *data,
     struct sol_flow_node_type_http_client_get_headers_options *opts =
         (struct sol_flow_node_type_http_client_get_headers_options *)options;
 
-    mdata->key = strdup(opts->key);
-    SOL_NULL_CHECK(mdata->key, -ENOMEM);
+    if (opts->key) {
+        mdata->key = strdup(opts->key);
+        SOL_NULL_CHECK(mdata->key, -ENOMEM);
+    }
     return 0;
 }
 
@@ -1466,6 +1468,9 @@ get_headers_process(struct sol_flow_node *node, void *data,
     struct sol_vector headers;
     int r;
 
+    if (!mdata->key)
+        return 0;
+
     r = sol_flow_packet_get_http_response(packet, NULL,
         NULL, NULL, NULL, NULL, &headers);
     SOL_INT_CHECK(r, < 0, r);
@@ -1482,6 +1487,9 @@ get_cookies_process(struct sol_flow_node *node, void *data,
     struct http_response_get_data *mdata = data;
     struct sol_vector cookies;
     int r;
+
+    if (!mdata->key)
+        return 0;
 
     r = sol_flow_packet_get_http_response(packet, NULL,
         NULL, NULL, NULL, &cookies, NULL);
