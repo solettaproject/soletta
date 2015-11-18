@@ -650,7 +650,13 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
  * As long as this function returns @c true, @a server will continue waiting
  * for more responses. When the function returns @c false, the internal response
  * handler will be freed and any new replies that arrive for this request
- * will be ignored.
+ * will be ignored. For unobserving packets server will also be notified using
+ * an unobserve packet.
+ * After internal timeout is reached reply_cb will be called with @c NULL
+ * req and cliaddr. The same behavior is expected for reply_cb return, if
+ * reply_cb returns @c true, @a server will continue waiting responses until
+ * next timeout. If reply_cb returns @c false, @a server will terminate
+ * response waiting.
  *
  * @note This function will take the reference of the given @a pkt.
  *
@@ -732,6 +738,22 @@ int sol_coap_server_unregister_resource(struct sol_coap_server *server,
  */
 int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen);
+
+/*
+ * Cancel a packet sent using sol_coap_send_packet() or
+ * sol_coap_send_packet_with_reply() functions.
+ * For observating packets, an unobserve packet will be sent to server and
+ * no more replies will be processed.
+ *
+ * @param server The server through which the packet was sent.
+ * @param pkt The packet sent.
+ * @param cliaddr The source address of the sent packet.
+ *
+ * @return 0 on success
+ *         -ENOENT if the packet was already canceled
+ *         -EINVAL if some parameter is invalid.
+ */
+int sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_packet *pkt, struct sol_network_link_addr *cliaddr);
 
 /**
  * @}

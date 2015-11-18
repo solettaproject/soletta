@@ -333,6 +333,9 @@ _server_info_reply_cb(struct sol_coap_server *server,
     uint16_t payload_len;
     struct sol_oic_server_information info = { 0 };
 
+    if (!req || !cliaddr)
+        goto free_ctx;
+
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
         goto free_ctx;
@@ -601,6 +604,9 @@ _find_resource_reply_cb(struct sol_coap_server *server,
         return false;
     }
 
+    if (!req || !cliaddr)
+        return ctx->cb(ctx->client, NULL, ctx->data);
+
     if (!_pkt_has_same_token(req, ctx->token)) {
         SOL_WRN("Discovery packet token differs from expected");
         return false;
@@ -730,6 +736,8 @@ _resource_request_cb(struct sol_coap_server *server,
 
     if (!ctx->cb)
         return false;
+    if (!req || !cliaddr)
+        return false;
     if (!_pkt_has_same_token(req, ctx->token))
         return true;
     if (!sol_oic_pkt_has_cbor_content(req))
@@ -820,6 +828,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     CborError err;
     char *href;
+    int r;
 
     bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data);
     struct sol_coap_packet *req;
@@ -871,9 +880,11 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
 
         return sol_coap_send_packet_with_reply(server, req, &addr,
             cb, ctx) == 0;
-    }
-
-    SOL_ERR("Could not encode CBOR representation: %s", cbor_error_string(err));
+        if (r)
+            return 0;
+    } else
+        SOL_ERR("Could not encode CBOR representation: %s",
+            cbor_error_string(err));
 
 out:
     sol_coap_packet_unref(req);
