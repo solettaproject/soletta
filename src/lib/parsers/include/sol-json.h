@@ -460,7 +460,8 @@ sol_json_serialize_null(struct sol_buffer *buffer)
  *  content.
  *
  *  @param token A token to get string from
- *  @param buf An unitialized buffer. sol_buffer_init will be called internally
+ *  @param buffer An unitialized buffer.
+ *  sol_buffer_init will be called internally
  *
  *  @return 0 on sucess, a negative error code on failure.
  */
@@ -472,7 +473,7 @@ int sol_json_token_get_unescaped_string(const struct sol_json_token *token, stru
  *
  *  Caller is responsable to free string memory.
  *
- *  @param token A string type token
+ *  @param value A string type token
  *
  *  @return A a copy of the unescaped string on sucess, NULL on failure.
  */

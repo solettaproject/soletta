@@ -203,7 +203,7 @@ void sol_message_digest_del(struct sol_message_digest *handle);
  * with that information. This may be used to feed more data.
  *
  * Once the last chunk is fed (@c is_last=true ), then the final
- * digest is calculated and delivered by calling @on_digest_ready()
+ * digest is calculated and delivered by calling @c on_digest_ready()
  * function provided via @c sol_message_digest_config.
  *
  * @param handle the handle previously created with
@@ -223,6 +223,10 @@ void sol_message_digest_del(struct sol_message_digest *handle);
  *         is not taken.
  */
 int sol_message_digest_feed(struct sol_message_digest *handle, struct sol_blob *input, bool is_last);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

@@ -188,6 +188,7 @@ int sol_platform_linux_uevent_subscribe(const char *action, const char *subsyste
  * @param action The action we're monitoring and want to release the callback
  * @param subsystem The subsystem we're monitoring and want to release the callback
  * @param cb The callback itself
+ * @param data The context pointer to be provided to @c cb
  *
  * @return 0 on success, negative errno otherwise
  */

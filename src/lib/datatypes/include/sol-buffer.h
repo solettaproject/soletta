@@ -265,7 +265,7 @@ extern const char SOL_BASE64_MAP[66];
  *        == buf->end, then the behavior is the same as
  *        sol_buffer_append_as_base64().
  * @param slice the byte string to encode, may contain null bytes
- *        @c(\0), it will be encoded up the @c slice.len.
+ *        @c (\0), it will be encoded up the @c slice.len.
  * @param base64_map the map to use, the default is available as
  *        #SOL_BASE64_MAP. Note that the last char in the map (position 64)
  *        is used as the padding char.
@@ -286,7 +286,7 @@ int sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct
  * @param buf the already-initialized buffer to append the encoded
  *        slice.
  * @param slice the byte string to encode, may contain null bytes
- *        @c(\0), it will be encoded up the @c slice.len.
+ *        @c (\0), it will be encoded up the @c slice.len.
  * @param base64_map the map to use, the default is available as
  *        #SOL_BASE64_MAP. Note that the last char in the map (position 64)
  *        is used as the padding char.
@@ -349,7 +349,7 @@ int sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_s
  *        == buf->end, then the behavior is the same as
  *        sol_buffer_append_as_base16().
  * @param slice the byte string to encode, may contain null bytes
- *        @c(\0), it will be encoded up the @c slice.len.
+ *        @c (\0), it will be encoded up the @c slice.len.
  * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
  *        lowercase abcdef are used instead.
  *
@@ -369,7 +369,7 @@ int sol_buffer_insert_as_base16(struct sol_buffer *buf, size_t pos, const struct
  * @param buf the already-initialized buffer to append the encoded
  *        slice.
  * @param slice the byte string to encode, may contain null bytes
- *        @c(\0), it will be encoded up the @c slice.len.
+ *        @c (\0), it will be encoded up the @c slice.len.
  * @param uppercase if true, uppercase letters ABCDEF are used, otherwise
  *        lowercase abcdef are used instead.
  * @return 0 on success, -errno on failure.

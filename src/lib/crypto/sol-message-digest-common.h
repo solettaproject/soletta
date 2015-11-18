@@ -164,8 +164,6 @@ struct sol_message_digest_common_new_params {
  *        avoid mistakes. Se its documentation for each parameter
  *        purpose and behavior.
  *
- * @param newly allocated handle or @c NULL on error, with errno set.
- *
  * @internal
  */
 struct sol_message_digest *sol_message_digest_common_new(const struct sol_message_digest_common_new_params params);

@@ -113,11 +113,17 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
  * should be the same.
  *
  * @param nptr the string containing the number to convert.
+ *
  * @param endptr if non-NULL, it will contain the last character used
  *        in the conversion. If no conversion was done, endptr is @a nptr.
  *
  * @param len use at most this amount of bytes of @a nptr. If -1, assumes
  *        nptr has a trailing NUL and calculate the string length.
+ *
+ * @param base it's the base of convertion, which must be between 2
+ *        and 36 inclusive, or be the special value 0.
+ *        A zero base is taken as 10 (decimal) unless the next character
+ *        is '0', in which case it  is  taken as 8 (octal).
  *
  * @return the converted value, if any.
  */

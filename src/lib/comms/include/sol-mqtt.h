@@ -50,7 +50,7 @@ extern "C" {
  */
 
 /**
- * @defgroup MQTT
+ * @defgroup MQTT MQTT
  * @ingroup Comms
  *
  * MQTT is a machine-to-machine (M2M)/"Internet of Things" connectivity
@@ -369,7 +369,7 @@ void sol_mqtt_disconnect(struct sol_mqtt *mqtt);
 /**
  * @brief Get connection status
  *
- * @param MQTT Object
+ * @param mqtt MQTT Object
  *
  * @see sol_mqtt_conn_status
  *
