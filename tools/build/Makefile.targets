@@ -138,7 +138,7 @@ install: post-install
 PHONY += install post-install pre-install
 
 ifeq (yyy,$(HAVE_DOXYGEN)$(HAVE_BZIP2)$(HAVE_TAR))
-$(DOXYGEN_GENERATED): $(DOXYGEN_RESOURCES)
+$(DOXYGEN_GENERATED): $(DOXYGEN_RESOURCES) $(shell find $(top_srcdir)src/ -name '*.h' -type f)
 	$(Q)$(MKDIR) -p $(build_doxygen_targetdir)
 	$(Q)$(RM) -rf $(build_doxygen_targetdir)/*
 	$(Q)$(DOXYGEN) doc/doxygen/Doxyfile
