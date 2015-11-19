@@ -80,8 +80,7 @@ struct sol_http_client_connection {
     struct sol_buffer buffer;
     struct sol_vector watches;
     struct sol_http_params response_params;
-
-    void (*cb)(void *data, const struct sol_http_client_connection *connection, struct sol_http_response *response);
+    struct sol_http_request_interface *interface;
     const void *data;
 
     bool error;
@@ -106,6 +105,7 @@ destroy_connection(struct sol_http_client_connection *c)
 
     sol_vector_clear(&c->watches);
 
+    free(c->interface);
     free(c);
 }
 
@@ -180,11 +180,11 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
     response->param = connection->response_params;
     response->response_code = (int)response_code;
 
-    connection->cb((void *)connection->data, connection, response);
+    connection->interface->response_cb((void *)connection->data, connection, response);
     goto end;
 
 err:
-    connection->cb((void *)connection->data, connection, NULL);
+    connection->interface->response_cb((void *)connection->data, connection, NULL);
 end:
     sol_buffer_fini(&response->content);
     destroy_connection(connection);
@@ -204,7 +204,28 @@ write_cb(char *data, size_t size, size_t nmemb, void *connp)
         SOL_STR_SLICE_STR(data, data_size));
     SOL_INT_CHECK(r, < 0, 0);
 
+    if (connection->interface->write_cb) {
+        data_size = connection->interface->write_cb((void *)connection->data, connection, &connection->buffer);
+    }
+
+
     return data_size;
+}
+
+static size_t
+read_cb(char *buffer, size_t size, size_t nitems, void *connp)
+{
+    struct sol_http_client_connection *connection = connp;
+    size_t data_size, ret;
+    int r;
+
+    r = sol_util_size_mul(size, nitems, &data_size);
+    SOL_INT_CHECK(r, < 0, 0);
+
+    ret = connection->interface->read_cb((void *)connection->data,
+        connection, buffer, data_size);
+
+    return ret;
 }
 
 static void
@@ -484,8 +505,7 @@ err_exit:
 
 static struct sol_http_client_connection *
 perform_multi(CURL *curl, struct curl_slist *headers,
-    void (*cb)(void *data, const struct sol_http_client_connection *connection,
-    struct sol_http_response *response),
+    struct sol_http_request_interface *interface,
     const void *data)
 {
     struct sol_http_client_connection *connection;
@@ -499,7 +519,7 @@ perform_multi(CURL *curl, struct curl_slist *headers,
 
     connection->headers = headers;
     connection->curl = curl;
-    connection->cb = cb;
+    connection->interface = interface;
     connection->data = data;
     connection->error = false;
     sol_vector_init(&connection->watches, sizeof(struct connection_watch));
@@ -509,6 +529,11 @@ perform_multi(CURL *curl, struct curl_slist *headers,
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, connection);
+
+    if (interface->read_cb) {
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_cb);
+        curl_easy_setopt(curl, CURLOPT_READDATA, connection);
+    }
 
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_cb);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, connection);
@@ -581,6 +606,14 @@ set_headers_from_params(CURL *curl, const struct sol_http_params *params,
 
         if (iter->type != SOL_HTTP_PARAM_HEADER)
             continue;
+
+        if (sol_str_slice_str_caseeq(key, "Content-Length")) {
+            long int len;
+            len = sol_util_strtol(iter->value.key_value.value.data, NULL,
+                iter->value.key_value.value.len, 0);
+
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, len);
+        }
 
         buf.used = 0;
         r = sol_buffer_append_slice(&buf, key);
@@ -778,11 +811,10 @@ check_param_api_version(const struct sol_http_params *params)
     return true;
 }
 
-SOL_API struct sol_http_client_connection *
-sol_http_client_request(enum sol_http_method method,
+static struct sol_http_client_connection *
+client_request_internal(enum sol_http_method method,
     const char *base_uri, const struct sol_http_params *params,
-    void (*cb)(void *data, const struct sol_http_client_connection *connection,
-    struct sol_http_response *response),
+    struct sol_http_request_interface *interface,
     const void *data)
 {
     static const struct sol_http_params empty_params = {
@@ -868,17 +900,17 @@ sol_http_client_request(enum sol_http_method method,
         goto invalid_option;
     }
 
-    if (!set_headers_from_params(curl, params, &headers)) {
-        SOL_WRN("Could not set custom headers from params");
-        goto invalid_option;
-    }
-
     if (method == SOL_HTTP_METHOD_POST) {
         if (!set_post_fields_from_params(curl, params) ||
             !set_post_data_from_params(curl, params)) {
             SOL_WRN("Could not set POST fields or data from params");
             goto invalid_option;
         }
+    }
+
+    if (!set_headers_from_params(curl, params, &headers)) {
+        SOL_WRN("Could not set custom headers from params");
+        goto invalid_option;
     }
 
     SOL_VECTOR_FOREACH_IDX (&params->params, value, idx) {
@@ -920,13 +952,38 @@ sol_http_client_request(enum sol_http_method method,
         }
     }
 
-    pending = perform_multi(curl, headers, cb, data);
+    pending = perform_multi(curl, headers, interface, data);
     if (pending)
         return pending;
 
 invalid_option:
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
+    return NULL;
+}
+
+
+SOL_API struct sol_http_client_connection *
+sol_http_client_request(enum sol_http_method method,
+    const char *base_uri, const struct sol_http_params *params,
+    void (*cb)(void *data, const struct sol_http_client_connection *connection,
+    struct sol_http_response *response),
+    const void *data)
+{
+    struct sol_http_client_connection *pending;
+    struct sol_http_request_interface *interface;
+
+    interface = calloc(1, sizeof(*interface));
+    SOL_NULL_CHECK(interface, NULL);
+
+    interface->response_cb = cb;
+    pending = client_request_internal(method, base_uri, params, interface, data);
+    SOL_NULL_CHECK_GOTO(pending, err);
+
+    return pending;
+
+err:
+    free(interface);
     return NULL;
 }
 
@@ -937,4 +994,26 @@ sol_http_client_connection_cancel(struct sol_http_client_connection *pending)
 
     SOL_INT_CHECK(sol_ptr_vector_remove(&global.connections, pending), < 0);
     destroy_connection(pending);
+}
+
+SOL_API struct sol_http_client_connection *
+sol_http_client_request_with_interface(enum sol_http_method method,
+    const char *base_uri, const struct sol_http_params *params,
+    const struct sol_http_request_interface *interface,
+    const void *data)
+{
+    struct sol_http_request_interface *iface;
+    struct sol_http_client_connection *pending;
+
+    iface = sol_util_memdup(interface, sizeof(*iface));
+    SOL_NULL_CHECK(iface, NULL);
+
+    pending = client_request_internal(method, base_uri, params, iface, data);
+    SOL_NULL_CHECK_GOTO(pending, err);
+
+    return pending;
+
+err:
+    free(iface);
+    return NULL;
 }
