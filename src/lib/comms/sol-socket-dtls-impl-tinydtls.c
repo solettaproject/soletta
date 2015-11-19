@@ -181,8 +181,6 @@ sol_socket_dtls_del(struct sol_socket *socket)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
 
-    sol_socket_del(s->wrapped);
-
     free_queue(&s->read.queue);
     free_queue(&s->write.queue);
 
@@ -190,6 +188,8 @@ sol_socket_dtls_del(struct sol_socket *socket)
         sol_timeout_del(s->retransmit_timeout);
 
     dtls_free_context(s->context);
+
+    sol_socket_del(s->wrapped);
 
     sol_util_secure_clear_memory(s, sizeof(*s));
     free(s);
