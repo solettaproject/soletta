@@ -1054,8 +1054,9 @@ err_exit:
 }
 
 int
-composed_metatype_constructor_generate_code_start(struct sol_buffer *out,
-    const struct sol_str_slice name, const struct sol_str_slice contents)
+composed_metatype_constructor_generate_code_start(
+    const struct sol_flow_metatype_context *context,
+    struct sol_buffer *out)
 {
     int r;
 
@@ -1071,53 +1072,58 @@ composed_metatype_constructor_generate_code_start(struct sol_buffer *out,
 }
 
 int
-composed_metatype_splitter_generate_code_start(struct sol_buffer *out,
-    const struct sol_str_slice name, const struct sol_str_slice contents)
+composed_metatype_splitter_generate_code_start(
+    const struct sol_flow_metatype_context *context,
+    struct sol_buffer *out)
 {
     SOL_NULL_CHECK(out, -EINVAL);
     return generate_metatype_composed_process(out);
 }
 
 int
-composed_metatype_constructor_generate_code_type(struct sol_buffer *out,
-    const struct sol_str_slice name, const struct sol_str_slice contents)
+composed_metatype_constructor_generate_code_type(
+    const struct sol_flow_metatype_context *context,
+    struct sol_buffer *out)
 {
-    return composed_metatype_generate_type_code(out, name, contents, false);
+    return composed_metatype_generate_type_code(out, context->name, context->contents, false);
 }
 
 int
-composed_metatype_splitter_generate_code_type(struct sol_buffer *out,
-    const struct sol_str_slice name, const struct sol_str_slice contents)
+composed_metatype_splitter_generate_code_type(
+    const struct sol_flow_metatype_context *context,
+    struct sol_buffer *out)
 {
-    return composed_metatype_generate_type_code(out, name, contents, true);
+    return composed_metatype_generate_type_code(out, context->name, context->contents, true);
 }
 
 int
-composed_metatype_splitter_generate_code_end(struct sol_buffer *out,
-    const struct sol_str_slice name, const struct sol_str_slice contents)
+composed_metatype_splitter_generate_code_end(
+    const struct sol_flow_metatype_context *context,
+    struct sol_buffer *out)
 {
     return 0;
 }
 
 int
-composed_metatype_constructor_generate_code_end(struct sol_buffer *out,
-    const struct sol_str_slice name, const struct sol_str_slice contents)
+composed_metatype_constructor_generate_code_end(
+    const struct sol_flow_metatype_context *context,
+    struct sol_buffer *out)
 {
     return 0;
 }
 
 int
 composed_metatype_splitter_get_ports_description(
-    const struct sol_str_slice contents, struct sol_vector *in,
+    const struct sol_flow_metatype_context *context, struct sol_vector *in,
     struct sol_vector *out)
 {
-    return get_ports_description(contents, out, in, "IN");
+    return get_ports_description(context->contents, out, in, "IN");
 }
 
 int
 composed_metatype_constructor_get_ports_description(
-    const struct sol_str_slice contents, struct sol_vector *in,
+    const struct sol_flow_metatype_context *context, struct sol_vector *in,
     struct sol_vector *out)
 {
-    return get_ports_description(contents, in, out, "OUT");
+    return get_ports_description(context->contents, in, out, "OUT");
 }

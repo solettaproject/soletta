@@ -70,10 +70,9 @@ typedef int (*sol_flow_metatype_create_type_func)(
     const struct sol_flow_metatype_context *,
     struct sol_flow_node_type **);
 
-typedef int (*sol_flow_metatype_generate_code_func)(struct sol_buffer *,
-    const struct sol_str_slice, const struct sol_str_slice);
+typedef int (*sol_flow_metatype_generate_code_func)(const struct sol_flow_metatype_context *, struct sol_buffer *);
 
-typedef int (*sol_flow_metatype_ports_description_func)(const struct sol_str_slice, struct sol_vector *, struct sol_vector *);
+typedef int (*sol_flow_metatype_ports_description_func)(const struct sol_flow_metatype_context *, struct sol_vector *, struct sol_vector *);
 
 sol_flow_metatype_generate_code_func sol_flow_metatype_get_generate_code_start_func(const struct sol_str_slice);
 sol_flow_metatype_generate_code_func sol_flow_metatype_get_generate_code_type_func(const struct sol_str_slice);
