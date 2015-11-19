@@ -140,8 +140,11 @@ PHONY += install post-install pre-install
 ifeq (yyy,$(HAVE_DOXYGEN)$(HAVE_BZIP2)$(HAVE_TAR))
 $(DOXYGEN_GENERATED): $(DOXYGEN_RESOURCES) $(shell find $(top_srcdir)src/ -name '*.h' -type f)
 	$(Q)$(MKDIR) -p $(build_doxygen_targetdir)
+	$(Q)$(RM) $(build_doxygen_logfile)
 	$(Q)$(RM) -rf $(build_doxygen_targetdir)/*
 	$(Q)$(DOXYGEN) doc/doxygen/Doxyfile
+	$(Q) test `du $(build_doxygen_logfile) | cut -f1` -eq 0 || (echo "Failed to build doc" && exit 1)
+
 
 $(build_doxygendir)$(PACKAGE_DOCNAME).tar.bz2: $(DOXYGEN_GENERATED)
 	$(Q)$(RM) -f $(build_doxygendir)$(PACKAGE_DOCNAME).tar.bz2
