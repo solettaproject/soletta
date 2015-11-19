@@ -2108,13 +2108,13 @@ static bool
 add_metatype_to_type_store(struct type_store *store,
     struct declared_metatype *meta)
 {
-    struct type_description type;
+    struct type_description type = { };
     sol_flow_metatype_ports_description_func get_ports;
     bool r = false;
     struct port_description *port;
     char name[2048];
     uint16_t i;
-    int wrote;
+    int wrote, err;
 
     get_ports = sol_flow_metatype_get_ports_description_func(meta->type);
 
@@ -2125,11 +2125,8 @@ add_metatype_to_type_store(struct type_store *store,
     }
 
     /* Beware that struct sol_flow_metatype_port_description is a copy of struct port_description */
-    if (get_ports(meta->contents, &type.in_ports, &type.out_ports)) {
-        SOL_ERR("Could not get ports from metatype:%.*s",
-            SOL_STR_SLICE_PRINT(meta->name));
-        goto exit;
-    }
+    err = get_ports(meta->contents, &type.in_ports, &type.out_ports);
+    SOL_INT_CHECK_GOTO(err, < 0, exit);
 
     wrote = snprintf(name, sizeof(name), "%.*s",
         SOL_STR_SLICE_PRINT(meta->name));
