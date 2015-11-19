@@ -63,6 +63,9 @@ obj-networking-$(HTTP) += \
 obj-networking-$(HTTP_CLIENT) += \
     sol-http-client-impl-curl.o
 
+obj-networking-$(HTTP_CLIENT)-extra-cflags += \
+    $(LIBCURL_CFLAGS)
+
 obj-networking-$(HTTP_CLIENT)-extra-ldflags += \
     $(LIBCURL_LDFLAGS)
 
