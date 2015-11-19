@@ -22,7 +22,6 @@ sol-fbp-runner light-server.fbp
 
  * client:
 ```sh
-export SOL_FLOW_MODULE_RESOLVER_CONFFILE=light-client.json
 sol-fbp-runner light-client.fbp
 ```
 
