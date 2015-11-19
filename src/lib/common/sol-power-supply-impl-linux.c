@@ -91,7 +91,7 @@ _get_file_path(char *file_path, size_t size, const char *name,
 
     len = snprintf(file_path, size, SYSFS_POWER_SUPPLY "/%s/%s", name,
         prop_files[prop]);
-    if (len < 0 || (size_t) len >= size)
+    if (len < 0 || (size_t)len >= size)
         return -EINVAL;
 
     return 0;
@@ -113,8 +113,10 @@ _get_string_prop(const char *name, enum sol_power_supply_prop prop,
 
     errno = 0;
     r = sol_util_read_file(file_path, "%ms", &str_value);
-    SOL_INT_CHECK(errno, != 0, -errno);
-    SOL_INT_CHECK(r, < 0, r);
+    if (errno != 0)
+        return -errno;
+    if (r < 0)
+        return r;
 
     *value = str_value;
 
@@ -135,7 +137,8 @@ _get_int_prop(const char *name, enum sol_power_supply_prop prop, int *value)
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_util_read_file(file_path, "%d", &int_value);
-    SOL_INT_CHECK(r, < 0, r);
+    if (r < 0)
+        return r;
 
     *value = int_value;
 
@@ -156,7 +159,8 @@ _get_bool_prop(const char *name, enum sol_power_supply_prop prop, bool *value)
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_util_read_file(file_path, " %c", &char_value);
-    SOL_INT_CHECK(r, < 0, r);
+    if (r < 0)
+        return r;
 
     if (char_value == '0')
         *value = false;
@@ -187,7 +191,8 @@ _get_enum_prop(const char *name, enum sol_power_supply_prop prop,
     SOL_INT_CHECK(r, < 0, r);
 
     r = sol_util_read_file(file_path, "%15s", str_value);
-    SOL_INT_CHECK(r, < 0, r);
+    if (r < 0)
+        return r;
 
     *value = sol_str_table_lookup_fallback(table,
         sol_str_slice_from_str(str_value),
@@ -255,6 +260,22 @@ sol_power_supply_get_list(struct sol_ptr_vector *list)
 }
 
 SOL_API int
+sol_power_supply_free_list(struct sol_ptr_vector *list)
+{
+    char *name;
+    uint16_t i;
+
+    SOL_NULL_CHECK(list, -EINVAL);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (list, name, i) {
+        free(name);
+    }
+    sol_ptr_vector_clear(list);
+
+    return 0;
+}
+
+SOL_API int
 sol_power_supply_get_list_by_type(struct sol_ptr_vector *list,
     enum sol_power_supply_type type)
 {
@@ -292,7 +313,7 @@ sol_power_supply_exist(const char *name, bool *exist)
 
     len = snprintf(file_path, sizeof(file_path), SYSFS_POWER_SUPPLY "/%s/",
         name);
-    if (len < 0 || (size_t) len >= sizeof(file_path)) {
+    if (len < 0 || (size_t)len >= sizeof(file_path)) {
         SOL_WRN("Couldn't test path for %s.", name);
         return -EINVAL;
     }
@@ -338,7 +359,16 @@ sol_power_supply_get_status(const char *name,
 SOL_API int
 sol_power_supply_get_capacity(const char *name, int *capacity)
 {
-    return _get_int_prop(name, SOL_POWER_SUPPLY_PROP_CAPACITY, capacity);
+    int r;
+
+    r = _get_int_prop(name, SOL_POWER_SUPPLY_PROP_CAPACITY, capacity);
+    if (r < 0)
+        return r;
+
+    if (*capacity < 0 || *capacity > 100)
+        SOL_WRN("Capacity out of expected range %d", *capacity);
+
+    return 0;
 }
 
 SOL_API int

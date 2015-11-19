@@ -95,9 +95,9 @@ get_list(struct sol_flow_node *node, struct get_list_data *mdata)
             name);
         if (r < 0)
             SOL_WRN("Failed to send power supply name: %s", name);
-        free(name);
     }
-    sol_ptr_vector_clear(&list);
+
+    sol_power_supply_free_list(&list);
 
     return 0;
 }
