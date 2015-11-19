@@ -43,8 +43,8 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-metatype-js");
 #include "sol-arena.h"
 #include "sol-flow-metatype.h"
 #include "sol-log.h"
-#include "sol-str-table.h"
 #include "sol-util.h"
+#include "js_code_start.h"
 
 /**
  * JS metatype allows the usage of Javascript language to create new
@@ -109,6 +109,13 @@ struct flow_js_data {
     struct duk_context *duk_ctx;
 };
 
+struct flow_js_port_description_context {
+    struct sol_vector *in;
+    struct sol_vector *out;
+    struct sol_buffer *buf;
+    struct sol_str_slice name_prefix;
+};
+
 enum {
     PORTS_IN_CONNECT_INDEX,
     PORTS_IN_DISCONNECT_INDEX,
@@ -121,6 +128,8 @@ enum {
     PORTS_OUT_DISCONNECT_INDEX,
     PORTS_OUT_METHODS_LENGTH,
 };
+
+typedef int (*js_add_port)(const char *name, const char *type_name, bool is_input, void *data);
 
 static const char *
 get_in_port_name(const struct sol_flow_node *node, uint16_t port)
@@ -663,106 +672,58 @@ send_error_packet(duk_context *ctx)
 }
 
 static bool
-setup_ports_in_methods(struct duk_context *duk_ctx, uint16_t ports_in_len, uint16_t base)
+fetch_ports_methods(struct duk_context *duk_ctx, const char *prop,
+    uint16_t ports_len, uint16_t base, uint16_t methods_len, uint16_t *methods_index)
 {
     uint16_t i;
 
-    if (ports_in_len == 0)
+    if (ports_len == 0)
         return true;
 
-    duk_get_prop_string(duk_ctx, -1, "in");
+    duk_get_prop_string(duk_ctx, -1, prop);
 
     if (!duk_is_array(duk_ctx, -1)) {
-        SOL_ERR("'in' property of object 'node' should be an array.");
+        SOL_ERR("'%s' property of object 'node' should be an array.", prop);
         return false;
     }
 
     duk_push_global_stash(duk_ctx);
 
-    for (i = 0; i < ports_in_len; i++) {
+    for (i = 0; i < ports_len; i++) {
         if (!duk_get_prop_index(duk_ctx, -2, i)) {
-            SOL_ERR("Couldn't get input port information from 'ports.in[%d]'.", i);
+            SOL_ERR("Couldn't get input port information from 'ports.%s[%d]'.", prop, i);
             return false;
         }
 
         /* This is in order to get port methods references in one call.
          *
-         * We have 3 methods for each input port. We put all in the stash,
+         * We have 3 methods for each input port and 2 for output ports. We put all in the stash,
          * even with 'undefined' values, if the method is not implemented on JS.
          *
          * We calculate the index by the following:
          *
-         * base + input_port_index * ports_in_methods_length + method_index
+         * base + port_index * methods_length + method_index
          *
          * base - where should it start, for input ports it should be 0.
-         * input_port_index - the index of the JS 'in' array entry.
-         * method_index - the index of the method for input ports.
+         * port_index - the index of the JS 'in'/'out' array entry.
+         * method_index - the index of the method for input/output ports.
          */
 
         duk_get_prop_string(duk_ctx, -1, "connect");
-        duk_put_prop_index(duk_ctx, -3, base + i * PORTS_IN_METHODS_LENGTH + PORTS_IN_CONNECT_INDEX);
+        duk_put_prop_index(duk_ctx, -3, base + i * methods_len + methods_index[0]);
 
         duk_get_prop_string(duk_ctx, -1, "disconnect");
-        duk_put_prop_index(duk_ctx, -3, base + i * PORTS_IN_METHODS_LENGTH + PORTS_IN_DISCONNECT_INDEX);
+        duk_put_prop_index(duk_ctx, -3, base + i * methods_len + methods_index[1]);
 
-        duk_get_prop_string(duk_ctx, -1, "process");
-        duk_put_prop_index(duk_ctx, -3, base + i * PORTS_IN_METHODS_LENGTH + PORTS_IN_PROCESS_INDEX);
+        if (methods_len >= 3) {
+            duk_get_prop_string(duk_ctx, -1, "process");
+            duk_put_prop_index(duk_ctx, -3, base + i * methods_len + methods_index[2]);
+        }
 
         duk_pop(duk_ctx); /* array entry */
     }
 
     duk_pop_2(duk_ctx); /* in array and global_stash value */
-
-    return true;
-}
-
-static bool
-setup_ports_out_methods(struct duk_context *duk_ctx, uint16_t ports_out_len, uint16_t base)
-{
-    uint16_t i;
-
-    if (ports_out_len == 0)
-        return true;
-
-    duk_get_prop_string(duk_ctx, -1, "out");
-
-    if (!duk_is_array(duk_ctx, -1)) {
-        SOL_ERR("'out' property of object 'node' should be an array.");
-        return false;
-    }
-
-    duk_push_global_stash(duk_ctx);
-
-    for (i = 0; i < ports_out_len; i++) {
-        if (!duk_get_prop_index(duk_ctx, -2, i)) {
-            SOL_ERR("Couldn't get output port information from 'ports.out[%d]'.", i);
-            return false;
-        }
-
-        /* This is in order to get port methods references in one call.
-         *
-         * We have 2 methods for each output port. We put all in the stash,
-         * even with 'undefined' values, if the method is not implemented on JS.
-         *
-         * We calculate the index by the following:
-         *
-         * base + output_port_index * ports_out_methods_length + method_index
-         *
-         * base - where should it start, for output ports it should be the size of input ports * number of input methods.
-         * input_port_index - the index of the JS 'in' array entry.
-         * method_index - the index of the method for output ports.
-         */
-
-        duk_get_prop_string(duk_ctx, -1, "connect");
-        duk_put_prop_index(duk_ctx, -3, base + i * PORTS_OUT_METHODS_LENGTH + PORTS_OUT_CONNECT_INDEX);
-
-        duk_get_prop_string(duk_ctx, -1, "disconnect");
-        duk_put_prop_index(duk_ctx, -3, base + i * PORTS_OUT_METHODS_LENGTH + PORTS_OUT_DISCONNECT_INDEX);
-
-        duk_pop(duk_ctx); /* array entry */
-    }
-
-    duk_pop_2(duk_ctx); /* out array and global_stash value */
 
     return true;
 }
@@ -775,10 +736,17 @@ setup_ports_methods(duk_context *duk_ctx, uint16_t ports_in_len, uint16_t ports_
      * to call it directly when receive a port number.
      */
 
-    if (!setup_ports_in_methods(duk_ctx, ports_in_len, 0))
+    uint16_t methods_in_index[] = { PORTS_IN_CONNECT_INDEX,
+                                    PORTS_IN_DISCONNECT_INDEX, PORTS_IN_PROCESS_INDEX };
+    uint16_t methods_out_index[] = { PORTS_OUT_CONNECT_INDEX, PORTS_OUT_DISCONNECT_INDEX };
+
+    if (!fetch_ports_methods(duk_ctx, "in", ports_in_len, 0,
+        PORTS_IN_METHODS_LENGTH, methods_in_index))
         return false;
 
-    if (!setup_ports_out_methods(duk_ctx, ports_out_len, ports_in_len * PORTS_IN_METHODS_LENGTH))
+    if (!fetch_ports_methods(duk_ctx, "out", ports_out_len,
+        ports_in_len * PORTS_IN_METHODS_LENGTH,
+        PORTS_OUT_METHODS_LENGTH, methods_out_index))
         return false;
 
     return true;
@@ -1584,36 +1552,141 @@ get_packet_type(const char *type)
     return get_simple_packet_type(sol_str_slice_from_str(type));
 }
 
-static bool
-setup_ports_in(struct duk_context *duk_ctx, struct sol_arena *str_arena, struct sol_vector *ports_in)
+static int
+add_port_for_meta_type_description(const char *name, const char *type_name,
+    bool is_input, void *data)
 {
-    const char *name, *type_name;
+    struct flow_js_type *type = data;
+    struct flow_js_port_in *port_in_type;
+    struct flow_js_port_out *port_out_type;
     const struct sol_flow_packet_type *packet_type;
-    struct flow_js_port_in *port_type;
+
+    packet_type = get_packet_type(type_name);
+    SOL_NULL_CHECK(packet_type, -EINVAL);
+
+    if (is_input) {
+        port_in_type = sol_vector_append(&type->ports_in);
+        SOL_NULL_CHECK(port_in_type, -ENOMEM);
+
+        SOL_SET_API_VERSION(port_in_type->type.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
+        port_in_type->type.packet_type = packet_type;
+        port_in_type->type.process =
+            sol_flow_packet_is_composed_type(packet_type) ?
+            flow_js_composed_port_process : flow_js_port_process;
+        port_in_type->type.connect = flow_js_port_in_connect;
+        port_in_type->type.disconnect = flow_js_port_in_disconnect;
+
+        port_in_type->name = sol_arena_strdup(type->str_arena, name);
+        SOL_NULL_CHECK(port_in_type->name, -ENOMEM);
+
+        port_in_type->type_name = sol_arena_strdup(type->str_arena, type_name);
+        SOL_NULL_CHECK(port_in_type->type_name, -ENOMEM);
+    } else {
+        port_out_type = sol_vector_append(&type->ports_out);
+        SOL_NULL_CHECK(port_out_type, -ENOMEM);
+
+        SOL_SET_API_VERSION(port_out_type->type.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
+        port_out_type->type.packet_type = packet_type;
+        port_out_type->type.connect = flow_js_port_out_connect;
+        port_out_type->type.disconnect = flow_js_port_out_disconnect;
+
+        port_out_type->name = sol_arena_strdup(type->str_arena, name);
+        SOL_NULL_CHECK(port_out_type->name, -ENOMEM);
+
+        port_out_type->type_name = sol_arena_strdup(type->str_arena, type_name);
+        SOL_NULL_CHECK(port_out_type->type_name, -ENOMEM);
+    }
+    return 0;
+}
+
+static int
+add_port_for_generated_code(const char *name, const char *type_name,
+    bool is_input, void *data)
+{
+    int r = -ENOMEM;
+    const char *port_type_name, *process_func;
+    struct sol_vector *vector;
+    struct flow_js_port_description_context *ctx = data;
+    struct sol_flow_metatype_port_description *port_desc;
+    const struct sol_flow_packet_type *packet_type;
+
+    if (is_input) {
+        vector = ctx->in;
+        port_type_name = "in";
+        packet_type = get_packet_type(type_name);
+        SOL_NULL_CHECK(packet_type, -EINVAL);
+
+        if (sol_flow_packet_is_composed_type(packet_type))
+            process_func = ".base.process = js_metatype_composed_port_process,\n";
+        else
+            process_func = ".base.process = js_metatype_simple_port_process,\n";
+    } else {
+        vector = ctx->out;
+        port_type_name = "out";
+        process_func = "";
+    }
+    port_desc = sol_vector_append(vector);
+    SOL_NULL_CHECK_GOTO(port_desc, err_exit);
+
+    port_desc->name = strdup(name);
+    SOL_NULL_CHECK_GOTO(port_desc->name, err_name);
+    port_desc->type = strdup(type_name);
+    SOL_NULL_CHECK_GOTO(port_desc->type, err_type);
+    port_desc->array_size = 0;
+    port_desc->idx = vector->len - 1;
+
+    if (ctx->buf) {
+        r = sol_buffer_append_printf(ctx->buf,
+            "static struct js_metatype_port_%s js_metatype_%.*s_%s_port = {\n"
+            "    SOL_SET_API_VERSION(.base.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION, )\n"
+            "    .base.connect = js_metatype_port_%s_connect,\n"
+            "    .base.disconnect = js_metatype_port_%s_disconnect,\n"
+            "    %s"
+            "    .name = \"%s\"\n"
+            "};\n", port_type_name, SOL_STR_SLICE_PRINT(ctx->name_prefix), port_desc->name,
+            port_type_name, port_type_name, process_func, port_desc->name);
+        SOL_INT_CHECK_GOTO(r, < 0, err_code);
+    }
+
+    return 0;
+
+err_code:
+    free(port_desc->type);
+err_type:
+    free(port_desc->name);
+err_name:
+    (void)sol_vector_del_element(vector, port_desc);
+err_exit:
+    return r;
+}
+
+static int
+setup_port_properties(struct duk_context *duk_ctx, const char *prop_name,
+    bool is_input, js_add_port add_port, void *add_port_data)
+{
     uint16_t array_len, i;
+    int r;
 
-    if (!duk_has_prop_string(duk_ctx, -1, "in"))
-        return true;
+    if (!duk_has_prop_string(duk_ctx, -1, prop_name))
+        return 0;
 
-    duk_get_prop_string(duk_ctx, -1, "in");
+    duk_get_prop_string(duk_ctx, -1, prop_name);
 
     if (!duk_is_array(duk_ctx, -1)) {
         SOL_ERR("'in' property of variable 'ports' should be an array.");
-        return false;
+        return -EINVAL;
     }
 
     if (!duk_get_prop_string(duk_ctx, -1, "length")) {
         SOL_ERR("Couldn't get 'in' length from 'ports' variable.");
-        return false;
+        return -EINVAL;
     }
 
     array_len = duk_require_int(duk_ctx, -1);
     duk_pop(duk_ctx); /* length value */
 
     if (array_len == 0)
-        return true;
-
-    sol_vector_init(ports_in, sizeof(struct flow_js_port_in));
+        return 0;
 
     for (i = 0; i < array_len; i++) {
         if (!duk_get_prop_index(duk_ctx, -1, i)) {
@@ -1636,140 +1709,35 @@ setup_ports_in(struct duk_context *duk_ctx, struct sol_arena *str_arena, struct 
             continue;
         }
 
-        name = duk_require_string(duk_ctx, -2);
-        type_name = duk_require_string(duk_ctx, -1);
-
-        packet_type = get_packet_type(type_name);
-        if (!packet_type) {
-            SOL_WRN("Input port type '%s' is an invalid packet type on 'ports.in[%d]', ignoring this port creation...", type_name, i);
-            duk_pop_3(duk_ctx);
-            continue;
-        }
-
-        port_type = sol_vector_append(ports_in);
-        SOL_NULL_CHECK(port_type, false);
-
-        SOL_SET_API_VERSION(port_type->type.api_version = SOL_FLOW_PORT_TYPE_IN_API_VERSION; )
-        port_type->type.packet_type = packet_type;
-        port_type->type.process =
-            sol_flow_packet_is_composed_type(packet_type) ?
-            flow_js_composed_port_process : flow_js_port_process;
-        port_type->type.connect = flow_js_port_in_connect;
-        port_type->type.disconnect = flow_js_port_in_disconnect;
-
-        port_type->name = sol_arena_strdup(str_arena, name);
-        SOL_NULL_CHECK(port_type->name, false);
-
-        port_type->type_name = sol_arena_strdup(str_arena, type_name);
-        SOL_NULL_CHECK(port_type->type_name, false);
+        r = add_port(duk_require_string(duk_ctx, -2),
+            duk_require_string(duk_ctx, -1), is_input, add_port_data);
+        SOL_INT_CHECK(r, < 0, r);
 
         duk_pop_3(duk_ctx);
     }
 
     duk_pop(duk_ctx); /* in value */
 
-    return true;
+    return 0;
 }
 
-static bool
-setup_ports_out(struct duk_context *duk_ctx, struct sol_arena *str_arena, struct sol_vector *ports_out)
-{
-    const char *name, *type_name;
-    const struct sol_flow_packet_type *packet_type;
-    struct flow_js_port_out *port_type;
-    uint16_t array_len, i;
-
-    if (!duk_has_prop_string(duk_ctx, -1, "out"))
-        return true;
-
-    duk_get_prop_string(duk_ctx, -1, "out");
-
-    if (!duk_is_array(duk_ctx, -1)) {
-        SOL_ERR("'out' property of variable 'ports' should be an array.");
-        return false;
-    }
-
-    if (!duk_get_prop_string(duk_ctx, -1, "length")) {
-        SOL_ERR("Couldn't get 'out' length from 'ports' variable.");
-        return false;
-    }
-
-    array_len = duk_require_int(duk_ctx, -1);
-    duk_pop(duk_ctx); /* length value */
-
-    if (array_len == 0)
-        return true;
-
-    sol_vector_init(ports_out, sizeof(struct flow_js_port_out));
-
-    for (i = 0; i < array_len; i++) {
-        if (!duk_get_prop_index(duk_ctx, -1, i)) {
-            SOL_WRN("Couldn't get output port information from 'ports.out[%d]', ignoring this port creation...", i);
-            duk_pop(duk_ctx);
-            continue;
-        }
-
-        if (!duk_get_prop_string(duk_ctx, -1, "name")) {
-            SOL_WRN("Output port 'name' property is missing on 'ports.out[%d]', ignoring this port creation... "
-                "e.g. '{ name:'OUT', type:'boolean' }'", i);
-            duk_pop_2(duk_ctx);
-            continue;
-        }
-
-        if (!duk_get_prop_string(duk_ctx, -2, "type")) {
-            SOL_WRN("Output port 'type' property is missing on 'ports.out[%d]', ignoring this port creation... "
-                "e.g. '{ name:'OUT', type:'boolean' }'", i);
-            duk_pop_3(duk_ctx);
-            continue;
-        }
-
-        name = duk_require_string(duk_ctx, -2);
-        type_name = duk_require_string(duk_ctx, -1);
-
-        packet_type = get_packet_type(type_name);
-        if (!packet_type) {
-            SOL_WRN("Output port type '%s' is an invalid packet type on 'ports.out[%d]', ignoring this port creation...", type_name, i);
-            duk_pop_3(duk_ctx);
-            continue;
-        }
-
-        port_type = sol_vector_append(ports_out);
-        SOL_NULL_CHECK(port_type, false);
-
-        SOL_SET_API_VERSION(port_type->type.api_version = SOL_FLOW_PORT_TYPE_OUT_API_VERSION; )
-        port_type->type.packet_type = packet_type;
-        port_type->type.connect = flow_js_port_out_connect;
-        port_type->type.disconnect = flow_js_port_out_disconnect;
-
-        port_type->name = sol_arena_strdup(str_arena, name);
-        SOL_NULL_CHECK(port_type->name, false);
-
-        port_type->type_name = sol_arena_strdup(str_arena, type_name);
-        SOL_NULL_CHECK(port_type->type_name, false);
-
-        duk_pop_3(duk_ctx);
-    }
-
-    duk_pop(duk_ctx); /* out value */
-
-    return true;
-}
-
-static bool
-setup_ports(struct flow_js_type *type, const char *buf, size_t len)
+static int
+setup_ports(const char *buf, size_t len, js_add_port add_port,
+    void *add_port_data)
 {
     struct duk_context *duk_ctx;
+    int r;
 
     duk_ctx = duk_create_heap_default();
     if (!duk_ctx) {
         SOL_ERR("Failed to create a Duktape heap");
-        return false;
+        return -ENOMEM;
     }
 
     if (duk_peval_lstring(duk_ctx, buf, len) != 0) {
         SOL_ERR("Failed to parse javascript content: %s", duk_safe_to_string(duk_ctx, -1));
         duk_destroy_heap(duk_ctx);
-        return false;
+        return -EINVAL;
     }
     duk_pop(duk_ctx); /* duk_peval_lstring() result */
 
@@ -1778,26 +1746,14 @@ setup_ports(struct flow_js_type *type, const char *buf, size_t len)
     if (!duk_get_prop_string(duk_ctx, -1, "node")) {
         SOL_ERR("'node' variable not found in javascript file.");
         duk_destroy_heap(duk_ctx);
-        return false;
+        return -EINVAL;
     }
 
-    type->str_arena = sol_arena_new();
-    if (!type->str_arena) {
-        SOL_ERR("Couldn't create sol_arena.");
-        duk_destroy_heap(duk_ctx);
-        return false;
-    }
-
-    if (!setup_ports_in(duk_ctx, type->str_arena, &type->ports_in)) {
-        duk_destroy_heap(duk_ctx);
-        return false;
-    }
-
-    if (!setup_ports_out(duk_ctx, type->str_arena, &type->ports_out)) {
-        duk_destroy_heap(duk_ctx);
-        return false;
-    }
-
+    r = setup_port_properties(duk_ctx, "in", true, add_port, add_port_data);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = setup_port_properties(duk_ctx, "out", false, add_port, add_port_data);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+exit:
     duk_destroy_heap(duk_ctx);
     return true;
 }
@@ -1831,10 +1787,11 @@ flow_dispose_type(struct sol_flow_node_type *type)
     free(js_type);
 }
 
-static bool
+static int
 flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
 {
     char *js_content_buf;
+    int r;
 
     *type = (const struct flow_js_type) {
         .base = {
@@ -1849,14 +1806,20 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
         },
     };
 
-    if (!setup_ports(type, buf, len))
-        return false;
+    type->str_arena = sol_arena_new();
+    SOL_NULL_CHECK(type->str_arena, -ENOMEM);
+
+    sol_vector_init(&type->ports_out, sizeof(struct flow_js_port_out));
+    sol_vector_init(&type->ports_in, sizeof(struct flow_js_port_in));
+
+    r = setup_ports(buf, len, add_port_for_meta_type_description, type);
+    SOL_INT_CHECK(r, < 0, r);
 
     type->base.ports_in_count = type->ports_in.len;
     type->base.ports_out_count = type->ports_out.len;
 
     js_content_buf = strndup(buf, len);
-    SOL_NULL_CHECK(js_content_buf, false);
+    SOL_NULL_CHECK(js_content_buf, -ENOMEM);
 
     type->js_content_buf = js_content_buf;
     type->js_content_buf_len = len;
@@ -1866,26 +1829,39 @@ flow_js_type_init(struct flow_js_type *type, const char *buf, size_t len)
         SOL_WRN("Failed to setup description");
 #endif
 
-    return true;
+    return 0;
 }
 
 static struct sol_flow_node_type *
 sol_flow_js_new_type(const char *buf, size_t len)
 {
     struct flow_js_type *type;
+    int r;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     type = calloc(1, sizeof(struct flow_js_type));
     SOL_NULL_CHECK(type, NULL);
 
-    if (!flow_js_type_init(type, buf, len)) {
-        flow_js_type_fini(type);
-        free(type);
-        return NULL;
-    }
+    r = flow_js_type_init(type, buf, len);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     return &type->base;
+
+err_exit:
+    flow_js_type_fini(type);
+    free(type);
+    return NULL;
+}
+
+static int
+read_file_contents(const struct sol_flow_metatype_context *ctx,
+    const char **buf, size_t *size)
+{
+    const char *filename;
+
+    filename = strndupa(ctx->contents.data, ctx->contents.len);
+    return ctx->read_file(ctx, filename, buf, size);
 }
 
 static int
@@ -1893,14 +1869,12 @@ js_create_type(
     const struct sol_flow_metatype_context *ctx,
     struct sol_flow_node_type **type)
 {
-    const char *buf, *filename;
+    const char *buf;
     struct sol_flow_node_type *result;
     size_t size;
     int err;
 
-    filename = strndupa(ctx->contents.data, ctx->contents.len);
-    err = ctx->read_file(ctx, filename, &buf, &size);
-    if (err < 0)
+    if (read_file_contents(ctx, &buf, &size) < 0)
         return -EINVAL;
 
     result = sol_flow_js_new_type(buf, size);
@@ -1917,11 +1891,265 @@ js_create_type(
     return 0;
 }
 
+static int
+setup_js_ports_description(const char *buf, size_t buf_len,
+    struct sol_vector *in, struct sol_vector *out, struct sol_buffer *out_buf,
+    const struct sol_str_slice name_prefix)
+{
+    struct flow_js_port_description_context port_ctx;
+
+    sol_vector_init(in, sizeof(struct sol_flow_metatype_port_description));
+    sol_vector_init(out, sizeof(struct sol_flow_metatype_port_description));
+    port_ctx.in = in;
+    port_ctx.out = out;
+    port_ctx.buf = out_buf;
+    port_ctx.name_prefix = name_prefix;
+
+    return setup_ports(buf, buf_len, add_port_for_generated_code, &port_ctx);
+}
+
+static int
+js_ports_description(const struct sol_flow_metatype_context *ctx,
+    struct sol_vector *in, struct sol_vector *out)
+{
+    int err;
+    size_t size;
+    const char *buf;
+    struct sol_str_slice empty = SOL_STR_SLICE_EMPTY;
+
+    SOL_NULL_CHECK(ctx, -EINVAL);
+    SOL_NULL_CHECK(out, -EINVAL);
+    SOL_NULL_CHECK(in, -EINVAL);
+
+    err = read_file_contents(ctx, &buf, &size);
+    SOL_INT_CHECK(err, < 0, err);
+
+    return setup_js_ports_description(buf, size, in, out, NULL,
+        empty);
+}
+
+static int
+js_generate_start(const struct sol_flow_metatype_context *ctx,
+    struct sol_buffer *out)
+{
+    SOL_NULL_CHECK(ctx, -EINVAL);
+    SOL_NULL_CHECK(out, -EINVAL);
+
+    return sol_buffer_append_slice(out,
+        sol_str_slice_from_str(JS_CODE_START));
+}
+
+static int
+setup_get_port_function(struct sol_buffer *out, struct sol_vector *ports,
+    const struct sol_str_slice prefix, const char *port_type)
+{
+    int r;
+    uint16_t i;
+    struct sol_flow_metatype_port_description *port;
+
+    r = sol_buffer_append_printf(out,
+        "static const struct sol_flow_port_type_%s *\n"
+        "js_metatype_%.*s_get_%s_port(const struct sol_flow_node_type *type, uint16_t port)\n"
+        "{\n", port_type, SOL_STR_SLICE_PRINT(prefix), port_type);
+    SOL_INT_CHECK(r, < 0, r);
+
+    SOL_VECTOR_FOREACH_IDX (ports, port, i) {
+        r = sol_buffer_append_printf(out, "    if (port == %u)\n"
+            "        return &js_metatype_%.*s_%s_port.base;\n",
+            i, SOL_STR_SLICE_PRINT(prefix), port->name);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return sol_buffer_append_slice(out, sol_str_slice_from_str("    return NULL;\n}\n"));
+}
+
+static int
+setup_composed_packet(struct sol_buffer *out, const struct sol_str_slice prefix,
+    const struct sol_str_slice types, const char *port_name)
+{
+    int r;
+    struct sol_vector tokens;
+    struct sol_str_slice *token;
+    uint16_t i;
+
+    r = sol_buffer_append_slice(out,
+        sol_str_slice_from_str("        const struct sol_flow_packet_type *types[] = {"));
+    SOL_INT_CHECK(r, < 0, r);
+
+    tokens = sol_str_slice_split(types, ",", 0);
+
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
+        r = sol_buffer_append_printf(out, "%s,",
+            sol_flow_packet_get_packet_type_as_string(*token));
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    r = sol_buffer_append_printf(out, "NULL};\n"
+        "        js_metatype_%.*s_%s_port.base.packet_type = sol_flow_packet_type_composed_new(types);\n",
+        SOL_STR_SLICE_PRINT(prefix), port_name);
+
+exit:
+    sol_vector_clear(&tokens);
+    return r;
+}
+
+static int
+setup_packet_type(struct sol_buffer *out, struct sol_vector *ports,
+    const struct sol_str_slice prefix)
+{
+    int r;
+    uint16_t i;
+    struct sol_flow_metatype_port_description *port;
+    const struct sol_flow_packet_type *packet_type;
+
+
+    SOL_VECTOR_FOREACH_IDX (ports, port, i) {
+        packet_type = get_packet_type(port->type);
+        SOL_NULL_CHECK(packet_type, -EINVAL);
+        r = sol_buffer_append_printf(out, "    if (!js_metatype_%.*s_%s_port.base.packet_type) {\n",
+            SOL_STR_SLICE_PRINT(prefix), port->name);
+        SOL_INT_CHECK(r, < 0, r);
+
+        if (!sol_flow_packet_is_composed_type(packet_type)) {
+            r = sol_buffer_append_printf(out,
+                "        js_metatype_%.*s_%s_port.base.packet_type = %s;\n",
+                SOL_STR_SLICE_PRINT(prefix), port->name,
+                sol_flow_packet_get_packet_type_as_string(
+                sol_str_slice_from_str(port->type)));
+        } else {
+            struct sol_str_slice types;
+            //Removing the composed: prefix
+            types.data = port->type + 9;
+            types.len = strlen(port->type) - 9;
+            r = setup_composed_packet(out, prefix, types, port->name);
+        }
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_slice(out, sol_str_slice_from_str("    }\n"));
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return 0;
+}
+
+static int
+setup_init_function(struct sol_buffer *out, struct sol_vector *in_ports,
+    struct sol_vector *out_ports, const struct sol_str_slice prefix)
+{
+    int r;
+
+    r = sol_buffer_append_printf(out,
+        "static void\njs_metatype_%.*s_init(void)\n{\n",
+        SOL_STR_SLICE_PRINT(prefix));
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = setup_packet_type(out, in_ports, prefix);
+    SOL_INT_CHECK(r, < 0, r);
+    r = setup_packet_type(out, out_ports, prefix);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_buffer_append_slice(out, sol_str_slice_from_str("}\n"));
+}
+
+static void
+metatype_port_description_clear(struct sol_vector *port_descriptions)
+{
+    uint16_t i;
+    struct sol_flow_metatype_port_description *port;
+
+    SOL_VECTOR_FOREACH_IDX (port_descriptions, port, i) {
+        free(port->name);
+        free(port->type);
+    }
+    sol_vector_clear(port_descriptions);
+}
+
+static int
+js_generate_body(const struct sol_flow_metatype_context *ctx,
+    struct sol_buffer *out)
+{
+    const char *buf;
+    size_t len, i;
+    struct sol_vector in_ports, out_ports;
+    int r;
+
+    r = read_file_contents(ctx, &buf, &len);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = setup_js_ports_description(buf, len, &in_ports, &out_ports, out, ctx->name);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sol_buffer_append_printf(out, "static const char %.*s_JS_CODE[] = {\n",
+        SOL_STR_SLICE_PRINT(ctx->name));
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    for (i = 0; i < len; i++) {
+        r = sol_buffer_append_printf(out, "%d,", buf[i]);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    r = sol_buffer_append_slice(out, sol_str_slice_from_str("};\n"));
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sol_buffer_append_printf(out, "static int\n"
+        "js_metatype_%.*s_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)\n"
+        "{\n"
+        "    duk_context **ctx = data;\n"
+        "    return js_metatype_common_open(node, ctx, %.*s_JS_CODE, sizeof(%.*s_JS_CODE));\n"
+        "}\n",
+        SOL_STR_SLICE_PRINT(ctx->name), SOL_STR_SLICE_PRINT(ctx->name),
+        SOL_STR_SLICE_PRINT(ctx->name));
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = setup_get_port_function(out, &in_ports, ctx->name, "in");
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = setup_get_port_function(out, &out_ports, ctx->name, "out");
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = setup_init_function(out, &in_ports, &out_ports, ctx->name);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sol_buffer_append_printf(out,
+        "static const struct sol_flow_node_type %.*s = {\n"
+        "   SOL_SET_API_VERSION(.api_version = SOL_FLOW_NODE_TYPE_API_VERSION, )\n"
+        "   .options_size = sizeof(struct sol_flow_node_options),\n"
+        "   .data_size = sizeof(duk_context **),\n"
+        "   .ports_out_count = %u,\n"
+        "   .ports_in_count = %u,\n"
+        "   .dispose_type = NULL,\n"
+        "   .open = js_metatype_%.*s_open,\n"
+        "   .close = js_metatype_close,\n"
+        "   .get_port_out = js_metatype_%.*s_get_out_port,\n"
+        "   .get_port_in = js_metatype_%.*s_get_in_port,\n"
+        "   .init_type = js_metatype_%.*s_init,\n"
+        "};\n",
+        SOL_STR_SLICE_PRINT(ctx->name),
+        in_ports.len,
+        out_ports.len,
+        SOL_STR_SLICE_PRINT(ctx->name),
+        SOL_STR_SLICE_PRINT(ctx->name),
+        SOL_STR_SLICE_PRINT(ctx->name),
+        SOL_STR_SLICE_PRINT(ctx->name));
+
+exit:
+    metatype_port_description_clear(&in_ports);
+    metatype_port_description_clear(&out_ports);
+    return r;
+}
+
+static int
+js_generate_end(const struct sol_flow_metatype_context *ctx,
+    struct sol_buffer *out)
+{
+    return 0;
+}
+
 SOL_FLOW_METATYPE(JS,
     .name = "js",
     .create_type = js_create_type,
-    .generate_type_start = NULL,
-    .generate_type_body = NULL,
-    .generate_type_end = NULL,
-    .ports_description = NULL,
+    .generate_type_start = js_generate_start,
+    .generate_type_body = js_generate_body,
+    .generate_type_end = js_generate_end,
+    .ports_description = js_ports_description,
     );
