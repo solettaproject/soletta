@@ -42,7 +42,7 @@ extern "C" {
 #endif
 
 /**
- * @defgroup HTTP
+ * @defgroup HTTP HTTP
  * @ingroup Comms
  *
  * @{
