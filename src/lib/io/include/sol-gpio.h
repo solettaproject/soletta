@@ -220,7 +220,8 @@ struct sol_gpio_config {
 /**
  * Opens a given pin by its board label as general purpose input or output.
  *
- * This function only works when the board was successfully detect by Soletta and a corresponding
+ * This function only works when the board was successfully detected
+ * by Soletta and a corresponding
  * pin multiplexer module was found.
  *
  * A pin should be opened just once, calling this function more than once
@@ -228,7 +229,7 @@ struct sol_gpio_config {
  *
  * @see sol_gpio_open_raw(), sol_gpio_close().
  *
- * @param pin The pin to be opened.
+ * @param label The pin to be opened.
  * @param config Contains the pin configuration.
  *
  * @return A new @c sol_gpio instance on success, @c NULL otherwise.

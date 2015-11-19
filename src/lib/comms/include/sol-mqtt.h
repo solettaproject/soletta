@@ -369,7 +369,7 @@ void sol_mqtt_disconnect(struct sol_mqtt *mqtt);
 /**
  * @brief Get connection status
  *
- * @param MQTT Object
+ * @param mqtt MQTT Object
  *
  * @see sol_mqtt_conn_status
  *
