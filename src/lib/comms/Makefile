@@ -69,7 +69,7 @@ obj-networking-$(HTTP_CLIENT)-extra-cflags += \
 obj-networking-$(HTTP_CLIENT)-extra-ldflags += \
     $(LIBCURL_LDFLAGS)
 
-requires-private-$(HTTP_CLIENT) := \
+requires-private-$(HTTP_CLIENT) += \
     $(LIBCURL_REQUIRES_PRIVATE)
 
 obj-networking-$(HTTP_SERVER) += \
@@ -81,7 +81,7 @@ obj-networking-$(HTTP_SERVER)-extra-cflags += \
 obj-networking-$(HTTP_SERVER)-extra-ldflags += \
     $(LIBMICROHTTPD_LDFLAGS)
 
-requires-private-$(HTTP_SERVER) := \
+requires-private-$(HTTP_SERVER) += \
     $(LIBMICROHTTPD_REQUIRES_PRIVATE)
 
 obj-networking-$(MQTT) += \
