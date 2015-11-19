@@ -48,8 +48,8 @@ extern "C" {
  */
 
 /**
- * @defgroup HTTP
- * @ingroup Comms
+ * @defgroup HTTP_SERVER HTTP Server
+ * @ingroup HTTP
  *
  * @{
  */
