@@ -56,6 +56,71 @@ extern "C" {
 struct sol_http_client_connection;
 
 /**
+ * The http request interface to use when creating a new request.
+ *
+ * It allows one have more control over the request, notifying when
+ * data comes or when data should be sent.
+ *
+ * @see sol_http_client_request_with_interface()
+ */
+struct sol_http_request_interface {
+#ifndef SOL_NO_API_VERSION
+#define SOL_HTTP_REQUEST_INTERFACE_API_VERSION (1)
+    /**
+     * api_version must match SOL_HTTP_REQUEST_INTERFACE_API_VERSION
+     * at runtime.
+     */
+    uint16_t api_version;
+#endif
+    /**
+     * This callback is called whenever data comes. The number of bytes consumed (the value
+     * returned by this callback) will be removed from buffer.
+     *
+     * The parameters are:
+     *
+     * @li @c userdata the context data given in @c sol_http_client_request_with_interface
+     * @li @c connection the connection returned in @c sol_http_client_request_with_interface
+     * @li @c buffer the data received
+     *
+     * @note it is @b NOT @b ALLOWED to cancel the connection handle from
+     *       inside this callback.
+     */
+    size_t (*recv_cb)(void *userdata, const struct sol_http_client_connection *connection,
+        struct sol_buffer *buffer);
+    /**
+     * This callback is called data should be written, it's commonly used for @c POST.
+     * When it's used, it's @b MANDATORY either the header @c Content-Length with the correct
+     * size or the header @c Transfer-Encoding with the value @b chunked on
+     * @c sol_http_client_request_with_interface.
+     *
+     * The parameters are:
+     *
+     * @li @c userdata the context data given in @c sol_http_client_request_with_interface
+     * @li @c connection the connection returned in @c sol_http_client_request_with_interface
+     * @li @c buffer the buffer where the data should be written, the buffer's capacity indicates
+     * the amount of data that should be set.
+     *
+     * @note it is @b NOT @b ALLOWED to cancel the connection handle from
+     *       inside this callback.
+     */
+    size_t (*send_cb)(void *userdata, const struct sol_http_client_connection *connection,
+        struct sol_buffer *buffer);
+    /**
+     * This callback is called when the request finishes, the result of request is available on
+     * @c response. @see sol_http_response
+     *
+     * @li @c userdata the context data given in @c sol_http_client_request_with_interface
+     * @li @c connection the connection returned in @c sol_http_client_request_with_interface
+     * @li @c response the result of the request
+     *
+     * @note it is @b NOT @b ALLOWED to cancel the connection handle from
+     *       inside this callback.
+     */
+    void (*response_cb)(void *userdata, const struct sol_http_client_connection *connection,
+        struct sol_http_response *response);
+};
+
+/**
  * Create a request for the specified url using the given method. The result of
  * the request is obtained in @c cb.
  *
@@ -80,6 +145,33 @@ struct sol_http_client_connection *sol_http_client_request(enum sol_http_method 
     const char *url, const struct sol_http_params *params,
     void (*cb)(void *data, const struct sol_http_client_connection *connection,
     struct sol_http_response *response),
+    const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * Create a request for the specified url using the given method. The result of
+ * the request is obtained in @c cb.
+ *
+ * One should check the response code on @c sol_http_response to check
+ * if the request returned success or with some error. @see sol_http_status_code.
+ *
+ * @note It should never be called from response callback given in
+ *       sol_http_client_request().
+ *
+ * @param method a valid HTTP method, e. g. SOL_HTTP_METHOD_GET or SOL_HTTP_METHOD_POST
+ * @param url a string containing a valid URL.
+ * @param params the parameters used on this request, e. g. headers,
+ *        cookies and post fields.
+ * @param interface the interface with the callbacks used in the request. @see sol_http_request_interface
+ * @param data user data given as parameter on @c cb
+ *
+ * @return a pending connection on success, @c NULL on error.
+ *
+ * @see sol_http_client_connection_cancel
+ * @see sol_http_client_request
+ */
+struct sol_http_client_connection *sol_http_client_request_with_interface(enum sol_http_method method,
+    const char *url, const struct sol_http_params *params,
+    const struct sol_http_request_interface *interface,
     const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
