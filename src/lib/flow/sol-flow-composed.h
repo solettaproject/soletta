@@ -45,15 +45,15 @@ int create_composed_constructor_type(const struct sol_flow_metatype_context *ctx
 
 int create_composed_splitter_type(const struct sol_flow_metatype_context *ctx, struct sol_flow_node_type **type);
 
-int composed_metatype_constructor_generate_code_start(struct sol_buffer *out, const struct sol_str_slice name, const struct sol_str_slice contents);
-int composed_metatype_constructor_generate_code_type(struct sol_buffer *out, const struct sol_str_slice name, const struct sol_str_slice contents);
-int composed_metatype_constructor_generate_code_end(struct sol_buffer *out, const struct sol_str_slice name, const struct sol_str_slice contents);
-int composed_metatype_constructor_get_ports_description(const struct sol_str_slice contents, struct sol_vector *in, struct sol_vector *out);
+int composed_metatype_constructor_generate_code_start(const struct sol_flow_metatype_context *context, struct sol_buffer *out);
+int composed_metatype_constructor_generate_code_type(const struct sol_flow_metatype_context *context, struct sol_buffer *out);
+int composed_metatype_constructor_generate_code_end(const struct sol_flow_metatype_context *context, struct sol_buffer *out);
+int composed_metatype_constructor_get_ports_description(const struct sol_flow_metatype_context *context, struct sol_vector *in, struct sol_vector *out);
 
-int composed_metatype_splitter_generate_code_start(struct sol_buffer *out, const struct sol_str_slice name, const struct sol_str_slice contents);
-int composed_metatype_splitter_generate_code_type(struct sol_buffer *out, const struct sol_str_slice name, const struct sol_str_slice contents);
-int composed_metatype_splitter_generate_code_end(struct sol_buffer *out, const struct sol_str_slice name, const struct sol_str_slice contents);
-int composed_metatype_splitter_get_ports_description(const struct sol_str_slice contents, struct sol_vector *in, struct sol_vector *out);
+int composed_metatype_splitter_generate_code_start(const struct sol_flow_metatype_context *context, struct sol_buffer *out);
+int composed_metatype_splitter_generate_code_type(const struct sol_flow_metatype_context *context, struct sol_buffer *out);
+int composed_metatype_splitter_generate_code_end(const struct sol_flow_metatype_context *context,  struct sol_buffer *out);
+int composed_metatype_splitter_get_ports_description(const struct sol_flow_metatype_context *context, struct sol_vector *in, struct sol_vector *out);
 
 #ifdef __cplusplus
 }
