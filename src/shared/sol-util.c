@@ -86,7 +86,7 @@ sol_util_memdup(const void *data, size_t len)
     return ptr;
 }
 
-SOL_API long int
+long int
 sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
 {
     char *tmpbuf, *tmpbuf_endptr;
@@ -356,7 +356,7 @@ err:
     return r;
 }
 
-SOL_API int
+int
 sol_util_replace_str_if_changed(char **str, const char *new_str)
 {
     struct sol_str_slice slice = SOL_STR_SLICE_EMPTY;
@@ -367,7 +367,7 @@ sol_util_replace_str_if_changed(char **str, const char *new_str)
     return sol_util_replace_str_from_slice_if_changed(str, slice);
 }
 
-SOL_API int
+int
 sol_util_replace_str_from_slice_if_changed(char **str,
     const struct sol_str_slice slice)
 {
@@ -400,7 +400,7 @@ sol_util_replace_str_from_slice_if_changed(char **str,
     return 0;
 }
 
-SOL_API ssize_t
+ssize_t
 sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65])
 {
     char *output;
@@ -473,7 +473,7 @@ base64_index_of(char c, const char base64_map[static 65])
     return p - base64_map;
 }
 
-SOL_API ssize_t
+ssize_t
 sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65])
 {
     uint8_t *output;
@@ -527,7 +527,7 @@ base16_encode_digit(const uint8_t nibble, const char a)
     return a + (nibble - 10);
 }
 
-SOL_API ssize_t
+ssize_t
 sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase)
 {
     char *output, a;
@@ -575,7 +575,7 @@ base16_decode_digit(const char digit, const char a, const char f, const char A, 
         return UINT8_MAX;
 }
 
-SOL_API ssize_t
+ssize_t
 sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, enum sol_decode_case decode_case)
 {
     uint8_t *output;
@@ -621,7 +621,7 @@ sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slic
     return o;
 }
 
-SOL_API int8_t
+int8_t
 sol_util_utf8_from_unicode_code(uint8_t *buf, size_t buf_len, uint32_t unicode_code)
 {
     uint8_t b;
@@ -683,7 +683,7 @@ valid_utf8_byte(const uint8_t byte)
     return (byte & 0xC0) == 0x80;
 }
 
-SOL_API int32_t
+int32_t
 sol_util_unicode_code_from_utf8(const uint8_t *buf, size_t buf_len, uint8_t *bytes_read)
 {
     SOL_NULL_CHECK(buf, -EINVAL);

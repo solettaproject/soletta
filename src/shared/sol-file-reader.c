@@ -154,7 +154,7 @@ static const struct sol_blob_type _SOL_BLOB_TYPE_FILE_READER = {
     .free = _sol_blob_type_file_reader_close
 };
 
-SOL_API struct sol_blob *
+struct sol_blob *
 sol_file_reader_to_blob(struct sol_file_reader *fr)
 {
     struct sol_blob_file_reader *b;
