@@ -167,6 +167,12 @@ clear_queue(struct sol_vector *vec)
     }
 
     sol_vector_clear(vec);
+}
+
+static void
+free_queue(struct sol_vector *vec)
+{
+    clear_queue(vec);
     sol_util_secure_clear_memory(vec, sizeof(*vec));
 }
 
@@ -177,8 +183,8 @@ sol_socket_dtls_del(struct sol_socket *socket)
 
     sol_socket_del(s->wrapped);
 
-    clear_queue(&s->read.queue);
-    clear_queue(&s->write.queue);
+    free_queue(&s->read.queue);
+    free_queue(&s->write.queue);
 
     if (s->retransmit_timeout)
         sol_timeout_del(s->retransmit_timeout);
@@ -595,7 +601,7 @@ handle_dtls_event(struct dtls_context_t *ctx, session_t *session,
 
                 (void)dtls_write(socket->context, &session, item->buffer.data, item->buffer.used);
             }
-            sol_vector_clear(&socket->write.queue);
+            clear_queue(&socket->write.queue);
         }
     }
 
