@@ -168,6 +168,7 @@ depends on FEATURE_RUNNABLE_PROGRAMS
 source "src/samples/coap/Kconfig"
 source "src/samples/common/Kconfig"
 source "src/samples/crypto/Kconfig"
+source "src/samples/http/Kconfig"
 source "src/samples/mqtt/Kconfig"
 
 config FLOW_SAMPLES
