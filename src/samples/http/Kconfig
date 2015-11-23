@@ -16,3 +16,8 @@ config SERVER_SAMPLE
 	bool "Server sample"
 	depends on HTTP_SAMPLES && HTTP_SERVER
 	default y
+
+config CLIENT_SAMPLE
+	bool "Client sample"
+	depends on HTTP_SAMPLES && HTTP_CLIENT
+	default y
