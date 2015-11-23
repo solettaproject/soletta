@@ -63,7 +63,7 @@ extern "C" {
  * Note that as writing operations are asynchronous, to check if it completely
  * succeded, one needs to register a callback that will inform writing result.
  *
- * @param name name of property. It will create a file on filesyste with
+ * @param name name of property. It will create a new EFI variable with
  * this name.
  * @param blob blob that will be written
  * @param cb callback to be called when writing finishes. It contains status
@@ -75,12 +75,29 @@ extern "C" {
 int sol_efivars_write_raw(const char *name, struct sol_blob *blob,
     void (*cb)(void *data, const char *name, struct sol_blob *blob, int status),
     const void *data);
+
+/**
+ * Read stored contents and set to buffer.
+ *
+ * @param name name of property. It will look for an EFI variable with
+ * this name.
+ * @param buffer buffer that will be set with read contents.
+ *
+ * return 0 on success, a negative number on failure
+ */
 int sol_efivars_read_raw(const char *name, struct sol_buffer *buffer);
 
+/**
+ * Macro to create a struct @ref sol_buffer with value passed as argument
+ * and flags SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED and SOL_BUFFER_FLAGS_NO_NUL_BYTE.
+ */
 #define CREATE_BUFFER(_val) \
     struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(_val, \
     sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
+/**
+ * Macro to create a struct @ref sol_blob with value passed as argument.
+ */
 #define CREATE_BLOB(_val) \
     struct sol_blob *blob; \
     size_t _s = sizeof(*_val); \
