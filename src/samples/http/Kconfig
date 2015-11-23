@@ -11,3 +11,8 @@ config STATIC_FILES_SAMPLE
 	bool "Serve static files sample"
 	depends on HTTP_SAMPLES && HTTP_SERVER
 	default y
+
+config SERVER_SAMPLE
+	bool "Server sample"
+	depends on HTTP_SAMPLES && HTTP_SERVER
+	default y
