@@ -343,3 +343,5 @@ endchoice
 menu "Hardware Options"
 source "src/lib/io/Kconfig"
 endmenu
+
+source "src/modules/update/Kconfig"

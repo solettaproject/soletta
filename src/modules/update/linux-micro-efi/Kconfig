@@ -1,0 +1,14 @@
+config LINUX_MICRO_EFI_UPDATE
+	tristate "Soletta Linux Micro EFI Update"
+	depends on USE_AUTO_UPDATE && PLATFORM_LINUX_MICRO && HTTP_CLIENT && CRYPTO_MESSAGE_DIGEST
+	default m if MODULES=y
+	help
+        Allows Soletta auto update when it is running as static PID 1 (Linux
+        Micro) on EFI systems. To completely use this module to update Soletta,
+        it's necessary that device boots via EFI script startup.nsh.
+        This script should also check the existence of an 'updating' file
+        on boot partition (usually 'fs0:'), that update module will write there
+        to indicate that an update happened. It's up to this script to decide
+        if update was successful or not. If not, it shall start old Soletta app,
+        usually '/usr/bin/soletta_old'.
+        An example of such script is provided on samples/flow/update/startup.nsh.

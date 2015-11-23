@@ -1,0 +1,9 @@
+{{
+st.include("../../../data/templates/builtins-common.tpl")
+
+array = "static const struct sol_update *SOL_UPDATE_BUILTINS_ALL[]"
+count = "SOL_UPDATE_BUILTIN_COUNT"
+decl = "const struct sol_update SOL_UPDATE_@NAME@"
+item = "&SOL_UPDATE_@NAME@"
+gen_builtins(decl, item, array, count, "builtins-update")
+}}

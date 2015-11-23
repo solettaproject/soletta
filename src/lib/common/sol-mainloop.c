@@ -85,6 +85,10 @@ extern void sol_flow_shutdown(void);
 extern int sol_comms_init(void);
 extern void sol_comms_shutdown(void);
 #endif
+#ifdef USE_AUTO_UPDATE
+extern int sol_update_init(void);
+extern void sol_update_shutdown(void);
+#endif
 
 static int _init_count;
 static bool mainloop_running;
@@ -139,12 +143,21 @@ sol_init(void)
         goto comms_error;
 #endif
 
+#ifdef USE_AUTO_UPDATE
+    r = sol_update_init();
+    if (r < 0)
+        goto update_error;
+#endif
+
     SOL_DBG("Soletta %s on %s-%s initialized",
         sol_platform_get_sw_version(), BASE_OS,
         sol_platform_get_os_version());
 
     return 0;
 
+#ifdef USE_AUTO_UPDATE
+update_error:
+#endif
 #ifdef NETWORK
 comms_error:
 #endif
@@ -234,6 +247,10 @@ sol_shutdown(void)
     sol_platform_shutdown();
     sol_mainloop_impl_shutdown();
     sol_modules_clear_cache();
+#ifdef USE_AUTO_UPDATE
+    sol_update_shutdown();
+#endif
+
     sol_log_shutdown();
 }
 
