@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -78,7 +79,7 @@ static struct sol_network *network = NULL;
 
 SOL_API const char *
 sol_network_addr_to_str(const struct sol_network_link_addr *addr,
-    char *buf, socklen_t len)
+    char *buf, uint32_t len)
 {
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
