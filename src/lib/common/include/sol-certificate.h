@@ -43,7 +43,7 @@ extern "C" {
  */
 
 /**
- * @defgroup Certificate
+ * @defgroup Certificate Certificate
  *
  * @{
  */
@@ -81,7 +81,7 @@ void sol_cert_unref(struct sol_cert *cert);
 /**
  * @brief Get the full path to the certificate in the filesystem
  *
- * @param filename Path to the certificate file
+ * @param cert Certificate object.
  *
  * @return sol_cert object on success, NULL otherwise
  */

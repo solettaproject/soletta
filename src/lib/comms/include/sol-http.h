@@ -363,7 +363,7 @@ int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url 
  * An wrapper of over sol_http_create_simple_uri()
  *
  * @param uri The created URI - it should be freed using free().
- * @param base_uri The base uri to be used.
+ * @param base_url The base uri to be used.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
