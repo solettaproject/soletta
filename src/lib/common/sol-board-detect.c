@@ -46,7 +46,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "board-detect");
 #include "sol-util.h"
 #include "sol-vector.h"
 
-#define BOARD_JSON "/board_detect.json"
+#define BOARD_DIR "boards/"
 
 static bool
 _check_rule(const char *path, const struct sol_vector *match, const struct sol_vector *dont_match)
@@ -207,8 +207,38 @@ _json_open_doc(const char *path, struct sol_json_scanner *scanner)
     return raw_file;
 }
 
-char *
-sol_board_detect(void)
+static bool
+_append_file_path(void *data, const char *dir_path, struct dirent *ent)
+{
+    int r;
+    size_t name_len, suffix_len;
+    char *file_path;
+    struct sol_ptr_vector *list = data;
+
+    if (!ent) //Just skip, no need to trigger a warning.
+        return false;
+
+    if (ent->d_type != DT_REG && ent->d_type != DT_LNK) //It won't be recursive
+        return false;
+
+    if (!ent->d_name || !ent->d_name[0])
+        return false;
+
+    name_len = strlen(ent->d_name);
+    suffix_len = strlen(".json");
+    if (suffix_len > name_len || strcmp(ent->d_name + name_len - suffix_len, ".json"))
+        return false;
+
+    r = asprintf(&file_path, "%s%s", dir_path, ent->d_name);
+    SOL_INT_CHECK(r, < 0, true); // return 'true' to stop the loop in case of error
+
+    sol_ptr_vector_insert_sorted(list, file_path, (int (*)(const void *, const void *))strcmp);
+
+    return false;
+}
+
+static char *
+_process_file(const char *path)
 {
     bool found = false;
     char *board = NULL;
@@ -217,14 +247,10 @@ sol_board_detect(void)
     struct sol_json_token token, key, value, board_name = { NULL };
     enum sol_json_loop_reason reason;
 
-    json_doc = _json_open_doc(PKGSYSCONFDIR BOARD_JSON, &scanner);
+    json_doc = _json_open_doc(path, &scanner);
     if (!json_doc) {
-        json_doc = _json_open_doc(SOL_DATADIR BOARD_JSON, &scanner);
-        if (!json_doc) {
-            SOL_INF(BOARD_JSON " could not be found. Searched paths:\n.%s\n%s",
-                PKGSYSCONFDIR, DATADIR);
-            return NULL;
-        }
+        SOL_INF("Could not open file: %s", path);
+        return NULL;
     }
 
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
@@ -264,5 +290,26 @@ sol_board_detect(void)
 
 end:
     sol_file_reader_close(json_doc);
+    return board;
+}
+
+char *
+sol_board_detect(void)
+{
+    unsigned int idx;
+    char *path;
+    char *board = NULL;
+    struct sol_ptr_vector file_list = SOL_PTR_VECTOR_INIT;
+
+    sol_util_iterate_dir(PKGSYSCONFDIR BOARD_DIR, _append_file_path, &file_list);
+    sol_util_iterate_dir(SOL_DATADIR BOARD_DIR, _append_file_path, &file_list);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&file_list, path, idx) {
+        if (!board)
+            board = _process_file(path);
+        free(path);
+    }
+
+    sol_ptr_vector_clear(&file_list);
     return board;
 }
