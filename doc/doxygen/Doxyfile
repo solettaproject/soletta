@@ -99,7 +99,16 @@ WARN_LOGFILE           = $(build_doxygen_logfile)
 #---------------------------------------------------------------------------
 # Configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = doc/doxygen/examples.dox src/bin src/lib src/modules src/samples src/shared
+INPUT                  = \
+    doc/doxygen/examples.dox \
+    src/samples \
+    src/lib/common/include \
+    src/lib/comms/include \
+    src/lib/crypto/include \
+    src/lib/datatypes/include \
+    src/lib/flow/include \
+    src/lib/io/include \
+    src/lib/parsers/include
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          =
 RECURSIVE              = YES
@@ -233,7 +242,7 @@ MAN_LINKS              = YES
 #---------------------------------------------------------------------------
 # Configuration options related to the XML output
 #---------------------------------------------------------------------------
-GENERATE_XML           = NO
+GENERATE_XML           = YES
 XML_OUTPUT             = xml
 XML_PROGRAMLISTING     = YES
 #---------------------------------------------------------------------------
