@@ -49,7 +49,7 @@ extern "C" {
 /**
  * @defgroup IO I/O
  *
- * These routines are used for general I/O access under Soletta
+ * @brief These routines are used for general I/O access under Soletta
  * (namely GPIO, PWM, SPI, UART and I2C).
  *
  */
@@ -58,7 +58,7 @@ extern "C" {
  * @defgroup GPIO GPIO
  * @ingroup IO
  *
- * GPIO (General Purpose Input/Output) API for Soletta.
+ * @brief GPIO (General Purpose Input/Output) API for Soletta.
  *
  * @{
  */
@@ -116,9 +116,26 @@ enum sol_gpio_edge {
     SOL_GPIO_EDGE_BOTH
 };
 
+/**
+ * Possible values for pull-up or pull-down resistor of a GPIO.
+ *
+ * It will avoid values to float when this pin isn't connected.
+ * It'll define output value if nothing else is defined by software.
+ */
 enum sol_gpio_drive {
+    /**
+     * Do not set any state.
+     */
     SOL_GPIO_DRIVE_NONE = 0,
+    /**
+     * When set as pull-up, resistor will be connected to VCC.
+     * Logic value of output will be @c true while unset.
+     */
     SOL_GPIO_DRIVE_PULL_UP,
+    /**
+     * When set as pull-down, resistor will be connected to ground.
+     * Logic value of output will be @c false while unset.
+     */
     SOL_GPIO_DRIVE_PULL_DOWN
 };
 
@@ -157,6 +174,12 @@ struct sol_gpio_config {
      * different hardware configurations.
      */
     bool active_low;
+    /**
+     * Pull-up or pull-down resistor state for this GPIO.
+     *
+     * One of #sol_gpio_drive. Some platforms will configure GPIO taking
+     * this in consideration, as Continki and RIOT.
+     */
     enum sol_gpio_drive drive_mode;
     union {
         /**
@@ -166,8 +189,8 @@ struct sol_gpio_config {
             /**
              * When to trigger events for this GPIO.
              *
-             * One of #sol_gpio_drive. If the value set is anything other
-             * than #SOL_GPIO_DRIVE_NONE, then the @c cb member must be set.
+             * One of #sol_gpio_edge. If the value set is anything other
+             * than #SOL_GPIO_EDGE_NONE, then the @c cb member must be set.
              */
             enum sol_gpio_edge trigger_mode;
             /**

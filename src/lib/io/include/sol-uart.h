@@ -57,6 +57,10 @@ extern "C" {
 
 struct sol_uart;
 
+/**
+ * Baud rate is the number of times the signal can switch states in one second.
+ * Need to be defined to set uart config.
+ */
 enum sol_uart_baud_rate {
     SOL_UART_BAUD_RATE_9600 = 0,
     SOL_UART_BAUD_RATE_19200,
@@ -65,6 +69,9 @@ enum sol_uart_baud_rate {
     SOL_UART_BAUD_RATE_115200
 };
 
+/**
+ * Amount of stop bits.
+ */
 enum sol_uart_data_bits {
     SOL_UART_DATA_BITS_8 = 0,
     SOL_UART_DATA_BITS_7,
@@ -72,12 +79,19 @@ enum sol_uart_data_bits {
     SOL_UART_DATA_BITS_5
 };
 
+/**
+ * The parity characteristic can be even, odd, or none and it
+ * influences last trasmitted bit.
+ */
 enum sol_uart_parity {
-    SOL_UART_PARITY_NONE = 0,
-    SOL_UART_PARITY_EVEN,
-    SOL_UART_PARITY_ODD
+    SOL_UART_PARITY_NONE = 0, /**< no parity is used. */
+    SOL_UART_PARITY_EVEN, /**< the last data bit transmitted will be a logical 1  if the data transmitted had an even amount of 0 bits. */
+    SOL_UART_PARITY_ODD /**< the last data bit transmitted will be a logical 1 if the data transmitted had an odd amount of 0 bits. */
 };
 
+/**
+ * Amount of stop bits.
+ */
 enum sol_uart_stop_bits {
     SOL_UART_STOP_BITS_ONE = 0,
     SOL_UART_STOP_BITS_TWO

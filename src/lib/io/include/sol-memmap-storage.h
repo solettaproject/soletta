@@ -78,12 +78,25 @@ extern "C" {
 
 #define MEMMAP_VERSION_ENTRY "_version" /**< Name of property which contains stored map version */
 
+/**
+ * Macro to declare a @ref sol_memmap_entry variable setting fields
+ * with values passed by argument.
+ */
 #define SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, _size, _bit_offset, _bit_size) \
     static struct sol_memmap_entry _name = { .offset = (_offset), .size = (_size), .bit_offset = (_bit_offset), .bit_size = (_bit_size) }
 
+
+/**
+ * Macro to declare a @ref sol_memmap_entry variable without bit_offset
+ * and bit_size.
+ */
 #define SOL_MEMMAP_ENTRY(_name, _offset, _size) \
     SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, _size, 0, 0)
 
+/**
+ * Macro to declare a @ref sol_memmap_entry variable for boolean.
+ * So size and bit_size are set to @c 1.
+ */
 #define SOL_MEMMAP_BOOL_ENTRY(_name, _offset, _bit_offset) \
     SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, 1, _bit_offset, 1)
 
@@ -179,12 +192,28 @@ int sol_memmap_remove_map(const struct sol_memmap_map *map);
  */
 bool sol_memmap_set_timeout(struct sol_memmap_map *map, uint32_t timeout);
 
+/**
+ * Get map timeout
+ *
+ * @see sol_memmap_set_timeout() for more details.
+ *
+ * @param map map to get its timeout
+ *
+ * @return timeout in milliseconds.
+ */
 uint32_t sol_memmap_get_timeout(const struct sol_memmap_map *map);
 
+/**
+ * Macro to create a struct @ref sol_buffer with value passed as argument
+ * and flags SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED and SOL_BUFFER_FLAGS_NO_NUL_BYTE.
+ */
 #define CREATE_BUFFER(_val) \
     struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(_val, \
     sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
+/**
+ * Macro to create a struct @ref sol_blob with value passed as argument.
+ */
 #define CREATE_BLOB(_val) \
     struct sol_blob *blob; \
     size_t _s = sizeof(*_val); \
