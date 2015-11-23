@@ -160,6 +160,23 @@ sol_buffer_fini(struct sol_buffer *buf)
 }
 
 static inline void *
+sol_buffer_take_data(struct sol_buffer *buf)
+{
+    void *data;
+
+    if (!buf || buf->flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED)
+        return NULL;
+
+    data = buf->data;
+
+    buf->data = NULL;
+    buf->used = 0;
+    buf->capacity = 0;
+
+    return data;
+}
+
+static inline void *
 sol_buffer_at(const struct sol_buffer *buf, size_t pos)
 {
     if (!buf)

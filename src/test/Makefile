@@ -80,3 +80,6 @@ test-test-persistence-memmap-$(TEST_PERSISTENCE_MEMMAP) := test.c test-persisten
 
 test-$(TEST_HTTP) += test-http
 test-test-http-$(TEST_HTTP) := test.c test-http.c
+
+test-$(TEST_CERTIFICATE) += test-certificate
+test-test-certificate-$(TEST_CERTIFICATE) := test.c test-certificate.c

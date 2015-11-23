@@ -394,6 +394,17 @@ sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *
         }
     }
 
+    if (config->ca_cert && config->client_cert && config->private_key) {
+        r = mosquitto_tls_set(mqtt->mosq, sol_cert_get_filename(config->ca_cert), NULL,
+            sol_cert_get_filename(config->client_cert),
+            sol_cert_get_filename(config->private_key), NULL);
+
+        if (r != MOSQ_ERR_SUCCESS) {
+            SOL_WRN("Unable to set TLS connection");
+            goto error;
+        }
+    }
+
     mqtt->connection_status = SOL_MQTT_DISCONNECTED;
 
     r = mosquitto_connect_async(mqtt->mosq, host, port, mqtt->keepalive);

@@ -1,0 +1,12 @@
+config FLOW_NODE_TYPE_MQTT
+    tristate "Node type: MQTT"
+    depends on MQTT
+    default m
+    help
+        MQTT is a machine-to-machine (M2M)/"Internet of Things"
+        connectivity protocol. It was designed as an extremely
+        lightweight publish/subscribe messaging transport.
+
+        This option enables the mqtt/client node type, which can
+        be used to both publish messages and subscribe to topics
+
