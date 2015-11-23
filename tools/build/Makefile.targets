@@ -143,7 +143,7 @@ $(DOXYGEN_GENERATED): $(DOXYGEN_RESOURCES) $(shell find $(top_srcdir)src/ -name 
 	$(Q)$(RM) $(build_doxygen_logfile)
 	$(Q)$(RM) -rf $(build_doxygen_targetdir)/*
 	$(Q)$(DOXYGEN) doc/doxygen/Doxyfile
-	$(Q) test `du $(build_doxygen_logfile) | cut -f1` -eq 0 || (echo "Failed to build doc" && exit 1)
+	$(Q) test `du $(build_doxygen_logfile) | cut -f1` -eq 0 || (echo "Failed to build doc" && cat $(build_doxygen_logfile) && exit 1)
 
 
 $(build_doxygendir)$(PACKAGE_DOCNAME).tar.bz2: $(DOXYGEN_GENERATED)
