@@ -43,28 +43,116 @@ extern "C" {
 #endif
 
 /**
- * Structure containing the recipes (lists of rules) that should be used
- * to multiplex the pins of a given platform
+ * @file
+ * @brief These structure is used for implementation of Pin Multiplexer modules under Soletta.
+ */
+
+/**
+ * @defgroup PinMuxModules Pin Multiplexer Modules
+ * @ingroup PinMux
+ *
+ * @brief These structure is used for implementation of Pin Multiplexing modules under Soletta.
+ *
+ * @{
+ */
+
+/**
+ * Structure containing the callbacks used to setup and multiplex the pins of a given board
  */
 struct sol_pin_mux {
 #ifndef SOL_NO_API_VERSION
 #define SOL_PIN_MUX_API_VERSION (2UL)
     unsigned long int api_version; /**< API version */
 #endif
-    const char *plat_name; /**< Name this multiplexer target platform */
+    const char *plat_name; /**< Name of this multiplexer target platform */
 
+    /**
+     * Called after the module is successfully load by Soletta to allow it
+     * to do any initialization it may require.
+     *
+     * @return @c 0 on success, error code (always negative) otherwise.
+     */
     int (*init)(void);
+
+    /**
+     * Called before the module is unloaded.
+     * Is an opportunity for the module to execute any clean-up tasks it may require.
+     */
     void (*shutdown)(void);
 
+    /**
+     * Callback to map a pin label to the parameters necessary so it works on the desired protocol.
+     *
+     * Find if a given pin labeled @c label is capable of operate on protocol @c prot and return
+     * the parameters needed to setup the protocol.
+     *
+     * @param label The label of the pin as see on the board
+     * @param prot Protocol on which the pin should operate
+     * @param args Where to write the output. Soletta will provide the required @c args based on
+     * the requested protocol, in the same order that they appear in the protocol API.
+     *
+     * @return @c 0 on success, error code (always negative) otherwise.
+     */
     int (*pin_map)(const char *label, const enum sol_io_protocol prot, va_list args);
 
+    /**
+     * Callback to setup the given pin to operate as Analog I/O.
+     *
+     * Soletta will call this function so the module can execute the instructions
+     * needed to configure 'device'/'pin' pair to operate as Analog I/O.
+     *
+     * @param device the aio device number.
+     * @param pin the aio pin number.
+     *
+     * @return @c 0 on success, error code (always negative) otherwise.
+     */
     int (*aio)(const int device, const int pin);
+
+    /**
+     * Callback to setup the given pin to operate as GPIO in the given direction (in or out).
+     *
+     * Soletta will call this function so the module can execute the instructions
+     * needed to configure @c pin to operate as GPIO in direction @c dir.
+     *
+     * @param pin the gpio pin number.
+     * @param dir direction (in or out) that the pin should operate.
+     *
+     * @return @c 0 on success, error code (always negative) otherwise.
+     */
     int (*gpio)(const uint32_t pin, const enum sol_gpio_direction dir);
+
+    /**
+     * Callback to setup the pins used of the given i2c bus number to operate in I2C mode.
+     *
+     * Soletta will call this function so the module can execute the instructions
+     * needed to configure the pins used by the given i2c bus to operate in I2C mode.
+     *
+     * @param bus the i2c bus number.
+     *
+     * @return @c 0 on success, error code (always negative) otherwise.
+     */
     int (*i2c)(const uint8_t bus);
+
+    /**
+     * Callback to setup the given pin to operate as PWM.
+     *
+     * Soletta will call this function so the module can execute the instructions
+     * needed to configure 'device'/'channel' pair to operate as PWM.
+     *
+     * @param device the pwm device number.
+     * @param channel the channel number on device.
+     *
+     * @return @c 0 on success, error code (always negative) otherwise.
+     */
     int (*pwm)(const int device, const int channel);
 
 };
 
+/**
+ * @def SOL_PIN_MUX_DECLARE(_NAME, decl ...)
+ * Helper macro to make easier to correctly declare the symbol
+ * needed by the Pin Mux module.
+ */
 #ifdef SOL_PIN_MUX_MODULE_EXTERNAL
 #define SOL_PIN_MUX_DECLARE(_NAME, decl ...) \
     SOL_API const struct sol_pin_mux SOL_PIN_MUX = { \
@@ -78,6 +166,10 @@ struct sol_pin_mux {
         decl \
     }
 #endif
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
