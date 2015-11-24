@@ -41,6 +41,17 @@
 extern "C" {
 #endif
 
+/**
+ * @file
+ * @brief These routines are used for worker threads manipulation under Soletta.
+ */
+
+/**
+ * @defgroup WorkerThread Worker Thread
+ *
+ * @{
+ */
+
 // TODO abstract locks? see eina_lock.h
 struct sol_worker_thread;
 
@@ -198,6 +209,10 @@ bool sol_worker_thread_cancel_check(const struct sol_worker_thread *thread);
  * @see sol_worker_thread_new()
  */
 void sol_worker_thread_feedback(struct sol_worker_thread *thread);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
