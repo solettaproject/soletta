@@ -68,6 +68,7 @@ extern "C" {
  * @li @ref Macros
  * @li @ref Mainloop
  * @li @ref Parsers
+ * @li @ref PinMux
  * @li @ref Platform
  * @li @ref Types
  *
