@@ -325,7 +325,7 @@ $(1): $($(1)-src) $(1).dep
 	$(Q)$(MKDIR) -p $(dir $(1))
 	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) $($(1)-src) -c -o $(1) $(3)
 
-$(1).dep: $($(1)-src) $(all-hdr) $(find-gen-hdrs) $(call find-obj-deps,$(2)) $(all-dest-hdr) $(KCONFIG_CONFIG) $(HEADER_GEN)
+$(1).dep: $($(1)-src) $(all-hdr) $(find-gen-hdrs) $(call find-obj-deps,$(2)) $(all-dest-hdr) $(KCONFIG_CONFIG) $(HEADER_GEN) $(KCONFIG_AUTOHEADER)
 	$(Q)$(MKDIR) -p $(dir $(1))
 	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) -MM -MG $($(1)-src) -MT "$(1)" > $(1).dep
 endef
@@ -402,5 +402,6 @@ $(FLOW_OIC_GEN): $(FLOW_OIC_GEN_SCRIPT) $(KCONFIG_AUTOHEADER)
 		--node-type-gen-h=sol-flow/oic.h >/dev/null
 
 $(KCONFIG_AUTOHEADER): $(DEPENDENCY_CACHE) $(KCONFIG_CONFIG) $(obj)/conf
+	$(Q)echo "     "GEN"   "$@
 	$(Q)mkdir -p $(KCONFIG_INCLUDE)config $(KCONFIG_INCLUDE)generated
 	$(Q)$(obj)/conf -s --silentoldconfig Kconfig
