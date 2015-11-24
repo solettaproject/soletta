@@ -28,7 +28,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## TEST-SKIP-COMPILE It seems generator doesn't know about metatype 'js'
+## TEST-SKIP-JAVASCRIPT This will prevent that sol-fbp-generator generates C code for this fbp if duktape is not available.
 
 DECLARE=MyScript:js:javascript.js
 DECLARE=Composed:composed-new:KEY(string)|VALUE(int)
