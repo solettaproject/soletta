@@ -780,7 +780,7 @@ check_param_api_version(const struct sol_http_params *params)
 
 SOL_API struct sol_http_client_connection *
 sol_http_client_request(enum sol_http_method method,
-    const char *base_uri, const struct sol_http_params *params,
+    const char *url, const struct sol_http_params *params,
     void (*cb)(void *data, const struct sol_http_client_connection *connection,
     struct sol_http_response *response),
     const void *data)
@@ -816,16 +816,16 @@ sol_http_client_request(enum sol_http_method method,
     struct curl_http_method_opt method_opt;
     CURLcode code;
 
-    SOL_NULL_CHECK(base_uri, NULL);
+    SOL_NULL_CHECK(url, NULL);
 
     if (method >= SOL_HTTP_METHOD_INVALID) {
         SOL_WRN("The HTTP method is set to invalid");
         return NULL;
     }
 
-    if (!strstartswith(base_uri, "http://")
-        && !strstartswith(base_uri, "https://")) {
-        SOL_WRN("Invalid protocol for URI: %s", base_uri);
+    if (!strstartswith(url, "http://")
+        && !strstartswith(url, "https://")) {
+        SOL_WRN("Invalid protocol for URI: %s", url);
         return NULL;
     }
 
@@ -858,7 +858,7 @@ sol_http_client_request(enum sol_http_method method,
         goto invalid_option;
     }
 
-    if (!set_uri_from_params(curl, base_uri, params)) {
+    if (!set_uri_from_params(curl, url, params)) {
         SOL_WRN("Could not set URI from params");
         goto invalid_option;
     }
