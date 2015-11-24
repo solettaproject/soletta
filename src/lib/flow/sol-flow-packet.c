@@ -1095,10 +1095,12 @@ sol_flow_packet_is_composed_type(const struct sol_flow_packet_type *type)
 }
 
 SOL_API int
-sol_flow_packet_get_composed_members_len(const struct sol_flow_packet_type *type, uint16_t *len)
+sol_flow_packet_get_composed_members_packet_types(const struct sol_flow_packet_type *type,
+    const struct sol_flow_packet_type ***children, uint16_t *len)
 {
     SOL_NULL_CHECK(type, -EINVAL);
     SOL_NULL_CHECK(len, -EINVAL);
+    SOL_NULL_CHECK(children, -EINVAL);
 
     if (!sol_flow_packet_is_composed_type(type)) {
         SOL_ERR("Not a composed packet type. Type name:%s", type->name);
@@ -1106,6 +1108,7 @@ sol_flow_packet_get_composed_members_len(const struct sol_flow_packet_type *type
     }
 
     *len = ((const struct sol_flow_packet_composed_type *)type)->members_len;
+    *children = ((const struct sol_flow_packet_composed_type *)type)->members;
     return 0;
 }
 

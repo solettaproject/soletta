@@ -73,6 +73,62 @@ var node = {
             process: function(v) {
                 sendPacket("OUT_STRING", v);
             }
+        },
+        {
+            name:'IN_BLOB',
+            type:'blob',
+            process: function(v) {
+              sendPacket("OUT_BLOB", v);
+            }
+        },
+        {
+            name:'IN_LOCATION',
+            type:'location',
+            process: function(v) {
+                sendPacket("OUT_LOCATION", v);
+            }
+        },
+        {
+            name:'IN_TIMESTAMP',
+            type:'timestamp',
+            process: function(v) {
+                sendPacket("OUT_TIMESTAMP", v);
+            }
+        },
+        {
+            name:'IN_DIRECTION_VECTOR',
+            type:'direction-vector',
+            process: function(v) {
+                sendPacket("OUT_DIRECTION_VECTOR", v);
+            }
+        },
+        {
+            name:'IN_JSON_OBJECT',
+            type:'json-object',
+            process: function(v) {
+                sendPacket("OUT_JSON_OBJECT", v);
+            }
+        },
+        {
+            name:'IN_JSON_ARRAY',
+            type:'json-array',
+            process: function(v) {
+                sendPacket("OUT_JSON_ARRAY", v);
+            }
+        },
+        {
+            name:'IN_HTTP_RESPONSE',
+            type:'http-response',
+            process: function(v) {
+              sendPacket("OUT_HTTP_RESPONSE", v);
+            }
+        },
+        {
+            name:'IN_COMPOSED',
+            type:'composed:string,int',
+            process: function(v) {
+              sendPacket("OUT_COMPOSED", v);
+            }
         }
     ],
     out: [
@@ -100,5 +156,37 @@ var node = {
             name:'OUT_STRING',
             type:'string'
         },
+        {
+            name:'OUT_BLOB',
+            type:'blob'
+        },
+        {
+            name:'OUT_LOCATION',
+            type:'location'
+        },
+        {
+            name:'OUT_TIMESTAMP',
+            type:'timestamp'
+        },
+        {
+            name:'OUT_DIRECTION_VECTOR',
+            type:'direction-vector'
+        },
+        {
+            name:'OUT_JSON_OBJECT',
+            type:'json-object'
+        },
+        {
+            name:'OUT_JSON_ARRAY',
+            type:'json-array'
+        },
+        {
+            name:'OUT_HTTP_RESPONSE',
+            type:'http-response'
+        },
+        {
+            name:'OUT_COMPOSED',
+            type:'composed:string,int'
+        }
     ]
 };
