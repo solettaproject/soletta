@@ -60,6 +60,7 @@ extern "C" {
  * targets.
  *
  * For a better reference, check the following groups:
+ * @li @ref Certificate
  * @li @ref Comms
  * @li @ref Datatypes
  * @li @ref Flow
@@ -70,7 +71,9 @@ extern "C" {
  * @li @ref Parsers
  * @li @ref PinMux
  * @li @ref Platform
+ * @li @ref PowerSupply
  * @li @ref Types
+ * @li @ref WorkerThread
  *
  * Please see the @ref authors page for contact details.
  */
