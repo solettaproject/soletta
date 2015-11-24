@@ -55,12 +55,42 @@ extern "C" {
 
 struct sol_http_client_connection;
 
+/**
+ * Create a request for the specified url using the given method. The result of
+ * the request is obtained in @c cb.
+ *
+ * One should check the response code on @c sol_http_reponse to check
+ * if the request returned succes or with some error. @see sol_http_status_code.
+ *
+ * @note It should never be called from response callback given in
+ *       sol_http_client_request().
+ *
+ * @param method a valid HTTP method, e. g. SOL_HTTP_METHOD_GET or SOL_HTTP_METHOD_POST
+ * @param url a string containing a valid URL.
+ * @param params the parameters used on this request, e. g. headers,
+ *        cookies and post fields.
+ * @param cb callback that will be called with the response for this request.
+ * @param data user data given as parameter on @c cb
+ *
+ * @return a pending connection on success, @c NULL on error.
+ *
+ * @see sol_http_client_connection_cancel
+ */
 struct sol_http_client_connection *sol_http_client_request(enum sol_http_method method,
-    const char *base_uri, const struct sol_http_params *params,
+    const char *url, const struct sol_http_params *params,
     void (*cb)(void *data, const struct sol_http_client_connection *connection,
     struct sol_http_response *response),
     const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
 
+/**
+ * Cancel a pending request and release its resources.
+ *
+ * @note It should never be called from response callback given in
+ *       sol_http_client_request().
+ *
+ * @param pending the object previously created with
+ *        sol_http_client_request().
+ */
 void sol_http_client_connection_cancel(struct sol_http_client_connection *pending);
 
 /**
