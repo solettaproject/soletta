@@ -55,6 +55,10 @@ extern "C" {
  * @{
  */
 
+/**
+ * Type of power supply.
+ * It may be unknown, battery, mains (like ac), and usb variants.
+ */
 enum sol_power_supply_type {
     SOL_POWER_SUPPLY_TYPE_UNKNOWN,
     SOL_POWER_SUPPLY_TYPE_BATTERY,
@@ -66,6 +70,11 @@ enum sol_power_supply_type {
     SOL_POWER_SUPPLY_TYPE_USB_ACA
 };
 
+/**
+ * Power supply charging status.
+ * It doesn't apply to some types of power supplies.
+ * Batteries usually provide status.
+ */
 enum sol_power_supply_status {
     SOL_POWER_SUPPLY_STATUS_UNKNOWN,
     SOL_POWER_SUPPLY_STATUS_CHARGING,
@@ -74,6 +83,15 @@ enum sol_power_supply_status {
     SOL_POWER_SUPPLY_STATUS_FULL
 };
 
+/**
+ * Power supply capacity level.
+ *
+ * It represents capacity as provided by sol_power_supply_get_capacity()
+ * in well defined ranges.
+ *
+ * It doesn't apply to some types of power supplies.
+ * Batteries usually provide capacity level.
+ */
 enum sol_power_supply_capacity_level {
     SOL_POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN,
     SOL_POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL,

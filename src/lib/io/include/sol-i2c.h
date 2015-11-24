@@ -49,7 +49,10 @@ extern "C" {
  */
 
 /**
+ * @defgroup I2C I2C
  * @ingroup IO
+ *
+ * @brief I²C (Inter-Integrated Circuit) API for Soletta.
  *
  * @{
  */
@@ -58,12 +61,18 @@ struct sol_i2c;
 
 struct sol_i2c_pending;
 
+/**
+ * @brief Enum for I2C bus speed.
+ *
+ * Must be choosen when opening a bus with sol_i2c_open() and
+ * sol_i2c_open_raw().
+ */
 enum sol_i2c_speed {
-    SOL_I2C_SPEED_10KBIT = 0,
-    SOL_I2C_SPEED_100KBIT,
-    SOL_I2C_SPEED_400KBIT,
-    SOL_I2C_SPEED_1MBIT,
-    SOL_I2C_SPEED_3MBIT_400KBIT
+    SOL_I2C_SPEED_10KBIT = 0, /**< flag for low speed */
+    SOL_I2C_SPEED_100KBIT, /**< flag for normal speed */
+    SOL_I2C_SPEED_400KBIT, /**< flag for fast speed */
+    SOL_I2C_SPEED_1MBIT, /**< flag for fast plus speed */
+    SOL_I2C_SPEED_3MBIT_400KBIT /**< flag for high speed */
 };
 
 /**

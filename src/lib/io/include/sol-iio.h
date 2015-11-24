@@ -78,6 +78,11 @@ struct sol_iio_channel_config {
     bool use_custom_offset; /**< If true, will use user defined offset on member #offset of this struct */
 };
 
+/**
+ * Macro that may be used for initialized a @ref sol_iio_channel_config
+ * with default values for this struct. It'll start with scale @c -1.0 and
+ * without custom offset.
+ */
 #define SOL_IIO_CHANNEL_CONFIG_INIT { \
         SOL_SET_API_VERSION(.api_version = SOL_IIO_CHANNEL_CONFIG_API_VERSION, ) \
         .scale = -1.0, .use_custom_offset = false }
@@ -194,7 +199,7 @@ bool sol_iio_device_start_buffer(struct sol_iio_device *device);
  */
 bool sol_iio_address_device(const char *commands, void (*cb)(void *data, int device_id), const void *data);
 
-/*
+/**
  * Returns raw buffer with channel sample.
  *
  * This function is meaningful only when buffer is enabled. Useful for reading

@@ -57,6 +57,21 @@ extern "C" {
 
 struct sol_spi;
 
+/**
+ * @brief SPI Transfer Modes.
+ *
+ * It may enable and disable clock polarity (cpol)
+ * and clock phase (cpha) to define a clock format to be used by the SPI
+ * bus.
+ *
+ * Depending on CPOL parameter, SPI clock may be inverted or non-inverted.
+ *
+ * CPHA parameter is used to shift the sampling phase. If CPHA=0 the data
+ * are sampled on the leading (first) clock edge.
+ *
+ * If CPHA=1 the data are sampled on the trailing (second) clock edge,
+ * regardless of whether that clock edge is rising or falling.
+ */
 enum sol_spi_mode {
     SOL_SPI_MODE_0 = 0, /** CPOL = 0 and CPHA = 0 */
     SOL_SPI_MODE_1, /** CPOL = 0 and CPHA = 1 */
@@ -64,6 +79,9 @@ enum sol_spi_mode {
     SOL_SPI_MODE_3 /** CPOL = 1 and CPHA = 1 */
 };
 
+/**
+ * Default value for bits per word when using SPI
+ */
 #define SOL_SPI_DATA_BITS_DEFAULT 8
 
 struct sol_spi_config {
