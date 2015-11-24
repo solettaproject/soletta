@@ -222,6 +222,11 @@ engine_urandom_init(struct sol_random *generic, uint64_t seed)
 {
     struct sol_random_urandom *engine = (struct sol_random_urandom *)generic;
 
+    if (seed) {
+        SOL_WRN("Explicit seed not supported by this random implementation");
+        return false;
+    }
+
     engine->fd = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
     if (engine->fd < 0) {
         SOL_WRN("Could not open /dev/urandom: %s", sol_util_strerrora(errno));
@@ -259,7 +264,7 @@ engine_urandom_generate_uint32(struct sol_random *generic)
     }
 
     SOL_ERR("Could not read from /dev/urandom: %s", sol_util_strerrora(errno));
-    return 0;
+    return -errno;
 }
 
 const struct sol_random_impl *SOL_RANDOM_URANDOM =
