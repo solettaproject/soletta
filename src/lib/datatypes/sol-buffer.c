@@ -873,3 +873,30 @@ sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice
     return 0;
 }
 
+SOL_API int
+sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset)
+{
+    int r;
+    size_t total;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED, -EPERM);
+
+    if ((buf->used < offset))
+        return -EINVAL;
+
+    r = sol_util_size_add(size, offset, &total);
+    SOL_INT_CHECK(r, < 0, r);
+
+    size = total <= buf->used ? size : buf->used - offset;
+    if (buf->used != total) {
+        memmove((char *)buf->data + offset,
+            (char *)buf->data + total,
+            buf->used - size - offset);
+    }
+
+    buf->used -= size;
+
+
+    return 0;
+}
