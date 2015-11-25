@@ -50,8 +50,7 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
     char *new_data;
 
     SOL_NULL_CHECK(buf, -EINVAL);
-    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_FIXED_CAPACITY, -EPERM);
-    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_NO_FREE, -EPERM);
+    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED, -EPERM);
 
     if (buf->capacity == new_size)
         return 0;
@@ -345,6 +344,25 @@ sol_buffer_steal(struct sol_buffer *buf, size_t *size)
     buf->data = NULL;
     buf->used = 0;
     buf->capacity = 0;
+
+    return r;
+}
+
+SOL_API void *
+sol_buffer_steal_or_copy(struct sol_buffer *buf, size_t *size)
+{
+    void *r;
+
+    SOL_NULL_CHECK(buf, NULL);
+
+    r = sol_buffer_steal(buf, size);
+    if (!r) {
+        r = sol_util_memdup(buf->data, buf->used);
+        SOL_NULL_CHECK(r, NULL);
+
+        if (size)
+            *size = buf->used;
+    }
 
     return r;
 }
@@ -873,3 +891,24 @@ sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice
     return 0;
 }
 
+SOL_API int
+sol_buffer_remove_data(struct sol_buffer *buf, size_t size, unsigned long offset)
+{
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED, -EPERM);
+
+    if ((buf->used < offset) ||
+        (buf->used < size)   ||
+        (buf->used < (offset + size)))
+        return -EINVAL;
+
+    if (buf->used != (offset + size)) {
+        memmove((char *)buf->data + offset,
+            (char *)buf->data + offset + size,
+            buf->used - size - offset);
+    }
+
+    buf->used -= size;
+
+    return 0;
+}

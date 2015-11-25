@@ -489,6 +489,25 @@ sol_buffer_trim(struct sol_buffer *buf)
 void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);
 
 /**
+ *  'Steals' sol_buffer internal buffer and resets sol_buffer if the
+ *  the buffer has not set the flag @c SOL_BUFFER_FLAGS_NO_FREE, otherwise
+ *  it will return a copy of the buffer's data.
+ *
+ *  After this call, user is responsible for the memory returned.
+ *
+ *  @param buf buffer to have it's internal buffer stolen or copied
+ *  @param size if not NULL, will store memory returned size
+ *
+ *  @return @a buffer internal buffer. It's caller responsibility now
+ *  to free this memory
+ *
+ *  @note If @a buffer was allocated with @c sol_buffer_new(), it still
+ *  needs to be freed by calling @c sol_buffer_free();
+ *  @see sol_buffer_steal
+ */
+void *sol_buffer_steal_or_copy(struct sol_buffer *buf, size_t *size);
+
+/**
  *  Allocate a new sol_buffer and a new data block and copy the
  *  contents of the provided sol_buffer
  *
@@ -537,6 +556,23 @@ sol_buffer_free(struct sol_buffer *buf)
  * is set for instance, or if it could not resize the buffer
  */
 int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
+
+
+/**
+ *  Removes part of data inside the buffer rearranging the memory
+ *  properly.
+ *
+ *  @param buf the already-initialized buffer
+ *  @param size the amount of data (in bytes) that should be removed
+ *  @param offset the position (from begin of the buffer) where
+ *  @c size bytes will be removed
+ *
+ *  @return 0 on success, -errno on failure.
+ *
+ *  @note the buffer keeps its capacity after this function, it means,
+ *  the data is not released. If that is wanted, one should call @c sol_buffer_trim()
+ */
+int sol_buffer_remove_data(struct sol_buffer *buf, size_t size, unsigned long offset);
 
 /**
  * @}
