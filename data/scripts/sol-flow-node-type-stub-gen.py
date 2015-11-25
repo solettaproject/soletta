@@ -340,12 +340,12 @@ static int
 send_%s_packet(struct sol_flow_node *src, uint16_t src_port, %s)
 {
    struct sol_flow_packet **children;
-   const struct sol_flow_packet_type *p_type;
+   const struct sol_flow_packet_type *p_type, **packet_types;
    uint16_t len, i;
    int r;
 
    p_type = %s_get_composed_%s_packet_type();
-   r = sol_flow_packet_get_composed_members_len(p_type, &len);
+   r = sol_flow_packet_get_composed_members_packet_types(p_type, &packet_types, &len);
    SOL_INT_CHECK(r, < 0, r);
    children = alloca(len * sizeof(struct sol_flow_packet *));
    memset(children, 0, len * sizeof(struct sol_flow_packet *));
