@@ -1545,7 +1545,7 @@ setup_composed_packet_type(const struct sol_str_slice types)
     uint16_t i;
 
     composed_type = NULL;
-    tokens = sol_util_str_split(types, ",", 0);
+    tokens = sol_str_slice_split(types, ",", 0);
 
     if (tokens.len < 2) {
         SOL_WRN("Composed types must have at least two components."

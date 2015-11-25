@@ -99,7 +99,7 @@ test_str_to_slice(void)
         struct sol_vector tokens;
         struct sol_str_slice *s;
 
-        tokens = sol_util_str_split(items[i].slice, items[i].delim,
+        tokens = sol_str_slice_split(items[i].slice, items[i].delim,
             items[i].max_split);
 
         ASSERT_INT_EQ(tokens.len, items[i].n_splits);

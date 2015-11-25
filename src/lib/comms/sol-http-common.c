@@ -341,7 +341,7 @@ sol_http_decode_params(const struct sol_str_slice params_slice,
     else
         param_sep = "&";
 
-    tokens = sol_util_str_split(params_slice, param_sep, 0);
+    tokens = sol_str_slice_split(params_slice, param_sep, 0);
     SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
         struct sol_http_param_value param;
         sep = memchr(token->data, '=', token->len);
@@ -797,5 +797,51 @@ sol_http_split_uri(const struct sol_str_slice full_uri,
     SOL_INT_CHECK(r, < 0, r);
     r = _get_fragment(partial_uri, full_uri, &partial_uri, &url->fragment);
     SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+SOL_API int
+sol_http_split_query(const char *query, struct sol_http_params *params)
+{
+    struct sol_vector tokens;
+    struct sol_str_slice *token;
+    char *sep;
+    uint16_t i;
+
+    tokens = sol_str_slice_split(sol_str_slice_from_str(query), "&", 0);
+
+#define CREATE_QUERY_PARAM(_key, _value) \
+        (struct sol_http_param_value) { \
+            .type = SOL_HTTP_PARAM_QUERY_PARAM, \
+            .value.key_value.key = _key,\
+            .value.key_value.value = _value \
+        }
+
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
+        struct sol_str_slice key, value;
+
+        sep = memchr(token->data, '=', token->len);
+        key.data = token->data;
+        if (sep) {
+            key.len = sep - key.data;
+            value.data = sep + 1;
+            value.len = token->len - key.len - 1;
+        } else {
+            key.len = token->len;
+            value.data = NULL;
+            value.len = 0;
+        }
+
+        if (!sol_http_param_add_copy(params,
+            CREATE_QUERY_PARAM(key, value))) {
+            SOL_ERR("Could not add the HTTP param %.*s:%.*s",
+                    SOL_STR_SLICE_PRINT(key), SOL_STR_SLICE_PRINT(value));
+            goto exit;
+        }
+    }
+#undef CREATE_QUERY_PARAM
+
+exit:
+    sol_vector_clear(&tokens);
     return 0;
 }

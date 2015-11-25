@@ -490,7 +490,7 @@ calculate_substrings(struct string_split_data *mdata,
 
     sol_vector_clear(&mdata->substrings);
 
-    mdata->substrings = sol_util_str_split(sol_str_slice_from_str
+    mdata->substrings = sol_str_slice_split(sol_str_slice_from_str
             (mdata->string), mdata->separator, mdata->max_split);
 
     return sol_flow_send_irange_value_packet(node,

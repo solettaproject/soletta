@@ -192,6 +192,25 @@ sol_str_slice_trim(struct sol_str_slice slice)
     return sol_str_slice_remove_trailing_whitespace
                (sol_str_slice_remove_leading_whitespace(slice));
 }
+
+/**
+ * Return a list of the words in a given string slice, using a given
+ * delimiter string. If @a maxsplit is given, at most that number of
+ * splits are done (thus, the list will have at most @c maxsplit+1
+ * elements). If @c maxsplit is zero, then there is no limit on the
+ * number of splits (all possible splits are made).
+ *
+ * @param slice The string slice to divide in sub-strings (in array of
+ *              slices form)
+ * @param delim The delimiter string to divide @a slice based on
+ * @param maxsplit The maximum number of splits to make on @a slice.
+ *                 If it's 0, than make as many splits as it can.
+ *
+ * @return A vector of string slices with the splitted words, on
+ *         success, or @c NULL, otherwise.
+ */
+struct sol_vector sol_str_slice_split(const struct sol_str_slice slice, const char *delim, size_t maxsplit);
+
 /**
  * @}
  */

@@ -132,7 +132,7 @@ kmod_apply_file(struct kmod_ctx *kmod, int fd)
     if (content.len == 0)
         goto finish;
 
-    lines = sol_util_str_split(content, "\n", 0);
+    lines = sol_str_slice_split(content, "\n", 0);
     SOL_VECTOR_FOREACH_IDX (&lines, itr, idx) {
         struct sol_str_slice slice;
 

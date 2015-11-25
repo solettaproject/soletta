@@ -1315,7 +1315,7 @@ create_device_address(struct sol_str_slice *command, struct create_and_resolve_p
         char *end_ptr;
         int r;
 
-        instructions = sol_util_str_split(*command, ",", 5);
+        instructions = sol_str_slice_split(*command, ",", 5);
 
         if (instructions.len < 5) {
             SOL_WRN("Invalid create device path. Expected 'create,i2c,<rel_path>,"
@@ -1421,7 +1421,7 @@ sol_iio_address_device(const char *commands, void (*cb)(void *data, int device_i
 
     dispatcher_data->addresses = strdup(commands);
     dispatcher_data->slice = sol_str_slice_from_str(dispatcher_data->addresses);
-    dispatcher_data->commands = sol_util_str_split(dispatcher_data->slice, " ", 0);
+    dispatcher_data->commands = sol_str_slice_split(dispatcher_data->slice, " ", 0);
 
     sol_idle_add(create_or_resolve_device_address_dispatch, dispatcher_data);
 

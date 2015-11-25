@@ -73,3 +73,57 @@ sol_str_slice_str_contains(const struct sol_str_slice haystack, const char *need
 {
     return memmem(haystack.data, haystack.len, needle, strlen(needle)) != NULL;
 }
+
+SOL_API struct sol_vector
+sol_str_slice_split(const struct sol_str_slice slice,
+    const char *delim,
+    size_t maxsplit)
+{
+    struct sol_vector v = SOL_VECTOR_INIT(struct sol_str_slice);
+    const char *str = slice.data;
+    ssize_t dlen;
+    size_t len;
+
+    if (!slice.len || !delim)
+        return v;
+
+    maxsplit = (maxsplit) ? : slice.len - 1;
+    if (maxsplit == SIZE_MAX) //once we compare to maxsplit + 1
+        maxsplit--;
+
+    dlen = strlen(delim);
+    len = slice.len;
+
+#define CREATE_SLICE(_str, _len) \
+    do { \
+        s = sol_vector_append(&v); \
+        if (!s) \
+            goto err; \
+        s->data = _str; \
+        s->len = _len; \
+    } while (0)
+
+    while (str && (v.len < maxsplit + 1)) {
+        struct sol_str_slice *s;
+        char *token = memmem(str, len, delim, dlen);
+        if (!token) {
+            CREATE_SLICE(str, len);
+            break;
+        }
+
+        if (v.len == (uint16_t)maxsplit)
+            CREATE_SLICE(str, len);
+        else
+            CREATE_SLICE(str, (size_t)(token - str));
+
+        len -= (token - str) + dlen;
+        str = token + dlen;
+    }
+#undef CREATE_SLICE
+
+    return v;
+
+err:
+    sol_vector_clear(&v);
+    return v;
+}

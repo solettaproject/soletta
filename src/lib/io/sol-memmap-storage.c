@@ -577,7 +577,7 @@ resolve_i2c_path(const char *path, char **resolved_path)
     struct sol_str_slice command = sol_str_slice_from_str(path);
     int ret = -EINVAL;
 
-    instructions = sol_util_str_split(command, ",", 5);
+    instructions = sol_str_slice_split(command, ",", 5);
     if (instructions.len < 5) {
         SOL_WRN("Invalid create device path. Expected 'create,i2c,<rel_path>,"
             "<devnumber>,<devname>'");

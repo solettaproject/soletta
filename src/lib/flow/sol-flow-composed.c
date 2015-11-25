@@ -307,7 +307,7 @@ setup_simple_ports(struct sol_vector *in_ports, const struct sol_str_slice conte
         }
     }
 
-    tokens = sol_util_str_split(sol_buffer_get_slice(&buf), DELIM, 0);
+    tokens = sol_str_slice_split(sol_buffer_get_slice(&buf), DELIM, 0);
 
     if (tokens.len < 2) {
         SOL_ERR("A composed node must have at least two ports. Contents:%.*s",
@@ -638,7 +638,7 @@ get_ports_from_contents(const struct sol_str_slice contents,
     struct sol_vector tokens;
     int r;
 
-    tokens = sol_util_str_split(contents, DELIM, 0);
+    tokens = sol_str_slice_split(contents, DELIM, 0);
     if (tokens.len < 2) {
         SOL_ERR("Invalid contents:%.*s", SOL_STR_SLICE_PRINT(contents));
         sol_vector_clear(&tokens);

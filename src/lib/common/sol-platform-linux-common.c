@@ -374,7 +374,7 @@ sol_mtab_remove_entry(const char *mpoint, struct sol_buffer *output)
     }
 
     content = sol_file_reader_get_all(reader);
-    lines = sol_util_str_split(content, "\n", 0);
+    lines = sol_str_slice_split(content, "\n", 0);
     SOL_VECTOR_FOREACH_IDX (&lines, itr, idx) {
         if (!strstr(itr->data, mpoint) || strstartswith(itr->data, "#"))
             sol_buffer_append_printf(output, "%s", itr->data);

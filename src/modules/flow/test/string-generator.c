@@ -82,7 +82,7 @@ string_generator_open(
     mdata->interval = opts->interval >= 0 ? opts->interval : 0;
     mdata->next_index = 0;
 
-    mdata->values = sol_util_str_split(sol_str_slice_from_str
+    mdata->values = sol_str_slice_split(sol_str_slice_from_str
             (mdata->sequence), opts->separator, SIZE_MAX);
 
     mdata->timer = sol_timeout_add(mdata->interval, timer_tick, node);
