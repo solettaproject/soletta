@@ -68,6 +68,7 @@ extern "C" {
  * @li @ref Log
  * @li @ref Macros
  * @li @ref Mainloop
+ * @li @ref Meta
  * @li @ref Parsers
  * @li @ref PinMux
  * @li @ref Platform
