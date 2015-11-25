@@ -41,6 +41,7 @@ extern "C" {
 /**
  * @file
  * @brief HTTP client
+ *
  * Library to perform HTTP(s) requests. Buffers whole response in memory,
  * so it's more suitable to remote API calls rather than file transfer.
  */
@@ -49,10 +50,25 @@ extern "C" {
  * @defgroup HTTP_CLIENT HTTP Client
  * @ingroup HTTP
  *
+ * @brief Library to perform HTTP(s) requests.
+ *
+ * Buffers whole response in memory,
+ * so it's more suitable to remote API calls rather than file transfer.
+ *
  * @{
  */
 
 
+/**
+ * @struct sol_http_client_connection
+ * @brief Opaque handler for a HTTP client connection.
+ *
+ * It's created when a request is made with
+ * sol_http_client_request() or
+ * sol_http_client_request_with_interface().
+ *
+ * A connection may be canceled with sol_http_client_connection_cancel().
+ */
 struct sol_http_client_connection;
 
 /**
@@ -152,7 +168,7 @@ struct sol_http_client_connection *sol_http_client_request(enum sol_http_method 
     const char *url, const struct sol_http_params *params,
     void (*cb)(void *data, const struct sol_http_client_connection *connection,
     struct sol_http_response *response),
-    const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
+    const void *data) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(2, 4);
 
 /**
  * @brief Create a request for the specified url using the given method. The result of
@@ -179,10 +195,10 @@ struct sol_http_client_connection *sol_http_client_request(enum sol_http_method 
 struct sol_http_client_connection *sol_http_client_request_with_interface(enum sol_http_method method,
     const char *url, const struct sol_http_params *params,
     const struct sol_http_request_interface *interface,
-    const void *data) SOL_ATTR_NONNULL(2, 4) SOL_ATTR_WARN_UNUSED_RESULT;
+    const void *data) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(2, 4);
 
 /**
- * Cancel a pending request and release its resources.
+ * @brief Cancel a pending request and release its resources.
  *
  * @note It should never be called from response callback given in
  *       sol_http_client_request().
