@@ -36,13 +36,29 @@
 
 #include "sol-gpio.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @file
+ * @brief These routines are used for Pin Multiplexing and Mapping under Soletta.
+ */
+
+/**
+ * @defgroup PinMux Pin Multiplexing
+ * @brief These routines are used for Pin Multiplexing and Mapping under Soletta.
+ *
+ * @{
+ */
+
 enum sol_io_protocol {
-    SOL_IO_AIO = 0x01,
-    SOL_IO_GPIO = 0x02,
-    SOL_IO_I2C = 0x04,
-    SOL_IO_PWM = 0x08,
-    SOL_IO_SPI = 0x10,
-    SOL_IO_UART = 0x20,
+    SOL_IO_AIO = 0x01, /**< Value to check for AIO capability */
+    SOL_IO_GPIO = 0x02, /**< Value to check for GPIO capability */
+    SOL_IO_I2C = 0x04, /**< Value to check for I2C capability */
+    SOL_IO_PWM = 0x08, /**< Value to check for PWM capability */
+    SOL_IO_SPI = 0x10, /**< Value to check for SPI capability */
+    SOL_IO_UART = 0x20, /**< Value to check for UART capability */
 };
 
 /**
@@ -122,3 +138,11 @@ int sol_pin_mux_setup_i2c(const uint8_t bus);
  * @return '0' on success, error code (always negative) otherwise.
  */
 int sol_pin_mux_setup_pwm(const int device, const int channel);
+
+/**
+ * @}
+ */
+
+#ifdef __cplusplus
+}
+#endif
