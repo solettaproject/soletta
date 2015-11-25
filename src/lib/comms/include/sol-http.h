@@ -375,6 +375,20 @@ sol_http_create_simple_uri_from_str(char **uri, const char *base_url, const stru
 }
 
 /**
+ * Split query into parameters.
+ *
+ * This function will receive a query and split and store its values in the
+ * @c sol_http_params struct.
+ *
+ * @param query A query to be splitted.
+ * @param params Where the query paramters will be stored.
+ *
+ *
+ * @return 0 on success, negative number on error.
+ */
+int sol_http_split_query(const char *query, struct sol_http_params *params);
+
+/**
  * @}
  */
 
