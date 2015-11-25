@@ -1284,6 +1284,7 @@ sol_coap_server_destroy(struct sol_coap_server *server)
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
         sol_ptr_vector_del(&server->pending, i);
+        reply->cb(server, NULL, NULL, (void *)reply->data);
         pending_reply_free(reply);
     }
 
@@ -1600,6 +1601,7 @@ sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_netwo
         if (!match_observe_reply(reply, token, tkl))
             continue;
 
+        reply->cb(server, NULL, NULL, (void *)reply->data);
         sol_ptr_vector_del(&server->pending, i);
 
         r = send_unobserve_packet(server, cliaddr, reply->path, token, tkl);

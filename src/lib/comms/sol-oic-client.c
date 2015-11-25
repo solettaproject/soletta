@@ -737,8 +737,10 @@ _resource_request_cb(struct sol_coap_server *server,
 
     if (!ctx->cb)
         return false;
-    if (!req || !cliaddr)
+    if (!req || !cliaddr) {
+        free(data);
         return false;
+    }
     if (!_pkt_has_same_token(req, ctx->token))
         return true;
     if (!sol_oic_pkt_has_cbor_content(req))
@@ -813,7 +815,9 @@ _one_shot_resource_request_cb(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
 {
-    _resource_request_cb(server, req, cliaddr, data);
+
+    if (req && cliaddr)
+        _resource_request_cb(server, req, cliaddr, data);
 
     free(data);
     return false;
