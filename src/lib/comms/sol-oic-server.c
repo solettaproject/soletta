@@ -728,7 +728,7 @@ send_notification_to_server(struct sol_oic_server_resource *resource,
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     struct sol_coap_packet *pkt;
 
-    pkt = sol_coap_packet_notification_new(oic_server.server, resource->coap);
+    pkt = sol_coap_packet_notification_new(server, resource->coap);
     SOL_NULL_CHECK(pkt, false);
 
     sol_coap_add_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
@@ -741,7 +741,7 @@ send_notification_to_server(struct sol_oic_server_resource *resource,
 
     sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
 
-    return !sol_coap_packet_send_notification(oic_server.server, resource->coap, pkt);
+    return !sol_coap_packet_send_notification(server, resource->coap, pkt);
 }
 
 SOL_API bool
