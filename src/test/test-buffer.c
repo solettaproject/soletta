@@ -708,4 +708,42 @@ test_append_from_base16(void)
 #undef B16_DECODED
 }
 
+DEFINE_TEST(test_remove_data);
+
+static void
+test_remove_data(void)
+{
+    struct sol_buffer buf;
+    struct sol_str_slice slice;
+    int err;
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("ABCDEFGHI");
+    err = sol_buffer_append_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("ABCDEFGHI"));
+    ASSERT_STR_EQ(buf.data, "ABCDEFGHI");
+
+    err = sol_buffer_remove_data(&buf, strlen("ABC"), 0);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("DEFGHI"));
+
+    err = sol_buffer_remove_data(&buf, strlen("GHI"), 3);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("DEF"));
+
+    err = sol_buffer_remove_data(&buf, strlen("DEF"), 0);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, 0);
+
+    err = sol_buffer_remove_data(&buf, 100, 0);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, 0);
+
+    err = sol_buffer_remove_data(&buf, 0, 100);
+    ASSERT_INT_EQ(err, -EINVAL);
+
+    sol_buffer_fini(&buf);
+}
+
 TEST_MAIN();
