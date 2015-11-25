@@ -105,26 +105,38 @@ enum sol_power_supply_capacity_level {
  * Retrieves a list of names of all power supplies found. Types may vary.
  *
  * @param list A vector that will be initialized and filled with all
- * power supply names found. It's required to free names pointed by
- * it and clear the vector after usage.
+ * power supply names found. It's required to free it with
+ * sol_power_supply_free_list() after usage.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_list(struct sol_ptr_vector *list);
+
+/**
+ * Free a list of power supply names.
+ *
+ * It will free strings and vector data.
+ *
+ * @param list A vector returned by sol_power_supply_get_list() or
+ * sol_power_supply_get_list_by_type().
+ *
+ * @return On success, it returns @c 0. On error, a negative value is returned.
+ */
+int sol_power_supply_free_list(struct sol_ptr_vector *list);
 
 /**
  * Retrieves a list of names of all power supplies found that match
  * a specified type.
  *
  * @param list A vector that will be initialized and filled with all
- * power supply names found. It's required to free names pointed by
- * it and clear the vector after usage.
+ * power supply names found. It's required to free it with
+ * sol_power_supply_free_list() after usage.
  *
  * @param type Type of power supply to be fetched.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_list_by_type(struct sol_ptr_vector *list, enum sol_power_supply_type type);
 
@@ -137,7 +149,7 @@ int sol_power_supply_get_list_by_type(struct sol_ptr_vector *list, enum sol_powe
  * @param type Type of power supply will be set on this pointer on success.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_type(const char *name, enum sol_power_supply_type *type);
 
@@ -151,7 +163,7 @@ int sol_power_supply_get_type(const char *name, enum sol_power_supply_type *type
  * exist will be set to @c True. Otherwise it'll be set to false.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_exist(const char *name, bool *exist);
 
@@ -170,7 +182,7 @@ int sol_power_supply_exist(const char *name, bool *exist);
  * be set to @c True or to @c False otherwise.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_is_online(const char *name, bool *online);
 
@@ -186,7 +198,7 @@ int sol_power_supply_is_online(const char *name, bool *online);
  * be set to @c True or to @c False if not attached to the board at the moment.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_is_present(const char *name, bool *present);
 
@@ -201,7 +213,7 @@ int sol_power_supply_is_present(const char *name, bool *present);
  * @param status Status of power supply will be set on this pointer on success.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_status(const char *name, enum sol_power_supply_status *status);
 
@@ -216,9 +228,9 @@ int sol_power_supply_get_status(const char *name, enum sol_power_supply_status *
  * @param capacity Capacity percentage will be set on this pointer on success.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
-int sol_power_supply_get_capacity(const char *name, int *capacity);
+int sol_power_supply_get_capacity(const char *name, uint8_t *capacity);
 
 /**
  * Get capacity level, as provided by driver (critical, low, normal,
@@ -237,7 +249,7 @@ int sol_power_supply_get_capacity(const char *name, int *capacity);
  * this pointer on success.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_capacity_level(const char *name, enum sol_power_supply_capacity_level *capacity_level);
 
@@ -251,7 +263,7 @@ int sol_power_supply_get_capacity_level(const char *name, enum sol_power_supply_
  * this pointer on success. It must be freed after usage.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_model_name(const char *name, char **model_name);
 
@@ -265,7 +277,7 @@ int sol_power_supply_get_model_name(const char *name, char **model_name);
  * this pointer on success. It must be freed after usage.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_manufacturer(const char *name, char **manufacturer);
 
@@ -279,7 +291,7 @@ int sol_power_supply_get_manufacturer(const char *name, char **manufacturer);
  * this pointer on success. It must be freed after usage.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_serial_number(const char *name, char **serial_number);
 
@@ -304,7 +316,7 @@ int sol_power_supply_get_serial_number(const char *name, char **serial_number);
  * @param voltage Current voltage will be set on this pointer on success.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_voltage(const char *name, int *voltage);
 
@@ -320,7 +332,7 @@ int sol_power_supply_get_voltage(const char *name, int *voltage);
  * this pointer on success.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_voltage_min(const char *name, int *voltage);
 
@@ -336,7 +348,7 @@ int sol_power_supply_get_voltage_min(const char *name, int *voltage);
  * this pointer on success.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_voltage_max(const char *name, int *voltage);
 
@@ -352,7 +364,7 @@ int sol_power_supply_get_voltage_max(const char *name, int *voltage);
  * this pointer on success.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_voltage_min_design(const char *name, int *voltage);
 
@@ -368,7 +380,7 @@ int sol_power_supply_get_voltage_min_design(const char *name, int *voltage);
  * this pointer on success.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid);
+ * and properties won't be set (pointers won't be valid).
  */
 int sol_power_supply_get_voltage_max_design(const char *name, int *voltage);
 

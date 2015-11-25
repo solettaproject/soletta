@@ -255,6 +255,22 @@ sol_power_supply_get_list(struct sol_ptr_vector *list)
 }
 
 SOL_API int
+sol_power_supply_free_list(struct sol_ptr_vector *list)
+{
+    char *name;
+    uint16_t i;
+
+    SOL_NULL_CHECK(list, -EINVAL);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (list, name, i) {
+        free(name);
+    }
+    sol_ptr_vector_clear(list);
+
+    return 0;
+}
+
+SOL_API int
 sol_power_supply_get_list_by_type(struct sol_ptr_vector *list,
     enum sol_power_supply_type type)
 {
@@ -336,9 +352,21 @@ sol_power_supply_get_status(const char *name,
 }
 
 SOL_API int
-sol_power_supply_get_capacity(const char *name, int *capacity)
+sol_power_supply_get_capacity(const char *name, uint8_t *capacity)
 {
-    return _get_int_prop(name, SOL_POWER_SUPPLY_PROP_CAPACITY, capacity);
+    int cap, r;
+
+    r = _get_int_prop(name, SOL_POWER_SUPPLY_PROP_CAPACITY, &cap);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (cap < 0 || cap > 100) {
+        SOL_WRN("Invalid capacity %d", cap);
+        return -ERANGE;
+    }
+
+    *capacity = (uint8_t) cap;
+
+    return 0;
 }
 
 SOL_API int
