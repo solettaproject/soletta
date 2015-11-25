@@ -218,9 +218,6 @@ _append_file_path(void *data, const char *dir_path, struct dirent *ent)
     if (ent->d_type != DT_REG && ent->d_type != DT_LNK) //It won't be recursive
         return false;
 
-    if (!ent->d_name || !ent->d_name[0])
-        return false;
-
     name_len = strlen(ent->d_name);
     suffix_len = strlen(".json");
     if (suffix_len > name_len || strcmp(ent->d_name + name_len - suffix_len, ".json"))
