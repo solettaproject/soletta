@@ -1592,7 +1592,7 @@ split_query(const char *query, struct sol_http_params *params)
     uint16_t i;
     int r;
 
-    tokens = sol_util_str_split(sol_str_slice_from_str(query), "&", 0);
+    tokens = sol_str_slice_split(sol_str_slice_from_str(query), "&", 0);
 
     SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
         struct sol_str_slice key, value;

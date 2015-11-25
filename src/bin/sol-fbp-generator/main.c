@@ -265,7 +265,7 @@ handle_suboptions(const struct sol_fbp_meta *meta, handle_func func,
     struct sol_str_slice *token;
     uint16_t i;
 
-    tokens = sol_util_str_split(meta->value, "|", 0);
+    tokens = sol_str_slice_split(meta->value, "|", 0);
 
     if (tokens.len == 0) {
         SOL_ERR("Could not split the tokens for option:%s", opt_name);
@@ -348,7 +348,7 @@ handle_explicit_suboptions(const struct sol_fbp_meta *meta, handle_func func,
     uint16_t i;
 
     sol_vector_init(&used_fields, sizeof(struct sol_str_slice));
-    tokens = sol_util_str_split(meta->value, "|", 0);
+    tokens = sol_str_slice_split(meta->value, "|", 0);
     if (tokens.len == 0) {
         SOL_ERR("Could not split the tokens for option:%s", opt_name);
         return;

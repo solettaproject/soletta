@@ -341,7 +341,7 @@ sol_http_decode_params(const struct sol_str_slice params_slice,
     else
         param_sep = "&";
 
-    tokens = sol_util_str_split(params_slice, param_sep, 0);
+    tokens = sol_str_slice_split(params_slice, param_sep, 0);
     SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
         struct sol_http_param_value param;
         sep = memchr(token->data, '=', token->len);

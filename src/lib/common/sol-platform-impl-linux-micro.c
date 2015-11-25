@@ -538,7 +538,7 @@ sol_platform_linux_micro_should_debug(char **gdb_comm)
     file = sol_file_reader_get_all(fr);
     // remove the \n in the end of the file (this is a single line file - always)
     file.len--;
-    tokens = sol_util_str_split(file, " ", 0);
+    tokens = sol_str_slice_split(file, " ", 0);
     SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
         if (sol_str_slice_str_eq(*token, SOL_DEBUG_ARG)) {
             res = true;

@@ -273,7 +273,7 @@ v1_parse_response(struct v1_request_data *req_data, const struct sol_http_respon
         .response_code = SOL_HTTP_STATUS_FOUND,
     };
 
-    tokens = sol_util_str_split(
+    tokens = sol_str_slice_split(
         sol_str_slice_from_str(response->content.data), "&", 0);
     SOL_VECTOR_FOREACH_IDX (&tokens, slice, idx) {
         if (streqn(slice->data, "oauth_token=", sizeof("oauth_token=") - 1)) {
