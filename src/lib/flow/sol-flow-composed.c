@@ -172,30 +172,6 @@ get_packet_type(const struct sol_str_slice type)
     return NULL;
 }
 
-static const char *
-get_packet_type_as_string(const struct sol_str_slice type)
-{
-    static const struct sol_str_table_ptr map[] = {
-        SOL_STR_TABLE_PTR_ITEM("int", "SOL_FLOW_PACKET_TYPE_IRANGE"),
-        SOL_STR_TABLE_PTR_ITEM("float", "SOL_FLOW_PACKET_TYPE_DRANGE"),
-        SOL_STR_TABLE_PTR_ITEM("string", "SOL_FLOW_PACKET_TYPE_STRING"),
-        SOL_STR_TABLE_PTR_ITEM("boolean", "SOL_FLOW_PACKET_TYPE_BOOLEAN"),
-        SOL_STR_TABLE_PTR_ITEM("byte", "SOL_FLOW_PACKET_TYPE_BYTE"),
-        SOL_STR_TABLE_PTR_ITEM("blob", "SOL_FLOW_PACKET_TYPE_BLOB"),
-        SOL_STR_TABLE_PTR_ITEM("rgb", "SOL_FLOW_PACKET_TYPE_RGB"),
-        SOL_STR_TABLE_PTR_ITEM("location", "SOL_FLOW_PACKET_TYPE_LOCATION"),
-        SOL_STR_TABLE_PTR_ITEM("timestamp", "SOL_FLOW_PACKET_TYPE_TIMESTAMP"),
-        SOL_STR_TABLE_PTR_ITEM("direction-vector",
-            "SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR"),
-        SOL_STR_TABLE_PTR_ITEM("error", "SOL_FLOW_PACKET_TYPE_ERROR"),
-        SOL_STR_TABLE_PTR_ITEM("json-object", "SOL_FLOW_PACKET_TYPE_JSON_OBJECT"),
-        SOL_STR_TABLE_PTR_ITEM("json-array", "SOL_FLOW_PACKET_TYPE_JSON_ARRAY"),
-        SOL_STR_TABLE_PTR_ITEM("http-response", "SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE")
-    };
-
-    return sol_str_table_ptr_lookup_fallback(map, type, NULL);
-}
-
 static int
 simple_port_process(struct sol_flow_node *node, void *data, uint16_t port,
     uint16_t conn_id, const struct sol_flow_packet *packet)
@@ -595,7 +571,7 @@ setup_ports_vector(struct sol_vector *tokens, struct sol_vector *ports,
         r = get_name_and_type_from_token(slice, &port->name, &type_slice);
         SOL_INT_CHECK(r, < 0, r);
         port->type = use_type_symbol ?
-            (char *)get_packet_type_as_string(type_slice) :
+            (char *)sol_flow_packet_get_packet_type_as_string(type_slice) :
             strndup(type_slice.data, type_slice.len);
         SOL_NULL_CHECK(port->type, -EINVAL);
         port->idx = i;

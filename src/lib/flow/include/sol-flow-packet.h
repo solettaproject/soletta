@@ -169,6 +169,29 @@ struct sol_flow_packet *sol_flow_packet_dup(const struct sol_flow_packet *packet
 struct sol_flow_packet *sol_flow_packet_new_http_response(int response_code, const char *url, const char *content_type, const struct sol_blob *content, const struct sol_vector *cookies, const struct sol_vector *headers);
 
 int sol_flow_packet_get_http_response(const struct sol_flow_packet *packet, int *response_code, const char **url, const char **content_type, const struct sol_blob **content, struct sol_vector *cookies, struct sol_vector *headers);
+
+/**
+ * @brief Returns the packet type variable as string.
+ *
+ * This function will return the sol_flow_packet_type variable for a given type as string.
+ * A common use for this function is when one is generating code for meta types nodes
+ * that will be used by sol-fbp-generator.
+ *
+ * Example:
+ *
+ * @code
+ * // will return the string "SOL_FLOW_PACKET_TYPE_IRANGE"
+ * const char *int_packet_name = sol_flow_packet_get_packet_type_as_string(sol_str_slice_from_str("int"));
+ *
+ * // will return the string "SOL_FLOW_PACKET_TYPE_LOCATION"
+ * const char *location_packet_name = sol_flow_packet_get_packet_type_as_string(sol_str_slice_from_str("location"));
+ * @endcode
+ *
+ * @param type The Soletta type name (int, blob, error, string, location and etc.)
+ * @return The Soletta packet type variable as string or @c NULL if the type was not found.
+ *
+ */
+const char *sol_flow_packet_get_packet_type_as_string(const struct sol_str_slice type);
 /**
  * @}
  */
