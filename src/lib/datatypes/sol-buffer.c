@@ -50,8 +50,7 @@ sol_buffer_resize(struct sol_buffer *buf, size_t new_size)
     char *new_data;
 
     SOL_NULL_CHECK(buf, -EINVAL);
-    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_FIXED_CAPACITY, -EPERM);
-    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_NO_FREE, -EPERM);
+    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED, -EPERM);
 
     if (buf->capacity == new_size)
         return 0;
