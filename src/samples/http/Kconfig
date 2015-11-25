@@ -1,0 +1,8 @@
+config HTTP_SAMPLES
+	bool "HTTP samples"
+	default y
+
+config DOWNLOAD_SAMPLE
+	bool "Download sample"
+	depends on COMMON_SAMPLES && HTTP_CLIENT
+	default y
