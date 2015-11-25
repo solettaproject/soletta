@@ -42,6 +42,7 @@ extern "C" {
 /**
  * @file
  * @brief Routines to handle CoAP protocol.
+ *
  * The Constrained Application Protocol (CoAP) is a
  * specialized web transfer protocol for use with constrained
  * nodes and constrained (e.g., low-power, lossy) networks.
@@ -51,6 +52,8 @@ extern "C" {
  * @defgroup CoAP CoAP
  * @ingroup Comms
  *
+ * @brief API to handle Constrained Application Protocol (CoAP) protocol.
+ *
  * The Constrained Application Protocol (CoAP) is a
  * specialized web transfer protocol for use with constrained
  * nodes and constrained (e.g., low-power, lossy) networks.
@@ -59,13 +62,13 @@ extern "C" {
  * IPv6 over Low-Power Wireless Personal Area Networks
  * (6LoWPANs) often have high packet error rates and a
  * typical throughput of 10s of kbit/s.  The protocol is
- * designed for machine- to-machine (M2M) applications such
+ * designed for machine-to-machine (M2M) applications such
  * as smart energy and building automation.
  *
  * CoAP provides a request/response interaction model between
  * application endpoints, supports built-in discovery of
  * services and resources, and includes key concepts of the
- * Web such as URIs and Internet media types.  CoAP is
+ * Web such as URIs and Internet media types. CoAP is
  * designed to easily interface with HTTP for integration
  * with the Web while meeting specialized requirements such
  * as multicast support, very low overhead, and simplicity
@@ -113,6 +116,21 @@ typedef enum {
     SOL_COAP_METHOD_DELETE = 4,
 } sol_coap_method_t;
 
+/**
+ * @brief Mask of CoAP requests
+ *
+ * It may be used to identify, given a code, if it's a request or
+ * a response.
+ *
+ * Example to identify a request:
+ * @code
+ * struct sol_coap_packet *req = X;
+ * if (sol_coap_header_get_code(req) & SOL_COAP_REQUEST_MASK)
+ *     {
+ *         // do something
+ *     }
+ *@endcode
+ */
 #define SOL_COAP_REQUEST_MASK 0x07
 
 /**
@@ -154,6 +172,15 @@ typedef enum {
     SOL_COAP_TYPE_RESET = 3
 } sol_coap_msgtype_t;
 
+/**
+ * @brief Macro to create a response code.
+ *
+ * CoAP message code field is a 8-bit unsigned integer,
+ * composed by 3 most significants bits representing class (0-7)
+ * and 5 bits representing detail (00-31).
+ *
+ * It's usually represented as "c.dd". E.g.: 2.00 for "OK".
+ */
 #define MAKE_RSPCODE(clas, det) ((clas << 5) | (det))
 
 /**
@@ -522,7 +549,24 @@ struct sol_coap_packet *sol_coap_packet_request_new(sol_coap_method_t method, so
 struct sol_coap_packet *sol_coap_packet_notification_new(struct sol_coap_server *server,
     struct sol_coap_resource *resource);
 
+/**
+ * @brief Take a reference of the given packet.
+ *
+ * Increment the reference count of the packet, if it's still valid.
+ *
+ * @param pkt The packet to reference.
+ *
+ * @return The same packet, with refcount increased, or @c NULL if invalid.
+ */
 struct sol_coap_packet *sol_coap_packet_ref(struct sol_coap_packet *pkt);
+
+/**
+ * @brief Release a reference from the given packet.
+ *
+ * When the last reference is released, the packet will be freed.
+ *
+ * @param pkt The packet to release.
+ */
 void sol_coap_packet_unref(struct sol_coap_packet *pkt);
 
 /**
@@ -744,7 +788,7 @@ int sol_coap_server_unregister_resource(struct sol_coap_server *server,
 int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen, size_t *size);
 
-/*
+/**
  * Cancel a packet sent using sol_coap_send_packet() or
  * sol_coap_send_packet_with_reply() functions.
  * For observating packets, an unobserve packet will be sent to server and
