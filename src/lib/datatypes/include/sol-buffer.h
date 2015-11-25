@@ -538,6 +538,23 @@ sol_buffer_free(struct sol_buffer *buf)
  */
 int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
 
+
+/**
+ *  Removes part of data inside the buffer rearranging the memory
+ *  properly.
+ *
+ *  @param buf the already-initialized buffer
+ *  @param size the amount of data (in bytes) that should be removed
+ *  @param offset the position (from begin of the buffer) where
+ *  @c size bytes will be removed
+ *
+ *  @return 0 on success, -errno on failure.
+ *
+ *  @note the buffer keeps its capacity after this function, it means,
+ *  the data is not released. If that is wanted, one should call @c sol_buffer_trim()
+ */
+int sol_buffer_remove_data(struct sol_buffer *buf, size_t size, unsigned long offset);
+
 /**
  * @}
  */
