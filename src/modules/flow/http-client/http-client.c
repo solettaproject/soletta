@@ -1584,41 +1584,6 @@ replace_uri(struct create_url_data *mdata, const char *uri)
 }
 
 static int
-split_query(const char *query, struct sol_http_params *params)
-{
-    struct sol_vector tokens;
-    struct sol_str_slice *token;
-    char *sep;
-    uint16_t i;
-    int r;
-
-    tokens = sol_str_slice_split(sol_str_slice_from_str(query), "&", 0);
-
-    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
-        struct sol_str_slice key, value;
-
-        sep = memchr(token->data, '=', token->len);
-        key.data = token->data;
-        if (sep) {
-            key.len = sep - key.data;
-            value.data = sep + 1;
-            value.len = token->len - key.len - 1;
-        } else {
-            key.len = token->len;
-            value.data = NULL;
-            value.len = 0;
-        }
-
-        r = add_query(params, key, value);
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
-    }
-
-exit:
-    sol_vector_clear(&tokens);
-    return 0;
-}
-
-static int
 create_url_open(struct sol_flow_node *node, void *data,
     const struct sol_flow_node_options *options)
 {
@@ -1653,7 +1618,7 @@ create_url_open(struct sol_flow_node *node, void *data,
     }
 
     if (opts->query) {
-        r = split_query(opts->query, &mdata->params);
+        r = sol_http_split_query(opts->query, &mdata->params);
         SOL_INT_CHECK_GOTO(r, < 0, err_query);
     }
 
