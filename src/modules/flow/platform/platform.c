@@ -43,6 +43,10 @@ struct platform_data {
     enum sol_platform_state state;
 };
 
+struct hostname_data {
+    uint16_t connections;
+};
+
 static int
 state_dispatch_ready(struct platform_data *mdata)
 {
@@ -207,5 +211,76 @@ platform_machine_id_open(struct sol_flow_node *node,
     return sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_PLATFORM_MACHINE_ID__OUT__OUT, id);
 }
+
+static int
+hostname_send(struct sol_flow_node *node)
+{
+    int r;
+    char *name;
+
+    r = sol_plataform_get_hostname(&name);
+    SOL_INT_CHECK(r, < 0, r);
+    return sol_flow_send_string_packet(node, 0, name);
+}
+
+static int
+hostname_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    const struct sol_flow_node_type_platform_hostname_options *opts;
+
+    opts = (const struct sol_flow_node_type_platform_hostname_options *)options;
+
+    if (opts->send_initial_packet)
+        return hostname_send(node);
+    return 0;
+}
+
+static int
+hostname_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    const char *name;
+
+    r = sol_flow_packet_get_string(packet, &name);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_plataform_set_hostname(name);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static void
+hostname_changed(void *data)
+{
+    if (hostname_send(data) < 0)
+        SOL_WRN("Could not send the host name!");
+}
+
+static int
+hostname_out_connect(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id)
+{
+    struct hostname_data *mdata = data;
+
+    mdata->connections++;
+    if (mdata->connections == 1)
+        return sol_plataform_add_hostname_monitor(hostname_changed, node);
+    return 0;
+}
+
+static int
+hostname_out_disconnect(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id)
+{
+    struct hostname_data *mdata = data;
+
+    if (!mdata->connections)
+        return 0;
+
+    if (!--mdata->connections)
+        return sol_plataform_del_hostname_monitor(hostname_changed, node);
+    return 0;
+}
+
 
 #include "platform-gen.c"

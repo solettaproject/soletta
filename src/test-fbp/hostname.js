@@ -29,45 +29,63 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+var initial_host = null;
+var new_host = null;
+var state = 0;
 
-#pragma once
+function compare_and_send_result(v1, v2, port)
+{
+    var b = false;
 
-#define SOL_LOG_DOMAIN &_sol_platform_log_domain
-#include "sol-log-internal.h"
-#include "sol-platform.h"
+    if (v1 === v2)
+      b = true;
 
-extern struct sol_log_domain _sol_platform_log_domain;
+    sendPacket(port, b);
+}
 
-int sol_platform_impl_init(void);
-void sol_platform_impl_shutdown(void);
-
-int sol_platform_impl_get_state(void);
-
-int sol_platform_impl_add_service_monitor(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_del_service_monitor(const char *service) SOL_ATTR_NONNULL(1);
-
-int sol_platform_impl_start_service(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_stop_service(const char *service) SOL_ATTR_NONNULL(1);
-int sol_platform_impl_restart_service(const char *service) SOL_ATTR_NONNULL(1);
-
-int sol_platform_impl_set_target(const char *target) SOL_ATTR_NONNULL(1);
-
-int sol_platform_impl_get_machine_id(char id[static 33]);
-int sol_platform_impl_get_serial_number(char **number);
-int sol_platform_impl_get_os_version(char **version);
-
-/* callbacks into generic platform abstraction */
-void sol_platform_inform_state_monitors(enum sol_platform_state state);
-void sol_platform_inform_service_monitors(const char *service,
-    enum sol_platform_service_state state);
-
-int sol_platform_impl_get_mount_points(struct sol_ptr_vector *vector);
-int sol_platform_impl_umount(const char *mpoint, void (*cb)(void *data, const char *mpoint, int error), const void *data);
-
-int sol_plataform_impl_set_hostname(const char *name);
-int sol_plataform_impl_get_hostname(char **name);
-
-void sol_plataform_inform_hostname_monitors(void);
-
-int sol_plataform_unregister_hostname_monitor(void);
-int sol_plataform_register_hostname_monitor(void);
+var node = {
+    in: [
+      {
+        name:'IN_INITIAL_HOST',
+        type:'string',
+        process: function(v) {
+          if (initial_host == null)
+            initial_host = v;
+        }
+      },
+      {
+        name:'IN_NEW_HOST',
+        type:'string',
+        process: function(v) {
+          if (new_host == null)
+            new_host = v;
+        }
+      },
+      {
+        name:'HOST_CHANGED',
+        type:'string',
+        process: function(v) {
+          if (state == 0) {
+            compare_and_send_result(v, new_host, 'OUT_NEW_HOST_EQUAL');
+            sendPacket('OUT_INITIAL_HOST', initial_host);
+          } else
+            compare_and_send_result(v, initial_host, 'OUT_INITIAL_HOST_EQUAL');
+          state++;
+        }
+      },
+    ],
+    out: [
+      {
+        name:'OUT_INITIAL_HOST_EQUAL',
+        type:'boolean'
+      },
+      {
+        name:'OUT_NEW_HOST_EQUAL',
+        type:'boolean'
+      },
+      {
+        name:'OUT_INITIAL_HOST',
+        type:'string'
+      }
+    ]
+};

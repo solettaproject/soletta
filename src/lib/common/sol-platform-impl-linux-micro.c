@@ -33,6 +33,7 @@
 #include <ctype.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>
@@ -41,6 +42,8 @@
 #include <sys/mount.h>
 #include <sys/reboot.h>
 #include <sys/stat.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -78,6 +81,13 @@ static const struct mount_table {
     { "debugfs", NULL,  "/sys/kernel/debug", NULL, 0, false },
     { "securityfs", NULL, "/sys/kernel/security", NULL, MS_NOSUID | MS_NOEXEC | MS_NODEV, false },
 };
+
+struct inotify_watcher_ctx {
+    struct sol_fd *watcher;
+    int fd;
+};
+
+static struct inotify_watcher_ctx hostname_monitor = { NULL, -1 };
 
 #ifdef ENABLE_DYNAMIC_MODULES
 struct service_module {
@@ -741,6 +751,7 @@ sol_platform_impl_shutdown(void)
 
     service_instances_cleanup();
     service_modules_cleanup();
+    sol_plataform_unregister_hostname_monitor();
     builtins_cleanup();
 
     if (getpid() == 1 && getppid() == 0)
@@ -1000,4 +1011,71 @@ sol_platform_linux_micro_inform_service_state(const char *service, enum sol_plat
     inst->state = state;
 #endif
     sol_platform_inform_service_monitors(service, state);
+}
+
+int
+sol_plataform_impl_set_hostname(const char *name)
+{
+    size_t len = strlen(name);
+
+    if (len > HOST_NAME_MAX) {
+        SOL_WRN("Hostname can not be bigger than %d", HOST_NAME_MAX);
+        return -EINVAL;
+    }
+
+    if (sethostname(name, len) < 0)
+        return -errno;
+    return 0;
+}
+
+int
+sol_plataform_impl_get_hostname(char **name)
+{
+    char hostname[HOST_NAME_MAX + 1];
+
+    if (gethostname(hostname, sizeof(hostname)) < 0)
+        return -errno;
+    *name = strdup(hostname);
+    SOL_NULL_CHECK(*name, -ENOMEM);
+    return 0;
+}
+
+static bool
+hostname_changed(void *data, int fd, uint32_t active_flags)
+{
+    sol_plataform_inform_hostname_monitors();
+    return true;
+}
+
+int
+sol_plataform_register_hostname_monitor(void)
+{
+    if (hostname_monitor.watcher)
+        return 0;
+
+    hostname_monitor.fd = open("/proc/sys/kernel/hostname", O_RDONLY);
+
+    if (hostname_monitor.fd < 0)
+        return -errno;
+
+    hostname_monitor.watcher = sol_fd_add(hostname_monitor.fd,
+        SOL_FD_FLAGS_HUP, hostname_changed, NULL);
+    if (!hostname_monitor.watcher) {
+        close(hostname_monitor.fd);
+        return -ENOMEM;
+    }
+
+    return 0;
+}
+
+int
+sol_plataform_unregister_hostname_monitor(void)
+{
+    if (hostname_monitor.watcher)
+        return 0;
+    sol_fd_del(hostname_monitor.watcher);
+    close(hostname_monitor.fd);
+    hostname_monitor.fd = -1;
+    hostname_monitor.watcher = NULL;
+    return 0;
 }
