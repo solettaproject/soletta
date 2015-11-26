@@ -85,6 +85,7 @@ static struct {
 static struct sol_arena *str_arena;
 static struct sol_buffer output_buffer;
 static struct sol_vector declared_metatypes_control_vector;
+static struct sol_vector metatype_file_readers;
 
 struct sol_type_default_value {
     const char *field;
@@ -167,6 +168,104 @@ static struct port_description error_port = {
     .data_type = (char *)"error",
     .base_port_idx = SOL_FLOW_NODE_PORT_ERROR,
 };
+
+struct metatype_file_reader_data {
+    struct sol_file_reader *reader;
+    char *filename;
+};
+
+static bool search_fbp_file(char *fullpath, const struct sol_str_slice basename);
+
+
+static int
+add_metatype_file_reader(const char *filename, struct sol_file_reader *reader)
+{
+    struct metatype_file_reader_data *rdata;
+
+    rdata = sol_vector_append(&metatype_file_readers);
+    SOL_NULL_CHECK(rdata, -ENOMEM);
+
+    rdata->filename = strdup(filename);
+    SOL_NULL_CHECK_GOTO(rdata->filename, err_exit);
+    rdata->reader = reader;
+    return 0;
+err_exit:
+    return -ENOMEM;
+}
+
+static void
+clear_metatype_file_readers(void)
+{
+    uint16_t i;
+    struct metatype_file_reader_data *rdata;
+
+    SOL_VECTOR_FOREACH_IDX (&metatype_file_readers, rdata, i) {
+        sol_file_reader_close(rdata->reader);
+        free(rdata->filename);
+    }
+    sol_vector_clear(&metatype_file_readers);
+}
+
+static struct sol_file_reader *
+find_metatype_file_reader_by_name(const char *filename)
+{
+    uint16_t i;
+    struct metatype_file_reader_data *rdata;
+
+    SOL_VECTOR_FOREACH_IDX (&metatype_file_readers, rdata, i) {
+        if (streq(filename, rdata->filename))
+            return rdata->reader;
+    }
+    return NULL;
+}
+
+static int
+read_meta_type_file(const struct sol_flow_metatype_context *ctx,
+    const char *name, const char **buf, size_t *size)
+{
+    int r;
+    struct sol_file_reader *reader;
+    struct sol_str_slice contents;
+    char filename[PATH_MAX];
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+    SOL_NULL_CHECK(name, -EINVAL);
+    SOL_NULL_CHECK(size, -EINVAL);
+    SOL_NULL_CHECK(ctx, -EINVAL);
+
+    if (!search_fbp_file(filename, sol_str_slice_from_str(name)))
+        return -EINVAL;
+
+    reader = find_metatype_file_reader_by_name(filename);
+    if (!reader) {
+        reader = sol_file_reader_open(filename);
+        SOL_NULL_CHECK(reader, -ENOMEM);
+
+        r = add_metatype_file_reader(name, reader);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    contents = sol_file_reader_get_all(reader);
+    *buf = contents.data;
+    *size = contents.len;
+    return 0;
+err_exit:
+    sol_file_reader_close(reader);
+    return r;
+}
+
+static struct sol_flow_metatype_context
+setup_metatype_context(const char *name,
+    const struct sol_str_slice contents)
+{
+    struct sol_flow_metatype_context ctx;
+
+    ctx.name = sol_str_slice_from_str(name);
+    ctx.contents = contents;
+    ctx.read_file = read_meta_type_file;
+    ctx.store_type = NULL;
+    return ctx;
+}
 
 static struct exported_option *
 get_exported_option_description_by_node(struct fbp_data *data, int node)
@@ -1345,6 +1444,7 @@ generate_metatypes_start(struct fbp_data *data)
     struct declared_metatype *meta;
     uint16_t i, j;
     sol_flow_metatype_generate_code_func generate_func;
+    struct sol_flow_metatype_context meta_context;
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, i) {
         bool has_start = false;
@@ -1377,8 +1477,10 @@ generate_metatypes_start(struct fbp_data *data)
             return false;
         }
 
-        if (generate_func(&output_buffer,
-            sol_str_slice_from_str(meta->c_name), meta->contents)) {
+        meta_context =
+            setup_metatype_context(meta->c_name, meta->contents);
+
+        if (generate_func(&meta_context, &output_buffer)) {
             SOL_ERR("Could not generate the start code for meta type:%.*s-%.*s",
                 SOL_STR_SLICE_PRINT(meta->name),
                 SOL_STR_SLICE_PRINT(meta->type));
@@ -1394,6 +1496,7 @@ generate_metatypes_body(struct fbp_data *data)
     struct declared_metatype *meta;
     uint16_t i;
     sol_flow_metatype_generate_code_func generate_func;
+    struct sol_flow_metatype_context meta_context;
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, i) {
         generate_func =
@@ -1403,8 +1506,9 @@ generate_metatypes_body(struct fbp_data *data)
                 " type function", SOL_STR_SLICE_PRINT(meta->type));
             return false;
         }
-        if (generate_func(&output_buffer,
-            sol_str_slice_from_str(meta->c_name), meta->contents)) {
+        meta_context =
+            setup_metatype_context(meta->c_name, meta->contents);
+        if (generate_func(&meta_context, &output_buffer)) {
             SOL_ERR("Could not generate the body code for meta type:%.*s-%.*s",
                 SOL_STR_SLICE_PRINT(meta->name),
                 SOL_STR_SLICE_PRINT(meta->type));
@@ -1422,6 +1526,7 @@ generate_metatypes_end(struct fbp_data *data)
     struct declared_metatype *meta;
     uint16_t i, j;
     sol_flow_metatype_generate_code_func generate_func;
+    struct sol_flow_metatype_context meta_context;
 
     SOL_VECTOR_FOREACH_IDX (&data->declared_meta_types, meta, i) {
         found = NULL;
@@ -1450,8 +1555,9 @@ generate_metatypes_end(struct fbp_data *data)
                 " end function", SOL_STR_SLICE_PRINT(meta->type));
             return false;
         }
-        if (generate_func(&output_buffer,
-            sol_str_slice_from_str(meta->c_name), meta->contents)) {
+        meta_context =
+            setup_metatype_context(meta->c_name, meta->contents);
+        if (generate_func(&meta_context, &output_buffer)) {
             SOL_ERR("Could not generate the end code for meta type:%.*s-%.*s",
                 SOL_STR_SLICE_PRINT(meta->name),
                 SOL_STR_SLICE_PRINT(meta->type));
@@ -2114,10 +2220,12 @@ add_metatype_to_type_store(struct type_store *store,
     struct port_description *port;
     char name[2048];
     uint16_t i;
-    int wrote;
+    int wrote, err;
+    struct sol_flow_metatype_context meta_context;
 
     get_ports = sol_flow_metatype_get_ports_description_func(meta->type);
 
+    memset(&type, 0, sizeof(struct type_description));
     if (!get_ports) {
         SOL_ERR("Could not get ports description function for:%.*s",
             SOL_STR_SLICE_PRINT(meta->name));
@@ -2125,11 +2233,10 @@ add_metatype_to_type_store(struct type_store *store,
     }
 
     /* Beware that struct sol_flow_metatype_port_description is a copy of struct port_description */
-    if (get_ports(meta->contents, &type.in_ports, &type.out_ports)) {
-        SOL_ERR("Could not get ports from metatype:%.*s",
-            SOL_STR_SLICE_PRINT(meta->name));
-        goto exit;
-    }
+    meta_context =
+        setup_metatype_context(meta->c_name, meta->contents);
+    err = get_ports(&meta_context, &type.in_ports, &type.out_ports);
+    SOL_INT_CHECK_GOTO(err, < 0, exit);
 
     wrote = snprintf(name, sizeof(name), "%.*s",
         SOL_STR_SLICE_PRINT(meta->name));
@@ -2390,6 +2497,8 @@ main(int argc, char *argv[])
     if (!sol_fbp_generator_type_store_load(common_store))
         goto fail_store_load;
 
+    sol_vector_init(&metatype_file_readers,
+        sizeof(struct metatype_file_reader_data));
     sol_vector_init(&fbp_data_vector, sizeof(struct fbp_data));
     sol_vector_init(&declared_metatypes_control_vector,
         sizeof(struct declared_metatype_control));
@@ -2415,6 +2524,7 @@ main(int argc, char *argv[])
 fail_write:
 fail_generate:
 fail_data:
+    clear_metatype_file_readers();
     SOL_VECTOR_FOREACH_IDX (&fbp_data_vector, data, i) {
         if (data->store)
             type_store_del(data->store);

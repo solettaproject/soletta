@@ -57,11 +57,13 @@ class FbpTest:
     SKIP_SIMPLE = 1
     SKIP_VALGRIND = 2
     SKIP_COMPILE = 3
+    SKIP_JAVASCRIPT = 4
 
     SUPPORTED_SKIP = {
         "TEST-SKIP": SKIP_SIMPLE,
         "TEST-SKIP-VALGRIND": SKIP_VALGRIND,
         "TEST-SKIP-COMPILE": SKIP_COMPILE,
+        "TEST-SKIP-JAVASCRIPT": SKIP_JAVASCRIPT,
     }
 
     def __init__(self, test_file):
