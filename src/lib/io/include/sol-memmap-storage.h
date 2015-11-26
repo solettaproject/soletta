@@ -53,7 +53,7 @@ extern "C" {
  * @defgroup Memmap Memmap
  * @ingroup IO
  *
- * Memory mapped persistence storage (like NVRAM or EEPROM) API on Soletta.
+ * @brief Memory mapped persistence storage (like NVRAM or EEPROM) API on Soletta.
  *
  * A map must be provided, either directly via @c sol_memmap_add_map or by
  * informing a JSON file to Soletta runner or generator.
@@ -79,7 +79,7 @@ extern "C" {
 #define MEMMAP_VERSION_ENTRY "_version" /**< Name of property which contains stored map version */
 
 /**
- * Macro to declare a @ref sol_memmap_entry variable setting fields
+ * @brief Macro to declare a @ref sol_memmap_entry variable setting fields
  * with values passed by argument.
  */
 #define SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, _size, _bit_offset, _bit_size) \
@@ -87,14 +87,14 @@ extern "C" {
 
 
 /**
- * Macro to declare a @ref sol_memmap_entry variable without bit_offset
+ * @brief Macro to declare a @ref sol_memmap_entry variable without bit_offset
  * and bit_size.
  */
 #define SOL_MEMMAP_ENTRY(_name, _offset, _size) \
     SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, _size, 0, 0)
 
 /**
- * Macro to declare a @ref sol_memmap_entry variable for boolean.
+ * @brief Macro to declare a @ref sol_memmap_entry variable for boolean.
  * So size and bit_size are set to @c 1.
  */
 #define SOL_MEMMAP_BOOL_ENTRY(_name, _offset, _bit_offset) \
@@ -123,7 +123,7 @@ struct sol_memmap_entry {
 };
 
 /**
- * Writes buffer contents to storage.
+ * @brief Writes buffer contents to storage.
  *
  * Note that as writing operations are asynchronous, to check if it completely
  * succeded, one needs to register a callback that will inform writing result.
@@ -146,7 +146,7 @@ int sol_memmap_write_raw(const char *name, struct sol_blob *blob,
     const void *data);
 
 /**
- * Read storage contents to buffer.
+ * @brief Read storage contents to buffer.
  *
  * @param name name of property. must be present in one of maps previoulsy
  * added via @c sol_memmap_add_map (if present in more than one,
@@ -159,7 +159,7 @@ int sol_memmap_write_raw(const char *name, struct sol_blob *blob,
 int sol_memmap_read_raw(const char *name, struct sol_buffer *buffer);
 
 /**
- * Add a map to internal list of available maps.
+ * @brief Add a map to internal list of available maps.
  *
  * As Soletta will keep a reference to this map, it should be kept alive
  * during memmap usage.
@@ -171,7 +171,7 @@ int sol_memmap_read_raw(const char *name, struct sol_buffer *buffer);
 int sol_memmap_add_map(const struct sol_memmap_map *map);
 
 /**
- * Removes a previously added map from internal list of available maps.
+ * @brief Removes a previously added map from internal list of available maps.
  *
  * @param map map to be removed.
  *
@@ -180,7 +180,7 @@ int sol_memmap_add_map(const struct sol_memmap_map *map);
 int sol_memmap_remove_map(const struct sol_memmap_map *map);
 
 /**
- * Defines map timeout to actually perform write.
+ * @brief Defines map timeout to actually perform write.
  *
  * @param map map to have its timeout changed
  * @param timeout new timeout, in milliseconds.
@@ -193,7 +193,7 @@ int sol_memmap_remove_map(const struct sol_memmap_map *map);
 bool sol_memmap_set_timeout(struct sol_memmap_map *map, uint32_t timeout);
 
 /**
- * Get map timeout
+ * @brief Get map timeout
  *
  * @see sol_memmap_set_timeout() for more details.
  *
@@ -204,7 +204,7 @@ bool sol_memmap_set_timeout(struct sol_memmap_map *map, uint32_t timeout);
 uint32_t sol_memmap_get_timeout(const struct sol_memmap_map *map);
 
 /**
- * Macro to create a struct @ref sol_buffer with value passed as argument
+ * @brief Macro to create a struct @ref sol_buffer with value passed as argument
  * and flags SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED and SOL_BUFFER_FLAGS_NO_NUL_BYTE.
  */
 #define CREATE_BUFFER(_val) \
@@ -212,7 +212,7 @@ uint32_t sol_memmap_get_timeout(const struct sol_memmap_map *map);
     sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
 /**
- * Macro to create a struct @ref sol_blob with value passed as argument.
+ * @brief Macro to create a struct @ref sol_blob with value passed as argument.
  */
 #define CREATE_BLOB(_val) \
     struct sol_blob *blob; \

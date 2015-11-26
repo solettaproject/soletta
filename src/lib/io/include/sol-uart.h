@@ -50,7 +50,7 @@ extern "C" {
  * @defgroup UART UART
  * @ingroup IO
  *
- * UART (Universal Asynchronous Receiver/Transmitter) API for Soletta.
+ * @brief UART (Universal Asynchronous Receiver/Transmitter) API for Soletta.
  *
  * @{
  */
@@ -58,7 +58,8 @@ extern "C" {
 struct sol_uart;
 
 /**
- * Baud rate is the number of times the signal can switch states in one second.
+ * @brief Baud rate is the number of times the signal can switch states in one second.
+ *
  * Need to be defined to set uart config.
  */
 enum sol_uart_baud_rate {
@@ -70,7 +71,7 @@ enum sol_uart_baud_rate {
 };
 
 /**
- * Amount of stop bits.
+ * @brief Amount of stop bits.
  */
 enum sol_uart_data_bits {
     SOL_UART_DATA_BITS_8 = 0,
@@ -80,7 +81,7 @@ enum sol_uart_data_bits {
 };
 
 /**
- * The parity characteristic can be even, odd, or none and it
+ * @brief The parity characteristic can be even, odd, or none and it
  * influences last trasmitted bit.
  */
 enum sol_uart_parity {
@@ -90,7 +91,7 @@ enum sol_uart_parity {
 };
 
 /**
- * Amount of stop bits.
+ * @brief Amount of stop bits.
  */
 enum sol_uart_stop_bits {
     SOL_UART_STOP_BITS_ONE = 0,
@@ -112,7 +113,7 @@ struct sol_uart_config {
 };
 
 /**
- * Open an UART bus.
+ * @brief Open an UART bus.
  *
  * @param port_name the name of UART port, on Linux it should be ttyUSB0 or
  * ttyACM0 in small OSes it should be a id number.
@@ -125,14 +126,14 @@ struct sol_uart_config {
 struct sol_uart *sol_uart_open(const char *port_name, const struct sol_uart_config *config);
 
 /**
- * Close an UART bus.
+ * @brief Close an UART bus.
  *
  * @param uart The UART bus handle
  */
 void sol_uart_close(struct sol_uart *uart);
 
 /**
- * Perform a UART asynchronous transmission.
+ * @brief Perform a UART asynchronous transmission.
  *
  * @param uart The UART bus handle
  * @param tx The output buffer to be sent

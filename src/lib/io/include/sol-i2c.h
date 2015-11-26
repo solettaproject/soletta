@@ -76,7 +76,7 @@ enum sol_i2c_speed {
 };
 
 /**
- * Open an I2C bus.
+ * @brief Open an I2C bus.
  *
  * @param bus The I2C bus number to open
  * @param speed The speed to open I2C bus @a bus at
@@ -90,7 +90,7 @@ enum sol_i2c_speed {
 struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
- * Open an I2C bus.
+ * @brief Open an I2C bus.
  *
  * @param bus The I2C bus number to open
  * @param speed The speed to open I2C bus @a bus at
@@ -108,7 +108,7 @@ struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR
 struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
- * Close an I2C bus.
+ * @brief Close an I2C bus.
  *
  * @param i2c bus The I2C bus handle to close
  *
@@ -116,7 +116,7 @@ struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WAR
 void sol_i2c_close(struct sol_i2c *i2c);
 
 /**
- * Close an I2C bus.
+ * @brief Close an I2C bus.
  *
  * @param i2c bus The I2C bus handle to close
  *
@@ -126,7 +126,7 @@ void sol_i2c_close(struct sol_i2c *i2c);
 void sol_i2c_close_raw(struct sol_i2c *i2c);
 
 /**
- * Set a (slave) device address on a I2C bus to deliver commands
+ * @brief Set a (slave) device address on a I2C bus to deliver commands
  * to.
  *
  * All other I2C functions, after this call, will act on the given
@@ -143,7 +143,7 @@ void sol_i2c_close_raw(struct sol_i2c *i2c);
 bool sol_i2c_set_slave_address(struct sol_i2c *i2c, uint8_t slave_address);
 
 /**
- * Get the (slave) device address set on an I2C bus (to deliver I2C
+ * @brief Get the (slave) device address set on an I2C bus (to deliver I2C
  * commands)
  *
  * @param i2c bus The I2C bus handle
@@ -153,7 +153,7 @@ bool sol_i2c_set_slave_address(struct sol_i2c *i2c, uint8_t slave_address);
 uint8_t sol_i2c_get_slave_address(struct sol_i2c *i2c);
 
 /**
- * Perform a I2C write quick operation
+ * @brief Perform a I2C write quick operation
  *
  * This sends a single bit to a device (command designed to turn on
  * and off simple devices)
@@ -170,7 +170,7 @@ uint8_t sol_i2c_get_slave_address(struct sol_i2c *i2c);
 struct sol_i2c_pending *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data);
 
 /**
- * Perform successive asynchronous I2C byte read operations, with no specified
+ * @brief Perform successive asynchronous I2C byte read operations, with no specified
  * register
  *
  * This makes @a count read byte I2C operations on the device @a bus
@@ -196,7 +196,7 @@ struct sol_i2c_pending *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (
 struct sol_i2c_pending *sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*read_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data);
 
 /**
- * Perform successive asynchronous I2C byte write operations, with no specified
+ * @brief Perform successive asynchronous I2C byte write operations, with no specified
  * register
  *
  * This makes @a count write byte I2C operations on the device @a
@@ -222,7 +222,7 @@ struct sol_i2c_pending *sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t 
 struct sol_i2c_pending *sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*write_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data);
 
 /**
- * Perform a asynchronous I2C read operation on a given device register
+ * @brief Perform a asynchronous I2C read operation on a given device register
  *
  * @param i2c bus The I2C bus handle
  * @param reg The I2C register for the read operation
@@ -242,7 +242,7 @@ struct sol_i2c_pending *sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t
 struct sol_i2c_pending *sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *data, size_t count, void (*read_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
 /**
- * Perform a asynchronous I2C write operation on a given device register
+ * @brief Perform a asynchronous I2C write operation on a given device register
  *
  * @param i2c bus The I2C bus handle
  * @param reg The I2C register for the write operation
@@ -262,7 +262,7 @@ struct sol_i2c_pending *sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, 
 struct sol_i2c_pending *sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *data, size_t count, void (*write_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
 /**
- * Asynchronous read of an arbitrary number of bytes from a register in
+ * @brief Asynchronous read of an arbitrary number of bytes from a register in
  * repeated bursts of a given length (that start always on the provided
  * register address)
  *
@@ -297,7 +297,7 @@ struct sol_i2c_pending *sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg,
 struct sol_i2c_pending *sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t count, uint8_t times, void (*read_reg_multiple_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
 /**
- * Return true if I2C bus is busy, processing another operation.
+ * @brief Return true if I2C bus is busy, processing another operation.
  * This function should be called before call any other I2C function.
  *
  * @param i2c The I2C bus handle
@@ -307,7 +307,7 @@ struct sol_i2c_pending *sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint
 bool sol_i2c_busy(struct sol_i2c *i2c);
 
 /**
- * Get the I2C bus id
+ * @brief Get the I2C bus id
  *
  * @param i2c The I2C bus handle
  *
@@ -316,7 +316,7 @@ bool sol_i2c_busy(struct sol_i2c *i2c);
 uint8_t sol_i2c_bus_get(const struct sol_i2c *i2c);
 
 /**
- * Cancel a pending operation.
+ * @brief Cancel a pending operation.
  *
  * @param i2c the I2C bus handle
  * @param pending the operation handle
@@ -326,7 +326,7 @@ void sol_i2c_pending_cancel(struct sol_i2c *i2c, struct sol_i2c_pending *pending
 #ifdef SOL_PLATFORM_LINUX
 
 /**
- * Create a new i2c device.
+ * @brief Create a new i2c device.
  *
  * Iterates through @a relative_dir on '/sys/devices/' looking
  * for 'i2c-X' dir and add @a dev_name @dev_number to its 'new_device' file.

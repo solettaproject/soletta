@@ -52,13 +52,13 @@ extern "C" {
  * @defgroup EFIVARS EFI variables
  * @ingroup IO
  *
- * EFI variables API for Soletta.
+ * @brief EFI variables API for Soletta.
  *
  * @{
  */
 
 /**
- * Writes buffer contents to storage.
+ * @brief Writes buffer contents to storage.
  *
  * Note that as writing operations are asynchronous, to check if it completely
  * succeded, one needs to register a callback that will inform writing result.
@@ -77,7 +77,7 @@ int sol_efivars_write_raw(const char *name, struct sol_blob *blob,
     const void *data);
 
 /**
- * Read stored contents and set to buffer.
+ * @brief Read stored contents and set to buffer.
  *
  * @param name name of property. It will look for an EFI variable with
  * this name.
@@ -88,7 +88,7 @@ int sol_efivars_write_raw(const char *name, struct sol_blob *blob,
 int sol_efivars_read_raw(const char *name, struct sol_buffer *buffer);
 
 /**
- * Macro to create a struct @ref sol_buffer with value passed as argument
+ * @brief Macro to create a struct @ref sol_buffer with value passed as argument
  * and flags SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED and SOL_BUFFER_FLAGS_NO_NUL_BYTE.
  */
 #define CREATE_BUFFER(_val) \
@@ -96,7 +96,7 @@ int sol_efivars_read_raw(const char *name, struct sol_buffer *buffer);
     sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
 /**
- * Macro to create a struct @ref sol_blob with value passed as argument.
+ * @brief Macro to create a struct @ref sol_blob with value passed as argument.
  */
 #define CREATE_BLOB(_val) \
     struct sol_blob *blob; \

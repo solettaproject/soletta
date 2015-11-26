@@ -66,7 +66,7 @@ extern "C" {
 struct sol_gpio;
 
 /**
- * Possible values for the direction of a GPIO.
+ * @brief Possible values for the direction of a GPIO.
  */
 enum sol_gpio_direction {
     /**
@@ -84,7 +84,7 @@ enum sol_gpio_direction {
 };
 
 /**
- * Possible values for the edge mode of a GPIO.
+ * @brief Possible values for the edge mode of a GPIO.
  *
  * This indicate when an interrupt event should be generated.
  */
@@ -117,7 +117,7 @@ enum sol_gpio_edge {
 };
 
 /**
- * Possible values for pull-up or pull-down resistor of a GPIO.
+ * @brief Possible values for pull-up or pull-down resistor of a GPIO.
  *
  * It will avoid values to float when this pin isn't connected.
  * It'll define output value if nothing else is defined by software.
@@ -140,7 +140,7 @@ enum sol_gpio_drive {
 };
 
 /**
- * Structure to hold the configuration of a GPIO device.
+ * @brief Structure to hold the configuration of a GPIO device.
  *
  * When opening a GPIO with sol_gpio_open_by_label(), sol_gpio_open() or
  * sol_gpio_open_raw(), the parameters with which the GPIO is configured are
@@ -241,7 +241,7 @@ struct sol_gpio_config {
 };
 
 /**
- * Opens a given pin by its board label as general purpose input or output.
+ * @brief Opens a given pin by its board label as general purpose input or output.
  *
  * This function only works when the board was successfully detected
  * by Soletta and a corresponding
@@ -260,7 +260,7 @@ struct sol_gpio_config {
 struct sol_gpio *sol_gpio_open_by_label(const char *label, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
- * Opens a given pin as general purpose input or output.
+ * @brief Opens a given pin as general purpose input or output.
  *
  * A pin should be opened just once, calling this function more than once
  * for the same pin results in undefined behaviour - per platform basis.
@@ -276,7 +276,7 @@ struct sol_gpio *sol_gpio_open(uint32_t pin, const struct sol_gpio_config *confi
 
 
 /**
- * Opens a given pin as general purpose input or output.
+ * @brief Opens a given pin as general purpose input or output.
  *
  * A pin should be opened just once, calling this function more than once
  * for the same pin results in undefined behaviour - per platform basis.
@@ -291,7 +291,7 @@ struct sol_gpio *sol_gpio_open(uint32_t pin, const struct sol_gpio_config *confi
 struct sol_gpio *sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
- * Closes a given GPIO pin.
+ * @brief Closes a given GPIO pin.
  *
  * @see sol_gpio_open(), sol_gpio_open_raw().
  *
@@ -300,7 +300,7 @@ struct sol_gpio *sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *c
 void sol_gpio_close(struct sol_gpio *gpio);
 
 /**
- * Set an arbitrary @c value to @c pin.
+ * @brief Set an arbitrary @c value to @c pin.
  *
  * @param gpio The opened @c sol_gpio that contains the @c pin that will be used.
  * @param value The value that will be set to the pin.
@@ -310,7 +310,7 @@ void sol_gpio_close(struct sol_gpio *gpio);
 bool sol_gpio_write(struct sol_gpio *gpio, bool value);
 
 /**
- * Get the current @c value set to @c pin.
+ * @brief Get the current @c value set to @c pin.
  *
  * @param gpio The opened @c sol_gpio that contains the @c pin that will be read.
  *

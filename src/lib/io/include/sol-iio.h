@@ -48,7 +48,7 @@ extern "C" {
  * @defgroup IIO IIO
  * @ingroup IO
  *
- * IIO (Linux Industrial I/O) API for Soletta.
+ * @brief IIO (Linux Industrial I/O) API for Soletta.
  *
  * @{
  */
@@ -88,7 +88,7 @@ struct sol_iio_channel_config {
         .scale = -1.0, .use_custom_offset = false }
 
 /**
- * Open an IIO device
+ * @brief Open an IIO device
  *
  * @param id Id of iio device. It's the number which identifies device
  * on file system. Can be found at '/sys/bus/iio/devices/iio:deviceX'.
@@ -99,14 +99,14 @@ struct sol_iio_channel_config {
 struct sol_iio_device *sol_iio_open(int id, const struct sol_iio_config *config);
 
 /**
- * Close an IIO device
+ * @brief Close an IIO device
  *
  * @param device IIO device handle to close
  */
 void sol_iio_close(struct sol_iio_device *device);
 
 /**
- * Add reading channel.
+ * @brief Add reading channel.
  *
  * @param device IIO handle of device to which channel is being add
  * @param name Name of channel. Eg 'in_anglvel_x'.
@@ -117,7 +117,7 @@ void sol_iio_close(struct sol_iio_device *device);
 struct sol_iio_channel *sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struct sol_iio_channel_config *config);
 
 /**
- * Read channel value.
+ * @brief Read channel value.
  *
  * If buffer is enabled, it will read from last buffer data. Callback
  * 'sol_iio_reader_cb' is called when there are new data on buffer.
@@ -131,7 +131,7 @@ struct sol_iio_channel *sol_iio_add_channel(struct sol_iio_device *device, const
 bool sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value);
 
 /**
- * Manually 'pull' device current trigger.
+ * @brief Manually 'pull' device current trigger.
  *
  * If device current trigger has a 'trigger_now' file that start
  * a reading on device, writes to it to produce a new reading
@@ -143,7 +143,7 @@ bool sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value);
 bool sol_iio_device_trigger_now(struct sol_iio_device *device);
 
 /**
- * Start reading device buffer.
+ * @brief Start reading device buffer.
  *
  * Reading on buffer should start after all channels were enabled
  * (which is done when a channel is added using sol_iio_add_channel()).
@@ -158,7 +158,7 @@ bool sol_iio_device_trigger_now(struct sol_iio_device *device);
 bool sol_iio_device_start_buffer(struct sol_iio_device *device);
 
 /**
- * Address an IIO device from a list of commands to find them.
+ * @brief Address an IIO device from a list of commands to find them.
  *
  * IIO devices may exist on sysfs after being plugged, or need to be
  * explicitly created if, for instance, they use I2C or SPI interfaces.
@@ -200,7 +200,7 @@ bool sol_iio_device_start_buffer(struct sol_iio_device *device);
 bool sol_iio_address_device(const char *commands, void (*cb)(void *data, int device_id), const void *data);
 
 /**
- * Returns raw buffer with channel sample.
+ * @brief Returns raw buffer with channel sample.
  *
  * This function is meaningful only when buffer is enabled. Useful for reading
  * samples bigger than 64 bits. For channels with 64 or less bits, prefer

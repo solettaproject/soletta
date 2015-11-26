@@ -50,7 +50,7 @@ extern "C" {
  * @defgroup SPI SPI
  * @ingroup IO
  *
- * SPI (Serial Peripheral Interface) API for Soletta.
+ * @brief SPI (Serial Peripheral Interface) API for Soletta.
  *
  * @{
  */
@@ -80,7 +80,7 @@ enum sol_spi_mode {
 };
 
 /**
- * Default value for bits per word when using SPI
+ * @brief Default value for bits per word when using SPI
  */
 #define SOL_SPI_DATA_BITS_DEFAULT 8
 
@@ -96,7 +96,7 @@ struct sol_spi_config {
 };
 
 /**
- * Perform a SPI asynchronous transfer.
+ * @brief Perform a SPI asynchronous transfer.
  *
  * @param spi The SPI bus handle
  * @param tx The output buffer
@@ -118,14 +118,14 @@ struct sol_spi_config {
 bool sol_spi_transfer(struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, size_t count, void (*transfer_cb)(void *cb_data, struct sol_spi *spi, const uint8_t *tx, uint8_t *rx, ssize_t status), const void *cb_data);
 
 /**
- * Close an SPI bus.
+ * @brief Close an SPI bus.
  *
  * @param spi The SPI bus handle
  */
 void sol_spi_close(struct sol_spi *spi);
 
 /**
- * Open an SPI bus.
+ * @brief Open an SPI bus.
  *
  * @param bus The SPI bus number to open
  * @param config The SPI bus configuration

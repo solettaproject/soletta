@@ -50,7 +50,7 @@ extern "C" {
  * @defgroup PWM PWM
  * @ingroup IO
  *
- * PWM (Pulse-width modulation) API for Soletta.
+ * @brief PWM (Pulse-width modulation) API for Soletta.
  *
  * @{
  */
@@ -58,7 +58,7 @@ extern "C" {
 struct sol_pwm;
 
 /**
- * Alignment determines how the pulse is aligned within the PWM period.
+ * @brief Alignment determines how the pulse is aligned within the PWM period.
  *
  * No API for this on Linux, so we simply ignore it there
  */
@@ -69,7 +69,8 @@ enum sol_pwm_alignment {
 };
 
 /**
- * Polarity is whether the output is active-high or active-low.
+ * @brief Polarity is whether the output is active-high or active-low.
+ *
  * In the paired and complementary configurations, the polarity of the
  * secondary PWM output is determined by the polarity of the
  * primary PWM channel.
@@ -94,7 +95,7 @@ struct sol_pwm_config {
 };
 
 /**
- * Opens a given pin by its board label as pwm.
+ * @brief Opens a given pin by its board label as pwm.
  *
  * This function only works when the board was successfully detected
  * by Soletta and a corresponding
@@ -113,7 +114,7 @@ struct sol_pwm_config {
 struct sol_pwm *sol_pwm_open_by_label(const char *label, const struct sol_pwm_config *config);
 
 /**
- * Opens a given pin as pwm.
+ * @brief Opens a given pin as pwm.
  *
  * A pin (defined by device and channel) should be opened just once,
  * calling this function more than once
@@ -133,7 +134,7 @@ struct sol_pwm *sol_pwm_open_by_label(const char *label, const struct sol_pwm_co
 struct sol_pwm *sol_pwm_open(int device, int channel, const struct sol_pwm_config *config);
 
 /**
- * Opens a given pin as pwm.
+ * @brief Opens a given pin as pwm.
  *
  * A pin (defined by device and channel) should be opened just once,
  * calling this function more than once
@@ -150,7 +151,7 @@ struct sol_pwm *sol_pwm_open(int device, int channel, const struct sol_pwm_confi
 struct sol_pwm *sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config);
 
 /**
- * Closes a given PWM pin.
+ * @brief Closes a given PWM pin.
  *
  * @see sol_pwm_open(), sol_pwm_open_raw().
  *
@@ -159,7 +160,7 @@ struct sol_pwm *sol_pwm_open_raw(int device, int channel, const struct sol_pwm_c
 void sol_pwm_close(struct sol_pwm *pwm);
 
 /**
- * Enable or disable a given pwm pin.
+ * @brief Enable or disable a given pwm pin.
  *
  * @param pwm PWM pin to be modified.
  *
@@ -170,7 +171,7 @@ void sol_pwm_close(struct sol_pwm *pwm);
 bool sol_pwm_set_enabled(struct sol_pwm *pwm, bool enable);
 
 /**
- * Check wheter a pmw pin is enabled or disabled.
+ * @brief Check wheter a pmw pin is enabled or disabled.
  *
  * @param pwm PWM pin to get property.
  *

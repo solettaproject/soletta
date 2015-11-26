@@ -55,7 +55,7 @@ extern "C" {
 struct sol_aio; /**< Structure of the AIO handler */
 
 /**
- * Open the given board 'pin' by its label to be used as Analog I/O.
+ * @brief Open the given board 'pin' by its label to be used as Analog I/O.
  *
  * This function only works when the board was successfully detect by Soletta and a corresponding
  * pin multiplexer module was found.
@@ -72,7 +72,7 @@ struct sol_aio; /**< Structure of the AIO handler */
 struct sol_aio *sol_aio_open_by_label(const char *label, const unsigned int precision);
 
 /**
- * Open the given Analog I/O 'pin' on 'device' to be used.
+ * @brief Open the given Analog I/O 'pin' on 'device' to be used.
  *
  * This function also applies any Pin Multiplexer rules needed if a multiplexer for
  * the current board was previously loaded.
@@ -87,7 +87,7 @@ struct sol_aio *sol_aio_open_by_label(const char *label, const unsigned int prec
 struct sol_aio *sol_aio_open(const int device, const int pin, const unsigned int precision);
 
 /**
- * Open the given Analog I/O 'pin' on 'device' to be used.
+ * @brief Open the given Analog I/O 'pin' on 'device' to be used.
  *
  * 'precision' is used to filter the valid bits from the data received from hardware
  * (which is manufacturer dependent), therefore should not be used as a way to change
@@ -101,14 +101,14 @@ struct sol_aio *sol_aio_open(const int device, const int pin, const unsigned int
 struct sol_aio *sol_aio_open_raw(const int device, const int pin, const unsigned int precision);
 
 /**
- * Close the given AIO handler.
+ * @brief Close the given AIO handler.
  *
  * @param aio AIO handler to be closed.
  */
 void sol_aio_close(struct sol_aio *aio);
 
 /**
- * Read the value of AIO 'pin' on 'device'.
+ * @brief Read the value of AIO 'pin' on 'device'.
  *
  * @param aio A valid AIO handler for the desired 'device'/'pin' pair.
  * @return The value read. -1 in case of error.

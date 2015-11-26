@@ -62,7 +62,7 @@ enum sol_io_protocol {
 };
 
 /**
- * Select Pin Multiplexer instructions of a given board.
+ * @brief Select Pin Multiplexer instructions of a given board.
  *
  * Searches(and activate if found) for pin multiplexing instructions of the given board.
  * Built-in Pin Multiplexers have priority over modules.
@@ -74,7 +74,7 @@ enum sol_io_protocol {
 bool sol_pin_mux_select_mux(const char *board);
 
 /**
- * Maps a pin label to the parameters necessary so it works on the desired protocol.
+ * @brief Maps a pin label to the parameters necessary so it works on the desired protocol.
  *
  * Find if a given pin labeled 'label' is capable of operate on protocol 'prot' and return
  * the parameters needed to setup the protocol.
@@ -87,7 +87,7 @@ bool sol_pin_mux_select_mux(const char *board);
 int sol_pin_mux_map(const char *label, const enum sol_io_protocol prot, ...);
 
 /**
- * Setup the given pin to operate as Analog I/O.
+ * @brief Setup the given pin to operate as Analog I/O.
  *
  * If a pin multiplexer is loaded (from a successfully call to sol_pin_mux_select_mux),
  * execute the instructions needed to configure 'device'/'pin' pair to operate as Analog I/O.
@@ -100,7 +100,7 @@ int sol_pin_mux_map(const char *label, const enum sol_io_protocol prot, ...);
 int sol_pin_mux_setup_aio(const int device, const int pin);
 
 /**
- * Setup the given pin to operate as GPIO in the given direction (in or out).
+ * @brief Setup the given pin to operate as GPIO in the given direction (in or out).
  *
  * If a pin multiplexer is loaded (from a successfully call to sol_pin_mux_select_mux),
  * execute the instructions needed to configure 'pin' to operate as GPIO in direction
@@ -114,7 +114,7 @@ int sol_pin_mux_setup_aio(const int device, const int pin);
 int sol_pin_mux_setup_gpio(const uint32_t pin, const enum sol_gpio_direction dir);
 
 /**
- * Setup the pins used of the given i2c bus number to operate in I2C mode.
+ * @brief Setup the pins used of the given i2c bus number to operate in I2C mode.
  *
  * If a pin multiplexer is loaded (from a successfully call to sol_pin_mux_select_mux),
  * execute the instructions needed to configure the pins used by the given i2c bus
@@ -127,7 +127,7 @@ int sol_pin_mux_setup_gpio(const uint32_t pin, const enum sol_gpio_direction dir
 int sol_pin_mux_setup_i2c(const uint8_t bus);
 
 /**
- * Setup the given pin to operate as PWM.
+ * @brief Setup the given pin to operate as PWM.
  *
  * If a pin multiplexer is loaded (from a successfully call to sol_pin_mux_select_mux),
  * execute the instructions needed to configure 'device'/'channel' pair to operate as PWM.
