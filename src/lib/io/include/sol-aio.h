@@ -47,15 +47,15 @@ extern "C" {
  * @defgroup AIO AIO
  * @ingroup IO
  *
- * Analog I/O API for Soletta.
+ * @brief Analog I/O API for Soletta.
  *
  * @{
  */
 
-struct sol_aio; /**< Structure of the AIO handler */
+struct sol_aio; /**< @brief AIO handler structure */
 
 /**
- * @brief Open the given board 'pin' by its label to be used as Analog I/O.
+ * @brief Open the given board @c pin by its label to be used as Analog I/O.
  *
  * This function only works when the board was successfully detect by Soletta and a corresponding
  * pin multiplexer module was found.
@@ -72,7 +72,7 @@ struct sol_aio; /**< Structure of the AIO handler */
 struct sol_aio *sol_aio_open_by_label(const char *label, const unsigned int precision);
 
 /**
- * @brief Open the given Analog I/O 'pin' on 'device' to be used.
+ * @brief Open the given Analog I/O @c pin on @c device to be used.
  *
  * This function also applies any Pin Multiplexer rules needed if a multiplexer for
  * the current board was previously loaded.
@@ -87,9 +87,9 @@ struct sol_aio *sol_aio_open_by_label(const char *label, const unsigned int prec
 struct sol_aio *sol_aio_open(const int device, const int pin, const unsigned int precision);
 
 /**
- * @brief Open the given Analog I/O 'pin' on 'device' to be used.
+ * @brief Open the given Analog I/O @c pin on @c device to be used.
  *
- * 'precision' is used to filter the valid bits from the data received from hardware
+ * @c precision is used to filter the valid bits from the data received from hardware
  * (which is manufacturer dependent), therefore should not be used as a way to change
  * the output range because is applied to the least significant bits.
  *
@@ -108,10 +108,10 @@ struct sol_aio *sol_aio_open_raw(const int device, const int pin, const unsigned
 void sol_aio_close(struct sol_aio *aio);
 
 /**
- * @brief Read the value of AIO 'pin' on 'device'.
+ * @brief Read the value of AIO @c pin on @c device.
  *
- * @param aio A valid AIO handler for the desired 'device'/'pin' pair.
- * @return The value read. -1 in case of error.
+ * @param aio A valid AIO handler for the desired @c 'device/pin' pair.
+ * @return The value read. @c -1 in case of error.
  */
 int32_t sol_aio_get_value(const struct sol_aio *aio);
 
