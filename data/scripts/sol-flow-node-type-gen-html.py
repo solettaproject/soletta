@@ -86,7 +86,7 @@ def print_option(outfile, option):
     "name": option["name"],
     "data_type": option["data_type"],
     "description": option["description"].replace("\"", "\\\""),
-    "default": str(option.get("default", ""))
+    "default": re.sub("\"", "\\\"", str(option.get("default", "")))
     })
 
 def print_port(outfile, port):
