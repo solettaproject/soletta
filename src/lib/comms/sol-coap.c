@@ -483,6 +483,9 @@ timeout_cb(void *data)
 static void
 pending_reply_free(struct pending_reply *reply)
 {
+    if (!reply)
+        return;
+
     if (reply->observing)
         free(reply->path);
     free(reply);
