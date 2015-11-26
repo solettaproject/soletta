@@ -264,7 +264,7 @@ engine_urandom_generate_uint32(struct sol_random *generic)
     }
 
     SOL_ERR("Could not read from /dev/urandom: %s", sol_util_strerrora(errno));
-    return 0;
+    return -errno;
 }
 
 const struct sol_random_impl *SOL_RANDOM_URANDOM =
