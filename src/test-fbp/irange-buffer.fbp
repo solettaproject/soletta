@@ -86,20 +86,17 @@ validator_circular OUT -> RESULT test_circular(test/result)
 
 # ----- Timeout tests ------
 
+gen5(test/int-generator:sequence="10 20", interval=40)
 timeout_buffer(int/buffer:timeout=100)
 timeout_equal(int/equal)
 timeout_result(constant/int:value=15)
 
-gen5(test/int-generator:sequence="10 20", interval=40)
 gen5 OUT -> IN timeout_buffer
-
 timeout_buffer OUT -> IN[0] timeout_equal
 timeout_result OUT -> IN[1] timeout_equal
-
 timeout_equal OUT -> RESULT test_timeout(test/result)
 
 gen6(test/int-generator:sequence="10 20 30", interval=40)
-
 timeout_buffer2(int/buffer:timeout=100)
 validator_timeout(test/int-validator:sequence="15 30")
 
@@ -107,8 +104,8 @@ gen6 OUT -> IN timeout_buffer2
 timeout_buffer2 OUT -> IN validator_timeout
 validator_timeout OUT -> RESULT test_timeout_seq(test/result)
 
-timeout_buffer3(int/buffer:timeout=100, circular=true)
 validator_timeout2(test/int-validator:sequence="15 20")
+timeout_buffer3(int/buffer:timeout=100, circular=true)
 
 gen6 OUT -> IN timeout_buffer3
 timeout_buffer3 OUT -> IN validator_timeout2

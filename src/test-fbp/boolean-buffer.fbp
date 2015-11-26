@@ -76,22 +76,20 @@ nany_false_buffer OUT -> IN _(boolean/not) OUT -> RESULT t8(test/result)
 
 # Timeout tests
 
+input9(test/boolean-generator:sequence="FT", interval=40)
 buffer_timeout(boolean/buffer:timeout=100, operation=any_true)
 
-input9(test/boolean-generator:sequence="FT", interval=40)
 input9 OUT -> IN buffer_timeout OUT -> RESULT t9(test/result)
 
-buffer_timeout2(boolean/buffer:timeout=100, operation=any_true)
-
 input10(test/boolean-generator:sequence="TTF", interval=40)
+buffer_timeout2(boolean/buffer:timeout=100, operation=any_true)
 validator_timeout(test/boolean-validator:sequence="TF")
 
 input10 OUT -> IN buffer_timeout2
 buffer_timeout2 OUT -> IN validator_timeout OUT -> RESULT t10(test/result)
 
-buffer_timeout3(boolean/buffer:timeout=100, operation=any_true, circular=true)
-
 input11(test/boolean-generator:sequence="TTF", interval=60)
+buffer_timeout3(boolean/buffer:timeout=100, operation=any_true, circular=true)
 validator_timeout2(test/boolean-validator:sequence="TT")
 
 input11 OUT -> IN buffer_timeout3
