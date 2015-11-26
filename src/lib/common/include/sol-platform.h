@@ -47,6 +47,7 @@ extern "C" {
 
 /**
  * @defgroup Platform Platform
+ * @brief These routines are used for Soletta platform interaction.
  *
  * @{
  */
@@ -63,12 +64,20 @@ extern "C" {
  */
 #define CHUNK_MAX_TIME_NS (20 * (NSEC_PER_MSEC))
 
+/**
+ * @brief Retrieves the name of the board on which Soletta is running.
+ *
+ * @return String containing the board name on success, @c NULL otherwise.
+ *
+ * @note: Check the Board Detection documentation for more information
+ * about how the name is found.
+ */
 const char *sol_platform_get_board_name(void);
 
 /**
- * Retrieves, in @a id, the machine-id present in the file system. The
- * returned string is assured to be a valid, 16 bytes-long (128 bits)
- * UUID.
+ * @brief Retrieves, in @a id, the machine-id present in the file system.
+ *
+ * The returned string is assured to be a valid, 16 bytes-long (128 bits) UUID.
  *
  * @note: If the environment variable SOL_MACHINE_ID is set and is
  * properly formatted as a UUID, its value is returned by this call.
@@ -79,7 +88,7 @@ const char *sol_platform_get_board_name(void);
 const char *sol_platform_get_machine_id(void);
 
 /**
- * Retrieves, in @a number, the platform's main board serial
+ * @brief Retrieves, in @a number, the platform's main board serial
  * number/identifier.
  *
  * @note: If the environment variable SOL_SERIAL_NUMBER is set, its
@@ -91,7 +100,7 @@ const char *sol_platform_get_machine_id(void);
 const char *sol_platform_get_serial_number(void);
 
 /**
- * Retrieves the version of Soletta that is running.
+ * @brief Retrieves the version of Soletta that is running.
  *
  * @return On success, it returns the version string, that must not be
  * modified. On error, it returns @c NULL.
@@ -99,7 +108,7 @@ const char *sol_platform_get_serial_number(void);
 const char *sol_platform_get_sw_version(void);
 
 /**
- * Retrieves the operating system's version that Soletta is running
+ * @brief Retrieves the operating system's version that Soletta is running
  * on top of.
  *
  * @return On success, it returns the version string. This string should
@@ -161,7 +170,7 @@ int sol_platform_restart_service(const char *service);
 int sol_platform_set_target(const char *target);
 
 /**
- * List mount points mounted by us on hotplug events
+ * @brief List mount points mounted by us on hotplug events.
  *
  * @param vector Initialized sol_vector used to store the resulting list
  *
@@ -170,7 +179,7 @@ int sol_platform_set_target(const char *target);
 int sol_platform_get_mount_points(struct sol_ptr_vector *vector);
 
 /**
- * Umount a @c mpoint
+ * @brief Umount a @c mpoint
  *
  * @param mpoint The mount point to be unmounted
  * @param cb Callback to be called when unmount operation finishes
