@@ -52,7 +52,7 @@ int sol_platform_impl_restart_service(const char *service) SOL_ATTR_NONNULL(1);
 
 int sol_platform_impl_set_target(const char *target) SOL_ATTR_NONNULL(1);
 
-int sol_platform_impl_get_machine_id(char id[static 33]);
+int sol_platform_impl_get_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)]);
 int sol_platform_impl_get_serial_number(char **number);
 int sol_platform_impl_get_os_version(char **version);
 

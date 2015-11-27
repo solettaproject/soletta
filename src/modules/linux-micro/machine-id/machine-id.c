@@ -54,7 +54,7 @@ static void on_fstab_service_state_changed(void *data,
     enum sol_platform_service_state state);
 
 static int
-validate_machine_id(char id[static 33])
+validate_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
     id[32] = '\0';
 
@@ -65,7 +65,7 @@ validate_machine_id(char id[static 33])
 }
 
 static int
-write_machine_id(const char *path, char id[static 33])
+write_machine_id(const char *path, char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
     SOL_NULL_CHECK(path, -EINVAL);
 

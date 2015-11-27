@@ -97,7 +97,7 @@ sol_platform_impl_set_target(const char *target)
 }
 
 int
-sol_platform_impl_get_machine_id(char id[static 33])
+sol_platform_impl_get_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
     SOL_WRN("Not implemented");
     return -ENOTSUP;

@@ -156,7 +156,7 @@ fail_new_method:
 }
 
 static const char *
-sanitize_unit_name(char buf[static PATH_MAX], const char *unit,
+sanitize_unit_name(char buf[SOL_STATIC_ARRAY_SIZE(PATH_MAX)], const char *unit,
     const char *suffix, const char *action)
 {
     size_t len;
@@ -181,7 +181,7 @@ sanitize_unit_name(char buf[static PATH_MAX], const char *unit,
 }
 
 static inline const char *
-sanitize_service_name(char buf[static PATH_MAX], const char *service,
+sanitize_service_name(char buf[SOL_STATIC_ARRAY_SIZE(PATH_MAX)], const char *service,
     const char *action)
 {
     return sanitize_unit_name(buf, service, ".service", action);
@@ -443,7 +443,7 @@ sol_platform_impl_set_target(const char *target)
 }
 
 int
-sol_platform_impl_get_machine_id(char id[static 33])
+sol_platform_impl_get_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
     int r;
 

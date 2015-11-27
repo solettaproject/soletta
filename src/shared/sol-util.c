@@ -267,7 +267,7 @@ uuid_gen(struct sol_uuid *ret)
 int
 sol_util_uuid_gen(bool upcase,
     bool with_hyphens,
-    char id[static 37])
+    char id[SOL_STATIC_ARRAY_SIZE(37)])
 {
     static struct sol_str_slice hyphen = SOL_STR_SLICE_LITERAL("-");
     /* hyphens on positions 8, 13, 18, 23 (from 0) */
@@ -347,7 +347,7 @@ sol_util_replace_str_from_slice_if_changed(char **str,
 }
 
 ssize_t
-sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65])
+sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *output;
     const uint8_t *input;
@@ -410,7 +410,7 @@ sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slic
 }
 
 static inline uint8_t
-base64_index_of(char c, const char base64_map[static 65])
+base64_index_of(char c, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     const char *p = memchr(base64_map, c, 65);
 
@@ -420,7 +420,7 @@ base64_index_of(char c, const char base64_map[static 65])
 }
 
 ssize_t
-sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65])
+sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     uint8_t *output;
     const char *input;
