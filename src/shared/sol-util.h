@@ -401,7 +401,7 @@ sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
  *
  * @return 0 on success, negative error code otherwise.
  */
-int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[static 37]);
+int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[SOL_STATIC_ARRAY_SIZE(37)]);
 
 /**
  * Checks if a given universally unique identifier (UUID), in string
@@ -473,7 +473,7 @@ int sol_util_replace_str_from_slice_if_changed(char **str, const struct sol_str_
  *
  * @return the number of bytes written or -errno if failed.
  */
-ssize_t sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65]);
+ssize_t sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
  * Decode the binary slice from base64 using the given map.
@@ -494,10 +494,10 @@ ssize_t sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_sl
  *
  * @return the number of bytes written or -errno if failed.
  */
-ssize_t sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[static 65]);
+ssize_t sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 static inline ssize_t
-sol_util_base64_calculate_encoded_len(const struct sol_str_slice slice, const char base64_map[static 65])
+sol_util_base64_calculate_encoded_len(const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     ssize_t req_len = slice.len / 3;
     int err;
@@ -511,7 +511,7 @@ sol_util_base64_calculate_encoded_len(const struct sol_str_slice slice, const ch
 }
 
 static inline ssize_t
-sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const char base64_map[static 65])
+sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     size_t req_len = (slice.len / 4) * 3;
     size_t i;

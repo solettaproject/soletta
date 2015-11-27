@@ -73,6 +73,12 @@
 #define SOL_ATTR_PURE
 #endif
 
+#ifdef __cplusplus
+#define SOL_STATIC_ARRAY_SIZE(n)
+#else
+#define SOL_STATIC_ARRAY_SIZE(n) static n
+#endif
+
 /**
  * @}
  */

@@ -272,7 +272,7 @@ extern const char SOL_BASE64_MAP[66];
  * @see sol_buffer_insert_from_base64()
  * @see sol_buffer_append_from_base64()
  */
-int sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[static 65]);
+int sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
  * Append the 'slice' at the end of 'buf' encoded as base64 using the given map.
@@ -292,7 +292,7 @@ int sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct
  * @see sol_buffer_insert_from_base64()
  * @see sol_buffer_append_from_base64()
  */
-int sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[static 65]);
+int sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
  * Insert the 'slice' into 'buf' at position 'pos' decoded from base64 using the given map.
@@ -314,7 +314,7 @@ int sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_sli
  * @see sol_buffer_append_as_base64()
  * @see sol_buffer_append_from_base64()
  */
-int sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[static 65]);
+int sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
  * Append the 'slice' at the end of 'buf' decoded from base64 using the given map.
@@ -334,7 +334,7 @@ int sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const stru
  * @see sol_buffer_append_as_base64()
  * @see sol_buffer_insert_from_base64()
  */
-int sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[static 65]);
+int sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
  * Insert the 'slice' into 'buf' at position 'pos' encoded as base16 (hexadecimal).
