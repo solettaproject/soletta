@@ -213,8 +213,6 @@ static struct sol_coap_resource light = {
     SOL_SET_API_VERSION(.api_version = SOL_COAP_RESOURCE_API_VERSION, )
     .get = light_method_get,
     .put = light_method_put,
-    .iface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
-    .resource_type = SOL_STR_SLICE_LITERAL("core.light"),
     .flags = SOL_COAP_FLAGS_WELL_KNOWN,
     .path = {
         SOL_STR_SLICE_LITERAL("a"),
