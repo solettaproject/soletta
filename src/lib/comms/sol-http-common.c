@@ -158,6 +158,11 @@ sol_http_encode_slice(struct sol_buffer *buf, const struct sol_str_slice value)
     SOL_NULL_CHECK(buf, -EINVAL);
 
     sol_buffer_init(buf);
+
+    /* Empty slice. Just return an empty buffer */
+    if (!value.len)
+        return 0;
+
     last_append = 0;
     for (i = 0; i < value.len; i++) {
         unsigned char c = value.data[i];
@@ -199,6 +204,11 @@ sol_http_decode_slice(struct sol_buffer *buf,
     SOL_NULL_CHECK(buf, -EINVAL);
 
     sol_buffer_init(buf);
+
+    /* Empty slice. Just return an empty buffer */
+    if (!value.len)
+        return 0;
+
     last_append = 0;
 
     for (i = 0; i < value.len; i++) {
