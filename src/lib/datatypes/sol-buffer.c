@@ -924,7 +924,7 @@ sol_buffer_fini(struct sol_buffer *buf)
 {
     if (!buf)
         return;
-    if (buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY)
+    if ((buf->flags & SOL_BUFFER_FLAGS_CLEAR_MEMORY) == SOL_BUFFER_FLAGS_CLEAR_MEMORY)
         sol_util_secure_clear_memory(buf->data, buf->capacity);
     if (!(buf->flags & SOL_BUFFER_FLAGS_NO_FREE))
         free(buf->data);
