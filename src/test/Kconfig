@@ -108,7 +108,7 @@ config TEST_PERSISTENCE_MEMMAP
 
 config TEST_HTTP
        bool "http"
-       depends on NETWORK
+       depends on HTTP
        default y
 
 config TEST_CERTIFICATE

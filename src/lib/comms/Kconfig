@@ -62,8 +62,8 @@ config OIC
             Both client and server sides are covered by this library.
 
 config HTTP
-	bool
-	default n
+	bool "HTTP Common"
+	default y
 
 config HTTP_CLIENT
 	bool "HTTP Client"
