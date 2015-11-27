@@ -1030,7 +1030,7 @@ struct client_resource {
     struct sol_oic_client client;
 
     const char *rt;
-    char *device_id;
+    char device_id[DEVICE_ID_LEN];
     struct sol_ptr_vector scanned_ids;
 };
 
@@ -1416,20 +1416,14 @@ as_nibble(const char c)
     return 0;
 }
 
-static char *
-hex_ascii_to_binary(const char *ascii)
+static void
+hex_ascii_to_binary(const char *ascii, char *binary)
 {
-    char *binary = malloc(DEVICE_ID_LEN);
+    const char *p;
+    size_t i;
 
-    if (likely(binary)) {
-        const char *p;
-        size_t i;
-
-        for (p = ascii, i = 0; i < DEVICE_ID_LEN; i++, p += 2)
-            binary[i] = as_nibble(*p) << 4 | as_nibble(*(p + 1));
-    }
-
-    return binary;
+    for (p = ascii, i = 0; i < DEVICE_ID_LEN; i++, p += 2)
+        binary[i] = as_nibble(*p) << 4 | as_nibble(*(p + 1));
 }
 
 static int
@@ -1440,7 +1434,7 @@ client_connect(struct client_resource *resource, const char *device_id)
         return 0;
     }
 
-    resource->device_id = hex_ascii_to_binary(device_id);
+    hex_ascii_to_binary(device_id, resource->device_id);
     SOL_NULL_CHECK(resource->device_id, -ENOMEM);
 
     if (resource->find_timeout)
@@ -1497,7 +1491,6 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
     sol_ptr_vector_init(&resource->scanned_ids);
     resource->node = node;
     resource->find_timeout = NULL;
-    resource->device_id = NULL;
     resource->update_schedule_timeout = NULL;
     resource->resource = NULL;
     resource->funcs = funcs;
@@ -1513,8 +1506,6 @@ nomem:
 static void
 client_resource_close(struct client_resource *resource)
 {
-    free(resource->device_id);
-
     if (resource->find_timeout)
         sol_timeout_del(resource->find_timeout);
     if (resource->update_schedule_timeout)
