@@ -136,7 +136,7 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
         printf("\t\t%.*s\n", SOL_STR_SLICE_PRINT(*slice));
 
     printf("Issuing GET %.*s on resource...\n", SOL_STR_SLICE_PRINT(res->href));
-    sol_oic_client_resource_request(cli, res, SOL_COAP_METHOD_GET, NULL,
+    sol_oic_client_resource_request(cli, res, SOL_COAP_METHOD_GET, NULL, NULL,
         got_get_response, data);
 
     printf("\n");

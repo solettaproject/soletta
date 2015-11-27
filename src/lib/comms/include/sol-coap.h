@@ -240,7 +240,9 @@ enum sol_coap_flags {
 struct sol_coap_packet;
 
 /**
- * Opaque handler for a CoAP server.
+ * @struct sol_coap_server
+ *
+ * @brief Opaque handler for a CoAP server.
  */
 struct sol_coap_server;
 

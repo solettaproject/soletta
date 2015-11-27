@@ -91,7 +91,7 @@ struct sol_oic_resource_type {
 
     struct {
         sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
-            const void *data, const struct sol_vector *input, struct sol_vector *output);
+            const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output);
     } get, put, post, delete;
 };
 
@@ -104,7 +104,8 @@ struct sol_oic_server_resource *sol_oic_server_add_resource(
 void sol_oic_server_del_resource(struct sol_oic_server_resource *resource);
 
 bool sol_oic_notify_observers(struct sol_oic_server_resource *resource,
-    const struct sol_vector *repr);
+    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
+    void *data);
 
 /**
  * @}

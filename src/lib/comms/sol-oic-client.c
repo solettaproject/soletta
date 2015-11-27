@@ -102,7 +102,7 @@ struct resource_request_ctx {
     struct sol_oic_client *client;
     struct sol_oic_resource *res;
     void (*cb)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-        const struct sol_str_slice *href, const struct sol_vector *reprs, void *data);
+        const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data);
     void *data;
     int64_t token;
 };
@@ -765,36 +765,21 @@ _resource_request_cb(struct sol_coap_server *server,
         return true;
 
     while (cbor_value_is_map(&array) && err == CborNoError) {
-        struct sol_oic_repr_field *repr;
-        struct sol_vector reprs = SOL_VECTOR_INIT(struct sol_oic_repr_field);
         CborValue value;
         char *href;
         size_t len;
-        uint16_t idx;
 
         err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_HREF, &value);
         err |= cbor_value_dup_text_string(&value, &href, &len, NULL);
 
         err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_REPRESENTATION, &value);
 
-        err |= sol_oic_decode_cbor_repr_map(&value, &reprs);
-        if (err == CborNoError) {
+        if (cbor_value_is_map(&value)) {
             struct sol_str_slice href_slice = sol_str_slice_from_str(href);
-
-            /* A sentinel item isn't needed since a sol_vector is passed. */
-            ctx->cb(ctx->client, cliaddr, &href_slice, &reprs, ctx->data);
+            ctx->cb(ctx->client, cliaddr, &href_slice, (struct sol_oic_map_reader *)&value, ctx->data);
         }
 
         free(href);
-        SOL_VECTOR_FOREACH_IDX (&reprs, repr, idx) {
-            free((char *)repr->key);
-
-            if (repr->type != SOL_OIC_REPR_TYPE_TEXT_STRING && repr->type != SOL_OIC_REPR_TYPE_BYTE_STRING)
-                continue;
-
-            free((char *)repr->v_slice.data);
-        }
-        sol_vector_clear(&reprs);
 
         err |= cbor_value_advance(&array);
     }
@@ -835,9 +820,11 @@ _resource_request_unobserve(struct sol_oic_client *client, struct sol_oic_resour
 
 static bool
 _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method, const struct sol_vector *repr,
+    sol_coap_method_t method,
+    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
+    void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
+    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
     void *data, bool observe)
 {
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
@@ -846,6 +833,9 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
 
     bool (*cb)(struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data);
     struct sol_coap_packet *req;
+    struct sol_coap_server *server;
+    struct sol_network_link_addr addr;
+    struct sol_oic_map_writer map_encoder;
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
             .client = client,
             .cb = callback,
@@ -882,24 +872,29 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
 
     sol_coap_add_option(req, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
 
-    err = sol_oic_encode_cbor_repr(req, href, repr);
-    if (err == CborNoError) {
-        struct sol_coap_server *server;
-        struct sol_network_link_addr addr;
+    if (fill_repr_map) {
+        err = sol_oic_packet_cbor_create(req, href, &map_encoder);
+        SOL_INT_CHECK_GOTO(err, != CborNoError, cbor_error);
+        if (!fill_repr_map(fill_repr_map_data, &map_encoder))
+            goto out;
+        err = sol_oic_packet_cbor_close(req, &map_encoder);
+        SOL_INT_CHECK_GOTO(err, != CborNoError, cbor_error);
+    }
+    server = _best_server_for_resource(client, res, &addr);
 
-        server = _best_server_for_resource(client, res, &addr);
 
-        SOL_DBG("Sending CoAP packet through %s server (port %d)",
-            server == client->dtls_server ? "secure" : "non-secure",
-            addr.port);
+    if (!sol_coap_send_packet_with_reply(server, req, &addr, cb, ctx) == 0) {
+        SOL_DBG("Failed to send CoAP packet through %s server (port %d)",
+            server == client->dtls_server ? "secure" : "non-secure", addr.port);
+        goto out;
+    }
 
-        if (sol_coap_send_packet_with_reply(server, req, &addr,
-            cb, ctx) == 0)
-            return true;
-    } else
-        SOL_ERR("Could not encode CBOR representation: %s",
-            cbor_error_string(err));
+    SOL_DBG("Sending CoAP packet through %s server (port %d)",
+        server == client->dtls_server ? "secure" : "non-secure", addr.port);
+    return true;
 
+cbor_error:
+    SOL_ERR("Could not encode CBOR representation: %s", cbor_error_string(err));
 out:
     sol_coap_packet_unref(req);
 out_no_req:
@@ -909,17 +904,20 @@ out_no_req:
 
 SOL_API bool
 sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method, const struct sol_vector *repr,
+    sol_coap_method_t method,
+    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
+    void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
-    void *data)
+    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    void *callback_data)
 {
     SOL_NULL_CHECK(client, false);
     OIC_CLIENT_CHECK_API(client, false);
     SOL_NULL_CHECK(res, false);
     OIC_RESOURCE_CHECK_API(res, false);
 
-    return _resource_request(client, res, method, repr, callback, data, false);
+    return _resource_request(client, res, method, fill_repr_map,
+        fill_repr_map_data, callback, callback_data, false);
 }
 
 static bool
@@ -934,7 +932,7 @@ _poll_resource(void *data)
         return false;
     }
 
-    r = _resource_request(ctx->client, ctx->res, SOL_COAP_METHOD_GET, NULL, ctx->cb, ctx->data, false);
+    r = _resource_request(ctx->client, ctx->res, SOL_COAP_METHOD_GET, NULL, NULL, ctx->cb, ctx->data, false);
     if (!r)
         SOL_WRN("Could not send polling packet to observable resource");
 
@@ -944,7 +942,7 @@ _poll_resource(void *data)
 static bool
 _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
+    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
     void *data)
 {
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
@@ -985,7 +983,7 @@ _stop_observing_with_polling(struct sol_oic_resource *res)
 SOL_API bool
 sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
+    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
     void *data, bool observe)
 {
     SOL_NULL_CHECK(client, false);
@@ -1002,7 +1000,7 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
                 data);
         else
             res->is_observing = _resource_request(client, res,
-                SOL_COAP_METHOD_GET, NULL, callback, data, true);
+                SOL_COAP_METHOD_GET, NULL, NULL, callback, data, true);
         return res->is_observing;
     }
 

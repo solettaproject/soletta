@@ -72,8 +72,8 @@ struct sol_oic_server_resource {
     struct {
         struct {
             sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
-                const void *data, const struct sol_vector *input,
-                struct sol_vector *output);
+                const void *data, const struct sol_oic_map_reader *input,
+                struct sol_oic_map_writer *output);
         } get, put, post, delete;
         const void *data;
     } callback;
@@ -466,35 +466,20 @@ sol_oic_server_release(void)
     free(oic_server.information);
 }
 
-static void
-_clear_repr_vector(struct sol_vector *repr)
-{
-    struct sol_oic_repr_field *field;
-    uint16_t idx;
-
-    SOL_VECTOR_FOREACH_IDX (repr, field, idx) {
-        if (field->type == SOL_OIC_REPR_TYPE_TEXT_STRING ||
-            field->type == SOL_OIC_REPR_TYPE_BYTE_STRING) {
-            free((char *)field->v_slice.data);
-        }
-    }
-
-    sol_vector_clear(repr);
-}
-
 static int
 _sol_oic_resource_type_handle(
     sol_coap_responsecode_t (*handle_fn)(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_vector *input, struct sol_vector *output),
+    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output),
     struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr,
     struct sol_oic_server_resource *res, bool expect_payload)
 {
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     struct sol_coap_packet *response;
-    struct sol_vector input = SOL_VECTOR_INIT(struct sol_oic_repr_field);
-    struct sol_vector output = SOL_VECTOR_INIT(struct sol_oic_repr_field);
+    struct sol_oic_map_reader input;
+    struct sol_oic_map_writer output;
     sol_coap_responsecode_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
+    CborParser parser;
 
     OIC_SERVER_CHECK(-ENOTCONN);
 
@@ -514,17 +499,19 @@ _sol_oic_resource_type_handle(
             code = SOL_COAP_RSPCODE_BAD_REQUEST;
             goto done;
         }
-        if (sol_oic_decode_cbor_repr(req, &input) != CborNoError) {
+        if (sol_oic_packet_cbor_extract_repr_map(req, &parser, (CborValue *)&input) != CborNoError) {
             code = SOL_COAP_RSPCODE_BAD_REQUEST;
             goto done;
         }
     }
 
+    sol_coap_add_option(response, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
+
+    if (sol_oic_packet_cbor_create(response, res->href, &output) != CborNoError)
+        goto done;
     code = handle_fn(cliaddr, res->callback.data, &input, &output);
     if (code == SOL_COAP_RSPCODE_CONTENT) {
-        sol_coap_add_option(response, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
-
-        if (sol_oic_encode_cbor_repr(response, res->href, &output) != CborNoError)
+        if (sol_oic_packet_cbor_close(response, &output) != CborNoError)
             code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
     }
 
@@ -532,12 +519,6 @@ done:
     sol_coap_header_set_type(response, SOL_COAP_TYPE_ACK);
     sol_coap_header_set_code(response,
         code == SOL_COAP_RSPCODE_CONTENT ? SOL_COAP_RSPCODE_OK : code);
-
-    _clear_repr_vector(&input);
-    /* Output vector is user-built, so it's not safe to call
-     * _clear_repr_vector() on it.  Clean the vector itself, but not its
-     * items.*/
-    sol_vector_clear(&output);
 
     return sol_coap_send_packet(server, response, cliaddr);
 }
@@ -720,39 +701,51 @@ sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
 
 static bool
 send_notification_to_server(struct sol_oic_server_resource *resource,
-    const struct sol_vector *fields, struct sol_coap_server *server)
+    struct sol_coap_server *server,
+    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
+    void *data)
 {
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     struct sol_coap_packet *pkt;
+    struct sol_oic_map_writer oic_map_writer;
+    uint8_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
+    CborError err;
 
-    pkt = sol_coap_packet_notification_new(server, resource->coap);
+    pkt = sol_coap_packet_notification_new(oic_server.server, resource->coap);
     SOL_NULL_CHECK(pkt, false);
 
-    sol_coap_add_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
+    sol_coap_add_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor,
+        sizeof(format_cbor));
 
-    if (sol_oic_encode_cbor_repr(pkt, resource->href, fields) != CborNoError) {
-        sol_coap_header_set_code(pkt, SOL_COAP_RSPCODE_INTERNAL_ERROR);
-    } else {
-        sol_coap_header_set_code(pkt, SOL_COAP_RSPCODE_OK);
-    }
+    err = sol_oic_packet_cbor_create(pkt, resource->href, &oic_map_writer);
+    SOL_INT_CHECK_GOTO(err, != CborNoError, end);
+    if (!fill_repr_map(data, &oic_map_writer))
+        goto end;
+    err = sol_oic_packet_cbor_close(pkt, &oic_map_writer);
+    SOL_INT_CHECK_GOTO(err, != CborNoError, end);
 
+    code = SOL_COAP_RSPCODE_OK;
+end:
+    sol_coap_header_set_code(pkt, code);
     sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
 
-    return !sol_coap_packet_send_notification(server, resource->coap, pkt);
+    return !sol_coap_packet_send_notification(oic_server.server, resource->coap, pkt);
 }
 
 SOL_API bool
 sol_oic_notify_observers(struct sol_oic_server_resource *resource,
-    const struct sol_vector *fields)
+    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
+    void *data)
 {
     bool sent_server = false;
     bool sent_dtls_server = false;
 
     SOL_NULL_CHECK(resource, false);
+    SOL_NULL_CHECK(fill_repr_map, false);
 
-    sent_server = send_notification_to_server(resource, fields, oic_server.server);
+    sent_server = send_notification_to_server(resource, oic_server.server, fill_repr_map, data);
     if (oic_server.dtls_server)
-        sent_dtls_server = send_notification_to_server(resource, fields, oic_server.dtls_server);
+        sent_dtls_server = send_notification_to_server(resource, oic_server.dtls_server, fill_repr_map, data);
 
     return sent_server || sent_dtls_server;
 }

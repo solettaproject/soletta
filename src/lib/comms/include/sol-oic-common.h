@@ -34,10 +34,28 @@
 
 #include <sol-common-buildopts.h>
 #include <sol-vector.h>
+#include <sol-str-slice.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @defgroup OIC Open Interconnect Consortium
+ * @ingroup Comms
+ *
+ * Implementation of protocol defined by Open Interconnect Consortium
+ * (OIC - http://openinterconnect.org/)
+ *
+ * It's a common communication framework based on industry standard
+ * technologies to wirelessly connect and intelligently manage
+ * the flow of information among devices, regardless of form factor,
+ * operating system or service provider.
+ *
+ * Both client and server sides are covered by this module.
+ *
+ * @{
+ */
 
 struct sol_oic_server_information {
 #ifndef SOL_NO_API_VERSION
@@ -120,6 +138,147 @@ struct sol_oic_repr_field {
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_FLOAT, .v_float = (value_))
 #define SOL_OIC_REPR_DOUBLE(key_, value_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_DOUBLE, .v_double = (value_))
+
+/**
+ * @struct sol_oic_map_writer
+ *
+ * @brief Opaque handler for an oic packet map writer.
+ *
+ * This structure is used in callback parameters so users can add fields to an
+ * oic packet using @ref sol_oic_map_append().
+ *
+ * @see sol_oic_notify_observers()
+ * @see sol_oic_client_resource_request()
+ */
+struct sol_oic_map_writer;
+
+/**
+ * @brief Handler for an oic packet map reader.
+ *
+ * This structure is used in callback parameters so users can read fields from
+ * an oic packet using @ref SOL_OIC_MAP_LOOP.
+ *
+ * @note Fields from this structure are not expected to be accessed by clients.
+ * @see SOL_OIC_MAP_LOOP.
+ */
+struct sol_oic_map_reader {
+    const void *parser;
+    const void *ptr;
+    const uint32_t remaining;
+    const uint16_t extra;
+    const uint8_t type;
+    const uint8_t flags;
+};
+
+/**
+ * @brief Possible reasons a @ref SOL_OIC_MAP_LOOP was terminated.
+ */
+enum sol_oic_map_loop_reason {
+    /**
+     * @brief Success termination. Everything was OK.
+     */
+    SOL_OIC_MAP_LOOP_OK = 0,
+    /**
+     * @brief Loop was terminated because an error occured. Not all elements
+     * were visited.
+     */
+    SOL_OIC_MAP_LOOP_ERROR
+};
+
+/**
+ * @brief Initialize an iterator to loop through elements of @a map.
+ *
+ * @param map The sol_oic_map_reader element to be used to initialize the
+ *        @a iterator.
+ * @param iterator Iterator to be initialized so it can be used by
+ *        @ref sol_oic_map_loop_next() to visit @a map elements.
+ * @param repr Initialize this element to be used by
+ *        @ref sol_oic_map_loop_next() to hold @a map elements.
+ *
+ * @return @c SOL_OIC_MAP_LOOP_OK if initialization was a success or
+ *         @c SOL_OIC_MAP_LOOP_ERROR if initialization failed.
+ *
+ * @note Prefer using @ref SOL_OIC_MAP_LOOP instead of calling this function directly.
+ *
+ * @see sol_oic_map_reader
+ */
+enum sol_oic_map_loop_reason sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_reader *iterator, struct sol_oic_repr_field *repr);
+
+/**
+ * @brief Get the next element from @a iterator.
+ *
+ * @param repr The value of next element from @a iterator
+ * @param iterator The sol_oic_map_reader iterator initialized by
+ *        @ref sol_oic_map_loop_init function.
+ * @param reason @c SOL_OIC_MAP_LOOP_ERROR if an error occured.
+ *        @c SOL_OIC_MAP_LOOP_OK otherwise.
+ *
+ * @return false if one error occurred or if there is no more elements to read
+ *         from @a iterator. true otherwise.
+ *
+ * @note Prefer using @ref SOL_OIC_MAP_LOOP instead of calling this function directly.
+ *
+ * @see sol_oic_map_reader
+ */
+bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader *iterator, enum sol_oic_map_loop_reason *reason);
+
+/**
+ * @brief Append an element to @a oic_map_writer
+ *
+ * @param oic_map_writer The sol_oic_map_writer in wich the element will be
+ *        added.
+ * @param repr The element
+ *
+ * @return true if the element was added successfully. False if an error
+ *         occured and the element was not added.
+ *
+ * @see sol_oic_notify_observers()
+ * @see sol_oic_client_resource_request()
+ */
+bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr);
+
+/**
+ * @def SOL_OIC_MAP_LOOP(map_, current_, iterator_, end_reason_)
+ *
+ * @brief Macro to be used to loop through all elements from a
+ * sol_oic_map_reader
+ *
+ * @param map_ A pointer to the struct sol_oic_map_reader to be looped
+ * @param current_ A pointer to a struct sol_oic_repr_field to be filled with
+ *        the current element data.
+ * @param iterator_ A pointer to a struct sol_oic_map_reader to be used as an
+ *        iterator
+ * @param end_reason_ A pointer to a enum sol_oic_map_loop_reason to be filled
+ *        with the reason this loop has terminated.
+ *
+ * Example to read data from a struct sol_oic_map_reader using this macro:
+ * @code
+ *
+ * struct sol_oic_repr_field field;
+ * enum sol_oic_map_loop_reason end_reason;
+ * struct sol_oic_map_reader iterator;
+ *
+ * SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
+ * {
+ *      // do something
+ * }
+ *
+ * if (end_reason != SOL_OIC_MAP_LOOP_OK)
+ *     // Erro handling
+ * @endcode
+ *
+ * @see sol_oic_map_reader
+ * @see sol_oic_map_loop_init
+ * @see sol_oic_map_loop_next
+ */
+#define SOL_OIC_MAP_LOOP(map_, current_, iterator_, end_reason_) \
+    for (end_reason_ = sol_oic_map_loop_init(map_, iterator_, current_);  \
+        end_reason_ == SOL_OIC_MAP_LOOP_OK && \
+        sol_oic_map_loop_next(current_, iterator_, &end_reason_);)
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

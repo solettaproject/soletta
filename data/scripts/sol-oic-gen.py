@@ -182,19 +182,18 @@ def generate_object_to_repr_vec_fn_common_c(state_struct_name, name, props, clie
             'key': prop_name,
             'fargs': ', '.join(fargs)
         }
-        fields.append('''f = sol_vector_append(repr);
-SOL_NULL_CHECK(f, false);
-*f = %(ftype)s("%(key)s", %(fargs)s);
+        fields.append('''ret = sol_oic_map_append(repr_map, &%(ftype)s("%(key)s", %(fargs)s));
+        SOL_EXP_CHECK(!ret, false);
 ''' % vars)
 
     if not fields:
         return ''
 
     return '''static bool
-%(struct_name)s_to_repr_vec(const struct %(type)s_resource *resource, struct sol_vector *repr)
+%(struct_name)s_to_repr_vec(void *data, struct sol_oic_map_writer *repr_map)
 {
-    struct %(struct_name)s *state = (struct %(struct_name)s *)resource;
-    struct sol_oic_repr_field *f;
+    struct %(struct_name)s *state = (struct %(struct_name)s *)data;
+    bool ret;
 
     %(fields)s
 
@@ -217,9 +216,9 @@ def object_to_repr_vec_fn_common_c(state_struct_name, name, props, client, equiv
     for item_name, item_props in equivalent.items():
         if item_props[0] == client and props_are_equivalent(props, item_props[1]):
             return '''static bool
-%(struct_name)s_to_repr_vec(const struct %(type)s_resource *resource, struct sol_vector *repr)
+%(struct_name)s_to_repr_vec(const struct %(type)s_resource *resource, struct sol_oic_map_writer *repr_map_encoder)
 {
-    return %(item_name)s_to_repr_vec(resource, repr); /* %(item_name)s is equivalent to %(struct_name)s */
+    return %(item_name)s_to_repr_vec(resource, repr_map_encoder); /* %(item_name)s is equivalent to %(struct_name)s */
 }
 ''' % {
         'item_name': item_name,
@@ -237,13 +236,13 @@ def object_to_repr_vec_fn_server_c(state_struct_name, name, props):
     return object_to_repr_vec_fn_common_c(state_struct_name, name, props, False)
 
 def get_field_integer_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field->key, "%(field_name)s")) {
-    if (field->type == SOL_OIC_REPR_TYPE_UINT)
-        fields.%(field_name)s = field->v_uint;
-    else if (field->type == SOL_OIC_REPR_TYPE_INT)
-        fields.%(field_name)s = field->v_int;
-    else if (field->type == SOL_OIC_REPR_TYPE_SIMPLE)
-        fields.%(field_name)s = field->v_simple;
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+    if (field.type == SOL_OIC_REPR_TYPE_UINT)
+        fields.%(field_name)s = field.v_uint;
+    else if (field.type == SOL_OIC_REPR_TYPE_INT)
+        fields.%(field_name)s = field.v_int;
+    else if (field.type == SOL_OIC_REPR_TYPE_SIMPLE)
+        fields.%(field_name)s = field.v_simple;
     else
         RETURN_ERROR(-EINVAL);
     decode_mask &= ~(1<<%(id)d);
@@ -256,11 +255,11 @@ def get_field_integer_client_c(id, name, prop):
     }
 
 def get_field_number_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field->key, "%(field_name)s")) {
-    if (field->type == SOL_OIC_REPR_TYPE_DOUBLE)
-        fields.%(field_name)s = field->v_double;
-    else if (field->type == SOL_OIC_REPR_TYPE_FLOAT)
-        fields.%(field_name)s = field->v_float;
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+    if (field.type == SOL_OIC_REPR_TYPE_DOUBLE)
+        fields.%(field_name)s = field.v_double;
+    else if (field.type == SOL_OIC_REPR_TYPE_FLOAT)
+        fields.%(field_name)s = field.v_float;
     else
         RETURN_ERROR(-EINVAL);
     decode_mask &= ~(1<<%(id)d);
@@ -273,11 +272,11 @@ def get_field_number_client_c(id, name, prop):
     }
 
 def get_field_string_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field->key, "%(field_name)s")) {
-    if (field->type != SOL_OIC_REPR_TYPE_TEXT_STRING)
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+    if (field.type != SOL_OIC_REPR_TYPE_TEXT_STRING)
         RETURN_ERROR(-EINVAL);
     free(fields.%(field_name)s);
-    fields.%(field_name)s = strndup(field->v_slice.data, field->v_slice.len);
+    fields.%(field_name)s = strndup(field.v_slice.data, field.v_slice.len);
     if (!fields.%(field_name)s)
         RETURN_ERROR(-EINVAL);
     decode_mask &= ~(1<<%(id)d);
@@ -290,10 +289,10 @@ def get_field_string_client_c(id, name, prop):
     }
 
 def get_field_boolean_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field->key, "%(field_name)s")) {
-    if (field->type != SOL_OIC_REPR_TYPE_BOOLEAN)
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+    if (field.type != SOL_OIC_REPR_TYPE_BOOLEAN)
         RETURN_ERROR(-EINVAL);
-    fields.%(field_name)s = field->v_boolean;
+    fields.%(field_name)s = field.v_boolean;
     decode_mask &= ~(1<<%(id)d);
     continue;
 }
@@ -304,14 +303,14 @@ def get_field_boolean_client_c(id, name, prop):
     }
 
 def get_field_enum_client_c(id, struct_name, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field->key, "%(field_name)s")) {
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
     int val;
 
-    if (field->type != SOL_OIC_REPR_TYPE_TEXT_STRING)
+    if (field.type != SOL_OIC_REPR_TYPE_TEXT_STRING)
         RETURN_ERROR(-EINVAL);
 
     val = sol_str_table_lookup_fallback(%(struct_name)s_%(field_name)s_tbl,
-        field->v_slice, -1);
+        field.v_slice, -1);
     if (val < 0)
         RETURN_ERROR(-EINVAL);
     fields.%(field_name)s = (enum %(struct_name)s_%(field_name)s)val;
@@ -369,17 +368,20 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
 
     return '''static bool
 %(struct_name)s_from_repr_vec(struct %(struct_name)s *state,
-    const struct sol_vector *repr, uint32_t decode_mask)
+    const struct sol_oic_map_reader *repr_vec, uint32_t decode_mask)
 {
-    struct sol_oic_repr_field *field;
-    uint16_t idx;
+    struct sol_oic_repr_field field;
+    enum sol_oic_map_loop_reason end_reason;
+    struct sol_oic_map_reader iterator;
     struct %(struct_name)s fields = {
         %(fields_init)s
     };
 
-    SOL_VECTOR_FOREACH_IDX (repr, field, idx) {
+    SOL_OIC_MAP_LOOP(repr_vec, &field, &iterator, end_reason) {
         %(fields)s
     }
+    if (end_reason != SOL_OIC_MAP_LOOP_OK)
+        goto out;
 
     %(update_state)s
 
@@ -402,10 +404,10 @@ def object_from_repr_vec_fn_common_c(name, props, equivalent={}):
         if props_are_equivalent(props, item_props):
             return '''static bool
 %(struct_name)s_from_repr_vec(struct %(struct_name)s *state,
-    const sol_vector *repr, uint32_t decode_mask)
+    const struct sol_oic_map_reader *repr_map, uint32_t decode_mask)
 {
     /* %(item_name)s is equivalent to %(struct_name)s */
-    return %(item_name)s_from_repr_vec((struct %(item_name)s *)state, repr, decode_mask);
+    return %(item_name)s_from_repr_vec((struct %(item_name)s *)state, repr_map, decode_mask);
 }
 ''' % {
         'item_name': item_name,
@@ -418,10 +420,10 @@ def object_from_repr_vec_fn_common_c(name, props, equivalent={}):
 
 def object_from_repr_vec_fn_client_c(state_struct_name, name, props):
     return '''static bool
-%(struct_name)s_from_repr_vec(struct client_resource *resource, const struct sol_vector *repr)
+%(struct_name)s_from_repr_vec(struct client_resource *resource, const struct sol_oic_map_reader *repr_vec)
 {
     struct %(struct_name)s *res = (struct %(struct_name)s *)resource;
-    return %(state_struct_name)s_from_repr_vec(&res->state, repr, ~0);
+    return %(state_struct_name)s_from_repr_vec(&res->state, repr_vec, ~0);
 }
 ''' % {
         'struct_name': name,
@@ -440,10 +442,10 @@ def object_from_repr_vec_fn_server_c(state_struct_name, name, props):
         return ''
 
     return '''static bool
-%(struct_name)s_from_repr_vec(struct server_resource *resource, const struct sol_vector *repr)
+%(struct_name)s_from_repr_vec(struct server_resource *resource, const struct sol_oic_map_reader *repr_vec)
 {
     struct %(struct_name)s *res = (struct %(struct_name)s *)resource;
-    return %(state_struct_name)s_from_repr_vec(&res->state, repr, 0x%(decode_mask)x);
+    return %(state_struct_name)s_from_repr_vec(&res->state, repr_vec, 0x%(decode_mask)x);
 }
 ''' % {
         'struct_name': name,
@@ -1005,16 +1007,16 @@ struct client_resource;
 struct server_resource;
 
 struct client_resource_funcs {
-    bool (*to_repr_vec)(const struct client_resource *resource, struct sol_vector *repr_vec);
-    bool (*from_repr_vec)(struct client_resource *resource, const struct sol_vector *repr);
+    bool (*to_repr_vec)(void *data, struct sol_oic_map_writer *repr_map);
+    bool (*from_repr_vec)(struct client_resource *resource, const struct sol_oic_map_reader *repr_vec);
     void (*inform_flow)(struct client_resource *resource);
     int found_port;
     int device_id_port;
 };
 
 struct server_resource_funcs {
-    bool (*to_repr_vec)(const struct server_resource *resource, struct sol_vector *repr_vec);
-    bool (*from_repr_vec)(struct server_resource *resource, const struct sol_vector *repr);
+    bool (*to_repr_vec)(void *data, struct sol_oic_map_writer *repr_map);
+    bool (*from_repr_vec)(struct server_resource *resource, const struct sol_oic_map_reader *repr);
     void (*inform_flow)(struct server_resource *resource);
 };
 
@@ -1091,7 +1093,7 @@ client_resource_implements_type(struct sol_oic_resource *oic_res, const char *re
 
 static void
 state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
-    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data)
+    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data)
 {
     struct client_resource *resource = data;
 
@@ -1119,7 +1121,7 @@ state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr
         return;
     }
 
-    if (resource->funcs->from_repr_vec(resource, reprs))
+    if (resource->funcs->from_repr_vec(resource, repr_vec))
         resource->funcs->inform_flow(resource);
 }
 
@@ -1300,17 +1302,15 @@ static bool
 server_resource_perform_update(void *data)
 {
     struct server_resource *resource = data;
-    struct sol_vector repr = SOL_VECTOR_INIT(struct sol_oic_repr_field);
 
     SOL_NULL_CHECK(resource->funcs->to_repr_vec, false);
-    if (!resource->funcs->to_repr_vec(resource, &repr)) {
+
+    if (!sol_oic_notify_observers(resource->resource,
+        resource->funcs->to_repr_vec, resource)) {
         SOL_WRN("Error while serializing update message");
     } else {
         resource->funcs->inform_flow(resource);
-        sol_oic_notify_observers(resource->resource, &repr);
     }
-
-    sol_vector_clear(&repr);
 
     resource->update_schedule_timeout = NULL;
     return false;
@@ -1328,14 +1328,14 @@ server_resource_schedule_update(struct server_resource *resource)
 
 static sol_coap_responsecode_t
 server_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_vector *input, struct sol_vector *output)
+    const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
 {
     struct server_resource *resource = (struct server_resource *)data;
 
     if (!resource->funcs->from_repr_vec)
         return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
 
-    if (resource->funcs->from_repr_vec(resource, input)) {
+    if (resource->funcs->from_repr_vec(resource, repr_map)) {
         server_resource_schedule_update(resource);
         return SOL_COAP_RSPCODE_CHANGED;
     }
@@ -1345,14 +1345,14 @@ server_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
 
 static sol_coap_responsecode_t
 server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_vector *input, struct sol_vector *output)
+    const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
 {
     const struct server_resource *resource = data;
 
     if (!resource->funcs->to_repr_vec)
         return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
 
-    if (!resource->funcs->to_repr_vec(resource, output))
+    if (!resource->funcs->to_repr_vec((void *)resource, output))
         return SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
     return SOL_COAP_RSPCODE_CONTENT;
@@ -1539,23 +1539,17 @@ static bool
 client_resource_perform_update(void *data)
 {
     struct client_resource *resource = data;
-    struct sol_vector repr = SOL_VECTOR_INIT(struct sol_oic_repr_field);
+    int r;
 
     SOL_NULL_CHECK_GOTO(resource->resource, disable_timeout);
     SOL_NULL_CHECK_GOTO(resource->funcs->to_repr_vec, disable_timeout);
 
-    if (!resource->funcs->to_repr_vec(resource, &repr)) {
-        SOL_WRN("Error while serializing update message");
-    } else {
-        int r = sol_oic_client_resource_request(&resource->client, resource->resource,
-            SOL_COAP_METHOD_PUT, &repr, NULL, NULL);
-        if (r < 0) {
-            SOL_WRN("Could not send update request to resource, will try again");
-            return true;
-        }
+    r = sol_oic_client_resource_request(&resource->client, resource->resource,
+        SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource, NULL, NULL);
+    if (r < 0) {
+        SOL_WRN("Could not send update request to resource, will try again");
+        return true;
     }
-
-    sol_vector_clear(&repr);
 
 disable_timeout:
     resource->update_schedule_timeout = NULL;

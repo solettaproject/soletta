@@ -44,6 +44,7 @@ obj-networking-$(COAP) += \
 obj-networking-$(OIC) += \
     sol-oic-cbor.o \
     sol-oic-client.o \
+    sol-oic-common.o \
     sol-oic-server.o \
     $(TINYCBOR_SRC_PATH)/cborencoder.o \
     $(TINYCBOR_SRC_PATH)/cborerrorstrings.o \
@@ -99,8 +100,7 @@ headers-$(COAP) += \
 headers-$(OIC) += \
     include/sol-oic-common.h \
     include/sol-oic-client.h \
-    include/sol-oic-server.h \
-    sol-oic-cbor.h
+    include/sol-oic-server.h
 
 headers-$(HTTP) += \
     include/sol-http.h
