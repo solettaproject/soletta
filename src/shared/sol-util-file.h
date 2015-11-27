@@ -65,3 +65,21 @@ int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
  */
 ssize_t sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size);
 bool sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path, struct dirent *ent), const void *data);
+
+/**
+ * @brief Moves file on filesystem
+ *
+ * This function shall move file from @a old_path to @a new_path, and it only
+ * returns success if ensures that file was written to storage, using @c fsync(3)
+ *
+ * @param old_path path of file to be moved
+ * @param new_path to where move file
+ * @param mode mode that should be applied to @a new_file
+ *
+ * @return On success 0. On failure, a negative error indicating what failuere
+ * happened.
+ *
+ * @note This function may take time to complete its task, thus blocking the
+ * mainloop. You may want to use a thread or idler to call it.
+ */
+int sol_util_move_file(const char *old_path, const char *new_path, mode_t mode);

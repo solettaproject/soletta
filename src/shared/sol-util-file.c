@@ -435,3 +435,123 @@ sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const 
 
     return result;
 }
+
+static int
+sync_dir_of(const char *new_path)
+{
+    /* Sync destination dir, so dir information is sure to be stored */
+    char *tmp, *dir_name;
+    int dir_fd;
+
+    tmp = strndupa(new_path, PATH_MAX);
+    dir_name = dirname(tmp);
+    dir_fd = open(dir_name, O_RDONLY | O_CLOEXEC | O_DIRECTORY);
+    if (dir_fd < 0) {
+        SOL_WRN(
+            "Could not open destination directory to ensure file information is stored: %s",
+            sol_util_strerrora(errno));
+        return -errno;
+    }
+
+    errno = 0;
+    if (fsync(dir_fd) < 0) {
+        SOL_WRN("Could not open ensure file information is stored: %s",
+            sol_util_strerrora(errno));
+    }
+
+    close(dir_fd);
+
+    return -errno;
+}
+
+int
+sol_util_move_file(const char *old_path, const char *new_path, mode_t mode)
+{
+    FILE *new, *old;
+    char buf[CHUNK_SIZE];
+    size_t size, w_size;
+    int fd, r;
+
+    /* First, try to rename */
+    r = rename(old_path, new_path);
+    if (r == 0) {
+        if (chmod(new_path, mode) < 0) {
+            SOL_WRN("Could not set mode %4o to file %s: %s", mode, new_path,
+                sol_util_strerrora(errno));
+            goto err_rename;
+        }
+        /* TODO What if syncing the dir fails? */
+        if (sync_dir_of(new_path) < 0)
+            goto err_rename;
+
+        return 0;
+    }
+
+    /* If failed, try the hard way */
+    errno = 0;
+
+    old = fopen(old_path, "reb");
+    SOL_NULL_CHECK(old, -errno);
+
+    fd = open(new_path, O_WRONLY | O_TRUNC | O_CLOEXEC | O_CREAT, mode);
+    r = -errno;
+    SOL_INT_CHECK_GOTO(fd, < 0, err_new);
+
+    new = fdopen(fd, "we");
+    if (!new) {
+        close(fd);
+        goto err_new;
+    }
+
+    while ((size = fread(buf, 1, sizeof(buf), old))) {
+        w_size = fwrite(buf, 1, size, new);
+        if (w_size != size) {
+            r = -EIO;
+            goto err;
+        }
+    }
+    if (ferror(old)) {
+        r = -EIO;
+        goto err;
+    }
+
+    if (fflush(new) != 0) {
+        r = -errno;
+        goto err;
+    }
+
+    if (fchmod(fd, mode) < 0) {
+        SOL_WRN("Could not set mode %4o to file %s: %s", mode, new_path,
+            sol_util_strerrora(errno));
+        goto err;
+    }
+
+    if (fsync(fd) < 0) {
+        SOL_WRN("Could not ensure file [%s] is synced to storage: %s",
+            new_path, sol_util_strerrora(errno));
+        goto err;
+    }
+
+    if (sync_dir_of(new_path) < 0)
+        goto err;
+
+    fclose(new);
+
+    /* Remove old file */
+    fclose(old);
+    unlink(old_path);
+
+    return 0;
+
+err:
+    fclose(new);
+    unlink(new_path);
+err_new:
+    fclose(old);
+err_rename:
+
+    /* So errno is not influenced by fclose and unlink above*/
+    errno = -r;
+
+    return r;
+}
