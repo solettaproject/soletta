@@ -469,7 +469,7 @@ sol_buffer_insert_char(struct sol_buffer *buf, size_t pos, const char c)
 SOL_API const char SOL_BASE64_MAP[66] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
 SOL_API int
-sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[static 65])
+sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *p;
     size_t new_size;
@@ -525,7 +525,7 @@ sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol
 }
 
 SOL_API int
-sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[static 65])
+sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *p;
     size_t new_size;
@@ -575,7 +575,7 @@ sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice s
 }
 
 SOL_API int
-sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[static 65])
+sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *p;
     size_t new_size;
@@ -631,7 +631,7 @@ sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct s
 }
 
 SOL_API int
-sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[static 65])
+sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *p;
     size_t new_size;

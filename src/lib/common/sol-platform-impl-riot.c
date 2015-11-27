@@ -147,7 +147,7 @@ serial_to_string(const char *buf, size_t len, char *dst)
 #endif
 
 int
-sol_platform_impl_get_machine_id(char id[static 33])
+sol_platform_impl_get_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
 #ifdef CPUID_ID_LEN
     char cpuid[CPUID_ID_LEN];

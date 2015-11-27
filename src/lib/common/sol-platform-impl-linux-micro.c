@@ -933,7 +933,7 @@ sol_platform_impl_set_target(const char *target)
 }
 
 static int
-validate_machine_id(char id[static 33])
+validate_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
     if (!sol_util_uuid_str_valid(id))
         return -EINVAL;
@@ -942,7 +942,7 @@ validate_machine_id(char id[static 33])
 }
 
 int
-sol_platform_impl_get_machine_id(char id[static 33])
+sol_platform_impl_get_machine_id(char id[SOL_STATIC_ARRAY_SIZE(33)])
 {
     static const char *etc_path = "/etc/machine-id",
     *run_path = "/run/machine-id";
