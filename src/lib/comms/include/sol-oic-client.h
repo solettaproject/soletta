@@ -51,18 +51,7 @@ extern "C" {
  */
 
 /**
- * @defgroup OIC Open Interconnect Consortium
- * @ingroup Comms
- *
- * Implementation of protocol defined by Open Interconnect Consortium
- * (OIC - http://openinterconnect.org/)
- *
- * It's a common communication framework based on industry standard
- * technologies to wirelessly connect and intelligently manage
- * the flow of information among devices, regardless of form factor,
- * operating system or service provider.
- *
- * Both client and server sides are covered by this module.
+ * @ingroup OIC
  *
  * @{
  */
@@ -115,14 +104,16 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
     void *data);
 
 bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method, const struct sol_vector *reprs,
+    sol_coap_method_t method,
+    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
+    void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
-    void *data);
+    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    void *callback_data);
 
 bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_vector *reprs, void *data),
+    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_map, void *data),
     void *data, bool observe);
 
 struct sol_oic_resource *sol_oic_resource_ref(struct sol_oic_resource *r);
