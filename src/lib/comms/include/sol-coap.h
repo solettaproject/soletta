@@ -125,7 +125,7 @@ typedef enum {
  * Example to identify a request:
  * @code
  * struct sol_coap_packet *req = X;
- * if (sol_coap_header_get_code(req) & SOL_COAP_REQUEST_MASK)
+ * if (!(sol_coap_header_get_code(req) & ~SOL_COAP_REQUEST_MASK))
  *     {
  *         // do something
  *     }
