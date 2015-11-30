@@ -49,6 +49,12 @@
 #include "sol-util.h"
 #include "string-format.h"
 
+#ifndef SOL_LOG_DOMAIN
+#define SOL_LOG_DOMAIN &_converter_log_domain
+#include "sol-log-internal.h"
+extern struct sol_log_domain _converter_log_domain;
+#endif
+
 struct format_spec_data {
     ssize_t width;
     ssize_t precision;

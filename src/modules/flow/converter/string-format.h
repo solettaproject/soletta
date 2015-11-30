@@ -32,10 +32,6 @@
 
 #pragma once
 
-#define SOL_LOG_DOMAIN &_converter_log_domain
-#include "sol-log-internal.h"
-extern struct sol_log_domain _converter_log_domain;
-
 #include "sol-buffer.h"
 #include "sol-flow/converter.h"
 #include "sol-mainloop.h"
