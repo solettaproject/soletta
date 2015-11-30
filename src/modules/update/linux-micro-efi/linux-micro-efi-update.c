@@ -71,11 +71,12 @@ struct sol_update_handle {
     enum task task;
     enum fetch_task fetch_task;
     struct update_http_handle *http_handle;
-    struct update_check_hash_handle *check_hash_handle;
-    FILE *file;
+    struct update_get_hash_handle *get_hash_handle;
+    FILE *file; /* if task == TASK_CHECK, current exec file. if task == TASK_FETCH, download file */
     struct sol_timeout *timeout;
     char *hash;
     char *hash_algorithm;
+    char *version;
 
     union {
         void (*cb_check)(void *data, int status, const struct sol_update_info *response);
@@ -101,6 +102,7 @@ delete_handle(struct sol_update_handle *handle)
 {
     free(handle->hash);
     free(handle->hash_algorithm);
+    free(handle->version);
     if (handle->http_handle)
         http_cancel(handle->http_handle);
     sol_ptr_vector_remove(&handles, handle);
@@ -213,11 +215,19 @@ end:
 }
 
 static void
-check_hash_cb(void *data, int status)
+check_hash_cb(void *data, int status, const char *hash)
 {
     struct sol_update_handle *handle = data;
 
-    handle->check_hash_handle = NULL;
+    handle->get_hash_handle = NULL;
+
+    if (status == 0) {
+        if (!streq(handle->hash, hash)) {
+            SOL_WRN("Expected hash differs of file hash, expected [%s], found [%s]",
+                handle->hash, hash);
+            status = -EINVAL;
+        }
+    }
 
     handle->cb_fetch((void *)handle->user_data, status);
 
@@ -256,9 +266,9 @@ fetch_end_cb(void *data, int status)
 
     /* Check hash */
     handle->fetch_task = FETCH_CHECK_HASH;
-    handle->check_hash_handle = check_file_hash(handle->file, handle->hash,
+    handle->get_hash_handle = get_file_hash(handle->file, handle->hash,
         handle->hash_algorithm, check_hash_cb, handle);
-    SOL_NULL_CHECK_MSG_GOTO(handle->check_hash_handle, err,
+    SOL_NULL_CHECK_MSG_GOTO(handle->get_hash_handle, err,
         "Could not check hash of downloaded file");
 
     /* TODO fetch should also verify a file signature, to be sure that we
@@ -317,12 +327,34 @@ err_create:
 }
 
 static void
-meta_cb(void *data, int status, const struct sol_buffer *meta)
+fill_metadata_fields(const struct sol_buffer *meta, char **hash,
+    char **hash_algorithm, char **version, uint64_t *size)
 {
-    struct sol_update_handle *handle = data;
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
     enum sol_json_loop_reason reason;
+
+    sol_json_scanner_init(&scanner, meta->data, meta->used);
+    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "hash") && hash)
+            *hash = sol_json_token_get_unescaped_string_copy(&value);
+        else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "hash-algorithm") && hash_algorithm)
+            *hash_algorithm = sol_json_token_get_unescaped_string_copy(&value);
+        else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "version") && version)
+            *version = sol_json_token_get_unescaped_string_copy(&value);
+        else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "size") && size) {
+            if (sol_json_token_get_uint64(&value, size) != 0)
+                SOL_WRN("Could not get size of update file");
+        } else
+            SOL_DBG("Unknown response member: %.*s",
+                SOL_STR_SLICE_PRINT(sol_json_token_to_slice(&token)));
+    }
+}
+
+static void
+meta_cb(void *data, int status, const struct sol_buffer *meta)
+{
+    struct sol_update_handle *handle = data;
     char *fetch_url = NULL, *version = NULL;
     int r;
 
@@ -331,22 +363,8 @@ meta_cb(void *data, int status, const struct sol_buffer *meta)
     SOL_NULL_CHECK_MSG_GOTO(meta, err,
         "Could not get meta information about update");
 
-    sol_json_scanner_init(&scanner, meta->data, meta->used);
-    SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "hash"))
-            handle->hash = sol_json_token_get_unescaped_string_copy(&value);
-        else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "hash-algorithm"))
-            handle->hash_algorithm = sol_json_token_get_unescaped_string_copy(&value);
-        else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "version"))
-            version = sol_json_token_get_unescaped_string_copy(&value);
-        else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&key, "size")) {
-            if (sol_json_token_get_uint64(&value, &handle->size) != 0)
-                SOL_WRN("Could not get size of update file");
-        } else
-            SOL_WRN("Unknown response member: %.*s",
-                SOL_STR_SLICE_PRINT(sol_json_token_to_slice(&token)));
-    }
-
+    fill_metadata_fields(meta, &handle->hash, &handle->hash_algorithm,
+        &version, &handle->size);
     if (!handle->hash || !handle->hash_algorithm || !version) {
         SOL_WRN("Malformed response of meta information");
         goto err;
@@ -403,10 +421,66 @@ err_append:
 }
 
 static void
+get_current_file_hash_cb(void *data, int status, const char *hash)
+{
+    struct sol_update_handle *handle = data;
+    struct sol_update_info response = {
+        SOL_SET_API_VERSION(.api_version = SOL_UPDATE_INFO_API_VERSION)
+    };
+
+    handle->get_hash_handle = NULL;
+
+    response.version = handle->version;
+    response.size = handle->size;
+    if (status == 0)
+        response.need_update = !streq(handle->hash, hash);
+    handle->cb_check((void *)handle->user_data, status, &response);
+
+    fclose(handle->file);
+    delete_handle(handle);
+}
+
+static void
+check_update_needed(struct sol_update_handle *handle, const struct sol_buffer *meta)
+{
+    struct sol_update_info response = {
+        SOL_SET_API_VERSION(.api_version = SOL_UPDATE_INFO_API_VERSION)
+    };
+
+    handle->file = fopen(soletta_exec_file_path, "re");
+    if (!handle->file && errno == ENOENT) {
+        /* No current exec, probably a previous update failed. So let's update! */
+        response.version = handle->version;
+        response.size = handle->size;
+        response.need_update = true;
+        handle->cb_check((void *)handle->user_data, 0, &response);
+        delete_handle(handle);
+        return;
+    }
+    SOL_NULL_CHECK_MSG_GOTO(handle->file, err_open,
+        "Could not check if update is necessary: %s", sol_util_strerrora(errno));
+
+    /* If current exec file hash is different, then we need to update */
+    handle->get_hash_handle = get_file_hash(handle->file, handle->hash,
+        handle->hash_algorithm, get_current_file_hash_cb, handle);
+    SOL_NULL_CHECK_MSG_GOTO(handle->get_hash_handle, err_hash,
+        "Could not check if update is necessary");
+
+    return;
+
+err_hash:
+    fclose(handle->file);
+err_open:
+    response.version = handle->version;
+    response.size = handle->size;
+    handle->cb_check((void *)handle->user_data, -EINVAL, NULL);
+    delete_handle(handle);
+}
+
+static void
 check_cb(void *data, int status, const struct sol_buffer *meta)
 {
     struct sol_update_handle *handle = data;
-    struct sol_update_info response = { };
 
     handle->on_callback = true;
     handle->http_handle = NULL;
@@ -414,13 +488,16 @@ check_cb(void *data, int status, const struct sol_buffer *meta)
     if (status < 0) {
         handle->cb_check((void *)handle->user_data, status, NULL);
     } else {
-        if (!metadata_to_update_info(meta, &response))
+        fill_metadata_fields(meta, &handle->hash, &handle->hash_algorithm,
+            &handle->version, &handle->size);
+        if (!handle->version || !handle->hash || !handle->hash_algorithm) {
+            SOL_WRN("Could not get update metadata");
             handle->cb_check((void *)handle->user_data, -EINVAL, NULL);
-        else
-            handle->cb_check((void *)handle->user_data, 0, &response);
+        } else {
+            check_update_needed(handle, meta);
+            return;
+        }
     }
-
-    free((char *)response.version);
 
     delete_handle(handle);
 }
@@ -460,8 +537,8 @@ cancel(struct sol_update_handle *handle)
 
     if (handle->http_handle)
         b = http_cancel(handle->http_handle);
-    else if (handle->check_hash_handle)
-        b = cancel_check_file_hash(handle->check_hash_handle);
+    else if (handle->get_hash_handle)
+        b = cancel_get_file_hash(handle->get_hash_handle);
 
     if (b)
         delete_handle(handle);

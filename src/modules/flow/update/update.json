@@ -62,7 +62,13 @@
           "data_type": "int",
           "description": "Current progress of task, a number between 0 and 100. An output of -1 indicates that current progress is not available",
           "name": "PROGRESS"
+        },
+        {
+          "data_type": "boolean",
+          "description": "If update version is different from current version, outputs true, false otherwise. Note that this behaviour is backend defined: if an update module also downgrades, it may output true here also.",
+          "name": "NEED_UPDATE"
         }
+
       ],
       "private_data_type": "update_data"
     },

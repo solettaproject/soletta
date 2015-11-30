@@ -42,11 +42,11 @@ extern "C" {
  */
 
 /**
- * @struct update_check_hash_handle
+ * @struct update_get_hash_handle
  *
  * @brief Handle to cancel check hash operation
  */
-struct update_check_hash_handle;
+struct update_get_hash_handle;
 
 /**
  * @brief Check file hash
@@ -59,8 +59,8 @@ struct update_check_hash_handle;
  *
  * @return handle of operation if could start checking. NULL otherwise
  */
-struct update_check_hash_handle *check_file_hash(FILE *file, const char *hash,
-    const char *hash_algorithm, void (*cb)(void *data, int status),
+struct update_get_hash_handle *get_file_hash(FILE *file, const char *hash,
+    const char *hash_algorithm, void (*cb)(void *data, int status, const char *hash),
     const void *data);
 
 /**
@@ -68,7 +68,7 @@ struct update_check_hash_handle *check_file_hash(FILE *file, const char *hash,
  *
  * @return always true
  */
-bool cancel_check_file_hash(struct update_check_hash_handle *handle);
+bool cancel_get_file_hash(struct update_get_hash_handle *handle);
 
 #ifdef __cplusplus
 extern "C" {

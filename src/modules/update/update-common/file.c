@@ -46,17 +46,17 @@
 #include "sol-util.h"
 #include "sol-util-file.h"
 
-struct update_check_hash_handle {
+struct update_get_hash_handle {
     struct sol_message_digest *md;
     FILE *file;
     char *hash;
     char *hash_algorithm;
-    void (*cb)(void *data, int status);
+    void (*cb)(void *data, int status, const char *hash);
     const void *user_data;
 };
 
 static void
-delete_handle(struct update_check_hash_handle *handle)
+delete_handle(struct update_get_hash_handle *handle)
 {
     free(handle->hash);
     free(handle->hash_algorithm);
@@ -66,7 +66,7 @@ delete_handle(struct update_check_hash_handle *handle)
 static void
 on_digest_ready_cb(void *data, struct sol_message_digest *md, struct sol_blob *output)
 {
-    struct update_check_hash_handle *handle = data;
+    struct update_get_hash_handle *handle = data;
     struct sol_buffer buffer = SOL_BUFFER_INIT_EMPTY;
     struct sol_str_slice slice = sol_str_slice_from_blob(output);
     int r = 0;
@@ -74,15 +74,8 @@ on_digest_ready_cb(void *data, struct sol_message_digest *md, struct sol_blob *o
     r = sol_buffer_append_as_base16(&buffer, slice, false);
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
-    if (!streq(buffer.data, handle->hash)) {
-
-        r = -EINVAL;
-        SOL_WRN("Expected hash differs of file hash, expected [%s], found [%.*s]",
-            handle->hash, (int)buffer.used, (char *)buffer.data);
-    }
-
 end:
-    handle->cb((void *)handle->user_data, r);
+    handle->cb((void *)handle->user_data, r, (char *)buffer.data);
     sol_message_digest_del(md);
     sol_buffer_fini(&buffer);
     delete_handle(handle);
@@ -91,7 +84,7 @@ end:
 static void
 on_feed_done_cb(void *data, struct sol_message_digest *md, struct sol_blob *input)
 {
-    struct update_check_hash_handle *handle = data;
+    struct update_get_hash_handle *handle = data;
     char buf[CHUNK_SIZE], *blob_backend = NULL;
     struct sol_blob *blob = NULL;
     size_t size;
@@ -132,13 +125,13 @@ err:
     free(blob_backend);
     sol_blob_unref(blob);
     sol_message_digest_del(md);
-    handle->cb((void *)handle->user_data, -EINVAL);
+    handle->cb((void *)handle->user_data, -EINVAL, NULL);
     delete_handle(handle);
 }
 
-struct update_check_hash_handle *
-check_file_hash(FILE *file, const char *hash, const char *hash_algorithm,
-    void (*cb)(void *data, int status), const void *data)
+struct update_get_hash_handle *
+get_file_hash(FILE *file, const char *hash, const char *hash_algorithm,
+    void (*cb)(void *data, int status, const char *hash), const void *data)
 {
     struct sol_message_digest_config cfg = {
         SOL_SET_API_VERSION(.api_version = SOL_MESSAGE_DIGEST_CONFIG_API_VERSION, )
@@ -147,14 +140,14 @@ check_file_hash(FILE *file, const char *hash, const char *hash_algorithm,
         .on_feed_done = on_feed_done_cb,
     };
     struct sol_message_digest *md;
-    struct update_check_hash_handle *handle;
+    struct update_get_hash_handle *handle;
 
     SOL_NULL_CHECK(file, NULL);
     SOL_NULL_CHECK(hash, NULL);
     SOL_NULL_CHECK(hash_algorithm, NULL);
     SOL_NULL_CHECK(cb, NULL);
 
-    handle = calloc(1, sizeof(struct update_check_hash_handle));
+    handle = calloc(1, sizeof(struct update_get_hash_handle));
     SOL_NULL_CHECK(handle, NULL);
     cfg.data = handle;
 
@@ -188,7 +181,7 @@ err:
 }
 
 bool
-cancel_check_file_hash(struct update_check_hash_handle *handle)
+cancel_get_file_hash(struct update_get_hash_handle *handle)
 {
     if (handle->md)
         sol_message_digest_del(handle->md);
