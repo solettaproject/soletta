@@ -88,7 +88,7 @@
           {
             "data_type": "string",
             "default": null,
-            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters is this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
+            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters in this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
             "name": "title"
           },
           {
@@ -190,7 +190,7 @@
           {
             "data_type": "string",
             "default": null,
-            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters is this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
+            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters in this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
             "name": "title"
           },
           {
@@ -310,7 +310,7 @@
           {
             "data_type": "string",
             "default": null,
-            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters is this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
+            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters in this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
             "name": "title"
           },
           {
@@ -459,7 +459,7 @@
           {
             "data_type": "string",
             "default": null,
-            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters is this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
+            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters in this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
             "name": "title"
           },
           {
@@ -610,7 +610,7 @@
           {
             "data_type": "string",
             "default": null,
-            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters is this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
+            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters in this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
             "name": "title"
           },
           {
@@ -636,6 +636,138 @@
       ],
       "private_data_type": "string_data",
       "url": "http://solettaproject.org/doc/latest/node_types/form/string.html"
+    },
+    {
+      "category": "io/sw",
+      "description": "Receives packages to control the formation/edition of a formatted string. That string may be formatted to have any number of numerical fields, that will then be open to edition by the node's input port interactions. Four input ports control the position on the format numerical fields (and the values of the fields themselves) of a forming string. One of the input ports will commit to a state when trigerred, and the formed string will be outputted. A (broader) string output with the current state, defined by the format string, is also outputted (one time per second, to emulate a blinking cursor). All strings in this node should be ASCII only, as it is meant to output to LCD displays.",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Change the current state (useful for initial setups on a flow). Be careful to use this only when your 'value' option is reasonably backwards parseable, i.e., does not contain neighbor numerical fields (no literal fields in between them), does not mix number punctuation and that same punctuation symbols in the literals, etc.",
+          "methods": {
+            "process": "string_formatted_selected_set"
+          },
+          "name": "SELECTED"
+        },
+        {
+          "data_type": "any",
+          "description": "Increase the value of the field under the cursor position.",
+          "methods": {
+            "process": "string_formatted_up_set"
+          },
+          "name": "UP"
+        },
+        {
+          "data_type": "any",
+          "description": "Decrease the value of the field under the cursor position.",
+          "methods": {
+            "process": "string_formatted_down_set"
+          },
+          "name": "DOWN"
+        },
+        {
+          "data_type": "any",
+          "description": "Advance the cursor position (to the right), to the next numeric field.",
+          "methods": {
+            "process": "string_formatted_next_set"
+          },
+          "name": "NEXT"
+        },
+        {
+          "data_type": "any",
+          "description": "Retract the cursor position (to the left), to the previous numeric field.",
+          "methods": {
+            "process": "string_formatted_previous_set"
+          },
+          "name": "PREVIOUS"
+        },
+        {
+          "data_type": "any",
+          "description": "Confirm the selection to be current one, generating output packets on both STRING and SELECTED output ports.",
+          "methods": {
+            "process": "string_formatted_select_set"
+          },
+          "name": "SELECT"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Make the interaction possible, otherwise don't produce strings or process UP/DOWN/SELECT inputs. In other words, enable/disable the node at run-time. The node starts in the enabled state. Note that this does not affect the use of the SELECTED port.",
+          "methods": {
+            "process": "string_formatted_enabled_set"
+          },
+          "name": "ENABLED"
+        }
+      ],
+      "methods": {
+        "close": "string_formatted_close",
+        "open": "string_formatted_open"
+      },
+      "name": "form/string-formatted",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "The number of available columns to lay out the output string with. It must be a positive integer.",
+            "name": "columns"
+          },
+          {
+            "data_type": "int",
+            "description": "The number of available rows to lay out the output string with. It must be a positive integer.",
+            "name": "rows"
+          },
+          {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Cursor blinking time, in miliseconds.",
+            "name": "blink_time"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Whether the numeric field edition by the UP/DOWN ports is circular or not (wraps from mininim value to maximum and vice-versa).",
+            "name": "circular"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The value (format) string, to be available for referencing when evaluating the format one by means of the '{value}' tag. Any line breaking characters in this string will be translated to a space instead. This is a format inside the broader one, meant to define the numbered fields to be actually editable by the node. The syntax is a free-form string where fields enclosed by '{}' are treated specially. They must have an entry with Python's number format specification mini-language (https://docs.python.org/3/library/string.html#formatspec), followed by a colon and three comma-separated values defining the field's minimum, maximum and step values. As an exception for the Python's language, empty types are not allowed, and 'n' will always translate to integer. As an example, '{3d:0,255,1}.{3d:0,255,1}.{3d:0,255,1}.{3d:0,255,1}' would make the node have four three-digit integer numbers separated by periods as output--an IPv4 number for user edition.",
+            "name": "value"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The default value for the numeric fields' node state, in string form. The string should match the expected form given by the 'value' option, naturally. As an example, if '{3d:0,255,1}.{3d:0,255,1}.{3d:0,255,1}.{3d:0,255,1}' is in the 'value' option, something like '255.255.255.255' would be expected for this option. If this option is not set, the minimum values for each field will be the initial state.",
+            "name": "value_default"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters in this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
+            "name": "title"
+          },
+          {
+            "data_type": "string",
+            "default": "{value}",
+            "description": "The format string to produce the final STRING output with. The syntax is a free-form string with one '{value}' sub-string in it (and one optional '{title}' one). The value tag will be replaced by the actual true/false strings defined for the node (true_str/false_str options), while the title one will be replaced by the title string option, if set. The title tag must occur before the value one.",
+            "name": "format"
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The formatted string output. This is meant to feed real display nodes (like grove/lcd-string).",
+          "name": "STRING"
+        },
+        {
+          "data_type": "string",
+          "description": "The current string state.",
+          "name": "SELECTED"
+        }
+      ],
+      "private_data_type": "string_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/form/string-formatted.html"
     }
   ]
 }
