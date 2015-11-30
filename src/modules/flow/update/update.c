@@ -91,10 +91,20 @@ check_cb(void *data, int status, const struct sol_update_info *response)
         goto end;
     }
 
+#ifndef SOL_NO_API_VERSION
+    if (unlikely(response->api_version != SOL_UPDATE_INFO_API_VERSION)) {
+        SOL_WRN("Update info config version '%u' is unexpected, expected '%u'",
+            response->api_version, SOL_UPDATE_INFO_API_VERSION);
+        return;
+    }
+#endif
+
     sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__VERSION, response->version);
     sol_flow_send_irange_value_packet(node,
         SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__SIZE, response->size);
+    sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_UPDATE_CHECK__OUT__NEED_UPDATE, response->need_update);
 
 end:
     mdata->handle = NULL;
