@@ -1,0 +1,9 @@
+config FLOW_NODE_TYPE_UPDATE
+	tristate "Node type: update"
+	depends on USE_UPDATE
+	default m
+    help
+        Provides nodes to update a Soletta application. It allows checking
+        for updates, fetch the file and install it. Operations
+        will be performed by underlying update module, defined via
+        SOL_UPDATE_MODULE environment variable.

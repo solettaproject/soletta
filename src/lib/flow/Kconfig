@@ -82,5 +82,6 @@ source "src/modules/flow/timestamp/Kconfig"
 source "src/modules/flow/trigonometry/Kconfig"
 source "src/modules/flow/udev/Kconfig"
 source "src/modules/flow/unix-socket/Kconfig"
+source "src/modules/flow/update/Kconfig"
 source "src/modules/flow/wallclock/Kconfig"
 endmenu

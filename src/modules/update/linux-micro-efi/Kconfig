@@ -1,0 +1,48 @@
+config LINUX_MICRO_EFI_UPDATE
+    tristate "Soletta Linux Micro EFI Update"
+    depends on USE_UPDATE && PLATFORM_LINUX_MICRO && HTTP_CLIENT && CRYPTO_MESSAGE_DIGEST
+    default m if MODULES=y
+    help
+        Allows Soletta auto update when it is running as static PID 1 (Linux
+        Micro) on EFI systems. To completely use this module to update Soletta,
+        it's necessary that device boots via EFI script startup.nsh.
+        This script should also check the existence of an 'updating' file
+        on boot partition (usually 'fs0:'), that update module will write there
+        to indicate that an update happened. It's up to this script to decide
+        if update was successful or not. If not, it shall start old Soletta app,
+        usually '/usr/bin/soletta_old'.
+        An example of such script is provided on samples/flow/update/startup.nsh.
+
+
+config LINUX_MICRO_EFI_UPDATE_META_URL
+    string "Linux Micro EFI Update Metadata URL"
+    depends on LINUX_MICRO_EFI_UPDATE
+    default "http://localhost/update-meta"
+    help
+        URL to get update information. It must return a JSON containing the
+        fields "version", "hash", "hash-algorithm" and "size", like:
+        {
+            "version": "0.1.2",
+            "hash": "402c09cded5f597c94f90d1b77c04422628678f69f6f56786053c8c59450c1da"
+            "hash-algorithm": sha256,
+            "size": 369874
+        }
+
+config LINUX_MICRO_EFI_UPDATE_FETCH_URL
+    string "Linux Micro EFI Update Fetch URL"
+    depends on LINUX_MICRO_EFI_UPDATE
+    default "http://localhost:8000/file"
+    help
+        URL to fetch update file. Version name will be appended to it, so
+        the real query would look like "http://localhost:8000/file/0.1.2".
+
+config LINUX_MICRO_EFI_UPDATE_APP_PATH
+    string "Path where application is located"
+    depends on LINUX_MICRO_EFI_UPDATE
+    default "/usr/bin/soletta"
+    help
+        Path where application is located. Update module will install new
+        version by overwriting this location with new file - but before, it
+        will create an "LINUX_MICRO_EFI_UPDATE_APP_PATH-old" backup file.
+        Note that 'startup.nsh' needs to agree where application file is
+        located.
