@@ -71,3 +71,19 @@ void sol_platform_inform_hostname_monitors(void);
 
 int sol_platform_unregister_hostname_monitor(void);
 int sol_platform_register_hostname_monitor(void);
+
+void sol_platform_inform_system_clock_changed(void);
+
+int sol_platform_impl_set_system_clock(int64_t timestamp);
+int64_t sol_platform_impl_get_system_clock(void);
+
+int sol_platform_unregister_system_clock_monitor(void);
+int sol_platform_register_system_clock_monitor(void);
+
+
+void sol_platform_inform_timezone_changed(void);
+
+int sol_platform_impl_set_timezone(const char *timezone);
+const char *sol_platform_impl_get_timezone(void);
+int sol_platform_register_timezone_monitor(void);
+int sol_platform_unregister_timezone_monitor(void);

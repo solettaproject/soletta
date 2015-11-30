@@ -236,6 +236,95 @@ int sol_platform_add_hostname_monitor(void (*cb)(void *data, const char *hostnam
 int sol_platform_del_hostname_monitor(void (*cb)(void *data, const char *hostname), const void *data);
 
 /**
+ * @brief Set the system wide time
+ *
+ * @param timestamp The new system_clock.
+ * @return 0 on succes, negative errno otherwise.
+ *
+ * @note The @c timestamp is relative to 1970-01-01 00:00:00 +0000 (UTC).
+ * @see sol_platform_get_system_clock()
+ */
+int sol_platform_set_system_clock(int64_t timestamp);
+
+/**
+ * @brief Get the current system time
+ *
+ * @return the system time on success, negative errno on error.
+ *
+ * @note The returned value is the number of seconds since 1970-01-01 00:00:00 +0000 (UTC).
+ *
+ * @see sol_platform_set_system_clock()
+ */
+int64_t sol_platform_get_system_clock(void);
+
+/**
+ * @brief Add a callback to monitor system clock changes.
+ *
+ * @param cb A callback to be called when the system clock changes.
+ * @param data The data to @c cb.
+ * @return 0 on success, negative errno otherwise.
+ *
+ * @note The registered callback will not be called every second (a.k.a: this is not a timer!), it will only
+ * be called if the system clock is adjusted. If one needs a timer use sol_timeout_add()
+ * @see sol_platform_del_system_clock_monitor()
+ */
+int sol_platform_add_system_clock_monitor(void (*cb)(void *data, int64_t timestamp), const void *data);
+
+/**
+ * @brief Delete a register system_clock monitor
+ *
+ * @param cb The previous registered callback.
+ * @param data The data to @c cb.
+ * @return 0 on success, negative errno otherwise.
+ *
+ * @see sol_platform_add_system_clock_monitor()
+ */
+int sol_platform_del_system_clock_monitor(void (*cb)(void *data, int64_t timestamp), const void *data);
+
+/**
+ * @brief Set the system timezone
+ *
+ * @param timezone The new timezone. (Example: America/Sao Paulo)
+ *
+ * @return 0 on success, negative errno on error.
+ *
+ * @note The new timezone must be avaible at /usr/share/zoneinfo/
+ *
+ * @see sol_platform_get_timezone()
+ */
+int sol_platform_set_timezone(const char *timezone);
+
+/**
+ * @brief Get the current timezone
+ *
+ * @return The timezone or @c NULL on error
+ *
+ * @see sol_platform_set_timezone()
+ */
+const char *sol_platform_get_timezone(void);
+
+/**
+ * @brief Add a timezone monitor.
+ *
+ * @param cb A callback to be called when the timezone changes.
+ * @param data The data to @c cb.
+ *
+ * @return 0 on success, negative errno otherwise.
+ */
+int sol_platform_add_timezone_monitor(void (*cb)(void *data, const char *timezone), const void *data);
+
+/**
+ * @brief Remove a timezone monitor.
+ *
+ * @param cb The previous registered callback.
+ * @param data The data to @c cb.
+ *
+ * @return 0 on success, negative errno otherwise.
+ */
+int sol_platform_del_timezone_monitor(void (*cb)(void *data, const char *timezone), const void *data);
+
+
+/**
  * @}
  */
 
