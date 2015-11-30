@@ -60,6 +60,19 @@ struct format_spec_data {
     bool thousands_separators : 1;
 };
 
+enum auto_number_state {
+    ANS_INIT,
+    ANS_AUTO,
+    ANS_MANUAL
+}; /* Keeps track if we're auto-numbering fields */
+
+/* Keeps track of our auto-numbering state, and which number field
+ * we're on */
+struct auto_number {
+    enum auto_number_state an_state;
+    int an_field_number;
+};
+
 static inline bool
 is_alignment_token(char c)
 {
@@ -99,7 +112,7 @@ get_digital_val(const char c)
  *  Returns negative code on error.
  */
 static int
-get_integer(struct string_converter *mdata,
+get_integer(struct sol_flow_node *node,
     struct sol_str_slice *str,
     size_t *pos,
     size_t end,
@@ -121,8 +134,11 @@ get_integer(struct string_converter *mdata,
          * accumulator > (SSIZE_MAX - digitval) / 10.
          */
         if (accumulator > (SSIZE_MAX - digitval) / 10) {
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Too many decimal digits in format string");
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "Too many decimal digits in format string");
+            else
+                SOL_WRN("Too many decimal digits in format string");
             return -EOVERFLOW;
         }
         accumulator = accumulator * 10 + digitval;
@@ -138,7 +154,7 @@ get_integer(struct string_converter *mdata,
  * success, 0 on failure. if failure, sets the exception
  */
 static int
-parse_internal_render_format_spec(struct string_converter *mdata,
+parse_internal_render_format_spec(struct sol_flow_node *node,
     struct sol_str_slice *format_spec,
     struct format_spec_data *format,
     char default_type,
@@ -198,7 +214,7 @@ parse_internal_render_format_spec(struct string_converter *mdata,
         ++pos;
     }
 
-    consumed = get_integer(mdata, format_spec, &pos, end, &format->width);
+    consumed = get_integer(node, format_spec, &pos, end, &format->width);
     SOL_INT_CHECK(consumed, < 0, consumed);
 
     /* If consumed is 0, we didn't consume any characters for the
@@ -218,14 +234,17 @@ parse_internal_render_format_spec(struct string_converter *mdata,
     if (end - pos && format_spec->data[pos] == '.') {
         ++pos;
 
-        consumed = get_integer(mdata, format_spec,
-            &pos, end, &format->precision);
+        consumed = get_integer(node, format_spec, &pos, end,
+            &format->precision);
         SOL_INT_CHECK(consumed, < 0, consumed);
 
         /* Not having a precision after a dot is an error. */
         if (consumed == 0) {
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Format specifier missing precision");
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "Format specifier missing precision");
+            else
+                SOL_WRN("Format specifier missing precision");
             return -EINVAL;
         }
     }
@@ -234,8 +253,11 @@ parse_internal_render_format_spec(struct string_converter *mdata,
 
     if (end - pos > 1) {
         /* More than one char remain, invalid format specifier. */
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Invalid format specifier");
+        if (node)
+            sol_flow_send_error_packet(node, EINVAL,
+                "Invalid format specifier");
+        else
+            SOL_WRN("Invalid format specifier");
         return -EINVAL;
     }
 
@@ -261,8 +283,11 @@ parse_internal_render_format_spec(struct string_converter *mdata,
             /* These are allowed. See PEP 378.*/
             break;
         default:
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Cannot specify ',' with '%c'.", format->type);
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "Cannot specify ',' with '%c'.", format->type);
+            else
+                SOL_WRN("Cannot specify ',' with '%c'.", format->type);
             return -EINVAL;
         }
     }
@@ -932,7 +957,7 @@ calc_number_spec(struct number_field_widths *spec,
 }
 
 static int
-int32_format_append_do(struct string_converter *mdata,
+int32_format_append_do(struct sol_flow_node *node,
     int32_t in_value,
     const struct format_spec_data *format,
     struct sol_buffer *out)
@@ -954,8 +979,11 @@ int32_format_append_do(struct string_converter *mdata,
 
     /* no precision allowed on integers */
     if (format->precision != -1) {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Precision not allowed in integer format specifier");
+        if (node)
+            sol_flow_send_error_packet(node, EINVAL,
+                "Precision not allowed in integer format specifier");
+        else
+            SOL_WRN("Precision not allowed in integer format specifier");
         goto done;
     }
 
@@ -963,22 +991,32 @@ int32_format_append_do(struct string_converter *mdata,
     if (format->type == 'c') {
         /* error to specify a sign */
         if (format->sign != '\0') {
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Sign not allowed with integer format specifier 'c'");
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "Sign not allowed with integer format specifier 'c'");
+            else
+                SOL_WRN("Sign not allowed with integer format specifier 'c'");
             goto done;
         }
         /* error to request alternate format */
         if (format->alternate) {
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Alternate form (#) not allowed with integer"
-                " format specifier 'c'");
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "Alternate form (#) not allowed with integer"
+                    " format specifier 'c'");
+            else
+                SOL_WRN("Alternate form (#) not allowed with integer"
+                    " format specifier 'c'");
             goto done;
         }
 
         /* Integer input truncated to a character */
         if (in_value < 0 || in_value > 0x10ffff) {
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "%%c arg not in range(0x110000)");
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "%%c arg not in range(0x110000)");
+            else
+                SOL_WRN("%%c arg not in range(0x110000)");
             goto done;
         }
         r = int32_to_char_conv_and_append(in_value, &digits);
@@ -1555,7 +1593,7 @@ parse_number(char *s,
 }
 
 static int
-float_format_append_do(struct string_converter *mdata,
+float_format_append_do(struct sol_flow_node *node,
     double in_value,
     const struct format_spec_data *format,
     struct sol_buffer *out)
@@ -1584,7 +1622,10 @@ float_format_append_do(struct string_converter *mdata,
     struct locale_info locale = STATIC_LOCALE_INFO_INIT;
 
     if (format->precision > INT32_MAX) {
-        sol_flow_send_error_packet(mdata->node, EINVAL, "precision too big");
+        if (node)
+            sol_flow_send_error_packet(node, EINVAL, "precision too big");
+        else
+            SOL_WRN("precision too big");
         goto done;
     }
     precision = (int)format->precision;
@@ -1688,23 +1729,32 @@ done:
 }
 
 static void
-unknown_presentation_type(struct string_converter *mdata,
+unknown_presentation_type(struct sol_flow_node *node,
     unsigned char presentation_type,
     const char *type_name)
 {
     /* %c might be out-of-range, hence the two cases. */
-    if (presentation_type > 32 && presentation_type < 128)
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Unknown format code '%c' for object of type '%.200s'",
-            presentation_type, type_name);
-    else
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Unknown format code '\\x%x' for object of type '%.200s'",
-            presentation_type, type_name);
+    if (presentation_type > 32 && presentation_type < 128) {
+        if (node)
+            sol_flow_send_error_packet(node, EINVAL,
+                "Unknown format code '%c' for object of type '%.200s'",
+                presentation_type, type_name);
+        else
+            SOL_WRN("Unknown format code '%c' for object of type '%.200s'",
+                presentation_type, type_name);
+    } else {
+        if (node)
+            sol_flow_send_error_packet(node, EINVAL,
+                "Unknown format code '\\x%x' for object of type '%.200s'",
+                presentation_type, type_name);
+        else
+            SOL_WRN("Unknown format code '\\x%x' for object of type '%.200s'",
+                presentation_type, type_name);
+    }
 }
 
 static int
-float_format_append(struct string_converter *mdata,
+float_format_append(struct sol_flow_node *node,
     double in_value,
     struct sol_str_slice *format_spec,
     struct sol_buffer *out)
@@ -1723,7 +1773,7 @@ float_format_append(struct string_converter *mdata,
         fs = &def;
 
     /* parse the format_spec */
-    ret = parse_internal_render_format_spec(mdata, fs, &format, '\0', '>');
+    ret = parse_internal_render_format_spec(node, fs, &format, '\0', '>');
     SOL_INT_CHECK_GOTO(ret, < 0, done);
 
     /* type conversion? */
@@ -1738,11 +1788,11 @@ float_format_append(struct string_converter *mdata,
     case 'n':
     case '%':
         /* no conversion, already a float. do the formatting */
-        return float_format_append_do(mdata, in_value, &format, out);
+        return float_format_append_do(node, in_value, &format, out);
 
     default:
         /* unknown */
-        unknown_presentation_type(mdata, format.type, "float");
+        unknown_presentation_type(node, format.type, "float");
         ret = -EINVAL;
     }
 
@@ -1751,7 +1801,7 @@ done:
 }
 
 static int
-int32_format_append(struct string_converter *mdata,
+int32_format_append(struct sol_flow_node *node,
     int32_t in_value,
     struct sol_str_slice *format_spec,
     struct sol_buffer *out)
@@ -1769,7 +1819,7 @@ int32_format_append(struct string_converter *mdata,
 
     /* parse the format_spec */
     ret = parse_internal_render_format_spec
-            (mdata, format_spec, &format, 'd', '>');
+            (node, format_spec, &format, 'd', '>');
     SOL_INT_CHECK_GOTO(ret, < 0, done);
 
     /* type conversion? */
@@ -1782,7 +1832,7 @@ int32_format_append(struct string_converter *mdata,
     case 'X':
     case 'n':
         /* no type conversion needed, already an int. do the formatting */
-        ret = int32_format_append_do(mdata, in_value, &format, out);
+        ret = int32_format_append_do(node, in_value, &format, out);
         break;
 
     case 'e':
@@ -1793,12 +1843,12 @@ int32_format_append(struct string_converter *mdata,
     case 'G':
     case '%':
         /* convert to float */
-        ret = float_format_append_do(mdata, (double)in_value, &format, out);
+        ret = float_format_append_do(node, (double)in_value, &format, out);
         break;
 
     default:
         /* unknown */
-        unknown_presentation_type(mdata, format.type, "integer");
+        unknown_presentation_type(node, format.type, "integer");
         ret = -EINVAL;
     }
 
@@ -1807,7 +1857,7 @@ done:
 }
 
 static int
-parse_field(struct string_converter *mdata,
+parse_field(struct sol_flow_node *node,
     struct sol_str_slice *input,
     struct sol_str_slice *field_name,
     struct sol_str_slice *format_spec)
@@ -1830,8 +1880,11 @@ parse_field(struct string_converter *mdata,
 
         switch (c) {
         case '{':
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "unexpected '{' in field name");
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "unexpected '{' in field name");
+            else
+                SOL_WRN("unexpected '{' in field name");
             return -EINVAL;
         case '[':
             for (; input->len; input->len--, input->data++)
@@ -1868,12 +1921,18 @@ parse_field(struct string_converter *mdata,
             }
         }
 
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "unmatched '{' in format spec");
+        if (node)
+            sol_flow_send_error_packet(node, EINVAL,
+                "unmatched '{' in format spec");
+        else
+            SOL_WRN("unmatched '{' in format spec");
         return -EINVAL;
     } else if (c != '}') {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "expected '}' before end of string");
+        if (node)
+            sol_flow_send_error_packet(node, EINVAL,
+                "expected '}' before end of string");
+        else
+            SOL_WRN("expected '}' before end of string");
         return -EINVAL;
     }
 
@@ -1883,7 +1942,7 @@ parse_field(struct string_converter *mdata,
 /* returns a negative code on error, 0 on non-error termination, and 1
    if it got a string (or something to be expanded) */
 static int
-markup_iterator_next(struct string_converter *mdata,
+markup_iterator_next(struct sol_flow_node *node,
     struct sol_str_slice *input,
     struct sol_str_slice *literal,
     struct sol_str_slice *field_name,
@@ -1936,13 +1995,19 @@ markup_iterator_next(struct string_converter *mdata,
     at_end = input->len == 0;
 
     if ((c == '}') && (at_end || (c != input->data[0]))) {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Single '}' encountered in format string");
+        if (node)
+            sol_flow_send_error_packet(node, EINVAL,
+                "Single '}' encountered in format string");
+        else
+            SOL_WRN("Single '}' encountered in format string");
         return -EINVAL;
     }
     if (at_end && c == '{') {
-        sol_flow_send_error_packet(mdata->node, EINVAL,
-            "Single '{' encountered in format string");
+        if (node)
+            sol_flow_send_error_packet(node, EINVAL,
+                "Single '{' encountered in format string");
+        else
+            SOL_WRN("Single '{' encountered in format string");
         return -EINVAL;
     }
     if (!at_end) {
@@ -1965,7 +2030,7 @@ markup_iterator_next(struct string_converter *mdata,
 
     /* this is markup; parse the field */
     *field_present = true;
-    r = parse_field(mdata, input, field_name, format_spec);
+    r = parse_field(node, input, field_name, format_spec);
     SOL_INT_CHECK(r, < 0, r);
 
     return 1;
@@ -1975,22 +2040,30 @@ markup_iterator_next(struct string_converter *mdata,
    automatic field numbering and manual field specification, else
    return 0. */
 static int
-auto_number_check_error(struct string_converter *mdata,
+auto_number_check_error(struct sol_flow_node *node,
     enum auto_number_state state,
     bool field_name_is_empty)
 {
     if (state == ANS_MANUAL) {
         if (field_name_is_empty) {
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "cannot switch from manual field specification to automatic"
-                " field numbering");
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "cannot switch from manual field specification to"
+                    " automatic field numbering");
+            else
+                SOL_WRN("cannot switch from manual field specification to"
+                    " automatic field numbering");
             return -EINVAL;
         }
     } else {
         if (!field_name_is_empty) {
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "cannot switch from automatic field numbering to manual field"
-                " specification");
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "cannot switch from automatic field numbering to"
+                    " manual field specification");
+            else
+                SOL_WRN("cannot switch from automatic field numbering to"
+                    " manual field specification");
             return -EINVAL;
         }
     }
@@ -1998,7 +2071,7 @@ auto_number_check_error(struct string_converter *mdata,
 }
 
 static int
-field_name_get_integer_idx(struct string_converter *mdata,
+field_name_get_integer_idx(struct sol_flow_node *node,
     struct sol_str_slice *str,
     ssize_t *idx,
     struct auto_number *auto_number)
@@ -2010,7 +2083,7 @@ field_name_get_integer_idx(struct string_converter *mdata,
 
     /* see if "str" is an integer, in which case it's used as an index
      * -- tmp is passed but not used. */
-    ret = get_integer(mdata, str, &tmp, str->len, idx);
+    ret = get_integer(node, str, &tmp, str->len, idx);
     /* no char consumed, field name case. we flag it upwards by
      * altering idx */
     if (ret == 0)
@@ -2041,7 +2114,7 @@ field_name_get_integer_idx(struct string_converter *mdata,
            this time through. Only check if we're using a numeric
            index. */
         if (using_numeric_index) {
-            ret = auto_number_check_error(mdata, auto_number->an_state,
+            ret = auto_number_check_error(node, auto_number->an_state,
                 field_name_is_empty);
             SOL_INT_CHECK(ret, < 0, ret);
         }
@@ -2054,114 +2127,100 @@ field_name_get_integer_idx(struct string_converter *mdata,
     return 0;
 }
 
-static int32_t *
-get_integer_field(struct string_converter *mdata,
+static int
+get_integer_field(struct sol_flow_node *node,
     struct sol_str_slice *input,
-    struct sol_irange *args,
+    struct sol_irange args,
     struct auto_number *auto_number)
 {
     int r;
     ssize_t index;
-    int32_t *obj = NULL;
 
-    r = field_name_get_integer_idx(mdata, input, &index, auto_number);
-    SOL_INT_CHECK_GOTO(r, < 0, end);
+    r = field_name_get_integer_idx(node, input, &index, auto_number);
+    SOL_INT_CHECK(r, < 0, r);
 
     /* not an integer field, but a literal one */
     if (index == -1) {
         /* look up in val, min, max, step */
         if (sol_str_slice_str_eq(*input, "val"))
-            obj = &args->val;
+            return 0;
         else if (sol_str_slice_str_eq(*input, "min"))
-            obj = &args->min;
+            return 1;
         else if (sol_str_slice_str_eq(*input, "max"))
-            obj = &args->max;
+            return 2;
         else if (sol_str_slice_str_eq(*input, "step"))
-            obj = &args->step;
+            return 3;
         else {
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Field %.*s does not exist for integer type",
-                SOL_STR_SLICE_PRINT(*input));
-            return NULL;
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "Field %.*s does not exist for integer type",
+                    SOL_STR_SLICE_PRINT(*input));
+            else
+                SOL_WRN("Field %.*s does not exist for integer type",
+                    SOL_STR_SLICE_PRINT(*input));
+            return -EINVAL;
         }
         /* integer index */
     } else {
-        switch (index) {
-        case 0:
-            obj = &args->val;
-            break;
-        case 1:
-            obj = &args->min;
-            break;
-        case 2:
-            obj = &args->max;
-            break;
-        case 3:
-            obj = &args->step;
-            break;
-        default:
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Field index %zd does not exist for integer type", index);
+        if (index < 0 || index > 3) {
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "Field index %zd does not exist for integer type", index);
+            else
+                SOL_WRN("Field index %zd does not exist for integer type",
+                    index);
+            return -EINVAL;
         }
+        return index;
     }
-
-end:
-    return obj;
 }
 
-static double *
-get_float_field(struct string_converter *mdata,
+static int
+get_float_field(struct sol_flow_node *node,
     struct sol_str_slice *input,
-    struct sol_drange *args,
+    struct sol_drange args,
     struct auto_number *auto_number)
 {
     int r;
     ssize_t index;
-    double *obj = NULL;
 
-    r = field_name_get_integer_idx(mdata, input, &index, auto_number);
-    SOL_INT_CHECK_GOTO(r, < 0, end);
+    r = field_name_get_integer_idx(node, input, &index, auto_number);
+    SOL_INT_CHECK(r, < 0, r);
 
     /* not an float field, but a literal one */
     if (index == -1) {
         /* look up in val, min, max, step */
         if (sol_str_slice_str_eq(*input, "val"))
-            obj = &args->val;
+            return 0;
         else if (sol_str_slice_str_eq(*input, "min"))
-            obj = &args->min;
+            return 1;
         else if (sol_str_slice_str_eq(*input, "max"))
-            obj = &args->max;
+            return 2;
         else if (sol_str_slice_str_eq(*input, "step"))
-            obj = &args->step;
+            return 3;
         else {
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Field %.*s does not exist for float type",
-                SOL_STR_SLICE_PRINT(*input));
-            return NULL;
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "Field %.*s does not exist for float type",
+                    SOL_STR_SLICE_PRINT(*input));
+            else
+                SOL_WRN("Field %.*s does not exist for float type",
+                    SOL_STR_SLICE_PRINT(*input));
+            return -EINVAL;
         }
         /* float index */
     } else {
-        switch (index) {
-        case 0:
-            obj = &args->val;
-            break;
-        case 1:
-            obj = &args->min;
-            break;
-        case 2:
-            obj = &args->max;
-            break;
-        case 3:
-            obj = &args->step;
-            break;
-        default:
-            sol_flow_send_error_packet(mdata->node, EINVAL,
-                "Field index %zd does not exist for float type", index);
+        if (index < 0 || index > 3) {
+            if (node)
+                sol_flow_send_error_packet(node, EINVAL,
+                    "Field index %zd does not exist for float type", index);
+            else
+                SOL_WRN("Field index %zd does not exist for float type",
+                    index);
+            return -EINVAL;
         }
+        return index;
     }
-
-end:
-    return obj;
 }
 
 /*
@@ -2170,57 +2229,77 @@ end:
  * which case we are doing auto field numbering.
  */
 static int
-append_integer_markup(struct string_converter *mdata,
+append_integer_markup(struct sol_flow_node *node,
     struct sol_str_slice *field_name,
     struct sol_str_slice *format_spec,
-    struct sol_irange *args,
+    struct sol_irange args,
     struct auto_number *auto_number,
     struct sol_buffer *out)
 {
     int32_t *field_obj = NULL;
+    int r = get_integer_field(node, field_name, args, auto_number);
+
+    SOL_INT_CHECK(r, < 0, r);
 
     /* convert field_name to an actual int32_t ptr */
-    field_obj = get_integer_field(mdata, field_name, args, auto_number);
-    if (field_obj == NULL)
-        return -EINVAL;
+    field_obj = &args.val + r;
 
-    return int32_format_append(mdata, *field_obj, format_spec, out);
+    return int32_format_append(node, *field_obj, format_spec, out);
+}
+
+static void
+auto_number_init(struct auto_number *auto_number)
+{
+    auto_number->an_state = ANS_INIT;
+    auto_number->an_field_number = 0;
 }
 
 int
-do_integer_markup(struct string_converter *mdata,
+do_integer_markup(struct sol_flow_node *node,
     const char *format,
-    struct sol_irange *args,
-    struct auto_number *auto_number,
+    struct sol_irange args,
     struct sol_buffer *out)
 {
     struct sol_str_slice format_spec = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice field_name = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice literal = SOL_STR_SLICE_EMPTY;
+    struct auto_number auto_number;
     struct sol_str_slice iter;
     bool field_present;
     int result;
 
+    auto_number_init(&auto_number);
     iter = SOL_STR_SLICE_STR(format, strlen(format));
 
-    while ((result = markup_iterator_next(mdata, &iter, &literal, &field_name,
+    while ((result = markup_iterator_next(node, &iter, &literal, &field_name,
             &format_spec, &field_present)) == 1) {
         int r;
 
         /* literal sub string in format, no markup */
         if (literal.len > 0) {
             r = sol_buffer_append_slice(out, literal);
-            SOL_INT_CHECK(r, < 0, r);
+            if (r < 0) {
+                result = r;
+                goto err;
+            }
         }
 
         if (field_present) {
-            r = append_integer_markup(mdata, &field_name, &format_spec, args,
-                auto_number, out);
-            SOL_INT_CHECK(r, < 0, r);
+            r = append_integer_markup(node, &field_name, &format_spec, args,
+                &auto_number, out);
+            if (r < 0) {
+                result = r;
+                goto err;
+            }
         }
     }
 
     return result > 0 ? 0 : result;
+
+err:
+    sol_buffer_fini(out);
+
+    return result;
 }
 
 /* given:
@@ -2231,40 +2310,43 @@ do_integer_markup(struct string_converter *mdata,
  * to be zero length, in which case we are doing auto field numbering.
  */
 static int
-append_float_markup(struct string_converter *mdata,
+append_float_markup(struct sol_flow_node *node,
     struct sol_str_slice *field_name,
     struct sol_str_slice *format_spec,
-    struct sol_drange *args,
+    struct sol_drange args,
     struct auto_number *auto_number,
     struct sol_buffer *out)
 {
     double *field_obj = NULL;
+    int r = get_float_field(node, field_name, args, auto_number);
+
+    SOL_INT_CHECK(r, < 0, r);
 
     /* convert field_name to an actual float_t ptr */
-    field_obj = get_float_field(mdata, field_name, args, auto_number);
-    if (field_obj == NULL)
-        return -EINVAL;
+    field_obj = &args.val + r;
 
-    return float_format_append(mdata, *field_obj, format_spec, out);
+    return float_format_append(node, *field_obj, format_spec, out);
 }
 
 int
-do_float_markup(struct string_converter *mdata,
+do_float_markup(struct sol_flow_node *node,
     const char *format,
-    struct sol_drange *args,
-    struct auto_number *auto_number,
+    struct sol_drange args,
     struct sol_buffer *out)
 {
     struct sol_str_slice format_spec = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice field_name = SOL_STR_SLICE_EMPTY;
     struct sol_str_slice literal = SOL_STR_SLICE_EMPTY;
+    struct auto_number auto_number;
     struct sol_str_slice iter;
     bool field_present;
     int result;
 
+    auto_number_init(&auto_number);
+
     iter = SOL_STR_SLICE_STR(format, strlen(format));
 
-    while ((result = markup_iterator_next(mdata, &iter, &literal, &field_name,
+    while ((result = markup_iterator_next(node, &iter, &literal, &field_name,
             &format_spec, &field_present)) == 1) {
         int r;
 
@@ -2275,18 +2357,11 @@ do_float_markup(struct string_converter *mdata,
         }
 
         if (field_present) {
-            r = append_float_markup(mdata, &field_name, &format_spec, args,
-                auto_number, out);
+            r = append_float_markup(node, &field_name, &format_spec, args,
+                &auto_number, out);
             SOL_INT_CHECK(r, < 0, r);
         }
     }
 
     return result > 0 ? 0 : result;
-}
-
-void
-auto_number_init(struct auto_number *auto_number)
-{
-    auto_number->an_state = ANS_INIT;
-    auto_number->an_field_number = 0;
 }
