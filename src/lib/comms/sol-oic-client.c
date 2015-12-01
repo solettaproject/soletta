@@ -333,8 +333,10 @@ _server_info_reply_cb(struct sol_coap_server *server,
     uint16_t payload_len;
     struct sol_oic_server_information info = { 0 };
 
-    if (!req || !cliaddr)
+    if (!req || !cliaddr) {
+        ctx->cb(ctx->client, NULL, ctx->data);
         goto free_ctx;
+    }
 
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
