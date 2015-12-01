@@ -48,8 +48,10 @@ extern "C" {
  * @defgroup Arena Arena
  * @ingroup Datatypes
  *
- * An arena is an object that does allocation on user behalf and can
+ * @brief An arena is an object that does allocation on user's behalf and can
  * deallocate all at once.
+ *
+ * @see Str_Slice
  *
  * @{
  */
@@ -57,23 +59,112 @@ extern "C" {
 /**
  * @struct sol_arena
  *
- * An arena is an object that does allocation on user behalf and can
- * deallocate all at once.
+ * @brief Sol Arena type.
  *
- * See also sol-buffer.h if you just need a single resizable buffer.
+ * See also @ref sol_buffer if you just need a single re-sizable buffer.
  */
 struct sol_arena;
 
+/**
+ * @brief Creates an Arena.
+ *
+ * @return The new arena, @c NULL in case of error
+ */
 struct sol_arena *sol_arena_new(void);
+
+/**
+ * @brief Delete the Arena.
+ *
+ * Delete the arena and all it's contents. Frees all the memory previously
+ * allocated by the arena.
+ *
+ * @param arena Arena to be deleted
+ */
 void sol_arena_del(struct sol_arena *arena);
 
+/**
+ * @brief Store a copy of a given string in the arena.
+ *
+ * Also, outputs a slice to the stored string in @c dst.
+ *
+ * @param arena The arena
+ * @param dst String slice of the recently added string
+ * @param str String to copy and store
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_arena_slice_dup_str(struct sol_arena *arena, struct sol_str_slice *dst, const char *str);
+
+/**
+ * @brief Store a copy of at most @c n characters of a given string in the arena.
+ *
+ * Also, outputs a slice to the stored string in @c dst.
+ *
+ * @param arena The arena
+ * @param dst String slice of the recently added string
+ * @param str String to copy and store
+ * @param n Maximum number of characters to copy
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_arena_slice_dup_str_n(struct sol_arena *arena, struct sol_str_slice *dst, const char *str, size_t n);
+
+/**
+ * @brief Store a copy of a given string slice in the arena.
+ *
+ * Also, outputs the recently stored string slice in @c dst.
+ *
+ * @param arena The arena
+ * @param dst String slice of the recently added string slice
+ * @param slice String slice to copy and store
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_arena_slice_dup(struct sol_arena *arena, struct sol_str_slice *dst, struct sol_str_slice slice);
+
+/**
+ * @brief Store the output of 'sprintf()' in the arena.
+ *
+ * Also, outputs a slice to the stored string in @c dst.
+ *
+ * @param arena The arena
+ * @param dst String slice of the recently added string
+ * @param fmt A standard 'printf()' format string
+ * @param ... The arguments for 'sprintf()'
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_arena_slice_sprintf(struct sol_arena *arena, struct sol_str_slice *dst, const char *fmt, ...);
 
+/**
+ * @brief Store a copy of a given string in the arena.
+ *
+ * @param arena The arena
+ * @param str String to copy and store
+ *
+ * @return The stored string
+ */
 char *sol_arena_strdup(struct sol_arena *arena, const char *str);
+
+/**
+ * @brief Store a copy of at most @c n characters of a given string in the arena.
+ *
+ * @param arena The arena
+ * @param str String to copy and store
+ * @param n Maximum number of characters to copy
+ *
+ * @return The stored string
+ */
 char *sol_arena_strndup(struct sol_arena *arena, const char *str, size_t n);
+
+/**
+ * @brief Store a copy of a given string slice in the arena.
+ *
+ * @param arena The arena
+ * @param slice String slice to copy and store
+ *
+ * @return The stored string
+ */
 char *sol_arena_strdup_slice(struct sol_arena *arena, const struct sol_str_slice slice);
 
 /**
