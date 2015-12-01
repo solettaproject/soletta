@@ -489,3 +489,84 @@ sol_platform_impl_shutdown(void)
 
     sol_bus_close();
 }
+
+int
+sol_plataform_impl_set_hostname(const char *name)
+{
+    sd_bus *bus;
+    int r;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    r = sd_bus_call_method_async(bus, NULL, "org.freedesktop.hostname1",
+        "/org/freedesktop/hostname1", "org.freedesktop.hostname1",
+        "SetStaticHostname", sol_bus_log_callback, NULL, "sb", name, false);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+int
+sol_plataform_impl_get_hostname(char **name)
+{
+    sd_bus *bus;
+    sd_bus_error error = SD_BUS_ERROR_NULL;
+    int r;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    r = sd_bus_get_property_string(bus, "org.freedesktop.hostname1",
+        "/org/freedesktop/hostname1",
+        "org.freedesktop.hostname1", "StaticHostname", &error, name);
+
+    if (r < 0) {
+        SOL_WRN("Error while trying to fetch the hostname: %s %s", error.name,
+            error.message);
+    }
+    sd_bus_error_free(&error);
+    return 0;
+}
+
+static bool
+_set_hostname(void *data, const void *value)
+{
+    static bool first_call = true;
+
+    if (first_call) {
+        first_call = false;
+        return false;
+    }
+    return true;
+}
+
+static const struct sol_bus_properties _hostname_property = {
+    .member = "StaticHostname",
+    .type = 's',
+    .set = _set_hostname,
+};
+
+int
+sol_plataform_unregister_hostname_monitor(void)
+{
+    return sol_bus_unmap_cached_properties(&_hostname_property, NULL);
+}
+
+static void
+_hostname_changed(void *data, uint64_t mask)
+{
+    sol_plataform_inform_hostname_monitors();
+}
+
+int
+sol_plataform_register_hostname_monitor(void)
+{
+    sd_bus *bus;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    return sol_bus_map_cached_properties(bus, "org.freedesktop.hostname1",
+        "/org/freedesktop/hostname1", "org.freedesktop.hostname1",
+        &_hostname_property, _hostname_changed, NULL);
+}

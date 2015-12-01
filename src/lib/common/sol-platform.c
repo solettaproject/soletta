@@ -63,6 +63,7 @@ struct service_monitor {
 struct ctx {
     struct sol_monitors state_monitors;
     struct sol_monitors service_monitors;
+    struct sol_monitors hostname_monitors;
 };
 
 static struct ctx _ctx;
@@ -78,6 +79,7 @@ sol_platform_init(void)
     sol_log_domain_init_level(SOL_LOG_DOMAIN);
 
     sol_monitors_init(&_ctx.state_monitors, NULL);
+    sol_monitors_init(&_ctx.hostname_monitors, NULL);
     sol_monitors_init_custom(&_ctx.service_monitors, sizeof(struct service_monitor), service_monitor_free);
 
     return sol_platform_impl_init();
@@ -91,6 +93,7 @@ sol_platform_shutdown(void)
     free(serial_number);
     sol_monitors_clear(&_ctx.state_monitors);
     sol_monitors_clear(&_ctx.service_monitors);
+    sol_monitors_clear(&_ctx.hostname_monitors);
     sol_platform_impl_shutdown();
 }
 
@@ -171,19 +174,39 @@ sol_platform_get_state(void)
     return sol_platform_impl_get_state();
 }
 
-SOL_API int
-sol_platform_add_state_monitor(void (*cb)(void *data,
-    enum sol_platform_state state),
-    const void *data)
+static int
+monitor_add(struct sol_monitors *monitors, sol_monitors_cb_t cb, const void *data)
 {
     struct sol_monitors_entry *e;
 
     SOL_NULL_CHECK(cb, -EINVAL);
 
-    e = sol_monitors_append(&_ctx.state_monitors, (sol_monitors_cb_t)cb, data);
+    e = sol_monitors_append(monitors, cb, data);
     SOL_NULL_CHECK(e, -ENOMEM);
-
     return 0;
+}
+
+static int
+monitor_del(struct sol_monitors *monitors, sol_monitors_cb_t cb, const void *data)
+{
+    int i;
+
+    SOL_NULL_CHECK(cb, -EINVAL);
+
+    i = sol_monitors_find(monitors, cb, data);
+    if (i < 0)
+        return i;
+
+    return sol_monitors_del(monitors, i);
+}
+
+SOL_API int
+sol_platform_add_state_monitor(void (*cb)(void *data,
+    enum sol_platform_state state),
+    const void *data)
+{
+
+    return monitor_add(&_ctx.state_monitors, (sol_monitors_cb_t)cb, data);
 }
 
 SOL_API int
@@ -191,15 +214,7 @@ sol_platform_del_state_monitor(void (*cb)(void *data,
     enum sol_platform_state state),
     const void *data)
 {
-    int i;
-
-    SOL_NULL_CHECK(cb, -EINVAL);
-
-    i = sol_monitors_find(&_ctx.state_monitors, (sol_monitors_cb_t)cb, data);
-    if (i < 0)
-        return i;
-
-    return sol_monitors_del(&_ctx.state_monitors, i);
+    return monitor_del(&_ctx.state_monitors, (sol_monitors_cb_t)cb, data);
 }
 
 static inline struct service_monitor *
@@ -456,4 +471,56 @@ sol_platform_unmount(const char *mpoint, void (*cb)(void *data, const char *mpoi
     SOL_NULL_CHECK(mpoint, -EINVAL);
     SOL_NULL_CHECK(cb, -EINVAL);
     return sol_platform_impl_umount(mpoint, cb, data);
+}
+
+SOL_API int
+sol_plataform_set_hostname(const char *name)
+{
+    SOL_NULL_CHECK(name, -EINVAL);
+    return sol_plataform_impl_set_hostname(name);
+}
+
+SOL_API int
+sol_plataform_get_hostname(char **name)
+{
+    SOL_NULL_CHECK(name, -EINVAL);
+    return sol_plataform_impl_get_hostname(name);
+}
+
+void
+sol_plataform_inform_hostname_monitors(void)
+{
+    SOL_MONITORS_WALK_AND_CALLBACK(&_ctx.hostname_monitors);
+}
+
+SOL_API int
+sol_plataform_add_hostname_monitor(void (*cb)(void *data), const void *data)
+{
+    int r;
+
+    SOL_NULL_CHECK(cb, -EINVAL);
+    r = monitor_add(&_ctx.hostname_monitors, (sol_monitors_cb_t)cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+    if (sol_monitors_count(&_ctx.hostname_monitors) == 1) {
+        r = sol_plataform_register_hostname_monitor();
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+    return 0;
+err_exit:
+    (void)monitor_del(&_ctx.hostname_monitors, (sol_monitors_cb_t)cb, data);
+    return r;
+}
+
+SOL_API int
+sol_plataform_del_hostname_monitor(void (*cb)(void *data), const void *data)
+{
+    int r;
+
+    SOL_NULL_CHECK(cb, -EINVAL);
+    r = monitor_del(&_ctx.hostname_monitors, (sol_monitors_cb_t)cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (sol_monitors_count(&_ctx.hostname_monitors) == 0)
+        return sol_plataform_unregister_hostname_monitor();
+    return 0;
 }

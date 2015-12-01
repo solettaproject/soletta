@@ -135,3 +135,31 @@ sol_platform_impl_umount(const char *mpoint, void (*cb)(void *data, const char *
     SOL_WRN("Not implemented");
     return -ENOTSUP;
 }
+
+int
+sol_plataform_unregister_hostname_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_plataform_register_hostname_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_plataform_impl_get_hostname(char **name)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_plataform_impl_set_hostname(const char *name)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
