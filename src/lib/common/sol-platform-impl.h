@@ -63,3 +63,11 @@ void sol_platform_inform_service_monitors(const char *service,
 
 int sol_platform_impl_get_mount_points(struct sol_ptr_vector *vector);
 int sol_platform_impl_umount(const char *mpoint, void (*cb)(void *data, const char *mpoint, int error), const void *data);
+
+int sol_platform_impl_set_hostname(const char *name);
+const char *sol_platform_impl_get_hostname(void);
+
+void sol_platform_inform_hostname_monitors(void);
+
+int sol_platform_unregister_hostname_monitor(void);
+int sol_platform_register_hostname_monitor(void);
