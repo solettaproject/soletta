@@ -48,6 +48,7 @@
 #include "sol-file-reader.h"
 #include "sol-mainloop.h"
 #include "sol-platform-impl.h"
+#include "sol-platform-linux-common.h"
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
 #include "sol-util.h"
@@ -93,6 +94,7 @@ struct uevent_context {
     } uevent;
 };
 
+static char hostname[HOST_NAME_MAX + 1];
 static struct uevent_context uevent_ctx;
 static struct sol_ptr_vector fork_runs = SOL_PTR_VECTOR_INIT;
 
@@ -113,6 +115,30 @@ find_handle(const struct sol_platform_linux_fork_run *handle)
     }
 
     return UINT16_MAX;
+}
+
+int
+sol_platform_impl_linux_set_hostname(const char *name)
+{
+    size_t len = strlen(name);
+
+    if (len > HOST_NAME_MAX) {
+        SOL_WRN("Hostname can not be bigger than %d - Hostname:%s",
+            HOST_NAME_MAX, name);
+        return -EINVAL;
+    }
+
+    if (sethostname(name, len) < 0)
+        return -errno;
+    return 0;
+}
+
+const char *
+sol_platform_impl_linux_get_hostname(void)
+{
+    if (gethostname(hostname, sizeof(hostname)) < 0)
+        return NULL;
+    return hostname;
 }
 
 static void

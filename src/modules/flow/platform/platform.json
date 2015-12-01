@@ -36,6 +36,48 @@
       "url": "http://solettaproject.org/doc/latest/node_types/platform.html"
     },
     {
+      "category": "hostname",
+      "description": "This node can be used to set the machine's host name, get the current hostname or monitor for hostname changes",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The new hostname",
+          "methods": {
+            "process": "hostname_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "methods": {
+        "open": "hostname_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "An initial packet with the current hostname will be sent",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
+      "name": "platform/hostname",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The current hostname. When the node is created an initial packet will be sent with the current hostname, if the hostname changes a new packet will be set with the new hostname.",
+          "methods": {
+            "connect": "hostname_out_connect",
+            "disconnect": "hostname_out_disconnect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "hostname_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform_hostname.html"
+    },
+    {
       "category": "input/sw",
       "description": "Platform Service State",
       "in_ports": [
