@@ -111,7 +111,7 @@ struct sol_memmap_map {
                        * @arg @a devname is device name, the one recognized by its driver
                        */
     uint32_t timeout; /**< Timeout, in milliseconds, of writing operations. After a write is requested, a timer will run and group all
-                           * writing operations until it expires, when real writing will be performed */
+                       * writing operations until it expires, when real writing will be performed */
     const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */ /* Memory trick in place, must be last on struct*/
 };
 
