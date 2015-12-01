@@ -44,7 +44,7 @@ extern "C" {
  * @defgroup OIC Open Interconnect Consortium
  * @ingroup Comms
  *
- * Implementation of protocol defined by Open Interconnect Consortium
+ * @brief Implementation of protocol defined by Open Interconnect Consortium
  * (OIC - http://openinterconnect.org/)
  *
  * It's a common communication framework based on industry standard
@@ -57,85 +57,287 @@ extern "C" {
  * @{
  */
 
+/**
+ * @brief Structure containing all fields that are retrived by
+ * @ref sol_oic_client_get_server_info()
+ */
 struct sol_oic_server_information {
 #ifndef SOL_NO_API_VERSION
 #define SOL_OIC_SERVER_INFORMATION_API_VERSION (1)
-    uint16_t api_version;
-    int : 0; /* save possible hole for a future field */
+    uint16_t api_version; /**< @brief API version */
+    int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
 
     /* All fields are required by the spec.  Some of the fields are
      * obtained in runtime (such as system time, OS version), and are
-     * not user-specifiable.  */
+     * not user-specifiable.
+     */
+
+    /**
+     * @brief Platform identifier.
+     */
     struct sol_str_slice platform_id;
+    /**
+     * @brief Name of manufacturer.
+     */
     struct sol_str_slice manufacturer_name;
+    /**
+     * @brief URL to manufacturer.
+     */
     struct sol_str_slice manufacturer_url;
+    /**
+     * @brief Model number as designated by manufacturer.
+     */
     struct sol_str_slice model_number;
+    /**
+     * @brief Manufacturing date.
+     */
     struct sol_str_slice manufacture_date;
+    /**
+     * @brief Version of the platform.
+     */
     struct sol_str_slice platform_version;
+    /**
+     * @brief Version of the hardware.
+     */
     struct sol_str_slice hardware_version;
+    /**
+     * @brief Version of the firmware.
+     */
     struct sol_str_slice firmware_version;
+    /**
+     * @brief URL to manufacturer's support website.
+     */
     struct sol_str_slice support_url;
 
     /* Read-only fields. */
+
+    /**
+     * @brief Version of the operational system running on the device.
+     */
     struct sol_str_slice os_version;
+    /**
+     * @brief Current system time in the device
+     */
     struct sol_str_slice system_time;
 };
 
+/**
+ * @brief Flag to set when adding a new resource to a server.
+ *
+ * Multiple flags can be set, just connect them using the | operator.
+ *
+ * @see sol_oic_server_add_resource()
+ */
 enum sol_oic_resource_flag {
+    /**
+     * @brief No flag is set.
+     *
+     * The device is non-discoverable and non-observable
+     */
+    SOL_OIC_FLAG_NONE = 0,
+    /**
+     * @brief The resource is discoverable by clients.
+     */
     SOL_OIC_FLAG_DISCOVERABLE = 1 << 0,
+        /**
+         * @brief The resource is observable.
+         *
+         * Clients can request observable resources to be notified when a the
+         * resource status has changes.
+         */
         SOL_OIC_FLAG_OBSERVABLE = 1 << 1,
+        /**
+         * @brief The resource is active.
+         *
+         * Devices are set as inactive when they are uninitialized,
+         * marked for deletion or already deleted.
+         */
         SOL_OIC_FLAG_ACTIVE = 1 << 2,
+        /**
+         * @brief The resource is slow.
+         *
+         * Delays in response from slow resource is expected when processing
+         * requests.
+         */
         SOL_OIC_FLAG_SLOW = 1 << 3,
+        /**
+         * @brief The resource is secure.
+         *
+         * Connection established with a secure devices is secure.
+         */
         SOL_OIC_FLAG_SECURE = 1 << 4
 };
 
+/**
+ * @brief field type of sol_oic_repr_field structure.
+ */
 enum sol_oic_repr_type {
-    SOL_OIC_REPR_TYPE_UINT,
-    SOL_OIC_REPR_TYPE_INT,
-    SOL_OIC_REPR_TYPE_SIMPLE,
-    SOL_OIC_REPR_TYPE_TEXT_STRING,
-    SOL_OIC_REPR_TYPE_BYTE_STRING,
-    SOL_OIC_REPR_TYPE_HALF_FLOAT,
-    SOL_OIC_REPR_TYPE_FLOAT,
-    SOL_OIC_REPR_TYPE_DOUBLE,
-    SOL_OIC_REPR_TYPE_BOOLEAN
+    SOL_OIC_REPR_TYPE_UINT, /** Unsigned int type. */
+    SOL_OIC_REPR_TYPE_INT, /** Signed int type. */
+    SOL_OIC_REPR_TYPE_SIMPLE, /** Unsigned 8-bit integer type. */
+    SOL_OIC_REPR_TYPE_TEXT_STRING, /** String with text type. */
+    SOL_OIC_REPR_TYPE_BYTE_STRING, /** String with bytes type. */
+    SOL_OIC_REPR_TYPE_HALF_FLOAT, /** Half-precision float number type. */
+    SOL_OIC_REPR_TYPE_FLOAT, /** Single-precision float number type. */
+    SOL_OIC_REPR_TYPE_DOUBLE, /** Double-precision float number type. */
+    SOL_OIC_REPR_TYPE_BOOLEAN /** Boolean precision type. */
 };
 
+/**
+ * @brief Structure to keep a single oic-map's field.
+ *
+ * Use this structure to read fields using an sol_oic_map_reader and macro
+ * @ref SOL_OIC_MAP_LOOP() or to write fields using an sol_oic_map_writer and
+ * function sol_oic_map_append.
+ *
+ * @see sol_oic_map_append()
+ * @see SOL_OIC_MAP_LOOP()
+ */
 struct sol_oic_repr_field {
+    /**
+     * @brief type of the data of this field.
+     */
     enum sol_oic_repr_type type;
+    /**
+     * @brief Field's key as a string.
+     */
     const char *key;
+    /**
+     * @brief Union used to access field's data in correct formap specified by
+     * @a type
+     */
     union {
+        /**
+         * @brief Field's data if type is SOL_OIC_REPR_TYPE_UINT.
+         */
         uint64_t v_uint;
+        /**
+         * @brief Field's data if type is SOL_OIC_REPR_TYPE_INT.
+         */
         int64_t v_int;
+        /**
+         * @brief Field's data if type is SOL_OIC_REPR_TYPE_SIMPLE.
+         */
         uint8_t v_simple;
+        /**
+         * @brief Field's data if type is SOL_OIC_REPR_TYPE_TEXT_STRING or
+         * SOL_OIC_REPR_TYPE_BYTE_STRING.
+         */
         struct sol_str_slice v_slice;
+        /**
+         * @brief Field's data if type is SOL_OIC_REPR_TYPE_FLOAT.
+         */
         float v_float;
+        /**
+         * @brief Field's data if type is SOL_OIC_REPR_TYPE_DOUBLE.
+         */
         double v_double;
+        /**
+         * @brief Field's data if type is SOL_OIC_REPR_TYPE_HALF_FLOAT.
+         */
         void *v_voidptr;
+        /**
+         * @brief Field's data if type is SOL_OIC_REPR_TYPE_BOOLEAN.
+         */
         bool v_boolean;
     };
 };
 
+/**
+ * @brief Helper macro to create a sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param type_ Field's type.
+ * @param ... Extra structure initialization commands.
+ */
 #define SOL_OIC_REPR_FIELD(key_, type_, ...) \
     (struct sol_oic_repr_field){.type = (type_), .key = (key_), __VA_ARGS__ }
 
+/**
+ * @brief Helper macro to create an unsigned integer sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param value_ The unsigned int value of this field.
+ */
 #define SOL_OIC_REPR_UINT(key_, value_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_UINT, .v_uint = (value_))
+
+/**
+ * @brief Helper macro to create an signed integer sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param value_ The signed int value of this field.
+ */
 #define SOL_OIC_REPR_INT(key_, value_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_INT, .v_int = (value_))
+
+/**
+ * @brief Helper macro to create an boolean sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param value_ The boolean value of this field.
+ */
 #define SOL_OIC_REPR_BOOLEAN(key_, value_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_BOOLEAN, .v_boolean = !!(value_))
+
+/**
+ * @brief Helper macro to create an simple integer sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param value_ The 8-bit integer value of this field.
+ */
 #define SOL_OIC_REPR_SIMPLE(key_, value_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_SIMPLE, .v_simple = (value_))
+
+/**
+ * @brief Helper macro to create a text string sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param value_ A pointer to the string to be set as the string value of this
+ *        field.
+ * @param len_ The length of the string pointed by @a value.
+ */
 #define SOL_OIC_REPR_TEXT_STRING(key_, value_, len_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_TEXT_STRING, .v_slice = SOL_STR_SLICE_STR((value_), (len_)))
+
+/**
+ * @brief Helper macro to create a byte string sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param value_ A pointer to the string to be set as the string value of this
+ *        field.
+ * @param len_ The length of the string pointed by @a value.
+ */
 #define SOL_OIC_REPR_BYTE_STRING(key_, value_, len_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_BYTE_STRING, .v_slice = SOL_STR_SLICE_STR((value_), (len_)))
+
+/**
+ * @brief Helper macro to create a half-precision float number
+ * sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param value_ The value of the float number.
+ */
 #define SOL_OIC_REPR_HALF_FLOAT(key_, value_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_HALF_FLOAT, .v_voidptr = (value_))
+
+/**
+ * @brief Helper macro to create a single-precision float number
+ * sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param value_ The value of the float number.
+ */
 #define SOL_OIC_REPR_FLOAT(key_, value_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_FLOAT, .v_float = (value_))
+
+/**
+ * @brief Helper macro to create a double-precision float sol_oic_repr_field.
+ *
+ * @param key_ Field's key.
+ * @param value_ The value of the float number.
+ */
 #define SOL_OIC_REPR_DOUBLE(key_, value_) \
     SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_DOUBLE, .v_double = (value_))
 
