@@ -93,6 +93,7 @@ struct uevent_context {
     } uevent;
 };
 
+static char hostname[HOST_NAME_MAX + 1];
 static struct uevent_context uevent_ctx;
 static struct sol_ptr_vector fork_runs = SOL_PTR_VECTOR_INIT;
 
@@ -113,6 +114,14 @@ find_handle(const struct sol_platform_linux_fork_run *handle)
     }
 
     return UINT16_MAX;
+}
+
+const char *
+sol_platform_impl_get_hostname(void)
+{
+    if (gethostname(hostname, sizeof(hostname)) < 0)
+        return NULL;
+    return hostname;
 }
 
 static void
