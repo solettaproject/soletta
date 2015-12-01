@@ -35,6 +35,7 @@
 #include "sol-mainloop.h"
 #include "sol-util.h"
 #include "sol-vector.h"
+#include "sol-log.h"
 
 #include "sol-flow/console.h"
 #ifdef USE_PWM
