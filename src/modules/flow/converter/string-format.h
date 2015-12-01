@@ -30,6 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+//FIXME: maybe split in 2 headers?
+
 #pragma once
 
 #define SOL_LOG_DOMAIN &_converter_log_domain
@@ -41,25 +43,6 @@ extern struct sol_log_domain _converter_log_domain;
 #include "sol-mainloop.h"
 #include "sol-flow-internal.h"
 
-enum auto_number_state {
-    ANS_INIT,
-    ANS_AUTO,
-    ANS_MANUAL
-}; /* Keeps track if we're auto-numbering fields */
-
-/* Keeps track of our auto-numbering state, and which number field
- * we're on */
-struct auto_number {
-    enum auto_number_state an_state;
-    int an_field_number;
-};
-
-struct string_converter {
-    struct sol_flow_node *node;
-    char *format;
-};
-
-void auto_number_init(struct auto_number *auto_number);
-int do_integer_markup(struct string_converter *mdata, const char *format, struct sol_irange *args, struct auto_number *auto_number, struct sol_buffer *out) SOL_ATTR_WARN_UNUSED_RESULT;
-int do_float_markup(struct string_converter *mdata, const char *format, struct sol_drange *args, struct auto_number *auto_number, struct sol_buffer *out) SOL_ATTR_WARN_UNUSED_RESULT;
+int do_integer_markup(struct sol_flow_node *node, const char *format, struct sol_irange args, struct sol_buffer *out) SOL_ATTR_WARN_UNUSED_RESULT;
+int do_float_markup(struct sol_flow_node *node, const char *format, struct sol_drange args, struct sol_buffer *out) SOL_ATTR_WARN_UNUSED_RESULT;
 
