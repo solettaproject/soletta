@@ -56,26 +56,16 @@ extern "C" {
  *
  * @defgroup Buffer Buffer
  *
- * Buffer is a dynamic array, that can be resized if needed.
+ * @brief Buffer is a dynamic array, that can be resized if needed.
+ *
  * See also \ref Arena if you are allocating multiple pieces of data that will
- * be de-allocated twice.
+ * be deallocated twice.
  *
  * @ingroup Datatypes
  *
+ * @see Arena
+ *
  * @{
- */
-
-/**
- * @struct sol_buffer
- *
- * A sol_buffer is a dynamic array, that can be resized if needed. It
- * grows exponentially but also supports setting a specific size.
- *
- * Useful to reduce the noise of handling realloc/size-variable
- * manually.
- *
- * See also sol-arena.h if you are allocating multiple pieces of data
- * that will be de-allocated twice.
  */
 
 enum sol_buffer_flags {
@@ -111,15 +101,30 @@ enum sol_buffer_flags {
     SOL_BUFFER_FLAGS_CLEAR_MEMORY = (1 << 3) | SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED,
 };
 
+/**
+ * @struct sol_buffer
+ *
+ * @brief A sol_buffer is a dynamic array, that can be resized if needed.
+ *
+ * It grows exponentially but also supports setting a specific size.
+ *
+ * Useful to reduce the noise of handling realloc/size-variable
+ * manually.
+ *
+ * See also @ref sol_arena if you are allocating multiple pieces of data
+ * that will be deallocated twice.
+ */
 struct sol_buffer {
-    void *data;
-    size_t capacity, used;
-    enum sol_buffer_flags flags;
+    void *data; /**< @brief Buffer data */
+    size_t capacity; /**< @brief Buffer capacity in bytes */
+    size_t used;  /**< @brief Used size in bytes */
+    enum sol_buffer_flags flags; /**< @brief Buffer flags */
 };
 
-/*
- * Case of a string to be decoded by functions sol_buffer_append_from_base16
- * or sol_buffer_insert_from_base16
+/**
+ * @brief Case of a string to be decoded.
+ *
+ * Used by functions @ref sol_buffer_append_from_base16 or @ref sol_buffer_insert_from_base16.
  */
 enum sol_decode_case {
     SOL_DECODE_UPERCASE,
@@ -127,11 +132,53 @@ enum sol_decode_case {
     SOL_DECODE_BOTH
 };
 
+/**
+ * @def SOL_BUFFER_INIT_EMPTY
+ *
+ * @brief Helper macro to initialize an empty buffer.
+ */
 #define SOL_BUFFER_INIT_EMPTY (struct sol_buffer){.data = NULL, .capacity = 0, .used = 0, .flags = SOL_BUFFER_FLAGS_DEFAULT }
+
+/**
+ * @def SOL_BUFFER_INIT_FLAGS(data_, size_, flags_)
+ *
+ * @brief Helper macro to initialize an buffer with the given data and flags.
+ *
+ * @param data_ Buffer initial data
+ * @param size_ Initial data size
+ * @param flags_ Buffer flags
+ */
 #define SOL_BUFFER_INIT_FLAGS(data_, size_, flags_) (struct sol_buffer){.data = data_, .capacity = size_, .used = 0, .flags = flags_ }
+
+/**
+ * @def SOL_BUFFER_INIT_CONST(data_, size_)
+ *
+ * @brief Helper macro to initialize an buffer with @c const data.
+ *
+ * Also set the appropriated flag.
+ *
+ * @param data_ Buffer initial data
+ * @param size_ Initial data size
+ */
 #define SOL_BUFFER_INIT_CONST(data_, size_) (struct sol_buffer){.data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED }
+
+/**
+ * @def SOL_BUFFER_INIT_DATA(data_, size_)
+ *
+ * @brief Helper macro to initialize an buffer with the given data.
+ *
+ * @param data_ Buffer initial data
+ * @param size_ Initial data size
+ */
 #define SOL_BUFFER_INIT_DATA(data_, size_) (struct sol_buffer){.data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_DEFAULT }
 
+/**
+ * @brief Initializes a @c sol_buffer structure.
+ *
+ * flags are set to @c SOL_BUFFER_FLAGS_DEFAULT.
+ *
+ * @param buf Pointer to buffer
+ */
 static inline void
 sol_buffer_init(struct sol_buffer *buf)
 {
@@ -142,6 +189,14 @@ sol_buffer_init(struct sol_buffer *buf)
     buf->flags = SOL_BUFFER_FLAGS_DEFAULT;
 }
 
+/**
+ * @brief Initializes a @c sol_buffer structure with the given data and flags.
+ *
+ * @param buf Pointer to buffer
+ * @param data Pointer to buffer initial data
+ * @param data_size Size of the initial data
+ * @param flags Buffer flags
+ */
 static inline void
 sol_buffer_init_flags(struct sol_buffer *buf, void *data, size_t data_size, enum sol_buffer_flags flags)
 {
@@ -153,8 +208,23 @@ sol_buffer_init_flags(struct sol_buffer *buf, void *data, size_t data_size, enum
     buf->flags = flags;
 }
 
+/**
+ * @brief Finalizes the buffer.
+ *
+ * Frees the data managed by the buffer but keeps the buffer handler intact for reuse.
+ *
+ * @param buf The buffer
+ */
 void sol_buffer_fini(struct sol_buffer *buf);
 
+/**
+ * @brief Returns a pointer to the data at position @c pos in the buffer @c buf.
+ *
+ * @param buf The buffer
+ * @param pos Position of the data
+ *
+ * @return Pointer to the data at the given position
+ */
 static inline void *
 sol_buffer_at(const struct sol_buffer *buf, size_t pos)
 {
@@ -165,6 +235,13 @@ sol_buffer_at(const struct sol_buffer *buf, size_t pos)
     return (char *)buf->data + pos;
 }
 
+/**
+ * @brief Returns a pointer to the end of the used portion of the buffer.
+ *
+ * @param buf The buffer
+ *
+ * @return Pointer to the end of the buffer
+ */
 static inline void *
 sol_buffer_at_end(const struct sol_buffer *buf)
 {
@@ -173,16 +250,47 @@ sol_buffer_at_end(const struct sol_buffer *buf)
     return (char *)buf->data + buf->used;
 }
 
+/**
+ * @brief Resize the buffer to the given size.
+ *
+ * @param buf The buffer
+ * @param new_size New size
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_buffer_resize(struct sol_buffer *buf, size_t new_size);
 
-/* Ensure that 'buf' has at least the given 'min_size'. It may
- * allocate more than requested. */
+/**
+ * @brief Ensures that @c buf has at least @c min_size.
+ *
+ * It may allocate more than requested.
+ *
+ * @param buf The buffer
+ * @param min_size Minimum size
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_buffer_ensure(struct sol_buffer *buf, size_t min_size);
 
-/* Copy the 'slice' into 'buf', ensuring that it will fit, including
- * an extra NUL byte so the buffer can be used as a cstr. */
+/**
+ * @brief Copy @c slice into @c buf, ensuring that will fit.
+ *
+ * Also includes an extra NULL byte so the buffer data can be used as a C string.
+ *
+ * @param buf The buffer
+ * @param slice String slice
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
 
+/**
+ * @brief Creates a string slice from the buffer's valid data.
+ *
+ * @param buf The buffer
+ *
+ * @return String slice of the valid data
+ */
 static inline struct sol_str_slice
 sol_buffer_get_slice(const struct sol_buffer *buf)
 {
@@ -191,6 +299,14 @@ sol_buffer_get_slice(const struct sol_buffer *buf)
     return SOL_STR_SLICE_STR(buf->data, buf->used);
 }
 
+/**
+ * @brief Creates a string slice from the buffer's data starting at position @c pos.
+ *
+ * @param buf The buffer
+ * @param pos Start position
+ *
+ * @return String slice of the data
+ */
 static inline struct sol_str_slice
 sol_buffer_get_slice_at(const struct sol_buffer *buf, size_t pos)
 {
@@ -199,61 +315,122 @@ sol_buffer_get_slice_at(const struct sol_buffer *buf, size_t pos)
     return SOL_STR_SLICE_STR(sol_buffer_at(buf,  pos), buf->used - pos);
 }
 
-/* Insert the 'c' into 'buf' at position 'pos', reallocating if necessary.
+/**
+ * @brief Insert character @c c into @c buf at position @c pos,
+ * reallocating if necessary.
  *
- * If pos == buf->end, then the behavior is the same as
- * sol_buffer_append_char() and a trailing '\0' is
- * guaranteed.
+ * If pos == buf->end, then the behavior is the same as @ref sol_buffer_append_char
+ * and a trailing '\0' is guaranteed.
+ *
+ * @param buf Destination buffer
+ * @param pos Start position
+ * @param c Character to be inserted
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
  */
 int sol_buffer_insert_char(struct sol_buffer *buf, size_t pos, const char c);
 
-/* Appends the 'c' into 'buf', reallocating if necessary. */
+/**
+ * @brief Appends character @c c into the end of @c buf,
+ * reallocating if necessary.
+ *
+ * @param buf Destination buffer
+ * @param c Character to be appended
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_buffer_append_char(struct sol_buffer *buf, const char c);
 
-/* Appends the 'slice' into 'buf', reallocating if necessary. */
+/**
+ * @brief Appends @c slice into the end of @c buf, reallocating if necessary.
+ *
+ * @param buf Destination buffer
+ * @param slice String slice to be appended
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_buffer_append_slice(struct sol_buffer *buf, const struct sol_str_slice slice);
 
-/* Appends the 'bytes' array to the end of buffer, reallocating if necessary */
+/**
+ * @brief Appends the @c bytes array to the end of @c buf,
+ * reallocating if necessary.
+ *
+ * @param buf Destination buffer
+ * @param bytes Bytes to be inserted
+ * @param size Number of bytes to insert
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t size);
 
-/* Set a slice at at position @a pos of @a buf. If @a pos plus the @a
- * slice's length is greater than the used portion of @a buf, it
- * ensures that @a buf has the resulting new length. @a pos can't
- * start after the buffer's used portion. The memory regions of @a
- * slice and @a buf may overlap. */
+/**
+ * @brief Insert the string slice @c slice into @c buf at position @c pos,
+ * reallocating if necessary.
+ *
+ * The memory regions of @a slice and @a buf may overlap.
+ *
+ * If pos == buf->end, then the behavior is the same as @ref sol_buffer_append_slice
+ *
+ * @param buf Destination buffer
+ * @param pos Start position
+ * @param slice String slice to be inserted
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice);
 
-/* Set a char at at position @a pos of @a buf. If @a pos plus one is
- * greater than the used portion of @a buf, it ensures that @a buf has
- * the resulting new length. @a pos can't start after the buffer's
- * used portion. */
+/**
+ * @brief Insert character @c c into @c buf at position @c pos,
+ * reallocating if necessary.
+ *
+ * If pos == buf->end, then the behavior is the same as @ref sol_buffer_insert_char
+ *
+ * @param buf Destination buffer
+ * @param pos Start position
+ * @param c Character to be inserted
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_buffer_set_char_at(struct sol_buffer *buf, size_t pos, char c);
 
-/* Insert the 'bytes' array into 'buf' at position 'pos', reallocating if
- * necessary.
+/**
+ * @brief Insert the @c bytes array into @c buf at position @c pos,
+ * reallocating if necessary.
  *
- * If pos == buf->end, then the behavior is the same as
- * sol_buffer_append_bytes()
+ * If pos == buf->end, then the behavior is the same as @ref sol_buffer_append_bytes.
+ *
+ * @param buf Destination buffer
+ * @param pos Start position
+ * @param bytes Bytes to be inserted
+ * @param size Number of bytes to insert
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
  */
 int sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const uint8_t *bytes, size_t size);
 
-/* Insert the 'slice' into 'buf' at position 'pos', reallocating if necessary.
+/**
+ * @brief Insert the @c slice into @c buf at position @c pos, reallocating if necessary.
  *
- * If pos == buf->end, then the behavior is the same as
- * sol_buffer_append_slice()
+ * If pos == buf->end, then the behavior is the same as @ref sol_buffer_append_slice
+ *
+ * @param buf Destination buffer
+ * @param pos Start position
+ * @param slice Source slice
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
  */
 int sol_buffer_insert_slice(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice);
 
 
 // TODO: move this to some other file? where
 /**
- * The default base 64 map to use. The last byte (position 64) is the
+ * @brief The default base 64 map to use. The last byte (position 64) is the
  * padding character. This is a NUL terminated string.
  */
 extern const char SOL_BASE64_MAP[66];
 
 /**
- * Insert the 'slice' into 'buf' at position 'pos' encoded as base64 using the given map.
+ * @brief Insert the 'slice' into 'buf' at position 'pos' encoded as base64 using the given map.
  *
  * @param buf the already-initialized buffer to append the encoded
  *        slice.
@@ -275,7 +452,7 @@ extern const char SOL_BASE64_MAP[66];
 int sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
- * Append the 'slice' at the end of 'buf' encoded as base64 using the given map.
+ * @brief Append the 'slice' at the end of 'buf' encoded as base64 using the given map.
  *
  * See https://en.wikipedia.org/wiki/Base64
  *
@@ -295,7 +472,7 @@ int sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct
 int sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
- * Insert the 'slice' into 'buf' at position 'pos' decoded from base64 using the given map.
+ * @brief Insert the 'slice' into 'buf' at position 'pos' decoded from base64 using the given map.
  *
  * @param buf the already-initialized buffer to append the decoded
  *        slice.
@@ -317,7 +494,7 @@ int sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_sli
 int sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
- * Append the 'slice' at the end of 'buf' decoded from base64 using the given map.
+ * @brief Append the 'slice' at the end of 'buf' decoded from base64 using the given map.
  *
  * See https://en.wikipedia.org/wiki/Base64
  *
@@ -337,7 +514,7 @@ int sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const stru
 int sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
- * Insert the 'slice' into 'buf' at position 'pos' encoded as base16 (hexadecimal).
+ * @brief Insert the 'slice' into 'buf' at position 'pos' encoded as base16 (hexadecimal).
  *
  * @param buf the already-initialized buffer to append the encoded
  *        slice.
@@ -358,7 +535,7 @@ int sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_s
 int sol_buffer_insert_as_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, bool uppercase);
 
 /**
- * Append the 'slice' at the end of 'buf' encoded as base16 (hexadecimal).
+ * @brief Append the 'slice' at the end of 'buf' encoded as base16 (hexadecimal).
  *
  * See https://en.wikipedia.org/wiki/Base16
  *
@@ -377,7 +554,7 @@ int sol_buffer_insert_as_base16(struct sol_buffer *buf, size_t pos, const struct
 int sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_slice slice, bool uppercase);
 
 /**
- * Insert the 'slice' into 'buf' at position 'pos' decoded from base16 (hexadecimal).
+ * @brief Insert the 'slice' into 'buf' at position 'pos' decoded from base16 (hexadecimal).
  *
  * @param buf the already-initialized buffer to append the decoded
  *        slice.
@@ -401,7 +578,7 @@ int sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_sli
 int sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, enum sol_decode_case decode_case);
 
 /**
- * Append the 'slice' at the end of 'buf' decoded from base16 (hexadecimal).
+ * @brief Append the 'slice' at the end of 'buf' decoded from base16 (hexadecimal).
  *
  * See https://en.wikipedia.org/wiki/Base16
  *
@@ -421,8 +598,28 @@ int sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const stru
  */
 int sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice slice, enum sol_decode_case decode_case);
 
-/* append the formatted string to buffer, including trailing \0 */
+/**
+ * @brief Append the formatted string in the end of the buffer (including trailing '\0').
+ *
+ * Similar to @ref sol_buffer_insert_printf, but receives @c va_list instead.
+ *
+ * @param buf The buffer
+ * @param fmt A standard 'printf()' format string
+ * @param args va_list to 'vprintf()'
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args);
+
+/**
+ * @brief Append the formatted string in the end of the buffer (including trailing '\0').
+ *
+ * @param buf The buffer
+ * @param fmt A standard 'printf()' format string
+ * @param ... The arguments to 'printf()'
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 static inline int sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
 static inline int
 sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...)
@@ -436,11 +633,33 @@ sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...)
     return r;
 }
 
-/* insert the formatted string into the buffer at given position.  If
- * position == buf->pos, then the behavior is the same as
- * sol_buffer_append_vprintf().
+/**
+ * @brief Insert the formatted string in the given position in the buffer.
+ *
+ * Similar to @ref sol_buffer_insert_printf, but receives @c va_list instead.
+ *
+ * If position == buf->pos, then the behavior is the same as
+ * @ref sol_buffer_append_vprintf.
+ *
+ * @param buf The buffer
+ * @param pos Position to start write the string
+ * @param fmt A standard 'printf()' format string
+ * @param args va_list to 'vprintf()'
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
  */
 int sol_buffer_insert_vprintf(struct sol_buffer *buf, size_t pos, const char *fmt, va_list args);
+
+/**
+ * @brief Insert the formatted string in the given position in the buffer.
+ *
+ * @param buf The buffer
+ * @param pos Position to start write the string
+ * @param fmt A standard 'printf()' format string
+ * @param ... The arguments to 'printf()'
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 static inline int sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ...) SOL_ATTR_PRINTF(3, 4);
 static inline int
 sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ...)
@@ -454,6 +673,13 @@ sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ..
     return r;
 }
 
+/**
+ * @brief Frees memory that is not in being used by the buffer.
+ *
+ * @param buf The buffer
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 static inline int
 sol_buffer_trim(struct sol_buffer *buf)
 {
@@ -467,7 +693,7 @@ sol_buffer_trim(struct sol_buffer *buf)
 }
 
 /**
- *  'Steals' sol_buffer internal buffer and resets sol_buffer.
+ *  @brief 'Steals' sol_buffer internal buffer and resets sol_buffer.
  *
  *  After this call, user is responsible for the memory returned.
  *
@@ -479,15 +705,17 @@ sol_buffer_trim(struct sol_buffer *buf)
  *
  *  @note If @a buffer was allocated with @c sol_buffer_new(), it still
  *  needs to be freed by calling @c sol_buffer_free();
- *  @note If the buffer flags are set to @c SOL_BUFFER_FLAGS_NO_FREE, this function
- *  will return NULL.
+ *
+ *  @note If the buffer flags are set to @c SOL_BUFFER_FLAGS_NO_FREE,
+ *  this function will return NULL.
  */
 void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);
 
 /**
- *  'Steals' sol_buffer internal buffer and resets sol_buffer if the
- *  the buffer has not set the flag @c SOL_BUFFER_FLAGS_NO_FREE, otherwise
- *  it will return a copy of the buffer's data.
+ *  @brief 'Steals' @c buf internal buffer and resets it.
+ *
+ *  If the flag @c SOL_BUFFER_FLAGS_NO_FREE was not set,
+ *  otherwise it will return a copy of the buffer's data.
  *
  *  After this call, user is responsible for the memory returned.
  *
@@ -504,26 +732,38 @@ void *sol_buffer_steal(struct sol_buffer *buf, size_t *size);
 void *sol_buffer_steal_or_copy(struct sol_buffer *buf, size_t *size);
 
 /**
- *  Allocate a new sol_buffer and a new data block and copy the
- *  contents of the provided sol_buffer
+ *  @brief Allocate a new sol_buffer and a new data block and copy the
+ *  contents of the provided sol_buffer.
  *
  *  After this call, user is responsible for calling fini on the
  *  buffer and freeing it afterwards. For it's memory to be freed
  *  properly, the flag SOL_BUFFER_FLAGS_NO_FREE will always be
- *  unset, despite the original buffer
+ *  unset, despite the original buffer.
  *
- *  @param buf buffer to be copied
+ *  @param buf Buffer to be copied
  *
- *  @return A copy of buf or NULL on error.
+ *  @return A copy of @c buf, @c NULL on error.
  */
 struct sol_buffer *sol_buffer_copy(const struct sol_buffer *buf);
 
+/**
+ * @brief Reset the buffer content.
+ *
+ * All allocated memory is kept.
+ *
+ * @param buf The buffer
+ */
 static inline void
 sol_buffer_reset(struct sol_buffer *buf)
 {
     buf->used = 0;
 }
 
+/**
+ * @brief Creates a new buffer.
+ *
+ * @return Pointer to the new buffer
+ */
 static inline struct sol_buffer *
 sol_buffer_new(void)
 {
@@ -536,6 +776,13 @@ sol_buffer_new(void)
     return buf;
 }
 
+/**
+ * @brief Delete the buffer.
+ *
+ * Buffer is finalized and all memory is freed.
+ *
+ * @param buf Buffer to be deleted
+ */
 static inline void
 sol_buffer_free(struct sol_buffer *buf)
 {
@@ -544,30 +791,31 @@ sol_buffer_free(struct sol_buffer *buf)
 }
 
 /**
- * Ensures that buffer has a terminating NUL byte, if
- * flag SOL_BUFFER_FLAGS_NO_NUL_BYTE is not set.
+ * @brief Ensures that buffer has a terminating NULL byte.
+ *
+ * If flag SOL_BUFFER_FLAGS_NO_NUL_BYTE is not set.
  *
  * @return a negative number in case it was not possible to
- * ensure a terminating NUL byte - if flag SOL_BUFFER_FLAGS_NO_NUL_BYTE
+ * ensure a terminating NULL byte - if flag SOL_BUFFER_FLAGS_NO_NUL_BYTE
  * is set for instance, or if it could not resize the buffer
  */
 int sol_buffer_ensure_nul_byte(struct sol_buffer *buf);
 
 
 /**
- *  Removes part of data inside the buffer rearranging the memory
- *  properly. It's removed up to the buffer's size in case of @c size
- *  greater than used data.
+ * @brief Removes part of data inside the buffer rearranging the memory properly.
  *
- *  @param buf the already-initialized buffer
- *  @param size the amount of data (in bytes) that should be removed
- *  @param offset the position (from begin of the buffer) where
- *  @c size bytes will be removed
+ * It's removed up to the buffer's size in case of @c size greater than used data.
  *
- *  @return 0 on success, -errno on failure.
+ * @param buf The buffer (already-initialized)
+ * @param size Amount of data (in bytes) that should be removed
+ * @param offset Position (from begin of the buffer) where
+ * @c size bytes will be removed
  *
- *  @note the buffer keeps its capacity after this function, it means,
- *  the data is not released. If that is wanted, one should call @c sol_buffer_trim()
+ * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @note the buffer keeps its capacity after this function, it means,
+ * the data is not released. If that is wanted, one should call @ref sol_buffer_trim
  */
 int sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset);
 
