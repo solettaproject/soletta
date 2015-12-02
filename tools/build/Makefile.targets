@@ -15,7 +15,7 @@ endif
 ifeq (y, $(FBP_GENERATOR))
 check-fbp-bin: $(SOL_LIB_OUTPUT) $(SOL_FBP_GENERATOR_BIN) $(modules-out) $(all-tests-fbp-bin-out)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --compiled --compiled-dir $(abspath $(build_stagedir)test-fbp/) \
-		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND
+		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND $(TEST_FBP_SCRIPT_SKIP_EXTRA)
 else
 check-fbp-bin:
 	$(Q)echo "Could not run check-fbp-bin, sol-fbp-generator is not enabled, enable it and run "
@@ -34,7 +34,7 @@ check-fbp-valgrind: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out)
 
 check-fbp-bin-valgrind: $(SOL_LIB_OUTPUT) $(bins-out) $(modules-out) $(all-tests-fbp-bin-out)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --compiled --compiled-dir $(abspath $(build_stagedir)test-fbp/) \
-		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND  --valgrind="$(VALGRIND)" --valgrind-supp="$(abspath $(TEST_VALGRIND_SUPP))"
+		--skip SKIP_SIMPLE SKIP_COMPILE SKIP_VALGRIND $(TEST_FBP_SCRIPT_SKIP_EXTRA) --valgrind="$(VALGRIND)" --valgrind-supp="$(abspath $(TEST_VALGRIND_SUPP))"
 else
 check-valgrind:
 	$(Q)echo "No such valgrind installation: $(VALGRIND), either make sure your valgrind"
