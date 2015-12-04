@@ -308,23 +308,23 @@ end:
     return r;
 }
 
-static char *
-packet_extract_path(const struct sol_coap_packet *req)
+static int
+packet_extract_path(const struct sol_coap_packet *req, char **path_str)
 {
     const int max_count = 16;
     struct sol_coap_option_value options[max_count];
     struct sol_str_slice *path;
     unsigned int i;
     size_t path_len;
-    char *path_str;
     int r;
     uint16_t count;
 
-    SOL_NULL_CHECK(req, false);
+    SOL_NULL_CHECK(path_str, -EINVAL);
+    SOL_NULL_CHECK(req, -EINVAL);
 
     r = coap_find_options(req, SOL_COAP_OPTION_URI_PATH, options, max_count);
-    SOL_INT_CHECK(r, < 0, NULL);
-    SOL_INT_CHECK(r, > max_count, NULL);
+    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(r, > max_count, -EINVAL);
     count = r;
 
     path = alloca(sizeof(struct sol_str_slice) * (count + 1));
@@ -333,22 +333,23 @@ packet_extract_path(const struct sol_coap_packet *req)
         const struct sol_coap_option_value *v = &options[i];
         path[i] = SOL_STR_SLICE_STR((char *)v->value, v->len);
         r = sol_util_size_add(path_len, v->len + 1, &path_len);
-        SOL_INT_CHECK(r, < 0, NULL);
+        SOL_INT_CHECK(r, < 0, r);
     }
     path[count] = SOL_STR_SLICE_STR(NULL, 0);
 
-    path_str = malloc(path_len);
-    SOL_NULL_CHECK(path_str, NULL);
+    *path_str = malloc(path_len);
+    SOL_NULL_CHECK(*path_str, -ENOMEM);
 
-    r = sol_coap_uri_path_to_buf(path, (uint8_t *)path_str, path_len - 1, NULL);
+    r = sol_coap_uri_path_to_buf
+            (path, (uint8_t *)*path_str, path_len - 1, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    path_str[path_len - 1] = 0;
-    return path_str;
+    *path_str[path_len - 1] = 0;
+    return 0;
 
 error:
-    free(path_str);
-    return NULL;
+    free(*path_str);
+    return r;
 }
 
 static int(*find_resource_cb(const struct sol_coap_packet *req,
@@ -628,7 +629,7 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     struct sol_coap_option_value option = {};
     struct pending_reply *reply = NULL;
     uint8_t tkl, *token;
-    int err, count;
+    int err = 0, count;
     bool observing = false;
 
     count = coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, 1);
@@ -666,8 +667,8 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     if (token)
         memcpy(reply->token, token, tkl);
     if (observing) {
-        reply->path = packet_extract_path(pkt);
-        SOL_NULL_CHECK_GOTO(reply->path, error);
+        err = packet_extract_path(pkt, &reply->path);
+        SOL_INT_CHECK_GOTO(err, < 0, error);
     }
 
 done:
