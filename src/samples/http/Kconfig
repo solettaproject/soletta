@@ -4,7 +4,7 @@ config HTTP_SAMPLES
 
 config DOWNLOAD_SAMPLE
 	bool "Download sample"
-	depends on COMMON_SAMPLES && HTTP_CLIENT
+	depends on HTTP_SAMPLES && HTTP_CLIENT
 	default y
 
 config CLIENT_SAMPLE
