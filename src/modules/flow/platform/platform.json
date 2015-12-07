@@ -36,6 +36,165 @@
       "url": "http://solettaproject.org/doc/latest/node_types/platform.html"
     },
     {
+      "category": "hostname",
+      "description": "This node can be used to set the machine's host name, get the current hostname or monitor for hostname changes",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The new hostname",
+          "methods": {
+            "process": "hostname_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct monitor_node_type",
+        "extra_methods": {
+          "send_packet": "hostname_send",
+          "monitor_register": "hostname_monitor_register",
+          "monitor_unregister": "hostname_monitor_unregister"
+        }
+      },
+      "methods": {
+        "open": "monitor_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "An initial packet with the current hostname will be sent",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
+      "name": "platform/hostname",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The current hostname. When the node is created an initial packet will be sent with the current hostname, if the hostname changes a new packet will be set with the new hostname.",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "monitor_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform_hostname.html"
+    },
+    {
+      "category": "timer",
+      "description": "This node can be used to set the machine's system time, get the current system time or monitor for system time changes",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "The new system time in seconds relative to 1970-01-01 00:00:00 +0000 (UTC).",
+          "methods": {
+            "process": "system_clock_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct monitor_node_type",
+        "extra_methods": {
+          "send_packet": "system_clock_send",
+          "monitor_register": "system_clock_monitor_register",
+          "monitor_unregister": "system_clock_monitor_unregister"
+        }
+      },
+      "methods": {
+        "open": "monitor_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "An initial packet with the current timestamp will be sent",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
+      "name": "platform/system-clock",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The current system time which is expressed as the number of seconds since 1970-01-01 00:00:00 +0000 (UTC).",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "monitor_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform_system_clock.html"
+    },
+    {
+      "category": "timer",
+      "description": "This node can be used to set the machine's timezone, get the current timezone or monitor for timezone changes",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Set the new timezone",
+          "methods": {
+            "process": "timezone_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct monitor_node_type",
+        "extra_methods": {
+          "send_packet": "timezone_send",
+          "monitor_register": "timezone_monitor_register",
+          "monitor_unregister": "timezone_monitor_unregister"
+        }
+      },
+      "methods": {
+        "open": "monitor_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "An initial packet with the current timezone will be sent",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
+      "name": "platform/timezone",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The current timezone",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "monitor_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform_timezone.html"
+    },
+    {
       "category": "input/sw",
       "description": "Platform Service State",
       "in_ports": [

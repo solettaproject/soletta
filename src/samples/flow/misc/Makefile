@@ -9,3 +9,13 @@ sample-random-numbers-$(FLOW_MISC_RANDOM_NUMBERS_SAMPLE) := random-numbers.fbp
 
 sample-$(FLOW_MISC_TICKETS_QUEUE_SAMPLE) += tickets-queue
 sample-tickets-queue-$(FLOW_MISC_TICKETS_QUEUE_SAMPLE) := tickets_queue.fbp
+
+sample-$(FLOW_MISC_CHANGE_HOSTNAME_SAMPLE) += chamge_hostname
+sample-tickets-queue-$(FLOW_MISC_CHANGE_HOSTNAME_SAMPLE) := change_hostname.fbp
+
+sample-$(FLOW_MISC_CHANGE_TIMEZONE_SAMPLE) += change_timezone
+sample-tickets-queue-$(FLOW_MISC_CHANGE_TIMEZONE_SAMPLE) := change_timezone.fbp
+
+sample-$(FLOW_MISC_CHANGE_SYSTEM_CLOCK_SAMPLE) += change_system_clock
+sample-tickets-queue-$(FLOW_MISC_CHANGE_SYSTEM_CLOCK_SAMPLE) := change_system_clock.fbp
+

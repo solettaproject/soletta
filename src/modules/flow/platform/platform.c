@@ -43,6 +43,17 @@ struct platform_data {
     enum sol_platform_state state;
 };
 
+struct monitor_data {
+    uint16_t connections;
+};
+
+struct monitor_node_type {
+    struct sol_flow_node_type base;
+    int (*send_packet)(const void *, struct sol_flow_node *);
+    int (*monitor_register)(struct sol_flow_node *);
+    int (*monitor_unregister)(struct sol_flow_node *);
+};
+
 static int
 state_dispatch_ready(struct platform_data *mdata)
 {
@@ -207,5 +218,194 @@ platform_machine_id_open(struct sol_flow_node *node,
     return sol_flow_send_string_packet(node,
         SOL_FLOW_NODE_TYPE_PLATFORM_MACHINE_ID__OUT__OUT, id);
 }
+
+static int
+hostname_send(const void *hostname, struct sol_flow_node *node)
+{
+    int r;
+
+    if (!hostname) {
+        hostname = sol_platform_get_hostname();
+        SOL_NULL_CHECK(hostname, -ECANCELED);
+    }
+
+    r = sol_flow_send_string_packet(node, 0, hostname);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+system_clock_send(const void *timestamp, struct sol_flow_node *node)
+{
+    struct sol_irange irange = SOL_IRANGE_INIT();
+    int r;
+
+    if (!timestamp) {
+        irange.val = sol_platform_get_system_clock();
+        SOL_INT_CHECK(irange.val, < 0, -EINVAL);
+    } else
+        irange.val = (*((int64_t *)timestamp));
+
+    r = sol_flow_send_irange_packet(node, 0, &irange);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+monitor_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    const struct sol_flow_node_type_platform_hostname_options *opts;
+    const struct monitor_node_type *monitor_type =
+        (const struct monitor_node_type *)sol_flow_node_get_type(node);
+
+    opts = (const struct sol_flow_node_type_platform_hostname_options *)options;
+
+    if (opts->send_initial_packet)
+        return monitor_type->send_packet(NULL, node);
+    return 0;
+}
+
+static int
+hostname_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    const char *name;
+
+    r = sol_flow_packet_get_string(packet, &name);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_platform_set_hostname(name);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static void
+hostname_changed(void *data, const char *hostname)
+{
+    hostname_send(hostname, data);
+}
+
+static int
+hostname_monitor_register(struct sol_flow_node *node)
+{
+    return sol_platform_add_hostname_monitor(hostname_changed, node);
+}
+
+static int
+hostname_monitor_unregister(struct sol_flow_node *node)
+{
+    return sol_platform_del_hostname_monitor(hostname_changed, node);
+}
+
+static void
+system_clock_changed(void *data, int64_t timestamp)
+{
+    system_clock_send(&timestamp, data);
+}
+
+static int
+system_clock_monitor_register(struct sol_flow_node *node)
+{
+    return sol_platform_add_system_clock_monitor(system_clock_changed, node);
+}
+
+static int
+system_clock_monitor_unregister(struct sol_flow_node *node)
+{
+    return sol_platform_del_system_clock_monitor(system_clock_changed, node);
+}
+
+static int
+monitor_out_connect(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id)
+{
+    struct monitor_data *mdata = data;
+    const struct monitor_node_type *monitor_type =
+        (const struct monitor_node_type *)sol_flow_node_get_type(node);
+
+
+    mdata->connections++;
+    if (mdata->connections == 1)
+        return monitor_type->monitor_register(node);
+    return 0;
+}
+
+static int
+monitor_out_disconnect(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id)
+{
+    struct monitor_data *mdata = data;
+    const struct monitor_node_type *monitor_type =
+        (const struct monitor_node_type *)sol_flow_node_get_type(node);
+
+    if (!mdata->connections)
+        return 0;
+
+    if (!--mdata->connections)
+        return monitor_type->monitor_unregister(node);
+    return 0;
+}
+
+static int
+system_clock_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_irange irange;
+    int r;
+
+    r = sol_flow_packet_get_irange(packet, &irange);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_platform_set_system_clock(irange.val);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+timezone_send(const void *timezone, struct sol_flow_node *node)
+{
+    int r;
+
+    if (!timezone) {
+        timezone = sol_platform_get_timezone();
+        SOL_NULL_CHECK(timezone, -ECANCELED);
+    }
+
+    r = sol_flow_send_string_packet(node, 0, timezone);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static void
+timezone_changed(void *data, const char *timezone)
+{
+    timezone_send(timezone, data);
+}
+
+static int
+timezone_monitor_register(struct sol_flow_node *node)
+{
+    return sol_platform_add_timezone_monitor(timezone_changed, node);
+}
+
+static int
+timezone_monitor_unregister(struct sol_flow_node *node)
+{
+    return sol_platform_del_timezone_monitor(timezone_changed, node);
+}
+
+static int
+timezone_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    const char *tz;
+
+    r = sol_flow_packet_get_string(packet, &tz);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_platform_set_timezone(tz);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
 
 #include "platform-gen.c"

@@ -63,6 +63,9 @@ struct service_monitor {
 struct ctx {
     struct sol_monitors state_monitors;
     struct sol_monitors service_monitors;
+    struct sol_monitors hostname_monitors;
+    struct sol_monitors system_clock_monitors;
+    struct sol_monitors timezone_monitors;
 };
 
 static struct ctx _ctx;
@@ -78,6 +81,9 @@ sol_platform_init(void)
     sol_log_domain_init_level(SOL_LOG_DOMAIN);
 
     sol_monitors_init(&_ctx.state_monitors, NULL);
+    sol_monitors_init(&_ctx.hostname_monitors, NULL);
+    sol_monitors_init(&_ctx.system_clock_monitors, NULL);
+    sol_monitors_init(&_ctx.timezone_monitors, NULL);
     sol_monitors_init_custom(&_ctx.service_monitors, sizeof(struct service_monitor), service_monitor_free);
 
     return sol_platform_impl_init();
@@ -91,6 +97,9 @@ sol_platform_shutdown(void)
     free(serial_number);
     sol_monitors_clear(&_ctx.state_monitors);
     sol_monitors_clear(&_ctx.service_monitors);
+    sol_monitors_clear(&_ctx.hostname_monitors);
+    sol_monitors_clear(&_ctx.system_clock_monitors);
+    sol_monitors_clear(&_ctx.timezone_monitors);
     sol_platform_impl_shutdown();
 }
 
@@ -171,19 +180,39 @@ sol_platform_get_state(void)
     return sol_platform_impl_get_state();
 }
 
-SOL_API int
-sol_platform_add_state_monitor(void (*cb)(void *data,
-    enum sol_platform_state state),
-    const void *data)
+static int
+monitor_add(struct sol_monitors *monitors, sol_monitors_cb_t cb, const void *data)
 {
     struct sol_monitors_entry *e;
 
     SOL_NULL_CHECK(cb, -EINVAL);
 
-    e = sol_monitors_append(&_ctx.state_monitors, (sol_monitors_cb_t)cb, data);
+    e = sol_monitors_append(monitors, cb, data);
     SOL_NULL_CHECK(e, -ENOMEM);
-
     return 0;
+}
+
+static int
+monitor_del(struct sol_monitors *monitors, sol_monitors_cb_t cb, const void *data)
+{
+    int i;
+
+    SOL_NULL_CHECK(cb, -EINVAL);
+
+    i = sol_monitors_find(monitors, cb, data);
+    if (i < 0)
+        return i;
+
+    return sol_monitors_del(monitors, i);
+}
+
+SOL_API int
+sol_platform_add_state_monitor(void (*cb)(void *data,
+    enum sol_platform_state state),
+    const void *data)
+{
+
+    return monitor_add(&_ctx.state_monitors, (sol_monitors_cb_t)cb, data);
 }
 
 SOL_API int
@@ -191,15 +220,7 @@ sol_platform_del_state_monitor(void (*cb)(void *data,
     enum sol_platform_state state),
     const void *data)
 {
-    int i;
-
-    SOL_NULL_CHECK(cb, -EINVAL);
-
-    i = sol_monitors_find(&_ctx.state_monitors, (sol_monitors_cb_t)cb, data);
-    if (i < 0)
-        return i;
-
-    return sol_monitors_del(&_ctx.state_monitors, i);
+    return monitor_del(&_ctx.state_monitors, (sol_monitors_cb_t)cb, data);
 }
 
 static inline struct service_monitor *
@@ -456,4 +477,159 @@ sol_platform_unmount(const char *mpoint, void (*cb)(void *data, const char *mpoi
     SOL_NULL_CHECK(mpoint, -EINVAL);
     SOL_NULL_CHECK(cb, -EINVAL);
     return sol_platform_impl_umount(mpoint, cb, data);
+}
+
+SOL_API int
+sol_platform_set_hostname(const char *name)
+{
+    SOL_NULL_CHECK(name, -EINVAL);
+    return sol_platform_impl_set_hostname(name);
+}
+
+SOL_API const char *
+sol_platform_get_hostname(void)
+{
+    return sol_platform_impl_get_hostname();
+}
+
+static int
+monitor_add_and_register(struct sol_monitors *monitors, sol_monitors_cb_t cb, const void *data,
+    int (*register_cb)(void))
+{
+    int r;
+
+    SOL_NULL_CHECK(cb, -EINVAL);
+    r = monitor_add(monitors, cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+    if (sol_monitors_count(monitors) == 1) {
+        r = register_cb();
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+    return 0;
+err_exit:
+    (void)monitor_del(monitors, cb, data);
+    return r;
+}
+
+static int
+monitor_del_and_unregister(struct sol_monitors *monitors, sol_monitors_cb_t cb, const void *data,
+    int (*unregister_cb)(void))
+{
+    int r;
+
+    SOL_NULL_CHECK(cb, -EINVAL);
+    r = monitor_del(monitors, (sol_monitors_cb_t)cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (sol_monitors_count(monitors) == 0)
+        return unregister_cb();
+    return 0;
+}
+
+void
+sol_platform_inform_hostname_monitors(void)
+{
+    const char *hostname;
+    struct sol_monitors_entry *entry;
+    uint16_t i;
+
+    hostname = sol_platform_impl_get_hostname();
+    SOL_NULL_CHECK(hostname);
+
+    SOL_MONITORS_WALK (&_ctx.hostname_monitors, entry, i)
+        ((void (*)(void *, const char *))entry->cb)((void *)entry->data, hostname);
+}
+
+SOL_API int
+sol_platform_add_hostname_monitor(void (*cb)(void *data, const char *hostname), const void *data)
+{
+    return monitor_add_and_register(&_ctx.hostname_monitors, (sol_monitors_cb_t)cb, data,
+        sol_platform_register_hostname_monitor);
+}
+
+SOL_API int
+sol_platform_del_hostname_monitor(void (*cb)(void *data, const char *hostname), const void *data)
+{
+    return monitor_del_and_unregister(&_ctx.hostname_monitors, (sol_monitors_cb_t)cb, data,
+        sol_platform_unregister_hostname_monitor);
+}
+
+SOL_API int
+sol_platform_set_system_clock(int64_t timestamp)
+{
+    return sol_platform_impl_set_system_clock(timestamp);
+}
+
+SOL_API int64_t
+sol_platform_get_system_clock(void)
+{
+    return sol_platform_impl_get_system_clock();
+}
+
+void
+sol_platform_inform_system_clock_changed(void)
+{
+    int64_t timestamp;
+    struct sol_monitors_entry *entry;
+    uint16_t i;
+
+    timestamp = sol_platform_impl_get_system_clock();
+    SOL_INT_CHECK(timestamp, < 0);
+
+    SOL_MONITORS_WALK (&_ctx.system_clock_monitors, entry, i)
+        ((void (*)(void *, int64_t))entry->cb)((void *)entry->data, timestamp);
+}
+
+SOL_API int
+sol_platform_add_system_clock_monitor(void (*cb)(void *data, int64_t timestamp), const void *data)
+{
+    return monitor_add_and_register(&_ctx.system_clock_monitors, (sol_monitors_cb_t)cb, data,
+        sol_platform_register_system_clock_monitor);
+}
+
+SOL_API int
+sol_platform_del_system_clock_monitor(void (*cb)(void *data, int64_t timestamp), const void *data)
+{
+    return monitor_del_and_unregister(&_ctx.system_clock_monitors, (sol_monitors_cb_t)cb, data,
+        sol_platform_unregister_system_clock_monitor);
+}
+
+void
+sol_platform_inform_timezone_changed(void)
+{
+    const char *timezone;
+    struct sol_monitors_entry *entry;
+    uint16_t i;
+
+    timezone = sol_platform_impl_get_timezone();
+    SOL_NULL_CHECK(timezone);
+
+    SOL_MONITORS_WALK (&_ctx.timezone_monitors, entry, i)
+        ((void (*)(void *, const char *))entry->cb)((void *)entry->data, timezone);
+}
+
+SOL_API int
+sol_platform_set_timezone(const char *timezone)
+{
+    return sol_platform_impl_set_timezone(timezone);
+}
+
+SOL_API const char *
+sol_platform_get_timezone(void)
+{
+    return sol_platform_impl_get_timezone();
+}
+
+SOL_API int
+sol_platform_add_timezone_monitor(void (*cb)(void *data, const char *timezone), const void *data)
+{
+    return monitor_add_and_register(&_ctx.timezone_monitors, (sol_monitors_cb_t)cb, data,
+        sol_platform_register_timezone_monitor);
+}
+
+SOL_API int
+sol_platform_del_timezone_monitor(void (*cb)(void *data, const char *timezone), const void *data)
+{
+    return monitor_del_and_unregister(&_ctx.timezone_monitors, (sol_monitors_cb_t)cb, data,
+        sol_platform_unregister_timezone_monitor);
 }

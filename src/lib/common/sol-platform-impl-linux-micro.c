@@ -33,14 +33,18 @@
 #include <ctype.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/inotify.h>
 #include <sys/ioctl.h>
 #include <sys/mount.h>
 #include <sys/reboot.h>
 #include <sys/stat.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -48,6 +52,7 @@
 #include "sol-mainloop.h"
 #include "sol-platform-impl.h"
 #include "sol-platform-linux-micro.h"
+#include "sol-platform-linux.h"
 #include "sol-platform.h"
 #include "sol-util.h"
 #include "sol-vector.h"
@@ -78,6 +83,14 @@ static const struct mount_table {
     { "debugfs", NULL,  "/sys/kernel/debug", NULL, 0, false },
     { "securityfs", NULL, "/sys/kernel/security", NULL, MS_NOSUID | MS_NOEXEC | MS_NODEV, false },
 };
+
+struct sol_fd_watcher_ctx {
+    struct sol_fd *watcher;
+    int fd;
+};
+
+static struct sol_fd_watcher_ctx hostname_monitor = { NULL, -1 };
+static struct sol_fd_watcher_ctx timezone_monitor = { NULL, -1 };
 
 #ifdef ENABLE_DYNAMIC_MODULES
 struct service_module {
@@ -741,6 +754,9 @@ sol_platform_impl_shutdown(void)
 
     service_instances_cleanup();
     service_modules_cleanup();
+    sol_platform_unregister_hostname_monitor();
+    sol_platform_unregister_system_clock_monitor();
+    sol_platform_unregister_timezone_monitor();
     builtins_cleanup();
 
     if (getpid() == 1 && getppid() == 0)
@@ -1000,4 +1016,178 @@ sol_platform_linux_micro_inform_service_state(const char *service, enum sol_plat
     inst->state = state;
 #endif
     sol_platform_inform_service_monitors(service, state);
+}
+
+int
+sol_platform_impl_set_hostname(const char *name)
+{
+    size_t len = strlen(name);
+
+    if (len > HOST_NAME_MAX) {
+        SOL_WRN("Hostname can not be bigger than %d - Hostname:%s",
+            HOST_NAME_MAX, name);
+        return -EINVAL;
+    }
+
+    if (sethostname(name, len) < 0)
+        return -errno;
+    return 0;
+}
+
+static bool
+hostname_changed(void *data, int fd, uint32_t active_flags)
+{
+    sol_platform_inform_hostname_monitors();
+    return true;
+}
+
+static void
+close_fd_monitor(struct sol_fd_watcher_ctx *monitor)
+{
+    if (!monitor->watcher)
+        return;
+    sol_fd_del(monitor->watcher);
+    close(monitor->fd);
+    monitor->fd = -1;
+    monitor->watcher = NULL;
+}
+
+int
+sol_platform_register_hostname_monitor(void)
+{
+    if (hostname_monitor.watcher)
+        return 0;
+
+    hostname_monitor.fd = open("/proc/sys/kernel/hostname", O_RDONLY | O_CLOEXEC);
+
+    if (hostname_monitor.fd < 0)
+        return -errno;
+
+    hostname_monitor.watcher = sol_fd_add(hostname_monitor.fd,
+        SOL_FD_FLAGS_HUP, hostname_changed, NULL);
+    if (!hostname_monitor.watcher) {
+        close(hostname_monitor.fd);
+        return -ENOMEM;
+    }
+
+    return 0;
+}
+
+int
+sol_platform_unregister_hostname_monitor(void)
+{
+    close_fd_monitor(&hostname_monitor);
+    return 0;
+}
+
+int
+sol_platform_impl_set_system_clock(int64_t timestamp)
+{
+    struct timespec spec;
+
+    /* FIXME: We should check if NTP is running and enabled, it if is enable we should not set the time ! */
+    spec.tv_sec = (time_t)timestamp;
+    spec.tv_nsec = 0;
+
+    if (clock_settime(CLOCK_REALTIME, &spec) < 0) {
+        SOL_WRN("Could not set the system time to:%" PRId64, timestamp);
+        return -errno;
+    }
+
+    return 0;
+}
+
+int
+sol_platform_impl_set_timezone(const char *timezone)
+{
+    int r;
+    char path[PATH_MAX];
+    struct stat st;
+
+    if (timezone[0] == '/' || timezone[0] == '\0') {
+        SOL_WRN("Timezone is empty!");
+        return -EINVAL;
+    }
+
+    r = snprintf(path, sizeof(path), "/usr/share/zoneinfo/%s", timezone);
+
+    if (r < 0 || r >= (int)sizeof(path)) {
+        SOL_WRN("Could not create the timezone path for: %s", timezone);
+        return -ENOMEM;
+    }
+
+    if (stat(path, &st) < 0) {
+        SOL_WRN("The zone %s is not present at /usr/share/zoneinfo/", timezone);
+        return -errno;
+    }
+
+    if (!S_ISREG(st.st_mode)) {
+        SOL_WRN("The timezone: %s is not a regular file.", timezone);
+        return -EINVAL;
+    }
+
+    if (unlink("/etc/localtime") < 0) {
+        SOL_WRN("Could not unlink the /etc/localtime when trying to set the timzone to:%s", timezone);
+        return -errno;
+    }
+
+    if (symlink(path, "/etc/localtime") < 0) {
+        SOL_WRN("Could not create the symlink to the timezone %s", timezone);
+        return -errno;
+    }
+
+    return 0;
+}
+
+static bool
+timezone_changed(void *data, int fd, uint32_t active_flags)
+{
+    sol_platform_inform_timezone_changed();
+    close(timezone_monitor.fd);
+    timezone_monitor.fd = -1;
+    timezone_monitor.watcher = NULL;
+    sol_platform_register_timezone_monitor();
+    return false;
+}
+
+int
+sol_platform_register_timezone_monitor(void)
+{
+    int r;
+
+    if (timezone_monitor.watcher)
+        return 0;
+
+    timezone_monitor.fd = inotify_init1(IN_CLOEXEC);
+
+    if (timezone_monitor.fd < 0) {
+        return -errno;
+    }
+
+    if (inotify_add_watch(timezone_monitor.fd, "/etc/localtime",
+        IN_MODIFY | IN_DONT_FOLLOW) < 0) {
+        r = -errno;
+        goto err_exit;
+    }
+
+    timezone_monitor.watcher = sol_fd_add(timezone_monitor.fd,
+        SOL_FD_FLAGS_IN, timezone_changed, NULL);
+    if (!timezone_monitor.watcher) {
+        r = -ENOMEM;
+        goto err_exit;
+    }
+
+    return 0;
+
+err_exit:
+    close(timezone_monitor.fd);
+    timezone_monitor.fd = -1;
+    return r;
+}
+
+int
+sol_platform_unregister_timezone_monitor(void)
+{
+    close_fd_monitor(&timezone_monitor);
+    return 0;
 }

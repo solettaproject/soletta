@@ -40,9 +40,11 @@
 #include <sys/mount.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/timerfd.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "sol-file-reader.h"
@@ -55,6 +57,10 @@
 
 #define SOL_MTAB_FILE P_tmpdir "/mtab.sol"
 #define LIBUDEV_ID "libudev"
+
+#ifndef TFD_TIMER_CANCELON_SET
+#define TFD_TIMER_CANCELON_SET (1 << 1)
+#endif
 
 struct sol_platform_linux_fork_run {
     pid_t pid;
@@ -93,8 +99,16 @@ struct uevent_context {
     } uevent;
 };
 
+struct timer_fd_context {
+    struct sol_fd *watcher;
+    int fd;
+};
+
+static char hostname[HOST_NAME_MAX + 1];
+static char timezone_str[PATH_MAX];
 static struct uevent_context uevent_ctx;
 static struct sol_ptr_vector fork_runs = SOL_PTR_VECTOR_INIT;
+static struct timer_fd_context timer_ctx = { NULL, -1 };
 
 static uint16_t
 find_handle(const struct sol_platform_linux_fork_run *handle)
@@ -113,6 +127,14 @@ find_handle(const struct sol_platform_linux_fork_run *handle)
     }
 
     return UINT16_MAX;
+}
+
+const char *
+sol_platform_impl_get_hostname(void)
+{
+    if (gethostname(hostname, sizeof(hostname)) < 0)
+        return NULL;
+    return hostname;
 }
 
 static void
@@ -775,4 +797,100 @@ sol_platform_linux_uevent_unsubscribe(const char *action, const char *subsystem,
         sol_uevent_cleanup(&uevent_ctx);
 
     return 0;
+}
+
+
+int64_t
+sol_platform_impl_get_system_clock(void)
+{
+    return (int64_t)time(NULL);
+}
+
+static bool
+system_clock_changed(void *data, int fd, uint32_t active_flags)
+{
+    char buf[4096];
+
+    if (read(timer_ctx.fd, buf, sizeof(buf)) >= 0)
+        return true;
+    close(timer_ctx.fd);
+    timer_ctx.fd = -1;
+    timer_ctx.watcher = NULL;
+    sol_platform_register_system_clock_monitor();
+    sol_platform_inform_system_clock_changed();
+    return false;
+}
+
+int
+sol_platform_register_system_clock_monitor(void)
+{
+    int r;
+    struct itimerspec spec;
+
+    if (timer_ctx.watcher)
+        return 0;
+
+    timer_ctx.fd = timerfd_create(CLOCK_REALTIME, TFD_CLOEXEC);
+    SOL_INT_CHECK(timer_ctx.fd, < 0, -errno);
+
+    memset(&spec, 0, sizeof(struct itimerspec));
+    spec.it_value.tv_sec += 0xfffffff0;
+    if (timerfd_settime(timer_ctx.fd,
+        TFD_TIMER_ABSTIME | TFD_TIMER_CANCELON_SET, &spec, NULL) < 0) {
+        r = -errno;
+        SOL_WRN("Could not register a timer to watch for system_clock changes.");
+        goto err_exit;
+    }
+
+    timer_ctx.watcher = sol_fd_add(timer_ctx.fd,
+        SOL_FD_FLAGS_IN, system_clock_changed, NULL);
+
+    if (!timer_ctx.watcher) {
+        r = -ENOMEM;
+        goto err_exit;
+    }
+
+    return 0;
+
+err_exit:
+    close(timer_ctx.fd);
+    timer_ctx.fd = -1;
+    return r;
+}
+
+int
+sol_platform_unregister_system_clock_monitor(void)
+{
+    if (!timer_ctx.watcher)
+        return 0;
+
+    sol_fd_del(timer_ctx.watcher);
+    close(timer_ctx.fd);
+    timer_ctx.watcher = NULL;
+    timer_ctx.fd = -1;
+    return 0;
+}
+
+const char *
+sol_platform_impl_get_timezone(void)
+{
+    ssize_t n;
+    size_t offset;
+
+    n = readlink("/etc/localtime", timezone_str, sizeof(timezone_str));
+    if (n < 0) {
+        SOL_WRN("Could not readlink /etc/localtime");
+        return NULL;
+    }
+    timezone_str[n] = '\0';
+    if (strstartswith(timezone_str, "../usr/share/zoneinfo/"))
+        offset = strlen("../usr/share/zoneinfo/");
+    else if (strstartswith(timezone_str, "/usr/share/zoneinfo/"))
+        offset = strlen("/usr/share/zoneinfo/");
+    else {
+        SOL_WRN("The timzeon is not a link to /usr/share/zoneinfo/");
+        return NULL;
+    }
+    memmove(timezone_str, timezone_str + offset, strlen(timezone_str) - offset + 1);
+    return timezone_str;
 }
