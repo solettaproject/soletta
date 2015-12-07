@@ -507,6 +507,19 @@
         "<stdio.h>"
       ],
       "fragment": "stdout;"
+    },
+    {
+      "dependency": "mavlink_src",
+      "type": "filesystem",
+      "files": [
+        "mavlink_types.h",
+        "protocol.h",
+        "checksum.h"
+      ],
+      "path": {
+        "in-tree": "{TOP_SRCDIR}/src/thirdparty/mavlink",
+        "out-of-tree": "{MAVLINK_SRC}"
+      }
     }
   ]
 }
