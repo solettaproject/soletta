@@ -7,3 +7,6 @@
 [submodule "src/thirdparty/tinydtls"]
 	path = src/thirdparty/tinydtls
 	url = git://git.code.sf.net/p/tinydtls/code
+[submodule "src/thirdparty/mavlink"]
+	path = src/thirdparty/mavlink
+	url = https://github.com/mavlink/c_library.git
