@@ -190,6 +190,52 @@ int sol_platform_get_mount_points(struct sol_ptr_vector *vector);
 int sol_platform_unmount(const char *mpoint, void (*cb)(void *data, const char *mpoint, int error), const void *data);
 
 /**
+ * @brief Gets the hostname.
+ *
+ *
+ * @return The hostname or NULL on error.
+ *
+ * @see sol_platform_set_hostname()
+ */
+const char *sol_platform_get_hostname(void);
+
+/**
+ * @brief Changes the hostname to @c name.
+ *
+ * @param name The new hostname.
+ *
+ * @return 0 on success, negative errno otherwise.
+ *
+ * @see sol_platform_get_hostname()
+ */
+int sol_platform_set_hostname(const char *name);
+
+/**
+ * @brief Adds a hostname monitor.
+ *
+ * If the hostname changes @c cb will be called.
+ *
+ * @param cb The callback that will inform the new hostname.
+ * @param data The data to the callback.
+ * @return 0 on success, negative errno otherwise.
+ *
+ * @see sol_platform_del_hostname_monitor()
+ */
+int sol_platform_add_hostname_monitor(void (*cb)(void *data, const char *hostname), const void *data);
+
+/**
+ * @brief Remove a hostname monitor.
+ *
+ * @param cb The registered callback.
+ * @param data The data to the callback.
+ * @return 0 on success, negative errno otherwise.
+ *
+ *
+ * @see sol_platform_add_hostname_monitor()
+ */
+int sol_platform_del_hostname_monitor(void (*cb)(void *data, const char *hostname), const void *data);
+
+/**
  * @}
  */
 
