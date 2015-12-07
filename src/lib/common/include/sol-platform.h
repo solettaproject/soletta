@@ -145,6 +145,26 @@ enum sol_platform_service_state {
     SOL_PLATFORM_SERVICE_STATE_UNKNOWN = -1
 };
 
+/**
+ * @brief A locale category.
+ */
+enum sol_platform_locale_category {
+    SOL_PLATFORM_LOCALE_LANGUAGE,
+    SOL_PLATFORM_LOCALE_ADDRESS,
+    SOL_PLATFORM_LOCALE_COLLATE,
+    SOL_PLATFORM_LOCALE_CTYPE,
+    SOL_PLATFORM_LOCALE_IDENTIFICATION,
+    SOL_PLATFORM_LOCALE_MEASUREMENT,
+    SOL_PLATFORM_LOCALE_MESSAGES,
+    SOL_PLATFORM_LOCALE_MONETARY,
+    SOL_PLATFORM_LOCALE_NAME,
+    SOL_PLATFORM_LOCALE_NUMERIC,
+    SOL_PLATFORM_LOCALE_PAPER,
+    SOL_PLATFORM_LOCALE_TELEPHONE,
+    SOL_PLATFORM_LOCALE_TIME,
+    SOL_PLATFORM_LOCALE_UNKNOWN = -1
+};
+
 enum sol_platform_service_state sol_platform_get_service_state(const char *service);
 
 int sol_platform_add_service_monitor(void (*cb)(void *data, const char *service,
@@ -324,6 +344,66 @@ int sol_platform_add_timezone_monitor(void (*cb)(void *data, const char *timezon
  */
 int sol_platform_del_timezone_monitor(void (*cb)(void *data, const char *timezone), const void *data);
 
+/**
+ * @brief Set locale for a category.
+ *
+ * This function will change the system wide locale for a given category.
+ * The already running proceses might not be aware that the locale has changed.
+ *
+ * @param category The category to set the new locale
+ * @param locale The locale string (Example: en_US.UTF-8)
+ *
+ * @return 0 on success, negative errno on error
+ *
+ * @note This function only saves the new locale category in the disk, in order to use it in
+ * the current process, one must call sol_platform_apply_locale() after using sol_platform_set_locale()
+ *
+ * @see sol_platform_get_locale()
+ * @see sol_platform_apply_locale()
+ */
+int sol_platform_set_locale(enum sol_platform_locale_category category, const char *locale);
+
+/**
+ * @brief Get the current locale of a given category.
+ *
+ * @param category The category which one wants to know the locale
+ * @return The locale value on success, @c NULL otherwise
+ *
+ * @see sol_platform_set_locale()
+ */
+const char *sol_platform_get_locale(enum sol_platform_locale_category category);
+
+/**
+ * @brief Add a locale monitor.
+ *
+ * @param cb A callback to be called when the locale changes
+ * @param data The data to @c cb
+ *
+ * @return 0 on success, negative errno otherwise.
+ */
+int sol_platform_add_locale_monitor(void (*cb)(void *data, enum sol_platform_locale_category category, const char *locale), const void *data);
+
+/**
+ * @brief Remove a locale monitor.
+ *
+ * @param cb The previous registered callback
+ * @param data The data to @c cb
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_del_locale_monitor(void (*cb)(void *data, enum sol_platform_locale_category category, const char *locale), const void *data);
+
+/**
+ * @brief Apply the locale category to the process.
+ *
+ * This function sets the current locale of the given category to the process,
+ * in order to set a new locale value to a category use sol_platform_set_locale().
+ *
+ * @param category The category to set the process locale
+ * @return 0 on success, negative errno otherwise
+ * @see sol_platform_set_locale()
+ */
+int sol_platform_apply_locale(enum sol_platform_locale_category category);
 
 /**
  * @}
