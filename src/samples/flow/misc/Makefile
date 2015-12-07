@@ -18,3 +18,6 @@ sample-tickets-queue-$(FLOW_MISC_CHANGE_TIMEZONE_SAMPLE) := change_timezone.fbp
 
 sample-$(FLOW_MISC_CHANGE_SYSTEM_CLOCK_SAMPLE) += change_system_clock
 sample-tickets-queue-$(FLOW_MISC_CHANGE_SYSTEM_CLOCK_SAMPLE) := change_system_clock.fbp
+
+sample-$(FLOW_MISC_CHANGE_LOCALE_SAMPLE) += change_locale
+sample-tickets-queue-$(FLOW_MISC_CHANGE_LOCALE_SAMPLE) := change_locale.fbp
