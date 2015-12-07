@@ -45,26 +45,80 @@ extern "C" {
  * @defgroup List List
  * @ingroup Datatypes
  *
- * Doubly linked list.
+ * @brief Doubly linked list, linked lists that can be iterated over in both directions.
  *
  * @{
  */
 
+/**
+ * @struct sol_list
+ *
+ * @brief Structure to add list support to a type.
+ */
 struct sol_list {
-    struct sol_list *next, *prev;
+    struct sol_list *next; /**< @brief Link to the next node in the list */
+    struct sol_list *prev; /**< @brief Link to the previous node in the list */
 };
 
+/**
+ * @def SOL_LIST_INIT
+ * @brief Helper macro to initialize a @c sol_list structure.
+ */
 #define SOL_LIST_INIT { NULL, NULL }
+
+/**
+ * @def SOL_LIST_GET_CONTAINER(list, type, member)
+ *
+ * @brief Helper macro to retrieve a pointer to the struct containing this list node.
+ *
+ * @param list The list node
+ * @param type Container type
+ * @param member Name of the @c sol_list member in the container struct
+ */
 #define SOL_LIST_GET_CONTAINER(list, type, member) (type *)((char *)(list) - offsetof(type, member))
+
+/**
+ * @def SOL_LIST_FOREACH(list, itr)
+ * @brief Macro to iterate over a list easily.
+ *
+ * @param list The list to iterate over
+ * @param itr Variable pointing to the current node on each iteration
+ *
+ * @see SOL_LIST_FOREACH_SAFE
+ */
 #define SOL_LIST_FOREACH(list, itr) for (itr = (list)->next; itr != (list); itr = itr->next)
+
+/**
+ * @def SOL_LIST_FOREACH_SAFE(list, itr, itr_next)
+ * @brief Macro to iterate over a list with support for node deletion.
+ *
+ * This version allows nodes to be removed without breaking the iteration.
+ *
+ * @param list The list to iterate over
+ * @param itr Variable pointing to the current node on each iteration
+ * @param itr_next Variable pointing to the next node on each iteration
+ *
+ * @see SOL_LIST_FOREACH
+ */
 #define SOL_LIST_FOREACH_SAFE(list, itr, itr_next) for (itr = (list)->next, itr_next = itr->next; itr != (list); itr = itr_next, itr_next = itr_next->next)
 
+/**
+ * @brief Initializes a @c sol_list struct.
+ *
+ * @param list List pointer
+ */
 static inline void
 sol_list_init(struct sol_list *list)
 {
     list->next = list->prev = list;
 }
 
+/**
+ * @brief Append an new node to the end of the list.
+ *
+ * @param list List pointer
+ * @param new_l List node to be added
+ */
 static inline void
 sol_list_append(struct sol_list *list, struct sol_list *new_l)
 {
@@ -74,6 +128,12 @@ sol_list_append(struct sol_list *list, struct sol_list *new_l)
     list->prev = new_l;
 }
 
+/**
+ * @brief Attach an new node to the beginning of the list.
+ *
+ * @param list List pointer
+ * @param new_l List node to be added
+ */
 static inline void
 sol_list_prepend(struct sol_list *list, struct sol_list *new_l)
 {
@@ -83,6 +143,11 @@ sol_list_prepend(struct sol_list *list, struct sol_list *new_l)
     list->next = new_l;
 }
 
+/**
+ * @brief Remove the node pointed by @c list from the list.
+ *
+ * @param list Pointer to the node that will be removed from the list
+ */
 static inline void
 sol_list_remove(struct sol_list *list)
 {
@@ -90,12 +155,28 @@ sol_list_remove(struct sol_list *list)
     list->prev->next = list->next;
 }
 
+/**
+ * @brief Convenience function to check if the list is empty.
+ *
+ * @param list List pointer
+ *
+ * @return @c true if the list is empty, @c false otherwise.
+ */
 static inline bool
 sol_list_is_empty(struct sol_list *list)
 {
     return list->next == list;
 }
 
+/**
+ * @brief Steals the list nodes from a list.
+ *
+ * Steals the list nodes from a list by moving them to a new head
+ * and reseting the original list to empty state.
+ *
+ * @param list Original list pointer
+ * @param new_head Pointer to the list that will hold the stolen nodes
+ */
 static inline void
 sol_list_steal(struct sol_list *list, struct sol_list *new_head)
 {
