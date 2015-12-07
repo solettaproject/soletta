@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <locale.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +55,7 @@
 #include "sol-platform-linux-micro.h"
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
+#include "sol-str-table.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
@@ -91,6 +93,7 @@ struct sol_fd_watcher_ctx {
 
 static struct sol_fd_watcher_ctx hostname_monitor = { NULL, -1 };
 static struct sol_fd_watcher_ctx timezone_monitor = { NULL, -1 };
+static struct sol_fd_watcher_ctx locale_monitor = { NULL, -1 };
 
 #ifdef ENABLE_DYNAMIC_MODULES
 struct service_module {
@@ -757,6 +760,7 @@ sol_platform_impl_shutdown(void)
     sol_platform_unregister_hostname_monitor();
     sol_platform_unregister_system_clock_monitor();
     sol_platform_unregister_timezone_monitor();
+    sol_platform_unregister_locale_monitor();
     builtins_cleanup();
 
     if (getpid() == 1 && getppid() == 0)
@@ -1150,29 +1154,30 @@ timezone_changed(void *data, int fd, uint32_t active_flags)
     return false;
 }
 
-int
-sol_platform_register_timezone_monitor(void)
+static int
+add_watch(struct sol_fd_watcher_ctx *monitor, const char *path,
+    bool (*cb)(void *data, int fd, uint32_t active_flags))
 {
     int r;
 
-    if (timezone_monitor.watcher)
+    if (monitor->watcher)
         return 0;
 
-    timezone_monitor.fd = inotify_init1(IN_CLOEXEC);
+    monitor->fd = inotify_init1(IN_CLOEXEC);
 
-    if (timezone_monitor.fd < 0) {
+    if (monitor->fd < 0) {
         return -errno;
     }
 
-    if (inotify_add_watch(timezone_monitor.fd, "/etc/localtime",
+    if (inotify_add_watch(monitor->fd, path,
         IN_MODIFY | IN_DONT_FOLLOW) < 0) {
         r = -errno;
         goto err_exit;
     }
 
-    timezone_monitor.watcher = sol_fd_add(timezone_monitor.fd,
-        SOL_FD_FLAGS_IN, timezone_changed, NULL);
-    if (!timezone_monitor.watcher) {
+    monitor->watcher = sol_fd_add(monitor->fd,
+        SOL_FD_FLAGS_IN, cb, NULL);
+    if (!monitor->watcher) {
         r = -ENOMEM;
         goto err_exit;
     }
@@ -1180,14 +1185,68 @@ sol_platform_register_timezone_monitor(void)
     return 0;
 
 err_exit:
-    close(timezone_monitor.fd);
-    timezone_monitor.fd = -1;
+    close(monitor->fd);
+    monitor->fd = -1;
     return r;
+}
+
+int
+sol_platform_register_timezone_monitor(void)
+{
+    return add_watch(&timezone_monitor, "/etc/localtime", timezone_changed);
 }
 
 int
 sol_platform_unregister_timezone_monitor(void)
 {
     close_fd_monitor(&timezone_monitor);
+    return 0;
+}
+
+int
+sol_platform_impl_set_locale(char **locales)
+{
+    enum sol_platform_locale_category i;
+    FILE *f;
+    int r;
+
+    f = fopen("/etc/locale.conf", "we");
+    SOL_NULL_CHECK(f, -errno);
+
+    for (i = SOL_PLATFORM_LOCALE_LANGUAGE; i <= SOL_PLATFORM_LOCALE_TIME; i++) {
+        if (!locales[i])
+            continue;
+        r = fprintf(f, "%s=%s\n", sol_platform_locale_to_c_str_category(i),
+            locales[i]);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+exit:
+    if (fclose(f) < 0)
+        return -errno;
+    return 0;
+}
+
+static bool
+locale_changed(void *data, int fd, uint32_t active_flags)
+{
+    char buf[4096];
+
+    sol_platform_inform_locale_changed();
+    (void)read(fd, buf, sizeof(buf));
+    return true;
+}
+
+int
+sol_platform_register_locale_monitor(void)
+{
+    return add_watch(&locale_monitor, "/etc/locale.conf",
+        locale_changed);
+}
+
+int
+sol_platform_unregister_locale_monitor(void)
+{
+    close_fd_monitor(&locale_monitor);
     return 0;
 }
