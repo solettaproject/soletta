@@ -480,6 +480,200 @@ int sol_json_token_get_unescaped_string(const struct sol_json_token *token, stru
 char *sol_json_token_get_unescaped_string_copy(const struct sol_json_token *value);
 
 /**
+ * @brief Get the value of the JSON Object child element referenced by
+ * @a key_slice.
+ *
+ * @param scanner An initialized scanner, which is pointing to a JSON Object.
+ * @param key_slice The key of the desired element.
+ * @param value A pointer to the structure that will be filled with the value
+ *        of the element referenced by @a key_slice.
+ *
+ * @return If any parameter is invalid, or if @a scanner is not pointing to a
+ *         JSON Object, return -EINVAL. If @a key_slice is not present in the
+ *         JSON Object, -ENOENT. If @a key was found, and @a value was update
+ *         successfully with the value referenced by @a key, return 0.
+ *
+ * @see sol_json_array_get_at_index()
+ */
+int sol_json_object_get_value_by_key(struct sol_json_scanner *scanner, const struct sol_str_slice key_slice, struct sol_json_token *value);
+
+/**
+ * @brief Get the element in position @a i in JSON Array contained in @a scanner
+ *
+ * @param scanner An initialized scanner, which is pointing to a JSON Array.
+ * @param value A pointer to the structure that will be filled with the value
+ *        of the element at position @a i.
+ * @param i The position of the desired element.
+ *
+ * @return If any parameter is invalid, or if @a scanner is not pointing to a
+ *         JSON Array, return -EINVAL. If @a i is larger than the array's
+ *         length, -ENOENT. If @a value was updated successfully with the value
+ *         in position @a i, return 0.
+ *
+ * @see sol_json_object_get_value_by_key()
+ */
+int sol_json_array_get_at_index(struct sol_json_scanner *scanner, uint16_t i, struct sol_json_token *value);
+
+/**
+ * @struct sol_json_path_scanner
+ *
+ * @brief Scanner used to go through segments of a JSON Path.
+ *
+ * @note JSONPath syntax is available at http://goessner.net/articles/JsonPath/.
+ *
+ * @see sol_json_path_scanner_init()
+ * @see sol_json_path_get_next_segment()
+ * @see SOL_JSON_PATH_FOREACH()
+ */
+struct sol_json_path_scanner {
+    const char *path; /**< @brief The JSONPath string. */
+    const char *end; /**< @brief Points to last character from path. */
+    /**
+     * @brief Points to last visited position from path and the beginning of
+     * next segment.
+     */
+    const char *current;
+};
+
+/**
+ * @brief Get the element referenced by the JSON Path @a path in a JSON Object
+ * or Array.
+ *
+ * @param scanner An initialized scanner, which is pointing to a JSON Object
+ *        or a JSON Array.
+ * @param path The JSON Path of the desired element.
+ * @param value A pointer to the structure that will be filled with the value
+ *        of the element referenced by @a path.
+ *
+ * @return If any parameter is invalid, or if @a scanner is not pointing to a
+ *         JSON Object or JSON Array, or if @a path is not a valid JSON Path,
+ *         return -EINVAL. If @a path is pointing to an invalid position in a
+ *         JSON Object or in a JSON Array, -ENOENT. If @a value was
+ *         successfully updated with the value of the element referenced by @a
+ *         path, return 0.
+ *
+ * @see sol_json_path_scanner
+ */
+int sol_json_get_value_by_path(struct sol_json_scanner *scanner, struct sol_str_slice path, struct sol_json_token *value);
+
+/**
+ * @brief Initialize a JSON Path @a scanner with @a path.
+ *
+ * JSON path scanner can be used to go through segments of a JSON Path using
+ * SOL_JSON_PATH_FOREACH() or sol_json_path_get_next_segment() functions.
+ *
+ * @param scanner An uninitialized JSON Path scanner.
+ * @param path A valid JSON Path string.
+ *
+ * @return 0 on success, -EINVAL if scanner is NULL.
+ *
+ * @see sol_json_path_scanner
+ */
+int sol_json_path_scanner_init(struct sol_json_path_scanner *scanner, struct sol_str_slice path) SOL_ATTR_NONNULL(1);
+
+/**
+ * @brief Get next segment from JSON Path in @a scanner.
+ *
+ * Update @a slice with the next valid JSON Path segment in @a scanner.
+ *
+ * @param scanner An initialized JSON Path scanner.
+ * @param slice A pointer to the slicer structure to be filled with next
+ *        JSON Path segment.
+ * @param end_reason A pointer to the field to be filled with the reason this
+ *        function termination. SOL_JSON_LOOP_REASON_INVALID if an error
+ *        occured when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if the
+ *        next segment was updated in @a slice or if there is no more segments
+ *        in this JSON Path.
+ *
+ * @return True if next segment was updated in @a value. False if an error
+ *         ocurred or if there is no more segments available.
+ */
+bool sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_reason *end_reason) SOL_ATTR_NONNULL(1, 2, 3);
+
+/**
+ * @brief Get the integer index from a JSON Path array segment.
+ *
+ * This function expects a valid JSON Path segment with format: [NUMBER],
+ * where NUMBER is an integer and returns NUMBER converted to an integer
+ * variable.
+ *
+ * @param key The key to extract the integer index.
+ *
+ * @return If key is a valid array segment in the format expecified,
+ *         returns the converted index. If key is invalid, returns
+ *         -EINVAL and if number is out of range, returns -ERANGE.
+ *
+ * @see SOL_JSON_PATH_FOREACH()
+ */
+int32_t sol_json_path_array_get_segment_index(struct sol_str_slice key);
+
+/**
+ * @brief Check if @a slice is a valid JSON Path array segment.
+ *
+ * @param slice A JSON Path segment.
+ *
+ * @return True if @a slice is a valid JSON Path array segment. False
+ *         otherwise.
+ *
+ * @see SOL_JSON_PATH_FOREACH()
+ */
+static inline bool
+sol_json_path_is_array_key(struct sol_str_slice slice)
+{
+    return slice.data && slice.len >= 2 &&
+           slice.data[0] == '[' &&  //is between brackets or
+           slice.data[1] != '\''; //index is not a string
+}
+
+/**
+ * @def SOL_JSON_PATH_FOREACH(scanner, key, end_reason)
+ *
+ * @brief Go through all segments of a JSON Path.
+ *
+ * Macro used to visit all segments of a JSON Path. If the need of visiting a
+ * JSON Path is accessing JSON Objects or JSON Array elements, prefer using
+ * function @ref sol_json_get_value_by_path().
+ *
+ * @param scanner An initialized struct sol_json_path_scanner.
+ * @param key A pointer to struct sol_str_slice, that is going to be filled
+ *        with the current key being visited.
+ * @param end_reason A pointer to the field to be filled with the reason this
+ *        macro termination. SOL_JSON_LOOP_REASON_INVALID if an error
+ *        occured when parsing the JSON Path. SOL_JSON_LOOP_REASON_OK if
+ *        we reached the end of the JSON Path.
+ *
+ * Usage example:
+ * @code
+ *
+ * const char *path = "$.my_key[3].other_key"; //Replace path here
+ * struct sol_json_path_scanner path_scanner;
+ * enum sol_json_loop_reason reason;
+ * struct sol_str_slice key_slice;
+ *
+ * sol_json_path_scanner_init(&path_scanner, path);
+ * SOL_JSON_PATH_FOREACH(path_scanner, key_slice, reason) {
+ *     printf("%*s\n", SOL_STR_SLICE_PRINT(key_slice));
+ *     //Do something else
+ * }
+ *
+ * if (end_reason != SOL_JSON_LOOP_REASON_OK) {
+ *     //Error Handling
+ * }
+ *
+ * @endcode
+ *
+ * For the path in example, we would print:
+ * @code
+ * my_key
+ * [3]
+ * other_key
+ * @endcode
+ */
+#define SOL_JSON_PATH_FOREACH(scanner, key, end_reason) \
+    for (end_reason = SOL_JSON_LOOP_REASON_OK; \
+        sol_json_path_get_next_segment(&scanner, &key_slice, &end_reason);)
+
+/**
  * @}
  */
 

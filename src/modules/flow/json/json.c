@@ -100,133 +100,6 @@ create_sub_json(struct sol_blob *parent, struct sol_json_scanner *scanner, struc
     return sol_blob_new(SOL_BLOB_TYPE_NOFREE, parent, mem, token->end - mem);
 }
 
-struct json_path_scanner {
-    const char *path;
-    const char *end;
-    const char *current;
-};
-
-static void
-json_path_scanner_init(struct json_path_scanner *scanner, struct sol_str_slice path)
-{
-    scanner->path = path.data;
-    scanner->end = path.data + path.len;
-    scanner->current = path.data;
-}
-
-static bool
-json_path_parse_key_in_brackets(struct json_path_scanner *scanner, struct sol_str_slice *slice)
-{
-    const char *p;
-
-    p = scanner->current + 1;
-
-    //index is a string
-    if (*p == '\'') {
-        //Look for first unescaped '
-        for (p = p + 1; p < scanner->end; p++) {
-            p = memchr(p, '\'', scanner->end - p);
-            if (!p)
-                return false;
-            if (*(p - 1) != '\\') //is not escaped
-                break;
-        }
-        p++;
-        if (p >= scanner->end || *p != ']')
-            return false;
-    } else if (*p != ']') { //index is is not empty and is suppose to be a num
-        p++;
-        p = memchr(p, ']', scanner->end - p);
-        if (!p)
-            return false;
-
-    } else
-        return false;
-
-    p++;
-    *slice = SOL_STR_SLICE_STR(scanner->current, p - scanner->current);
-    scanner->current += slice->len;
-    return true;
-}
-
-static inline const char *
-get_lowest_not_null_pointer(const char *p, const char *p2)
-{
-    if (p && (!p2 || p < p2))
-        return p;
-
-    return p2;
-}
-
-static bool
-json_path_parse_key_after_dot(struct json_path_scanner *scanner, struct sol_str_slice *slice)
-{
-    const char *start, *first_dot, *first_bracket_start, *end;
-
-    start = scanner->current + 1;
-    first_dot = memchr(start, '.', scanner->end - start);
-    first_bracket_start = memchr(start, '[', scanner->end - start);
-
-    end = get_lowest_not_null_pointer(first_dot, first_bracket_start);
-    if (end == NULL)
-        end = scanner->end;
-
-    if (end == start)
-        return false;
-
-    *slice = SOL_STR_SLICE_STR(start, end - start);
-    scanner->current = start + slice->len;
-    return true;
-}
-
-static bool
-json_path_get_next_slice(struct json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_reason *end_reason)
-{
-    if (scanner->path == scanner->end) {
-        *end_reason = SOL_JSON_LOOP_REASON_INVALID;
-        return false;
-    }
-
-    //Root element
-    if (scanner->current == scanner->path) {
-        if (scanner->path[0] != '$') {
-            *end_reason = SOL_JSON_LOOP_REASON_INVALID;
-            return false;
-        }
-        scanner->current = scanner->path + 1;
-    }
-
-    if (scanner->current >= scanner->end) {
-        slice->data = scanner->end;
-        slice->len = 0;
-        return false;
-    }
-
-    if (*scanner->current == '[') {
-        if (json_path_parse_key_in_brackets(scanner, slice))
-            return true;
-    } else if (*scanner->current == '.') {
-        if (json_path_parse_key_after_dot(scanner, slice))
-            return true;
-    }
-
-    *end_reason = SOL_JSON_LOOP_REASON_INVALID;
-    return false;
-}
-
-static bool
-json_object_search_for_token(struct sol_json_scanner *scanner, const struct sol_str_slice key_slice, struct sol_json_token *value)
-{
-    struct sol_json_token token, key;
-    enum sol_json_loop_reason reason;
-
-    SOL_JSON_SCANNER_OBJECT_LOOP_NEST (scanner, &token, &key, value, reason)
-        if (sol_json_token_str_eq(&key, key_slice.data, key_slice.len))
-            return true;
-
-    return false;
-}
-
 static int
 send_token_packet(struct sol_flow_node *node, struct sol_json_scanner *scanner, struct sol_blob *json, struct sol_json_token *token)
 {
@@ -308,7 +181,7 @@ error:
 static int
 json_object_key_process(struct sol_flow_node *node, struct sol_json_node_data *mdata)
 {
-    struct sol_json_token value, token;
+    struct sol_json_token value;
     struct sol_json_scanner scanner;
 
     if (!mdata->key[0] || !mdata->json_element)
@@ -316,175 +189,37 @@ json_object_key_process(struct sol_flow_node *node, struct sol_json_node_data *m
 
     sol_json_scanner_init(&scanner, mdata->json_element->mem,
         mdata->json_element->size);
-    if (_sol_json_loop_helper_init(&scanner, &token,
-        SOL_JSON_TYPE_OBJECT_START) != SOL_JSON_LOOP_REASON_OK)
-        return false;
 
-    if (json_object_search_for_token(&scanner,
-        sol_str_slice_from_str(mdata->key), &value))
+    if (sol_json_object_get_value_by_key(&scanner,
+        sol_str_slice_from_str(mdata->key), &value) == 0)
         return send_token_packet(node, &scanner, mdata->json_element, &value);
 
     return sol_flow_send_error_packet(node, EINVAL,
         "JSON object doesn't contain key %s", mdata->key);
 }
 
-/*
- * If index is between [' and '] we need to unescape the ' char and to remove
- * the [' and '] separator.
- */
-static int
-json_path_parse_object_key(const struct sol_str_slice slice, struct sol_buffer *buffer)
-{
-    const char *end, *p, *p2;
-    struct sol_str_slice key;
-    int r;
-
-    if (slice.data[0] != '[') {
-        sol_buffer_init_flags(buffer, (char *)slice.data, slice.len,
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
-        buffer->used = buffer->capacity;
-        return 0;
-    }
-
-    //remove [' and ']
-    key = SOL_STR_SLICE_STR(slice.data + 2, slice.len - 4);
-
-    //unescape '\'' if necessary
-    sol_buffer_init_flags(buffer, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
-    end = key.data + key.len;
-    for (p = key.data; p < end; p = p2 + 1) {
-        p2 = memchr(p, '\'', end - p);
-        if (!p2)
-            break;
-
-        //Append string preceding '
-        r = sol_buffer_append_slice(buffer, SOL_STR_SLICE_STR(p, p2 - p - 1));
-        SOL_INT_CHECK(r, < 0, r);
-        r = sol_buffer_append_char(buffer, '\'');
-        SOL_INT_CHECK(r, < 0, r);
-    }
-
-    if (!buffer->data) {
-        sol_buffer_init_flags(buffer, (char *)key.data, key.len,
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
-        buffer->used = buffer->capacity;
-        return 0;
-    }
-
-    //Append the string leftover
-    r = sol_buffer_append_slice(buffer, SOL_STR_SLICE_STR(p, end - p));
-    SOL_INT_CHECK(r, < 0, r);
-    return 0;
-}
-
-static bool
-json_array_get_at_index(struct sol_json_scanner *scanner, struct sol_json_token *token, int32_t i, enum sol_json_loop_reason *reason)
-{
-    int32_t cur_index = 0;
-
-    SOL_JSON_SCANNER_ARRAY_LOOP_ALL_NEST(scanner, token, *reason) {
-        if (i == cur_index)
-            return true;
-
-        if (!sol_json_scanner_skip_over(scanner, token))
-            return false;
-        cur_index++;
-    }
-
-    return false;
-}
-
-static inline bool
-json_path_is_array_key(struct sol_str_slice slice)
-{
-    return slice.data[0] == '[' &&  //is between brackets or
-           slice.data[1] != '\''; //index is not a string
-}
-
-#define JSON_PATH_FOREACH(scanner, key, end_reason) \
-    for (end_reason = SOL_JSON_LOOP_REASON_OK; \
-        json_path_get_next_slice(&scanner, &key_slice, &end_reason);)
-
-static int32_t
-json_array_get_key_index(struct sol_str_slice key)
-{
-    int index_val;
-    int r;
-
-    r = sol_str_slice_to_int(SOL_STR_SLICE_STR(key.data + 1, key.len - 2),
-        &index_val);
-    SOL_INT_CHECK(r, < 0, r);
-
-    if ((int)(uint16_t)index_val != index_val)
-        return -ERANGE;
-
-    return index_val;
-}
-
 static int
 json_object_path_process(struct sol_flow_node *node, struct sol_json_node_data *mdata)
 {
+    struct sol_json_token value;
     enum sol_json_type type;
-    struct sol_str_slice key_slice = SOL_STR_SLICE_EMPTY;
-    struct sol_buffer current_key;
-    struct sol_json_token value, token;
-    struct sol_json_scanner json_scanner;
-    struct json_path_scanner path_scanner;
-    enum sol_json_loop_reason array_reason, reason;
-    int32_t index_val;
-    bool found;
+    struct sol_json_scanner scanner;
     int r;
 
     if (!mdata->key[0] || !mdata->json_element)
         return 0;
 
-    sol_json_scanner_init(&json_scanner, mdata->json_element->mem,
+    sol_json_scanner_init(&scanner, mdata->json_element->mem,
         mdata->json_element->size);
-    json_path_scanner_init(&path_scanner, sol_str_slice_from_str(mdata->key));
 
-    JSON_PATH_FOREACH(path_scanner, key_slice, reason) {
-        type = sol_json_mem_get_type(json_scanner.current);
-        if (_sol_json_loop_helper_init(&json_scanner, &token, type) !=
-            SOL_JSON_LOOP_REASON_OK)
-            goto error;
-
-        switch (type) {
-        case SOL_JSON_TYPE_OBJECT_START:
-            if (json_path_is_array_key(key_slice))
-                goto error;
-
-            r = json_path_parse_object_key(key_slice, &current_key);
-            SOL_INT_CHECK(r, < 0, r);
-
-            found = json_object_search_for_token(&json_scanner,
-                sol_buffer_get_slice(&current_key), &value);
-            sol_buffer_fini(&current_key);
-            if (!found)
-                goto error;
-            break;
-        case SOL_JSON_TYPE_ARRAY_START:
-            if (!json_path_is_array_key(key_slice))
-                goto error;
-
-            index_val = json_array_get_key_index(key_slice);
-            SOL_INT_CHECK_GOTO(index_val, < 0, error);
-
-            if (!json_array_get_at_index(&json_scanner, &value, index_val,
-                &array_reason))
-                goto error;
-            break;
-        default:
-            goto error;
-        }
-
-        json_scanner.current = value.start;
-    }
-    if (reason != SOL_JSON_LOOP_REASON_OK)
-        goto error;
+    r = sol_json_get_value_by_path(&scanner, sol_str_slice_from_str(mdata->key), &value);
+    if (r < 0)
+        return sol_flow_send_error_packet(node, -r,
+            "JSON element doesn't contain path %s", mdata->key);
 
     //If path is root
-    if (json_scanner.current == mdata->json_element->mem) {
-        type = sol_json_mem_get_type(json_scanner.current);
+    if (value.start == mdata->json_element->mem) {
+        type = sol_json_mem_get_type(value.start);
         if (type == SOL_JSON_TYPE_OBJECT_START)
             return sol_flow_send_json_object_packet(node,
                 SOL_FLOW_NODE_TYPE_JSON_OBJECT_GET_PATH__OUT__OBJECT,
@@ -495,11 +230,7 @@ json_object_path_process(struct sol_flow_node *node, struct sol_json_node_data *
                 mdata->json_element);
     }
 
-    return send_token_packet(node, &json_scanner, mdata->json_element, &value);
-
-error:
-    return sol_flow_send_error_packet(node, EINVAL,
-        "JSON element doesn't contain path %s", mdata->key);
+    return send_token_packet(node, &scanner, mdata->json_element, &value);
 }
 
 static int
@@ -632,25 +363,21 @@ static int
 json_array_index_process(struct sol_flow_node *node, struct sol_json_array_index *mdata)
 {
     struct sol_json_scanner scanner;
-    enum sol_json_loop_reason reason;
     struct sol_json_token token;
+    int r;
 
     if (mdata->index < 0 || !mdata->json_array)
         return 0;
 
     sol_json_scanner_init(&scanner, mdata->json_array->mem,
         mdata->json_array->size);
-    if (_sol_json_loop_helper_init(&scanner, &token,
-        SOL_JSON_TYPE_ARRAY_START) != SOL_JSON_LOOP_REASON_OK)
-        goto invalid_array;
-
-    if (json_array_get_at_index(&scanner, &token, mdata->index, &reason))
+    r = sol_json_array_get_at_index(&scanner, mdata->index, &token);
+    if (r == 0)
         return send_token_packet(node, &scanner, mdata->json_array, &token);
-
-    if (reason != SOL_JSON_LOOP_REASON_INVALID)
+    if (r == -ENOENT)
         return sol_flow_send_error_packet(node, EINVAL,
             "JSON array index out of bounds: %" PRId32, mdata->index);
-invalid_array:
+
     return sol_flow_send_error_packet(node, EINVAL,
         "Invalid JSON array (%.*s)", (int)mdata->json_array->size,
         (char *)mdata->json_array->mem);
@@ -1214,7 +941,7 @@ json_blob_element_parse(struct json_element *element)
 static bool
 reinit_element_if_needed(struct json_element *cur_element, struct sol_str_slice key_slice, bool is_base_element)
 {
-    if (json_path_is_array_key(key_slice)) {
+    if (sol_json_path_is_array_key(key_slice)) {
         if (cur_element->type == JSON_TYPE_ARRAY ||
             cur_element->type == JSON_TYPE_ARRAY_BLOB)
             return true;
@@ -1238,10 +965,11 @@ reinit_element_if_needed(struct json_element *cur_element, struct sol_str_slice 
     init_json_object_element(cur_element);
     return true;
 }
+
 static int
 json_path_add_new_element(struct sol_flow_node *node, struct json_element *base_element, const char *key, struct json_element *new_element)
 {
-    struct json_path_scanner path_scanner;
+    struct sol_json_path_scanner path_scanner;
     enum sol_json_loop_reason reason;
     struct sol_str_slice key_slice = SOL_STR_SLICE_EMPTY;
     struct json_element *cur_element;
@@ -1250,8 +978,9 @@ json_path_add_new_element(struct sol_flow_node *node, struct json_element *base_
     int r;
 
     cur_element = base_element;
-    json_path_scanner_init(&path_scanner, sol_str_slice_from_str(key));
-    JSON_PATH_FOREACH(path_scanner, key_slice, reason) {
+    r = sol_json_path_scanner_init(&path_scanner, sol_str_slice_from_str(key));
+    SOL_INT_CHECK(r, < 0, -EINVAL);
+    SOL_JSON_PATH_FOREACH(path_scanner, key_slice, reason) {
         if (!reinit_element_if_needed(cur_element, key_slice,
             cur_element == base_element))
             goto error;
@@ -1263,7 +992,7 @@ json_path_add_new_element(struct sol_flow_node *node, struct json_element *base_
             SOL_INT_CHECK_GOTO(r, < 0, error_parse);
 
         case JSON_TYPE_OBJECT:
-            if (json_path_is_array_key(key_slice))
+            if (sol_json_path_is_array_key(key_slice))
                 goto error;
 
             key_element = json_object_get_or_create_child_element(cur_element,
@@ -1278,10 +1007,10 @@ json_path_add_new_element(struct sol_flow_node *node, struct json_element *base_
             SOL_INT_CHECK_GOTO(r, < 0, error_parse);
 
         case JSON_TYPE_ARRAY:
-            if (!json_path_is_array_key(key_slice))
+            if (!sol_json_path_is_array_key(key_slice))
                 goto error;
 
-            index_val = json_array_get_key_index(key_slice);
+            index_val = sol_json_path_array_get_segment_index(key_slice);
             SOL_INT_CHECK_GOTO(index_val, < 0, error);
 
             cur_element = json_array_get_or_create_child_element(cur_element,
@@ -1311,8 +1040,6 @@ error_parse:
         " is invalid: %.*s", key,
         SOL_STR_SLICE_PRINT(sol_str_slice_from_blob(cur_element->blob)));
 }
-
-#undef JSON_PATH_FOREACH
 
 static int
 json_object_add_new_element(struct sol_flow_node *node, struct json_element *base_element, const char *key, struct json_element *new_element)

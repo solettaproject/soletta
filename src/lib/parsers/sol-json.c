@@ -229,6 +229,120 @@ token_get_int64(const struct sol_json_token *token, int64_t *value)
     }
 }
 
+static inline const char *
+get_lowest_not_null_pointer(const char *p, const char *p2)
+{
+    if (p && (!p2 || p < p2))
+        return p;
+
+    return p2;
+}
+
+static bool
+json_path_parse_key_after_dot(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice)
+{
+    const char *start, *first_dot, *first_bracket_start, *end;
+
+    start = scanner->current + 1;
+    first_dot = memchr(start, '.', scanner->end - start);
+    first_bracket_start = memchr(start, '[', scanner->end - start);
+
+    end = get_lowest_not_null_pointer(first_dot, first_bracket_start);
+    if (end == NULL)
+        end = scanner->end;
+
+    if (end == start)
+        return false;
+
+    *slice = SOL_STR_SLICE_STR(start, end - start);
+    scanner->current = start + slice->len;
+    return true;
+}
+
+static bool
+json_path_parse_key_in_brackets(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice)
+{
+    const char *p;
+
+    p = scanner->current + 1;
+
+    //index is a string
+    if (*p == '\'') {
+        //Look for first unescaped '
+        for (p = p + 1; p < scanner->end; p++) {
+            p = memchr(p, '\'', scanner->end - p);
+            if (!p)
+                return false;
+            if (*(p - 1) != '\\') //is not escaped
+                break;
+        }
+        p++;
+        if (p >= scanner->end || *p != ']')
+            return false;
+    } else if (*p != ']') { //index is is not empty and is suppose to be a num
+        p++;
+        p = memchr(p, ']', scanner->end - p);
+        if (!p)
+            return false;
+
+    } else
+        return false;
+
+    p++;
+    *slice = SOL_STR_SLICE_STR(scanner->current, p - scanner->current);
+    scanner->current += slice->len;
+    return true;
+}
+
+/*
+ * If index is between [' and '] we need to unescape the ' char and to remove
+ * the [' and '] separator.
+ */
+static int
+json_path_parse_object_key(const struct sol_str_slice slice, struct sol_buffer *buffer)
+{
+    const char *end, *p, *p2;
+    struct sol_str_slice key;
+    int r;
+
+    if (slice.data[0] != '[') {
+        sol_buffer_init_flags(buffer, (char *)slice.data, slice.len,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+        buffer->used = buffer->capacity;
+        return 0;
+    }
+
+    //remove [' and ']
+    key = SOL_STR_SLICE_STR(slice.data + 2, slice.len - 4);
+
+    //unescape '\'' if necessary
+    sol_buffer_init_flags(buffer, NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    end = key.data + key.len;
+    for (p = key.data; p < end; p = p2 + 1) {
+        p2 = memchr(p, '\'', end - p);
+        if (!p2)
+            break;
+
+        //Append string preceding '
+        r = sol_buffer_append_slice(buffer, SOL_STR_SLICE_STR(p, p2 - p - 1));
+        SOL_INT_CHECK(r, < 0, r);
+        r = sol_buffer_append_char(buffer, '\'');
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    if (!buffer->data) {
+        sol_buffer_init_flags(buffer, (char *)key.data, key.len,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+        buffer->used = buffer->capacity;
+        return 0;
+    }
+
+    //Append the string leftover
+    r = sol_buffer_append_slice(buffer, SOL_STR_SLICE_STR(p, end - p));
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
 SOL_API int
 sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value)
 {
@@ -833,4 +947,185 @@ sol_json_token_get_unescaped_string_copy(const struct sol_json_token *value)
 error:
     sol_buffer_fini(&buffer);
     return NULL;
+}
+
+SOL_API int
+sol_json_object_get_value_by_key(struct sol_json_scanner *scanner, const struct sol_str_slice key_slice, struct sol_json_token *value)
+{
+    struct sol_json_token token, key;
+    enum sol_json_loop_reason reason;
+
+    SOL_NULL_CHECK(scanner, -EINVAL);
+    SOL_NULL_CHECK(key_slice.data, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+
+    if (sol_json_mem_get_type(scanner->current) != SOL_JSON_TYPE_OBJECT_START)
+        return -EINVAL;
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (scanner, &token, &key, value, reason)
+        if (sol_json_token_str_eq(&key, key_slice.data, key_slice.len))
+            return 0;
+
+    if (reason == SOL_JSON_LOOP_REASON_OK)
+        return -ENOENT;
+    return -EINVAL;
+}
+
+SOL_API int
+sol_json_array_get_at_index(struct sol_json_scanner *scanner, uint16_t i, struct sol_json_token *value)
+{
+    uint16_t cur_index = 0;
+    enum sol_json_loop_reason reason;
+
+    SOL_NULL_CHECK(scanner, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+
+    if (sol_json_mem_get_type(scanner->current) != SOL_JSON_TYPE_ARRAY_START)
+        return -EINVAL;
+
+    SOL_JSON_SCANNER_ARRAY_LOOP_ALL(scanner, value, reason) {
+        if (i == cur_index)
+            return 0;
+
+        if (!sol_json_scanner_skip_over(scanner, value))
+            return -ENOENT;
+        cur_index++;
+    }
+
+    if (reason == SOL_JSON_LOOP_REASON_OK)
+        return -ENOENT;
+    return -EINVAL;
+}
+
+SOL_API int
+sol_json_path_scanner_init(struct sol_json_path_scanner *scanner, struct sol_str_slice path)
+{
+    SOL_NULL_CHECK(path.data, -EINVAL);
+
+    scanner->path = path.data;
+    scanner->end = path.data + path.len;
+    scanner->current = path.data;
+
+    return 0;
+}
+
+SOL_API int
+sol_json_get_value_by_path(struct sol_json_scanner *scanner, struct sol_str_slice path, struct sol_json_token *value)
+{
+    enum sol_json_type type;
+    struct sol_str_slice key_slice = SOL_STR_SLICE_EMPTY;
+    struct sol_buffer current_key;
+    struct sol_json_path_scanner path_scanner;
+    enum sol_json_loop_reason reason;
+    const char *start;
+    int32_t index_val;
+    bool found;
+    int r;
+
+    SOL_NULL_CHECK(scanner, -EINVAL);
+    SOL_NULL_CHECK(path.data, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+
+    sol_json_path_scanner_init(&path_scanner, path);
+    start = scanner->current;
+
+    SOL_JSON_PATH_FOREACH(path_scanner, key_slice, reason) {
+        type = sol_json_mem_get_type(scanner->current);
+
+        switch (type) {
+        case SOL_JSON_TYPE_OBJECT_START:
+            if (sol_json_path_is_array_key(key_slice))
+                return -ENOENT;
+
+            r = json_path_parse_object_key(key_slice, &current_key);
+            SOL_INT_CHECK(r, < 0, r);
+
+            found = sol_json_object_get_value_by_key(scanner,
+                sol_buffer_get_slice(&current_key), value) == 0;
+            sol_buffer_fini(&current_key);
+            if (!found)
+                return -ENOENT;
+            break;
+        case SOL_JSON_TYPE_ARRAY_START:
+            if (!sol_json_path_is_array_key(key_slice))
+                return -ENOENT;
+
+            index_val = sol_json_path_array_get_segment_index(key_slice);
+            SOL_INT_CHECK(index_val, < 0, -ENOENT);
+
+            if (sol_json_array_get_at_index(scanner, index_val, value) < 0)
+                return -ENOENT;
+            break;
+        default:
+            return -ENOENT;
+        }
+
+        scanner->current = value->start;
+    }
+    if (reason != SOL_JSON_LOOP_REASON_OK)
+        return -ENOENT;
+
+    //If path is root
+    if (start == scanner->current) {
+        value->start = scanner->current;
+        value->end = value->start + 1;
+    }
+
+    return 0;
+}
+
+SOL_API bool
+sol_json_path_get_next_segment(struct sol_json_path_scanner *scanner, struct sol_str_slice *slice, enum sol_json_loop_reason *end_reason)
+{
+    if (scanner->path == scanner->end)
+        goto error;
+
+    //Root element
+    if (scanner->current == scanner->path) {
+        if (scanner->path[0] != '$') {
+            *end_reason = SOL_JSON_LOOP_REASON_INVALID;
+            return false;
+        }
+        scanner->current = scanner->path + 1;
+    }
+
+    if (scanner->current >= scanner->end) {
+        slice->data = scanner->end;
+        slice->len = 0;
+        return false;
+    }
+
+    if (*scanner->current == '[') {
+        if (json_path_parse_key_in_brackets(scanner, slice))
+            return true;
+    } else if (*scanner->current == '.') {
+        if (json_path_parse_key_after_dot(scanner, slice))
+            return true;
+    }
+
+error:
+    *end_reason = SOL_JSON_LOOP_REASON_INVALID;
+    return false;
+}
+
+SOL_API int32_t
+sol_json_path_array_get_segment_index(struct sol_str_slice key)
+{
+    int index_val;
+    int r;
+
+    SOL_NULL_CHECK(key.data, -EINVAL);
+    SOL_INT_CHECK(key.len, < 3, -EINVAL);
+
+    if (!sol_json_path_is_array_key(key))
+        return -EINVAL;
+
+    r = sol_str_slice_to_int(SOL_STR_SLICE_STR(key.data + 1, key.len - 2),
+        &index_val);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if ((int)(uint16_t)index_val != index_val)
+        return -ERANGE;
+
+    return index_val;
 }
