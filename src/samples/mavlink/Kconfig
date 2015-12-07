@@ -1,0 +1,9 @@
+config MAVLINK_SAMPLES
+	bool "Mavlink samples"
+	depends on MAVLINK
+	default y
+
+config MAVLINK_BASIC
+	bool "Basic mavlink sample"
+	depends on MAVLINK_SAMPLES
+	default y
