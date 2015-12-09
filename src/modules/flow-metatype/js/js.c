@@ -2065,11 +2065,56 @@ metatype_port_description_clear(struct sol_vector *port_descriptions)
 }
 
 static int
+dump_js_code(const struct sol_str_slice prefix, struct sol_buffer *out,
+    const char *code, size_t code_len)
+{
+    size_t i;
+    int r;
+
+    r = sol_buffer_append_printf(out, "static const char %.*s_JS_CODE[] = {\n",
+        SOL_STR_SLICE_PRINT(prefix));
+    SOL_INT_CHECK(r, < 0, r);
+
+    for (i = 0; i < code_len; i++) {
+        r = sol_buffer_append_printf(out, "%d,", code[i]);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return sol_buffer_append_slice(out, sol_str_slice_from_str("};\n"));
+}
+
+static int
+generate_byte_code(const struct sol_str_slice prefix,
+    const struct sol_str_slice filename, struct sol_buffer *out,
+    const char *buf, size_t len)
+{
+    int r;
+    duk_context *duk;
+    char *bytecode;
+    size_t bytecode_len;
+
+    duk = duk_create_heap_default();
+    SOL_NULL_CHECK(duk, -ENOMEM);
+
+    duk_push_lstring(duk, buf, len);
+    duk_push_lstring(duk, filename.data, filename.len);
+    duk_compile(duk, DUK_COMPILE_EVAL);
+
+    duk_dump_function(duk);
+
+    bytecode = duk_get_buffer(duk, -1, &bytecode_len);
+
+    r = dump_js_code(prefix, out, bytecode, bytecode_len);
+    duk_destroy_heap(duk);
+    return r;
+}
+
+static int
 js_generate_body(const struct sol_flow_metatype_context *ctx,
     struct sol_buffer *out)
 {
+    size_t len;
     const char *buf;
-    size_t len, i;
     struct sol_vector in_ports, out_ports;
     int r;
 
@@ -2079,23 +2124,25 @@ js_generate_body(const struct sol_flow_metatype_context *ctx,
     r = setup_js_ports_description(buf, len, &in_ports, &out_ports, out, ctx->name);
     SOL_INT_CHECK_GOTO(r, < 0, exit);
 
-    r = sol_buffer_append_printf(out, "static const char %.*s_JS_CODE[] = {\n",
-        SOL_STR_SLICE_PRINT(ctx->name));
+    r = sol_buffer_append_slice(out,
+        sol_str_slice_from_str("#if DUKTAPE_GENERATED_CODE_VERSION != DUK_VERSION\n"));
     SOL_INT_CHECK_GOTO(r, < 0, exit);
-
-    for (i = 0; i < len; i++) {
-        r = sol_buffer_append_printf(out, "%d,", buf[i]);
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
-    }
-
-    r = sol_buffer_append_slice(out, sol_str_slice_from_str("};\n"));
+    r = dump_js_code(ctx->name, out, buf, len);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = sol_buffer_append_slice(out, sol_str_slice_from_str("#else\n"));
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = generate_byte_code(ctx->name, ctx->contents, out, buf, len);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = sol_buffer_append_slice(out, sol_str_slice_from_str("#endif\n"));
     SOL_INT_CHECK_GOTO(r, < 0, exit);
 
     r = sol_buffer_append_printf(out, "static int\n"
         "js_metatype_%.*s_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)\n"
         "{\n"
         "    duk_context **ctx = data;\n"
-        "    return js_metatype_common_open(node, ctx, %.*s_JS_CODE, sizeof(%.*s_JS_CODE));\n"
+        "    SOL_ERR(\"Using bytecode:%%d\", DUKTAPE_GENERATED_CODE_VERSION == DUK_VERSION);\n"
+        "    return js_metatype_common_open(node, ctx, %.*s_JS_CODE, sizeof(%.*s_JS_CODE),"
+        "    DUKTAPE_GENERATED_CODE_VERSION == DUK_VERSION);\n"
         "}\n",
         SOL_STR_SLICE_PRINT(ctx->name), SOL_STR_SLICE_PRINT(ctx->name),
         SOL_STR_SLICE_PRINT(ctx->name));
