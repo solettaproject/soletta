@@ -810,8 +810,9 @@ sol_http_split_uri(const struct sol_str_slice full_uri,
     return 0;
 }
 
-SOL_API int
-sol_http_split_query(const char *query, struct sol_http_params *params)
+static int
+sol_http_split_str_key_value(const char *query, const enum sol_http_param_type type,
+    struct sol_http_params *params)
 {
     struct sol_vector tokens;
     struct sol_str_slice *token;
@@ -820,9 +821,9 @@ sol_http_split_query(const char *query, struct sol_http_params *params)
 
     tokens = sol_str_slice_split(sol_str_slice_from_str(query), "&", 0);
 
-#define CREATE_QUERY_PARAM(_key, _value) \
+#define CREATE_PARAM(_key, _value) \
     (struct sol_http_param_value) { \
-        .type = SOL_HTTP_PARAM_QUERY_PARAM, \
+        .type = type, \
         .value.key_value.key = _key, \
         .value.key_value.value = _value \
     }
@@ -843,15 +844,27 @@ sol_http_split_query(const char *query, struct sol_http_params *params)
         }
 
         if (!sol_http_param_add_copy(params,
-            CREATE_QUERY_PARAM(key, value))) {
+            CREATE_PARAM(key, value))) {
             SOL_ERR("Could not add the HTTP param %.*s:%.*s",
                 SOL_STR_SLICE_PRINT(key), SOL_STR_SLICE_PRINT(value));
             goto exit;
         }
     }
-#undef CREATE_QUERY_PARAM
+#undef CREATE_PARAM
 
 exit:
     sol_vector_clear(&tokens);
     return 0;
+}
+
+SOL_API int
+sol_http_split_query(const char *query, struct sol_http_params *params)
+{
+    return sol_http_split_str_key_value(query, SOL_HTTP_PARAM_QUERY_PARAM, params);
+}
+
+SOL_API int
+sol_http_split_post_field(const char *query, struct sol_http_params *params)
+{
+    return sol_http_split_str_key_value(query, SOL_HTTP_PARAM_POST_FIELD, params);
 }
