@@ -56,66 +56,147 @@ extern "C" {
 /**
  * @defgroup Parsers Parsers
  *
- * These are the parsers that Soletta provides (JSON only, for now)
+ * @brief Parsers provided by Soletta.
+ *
+ */
+
+/**
+ * @defgroup JSON JSON
+ * @ingroup Parsers
+ *
+ * @brief JSON parser.
  *
  * @{
  */
 
+/**
+ * @brief Structure to track a JSON document (or a portion of it) being parsed.
+ */
 struct sol_json_scanner {
-    const char *mem;
-    const char *mem_end;
-    const char *current;
+    const char *mem; /**< @brief Start this portion of the JSON document. */
+    const char *mem_end; /**< @brief End of this portion of the JSON document. */
+    const char *current; /**< @brief Current point in the JSON document that needs to be processed. */
 };
 
+/**
+ * @brief Type describing a JSON token
+ *
+ * Used to point and delimit JSON element while parsing a JSON document.
+ */
 struct sol_json_token {
-    const char *start;
-    const char *end; /* non-inclusive */
+    const char *start; /**< @brief Token start */
+    const char *end; /**< @brief Token end. Non-inclusive */
 };
 
+/**
+ * @brief Token type enumeration.
+ */
 enum sol_json_type {
-    SOL_JSON_TYPE_UNKNOWN = 0,
-    SOL_JSON_TYPE_OBJECT_START = '{',
-    SOL_JSON_TYPE_OBJECT_END = '}',
-    SOL_JSON_TYPE_ARRAY_START = '[',
-    SOL_JSON_TYPE_ARRAY_END = ']',
-    SOL_JSON_TYPE_ELEMENT_SEP = ',',
-    SOL_JSON_TYPE_PAIR_SEP = ':',
-    SOL_JSON_TYPE_TRUE = 't',
-    SOL_JSON_TYPE_FALSE = 'f',
-    SOL_JSON_TYPE_NULL = 'n',
-    SOL_JSON_TYPE_STRING = '"',
-    SOL_JSON_TYPE_NUMBER = '1',
+    SOL_JSON_TYPE_UNKNOWN = 0, /**< @brief Unknown token */
+    SOL_JSON_TYPE_OBJECT_START = '{', /**< @brief JSON Object start */
+    SOL_JSON_TYPE_OBJECT_END = '}', /**< @brief JSON Object end */
+    SOL_JSON_TYPE_ARRAY_START = '[', /**< @brief JSON Array start */
+    SOL_JSON_TYPE_ARRAY_END = ']', /**< @brief JSON Array end */
+    SOL_JSON_TYPE_ELEMENT_SEP = ',', /**< @brief JSON Element separator */
+    SOL_JSON_TYPE_PAIR_SEP = ':', /**< @brief JSON Pair separator */
+    SOL_JSON_TYPE_TRUE = 't', /**< @brief 'true' value */
+    SOL_JSON_TYPE_FALSE = 'f', /**< @brief 'false' value */
+    SOL_JSON_TYPE_NULL = 'n', /**< @brief 'null' value */
+    SOL_JSON_TYPE_STRING = '"', /**< @brief JSON string token */
+    SOL_JSON_TYPE_NUMBER = '1', /**< @brief JSON number token */
 };
 
+/**
+ * @brief Return values used by the parser 'loop' macros.
+ *
+ * Used to inform if the macro successfully parsed the provided content or not.
+ */
 enum sol_json_loop_reason {
-    SOL_JSON_LOOP_REASON_OK = 0,
-    SOL_JSON_LOOP_REASON_INVALID
+    SOL_JSON_LOOP_REASON_OK = 0, /**< @brief 'Loop' content successfully parsed. */
+    SOL_JSON_LOOP_REASON_INVALID /**< @brief Failed to parse the 'Loop' content. */
 };
 
+/**
+ * @brief Helper macro to iterate over the elements of a nested array in a JSON document
+ *
+ * @param scanner_ JSON scanner
+ * @param token_ Current token on each iteration
+ * @param element_type_ Token type of the elements in the array
+ * @param end_reason_ Loop exit status
+ */
 #define SOL_JSON_SCANNER_ARRAY_LOOP_NEST(scanner_, token_, element_type_, end_reason_) \
     for (end_reason_ = SOL_JSON_LOOP_REASON_OK;  \
         _sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
 
+/**
+ * @brief Helper macro to iterate over the elements of an array in a JSON document
+ *
+ * @param scanner_ JSON scanner
+ * @param token_ Current token on each iteration
+ * @param element_type_ Token type of the elements in the array
+ * @param end_reason_ Loop exit status
+ */
 #define SOL_JSON_SCANNER_ARRAY_LOOP(scanner_, token_, element_type_, end_reason_) \
     for (end_reason_ = _sol_json_loop_helper_init(scanner_, token_, SOL_JSON_TYPE_ARRAY_START); \
         _sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
 
+/**
+ * @brief Helper macro to iterate over the elements of a nested array in a JSON document,
+ * ignoring the elements type.
+ *
+ * @param scanner_ JSON scanner
+ * @param token_ Current token on each iteration
+ * @param end_reason_ Loop exit status
+ */
 #define SOL_JSON_SCANNER_ARRAY_LOOP_ALL_NEST(scanner_, token_, end_reason_) \
     for (end_reason_ = SOL_JSON_LOOP_REASON_OK;  \
         _sol_json_loop_helper_generic(scanner_, token_, SOL_JSON_TYPE_ARRAY_END, &end_reason_);)
 
+/**
+ * @brief Helper macro to iterate over the elements an array in a JSON document,
+ * ignoring the elements type.
+ *
+ * @param scanner_ JSON scanner
+ * @param token_ Current token on each iteration
+ * @param end_reason_ Loop exit status
+ */
 #define SOL_JSON_SCANNER_ARRAY_LOOP_ALL(scanner_, token_, end_reason_) \
     for (end_reason_ = _sol_json_loop_helper_init(scanner_, token_, SOL_JSON_TYPE_ARRAY_START); \
         _sol_json_loop_helper_generic(scanner_, token_, SOL_JSON_TYPE_ARRAY_END, &end_reason_);)
 
+/**
+ * @brief Helper macro to iterate over the elements of a nested object in a JSON document
+ *
+ * @param scanner_ JSON scanner
+ * @param token_ Current token on each iteration
+ * @param key_ Token to the current pair's key on each iteration
+ * @param value_ Token to the current pair's value on each iteration
+ * @param end_reason_ Loop exit status
+ */
 #define SOL_JSON_SCANNER_OBJECT_LOOP_NEST(scanner_, token_, key_, value_, end_reason_) \
     for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
         _sol_json_loop_helper_object(scanner_, token_, key_, value_, &end_reason_);)
 
+/**
+ * @brief Helper macro to iterate over the elements of an object in a JSON document
+ *
+ * @param scanner_ JSON scanner
+ * @param token_ Current token on each iteration
+ * @param key_ Token to the current pair's key on each iteration
+ * @param value_ Token to the current pair's value on each iteration
+ * @param end_reason_ Loop exit status
+ */
 #define SOL_JSON_SCANNER_OBJECT_LOOP(scanner_, token_, key_, value_, end_reason_) \
     for (end_reason_ = _sol_json_loop_helper_init(scanner_, token_, SOL_JSON_TYPE_OBJECT_START); \
         _sol_json_loop_helper_object(scanner_, token_, key_, value_, &end_reason_);)
 
+/**
+ * @brief Initializes a JSON scanner.
+ *
+ * @param scanner JSON scanner
+ * @param mem Pointer to the memory containing the JSON document
+ * @param size Memory size in bytes
+ */
 static inline void
 sol_json_scanner_init(struct sol_json_scanner *scanner, const void *mem, unsigned int size)
 {
@@ -124,6 +205,11 @@ sol_json_scanner_init(struct sol_json_scanner *scanner, const void *mem, unsigne
     scanner->current = (const char *)mem;
 }
 
+/**
+ * @brief Initializes a JSON scanner with empty information.
+ *
+ * @param scanner JSON scanner
+ */
 static inline void
 sol_json_scanner_init_null(struct sol_json_scanner *scanner)
 {
@@ -132,6 +218,12 @@ sol_json_scanner_init_null(struct sol_json_scanner *scanner)
     scanner->current = NULL;
 }
 
+/**
+ * @brief Initializes a JSON scanner based on the information of a second scanner.
+ *
+ * @param scanner JSON scanner
+ * @param other Base JSON scanner
+ */
 static inline void
 sol_json_scanner_init_from_scanner(struct sol_json_scanner *scanner,
     const struct sol_json_scanner *other)
@@ -141,6 +233,12 @@ sol_json_scanner_init_from_scanner(struct sol_json_scanner *scanner,
     scanner->current = scanner->mem;
 }
 
+/**
+ * @brief Initializes a JSON scanner based on the information of a JSON Token.
+ *
+ * @param scanner JSON scanner
+ * @param token JSON token
+ */
 static inline void
 sol_json_scanner_init_from_token(struct sol_json_scanner *scanner,
     const struct sol_json_token *token)
@@ -150,12 +248,29 @@ sol_json_scanner_init_from_token(struct sol_json_scanner *scanner,
     scanner->current = scanner->mem;
 }
 
+/**
+ * @brief Returns the size of the JSON document that wasn't scanned yet.
+ *
+ * @param scanner JSON scanner
+ *
+ * @return Remaining size in bytes
+ */
 static inline unsigned int
 sol_json_scanner_get_size_remaining(const struct sol_json_scanner *scanner)
 {
     return scanner->mem_end - scanner->current;
 }
 
+/**
+ * @brief Returns the offset of @c mem in the data managed by @c scanner.
+ *
+ * Offset relative to the start of the JSON document portion handled by @c scanner.
+ *
+ * @param scanner JSON scanner
+ * @param mem Pointer to JSON Document data
+ *
+ * @return Offset in bytes, @c -1 in case of error.
+ */
 static inline unsigned int
 sol_json_scanner_get_mem_offset(const struct sol_json_scanner *scanner, const void *mem)
 {
@@ -166,6 +281,13 @@ sol_json_scanner_get_mem_offset(const struct sol_json_scanner *scanner, const vo
     return p - scanner->mem;
 }
 
+/**
+ * @brief Returns the type of the token pointed by @c mem.
+ *
+ * @param mem Pointer to JSON Document data
+ *
+ * @return JSON type of the token pointed by @c mem
+ */
 static inline enum sol_json_type
 sol_json_mem_get_type(const void *mem)
 {
@@ -178,18 +300,41 @@ sol_json_mem_get_type(const void *mem)
     return SOL_JSON_TYPE_UNKNOWN;
 }
 
+/**
+ * @brief Returns the type of the token pointed by @c token.
+ *
+ * @param token Token
+ *
+ * @return JSON type of @c token
+ */
 static inline enum sol_json_type
 sol_json_token_get_type(const struct sol_json_token *token)
 {
     return sol_json_mem_get_type(token->start);
 }
 
+/**
+ * @brief Returns the token size.
+ *
+ * @param token Token
+ *
+ * @return Token size in bytes
+ */
 static inline unsigned int
 sol_json_token_get_size(const struct sol_json_token *token)
 {
     return token->end - token->start;
 }
 
+/**
+ * @brief Checks if the string pointed by @c token is equal to the string @c str.
+ *
+ * @param token Token of type string
+ * @param str The string to compare
+ * @param len Size of @c str
+ *
+ * @return @c true if the contents are equal, @c false otherwise
+ */
 static inline bool
 sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsigned int len)
 {
@@ -201,18 +346,26 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsig
     return (size == len + 2) && memcmp(token->start + 1, str, len) == 0;
 }
 
+/**
+ * @brief Helper macro to check if the string pointed by @c token_ is equal to a string literal.
+ *
+ * @param token_ Token of type string
+ * @param str_ String literal
+ *
+ * @return @c true if the contents are equal, @c false otherwise
+ */
 #define SOL_JSON_TOKEN_STR_LITERAL_EQ(token_, str_) \
     sol_json_token_str_eq(token_, str_, sizeof(str_) - 1)
 
 /**
- * Get the numeric value of the given token as an 64 bits unsigned integer.
+ * @brief Get the numeric value of the given token as an 64 bits unsigned integer.
  *
- * @param token the token to convert to number.
- * @param value where to return the converted number.
+ * @param token the token to convert to number
+ * @param value where to return the converted number
  *
  * @return 0 on success, -errno on failure (@c EINVAL or @c
  * ERANGE). On errors @a value will be set to a best-match, such as 0
- * if @c EINVAL or @c UINT64_MAX if @c ERANGE.
+ * if @c EINVAL or @c UINT64_MAX if @c ERANGE
  *
  * @see sol_json_token_get_int64()
  * @see sol_json_token_get_uint32()
@@ -221,14 +374,14 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsig
 int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2);
 
 /**
- * Get the numeric value of the given token as an 64 bits signed integer.
+ * @brief Get the numeric value of the given token as an 64 bits signed integer.
  *
- * @param token the token to convert to number.
- * @param value where to return the converted number.
+ * @param token the token to convert to number
+ * @param value where to return the converted number
  *
  * @return 0 on success, -errno on failure (@c EINVAL or @c
  * ERANGE). On errors @a value will be set to a best-match, such as 0
- * if @c EINVAL, @c INT64_MAX or @c INT64_MIN if @c ERANGE.
+ * if @c EINVAL, @c INT64_MAX or @c INT64_MIN if @c ERANGE
  *
  * @see sol_json_token_get_uint64()
  * @see sol_json_token_get_int32()
@@ -237,14 +390,14 @@ int sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *valu
 int sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2);
 
 /**
- * Get the numeric value of the given token as an 32 bits unsigned integer.
+ * @brief Get the numeric value of the given token as an 32 bits unsigned integer.
  *
- * @param token the token to convert to number.
- * @param value where to return the converted number.
+ * @param token the token to convert to number
+ * @param value where to return the converted number
  *
  * @return 0 on success, -errno on failure (@c EINVAL or @c
  * ERANGE). On errors @a value will be set to a best-match, such as 0
- * if @c EINVAL or @c UINT32_MAX if @c ERANGE.
+ * if @c EINVAL or @c UINT32_MAX if @c ERANGE
  *
  * @see sol_json_token_get_uint64()
  * @see sol_json_token_get_int32()
@@ -267,14 +420,14 @@ sol_json_token_get_uint32(const struct sol_json_token *token, uint32_t *value)
 }
 
 /**
- * Get the numeric value of the given token as an 32 bits signed integer.
+ * @brief Get the numeric value of the given token as an 32 bits signed integer.
  *
- * @param token the token to convert to number.
- * @param value where to return the converted number.
+ * @param token the token to convert to number
+ * @param value where to return the converted number
  *
  * @return 0 on success, -errno on failure (@c EINVAL or @c
  * ERANGE). On errors @a value will be set to a best-match, such as 0
- * if @c EINVAL, @c INT32_MAX or @c INT32_MIN if @c ERANGE.
+ * if @c EINVAL, @c INT32_MAX or @c INT32_MIN if @c ERANGE
  *
  * @see sol_json_token_get_uint64()
  * @see sol_json_token_get_int32()
@@ -301,14 +454,14 @@ sol_json_token_get_int32(const struct sol_json_token *token, int32_t *value)
 }
 
 /**
- * Get the numeric value of the given token as double-precision floating point.
+ * @brief Get the numeric value of the given token as double-precision floating point.
  *
- * @param token the token to convert to number.
- * @param value where to return the converted number.
+ * @param token the token to convert to number
+ * @param value where to return the converted number
  *
  * @return 0 on success, -errno on failure (@c EINVAL or @c
  * ERANGE). On errors @a value will be set to a best-match, such as 0.0
- * if @c EINVAL, @c DBL_MAX or @c -DBL_MAX if @c ERANGE.
+ * if @c EINVAL, @c DBL_MAX or @c -DBL_MAX if @c ERANGE
  *
  * @see sol_json_token_get_uint64()
  * @see sol_json_token_get_int64()
@@ -318,11 +471,11 @@ sol_json_token_get_int32(const struct sol_json_token *token, int32_t *value)
 int sol_json_token_get_double(const struct sol_json_token *token, double *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2);
 
 /**
- * Converts a JSON token to a string slice.
+ * @brief Converts a JSON token to a string slice.
  *
- * @param token the token to convert to string slice.
+ * @param token the token to convert to string slice
  *
- * @return A string slice struct.
+ * @return A string slice struct
  *
  * @see sol_str_slice
  */
@@ -332,24 +485,60 @@ sol_json_token_to_slice(const struct sol_json_token *token)
     return SOL_STR_SLICE_STR(token->start, token->end - token->start);
 }
 
-
+/**
+ * @brief Advance the scanner to the next JSON token.
+ *
+ * @param scanner JSON scanner to advance
+ * @param token Current token after the advance
+ *
+ * @return @c true if successfully advanced, @c false otherwise
+ */
 bool sol_json_scanner_next(struct sol_json_scanner *scanner,
     struct sol_json_token *token) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2);
 
-/* modifies token to be the last token to skip over the given entry.
- * if object/array start, it will be the matching end token.
+/**
+ * @brief Modifies @c scanner to point to @c token end, skipping over the @c token content.
+ *
+ * If object/array start, it will be the matching end token.
  * otherwise it will be the given token (as there is no nesting).
  *
- * in every case the scanner->current position is reset to given
+ * In every case the scanner->current position is reset to given
  * token->end and as it iterates the scanner->position is updated to
- * match the new token's end (sol_json_scanner_next() behavior).
+ * match the new token's end (@ref sol_json_scanner_next() behavior).
+ *
+ * @param scanner JSON scanner to advance
+ * @param token Current token after the advance
+ *
+ * @return @c true if successfully skipped the token, @c false otherwise
  */
 bool sol_json_scanner_skip_over(struct sol_json_scanner *scanner,
     struct sol_json_token *token) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2);
 
+/**
+ * @brief Retrieve <key, value> pair currently pointed by @c scanner.
+ *
+ * Retrieve the @c key and @c value tokens from scanner's current position
+ * and update the scanner position to point to after the pair.
+ *
+ * @param scanner JSON scanner
+ * @param key Token of the pair's key
+ * @param value Token of the pair's value
+ *
+ * @return @c true if a pair is successfully retrieved, @c false otherwise
+ */
 bool sol_json_scanner_get_dict_pair(struct sol_json_scanner *scanner,
     struct sol_json_token *key, struct sol_json_token *value) SOL_ATTR_WARN_UNUSED_RESULT SOL_ATTR_NONNULL(1, 2, 3);
 
+/**
+ * @brief Function to help iterate over a generic JSON sequence.
+ *
+ * @param scanner JSON scanner
+ * @param token Current token after the iteration
+ * @param end_type Token type that ends the sequence
+ * @param reason Exit status of an iteration
+ *
+ * @return @c true if successfully iterated over the sequence, @c false otherwise
+ */
 static inline bool
 _sol_json_loop_helper_generic(struct sol_json_scanner *scanner, struct sol_json_token *token,
     enum sol_json_type end_type, enum sol_json_loop_reason *reason)
@@ -377,6 +566,16 @@ _sol_json_loop_helper_generic(struct sol_json_scanner *scanner, struct sol_json_
     return true;
 }
 
+/**
+ * @brief Function to help iterate over a JSON array.
+ *
+ * @param scanner JSON scanner
+ * @param token Current token after the iteration
+ * @param reason Exit status of an iteration
+ * @param element_type Token type of the elements in the array
+ *
+ * @return @c true if successfully iterated over the sequence, @c false otherwise
+ */
 static inline bool
 _sol_json_loop_helper_array(struct sol_json_scanner *scanner, struct sol_json_token *token,
     enum sol_json_loop_reason *reason, enum sol_json_type element_type)
@@ -393,6 +592,17 @@ _sol_json_loop_helper_array(struct sol_json_scanner *scanner, struct sol_json_to
     return false;
 }
 
+/**
+ * @brief Function to help iterate over a JSON object.
+ *
+ * @param scanner JSON scanner
+ * @param token Current token after the iteration
+ * @param key Token to the key of the current object pair
+ * @param value Token to the value of the current object pair
+ * @param reason Exit status of an iteration
+ *
+ * @return @c true if successfully iterated over the sequence, @c false otherwise
+ */
 static inline bool
 _sol_json_loop_helper_object(struct sol_json_scanner *scanner, struct sol_json_token *token,
     struct sol_json_token *key, struct sol_json_token *value, enum sol_json_loop_reason *reason)
@@ -410,6 +620,15 @@ _sol_json_loop_helper_object(struct sol_json_scanner *scanner, struct sol_json_t
     return true;
 }
 
+/**
+ * @brief Function to bootstrap an iteration over a JSON sequence.
+ *
+ * @param scanner JSON scanner
+ * @param token Current token after initialization
+ * @param start_type Token type that starts the sequence
+ *
+ * @return Exit status of the initialization
+ */
 static inline enum sol_json_loop_reason
 _sol_json_loop_helper_init(struct sol_json_scanner *scanner, struct sol_json_token *token,
     enum sol_json_type start_type)
@@ -421,27 +640,143 @@ _sol_json_loop_helper_init(struct sol_json_scanner *scanner, struct sol_json_tok
     return SOL_JSON_LOOP_REASON_OK;
 }
 
+/**
+ * @brief Calculate the size of the escaped version of a string.
+ *
+ * @param str Input string
+ *
+ * @return Size necessary to hold the escaped version of @c str
+ */
 size_t sol_json_calculate_escaped_string_len(const char *str) SOL_ATTR_NONNULL(1);
 
+/**
+ * @brief Escapes JSON special and control characters from the string content.
+ *
+ * @param str String to escape
+ * @param buf Where to place the escaped string
+ * @param len Buffer size in bytes
+ *
+ * @return The escaped string
+ */
 char *sol_json_escape_string(const char *str, char *buf, size_t len) SOL_ATTR_NONNULL(1, 2);
 
+/**
+ * @brief Helper macro to make easier to escape a string for use in a JSON document
+ *
+ * @param s String to escape
+ */
 #define SOL_JSON_ESCAPE_STRING(s) ({ \
         size_t str_len ## __COUNT__  = sol_json_calculate_escaped_string_len(s); \
         sol_json_escape_string(s, alloca(str_len ## __COUNT__), str_len ## __COUNT__); \
     })
 
+/**
+ * @brief Converts a double into a string suited for use in a JSON Document
+ *
+ * @param value Value to be converted
+ * @param buf Where to place the converted value
+ * @param buf_len Buffer size in bytes
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_json_double_to_str(const double value, char *buf, size_t buf_len);
 
+/**
+ * @brief Check if @c scanner content is pointing to a valid JSON element of
+ * type @c start_type.
+ *
+ * @note May or may not be NULL terminated.
+ *
+ * @param scanner JSON scanner
+ * @param start_type Token type of the desired JSON element
+ *
+ * @return @c true if JSON element is valid, @c false otherwise
+ */
 bool sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type start_type) SOL_ATTR_NONNULL(1);
 
+/**
+ * @brief Inserts the string @c str in the end of the JSON document contained in @c buffer.
+ *
+ * @param buffer Buffer containing the new JSON document
+ * @param str String to be inserted in the JSON document
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_json_serialize_string(struct sol_buffer *buffer, const char *str) SOL_ATTR_NONNULL(1, 2);
+
+/**
+ * @brief Inserts the string of the double @c val in the end
+ * of the JSON document contained in @c buffer.
+ *
+ * @param buffer Buffer containing the new JSON document
+ * @param val Value to be inserted in the JSON document
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_json_serialize_double(struct sol_buffer *buffer, double val) SOL_ATTR_NONNULL(1);
+
+/**
+ * @brief Inserts the string of the 32-bit integer @c val in the end
+ * of the JSON document contained in @c buffer.
+ *
+ * @param buffer Buffer containing the new JSON document
+ * @param val Value to be inserted in the JSON document
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_json_serialize_int32(struct sol_buffer *buffer, int32_t val) SOL_ATTR_NONNULL(1);
+
+/**
+ * @brief Inserts the string of the unsigned 32-bit integer @c val in the end
+ * of the JSON document contained in @c buffer.
+ *
+ * @param buffer Buffer containing the new JSON document
+ * @param val Value to be inserted in the JSON document
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_json_serialize_uint32(struct sol_buffer *buffer, uint32_t val) SOL_ATTR_NONNULL(1);
+
+/**
+ * @brief Inserts the string of the 64-bit integer @c val in the end
+ * of the JSON document contained in @c buffer.
+ *
+ * @param buffer Buffer containing the new JSON document
+ * @param val Value to be inserted in the JSON document
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_json_serialize_int64(struct sol_buffer *buffer, int64_t val) SOL_ATTR_NONNULL(1);
+
+/**
+ * @brief Inserts the string of the unsigned 64-bit integer @c val in the end
+ * of the JSON document contained in @c buffer.
+ *
+ * @param buffer Buffer containing the new JSON document
+ * @param val Value to be inserted in the JSON document
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_json_serialize_uint64(struct sol_buffer *buffer, uint64_t val) SOL_ATTR_NONNULL(1);
+
+/**
+ * @brief Inserts the string of the boolean value @c val in the end
+ * of the JSON document contained in @c buffer.
+ *
+ * @param buffer Buffer containing the new JSON document
+ * @param val Value to be inserted in the JSON document
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_json_serialize_boolean(struct sol_buffer *buffer, bool val) SOL_ATTR_NONNULL(1);
 
+/**
+ * @brief Inserts the string "null" in the end of the JSON document contained in @c buffer.
+ *
+ * @param buffer Buffer containing the new JSON document
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 static inline int
 sol_json_serialize_null(struct sol_buffer *buffer)
 {
@@ -451,31 +786,33 @@ sol_json_serialize_null(struct sol_buffer *buffer)
 }
 
 /**
- *  Get in a sol_buffer the string value of informed token. If token type is
- *  a JSON string, quotes are removed and string is unescaped. If not
- *  full token value is returned as a string.
+ *  @brief Copy to a @ref sol_buffer the string pointed by @c token.
+ *
+ *  If token is of type string, quotes are removed and string is unescaped. If not,
+ *  the full token value is returned as a string.
  *
  *  If necessary memory will be allocated to place unescaped string, so
- *  caller is responsable to call sol_buffer_fini after using the buffer
+ *  caller is responsible to call @ref sol_buffer_fini after using the buffer
  *  content.
  *
- *  @param token A token to get string from
- *  @param buffer An unitialized buffer.
- *  sol_buffer_init will be called internally
+ *  @note @ref sol_buffer_init will be called internally to initialize the buffer.
  *
- *  @return 0 on sucess, a negative error code on failure.
+ *  @param token Token to get the string from
+ *  @param buffer Uninitialized buffer
+ *
+ *  @return @c 0 on success, a negative error code on failure
  */
 int sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct sol_buffer *buffer);
 
 /**
- *  Helper function to get a copy of the unescaped and no-quotes string
- *  produced by sol_json_token_get_unescaped_string.
+ *  @brief Creates a copy of the unescaped and no-quotes string
+ *  produced by @ref sol_json_token_get_unescaped_string.
  *
- *  Caller is responsable to free string memory.
+ *  Caller is responsible to free the string memory.
  *
  *  @param value A string type token
  *
- *  @return A a copy of the unescaped string on sucess, NULL on failure.
+ *  @return A copy of the unescaped string on success, @c NULL otherwise
  */
 char *sol_json_token_get_unescaped_string_copy(const struct sol_json_token *value);
 
