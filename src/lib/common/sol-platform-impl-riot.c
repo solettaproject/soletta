@@ -236,3 +236,101 @@ sol_platform_impl_set_hostname(const char *name)
     SOL_WRN("Not implemented");
     return -ENOTSUP;
 }
+
+int
+sol_platform_impl_set_system_clock(int64_t timestamp)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int64_t
+sol_platform_impl_get_system_clock(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_unregister_system_clock_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_register_system_clock_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_set_timezone(const char *timezone)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+const char *
+sol_platform_impl_get_timezone(void)
+{
+    SOL_WRN("Not implemented");
+    return NULL;
+}
+
+int
+sol_platform_register_timezone_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_unregister_timezone_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_set_locale(char **locales)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+const char *
+sol_platform_impl_get_locale(enum sol_platform_locale_category type)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_register_locale_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_unregister_locale_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_apply_locale(enum sol_platform_locale_category type, const char *locale)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_load_locales(char **locale_cache)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}

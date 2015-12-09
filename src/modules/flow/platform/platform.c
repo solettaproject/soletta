@@ -43,8 +43,15 @@ struct platform_data {
     enum sol_platform_state state;
 };
 
-struct hostname_data {
+struct monitor_data {
     uint16_t connections;
+};
+
+struct monitor_node_type {
+    struct sol_flow_node_type base;
+    int (*send_packet)(const void *, struct sol_flow_node *);
+    int (*monitor_register)(struct sol_flow_node *);
+    int (*monitor_unregister)(struct sol_flow_node *);
 };
 
 static int
@@ -213,7 +220,7 @@ platform_machine_id_open(struct sol_flow_node *node,
 }
 
 static int
-hostname_send(const char *hostname, struct sol_flow_node *node)
+hostname_send(const void *hostname, struct sol_flow_node *node)
 {
     int r;
 
@@ -228,14 +235,33 @@ hostname_send(const char *hostname, struct sol_flow_node *node)
 }
 
 static int
-hostname_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+system_clock_send(const void *timestamp, struct sol_flow_node *node)
+{
+    struct sol_irange irange = SOL_IRANGE_INIT();
+    int r;
+
+    if (!timestamp) {
+        irange.val = sol_platform_get_system_clock();
+        SOL_INT_CHECK(irange.val, < 0, -EINVAL);
+    } else
+        irange.val = (*((int64_t *)timestamp));
+
+    r = sol_flow_send_irange_packet(node, 0, &irange);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+monitor_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     const struct sol_flow_node_type_platform_hostname_options *opts;
+    const struct monitor_node_type *monitor_type =
+        (const struct monitor_node_type *)sol_flow_node_get_type(node);
 
     opts = (const struct sol_flow_node_type_platform_hostname_options *)options;
 
     if (opts->send_initial_packet)
-        return hostname_send(NULL, node);
+        return monitor_type->send_packet(NULL, node);
     return 0;
 }
 
@@ -260,30 +286,281 @@ hostname_changed(void *data, const char *hostname)
 }
 
 static int
-hostname_out_connect(struct sol_flow_node *node, void *data,
+hostname_monitor_register(struct sol_flow_node *node)
+{
+    return sol_platform_add_hostname_monitor(hostname_changed, node);
+}
+
+static int
+hostname_monitor_unregister(struct sol_flow_node *node)
+{
+    return sol_platform_del_hostname_monitor(hostname_changed, node);
+}
+
+static void
+system_clock_changed(void *data, int64_t timestamp)
+{
+    system_clock_send(&timestamp, data);
+}
+
+static int
+system_clock_monitor_register(struct sol_flow_node *node)
+{
+    return sol_platform_add_system_clock_monitor(system_clock_changed, node);
+}
+
+static int
+system_clock_monitor_unregister(struct sol_flow_node *node)
+{
+    return sol_platform_del_system_clock_monitor(system_clock_changed, node);
+}
+
+static int
+monitor_out_connect(struct sol_flow_node *node, void *data,
     uint16_t port, uint16_t conn_id)
 {
-    struct hostname_data *mdata = data;
+    struct monitor_data *mdata = data;
+    const struct monitor_node_type *monitor_type =
+        (const struct monitor_node_type *)sol_flow_node_get_type(node);
+
 
     mdata->connections++;
     if (mdata->connections == 1)
-        return sol_platform_add_hostname_monitor(hostname_changed, node);
+        return monitor_type->monitor_register(node);
     return 0;
 }
 
 static int
-hostname_out_disconnect(struct sol_flow_node *node, void *data,
+monitor_out_disconnect(struct sol_flow_node *node, void *data,
     uint16_t port, uint16_t conn_id)
 {
-    struct hostname_data *mdata = data;
+    struct monitor_data *mdata = data;
+    const struct monitor_node_type *monitor_type =
+        (const struct monitor_node_type *)sol_flow_node_get_type(node);
 
     if (!mdata->connections)
         return 0;
 
     if (!--mdata->connections)
-        return sol_platform_del_hostname_monitor(hostname_changed, node);
+        return monitor_type->monitor_unregister(node);
     return 0;
 }
 
+static int
+system_clock_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct sol_irange irange;
+    int r;
+
+    r = sol_flow_packet_get_irange(packet, &irange);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_platform_set_system_clock(irange.val);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+timezone_send(const void *timezone, struct sol_flow_node *node)
+{
+    int r;
+
+    if (!timezone) {
+        timezone = sol_platform_get_timezone();
+        SOL_NULL_CHECK(timezone, -ECANCELED);
+    }
+
+    r = sol_flow_send_string_packet(node, 0, timezone);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static void
+timezone_changed(void *data, const char *timezone)
+{
+    timezone_send(timezone, data);
+}
+
+static int
+timezone_monitor_register(struct sol_flow_node *node)
+{
+    return sol_platform_add_timezone_monitor(timezone_changed, node);
+}
+
+static int
+timezone_monitor_unregister(struct sol_flow_node *node)
+{
+    return sol_platform_del_timezone_monitor(timezone_changed, node);
+}
+
+static int
+timezone_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    const char *tz;
+
+    r = sol_flow_packet_get_string(packet, &tz);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_platform_set_timezone(tz);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+locale_send(struct sol_flow_node *node, enum sol_platform_locale_category category, const char *locale)
+{
+    if (!locale) {
+        locale = sol_platform_get_locale(category);
+        SOL_NULL_CHECK(locale, -EINVAL);
+    }
+    return sol_flow_send_string_packet(node, (int)category, locale);
+}
+
+static int
+locale_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    int r;
+    const struct sol_flow_node_type_platform_hostname_options *opts;
+    enum sol_platform_locale_category i;
+
+    opts = (const struct sol_flow_node_type_platform_hostname_options *)options;
+
+    if (!opts->send_initial_packet)
+        return 0;
+
+    for (i = SOL_PLATFORM_LOCALE_LANGUAGE; i <= SOL_PLATFORM_LOCALE_TIME; i++) {
+        r = locale_send(node, i, NULL);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+    return 0;
+}
+
+static void
+locale_changed(void *data, enum sol_platform_locale_category category, const char *locale)
+{
+    int r;
+
+    locale_send(data, category, locale);
+    r = sol_platform_apply_locale(category);
+    SOL_INT_CHECK(r, < 0);
+}
+
+static int
+locale_monitor_register(struct sol_flow_node *node)
+{
+    return sol_platform_add_locale_monitor(locale_changed, node);
+}
+
+static int
+locale_monitor_unregister(struct sol_flow_node *node)
+{
+    return sol_platform_del_locale_monitor(locale_changed, node);
+}
+
+static int
+set_locale(enum sol_platform_locale_category category, const struct sol_flow_packet *packet)
+{
+    int r;
+    const char *locale;
+
+    r = sol_flow_packet_get_string(packet, &locale);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_platform_set_locale(category, locale);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static int
+locale_all_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_LANGUAGE, packet);
+}
+
+static int
+locale_address_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_ADDRESS, packet);
+}
+
+static int
+locale_collate_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_COLLATE, packet);
+}
+
+static int
+locale_ctype_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_CTYPE, packet);
+}
+
+static int
+locale_identification_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_IDENTIFICATION, packet);
+}
+
+static int
+locale_measurement_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_MEASUREMENT, packet);
+}
+
+static int
+locale_messages_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_MESSAGES, packet);
+}
+
+static int
+locale_monetary_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_MONETARY, packet);
+}
+
+static int
+locale_name_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_NAME, packet);
+}
+
+static int
+locale_numeric_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_NUMERIC, packet);
+}
+
+static int
+locale_paper_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_PAPER, packet);
+}
+
+static int
+locale_telephone_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_TELEPHONE, packet);
+}
+
+static int
+locale_time_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    return set_locale(SOL_PLATFORM_LOCALE_TIME, packet);
+}
 
 #include "platform-gen.c"

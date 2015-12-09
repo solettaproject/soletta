@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <systemd/sd-bus.h>
+#include <time.h>
 
 #include "sol-platform-impl.h"
 
@@ -494,6 +495,7 @@ sol_platform_impl_shutdown(void)
     sol_ptr_vector_clear(&_ctx.services);
 
     sol_bus_close();
+    sol_platform_unregister_system_clock_monitor();
 }
 
 int
@@ -513,7 +515,7 @@ sol_platform_impl_set_hostname(const char *name)
 }
 
 static bool
-_set_hostname(void *data, sd_bus_message *m)
+skip_prop(void *data, sd_bus_message *m)
 {
     int r;
 
@@ -524,7 +526,7 @@ _set_hostname(void *data, sd_bus_message *m)
 
 static const struct sol_bus_properties _hostname_property = {
     .member = "StaticHostname",
-    .set = _set_hostname,
+    .set = skip_prop,
 };
 
 int
@@ -550,4 +552,147 @@ sol_platform_register_hostname_monitor(void)
     return sol_bus_map_cached_properties(bus, "org.freedesktop.hostname1",
         "/org/freedesktop/hostname1", "org.freedesktop.hostname1",
         &_hostname_property, _hostname_changed, NULL);
+}
+
+int
+sol_platform_impl_set_system_clock(int64_t timestamp)
+{
+    sd_bus *bus;
+    int r;
+    int64_t timestamp_micro;
+
+    r = sol_util_int64_mul(timestamp, USEC_PER_SEC, &timestamp_micro);
+    SOL_INT_CHECK(r, < 0, r);
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    r = sd_bus_call_method_async(bus, NULL, "org.freedesktop.timedate1",
+        "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
+        "SetTime", sol_bus_log_callback, NULL, "xbb", timestamp_micro, false, false);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+int
+sol_platform_impl_set_timezone(const char *timezone)
+{
+    sd_bus *bus;
+    int r;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    r = sd_bus_call_method_async(bus, NULL, "org.freedesktop.timedate1",
+        "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
+        "SetTimezone", sol_bus_log_callback, NULL, "sb", timezone, false);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static const struct sol_bus_properties _timezone_property = {
+    .member = "Timezone",
+    .set = skip_prop,
+};
+
+static void
+_timezone_changed(void *data, uint64_t mask)
+{
+    sol_platform_inform_timezone_changed();
+}
+
+int
+sol_platform_register_timezone_monitor(void)
+{
+    sd_bus *bus;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    return sol_bus_map_cached_properties(bus, "org.freedesktop.timedate1",
+        "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
+        &_timezone_property, _timezone_changed, NULL);
+}
+
+int
+sol_platform_unregister_timezone_monitor(void)
+{
+    return sol_bus_unmap_cached_properties(&_timezone_property, NULL);
+}
+
+int
+sol_platform_impl_set_locale(char **locales)
+{
+    sd_bus *bus;
+    int r;
+    char *str;
+    sd_bus_message *m;
+    enum sol_platform_locale_category i;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    r = sd_bus_message_new_method_call(bus, &m,
+        "org.freedesktop.locale1",
+        "/org/freedesktop/locale1",
+        "org.freedesktop.locale1",
+        "SetLocale");
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sd_bus_message_open_container(m, 'a', "s");
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    for (i = SOL_PLATFORM_LOCALE_LANGUAGE; i <= SOL_PLATFORM_LOCALE_TIME; i++) {
+        r = asprintf(&str, "%s=%s", sol_platform_locale_to_c_str_category(i),
+            locales[i] ? locales[i] : "C");
+        if (r < 0) {
+            r = -ENOMEM;
+            goto exit;
+        }
+        r = sd_bus_message_append_basic(m, 's', str);
+        free(str);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    r = sd_bus_message_close_container(m);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sd_bus_message_append(m, "b", false);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sd_bus_call_async(bus, NULL, m, sol_bus_log_callback, NULL, 0);
+
+exit:
+    sd_bus_message_unref(m);
+    return r;
+}
+
+static void
+_locale_changed(void *data, uint64_t mask)
+{
+    sol_platform_inform_locale_changed();
+}
+
+static const struct sol_bus_properties _locale_property = {
+    .member = "Locale",
+    .set = skip_prop,
+};
+
+int
+sol_platform_register_locale_monitor(void)
+{
+    sd_bus *bus;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    return sol_bus_map_cached_properties(bus, "org.freedesktop.locale1",
+        "/org/freedesktop/locale1", "org.freedesktop.locale1",
+        &_locale_property, _locale_changed, NULL);
+}
+
+int
+sol_platform_unregister_locale_monitor(void)
+{
+    return sol_bus_unmap_cached_properties(&_locale_property, NULL);
 }
