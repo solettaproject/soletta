@@ -886,7 +886,7 @@
     "        return -1;\n" \
     "    }\n" \
     "    if (duk_peval_lstring(*duk_ctx, code, code_size) != 0) {\n" \
-    "        SOL_ERR(\"Failed to read from javascript content buffer: %s\", duk_safe_to_string(duk_ctx, -1));\n" \
+    "        SOL_ERR(\"Failed to read from javascript content buffer: %s\", duk_safe_to_string(*duk_ctx, -1));\n" \
     "        duk_destroy_heap(*duk_ctx);\n" \
     "        return -1;\n" \
     "    }\n" \
