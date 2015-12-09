@@ -661,8 +661,6 @@ sol_json_double_to_str(const double value, char *buf, size_t len)
     return 0;
 }
 
-/* Check if scanner is pointing to a valid string with a json element of
- * informed type. May or may not be NULL terminated */
 SOL_API bool
 sol_json_is_valid_type(struct sol_json_scanner *scanner, enum sol_json_type type)
 {
