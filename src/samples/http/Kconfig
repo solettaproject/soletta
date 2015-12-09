@@ -4,5 +4,15 @@ config HTTP_SAMPLES
 
 config DOWNLOAD_SAMPLE
 	bool "Download sample"
-	depends on COMMON_SAMPLES && HTTP_CLIENT
+	depends on HTTP_SAMPLES && HTTP_CLIENT
+	default y
+
+config STATIC_FILES_SAMPLE
+	bool "Serve static files sample"
+	depends on HTTP_SAMPLES && HTTP_SERVER && USE_FILESYSTEM
+	default y
+
+config SERVER_SAMPLE
+	bool "Server sample"
+	depends on HTTP_SAMPLES && HTTP_SERVER
 	default y
