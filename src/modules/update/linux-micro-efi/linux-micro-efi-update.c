@@ -84,7 +84,7 @@ struct sol_update_handle {
     };
     const void *user_data;
 
-    size_t size;
+    uint64_t size;
 
     bool on_callback : 1;
     bool resume : 1;
@@ -290,7 +290,7 @@ fetch_recv_cb(void *data, struct sol_buffer *buffer)
         }
         /* Don't care about errors, as this is more 'nice to have' than a must */
         /* TODO should I care about EINTR, though? */
-        ftruncate(fd, handle->size);
+        ftruncate64(fd, handle->size);
         handle->file = fdopen(fd, "w+e");
         if (!handle->file) {
             SOL_WRN("Could not create temporary file: %s",
