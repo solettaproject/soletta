@@ -344,7 +344,7 @@ packet_extract_path(const struct sol_coap_packet *req, char **path_str)
             (path, (uint8_t *)*path_str, path_len - 1, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    *path_str[path_len - 1] = 0;
+    (*path_str)[path_len - 1] = 0;
     return 0;
 
 error:
