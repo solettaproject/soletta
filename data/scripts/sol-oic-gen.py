@@ -1461,7 +1461,6 @@ client_connect(struct client_resource *resource, const char *device_id)
     }
 
     SOL_ERR("Could not create timeout to find resource");
-    free(resource->device_id);
     return -ENOMEM;
 }
 
