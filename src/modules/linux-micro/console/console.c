@@ -185,7 +185,8 @@ do_shell(const char *tty)
     r = dup2(STDIN_FILENO, 2);
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
-    fchown(STDIN_FILENO, 0, 0);
+    r = fchown(STDIN_FILENO, 0, 0);
+    SOL_INT_CHECK_GOTO(r, < 0, end);
     fchmod(STDIN_FILENO, 0620);
 
     tsid = tcgetsid(STDIN_FILENO);
@@ -198,7 +199,10 @@ do_shell(const char *tty)
 
 end:
     ioctl(STDIN_FILENO, TIOCSCTTY, 0);
-    chdir("/");
+    r = chdir("/");
+    if (r < 0)
+        SOL_WRN("Failed to change the current directory to '/'");
+
     execle(shell, shell, NULL, envp);
 }
 
