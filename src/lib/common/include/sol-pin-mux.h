@@ -52,13 +52,16 @@ extern "C" {
  * @{
  */
 
+/**
+ * @brief Flags to describe pin capabilities (as the supported protocols).
+ */
 enum sol_io_protocol {
-    SOL_IO_AIO = 0x01, /**< Value to check for AIO capability */
-    SOL_IO_GPIO = 0x02, /**< Value to check for GPIO capability */
-    SOL_IO_I2C = 0x04, /**< Value to check for I2C capability */
-    SOL_IO_PWM = 0x08, /**< Value to check for PWM capability */
-    SOL_IO_SPI = 0x10, /**< Value to check for SPI capability */
-    SOL_IO_UART = 0x20, /**< Value to check for UART capability */
+    SOL_IO_AIO = 0x01, /**< @brief AIO capability */
+    SOL_IO_GPIO = 0x02, /**< @brief GPIO capability */
+    SOL_IO_I2C = 0x04, /**< @brief I2C capability */
+    SOL_IO_PWM = 0x08, /**< @brief PWM capability */
+    SOL_IO_SPI = 0x10, /**< @brief SPI capability */
+    SOL_IO_UART = 0x20, /**< @brief UART capability */
 };
 
 /**
