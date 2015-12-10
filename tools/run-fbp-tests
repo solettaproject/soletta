@@ -125,14 +125,14 @@ class FbpTest:
         return False
 
     def show_result_status(self, out, code):
-        if self.output and self.output_spec != out:
+        if self.output and self.output_spec not in out:
             orig = out.splitlines(True)
             dest = self.output_spec.splitlines(True)
             logging.warning("FAILED running %s: wrong output" % os.path.basename(self.test_file))
             for line in difflib.unified_diff(orig, dest):
                 sys.stdout.write(line)
             return "failed"
-        elif self.output_regex and not re.match(self.output_spec, out):
+        elif self.output_regex and not re.search("^" + self.output_spec, out, re.MULTILINE):
             logging.warning("FAILED running %s: wrong output" % os.path.basename(self.test_file))
             logging.warning("Expected expression:")
             logging.warning(self.output_spec)
