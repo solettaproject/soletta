@@ -78,7 +78,7 @@ extern "C" {
  */
 
 /**
- * Set of CoAP packet options we are aware of.
+ * @brief Set of CoAP packet options we are aware of.
  *
  * Users may add options other than these to their packets, provided they
  * know how to format them correctly. The only restriction is that all options
@@ -105,14 +105,18 @@ typedef enum {
 } sol_coap_option_num_t;
 
 /**
- * Available request methods.
+ * @brief Available request methods.
  *
  * To be used with sol_coap_header_set_code() when crafting a request.
  */
 typedef enum {
+    /** @brief A GET request. */
     SOL_COAP_METHOD_GET = 1,
+    /** @brief A POST request. */
     SOL_COAP_METHOD_POST = 2,
+    /** @brief A PUT request. */
     SOL_COAP_METHOD_PUT = 3,
+    /** @brief A DELETE request. */
     SOL_COAP_METHOD_DELETE = 4,
 } sol_coap_method_t;
 
@@ -134,7 +138,7 @@ typedef enum {
 #define SOL_COAP_REQUEST_MASK 0x07
 
 /**
- * CoAP packets may be of one of these types.
+ * @brief CoAP packets may be of one of these types.
  */
 typedef enum {
     /**
@@ -184,7 +188,7 @@ typedef enum {
 #define MAKE_RSPCODE(clas, det) ((clas << 5) | (det))
 
 /**
- * Set of response codes available for a response packet.
+ * @brief Set of response codes available for a response packet.
  *
  * To be used with sol_coap_header_set_code() when crafting a reply.
  */
@@ -213,7 +217,7 @@ typedef enum {
 } sol_coap_responsecode_t;
 
 /**
- * Some content-types available for use with the CONTENT_FORMAT option.
+ * @brief Some content-types available for use with the CONTENT_FORMAT option.
  *
  * Refer to RFC 7252, section 12.3 for more information.
  */
@@ -226,7 +230,7 @@ typedef enum {
 } sol_coap_content_type_t;
 
 /**
- * Flags accepted by a #sol_coap_resource.
+ * @brief Flags accepted by a #sol_coap_resource.
  */
 enum sol_coap_flags {
     SOL_COAP_FLAGS_NONE       = 0,
@@ -235,17 +239,21 @@ enum sol_coap_flags {
 };
 
 /**
- * Opaque handler for a CoAP packet.
+ * @struct sol_coap_packet
+ *
+ * @brief Opaque handler for a CoAP packet.
  */
 struct sol_coap_packet;
 
 /**
- * Opaque handler for a CoAP server.
+ * @struct sol_coap_server
+ *
+ * @brief Opaque handler for a CoAP server.
  */
 struct sol_coap_server;
 
 /**
- * Description for a CoAP resource.
+ * @brief Description for a CoAP resource.
  *
  * CoAP servers will want to register resources, so that clients can act on
  * them, by fetching their state or requesting updates to them. These resources
@@ -255,11 +263,13 @@ struct sol_coap_server;
 struct sol_coap_resource {
 #ifndef SOL_NO_API_VERSION
 #define SOL_COAP_RESOURCE_API_VERSION (1)
+    /** @brief API version */
     uint16_t api_version;
-    uint16_t reserved; /* save this hole for a future field */
+    /** @brief Unused */
+    uint16_t reserved; /* save possible hole for a future field */
 #endif
     /**
-     * GET request.
+     * @brief GET request.
      *
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
@@ -275,7 +285,7 @@ struct sol_coap_resource {
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     /**
-     * POST request.
+     * @brief POST request.
      *
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
@@ -291,7 +301,7 @@ struct sol_coap_resource {
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     /**
-     * PUT request.
+     * @brief PUT request.
      *
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
@@ -307,7 +317,7 @@ struct sol_coap_resource {
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     /**
-     * DELETE request.
+     * @brief DELETE request.
      *
      * @param server The server through which the request was made.
      * @param resource The resource the request mas made on.
@@ -323,11 +333,11 @@ struct sol_coap_resource {
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
     /**
-     * Bitwise OR-ed flags from #sol_coap_flags, if any is necessary.
+     * @brief Bitwise OR-ed flags from #sol_coap_flags, if any is necessary.
      */
     enum sol_coap_flags flags;
     /**
-     * Path representing the resource.
+     * @brief Path representing the resource.
      *
      * An array of #sol_str_slice, each being a component of the path without
      * any separators. Last slice should be empty.
@@ -336,7 +346,7 @@ struct sol_coap_resource {
 };
 
 /**
- * Gets the CoAP protocol version of the packet.
+ * @brief Gets the CoAP protocol version of the packet.
  *
  * @param pkt The packet to get version from.
  *
@@ -345,7 +355,7 @@ struct sol_coap_resource {
 uint8_t sol_coap_header_get_ver(const struct sol_coap_packet *pkt);
 
 /**
- * Gets the type of the message container in the packet.
+ * @brief Gets the type of the message container in the packet.
  *
  * @param pkt The packet containing the message.
  *
@@ -354,7 +364,7 @@ uint8_t sol_coap_header_get_ver(const struct sol_coap_packet *pkt);
 uint8_t sol_coap_header_get_type(const struct sol_coap_packet *pkt);
 
 /**
- * Gets the token of the packet, if any.
+ * @brief Gets the token of the packet, if any.
  *
  * If the packet contains a token, this function can retrieve it.
  *
@@ -366,7 +376,7 @@ uint8_t sol_coap_header_get_type(const struct sol_coap_packet *pkt);
 uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len);
 
 /**
- * Gets the request/response code in the packet.
+ * @brief Gets the request/response code in the packet.
  *
  * If the packet is a request, the code returned is one of #sol_coap_method_t.
  * If it's a response, it will be one of #sol_coap_responsecode_t.
@@ -378,7 +388,7 @@ uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *l
 uint8_t sol_coap_header_get_code(const struct sol_coap_packet *pkt);
 
 /**
- * Gets the message ID.
+ * @brief Gets the message ID.
  *
  * @param pkt The packet from which to get the message ID.
  *
@@ -387,7 +397,7 @@ uint8_t sol_coap_header_get_code(const struct sol_coap_packet *pkt);
 uint16_t sol_coap_header_get_id(const struct sol_coap_packet *pkt);
 
 /**
- * Sets the CoAP protocol version in the packet's header.
+ * @brief Sets the CoAP protocol version in the packet's header.
  *
  * Usually not needed, as packets created with sol_coap_packet_new() will
  * already have the version set.
@@ -398,7 +408,7 @@ uint16_t sol_coap_header_get_id(const struct sol_coap_packet *pkt);
 void sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver);
 
 /**
- * Sets the message type in the packet's header.
+ * @brief Sets the message type in the packet's header.
  *
  * Must be one of #sol_coap_msgtype_t.
  *
@@ -408,7 +418,7 @@ void sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver);
 void sol_coap_header_set_type(struct sol_coap_packet *pkt, uint8_t type);
 
 /**
- * Sets a token in the packet.
+ * @brief Sets a token in the packet.
  *
  * Tokens can be used, besides the id, to identify a specific request. For
  * @c OBSERVE requests, the server will send notifications with the same
@@ -423,7 +433,7 @@ void sol_coap_header_set_type(struct sol_coap_packet *pkt, uint8_t type);
 bool sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint8_t tokenlen);
 
 /**
- * Sets the code of the message.
+ * @brief Sets the code of the message.
  *
  * For requests, it must be one of #sol_coap_method_t.
  * For responses, it must be one of #sol_coap_responsecode_t.
@@ -434,7 +444,7 @@ bool sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint
 void sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code);
 
 /**
- * Sets the message ID.
+ * @brief Sets the message ID.
  *
  * CoAP packets require an ID to identify a request, so that their response
  * can be matched by it.
@@ -447,7 +457,7 @@ void sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code);
 void sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
 
 /**
- * Creates a new CoAP server instance.
+ * @brief Creates a new CoAP server instance.
  *
  * Creates a new, unsecured, CoAP server instance listening on @a port. Clients
  * may use 0 for @a port to let the system pick an available one.
@@ -463,7 +473,7 @@ void sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
 struct sol_coap_server *sol_coap_server_new(uint16_t port);
 
 /**
- * Creates a new secure CoAP server instance.
+ * @brief Creates a new secure CoAP server instance.
  *
  * Creates a new CoAP server instance listening on @a port. Clients
  * may use 0 for @a port to let the system pick an available one.
@@ -480,7 +490,7 @@ struct sol_coap_server *sol_coap_server_new(uint16_t port);
 struct sol_coap_server *sol_coap_secure_server_new(uint16_t port);
 
 /**
- * Take a reference of the given server.
+ * @brief Take a reference of the given server.
  *
  * Increment the reference count of the server, if it's still valid.
  *
@@ -491,7 +501,7 @@ struct sol_coap_server *sol_coap_secure_server_new(uint16_t port);
 struct sol_coap_server *sol_coap_server_ref(struct sol_coap_server *server);
 
 /**
- * Release a reference from the given server.
+ * @brief Release a reference from the given server.
  *
  * When the last reference is released, the server and all resources associated
  * with it will be freed.
@@ -501,7 +511,7 @@ struct sol_coap_server *sol_coap_server_ref(struct sol_coap_server *server);
 void sol_coap_server_unref(struct sol_coap_server *server);
 
 /**
- * Creates a new CoAP packet.
+ * @brief Creates a new CoAP packet.
  *
  * Creates a packet to send as a request or response.
  * If @a old is not NULL, its @c id and @c token (if any) will be copied to
@@ -515,7 +525,7 @@ void sol_coap_server_unref(struct sol_coap_server *server);
 struct sol_coap_packet *sol_coap_packet_new(struct sol_coap_packet *old);
 
 /**
- * Convenience function to create a new packet for a request.
+ * @brief Convenience function to create a new packet for a request.
  *
  * Creates a new packet, automatically setting a new @c id, and setting the
  * request method to @a method and message type to @a type.
@@ -528,7 +538,7 @@ struct sol_coap_packet *sol_coap_packet_new(struct sol_coap_packet *old);
 struct sol_coap_packet *sol_coap_packet_request_new(sol_coap_method_t method, sol_coap_msgtype_t type);
 
 /**
- * Convenience function to create a packet suitable to send as a notification.
+ * @brief Convenience function to create a packet suitable to send as a notification.
  *
  * When notifying observing clients of changes in a resource, this function
  * simplifies the creation of the notification packet by handling the management
@@ -568,7 +578,7 @@ struct sol_coap_packet *sol_coap_packet_ref(struct sol_coap_packet *pkt);
 void sol_coap_packet_unref(struct sol_coap_packet *pkt);
 
 /**
- * Gets a pointer to the packet's payload.
+ * @brief Gets a pointer to the packet's payload.
  *
  * When creating a packet, first set all the packet header parameters and options,
  * then use this function to get a pointer to the beginning of the available
@@ -596,7 +606,7 @@ void sol_coap_packet_unref(struct sol_coap_packet *pkt);
 int sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len);
 
 /**
- * Sets the amount of space used from the payload.
+ * @brief Sets the amount of space used from the payload.
  *
  * This function makes no sense for packets received from other end points,
  * only when creating a packet locally to be sent to remote clients or servers.
@@ -614,7 +624,7 @@ int sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint
 int sol_coap_packet_set_payload_used(struct sol_coap_packet *pkt, uint16_t len);
 
 /**
- * Checks if the given packet contains a payload.
+ * @brief Checks if the given packet contains a payload.
  *
  * For packets received as a request or response, this function checks if
  * they contain a payload. It should be used before calling sol_coap_packet_get_payload().
@@ -626,7 +636,7 @@ int sol_coap_packet_set_payload_used(struct sol_coap_packet *pkt, uint16_t len);
 bool sol_coap_packet_has_payload(struct sol_coap_packet *pkt);
 
 /**
- * Adds an option to the CoAP packet.
+ * @brief Adds an option to the CoAP packet.
  *
  * Options must be added in order, according to their numeric definitions.
  *
@@ -640,7 +650,7 @@ bool sol_coap_packet_has_payload(struct sol_coap_packet *pkt);
 int sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *value, uint16_t len);
 
 /**
- * Convenience function to add the the #SOL_COAP_OPTION_URI_PATH from a string.
+ * @brief Convenience function to add the the #SOL_COAP_OPTION_URI_PATH from a string.
  *
  * @param pkt The packet to the add the path to.
  * @param uri The path to add, must start with '/'.
@@ -650,7 +660,7 @@ int sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *
 int sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char *uri);
 
 /**
- * Finds the first apeearence of the specified option in a packet.
+ * @brief Finds the first apeearence of the specified option in a packet.
  *
  * @param pkt The packet holding the options.
  * @param code The option code to look for.
@@ -661,7 +671,7 @@ int sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char 
 const void *sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uint16_t *len);
 
 /**
- * Sends a packet to the given address.
+ * @brief Sends a packet to the given address.
  *
  * Sends the packet @a pkt to the destination address especified by @a cliaddr,
  * which may be a multicast address for discovery purposes.
@@ -683,7 +693,7 @@ int sol_coap_send_packet(struct sol_coap_server *server, struct sol_coap_packet 
     const struct sol_network_link_addr *cliaddr);
 
 /**
- * Sends a packet to the given address.
+ * @brief Sends a packet to the given address.
  *
  * Sends the packet @a pkt to the destination address especified by @a cliaddr,
  * which may be a multicast address for discovery purposes.
@@ -717,7 +727,7 @@ int sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_c
     void *data), void *data);
 
 /**
- * Sends the notification packet to all registered observers.
+ * @brief Sends the notification packet to all registered observers.
  *
  * Sends the notification @a pkt to all the registered observers for the
  * resource @a resource, setting the correct token for each instance.
@@ -735,7 +745,7 @@ int sol_coap_packet_send_notification(struct sol_coap_server *server,
     struct sol_coap_resource *resource, struct sol_coap_packet *pkt);
 
 /**
- * Register a #sol_coap_resource with the server.
+ * @brief Register a #sol_coap_resource with the server.
  *
  * Registers the given resource with the server, in order to be able to
  * handle requests related to it made by clients.
@@ -751,7 +761,7 @@ bool sol_coap_server_register_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, void *data);
 
 /**
- * Unregisters a resource from the server.
+ * @brief Unregisters a resource from the server.
  *
  * Unregisters a resource previously registered with sol_coap_server_register_resource().
  * This specific server will no longer handle requests made to the given resource,
@@ -767,7 +777,7 @@ int sol_coap_server_unregister_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource);
 
 /**
- * Converts a path from slices to a string.
+ * @brief Converts a path from slices to a string.
  *
  * Takes a path, as respresented by #sol_coap_resource and writes all its
  * components, separated by '/' to @a buf.
@@ -787,7 +797,7 @@ int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     uint8_t *buf, size_t buflen, size_t *size);
 
 /**
- * Cancel a packet sent using sol_coap_send_packet() or
+ * @brief Cancel a packet sent using sol_coap_send_packet() or
  * sol_coap_send_packet_with_reply() functions.
  * For observating packets, an unobserve packet will be sent to server and
  * no more replies will be processed.

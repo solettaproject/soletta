@@ -35,175 +35,162 @@
 #include "sol-oic-common.h"
 
 CborError
-sol_oic_encode_cbor_repr(struct sol_coap_packet *pkt,
-    const char *href, const struct sol_vector *repr_vec)
+sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, const char *href, struct sol_oic_map_writer *encoder)
 {
-    CborEncoder encoder, rep_map, array, map;
-    CborError err;
-    uint8_t *payload;
     uint16_t size;
+    CborError err;
 
-    if (!repr_vec)
-        return CborNoError;
-
-    if (sol_coap_packet_get_payload(pkt, &payload, &size) < 0) {
+    if (sol_coap_packet_get_payload(pkt, &encoder->payload, &size) < 0) {
         SOL_WRN("Could not get CoAP payload");
         return CborUnknownError;
     }
 
-    cbor_encoder_init(&encoder, payload, size, 0);
+    cbor_encoder_init(&encoder->encoder, encoder->payload, size, 0);
 
-    err = cbor_encoder_create_array(&encoder, &array, CborIndefiniteLength);
-    err |= cbor_encode_uint(&array, SOL_OIC_PAYLOAD_REPRESENTATION);
+    err = cbor_encoder_create_array(&encoder->encoder, &encoder->array,
+        CborIndefiniteLength);
+    err |= cbor_encode_uint(&encoder->array, SOL_OIC_PAYLOAD_REPRESENTATION);
 
-    err |= cbor_encoder_create_map(&array, &map, CborIndefiniteLength);
+    err |= cbor_encoder_create_map(&encoder->array, &encoder->map,
+        CborIndefiniteLength);
 
-    err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_HREF);
-    err |= cbor_encode_text_stringz(&map, href);
+    err |= cbor_encode_text_stringz(&encoder->map, SOL_OIC_KEY_HREF);
+    err |= cbor_encode_text_stringz(&encoder->map, href);
 
-    err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_REPRESENTATION);
-    err |= cbor_encoder_create_map(&map, &rep_map, CborIndefiniteLength);
-
-    if (repr_vec) {
-        struct sol_oic_repr_field *repr;
-        uint16_t idx;
-
-        SOL_VECTOR_FOREACH_IDX (repr_vec, repr, idx) {
-            if (err != CborNoError)
-                break;
-
-            err |= cbor_encode_text_stringz(&rep_map, repr->key);
-
-            switch (repr->type) {
-            case SOL_OIC_REPR_TYPE_UINT:
-                err |= cbor_encode_uint(&rep_map, repr->v_uint);
-                break;
-            case SOL_OIC_REPR_TYPE_INT:
-                err |= cbor_encode_int(&rep_map, repr->v_int);
-                break;
-            case SOL_OIC_REPR_TYPE_SIMPLE:
-                err |= cbor_encode_simple_value(&rep_map, repr->v_simple);
-                break;
-            case SOL_OIC_REPR_TYPE_TEXT_STRING: {
-                const char *p = repr->v_slice.data ? repr->v_slice.data : "";
-
-                err |= cbor_encode_text_string(&rep_map, p, repr->v_slice.len);
-                break;
-            }
-            case SOL_OIC_REPR_TYPE_BYTE_STRING: {
-                const uint8_t *empty = (const uint8_t *)"";
-                const uint8_t *p = repr->v_slice.data ? (const uint8_t *)repr->v_slice.data : empty;
-
-                err |= cbor_encode_byte_string(&rep_map, p, repr->v_slice.len);
-                break;
-            }
-            case SOL_OIC_REPR_TYPE_HALF_FLOAT:
-                err |= cbor_encode_half_float(&rep_map, repr->v_voidptr);
-                break;
-            case SOL_OIC_REPR_TYPE_FLOAT:
-                err |= cbor_encode_float(&rep_map, repr->v_float);
-                break;
-            case SOL_OIC_REPR_TYPE_DOUBLE:
-                err |= cbor_encode_double(&rep_map, repr->v_double);
-                break;
-            case SOL_OIC_REPR_TYPE_BOOLEAN:
-                err |= cbor_encode_boolean(&rep_map, repr->v_boolean);
-                break;
-            default:
-                if (err == CborNoError)
-                    err = CborErrorUnknownType;
-            }
-        }
-    }
-
-    err |= cbor_encoder_close_container(&map, &rep_map);
-
-    err |= cbor_encoder_close_container(&array, &map);
-
-    err |= cbor_encoder_close_container(&encoder, &array);
-
-    if (err == CborNoError)
-        sol_coap_packet_set_payload_used(pkt, encoder.ptr - payload);
+    err |= cbor_encode_text_stringz(&encoder->map, SOL_OIC_KEY_REPRESENTATION);
+    err |= cbor_encoder_create_map(&encoder->map, &encoder->rep_map,
+        CborIndefiniteLength);
 
     return err;
 }
 
 CborError
-sol_oic_decode_cbor_repr_map(CborValue *map, struct sol_vector *reprs)
+sol_oic_packet_cbor_close(struct sol_coap_packet *pkt, struct sol_oic_map_writer *encoder)
 {
-    struct sol_oic_repr_field *repr;
-    CborValue value;
     CborError err;
-    size_t len;
 
-    if (!cbor_value_is_map(map))
-        return CborInvalidType;
+    err = cbor_encoder_close_container(&encoder->map, &encoder->rep_map);
+    err |= cbor_encoder_close_container(&encoder->array, &encoder->map);
+    err |= cbor_encoder_close_container(&encoder->encoder, &encoder->array);
 
-    err = cbor_value_enter_container(map, &value);
-    for (; cbor_value_is_valid(&value) && err == CborNoError;
-        err |= cbor_value_advance(&value)) {
-        repr = sol_vector_append(reprs);
-        if (!repr)
-            return CborErrorOutOfMemory;
+    if (err == CborNoError)
+        sol_coap_packet_set_payload_used(pkt,
+            encoder->encoder.ptr - encoder->payload);
 
-        err |= cbor_value_dup_text_string(&value, (char **)&repr->key, &len, NULL);
-        err |= cbor_value_advance(&value);
-
-        switch (cbor_value_get_type(&value)) {
-        case CborIntegerType:
-            err |= cbor_value_get_int64(&value, &repr->v_int);
-            repr->type = SOL_OIC_REPR_TYPE_INT;
-            break;
-        case CborTextStringType:
-            err |= cbor_value_dup_text_string(&value, (char **)&repr->v_slice.data, &repr->v_slice.len, NULL);
-            if (err != CborNoError)
-                goto harmless;
-            repr->type = SOL_OIC_REPR_TYPE_TEXT_STRING;
-            break;
-        case CborByteStringType:
-            err |= cbor_value_dup_byte_string(&value, (uint8_t **)&repr->v_slice.data, &repr->v_slice.len, NULL);
-            if (err != CborNoError)
-                goto harmless;
-            repr->type = SOL_OIC_REPR_TYPE_BYTE_STRING;
-            break;
-        case CborDoubleType:
-            err |= cbor_value_get_double(&value, &repr->v_double);
-            repr->type = SOL_OIC_REPR_TYPE_DOUBLE;
-            break;
-        case CborFloatType:
-            err |= cbor_value_get_float(&value, &repr->v_float);
-            repr->type = SOL_OIC_REPR_TYPE_FLOAT;
-            break;
-        case CborHalfFloatType:
-            err |= cbor_value_get_half_float(&value, &repr->v_voidptr);
-            repr->type = SOL_OIC_REPR_TYPE_HALF_FLOAT;
-            break;
-        case CborBooleanType:
-            err |= cbor_value_get_boolean(&value, &repr->v_boolean);
-            repr->type = SOL_OIC_REPR_TYPE_BOOLEAN;
-            break;
-        default:
-            SOL_ERR("While parsing representation map, got unexpected type %d",
-                cbor_value_get_type(&value));
-            if (err == CborNoError)
-                err = CborErrorUnknownType;
-
-harmless:
-            /* Initialize repr with harmless data so cleanup works. */
-            repr->v_boolean = false;
-            repr->type = SOL_OIC_REPR_TYPE_BOOLEAN;
-        }
-    }
-
-    return err | cbor_value_leave_container(map, &value);
+    return err;
 }
 
 CborError
-sol_oic_decode_cbor_repr(struct sol_coap_packet *pkt, struct sol_vector *reprs)
+sol_oic_packet_cbor_append(struct sol_oic_map_writer *encoder, struct sol_oic_repr_field *repr)
 {
-    CborParser parser;
     CborError err;
-    CborValue root, array, repr;
+
+    err = cbor_encode_text_stringz(&encoder->rep_map, repr->key);
+    switch (repr->type) {
+    case SOL_OIC_REPR_TYPE_UINT:
+        err |= cbor_encode_uint(&encoder->rep_map, repr->v_uint);
+        break;
+    case SOL_OIC_REPR_TYPE_INT:
+        err |= cbor_encode_int(&encoder->rep_map, repr->v_int);
+        break;
+    case SOL_OIC_REPR_TYPE_SIMPLE:
+        err |= cbor_encode_simple_value(&encoder->rep_map, repr->v_simple);
+        break;
+    case SOL_OIC_REPR_TYPE_TEXT_STRING: {
+        const char *p = repr->v_slice.data ? repr->v_slice.data : "";
+
+        err |= cbor_encode_text_string(&encoder->rep_map, p, repr->v_slice.len);
+        break;
+    }
+    case SOL_OIC_REPR_TYPE_BYTE_STRING: {
+        const uint8_t *empty = (const uint8_t *)"";
+        const uint8_t *p = repr->v_slice.data ? (const uint8_t *)repr->v_slice.data : empty;
+
+        err |= cbor_encode_byte_string(&encoder->rep_map, p, repr->v_slice.len);
+        break;
+    }
+    case SOL_OIC_REPR_TYPE_HALF_FLOAT:
+        err |= cbor_encode_half_float(&encoder->rep_map, repr->v_voidptr);
+        break;
+    case SOL_OIC_REPR_TYPE_FLOAT:
+        err |= cbor_encode_float(&encoder->rep_map, repr->v_float);
+        break;
+    case SOL_OIC_REPR_TYPE_DOUBLE:
+        err |= cbor_encode_double(&encoder->rep_map, repr->v_double);
+        break;
+    case SOL_OIC_REPR_TYPE_BOOLEAN:
+        err |= cbor_encode_boolean(&encoder->rep_map, repr->v_boolean);
+        break;
+    default:
+        err |= CborErrorUnknownType;
+    }
+
+    return err;
+}
+
+CborError
+sol_oic_cbor_repr_map_get_next_field(CborValue *value, struct sol_oic_repr_field *repr)
+{
+    CborError err;
+    size_t len;
+
+    err = cbor_value_dup_text_string(value, (char **)&repr->key, &len, NULL);
+    err |= cbor_value_advance(value);
+
+    switch (cbor_value_get_type(value)) {
+    case CborIntegerType:
+        err |= cbor_value_get_int64(value, &repr->v_int);
+        repr->type = SOL_OIC_REPR_TYPE_INT;
+        break;
+    case CborTextStringType:
+        err |= cbor_value_dup_text_string(value, (char **)&repr->v_slice.data, &repr->v_slice.len, NULL);
+        if (err != CborNoError)
+            goto harmless;
+        repr->type = SOL_OIC_REPR_TYPE_TEXT_STRING;
+        break;
+    case CborByteStringType:
+        err |= cbor_value_dup_byte_string(value, (uint8_t **)&repr->v_slice.data, &repr->v_slice.len, NULL);
+        if (err != CborNoError)
+            goto harmless;
+        repr->type = SOL_OIC_REPR_TYPE_BYTE_STRING;
+        break;
+    case CborDoubleType:
+        err |= cbor_value_get_double(value, &repr->v_double);
+        repr->type = SOL_OIC_REPR_TYPE_DOUBLE;
+        break;
+    case CborFloatType:
+        err |= cbor_value_get_float(value, &repr->v_float);
+        repr->type = SOL_OIC_REPR_TYPE_FLOAT;
+        break;
+    case CborHalfFloatType:
+        err |= cbor_value_get_half_float(value, &repr->v_voidptr);
+        repr->type = SOL_OIC_REPR_TYPE_HALF_FLOAT;
+        break;
+    case CborBooleanType:
+        err |= cbor_value_get_boolean(value, &repr->v_boolean);
+        repr->type = SOL_OIC_REPR_TYPE_BOOLEAN;
+        break;
+    default:
+        SOL_ERR("While parsing representation map, got unexpected type %d",
+            cbor_value_get_type(value));
+        if (err == CborNoError)
+            err = CborErrorUnknownType;
+
+harmless:
+        /* Initialize repr with harmless data so cleanup works. */
+        repr->v_boolean = false;
+        repr->type = SOL_OIC_REPR_TYPE_BOOLEAN;
+    }
+    err |= cbor_value_advance(value);
+
+    return err;
+}
+
+CborError
+sol_oic_packet_cbor_extract_repr_map(struct sol_coap_packet *pkt, CborParser *parser, CborValue *repr_map)
+{
+    CborError err;
+    CborValue root, array;
     uint8_t *payload;
     uint16_t size;
     int payload_type;
@@ -211,7 +198,7 @@ sol_oic_decode_cbor_repr(struct sol_coap_packet *pkt, struct sol_vector *reprs)
     if (sol_coap_packet_get_payload(pkt, &payload, &size) < 0)
         return CborErrorUnknownLength;
 
-    err = cbor_parser_init(payload, size, 0, &parser, &root);
+    err = cbor_parser_init(payload, size, 0, parser, &root);
     if (err != CborNoError)
         return err;
 
@@ -226,11 +213,10 @@ sol_oic_decode_cbor_repr(struct sol_coap_packet *pkt, struct sol_vector *reprs)
         return err;
     if (payload_type != SOL_OIC_PAYLOAD_REPRESENTATION)
         return CborErrorIllegalType;
-    if (cbor_value_map_find_value(&array, SOL_OIC_KEY_REPRESENTATION, &repr) != CborNoError)
-        return CborErrorIllegalType;
 
-    /* We're done with this CborParser, no need to close the container. */
-    return sol_oic_decode_cbor_repr_map(&repr, reprs);
+    err = cbor_value_map_find_value(&array, SOL_OIC_KEY_REPRESENTATION, repr_map);
+
+    return err;
 }
 
 bool
