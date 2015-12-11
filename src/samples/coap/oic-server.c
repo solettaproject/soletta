@@ -95,33 +95,33 @@ set_scrolllock_led(bool on)
 
 static sol_coap_responsecode_t
 user_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_vector *input, struct sol_vector *output)
+    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
 {
-    struct sol_oic_repr_field *field;
+    bool r;
+    struct sol_oic_repr_field field;
 
-    field = sol_vector_append(output);
-    SOL_NULL_CHECK(field, SOL_COAP_RSPCODE_INTERNAL_ERROR);
+    field = SOL_OIC_REPR_BOOLEAN("state", get_scrolllock_led());
+    r = sol_oic_map_append(output, &field);
+    SOL_EXP_CHECK(r == false, SOL_COAP_RSPCODE_INTERNAL_ERROR);
 
-    *field = SOL_OIC_REPR_BOOLEAN("state", get_scrolllock_led());
-
-    field = sol_vector_append(output);
-    SOL_NULL_CHECK(field, SOL_COAP_RSPCODE_INTERNAL_ERROR);
-
-    *field = SOL_OIC_REPR_INT("power", 13);
+    field = SOL_OIC_REPR_INT("power", 13);
+    r = sol_oic_map_append(output, &field);
+    SOL_EXP_CHECK(r == false, SOL_COAP_RSPCODE_INTERNAL_ERROR);
 
     return SOL_COAP_RSPCODE_CONTENT;
 }
 
 static sol_coap_responsecode_t
 user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
-    const struct sol_vector *input, struct sol_vector *output)
+    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
 {
-    struct sol_oic_repr_field *iter;
-    uint16_t idx;
+    enum sol_oic_map_loop_reason reason;
+    struct sol_oic_repr_field field;
+    struct sol_oic_map_reader iter;
 
-    SOL_VECTOR_FOREACH_IDX (input, iter, idx) {
-        if (streq(iter->key, "state") && iter->type == SOL_OIC_REPR_TYPE_BOOLEAN) {
-            if (set_scrolllock_led(iter->v_boolean))
+    SOL_OIC_MAP_LOOP(input, &field, &iter, reason) {
+        if (streq(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
+            if (set_scrolllock_led(field.v_boolean))
                 return SOL_COAP_RSPCODE_OK;
 
             return SOL_COAP_RSPCODE_INTERNAL_ERROR;
@@ -133,8 +133,8 @@ user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
 
 static struct sol_oic_server_resource *
 register_light_resource_type(
-    sol_coap_responsecode_t (*handle_get)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_vector *input, struct sol_vector *output),
-    sol_coap_responsecode_t (*handle_put)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_vector *input, struct sol_vector *output))
+    sol_coap_responsecode_t (*handle_get)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output),
+    sol_coap_responsecode_t (*handle_put)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output))
 {
     /* This function will be auto-generated from the RAML definitions. */
 
