@@ -150,7 +150,8 @@ static const struct sol_message_digest_info _md5_info = {
 
 static const struct sol_str_table_ptr _available_digests[] = {
     SOL_STR_TABLE_PTR_ITEM("sha256", &_sha256_info),
-    SOL_STR_TABLE_PTR_ITEM("md5", &_md5_info)
+    SOL_STR_TABLE_PTR_ITEM("md5", &_md5_info),
+    { }
 };
 
 SOL_API struct sol_message_digest *

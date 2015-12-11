@@ -1156,7 +1156,8 @@ sol_flow_packet_get_packet_type_as_string(const struct sol_str_slice type)
         SOL_STR_TABLE_PTR_ITEM("error", "SOL_FLOW_PACKET_TYPE_ERROR"),
         SOL_STR_TABLE_PTR_ITEM("json-object", "SOL_FLOW_PACKET_TYPE_JSON_OBJECT"),
         SOL_STR_TABLE_PTR_ITEM("json-array", "SOL_FLOW_PACKET_TYPE_JSON_ARRAY"),
-        SOL_STR_TABLE_PTR_ITEM("http-response", "SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE")
+        SOL_STR_TABLE_PTR_ITEM("http-response", "SOL_FLOW_PACKET_TYPE_HTTP_RESPONSE"),
+        { }
     };
 
     return sol_str_table_ptr_lookup_fallback(map, type, NULL);

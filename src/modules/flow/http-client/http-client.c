@@ -1093,6 +1093,7 @@ translate_http_method(const char *method)
         SOL_STR_TABLE_ITEM("OPTIONS", SOL_HTTP_METHOD_OPTIONS),
         SOL_STR_TABLE_ITEM("TRACE", SOL_HTTP_METHOD_TRACE),
         SOL_STR_TABLE_ITEM("PATCH", SOL_HTTP_METHOD_PATCH),
+        { }
     };
 
     return sol_str_table_lookup_fallback(http_methods,
