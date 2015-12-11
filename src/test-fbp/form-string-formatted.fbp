@@ -1,0 +1,175 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#We don't test cursor blinking here, thus the high timeout on it.
+
+#start testing random/arbitrary int/float formats
+string_00(form/string-formatted:blink_time=100000,rows=3,columns=7,format="{value}",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(test/boolean-generator:sequence="TTT",interval=20) OUT -> UP string_00
+validator_00(test/string-validator:sequence="0.0.0.0|1.0.0.0|2.0.0.0|3.0.0.0")
+string_00 STRING -> IN validator_00 OUT -> RESULT _(test/result)
+
+string_01(form/string-formatted:blink_time=101010,rows=3,columns=43,format="{value}",value="{010d:0,255,1}.{010d:0,255,1}.{010d:0,255,1}.{010d:0,255,1}")
+_(test/boolean-generator:sequence="TTT",interval=20) OUT -> UP string_01
+validator_01(test/string-validator:sequence="0000000000.0000000000.0000000000.0000000000|0000000001.0000000000.0000000000.0000000000|0000000002.0000000000.0000000000.0000000000|0000000003.0000000000.0000000000.0000000000")
+string_01 STRING -> IN validator_01 OUT -> RESULT _(test/result)
+
+string_02(form/string-formatted:blink_time=101010,rows=3,columns=43,format="{value}",value="{!^10d:0,255,1}.{!^10d:0,255,1}.{!^10d:0,255,1}.{!^10d:0,255,1}")
+_(test/boolean-generator:sequence="TTT",interval=20) OUT -> UP string_02
+validator_02(test/string-validator:sequence="!!!!0!!!!!.!!!!0!!!!!.!!!!0!!!!!.!!!!0!!!!!|!!!!1!!!!!.!!!!0!!!!!.!!!!0!!!!!.!!!!0!!!!!|!!!!2!!!!!.!!!!0!!!!!.!!!!0!!!!!.!!!!0!!!!!|!!!!3!!!!!.!!!!0!!!!!.!!!!0!!!!!.!!!!0!!!!!")
+string_02 STRING -> IN validator_02 OUT -> RESULT _(test/result)
+
+string_03(form/string-formatted:blink_time=100000,rows=3,columns=43,format="{value}",value="{ <10d:0,255,1}.{ <10d:0,255,1}.{ <10d:0,255,1}.{ <10d:0,255,1}")
+_(test/boolean-generator:sequence="TTT",interval=20) OUT -> UP string_03
+validator_03(test/string-validator:sequence="0         .0         .0         .0         |1         .0         .0         .0         |2         .0         .0         .0         |3         .0         .0         .0         ")
+string_03 STRING -> IN validator_03 OUT -> RESULT _(test/result)
+
+string_04(form/string-formatted:blink_time=100000,rows=3,columns=43,format="{value}",value="{_>10d:0,255,1}.{_>10d:0,255,1}.{_>10d:0,255,1}.{_>10d:0,255,1}")
+_(test/boolean-generator:sequence="TTT",interval=20) OUT -> UP string_04
+validator_04(test/string-validator:sequence="_________0._________0._________0._________0|_________1._________0._________0._________0|_________2._________0._________0._________0|_________3._________0._________0._________0")
+string_04 STRING -> IN validator_04 OUT -> RESULT _(test/result)
+
+string_05(form/string-formatted:blink_time=100000,rows=3,columns=43,format="{value}",value="{ =10d:-10,255,1}.{ =10d:-10,255,1}.{ =10d:-10,255,1}.{ =10d:-10,255,1}",value_default="0.0.0.0")
+_(test/boolean-generator:sequence="TTT",interval=20) OUT -> DOWN string_05
+validator_05(test/string-validator:sequence="         0.         0.         0.         0|-        1.         0.         0.         0|-        2.         0.         0.         0|-        3.         0.         0.         0")
+string_05 STRING -> IN validator_05 OUT -> RESULT _(test/result)
+
+string_06(form/string-formatted:blink_time=100000,rows=3,columns=35,format="{value}",value="{f:0,255,1}/{f:0,255,1}/{f:0,255,1}/{f:0,255,1}")
+_(test/boolean-generator:sequence="TTT",interval=20) OUT -> UP string_06
+validator_06(test/string-validator:sequence="0.000000/0.000000/0.000000/0.000000|1.000000/0.000000/0.000000/0.000000|2.000000/0.000000/0.000000/0.000000|3.000000/0.000000/0.000000/0.000000")
+string_06 STRING -> IN validator_06 OUT -> RESULT _(test/result)
+
+string_07(form/string-formatted:blink_time=100000,rows=3,columns=41,format="{value}",value="{%:0,255,1}/{%:0,255,1}/{%:0,255,1}/{%:0,255,1}")
+_(test/boolean-generator:sequence="TTT",interval=20) OUT -> UP string_07
+validator_07(test/string-validator:sequence="0.000000%/0.000000%/0.000000%/0.000000%  |100.000000%/0.000000%/0.000000%/0.000000%|200.000000%/0.000000%/0.000000%/0.000000%|300.000000%/0.000000%/0.000000%/0.000000%")
+string_07 STRING -> IN validator_07 OUT -> RESULT _(test/result)
+
+#up selection and select
+string_08(form/string-formatted:blink_time=100000,rows=3,columns=7,format="{value}",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(test/boolean-generator:sequence="TT",interval=10) OUT -> UP string_08
+_(test/boolean-generator:sequence="T",interval=30) OUT -> SELECT string_08
+validator_08(test/string-validator:sequence="0.0.0.0|1.0.0.0|2.0.0.0|2.0.0.0")
+validator_items_08(test/string-validator:sequence="2.0.0.0")
+and_08(boolean/and)
+string_08 STRING -> IN validator_08 OUT -> IN[0] and_08
+string_08 SELECTED -> IN validator_items_08 OUT -> IN[1] and_08
+and_08 OUT -> RESULT _(test/result)
+
+#up selection and select, with title
+string_09(form/string-formatted:blink_time=100000,rows=3,columns=7,format="{title}{value}",title="Title",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> UP string_09
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT string_09
+validator_09(test/string-validator:sequence="Title  \n0.0.0.0|Title  \n1.0.0.0|Title  \n1.0.0.0")
+validator_items_09(test/string-validator:sequence="1.0.0.0")
+and_09(boolean/and)
+string_09 STRING -> IN validator_09 OUT -> IN[0] and_09
+string_09 SELECTED -> IN validator_items_09 OUT -> IN[1] and_09
+and_09 OUT -> RESULT _(test/result)
+
+#up selection and select, with title and footer
+string_10(form/string-formatted:blink_time=100000,rows=3,columns=7,format="{title}{value}footer",title="Title",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> UP string_10
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT string_10
+validator_10(test/string-validator:sequence="Title  \n0.0.0.0\nfooter |Title  \n1.0.0.0\nfooter |Title  \n1.0.0.0\nfooter ")
+validator_items_10(test/string-validator:sequence="1.0.0.0")
+and_10(boolean/and)
+string_10 STRING -> IN validator_10 OUT -> IN[0] and_10
+string_10 SELECTED -> IN validator_items_10 OUT -> IN[1] and_10
+and_10 OUT -> RESULT _(test/result)
+
+#up selection and select, with title and footer, more rows
+string_11(form/string-formatted:blink_time=100000,rows=5,columns=7,format="{title}{value}footer\nother",title="Title",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> UP string_11
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT string_11
+validator_11(test/string-validator:sequence="Title  \n0.0.0.0\nfooter \nother  |Title  \n1.0.0.0\nfooter \nother  |Title  \n1.0.0.0\nfooter \nother  ")
+validator_items_11(test/string-validator:sequence="1.0.0.0")
+and_11(boolean/and)
+string_11 STRING -> IN validator_11 OUT -> IN[0] and_11
+string_11 SELECTED -> IN validator_items_11 OUT -> IN[1] and_11
+and_11 OUT -> RESULT _(test/result)
+
+#up selection and select, with title and footer, more rows, less columns
+string_12(form/string-formatted:blink_time=100000,rows=5,columns=5,format="{title}{value}footer",title="Title",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> UP string_12
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT string_12
+validator_12(test/string-validator:sequence="Title\n0.0.0\nfoote|Title\n1.0.0\nfoote|Title\n1.0.0\nfoote")
+validator_items_12(test/string-validator:sequence="1.0.0.0")
+and_12(boolean/and)
+string_12 STRING -> IN validator_12 OUT -> IN[0] and_12
+string_12 SELECTED -> IN validator_items_12 OUT -> IN[1] and_12
+and_12 OUT -> RESULT _(test/result)
+
+#up selection and select, with title, footer and intermediate strings
+string_13(form/string-formatted:blink_time=100000,rows=10,columns=7,format="pre\ntitle{title}inter\nvalue{value}footer\nother_footer",title="Title",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> UP string_13
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT string_13
+validator_13(test/string-validator:sequence="pre    \ntitle  \nTitle  \ninter  \nvalue  \n0.0.0.0\nfooter \nother_f|pre    \ntitle  \nTitle  \ninter  \nvalue  \n1.0.0.0\nfooter \nother_f|pre    \ntitle  \nTitle  \ninter  \nvalue  \n1.0.0.0\nfooter \nother_f")
+validator_items_13(test/string-validator:sequence="1.0.0.0")
+and_13(boolean/and)
+string_13 STRING -> IN validator_13 OUT -> IN[0] and_13
+string_13 SELECTED -> IN validator_items_13 OUT -> IN[1] and_13
+and_13 OUT -> RESULT _(test/result)
+
+#up selection, while disabled
+string_14(form/string-formatted:blink_time=100000,rows=3,columns=7,format="{value}",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(constant/boolean:value=false) OUT -> ENABLED string_14
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> UP string_14
+validator_14(test/string-validator:sequence="0.0.0.0")
+string_14 STRING -> IN validator_14 OUT -> RESULT _(test/result)
+
+#up selection and select, one row only, *with title*
+string_15(form/string-formatted:blink_time=100000,rows=1,columns=13,format="{title}{value}",title="Title",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(test/boolean-generator:sequence="T",interval=10) OUT -> UP string_15
+_(test/boolean-generator:sequence="T",interval=20) OUT -> SELECT string_15
+validator_15(test/string-validator:sequence="Title 0.0.0.0|Title 1.0.0.0|Title 1.0.0.0")
+validator_items_15(test/string-validator:sequence="1.0.0.0")
+and_15(boolean/and)
+string_15 STRING -> IN validator_15 OUT -> IN[0] and_15
+string_15 SELECTED -> IN validator_items_15 OUT -> IN[1] and_15
+and_15 OUT -> RESULT _(test/result)
+
+#up selection, pre-selection (note that the initial
+#status is always the default one, to be updated quickly by the
+#SELECTED port's processing afterwards)
+string_16(form/string-formatted:blink_time=100000,rows=3,columns=13,format="{value}",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(constant/string:value="200.254.253.1") OUT -> SELECTED string_16
+_(test/boolean-generator:sequence="TT",interval=20) OUT -> UP string_16
+validator_16(test/string-validator:sequence="0.0.0.0      |200.254.253.1|201.254.253.1|202.254.253.1")
+string_16 STRING -> IN validator_16 OUT -> RESULT _(test/result)
+
+#test previous+next
+string_17(form/string-formatted:blink_time=100000,rows=3,columns=7,format="{value}",value="{d:0,255,1}.{d:0,255,1}.{d:0,255,1}.{d:0,255,1}")
+_(test/boolean-generator:sequence="TTT",interval=10) OUT -> NEXT string_17
+_(test/boolean-generator:sequence="T",interval=40) OUT -> PREVIOUS string_17
+_(test/boolean-generator:sequence="T",interval=70) OUT -> UP string_17
+validator_17(test/string-validator:sequence="0.0.0.0|0.0.0.0|0.0.0.0|0.0.0.0|0.0.0.0|0.0.1.0")
+string_17 STRING -> IN validator_17 OUT -> RESULT _(test/result)
+
+## TEST-SKIP-VALGRIND The timing we're relying on for the string sequence is blown away by Valgrind, so skip it.

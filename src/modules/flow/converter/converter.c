@@ -44,6 +44,11 @@ SOL_LOG_INTERNAL_DECLARE(_converter_log_domain, "flow-converter");
 #include <stdlib.h>
 #include <time.h>
 
+struct string_converter {
+    struct sol_flow_node *node;
+    char *format;
+};
+
 struct sol_converter_byte {
     unsigned char min;
     unsigned char max;
@@ -826,7 +831,6 @@ drange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, 
 {
     int r;
     struct sol_drange in_value;
-    struct auto_number auto_number;
     struct string_converter *mdata = data;
     struct sol_buffer out = SOL_BUFFER_INIT_EMPTY;
 
@@ -835,8 +839,7 @@ drange_to_string_convert(struct sol_flow_node *node, void *data, uint16_t port, 
     r = sol_flow_packet_get_drange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    auto_number_init(&auto_number);
-    r = do_float_markup(mdata, mdata->format, &in_value, &auto_number, &out);
+    r = do_float_markup(node, mdata->format, in_value, &out);
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
     r = sol_flow_send_string_slice_packet(node,
@@ -885,7 +888,6 @@ irange_to_string_convert(struct sol_flow_node *node,
 {
     int r;
     struct sol_irange in_value;
-    struct auto_number auto_number;
     struct string_converter *mdata = data;
     struct sol_buffer out = SOL_BUFFER_INIT_EMPTY;
 
@@ -894,8 +896,7 @@ irange_to_string_convert(struct sol_flow_node *node,
     r = sol_flow_packet_get_irange(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);
 
-    auto_number_init(&auto_number);
-    r = do_integer_markup(mdata, mdata->format, &in_value, &auto_number, &out);
+    r = do_integer_markup(node, mdata->format, in_value, &out);
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
     r = sol_flow_send_string_slice_packet(node,
