@@ -614,8 +614,8 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
     mdata->consumer_key = strdup(opts->consumer_key);
     SOL_NULL_CHECK_GOTO(mdata->consumer_key, consumer_err);
 
-    mdata->consumer_key_secret = strdup(opts->consumer_key_secret);
-    SOL_NULL_CHECK_GOTO(mdata->consumer_key_secret, secret_err);
+    r = asprintf(&mdata->consumer_key_secret, "%s&", opts->consumer_key_secret);
+    SOL_INT_CHECK_GOTO(r, < 0, secret_err);
 
     sol_ptr_vector_init(&mdata->pending_conns);
     sol_ptr_vector_init(&mdata->pending_digests);
