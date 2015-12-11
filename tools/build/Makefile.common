@@ -17,7 +17,7 @@ reconf: $(DEPENDENCY_SCRIPT)
 	$(Q)echo "[re]running dependency-resolver..."
 	$(Q)$(RM) -f $(DEPENDENCY_FILES)
 	$(Q)$(RM) $(DEPENDENCY_CACHE)
-	$(Q) V=1 $(PYTHON) $(DEPENDENCY_SCRIPT) --compiler=$(TARGETCC) --cflags="$(DEP_RESOLVER_CFLAGS)" \
+	$(Q) V=1 $(PYTHON) $(DEPENDENCY_SCRIPT) --compiler="$(TARGETCC)" --cflags="$(DEP_RESOLVER_CFLAGS)" \
 		--ldflags="$(DEP_RESOLVER_LDFLAGS)" --prefix="$(PREFIX)" \
 		--cache="$(DEPENDENCY_CACHE)" --kconfig-gen --makefile-gen
 
