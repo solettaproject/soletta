@@ -121,6 +121,9 @@ engine_mt19937_init(struct sol_random *generic, uint64_t seed)
     const size_t state_array_size = ARRAY_SIZE(engine->state);
     size_t i;
 
+    if (!seed)
+        seed = get_platform_seed(seed);
+
     engine->index = 0;
     engine->state[0] = (unsigned int)seed;
     for (i = 1; i < state_array_size; i++)
@@ -180,6 +183,8 @@ engine_randomr_init(struct sol_random *generic, uint64_t seed)
 {
     struct sol_random_randomr *engine = (struct sol_random_randomr *)generic;
 
+    if (!seed)
+        seed = get_platform_seed(seed);
     memset(&engine->state, 0, sizeof(engine->state));
 
     /* Return code ignored: no error case is possible at this point. */
@@ -292,7 +297,6 @@ sol_random_new(const struct sol_random_impl *impl, uint64_t seed)
     SOL_NULL_CHECK(engine, NULL);
 
     engine->impl = impl;
-    seed = get_platform_seed(seed);
     if (!engine->impl->init(engine, seed)) {
         sol_util_secure_clear_memory(engine, impl->struct_size);
         free(engine);
