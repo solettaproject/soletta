@@ -74,20 +74,20 @@ extern "C" {
 
 #define log_unlikely(x) __builtin_expect(!!(x), 0)
 
-#define SOL_NULL_CHECK(ptr, ...)                 \
-    do {                                        \
-        if (log_unlikely(!(ptr))) {                 \
-            SOL_WRN("" # ptr "== NULL");         \
-            return __VA_ARGS__;                 \
-        }                                       \
+#define SOL_NULL_CHECK(ptr, ...) \
+    do { \
+        if (log_unlikely(!(ptr))) { \
+            SOL_WRN("" # ptr "== NULL"); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_NULL_CHECK_GOTO(ptr, label)          \
-    do {                                        \
-        if (log_unlikely(!(ptr))) {                 \
-            SOL_WRN("" # ptr "== NULL");         \
-            goto label;                         \
-        }                                       \
+#define SOL_NULL_CHECK_GOTO(ptr, label) \
+    do { \
+        if (log_unlikely(!(ptr))) { \
+            SOL_WRN("" # ptr "== NULL"); \
+            goto label; \
+        } \
     } while (0)
 
 #define SOL_NULL_CHECK_MSG(ptr, ret, fmt, ...) \
@@ -106,64 +106,64 @@ extern "C" {
         } \
     } while (0)
 
-#define _SOL_INT_CHECK_FMT(var, exp)                                     \
-    __builtin_choose_expr(                                             \
-    __builtin_types_compatible_p(typeof(var), int),                \
-    "" # var " (%d) " # exp,                                       \
-    __builtin_choose_expr(                                             \
-    __builtin_types_compatible_p(typeof(var), long),               \
-    "" # var " (%ld) " # exp,                                      \
-    __builtin_choose_expr(                                             \
-    __builtin_types_compatible_p(typeof(var), size_t),             \
-    "" # var " (%zu) " # exp,                                      \
-    __builtin_choose_expr(                                             \
-    __builtin_types_compatible_p(typeof(var), unsigned),           \
-    "" # var " (%u) " # exp,                                       \
-    __builtin_choose_expr(                                             \
-    __builtin_types_compatible_p(typeof(var), uint64_t),           \
-    "" # var " (%" PRIu64 ") " # exp,                              \
-    __builtin_choose_expr(                                             \
-    __builtin_types_compatible_p(typeof(var), uint32_t),           \
-    "" # var " (%" PRIu32 ") " # exp,                              \
-    __builtin_choose_expr(                                             \
-    __builtin_types_compatible_p(typeof(var), uint16_t),           \
-    "" # var " (%" PRIu16 ") " # exp,                              \
-    __builtin_choose_expr(                                             \
-    __builtin_types_compatible_p(typeof(var), uint8_t),            \
-    "" # var " (%" PRIu8 ") " # exp,                               \
+#define _SOL_INT_CHECK_FMT(var, exp) \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int), \
+    "" # var " (%d) " # exp, \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), long), \
+    "" # var " (%ld) " # exp, \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), size_t), \
+    "" # var " (%zu) " # exp, \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), unsigned), \
+    "" # var " (%u) " # exp, \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint64_t), \
+    "" # var " (%" PRIu64 ") " # exp, \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint32_t), \
+    "" # var " (%" PRIu32 ") " # exp, \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint16_t), \
+    "" # var " (%" PRIu16 ") " # exp, \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint8_t), \
+    "" # var " (%" PRIu8 ") " # exp, \
     (void)0))))))))
 
-#define SOL_INT_CHECK(var, exp, ...)                     \
-    do {                                                \
-        if (log_unlikely((var)exp)) {                      \
-            SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var);   \
-            return __VA_ARGS__;                         \
-        }                                               \
+#define SOL_INT_CHECK(var, exp, ...) \
+    do { \
+        if (log_unlikely((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_INT_CHECK_GOTO(var, exp, label)              \
-    do {                                                \
-        if (log_unlikely((var)exp)) {                      \
-            SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var);   \
-            goto label;                                 \
-        }                                               \
+#define SOL_INT_CHECK_GOTO(var, exp, label) \
+    do { \
+        if (log_unlikely((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var); \
+            goto label; \
+        } \
     } while (0)
 
-#define SOL_EXP_CHECK(exp, ...)              \
-    do {                                    \
-        if (log_unlikely((exp))) {              \
+#define SOL_EXP_CHECK(exp, ...) \
+    do { \
+        if (log_unlikely((exp))) { \
             SOL_WRN("(" # exp ") is true"); \
-            return __VA_ARGS__;             \
-        }                                   \
-    } while (0)                             \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
 
-#define SOL_EXP_CHECK_GOTO(exp, label)       \
-    do {                                     \
-        if (log_unlikely((exp))) {           \
+#define SOL_EXP_CHECK_GOTO(exp, label) \
+    do { \
+        if (log_unlikely((exp))) { \
             SOL_WRN("(" # exp ") is true"); \
-            goto label;                      \
-        }                                    \
-    } while (0)                              \
+            goto label; \
+        } \
+    } while (0)
 
 enum sol_log_level {
     SOL_LOG_LEVEL_CRITICAL = 0,
@@ -260,13 +260,13 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
  *
  * @see SOL_CRI(), SOL_ERR(), SOL_WRN(), SOL_INF() and SOL_DBG().
  */
-#define SOL_LOG(level, fmt, ...)                                         \
-    do {                                                                \
-        if (SOL_LOG_LEVEL_POSSIBLE(level)) {                             \
-            sol_log_print(SOL_LOG_DOMAIN, level,                          \
-                __FILE__, __PRETTY_FUNCTION__, __LINE__,       \
-                fmt, ## __VA_ARGS__);                          \
-        }                                                               \
+#define SOL_LOG(level, fmt, ...) \
+    do { \
+        if (SOL_LOG_LEVEL_POSSIBLE(level)) { \
+            sol_log_print(SOL_LOG_DOMAIN, level, \
+                __FILE__, __PRETTY_FUNCTION__, __LINE__, \
+                fmt, ## __VA_ARGS__); \
+        } \
     } while (0)
 
 /**
