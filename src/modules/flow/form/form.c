@@ -2649,6 +2649,8 @@ string_formatted_format_do(struct sol_flow_node *node)
         goto send;
     }
 
+    sol_vector_init(&indexes, sizeof(size_t));
+
     r = format_title(&mdata->text_grid, buf_size, mdata->rows,
         mdata->columns, &row, &col, mdata->format, mdata->title,
         mdata->title_tag, mdata->value_tag, &no_more_space);
@@ -2659,8 +2661,6 @@ string_formatted_format_do(struct sol_flow_node *node)
 
     sol_buffer_fini(&mdata->formatted_value);
     sol_buffer_init(&mdata->formatted_value);
-
-    sol_vector_init(&indexes, sizeof(size_t));
 
     for (size_t l = 0; l < mdata->chunks.len; l++) {
         struct string_formatted_chunk *chunk =
