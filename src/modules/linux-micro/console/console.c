@@ -148,7 +148,7 @@ do_shell(const char *tty)
 
         SOL_WRN("could not setsid(): %s", sol_util_strerrora(errno));
         pid = getpid();
-        fd = open("/dev/tty", O_RDWR | O_NONBLOCK);
+        fd = open("/dev/tty", O_RDWR | O_NONBLOCK | O_CLOEXEC);
         if (fd >= 0) {
             sighandler_t oldsig;
             /* man:tty(4)
@@ -173,7 +173,7 @@ do_shell(const char *tty)
     SOL_INT_CHECK_GOTO(r, >= (int)sizeof(tty_path), end);
 
     close(STDIN_FILENO);
-    r = open(tty_path, O_RDWR | O_NONBLOCK);
+    r = open(tty_path, O_RDWR | O_NONBLOCK | O_CLOEXEC);
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
     if (r != 0) {
