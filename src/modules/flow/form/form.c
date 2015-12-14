@@ -2694,6 +2694,11 @@ string_formatted_format_do(struct sol_flow_node *node)
          * and be realloc()ed! We save the value to compute the ptr
          * offsets later */
         start_ptr = sol_vector_append(&indexes);
+        if (!start_ptr) {
+            r = -ENOMEM;
+            goto err;
+        }
+
         *start_ptr = start;
         chunk->rendered.len = sz;
 
@@ -2754,6 +2759,9 @@ err:
      * fails we're no better, so don't check. */
     buffer_re_init(&mdata->text_grid, mdata->text_mem,
         mdata->rows, mdata->columns);
+
+    sol_buffer_fini(&mdata->formatted_value);
+    sol_vector_clear(&indexes);
 
     return r;
 }
@@ -3087,7 +3095,7 @@ numeric_loop:
             char *endptr, backup;
 
             ptr = tmp + 1;
-            if (!ptr) {
+            if (!*ptr) {
                 r = -EINVAL;
                 SOL_WRN("Numeric field format ended with missing min, max, "
                     "step triple (%.*s). %s.", (int)(ptr - field_start),
@@ -3119,6 +3127,7 @@ numeric_loop:
                         ptr, errno ? sol_util_strerrora(errno) : "bad format",
                         syntax_msg);
                     r = -errno;
+                    *tmp = backup;
                     goto value_err;
                 }
 
@@ -3137,6 +3146,7 @@ numeric_loop:
                         errno ? sol_util_strerrora(errno) : "bad format",
                         syntax_msg);
                     r = -errno;
+                    *tmp = backup;
                     goto value_err;
                 }
 
