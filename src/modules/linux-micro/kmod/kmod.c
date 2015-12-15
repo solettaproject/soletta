@@ -57,7 +57,7 @@ kmod_apply_value(struct kmod_ctx *kmod, struct sol_str_slice modalias)
     char *alias = NULL;
 
     alias = sol_str_slice_to_string(modalias);
-    SOL_NULL_CHECK(alias, NULL);
+    SOL_NULL_CHECK(alias, -ENOMEM);
 
     SOL_INF("Trying to load module for alias: %s", alias);
 
