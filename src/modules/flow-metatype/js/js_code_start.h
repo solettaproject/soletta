@@ -30,8 +30,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "duktape.h"
+
+#define xstr(x) str(x)
+#define str(x) #x
+
 #define JS_CODE_START \
     "#include \"duktape.h\"\n" \
+    "#define DUKTAPE_GENERATED_CODE_VERSION " xstr(DUK_VERSION) "\n" \
     "struct js_metatype_port_in {\n" \
     "    struct sol_flow_port_type_in base;\n" \
     "    const char *name;\n" \
@@ -877,18 +883,25 @@
     "    return true;\n" \
     "}\n" \
     "static int\n" \
-    "js_metatype_common_open(struct sol_flow_node *node, duk_context **duk_ctx, const char *code, size_t code_size)\n" \
+    "js_metatype_common_open(struct sol_flow_node *node, duk_context **duk_ctx, const char *code, size_t code_size, bool is_bytecode)\n" \
     "{\n" \
+    "    char *bcode;\n" \
     "    const struct sol_flow_node_type *type = sol_flow_node_get_type(node);\n" \
     "    *duk_ctx = duk_create_heap_default();\n" \
     "    if (!*duk_ctx) {\n" \
     "        SOL_ERR(\"Failed to create a Duktape heap\");\n" \
     "        return -1;\n" \
     "    }\n" \
-    "    if (duk_peval_lstring(*duk_ctx, code, code_size) != 0) {\n" \
-    "        SOL_ERR(\"Failed to read from javascript content buffer: %s\", duk_safe_to_string(duk_ctx, -1));\n" \
+    "    if (!is_bytecode && duk_peval_lstring(*duk_ctx, code, code_size) != 0) {\n" \
+    "        SOL_ERR(\"Failed to read from javascript content buffer: %s\", duk_safe_to_string(*duk_ctx, -1));\n" \
     "        duk_destroy_heap(*duk_ctx);\n" \
     "        return -1;\n" \
+    "    } else if (is_bytecode) {\n" \
+    "SOL_ERR(\"BYTE\");\n" \
+    "        bcode = duk_push_fixed_buffer(*duk_ctx, code_size);\n" \
+    "        memcpy(bcode, code, code_size);\n" \
+    "        duk_load_function(*duk_ctx);\n" \
+    "        duk_call(*duk_ctx, 0);\n " \
     "    }\n" \
     "    duk_pop(*duk_ctx);\n" \
     "    duk_push_global_object(*duk_ctx);\n" \
