@@ -483,8 +483,8 @@ struct command {
 struct lcd_data {
     struct sol_i2c *i2c;
     struct sol_i2c_pending *i2c_pending;
+    struct sol_ptr_vector cmd_queue;
     struct sol_timeout *timer;
-    struct sol_vector cmd_queue;
     uint8_t row, col, display_mode, display_control;
     bool error : 1;
     bool ready : 1;
@@ -499,16 +499,24 @@ static struct command *
 command_new(struct lcd_data *mdata)
 {
     struct command *cmd;
+    int r;
 
     if (mdata->error)
         return NULL;
 
-    cmd = sol_vector_append(&mdata->cmd_queue);
+    cmd = calloc(1, sizeof(*cmd));
     SOL_NULL_CHECK(cmd, NULL);
     cmd->mdata = mdata;
     cmd->flags = 0;
 
+    r = sol_ptr_vector_append(&mdata->cmd_queue, cmd);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
     return cmd;
+
+err:
+    free(cmd);
+    return NULL;
 }
 
 static int
@@ -633,7 +641,8 @@ write_char(struct lcd_data *mdata, char value)
         if (mdata->col == UINT8_MAX) {
             if (mdata->row < ROW_MAX) {
                 mdata->col = COL_MAX;
-                r = pos_cmd_queue(mdata, mdata->row++, mdata->col);
+                mdata->row++;
+                r = pos_cmd_queue(mdata, mdata->row, mdata->col);
                 if (r < 0) {
                     SOL_WRN("Failed to change cursor position");
                     return r;
@@ -644,12 +653,13 @@ write_char(struct lcd_data *mdata, char value)
     } else {
         if (mdata->col < UINT8_MAX)
             mdata->col++;
-        /* Going LTR case: jump to start of second line or keep
+        /* Going LTR case: jump to start of next line or keep
          * overriding last col */
         if (mdata->col > COL_MAX) {
             if (mdata->row < ROW_MAX) {
                 mdata->col = COL_MIN;
-                r = pos_cmd_queue(mdata, mdata->row++, mdata->col);
+                mdata->row++;
+                r = pos_cmd_queue(mdata, mdata->row, mdata->col);
                 if (r < 0) {
                     SOL_WRN("Failed to change cursor position");
                     return r;
@@ -752,46 +762,28 @@ i2c_write_cb(void *cb_data,
     struct lcd_data *mdata = cmd->mdata;
 
     mdata->i2c_pending = NULL;
-    SOL_INT_CHECK_GOTO(status, < 0, end);
+    SOL_INT_CHECK(status, < 0);
+
+    cmd->status = COMMAND_STATUS_DONE;
 
     if (cmd->value != LCD_CLEAR)
         command_queue_process(mdata);
-
-end:
-    free(cmd);
-}
-
-static inline void
-command_copy(const struct command *src, struct command *dst)
-{
-    memcpy(dst, src, sizeof(struct command));
 }
 
 static int
 command_send(struct lcd_data *mdata, struct command *cmd)
 {
-    struct command *cpy;
-
     if (!sol_i2c_set_slave_address(mdata->i2c, cmd->chip_addr)) {
         SOL_WRN("Failed to set slave at address 0x%02x\n", cmd->chip_addr);
         return -EIO;
     }
 
-    /* Unfortunately we can't afford not replicating this memory. At
-     * least &cmd->value must be alive during the whole callback time,
-     * and we can't guarantee that on our side with so many list
-     * operations going on. */
-    cpy = malloc(sizeof(*cpy));
-    SOL_NULL_CHECK(cpy, -ENOMEM);
-    command_copy(cmd, cpy);
-
     cmd->status = COMMAND_STATUS_SENDING;
     mdata->i2c_pending = sol_i2c_write_register(mdata->i2c, cmd->data_addr,
-        &cpy->value, 1, i2c_write_cb, cpy);
+        &cmd->value, 1, i2c_write_cb, cmd);
     if (!mdata->i2c_pending) {
         SOL_WRN("Failed to write on I2C register 0x%02x\n", cmd->data_addr);
         cmd->status = COMMAND_STATUS_WAITING;
-        free(cpy);
         return -EIO;
     }
 
@@ -803,14 +795,30 @@ command_free(struct command *cmd)
 {
     if (cmd->string)
         free(cmd->string);
+    free(cmd);
+}
+
+static void
+free_commands(struct sol_ptr_vector *cmd_queue, bool done_only)
+{
+    struct command *cmd;
+    uint16_t i;
+
+    /* Traverse backwards so deletion doesn't impact the indexes. */
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (cmd_queue, cmd, i) {
+        if (done_only && cmd->status != COMMAND_STATUS_DONE)
+            continue;
+        command_free(cmd);
+        sol_ptr_vector_del(cmd_queue, i);
+    }
 }
 
 static int
 lcd_string_write_process(struct lcd_data *mdata, char *string, uint16_t i)
 {
-    struct sol_vector old_vector;
-    struct sol_vector final_vector;
-    struct command *cmd_src, *cmd_dst;
+    struct sol_ptr_vector old_vector;
+    struct sol_ptr_vector final_vector;
+    struct command *cmd;
     uint16_t j;
     int r;
 
@@ -820,7 +828,7 @@ lcd_string_write_process(struct lcd_data *mdata, char *string, uint16_t i)
      * accomplish this with vector:
      * - Copy mdata->cmd_queue vector to old_vector
      * - Initialize mdata->cmd_queue
-     * - Call write_string() to queued the commands to mdata->cmd_queue
+     * - Call write_string() to queue the commands to mdata->cmd_queue
      * - Initialize the final_vector
      * - Append all processed(0..i) commands on old_vector to final_vector
      * - Append all commands queued by write_string() to final_vector
@@ -830,57 +838,59 @@ lcd_string_write_process(struct lcd_data *mdata, char *string, uint16_t i)
      */
 
     old_vector = mdata->cmd_queue;
-    sol_vector_init(&mdata->cmd_queue, sizeof(struct command));
+    sol_ptr_vector_init(&mdata->cmd_queue);
 
+    /* mdata->cmd_queue now contains the expanded string commands */
     r = write_string(mdata, string);
     if (r < 0) {
-        sol_vector_clear(&mdata->cmd_queue);
+        free_commands(&mdata->cmd_queue, true);
+        sol_ptr_vector_clear(&mdata->cmd_queue);
         goto err;
     }
 
-    sol_vector_init(&final_vector, sizeof(struct command));
-    SOL_VECTOR_FOREACH_IDX (&old_vector, cmd_src, j) {
-        //'i' is the index of this function entry. It is included
-        //back because it is marked as done before this function is
-        //called
+    /* copy original commands up to 'i' */
+    sol_ptr_vector_init(&final_vector);
+    SOL_PTR_VECTOR_FOREACH_IDX (&old_vector, cmd, j) {
+        /* 'i' is included back because it is marked as done before
+         * this function is called
+         */
         if (j > i) break;
-        cmd_dst = sol_vector_append(&final_vector);
-        if (!cmd_dst) {
-            r = -errno;
-            sol_vector_clear(&mdata->cmd_queue);
-            sol_vector_clear(&final_vector);
-            goto err;
-        }
-        command_copy(cmd_src, cmd_dst);
+
+        r = sol_ptr_vector_append(&final_vector, cmd);
+        SOL_INT_CHECK_GOTO(r, < 0, err_cmds);
     }
 
-    SOL_VECTOR_FOREACH_IDX (&mdata->cmd_queue, cmd_src, j) {
-        cmd_dst = sol_vector_append(&final_vector);
-        if (!cmd_dst) {
-            r = -errno;
-            sol_vector_clear(&mdata->cmd_queue);
-            sol_vector_clear(&final_vector);
-            goto err;
-        }
-        command_copy(cmd_src, cmd_dst);
+    /* copy commands of the string command expansion */
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->cmd_queue, cmd, j) {
+        r = sol_ptr_vector_append(&final_vector, cmd);
+        SOL_INT_CHECK_GOTO(r, < 0, err_cmds);
     }
-    sol_vector_clear(&mdata->cmd_queue);
 
-    SOL_VECTOR_FOREACH_IDX (&old_vector, cmd_src, j) {
+    /* only clear, since we moved them to final_vector */
+    sol_ptr_vector_clear(&mdata->cmd_queue);
+
+    /* copy original commands past 'i' */
+    SOL_PTR_VECTOR_FOREACH_IDX (&old_vector, cmd, j) {
         if (j <= i) continue;
-        cmd_dst = sol_vector_append(&final_vector);
-        if (!cmd_dst) {
-            r = -errno;
-            sol_vector_clear(&final_vector);
-            goto err;
-        }
-        command_copy(cmd_src, cmd_dst);
+
+        r = sol_ptr_vector_append(&final_vector, cmd);
+        SOL_INT_CHECK_GOTO(r, < 0, err_final);
     }
-    sol_vector_clear(&old_vector);
+    /* only clear, since we moved them to final_vector */
+    sol_ptr_vector_clear(&old_vector);
 
     mdata->cmd_queue = final_vector;
 
     return 0;
+
+err_cmds:
+    free_commands(&mdata->cmd_queue, false);
+    sol_ptr_vector_clear(&mdata->cmd_queue);
+
+err_final:
+    free_commands(&final_vector, false);
+    sol_ptr_vector_clear(&final_vector);
+
 err:
     mdata->cmd_queue = old_vector;
     return r;
@@ -901,21 +911,6 @@ command_queue_start(struct lcd_data *mdata)
     return command_queue_process(mdata);
 }
 
-static void
-free_commands(struct lcd_data *mdata, bool done_only)
-{
-    struct command *cmd;
-    uint16_t i;
-
-    /* Traverse backwards so deletion doesn't impact the indexes. */
-    SOL_VECTOR_FOREACH_REVERSE_IDX (&mdata->cmd_queue, cmd, i) {
-        if (done_only && cmd->status != COMMAND_STATUS_DONE)
-            continue;
-        command_free(cmd);
-        sol_vector_del(&mdata->cmd_queue, i);
-    }
-}
-
 /* commit buffered changes */
 static int
 command_queue_process(struct lcd_data *mdata)
@@ -930,17 +925,12 @@ command_queue_process(struct lcd_data *mdata)
         goto end;
     }
 
-    SOL_VECTOR_FOREACH_IDX (&mdata->cmd_queue, cmd, i) {
-        /* expanding string commands and continuing will lead to
-         * temporary done commands */
+    SOL_PTR_VECTOR_FOREACH_IDX (&mdata->cmd_queue, cmd, i) {
+        /* done, left to be cleaned after the loop */
         if (cmd->status == COMMAND_STATUS_DONE) continue;
 
-        if (cmd->status == COMMAND_STATUS_SENDING) {
-            cmd->status = COMMAND_STATUS_DONE;
-            break;
-        }
-
-        /* COMMAND_STATUS_WAITING cases */
+        /* COMMAND_STATUS_WAITING cases, since COMMAND_STATUS_SENDING
+         * can't happen at this point */
         if (!(cmd->flags & FLAG_SPECIAL_CMD)) {
             r = command_send(mdata, cmd);
             SOL_INT_CHECK_GOTO(r, < 0, err);
@@ -950,19 +940,24 @@ command_queue_process(struct lcd_data *mdata)
                  * command_queue_process(), we do this by a timer */
                 mdata->row = ROW_MIN;
                 mdata->col = COL_MIN;
+
                 r = timer_reschedule(mdata, TIME_TO_CLEAR, true);
                 SOL_INT_CHECK_GOTO(r, < 0, sched_err);
+                cmd->status = COMMAND_STATUS_DONE;
             }
             return 0;
         }
 
         /* FLAG_SPECIAL_CMD cases */
         if (cmd->flags & FLAG_STRING) {
-            /* Being a fake cmd, we expand it to real, intermediate
-             * commands (and mark this cmd as done). We change the
-             * status of the cmd before that because the list will be
-             * copied */
+            /* Being a fake command, we expand it to real,
+             * intermediate commands (and mark this one as done). We
+             * *have* to expand string commands JIT-like, because we
+             * can't know beforehand the state of row/col that each
+             * write_char() call will find while traversing the
+             * string's individual char commands. */
             cmd->status = COMMAND_STATUS_DONE;
+
             r = lcd_string_write_process(mdata, cmd->string, i);
             SOL_INT_CHECK_GOTO(r, < 0, err);
             /* proceed to the 1st expanded command */
@@ -983,9 +978,9 @@ command_queue_process(struct lcd_data *mdata)
         return 0;
     }
 
-    free_commands(mdata, true);
+    free_commands(&mdata->cmd_queue, true);
 
-    if (mdata->cmd_queue.len)
+    if (mdata->cmd_queue.base.len)
         return command_queue_process(mdata);
 
 end:
@@ -1092,7 +1087,7 @@ lcd_open(struct lcd_data *mdata, uint8_t bus)
     mdata->i2c = sol_i2c_open(bus, SOL_I2C_SPEED_10KBIT);
     SOL_NULL_CHECK_MSG(mdata->i2c, -EIO, "Failed to open i2c bus %d", bus);
 
-    sol_vector_init(&mdata->cmd_queue, sizeof(struct command));
+    sol_ptr_vector_init(&mdata->cmd_queue);
 
     return append_setup_commands(mdata);
 }
@@ -1110,7 +1105,8 @@ lcd_close(struct sol_flow_node *node, void *data)
     if (mdata->i2c)
         sol_i2c_close(mdata->i2c);
 
-    free_commands(mdata, false);
+    free_commands(&mdata->cmd_queue, false);
+    sol_ptr_vector_clear(&mdata->cmd_queue);
 }
 
 /* LCD API */
