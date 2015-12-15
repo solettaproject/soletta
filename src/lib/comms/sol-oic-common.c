@@ -92,3 +92,37 @@ sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_rep
 {
     return sol_oic_packet_cbor_append(oic_map_writer, repr) == CborNoError;
 }
+
+#ifdef SOL_LOG_ENABLED
+SOL_API void
+sol_oic_payload_debug(struct sol_coap_packet *pkt)
+{
+#ifdef HAVE_STDOUT
+    uint8_t *payload;
+    uint16_t payload_len;
+    CborParser parser;
+    CborError err;
+    CborValue root;
+
+    if (!sol_oic_pkt_has_cbor_content(pkt) ||
+        !sol_coap_packet_has_payload(pkt)) {
+        return;
+    }
+    if (sol_coap_packet_get_payload(pkt, &payload, &payload_len) < 0) {
+        SOL_DBG("Failed to get packet payload");
+        return;
+    }
+
+    err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
+    if (err != CborNoError) {
+        SOL_DBG("Failed to get cbor payload");
+        return;
+    }
+
+    cbor_value_to_pretty(stdout, &root);
+    fprintf(stdout, "\n");
+#else
+    SOL_DBG("Failed to log oic payload: stdout not available");
+#endif
+}
+#endif

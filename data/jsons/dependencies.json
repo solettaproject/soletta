@@ -499,6 +499,14 @@
       "ldflags": {
         "value": "-lmagic"
       }
+    },
+    {
+      "dependency": "stdout",
+      "type": "ccode",
+      "headers": [
+        "<stdio.h>"
+      ],
+      "fragment": "stdout;"
     }
   ]
 }
