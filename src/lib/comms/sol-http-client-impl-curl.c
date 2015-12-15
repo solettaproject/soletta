@@ -772,9 +772,9 @@ set_post_data_from_params(CURL *curl, const struct sol_http_params *params)
     struct sol_str_slice data = SOL_STR_SLICE_EMPTY;
     struct sol_http_param_value *iter;
     uint16_t idx;
-    bool type_set, has_post_fields, hast_post_data;
+    bool type_set, has_post_fields, has_post_data;
 
-    type_set = has_post_fields = hast_post_data = false;
+    type_set = has_post_fields = has_post_data = false;
     SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
         struct sol_str_slice value = SOL_STR_SLICE_EMPTY;
         if (iter->type == SOL_HTTP_PARAM_POST_FIELD) {
@@ -790,17 +790,17 @@ set_post_data_from_params(CURL *curl, const struct sol_http_params *params)
             }
 
             data = value;
-            hast_post_data = true;
+            has_post_data = true;
         }
     }
 
-    if (!hast_post_data)
+    if (!has_post_data)
         return true;
 
-    if (hast_post_data && data.len == 0)
+    if (has_post_data && data.len == 0)
         return false;
 
-    if (has_post_fields && hast_post_data) {
+    if (has_post_fields && has_post_data) {
         SOL_WRN("SOL_HTTP_PARAM_POST_FIELD and SOL_HTTP_PARAM_POST_DATA found in parameters."
             " Only one can be used at a time");
         return false;
