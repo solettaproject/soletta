@@ -42,7 +42,6 @@ struct gyroscope_data {
     struct sol_iio_config config;
     struct sol_direction_vector scale;
     struct sol_direction_vector offset;
-    struct sol_flow_node *node;
     struct sol_iio_device *device;
     struct sol_iio_channel *channel_x;
     struct sol_iio_channel *channel_y;
@@ -56,7 +55,8 @@ static void
 reader_cb(void *data, struct sol_iio_device *device)
 {
     static const char *errmsg = "Could not read channel buffer values";
-    struct gyroscope_data *mdata = data;
+    struct sol_flow_node *node = data;
+    struct gyroscope_data *mdata = sol_flow_node_get_private_data(node);
     struct sol_direction_vector out = { .min = DBL_MAX, .max = -DBL_MAX };
     bool b;
 
@@ -75,13 +75,13 @@ reader_cb(void *data, struct sol_iio_device *device)
     if (out.z > out.max) out.max = out.z;
     if (out.z < out.min) out.min = out.z;
 
-    sol_flow_send_direction_vector_packet(mdata->node,
+    sol_flow_send_direction_vector_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE__OUT__OUT, &out);
 
     return;
 
 error:
-    sol_flow_send_error_packet_str(mdata->node, EIO, errmsg);
+    sol_flow_send_error_packet_str(node, EIO, errmsg);
     SOL_WRN("%s", errmsg);
 }
 
@@ -128,8 +128,6 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
         -EINVAL);
     opts = (const struct sol_flow_node_type_iio_gyroscope_options *)options;
 
-    mdata->node = node;
-
     mdata->buffer_enabled = opts->buffer_size > -1;
 
     SOL_SET_API_VERSION(mdata->config.api_version = SOL_IIO_CONFIG_API_VERSION; )
@@ -138,7 +136,7 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     mdata->config.sampling_frequency = opts->sampling_frequency;
     if (mdata->buffer_enabled) {
         mdata->config.sol_iio_reader_cb = reader_cb;
-        mdata->config.data = mdata;
+        mdata->config.data = node;
     }
     mdata->use_device_default_scale = opts->use_device_default_scale;
     mdata->use_device_default_offset = opts->use_device_default_offset;
