@@ -36,7 +36,7 @@
 
 #ifdef SOL_LOG_ENABLED
 #define SOL_LOG_INTERNAL_DECLARE(_var, _name)    \
-    struct sol_log_domain _var = {               \
+    SOL_ATTR_UNUSED struct sol_log_domain _var = { \
         .name = "sol-" _name,                    \
         .color = SOL_LOG_COLOR_MAGENTA,          \
         .level = SOL_LOG_LEVEL_WARNING           \
