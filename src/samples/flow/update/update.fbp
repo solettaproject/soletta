@@ -52,6 +52,7 @@ install(update/install)
 
 fetch_progress_timer(timer:interval=10)
 fetch_progress_timer OUT -> GET_PROGRESS fetch
+_(constant/boolean:value=false) OUT -> ENABLED fetch_progress_timer
 
 check ERROR -> IN error_check(console)
 fetch ERROR -> IN error_fetch(console)
@@ -61,8 +62,9 @@ _(constant/int:value=0) OUT -> CHECK check
 
 check VERSION -> IN print_version(console)
 check SIZE -> IN print_size(console)
-check VERSION -> IN _(converter/empty-to-boolean:output_value=true) OUT -> ENABLED fetch_progress_timer
-check VERSION -> FETCH fetch
+check NEED_UPDATE -> IN print_need_update(console)
+check NEED_UPDATE -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> FETCH fetch
+check NEED_UPDATE -> ENABLED fetch_progress_timer
 
 fetch PROGRESS -> IN print_progress(console)
 fetch SUCCESS -> IN print_fetch_success(console)
