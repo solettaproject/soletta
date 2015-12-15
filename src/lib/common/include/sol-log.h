@@ -56,24 +56,45 @@ extern "C" {
  * @{
  */
 
-/* ANSI/VT100 colors as understood by most consoles and terminals */
-#define SOL_LOG_COLOR_LIGHTRED    "\033[31;1m"
-#define SOL_LOG_COLOR_RED          "\033[31m"
-#define SOL_LOG_COLOR_LIGHTBLUE    "\033[34;1m"
-#define SOL_LOG_COLOR_BLUE         "\033[34m"
-#define SOL_LOG_COLOR_GREEN        "\033[32;1m"
-#define SOL_LOG_COLOR_YELLOW       "\033[33;1m"
-#define SOL_LOG_COLOR_ORANGE       "\033[0;33m"
-#define SOL_LOG_COLOR_WHITE        "\033[37;1m"
-#define SOL_LOG_COLOR_LIGHTMAGENTA "\033[35;1m"
-#define SOL_LOG_COLOR_MAGENTA      "\033[35m"
-#define SOL_LOG_COLOR_LIGHTCYAN    "\033[36;1m"
-#define SOL_LOG_COLOR_CYAN         "\033[36m"
-#define SOL_LOG_COLOR_RESET        "\033[0m"
-#define SOL_LOG_COLOR_HIGH         "\033[1m"
+/**
+ * @defgroup Colors Colors
+ *
+ * @brief ANSI/VT100 colors as understood by most consoles and terminals.
+ *
+ * @{
+ */
+#define SOL_LOG_COLOR_LIGHTRED    "\033[31;1m" /**< @brief Light Red color code */
+#define SOL_LOG_COLOR_RED          "\033[31m" /**< @brief Red color code */
+#define SOL_LOG_COLOR_LIGHTBLUE    "\033[34;1m" /**< @brief Light Blue color code */
+#define SOL_LOG_COLOR_BLUE         "\033[34m" /**< @brief Blue color code */
+#define SOL_LOG_COLOR_GREEN        "\033[32;1m" /**< @brief Green color code */
+#define SOL_LOG_COLOR_YELLOW       "\033[33;1m" /**< @brief Yellow color code */
+#define SOL_LOG_COLOR_ORANGE       "\033[0;33m" /**< @brief Orange color code */
+#define SOL_LOG_COLOR_WHITE        "\033[37;1m" /**< @brief White color code */
+#define SOL_LOG_COLOR_LIGHTMAGENTA "\033[35;1m" /**< @brief Light Magenta color code */
+#define SOL_LOG_COLOR_MAGENTA      "\033[35m" /**< @brief Magenta color code */
+#define SOL_LOG_COLOR_LIGHTCYAN    "\033[36;1m" /**< @brief Light Cyan color code */
+#define SOL_LOG_COLOR_CYAN         "\033[36m" /**< @brief Cyan color code */
+#define SOL_LOG_COLOR_RESET        "\033[0m" /**< @brief Code to Reset the color to default */
+#define SOL_LOG_COLOR_HIGH         "\033[1m" /**< @brief Highlight code */
+/**
+ * @}
+ */
 
+/**
+ * @brief Convenience macro for @c unlikely branch annotation. Intended for local use.
+ */
 #define log_unlikely(x) __builtin_expect(!!(x), 0)
 
+/**
+ * @brief Convenience macro to check for @c NULL pointer.
+ *
+ * This macro logs a warning message and returns if the pointer @c ptr
+ * happens to be @c NULL.
+ *
+ * @param ptr Pointer to check
+ * @param ... Optional return value
+ */
 #define SOL_NULL_CHECK(ptr, ...) \
     do { \
         if (log_unlikely(!(ptr))) { \
@@ -82,6 +103,16 @@ extern "C" {
         } \
     } while (0)
 
+/**
+ * @brief Convenience macro to check for @c NULL pointer and jump to a given label.
+ *
+ * This macro logs a warning message and jumps to @c label if the pointer @c ptr
+ * happens to be @c NULL.
+ *
+ * @param ptr Pointer to check
+ * @param label @c goto label
+ * @param ... Optional return value
+ */
 #define SOL_NULL_CHECK_GOTO(ptr, label) \
     do { \
         if (log_unlikely(!(ptr))) { \
@@ -90,6 +121,16 @@ extern "C" {
         } \
     } while (0)
 
+/**
+ * @brief Similar to @ref SOL_NULL_CHECK but allowing for a custom warning message.
+ *
+ * @param ptr Pointer to check
+ * @param ret Value to return
+ * @param fmt A standard 'printf()' format string
+ * @param ... The arguments for @c fmt
+ *
+ * @see SOL_NULL_CHECK
+ */
 #define SOL_NULL_CHECK_MSG(ptr, ret, fmt, ...) \
     do { \
         if (log_unlikely(!(ptr))) { \
@@ -98,6 +139,16 @@ extern "C" {
         } \
     } while (0)
 
+/**
+ * @brief Similar to @ref SOL_NULL_CHECK_GOTO but allowing for a custom warning message.
+ *
+ * @param ptr Pointer to check
+ * @param label @c goto label
+ * @param fmt A standard 'printf()' format string
+ * @param ... The arguments for @c fmt
+ *
+ * @see SOL_NULL_CHECK_GOTO
+ */
 #define SOL_NULL_CHECK_MSG_GOTO(ptr, label, fmt, ...) \
     do { \
         if (log_unlikely(!(ptr))) { \
@@ -106,6 +157,12 @@ extern "C" {
         } \
     } while (0)
 
+/**
+ * @brief Auxiliary macro intended to be used by @ref SOL_INT_CHECK to format it's output.
+ *
+ * @param var Integer checked by @ref SOL_INT_CHECK
+ * @param exp Safety-check expression from @ref SOL_INT_CHECK
+ */
 #define _SOL_INT_CHECK_FMT(var, exp) \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), int), \
@@ -148,6 +205,16 @@ extern "C" {
     "" # var " (%zd) " # exp, \
     (void)0)))))))))))))
 
+/**
+ * @brief Safety-check macro to check if integer @c var against @c exp.
+ *
+ * This macro logs a warning message and returns if the integer @c var
+ * satisfies the expression @c exp.
+ *
+ * @param var Integer to be check
+ * @param exp Safety-check expression
+ * @param ... Optional return value
+ */
 #define SOL_INT_CHECK(var, exp, ...) \
     do { \
         if (log_unlikely((var)exp)) { \
@@ -156,6 +223,16 @@ extern "C" {
         } \
     } while (0)
 
+/**
+ * @brief Similar to @ref SOL_INT_CHECK but jumping to @c label instead of returning.
+ *
+ * This macro logs a warning message and jumps to @c label if the integer @c var
+ * satisfies the expression @c exp.
+ *
+ * @param var Integer to be check
+ * @param exp Safety-check expression
+ * @param label @c goto label
+ */
 #define SOL_INT_CHECK_GOTO(var, exp, label) \
     do { \
         if (log_unlikely((var)exp)) { \
@@ -164,6 +241,15 @@ extern "C" {
         } \
     } while (0)
 
+/**
+ * @brief Safety-check macro to check the expression @c exp.
+ *
+ * This macro logs a warning message and returns if the expression @c exp
+ * is @c true.
+ *
+ * @param exp Safety-check expression
+ * @param ... Optional return value
+ */
 #define SOL_EXP_CHECK(exp, ...) \
     do { \
         if (log_unlikely((exp))) { \
@@ -172,6 +258,15 @@ extern "C" {
         } \
     } while (0)
 
+/**
+ * @brief Similar to @ref SOL_EXP_CHECK but jumping to @c label instead of returning.
+ *
+ * This macro logs a warning message and jumps to @c label if the expression @c exp
+ * is @c true.
+ *
+ * @param exp Safety-check expression
+ * @param label @c goto label
+ */
 #define SOL_EXP_CHECK_GOTO(exp, label) \
     do { \
         if (log_unlikely((exp))) { \
@@ -180,35 +275,51 @@ extern "C" {
         } \
     } while (0)
 
+/**
+ * @brief Available logging levels.
+ *
+ * Levels are use to identify the severity of the issue related to a given log message.
+ */
 enum sol_log_level {
-    SOL_LOG_LEVEL_CRITICAL = 0,
-    SOL_LOG_LEVEL_ERROR,
-    SOL_LOG_LEVEL_WARNING,
-    SOL_LOG_LEVEL_INFO,
-    SOL_LOG_LEVEL_DEBUG
+    SOL_LOG_LEVEL_CRITICAL = 0, /**< @brief Critical */
+    SOL_LOG_LEVEL_ERROR, /**< @brief Error */
+    SOL_LOG_LEVEL_WARNING, /**< @brief Warning */
+    SOL_LOG_LEVEL_INFO, /**< @brief Informational */
+    SOL_LOG_LEVEL_DEBUG /**< @brief Debug */
 };
 
+/**
+ * @brief Structure containing the attributes of the domain used for logging.
+ */
 struct sol_log_domain {
-    const char *color;
-    const char *name;
-    uint8_t level;
+    const char *color; /**< @brief Color to be used */
+    const char *name; /**< @brief Domain name */
+    uint8_t level; /**< @brief Maximum level to log for this domain */
 };
 
+/**
+ * @brief Global logging domain.
+ *
+ * Log domain is a way to provide a scope or category to messages that can
+ * be used for filtering in addition to log levels.
+ */
 extern struct sol_log_domain *sol_log_global_domain;
 
-#ifdef SOL_LOG_ENABLED
 /**
- * Initialize domain log level based on system configuration.
+ * @fn void sol_log_domain_init_level(struct sol_log_domain *domain)
+ *
+ * @brief Initialize domain log level based on system configuration.
  *
  * The system configuration may be environment variables like @c
  * $SOL_LOG_LEVEL=NUMBER (or sol_log_set_level()) to apply for all or @c
- * $SOL_LOG_LEVELS=<domain1_name>:<domain1_level>,<domainN_name>:<domainN_level>
+ * $SOL_LOG_LEVELS=\<domain1_name\>:\<domain1_level\>,\<domainN_name\>:\<domainN_level\>
  * to give each domain its specific level.
  *
  * @param domain the structure to fill @c level with system configuration value.
  *
  * @see sol_log_set_level()
  */
+#ifdef SOL_LOG_ENABLED
 void sol_log_domain_init_level(struct sol_log_domain *domain);
 #else
 static inline void
@@ -221,20 +332,23 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 /**
  * @def SOL_LOG_DOMAIN
  *
- * This macro defines the default log domain that is used by SOL_LOG(),
+ * @brief Defines the default log domain that is used by SOL_LOG(),
  * SOL_CRI(), SOL_ERR(), SOL_WRN(), SOL_INF() and SOL_DBG().
  *
  * If not set prior to inclusion of sol-log.h, then
  * sol_log_global_domain is used.
+ *
+ * It can be used to provide custom log domains for nodes and modules.
  */
 #define SOL_LOG_DOMAIN sol_log_global_domain
 #endif
 
-#if 0
 /**
  * @def SOL_LOG_LEVEL_MAXIMUM
  *
- * If defined this level will be ensured before sol_log_print() is
+ * @brief Ensures a maximum log level.
+ *
+ * If defined, this level will be ensured before sol_log_print() is
  * called by SOL_LOG(), SOL_CRI(), SOL_ERR(), SOL_WRN(), SOL_INF() and
  * SOL_DBG(), which will avoid calling sol_log_print() at all and since
  * it is comparing two constants the compiler will optimize out the
@@ -243,16 +357,19 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
  *
  * One should check using SOL_LOG_LEVEL_POSSIBLE().
  */
+#if 0
 #define SOL_LOG_LEVEL_MAXIMUM SOL_LOG_LEVEL_WARNING
 #endif
 
-#ifdef SOL_LOG_ENABLED
 /**
  * @def SOL_LOG_LEVEL_POSSIBLE(level)
  *
- * Check if log level is possible, that is, if #SOL_LOG_LEVEL_MAXIMUM
- * is set, it should be less or equal to it, otherwise it is possible.
+ * @brief Check if log level is possible.
+ *
+ * If #SOL_LOG_LEVEL_MAXIMUM is set, it should be less or equal to it,
+ * otherwise it is always impossible.
  */
+#ifdef SOL_LOG_ENABLED
 #ifdef SOL_LOG_LEVEL_MAXIMUM
 #define SOL_LOG_LEVEL_POSSIBLE(level) (level <= SOL_LOG_LEVEL_MAXIMUM)
 #else
@@ -269,9 +386,10 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 /**
  * @def SOL_LOG(level, fmt, ...)
  *
- * This macro logs to the #SOL_LOG_DOMAIN using the given level and
- * format message, as well as using current source file, line and
- * function.
+ * @brief Logs to #SOL_LOG_DOMAIN using the given level and
+ * format message.
+ *
+ * Also uses the current source file, line and function.
  *
  * @see SOL_CRI(), SOL_ERR(), SOL_WRN(), SOL_INF() and SOL_DBG().
  */
@@ -287,7 +405,9 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 /**
  * @def SOL_CRI(fmt, ...)
  *
- * This macro logs a critical message to the #SOL_LOG_DOMAIN using the
+ * @brief Logs a message with @c critical level.
+ *
+ * Logs a critical message to the #SOL_LOG_DOMAIN using the
  * given format message, as well as using current source file, line
  * and function.
  *
@@ -298,7 +418,9 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 /**
  * @def SOL_ERR(fmt, ...)
  *
- * This macro logs an error message to the #SOL_LOG_DOMAIN using the
+ * @brief Logs a message with @c error level.
+ *
+ * Logs an error message to the #SOL_LOG_DOMAIN using the
  * given format message, as well as using current source file, line
  * and function.
  *
@@ -309,7 +431,9 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 /**
  * @def SOL_WRN(fmt, ...)
  *
- * This macro logs a warning message to the #SOL_LOG_DOMAIN using the
+ * @brief Logs a message with @c warning level.
+ *
+ * Logs a warning message to the #SOL_LOG_DOMAIN using the
  * given format message, as well as using current source file, line
  * and function.
  *
@@ -320,7 +444,9 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 /**
  * @def SOL_INF(fmt, ...)
  *
- * This macro logs an informational message to the #SOL_LOG_DOMAIN
+ * @brief Logs a message with @c informational level.
+ *
+ * Logs an informational message to the #SOL_LOG_DOMAIN
  * using the given format message, as well as using current source
  * file, line and function.
  *
@@ -331,7 +457,9 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 /**
  * @def SOL_DBG(fmt, ...)
  *
- * This macro logs a debug message to the #SOL_LOG_DOMAIN using the
+ * @brief Logs a message with @c debug level.
+ *
+ * Logs a debug message to the #SOL_LOG_DOMAIN using the
  * given format message, as well as using current source file, line
  * and function.
  *
@@ -339,9 +467,11 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
  */
 #define SOL_DBG(fmt, ...) SOL_LOG(SOL_LOG_LEVEL_DEBUG, fmt, ## __VA_ARGS__)
 
-#ifdef SOL_LOG_ENABLED
 /**
- * Print out a message in a given domain and level.
+ * @fn void sol_log_print(const struct sol_log_domain *domain, uint8_t message_level,
+ * const char *file, const char *function, int line, const char *format, ...)
+ *
+ * @brief Print out a message in a given domain and level.
  *
  * This function will print out the given message only if the given
  * domain's level is greater or equal to the @a message_level. Then it
@@ -380,7 +510,25 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
  * @see sol_log_set_level()
  * @see sol_log_set_abort_level()
  */
+
+/**
+ * @fn void sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level,
+ * const char *file, const char *function, int line, const char *format, va_list args)
+ *
+ * @brief Similar to @ref sol_log_print, but called with @c va_list instead of a variable number of arguments.
+ *
+ * @param domain where the message belongs to.
+ * @param message_level the level of the message such as #SOL_LOG_LEVEL_ERROR.
+ * @param file the source file name that originated the message.
+ * @param function the function that originated the message.
+ * @param line the source file line number that originated the message.
+ * @param format printf(3) format string for the extra arguments. It
+ *        does not need trailing "\n" as this will be enforced.
+ * @param args Variables list.
+ */
+#ifdef SOL_LOG_ENABLED
 void sol_log_print(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, ...) SOL_ATTR_PRINTF(6, 7) SOL_ATTR_NOINSTRUMENT;
+
 void sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_NOINSTRUMENT;
 #else
 static inline void
@@ -393,9 +541,8 @@ sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const
 }
 #endif
 
-#ifdef SOL_LOG_ENABLED
 /**
- * Set the function to print out log messages.
+ * @brief Set the function to print out log messages.
  *
  * The function will be called with sanitized values for @a domain, @a
  * file, @a function, @a format.
@@ -411,6 +558,7 @@ sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const
  *        then sol_log_print_function_stderr() is used.
  * @param data the context to give back to @a print when it is called.
  */
+#ifdef SOL_LOG_ENABLED
 void sol_log_set_print_function(void (*print)(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args), const void *data);
 #else
 static inline void
@@ -419,15 +567,15 @@ sol_log_set_print_function(void (*print)(void *data, const struct sol_log_domain
 }
 #endif
 
-#ifdef SOL_LOG_ENABLED
 /**
- * Standard logging function that send to standard error output.
+ * @brief Standard logging function that send to standard error output.
  *
  * This function must exist in every platform and is the default if no
  * custom function is set.
  *
  * @see sol_log_set_print_function()
  */
+#ifdef SOL_LOG_ENABLED
 void sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args);
 #else
 static inline void
@@ -437,9 +585,12 @@ sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, u
 #endif
 
 #ifdef SOL_PLATFORM_LINUX
-#ifdef SOL_LOG_ENABLED
 /**
- * Log to a file.
+ * @fn void sol_log_print_function_file(void *data, const struct sol_log_domain *domain,
+ * uint8_t message_level, const char *file, const char *function, * int line, const char *format,
+ * va_list args)
+ *
+ * @brief Log to a file.
  *
  * The first parameter must be a pointer to FILE* previously opened
  * with fopen(), it should be set as the @c "data" parameter of
@@ -447,6 +598,7 @@ sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, u
  *
  * @see sol_log_set_print_function()
  */
+#ifdef SOL_LOG_ENABLED
 void sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args);
 #else
 static inline void
@@ -457,9 +609,12 @@ sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uin
 #endif
 
 #ifdef SOL_PLATFORM_LINUX
-#ifdef SOL_LOG_ENABLED
 /**
- * Log to syslog.
+ * @fn void sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain,
+ * uint8_t message_level, const char *syslog, const char *function, int line, const char *format,
+ * va_list args)
+
+ * @brief Log to syslog.
  *
  * This function will use vsyslog(), translate sol_log_level to
  * syslog's priority and send the message to the daemon.
@@ -470,6 +625,7 @@ sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uin
  * @see sol_log_set_print_function()
  * @see sol_log_print_function_journal()
  */
+#ifdef SOL_LOG_ENABLED
 void sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *syslog, const char *function, int line, const char *format, va_list args);
 #else
 static inline void
@@ -480,9 +636,12 @@ sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, u
 #endif
 
 #ifdef SOL_PLATFORM_LINUX
-#ifdef SOL_LOG_ENABLED
 /**
- * Log to systemd's journal.
+ * @fn void sol_log_print_function_journal(void *data, const struct sol_log_domain *domain,
+ * uint8_t message_level, const char *journal, const char *function, int line, const char *format,
+ * va_list args)
+ *
+ * @brief Log to systemd's journal.
  *
  * This function will use sd_journal_send_with_location() to
  * communicate with systemd's journald daemon and it will use
@@ -498,6 +657,7 @@ sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, u
  * @see sol_log_set_print_function()
  * @see sol_log_print_function_syslog()
  */
+#ifdef SOL_LOG_ENABLED
 void sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *journal, const char *function, int line, const char *format, va_list args);
 #else
 static inline void
@@ -507,8 +667,126 @@ sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, 
 #endif
 #endif
 
+/**
+ * @fn void sol_log_level_to_str(uint8_t level, char *buf, size_t buflen)
+ *
+ * @brief Convenience function to convert the logging @c level to string.
+ *
+ * @param level Logging level
+ * @param buf Where to write the string
+ * @param buflen Buffer size
+ */
+
+/**
+ * @fn const char *sol_log_get_level_color(uint8_t level)
+ *
+ * @brief Get the color code used for the given logging level @c level.
+ *
+ * @param level Logging level
+ *
+ * @return Color code string
+ */
+
+/**
+ * @fn uint8_t sol_log_get_abort_level(void)
+ *
+ * @brief Get the logging level that triggers the program to abort.
+ *
+ * @return The logging level
+ */
+
+/**
+ * @fn uint8_t sol_log_get_level(void)
+ *
+ * @brief Get the maximum log level allowed.
+ *
+ * @return The logging level
+ */
+
+/**
+ * @fn bool sol_log_get_show_colors(void)
+ *
+ * @brief Get if color output is enabled or not.
+ *
+ * @return @c true if enabled, @c false otherwise
+ */
+
+/**
+ * @fn bool sol_log_get_show_file(void)
+ *
+ * @brief Get if showing source file's name is enabled or not.
+ *
+ * @return @c true if enabled, @c false otherwise
+ */
+
+/**
+ * @fn bool sol_log_get_show_function(void)
+ *
+ * @brief Get if showing function's name is enabled or not.
+ *
+ * @return @c true if enabled, @c false otherwise
+ */
+
+/**
+ * @fn bool sol_log_get_show_line(void)
+ *
+ * @brief Get if showing the line number is enabled or not.
+ *
+ * @return @c true if enabled, @c false otherwise
+ */
+
+/**
+ * @fn void sol_log_set_abort_level(uint8_t level)
+ *
+ * @brief Set the logging level that should trigger the program to abort.
+ *
+ * @param level Logging level
+ */
+
+/**
+ * @fn void sol_log_set_level(uint8_t level)
+ *
+ * @brief Set the global domain maximum level to @c level.
+ *
+ * @param level Logging level
+ */
+
+/**
+ * @fn void sol_log_set_show_colors(bool enabled)
+ *
+ * @brief Enable/Disables the use of colors in logging messages.
+ *
+ * @param enabled Enables color if @c true, disables if @c false
+ */
+
+/**
+ * @fn void sol_log_set_show_file(bool enabled)
+ *
+ * @brief Enable/Disables the output of source file's name in logging messages.
+ *
+ * @param enabled Enables file's name output if @c true, disables if @c false
+ */
+
+/**
+ * @fn void sol_log_set_show_function(bool enabled)
+ *
+ * @brief Enable/Disables the output of function's name containing the logging messages.
+ *
+ * @param enabled Enables function's name output if @c true, disables if @c false
+ */
+
+/**
+ * @fn void sol_log_set_show_line(bool enabled)
+ *
+ * @brief Enable/Disables the output of the line number in logging messages.
+ *
+ * @param enabled Enables line number output if @c true, disables if @c false
+ */
+
 #ifdef SOL_LOG_ENABLED
-/* those implementing custom logging functions may use the following getters */
+/*
+ * Those implementing custom logging functions may use the following getters
+ */
 void sol_log_level_to_str(uint8_t level, char *buf, size_t buflen);
 const char *sol_log_get_level_color(uint8_t level);
 uint8_t sol_log_get_abort_level(void);
@@ -518,7 +796,10 @@ bool sol_log_get_show_file(void);
 bool sol_log_get_show_function(void);
 bool sol_log_get_show_line(void);
 
-/* to force some logging setting independent of platform initializations, use the following setters */
+/*
+ * To force some logging setting independent of platform initializations,
+ * use the following setters
+ */
 void sol_log_set_abort_level(uint8_t level);
 void sol_log_set_level(uint8_t level);
 void sol_log_set_show_colors(bool enabled);
