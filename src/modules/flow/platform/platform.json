@@ -48,8 +48,19 @@
           "name": "IN"
         }
       ],
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct monitor_node_type",
+        "extra_methods": {
+          "send_packet": "hostname_send",
+          "monitor_register": "hostname_monitor_register",
+          "monitor_unregister": "hostname_monitor_unregister"
+        }
+      },
       "methods": {
-        "open": "hostname_open"
+        "open": "monitor_open"
       },
       "options": {
         "members": [
@@ -68,14 +79,480 @@
           "data_type": "string",
           "description": "The current hostname. When the node is created an initial packet will be sent with the current hostname, if the hostname changes a new packet will be set with the new hostname.",
           "methods": {
-            "connect": "hostname_out_connect",
-            "disconnect": "hostname_out_disconnect"
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
           },
           "name": "OUT"
         }
       ],
-      "private_data_type": "hostname_data",
+      "private_data_type": "monitor_data",
       "url": "http://solettaproject.org/doc/latest/node_types/platform_hostname.html"
+    },
+    {
+      "category": "timer",
+      "description": "This node can be used to set the machine's system time, get the current system time or monitor for system time changes",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "The new system time in seconds relative to 1970-01-01 00:00:00 +0000 (UTC).",
+          "methods": {
+            "process": "system_clock_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct monitor_node_type",
+        "extra_methods": {
+          "send_packet": "system_clock_send",
+          "monitor_register": "system_clock_monitor_register",
+          "monitor_unregister": "system_clock_monitor_unregister"
+        }
+      },
+      "methods": {
+        "open": "monitor_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "An initial packet with the current timestamp will be sent",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
+      "name": "platform/system-clock",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "The current system time which is expressed as the number of seconds since 1970-01-01 00:00:00 +0000 (UTC).",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "monitor_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform_system_clock.html"
+    },
+    {
+      "category": "timer",
+      "description": "This node can be used to set the machine's timezone, get the current timezone or monitor for timezone changes",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "Set the new timezone",
+          "methods": {
+            "process": "timezone_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct monitor_node_type",
+        "extra_methods": {
+          "send_packet": "timezone_send",
+          "monitor_register": "timezone_monitor_register",
+          "monitor_unregister": "timezone_monitor_unregister"
+        }
+      },
+      "methods": {
+        "open": "monitor_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "An initial packet with the current timezone will be sent",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
+      "name": "platform/timezone",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The current timezone",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "monitor_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform_timezone.html"
+    },
+    {
+      "category": "locale",
+      "description": "This node can be used to set the machine's locales, get the current locales or monitor for locale changes",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The new current system language",
+          "methods": {
+            "process": "locale_all_process"
+          },
+          "name": "IN_LANG"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's address locale",
+          "methods": {
+            "process": "locale_address_process"
+          },
+          "name": "IN_ADDRESS"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's collate locale",
+          "methods": {
+            "process": "locale_collate_process"
+          },
+          "name": "IN_COLLATE"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's ctype locale",
+          "methods": {
+            "process": "locale_ctype_process"
+          },
+          "name": "IN_CTYPE"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's identification locale",
+          "methods": {
+            "process": "locale_identification_process"
+          },
+          "name": "IN_IDENTIFICATION"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's measurement locale",
+          "methods": {
+            "process": "locale_measurement_process"
+          },
+          "name": "IN_MEASUREMENT"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's messages locale",
+          "methods": {
+            "process": "locale_messages_process"
+          },
+          "name": "IN_MESSAGES"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's monetary locale",
+          "methods": {
+            "process": "locale_monetary_process"
+          },
+          "name": "IN_MONETARY"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's name locale",
+          "methods": {
+            "process": "locale_name_process"
+          },
+          "name": "IN_NAME"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's numeric locale",
+          "methods": {
+            "process": "locale_numeric_process"
+          },
+          "name": "IN_NUMERIC"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's paper locale",
+          "methods": {
+            "process": "locale_paper_process"
+          },
+          "name": "IN_PAPER"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's telephone",
+          "methods": {
+            "process": "locale_telephone_process"
+          },
+          "name": "IN_TELEPHONE"
+        },
+        {
+          "data_type": "string",
+          "description": "The new system's time locale",
+          "methods": {
+            "process": "locale_time_process"
+          },
+          "name": "IN_TIME"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system language locale to the process",
+          "methods": {
+            "process": "locale_apply_lang_process"
+          },
+          "name": "APPLY_LANG"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system time locale to the process",
+          "methods": {
+            "process": "locale_apply_address_process"
+          },
+          "name": "APPLY_ADDRESS"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system collate locale to the process",
+          "methods": {
+            "process": "locale_apply_collate_process"
+          },
+          "name": "APPLY_COLLATE"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system ctype locale to the process",
+          "methods": {
+            "process": "locale_apply_ctype_process"
+          },
+          "name": "APPLY_CTYPE"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system identification locale to the process",
+          "methods": {
+            "process": "locale_apply_identification_process"
+          },
+          "name": "APPLY_IDENTIFICATION"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system measurement locale to the process",
+          "methods": {
+            "process": "locale_apply_measurement_process"
+          },
+          "name": "APPLY_MEASUREMENT"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system monetary locale to the process",
+          "methods": {
+            "process": "locale_apply_monetary_process"
+          },
+          "name": "APPLY_MONETARY"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system messages locale to the process",
+          "methods": {
+            "process": "locale_apply_messages_process"
+          },
+          "name": "APPLY_MESSAGES"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system name locale to the process",
+          "methods": {
+            "process": "locale_apply_name_process"
+          },
+          "name": "APPLY_NAME"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system numeric locale to the process",
+          "methods": {
+            "process": "locale_apply_numeric_process"
+          },
+          "name": "APPLY_NUMERIC"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system paper locale to the process",
+          "methods": {
+            "process": "locale_apply_paper_process"
+          },
+          "name": "APPLY_PAPER"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system telephone locale to the process",
+          "methods": {
+            "process": "locale_apply_telephone_process"
+          },
+          "name": "APPLY_TELEPHONE"
+        },
+        {
+          "data_type": "any",
+          "description": "Apply the current system time locale to the process",
+          "methods": {
+            "process": "locale_apply_time_process"
+          },
+          "name": "APPLY_TIME"
+        }
+      ],
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct monitor_node_type",
+        "extra_methods": {
+          "monitor_register": "locale_monitor_register",
+          "monitor_unregister": "locale_monitor_unregister"
+        }
+      },
+      "methods": {
+        "open": "locale_open"
+      },
+      "options": {
+        "members": [
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "An initial packet with the current locales will be sent",
+            "name": "send_initial_packet"
+          }
+        ],
+        "version": 1
+      },
+      "name": "platform/locale",
+      "out_ports": [
+        {
+          "data_type": "string",
+          "description": "The current system's language locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_LANG"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's address locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_ADDRESS"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's collate locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_COLLATE"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's ctype locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_CTYPE"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's identification locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_IDENTIFICATION"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's measurement locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_MEASUREMENT"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's messages locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_MESSAGES"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's monetary localle",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_MONETARY"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's naming locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_NAME"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's numeric locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_NUMERIC"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's paper locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_PAPER"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's telephone locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_TELEPHONE"
+        },
+        {
+          "data_type": "string",
+          "description": "The current system's time locale",
+          "methods": {
+            "connect": "monitor_out_connect",
+            "disconnect": "monitor_out_disconnect"
+          },
+          "name": "OUT_TIME"
+        }
+      ],
+      "private_data_type": "monitor_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform_locale.html"
     },
     {
       "category": "input/sw",

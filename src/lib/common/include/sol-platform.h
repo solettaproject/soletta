@@ -145,6 +145,26 @@ enum sol_platform_service_state {
     SOL_PLATFORM_SERVICE_STATE_UNKNOWN = -1
 };
 
+/**
+ * @brief A locale category.
+ */
+enum sol_platform_locale_category {
+    SOL_PLATFORM_LOCALE_LANGUAGE,
+    SOL_PLATFORM_LOCALE_ADDRESS,
+    SOL_PLATFORM_LOCALE_COLLATE,
+    SOL_PLATFORM_LOCALE_CTYPE,
+    SOL_PLATFORM_LOCALE_IDENTIFICATION,
+    SOL_PLATFORM_LOCALE_MEASUREMENT,
+    SOL_PLATFORM_LOCALE_MESSAGES,
+    SOL_PLATFORM_LOCALE_MONETARY,
+    SOL_PLATFORM_LOCALE_NAME,
+    SOL_PLATFORM_LOCALE_NUMERIC,
+    SOL_PLATFORM_LOCALE_PAPER,
+    SOL_PLATFORM_LOCALE_TELEPHONE,
+    SOL_PLATFORM_LOCALE_TIME,
+    SOL_PLATFORM_LOCALE_UNKNOWN = -1
+};
+
 enum sol_platform_service_state sol_platform_get_service_state(const char *service);
 
 int sol_platform_add_service_monitor(void (*cb)(void *data, const char *service,
@@ -234,6 +254,155 @@ int sol_platform_add_hostname_monitor(void (*cb)(void *data, const char *hostnam
  * @see sol_platform_add_hostname_monitor()
  */
 int sol_platform_del_hostname_monitor(void (*cb)(void *data, const char *hostname), const void *data);
+
+/**
+ * @brief Set the system wide time.
+ *
+ * @param timestamp The new system_clock
+ * @return @c 0 on succes, negative errno otherwise
+ *
+ * @note The @c timestamp is relative to 1970-01-01 00:00:00 +0000 (UTC)
+ * @see sol_platform_get_system_clock()
+ */
+int sol_platform_set_system_clock(int64_t timestamp);
+
+/**
+ * @brief Get the current system time.
+ *
+ * @return the system time on success, negative errno on error
+ *
+ * @note The returned value is the number of seconds since 1970-01-01 00:00:00 +0000 (UTC)
+ *
+ * @see sol_platform_set_system_clock()
+ */
+int64_t sol_platform_get_system_clock(void);
+
+/**
+ * @brief Add a callback to monitor system clock changes.
+ *
+ * @param cb A callback to be called when the system clock changes
+ * @param data The data to @c cb
+ * @return @c 0 on success, negative errno otherwise
+ *
+ * @note The registered callback will not be called every second (a.k.a: this is not a timer!), it will only
+ * be called if the system clock is adjusted. If one needs a timer use sol_timeout_add()
+ * @see sol_platform_del_system_clock_monitor()
+ */
+int sol_platform_add_system_clock_monitor(void (*cb)(void *data, int64_t timestamp), const void *data);
+
+/**
+ * @brief Delete a register system_clock monitor.
+ *
+ * @param cb The previous registered callback
+ * @param data The data to @c cb
+ * @return @c 0 on success, negative errno otherwise
+ *
+ * @see sol_platform_add_system_clock_monitor()
+ */
+int sol_platform_del_system_clock_monitor(void (*cb)(void *data, int64_t timestamp), const void *data);
+
+/**
+ * @brief Set the system timezone.
+ *
+ * @param timezone The new timezone. (Example: America/Sao Paulo)
+ *
+ * @return @c 0 on success, negative errno on error
+ *
+ * @note The new timezone must be avaible at /usr/share/zoneinfo/
+ *
+ * @see sol_platform_get_timezone()
+ */
+int sol_platform_set_timezone(const char *timezone);
+
+/**
+ * @brief Get the current timezone.
+ *
+ * @return The timezone or @c NULL on error
+ *
+ * @see sol_platform_set_timezone()
+ */
+const char *sol_platform_get_timezone(void);
+
+/**
+ * @brief Add a timezone monitor.
+ *
+ * @param cb A callback to be called when the timezone changes
+ * @param data The data to @c cb
+ *
+ * @return @c 0 on success, negative errno otherwise
+ */
+int sol_platform_add_timezone_monitor(void (*cb)(void *data, const char *timezone), const void *data);
+
+/**
+ * @brief Remove a timezone monitor.
+ *
+ * @param cb The previous registered callback
+ * @param data The data to @c cb
+ *
+ * @return @c 0 on success, negative errno otherwise
+ */
+int sol_platform_del_timezone_monitor(void (*cb)(void *data, const char *timezone), const void *data);
+
+/**
+ * @brief Set locale for a category.
+ *
+ * This function will change the system wide locale for a given category.
+ * The already running proceses might not be aware that the locale has changed.
+ *
+ * @param category The category to set the new locale
+ * @param locale The locale string (Example: en_US.UTF-8)
+ *
+ * @return 0 on success, negative errno on error
+ *
+ * @note This function only saves the new locale category in the disk, in order to use it in
+ * the current process, one must call sol_platform_apply_locale() after using sol_platform_set_locale()
+ *
+ * @see sol_platform_get_locale()
+ * @see sol_platform_apply_locale()
+ */
+int sol_platform_set_locale(enum sol_platform_locale_category category, const char *locale);
+
+/**
+ * @brief Get the current locale of a given category.
+ *
+ * @param category The category which one wants to know the locale
+ * @return The locale value on success, @c NULL otherwise
+ *
+ * @see sol_platform_set_locale()
+ */
+const char *sol_platform_get_locale(enum sol_platform_locale_category category);
+
+/**
+ * @brief Add a locale monitor.
+ *
+ * @param cb A callback to be called when the locale changes
+ * @param data The data to @c cb
+ *
+ * @return 0 on success, negative errno otherwise.
+ */
+int sol_platform_add_locale_monitor(void (*cb)(void *data, enum sol_platform_locale_category category, const char *locale), const void *data);
+
+/**
+ * @brief Remove a locale monitor.
+ *
+ * @param cb The previous registered callback
+ * @param data The data to @c cb
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_del_locale_monitor(void (*cb)(void *data, enum sol_platform_locale_category category, const char *locale), const void *data);
+
+/**
+ * @brief Apply the locale category to the process.
+ *
+ * This function sets the current locale of the given category to the process,
+ * in order to set a new locale value to a category use sol_platform_set_locale().
+ *
+ * @param category The category to set the process locale
+ * @return 0 on success, negative errno otherwise
+ * @see sol_platform_set_locale()
+ */
+int sol_platform_apply_locale(enum sol_platform_locale_category category);
 
 /**
  * @}
