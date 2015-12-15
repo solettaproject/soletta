@@ -575,6 +575,8 @@ on_can_write(void *data, struct sol_socket *s)
     if (err == -EAGAIN)
         return true;
 
+    SOL_DBG("pkt sent:");
+    sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
         char addr[SOL_INET_ADDR_STRLEN];
         sol_network_addr_to_str(&outgoing->cliaddr, addr, sizeof(addr));
@@ -1236,6 +1238,9 @@ on_can_read(void *data, struct sol_socket *s)
         return true;
     }
 
+    SOL_DBG("pkt received:");
+    sol_coap_packet_debug(pkt);
+
     err = respond_packet(server, pkt, &cliaddr);
     if (err < 0) {
         errno = -err;
@@ -1613,4 +1618,21 @@ sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_netwo
     }
 
     return -ENOENT;
+}
+
+SOL_API void
+sol_coap_packet_debug(struct sol_coap_packet *pkt)
+{
+    int r;
+    char *path;
+
+    r = packet_extract_path(pkt, &path);
+    if (r < 0)
+        path = (char *)"";
+
+    SOL_DBG("{id: %d, href: '%s', type: %d, header_code: %d}",
+        sol_coap_header_get_id(pkt), path, sol_coap_header_get_type(pkt),
+        sol_coap_header_get_code(pkt));
+    if (r == 0)
+        free(path);
 }
