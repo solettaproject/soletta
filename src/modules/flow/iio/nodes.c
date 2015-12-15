@@ -131,9 +131,15 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     mdata->buffer_enabled = opts->buffer_size > -1;
 
     SOL_SET_API_VERSION(mdata->config.api_version = SOL_IIO_CONFIG_API_VERSION; )
-    mdata->config.trigger_name = opts->iio_trigger_name;
+
+    if (opts->iio_trigger_name) {
+        mdata->config.trigger_name = strdup(opts->iio_trigger_name);
+        SOL_NULL_CHECK(mdata->config.trigger_name, -ENOMEM);
+    }
+
     mdata->config.buffer_size = opts->buffer_size;
     mdata->config.sampling_frequency = opts->sampling_frequency;
+
     if (mdata->buffer_enabled) {
         mdata->config.sol_iio_reader_cb = reader_cb;
         mdata->config.data = node;
@@ -146,9 +152,14 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     if (!sol_iio_address_device(opts->iio_device, create_device_cb, mdata)) {
         SOL_WRN("Could not create iio/gyroscope node. Failed to open IIO device %s",
             opts->iio_device);
+        goto err;
     }
 
     return 0;
+
+err:
+    free((char *)mdata->config.trigger_name);
+    return -EINVAL;
 }
 
 static void
@@ -156,6 +167,7 @@ gyroscope_close(struct sol_flow_node *node, void *data)
 {
     struct gyroscope_data *mdata = data;
 
+    free((char *)mdata->config.trigger_name);
     if (mdata->device)
         sol_iio_close(mdata->device);
 }
