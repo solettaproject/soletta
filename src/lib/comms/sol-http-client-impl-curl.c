@@ -623,7 +623,7 @@ set_headers_from_params(CURL *curl, const struct sol_http_params *params,
             continue;
 
         if (sol_str_slice_str_caseeq(key, "Content-Length")) {
-            long int len;
+            curl_off_t len;
             len = sol_util_strtol(iter->value.key_value.value.data, NULL,
                 iter->value.key_value.value.len, 0);
 
@@ -715,7 +715,7 @@ set_postfields(CURL *curl, const struct sol_str_slice slice)
 {
 
     if (curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE,
-        slice.len) != CURLE_OK)
+        (curl_off_t)slice.len) != CURLE_OK)
         return false;
 
     return curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS,
