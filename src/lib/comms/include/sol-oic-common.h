@@ -492,7 +492,7 @@ bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oi
 #ifdef SOL_LOG_ENABLED
 void sol_oic_payload_debug(struct sol_coap_packet *pkt);
 #else
-static inline
+static inline void
 sol_oic_payload_debug(struct sol_coap_packet *pkt)
 {
 }
