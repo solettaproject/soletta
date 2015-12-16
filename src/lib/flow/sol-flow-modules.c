@@ -47,3 +47,16 @@ sol_flow_internal_get_node_type(const char *modname, const char *symbol, const s
     *type = *ret;
     return 0;
 }
+
+SOL_API int
+sol_flow_internal_get_packet_type(const char *modname, const char *symbol, const struct sol_flow_packet_type **type)
+{
+    const struct sol_flow_packet_type **ret;
+
+    ret = sol_modules_get_symbol("flow", modname, symbol);
+    if (!ret || !*ret)
+        return -errno;
+
+    *type = *ret;
+    return 0;
+}
