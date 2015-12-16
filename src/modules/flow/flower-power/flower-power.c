@@ -101,14 +101,14 @@ SOL_API const struct sol_flow_packet_type *PACKET_TYPE_FLOWER_POWER =
 
 #undef PACKET_TYPE_FLOWER_POWER_PACKET_TYPE_API_VERSION
 
-SOL_API struct sol_flow_packet *
+static struct sol_flow_packet *
 sol_flower_power_new_packet(const struct sol_flower_power_data *fpd)
 {
     SOL_NULL_CHECK(fpd, NULL);
     return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER, fpd);
 }
 
-SOL_API int
+static int
 sol_flower_power_get_packet(const struct sol_flow_packet *packet,
     struct sol_flower_power_data *fpd)
 {
@@ -119,7 +119,7 @@ sol_flower_power_get_packet(const struct sol_flow_packet *packet,
     return sol_flow_packet_get(packet, fpd);
 }
 
-SOL_API int
+static int
 sol_flower_power_send_packet(struct sol_flow_node *src,
     uint16_t src_port, const struct sol_flower_power_data *fpd)
 {
@@ -447,6 +447,87 @@ get_timestamp(struct sol_json_token *value, struct timespec *timestamp)
 #define INIT_WATER(_water) \
     _water.min = 0; \
     _water.max = 50;
+
+
+/* SENSOR INFORMATION PACKET / NODE TYPES */
+
+static void
+packet_type_flower_power_sensor_packet_dispose(const struct sol_flow_packet_type *packet_type,
+    void *mem)
+{
+    struct sol_flower_power_sensor_data *fpsd = mem;
+
+    free(fpsd->id);
+}
+
+static int
+packet_type_flower_power_sensor_packet_init(
+    const struct sol_flow_packet_type *packet_type,
+    void *mem, const void *input)
+{
+    const struct sol_flower_power_sensor_data *in = input;
+    struct sol_flower_power_sensor_data *fpsd = mem;
+
+    SOL_NULL_CHECK(in->id, -EINVAL);
+
+    fpsd->id = strdup(in->id);
+    SOL_NULL_CHECK(fpsd->id, -ENOMEM);
+
+    fpsd->battery_level = in->battery_level;
+    fpsd->timestamp = in->timestamp;
+    fpsd->battery_end_of_life = in->battery_end_of_life;
+
+    return 0;
+}
+
+#define PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION (1)
+
+static const struct sol_flow_packet_type _PACKET_TYPE_FLOWER_POWER_SENSOR = {
+    SOL_SET_API_VERSION(.api_version = PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION, )
+    .name = "PACKET_TYPE_FLOWER_POWER_SENSOR",
+    .data_size = sizeof(struct sol_flower_power_sensor_data),
+    .init = packet_type_flower_power_sensor_packet_init,
+    .dispose = packet_type_flower_power_sensor_packet_dispose,
+};
+SOL_API const struct sol_flow_packet_type *PACKET_TYPE_FLOWER_POWER_SENSOR =
+    &_PACKET_TYPE_FLOWER_POWER_SENSOR;
+
+#undef PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION
+static struct sol_flow_packet *
+sol_flower_power_sensor_new_packet_components(const char *id,
+    const struct timespec *timestamp,
+    const struct timespec *battery_end_of_life,
+    struct sol_drange *battery_level)
+{
+    struct sol_flower_power_sensor_data fpsd;
+
+    SOL_NULL_CHECK(id, NULL);
+    SOL_NULL_CHECK(timestamp, NULL);
+    SOL_NULL_CHECK(battery_end_of_life, NULL);
+    SOL_NULL_CHECK(battery_level, NULL);
+
+    fpsd.id = (char *)id;
+    fpsd.timestamp = *timestamp;
+    fpsd.battery_end_of_life = *battery_end_of_life;
+    fpsd.battery_level = *battery_level;
+
+    return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER_SENSOR, &fpsd);
+}
+
+static int
+sol_flower_power_sensor_send_packet_components(struct sol_flow_node *src,
+    uint16_t src_port, char *id, struct timespec *timestamp,
+    struct timespec *battery_end_of_life,
+    struct sol_drange *battery_level)
+{
+    struct sol_flow_packet *packet;
+
+    packet = sol_flower_power_sensor_new_packet_components(id, timestamp,
+        battery_end_of_life, battery_level);
+    SOL_NULL_CHECK(packet, -ENOMEM);
+
+    return sol_flow_send_packet(src, src_port, packet);
+}
 
 static void
 http_get_cb(void *data, const struct sol_http_client_connection *connection,
@@ -868,80 +949,14 @@ filter_packet(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
         SOL_FLOW_NODE_TYPE_FLOWER_POWER_FILTER_ID__OUT__OUT, &fpd);
 }
 
-/* SENSOR INFORMATION PACKET / NODE TYPES */
-
-static void
-packet_type_flower_power_sensor_packet_dispose(const struct sol_flow_packet_type *packet_type,
-    void *mem)
-{
-    struct sol_flower_power_sensor_data *fpsd = mem;
-
-    free(fpsd->id);
-}
-
-static int
-packet_type_flower_power_sensor_packet_init(
-    const struct sol_flow_packet_type *packet_type,
-    void *mem, const void *input)
-{
-    const struct sol_flower_power_sensor_data *in = input;
-    struct sol_flower_power_sensor_data *fpsd = mem;
-
-    SOL_NULL_CHECK(in->id, -EINVAL);
-
-    fpsd->id = strdup(in->id);
-    SOL_NULL_CHECK(fpsd->id, -ENOMEM);
-
-    fpsd->battery_level = in->battery_level;
-    fpsd->timestamp = in->timestamp;
-    fpsd->battery_end_of_life = in->battery_end_of_life;
-
-    return 0;
-}
-
-#define PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION (1)
-
-static const struct sol_flow_packet_type _PACKET_TYPE_FLOWER_POWER_SENSOR = {
-    SOL_SET_API_VERSION(.api_version = PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION, )
-    .name = "PACKET_TYPE_FLOWER_POWER_SENSOR",
-    .data_size = sizeof(struct sol_flower_power_sensor_data),
-    .init = packet_type_flower_power_sensor_packet_init,
-    .dispose = packet_type_flower_power_sensor_packet_dispose,
-};
-SOL_API const struct sol_flow_packet_type *PACKET_TYPE_FLOWER_POWER_SENSOR =
-    &_PACKET_TYPE_FLOWER_POWER_SENSOR;
-
-#undef PACKET_TYPE_FLOWER_POWER_SENSOR_PACKET_TYPE_API_VERSION
-
-SOL_API struct sol_flow_packet *
+static struct sol_flow_packet *
 sol_flower_power_sensor_new_packet(const struct sol_flower_power_sensor_data *fpsd)
 {
     SOL_NULL_CHECK(fpsd, NULL);
     return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER_SENSOR, fpsd);
 }
 
-SOL_API struct sol_flow_packet *
-sol_flower_power_sensor_new_packet_components(const char *id,
-    const struct timespec *timestamp,
-    const struct timespec *battery_end_of_life,
-    struct sol_drange *battery_level)
-{
-    struct sol_flower_power_sensor_data fpsd;
-
-    SOL_NULL_CHECK(id, NULL);
-    SOL_NULL_CHECK(timestamp, NULL);
-    SOL_NULL_CHECK(battery_end_of_life, NULL);
-    SOL_NULL_CHECK(battery_level, NULL);
-
-    fpsd.id = (char *)id;
-    fpsd.timestamp = *timestamp;
-    fpsd.battery_end_of_life = *battery_end_of_life;
-    fpsd.battery_level = *battery_level;
-
-    return sol_flow_packet_new(PACKET_TYPE_FLOWER_POWER_SENSOR, &fpsd);
-}
-
-SOL_API int
+static int
 sol_flower_power_sensor_get_packet(const struct sol_flow_packet *packet,
     struct sol_flower_power_sensor_data *fpsd)
 {
@@ -952,7 +967,7 @@ sol_flower_power_sensor_get_packet(const struct sol_flow_packet *packet,
     return sol_flow_packet_get(packet, fpsd);
 }
 
-SOL_API int
+static int
 sol_flower_power_sensor_get_packet_components(
     const struct sol_flow_packet *packet,
     const char **id, struct timespec *timestamp,
@@ -981,28 +996,13 @@ sol_flower_power_sensor_get_packet_components(
     return ret;
 }
 
-SOL_API int
+static int
 sol_flower_power_sensor_send_packet(struct sol_flow_node *src,
     uint16_t src_port, const struct sol_flower_power_sensor_data *fpsd)
 {
     struct sol_flow_packet *packet;
 
     packet = sol_flower_power_sensor_new_packet(fpsd);
-    SOL_NULL_CHECK(packet, -ENOMEM);
-
-    return sol_flow_send_packet(src, src_port, packet);
-}
-
-SOL_API int
-sol_flower_power_sensor_send_packet_components(struct sol_flow_node *src,
-    uint16_t src_port, char *id, struct timespec *timestamp,
-    struct timespec *battery_end_of_life,
-    struct sol_drange *battery_level)
-{
-    struct sol_flow_packet *packet;
-
-    packet = sol_flower_power_sensor_new_packet_components(id, timestamp,
-        battery_end_of_life, battery_level);
     SOL_NULL_CHECK(packet, -ENOMEM);
 
     return sol_flow_send_packet(src, src_port, packet);
