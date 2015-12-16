@@ -231,6 +231,7 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  * @param res The resource that is going to receive the request.
  * @param method The coap request method as documented in @ref
  *        sol_coap_method_t.
+ * @param non_confirmable Use non-confirmable CoAP packets to make this request.
  * @param fill_repr_map A callback to be called to fill the request data.
  *        Parameter @a data is a pointer to user's @a fill_repr_map_data and
  *        @a repr_map is a handler to write data to request packet. Use @ref
@@ -247,7 +248,7 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  * @return True if packet was successfully sent. False otherwise.
  */
 bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method,
+    sol_coap_method_t method, bool non_confirmable,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
@@ -286,13 +287,14 @@ bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_o
  *        @ref SOL_OIC_MAP_LOOP() macro.
  * @param data A pointer to user's data.
  * @param observe If server will be obeserved or unobserved.
+ * @param non_confirmable Use non-confirmable CoAP packets to make this request.
  *
  * @return True if packet was successfully sent. False otherwise.
  */
 bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_map, void *data),
-    void *data, bool observe);
+    void *data, bool observe, bool non_confirmable);
 
 /**
  * @brief Take a reference of the given server.

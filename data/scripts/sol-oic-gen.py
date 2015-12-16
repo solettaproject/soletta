@@ -1128,7 +1128,7 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
     resource->resource = sol_oic_resource_ref(oic_res);
 
     if (!sol_oic_client_resource_set_observable(oic_cli, resource->resource,
-        state_changed, resource, true)) {
+        state_changed, resource, true, false)) {
         SOL_WRN("Could not observe resource as requested, will try again");
     }
 
@@ -1221,6 +1221,7 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
         return true;
     }
 
+    resource->resource = sol_oic_resource_ref(oic_res);
     SOL_PTR_VECTOR_FOREACH_IDX(&resource->scanned_ids, id, i)
         if (memcmp(id, oic_res->device_id.data, DEVICE_ID_LEN) == 0)
             return true;
@@ -1407,7 +1408,7 @@ client_connect(struct client_resource *resource, const char *device_id)
 
     if (resource->resource) {
         if (!sol_oic_client_resource_set_observable(&resource->client,
-            resource->resource, NULL, NULL, false)) {
+            resource->resource, NULL, NULL, false, false)) {
             SOL_WRN("Could not unobserve resource");
         }
 
@@ -1477,7 +1478,7 @@ client_resource_close(struct client_resource *resource)
 
     if (resource->resource) {
         bool r = sol_oic_client_resource_set_observable(&resource->client, resource->resource,
-            NULL, NULL, false);
+            NULL, NULL, false, false);
         if (!r)
             SOL_WRN("Could not unobserve resource");
 
@@ -1500,7 +1501,7 @@ client_resource_perform_update(void *data)
     SOL_NULL_CHECK_GOTO(resource->funcs->to_repr_vec, disable_timeout);
 
     r = sol_oic_client_resource_request(&resource->client, resource->resource,
-        SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource, NULL, NULL);
+        SOL_COAP_METHOD_PUT, false, resource->funcs->to_repr_vec, resource, NULL, NULL);
     if (r < 0) {
         SOL_WRN("Could not send update request to resource, will try again");
         return true;
