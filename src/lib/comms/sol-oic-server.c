@@ -510,15 +510,12 @@ _sol_oic_resource_type_handle(
     if (sol_oic_packet_cbor_create(response, res->href, &output) != CborNoError)
         goto done;
     code = handle_fn(cliaddr, res->callback.data, &input, &output);
-    if (code == SOL_COAP_RSPCODE_CONTENT) {
-        if (sol_oic_packet_cbor_close(response, &output) != CborNoError)
-            code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
-    }
+    if (sol_oic_packet_cbor_close(response, &output) != CborNoError)
+        code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
 done:
     sol_coap_header_set_type(response, SOL_COAP_TYPE_ACK);
-    sol_coap_header_set_code(response,
-        code == SOL_COAP_RSPCODE_CONTENT ? SOL_COAP_RSPCODE_OK : code);
+    sol_coap_header_set_code(response, code);
 
     return sol_coap_send_packet(server, response, cliaddr);
 }
