@@ -131,7 +131,22 @@ extern "C" {
     __builtin_choose_expr(                                             \
     __builtin_types_compatible_p(typeof(var), uint8_t),            \
     "" # var " (%" PRIu8 ") " # exp,                               \
-    (void)0))))))))
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), int64_t),            \
+    "" # var " (%" PRId64 ") " # exp,                               \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), int32_t),            \
+    "" # var " (%" PRId32 ") " # exp,                               \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), int16_t),            \
+    "" # var " (%" PRId16 ") " # exp,                               \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), int8_t),            \
+    "" # var " (%" PRId8 ") " # exp,                               \
+    __builtin_choose_expr(                                             \
+    __builtin_types_compatible_p(typeof(var), ssize_t),             \
+    "" # var " (%zd) " # exp,                                      \
+    (void)0)))))))))))))
 
 #define SOL_INT_CHECK(var, exp, ...)                     \
     do {                                                \
