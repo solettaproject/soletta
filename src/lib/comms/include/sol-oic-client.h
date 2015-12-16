@@ -224,8 +224,9 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
 /**
  * @brief Send a request packet to server for specific @a resource.
  *
- * Send a request packet to server that contains the @a resource and wait for
- * a response. When the response arrives, @a callback will be called.
+ * Send a CoAP confirmable request packet to server that contains the
+ * @a resource and wait for a response. When the response arrives, @a callback
+ * will be called.
  *
  * @param client An oic client instance.
  * @param res The resource that is going to receive the request.
@@ -247,6 +248,44 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  * @return True if packet was successfully sent. False otherwise.
  */
 bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
+    sol_coap_method_t method,
+    bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
+    void *fill_repr_map_data,
+    void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    void *callback_data);
+
+/**
+ * @brief Send a request packet to server for specific @a resource, using
+ * non-confirmable packets.
+ *
+ * Send a CoAP non-confirmable request packet to server that contains the
+ * @a resource and wait for a response. When the response arrives, @a callback
+ * will be called.
+ *
+ * The only difference from sol_oic_client_resource_request() to this function
+ * is that it uses CoAP non-confirmable packets to make the request.
+ *
+ * @param client An oic client instance.
+ * @param res The resource that is going to receive the request.
+ * @param method The coap request method as documented in @ref
+ *        sol_coap_method_t.
+ * @param fill_repr_map A callback to be called to fill the request data.
+ *        Parameter @a data is a pointer to user's @a fill_repr_map_data and
+ *        @a repr_map is a handler to write data to request packet. Use @ref
+ *        sol_oic_map_append() to append data to @a repr_map.
+ * @param fill_repr_map_data User's data to be passed to @a fill_repr_map.
+ * @param callback Callback to be called when a response from this request
+ *        arrives. Parameter @a cli is the @a client used to perform the
+ *        request, @a addr is the address of the server, @a href is the path of
+ *        the resource and repr_vec is a handler to access data from response,
+ *        using @ref SOL_OIC_MAP_LOOP() macro. @a data is the user's
+ *        @a callback_data.
+ * @param callback_data User's data to be passed to @a callback.
+ *
+ * @return True if packet was successfully sent. False otherwise.
+ */
+bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     sol_coap_method_t method,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
     void *fill_repr_map_data,
@@ -290,6 +329,50 @@ bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_o
  * @return True if packet was successfully sent. False otherwise.
  */
 bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
+    void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_map, void *data),
+    void *data, bool observe);
+
+/**
+ * @brief Set this resource as observable for this client, using non-confirmable
+ * packets.
+ *
+ * If server providing the @a resource supports observing clients, sends a
+ * request to server asking it to add @a client to its observing list. Clients
+ * in observation receives notifications when server status changes. When a
+ * notification is received by @a client, @a callback will be called.
+ * If the @a resource is not observable, @a client will emulate the observing
+ * behavior using a pooling strategy, so @a callback will be notified with
+ * server changes from time to time.
+ *
+ * As long as the @a callback function returns @c true, @a client will continue
+ * waiting for notifications. When the function returns @c false, the internal
+ * response handler will be freed and any new replies that arrive for this
+ * request will be ignored. If pooling is being performed, it will be cancelled.
+ * If server is notifying the @a client, a request packet to ask server to
+ * unobserve this @a client will be sent.
+ *
+ * When user wants to stop observing the server, just return @c false in @a
+ * callback or call @ref sol_oic_client_resource_set_observable() with @a
+ * observe as @c false.
+ *
+ * The only difference from sol_oic_client_resource_set_observable() to this
+ * function is that it uses CoAP non-confirmable packets to make the request.
+ *
+ * @param client An oic client instance.
+ * @param res The resource that is going to be observed
+ * @param callback A callback to be called when notification responses arrive.
+ *        Parameter @a cli is the @a client used to perform the request, @a addr
+ *        is the address of the server, @a href is the path of the resource
+ *        being observed, @a repr_map is the data from the notification and @a
+ *        data is a pointer to user's data. To extract data from @a repr_map use
+ *        @ref SOL_OIC_MAP_LOOP() macro.
+ * @param data A pointer to user's data.
+ * @param observe If server will be obeserved or unobserved.
+ *
+ * @return True if packet was successfully sent. False otherwise.
+ */
+bool sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_map, void *data),
     void *data, bool observe);

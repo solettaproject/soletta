@@ -1221,6 +1221,7 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
         return true;
     }
 
+    resource->resource = sol_oic_resource_ref(oic_res);
     SOL_PTR_VECTOR_FOREACH_IDX(&resource->scanned_ids, id, i)
         if (memcmp(id, oic_res->device_id.data, DEVICE_ID_LEN) == 0)
             return true;
