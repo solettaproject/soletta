@@ -1320,7 +1320,7 @@ server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
     if (!resource->funcs->to_repr_vec((void *)resource, output))
         return SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
-    return SOL_COAP_RSPCODE_CONTENT;
+    return SOL_COAP_RSPCODE_OK;
 }
 
 // log_init() implementation happens within oic-gen.c
