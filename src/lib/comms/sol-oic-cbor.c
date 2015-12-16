@@ -61,6 +61,7 @@ sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, const char *href, struct
     err |= cbor_encoder_create_map(&encoder->map, &encoder->rep_map,
         CborIndefiniteLength);
 
+    encoder->has_data = false;
     return err;
 }
 
@@ -68,6 +69,12 @@ CborError
 sol_oic_packet_cbor_close(struct sol_coap_packet *pkt, struct sol_oic_map_writer *encoder)
 {
     CborError err;
+
+    if (!encoder->has_data) {
+        *encoder->payload = 0;
+
+        return CborNoError;
+    }
 
     err = cbor_encoder_close_container(&encoder->map, &encoder->rep_map);
     err |= cbor_encoder_close_container(&encoder->array, &encoder->map);
@@ -125,6 +132,8 @@ sol_oic_packet_cbor_append(struct sol_oic_map_writer *encoder, struct sol_oic_re
         err |= CborErrorUnknownType;
     }
 
+    if (err == CborNoError)
+        encoder->has_data = true;
     return err;
 }
 
