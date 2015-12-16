@@ -838,7 +838,7 @@ sol_flow_node_options_new(
         return -EINVAL;
     }
 
-    tmp_opts = calloc(1, type->options_size);
+    tmp_opts = malloc(type->options_size);
     if (!tmp_opts)
         return -errno;
 
