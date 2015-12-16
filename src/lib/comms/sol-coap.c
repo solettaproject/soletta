@@ -1482,7 +1482,7 @@ sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t
     }
 
     *buf = pkt->payload.start;
-    *len = pkt->payload.size - pkt->payload.used;
+    *len = pkt->payload.size - (pkt->payload.start - pkt->buf);
     return 0;
 }
 
