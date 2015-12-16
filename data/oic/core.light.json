@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/schema#",
-  "title": "Legacy Brightlight",
+  "title": "Legacy light",
   "definitions": {
-    "core.brightlight": {
+    "core.light": {
       "type": "object",
       "properties": {
         "name": {
