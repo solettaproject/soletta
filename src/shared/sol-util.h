@@ -60,6 +60,7 @@
 #define OVERFLOW_TYPE(type) ((type)1 << (sizeof(type) * 4))
 #define OVERFLOW_UINT64 OVERFLOW_TYPE(uint64_t)
 #define OVERFLOW_SIZE_T OVERFLOW_TYPE(size_t)
+#define OVERFLOW_INT64 OVERFLOW_TYPE(int64_t)
 
 /**
  * Extracted from Hacker's Delight, 2nd edition, chapter 2-13
@@ -366,6 +367,21 @@ sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
 #else
     if ((a >= OVERFLOW_UINT64 || b >= OVERFLOW_UINT64) &&
         a > 0 && UINT64_MAX / a < b)
+        return -EOVERFLOW;
+    *out = a * b;
+#endif
+    return 0;
+}
+
+static inline int
+sol_util_int64_mul(const int64_t a, const int64_t b, int64_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a >= OVERFLOW_INT64 || b >= OVERFLOW_INT64) &&
+        a > 0 && INT64_MAX / a < b)
         return -EOVERFLOW;
     *out = a * b;
 #endif

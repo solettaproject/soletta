@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <systemd/sd-bus.h>
+#include <time.h>
 
 #include "sol-platform-impl.h"
 
@@ -494,6 +495,7 @@ sol_platform_impl_shutdown(void)
     sol_ptr_vector_clear(&_ctx.services);
 
     sol_bus_close();
+    sol_platform_unregister_system_clock_monitor();
 }
 
 int
@@ -513,7 +515,7 @@ sol_platform_impl_set_hostname(const char *name)
 }
 
 static bool
-_set_hostname(void *data, sd_bus_message *m)
+skip_prop(void *data, sd_bus_message *m)
 {
     int r;
 
@@ -524,7 +526,7 @@ _set_hostname(void *data, sd_bus_message *m)
 
 static const struct sol_bus_properties _hostname_property = {
     .member = "StaticHostname",
-    .set = _set_hostname,
+    .set = skip_prop,
 };
 
 int
@@ -550,4 +552,70 @@ sol_platform_register_hostname_monitor(void)
     return sol_bus_map_cached_properties(bus, "org.freedesktop.hostname1",
         "/org/freedesktop/hostname1", "org.freedesktop.hostname1",
         &_hostname_property, _hostname_changed, NULL);
+}
+
+int
+sol_platform_impl_set_system_clock(int64_t timestamp)
+{
+    sd_bus *bus;
+    int r;
+    int64_t timestamp_micro;
+
+    r = sol_util_int64_mul(timestamp, USEC_PER_SEC, &timestamp_micro);
+    SOL_INT_CHECK(r, < 0, r);
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    r = sd_bus_call_method_async(bus, NULL, "org.freedesktop.timedate1",
+        "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
+        "SetTime", sol_bus_log_callback, NULL, "xbb", timestamp_micro, false, false);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+int
+sol_platform_impl_set_timezone(const char *timezone)
+{
+    sd_bus *bus;
+    int r;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    r = sd_bus_call_method_async(bus, NULL, "org.freedesktop.timedate1",
+        "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
+        "SetTimezone", sol_bus_log_callback, NULL, "sb", timezone, false);
+    SOL_INT_CHECK(r, < 0, r);
+    return 0;
+}
+
+static const struct sol_bus_properties _timezone_property = {
+    .member = "Timezone",
+    .set = skip_prop,
+};
+
+static void
+_timezone_changed(void *data, uint64_t mask)
+{
+    sol_platform_inform_timezone_changed();
+}
+
+int
+sol_platform_register_timezone_monitor(void)
+{
+    sd_bus *bus;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    return sol_bus_map_cached_properties(bus, "org.freedesktop.timedate1",
+        "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
+        &_timezone_property, _timezone_changed, NULL);
+}
+
+int
+sol_platform_unregister_timezone_monitor(void)
+{
+    return sol_bus_unmap_cached_properties(&_timezone_property, NULL);
 }
