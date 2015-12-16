@@ -57,23 +57,17 @@ reader_cb(void *data, struct sol_iio_device *device)
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
     struct gyroscope_data *mdata = sol_flow_node_get_private_data(node);
-    struct sol_direction_vector out = { .min = DBL_MAX, .max = -DBL_MAX };
+    struct sol_direction_vector out = { .min = -DBL_MAX, .max = DBL_MAX };
     bool b;
 
     b = sol_iio_read_channel_value(mdata->channel_x, &out.x);
     if (!b) goto error;
-    if (out.x > out.max) out.max = out.x;
-    if (out.x < out.min) out.min = out.x;
 
     b = sol_iio_read_channel_value(mdata->channel_y, &out.y);
     if (!b) goto error;
-    if (out.y > out.max) out.max = out.y;
-    if (out.y < out.min) out.min = out.y;
 
     b = sol_iio_read_channel_value(mdata->channel_z, &out.z);
     if (!b) goto error;
-    if (out.z > out.max) out.max = out.z;
-    if (out.z < out.min) out.min = out.z;
 
     sol_flow_send_direction_vector_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE__OUT__OUT, &out);
