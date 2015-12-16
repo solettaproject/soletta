@@ -50,6 +50,10 @@
 #include "sol-vector.h"
 #include "sol-arena.h"
 
+#ifdef HAVE_LIBMAGIC
+#include <magic.h>
+#endif
+
 #define SOL_HTTP_PARAM_IF_SINCE_MODIFIED "If-Since-Modified"
 #define SOL_HTTP_PARAM_LAST_MODIFIED "Last-Modified"
 #define READABLE_BY_EVERYONE (S_IRUSR | S_IRGRP | S_IROTH)
@@ -88,12 +92,45 @@ struct sol_http_server {
     struct sol_vector fds;
     struct sol_vector defaults;
     struct sol_ptr_vector requests;
+#ifdef HAVE_LIBMAGIC
+    magic_t magic;
+#endif
 };
 
 struct http_connection {
     struct sol_fd *watch;
     int fd;
 };
+
+static const char *
+get_file_mime_type(struct sol_http_server *server, int fd)
+{
+    const char *mime = "application/octet-stream";
+
+#ifdef HAVE_LIBMAGIC
+    const char *fd_mime;
+
+    if (!server->magic) {
+        server->magic = magic_open(MAGIC_MIME | MAGIC_SYMLINK);
+        SOL_NULL_CHECK_GOTO(server->magic, exit);
+        if (magic_load(server->magic, NULL) < 0) {
+            magic_close(server->magic);
+            server->magic = NULL;
+            SOL_WRN("Could not load the magic database!");
+            goto exit;
+        }
+    }
+
+    fd_mime = magic_descriptor(server->magic, fd);
+
+    if (!fd_mime)
+        SOL_WRN("Could not determine the mime type. Using :%s", mime);
+    else
+        mime = fd_mime;
+exit:
+#endif
+    return mime;
+}
 
 static char *
 sanitize_path(const char *str)
@@ -459,6 +496,7 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     free(path);
     SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
         struct stat st;
+        const char *mime;
         fd = get_static_file(dir, url);
         if (fd < 0 && errno == EACCES) {
             status = SOL_HTTP_STATUS_FORBIDDEN;
@@ -475,6 +513,12 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
 
                 mhd_response = MHD_create_response_from_fd(st.st_size, fd);
                 if (mhd_response) {
+                    mime = get_file_mime_type(server, fd);
+                    ret = MHD_add_response_header(mhd_response,
+                        MHD_HTTP_HEADER_CONTENT_TYPE, mime);
+                    if (ret < 0)
+                        SOL_WRN("Could not set the response content type to: %s. Error: %d", mime, ret);
+
                     status = SOL_HTTP_STATUS_OK;
                     goto end;
                 } else {
@@ -672,6 +716,11 @@ sol_http_server_del(struct sol_http_server *server)
     sol_vector_clear(&server->defaults);
 
     MHD_stop_daemon(server->daemon);
+
+#ifdef HAVE_LIBMAGIC
+    if (server->magic)
+        magic_close(server->magic);
+#endif
 
     free(server);
 }
