@@ -332,13 +332,19 @@ inspector_did_open_node(const struct sol_flow_inspector *inspector, const struct
                 const uint8_t *b = mem;
                 fprintf(stdout, "%#x", *b);
             } else if (streq(itr->data_type, "int")) {
-                const struct sol_irange *i = mem;
-                fprintf(stdout, "val:%d|min:%d|max:%d|step:%d",
-                    i->val, i->min, i->max, i->step);
+                const int32_t *i = mem;
+                fprintf(stdout, "%d", *i);
             } else if (streq(itr->data_type, "float")) {
-                const struct sol_drange *d = mem;
-                fprintf(stdout, "val:%g|min:%g|max:%g|step:%g",
-                    d->val, d->min, d->max, d->step);
+                const double *d = mem;
+                fprintf(stdout, "%g", *d);
+            } else if (streq(itr->data_type, "irange-spec")) {
+                const struct sol_irange_spec *i = mem;
+                fprintf(stdout, "min:%d|max:%d|step:%d",
+                    i->min, i->max, i->step);
+            } else if (streq(itr->data_type, "drange-spec")) {
+                const struct sol_drange_spec *d = mem;
+                fprintf(stdout, "min:%g|max:%g|step:%g",
+                    d->min, d->max, d->step);
             } else {
                 fputs("???", stdout);
             }
