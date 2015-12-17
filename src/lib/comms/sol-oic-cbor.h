@@ -47,6 +47,7 @@ bool sol_oic_pkt_has_cbor_content(const struct sol_coap_packet *pkt);
 struct sol_oic_map_writer {
     CborEncoder encoder, rep_map, array, map;
     uint8_t *payload;
+    bool has_data;
 };
 
 enum sol_oic_payload_type {

@@ -826,7 +826,7 @@ _resource_request_unobserve(struct sol_oic_client *client, struct sol_oic_resour
 
 static bool
 _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method,
+    sol_coap_method_t method, sol_coap_msgtype_t msg_type,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
@@ -851,7 +851,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
 
     SOL_NULL_CHECK(ctx, false);
 
-    req = sol_coap_packet_request_new(method, SOL_COAP_TYPE_CON);
+    req = sol_coap_packet_request_new(method, msg_type);
     if (!req) {
         SOL_WRN("Could not create CoAP packet");
         goto out_no_req;
@@ -910,7 +910,7 @@ out_no_req:
 
 SOL_API bool
 sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
-    sol_coap_method_t method,
+    sol_coap_method_t method, bool non_confirmable,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
@@ -922,8 +922,9 @@ sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_re
     SOL_NULL_CHECK(res, false);
     OIC_RESOURCE_CHECK_API(res, false);
 
-    return _resource_request(client, res, method, fill_repr_map,
-        fill_repr_map_data, callback, callback_data, false);
+    return _resource_request(client, res, method,
+        non_confirmable ? SOL_COAP_TYPE_NONCON : SOL_COAP_TYPE_CON,
+        fill_repr_map, fill_repr_map_data, callback, callback_data, false);
 }
 
 static bool
@@ -938,7 +939,8 @@ _poll_resource(void *data)
         return false;
     }
 
-    r = _resource_request(ctx->client, ctx->res, SOL_COAP_METHOD_GET, NULL, NULL, ctx->cb, ctx->data, false);
+    r = _resource_request(ctx->client, ctx->res, SOL_COAP_METHOD_GET,
+        SOL_COAP_TYPE_CON, NULL, NULL, ctx->cb, ctx->data, false);
     if (!r)
         SOL_WRN("Could not send polling packet to observable resource");
 
@@ -990,7 +992,7 @@ SOL_API bool
 sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
-    void *data, bool observe)
+    void *data, bool observe, bool non_confirmable)
 {
     SOL_NULL_CHECK(client, false);
     OIC_CLIENT_CHECK_API(client, false);
@@ -1006,7 +1008,9 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
                 data);
         else
             res->is_observing = _resource_request(client, res,
-                SOL_COAP_METHOD_GET, NULL, NULL, callback, data, true);
+                SOL_COAP_METHOD_GET,
+                non_confirmable ? SOL_COAP_TYPE_NONCON : SOL_COAP_TYPE_CON,
+                NULL, NULL, callback, data, true);
         return res->is_observing;
     }
 

@@ -35,6 +35,7 @@
 #include <sol-common-buildopts.h>
 #include <sol-vector.h>
 #include <sol-str-slice.h>
+#include "sol-coap.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -477,6 +478,18 @@ bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oi
     for (end_reason_ = sol_oic_map_loop_init(map_, iterator_, current_);  \
         end_reason_ == SOL_OIC_MAP_LOOP_OK && \
         sol_oic_map_loop_next(current_, iterator_, &end_reason_);)
+
+/**
+ * @brief Print the decoded cbor content of @a pkt.
+ *
+ * Checks if @a pkt is an oic packet with cbor content in payload and prints it
+ * in a human readable way.
+ *
+ * Used only for debug purposes.
+ *
+ * @param pkt The packet to be debuged.
+ */
+void sol_oic_payload_debug(struct sol_coap_packet *pkt);
 
 /**
  * @}

@@ -836,6 +836,15 @@ int sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_
 int sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl);
 
 /**
+ * @brief Print information about the packet @a pkt.
+ *
+ * Used for debug purposes.
+ *
+ * @param pkt The packet to be debuged.
+ */
+void sol_coap_packet_debug(struct sol_coap_packet *pkt);
+
+/**
  * @}
  */
 

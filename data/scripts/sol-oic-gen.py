@@ -216,9 +216,9 @@ def object_to_repr_vec_fn_common_c(state_struct_name, name, props, client, equiv
     for item_name, item_props in equivalent.items():
         if item_props[0] == client and props_are_equivalent(props, item_props[1]):
             return '''static bool
-%(struct_name)s_to_repr_vec(const struct %(type)s_resource *resource, struct sol_oic_map_writer *repr_map_encoder)
+%(struct_name)s_to_repr_vec(void *data, struct sol_oic_map_writer *repr_map_encoder)
 {
-    return %(item_name)s_to_repr_vec(resource, repr_map_encoder); /* %(item_name)s is equivalent to %(struct_name)s */
+    return %(item_name)s_to_repr_vec(data, repr_map_encoder); /* %(item_name)s is equivalent to %(struct_name)s */
 }
 ''' % {
         'item_name': item_name,
@@ -697,37 +697,6 @@ def object_setters_fn_client_c(state_struct_name, name, props):
 def object_setters_fn_server_c(state_struct_name, name, props):
     return object_setters_fn_common_c(state_struct_name, name, props, False)
 
-def object_scan_fn_client_c():
-    return '''
-static int
-scan(struct sol_flow_node *node, void *data, uint16_t port,
-    uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct client_resource *resource = data;
-
-    send_scan_packets(resource);
-
-    return 0;
-}
-'''
-
-def object_device_id_fn_client_c():
-    return '''
-static int
-device_id_process(struct sol_flow_node *node, void *data, uint16_t port,
-    uint16_t conn_id, const struct sol_flow_packet *packet)
-{
-    struct client_resource *resource = data;
-    const char *device_id;
-    int r;
-
-    r = sol_flow_packet_get_string(packet, &device_id);
-    SOL_INT_CHECK(r, < 0, r);
-
-    return client_connect(resource, device_id);
-}
-'''
-
 def generate_enums_common_c(name, props):
     output = []
     for field, descr in props.items():
@@ -764,8 +733,6 @@ def generate_object_client_c(resource_type, state_struct_name, name, props):
 %(open_fn)s
 %(close_fn)s
 %(setters_fn)s
-%(scan_fn)s
-%(device_id_fn)s
 """ % {
     'state_struct_name': state_struct_name,
     'struct_name': name,
@@ -775,8 +742,6 @@ def generate_object_client_c(resource_type, state_struct_name, name, props):
     'open_fn': object_open_fn_client_c(state_struct_name, resource_type, name, props),
     'close_fn': object_close_fn_client_c(name, props),
     'setters_fn': object_setters_fn_client_c(state_struct_name, name, props),
-    'scan_fn': object_scan_fn_client_c(),
-    'device_id_fn': object_device_id_fn_client_c()
     }
 
 def generate_object_server_c(resource_type, state_struct_name, name, props):
@@ -1163,7 +1128,7 @@ found_resource(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res,
     resource->resource = sol_oic_resource_ref(oic_res);
 
     if (!sol_oic_client_resource_set_observable(oic_cli, resource->resource,
-        state_changed, resource, true)) {
+        state_changed, resource, true, false)) {
         SOL_WRN("Could not observe resource as requested, will try again");
     }
 
@@ -1256,6 +1221,7 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
         return true;
     }
 
+    resource->resource = sol_oic_resource_ref(oic_res);
     SOL_PTR_VECTOR_FOREACH_IDX(&resource->scanned_ids, id, i)
         if (memcmp(id, oic_res->device_id.data, DEVICE_ID_LEN) == 0)
             return true;
@@ -1355,7 +1321,7 @@ server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
     if (!resource->funcs->to_repr_vec((void *)resource, output))
         return SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
-    return SOL_COAP_RSPCODE_CONTENT;
+    return SOL_COAP_RSPCODE_OK;
 }
 
 // log_init() implementation happens within oic-gen.c
@@ -1442,7 +1408,7 @@ client_connect(struct client_resource *resource, const char *device_id)
 
     if (resource->resource) {
         if (!sol_oic_client_resource_set_observable(&resource->client,
-            resource->resource, NULL, NULL, false)) {
+            resource->resource, NULL, NULL, false, false)) {
             SOL_WRN("Could not unobserve resource");
         }
 
@@ -1512,7 +1478,7 @@ client_resource_close(struct client_resource *resource)
 
     if (resource->resource) {
         bool r = sol_oic_client_resource_set_observable(&resource->client, resource->resource,
-            NULL, NULL, false);
+            NULL, NULL, false, false);
         if (!r)
             SOL_WRN("Could not unobserve resource");
 
@@ -1535,7 +1501,7 @@ client_resource_perform_update(void *data)
     SOL_NULL_CHECK_GOTO(resource->funcs->to_repr_vec, disable_timeout);
 
     r = sol_oic_client_resource_request(&resource->client, resource->resource,
-        SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource, NULL, NULL);
+        SOL_COAP_METHOD_PUT, false, resource->funcs->to_repr_vec, resource, NULL, NULL);
     if (r < 0) {
         SOL_WRN("Could not send update request to resource, will try again");
         return true;
@@ -1554,6 +1520,31 @@ client_resource_schedule_update(struct client_resource *resource)
 
     resource->update_schedule_timeout = sol_timeout_add(UPDATE_TIMEOUT_MS,
         client_resource_perform_update, resource);
+}
+
+static int
+scan(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct client_resource *resource = data;
+
+    send_scan_packets(resource);
+
+    return 0;
+}
+
+static int
+device_id_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct client_resource *resource = data;
+    const char *device_id;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &device_id);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return client_connect(resource, device_id);
 }
 
 #define RETURN_ERROR(errcode) do { goto out; } while(0)

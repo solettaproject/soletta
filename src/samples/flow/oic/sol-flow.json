@@ -6,7 +6,7 @@
    "options": {
     "device_id": "580a3d6a9d194a23b90a24573558d2f4"
    },
-   "type": "oic/client-brightlight"
+   "type": "oic/client-light"
   }
  ]
 }
