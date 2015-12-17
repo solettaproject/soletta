@@ -120,71 +120,102 @@ extern "C" {
  * @{
  */
 
+/**
+ * @brief Initializes the Soletta library.
+ *
+ * This function setup all needed infrastructure. It should be called prior
+ * the use of any Soletta API.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @see sol_shutdown()
+ */
 int sol_init(void);
 
 /**
- * Runs the main loop.
+ * @brief Runs the main loop.
  *
  * This function executes the main loop and it will return only after
  * sol_quit() or sol_quit_with_code() is called. The return value is the
  * return code passed to sol_quit_with_code().
  *
  * @return The value passed to sol_quit_with_code(), or EXIT_SUCCESS if
- * terminated by sol_quit().
+ * terminated by @ref sol_quit()
  */
 int sol_run(void);
 
 /**
- * Terminates the main loop.
+ * @brief Terminates the main loop.
  *
  * Stops the main loop and sets the return value of sol_run() to EXIT_SUCCESS.
  */
 void sol_quit(void);
 
 /**
- * Terminates the main loop, setting a specific return code.
+ * @brief Terminates the main loop, setting a specific return code.
  *
  * Stops the main loop and sets the return value of sol_run() to @a return_code.
  * Usually used to indicate that the application should end with an error.
  *
- * @param return_code The exit code that sol_run() will return.
+ * @param return_code The exit code that @ref sol_run() will return
  */
 void sol_quit_with_code(int return_code);
+
+/**
+ * @brief Shutdown Soletta library.
+ *
+ * This function shuts down Soletta and once it's called, no other Soletta
+ * API should be used.
+ *
+ * @see sol_init()
+ */
 void sol_shutdown(void);
 
+/**
+ * @struct sol_timeout
+ *
+ * @brief Handle for timers tracking the timeouts.
+ */
 struct sol_timeout;
 
 /**
- * Adds a function to be called periodically by the main loop.
+ * @brief Adds a function to be called periodically by the main loop.
  *
  * Timeouts are called by the main loop every @a timeout_ms milliseconds for
  * as long as the given function @a cb returns true.
  *
- * @param timeout_ms The period in milliseconds in which the function will be called.
- * @param cb The function to call, it will be called every @p timeout_ms until it returns false.
- * @param data The user data pointer to pass to the function.
+ * @param timeout_ms The period in milliseconds in which the function will be called
+ * @param cb The function to call, it will be called every @p timeout_ms until it returns false
+ * @param data The user data pointer to pass to the function
  *
- * @return A handle that can be used to delete the timeout.
+ * @return A handle that can be used to delete the timeout
  */
 struct sol_timeout *sol_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const void *data);
 
 /**
- * Deletes the given timeout.
+ * @brief Deletes the given timeout.
  *
  * If it's necessary to keep a created timeout from being called, this function
  * can delete it.
  *
- * @param handle The timeout to delete.
+ * @param handle The timeout to delete
  *
  * @return True if the timeout was deleted, false if the handle is invalid or
- * if it had been marked as removed already.
+ * if it had been marked as removed already
  */
 bool sol_timeout_del(struct sol_timeout *handle);
 
+/**
+ * @struct sol_idle
+ *
+ * @brief Handle for idlers.
+ *
+ * This structure is used to help setup and control Idlers.
+ */
 struct sol_idle;
 
 /**
- * Adds a function to be called when the application goes idle.
+ * @brief Adds a function to be called when the application goes idle.
  *
  * Idlers are called when the main loop reaches the idle state. That is, after
  * all pending events have been processed and no timeout has expired. This means
@@ -193,26 +224,26 @@ struct sol_idle;
  * removed, otherwise they will kept to be called until some other event becomes
  * available.
  *
- * @param cb The function to call when the idle state is reached.
- * @param data The user data pointer to pass to the function.
+ * @param cb The function to call when the idle state is reached
+ * @param data The user data pointer to pass to the function
  *
- * @return A handle that can be used to delete the idler.
+ * @return A handle that can be used to delete the idler
  */
 struct sol_idle *sol_idle_add(bool (*cb)(void *data), const void *data);
 
 /**
- * Deletes the given idler.
+ * @brief Deletes the given idler.
  *
- * @param handle The idler to delete.
+ * @param handle The idler to delete
  *
  * @return True if the idler was deleted, false if the handle is invalid or
- * if it had been marked as removed already.
+ * if it had been marked as removed already
  */
 bool sol_idle_del(struct sol_idle *handle);
 
 #ifdef SOL_MAINLOOP_FD_ENABLED
 /**
- * Flags to be used with file descriptor watchers.
+ * @brief Flags to be used with file descriptor watchers.
  *
  * When passed to sol_fd_add() or sol_fd_set_flags(), these are the events
  * the user is interested in.
@@ -222,31 +253,31 @@ bool sol_idle_del(struct sol_idle *handle);
 enum sol_fd_flags {
     SOL_FD_FLAGS_NONE = 0,
     /**
-     * Non-high priority data available to read from the file descriptor.
+     * @brief Non-high priority data available to read from the file descriptor.
      */
     SOL_FD_FLAGS_IN   = (1 << 0),
     /**
-     * File descriptor available for writing.
+     * @brief File descriptor available for writing.
      */
     SOL_FD_FLAGS_OUT  = (1 << 1),
     /**
-     * High priority data available to read from the file descriptor.
+     * @brief High priority data available to read from the file descriptor.
      */
     SOL_FD_FLAGS_PRI  = (1 << 2),
     /**
-     * An error occurred on the file descriptor.
+     * @brief An error occurred on the file descriptor.
      *
      * @note Only valid in the @c active_flags of the callback function.
      */
     SOL_FD_FLAGS_ERR  = (1 << 3),
     /**
-     * All the writing ends of the file descriptor were closed.
+     * @brief All the writing ends of the file descriptor were closed.
      *
      * @note Only valid in the @c active_flags of the callback function.
      */
     SOL_FD_FLAGS_HUP  = (1 << 4),
     /**
-     * The file descriptor is invalid.
+     * @brief The file descriptor is invalid.
      *
      * @note Only valid in the @c active_flags of the callback function.
      */
@@ -256,100 +287,109 @@ enum sol_fd_flags {
 struct sol_fd;
 
 /**
- * Adds a function to be called when the requested events are triggered by the
+ * @brief Adds a function to be called when the requested events are triggered by the
  * given file descriptor.
  *
- * @param fd The file descriptor to watch events for.
- * @param flags Bitwise ORed set of flags from #sol_fd_flags that are of interest.
- * @param cb The function to call on events.
- * @param data The user data pointer to pass to the function.
+ * @param fd The file descriptor to watch events for
+ * @param flags Bitwise ORed set of flags from #sol_fd_flags that are of interest
+ * @param cb The function to call on events
+ * @param data The user data pointer to pass to the function
  *
- * @return A handle that can be used to delete the file descriptor watcher.
+ * @return A handle that can be used to delete the file descriptor watcher
  */
 struct sol_fd *sol_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data);
 
 /**
- * Deletes the given file descriptor watcher.
+ * @brief Deletes the given file descriptor watcher.
  *
- * @param handle The handle to delete.
+ * @param handle The handle to delete
  *
- * @return True if the handle was deleted, false it is invalid or already marked as removed.
+ * @return True if the handle was deleted, false it is invalid or already marked as removed
  */
 bool sol_fd_del(struct sol_fd *handle);
 
 /**
- * Sets the flags to watch for on the given file descriptor.
+ * @brief Sets the flags to watch for on the given file descriptor.
  *
- * @param handle The handle to update.
- * @param flags The new set of flags to watch for.
+ * @param handle The handle to update
+ * @param flags The new set of flags to watch for
  *
- * @return True on success, false if the handle is invalid.
+ * @return True on success, false if the handle is invalid
  */
 bool sol_fd_set_flags(struct sol_fd *handle, uint32_t flags);
 
 /**
- * Removes the given flags from those being watched.
+ * @brief Removes the given flags from those being watched.
  *
- * @param handle The handle to update.
- * @param flags The flags to remove from the set the handle is watching.
+ * @param handle The handle to update
+ * @param flags The flags to remove from the set the handle is watching
  *
- * @return True on success, false if the handle is invalid.
+ * @return True on success, false if the handle is invalid
  */
 bool sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags);
 
 /**
- * Gets the flags being watched for the given handle.
+ * @brief Gets the flags being watched for the given handle.
  *
- * @param handle The handle to get the flags for.
+ * @param handle The handle to get the flags for
  *
- * @return The flags that are currently being watched for by the handle.
+ * @return The flags that are currently being watched for by the handle
  */
 uint32_t sol_fd_get_flags(const struct sol_fd *handle);
 #endif
 
 #ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
+
+/**
+ * @brief Handle for child process.
+ *
+ * This structure is used to setup and control children process.
+ */
 struct sol_child_watch;
 
 /**
- * Watch for a child process' termination.
+ * @brief Watch for a child process' termination.
  *
  * When launching children processes, applications can watch for their
  * termination and retrieve their exit status by adding watcher with this function.
  * The @a status parameter received by the callback function is the exit code
  * given by the child.
  *
- * @param pid The pid of the process to watch for.
- * @param cb The function that will be called.
- * @param data The user data pointer to pass to the function.
+ * @param pid The pid of the process to watch for
+ * @param cb The function that will be called
+ * @param data The user data pointer to pass to the function
  *
- * @return A handler that can be used to delete the watcher.
+ * @return A handler that can be used to delete the watcher
  */
 struct sol_child_watch *sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data);
 
 /**
- * Delete the given child process watcher.
+ * @brief Delete the given child process watcher.
  *
  * This function removes the watcher only, the child process will continue to
  * run normally, and no notification will be received by the parent when it
  * terminates unless a new watcher is put in place.
  *
- * @param handle The handle to remove.
+ * @param handle The handle to remove
  *
- * @return True on success, false if the handle is invalid or it was already marked as removed.
+ * @return True on success, false if the handle is invalid or it was already marked as removed
  */
 bool sol_child_watch_del(struct sol_child_watch *handle);
 #endif
 
+/**
+ * @brief Structure representing the type of a source of mainloop events.
+ */
 struct sol_mainloop_source_type {
 #ifndef SOL_NO_API_VERSION
-#define SOL_MAINLOOP_SOURCE_TYPE_API_VERSION (1)  /**< compile time API version to be checked during runtime */
+#define SOL_MAINLOOP_SOURCE_TYPE_API_VERSION (1)  /**< @brief Compile time API version to be checked during runtime */
     /**
-     * must match #SOL_MAINLOOP_SOURCE_TYPE_API_VERSION at runtime.
+     * @brief must match #SOL_MAINLOOP_SOURCE_TYPE_API_VERSION at runtime.
      */
     uint16_t api_version;
 #endif
     /**
-     * Function to be called to prepare to check for events.
+     * @brief Function to be called to prepare to check for events.
      *
      * This function will be called before Soletta's main loop query
      * for its own events. In Linux/POSIX, it will be called before
@@ -373,7 +413,7 @@ struct sol_mainloop_source_type {
     bool (*prepare)(void *data);
 
     /**
-     * Function to be called to query the next timeout for the next
+     * @brief Function to be called to query the next timeout for the next
      * event in this source.
      *
      * If returns @c true, then @c timeout must be set to the next
@@ -397,7 +437,7 @@ struct sol_mainloop_source_type {
     bool (*get_next_timeout)(void *data, struct timespec *timeout);
 
     /**
-     * Function to be called to check if there are events to be dispatched.
+     * @brief Function to be called to check if there are events to be dispatched.
      *
      * If returns @c true, then there are events to be dispatched and
      * @c dispatch() should be called.
@@ -412,7 +452,7 @@ struct sol_mainloop_source_type {
     bool (*check)(void *data);
 
     /**
-     * Function to be called during main loop iterations if @c
+     * @brief Function to be called during main loop iterations if @c
      * prepare() or @c check() returns @c true.
      *
      * Must @b not be NULL.
@@ -420,7 +460,7 @@ struct sol_mainloop_source_type {
     void (*dispatch)(void *data);
 
     /**
-     * Function to be called when the source is deleted.
+     * @brief Function to be called when the source is deleted.
      *
      * It is called when the source is explicitly deleted using
      * sol_mainloop_source_del() or when sol_shutdown() is called.
@@ -430,10 +470,13 @@ struct sol_mainloop_source_type {
     void (*dispose)(void *data);
 };
 
+/**
+ * @brief Structure of a Source of mainloop events.
+ */
 struct sol_mainloop_source;
 
 /**
- * Create a new source of events to the main loop.
+ * @brief Create a new source of events to the main loop.
  *
  * Some libraries will have their own internal main loop, in the case
  * we should integrate them with Soletta's we do so by adding a new
@@ -473,54 +516,54 @@ struct sol_mainloop_source;
  *
  * @param type the description of the source of main loop events. This
  *        pointer is not modified and is @b not copied, thus it @b
- *        must exist during the lifetime of the source.
- * @param data the user data (context) to give to callbacks in @a type.
+ *        must exist during the lifetime of the source
+ * @param data the user data (context) to give to callbacks in @a type
  *
- * @return the new main loop source instance or @c NULL on failure.
+ * @return the new main loop source instance or @c NULL on failure
  *
  * @see sol_mainloop_source_del()
  */
 struct sol_mainloop_source *sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void *data);
 
 /**
- * Destroy a source of main loop events.
+ * @brief Destroy a source of main loop events.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_new().
+ *        sol_mainloop_source_new()
  *
  * @see sol_mainloop_source_new()
  */
 void sol_mainloop_source_del(struct sol_mainloop_source *handle);
 
 /**
- * Retrieve the user data (context) given to the source at creation time.
+ * @brief Retrieve the user data (context) given to the source at creation time.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_new().
+ *        sol_mainloop_source_new()
  *
  * @return whatever was given to sol_mainloop_source_new() as second
- *         parameter. NULL is a valid return.
+ *         parameter. NULL is a valid return
  *
  * @see sol_mainloop_source_new()
  */
 void *sol_mainloop_source_get_data(const struct sol_mainloop_source *handle);
 
 /**
- * Gets the argument count the application was launched with, if any.
+ * @brief Gets the argument count the application was launched with, if any.
  *
- * @return The @c argc value as set by sol_args_set() or #SOL_MAIN().
+ * @return The @c argc value as set by sol_args_set() or #SOL_MAIN()
  */
 int sol_argc(void);
 
 /**
- * Gets the list of arguments the application was launched with, if any.
+ * @brief Gets the list of arguments the application was launched with, if any.
  *
- * @return The @c argv value as set by sol_args_set() or #SOL_MAIN().
+ * @return The @c argv value as set by sol_args_set() or #SOL_MAIN()
  */
 char **sol_argv(void);
 
 /**
- * Sets a new list of arguments and its count.
+ * @brief Sets a new list of arguments and its count.
  *
  * A reference to the @a argv pointer will be kept, so it must be valid at least
  * until sol_args_set() is called again to set different arguments.
@@ -532,20 +575,37 @@ char **sol_argv(void);
  * interpreter removes its own arguments and uses this function to set the
  * list of arguments that the flow should see.
  *
- * @param argc The count of elements in @a argv.
- * @param argv Array of nul terminated strings, each represents one argument.
+ * @param argc The count of elements in @a argv
+ * @param argv Array of nul terminated strings, each represents one argument
  */
 void sol_args_set(int argc, char *argv[]);
 
+/**
+ * @brief Structure used to keep the application main callbacks.
+ *
+ * It's intended to be used through @ref SOL_MAIN_DEFAULT. Keeps
+ * the @c startup and @c shutdown callbacks of the application that
+ * will be called by @ref SOL_MAIN_DEFAULT when appropriated.
+ */
 struct sol_main_callbacks {
 #ifndef SOL_NO_API_VERSION
 #define SOL_MAIN_CALLBACKS_API_VERSION (1)
-    uint16_t api_version;
+    uint16_t api_version; /**< @brief API version */
 #endif
-    uint16_t flags;
-    void (*startup)(void);
-    void (*shutdown)(void);
+    uint16_t flags; /**< @brief Application flags */
+    void (*startup)(void); /**< @brief Application @c startup function */
+    void (*shutdown)(void); /**< @brief Application @c shutdown function */
 };
+
+/**
+ * @def SOL_MAIN
+ *
+ * @brief Convenience macro to declare the @c main function and properly
+ * initialize and execute a Soletta Application.
+ *
+ * @warning Prefer to use @ref SOL_MAIN_DEFAULT since it handles different
+ * platforms.
+ */
 
 /**
  * @def SOL_MAIN_DEFAULT(startup, shutdown)
@@ -609,7 +669,15 @@ struct sol_main_callbacks {
     SOL_MAIN(sol_main_callbacks_instance)
 #endif /* SOL_PLATFORM_CONTIKI */
 
-/* Internal. */
+/**
+ * @brief Helper function called by @ref SOL_MAIN. Shouldn't be called directly.
+ *
+ * @param callbacks Application callback structure
+ * @param argc The count of elements in @a argv
+ * @param argv Array of NUL terminated strings, each represents one argument
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ */
 int sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, char *argv[]);
 
 /**
