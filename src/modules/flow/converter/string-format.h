@@ -33,7 +33,6 @@
 #pragma once
 
 #include "sol-buffer.h"
-#include "sol-flow/converter.h"
 #include "sol-mainloop.h"
 #include "sol-flow-internal.h"
 
