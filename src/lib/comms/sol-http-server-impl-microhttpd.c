@@ -46,6 +46,7 @@
 #include "sol-log.h"
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
+#include "sol-str-table.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 #include "sol-arena.h"
@@ -411,14 +412,89 @@ get_default_response(const struct sol_http_server *server, enum sol_http_status_
     return response;
 }
 
+static enum sol_http_method
+http_server_get_method(const char *method)
+{
+    static const struct sol_str_table table[] = {
+        SOL_STR_TABLE_ITEM("POST",    SOL_HTTP_METHOD_POST),
+        SOL_STR_TABLE_ITEM("GET",     SOL_HTTP_METHOD_GET),
+        SOL_STR_TABLE_ITEM("HEAD",    SOL_HTTP_METHOD_HEAD),
+        SOL_STR_TABLE_ITEM("PUT",     SOL_HTTP_METHOD_PUT),
+        SOL_STR_TABLE_ITEM("TRACE",   SOL_HTTP_METHOD_TRACE),
+        SOL_STR_TABLE_ITEM("DELETE",  SOL_HTTP_METHOD_DELETE),
+        SOL_STR_TABLE_ITEM("OPTIONS", SOL_HTTP_METHOD_OPTIONS),
+        SOL_STR_TABLE_ITEM("CONNECT", SOL_HTTP_METHOD_CONNECT),
+        SOL_STR_TABLE_ITEM("PATCH",   SOL_HTTP_METHOD_PATCH),
+        { }
+    };
+
+    return sol_str_table_lookup_fallback(table, sol_str_slice_from_str(method),
+        SOL_HTTP_METHOD_INVALID);
+}
+
+static struct MHD_Response *
+http_server_static_response(struct sol_http_server *server, struct sol_http_request *req,
+    enum sol_http_status_code *status)
+{
+    int fd, r;
+    uint16_t i;
+    struct static_dir *dir;
+    struct MHD_Response *response = NULL;
+
+    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
+        struct stat st;
+        const char *mime;
+
+        fd = get_static_file(dir, req->url);
+        if (fd < 0) {
+            if (errno == EACCES) {
+                *status = SOL_HTTP_STATUS_FORBIDDEN;
+                return NULL;
+            }
+            continue;
+        }
+
+        r = fstat(fd, &st);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+        if ((st.st_mode & READABLE_BY_EVERYONE) != READABLE_BY_EVERYONE) {
+            *status = SOL_HTTP_STATUS_FORBIDDEN;
+            goto err;
+        }
+
+        mime = get_file_mime_type(server, fd);
+
+        if (req->method == SOL_HTTP_METHOD_HEAD) {
+            response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_MUST_COPY);
+            SOL_NULL_CHECK_GOTO(response, err);
+
+            close(fd);
+        } else {
+            response = MHD_create_response_from_fd(st.st_size, fd);
+            SOL_NULL_CHECK_GOTO(response, err);
+        }
+
+        *status = SOL_HTTP_STATUS_OK;
+        r = MHD_add_response_header(response,
+            MHD_HTTP_HEADER_CONTENT_TYPE, mime);
+        if (r < 0)
+            SOL_WRN("Could not set the response content type to: %s. Error: %d", mime, r);
+        return response;
+    }
+
+    return response;
+
+err:
+    close(fd);
+    return response;
+}
+
 static int
 http_server_handler(void *data, struct MHD_Connection *connection, const char *url, const char *method,
     const char *version, const char *upload_data, size_t *upload_data_size, void **ptr)
 {
-    int ret, fd;
+    int ret;
     uint16_t i;
     char *path = NULL;
-    struct static_dir *dir;
     struct MHD_Response *mhd_response = NULL;
     struct sol_http_server *server = data;
     struct http_handler *handler;
@@ -443,8 +519,9 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         return MHD_YES;
     }
 
-    if (method && streq(method, "POST")) {
-        req->method = SOL_HTTP_METHOD_POST;
+    req->method = http_server_get_method(method);
+    switch (req->method) {
+    case SOL_HTTP_METHOD_POST:
         if (!req->pp)
             req->pp = MHD_create_post_processor(connection, 1024, post_iterator, req);
         SOL_NULL_CHECK_GOTO(req->pp, end);
@@ -458,12 +535,15 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             *upload_data_size = 0;
             return MHD_YES;
         }
-    } else if (method && streq(method, "GET")) {
-        req->method = SOL_HTTP_METHOD_GET;
-    } else {
+        break;
+    case SOL_HTTP_METHOD_GET:
+    case SOL_HTTP_METHOD_HEAD:
+        break;
+    default:
         SOL_WRN("Method %s not implemented", method ? method : "NULL");
         status = SOL_HTTP_STATUS_NOT_IMPLEMENTED;
         goto end;
+        break;
     }
 
     path = sanitize_path(url);
@@ -494,40 +574,9 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     }
 
     free(path);
-    SOL_VECTOR_FOREACH_IDX (&server->dirs, dir, i) {
-        struct stat st;
-        const char *mime;
-        fd = get_static_file(dir, url);
-        if (fd < 0 && errno == EACCES) {
-            status = SOL_HTTP_STATUS_FORBIDDEN;
-        } else if (fd > 0) {
-            ret = fstat(fd, &st);
-            if (ret < 0) {
-                close(fd);
-            } else {
-                if ((st.st_mode & READABLE_BY_EVERYONE) != READABLE_BY_EVERYONE) {
-                    status = SOL_HTTP_STATUS_FORBIDDEN;
-                    close(fd);
-                    break;
-                }
-
-                mhd_response = MHD_create_response_from_fd(st.st_size, fd);
-                if (mhd_response) {
-                    mime = get_file_mime_type(server, fd);
-                    ret = MHD_add_response_header(mhd_response,
-                        MHD_HTTP_HEADER_CONTENT_TYPE, mime);
-                    if (ret < 0)
-                        SOL_WRN("Could not set the response content type to: %s. Error: %d", mime, ret);
-
-                    status = SOL_HTTP_STATUS_OK;
-                    goto end;
-                } else {
-                    close(fd);
-                }
-            }
-            break;
-        }
-    }
+    mhd_response = http_server_static_response(server, req, &status);
+    if (status != SOL_HTTP_STATUS_NOT_FOUND)
+        goto end;
 
     mhd_response = get_default_response(server, status);
     SOL_NULL_CHECK(mhd_response, MHD_NO);
