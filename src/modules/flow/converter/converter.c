@@ -36,6 +36,7 @@ SOL_LOG_INTERNAL_DECLARE(_converter_log_domain, "flow-converter");
 
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
+#include "sol-flow/converter.h"
 
 #include <sol-json.h>
 #include <limits.h>
