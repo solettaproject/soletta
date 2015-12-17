@@ -489,6 +489,16 @@
       "dependency": "libkmod",
       "type": "pkg-config",
       "pkgname": "libkmod"
+    },
+    {
+      "dependency": "libmagic",
+      "type": "ccode",
+      "headers": [
+        "<magic.h>"
+      ],
+      "ldflags": {
+        "value": "-lmagic"
+      }
     }
   ]
 }

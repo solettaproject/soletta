@@ -80,7 +80,8 @@ obj-networking-$(HTTP_SERVER)-extra-cflags += \
     $(LIBMICROHTTPD_CFLAGS)
 
 obj-networking-$(HTTP_SERVER)-extra-ldflags += \
-    $(LIBMICROHTTPD_LDFLAGS)
+    $(LIBMICROHTTPD_LDFLAGS) \
+    $(LIBMAGIC_LDFLAGS)
 
 requires-private-$(HTTP_SERVER) += \
     $(LIBMICROHTTPD_REQUIRES_PRIVATE)
