@@ -86,4 +86,5 @@ void
 loaded_metatype_cache_shutdown(void)
 {
     sol_lib_loader_del(metatype_loader);
+    metatype_loader = NULL;
 }

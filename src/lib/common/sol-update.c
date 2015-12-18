@@ -186,6 +186,7 @@ sol_update_shutdown(void)
         update_module->shutdown();
 
     sol_lib_loader_del(update_module_loader);
+    update_module_loader = NULL;
 }
 
 SOL_API struct sol_update_handle *
