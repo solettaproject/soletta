@@ -35,48 +35,26 @@
 #include "sol-flow.h"
 #include "sol-macros.h"
 
-struct sol_flow_simplectype_event {
-    enum sol_flow_simplectype_event_type {
-        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_OPEN, /**< the node is being opened (instantiated) */
-        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_CLOSE, /**< the node is being closed (deleted) */
-        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_CONNECT, /**< the input port defined by @c port index and @c port_name name is being connected */
-        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_DISCONNECT, /**< the input port defined by @c port index and @c port_name name is being disconnected */
-        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_PROCESS, /**< the input port defined by @c port index and @c port_name name received an incoming @c packet */
-        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_OUT_CONNECT,  /**< the output port defined by @c port index and @c port_name name is being connected */
-        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_OUT_DISCONNECT,  /**< the output port defined by @c port index and @c port_name name is being disconnected */
-    } type; /**< the type defining this event, use it before accessing the other members of this structure */
-    uint16_t port; /**< if type is one of SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_* events, the reference port index */
-    uint16_t conn_id; /**< if type is one of SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_* events, the reference connection identifier */
-    const char *port_name; /* if type is one of SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_* events, the port name (copy of the string given to sol_flow_simplectype_new_full() */
-    const struct sol_flow_node_options *options; /* if type is SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_OPEN, the given options */
-    const struct sol_flow_packet *packet; /* if type is SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_PROCESS, the incoming packet */
-};
-
-
-#define SOL_FLOW_SIMPLECTYPE_PORT_TYPE_IN 1
-#define SOL_FLOW_SIMPLECTYPE_PORT_TYPE_OUT 2
-
-#define SOL_FLOW_SIMPLECTYPE_PORT_IN(name, type) \
-    SOL_TYPE_CHECK(const char *, name), \
-    SOL_TYPE_CHECK(const struct sol_flow_packet_type *, type), \
-    SOL_FLOW_SIMPLECTYPE_PORT_TYPE_IN
-
-#define SOL_FLOW_SIMPLECTYPE_PORT_OUT(name, type) \
-    SOL_TYPE_CHECK(const char *, name), \
-    SOL_TYPE_CHECK(const struct sol_flow_packet_type *, type), \
-    SOL_FLOW_SIMPLECTYPE_PORT_TYPE_OUT
+/**
+ * @file
+ * @brief These routines are used for Soletta flow's @c Simple @c C type
+ */
 
 /**
- * Creates a flow node type using a simple C function.
+ * @defgroup SimpleCType Flow's Simple C Type
+ * @ingroup Flow
  *
- * This is a helper to ease development of custom nodes where the full
- * power of node type is not needed. Instead a single function is used
- * and given the node, the node private data and the event.
+ * @brief Helper to create a flow node type from a simple C function.
+ *
+ * @b Simple @b C @b Type is a helper to ease development of custom nodes where the full
+ * power of a node type is not needed. Instead, a single function is used
+ * and given to the node, the node private data and the event.
  *
  * Each node will have a context (private) data of size declared to
  * sol_flow_simplectype_new_full(). This is given as the last
  * argument to the callback @a func as well as can be retrieved with
  * sol_flow_node_get_private_data(). An example:
+ *
  * @code
  * static int
  * mytype_func(struct sol_flow_node *node,
@@ -95,6 +73,69 @@ struct sol_flow_simplectype_event {
  *    }
  * }
  * @endcode
+ *
+ * @{
+ */
+
+/**
+ * @brief @c Simple @c C event structure.
+ */
+struct sol_flow_simplectype_event {
+    /**
+     * @brief Event type.
+     *
+     * @warning Use it before accessing the other members of this structure.
+     */
+    enum sol_flow_simplectype_event_type {
+        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_OPEN, /**< @brief Node is being open (instantiated) */
+        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_CLOSE, /**< @brief Node is being closed (deleted) */
+        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_CONNECT, /**< @brief The input port defined by @c port index and @c port_name name is being connected */
+        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_DISCONNECT, /**< @brief The input port defined by @c port index and @c port_name name is being disconnected */
+        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_PROCESS, /**< @brief The input port defined by @c port index and @c port_name name received an incoming @c packet */
+        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_OUT_CONNECT,  /**< @brief The output port defined by @c port index and @c port_name name is being connected */
+        SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_OUT_DISCONNECT,  /**< @brief The output port defined by @c port index and @c port_name name is being disconnected */
+    } type;
+    uint16_t port; /**< @brief If type is one of SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_* events, the reference port index */
+    uint16_t conn_id; /**< @brief If type is one of SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_* events, the reference connection identifier */
+    const char *port_name; /* @brief If type is one of SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_* events, the port name (copy of the string given to sol_flow_simplectype_new_full() */
+    const struct sol_flow_node_options *options; /* @brief If type is SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_OPEN, the given options */
+    const struct sol_flow_packet *packet; /* @brief If type is SOL_FLOW_SIMPLECTYPE_EVENT_TYPE_PORT_IN_PROCESS, the incoming packet */
+};
+
+/**
+ * @brief Input port identifier
+ */
+#define SOL_FLOW_SIMPLECTYPE_PORT_TYPE_IN 1
+
+/**
+ * @brief Output port identifier
+ */
+#define SOL_FLOW_SIMPLECTYPE_PORT_TYPE_OUT 2
+
+/**
+ * @brief Helper macro to declare an input port
+ *
+ * @param name Port's name
+ * @param type Data type of the packets that this port should receive
+ */
+#define SOL_FLOW_SIMPLECTYPE_PORT_IN(name, type) \
+    SOL_TYPE_CHECK(const char *, name), \
+    SOL_TYPE_CHECK(const struct sol_flow_packet_type *, type), \
+    SOL_FLOW_SIMPLECTYPE_PORT_TYPE_IN
+
+/**
+ * @brief Helper macro to declare an output port
+ *
+ * @param name Port's name
+ * @param type Data type of the packets that this port will send
+ */
+#define SOL_FLOW_SIMPLECTYPE_PORT_OUT(name, type) \
+    SOL_TYPE_CHECK(const char *, name), \
+    SOL_TYPE_CHECK(const struct sol_flow_packet_type *, type), \
+    SOL_FLOW_SIMPLECTYPE_PORT_TYPE_OUT
+
+/**
+ * @brief Creates a flow node type using a simple C function.
  *
  * The newly returned type should be freed calling
  * sol_flow_node_type_del().
@@ -160,13 +201,13 @@ struct sol_flow_node_type *sol_flow_simplectype_new_full(const char *name, size_
 #define sol_flow_simplectype_new_nocontext(cb, ...) sol_flow_simplectype_new_full(#cb, 0, sizeof(struct sol_flow_node_type), cb, ## __VA_ARGS__, NULL)
 
 /**
- * Helper to retrieve the output port index from its name.
+ * @brief Helper to retrieve the output port index from its name.
  *
  * While the port index is defined by the declaration order given to
  * sol_flow_simplectype_new_full(), sometimes it is desirable to find
  * out the index given the string.
  *
- * Note that this needs a lookup, so avoid doing it in hot paths.
+ * @note Note that this needs a lookup, so avoid doing it in hot paths.
  *
  * @param type the type to search the port index given its name.
  * @param port_out_name the output port name to retrieve the index.
@@ -175,16 +216,20 @@ struct sol_flow_node_type *sol_flow_simplectype_new_full(const char *name, size_
 uint16_t sol_flow_simplectype_get_port_out_index(const struct sol_flow_node_type *type, const char *port_out_name);
 
 /**
- * Helper to retrieve the input port index from its name.
+ * @brief Helper to retrieve the input port index from its name.
  *
  * While the port index is defined by the declaration order given to
  * sol_flow_simplectype_new_full(), sometimes it is desirable to find
  * in the index given the string.
  *
- * Note that this needs a lookup, so avoid doing it in hot paths.
+ * @note Note that this needs a lookup, so avoid doing it in hot paths.
  *
  * @param type the type to search the port index given its name.
  * @param port_in_name the input port name to retrieve the index.
  * @return UINT16_MAX if not found, the index if found.
  */
 uint16_t sol_flow_simplectype_get_port_in_index(const struct sol_flow_node_type *type, const char *port_in_name);
+
+/**
+ * @}
+ */
