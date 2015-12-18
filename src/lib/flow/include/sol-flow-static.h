@@ -38,94 +38,141 @@
 extern "C" {
 #endif
 
-/* Static flow is a parent node that creates its children nodes and
- * routes packets between them according to an specification received
- * upon creation. The 'configuration' of the flow (connections made)
- * will not change at runtime -- thus the name static).
+/**
+ * @defgroup StaticFlow Static Flow
+ * @ingroup Flow
+ *
+ * @brief Static flow is a parent node that creates its children nodes and
+ * routes packets between them.
+ *
+ * It follows an specification received upon creation. The @c configuration
+ * of the flow (connections made) will not change at runtime -- thus the name static.
  *
  * The specification consists in two arrays: one indicating each node
  * type, and the other indicating each connection as a sequence of
- * (source node, source port, destination node, destionation port)
+ * (source node, source port, destination node, destination port)
  * tuples.
  *
  * The connection specification is used to dispatch connections when
  * messages are sent. This approach provides a very low memory
  * overhead but still perfomant way to route the packets.
+ *
+ * @{
  */
 
+/**
+ * @brief Structure for the specification of a node.
+ */
 struct sol_flow_static_node_spec {
-    const struct sol_flow_node_type *type; /**< node type */
-    const char *name; /**< name for the specitic type's instance */
-    const struct sol_flow_node_options *opts; /**< options for the specitic type's instance */
+    const struct sol_flow_node_type *type; /**< @brief Node type */
+    const char *name; /**< @brief Name for the specific type's instance */
+    const struct sol_flow_node_options *opts; /**< @brief Options for the specific type's instance */
 };
 
+/**
+ * @brief Structure for the specification of a connection.
+ */
 struct sol_flow_static_conn_spec {
-    uint16_t src; /**< source node index */
-    uint16_t src_port; /**< source node port index */
-    uint16_t dst; /**< destination node index */
-    uint16_t dst_port; /**< destination node port index */
+    uint16_t src; /**< @brief Source node index */
+    uint16_t src_port; /**< @brief Source node port index */
+    uint16_t dst; /**< @brief Destination node index */
+    uint16_t dst_port; /**< @brief Destination node port index */
 };
 
+/**
+ * @brief Structure for the specification of node ports
+ */
 struct sol_flow_static_port_spec {
-    uint16_t node; /**< node index */
-    uint16_t port; /**< port index */
+    uint16_t node; /**< @brief Node index */
+    uint16_t port; /**< @brief Port index */
 };
 
-/* Use the guards as the last element of the spec arrays. */
+/* Use these guards as the last element of the spec arrays. */
+
+/**
+ * @brief Guard element of the nodes spec array.
+ */
 #define SOL_FLOW_STATIC_NODE_SPEC_GUARD { }
+
+/**
+ * @brief Guard element of the connections spec array.
+ */
 #define SOL_FLOW_STATIC_CONN_SPEC_GUARD { .src = UINT16_MAX }
+
+/**
+ * @brief Guard element of the ports spec array.
+ */
 #define SOL_FLOW_STATIC_PORT_SPEC_GUARD { .node = UINT16_MAX }
 
 
-/** Specification of how a static flow should work. Note that the
- * arrays and functions provided are assumed to be available and valid
- * while the static flow type created from it is being used. */
+/**
+ * @brief Specification of how a static flow should work.
+ *
+ * @note Note that the arrays and functions provided are assumed to be available
+ * and valid while the static flow type created from it is being used.
+ */
 struct sol_flow_static_spec {
 #ifndef SOL_NO_API_VERSION
-#define SOL_FLOW_STATIC_API_VERSION (1)
-    uint16_t api_version;
+#define SOL_FLOW_STATIC_API_VERSION (1) /**< @brief Current API version number */
+    uint16_t api_version; /**< @brief API version number */
 #endif
     uint16_t flags;
 
-    /** Array specifying the node types that are used by the static
-     * flow. It should terminate with a
-     * #SOL_FLOW_STATIC_NODE_SPEC_GUARD. */
+    /**
+     * @brief Array specifying the node types that are used by the static flow.
+     *
+     * It should terminate with a #SOL_FLOW_STATIC_NODE_SPEC_GUARD.
+     */
     const struct sol_flow_static_node_spec *nodes;
 
-    /** Array specifying the connections between nodes in the static
-     * flow. This array @b must be sorted by node index and port
-     * indexes. It should terminate with a
-     * #SOL_FLOW_STATIC_CONN_SPEC_GUARD. */
+    /**
+     * @brief Array specifying the connections between nodes in the static flow.
+     *
+     * This array @b must be sorted by node index and port indexes. It should
+     * terminate with a #SOL_FLOW_STATIC_CONN_SPEC_GUARD.
+     */
     const struct sol_flow_static_conn_spec *conns;
 
-    /** Array specifying which input ports from the flow are going to
-     * be exported by the static flow. When static flow is used as a
-     * node in another flow, these will be its input ports. It should
-     * terminate with a #SOL_FLOW_STATIC_PORT_SPEC_GUARD. */
+    /**
+     * @brief Array specifying which input ports from the flow are going to
+     * be exported by the static flow.
+     *
+     * When static flow is used as a node in another flow, these will be its
+     * input ports. It should terminate with a #SOL_FLOW_STATIC_PORT_SPEC_GUARD.
+     */
     const struct sol_flow_static_port_spec *exported_in;
 
-    /** Array specifying which output ports from the flow are going to
-     * be exported by the static flow. When static flow is used as a
-     * node in another flow, these will be its output ports. It should
-     * terminate with a #SOL_FLOW_STATIC_PORT_SPEC_GUARD. */
+    /**
+     * @brief Array specifying which output ports from the flow are going to
+     * be exported by the static flow.
+     *
+     * When static flow is used as a node in another flow, these will be its
+     * output ports. It should terminate with a #SOL_FLOW_STATIC_PORT_SPEC_GUARD.
+     */
     const struct sol_flow_static_port_spec *exported_out;
 
-    /** Function to allow the static flow control the options used to
-     * create its nodes. It is called for each node everytime a new
-     * flow is created from this type. */
+    /**
+     * @brief Function to allow the static flow control the options used to
+     * create its nodes.
+     *
+     * It is called for each node every time a new flow is created from this type.
+     */
     int (*child_opts_set)(const struct sol_flow_node_type *type,
         uint16_t child_index,
         const struct sol_flow_node_options *opts,
         struct sol_flow_node_options *child_opts);
 
-    /** Function called after the static type is disposed. The user is
-     * passed the type_data pointer, that can be used to store
-     * reference to extra resources to be disposed. */
+    /**
+     * @brief Function called after the static type is disposed.
+     *
+     * The user is passed the type_data pointer, that can be used to store
+     * reference to extra resources to be disposed.
+     */
     void (*dispose)(const void *type_data);
 };
 
 /**
- * Creates a new "static flow" node.
+ * @brief Creates a new "static flow" node.
  *
  * Nodes should be created in the sol_main_callbacks::startup
  * function, and at least the root one must be a "static flow" node.
@@ -152,7 +199,7 @@ struct sol_flow_static_spec {
 struct sol_flow_node *sol_flow_static_new(struct sol_flow_node *parent, const struct sol_flow_static_node_spec nodes[], const struct sol_flow_static_conn_spec conns[]);
 
 /**
- * Get a container node's children node by index
+ * @brief Get a container node's children node by index
  *
  * @param node The node to get the child node from
  * @param index The index of the child node in @a node (position in
@@ -164,7 +211,7 @@ struct sol_flow_node *sol_flow_static_new(struct sol_flow_node *parent, const st
 struct sol_flow_node *sol_flow_static_get_node(struct sol_flow_node *node, uint16_t index);
 
 /**
- * Creates a new "static flow" (container) type.
+ * @brief Creates a new "static flow" (container) type.
  *
  * This allows one to create a static flow type "by hand" and fine-
  * tune it. Exported input/output ports may be declared, as well as
@@ -178,6 +225,10 @@ struct sol_flow_node *sol_flow_static_get_node(struct sol_flow_node *node, uint1
  */
 struct sol_flow_node_type *sol_flow_static_new_type(
     const struct sol_flow_static_spec *spec);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
