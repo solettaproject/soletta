@@ -138,6 +138,8 @@ int sol_run(void);
  * Terminates the main loop.
  *
  * Stops the main loop and sets the return value of sol_run() to EXIT_SUCCESS.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 void sol_quit(void);
 
@@ -148,8 +150,11 @@ void sol_quit(void);
  * Usually used to indicate that the application should end with an error.
  *
  * @param return_code The exit code that sol_run() will return.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 void sol_quit_with_code(int return_code);
+
 void sol_shutdown(void);
 
 struct sol_timeout;
@@ -165,6 +170,8 @@ struct sol_timeout;
  * @param data The user data pointer to pass to the function.
  *
  * @return A handle that can be used to delete the timeout.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 struct sol_timeout *sol_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const void *data);
 
@@ -178,6 +185,8 @@ struct sol_timeout *sol_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data),
  *
  * @return True if the timeout was deleted, false if the handle is invalid or
  * if it had been marked as removed already.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_timeout_del(struct sol_timeout *handle);
 
@@ -197,6 +206,8 @@ struct sol_idle;
  * @param data The user data pointer to pass to the function.
  *
  * @return A handle that can be used to delete the idler.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 struct sol_idle *sol_idle_add(bool (*cb)(void *data), const void *data);
 
@@ -207,6 +218,8 @@ struct sol_idle *sol_idle_add(bool (*cb)(void *data), const void *data);
  *
  * @return True if the idler was deleted, false if the handle is invalid or
  * if it had been marked as removed already.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_idle_del(struct sol_idle *handle);
 
@@ -265,6 +278,8 @@ struct sol_fd;
  * @param data The user data pointer to pass to the function.
  *
  * @return A handle that can be used to delete the file descriptor watcher.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 struct sol_fd *sol_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data);
 
@@ -274,6 +289,8 @@ struct sol_fd *sol_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd,
  * @param handle The handle to delete.
  *
  * @return True if the handle was deleted, false it is invalid or already marked as removed.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_fd_del(struct sol_fd *handle);
 
@@ -284,6 +301,8 @@ bool sol_fd_del(struct sol_fd *handle);
  * @param flags The new set of flags to watch for.
  *
  * @return True on success, false if the handle is invalid.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_fd_set_flags(struct sol_fd *handle, uint32_t flags);
 
@@ -294,6 +313,8 @@ bool sol_fd_set_flags(struct sol_fd *handle, uint32_t flags);
  * @param flags The flags to remove from the set the handle is watching.
  *
  * @return True on success, false if the handle is invalid.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags);
 
@@ -303,6 +324,8 @@ bool sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags);
  * @param handle The handle to get the flags for.
  *
  * @return The flags that are currently being watched for by the handle.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 uint32_t sol_fd_get_flags(const struct sol_fd *handle);
 #endif
@@ -323,6 +346,8 @@ struct sol_child_watch;
  * @param data The user data pointer to pass to the function.
  *
  * @return A handler that can be used to delete the watcher.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 struct sol_child_watch *sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data);
 
@@ -336,6 +361,8 @@ struct sol_child_watch *sol_child_watch_add(uint64_t pid, void (*cb)(void *data,
  * @param handle The handle to remove.
  *
  * @return True on success, false if the handle is invalid or it was already marked as removed.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_child_watch_del(struct sol_child_watch *handle);
 #endif
@@ -479,6 +506,8 @@ struct sol_mainloop_source;
  * @return the new main loop source instance or @c NULL on failure.
  *
  * @see sol_mainloop_source_del()
+ *
+ * @note MT-safe if compiled with threads support.
  */
 struct sol_mainloop_source *sol_mainloop_source_add(const struct sol_mainloop_source_type *type, const void *data);
 
@@ -489,6 +518,8 @@ struct sol_mainloop_source *sol_mainloop_source_add(const struct sol_mainloop_so
  *        sol_mainloop_source_add().
  *
  * @see sol_mainloop_source_add()
+ *
+ * @note MT-safe if compiled with threads support.
  */
 void sol_mainloop_source_del(struct sol_mainloop_source *handle);
 
@@ -502,6 +533,8 @@ void sol_mainloop_source_del(struct sol_mainloop_source *handle);
  *         parameter. NULL is a valid return.
  *
  * @see sol_mainloop_source_add()
+ *
+ * @note MT-safe if compiled with threads support.
  */
 void *sol_mainloop_source_get_data(const struct sol_mainloop_source *handle);
 
