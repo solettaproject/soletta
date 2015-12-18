@@ -5,3 +5,6 @@ sample-coap-sample-server-$(COAP_CLIENT_SERVER_SAMPLES) := simple-server.c
 sample-$(OIC_SAMPLES) += oic-sample-client oic-sample-server
 sample-oic-sample-client-$(OIC_SAMPLES) := oic-client.c
 sample-oic-sample-server-$(OIC_SAMPLES) := oic-server.c
+
+sample-$(LWM2M_SAMPLES) += lwm2m-sample-server
+sample-lwm2m-sample-server-$(LWM2M_SAMPLES) := lwm2m-server.c

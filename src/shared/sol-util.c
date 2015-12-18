@@ -105,6 +105,24 @@ sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
     return r;
 }
 
+unsigned long int
+sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base)
+{
+    char *tmpbuf, *tmpbuf_endptr;
+    unsigned long int r;
+
+    if (len < 0)
+        len = (ssize_t)strlen(nptr);
+
+    tmpbuf = strndupa(nptr, len);
+    errno = 0;
+    r = strtoul(tmpbuf, &tmpbuf_endptr, base);
+
+    if (endptr)
+        *endptr = (char *)nptr + (tmpbuf_endptr - tmpbuf);
+    return r;
+}
+
 double
 sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 {

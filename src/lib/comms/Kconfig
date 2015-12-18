@@ -115,3 +115,11 @@ config MAVLINK
             MAVLink or Micro Air Vehicle Link is a protocol for communicating with
             small unmanned vehicle. It is designed as a header-only message marshaling
             library.
+
+config LWM2M
+       bool "LWM2M"
+       default y
+       depends on COAP
+       help
+           LWM2M is a protocol for communication beetween IoT devices defined by OMA
+           (Open Mobile Alliance)
