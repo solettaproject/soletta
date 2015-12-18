@@ -121,8 +121,11 @@ on_idler_renew_twice(void *data)
     return idler_renewed < 2;
 }
 
+#ifndef TEST_MAINLOOP_MAIN_FN
+#define TEST_MAINLOOP_MAIN_FN main
+#endif
 int
-main(int argc, char *argv[])
+TEST_MAINLOOP_MAIN_FN(int argc, char *argv[])
 {
     int err, i;
     struct sol_timeout *timeout_to_del;

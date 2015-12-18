@@ -50,6 +50,10 @@ config TEST_MAINLOOP_LINUX
 	depends on PLATFORM_LINUX
 	default y
 
+config TEST_MAINLOOP_IMPLEMENTATION
+	bool "mainloop implementation"
+	default y
+
 config TEST_MAINLOOP_THREADS
 	bool "mainloop threads"
 	depends on PTHREAD && MAINLOOP_POSIX
