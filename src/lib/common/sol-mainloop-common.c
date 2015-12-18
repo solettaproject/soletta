@@ -654,7 +654,7 @@ sol_mainloop_impl_idle_del(void *handle)
 }
 
 void *
-sol_mainloop_impl_source_new(const struct sol_mainloop_source_type *type, const void *data)
+sol_mainloop_impl_source_add(const struct sol_mainloop_source_type *type, const void *data)
 {
     int ret;
     struct sol_mainloop_source_common *source = malloc(sizeof(struct sol_mainloop_source_common));

@@ -353,7 +353,7 @@ static GSourceFuncs source_funcs = {
 };
 
 void *
-sol_mainloop_impl_source_new(const struct sol_mainloop_source_type *type, const void *data)
+sol_mainloop_impl_source_add(const struct sol_mainloop_source_type *type, const void *data)
 {
     struct source_wrap_data *wrap_data;
     guint id;
