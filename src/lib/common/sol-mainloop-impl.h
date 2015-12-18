@@ -63,6 +63,6 @@ void *sol_mainloop_impl_child_watch_add(uint64_t pid, void (*cb)(void *data, uin
 bool sol_mainloop_impl_child_watch_del(void *handle);
 #endif
 
-void *sol_mainloop_impl_source_new(const struct sol_mainloop_source_type *type, const void *data);
+void *sol_mainloop_impl_source_add(const struct sol_mainloop_source_type *type, const void *data);
 void sol_mainloop_impl_source_del(void *handle);
 void *sol_mainloop_impl_source_get_data(const void *handle);
