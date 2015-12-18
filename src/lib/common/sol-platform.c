@@ -93,8 +93,11 @@ void
 sol_platform_shutdown(void)
 {
     free(board_name);
+    board_name = NULL;
     free(os_version);
+    os_version = NULL;
     free(serial_number);
+    serial_number = NULL;
     sol_monitors_clear(&_ctx.state_monitors);
     sol_monitors_clear(&_ctx.service_monitors);
     sol_monitors_clear(&_ctx.hostname_monitors);
