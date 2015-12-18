@@ -45,6 +45,9 @@ test-test-mainloop-glib-integration-$(TEST_MAINLOOP_GLIB_INTEGRATION) := test-ma
 test-test-mainloop-glib-integration-$(TEST_MAINLOOP_GLIB_INTEGRATION)-extra-cflags += $(GLIB_CFLAGS)
 test-test-mainloop-glib-integration-$(TEST_MAINLOOP_GLIB_INTEGRATION)-extra-ldflags += $(GLIB_LDFLAGS)
 
+test-$(TEST_MAINLOOP_IMPLEMENTATION) += test-mainloop-implementation
+test-test-mainloop-implementation-$(TEST_MAINLOOP_IMPLEMENTATION) := test-mainloop-implementation.c
+
 test-$(TEST_MONITORS) += test-monitors
 test-test-monitors-$(TEST_MONITORS) := test.c test-monitors.c
 
