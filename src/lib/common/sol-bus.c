@@ -163,7 +163,7 @@ event_create_source(sd_event *event)
         on_sd_event_fd, ctx);
     SOL_NULL_CHECK_GOTO(ctx->fd_handler, error_fd);
 
-    source = sol_mainloop_source_new(&source_type, ctx);
+    source = sol_mainloop_source_add(&source_type, ctx);
     SOL_NULL_CHECK_GOTO(source, error_source);
 
     return source;

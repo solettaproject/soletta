@@ -522,15 +522,15 @@ struct sol_mainloop_source;
  *
  * @see sol_mainloop_source_del()
  */
-struct sol_mainloop_source *sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void *data);
+struct sol_mainloop_source *sol_mainloop_source_add(const struct sol_mainloop_source_type *type, const void *data);
 
 /**
  * @brief Destroy a source of main loop events.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_new()
+ *        sol_mainloop_source_add().
  *
- * @see sol_mainloop_source_new()
+ * @see sol_mainloop_source_add()
  */
 void sol_mainloop_source_del(struct sol_mainloop_source *handle);
 
@@ -538,12 +538,12 @@ void sol_mainloop_source_del(struct sol_mainloop_source *handle);
  * @brief Retrieve the user data (context) given to the source at creation time.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_new()
+ *        sol_mainloop_source_add().
  *
- * @return whatever was given to sol_mainloop_source_new() as second
- *         parameter. NULL is a valid return
+ * @return whatever was given to sol_mainloop_source_add() as second
+ *         parameter. NULL is a valid return.
  *
- * @see sol_mainloop_source_new()
+ * @see sol_mainloop_source_add()
  */
 void *sol_mainloop_source_get_data(const struct sol_mainloop_source *handle);
 

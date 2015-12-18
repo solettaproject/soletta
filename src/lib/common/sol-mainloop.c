@@ -338,7 +338,7 @@ sol_child_watch_del(struct sol_child_watch *handle)
 #endif
 
 SOL_API struct sol_mainloop_source *
-sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void *data)
+sol_mainloop_source_add(const struct sol_mainloop_source_type *type, const void *data)
 {
     SOL_NULL_CHECK(type, NULL);
 
@@ -355,7 +355,7 @@ sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void 
     SOL_NULL_CHECK(type->check, NULL);
     SOL_NULL_CHECK(type->dispatch, NULL);
 
-    return sol_mainloop_impl_source_new(type, data);
+    return sol_mainloop_impl_source_add(type, data);
 }
 
 SOL_API void
