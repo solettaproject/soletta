@@ -30,11 +30,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "sol-flow/converter.h"
 #include "string-format.h"
-
-SOL_LOG_INTERNAL_DECLARE(_converter_log_domain, "flow-converter");
-
-#include "sol-flow-internal.h"
 #include "sol-mainloop.h"
 
 #include <sol-json.h>

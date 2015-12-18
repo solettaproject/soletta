@@ -35,7 +35,6 @@
 
 #include "sol-flow/form.h"
 #include "../converter/string-format.h"
-
 #include "sol-buffer.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
