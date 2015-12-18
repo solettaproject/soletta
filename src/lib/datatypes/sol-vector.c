@@ -166,6 +166,14 @@ ptr_vector_find_sorted(struct sol_ptr_vector *pv, unsigned int low, unsigned int
 {
     unsigned int mid;
 
+    *dir = compare(ptr, sol_ptr_vector_get(pv, low));
+    if (*dir <= 0 || low == high)
+        return low;
+
+    *dir = compare(ptr, sol_ptr_vector_get(pv, high));
+    if (*dir >= 0)
+        return high;
+
     while (true) {
         if (low == high) {
             *dir = compare(ptr, sol_ptr_vector_get(pv, low));
