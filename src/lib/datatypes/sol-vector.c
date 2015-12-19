@@ -166,22 +166,22 @@ ptr_vector_find_sorted(struct sol_ptr_vector *pv, unsigned int low, unsigned int
 {
     unsigned int mid;
 
-    *dir = compare(ptr, sol_ptr_vector_get(pv, low));
+    *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, low));
     if (*dir <= 0 || low == high)
         return low;
 
-    *dir = compare(ptr, sol_ptr_vector_get(pv, high));
+    *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, high));
     if (*dir >= 0)
         return high;
 
     while (true) {
         if (low == high) {
-            *dir = compare(ptr, sol_ptr_vector_get(pv, low));
+            *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, low));
             return low;
         }
 
         mid = (low + high) >> 1;
-        *dir = compare(ptr, sol_ptr_vector_get(pv, mid));
+        *dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, mid));
         if (*dir == 0)
             return mid;
         if (*dir < 0)
@@ -225,7 +225,7 @@ sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare
     index = ptr_vector_find_sorted(pv, 0, pv->base.len - 1, ptr, compare, &dir);
     while (dir == 0 && index < pv->base.len - 1U) {
         index++;
-        dir = compare(ptr, sol_ptr_vector_get(pv, index));
+        dir = compare(ptr, sol_ptr_vector_get_nocheck(pv, index));
     }
     return ptr_vector_insert_at(pv, ptr, index, dir);
 }

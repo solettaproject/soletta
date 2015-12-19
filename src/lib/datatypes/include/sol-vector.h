@@ -117,23 +117,44 @@ void *sol_vector_append(struct sol_vector *v);
 void *sol_vector_append_n(struct sol_vector *v, uint16_t n);
 
 /**
- * @brief Return the element of the vector at the given index.
+ * @brief Return the element of the vector at the given index (no safety checks).
+ *
+ * This is similar to sol_vector_get(), but does no safety checks such
+ * as array boundaries. Only use this whenever you're sure the index
+ * @a i exists.
  *
  * @param v Vector pointer
  * @param i Index of the element to return
  *
  * @return Pointer to the element at the index @c i
+ *
+ * @see sol_vector_get()
+ */
+static inline void *
+sol_vector_get_nocheck(const struct sol_vector *v, uint16_t i)
+{
+    const unsigned char *data;
+
+    data = (const unsigned char *)v->data;
+
+    return (void *)&data[v->elem_size * i];
+}
+
+/**
+ * @brief Return the element of the vector at the given index.
+ *
+ * @param v Vector pointer
+ * @param i Index of the element to return
+ *
+ * @return Pointer to the element at the index @c i or @c NULL on errors.
  */
 static inline void *
 sol_vector_get(const struct sol_vector *v, uint16_t i)
 {
-    const unsigned char *data;
-
     if (i >= v->len)
         return NULL;
-    data = (const unsigned char *)v->data;
 
-    return (void *)&data[v->elem_size * i];
+    return sol_vector_get_nocheck(v, i);
 }
 
 /**
@@ -213,7 +234,7 @@ sol_vector_take_data(struct sol_vector *v)
  */
 #define SOL_VECTOR_FOREACH_IDX(vector, itrvar, idx)                      \
     for (idx = 0;                                                       \
-        idx < (vector)->len && (itrvar = sol_vector_get((vector), idx), true); \
+        idx < (vector)->len && (itrvar = sol_vector_get_nocheck((vector), idx), true); \
         idx++)
 
 /**
@@ -226,7 +247,7 @@ sol_vector_take_data(struct sol_vector *v)
  */
 #define SOL_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx)              \
     for (idx = (vector)->len - 1;                                       \
-        idx != ((typeof(idx)) - 1) && (itrvar = sol_vector_get((vector), idx), true); \
+        idx != ((typeof(idx)) - 1) && (itrvar = sol_vector_get_nocheck((vector), idx), true); \
         idx--)
 /**
  * @}
@@ -312,6 +333,29 @@ sol_ptr_vector_get_len(const struct sol_ptr_vector *pv)
 int sol_ptr_vector_append(struct sol_ptr_vector *pv, void *ptr);
 
 /**
+ * @brief Return the element of the vector at the given index (no safety checks).
+ *
+ * This is similar to sol_ptr_vector_get(), but does no safety checks
+ * such as array boundaries. Only use this whenever you're sure the
+ * index @a i exists.
+ *
+ * @param pv Pointer Vector pointer
+ * @param i Index of the element to return
+ *
+ * @return Pointer at the index @c i.
+ *
+ * @see sol_ptr_vector_get()
+ */
+static inline void *
+sol_ptr_vector_get_nocheck(const struct sol_ptr_vector *pv, uint16_t i)
+{
+    void **data;
+
+    data = sol_vector_get_nocheck(&pv->base, i);
+    return *data;
+}
+
+/**
  * @brief Return the element of the vector at the given index.
  *
  * @param pv Pointer Vector pointer
@@ -322,12 +366,10 @@ int sol_ptr_vector_append(struct sol_ptr_vector *pv, void *ptr);
 static inline void *
 sol_ptr_vector_get(const struct sol_ptr_vector *pv, uint16_t i)
 {
-    void **data;
-
-    data = (void **)sol_vector_get(&pv->base, i);
-    if (!data)
+    if (i >= pv->base.len)
         return NULL;
-    return *data;
+
+    return sol_ptr_vector_get_nocheck(pv, i);
 }
 
 /**
@@ -481,7 +523,7 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
 #define SOL_PTR_VECTOR_FOREACH_IDX(vector, itrvar, idx) \
     for (idx = 0; \
         idx < (vector)->base.len && \
-        ((itrvar = *(((void **)(vector)->base.data) + idx)), true); \
+        ((itrvar = sol_ptr_vector_get_nocheck((vector), idx)), true); \
         idx++)
 
 /**
@@ -495,7 +537,7 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
 #define SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx) \
     for (idx = (vector)->base.len - 1; \
         idx != ((typeof(idx)) - 1) && \
-        (itrvar = *(((void **)(vector)->base.data) + idx), true); \
+        (itrvar = sol_ptr_vector_get_nocheck((vector), idx), true); \
         idx--)
 
 /**
