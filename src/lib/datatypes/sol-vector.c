@@ -223,6 +223,10 @@ sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare
     }
 
     index = ptr_vector_find_sorted(pv, 0, pv->base.len - 1, ptr, compare, &dir);
+    while (dir == 0 && index < pv->base.len - 1U) {
+        index++;
+        dir = compare(ptr, sol_ptr_vector_get(pv, index));
+    }
     return ptr_vector_insert_at(pv, ptr, index, dir);
 }
 

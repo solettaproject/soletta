@@ -133,16 +133,26 @@ test_ptr_vector_sorted(void)
     struct sol_ptr_vector pv;
     struct s *s;
     uint16_t i;
-    int array_unsorted[] = { 5, 3, 2, 9, 4, 3, 12, -1, 8, 30, 19, 10, 13 };
-    int array_sorted[] = { -1, 2, 3, 3, 4, 5, 8, 9, 10, 12, 13, 19, 30 };
+    int array_unsorted[] = { 5, 3, 2, 9, 4, 3, 12, -1, 8, 30, 19, 10, 13, 2, 2 };
+    int array_sorted[] = { -1, 2, 2, 2, 3, 3, 4, 5, 8, 9, 10, 12, 13, 19, 30 };
 
     sol_ptr_vector_init(&pv);
     for (i = 0; i < (sizeof(array_unsorted) / sizeof(int)); i++) {
-        sol_ptr_vector_insert_sorted(&pv, create_s(array_unsorted[i]), sort_cb);
+        s = create_s(array_unsorted[i]);
+        s->b = i;
+        sol_ptr_vector_insert_sorted(&pv, s, sort_cb);
     }
 
     SOL_PTR_VECTOR_FOREACH_IDX (&pv, s, i) {
         ASSERT_INT_EQ(s->a, array_sorted[i]);
+        if (i > 0) {
+            /* appending already existing elements should be after
+             * already existing (stable)
+             */
+            struct s *prev = sol_ptr_vector_get(&pv, i - 1);
+            if (prev->a == s->a)
+                ASSERT(prev->b < s->b);
+        }
     }
 
     while (pv.base.len > 0)
