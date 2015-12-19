@@ -238,6 +238,48 @@ sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare
 }
 
 SOL_API int
+sol_ptr_vector_update_sorted(struct sol_ptr_vector *pv, uint16_t i, int (*compare_cb)(const void *data1, const void *data2))
+{
+    void *ptr, *other;
+    size_t tail_len;
+
+    if (i >= pv->base.len)
+        return -ERANGE;
+
+    if (pv->base.len == 1)
+        return 0;
+
+    ptr = sol_ptr_vector_get_nocheck(pv, i);
+    if (i > 0) {
+        other = sol_ptr_vector_get_nocheck(pv, i - 1);
+        if (compare_cb(other, ptr) > 0)
+            goto fix_it;
+    }
+
+    if (i + 1 < pv->base.len) {
+        other = sol_ptr_vector_get_nocheck(pv, i + 1);
+        if (compare_cb(ptr, other) > 0)
+            goto fix_it;
+    }
+
+    return i;
+
+fix_it:
+    pv->base.len--;
+    tail_len = pv->base.len - i;
+
+    if (tail_len) {
+        unsigned char *data, *dst, *src;
+        data = pv->base.data;
+        dst = &data[pv->base.elem_size * i];
+        src = dst + pv->base.elem_size;
+        memmove(dst, src, pv->base.elem_size * tail_len);
+    }
+
+    return sol_ptr_vector_insert_sorted(pv, ptr, compare_cb);
+}
+
+SOL_API int
 sol_ptr_vector_match_sorted(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2))
 {
     int dir;

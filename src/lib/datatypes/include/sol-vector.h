@@ -411,6 +411,22 @@ int sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, void *ptr);
 int sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare_cb)(const void *data1, const void *data2));
 
 /**
+ * @brief Update sorted pointer vector so the element is still in order.
+ *
+ * This function takes an index @c i and checks it is in correct order
+ * in the previously sorted array. It is an optimized version to be
+ * used instead of deleting and inserting it again, so array size is
+ * untouched.
+ *
+ * @param pv Pointer Vector pointer
+ * @param i The index that was updated and may be repositioned
+ * @param compare_cb Function to compare elements in the list. It should return an integer
+ * less than, equal to, or greater than zero if @c data1 is found, respectively,
+ * to be less than, to match, or be greater than @c data2 in the sort order
+ */
+int sol_ptr_vector_update_sorted(struct sol_ptr_vector *pv, uint16_t i, int (*compare_cb)(const void *data1, const void *data2));
+
+/**
  * @brief Insert a pointer in the pointer vector at a given position.
  *
  * This function inserts a new element @a ptr relative to index @a
