@@ -35,6 +35,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <errno.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -397,8 +398,60 @@ int sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, void *ptr);
  * @param compare_cb Function to compare elements in the list. It should return an integer
  * less than, equal to, or greater than zero if @c data1 is found, respectively,
  * to be less than, to match, or be greater than @c data2 in the sort order
+ *
+ * @return index (>=0) or negative errno on errors.
+ *
+ * @see sol_ptr_vector_append()
+ * @see sol_ptr_vector_insert_at()
+ * @see sol_ptr_vector_match_sorted()
+ * @see sol_ptr_vector_find_sorted()
+ * @see sol_ptr_vector_find_first_sorted()
+ * @see sol_ptr_vector_find_last_sorted()
  */
-int sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare_cb)(const void *data1, const void *data2));
+int32_t sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare_cb)(const void *data1, const void *data2));
+
+/**
+ * @brief Update sorted pointer vector so the element is still in order.
+ *
+ * This function takes an index @c i and checks it is in correct order
+ * in the previously sorted array. It is an optimized version to be
+ * used instead of deleting and inserting it again, so array size is
+ * untouched.
+ *
+ * @param pv Pointer Vector pointer
+ * @param i The index that was updated and may be repositioned
+ * @param compare_cb Function to compare elements in the list. It should return an integer
+ * less than, equal to, or greater than zero if @c data1 is found, respectively,
+ * to be less than, to match, or be greater than @c data2 in the sort order
+ *
+ * @return the index (>=0) on success, which may be the same if it
+ * wasn't changed, or negative errno on failure.
+ */
+int32_t sol_ptr_vector_update_sorted(struct sol_ptr_vector *pv, uint16_t i, int (*compare_cb)(const void *data1, const void *data2));
+
+/**
+ * @brief Insert a pointer in the pointer vector at a given position.
+ *
+ * This function inserts a new element @a ptr at index @a i. All
+ * existing elements with index greater than @a i will be moved, thus
+ * their index will increase by one. If the index is the last position
+ * (sol_ptr_vector_get_len()), then it will have the same effect as
+ * sol_ptr_vector_append().
+ *
+ * @param pv Pointer Vector pointer
+ * @param i Index to insert element at.
+ * @param ptr The pointer
+ *
+ * @return 0 on success or negative errno on errors.
+ *
+ * @see sol_ptr_vector_append()
+ * @see sol_ptr_vector_insert_at()
+ * @see sol_ptr_vector_match_sorted()
+ * @see sol_ptr_vector_find_sorted()
+ * @see sol_ptr_vector_find_first_sorted()
+ * @see sol_ptr_vector_find_last_sorted()
+ */
+int sol_ptr_vector_insert_at(struct sol_ptr_vector *pv, uint16_t i, void *ptr);
 
 /**
  * @brief Remove an pointer from the vector.
@@ -426,6 +479,9 @@ int sol_ptr_vector_remove(struct sol_ptr_vector *pv, const void *ptr);
  *
  * @see sol_ptr_vector_del_element()
  * @see sol_ptr_vector_remove()
+ * @see sol_ptr_vector_find()
+ * @see sol_ptr_vector_match_sorted()
+ * @see sol_ptr_vector_find_sorted()
  */
 static inline int
 sol_ptr_vector_del(struct sol_ptr_vector *pv, uint16_t i)
@@ -548,6 +604,344 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
         idx != ((typeof(idx)) - 1) && \
         (itrvar = sol_ptr_vector_get_nocheck((vector), idx), true); \
         idx--)
+
+/**
+ * @brief Find the last occurrence of @c elem from the vector @c pv.
+ *
+ * @param pv Pointer Vector pointer
+ * @param elem Element to find
+ *
+ * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_find_first()
+ * @see sol_ptr_vector_find_first_sorted()
+ * @see sol_ptr_vector_match_first()
+ * @see sol_ptr_vector_match_last()
+ * @see sol_ptr_vector_find_last_sorted()
+ * @see sol_ptr_vector_match_sorted()
+ * @see sol_ptr_vector_find_sorted()
+ */
+static inline int
+sol_ptr_vector_find_last(const struct sol_ptr_vector *pv, const void *elem)
+{
+    uint16_t i;
+    const void *p;
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (pv, p, i) {
+        if (elem == p)
+            return i;
+    }
+
+    return -ENODATA;
+}
+
+/**
+ * @brief Find the first occurrence of @c elem from the vector @c pv.
+ *
+ * @param pv Pointer Vector pointer
+ * @param elem Element to find
+ *
+ * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_find_last()
+ * @see sol_ptr_vector_find_first_sorted()
+ * @see sol_ptr_vector_find_last_sorted()
+ * @see sol_ptr_vector_match_first()
+ * @see sol_ptr_vector_match_last()
+ * @see sol_ptr_vector_match_sorted()
+ * @see sol_ptr_vector_find_sorted()
+ */
+static inline int
+sol_ptr_vector_find_first(const struct sol_ptr_vector *pv, const void *elem)
+{
+    uint16_t i;
+    const void *p;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (pv, p, i) {
+        if (elem == p)
+            return i;
+    }
+
+    return -ENODATA;
+}
+
+/**
+ * @brief Match for the first occurrence matching template @c elem.
+ *
+ * @note this function returns a match given @a compare_cb, that is,
+ *       one that returns 0. To find the actual pointer @a elem, use
+ *       sol_ptr_vector_find_first().
+ *
+ * @param pv Pointer Vector pointer
+ * @param elem Element (template) to find, the returned index may not
+ * be of @a elem pointer, but to another element which makes @a
+ * compare_cb return 0.
+ * @param compare_cb Function to compare elements in the list. It should return an integer
+ * less than, equal to, or greater than zero if @c data1 is found, respectively,
+ * to be less than, to match, or be greater than @c data2 in the sort order
+ *
+ * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_match_last()
+ * @see sol_ptr_vector_find_first()
+ * @see sol_ptr_vector_find_first_sorted()
+ */
+static inline int32_t
+sol_ptr_vector_match_first(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2))
+{
+    uint16_t i;
+    const void *p;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (pv, p, i) {
+        if (compare_cb(elem, p) == 0)
+            return i;
+    }
+
+    return -ENODATA;
+}
+
+/**
+ * @brief Match for the last occurrence matching template @c elem.
+ *
+ * @note this function returns a match given @a compare_cb, that is,
+ *       one that returns 0. To find the actual pointer @a elem, use
+ *       sol_ptr_vector_find_first() or sol_ptr_vector_find_last().
+ *
+ * @param pv Pointer Vector pointer
+ * @param elem Element (template) to find, the returned index may not
+ * be of @a elem pointer, but to another element which makes @a
+ * compare_cb return 0.
+ * @param compare_cb Function to compare elements in the list. It should return an integer
+ * less than, equal to, or greater than zero if @c data1 is found, respectively,
+ * to be less than, to match, or be greater than @c data2 in the sort order
+ *
+ * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_match_first()
+ * @see sol_ptr_vector_find_last()
+ * @see sol_ptr_vector_find_last_sorted()
+ */
+static inline int32_t
+sol_ptr_vector_match_last(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2))
+{
+    uint16_t i;
+    const void *p;
+
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (pv, p, i) {
+        if (compare_cb(elem, p) == 0)
+            return i;
+    }
+
+    return -ENODATA;
+}
+
+/**
+ * @brief Match for occurrence matching template @c elem in the sorted vector @c pv.
+ *
+ * @note this function returns a match given @a compare_cb, that is,
+ *       one that returns 0. To find the actual pointer @a elem, use
+ *       sol_ptr_vector_find_sorted().
+ *
+ * @param pv Pointer Vector pointer (already sorted)
+ * @param elem Element (template) to find, the returned index may not
+ * be of @a elem pointer, but to another element which makes @a
+ * compare_cb return 0.
+ * @param compare_cb Function to compare elements in the list. It should return an integer
+ * less than, equal to, or greater than zero if @c data1 is found, respectively,
+ * to be less than, to match, or be greater than @c data2 in the sort order
+ *
+ * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_find_first()
+ * @see sol_ptr_vector_find_last()
+ * @see sol_ptr_vector_find_first_sorted()
+ * @see sol_ptr_vector_find_last_sorted()
+ * @see sol_ptr_vector_find_sorted()
+ * @see sol_ptr_vector_insert_sorted()
+ * @see sol_ptr_vector_match_first()
+ * @see sol_ptr_vector_match_last()
+ */
+int32_t sol_ptr_vector_match_sorted(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2));
+
+/**
+ * @brief Find the exact occurrence of @c elem in the sorted vector @c pv.
+ *
+ * This function will find the exact pointer to @a elem, so an
+ * existing element must be used. For a query-element (only used for
+ * reference in the @a compare_cb), use sol_ptr_vector_match_sorted().
+ *
+ * Unlike sol_ptr_vector_find_first_sorted() and
+ * sol_ptr_vector_find_last_sorted(), it will do a binary search and
+ * return the first occurence of the pointer @a elem. In the case of
+ * multiple occurences, it may be an element in the middle of those
+ * that would match (@a compare_cb returns 0).
+ *
+ * @param pv Pointer Vector pointer (already sorted)
+ * @param elem Element to find
+ * @param compare_cb Function to compare elements in the list. It should return an integer
+ * less than, equal to, or greater than zero if @c data1 is found, respectively,
+ * to be less than, to match, or be greater than @c data2 in the sort order
+ *
+ * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_find_first()
+ * @see sol_ptr_vector_find_last()
+ * @see sol_ptr_vector_find_first_sorted()
+ * @see sol_ptr_vector_find_last_sorted()
+ * @see sol_ptr_vector_find_sorted()
+ * @see sol_ptr_vector_insert_sorted()
+ * @see sol_ptr_vector_match_first()
+ * @see sol_ptr_vector_match_last()
+ * @see sol_ptr_vector_match_sorted()
+ */
+static inline int32_t
+sol_ptr_vector_find_sorted(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2))
+{
+    uint16_t i;
+    int32_t r;
+
+    r = sol_ptr_vector_match_sorted(pv, elem, compare_cb);
+    if (r < 0)
+        return r;
+
+    for (i = r; i < pv->base.len; i++) {
+        const void *other = sol_ptr_vector_get_nocheck(pv, i);
+
+        if (compare_cb(elem, other) != 0)
+            break;
+
+        if (elem == other)
+            return i;
+    }
+
+    for (i = r; i > 0; i--) {
+        const void *other = sol_ptr_vector_get_nocheck(pv, i - 1);
+
+        if (compare_cb(elem, other) != 0)
+            break;
+
+        if (elem == other)
+            return i - 1;
+    }
+
+    return -ENODATA;
+}
+
+/**
+ * @brief Find the last occurrence of @c elem in the sorted vector @c pv.
+ *
+ * @param pv Pointer Vector pointer (already sorted)
+ * @param elem Element to find
+ * @param compare_cb Function to compare elements in the list. It should return an integer
+ * less than, equal to, or greater than zero if @c data1 is found, respectively,
+ * to be less than, to match, or be greater than @c data2 in the sort order
+ *
+ * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_find_first()
+ * @see sol_ptr_vector_find_last()
+ * @see sol_ptr_vector_find_first_sorted()
+ * @see sol_ptr_vector_match_sorted()
+ * @see sol_ptr_vector_match_first()
+ * @see sol_ptr_vector_match_last()
+ * @see sol_ptr_vector_find_sorted()
+ * @see sol_ptr_vector_insert_sorted()
+ */
+static inline int32_t
+sol_ptr_vector_find_last_sorted(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2))
+{
+    uint16_t i;
+    int32_t r, found_i = -ENODATA;
+
+    r = sol_ptr_vector_match_sorted(pv, elem, compare_cb);
+    if (r < 0)
+        return r;
+
+    for (i = r; i < pv->base.len; i++) {
+        const void *other = sol_ptr_vector_get_nocheck(pv, i);
+
+        if (compare_cb(elem, other) != 0)
+            break;
+
+        if (elem == other)
+            found_i = i;
+    }
+
+    if (found_i >= 0)
+        return found_i;
+
+    for (i = r; i > 0; i--) {
+        const void *other = sol_ptr_vector_get_nocheck(pv, i - 1);
+
+        if (compare_cb(elem, other) != 0)
+            break;
+
+        if (elem == other)
+            return i - 1;
+    }
+
+    return -ENODATA;
+}
+
+/**
+ * @brief Find the first occurrence of @c elem in the sorted vector @c pv.
+ *
+ * @param pv Pointer Vector pointer (already sorted)
+ * @param elem Element to find
+ * @param compare_cb Function to compare elements in the list. It should return an integer
+ * less than, equal to, or greater than zero if @c data1 is found, respectively,
+ * to be less than, to match, or be greater than @c data2 in the sort order
+ *
+ * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_find_first()
+ * @see sol_ptr_vector_find_first()
+ * @see sol_ptr_vector_find_first_sorted()
+ * @see sol_ptr_vector_match_sorted()
+ * @see sol_ptr_vector_match_first()
+ * @see sol_ptr_vector_match_last()
+ * @see sol_ptr_vector_find_sorted()
+ * @see sol_ptr_vector_insert_sorted()
+ */
+static inline int32_t
+sol_ptr_vector_find_first_sorted(const struct sol_ptr_vector *pv, const void *elem, int (*compare_cb)(const void *data1, const void *data2))
+{
+    uint16_t i;
+    int32_t r, found_i = -ENODATA;
+
+    r = sol_ptr_vector_match_sorted(pv, elem, compare_cb);
+    if (r < 0)
+        return r;
+
+    for (i = r;;) {
+        const void *other = sol_ptr_vector_get_nocheck(pv, i);
+
+        if (compare_cb(elem, other) != 0)
+            break;
+
+        if (elem == other)
+            found_i = i;
+
+        if (i == 0)
+            break;
+        i--;
+    }
+
+    if (found_i >= 0)
+        return found_i;
+
+    for (i = r; i + 1 < pv->base.len; i++) {
+        const void *other = sol_ptr_vector_get_nocheck(pv, i + 1);
+
+        if (compare_cb(elem, other) != 0)
+            break;
+
+        if (elem == other)
+            return i + 1;
+    }
+
+    return -ENODATA;
+}
 
 /**
  * @}

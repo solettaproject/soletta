@@ -176,7 +176,7 @@ void
 sol_mainloop_common_timeout_process(void)
 {
     struct timespec now;
-    unsigned int i;
+    uint32_t i;
 
     sol_mainloop_impl_lock();
     sol_ptr_vector_steal(&TIMEOUT_PROCESS, &TIMEOUT_ACUM);
@@ -186,6 +186,8 @@ sol_mainloop_common_timeout_process(void)
     now = sol_util_timespec_get_current();
     for (i = 0; i < TIMEOUT_PROCESS.base.len; i++) {
         struct sol_timeout_common *timeout = sol_ptr_vector_get(&TIMEOUT_PROCESS, i);
+        int32_t r;
+
         if (!sol_mainloop_common_loop_check())
             break;
         if (timeout->remove_me)
@@ -204,9 +206,11 @@ sol_mainloop_common_timeout_process(void)
         }
 
         sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
-        sol_ptr_vector_del(&TIMEOUT_PROCESS, i);
-        sol_ptr_vector_insert_sorted(&TIMEOUT_PROCESS, timeout, timeout_compare);
-        i--;
+        r = sol_ptr_vector_update_sorted(&TIMEOUT_PROCESS, i, timeout_compare);
+        if (r < 0)
+            break;
+        if ((uint32_t)r != i)
+            i--;
     }
 
     sol_mainloop_impl_lock();
@@ -574,7 +578,7 @@ sol_mainloop_impl_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const
     now = sol_util_timespec_get_current();
     sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
     ret = sol_ptr_vector_insert_sorted(&timeout_vector, timeout, timeout_compare);
-    SOL_INT_CHECK_GOTO(ret, != 0, clean);
+    SOL_INT_CHECK_GOTO(ret, < 0, clean);
 
     sol_mainloop_common_main_thread_check_notify();
     sol_mainloop_impl_unlock();
