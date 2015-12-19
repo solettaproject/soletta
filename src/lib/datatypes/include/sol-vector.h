@@ -345,6 +345,11 @@ int sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, void *ptr);
  * @brief Insert a pointer in the pointer vector, using the given comparison function
  * to determine its position.
  *
+ * This function should be stable, if the new element @a ptr matches
+ * an existing in the vector (ie: @a compare_cb returns 0), then it
+ * will insert the new element @b after the last matching, keeping
+ * instances in a stable order.
+ *
  * @param pv Pointer Vector pointer
  * @param ptr The pointer
  * @param compare_cb Function to compare elements in the list. It should return an integer
