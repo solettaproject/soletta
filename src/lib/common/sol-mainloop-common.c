@@ -574,7 +574,7 @@ sol_mainloop_impl_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const
     now = sol_util_timespec_get_current();
     sol_util_timespec_sum(&now, &timeout->timeout, &timeout->expire);
     ret = sol_ptr_vector_insert_sorted(&timeout_vector, timeout, timeout_compare);
-    SOL_INT_CHECK_GOTO(ret, != 0, clean);
+    SOL_INT_CHECK_GOTO(ret, < 0, clean);
 
     sol_mainloop_common_main_thread_check_notify();
     sol_mainloop_impl_unlock();
