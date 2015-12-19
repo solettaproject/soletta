@@ -403,13 +403,16 @@ int sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*com
 /**
  * @brief Remove an pointer from the vector.
  *
- * Removes the pointer @c ptr from the vector. It stops when the
- * first occurrence is found.
+ * Removes the pointer @c ptr from the vector. It stops when the first
+ * occurrence is found. To delete all use sol_ptr_vector_del_element()
  *
  * @param pv Pointer Vector pointer
  * @param ptr Pointer to remove
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_del()
+ * @see sol_ptr_vector_del_element()
  */
 int sol_ptr_vector_remove(struct sol_ptr_vector *pv, const void *ptr);
 
@@ -420,6 +423,9 @@ int sol_ptr_vector_remove(struct sol_ptr_vector *pv, const void *ptr);
  * @param i Index of the element to remove
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_del_element()
+ * @see sol_ptr_vector_remove()
  */
 static inline int
 sol_ptr_vector_del(struct sol_ptr_vector *pv, uint16_t i)
@@ -434,6 +440,9 @@ sol_ptr_vector_del(struct sol_ptr_vector *pv, uint16_t i)
  * @param elem Element to remove
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @see sol_ptr_vector_del()
+ * @see sol_ptr_vector_remove()
  */
 int sol_ptr_vector_del_element(struct sol_ptr_vector *pv, const void *elem);
 
