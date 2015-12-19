@@ -131,16 +131,23 @@ static void
 test_ptr_vector_sorted(void)
 {
     struct sol_ptr_vector pv;
-    struct s *s;
+    struct s *s, match;
     uint16_t i;
     int array_unsorted[] = { 5, 3, 2, 9, 4, 3, 12, -1, 8, 30, 19, 10, 13, 2, 2 };
     int array_sorted[] = { -1, 2, 2, 2, 3, 3, 4, 5, 8, 9, 10, 12, 13, 19, 30 };
+    int32_t found;
 
     sol_ptr_vector_init(&pv);
     for (i = 0; i < (sizeof(array_unsorted) / sizeof(int)); i++) {
+        int32_t ret;
+
         s = create_s(array_unsorted[i]);
         s->b = i;
-        sol_ptr_vector_insert_sorted(&pv, s, sort_cb);
+        ret = sol_ptr_vector_insert_sorted(&pv, s, sort_cb);
+        ASSERT(ret >= 0);
+
+        found = sol_ptr_vector_find_sorted(&pv, s, sort_cb);
+        ASSERT_INT_EQ(ret, found);
     }
 
     SOL_PTR_VECTOR_FOREACH_IDX (&pv, s, i) {
@@ -153,7 +160,25 @@ test_ptr_vector_sorted(void)
             if (prev->a == s->a)
                 ASSERT(prev->b < s->b);
         }
+
+        found = sol_ptr_vector_find_first_sorted(&pv, s, sort_cb);
+        ASSERT_INT_EQ(found, (int)i);
+
+        found = sol_ptr_vector_find_last_sorted(&pv, s, sort_cb);
+        ASSERT_INT_EQ(found, (int)i);
     }
+
+    match.a = 2;
+
+    found = sol_ptr_vector_match_first(&pv, &match, sort_cb);
+    ASSERT_INT_EQ(found, 1);
+
+    found = sol_ptr_vector_match_last(&pv, &match, sort_cb);
+    ASSERT_INT_EQ(found, 3);
+
+    match.a = -1;
+    found = sol_ptr_vector_match_sorted(&pv, &match, sort_cb);
+    ASSERT_INT_EQ(found, 0);
 
     while (pv.base.len > 0)
         free(sol_ptr_vector_take(&pv, 0));

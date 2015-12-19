@@ -518,7 +518,7 @@ _json_to_vector(struct sol_json_scanner scanner)
             goto entry_err;
         }
 
-        if (sol_ptr_vector_insert_sorted(&_conffile_entry_vector, entry, _entry_sort_cb) == -1) {
+        if (sol_ptr_vector_insert_sorted(&_conffile_entry_vector, entry, _entry_sort_cb) < 0) {
             SOL_DBG("Error: Couldn't setup config entry");
             goto entry_err;
         }
