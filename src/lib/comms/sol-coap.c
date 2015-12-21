@@ -65,6 +65,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
  */
 #define ACK_TIMEOUT_MS 2345
 #define MAX_RETRANSMIT 4
+#define NONCON_PKT_TIMEOUT_MS (ACK_TIMEOUT_MS << MAX_RETRANSMIT)
 
 #ifndef SOL_NO_API_VERSION
 #define COAP_RESOURCE_CHECK_API(...) \
@@ -521,10 +522,13 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     int max_retransmit;
     bool expired = false;
 
-    if (sol_coap_header_get_type(outgoing->pkt) == SOL_COAP_TYPE_CON)
+    if (sol_coap_header_get_type(outgoing->pkt) == SOL_COAP_TYPE_CON) {
         max_retransmit = MAX_RETRANSMIT;
-    else
+        timeout = ACK_TIMEOUT_MS << outgoing->counter++;
+    } else {
         max_retransmit = 0;
+        timeout = NONCON_PKT_TIMEOUT_MS;
+    }
 
     if (outgoing->counter > max_retransmit) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
@@ -544,7 +548,6 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
         }
     }
 
-    timeout = ACK_TIMEOUT_MS << outgoing->counter++;
     outgoing->timeout = sol_timeout_add(timeout, timeout_cb, outgoing);
 
     SOL_DBG("waiting %d ms to re-try packet id %d", timeout, sol_coap_header_get_id(outgoing->pkt));
@@ -575,6 +578,8 @@ on_can_write(void *data, struct sol_socket *s)
     if (err == -EAGAIN)
         return true;
 
+    SOL_DBG("pkt sent:");
+    sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
         char addr[SOL_INET_ADDR_STRLEN];
         sol_network_addr_to_str(&outgoing->cliaddr, addr, sizeof(addr));
@@ -1236,6 +1241,9 @@ on_can_read(void *data, struct sol_socket *s)
         return true;
     }
 
+    SOL_DBG("pkt received:");
+    sol_coap_packet_debug(pkt);
+
     err = respond_packet(server, pkt, &cliaddr);
     if (err < 0) {
         errno = -err;
@@ -1477,7 +1485,7 @@ sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t
     }
 
     *buf = pkt->payload.start;
-    *len = pkt->payload.size - pkt->payload.used;
+    *len = pkt->payload.size - (pkt->payload.start - pkt->buf);
     return 0;
 }
 
@@ -1614,3 +1622,25 @@ sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_netwo
 
     return -ENOENT;
 }
+
+#ifdef SOL_LOG_ENABLED
+SOL_API void
+sol_coap_packet_debug(struct sol_coap_packet *pkt)
+{
+    int r;
+    char *path;
+
+    if (sol_log_get_level() < SOL_LOG_LEVEL_DEBUG)
+        return;
+
+    r = packet_extract_path(pkt, &path);
+    if (r < 0)
+        path = (char *)"";
+
+    SOL_DBG("{id: %d, href: '%s', type: %d, header_code: %d}",
+        sol_coap_header_get_id(pkt), path, sol_coap_header_get_type(pkt),
+        sol_coap_header_get_code(pkt));
+    if (r == 0)
+        free(path);
+}
+#endif
