@@ -671,6 +671,18 @@ int sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char 
 const void *sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uint16_t *len);
 
 /**
+ * @brief Gets a number of specified option in a packet.
+ *
+ * @param pkt The packet holding the options.
+ * @param code The option code to look for.
+ * @param vec An vector of struct sol_str_slice to hold the options.
+ * @param len The length of @a vec.
+ *
+ * @return The number of options found, negative errno otherwise.
+ */
+int sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code, struct sol_str_slice *vec, uint16_t veclen);
+
+/**
  * @brief Sends a packet to the given address.
  *
  * Sends the packet @a pkt to the destination address especified by @a cliaddr,

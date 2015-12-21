@@ -253,7 +253,7 @@ sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint8_t t
 static bool
 uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[])
 {
-    struct sol_coap_option_value options[16];
+    struct sol_str_slice options[16];
     unsigned int i;
     int r;
     uint16_t count = 16;
@@ -261,17 +261,14 @@ uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[]
     SOL_NULL_CHECK(req, false);
     SOL_NULL_CHECK(path, false);
 
-    r = coap_find_options(req, SOL_COAP_OPTION_URI_PATH, options, count);
+    r = sol_coap_find_options(req, SOL_COAP_OPTION_URI_PATH, options, count);
     if (r < 0)
         return false;
 
     count = r;
 
     for (i = 0; path[i].len && i < count; i++) {
-        const struct sol_coap_option_value *v = &options[i];
-        const struct sol_str_slice s = SOL_STR_SLICE_STR((char *)v->value, v->len);
-
-        if (!sol_str_slice_eq(s, path[i]))
+        if (!sol_str_slice_eq(options[i], path[i]))
             return false;
     }
 
@@ -313,7 +310,7 @@ static int
 packet_extract_path(const struct sol_coap_packet *req, char **path_str)
 {
     const int max_count = 16;
-    struct sol_coap_option_value options[max_count];
+    struct sol_str_slice options[max_count];
     struct sol_str_slice *path;
     unsigned int i;
     size_t path_len;
@@ -323,7 +320,7 @@ packet_extract_path(const struct sol_coap_packet *req, char **path_str)
     SOL_NULL_CHECK(path_str, -EINVAL);
     SOL_NULL_CHECK(req, -EINVAL);
 
-    r = coap_find_options(req, SOL_COAP_OPTION_URI_PATH, options, max_count);
+    r = sol_coap_find_options(req, SOL_COAP_OPTION_URI_PATH, options, max_count);
     SOL_INT_CHECK(r, < 0, r);
     SOL_INT_CHECK(r, > max_count, -EINVAL);
     count = r;
@@ -331,9 +328,8 @@ packet_extract_path(const struct sol_coap_packet *req, char **path_str)
     path = alloca(sizeof(struct sol_str_slice) * (count + 1));
     path_len = 1;
     for (i = 0; i < count; i++) {
-        const struct sol_coap_option_value *v = &options[i];
-        path[i] = SOL_STR_SLICE_STR((char *)v->value, v->len);
-        r = sol_util_size_add(path_len, v->len + 1, &path_len);
+        path[i] = options[i];
+        r = sol_util_size_add(path_len, options[i].len + 1, &path_len);
         SOL_INT_CHECK(r, < 0, r);
     }
     path[count] = SOL_STR_SLICE_STR(NULL, 0);
@@ -631,20 +627,20 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data), void *data)
 {
-    struct sol_coap_option_value option = {};
+    struct sol_str_slice option = {};
     struct pending_reply *reply = NULL;
     uint8_t tkl, *token;
     int err = 0, count;
     bool observing = false;
 
-    count = coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, 1);
+    count = sol_coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, 1);
     if (count < 0) {
         sol_coap_packet_unref(pkt);
         return -EINVAL;
     }
 
     /* Observing is enabled. */
-    if (count == 1 && option.len == 1 && option.value[0] == 0)
+    if (count == 1 && option.len == 1 && option.data[0] == 0)
         observing = true;
 
     if (!reply_cb) {
@@ -909,18 +905,56 @@ sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char *uri
 SOL_API const void *
 sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uint16_t *len)
 {
-    struct sol_coap_option_value option = {};
+    struct sol_str_slice option = {};
     uint16_t count = 1;
 
     SOL_NULL_CHECK(pkt, NULL);
     SOL_NULL_CHECK(len, NULL);
 
-    if (coap_find_options(pkt, code, &option, count) <= 0)
+    if (sol_coap_find_options(pkt, code, &option, count) <= 0)
         return NULL;
 
     *len = option.len;
 
-    return option.value;
+    return option.data;
+}
+
+SOL_API int
+sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
+    struct sol_str_slice *vec, uint16_t veclen)
+{
+    struct option_context context = { .delta = 0,
+                                      .used = 0 };
+    int used, count = 0;
+    int hdrlen;
+    uint16_t len;
+
+    SOL_NULL_CHECK(vec, -EINVAL);
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    hdrlen = coap_get_header_len(pkt);
+    SOL_INT_CHECK(hdrlen, < 0, -EINVAL);
+
+    context.buflen = pkt->payload.used - hdrlen;
+    context.buf = (uint8_t *)pkt->buf + hdrlen;
+
+    while (context.delta <= code && count < veclen) {
+        used = coap_parse_option(pkt, &context, (uint8_t **)&vec[count].data,
+            &len);
+        vec[count].len = len;
+        if (used < 0)
+            return -ENOENT;
+
+        if (used == 0)
+            break;
+
+        if (code != context.delta)
+            continue;
+
+        count++;
+    }
+
+    return count;
 }
 
 static int
@@ -996,24 +1030,24 @@ static const struct sol_coap_resource well_known = {
 static int
 get_observe_option(struct sol_coap_packet *pkt)
 {
-    struct sol_coap_option_value option = {};
+    struct sol_str_slice option = {};
     int r;
     uint16_t count = 1;
 
     SOL_NULL_CHECK(pkt, -EINVAL);
 
-    r = coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, count);
+    r = sol_coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, count);
     if (r <= 0)
         return -ENOENT;
 
     /* The value is in the network order, and has at max 3 bytes. */
     switch (option.len) {
     case 1:
-        return option.value[0];
+        return option.data[0];
     case 2:
-        return (option.value[0] << 0) | (option.value[1] << 8);
+        return (option.data[0] << 0) | (option.data[1] << 8);
     case 3:
-        return (option.value[0] << 0) | (option.value[1] << 8) | (option.value[2] << 16);
+        return (option.data[0] << 0) | (option.data[1] << 8) | (option.data[2] << 16);
     default:
         return -EINVAL;
     }
