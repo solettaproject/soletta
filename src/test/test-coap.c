@@ -77,7 +77,7 @@ test_coap_parse_simple_pdu(void)
                       'n',  0x00, 0xc1, 0x00, 0xff, 'p', 'a', 'y',
                       'l', 'o', 'a', 'd', 0x00 };
     struct sol_coap_packet *pkt;
-    struct sol_coap_option_value options[16];
+    struct sol_str_slice options[16];
     uint8_t *payload, *token;
     uint16_t len;
     int count = 16;
@@ -102,13 +102,13 @@ test_coap_parse_simple_pdu(void)
     ASSERT_INT_EQ(sol_coap_header_get_code(pkt), SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED);
     ASSERT_INT_EQ(sol_coap_header_get_id(pkt), 0x1234);
 
-    count = coap_find_options(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, options, count);
+    count = sol_coap_find_options(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, options, count);
     ASSERT_INT_EQ(count, 1);
     ASSERT_INT_EQ(options[0].len, 1);
-    ASSERT_INT_EQ((uint8_t)options[0].value[0], 0);
+    ASSERT_INT_EQ((uint8_t)options[0].data[0], 0);
 
     /* Not existent. */
-    count = coap_find_options(pkt, SOL_COAP_OPTION_ETAG, options, count);
+    count = sol_coap_find_options(pkt, SOL_COAP_OPTION_ETAG, options, count);
     ASSERT_INT_EQ(count, 0);
 
     ASSERT(!sol_coap_packet_get_payload(pkt, &payload, &len));
@@ -245,7 +245,7 @@ test_coap_find_options(void)
     uint8_t pdu[] = { 0x55, 0xA5, 0x12, 0x34, 't', 'o', 'k', 'e', 'n',
                       0x00, 0xC1, 0x00, 0xff, 'p', 'a', 'y', 'l', 'o', 'a', 'd', 0x00 };
     struct sol_coap_packet *pkt;
-    struct sol_coap_option_value options[16];
+    struct sol_str_slice options[16];
     int count = 16;
 
     pkt = sol_coap_packet_new(NULL);
@@ -256,12 +256,12 @@ test_coap_find_options(void)
 
     ASSERT(!coap_packet_parse(pkt));
 
-    count = coap_find_options(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, options, count);
+    count = sol_coap_find_options(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, options, count);
     ASSERT_INT_EQ(count, 1);
     ASSERT_INT_EQ(options[0].len, 1);
-    ASSERT_INT_EQ((uint8_t)options[0].value[0], 0);
+    ASSERT_INT_EQ((uint8_t)options[0].data[0], 0);
 
-    count = coap_find_options(pkt, SOL_COAP_OPTION_IF_MATCH, options, count);
+    count = sol_coap_find_options(pkt, SOL_COAP_OPTION_IF_MATCH, options, count);
     ASSERT_INT_EQ(count, 0);
 
     sol_coap_packet_unref(pkt);

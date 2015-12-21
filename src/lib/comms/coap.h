@@ -64,11 +64,6 @@ struct sol_coap_packet {
     uint8_t buf[COAP_UDP_MTU];
 };
 
-struct sol_coap_option_value {
-    uint8_t *value;
-    uint16_t len;
-};
-
 struct option_context {
     uint8_t *buf;
     int delta;
@@ -83,9 +78,6 @@ struct option_context {
 int coap_get_header_len(const struct sol_coap_packet *pkt);
 
 struct sol_coap_packet *coap_new_packet(struct sol_coap_packet *old);
-
-int coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
-    struct sol_coap_option_value *vec, uint16_t veclen);
 
 int coap_parse_option(const struct sol_coap_packet *pkt, struct option_context *context,
     uint8_t **value, uint16_t *vlen);
