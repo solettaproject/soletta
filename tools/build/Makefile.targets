@@ -127,7 +127,7 @@ post-install: $(all-rpath-bins)
 endif
 
 pre-install: $(PRE_INSTALL)
-	$(Q)echo "     "INSTALLING SYSROOT TO: $(DESTDIR)
+	$(Q)echo "     "INSTALLING SYSROOT TO: $(DESTDIR)/$(PREFIX)
 	$(Q)$(MKDIR) -p $(DESTDIR)/$(PREFIX)
 	$(Q)$(CP) -R $(build_sysroot)/$(PREFIX)/* $(DESTDIR)/$(PREFIX)
 
