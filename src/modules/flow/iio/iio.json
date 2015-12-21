@@ -73,6 +73,15 @@
              "default": -1,
              "description": "Sampling frequency of the sensor. If -1, use device default",
              "name": "sampling_frequency"
+         },
+         {
+             "data_type": "drange-spec",
+             "default": {
+               "max": "DBL_MAX",
+               "min": "-DBL_MAX"
+             },
+             "description": "Range of output packet. Usually, is the output range of used sensor. It'll be the 'min' and 'max' fields of direction-vector packets sent on OUT port.",
+             "name": "out_range"
          }
        ],
        "version": 1
@@ -152,6 +161,15 @@
              "default": -1,
              "description": "Sampling frequency of the sensor. If -1, use device default",
              "name": "sampling_frequency"
+         },
+         {
+             "data_type": "drange-spec",
+             "default": {
+               "max": "DBL_MAX",
+               "min": "-DBL_MAX"
+             },
+             "description": "Range of output packet. Usually, is the output range of used sensor. It'll be the 'min' and 'max' fields of drange packets sent on OUT port.",
+             "name": "out_range"
          }
        ],
        "version": 1
