@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/netlink.h>
+#include <locale.h>
 #include <mntent.h>
 #include <signal.h>
 #include <stdio.h>
@@ -52,6 +53,7 @@
 #include "sol-platform-impl.h"
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
+#include "sol-str-table.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
@@ -894,4 +896,113 @@ sol_platform_impl_get_timezone(void)
     }
     memmove(timezone_str, timezone_str + offset, strlen(timezone_str) - offset + 1);
     return timezone_str;
+}
+
+const char *
+sol_platform_impl_get_locale(enum sol_platform_locale_category category)
+{
+    int ctype;
+
+    ctype = sol_platform_locale_to_c_category(category);
+    SOL_INT_CHECK(ctype, < 0, NULL);
+    return setlocale(ctype, NULL);
+}
+
+int
+sol_platform_impl_apply_locale(enum sol_platform_locale_category category, const char *locale)
+{
+    int ctype;
+    char *loc;
+
+    ctype = sol_platform_locale_to_c_category(category);
+    SOL_INT_CHECK(ctype, < 0, -EINVAL);
+    loc = setlocale(ctype, locale);
+    SOL_NULL_CHECK(loc, -EINVAL);
+    return 0;
+}
+
+static enum sol_platform_locale_category
+system_locale_to_sol_locale(const struct sol_str_slice loc)
+{
+    static const struct sol_str_table map[] = {
+        SOL_STR_TABLE_ITEM("LANG", SOL_PLATFORM_LOCALE_LANGUAGE),
+        SOL_STR_TABLE_ITEM("LC_ADDRESS", SOL_PLATFORM_LOCALE_ADDRESS),
+        SOL_STR_TABLE_ITEM("LC_COLLATE", SOL_PLATFORM_LOCALE_COLLATE),
+        SOL_STR_TABLE_ITEM("LC_CTYPE", SOL_PLATFORM_LOCALE_CTYPE),
+        SOL_STR_TABLE_ITEM("LC_IDENTIFICATION", SOL_PLATFORM_LOCALE_IDENTIFICATION),
+        SOL_STR_TABLE_ITEM("LC_MEASUREMENT", SOL_PLATFORM_LOCALE_MEASUREMENT),
+        SOL_STR_TABLE_ITEM("LC_MESSAGES", SOL_PLATFORM_LOCALE_MESSAGES),
+        SOL_STR_TABLE_ITEM("LC_MONETARY", SOL_PLATFORM_LOCALE_MONETARY),
+        SOL_STR_TABLE_ITEM("LC_NAME", SOL_PLATFORM_LOCALE_NAME),
+        SOL_STR_TABLE_ITEM("LC_NUMERIC", SOL_PLATFORM_LOCALE_NUMERIC),
+        SOL_STR_TABLE_ITEM("LC_PAPER", SOL_PLATFORM_LOCALE_PAPER),
+        SOL_STR_TABLE_ITEM("LC_TELEPHONE", SOL_PLATFORM_LOCALE_TELEPHONE),
+        SOL_STR_TABLE_ITEM("LC_TIME", SOL_PLATFORM_LOCALE_TIME),
+        { }
+    };
+
+    return sol_str_table_lookup_fallback(map, loc, SOL_PLATFORM_LOCALE_UNKNOWN);
+}
+
+int
+sol_platform_impl_load_locales(char **locale_cache)
+{
+    FILE *f;
+    int r;
+    char *line, *sep;
+    struct sol_str_slice key, value;
+    enum sol_platform_locale_category category;
+
+    f = fopen("/etc/locale.conf", "re");
+
+    if (!f) {
+        r = -errno;
+        if (r == -ENOENT) {
+            SOL_WRN("The locale file (/etc/locale.conf) was not found in the system.");
+            return 0;
+        } else
+            return r;
+    }
+
+    for (category = SOL_PLATFORM_LOCALE_LANGUAGE; category <= SOL_PLATFORM_LOCALE_TIME; category++) {
+        free(locale_cache[category]);
+        locale_cache[category] = NULL;
+    }
+
+    while (fscanf(f, "%m[^\n]\n", &line) != EOF) {
+        sep = strchr(line, '=');
+        if (!sep) {
+            SOL_WRN("The locale entry: %s does not have the separator '='",
+                line);
+            r = -EINVAL;
+            free(line);
+            goto err_exit;
+        }
+
+        key.data = line;
+        value.data = sep + 1;
+        key.len = sep - key.data;
+        value.len = strlen(line) - key.len - 1;
+
+        category = system_locale_to_sol_locale(key);
+        SOL_INT_CHECK_GOTO(category, == SOL_PLATFORM_LOCALE_UNKNOWN, err_exit);
+        locale_cache[category] = sol_str_slice_to_string(value);
+        free(line);
+        line = NULL;
+        SOL_NULL_CHECK_GOTO(locale_cache[category], err_exit);
+    }
+
+    r = ferror(f);
+    if (r != 0) {
+        r = -errno;
+        goto err_exit;
+    }
+
+    fclose(f);
+    return 0;
+
+err_exit:
+    free(line);
+    fclose(f);
+    return r;
 }

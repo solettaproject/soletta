@@ -30,10 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <ctype.h>
 #include <errno.h>
+#include <locale.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <ctype.h>
 
 #include "sol-platform-impl.h"
 
@@ -44,6 +45,7 @@
 #include "sol-board-detect.h"
 #endif
 #include "sol-platform.h"
+#include "sol-mainloop.h"
 #include "sol-util.h"
 
 #define SOL_BOARD_NAME_ENVVAR "SOL_BOARD_NAME"
@@ -66,6 +68,9 @@ struct ctx {
     struct sol_monitors hostname_monitors;
     struct sol_monitors system_clock_monitors;
     struct sol_monitors timezone_monitors;
+    struct sol_monitors locale_monitors;
+    struct sol_timeout *locale_timeout;
+    char *locale_cache[SOL_PLATFORM_LOCALE_TIME + 1];
 };
 
 static struct ctx _ctx;
@@ -75,18 +80,50 @@ void sol_platform_shutdown(void);
 
 static void service_monitor_free(const struct sol_monitors *ms, const struct sol_monitors_entry *e);
 
+static void
+locale_cache_clear(void)
+{
+    enum sol_platform_locale_category i;
+
+    for (i = SOL_PLATFORM_LOCALE_LANGUAGE; i <= SOL_PLATFORM_LOCALE_TIME; i++)
+        free(_ctx.locale_cache[i]);
+}
+
 int
 sol_platform_init(void)
 {
+    int r;
+    enum sol_platform_locale_category i;
+
     sol_log_domain_init_level(SOL_LOG_DOMAIN);
 
     sol_monitors_init(&_ctx.state_monitors, NULL);
     sol_monitors_init(&_ctx.hostname_monitors, NULL);
     sol_monitors_init(&_ctx.system_clock_monitors, NULL);
     sol_monitors_init(&_ctx.timezone_monitors, NULL);
+    sol_monitors_init(&_ctx.locale_monitors, NULL);
+    for (i = SOL_PLATFORM_LOCALE_LANGUAGE; i <= SOL_PLATFORM_LOCALE_TIME; i++)
+        _ctx.locale_cache[i] = NULL;
+    r = sol_platform_impl_load_locales(_ctx.locale_cache);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    _ctx.locale_timeout = NULL;
     sol_monitors_init_custom(&_ctx.service_monitors, sizeof(struct service_monitor), service_monitor_free);
 
     return sol_platform_impl_init();
+
+err_exit:
+    locale_cache_clear();
+    return r;
+}
+
+static void
+set_locale(void)
+{
+    int r;
+
+    r = sol_platform_impl_set_locale(_ctx.locale_cache);
+    if (r < 0)
+        SOL_WRN("Could not set the locale values!");
 }
 
 void
@@ -100,6 +137,11 @@ sol_platform_shutdown(void)
     sol_monitors_clear(&_ctx.hostname_monitors);
     sol_monitors_clear(&_ctx.system_clock_monitors);
     sol_monitors_clear(&_ctx.timezone_monitors);
+    sol_monitors_clear(&_ctx.locale_monitors);
+    set_locale();
+    locale_cache_clear();
+    if (_ctx.locale_timeout)
+        sol_timeout_del(_ctx.locale_timeout);
     sol_platform_impl_shutdown();
 }
 
@@ -633,4 +675,150 @@ sol_platform_del_timezone_monitor(void (*cb)(void *data, const char *timezone), 
 {
     return monitor_del_and_unregister(&_ctx.timezone_monitors, (sol_monitors_cb_t)cb, data,
         sol_platform_unregister_timezone_monitor);
+}
+
+void
+sol_platform_inform_locale_changed(void)
+{
+    struct sol_monitors_entry *entry;
+    uint16_t j;
+    int r;
+    enum sol_platform_locale_category i;
+
+    r = sol_platform_impl_load_locales(_ctx.locale_cache);
+    SOL_INT_CHECK(r, < 0);
+    for (i = SOL_PLATFORM_LOCALE_LANGUAGE; i <= SOL_PLATFORM_LOCALE_TIME; i++) {
+        SOL_MONITORS_WALK (&_ctx.locale_monitors, entry, j) {
+            ((void (*)(void *, enum sol_platform_locale_category, const char *))
+            entry->cb)((void *)entry->data, i, _ctx.locale_cache[i] ? : "C");
+        }
+    }
+}
+
+static bool
+locale_timeout_cb(void *data)
+{
+    _ctx.locale_timeout = NULL;
+    set_locale();
+    return false;
+}
+
+SOL_API int
+sol_platform_set_locale(enum sol_platform_locale_category category, const char *locale)
+{
+    int r;
+
+    SOL_INT_CHECK(category, == SOL_PLATFORM_LOCALE_UNKNOWN, -EINVAL);
+    SOL_NULL_CHECK(locale, -EINVAL);
+    r = sol_util_replace_str_if_changed(&_ctx.locale_cache[category], locale);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!_ctx.locale_timeout) {
+        _ctx.locale_timeout = sol_timeout_add(1, locale_timeout_cb, NULL);
+        SOL_NULL_CHECK(_ctx.locale_timeout, -ENOMEM);
+    }
+
+    return 0;
+}
+
+SOL_API const char *
+sol_platform_get_locale(enum sol_platform_locale_category category)
+{
+    SOL_INT_CHECK(category, == SOL_PLATFORM_LOCALE_UNKNOWN, NULL);
+    if (category == SOL_PLATFORM_LOCALE_LANGUAGE)
+        return _ctx.locale_cache[category] ? : "C";
+    return sol_platform_impl_get_locale(category);
+}
+
+SOL_API int
+sol_platform_add_locale_monitor(void (*cb)(void *data,
+    enum sol_platform_locale_category category, const char *locale), const void *data)
+{
+    return monitor_add_and_register(&_ctx.locale_monitors, (sol_monitors_cb_t)cb, data,
+        sol_platform_register_locale_monitor);
+}
+
+SOL_API int
+sol_platform_del_locale_monitor(void (*cb)(void *data,
+    enum sol_platform_locale_category category, const char *locale), const void *data)
+{
+    return monitor_del_and_unregister(&_ctx.locale_monitors, (sol_monitors_cb_t)cb, data,
+        sol_platform_unregister_locale_monitor);
+}
+
+SOL_API int
+sol_platform_apply_locale(enum sol_platform_locale_category category)
+{
+    SOL_INT_CHECK(category, == SOL_PLATFORM_LOCALE_UNKNOWN, -EINVAL);
+    return sol_platform_impl_apply_locale(category, _ctx.locale_cache[category] ? : "C");
+}
+
+int
+sol_platform_locale_to_c_category(enum sol_platform_locale_category category)
+{
+    switch (category) {
+    case SOL_PLATFORM_LOCALE_LANGUAGE:
+        return LC_ALL;
+    case SOL_PLATFORM_LOCALE_ADDRESS:
+        return LC_ADDRESS;
+    case SOL_PLATFORM_LOCALE_COLLATE:
+        return LC_COLLATE;
+    case SOL_PLATFORM_LOCALE_CTYPE:
+        return LC_CTYPE;
+    case SOL_PLATFORM_LOCALE_IDENTIFICATION:
+        return LC_IDENTIFICATION;
+    case SOL_PLATFORM_LOCALE_MEASUREMENT:
+        return LC_MEASUREMENT;
+    case SOL_PLATFORM_LOCALE_MESSAGES:
+        return LC_MESSAGES;
+    case SOL_PLATFORM_LOCALE_MONETARY:
+        return LC_MONETARY;
+    case SOL_PLATFORM_LOCALE_NAME:
+        return LC_NAME;
+    case SOL_PLATFORM_LOCALE_NUMERIC:
+        return LC_NUMERIC;
+    case SOL_PLATFORM_LOCALE_PAPER:
+        return LC_PAPER;
+    case SOL_PLATFORM_LOCALE_TELEPHONE:
+        return LC_TELEPHONE;
+    case SOL_PLATFORM_LOCALE_TIME:
+        return LC_TIME;
+    default:
+        return -EINVAL;
+    }
+}
+
+const char *
+sol_platform_locale_to_c_str_category(enum sol_platform_locale_category category)
+{
+    switch (category) {
+    case SOL_PLATFORM_LOCALE_LANGUAGE:
+        return "LANG";
+    case SOL_PLATFORM_LOCALE_ADDRESS:
+        return "LC_ADDRESS";
+    case SOL_PLATFORM_LOCALE_COLLATE:
+        return "LC_COLLATE";
+    case SOL_PLATFORM_LOCALE_CTYPE:
+        return "LC_CTYPE";
+    case SOL_PLATFORM_LOCALE_IDENTIFICATION:
+        return "LC_IDENTIFICATION";
+    case SOL_PLATFORM_LOCALE_MEASUREMENT:
+        return "LC_MEASUREMENT";
+    case SOL_PLATFORM_LOCALE_MESSAGES:
+        return "LC_MESSAGES";
+    case SOL_PLATFORM_LOCALE_MONETARY:
+        return "LC_MONETARY";
+    case SOL_PLATFORM_LOCALE_NAME:
+        return "LC_NAME";
+    case SOL_PLATFORM_LOCALE_NUMERIC:
+        return "LC_NUMERIC";
+    case SOL_PLATFORM_LOCALE_PAPER:
+        return "LC_PAPER";
+    case SOL_PLATFORM_LOCALE_TELEPHONE:
+        return "LC_TELEPHONE";
+    case SOL_PLATFORM_LOCALE_TIME:
+        return "LC_TIME";
+    default:
+        return NULL;
+    }
 }
