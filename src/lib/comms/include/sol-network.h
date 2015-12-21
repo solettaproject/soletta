@@ -67,6 +67,9 @@ extern "C" {
  * @{
  */
 
+/**
+ * @brief String size of an IPv4/v6 address.
+ */
 #define SOL_INET_ADDR_STRLEN 48
 
 /**
