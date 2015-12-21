@@ -53,6 +53,8 @@ obj-io-i2c-$(PLATFORM_RIOTOS) += \
     sol-i2c-impl-riot.o
 obj-io-i2c-$(PLATFORM_LINUX) += \
     sol-i2c-impl-linux.o
+obj-io-i2c-$(PLATFORM_ZEPHYR) += \
+    sol-i2c-impl-zephyr.o
 
 obj-io-spi-$(PLATFORM_RIOTOS) := \
     sol-spi-impl-riot.o

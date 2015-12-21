@@ -1,3 +1,4 @@
 config ZEPHYR
     def_bool y
     select FEATURE_HW_GPIO
+    select FEATURE_HW_I2C
