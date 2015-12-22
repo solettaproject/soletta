@@ -240,7 +240,7 @@ struct sol_oic_resource_type {
  *
  * The first call of sol_oic_server_init will initialize the oic-server and any
  * other following calls will increment the oic-server reference counter.
- * After using the oic-server, @ref sol_oic_server_release() must be called to
+ * After using the oic-server, @ref sol_oic_server_shutdown() must be called to
  * decrement the reference counter and to release the resource when possible.
  *
  * This function must be called before calling any other sol-oic-server
@@ -258,7 +258,7 @@ int sol_oic_server_init(void);
  *
  * @see sol_oic_server_init()
  */
-void sol_oic_server_release(void);
+void sol_oic_server_shutdown(void);
 
 /**
  * @brief Add resource to oic-server.

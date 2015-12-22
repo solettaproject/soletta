@@ -1355,7 +1355,7 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
     if (resource->resource)
         return 0;
 
-    sol_oic_server_release();
+    sol_oic_server_shutdown();
     return -EINVAL;
 }
 
@@ -1365,7 +1365,7 @@ server_resource_close(struct server_resource *resource)
     if (resource->update_schedule_timeout)
         sol_timeout_del(resource->update_schedule_timeout);
     sol_oic_server_del_resource(resource->resource);
-    sol_oic_server_release();
+    sol_oic_server_shutdown();
 }
 
 static unsigned int
