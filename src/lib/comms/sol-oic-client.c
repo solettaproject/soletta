@@ -111,9 +111,6 @@ SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
 
 static struct sol_ptr_vector pending_discovery = SOL_PTR_VECTOR_INIT;
 
-static bool _cbor_map_get_bytestr_value(const CborValue *map, const char *key,
-    struct sol_str_slice *slice);
-
 static struct sol_coap_server *
 _best_server_for_resource(const struct sol_oic_client *client,
     const struct sol_oic_resource *res, struct sol_network_link_addr *addr)
@@ -179,55 +176,6 @@ _pkt_has_same_token(const struct sol_coap_packet *pkt, int64_t token)
     return likely(memcmp(token_data, &token, sizeof(token)) == 0);
 }
 
-static bool
-_cbor_array_to_vector(CborValue *array, struct sol_vector *vector)
-{
-    CborError err;
-    CborValue iter;
-
-    for (err = cbor_value_enter_container(array, &iter);
-        cbor_value_is_text_string(&iter) && err == CborNoError;
-        err |= cbor_value_advance(&iter)) {
-        struct sol_str_slice *slice = sol_vector_append(vector);
-
-        if (!slice) {
-            err = CborErrorOutOfMemory;
-            break;
-        }
-
-        err |= cbor_value_dup_text_string(&iter, (char **)&slice->data, &slice->len, NULL);
-    }
-
-    return (err | cbor_value_leave_container(array, &iter)) == CborNoError;
-}
-
-static bool
-_cbor_map_get_array(const CborValue *map, const char *key,
-    struct sol_vector *vector)
-{
-    CborValue value;
-
-    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
-
-    if (!cbor_value_is_array(&value))
-        return false;
-
-    return _cbor_array_to_vector(&value, vector);
-}
-
-static bool
-_cbor_map_get_str_value(const CborValue *map, const char *key,
-    struct sol_str_slice *slice)
-{
-    CborValue value;
-
-    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
-
-    return cbor_value_dup_text_string(&value, (char **)&slice->data, &slice->len, NULL) == CborNoError;
-}
-
 SOL_API struct sol_oic_resource *
 sol_oic_resource_ref(struct sol_oic_resource *r)
 {
@@ -277,37 +225,37 @@ _parse_platform_info_payload(struct sol_oic_platform_information *info,
     if (!cbor_value_is_map(&root))
         return false;
 
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_PLATFORM_ID,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_PLATFORM_ID,
         &info->platform_id))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_NAME,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_NAME,
         &info->manufacturer_name))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_URL,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_URL,
         &info->manufacturer_url))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_MODEL_NUM,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_MODEL_NUM,
         &info->model_number))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_DATE,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_DATE,
         &info->manufacture_date))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_PLATFORM_VER,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_PLATFORM_VER,
         &info->platform_version))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_OS_VER,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_OS_VER,
         &info->os_version))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_HW_VER,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_HW_VER,
         &info->hardware_version))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_FIRMWARE_VER,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_FIRMWARE_VER,
         &info->firmware_version))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_SUPPORT_URL,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_SUPPORT_URL,
         &info->support_url))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_SYSTEM_TIME,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_SYSTEM_TIME,
         &info->system_time))
         return false;
 
@@ -327,16 +275,16 @@ _parse_server_info_payload(struct sol_oic_server_information *info,
     if (!cbor_value_is_map(&root))
         return false;
 
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_DEVICE_NAME,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_DEVICE_NAME,
         &info->device_name))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_SPEC_VERSION,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_SPEC_VERSION,
         &info->spec_version))
         return false;
-    if (!_cbor_map_get_bytestr_value(&root, SOL_OIC_KEY_DEVICE_ID,
+    if (!sol_cbor_map_get_bytestr_value(&root, SOL_OIC_KEY_DEVICE_ID,
         &info->device_id))
         return false;
-    if (!_cbor_map_get_str_value(&root, SOL_OIC_KEY_DATA_MODEL_VERSION,
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_DATA_MODEL_VERSION,
         &info->data_model_version))
         return false;
 
@@ -602,18 +550,6 @@ _has_observable_option(struct sol_coap_packet *pkt)
     return ptr && len == 1 && *ptr;
 }
 
-static bool
-_cbor_map_get_bytestr_value(const CborValue *map, const char *key,
-    struct sol_str_slice *slice)
-{
-    CborValue value;
-
-    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
-
-    return cbor_value_dup_byte_string(&value, (uint8_t **)&slice->data, &slice->len, NULL) == CborNoError;
-}
-
 static struct sol_oic_resource *
 _new_resource(void)
 {
@@ -682,18 +618,18 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
 
         SOL_NULL_CHECK(res, false);
 
-        if (!_cbor_map_get_str_value(&array, SOL_OIC_KEY_HREF, &res->href))
+        if (!sol_cbor_map_get_str_value(&array, SOL_OIC_KEY_HREF, &res->href))
             return false;
-        if (!_cbor_map_get_bytestr_value(&array, SOL_OIC_KEY_DEVICE_ID, &res->device_id))
+        if (!sol_cbor_map_get_bytestr_value(&array, SOL_OIC_KEY_DEVICE_ID, &res->device_id))
             return false;
 
         err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_PROPERTIES, &value);
         if (!cbor_value_is_map(&value))
             return false;
 
-        if (!_cbor_map_get_array(&value, SOL_OIC_KEY_RESOURCE_TYPES, &res->types))
+        if (!sol_cbor_map_get_array(&value, SOL_OIC_KEY_RESOURCE_TYPES, &res->types))
             return false;
-        if (!_cbor_map_get_array(&value, SOL_OIC_KEY_INTERFACES, &res->interfaces))
+        if (!sol_cbor_map_get_array(&value, SOL_OIC_KEY_INTERFACES, &res->interfaces))
             return false;
 
         err |= cbor_value_map_find_value(&value, SOL_OIC_KEY_POLICY, &map);
