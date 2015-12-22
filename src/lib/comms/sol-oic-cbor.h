@@ -53,7 +53,7 @@ bool sol_cbor_array_to_vector(CborValue *array, struct sol_vector *vector);
 bool sol_cbor_bsv_to_vector(const CborValue *value, char **data, struct sol_vector *vector);
 
 struct sol_oic_map_writer {
-    CborEncoder encoder, rep_map, array, map;
+    CborEncoder encoder, rep_map;
     uint8_t *payload;
     bool has_data;
 };
@@ -77,10 +77,10 @@ enum sol_oic_payload_type {
 #define SOL_OIC_KEY_FIRMWARE_VER "mnfv"
 #define SOL_OIC_KEY_SUPPORT_URL "mnsl"
 #define SOL_OIC_KEY_SYSTEM_TIME "st"
-#define SOL_OIC_KEY_DEVICE_ID "sid"
+#define SOL_OIC_KEY_DEVICE_ID "di"
+#define SOL_OIC_KEY_RESOURCE_LINKS "links"
 #define SOL_OIC_KEY_PROPERTIES "prop"
 #define SOL_OIC_KEY_RESOURCE_TYPES "rt"
 #define SOL_OIC_KEY_INTERFACES "if"
 #define SOL_OIC_KEY_POLICY "p"
 #define SOL_OIC_KEY_BITMAP "bm"
-
