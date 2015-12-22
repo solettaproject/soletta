@@ -176,55 +176,6 @@ _pkt_has_same_token(const struct sol_coap_packet *pkt, int64_t token)
     return likely(memcmp(token_data, &token, sizeof(token)) == 0);
 }
 
-static bool
-_cbor_array_to_vector(CborValue *array, struct sol_vector *vector)
-{
-    CborError err;
-    CborValue iter;
-
-    for (err = cbor_value_enter_container(array, &iter);
-        cbor_value_is_text_string(&iter) && err == CborNoError;
-        err |= cbor_value_advance(&iter)) {
-        struct sol_str_slice *slice = sol_vector_append(vector);
-
-        if (!slice) {
-            err = CborErrorOutOfMemory;
-            break;
-        }
-
-        err |= cbor_value_dup_text_string(&iter, (char **)&slice->data, &slice->len, NULL);
-    }
-
-    return (err | cbor_value_leave_container(array, &iter)) == CborNoError;
-}
-
-static bool
-_cbor_map_get_array(const CborValue *map, const char *key,
-    struct sol_vector *vector)
-{
-    CborValue value;
-
-    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
-
-    if (!cbor_value_is_array(&value))
-        return false;
-
-    return _cbor_array_to_vector(&value, vector);
-}
-
-static bool
-_cbor_map_get_str_value(const CborValue *map, const char *key,
-    struct sol_str_slice *slice)
-{
-    CborValue value;
-
-    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
-
-    return cbor_value_dup_text_string(&value, (char **)&slice->data, &slice->len, NULL) == CborNoError;
-}
-
 SOL_API struct sol_oic_resource *
 sol_oic_resource_ref(struct sol_oic_resource *r)
 {
@@ -443,18 +394,6 @@ _has_observable_option(struct sol_coap_packet *pkt)
     ptr = sol_coap_find_first_option(pkt, SOL_COAP_OPTION_OBSERVE, &len);
 
     return ptr && len == 1 && *ptr;
-}
-
-static bool
-_cbor_map_get_bytestr_value(const CborValue *map, const char *key,
-    struct sol_str_slice *slice)
-{
-    CborValue value;
-
-    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
-        return false;
-
-    return cbor_value_dup_byte_string(&value, (uint8_t **)&slice->data, &slice->len, NULL) == CborNoError;
 }
 
 static struct sol_oic_resource *
