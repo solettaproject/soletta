@@ -437,7 +437,7 @@ error:
 }
 
 SOL_API void
-sol_oic_server_release(void)
+sol_oic_server_shutdown(void)
 {
     struct sol_oic_server_resource *res;
     uint16_t idx;

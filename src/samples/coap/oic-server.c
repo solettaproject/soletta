@@ -194,7 +194,7 @@ main(int argc, char *argv[])
     sol_run();
 
     sol_oic_server_del_resource(res);
-    sol_oic_server_release();
+    sol_oic_server_shutdown();
 
     if (console_fd >= 0 && ioctl(console_fd, KDSETLED, old_led_state)) {
         SOL_ERR("Could not return the leds to the old state");
