@@ -37,7 +37,9 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "aio");
 
 #include "sol-aio.h"
+#ifdef USE_PIN_MUX
 #include "sol-pin-mux.h"
+#endif
 
 static void
 _log_init(void)
