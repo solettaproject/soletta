@@ -1058,16 +1058,9 @@ client_resource_implements_type(struct sol_oic_resource *oic_res, const char *re
 
 static void
 state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data)
+    const struct sol_oic_map_reader *repr_vec, void *data)
 {
     struct client_resource *resource = data;
-
-    if (!sol_str_slice_eq(*href, resource->resource->href)) {
-        SOL_WRN("Received response to href=`%%.*s`, but resource href is `%%.*s`",
-            SOL_STR_SLICE_PRINT(*href),
-            SOL_STR_SLICE_PRINT(resource->resource->href));
-        return;
-    }
 
     if (!sol_network_link_addr_eq(cliaddr, &resource->resource->addr)) {
         char resaddr[SOL_INET_ADDR_STRLEN] = {0};
