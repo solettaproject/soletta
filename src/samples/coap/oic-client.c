@@ -39,8 +39,7 @@
 #include "sol-oic-client.h"
 
 static void
-got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *map_reader, void *data)
+got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader, void *data)
 {
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_reason end_reason;

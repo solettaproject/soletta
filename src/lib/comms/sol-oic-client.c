@@ -102,7 +102,7 @@ struct resource_request_ctx {
     struct sol_oic_client *client;
     struct sol_oic_resource *res;
     void (*cb)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-        const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data);
+        const struct sol_oic_map_reader *repr_vec, void *data);
     void *data;
     int64_t token;
 };
@@ -194,19 +194,14 @@ sol_oic_resource_unref(struct sol_oic_resource *r)
 
     r->refcnt--;
     if (!r->refcnt) {
-        struct sol_str_slice *slice;
-        uint16_t idx;
-
         free((char *)r->href.data);
         free((char *)r->device_id.data);
 
-        SOL_VECTOR_FOREACH_IDX (&r->types, slice, idx)
-            free((char *)slice->data);
         sol_vector_clear(&r->types);
+        free(r->types_data);
 
-        SOL_VECTOR_FOREACH_IDX (&r->interfaces, slice, idx)
-            free((char *)slice->data);
         sol_vector_clear(&r->interfaces);
+        free(r->interfaces_data);
 
         free(r);
     }
@@ -560,7 +555,9 @@ _new_resource(void)
     res->href = SOL_STR_SLICE_STR(NULL, 0);
     res->device_id = SOL_STR_SLICE_STR(NULL, 0);
     sol_vector_init(&res->types, sizeof(struct sol_str_slice));
+    res->types_data = NULL;
     sol_vector_init(&res->interfaces, sizeof(struct sol_str_slice));
+    res->interfaces_data = NULL;
 
     res->observe.timeout = NULL;
     res->observe.clear_data = 0;
@@ -585,10 +582,14 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
 {
     CborParser parser;
     CborError err;
-    CborValue root, array, value, map;
-    int payload_type;
+    CborValue root, devices_array, resources_array, value, map;
     uint8_t *payload;
     uint16_t payload_len;
+    struct sol_str_slice device_id;
+    struct sol_oic_resource *res = NULL;
+    CborValue bitmap_value;
+    uint64_t bitmap;
+
 
     *cb_return  = true;
 
@@ -598,70 +599,83 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     }
 
     err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
-    if (err != CborNoError)
-        return false;
+    SOL_INT_CHECK(err, != CborNoError, false);
     if (!cbor_value_is_array(&root))
         return false;
 
-    err |= cbor_value_enter_container(&root, &array);
+    err = cbor_value_enter_container(&root, &devices_array);
+    SOL_INT_CHECK(err, != CborNoError, false);
 
-    err |= cbor_value_get_int(&array, &payload_type);
-    err |= cbor_value_advance_fixed(&array);
-    if (err != CborNoError)
-        return false;
-    if (payload_type != SOL_OIC_PAYLOAD_DISCOVERY)
-        return false;
-
-    for (; cbor_value_is_map(&array) && err == CborNoError;
-        err |= cbor_value_advance(&array)) {
-        struct sol_oic_resource *res = _new_resource();
-
-        SOL_NULL_CHECK(res, false);
-
-        if (!sol_cbor_map_get_str_value(&array, SOL_OIC_KEY_HREF, &res->href))
-            return false;
-        if (!sol_cbor_map_get_bytestr_value(&array, SOL_OIC_KEY_DEVICE_ID, &res->device_id))
+    for (; cbor_value_is_map(&devices_array) && err == CborNoError;
+        err = cbor_value_advance(&devices_array)) {
+        SOL_INT_CHECK(err, != CborNoError, false);
+        if (!sol_cbor_map_get_bytestr_value(&devices_array, SOL_OIC_KEY_DEVICE_ID,
+            &device_id))
             return false;
 
-        err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_PROPERTIES, &value);
-        if (!cbor_value_is_map(&value))
-            return false;
+        err  = cbor_value_map_find_value(&devices_array,
+            SOL_OIC_KEY_RESOURCE_LINKS, &value);
+        if (err != CborNoError || !cbor_value_is_array(&value))
+            goto error;
 
-        if (!sol_cbor_map_get_array(&value, SOL_OIC_KEY_RESOURCE_TYPES, &res->types))
-            return false;
-        if (!sol_cbor_map_get_array(&value, SOL_OIC_KEY_INTERFACES, &res->interfaces))
-            return false;
+        err = cbor_value_enter_container(&value, &resources_array);
+        SOL_INT_CHECK_GOTO(err, != CborNoError, error);
+        for (; cbor_value_is_map(&resources_array) && err == CborNoError;
+            err = cbor_value_advance(&resources_array)) {
+            res = _new_resource();
+            SOL_NULL_CHECK_GOTO(res, error);
 
-        err |= cbor_value_map_find_value(&value, SOL_OIC_KEY_POLICY, &map);
-        if (!cbor_value_is_map(&map)) {
-            err = CborErrorUnknownType;
-        } else {
-            CborValue bitmap_value;
-            uint64_t bitmap = 0;
+            if (!sol_cbor_map_get_str_value(&resources_array, SOL_OIC_KEY_HREF,
+                &res->href))
+                goto error;
 
-            err |= cbor_value_map_find_value(&map, SOL_OIC_KEY_BITMAP, &bitmap_value);
-            err |= cbor_value_get_uint64(&bitmap_value, &bitmap);
+            if (!sol_cbor_map_get_bsv(&resources_array,
+                SOL_OIC_KEY_RESOURCE_TYPES, &res->types_data, &res->types))
+                goto error;
+            if (!sol_cbor_map_get_bsv(&resources_array,
+                SOL_OIC_KEY_INTERFACES, &res->interfaces_data,
+                &res->interfaces))
+                goto error;
+
+            err = cbor_value_map_find_value(&resources_array,
+                SOL_OIC_KEY_POLICY, &map);
+            if (err != CborNoError || !cbor_value_is_map(&map))
+                goto error;
+            err = cbor_value_map_find_value(&map, SOL_OIC_KEY_BITMAP,
+                &bitmap_value);
+            SOL_INT_CHECK(err, != CborNoError, false);
+            err = cbor_value_get_uint64(&bitmap_value, &bitmap);
+            SOL_INT_CHECK(err, != CborNoError, false);
 
             res->observable = (bitmap & SOL_OIC_FLAG_OBSERVABLE);
             res->active = (bitmap & SOL_OIC_FLAG_ACTIVE);
             res->slow = (bitmap & SOL_OIC_FLAG_SLOW);
             res->secure = (bitmap & SOL_OIC_FLAG_SECURE);
-        }
-
-        if (err == CborNoError) {
             res->observable = res->observable || _has_observable_option(req);
             res->addr = *cliaddr;
+            res->device_id.data = sol_util_memdup(device_id.data,
+                device_id.len);
+            if (!res->device_id.data)
+                goto error;
+            res->device_id.len = device_id.len;
             if (!ctx->cb(ctx->client, res, ctx->data)) {
                 sol_oic_resource_unref(res);
+                free((char *)device_id.data);
                 *cb_return  = false;
                 return true;
             }
-        }
 
-        sol_oic_resource_unref(res);
+            sol_oic_resource_unref(res);
+        }
+        free((char *)device_id.data);
     }
 
-    return (err | cbor_value_leave_container(&root, &array)) == CborNoError;
+    return true;
+
+error:
+    sol_oic_resource_unref(res);
+    free((char *)device_id.data);
+    return false;
 }
 
 static bool
@@ -824,11 +838,10 @@ _resource_request_cb(struct sol_coap_server *server,
 {
     struct resource_request_ctx *ctx = data;
     CborParser parser;
-    CborValue root, array;
+    CborValue root;
     CborError err;
     uint8_t *payload;
     uint16_t payload_len;
-    int payload_type;
 
     if (!ctx->cb)
         return false;
@@ -846,47 +859,14 @@ _resource_request_cb(struct sol_coap_server *server,
         return true;
 
     err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
-    if (err != CborNoError)
+    if (err != CborNoError || !cbor_value_is_map(&root)) {
+        SOL_ERR("Error while parsing CBOR repr packet: %s",
+            cbor_error_string(err));
         return true;
-
-    if (!cbor_value_is_array(&root))
-        return true;
-
-    err |= cbor_value_enter_container(&root, &array);
-
-    err |= cbor_value_get_int(&array, &payload_type);
-    err |= cbor_value_advance_fixed(&array);
-    if (err != CborNoError)
-        return true;
-    if (payload_type != SOL_OIC_PAYLOAD_REPRESENTATION)
-        return true;
-
-    while (cbor_value_is_map(&array) && err == CborNoError) {
-        CborValue value;
-        char *href;
-        size_t len;
-
-        err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_HREF, &value);
-        err |= cbor_value_dup_text_string(&value, &href, &len, NULL);
-
-        err |= cbor_value_map_find_value(&array, SOL_OIC_KEY_REPRESENTATION, &value);
-
-        if (cbor_value_is_map(&value)) {
-            struct sol_str_slice href_slice = sol_str_slice_from_str(href);
-            ctx->cb(ctx->client, cliaddr, &href_slice, (struct sol_oic_map_reader *)&value, ctx->data);
-        }
-
-        free(href);
-
-        err |= cbor_value_advance(&array);
     }
 
-    err |= cbor_value_leave_container(&root, &array);
+    ctx->cb(ctx->client, cliaddr, (struct sol_oic_map_reader *)&root, ctx->data);
 
-    if (err == CborNoError)
-        return true;
-
-    SOL_ERR("Error while parsing CBOR repr packet: %s", cbor_error_string(err));
     return true;
 }
 
@@ -923,7 +903,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    const struct sol_oic_map_reader *repr_vec, void *data),
     void *data, bool observe)
 {
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
@@ -1007,7 +987,7 @@ sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_re
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    const struct sol_oic_map_reader *repr_vec, void *data),
     void *callback_data)
 {
     SOL_NULL_CHECK(client, false);
@@ -1026,7 +1006,7 @@ sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *client, s
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    const struct sol_oic_map_reader *repr_vec, void *data),
     void *callback_data)
 {
     SOL_NULL_CHECK(client, false);
@@ -1062,7 +1042,7 @@ _poll_resource(void *data)
 static bool
 _observe_with_polling(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    const struct sol_oic_map_reader *repr_vec, void *data),
     void *data)
 {
     struct resource_request_ctx *ctx = sol_util_memdup(&(struct resource_request_ctx) {
@@ -1103,7 +1083,7 @@ _stop_observing_with_polling(struct sol_oic_resource *res)
 static bool
 client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    const struct sol_oic_map_reader *repr_vec, void *data),
     void *data, bool observe, bool non_confirmable)
 {
     SOL_NULL_CHECK(client, false);
@@ -1143,7 +1123,7 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
 SOL_API bool
 sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    const struct sol_oic_map_reader *repr_vec, void *data),
     void *data, bool observe)
 {
     return client_resource_set_observable(client, res, callback, data,
@@ -1153,7 +1133,7 @@ sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol
 SOL_API bool
 sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *repr_vec, void *data),
+    const struct sol_oic_map_reader *repr_vec, void *data),
     void *data, bool observe)
 {
     return client_resource_set_observable(client, res, callback, data,
