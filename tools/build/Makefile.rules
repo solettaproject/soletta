@@ -325,7 +325,7 @@ $(1): $($(1)-src) $(1).dep
 	$(Q)$(MKDIR) -p $(dir $(1))
 	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) $($(1)-src) -c -o $(1) $(3)
 
-$(1).dep: $($(1)-src) $(all-hdr) $(find-gen-hdrs) $(call find-obj-deps,$(2)) $(all-dest-hdr) $(KCONFIG_CONFIG) $(HEADER_GEN) $(KCONFIG_AUTOHEADER)
+$(1).dep: $($(1)-src) $(all-hdr) $(find-gen-hdrs) $(filter-out $(1),$(call find-obj-deps,$(2))) $(all-dest-hdr) $(KCONFIG_CONFIG) $(HEADER_GEN) $(KCONFIG_AUTOHEADER)
 	$(Q)$(MKDIR) -p $(dir $(1))
 	$(Q)$(TARGETCC) $(OBJ_CFLAGS) $($(2)-gen-cflags) $(sort $($(2)-cflags)) -MM -MG $($(1)-src) -MT "$(1)" > $(1).dep
 endef
