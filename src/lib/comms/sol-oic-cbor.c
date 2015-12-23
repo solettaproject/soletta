@@ -259,6 +259,9 @@ sol_cbor_map_get_str_value(const CborValue *map, const char *key,
     if (cbor_value_map_find_value(map, key, &value) != CborNoError)
         return false;
 
+    if (!cbor_value_is_text_string(&value))
+        return false;
+
     return cbor_value_dup_text_string(&value, (char **)&slice->data, &slice->len, NULL) == CborNoError;
 }
 
@@ -314,6 +317,9 @@ sol_cbor_map_get_bsv(const CborValue *map, const char *key,
     CborValue value;
 
     if (cbor_value_map_find_value(map, key, &value) != CborNoError)
+        return false;
+
+    if (!cbor_value_is_text_string(&value))
         return false;
 
     return sol_cbor_bsv_to_vector(&value, data, vector);
