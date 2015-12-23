@@ -228,14 +228,11 @@ keyboard_on_event(void *data, int fd, uint32_t cond)
         keyboard_users_walking++;
 
         SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, mdata, i) {
-            if (!mdata) continue;
-
-            //FIXME: error packet to the rescue, not ready yet
+            sol_flow_send_error_packet(mdata->node, EIO, NULL);
         }
 
         keyboard_users_walking--;
         keyboard_users_cleanup();
-        sol_flow_send_error_packet(mdata->node, EIO, NULL);
     }
 
     return true;
