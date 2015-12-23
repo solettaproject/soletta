@@ -372,6 +372,7 @@ _server_info_reply_cb(struct sol_coap_server *server,
     free((char *)info.os_version.data);
     free((char *)info.hardware_version.data);
     free((char *)info.support_url.data);
+    free((char *)info.firmware_version.data);
     free((char *)info.system_time.data);
 
 free_ctx:
