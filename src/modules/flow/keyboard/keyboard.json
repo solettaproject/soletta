@@ -11,7 +11,7 @@
       "category": "input/sw",
       "description": "Provides boolean packets after each key press from a physical keyboard",
       "methods": {
-        "close": "keyboard_boolean_close",
+        "close": "keyboard_close",
         "open": "keyboard_boolean_open"
       },
       "name": "keyboard/boolean",
@@ -45,7 +45,7 @@
       "category": "input/sw",
       "description": "Provides int packets after each key press from a physical keyboard",
       "methods": {
-        "close": "keyboard_irange_close",
+        "close": "keyboard_close",
         "open": "keyboard_irange_open"
       },
       "name": "keyboard/int",

@@ -360,13 +360,6 @@ keyboard_close(struct sol_flow_node *node, void *data)
     }
 }
 
-static void
-keyboard_boolean_close(struct sol_flow_node *node, void *data)
-{
-    return keyboard_close(node, data);
-}
-
-
 static int
 keyboard_irange_open(struct sol_flow_node *node,
     void *data,
@@ -377,12 +370,5 @@ keyboard_irange_open(struct sol_flow_node *node,
     mdata->common.on_code = keyboard_irange_on_code;
     return keyboard_open(node, data);
 }
-
-static void
-keyboard_irange_close(struct sol_flow_node *node, void *data)
-{
-    return keyboard_close(node, data);
-}
-
 
 #include "keyboard-gen.c"
