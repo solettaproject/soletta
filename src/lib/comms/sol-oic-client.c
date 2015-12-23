@@ -641,7 +641,9 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
                 goto error;
             err = cbor_value_map_find_value(&map, SOL_OIC_KEY_BITMAP,
                 &bitmap_value);
-            SOL_INT_CHECK(err, != CborNoError, false);
+            if (err != CborNoError ||
+                !cbor_value_is_unsigned_integer(&bitmap_value))
+                return false;
             err = cbor_value_get_uint64(&bitmap_value, &bitmap);
             SOL_INT_CHECK(err, != CborNoError, false);
 
