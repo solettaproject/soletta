@@ -64,10 +64,6 @@ struct keyboard_boolean_data {
     bool toggle;
 };
 
-struct keyboard_irange_data {
-    struct keyboard_common_data common;
-};
-
 static bool keyboard_done = false;
 static struct termios keyboard_termios;
 static int keyboard_users_walking = 0;
@@ -197,7 +193,6 @@ keyboard_irange_on_code(struct keyboard_common_data *data,
     unsigned char *buf,
     size_t len)
 {
-    struct keyboard_irange_data *mdata = (struct keyboard_irange_data *)data;
     uint64_t code = 0;
     uint16_t i;
 
@@ -208,16 +203,16 @@ keyboard_irange_on_code(struct keyboard_common_data *data,
         return;
 
     keyboard_users_walking++;
-    mdata->common.last_code = (int32_t)code;
+    data->last_code = (int32_t)code;
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, mdata, i) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, data, i) {
         struct sol_flow_node *handle;
 
-        if (!mdata) continue;
+        if (!data) continue;
 
-        handle = mdata->common.node;
+        handle = data->node;
 
-        packet_irange_send(handle, mdata->common.last_code);
+        packet_irange_send(handle, data->last_code);
     }
     keyboard_users_walking--;
     keyboard_users_cleanup();
@@ -365,9 +360,9 @@ keyboard_irange_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
-    struct keyboard_irange_data *mdata = data;
+    struct keyboard_common_data *mdata = data;
 
-    mdata->common.on_code = keyboard_irange_on_code;
+    mdata->on_code = keyboard_irange_on_code;
     return keyboard_open(node, data);
 }
 
