@@ -12,3 +12,6 @@ sample-simple-fbp-$(FLOW_BASICS_SIMPLE_SAMPLE) := simple.fbp
 
 sample-$(FLOW_BASICS_SUBPROCESS_BC_SAMPLE) += subprocess-bc
 sample-subprocess-bc-$(FLOW_BASICS_SUBPROCESS_BC_SAMPLE) := subprocess_bc.fbp
+
+sample-$(FLOW_BASICS_KEYBOARD_SAMPLE) += keyboard
+sample-keyboard-$(FLOW_BASICS_KEYBOARD_SAMPLE) := keyboard.fbp
