@@ -75,4 +75,6 @@ enum sol_oic_payload_type {
 #define SOL_OIC_KEY_INTERFACES "if"
 #define SOL_OIC_KEY_POLICY "p"
 #define SOL_OIC_KEY_BITMAP "bm"
-
+#define SOL_OIC_KEY_DEVICE_NAME "n"
+#define SOL_OIC_KEY_SPEC_VERSION "lcv"
+#define SOL_OIC_KEY_DATA_MODEL_VERSION "dmv"
