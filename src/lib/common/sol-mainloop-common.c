@@ -184,14 +184,16 @@ sol_mainloop_common_timeout_process(void)
     sol_mainloop_impl_unlock();
 
     now = sol_util_timespec_get_current();
-    for (i = 0; i < TIMEOUT_PROCESS.base.len; i++) {
+    for (i = 0; i < TIMEOUT_PROCESS.base.len;) {
         struct sol_timeout_common *timeout = sol_ptr_vector_get(&TIMEOUT_PROCESS, i);
         int32_t r;
 
         if (!sol_mainloop_common_loop_check())
             break;
-        if (timeout->remove_me)
+        if (timeout->remove_me) {
+            i++;
             continue;
+        }
         if (sol_util_timespec_compare(&timeout->expire, &now) > 0)
             break;
 
@@ -202,6 +204,7 @@ sol_mainloop_common_timeout_process(void)
                 timeout_pending_deletion++;
             }
             sol_mainloop_impl_unlock();
+            i++;
             continue;
         }
 
@@ -209,8 +212,8 @@ sol_mainloop_common_timeout_process(void)
         r = sol_ptr_vector_update_sorted(&TIMEOUT_PROCESS, i, timeout_compare);
         if (r < 0)
             break;
-        if ((uint32_t)r != i)
-            i--;
+        if ((uint32_t)r == i)
+            i++;
     }
 
     sol_mainloop_impl_lock();
