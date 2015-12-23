@@ -100,3 +100,7 @@ int sol_platform_impl_load_locales(char **locale_cache);
 
 int sol_platform_locale_to_c_category(enum sol_platform_locale_category type);
 const char *sol_platform_locale_to_c_str_category(enum sol_platform_locale_category type);
+
+int sol_platform_impl_locale_to_c_category(enum sol_platform_locale_category category);
+
+const char *sol_platform_impl_locale_to_c_str_category(enum sol_platform_locale_category category);
