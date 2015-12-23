@@ -138,6 +138,8 @@ int sol_run(void);
  * Terminates the main loop.
  *
  * Stops the main loop and sets the return value of sol_run() to EXIT_SUCCESS.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 void sol_quit(void);
 
@@ -148,8 +150,11 @@ void sol_quit(void);
  * Usually used to indicate that the application should end with an error.
  *
  * @param return_code The exit code that sol_run() will return.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 void sol_quit_with_code(int return_code);
+
 void sol_shutdown(void);
 
 struct sol_timeout;
@@ -165,6 +170,8 @@ struct sol_timeout;
  * @param data The user data pointer to pass to the function.
  *
  * @return A handle that can be used to delete the timeout.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 struct sol_timeout *sol_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const void *data);
 
@@ -178,6 +185,8 @@ struct sol_timeout *sol_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data),
  *
  * @return True if the timeout was deleted, false if the handle is invalid or
  * if it had been marked as removed already.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_timeout_del(struct sol_timeout *handle);
 
@@ -197,6 +206,8 @@ struct sol_idle;
  * @param data The user data pointer to pass to the function.
  *
  * @return A handle that can be used to delete the idler.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 struct sol_idle *sol_idle_add(bool (*cb)(void *data), const void *data);
 
@@ -207,6 +218,8 @@ struct sol_idle *sol_idle_add(bool (*cb)(void *data), const void *data);
  *
  * @return True if the idler was deleted, false if the handle is invalid or
  * if it had been marked as removed already.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_idle_del(struct sol_idle *handle);
 
@@ -265,6 +278,8 @@ struct sol_fd;
  * @param data The user data pointer to pass to the function.
  *
  * @return A handle that can be used to delete the file descriptor watcher.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 struct sol_fd *sol_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data);
 
@@ -274,6 +289,8 @@ struct sol_fd *sol_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd,
  * @param handle The handle to delete.
  *
  * @return True if the handle was deleted, false it is invalid or already marked as removed.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_fd_del(struct sol_fd *handle);
 
@@ -284,6 +301,8 @@ bool sol_fd_del(struct sol_fd *handle);
  * @param flags The new set of flags to watch for.
  *
  * @return True on success, false if the handle is invalid.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_fd_set_flags(struct sol_fd *handle, uint32_t flags);
 
@@ -294,6 +313,8 @@ bool sol_fd_set_flags(struct sol_fd *handle, uint32_t flags);
  * @param flags The flags to remove from the set the handle is watching.
  *
  * @return True on success, false if the handle is invalid.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags);
 
@@ -303,6 +324,8 @@ bool sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags);
  * @param handle The handle to get the flags for.
  *
  * @return The flags that are currently being watched for by the handle.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 uint32_t sol_fd_get_flags(const struct sol_fd *handle);
 #endif
@@ -323,6 +346,8 @@ struct sol_child_watch;
  * @param data The user data pointer to pass to the function.
  *
  * @return A handler that can be used to delete the watcher.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 struct sol_child_watch *sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data);
 
@@ -336,6 +361,8 @@ struct sol_child_watch *sol_child_watch_add(uint64_t pid, void (*cb)(void *data,
  * @param handle The handle to remove.
  *
  * @return True on success, false if the handle is invalid or it was already marked as removed.
+ *
+ * @note MT-safe if compiled with threads support.
  */
 bool sol_child_watch_del(struct sol_child_watch *handle);
 #endif
@@ -479,16 +506,20 @@ struct sol_mainloop_source;
  * @return the new main loop source instance or @c NULL on failure.
  *
  * @see sol_mainloop_source_del()
+ *
+ * @note MT-safe if compiled with threads support.
  */
-struct sol_mainloop_source *sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void *data);
+struct sol_mainloop_source *sol_mainloop_source_add(const struct sol_mainloop_source_type *type, const void *data);
 
 /**
  * Destroy a source of main loop events.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_new().
+ *        sol_mainloop_source_add().
  *
- * @see sol_mainloop_source_new()
+ * @see sol_mainloop_source_add()
+ *
+ * @note MT-safe if compiled with threads support.
  */
 void sol_mainloop_source_del(struct sol_mainloop_source *handle);
 
@@ -496,14 +527,376 @@ void sol_mainloop_source_del(struct sol_mainloop_source *handle);
  * Retrieve the user data (context) given to the source at creation time.
  *
  * @param handle a valid handle previously created with
- *        sol_mainloop_source_new().
+ *        sol_mainloop_source_add().
  *
- * @return whatever was given to sol_mainloop_source_new() as second
+ * @return whatever was given to sol_mainloop_source_add() as second
  *         parameter. NULL is a valid return.
  *
- * @see sol_mainloop_source_new()
+ * @see sol_mainloop_source_add()
+ *
+ * @note MT-safe if compiled with threads support.
  */
 void *sol_mainloop_source_get_data(const struct sol_mainloop_source *handle);
+
+struct sol_mainloop_implementation {
+#ifndef SOL_NO_API_VERSION
+#define SOL_MAINLOOP_IMPLEMENTATION_API_VERSION (1)  /**< compile time API version to be checked during runtime */
+    /**
+     * must match #SOL_MAINLOOP_IMPLEMENTATION_API_VERSION at runtime.
+     */
+    uint16_t api_version;
+#endif
+
+    /**
+     * Function to be called to initialize the mainloop implementation.
+     *
+     * This function will be called whenever sol_init() is called.
+     *
+     * Must not be NULL.
+     */
+    int (*init)(void);
+
+    /**
+     * Function to be called to shutdown (cleanup) the mainloop implementation.
+     *
+     * This function will be called whenever sol_shutdown() is called.
+     *
+     * Must not be NULL.
+     */
+    void (*shutdown)(void);
+
+    /**
+     * Function to be called to run the mainloop.
+     *
+     * This function will be called whenever sol_run() is called and
+     * it should block until its sibling @c quit is called.
+     *
+     * Must not be NULL.
+     */
+    void (*run)(void);
+
+    /**
+     * Function to be called to quit the mainloop.
+     *
+     * This function will be called whenever sol_quit() or
+     * sol_quit_with_code() are called and it should stop the blocking
+     * event loop executed by its sibling @c run.
+     *
+     * Do not cleanup resources here, but in the @c shutdown callback.
+     *
+     * Must not be NULL.
+     */
+    void (*quit)(void);
+
+    /**
+     * Function to be called to register a timeout to be dispatched.
+     *
+     * This function receives the number of milliseconds since the
+     * current time it should wait before calling the given pointer @c
+     * cb with the context @c data.
+     *
+     * After calling @c cb, if it returns @c true, then the timeout is
+     * renewed, otherwise it's automatically cancelled and @c
+     * timeout_del may not be called. Please note that calling
+     * sol_timeout_del() (and thus @c timeout_del) from the callback
+     * @c cb and returning @c false @b is a valid case and must be
+     * supported (guard against double-free).
+     *
+     * This function must return an internal handle that will
+     * represent the timeout. It will be given to sol_timeout_del() in
+     * order to cancel it before it fires.
+     *
+     * This function will be called whenever sol_timeout_add() is called.
+     *
+     * Must not be NULL.
+     */
+    void *(*timeout_add)(uint32_t timeout_ms, bool (*cb)(void *data), const void *data);
+
+    /**
+     * Function to be called to remove a timeout to be dispatched.
+     *
+     * This function receives the handle returned by sol_timeout_add()
+     * (and thus @c timeout_add), deleting it so the registered
+     * callback is not called anymore.
+     *
+     * This function returns true if timeout was successfully deleted.
+     *
+     * This function will be called whenever sol_timeout_del() is called.
+     *
+     * Must not be NULL.
+     */
+    bool (*timeout_del)(void *handle);
+
+    /**
+     * Function to be called to register an idler to be dispatched.
+     *
+     * This function will register an entry so the pointer @c cb will
+     * be called with the context @c data when there is nothing else
+     * to do. This prevents the mainloop from sleeping, as it will
+     * keep calling all registered idlers in sequence.
+     *
+     * After calling @c cb, if it returns @c true, then the idle is
+     * renewed, otherwise it's automatically cancelled and @c idle_del
+     * may not be called. Please note that calling sol_idle_del() (and
+     * thus @c idle_del) from the callback @c cb and returning @c
+     * false @b is a valid case and must be supported (guard against
+     * double-free).
+     *
+     * Should exist more than one idle entry, they are executed only
+     * once in the order they are registered. At the end it wraps back
+     * to the first element and continues.
+     *
+     * This function must return an internal handle that will
+     * represent the idle. It will be given to sol_idle_del() in
+     * order to cancel it before it fires.
+     *
+     * This function will be called whenever sol_idle_add() is called.
+     *
+     * Must not be NULL.
+     */
+    void *(*idle_add)(bool (*cb)(void *data), const void *data);
+
+    /**
+     * Function to be called to remove an idler to be dispatched.
+     *
+     * This function receives the handle returned by sol_idle_add()
+     * (and thus @c idle_add), deleting it so the registered
+     * callback is not called anymore.
+     *
+     * This function returns true if idle was successfully deleted.
+     *
+     * This function will be called whenever sol_idle_del() is called.
+     *
+     * Must not be NULL.
+     */
+    bool (*idle_del)(void *handle);
+
+#ifdef SOL_MAINLOOP_FD_ENABLED
+    /**
+     * Function to be called to register an fd watcher.
+     *
+     * This function will register a file descriptor (@c fd) to be
+     * monitored for events defined in @c flags, whenever one of these
+     * events happen, @c cb is called providing the context as @c
+     * data, the @c fd and the active event flags @c active_flags.
+     *
+     * After calling @c cb, if it returns @c true, then the fd watcher
+     * is renewed, otherwise it's automatically cancelled and @c
+     * fd_del may not be called. Please note that calling sol_fd_del()
+     * (and thus @c fd_del) from the callback @c cb and returning @c
+     * false @b is a valid case and must be supported (guard against
+     * double-free).
+     *
+     * This function must return an internal handle that will
+     * represent the fd watcher. It will be given to sol_fd_del() in
+     * order to cancel it before it fires.
+     *
+     * This function will be called whenever sol_fd_add() is called.
+     *
+     * Must not be NULL.
+     *
+     * @note the existence of this pointer is conditional to
+     * #SOL_MAINLOOP_FD_ENABLED, which is defined when soletta is
+     * configured and built.
+     */
+    void *(*fd_add)(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data);
+
+    /**
+     * Function to be called to remove an fd watcher.
+     *
+     * This function receives the handle returned by sol_fd_add()
+     * (and thus @c fd_add), deleting it so the registered
+     * callback is not called anymore.
+     *
+     * This function returns true if fd watcher was successfully
+     * deleted.
+     *
+     * This function will be called whenever sol_fd_del() is called.
+     *
+     * Must not be NULL.
+     *
+     * @note the existence of this pointer is conditional to
+     * #SOL_MAINLOOP_FD_ENABLED, which is defined when soletta is
+     * configured and built.
+     */
+    bool (*fd_del)(void *handle);
+
+    /**
+     * Function to be called to change the events of fd watcher.
+     *
+     * This function will change the events @c flags that an existing
+     * fd watcher will use.
+     *
+     * This function will be called whenever sol_fd_set_flags() is
+     * called.
+     *
+     * Must not be NULL.
+     *
+     * @note the existence of this pointer is conditional to
+     * #SOL_MAINLOOP_FD_ENABLED, which is defined when soletta is
+     * configured and built.
+     */
+    bool (*fd_set_flags)(void *handle, uint32_t flags);
+
+    /**
+     * Function to be called to retrieve the events of fd watcher.
+     *
+     * This function will query the events @c flags that an existing
+     * fd watcher will use.
+     *
+     * This function will be called whenever sol_fd_get_flags() is
+     * called.
+     *
+     * Must not be NULL.
+     *
+     * @note the existence of this pointer is conditional to
+     * #SOL_MAINLOOP_FD_ENABLED, which is defined when soletta is
+     * configured and built.
+     */
+    uint32_t (*fd_get_flags)(const void *handle);
+#endif
+
+#ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
+    /**
+     * Function to be called to register an child process watcher.
+     *
+     * This function will register a child process identifier (@c pid)
+     * to be monitored. Whenever this process exits, then @c cb is
+     * called with the given context @c data.
+     *
+     * This function must return an internal handle that will
+     * represent the child monitor. It will be given to
+     * sol_child_watch_del() in order to cancel it before it fires.
+     *
+     * This function will be called whenever sol_child_watch_add() is
+     * called.
+     *
+     * Must not be NULL.
+     *
+     * @note the existence of this pointer is conditional to
+     * #SOL_MAINLOOP_FORK_WATCH_ENABLED, which is defined when soletta is
+     * configured and built.
+     */
+    void *(*child_watch_add)(uint64_t pid, void (*cb)(void *data, uint64_t pid, int status), const void *data);
+
+    /**
+     * Function to be called to remove an child process watcher.
+     *
+     * This function receives the handle returned by
+     * sol_child_watch_add() (and thus @c child_watch_add), deleting
+     * it so the registered callback is not called anymore.
+     *
+     * This function returns true if child watch was successfully deleted.
+     *
+     * This function will be called whenever sol_child_watch_del() is called.
+     *
+     * Must not be NULL.
+     *
+     * @note the existence of this pointer is conditional to
+     * #SOL_MAINLOOP_FORK_WATCH_ENABLED, which is defined when soletta is
+     * configured and built.
+     */
+    bool (*child_watch_del)(void *handle);
+#endif
+
+    /**
+     * Function to be called to register a mainloop event source.
+     *
+     * This function will register an event source that will be called
+     * during the mainloop execution, allowing different mainloops to
+     * be integrated. The actual functions to be called are defined in
+     * @c type.
+     *
+     * This function must return an internal handle that will
+     * represent the source. It will be given to
+     * sol_mainloop_source_del() in order to remove it.
+     *
+     * This function will be called whenever sol_mainloop_source_add()
+     * is called.
+     *
+     * Must not be NULL.
+     */
+    void *(*source_add)(const struct sol_mainloop_source_type *type, const void *data);
+
+    /**
+     * Function to be called to remove mainloop event source.
+     *
+     * This function receives the handle returned by
+     * sol_mainloop_source_add() (and thus @c source_add), deleting
+     * it so it is not used anymore.
+     *
+     * This function will be called whenever sol_mainloop_source_del() is called.
+     *
+     * Must not be NULL.
+     */
+    void (*source_del)(void *handle);
+
+    /**
+     * Function to be called to retrieve mainloop event source internal data.
+     *
+     * This function returns the @c data given to @c source_add.
+     *
+     * This function will be called whenever
+     * sol_mainloop_source_get_data() is called.
+     *
+     * Must not be NULL.
+     */
+    void *(*source_get_data)(const void *handle);
+};
+
+/**
+ * Pointer to Soletta's internal mainloop implementation, that is the
+ * default to be used if no other is set.
+ */
+extern const struct sol_mainloop_implementation *SOL_MAINLOOP_IMPLEMENTATION_DEFAULT;
+
+/**
+ * Returns the current mainloop implementation in use.
+ *
+ * By default it is #SOL_MAINLOOP_IMPLEMENTATION_DEFAULT, but can be
+ * changed by sol_mainloop_set_implementation().
+ *
+ * Before accessing the members of the returned pointer check if your
+ * known #SOL_MAINLOOP_IMPLEMENTATION_API_VERSION matches its @c
+ * api_version field (which is conditional to #SOL_NO_API_VERSION).
+ *
+ * @return the pointer to the current implementation, always non-null.
+ */
+const struct sol_mainloop_implementation *sol_mainloop_get_implementation(void);
+
+/**
+ * Changes the mainloop implementation.
+ *
+ * By setting the mainloop implementation one can override the Soletta
+ * behavior, this is often useful if libsoletta is being used as a
+ * guest library in some system that already hosts one, such as a
+ * Node.JS application. In this case we want to forward requests to
+ * that mainloop and be as lean as possible.
+ *
+ * This is an alternative to sol_mainloop_source_add(), in that case
+ * Soletta would be the host and other main loops can be the guest,
+ * see sol-glib-integration.h for one example.
+ *
+ * @note Primitives such as sol_idle_add(), sol_idle_del(),
+ *       sol_timeout_add(), sol_timeout_del(), sol_fd_add(),
+ *       sol_fd_del(), sol_fd_set_flags(), sol_fd_get_flags(),
+ *       sol_child_watch_add() and sol_child_watch_del(),
+ *       sol_mainloop_source_add(), sol_mainloop_source_del() and
+ *       sol_mainloop_source_get_data() may be called from threads,
+ *       then handle these as such.
+ *
+ * @note this function must be called @b before sol_init() is called
+ *       the first time, otherwise it will refuse and will return
+ *       error.
+ *
+ * @param impl a valid handle, this means @c api_version field must
+ *        match #SOL_MAINLOOP_IMPLEMENTATION_API_VERSION and all
+ *        pointers are non-NULL. It is not copied, so the pointer must
+ *        be valid until a new one is set to replace it.
+ *
+ * @return true on success or false on failure.
+ */
+bool sol_mainloop_set_implementation(const struct sol_mainloop_implementation *impl);
 
 /**
  * Gets the argument count the application was launched with, if any.

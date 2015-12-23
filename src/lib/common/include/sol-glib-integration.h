@@ -442,7 +442,7 @@ sol_glib_integration(void)
     mdata->timeout = -1;
     mdata->max_prio = 0;
 
-    msource = sol_mainloop_source_new(&_sol_glib_integration_source_type, gsource);
+    msource = sol_mainloop_source_add(&_sol_glib_integration_source_type, gsource);
     SOL_NULL_CHECK_GOTO(msource, failed_mainloop_source);
 
     g_main_context_ref(ctx);
