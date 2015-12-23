@@ -105,7 +105,7 @@ keyboard_termios_reset(void)
 static void
 keyboard_users_cleanup(void)
 {
-    struct keyboard_data *mdata;
+    struct keyboard_common_data *mdata;
     uint16_t i;
 
     if (keyboard_users_walking > 0)
@@ -150,42 +150,32 @@ keyboard_boolean_on_code(struct keyboard_common_data *data,
     size_t len)
 {
     struct keyboard_boolean_data *mdata = (struct keyboard_boolean_data *)data;
+    struct sol_flow_node *handle;
     uint64_t code = 0;
-    uint16_t i;
 
     memcpy(&code, buf, len > sizeof(code) ? sizeof(code) : len);
 
     if (code == 0)
         return;
 
-    keyboard_users_walking++;
+    handle = mdata->common.node;
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, mdata, i) {
-        struct sol_flow_node *handle;
+    if (mdata->binary_code != code)
+        return;
 
-        if (!mdata) continue;
-
-        handle = mdata->common.node;
-
-        if (mdata->binary_code != code)
-            continue;
-
-        if (mdata->toggle) {
-            if (mdata->common.last_code == code)
-                mdata->common.last_code = 0;
-            else
-                mdata->common.last_code = code;
-            sol_flow_send_boolean_packet(handle, 0,
-                mdata->common.last_code == mdata->binary_code);
-        } else {
-            mdata->common.last_code = code;
-            sol_flow_send_boolean_packet(handle, 0, true);
+    if (mdata->toggle) {
+        if (mdata->common.last_code == code)
             mdata->common.last_code = 0;
-            sol_flow_send_boolean_packet(handle, 0, false);
-        }
+        else
+            mdata->common.last_code = code;
+        sol_flow_send_boolean_packet(handle, 0,
+            mdata->common.last_code == mdata->binary_code);
+    } else {
+        mdata->common.last_code = code;
+        sol_flow_send_boolean_packet(handle, 0, true);
+        mdata->common.last_code = 0;
+        sol_flow_send_boolean_packet(handle, 0, false);
     }
-    keyboard_users_walking--;
-    keyboard_users_cleanup();
 }
 
 static void
@@ -202,26 +192,15 @@ keyboard_irange_on_code(struct keyboard_common_data *data,
     if (code == 0)
         return;
 
-    keyboard_users_walking++;
     data->last_code = (int32_t)code;
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, data, i) {
-        struct sol_flow_node *handle;
-
-        if (!data) continue;
-
-        handle = data->node;
-
-        packet_irange_send(handle, data->last_code);
-    }
-    keyboard_users_walking--;
-    keyboard_users_cleanup();
+    packet_irange_send(data->node, data->last_code);
 }
 
 static bool
 keyboard_on_event(void *data, int fd, uint32_t cond)
 {
-    struct keyboard_common_data *mdata = data;
+    struct keyboard_common_data *mdata;
+    uint16_t i;
 
     if (cond & SOL_FD_FLAGS_IN) {
         unsigned char buf[8];
@@ -232,20 +211,24 @@ keyboard_on_event(void *data, int fd, uint32_t cond)
             SOL_WRN("could not read stdin: %s", sol_util_strerrora(errno));
             cond |= SOL_FD_FLAGS_ERR;
         } else if (buffer.used > 0) {
-            mdata->on_code(mdata, buf, buffer.used);
+            keyboard_users_walking++;
+
+            SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, mdata, i) {
+                mdata->on_code(mdata, buf, buffer.used);
+            }
+
+            keyboard_users_walking--;
+            keyboard_users_cleanup();
         }
     }
 
     if (cond & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_NVAL)) {
-        struct keyboard_data *user;
-        uint16_t i;
-
         SOL_WRN("error reading from stdin.");
 
         keyboard_users_walking++;
 
-        SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, user, i) {
-            if (!user) continue;
+        SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, mdata, i) {
+            if (!mdata) continue;
 
             //FIXME: error packet to the rescue, not ready yet
         }
