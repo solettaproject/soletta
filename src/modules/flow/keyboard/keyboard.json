@@ -56,7 +56,7 @@
           "name": "OUT"
         }
       ],
-      "private_data_type": "keyboard_irange_data",
+      "private_data_type": "keyboard_common_data",
       "url": "http://solettaproject.org/doc/latest/node_types/keyboard_irange.html"
     }
   ]
