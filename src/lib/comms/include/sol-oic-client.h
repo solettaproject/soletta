@@ -194,10 +194,66 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
     void *data);
 
 /**
+ * @brief Retrieve platform information.
+ *
+ * Sends a packet to @a resource's server asking for platform information
+ * defined at @ref sol_oic_platform_information.
+ *
+ * When a response is received, the function @a info_received_cb will be
+ * called.
+ * After internal timeout is reached @a info_received_cb will be called with
+ * @c NULL @a info and any clean up can be performed.
+ *
+ * @param client An oic client instance.
+ * @param resource The resource that is going to receive the request.
+ * @param info_received_cb Callback to be called when response is received or
+ *        when timeout is reached. Parameter cli is the sol_oic_client used to
+ *        perform the request, info is the @ref sol_oic_platform_information
+ *        structure with server info data, data is a pointer to user's data
+ *        parameter.
+ * @param data A pointer to user's data.
+ *
+ * @return True if packet was successfully sent. False otherwise.
+ */
+bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
+    struct sol_oic_resource *resource,
+    void (*info_received_cb)(struct sol_oic_client *cli,
+    const struct sol_oic_platform_information *info, void *data),
+    void *data);
+
+/**
+ * @brief Retrieve platform information from @a cliaddr.
+ *
+ * Sends a packet to server identified by @a cliaddr asking for platform
+ * information defined at @ref sol_oic_platform_information.
+ *
+ * When a response is received, the function @a info_received_cb will be
+ * called.
+ * After internal timeout is reached @a info_received_cb will be called with
+ * @c NULL @a info and any clean up can be performed.
+ *
+ * @param client An oic client instance.
+ * @param resource The resource that is going to receive the request.
+ * @param info_received_cb Callback to be called when response is received or
+ *        when timeout is reached. Parameter cli is the sol_oic_client used to
+ *        perform the request, info is the @ref sol_oic_platform_information
+ *        structure with server info data, data is a pointer to user's data
+ *        parameter.
+ * @param data A pointer to user's data.
+ *
+ * @return True if packet was successfully sent. False otherwise.
+ */
+bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
+    struct sol_network_link_addr *cliaddr,
+    void (*info_received_cb)(struct sol_oic_client *cli,
+    const struct sol_oic_platform_information *info, void *data),
+    void *data);
+
+/**
  * @brief Retrieve server information.
  *
- * Sends a packet to server asking for server information defined at
- * @ref sol_oic_server_information.
+ * Sends a packet to @a resource's server asking for server information
+ * defined at @ref sol_oic_server_information.
  *
  * When a response is received, the function @a info_received_cb will be
  * called.
@@ -217,6 +273,34 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
  */
 bool sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
+    void (*info_received_cb)(struct sol_oic_client *cli,
+    const struct sol_oic_server_information *info, void *data),
+    void *data);
+
+/**
+ * @brief Retrieve server information from @a cliaddr.
+ *
+ * Sends a packet to server identified by @a cliaddr asking for server
+ * information defined at @ref sol_oic_server_information.
+ *
+ * When a response is received, the function @a info_received_cb will be
+ * called.
+ * After internal timeout is reached @a info_received_cb will be called with
+ * @c NULL @a info and any clean up can be performed.
+ *
+ * @param client An oic client instance.
+ * @param resource The resource that is going to receive the request.
+ * @param info_received_cb Callback to be called when response is received or
+ *        when timeout is reached. Parameter cli is the sol_oic_client used to
+ *        perform the request, info is the @ref sol_oic_server_information
+ *        structure with server info data, data is a pointer to user's data
+ *        parameter.
+ * @param data A pointer to user's data.
+ *
+ * @return True if packet was successfully sent. False otherwise.
+ */
+bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
+    struct sol_network_link_addr *cliaddr,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_server_information *info, void *data),
     void *data);
