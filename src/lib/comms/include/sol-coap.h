@@ -328,7 +328,7 @@ struct sol_coap_resource {
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*delete)(struct sol_coap_server *server,
+    int (*del)(struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);

@@ -95,9 +95,20 @@ int sol_fs_read_raw(const char *name, struct sol_buffer *buffer);
  * @brief Macro to create a struct @ref sol_buffer with value passed as argument
  * and flags SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED and SOL_BUFFER_FLAGS_NO_NUL_BYTE.
  */
+
+#ifdef __cplusplus
+
+#define CREATE_BUFFER(_val) \
+    struct sol_buffer buf SOL_BUFFER_INIT_FLAGS(_val, \
+    sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
+#else
+
 #define CREATE_BUFFER(_val) \
     struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(_val, \
     sizeof(*(_val)), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
+#endif /* __cpluplus */
 
 /**
  * @brief Macro to create a struct @ref sol_blob with value passed as argument.
@@ -258,7 +269,7 @@ sol_fs_read_string(const char *name, char **value)
         return r;
     }
 
-    *value = sol_buffer_steal(&buf, NULL);
+    *value = (char *)sol_buffer_steal(&buf, NULL);
 
     return 0;
 }

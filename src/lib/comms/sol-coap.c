@@ -372,7 +372,7 @@ static int(*find_resource_cb(const struct sol_coap_packet *req,
     case SOL_COAP_METHOD_PUT:
         return resource->put;
     case SOL_COAP_METHOD_DELETE:
-        return resource->delete;
+        return resource->del;
     }
 
     return NULL;
