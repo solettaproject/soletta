@@ -334,3 +334,17 @@ sol_platform_impl_load_locales(char **locale_cache)
     SOL_WRN("Not implemented");
     return -ENOTSUP;
 }
+
+int
+sol_platform_impl_locale_to_c_category(enum sol_platform_locale_category category)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+const char *
+sol_platform_impl_locale_to_c_str_category(enum sol_platform_locale_category category)
+{
+    SOL_WRN("Not implemented");
+    return NULL;
+}

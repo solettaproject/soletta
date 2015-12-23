@@ -760,32 +760,18 @@ sol_platform_locale_to_c_category(enum sol_platform_locale_category category)
     switch (category) {
     case SOL_PLATFORM_LOCALE_LANGUAGE:
         return LC_ALL;
-    case SOL_PLATFORM_LOCALE_ADDRESS:
-        return LC_ADDRESS;
     case SOL_PLATFORM_LOCALE_COLLATE:
         return LC_COLLATE;
     case SOL_PLATFORM_LOCALE_CTYPE:
         return LC_CTYPE;
-    case SOL_PLATFORM_LOCALE_IDENTIFICATION:
-        return LC_IDENTIFICATION;
-    case SOL_PLATFORM_LOCALE_MEASUREMENT:
-        return LC_MEASUREMENT;
-    case SOL_PLATFORM_LOCALE_MESSAGES:
-        return LC_MESSAGES;
     case SOL_PLATFORM_LOCALE_MONETARY:
         return LC_MONETARY;
-    case SOL_PLATFORM_LOCALE_NAME:
-        return LC_NAME;
     case SOL_PLATFORM_LOCALE_NUMERIC:
         return LC_NUMERIC;
-    case SOL_PLATFORM_LOCALE_PAPER:
-        return LC_PAPER;
-    case SOL_PLATFORM_LOCALE_TELEPHONE:
-        return LC_TELEPHONE;
     case SOL_PLATFORM_LOCALE_TIME:
         return LC_TIME;
     default:
-        return -EINVAL;
+        return sol_platform_impl_locale_to_c_category(category);
     }
 }
 
@@ -795,31 +781,17 @@ sol_platform_locale_to_c_str_category(enum sol_platform_locale_category category
     switch (category) {
     case SOL_PLATFORM_LOCALE_LANGUAGE:
         return "LANG";
-    case SOL_PLATFORM_LOCALE_ADDRESS:
-        return "LC_ADDRESS";
     case SOL_PLATFORM_LOCALE_COLLATE:
         return "LC_COLLATE";
     case SOL_PLATFORM_LOCALE_CTYPE:
         return "LC_CTYPE";
-    case SOL_PLATFORM_LOCALE_IDENTIFICATION:
-        return "LC_IDENTIFICATION";
-    case SOL_PLATFORM_LOCALE_MEASUREMENT:
-        return "LC_MEASUREMENT";
-    case SOL_PLATFORM_LOCALE_MESSAGES:
-        return "LC_MESSAGES";
     case SOL_PLATFORM_LOCALE_MONETARY:
         return "LC_MONETARY";
-    case SOL_PLATFORM_LOCALE_NAME:
-        return "LC_NAME";
     case SOL_PLATFORM_LOCALE_NUMERIC:
         return "LC_NUMERIC";
-    case SOL_PLATFORM_LOCALE_PAPER:
-        return "LC_PAPER";
-    case SOL_PLATFORM_LOCALE_TELEPHONE:
-        return "LC_TELEPHONE";
     case SOL_PLATFORM_LOCALE_TIME:
         return "LC_TIME";
     default:
-        return NULL;
+        return sol_platform_impl_locale_to_c_str_category(category);
     }
 }

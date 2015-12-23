@@ -1004,3 +1004,49 @@ err_val:
     fclose(f);
     return r;
 }
+
+int
+sol_platform_impl_locale_to_c_category(enum sol_platform_locale_category category)
+{
+    switch (category) {
+    case SOL_PLATFORM_LOCALE_ADDRESS:
+        return LC_ADDRESS;
+    case SOL_PLATFORM_LOCALE_IDENTIFICATION:
+        return LC_IDENTIFICATION;
+    case SOL_PLATFORM_LOCALE_MESSAGES:
+        return LC_MESSAGES;
+    case SOL_PLATFORM_LOCALE_PAPER:
+        return LC_PAPER;
+    case SOL_PLATFORM_LOCALE_NAME:
+        return LC_NAME;
+    case SOL_PLATFORM_LOCALE_TELEPHONE:
+        return LC_TELEPHONE;
+    case SOL_PLATFORM_LOCALE_MEASUREMENT:
+        return LC_MEASUREMENT;
+    default:
+        return -EINVAL;
+    }
+}
+
+const char *
+sol_platform_impl_locale_to_c_str_category(enum sol_platform_locale_category category)
+{
+    switch (category) {
+    case SOL_PLATFORM_LOCALE_ADDRESS:
+        return "LC_ADDRESS";
+    case SOL_PLATFORM_LOCALE_IDENTIFICATION:
+        return "LC_IDENTIFICATION";
+    case SOL_PLATFORM_LOCALE_MEASUREMENT:
+        return "LC_MEASUREMENT";
+    case SOL_PLATFORM_LOCALE_MESSAGES:
+        return "LC_MESSAGES";
+    case SOL_PLATFORM_LOCALE_NAME:
+        return "LC_NAME";
+    case SOL_PLATFORM_LOCALE_PAPER:
+        return "LC_PAPER";
+    case SOL_PLATFORM_LOCALE_TELEPHONE:
+        return "LC_TELEPHONE";
+    default:
+        return NULL;
+    }
+}
