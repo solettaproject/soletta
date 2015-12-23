@@ -15,6 +15,15 @@
         "open": "keyboard_boolean_open"
       },
       "name": "keyboard/boolean",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct keyboard_node_type",
+        "extra_methods": {
+          "on_code": "keyboard_boolean_on_code"
+        }
+      },
       "options": {
         "members": [
           {
@@ -46,9 +55,18 @@
       "description": "Provides int packets after each key press from a physical keyboard",
       "methods": {
         "close": "keyboard_close",
-        "open": "keyboard_irange_open"
+        "open": "keyboard_open"
       },
       "name": "keyboard/int",
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct keyboard_node_type",
+        "extra_methods": {
+          "on_code": "keyboard_irange_on_code"
+        }
+      },
       "out_ports": [
         {
           "data_type": "int",

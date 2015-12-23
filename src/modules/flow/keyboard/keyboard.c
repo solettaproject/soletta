@@ -53,15 +53,18 @@
 struct keyboard_common_data {
     struct sol_flow_node *node;
     uint64_t last_code, last_read_code;
-    void (*on_code)(struct keyboard_common_data *mdata,
-        unsigned char *buf,
-        size_t len);
 };
 
 struct keyboard_boolean_data {
     struct keyboard_common_data common;
     uint64_t binary_code;
     bool toggle;
+};
+
+struct keyboard_node_type {
+    struct sol_flow_node_type base;
+    void (*on_code)(struct keyboard_common_data *mdata, unsigned char *buf,
+        size_t len);
 };
 
 static bool keyboard_done = false;
@@ -211,10 +214,14 @@ keyboard_on_event(void *data, int fd, uint32_t cond)
             SOL_WRN("could not read stdin: %s", sol_util_strerrora(errno));
             cond |= SOL_FD_FLAGS_ERR;
         } else if (buffer.used > 0) {
+            const struct keyboard_node_type *type;
+
             keyboard_users_walking++;
 
             SOL_PTR_VECTOR_FOREACH_IDX (&keyboard_users, mdata, i) {
-                mdata->on_code(mdata, buf, buffer.used);
+                type = (const struct keyboard_node_type *)
+                    sol_flow_node_get_type(mdata->node);
+                type->on_code(mdata, buf, buffer.used);
             }
 
             keyboard_users_walking--;
@@ -240,7 +247,8 @@ keyboard_on_event(void *data, int fd, uint32_t cond)
 
 static int
 keyboard_open(struct sol_flow_node *node,
-    void *data)
+    void *data,
+    const struct sol_flow_node_options *options)
 {
     struct keyboard_common_data *mdata = data;
 
@@ -296,9 +304,8 @@ keyboard_boolean_open(struct sol_flow_node *node,
 
     mdata->binary_code = opts->binary_code;
     mdata->toggle = opts->toggle;
-    mdata->common.on_code = keyboard_boolean_on_code;
 
-    return keyboard_open(node, data);
+    return keyboard_open(node, data, options);
 }
 
 static void
@@ -333,17 +340,6 @@ keyboard_close(struct sol_flow_node *node, void *data)
             keyboard_watch = NULL;
         }
     }
-}
-
-static int
-keyboard_irange_open(struct sol_flow_node *node,
-    void *data,
-    const struct sol_flow_node_options *options)
-{
-    struct keyboard_common_data *mdata = data;
-
-    mdata->on_code = keyboard_irange_on_code;
-    return keyboard_open(node, data);
 }
 
 #include "keyboard-gen.c"
