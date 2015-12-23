@@ -63,31 +63,31 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
 #define STRTOL_DECIMAL(_ptr, _endptr) strtoll(_ptr, _endptr, 0)
 
 #define ASSIGN_LINEAR_VALUES(_parse_func, \
-        _max_val, _max_str, _max_str_len,          \
-        _min_val, _min_str, _min_str_len)          \
-    do {                                                                \
-        char *start, *end, backup;                                      \
+        _max_val, _max_str, _max_str_len, \
+        _min_val, _min_str, _min_str_len) \
+    do { \
+        char *start, *end, backup; \
         int field_cnt_max = ARRAY_SIZE(store_vals); \
-        if (keys_schema) break;                                         \
-        start = buf;                                                    \
-        end = strchr(start, SUBOPTION_SEPARATOR);                       \
-        if (!end) end = start + strlen(start);                          \
-        backup = *end;                                                  \
-        *end = '\0';                                                    \
+        if (keys_schema) break; \
+        start = buf; \
+        end = strchr(start, SUBOPTION_SEPARATOR); \
+        if (!end) end = start + strlen(start); \
+        backup = *end; \
+        *end = '\0'; \
         for (field_cnt = 0; field_cnt < field_cnt_max;) { \
-            bool is_max = false, is_min = false;                        \
-            errno = 0;                                                  \
-            if (strlen(start) >= _max_str_len                           \
-                && (strncmp(start, _max_str,                            \
-                _max_str_len) == 0)) {                      \
-                is_max = true;                                          \
-            } else if (strlen(start) >= _min_str_len                    \
-                && (strncmp(start, _min_str,                     \
-                _min_str_len) == 0)) {               \
-                is_min = true;                                          \
-            }                                                           \
-            if (is_max) *store_vals[field_cnt] = _max_val;              \
-            else if (is_min) *store_vals[field_cnt] = _min_val;         \
+            bool is_max = false, is_min = false; \
+            errno = 0; \
+            if (strlen(start) >= _max_str_len \
+                && (strncmp(start, _max_str, \
+                _max_str_len) == 0)) { \
+                is_max = true; \
+            } else if (strlen(start) >= _min_str_len \
+                && (strncmp(start, _min_str, \
+                _min_str_len) == 0)) { \
+                is_min = true; \
+            } \
+            if (is_max) *store_vals[field_cnt] = _max_val; \
+            else if (is_min) *store_vals[field_cnt] = _min_val; \
             else { \
                 char *endptr; \
                 *store_vals[field_cnt] = _parse_func(start, &endptr); \
@@ -95,25 +95,25 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
                 if (start == endptr) \
                     goto err; \
             } \
-            if (errno != 0) goto err;                                   \
-            field_cnt++;                                                \
-            *end = backup;                                              \
+            if (errno != 0) goto err; \
+            field_cnt++; \
+            *end = backup; \
             start = NULL; \
-            if (backup == '\0') break;                                  \
-            start = end + 1;                                            \
-            if (!start) break;                                          \
-            end = strchr(start, SUBOPTION_SEPARATOR);                   \
-            if (!end) end = start + strlen(start);                      \
-            backup = *end;                                              \
-            *end = '\0';                                                \
-        }                                                               \
+            if (backup == '\0') break; \
+            start = end + 1; \
+            if (!start) break; \
+            end = strchr(start, SUBOPTION_SEPARATOR); \
+            if (!end) end = start + strlen(start); \
+            backup = *end; \
+            *end = '\0'; \
+        } \
         if (start) goto err; \
     } while (0)
 
 #define ASSIGN_KEY_VAL(_type, _key, _parse_func, _only_not_negative, \
-        _max_val, _max_str, _max_str_len,        \
-        _min_val, _min_str, _min_str_len)        \
-    do {                                                        \
+        _max_val, _max_str, _max_str_len, \
+        _min_val, _min_str, _min_str_len) \
+    do { \
         bool is_max = false, is_min = false; \
         char *key_name, *remaining, *i; \
         remaining = buf; \
@@ -135,54 +135,54 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
         } \
         if (!key_name) \
             break; \
-        if (_key && _key[0] && _key[1]) {                       \
-            _key++;                                             \
-            while (_key && isspace(*_key)) _key++;              \
-        } else goto err;                                        \
-        if (!_key)                                              \
-            break;                                              \
-        if (strlen(_key) >= _max_str_len                        \
-            && (strncmp(_key, _max_str,                         \
-            _max_str_len) == 0)) {                  \
-            is_max = true;                                      \
-        } else if (strlen(_key) >= _min_str_len                 \
-            && (strncmp(_key, _min_str,                  \
-            _min_str_len) == 0)) {           \
-            is_min = true;                                      \
-        }                                                       \
-        if (is_max)                                             \
-            ret->_key = _max_val;                               \
+        if (_key && _key[0] && _key[1]) { \
+            _key++; \
+            while (_key && isspace(*_key)) _key++; \
+        } else goto err; \
+        if (!_key) \
+            break; \
+        if (strlen(_key) >= _max_str_len \
+            && (strncmp(_key, _max_str, \
+            _max_str_len) == 0)) { \
+            is_max = true; \
+        } else if (strlen(_key) >= _min_str_len \
+            && (strncmp(_key, _min_str, \
+            _min_str_len) == 0)) { \
+            is_min = true; \
+        } \
+        if (is_max) \
+            ret->_key = _max_val; \
         else if (is_min) { \
             if (_only_not_negative) \
                 goto err; \
-            ret->_key = _min_val;                               \
+            ret->_key = _min_val; \
         } else { \
-            char *_key ## _end = _key;                          \
-            char _key ## _backup;                               \
+            char *_key ## _end = _key; \
+            char _key ## _backup; \
             char *endptr; \
             _type parsed_val; \
-            while (_key ## _end                                 \
-                && *_key ## _end != '\0'                     \
-                && *_key ## _end != SUBOPTION_SEPARATOR)     \
-                _key ## _end++;                                 \
-            if (_key ## _end) {                                 \
-                _key ## _backup = *_key ## _end;                \
-                *_key ## _end = '\0';                           \
-            }                                                   \
-            errno = 0;                                          \
+            while (_key ## _end \
+                && *_key ## _end != '\0' \
+                && *_key ## _end != SUBOPTION_SEPARATOR) \
+                _key ## _end++; \
+            if (_key ## _end) { \
+                _key ## _backup = *_key ## _end; \
+                *_key ## _end = '\0'; \
+            } \
+            errno = 0; \
             parsed_val = _parse_func(_key, &endptr); \
             if (_key == endptr) \
                 goto err; \
-            if (errno != 0)                                     \
-                goto err;                                       \
+            if (errno != 0) \
+                goto err; \
             if (_only_not_negative) { \
                 if (parsed_val < 0) \
                     goto err; \
             } \
             ret->_key = parsed_val; \
-            if (_key ## _end)                                   \
-                *_key ## _end = _key ## _backup;                \
-        }                                                       \
+            if (_key ## _end) \
+                *_key ## _end = _key ## _backup; \
+        } \
     } while (0)
 
 static inline double

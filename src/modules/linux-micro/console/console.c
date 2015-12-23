@@ -253,7 +253,7 @@ parse_var(const char *start, size_t len)
         size_t prefixlen;
         char **storage;
     } specs[] = {
-#define SPEC(str, storage)                      \
+#define SPEC(str, storage) \
     { str, sizeof(str) - 1, &storage \
     }
         SPEC("getty=", getty_cmd),

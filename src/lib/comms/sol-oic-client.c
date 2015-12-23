@@ -60,7 +60,7 @@
 
 #ifndef SOL_NO_API_VERSION
 #define OIC_RESOURCE_CHECK_API(ptr, ...) \
-    do {                                        \
+    do { \
         if (unlikely(ptr->api_version != \
             SOL_OIC_RESOURCE_API_VERSION)) { \
             SOL_WRN("Couldn't handle oic client resource that has unsupported " \
@@ -71,7 +71,7 @@
     } while (0)
 
 #define OIC_CLIENT_CHECK_API(ptr, ...) \
-    do {                                        \
+    do { \
         if (unlikely(ptr->api_version != SOL_OIC_CLIENT_API_VERSION)) { \
             SOL_WRN("Couldn't handle oic client that has unsupported " \
                 "version '%u', expected version is '%u'", \

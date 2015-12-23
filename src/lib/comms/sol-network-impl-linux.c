@@ -505,12 +505,12 @@ sol_network_link_up(uint16_t link_index)
     ifi->ifi_change = IFF_UP;
     ifi->ifi_flags = IFF_UP;
 
-#define ADD_RTATTR(_attr, _len, _type)                                        \
-    do {                                                                      \
+#define ADD_RTATTR(_attr, _len, _type) \
+    do { \
         SOL_INT_CHECK(NLMSG_ALIGN(h->nlmsg_len) + sizeof(struct rtattr), > buf_size, false); \
         _attr = (struct rtattr *)(((char *)buf) + NLMSG_ALIGN(h->nlmsg_len)); \
-        _attr->rta_type = _type;                                              \
-        _attr->rta_len = _len;                                                \
+        _attr->rta_type = _type; \
+        _attr->rta_len = _len; \
         h->nlmsg_len = NLMSG_ALIGN(h->nlmsg_len) + RTA_ALIGN(_attr->rta_len); \
     } while (0)
 

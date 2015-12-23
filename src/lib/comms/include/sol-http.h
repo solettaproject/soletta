@@ -278,7 +278,7 @@ struct sol_http_url {
  *
  * @see sol_http_params_init()
  */
-#define SOL_HTTP_REQUEST_PARAMS_INIT   \
+#define SOL_HTTP_REQUEST_PARAMS_INIT \
     (struct sol_http_params) { \
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, ) \
         .params = SOL_VECTOR_INIT(struct sol_http_param_value) \
@@ -292,8 +292,8 @@ struct sol_http_url {
     (struct sol_http_param_value) { \
         .type = type_, \
         .value.key_value = { \
-            .key = sol_str_slice_from_str((key_ ? : "")),        \
-            .value = sol_str_slice_from_str((value_ ? : ""))        \
+            .key = sol_str_slice_from_str((key_ ? : "")), \
+            .value = sol_str_slice_from_str((value_ ? : "")) \
         } \
     }
 
@@ -329,8 +329,8 @@ struct sol_http_url {
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_AUTH_BASIC, \
         .value.auth = { \
-            .user = sol_str_slice_from_str((username_ ? : "")),    \
-            .password = sol_str_slice_from_str((password_ ? : ""))    \
+            .user = sol_str_slice_from_str((username_ ? : "")), \
+            .password = sol_str_slice_from_str((password_ ? : "")) \
         } \
     }
 

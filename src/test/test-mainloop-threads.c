@@ -118,11 +118,11 @@ ops_test_loop(void)
     }
 }
 
-#define THR_GEN(name)                                                   \
-    static void *name(void *data)                                       \
-    {                                                                   \
-        ops_test_loop();                                                \
-        return NULL;                                                    \
+#define THR_GEN(name) \
+    static void *name(void *data) \
+    { \
+        ops_test_loop(); \
+        return NULL; \
     }
 
 THR_GEN(thr1_run);

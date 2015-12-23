@@ -211,8 +211,8 @@ sol_vector_take_data(struct sol_vector *v)
  * @param itrvar Variable pointing to the current element's data on each iteration
  * @param idx Index integer variable that is increased while iterating
  */
-#define SOL_VECTOR_FOREACH_IDX(vector, itrvar, idx)                      \
-    for (idx = 0;                                                       \
+#define SOL_VECTOR_FOREACH_IDX(vector, itrvar, idx) \
+    for (idx = 0; \
         idx < (vector)->len && (itrvar = sol_vector_get((vector), idx), true); \
         idx++)
 
@@ -224,8 +224,8 @@ sol_vector_take_data(struct sol_vector *v)
  * @param itrvar Variable pointing to the current element's data on each iteration
  * @param idx Index integer variable that is decreased while iterating
  */
-#define SOL_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx)              \
-    for (idx = (vector)->len - 1;                                       \
+#define SOL_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx) \
+    for (idx = (vector)->len - 1; \
         idx != ((typeof(idx)) - 1) && (itrvar = sol_vector_get((vector), idx), true); \
         idx--)
 /**

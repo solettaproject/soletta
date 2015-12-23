@@ -41,21 +41,21 @@ void test_init_log_domain(void);
 #undef SOL_LOG_DOMAIN
 #define SOL_LOG_DOMAIN &_test_log_domain
 
-#define DECLARE_PROCESS_FUNCTION(_name)             \
-    int _name(                                      \
-    struct sol_flow_node *node,              \
-    void *data,                             \
-    uint16_t port,                          \
-    uint16_t conn_id,                       \
+#define DECLARE_PROCESS_FUNCTION(_name) \
+    int _name( \
+    struct sol_flow_node *node, \
+    void *data, \
+    uint16_t port, \
+    uint16_t conn_id, \
     const struct sol_flow_packet *packet)
 
-#define DECLARE_OPEN_FUNCTION(_name)                    \
-    int _name(                                          \
-    struct sol_flow_node *node,                  \
-    void *data,                                 \
+#define DECLARE_OPEN_FUNCTION(_name) \
+    int _name( \
+    struct sol_flow_node *node, \
+    void *data, \
     const struct sol_flow_node_options *options)
 
-#define DECLARE_CLOSE_FUNCTION(_name)                  \
-    void _name(                                        \
-    struct sol_flow_node *node,                \
+#define DECLARE_CLOSE_FUNCTION(_name) \
+    void _name( \
+    struct sol_flow_node *node, \
     void *data)
