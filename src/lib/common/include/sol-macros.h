@@ -162,6 +162,13 @@
  * @param n Size of the array
  */
 
+/**
+ * @def SOL_UNREACHABLE
+ *
+ * @brief Macro to mark a location of code that is unreachable, usually after
+ * calling a SOL_ATTR_NORETURN function.
+ */
+
 #if __GNUC__ >= 4
 #define SOL_API  __attribute__((visibility("default")))
 #define SOL_ATTR_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
@@ -178,6 +185,7 @@
 #define SOL_ATTR_PURE __attribute__((pure))
 #define SOL_LIKELY(x)   __builtin_expect(!!(x), 1)
 #define SOL_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define SOL_UNREACHABLE() __builtin_unreachable()
 #else
 #define SOL_API
 #define SOL_ATTR_WARN_UNUSED_RESULT
@@ -194,6 +202,7 @@
 #define SOL_ATTR_PURE
 #define SOL_LIKELY(x)
 #define SOL_UNLIKELY(x)
+#define SOL_UNREACHABLE() ((void)0)
 #endif
 
 #ifdef __cplusplus

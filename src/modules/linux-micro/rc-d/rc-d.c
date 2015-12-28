@@ -62,7 +62,7 @@ static struct sol_ptr_vector monitors = SOL_PTR_VECTOR_INIT;
 static struct sol_timeout *monitor_timer;
 static struct sol_vector pendings = SOL_VECTOR_INIT(struct pending);
 
-static void
+static void SOL_ATTR_NORETURN
 find_exec(const char *service, const char *arg)
 {
     const char **itr, *dirs[] = {
@@ -177,7 +177,7 @@ rc_d_stop(const struct sol_platform_linux_micro_module *mod, const char *service
             sigemptyset(&emptyset);
             sigprocmask(SIG_SETMASK, &emptyset, NULL);
             find_exec(service, "stop");
-            return -errno;
+            SOL_UNREACHABLE();
         } else if (pid < 0)
             return -errno;
         else {
