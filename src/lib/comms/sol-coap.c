@@ -205,8 +205,7 @@ sol_coap_header_get_code(const struct sol_coap_packet *pkt)
     case SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED:
         return code;
     default:
-        SOL_WRN("Invalid code (%d)", code);
-        return 0;
+        return SOL_COAP_CODE_EMPTY;
     }
 }
 
