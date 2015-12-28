@@ -659,13 +659,25 @@ struct sol_main_callbacks {
         return sol_mainloop_default_main(&(CALLBACKS), argc, argv);  \
     }
 #endif /* SOL_PLATFORM_RIOT */
-#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN)                              \
+
+#ifdef __cplusplus
+#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN) \
+    static const struct sol_main_callbacks sol_main_callbacks_instance { \
+        SOL_SET_API_VERSION(.api_version = SOL_MAIN_CALLBACKS_API_VERSION, ) \
+        .flags = 0, \
+        .startup = (STARTUP), \
+        .shutdown = (SHUTDOWN) \
+    }; \
+    SOL_MAIN(sol_main_callbacks_instance)
+#else
+#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN) \
     static const struct sol_main_callbacks sol_main_callbacks_instance = { \
         SOL_SET_API_VERSION(.api_version = SOL_MAIN_CALLBACKS_API_VERSION, ) \
-        .startup = (STARTUP),                                           \
-        .shutdown = (SHUTDOWN),                                         \
-    };                                                                  \
+        .startup = (STARTUP), \
+        .shutdown = (SHUTDOWN) \
+    }; \
     SOL_MAIN(sol_main_callbacks_instance)
+#endif /* __cplusplus */
 #endif /* SOL_PLATFORM_CONTIKI */
 
 /**
