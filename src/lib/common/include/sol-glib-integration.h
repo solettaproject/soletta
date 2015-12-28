@@ -66,6 +66,9 @@ _sol_glib_integration_gsource_dispatch(GSource *source, GSourceFunc cb, gpointer
     return TRUE;
 }
 
+/**
+ * @brief Source callbacks needed for the integration of the mainloops
+ */
 static GSourceFuncs _sol_glib_integration_gsource_funcs = {
     .prepare = _sol_glib_integration_gsource_prepare,
     .check = _sol_glib_integration_gsource_check,
@@ -387,6 +390,9 @@ _sol_glib_integration_source_dispose(void *data)
     g_main_context_unref(ctx);
 }
 
+/**
+ * @brief Source type to integrate the mainloops (see @ref sol_mainloop_source_type)
+ */
 static const struct sol_mainloop_source_type _sol_glib_integration_source_type = {
 #ifndef SOL_NO_API_VERSION
     .api_version = SOL_MAINLOOP_SOURCE_TYPE_API_VERSION,
