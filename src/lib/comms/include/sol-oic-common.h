@@ -60,11 +60,12 @@ extern "C" {
 
 /**
  * @brief Structure containing all fields that are retrived by
- * @ref sol_oic_client_get_server_info()
+ * @ref sol_oic_client_get_platform_info() and @ref
+ * sol_oic_client_get_platform_info_by_addr
  */
-struct sol_oic_server_information {
+struct sol_oic_platform_information {
 #ifndef SOL_NO_API_VERSION
-#define SOL_OIC_SERVER_INFORMATION_API_VERSION (1)
+#define SOL_OIC_PLATFORM_INFORMATION_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
     int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
@@ -168,6 +169,36 @@ enum sol_oic_resource_flag {
          * Connection established with a secure devices is secure.
          */
         SOL_OIC_FLAG_SECURE = 1 << 4
+};
+
+/**
+ * @brief Structure containing all fields that are retrived by
+ * @ref sol_oic_client_get_server_info() and @ref
+ * sol_oic_client_get_server_info_by_addr
+ */
+struct sol_oic_server_information {
+#ifndef SOL_NO_API_VERSION
+#define SOL_OIC_SERVER_INFORMATION_API_VERSION (1)
+    uint16_t api_version; /**< @brief API version */
+    int : 0; /**< @brief Unused. Save possible hole for a future field */
+#endif
+
+    /**
+     * @brief Device name
+     */
+    struct sol_str_slice device_name;
+    /**
+     * @brief Spec version of the core specification implemented by this device.
+     */
+    struct sol_str_slice spec_version;
+    /**
+     * @brief Unique device identifier.
+     */
+    struct sol_str_slice device_id;
+    /**
+     * @brief Spec version of data model.
+     */
+    struct sol_str_slice data_model_version;
 };
 
 /**
