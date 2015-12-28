@@ -233,7 +233,8 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
  * @c NULL @a info and any clean up can be performed.
  *
  * @param client An oic client instance.
- * @param resource The resource that is going to receive the request.
+ * @param cliaddr The address of the server that contains the desired
+ *        information.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
  *        perform the request, info is the @ref sol_oic_platform_information
@@ -289,7 +290,8 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  * @c NULL @a info and any clean up can be performed.
  *
  * @param client An oic client instance.
- * @param resource The resource that is going to receive the request.
+ * @param cliaddr The address of the server that contains the desired
+ *        information.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
  *        perform the request, info is the @ref sol_oic_server_information
