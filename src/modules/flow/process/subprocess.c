@@ -159,6 +159,7 @@ on_fork(void *data)
     close(STDIN_FILENO);
     close(STDERR_FILENO);
 
+    /* dup2 is acceptable because we want the pipes to not be FD_CLOEXEC */
     if (dup2(mdata->pipes.out[0], STDIN_FILENO) < 0)
         goto err;
     if (dup2(mdata->pipes.in[1], STDOUT_FILENO) < 0)
@@ -383,27 +384,20 @@ process_subprocess_open(struct sol_flow_node *node, void *data, const struct sol
     mdata->node = node;
     sol_vector_init(&mdata->write_data, sizeof(struct write_data));
 
-    if (pipe(mdata->pipes.out) < 0) {
+    if (pipe2(mdata->pipes.out, O_NONBLOCK | O_CLOEXEC) < 0) {
         SOL_WRN("Failed to create out pipe");
         return -errno;
     }
 
-    if (pipe(mdata->pipes.in) < 0) {
+    if (pipe2(mdata->pipes.in, O_NONBLOCK | O_CLOEXEC) < 0) {
         SOL_WRN("Failed to create in pipe");
         goto in_err;
     }
 
-    if (pipe(mdata->pipes.err) < 0) {
+    if (pipe2(mdata->pipes.err, O_NONBLOCK | O_CLOEXEC) < 0) {
         SOL_WRN("Failed to create err pipe");
         goto err_err;
     }
-
-    SOL_INT_CHECK_GOTO(sol_util_fd_set_flag(
-        mdata->pipes.in[0], O_NONBLOCK), < 0, flags_err);
-    SOL_INT_CHECK_GOTO(sol_util_fd_set_flag(
-        mdata->pipes.err[0], O_NONBLOCK), < 0, flags_err);
-    SOL_INT_CHECK_GOTO(sol_util_fd_set_flag(
-        mdata->pipes.out[1], O_NONBLOCK), < 0, flags_err);
 
     mdata->command = strdup(opts->command);
     SOL_NULL_CHECK_GOTO(mdata->command, flags_err);
