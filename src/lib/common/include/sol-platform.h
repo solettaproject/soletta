@@ -74,7 +74,7 @@ extern "C" {
  * When this time is reached, stops the * chunk reading and allow mainloop to run again.
  * This keeps interactivity.
  */
-#define CHUNK_MAX_TIME_NS (20 * (NSEC_PER_MSEC))
+#define CHUNK_MAX_TIME_NS (20 * 1000000)
 
 /**
  * @brief Retrieves the name of the board on which Soletta is running.
