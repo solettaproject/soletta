@@ -49,36 +49,6 @@ extern "C" {
 #define strndupa(str_, len_)     __strndupa_internal__(str_, len_, __tmp__ ## __LINE__)
 #endif
 
-#if defined(HAVE_SOCKET) && !defined(HAVE_ACCEPT4)
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
-static inline int
-accept4(int sockfd, struct sockaddr *addr, socklen_t *len, int flags)
-{
-    int fl, fd = accept(sockfd, addr, len);
-
-    if (fd < 0)
-        return fd;
-
-    fl = fcntl(fd, F_GETFD);
-    if (fl == -1)
-        goto err;
-
-    fl |= flags;
-    if (fcntl(fd, F_SETFD, fl) == -1)
-        goto err;
-
-    return fd;
-
-err:
-    close(fd);
-    return -1;
-}
-#endif
-
 #ifndef HAVE_DECL_MEMMEM
 #include <string.h>
 
