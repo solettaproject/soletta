@@ -1181,6 +1181,15 @@ error:
     return -EINVAL;
 }
 
+static bool
+is_coap_ping(struct sol_coap_packet *req)
+{
+    if (sol_coap_header_get_type(req) == SOL_COAP_TYPE_CON &&
+        !sol_coap_packet_has_payload(req))
+        return true;
+    return false;
+}
+
 static int
 respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
@@ -1196,6 +1205,15 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     uint16_t i;
     uint8_t code;
     bool remove_outgoing = true;
+    struct sol_coap_packet *pong;
+
+    if (is_coap_ping(req)) {
+        SOL_DBG("Coap ping, sending pong");
+        pong = sol_coap_packet_new(req);
+        SOL_NULL_CHECK(pong, -ENOMEM);
+        sol_coap_header_set_type(pong, SOL_COAP_TYPE_ACK);
+        return sol_coap_send_packet(server, pong, cliaddr);
+    }
 
     code = sol_coap_header_get_code(req);
 
