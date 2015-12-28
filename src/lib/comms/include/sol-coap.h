@@ -217,6 +217,13 @@ typedef enum {
 } sol_coap_responsecode_t;
 
 /**
+ * @brief Macro to indicates that the header code was not set.
+ *
+ * To be used with sol_coap_header_set_code()
+ */
+#define SOL_COAP_CODE_EMPTY (0)
+
+/**
  * @brief Some content-types available for use with the CONTENT_FORMAT option.
  *
  * Refer to RFC 7252, section 12.3 for more information.
@@ -380,6 +387,7 @@ uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *l
  *
  * If the packet is a request, the code returned is one of #sol_coap_method_t.
  * If it's a response, it will be one of #sol_coap_responsecode_t.
+ * If the code was not set, it will return #SOL_COAP_CODE_EMPTY.
  *
  * @param pkt The packet to get the code from.
  *

@@ -203,10 +203,11 @@ sol_coap_header_get_code(const struct sol_coap_packet *pkt)
     case SOL_COAP_RSPCODE_SERVICE_UNAVAILABLE:
     case SOL_COAP_RSPCODE_GATEWAY_TIMEOUT:
     case SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED:
+    case SOL_COAP_CODE_EMPTY:
         return code;
     default:
         SOL_WRN("Invalid code (%d)", code);
-        return 0;
+        return SOL_COAP_CODE_EMPTY;
     }
 }
 
@@ -1181,6 +1182,17 @@ error:
     return -EINVAL;
 }
 
+static bool
+is_coap_ping(struct sol_coap_packet *req)
+{
+    uint8_t tokenlen;
+
+    (void)sol_coap_header_get_token(req, &tokenlen);
+    return (sol_coap_header_get_type(req) == SOL_COAP_TYPE_CON &&
+            sol_coap_header_get_code(req) == SOL_COAP_CODE_EMPTY &&
+            tokenlen == 0 && !sol_coap_packet_has_payload(req));
+}
+
 static int
 respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
@@ -1196,6 +1208,15 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     uint16_t i;
     uint8_t code;
     bool remove_outgoing = true;
+
+    if (is_coap_ping(req)) {
+        struct sol_coap_packet *pong;
+        SOL_DBG("Coap ping, sending pong");
+        pong = sol_coap_packet_new(req);
+        SOL_NULL_CHECK(pong, -ENOMEM);
+        sol_coap_header_set_type(pong, SOL_COAP_TYPE_RESET);
+        return sol_coap_send_packet(server, pong, cliaddr);
+    }
 
     code = sol_coap_header_get_code(req);
 
