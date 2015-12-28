@@ -40,8 +40,8 @@
 	  },
 	  {
             "data_type": "string",
-            "description": "The namespace will be used for the start and callback url",
-            "name": "namespace"
+            "description": "The base name will be used for the start and callback url",
+            "name": "basename"
 	  },
 	  {
             "data_type": "string",
