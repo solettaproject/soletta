@@ -47,18 +47,7 @@ sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, const char *href, struct
 
     cbor_encoder_init(&encoder->encoder, encoder->payload, size, 0);
 
-    err = cbor_encoder_create_array(&encoder->encoder, &encoder->array,
-        CborIndefiniteLength);
-    err |= cbor_encode_uint(&encoder->array, SOL_OIC_PAYLOAD_REPRESENTATION);
-
-    err |= cbor_encoder_create_map(&encoder->array, &encoder->map,
-        CborIndefiniteLength);
-
-    err |= cbor_encode_text_stringz(&encoder->map, SOL_OIC_KEY_HREF);
-    err |= cbor_encode_text_stringz(&encoder->map, href);
-
-    err |= cbor_encode_text_stringz(&encoder->map, SOL_OIC_KEY_REPRESENTATION);
-    err |= cbor_encoder_create_map(&encoder->map, &encoder->rep_map,
+    err = cbor_encoder_create_map(&encoder->encoder, &encoder->rep_map,
         CborIndefiniteLength);
 
     encoder->has_data = false;
@@ -76,9 +65,7 @@ sol_oic_packet_cbor_close(struct sol_coap_packet *pkt, struct sol_oic_map_writer
         return CborNoError;
     }
 
-    err = cbor_encoder_close_container(&encoder->map, &encoder->rep_map);
-    err |= cbor_encoder_close_container(&encoder->array, &encoder->map);
-    err |= cbor_encoder_close_container(&encoder->encoder, &encoder->array);
+    err = cbor_encoder_close_container(&encoder->encoder, &encoder->rep_map);
 
     if (err == CborNoError)
         sol_coap_packet_set_payload_used(pkt,
@@ -199,33 +186,20 @@ CborError
 sol_oic_packet_cbor_extract_repr_map(struct sol_coap_packet *pkt, CborParser *parser, CborValue *repr_map)
 {
     CborError err;
-    CborValue root, array;
     uint8_t *payload;
     uint16_t size;
-    int payload_type;
 
     if (sol_coap_packet_get_payload(pkt, &payload, &size) < 0)
         return CborErrorUnknownLength;
 
-    err = cbor_parser_init(payload, size, 0, parser, &root);
+    err = cbor_parser_init(payload, size, 0, parser, repr_map);
     if (err != CborNoError)
         return err;
 
-    if (!cbor_value_is_array(&root))
+    if (!cbor_value_is_map(repr_map))
         return CborErrorIllegalType;
 
-    err |= cbor_value_enter_container(&root, &array);
-
-    err |= cbor_value_get_int(&array, &payload_type);
-    err |= cbor_value_advance_fixed(&array);
-    if (err != CborNoError)
-        return err;
-    if (payload_type != SOL_OIC_PAYLOAD_REPRESENTATION)
-        return CborErrorIllegalType;
-
-    err = cbor_value_map_find_value(&array, SOL_OIC_KEY_REPRESENTATION, repr_map);
-
-    return err;
+    return CborNoError;
 }
 
 bool
@@ -237,4 +211,122 @@ sol_oic_pkt_has_cbor_content(const struct sol_coap_packet *pkt)
     ptr = sol_coap_find_first_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, &len);
 
     return ptr && len == 1 && *ptr == SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
+}
+
+bool
+sol_cbor_array_to_vector(CborValue *array, struct sol_vector *vector)
+{
+    CborError err;
+    CborValue iter;
+
+    for (err = cbor_value_enter_container(array, &iter);
+        cbor_value_is_text_string(&iter) && err == CborNoError;
+        err |= cbor_value_advance(&iter)) {
+        struct sol_str_slice *slice = sol_vector_append(vector);
+
+        if (!slice) {
+            err = CborErrorOutOfMemory;
+            break;
+        }
+
+        err |= cbor_value_dup_text_string(&iter, (char **)&slice->data, &slice->len, NULL);
+    }
+
+    return (err | cbor_value_leave_container(array, &iter)) == CborNoError;
+}
+
+bool
+sol_cbor_map_get_array(const CborValue *map, const char *key,
+    struct sol_vector *vector)
+{
+    CborValue value;
+
+    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
+        return false;
+
+    if (!cbor_value_is_array(&value))
+        return false;
+
+    return sol_cbor_array_to_vector(&value, vector);
+}
+
+bool
+sol_cbor_map_get_str_value(const CborValue *map, const char *key,
+    struct sol_str_slice *slice)
+{
+    CborValue value;
+
+    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
+        return false;
+
+    return cbor_value_dup_text_string(&value, (char **)&slice->data, &slice->len, NULL) == CborNoError;
+}
+
+bool
+sol_cbor_bsv_to_vector(const CborValue *value, char **data, struct sol_vector *vector)
+{
+    size_t len;
+    char *last, *p;
+
+    if (*data) {
+        free(*data);
+        *data = NULL;
+    }
+    sol_vector_clear(vector);
+    if (cbor_value_dup_text_string(value, data, &len, NULL) != CborNoError)
+        return false;
+
+    for (last = *data; last != NULL;) {
+        size_t cur_len;
+
+        p = strchr(last, ' ');
+        if (p == NULL)
+            cur_len = len;
+        else {
+            cur_len = p - last;
+            p++;
+            len--;
+        }
+
+        if (cur_len > 0) {
+            struct sol_str_slice *slice = sol_vector_append(vector);
+            if (!slice)
+                goto error;
+            *slice = SOL_STR_SLICE_STR(last, cur_len);
+        }
+        last = p;
+        len -= cur_len;
+    }
+
+    return true;
+
+error:
+    free(*data);
+    *data = NULL;
+    sol_vector_clear(vector);
+    return false;
+}
+
+bool
+sol_cbor_map_get_bsv(const CborValue *map, const char *key,
+    char **data, struct sol_vector *vector)
+{
+    CborValue value;
+
+    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
+        return false;
+
+    return sol_cbor_bsv_to_vector(&value, data, vector);
+}
+
+bool
+sol_cbor_map_get_bytestr_value(const CborValue *map, const char *key,
+    struct sol_str_slice *slice)
+{
+    CborValue value;
+
+    if (cbor_value_map_find_value(map, key, &value) != CborNoError)
+        return false;
+
+    return cbor_value_dup_byte_string(&value, (uint8_t **)&slice->data, &slice->len, NULL) == CborNoError;
 }

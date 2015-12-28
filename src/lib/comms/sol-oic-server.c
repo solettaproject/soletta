@@ -238,7 +238,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
-    CborEncoder encoder, array;
+    CborEncoder encoder, array, device_map, array_res;
     CborError err;
     struct sol_oic_server_resource *iter;
     struct sol_coap_packet *resp;
@@ -267,16 +267,20 @@ _sol_oic_server_res(struct sol_coap_server *server,
     sol_coap_packet_get_payload(resp, &payload, &size);
 
     cbor_encoder_init(&encoder, payload, size, 0);
-    if (uri_query) {
-        err = cbor_encoder_create_array(&encoder, &array, CborIndefiniteLength);
-    } else {
-        err = cbor_encoder_create_array(&encoder, &array, 1 + oic_server.resources.len);
-    }
 
-    err |= cbor_encode_uint(&array, SOL_OIC_PAYLOAD_DISCOVERY);
+    err = cbor_encoder_create_array(&encoder, &array, 1);
+    err |= cbor_encoder_create_map(&array, &device_map, 2);
+    err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_DEVICE_ID);
+    err |= cbor_encode_byte_string(&device_map, get_machine_id(), 16);
+    err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_RESOURCE_LINKS);
+    if (uri_query)
+        err |= cbor_encoder_create_array(&device_map, &array_res, CborIndefiniteLength);
+    else
+        err |= cbor_encoder_create_array(&device_map, &array_res, oic_server.resources.len);
 
+    SOL_INT_CHECK_GOTO(err, != CborNoError, error);
     SOL_VECTOR_FOREACH_IDX (&oic_server.resources, iter, idx) {
-        CborEncoder map, prop_map, policy_map;
+        CborEncoder map, policy_map;
 
         if (uri_query && iter->rt) {
             size_t rt_len = strlen(iter->rt);
@@ -292,46 +296,32 @@ _sol_oic_server_res(struct sol_coap_server *server,
         if (!(iter->flags & SOL_OIC_FLAG_ACTIVE))
             continue;
 
-        err |= cbor_encoder_create_map(&array, &map, 3);
+        err |= cbor_encoder_create_map(&array_res, &map, !!iter->iface + !!iter->rt + 2);
 
         err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_HREF);
         err |= cbor_encode_text_stringz(&map, iter->href);
 
-        err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_DEVICE_ID);
-        err |= cbor_encode_byte_string(&map, get_machine_id(), 16);
-
-        err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_PROPERTIES);
-        err |= cbor_encoder_create_map(&map, &prop_map, !!iter->iface + !!iter->rt + 1);
-
         if (iter->iface) {
-            CborEncoder if_array;
-
-            err |= cbor_encode_text_stringz(&prop_map, SOL_OIC_KEY_INTERFACES);
-            err |= cbor_encoder_create_array(&prop_map, &if_array, 1);
-            err |= cbor_encode_text_stringz(&if_array, iter->iface);
-            err |= cbor_encoder_close_container(&prop_map, &if_array);
+            err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_INTERFACES);
+            err |= cbor_encode_text_stringz(&map, iter->iface);
         }
 
         if (iter->rt) {
-            CborEncoder rt_array;
-
-            err |= cbor_encode_text_stringz(&prop_map, SOL_OIC_KEY_RESOURCE_TYPES);
-            err |= cbor_encoder_create_array(&prop_map, &rt_array, 1);
-            err |= cbor_encode_text_stringz(&rt_array, iter->rt);
-            err |= cbor_encoder_close_container(&prop_map, &rt_array);
+            err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_RESOURCE_TYPES);
+            err |= cbor_encode_text_stringz(&map, iter->rt);
         }
 
-        err |= cbor_encode_text_stringz(&prop_map, SOL_OIC_KEY_POLICY);
-        err |= cbor_encoder_create_map(&prop_map, &policy_map, CborIndefiniteLength);
+        err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_POLICY);
+        err |= cbor_encoder_create_map(&map, &policy_map, CborIndefiniteLength);
         err |= cbor_encode_text_stringz(&policy_map, SOL_OIC_KEY_BITMAP);
         err |= cbor_encode_uint(&policy_map, iter->flags);
-        err |= cbor_encoder_close_container(&prop_map, &policy_map);
+        err |= cbor_encoder_close_container(&map, &policy_map);
 
-        err |= cbor_encoder_close_container(&map, &prop_map);
-
-        err |= cbor_encoder_close_container(&array, &map);
+        err |= cbor_encoder_close_container(&array_res, &map);
     }
 
+    err |= cbor_encoder_close_container(&device_map, &array_res);
+    err |= cbor_encoder_close_container(&array, &device_map);
     err |= cbor_encoder_close_container(&encoder, &array);
 
     if (err != CborNoError) {
@@ -342,6 +332,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
 
         sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_INTERNAL_ERROR);
     } else {
+error:
         sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_OK);
         sol_coap_packet_set_payload_used(resp, encoder.ptr - payload);
     }
