@@ -70,7 +70,7 @@ on_idle_renew_twice(void *data)
 }
 
 static bool
-on_timeout_renew_twice(void *data)
+linux_on_timeout_renew_twice(void *data)
 {
     timeout_count++;
     if (timeout_count == 1)
@@ -105,8 +105,12 @@ on_fd(void *data, int fd, uint32_t active_flags)
     return true;
 }
 
+#ifndef TEST_MAINLOOP_LINUX_MAIN_FN
+#define TEST_MAINLOOP_LINUX_MAIN_FN main
+#endif
+
 int
-main(int argc, char *argv[])
+TEST_MAINLOOP_LINUX_MAIN_FN(int argc, char *argv[])
 {
     int err, fds[2];
     pid_t pid;
@@ -152,7 +156,7 @@ main(int argc, char *argv[])
     ASSERT_INT_EQ(err, 0);
 
     sol_fd_add(fds[0], SOL_FD_FLAGS_IN, on_fd, NULL);
-    sol_timeout_add(1, on_timeout_renew_twice, NULL);
+    sol_timeout_add(1, linux_on_timeout_renew_twice, NULL);
     sol_timeout_add(10000, watchdog, NULL);
     sol_idle_add(on_idle_renew_twice, &idler_count1);
     sol_run();
