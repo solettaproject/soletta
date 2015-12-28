@@ -312,7 +312,7 @@ test_flow_del_type(struct sol_flow_node_type *type)
 #define ASSERT_EVENT_COUNT(node, event, count) \
     ASSERT_INT_EQ(count_events(node, event, UINT16_MAX), count);
 
-#define ASSERT_EVENT_WITH_ID_COUNT(node, event, id, count)   \
+#define ASSERT_EVENT_WITH_ID_COUNT(node, event, id, count) \
     ASSERT_INT_EQ(count_events(node, event, id), count);
 
 

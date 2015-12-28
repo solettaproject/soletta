@@ -48,14 +48,14 @@
 #include "sol-flow-metatype-builtins-gen.h"
 
 #ifndef SOL_NO_API_VERSION
-#define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...)          \
-    do {                                                                \
-        if ((client)->api_version != (expected)) {                      \
-            SOL_WRN("Invalid " # client " %p API version(%lu), "         \
-                "expected " # expected "(%lu)",                     \
-                (client), (client)->api_version, (expected));       \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+#define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...) \
+    do { \
+        if ((client)->api_version != (expected)) { \
+            SOL_WRN("Invalid " # client " %p API version(%lu), " \
+                "expected " # expected "(%lu)", \
+                (client), (client)->api_version, (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 #else
 #define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...)

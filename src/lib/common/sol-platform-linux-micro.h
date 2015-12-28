@@ -61,13 +61,13 @@ struct sol_platform_linux_micro_module {
 void sol_platform_linux_micro_inform_service_state(const char *service, enum sol_platform_service_state state);
 
 #ifdef SOL_PLATFORM_LINUX_MICRO_MODULE_EXTERNAL
-#define SOL_PLATFORM_LINUX_MICRO_MODULE(_NAME, decl ...)                  \
+#define SOL_PLATFORM_LINUX_MICRO_MODULE(_NAME, decl ...) \
     SOL_API const struct sol_platform_linux_micro_module *SOL_PLATFORM_LINUX_MICRO_MODULE = &((const struct sol_platform_linux_micro_module) { \
             SOL_SET_API_VERSION(.api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, ) \
             decl \
         })
 #else
-#define SOL_PLATFORM_LINUX_MICRO_MODULE(_NAME, decl ...)                    \
+#define SOL_PLATFORM_LINUX_MICRO_MODULE(_NAME, decl ...) \
     const struct sol_platform_linux_micro_module SOL_PLATFORM_LINUX_MICRO_MODULE_ ## _NAME = { \
         SOL_SET_API_VERSION(.api_version = SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION, ) \
         decl \

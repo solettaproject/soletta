@@ -54,7 +54,7 @@ static int init_ref;
 
 #ifndef SOL_NO_API_VERSION
 #define MQTT_CHECK_API(ptr, ...) \
-    do {                                        \
+    do { \
         if (unlikely(ptr->api_version != \
             SOL_MQTT_CONFIG_API_VERSION)) { \
             SOL_WRN("Couldn't handle mqtt handler that has unsupported " \

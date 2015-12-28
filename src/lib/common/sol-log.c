@@ -63,14 +63,14 @@ void (*_print_function)(void *data, const struct sol_log_domain *domain, uint8_t
 const void *_print_function_data = NULL;
 
 static bool _inited = false;
-#define SOL_LOG_INIT_CHECK(fmt, ...)                                     \
-    do {                                                                \
-        if (unlikely(!_inited)) {                                       \
-            fprintf(stderr, "CRITICAL:%s:%d:%s() "                      \
-                "SOL_LOG used before initialization. "fmt "\n",       \
+#define SOL_LOG_INIT_CHECK(fmt, ...) \
+    do { \
+        if (unlikely(!_inited)) { \
+            fprintf(stderr, "CRITICAL:%s:%d:%s() " \
+                "SOL_LOG used before initialization. "fmt "\n", \
                 __FILE__, __LINE__, __PRETTY_FUNCTION__, ## __VA_ARGS__); \
-            abort();                                                    \
-        }                                                               \
+            abort(); \
+        } \
     } while (0)
 
 

@@ -303,7 +303,7 @@ _kcmdline_parse_var(const char *start, size_t len)
         void *data;
         void (*parse)(const char *str, size_t size, void *data);
     } specs[] = {
-#define SPEC(str, storage, parse)               \
+#define SPEC(str, storage, parse) \
     { str, sizeof(str) - 1, storage, parse \
     }
         SPEC("LEVELS", NULL, _levels_parse_wrapper),

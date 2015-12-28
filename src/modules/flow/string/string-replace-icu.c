@@ -61,7 +61,7 @@
 
 #define STRINGLIB_BLOOM_ADD(mask, ch) \
     ((mask |= (1UL << ((ch) & (STRINGLIB_BLOOM_WIDTH - 1)))))
-#define STRINGLIB_BLOOM(mask, ch)     \
+#define STRINGLIB_BLOOM(mask, ch) \
     ((mask &  (1UL << ((ch) & (STRINGLIB_BLOOM_WIDTH - 1)))))
 
 static inline ssize_t

@@ -132,7 +132,7 @@ enum sol_json_loop_reason {
  * @param end_reason_ Loop exit status
  */
 #define SOL_JSON_SCANNER_ARRAY_LOOP_NEST(scanner_, token_, element_type_, end_reason_) \
-    for (end_reason_ = SOL_JSON_LOOP_REASON_OK;  \
+    for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
         sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
 
 /**
@@ -162,7 +162,7 @@ enum sol_json_loop_reason {
  * @param end_reason_ Loop exit status
  */
 #define SOL_JSON_SCANNER_ARRAY_LOOP_ALL_NEST(scanner_, token_, end_reason_) \
-    for (end_reason_ = SOL_JSON_LOOP_REASON_OK;  \
+    for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
         sol_json_loop_helper_generic(scanner_, token_, SOL_JSON_TYPE_ARRAY_END, &end_reason_);)
 
 /**

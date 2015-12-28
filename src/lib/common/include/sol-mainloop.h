@@ -571,22 +571,22 @@ struct sol_main_callbacks {
 #ifdef SOL_PLATFORM_CONTIKI
 #include "sol-mainloop-contiki.h"
 
-#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN)               \
-    PROCESS(soletta_app_process, "soletta app process");  \
-    AUTOSTART_PROCESSES(&soletta_app_process);            \
-    PROCESS_THREAD(soletta_app_process, ev, data)         \
-    {                                                     \
-        sol_mainloop_contiki_event_set(ev, data);         \
-        PROCESS_BEGIN();                                  \
-        if (sol_init() < 0)                               \
-            return EXIT_FAILURE;                          \
-        STARTUP();                                        \
-        sol_run();                                        \
-        while (sol_mainloop_contiki_iter())               \
-            PROCESS_WAIT_EVENT();                         \
-        SHUTDOWN();                                       \
-        sol_shutdown();                                   \
-        PROCESS_END();                                    \
+#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN) \
+    PROCESS(soletta_app_process, "soletta app process"); \
+    AUTOSTART_PROCESSES(&soletta_app_process); \
+    PROCESS_THREAD(soletta_app_process, ev, data) \
+    { \
+        sol_mainloop_contiki_event_set(ev, data); \
+        PROCESS_BEGIN(); \
+        if (sol_init() < 0) \
+            return EXIT_FAILURE; \
+        STARTUP(); \
+        sol_run(); \
+        while (sol_mainloop_contiki_iter()) \
+            PROCESS_WAIT_EVENT(); \
+        SHUTDOWN(); \
+        sol_shutdown(); \
+        PROCESS_END(); \
     }
 #else
 #ifdef SOL_PLATFORM_RIOT
@@ -595,17 +595,17 @@ struct sol_main_callbacks {
         return sol_mainloop_default_main(&(CALLBACKS), 0, NULL); \
     }
 #else
-#define SOL_MAIN(CALLBACKS)                                          \
-    int main(int argc, char *argv[]) {                              \
-        return sol_mainloop_default_main(&(CALLBACKS), argc, argv);  \
+#define SOL_MAIN(CALLBACKS) \
+    int main(int argc, char *argv[]) { \
+        return sol_mainloop_default_main(&(CALLBACKS), argc, argv); \
     }
 #endif /* SOL_PLATFORM_RIOT */
-#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN)                              \
+#define SOL_MAIN_DEFAULT(STARTUP, SHUTDOWN) \
     static const struct sol_main_callbacks sol_main_callbacks_instance = { \
         SOL_SET_API_VERSION(.api_version = SOL_MAIN_CALLBACKS_API_VERSION, ) \
-        .startup = (STARTUP),                                           \
-        .shutdown = (SHUTDOWN),                                         \
-    };                                                                  \
+        .startup = (STARTUP), \
+        .shutdown = (SHUTDOWN), \
+    }; \
     SOL_MAIN(sol_main_callbacks_instance)
 #endif /* SOL_PLATFORM_CONTIKI */
 

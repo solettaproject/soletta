@@ -43,16 +43,16 @@
 #include "sol-buffer.h"
 #include "sol-str-table.h"
 
-#define SOL_FLOW_PACKET_CHECK(packet, _type, ...)        \
-    do {                                                \
-        if (unlikely(!(packet))) {                      \
-            SOL_WRN("" # packet "== NULL");              \
-            return __VA_ARGS__;                         \
-        }                                               \
-        if (unlikely((packet)->type != _type)) {        \
-            SOL_WRN("" # packet "->type != " # _type);   \
-            return __VA_ARGS__;                         \
-        }                                               \
+#define SOL_FLOW_PACKET_CHECK(packet, _type, ...) \
+    do { \
+        if (unlikely(!(packet))) { \
+            SOL_WRN("" # packet "== NULL"); \
+            return __VA_ARGS__; \
+        } \
+        if (unlikely((packet)->type != _type)) { \
+            SOL_WRN("" # packet "->type != " # _type); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
 struct sol_flow_packet {
