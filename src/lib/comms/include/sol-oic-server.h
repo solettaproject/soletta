@@ -277,7 +277,7 @@ struct sol_oic_resource_type {
      *
      * @return The coap response code of this request.
      */
-        delete;
+        del;
 };
 
 /**

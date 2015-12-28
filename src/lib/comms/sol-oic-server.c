@@ -75,7 +75,7 @@ struct sol_oic_server_resource {
             sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
                 const void *data, const struct sol_oic_map_reader *input,
                 struct sol_oic_map_writer *output);
-        } get, put, post, delete;
+        } get, put, post, del;
         const void *data;
     } callback;
 };
@@ -622,7 +622,7 @@ done:
 DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(get, false)
 DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(put, true)
 DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(post, true)
-DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(delete, true)
+DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(del, true)
 
 #undef DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD
 
@@ -668,7 +668,7 @@ create_coap_resource(struct sol_oic_server_resource *resource)
     res->get = _sol_oic_resource_type_get;
     res->put = _sol_oic_resource_type_put;
     res->post = _sol_oic_resource_type_post;
-    res->delete = _sol_oic_resource_type_delete;
+    res->del = _sol_oic_resource_type_del;
 
     if (resource->flags & SOL_OIC_FLAG_DISCOVERABLE)
         res->flags |= SOL_COAP_FLAGS_WELL_KNOWN;
@@ -715,7 +715,7 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
     res->callback.get.handle = rt->get.handle;
     res->callback.put.handle = rt->put.handle;
     res->callback.post.handle = rt->post.handle;
-    res->callback.delete.handle = rt->delete.handle;
+    res->callback.del.handle = rt->del.handle;
     res->flags = flags;
 
     res->rt = strndup(rt->resource_type.data, rt->resource_type.len);
