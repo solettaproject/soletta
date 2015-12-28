@@ -513,7 +513,7 @@ int sol_json_token_get_double(const struct sol_json_token *token, double *value)
 static inline struct sol_str_slice
 sol_json_token_to_slice(const struct sol_json_token *token)
 {
-    return SOL_STR_SLICE_STR(token->start, token->end - token->start);
+    return SOL_STR_SLICE_STR(token->start, (size_t)(token->end - token->start));
 }
 
 /**

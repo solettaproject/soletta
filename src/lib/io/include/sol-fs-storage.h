@@ -258,7 +258,7 @@ sol_fs_read_string(const char *name, char **value)
         return r;
     }
 
-    *value = sol_buffer_steal(&buf, NULL);
+    *value = (char *)sol_buffer_steal(&buf, NULL);
 
     return 0;
 }
