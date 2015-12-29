@@ -332,7 +332,8 @@ bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
  *        sol_oic_map_append() to append data to @a repr_map.
  * @param fill_repr_map_data User's data to be passed to @a fill_repr_map.
  * @param callback Callback to be called when a response from this request
- *        arrives. Parameter @a cli is the @a client used to perform the
+ *        arrives. Parameter @a response_code is the header response code of
+ *        this request, @a cli is the @a client used to perform the
  *        request, @a addr is the address of the server and repr_vec is a
  *        handler to access data from response, using @ref SOL_OIC_MAP_LOOP()
  *        macro. @a data is the user's @a callback_data. When timeout is reached
@@ -347,7 +348,7 @@ bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_o
     sol_coap_method_t method,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
     void *fill_repr_map_data,
-    void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec, void *data),
     void *callback_data);
 
@@ -372,7 +373,8 @@ bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_o
  *        sol_oic_map_append() to append data to @a repr_map.
  * @param fill_repr_map_data User's data to be passed to @a fill_repr_map.
  * @param callback Callback to be called when a response from this request
- *        arrives. Parameter @a cli is the @a client used to perform the
+ *        arrives. Parameter @a response_code is the header response code of
+ *        this request, @a cli is the @a client used to perform the
  *        request, @a addr is the address of the server and repr_vec is a
  *        handler to access data from response, using @ref SOL_OIC_MAP_LOOP()
  *        macro. @a data is the user's @a callback_data. When timeout is reached
@@ -386,7 +388,7 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
     sol_coap_method_t method,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map),
     void *fill_repr_map_data,
-    void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec, void *data),
     void *callback_data);
 
@@ -415,7 +417,8 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
  * @param client An oic client instance.
  * @param res The resource that is going to be observed
  * @param callback A callback to be called when notification responses arrive.
- *        Parameter @a cli is the @a client used to perform the request, @a addr
+ *        Parameter @a response_code is the header response code of this
+ *        request, @a cli is the @a client used to perform the request, @a addr
  *        is the address of the server, @a repr_map is the data from the
  *        notification and @a data is a pointer to user's data. To extract data
  *        from @a repr_map use @ref SOL_OIC_MAP_LOOP() macro. Callback is called
@@ -427,7 +430,7 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
  * @return True if packet was successfully sent. False otherwise.
  */
 bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_map, void *data),
     void *data, bool observe);
 
@@ -461,7 +464,8 @@ bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struc
  * @param client An oic client instance.
  * @param res The resource that is going to be observed
  * @param callback A callback to be called when notification responses arrive.
- *        Parameter @a cli is the @a client used to perform the request, @a addr
+ *        Parameter @a response_code is the header response code of this
+ *        request, @a cli is the @a client used to perform the request, @a addr
  *        is the address of the server, @a repr_map is the data from the
  *        notification and @a data is a pointer to user's data. To extract data
  *        from @a repr_map use @ref SOL_OIC_MAP_LOOP() macro. Callback is called
@@ -473,7 +477,7 @@ bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struc
  * @return True if packet was successfully sent. False otherwise.
  */
 bool sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
-    void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
+    void (*callback)(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_map, void *data),
     void *data, bool observe);
 
