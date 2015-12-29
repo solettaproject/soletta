@@ -57,6 +57,7 @@ sp_after_semi_for_empty       = remove
 sp_after_sparen               = force  # "if () {" vs "if (){"
 sp_arith                      = add
 sp_assign                     = add
+sp_before_nl_cont             = force
 sp_before_ptr_star            = add
 sp_before_sparen              = force  # "if (" vs "if("
 sp_before_unnamed_ptr_star    = add
