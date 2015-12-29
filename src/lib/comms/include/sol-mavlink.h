@@ -67,6 +67,11 @@ extern "C" {
  */
 struct sol_mavlink;
 
+/**
+ * @enum sol_mavlink_mode
+ *
+ * @brief Mavlink flight modes
+ */
 enum sol_mavlink_mode {
     /**
      * Acro mode (Rate mode) uses the RC sticks to control the angular velocity
