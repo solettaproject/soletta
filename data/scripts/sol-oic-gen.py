@@ -1062,6 +1062,9 @@ state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr
 {
     struct client_resource *resource = data;
 
+    if (!cliaddr)
+        return;
+
     if (!sol_network_link_addr_eq(cliaddr, &resource->resource->addr)) {
         char resaddr[SOL_INET_ADDR_STRLEN] = {0};
         char respaddr[SOL_INET_ADDR_STRLEN] = {0};

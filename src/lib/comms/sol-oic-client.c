@@ -798,6 +798,7 @@ _resource_request_cb(struct sol_coap_server *server,
     if (!ctx->cb)
         return false;
     if (!req || !addr) {
+        ctx->cb(ctx->client, NULL, NULL, ctx->data);
         free(data);
         return false;
     }
@@ -830,6 +831,11 @@ _one_shot_resource_request_cb(struct sol_coap_server *server,
 
     if (req && addr)
         _resource_request_cb(server, req, addr, data);
+    else {
+        struct resource_request_ctx *ctx = data;
+
+        ctx->cb(ctx->client, NULL, NULL, ctx->data);
+    }
 
     free(data);
     return false;
