@@ -92,6 +92,14 @@ obj-networking-$(MQTT) += \
 obj-networking-$(MQTT)-extra-ldflags += \
 	$(MOSQUITTO_LDFLAGS)
 
+obj-networking-$(MAVLINK) += \
+	sol-mavlink.o
+
+obj-networking-$(MAVLINK)-extra-cflags += \
+	-I$(MAVLINK_SRC_PATH)/common/ \
+	-I$(MAVLINK_SRC_PATH)/ardupilotmega/ \
+	-Wno-declaration-after-statement
+
 headers-$(NETWORK) += \
     include/sol-network.h
 
@@ -114,3 +122,6 @@ headers-$(HTTP_SERVER) += \
 
 headers-$(MQTT) += \
 	include/sol-mqtt.h
+
+headers-$(MAVLINK) += \
+	include/sol-mavlink.h
