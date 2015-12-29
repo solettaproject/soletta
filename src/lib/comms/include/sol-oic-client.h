@@ -165,7 +165,7 @@ struct sol_oic_resource {
 /**
  * @brief Send a discovevery packet to find resources.
  *
- * Sends a discovery packet to the destination address especified by @a cliaddr,
+ * Sends a discovery packet to the destination address especified by @a addr,
  * which may be a multicast address for discovery purposes.
  *
  * When a response is received, the function @a resource_found_cb will be
@@ -181,7 +181,7 @@ struct sol_oic_resource {
  * @c false, @a client will terminate response waiting.
  *
  * @param client An oic client instance.
- * @param cliaddr The address of the server that contains the desired resource.
+ * @param addr The address of the server that contains the desired resource.
  *        May be a multicast address if it is desired to look for resources in
  *        multiple servers.
  * @param resource_type A string representation of the type of the desired
@@ -195,7 +195,7 @@ struct sol_oic_resource {
  * @return True if packet was successfully sent. False otherwise.
  */
 bool sol_oic_client_find_resource(struct sol_oic_client *client,
-    struct sol_network_link_addr *cliaddr, const char *resource_type,
+    struct sol_network_link_addr *addr, const char *resource_type,
     bool (*resource_found_cb)(struct sol_oic_client *cli,
     struct sol_oic_resource *res,
     void *data),
@@ -230,9 +230,9 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
     void *data);
 
 /**
- * @brief Retrieve platform information from @a cliaddr.
+ * @brief Retrieve platform information from @a addr.
  *
- * Sends a packet to server identified by @a cliaddr asking for platform
+ * Sends a packet to server identified by @a addr asking for platform
  * information defined at @ref sol_oic_platform_information.
  *
  * When a response is received, the function @a info_received_cb will be
@@ -241,7 +241,7 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
  * @c NULL @a info and any clean up can be performed.
  *
  * @param client An oic client instance.
- * @param cliaddr The address of the server that contains the desired
+ * @param addr The address of the server that contains the desired
  *        information.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
@@ -253,7 +253,7 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
  * @return True if packet was successfully sent. False otherwise.
  */
 bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
-    struct sol_network_link_addr *cliaddr,
+    struct sol_network_link_addr *addr,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_platform_information *info, void *data),
     void *data);
@@ -287,9 +287,9 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
     void *data);
 
 /**
- * @brief Retrieve server information from @a cliaddr.
+ * @brief Retrieve server information from @a addr.
  *
- * Sends a packet to server identified by @a cliaddr asking for server
+ * Sends a packet to server identified by @a addr asking for server
  * information defined at @ref sol_oic_server_information.
  *
  * When a response is received, the function @a info_received_cb will be
@@ -298,7 +298,7 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  * @c NULL @a info and any clean up can be performed.
  *
  * @param client An oic client instance.
- * @param cliaddr The address of the server that contains the desired
+ * @param addr The address of the server that contains the desired
  *        information.
  * @param info_received_cb Callback to be called when response is received or
  *        when timeout is reached. Parameter cli is the sol_oic_client used to
@@ -310,7 +310,7 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  * @return True if packet was successfully sent. False otherwise.
  */
 bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
-    struct sol_network_link_addr *cliaddr,
+    struct sol_network_link_addr *addr,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_server_information *info, void *data),
     void *data);
