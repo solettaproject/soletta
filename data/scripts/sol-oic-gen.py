@@ -1057,12 +1057,12 @@ client_resource_implements_type(struct sol_oic_resource *oic_res, const char *re
 }
 
 static void
-state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
+state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
     const struct sol_oic_map_reader *repr_vec, void *data)
 {
     struct client_resource *resource = data;
 
-    if (!cliaddr)
+    if (!cliaddr || !repr_vec)
         return;
 
     if (!sol_network_link_addr_eq(cliaddr, &resource->resource->addr)) {
