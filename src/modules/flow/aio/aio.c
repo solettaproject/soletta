@@ -30,6 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+
 #include "sol-flow/aio.h"
 
 #include "sol-aio.h"
@@ -39,15 +44,11 @@
 #include "sol-util.h"
 #include "sol-types.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <limits.h>
-
 struct aio_data {
     struct sol_flow_node *node;
     struct sol_timeout *timer;
     struct sol_aio *aio;
+    struct sol_aio_pending *pending;
     char *pin;
     int mask;
     int last_value;
@@ -73,19 +74,20 @@ aio_close(struct sol_flow_node *node, void *data)
 // AIO READER
 // =============================================================================
 
-static bool
-_on_reader_timeout(void *data)
+static void
+read_cb(void *cb_data, struct sol_aio *aio, int32_t ret)
 {
     struct sol_irange i;
-    struct aio_data *mdata = data;
+    struct aio_data *mdata = cb_data;
 
-    SOL_NULL_CHECK(data, true);
+    SOL_NULL_CHECK(mdata);
 
-    i.val = sol_aio_get_value(mdata->aio);
+    i.val = ret;
     if (i.val < 0) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
-            "aio (%s): Could not read value.", mdata->pin);
-        return false;
+            "AIO (%s): Failed on read operation: %s.", mdata->pin,
+            sol_util_strerrora(i.val));
+        return;
     }
 
     if (mdata->is_first || i.val != mdata->last_value) {
@@ -96,6 +98,26 @@ _on_reader_timeout(void *data)
         i.step = 1;
         sol_flow_send_irange_packet(mdata->node,
             SOL_FLOW_NODE_TYPE_AIO_READER__OUT__OUT, &i);
+    }
+
+    mdata->pending = NULL;
+}
+
+static bool
+_on_reader_timeout(void *data)
+{
+    struct aio_data *mdata = data;
+
+    SOL_NULL_CHECK(data, true);
+
+    if (sol_aio_busy(mdata->aio))
+        return true;
+
+    mdata->pending = sol_aio_get_value(mdata->aio, read_cb, mdata);
+    if (!mdata->pending) {
+        sol_flow_send_error_packet(mdata->node, EINVAL,
+            "AIO (%s): Failed to issue read operation.", mdata->pin);
+        return false;
     }
 
     return true;
