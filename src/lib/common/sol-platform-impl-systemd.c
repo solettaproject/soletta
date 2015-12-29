@@ -547,7 +547,8 @@ static const struct sol_bus_properties _hostname_property = {
 int
 sol_platform_unregister_hostname_monitor(void)
 {
-    return sol_bus_unmap_cached_properties(&_hostname_property, NULL);
+    return sol_bus_unmap_cached_properties
+               (_ctx.systemd, &_hostname_property, NULL);
 }
 
 static void
@@ -564,7 +565,7 @@ sol_platform_register_hostname_monitor(void)
     bus = sol_bus_get(NULL);
     SOL_NULL_CHECK(bus, -ENOTCONN);
 
-    return sol_bus_map_cached_properties(bus, "org.freedesktop.hostname1",
+    return sol_bus_map_cached_properties(_ctx.systemd,
         "/org/freedesktop/hostname1", "org.freedesktop.hostname1",
         &_hostname_property, _hostname_changed, NULL);
 }
@@ -624,7 +625,7 @@ sol_platform_register_timezone_monitor(void)
     bus = sol_bus_get(NULL);
     SOL_NULL_CHECK(bus, -ENOTCONN);
 
-    return sol_bus_map_cached_properties(bus, "org.freedesktop.timedate1",
+    return sol_bus_map_cached_properties(_ctx.systemd,
         "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
         &_timezone_property, _timezone_changed, NULL);
 }
@@ -632,7 +633,8 @@ sol_platform_register_timezone_monitor(void)
 int
 sol_platform_unregister_timezone_monitor(void)
 {
-    return sol_bus_unmap_cached_properties(&_timezone_property, NULL);
+    return sol_bus_unmap_cached_properties
+               (_ctx.systemd, &_timezone_property, NULL);
 }
 
 int
@@ -701,7 +703,7 @@ sol_platform_register_locale_monitor(void)
     bus = sol_bus_get(NULL);
     SOL_NULL_CHECK(bus, -ENOTCONN);
 
-    return sol_bus_map_cached_properties(bus, "org.freedesktop.locale1",
+    return sol_bus_map_cached_properties(_ctx.systemd,
         "/org/freedesktop/locale1", "org.freedesktop.locale1",
         &_locale_property, _locale_changed, NULL);
 }
@@ -709,5 +711,6 @@ sol_platform_register_locale_monitor(void)
 int
 sol_platform_unregister_locale_monitor(void)
 {
-    return sol_bus_unmap_cached_properties(&_locale_property, NULL);
+    return sol_bus_unmap_cached_properties
+               (_ctx.systemd, &_locale_property, NULL);
 }
