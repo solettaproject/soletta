@@ -1289,7 +1289,7 @@ server_resource_schedule_update(struct server_resource *resource)
 }
 
 static sol_coap_responsecode_t
-server_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
+server_handle_update(const struct sol_network_link_addr *cliaddr, const void *data,
     const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
 {
     struct server_resource *resource = (struct server_resource *)data;
@@ -1343,7 +1343,8 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
         .resource_type = resource_type,
         .interface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
         .get = { .handle = server_handle_get },
-        .put = { .handle = server_handle_put },
+        .put = { .handle = server_handle_update },
+        .post = { .handle = server_handle_update },
     };
 
     resource->resource = sol_oic_server_add_resource(&resource->type,
