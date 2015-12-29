@@ -46,6 +46,11 @@ got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr 
     struct sol_oic_map_reader iterator;
     char addr[SOL_INET_ADDR_STRLEN];
 
+    if (!cliaddr) {
+        SOL_WRN("Response timeout");
+        return;
+    }
+
     if (!sol_network_addr_to_str(cliaddr, addr, sizeof(addr))) {
         SOL_WRN("Could not convert network address to string");
         return;

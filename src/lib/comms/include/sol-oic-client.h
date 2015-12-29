@@ -335,7 +335,10 @@ bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
  *        arrives. Parameter @a cli is the @a client used to perform the
  *        request, @a addr is the address of the server and repr_vec is a
  *        handler to access data from response, using @ref SOL_OIC_MAP_LOOP()
- *        macro. @a data is the user's @a callback_data.
+ *        macro. @a data is the user's @a callback_data. When timeout is reached
+ *        and no packet has arrived, callback is called with @c NULL @a addr and
+ *        @c NULL repr_vec so any clean up can be performed.
+ *
  * @param callback_data User's data to be passed to @a callback.
  *
  * @return True if packet was successfully sent. False otherwise.
@@ -372,7 +375,9 @@ bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_o
  *        arrives. Parameter @a cli is the @a client used to perform the
  *        request, @a addr is the address of the server and repr_vec is a
  *        handler to access data from response, using @ref SOL_OIC_MAP_LOOP()
- *        macro. @a data is the user's @a callback_data.
+ *        macro. @a data is the user's @a callback_data. When timeout is reached
+ *        and no packet has arrived, callback is called with @c NULL @a addr and
+ *        @c NULL repr_vec so any clean up can be performed.
  * @param callback_data User's data to be passed to @a callback.
  *
  * @return True if packet was successfully sent. False otherwise.
@@ -413,7 +418,9 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
  *        Parameter @a cli is the @a client used to perform the request, @a addr
  *        is the address of the server, @a repr_map is the data from the
  *        notification and @a data is a pointer to user's data. To extract data
- *        from @a repr_map use @ref SOL_OIC_MAP_LOOP() macro.
+ *        from @a repr_map use @ref SOL_OIC_MAP_LOOP() macro. Callback is called
+ *        with @c NULL @a addr and @c NULL @a repr_map when client is unobserved,
+ *        so any clean up can be performed.
  * @param data A pointer to user's data.
  * @param observe If server will be obeserved or unobserved.
  *
@@ -457,7 +464,9 @@ bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struc
  *        Parameter @a cli is the @a client used to perform the request, @a addr
  *        is the address of the server, @a repr_map is the data from the
  *        notification and @a data is a pointer to user's data. To extract data
- *        from @a repr_map use @ref SOL_OIC_MAP_LOOP() macro.
+ *        from @a repr_map use @ref SOL_OIC_MAP_LOOP() macro. Callback is called
+ *        with @c NULL @a addr and @c NULL @a repr_map when client is unobserved,
+ *        so any clean up can be performed.
  * @param data A pointer to user's data.
  * @param observe If server will be obeserved or unobserved.
  *
