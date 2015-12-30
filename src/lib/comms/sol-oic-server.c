@@ -384,6 +384,7 @@ error:
 
         sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_INTERNAL_ERROR);
     } else {
+error:
         sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_OK);
         sol_coap_packet_set_payload_used(resp, encoder.ptr - payload);
     }
