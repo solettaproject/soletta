@@ -57,9 +57,9 @@ extern "C" {
  * @{
  */
 
-struct sol_i2c;
+struct sol_i2c; /**< @brief I2C handle structure */
 
-struct sol_i2c_pending;
+struct sol_i2c_pending; /**< @brief I2C pending operation handle structure */
 
 /**
  * @brief Enum for I2C bus speed.
@@ -167,7 +167,9 @@ uint8_t sol_i2c_get_slave_address(struct sol_i2c *i2c);
  * success (or a negative error code, on failure)
  * @param cb_data Data to be passed to @a write_quick_cb
  *
- * @return pending handle if operation was started, otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a write_quick_cb is
+ * called. It may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data);
 
@@ -194,7 +196,9 @@ struct sol_i2c_pending *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (
  * Also there is no transfer queue, calling this function when there is
  * another I2C operation running will return false.
  *
- * @return pending handle if operation was started, otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a read_cb is called. It
+ * may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*read_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data);
 
@@ -221,7 +225,9 @@ struct sol_i2c_pending *sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t 
  * this function when there is another I2C operation running will
  * return false.
  *
- * @return pending handle if operation was started, otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a write_cb is called. It
+ * may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*write_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data);
 
@@ -243,7 +249,9 @@ struct sol_i2c_pending *sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t
  * this function when there is another I2C operation running will
  * return false.
  *
- * @return pending handle if operation was started, otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a read_reg_cb is called.
+ * It may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *data, size_t count, void (*read_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
@@ -265,7 +273,9 @@ struct sol_i2c_pending *sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, 
  * this function when there is another I2C operation running will
  * return false.
  *
- * @return pending handle if operation was started, otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a write_reg_cb is
+ * called. It may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *data, size_t count, void (*write_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
@@ -301,7 +311,9 @@ struct sol_i2c_pending *sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg,
  * this function when there is another I2C operation running will
  * return false.
  *
- * @return pending handle if operation was started, otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a read_reg_multiple_cb
+ * is called. It may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t count, uint8_t times, void (*read_reg_multiple_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
