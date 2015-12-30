@@ -1195,6 +1195,18 @@ is_coap_ping(struct sol_coap_packet *req)
 }
 
 static int
+send_reset_msg(struct sol_coap_server *server, struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr)
+{
+    struct sol_coap_packet *reset;
+
+    reset = sol_coap_packet_new(req);
+    SOL_NULL_CHECK(reset, -ENOMEM);
+    sol_coap_header_set_type(reset, SOL_COAP_TYPE_RESET);
+    return sol_coap_send_packet(server, reset, cliaddr);
+}
+
+static int
 respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
 {
@@ -1211,12 +1223,8 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     bool remove_outgoing = true;
 
     if (is_coap_ping(req)) {
-        struct sol_coap_packet *pong;
         SOL_DBG("Coap ping, sending pong");
-        pong = sol_coap_packet_new(req);
-        SOL_NULL_CHECK(pong, -ENOMEM);
-        sol_coap_header_set_type(pong, SOL_COAP_TYPE_RESET);
-        return sol_coap_send_packet(server, pong, cliaddr);
+        return send_reset_msg(server, req, cliaddr);
     }
 
     code = sol_coap_header_get_code(req);
@@ -1225,6 +1233,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
 
     /* If it isn't a request. */
     if (code & ~SOL_COAP_REQUEST_MASK) {
+        bool found_reply = false;
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
             if (!match_reply(reply, req))
                 continue;
@@ -1240,6 +1249,7 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
                 pending_reply_free(reply);
             } else if (!reply->observing)
                 remove_outgoing = false;
+            found_reply = true;
         }
 
         /*
@@ -1248,6 +1258,11 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
          */
         if (remove_outgoing)
             remove_outgoing_confirmable_packet(server, req);
+
+        if (observe >= 0 && !found_reply) {
+            SOL_DBG("Observing message, but no one is waiting for reply. Reseting.");
+            return send_reset_msg(server, req, cliaddr);
+        }
         return 0;
     }
 
