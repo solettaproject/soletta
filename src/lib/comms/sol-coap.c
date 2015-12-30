@@ -1137,7 +1137,7 @@ resource_not_found(struct sol_coap_packet *req,
 }
 
 static void
-remove_outgoing_packet(struct sol_coap_server *server, struct sol_coap_packet *req)
+remove_outgoing_confirmable_packet(struct sol_coap_server *server, struct sol_coap_packet *req)
 {
     uint16_t i, id;
     struct outgoing *o;
@@ -1145,7 +1145,7 @@ remove_outgoing_packet(struct sol_coap_server *server, struct sol_coap_packet *r
     id = sol_coap_header_get_id(req);
     /* If it has the same 'id' as a packet that we are trying to send we will stop now. */
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
-        if (id != sol_coap_header_get_id(o->pkt)) {
+        if (id != sol_coap_header_get_id(o->pkt) || sol_coap_header_get_type(o->pkt) != SOL_COAP_TYPE_CON) {
             continue;
         }
 
@@ -1242,12 +1242,26 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
                 remove_outgoing = false;
         }
 
+        /*
+           If we sent a request and we received a reply,
+           the request must be removed from the outgoing list.
+         */
         if (remove_outgoing)
-            remove_outgoing_packet(server, req);
+            remove_outgoing_confirmable_packet(server, req);
         return 0;
     }
 
-    remove_outgoing_packet(server, req);
+    /*
+       When a request is made, the receiver may reply with an ACK
+       and an empty code. This indicates that the receiver is aware of
+       the request, however it will send the data later.
+       In this case, the request can be removed from the outgoing list.
+     */
+    if (code == SOL_COAP_CODE_EMPTY) {
+        remove_outgoing_confirmable_packet(server, req);
+        return 0;
+    }
+
     /* /.well-known/core well known resource */
     cb = find_resource_cb(req, &well_known);
     if (cb)
