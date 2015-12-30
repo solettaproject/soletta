@@ -1138,13 +1138,14 @@ resource_not_found(struct sol_coap_packet *req,
 static void
 remove_outgoing_packet(struct sol_coap_server *server, struct sol_coap_packet *req)
 {
-    uint16_t i, id;
+    uint16_t i, id, pkt_id;
     struct outgoing *o;
 
     id = sol_coap_header_get_id(req);
     /* If it has the same 'id' as a packet that we are trying to send we will stop now. */
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
-        if (id != sol_coap_header_get_id(o->pkt)) {
+        pkt_id = sol_coap_header_get_id(o->pkt);
+        if (id != pkt_id || (id == pkt_id && sol_coap_header_get_type(o->pkt) == SOL_COAP_TYPE_ACK)) {
             continue;
         }
 
