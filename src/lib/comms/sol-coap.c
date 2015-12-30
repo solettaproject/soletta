@@ -523,8 +523,9 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
         max_retransmit = MAX_RETRANSMIT;
         timeout = ACK_TIMEOUT_MS << outgoing->counter++;
     } else {
-        max_retransmit = 0;
+        max_retransmit = 1;
         timeout = NONCON_PKT_TIMEOUT_MS;
+        outgoing->counter++;
     }
 
     if (outgoing->counter > max_retransmit) {

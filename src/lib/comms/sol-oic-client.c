@@ -53,7 +53,6 @@
 #include "sol-oic-server.h"
 
 #define POLL_OBSERVE_TIMEOUT_MS 10000
-#define DISCOVERY_RESPONSE_TIMEOUT_MS 10000
 
 #define OIC_COAP_SERVER_UDP_PORT  5683
 #define OIC_COAP_SERVER_DTLS_PORT 5684
@@ -108,8 +107,6 @@ struct resource_request_ctx {
 };
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
-
-static struct sol_ptr_vector pending_discovery = SOL_PTR_VECTOR_INIT;
 
 static struct sol_coap_server *
 _best_server_for_resource(const struct sol_oic_client *client,
@@ -679,24 +676,6 @@ error:
 }
 
 static bool
-_is_discovery_pending_for_ctx(const struct find_resource_ctx *ctx)
-{
-    void *iter;
-    uint16_t idx;
-
-    SOL_PTR_VECTOR_FOREACH_IDX (&pending_discovery, iter, idx) {
-        if (iter == ctx) {
-            SOL_DBG("Context %p is in pending discovery list", ctx);
-
-            return true;
-        }
-    }
-
-    SOL_DBG("Context %p is _not_ in pending discovery list", ctx);
-    return false;
-}
-
-static bool
 _find_resource_reply_cb(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data)
@@ -704,18 +683,19 @@ _find_resource_reply_cb(struct sol_coap_server *server,
     struct find_resource_ctx *ctx = data;
     bool cb_return;
 
-    if (!_is_discovery_pending_for_ctx(ctx)) {
-        SOL_WRN("Received discovery response packet while not waiting for one");
-        return false;
-    }
-
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
+        free(ctx);
         return false;
     }
 
-    if (!req || !cliaddr)
-        return ctx->cb(ctx->client, NULL, ctx->data);
+    if (!req || !cliaddr) {
+        if (!ctx->cb(ctx->client, NULL, ctx->data)) {
+            free(ctx);
+            return false;
+        }
+        return true;
+    }
 
     if (!_pkt_has_same_token(req, ctx->token)) {
         SOL_WRN("Discovery packet token differs from expected");
@@ -732,22 +712,9 @@ _find_resource_reply_cb(struct sol_coap_server *server,
         return true;
     }
 
+    if (!cb_return)
+        free(ctx);
     return cb_return;
-}
-
-static bool
-_remove_from_pending_discovery_list(void *data)
-{
-    int r;
-
-    SOL_DBG("Removing context %p from pending discovery list after %dms",
-        data, DISCOVERY_RESPONSE_TIMEOUT_MS);
-
-    r = sol_ptr_vector_remove(&pending_discovery, data);
-    free(data);
-    SOL_INT_CHECK(r, < 0, false);
-
-    return false;
 }
 
 SOL_API bool
@@ -802,27 +769,10 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
 
     /* Discovery packets can't be sent through a DTLS server. */
     r = sol_coap_send_packet_with_reply(client->server, req, cliaddr, _find_resource_reply_cb, ctx);
-    if (!r) {
-        /* Safe to free ctx, as _find_resource_cb() will not free if ctx
-         * is not on pending_discovery vector. */
-        if (sol_ptr_vector_append(&pending_discovery, ctx) < 0) {
-            SOL_WRN("Discovery responses will be blocked: couldn't save context to pending discovery response list.");
+    if (r < 0)
+        goto out_no_pkt;
 
-            goto out_no_pkt;
-        }
-
-        /* 10s should be plenty. */
-        if (!sol_timeout_add(DISCOVERY_RESPONSE_TIMEOUT_MS, _remove_from_pending_discovery_list, ctx)) {
-            SOL_WRN("Could not create timeout to cancel discovery process");
-            sol_ptr_vector_remove(&pending_discovery, ctx);
-
-            goto out_no_pkt;
-        }
-
-        return true;
-    }
-
-    goto out_no_pkt;
+    return true;
 
 out:
     sol_coap_packet_unref(req);
