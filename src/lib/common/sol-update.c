@@ -51,7 +51,9 @@
 
 SOL_LOG_INTERNAL_DECLARE(_sol_update_log_domain, "update");
 
+#ifdef ENABLE_DYNAMIC_MODULES
 static struct sol_lib_loader *update_module_loader;
+#endif
 static const struct sol_update *update_module;
 
 int sol_update_init(void);
@@ -189,8 +191,10 @@ sol_update_shutdown(void)
     if (update_module && update_module->shutdown)
         update_module->shutdown();
 
+#ifdef ENABLE_DYNAMIC_MODULES
     sol_lib_loader_del(update_module_loader);
     update_module_loader = NULL;
+#endif
 }
 
 SOL_API struct sol_update_handle *
