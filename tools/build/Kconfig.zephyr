@@ -3,3 +3,4 @@ config ZEPHYR
     select FEATURE_HW_GPIO
     select FEATURE_HW_I2C
     select FEATURE_HW_SPI
+    select FEATURE_HW_AIO

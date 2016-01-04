@@ -28,6 +28,8 @@ obj-io-aio-$(PLATFORM_RIOTOS) += \
     sol-aio-impl-riot.o
 obj-io-aio-$(PLATFORM_LINUX) += \
     sol-aio-impl-linux.o
+obj-io-aio-$(PLATFORM_ZEPHYR) += \
+    sol-aio-impl-zephyr.o
 
 obj-io-gpio-$(USE_GPIO) := \
     sol-gpio-common.o
