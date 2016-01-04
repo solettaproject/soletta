@@ -51,7 +51,9 @@
 
 SOL_LOG_INTERNAL_DECLARE(_sol_update_log_domain, "update");
 
+#ifdef ENABLE_DYNAMIC_MODULES
 static struct sol_lib_loader *update_module_loader;
+#endif
 static const struct sol_update *update_module;
 
 int sol_update_init(void);
