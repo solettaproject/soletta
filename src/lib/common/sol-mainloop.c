@@ -498,7 +498,6 @@ sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, 
     }
 
     if (SOL_UNLIKELY(sol_init() < 0)) {
-        SOL_CRI("Cannot initialize soletta.");
         return EXIT_FAILURE;
     }
 
