@@ -495,4 +495,151 @@ error:
     return -EIO;
 }
 
+struct pressure_data {
+    struct sol_iio_config config;
+    struct sol_drange_spec out_range;
+    double scale;
+    double offset;
+    struct sol_iio_device *device;
+    struct sol_iio_channel *channel_val;
+    bool buffer_enabled : 1;
+    bool use_device_default_scale : 1;
+    bool use_device_default_offset : 1;
+};
+
+static void
+pressure_reader_cb(void *data, struct sol_iio_device *device)
+{
+    static const char *errmsg = "Could not read channel buffer values";
+    struct sol_flow_node *node = data;
+    struct pressure_data *mdata = sol_flow_node_get_private_data(node);
+    struct sol_drange out = {
+        .min = mdata->out_range.min,
+        .max = mdata->out_range.max,
+        .step = mdata->out_range.step
+    };
+    bool b;
+
+    b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
+    if (!b) goto error;
+
+    sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_IIO_PRESSURE__OUT__OUT, out.val);
+
+    return;
+
+error:
+    sol_flow_send_error_packet_str(node, EIO, errmsg);
+    SOL_WRN("%s", errmsg);
+}
+
+static void
+pressure_create_device_cb(void *data, int device_id)
+{
+    struct pressure_data *mdata = data;
+    struct sol_iio_channel_config channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
+
+    mdata->device = sol_iio_open(device_id, &mdata->config);
+    SOL_NULL_CHECK(mdata->device);
+
+#define ADD_CHANNEL(_val) \
+    if (!mdata->use_device_default_scale) \
+        channel_config.scale = mdata->scale; \
+    if (!mdata->use_device_default_offset) \
+        channel_config.offset = mdata->offset; \
+    mdata->channel_ ## _val = sol_iio_add_channel(mdata->device, "in_pressure", &channel_config); \
+    SOL_NULL_CHECK_GOTO(mdata->channel_ ## _val, error);
+
+    ADD_CHANNEL(val);
+
+#undef ADD_CHANNEL
+
+    sol_iio_device_start_buffer(mdata->device);
+
+    return;
+
+error:
+    SOL_WRN("Could not create iio/pressure node. Failed to open IIO device %d",
+        device_id);
+
+    sol_iio_close(mdata->device);
+}
+
+static int
+pressure_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
+{
+    struct pressure_data *mdata = data;
+    const struct sol_flow_node_type_iio_pressure_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_IIO_PRESSURE_OPTIONS_API_VERSION,
+        -EINVAL);
+    opts = (const struct sol_flow_node_type_iio_pressure_options *)options;
+
+    mdata->buffer_enabled = opts->buffer_size > -1;
+
+    SOL_SET_API_VERSION(mdata->config.api_version = SOL_IIO_CONFIG_API_VERSION; )
+
+    if (opts->iio_trigger_name) {
+        mdata->config.trigger_name = strdup(opts->iio_trigger_name);
+        SOL_NULL_CHECK(mdata->config.trigger_name, -ENOMEM);
+    }
+
+    mdata->config.buffer_size = opts->buffer_size;
+    mdata->config.sampling_frequency = opts->sampling_frequency;
+    if (mdata->buffer_enabled) {
+        mdata->config.sol_iio_reader_cb = pressure_reader_cb;
+        mdata->config.data = node;
+    }
+    mdata->use_device_default_scale = opts->use_device_default_scale;
+    mdata->use_device_default_offset = opts->use_device_default_offset;
+    mdata->scale = opts->scale;
+    mdata->offset = opts->offset;
+    mdata->out_range = opts->out_range;
+
+    if (!sol_iio_address_device(opts->iio_device, pressure_create_device_cb, mdata)) {
+        SOL_WRN("Could not create iio/pressure node. Failed to open IIO device %s",
+            opts->iio_device);
+        goto err;
+    }
+
+    return 0;
+
+err:
+    free((char *)mdata->config.trigger_name);
+    return -EINVAL;
+
+}
+
+static void
+pressure_close(struct sol_flow_node *node, void *data)
+{
+    struct pressure_data *mdata = data;
+
+    free((char *)mdata->config.trigger_name);
+    if (mdata->device)
+        sol_iio_close(mdata->device);
+}
+
+static int
+pressure_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    static const char *errmsg = "Could not read channel values";
+    struct pressure_data *mdata = data;
+
+    if (mdata->buffer_enabled) {
+        if (!sol_iio_device_trigger_now(mdata->device))
+            goto error;
+    } else {
+        pressure_reader_cb(mdata, mdata->device);
+    }
+
+    return 0;
+
+error:
+    sol_flow_send_error_packet(node, EIO, "%s", errmsg);
+    SOL_WRN("%s", errmsg);
+
+    return -EIO;
+}
+
 #include "iio-gen.c"
