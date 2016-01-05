@@ -271,7 +271,7 @@ sol_mavlink_convert_mode(uint8_t type, mavlink_message_t *msg, uint8_t *base_mod
 static void
 sol_mavlink_armed_transition(struct sol_mavlink *mavlink, uint8_t base_mode)
 {
-    uint8_t i, mask;
+    uint8_t i, mask = 0;
 
     if (mavlink->custom_mode_enabled)
         mask = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
@@ -852,7 +852,7 @@ sol_mavlink_get_mode(struct sol_mavlink *mavlink)
 SOL_API bool
 sol_mavlink_check_armed(struct sol_mavlink *mavlink)
 {
-    uint8_t mask, base_mode;
+    uint8_t mask = 0, base_mode;
 
     SOL_NULL_CHECK(mavlink, false);
 
