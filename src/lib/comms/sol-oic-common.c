@@ -65,8 +65,7 @@ repr_field_free(struct sol_oic_repr_field *field)
         field->type == SOL_OIC_REPR_TYPE_BYTE_STRING)
         free((char *)field->v_slice.data);
 
-    if (field)
-        free((char *)field->key);
+    free((char *)field->key);
 }
 
 SOL_API bool
@@ -74,17 +73,22 @@ sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader
 {
     CborError err;
 
+    SOL_NULL_CHECK_GOTO(repr, err);
+
     repr_field_free(repr);
     if (!cbor_value_is_valid((CborValue *)iterator))
-        return false;
+        goto err;
 
     err = sol_oic_cbor_repr_map_get_next_field((CborValue *)iterator, repr);
-    if (err != CborNoError) {
-        *reason = SOL_OIC_MAP_LOOP_ERROR;
-        return false;
-    }
+    if (err != CborNoError)
+        goto err;
 
     return true;
+
+err:
+    if (reason)
+        *reason = SOL_OIC_MAP_LOOP_ERROR;
+    return false;
 }
 
 SOL_API bool
