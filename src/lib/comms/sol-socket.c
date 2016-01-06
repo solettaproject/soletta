@@ -49,6 +49,8 @@ sol_socket_new(int domain, enum sol_socket_type type, int protocol)
     impl = sol_socket_linux_get_impl();
 #elif defined(SOL_PLATFORM_RIOT)
     impl = sol_socket_riot_get_impl();
+#elif defined(SOL_PLATFORM_ZEPHYR)
+    impl = sol_socket_zephyr_get_impl();
 #endif
 
     SOL_NULL_CHECK(impl, NULL);
