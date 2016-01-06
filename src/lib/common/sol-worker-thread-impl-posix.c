@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <pthread.h>
 
+#include "sol-atomic.h"
 #include "sol-mainloop.h"
 #include "sol-worker-thread-impl.h"
 
@@ -29,7 +30,7 @@ struct sol_worker_thread_posix {
     struct sol_idle *idler;
     pthread_mutex_t lock;
     pthread_t thread;
-    bool cancel;
+    sol_atomic_int cancel;
 };
 
 bool
@@ -37,13 +38,13 @@ sol_worker_thread_impl_cancel_check(const void *handle)
 {
     const struct sol_worker_thread_posix *thread = handle;
 
-    return __atomic_load_n(&thread->cancel, __ATOMIC_SEQ_CST);
+    return sol_atomic_load(&thread->cancel, SOL_ATOMIC_SEQ_CST);
 }
 
 static inline void
 cancel_set(struct sol_worker_thread_posix *thread)
 {
-    __atomic_store_n(&thread->cancel, true, __ATOMIC_SEQ_CST);
+    sol_atomic_store(&thread->cancel, true, SOL_ATOMIC_SEQ_CST);
 }
 
 static bool
