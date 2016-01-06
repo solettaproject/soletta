@@ -38,13 +38,13 @@ sol_worker_thread_impl_cancel_check(const void *handle)
 {
     const struct sol_worker_thread_glib *thread = handle;
 
-    return sol_atomic_load(&thread->cancel, SOL_ATOMIC_SEQ_CST);
+    return sol_atomic_load(&thread->cancel, SOL_ATOMIC_RELAXED);
 }
 
 static inline void
 cancel_set(struct sol_worker_thread_glib *thread)
 {
-    sol_atomic_store(&thread->cancel, true, SOL_ATOMIC_SEQ_CST);
+    sol_atomic_store(&thread->cancel, true, SOL_ATOMIC_RELAXED);
 }
 
 static bool
@@ -119,7 +119,7 @@ sol_worker_thread_impl_new(const struct sol_worker_thread_config *config)
     g_mutex_init(&thread->lock);
 
     snprintf(name, 16, "thr-%u",
-        sol_atomic_fetch_add(&thr_cnt, 1, SOL_ATOMIC_SEQ_CST));
+        sol_atomic_fetch_add(&thr_cnt, 1, SOL_ATOMIC_RELAXED));
     thread->thread = g_thread_new(name, sol_worker_thread_do, thread);
     SOL_NULL_CHECK_GOTO(thread->thread, error_thread);
 
