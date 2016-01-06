@@ -46,4 +46,6 @@ struct sol_socket_impl {
 const struct sol_socket_impl *sol_socket_linux_get_impl(void);
 #elif defined(SOL_PLATFORM_RIOT)
 const struct sol_socket_impl *sol_socket_riot_get_impl(void);
+#elif defined(SOL_PLATFORM_ZEPHYR)
+const struct sol_socket_impl *sol_socket_zephyr_get_impl(void);
 #endif
