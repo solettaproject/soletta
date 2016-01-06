@@ -113,7 +113,7 @@ bool
 sol_mainloop_common_loop_check(void)
 {
 #ifdef THREADS
-    return sol_atomic_load(&run_loop, SOL_ATOMIC_SEQ_CST);
+    return sol_atomic_load(&run_loop, SOL_ATOMIC_RELAXED);
 #else
     return run_loop;
 #endif
@@ -123,7 +123,7 @@ void
 sol_mainloop_common_loop_set(bool val)
 {
 #ifdef THREADS
-    sol_atomic_store(&run_loop, (val), SOL_ATOMIC_SEQ_CST);
+    sol_atomic_store(&run_loop, (val), SOL_ATOMIC_RELAXED);
 #else
     run_loop = val;
 #endif

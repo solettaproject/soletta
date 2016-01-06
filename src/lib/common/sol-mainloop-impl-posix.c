@@ -127,7 +127,7 @@ sol_mainloop_impl_main_thread_notify(void)
     char tok = 'w';
     int r;
 
-    if (sol_atomic_test_and_set(&have_notified, SOL_ATOMIC_SEQ_CST))
+    if (sol_atomic_test_and_set(&have_notified, SOL_ATOMIC_RELAXED))
         return;
 
     r = write(pipe_fds[1], &tok, sizeof(tok));
@@ -146,7 +146,7 @@ main_thread_ack(void *data, int fd, uint32_t active_flags)
     sol_mainloop_impl_lock();
 
     r = read(fd, &tok, sizeof(tok));
-    sol_atomic_clear(&have_notified, SOL_ATOMIC_SEQ_CST);
+    sol_atomic_clear(&have_notified, SOL_ATOMIC_RELAXED);
 
     sol_mainloop_impl_unlock();
 

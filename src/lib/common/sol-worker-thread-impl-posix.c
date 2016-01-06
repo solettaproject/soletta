@@ -52,13 +52,13 @@ sol_worker_thread_impl_cancel_check(const void *handle)
 {
     const struct sol_worker_thread_posix *thread = handle;
 
-    return sol_atomic_load(&thread->cancel, SOL_ATOMIC_SEQ_CST);
+    return sol_atomic_load(&thread->cancel, SOL_ATOMIC_RELAXED);
 }
 
 static inline void
 cancel_set(struct sol_worker_thread_posix *thread)
 {
-    sol_atomic_store(&thread->cancel, true, SOL_ATOMIC_SEQ_CST);
+    sol_atomic_store(&thread->cancel, true, SOL_ATOMIC_RELAXED);
 }
 
 static bool
