@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <glib.h>
 
+#include "sol-atomic.h"
 #include "sol-mainloop.h"
 #include "sol-worker-thread-impl.h"
 
@@ -43,7 +44,7 @@ struct sol_worker_thread_glib {
     struct sol_idle *idler;
     GMutex lock;
     GThread *thread;
-    bool cancel;
+    sol_atomic_int cancel;
 };
 
 bool
@@ -51,13 +52,13 @@ sol_worker_thread_impl_cancel_check(const void *handle)
 {
     const struct sol_worker_thread_glib *thread = handle;
 
-    return __atomic_load_n(&thread->cancel, __ATOMIC_SEQ_CST);
+    return sol_atomic_load(&thread->cancel, SOL_ATOMIC_SEQ_CST);
 }
 
 static inline void
 cancel_set(struct sol_worker_thread_glib *thread)
 {
-    __atomic_store_n(&thread->cancel, true, __ATOMIC_SEQ_CST);
+    sol_atomic_store(&thread->cancel, true, SOL_ATOMIC_SEQ_CST);
 }
 
 static bool
@@ -120,7 +121,7 @@ end:
 void *
 sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
 {
-    static uint16_t thr_cnt = 0;
+    static sol_atomic_uint thr_cnt = SOL_ATOMIC_INIT(0u);
     struct sol_worker_thread_glib *thread;
     char name[16];
 
@@ -132,7 +133,7 @@ sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
     g_mutex_init(&thread->lock);
 
     snprintf(name, 16, "thr-%u",
-        __atomic_fetch_add(&thr_cnt, 1, __ATOMIC_SEQ_CST));
+        sol_atomic_fetch_add(&thr_cnt, 1, SOL_ATOMIC_SEQ_CST));
     thread->thread = g_thread_new(name, sol_worker_thread_do, thread);
     SOL_NULL_CHECK_GOTO(thread->thread, error_thread);
 
