@@ -944,6 +944,7 @@ request_node_setup_params(struct http_data *data, struct sol_http_params *params
     struct http_request_data *mdata = (struct http_request_data *)data;
     struct sol_http_param_value *param;
     uint16_t i;
+    static const char *key = "blob";
 
     SOL_HTTP_PARAMS_FOREACH_IDX (&mdata->params, param, i) {
         if (!sol_http_param_add(params, *param)) {
@@ -973,7 +974,7 @@ request_node_setup_params(struct http_data *data, struct sol_http_params *params
     }
 
     if (mdata->content && !sol_http_param_add(params,
-        SOL_HTTP_REQUEST_PARAM_POST_DATA(
+        SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS(key,
         sol_str_slice_from_blob(mdata->content)))) {
         SOL_ERR("Could not set the post parameter");
         return -ENOMEM;

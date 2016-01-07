@@ -154,7 +154,9 @@ struct sol_http_param_value {
             int32_t value;
         } integer;
         struct {
-            const struct sol_str_slice value;
+            struct sol_str_slice key;
+            struct sol_str_slice value;
+            struct sol_str_slice filename;
         } data;
     } value;
 };
@@ -374,12 +376,26 @@ struct sol_http_url {
 
 /**
  * @brief Macro to set a struct @ref sol_http_param_value with
- * type SOL_HTTP_PARAM_POST_DATA and its content.
+ * type SOL_HTTP_PARAM_POST_DATA and the contents of @c filename_.
  */
-#define SOL_HTTP_REQUEST_PARAM_POST_DATA(data_) \
+#define SOL_HTTP_REQUEST_PARAM_POST_DATA_FILE(key_, filename_) \
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_POST_DATA, \
-        .value.data.value = (data_) \
+        .value.data.key = sol_str_slice_from_str((key_ ? : "")), \
+        .value.data.filename = sol_str_slice_from_str((filename_ ? : "")), \
+        .value.data.value = SOL_STR_SLICE_EMPTY \
+    }
+
+/**
+ * @brief Macro to set a struct @ref sol_http_param_value with
+ * type SOL_HTTP_PARAM_POST_DATA and the given value.
+ */
+#define SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS(key_, value_) \
+    (struct sol_http_param_value) { \
+        .type = SOL_HTTP_PARAM_POST_DATA, \
+        .value.data.key = sol_str_slice_from_str((key_ ? : "")), \
+        .value.data.filename = SOL_STR_SLICE_EMPTY, \
+        .value.data.value = (value_) \
     }
 
 /**

@@ -77,6 +77,7 @@ struct connection_watch {
 struct sol_http_client_connection {
     CURL *curl;
     struct curl_slist *headers;
+    struct curl_httppost *formpost;
     struct sol_buffer buffer;
     struct sol_vector watches;
     struct sol_http_params response_params;
@@ -95,6 +96,7 @@ destroy_connection(struct sol_http_client_connection *c)
     curl_multi_remove_handle(global.multi, c->curl);
     curl_slist_free_all(c->headers);
     curl_easy_cleanup(c->curl);
+    curl_formfree(c->formpost);
 
     sol_buffer_fini(&c->buffer);
 
@@ -479,7 +481,7 @@ header_cb(char *data, size_t size, size_t nmemb, void *connp)
     if (!strncasecmp(data, "Set-Cookie:", key_size)) {
         param.type = SOL_HTTP_PARAM_COOKIE;
         cookie_name_size = 0;
-        while (sep[cookie_name_size++] != '=') ;
+        while (sep[cookie_name_size++] != '=');
         decoded_key = curl_easy_unescape(connection->curl, sep,
             cookie_name_size - 1, NULL);
         SOL_NULL_CHECK_GOTO(decoded_key, err_exit);
@@ -520,6 +522,7 @@ err_exit:
 
 static struct sol_http_client_connection *
 perform_multi(CURL *curl, struct curl_slist *headers,
+    struct curl_httppost *formpost,
     const struct sol_http_request_interface *interface,
     const void *data)
 {
@@ -533,6 +536,7 @@ perform_multi(CURL *curl, struct curl_slist *headers,
     SOL_NULL_CHECK(connection, NULL);
 
     connection->headers = headers;
+    connection->formpost = formpost;
     connection->curl = curl;
     connection->interface = *interface;
     connection->data = data;
@@ -766,50 +770,58 @@ set_post_fields_from_params(CURL *curl, const struct sol_http_params *params)
     return r;
 }
 
-static bool
-set_post_data_from_params(CURL *curl, const struct sol_http_params *params)
+static int
+set_post_data_from_params(CURL *curl, struct curl_httppost **formpost,
+    const struct sol_http_params *params)
 {
-    struct sol_str_slice data = SOL_STR_SLICE_EMPTY;
-    struct sol_http_param_value *iter;
+    int len = 0;
     uint16_t idx;
-    bool type_set, has_post_fields, has_post_data;
+    struct sol_http_param_value *iter;
+    struct curl_httppost *lastptr = NULL;
+    CURLFORMcode ret;
+    bool has_post_field = false;
 
-    type_set = has_post_fields = has_post_data = false;
-    SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
-        struct sol_str_slice value = SOL_STR_SLICE_EMPTY;
-        if (iter->type == SOL_HTTP_PARAM_POST_FIELD) {
-            has_post_fields = true;
-        } else if (iter->type == SOL_HTTP_PARAM_HEADER) {
-            struct sol_str_slice key = iter->value.key_value.key;
-            type_set = type_set || sol_str_slice_str_caseeq(key, "content-type");
-        } else if (iter->type == SOL_HTTP_PARAM_POST_DATA) {
-            value = iter->value.data.value;
-            if (data.len != 0) {
-                SOL_WRN("More than one SOL_HTTP_PARAM_POST_DATA found.");
-                return false;
-            }
+    SOL_HTTP_PARAMS_FOREACH_IDX (params, iter, idx) {
+        if (iter->type == SOL_HTTP_PARAM_POST_FIELD)
+            has_post_field = true;
 
-            data = value;
-            has_post_data = true;
+        if (iter->type != SOL_HTTP_PARAM_POST_DATA)
+            continue;
+
+        if (has_post_field) {
+            SOL_WRN("Request can not have both, POSTFIELD and POSTDATA at same time.");
+            return -1;
         }
+
+        if (iter->value.data.filename.len) {
+            char filename[PATH_MAX + 1];
+            if (iter->value.data.filename.len >= PATH_MAX)
+                return -1;
+            memcpy(filename, iter->value.data.filename.data,
+                iter->value.data.filename.len);
+            filename[iter->value.data.filename.len] = '\0';
+            ret = curl_formadd(formpost, &lastptr,
+                CURLFORM_COPYNAME, iter->value.data.key.data,
+                CURLFORM_NAMELENGTH, iter->value.data.key.len,
+                CURLFORM_FILE, filename,
+                CURLFORM_END);
+        } else {
+            ret = curl_formadd(formpost, &lastptr,
+                CURLFORM_COPYNAME, iter->value.data.key.data,
+                CURLFORM_NAMELENGTH, iter->value.data.key.len,
+                CURLFORM_COPYCONTENTS, iter->value.data.value.data,
+                CURLFORM_CONTENTSLENGTH, iter->value.data.value.len,
+                CURLFORM_END);
+        }
+
+        SOL_EXP_CHECK(ret != CURL_FORMADD_OK, -1);
+        len++;
     }
 
-    if (!has_post_data)
-        return true;
+    if (*formpost)
+        return curl_easy_setopt(curl, CURLOPT_HTTPPOST, *formpost) == CURLE_OK ? len : -1;
 
-    if (has_post_data && data.len == 0)
-        return false;
-
-    if (has_post_fields && has_post_data) {
-        SOL_WRN("SOL_HTTP_PARAM_POST_FIELD and SOL_HTTP_PARAM_POST_DATA found in parameters."
-            " Only one can be used at a time");
-        return false;
-    }
-
-    if (!type_set)
-        SOL_WRN("POST request has data but no content-type was set");
-
-    return set_postfields(curl, data);
+    return len;
 }
 
 static bool
@@ -857,6 +869,7 @@ client_request_internal(enum sol_http_method method,
     };
     struct sol_http_param_value *value;
     struct curl_slist *headers = NULL;
+    struct curl_httppost *formpost = NULL;
     struct sol_http_client_connection *pending;
     CURL *curl;
     uint16_t idx;
@@ -916,9 +929,12 @@ client_request_internal(enum sol_http_method method,
     }
 
     if (method == SOL_HTTP_METHOD_POST) {
-        if (!set_post_fields_from_params(curl, params) ||
-            !set_post_data_from_params(curl, params)) {
-            SOL_WRN("Could not set POST fields or data from params");
+        if (!set_post_fields_from_params(curl, params)) {
+            SOL_WRN("Could not set POST fields from params");
+            goto invalid_option;
+        }
+        if (set_post_data_from_params(curl, &formpost, params) < 0) {
+            SOL_WRN("Could not set POST data from params");
             goto invalid_option;
         }
     }
@@ -967,13 +983,14 @@ client_request_internal(enum sol_http_method method,
         }
     }
 
-    pending = perform_multi(curl, headers, interface, data);
+    pending = perform_multi(curl, headers, formpost, interface, data);
     if (pending)
         return pending;
 
 invalid_option:
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
+    curl_formfree(formpost);
     return NULL;
 }
 

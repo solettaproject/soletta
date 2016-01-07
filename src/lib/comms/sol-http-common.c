@@ -103,9 +103,22 @@ sol_http_param_add_copy(struct sol_http_params *params,
             SOL_INT_CHECK(r, < 0, false);
         }
     } else if (value.type == SOL_HTTP_PARAM_POST_DATA) {
+        if (value.value.data.value.len) {
+            r = sol_arena_slice_dup(params->arena,
+                &value.value.data.value,
+                value.value.data.value);
+        } else if (value.value.data.filename.len) {
+            r = sol_arena_slice_dup(params->arena,
+                &value.value.data.filename,
+                value.value.data.filename);
+        } else {
+            SOL_WRN("POSTDATA must contain data or a filename");
+            return false;
+        }
+        SOL_INT_CHECK(r, < 0, false);
         r = sol_arena_slice_dup(params->arena,
-            (struct sol_str_slice *)&value.value.data.value,
-            value.value.data.value);
+            &value.value.data.key,
+            value.value.data.key);
         SOL_INT_CHECK(r, < 0, false);
     } else if (value.type == SOL_HTTP_PARAM_AUTH_BASIC) {
         if (value.value.auth.user.len) {
