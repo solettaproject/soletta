@@ -47,22 +47,34 @@ extern "C" {
 
 /**
  * @defgroup Platform Platform
- * @brief These routines are used for Soletta platform interaction.
+ *
+ * @brief The Platform API is about target states and services
+ *
+ * It is specially useful when Soletta is used in a PID 1 process.
  *
  * @{
  */
 
+/**
+ * @brief Amount of bytes to read in a single call
+ */
 #define CHUNK_READ_SIZE 1024
-/* allow reading loop to take up to this amount of bytes, then stop
- * the chunk reading and allow mainloop to run again. This keeps
- * memory usage low.
+
+/**
+ * @brief Allow reading loop to take up to this amount of bytes
+ *
+ * When this amount is reached, stops the chunk reading and allow mainloop to run again.
+ * This keeps memory usage low.
  */
 #define CHUNK_READ_MAX (10 * (CHUNK_READ_SIZE))
-/* allow reading/writing loop to take up to this nanoseconds, then stop the
- * chunk reading and allow mainloop to run again. This keeps
- * interactivity.
+
+/**
+ * @brief Allow reading/writing loop to take up to this nanoseconds.
+ *
+ * When this time is reached, stops the * chunk reading and allow mainloop to run again.
+ * This keeps interactivity.
  */
-#define CHUNK_MAX_TIME_NS (20 * (NSEC_PER_MSEC))
+#define CHUNK_MAX_TIME_NS (20 * 1000000)
 
 /**
  * @brief Retrieves the name of the board on which Soletta is running.
@@ -116,57 +128,170 @@ const char *sol_platform_get_sw_version(void);
  */
 const char *sol_platform_get_os_version(void);
 
+/**
+ * @brief List of platform states.
+ */
 enum sol_platform_state {
-    SOL_PLATFORM_STATE_INITIALIZING,
-    SOL_PLATFORM_STATE_RUNNING,
-    SOL_PLATFORM_STATE_DEGRADED,
-    SOL_PLATFORM_STATE_MAINTENANCE,
-    SOL_PLATFORM_STATE_STOPPING,
-    SOL_PLATFORM_STATE_UNKNOWN = -1
+    SOL_PLATFORM_STATE_INITIALIZING, /**< @brief Initializing */
+    SOL_PLATFORM_STATE_RUNNING, /**< @brief Running */
+    SOL_PLATFORM_STATE_DEGRADED, /**< @brief Degraded */
+    SOL_PLATFORM_STATE_MAINTENANCE, /**< @brief Maintenance */
+    SOL_PLATFORM_STATE_STOPPING, /**< @brief Stopping */
+    SOL_PLATFORM_STATE_UNKNOWN = -1 /**< @brief Unknown */
 };
 
+/**
+ * @brief Retrieves the current platform state.
+ *
+ * @return Platform current state
+ *
+ * @see enum sol_platform_state
+ */
 int sol_platform_get_state(void);
 
+/**
+ * @brief Adds a state monitor.
+ *
+ * Whenever the platform state changes, @c cb is called receiving the new state
+ * and @c data.
+ *
+ * @param cb Callback
+ * @param data Callback data
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
 int sol_platform_add_state_monitor(void (*cb)(void *data,
     enum sol_platform_state state),
     const void *data);
+
+/**
+ * @brief Removes a state monitor.
+ *
+ * @param cb Callback to be removed
+ * @param data Callback data
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
 int sol_platform_del_state_monitor(void (*cb)(void *data,
     enum sol_platform_state state),
     const void *data);
 
-
+/**
+ * @brief List of service states.
+ */
 enum sol_platform_service_state {
-    SOL_PLATFORM_SERVICE_STATE_ACTIVE,
-    SOL_PLATFORM_SERVICE_STATE_RELOADING,
-    SOL_PLATFORM_SERVICE_STATE_INACTIVE,
-    SOL_PLATFORM_SERVICE_STATE_FAILED,
-    SOL_PLATFORM_SERVICE_STATE_ACTIVATING,
-    SOL_PLATFORM_SERVICE_STATE_DEACTIVATING,
-    SOL_PLATFORM_SERVICE_STATE_UNKNOWN = -1
+    SOL_PLATFORM_SERVICE_STATE_ACTIVE, /**< @brief Active */
+    SOL_PLATFORM_SERVICE_STATE_RELOADING, /**< @brief Reloading */
+    SOL_PLATFORM_SERVICE_STATE_INACTIVE, /**< @brief Inactive */
+    SOL_PLATFORM_SERVICE_STATE_FAILED, /**< @brief Failed */
+    SOL_PLATFORM_SERVICE_STATE_ACTIVATING, /**< @brief Activating */
+    SOL_PLATFORM_SERVICE_STATE_DEACTIVATING, /**< @brief Deactivating */
+    SOL_PLATFORM_SERVICE_STATE_UNKNOWN = -1 /**< @brief Unknown */
 };
 
+/**
+ * @brief A locale category.
+ */
+enum sol_platform_locale_category {
+    SOL_PLATFORM_LOCALE_LANGUAGE,
+    SOL_PLATFORM_LOCALE_ADDRESS,
+    SOL_PLATFORM_LOCALE_COLLATE,
+    SOL_PLATFORM_LOCALE_CTYPE,
+    SOL_PLATFORM_LOCALE_IDENTIFICATION,
+    SOL_PLATFORM_LOCALE_MEASUREMENT,
+    SOL_PLATFORM_LOCALE_MESSAGES,
+    SOL_PLATFORM_LOCALE_MONETARY,
+    SOL_PLATFORM_LOCALE_NAME,
+    SOL_PLATFORM_LOCALE_NUMERIC,
+    SOL_PLATFORM_LOCALE_PAPER,
+    SOL_PLATFORM_LOCALE_TELEPHONE,
+    SOL_PLATFORM_LOCALE_TIME,
+    SOL_PLATFORM_LOCALE_UNKNOWN = -1
+};
+
+/**
+ * @brief Retrieves the state of a given service.
+ *
+ * @param service Service to be queried
+ *
+ * @return Service state
+ *
+ * @see enum sol_platform_service_state
+ */
 enum sol_platform_service_state sol_platform_get_service_state(const char *service);
 
+/**
+ * @brief Adds a service monitor.
+ *
+ * @c service will be monitored and whenever it's state changes, @c cb will be called
+ * receiving the new state and the provided @c data.
+ *
+ * @param cb Callback
+ * @param service Service name
+ * @param data Callback data
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
 int sol_platform_add_service_monitor(void (*cb)(void *data, const char *service,
     enum sol_platform_service_state state),
     const char *service,
     const void *data);
+
+/**
+ * @brief Removes a service monitor.
+ *
+ * @param cb Callback to be removed
+ * @param service Service name from which @c cb should be removed
+ * @param data Callback data
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
 int sol_platform_del_service_monitor(void (*cb)(void *data, const char *service,
     enum sol_platform_service_state state),
     const char *service,
     const void *data);
 
+/**
+ * @brief Starts a given service.
+ *
+ * @param service Service name
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
 int sol_platform_start_service(const char *service);
+
+/**
+ * @brief Stops a given service.
+ *
+ * @param service Service name
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
 int sol_platform_stop_service(const char *service);
+
+/**
+ * @brief Restarts a given service.
+ *
+ * @param service Service name
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
 int sol_platform_restart_service(const char *service);
 
-#define SOL_PLATFORM_TARGET_DEFAULT    "default"
-#define SOL_PLATFORM_TARGET_RESCUE     "rescue"
-#define SOL_PLATFORM_TARGET_EMERGENCY  "emergency"
-#define SOL_PLATFORM_TARGET_POWEROFF   "poweroff"
-#define SOL_PLATFORM_TARGET_REBOOT     "reboot"
-#define SOL_PLATFORM_TARGET_SUSPEND    "suspend"
+#define SOL_PLATFORM_TARGET_DEFAULT    "default" /**< @brief Default target string */
+#define SOL_PLATFORM_TARGET_RESCUE     "rescue" /**< @brief Rescue target string */
+#define SOL_PLATFORM_TARGET_EMERGENCY  "emergency" /**< @brief Emergency target string */
+#define SOL_PLATFORM_TARGET_POWEROFF   "poweroff" /**< @brief Power-off target string */
+#define SOL_PLATFORM_TARGET_REBOOT     "reboot" /**< @brief Reboot target string */
+#define SOL_PLATFORM_TARGET_SUSPEND    "suspend" /**< @brief Suspend target string */
 
+/**
+ * @brief Set the platform target.
+ *
+ * @param target Target name
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
 int sol_platform_set_target(const char *target);
 
 /**
@@ -191,7 +316,6 @@ int sol_platform_unmount(const char *mpoint, void (*cb)(void *data, const char *
 
 /**
  * @brief Gets the hostname.
- *
  *
  * @return The hostname or @c NULL on error.
  *
@@ -324,6 +448,66 @@ int sol_platform_add_timezone_monitor(void (*cb)(void *data, const char *timezon
  */
 int sol_platform_del_timezone_monitor(void (*cb)(void *data, const char *timezone), const void *data);
 
+/**
+ * @brief Set locale for a category.
+ *
+ * This function will change the system wide locale for a given category.
+ * The already running proceses might not be aware that the locale has changed.
+ *
+ * @param category The category to set the new locale
+ * @param locale The locale string (Example: en_US.UTF-8)
+ *
+ * @return 0 on success, negative errno on error
+ *
+ * @note This function only saves the new locale category in the disk, in order to use it in
+ * the current process, one must call sol_platform_apply_locale() after using sol_platform_set_locale()
+ *
+ * @see sol_platform_get_locale()
+ * @see sol_platform_apply_locale()
+ */
+int sol_platform_set_locale(enum sol_platform_locale_category category, const char *locale);
+
+/**
+ * @brief Get the current locale of a given category.
+ *
+ * @param category The category which one wants to know the locale
+ * @return The locale value on success, @c NULL otherwise
+ *
+ * @see sol_platform_set_locale()
+ */
+const char *sol_platform_get_locale(enum sol_platform_locale_category category);
+
+/**
+ * @brief Add a locale monitor.
+ *
+ * @param cb A callback to be called when the locale changes
+ * @param data The data to @c cb
+ *
+ * @return 0 on success, negative errno otherwise.
+ */
+int sol_platform_add_locale_monitor(void (*cb)(void *data, enum sol_platform_locale_category category, const char *locale), const void *data);
+
+/**
+ * @brief Remove a locale monitor.
+ *
+ * @param cb The previous registered callback
+ * @param data The data to @c cb
+ *
+ * @return 0 on success, negative errno otherwise
+ */
+int sol_platform_del_locale_monitor(void (*cb)(void *data, enum sol_platform_locale_category category, const char *locale), const void *data);
+
+/**
+ * @brief Apply the locale category to the process.
+ *
+ * This function sets the current locale of the given category to the process,
+ * in order to set a new locale value to a category use sol_platform_set_locale().
+ *
+ * @param category The category to set the process locale
+ * @return 0 on success, negative errno otherwise
+ * @see sol_platform_set_locale()
+ */
+int sol_platform_apply_locale(enum sol_platform_locale_category category);
 
 /**
  * @}

@@ -217,6 +217,13 @@ typedef enum {
 } sol_coap_responsecode_t;
 
 /**
+ * @brief Macro to indicates that the header code was not set.
+ *
+ * To be used with sol_coap_header_set_code()
+ */
+#define SOL_COAP_CODE_EMPTY (0)
+
+/**
  * @brief Some content-types available for use with the CONTENT_FORMAT option.
  *
  * Refer to RFC 7252, section 12.3 for more information.
@@ -328,7 +335,7 @@ struct sol_coap_resource {
      *
      * @return 0 on success, -errno on failure.
      */
-    int (*delete)(struct sol_coap_server *server,
+    int (*del)(struct sol_coap_server *server,
         const struct sol_coap_resource *resource,
         struct sol_coap_packet *req,
         const struct sol_network_link_addr *cliaddr, void *data);
@@ -380,6 +387,7 @@ uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *l
  *
  * If the packet is a request, the code returned is one of #sol_coap_method_t.
  * If it's a response, it will be one of #sol_coap_responsecode_t.
+ * If the code was not set, it will return #SOL_COAP_CODE_EMPTY.
  *
  * @param pkt The packet to get the code from.
  *
@@ -671,6 +679,18 @@ int sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char 
 const void *sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uint16_t *len);
 
 /**
+ * @brief Gets a number of specified option in a packet.
+ *
+ * @param pkt The packet holding the options.
+ * @param code The option code to look for.
+ * @param vec An vector of struct sol_str_slice to hold the options.
+ * @param veclen The length of @a vec.
+ *
+ * @return The number of options found, negative errno otherwise.
+ */
+int sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code, struct sol_str_slice *vec, uint16_t veclen);
+
+/**
  * @brief Sends a packet to the given address.
  *
  * Sends the packet @a pkt to the destination address especified by @a cliaddr,
@@ -834,6 +854,23 @@ int sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_
  *         -EINVAL if some parameter is invalid.
  */
 int sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl);
+
+/**
+ * @brief Print information about the packet @a pkt.
+ *
+ * Used for debug purposes.
+ *
+ * @param pkt The packet to be debuged.
+ */
+#ifdef SOL_LOG_ENABLED
+void sol_coap_packet_debug(struct sol_coap_packet *pkt);
+#else
+static inline void
+sol_coap_packet_debug(struct sol_coap_packet *pkt)
+{
+}
+#endif
+
 
 /**
  * @}

@@ -39,7 +39,28 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Set the event and data that woke up the Soletta protothread,
+ * so this event can be internally handled.
+ *
+ * @warning Should only be used on Contiki implementation of SOL_MAIN_DEFAULT().
+ *
+ * @param ev the event that woke up the Soletta protothread, this can be a
+ * timer or a sensor event for example.
+ *
+ * @param data the data of the event
+ *
+ * @see SOL_MAIN_DEFAULT()
+ */
 void sol_mainloop_contiki_event_set(process_event_t ev, process_data_t data);
+
+/**
+ * @brief Do a single mainloop iteration.
+ *
+ * @warning Should only be used on Contiki implementation of SOL_MAIN_DEFAULT().
+ *
+ * @see SOL_MAIN_DEFAULT()
+ */
 bool sol_mainloop_contiki_iter(void);
 
 #ifdef __cplusplus

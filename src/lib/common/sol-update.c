@@ -36,6 +36,10 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#ifndef SOL_LOG_DOMAIN
+#define SOL_LOG_DOMAIN &_sol_update_log_domain
+#endif
+
 #include "sol-log-internal.h"
 
 #include "sol-lib-loader.h"

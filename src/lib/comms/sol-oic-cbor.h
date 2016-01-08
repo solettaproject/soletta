@@ -43,10 +43,19 @@ CborError sol_oic_packet_cbor_close(struct sol_coap_packet *pkt, struct sol_oic_
 CborError sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, const char *href, struct sol_oic_map_writer *encoder);
 CborError sol_oic_packet_cbor_append(struct sol_oic_map_writer *encoder, struct sol_oic_repr_field *repr);
 bool sol_oic_pkt_has_cbor_content(const struct sol_coap_packet *pkt);
+bool sol_cbor_map_get_bytestr_value(const CborValue *map, const char *key, struct sol_str_slice *slice);
+/* BSV is a blank separated string, as defined in oic documentation. It is a
+ * string with list of values, separated by a blank space. */
+bool sol_cbor_map_get_bsv(const CborValue *map, const char *key, char **data, struct sol_vector *vector);
+bool sol_cbor_map_get_str_value(const CborValue *map, const char *key, struct sol_str_slice *slice);
+bool sol_cbor_map_get_array(const CborValue *map, const char *key, struct sol_vector *vector);
+bool sol_cbor_array_to_vector(CborValue *array, struct sol_vector *vector);
+bool sol_cbor_bsv_to_vector(const CborValue *value, char **data, struct sol_vector *vector);
 
 struct sol_oic_map_writer {
-    CborEncoder encoder, rep_map, array, map;
+    CborEncoder encoder, rep_map;
     uint8_t *payload;
+    bool has_data;
 };
 
 enum sol_oic_payload_type {
@@ -68,10 +77,13 @@ enum sol_oic_payload_type {
 #define SOL_OIC_KEY_FIRMWARE_VER "mnfv"
 #define SOL_OIC_KEY_SUPPORT_URL "mnsl"
 #define SOL_OIC_KEY_SYSTEM_TIME "st"
-#define SOL_OIC_KEY_DEVICE_ID "sid"
+#define SOL_OIC_KEY_DEVICE_ID "di"
+#define SOL_OIC_KEY_RESOURCE_LINKS "links"
 #define SOL_OIC_KEY_PROPERTIES "prop"
 #define SOL_OIC_KEY_RESOURCE_TYPES "rt"
 #define SOL_OIC_KEY_INTERFACES "if"
 #define SOL_OIC_KEY_POLICY "p"
 #define SOL_OIC_KEY_BITMAP "bm"
-
+#define SOL_OIC_KEY_DEVICE_NAME "n"
+#define SOL_OIC_KEY_SPEC_VERSION "lcv"
+#define SOL_OIC_KEY_DATA_MODEL_VERSION "dmv"

@@ -36,6 +36,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 #include "sol-mainloop-common.h"
 #include "sol-mainloop-impl.h"
@@ -157,7 +158,7 @@ threads_init(void)
 {
     int err;
 
-    err = pipe(pipe_fds);
+    err = pipe2(pipe_fds, O_CLOEXEC);
     SOL_INT_CHECK(err, != 0);
 
     main_thread = pthread_self();

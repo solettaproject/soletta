@@ -65,6 +65,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
  */
 #define ACK_TIMEOUT_MS 2345
 #define MAX_RETRANSMIT 4
+#define NONCON_PKT_TIMEOUT_MS (ACK_TIMEOUT_MS << MAX_RETRANSMIT)
 
 #ifndef SOL_NO_API_VERSION
 #define COAP_RESOURCE_CHECK_API(...) \
@@ -202,10 +203,11 @@ sol_coap_header_get_code(const struct sol_coap_packet *pkt)
     case SOL_COAP_RSPCODE_SERVICE_UNAVAILABLE:
     case SOL_COAP_RSPCODE_GATEWAY_TIMEOUT:
     case SOL_COAP_RSPCODE_PROXYING_NOT_SUPPORTED:
+    case SOL_COAP_CODE_EMPTY:
         return code;
     default:
         SOL_WRN("Invalid code (%d)", code);
-        return 0;
+        return SOL_COAP_CODE_EMPTY;
     }
 }
 
@@ -252,7 +254,7 @@ sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint8_t t
 static bool
 uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[])
 {
-    struct sol_coap_option_value options[16];
+    struct sol_str_slice options[16];
     unsigned int i;
     int r;
     uint16_t count = 16;
@@ -260,17 +262,14 @@ uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[]
     SOL_NULL_CHECK(req, false);
     SOL_NULL_CHECK(path, false);
 
-    r = coap_find_options(req, SOL_COAP_OPTION_URI_PATH, options, count);
+    r = sol_coap_find_options(req, SOL_COAP_OPTION_URI_PATH, options, count);
     if (r < 0)
         return false;
 
     count = r;
 
     for (i = 0; path[i].len && i < count; i++) {
-        const struct sol_coap_option_value *v = &options[i];
-        const struct sol_str_slice s = SOL_STR_SLICE_STR((char *)v->value, v->len);
-
-        if (!sol_str_slice_eq(s, path[i]))
+        if (!sol_str_slice_eq(options[i], path[i]))
             return false;
     }
 
@@ -312,7 +311,7 @@ static int
 packet_extract_path(const struct sol_coap_packet *req, char **path_str)
 {
     const int max_count = 16;
-    struct sol_coap_option_value options[max_count];
+    struct sol_str_slice options[max_count];
     struct sol_str_slice *path;
     unsigned int i;
     size_t path_len;
@@ -322,7 +321,7 @@ packet_extract_path(const struct sol_coap_packet *req, char **path_str)
     SOL_NULL_CHECK(path_str, -EINVAL);
     SOL_NULL_CHECK(req, -EINVAL);
 
-    r = coap_find_options(req, SOL_COAP_OPTION_URI_PATH, options, max_count);
+    r = sol_coap_find_options(req, SOL_COAP_OPTION_URI_PATH, options, max_count);
     SOL_INT_CHECK(r, < 0, r);
     SOL_INT_CHECK(r, > max_count, -EINVAL);
     count = r;
@@ -330,9 +329,8 @@ packet_extract_path(const struct sol_coap_packet *req, char **path_str)
     path = alloca(sizeof(struct sol_str_slice) * (count + 1));
     path_len = 1;
     for (i = 0; i < count; i++) {
-        const struct sol_coap_option_value *v = &options[i];
-        path[i] = SOL_STR_SLICE_STR((char *)v->value, v->len);
-        r = sol_util_size_add(path_len, v->len + 1, &path_len);
+        path[i] = options[i];
+        r = sol_util_size_add(path_len, options[i].len + 1, &path_len);
         SOL_INT_CHECK(r, < 0, r);
     }
     path[count] = SOL_STR_SLICE_STR(NULL, 0);
@@ -375,7 +373,7 @@ static int(*find_resource_cb(const struct sol_coap_packet *req,
     case SOL_COAP_METHOD_PUT:
         return resource->put;
     case SOL_COAP_METHOD_DELETE:
-        return resource->delete;
+        return resource->del;
     }
 
     return NULL;
@@ -521,10 +519,14 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
     int max_retransmit;
     bool expired = false;
 
-    if (sol_coap_header_get_type(outgoing->pkt) == SOL_COAP_TYPE_CON)
+    if (sol_coap_header_get_type(outgoing->pkt) == SOL_COAP_TYPE_CON) {
         max_retransmit = MAX_RETRANSMIT;
-    else
-        max_retransmit = 0;
+        timeout = ACK_TIMEOUT_MS << outgoing->counter++;
+    } else {
+        max_retransmit = 1;
+        timeout = NONCON_PKT_TIMEOUT_MS;
+        outgoing->counter++;
+    }
 
     if (outgoing->counter > max_retransmit) {
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
@@ -544,7 +546,6 @@ timeout_expired(struct sol_coap_server *server, struct outgoing *outgoing)
         }
     }
 
-    timeout = ACK_TIMEOUT_MS << outgoing->counter++;
     outgoing->timeout = sol_timeout_add(timeout, timeout_cb, outgoing);
 
     SOL_DBG("waiting %d ms to re-try packet id %d", timeout, sol_coap_header_get_id(outgoing->pkt));
@@ -575,6 +576,8 @@ on_can_write(void *data, struct sol_socket *s)
     if (err == -EAGAIN)
         return true;
 
+    SOL_DBG("pkt sent:");
+    sol_coap_packet_debug(outgoing->pkt);
     if (err < 0) {
         char addr[SOL_INET_ADDR_STRLEN];
         sol_network_addr_to_str(&outgoing->cliaddr, addr, sizeof(addr));
@@ -626,20 +629,20 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
     void *data), void *data)
 {
-    struct sol_coap_option_value option = {};
+    struct sol_str_slice option = {};
     struct pending_reply *reply = NULL;
     uint8_t tkl, *token;
     int err = 0, count;
     bool observing = false;
 
-    count = coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, 1);
+    count = sol_coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, 1);
     if (count < 0) {
         sol_coap_packet_unref(pkt);
         return -EINVAL;
     }
 
     /* Observing is enabled. */
-    if (count == 1 && option.len == 1 && option.value[0] == 0)
+    if (count == 1 && option.len == 1 && option.data[0] == 0)
         observing = true;
 
     if (!reply_cb) {
@@ -904,18 +907,56 @@ sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char *uri
 SOL_API const void *
 sol_coap_find_first_option(const struct sol_coap_packet *pkt, uint16_t code, uint16_t *len)
 {
-    struct sol_coap_option_value option = {};
+    struct sol_str_slice option = {};
     uint16_t count = 1;
 
     SOL_NULL_CHECK(pkt, NULL);
     SOL_NULL_CHECK(len, NULL);
 
-    if (coap_find_options(pkt, code, &option, count) <= 0)
+    if (sol_coap_find_options(pkt, code, &option, count) <= 0)
         return NULL;
 
     *len = option.len;
 
-    return option.value;
+    return option.data;
+}
+
+SOL_API int
+sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
+    struct sol_str_slice *vec, uint16_t veclen)
+{
+    struct option_context context = { .delta = 0,
+                                      .used = 0 };
+    int used, count = 0;
+    int hdrlen;
+    uint16_t len;
+
+    SOL_NULL_CHECK(vec, -EINVAL);
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    hdrlen = coap_get_header_len(pkt);
+    SOL_INT_CHECK(hdrlen, < 0, -EINVAL);
+
+    context.buflen = pkt->payload.used - hdrlen;
+    context.buf = (uint8_t *)pkt->buf + hdrlen;
+
+    while (context.delta <= code && count < veclen) {
+        used = coap_parse_option(pkt, &context, (uint8_t **)&vec[count].data,
+            &len);
+        vec[count].len = len;
+        if (used < 0)
+            return -ENOENT;
+
+        if (used == 0)
+            break;
+
+        if (code != context.delta)
+            continue;
+
+        count++;
+    }
+
+    return count;
 }
 
 static int
@@ -991,24 +1032,24 @@ static const struct sol_coap_resource well_known = {
 static int
 get_observe_option(struct sol_coap_packet *pkt)
 {
-    struct sol_coap_option_value option = {};
+    struct sol_str_slice option = {};
     int r;
     uint16_t count = 1;
 
     SOL_NULL_CHECK(pkt, -EINVAL);
 
-    r = coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, count);
+    r = sol_coap_find_options(pkt, SOL_COAP_OPTION_OBSERVE, &option, count);
     if (r <= 0)
         return -ENOENT;
 
     /* The value is in the network order, and has at max 3 bytes. */
     switch (option.len) {
     case 1:
-        return option.value[0];
+        return option.data[0];
     case 2:
-        return (option.value[0] << 0) | (option.value[1] << 8);
+        return (option.data[0] << 0) | (option.data[1] << 8);
     case 3:
-        return (option.value[0] << 0) | (option.value[1] << 8) | (option.value[2] << 16);
+        return (option.data[0] << 0) | (option.data[1] << 8) | (option.data[2] << 16);
     default:
         return -EINVAL;
     }
@@ -1096,7 +1137,7 @@ resource_not_found(struct sol_coap_packet *req,
 }
 
 static void
-remove_outgoing_packet(struct sol_coap_server *server, struct sol_coap_packet *req)
+remove_outgoing_confirmable_packet(struct sol_coap_server *server, struct sol_coap_packet *req)
 {
     uint16_t i, id;
     struct outgoing *o;
@@ -1104,7 +1145,7 @@ remove_outgoing_packet(struct sol_coap_server *server, struct sol_coap_packet *r
     id = sol_coap_header_get_id(req);
     /* If it has the same 'id' as a packet that we are trying to send we will stop now. */
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->outgoing, o, i) {
-        if (id != sol_coap_header_get_id(o->pkt)) {
+        if (id != sol_coap_header_get_id(o->pkt) || sol_coap_header_get_type(o->pkt) != SOL_COAP_TYPE_CON) {
             continue;
         }
 
@@ -1142,6 +1183,29 @@ error:
     return -EINVAL;
 }
 
+static bool
+is_coap_ping(struct sol_coap_packet *req)
+{
+    uint8_t tokenlen;
+
+    (void)sol_coap_header_get_token(req, &tokenlen);
+    return sol_coap_header_get_type(req) == SOL_COAP_TYPE_CON &&
+           sol_coap_header_get_code(req) == SOL_COAP_CODE_EMPTY &&
+           tokenlen == 0 && !sol_coap_packet_has_payload(req);
+}
+
+static int
+send_reset_msg(struct sol_coap_server *server, struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr)
+{
+    struct sol_coap_packet *reset;
+
+    reset = sol_coap_packet_new(req);
+    SOL_NULL_CHECK(reset, -ENOMEM);
+    sol_coap_header_set_type(reset, SOL_COAP_TYPE_RESET);
+    return sol_coap_send_packet(server, reset, cliaddr);
+}
+
 static int
 respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
@@ -1158,12 +1222,18 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     uint8_t code;
     bool remove_outgoing = true;
 
+    if (is_coap_ping(req)) {
+        SOL_DBG("Coap ping, sending pong");
+        return send_reset_msg(server, req, cliaddr);
+    }
+
     code = sol_coap_header_get_code(req);
 
     observe = get_observe_option(req);
 
     /* If it isn't a request. */
     if (code & ~SOL_COAP_REQUEST_MASK) {
+        bool found_reply = false;
         SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&server->pending, reply, i) {
             if (!match_reply(reply, req))
                 continue;
@@ -1179,14 +1249,34 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
                 pending_reply_free(reply);
             } else if (!reply->observing)
                 remove_outgoing = false;
+            found_reply = true;
         }
 
+        /*
+           If we sent a request and we received a reply,
+           the request must be removed from the outgoing list.
+         */
         if (remove_outgoing)
-            remove_outgoing_packet(server, req);
+            remove_outgoing_confirmable_packet(server, req);
+
+        if (observe >= 0 && !found_reply) {
+            SOL_DBG("Observing message, but no one is waiting for reply. Reseting.");
+            return send_reset_msg(server, req, cliaddr);
+        }
         return 0;
     }
 
-    remove_outgoing_packet(server, req);
+    /*
+       When a request is made, the receiver may reply with an ACK
+       and an empty code. This indicates that the receiver is aware of
+       the request, however it will send the data later.
+       In this case, the request can be removed from the outgoing list.
+     */
+    if (code == SOL_COAP_CODE_EMPTY) {
+        remove_outgoing_confirmable_packet(server, req);
+        return 0;
+    }
+
     /* /.well-known/core well known resource */
     cb = find_resource_cb(req, &well_known);
     if (cb)
@@ -1235,6 +1325,9 @@ on_can_read(void *data, struct sol_socket *s)
         coap_packet_free(pkt);
         return true;
     }
+
+    SOL_DBG("pkt received:");
+    sol_coap_packet_debug(pkt);
 
     err = respond_packet(server, pkt, &cliaddr);
     if (err < 0) {
@@ -1477,7 +1570,7 @@ sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t
     }
 
     *buf = pkt->payload.start;
-    *len = pkt->payload.size - pkt->payload.used;
+    *len = pkt->payload.size - (pkt->payload.start - pkt->buf);
     return 0;
 }
 
@@ -1614,3 +1707,22 @@ sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_netwo
 
     return -ENOENT;
 }
+
+#ifdef SOL_LOG_ENABLED
+SOL_API void
+sol_coap_packet_debug(struct sol_coap_packet *pkt)
+{
+    int r;
+    char *path = NULL;
+
+    if (sol_log_get_level() < SOL_LOG_LEVEL_DEBUG)
+        return;
+
+    r = packet_extract_path(pkt, &path);
+    SOL_DBG("{id: %d, href: '%s', type: %d, header_code: %d}",
+        sol_coap_header_get_id(pkt), r == 0 ? path : "", sol_coap_header_get_type(pkt),
+        sol_coap_header_get_code(pkt));
+    if (r == 0)
+        free(path);
+}
+#endif

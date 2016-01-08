@@ -55,6 +55,18 @@ extern "C" {
  * @{
  */
 
+#ifndef OIC_PLATFORM_ID
+/**
+ * @brief Default Platform ID
+ *
+ * To override this just define OIC_PLATFORM_ID before including this
+ * header.
+ *
+ * @see sol_oic_platform_information
+ */
+#define OIC_PLATFORM_ID "Unknown"
+#endif
+
 #ifndef OIC_MANUFACTURER_NAME
 /**
  * @brief Default manufacturer name
@@ -62,7 +74,7 @@ extern "C" {
  * To override this just define OIC_MANUFACTURER_NAME before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_platform_information
  */
 #define OIC_MANUFACTURER_NAME "Soletta"
 #endif
@@ -73,7 +85,7 @@ extern "C" {
  * To override this just define OIC_MANUFACTURER_URL before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_platform_information
  */
 #define OIC_MANUFACTURER_URL "https://soletta-project.org"
 #endif
@@ -84,7 +96,7 @@ extern "C" {
  * To override this just define OIC_MODEL_NUMBER before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_platform_information
  */
 #define OIC_MODEL_NUMBER "Unknown"
 #endif
@@ -95,7 +107,7 @@ extern "C" {
  * To override this just define OIC_MANUFACTURE_DATE before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_platform_information
  */
 #define OIC_MANUFACTURE_DATE "2015-01-01"
 #endif
@@ -106,7 +118,7 @@ extern "C" {
  * To override this just define OIC_PLATFORM_VERSION before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_platform_information
  */
 #define OIC_PLATFORM_VERSION "Unknown"
 #endif
@@ -117,7 +129,7 @@ extern "C" {
  * To override this just define OIC_HARDWARE_VERSION before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_platform_information
  */
 #define OIC_HARDWARE_VERSION "Unknown"
 #endif
@@ -128,7 +140,7 @@ extern "C" {
  * To override this just define OIC_FIRMWARE_VERSION before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_platform_information
  */
 #define OIC_FIRMWARE_VERSION "Unknown"
 #endif
@@ -139,9 +151,42 @@ extern "C" {
  * To override this just define OIC_SUPPORT_URL before including this
  * header.
  *
- * @see sol_oic_server_information
+ * @see sol_oic_platform_information
  */
 #define OIC_SUPPORT_URL "Unknown"
+#endif
+#ifndef OIC_DEVICE_NAME
+/**
+ * @brief Default device name.
+ *
+ * To override this just define OIC_DEVICE_NAME before including this
+ * header.
+ *
+ * @see sol_oic_server_information
+ */
+#define OIC_DEVICE_NAME "Unknown"
+#endif
+#ifndef OIC_SPEC_VERSION
+/**
+ * @brief Default spec version
+ *
+ * To override this just define OIC_SPEC_VERSION before including this
+ * header.
+ *
+ * @see sol_oic_server_information
+ */
+#define OIC_SPEC_VERSION ""
+#endif
+#ifndef OIC_DATA_MODEL_VERSION
+/**
+ * @brief Default data model version.
+ *
+ * To override this just define OIC_DATA_MODEL_VERSION before including this
+ * header.
+ *
+ * @see sol_oic_server_information
+ */
+#define OIC_DATA_MODEL_VERSION "Unknown"
 #endif
 
 /**
@@ -232,7 +277,7 @@ struct sol_oic_resource_type {
      *
      * @return The coap response code of this request.
      */
-    delete;
+        del;
 };
 
 /**
@@ -240,13 +285,13 @@ struct sol_oic_resource_type {
  *
  * The first call of sol_oic_server_init will initialize the oic-server and any
  * other following calls will increment the oic-server reference counter.
- * After using the oic-server, @ref sol_oic_server_release() must be called to
+ * After using the oic-server, @ref sol_oic_server_shutdown() must be called to
  * decrement the reference counter and to release the resource when possible.
  *
  * This function must be called before calling any other sol-oic-server
  * function.
  *
- * @return 0 on success. A negative integer on errors.
+ * @return 0 on success, -errno on failure.
  */
 int sol_oic_server_init(void);
 
@@ -258,7 +303,7 @@ int sol_oic_server_init(void);
  *
  * @see sol_oic_server_init()
  */
-void sol_oic_server_release(void);
+void sol_oic_server_shutdown(void);
 
 /**
  * @brief Add resource to oic-server.

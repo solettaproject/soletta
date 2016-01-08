@@ -43,6 +43,111 @@
  * @{
  */
 
+/**
+ * @def SOL_API
+ *
+ * @brief Used to export functions on the final binaries.
+ */
+
+/**
+ * @def SOL_ATTR_WARN_UNUSED_RESULT
+ *
+ * @brief Causes a warning to be emitted if a caller of the function
+ * with this attribute does not use its return value.
+ */
+
+/**
+ * @def SOL_ATTR_CONST
+ *
+ * @brief Used to enforce that the function is not allowed to read global memory.
+ */
+
+/**
+ * @def SOL_ATTR_PRINTF(fmt, arg)
+ *
+ * @brief Specifies that a function takes @c printf style arguments
+ * which should be type-checked against a format string.
+ *
+ * @param fmt Index of the format string
+ * @param arg Index of the format string arguments
+ */
+
+/**
+ * @def SOL_ATTR_SCANF(fmt, arg)
+ *
+ * @brief Specifies that a function takes scanf style arguments
+ * which should be type-checked against a format string.
+ *
+ * @param fmt Index of the format string
+ * @param arg Index of the format string arguments
+ */
+
+/**
+ * @def SOL_ATTR_NOINSTRUMENT
+ *
+ * @brief Used to tell that this functions shouldn't be instrumented.
+ *
+ * If @c -finstrument-functions is used, it won't be applied
+ * in functions with this attribute.
+ */
+
+/**
+ * @def SOL_ATTR_NONNULL(...)
+ *
+ * @brief Specifies that some function parameters should be non-null pointers.
+ *
+ * @param ... Indexes of the arguments to check for non-nullity
+ */
+
+/**
+ * @def SOL_ATTR_SECTION(secname)
+ *
+ * @brief Used to tell that a function should be placed in the section @c secname.
+ *
+ * @param secname Section's name
+ */
+
+/**
+ * @def SOL_ATTR_USED
+ *
+ * @brief Used to tell that code must be emitted for the function even if it appears
+ * that the function is not referenced.
+ */
+
+/**
+ * @def SOL_ATTR_UNUSED
+ *
+ * @brief Used to tell that the function is meant to be possibly unused.
+ */
+
+/**
+ * @def SOL_ATTR_SENTINEL
+ *
+ * @brief Used to ensure that the last parameter in a function call is an explicit NULL.
+ */
+
+/**
+ * @def SOL_ATTR_NORETURN
+ *
+ * @brief Used to tell that a function never return.
+ */
+
+/**
+ * @def SOL_ATTR_PURE
+ *
+ * @brief Used to tell that this functions has no effects except the return value
+ * and their return value depends only on the parameters and/or global variables.
+ */
+
+/**
+ * @def SOL_STATIC_ARRAY_SIZE(n)
+ *
+ * @brief Convenience macro to declare the size of a static array that will handle
+ * differences between C and C++.
+ *
+ * @param n Size of the array
+ */
+
 #if __GNUC__ >= 4
 #define SOL_API  __attribute__((visibility("default")))
 #define SOL_ATTR_WARN_UNUSED_RESULT __attribute__((warn_unused_result))

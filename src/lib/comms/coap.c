@@ -224,42 +224,6 @@ coap_packet_parse(struct sol_coap_packet *pkt)
     return 0;
 }
 
-int
-coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
-    struct sol_coap_option_value *vec, uint16_t veclen)
-{
-
-    struct option_context context = { .delta = 0,
-                                      .used = 0 };
-    int used, count = 0;
-    int hdrlen;
-
-    SOL_NULL_CHECK(vec, -EINVAL);
-    SOL_NULL_CHECK(pkt, -EINVAL);
-
-    hdrlen = coap_get_header_len(pkt);
-    SOL_INT_CHECK(hdrlen, < 0, -EINVAL);
-
-    context.buflen = pkt->payload.used - hdrlen;
-    context.buf = (uint8_t *)pkt->buf + hdrlen;
-
-    while (context.delta <= code && count < veclen) {
-        used = coap_parse_option(pkt, &context, &vec[count].value, &vec[count].len);
-        if (used < 0)
-            return -ENOENT;
-
-        if (used == 0)
-            break;
-
-        if (code != context.delta)
-            continue;
-
-        count++;
-    }
-
-    return count;
-}
-
 static int
 delta_encode(int num, uint8_t *value, uint8_t *buf, size_t buflen)
 {

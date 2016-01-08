@@ -46,14 +46,10 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "sol-util.h"
 #include "string-format.h"
+SOL_LOG_INTERNAL_DECLARE(_string_format_log_domain, "string-format");
 
-#ifndef SOL_LOG_DOMAIN
-#define SOL_LOG_DOMAIN &_converter_log_domain
-#include "sol-log-internal.h"
-extern struct sol_log_domain _converter_log_domain;
-#endif
+#include "sol-util.h"
 
 struct format_spec_data {
     ssize_t width;

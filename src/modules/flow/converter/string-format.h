@@ -33,8 +33,13 @@
 #pragma once
 
 #include "sol-buffer.h"
-#include "sol-flow/converter.h"
 #include "sol-mainloop.h"
+
+#ifndef SOL_LOG_DOMAIN
+#define SOL_LOG_DOMAIN &_string_format_log_domain
+extern struct sol_log_domain _string_format_log_domain;
+#endif
+
 #include "sol-flow-internal.h"
 
 int do_integer_markup(struct sol_flow_node *node, const char *format, struct sol_irange args, struct sol_buffer *out) SOL_ATTR_WARN_UNUSED_RESULT;

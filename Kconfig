@@ -170,6 +170,7 @@ source "src/samples/common/Kconfig"
 source "src/samples/crypto/Kconfig"
 source "src/samples/http/Kconfig"
 source "src/samples/mqtt/Kconfig"
+source "src/samples/mavlink/Kconfig"
 
 config FLOW_SAMPLES
 	bool "Flow samples"

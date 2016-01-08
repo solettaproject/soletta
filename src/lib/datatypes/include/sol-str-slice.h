@@ -259,7 +259,7 @@ sol_str_slice_from_str(const char *s)
 static SOL_ATTR_NONNULL(1) inline struct sol_str_slice
 sol_str_slice_from_blob(const struct sol_blob *blob)
 {
-    return SOL_STR_SLICE_STR(blob->mem, blob->size);
+    return SOL_STR_SLICE_STR((char *)blob->mem, blob->size);
 }
 
 /**

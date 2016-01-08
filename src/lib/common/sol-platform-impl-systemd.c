@@ -61,13 +61,17 @@ struct ctx {
         enum sol_platform_state system_state;
     } properties;
 
+    struct sol_bus_client *systemd;
+    struct sol_bus_client *locale;
+    struct sol_bus_client *timedate;
+    struct sol_bus_client *hostname;
     struct sol_ptr_vector services;
 };
 
 static struct ctx _ctx;
 
 static bool
-_manager_set_system_state(void *data, sd_bus_message *m)
+_manager_set_system_state(void *data, const char *path, sd_bus_message *m)
 {
     struct ctx *ctx = data;
     const char *str;
@@ -86,6 +90,9 @@ _manager_set_system_state(void *data, sd_bus_message *m)
     };
     int r;
 
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+    SOL_INT_CHECK(r, < 0, false);
+
     r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
     SOL_INT_CHECK(r, < 0, false);
 
@@ -93,6 +100,9 @@ _manager_set_system_state(void *data, sd_bus_message *m)
         SOL_PLATFORM_SERVICE_STATE_UNKNOWN);
     changed = state != ctx->properties.system_state;
     ctx->properties.system_state = state;
+
+    r = sd_bus_message_exit_container(m);
+    SOL_INT_CHECK(r, < 0, false);
 
     return changed;
 }
@@ -102,7 +112,7 @@ enum {
 };
 
 static void
-_manager_properties_changed(void *data, uint64_t mask)
+_manager_properties_changed(void *data, const char *path, uint64_t mask)
 {
     struct ctx *ctx = data;
 
@@ -130,6 +140,9 @@ _bus_initialized(sd_bus *bus)
 
     _ctx.properties.system_state = SOL_PLATFORM_STATE_UNKNOWN;
 
+    _ctx.systemd = sol_bus_client_new(bus, "org.freedesktop.systemd1");
+    SOL_NULL_CHECK_GOTO(_ctx.systemd, fail_new_client);
+
     r = sd_bus_message_new_method_call(bus, &m,
         "org.freedesktop.systemd1",
         "/org/freedesktop/systemd1",
@@ -141,8 +154,7 @@ _bus_initialized(sd_bus *bus)
     SOL_INT_CHECK_GOTO(r, < 0, fail_call);
     sd_bus_message_unref(m);
 
-    r = sol_bus_map_cached_properties(bus,
-        "org.freedesktop.systemd1",
+    r = sol_bus_map_cached_properties(_ctx.systemd,
         "/org/freedesktop/systemd1",
         "org.freedesktop.systemd1.Manager",
         _manager_properties,
@@ -156,6 +168,7 @@ fail_call:
     sd_bus_message_unref(m);
 fail_map_properties:
 fail_new_method:
+fail_new_client:
     sol_bus_close();
 }
 
@@ -202,7 +215,7 @@ sol_platform_impl_get_state(void)
 }
 
 static bool
-_service_set_state(void *data, sd_bus_message *m)
+_service_set_state(void *data, const char *path, sd_bus_message *m)
 {
     struct service *x = data;
     const char *str;
@@ -219,6 +232,9 @@ _service_set_state(void *data, sd_bus_message *m)
     };
     int r;
 
+    r = sd_bus_message_enter_container(m, SD_BUS_TYPE_VARIANT, "s");
+    SOL_INT_CHECK(r, < 0, false);
+
     r = sd_bus_message_read_basic(m, SD_BUS_TYPE_STRING, &str);
     SOL_INT_CHECK(r, < 0, false);
 
@@ -226,6 +242,9 @@ _service_set_state(void *data, sd_bus_message *m)
         SOL_PLATFORM_SERVICE_STATE_UNKNOWN);
     changed = state != x->properties.state;
     x->properties.state = state;
+
+    r = sd_bus_message_exit_container(m);
+    SOL_INT_CHECK(r, < 0, false);
 
     return changed;
 }
@@ -235,7 +254,7 @@ enum {
 };
 
 static void
-_service_properties_changed(void *data, uint64_t mask)
+_service_properties_changed(void *data, const char *path, uint64_t mask)
 {
     struct service *x = data;
 
@@ -272,8 +291,7 @@ _add_service_monitor(sd_bus_message *reply, void *userdata,
     r = sd_bus_message_read(reply, "o", &path);
     SOL_INT_CHECK(r, < 0, r);
 
-    sol_bus_map_cached_properties(sd_bus_message_get_bus(reply),
-        "org.freedesktop.systemd1",
+    sol_bus_map_cached_properties(_ctx.systemd,
         path,
         "org.freedesktop.systemd1.Unit",
         _service_properties,
@@ -290,14 +308,17 @@ sol_platform_impl_add_service_monitor(const char *service)
     sd_bus_message *m = NULL;
     sd_bus *bus;
     char buf[PATH_MAX];
-    const char *unit;
+    const char *unit, *systemd_service;
     struct service *x;
+
+    bus = sol_bus_client_get_bus(_ctx.systemd);
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    systemd_service = sol_bus_client_get_service(_ctx.systemd);
+    SOL_NULL_CHECK(service, -EINVAL);
 
     unit = sanitize_service_name(buf, service, "add_service_monitor");
     SOL_NULL_CHECK(unit, -EINVAL);
-
-    bus = sol_bus_get(_bus_initialized);
-    SOL_NULL_CHECK(bus, -ENOTCONN);
 
     x = calloc(1, sizeof(*x));
     SOL_NULL_CHECK(x, -ENOMEM);
@@ -305,7 +326,7 @@ sol_platform_impl_add_service_monitor(const char *service)
     x->properties.state = SOL_PLATFORM_SERVICE_STATE_UNKNOWN;
 
     r = sd_bus_message_new_method_call(bus, &m,
-        "org.freedesktop.systemd1",
+        systemd_service,
         "/org/freedesktop/systemd1",
         "org.freedesktop.systemd1.Manager",
         "GetUnit");
@@ -347,7 +368,7 @@ sol_platform_impl_del_service_monitor(const char *service)
     if (found->slot)
         sd_bus_slot_unref(found->slot);
     else
-        sol_bus_unmap_cached_properties(_service_properties, found);
+        sol_bus_unmap_cached_properties(_ctx.systemd, _service_properties, found);
 
     sol_ptr_vector_del(&_ctx.services, i);
     free(found);
@@ -362,17 +383,20 @@ call_manager(const char *method, const char *_unit, const char *suffix,
     sd_bus_message *m = NULL;
     sd_bus *bus;
     char buf[PATH_MAX];
-    const char *unit;
+    const char *unit, *service;
     int r;
+
+    bus = sol_bus_client_get_bus(_ctx.systemd);
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    service = sol_bus_client_get_service(_ctx.systemd);
+    SOL_NULL_CHECK(service, -EINVAL);
 
     unit = sanitize_unit_name(buf, _unit, suffix, action);
     SOL_NULL_CHECK(unit, -EINVAL);
 
-    bus = sol_bus_get(_bus_initialized);
-    SOL_NULL_CHECK(bus, -ENOTCONN);
-
     r = sd_bus_message_new_method_call(bus, &m,
-        "org.freedesktop.systemd1",
+        service,
         "/org/freedesktop/systemd1",
         "org.freedesktop.systemd1.Manager",
         method);
@@ -502,12 +526,19 @@ int
 sol_platform_impl_set_hostname(const char *name)
 {
     sd_bus *bus;
+    const char *service;
     int r;
+
+    bus = sol_bus_client_get_bus(_ctx.hostname);
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    service = sol_bus_client_get_service(_ctx.hostname);
+    SOL_NULL_CHECK(service, -EINVAL);
 
     bus = sol_bus_get(NULL);
     SOL_NULL_CHECK(bus, -ENOTCONN);
 
-    r = sd_bus_call_method_async(bus, NULL, "org.freedesktop.hostname1",
+    r = sd_bus_call_method_async(bus, NULL, service,
         "/org/freedesktop/hostname1", "org.freedesktop.hostname1",
         "SetStaticHostname", sol_bus_log_callback, NULL, "sb", name, false);
     SOL_INT_CHECK(r, < 0, r);
@@ -515,7 +546,7 @@ sol_platform_impl_set_hostname(const char *name)
 }
 
 static bool
-skip_prop(void *data, sd_bus_message *m)
+skip_prop(void *data, const char *path, sd_bus_message *m)
 {
     int r;
 
@@ -532,11 +563,14 @@ static const struct sol_bus_properties _hostname_property = {
 int
 sol_platform_unregister_hostname_monitor(void)
 {
-    return sol_bus_unmap_cached_properties(&_hostname_property, NULL);
+    sol_bus_client_free(_ctx.hostname);
+    _ctx.hostname = NULL;
+
+    return 0;
 }
 
 static void
-_hostname_changed(void *data, uint64_t mask)
+_hostname_changed(void *data, const char *path, uint64_t mask)
 {
     sol_platform_inform_hostname_monitors();
 }
@@ -549,9 +583,16 @@ sol_platform_register_hostname_monitor(void)
     bus = sol_bus_get(NULL);
     SOL_NULL_CHECK(bus, -ENOTCONN);
 
-    return sol_bus_map_cached_properties(bus, "org.freedesktop.hostname1",
+    _ctx.hostname = sol_bus_client_new(bus, "org.freedesktop.hostname1");
+    SOL_NULL_CHECK_GOTO(_ctx.hostname, error);
+
+    return sol_bus_map_cached_properties(_ctx.hostname,
         "/org/freedesktop/hostname1", "org.freedesktop.hostname1",
         &_hostname_property, _hostname_changed, NULL);
+
+error:
+    sd_bus_unref(bus);
+    return -ENOMEM;
 }
 
 int
@@ -560,6 +601,13 @@ sol_platform_impl_set_system_clock(int64_t timestamp)
     sd_bus *bus;
     int r;
     int64_t timestamp_micro;
+    const char *service;
+
+    bus = sol_bus_client_get_bus(_ctx.timedate);
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    service = sol_bus_client_get_service(_ctx.timedate);
+    SOL_NULL_CHECK(service, -EINVAL);
 
     r = sol_util_int64_mul(timestamp, USEC_PER_SEC, &timestamp_micro);
     SOL_INT_CHECK(r, < 0, r);
@@ -567,7 +615,7 @@ sol_platform_impl_set_system_clock(int64_t timestamp)
     bus = sol_bus_get(NULL);
     SOL_NULL_CHECK(bus, -ENOTCONN);
 
-    r = sd_bus_call_method_async(bus, NULL, "org.freedesktop.timedate1",
+    r = sd_bus_call_method_async(bus, NULL, service,
         "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
         "SetTime", sol_bus_log_callback, NULL, "xbb", timestamp_micro, false, false);
     SOL_INT_CHECK(r, < 0, r);
@@ -578,12 +626,16 @@ int
 sol_platform_impl_set_timezone(const char *timezone)
 {
     sd_bus *bus;
+    const char *service;
     int r;
 
-    bus = sol_bus_get(NULL);
-    SOL_NULL_CHECK(bus, -ENOTCONN);
+    bus = sol_bus_client_get_bus(_ctx.timedate);
+    SOL_NULL_CHECK(bus, -EINVAL);
 
-    r = sd_bus_call_method_async(bus, NULL, "org.freedesktop.timedate1",
+    service = sol_bus_client_get_service(_ctx.timedate);
+    SOL_NULL_CHECK(service, -EINVAL);
+
+    r = sd_bus_call_method_async(bus, NULL, service,
         "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
         "SetTimezone", sol_bus_log_callback, NULL, "sb", timezone, false);
     SOL_INT_CHECK(r, < 0, r);
@@ -596,7 +648,7 @@ static const struct sol_bus_properties _timezone_property = {
 };
 
 static void
-_timezone_changed(void *data, uint64_t mask)
+_timezone_changed(void *data, const char *path, uint64_t mask)
 {
     sol_platform_inform_timezone_changed();
 }
@@ -606,16 +658,122 @@ sol_platform_register_timezone_monitor(void)
 {
     sd_bus *bus;
 
+    if (_ctx.timedate)
+        return 0;
+
     bus = sol_bus_get(NULL);
     SOL_NULL_CHECK(bus, -ENOTCONN);
 
-    return sol_bus_map_cached_properties(bus, "org.freedesktop.timedate1",
+    _ctx.timedate = sol_bus_client_new(bus, "org.freedesktop.timedate1");
+    SOL_NULL_CHECK_GOTO(_ctx.timedate, error);
+
+    return sol_bus_map_cached_properties(_ctx.timedate,
         "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
         &_timezone_property, _timezone_changed, NULL);
+
+error:
+    sd_bus_unref(bus);
+    return -ENOMEM;
 }
 
 int
 sol_platform_unregister_timezone_monitor(void)
 {
-    return sol_bus_unmap_cached_properties(&_timezone_property, NULL);
+    sol_bus_client_free(_ctx.timedate);
+    _ctx.timedate = NULL;
+
+    return 0;
+}
+
+int
+sol_platform_impl_set_locale(char **locales)
+{
+    sd_bus *bus;
+    int r;
+    char *str;
+    sd_bus_message *m;
+    const char *service;
+    enum sol_platform_locale_category i;
+
+    bus = sol_bus_client_get_bus(_ctx.locale);
+    SOL_NULL_CHECK(bus, -EINVAL);
+
+    service = sol_bus_client_get_service(_ctx.locale);
+    SOL_NULL_CHECK(service, -EINVAL);
+
+    r = sd_bus_message_new_method_call(bus, &m,
+        service,
+        "/org/freedesktop/locale1",
+        "org.freedesktop.locale1",
+        "SetLocale");
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sd_bus_message_open_container(m, 'a', "s");
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    for (i = SOL_PLATFORM_LOCALE_LANGUAGE; i <= SOL_PLATFORM_LOCALE_TIME; i++) {
+        r = asprintf(&str, "%s=%s", sol_platform_locale_to_c_str_category(i),
+            locales[i] ? locales[i] : "C");
+        if (r < 0) {
+            r = -ENOMEM;
+            goto exit;
+        }
+        r = sd_bus_message_append_basic(m, 's', str);
+        free(str);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    r = sd_bus_message_close_container(m);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sd_bus_message_append(m, "b", false);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sd_bus_call_async(bus, NULL, m, sol_bus_log_callback, NULL, 0);
+
+exit:
+    sd_bus_message_unref(m);
+    return r;
+}
+
+static void
+_locale_changed(void *data, const char *path, uint64_t mask)
+{
+    sol_platform_inform_locale_changed();
+}
+
+static const struct sol_bus_properties _locale_property = {
+    .member = "Locale",
+    .set = skip_prop,
+};
+
+int
+sol_platform_register_locale_monitor(void)
+{
+    sd_bus *bus;
+
+    if (_ctx.locale)
+        return 0;
+
+    bus = sol_bus_get(NULL);
+    SOL_NULL_CHECK(bus, -ENOTCONN);
+
+    _ctx.locale = sol_bus_client_new(bus, "org.freedesktop.locale1");
+    SOL_NULL_CHECK_GOTO(_ctx.locale, error);
+
+    return sol_bus_map_cached_properties(_ctx.locale, "/org/freedesktop/locale1",
+        "org.freedesktop.locale1", &_locale_property, _locale_changed, NULL);
+
+error:
+    sd_bus_unref(bus);
+    return -ENOMEM;
+}
+
+int
+sol_platform_unregister_locale_monitor(void)
+{
+    sol_bus_client_free(_ctx.locale);
+    _ctx.locale = NULL;
+
+    return 0;
 }

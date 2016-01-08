@@ -303,8 +303,8 @@
 	  {
             "data_type": "string",
 	    "default": "/",
-            "description": "The http namespace (prefix path) where it will be served",
-            "name": "namespace"
+            "description": "The http base name (prefix path) where it will be served",
+            "name": "basename"
           },
           {
             "data_type": "boolean",

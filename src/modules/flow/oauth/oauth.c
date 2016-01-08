@@ -53,7 +53,7 @@ struct v1_data {
     struct sol_ptr_vector pending_conns;
     struct sol_ptr_vector pending_digests;
     char *request_token_url, *authorize_token_url, *access_token_url,
-    *consumer_key, *consumer_key_secret, *namespace,
+    *consumer_key, *consumer_key_secret, *basename,
     *start_handler_url, *callback_handler_url;
 };
 
@@ -246,7 +246,7 @@ v1_close(struct sol_flow_node *node, void *data)
     free(mdata->authorize_token_url);
     free(mdata->request_token_url);
     free(mdata->access_token_url);
-    free(mdata->namespace);
+    free(mdata->basename);
     free(mdata->consumer_key);
     free(mdata->consumer_key_secret);
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->pending_conns, connection, i)
@@ -493,7 +493,7 @@ v1_request_start_cb(void *data, struct sol_http_request *request)
 
     SOL_NULL_CHECK_GOTO(req_data, err);
 
-    req_data->callback_url = get_callback_url(request, mdata->namespace);
+    req_data->callback_url = get_callback_url(request, mdata->basename);
     SOL_NULL_CHECK_GOTO(req_data->callback_url, err_callback);
 
     req_data->node = node;
@@ -608,8 +608,8 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
     mdata->access_token_url = strdup(opts->access_token_url);
     SOL_NULL_CHECK_GOTO(mdata->request_token_url, access_err);
 
-    mdata->namespace = strdup(opts->namespace);
-    SOL_NULL_CHECK_GOTO(mdata->namespace, namespace_err);
+    mdata->basename = strdup(opts->basename);
+    SOL_NULL_CHECK_GOTO(mdata->basename, basename_err);
 
     mdata->consumer_key = strdup(opts->consumer_key);
     SOL_NULL_CHECK_GOTO(mdata->consumer_key, consumer_err);
@@ -620,10 +620,10 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
     sol_ptr_vector_init(&mdata->pending_conns);
     sol_ptr_vector_init(&mdata->pending_digests);
 
-    r = asprintf(&mdata->start_handler_url, "%s/oauth_start", mdata->namespace);
+    r = asprintf(&mdata->start_handler_url, "%s/oauth_start", mdata->basename);
     SOL_INT_CHECK_GOTO(r, < 0, err_start);
 
-    r = asprintf(&mdata->callback_handler_url, "%s/oauth_callback", mdata->namespace);
+    r = asprintf(&mdata->callback_handler_url, "%s/oauth_callback", mdata->basename);
     SOL_INT_CHECK_GOTO(r, < 0, err_callback);
 
     r = sol_http_server_register_handler(type->server, mdata->start_handler_url,
@@ -648,8 +648,8 @@ err_start:
 secret_err:
     free(mdata->consumer_key);
 consumer_err:
-    free(mdata->namespace);
-namespace_err:
+    free(mdata->basename);
+basename_err:
     free(mdata->access_token_url);
 access_err:
     free(mdata->authorize_token_url);

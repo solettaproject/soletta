@@ -57,9 +57,9 @@ extern "C" {
  * @{
  */
 
-struct sol_i2c;
+struct sol_i2c; /**< @brief I2C handle structure */
 
-struct sol_i2c_pending;
+struct sol_i2c_pending; /**< @brief I2C pending operation handle structure */
 
 /**
  * @brief Enum for I2C bus speed.
@@ -83,8 +83,8 @@ enum sol_i2c_speed {
  * @return A new I2C bus handle
  *
  * @note This call won't attempt to make any pin muxing operations
- * underneath. Use sol_i2c_open() for that, also this will not cache this I2C
- * or try get an previous cached I2C handle.
+ * underneath. Use sol_i2c_open() for that. Also, this will never
+ * cache this I2C handle (or return any previously cached I2C handle).
  *
  */
 struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
@@ -99,10 +99,12 @@ struct sol_i2c *sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR
  * @note This call will attempt to make pin muxing operations
  * underneath, for the given platform that the code is running in. Use
  * sol_i2c_open_raw() if you want to skip any pin mux operation.
- * @note The same I2C bus is shared between every user, so only the first one
- * opening the bus will be able to set the bus speed, if some I2C slave device
- * need to work in lower speed you need to change it on every other user of
- * the bus.
+ *
+ * @note The same I2C bus is shared between every user, so only the
+ * first one opening a bus will be able to set its speed. If some I2C
+ * slave device needs to work in bus speed different than the current
+ * one, then you need close the current I2C handle and get another one
+ * at in the desired speed, affecting all other users/devices.
  *
  */
 struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WARN_UNUSED_RESULT;
@@ -110,7 +112,7 @@ struct sol_i2c *sol_i2c_open(uint8_t bus, enum sol_i2c_speed speed) SOL_ATTR_WAR
 /**
  * @brief Close an I2C bus.
  *
- * @param i2c bus The I2C bus handle to close
+ * @param i2c The I2C bus handle to close
  *
  */
 void sol_i2c_close(struct sol_i2c *i2c);
@@ -118,7 +120,7 @@ void sol_i2c_close(struct sol_i2c *i2c);
 /**
  * @brief Close an I2C bus.
  *
- * @param i2c bus The I2C bus handle to close
+ * @param i2c The I2C bus handle to close
  *
  * @note This call will not remove this I2C handle from cache.
  * Use sol_i2c_close() for that.
@@ -134,7 +136,7 @@ void sol_i2c_close_raw(struct sol_i2c *i2c);
  * in between your own ones, though, it's highly advisable that you
  * issue this call before using any of the I2C read/write functions.
  *
- * @param i2c bus The I2C bus handle
+ * @param i2c The I2C bus handle
  * @param slave_address The slave device address to deliver commands to
  *
  * @return @c true on success, @c false otherwise.
@@ -144,9 +146,9 @@ bool sol_i2c_set_slave_address(struct sol_i2c *i2c, uint8_t slave_address);
 
 /**
  * @brief Get the (slave) device address set on an I2C bus (to deliver I2C
- * commands)
+ * commands to)
  *
- * @param i2c bus The I2C bus handle
+ * @param i2c The I2C bus handle
  * @return The slave device address set on @a bus. @c 0x0 means @a bus
  *         was not set to any device yet
  */
@@ -162,16 +164,18 @@ uint8_t sol_i2c_get_slave_address(struct sol_i2c *i2c);
  * @param rw The value to write
  * @param write_quick_cb The callback to be issued when the operation
  * finishes. The status parameter should be equal to one in case of
- * success
+ * success (or a negative error code, on failure)
  * @param cb_data Data to be passed to @a write_quick_cb
  *
- * @return pending handle if operation was started otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a write_quick_cb is
+ * called. It may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (*write_quick_cb)(void *cb_data, struct sol_i2c *i2c, ssize_t status), const void *cb_data);
 
 /**
- * @brief Perform successive asynchronous I2C byte read operations, with no specified
- * register
+ * @brief Perform successive asynchronous I2C byte read operations,
+ * with no specified register
  *
  * This makes @a count read byte I2C operations on the device @a bus
  * is set to operate on, at no specific register. Some devices are so
@@ -179,25 +183,28 @@ struct sol_i2c_pending *sol_i2c_write_quick(struct sol_i2c *i2c, bool rw, void (
  * if you want to read the same register as in the previous I2C
  * command.
  *
- * @param i2c bus The I2C bus handle
+ * @param i2c The I2C bus handle
  * @param data The output buffer for the read operation
  * @param count The bytes count for the read operation
- * @param read_cb The callback to be called when operation finish, the status
- * parameter should be equal to count in case of success
+ * @param read_cb The callback to be called when operation finish, the
+ * status parameter should be equal to count in case of success (or a
+ * negative error code, on failure)
  * @param cb_data The first parameter of callback
  *
- * @note Caller should guarantee that data will not be freed until
+ * @note The caller should guarantee that data will not be freed until the
  * callback is called.
  * Also there is no transfer queue, calling this function when there is
  * another I2C operation running will return false.
  *
- * @return pending handle if operation was started otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a read_cb is called. It
+ * may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*read_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data);
 
 /**
- * @brief Perform successive asynchronous I2C byte write operations, with no specified
- * register
+ * @brief Perform successive asynchronous I2C byte write operations,
+ * with no specified register
  *
  * This makes @a count write byte I2C operations on the device @a
  * bus is set to operate on, at no specific register. Some devices are
@@ -205,59 +212,70 @@ struct sol_i2c_pending *sol_i2c_read(struct sol_i2c *i2c, uint8_t *data, size_t 
  * shorthand if you want to write the same register as in the previous
  * I2C command.
  *
- * @param i2c bus The I2C bus handle
+ * @param i2c The I2C bus handle
  * @param data The output buffer for the write operation
  * @param count The bytes count for the write operation
- * @param write_cb The callback to be called when operation finish, the status
- * parameter should be equal to count in case of success
+ * @param write_cb The callback to be called when operation finish,
+ * the status parameter should be equal to count in case of success
+ * (or a negative error code, on failure)
  * @param cb_data The first parameter of callback
  *
- * @note Caller should guarantee that data will not be freed until
- * callback is called.
- * Also there is no transfer queue, calling this function when there is
- * another I2C operation running will return false.
+ * @note The caller should guarantee that data will not be freed until
+ * the callback is called. Also there is no transfer queue, calling
+ * this function when there is another I2C operation running will
+ * return false.
  *
- * @return pending handle if operation was started otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a write_cb is called. It
+ * may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_write(struct sol_i2c *i2c, uint8_t *data, size_t count, void (*write_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t *data, ssize_t status), const void *cb_data);
 
 /**
- * @brief Perform a asynchronous I2C read operation on a given device register
+ * @brief Perform an asynchronous I2C read operation on a given device
+ * register
  *
- * @param i2c bus The I2C bus handle
+ * @param i2c The I2C bus handle
  * @param reg The I2C register for the read operation
  * @param data The output buffer for the read operation
  * @param count The bytes count for the read operation
  * @param read_reg_cb The callback to be called when operation finish,
  * the status parameter should be equal to count in case of success
+ * (or a negative error code, on failure)
  * @param cb_data The first parameter of callback
  *
- * @note Caller should guarantee that data will not be freed until
- * callback is called.
- * Also there is no transfer queue, calling this function when there is
- * another I2C operation running will return false.
+ * @note The caller should guarantee that data will not be freed until
+ * the callback is called. Also there is no transfer queue, calling
+ * this function when there is another I2C operation running will
+ * return false.
  *
- * @return pending handle if operation was started otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a read_reg_cb is called.
+ * It may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_read_register(struct sol_i2c *i2c, uint8_t reg, uint8_t *data, size_t count, void (*read_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
 /**
- * @brief Perform a asynchronous I2C write operation on a given device register
+ * @brief Perform an asynchronous I2C write operation on a given
+ * device register
  *
- * @param i2c bus The I2C bus handle
+ * @param i2c The I2C bus handle
  * @param reg The I2C register for the write operation
  * @param data The output buffer for the write operation
  * @param count The bytes count for the write operation
- * @param write_reg_cb The callback to be called when operation finish,
- * the status parameter should be equal to count in case of success
+ * @param write_reg_cb The callback to be called when operation
+ * finish, the status parameter should be equal to count in case of
+ * success (or a negative error code, on failure)
  * @param cb_data The first parameter of callback
  *
- * @note Caller should guarantee that data will not be freed until
- * callback is called.
- * Also there is no transfer queue, calling this function when there is
- * another I2C operation running will return false.
+ * @note The caller should guarantee that data will not be freed until
+ * the callback is called. Also there is no transfer queue, calling
+ * this function when there is another I2C operation running will
+ * return false.
  *
- * @return pending handle if operation was started otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a write_reg_cb is
+ * called. It may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg, const uint8_t *data, size_t count, void (*write_reg_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
@@ -277,28 +295,32 @@ struct sol_i2c_pending *sol_i2c_write_register(struct sol_i2c *i2c, uint8_t reg,
  * second (read) message specifying the length (always @a len per
  * read) and the destination of the read operation.
  *
- * @param i2c bus The I2C bus handle
+ * @param i2c The I2C bus handle
  * @param reg The register to start reading from
  * @param values Where to store the read bytes
  * @param count The size of a single read block
  * @param times How many reads of size @a len to perform (on success,
  *              @a len * @a times bytes will be read)
- * @param read_reg_multiple_cb The callback to be called when operation finish,
- * the status parameter should be equal to count in case of success
+ * @param read_reg_multiple_cb The callback to be called when the
+ * operation finishes. The status parameter should be equal to count
+ * in case of success (or a negative error code, on failure)
  * @param cb_data The first parameter of callback
  *
- * @note Caller should guarantee that data will not be freed until
- * callback is called.
- * Also there is no transfer queue, calling this function when there is
- * another I2C operation running will return false.
+ * @note The caller should guarantee that data will not be freed until
+ * the callback is called. Also there is no transfer queue, calling
+ * this function when there is another I2C operation running will
+ * return false.
  *
- * @return pending handle if operation was started otherwise a NULL pointer
+ * @return pending An I2C pending operation handle on success,
+ * otherwise @c NULL. It's only valid before @a read_reg_multiple_cb
+ * is called. It may be used before that to cancel the read operation.
  */
 struct sol_i2c_pending *sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint8_t reg, uint8_t *values, size_t count, uint8_t times, void (*read_reg_multiple_cb)(void *cb_data, struct sol_i2c *i2c, uint8_t reg, uint8_t *data, ssize_t status), const void *cb_data);
 
 /**
- * @brief Return true if I2C bus is busy, processing another operation.
- * This function should be called before call any other I2C function.
+ * @brief Return true if I2C handle's bus is busy, processing another
+ * operation. This function should be called before issuing any other
+ * I2C function.
  *
  * @param i2c The I2C bus handle
  *
@@ -307,7 +329,7 @@ struct sol_i2c_pending *sol_i2c_read_register_multiple(struct sol_i2c *i2c, uint
 bool sol_i2c_busy(struct sol_i2c *i2c);
 
 /**
- * @brief Get the I2C bus id
+ * @brief Get the I2C bus ID
  *
  * @param i2c The I2C bus handle
  *
@@ -326,22 +348,23 @@ void sol_i2c_pending_cancel(struct sol_i2c *i2c, struct sol_i2c_pending *pending
 #ifdef SOL_PLATFORM_LINUX
 
 /**
- * @brief Create a new i2c device.
+ * @brief Create a new I2C device.
  *
- * Iterates through @a relative_dir on '/sys/devices/' looking
- * for 'i2c-X' dir and add @a dev_name @dev_number to its 'new_device' file.
+ * Iterates through @a address on '/sys/devices/', looking for @c
+ * 'i2c-X' directories and adding the contents "@a dev_name
+ * @dev_number" to their 'new_device' file.
  *
- * @param relative_dir bus on '/sys/devices' where to add new i2c device.
- * @param dev_name name of device. Usually is the one its driver expects.
- * @param dev_number number of device on bus.
- * @param result_path resulting path of new device. It's a convenience to
- * retrieve new device path. Note that the device dir may take some time
- * to appear on sysfs - it may be necessary to wait some time before trying to
- * access it.
+ * @param address bus on '/sys/devices' where to add new I2C device.
+ * @param dev_name name of device. Usually it's the one its driver expects.
+ * @param dev_number number of device on the bus.
+ * @param result_path resulting path of new device. It's a convenience
+ * to retrieve new device's path. Note that the device directory may
+ * take some time to appear on sysfs - it may be necessary to wait
+ * some time before trying to access it.
  *
- * @return a positive value if everything was ok. A negative one if some error
- * happened. Watch out for -EEXIST return: it means that device could not be
- * created because it already exists.
+ * @return a positive value if everything was OK or a negative one if
+ * some error happened. Watch out for -EEXIST return: it means that
+ * device could not be created because it already exists.
  */
 int sol_i2c_create_device(const char *address, const char *dev_name, unsigned int dev_number, struct sol_buffer *result_path);
 #endif

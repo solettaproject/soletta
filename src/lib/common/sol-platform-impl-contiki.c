@@ -218,3 +218,66 @@ sol_platform_unregister_timezone_monitor(void)
     SOL_WRN("Not implemented");
     return -ENOTSUP;
 }
+
+int
+sol_platform_unregister_timezone_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_set_locale(char **locales)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+const char *
+sol_platform_impl_get_locale(enum sol_platform_locale_category type)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_register_locale_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_unregister_locale_monitor(void)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_apply_locale(enum sol_platform_locale_category type, const char *locale)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_load_locales(char **locale_cache)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+int
+sol_platform_impl_locale_to_c_category(enum sol_platform_locale_category category)
+{
+    SOL_WRN("Not implemented");
+    return -ENOTSUP;
+}
+
+const char *
+sol_platform_impl_locale_to_c_str_category(enum sol_platform_locale_category category)
+{
+    SOL_WRN("Not implemented");
+    return NULL;
+}

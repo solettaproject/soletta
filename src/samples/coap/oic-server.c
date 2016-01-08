@@ -134,13 +134,14 @@ user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
 static struct sol_oic_server_resource *
 register_light_resource_type(
     sol_coap_responsecode_t (*handle_get)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output),
-    sol_coap_responsecode_t (*handle_put)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output))
+    sol_coap_responsecode_t (*handle_put)(const struct sol_network_link_addr *cliaddr, const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output),
+    const char *resource_type)
 {
     /* This function will be auto-generated from the RAML definitions. */
 
     struct sol_oic_resource_type rt = {
         SOL_SET_API_VERSION(.api_version = SOL_OIC_RESOURCE_TYPE_API_VERSION, )
-        .resource_type = SOL_STR_SLICE_LITERAL("core.light"),
+        .resource_type = sol_str_slice_from_str(resource_type),
         .interface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
         .get = {
             .handle = handle_get    /* User-provided. */
@@ -159,6 +160,14 @@ main(int argc, char *argv[])
 {
     struct sol_oic_server_resource *res;
     char old_led_state;
+    const char *resource_type = "core.light";
+
+    if (argc < 2) {
+        printf("No resource type specified, assuming core.light\n");
+    } else {
+        printf("Resource type specified: %s\n", argv[1]);
+        resource_type = argv[1];
+    }
 
     sol_init();
 
@@ -167,7 +176,8 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    res = register_light_resource_type(user_handle_get, user_handle_put);
+    res = register_light_resource_type(user_handle_get, user_handle_put,
+        resource_type);
     if (!res) {
         SOL_WRN("Could not register light resource type.");
         return -1;
@@ -184,7 +194,7 @@ main(int argc, char *argv[])
     sol_run();
 
     sol_oic_server_del_resource(res);
-    sol_oic_server_release();
+    sol_oic_server_shutdown();
 
     if (console_fd >= 0 && ioctl(console_fd, KDSETLED, old_led_state)) {
         SOL_ERR("Could not return the leds to the old state");

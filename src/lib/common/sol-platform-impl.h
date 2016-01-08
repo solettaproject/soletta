@@ -35,6 +35,8 @@
 #define SOL_LOG_DOMAIN &_sol_platform_log_domain
 #include "sol-log-internal.h"
 #include "sol-platform.h"
+#include "sol-vector.h"
+#include "sol-str-slice.h"
 
 extern struct sol_log_domain _sol_platform_log_domain;
 
@@ -80,10 +82,25 @@ int64_t sol_platform_impl_get_system_clock(void);
 int sol_platform_unregister_system_clock_monitor(void);
 int sol_platform_register_system_clock_monitor(void);
 
-
 void sol_platform_inform_timezone_changed(void);
 
 int sol_platform_impl_set_timezone(const char *timezone);
 const char *sol_platform_impl_get_timezone(void);
 int sol_platform_register_timezone_monitor(void);
 int sol_platform_unregister_timezone_monitor(void);
+
+int sol_platform_impl_set_locale(char **locales);
+const char *sol_platform_impl_get_locale(enum sol_platform_locale_category type);
+
+void sol_platform_inform_locale_changed(void);
+int sol_platform_register_locale_monitor(void);
+int sol_platform_unregister_locale_monitor(void);
+int sol_platform_impl_apply_locale(enum sol_platform_locale_category type, const char *locale);
+int sol_platform_impl_load_locales(char **locale_cache);
+
+int sol_platform_locale_to_c_category(enum sol_platform_locale_category type);
+const char *sol_platform_locale_to_c_str_category(enum sol_platform_locale_category type);
+
+int sol_platform_impl_locale_to_c_category(enum sol_platform_locale_category category);
+
+const char *sol_platform_impl_locale_to_c_str_category(enum sol_platform_locale_category category);

@@ -1,0 +1,23 @@
+config MAVLINK_SAMPLES
+	bool "Mavlink samples"
+	depends on MAVLINK
+	default y
+
+config MAVLINK_BASIC
+	bool "Basic mavlink sample"
+	depends on MAVLINK_SAMPLES
+	default y
+	help
+            This sample program demonstrates how to interact with the
+            Mavlink API. It simply takes off a vehicle and then lands when
+            reached the expected altitude.
+
+config MAVLINK_GOTO
+	bool "Goto location sample"
+	depends on MAVLINK_SAMPLES
+	default y
+	help
+            This sample program demonstrates how to interact with the
+            Mavlink API. It takes off a vehicle and drivers to a given
+            location, when reached the expected location and altitude
+            it goes back/lands to the "home location".

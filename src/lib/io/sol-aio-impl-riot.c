@@ -172,10 +172,60 @@ sol_aio_close(struct sol_aio *aio)
     free(aio);
 }
 
-int32_t
+static void
+_aio_read_dispatch(struct sol_aio *aio)
+{
+    if (!aio->async.read_cb.cb)
+        return;
+
+    aio->async.read_cb.cb((void *)aio->async.cb_data, aio, aio->async.value);
+}
+
+static bool
+aio_read_timeout_cb(void *data)
+{
+    struct sol_aio *aio = data;
+
+    aio->async.value = (int32_t)adc_sample(aio->device, aio->pin);
+    aio->async.timeout = NULL;
+    aio->async.dispatch(aio);
+    return false;
+}
+
+struct sol_aio_pending *
 sol_aio_get_value(const struct sol_aio *aio)
 {
-    SOL_NULL_CHECK(aio, -1);
+    SOL_NULL_CHECK(aio, -EINVAL);
 
-    return (int32_t)adc_sample(aio->device, aio->pin);
+    aio->async.value = 0;
+    aio->async.read_cb.cb = read_cb;
+    aio->async.dispatch = _aio_read_dispatch;
+    aio->async.cb_data = cb_data;
+
+    aio->async.timeout = sol_timeout_add(0, aio_read_timeout_cb, aio);
+    SOL_NULL_CHECK(aio->async.timeout, NULL);
+
+    return (struct sol_aio_pending *)aio->async.timeout;
+}
+
+SOL_API bool
+sol_aio_busy(struct sol_aio *aio)
+{
+    SOL_NULL_CHECK(aio, true);
+
+    return aio->async.timeout;
+}
+
+SOL_API void
+sol_aio_pending_cancel(struct sol_aio *aio, struct sol_aio_pending *pending)
+{
+    SOL_NULL_CHECK(aio);
+    SOL_NULL_CHECK(pending);
+
+    if (aio->async.timeout == (struct sol_timeout *)pending) {
+        sol_timeout_del(aio->async.timeout);
+        aio->async.dispatch(aio);
+        aio->async.timeout = NULL;
+    } else
+        SOL_WRN("Invalid AIO pending handle.");
 }

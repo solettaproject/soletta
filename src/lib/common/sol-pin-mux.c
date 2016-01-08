@@ -39,6 +39,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef SOL_LOG_DOMAIN
+#define SOL_LOG_DOMAIN &_sol_pin_mux_log_domain
+#endif
+
 #include "sol-log-internal.h"
 #include "sol-util.h"
 #include "sol-pin-mux.h"

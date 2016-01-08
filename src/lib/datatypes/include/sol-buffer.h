@@ -42,6 +42,12 @@
 extern "C" {
 #endif
 
+#ifdef __cplusplus
+#define SOL_BUFFER_C_CAST
+#else
+#define SOL_BUFFER_C_CAST (struct sol_buffer)
+#endif
+
 /**
  * @file
  * @brief These are routines that Soletta provides for its buffer implementation.
@@ -140,7 +146,7 @@ enum sol_decode_case {
  *
  * @brief Helper macro to initialize an empty buffer.
  */
-#define SOL_BUFFER_INIT_EMPTY (struct sol_buffer){.data = NULL, .capacity = 0, .used = 0, .flags = SOL_BUFFER_FLAGS_DEFAULT }
+#define SOL_BUFFER_INIT_EMPTY SOL_BUFFER_C_CAST { .data = NULL, .capacity = 0, .used = 0, .flags = SOL_BUFFER_FLAGS_DEFAULT }
 
 /**
  * @def SOL_BUFFER_INIT_FLAGS(data_, size_, flags_)
@@ -151,7 +157,7 @@ enum sol_decode_case {
  * @param size_ Initial data size
  * @param flags_ Buffer flags
  */
-#define SOL_BUFFER_INIT_FLAGS(data_, size_, flags_) (struct sol_buffer){.data = data_, .capacity = size_, .used = 0, .flags = flags_ }
+#define SOL_BUFFER_INIT_FLAGS(data_, size_, flags_) SOL_BUFFER_C_CAST { .data = data_, .capacity = size_, .used = 0, .flags = (enum sol_buffer_flags)(flags_) }
 
 /**
  * @def SOL_BUFFER_INIT_CONST(data_, size_)
@@ -163,7 +169,7 @@ enum sol_decode_case {
  * @param data_ Buffer initial data
  * @param size_ Initial data size
  */
-#define SOL_BUFFER_INIT_CONST(data_, size_) (struct sol_buffer){.data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED }
+#define SOL_BUFFER_INIT_CONST(data_, size_) SOL_BUFFER_C_CAST { .data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED }
 
 /**
  * @def SOL_BUFFER_INIT_DATA(data_, size_)
@@ -173,7 +179,7 @@ enum sol_decode_case {
  * @param data_ Buffer initial data
  * @param size_ Initial data size
  */
-#define SOL_BUFFER_INIT_DATA(data_, size_) (struct sol_buffer){.data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_DEFAULT }
+#define SOL_BUFFER_INIT_DATA(data_, size_) SOL_BUFFER_C_CAST { .data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_DEFAULT }
 
 /**
  * @brief Initializes a @c sol_buffer structure.
@@ -299,7 +305,7 @@ sol_buffer_get_slice(const struct sol_buffer *buf)
 {
     if (!buf)
         return SOL_STR_SLICE_STR(NULL, 0);
-    return SOL_STR_SLICE_STR(buf->data, buf->used);
+    return SOL_STR_SLICE_STR((char *)buf->data, buf->used);
 }
 
 /**
@@ -315,7 +321,7 @@ sol_buffer_get_slice_at(const struct sol_buffer *buf, size_t pos)
 {
     if (!buf || buf->used < pos)
         return SOL_STR_SLICE_STR(NULL, 0);
-    return SOL_STR_SLICE_STR(sol_buffer_at(buf,  pos), buf->used - pos);
+    return SOL_STR_SLICE_STR((char *)sol_buffer_at(buf,  pos), buf->used - pos);
 }
 
 /**
@@ -770,7 +776,7 @@ sol_buffer_reset(struct sol_buffer *buf)
 static inline struct sol_buffer *
 sol_buffer_new(void)
 {
-    struct sol_buffer *buf = calloc(1, sizeof(struct sol_buffer));
+    struct sol_buffer *buf = (struct sol_buffer *)calloc(1, sizeof(struct sol_buffer));
 
     if (!buf) return NULL;
 

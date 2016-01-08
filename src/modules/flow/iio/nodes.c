@@ -43,6 +43,7 @@ struct gyroscope_data {
     struct sol_iio_config config;
     struct sol_direction_vector scale;
     struct sol_direction_vector offset;
+    struct sol_drange_spec out_range;
     struct sol_iio_device *device;
     struct sol_iio_channel *channel_x;
     struct sol_iio_channel *channel_y;
@@ -58,23 +59,20 @@ reader_cb(void *data, struct sol_iio_device *device)
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
     struct gyroscope_data *mdata = sol_flow_node_get_private_data(node);
-    struct sol_direction_vector out = { .min = DBL_MAX, .max = -DBL_MAX };
+    struct sol_direction_vector out = {
+        .min = mdata->out_range.min,
+        .max = mdata->out_range.max
+    };
     bool b;
 
     b = sol_iio_read_channel_value(mdata->channel_x, &out.x);
     if (!b) goto error;
-    if (out.x > out.max) out.max = out.x;
-    if (out.x < out.min) out.min = out.x;
 
     b = sol_iio_read_channel_value(mdata->channel_y, &out.y);
     if (!b) goto error;
-    if (out.y > out.max) out.max = out.y;
-    if (out.y < out.min) out.min = out.y;
 
     b = sol_iio_read_channel_value(mdata->channel_z, &out.z);
     if (!b) goto error;
-    if (out.z > out.max) out.max = out.z;
-    if (out.z < out.min) out.min = out.z;
 
     sol_flow_send_direction_vector_packet(node,
         SOL_FLOW_NODE_TYPE_IIO_GYROSCOPE__OUT__OUT, &out);
@@ -149,6 +147,7 @@ gyroscope_open(struct sol_flow_node *node, void *data, const struct sol_flow_nod
     mdata->use_device_default_offset = opts->use_device_default_offset;
     mdata->scale = opts->scale;
     mdata->offset = opts->offset;
+    mdata->out_range = opts->out_range;
 
     if (!sol_iio_address_device(opts->iio_device, create_device_cb, mdata)) {
         SOL_WRN("Could not create iio/gyroscope node. Failed to open IIO device %s",
@@ -197,6 +196,7 @@ error:
 
 struct temperature_data {
     struct sol_iio_config config;
+    struct sol_drange_spec out_range;
     double scale;
     double offset;
     struct sol_iio_device *device;
@@ -212,7 +212,11 @@ temp_reader_cb(void *data, struct sol_iio_device *device)
     static const char *errmsg = "Could not read channel buffer values";
     struct sol_flow_node *node = data;
     struct temperature_data *mdata = sol_flow_node_get_private_data(node);
-    struct sol_drange out = SOL_DRANGE_INIT();
+    struct sol_drange out = {
+        .min = mdata->out_range.min,
+        .max = mdata->out_range.max,
+        .step = mdata->out_range.step
+    };
     bool b;
 
     b = sol_iio_read_channel_value(mdata->channel_val, &out.val);
@@ -289,6 +293,7 @@ temperature_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     mdata->use_device_default_offset = opts->use_device_default_offset;
     mdata->scale = opts->scale;
     mdata->offset = opts->offset;
+    mdata->out_range = opts->out_range;
 
     if (!sol_iio_address_device(opts->iio_device, temp_create_device_cb, mdata)) {
         SOL_WRN("Could not create iio/temperature node. Failed to open IIO device %s",

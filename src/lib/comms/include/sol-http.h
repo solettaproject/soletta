@@ -411,10 +411,9 @@ struct sol_http_url {
 static inline void
 sol_http_params_init(struct sol_http_params *params)
 {
-    *params = (struct sol_http_params) {
-        SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, )
-        .params = SOL_VECTOR_INIT(struct sol_http_param_value)
-    };
+    sol_vector_init(&params->params, sizeof(struct sol_http_param_value));
+    params->arena = NULL;
+    SOL_SET_API_VERSION(params->api_version = SOL_HTTP_PARAM_API_VERSION; )
 }
 
 /**

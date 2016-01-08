@@ -1,0 +1,75 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "twitter",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "name": "twitter/client",
+      "category": "socialnetwork/client",
+      "description": "A twitter's node client",
+      "methods": {
+        "close": "twitter_close",
+        "open": "twitter_open"
+      },
+      "options": {
+	"members": [
+	  {
+	    "data_type": "string",
+	    "description": "The consumer key (application's token)",
+	    "name": "consumer_key"
+	  },
+	  {
+	    "data_type": "string",
+	    "description": "The consumer secret key (application's secret token)",
+	    "name": "consumer_secret"
+	  }
+	],
+	"version": 1
+      },
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The token returned on twitter's oauth process",
+          "methods": {
+            "process": "token_process"
+          },
+          "name": "TOKEN"
+        },
+	{
+          "data_type": "string",
+          "description": "Post the string that comes into twitter",
+          "methods": {
+            "process": "post_process"
+          },
+          "name": "TWEET"
+        },
+	{
+          "data_type": "any",
+          "description": "Gets the user's timeline",
+          "methods": {
+            "process": "timeline_process"
+          },
+          "name": "GET_TIMELINE"
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "json-object",
+          "description": "The result as json-object",
+          "name": "OBJECT"
+        },
+	{
+          "data_type": "json-array",
+          "description": "The result as json-array",
+          "name": "ARRAY"
+        }
+      ],
+      "private_data_type": "twitter_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/twitter/client.html"
+    }
+  ]
+}

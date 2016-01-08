@@ -31,6 +31,7 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "sol-mainloop-impl.h"
 #include "sol-macros.h"
@@ -408,7 +409,7 @@ sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, 
     _argv = argv;
 
     if (unlikely(!callbacks || !callbacks->startup)) {
-        SOL_CRI("Missing startup function.");
+        fprintf(stderr, "Missing startup function.\n");
         return EXIT_FAILURE;
     }
 

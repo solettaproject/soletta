@@ -39,8 +39,7 @@
 #include "sol-oic-client.h"
 
 static void
-got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
-    const struct sol_str_slice *href, const struct sol_oic_map_reader *map_reader, void *data)
+got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader, void *data)
 {
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_reason end_reason;
@@ -137,8 +136,8 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
         printf("\t\t%.*s\n", SOL_STR_SLICE_PRINT(*slice));
 
     printf("Issuing GET %.*s on resource...\n", SOL_STR_SLICE_PRINT(res->href));
-    sol_oic_client_resource_request(cli, res, SOL_COAP_METHOD_GET, NULL, NULL,
-        got_get_response, data);
+    sol_oic_client_resource_request(cli, res, SOL_COAP_METHOD_GET, NULL,
+        NULL, got_get_response, data);
 
     printf("\n");
 

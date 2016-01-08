@@ -105,7 +105,9 @@ if [ $OPT_SKIP_SOL_BUILDS -eq 0 ]; then
 fi
 
 for dir in $SCRIPT_DIR/platform-*/; do
-    $dir/prepare
+    if [[ $dir =~ platform-[^galileo] ]]; then
+	$dir/prepare
+    fi
 
     if [ $? -ne 0 ]; then
 	die "Failed to prepare $dir"
