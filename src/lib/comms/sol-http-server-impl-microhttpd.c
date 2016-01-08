@@ -55,6 +55,7 @@
 #include <magic.h>
 #endif
 
+#define SOL_HTTP_MULTIPART_HEADER "multipart/form-data"
 #define SOL_HTTP_PARAM_IF_SINCE_MODIFIED "If-Since-Modified"
 #define SOL_HTTP_PARAM_LAST_MODIFIED "Last-Modified"
 #define READABLE_BY_EVERYONE (S_IRUSR | S_IRGRP | S_IROTH)
@@ -71,8 +72,11 @@ struct sol_http_request {
     struct MHD_PostProcessor *pp;
     const char *url;
     struct sol_http_params params;
+    struct sol_buffer buffer;
+    struct sol_http_param_value param;
     enum sol_http_method method;
     time_t if_since_modified;
+    bool is_multipart;
 };
 
 struct static_dir {
@@ -253,16 +257,47 @@ post_iterator(void *data, enum MHD_ValueKind kind, const char *key,
     const char *filename, const char *type,
     const char *encoding, const char *value, uint64_t off, size_t size)
 {
+    int r;
+    char *str;
     struct sol_http_request *request = data;
 
-    if (!size)
-        return MHD_NO;
-
-    if (!sol_http_param_add_copy(&request->params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value))) {
-        SOL_WRN("Could not add %s key", key);
-        return MHD_NO;
+    if (off) {
+        r = sol_buffer_append_bytes(&request->buffer, (uint8_t *)value, size);
+        SOL_INT_CHECK(r, < 0, MHD_NO);
+        return MHD_YES;
     }
+
+    if (request->param.value.data.key.len) {
+        size_t len;
+        void *copy;
+
+        copy = sol_buffer_steal(&request->buffer, &len);
+        request->param.value.data.value = SOL_STR_SLICE_STR(copy, len);
+        if (!sol_http_param_add(&request->params, request->param)) {
+            free(copy);
+            SOL_WRN("Could not add %s key", key);
+            return MHD_NO;
+        }
+        memset(&request->param, 0, sizeof(request->param));
+    }
+
+    if (request->is_multipart) {
+        request->param.type = SOL_HTTP_PARAM_POST_DATA;
+        if (filename) {
+            str = strdup(filename);
+            SOL_NULL_CHECK(str, MHD_NO);
+            request->param.value.data.filename = sol_str_slice_from_str(str);
+        }
+    } else {
+        request->param.type = SOL_HTTP_PARAM_POST_FIELD;
+    }
+
+    str = strdup(key);
+    SOL_NULL_CHECK(str, MHD_NO);
+    request->param.value.data.key = sol_str_slice_from_str(str);
+
+    r = sol_buffer_append_bytes(&request->buffer, (uint8_t *)value, size);
+    SOL_INT_CHECK(r, < 0, MHD_NO);
 
     return MHD_YES;
 }
@@ -291,6 +326,10 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
             request->if_since_modified = process_if_modified_since(key);
             SOL_INT_CHECK_GOTO(request->if_since_modified, == 0, param_err);
         }
+        if (!strncasecmp(value, SOL_HTTP_MULTIPART_HEADER,
+            sizeof(SOL_HTTP_MULTIPART_HEADER) - 1))
+            request->is_multipart = true;
+
         if (!sol_http_param_add_copy(&request->params,
             SOL_HTTP_REQUEST_PARAM_HEADER(key, value)))
             goto param_err;
@@ -509,10 +548,15 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
 
         sol_http_params_init(&req->params);
         req->url = url;
+        sol_buffer_init(&req->buffer);
         req->connection = connection;
         *ptr = req;
         return MHD_YES;
     }
+
+    MHD_get_connection_values(connection, MHD_HEADER_KIND, headers_iterator, req);
+    MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND, headers_iterator, req);
+    MHD_get_connection_values(connection, MHD_COOKIE_KIND, headers_iterator, req);
 
     req->method = http_server_get_method(method);
     switch (req->method) {
@@ -529,6 +573,19 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         if (*upload_data_size) {
             *upload_data_size = 0;
             return MHD_YES;
+        }
+        if (req->buffer.used) {
+            void *copy;
+            size_t len;
+
+            copy = sol_buffer_steal(&req->buffer, &len);
+            req->param.value.data.value = SOL_STR_SLICE_STR(copy, len);
+            if (!sol_http_param_add(&req->params, req->param)) {
+                SOL_WRN("Could not add %.*s key",
+                    SOL_STR_SLICE_PRINT(req->param.value.data.value));
+                return MHD_NO;
+            }
+            memset(&req->param, 0, sizeof(req->param));
         }
         break;
     case SOL_HTTP_METHOD_GET:
@@ -552,9 +609,6 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             continue;
 
         free(path);
-        MHD_get_connection_values(connection, MHD_HEADER_KIND, headers_iterator, req);
-        MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND, headers_iterator, req);
-        MHD_get_connection_values(connection, MHD_COOKIE_KIND, headers_iterator, req);
         if (handler->last_modified && (req->if_since_modified > handler->last_modified)) {
             status = SOL_HTTP_STATUS_NOT_MODIFIED;
             goto end;
@@ -654,9 +708,32 @@ notify_connection_cb(void *data, struct MHD_Connection *connection, void **socke
 static void
 free_request(struct sol_http_request *request)
 {
+    uint16_t idx;
+    struct sol_http_param_value *param;
+
     if (request->pp)
         MHD_destroy_post_processor(request->pp);
+
+    SOL_HTTP_PARAMS_FOREACH_IDX (&request->params, param, idx) {
+        switch (param->type) {
+        case SOL_HTTP_PARAM_POST_DATA:
+            free((char *)param->value.data.filename.data);
+        case SOL_HTTP_PARAM_POST_FIELD:
+            free((char *)param->value.key_value.value.data);
+            free((char *)param->value.key_value.key.data);
+            break;
+        default:
+            break;
+        }
+    }
+
+    free((char *)request->param.value.data.value.data);
+    free((char *)request->param.value.data.key.data);
+    if (request->param.type == SOL_HTTP_PARAM_POST_DATA)
+        free((char *)request->param.value.data.filename.data);
+
     sol_http_params_clear(&request->params);
+    sol_buffer_fini(&request->buffer);
     free(request);
 }
 
