@@ -61,6 +61,8 @@
 #define OVERFLOW_UINT64 OVERFLOW_TYPE(uint64_t)
 #define OVERFLOW_SIZE_T OVERFLOW_TYPE(size_t)
 #define OVERFLOW_INT64 OVERFLOW_TYPE(int64_t)
+#define OVERFLOW_INT32 OVERFLOW_TYPE(int32_t)
+#define OVERFLOW_UINT32 OVERFLOW_TYPE(uint32_t)
 
 /**
  * Extracted from Hacker's Delight, 2nd edition, chapter 2-13
@@ -129,6 +131,8 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
  * @return the converted value, if any.
  */
 long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base);
+
+unsigned long int sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base);
 
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
@@ -398,6 +402,36 @@ sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
     if (a > 0 && b > UINT64_MAX - a)
         return -EOVERFLOW;
     *out = a + b;
+#endif
+    return 0;
+}
+
+static inline int
+sol_util_int32_mul(const int32_t a, const int32_t b, int32_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a >= OVERFLOW_INT32 || b >= OVERFLOW_INT32) &&
+        a > 0 && INT32_MAX / a < b)
+        return -EOVERFLOW;
+    *out = a * b;
+#endif
+    return 0;
+}
+
+static inline int
+sol_util_uint32_mul(const uint32_t a, const uint32_t b, uint32_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a >= OVERFLOW_UINT32 || b >= OVERFLOW_UINT32) &&
+        a > 0 && UINT32_MAX / a < b)
+        return -EOVERFLOW;
+    *out = a * b;
 #endif
     return 0;
 }
