@@ -176,6 +176,169 @@ enum sol_lwm2m_registration_event {
 };
 
 /**
+ * @brief Enum that represent a LWM2M response/request content type.
+ */
+enum sol_lwm2m_content_type {
+    /**
+     * The content type message is pure text.
+     */
+    SOL_LWM2M_CONTENT_TYPE_TEXT = 0,
+    /**
+     * The content type of the message is indeterminated, in order
+     * words, is an array of bytes.
+     */
+    SOL_LWM2M_CONTENT_TYPE_OPAQUE = 42,
+    /**
+     * The content type of the message is in TLV format.
+     */
+    SOL_LWM2M_CONTENT_TYPE_TLV = 1542,
+    /**
+     * The content type of the message is in JSON.
+     * JSON content types are not supported right now.
+     */
+    SOL_LWM2M_CONTENT_TYPE_JSON = 1543
+};
+
+/**
+ * @brief Enum that represent the TLV type.
+ * @see #sol_lwm2m_tlv
+ */
+enum sol_lwm2m_tlv_type {
+    /**
+     * The TLV represents an object instance
+     */
+    SOL_LWM2M_TLV_TYPE_OBJECT_INSTANCE = 0,
+    /**
+     * The TLV repreents an resource instance.
+     */
+    SOL_LWM2M_TLV_TYPE_RESOURCE_INSTANCE = 64,
+    /**
+     * The TLV is composed of multiple resources.
+     */
+    SOL_LWM2M_TLV_TYPE_MULTIPLE_RESOURCES = 128,
+    /**
+     * The TLV is a resource.
+     */
+    SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE = 192
+};
+
+/**
+ * @brief Enum that represents an LWM2M resource type.
+ * @see #sol_lwm2m_resource
+ */
+enum sol_lwm2m_resource_type {
+    /**
+     * The resource value is a string.
+     */
+    SOL_LWM2M_RESOURCE_TYPE_STRING,
+    /**
+     * The resource value is an integer.
+     */
+    SOL_LWM2M_RESOURCE_TYPE_INT,
+    /**
+     * The resource value is a float.
+     */
+    SOL_LWM2M_RESOURCE_TYPE_FLOAT,
+    /**
+     * The resource value is a boolean.
+     */
+    SOL_LWM2M_RESOURCE_TYPE_BOOLEAN,
+    /**
+     * The resource value is opaque.
+     */
+    SOL_LWM2M_RESOURCE_TYPE_OPAQUE,
+    /**
+       The resource value is a timestamp (Unix time).
+     */
+    SOL_LWM2M_RESOURCE_TYPE_TIME,
+    /**
+     * The resource value is a object link.
+     */
+    SOL_LWM2M_RESOURCE_TYPE_OBJ_LINK,
+    /**
+     * The resource value is indeterminated.
+     */
+    SOL_LWM2M_RESOURCE_TYPE_NONE = -1
+};
+
+/**
+ * @brief Struct that represents TLV data.
+ * @see sol_lwm2m_parse_tlv()
+ * @see sol_lwm2m_resource_to_tlv()
+ */
+struct sol_lwm2m_tlv {
+#ifndef SOL_NO_API_VERSION
+#define SOL_LWM2M_TLV_API_VERSION (1)
+    /** @brief API version */
+    uint16_t api_version;
+    /** @brief Unused */
+    uint16_t reserved;
+#endif
+    /** @brief The TLV type */
+    enum sol_lwm2m_tlv_type type;
+    /** @brief The id of the object/instance/resource */
+    uint16_t id;
+    /** @brief The TLV content */
+    struct sol_buffer content;
+};
+
+/**
+ * @brief Struct that represents an LWM2M resource.
+ * @see sol_lwm2m_resource_init()
+ * @see sol_lwm2m_resource_to_tlv()
+ */
+struct sol_lwm2m_resource {
+#ifndef SOL_NO_API_VERSION
+#define SOL_LWM2M_RESOURCE_API_VERSION (1)
+    /** @brief API version */
+    uint16_t api_version;
+    /** @brief Unused */
+    uint16_t reserved;
+#endif
+    /** @brief The resource type */
+    enum sol_lwm2m_resource_type type;
+    /** @brief The resource id */
+    uint16_t id;
+    /** @brief The resource data */
+    union {
+        /** @brief The resource is opaque or an string */
+        struct sol_str_slice bytes;
+        /** @brief The resource is a integer value */
+        int64_t integer;
+        /** @brief The resource is a float value */
+        double fp;
+        /** @brief The resource is a bool value */
+        bool b;
+    } data;
+};
+
+/**
+ * @brief Initializes an LWM2M resource.
+ *
+ * This function makes it easir to init a LWM2M resource, it
+ * will set the proper fields and fill its data. Note that
+ * the last argument type varies with the resource type and one
+ * must follow the table below.
+ *
+ * Resource type | Last argument type
+ * ------------- | ------------------
+ * SOL_LWM2M_RESOURCE_TYPE_STRING | const char *
+ * SOL_LWM2M_RESOURCE_TYPE_INT | int64_t
+ * SOL_LWM2M_RESOURCE_TYPE_FLOAT | double
+ * SOL_LWM2M_RESOURCE_TYPE_BOOLEAN | bool
+ * SOL_LWM2M_RESOURCE_TYPE_OPAQUE | struct sol_str_slice
+ * SOL_LWM2M_RESOURCE_TYPE_TIME | int64_t
+ * SOL_LWM2M_RESOURCE_TYPE_OBJ_LINK | uint16_t, uint16_t
+ *
+ * @param resource The resource to be initialized.
+ * @param id The resource id.
+ * @param type The resource type.
+ * @param ... The LWM2M resource data, respecting the table according to the resource type.
+ * @return 0 on success, negative errno on error.
+ */
+int sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource, uint16_t id, enum sol_lwm2m_resource_type type, ...);
+
+/**
  * @brief Callback that is used to inform a LWM2M client registration event.
  *
  * @param server The LWM2M server.
@@ -190,6 +353,28 @@ typedef void (*sol_lwm2m_server_regisration_event_cb)(struct sol_lwm2m_server *s
     enum sol_lwm2m_registration_event event, void *data);
 
 /**
+ * @brief Callback used to inform a observable/read response.
+ *
+ * @param server The LWM2M server
+ * @param client The LWM2M client
+ * @param path The client's path
+ * @param response_code The reponse code.
+ * @param content_type The reponse content type.
+ * @param content The reponse content.
+ * @param data User data.
+ * @see sol_lwm2m_server_add_observer()
+ * @see sol_lwm2m_server_management_read()
+ * @see sol_lwm2m_parse_tlv()
+ */
+typedef void (*sol_lwm2m_server_content_cb)
+    (struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content, void *data);
+
+/**
  * @brief Creates a new LWM2M server.
  *
  * The server will be immediately operational and waiting for connections.
@@ -198,6 +383,86 @@ typedef void (*sol_lwm2m_server_regisration_event_cb)(struct sol_lwm2m_server *s
  * @return The LWM2M server or @c NULL on error.
  */
 struct sol_lwm2m_server *sol_lwm2m_server_new(uint16_t port);
+
+/**
+ * @brief Parses a binary content into TLV.
+ *
+ * @param content A binary data that contains the TLV.
+ * @param tlv_values An array of #sol_lwm2m_tlv that will be filled.
+ *
+ * @return 0 on success, -errno on error.
+ */
+int sol_lwm2m_parse_tlv(const struct sol_str_slice content, struct sol_vector *tlv_values);
+
+/**
+ * @brief Converts a resource into TLV format.
+ *
+ * @param resource The resource to be converted.
+ * @param tlv Where the TLV data will be stored.
+ * @return 0 on success, -errno on error.
+ */
+int sol_lwm2m_resource_to_tlv(struct sol_lwm2m_resource *resource, struct sol_lwm2m_tlv *tlv);
+
+/**
+ * @brief Clears an TLV array.
+ *
+ * @param tlvs The TLVs array to be cleared.
+ */
+void sol_lwm2m_tlv_array_clear(struct sol_vector *tlvs);
+
+/**
+ * @brief Clear a TLV.
+ *
+ * @param tlv The TLV the be cleared.
+ */
+void sol_lwm2m_tlv_clear(struct sol_lwm2m_tlv *tlv);
+
+/**
+ * @brief Converts an TLV value to float value.
+ *
+ * @param tlv The tlv data.
+ * @param value The converted value.
+ * @return 0 on success, -errno on error.
+ */
+int sol_lwl2m_tlv_to_float(struct sol_lwm2m_tlv *tlv, double *value);
+
+/**
+ * @brief Converts an TLV value to boolean value.
+ *
+ * @param tlv The tlv data.
+ * @param value The converted value.
+ * @return 0 on success, -errno on error.
+ */
+int sol_lwl2m_tlv_to_bool(struct sol_lwm2m_tlv *tlv, bool *value);
+
+/**
+ * @brief Converts an TLV value to int value.
+ *
+ * @param tlv The tlv data.
+ * @param value The converted value.
+ * @return 0 on success, -errno on error.
+ */
+int sol_lwl2m_tlv_to_int(struct sol_lwm2m_tlv *tlv, int64_t *value);
+
+/**
+ *
+ * @brief Get TLV content is plain bytes.
+ * @param tlv The tlv data.
+ * @param bytes The content.
+ * @param len The length of @c bytes
+ * @return 0 on succes, -errno on error.
+ */
+int sol_lwm2m_tlv_get_bytes(struct sol_lwm2m_tlv *tlv, uint8_t **bytes, uint16_t *len);
+
+/**
+ * @brief Converts an TLV value to object link.
+ *
+ * @param tlv The tlv data.
+ * @param object_id The object id.
+ * @param instance_id the instance id.
+ * @return 0 on success, -errno on error.
+ */
+int sol_lwm2m_tlv_to_obj_link(struct sol_lwm2m_tlv *tlv, uint16_t *object_id, uint16_t *instance_id);
 
 /**
  * @brief Adds a registration monitor.
@@ -237,6 +502,42 @@ int sol_lwm2m_server_del_registration_monitor(struct sol_lwm2m_server *server,
  * @see sol_lwm2m_server_add_registration_monitor()
  */
 const struct sol_ptr_vector *sol_lwm2m_server_get_clients(const struct sol_lwm2m_server *server);
+
+/**
+ * @brief Observers an client object, instance or resource.
+ *
+ * Every time the observed path changes, the client will notify the LWM2M server.
+ *
+ * @param server The LWM2M server.
+ * @param client The LWM2M client to be observed.
+ * @param path The path to be observed (Example: /3/0/0).
+ * @param cb A callback to eb called when the observed path changes.
+ * @param data User data to @c cb
+ * @return 0 on success, -errno on error.
+ * @see #sol_lwm2m_server_content_cb
+ * @see sol_lwm2m_server_del_observer()
+ */
+int sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path, sol_lwm2m_server_content_cb cb, void *data);
+
+/**
+ * @brief Unobserve a client object, instance or resource.
+ *
+ * @param server The LWM2M server.
+ * @param client The LWM2M client to be unobserved.
+ * @param path The path to be unobserved (Example: /3/0/0).
+ * @param cb The previous registered callback.
+ * @param data User data to @c cb
+ * @return 0 on success, -errno on error.
+ *
+ * @note In order do completly unobserve a path, all observers must be deleted.
+ * @see #sol_lwm2m_server_content_cb
+ * @see sol_lwm2m_server_add_observer()
+ */
+int sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,  sol_lwm2m_server_content_cb cb, void *data);
 
 /**
  * @brief Deletes a server instance.
