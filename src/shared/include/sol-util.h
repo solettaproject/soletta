@@ -128,12 +128,12 @@ sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, stru
 }
 
 /**
-* @brief Subtracts two time values.
-*
-* @param t1 First time value used on operation.
-* @param t2 Second time value used on operation.
-* @param result Variable used to store the subtraction's result.
-*/
+ * @brief Subtracts two time values.
+ *
+ * @param t1 First time value used on operation.
+ * @param t2 Second time value used on operation.
+ * @param result Variable used to store the subtraction's result.
+ */
 static inline void
 sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
@@ -342,6 +342,34 @@ int sol_util_int64_mul(const int64_t op1, const int64_t op2, int64_t *out);
  * @see sol_util_size_add
  */
 int sol_util_uint64_add(const uint64_t op1, const uint64_t op2, uint64_t *out);
+
+/**
+ * @brief Multiply two values checking for overflow.
+ *
+ * This function multiplies two variables of the type @c int32_t and
+ * check if this operation causes an overflow.
+ *
+ * @param op1 First operation's operator.
+ * @param op2 Second operation's operator.
+ * @param out Variable used to store the result.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
+int sol_util_int32_mul(const int32_t op1, const int32_t op2, int32_t *out);
+
+/**
+ * @brief Multiply two values checking for overflow.
+ *
+ * This function multiplies two variables of the type @c int64_t and
+ * check if this operation causes an overflow.
+ *
+ * @param op1 First operation's operator.
+ * @param op2 Second operation's operator.
+ * @param out Variable used to store the result.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ */
+int sol_util_uint32_mul(const uint32_t op1, const uint32_t op2, uint32_t *out);
 
 /**
  * @brief Generates a new universally unique identifier (UUID) string.
@@ -697,6 +725,32 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
  * @return the converted value, if any.
  */
 long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base);
+
+/**
+ * @brief Wrapper over strtoul() that consumes up to @c len bytes
+ *
+ * This variation of strtoul() will work with buffers that are not
+ * null-terminated.
+ *
+ * All the formats accepted by strtoul() are accepted and the behavior
+ * should be the same.
+ *
+ * @param nptr the string containing the number to convert.
+ *
+ * @param endptr if non-NULL, it will contain the last character used
+ *        in the conversion. If no conversion was done, endptr is @a nptr.
+ *
+ * @param len use at most this amount of bytes of @a nptr. If -1, assumes
+ *        nptr has a trailing NUL and calculate the string length.
+ *
+ * @param base it's the base of convertion, which must be between 2
+ *        and 36 inclusive, or be the special value 0.
+ *        A zero base is taken as 10 (decimal) unless the next character
+ *        is '0', in which case it  is  taken as 8 (octal).
+ *
+ * @return the converted value, if any.
+ */
+unsigned long int sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base);
 
 /**
  * @}
