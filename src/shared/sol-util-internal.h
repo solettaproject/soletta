@@ -62,6 +62,8 @@
 #define OVERFLOW_UINT64 OVERFLOW_TYPE(uint64_t)
 #define OVERFLOW_SIZE_T OVERFLOW_TYPE(size_t)
 #define OVERFLOW_INT64 OVERFLOW_TYPE(int64_t)
+#define OVERFLOW_INT32 OVERFLOW_TYPE(int32_t)
+#define OVERFLOW_UINT32 OVERFLOW_TYPE(uint32_t)
 
 /**
  * Extracted from Hacker's Delight, 2nd edition, chapter 2-13
