@@ -468,6 +468,25 @@ typedef void (*sol_lwm2m_server_content_cb)
     struct sol_str_slice content);
 
 /**
+ * @brief Callback used to inform create/write/execute/delete response.
+ *
+ * @param server The LW2M server
+ * @param client The LWM2M client
+ * @param path The client's path
+ * @param response_code The operation @c response_code
+ * @param data User data.
+ * @see sol_lwl2m_server_management_write()
+ * @see sol_lwl2m_server_management_execute()
+ * @see sol_lwl2m_server_management_create()
+ * @see sol_lwl2m_server_management_delete()
+ */
+typedef void (*sol_lwm2m_server_management_status_response_cb)(
+    void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_coap_responsecode_t response_code);
+
+/**
  * @brief Creates a new LWM2M server.
  *
  * The server will be immediately operational and waiting for connections.
@@ -622,6 +641,97 @@ int sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
 int sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client,
     const char *path,  sol_lwm2m_server_content_cb cb, const void *data);
+
+/**
+ * @brief Writes an object instance or resource.
+ *
+ * @param server The LWM2M server.
+ * @param client The LWM2M client info to write
+ * @param path The object path to be written (Example /1/1).
+ * @param resources An array of #sol_lwm2m_resource
+ * @param len The length of @c resources
+ * @param cb A callback to be called when the write operation is completed.
+ * @param data User data to @c cb
+ * @return 0 on success, -errno on error.
+ *
+ * @note All data is sent using TLV.
+ *
+ * @see #sol_lwm2m_server_management_status_response_cb
+ */
+int sol_lwm2m_server_management_write(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    struct sol_lwm2m_resource *resources, size_t len,
+    sol_lwm2m_server_management_status_response_cb cb, const void *data);
+
+/**
+ * @brief Deletes an object instance on a client.
+ *
+ * @param server The LWM2M server.
+ * @param client The LWM2M client info to delete an object
+ * @param path The object path to be deleted (Example /1/1).
+ * @param cb A callback to be called when the delete operation is completed.
+ * @param data User data to @c cb
+ * @return 0 on success, -errno on error.
+ *
+ * @see #sol_lwm2m_server_management_status_response_cb
+ */
+int sol_lwm2m_server_management_delete(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_lwm2m_server_management_status_response_cb cb, const void *data);
+
+/**
+ * @brief Executes an resource on a client.
+ *
+ * @param server The LWM2M server.
+ * @param client The LWM2M client info to execute the resource.
+ * @param path The object path to be executed (Example /1/1/8).
+ * @param args Arguments to the execute command.
+ * @param cb A callback to be called when the execute operation is completed.
+ * @param data User data to @c cb
+ * @return 0 on success, -errno on error.
+ *
+ * @see #sol_lwm2m_server_management_status_response_cb
+ */
+int sol_lwm2m_server_management_execute(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path, const char *args,
+    sol_lwm2m_server_management_status_response_cb cb, const void *data);
+
+/**
+ * @brief Creates an object instance on a client.
+ *
+ * @param server The LWM2M server.
+ * @param client The LWM2M client info to create an object instance.
+ * @param path The object path to create be created (Example /1).
+ * @param resources An array of #sol_lwm2m_resource which contains the required resources to create an object.
+ * @param len The length of @c resources.
+ * @param cb A callback to be called when the create operation is completed.
+ * @param data User data to @c cb
+ * @return 0 on success, -errno on error.
+ *
+ * @note All data is sent using TLV.
+ *
+ * @see #sol_lwm2m_server_management_status_response_cb
+ */
+int sol_lwm2m_server_management_create(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    struct sol_lwm2m_resource *resources, size_t len,
+    sol_lwm2m_server_management_status_response_cb cb, const void *data);
+
+/**
+ * @brief Reads an object, instance or object from a client.
+ *
+ * @param server The LWM2M server.
+ * @param client The LWM2M client info to be read.
+ * @param path The path to be read (Example /3/0/0).
+ * @param cb A callback to be called when the read operation is completed.
+ * @param data User data to @c cb
+ * @return 0 on success, -errno on error.
+ *
+ * @see #sol_lwm2m_server_content_cb
+ */
+int sol_lwm2m_server_management_read(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_lwm2m_server_content_cb cb, const void *data);
 
 /**
  * @brief Deletes a server instance.

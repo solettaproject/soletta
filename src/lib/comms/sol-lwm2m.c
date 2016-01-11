@@ -139,6 +139,23 @@ struct observer_entry {
     bool removed;
 };
 
+enum management_type {
+    MANAGEMENT_DELETE,
+    MANAGEMENT_READ,
+    MANAGEMENT_CREATE,
+    MANAGEMENT_WRITE,
+    MANAGEMENT_EXECUTE
+};
+
+struct management_ctx {
+    enum management_type type;
+    struct sol_lwm2m_server *server;
+    struct sol_lwm2m_client_info *cinfo;
+    char *path;
+    void *cb;
+    const void *data;
+};
+
 static bool lifetime_timeout(void *data);
 
 static void
@@ -1559,6 +1576,176 @@ sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
         (uint8_t *)&entry->token, sizeof(entry->token));
 }
 
+static bool
+management_reply(struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+    void *data)
+{
+    struct management_ctx *ctx = data;
+    uint8_t code = 0;
+    enum sol_lwm2m_content_type content_type = SOL_LWM2M_CONTENT_TYPE_TEXT;
+    struct sol_str_slice content = SOL_STR_SLICE_EMPTY;
+
+    if (!cliaddr && !req)
+        code = SOL_COAP_RSPCODE_GATEWAY_TIMEOUT;
+
+    switch (ctx->type) {
+    case MANAGEMENT_DELETE:
+    case MANAGEMENT_CREATE:
+    case MANAGEMENT_WRITE:
+    case MANAGEMENT_EXECUTE:
+        if (!code)
+            code = sol_coap_header_get_code(req);
+        ((sol_lwm2m_server_management_status_response_cb)ctx->cb)
+            ((void *)ctx->data, ctx->server, ctx->cinfo, ctx->path, code);
+        break;
+    default: //Read
+        if (!code)
+            extract_content(req, &code, &content_type, &content);
+        ((sol_lwm2m_server_content_cb)ctx->cb)((void *)ctx->data, ctx->server,
+            ctx->cinfo, ctx->path, code, content_type, content);
+        break;
+    }
+
+    if (code != SOL_COAP_RSPCODE_GATEWAY_TIMEOUT)
+        send_ack_if_needed(server, req, cliaddr);
+    free(ctx->path);
+    free(ctx);
+    return false;
+}
+
+static int
+send_management_packet(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    enum management_type type, void *cb, const void *data,
+    sol_coap_method_t method,
+    struct sol_lwm2m_resource *resources, size_t len, const char *execute_args)
+{
+    int r;
+    struct sol_coap_packet *pkt;
+    struct management_ctx *ctx;
+
+    r = setup_coap_packet(method, SOL_COAP_TYPE_CON,
+        client->objects_path, path, NULL, NULL, resources, len,
+        execute_args, &pkt);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!cb)
+        return sol_coap_send_packet(server->coap, pkt, &client->cliaddr);
+
+    ctx = malloc(sizeof(struct management_ctx));
+    SOL_NULL_CHECK_GOTO(ctx, err_exit);
+
+    ctx->path = strdup(path);
+    SOL_NULL_CHECK_GOTO(ctx->path, err_exit);
+    ctx->type = type;
+    ctx->server = server;
+    ctx->cinfo = client;
+    ctx->data = data;
+    ctx->cb = cb;
+
+    return sol_coap_send_packet_with_reply(server->coap, pkt, &client->cliaddr,
+        management_reply, ctx);
+
+err_exit:
+    free(ctx);
+    sol_coap_packet_unref(pkt);
+    return -ENOMEM;
+}
+
+static bool
+is_resource_set(const char *path)
+{
+    size_t i;
+    uint8_t slashes;
+    const char *last_slash;
+
+    for (i = 0, slashes = 0; path[i]; i++) {
+        if (path[i] == '/') {
+            last_slash = path + i;
+            slashes++;
+        }
+    }
+
+    if (slashes < 3 || *(last_slash + 1) == '\0')
+        return false;
+    return true;
+}
+
+SOL_API int
+sol_lwm2m_server_management_write(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    struct sol_lwm2m_resource *resources, size_t len,
+    sol_lwm2m_server_management_status_response_cb cb, const void *data)
+{
+    sol_coap_method_t method = SOL_COAP_METHOD_PUT;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+    SOL_NULL_CHECK(resources, -EINVAL);
+
+    if (!is_resource_set(path))
+        method = SOL_COAP_METHOD_POST;
+
+    return send_management_packet(server, client, path,
+        MANAGEMENT_WRITE, cb, data, method, resources, len, NULL);
+}
+
+SOL_API int
+sol_lwm2m_server_management_execute(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path, const char *args,
+    sol_lwm2m_server_management_status_response_cb cb, const void *data)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+
+    return send_management_packet(server, client, path,
+        MANAGEMENT_EXECUTE, cb, data, SOL_COAP_METHOD_POST, NULL, 0, args);
+}
+
+SOL_API int
+sol_lwm2m_server_management_delete(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_lwm2m_server_management_status_response_cb cb, const void *data)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+
+    return send_management_packet(server, client, path,
+        MANAGEMENT_DELETE, cb, data, SOL_COAP_METHOD_DELETE, NULL, 0, NULL);
+}
+
+SOL_API int
+sol_lwm2m_server_management_create(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    struct sol_lwm2m_resource *resources, size_t len,
+    sol_lwm2m_server_management_status_response_cb cb, const void *data)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+
+    return send_management_packet(server, client, path,
+        MANAGEMENT_CREATE, cb, data, SOL_COAP_METHOD_POST, resources,
+        len, NULL);
+}
+
+SOL_API int
+sol_lwm2m_server_management_read(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_lwm2m_server_content_cb cb, const void *data)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+    SOL_NULL_CHECK(cb, -EINVAL);
+
+    return send_management_packet(server, client, path,
+        MANAGEMENT_READ, cb, data, SOL_COAP_METHOD_GET, NULL, 0, NULL);
+}
 
 static void
 tlv_clear(struct sol_lwm2m_tlv *tlv)
