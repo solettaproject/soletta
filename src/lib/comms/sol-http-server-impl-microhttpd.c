@@ -60,6 +60,8 @@
 #define SOL_HTTP_PARAM_LAST_MODIFIED "Last-Modified"
 #define READABLE_BY_EVERYONE (S_IRUSR | S_IRGRP | S_IROTH)
 
+#define SOL_HTTP_REQUEST_BUFFER_SIZE 4096
+
 struct http_handler {
     time_t last_modified;
     struct sol_str_slice path;
@@ -74,6 +76,7 @@ struct sol_http_request {
     struct sol_http_params params;
     struct sol_buffer buffer;
     struct sol_http_param_value param;
+    size_t len;
     enum sol_http_method method;
     time_t if_since_modified;
     bool is_multipart;
@@ -100,6 +103,7 @@ struct sol_http_server {
 #ifdef HAVE_LIBMAGIC
     magic_t magic;
 #endif
+    size_t buf_size;
 };
 
 struct http_connection {
@@ -561,6 +565,13 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
     req->method = http_server_get_method(method);
     switch (req->method) {
     case SOL_HTTP_METHOD_POST:
+        req->len += *upload_data_size;
+        if (req->len > server->buf_size) {
+            SOL_WRN("Request is bigger than buffer (%zu)", server->buf_size);
+            status = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
+            goto end;
+        }
+
         if (!req->pp)
             req->pp = MHD_create_post_processor(connection, 1024, post_iterator, req);
         SOL_NULL_CHECK_GOTO(req->pp, end);
@@ -768,6 +779,8 @@ sol_http_server_new(uint16_t port)
     sol_vector_init(&server->dirs, sizeof(struct static_dir));
     sol_vector_init(&server->defaults, sizeof(struct default_page));
     sol_ptr_vector_init(&server->requests);
+
+    server->buf_size = SOL_HTTP_REQUEST_BUFFER_SIZE;
 
     server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
         port, NULL, NULL,
@@ -1131,4 +1144,24 @@ sol_http_server_remove_error_page(struct sol_http_server *server,
     }
 
     return -ENODATA;
+}
+
+SOL_API int
+sol_http_server_set_buffer_size(struct sol_http_server *server, size_t buf_size)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+
+    server->buf_size = buf_size;
+    return 0;
+}
+
+SOL_API int
+sol_http_server_get_buffer_size(struct sol_http_server *server, size_t *buf_size)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(buf_size, -EINVAL);
+
+    *buf_size = server->buf_size;
+
+    return 0;
 }
