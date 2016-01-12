@@ -55,7 +55,55 @@
       "url": "http://solettaproject.org/doc/latest/components/robotics/hbridge-l293d.html",
       "methods": {
         "open": "hbridge_open"
-      }
+      },
+      "url": "http://solettaproject.org/doc/latest/components/robotics/hbridge-l293d.html"
+    },
+    {
+      "category": "robotics/encoders",
+      "description": "Tells if the shaft of a motor is stopped, rotating clockwise, or rotating counterclockwise.",
+      "methods": {
+        "open": "quadrature_encoder_open",
+        "close": "quadrature_encoder_close"
+      },
+      "private_data_type": "quadrature_encoder_data",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Output A from the encoder",
+          "name": "A",
+          "methods": {
+            "process": "quadrature_encoder_process_port"
+          }
+        },
+        {
+          "data_type": "boolean",
+          "description": "Output B from the encoder",
+          "name": "B",
+          "methods": {
+            "process": "quadrature_encoder_process_port"
+          }
+        }
+      ],
+      "name": "robotics/quadrature-encoder",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "description": "Tick delta. Positive value if rotating clockwise, negative if counter-clockwise.",
+          "name": "OUT"
+        }
+      ],
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Time to wait before sending the tick delta, in ms. Default is 100ms.",
+            "name": "period",
+            "default": 100
+          }
+        ]
+      },
+      "url": "http://solettaproject.org/doc/latest/components/robotics/quadrature-encoder.html"
     }
   ]
 }
