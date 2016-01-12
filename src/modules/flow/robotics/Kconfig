@@ -1,0 +1,9 @@
+config FLOW_NODE_TYPE_ROBOTICS
+    tristate "Node type: robotics"
+    depends on USE_PWM
+    default y
+    help
+        Series of node types related to robotics.
+
+        Motor drivers, quadrature encoders, odometers, PID controls,
+        steering controllers, etc.

@@ -1,0 +1,61 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "robotics",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "robotics/motor",
+      "description": "H-Bridge node, compatible with L293D.",
+      "in_ports": [
+        {
+          "data_type": "int",
+          "description": "0: coast motor; < 0: rotate counterclockwise; > 0 rotate clockwise. Non-zero value indicates throttle percentage.",
+          "name": "IN",
+          "methods": {
+            "process": "hbridge_process_in"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Actively brake the motor.",
+          "name": "BRAKE",
+          "methods": {
+            "process": "hbridge_process_brake"
+          }
+        }
+      ],
+      "name": "robotics/hbridge-l293d",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Connect to OUT[0] through OUT[3] to L293D 1A, 2A, 3A, and 4A respectively.",
+          "name": "OUT[4]"
+        },
+        {
+          "data_type": "int",
+          "description": "Throttle output, in percentage (compatible with PWM node type's DUTY_CYCLE input port).",
+          "name": "THROTTLE"
+        }
+      ],
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "boolean",
+            "description": "Invert clockwise/counter-clockwise commands. Useful for skid-steering robots.",
+            "name": "inverted"
+          }
+        ]
+      },
+      "private_data_type": "hbridge_data",
+      "url": "http://solettaproject.org/doc/latest/components/robotics/hbridge-l293d.html",
+      "methods": {
+        "open": "hbridge_open"
+      }
+    }
+  ]
+}
