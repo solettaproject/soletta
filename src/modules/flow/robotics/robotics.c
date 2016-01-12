@@ -212,4 +212,93 @@ hbridge_close(struct sol_flow_node *node, void *data)
     sol_pwm_close(priv->pwm.pwm);
 }
 
+/*
+ * Algorithm based off of
+ * https://web.archive.org/web/20150728092206/http://letsmakerobots.com/node/24031
+ */
+
+struct quadrature_encoder_data {
+    int old, new;
+    bool input_a, input_b;
+};
+
+static const int quadrature_encoder_matrix[] =
+{ 0, -1, 1, 2, 1, 0, 2, -1, -1, 2, 0, 1, 2, 1, -1, 0 };
+
+static int
+quadrature_encoder_process(struct sol_flow_node *node,
+    struct quadrature_encoder_data *priv)
+{
+    bool cw = false, ccw = false, stopped = false, invalid = false;
+    int r;
+
+    priv->old = priv->new;
+    priv->new = priv->input_a * 2 + priv->input_b;
+
+    switch (quadrature_encoder_matrix[priv->old * 4 + priv->new]) {
+    case -1:
+        cw = true;
+        break;
+    case 1:
+        ccw = true;
+        break;
+    case 0:
+        stopped = true;
+        break;
+    default:
+        invalid = true;
+    }
+
+    r = sol_flow_send_boolean_packet(node,
+        SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__OUT__CW, cw);
+    if (!r) {
+        r = sol_flow_send_boolean_packet(node,
+            SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__OUT__CCW, ccw);
+    }
+    if (!r) {
+        r = sol_flow_send_boolean_packet(node,
+            SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__OUT__STOPPED,
+            stopped);
+    }
+    if (!r && invalid) {
+        r = sol_flow_send_error_packet(node, -EINVAL,
+            "Invalid state for the quadrature encoder");
+    }
+
+    return r;
+}
+
+static int
+quadrature_encoder_process_port(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct quadrature_encoder_data *priv = data;
+    bool value;
+    int r;
+
+    r = sol_flow_packet_get_boolean(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (port == SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__IN__A)
+        priv->input_a = value;
+    else if (port == SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__IN__B)
+        priv->input_b = value;
+
+    return quadrature_encoder_process(node, priv);
+}
+
+static int
+quadrature_encoder_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct quadrature_encoder_data *priv = data;
+
+    priv->old = 0;
+    priv->new = 0;
+    priv->input_a = false;
+    priv->input_b = false;
+
+    return 0;
+}
+
 #include "robotics-gen.c"

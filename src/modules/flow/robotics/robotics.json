@@ -101,6 +101,50 @@
         }
       ],
       "url": "http://solettaproject.org/doc/latest/components/robotics/hbridge-l293d.html"
+    },
+    {
+      "category": "robotics/encoders",
+      "description": "Encoders measure the speed and direction of a rotating shaft.",
+      "methods": {
+        "open": "quadrature_encoder_open"
+      },
+      "private_data_type": "quadrature_encoder_data",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Output A from the encoder",
+          "name": "A",
+          "methods": {
+            "process": "quadrature_encoder_process_port"
+          }
+        },
+        {
+          "data_type": "boolean",
+          "description": "Output B from the encoder",
+          "name": "B",
+          "methods": {
+            "process": "quadrature_encoder_process_port"
+          }
+        }
+      ],
+      "name": "robotics/quadrature-encoder",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if rotating clockwise.",
+          "name": "CW"
+        },
+        {
+          "data_type": "boolean",
+          "description": "True if rotating counterclockwise.",
+          "name": "CCW"
+        },
+        {
+          "data_type": "boolean",
+          "description": "True if stopped.",
+          "name": "STOPPED"
+        }
+      ]
     }
  ]
 }
