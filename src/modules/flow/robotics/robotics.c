@@ -131,4 +131,93 @@ hbridge_open(struct sol_flow_node *node, void *data,
     return hbridge_process_brake(node, data, 0, 0, NULL);
 }
 
+struct quadrature_encoder_data {
+    struct sol_timeout *timeout;
+    struct sol_flow_node *node;
+
+    int old_index, new_index;
+    int ticks;
+
+    bool input_a, input_b;
+};
+
+static int
+quadrature_encoder_process_port(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    /* Matrix based off of: http://www.robotshop.com/media/files/PDF/tutorial-how-to-use-a-quadrature-encoder-rs011a.pdf */
+    static const int8_t qem[16] = { 0, -1, 1, 2, 1, 0, 2, -1, -1, 2, 0, 1, 2, 1, -1, 0 };
+    struct quadrature_encoder_data *priv = data;
+    bool value;
+    int r;
+
+    r = sol_flow_packet_get_boolean(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (port == SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__IN__A)
+        priv->input_a = value;
+    else if (port == SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__IN__B)
+        priv->input_b = value;
+
+    priv->old_index = priv->new_index;
+    priv->new_index = priv->input_a * 2 + priv->input_b;
+
+    r = qem[priv->old_index * 4 + priv->new_index];
+    if (r != 2) {
+        priv->ticks += r;
+    } else {
+        SOL_WRN("Invalid state for quadrature encoder; losing I/O?");
+    }
+
+    return 0;
+}
+
+static bool
+quadrature_encoder_send_ticks(void *data)
+{
+    struct quadrature_encoder_data *priv = data;
+
+    if (priv->ticks) {
+        int r;
+
+        r = sol_flow_send_irange_value_packet(priv->node,
+            SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__OUT__OUT,
+            priv->ticks);
+        priv->ticks = 0;
+
+        SOL_INT_CHECK(r, < 0, true);
+    }
+
+    return true;
+}
+
+static int
+quadrature_encoder_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct quadrature_encoder_data *priv = data;
+    const struct sol_flow_node_type_robotics_quadrature_encoder_options *opts =
+        (const struct sol_flow_node_type_robotics_quadrature_encoder_options *)options;
+
+    SOL_INT_CHECK(opts->period, < 0, -EINVAL);
+
+    priv->old_index = priv->new_index = 0;
+    priv->input_a = priv->input_b = 0;
+    priv->ticks = 0;
+
+    priv->node = node;
+    priv->timeout = sol_timeout_add(opts->period, quadrature_encoder_send_ticks, priv);
+    SOL_NULL_CHECK(priv->timeout, -ENOMEM);
+
+    return 0;
+}
+
+static void
+quadrature_encoder_close(struct sol_flow_node *node, void *data)
+{
+    struct quadrature_encoder_data *priv = data;
+
+    sol_timeout_del(priv->timeout);
+}
+
 #include "robotics-gen.c"
