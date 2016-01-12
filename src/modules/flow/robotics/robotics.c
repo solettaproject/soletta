@@ -220,4 +220,65 @@ quadrature_encoder_close(struct sol_flow_node *node, void *data)
     sol_timeout_del(priv->timeout);
 }
 
+struct pid_controller_data {
+    double kp, ki, kd;
+    double set_point;
+    double last_error;
+    double integral;
+    struct timespec last_time;
+};
+
+static int
+pid_controller_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct pid_controller_data *priv = data;
+    double value, error, dt_sec;
+    double p, i, d;
+    struct timespec dt, now;
+    int r;
+
+    r = sol_flow_packet_get_drange_value(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    now = sol_util_timespec_get_current();
+    sol_util_timespec_sub(&now, &priv->last_time, &dt);
+    dt_sec = ((double)sol_util_msec_from_timespec(&dt) / (double)SOL_MSEC_PER_SEC);
+
+    error = priv->set_point - value;
+    p = error;
+    i = priv->integral + error * dt_sec;
+    d = (dt_sec >= 0.0001) ? (error - priv->last_error) / dt_sec : 0.0;
+
+    r = sol_flow_send_drange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_ROBOTICS_PID__OUT__OUT,
+        p * priv->kp + i * priv->ki + d * priv->kd);
+
+    priv->integral = i;
+    priv->last_time = now;
+    priv->last_error = error;
+
+    return r;
+}
+
+static int
+pid_controller_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct pid_controller_data *priv = data;
+    const struct sol_flow_node_type_robotics_pid_options *opts =
+        (const struct sol_flow_node_type_robotics_pid_options *)options;
+
+    priv->kp = opts->kp;
+    priv->ki = opts->ki;
+    priv->kd = opts->kd;
+    priv->set_point = opts->set_point;
+
+    priv->last_error = 0.0;
+    priv->integral = 0.0;
+    priv->last_time = sol_util_timespec_get_current();
+
+    return 0;
+}
+
 #include "robotics-gen.c"
