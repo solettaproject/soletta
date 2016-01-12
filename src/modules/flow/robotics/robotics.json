@@ -104,6 +104,65 @@
         ]
       },
       "url": "http://solettaproject.org/doc/latest/components/robotics/quadrature-encoder.html"
+    },
+    {
+      "category": "robotics/controllers",
+      "description": "PID (proportional, integral, derivative) controller.",
+      "methods": {
+        "open": "pid_controller_open"
+      },
+      "private_data_type": "pid_controller_data",
+      "in_ports": [
+        {
+          "data_type": "float",
+          "description": "Value obtained from the sensor.",
+          "name": "IN",
+          "methods": {
+            "process": "pid_controller_process"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Value to be fed to an actuator.",
+          "name": "OUT"
+        }
+      ],
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "float",
+            "description": "Constant for the Proportional component.",
+            "name": "kp",
+            "default": 0
+          },
+          {
+            "data_type": "float",
+            "description": "Constant for the Integral component.",
+            "name": "ki",
+            "default": 0
+          },
+          {
+            "data_type": "float",
+            "description": "Constant for the Derivative component.",
+            "name": "kd",
+            "default": 0
+          },
+          {
+            "data_type": "float",
+            "description": "Desired output value.",
+            "name": "set_point",
+            "default": 0
+          }
+        ]
+      },
+      "name": "robotics/pid",
+      "methods": {
+        "open": "pid_controller_open"
+      },
+      "url": "http://solettaproject.org/doc/latest/components/robotics/pid.html"
     }
   ]
 }
