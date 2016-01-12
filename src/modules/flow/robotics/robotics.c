@@ -142,4 +142,60 @@ hbridge_open(struct sol_flow_node *node, void *data,
     return 0;
 }
 
+struct quadrature_encoder_data {
+    bool last_a, input_a, input_b;
+};
+
+static int
+quadrature_encoder_process(struct sol_flow_node *node,
+    struct quadrature_encoder_data *priv)
+{
+    int value;
+
+    if (!priv->last_a && priv->input_a) {
+        if (priv->input_b)
+            value = 1; /* clockwise */
+        else
+            value = -1; /* counter-clockwise */
+    } else {
+        value = 0; /* stopped */
+    }
+    priv->last_a = priv->input_a;
+
+    return sol_flow_send_irange_value_packet(node,
+        SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__OUT__OUT, value);
+}
+
+static int
+quadrature_encoder_process_port(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct quadrature_encoder_data *priv = data;
+    bool value;
+    int r;
+
+    r = sol_flow_packet_get_boolean(packet, &value);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (port == SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__IN__A)
+        priv->input_a = value;
+    else if (port == SOL_FLOW_NODE_TYPE_ROBOTICS_QUADRATURE_ENCODER__IN__B)
+        priv->input_b = value;
+
+    return quadrature_encoder_process(node, priv);
+}
+
+static int
+quadrature_encoder_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct quadrature_encoder_data *priv = data;
+
+    priv->last_a = false;
+    priv->input_a = false;
+    priv->input_b = false;
+
+    return 0;
+}
+
 #include "robotics-gen.c"
