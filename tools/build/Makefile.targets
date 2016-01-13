@@ -1,7 +1,9 @@
-check: $(SOL_LIB_OUTPUT) $(tests-out) $(modules-out)
+tests: $(SOL_LIB_OUTPUT) $(tests-out) $(modules-out)
+
+check: tests
 	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)"
 
-PHONY += check
+PHONY += tests check
 
 ifeq (y,$(FBP_RUNNER))
 check-fbp: $(SOL_LIB_OUTPUT) $(SOL_FBP_RUNNER_BIN) $(modules-out)
