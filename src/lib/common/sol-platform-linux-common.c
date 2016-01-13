@@ -984,11 +984,12 @@ sol_platform_impl_load_locales(char **locale_cache)
         value.len = strlen(line) - key.len - 1;
 
         category = system_locale_to_sol_locale(key);
-        SOL_INT_CHECK_GOTO(category, == SOL_PLATFORM_LOCALE_UNKNOWN, err_val);
-        locale_cache[category] = sol_str_slice_to_string(value);
+        if (category != SOL_PLATFORM_LOCALE_UNKNOWN) {
+            locale_cache[category] = sol_str_slice_to_string(value);
+            SOL_NULL_CHECK_GOTO(locale_cache[category], err_nomem);
+        }
         free(line);
         line = NULL;
-        SOL_NULL_CHECK_GOTO(locale_cache[category], err_nomem);
     }
 
     r = ferror(f);
