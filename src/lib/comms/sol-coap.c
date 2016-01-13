@@ -87,6 +87,8 @@ struct sol_coap_server {
     struct sol_ptr_vector pending; /* waiting pending replies */
     struct sol_ptr_vector outgoing; /* in case we need to retransmit */
     struct sol_socket *socket;
+    const struct sol_coap_resource *unknown_resources;
+    void *unknown_resources_data;
     int refcnt;
 };
 
@@ -351,7 +353,7 @@ error:
 }
 
 static int(*find_resource_cb(const struct sol_coap_packet *req,
-    const struct sol_coap_resource *resource)) (
+    const struct sol_coap_resource *resource, bool check_path)) (
     struct sol_coap_server *server,
     const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
@@ -360,7 +362,7 @@ static int(*find_resource_cb(const struct sol_coap_packet *req,
 
     SOL_NULL_CHECK(resource, NULL);
 
-    if (!uri_path_eq(req, resource->path))
+    if (check_path && !uri_path_eq(req, resource->path))
         return NULL;
 
     opcode = sol_coap_header_get_code(req);
@@ -1278,14 +1280,14 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
     }
 
     /* /.well-known/core well known resource */
-    cb = find_resource_cb(req, &well_known);
+    cb = find_resource_cb(req, &well_known, true);
     if (cb)
         return cb(server, &well_known, req, cliaddr, NULL);
 
     SOL_VECTOR_FOREACH_IDX (&server->contexts, c, i) {
         const struct sol_coap_resource *resource = c->resource;
 
-        cb = find_resource_cb(req, resource);
+        cb = find_resource_cb(req, resource, true);
         if (!cb)
             continue;
 
@@ -1293,6 +1295,13 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
             register_observer(c, req, cliaddr, observe);
 
         return cb(server, resource, req, cliaddr, (void *)c->data);
+    }
+
+    if (server->unknown_resources) {
+        cb = find_resource_cb(req, server->unknown_resources, false);
+        if (cb)
+            return cb(server, server->unknown_resources, req,
+                cliaddr, server->unknown_resources_data);
     }
 
     return resource_not_found(req, cliaddr, server);
@@ -1603,19 +1612,32 @@ sol_coap_server_register_resource(struct sol_coap_server *server,
 
     COAP_RESOURCE_CHECK_API(false);
 
-    if (find_context(server, resource)) {
-        SOL_WRN("Attempting to register duplicate resource in CoAP server");
-        return false;
+    if ((resource->flags & SOL_COAP_FLAGS_UNKNOWN_RESOURCE)) {
+        if (server->unknown_resources) {
+            SOL_WRN("It's only possible to register one unknown resource");
+            return false;
+        }
+        if (resource->path[0].len) {
+            SOL_WRN("Unknown resources path must be empty!");
+            return false;
+        }
+        server->unknown_resources = resource;
+        server->unknown_resources_data = data;
+    } else {
+        if (find_context(server, resource)) {
+            SOL_WRN("Attempting to register duplicate resource in CoAP server");
+            return false;
+        }
+
+        c = sol_vector_append(&server->contexts);
+        SOL_NULL_CHECK(c, false);
+
+        c->resource = resource;
+        c->data = data;
+        c->age = 2;
+
+        sol_ptr_vector_init(&c->observers);
     }
-
-    c = sol_vector_append(&server->contexts);
-    SOL_NULL_CHECK(c, false);
-
-    c->resource = resource;
-    c->data = data;
-    c->age = 2;
-
-    sol_ptr_vector_init(&c->observers);
 
     return true;
 }
@@ -1631,6 +1653,14 @@ sol_coap_server_unregister_resource(struct sol_coap_server *server,
     SOL_NULL_CHECK(resource, -EINVAL);
 
     COAP_RESOURCE_CHECK_API(-EINVAL);
+
+    if ((resource->flags & SOL_COAP_FLAGS_UNKNOWN_RESOURCE)) {
+        if (!server->unknown_resources)
+            return -ENOENT;
+        server->unknown_resources = NULL;
+        server->unknown_resources_data = NULL;
+        return 0;
+    }
 
     SOL_VECTOR_FOREACH_REVERSE_IDX (&server->contexts, c, idx) {
         if (c->resource != resource)
