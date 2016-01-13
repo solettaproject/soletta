@@ -32,8 +32,11 @@
 #include <errno.h>
 #include <float.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <ctype.h>
+
 
 #define SOL_LOG_DOMAIN &_lwm2m_domain
 
@@ -66,6 +69,9 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_lwm2m_domain, "lwm2m");
 #define LEN_IS_24BITS_MASK (24)
 #define UINT24_BITS (16777215)
 
+#define SECURITY_SERVER_OBJECT_ID (0)
+#define SERVER_OBJECT_ID (1)
+
 #ifndef SOL_NO_API_VERSION
 #define LWM2M_TLV_CHECK_API(_tlv, ...) \
     do { \
@@ -87,9 +93,42 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_lwm2m_domain, "lwm2m");
             return __VA_ARGS__; \
         } \
     } while (0);
+#define LWM2M_RESOURCE_CHECK_API_GOTO(_resource, _label) \
+    do { \
+        if (SOL_UNLIKELY((_resource).api_version != \
+            SOL_LWM2M_RESOURCE_API_VERSION)) { \
+            SOL_WRN("Couldn't handle resource that has unsupported version " \
+                "'%u', expected version is '%u'", \
+                (_resource).api_version, SOL_LWM2M_RESOURCE_API_VERSION); \
+            goto _label; \
+        } \
+    } while (0);
+#define LWM2M_OBJECT_CHECK_API(_obj, ...) \
+    do { \
+        if (SOL_UNLIKELY((_obj).api_version != \
+            SOL_LWM2M_OBJECT_API_VERSION)) { \
+            SOL_WRN("Couldn't handle object that has unsupported version " \
+                "'%u', expected version is '%u'", \
+                (_obj).api_version, SOL_LWM2M_OBJECT_API_VERSION); \
+            return __VA_ARGS__; \
+        } \
+    } while (0);
+#define LWM2M_OBJECT_CHECK_API_GOTO(_obj, _label) \
+    do { \
+        if (SOL_UNLIKELY((_obj).api_version != \
+            SOL_LWM2M_OBJECT_API_VERSION)) { \
+            SOL_WRN("Couldn't handle object that has unsupported version " \
+                "'%u', expected version is '%u'", \
+                (_obj).api_version, SOL_LWM2M_OBJECT_API_VERSION); \
+            goto _label; \
+        } \
+    } while (0);
 #else
 #define LWM2M_TLV_CHECK_API(_tlv, ...)
 #define LWM2M_RESOURCE_CHECK_API(_resource, ...)
+#define LWM2M_OBJECT_CHECK_API(_obj, ...)
+#define LWM2M_RESOURCE_CHECK_API_GOTO(_resource, _label)
+#define LWM2M_OBJECT_CHECK_API_GOTO(_obj, _label)
 #endif
 
 enum tlv_length_size_type {
@@ -99,16 +138,26 @@ enum tlv_length_size_type {
     LENGTH_SIZE_24_BITS = 32
 };
 
+enum lwm2m_parser_args_state {
+    STATE_NEEDS_DIGIT = 0,
+    STATE_NEEDS_COMMA_OR_EQUAL = (1 << 1),
+    STATE_NEEDS_COMMA = (1 << 2),
+    STATE_NEEDS_APOSTROPHE = (1 << 3),
+    STATE_NEEDS_CHAR_OR_DIGIT = (1 << 4),
+};
+
+struct lifetime_ctx {
+    struct sol_timeout *timeout;
+    uint32_t lifetime;
+};
+
 struct sol_lwm2m_server {
     struct sol_coap_server *coap;
     struct sol_ptr_vector clients;
     struct sol_ptr_vector clients_to_delete;
     struct sol_monitors registration;
     struct sol_vector observers;
-    struct {
-        struct sol_timeout *timeout;
-        uint32_t lifetime;
-    } lifetime_ctx;
+    struct lifetime_ctx lifetime_ctx;
 };
 
 struct sol_lwm2m_client_object {
@@ -156,7 +205,40 @@ struct management_ctx {
     const void *data;
 };
 
-static bool lifetime_timeout(void *data);
+//Data structs used by LWM2M Client.
+struct obj_instance {
+    uint16_t id;
+    const void *data;
+};
+
+struct obj_ctx {
+    const struct sol_lwm2m_object *obj;
+    struct sol_vector instances;
+};
+
+struct sol_lwm2m_client {
+    struct sol_coap_server *coap_server;
+    struct lifetime_ctx lifetime_ctx;
+    struct sol_vector connections;
+    struct sol_vector objects;
+    char *name;
+    char *path;
+    char *sms;
+    bool running;
+};
+
+struct server_conn_ctx {
+    struct sol_lwm2m_client *client;
+    struct sol_network_link_addr server_addr;
+    struct sol_coap_packet *pending_pkt; //Pending registration reply
+    int64_t server_id;
+    int64_t lifetime;
+    time_t registration_time;
+    char *location;
+};
+
+static bool lifetime_server_timeout(void *data);
+static bool lifetime_client_timeout(void *data);
 
 static void
 send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
@@ -539,14 +621,14 @@ reschedule_timeout(struct sol_lwm2m_server *server)
     r = sol_util_uint32_mul(smallest_remeaning + 2, 1000, &smallest_remeaning);
     SOL_INT_CHECK(r, < 0, r);
     server->lifetime_ctx.timeout = sol_timeout_add(smallest_remeaning,
-        lifetime_timeout, server);
+        lifetime_server_timeout, server);
     SOL_NULL_CHECK(server->lifetime_ctx.timeout, -ENOMEM);
     server->lifetime_ctx.lifetime = lf;
     return 0;
 }
 
 static bool
-lifetime_timeout(void *data)
+lifetime_server_timeout(void *data)
 {
     struct sol_ptr_vector to_delete = SOL_PTR_VECTOR_INIT;
     struct sol_lwm2m_server *server = data;
@@ -1968,4 +2050,1175 @@ sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource)
     LWM2M_RESOURCE_CHECK_API(*resource);
 
     free(resource->data);
+}
+
+static int
+extract_path(struct sol_lwm2m_client *client, struct sol_coap_packet *req,
+    uint16_t *path_id, uint16_t *path_size)
+{
+    struct sol_str_slice path[4] = { };
+    int i, j, r, count;
+
+    r = sol_coap_find_options(req, SOL_COAP_OPTION_URI_PATH, path,
+        ARRAY_SIZE(path));
+    count = r;
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    r = -ENOENT;
+    SOL_INT_CHECK_GOTO(r, == 0, err_exit);
+
+    if (client->path && !sol_str_slice_str_eq(path[0], client->path)) {
+        SOL_WRN("Wrong object path. Client: %s, Received: %.*s", client->path,
+            SOL_STR_SLICE_PRINT(path[0]));
+        r = -EINVAL;
+        goto err_exit;
+    }
+
+    for (i = client->path ? 1 : 0, j = 0; i < count; i++, j++) {
+        char *end;
+        //Only numbers are allowed.
+        path_id[j] = sol_util_strtoul(path[i].data, &end, path[i].len, 10);
+        if (end == path[i].data || end != path[i].data + path[i].len) {
+            SOL_WRN("Could not convert %.*s to integer",
+                SOL_STR_SLICE_PRINT(path[i]));
+            r = -EINVAL;
+            goto err_exit;
+        }
+        SOL_DBG("Path ID at request: %" PRIu16 "", path_id[j]);
+    }
+
+    *path_size = j;
+    return 0;
+
+err_exit:
+    return r;
+}
+
+static struct obj_ctx *
+find_object_ctx_by_id(struct sol_lwm2m_client *client, uint16_t id)
+{
+    uint16_t i;
+    struct obj_ctx *ctx;
+
+    SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i) {
+        if (ctx->obj->id == id)
+            return ctx;
+    }
+
+    return NULL;
+}
+
+static struct obj_instance *
+find_object_instance_by_instance_id(struct obj_ctx *ctx, uint16_t instance_id)
+{
+    uint16_t i;
+    struct obj_instance *instance;
+
+    SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, i) {
+        if (instance->id == instance_id)
+            return instance;
+    }
+
+    return NULL;
+}
+
+static uint8_t
+handle_delete(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance)
+{
+    int r;
+
+    if (!obj_instance) {
+        SOL_WRN("Object instance was not provided to delete! (object id: %"
+            PRIu16 "", obj_ctx->obj->id);
+        return SOL_COAP_RSPCODE_BAD_REQUEST;
+    }
+
+    if (!obj_ctx->obj->del) {
+        SOL_WRN("The object %" PRIu16 " does not implement the delete method",
+            obj_ctx->obj->id);
+        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+    }
+
+    r = obj_ctx->obj->del((void *)obj_instance->data,
+        (void *)obj_ctx->obj->data, client, obj_instance->id);
+    if (r < 0) {
+        SOL_WRN("Could not properly delete object id %"
+            PRIu16 " instance id: %" PRIu16 " reason:%d",
+            obj_ctx->obj->id, obj_instance->id, r);
+        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+    }
+
+    (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
+    return SOL_COAP_RSPCODE_DELETED;
+}
+
+static bool
+is_valid_char(char c)
+{
+    if (c == '!' ||
+        (c >= '#' && c <= '&') ||
+        (c >= '(' && c <= '[') ||
+        (c >= ']' && c <= '~'))
+        return true;
+    return false;
+}
+
+static bool
+is_valid_args(const struct sol_str_slice args)
+{
+    size_t i;
+    enum lwm2m_parser_args_state state = STATE_NEEDS_DIGIT;
+
+    if (!args.len)
+        return true;
+
+    for (i = 0; i < args.len; i++) {
+        if (state == STATE_NEEDS_DIGIT) {
+            if (isdigit(args.data[i]))
+                state = STATE_NEEDS_COMMA_OR_EQUAL;
+            else {
+                SOL_WRN("Expecting a digit, but found '%c'", args.data[i]);
+                return false;
+            }
+        } else if (state == STATE_NEEDS_COMMA_OR_EQUAL) {
+            if (args.data[i] == ',')
+                state = STATE_NEEDS_DIGIT;
+            else if (args.data[i] == '=')
+                state = STATE_NEEDS_APOSTROPHE;
+            else {
+                SOL_WRN("Expecting ',' or '=' but found '%c'", args.data[i]);
+                return false;
+            }
+        } else if (state == STATE_NEEDS_APOSTROPHE) {
+            if (args.data[i] == '\'')
+                state = STATE_NEEDS_CHAR_OR_DIGIT;
+            else {
+                SOL_WRN("Expecting '\'' but found '%c'", args.data[i]);
+                return false;
+            }
+        } else if (state == STATE_NEEDS_CHAR_OR_DIGIT) {
+            if (args.data[i] == '\'')
+                state = STATE_NEEDS_COMMA;
+            else if (!is_valid_char(args.data[i])) {
+                SOL_WRN("Invalid characterc '%c'", args.data[i]);
+                return false;
+            }
+        } else if (state == STATE_NEEDS_COMMA) {
+            if (args.data[i] == ',')
+                state = STATE_NEEDS_DIGIT;
+            else {
+                SOL_WRN("Expecting ',' found '%c'", args.data[i]);
+                return false;
+            }
+        }
+    }
+    if ((state & (STATE_NEEDS_COMMA | STATE_NEEDS_COMMA_OR_EQUAL)))
+        return true;
+    return false;
+}
+
+static uint8_t
+handle_execute(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
+    uint16_t resource, const struct sol_str_slice args)
+{
+    int r;
+
+    if (!obj_instance) {
+        SOL_WRN("Object instance was not provided to execute the path"
+            "/%" PRIu16 "/?/%" PRIu16 "", obj_ctx->obj->id, resource);
+        return SOL_COAP_RSPCODE_BAD_REQUEST;
+    }
+
+    if (!obj_ctx->obj->execute) {
+        SOL_WRN("Obj id %" PRIu16 " does not implemet the execute",
+            obj_ctx->obj->id);
+        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+    }
+
+    if (!is_valid_args(args)) {
+        SOL_WRN("Invalid arguments. Args: %.*s", SOL_STR_SLICE_PRINT(args));
+        return SOL_COAP_RSPCODE_BAD_REQUEST;
+    }
+
+    r = obj_ctx->obj->execute((void *)obj_instance->data,
+        (void *)obj_ctx->obj->data, client, obj_instance->id, resource, args);
+
+    if (r < 0) {
+        SOL_WRN("Could not execute the path /%" PRIu16
+            "/%" PRIu16 "/%" PRIu16 " with args: %.*s", obj_ctx->obj->id,
+            obj_instance->id, resource, SOL_STR_SLICE_PRINT(args));
+        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+    }
+
+    return SOL_COAP_RSPCODE_CHANGED;
+}
+
+static uint8_t
+handle_write(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
+    int32_t resource, uint16_t content_format,
+    const struct sol_str_slice payload)
+{
+    int r;
+
+    //If write_resource is not NULL then write_tlv is guaramteed to ve valid as well.
+    if (!obj_ctx->obj->write_resource) {
+        SOL_WRN("Object %" PRIu16 " does not support the write method",
+            obj_ctx->obj->id);
+        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+    }
+
+    if (!content_format) {
+        SOL_WRN("Content format was not set."
+            " Impossible to create object instance");
+        return SOL_COAP_RSPCODE_BAD_REQUEST;
+    }
+
+    if (!payload.len) {
+        SOL_WRN("Payload to write on object instance /%"
+            PRIu16 "/%" PRIu16 " is empty", obj_ctx->obj->id, obj_instance->id);
+        return SOL_COAP_RSPCODE_BAD_REQUEST;
+    }
+
+    if (!obj_instance) {
+        SOL_WRN("Object instance was not provided."
+            " Can not complete the write operation");
+        return SOL_COAP_RSPCODE_BAD_REQUEST;
+    }
+
+    if (content_format == SOL_LWM2M_CONTENT_TYPE_TLV) {
+        struct sol_vector tlvs;
+        r = sol_lwm2m_parse_tlv(payload, &tlvs);
+        SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
+        r = obj_ctx->obj->write_tlv((void *)obj_instance->data,
+            (void *)obj_ctx->obj->data, client, obj_instance->id, &tlvs);
+        sol_lwm2m_tlv_array_clear(&tlvs);
+        SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
+    } else if (content_format == SOL_LWM2M_CONTENT_TYPE_TEXT ||
+        content_format == SOL_LWM2M_CONTENT_TYPE_OPAQUE) {
+        struct sol_lwm2m_resource res;
+
+        if (resource < 0) {
+            SOL_WRN("Unexpected content format (%" PRIu16
+                "). It must be TLV", content_format);
+            return SOL_COAP_RSPCODE_BAD_REQUEST;
+        }
+
+        r = sol_lwm2m_resource_init(&res, resource, 1,
+            content_format == SOL_LWM2M_CONTENT_TYPE_TEXT ?
+            SOL_LWM2M_RESOURCE_DATA_TYPE_STRING :
+            SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE,
+            payload);
+        SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
+        r = obj_ctx->obj->write_resource((void *)obj_instance->data,
+            (void *)obj_ctx->obj->data, client, obj_instance->id, res.id, &res);
+        sol_lwm2m_resource_clear(&res);
+        SOL_INT_CHECK(r, < 0, SOL_COAP_RSPCODE_BAD_REQUEST);
+    } else {
+        SOL_WRN("Only TLV, string or opaque is supported for writing."
+            " Received: %" PRIu16 "", content_format);
+        return SOL_COAP_RSPCODE_BAD_REQUEST;
+    }
+
+    return SOL_COAP_RSPCODE_CHANGED;
+}
+
+static uint8_t
+handle_create(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, int32_t instance_id,
+    uint16_t content_format, const struct sol_str_slice payload)
+{
+    int r;
+    uint8_t r_code;
+    struct obj_instance *obj_instance;
+
+    if (!obj_ctx->obj->create) {
+        SOL_WRN("Object %" PRIu16 " does not support the create method",
+            obj_ctx->obj->id);
+        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+    }
+
+    obj_instance = sol_vector_append(&obj_ctx->instances);
+    SOL_NULL_CHECK(obj_instance, SOL_COAP_RSPCODE_BAD_REQUEST);
+
+    if (instance_id < 0)
+        obj_instance->id = obj_ctx->instances.len - 1;
+    else
+        obj_instance->id = instance_id;
+
+    r = obj_ctx->obj->create((void *)obj_ctx->obj->data, client,
+        obj_instance->id, (void *)&obj_instance->data);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    if (!payload.len)
+        return SOL_COAP_RSPCODE_CREATED;
+
+    r_code = handle_write(client, obj_ctx, obj_instance, -1,
+        content_format, payload);
+    SOL_INT_CHECK_GOTO(r_code, != SOL_COAP_RSPCODE_CHANGED, err_exit);
+
+    return SOL_COAP_RSPCODE_CREATED;
+
+err_exit:
+    (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
+    return SOL_COAP_RSPCODE_BAD_REQUEST;
+}
+
+static int
+read_object_instance(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
+    struct sol_vector *resources)
+{
+    struct sol_lwm2m_resource *res;
+    uint16_t i;
+    int r;
+
+    for (i = 0;; i++) {
+
+        res = sol_vector_append(resources);
+        SOL_NULL_CHECK(res, -ENOMEM);
+
+        r = obj_ctx->obj->read((void *)obj_instance->data,
+            (void *)obj_ctx->obj->data, client, obj_instance->id, i, res);
+
+        if (r == -ENOENT) {
+            (void)sol_vector_del_element(resources, res);
+            continue;
+        }
+        if (r == -EBADRQC) {
+            (void)sol_vector_del_element(resources, res);
+            break;
+        }
+        LWM2M_RESOURCE_CHECK_API_GOTO(*res, err_api);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    return 0;
+
+err_api:
+    r = -EINVAL;
+err_exit:
+    (void)sol_vector_del_element(resources, res);
+    return r;
+}
+
+static uint8_t
+handle_read(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
+    int32_t resource_id, struct sol_coap_packet *resp)
+{
+    struct sol_vector resources = SOL_VECTOR_INIT(struct sol_lwm2m_resource);
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+    struct sol_lwm2m_resource *res;
+    uint16_t format = SOL_LWM2M_CONTENT_TYPE_TLV;
+    uint16_t i;
+    int r;
+
+    if (!obj_ctx->obj->read) {
+        SOL_WRN("Object %" PRIu16 " does not support the read method",
+            obj_ctx->obj->id);
+        return SOL_COAP_RSPCODE_NOT_ALLOWED;
+    }
+
+    if (obj_instance && resource_id >= 0) {
+        res = sol_vector_append(&resources);
+        SOL_NULL_CHECK(res, SOL_COAP_RSPCODE_BAD_REQUEST);
+
+        r = obj_ctx->obj->read((void *)obj_instance->data,
+            (void *)obj_ctx->obj->data, client,
+            obj_instance->id, resource_id, res);
+
+        if (r == -ENOENT || r == -EBADRQC) {
+            sol_vector_clear(&resources);
+            return SOL_COAP_RSPCODE_NOT_FOUND;
+        }
+
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        LWM2M_RESOURCE_CHECK_API_GOTO(*res, err_exit);
+    } else if (obj_instance) {
+        r = read_object_instance(client, obj_ctx, obj_instance, &resources);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    } else {
+        struct obj_instance *instance;
+
+        SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, instance, i) {
+            r = read_object_instance(client, obj_ctx, instance, &resources);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        }
+    }
+
+    SOL_VECTOR_FOREACH_IDX (&resources, res, i) {
+        r = setup_tlv(res, &buf);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        sol_lwm2m_resource_clear(res);
+    }
+
+    r = add_coap_int_option(resp, SOL_COAP_OPTION_CONTENT_FORMAT,
+        &format, sizeof(format));
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    r = set_packet_payload(resp, (const uint8_t *)buf.data, buf.used);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    sol_buffer_fini(&buf);
+    sol_vector_clear(&resources);
+    return SOL_COAP_RSPCODE_CONTENT;
+
+err_exit:
+    SOL_VECTOR_FOREACH_IDX (&resources, res, i)
+        sol_lwm2m_resource_clear(res);
+    sol_buffer_fini(&buf);
+    sol_vector_clear(&resources);
+    return SOL_COAP_RSPCODE_BAD_REQUEST;
+}
+
+static int
+handle_resource(void *data, struct sol_coap_server *server,
+    struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr)
+{
+    int r;
+    uint8_t method;
+    struct sol_coap_packet *resp;
+    struct sol_lwm2m_client *client = data;
+    struct obj_ctx *obj_ctx;
+    struct obj_instance *obj_instance = NULL;
+    uint16_t path[3], path_size, content_format;
+    uint8_t header_code;
+    struct sol_str_slice payload = SOL_STR_SLICE_EMPTY;
+
+    resp = sol_coap_packet_new(req);
+    SOL_NULL_CHECK(resp, -ENOMEM);
+
+    r = get_coap_int_option(req, SOL_COAP_OPTION_CONTENT_FORMAT,
+        &content_format);
+
+    if (r < 0)
+        content_format = SOL_LWM2M_CONTENT_TYPE_TEXT;
+
+    r = extract_path(client, req, path, &path_size);
+    header_code = SOL_COAP_RSPCODE_BAD_REQUEST;
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    obj_ctx = find_object_ctx_by_id(client, path[0]);
+    header_code = SOL_COAP_RSPCODE_NOT_FOUND;
+    SOL_NULL_CHECK_GOTO(obj_ctx, exit);
+
+    if (path_size >= 2)
+        obj_instance = find_object_instance_by_instance_id(obj_ctx, path[1]);
+
+    if (sol_coap_packet_has_payload(req)) {
+        uint8_t *args;
+        uint16_t args_len;
+        r = sol_coap_packet_get_payload(req, &args, &args_len);
+        header_code = SOL_COAP_RSPCODE_BAD_REQUEST;
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+        payload.len = args_len;
+        payload.data = (char *)args;
+    }
+
+    method = sol_coap_header_get_code(req);
+
+    switch (method) {
+    case SOL_COAP_METHOD_GET:
+        header_code = handle_read(client, obj_ctx, obj_instance,
+            path_size > 2 ? path[2] : -1, resp);
+        break;
+    case SOL_COAP_METHOD_POST:
+        if (path_size == 1)
+            //This is a create op
+            header_code = handle_create(client, obj_ctx, -1,
+                content_format, payload);
+        else if (path_size == 2 && !obj_instance)
+            //This is a create with chosen by the LWM2M server.
+            header_code = handle_create(client, obj_ctx, path[1],
+                content_format, payload);
+        else if (path_size == 2)
+            //Write on object instance
+            header_code = handle_write(client, obj_ctx, obj_instance, -1,
+                content_format, payload);
+        else {
+            //Execute.
+            header_code = handle_execute(client, obj_ctx, obj_instance, path[2],
+                payload);
+        }
+        break;
+    case SOL_COAP_METHOD_PUT:
+        if (path_size == 3) {
+            //Write op on a resource.
+            header_code = handle_write(client, obj_ctx, obj_instance,
+                path[2], content_format, payload);
+        } else {
+            header_code = SOL_COAP_RSPCODE_BAD_REQUEST;
+            SOL_WRN("Write request without full path specified!");
+        }
+        break;
+    case SOL_COAP_METHOD_DELETE:
+        header_code = handle_delete(client, obj_ctx, obj_instance);
+        break;
+    default:
+        header_code = SOL_COAP_RSPCODE_BAD_REQUEST;
+        SOL_WRN("Unknown COAP method: %" PRIu8 "", method);
+    }
+
+exit:
+    sol_coap_header_set_code(resp, header_code);
+    return sol_coap_send_packet(server, resp, cliaddr);
+}
+
+SOL_API struct sol_lwm2m_client *
+sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
+    const struct sol_lwm2m_object **objects)
+{
+    struct sol_lwm2m_client *client;
+    size_t i;
+
+    SOL_NULL_CHECK(name, NULL);
+    SOL_NULL_CHECK(objects, NULL);
+    SOL_NULL_CHECK(objects[0], NULL);
+
+    SOL_LOG_INTERNAL_INIT_ONCE;
+
+    client = calloc(1, sizeof(struct sol_lwm2m_client));
+    SOL_NULL_CHECK(client, NULL);
+
+    sol_vector_init(&client->objects, sizeof(struct obj_ctx));
+    sol_vector_init(&client->connections, sizeof(struct server_conn_ctx));
+
+    for (i = 0; objects[i]; i++) {
+        struct obj_ctx *obj_ctx = sol_vector_append(&client->objects);
+        LWM2M_OBJECT_CHECK_API_GOTO(*objects[i], err_obj);
+        SOL_NULL_CHECK_GOTO(obj_ctx, err_obj);
+        if ((objects[i]->write_resource && !objects[i]->write_tlv) ||
+            (!objects[i]->write_resource && objects[i]->write_tlv)) {
+            SOL_WRN("write_resource and write_tlv must be provided!");
+            goto err_obj;
+        }
+        obj_ctx->obj = objects[i];
+        sol_vector_init(&obj_ctx->instances, sizeof(struct obj_instance));
+    }
+
+    client->name = strdup(name);
+    SOL_NULL_CHECK_GOTO(client->name, err_obj);
+
+    if (path) {
+        client->path = strdup(path);
+        SOL_NULL_CHECK_GOTO(client->path, err_path);
+    }
+
+    if (sms) {
+        client->sms = strdup(sms);
+        SOL_NULL_CHECK_GOTO(client->sms, err_sms);
+    }
+
+    client->coap_server = sol_coap_server_new(0);
+    SOL_NULL_CHECK_GOTO(client->coap_server, err_coap);
+
+    return client;
+
+err_coap:
+    free(client->sms);
+err_sms:
+    free(client->path);
+err_path:
+    free(client->name);
+err_obj:
+    sol_vector_clear(&client->objects);
+    free(client);
+    return NULL;
+}
+
+static void
+obj_ctx_clear(struct sol_lwm2m_client *client, struct obj_ctx *ctx)
+{
+    uint16_t i;
+    struct obj_instance *instance;
+
+    if (ctx->obj->del) {
+        SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, i) {
+            ctx->obj->del((void *)instance->data,
+                (void *)ctx->obj->data, client, instance->id);
+        }
+    }
+    sol_vector_clear(&ctx->instances);
+}
+
+static void
+server_connection_ctx_clear(struct server_conn_ctx *conn_ctx)
+{
+    if (conn_ctx->pending_pkt)
+        sol_coap_packet_unref(conn_ctx->pending_pkt);
+    free(conn_ctx->location);
+}
+
+static void
+server_connection_ctx_remove(struct sol_vector *conns,
+    struct server_conn_ctx *conn_ctx)
+{
+    server_connection_ctx_clear(conn_ctx);
+    (void)sol_vector_del_element(conns, conn_ctx);
+}
+
+static void
+server_connection_ctx_list_clear(struct sol_vector *conns)
+{
+    uint16_t i;
+    struct server_conn_ctx *conn_ctx;
+
+    SOL_VECTOR_FOREACH_IDX (conns, conn_ctx, i)
+        server_connection_ctx_clear(conn_ctx);
+    sol_vector_clear(conns);
+}
+
+SOL_API void
+sol_lwm2m_client_del(struct sol_lwm2m_client *client)
+{
+    uint16_t i;
+    struct obj_ctx *ctx;
+
+    SOL_NULL_CHECK(client);
+
+    sol_coap_server_unref(client->coap_server);
+
+    SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i)
+        obj_ctx_clear(client, ctx);
+
+    server_connection_ctx_list_clear(&client->connections);
+    sol_vector_clear(&client->objects);
+    free(client->name);
+    free(client->path);
+    free(client->sms);
+    free(client);
+}
+
+SOL_API int
+sol_lwm2m_add_object_instance(struct sol_lwm2m_client *client,
+    const struct sol_lwm2m_object *obj, const void *data)
+{
+    struct obj_ctx *ctx;
+    struct obj_instance *instance;
+
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(obj, -EINVAL);
+    LWM2M_OBJECT_CHECK_API(*obj, -EINVAL);
+
+    ctx = find_object_ctx_by_id(client, obj->id);
+    SOL_NULL_CHECK(ctx, -ENOENT);
+
+    instance = sol_vector_append(&ctx->instances);
+    SOL_NULL_CHECK(instance, -ENOMEM);
+    instance->id = ctx->instances.len - 1;
+    instance->data = data;
+
+    return 0;
+}
+
+static void
+clear_resource_array(struct sol_lwm2m_resource *array, uint16_t len)
+{
+    uint16_t i;
+
+    for (i = 0; i < len; i++)
+        sol_lwm2m_resource_clear(&array[i]);
+}
+
+static int
+read_resources(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *instance,
+    struct sol_lwm2m_resource *res, size_t res_len, ...)
+{
+    size_t i;
+    int r = 0;
+    va_list ap;
+
+    SOL_NULL_CHECK(obj_ctx->obj->read, -ENOTSUP);
+
+    va_start(ap, res_len);
+
+    // The va_list contains the resources IDs that we should be read.
+    for (i = 0; i < res_len; i++) {
+        r = obj_ctx->obj->read((void *)instance->data,
+            (void *)obj_ctx->obj->data, client, instance->id,
+            (uint16_t)va_arg(ap, int), &res[i]);
+        LWM2M_RESOURCE_CHECK_API_GOTO(res[i], err_exit_api);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    va_end(ap);
+    return 0;
+
+err_exit_api:
+    r = -EINVAL;
+err_exit:
+    clear_resource_array(res, i);
+    va_end(ap);
+    return r;
+}
+
+static int
+get_binding_and_lifetime(struct sol_lwm2m_client *client, int64_t server_id,
+    int64_t *lifetime, struct sol_str_slice *binding)
+{
+    struct obj_ctx *ctx;
+    struct obj_instance *instance;
+    uint16_t i;
+    int r;
+    struct sol_lwm2m_resource res[3];
+
+    ctx = find_object_ctx_by_id(client, SERVER_OBJECT_ID);
+
+    if (!ctx) {
+        SOL_WRN("LWM2M Server object not provided");
+        return -ENOENT;
+    }
+
+    SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, i) {
+        r = read_resources(client, ctx, instance, res, ARRAY_SIZE(res),
+            0, 1, 7);
+        SOL_INT_CHECK(r, < 0, r);
+
+        if (res[0].data[0].integer == server_id) {
+            r = -EINVAL;
+            SOL_INT_CHECK_GOTO(get_binding_mode_from_str(res[2].data[0].bytes),
+                == SOL_LWM2M_BINDING_MODE_UNKNOWN, exit);
+            *lifetime = res[1].data[0].integer;
+            *binding = res[2].data[0].bytes;
+            r = 0;
+            goto exit;
+        }
+        clear_resource_array(res, ARRAY_SIZE(res));
+    }
+
+    return -ENOENT;
+
+exit:
+    clear_resource_array(res, ARRAY_SIZE(res));
+    return r;
+}
+
+static struct server_conn_ctx *
+server_connection_ctx_new(struct sol_lwm2m_client *client,
+    const struct sol_str_slice str_addr, int64_t server_id, int64_t lifetime)
+{
+    struct server_conn_ctx *conn_ctx;
+
+    conn_ctx = sol_vector_append(&client->connections);
+    SOL_NULL_CHECK(conn_ctx, NULL);
+    conn_ctx->client = client;
+    conn_ctx->server_id = server_id;
+    conn_ctx->lifetime = lifetime;
+
+    //FIXME: Create getaddrinfo() like func.
+    conn_ctx->server_addr.port = 5683;
+    conn_ctx->server_addr.family = AF_INET;
+    if (!sol_network_addr_from_str(&conn_ctx->server_addr, "127.0.0.1")) {
+        SOL_WRN("Could not parse the LWM2M Server addres '%*s'",
+            SOL_STR_SLICE_PRINT(str_addr));
+        (void)sol_vector_del_element(&client->connections, conn_ctx);
+        return NULL;
+    }
+    //Location will be filled in register_reply()
+
+    return conn_ctx;
+}
+
+static int
+setup_objects_payload(struct sol_lwm2m_client *client, struct sol_buffer *objs)
+{
+    uint16_t i, j;
+    struct obj_ctx *ctx;
+    struct obj_instance *instance;
+    int r;
+
+    sol_buffer_init(objs);
+
+    if (client->path) {
+        r = sol_buffer_append_printf(objs, "</%s>;rt=\"oma.lwm2m\",",
+            client->path);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i) {
+        if (!ctx->instances.len) {
+            r = sol_buffer_append_printf(objs, "</%" PRIu16 ">,", ctx->obj->id);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            continue;
+        }
+
+        SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, j) {
+            r = sol_buffer_append_printf(objs, "</%" PRIu16 "/%" PRIu16 ">,",
+                ctx->obj->id, instance->id);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        }
+    }
+
+    //Remove last ','
+    objs->used--;
+
+    SOL_DBG("Objs payload: %.*s",
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(objs)));
+    return 0;
+
+err_exit:
+    sol_buffer_fini(objs);
+    return r;
+}
+
+static int
+reschedule_client_timeout(struct sol_lwm2m_client *client)
+{
+    uint16_t i;
+    uint32_t smallest, remeaning, lf;
+    struct server_conn_ctx *conn_ctx;
+    time_t now;
+    int r;
+
+    now = time(NULL);
+    smallest = UINT32_MAX;
+
+    SOL_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
+        remeaning = conn_ctx->lifetime - (now - conn_ctx->registration_time);
+        if (remeaning < smallest) {
+            smallest = remeaning;
+            lf = conn_ctx->lifetime;
+        }
+    }
+
+    if (client->lifetime_ctx.timeout)
+        sol_timeout_del(client->lifetime_ctx.timeout);
+
+    //To milliseconds.
+    r = sol_util_uint32_mul(smallest, 1000, &smallest);
+    SOL_INT_CHECK(r, < 0, r);
+    client->lifetime_ctx.timeout = sol_timeout_add(smallest,
+        lifetime_client_timeout, client);
+    SOL_NULL_CHECK(client->lifetime_ctx.timeout, -ENOMEM);
+    client->lifetime_ctx.lifetime = lf;
+
+    return 0;
+}
+
+static bool
+register_reply(struct sol_coap_server *server,
+    struct sol_coap_packet *pkt,
+    const struct sol_network_link_addr *server_addr, void *data)
+{
+    struct server_conn_ctx *conn_ctx = data;
+    struct sol_str_slice path[2];
+    uint16_t code;
+    char addr[SOL_INET_ADDR_STRLEN] = { };
+    int r;
+
+    if (!pkt && !server_addr) {
+        SOL_WRN("Registration request timeout!");
+        return false;
+    }
+
+    sol_coap_packet_unref(conn_ctx->pending_pkt);
+    conn_ctx->pending_pkt = NULL;
+
+    if (!sol_network_addr_to_str(server_addr, addr, sizeof(addr)))
+        SOL_WRN("Could not convert the server address to string");
+
+    code = sol_coap_header_get_code(pkt);
+    SOL_INT_CHECK_GOTO(code, != SOL_COAP_RSPCODE_CREATED, err_exit);
+
+    r = sol_coap_find_options(pkt, SOL_COAP_OPTION_LOCATION_PATH, path,
+        ARRAY_SIZE(path));
+    SOL_INT_CHECK_GOTO(r, != 2, err_exit);
+
+    conn_ctx->location = sol_str_slice_to_string(path[1]);
+    SOL_NULL_CHECK_GOTO(conn_ctx->location, err_exit);
+
+    SOL_DBG("Registered with server %s at location %s", addr,
+        conn_ctx->location);
+
+    r = reschedule_client_timeout(conn_ctx->client);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    return false;
+
+err_exit:
+    server_connection_ctx_remove(&conn_ctx->client->connections, conn_ctx);
+    return false;
+}
+
+static bool
+update_reply(struct sol_coap_server *server,
+    struct sol_coap_packet *pkt,
+    const struct sol_network_link_addr *server_addr, void *data)
+{
+    uint8_t code;
+    struct server_conn_ctx *conn_ctx = data;
+
+    if (!pkt && !server_addr)
+        return false;
+
+    code = sol_coap_header_get_code(pkt);
+    SOL_INT_CHECK_GOTO(code, != SOL_COAP_RSPCODE_CHANGED, err_exit);
+    return false;
+
+err_exit:
+    server_connection_ctx_remove(&conn_ctx->client->connections, conn_ctx);
+    return false;
+}
+
+static int
+register_with_server(struct sol_lwm2m_client *client,
+    struct server_conn_ctx *conn_ctx,
+    int64_t lifetime, const struct sol_str_slice binding,
+    const struct sol_buffer *objects_payload, bool is_update)
+{
+    struct sol_coap_packet *pkt;
+    struct sol_buffer query = SOL_BUFFER_INIT_EMPTY;
+    uint8_t format = SOL_COAP_CONTENTTYPE_APPLICATION_LINKFORMAT;
+    int r;
+    uint16_t len;
+    uint8_t *buf;
+
+#define ADD_QUERY(_key, _format, _value) \
+    do { \
+        query.used = 0; \
+        r = sol_buffer_append_printf(&query, "%s=" _format "", _key, _value); \
+        SOL_INT_CHECK_GOTO(r, < 0, err_coap); \
+        r = sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_QUERY, \
+            query.data, query.used); \
+        SOL_INT_CHECK_GOTO(r, < 0, err_coap); \
+    } while (0);
+
+    pkt = sol_coap_packet_request_new(SOL_COAP_METHOD_POST, SOL_COAP_TYPE_CON);
+    SOL_NULL_CHECK(pkt, -ENOMEM);
+
+    r = sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_PATH, "rd", strlen("rd"));
+    SOL_INT_CHECK_GOTO(r, < 0, err_coap);
+
+    if (is_update) {
+        r = sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_PATH,
+            conn_ctx->location, strlen(conn_ctx->location));
+        SOL_INT_CHECK_GOTO(r, < 0, err_coap);
+    } else
+        conn_ctx->pending_pkt = sol_coap_packet_ref(pkt);
+
+    r = add_coap_int_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT,
+        &format, sizeof(format));
+    SOL_INT_CHECK_GOTO(r, < 0, err_coap);
+
+    if (!is_update)
+        ADD_QUERY("ep", "%s", client->name);
+    ADD_QUERY("lt", "%" PRId64, lifetime);
+    ADD_QUERY("binding", "%.*s", SOL_STR_SLICE_PRINT(binding));
+    if (client->sms)
+        ADD_QUERY("sms", "%s", client->sms);
+
+    r = sol_coap_packet_get_payload(pkt, &buf, &len);
+    SOL_INT_CHECK_GOTO(r, < 0, err_coap);
+    SOL_INT_CHECK_GOTO(len, < objects_payload->used, err_coap);
+
+    memcpy(buf, objects_payload->data, objects_payload->used);
+    r = sol_coap_packet_set_payload_used(pkt, objects_payload->used);
+    SOL_INT_CHECK_GOTO(r, < 0, err_coap);
+
+    conn_ctx->registration_time = time(NULL);
+
+    SOL_DBG("Connecting with LWM2M server - binding '%.*s' -"
+        "lifetime '%" PRId64 "'", SOL_STR_SLICE_PRINT(binding),
+        lifetime);
+    r = sol_coap_send_packet_with_reply(client->coap_server,
+        pkt, &conn_ctx->server_addr,
+        is_update ? update_reply : register_reply, conn_ctx);
+    sol_buffer_fini(&query);
+    return r;
+
+err_coap:
+    sol_coap_packet_unref(pkt);
+    sol_buffer_fini(&query);
+    return r;
+
+#undef ADD_QUERY
+}
+
+static int
+spam_update(struct sol_lwm2m_client *client, bool consider_lifetime)
+{
+    int r;
+    uint16_t i;
+    struct server_conn_ctx *conn_ctx;
+    struct sol_buffer objs_payload;
+
+    r = setup_objects_payload(client, &objs_payload);
+    SOL_INT_CHECK(r, < 0, r);
+
+    SOL_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
+        int64_t lifetime;
+        struct sol_str_slice binding;
+
+        if (consider_lifetime &&
+            conn_ctx->lifetime != client->lifetime_ctx.lifetime)
+            continue;
+
+        //Read it again, in case it changed.
+        r = get_binding_and_lifetime(client, conn_ctx->server_id,
+            &lifetime, &binding);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+        //Update its lifetime.
+        conn_ctx->lifetime = lifetime;
+        r = register_with_server(client, conn_ctx, lifetime, binding,
+            &objs_payload, true);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    r = reschedule_client_timeout(client);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+exit:
+    sol_buffer_fini(&objs_payload);
+    return r;
+}
+
+static bool
+lifetime_client_timeout(void *data)
+{
+    if (spam_update(data, true) < 0)
+        SOL_WRN("Could not spam the update");
+    return false;
+}
+
+SOL_API int
+sol_lwm2m_client_start(struct sol_lwm2m_client *client)
+{
+    uint16_t i;
+    struct obj_ctx *ctx;
+    bool has_server = false;
+    struct obj_instance *instance;
+    struct sol_buffer objs_payload;
+    struct server_conn_ctx *conn_ctx;
+    struct sol_lwm2m_resource res[3];
+    int r;
+
+    SOL_NULL_CHECK(client, -EINVAL);
+
+    ctx = find_object_ctx_by_id(client, SECURITY_SERVER_OBJECT_ID);
+    if (!ctx) {
+        SOL_WRN("LWM2M Security object not provided!");
+        return -ENOENT;
+    }
+
+    r = setup_objects_payload(client, &objs_payload);
+    SOL_INT_CHECK(r, < 0, r);
+
+    SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, i) {
+        struct sol_str_slice binding;
+        int64_t lifetime;
+
+        r = read_resources(client, ctx, instance, res, ARRAY_SIZE(res),
+            0, 1, 10);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+        //Is it a bootstap?
+        if (!res[1].data[0].b) {
+            r = get_binding_and_lifetime(client, res[2].data[0].integer,
+                &lifetime, &binding);
+            SOL_INT_CHECK_GOTO(r, < 0, err_clear);
+
+            conn_ctx = server_connection_ctx_new(client, res[0].data[0].bytes,
+                res[2].data[0].integer, lifetime);
+            r = -ENOMEM;
+            SOL_NULL_CHECK_GOTO(conn_ctx, err_clear);
+
+            r = register_with_server(client, conn_ctx, lifetime, binding,
+                &objs_payload, false);
+            if (r < 0) {
+                SOL_WRN("Could not register with the server");
+                (void)sol_vector_del(&client->connections,
+                    client->connections.len - 1);
+                goto err_clear;
+            }
+
+            has_server = true;
+        }
+        clear_resource_array(res, ARRAY_SIZE(res));
+    }
+
+    if (!has_server) {
+        SOL_WRN("The client did not specify a LWM2M server to connect");
+        r = -ENOENT;
+        goto err_exit;
+    }
+
+    client->running = true;
+    sol_coap_server_set_unknown_resource_handler(client->coap_server,
+        handle_resource, client);
+
+    sol_buffer_fini(&objs_payload);
+    return 0;
+
+err_clear:
+    clear_resource_array(res, ARRAY_SIZE(res));
+err_exit:
+    return r;
+}
+
+static int
+send_client_delete_request(struct sol_lwm2m_client *client,
+    struct server_conn_ctx *conn_ctx)
+{
+    struct sol_coap_packet *pkt;
+    int r;
+
+    //Did not receive reply yet.
+    if (!conn_ctx->location) {
+        r = sol_coap_cancel_send_packet(client->coap_server,
+            conn_ctx->pending_pkt, &conn_ctx->server_addr);
+        sol_coap_packet_unref(conn_ctx->pending_pkt);
+        conn_ctx->pending_pkt = NULL;
+        return r;
+    }
+
+    pkt = sol_coap_packet_request_new(SOL_COAP_METHOD_DELETE,
+        SOL_COAP_TYPE_NONCON);
+    SOL_NULL_CHECK(pkt, -ENOMEM);
+
+    r = sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_PATH, "rd", strlen("rd"));
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    r = sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_PATH,
+        conn_ctx->location, strlen(conn_ctx->location));
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    return sol_coap_send_packet(client->coap_server, pkt,
+        &conn_ctx->server_addr);
+
+err_exit:
+    sol_coap_packet_unref(pkt);
+    return r;
+}
+
+SOL_API int
+sol_lwm2m_client_stop(struct sol_lwm2m_client *client)
+{
+    struct server_conn_ctx *conn_ctx;
+    uint16_t i;
+    int r;
+
+    SOL_NULL_CHECK(client, -EINVAL);
+
+    SOL_VECTOR_FOREACH_IDX (&client->connections, conn_ctx, i) {
+        r = send_client_delete_request(client, conn_ctx);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    sol_coap_server_set_unknown_resource_handler(client->coap_server,
+        NULL, NULL);
+    client->running = false;
+    server_connection_ctx_list_clear(&client->connections);
+    return 0;
+}
+
+SOL_API int
+sol_lwm2m_send_update(struct sol_lwm2m_client *client)
+{
+    SOL_NULL_CHECK(client, -EINVAL);
+
+    return spam_update(client, false);
 }
