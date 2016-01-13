@@ -242,7 +242,12 @@ typedef enum {
 enum sol_coap_flags {
     SOL_COAP_FLAGS_NONE       = 0,
     /** If the resource should be exported in the CoRE well-known registry. */
-    SOL_COAP_FLAGS_WELL_KNOWN = (1 << 1)
+    SOL_COAP_FLAGS_WELL_KNOWN = (1 << 1),
+    /** When registering a resource as SOL_COAP_FLAGS_UNKNOWN_RESOURCE the path must be empty and only
+        one can be registered per server. A unknown resource is only used if the coap server could not
+        match the request's path or method (GET, POST, etc) in the registered resource base.
+     */
+    SOL_COAP_FLAGS_UNKNOWN_RESOURCE = (1 << 2)
 };
 
 /**
