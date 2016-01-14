@@ -855,6 +855,21 @@ int sol_coap_cancel_send_packet(struct sol_coap_server *server, struct sol_coap_
  */
 int sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_network_link_addr *cliaddr, uint8_t *token, uint8_t tkl);
 
+
+/**
+ * @brief Register a unknown handler callback.
+ *
+ * Everytime the @a server receives a request for a #sol_coap_resource that was not
+ * registered with sol_coap_server_register_resource() the @a handler will be called.
+ *
+ * @param server The server to register the unknown resource handler.
+ * @param handler The unknown handler callback or @c NULL to unregister.
+ * @param data The data to @a handler
+ * @return 0 on success
+ *         -EINVAL if server is @c NULL.
+ */
+int sol_coap_server_set_unknown_resource_handler(struct sol_coap_server *server, int (*handler)(struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data), void *data);
+
 /**
  * @brief Print information about the packet @a pkt.
  *
