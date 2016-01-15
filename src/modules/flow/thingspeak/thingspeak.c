@@ -38,6 +38,7 @@
 #include <stdio.h>
 
 #include <sol-http-client.h>
+#include <sol-macros.h>
 #include <sol-mainloop.h>
 #include <sol-util.h>
 
@@ -72,7 +73,7 @@ struct thingspeak_channel_update_data {
 
 #define RESPONSE_CHECK_API(response_, mdata_) \
     do { \
-        if (unlikely(!response_)) { \
+        if (SOL_UNLIKELY(!response_)) { \
             sol_flow_send_error_packet(mdata_->node, EINVAL, \
                 "Error while reaching Thingspeak"); \
             return; \

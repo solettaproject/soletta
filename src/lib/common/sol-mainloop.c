@@ -492,12 +492,12 @@ sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, 
     _argc = argc;
     _argv = argv;
 
-    if (unlikely(!callbacks || !callbacks->startup)) {
+    if (SOL_UNLIKELY(!callbacks || !callbacks->startup)) {
         fprintf(stderr, "Missing startup function.\n");
         return EXIT_FAILURE;
     }
 
-    if (unlikely(sol_init() < 0)) {
+    if (SOL_UNLIKELY(sol_init() < 0)) {
         SOL_CRI("Cannot initialize soletta.");
         return EXIT_FAILURE;
     }

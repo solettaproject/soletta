@@ -41,6 +41,7 @@
 
 #include "sol-json.h"
 #include "sol-log.h"
+#include "sol-macros.h"
 #include "sol-util.h"
 #include <float.h>
 #include <math.h>
@@ -507,7 +508,7 @@ sol_json_scanner_skip_over(struct sol_json_scanner *scanner,
         case SOL_JSON_TYPE_OBJECT_END:
         case SOL_JSON_TYPE_ARRAY_END:
             level--;
-            if (unlikely(level < 0)) {
+            if (SOL_UNLIKELY(level < 0)) {
                 errno = EINVAL;
                 return false;
             }

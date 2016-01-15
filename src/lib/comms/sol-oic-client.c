@@ -43,6 +43,7 @@
 #include "cbor.h"
 #include "sol-coap.h"
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-random.h"
 #include "sol-util.h"
@@ -60,7 +61,7 @@
 #ifndef SOL_NO_API_VERSION
 #define OIC_RESOURCE_CHECK_API(ptr, ...) \
     do { \
-        if (unlikely(ptr->api_version != \
+        if (SOL_UNLIKELY(ptr->api_version != \
             SOL_OIC_RESOURCE_API_VERSION)) { \
             SOL_WRN("Couldn't handle oic client resource that has unsupported " \
                 "version '%u', expected version is '%u'", \
@@ -71,7 +72,7 @@
 
 #define OIC_CLIENT_CHECK_API(ptr, ...) \
     do { \
-        if (unlikely(ptr->api_version != SOL_OIC_CLIENT_API_VERSION)) { \
+        if (SOL_UNLIKELY(ptr->api_version != SOL_OIC_CLIENT_API_VERSION)) { \
             SOL_WRN("Couldn't handle oic client that has unsupported " \
                 "version '%u', expected version is '%u'", \
                 ptr->api_version, SOL_OIC_CLIENT_API_VERSION); \
@@ -134,7 +135,7 @@ _set_token_and_mid(struct sol_coap_packet *pkt, int64_t *token)
     static struct sol_random *random = NULL;
     int32_t mid;
 
-    if (unlikely(!random)) {
+    if (SOL_UNLIKELY(!random)) {
         random = sol_random_new(SOL_RANDOM_DEFAULT, 0);
         SOL_NULL_CHECK(random, false);
     }
@@ -164,13 +165,13 @@ _pkt_has_same_token(const struct sol_coap_packet *pkt, int64_t token)
     uint8_t *token_data, token_len;
 
     token_data = sol_coap_header_get_token(pkt, &token_len);
-    if (unlikely(!token_data))
+    if (SOL_UNLIKELY(!token_data))
         return false;
 
-    if (unlikely(token_len != sizeof(token)))
+    if (SOL_UNLIKELY(token_len != sizeof(token)))
         return false;
 
-    return likely(memcmp(token_data, &token, sizeof(token)) == 0);
+    return SOL_LIKELY(memcmp(token_data, &token, sizeof(token)) == 0);
 }
 
 SOL_API struct sol_oic_resource *

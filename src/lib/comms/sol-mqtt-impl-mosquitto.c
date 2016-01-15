@@ -36,6 +36,7 @@
 
 #define SOL_LOG_DOMAIN &_sol_mqtt_log_domain
 #include <sol-log-internal.h>
+#include <sol-macros.h>
 #include <sol-mainloop.h>
 #include <sol-util.h>
 
@@ -46,7 +47,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_mqtt_log_domain, "mqtt");
 static int init_ref;
 #define CHECK_INIT(ret) \
     do { \
-        if (unlikely(init_ref < 1)) { \
+        if (SOL_UNLIKELY(init_ref < 1)) { \
             SOL_WRN("sol-mqtt used before initialization"); \
             return ret; \
         } \
@@ -54,8 +55,8 @@ static int init_ref;
 
 #ifndef SOL_NO_API_VERSION
 #define MQTT_CHECK_API(ptr, ...) \
-    do {                                        \
-        if (unlikely(ptr->api_version != \
+    do { \
+        if (SOL_UNLIKELY(ptr->api_version != \
             SOL_MQTT_CONFIG_API_VERSION)) { \
             SOL_WRN("Couldn't handle mqtt handler that has unsupported " \
                 "version '%u', expected version is '%u'", \

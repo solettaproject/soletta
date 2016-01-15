@@ -82,11 +82,6 @@ extern "C" {
  */
 
 /**
- * @brief Convenience macro for @c unlikely branch annotation. Intended for local use.
- */
-#define log_unlikely(x) __builtin_expect(!!(x), 0)
-
-/**
  * @brief Convenience macro to check for @c NULL pointer.
  *
  * This macro logs a warning message and returns if the pointer @c ptr
@@ -97,7 +92,7 @@ extern "C" {
  */
 #define SOL_NULL_CHECK(ptr, ...) \
     do { \
-        if (log_unlikely(!(ptr))) { \
+        if (SOL_UNLIKELY(!(ptr))) { \
             SOL_WRN("" # ptr "== NULL"); \
             return __VA_ARGS__; \
         } \
@@ -115,7 +110,7 @@ extern "C" {
  */
 #define SOL_NULL_CHECK_GOTO(ptr, label) \
     do { \
-        if (log_unlikely(!(ptr))) { \
+        if (SOL_UNLIKELY(!(ptr))) { \
             SOL_WRN("" # ptr "== NULL"); \
             goto label; \
         } \
@@ -133,7 +128,7 @@ extern "C" {
  */
 #define SOL_NULL_CHECK_MSG(ptr, ret, fmt, ...) \
     do { \
-        if (log_unlikely(!(ptr))) { \
+        if (SOL_UNLIKELY(!(ptr))) { \
             SOL_WRN(fmt, ## __VA_ARGS__); \
             return ret; \
         } \
@@ -151,7 +146,7 @@ extern "C" {
  */
 #define SOL_NULL_CHECK_MSG_GOTO(ptr, label, fmt, ...) \
     do { \
-        if (log_unlikely(!(ptr))) { \
+        if (SOL_UNLIKELY(!(ptr))) { \
             SOL_WRN(fmt, ## __VA_ARGS__); \
             goto label; \
         } \
@@ -217,7 +212,7 @@ extern "C" {
  */
 #define SOL_INT_CHECK(var, exp, ...) \
     do { \
-        if (log_unlikely((var)exp)) { \
+        if (SOL_UNLIKELY((var)exp)) { \
             SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var); \
             return __VA_ARGS__; \
         } \
@@ -235,7 +230,7 @@ extern "C" {
  */
 #define SOL_INT_CHECK_GOTO(var, exp, label) \
     do { \
-        if (log_unlikely((var)exp)) { \
+        if (SOL_UNLIKELY((var)exp)) { \
             SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var); \
             goto label; \
         } \
@@ -252,7 +247,7 @@ extern "C" {
  */
 #define SOL_EXP_CHECK(exp, ...) \
     do { \
-        if (log_unlikely((exp))) { \
+        if (SOL_UNLIKELY((exp))) { \
             SOL_WRN("(" # exp ") is true"); \
             return __VA_ARGS__; \
         } \
@@ -269,7 +264,7 @@ extern "C" {
  */
 #define SOL_EXP_CHECK_GOTO(exp, label) \
     do { \
-        if (log_unlikely((exp))) { \
+        if (SOL_UNLIKELY((exp))) { \
             SOL_WRN("(" # exp ") is true"); \
             goto label; \
         } \

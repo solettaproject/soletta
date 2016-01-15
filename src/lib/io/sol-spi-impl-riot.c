@@ -85,7 +85,7 @@ sol_spi_open(unsigned int bus, const struct sol_spi_config *config)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_SPI_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_SPI_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open SPI that has unsupported version '%u', "
             "expected version is '%u'",
             config->api_version, SOL_SPI_CONFIG_API_VERSION);

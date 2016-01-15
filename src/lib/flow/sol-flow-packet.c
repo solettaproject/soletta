@@ -38,21 +38,22 @@
 
 #include "sol-flow-internal.h"
 #include "sol-flow-packet.h"
+#include "sol-macros.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 #include "sol-buffer.h"
 #include "sol-str-table.h"
 
-#define SOL_FLOW_PACKET_CHECK(packet, _type, ...)        \
-    do {                                                \
-        if (unlikely(!(packet))) {                      \
-            SOL_WRN("" # packet "== NULL");              \
-            return __VA_ARGS__;                         \
-        }                                               \
-        if (unlikely((packet)->type != _type)) {        \
-            SOL_WRN("" # packet "->type != " # _type);   \
-            return __VA_ARGS__;                         \
-        }                                               \
+#define SOL_FLOW_PACKET_CHECK(packet, _type, ...) \
+    do { \
+        if (SOL_UNLIKELY(!(packet))) { \
+            SOL_WRN("" # packet "== NULL"); \
+            return __VA_ARGS__; \
+        } \
+        if (SOL_UNLIKELY((packet)->type != _type)) { \
+            SOL_WRN("" # packet "->type != " # _type); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
 struct sol_flow_packet {
@@ -134,7 +135,7 @@ sol_flow_packet_new(const struct sol_flow_packet_type *type, const void *value)
     struct sol_flow_packet *packet;
     int r;
 
-    if (unlikely(type == SOL_FLOW_PACKET_TYPE_ANY)) {
+    if (SOL_UNLIKELY(type == SOL_FLOW_PACKET_TYPE_ANY)) {
         SOL_WRN("Couldn't create packet with type ANY. This type is used only on ports.");
         return NULL;
     }
@@ -142,7 +143,7 @@ sol_flow_packet_new(const struct sol_flow_packet_type *type, const void *value)
     SOL_NULL_CHECK_MSG(type, NULL, "Couldn't create packet with NULL type");
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(type->api_version != SOL_FLOW_PACKET_TYPE_API_VERSION)) {
+    if (SOL_UNLIKELY(type->api_version != SOL_FLOW_PACKET_TYPE_API_VERSION)) {
         SOL_WRN("Couldn't create packet with type '%s' that has unsupported version '%u', expected version is '%u'",
             type->name ? : "", type->api_version, SOL_FLOW_PACKET_TYPE_API_VERSION);
         return NULL;
@@ -1022,7 +1023,7 @@ sol_flow_packet_type_composed_new(const struct sol_flow_packet_type **types)
 
     SOL_NULL_CHECK(types, NULL);
 
-    for (types_len = 0; types[types_len]; types_len++) ;
+    for (types_len = 0; types[types_len]; types_len++);
 
     members_bytes = types_len * sizeof(struct sol_flow_packet_type *);
     SOL_PTR_VECTOR_FOREACH_IDX (&composed_types_cache, itr, i) {

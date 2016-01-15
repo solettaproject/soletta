@@ -34,6 +34,7 @@
 
 #include <sol-arena.h>
 #include <sol-buffer.h>
+#include <sol-macros.h>
 #include <sol-str-slice.h>
 #include <sol-vector.h>
 
@@ -210,7 +211,7 @@ struct sol_http_url {
  * to the macro.
  */
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, ...) \
-    if (unlikely(response_->api_version != \
+    if (SOL_UNLIKELY(response_->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
         SOL_ERR("Unexpected API version (response is %u, expected %u)", \
             response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
@@ -229,7 +230,7 @@ struct sol_http_url {
  */
 #define SOL_HTTP_RESPONSE_CHECK_API(response_, ...) \
     do { \
-        if (unlikely(!response_)) { \
+        if (SOL_UNLIKELY(!response_)) { \
             SOL_WRN("Error while reaching service."); \
             return __VA_ARGS__; \
         } \
@@ -244,7 +245,7 @@ struct sol_http_url {
  * In case it's a wrong version, it'll go to @a label.
  */
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label) \
-    if (unlikely(response_->api_version != \
+    if (SOL_UNLIKELY(response_->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
         SOL_ERR("Unexpected API version (response is %u, expected %u)", \
             response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
@@ -263,7 +264,7 @@ struct sol_http_url {
  */
 #define SOL_HTTP_RESPONSE_CHECK_API_GOTO(response_, label) \
     do { \
-        if (unlikely(!response_)) { \
+        if (SOL_UNLIKELY(!response_)) { \
             SOL_WRN("Error while reaching service."); \
             goto label; \
         } \
