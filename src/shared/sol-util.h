@@ -136,9 +136,6 @@ long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
 #define PTR_TO_INT(p) ((int)((intptr_t)(p)))
 #define INT_TO_PTR(i) ((void *)((intptr_t)(i)))
 
-#define likely(x)   __builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect(!!(x), 0)
-
 /* number of nanoseconds in a second: 1,000,000,000 */
 #define NSEC_PER_SEC  1000000000ULL
 /* number of milliseconds in a second: 1,000 */
@@ -226,7 +223,7 @@ char *sol_util_strerror(int errnum, char *buf, size_t buflen);
         if (u <= 1) /* 0 is undefined for __builtin_clz() */ \
             return u; \
         left_zeros = clz_fn_(u - 1); \
-        if (unlikely(left_zeros <= 1)) \
+        if (SOL_UNLIKELY(left_zeros <= 1)) \
             return max_; \
         return (type_)1 << ((sizeof(u) * 8) - left_zeros); \
     }
@@ -249,7 +246,7 @@ align_power2_short_uint(unsigned short u)
 {
     unsigned int aligned = align_power2_uint(u);
 
-    return likely(aligned <= USHRT_MAX) ? aligned : USHRT_MAX;
+    return SOL_LIKELY(aligned <= USHRT_MAX) ? aligned : USHRT_MAX;
 }
 
 /* _Generic() from C11 would be better here, but it's not supported by

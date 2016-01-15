@@ -41,6 +41,7 @@
 #include "sol-buffer.h"
 #include "sol-http-client.h"
 #include "sol-log.h"
+#include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
 #include "sol-util.h"
@@ -435,7 +436,7 @@ xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 {
     struct sol_http_client_connection *connection = clientp;
 
-    if (dltotal > 0 && unlikely(dltotal < dlnow)) {
+    if (dltotal > 0 && SOL_UNLIKELY(dltotal < dlnow)) {
         SOL_WRN("Received more than expected, aborting transfer ("
             CURL_FORMAT_OFF_T "< " CURL_FORMAT_OFF_T ")",
             dltotal, dlnow);
@@ -828,7 +829,7 @@ static bool
 check_param_api_version(const struct sol_http_params *params)
 {
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(params->api_version != SOL_HTTP_PARAM_API_VERSION)) {
+    if (SOL_UNLIKELY(params->api_version != SOL_HTTP_PARAM_API_VERSION)) {
         SOL_ERR("Parameter has an invalid API version. Expected %u, got %u",
             SOL_HTTP_PARAM_API_VERSION, params->api_version);
         return false;

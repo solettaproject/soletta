@@ -42,6 +42,7 @@
 #endif
 
 #include "sol-buffer.h"
+#include "sol-macros.h"
 #include "sol-util.h"
 #include "sol-log.h"
 #include "sol-random.h"
@@ -124,7 +125,7 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
     if (len < 0)
         len = (ssize_t)strlen(nptr);
 
-    if (unlikely(len > (DBL_MANT_DIG - DBL_MIN_EXP + 3))) {
+    if (SOL_UNLIKELY(len > (DBL_MANT_DIG - DBL_MIN_EXP + 3))) {
         errno = EINVAL;
         return FP_NAN;
     }
@@ -414,7 +415,7 @@ base64_index_of(char c, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     const char *p = memchr(base64_map, c, 65);
 
-    if (unlikely(!p))
+    if (SOL_UNLIKELY(!p))
         return UINT8_MAX;
     return p - base64_map;
 }
@@ -468,7 +469,7 @@ sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slic
 static inline char
 base16_encode_digit(const uint8_t nibble, const char a)
 {
-    if (likely(nibble < 10))
+    if (SOL_LIKELY(nibble < 10))
         return '0' + nibble;
     return a + (nibble - 10);
 }
@@ -511,7 +512,7 @@ sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slic
 static inline uint8_t
 base16_decode_digit(const char digit, const char a, const char f, const char A, const char F)
 {
-    if (likely('0' <= digit && digit <= '9'))
+    if (SOL_LIKELY('0' <= digit && digit <= '9'))
         return digit - '0';
     else if (a <= digit && digit <= f)
         return 10 + (digit - a);
@@ -550,7 +551,7 @@ sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slic
         for (n = 0; n < 2; n++) {
             const uint8_t c = input[i + n];
             uint8_t nibble = base16_decode_digit(c, a, f, A, F);
-            if (unlikely(nibble == UINT8_MAX)) {
+            if (SOL_UNLIKELY(nibble == UINT8_MAX)) {
                 SOL_WRN("Invalid base16 char %c, index: %zd", c, i + n);
                 return -EINVAL;
             }

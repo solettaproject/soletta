@@ -32,6 +32,7 @@
 
 #include "sol-flow/boolean.h"
 #include "sol-flow-internal.h"
+#include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-vector.h"
 #include "sol-str-table.h"
@@ -107,7 +108,7 @@ multi_ports_process(struct sol_flow_node *node, void *data, uint16_t port_in, ui
     if (mdata->initialized != mdata->connected)
         return 0;
 
-    if (unlikely(!(ports = mdata->initialized)))
+    if (SOL_UNLIKELY(!(ports = mdata->initialized)))
         return 0;
 
     for (i = 0; !(ports & 1); i++)
