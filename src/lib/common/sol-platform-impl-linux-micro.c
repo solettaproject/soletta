@@ -1147,6 +1147,7 @@ static bool
 timezone_changed(void *data, int fd, uint32_t active_flags)
 {
     sol_platform_inform_timezone_changed();
+    sol_fd_del(timezone_monitor.watcher);
     close(timezone_monitor.fd);
     timezone_monitor.fd = -1;
     timezone_monitor.watcher = NULL;
