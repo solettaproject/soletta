@@ -1143,6 +1143,8 @@ SOL_API const char *
 sol_flow_packet_get_packet_type_as_string(const struct sol_str_slice type)
 {
     static const struct sol_str_table_ptr map[] = {
+        SOL_STR_TABLE_PTR_ITEM("any", "SOL_FLOW_PACKET_TYPE_ANY"),
+        SOL_STR_TABLE_PTR_ITEM("empty", "SOL_FLOW_PACKET_TYPE_EMPTY"),
         SOL_STR_TABLE_PTR_ITEM("int", "SOL_FLOW_PACKET_TYPE_IRANGE"),
         SOL_STR_TABLE_PTR_ITEM("float", "SOL_FLOW_PACKET_TYPE_DRANGE"),
         SOL_STR_TABLE_PTR_ITEM("string", "SOL_FLOW_PACKET_TYPE_STRING"),
