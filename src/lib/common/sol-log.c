@@ -36,6 +36,7 @@
 
 #include "sol-util.h"
 #include "sol-log.h"
+#include "sol-macros.h"
 #include "sol-log-impl.h"
 
 /* NOTE: these are not static since we share them with sol-log-impl-*.c
@@ -65,7 +66,7 @@ const void *_print_function_data = NULL;
 static bool _inited = false;
 #define SOL_LOG_INIT_CHECK(fmt, ...)                                     \
     do {                                                                \
-        if (unlikely(!_inited)) {                                       \
+        if (SOL_UNLIKELY(!_inited)) {                                       \
             fprintf(stderr, "CRITICAL:%s:%d:%s() "                      \
                 "SOL_LOG used before initialization. "fmt "\n",       \
                 __FILE__, __LINE__, __PRETTY_FUNCTION__, ## __VA_ARGS__); \

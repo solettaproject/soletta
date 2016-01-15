@@ -32,6 +32,7 @@
 
 #include <inttypes.h>
 
+#include "sol-macros.h"
 #include "sol-str-table.h"
 #include "sol-util.h"
 
@@ -43,7 +44,7 @@ sol_str_table_lookup_fallback(const struct sol_str_table *table,
     const struct sol_str_table *iter;
     uint16_t len;
 
-    if (unlikely(key.len > INT16_MAX))
+    if (SOL_UNLIKELY(key.len > INT16_MAX))
         return fallback;
 
     len = (uint16_t)key.len;
@@ -64,7 +65,7 @@ sol_str_table_ptr_lookup_fallback(const struct sol_str_table_ptr *table,
     const struct sol_str_table_ptr *iter;
     size_t len;
 
-    if (unlikely(key.len > INT16_MAX))
+    if (SOL_UNLIKELY(key.len > INT16_MAX))
         return fallback;
 
     len = key.len;

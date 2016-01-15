@@ -41,6 +41,7 @@
 #include <stdlib.h>
 
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 
 #include "sol-util.h"
 #include "sol-vector.h"
@@ -141,7 +142,7 @@ get_module_path(char *buf, size_t len, const char *nspace, const char *modname)
 {
     static char rootdir[PATH_MAX] = { };
 
-    if (unlikely(!*rootdir)) {
+    if (SOL_UNLIKELY(!*rootdir)) {
         int ret;
 
         ret = sol_util_get_rootdir(rootdir, sizeof(rootdir));

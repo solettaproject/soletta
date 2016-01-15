@@ -42,6 +42,7 @@
 #include "sol-coap.h"
 #include "sol-json.h"
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 #include "sol-platform.h"
 #include "sol-str-slice.h"
 #include "sol-util.h"
@@ -264,7 +265,7 @@ get_machine_id(void)
     static bool machine_id_set = false;
     const char *machine_id_buf;
 
-    if (unlikely(!machine_id_set)) {
+    if (SOL_UNLIKELY(!machine_id_set)) {
         machine_id_buf = sol_platform_get_machine_id();
 
         if (!machine_id_buf) {
@@ -691,7 +692,7 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
     SOL_NULL_CHECK(rt, NULL);
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(rt->api_version != SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
+    if (SOL_UNLIKELY(rt->api_version != SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
         SOL_WRN("Couldn't add resource_type with "
             "version '%u'. Expected version '%u'.",
             rt->api_version, SOL_OIC_RESOURCE_TYPE_API_VERSION);

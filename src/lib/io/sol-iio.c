@@ -43,6 +43,7 @@
 #include <unistd.h>
 
 #include <sol-log.h>
+#include <sol-macros.h>
 #include <sol-mainloop.h>
 #include <sol-str-slice.h>
 #include <sol-util.h>
@@ -622,7 +623,7 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
 
     SOL_NULL_CHECK(config, NULL);
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_IIO_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_IIO_CONFIG_API_VERSION)) {
         SOL_WRN("IIO config version '%u' is unexpected, expected '%u'",
             config->api_version, SOL_IIO_CONFIG_API_VERSION);
         return NULL;
@@ -910,7 +911,7 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     SOL_NULL_CHECK(config, NULL);
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_IIO_CHANNEL_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_IIO_CHANNEL_CONFIG_API_VERSION)) {
         SOL_WRN("IIO channel config version '%u' is unexpected, expected '%u'",
             config->api_version, SOL_IIO_CHANNEL_CONFIG_API_VERSION);
         return NULL;

@@ -49,6 +49,7 @@
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
 #include "sol-util.h"
@@ -456,7 +457,7 @@ sol_network_link_get_name(const struct sol_network_link *link)
     SOL_NULL_CHECK(link, NULL);
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(link->api_version != SOL_NETWORK_LINK_API_VERSION)) {
+    if (SOL_UNLIKELY(link->api_version != SOL_NETWORK_LINK_API_VERSION)) {
         SOL_WRN("Couldn't link that has unsupported version '%u', "
             "expected version is '%u'",
             link->api_version, SOL_NETWORK_LINK_API_VERSION);

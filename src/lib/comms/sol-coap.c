@@ -41,6 +41,7 @@
 
 #define SOL_LOG_DOMAIN &_sol_coap_log_domain
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
 #include "sol-socket.h"
@@ -70,7 +71,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
 #ifndef SOL_NO_API_VERSION
 #define COAP_RESOURCE_CHECK_API(...) \
     do { \
-        if (unlikely(resource->api_version != \
+        if (SOL_UNLIKELY(resource->api_version != \
             SOL_COAP_RESOURCE_API_VERSION)) { \
             SOL_WRN("Couldn't handle resource that has unsupported version " \
                 "'%u', expected version is '%u'", \

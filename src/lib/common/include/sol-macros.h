@@ -140,6 +140,20 @@
  */
 
 /**
+ * @def SOL_LIKELY
+ *
+ * @brief Convenience macro for @c likely branch annotation. Provide the compiler with
+ * branch prediction information.
+ */
+
+/**
+ * @def SOL_UNLIKELY
+ *
+ * @brief Convenience macro for @c unlikely branch annotation. Provide the compiler with
+ * branch prediction information.
+ */
+
+/**
  * @def SOL_STATIC_ARRAY_SIZE(n)
  *
  * @brief Convenience macro to declare the size of a static array that will handle
@@ -162,6 +176,8 @@
 #define SOL_ATTR_SENTINEL __attribute__((sentinel))
 #define SOL_ATTR_NORETURN __attribute__((noreturn))
 #define SOL_ATTR_PURE __attribute__((pure))
+#define SOL_LIKELY(x)   __builtin_expect(!!(x), 1)
+#define SOL_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
 #define SOL_API
 #define SOL_ATTR_WARN_UNUSED_RESULT
@@ -176,6 +192,8 @@
 #define SOL_ATTR_SENTINEL
 #define SOL_ATTR_NORETURN
 #define SOL_ATTR_PURE
+#define SOL_LIKELY(x)
+#define SOL_UNLIKELY(x)
 #endif
 
 #ifdef __cplusplus
