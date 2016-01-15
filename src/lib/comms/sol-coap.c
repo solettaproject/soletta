@@ -87,6 +87,11 @@ struct sol_coap_server {
     struct sol_ptr_vector pending; /* waiting pending replies */
     struct sol_ptr_vector outgoing; /* in case we need to retransmit */
     struct sol_socket *socket;
+    int (*unknown_handler)(void *data,
+        struct sol_coap_server *server,
+        struct sol_coap_packet *req,
+        const struct sol_network_link_addr *cliaddr);
+    const void *unknown_handler_data;
     int refcnt;
 };
 
@@ -1295,6 +1300,10 @@ respond_packet(struct sol_coap_server *server, struct sol_coap_packet *req,
         return cb(server, resource, req, cliaddr, (void *)c->data);
     }
 
+    if (server->unknown_handler)
+        return server->unknown_handler((void *)server->unknown_handler_data,
+            server, req, cliaddr);
+
     return resource_not_found(req, cliaddr, server);
 }
 
@@ -1706,6 +1715,20 @@ sol_coap_unobserve_server(struct sol_coap_server *server, const struct sol_netwo
     }
 
     return -ENOENT;
+}
+
+
+SOL_API int
+sol_coap_server_set_unknown_resource_handler(struct sol_coap_server *server,
+    int (*handler)(void *data, struct sol_coap_server *server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr),
+    const void *data)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+
+    server->unknown_handler = handler;
+    server->unknown_handler_data = data;
+    return 0;
 }
 
 #ifdef SOL_LOG_ENABLED
