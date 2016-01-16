@@ -439,6 +439,16 @@
       "exec": "genhtml"
     },
     {
+      "dependency": "nodejs",
+      "type": "exec",
+      "exec": "node"
+    },
+    {
+      "dependency": "nodejs_npm",
+      "type": "exec",
+      "exec": "npm"
+    },
+    {
       "dependency": "chrpath",
       "type": "exec",
       "exec": "chrpath"

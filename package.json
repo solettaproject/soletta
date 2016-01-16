@@ -1,0 +1,28 @@
+{
+  "name": "soletta",
+  "version": "0.0.1",
+  "description": "Node.js bindings for Soletta",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/solettaproject/soletta.git"
+  },
+  "keywords": [
+    "soletta",
+    "IoT",
+    "bindings"
+  ],
+  "author": "",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/solettaproject/soletta/issues"
+  },
+  "homepage": "https://github.com/solettaproject/soletta#readme",
+  "dependencies": {
+    "bindings": "^1.2.1",
+    "nan": "^2.1.0"
+  }
+}

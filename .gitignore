@@ -21,3 +21,6 @@ Kconfig.gen
 /build/
 /include/
 config.log*
+/node_modules/
+/bindings/nodejs/generated/main.cc
+/bindings/nodejs/generated/main.h
