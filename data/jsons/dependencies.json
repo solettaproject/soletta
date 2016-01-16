@@ -360,6 +360,11 @@
       "exec": "genhtml"
     },
     {
+      "dependency": "node",
+      "type": "exec",
+      "exec": "node"
+    },
+    {
       "dependency": "chrpath",
       "type": "exec",
       "exec": "chrpath"

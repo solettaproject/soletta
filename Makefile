@@ -20,6 +20,23 @@ include $(top_srcdir)tools/build/Makefile.vars
 
 include $(top_srcdir)tools/build/Makefile.common
 
+ifneq ($(NODE_BINDINGS),)
+
+bins-out += node_bindings
+
+node_bindings: $(SOL_LIB_OUTPUT)
+
+	# Install dependencies without building the package
+	npm install --ignore-scripts
+
+	# Build the package without clobbering build/
+	SOLETTA_FROM_MAKE=true $$(dirname `which node`)/../lib/node_modules/npm/bin/node-gyp-bin/node-gyp configure
+	SOLETTA_FROM_MAKE=true $$(dirname `which node`)/../lib/node_modules/npm/bin/node-gyp-bin/node-gyp build
+
+PHONY += node_bindings
+
+endif
+
 # kconfig interface rules
 ifeq (help, $(filter help,$(MAKECMDGOALS)))
 help: soletta_help
