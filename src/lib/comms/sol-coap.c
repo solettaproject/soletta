@@ -1506,7 +1506,7 @@ sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
     }
 
     /* If type is SOL_SOCKET_DTLS, then it's only a unicast server. */
-    if (type == SOL_SOCKET_UDP) {
+    if (type == SOL_SOCKET_UDP && port) {
         /* From man 7 ip:
          *
          *   imr_address is the address of the local interface with which the
