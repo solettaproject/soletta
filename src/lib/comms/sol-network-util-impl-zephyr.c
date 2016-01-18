@@ -1,7 +1,7 @@
 /*
  * This file is part of the Soletta Project
  *
- * Copyright (C) 2016 Intel Corporation. All rights reserved.
+ * Copyright (C) 2015 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,31 @@
  * limitations under the License.
  */
 
-#pragma once
+#include <sol-network-util.h>
+#include <net/net_ip.h>
 
-#include <sol-network.h>
+enum sol_network_family
+sol_network_af_to_sol(int af)
+{
+    switch (af) {
+    case AF_INET:
+        return SOL_NETWORK_FAMILY_INET;
+    case AF_INET6:
+        return SOL_NETWORK_FAMILY_INET6;
+    default:
+        return SOL_NETWORK_FAMILY_UNSPEC;
+    }
+}
 
-enum sol_network_family sol_network_af_to_sol(int af);
-int sol_network_sol_to_af(enum sol_network_family snf);
+int
+sol_network_sol_to_af(enum sol_network_family snf)
+{
+    switch (snf) {
+    case SOL_NETWORK_FAMILY_INET:
+        return AF_INET;
+    case SOL_NETWORK_FAMILY_INET6:
+        return AF_INET6;
+    default:
+        return AF_UNSPEC;
+    }
+}
