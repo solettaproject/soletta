@@ -131,6 +131,9 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
 long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base);
 
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
+#ifdef ARRAY_SIZE
+#undef ARRAY_SIZE
+#endif
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 #define PTR_TO_INT(p) ((int)((intptr_t)(p)))
