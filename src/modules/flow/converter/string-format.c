@@ -2270,6 +2270,7 @@ do_integer_markup(struct sol_flow_node *node,
     bool field_present;
     int result;
 
+    SOL_LOG_INTERNAL_INIT_ONCE;
     auto_number_init(&auto_number);
     iter = SOL_STR_SLICE_STR(format, strlen(format));
 
@@ -2344,6 +2345,7 @@ do_float_markup(struct sol_flow_node *node,
     bool field_present;
     int result;
 
+    SOL_LOG_INTERNAL_INIT_ONCE;
     auto_number_init(&auto_number);
 
     iter = SOL_STR_SLICE_STR(format, strlen(format));
