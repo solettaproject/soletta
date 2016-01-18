@@ -93,7 +93,7 @@ extern "C" {
 #define SOL_NULL_CHECK(ptr, ...) \
     do { \
         if (SOL_UNLIKELY(!(ptr))) { \
-            SOL_WRN("" # ptr "== NULL"); \
+            SOL_WRN("%s == NULL", # ptr); \
             return __VA_ARGS__; \
         } \
     } while (0)
@@ -111,7 +111,7 @@ extern "C" {
 #define SOL_NULL_CHECK_GOTO(ptr, label) \
     do { \
         if (SOL_UNLIKELY(!(ptr))) { \
-            SOL_WRN("" # ptr "== NULL"); \
+            SOL_WRN("%s == NULL", # ptr); \
             goto label; \
         } \
     } while (0)
@@ -156,48 +156,47 @@ extern "C" {
  * @brief Auxiliary macro intended to be used by @ref SOL_INT_CHECK to format it's output.
  *
  * @param var Integer checked by @ref SOL_INT_CHECK
- * @param exp Safety-check expression from @ref SOL_INT_CHECK
  */
-#define _SOL_INT_CHECK_FMT(var, exp) \
+#define _SOL_INT_CHECK_FMT(var) \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), int), \
-    "" # var " (%d) " # exp, \
+    "" # var " (%d) %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), long), \
-    "" # var " (%ld) " # exp, \
+    "" # var " (%ld) %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), size_t), \
-    "" # var " (%zu) " # exp, \
+    "" # var " (%zu) %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), unsigned), \
-    "" # var " (%u) " # exp, \
+    "" # var " (%u) %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), uint64_t), \
-    "" # var " (%" PRIu64 ") " # exp, \
+    "" # var " (%" PRIu64 ") %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), uint32_t), \
-    "" # var " (%" PRIu32 ") " # exp, \
+    "" # var " (%" PRIu32 ") %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), uint16_t), \
-    "" # var " (%" PRIu16 ") " # exp, \
+    "" # var " (%" PRIu16 ") %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), uint8_t), \
-    "" # var " (%" PRIu8 ") " # exp, \
+    "" # var " (%" PRIu8 ") %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), int64_t), \
-    "" # var " (%" PRId64 ") " # exp, \
+    "" # var " (%" PRId64 ") %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), int32_t), \
-    "" # var " (%" PRId32 ") " # exp, \
+    "" # var " (%" PRId32 ") %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), int16_t), \
-    "" # var " (%" PRId16 ") " # exp, \
+    "" # var " (%" PRId16 ") %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), int8_t), \
-    "" # var " (%" PRId8 ") " # exp, \
+    "" # var " (%" PRId8 ") %s", \
     __builtin_choose_expr( \
     __builtin_types_compatible_p(typeof(var), ssize_t), \
-    "" # var " (%zd) " # exp, \
+    "" # var " (%zd) %s", \
     (void)0)))))))))))))
 
 /**
@@ -213,7 +212,7 @@ extern "C" {
 #define SOL_INT_CHECK(var, exp, ...) \
     do { \
         if (SOL_UNLIKELY((var)exp)) { \
-            SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var); \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
             return __VA_ARGS__; \
         } \
     } while (0)
@@ -231,7 +230,7 @@ extern "C" {
 #define SOL_INT_CHECK_GOTO(var, exp, label) \
     do { \
         if (SOL_UNLIKELY((var)exp)) { \
-            SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var); \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
             goto label; \
         } \
     } while (0)
@@ -248,7 +247,7 @@ extern "C" {
 #define SOL_EXP_CHECK(exp, ...) \
     do { \
         if (SOL_UNLIKELY((exp))) { \
-            SOL_WRN("(" # exp ") is true"); \
+            SOL_WRN("(%s) is true", # exp); \
             return __VA_ARGS__; \
         } \
     } while (0)
@@ -265,7 +264,7 @@ extern "C" {
 #define SOL_EXP_CHECK_GOTO(exp, label) \
     do { \
         if (SOL_UNLIKELY((exp))) { \
-            SOL_WRN("(" # exp ") is true"); \
+            SOL_WRN("(%s) is true", # exp); \
             goto label; \
         } \
     } while (0)
