@@ -433,7 +433,7 @@ sol_util_uuid_str_valid(const char *str)
     len = strlen(str);
     if (len == 32) {
         for (i = 0; i < len; i++) {
-            if (!isxdigit(str[i]))
+            if (!isxdigit((uint8_t)str[i]))
                 return false;
         }
     } else if (len == 36) {
@@ -444,7 +444,7 @@ sol_util_uuid_str_valid(const char *str)
             if (i == 8 || i == 13 || i == 18 || i == 23) {
                 if (c != '-')
                     return false;
-            } else if (!isxdigit(c))
+            } else if (!isxdigit((uint8_t)c))
                 return false;
         }
     } else

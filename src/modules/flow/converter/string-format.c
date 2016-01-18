@@ -1152,7 +1152,7 @@ change_decimal_from_locale_to_dot(struct sol_buffer *buffer)
 
         if (*p == '+' || *p == '-')
             p++;
-        while (isdigit(*p))
+        while (isdigit((uint8_t)*p))
             p++;
         if (strncmp(p, decimal_point, decimal_point_len) == 0) {
             *p = '.';
@@ -1198,7 +1198,7 @@ ensure_minimum_exponent_length(struct sol_buffer *buffer)
 
         /* Find the end of the exponent, keeping track of leading
            zeros. */
-        while (*p && isdigit(*p)) {
+        while (*p && isdigit((uint8_t)*p)) {
             if (in_leading_zeros && *p == '0')
                 ++leading_zero_cnt;
             if (*p != '0')
@@ -1261,7 +1261,7 @@ remove_trailing_zeros(struct sol_buffer *buffer)
     if (*p == '-' || *p == '+')
         /* Skip leading sign, if present */
         ++p;
-    while (isdigit(*p))
+    while (isdigit((uint8_t)*p))
         ++p;
 
     /* if there's no decimal point there's nothing to do */
@@ -1269,7 +1269,7 @@ remove_trailing_zeros(struct sol_buffer *buffer)
         return 0;
 
     /* scan any digits after the point */
-    while (isdigit(*p))
+    while (isdigit((uint8_t)*p))
         ++p;
     old_fraction_end = p;
 
@@ -1317,12 +1317,12 @@ ensure_decimal_point(struct sol_buffer *buffer, int precision)
     if (*p == '-' || *p == '+')
         ++p;
     digits_start = p;
-    while (*p && isdigit(*p))
+    while (*p && isdigit((uint8_t)*p))
         ++p;
     digit_count = (int)(p - digits_start);
 
     if (*p == '.') {
-        if (isdigit(*(p + 1))) {
+        if (isdigit((uint8_t)*(p + 1))) {
             /* Nothing to do, we already have a decimal point and a
                digit after it */
         } else {
@@ -1580,7 +1580,7 @@ parse_number(char *s,
 {
     ssize_t remainder;
 
-    while (pos < end && isdigit(s[pos]))
+    while (pos < end && isdigit((uint8_t)s[pos]))
         ++pos;
     remainder = pos;
 

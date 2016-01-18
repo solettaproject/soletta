@@ -290,7 +290,7 @@ to_c_symbol(const char *str, struct sol_buffer *buf)
     sol_buffer_init(buf);
 
     for (start = p = str; *p; p++) {
-        if (isalnum(*p) || *p == '_')
+        if (isalnum((uint8_t)*p) || *p == '_')
             continue;
         else {
             struct sol_str_slice slice = {

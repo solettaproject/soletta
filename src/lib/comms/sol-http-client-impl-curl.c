@@ -471,12 +471,12 @@ header_cb(char *data, size_t size, size_t nmemb, void *connp)
     sep++;
 
     //Trim spaces
-    while (isspace(*sep)) {
+    while (isspace((uint8_t)*sep)) {
         sep++;
         discarted++;
     }
 
-    for (i = data_size - 1; isspace(data[i]); i--)
+    for (i = data_size - 1; isspace((uint8_t)data[i]); i--)
         discarted++;
 
     if (!strncasecmp(data, "Set-Cookie:", key_size)) {

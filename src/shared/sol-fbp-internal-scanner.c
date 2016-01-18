@@ -171,7 +171,7 @@ export_ident_state(struct sol_fbp_scanner *s)
 static void *
 export_port_index_state(struct sol_fbp_scanner *s)
 {
-    while (isdigit(peek(s)))
+    while (isdigit((uint8_t)peek(s)))
         next(s);
     set_token(s, SOL_FBP_TOKEN_INTEGER);
     return export_port_array_state;
@@ -189,7 +189,7 @@ export_port_array_state(struct sol_fbp_scanner *s)
         return export_state;
 
     default:
-        if (isdigit(c)) {
+        if (isdigit((uint8_t)c)) {
             return export_port_index_state;
         }
         return error_state;
@@ -464,7 +464,7 @@ static void *port_array_state(struct sol_fbp_scanner *s);
 static void *
 port_index_state(struct sol_fbp_scanner *s)
 {
-    while (isdigit(peek(s)))
+    while (isdigit((uint8_t)peek(s)))
         next(s);
     set_token(s, SOL_FBP_TOKEN_INTEGER);
     return port_array_state;
@@ -482,7 +482,7 @@ port_array_state(struct sol_fbp_scanner *s)
         return default_state;
 
     default:
-        if (isdigit(c)) {
+        if (isdigit((uint8_t)c)) {
             return port_index_state;
         }
         return error_state;

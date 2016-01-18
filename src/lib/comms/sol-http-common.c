@@ -226,8 +226,8 @@ sol_http_decode_slice(struct sol_buffer *buf,
 
     for (i = 0; i < value.len; i++) {
         unsigned char c = value.data[i];
-        if (c == '%' && value.len - i > 2 && isxdigit(value.data[i + 1])
-            && isxdigit(value.data[i + 2])) {
+        if (c == '%' && value.len - i > 2 && isxdigit((uint8_t)value.data[i + 1])
+            && isxdigit((uint8_t)value.data[i + 2])) {
             struct sol_str_slice hex;
             ssize_t err;
             char chex;

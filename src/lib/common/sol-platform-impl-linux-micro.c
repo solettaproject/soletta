@@ -330,7 +330,7 @@ load_initial_services_internal(struct sol_file_reader *reader)
     start = file.data;
     end = start + file.len;
     for (p = start; err == 0 && p < end; p++) {
-        if (isspace(*p) && start < p) {
+        if (isspace((uint8_t)*p) && start < p) {
             err = load_initial_services_entry(start, p - start);
             start = p + 1;
         }

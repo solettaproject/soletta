@@ -320,7 +320,7 @@ sol_json_mem_get_type(const void *mem)
 
     if (strchr("{}[],:tfn\"", *p))
         return (enum sol_json_type)*p;
-    if (isdigit(*p) || *p == '-' || *p == '+')
+    if (isdigit((uint8_t)*p) || *p == '-' || *p == '+')
         return SOL_JSON_TYPE_NUMBER;
     return SOL_JSON_TYPE_UNKNOWN;
 }

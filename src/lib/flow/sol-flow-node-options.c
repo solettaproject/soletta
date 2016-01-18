@@ -126,7 +126,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             } \
             i = key_name + strlen(#_key); \
             for (; i < _key; i++) \
-                if (!(isspace(*i) || *i == '"')) { \
+                if (!(isspace((uint8_t)*i) || *i == '"')) { \
                     remaining = _key; \
                     break; \
                 } \
@@ -137,7 +137,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             break; \
         if (_key && _key[0] && _key[1]) {                       \
             _key++;                                             \
-            while (_key && isspace(*_key)) _key++;              \
+            while (_key && isspace((uint8_t)*_key)) _key++;              \
         } else goto err;                                        \
         if (!_key)                                              \
             break;                                              \
