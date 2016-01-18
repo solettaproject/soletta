@@ -285,7 +285,7 @@ tune_parse(struct piezo_speaker_data *mdata, const char *tune)
     }
 
     for (i = 0; *pos && *pos != TUNE_FIELD_SEPARATOR; pos++, i++) {
-        if (isspace(*pos))
+        if (isspace((uint8_t)*pos))
             mdata->periods_us[i] = SPEAKER_NOTE_SENTINEL;
         else {
             mdata->periods_us[i] = byte_to_note_period_us(*pos);

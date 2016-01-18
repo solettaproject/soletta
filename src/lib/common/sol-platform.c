@@ -158,7 +158,7 @@ sol_board_name_is_valid(const char *name)
         return false;
 
     for (i = 0; name[i] != '\0'; i++) {
-        if (isalnum(name[i]) || name[i] == '_' || name[i] == '-')
+        if (isalnum((uint8_t)name[i]) || name[i] == '_' || name[i] == '-')
             continue;
 
         return false;

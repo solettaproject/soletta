@@ -299,7 +299,7 @@ sol_str_slice_remove_leading_whitespace(struct sol_str_slice slice)
 {
     struct sol_str_slice copy = slice;
 
-    while (copy.len && isspace(*copy.data)) {
+    while (copy.len && isspace((uint8_t)*copy.data)) {
         copy.data++;
         copy.len--;
     }
@@ -320,7 +320,7 @@ sol_str_slice_remove_trailing_whitespace(struct sol_str_slice slice)
     struct sol_str_slice copy = slice;
 
     while (copy.len != 0) {
-        char c = copy.data[copy.len - 1];
+        uint8_t c = copy.data[copy.len - 1];
         if (isspace(c))
             copy.len--;
         else

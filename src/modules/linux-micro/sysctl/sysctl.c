@@ -65,7 +65,7 @@ sysctl_apply_value(int psfd, char *key, const char *value)
     for (p = key; *p; p++) {
         if (*p == '.')
             *p = '/';
-        else if (!(isalnum(*p) || *p == '_' || *p == '-'))
+        else if (!(isalnum((uint8_t)*p) || *p == '_' || *p == '-'))
             return -EINVAL;
     }
 
@@ -89,7 +89,7 @@ sysctl_apply_value(int psfd, char *key, const char *value)
 static char *
 remove_leading_whitespace(char *input)
 {
-    while (isspace(*input))
+    while (isspace((uint8_t)*input))
         input++;
     return input;
 }
@@ -99,7 +99,7 @@ remove_trailing_whitespace(char *input)
 {
     char *ptr = input + strlen(input) - 1;
 
-    while (ptr > input && isspace(*ptr)) {
+    while (ptr > input && isspace((uint8_t)*ptr)) {
         *ptr = '\0';
         ptr--;
     }

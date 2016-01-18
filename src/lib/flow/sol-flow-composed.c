@@ -259,7 +259,7 @@ setup_simple_ports(struct sol_vector *in_ports, const struct sol_str_slice conte
     pending_slice.len = 0;
 
     for (i_slice = 0; i_slice < contents.len; i_slice++) {
-        if (isspace(contents.data[i_slice])) {
+        if (isspace((uint8_t)contents.data[i_slice])) {
             if (pending_slice.len != 0) {
                 r = sol_buffer_append_slice(&buf, pending_slice);
                 if (r) {

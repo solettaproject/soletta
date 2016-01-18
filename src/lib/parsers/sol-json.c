@@ -446,7 +446,7 @@ sol_json_scanner_next(struct sol_json_scanner *scanner, struct sol_json_token *t
         enum sol_json_type type = sol_json_mem_get_type(scanner->current);
         switch (type) {
         case SOL_JSON_TYPE_UNKNOWN:
-            if (!isspace(scanner->current[0])) {
+            if (!isspace((uint8_t)scanner->current[0])) {
                 SOL_ERR("%u: unexpected symbol %#x (%c)",
                     sol_json_scanner_get_mem_offset(scanner, scanner->current),
                     scanner->current[0], scanner->current[0]);

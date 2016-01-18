@@ -492,9 +492,9 @@ channel_get_pure_name(struct sol_iio_channel *channel)
             channel_pure_name = calloc(1, channel_name_len + 1);
             original_channel_pure_name = channel_pure_name;
             for (i = 0; i < channel_name_len; i++) {
-                if (isalpha(channel->name[i]) || channel->name[i] == '-' || channel->name[i] == '_')
+                if (isalpha((uint8_t)channel->name[i]) || channel->name[i] == '-' || channel->name[i] == '_')
                     *channel_pure_name++ = channel->name[i];
-                else if (isdigit(channel->name[i])) {
+                else if (isdigit((uint8_t)channel->name[i])) {
                     modified = true;
                     continue;
                 }
