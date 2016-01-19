@@ -256,12 +256,12 @@ align_power2_short_uint(unsigned short u)
  * the environment in Semaphore CI. */
 #define align_power2(u_) \
     ({ \
-        typeof((u_) + 0)pow2__aligned; /* + 0 to remove const */ \
-        if (__builtin_types_compatible_p(typeof(u_), size_t)) { \
+        __typeof__((u_) + 0)pow2__aligned; /* + 0 to remove const */ \
+        if (__builtin_types_compatible_p(__typeof__(u_), size_t)) { \
             pow2__aligned = align_power2_size(u_); \
-        } else if (__builtin_types_compatible_p(typeof(u_), unsigned int)) { \
+        } else if (__builtin_types_compatible_p(__typeof__(u_), unsigned int)) { \
             pow2__aligned = align_power2_uint(u_); \
-        } else if (__builtin_types_compatible_p(typeof(u_), short unsigned int)) { \
+        } else if (__builtin_types_compatible_p(__typeof__(u_), short unsigned int)) { \
             pow2__aligned = align_power2_short_uint(u_); \
         } else { \
             __builtin_unreachable(); \
@@ -274,16 +274,16 @@ align_power2_short_uint(unsigned short u)
  * Use temporary variables to address nested call cases. */
 #define sol_min(x, y) \
     ({ \
-        typeof(x)_min1 = (x); \
-        typeof(y)_min2 = (y); \
+        __typeof__(x)_min1 = (x); \
+        __typeof__(y)_min2 = (y); \
         (void)(&_min1 == &_min2); \
         _min1 < _min2 ? _min1 : _min2; \
     })
 
 #define sol_max(x, y) \
     ({ \
-        typeof(x)_max1 = (x); \
-        typeof(y)_max2 = (y); \
+        __typeof__(x)_max1 = (x); \
+        __typeof__(y)_max2 = (y); \
         (void)(&_max1 == &_max2); \
         _max1 > _max2 ? _max1 : _max2; \
     })

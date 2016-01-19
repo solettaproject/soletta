@@ -235,7 +235,7 @@ sol_vector_take_data(struct sol_vector *v)
  */
 #define SOL_VECTOR_FOREACH_IDX(vector, itrvar, idx)                      \
     for (idx = 0;                                                       \
-        idx < (vector)->len && (itrvar = (typeof(itrvar))sol_vector_get_nocheck((vector), idx), true); \
+        idx < (vector)->len && (itrvar = (__typeof__(itrvar))sol_vector_get_nocheck((vector), idx), true); \
         idx++)
 
 /**
@@ -248,7 +248,7 @@ sol_vector_take_data(struct sol_vector *v)
  */
 #define SOL_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx)              \
     for (idx = (vector)->len - 1;                                       \
-        idx != ((typeof(idx)) - 1) && (itrvar = (typeof(itrvar))sol_vector_get_nocheck((vector), idx), true); \
+        idx != ((__typeof__(idx)) - 1) && (itrvar = (__typeof__(itrvar))sol_vector_get_nocheck((vector), idx), true); \
         idx--)
 /**
  * @}
@@ -587,7 +587,7 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
 #define SOL_PTR_VECTOR_FOREACH_IDX(vector, itrvar, idx) \
     for (idx = 0; \
         idx < (vector)->base.len && \
-        ((itrvar = (typeof(itrvar))sol_ptr_vector_get_nocheck((vector), idx)), true); \
+        ((itrvar = (__typeof__(itrvar))sol_ptr_vector_get_nocheck((vector), idx)), true); \
         idx++)
 
 /**
@@ -600,8 +600,8 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
  */
 #define SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx) \
     for (idx = (vector)->base.len - 1; \
-        idx != ((typeof(idx)) - 1) && \
-        (itrvar = (typeof(itrvar))sol_ptr_vector_get_nocheck((vector), idx), true); \
+        idx != ((__typeof__(idx)) - 1) && \
+        (itrvar = (__typeof__(itrvar))sol_ptr_vector_get_nocheck((vector), idx), true); \
         idx--)
 
 /**
