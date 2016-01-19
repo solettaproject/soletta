@@ -60,7 +60,7 @@ struct network_data {
 static bool
 _compile_regex(regex_t *r, const char *text)
 {
-    char error_message[PATH_MAX];
+    char error_message[256];
     int status = regcomp(r, text, REG_EXTENDED | REG_NEWLINE);
 
     if (!status)
