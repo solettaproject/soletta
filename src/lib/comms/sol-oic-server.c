@@ -101,6 +101,14 @@ static struct sol_oic_server oic_server;
             oic_server.info->v.data, oic_server.info->v.len); \
     } while (0)
 
+static sol_coap_msgtype_t
+_get_response_code(struct sol_coap_packet *req)
+{
+    if (sol_coap_header_get_type(req) == SOL_COAP_TYPE_NONCON)
+        return SOL_COAP_TYPE_NONCON;
+    return SOL_COAP_TYPE_ACK;
+}
+
 static int
 _sol_oic_server_d(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
@@ -141,7 +149,7 @@ _sol_oic_server_d(struct sol_coap_server *server,
     err |= cbor_encoder_close_container(&encoder, &rep_map);
 
     if (err == CborNoError) {
-        sol_coap_header_set_type(response, SOL_COAP_TYPE_ACK);
+        sol_coap_header_set_type(response, _get_response_code(req));
         sol_coap_header_set_code(response, SOL_COAP_RSPCODE_OK);
 
         sol_coap_packet_set_payload_used(response, encoder.ptr - payload);
@@ -205,7 +213,7 @@ _sol_oic_server_p(struct sol_coap_server *server,
     err |= cbor_encoder_close_container(&encoder, &rep_map);
 
     if (err == CborNoError) {
-        sol_coap_header_set_type(response, SOL_COAP_TYPE_ACK);
+        sol_coap_header_set_type(response, _get_response_code(req));
         sol_coap_header_set_code(response, SOL_COAP_RSPCODE_OK);
 
         sol_coap_packet_set_payload_used(response, encoder.ptr - payload);
@@ -313,7 +321,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
 
-    sol_coap_header_set_type(resp, SOL_COAP_TYPE_ACK);
+    sol_coap_header_set_type(resp, _get_response_code(req));
     sol_coap_add_option(resp, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
 
     sol_coap_packet_get_payload(resp, &payload, &size);
@@ -594,7 +602,7 @@ _sol_oic_resource_type_handle(
         code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
 done:
-    sol_coap_header_set_type(response, SOL_COAP_TYPE_ACK);
+    sol_coap_header_set_type(response, _get_response_code(req));
     sol_coap_header_set_code(response, code);
 
     return sol_coap_send_packet(server, response, cliaddr);
