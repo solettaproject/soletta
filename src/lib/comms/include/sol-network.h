@@ -36,6 +36,7 @@
 
 #include <sol-common-buildopts.h>
 #include <sol-vector.h>
+#include <sol-str-slice.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,6 +73,20 @@ extern "C" {
  */
 #define SOL_INET_ADDR_STRLEN 48
 
+
+/**
+ * @struct sol_network_hostname_handle
+ *
+ * @brief A handle to sol_network_get_hostname_address_info()
+ *
+ * This handle can be used to cancel get sol_network_get_hostname_address_info()
+ * by calling sol_network_cancel_get_hostname_address_info()
+ *
+ * @see sol_network_get_hostname_address_info()
+ * @see sol_network_cancel_get_hostname_address_info()
+ */
+struct sol_network_hostname_handle;
+
 /**
  * @brief Type of events generated for a network link.
  *
@@ -94,6 +109,21 @@ enum sol_network_link_flags {
     SOL_NETWORK_LINK_LOOPBACK      = (1 << 2),
     SOL_NETWORK_LINK_MULTICAST     = (1 << 3),
     SOL_NETWORK_LINK_RUNNING       = (1 << 4),
+};
+
+/**
+ * @brief Bitwise OR-ed flags used by sol_network_get_hostname_address_info()
+ *
+ * This flags can be used to tell sol_network_get_hostname_address_info() which
+ * kind of address the hostname should be translated.
+ *
+ * @see sol_network_get_hostname_address_info()
+ */
+enum sol_network_family {
+    /** @brief IPv4 family. */
+    SOL_NETWORK_FAMILY_AF_INET = (1 << 0),
+    /** @brief IPv6 family. */
+    SOL_NETWORK_FAMILY_AF_INET6 = (1 << 1)
 };
 
 /**
@@ -265,6 +295,42 @@ char *sol_network_link_get_name(const struct sol_network_link *link);
  * @return @c true on success, @c false on error.
  */
 bool sol_network_link_up(uint16_t link_index);
+
+/**
+ * @brief Gets a hostname address info.
+ *
+ * This function will fetch the address of a given hostname, since this may
+ * take some time, this will my an async operation. When the address info
+ * is ready the @c host_info_cb will called with the host's address info.
+ * If an error happens or this is not information about this host's address,
+ * @c sol_addr_list will be set to @c NULL and @c list_size will be @c 0.
+ *
+ * If the port was provided the elements of @c sol_addr_list will have
+ * will match the provided port.
+ *
+ * @param hostname The hostname to get the address info.
+ * @param family The family, it can be IP, IPv6 or both.
+ * @param host_info_cb A callback to be called with the address list.
+ * @param data Data to @c host_info_cb.
+ * @return A handle to a hostname or @c NULL on error.
+ * @see sol_network_cancel_get_hostname_address_info()
+ * @see #sol_network_family
+ */
+struct sol_network_hostname_handle *
+sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
+    enum sol_network_family family, void (*host_info_cb)(void *data,
+    const struct sol_str_slice hostname,
+    struct sol_network_link_addr *sol_addr_list, uint16_t list_size),
+    const void *data);
+
+/**
+ * @brief Cancels a request to get the hostname info.
+ *
+ * @param handle The handle returned by #sol_network_get_hostname_address_info
+ * @return 0 on success, -errno on error.
+ * @see sol_network_get_hostname_address_info()
+ */
+int sol_network_cancel_get_hostname_address_info(struct sol_network_hostname_handle *handle);
 
 /**
  * @}

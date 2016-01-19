@@ -190,3 +190,20 @@ sol_network_link_get_name(const struct sol_network_link *link)
 {
     return NULL;
 }
+
+SOL_API int
+sol_network_cancel_get_hostname_address_info(
+    struct sol_network_hostname_handle *handle)
+{
+    return -ENOTSUP;
+}
+
+SOL_API struct sol_network_hostname_handle *
+sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
+    enum sol_network_family family, void (*host_info_cb)(void *data,
+    const struct sol_str_slice host,
+    struct sol_network_link_addr *sol_addr_list, uint16_t list_size),
+    const void *data)
+{
+    return NULL;
+}
