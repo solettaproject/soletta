@@ -42,6 +42,107 @@
 #include <sys/types.h>
 
 #ifdef __cplusplus
+
+template <typename T> inline const char *sol_int_format(T) { return NULL; }
+template <> inline const char *sol_int_format<int>(int) { return " (%d) "; }
+template <> inline const char *sol_int_format<long>(long) { return " (%ld) "; }
+template <> inline const char *sol_int_format<long long>(long long) { return " (%lld) "; }
+template <> inline const char *sol_int_format<short>(short) { return " (%hd) "; }
+template <> inline const char *sol_int_format<signed char>(signed char) { return " (%hhd) "; }
+template <> inline const char *sol_int_format<unsigned>(unsigned) { return " (%u) "; }
+template <> inline const char *sol_int_format<unsigned long>(unsigned long) { return " (%lu) "; }
+template <> inline const char *sol_int_format<unsigned long long>(unsigned long long) { return " (%llu) "; }
+template <> inline const char *sol_int_format<unsigned short>(unsigned short) { return " (%hu) "; }
+template <> inline const char *sol_int_format<unsigned char>(unsigned char) { return " (%hhu) "; }
+
+#define SOL_INT_CHECK_IMPL(var, exp, ...) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            char *str = (char *)alloca(snprintf(NULL, 0, "%s %s %s", #var, sol_int_format(var),  #exp) + 1); \
+            sprintf(str, "%s %s %s", #var, sol_int_format(var), #exp); \
+            SOL_WRN(str, var); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
+#define SOL_INT_CHECK_GOTO_IMPL(var, exp, label) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            char *str = (char *)alloca(snprintf(NULL, 0, "%s %s %s", #var, sol_int_format(var),  #exp) + 1); \
+            sprintf(str, "%s %s %s", #var, sol_int_format(var), #exp); \
+            SOL_WRN(str, var); \
+            goto label; \
+        } \
+    } while (0)
+
+#else
+
+/**
+ * @brief Auxiliary macro intended to be used by @ref SOL_INT_CHECK to format it's output.
+ *
+ * @param var Integer checked by @ref SOL_INT_CHECK
+ */
+#define _SOL_INT_CHECK_FMT(var) \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int), \
+    "" # var " (%d) %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), long), \
+    "" # var " (%ld) %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), size_t), \
+    "" # var " (%zu) %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), unsigned), \
+    "" # var " (%u) %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint64_t), \
+    "" # var " (%" PRIu64 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint32_t), \
+    "" # var " (%" PRIu32 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint16_t), \
+    "" # var " (%" PRIu16 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint8_t), \
+    "" # var " (%" PRIu8 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int64_t), \
+    "" # var " (%" PRId64 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int32_t), \
+    "" # var " (%" PRId32 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int16_t), \
+    "" # var " (%" PRId16 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int8_t), \
+    "" # var " (%" PRId8 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), ssize_t), \
+    "" # var " (%zd) %s", \
+    (void)0)))))))))))))
+
+#define SOL_INT_CHECK_IMPL(var, exp, ...) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
+#define SOL_INT_CHECK_GOTO_IMPL(var, exp, label) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
+            goto label; \
+        } \
+    } while (0)
+
+#endif
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -153,53 +254,6 @@ extern "C" {
     } while (0)
 
 /**
- * @brief Auxiliary macro intended to be used by @ref SOL_INT_CHECK to format it's output.
- *
- * @param var Integer checked by @ref SOL_INT_CHECK
- */
-#define _SOL_INT_CHECK_FMT(var) \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int), \
-    "" # var " (%d) %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), long), \
-    "" # var " (%ld) %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), size_t), \
-    "" # var " (%zu) %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), unsigned), \
-    "" # var " (%u) %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint64_t), \
-    "" # var " (%" PRIu64 ") %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint32_t), \
-    "" # var " (%" PRIu32 ") %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint16_t), \
-    "" # var " (%" PRIu16 ") %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint8_t), \
-    "" # var " (%" PRIu8 ") %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int64_t), \
-    "" # var " (%" PRId64 ") %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int32_t), \
-    "" # var " (%" PRId32 ") %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int16_t), \
-    "" # var " (%" PRId16 ") %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int8_t), \
-    "" # var " (%" PRId8 ") %s", \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), ssize_t), \
-    "" # var " (%zd) %s", \
-    (void)0)))))))))))))
-
-/**
  * @brief Safety-check macro to check if integer @c var against @c exp.
  *
  * This macro logs a warning message and returns if the integer @c var
@@ -210,12 +264,8 @@ extern "C" {
  * @param ... Optional return value
  */
 #define SOL_INT_CHECK(var, exp, ...) \
-    do { \
-        if (SOL_UNLIKELY((var)exp)) { \
-            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
-            return __VA_ARGS__; \
-        } \
-    } while (0)
+    SOL_INT_CHECK_IMPL(var, exp, __VA_ARGS__)
+
 
 /**
  * @brief Similar to @ref SOL_INT_CHECK but jumping to @c label instead of returning.
@@ -228,12 +278,7 @@ extern "C" {
  * @param label @c goto label
  */
 #define SOL_INT_CHECK_GOTO(var, exp, label) \
-    do { \
-        if (SOL_UNLIKELY((var)exp)) { \
-            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
-            goto label; \
-        } \
-    } while (0)
+    SOL_INT_CHECK_GOTO_IMPL(var, exp, label)
 
 /**
  * @brief Safety-check macro to check the expression @c exp.

@@ -66,6 +66,7 @@ soletta_help:
 	$(Q)echo  "  check-fbp-valgrind - Runs fbp (Flow Based Programming) tests - with valgrind"
 	$(Q)echo  "  check-fbp-bin      - Generates + compiles + runs fbp (Flow Based Programming) tests"
 	$(Q)echo  "  check-fbp-bin-valgrind - Generates + compiles + runs fbp (Flow Based Programming) tests - with valgrind"
+	$(Q)echo  "  check-cpp - Generates + compiles + a cpp file including all soletta's public headers"
 	$(Q)echo  "  coverage           - Builds soletta with gcov and generates the coverage report"
 	$(Q)echo  "  samples            - Builds the samples directory"
 	$(Q)echo  "  doxygen            - Generates doxygen documentation"

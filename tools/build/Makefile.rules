@@ -26,11 +26,11 @@ extra-headers = \
 			$(eval gen-file      := $(subst .h.in,.h,$(hdr))) \
 			$(eval $(hdr)-dest   := $(build_includedir)$(notdir $(gen-file))) \
 			$(eval all-templates += $(hdr)) \
-			$(eval all-hdr       += $($(hdr)-dest)) \
+			$(eval export all-hdr       += $($(hdr)-dest)) \
 		, \
 			$(eval $(hdr)-dest  := $(build_includedir)$(notdir $(hdr))) \
 			$(eval all-dest-hdr += $($(hdr)-dest)) \
-			$(eval all-hdr += $(hdr)) \
+			$(eval export all-hdr += $(hdr)) \
 		) \
 	) \
 

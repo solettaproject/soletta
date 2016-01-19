@@ -5,6 +5,12 @@ check: tests
 
 PHONY += tests check
 
+#GLIB cflags and ldflags are used here due glib-integration that includes glib headers directly
+check-cpp: $(SOL_LIB_OUTPUT) $(HEADERS_CC)
+	$(HOSTCPP) -std=gnu++11 $(GLIB_CFLAGS)  $(addprefix -I,$(HEADERDIRS)) $(HEADERS_CC) $(SOL_LIB_OUTPUT) $(GLIB_LDFLAGS) -o $(build_stagedir)bin/cpp/headers
+
+PHONY += check-cpp
+
 ifeq (y,$(FBP_RUNNER))
 check-fbp: $(SOL_LIB_OUTPUT) $(SOL_FBP_RUNNER_BIN) $(modules-out)
 	$(Q)$(PYTHON) $(TEST_FBP_SCRIPT) --runner="$(abspath $(SOL_FBP_RUNNER_BIN))"
