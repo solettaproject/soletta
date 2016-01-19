@@ -5,3 +5,4 @@ config ZEPHYR
     select FEATURE_HW_I2C
     select FEATURE_HW_PWM
     select FEATURE_HW_SPI
+    select FEATURE_FLOW
