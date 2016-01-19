@@ -927,7 +927,7 @@ command_queue_process(struct lcd_data *mdata)
 
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->cmd_queue, cmd, i) {
         /* done, left to be cleaned after the loop */
-        if (cmd->status == COMMAND_STATUS_DONE) continue;
+        if (cmd->status == COMMAND_STATUS_DONE) break;
 
         /* COMMAND_STATUS_WAITING cases, since COMMAND_STATUS_SENDING
          * can't happen at this point */
