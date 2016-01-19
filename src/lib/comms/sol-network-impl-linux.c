@@ -45,6 +45,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <netdb.h>
 #include <unistd.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
@@ -63,14 +64,24 @@ struct callback {
     const void *data;
 };
 
+struct hostname_info_ctx {
+    char *hostname;
+    enum sol_network_family family;
+    void (*cb)(void *data, const struct sol_str_slice hostname,
+        struct sol_network_link_addr *sol_addr_list, uint16_t list_size);
+    const void *data;
+};
+
 struct sol_network {
     unsigned int count;
     int nl_socket;
     struct sockaddr_nl nl_addr;
     struct sol_fd *fd;
+    struct sol_timeout *hostname_worker;
 
     struct sol_vector links;
     struct sol_vector callbacks;
+    struct sol_vector algo;
 
     int seq;
 };
@@ -353,6 +364,7 @@ sol_network_init(void)
 
     sol_vector_init(&network->links, sizeof(struct sol_network_link));
     sol_vector_init(&network->callbacks, sizeof(struct callback));
+    sol_vector_init(&network->algo, sizeof(struct hostname_info_ctx));
 
     _netlink_request(RTM_GETLINK);
     _netlink_request(RTM_GETADDR);
@@ -367,6 +379,12 @@ err:
     return -1;
 }
 
+static void
+hostname_info_ctx_clear(struct hostname_info_ctx *ctx)
+{
+    free(ctx->hostname);
+}
+
 SOL_API void
 sol_network_shutdown(void)
 {
@@ -374,6 +392,7 @@ sol_network_shutdown(void)
     struct sol_network_link *link;
     struct sol_network_link_addr *addr;
     uint16_t idx;
+    struct hostname_info_ctx *ctx;
 
     if (!network)
         return;
@@ -385,12 +404,19 @@ sol_network_shutdown(void)
     if (network->fd)
         sol_fd_del(network->fd);
 
+    if (network->hostname_worker)
+        sol_timeout_del(network->hostname_worker);
+
     close(network->nl_socket);
 
     SOL_VECTOR_FOREACH_IDX (&network->links, link, idx) {
         sol_vector_clear(&link->addrs);
     }
 
+    SOL_VECTOR_FOREACH_IDX (&network->algo, ctx, idx)
+        hostname_info_ctx_clear(ctx);
+
+    sol_vector_clear(&network->algo);
     sol_vector_clear(&network->links);
     sol_vector_clear(&network->callbacks);
     free(network);
@@ -555,4 +581,163 @@ sol_network_link_addr_eq(const struct sol_network_link_addr *a, const struct sol
     }
 
     return !memcmp(addr_a, addr_b, bytes);
+}
+
+static bool
+hostname_worker(void *data)
+{
+    uint16_t i;
+    struct hostname_info_ctx *ctx;
+    int r;
+    struct addrinfo hints = { };
+
+    network->hostname_worker = NULL;
+
+    SOL_VECTOR_FOREACH_IDX (&network->algo, ctx, i) {
+        struct addrinfo *addr_list;
+        struct addrinfo *addr;
+        struct sol_network_link_addr *sol_addr_list;
+        uint16_t addr_count, j, port;
+        char *host = ctx->hostname;
+        char *sep;
+
+        switch (ctx->family) {
+        case SOL_NETWORK_FAMILY_AF_INET:
+            hints.ai_family = AF_INET;
+            break;
+        case SOL_NETWORK_FAMILY_AF_INET6:
+            hints.ai_family = AF_INET6;
+            break;
+        default:
+            hints.ai_family = AF_UNSPEC;
+        }
+
+        //Contains protocol ?
+        sep = strstr(host, "://");
+        if (sep)
+            host = sep + 3;
+
+        sep = strchr(host, ':');
+
+        if (sep) {
+            char *end;
+            size_t len = strlen(sep);
+
+            if (len == 1) {
+                SOL_WRN("Port number not provided");
+                goto err_getaddr;
+            }
+
+            port = sol_util_strtol(sep + 1, &end, len, 10);
+            if (end != sep + len) {
+                SOL_WRN("Could not convert the port string to int");
+                goto err_getaddr;
+            }
+            *sep = '\0';
+        } else
+            port = 0;
+
+        r = getaddrinfo(host, NULL, &hints, &addr_list);
+
+        //Go back to the original string.
+        if (sep)
+            *sep = ':';
+
+        if (r != 0) {
+            SOL_WRN("Could not fetch address info of %s."
+                " Reason: %s", ctx->hostname, gai_strerror(r));
+            goto err_getaddr;
+        }
+
+        //Count how many addrs we have.
+        for (addr = addr_list, addr_count = 0; addr != NULL;
+            addr = addr->ai_next, addr_count++) ;
+
+        sol_addr_list = calloc(addr_count,
+            sizeof(struct sol_network_link_addr));
+        SOL_NULL_CHECK_GOTO(sol_addr_list, err_alloc);
+
+        for (addr = addr_list, j = 0; addr != NULL; addr = addr->ai_next, j++) {
+
+            sol_addr_list[j].family = addr->ai_family;
+            sol_addr_list[j].port = port;
+
+            if (addr->ai_family == AF_INET) {
+                memcpy(&sol_addr_list[j].addr.in,
+                    &(((struct sockaddr_in *)addr->ai_addr)->sin_addr),
+                    sizeof(sol_addr_list[j].addr.in));
+            } else if (addr->ai_family == AF_INET6) {
+                memcpy(&sol_addr_list[j].addr.in6,
+                    &(((struct sockaddr_in6 *)addr->ai_addr)->sin6_addr),
+                    sizeof(sol_addr_list[j].addr.in6));
+            }
+        }
+
+        freeaddrinfo(addr_list);
+        ctx->cb((void *)ctx->data, sol_str_slice_from_str(ctx->hostname),
+            sol_addr_list, addr_count);
+        free(sol_addr_list);
+        hostname_info_ctx_clear(ctx);
+        continue;
+
+err_alloc:
+        freeaddrinfo(addr_list);
+err_getaddr:
+        ctx->cb((void *)ctx->data, sol_str_slice_from_str(ctx->hostname),
+            NULL, 0);
+        hostname_info_ctx_clear(ctx);
+    }
+
+    sol_vector_clear(&network->algo);
+    return false;
+}
+
+SOL_API int
+sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
+    enum sol_network_family family, void (*host_info_cb)(void *data,
+    const struct sol_str_slice host,
+    struct sol_network_link_addr *sol_addr_list, uint16_t list_size),
+    const void *data)
+{
+    struct hostname_info_ctx *ctx;
+
+    SOL_NULL_CHECK(host_info_cb, -EINVAL);
+    SOL_NULL_CHECK(network, -EINVAL);
+
+    ctx = sol_vector_append(&network->algo);
+    SOL_NULL_CHECK(ctx, -ENOMEM);
+
+    ctx->hostname = sol_str_slice_to_string(hostname);
+    SOL_NULL_CHECK_GOTO(ctx->hostname, err_hostname);
+
+    ctx->cb = host_info_cb;
+    ctx->data = data;
+    ctx->family = family;
+
+    if (!network->hostname_worker) {
+        network->hostname_worker = sol_timeout_add(0, hostname_worker, NULL);
+        SOL_NULL_CHECK_GOTO(network->hostname_worker, err_worker);
+    }
+
+    return network->algo.len - 1;
+
+err_worker:
+    hostname_info_ctx_clear(ctx);
+err_hostname:
+    (void)sol_vector_del_element(&network->algo, ctx);
+    return -ENOMEM;
+}
+
+SOL_API int
+sol_network_cancel_get_hostname_address_info(int handle)
+{
+    int r;
+
+    r = sol_vector_del(&network->algo, handle);
+    SOL_INT_CHECK(r, < 0, r);
+    if (!network->algo.len) {
+        sol_timeout_del(network->hostname_worker);
+        network->hostname_worker = NULL;
+    }
+    return 0;
 }

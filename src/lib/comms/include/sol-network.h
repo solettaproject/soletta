@@ -36,6 +36,7 @@
 
 #include <sol-common-buildopts.h>
 #include <sol-vector.h>
+#include <sol-str-slice.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,6 +95,11 @@ enum sol_network_link_flags {
     SOL_NETWORK_LINK_LOOPBACK      = (1 << 2),
     SOL_NETWORK_LINK_MULTICAST     = (1 << 3),
     SOL_NETWORK_LINK_RUNNING       = (1 << 4),
+};
+
+enum sol_network_family {
+    SOL_NETWORK_FAMILY_AF_INET = (1 << 0),
+    SOL_NETWORK_FAMILY_AF_INET6 = (1 << 1)
 };
 
 /**
@@ -265,6 +271,46 @@ char *sol_network_link_get_name(const struct sol_network_link *link);
  * @return @c true on success, @c false on error.
  */
 bool sol_network_link_up(uint16_t link_index);
+
+/**
+ * @brief Gets a hostname address info.
+ *
+ * This function will fetch the address of a given hostname, since this may
+ * take some time, this will my an async operation. When the address info
+ * is ready the @c host_info_cb will called with the host's address info.
+ * If an error happens or this is not information about this host's address,
+ * @c sol_addr_list will be set to @c NULL and @c list_size will be @c 0.
+ *
+ * The @c hostname can be in the following forms:
+ * - www.example.com
+ * - www.example.com:80
+ * - protocol://www.example.com:80
+ * - protocol://www.example.com
+ *
+ * If the port was provided the elements of @c sol_addr_list will have
+ * will match the provided port.
+ *
+ * @param hostname The hostname to get the address info.
+ * @param family The family, it can be IP, IPv6 or both.
+ * @param host_info_cb A callback to be called with the address list.
+ * @param data Data to @c host_info_cb.
+ * @see sol_network_cancel_get_hostname_address_info()
+ * @see #sol_network_family
+ */
+int sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
+    enum sol_network_family family, void (*host_info_cb)(void *data,
+    const struct sol_str_slice hostname,
+    struct sol_network_link_addr *sol_addr_list, uint16_t list_size),
+    const void *data);
+
+/**
+ * @brief Cancels a request to get the hostname info.
+ *
+ * @param handle The handle returned by #sol_network_get_hostname_info
+ * @return 0 on success, -errno on error.
+ * @see sol_network_get_hostname_address_info()
+ */
+int sol_network_cancel_get_hostname_address_info(int handle);
 
 /**
  * @}
