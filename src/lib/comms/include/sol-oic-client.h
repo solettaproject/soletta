@@ -199,7 +199,7 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
     bool (*resource_found_cb)(struct sol_oic_client *cli,
     struct sol_oic_resource *res,
     void *data),
-    void *data);
+    const void *data);
 
 /**
  * @brief Retrieve platform information.
@@ -227,7 +227,7 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_platform_information *info, void *data),
-    void *data);
+    const void *data);
 
 /**
  * @brief Retrieve platform information from @a cliaddr.
@@ -256,7 +256,7 @@ bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *cliaddr,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_platform_information *info, void *data),
-    void *data);
+    const void *data);
 
 /**
  * @brief Retrieve server information.
@@ -284,7 +284,7 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_server_information *info, void *data),
-    void *data);
+    const void *data);
 
 /**
  * @brief Retrieve server information from @a cliaddr.
@@ -313,7 +313,7 @@ bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *cliaddr,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_server_information *info, void *data),
-    void *data);
+    const void *data);
 
 /**
  * @brief Send a request packet to server for specific @a resource.
@@ -346,7 +346,7 @@ bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_o
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec, void *data),
-    void *callback_data);
+    const void *callback_data);
 
 /**
  * @brief Send a request packet to server for specific @a resource, using
@@ -383,7 +383,7 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec, void *data),
-    void *callback_data);
+    const void *callback_data);
 
 /**
  * @brief Set this resource as observable for this client.
@@ -422,7 +422,7 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
 bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_map, void *data),
-    void *data, bool observe);
+    const void *data, bool observe);
 
 /**
  * @brief Set this resource as observable for this client, using non-confirmable
@@ -466,7 +466,7 @@ bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struc
 bool sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_map, void *data),
-    void *data, bool observe);
+    const void *data, bool observe);
 
 /**
  * @brief Take a reference of the given server.

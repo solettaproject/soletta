@@ -86,7 +86,7 @@ typedef enum {
 
 struct sol_mavlink {
     const struct sol_mavlink_config *config;
-    void *data;
+    const void *data;
 
     struct sol_str_slice *address;
     int port;
@@ -288,10 +288,10 @@ sol_mavlink_armed_transition(struct sol_mavlink *mavlink, uint8_t base_mode)
 
         if (curr->armed) {
             if (CHECK_HANDLER(mavlink, armed))
-                HANDLERS(mavlink)->armed(mavlink->data, mavlink);
+                HANDLERS(mavlink)->armed((void *)mavlink->data, mavlink);
         } else {
             if (CHECK_HANDLER(mavlink, disarmed))
-                HANDLERS(mavlink)->disarmed(mavlink->data, mavlink);
+                HANDLERS(mavlink)->disarmed((void *)mavlink->data, mavlink);
         }
 
         break;
@@ -377,7 +377,7 @@ sol_mavlink_heartbeat_handler(struct sol_mavlink *mavlink, mavlink_message_t *ms
         mavlink->mode = mode;
 
         if (CHECK_HANDLER(mavlink, mode_changed))
-            HANDLERS(mavlink)->mode_changed(mavlink->data, mavlink);
+            HANDLERS(mavlink)->mode_changed((void *)mavlink->data, mavlink);
     }
 
     if (mavlink->base_mode != base_mode) {
@@ -404,7 +404,7 @@ sol_mavlink_position_handler(struct sol_mavlink *mavlink, mavlink_message_t *msg
         mavlink->status |= SOL_MAVLINK_STATUS_GPS_SETUP;
 
         if (CHECK_HANDLER(mavlink, position_changed))
-            HANDLERS(mavlink)->position_changed(mavlink->data, mavlink);
+            HANDLERS(mavlink)->position_changed((void *)mavlink->data, mavlink);
     }
 }
 
@@ -436,7 +436,7 @@ static void
 sol_mavlink_mission_reached_handler(struct sol_mavlink *mavlink)
 {
     if (CHECK_HANDLER(mavlink, mission_reached))
-        HANDLERS(mavlink)->mission_reached(mavlink->data, mavlink);
+        HANDLERS(mavlink)->mission_reached((void *)mavlink->data, mavlink);
 }
 
 static bool
@@ -489,7 +489,7 @@ sol_mavlink_fd_handler(void *data, int fd, uint32_t cond)
         mavlink->status = SOL_MAVLINK_STATUS_READY;
 
         if (CHECK_HANDLER(mavlink, connect))
-            HANDLERS(mavlink)->connect(mavlink->data, mavlink);
+            HANDLERS(mavlink)->connect((void *)mavlink->data, mavlink);
     }
 
     return true;
@@ -696,7 +696,7 @@ sol_mavlink_free(struct sol_mavlink *mavlink)
 }
 
 SOL_API struct sol_mavlink *
-sol_mavlink_connect(const char *addr, const struct sol_mavlink_config *config, void *data)
+sol_mavlink_connect(const char *addr, const struct sol_mavlink_config *config, const void *data)
 {
     struct sol_mavlink *mavlink;
     struct sol_str_slice address;

@@ -633,7 +633,7 @@ sol_coap_send_packet_with_reply(struct sol_coap_server *server, struct sol_coap_
     const struct sol_network_link_addr *cliaddr,
     bool (*reply_cb)(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
-    void *data), void *data)
+    void *data), const void *data)
 {
     struct sol_str_slice option = {};
     struct pending_reply *reply = NULL;
@@ -1604,7 +1604,7 @@ sol_coap_packet_has_payload(struct sol_coap_packet *pkt)
 
 SOL_API bool
 sol_coap_server_register_resource(struct sol_coap_server *server,
-    const struct sol_coap_resource *resource, void *data)
+    const struct sol_coap_resource *resource, const void *data)
 {
     struct resource_context *c;
 

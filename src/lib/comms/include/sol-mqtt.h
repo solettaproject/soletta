@@ -359,7 +359,7 @@ struct sol_mqtt_config {
  *
  * @return New mqtt object on sucess, NULL otherwise
  */
-struct sol_mqtt *sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config, void *data);
+struct sol_mqtt *sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config, const void *data);
 
 /**
  * @brief Reestablish the connection to the MQTT broker

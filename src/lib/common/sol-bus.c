@@ -85,9 +85,9 @@ struct sol_bus_client {
     sd_bus_slot *properties_changed;
     sd_bus_slot *name_owner_slot;
     void (*connect)(void *data, const char *unique);
-    void *connect_data;
+    const void *connect_data;
     void (*disconnect)(void *data);
-    void *disconnect_data;
+    const void *disconnect_data;
 };
 
 static struct ctx _ctx;
@@ -645,12 +645,12 @@ name_owner_changed(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         /* Assuming that when a name is replaced, calling 'connected()' is
          * the right thing to do.
          */
-        client->connect(client->connect_data, new);
+        client->connect((void *)client->connect_data, new);
         return 0;
     }
 
     if (client->disconnect)
-        client->disconnect(client->disconnect_data);
+        client->disconnect((void *)client->disconnect_data);
 
     return 0;
 }
@@ -875,7 +875,7 @@ get_name_owner_reply_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_err
     SOL_INT_CHECK(r, < 0, -EINVAL);
 
     if (client->connect)
-        client->connect(client->connect_data, unique);
+        client->connect((void *)client->connect_data, unique);
 
     return 0;
 }
@@ -883,7 +883,7 @@ get_name_owner_reply_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_err
 SOL_API int
 sol_bus_client_set_connect_handler(struct sol_bus_client *client,
     void (*connect)(void *data, const char *unique),
-    void *data)
+    const void *data)
 {
     SOL_NULL_CHECK(client, -EINVAL);
 
@@ -908,7 +908,7 @@ sol_bus_client_set_connect_handler(struct sol_bus_client *client,
 SOL_API int
 sol_bus_client_set_disconnect_handler(struct sol_bus_client *client,
     void (*disconnect)(void *data),
-    void *data)
+    const void *data)
 {
     SOL_NULL_CHECK(client, -EINVAL);
 

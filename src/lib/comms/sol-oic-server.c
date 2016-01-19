@@ -780,7 +780,7 @@ static bool
 send_notification_to_server(struct sol_oic_server_resource *resource,
     struct sol_coap_server *server,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
-    void *data)
+    const void *data)
 {
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     struct sol_coap_packet *pkt;
@@ -796,7 +796,7 @@ send_notification_to_server(struct sol_oic_server_resource *resource,
 
     err = sol_oic_packet_cbor_create(pkt, resource->href, &oic_map_writer);
     SOL_INT_CHECK_GOTO(err, != CborNoError, end);
-    if (!fill_repr_map(data, &oic_map_writer))
+    if (!fill_repr_map((void *)data, &oic_map_writer))
         goto end;
     err = sol_oic_packet_cbor_close(pkt, &oic_map_writer);
     SOL_INT_CHECK_GOTO(err, != CborNoError, end);
@@ -812,7 +812,7 @@ end:
 SOL_API bool
 sol_oic_notify_observers(struct sol_oic_server_resource *resource,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
-    void *data)
+    const void *data)
 {
     bool sent_server = false;
     bool sent_dtls_server = false;

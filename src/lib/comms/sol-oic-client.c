@@ -87,14 +87,14 @@
 struct find_resource_ctx {
     struct sol_oic_client *client;
     bool (*cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data);
-    void *data;
+    const void *data;
     int64_t token;
 };
 
 struct server_info_ctx {
     struct sol_oic_client *client;
     void (*cb)(struct sol_oic_client *cli, const struct sol_oic_platform_information *info, void *data);
-    void *data;
+    const void *data;
     int64_t token;
 };
 
@@ -103,7 +103,7 @@ struct resource_request_ctx {
     struct sol_oic_resource *res;
     void (*cb)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
         const struct sol_oic_map_reader *repr_vec, void *data);
-    void *data;
+    const void *data;
     int64_t token;
 };
 
@@ -295,7 +295,7 @@ _platform_info_reply_cb(struct sol_coap_server *server,
     struct sol_oic_platform_information info = { 0 };
 
     if (!req || !cliaddr) {
-        ctx->cb(ctx->client, NULL, ctx->data);
+        ctx->cb(ctx->client, NULL, (void *)ctx->data);
         goto free_ctx;
     }
 
@@ -319,7 +319,7 @@ _platform_info_reply_cb(struct sol_coap_server *server,
 
     if (_parse_platform_info_payload(&info, payload, payload_len)) {
         SOL_SET_API_VERSION(info.api_version = SOL_OIC_PLATFORM_INFORMATION_API_VERSION; )
-        ctx->cb(ctx->client, &info, ctx->data);
+        ctx->cb(ctx->client, &info, (void *)ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
     }
@@ -352,7 +352,7 @@ _server_info_reply_cb(struct sol_coap_server *server,
     struct sol_oic_server_information info = { 0 };
 
     if (!req || !cliaddr) {
-        ctx->cb(ctx->client, NULL, ctx->data);
+        ctx->cb(ctx->client, NULL, (void *)ctx->data);
         goto free_ctx;
     }
 
@@ -381,7 +381,7 @@ _server_info_reply_cb(struct sol_coap_server *server,
         SOL_SET_API_VERSION(info.api_version = SOL_OIC_SERVER_INFORMATION_API_VERSION; )
         cb = (void (*)(struct sol_oic_client *cli,
             const struct sol_oic_server_information *info, void *data))ctx->cb;
-        cb(ctx->client, &info, ctx->data);
+        cb(ctx->client, &info, (void *)ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
     }
@@ -404,7 +404,7 @@ client_get_info(struct sol_oic_client *client,
     bool (*reply_cb)(struct sol_coap_server *server, struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr, void *data),
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_platform_information *info, void *data),
-    void *data)
+    const void *data)
 {
     struct server_info_ctx *ctx;
     struct sol_coap_packet *req;
@@ -449,7 +449,7 @@ sol_oic_client_get_platform_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_platform_information *info, void *data),
-    void *data)
+    const void *data)
 {
     struct sol_network_link_addr addr;
     struct sol_coap_server *server;
@@ -470,7 +470,7 @@ sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *cliaddr,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_platform_information *info, void *data),
-    void *data)
+    const void *data)
 {
     SOL_LOG_INTERNAL_INIT_ONCE;
 
@@ -487,7 +487,7 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
     struct sol_oic_resource *resource,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_server_information *info, void *data),
-    void *data)
+    const void *data)
 {
     struct sol_network_link_addr addr;
     struct sol_coap_server *server;
@@ -514,7 +514,7 @@ sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     struct sol_network_link_addr *cliaddr,
     void (*info_received_cb)(struct sol_oic_client *cli,
     const struct sol_oic_server_information *info, void *data),
-    void *data)
+    const void *data)
 {
     void (*cb)(struct sol_oic_client *cli,
         const struct sol_oic_platform_information *info, void *data);
@@ -656,7 +656,7 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
             if (!res->device_id.data)
                 goto error;
             res->device_id.len = device_id.len;
-            if (!ctx->cb(ctx->client, res, ctx->data)) {
+            if (!ctx->cb(ctx->client, res, (void *)ctx->data)) {
                 sol_oic_resource_unref(res);
                 free((char *)device_id.data);
                 *cb_return  = false;
@@ -691,7 +691,7 @@ _find_resource_reply_cb(struct sol_coap_server *server,
     }
 
     if (!req || !cliaddr) {
-        if (!ctx->cb(ctx->client, NULL, ctx->data)) {
+        if (!ctx->cb(ctx->client, NULL, (void *)ctx->data)) {
             free(ctx);
             return false;
         }
@@ -724,7 +724,7 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     bool (*resource_found_cb)(struct sol_oic_client *cli,
     struct sol_oic_resource *res,
     void *data),
-    void *data)
+    const void *data)
 {
     static const char oic_well_known[] = "/oic/res";
     struct sol_coap_packet *req;
@@ -816,7 +816,7 @@ _resource_request_cb(struct sol_coap_server *server,
         return true;
     }
 
-    ctx->cb(ctx->client, cliaddr, (struct sol_oic_map_reader *)&root, ctx->data);
+    ctx->cb(ctx->client, cliaddr, (struct sol_oic_map_reader *)&root, (void *)ctx->data);
 
     return true;
 }
@@ -939,7 +939,7 @@ sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_re
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec, void *data),
-    void *callback_data)
+    const void *callback_data)
 {
     SOL_NULL_CHECK(client, false);
     OIC_CLIENT_CHECK_API(client, false);
@@ -948,7 +948,7 @@ sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_re
 
     return _resource_request(client, res, method,
         SOL_COAP_TYPE_CON, fill_repr_map, fill_repr_map_data, callback,
-        callback_data, false);
+        (void *)callback_data, false);
 }
 
 SOL_API bool
@@ -958,7 +958,7 @@ sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *client, s
     void *fill_repr_map_data,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec, void *data),
-    void *callback_data)
+    const void *callback_data)
 {
     SOL_NULL_CHECK(client, false);
     OIC_CLIENT_CHECK_API(client, false);
@@ -967,7 +967,7 @@ sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *client, s
 
     return _resource_request(client, res, method,
         SOL_COAP_TYPE_NONCON, fill_repr_map, fill_repr_map_data, callback,
-        callback_data, false);
+        (void *)callback_data, false);
 }
 
 static bool
@@ -983,7 +983,7 @@ _poll_resource(void *data)
     }
 
     r = _resource_request(ctx->client, ctx->res, SOL_COAP_METHOD_GET,
-        SOL_COAP_TYPE_CON, NULL, NULL, ctx->cb, ctx->data, false);
+        SOL_COAP_TYPE_CON, NULL, NULL, ctx->cb, (void *)ctx->data, false);
     if (!r)
         SOL_WRN("Could not send polling packet to observable resource");
 
@@ -1075,9 +1075,9 @@ SOL_API bool
 sol_oic_client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec, void *data),
-    void *data, bool observe)
+    const void *data, bool observe)
 {
-    return client_resource_set_observable(client, res, callback, data,
+    return client_resource_set_observable(client, res, callback, (void *)data,
         observe, false);
 }
 
@@ -1085,8 +1085,8 @@ SOL_API bool
 sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *client, struct sol_oic_resource *res,
     void (*callback)(struct sol_oic_client *cli, const struct sol_network_link_addr *addr,
     const struct sol_oic_map_reader *repr_vec, void *data),
-    void *data, bool observe)
+    const void *data, bool observe)
 {
-    return client_resource_set_observable(client, res, callback, data,
+    return client_resource_set_observable(client, res, callback, (void *)data,
         observe, true);
 }

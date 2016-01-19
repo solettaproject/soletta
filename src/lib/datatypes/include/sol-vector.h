@@ -331,7 +331,7 @@ sol_ptr_vector_get_len(const struct sol_ptr_vector *pv)
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_ptr_vector_append(struct sol_ptr_vector *pv, void *ptr);
+int sol_ptr_vector_append(struct sol_ptr_vector *pv, const void *ptr);
 
 /**
  * @brief Return the element of the vector at the given index (no safety checks).
@@ -382,7 +382,7 @@ sol_ptr_vector_get(const struct sol_ptr_vector *pv, uint16_t i)
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, void *ptr);
+int sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, const void *ptr);
 
 /**
  * @brief Insert a pointer in the pointer vector, using the given comparison function
@@ -408,7 +408,7 @@ int sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, void *ptr);
  * @see sol_ptr_vector_find_first_sorted()
  * @see sol_ptr_vector_find_last_sorted()
  */
-int32_t sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare_cb)(const void *data1, const void *data2));
+int32_t sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, const void *ptr, int (*compare_cb)(const void *data1, const void *data2));
 
 /**
  * @brief Update sorted pointer vector so the element is still in order.
@@ -450,7 +450,7 @@ int32_t sol_ptr_vector_update_sorted(struct sol_ptr_vector *pv, uint16_t i, int 
  * @see sol_ptr_vector_find_first_sorted()
  * @see sol_ptr_vector_find_last_sorted()
  */
-int sol_ptr_vector_insert_at(struct sol_ptr_vector *pv, uint16_t i, void *ptr);
+int sol_ptr_vector_insert_at(struct sol_ptr_vector *pv, uint16_t i, const void *ptr);
 
 /**
  * @brief Remove an pointer from the vector.

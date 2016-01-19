@@ -191,7 +191,7 @@ sol_socket_linux_del(struct sol_socket *socket)
 }
 
 static int
-sol_socket_linux_set_on_read(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_linux_set_on_read(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), const void *data)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
 
@@ -210,7 +210,7 @@ sol_socket_linux_set_on_read(struct sol_socket *socket, bool (*cb)(void *data, s
 }
 
 static int
-sol_socket_linux_set_on_write(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_linux_set_on_write(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), const void *data)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
 

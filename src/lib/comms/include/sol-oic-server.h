@@ -353,7 +353,7 @@ void sol_oic_server_del_resource(struct sol_oic_server_resource *resource);
  */
 bool sol_oic_notify_observers(struct sol_oic_server_resource *resource,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
-    void *data);
+    const void *data);
 
 /**
  * @}

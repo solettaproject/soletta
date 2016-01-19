@@ -193,7 +193,7 @@ ptr_vector_find_sorted(const struct sol_ptr_vector *pv, uint16_t low, uint16_t h
 }
 
 SOL_API int
-sol_ptr_vector_insert_at(struct sol_ptr_vector *pv, uint16_t i, void *ptr)
+sol_ptr_vector_insert_at(struct sol_ptr_vector *pv, uint16_t i, const void *ptr)
 {
     unsigned char *data, *dst, *src;
 
@@ -214,7 +214,7 @@ sol_ptr_vector_insert_at(struct sol_ptr_vector *pv, uint16_t i, void *ptr)
 }
 
 SOL_API int32_t
-sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, void *ptr, int (*compare)(const void *data1, const void *data2))
+sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, const void *ptr, int (*compare)(const void *data1, const void *data2))
 {
     int dir;
     uint32_t index;
@@ -301,26 +301,26 @@ sol_ptr_vector_match_sorted(const struct sol_ptr_vector *pv, const void *elem, i
 }
 
 SOL_API int
-sol_ptr_vector_append(struct sol_ptr_vector *pv, void *ptr)
+sol_ptr_vector_append(struct sol_ptr_vector *pv, const void *ptr)
 {
     void **data;
 
     data = sol_vector_append(&pv->base);
     if (!data)
         return -ENODATA;
-    *data = ptr;
+    *data = (void *)ptr;
     return 0;
 }
 
 SOL_API int
-sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, void *ptr)
+sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, const void *ptr)
 {
     void **data;
 
     data = sol_vector_get(&pv->base, i);
     if (!data)
         return -ENODATA;
-    *data = ptr;
+    *data = (void *)ptr;
     return 0;
 }
 

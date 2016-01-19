@@ -96,7 +96,7 @@ sol_socket_del(struct sol_socket *s)
 }
 
 SOL_API int
-sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
 {
     SOL_NULL_CHECK(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->set_on_read, -ENOSYS);
@@ -105,7 +105,7 @@ sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_s
 }
 
 SOL_API int
-sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
 {
     SOL_NULL_CHECK(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->set_on_write, -ENOSYS);

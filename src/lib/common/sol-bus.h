@@ -191,7 +191,7 @@ sd_bus *sol_bus_client_get_bus(struct sol_bus_client *client);
  */
 int sol_bus_client_set_connect_handler(struct sol_bus_client *client,
     void (*connect)(void *data, const char *unique),
-    void *data);
+    const void *data);
 
 /**
  * Allows users to be notified when a service name exits the bus.
@@ -204,7 +204,7 @@ int sol_bus_client_set_connect_handler(struct sol_bus_client *client,
  */
 int sol_bus_client_set_disconnect_handler(struct sol_bus_client *client,
     void (*disconnect)(void *data),
-    void *data);
+    const void *data);
 
 /**
  * Allows controlled notification of changes in properties.

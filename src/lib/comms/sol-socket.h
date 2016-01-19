@@ -50,8 +50,8 @@ enum sol_socket_type {
 struct sol_socket *sol_socket_new(int domain, enum sol_socket_type type, int protocol);
 void sol_socket_del(struct sol_socket *s);
 
-int sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
-int sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data);
+int sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data);
+int sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data);
 
 int sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
 
