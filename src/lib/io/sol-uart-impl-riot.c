@@ -56,8 +56,9 @@ struct sol_uart {
 
         void (*tx_cb)(void *data, struct sol_uart *uart, unsigned char *tx, int status);
         const void *tx_user_data;
+        struct sol_timeout *tx_writer;
         const unsigned char *tx_buffer;
-        unsigned int tx_length, tx_index;
+        unsigned int tx_length;
     } async;
 };
 
@@ -80,29 +81,19 @@ uart_tx_dispatch(struct sol_uart *uart, int status)
     uart->async.tx_buffer = NULL;
     if (!uart->async.tx_cb)
         return;
-    uart->async.tx_cb((void *)uart->async.tx_user_data, uart, tx, -1);
+    uart->async.tx_cb((void *)uart->async.tx_user_data, uart, tx, status);
 }
 
-static int
+static bool
 uart_tx_cb(void *arg)
 {
     struct sol_uart *uart = arg;
 
-    if (uart_write(uart->id, (char)uart->async.tx_buffer[uart->async.tx_index])
-        == -1) {
-        SOL_ERR("Error when writing to UART %d.", uart->id);
-        uart_tx_dispatch(uart, -1);
-        return uart->async.tx_buffer != NULL;
-    }
+    uart_write(uart->id, uart->async.tx_buffer, uart->async.tx_length);
+    uart->async.tx_writer = NULL;
+    uart_tx_dispatch(uart, uart->async.tx_length);
 
-    uart->async.tx_index++;
-
-    if (uart->async.tx_index == uart->async.tx_length) {
-        uart_tx_dispatch(uart, uart->async.tx_index);
-        return uart->async.tx_buffer != NULL;
-    }
-
-    return 1;
+    return false;
 }
 
 SOL_API struct sol_uart *
@@ -141,7 +132,7 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
     uart->id = strtol(port_name, NULL, 10);
     uart_poweron(uart->id);
     ret = sol_interrupt_scheduler_uart_init_int(uart->id,
-        baud_rata_table[config->baud_rate], uart_rx_cb, uart_tx_cb, uart,
+        baud_rata_table[config->baud_rate], uart_rx_cb, uart,
         &uart->async.handler);
     SOL_INT_CHECK_GOTO(ret, != 0, fail);
 
@@ -160,8 +151,10 @@ sol_uart_close(struct sol_uart *uart)
 {
     SOL_NULL_CHECK(uart);
 
-    if (uart->async.tx_buffer)
+    if (uart->async.tx_writer) {
+        sol_timeout_del(uart->async.tx_writer);
         uart_tx_dispatch(uart, -1);
+    }
 
     if (uart->async.handler)
         sol_interrupt_scheduler_uart_stop(uart->id, uart->async.handler);
@@ -179,10 +172,9 @@ sol_uart_write(struct sol_uart *uart, const unsigned char *tx, unsigned int leng
     uart->async.tx_buffer = tx;
     uart->async.tx_cb = tx_cb;
     uart->async.tx_user_data = data;
-    uart->async.tx_index = 0;
     uart->async.tx_length = length;
 
-    uart_tx_begin(uart->id);
+    uart->async.tx_writer = sol_timeout_add(0, uart_tx_cb, uart);
 
     return true;
 }

@@ -47,7 +47,6 @@ enum interrupt_type {
 #endif
 #ifdef USE_UART
     UART_RX,
-    UART_TX
 #endif
 };
 
@@ -70,7 +69,6 @@ struct uart_interrupt_data {
     struct interrupt_data_base base;
     uart_t uart_id;
     uart_rx_cb_t rx_cb;
-    uart_tx_cb_t tx_cb;
     const void *data;
     uint16_t buf_len;
     uint16_t buf_next_read;
@@ -179,19 +177,8 @@ uart_rx_cb(void *data, char char_read)
     interrupt_scheduler_notify_main_thread(UART_RX, &int_data->base);
 }
 
-/* Run in interrupt context */
-static int
-uart_tx_cb(void *data)
-{
-    if (!data)
-        return 0;
-
-    interrupt_scheduler_notify_main_thread(UART_TX, data);
-    return 0;
-}
-
 int
-sol_interrupt_scheduler_uart_init_int(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, uart_tx_cb_t tx_cb, const void *arg, void **handler)
+sol_interrupt_scheduler_uart_init_int(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, const void *arg, void **handler)
 {
     struct uart_interrupt_data *int_data;
     uint16_t buf_size;
@@ -205,11 +192,10 @@ sol_interrupt_scheduler_uart_init_int(uart_t uart, uint32_t baudrate, uart_rx_cb
 
     int_data->uart_id = uart;
     int_data->rx_cb = rx_cb;
-    int_data->tx_cb = tx_cb;
     int_data->data = arg;
     int_data->buf_len = buf_size;
 
-    ret = uart_init(uart, baudrate, uart_rx_cb, uart_tx_cb, int_data);
+    ret = uart_init(uart, baudrate, uart_rx_cb, int_data);
     SOL_INT_CHECK_GOTO(ret, < 0, error);
 
     *handler = int_data;
@@ -232,7 +218,7 @@ sol_interrupt_scheduler_uart_stop(uart_t uart, void *handler)
      * that's the case. If uart_poweroff() works, it will be called by the
      * sol_uart implementation after this function.
      */
-    uart_init(uart, 9600, uart_rx_cb, uart_tx_cb, NULL);
+    uart_init(uart, 9600, uart_rx_cb, NULL);
     interrupt_scheduler_handler_free(handler);
 }
 #endif
@@ -282,17 +268,6 @@ sol_interrupt_scheduler_process(msg_t *msg)
             interrupt_scheduler_handler_free(int_data);
         else
             int_data->buf_next_read = start;
-        break;
-    }
-    case UART_TX: {
-        struct uart_interrupt_data *int_data = (void *)msg->content.ptr;
-
-        if (int_data->base.deleted)
-            interrupt_scheduler_handler_free(int_data);
-        else {
-            if (int_data->tx_cb((void *)int_data->data))
-                uart_tx_begin(int_data->uart_id);
-        }
         break;
     }
 #endif
