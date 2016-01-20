@@ -300,13 +300,11 @@ bool sol_network_link_up(uint16_t link_index);
  * @brief Gets a hostname address info.
  *
  * This function will fetch the address of a given hostname, since this may
- * take some time, this will my an async operation. When the address info
+ * take some time, this will be an async operation. When the address info
  * is ready the @c host_info_cb will called with the host's address info.
- * If an error happens or this is not information about this host's address,
- * @c sol_addr_list will be set to @c NULL and @c list_size will be @c 0.
- *
- * If the port was provided the elements of @c sol_addr_list will have
- * will match the provided port.
+ * If an error happens or it was not possible to fetch the host address
+ * information, @c addrs_list will be set to @c NULL.
+ * The list @c addrs_list will contains a set of #sol_network_link_addr.
  *
  * @param hostname The hostname to get the address info.
  * @param family The family, it can be IP, IPv6 or both.
@@ -319,8 +317,7 @@ bool sol_network_link_up(uint16_t link_index);
 struct sol_network_hostname_handle *
 sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
     enum sol_network_family family, void (*host_info_cb)(void *data,
-    const struct sol_str_slice hostname,
-    struct sol_network_link_addr *sol_addr_list, uint16_t list_size),
+    const struct sol_str_slice hostname, const struct sol_vector *addrs_list),
     const void *data);
 
 /**
