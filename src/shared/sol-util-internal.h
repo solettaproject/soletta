@@ -157,3 +157,5 @@ align_power2_short_uint(unsigned short u)
         (void)(&_max1 == &_max2); \
         _max1 > _max2 ? _max1 : _max2; \
     })
+
+#define sol_abs(x) ((x) < 0 ? (-x) : (x))

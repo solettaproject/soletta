@@ -767,8 +767,11 @@ sol_util_int64_mul(const int64_t a, const int64_t b, int64_t *out)
     if (__builtin_mul_overflow(a, b, out))
         return -EOVERFLOW;
 #else
-    if ((a >= OVERFLOW_INT64 || b >= OVERFLOW_INT64) &&
-        a > 0 && INT64_MAX / a < b)
+    int64_t abs_a = sol_abs(a);
+    int64_t abs_b = sol_abs(b);
+
+    if ((abs_a >= OVERFLOW_INT64 || abs_b >= OVERFLOW_INT64) &&
+        abs_a > 0 && INT64_MAX / abs_a < abs_b)
         return -EOVERFLOW;
     *out = a * b;
 #endif
