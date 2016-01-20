@@ -72,7 +72,7 @@ ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_ne
     LL_SEARCH_SCALAR(pkt, udp, type, GNRC_NETTYPE_UDP);
     udphdr = udp->data;
 
-    cliaddr->family = AF_INET6;
+    cliaddr->family = SOL_NETWORK_FAMILY_INET6;
     memcpy(cliaddr->addr.in6, iphdr->src.u8, sizeof(iphdr->src.u8));
     cliaddr->port = byteorder_ntohs(udphdr->src_port);
 
@@ -236,7 +236,7 @@ sol_socket_riot_new(int domain, enum sol_socket_type type, int protocol)
 {
     struct sol_socket_riot *socket;
 
-    SOL_INT_CHECK_GOTO(domain, != AF_INET6, unsupported_family);
+    SOL_INT_CHECK_GOTO(domain, != SOL_NETWORK_FAMILY_INET6, unsupported_family);
 
     socket = calloc(1, sizeof(*socket));
     SOL_NULL_CHECK_GOTO(socket, socket_error);

@@ -45,6 +45,7 @@
 #include "sol-http-server.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
+#include "sol-network-util.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
 #include "sol-util.h"
@@ -1064,13 +1065,13 @@ sol_http_request_get_interface_address(const struct sol_http_request *request,
         return -EINVAL;
     }
 
-    address->family = ((struct sockaddr *)&addr)->sa_family;
+    address->family = sol_network_af_to_sol(((struct sockaddr *)&addr)->sa_family);
     switch (address->family) {
-    case AF_INET:
+    case SOL_NETWORK_FAMILY_INET:
         address->port = ntohs(addr.in4.sin_port);
         memcpy(&(address->addr.in), &addr.in4.sin_addr, sizeof(addr.in4.sin_addr));
         break;
-    case AF_INET6:
+    case SOL_NETWORK_FAMILY_INET6:
         address->port = ntohs(addr.in6.sin6_port);
         memcpy(&(address->addr.in6), &addr.in6.sin6_addr, sizeof(addr.in6.sin6_addr));
         break;

@@ -609,7 +609,7 @@ main(int argc, char *argv[])
     struct sol_oic_client client = {
         SOL_SET_API_VERSION(.api_version = SOL_OIC_CLIENT_API_VERSION)
     };
-    struct sol_network_link_addr cliaddr = { .family = AF_INET, .port = 5683 };
+    struct sol_network_link_addr cliaddr = { .family = SOL_NETWORK_FAMILY_INET, .port = 5683 };
     const char *resource_type;
 
     bool (*found_resource_cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data) = NULL;

@@ -56,7 +56,7 @@ sol_network_addr_to_str(const struct sol_network_link_addr *addr,
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
-    if (addr->family != AF_INET6)
+    if (addr->family != SOL_NETWORK_FAMILY_INET6)
         return NULL;
 
     return ipv6_addr_to_str(buf, (ipv6_addr_t *)&addr->addr, len);
@@ -72,7 +72,7 @@ sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
-    if (addr->family != AF_INET6)
+    if (addr->family != SOL_NETWORK_FAMILY_INET6)
         return NULL;
 
     if (!ipv6_addr_from_str((ipv6_addr_t *)&addr->addr, buf))
@@ -109,7 +109,7 @@ add_ip6_link(uint16_t idx, gnrc_ipv6_netif_t *if_ip6)
         addr = sol_vector_append(&link->addrs);
         SOL_NULL_CHECK_GOTO(addr, addr_error);
 
-        addr->family = AF_INET6;
+        addr->family = SOL_NETWORK_FAMILY_INET6;
         memcpy(addr->addr.in6, netif_addr->addr.u8, sizeof(addr->addr.in6));
 
         link->flags |= SOL_NETWORK_LINK_UP;

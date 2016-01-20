@@ -38,6 +38,7 @@
 #include "sol-log.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
+#include "sol-network-util.h"
 #include "sol-util.h"
 
 #include "sol-socket.h"
@@ -94,7 +95,7 @@ from_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen,
     if (sockaddr->sa_family != AF_INET && sockaddr->sa_family != AF_INET6)
         return -EINVAL;
 
-    addr->family = sockaddr->sa_family;
+    addr->family = sol_network_af_to_sol(sockaddr->sa_family);
 
     if (sockaddr->sa_family == AF_INET) {
         struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
@@ -122,7 +123,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
     SOL_NULL_CHECK(sockaddr, -EINVAL);
     SOL_NULL_CHECK(socklen, -EINVAL);
 
-    if (addr->family == AF_INET) {
+    if (addr->family == SOL_NETWORK_FAMILY_INET) {
         struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in))
             return -EINVAL;
@@ -131,7 +132,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
         sock4->sin_port = htons(addr->port);
         sock4->sin_family = AF_INET;
         *socklen = sizeof(*sock4);
-    } else if (addr->family == AF_INET6) {
+    } else if (addr->family == SOL_NETWORK_FAMILY_INET6) {
         struct sockaddr_in6 *sock6 = (struct sockaddr_in6 *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in6))
             return -EINVAL;
@@ -274,13 +275,13 @@ sendmsg_multicast_addrs(int fd, struct sol_network_link *net_link,
         int level, option;
         socklen_t l, l_orig;
 
-        if (addr->family == AF_INET) {
+        if (addr->family == SOL_NETWORK_FAMILY_INET) {
             level = IPPROTO_IP;
             option = IP_MULTICAST_IF;
             p_orig = &orig_ip4_mreq;
             p_new = &ip4_mreq;
             l = sizeof(orig_ip4_mreq);
-        } else if (addr->family == AF_INET6) {
+        } else if (addr->family == SOL_NETWORK_FAMILY_INET6) {
             level = IPPROTO_IPV6;
             option = IPV6_MULTICAST_IF;
             p_orig = &orig_ip6_mreq;
@@ -345,15 +346,15 @@ sendmsg_multicast(int fd, struct msghdr *msg)
 }
 
 static bool
-is_multicast(int family, const struct sockaddr *sockaddr)
+is_multicast(enum sol_network_family family, const struct sockaddr *sockaddr)
 {
-    if (family == AF_INET6) {
+    if (family == SOL_NETWORK_FAMILY_INET6) {
         const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)sockaddr;
 
         return IN6_IS_ADDR_MULTICAST(&addr6->sin6_addr);
     }
 
-    if (family == AF_INET) {
+    if (family == SOL_NETWORK_FAMILY_INET) {
         const struct sockaddr_in *addr4 = (const struct sockaddr_in *)sockaddr;
 
         return IN_MULTICAST(htonl(addr4->sin_addr.s_addr));
@@ -401,10 +402,10 @@ sol_socket_linux_join_group(struct sol_socket *socket, int ifindex, const struct
     int level, option;
     socklen_t l;
 
-    if (group->family != AF_INET && group->family != AF_INET6)
+    if (group->family != SOL_NETWORK_FAMILY_INET && group->family != SOL_NETWORK_FAMILY_INET6)
         return -EINVAL;
 
-    if (group->family == AF_INET) {
+    if (group->family == SOL_NETWORK_FAMILY_INET) {
         memcpy(&ip_join.imr_multiaddr, group->addr.in, sizeof(group->addr.in));
         ip_join.imr_ifindex = ifindex;
 

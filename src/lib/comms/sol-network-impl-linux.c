@@ -53,6 +53,7 @@
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
+#include "sol-network-util.h"
 #include "sol-util.h"
 #include "sol-util-file.h"
 
@@ -88,7 +89,6 @@ struct sol_network {
 
 static struct sol_network *network = NULL;
 
-
 SOL_API const char *
 sol_network_addr_to_str(const struct sol_network_link_addr *addr,
     char *buf, uint32_t len)
@@ -96,7 +96,7 @@ sol_network_addr_to_str(const struct sol_network_link_addr *addr,
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
-    return inet_ntop(addr->family, &addr->addr, buf, len);
+    return inet_ntop(sol_network_sol_to_af(addr->family), &addr->addr, buf, len);
 }
 
 SOL_API const struct sol_network_link_addr *
@@ -105,7 +105,7 @@ sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
-    if (inet_pton(addr->family, buf, &addr->addr) != 1)
+    if (inet_pton(sol_network_sol_to_af(addr->family), buf, &addr->addr) != 1)
         return NULL;
     return addr;
 }
@@ -203,7 +203,7 @@ _on_addr_event(struct nlmsghdr *header)
             continue;
 
         SOL_VECTOR_FOREACH_IDX (&link->addrs, addr_itr, idx) {
-            if (addr_itr->family == ifa->ifa_family) {
+            if (sol_network_sol_to_af(addr_itr->family) == ifa->ifa_family) {
                 addr = addr_itr;
                 break;
             }
@@ -213,7 +213,7 @@ _on_addr_event(struct nlmsghdr *header)
             addr = sol_vector_append(&link->addrs);
             SOL_NULL_CHECK(addr);
 
-            addr->family = ifa->ifa_family;
+            addr->family = sol_network_af_to_sol(ifa->ifa_family);
         }
 
         if (ifa->ifa_family == AF_INET)
@@ -568,11 +568,11 @@ sol_network_link_addr_eq(const struct sol_network_link_addr *a, const struct sol
     if (a->family != b->family)
         return false;
 
-    if (a->family == AF_INET) {
+    if (a->family == SOL_NETWORK_FAMILY_INET) {
         addr_a = a->addr.in;
         addr_b = b->addr.in;
         bytes = sizeof(a->addr.in);
-    } else if (a->family == AF_INET6) {
+    } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
         addr_a = a->addr.in6;
         addr_b = b->addr.in6;
         bytes = sizeof(a->addr.in6);
@@ -603,10 +603,10 @@ hostname_worker(void *data)
 
         sol_vector_init(&sol_addr_list, sizeof(struct sol_network_link_addr));
         switch (ctx->family) {
-        case SOL_NETWORK_FAMILY_AF_INET:
+        case SOL_NETWORK_FAMILY_INET:
             hints.ai_family = AF_INET;
             break;
-        case SOL_NETWORK_FAMILY_AF_INET6:
+        case SOL_NETWORK_FAMILY_INET6:
             hints.ai_family = AF_INET6;
             break;
         default:
@@ -627,7 +627,7 @@ hostname_worker(void *data)
             sol_addr = sol_vector_append(&sol_addr_list);
             SOL_NULL_CHECK_GOTO(sol_addr, err_alloc);
 
-            sol_addr->family = addr->ai_family;
+            sol_addr->family = sol_network_af_to_sol(addr->ai_family);
 
             if (addr->ai_family == AF_INET) {
                 memcpy(&sol_addr->addr.in,
