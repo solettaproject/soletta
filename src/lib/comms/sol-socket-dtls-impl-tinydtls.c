@@ -38,6 +38,7 @@
 #include "sol-log.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
+#include "sol-network-util.h"
 #include "sol-util.h"
 
 #include "sol-socket.h"
@@ -94,7 +95,7 @@ from_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen,
     SOL_NULL_CHECK(sockaddr, -EINVAL);
     SOL_NULL_CHECK(addr, -EINVAL);
 
-    addr->family = sockaddr->sa_family;
+    addr->family = sol_network_af_to_sol(sockaddr->sa_family);
 
     if (sockaddr->sa_family == AF_INET) {
         struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
@@ -124,7 +125,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
     SOL_NULL_CHECK(sockaddr, -EINVAL);
     SOL_NULL_CHECK(socklen, -EINVAL);
 
-    if (addr->family == AF_INET) {
+    if (addr->family == SOL_NETWORK_FAMILY_INET) {
         struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in))
             return -EINVAL;
@@ -133,7 +134,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
         sock4->sin_port = htons(addr->port);
         sock4->sin_family = AF_INET;
         *socklen = sizeof(*sock4);
-    } else if (addr->family == AF_INET6) {
+    } else if (addr->family == SOL_NETWORK_FAMILY_INET6) {
         struct sockaddr_in6 *sock6 = (struct sockaddr_in6 *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in6))
             return -EINVAL;

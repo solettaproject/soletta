@@ -150,7 +150,7 @@ main(int argc, char *argv[])
     for (i = 0; path[i].data; i++)
         sol_coap_add_option(req, SOL_COAP_OPTION_URI_PATH, path[i].data, path[i].len);
 
-    cliaddr.family = AF_INET6;
+    cliaddr.family = SOL_NETWORK_FAMILY_INET6;
     if (!sol_network_addr_from_str(&cliaddr, argv[1])) {
         SOL_WRN("%s is an invalid IPv6 address", argv[1]);
         free(path);

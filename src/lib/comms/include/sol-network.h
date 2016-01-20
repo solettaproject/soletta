@@ -112,25 +112,24 @@ enum sol_network_link_flags {
 };
 
 /**
- * @brief Bitwise OR-ed flags used by sol_network_get_hostname_address_info()
+ * @brief Type of a network address
  *
- * This flags can be used to tell sol_network_get_hostname_address_info() which
- * kind of address the hostname should be translated.
- *
- * @see sol_network_get_hostname_address_info()
+ * Tells how an address should be interpreted.
  */
 enum sol_network_family {
+    /** @brief Unspecified address type */
+    SOL_NETWORK_FAMILY_UNSPEC,
     /** @brief IPv4 family. */
-    SOL_NETWORK_FAMILY_AF_INET = (1 << 0),
+    SOL_NETWORK_FAMILY_INET,
     /** @brief IPv6 family. */
-    SOL_NETWORK_FAMILY_AF_INET6 = (1 << 1)
+    SOL_NETWORK_FAMILY_INET6
 };
 
 /**
  * @brief Structure to represent a network address, both IPv6 and IPv4 are valid.
  */
 struct sol_network_link_addr {
-    uint16_t family; /**< @brief IPv4 or IPv6 family */
+    enum sol_network_family family; /**< @brief IPv4 or IPv6 family */
     union {
         uint8_t in[4];
         uint8_t in6[16];
@@ -309,7 +308,8 @@ bool sol_network_link_up(uint16_t link_index);
  * will match the provided port.
  *
  * @param hostname The hostname to get the address info.
- * @param family The family, it can be IP, IPv6 or both.
+ * @param family The family the returned addresses should be, pass SOL_NETWORK_FAMILY_UNSPEC
+ * to match them all.
  * @param host_info_cb A callback to be called with the address list.
  * @param data Data to @c host_info_cb.
  * @return A handle to a hostname or @c NULL on error.
