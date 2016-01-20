@@ -332,7 +332,7 @@ int
 sol_platform_impl_load_locales(char **locale_cache)
 {
     SOL_WRN("Not implemented");
-    return -ENOTSUP;
+    return 0;
 }
 
 int
