@@ -40,6 +40,8 @@
 #include "sol-log-internal.h"
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 
+#include "sol-io-common-zephyr.h"
+
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
 #include "sol-util.h"
@@ -101,26 +103,6 @@ struct sol_i2c {
         };
     } async;
 };
-
-static int
-zephyr_err_to_errno(int z_err)
-{
-    const int table[] = {
-        [DEV_OK] = 0,  /* No error */
-        [DEV_FAIL] = -EIO, /* General operation failure */
-        [DEV_INVALID_OP] = -EOPNOTSUPP, /* Invalid operation */
-        [DEV_INVALID_CONF] = -EINVAL, /* Invalid configuration */
-        [DEV_USED] = -EBUSY, /* Device controller in use */
-        [DEV_NO_ACCESS] = -EACCES, /* Controller not accessible */
-        [DEV_NO_SUPPORT] = -ENOTSUP, /* Device type not supported */
-        [DEV_NOT_CONFIG] = -ENXIO /* Device not configured */
-    };
-
-    SOL_EXP_CHECK(z_err < 0
-        || (unsigned)z_err > (sizeof(table) / sizeof(int)), -EINVAL);
-
-    return table[z_err];
-}
 
 static int
 sol_speed_to_zephyr_speed(enum sol_i2c_speed speed)
@@ -504,7 +486,7 @@ i2c_write_reg_timeout_cb(void *data)
         i2c->async.status = zephyr_err_to_errno(ret);
     else
         i2c->async.status = i2c->async.count;
-end:
+
     i2c->async.timeout = NULL;
     i2c->async.dispatch(i2c);
     return false;
