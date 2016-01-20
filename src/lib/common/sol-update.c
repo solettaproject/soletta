@@ -30,7 +30,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,11 +46,11 @@
 #include "sol-update-modules.h"
 #include "sol-update-builtins-gen.h"
 #include "sol-util.h"
-#include "sol-util-file.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_update_log_domain, "update");
 
 #ifdef ENABLE_DYNAMIC_MODULES
+#include "sol-util-file.h"
 static struct sol_lib_loader *update_module_loader;
 #endif
 static const struct sol_update *update_module;
