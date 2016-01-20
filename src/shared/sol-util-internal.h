@@ -61,7 +61,6 @@
 #define OVERFLOW_TYPE(type) ((type)1 << (sizeof(type) * 4))
 #define OVERFLOW_UINT64 OVERFLOW_TYPE(uint64_t)
 #define OVERFLOW_SIZE_T OVERFLOW_TYPE(size_t)
-#define OVERFLOW_INT64 OVERFLOW_TYPE(int64_t)
 
 /**
  * Extracted from Hacker's Delight, 2nd edition, chapter 2-13
