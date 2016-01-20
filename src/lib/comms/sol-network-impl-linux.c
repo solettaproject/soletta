@@ -68,7 +68,7 @@ struct sol_network_hostname_handle {
     char *hostname;
     enum sol_network_family family;
     void (*cb)(void *data, const struct sol_str_slice hostname,
-        struct sol_network_link_addr *sol_addr_list, uint16_t list_size);
+        const struct sol_vector *addrs_list);
     const void *data;
 };
 
@@ -597,9 +597,10 @@ hostname_worker(void *data)
     SOL_PTR_VECTOR_FOREACH_IDX (&network->hostname_handles, ctx, i) {
         struct addrinfo *addr_list;
         struct addrinfo *addr;
-        struct sol_network_link_addr *sol_addr_list;
-        uint16_t addr_count, j;
+        struct sol_vector sol_addr_list;
+        struct sol_network_link_addr *sol_addr;
 
+        sol_vector_init(&sol_addr_list, sizeof(struct sol_network_link_addr));
         switch (ctx->family) {
         case SOL_NETWORK_FAMILY_AF_INET:
             hints.ai_family = AF_INET;
@@ -619,42 +620,39 @@ hostname_worker(void *data)
             goto err_getaddr;
         }
 
-        //Count how many addrs we have.
-        for (addr = addr_list, addr_count = 0; addr != NULL;
-            addr = addr->ai_next, addr_count++) ;
 
-        sol_addr_list = calloc(addr_count,
-            sizeof(struct sol_network_link_addr));
-        SOL_NULL_CHECK_GOTO(sol_addr_list, err_alloc);
+        for (addr = addr_list; addr != NULL; addr = addr->ai_next) {
 
-        for (addr = addr_list, j = 0; addr != NULL; addr = addr->ai_next, j++) {
+            sol_addr = sol_vector_append(&sol_addr_list);
+            SOL_NULL_CHECK_GOTO(sol_addr, err_alloc);
 
-            sol_addr_list[j].family = addr->ai_family;
+            sol_addr->family = addr->ai_family;
 
             if (addr->ai_family == AF_INET) {
-                memcpy(&sol_addr_list[j].addr.in,
+                memcpy(&sol_addr->addr.in,
                     &(((struct sockaddr_in *)addr->ai_addr)->sin_addr),
-                    sizeof(sol_addr_list[j].addr.in));
+                    sizeof(sol_addr->addr.in));
             } else if (addr->ai_family == AF_INET6) {
-                memcpy(&sol_addr_list[j].addr.in6,
+                memcpy(&sol_addr->addr.in6,
                     &(((struct sockaddr_in6 *)addr->ai_addr)->sin6_addr),
-                    sizeof(sol_addr_list[j].addr.in6));
+                    sizeof(sol_addr->addr.in6));
             }
         }
 
         freeaddrinfo(addr_list);
         ctx->cb((void *)ctx->data, sol_str_slice_from_str(ctx->hostname),
-            sol_addr_list, addr_count);
-        free(sol_addr_list);
+            &sol_addr_list);
         hostname_handle_free(ctx);
+        sol_vector_clear(&sol_addr_list);
         continue;
 
 err_alloc:
         freeaddrinfo(addr_list);
 err_getaddr:
         ctx->cb((void *)ctx->data, sol_str_slice_from_str(ctx->hostname),
-            NULL, 0);
+            NULL);
         hostname_handle_free(ctx);
+        sol_vector_clear(&sol_addr_list);
     }
 
     sol_ptr_vector_clear(&network->hostname_handles);
@@ -664,8 +662,7 @@ err_getaddr:
 SOL_API struct sol_network_hostname_handle *
 sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
     enum sol_network_family family, void (*host_info_cb)(void *data,
-    const struct sol_str_slice host,
-    struct sol_network_link_addr *sol_addr_list, uint16_t list_size),
+    const struct sol_str_slice host, const struct sol_vector *addrs_list),
     const void *data)
 {
     struct sol_network_hostname_handle *ctx;
