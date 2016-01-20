@@ -21,14 +21,7 @@ obj-dtls-$(DTLS) += \
 
 obj-dtls-$(DTLS)-extra-cflags += \
     -I$(TINYDTLS_SRC_PATH) \
-    -Wno-sign-compare \
-    -Wno-discarded-qualifiers \
-    -Wno-old-style-definition \
-    -Wno-old-style-declaration \
-    -Wno-strict-prototypes \
-    -Wno-shadow \
-    -Wno-missing-prototypes \
-    -Wno-incompatible-pointer-types
+    -w
 
 obj-networking-$(PLATFORM_RIOTOS) += \
     sol-network-impl-riot.o \
