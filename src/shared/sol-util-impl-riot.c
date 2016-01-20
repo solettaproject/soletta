@@ -33,7 +33,7 @@
 #include "sol-util.h"
 
 /* RIOT headers */
-#include <vtimer.h>
+#include <xtimer.h>
 
 #if FEATURE_PERIPH_RTC
 #include <periph/rtc.h>
@@ -45,7 +45,7 @@ sol_util_timespec_get_current(void)
     struct timespec tp;
     timex_t t;
 
-    vtimer_now(&t);
+    xtimer_now_timex(&t);
     tp.tv_sec = t.seconds;
     tp.tv_nsec = t.microseconds * 1000;
     return tp;
