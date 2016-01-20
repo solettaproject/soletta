@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "sol-coap.h"
 #include "sol-network.h"
@@ -57,6 +58,19 @@ extern "C" {
  *
  * @brief Routines that handle LWM2M protocol.
  *
+ * Supported features:
+ * - Registration interface.
+ * - Management interface.
+ * - Observation interface.
+ * - TLV format.
+ *
+ * Unsupported features for now:
+ * - Bootstrap.
+ * - LWM2M JSON.
+ * - Queue Mode operation (only 'U' is supported for now).
+ * - Data encryption.
+ * - Access rights.
+ *
  * @{
  */
 
@@ -64,6 +78,13 @@ extern "C" {
  * @brief Macro that defines the default port for a LWM2M server.
  */
 #define SOL_LWM2M_DEFAULT_SERVER_PORT (5683)
+
+/**
+ * @struct sol_lwm2m_client
+ * @brief A handle to a LWM2M client.
+ * @see sol_lwm2m_client_new().
+ */
+struct sol_lwm2m_client;
 
 /**
  * @struct sol_lwm2m_server
@@ -335,6 +356,210 @@ struct sol_lwm2m_resource {
     /** @brief The resource data array len */
     uint16_t data_len;
 };
+
+/**
+ * @brief A LWM2M object implementation.
+ *
+ * Every LWM2M client must implement a set of LWM2M objects,
+ * This struct is used by the sol-lwm2m to know which objects a
+ * LWM2M implements.
+ *
+ * All the functions in this struct will be called by the sol-lwm2m infra,
+ * when the LWM2M server request an operation.
+ * For exampe, with the a LWM2M server requests the creation for a LWM2M
+ * location object, the create function will be called.
+ * When a LWM2M object does not support a certain operation,
+ * one must not implement the corresponding method.
+ * In order words, if an LWM2M object can't be deleted,
+ * the @c del handle must be ponting to @c NULL
+ *
+ * @see sol_lwm2m_client_new()
+ */
+struct sol_lwm2m_object {
+#ifndef SOL_NO_API_VERSION
+#define SOL_LWM2M_OBJECT_API_VERSION (1)
+    /** @brief API version */
+    uint16_t api_version;
+    /** @brief Unused */
+    uint16_t reserved;
+#endif
+
+    /** @brief The object id */
+    uint16_t id;
+    /** @brief The object data */
+    const void *data;
+
+    /**
+     * @brief Creates a new object instance.
+     *
+     *
+     * @param obj_data The object data.
+     * @param client The LWM2M client.
+     * @param istance_id The instance ID that is being created.
+     * @param instance_data The
+     * @return 0 on success, -errno on error.
+     */
+    int (*create)(void *obj_data, struct sol_lwm2m_client *client,
+        uint16_t instance_id, void **instance_data);
+    /**
+     * @brief Reads a resource.
+     *
+     * @param instance_data The instance data.
+     * @param obj_data The object data.
+     * @param client The LWM2M client.
+     * @param instance_id The instance id.
+     * @param res_id The resource that should be read.
+     * @param res The resource content, it should be set using
+     * sol_lwm2m_resource_init()
+     * @return 0 on success, -ENOENT if the resource is empty, -EBADRQC
+     * if the resource does not exist or -errno on error.
+     * @see sol_lwm2m_resource_init()
+     */
+    int (*read)(void *instance_data, void *obj_data,
+        struct sol_lwm2m_client *client, uint16_t instance_id,
+        uint16_t res_id, struct sol_lwm2m_resource *res);
+    /**
+     * @brief Writes a resources.
+     *
+     * @param instance_data The instance data.
+     * @param obj_data The object data.
+     * @param client The LWM2M client.
+     * @param instance_id The instance id.
+     * @param res_id The resource id that is being written.
+     * @param res The resource content.
+     * @return 0 on success or -errno on error.
+     */
+    int (*write_resource)(void *instance_data, void *obj_data,
+        struct sol_lwm2m_client *client, uint16_t instance_id, uint16_t res_id,
+        const struct sol_lwm2m_resource *res);
+    /**
+     * @brief Writes a resource(s).
+     *
+     * This function is used when the LWM2M server sends data
+     * to be written as TLV format. This means that one must
+     * call the convenient functions #sol_lwm2m_tlv_to_int and friends
+     * before writing the resource value.
+     *
+     * @param instance_data The instance data.
+     * @param obj_data The object data.
+     * @param client The LWM2M client.
+     * @param instance_id The instance id.
+     * @param tlvs An vector of #sol_lwm2m_tlv
+     * @return 0 on success or -errno on error.
+     */
+    int (*write_tlv)(void *instance_data, void *obj_data,
+        struct sol_lwm2m_client *client, uint16_t instance_id,
+        struct sol_vector *tlvs);
+    /**
+     * @brief Executes a resource.
+     *
+     * @param instance_data The instance data.
+     * @param obj_data The object data.
+     * @param client The LWM2M client.
+     * @param instance_id The instance id.
+     * @param res_id The resource that should be executed.
+     * @param args The arguments of the execute operation.
+     * @return 0 on success or -errno on error.
+     */
+    int (*execute)(void *instance_data, void *obj_data,
+        struct sol_lwm2m_client *client, uint16_t instance_id,
+        uint16_t res_id, const struct sol_str_slice args);
+
+    /**
+     * @brief Deletes an object instance.
+     *
+     * @param instance_data The instance data to be freed.
+     * @param obj_data The object data.
+     * @param client The LWM2M client.
+     * @param instance_id The instance ID that is being deleted.
+     * @return 0 on success or -errno on error.
+     */
+    int (*del)(void *instance_data, void *obj_data,
+        struct sol_lwm2m_client *client, uint16_t instance_id);
+};
+
+/**
+ *
+ * @brief Creates a new LWM2M client.
+ *
+ * This function will create a new LWM2M client with its objects.
+ * In order to start the LWM2M client and connect with the LWM2M servers,
+ * one must call #sol_lwm2m_client_start.
+ *
+ * @param name The LWM2M client name, must not be @c NULL.
+ * @param path The Objectes path, may be @c NULL.
+ * @param sms The SMS number, may be @c NULL.
+ * @param objects The implemented objects, must not be @c NULL.
+ * @return A LWM2M client handle or @c NULL on error
+ * @see sol_lwm2m_client_del()
+ * @see sol_lwm2m_add_object_instance()
+ * @see sol_lwm2m_client_start()
+ */
+struct sol_lwm2m_client *sol_lwm2m_client_new(const char *name,
+    const char *path, const char *sms, const struct sol_lwm2m_object **objects);
+
+/**
+ * @brief Deletes a LWM2M client.
+ *
+ * This will automatically stop the LWM2M client as well.
+ *
+ * @param client The client to be deleted.
+ *
+ * @see sol_lwm2m_client_start()
+ */
+void sol_lwm2m_client_del(struct sol_lwm2m_client *client);
+
+/**
+ * @brief Creates an object instance.
+ *
+ * @param client The client to create the object instance..
+ * @param obj The object that the instance should be created.
+ * @param data The instance data.
+ * @return 0 on success, -errno on error.
+ */
+int sol_lwm2m_add_object_instance(struct sol_lwm2m_client *client,
+    const struct sol_lwm2m_object *obj, const void *data);
+
+/**
+ * @brief Starts the LWM2M client.
+ *
+ * The LWM2M client will attempt to connect with all the registered
+ * LWM2M servers.
+ * The LWM2M client will look for the Security and Server LWM2M objects in order
+ * to connect with the LWM2M servers.
+ *
+ * @param client The client to be started.
+ * @return 0 on success, -errno on error.
+ * @see sol_lwm2m_client_stop()
+ */
+int sol_lwm2m_client_start(struct sol_lwm2m_client *client);
+
+/**
+ * @brief Stops the LWM2M client.
+ *
+ * This will make the LWM2M client to stop receiving/sending messages from/to
+ * the LWM2M servers. It's important to note that the objects and
+ * object instances will not be deleted.
+ *
+ * In order to be able to respond to commands from a LWM2M server,
+ * one must call #sol_lwm2m_client_start
+ *
+ * @param client The client to be stopped.
+ * @return 0 on success, -errno on error.
+ * @see sol_lwm2m_client_start()
+ */
+int sol_lwm2m_client_stop(struct sol_lwm2m_client *client);
+
+/**
+ * @brief Sends an update message to the LWM2M servers.
+ *
+ * This will trigger the update method of the LWM2M registration interface.
+ * The client will send an update to all the registered LWM2M servers.
+ *
+ * @param client The client to send the update request.
+ * @return 0 on success, -errno on error.
+ */
+int sol_lwm2m_send_update(struct sol_lwm2m_client *client);
 
 /**
  * @brief Clears a #sol_lwm2m_resource.
