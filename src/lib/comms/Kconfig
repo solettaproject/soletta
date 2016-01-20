@@ -119,7 +119,7 @@ config MAVLINK
 config LWM2M
        bool "LWM2M"
        default y
-       depends on COAP
+       depends on COAP && HTTP
        help
            LWM2M is a protocol for communication between IoT devices defined by OMA
            (Open Mobile Alliance).
