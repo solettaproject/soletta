@@ -443,7 +443,7 @@ calamari_lever_spi_poll(void *data)
     }
 
     mdata->timer = NULL;
-    return false;
+    return true;
 }
 
 static int
