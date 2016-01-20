@@ -288,6 +288,8 @@ align_power2_short_uint(unsigned short u)
         _max1 > _max2 ? _max1 : _max2; \
     })
 
+#define sol_abs(_value) (_value < 0 ? -_value : _value)
+
 static inline int
 sol_util_ssize_mul(ssize_t op1, ssize_t op2, ssize_t *out)
 {
@@ -380,8 +382,11 @@ sol_util_int64_mul(const int64_t a, const int64_t b, int64_t *out)
     if (__builtin_mul_overflow(a, b, out))
         return -EOVERFLOW;
 #else
-    if ((a >= OVERFLOW_INT64 || b >= OVERFLOW_INT64) &&
-        a > 0 && INT64_MAX / a < b)
+    int64_t abs_a = sol_abs(a);
+    int64_t abs_b = sol_abs(b);
+
+    if ((abs_a >= OVERFLOW_INT64 || abs_a >= OVERFLOW_INT64) &&
+        abs_b > 0 && INT64_MAX / abs_a < abs_b)
         return -EOVERFLOW;
     *out = a * b;
 #endif
