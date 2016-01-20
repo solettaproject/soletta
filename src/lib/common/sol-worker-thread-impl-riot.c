@@ -173,7 +173,7 @@ sol_worker_thread_impl_new(const struct sol_worker_thread_spec *spec)
     thread->stack = malloc(stacksize);
     SOL_NULL_CHECK_GOTO(thread->stack, error_stack);
 
-    r = thread_create(thread->stack, stacksize, prio, CREATE_STACKTEST, sol_worker_thread_do, thread, "worker-thread");
+    r = thread_create(thread->stack, stacksize, prio, THREAD_CREATE_STACKTEST, sol_worker_thread_do, thread, "worker-thread");
     SOL_INT_CHECK_GOTO(r, < 0, error_thread);
 
     thread->thread = r;
