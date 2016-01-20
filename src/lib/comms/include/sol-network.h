@@ -319,8 +319,7 @@ bool sol_network_link_up(uint16_t link_index);
 struct sol_network_hostname_handle *
 sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
     enum sol_network_family family, void (*host_info_cb)(void *data,
-    const struct sol_str_slice hostname,
-    struct sol_network_link_addr *sol_addr_list, uint16_t list_size),
+    const struct sol_str_slice hostname, const struct sol_vector *addrs_list),
     const void *data);
 
 /**
