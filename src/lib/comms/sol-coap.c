@@ -1426,7 +1426,7 @@ join_mcast_groups(struct sol_socket *s, const struct sol_network_link *link)
     SOL_VECTOR_FOREACH_IDX (&link->addrs, addr, i) {
         groupaddr.family = addr->family;
 
-        if (addr->family == AF_INET) {
+        if (addr->family == SOL_NETWORK_FAMILY_INET) {
             sol_network_addr_from_str(&groupaddr, IPV4_ALL_COAP_NODES_GROUP);
             if (sol_socket_join_group(s, link->index, &groupaddr) < 0)
                 return -errno;
@@ -1463,7 +1463,7 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
 static struct sol_coap_server *
 sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
 {
-    struct sol_network_link_addr servaddr = { .family = AF_INET6,
+    struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = port };
     const struct sol_vector *links;
     struct sol_network_link *link;

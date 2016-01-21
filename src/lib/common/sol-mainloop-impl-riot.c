@@ -39,7 +39,7 @@
 
 // Riot includes
 #include <sched.h>
-#include <vtimer.h>
+#include <xtimer.h>
 
 #ifdef THREADS
 #include <mutex.h>
@@ -113,32 +113,32 @@ sol_mainloop_impl_platform_shutdown(void)
     sol_mainloop_common_source_shutdown();
 }
 
-static inline void
-timex_set_until_next_timeout(timex_t *timex)
+static inline uint32_t
+sleeptime_until_next_timeout(void)
 {
     struct timespec ts;
+    uint32_t sleeptime = DEFAULT_USLEEP_TIME;
     bool ret;
 
     sol_mainloop_impl_lock();
     ret = sol_mainloop_common_timespec_first(&ts);
     sol_mainloop_impl_unlock();
 
-    if (!ret) {
-        *timex = timex_set(0, DEFAULT_USLEEP_TIME);
-        return;
+    if (ret) {
+        if (ts.tv_sec < 0)
+            sleeptime = 0;
+        else
+            sleeptime = ts.tv_sec * USEC_PER_SEC + ts.tv_nsec / NSEC_PER_USEC;
     }
 
-    if (ts.tv_sec < 0)
-        *timex = timex_set(0, 0);
-    else
-        *timex = timex_set(ts.tv_sec, ts.tv_nsec / NSEC_PER_USEC);
+    return sleeptime;
 }
 
 void
 sol_mainloop_impl_iter(void)
 {
     msg_t msg;
-    timex_t timex;
+    uint32_t sleeptime;
 
     sol_mainloop_common_timeout_process();
     sol_mainloop_common_idler_process();
@@ -147,7 +147,7 @@ sol_mainloop_impl_iter(void)
     if (!sol_mainloop_common_loop_check())
         return;
 
-    timex_set_until_next_timeout(&timex);
-    if (vtimer_msg_receive_timeout(&msg, timex) > 0)
+    sleeptime = sleeptime_until_next_timeout();
+    if (xtimer_msg_receive_timeout(&msg, sleeptime) > 0)
         sol_interrupt_scheduler_process(&msg);
 }

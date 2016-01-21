@@ -1,7 +1,7 @@
 /*
  * This file is part of the Soletta Project
  *
- * Copyright (C) 2015 Intel Corporation. All rights reserved.
+ * Copyright (C) 2016 Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,35 +30,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "kernel_types.h"
-#include "msg.h"
-#ifdef USE_GPIO
-#include "periph/gpio.h"
-#endif
+#pragma once
 
-#ifdef USE_UART
-#include "periph/uart.h"
-#endif
+#include <sol-network.h>
 
-#ifdef NETWORK
-#include "net/gnrc.h"
-#endif
+#include <netinet/in.h>
 
-void sol_interrupt_scheduler_set_pid(kernel_pid_t pid);
-kernel_pid_t sol_interrupt_scheduler_get_pid(void);
+static inline enum sol_network_family
+sol_network_af_to_sol(int af)
+{
+    switch (af) {
+    case AF_INET:
+        return SOL_NETWORK_FAMILY_INET;
+    case AF_INET6:
+        return SOL_NETWORK_FAMILY_INET6;
+    default:
+        return SOL_NETWORK_FAMILY_UNSPEC;
+    }
+}
 
-#ifdef USE_GPIO
-int sol_interrupt_scheduler_gpio_init_int(gpio_t dev, gpio_pp_t pullup, gpio_flank_t flank, gpio_cb_t cb, const void *arg, void **handler);
-void sol_interrupt_scheduler_gpio_stop(gpio_t dev, void *handler);
-#endif
-
-#ifdef USE_UART
-int sol_interrupt_scheduler_uart_init_int(uart_t uart, uint32_t baudrate, uart_rx_cb_t rx_cb, const void *arg, void **handler);
-void sol_interrupt_scheduler_uart_stop(uart_t uart, void *handler);
-#endif
-
-#ifdef NETWORK
-void sol_network_msg_dispatch(msg_t *msg);
-#endif
-
-void sol_interrupt_scheduler_process(msg_t *msg);
+static inline int
+sol_network_sol_to_af(enum sol_network_family snf)
+{
+    switch (snf) {
+    case SOL_NETWORK_FAMILY_INET:
+        return AF_INET;
+    case SOL_NETWORK_FAMILY_INET6:
+        return AF_INET6;
+    default:
+        return AF_UNSPEC;
+    }
+}

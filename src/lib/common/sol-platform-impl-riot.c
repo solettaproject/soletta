@@ -304,7 +304,7 @@ const char *
 sol_platform_impl_get_locale(enum sol_platform_locale_category type)
 {
     SOL_WRN("Not implemented");
-    return -ENOTSUP;
+    return NULL;
 }
 
 int
@@ -332,7 +332,7 @@ int
 sol_platform_impl_load_locales(char **locale_cache)
 {
     SOL_WRN("Not implemented");
-    return -ENOTSUP;
+    return 0;
 }
 
 int
