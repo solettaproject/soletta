@@ -46,21 +46,68 @@
 extern "C" {
 #endif
 
-/* number of nanoseconds in a second: 1,000,000,000 */
+/**
+ * @file
+ * @brief Useful general routines.
+ */
+
+/**
+ * @defgroup Utilities
+ *
+ * @brief Contains helpers to manipulate time and error code/string.
+ *
+ * @{
+ */
+
+/**
+ * @brief number of nanoseconds in a second: 1,000,000,000
+ */
 #define SOL_NSEC_PER_SEC  1000000000ULL
-/* number of milliseconds in a second: 1,000 */
+
+/**
+ * @brief number of milliseconds in a second: 1,000
+ */
 #define SOL_MSEC_PER_SEC  1000ULL
-/* number of microseconds in a second: 1,000,000 */
+
+/**
+ * @brief number of microseconds in a second: 1,000,000
+ */
 #define SOL_USEC_PER_SEC  1000000ULL
-/* number of nanoseconds in a milliseconds: 1,000,000,000 / 1,000 = 1,000,000 */
+
+/**
+ * @brief number of nanoseconds in a milliseconds: 1,000,000,000 / 1,000 = 1,000,000
+ */
 #define SOL_NSEC_PER_MSEC 1000000ULL
-/* number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000 */
+
+/**
+ * @brief  number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000
+ */
 #define SOL_NSEC_PER_USEC 1000ULL
 
+/**
+ * @brief Gets the current time (Monotonic)
+ *
+ * @return The current time represented in @c struct timespec
+ */
 struct timespec sol_util_timespec_get_current(void);
 
+/**
+ * @brief Gets the current time (System-wide clock)
+ *
+ * @param t Variable used to store the time.
+ *
+ * @return 0 for success, or -1 for failure (in which case errno
+       is set appropriately).
+ */
 int sol_util_timespec_get_realtime(struct timespec *t);
 
+/**
+ * @brief Sum two times
+ *
+ * @param t1 First time value used on operation.
+ * @param t2 Second time value used on operation.
+ * @param result Variable used to store the sum's result.
+ */
 static inline void
 sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
@@ -72,6 +119,13 @@ sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, stru
     }
 }
 
+/**
+ * @brief Subtracts two times
+ *
+ * @param t1 First time value used on operation.
+ * @param t2 Second time value used on operation.
+ * @param result Variable used to store the subtraction's result.
+ */
 static inline void
 sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
@@ -83,6 +137,17 @@ sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, stru
     }
 }
 
+/**
+ * @brief Compare two times
+ *
+ * Function to compare two times. It returns an integer less than,
+ * equal to, or greater than zero.
+ *
+ * @param t1 First time value used on operation.
+ * @param t2 Second time value used on operation.
+ *
+ * @result 0 if equal, -1 if t2 is greater or 1 otherwise.
+ */
 static inline int
 sol_util_timespec_compare(const struct timespec *t1, const struct timespec *t2)
 {
@@ -93,6 +158,13 @@ sol_util_timespec_compare(const struct timespec *t1, const struct timespec *t2)
     return (t1->tv_nsec > t2->tv_nsec) - (t1->tv_nsec < t2->tv_nsec);
 }
 
+/**
+ * @brief Create a @c struct timespec from milliseconds.
+ *
+ * @param msec The number of milliseconds.
+ *
+ * @result a @c struct timespec representing @c msec milliseconds.
+ */
 static inline struct timespec
 sol_util_timespec_from_msec(const int msec)
 {
@@ -103,19 +175,57 @@ sol_util_timespec_from_msec(const int msec)
     return ts;
 }
 
+/**
+ * @brief Gets the number of milliseconds for given time.
+ *
+ * @param ts The struct timespec to get the milliseconds.
+ *
+ * @result the number of milliseconds on @c ts.
+ */
 static inline int
 sol_util_msec_from_timespec(const struct timespec *ts)
 {
     return ts->tv_sec * SOL_MSEC_PER_SEC + ts->tv_nsec / SOL_NSEC_PER_MSEC;
 }
 
+/**
+ * @brief Gets a string from a given error.
+ *
+ * The function returns a pointer to a string that describes the error
+ * code passed in the argument @c errnum.
+ *
+ * @param errnum The error code
+ * @param buf Buffer used to store the store the string.
+ * @param buflen The size of @c buf
+ *
+ * @result return the appropriate error description string.
+ *
+ * @see sol_util_strerrora
+ */
 char *sol_util_strerror(int errnum, char *buf, size_t buflen);
 
+/**
+ * @brief Gets a string from a given error using the stack.
+ *
+ * The function returns a pointer to a string (created using the
+ * stack) that describes the error code passed in the argument @c
+ * errnum.
+ *
+ * @param errnum The error code
+ *
+ * @result return the appropriate error description string.
+ *
+ * @see sol_util_strerror
+ */
 #define sol_util_strerrora(errnum) \
     ({ \
         char buf ## __COUNT__[512]; \
         sol_util_strerror((errnum), buf ## __COUNT__, sizeof(buf ## __COUNT__)); \
     })
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
