@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 /* RIOT headers */
 #include <xtimer.h>
@@ -39,7 +39,7 @@
 #include <periph/rtc.h>
 #endif
 
-struct timespec
+SOL_API struct timespec
 sol_util_timespec_get_current(void)
 {
     struct timespec tp;
@@ -51,7 +51,7 @@ sol_util_timespec_get_current(void)
     return tp;
 }
 
-int
+SOL_API int
 sol_util_timespec_get_realtime(struct timespec *t)
 {
 #if FEATURE_PERITH_RTC

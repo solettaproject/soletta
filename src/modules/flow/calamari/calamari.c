@@ -43,7 +43,7 @@
 #include "sol-mainloop.h"
 #include "sol-pwm.h"
 #include "sol-spi.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 ///////// SEGMENTS CTL ///////////
 

@@ -42,7 +42,7 @@
 #include "sol-file-reader.h"
 #include "sol-flow-internal.h"
 #include "sol-worker-thread.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-mainloop.h"
 
 /*

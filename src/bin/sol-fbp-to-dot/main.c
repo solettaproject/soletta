@@ -46,7 +46,7 @@
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-to-dot");

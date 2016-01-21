@@ -44,7 +44,7 @@
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 int sol_http_client_init(void);

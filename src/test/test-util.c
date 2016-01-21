@@ -38,7 +38,7 @@
 #include <locale.h>
 #endif
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-log.h"
 
 #include "test.h"

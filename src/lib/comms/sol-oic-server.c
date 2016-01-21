@@ -45,7 +45,7 @@
 #include "sol-macros.h"
 #include "sol-platform.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "sol-oic-cbor.h"

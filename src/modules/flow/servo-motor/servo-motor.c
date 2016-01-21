@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <sol-pwm.h>
 
 #include <errno.h>

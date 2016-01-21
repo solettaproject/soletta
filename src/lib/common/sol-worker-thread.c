@@ -33,7 +33,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-macros.h"
 #include "sol-worker-thread.h"
 #include "sol-worker-thread-impl.h"

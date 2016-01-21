@@ -37,7 +37,7 @@
 #include "sol-json.h"
 #include "sol-log.h"
 #include "sol-update.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct update_http_handle {
     struct sol_http_client_connection *conn;

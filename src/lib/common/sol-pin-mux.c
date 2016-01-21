@@ -44,7 +44,7 @@
 #endif
 
 #include "sol-log-internal.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-pin-mux.h"
 #include "sol-pin-mux-modules.h"
 #include "sol-pin-mux-builtins-gen.h"

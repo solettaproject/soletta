@@ -37,7 +37,7 @@
 #include "sol-log-internal.h"
 #include "sol-macros.h"
 #include "sol-pwm.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "periph/pwm.h"

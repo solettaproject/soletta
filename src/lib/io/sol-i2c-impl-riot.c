@@ -39,7 +39,7 @@
 #include "sol-i2c.h"
 #include "sol-macros.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "periph/i2c.h"
 

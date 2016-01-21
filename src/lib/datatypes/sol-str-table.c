@@ -34,7 +34,7 @@
 
 #include "sol-macros.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 SOL_API int16_t
 sol_str_table_lookup_fallback(const struct sol_str_table *table,

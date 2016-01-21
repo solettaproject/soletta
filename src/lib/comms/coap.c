@@ -38,7 +38,7 @@
 #include <string.h>
 
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "coap.h"

@@ -46,7 +46,7 @@
 #include "sol-network.h"
 #include "sol-socket.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "coap.h"

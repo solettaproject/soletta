@@ -41,7 +41,7 @@
 #include "net/gnrc/netif.h"
 
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "sol-network.h"

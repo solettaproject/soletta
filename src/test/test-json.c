@@ -32,7 +32,7 @@
 
 #include "test.h"
 #include "sol-json.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-log.h"
 #include "sol-types.h"
 #include <float.h>

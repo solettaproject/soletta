@@ -43,7 +43,7 @@
 #include "sol-http-server.h"
 #include "sol-json.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #define HTTP_HEADER_ACCEPT "Accept"
