@@ -46,6 +46,7 @@
 #include <glib.h>
 #include <sol-mainloop.h>
 #include <sol-log.h>
+#include <sol-util.h>
 #include <sol-vector.h>
 
 static gboolean
@@ -287,6 +288,7 @@ _sol_glib_integration_source_prepare(void *data)
     do {
         size_t byte_size;
         void *tmp;
+        int r;
 
         mdata->n_poll = g_main_context_query(ctx,
             mdata->max_prio, &mdata->timeout, mdata->fds, mdata->n_fds);
@@ -295,11 +297,9 @@ _sol_glib_integration_source_prepare(void *data)
         if (req_n_fds == mdata->n_fds)
             break;
 
-        /* NOTE: not using sol_util_size_mul() since sol-util.h is not
-         * installed and this file is to be compiled by soletta's
-         * users.
-         */
-        byte_size = req_n_fds * sizeof(GPollFD);
+        r = sol_util_size_mul(sizeof(GPollFD), req_n_fds, &byte_size);
+        SOL_INT_CHECK_GOTO(r, < 0, failed);
+
         tmp = realloc(mdata->fds, byte_size);
         if (byte_size > 0) {
             SOL_NULL_CHECK_GOTO(tmp, failed);
@@ -330,12 +330,7 @@ _sol_glib_integration_source_get_next_timeout(void *data, struct timespec *ts)
     if (mdata->timeout < 0)
         return false;
 
-    /* NOTE: not using sol_util_timespec_from_msec() since sol-util.h
-     * is not installed and this file is to be compiled by soletta's
-     * users.
-     */
-    ts->tv_sec = mdata->timeout / 1000ULL;
-    ts->tv_nsec = (mdata->timeout % 1000ULL) * 1000000ULL;
+    *ts = sol_util_timespec_from_msec(mdata->timeout);
     return true;
 }
 
