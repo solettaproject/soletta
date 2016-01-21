@@ -48,21 +48,69 @@
 extern "C" {
 #endif
 
-/* number of nanoseconds in a second: 1,000,000,000 */
-#define SOL_NSEC_PER_SEC  1000000000ULL
-/* number of milliseconds in a second: 1,000 */
-#define SOL_MSEC_PER_SEC  1000ULL
-/* number of microseconds in a second: 1,000,000 */
-#define SOL_USEC_PER_SEC  1000000ULL
-/* number of nanoseconds in a milliseconds: 1,000,000,000 / 1,000 = 1,000,000 */
+/**
+ * @file
+ * @brief Useful general routines.
+ */
+
+/**
+ * @defgroup Utils Soletta utility functions.
+ *
+ * @brief Contains helpers to manipulate time, error code/string,
+ * overflows, encode/decode data and some converters.
+ *
+ * @{
+ */
+
+/**
+ * @brief number of nanoseconds in a second: 1,000,000,000.
+ */
+#define SOL_NSEC_PER_SEC 1000000000ULL
+
+/**
+ * @brief number of milliseconds in a second: 1,000.
+ */
+#define SOL_MSEC_PER_SEC 1000ULL
+
+/**
+ * @brief number of microseconds in a second: 1,000,000.
+ */
+#define SOL_USEC_PER_SEC 1000000ULL
+
+/**
+ * @brief number of nanoseconds in a milliseconds: 1,000,000,000 / 1,000 = 1,000,000.
+ */
 #define SOL_NSEC_PER_MSEC 1000000ULL
-/* number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000 */
+
+/**
+ * @brief  number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000.
+ */
 #define SOL_NSEC_PER_USEC 1000ULL
 
+/**
+ * @brief Gets the current time (Monotonic).
+ *
+ * @return The current time represented in @c struct timespec.
+ */
 struct timespec sol_util_timespec_get_current(void);
 
+/**
+ * @brief Gets the current time (System-wide clock).
+ *
+ * @param t Variable used to store the time.
+ *
+ * @return 0 for success, or -1 for failure (in which case errno is
+       set appropriately).
+ */
 int sol_util_timespec_get_realtime(struct timespec *t);
 
+/**
+ * @brief Sum two time values.
+ *
+ * @param t1 First time value used on operation.
+ * @param t2 Second time value used on operation.
+ * @param result Variable used to store the sum's result.
+ */
 static inline void
 sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
@@ -74,6 +122,13 @@ sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, stru
     }
 }
 
+/**
+* @brief Subtracts two time values.
+*
+* @param t1 First time value used on operation.
+* @param t2 Second time value used on operation.
+* @param result Variable used to store the subtraction's result.
+*/
 static inline void
 sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
 {
@@ -85,6 +140,17 @@ sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, stru
     }
 }
 
+/**
+ * @brief Compare two time values.
+ *
+ * Function to compare two times. It returns an integer less than,
+ * equal to, or greater than zero.
+ *
+ * @param t1 First time value used on operation.
+ * @param t2 Second time value used on operation.
+ *
+ * @return 0 if equal, -1 if t2 is greater or 1 otherwise.
+ */
 static inline int
 sol_util_timespec_compare(const struct timespec *t1, const struct timespec *t2)
 {
@@ -95,6 +161,13 @@ sol_util_timespec_compare(const struct timespec *t1, const struct timespec *t2)
     return (t1->tv_nsec > t2->tv_nsec) - (t1->tv_nsec < t2->tv_nsec);
 }
 
+/**
+ * @brief Create a @c struct timespec from milliseconds.
+ *
+ * @param msec The number of milliseconds.
+ *
+ * @return a @c struct timespec representing @c msec milliseconds.
+ */
 static inline struct timespec
 sol_util_timespec_from_msec(const int msec)
 {
@@ -105,37 +178,170 @@ sol_util_timespec_from_msec(const int msec)
     return ts;
 }
 
+/**
+ * @brief Gets the number of milliseconds for given time.
+ *
+ * @param ts The struct timespec to get the milliseconds.
+ *
+ * @return the number of milliseconds on @c ts.
+ */
 static inline int
 sol_util_msec_from_timespec(const struct timespec *ts)
 {
     return ts->tv_sec * SOL_MSEC_PER_SEC + ts->tv_nsec / SOL_NSEC_PER_MSEC;
 }
 
+/**
+ * @brief Gets a string from a given error.
+ *
+ * The function returns a pointer to a string that describes the error
+ * code passed in the argument @c errnum.
+ *
+ * @param errnum The error code
+ * @param buf Buffer used to store the store the string.
+ * @param buflen The size of @c buf
+ *
+ * @return return the appropriate error description string.
+ *
+ * @see sol_util_strerrora
+ */
 char *sol_util_strerror(int errnum, char *buf, size_t buflen);
 
+/**
+ * @brief Gets a string from a given error using the stack.
+ *
+ * The function returns a pointer to a string (created using the
+ * stack) that describes the error code passed in the argument @c
+ * errnum.
+ *
+ * @param errnum The error code
+ *
+ * @return the appropriate error description string.
+ *
+ * @see sol_util_strerror
+ */
 #define sol_util_strerrora(errnum) \
     ({ \
         char buf ## __COUNT__[512]; \
         sol_util_strerror((errnum), buf ## __COUNT__, sizeof(buf ## __COUNT__)); \
     })
 
+/**
+ * @brief Multiply two values checking for overflow.
+ *
+ * This function multiply two variables of the type @c ssize_t and check
+ * if this operation causes an overflow.
+ *
+ * @param op1 First operation's operator.
+ * @param op2 Second operation's operator.
+ * @param out Variable used to store the result.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_util_size_mul
+ */
 int sol_util_ssize_mul(ssize_t op1, ssize_t op2, ssize_t *out);
 
-int sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out);
-
-int sol_util_size_add(const size_t a, const size_t b, size_t *out);
-
-int sol_util_size_sub(const size_t a, const size_t b, size_t *out);
-
-int sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out);
-
-int sol_util_int64_mul(const int64_t a, const int64_t b, int64_t *out);
-
-int sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out);
+/**
+ * @brief Multiply two values checking for overflow.
+ *
+ * This function multiply two variables of the type @c size_t and check
+ * if this operation causes an overflow.
+ *
+ * @param op1 First operation's operator.
+ * @param op2 Second operation's operator.
+ * @param out Variable used to store the time.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_util_ssize_mul
+ */
+int sol_util_size_mul(size_t op1, size_t op2, size_t *out);
 
 /**
- * Generates a new universally unique identifier (UUID), in string
- * form, which is 16 bytes-long (128 bits) long and conforms to v4
+ * @brief Add two values checking for overflow.
+ *
+ * This function adds two variables of the type @c size_t and check
+ * if this operation causes an overflow.
+ *
+ * @param op1 First operation's operator.
+ * @param op2 Second operation's operator.
+ * @param out Variable used to store the result.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_util_size_sub
+ */
+int sol_util_size_add(const size_t op1, const size_t op2, size_t *out);
+
+/**
+ * @brief Subtract two values checking for overflow.
+ *
+ * This function subtracts two variables of the type @c size_t and check
+ * if this operation causes an overflow.
+ *
+ * @param op1 First operation's operator.
+ * @param op2 Second operation's operator.
+ * @param out Variable used to store the result.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_util_size_add
+ */
+int sol_util_size_sub(const size_t op1, const size_t op2, size_t *out);
+
+/**
+ * @brief Multiply two values checking for overflow.
+ *
+ * This function multiply two unsigned variables of the type @c
+ * uint64_t and check if this operation causes an overflow.
+ *
+ * @param op1 First operation's operator.
+ * @param op2 Second operation's operator.
+ * @param out Variable used to store the result.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_util_int64_mul
+ */
+int sol_util_uint64_mul(const uint64_t op1, const uint64_t op2, uint64_t *out);
+
+/**
+ * @brief Multiply two values checking for overflow.
+ *
+ * This function multiply two variables of the type @c int64_t and
+ * check if this operation causes an overflow.
+ *
+ * @param op1 First operation's operator.
+ * @param op2 Second operation's operator.
+ * @param out Variable used to store the result.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_util_uint64_mul
+ */
+int sol_util_int64_mul(const int64_t op1, const int64_t op2, int64_t *out);
+
+/**
+ * @brief Add two values checking for overflow.
+ *
+ * This function add two variables of the type @c uint64_t and
+ * check if this operation causes an overflow.
+ *
+ * @param op1 First operation's operator.
+ * @param op2 Second operation's operator.
+ * @param out Variable used to store the result.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see sol_util_size_add
+ */
+int sol_util_uint64_add(const uint64_t op1, const uint64_t op2, uint64_t *out);
+
+/**
+ * @brief Generates a new universally unique identifier (UUID) string.
+ *
+ * The generated string is 16 bytes-long (128 bits) long and conforms to v4
  * UUIDs (generated from random—or pseudo-random—numbers).
  *
  * @param upcase Whether to generate the UUID in upcase or not
@@ -151,16 +357,28 @@ int sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out);
 int sol_util_uuid_gen(bool upcase, bool with_hyphens, char id[SOL_STATIC_ARRAY_SIZE(37)]);
 
 /**
- * Checks if a given universally unique identifier (UUID), in string
- * form, is valid (all upcase/downcase, hyphenated/non-hyphenated
- * cases included).
+ * @brief Checks if a given universally unique identifier (UUID), in string
+ * form, is valid.
  *
- * @param str The given UUID
+ * All upcase/downcase, hyphenated/non-hyphenated cases are included.
  *
- * @return true if it's valid, false otherwise.
+ * @param str The given UUID.
+ *
+ * @return @c true if it's valid, @c false otherwise.
  */
 bool sol_util_uuid_str_valid(const char *str);
 
+/**
+ * @brief Restricts a number between two other numbers.
+ *
+ * @param start Minimum value.
+ * @param end Maximum value.
+ * @param value The value to clamp.
+ *
+ * @return @c value if living in the range imposed by the @c start and
+ * @c end, the lower value if initially lower than @c start, or the higher
+ * one if initially higher than @c end.
+ */
 static inline int32_t
 sol_util_int32_clamp(int32_t start, int32_t end, int32_t value)
 {
@@ -171,9 +389,39 @@ sol_util_int32_clamp(int32_t start, int32_t end, int32_t value)
     return value;
 }
 
+/**
+ * @brief Replace the string's contents.
+ *
+ * This function takes a string and replace its contents if different
+ * from the new given string, otherwise it lets the string intact.
+ *
+ * @note If the string is replaced its memory is properly released.
+ *
+ * @param str The pointer for string which will be changed.
+ * @param new_str The new string
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see util_replace_str_from_slice_if_changed
+ */
 int sol_util_replace_str_if_changed(char **str, const char *new_str);
 
-int sol_util_replace_str_from_slice_if_changed(char **str, const struct sol_str_slice);
+/**
+ * @brief Replace the string's contents.
+ *
+ * This function takes a string and replace its contents if different
+ * from the new given slice, otherwise it lets the string intact.
+ *
+ * @note If the string is replaced its memory is properly released.
+ *
+ * @param str The pointer for string which will be changed.
+ * @param slice The slice with string
+ *
+ * @return @c 0 on success, error code (always negative) otherwise.
+ *
+ * @see util_replace_str_from_slice_if_changed
+ */
+int sol_util_replace_str_from_slice_if_changed(char **str, const struct sol_str_slice slice);
 
 /**
  * Encode the binary slice to base64 using the given map.
@@ -197,7 +445,7 @@ int sol_util_replace_str_from_slice_if_changed(char **str, const struct sol_str_
 ssize_t sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
 /**
- * Decode the binary slice from base64 using the given map.
+ * @brief Decode the binary slice from base64 using the given map.
  *
  * https://en.wikipedia.org/wiki/Base64
  *
@@ -217,6 +465,16 @@ ssize_t sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_sl
  */
 ssize_t sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)]);
 
+/**
+ * @brief Calculate the size necessary to encode a given slice in base64.
+ *
+ * @param slice The slice that is wanted to know the encoded size.
+ * @param base64_map the map to use. The last char is used as the
+ *        padding character if slice length is not multiple of 3 bytes.
+ *
+ * @return the size that will be utilized to encode the @c slice or a
+ * negative number on error.
+ */
 static inline ssize_t
 sol_util_base64_calculate_encoded_len(const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
@@ -231,6 +489,16 @@ sol_util_base64_calculate_encoded_len(const struct sol_str_slice slice, const ch
     return req_len;
 }
 
+/**
+ * @brief Calculate the size necessary to decode a given slice in base64.
+ *
+ * @param slice The slice that is wanted to know the decode size.
+ * @param base64_map the map to use. The last char is used as the
+ *        padding character if slice length is not multiple of 3 bytes.
+ *
+ * @return the size that will be utilized to decode the @c slice or a
+ * negative number on error.
+ */
 static inline ssize_t
 sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
@@ -248,7 +516,7 @@ sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const ch
 }
 
 /**
- * Encode the binary slice to base16 (hexadecimal).
+ * @brief Encode the binary slice to base16 (hexadecimal).
  *
  * @note @b no trailing null '\0' is added!
  *
@@ -267,7 +535,7 @@ sol_util_base64_calculate_decoded_len(const struct sol_str_slice slice, const ch
 ssize_t sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase);
 
 /**
- * Decode the binary slice from base16 (hexadecimal).
+ * @brief Decode the binary slice from base16 (hexadecimal).
  *
  * @note @b no trailing null '\0' is added!
  *
@@ -288,7 +556,7 @@ ssize_t sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_sl
 ssize_t sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, enum sol_decode_case decode_case);
 
 /**
- * Convert from unicode code to utf-8 string.
+ * @brief Convert from unicode code to utf-8 string.
  *
  * Write at string buf the bytes needed to represent the unicode charater
  * informed as utf-8. One to four characters will be written on success. No
@@ -305,10 +573,10 @@ ssize_t sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_sl
 int8_t sol_util_utf8_from_unicode_code(uint8_t *buf, size_t buf_len, uint32_t unicode_code);
 
 /**
- * Convert a utf-8 character to unicode code.
+ * @brief Convert a utf-8 character to unicode code.
  *
  * @param buf Buffer with the utf-8 representation of the unicode character.
- * @param buf_len The buffer length
+ * @param buf_len The buffer length.
  * @param bytes_read Optional pointer to variable to write number of bytes read
  * from buf.
  *
@@ -316,6 +584,14 @@ int8_t sol_util_utf8_from_unicode_code(uint8_t *buf, size_t buf_len, uint32_t un
  */
 int32_t sol_util_unicode_code_from_utf8(const uint8_t *buf, size_t buf_len, uint8_t *bytes_read);
 
+/**
+ * @brief Calculate the size necessary to encode a given slice in base16.
+ *
+ * @param slice The slice that is wanted to know the encoded size.
+ *
+ * @return the size that will be utilized to encode the @c slice or a
+ * negative number on error.
+ */
 static inline ssize_t
 sol_util_base16_calculate_encoded_len(const struct sol_str_slice slice)
 {
@@ -327,12 +603,29 @@ sol_util_base16_calculate_encoded_len(const struct sol_str_slice slice)
     return req_len;
 }
 
+/**
+ * @brief Calculate the size necessary to decode a given slice in base16.
+ *
+ * @param slice The slice that is wanted to know the decoded size.
+ *
+ * @return the size that will be utilized to decode the @c slice or a
+ * negative number on error.
+ */
 static inline ssize_t
 sol_util_base16_calculate_decoded_len(const struct sol_str_slice slice)
 {
     return slice.len / 2;
 }
 
+/**
+ * @brief Clear an allocated memory securely.
+ *
+ * Clobber memory pointed to by @c buf to prevent the optimizer from
+ * eliding the @c memset() call.
+ *
+ * @param buf The memory block
+ * @param len The buf length
+ */
 static inline void
 sol_util_secure_clear_memory(void *buf, size_t len)
 {
@@ -344,7 +637,7 @@ sol_util_secure_clear_memory(void *buf, size_t len)
 }
 
 /**
- * Wrapper over strtod() that consumes up to @c len bytes and may not
+ * @brief Wrapper over strtod() that consumes up to @c len bytes and may not
  * use a locale.
  *
  * This variation of strtod() will work with buffers that are not
@@ -375,7 +668,7 @@ sol_util_secure_clear_memory(void *buf, size_t len)
 double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale);
 
 /**
- * Wrapper over strtol() that consumes up to @c len bytes
+ * @brief Wrapper over strtol() that consumes up to @c len bytes
  *
  * This variation of strtol() will work with buffers that are not
  * null-terminated.
@@ -399,6 +692,10 @@ double sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_l
  * @return the converted value, if any.
  */
 long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base);
+
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }
