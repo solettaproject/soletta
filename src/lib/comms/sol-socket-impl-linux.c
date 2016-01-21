@@ -164,7 +164,7 @@ sol_socket_linux_new(int domain, enum sol_socket_type type, int protocol)
         return NULL;
     }
 
-    fd = socket(domain, socktype, protocol);
+    fd = socket(sol_network_sol_to_af(domain), socktype, protocol);
     SOL_INT_CHECK(fd, < 0, NULL);
 
     s = calloc(1, sizeof(*s));
