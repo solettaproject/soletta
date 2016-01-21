@@ -48,7 +48,7 @@
 
 #include "sol-message-digest-common.h"
 #include "sol-crypto.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 /* BEGIN: these definitions come from kernel and are still not

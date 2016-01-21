@@ -39,7 +39,7 @@
 #include "sol-types.h"
 #include "sol-update.h"
 
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <errno.h>
 
 struct update_data {

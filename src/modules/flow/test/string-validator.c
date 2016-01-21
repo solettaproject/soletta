@@ -38,7 +38,7 @@
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "string-validator.h"
 #include "sol-flow/test.h"

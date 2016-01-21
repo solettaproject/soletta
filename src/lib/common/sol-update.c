@@ -45,7 +45,8 @@
 #include "sol-update.h"
 #include "sol-update-modules.h"
 #include "sol-update-builtins-gen.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
+#include "sol-util-file.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_update_log_domain, "update");
 

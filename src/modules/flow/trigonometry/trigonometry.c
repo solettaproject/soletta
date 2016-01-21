@@ -34,7 +34,7 @@
 
 #include "sol-flow-internal.h"
 
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <math.h>
 #include <float.h>
 #include <errno.h>

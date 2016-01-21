@@ -32,7 +32,7 @@
 
 #include "sol-types.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include <errno.h>
 #include <float.h>

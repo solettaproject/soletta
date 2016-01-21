@@ -33,7 +33,7 @@
 #include "sol-flow/timestamp.h"
 #include "sol-flow-internal.h"
 
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <math.h>
 #include <time.h>
 
@@ -496,7 +496,7 @@ delta_process(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
     SOL_INT_CHECK(r, < 0, r);
 
     sol_util_timespec_sub(&mdata->val[0], &mdata->val[1], &sub_result);
-    result = sub_result.tv_sec * NSEC_PER_SEC + sub_result.tv_nsec;
+    result = sub_result.tv_sec * SOL_NSEC_PER_SEC + sub_result.tv_nsec;
 
     if (result > INT32_MAX) {
         SOL_DBG("Delta is too big for nanoseconds: %s",

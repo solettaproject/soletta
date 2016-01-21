@@ -31,10 +31,9 @@
  */
 
 #include "sol-util-file.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-mainloop.h"
 #include "sol-log.h"
-#include "sol-util.h"
 
 #include <dlfcn.h>
 #include <errno.h>
@@ -51,7 +50,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-int
+#define CHUNK_SIZE 4096
+
+SOL_API int
 sol_util_vwrite_file(const char *path, const char *fmt, va_list args)
 {
     FILE *fp;
@@ -79,7 +80,7 @@ sol_util_vwrite_file(const char *path, const char *fmt, va_list args)
     return ret;
 }
 
-int
+SOL_API int
 sol_util_write_file(const char *path, const char *fmt, ...)
 {
     va_list ap;
@@ -92,7 +93,7 @@ sol_util_write_file(const char *path, const char *fmt, ...)
     return ret;
 }
 
-int
+SOL_API int
 sol_util_vread_file(const char *path, const char *fmt, va_list args)
 {
     FILE *fp;
@@ -108,7 +109,7 @@ sol_util_vread_file(const char *path, const char *fmt, va_list args)
     return ret;
 }
 
-int
+SOL_API int
 sol_util_read_file(const char *path, const char *fmt, ...)
 {
     va_list ap;
@@ -121,7 +122,7 @@ sol_util_read_file(const char *path, const char *fmt, ...)
     return ret;
 }
 
-ssize_t
+SOL_API ssize_t
 sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
 {
     size_t bytes_read = 0, s;
@@ -171,7 +172,7 @@ sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
     return ret;
 }
 
-struct sol_buffer *
+SOL_API struct sol_buffer *
 sol_util_load_file_raw(const int fd)
 {
     struct stat st;
@@ -208,7 +209,7 @@ err:
     return NULL;
 }
 
-char *
+SOL_API char *
 sol_util_load_file_fd_string(int fd, size_t *size)
 {
     int saved_errno;
@@ -245,7 +246,7 @@ err:
     return NULL;
 }
 
-char *
+SOL_API char *
 sol_util_load_file_string(const char *filename, size_t *size)
 {
     int fd, saved_errno;
@@ -352,7 +353,7 @@ strrstr(const char *haystack, const char *needle)
     return r;
 }
 
-int
+SOL_API int
 sol_util_get_rootdir(char *out, size_t size)
 {
     char progname[PATH_MAX] = { 0 };
@@ -375,7 +376,7 @@ sol_util_get_rootdir(char *out, size_t size)
     return (r < 0 || r > (int)size) ? -ENOMEM : r;
 }
 
-int
+SOL_API int
 sol_util_fd_set_flag(int fd, int flag)
 {
     int flags;
@@ -391,7 +392,7 @@ sol_util_fd_set_flag(int fd, int flag)
     return 0;
 }
 
-bool
+SOL_API bool
 sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path, struct dirent *ent), const void *data)
 {
     DIR *dir;
@@ -464,7 +465,7 @@ sync_dir_of(const char *new_path)
     return -errno;
 }
 
-int
+SOL_API int
 sol_util_move_file(const char *old_path, const char *new_path, mode_t mode)
 {
     FILE *new, *old;

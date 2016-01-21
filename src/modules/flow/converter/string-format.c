@@ -49,7 +49,7 @@
 #include "string-format.h"
 SOL_LOG_INTERNAL_DECLARE(_string_format_log_domain, "string-format");
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct format_spec_data {
     ssize_t width;

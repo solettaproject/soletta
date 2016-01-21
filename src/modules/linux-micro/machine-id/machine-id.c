@@ -44,7 +44,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-machine-id");
 
 #include "sol-mainloop.h"
 #include "sol-platform-linux-micro.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static bool done = false;
 static const char *name;

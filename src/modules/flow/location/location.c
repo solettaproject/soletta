@@ -41,7 +41,7 @@
 #include <sol-http-client.h>
 #include <sol-json.h>
 #include <sol-mainloop.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 
 struct freegeoip_data {
     struct sol_flow_node *node;

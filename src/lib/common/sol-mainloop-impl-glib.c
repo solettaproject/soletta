@@ -34,7 +34,7 @@
 #include <glib-unix.h>
 
 #include "sol-mainloop-impl.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static GMainLoop *loop;
 

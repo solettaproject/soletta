@@ -36,7 +36,7 @@
 #include "sol-flow.h"
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "boolean-validator.h"
 #include "sol-flow/test.h"

@@ -34,7 +34,7 @@
 
 #include "sol-flow/filter-repeated.h"
 #include "sol-flow-internal.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 
 struct filter_boolean_data {

@@ -43,7 +43,7 @@
 
 #include "sol-buffer.h"
 #include "sol-macros.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-log.h"
 #include "sol-random.h"
 #include "sol-str-slice.h"
@@ -212,7 +212,7 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
     return value;
 }
 
-char *
+SOL_API char *
 sol_util_strerror(int errnum, char *buf, size_t buflen)
 {
     char *ret;
@@ -672,4 +672,146 @@ sol_util_unicode_code_from_utf8(const uint8_t *buf, size_t buf_len, uint8_t *byt
 error:
     SOL_WRN("Invalid unicode character in buffer");
     return -EINVAL;
+}
+
+SOL_API int
+sol_util_ssize_mul(ssize_t op1, ssize_t op2, ssize_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(op1, op2, out))
+        return -EOVERFLOW;
+#else
+    bool overflow = false;
+
+    if (op1 > 0 && op2 > 0) {
+        overflow = op1 > OVERFLOW_SSIZE_T_POS / op2;
+    } else if (op1 > 0 && op2 <= 0) {
+        overflow = op2 < OVERFLOW_SSIZE_T_NEG / op1;
+    } else if (op1 <= 0 && op2 > 0) {
+        overflow = op1 < OVERFLOW_SSIZE_T_NEG / op2;
+    } else { // op1 <= 0 && op2 <= 0
+        overflow = op1 != 0 && op2 < OVERFLOW_SSIZE_T_POS / op1;
+    }
+
+    if (overflow)
+        return -EOVERFLOW;
+
+    *out = op1 * op2;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(elem_size, num_elems, out))
+        return -EOVERFLOW;
+#else
+    if ((elem_size >= OVERFLOW_SIZE_T || num_elems >= OVERFLOW_SIZE_T) &&
+        elem_size > 0 && SIZE_MAX / elem_size < num_elems)
+        return -EOVERFLOW;
+    *out = elem_size * num_elems;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_size_add(const size_t a, const size_t b, size_t *out)
+{
+#ifdef HAVE_BUILTIN_ADD_OVERFLOW
+    if (__builtin_add_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if (a > 0 && b > SIZE_MAX - a)
+        return -EOVERFLOW;
+    *out = a + b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_size_sub(const size_t a, const size_t b, size_t *out)
+{
+#ifdef HAVE_BUILTIN_SUB_OVERFLOW
+    if (__builtin_sub_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if (b > a)
+        return -EOVERFLOW;
+    *out = a - b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a >= OVERFLOW_UINT64 || b >= OVERFLOW_UINT64) &&
+        a > 0 && UINT64_MAX / a < b)
+        return -EOVERFLOW;
+    *out = a * b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_int64_mul(const int64_t a, const int64_t b, int64_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a >= OVERFLOW_INT64 || b >= OVERFLOW_INT64) &&
+        a > 0 && INT64_MAX / a < b)
+        return -EOVERFLOW;
+    *out = a * b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
+{
+#ifdef HAVE_BUILTIN_ADD_OVERFLOW
+    if (__builtin_add_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if (a > 0 && b > UINT64_MAX - a)
+        return -EOVERFLOW;
+    *out = a + b;
+#endif
+    return 0;
+}
+
+SOL_API bool
+sol_util_uuid_str_valid(const char *str)
+{
+    size_t i, len;
+
+    len = strlen(str);
+    if (len == 32) {
+        for (i = 0; i < len; i++) {
+            if (!isxdigit((uint8_t)str[i]))
+                return false;
+        }
+    } else if (len == 36) {
+        char c;
+        for (i = 0; i < len; i++) {
+            c = str[i];
+
+            if (i == 8 || i == 13 || i == 18 || i == 23) {
+                if (c != '-')
+                    return false;
+            } else if (!isxdigit((uint8_t)c))
+                return false;
+        }
+    } else
+        return false;
+
+    return true;
 }

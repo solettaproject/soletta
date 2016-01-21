@@ -56,7 +56,7 @@
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "sol-platform-linux-micro-builtins-gen.h"

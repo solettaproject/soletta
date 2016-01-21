@@ -33,7 +33,7 @@
 #include "sol-flow/am2315.h"
 #include "sol-flow-internal.h"
 
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <errno.h>
 
 #include "am2315.h"

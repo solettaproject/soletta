@@ -46,7 +46,7 @@
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-random.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "sol-oic-client.h"
 #include "sol-oic-cbor.h"

@@ -35,7 +35,7 @@
 
 #include "sol-flow.h"
 #include "sol-pwm.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -36,7 +36,7 @@
 
 #include "sol-mainloop.h"
 #include "sol-platform.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #define CMD_TICK 2000
 

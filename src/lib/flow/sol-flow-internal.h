@@ -44,7 +44,7 @@
 #include "sol-flow.h"
 #include "sol-flow-metatype.h"
 #include "sol-vector.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 extern struct sol_log_domain _sol_flow_log_domain;
 
