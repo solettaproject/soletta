@@ -51,7 +51,7 @@
 #include "sol-str-table.h"
 #include "sol-mainloop.h"
 #include "sol-message-digest.h"
-#include "sol-util-internal.h"
+#include "sol-util.h"
 
 enum log_level {
     LOG_LEVEL_DEFAULT = 0,
@@ -204,6 +204,22 @@ on_stdin_hash(void *data, int fd, uint32_t flags)
 }
 
 static int
+fd_set_flag(int fd, int flag)
+{
+    int flags;
+
+    flags = fcntl(fd, F_GETFL);
+    if (flags < 0)
+        return -errno;
+
+    flags |= flag;
+    if (fcntl(fd, F_SETFL, flags) < 0)
+        return -errno;
+
+    return 0;
+}
+
+static int
 hash_stdin(void)
 {
     struct entry *entry;
@@ -216,7 +232,7 @@ hash_stdin(void)
     if (!entry)
         return -ENOMEM;
 
-    r = sol_util_fd_set_flag(STDIN_FILENO, O_NONBLOCK);
+    r = fd_set_flag(STDIN_FILENO, O_NONBLOCK);
     if (r < 0)
         fputs("WARNING: cannot set stdin to non-blocking.\n", stderr);
 
@@ -294,7 +310,7 @@ process_stdin(void)
 static int
 process_input(const char *filename)
 {
-    if (streq(filename, stdin_filename))
+    if (!strcmp(filename, stdin_filename))
         return process_stdin();
 
     if (checking)
