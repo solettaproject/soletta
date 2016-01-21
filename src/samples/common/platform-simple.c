@@ -36,7 +36,7 @@
 
 #include "sol-mainloop.h"
 #include "sol-platform.h"
-#include "sol-util-internal.h"
+#include "sol-util.h"
 
 #define CMD_TICK 2000
 
@@ -69,17 +69,17 @@ on_timeout_cmd(void *data)
 
     printf("Firing new command: %s %s\n", cmd, param);
 
-    if (streq(cmd, "monitor"))
+    if (!strcmp(cmd, "monitor"))
         sol_platform_add_service_monitor(on_service_changed, param, NULL);
-    else if (streq(cmd, "stop-monitor"))
+    else if (!strcmp(cmd, "stop-monitor"))
         sol_platform_del_service_monitor(on_service_changed, param, NULL);
-    else if (streq(cmd, "start"))
+    else if (!strcmp(cmd, "start"))
         sol_platform_start_service(param);
-    else if (streq(cmd, "stop"))
+    else if (!strcmp(cmd, "stop"))
         sol_platform_stop_service(param);
-    else if (streq(cmd, "restart"))
+    else if (!strcmp(cmd, "restart"))
         sol_platform_restart_service(param);
-    else if (streq(cmd, "target"))
+    else if (!strcmp(cmd, "target"))
         sol_platform_set_target(param);
 
     if (n_cmds - cur_cmd >= 2)
