@@ -195,14 +195,11 @@ static void
 network_close(struct sol_flow_node *node, void *data)
 {
     struct network_data *mdata = data;
-    struct sol_network_link *itr;
 
     regfree(&mdata->regex);
     sol_ptr_vector_clear(&mdata->links);
     sol_network_unsubscribe_events(_on_network_event, mdata);
     sol_network_shutdown();
-
-    (void)itr;
 }
 
 
