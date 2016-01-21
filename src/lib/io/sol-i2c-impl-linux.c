@@ -62,7 +62,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 #include "sol-i2c.h"
 #include "sol-macros.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #ifdef WORKER_THREAD
 #include "sol-worker-thread.h"
 #endif

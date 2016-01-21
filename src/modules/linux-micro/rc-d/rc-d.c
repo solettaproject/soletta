@@ -44,7 +44,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-rc-d");
 
 #include "sol-mainloop.h"
 #include "sol-platform-linux-micro.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 /* interval in milliseconds to poll for service status, when there are services to be polled */

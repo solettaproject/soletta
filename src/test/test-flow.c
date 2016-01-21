@@ -33,7 +33,7 @@
 #include "sol-flow.h"
 #include "sol-flow-static.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-log.h"
 

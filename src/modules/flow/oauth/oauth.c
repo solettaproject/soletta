@@ -46,7 +46,7 @@
 #include "sol-message-digest.h"
 #include "sol-network.h"
 #include "sol-random.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 struct v1_data {

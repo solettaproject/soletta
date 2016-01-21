@@ -30,3 +30,6 @@ obj-libshared-$(PLATFORM_CONTIKI) += \
     sol-util-impl-contiki.o
 
 obj-libshared-y-extra-cflags += -fvisibility=default
+
+headers-y += \
+    include/sol-util.h

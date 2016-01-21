@@ -43,7 +43,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "board-detect");
 #include "sol-json.h"
 #include "sol-board-detect.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #define BOARD_DIR "boards/"

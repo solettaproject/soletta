@@ -37,7 +37,7 @@
 
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 /* speed only works for riot */
 #define I2C_SPEED SOL_I2C_SPEED_10KBIT

@@ -36,7 +36,7 @@
 
 #include "sol-platform.h"
 #include "sol-platform-impl.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "lpm.h"
 #include "periph/cpuid.h"

@@ -41,7 +41,7 @@ SOL_LOG_INTERNAL_DECLARE(_gtk_log_domain, "flow-gtk");
 
 #include "sol-glib-integration.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "byte-editor.h"

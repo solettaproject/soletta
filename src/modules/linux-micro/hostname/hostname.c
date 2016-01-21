@@ -40,7 +40,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-hostname");
 
 #include "sol-platform-linux-micro.h"
 #include "sol-file-reader.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static int
 hostname_start(const struct sol_platform_linux_micro_module *mod, const char *service)

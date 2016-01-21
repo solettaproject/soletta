@@ -34,7 +34,7 @@
 #include "sol-flow-internal.h"
 
 #include <sol-spi.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <errno.h>
 
 struct lcd_strip_lpd8806_data {

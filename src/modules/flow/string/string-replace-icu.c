@@ -50,7 +50,7 @@
 #include <unicode/utypes.h>
 
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "string-icu.h"
 

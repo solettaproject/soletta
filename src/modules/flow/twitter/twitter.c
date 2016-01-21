@@ -44,7 +44,7 @@
 #include "sol-mainloop.h"
 #include "sol-message-digest.h"
 #include "sol-random.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #define BASE_POST_URL "https://api.twitter.com/1.1/statuses/update.json"

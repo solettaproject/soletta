@@ -41,7 +41,7 @@
 #include "sol-flow-static.h"
 #include "sol-list.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct node_info {
     uint16_t first_conn_idx;

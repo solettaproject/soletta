@@ -36,7 +36,7 @@
 
 #include "sol-log.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 SOL_API int
 sol_str_slice_to_int(const struct sol_str_slice s, int *value)

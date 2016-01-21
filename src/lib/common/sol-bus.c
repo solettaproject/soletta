@@ -41,7 +41,7 @@
 #include "sol-bus.h"
 #include "sol-mainloop.h"
 #include "sol-platform-impl.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #define SERVICE_NAME_OWNER_MATCH "type='signal',"                   \

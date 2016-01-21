@@ -40,7 +40,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-network-up");
 
 #include "sol-platform-linux-micro.h"
 #include "sol-network.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static void
 _network_event_cb(void *data, const struct sol_network_link *link, enum sol_network_event event)

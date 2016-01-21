@@ -35,6 +35,7 @@
 #include "sol-common-buildopts.h"
 #include "sol-macros.h"
 #include "sol-str-slice.h"
+#include "sol-util.h"
 #include "sol-vector.h"
 #include "sol-buffer.h"
 
@@ -139,83 +140,13 @@ long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
 #define PTR_TO_INT(p) ((int)((intptr_t)(p)))
 #define INT_TO_PTR(i) ((void *)((intptr_t)(i)))
 
-/* number of nanoseconds in a second: 1,000,000,000 */
-#define NSEC_PER_SEC  1000000000ULL
-/* number of milliseconds in a second: 1,000 */
-#define MSEC_PER_SEC  1000ULL
-/* number of microseconds in a second: 1,000,000 */
-#define USEC_PER_SEC  1000000ULL
-/* number of nanoseconds in a milliseconds: 1,000,000,000 / 1,000 = 1,000,000 */
-#define NSEC_PER_MSEC 1000000ULL
-/* number of nanoseconds in a microsecond: 1,000,000,000 / 1,000,000 = 1,000 */
-#define NSEC_PER_USEC 1000ULL
-
 static inline int
 sol_util_int_compare(const int a, const int b)
 {
     return (a > b) - (a < b);
 }
 
-struct timespec sol_util_timespec_get_current(void);
-int sol_util_timespec_get_realtime(struct timespec *t);
-
-static inline void
-sol_util_timespec_sum(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
-{
-    result->tv_nsec = t1->tv_nsec + t2->tv_nsec;
-    result->tv_sec = t1->tv_sec + t2->tv_sec;
-    if ((unsigned long long)result->tv_nsec >= NSEC_PER_SEC) {
-        result->tv_nsec -= NSEC_PER_SEC;
-        result->tv_sec++;
-    }
-}
-
-static inline void
-sol_util_timespec_sub(const struct timespec *t1, const struct timespec *t2, struct timespec *result)
-{
-    result->tv_nsec = t1->tv_nsec - t2->tv_nsec;
-    result->tv_sec = t1->tv_sec - t2->tv_sec;
-    if (result->tv_nsec < 0) {
-        result->tv_nsec += NSEC_PER_SEC;
-        result->tv_sec--;
-    }
-}
-
-static inline int
-sol_util_timespec_compare(const struct timespec *t1, const struct timespec *t2)
-{
-    int retval = (t1->tv_sec > t2->tv_sec) - (t1->tv_sec < t2->tv_sec);
-
-    if (retval != 0)
-        return retval;
-    return (t1->tv_nsec > t2->tv_nsec) - (t1->tv_nsec < t2->tv_nsec);
-}
-
-static inline struct timespec
-sol_util_timespec_from_msec(const int msec)
-{
-    struct timespec ts;
-
-    ts.tv_sec = msec / MSEC_PER_SEC;
-    ts.tv_nsec = (msec % MSEC_PER_SEC) * NSEC_PER_MSEC;
-    return ts;
-}
-
-static inline int
-sol_util_msec_from_timespec(const struct timespec *ts)
-{
-    return ts->tv_sec * MSEC_PER_SEC + ts->tv_nsec / NSEC_PER_MSEC;
-}
-
 void *sol_util_memdup(const void *data, size_t len);
-
-char *sol_util_strerror(int errnum, char *buf, size_t buflen);
-
-#define sol_util_strerrora(errnum) \
-    ({ \
-        char buf ## __COUNT__[512]; \
-        sol_util_strerror((errnum), buf ## __COUNT__, sizeof(buf ## __COUNT__)); \
-    })
 
 /* Power of 2 alignment */
 #define DEFINE_ALIGN_POWER2(name_, type_, max_, clz_fn_) \

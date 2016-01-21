@@ -36,7 +36,7 @@
 
 #include "sol-buffer.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 SOL_ATTR_PURE static inline size_t
 nul_byte_size(struct sol_buffer *buf)

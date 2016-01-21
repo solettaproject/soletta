@@ -31,10 +31,9 @@
  */
 
 #include "sol-util-file.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-mainloop.h"
 #include "sol-log.h"
-#include "sol-util.h"
 
 #include <dlfcn.h>
 #include <errno.h>

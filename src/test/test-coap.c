@@ -41,7 +41,7 @@
 #include "coap.h"
 #include "test.h"
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 DEFINE_TEST(test_coap_parse_empty_pdu);
 

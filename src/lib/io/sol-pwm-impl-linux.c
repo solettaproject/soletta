@@ -45,7 +45,7 @@
 #include "sol-log-internal.h"
 #include "sol-macros.h"
 #include "sol-pwm.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
 

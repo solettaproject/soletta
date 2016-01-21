@@ -39,7 +39,7 @@
 #include "sol-flow-internal.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 

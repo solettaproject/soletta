@@ -34,7 +34,7 @@
 
 #include <time.h>
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 struct sol_timeout_common {

@@ -36,7 +36,7 @@
 
 #include <sol-http-client.h>
 #include <sol-json.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 
 #include <errno.h>
 #include <float.h>

@@ -42,7 +42,7 @@
 #include "sol-json.h"
 #include "sol-log.h"
 #include "sol-macros.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include <float.h>
 #include <math.h>
 

@@ -54,7 +54,7 @@
 #include "sol-mainloop.h"
 #include "sol-network.h"
 #include "sol-network-util.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "network");

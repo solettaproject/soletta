@@ -46,7 +46,7 @@
 #include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-spi.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #ifdef WORKER_THREAD
 #include "sol-worker-thread.h"
 #endif

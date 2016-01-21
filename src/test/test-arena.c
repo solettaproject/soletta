@@ -33,7 +33,7 @@
 #include <errno.h>
 
 #include "sol-arena.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test.h"
 

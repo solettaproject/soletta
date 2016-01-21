@@ -42,7 +42,7 @@
 #include "sol-buffer.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
 
 #define SOLETTA_EFIVARS_GUID "076027a8-c791-41d7-940f-3d465869f821"
