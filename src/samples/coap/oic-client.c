@@ -39,12 +39,22 @@
 #include "sol-oic-client.h"
 
 static void
-got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader, void *data)
+got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader, void *data)
 {
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
     char addr[SOL_INET_ADDR_STRLEN];
+
+    if (!cliaddr) {
+        SOL_WRN("Response timeout");
+        return;
+    }
+
+    if (!map_reader) {
+        SOL_WRN("Empty Response");
+        return;
+    }
 
     if (!sol_network_addr_to_str(cliaddr, addr, sizeof(addr))) {
         SOL_WRN("Could not convert network address to string");

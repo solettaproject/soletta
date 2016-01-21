@@ -1057,10 +1057,13 @@ client_resource_implements_type(struct sol_oic_resource *oic_res, const char *re
 }
 
 static void
-state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
+state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
     const struct sol_oic_map_reader *repr_vec, void *data)
 {
     struct client_resource *resource = data;
+
+    if (!cliaddr || !repr_vec)
+        return;
 
     if (!sol_network_link_addr_eq(cliaddr, &resource->resource->addr)) {
         char resaddr[SOL_INET_ADDR_STRLEN] = {0};
@@ -1286,7 +1289,7 @@ server_resource_schedule_update(struct server_resource *resource)
 }
 
 static sol_coap_responsecode_t
-server_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
+server_handle_update(const struct sol_network_link_addr *cliaddr, const void *data,
     const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
 {
     struct server_resource *resource = (struct server_resource *)data;
@@ -1314,7 +1317,7 @@ server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
     if (!resource->funcs->to_repr_vec((void *)resource, output))
         return SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
-    return SOL_COAP_RSPCODE_OK;
+    return SOL_COAP_RSPCODE_CONTENT;
 }
 
 // log_init() implementation happens within oic-gen.c
@@ -1340,7 +1343,8 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
         .resource_type = resource_type,
         .interface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
         .get = { .handle = server_handle_get },
-        .put = { .handle = server_handle_put },
+        .put = { .handle = server_handle_update },
+        .post = { .handle = server_handle_update },
     };
 
     resource->resource = sol_oic_server_add_resource(&resource->type,
