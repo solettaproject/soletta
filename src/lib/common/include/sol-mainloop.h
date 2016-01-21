@@ -75,6 +75,7 @@ extern "C" {
  * @li @ref PowerSupply
  * @li @ref Types
  * @li @ref Update
+ * @li @ref Utils
  * @li @ref WorkerThread
  *
  * Please see the @ref authors page for contact details.
