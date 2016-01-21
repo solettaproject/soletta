@@ -1,0 +1,8 @@
+config NETWORK_SAMPLES
+	bool "Network samples"
+	default y
+
+config NETWORK_STATUS_SAMPLE
+	bool "Network status"
+	depends on NETWORK_SAMPLES && NETWORK
+	default y
