@@ -40,8 +40,11 @@
  * system are configured.
  */
 
+#define _GNU_SOURCE
+
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "sol-mainloop.h"
 #include "sol-platform.h"
@@ -57,7 +60,7 @@ parse_cmdline_pin(void)
     int i;
 
     for (i = 1; i < argc; i++) {
-        if (streqn(argv[i], "led-pin=", sizeof("led-pin=") - 1)) {
+        if (!strncmp(argv[i], "led-pin=", sizeof("led-pin=") - 1)) {
             const char *value = argv[i] + sizeof("led-pin=") - 1;
             int pin = -1;
             if (sscanf(value, "%d", &pin) == 1) {

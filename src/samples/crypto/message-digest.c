@@ -47,7 +47,7 @@
 #include "sol-file-reader.h"
 #include "sol-mainloop.h"
 #include "sol-message-digest.h"
-#include "sol-util-internal.h"
+#include "sol-util.h"
 
 static uint32_t pending;
 
