@@ -36,7 +36,7 @@
 #include <errno.h>
 #include <float.h>
 #include <sol-random.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <stdlib.h>
 #include <time.h>
 

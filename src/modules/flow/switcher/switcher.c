@@ -34,7 +34,7 @@
 
 #include "sol-flow/switcher.h"
 #include "sol-flow-internal.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 
 #define PORT_MAX (SOL_FLOW_NODE_TYPE_SWITCHER_BOOLEAN__IN__IN_LAST + 1)

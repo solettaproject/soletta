@@ -46,7 +46,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "string-ascii.h"
 

@@ -39,7 +39,7 @@
 #include "sol-flow-internal.h"
 #include "sol-flow-packet.h"
 #include "sol-macros.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-buffer.h"
 #include "sol-str-table.h"

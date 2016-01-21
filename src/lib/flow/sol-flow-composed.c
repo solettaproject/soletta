@@ -39,7 +39,7 @@
 
 #include "sol-str-slice.h"
 #include "sol-vector.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-flow-packet.h"
 #include "sol-types.h"
 #include "sol-flow-composed.h"

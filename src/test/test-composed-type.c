@@ -32,7 +32,7 @@
 
 #include "test.h"
 #include "sol-vector.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-flow-packet.h"
 
 DEFINE_TEST(test_composed_type);

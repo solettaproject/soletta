@@ -31,7 +31,7 @@
  */
 
 #include "test.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-http.h"
 #include "sol-vector.h"
 

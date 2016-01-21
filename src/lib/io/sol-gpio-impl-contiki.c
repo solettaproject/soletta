@@ -42,7 +42,7 @@
 #include "sol-log-internal.h"
 #include "sol-gpio.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-event-handler-contiki.h"
 
 static SOL_LOG_INTERNAL_DECLARE(_log_domain, "gpio");

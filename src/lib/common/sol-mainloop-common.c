@@ -572,8 +572,8 @@ sol_mainloop_impl_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const
 
     sol_mainloop_impl_lock();
 
-    timeout->timeout.tv_sec = timeout_ms / MSEC_PER_SEC;
-    timeout->timeout.tv_nsec = (timeout_ms % MSEC_PER_SEC) * NSEC_PER_MSEC;
+    timeout->timeout.tv_sec = timeout_ms / SOL_MSEC_PER_SEC;
+    timeout->timeout.tv_nsec = (timeout_ms % SOL_MSEC_PER_SEC) * SOL_NSEC_PER_MSEC;
     timeout->cb = cb;
     timeout->data = data;
     timeout->remove_me = false;

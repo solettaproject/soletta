@@ -41,7 +41,7 @@
 #include "sol-flow-internal.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-types.h"
 
 struct aio_data {

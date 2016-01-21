@@ -43,7 +43,7 @@
 #include "sol-buffer.h"
 #include "sol-log.h"
 #include "sol-message-digest.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
 
 struct update_get_hash_handle {

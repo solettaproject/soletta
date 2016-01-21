@@ -46,7 +46,6 @@
 #include "sol-mainloop.h"
 #include "sol-platform.h"
 #include "sol-gpio.h"
-#include "sol-util.h"
 
 static int
 parse_cmdline_pin(void)

@@ -32,7 +32,7 @@
 
 #include "test.h"
 #include "sol-vector.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct s {
     int a;

@@ -35,7 +35,7 @@
 
 #include <sol-i2c.h>
 #include <sol-mainloop.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 
 #include <errno.h>
 

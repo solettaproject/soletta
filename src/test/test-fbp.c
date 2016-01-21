@@ -34,7 +34,7 @@
 #include "sol-log.h"
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test.h"
 

@@ -42,7 +42,7 @@
 #include "sol-json.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #ifdef USE_MEMMAP

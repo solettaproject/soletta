@@ -40,7 +40,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-kmod");
 #include "sol-file-reader.h"
 #include "sol-mainloop.h"
 #include "sol-platform-linux-micro.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct kmod_data {
     struct kmod_ctx *kmod;

@@ -42,7 +42,7 @@
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 struct network_data {

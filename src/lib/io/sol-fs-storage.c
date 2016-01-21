@@ -42,7 +42,7 @@
 #include "sol-buffer.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
 
 struct pending_write_data {

@@ -38,7 +38,7 @@
 #include "sol-flow.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #ifdef USE_FILESYSTEM
 #include "sol-fs-storage.h"

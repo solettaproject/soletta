@@ -38,7 +38,7 @@
 
 #include "sol-lib-loader.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 struct sol_lib_entry {

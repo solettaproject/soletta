@@ -43,7 +43,7 @@
 
 #include "sol-buffer.h"
 #include "sol-macros.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-log.h"
 #include "sol-random.h"
 #include "sol-str-slice.h"
@@ -212,7 +212,7 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
     return value;
 }
 
-char *
+SOL_API char *
 sol_util_strerror(int errnum, char *buf, size_t buflen)
 {
     char *ret;

@@ -32,7 +32,7 @@
 
 #include "intel-common.h"
 #include "sol-pin-mux-modules.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 // =============================================================================
 // Galileo Gen1 Multiplexer Description

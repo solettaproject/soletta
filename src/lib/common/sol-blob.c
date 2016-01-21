@@ -36,7 +36,7 @@
 #define SOL_LOG_DOMAIN &_sol_blob_log_domain
 #include "sol-log-internal.h"
 #include "sol-macros.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-types.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_sol_blob_log_domain, "blob");

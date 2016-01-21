@@ -33,7 +33,7 @@
 #include <string.h>
 
 #include "sol-monitors.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test.h"
 
