@@ -1,0 +1,60 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "stts751",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "input/hw",
+      "description": "Gets STTS751 sensor temperature in Kelvin.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a temperature reading and produce packets on each of the the output ports.",
+          "name": "TICK",
+          "methods": {
+            "process": "temperature_stts751_tick"
+          }
+        }
+      ],
+      "methods": {
+        "close": "temperature_stts751_close",
+        "open": "temperature_stts751_open"
+      },
+      "name": "stts751/temperature",
+      "options": {
+        "members": [
+          {
+            "data_type": "int",
+            "description": "I2C bus number",
+            "name": "i2c_bus"
+          },
+          {
+            "data_type": "int",
+            "description": "I2C bus slave on which the sensor answers.",
+            "name": "i2c_slave",
+            "default": 57
+          },
+          {
+            "data_type": "int",
+            "description": "Resolution of temperature readings, in bits. Must be a number between 9 and 12",
+            "name": "temperature_resolution",
+            "default": 10
+          }
+        ],
+        "version": 1
+      },
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "Measured temperature in Kelvin.",
+          "name": "KELVIN"
+        }
+      ],
+      "private_data_type": "stts751_data"
+    }
+  ]
+}
