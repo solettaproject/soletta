@@ -50,7 +50,6 @@
 
 #include "sol-mainloop.h"
 #include "sol-network.h"
-#include "sol-util.h"
 #include "sol-vector.h"
 
 static regex_t regex;

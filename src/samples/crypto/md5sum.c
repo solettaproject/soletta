@@ -51,7 +51,7 @@
 #include "sol-str-table.h"
 #include "sol-mainloop.h"
 #include "sol-message-digest.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 enum log_level {
     LOG_LEVEL_DEFAULT = 0,

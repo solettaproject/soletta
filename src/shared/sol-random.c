@@ -32,7 +32,7 @@
 
 #include <errno.h>
 #include <sol-log.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <time.h>
 
 #ifdef SOL_PLATFORM_LINUX
@@ -43,7 +43,7 @@
 #endif
 
 #include "sol-random.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct sol_random {
     const struct sol_random_impl *impl;

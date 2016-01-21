@@ -36,7 +36,7 @@
 
 #include "sol-flow-internal.h"
 #include "sol-flow-resolver.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_flow_log_domain, "flow");
 

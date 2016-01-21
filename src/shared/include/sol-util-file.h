@@ -32,15 +32,18 @@
 
 #pragma once
 
-#include "sol-macros.h"
-#include "sol-buffer.h"
+#include <sol-macros.h>
+#include <sol-buffer.h>
 
 #include <dirent.h>
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stdbool.h>
 
-#define CHUNK_SIZE 4096
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SOL_UTIL_MAX_READ_ATTEMPTS 10
 
 int sol_util_write_file(const char *path, const char *fmt, ...) SOL_ATTR_PRINTF(2, 3);
@@ -64,7 +67,8 @@ int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
  * EAGAIN or EINTR being returned by @c read() raw call.
  */
 ssize_t sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size);
-bool sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path, struct dirent *ent), const void *data);
+bool sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path,
+    struct dirent *ent), const void *data);
 
 /**
  * @brief Moves file on filesystem
@@ -83,3 +87,7 @@ bool sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, c
  * mainloop. You may want to use a thread or idler to call it.
  */
 int sol_util_move_file(const char *old_path, const char *new_path, mode_t mode);
+
+#ifdef __cplusplus
+}
+#endif

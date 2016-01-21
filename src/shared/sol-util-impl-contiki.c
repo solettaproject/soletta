@@ -30,12 +30,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 /* Contiki headers */
 #include <contiki.h>
 
-struct timespec
+SOL_API struct timespec
 sol_util_timespec_get_current(void)
 {
     struct timespec ret;
@@ -48,7 +48,7 @@ sol_util_timespec_get_current(void)
     return ret;
 }
 
-int
+SOL_API int
 sol_util_timespec_get_realtime(struct timespec *t)
 {
     errno = ENOSYS;

@@ -37,7 +37,7 @@
 #include "sol-log.h"
 #include "sol-missing.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "type-store.h"

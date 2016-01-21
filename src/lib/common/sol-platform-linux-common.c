@@ -54,7 +54,7 @@
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #define SOL_MTAB_FILE P_tmpdir "/mtab.sol"

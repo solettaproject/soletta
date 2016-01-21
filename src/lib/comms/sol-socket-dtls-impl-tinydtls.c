@@ -39,7 +39,7 @@
 #include "sol-mainloop.h"
 #include "sol-network.h"
 #include "sol-network-util.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "sol-socket.h"
 #include "sol-socket-dtls.h"

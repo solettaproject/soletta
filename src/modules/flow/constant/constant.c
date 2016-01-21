@@ -33,7 +33,7 @@
 #include "sol-flow/constant.h"
 #include "sol-flow-internal.h"
 
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <errno.h>
 
 static int

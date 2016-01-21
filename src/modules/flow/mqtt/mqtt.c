@@ -36,7 +36,7 @@
 #include <sol-certificate.h>
 #include <sol-mainloop.h>
 #include <sol-mqtt.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <errno.h>
 
 

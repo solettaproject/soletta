@@ -41,7 +41,7 @@
 #include "sol-macros.h"
 #include "sol-gpio.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-interrupt_scheduler_riot.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");

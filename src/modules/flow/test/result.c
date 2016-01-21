@@ -34,7 +34,7 @@
 
 #include "sol-flow.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test-module.h"
 #include "result.h"

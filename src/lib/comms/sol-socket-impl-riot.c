@@ -36,7 +36,7 @@
 #include "sol-socket.h"
 #include "sol-socket-impl.h"
 #include "sol-vector.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "net/gnrc/ipv6.h"
 #include "net/gnrc/udp.h"

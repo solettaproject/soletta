@@ -34,7 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-log.h"
 #include "sol-macros.h"
 #include "sol-log-impl.h"

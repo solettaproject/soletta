@@ -44,7 +44,7 @@
 
 #include "sol-str-table.h"
 #include "sol-log-impl.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static pid_t _main_pid;
 static struct sol_str_table *_env_levels = NULL;

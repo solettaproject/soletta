@@ -43,8 +43,10 @@
 #include "sol-buffer.h"
 #include "sol-log.h"
 #include "sol-message-digest.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
+
+#define CHUNK_SIZE 4096
 
 struct update_get_hash_handle {
     struct sol_message_digest *md;

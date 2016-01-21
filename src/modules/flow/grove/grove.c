@@ -40,7 +40,7 @@
 #include "sol-flow-static.h"
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 // ################################ Rotary sensor nodes

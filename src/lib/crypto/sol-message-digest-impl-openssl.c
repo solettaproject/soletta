@@ -36,7 +36,7 @@
 
 #include "sol-message-digest-common.h"
 #include "sol-crypto.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static bool did_openssl_load_digests = false;
 

@@ -41,7 +41,7 @@
 #include "sol-flow-parser.h"
 #include "sol-flow-resolver.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-flow-composed.h"
 

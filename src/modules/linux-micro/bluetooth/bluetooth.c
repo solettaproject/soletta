@@ -45,7 +45,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-bluetooth");
 
 #include "sol-mainloop.h"
 #include "sol-platform-linux-micro.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static struct sol_platform_linux_fork_run *fork_run;
 static const char *name;

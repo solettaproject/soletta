@@ -43,7 +43,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-automount");
 #include "sol-mainloop.h"
 #include "sol-platform-linux-micro.h"
 #include "sol-platform.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #define EXTMAGIC "\123\357"
 #define EXT_SB_OFFSET 1024

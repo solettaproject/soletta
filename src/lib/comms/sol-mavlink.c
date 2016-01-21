@@ -47,7 +47,7 @@
 #include <sol-mainloop.h>
 #include <sol-str-slice.h>
 #include <sol-str-table.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <sol-vector.h>
 
 #include "sol-mavlink.h"

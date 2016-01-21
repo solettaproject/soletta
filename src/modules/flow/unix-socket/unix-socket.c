@@ -41,7 +41,7 @@
 #include "sol-buffer.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
 #include "sol-vector.h"
 

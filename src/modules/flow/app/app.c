@@ -36,7 +36,7 @@
 #include "sol-flow/app.h"
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static int
 check_index(struct sol_flow_node *node, int index)
