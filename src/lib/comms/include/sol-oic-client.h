@@ -125,8 +125,8 @@ struct sol_oic_resource {
      * Not expected to be used by clients.
      */
     struct {
-        struct sol_timeout *timeout; /** @brief Pooling timeout handler */
-        int clear_data; /** @brief Pooling counter. */
+        struct sol_timeout *timeout; /** @brief Polling timeout handler */
+        int clear_data; /** @brief Polling counter. */
         int64_t token; /** @brief Observation token, if in observe mode */
     } observe;
     int refcnt; /** @brief Reference counter. */
@@ -400,13 +400,13 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
  * in observation receives notifications when server status changes. When a
  * notification is received by @a client, @a callback will be called.
  * If the @a resource is not observable, @a client will emulate the observing
- * behavior using a pooling strategy, so @a callback will be notified with
+ * behavior using a polling strategy, so @a callback will be notified with
  * server changes from time to time.
  *
  * As long as the @a callback function returns @c true, @a client will continue
  * waiting for notifications. When the function returns @c false, the internal
  * response handler will be freed and any new replies that arrive for this
- * request will be ignored. If pooling is being performed, it will be cancelled.
+ * request will be ignored. If polling is being performed, it will be cancelled.
  * If server is notifying the @a client, a request packet to ask server to
  * unobserve this @a client will be sent.
  *
@@ -443,13 +443,13 @@ bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struc
  * in observation receives notifications when server status changes. When a
  * notification is received by @a client, @a callback will be called.
  * If the @a resource is not observable, @a client will emulate the observing
- * behavior using a pooling strategy, so @a callback will be notified with
+ * behavior using a polling strategy, so @a callback will be notified with
  * server changes from time to time.
  *
  * As long as the @a callback function returns @c true, @a client will continue
  * waiting for notifications. When the function returns @c false, the internal
  * response handler will be freed and any new replies that arrive for this
- * request will be ignored. If pooling is being performed, it will be cancelled.
+ * request will be ignored. If polling is being performed, it will be cancelled.
  * If server is notifying the @a client, a request packet to ask server to
  * unobserve this @a client will be sent.
  *

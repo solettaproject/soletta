@@ -236,7 +236,7 @@ struct sol_oic_repr_field {
      */
     const char *key;
     /**
-     * @brief Union used to access field's data in correct formap specified by
+     * @brief Union used to access field's data in correct format specified by
      * @a type
      */
     union {
@@ -498,7 +498,7 @@ bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oi
  * }
  *
  * if (end_reason != SOL_OIC_MAP_LOOP_OK)
- *     // Erro handling
+ *     // Error handling
  * @endcode
  *
  * @see sol_oic_map_reader
