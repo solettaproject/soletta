@@ -591,14 +591,15 @@ hostname_worker(void *data)
     struct sol_network_hostname_handle *ctx;
     int r;
     struct addrinfo hints = { };
-
-    network->hostname_worker = NULL;
+    uint8_t **base_data = network->hostname_handles.base.data;
 
     SOL_PTR_VECTOR_FOREACH_IDX (&network->hostname_handles, ctx, i) {
         struct addrinfo *addr_list;
         struct addrinfo *addr;
         struct sol_vector sol_addr_list;
         struct sol_network_link_addr *sol_addr;
+
+        base_data[network->hostname_handles.base.elem_size * i] = NULL;
 
         sol_vector_init(&sol_addr_list, sizeof(struct sol_network_link_addr));
         switch (ctx->family) {
@@ -655,6 +656,7 @@ err_getaddr:
         sol_vector_clear(&sol_addr_list);
     }
 
+    network->hostname_worker = NULL;
     sol_ptr_vector_clear(&network->hostname_handles);
     return false;
 }
