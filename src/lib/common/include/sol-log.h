@@ -39,6 +39,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <sys/types.h>
 
 #ifdef __cplusplus
