@@ -344,7 +344,7 @@ sol_mqtt_on_unsubscribe(struct mosquitto *mosq, void *data, int id)
 }
 
 SOL_API struct sol_mqtt *
-sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config, void *data)
+sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *config, const void *data)
 {
     struct sol_mqtt *mqtt;
     int r;
@@ -367,7 +367,10 @@ sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *
     SOL_NULL_CHECK_GOTO(mqtt->mosq, error);
 
     mqtt->handlers = config->handlers;
-    mqtt->data = data;
+
+    /* It comes as const, but goes back to user on the callbacks as
+     * not const, for convenience */
+    mqtt->data = (void *)data;
 
     mosquitto_connect_callback_set(mqtt->mosq, sol_mqtt_on_connect);
     mosquitto_disconnect_callback_set(mqtt->mosq, sol_mqtt_on_disconnect);
