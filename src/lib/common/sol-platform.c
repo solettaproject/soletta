@@ -699,6 +699,18 @@ sol_platform_inform_locale_changed(void)
     }
 }
 
+void
+sol_platform_inform_locale_monitor_error(void)
+{
+    struct sol_monitors_entry *entry;
+    uint16_t i;
+
+    SOL_MONITORS_WALK (&_ctx.locale_monitors, entry, i) {
+        ((void (*)(void *, enum sol_platform_locale_category, const char *))
+        entry->cb)((void *)entry->data, SOL_PLATFORM_LOCALE_UNKNOWN, NULL);
+    }
+}
+
 static bool
 locale_timeout_cb(void *data)
 {

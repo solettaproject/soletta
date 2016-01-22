@@ -104,3 +104,5 @@ const char *sol_platform_locale_to_c_str_category(enum sol_platform_locale_categ
 int sol_platform_impl_locale_to_c_category(enum sol_platform_locale_category category);
 
 const char *sol_platform_impl_locale_to_c_str_category(enum sol_platform_locale_category category);
+
+void sol_platform_inform_locale_monitor_error(void);
