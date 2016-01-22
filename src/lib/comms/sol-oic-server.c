@@ -57,7 +57,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 struct sol_oic_server {
     struct sol_coap_server *server;
     struct sol_coap_server *dtls_server;
-    struct sol_vector resources;
+    struct sol_ptr_vector resources;
     struct sol_oic_platform_information *plat_info;
     struct sol_oic_server_information *server_info;
     int refcnt;
@@ -325,10 +325,11 @@ _sol_oic_server_res(struct sol_coap_server *server,
     if (uri_query)
         err |= cbor_encoder_create_array(&device_map, &array_res, CborIndefiniteLength);
     else
-        err |= cbor_encoder_create_array(&device_map, &array_res, oic_server.resources.len);
+        err |= cbor_encoder_create_array(&device_map, &array_res,
+            oic_server.resources.base.len);
 
     SOL_INT_CHECK_GOTO(err, != CborNoError, error);
-    SOL_VECTOR_FOREACH_IDX (&oic_server.resources, iter, idx) {
+    SOL_PTR_VECTOR_FOREACH_IDX (&oic_server.resources, iter, idx) {
         CborEncoder map, policy_map;
 
         if (uri_query && iter->rt) {
@@ -499,7 +500,7 @@ sol_oic_server_init(void)
 
     oic_server.server_info = server_info;
     oic_server.plat_info = plat_info;
-    sol_vector_init(&oic_server.resources, sizeof(struct sol_oic_server_resource));
+    sol_ptr_vector_init(&oic_server.resources);
 
     oic_server.refcnt++;
     return 0;
@@ -521,17 +522,20 @@ sol_oic_server_shutdown(void)
     if (--oic_server.refcnt > 0)
         return;
 
-    SOL_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
         sol_coap_server_unregister_resource(oic_server.server, res->coap);
     if (oic_server.dtls_server) {
-        SOL_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
-            sol_coap_server_unregister_resource(oic_server.dtls_server, res->coap);
+        SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
+            sol_coap_server_unregister_resource(oic_server.dtls_server,
+                res->coap);
 
         sol_coap_server_unregister_resource(oic_server.dtls_server, &oic_d_coap_resource);
         sol_coap_server_unregister_resource(oic_server.dtls_server, &oic_p_coap_resource);
         sol_coap_server_unref(oic_server.dtls_server);
     }
-    sol_vector_clear(&oic_server.resources);
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
+        free(res);
+    sol_ptr_vector_clear(&oic_server.resources);
 
     sol_coap_server_unregister_resource(oic_server.server, &oic_d_coap_resource);
     sol_coap_server_unregister_resource(oic_server.server, &oic_p_coap_resource);
@@ -696,7 +700,7 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
     }
 #endif
 
-    res = sol_vector_append(&oic_server.resources);
+    res = malloc(sizeof(struct sol_oic_server_resource));
     SOL_NULL_CHECK(res, NULL);
 
     res->callback.data = handler_data;
@@ -728,6 +732,9 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
         }
     }
 
+    if (sol_ptr_vector_append(&oic_server.resources, res) < 0)
+        goto unregister_resource;
+
     return res;
 
 unregister_resource:
@@ -739,7 +746,7 @@ free_iface:
 free_rt:
     free(res->rt);
 remove_res:
-    sol_vector_del_last(&oic_server.resources);
+    free(res);
 
     return NULL;
 }
@@ -747,9 +754,6 @@ remove_res:
 SOL_API void
 sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
 {
-    struct sol_oic_server_resource *iter;
-    uint16_t idx;
-
     OIC_SERVER_CHECK();
     SOL_NULL_CHECK(resource);
 
@@ -761,15 +765,10 @@ sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
     free(resource->href);
     free(resource->iface);
     free(resource->rt);
-    SOL_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, iter, idx) {
-        if (iter == resource) {
-            sol_vector_del(&oic_server.resources, idx);
-            return;
-        }
-    }
-
-    SOL_ERR("Could not find resource %p in OIC server resource list",
-        resource);
+    free(resource);
+    if (sol_ptr_vector_del_element(&oic_server.resources, resource) < 0)
+        SOL_ERR("Could not find resource %p in OIC server resource list",
+            resource);
 }
 
 static bool
