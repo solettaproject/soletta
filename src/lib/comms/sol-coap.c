@@ -429,10 +429,16 @@ sol_coap_packet_new(struct sol_coap_packet *old)
     pkt->payload.size = COAP_UDP_MTU;
 
     if (old) {
+        uint8_t type;
         uint8_t tkl;
         uint8_t *token = sol_coap_header_get_token(old, &tkl);
         sol_coap_header_set_id(pkt, sol_coap_header_get_id(old));
         sol_coap_header_set_token(pkt, token, tkl);
+        type = sol_coap_header_get_type(old);
+        if (type == SOL_COAP_TYPE_CON)
+            sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
+        else if (type == SOL_COAP_TYPE_NONCON)
+            sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
     }
 
     return pkt;
@@ -982,7 +988,7 @@ well_known_get(struct sol_coap_server *server,
         SOL_WRN("Could not build response packet");
         return -EINVAL;
     }
-    sol_coap_header_set_type(resp, SOL_COAP_TYPE_ACK);
+
     sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
 
     err = sol_coap_packet_get_payload(resp, &payload, &size);
@@ -1136,7 +1142,6 @@ resource_not_found(struct sol_coap_packet *req,
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
 
-    sol_coap_header_set_type(resp, SOL_COAP_TYPE_ACK);
     sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_NOT_FOUND);
 
     return sol_coap_send_packet(server, resp, cliaddr);

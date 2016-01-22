@@ -524,7 +524,10 @@ void sol_coap_server_unref(struct sol_coap_server *server);
  * Creates a packet to send as a request or response.
  * If @a old is not NULL, its @c id and @c token (if any) will be copied to
  * the new packet. This is useful when crafting a new packet as a response
- * to @a old.
+ * to @a old. It's also important to note that if @a old has #sol_coap_msgtype_t
+ * equals to #SOL_COAP_TYPE_CON, the new packet message type will be set to
+ * #SOL_COAP_TYPE_ACK or if the #sol_coap_msgtype_t equals to #SOL_COAP_TYPE_NONCON,
+ * the new packet message type will be set to #SOL_COAP_TYPE_NONCON.
  *
  * @param old An optional packet to use as basis.
  *
