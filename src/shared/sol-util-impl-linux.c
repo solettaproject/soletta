@@ -31,7 +31,7 @@
  */
 
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include <ctype.h>
 #include <fcntl.h>
@@ -40,7 +40,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-struct timespec
+SOL_API struct timespec
 sol_util_timespec_get_current(void)
 {
     struct timespec t;
@@ -48,7 +48,8 @@ sol_util_timespec_get_current(void)
     clock_gettime(CLOCK_MONOTONIC, &t);
     return t;
 }
-int
+
+SOL_API int
 sol_util_timespec_get_realtime(struct timespec *t)
 {
     return clock_gettime(CLOCK_REALTIME, t);

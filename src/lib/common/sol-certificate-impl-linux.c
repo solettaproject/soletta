@@ -35,8 +35,7 @@
 #include "sol-certificate.h"
 #define SOL_LOG_DOMAIN &_sol_certificate_log_domain
 #include "sol-log-internal.h"
-#include "sol-util.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_certificate_log_domain, "certificate");

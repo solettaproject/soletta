@@ -44,10 +44,9 @@
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
 #include "sol-util-file.h"
 #include "sol-vector.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #ifdef USE_I2C
 #include <sol-i2c.h>

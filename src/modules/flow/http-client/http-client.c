@@ -43,7 +43,7 @@
 #include "sol-json.h"
 #include "sol-mainloop.h"
 #include "sol-platform.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-str-table.h"
 

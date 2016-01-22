@@ -43,7 +43,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-metatype-js");
 #include "sol-arena.h"
 #include "sol-flow-metatype.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "js_code_start.h"
 
 /**

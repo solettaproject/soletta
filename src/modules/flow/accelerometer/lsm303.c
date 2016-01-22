@@ -38,7 +38,7 @@
 
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-flow-internal.h"
 
 /* LSM303DHLC accelerometer

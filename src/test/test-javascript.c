@@ -35,7 +35,7 @@
 #include "sol-flow.h"
 #include "sol-flow-parser.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test.h"
 

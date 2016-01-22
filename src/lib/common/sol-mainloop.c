@@ -36,7 +36,7 @@
 #include "sol-mainloop-impl.h"
 #include "sol-macros.h"
 #include "sol-modules.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "sol-platform.h"
 

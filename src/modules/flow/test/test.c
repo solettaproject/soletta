@@ -33,7 +33,7 @@
 #include <float.h>
 
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-log-internal.h"
 
 #include "test-module.h"

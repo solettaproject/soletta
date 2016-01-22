@@ -43,7 +43,7 @@
 #include "sol-log-internal.h"
 #include "sol-macros.h"
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_modules_log_domain, "modules");

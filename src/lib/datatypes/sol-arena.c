@@ -35,7 +35,7 @@
 
 #include "sol-log.h"
 #include "sol-arena.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 /* TODO: check if it's worthwhile to implement this as a single
  * growing buffer. */

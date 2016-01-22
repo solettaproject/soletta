@@ -34,7 +34,7 @@
 #include "sol-flow-internal.h"
 
 #include <sol-gpio.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <errno.h>
 
 struct led_7seg_data {

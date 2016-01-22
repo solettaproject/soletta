@@ -33,7 +33,7 @@
 #include <errno.h>
 
 #include "sol-fbp.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "sol-fbp-internal-log.h"
 

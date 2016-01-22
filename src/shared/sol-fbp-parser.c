@@ -37,7 +37,7 @@
 #include "sol-fbp-internal-log.h"
 #include "sol-fbp-internal-scanner.h"
 #include "sol-fbp.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct sol_fbp_parser {
     struct sol_fbp_scanner scanner;

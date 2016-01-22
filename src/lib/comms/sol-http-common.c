@@ -37,7 +37,7 @@
 
 #include "sol-http.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 SOL_API bool
