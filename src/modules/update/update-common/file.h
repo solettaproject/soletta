@@ -71,5 +71,5 @@ struct update_get_hash_handle *get_file_hash(FILE *file, const char *hash,
 bool cancel_get_file_hash(struct update_get_hash_handle *handle);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
