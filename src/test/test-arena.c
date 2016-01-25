@@ -58,7 +58,7 @@ test_simple(void)
     arena = sol_arena_new();
     ASSERT(arena);
 
-    for (i = 0; i < ARRAY_SIZE(gladiators); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(gladiators); i++) {
         struct sol_str_slice gladiator_slice = sol_str_slice_from_str(gladiators[i]);
 
         ASSERT_INT_EQ(sol_arena_slice_dup_str(arena, &dst, gladiators[i]), 0);
@@ -114,16 +114,16 @@ test_check_slices_after_adding_all(void)
                                         "This is a loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong name for a gladiator" };
 
     struct sol_arena *arena;
-    struct sol_str_slice results[ARRAY_SIZE(gladiators)];
+    struct sol_str_slice results[SOL_UTIL_ARRAY_SIZE(gladiators)];
     unsigned int i;
 
     arena = sol_arena_new();
     ASSERT(arena);
 
-    for (i = 0; i < ARRAY_SIZE(gladiators); i++)
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(gladiators); i++)
         ASSERT_INT_EQ(sol_arena_slice_dup_str(arena, &results[i], gladiators[i]), 0);
 
-    for (i = 0; i < ARRAY_SIZE(gladiators); i++)
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(gladiators); i++)
         ASSERT(sol_str_slice_eq(results[i], sol_str_slice_from_str(gladiators[i])));
 
     sol_arena_del(arena);

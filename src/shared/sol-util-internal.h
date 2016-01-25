@@ -75,10 +75,6 @@
 #define strstartswith(a, b) streqn((a), (b), strlen(b))
 
 #define STATIC_ASSERT_LITERAL(_s) ("" _s)
-#ifdef ARRAY_SIZE
-#undef ARRAY_SIZE
-#endif
-#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 #define PTR_TO_INT(p) ((int)((intptr_t)(p)))
 #define INT_TO_PTR(i) ((void *)((intptr_t)(i)))

@@ -733,7 +733,7 @@ run_parse_tests(void)
     struct sol_fbp_error *fbp_error;
     unsigned int i;
 
-    for (i = 0; i < ARRAY_SIZE(parse_tests); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(parse_tests); i++) {
         struct sol_fbp_graph g;
         int r;
 

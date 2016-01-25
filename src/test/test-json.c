@@ -143,7 +143,7 @@ test_json(void)
     unsigned int i = 0;
     int j = 0;
 
-    for (i = 0; i < ARRAY_SIZE(scan_tests); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(scan_tests); i++) {
         struct test_entry *t;
         struct sol_json_scanner scanner;
         struct sol_json_token input;

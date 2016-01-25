@@ -842,7 +842,7 @@ sol_socket_dtls_set_handshake_cipher(struct sol_socket *s,
 
     SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
 
-    if ((size_t)cipher >= ARRAY_SIZE(conv_tbl))
+    if ((size_t)cipher >= SOL_UTIL_ARRAY_SIZE(conv_tbl))
         return -EINVAL;
 
     dtls_select_cipher(socket->context, conv_tbl[cipher]);

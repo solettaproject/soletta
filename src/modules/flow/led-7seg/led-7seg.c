@@ -101,7 +101,7 @@ value_set(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_i
 {
     int32_t in_value;
     int r;
-    const int array_size = ARRAY_SIZE(font) - 1;
+    const int array_size = SOL_UTIL_ARRAY_SIZE(font) - 1;
 
     r = sol_flow_packet_get_irange_value(packet, &in_value);
     SOL_INT_CHECK(r, < 0, r);

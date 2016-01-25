@@ -63,6 +63,11 @@ extern "C" {
  */
 
 /**
+ * @brief Calculates the number of elements in an array
+ */
+#define SOL_UTIL_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
+/**
  * @brief number of nanoseconds in a second: 1,000,000,000.
  */
 #define SOL_NSEC_PER_SEC 1000000000ULL
