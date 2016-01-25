@@ -574,9 +574,7 @@ _new_resource(void)
     res->observe.clear_data = 0;
 
     res->observable = false;
-    res->slow = false;
     res->secure = false;
-    res->active = false;
     res->is_observing = false;
 
     res->refcnt = 1;
@@ -598,8 +596,9 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     uint16_t payload_len;
     struct sol_str_slice device_id;
     struct sol_oic_resource *res = NULL;
-    CborValue bitmap_value;
+    CborValue bitmap_value, secure_value;
     uint64_t bitmap;
+    bool secure;
 
 
     *cb_return  = true;
@@ -652,18 +651,29 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
                 SOL_OIC_KEY_POLICY, &map);
             if (err != CborNoError || !cbor_value_is_map(&map))
                 goto error;
+
             err = cbor_value_map_find_value(&map, SOL_OIC_KEY_BITMAP,
                 &bitmap_value);
             if (err != CborNoError ||
                 !cbor_value_is_unsigned_integer(&bitmap_value))
-                return false;
+                goto error;
             err = cbor_value_get_uint64(&bitmap_value, &bitmap);
+            SOL_INT_CHECK_GOTO(err, != CborNoError, error);
+
+            err = cbor_value_map_find_value(&map, SOL_OIC_KEY_POLICY_SECURE,
+                &secure_value);
             SOL_INT_CHECK(err, != CborNoError, false);
+            if (!cbor_value_is_valid(&secure_value)) {
+                secure = false;
+            } else {
+                if (!cbor_value_is_boolean(&secure_value))
+                    goto error;
+                err = cbor_value_get_boolean(&secure_value, &secure);
+                SOL_INT_CHECK_GOTO(err, != CborNoError, error);
+            }
 
             res->observable = (bitmap & SOL_OIC_FLAG_OBSERVABLE);
-            res->active = (bitmap & SOL_OIC_FLAG_ACTIVE);
-            res->slow = (bitmap & SOL_OIC_FLAG_SLOW);
-            res->secure = (bitmap & SOL_OIC_FLAG_SECURE);
+            res->secure = secure;
             res->observable = res->observable || _has_observable_option(req);
             res->addr = *addr;
             res->device_id.data = sol_util_memdup(device_id.data,
