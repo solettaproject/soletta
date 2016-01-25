@@ -83,6 +83,8 @@ enum sol_oic_payload_type {
 #define SOL_OIC_KEY_RESOURCE_TYPES "rt"
 #define SOL_OIC_KEY_INTERFACES "if"
 #define SOL_OIC_KEY_POLICY "p"
+#define SOL_OIC_KEY_POLICY_SECURE "sec"
+#define SOL_OIC_KEY_POLICY_PORT "port"
 #define SOL_OIC_KEY_BITMAP "bm"
 #define SOL_OIC_KEY_DEVICE_NAME "n"
 #define SOL_OIC_KEY_SPEC_VERSION "lcv"

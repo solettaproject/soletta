@@ -125,8 +125,6 @@ found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, v
 
     SOL_DBG("Flags:");
     SOL_DBG(" - observable: %s", res->observable ? "yes" : "no");
-    SOL_DBG(" - active: %s", res->active ? "yes" : "no");
-    SOL_DBG(" - slow: %s", res->slow ? "yes" : "no");
     SOL_DBG(" - secure: %s", res->secure ? "yes" : "no");
 
     device_id_decode(res->device_id.data, device_id);

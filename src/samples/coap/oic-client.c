@@ -121,12 +121,8 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
 
     printf("Flags:\n"
         " - observable: %s\n"
-        " - active: %s\n"
-        " - slow: %s\n"
         " - secure: %s\n",
         res->observable ? "yes" : "no",
-        res->active ? "yes" : "no",
-        res->slow ? "yes" : "no",
         res->secure ? "yes" : "no");
 
     printf("Device ID: ");

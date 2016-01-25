@@ -364,7 +364,17 @@ _sol_oic_server_res(struct sol_coap_server *server,
         err |= cbor_encode_text_stringz(&map, SOL_OIC_KEY_POLICY);
         err |= cbor_encoder_create_map(&map, &policy_map, CborIndefiniteLength);
         err |= cbor_encode_text_stringz(&policy_map, SOL_OIC_KEY_BITMAP);
-        err |= cbor_encode_uint(&policy_map, iter->flags);
+        err |= cbor_encode_uint(&policy_map, iter->flags &
+            (SOL_OIC_FLAG_OBSERVABLE | SOL_OIC_FLAG_DISCOVERABLE));
+        if ((iter->flags & SOL_OIC_FLAG_SECURE) == SOL_OIC_FLAG_SECURE) {
+            err |= cbor_encode_text_stringz(&policy_map,
+                SOL_OIC_KEY_POLICY_SECURE);
+            err |= cbor_encode_boolean(&policy_map, true);
+            err |= cbor_encode_text_stringz(&policy_map,
+                SOL_OIC_KEY_POLICY_PORT);
+            err |= cbor_encode_uint(&policy_map, OIC_COAP_SERVER_DTLS_PORT);
+        }
+
         err |= cbor_encoder_close_container(&map, &policy_map);
 
         err |= cbor_encoder_close_container(&array_res, &map);

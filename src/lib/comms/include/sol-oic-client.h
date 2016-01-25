@@ -135,20 +135,6 @@ struct sol_oic_resource {
      */
     bool observable : 1;
     /**
-     * @brief True if resource is active.
-     *
-     * Devices are set as inactive when they are uninitialized,
-     * marked for deletion or already deleted.
-     */
-    bool active : 1;
-    /**
-     * @brief True if resource is slow.
-     *
-     * Delays in response from slow resource is expected when processing
-     * requests.
-     */
-    bool slow : 1;
-    /**
      * @brief True if the connection stablished with this resource's server
      * is secure.
      */
