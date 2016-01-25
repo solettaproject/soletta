@@ -63,6 +63,7 @@
 
 #define SOL_DEBUG_ARG "sol-debug=1"
 #define SOL_DEBUG_COMM_ARG "sol-debug-comm="
+#define LOCALE_CONF_MAX_CREATE_ATTEMPTS (5)
 
 static enum sol_platform_state platform_state = SOL_PLATFORM_STATE_INITIALIZING;
 static int reboot_cmd = RB_AUTOBOOT;
@@ -91,9 +92,15 @@ struct sol_fd_watcher_ctx {
     int fd;
 };
 
+struct sol_locale_monitor {
+    uint8_t create_attempts;
+    struct sol_fd_watcher_ctx fd_watcher;
+    struct sol_timeout *create_timeout;
+};
+
 static struct sol_fd_watcher_ctx hostname_monitor = { NULL, -1 };
 static struct sol_fd_watcher_ctx timezone_monitor = { NULL, -1 };
-static struct sol_fd_watcher_ctx locale_monitor = { NULL, -1 };
+static struct sol_locale_monitor locale_monitor = { 0, { NULL, -1 }, NULL };
 
 #ifdef ENABLE_DYNAMIC_MODULES
 struct service_module {
@@ -1155,22 +1162,21 @@ timezone_changed(void *data, int fd, uint32_t active_flags)
 }
 
 static int
-add_watch(struct sol_fd_watcher_ctx *monitor, const char *path,
-    bool (*cb)(void *data, int fd, uint32_t active_flags))
+add_watch(struct sol_fd_watcher_ctx *monitor, uint32_t inotify_flags,
+    const char *path, bool (*cb)(void *data, int fd, uint32_t active_flags))
 {
     int r;
 
     if (monitor->watcher)
         return 0;
 
-    monitor->fd = inotify_init1(IN_CLOEXEC);
+    monitor->fd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
 
     if (monitor->fd < 0) {
         return -errno;
     }
 
-    if (inotify_add_watch(monitor->fd, path,
-        IN_MODIFY | IN_DONT_FOLLOW) < 0) {
+    if (inotify_add_watch(monitor->fd, path, inotify_flags) < 0) {
         r = -errno;
         goto err_exit;
     }
@@ -1193,7 +1199,8 @@ err_exit:
 int
 sol_platform_register_timezone_monitor(void)
 {
-    return add_watch(&timezone_monitor, "/etc/localtime", timezone_changed);
+    return add_watch(&timezone_monitor, IN_MODIFY | IN_DONT_FOLLOW,
+        "/etc/localtime", timezone_changed);
 }
 
 int
@@ -1236,25 +1243,95 @@ exit:
 }
 
 static bool
+timeout_locale(void *data)
+{
+    int r;
+
+    r = sol_platform_register_locale_monitor();
+    if (!r) {
+        SOL_DBG("Watching /etc/locale.conf again");
+        goto unregister;
+    }
+
+    if(++locale_monitor.create_attempts == LOCALE_CONF_MAX_CREATE_ATTEMPTS) {
+        sol_platform_inform_locale_monitor_error();
+        SOL_WRN("/etc/locale.conf was not created. Giving up.");
+        goto unregister;
+    }
+
+    SOL_DBG("/etc/locale.conf was not created yet, trying again in some time");
+    return true;
+unregister:
+    locale_monitor.create_timeout = NULL;
+    return false;
+}
+
+static bool
 locale_changed(void *data, int fd, uint32_t active_flags)
 {
     char buf[4096];
+    struct inotify_event *event;
+    char *ptr;
+    ssize_t len;
+    bool dispatch_callback, deleted;
 
-    sol_platform_inform_locale_changed();
-    (void)read(fd, buf, sizeof(buf));
-    return true;
+    deleted = dispatch_callback = false;
+
+    while (1) {
+        len = read(fd, buf, sizeof(buf));
+
+        if (len == -1 && errno != EAGAIN) {
+            SOL_WRN("Could read the locale.conf inotify. Reason: %d", errno);
+            return true;
+        }
+
+        if (len <= 0)
+            break;
+
+        for (ptr = buf; ptr < buf + len;
+            ptr += sizeof(struct inotify_event) + event->len) {
+
+            event = (struct inotify_event *)ptr;
+
+            if (event->mask & IN_MODIFY) {
+                SOL_DBG("locale.conf changed");
+                dispatch_callback = true;
+            }
+            if (event->mask & IN_DELETE_SELF) {
+                SOL_DBG("locale.conf was moved");
+                deleted = true;
+            }
+        }
+    }
+
+    if (deleted) {
+        close_fd_monitor(&locale_monitor.fd_watcher);
+        //One second from now, check if a new locale has been created.
+        locale_monitor.create_timeout =
+           sol_timeout_add(1000, timeout_locale, NULL);
+        locale_monitor.create_attempts = 0;
+        if (!locale_monitor.create_timeout) {
+            SOL_WRN("Could not create a timer to check if"
+                " a new /etc/locale.conf has been created.");
+            sol_platform_inform_locale_monitor_error();
+        }
+    } else if (dispatch_callback)
+        sol_platform_inform_locale_changed();
+    return !deleted;
 }
 
 int
 sol_platform_register_locale_monitor(void)
 {
-    return add_watch(&locale_monitor, "/etc/locale.conf",
-        locale_changed);
+    return add_watch(&locale_monitor.fd_watcher, IN_MODIFY | IN_DELETE_SELF,
+        "/etc/locale.conf", locale_changed);
 }
 
 int
 sol_platform_unregister_locale_monitor(void)
 {
-    close_fd_monitor(&locale_monitor);
+    close_fd_monitor(&locale_monitor.fd_watcher);
+    if (locale_monitor.create_timeout)
+        sol_timeout_del(locale_monitor.create_timeout);
     return 0;
 }
