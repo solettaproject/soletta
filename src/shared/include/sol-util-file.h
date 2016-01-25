@@ -58,6 +58,10 @@ extern "C" {
  * @{
  */
 
+/**
+ * @brief Max number of read attempts. It's used when a read operation
+ * returns @c EAGAIN or @c EINTR.
+ */
 #define SOL_UTIL_MAX_READ_ATTEMPTS 10
 
 /**
