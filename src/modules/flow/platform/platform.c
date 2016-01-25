@@ -57,6 +57,8 @@ struct monitor_node_type {
     int (*monitor_unregister)(struct sol_flow_node *);
 };
 
+static int locale_monitor_unregister(struct sol_flow_node *node);
+
 static int
 state_dispatch_ready(struct platform_data *mdata)
 {
@@ -419,6 +421,13 @@ timezone_process(struct sol_flow_node *node, void *data, uint16_t port,
 static int
 locale_send(struct sol_flow_node *node, enum sol_platform_locale_category category, const char *locale)
 {
+    if (category == SOL_PLATFORM_LOCALE_UNKNOWN && !locale) {
+        locale_monitor_unregister(node);
+        return sol_flow_send_error_packet(node, ECANCELED,
+            "Something wrong happened with the locale monitor,"
+            "stoping to monitor locale changes");
+    }
+
     if (!locale) {
         locale = sol_platform_get_locale(category);
         SOL_NULL_CHECK(locale, -EINVAL);

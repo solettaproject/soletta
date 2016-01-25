@@ -484,6 +484,9 @@ const char *sol_platform_get_locale(enum sol_platform_locale_category category);
  * @param data The data to @c cb
  *
  * @return 0 on success, negative errno otherwise.
+ *
+ * @note If an error happens while the locale is being monitured the @c cb
+ * will be called and @c category will be set to #SOL_PLATFORM_SERVICE_STATE_UNKNOWN and @c locale to @c NULL.
  */
 int sol_platform_add_locale_monitor(void (*cb)(void *data, enum sol_platform_locale_category category, const char *locale), const void *data);
 
