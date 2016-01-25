@@ -58,6 +58,9 @@ extern "C" {
  * @{
  */
 
+/**
+ * @brief Max number of read attempts.
+ */
 #define SOL_UTIL_MAX_READ_ATTEMPTS 10
 
 /**
