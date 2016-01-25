@@ -2211,18 +2211,51 @@ resolve_node(struct fbp_data *data, struct type_store *common_store)
     return true;
 }
 
+static int
+convert_metatype_options(struct sol_vector *metatype_options, struct sol_vector *options)
+{
+    uint16_t i;
+    struct option_description *o;
+    struct sol_flow_metatype_option_description *opt;
+
+    SOL_VECTOR_FOREACH_IDX (metatype_options, opt, i) {
+        o = sol_vector_append(options);
+        SOL_NULL_CHECK_GOTO(o, err);
+
+        o->name = opt->name;
+        o->data_type = opt->data_type;
+
+        sol_vector_del(metatype_options, i);
+    }
+
+    sol_vector_clear(metatype_options);
+    return 0;
+
+err:
+    SOL_VECTOR_FOREACH_IDX (options, o, i) {
+        free(o->name);
+        free(o->data_type);
+    }
+    sol_vector_clear(metatype_options);
+    return -ENOMEM;
+}
+
 static bool
 add_metatype_to_type_store(struct type_store *store,
     struct declared_metatype *meta)
 {
     struct type_description type = { };
     sol_flow_metatype_ports_description_func get_ports;
+    sol_flow_metatype_options_description_func get_options;
     bool r = false;
     struct port_description *port;
     char name[2048];
     uint16_t i;
     int wrote, err;
     struct sol_flow_metatype_context meta_context;
+    const char *options_symbol;
+    struct sol_vector metatype_options;
+    struct option_description *opt;
 
     get_ports = sol_flow_metatype_get_ports_description_func(meta->type);
 
@@ -2232,12 +2265,29 @@ add_metatype_to_type_store(struct type_store *store,
         return r;
     }
 
+    get_options = sol_flow_metatype_get_options_description_func(meta->type);
+
     /* Beware that struct sol_flow_metatype_port_description is a copy of struct port_description */
     meta_context =
         setup_metatype_context(meta->c_name, meta->contents);
     err = get_ports(&meta_context, &type.in_ports, &type.out_ports);
     SOL_INT_CHECK_GOTO(err, < 0, exit);
 
+    type.options_symbol = (char *)"";
+    sol_vector_init(&type.options, sizeof(struct option_description));
+    if (get_options) {
+        err = get_options(&metatype_options);
+        SOL_INT_CHECK_GOTO(err, < 0, exit);
+
+        err = convert_metatype_options(&metatype_options, &type.options);
+        SOL_INT_CHECK_GOTO(err, < 0, exit);
+
+        options_symbol = sol_flow_metatype_get_options_symbol(meta->type);
+        if (options_symbol)
+            type.options_symbol = (char *)options_symbol;
+    }
+
+    type.generated_options = false;
     wrote = snprintf(name, sizeof(name), "%.*s",
         SOL_STR_SLICE_PRINT(meta->name));
     if (wrote < 0 || wrote >= (int)sizeof(name)) {
@@ -2248,15 +2298,13 @@ add_metatype_to_type_store(struct type_store *store,
 
     type.name = name;
     type.symbol = meta->c_name;
-    type.options_symbol = (char *)"";
-    type.generated_options = false;
-    sol_vector_init(&type.options, sizeof(struct option_description));
 
     r = type_store_add_type(store, &type);
     if (!r) {
         SOL_ERR("Could not store the type %.*s",
             SOL_STR_SLICE_PRINT(meta->name));
     }
+
 exit:
     SOL_VECTOR_FOREACH_IDX (&type.in_ports, port, i) {
         free(port->name);
@@ -2267,8 +2315,15 @@ exit:
         free(port->name);
         free(port->data_type);
     }
+
+    SOL_VECTOR_FOREACH_IDX (&type.options, opt, i) {
+        free(opt->name);
+        free(opt->data_type);
+    }
+
     sol_vector_clear(&type.out_ports);
     sol_vector_clear(&type.in_ports);
+    sol_vector_clear(&type.options);
     return r;
 }
 

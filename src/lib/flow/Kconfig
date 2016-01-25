@@ -23,6 +23,7 @@ config INSPECTOR
 
 menu "Metatypes"
 source "src/modules/flow-metatype/js/Kconfig"
+source "src/modules/flow-metatype/http-composed-client/Kconfig"
 endmenu
 
 menu "Node Types"
