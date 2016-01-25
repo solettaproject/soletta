@@ -432,12 +432,12 @@ calamari_lever_spi_poll(void *data)
     /* MCP300X message - Start, Single ended - pin 0, null */
     static const uint8_t tx[] = { 0x01, 0x80, 0x00 };
     /* rx must be the same size as tx */
-    static uint8_t rx[ARRAY_SIZE(tx)] = { 0x00, };
+    static uint8_t rx[SOL_UTIL_ARRAY_SIZE(tx)] = { 0x00, };
 
     SOL_NULL_CHECK(mdata, false);
     SOL_NULL_CHECK(mdata->spi, false);
 
-    if (!sol_spi_transfer(mdata->spi, tx, rx, ARRAY_SIZE(tx), spi_transfer_cb,
+    if (!sol_spi_transfer(mdata->spi, tx, rx, SOL_UTIL_ARRAY_SIZE(tx), spi_transfer_cb,
         mdata)) {
         SOL_WRN("Error reading lever during poll.");
     }

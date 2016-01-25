@@ -254,7 +254,7 @@ runner_attach_simulation(struct runner *r)
         idx = port_desc->array_size > 0 ? i - port_desc->base_port_idx : -1;
         found = false;
 
-        for (k = 0; k < ARRAY_SIZE(input_nodes); k++) {
+        for (k = 0; k < SOL_UTIL_ARRAY_SIZE(input_nodes); k++) {
             if (port_in->packet_type == *(input_nodes[k].packet_type)) {
                 node_name = get_node_name(port_desc->name, port_in->packet_type->name, idx);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);
@@ -282,7 +282,7 @@ runner_attach_simulation(struct runner *r)
         idx = port_desc->array_size > 0 ? i - port_desc->base_port_idx : -1;
         found = false;
 
-        for (k = 0; k < ARRAY_SIZE(output_nodes); k++) {
+        for (k = 0; k < SOL_UTIL_ARRAY_SIZE(output_nodes); k++) {
             if (port_out->packet_type == *(output_nodes[k].packet_type)) {
                 node_name = get_node_name(port_desc->name, port_out->packet_type->name, idx);
                 SOL_NULL_CHECK_GOTO(node_name, nomem);

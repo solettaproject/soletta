@@ -318,7 +318,7 @@ _kcmdline_parse_var(const char *start, size_t len)
     const struct spec *itr, *itr_end;
 
     itr = specs;
-    itr_end = itr + ARRAY_SIZE(specs);
+    itr_end = itr + SOL_UTIL_ARRAY_SIZE(specs);
     for (; itr < itr_end; itr++) {
         if (itr->prefixlen + 1 < len &&
             memcmp(itr->prefix, start, itr->prefixlen) == 0 &&

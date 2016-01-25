@@ -74,7 +74,7 @@ test_js(void)
     };
     unsigned int i;
 
-    for (i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(tests); i++) {
         struct sol_flow_parser *parser;
         struct sol_flow_node_type *type;
         entry = &tests[i];

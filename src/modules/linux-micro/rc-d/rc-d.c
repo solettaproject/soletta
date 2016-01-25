@@ -70,7 +70,7 @@ find_exec(const char *service, const char *arg)
         "/etc/rc.d"
     };
 
-    for (itr = dirs; itr < dirs + ARRAY_SIZE(dirs); itr++) {
+    for (itr = dirs; itr < dirs + SOL_UTIL_ARRAY_SIZE(dirs); itr++) {
         char path[PATH_MAX];
         int r;
 
