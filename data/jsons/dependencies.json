@@ -86,6 +86,16 @@
       "append_to": "COMMON_CFLAGS"
     },
     {
+      "dependency": "check_cflags",
+      "type": "cflags",
+      "cflags": [
+        "-Wno-cpp",
+        "-Wno-#warnings"
+      ],
+      "comment": "append to CFLAGS_NO_SOURCE_WARNINGS",
+      "append_to": "CFLAGS_NO_SOURCE_WARNINGS"
+    },
+    {
       "dependency": "check_ldflags",
       "type": "ldflags",
       "ldflags": [
