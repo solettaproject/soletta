@@ -226,31 +226,31 @@ _parse_platform_info_payload(struct sol_oic_platform_information *info,
         return false;
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_URL,
         &info->manufacturer_url))
-        return false;
+        info->manufacturer_url = SOL_STR_SLICE_STR(NULL, 0);
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_MODEL_NUM,
         &info->model_number))
-        return false;
+        info->model_number = SOL_STR_SLICE_STR(NULL, 0);
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_DATE,
         &info->manufacture_date))
-        return false;
+        info->manufacture_date = SOL_STR_SLICE_STR(NULL, 0);
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_PLATFORM_VER,
         &info->platform_version))
-        return false;
+        info->platform_version = SOL_STR_SLICE_STR(NULL, 0);
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_OS_VER,
         &info->os_version))
-        return false;
+        info->os_version = SOL_STR_SLICE_STR(NULL, 0);
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_HW_VER,
         &info->hardware_version))
-        return false;
+        info->hardware_version = SOL_STR_SLICE_STR(NULL, 0);
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_FIRMWARE_VER,
         &info->firmware_version))
-        return false;
+        info->firmware_version = SOL_STR_SLICE_STR(NULL, 0);
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_SUPPORT_URL,
         &info->support_url))
-        return false;
+        info->support_url = SOL_STR_SLICE_STR(NULL, 0);
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_SYSTEM_TIME,
         &info->system_time))
-        return false;
+        info->system_time = SOL_STR_SLICE_STR(NULL, 0);
 
     return err == CborNoError;
 }
@@ -268,9 +268,11 @@ _parse_server_info_payload(struct sol_oic_server_information *info,
     if (!cbor_value_is_map(&root))
         return false;
 
+    //TODO: This field should be mandatory, but letting it optional to make it
+    //compatible with iotivity 1.0.1
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_DEVICE_NAME,
         &info->device_name))
-        return false;
+        info->device_name = SOL_STR_SLICE_STR(NULL, 0);
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_SPEC_VERSION,
         &info->spec_version))
         return false;
