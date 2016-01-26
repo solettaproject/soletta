@@ -1056,6 +1056,8 @@ get_observe_option(struct sol_coap_packet *pkt)
 
     /* The value is in the network order, and has at max 3 bytes. */
     switch (option.len) {
+    case 0:
+        return 0;
     case 1:
         return option.data[0];
     case 2:
