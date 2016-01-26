@@ -48,6 +48,7 @@
 #include "sol-str-slice.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
+#include "sol-oic-common.h"
 
 #include "coap.h"
 
@@ -590,6 +591,7 @@ on_can_write(void *data, struct sol_socket *s)
 
     SOL_DBG("pkt sent:");
     sol_coap_packet_debug(outgoing->pkt);
+    sol_oic_payload_debug(outgoing->pkt);
     if (err < 0) {
         char addr[SOL_INET_ADDR_STRLEN];
         sol_network_addr_to_str(&outgoing->cliaddr, addr, sizeof(addr));
@@ -1343,6 +1345,7 @@ on_can_read(void *data, struct sol_socket *s)
 
     SOL_DBG("pkt received:");
     sol_coap_packet_debug(pkt);
+    sol_oic_payload_debug(pkt);
 
     err = respond_packet(server, pkt, &cliaddr);
     if (err < 0) {

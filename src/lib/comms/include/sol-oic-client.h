@@ -403,16 +403,8 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
  * behavior using a polling strategy, so @a callback will be notified with
  * server changes from time to time.
  *
- * As long as the @a callback function returns @c true, @a client will continue
- * waiting for notifications. When the function returns @c false, the internal
- * response handler will be freed and any new replies that arrive for this
- * request will be ignored. If polling is being performed, it will be cancelled.
- * If server is notifying the @a client, a request packet to ask server to
- * unobserve this @a client will be sent.
- *
- * When user wants to stop observing the server, just return @c false in @a
- * callback or call @ref sol_oic_client_resource_set_observable() with @a
- * observe as @c false.
+ * When user wants to stop observing the server, call @ref
+ * sol_oic_client_resource_set_observable() with @a observe as @c false.
  *
  * @param client An oic client instance.
  * @param res The resource that is going to be observed
@@ -422,8 +414,8 @@ bool sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *clie
  *        is the address of the server, @a repr_map is the data from the
  *        notification and @a data is a pointer to user's data. To extract data
  *        from @a repr_map use @ref SOL_OIC_MAP_LOOP() macro. Callback is called
- *        with @c NULL @a addr and @c NULL @a repr_map when client is unobserved,
- *        so any clean up can be performed.
+ *        with @c NULL @a addr and @c NULL @a repr_map when client is
+ *        unobserved, so any clean up can be performed.
  * @param data A pointer to user's data.
  * @param observe If server will be obeserved or unobserved.
  *
@@ -446,16 +438,8 @@ bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struc
  * behavior using a polling strategy, so @a callback will be notified with
  * server changes from time to time.
  *
- * As long as the @a callback function returns @c true, @a client will continue
- * waiting for notifications. When the function returns @c false, the internal
- * response handler will be freed and any new replies that arrive for this
- * request will be ignored. If polling is being performed, it will be cancelled.
- * If server is notifying the @a client, a request packet to ask server to
- * unobserve this @a client will be sent.
- *
- * When user wants to stop observing the server, just return @c false in @a
- * callback or call @ref sol_oic_client_resource_set_observable() with @a
- * observe as @c false.
+ * When user wants to stop observing the server, call @ref
+ * sol_oic_client_resource_set_observable() with @a observe as @c false.
  *
  * The only difference from @ref sol_oic_client_resource_set_observable() to
  * this function is that it uses CoAP non-confirmable packets to make the
@@ -469,8 +453,8 @@ bool sol_oic_client_resource_set_observable(struct sol_oic_client *client, struc
  *        is the address of the server, @a repr_map is the data from the
  *        notification and @a data is a pointer to user's data. To extract data
  *        from @a repr_map use @ref SOL_OIC_MAP_LOOP() macro. Callback is called
- *        with @c NULL @a addr and @c NULL @a repr_map when client is unobserved,
- *        so any clean up can be performed.
+ *        with @c NULL @a addr and @c NULL @a repr_map when client is
+ *        unobserved, so any clean up can be performed.
  * @param data A pointer to user's data.
  * @param observe If server will be obeserved or unobserved.
  *
