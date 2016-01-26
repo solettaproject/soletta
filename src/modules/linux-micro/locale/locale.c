@@ -42,6 +42,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-locale");
 #include "sol-file-reader.h"
 #include "sol-platform-linux-micro.h"
 #include "sol-str-slice.h"
+#include "sol-util-file.h"
 #include "sol-util-internal.h"
 
 static const struct sol_str_slice locale_vars[] = {

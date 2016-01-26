@@ -56,6 +56,7 @@
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
 #include "sol-str-table.h"
+#include "sol-util-file.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 

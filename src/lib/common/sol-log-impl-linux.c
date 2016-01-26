@@ -44,6 +44,7 @@
 
 #include "sol-str-table.h"
 #include "sol-log-impl.h"
+#include "sol-util-file.h"
 #include "sol-util-internal.h"
 
 static pid_t _main_pid;

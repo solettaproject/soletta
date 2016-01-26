@@ -50,6 +50,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-efi-update");
 #include "sol-mainloop.h"
 #include "sol-update.h"
 #include "sol-update-modules.h"
+#include "sol-util-file.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 

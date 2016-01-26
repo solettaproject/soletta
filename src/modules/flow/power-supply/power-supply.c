@@ -35,6 +35,7 @@
 
 #include <sol-power-supply.h>
 #include <sol-str-table.h>
+#include <sol-util-file.h>
 #include <sol-util-internal.h>
 #include <errno.h>
 

@@ -35,6 +35,7 @@
 
 #include "intel-common.h"
 #include "sol-log-internal.h"
+#include "sol-util-file.h"
 #include "sol-util-internal.h"
 
 SOL_LOG_INTERNAL_DECLARE(_intel_mux_log_domain, "intel-mux");
