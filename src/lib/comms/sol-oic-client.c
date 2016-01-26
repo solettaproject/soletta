@@ -214,6 +214,7 @@ _parse_platform_info_payload(struct sol_oic_platform_information *info,
     CborValue root;
 
     err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
+    SOL_INT_CHECK(err, != CborNoError, false);
 
     if (!cbor_value_is_map(&root))
         return false;
@@ -222,8 +223,10 @@ _parse_platform_info_payload(struct sol_oic_platform_information *info,
         &info->platform_id))
         return false;
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_NAME,
-        &info->manufacturer_name))
+        &info->manufacturer_name)) {
+        free((char *)info->platform_id.data);
         return false;
+    }
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_MANUF_URL,
         &info->manufacturer_url))
         info->manufacturer_url = SOL_STR_SLICE_STR(NULL, 0);
@@ -252,7 +255,7 @@ _parse_platform_info_payload(struct sol_oic_platform_information *info,
         &info->system_time))
         info->system_time = SOL_STR_SLICE_STR(NULL, 0);
 
-    return err == CborNoError;
+    return true;
 }
 
 static bool
@@ -264,26 +267,33 @@ _parse_server_info_payload(struct sol_oic_server_information *info,
     CborValue root;
 
     err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
+    SOL_INT_CHECK(err, != CborNoError, false);
 
     if (!cbor_value_is_map(&root))
         return false;
+
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_SPEC_VERSION,
+        &info->spec_version))
+        return false;
+    if (!sol_cbor_map_get_bytestr_value(&root, SOL_OIC_KEY_DEVICE_ID,
+        &info->device_id))
+        goto error;
+    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_DATA_MODEL_VERSION,
+        &info->data_model_version))
+        goto error;
 
     //TODO: This field should be mandatory, but letting it optional to make it
     //compatible with iotivity 1.0.1
     if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_DEVICE_NAME,
         &info->device_name))
         info->device_name = SOL_STR_SLICE_STR(NULL, 0);
-    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_SPEC_VERSION,
-        &info->spec_version))
-        return false;
-    if (!sol_cbor_map_get_bytestr_value(&root, SOL_OIC_KEY_DEVICE_ID,
-        &info->device_id))
-        return false;
-    if (!sol_cbor_map_get_str_value(&root, SOL_OIC_KEY_DATA_MODEL_VERSION,
-        &info->data_model_version))
-        return false;
 
-    return err == CborNoError;
+    return true;
+
+error:
+    free((char *)info->spec_version.data);
+    free((char *)info->device_id.data);
+    return false;
 }
 
 static bool
@@ -296,27 +306,23 @@ _platform_info_reply_cb(struct sol_coap_server *server,
     uint16_t payload_len;
     struct sol_oic_platform_information info = { 0 };
 
-    if (!req || !addr) {
-        ctx->cb(ctx->client, NULL, (char *)ctx->data);
-        goto free_ctx;
-    }
-
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
         goto free_ctx;
     }
 
-    if (!_pkt_has_same_token(req, ctx->token)) {
-        goto free_ctx;
-    }
+    if (!req || !addr)
+        goto error;
 
-    if (!sol_oic_pkt_has_cbor_content(req)) {
-        goto free_ctx;
-    }
+    if (!_pkt_has_same_token(req, ctx->token))
+        goto error;
+
+    if (!sol_oic_pkt_has_cbor_content(req))
+        goto error;
 
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
         SOL_WRN("Could not get pkt payload");
-        goto free_ctx;
+        goto error;
     }
 
     if (_parse_platform_info_payload(&info, payload, payload_len)) {
@@ -324,6 +330,7 @@ _platform_info_reply_cb(struct sol_coap_server *server,
         ctx->cb(ctx->client, &info, (void *)ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
+        goto error;
     }
 
     free((char *)info.platform_id.data);
@@ -337,7 +344,10 @@ _platform_info_reply_cb(struct sol_coap_server *server,
     free((char *)info.firmware_version.data);
     free((char *)info.support_url.data);
     free((char *)info.system_time.data);
+    goto free_ctx;
 
+error:
+    ctx->cb(ctx->client, NULL, (char *)ctx->data);
 free_ctx:
     free(ctx);
     return false;
@@ -353,27 +363,24 @@ _server_info_reply_cb(struct sol_coap_server *server,
     uint16_t payload_len;
     struct sol_oic_server_information info = { 0 };
 
-    if (!req || !addr) {
-        ctx->cb(ctx->client, NULL, (void *)ctx->data);
-        goto free_ctx;
-    }
-
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
         goto free_ctx;
     }
 
-    if (!_pkt_has_same_token(req, ctx->token)) {
-        goto free_ctx;
+    if (!req || !addr) {
+        goto error;
     }
 
-    if (!sol_oic_pkt_has_cbor_content(req)) {
-        goto free_ctx;
-    }
+    if (!_pkt_has_same_token(req, ctx->token))
+        goto error;
+
+    if (!sol_oic_pkt_has_cbor_content(req))
+        goto error;
 
     if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
         SOL_WRN("Could not get pkt payload");
-        goto free_ctx;
+        goto error;
     }
 
     if (_parse_server_info_payload(&info, payload, payload_len)) {
@@ -386,13 +393,17 @@ _server_info_reply_cb(struct sol_coap_server *server,
         cb(ctx->client, &info, (void *)ctx->data);
     } else {
         SOL_WRN("Could not parse payload");
+        goto error;
     }
 
     free((char *)info.device_name.data);
     free((char *)info.spec_version.data);
     free((char *)info.device_id.data);
     free((char *)info.data_model_version.data);
+    goto free_ctx;
 
+error:
+    ctx->cb(ctx->client, NULL, (void *)ctx->data);
 free_ctx:
     free(ctx);
     return false;

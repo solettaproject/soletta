@@ -208,7 +208,10 @@ bool sol_oic_client_find_resource(struct sol_oic_client *client,
  * defined at @ref sol_oic_platform_information.
  *
  * When a response is received, the function @a info_received_cb will be
- * called.
+ * called, with @a info parameter filled with the information received, or
+ * NULL on errors. As @a info_received_cb is always called, it can be used
+ * to perform clean up operations.
+ *
  * After internal timeout is reached @a info_received_cb will be called with
  * @c NULL @a info and any clean up can be performed.
  *
@@ -236,7 +239,10 @@ bool sol_oic_client_get_platform_info(struct sol_oic_client *client,
  * information defined at @ref sol_oic_platform_information.
  *
  * When a response is received, the function @a info_received_cb will be
- * called.
+ * called, with @a info parameter filled with the information received, or
+ * NULL on errors. As @a info_received_cb is always called, it can be used
+ * to perform clean up operations.
+
  * After internal timeout is reached @a info_received_cb will be called with
  * @c NULL @a info and any clean up can be performed.
  *
@@ -265,7 +271,10 @@ bool sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
  * defined at @ref sol_oic_server_information.
  *
  * When a response is received, the function @a info_received_cb will be
- * called.
+ * called, with @a info parameter filled with the information received, or
+ * NULL on errors. As @a info_received_cb is always called, it can be used
+ * to perform clean up operations.
+
  * After internal timeout is reached @a info_received_cb will be called with
  * @c NULL @a info and any clean up can be performed.
  *
@@ -293,7 +302,10 @@ bool sol_oic_client_get_server_info(struct sol_oic_client *client,
  * information defined at @ref sol_oic_server_information.
  *
  * When a response is received, the function @a info_received_cb will be
- * called.
+ * called, with @a info parameter filled with the information received, or
+ * NULL on errors. As @a info_received_cb is always called, it can be used
+ * to perform clean up operations.
+
  * After internal timeout is reached @a info_received_cb will be called with
  * @c NULL @a info and any clean up can be performed.
  *
