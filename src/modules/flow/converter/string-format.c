@@ -1444,6 +1444,7 @@ ascii_format_double(struct sol_buffer *buffer,
         format = tmp_format;
     }
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
     /* Have snprintf do the hard work */
     r = sol_buffer_append_printf(buffer, format, d);
