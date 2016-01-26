@@ -3226,6 +3226,7 @@ numeric_loop:
         numeric_field_present = true;
 
         ptr = tmp + 1;
+        sol_buffer_fini(&mdata->formatted_value);
     }
 
     if (!numeric_field_present) {
