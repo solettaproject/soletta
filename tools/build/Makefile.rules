@@ -231,7 +231,7 @@ PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin)
 
 define make-warning
 $(1):
-	$(Q)echo -e "     [!]   "$($(1)-msg)
+	$(Q)echo "     [!]   "$($(1)-msg)
 
 all: $(1)
 PHONY += $(1)
@@ -241,7 +241,7 @@ $(foreach wrn,$(all-warnings),$(eval $(call make-warning,$(wrn))))
 define make-warning-header
 $(all-warnings): warning-header
 warning-header: default_target
-	$(Q)echo -e "*** ATTENTION:"
+	$(Q)echo "*** ATTENTION:"
 PHONY += warning-header
 endef
 $(if $(all-warnings),$(eval $(call make-warning-header,$(wrn))))
