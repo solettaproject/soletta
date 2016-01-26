@@ -217,15 +217,25 @@ struct management_ctx {
     const void *data;
 };
 
+struct resource_ctx {
+    char *str_id;
+    struct sol_coap_resource *res;
+};
+
 //Data structs used by LWM2M Client.
 struct obj_instance {
     uint16_t id;
+    char *str_id;
     const void *data;
+    struct sol_vector resources_ctx;
+    struct sol_coap_resource *instance_res;
 };
 
 struct obj_ctx {
     const struct sol_lwm2m_object *obj;
+    char *str_id;
     struct sol_vector instances;
+    struct sol_coap_resource *obj_res;
 };
 
 struct sol_lwm2m_client {
@@ -234,8 +244,9 @@ struct sol_lwm2m_client {
     struct sol_vector connections;
     struct sol_vector objects;
     const void *user_data;
+    uint16_t splitted_path_len;
     char *name;
-    char *path;
+    char **splitted_path;
     char *sms;
     bool running;
     bool removed;
@@ -258,6 +269,9 @@ static bool lifetime_server_timeout(void *data);
 static bool lifetime_client_timeout(void *data);
 static int register_with_server(struct sol_lwm2m_client *client,
     struct server_conn_ctx *conn_ctx, bool is_update);
+static int handle_resource(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource, struct sol_coap_packet *req,
+    const struct sol_network_link_addr *cliaddr, void *data);
 
 static void
 send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
@@ -2147,7 +2161,7 @@ static int
 extract_path(struct sol_lwm2m_client *client, struct sol_coap_packet *req,
     uint16_t *path_id, uint16_t *path_size)
 {
-    struct sol_str_slice path[4] = { };
+    struct sol_str_slice path[16] = { };
     int i, j, r, count;
 
     r = sol_coap_find_options(req, SOL_COAP_OPTION_URI_PATH, path,
@@ -2157,14 +2171,8 @@ extract_path(struct sol_lwm2m_client *client, struct sol_coap_packet *req,
     r = -ENOENT;
     SOL_INT_CHECK_GOTO(count, == 0, err_exit);
 
-    if (client->path && !sol_str_slice_str_eq(path[0], client->path)) {
-        SOL_WRN("Wrong object path. Client: %s, Received: %.*s", client->path,
-            SOL_STR_SLICE_PRINT(path[0]));
-        r = -EINVAL;
-        goto err_exit;
-    }
-
-    for (i = client->path ? 1 : 0, j = 0; i < count; i++, j++) {
+    for (i = client->splitted_path_len ? client->splitted_path_len : 0, j = 0;
+        i < count; i++, j++) {
         char *end;
         //Only numbers are allowed.
         path_id[j] = sol_util_strtoul(path[i].data, &end, path[i].len, 10);
@@ -2213,6 +2221,188 @@ find_object_instance_by_instance_id(struct obj_ctx *ctx, uint16_t instance_id)
     return NULL;
 }
 
+static void
+obj_instance_clear(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
+    struct obj_instance *obj_instance)
+{
+    uint16_t i;
+    struct resource_ctx *res_ctx;
+
+    SOL_VECTOR_FOREACH_IDX (&obj_instance->resources_ctx, res_ctx, i) {
+        if (!client->removed) {
+            sol_coap_server_unregister_resource(client->coap_server,
+                res_ctx->res);
+        }
+        free(res_ctx->res);
+        free(res_ctx->str_id);
+    }
+
+    if (!client->removed) {
+        sol_coap_server_unregister_resource(client->coap_server,
+            obj_instance->instance_res);
+    }
+    free(obj_instance->instance_res);
+    free(obj_instance->str_id);
+    sol_vector_clear(&obj_instance->resources_ctx);
+}
+
+static int
+setup_object_resource(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx)
+{
+    int r;
+    uint16_t segments = 2, i = 0;
+
+    r = asprintf(&obj_ctx->str_id, "%" PRIu16 "", obj_ctx->obj->id);
+    SOL_INT_CHECK(r, == -1, -ENOMEM);
+
+    if (client->splitted_path)
+        segments += client->splitted_path_len;
+
+    obj_ctx->obj_res = calloc(1, sizeof(struct sol_coap_resource) +
+        (sizeof(struct sol_str_slice) * segments));
+    SOL_NULL_CHECK_GOTO(obj_ctx->obj_res, err_exit);
+
+    SOL_SET_API_VERSION(obj_ctx->obj_res->api_version = SOL_COAP_RESOURCE_API_VERSION; )
+
+    if (client->splitted_path_len) {
+        uint16_t j;
+        for (j = 0; j < client->splitted_path_len; j++)
+            obj_ctx->obj_res->path[i++] = sol_str_slice_from_str(client->splitted_path[j]);
+    }
+    obj_ctx->obj_res->path[i++] = sol_str_slice_from_str(obj_ctx->str_id);
+    obj_ctx->obj_res->path[i++] = sol_str_slice_from_str("");
+
+    obj_ctx->obj_res->get = handle_resource;
+    obj_ctx->obj_res->post = handle_resource;
+    return 0;
+
+err_exit:
+    free(obj_ctx->str_id);
+    return -ENOMEM;
+}
+
+static int
+setup_resources_ctx(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
+    struct obj_instance *instance, bool register_with_coap)
+{
+    uint16_t i, j, segments = 4;
+    struct resource_ctx *res_ctx;
+    int r;
+
+    if (client->splitted_path)
+        segments += client->splitted_path_len;
+
+    for (i = 0; i < obj_ctx->obj->resources_count; i++) {
+        j = 0;
+        res_ctx = sol_vector_append(&instance->resources_ctx);
+        SOL_NULL_CHECK_GOTO(res_ctx, err_exit);
+
+        res_ctx->res = calloc(1, sizeof(struct sol_coap_resource) +
+            (sizeof(struct sol_str_slice) * segments));
+
+        SOL_NULL_CHECK_GOTO(res_ctx->res, err_exit);
+
+        r = asprintf(&res_ctx->str_id, "%" PRIu16 "", i);
+        SOL_INT_CHECK_GOTO(r, == -1, err_exit);
+
+        SOL_SET_API_VERSION(res_ctx->res->api_version = SOL_COAP_RESOURCE_API_VERSION; )
+
+        if (client->splitted_path_len) {
+            uint16_t k;
+            for (k = 0; k < client->splitted_path_len; k++)
+                res_ctx->res->path[j++] = sol_str_slice_from_str(client->splitted_path[k]);
+        }
+        res_ctx->res->path[j++] = sol_str_slice_from_str(obj_ctx->str_id);
+        res_ctx->res->path[j++] = sol_str_slice_from_str(instance->str_id);
+        res_ctx->res->path[j++] = sol_str_slice_from_str(res_ctx->str_id);
+        res_ctx->res->path[j++] = sol_str_slice_from_str("");
+
+        res_ctx->res->get = handle_resource;
+        res_ctx->res->post = handle_resource;
+        res_ctx->res->put = handle_resource;
+        res_ctx->res->del = handle_resource;
+
+        if (register_with_coap) {
+            sol_coap_server_register_resource(client->coap_server,
+                res_ctx->res, client);
+        }
+    }
+
+    return 0;
+
+err_exit:
+    SOL_VECTOR_FOREACH_IDX (&instance->resources_ctx, res_ctx, i) {
+        if (res_ctx->res) {
+            sol_coap_server_unregister_resource(client->coap_server,
+                res_ctx->res);
+            free(res_ctx->res);
+        }
+        free(res_ctx->str_id);
+    }
+    sol_vector_clear(&instance->resources_ctx);
+    return -ENOMEM;
+}
+
+static int
+setup_instance_resource(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
+    bool register_with_coap)
+{
+    int r;
+    uint16_t i = 0, segments = 3;
+
+    if (client->splitted_path)
+        segments += client->splitted_path_len;
+
+    r = asprintf(&obj_instance->str_id, "%" PRIu16 "", obj_instance->id);
+    SOL_INT_CHECK(r, == -1, -ENOMEM);
+
+    obj_instance->instance_res = calloc(1, sizeof(struct sol_coap_resource) +
+        (sizeof(struct sol_str_slice) * segments));
+    SOL_NULL_CHECK_GOTO(obj_instance->instance_res, err_exit);
+
+    SOL_SET_API_VERSION(obj_instance->instance_res->api_version = SOL_COAP_RESOURCE_API_VERSION; )
+
+    if (client->splitted_path_len) {
+        uint16_t j;
+        for (j = 0; j < client->splitted_path_len; j++)
+            obj_instance->instance_res->path[i++] =
+                sol_str_slice_from_str(client->splitted_path[j]);
+    }
+    obj_instance->instance_res->path[i++] =
+        sol_str_slice_from_str(obj_ctx->str_id);
+    obj_instance->instance_res->path[i++] =
+        sol_str_slice_from_str(obj_instance->str_id);
+    obj_instance->instance_res->path[i++] = sol_str_slice_from_str("");
+
+    obj_instance->instance_res->get = handle_resource;
+    obj_instance->instance_res->post = handle_resource;
+    obj_instance->instance_res->put = handle_resource;
+    obj_instance->instance_res->del = handle_resource;
+
+    if (register_with_coap) {
+        sol_coap_server_register_resource(client->coap_server,
+            obj_instance->instance_res, client);
+    }
+
+    r = setup_resources_ctx(client, obj_ctx, obj_instance, register_with_coap);
+    SOL_INT_CHECK_GOTO(r, < 0, err_resources);
+
+    return 0;
+
+err_resources:
+    if (client) {
+        sol_coap_server_unregister_resource(client->coap_server,
+            obj_instance->instance_res);
+    }
+    free(obj_instance->instance_res);
+    obj_instance->instance_res = NULL;
+err_exit:
+    free(obj_instance->str_id);
+    obj_instance->str_id = NULL;
+    return -ENOMEM;
+}
+
 static uint8_t
 handle_delete(struct sol_lwm2m_client *client,
     struct obj_ctx *obj_ctx, struct obj_instance *obj_instance)
@@ -2240,6 +2430,7 @@ handle_delete(struct sol_lwm2m_client *client,
         return SOL_COAP_RSPCODE_NOT_ALLOWED;
     }
 
+    obj_instance_clear(client, obj_ctx, obj_instance);
     (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
     return SOL_COAP_RSPCODE_DELETED;
 }
@@ -2438,14 +2629,19 @@ handle_create(struct sol_lwm2m_client *client,
     else
         obj_instance->id = instance_id;
 
+    sol_vector_init(&obj_instance->resources_ctx, sizeof(struct resource_ctx));
+
     r = obj_ctx->obj->create((void *)client->user_data, client,
         obj_instance->id, (void *)&obj_instance->data, content_format, payload);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    r = setup_instance_resource(client, obj_ctx, obj_instance, true);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     return SOL_COAP_RSPCODE_CREATED;
 
 err_exit:
-    (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
+    obj_instance_clear(client, obj_ctx, obj_instance);
     return SOL_COAP_RSPCODE_BAD_REQUEST;
 }
 
@@ -2558,9 +2754,10 @@ err_exit:
 }
 
 static int
-handle_resource(void *data, struct sol_coap_server *server,
+handle_resource(struct sol_coap_server *server,
+    const struct sol_coap_resource *resource,
     struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr)
+    const struct sol_network_link_addr *cliaddr, void *data)
 {
     int r;
     uint8_t method;
@@ -2651,12 +2848,48 @@ exit:
     return sol_coap_send_packet(server, resp, cliaddr);
 }
 
+static char **
+split_path(const char *path, uint16_t *splitted_path_len)
+{
+    char **splitted_path;
+    struct sol_vector tokens;
+    struct sol_str_slice *token;
+    uint16_t i;
+
+    tokens = sol_str_slice_split(sol_str_slice_from_str(path), "/", 0);
+
+    if (!tokens.len)
+        return NULL;
+
+    splitted_path = calloc(tokens.len, sizeof(char *));
+    SOL_NULL_CHECK_GOTO(splitted_path, err_exit);
+
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
+        splitted_path[i] = sol_str_slice_to_string(*token);
+        SOL_NULL_CHECK_GOTO(splitted_path[i], err_cpy);
+    }
+
+    *splitted_path_len = tokens.len;
+    sol_vector_clear(&tokens);
+    return splitted_path;
+
+err_cpy:
+    for (i = 0; i < tokens.len; i++)
+        free(splitted_path[i]);
+    free(splitted_path);
+err_exit:
+    sol_vector_clear(&tokens);
+    return NULL;
+}
+
 SOL_API struct sol_lwm2m_client *
 sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
     const struct sol_lwm2m_object **objects, const void *data)
 {
     struct sol_lwm2m_client *client;
+    struct obj_ctx *obj_ctx;
     size_t i;
+    int r;
 
     SOL_NULL_CHECK(name, NULL);
     SOL_NULL_CHECK(objects, NULL);
@@ -2667,12 +2900,18 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
     client = calloc(1, sizeof(struct sol_lwm2m_client));
     SOL_NULL_CHECK(client, NULL);
 
+    if (path) {
+        client->splitted_path = split_path(path, &client->splitted_path_len);
+        SOL_NULL_CHECK_GOTO(client->splitted_path, err_path);
+    }
+
     sol_vector_init(&client->objects, sizeof(struct obj_ctx));
     sol_vector_init(&client->connections, sizeof(struct server_conn_ctx));
 
     for (i = 0; objects[i]; i++) {
-        struct obj_ctx *obj_ctx = sol_vector_append(&client->objects);
         LWM2M_OBJECT_CHECK_API_GOTO(*objects[i], err_obj);
+        SOL_INT_CHECK_GOTO(objects[i]->resources_count, == 0, err_obj);
+        obj_ctx = sol_vector_append(&client->objects);
         SOL_NULL_CHECK_GOTO(obj_ctx, err_obj);
         if ((objects[i]->write_resource && !objects[i]->write_tlv) ||
             (!objects[i]->write_resource && objects[i]->write_tlv)) {
@@ -2681,15 +2920,12 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
         }
         obj_ctx->obj = objects[i];
         sol_vector_init(&obj_ctx->instances, sizeof(struct obj_instance));
+        r = setup_object_resource(client, obj_ctx);
+        SOL_INT_CHECK_GOTO(r, < 0, err_obj);
     }
 
     client->name = strdup(name);
     SOL_NULL_CHECK_GOTO(client->name, err_obj);
-
-    if (path) {
-        client->path = strdup(path);
-        SOL_NULL_CHECK_GOTO(client->path, err_path);
-    }
 
     if (sms) {
         client->sms = strdup(sms);
@@ -2706,11 +2942,18 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
 err_coap:
     free(client->sms);
 err_sms:
-    free(client->path);
-err_path:
-    free(client->name);
+    free(client->splitted_path);
 err_obj:
+    SOL_VECTOR_FOREACH_IDX (&client->objects, obj_ctx, i) {
+        free(obj_ctx->str_id);
+        free(obj_ctx->obj_res);
+    }
     sol_vector_clear(&client->objects);
+    for (i = 0; i < client->splitted_path_len; i++) {
+        free(client->splitted_path[i]);
+    }
+    free(client->splitted_path);
+err_path:
     free(client);
     return NULL;
 }
@@ -2721,13 +2964,16 @@ obj_ctx_clear(struct sol_lwm2m_client *client, struct obj_ctx *ctx)
     uint16_t i;
     struct obj_instance *instance;
 
-    if (ctx->obj->del) {
-        SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, i) {
+    SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, i) {
+        if (ctx->obj->del) {
             ctx->obj->del((void *)instance->data,
                 (void *)client->user_data, client, instance->id);
         }
+        obj_instance_clear(client, ctx, instance);
     }
     sol_vector_clear(&ctx->instances);
+    free(ctx->obj_res);
+    free(ctx->str_id);
 }
 
 static void
@@ -2777,7 +3023,11 @@ sol_lwm2m_client_del(struct sol_lwm2m_client *client)
     server_connection_ctx_list_clear(&client->connections);
     sol_vector_clear(&client->objects);
     free(client->name);
-    free(client->path);
+    if (client->splitted_path) {
+        for (i = 0; i < client->splitted_path_len; i++)
+            free(client->splitted_path[i]);
+        free(client->splitted_path);
+    }
     free(client->sms);
     free(client);
 }
@@ -2788,6 +3038,7 @@ sol_lwm2m_add_object_instance(struct sol_lwm2m_client *client,
 {
     struct obj_ctx *ctx;
     struct obj_instance *instance;
+    int r;
 
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(obj, -EINVAL);
@@ -2800,8 +3051,16 @@ sol_lwm2m_add_object_instance(struct sol_lwm2m_client *client,
     SOL_NULL_CHECK(instance, -ENOMEM);
     instance->id = ctx->instances.len - 1;
     instance->data = data;
+    sol_vector_init(&instance->resources_ctx, sizeof(struct resource_ctx));
+
+    r = setup_instance_resource(client, ctx, instance, false);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     return 0;
+
+err_exit:
+    (void)sol_vector_del_element(&ctx->instances, instance);
+    return r;
 }
 
 static void
@@ -2898,9 +3157,18 @@ setup_objects_payload(struct sol_lwm2m_client *client, struct sol_buffer *objs)
 
     sol_buffer_init(objs);
 
-    if (client->path) {
-        r = sol_buffer_append_printf(objs, "</%s>;rt=\"oma.lwm2m\",",
-            client->path);
+    if (client->splitted_path) {
+        r = sol_buffer_append_slice(objs, sol_str_slice_from_str("</"));
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+        for (i = 0; i < client->splitted_path_len; i++) {
+            r = sol_buffer_append_printf(objs, "%s/", client->splitted_path[i]);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        }
+        //Remove the last '/'
+        objs->used--;
+        r = sol_buffer_append_slice(objs,
+            sol_str_slice_from_str(">;rt=\"oma.lwm2m\","));
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     }
 
@@ -3229,11 +3497,12 @@ lifetime_client_timeout(void *data)
 SOL_API int
 sol_lwm2m_client_start(struct sol_lwm2m_client *client)
 {
-    uint16_t i;
+    uint16_t i, j, k;
     struct obj_ctx *ctx;
     bool has_server = false;
     struct obj_instance *instance;
     struct server_conn_ctx *conn_ctx;
+    struct resource_ctx *res_ctx;
     struct sol_lwm2m_resource res[3];
     int r;
 
@@ -3268,8 +3537,23 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
         goto err_exit;
     }
 
-    sol_coap_server_set_unknown_resource_handler(client->coap_server,
-        handle_resource, client);
+    SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i) {
+        r = sol_coap_server_register_resource(client->coap_server,
+            ctx->obj_res, client);
+        SOL_INT_CHECK(r, < 0, r);
+        SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, j) {
+            r = sol_coap_server_register_resource(client->coap_server,
+                instance->instance_res, client);
+            SOL_INT_CHECK(r, < 0, r);
+
+            SOL_VECTOR_FOREACH_IDX (&instance->resources_ctx, res_ctx, k) {
+                r = sol_coap_server_register_resource(client->coap_server,
+                    res_ctx->res, client);
+                SOL_INT_CHECK(r, < 0, r);
+            }
+        }
+    }
+
     client->running = true;
 
     return 0;
@@ -3322,7 +3606,10 @@ SOL_API int
 sol_lwm2m_client_stop(struct sol_lwm2m_client *client)
 {
     struct server_conn_ctx *conn_ctx;
-    uint16_t i;
+    struct obj_ctx *ctx;
+    struct obj_instance *instance;
+    struct resource_ctx *res_ctx;
+    uint16_t i, j, k;
     int r;
 
     SOL_NULL_CHECK(client, -EINVAL);
@@ -3332,8 +3619,23 @@ sol_lwm2m_client_stop(struct sol_lwm2m_client *client)
         SOL_INT_CHECK(r, < 0, r);
     }
 
-    sol_coap_server_set_unknown_resource_handler(client->coap_server,
-        NULL, NULL);
+    SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i) {
+        r = sol_coap_server_unregister_resource(client->coap_server,
+            ctx->obj_res);
+        SOL_INT_CHECK(r, < 0, r);
+        SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, j) {
+            r = sol_coap_server_unregister_resource(client->coap_server,
+                instance->instance_res);
+            SOL_INT_CHECK(r, < 0, r);
+
+            SOL_VECTOR_FOREACH_IDX (&instance->resources_ctx, res_ctx, k) {
+                r = sol_coap_server_unregister_resource(client->coap_server,
+                    res_ctx->res);
+                SOL_INT_CHECK(r, < 0, r);
+            }
+        }
+    }
+
     client->running = false;
     server_connection_ctx_list_clear(&client->connections);
     return 0;
