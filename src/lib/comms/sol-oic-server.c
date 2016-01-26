@@ -322,11 +322,8 @@ _sol_oic_server_res(struct sol_coap_server *server,
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_DEVICE_ID);
     err |= cbor_encode_byte_string(&device_map, get_machine_id(), 16);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_RESOURCE_LINKS);
-    if (uri_query)
-        err |= cbor_encoder_create_array(&device_map, &array_res, CborIndefiniteLength);
-    else
-        err |= cbor_encoder_create_array(&device_map, &array_res,
-            oic_server.resources.base.len);
+    err |= cbor_encoder_create_array(&device_map, &array_res,
+        CborIndefiniteLength);
 
     SOL_INT_CHECK_GOTO(err, != CborNoError, error);
     SOL_PTR_VECTOR_FOREACH_IDX (&oic_server.resources, iter, idx) {
