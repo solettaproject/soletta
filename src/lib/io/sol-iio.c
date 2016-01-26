@@ -159,6 +159,11 @@ craft_filename_path(char *path, size_t size, const char *base, ...)
     len = vsnprintf(path, size, base, args);
     va_end(args);
 
+    if (len < 0)
+        path[0] = '\0';
+
+    SOL_DBG("available=%zu, used=%d, path='%s'", size, len, path);
+
     return len >= 0 && (size_t)len < size;
 }
 
@@ -354,14 +359,16 @@ static void
 set_buffer_size(struct sol_iio_device *device, int buffer_size)
 {
     char path[PATH_MAX];
+    int r;
 
     if (craft_filename_path(path, sizeof(path), BUFFER_LENGHT_DEVICE_PATH, device->device_id)) {
         SOL_WRN("Could not set IIO device buffer size");
         return;
     }
 
-    if (sol_util_write_file(path, "%d", buffer_size) < 0) {
-        SOL_WRN("Could not set IIO device buffer size");
+    if ((r = sol_util_write_file(path, "%d", buffer_size)) < 0) {
+        SOL_WRN("Could not set IIO device buffer size to %d at '%s': %s",
+            buffer_size, path, sol_util_strerrora(r));
     }
 
     return;
@@ -1104,6 +1111,7 @@ sol_iio_device_trigger_now(struct sol_iio_device *device)
 {
     char path[PATH_MAX];
     bool r;
+    int i;
 
     SOL_NULL_CHECK(device, false);
 
@@ -1120,9 +1128,9 @@ sol_iio_device_trigger_now(struct sol_iio_device *device)
         return false;
     }
 
-    if (sol_util_write_file(path, "%d", 1) < 0) {
-        SOL_WRN("Could not write to trigger_now file for trigger [%s]",
-            device->trigger_name);
+    if ((i = sol_util_write_file(path, "%d", 1)) < 0) {
+        SOL_WRN("Could not write to trigger_now file for trigger [%s]: %s",
+            device->trigger_name, sol_util_strerrora(i));
         return false;
     }
 
