@@ -371,12 +371,14 @@ del_dummy(void *instance_data, void *user_data,
 static const struct sol_lwm2m_object security_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
     .id = SECURITY_SERVER_OBJECT_ID,
+    .resources_count = 12,
     .read = security_object_read
 };
 
 static const struct sol_lwm2m_object server_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
     .id = SERVER_OBJECT_ID,
+    .resources_count = 9,
     .read = server_object_read
 };
 
@@ -384,6 +386,7 @@ static const struct sol_lwm2m_object server_object = {
 static const struct sol_lwm2m_object dummy_object = {
     SOL_SET_API_VERSION(.api_version = SOL_LWM2M_OBJECT_API_VERSION, )
     .id = DUMMY_OBJECT_ID,
+    .resources_count = 9,
     .create = create_dummy,
     .read = read_dummy_resource,
     .write_resource = write_dummy_resource,

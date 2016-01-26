@@ -398,6 +398,9 @@ struct sol_lwm2m_object {
     /** @brief The object id */
     uint16_t id;
 
+    /* @brief The number of resources that the object has */
+    uint16_t resources_count;
+
     /**
      * @brief Creates a new object instance.
      *
