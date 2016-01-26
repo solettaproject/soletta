@@ -86,6 +86,7 @@ struct sol_iio_channel {
 
     bool little_endian : 1;
     bool is_signed : 1;
+    bool processed : 1;
 
     char name[]; /* Must be last. Memory trick in place. */
 };
@@ -128,6 +129,7 @@ struct resolve_absolute_path_data {
 #define SYSFS_TRIGGER_SYSFS_PATH SYSFS_DEVICES_PATH "/iio_sysfs_trigger"
 
 #define CHANNEL_RAW_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_raw"
+#define CHANNEL_PROCESSED_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_input"
 #define CHANNEL_OFFSET_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_offset"
 #define CHANNEL_SCALE_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_scale"
 
@@ -905,6 +907,7 @@ SOL_API struct sol_iio_channel *
 sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struct sol_iio_channel_config *config)
 {
     struct sol_iio_channel *channel;
+    bool processed;
 
     SOL_NULL_CHECK(device, NULL);
     SOL_NULL_CHECK(name, NULL);
@@ -918,7 +921,12 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     }
 #endif
 
-    if (!check_file_existence(CHANNEL_RAW_PATH, device->device_id, name)) {
+    /* First try '_raw' suffix, then '_input' */
+    if (check_file_existence(CHANNEL_RAW_PATH, device->device_id, name))
+        processed = false;
+    else if (check_file_existence(CHANNEL_PROCESSED_PATH, device->device_id, name))
+        processed = true;
+    else {
         SOL_WRN("Could not find channel [%s] for device%d", name,
             device->device_id);
         return NULL;
@@ -929,6 +937,7 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     memcpy(channel->name, name, strlen(name));
 
     channel->device = device;
+    channel->processed = processed;
 
     if (config->scale > -1)
         iio_set_channel_scale(channel, config->scale);
@@ -1025,9 +1034,12 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
 
     if (negative) {
         s_data = data | ~channel->mask;
-        *value = (s_data + channel->offset) * channel->scale;
+        *value = s_data;
     } else
-        *value = (data + channel->offset) * channel->scale;
+        *value = data;
+
+    if (!channel->processed)
+        *value = (*value + channel->offset) * channel->scale;
 
     return true;
 }
@@ -1048,7 +1060,8 @@ sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
         return iio_read_buffer_channel_value(channel, value);
     }
 
-    r = craft_filename_path(path, sizeof(path), CHANNEL_RAW_PATH,
+    r = craft_filename_path(path, sizeof(path),
+        channel->processed ? CHANNEL_PROCESSED_PATH : CHANNEL_RAW_PATH,
         device->device_id, channel->name);
     if (!r) {
         SOL_WRN("Could not read channel [%s] in device%d", channel->name,
@@ -1063,7 +1076,10 @@ sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
         return false;
     }
 
-    *value = (raw_value + channel->offset) * channel->scale;
+    if (channel->processed)
+        *value = raw_value;
+    else
+        *value = (raw_value + channel->offset) * channel->scale;
     return true;
 }
 
