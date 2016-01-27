@@ -191,6 +191,13 @@
       }
     },
     {
+      "dependency": "unix",
+      "type": "ccode",
+      "headers": [
+        "<unistd.h>"
+      ]
+    },
+    {
       "dependency": "linux",
       "type": "ccode",
       "headers": [
