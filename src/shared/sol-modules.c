@@ -43,6 +43,7 @@
 #include "sol-log-internal.h"
 #include "sol-macros.h"
 
+#include "sol-util-file.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 

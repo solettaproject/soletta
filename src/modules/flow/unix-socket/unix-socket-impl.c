@@ -46,6 +46,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-unix-socket-impl");
 
 #include "unix-socket.h"
 #include "sol-mainloop.h"
+#include "sol-util-file.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 
