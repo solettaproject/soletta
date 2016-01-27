@@ -49,6 +49,10 @@ extern "C" {
 #define strndupa(str_, len_)     __strndupa_internal__(str_, len_, __tmp__ ## __LINE__)
 #endif
 
+#ifndef HAVE_DECL_STRDUPA
+#define strdupa(str)            strndupa(str, strlen(str))
+#endif
+
 #ifndef HAVE_DECL_MEMMEM
 #include <string.h>
 
@@ -63,6 +67,23 @@ memmem(const void *haystack, size_t haystacklen, const void *needle, size_t need
 
     for (; ptr <= end; ptr++) {
         if (!memcmp(ptr, needle, needlelen))
+            return (void *)ptr;
+    }
+
+    return NULL;
+}
+#endif
+
+#ifndef HAVE_DECL_MEMRCHR
+#include <string.h>
+
+static inline void *
+memrchr(const void *haystack, int c, size_t n)
+{
+    const char *ptr = (const char *)haystack + n;
+
+    for (; ptr != haystack; --ptr) {
+        if (*ptr == c)
             return (void *)ptr;
     }
 

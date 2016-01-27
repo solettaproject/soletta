@@ -276,6 +276,15 @@
       "fragment": "strndupa(0, 0);"
     },
     {
+      "dependency": "decl_strdupa",
+      "type": "ccode",
+      "comment": "Detect GNU extension strdupa()",
+      "headers": [
+        "<string.h>"
+      ],
+      "fragment": "strdupa((void *)0);"
+    },
+    {
       "dependency": "random_r",
       "type": "ccode",
       "headers": [
@@ -300,6 +309,15 @@
         "<string.h>"
       ],
       "fragment": "memmem(0, 0, 0, 0);"
+    },
+    {
+      "dependency": "decl_memrchr",
+      "type": "ccode",
+      "comment": "Detect GNU extension memrchr()",
+      "headers": [
+        "<string.h>"
+      ],
+      "fragment": "memrchr((void *)0, 0, 0);"
     },
     {
       "dependency": "getrandom",
