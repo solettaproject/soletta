@@ -352,44 +352,47 @@ def handle_filesystem_check(args, conf, context):
 
 def handle_flags_check(args, conf, context, cflags, ldflags):
     append_to = conf.get("append_to")
-    source = cstub.format(headers="", fragment="")
-    test_cflags = ""
-    test_ldflags = ""
+    source = cstub.format(headers="", fragment="(void)argc; (void)argv;")
 
-    if cflags:
-        test_cflags = " ".join(cflags)
-        flags = test_cflags
-    elif ldflags:
-        test_ldflags = " ".join(ldflags)
-        flags = test_ldflags
-    else:
+    if not cflags and not ldflags:
         context.info("Neither cflags nor ldflags provided to flags_check.")
         exit(1)
 
-    success = compile_test(source, args.compiler, "-Werror %s" % test_cflags, test_ldflags)
-    if success:
-        context.add_append_makefile_var(append_to, flags)
+    if not cflags:
+        cflags = []
+    if not ldflags:
+        ldflags = []
+
+    def flags_compile(local_cflags, local_ldflags):
+        """Helper to compile given empty source using the args.compiler
+           and given local CFLAGS and LDFLAGS, prepending -Werror.
+        """
+        return compile_test(source, args.compiler,
+                           " ".join(["-Werror"] + local_cflags),
+                           " ".join(local_ldflags))
+
+    if flags_compile(cflags, ldflags):
+        context.add_append_makefile_var(append_to,
+                                        " ".join(cflags + ldflags))
         return True
 
-    supported = []
-    for i in flags:
+    supported_cflags = []
+    for ci in cflags:
         # must acumulate the tested one so we handle dependent flags like -Wformat*
-        flags = "%s %s" % (" ".join(supported), i)
-        if cflags:
-            test_cflags = flags
-            test_ldflags = ""
-        else:
-            test_ldflags = flags
-            test_cflags = ""
+        if flags_compile(supported_cflags + [ci], []):
+            supported_cflags.append(ci)
 
-        success = compile_test(source, args.compiler, "-Werror %s" % test_cflags, test_ldflags)
-        if success:
-            supported.append(i)
+    supported_ldflags = []
+    for cl in ldflags:
+        if flags_compile(supported_ldflags + [cl], []):
+            supported_ldflags.append(cl)
 
-    if supported:
-        context.add_append_makefile_var(append_to, " ".join(supported))
+    if supported_cflags or supported_ldflags:
+        context.add_append_makefile_var(append_to,
+                                        " ".join(supported_cflags + supported_ldflags))
+        return True
 
-    return bool(supported)
+    return False
 
 def handle_cflags_check(args, conf, context):
     return handle_flags_check(args, conf, context, conf.get("cflags"), None)
