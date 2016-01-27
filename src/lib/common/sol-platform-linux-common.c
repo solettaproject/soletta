@@ -837,7 +837,11 @@ sol_platform_register_system_clock_monitor(void)
 
     memset(&spec, 0, sizeof(struct itimerspec));
     /* Set a dummy value, end of time. */
-    spec.it_value.tv_sec += 0xfffffff0;
+#if __WORDSIZE == 64
+    spec.it_value.tv_sec = INT64_MAX;
+#else
+    spec.it_value.tv_sec = INT32_MAX;
+#endif
     if (timerfd_settime(timer_ctx.fd,
         TFD_TIMER_ABSTIME | TFD_TIMER_CANCELON_SET, &spec, NULL) < 0) {
         r = -errno;
