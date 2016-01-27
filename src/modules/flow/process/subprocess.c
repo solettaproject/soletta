@@ -147,7 +147,7 @@ process_subprocess_in_process(struct sol_flow_node *node, void *data, uint16_t p
     return 0;
 }
 
-static void
+static void SOL_ATTR_NORETURN
 on_fork(void *data)
 {
     struct subprocess_data *mdata = data;
