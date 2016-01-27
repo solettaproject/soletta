@@ -423,7 +423,7 @@ def format_makefile_var(items):
     output = ""
     for k,v in sorted(items):
         if not v or not v["value"]: continue
-        output += "%s %s %s\n" % (k, v["attrib"], v["value"])
+        output += "%s %s %s\n" % (k, v["attrib"], v["value"].replace('#', '\\#'))
     return output
 
 def makefile_gen(args, context):
