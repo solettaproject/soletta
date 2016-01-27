@@ -92,11 +92,11 @@ color_luminance_process(struct sol_flow_node *node, void *data, uint16_t port, u
     diff = (int64_t)in_value.max - in_value.min;
 
     val = (int64_t)mdata->red * in_value.val / diff;
-    out.red = abs(val);
+    out.red = llabs(val);
     val = mdata->green * in_value.val / diff;
-    out.green = abs(val);
+    out.green = llabs(val);
     val = mdata->blue * in_value.val / diff;
-    out.blue = abs(val);
+    out.blue = llabs(val);
 
     return sol_flow_send_rgb_packet(node,
         SOL_FLOW_NODE_TYPE_COLOR_LUMINANCE_RGB__OUT__OUT,
