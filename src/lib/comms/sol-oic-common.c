@@ -42,9 +42,11 @@ sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_r
     SOL_NULL_CHECK(iterator, SOL_OIC_MAP_LOOP_ERROR);
     SOL_NULL_CHECK(repr, SOL_OIC_MAP_LOOP_ERROR);
 
+#if __STDC_VERSION__ >= 201112L
     static_assert(sizeof(*iterator) == sizeof(CborValue),
         "struct sol_oic_map_reader size must be at least the same size of "
         "CborValue struct defined in cbor.h header2");
+#endif
 
     if (!cbor_value_is_map((CborValue *)map))
         return SOL_OIC_MAP_LOOP_ERROR;
