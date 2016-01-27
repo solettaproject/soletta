@@ -643,22 +643,22 @@ sol_platform_del_system_clock_monitor(void (*cb)(void *data, int64_t timestamp),
 void
 sol_platform_inform_timezone_changed(void)
 {
-    const char *timezone;
+    const char *tzone;
     struct sol_monitors_entry *entry;
     uint16_t i;
 
-    timezone = sol_platform_impl_get_timezone();
-    SOL_NULL_CHECK(timezone);
+    tzone = sol_platform_impl_get_timezone();
+    SOL_NULL_CHECK(tzone);
 
     SOL_MONITORS_WALK (&_ctx.timezone_monitors, entry, i)
-        ((void (*)(void *, const char *))entry->cb)((void *)entry->data, timezone);
+        ((void (*)(void *, const char *))entry->cb)((void *)entry->data, tzone);
 }
 
 SOL_API int
-sol_platform_set_timezone(const char *timezone)
+sol_platform_set_timezone(const char *tzone)
 {
-    SOL_NULL_CHECK(timezone, -EINVAL);
-    return sol_platform_impl_set_timezone(timezone);
+    SOL_NULL_CHECK(tzone, -EINVAL);
+    return sol_platform_impl_set_timezone(tzone);
 }
 
 SOL_API const char *
