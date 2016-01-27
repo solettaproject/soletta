@@ -215,17 +215,35 @@ unix_socket_client_new(const void *data, const char *socket_path, void (*data_re
 {
     struct sockaddr_un local;
     struct unix_socket *client = calloc(1, sizeof(*client));
+    int n = SOCK_STREAM;
+
+#ifdef SOCK_CLOEXEC
+    n |= SOCK_CLOEXEC | SOCK_NONBLOCK;
+#endif
 
     SOL_NULL_CHECK(client, NULL);
 
     client->data = data;
     client->data_read_cb = data_read_cb;
 
-    client->sock = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
+    client->sock = socket(AF_UNIX, n, 0);
     if (client->sock < 0) {
         SOL_WRN("Failed to create the socket %s", sol_util_strerrora(errno));
         goto err;
     }
+
+#ifndef SOCK_CLOEXEC
+    /* We need to set the socket to FD_CLOEXEC and non-blocking mode */
+    n = fcntl(client->sock, F_GETFD);
+    if (n >= 0)
+        n = fcntl(client->sock, F_SETFD, n | FD_CLOEXEC);
+    if (n >= 0)
+        n = sol_util_fd_set_flag(client->sock, O_NONBLOCK);
+    if (n < 0) {
+        SOL_WRN("Failed to set the socket to FD_CLOEXEC or O_NONBLOCK, %s", sol_util_strerrora(errno));
+        goto sock_err;
+    }
+#endif
 
     local.sun_family = AF_UNIX;
     if (strncpy(local.sun_path, socket_path, sizeof(local.sun_path) - 1) == NULL) {
@@ -294,6 +312,11 @@ struct unix_socket *
 unix_socket_server_new(const void *data, const char *socket_path, void (*data_read_cb)(void *data, int fd))
 {
     struct unix_socket_server *server;
+    int n = SOCK_STREAM;
+
+#ifdef SOCK_CLOEXEC
+    n |= SOCK_CLOEXEC | SOCK_NONBLOCK;
+#endif
 
     SOL_NULL_CHECK(socket_path, NULL);
 
@@ -304,11 +327,24 @@ unix_socket_server_new(const void *data, const char *socket_path, void (*data_re
     server->base.data_read_cb = data_read_cb;
     sol_vector_init(&server->clients, sizeof(struct client_data));
 
-    server->base.sock = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0);
+    server->base.sock = socket(AF_UNIX, n, 0);
     if (server->base.sock < 0) {
         SOL_WRN("Failed to create the socket %s", sol_util_strerrora(errno));
         goto err;
     }
+
+#ifndef SOCK_CLOEXEC
+    /* We need to set the socket to FD_CLOEXEC and non-blocking mode */
+    n = fcntl(server->base.sock, F_GETFD);
+    if (n >= 0)
+        n = fcntl(server->base.sock, F_SETFD, n | FD_CLOEXEC);
+    if (n >= 0)
+        n = sol_util_fd_set_flag(server->base.sock, O_NONBLOCK);
+    if (n < 0) {
+        SOL_WRN("Failed to set the socket to FD_CLOEXEC or O_NONBLOCK, %s", sol_util_strerrora(errno));
+        goto sock_err;
+    }
+#endif
 
     server->local.sun_family = AF_UNIX;
     if (strncpy(server->local.sun_path, socket_path, sizeof(server->local.sun_path) - 1) == NULL) {
