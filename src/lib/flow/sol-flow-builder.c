@@ -481,7 +481,7 @@ sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, co
     SOL_VECTOR_FOREACH_IDX (&builder->nodes, node_spec, i)
         if (!strcmp(name, node_spec->name)) {
             SOL_WRN("Node not added, name %s already exists.", name);
-            return -ENOTUNIQ;
+            return -EEXIST;
         }
 
     /* check if port names are unique */
