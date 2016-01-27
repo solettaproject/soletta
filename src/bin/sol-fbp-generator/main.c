@@ -866,6 +866,11 @@ generate_options(const struct fbp_data *data)
         if (n->meta.len <= 0)
             continue;
 
+        if (!desc->options_symbol || !*desc->options_symbol) {
+            SOL_ERR("Option declared for node type (%s) with no options", desc->name);
+            return EXIT_FAILURE;
+        }
+
         out("    static const struct %s opts%d =\n", desc->options_symbol, i);
         if (!desc->generated_options)
             out("        %s_OPTIONS_DEFAULTS(\n", desc->symbol);
