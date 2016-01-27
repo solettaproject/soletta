@@ -41,7 +41,7 @@
 #include "sol-log-internal.h"
 #include "sol-macros.h"
 #include "sol-monitors.h"
-#ifdef SOL_PLATFORM_LINUX
+#ifdef DETECT_BOARD_NAME
 #include "sol-board-detect.h"
 #endif
 #include "sol-platform.h"
