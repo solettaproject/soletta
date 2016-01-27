@@ -92,6 +92,14 @@
         "-Wl,--gc-sections"
       ],
       "append_to": "COMMON_LDFLAGS"
+    },
+    {
+      "dependency": "check_soname_flag",
+      "type": "ldflags",
+      "ldflags": [
+        "-shared -Wl,-soname,foo"
+      ],
+      "append_to": "LDFLAG_SONAME"
     }
   ],
   "dependencies": [
