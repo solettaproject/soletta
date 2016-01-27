@@ -563,9 +563,6 @@ handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
     int err;
     bool r = false, has_default_option = false;
 
-    if (!sol_str_slice_eq(meta->key, opt_name))
-        return true;
-
     /* Option values from the conffile other than strings might
     * have quotes. E.g. 0|3 is currently represented as a string
     * "0|3" in JSON. When reading we don't have the type
@@ -639,13 +636,19 @@ exit:
 
 static bool
 handle_options(const struct sol_fbp_meta *meta, struct sol_vector *options,
-    const char *name_prefix, const char *fbp_file)
+    const char *name_prefix, const char *fbp_file, bool generated)
 {
     struct option_description *o;
     uint16_t i;
     bool r = false;
 
     SOL_VECTOR_FOREACH_IDX (options, o, i) {
+        if (!sol_str_slice_eq(meta->key, sol_str_slice_from_str(o->name))) {
+            if (generated)
+                r = true;
+            continue;
+        }
+
         r = handle_option(meta, o, name_prefix, sol_str_slice_from_str(o->name),
             fbp_file);
         if (!r) {
@@ -851,9 +854,10 @@ generate_options(const struct fbp_data *data)
             SOL_VECTOR_FOREACH_IDX (&exported_opts->node_ptr->meta, m, j) {
                 SOL_VECTOR_FOREACH_IDX (&exported_opts->options,
                     exported_desc, k) {
-                    if (!handle_option(m, exported_desc->description,
-                        "opt_", exported_desc->node_option, data->filename))
-                        return EXIT_FAILURE;
+                    if (sol_str_slice_eq(m->key, exported_desc->node_option))
+                        if (!handle_option(m, exported_desc->description,
+                            "opt_", exported_desc->node_option, data->filename))
+                            return EXIT_FAILURE;
                 }
             }
         }
@@ -881,8 +885,12 @@ generate_options(const struct fbp_data *data)
         }
 
         SOL_VECTOR_FOREACH_IDX (&n->meta, m, j) {
-            if (!handle_options(m, &desc->options, name_prefix, data->filename))
+            if (!handle_options(m, &desc->options, name_prefix, data->filename,
+                desc->generated_options)) {
+                SOL_ERR("Invalid option (%.*s) for node type (%s)",
+                    SOL_STR_SLICE_PRINT(m->key), desc->name);
                 return EXIT_FAILURE;
+            }
         }
         out("        );\n\n");
     }
