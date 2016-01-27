@@ -39,6 +39,7 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <strings.h>
 
 #ifdef __cplusplus
 extern "C" {
