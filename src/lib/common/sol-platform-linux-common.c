@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <linux/netlink.h>
 #include <locale.h>
+#include <limits.h>
 #include <mntent.h>
 #include <signal.h>
 #include <stdio.h>
@@ -837,7 +838,7 @@ sol_platform_register_system_clock_monitor(void)
 
     memset(&spec, 0, sizeof(struct itimerspec));
     /* Set a dummy value, end of time. */
-    spec.it_value.tv_sec += 0xfffffff0;
+    spec.it_value.tv_sec = LONG_MAX;
     if (timerfd_settime(timer_ctx.fd,
         TFD_TIMER_ABSTIME | TFD_TIMER_CANCELON_SET, &spec, NULL) < 0) {
         r = -errno;
