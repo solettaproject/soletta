@@ -258,7 +258,7 @@ sol_log_get_level(void)
 SOL_API void
 sol_log_set_show_colors(bool enabled)
 {
-    SOL_LOG_INIT_CHECK("enabled=%hhu", enabled);
+    SOL_LOG_INIT_CHECK("enabled=%s", enabled ? "true" : "false");
     _show_colors = enabled;
 }
 
@@ -272,7 +272,7 @@ sol_log_get_show_colors(void)
 SOL_API void
 sol_log_set_show_file(bool enabled)
 {
-    SOL_LOG_INIT_CHECK("enabled=%hhu", enabled);
+    SOL_LOG_INIT_CHECK("enabled=%s", enabled ? "true" : "false");
     _show_file = enabled;
 }
 
@@ -286,7 +286,7 @@ sol_log_get_show_file(void)
 SOL_API void
 sol_log_set_show_function(bool enabled)
 {
-    SOL_LOG_INIT_CHECK("enabled=%hhu", enabled);
+    SOL_LOG_INIT_CHECK("enabled=%s", enabled ? "true" : "false");
     _show_function = enabled;
 }
 
@@ -300,7 +300,7 @@ sol_log_get_show_function(void)
 SOL_API void
 sol_log_set_show_line(bool enabled)
 {
-    SOL_LOG_INIT_CHECK("enabled=%hhu", enabled);
+    SOL_LOG_INIT_CHECK("enabled=%s", enabled ? "true" : "false");
     _show_line = enabled;
 }
 

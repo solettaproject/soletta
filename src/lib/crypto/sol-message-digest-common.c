@@ -498,9 +498,9 @@ _sol_message_digest_feed_blob(struct sol_message_digest *handle)
     _sol_message_digest_unlock(handle);
 
     n = handle->ops->feed(handle, mem, len, is_last);
-    SOL_DBG("handle %p feed mem=%p (%zd bytes) (pending=%hu) is_last=%hhu:"
+    SOL_DBG("handle %p feed mem=%p (%zd bytes) (pending=%hu) is_last=%s:"
         " %zd bytes",
-        handle, mem, len, handle->pending_feed.len, is_last, n);
+        handle, mem, len, handle->pending_feed.len, is_last ? "true" : "false", n);
     if (n >= 0) {
         if (offset + n < input->size) { /* not fully sent, need to try again later */
             /* fetch first pending again as it's a sol_vector and
