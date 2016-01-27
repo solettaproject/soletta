@@ -338,7 +338,7 @@ $($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)echo "     "MOD"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
 	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $($(1)-objs) \
-		-shared -o $($(1)-out) $(sort $($(1)-ldflags))
+		-shared -o $($(1)-out) $(LINKED_OBJS_LDFLAGS) $(sort $($(1)-ldflags))
 endef
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
 
