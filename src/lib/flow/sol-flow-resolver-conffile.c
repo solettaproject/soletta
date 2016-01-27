@@ -38,6 +38,7 @@
 #include "sol-flow-internal.h"
 #include "sol-flow-resolver.h"
 #include "sol-str-slice.h"
+#include "sol-util-file.h"
 #include "sol-util-internal.h"
 
 struct resolve_module_type_foreach_ctx {
