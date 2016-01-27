@@ -77,7 +77,7 @@ sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader
 
     repr_field_free(repr);
     if (!cbor_value_is_valid((CborValue *)iterator))
-        goto err;
+        return false;
 
     err = sol_oic_cbor_repr_map_get_next_field((CborValue *)iterator, repr);
     if (err != CborNoError)
