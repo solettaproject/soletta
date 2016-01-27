@@ -33,6 +33,8 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#define SOL_LOG_DOMAIN &_intel_mux_log_domain
+
 #include "intel-common.h"
 #include "sol-log-internal.h"
 #include "sol-util-file.h"
