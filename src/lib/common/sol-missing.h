@@ -70,6 +70,54 @@ memmem(const void *haystack, size_t haystacklen, const void *needle, size_t need
 }
 #endif
 
+#if !defined(HAVE_PIPE2) && defined(HAVE_PIPE)
+#include <fcntl.h>
+#include <unistd.h>
+#include <sol-util-file.h>
+#ifndef O_CLOEXEC
+#error "I need O_CLOEXEC to work!"
+#endif
+
+static inline int
+pipe2(int pipefd[2], int flags)
+{
+    int ret = pipe(pipefd);
+
+    if (ret < 0)
+        return ret;
+
+    if (flags & O_NONBLOCK) {
+        ret = sol_util_fd_set_flag(pipefd[0], O_NONBLOCK);
+        if (ret >= 0)
+            ret = sol_util_fd_set_flag(pipefd[1], O_NONBLOCK);
+        if (ret < 0)
+            goto err;
+    }
+
+    if (flags & O_CLOEXEC) {
+        ret = fcntl(pipefd[0], F_GETFD);
+        if (ret >= 0)
+            ret = fcntl(pipefd[0], F_SETFD, ret | FD_CLOEXEC);
+        ret = fcntl(pipefd[1], F_GETFD);
+        if (ret >= 0)
+            ret = fcntl(pipefd[1], F_SETFD, ret | FD_CLOEXEC);
+        if (ret < 0)
+            goto err;
+    }
+
+    return 0;
+
+err:
+    {
+        int save_errno = errno;
+        close(pipefd[0]);
+        close(pipefd[1]);
+        errno = save_errno;
+    }
+    return -1;
+}
+#endif
+
 #ifndef HAVE_DECL_IFLA_INET6_MAX
 #define IFLA_INET6_UNSPEC 0
 #define IFLA_INET6_FLAGS 1

@@ -208,6 +208,22 @@
       ]
     },
     {
+      "dependency": "pipe",
+      "type": "ccode",
+      "headers": [
+        "<unistd.h>"
+      ],
+      "fragment": "int fds[2]; pipe(fds);"
+    },
+    {
+      "dependency": "pipe2",
+      "type": "ccode",
+      "headers": [
+        "<unistd.h>"
+      ],
+      "fragment": "int fds[2]; pipe2(fds, 0);"
+    },
+    {
       "dependency": "accept4",
       "type": "ccode",
       "headers": [
