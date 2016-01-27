@@ -222,7 +222,7 @@ sol_util_strerror(int errnum, char *buf, size_t buflen)
 
     buf[0] = '\0';
 
-    ret = (char *)strerror_r(errnum, buf, buflen);
+    ret = (char *)(uintptr_t)strerror_r(errnum, buf, buflen);
     /* if buf was used it means it can be XSI version (so ret won't be
        pointing to msg string), or GNU version using non static string
        (in this case ret == buf already) */
