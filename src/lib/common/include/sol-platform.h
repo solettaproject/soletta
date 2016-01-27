@@ -409,7 +409,7 @@ int sol_platform_del_system_clock_monitor(void (*cb)(void *data, int64_t timesta
 /**
  * @brief Set the system timezone.
  *
- * @param timezone The new timezone. (Example: America/Sao_Paulo)
+ * @param tzone The new timezone. (Example: America/Sao_Paulo)
  *
  * @return @c 0 on success, negative errno on error
  *
@@ -417,7 +417,7 @@ int sol_platform_del_system_clock_monitor(void (*cb)(void *data, int64_t timesta
  *
  * @see sol_platform_get_timezone()
  */
-int sol_platform_set_timezone(const char *timezone);
+int sol_platform_set_timezone(const char *tzone);
 
 /**
  * @brief Get the current timezone.

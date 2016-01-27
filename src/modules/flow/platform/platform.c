@@ -372,24 +372,24 @@ system_clock_process(struct sol_flow_node *node, void *data, uint16_t port,
 }
 
 static int
-timezone_send(const void *timezone, struct sol_flow_node *node)
+timezone_send(const void *tzone, struct sol_flow_node *node)
 {
     int r;
 
-    if (!timezone) {
-        timezone = sol_platform_get_timezone();
-        SOL_NULL_CHECK(timezone, -ECANCELED);
+    if (!tzone) {
+        tzone = sol_platform_get_timezone();
+        SOL_NULL_CHECK(tzone, -ECANCELED);
     }
 
-    r = sol_flow_send_string_packet(node, 0, timezone);
+    r = sol_flow_send_string_packet(node, 0, tzone);
     SOL_INT_CHECK(r, < 0, r);
     return 0;
 }
 
 static void
-timezone_changed(void *data, const char *timezone)
+timezone_changed(void *data, const char *tzone)
 {
-    timezone_send(timezone, data);
+    timezone_send(tzone, data);
 }
 
 static int
