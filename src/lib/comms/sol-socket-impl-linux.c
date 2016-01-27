@@ -429,7 +429,7 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
 {
     int ret;
     struct sol_socket_linux *s;
-    int fd, socktype = SOCK_CLOEXEC | SOCK_NONBLOCK | SOCK_DGRAM;
+    int fd, socktype = SOCK_DGRAM;
     struct sol_socket_ip_options *opts;
     static const struct sol_socket_type type = {
         SOL_SET_API_VERSION(.api_version = SOL_SOCKET_TYPE_API_VERSION, )
@@ -444,9 +444,28 @@ sol_socket_ip_default_new(const struct sol_socket_options *options)
 
     SOL_SOCKET_OPTIONS_CHECK_SUB_API_VERSION(options, SOL_SOCKET_IP_OPTIONS_SUB_API_VERSION, NULL);
 
+#ifdef SOCK_CLOEXEC
+    socktype |= SOCK_CLOEXEC | SOCK_NONBLOCK;
+#endif
+
     opts = (struct sol_socket_ip_options *)options;
     fd = socket(sol_network_sol_to_af(opts->family), socktype, 0);
     SOL_INT_CHECK(fd, < 0, NULL);
+
+#ifndef SOCK_CLOEXEC
+    {
+        /* We need to set the socket to FD_CLOEXEC and non-blocking mode */
+        int n = fcntl(fd, F_GETFD);
+        if (n >= 0)
+            n = fcntl(fd, F_SETFD, n | FD_CLOEXEC);
+        if (n >= 0)
+            n = sol_util_fd_set_flag(fd, O_NONBLOCK);
+        if (n < 0) {
+            SOL_WRN("Failed to set the socket to FD_CLOEXEC or O_NONBLOCK, %s", sol_util_strerrora(errno));
+            goto calloc_error;
+        }
+    }
+#endif
 
     if (opts->reuse_port) {
         int val = 1;
