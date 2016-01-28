@@ -401,6 +401,14 @@
       "exec": "getconf"
     },
     {
+      "dependency": "get_current_dir_name",
+      "type": "ccode",
+      "headers": [
+        "<unistd.h>"
+      ],
+      "fragment": "get_current_dir_name();"
+    },
+    {
       "dependency": "valgrind",
       "type": "exec",
       "exec": "valgrind"
