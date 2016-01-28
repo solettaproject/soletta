@@ -152,7 +152,7 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
             free(ptr);
         }
         sol_ptr_vector_clear(&vec_options);
-        return -ENOKEY;
+        return -EINVAL;
     }
 
     sol_ptr_vector_append(&vec_options, NULL);
@@ -466,7 +466,7 @@ _json_to_vector(struct sol_json_scanner scanner)
         }
     } else if (!nodes.start) {
         /* No maps, no nodes. */
-        return -ENOKEY;
+        return -EINVAL;
     }
 
     sol_json_scanner_init_from_token(&obj_scanner, &nodes);
