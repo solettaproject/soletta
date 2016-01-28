@@ -1,11 +1,11 @@
 prefix={{@PREFIX@}}
-exec_prefix={{@PREFIX@}}
-libdir={{@LIBDIR@}}
-includedir={{@INCLUDEDIR@}}
-modulesdir={{@MODULESDIR@}}
-pkgdatadir={{@DATADIR@}}soletta
+exec_prefix=${prefix}
+libdir={{@LIBDIR_RELATIVE@}}
+includedir={{@INCLUDEDIR_RELATIVE@}}
+modulesdir={{@MODULESDIR_RELATIVE@}}
+pkgdatadir={{@DATADIR_RELATIVE@}}soletta
 nodeschemapath=${pkgdatadir}/flow/schemas/node-type-genspec.schema
-nodedescriptionpath={{@DESCDIR@}}
+nodedescriptionpath={{@DESCDIR_RELATIVE@}}
 
 Name: {{@PKGNAME@}}
 Description: Soletta Project is a framework for making IoT devices.
