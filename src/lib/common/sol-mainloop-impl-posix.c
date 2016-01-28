@@ -231,11 +231,9 @@ on_sig_child(const siginfo_t *info)
     struct child_exit_status *cs;
 
     SOL_DBG("child %" PRIu64 " exited with status %d, "
-        "stime=%" PRIu64 ", utime=%" PRIu64 ", uid=%" PRIu64,
+        ", uid=%" PRIu64,
         (uint64_t)info->si_pid,
         info->si_status,
-        (uint64_t)info->si_stime,
-        (uint64_t)info->si_utime,
         (uint64_t)info->si_uid);
 
     cs = find_child_exit_status(info->si_pid);
