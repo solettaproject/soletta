@@ -217,3 +217,12 @@ menu "Test suite"
 depends on FEATURE_RUNNABLE_PROGRAMS
 source "src/test/Kconfig"
 endmenu
+
+menu "Bindings"
+config NODE_BINDINGS
+	bool "Node.js bindings"
+	depends on HAVE_NODE
+	default n
+	help
+		Enable Node.js bindings
+endmenu

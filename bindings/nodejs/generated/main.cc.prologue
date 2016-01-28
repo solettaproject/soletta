@@ -1,0 +1,10 @@
+#include <v8.h>
+#include <node.h>
+#include <nan.h>
+
+using namespace v8;
+
+#include "main.h"
+#include "../src/common.h"
+
+void Init(Handle<Object> exports, Handle<Object> module) {
