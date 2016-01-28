@@ -15,6 +15,9 @@ obj-js-$(FLOW_METATYPE_JAVASCRIPT)-extra-cflags := \
 	-Wno-format-nonliteral \
 	-Wno-suggest-attribute=noreturn
 
+obj-js-$(FLOW_METATYPE_JAVASCRIPT)-extra-ldflags := \
+        -lm
+
 ifneq (,$(NO_SANITIZE_CFLAGS))
 	obj-js-$(FLOW_METATYPE_JAVASCRIPT)-extra-cflags += $(NO_SANITIZE_CFLAGS)
 endif
