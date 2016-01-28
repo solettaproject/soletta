@@ -86,6 +86,14 @@
       "append_to": "COMMON_CFLAGS"
     },
     {
+      "dependency": "check_no_undefined_flag",
+      "type": "ldflags",
+      "ldflags": [
+        "-Wl,--no-undefined"
+      ],
+      "append_to": "LDFLAG_UNDEFINED"
+    },
+    {
       "dependency": "check_ldflags",
       "type": "ldflags",
       "ldflags": [
