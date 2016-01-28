@@ -260,6 +260,14 @@
       "fragment": "ppoll(0, 0, 0, 0);"
     },
     {
+      "dependency": "pollts",
+      "type": "ccode",
+      "headers": [
+        "<poll.h>"
+      ],
+      "fragment": "pollts(0, 0, 0, 0);"
+    },
+    {
       "dependency": "decl_strndupa",
       "type": "ccode",
       "headers": [

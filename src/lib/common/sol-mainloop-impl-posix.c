@@ -612,6 +612,11 @@ int ppoll(struct pollfd *, nfds_t, const struct timespec *, const sigset_t *);
 int
 ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts, const sigset_t *sigmask)
 {
+#ifdef HAVE_POLLTS
+    /* Some BSDs have pollts, which is the same as Linux's ppoll */
+    return pollts(fds, nfds, timeout_ts, sigmask);
+#else
+    /* Fall back to POSIX poll */
     int timeout_ms, ret;
     sigset_t origmask;
 
@@ -620,6 +625,7 @@ ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts, const 
     else
         timeout_ms = -1;
 
+    /* Warning: non-atomic! */
     if (sigmask)
         sigprocmask(SIG_SETMASK, sigmask, &origmask);
 
@@ -629,6 +635,7 @@ ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts, const 
         sigprocmask(SIG_SETMASK, &origmask, NULL);
 
     return ret;
+#endif
 }
 #endif
 
