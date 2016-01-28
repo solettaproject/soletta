@@ -53,7 +53,7 @@ sol_vector_grow(struct sol_vector *v, uint16_t amount)
     uint16_t new_len;
 
     if (v->len > UINT16_MAX - amount)
-        return -EOVERFLOW;
+        return -EDEMAS;
 
     new_len = v->len + amount;
     old_cap = align_power2(v->len);
