@@ -878,8 +878,8 @@ sol_socket_dtls_prf_keyblock(struct sol_socket *s,
         return -EINVAL;
 
     r = dtls_prf_with_current_keyblock(socket->context, &session,
-        label.data, label.len, random1.data, random1.len,
-        random2.data, random1.len, buffer->data, buffer->capacity);
+        (const uint8_t *)label.data, label.len, (const uint8_t *)random1.data, random1.len,
+        (const uint8_t *)random2.data, random1.len, buffer->data, buffer->capacity);
     if (!r)
         return -EINVAL;
 
