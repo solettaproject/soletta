@@ -420,7 +420,7 @@ sol_socket_linux_join_group(struct sol_socket *socket, int ifindex, const struct
         p = &ip6_join;
         l = sizeof(ip6_join);
         level = IPPROTO_IPV6;
-        option = IPV6_ADD_MEMBERSHIP;
+        option = IPV6_JOIN_GROUP;
     }
 
     if (setsockopt(s->fd, level, option, p, l) < 0)
