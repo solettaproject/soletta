@@ -608,6 +608,21 @@ int sol_lwm2m_client_stop(struct sol_lwm2m_client *client);
 int sol_lwm2m_send_update(struct sol_lwm2m_client *client);
 
 /**
+ * @brief Notifies all the observing LWM2M servers that a resource has changed.
+ *
+ * Use this function to notify the LWM2M servers that an
+ * Object instance resource value has changed.
+ *
+ * @param client The LWM2M client.
+ * @param paths The resource paths that were changed, must be @c NULL terminated.
+ * @return 0 on success, -errno on error.
+ * @note If a LWM2M server creates an object instance, write on a object instance or
+ * write in a object resource, the LWM2M client infrastruct will automatically notify all
+ * observing servers.
+ */
+int sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths);
+
+/**
  * @brief Clears a #sol_lwm2m_resource.
  *
  * @param resource The resource to ne cleared.
