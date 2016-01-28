@@ -609,6 +609,8 @@ fd_cleanup(void)
 }
 
 #ifndef HAVE_PPOLL
+int ppoll(struct pollfd *, nfds_t, const struct timespec *, const sigset_t *);
+
 int
 ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts, const sigset_t *sigmask)
 {
