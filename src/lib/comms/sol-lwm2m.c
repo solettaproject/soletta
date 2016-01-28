@@ -220,11 +220,13 @@ struct management_ctx {
 struct resource_ctx {
     char *str_id;
     struct sol_coap_resource *res;
+    uint16_t id;
 };
 
 //Data structs used by LWM2M Client.
 struct obj_instance {
     uint16_t id;
+    bool should_delete;
     char *str_id;
     const void *data;
     struct sol_vector resources_ctx;
@@ -908,10 +910,11 @@ registration_request(struct sol_coap_server *coap,
         " lifetime: %" PRIu32 " objects paths: %s",
         cinfo->name, cinfo->location, cinfo->sms,
         cinfo->binding, cinfo->lifetime, cinfo->objects_path);
+
+    r = sol_coap_send_packet(coap, response, cliaddr);
     dispatch_registration_event(server, cinfo,
         SOL_LWM2M_REGISTRATION_EVENT_REGISTER);
-
-    return sol_coap_send_packet(coap, response, cliaddr);
+    return r;
 
 err_exit_unregister:
     if (sol_coap_server_unregister_resource(server->coap, &cinfo->resource) < 0)
@@ -2323,6 +2326,7 @@ setup_resources_ctx(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
 
         r = asprintf(&res_ctx->str_id, "%" PRIu16 "", i);
         SOL_INT_CHECK_GOTO(r, == -1, err_exit);
+        res_ctx->id = i;
 
         SOL_SET_API_VERSION(res_ctx->res->api_version = SOL_COAP_RESOURCE_API_VERSION; )
 
@@ -2449,8 +2453,7 @@ handle_delete(struct sol_lwm2m_client *client,
         return SOL_COAP_RSPCODE_NOT_ALLOWED;
     }
 
-    obj_instance_clear(client, obj_ctx, obj_instance);
-    (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
+    obj_instance->should_delete = true;
     return SOL_COAP_RSPCODE_DELETED;
 }
 
@@ -2742,6 +2745,8 @@ handle_read(struct sol_lwm2m_client *client,
         struct obj_instance *instance;
 
         SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, instance, i) {
+            if (instance->should_delete)
+                continue;
             r = read_object_instance(client, obj_ctx, instance, &resources);
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
@@ -2772,6 +2777,119 @@ err_exit:
     return SOL_COAP_RSPCODE_BAD_REQUEST;
 }
 
+static bool
+send_notification_pkt(struct sol_lwm2m_client *client,
+    struct obj_ctx *obj_ctx, struct obj_instance *obj_instance,
+    int32_t resource_id, struct sol_coap_resource *resource)
+{
+    struct sol_coap_packet *pkt;
+    uint8_t r;
+
+    pkt = sol_coap_packet_notification_new(client->coap_server, resource);
+    SOL_NULL_CHECK(pkt, -ENOMEM);
+
+    sol_coap_header_set_type(pkt, SOL_COAP_TYPE_CON);
+    sol_coap_header_set_code(pkt, SOL_COAP_RSPCODE_CHANGED);
+    r = handle_read(client, obj_ctx, obj_instance, resource_id, pkt);
+    SOL_INT_CHECK_GOTO(r, != SOL_COAP_RSPCODE_CONTENT, err_exit);
+
+    return sol_coap_packet_send_notification(client->coap_server,
+        resource, pkt) == 0;
+
+err_exit:
+    sol_coap_packet_unref(pkt);
+    return false;
+}
+
+static bool
+dispatch_notifications(struct sol_lwm2m_client *client,
+    const struct sol_coap_resource *resource, bool is_delete)
+{
+    uint16_t i, path_idx = 0;
+    struct obj_ctx *obj_ctx;
+    bool stop = false, r;
+
+    if (client->splitted_path_len)
+        path_idx = client->splitted_path_len;
+
+    SOL_VECTOR_FOREACH_IDX (&client->objects, obj_ctx, i) {
+        struct obj_instance *instance;
+        uint16_t j;
+
+        if (!sol_str_slice_eq(obj_ctx->obj_res->path[path_idx],
+            resource->path[path_idx]))
+            continue;
+
+        r = send_notification_pkt(client, obj_ctx, NULL, -1, obj_ctx->obj_res);
+        SOL_EXP_CHECK(!r, false);
+
+        if (!resource->path[1].len || is_delete)
+            break;
+
+        SOL_VECTOR_FOREACH_IDX (&obj_ctx->instances, instance, j) {
+            uint16_t k;
+            struct resource_ctx *res_ctx;
+
+            if (!sol_str_slice_eq(instance->instance_res->path[path_idx + 1],
+                resource->path[path_idx + 1]))
+                continue;
+
+            r = send_notification_pkt(client, obj_ctx, instance, -1,
+                instance->instance_res);
+            SOL_EXP_CHECK(!r, false);
+
+            if (!resource->path[2].len) {
+                stop = true;
+                break;
+            }
+
+            SOL_VECTOR_FOREACH_IDX (&instance->resources_ctx, res_ctx, k) {
+                if (!sol_str_slice_eq(res_ctx->res->path[path_idx + 2],
+                    resource->path[path_idx + 2]))
+                    continue;
+
+                r = send_notification_pkt(client, obj_ctx, instance, k,
+                    res_ctx->res);
+                SOL_EXP_CHECK(!r, false);
+                stop = true;
+                break;
+            }
+
+            if (stop)
+                break;
+        }
+
+        if (stop)
+            break;
+    }
+
+    return true;
+}
+
+static bool
+is_observe_request(struct sol_coap_packet *req)
+{
+    const void *obs;
+    uint16_t len;
+
+    obs = sol_coap_find_first_option(req, SOL_COAP_OPTION_OBSERVE, &len);
+
+    if (!obs)
+        return false;
+
+    return true;
+}
+
+static bool
+should_dispatch_notifications(uint8_t code, bool is_execute)
+{
+    if (code == SOL_COAP_RSPCODE_CREATED ||
+        code == SOL_COAP_RSPCODE_DELETED ||
+        (code == SOL_COAP_RSPCODE_CHANGED && !is_execute))
+        return true;
+    return false;
+}
+
 static int
 handle_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource,
@@ -2787,6 +2905,7 @@ handle_resource(struct sol_coap_server *server,
     uint16_t path[3], path_size, content_format;
     uint8_t header_code;
     struct sol_str_slice payload = SOL_STR_SLICE_EMPTY;
+    bool is_execute = false;
 
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
@@ -2822,6 +2941,12 @@ handle_resource(struct sol_coap_server *server,
 
     switch (method) {
     case SOL_COAP_METHOD_GET:
+        if (is_observe_request(req)) {
+            uint8_t obs = 1;
+            r = add_coap_int_option(resp, SOL_COAP_OPTION_OBSERVE,
+                &obs, sizeof(obs));
+            SOL_INT_CHECK_GOTO(r, < 0, exit);
+        }
         header_code = handle_read(client, obj_ctx, obj_instance,
             path_size > 2 ? path[2] : -1, resp);
         break;
@@ -2840,6 +2965,7 @@ handle_resource(struct sol_coap_server *server,
                 content_format, payload);
         else {
             //Execute.
+            is_execute = true;
             header_code = handle_execute(client, obj_ctx, obj_instance, path[2],
                 payload);
         }
@@ -2864,7 +2990,20 @@ handle_resource(struct sol_coap_server *server,
 
 exit:
     sol_coap_header_set_code(resp, header_code);
-    return sol_coap_send_packet(server, resp, cliaddr);
+    r = sol_coap_send_packet(server, resp, cliaddr);
+
+    if (should_dispatch_notifications(header_code, is_execute) &&
+        !dispatch_notifications(client, resource,
+        header_code == SOL_COAP_RSPCODE_DELETED)) {
+        SOL_WRN("Could not dispatch the observe notifications");
+    }
+
+    if (header_code == SOL_COAP_RSPCODE_DELETED) {
+        obj_instance_clear(client, obj_ctx, obj_instance);
+        (void)sol_vector_del_element(&obj_ctx->instances, obj_instance);
+    }
+
+    return r;
 }
 
 static char **
@@ -3666,4 +3805,81 @@ sol_lwm2m_send_update(struct sol_lwm2m_client *client)
     SOL_NULL_CHECK(client, -EINVAL);
 
     return spam_update(client, false);
+}
+
+static struct resource_ctx *
+find_resource_ctx_by_id(struct obj_instance *instance, uint16_t id)
+{
+    uint16_t i;
+    struct resource_ctx *res_ctx;
+
+    SOL_VECTOR_FOREACH_IDX (&instance->resources_ctx, res_ctx, i) {
+        if (res_ctx->id == id)
+            return res_ctx;
+    }
+
+    return NULL;
+}
+
+SOL_API int
+sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
+{
+    size_t i;
+
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(paths, -EINVAL);
+
+    for (i = 0; paths[i]; i++) {
+        bool r;
+        uint16_t j, k;
+        struct obj_ctx *obj_ctx;
+        struct obj_instance *obj_instance;
+        struct resource_ctx *res_ctx;
+        struct sol_vector tokens;
+        uint16_t path[3];
+        struct sol_str_slice *token;
+
+        tokens = sol_str_slice_split(sol_str_slice_from_str(paths[i]), "/", 0);
+
+        if (tokens.len != 4) {
+            sol_vector_clear(&tokens);
+            SOL_WRN("The path must contain an object, instance id and resource id");
+            return -EINVAL;
+        }
+
+        k = 0;
+        SOL_VECTOR_FOREACH_IDX (&tokens, token, j) {
+            if (j == 0)
+                continue;
+            char *end;
+            path[k++] = sol_util_strtoul(token->data, &end, token->len, 10);
+            r = errno;
+            if (end == token->data || end != token->data + token->len ||
+                errno != 0) {
+                r = errno;
+                SOL_WRN("Could not convert %.*s to integer",
+                    SOL_STR_SLICE_PRINT(*token));
+                sol_vector_clear(&tokens);
+                return r;
+            }
+        }
+        sol_vector_clear(&tokens);
+
+        obj_ctx = find_object_ctx_by_id(client, path[0]);
+        SOL_NULL_CHECK(obj_ctx, -EINVAL);
+        obj_instance = find_object_instance_by_instance_id(obj_ctx, path[1]);
+        SOL_NULL_CHECK(obj_instance, -EINVAL);
+        res_ctx = find_resource_ctx_by_id(obj_instance, path[2]);
+        SOL_NULL_CHECK(res_ctx, -EINVAL);
+
+        r = send_notification_pkt(client, obj_ctx, NULL, -1, obj_ctx->obj_res);
+        SOL_EXP_CHECK(!r, -EINVAL);
+        r = send_notification_pkt(client, obj_ctx, obj_instance, -1,
+            obj_instance->instance_res);
+        SOL_EXP_CHECK(!r, -EINVAL);
+        r = send_notification_pkt(client, obj_ctx, obj_instance, path[2],
+            res_ctx->res);
+        SOL_EXP_CHECK(!r, -EINVAL);
+    }
+    return 0;
 }
