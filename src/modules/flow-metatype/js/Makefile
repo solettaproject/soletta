@@ -13,7 +13,8 @@ obj-js-$(FLOW_METATYPE_JAVASCRIPT)-type := flow-metatype
 obj-js-$(FLOW_METATYPE_JAVASCRIPT)-extra-cflags := \
 	-Wno-float-equal \
 	-Wno-format-nonliteral \
-	-Wno-suggest-attribute=noreturn
+	-Wno-suggest-attribute=noreturn \
+        -lm
 
 ifneq (,$(NO_SANITIZE_CFLAGS))
 	obj-js-$(FLOW_METATYPE_JAVASCRIPT)-extra-cflags += $(NO_SANITIZE_CFLAGS)
