@@ -54,7 +54,6 @@ static const uint32_t dtls_magic = 'D' << 24 | 't' << 16 | 'L' << 8 | 's';
 
 static bool encrypt_payload(void *data, struct sol_socket *wrapped);
 
-struct sol_socket *sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap);
 
 struct queue_item {
     struct sol_buffer buffer;
