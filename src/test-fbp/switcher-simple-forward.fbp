@@ -112,4 +112,4 @@ const_error OUT -> IN[1] error_msg_equal
 error_msg_equal EQUAL -> RESULT result_switcher_error(test/result)
 
 ## TEST-OUTPUT-REGEX
-# WRN: ./src/lib/common/sol-types.c:.*? sol_irange_division\(\) Division by zero: 10, 0
+# WRN: .* Division by zero: 10, 0
