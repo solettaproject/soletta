@@ -435,7 +435,7 @@
         "value": "-fsanitize=undefined"
       },
       "ldflags": {
-        "value": "-fsanitize=undefined"
+        "value": "-fsanitize=undefined -lusban"
       }
     },
     {
@@ -459,10 +459,10 @@
       "dependency": "dynamic_sanitize_address",
       "type": "ccode",
       "cflags": {
-        "value": "-fsanitize=address"
+        "value": "-fsanitize=address -lasan"
       },
       "ldflags": {
-        "value": "-fsanitize=address"
+        "value": "-fsanitize=address -lasan"
       }
     },
     {
