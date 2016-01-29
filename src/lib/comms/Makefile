@@ -53,7 +53,7 @@ obj-networking-$(OIC) += \
 
 obj-networking-$(OIC)-extra-cflags += \
     -I$(TINYCBOR_SRC_PATH) \
-    -Wno-cpp \
+    $(CFLAGS_NO_SOURCE_WARNINGS) \
     -Wno-declaration-after-statement \
     -Wno-float-equal \
     -Wno-undef
