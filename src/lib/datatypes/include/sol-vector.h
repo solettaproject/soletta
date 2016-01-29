@@ -78,6 +78,11 @@ struct sol_vector {
 };
 
 /**
+ * @brief Macro that properly represents that the sol_vector is full.
+ */
+#define EDEMAS EOVERFLOW
+
+/**
  * @def SOL_VECTOR_INIT(TYPE)
  * @brief Helper macro to initialize a @c sol_vector structure to hold
  * elements of type @c TYPE.
