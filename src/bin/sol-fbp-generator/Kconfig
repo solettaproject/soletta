@@ -1,4 +1,5 @@
+# TODO: Review metatype node_description's dependency
 config FBP_GENERATOR
 	bool "fbp generator"
-	depends on FLOW_SUPPORT
+	depends on NODE_DESCRIPTION
 	default y
