@@ -452,6 +452,43 @@ read_cb(void *data,
 }
 
 static void
+observe_res_cb(void *data,
+    struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path,
+    sol_coap_responsecode_t response_code,
+    enum sol_lwm2m_content_type content_type,
+    struct sol_str_slice content)
+{
+    static int i = 0;
+    struct sol_vector tlvs;
+    struct sol_lwm2m_tlv *tlv;
+    int64_t v;
+    int r;
+
+    ASSERT(response_code == SOL_COAP_RSPCODE_CHANGED ||
+        response_code == SOL_COAP_RSPCODE_CONTENT);
+
+    r = sol_lwm2m_parse_tlv(content, &tlvs);
+    ASSERT(r == 0);
+    ASSERT(tlvs.len == 1);
+    tlv = sol_vector_get_nocheck(&tlvs, 0);
+    r = sol_lwm2m_tlv_to_int(tlv, &v);
+    ASSERT(r == 0);
+
+    if (i == 0)
+        ASSERT(v == INT_VALUE);
+    else if (i == 1)
+        ASSERT(v == INT_REPLACE_VALUE);
+    else
+        ASSERT(1 == 2); //MUST NOT HAPPEN!
+
+    i++;
+    sol_lwm2m_tlv_clear(tlv);
+    sol_vector_clear(&tlvs);
+}
+
+static void
 create_cb(void *data,
     struct sol_lwm2m_server *server,
     struct sol_lwm2m_client_info *client, const char *path,
@@ -463,6 +500,10 @@ create_cb(void *data,
 
     r = sol_lwm2m_server_management_read(server, client, "/999/0",
         read_cb, NULL);
+    ASSERT(r == 0);
+
+    r = sol_lwm2m_server_add_observer(server, client, "/999/0/2",
+        observe_res_cb, NULL);
     ASSERT(r == 0);
 }
 
@@ -555,6 +596,9 @@ registration_event_cb(void *data, struct sol_lwm2m_server *server,
         create_obj(server, cinfo);
 
     } else if (event == SOL_LWM2M_REGISTRATION_EVENT_UPDATE) {
+        r = sol_lwm2m_server_del_observer(server, cinfo, "/999/0/2",
+            observe_res_cb, NULL);
+        ASSERT(r == 0);
         r = sol_lwm2m_server_management_delete(server, cinfo, "/999/0",
             delete_cb, NULL);
         ASSERT(r == 0);
