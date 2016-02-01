@@ -594,7 +594,7 @@ on_can_write(void *data, struct sol_socket *s)
         char addr[SOL_INET_ADDR_STRLEN];
         sol_network_addr_to_str(&outgoing->cliaddr, addr, sizeof(addr));
         SOL_WRN("Could not send packet %d to %s (%d): %s", sol_coap_header_get_id(outgoing->pkt),
-            addr, errno, sol_util_strerrora(errno));
+            addr, -err, sol_util_strerrora(-err));
         return false;
     }
 
@@ -691,8 +691,8 @@ done:
     if (err < 0) {
         char addr[SOL_INET_ADDR_STRLEN];
         sol_network_addr_to_str(cliaddr, addr, sizeof(addr));
-        SOL_WRN("Could not enqueue packet %p to %s (%d): %s", pkt, addr, errno,
-            sol_util_strerrora(errno));
+        SOL_WRN("Could not enqueue packet %p to %s (%d): %s", pkt, addr, -err,
+            sol_util_strerrora(-err));
         goto error;
     }
 
@@ -1329,7 +1329,8 @@ on_can_read(void *data, struct sol_socket *s)
 
     len = sol_socket_recvmsg(s, pkt->buf, pkt->payload.size, &cliaddr);
     if (len < 0) {
-        SOL_WRN("Could not read from socket (%d): %s", errno, sol_util_strerrora(errno));
+        err = -len;
+        SOL_WRN("Could not read from socket (%d): %s", err, sol_util_strerrora(err));
         coap_packet_free(pkt);
         return true;
     }
