@@ -118,7 +118,7 @@ JSON_TO_SOL_JSON = {
     "string": "string",
     "integer": "int",
     "boolean": "boolean",
-    "number": "double"
+    "number": "float"
 }
 
 def props_are_equivalent(p1, p2):
