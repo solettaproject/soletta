@@ -102,7 +102,7 @@ check-stub: $(SOL_LIB_OUTPUT) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $
 	$(Q)$(TARGETCC) $(MOD_CFLAGS) \
 		-Wno-unused-variable -Wno-unused-but-set-variable \
 		-Wno-unused-function -Wno-old-style-definition -Wno-strict-prototypes \
-		$(NODE_TYPE_STUB_GEN_DIR)dummy.c -shared \
+		$(NODE_TYPE_STUB_GEN_DIR)dummy.c -shared $(SOL_LIB_OUTPUT) \
 		-o $(NODE_TYPE_STUB_GEN_DIR)dummy.so
 
 PHONY += check-stub
