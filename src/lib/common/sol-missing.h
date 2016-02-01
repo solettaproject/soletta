@@ -119,7 +119,8 @@ pipe2(int pipefd[2], int flags)
         ret = fcntl(pipefd[0], F_GETFD);
         if (ret >= 0)
             ret = fcntl(pipefd[0], F_SETFD, ret | FD_CLOEXEC);
-        ret = fcntl(pipefd[1], F_GETFD);
+        if (ret >= 0)
+            ret = fcntl(pipefd[1], F_GETFD);
         if (ret >= 0)
             ret = fcntl(pipefd[1], F_SETFD, ret | FD_CLOEXEC);
         if (ret < 0)
