@@ -90,7 +90,6 @@ JSON_TO_C = {
 
 JSON_TO_C_TMP = {}
 JSON_TO_C_TMP.update(JSON_TO_C)
-JSON_TO_C_TMP['string'] = "const char *"
 JSON_TO_C_TMP['number'] = "double"
 
 JSON_TO_FLOW_GET_PKT = {
@@ -661,6 +660,31 @@ def object_setters_fn_common_c(state_struct_name, name, props, client):
         'state_struct_name': state_struct_name,
         'STATE_STRUCT_NAME': state_struct_name.upper(),
         'struct_name': name,
+        'type': 'client' if client else 'server'
+    })
+
+        elif descr['type'] == 'string':
+            fields.append('''static int
+%(struct_name)s_set_%(field_name)s(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct %(struct_name)s *resource = data;
+    const char *var;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &var);
+    if (!r) {
+        char *tmp = strdup(var);
+        SOL_NULL_CHECK(tmp, -ENOMEM);
+        free(resource->state.%(field_name)s);
+        resource->state.%(field_name)s = tmp;
+        %(type)s_resource_schedule_update(&resource->base);
+    }
+    return r;
+}
+''' % {
+        'struct_name': name,
+        'field_name': field,
         'type': 'client' if client else 'server'
     })
 
