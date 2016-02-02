@@ -149,3 +149,21 @@ sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr)
 
     return s->impl->bind(s, addr);
 }
+
+SOL_API int
+sol_socket_setsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, const void *optval, size_t optlen)
+{
+    SOL_NULL_CHECK(s, -EINVAL);
+    SOL_NULL_CHECK(s->impl->setsockopt, -ENOSYS);
+
+    return s->impl->setsockopt(s, level, optname, optval, optlen);
+}
+
+SOL_API int
+sol_socket_getsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, void *optval, size_t *optlen)
+{
+    SOL_NULL_CHECK(s, -EINVAL);
+    SOL_NULL_CHECK(s->impl->getsockopt, -ENOSYS);
+
+    return s->impl->getsockopt(s, level, optname, optval, optlen);
+}

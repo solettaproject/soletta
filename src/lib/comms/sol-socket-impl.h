@@ -50,6 +50,10 @@ struct sol_socket_impl {
     int (*join_group)(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group);
 
     int (*bind)(struct sol_socket *s, const struct sol_network_link_addr *addr);
+
+    int (*setsockopt)(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, const void *optval, size_t optlen);
+
+    int (*getsockopt)(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, void *optval, size_t *optlen);
 };
 
 #ifdef SOL_PLATFORM_LINUX
