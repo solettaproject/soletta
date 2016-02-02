@@ -39,6 +39,14 @@
       }
     },
     {
+      "dependency": "check_cflag_float_store",
+      "type": "cflags",
+      "cflags": [
+        "-ffloat-store"
+      ],
+      "append_to": "CFLAG_FLOAT_STORE"
+    },
+    {
       "dependency": "check_cflags",
       "type": "cflags",
       "cflags": [
@@ -386,6 +394,11 @@
         "<stdlib.h>"
       ],
       "fragment": "strtod_l(0, 0, 0);"
+    },
+    {
+      "dependency": "getconf",
+      "type": "exec",
+      "exec": "getconf"
     },
     {
       "dependency": "valgrind",
