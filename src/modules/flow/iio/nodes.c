@@ -182,7 +182,7 @@ gyroscope_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t c
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        reader_cb(mdata, mdata->device);
+        reader_cb(node, mdata->device);
     }
 
     return 0;
@@ -336,7 +336,7 @@ magnet_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        magnet_reader_cb(mdata, mdata->device);
+        magnet_reader_cb(node, mdata->device);
     }
 
     return 0;
@@ -483,7 +483,7 @@ temperature_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        temp_reader_cb(mdata, mdata->device);
+        temp_reader_cb(node, mdata->device);
     }
 
     return 0;
@@ -630,7 +630,7 @@ pressure_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        pressure_reader_cb(mdata, mdata->device);
+        pressure_reader_cb(node, mdata->device);
     }
 
     return 0;
@@ -789,7 +789,7 @@ color_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        color_reader_cb(mdata, mdata->device);
+        color_reader_cb(node, mdata->device);
     }
 
     return 0;
@@ -943,7 +943,7 @@ accelerate_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t 
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        accelerate_reader_cb(mdata, mdata->device);
+        accelerate_reader_cb(node, mdata->device);
     }
 
     return 0;
@@ -1090,7 +1090,7 @@ humidity_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t co
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        humidity_reader_cb(mdata, mdata->device);
+        humidity_reader_cb(node, mdata->device);
     }
 
     return 0;
@@ -1237,7 +1237,7 @@ adc_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        adc_reader_cb(mdata, mdata->device);
+        adc_reader_cb(node, mdata->device);
     }
 
     return 0;
@@ -1386,7 +1386,7 @@ light_tick(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_
         if (!sol_iio_device_trigger_now(mdata->device))
             goto error;
     } else {
-        light_reader_cb(mdata, mdata->device);
+        light_reader_cb(node, mdata->device);
     }
 
     return 0;
