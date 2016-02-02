@@ -47,6 +47,17 @@ enum sol_socket_type {
 #endif
 };
 
+enum sol_socket_option {
+    SOL_SOCKET_OPTION_REUSEADDR,
+    SOL_SOCKET_OPTION_REUSEPORT
+};
+
+enum sol_socket_level {
+    SOL_SOCKET_LEVEL_SOCKET,
+    SOL_SOCKET_LEVEL_IP,
+    SOL_SOCKET_LEVEL_IPV6,
+};
+
 struct sol_socket *sol_socket_new(int domain, enum sol_socket_type type, int protocol);
 void sol_socket_del(struct sol_socket *s);
 
@@ -61,3 +72,9 @@ int sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
 int sol_socket_join_group(struct sol_socket *s, int ifindex, const struct sol_network_link_addr *group);
 
 int sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr);
+
+int sol_socket_setsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname,
+    const void *optval, size_t optlen);
+
+int sol_socket_getsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname,
+    void *optval, size_t *optlen);
