@@ -1477,12 +1477,20 @@ sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
     struct sol_coap_server *server;
     struct sol_socket *s;
     uint16_t i;
+    int on = 1;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     s = sol_socket_new(servaddr.family, type, 0);
     if (!s) {
         SOL_WRN("Could not create socket (%d): %s", errno, sol_util_strerrora(errno));
+        return NULL;
+    }
+
+    if (sol_socket_setsockopt(s, SOL_SOCKET_LEVEL_SOCKET,
+        SOL_SOCKET_OPTION_REUSEADDR, &on, sizeof(on)) < 0) {
+        SOL_WRN("Could not set socket's option: %s", sol_util_strerrora(errno));
+        sol_socket_del(s);
         return NULL;
     }
 
