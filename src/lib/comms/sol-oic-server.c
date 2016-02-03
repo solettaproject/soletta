@@ -562,7 +562,6 @@ _sol_oic_resource_type_handle(
     const struct sol_network_link_addr *cliaddr,
     struct sol_oic_server_resource *res, bool expect_payload)
 {
-    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     struct sol_coap_packet *response;
     struct sol_oic_map_reader input;
     struct sol_oic_map_writer output;
@@ -593,10 +592,7 @@ _sol_oic_resource_type_handle(
         }
     }
 
-    sol_coap_add_option(response, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
-
-    if (sol_oic_packet_cbor_create(response, res->href, &output) != CborNoError)
-        goto done;
+    sol_oic_packet_cbor_create(response, res->href, &output);
     code = handle_fn(cliaddr, res->callback.data, &input, &output);
     if (sol_oic_packet_cbor_close(response, &output) != CborNoError)
         code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
@@ -784,7 +780,6 @@ send_notification_to_server(struct sol_oic_server_resource *resource,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
     const void *data)
 {
-    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     struct sol_coap_packet *pkt;
     struct sol_oic_map_writer oic_map_writer;
     uint8_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
@@ -793,11 +788,7 @@ send_notification_to_server(struct sol_oic_server_resource *resource,
     pkt = sol_coap_packet_notification_new(oic_server.server, resource->coap);
     SOL_NULL_CHECK(pkt, false);
 
-    sol_coap_add_option(pkt, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor,
-        sizeof(format_cbor));
-
-    err = sol_oic_packet_cbor_create(pkt, resource->href, &oic_map_writer);
-    SOL_INT_CHECK_GOTO(err, != CborNoError, end);
+    sol_oic_packet_cbor_create(pkt, resource->href, &oic_map_writer);
     if (!fill_repr_map((void *)data, &oic_map_writer))
         goto end;
     err = sol_oic_packet_cbor_close(pkt, &oic_map_writer);
