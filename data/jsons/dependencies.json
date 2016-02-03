@@ -317,6 +317,14 @@
       "fragment": "random_r(NULL, NULL);"
     },
     {
+      "dependency": "xsi_strerror_r",
+      "type": "ccode",
+      "headers": [
+        "<string.h>"
+      ],
+      "fragment": "char *p; p[strerror_r(0, p, 0)];"
+    },
+    {
       "dependency": "builtin_mul_overflow",
       "type": "ccode",
       "fragment": "__builtin_mul_overflow(0ULL, 0ULL, (unsigned long long *)0);"

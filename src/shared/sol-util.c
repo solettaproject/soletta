@@ -220,14 +220,15 @@ sol_util_strerror(int errnum, char *buf, size_t buflen)
     if (buflen < 1)
         return NULL;
 
-    buf[0] = '\0';
-
-    ret = (char *)(uintptr_t)strerror_r(errnum, buf, buflen);
-    /* if buf was used it means it can be XSI version (so ret won't be
-       pointing to msg string), or GNU version using non static string
-       (in this case ret == buf already) */
-    if (buf[0] != '\0')
-        ret = buf;
+#ifdef HAVE_XSI_STRERROR_R
+    /* XSI-compliant strerror_r returns int */
+    if (strerror_r(errnum, buf, buflen) != 0)
+        return NULL;
+    ret = buf;
+#else
+    /* GNU libc version of strerror_r returns char* */
+    ret = strerror_r(errnum, buf, buflen);
+#endif
 
     return ret;
 }
