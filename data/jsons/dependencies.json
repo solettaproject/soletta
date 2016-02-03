@@ -509,7 +509,7 @@
         "value": "-fsanitize=address"
       },
       "ldflags": {
-        "value": "-fsanitize=address"
+        "value": "-fsanitize=address -lasan"
       }
     },
     {
