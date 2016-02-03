@@ -781,7 +781,7 @@ append_number(struct sol_buffer *out,
             for (t = 0; t < spec->n_prefix; t++) {
                 char c = *(char *)sol_buffer_at(out, pos + t);
 
-                c = toupper(c);
+                c = toupper((uint8_t)c);
                 write_char(out, pos + t, c);
             }
         }
@@ -814,7 +814,7 @@ append_number(struct sol_buffer *out,
         for (t = 0; t < spec->n_grouped_digits; t++) {
             char c = *(char *)sol_buffer_at(out, pos + t);
 
-            c = toupper(c);
+            c = toupper((uint8_t)c);
             write_char(out, pos + t, c);
         }
     }
@@ -1553,7 +1553,7 @@ double_to_buffer(double val,
         /* Convert to upper case. */
         char *p1;
         for (p1 = (char *)sol_buffer_at(out, 0); *p1; p1++)
-            *p1 = toupper(*p1);
+            *p1 = toupper((uint8_t)*p1);
     }
 
     if (type)

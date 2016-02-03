@@ -227,7 +227,7 @@ get_capacity(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
         return sol_flow_send_error_packet(node, EINVAL,
             "Power supply %s doesn't exist.", mdata->name);
 
-    r = sol_power_supply_get_capacity(mdata->name, &capacity.val);
+    r = sol_power_supply_get_capacity(mdata->name, (int *)&capacity.val);
     if (r < 0) {
         r = sol_flow_send_error_packet(node, ENOENT,
             "Couldn't get power supply %s capacity.", mdata->name);
