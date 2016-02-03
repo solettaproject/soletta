@@ -205,7 +205,7 @@ get_capacity(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     struct get_props_data *mdata = data;
     struct sol_irange capacity = { 0, 0, 100, 1 };
     enum sol_power_supply_capacity_level capacity_level;
-    int r;
+    int r, tmp;
     bool exist;
 
     static const char *level_msgs[] = {
@@ -227,12 +227,13 @@ get_capacity(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
         return sol_flow_send_error_packet(node, EINVAL,
             "Power supply %s doesn't exist.", mdata->name);
 
-    r = sol_power_supply_get_capacity(mdata->name, &capacity.val);
+    r = sol_power_supply_get_capacity(mdata->name, &tmp);
     if (r < 0) {
         r = sol_flow_send_error_packet(node, ENOENT,
             "Couldn't get power supply %s capacity.", mdata->name);
         SOL_INT_CHECK(r, < 0, r);
     } else {
+        capacity.val = tmp;
         r = sol_flow_send_irange_packet(node,
             SOL_FLOW_NODE_TYPE_POWER_SUPPLY_GET_CAPACITY__OUT__CAPACITY,
             &capacity);

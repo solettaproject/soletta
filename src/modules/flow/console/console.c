@@ -75,7 +75,7 @@ console_print_blob(struct console_data *mdata, const struct sol_blob *blob,
     buf = blob->mem;
     bufend = buf + blob->size;
     for (; buf < bufend; buf++) {
-        if (isprint(*buf))
+        if (isprint((uint8_t)*buf))
             fprintf(mdata->fp, "%#x(%c)", *buf, *buf);
         else
             fprintf(mdata->fp, "%#x", *buf);
