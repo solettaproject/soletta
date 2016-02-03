@@ -390,7 +390,7 @@ static struct mux_pin_map pin_map[] = {
     { .label = "6", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 182, .pwm = { 0, 2 } },
     { .label = "7", .cap = SOL_IO_GPIO, .gpio = 48 },
     { .label = "8", .cap = SOL_IO_GPIO, .gpio = 49 },
-    { .label = "9", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 183, .pwm = { 0, 9 } },
+    { .label = "9", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 183, .pwm = { 0, 3 } },
     { .label = "10", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 41, .pwm = { 0, 0 } }, //TODO: Swizzler
     { .label = "11", .cap = SOL_IO_GPIO | SOL_IO_PWM, .gpio = 43, .pwm = { 0, 1 } }, //TODO: Swizzler
     { .label = "12", .cap = SOL_IO_GPIO, .gpio = 42 },
