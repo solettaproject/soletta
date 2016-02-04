@@ -186,10 +186,10 @@ struct sol_drange_spec {
  */
 #define SOL_DRANGE_INIT() \
     { \
+        .val = 0, \
         .min = -DBL_MAX, \
         .max = DBL_MAX, \
-        .step = DBL_MIN, \
-        .val = 0 \
+        .step = DBL_MIN \
     }
 
 /**
@@ -199,10 +199,10 @@ struct sol_drange_spec {
  */
 #define SOL_DRANGE_INIT_VALUE(value_) \
     { \
+        .val = value_, \
         .min = -DBL_MAX, \
         .max = DBL_MAX, \
-        .step = DBL_MIN, \
-        .val = value_ \
+        .step = DBL_MIN \
     }
 
 /**
@@ -338,10 +338,10 @@ struct sol_irange_spec {
  */
 #define SOL_IRANGE_INIT() \
     { \
+        .val = 0, \
         .min = INT32_MIN, \
         .max = INT32_MAX, \
-        .step = 1, \
-        .val = 0 \
+        .step = 1 \
     }
 
 /**
@@ -351,10 +351,10 @@ struct sol_irange_spec {
  */
 #define SOL_IRANGE_INIT_VALUE(value_) \
     { \
+        .val = value_, \
         .min = INT32_MIN, \
         .max = INT32_MAX, \
-        .step = 1, \
-        .val = value_ \
+        .step = 1 \
     }
 
 /**

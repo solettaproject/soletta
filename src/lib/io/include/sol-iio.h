@@ -85,7 +85,7 @@ struct sol_iio_channel_config {
  */
 #define SOL_IIO_CHANNEL_CONFIG_INIT { \
         SOL_SET_API_VERSION(.api_version = SOL_IIO_CHANNEL_CONFIG_API_VERSION, ) \
-        .scale = -1.0, .use_custom_offset = false }
+        .scale = -1.0, .offset = 0, .use_custom_offset = false }
 
 /**
  * @brief Open an IIO device
