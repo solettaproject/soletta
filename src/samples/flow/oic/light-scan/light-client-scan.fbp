@@ -31,11 +31,12 @@
 
 # This will wait for 3 seconds, then scan for OIC lights.
 # The oic node type and IO node types are resolved by
-# sol-flow.json, using gtk backend, or sol-flow-intel-edison-rev-c.json.
+# sol-flow.json, using gtk backend, or sol-flow-intel-edison-rev-c.json /
+# sol-flow-intel-galileo-rev-g.json
 #
-# To run this sample in an edison device connect an LCD to I2C port,
-# 3 buttons in ports IO3, IO4 and IO7 and a
-# LED to IO8.
+# To run this sample in Intel Edison or Intel Galileo Gen2 boards,
+# connect an LCD to I2C port, 3 buttons in ports IO3 (next), IO4 (select)
+# and IO7 (light) and a LED to IO8.
 #
 # Then run:
 #
