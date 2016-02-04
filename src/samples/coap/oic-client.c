@@ -39,14 +39,14 @@
 #include "sol-oic-client.h"
 
 static void
-got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader, void *data)
+got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *srv_addr, const struct sol_oic_map_reader *map_reader, void *data)
 {
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
     char addr[SOL_INET_ADDR_STRLEN];
 
-    if (!cliaddr) {
+    if (!srv_addr) {
         SOL_WRN("Response timeout");
         return;
     }
@@ -56,7 +56,7 @@ got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *c
         return;
     }
 
-    if (!sol_network_addr_to_str(cliaddr, addr, sizeof(addr))) {
+    if (!sol_network_addr_to_str(srv_addr, addr, sizeof(addr))) {
         SOL_WRN("Could not convert network address to string");
         return;
     }
@@ -156,30 +156,42 @@ main(int argc, char *argv[])
     struct sol_oic_client client = {
         SOL_SET_API_VERSION(.api_version = SOL_OIC_CLIENT_API_VERSION)
     };
-    struct sol_network_link_addr cliaddr = { .family = SOL_NETWORK_FAMILY_INET, .port = 5683 };
+    struct sol_network_link_addr srv_addr =
+    { .family = SOL_NETWORK_FAMILY_INET6,
+      .port = 5683 };
     const char *resource_type;
 
     sol_init();
 
-    if (!sol_network_addr_from_str(&cliaddr, "224.0.1.187")) {
-        printf("could not convert multicast ip address to sockaddr_in\n");
+    if (argc < 2) {
+        SOL_INF("Usage: %s <address> [resource_type]\n", argv[0]);
+        return 0;
+    }
+
+    if (!strchr(argv[1], ':'))
+        srv_addr.family = SOL_NETWORK_FAMILY_INET;
+
+    if (!sol_network_addr_from_str(&srv_addr, argv[1])) {
+        printf("Could not convert IP address to sockaddr_in\n");
         return 1;
     }
 
     client.server = sol_coap_server_new(0);
     client.dtls_server = sol_coap_secure_server_new(0);
 
-    printf("DTLS support %s\n", client.dtls_server ? "available" : "unavailable");
+    printf("DTLS support %s\n",
+        client.dtls_server ? "available" : "unavailable");
 
-    if (argc < 2) {
+    if (argc < 3) {
         printf("No rt filter specified, assuming everything\n");
         resource_type = NULL;
     } else {
-        printf("Finding resources with resource type %s\n", argv[1]);
-        resource_type = argv[1];
+        printf("Finding resources with resource type %s\n", argv[2]);
+        resource_type = argv[2];
     }
 
-    sol_oic_client_find_resource(&client, &cliaddr, resource_type, found_resource, NULL);
+    sol_oic_client_find_resource(&client, &srv_addr,
+        resource_type, found_resource, NULL);
 
     sol_run();
 
