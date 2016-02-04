@@ -327,7 +327,8 @@ bool sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
  * @param fill_repr_map A callback to be called to fill the request data.
  *        Parameter @a data is a pointer to user's @a fill_repr_map_data and
  *        @a repr_map is a handler to write data to request packet. Use @ref
- *        sol_oic_map_append() to append data to @a repr_map.
+ *        sol_oic_map_append() to append data to @a repr_map. If @c NULL,
+ *        no data will be added to request.
  * @param fill_repr_map_data User's data to be passed to @a fill_repr_map.
  * @param callback Callback to be called when a response from this request
  *        arrives. Parameter @a response_code is the header response code of
@@ -368,7 +369,8 @@ bool sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_o
  * @param fill_repr_map A callback to be called to fill the request data.
  *        Parameter @a data is a pointer to user's @a fill_repr_map_data and
  *        @a repr_map is a handler to write data to request packet. Use @ref
- *        sol_oic_map_append() to append data to @a repr_map.
+ *        sol_oic_map_append() to append data to @a repr_map. If @c NULL, no
+ *        data will be added to request.
  * @param fill_repr_map_data User's data to be passed to @a fill_repr_map.
  * @param callback Callback to be called when a response from this request
  *        arrives. Parameter @a response_code is the header response code of

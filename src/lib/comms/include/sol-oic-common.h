@@ -387,6 +387,31 @@ struct sol_oic_repr_field {
 struct sol_oic_map_writer;
 
 /**
+ * @brief Used in @ref sol_oic_map_writer to state if the map has a content or not
+ *
+ * @see sol_oic_map_set_type()
+ * @see sol_oic_map_get_type()
+ */
+enum sol_oic_map_type {
+    /**
+     * @brief Map with no content
+     *
+     * When an oic map is used to create a packet and type is
+     * SOL_OIC_MAP_NO_CONTENT, no payload will be added to the packet.
+     **/
+    SOL_OIC_MAP_NO_CONTENT,
+    /**
+     * @brief Map with content.
+     *
+     * When an oic map is used to create a packet and type is
+     * SOL_OIC_MAP_CONTENT, a payload will be created and elements
+     * from map will be added to payload. If map contains no elements,
+     * an empty map will be added to payload.
+     */
+    SOL_OIC_MAP_CONTENT,
+};
+
+/**
  * @brief Handler for an oic packet map reader.
  *
  * This structure is used in callback parameters so users can read fields from
@@ -468,8 +493,37 @@ bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_r
  *
  * @see sol_oic_notify_observers()
  * @see sol_oic_client_resource_request()
+ * @note As this function adds elements to @a oic_map_writer, it will update
+ * its type to SOL_OIC_MAP_CONTENT when needed.
  */
 bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr);
+
+/**
+ * @brief set current @a oic_map_writer type.
+ *
+ * Use this function if you want to change @a oic_map_writer type to
+ * SOL_OIC_MAP_CONTENT without adding elements to it. This will force oic to
+ * create a payload in packet with an empty list if map is empty.
+ * Trying to change from SOL_OIC_MAP_CONTENT to SOL_OIC_MAP_NO_CONTENT will fail
+ * if elements were already added to @a oic_map_writer.
+ *
+ * @param oic_map_writer The map to set the type.
+ * @param type The new type of @a oic_map_writer.
+ *
+ * @return False if @a oic_map_writer is NULL or if it was not possible to
+ * change the type. True otherwise.
+ */
+bool sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type);
+
+/**
+ * @brief get current @a oic_map_writer type.
+ *
+ * @param oic_map_writer The map to get the type from.
+ * @param type A pointer to an enum to be filled with @a oic_map_writer type.
+ *
+ * @return False if any param is NULL. True otherwise.
+ */
+bool sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type);
 
 /**
  * @def SOL_OIC_MAP_LOOP(map_, current_, iterator_, end_reason_)
