@@ -91,7 +91,7 @@ memrchr(const void *haystack, int c, size_t n)
 }
 #endif
 
-#if !defined(HAVE_PIPE2) && defined(HAVE_PIPE)
+#if !defined(HAVE_PIPE2) && defined(HAVE_PIPE) && defined(FEATURE_FILESYSTEM)
 #include <fcntl.h>
 #include <unistd.h>
 #include <sol-util-file.h>
