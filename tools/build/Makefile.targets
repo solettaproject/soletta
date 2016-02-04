@@ -7,7 +7,7 @@ PHONY += tests check
 
 #GLIB cflags and ldflags are used here due glib-integration that includes glib headers directly
 check-cpp: $(SOL_LIB_OUTPUT) $(HEADERS_CC)
-	$(HOSTCPP) -std=gnu++11 $(GLIB_CFLAGS)  $(addprefix -I,$(HEADERDIRS)) $(HEADERS_CC) $(SOL_LIB_OUTPUT) $(GLIB_LDFLAGS) -o $(build_stagedir)bin/cpp/headers
+	$(HOSTCPP) -std=gnu++11 -Wno-attributes $(GLIB_CFLAGS)  $(addprefix -I,$(HEADERDIRS)) $(HEADERS_CC) $(SOL_LIB_OUTPUT) $(GLIB_LDFLAGS) -o $(build_stagedir)bin/cpp/headers
 
 PHONY += check-cpp
 
