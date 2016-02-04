@@ -211,10 +211,10 @@ struct sol_http_url {
  * to the macro.
  */
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, ...) \
-    if (SOL_UNLIKELY(response_->api_version != \
+    if (SOL_UNLIKELY((response_)->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
         SOL_ERR("Unexpected API version (response is %u, expected %u)", \
-            response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
+            (response_)->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
         return __VA_ARGS__; \
     }
 #else
@@ -230,11 +230,11 @@ struct sol_http_url {
  */
 #define SOL_HTTP_RESPONSE_CHECK_API(response_, ...) \
     do { \
-        if (SOL_UNLIKELY(!response_)) { \
+        if (SOL_UNLIKELY(!(response_))) { \
             SOL_WRN("Error while reaching service."); \
             return __VA_ARGS__; \
         } \
-        SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, __VA_ARGS__) \
+        SOL_HTTP_RESPONSE_CHECK_API_VERSION((response_), __VA_ARGS__) \
     } while (0)
 
 #ifndef SOL_NO_API_VERSION
@@ -245,10 +245,10 @@ struct sol_http_url {
  * In case it's a wrong version, it'll go to @a label.
  */
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label) \
-    if (SOL_UNLIKELY(response_->api_version != \
+    if (SOL_UNLIKELY((response_)->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
         SOL_ERR("Unexpected API version (response is %u, expected %u)", \
-            response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
+            (response_)->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
         goto label; \
     }
 #else
@@ -264,11 +264,11 @@ struct sol_http_url {
  */
 #define SOL_HTTP_RESPONSE_CHECK_API_GOTO(response_, label) \
     do { \
-        if (SOL_UNLIKELY(!response_)) { \
+        if (SOL_UNLIKELY(!(response_))) { \
             SOL_WRN("Error while reaching service."); \
             goto label; \
         } \
-        SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label) \
+        SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO((response_), label) \
     } while (0)
 
 /**
@@ -281,10 +281,11 @@ struct sol_http_url {
  *
  * @see sol_http_params_init()
  */
-#define SOL_HTTP_REQUEST_PARAMS_INIT   \
+#define SOL_HTTP_REQUEST_PARAMS_INIT \
     (struct sol_http_params) { \
-        SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, ) \
-        .params = SOL_VECTOR_INIT(struct sol_http_param_value) \
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, .reserved = 0, ) \
+        .params = SOL_VECTOR_INIT(struct sol_http_param_value), \
+        .arena = NULL \
     }
 
 /**
@@ -294,9 +295,11 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_KEY_VALUE(type_, key_, value_) \
     (struct sol_http_param_value) { \
         .type = type_, \
-        .value.key_value = { \
-            .key = sol_str_slice_from_str((key_ ? : "")),        \
-            .value = sol_str_slice_from_str((value_ ? : ""))        \
+        .value = { \
+            .key_value = { \
+                .key = sol_str_slice_from_str((key_ ? : "")), \
+                .value = sol_str_slice_from_str((value_ ? : "")) \
+            } \
         } \
     }
 
@@ -307,7 +310,7 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_BOOLEAN(type_, setting_) \
     (struct sol_http_param_value) { \
         .type = type_, \
-        .value.boolean.value = (setting_) \
+        .value = { .boolean = { .value = (setting_) } } \
     }
 
 /**
@@ -331,9 +334,11 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_AUTH_BASIC(username_, password_) \
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_AUTH_BASIC, \
-        .value.auth = { \
-            .user = sol_str_slice_from_str((username_ ? : "")),    \
-            .password = sol_str_slice_from_str((password_ ? : ""))    \
+        .value = { \
+            .auth = { \
+                .user = sol_str_slice_from_str((username_ ? : "")), \
+                .password = sol_str_slice_from_str((password_ ? : "")) \
+            } \
         } \
     }
 
@@ -372,8 +377,11 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_TIMEOUT(setting_) \
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_TIMEOUT, \
-        .value.integer.value = (setting_) \
+        .value = { \
+            .integer = { .value = (setting_) } \
+        } \
     }
+
 
 /**
  * @brief Macro to set a struct @ref sol_http_param_value with
@@ -382,9 +390,13 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_POST_DATA_FILE(key_, filename_) \
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_POST_DATA, \
-        .value.data.key = sol_str_slice_from_str((key_ ? : "")), \
-        .value.data.filename = sol_str_slice_from_str((filename_ ? : "")), \
-        .value.data.value = SOL_STR_SLICE_EMPTY \
+        .value = { \
+            .data = { \
+                .key = sol_str_slice_from_str((key_ ? : "")), \
+                .value = SOL_STR_SLICE_EMPTY, \
+                .filename = sol_str_slice_from_str((filename_ ? : "")) \
+            } \
+        } \
     }
 
 /**
@@ -394,9 +406,13 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS(key_, value_) \
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_POST_DATA, \
-        .value.data.key = sol_str_slice_from_str((key_ ? : "")), \
-        .value.data.filename = SOL_STR_SLICE_EMPTY, \
-        .value.data.value = (value_) \
+        .value = { \
+            .data = { \
+                .key = sol_str_slice_from_str((key_ ? : "")), \
+                .value = (value_), \
+                .filename = SOL_STR_SLICE_EMPTY, \
+            } \
+        } \
     }
 
 /**
@@ -415,7 +431,7 @@ struct sol_http_url {
  */
 #define SOL_HTTP_PARAMS_FOREACH_IDX(param, itrvar, idx) \
     for (idx = 0; \
-        param && idx < (param)->params.len && (itrvar = sol_vector_get(&(param)->params, idx), true); \
+        param && idx < (param)->params.len && (itrvar = (struct sol_http_param_value *)sol_vector_get(&(param)->params, idx), true); \
         idx++)
 
 /**

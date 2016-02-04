@@ -284,7 +284,7 @@ struct sol_oic_repr_field {
  * @param ... Extra structure initialization commands.
  */
 #define SOL_OIC_REPR_FIELD(key_, type_, ...) \
-    (struct sol_oic_repr_field){.type = (type_), .key = (key_), __VA_ARGS__ }
+    (struct sol_oic_repr_field){.type = (type_), .key = (key_), { __VA_ARGS__ } }
 
 /**
  * @brief Helper macro to create an unsigned integer sol_oic_repr_field.
@@ -352,7 +352,7 @@ struct sol_oic_repr_field {
  * @param value_ The value of the float number.
  */
 #define SOL_OIC_REPR_HALF_FLOAT(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_HALF_FLOAT, .v_voidptr = (value_))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_HALF_FLOAT, .v_voidptr = (void *)(value_))
 
 /**
  * @brief Helper macro to create a single-precision float number
@@ -506,7 +506,7 @@ bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oi
  * @see sol_oic_map_loop_next
  */
 #define SOL_OIC_MAP_LOOP(map_, current_, iterator_, end_reason_) \
-    for (end_reason_ = sol_oic_map_loop_init(map_, iterator_, current_);  \
+    for (end_reason_ = sol_oic_map_loop_init(map_, iterator_, current_); \
         end_reason_ == SOL_OIC_MAP_LOOP_OK && \
         sol_oic_map_loop_next(current_, iterator_, &end_reason_);)
 

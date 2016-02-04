@@ -83,7 +83,7 @@ extern "C" {
  * with values passed by argument.
  */
 #define SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, _size, _bit_offset, _bit_size) \
-    static struct sol_memmap_entry _name = { .offset = (_offset), .size = (_size), .bit_offset = (_bit_offset), .bit_size = (_bit_size) }
+    static struct sol_memmap_entry _name = { .offset = (_offset), .size = (_size), .bit_size = (_bit_size), .bit_offset = (_bit_offset) }
 
 
 /**

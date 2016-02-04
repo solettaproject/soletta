@@ -132,7 +132,7 @@ enum sol_json_loop_reason {
  * @param end_reason_ Loop exit status
  */
 #define SOL_JSON_SCANNER_ARRAY_LOOP_NEST(scanner_, token_, element_type_, end_reason_) \
-    for (end_reason_ = SOL_JSON_LOOP_REASON_OK;  \
+    for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
         sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
 
 /**
@@ -162,7 +162,7 @@ enum sol_json_loop_reason {
  * @param end_reason_ Loop exit status
  */
 #define SOL_JSON_SCANNER_ARRAY_LOOP_ALL_NEST(scanner_, token_, end_reason_) \
-    for (end_reason_ = SOL_JSON_LOOP_REASON_OK;  \
+    for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
         sol_json_loop_helper_generic(scanner_, token_, SOL_JSON_TYPE_ARRAY_END, &end_reason_);)
 
 /**
@@ -698,7 +698,7 @@ char *sol_json_escape_string(const char *str, char *buf, size_t len) SOL_ATTR_NO
  */
 #define SOL_JSON_ESCAPE_STRING(s) ({ \
         size_t str_len ## __COUNT__  = sol_json_calculate_escaped_string_len(s); \
-        sol_json_escape_string(s, alloca(str_len ## __COUNT__), str_len ## __COUNT__); \
+        sol_json_escape_string(s, (char *)alloca(str_len ## __COUNT__), str_len ## __COUNT__); \
     })
 
 /**
