@@ -6,11 +6,25 @@
    "type": "gtk/pushbutton"
   },
   {
+   "name": "LED",
+   "options": {
+      "rgb": "255|0|0"
+   },
+   "type": "gtk/led"
+  },
+  {
    "name": "Relay",
    "options": {
       "rgb": "255|0|0"
    },
    "type": "gtk/led"
+  },
+  {
+   "name": "SoundSensor",
+   "options": {
+    "range": "0|400"
+   },
+   "type": "gtk/slider"
   }
  ]
 }
