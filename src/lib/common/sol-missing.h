@@ -39,12 +39,12 @@ extern "C" {
 #ifndef HAVE_DECL_STRNDUPA
 #include <alloca.h>
 
-#define __strndupa_internal__(str_, len_, var_)       \
-    ({                                                  \
-        size_t var_ ## len = strnlen((str_), (len_));   \
-        char *var_ = alloca((var_ ## len) + 1);         \
-        var_[var_ ## len] = '\0';                       \
-        memcpy(var_, (str_), var_ ## len);              \
+#define __strndupa_internal__(str_, len_, var_) \
+    ({ \
+        size_t var_ ## len = strnlen((str_), (len_)); \
+        char *var_ = alloca((var_ ## len) + 1); \
+        var_[var_ ## len] = '\0'; \
+        memcpy(var_, (str_), var_ ## len); \
     })
 #define strndupa(str_, len_)     __strndupa_internal__(str_, len_, __tmp__ ## __LINE__)
 #endif
