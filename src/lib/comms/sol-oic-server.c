@@ -106,8 +106,7 @@ _sol_oic_server_d(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
-    const sol_coap_content_type_t format_cbor =
-        SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
+    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     CborEncoder encoder, rep_map;
     CborError err;
     struct sol_coap_packet *response;
@@ -161,8 +160,7 @@ _sol_oic_server_p(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr, void *data)
 {
-    const sol_coap_content_type_t format_cbor =
-        SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
+    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     CborEncoder encoder, rep_map;
     CborError err;
     struct sol_coap_packet *response;
@@ -295,8 +293,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
     struct sol_oic_server_resource *iter;
     struct sol_coap_packet *resp;
     uint16_t size;
-    const sol_coap_content_type_t format_cbor =
-        SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
+    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     uint8_t *payload;
     uint16_t idx;
     const uint8_t *uri_query;

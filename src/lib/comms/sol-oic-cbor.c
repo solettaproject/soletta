@@ -39,8 +39,7 @@ initialize_cbor_payload(struct sol_oic_map_writer *encoder)
 {
     int r;
     uint16_t size;
-    const sol_coap_content_type_t format_cbor =
-        SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
+    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
 
     r = sol_coap_add_option(encoder->pkt, SOL_COAP_OPTION_CONTENT_FORMAT,
         &format_cbor, sizeof(format_cbor));
