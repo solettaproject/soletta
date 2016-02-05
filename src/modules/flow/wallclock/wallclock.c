@@ -363,6 +363,10 @@ wallclock_second_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_second_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_SECOND_OPTIONS_API_VERSION,
+        -EINVAL);
+
     opts = (const struct sol_flow_node_type_wallclock_second_options *)
         options;
     mdata->type = TIMEOUT_SECOND;
@@ -376,6 +380,10 @@ wallclock_minute_open(struct sol_flow_node *node,
 {
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_minute_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_MINUTE_OPTIONS_API_VERSION,
+        -EINVAL);
 
     opts = (const struct sol_flow_node_type_wallclock_minute_options *)
         options;
@@ -391,6 +399,10 @@ wallclock_hour_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_hour_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_HOUR_OPTIONS_API_VERSION,
+        -EINVAL);
+
     opts = (const struct sol_flow_node_type_wallclock_hour_options *)
         options;
     mdata->type = TIMEOUT_HOUR;
@@ -405,6 +417,9 @@ wallclock_weekday_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_weekday_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_WEEKDAY_OPTIONS_API_VERSION,
+        -EINVAL);
     opts = (const struct sol_flow_node_type_wallclock_weekday_options *)
         options;
     mdata->type = TIMEOUT_WEEKDAY;
@@ -419,6 +434,9 @@ wallclock_monthday_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_monthday_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_MONTHDAY_OPTIONS_API_VERSION,
+        -EINVAL);
     opts = (const struct sol_flow_node_type_wallclock_monthday_options *)
         options;
     mdata->type = TIMEOUT_MONTHDAY;
@@ -433,6 +451,9 @@ wallclock_month_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_month_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_MONTH_OPTIONS_API_VERSION,
+        -EINVAL);
     opts = (const struct sol_flow_node_type_wallclock_month_options *)
         options;
     mdata->type = TIMEOUT_MONTH;
@@ -447,6 +468,9 @@ wallclock_year_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_year_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_YEAR_OPTIONS_API_VERSION,
+        -EINVAL);
     opts = (const struct sol_flow_node_type_wallclock_year_options *)
         options;
     mdata->type = TIMEOUT_YEAR;

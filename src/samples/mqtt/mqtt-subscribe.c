@@ -51,6 +51,7 @@ static void
 on_message(void *data, struct sol_mqtt *mqtt, const struct sol_mqtt_message *message)
 {
     SOL_NULL_CHECK(message);
+    SOL_MQTT_MESSAGE_CHECK_API_VERSION(message);
 
     SOL_INF("%.*s", (int)message->payload->used, (char *)message->payload->data);
 }
@@ -86,6 +87,7 @@ const struct sol_mqtt_config config = {
     .clean_session = true,
     .keepalive = 60,
     .handlers = {
+        SOL_SET_API_VERSION(.api_version = SOL_MQTT_HANDLERS_API_VERSION, )
         .connect = on_connect,
         .disconnect = on_disconnect,
         .message = on_message,

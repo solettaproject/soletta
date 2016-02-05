@@ -414,6 +414,25 @@ int sol_mqtt_publish(const struct sol_mqtt *mqtt, struct sol_mqtt_message *messa
  */
 int sol_mqtt_subscribe(const struct sol_mqtt *mqtt, const char *topic, sol_mqtt_qos qos);
 
+#ifndef SOL_NO_API_VERSION
+/**
+ * @brief Macro used to check if a struct @c struct sol_mqtt_message has
+ * the expected API version.
+ *
+ * In case it has wrong version, it'll return extra arguments passed
+ * to the macro.
+ */
+#define SOL_MQTT_MESSAGE_CHECK_API_VERSION(msg_, ...) \
+    if (SOL_UNLIKELY((msg_)->api_version != \
+        SOL_MQTT_MESSAGE_API_VERSION)) { \
+        SOL_ERR("Unexpected API version (message is %u, expected %u)", \
+            (msg_)->api_version, SOL_MQTT_MESSAGE_API_VERSION); \
+        return __VA_ARGS__; \
+    }
+#else
+#define SOL_MQTT_MESSAGE_CHECK_API_VERSION(msg_, ...)
+#endif
+
 /**
  * @}
  */

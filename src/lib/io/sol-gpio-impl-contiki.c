@@ -75,6 +75,15 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
+#ifndef SOL_NO_API_VERSION
+    if (SOL_UNLIKELY(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
+        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
+            "expected version is '%u'",
+            config->api_version, SOL_GPIO_CONFIG_API_VERSION);
+        return NULL;
+    }
+#endif
+
     process_start(&sensors_process, NULL);
 
     if (config->drive_mode != SOL_GPIO_DRIVE_NONE) {

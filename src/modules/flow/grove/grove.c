@@ -61,10 +61,16 @@ rotary_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_inde
     if (child_index == ROTARY_CONVERTER_NODE_IDX) {
         struct sol_flow_node_type_grove_rotary_converter_options *converter_opts =
             (struct sol_flow_node_type_grove_rotary_converter_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER_OPTIONS_API_VERSION,
+            -EINVAL);
         converter_opts->angular_range = container_opts->angular_range;
         converter_opts->input_range_mask = container_opts->mask;
     } else if (child_index == ROTARY_AIO_READER_NODE_IDX) {
         struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_AIO_READER_OPTIONS_API_VERSION,
+            -EINVAL);
         reader_opts->raw = container_opts->raw;
         reader_opts->pin = container_opts->pin ? strdup(container_opts->pin) : NULL;
         reader_opts->mask = container_opts->mask;
@@ -196,9 +202,15 @@ light_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_index
 
     if (child_index == LIGHT_CONVERTER_NODE_IDX) {
         struct sol_flow_node_type_grove_light_converter_options *converter_opts = (struct sol_flow_node_type_grove_light_converter_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER_OPTIONS_API_VERSION,
+            -EINVAL);
         converter_opts->input_range_mask = container_opts->mask;
     } else if (child_index == LIGHT_AIO_READER_NODE_IDX) {
         struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_AIO_READER_OPTIONS_API_VERSION,
+            -EINVAL);
         reader_opts->raw = container_opts->raw;
         reader_opts->pin = container_opts->pin ? strdup(container_opts->pin) : NULL;
         reader_opts->mask = container_opts->mask;
@@ -370,6 +382,9 @@ temperature_child_opts_set(const struct sol_flow_node_type *type, uint16_t child
     if (child_index == TEMPERATURE_CONVERTER_NODE_IDX) {
         struct sol_flow_node_type_grove_temperature_converter_options *converter_opts =
             (struct sol_flow_node_type_grove_temperature_converter_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER_OPTIONS_API_VERSION,
+            -EINVAL);
         converter_opts->thermistor_constant = container_opts->thermistor_constant;
         converter_opts->input_range_mask = container_opts->mask;
         converter_opts->resistance = container_opts->resistance;
@@ -377,6 +392,9 @@ temperature_child_opts_set(const struct sol_flow_node_type *type, uint16_t child
         converter_opts->thermistor_resistance = container_opts->thermistor_resistance;
     } else if (child_index == TEMPERATURE_AIO_READER_NODE_IDX) {
         struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_AIO_READER_OPTIONS_API_VERSION,
+            -EINVAL);
         reader_opts->raw = container_opts->raw;
         reader_opts->pin = container_opts->pin ? strdup(container_opts->pin) : NULL;
         reader_opts->pin = container_opts->pin;

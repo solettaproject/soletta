@@ -32,6 +32,7 @@
 
 #include "slider.h"
 #include "sol-flow/gtk.h"
+#include "sol-flow-internal.h"
 
 static void
 on_slider_changed(GtkRange *range, gpointer data)
@@ -61,6 +62,10 @@ slider_setup(struct gtk_common_data *data,
     struct gtk_common_data *mdata = (struct gtk_common_data *)data;
     const struct sol_flow_node_type_gtk_slider_options *opts =
         (const struct sol_flow_node_type_gtk_slider_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_GTK_SLIDER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     if (opts) {
         min = opts->range.min;

@@ -72,8 +72,8 @@ struct sol_flow_parser;
  */
 struct sol_flow_parser_client {
 #ifndef SOL_NO_API_VERSION
-#define SOL_FLOW_PARSER_CLIENT_API_VERSION (1UL)
-    unsigned long api_version; /**< @brief API version */
+#define SOL_FLOW_PARSER_CLIENT_API_VERSION (1)
+    uint16_t api_version; /**< @brief API version */
 #endif
     void *data; /**< @brief Client data */
 

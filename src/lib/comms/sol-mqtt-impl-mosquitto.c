@@ -64,8 +64,19 @@ static int init_ref;
             return __VA_ARGS__; \
         } \
     } while (0)
+#define MQTT_CHECK_HANDLER_API(ptr, ...) \
+    do { \
+        if (SOL_UNLIKELY((ptr)->api_version != \
+            SOL_MQTT_HANDLERS_API_VERSION)) { \
+            SOL_WRN("Couldn't handle mqtt handler that has unsupported " \
+                "version '%u', expected version is '%u'", \
+                (ptr)->api_version, SOL_MQTT_HANDLERS_API_VERSION); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
 #else
 #define MQTT_CHECK_API(ptr, ...)
+#define MQTT_CHECK_HANDLER_API(ptr, ...)
 #endif
 
 struct sol_mqtt {
@@ -101,6 +112,8 @@ sol_mqtt_message_new(const char *topic, const struct sol_buffer *payload, sol_mq
 
     message = calloc(1, sizeof(struct sol_mqtt_message));
     SOL_NULL_CHECK(message, NULL);
+
+    SOL_SET_API_VERSION(message->api_version = SOL_MQTT_MESSAGE_API_VERSION, )
 
     message->topic = sol_util_memdup(topic, strlen(topic) + 1);
     SOL_NULL_CHECK_GOTO(message->topic, topic_error);
@@ -352,6 +365,7 @@ sol_mqtt_connect(const char *host, uint16_t port, const struct sol_mqtt_config *
     SOL_NULL_CHECK(host, NULL);
     SOL_NULL_CHECK(config, NULL);
     MQTT_CHECK_API(config, NULL);
+    MQTT_CHECK_HANDLER_API(&config->handlers, NULL);
 
     if (config->client_id == NULL && config->clean_session == false) {
         SOL_WRN("client_id is NULL but clean_session is set to false.");
@@ -515,6 +529,7 @@ sol_mqtt_publish(const struct sol_mqtt *mqtt, struct sol_mqtt_message *message)
     CHECK_INIT(-EINVAL);
     SOL_NULL_CHECK(mqtt, -EINVAL);
     SOL_NULL_CHECK(message, -EINVAL);
+    SOL_MQTT_MESSAGE_CHECK_API_VERSION(message, -EINVAL);
 
     r = mosquitto_publish(mqtt->mosq, &message->id, message->topic, message->payload->used,
         message->payload->data, (int)message->qos, message->retain);

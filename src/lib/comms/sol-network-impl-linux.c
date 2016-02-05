@@ -482,15 +482,7 @@ sol_network_link_get_name(const struct sol_network_link *link)
     char name[IFNAMSIZ];
 
     SOL_NULL_CHECK(link, NULL);
-
-#ifndef SOL_NO_API_VERSION
-    if (SOL_UNLIKELY(link->api_version != SOL_NETWORK_LINK_API_VERSION)) {
-        SOL_WRN("Couldn't link that has unsupported version '%u', "
-            "expected version is '%u'",
-            link->api_version, SOL_NETWORK_LINK_API_VERSION);
-        return NULL;
-    }
-#endif
+    SOL_NETWORK_LINK_CHECK_VERSION(link, NULL);
 
     if (if_indextoname(link->index, name))
         return strdup(name);

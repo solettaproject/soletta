@@ -32,6 +32,7 @@
 
 #include "pwm-editor.h"
 #include "sol-flow/gtk.h"
+#include "sol-flow-internal.h"
 
 static void
 on_pwm_editor_toggle_changed(GtkToggleButton *toggle, gpointer data)
@@ -89,6 +90,10 @@ pwm_editor_setup(struct gtk_common_data *mdata, const struct sol_flow_node_optio
 
     const struct sol_flow_node_type_gtk_pwm_editor_options *opts =
         (const struct sol_flow_node_type_gtk_pwm_editor_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_GTK_PWM_EDITOR_OPTIONS_API_VERSION,
+        -EINVAL);
 
     if (opts) {
         range_min = opts->range.min;

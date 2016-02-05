@@ -41,6 +41,7 @@
 
 #include "byte-validator.h"
 #include "sol-flow/test.h"
+#include "sol-flow-internal.h"
 
 static int
 _populate_values(void *data, const char *sequence)
@@ -92,6 +93,9 @@ byte_validator_open(struct sol_flow_node *node, void *data,
     const struct sol_flow_node_type_test_byte_validator_options *opts =
         (const struct sol_flow_node_type_test_byte_validator_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TEST_BYTE_VALIDATOR_OPTIONS_API_VERSION,
+        -EINVAL);
     mdata->done = false;
 
     if (opts->sequence == NULL || opts->sequence == '\0') {

@@ -42,6 +42,7 @@
 #include "test-module.h"
 #include "byte-generator.h"
 #include "sol-flow/test.h"
+#include "sol-flow-internal.h"
 
 static bool
 timer_tick(void *data)
@@ -69,6 +70,10 @@ byte_generator_open(struct sol_flow_node *node, void *data,
     const char *it;
     char *tail;
     unsigned char *val;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TEST_BYTE_GENERATOR_OPTIONS_API_VERSION,
+        -EINVAL);
 
     if (opts->sequence == NULL || *opts->sequence == '\0') {
         SOL_ERR("Option 'sequence' is either NULL or empty.");

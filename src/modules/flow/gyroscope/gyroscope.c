@@ -37,6 +37,7 @@
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
 #include "sol-util-internal.h"
+#include "sol-flow-internal.h"
 
 /* speed only works for riot */
 #define I2C_SPEED SOL_I2C_SPEED_10KBIT
@@ -460,7 +461,9 @@ gyroscope_l3g4200d_open(struct sol_flow_node *node,
     const struct sol_flow_node_type_gyroscope_l3g4200d_options *opts =
         (const struct sol_flow_node_type_gyroscope_l3g4200d_options *)options;
 
-    SOL_NULL_CHECK(options, -EINVAL);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_GYROSCOPE_L3G4200D_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->i2c = sol_i2c_open(opts->i2c_bus, I2C_SPEED);
     SOL_NULL_CHECK_MSG(mdata->i2c, -EIO, "Failed to open i2c bus");

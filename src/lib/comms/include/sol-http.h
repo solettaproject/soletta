@@ -122,7 +122,6 @@ struct sol_http_params {
 #ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_PARAM_API_VERSION (1)
     uint16_t api_version;
-    uint16_t reserved;
 #endif
 
     struct sol_vector params; /**< vector of parameters, struct @ref sol_http_param_value */
@@ -174,7 +173,6 @@ struct sol_http_response {
 #ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_RESPONSE_API_VERSION (1)
     uint16_t api_version;
-    uint16_t reserved;
 #endif
 
     const char *content_type;
@@ -283,10 +281,47 @@ struct sol_http_url {
  */
 #define SOL_HTTP_REQUEST_PARAMS_INIT \
     (struct sol_http_params) { \
-        SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, .reserved = 0, ) \
+        SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, ) \
         .params = SOL_VECTOR_INIT(struct sol_http_param_value), \
         .arena = NULL \
     }
+
+#ifndef SOL_NO_API_VERSION
+/**
+ * @brief Macro used to check if a struct @ref sol_http_params
+ * has the expected API version.
+ *
+ * In case it's a wrong version, it'll return extra arguments passed
+ * to the macro.
+ */
+#define SOL_HTTP_PARAMS_CHECK_API_VERSION(params_, ...) \
+    if (SOL_UNLIKELY((params_)->api_version != \
+        SOL_HTTP_PARAM_API_VERSION)) { \
+        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+            (params_)->api_version, SOL_HTTP_PARAM_API_VERSION); \
+        return __VA_ARGS__; \
+    }
+#else
+#define SOL_HTTP_PARAMS_CHECK_API_VERSION(params_, ...)
+#endif
+
+#ifndef SOL_NO_API_VERSIO
+/**
+ * @brief Macro used to check if a struct @ref sol_http_params
+ * has the expected API version.
+ *
+ * In case it's a wrong version, it'll go to @a label.
+ */
+#define SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params_, label_) \
+    if (SOL_UNLIKELY((params_)->api_version != \
+        SOL_HTTP_PARAM_API_VERSION)) { \
+        SOL_ERR("Unexpected API version (params is %u, expected %u)", \
+            (params_)->api_version, SOL_HTTP_PARAM_API_VERSION); \
+        goto label_; \
+    }
+#else
+#define SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params_, label_)
+#endif
 
 /**
  * @brief Macro to set a struct @ref sol_http_param_value with

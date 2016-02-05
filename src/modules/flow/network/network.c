@@ -44,6 +44,7 @@
 #include "sol-network.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
+#include "sol-flow-internal.h"
 
 struct network_data {
     struct sol_flow_node *node;
@@ -110,6 +111,8 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
     bool connected;
     uint16_t idx;
 
+    SOL_NETWORK_LINK_CHECK_VERSION(link);
+
     if (!_match_link(mdata, link))
         return;
 
@@ -149,6 +152,9 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     const struct sol_flow_node_type_network_boolean_options *opts =
         (const struct sol_flow_node_type_network_boolean_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
+
     SOL_NULL_CHECK(options, -EINVAL);
 
     if (!_compile_regex(&mdata->regex, opts->address))
@@ -168,6 +174,7 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
 
     if (links) {
         SOL_VECTOR_FOREACH_IDX (links, itr, idx) {
+            SOL_NETWORK_LINK_CHECK_VERSION(itr, -EINVAL);
             if (_match_link(mdata, itr)) {
                 sol_ptr_vector_append(&mdata->links, itr);
                 mdata->connected |= (itr->flags & SOL_NETWORK_LINK_RUNNING) &&
