@@ -76,6 +76,7 @@ sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_reader
     CborError err;
 
     SOL_NULL_CHECK_GOTO(repr, err);
+    SOL_NULL_CHECK_GOTO(iterator, err);
 
     repr_field_free(repr);
     if (!cbor_value_is_valid((CborValue *)iterator))
@@ -96,13 +97,35 @@ err:
 SOL_API bool
 sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr)
 {
+    SOL_NULL_CHECK(oic_map_writer, false);
+    SOL_NULL_CHECK(repr, false);
+
     return sol_oic_packet_cbor_append(oic_map_writer, repr) == CborNoError;
+}
+
+SOL_API bool
+sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type)
+{
+    SOL_NULL_CHECK(oic_map_writer, false);
+    SOL_NULL_CHECK(type, false);
+
+    return sol_cbor_map_get_type(oic_map_writer, type);
+}
+
+SOL_API bool
+sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type)
+{
+    SOL_NULL_CHECK(oic_map_writer, false);
+
+    return sol_cbor_map_set_type(oic_map_writer, type);
 }
 
 #ifdef SOL_LOG_ENABLED
 SOL_API void
 sol_oic_payload_debug(struct sol_coap_packet *pkt)
 {
+    SOL_NULL_CHECK(pkt);
+
 #ifdef HAVE_STDOUT
     uint8_t *payload;
     uint16_t payload_len;

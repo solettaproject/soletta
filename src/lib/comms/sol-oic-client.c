@@ -892,7 +892,6 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     const struct sol_oic_map_reader *repr_vec, void *data),
     void *data, bool observe)
 {
-    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
     CborError err;
     char *href;
 
@@ -935,11 +934,8 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
         goto out;
     }
 
-    sol_coap_add_option(req, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
-
     if (fill_repr_map) {
-        err = sol_oic_packet_cbor_create(req, href, &map_encoder);
-        SOL_INT_CHECK_GOTO(err, != CborNoError, cbor_error);
+        sol_oic_packet_cbor_create(req, href, &map_encoder);
         if (!fill_repr_map(fill_repr_map_data, &map_encoder))
             goto out;
         err = sol_oic_packet_cbor_close(req, &map_encoder);
