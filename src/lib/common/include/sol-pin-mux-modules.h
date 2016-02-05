@@ -61,8 +61,8 @@ extern "C" {
  */
 struct sol_pin_mux {
 #ifndef SOL_NO_API_VERSION
-#define SOL_PIN_MUX_API_VERSION (2UL)
-    unsigned long int api_version; /**< @brief API version */
+#define SOL_PIN_MUX_API_VERSION (2)
+    uint16_t api_version; /**< @brief API version */
 #endif
     const char *plat_name; /**< @brief Name of this multiplexer target platform */
 

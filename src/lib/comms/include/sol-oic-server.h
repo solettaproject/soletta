@@ -207,7 +207,6 @@ struct sol_oic_resource_type {
 #ifndef SOL_NO_API_VERSION
 #define SOL_OIC_RESOURCE_TYPE_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
 
     /**

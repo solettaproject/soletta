@@ -38,6 +38,7 @@
 
 #include "unix-socket.h"
 #include "sol-flow/unix-socket.h"
+#include "sol-flow-internal.h"
 #include "sol-buffer.h"
 #include "sol-flow.h"
 #include "sol-mainloop.h"
@@ -97,6 +98,10 @@ boolean_reader_open(struct sol_flow_node *node, void *data, const struct sol_flo
     struct sol_flow_node_type_unix_socket_boolean_reader_options *opts =
         (struct sol_flow_node_type_unix_socket_boolean_reader_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_BOOLEAN_READER_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->node = node;
     if (opts->server)
         mdata->un_socket = unix_socket_server_new(mdata, opts->path, boolean_read_data);
@@ -127,6 +132,12 @@ boolean_writer_open(struct sol_flow_node *node, void *data, const struct sol_flo
     struct unix_socket_data *mdata = data;
     struct sol_flow_node_type_unix_socket_boolean_writer_options *opts =
         (struct sol_flow_node_type_unix_socket_boolean_writer_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_API_CHECK(options,
+        SOL_FLOW_NODE_OPTIONS_API_VERSION, -EINVAL);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_BOOLEAN_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->node = node;
     if (opts->server)
@@ -171,6 +182,10 @@ string_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow
     struct sol_flow_node_type_unix_socket_string_reader_options *opts =
         (struct sol_flow_node_type_unix_socket_string_reader_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_STRING_READER_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->node = node;
     if (opts->server)
         mdata->un_socket = unix_socket_server_new(mdata, opts->path, string_read_data);
@@ -209,6 +224,10 @@ string_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow
     struct sol_flow_node_type_unix_socket_string_writer_options *opts =
         (struct sol_flow_node_type_unix_socket_string_writer_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_STRING_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->node = node;
     if (opts->server)
         mdata->un_socket = unix_socket_server_new(mdata, opts->path, NULL);
@@ -243,6 +262,10 @@ rgb_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
     struct sol_flow_node_type_unix_socket_rgb_reader_options *opts =
         (struct sol_flow_node_type_unix_socket_rgb_reader_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_RGB_READER_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->node = node;
     if (opts->server)
         mdata->un_socket = unix_socket_server_new(mdata, opts->path, rgb_read_data);
@@ -273,6 +296,10 @@ rgb_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
     struct unix_socket_data *mdata = data;
     struct sol_flow_node_type_unix_socket_rgb_writer_options *opts =
         (struct sol_flow_node_type_unix_socket_rgb_writer_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_RGB_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->node = node;
     if (opts->server)
@@ -308,6 +335,10 @@ direction_vector_reader_open(struct sol_flow_node *node, void *data, const struc
     struct sol_flow_node_type_unix_socket_direction_vector_reader_options *opts =
         (struct sol_flow_node_type_unix_socket_direction_vector_reader_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_DIRECTION_VECTOR_READER_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->node = node;
     if (opts->server)
         mdata->un_socket = unix_socket_server_new(mdata, opts->path, direction_vector_read_data);
@@ -338,6 +369,10 @@ direction_vector_writer_open(struct sol_flow_node *node, void *data, const struc
     struct unix_socket_data *mdata = data;
     struct sol_flow_node_type_unix_socket_direction_vector_writer_options *opts =
         (struct sol_flow_node_type_unix_socket_direction_vector_writer_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_DIRECTION_VECTOR_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->node = node;
     if (opts->server)
@@ -373,6 +408,10 @@ byte_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     struct sol_flow_node_type_unix_socket_byte_reader_options *opts =
         (struct sol_flow_node_type_unix_socket_byte_reader_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_DIRECTION_VECTOR_READER_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->node = node;
     if (opts->server)
         mdata->un_socket = unix_socket_server_new(mdata, opts->path, byte_read_data);
@@ -403,6 +442,10 @@ byte_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     struct unix_socket_data *mdata = data;
     struct sol_flow_node_type_unix_socket_byte_writer_options *opts =
         (struct sol_flow_node_type_unix_socket_byte_writer_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_BYTE_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->node = node;
     if (opts->server)
@@ -438,6 +481,10 @@ int_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
     struct sol_flow_node_type_unix_socket_int_reader_options *opts =
         (struct sol_flow_node_type_unix_socket_int_reader_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_INT_READER_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->node = node;
     if (opts->server)
         mdata->un_socket = unix_socket_server_new(mdata, opts->path, int_read_data);
@@ -468,6 +515,10 @@ int_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_no
     struct unix_socket_data *mdata = data;
     struct sol_flow_node_type_unix_socket_int_writer_options *opts =
         (struct sol_flow_node_type_unix_socket_int_writer_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_INT_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->node = node;
     if (opts->server)
@@ -503,6 +554,10 @@ float_reader_open(struct sol_flow_node *node, void *data, const struct sol_flow_
     struct sol_flow_node_type_unix_socket_float_reader_options *opts =
         (struct sol_flow_node_type_unix_socket_float_reader_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_FLOAT_READER_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->node = node;
     if (opts->server)
         mdata->un_socket = unix_socket_server_new(mdata, opts->path, float_read_data);
@@ -533,6 +588,10 @@ float_writer_open(struct sol_flow_node *node, void *data, const struct sol_flow_
     struct unix_socket_data *mdata = data;
     struct sol_flow_node_type_unix_socket_float_writer_options *opts =
         (struct sol_flow_node_type_unix_socket_float_writer_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_FLOAT_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->node = node;
     if (opts->server)

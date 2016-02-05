@@ -39,6 +39,7 @@
 #include "test-module.h"
 #include "result.h"
 #include "sol-flow/test.h"
+#include "sol-flow-internal.h"
 
 static int node_count;
 
@@ -98,6 +99,10 @@ test_result_open(
     struct test_result_data *d = data;
     const struct sol_flow_node_type_test_result_options *opts =
         (const struct sol_flow_node_type_test_result_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TEST_RESULT_OPTIONS_API_VERSION,
+        -EINVAL);
 
     d->timer = sol_timeout_add(opts->timeout, on_timeout, node);
     SOL_NULL_CHECK_GOTO(d->timer, error);

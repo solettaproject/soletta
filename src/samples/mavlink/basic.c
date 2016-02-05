@@ -169,6 +169,7 @@ main(int argc, char *argv[])
 {
     struct sol_mavlink *mavlink;
     struct sol_mavlink_handlers mavlink_handlers = {
+        SOL_SET_API_VERSION(.api_version = SOL_MAVLINK_HANDLERS_API_VERSION, )
         .connect = mavlink_connect_cb,
         .position_changed = position_changed_cb,
         .mode_changed = mode_changed_cb,
@@ -177,6 +178,7 @@ main(int argc, char *argv[])
         .mission_reached = mission_reached_cb,
     };
     struct sol_mavlink_config config = {
+        SOL_SET_API_VERSION(.api_version = SOL_MAVLINK_CONFIG_API_VERSION, )
         .handlers = &mavlink_handlers,
     };
 

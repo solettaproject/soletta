@@ -38,6 +38,7 @@
 #include "sol-mainloop.h"
 #include "sol-http.h"
 #include "sol-http-client.h"
+#include "sol-log.h"
 
 static FILE *fd;
 struct sol_http_client_connection *pending;
@@ -64,6 +65,8 @@ response_func(void *userdata, const struct sol_http_client_connection *connectio
     fclose(fd);
     fd = NULL;
     pending = NULL;
+
+    SOL_HTTP_RESPONSE_CHECK_API(response);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         fprintf(stderr, "ERROR: Finished with error, response code: %d\n", response->response_code);

@@ -44,6 +44,7 @@
 #include "sol-pwm.h"
 #include "sol-str-table.h"
 #include "sol-util-internal.h"
+#include "sol-flow-internal.h"
 
 static bool be_quiet(void *data);
 
@@ -392,6 +393,10 @@ piezo_speaker_open(struct sol_flow_node *node,
     const struct sol_flow_node_type_piezo_speaker_sound_options *opts =
         (const struct sol_flow_node_type_piezo_speaker_sound_options *)options;
     struct sol_pwm_config pwm_config = { 0 };
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PIEZO_SPEAKER_SOUND_OPTIONS_API_VERSION,
+        -EINVAL);
 
     SOL_SET_API_VERSION(pwm_config.api_version = SOL_PWM_CONFIG_API_VERSION; )
     pwm_config.period_ns = -1;

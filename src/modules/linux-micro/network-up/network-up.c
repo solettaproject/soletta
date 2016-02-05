@@ -45,6 +45,8 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-network-up");
 static void
 _network_event_cb(void *data, const struct sol_network_link *link, enum sol_network_event event)
 {
+    SOL_NETWORK_LINK_CHECK_VERSION(link);
+
     switch (event) {
     case SOL_NETWORK_LINK_ADDED:
         sol_network_link_up(link->index);
@@ -65,6 +67,7 @@ network_up_start(const struct sol_platform_linux_micro_module *mod, const char *
 
     links = sol_network_get_available_links();
     SOL_VECTOR_FOREACH_IDX (links, itr, idx) {
+        SOL_NETWORK_LINK_CHECK_VERSION(itr, -EINVAL);
         sol_network_link_up(itr->index);
     }
 

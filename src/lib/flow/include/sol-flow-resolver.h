@@ -67,8 +67,8 @@ extern "C" {
  */
 struct sol_flow_resolver {
 #ifndef SOL_NO_API_VERSION
-#define SOL_FLOW_RESOLVER_API_VERSION (1UL) /**< @brief Current API version number */
-    unsigned long api_version; /**< @brief API version number */
+#define SOL_FLOW_RESOLVER_API_VERSION (1) /**< @brief Current API version number */
+    uint16_t api_version; /**< @brief API version number */
 #endif
     const char *name; /**< @brief Resolver's name (useful for logging) */
     void *data; /**< @brief Resolver's context data (will be provided to @c resolve) */

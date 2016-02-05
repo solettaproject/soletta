@@ -46,6 +46,7 @@
 #include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-str-table.h"
+#include "sol-flow-internal.h"
 
 struct http_data {
     struct sol_ptr_vector pending_conns;
@@ -476,6 +477,8 @@ boolean_process_data(struct sol_flow_node *node,
 {
     bool result;
 
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
     if (!strncasecmp("true", response->content.data, response->content.used))
         result = true;
     else if (!strncasecmp("false", response->content.data, response->content.used))
@@ -522,7 +525,11 @@ static int
 string_process_data(struct sol_flow_node *node,
     struct sol_http_response *response)
 {
-    char *result = strndup(response->content.data, response->content.used);
+    char *result;
+
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
+    result = strndup(response->content.data, response->content.used);
 
     if (result) {
         return sol_flow_send_string_take_packet(node,
@@ -583,6 +590,8 @@ int_process_data(struct sol_flow_node *node,
     struct sol_http_response *response)
 {
     int value;
+
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     errno = 0;
     value = strtol(response->content.data, NULL, 0);
@@ -658,6 +667,8 @@ float_process_data(struct sol_flow_node *node,
 {
     double value;
 
+    SOL_HTTP_RESPONSE_CHECK_API(response, EINVAL);
+
     errno = 0;
     value = sol_util_strtodn(response->content.data, NULL, -1, false);
     if (errno)
@@ -707,6 +718,10 @@ generic_open(struct sol_flow_node *node, void *data,
     struct sol_flow_node_type_http_client_get_string_options *opts =
         (struct sol_flow_node_type_http_client_get_string_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_STRING_OPTIONS_API_VERSION,
+        -EINVAL);
+
     sol_http_params_init(&mdata->url_params);
 
     if (opts->url) {
@@ -750,6 +765,8 @@ get_string_process(struct sol_flow_node *node, struct sol_http_response *respons
 {
     char *result;
 
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
     SOL_DBG("String process - response from: %s", response->url);
     result = strndup(response->content.data, response->content.used);
 
@@ -772,6 +789,8 @@ get_blob_process(struct sol_flow_node *node, struct sol_http_response *response)
     size_t size;
     void *data;
     int r;
+
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     SOL_DBG("Blob process - response from: %s", response->url);
 
@@ -797,6 +816,8 @@ get_json_process(struct sol_flow_node *node, struct sol_http_response *response)
     struct sol_json_scanner object_scanner, array_scanner;
     struct sol_str_slice trimmed_str;
     int r;
+
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     SOL_DBG("Json process - response from: %s", response->url);
 
@@ -1042,6 +1063,8 @@ request_node_http_response(void *data,
 
     remove_connection(mdata, conn);
 
+    SOL_HTTP_RESPONSE_CHECK_API(response);
+
     if (!response) {
         SOL_ERR("Empty response from:%s", mdata->url);
         sol_flow_send_error_packet(node, EINVAL, "Empty response from:%s",
@@ -1110,6 +1133,8 @@ request_node_open(struct sol_flow_node *node, void *data,
     struct sol_flow_node_type_http_client_request_options *opts =
         (struct sol_flow_node_type_http_client_request_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_HTTP_CLIENT_REQUEST_OPTIONS_API_VERSION,
+        -EINVAL);
     SOL_INT_CHECK(opts->timeout, < 0, -EINVAL);
     mdata->timeout = opts->timeout;
 
@@ -1440,6 +1465,9 @@ common_get_open(struct sol_flow_node *node, void *data,
     struct sol_flow_node_type_http_client_get_headers_options *opts =
         (struct sol_flow_node_type_http_client_get_headers_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_HEADERS_OPTIONS_API_VERSION,
+        -EINVAL);
     if (opts->key) {
         mdata->key = strdup(opts->key);
         SOL_NULL_CHECK(mdata->key, -ENOMEM);
@@ -1593,6 +1621,9 @@ create_url_open(struct sol_flow_node *node, void *data,
     struct create_url_data *mdata = data;
     struct sol_flow_node_type_http_client_create_url_options *opts =
         (struct sol_flow_node_type_http_client_create_url_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->params = SOL_HTTP_REQUEST_PARAMS_INIT;
     SOL_INT_CHECK(opts->port, < 0, -EINVAL);
