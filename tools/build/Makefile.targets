@@ -1,6 +1,15 @@
 tests: $(SOL_LIB_OUTPUT) $(tests-out) $(modules-out)
 
-check: tests
+CHECK_DEPS := tests
+
+ifneq ($(USE_NODEJS),)
+check-nodejs_bindings: nodejs_bindings
+	LD_PRELOAD=$(LIB_ASAN_PATH) node -p 'require( "./lowlevel" ).sol_platform_get_machine_id();'
+CHECK_DEPS += check-nodejs_bindings
+PHONY += check-nodejs_bindings
+endif
+
+check: $(CHECK_DEPS)
 	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)"
 
 PHONY += tests check

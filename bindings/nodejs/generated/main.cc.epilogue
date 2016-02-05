@@ -1,0 +1,3 @@
+}
+
+NODE_MODULE(soletta, Init)
