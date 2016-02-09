@@ -51,13 +51,13 @@ struct sol_uart {
     struct {
         void *handler;
 
-        void (*rx_cb)(void *data, struct sol_uart *uart, unsigned char byte_read);
+        void (*rx_cb)(void *data, struct sol_uart *uart, uint8_t byte_read);
         const void *rx_user_data;
 
-        void (*tx_cb)(void *data, struct sol_uart *uart, unsigned char *tx, int status);
+        void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status);
         const void *tx_user_data;
         struct sol_timeout *tx_writer;
-        const unsigned char *tx_buffer;
+        const uint8_t *tx_buffer;
         unsigned int tx_length;
     } async;
 };
@@ -70,13 +70,13 @@ uart_rx_cb(void *arg, char data)
     if (!uart->async.rx_cb)
         return;
     uart->async.rx_cb((void *)uart->async.rx_user_data, uart,
-        (unsigned char)data);
+        (uint8_t)data);
 }
 
 static void
 uart_tx_dispatch(struct sol_uart *uart, int status)
 {
-    unsigned char *tx = (unsigned char *)uart->async.tx_buffer;
+    uint8_t *tx = (uint8_t *)uart->async.tx_buffer;
 
     uart->async.tx_buffer = NULL;
     if (!uart->async.tx_cb)
@@ -164,7 +164,7 @@ sol_uart_close(struct sol_uart *uart)
 }
 
 SOL_API bool
-sol_uart_write(struct sol_uart *uart, const unsigned char *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, unsigned char *tx, int status), const void *data)
+sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
 {
     SOL_NULL_CHECK(uart, false);
     SOL_EXP_CHECK(uart->async.tx_buffer, false);
