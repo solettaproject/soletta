@@ -172,7 +172,7 @@ sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
     SOL_NULL_CHECK(pwm, false);
     pwm->period = period_ns;
 
-    return pwm_init(pwm->dev, pwm->phase, NSEC_PER_SEC / pwm->period, RESOLUTION) == 0;
+    return pwm_init(pwm->dev, pwm->phase, SOL_NSEC_PER_SEC / pwm->period, RESOLUTION) == 0;
 }
 
 SOL_API int32_t
