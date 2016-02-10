@@ -30,7 +30,7 @@ dictionary UARTInit {
   boolean flowControl = false;
 };
 
-typedef (DOMString or sequence<octet>) UARTData;
+typedef (USVString or sequence<octet>) UARTData;
 
 [NoInterfaceObject]
 interface UARTConnection {
@@ -38,6 +38,8 @@ interface UARTConnection {
   Promise<void> write(UARTData data);
 };
 ```
+The ```UARTData``` type refers to either a string or an array of octets (unsigned bytes) that MAY be represented as an array of numbers, or as ```ArrayBuffer``` or as ```Buffer```.
+
 The callback provided to the Soletta C API for [write()](http://solettaproject.github.io/docs/c-api/group__UART.html) will receive the number of characters sent, but this API does not use it: in the case of success it's already known, in case of error the operation needs to be repeated anyway, with different settings or data length. Additional error information may be conveyed by ```Error.message``` when ```write()``` is rejected.
 
 #### Example
