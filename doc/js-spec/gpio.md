@@ -18,14 +18,12 @@ enum GPIOActiveEdge { "none", "rising", "falling", "any"};
 
 dictionary GPIOPinInit {
   unsigned long pin;
-  DOMString name;
   GPIOPinDirection direction = "out";
   boolean activeLow = false;
   GPIOActiveEdge edge = "any";  // on which edge interrupts are generated
   // the polling interval in milliseconds, in case interrupts are not used
   unsigned long long poll = 0;  // no polling
   boolean pullup = false;  // set voltage to ground if pin is not yet set
-  boolean raw = false;
 };
 
 [NoInterfaceObject]
@@ -45,15 +43,17 @@ interface GPIOEvent: Event {
   readonly attribute boolean value;
 };
 ```
-The ```GPIOPin``` interface has all the properties of ```GPIOPinInit``` as read-only attributes.
-
-The Soletta implementation of reading a pin returns the logical state (i.e. whether it is active or not). For simplicity and conformity with other GPIO APIs, ```read()``` returns the actual value (```true``` or ```false```), and similarly, ```write()``` writes the given physical value.
+This API transparently uses the underlying platform's GPIO numbering and does not do any mapping on its own. Soletta is using the Linux (sysfs) GPIO numbering.
 
 The ```open()``` method returns a ```GPIOPin``` object, enabling the possibility to set listeners to each pin, to read, write and close the pin.
+
+The ```GPIOPin``` interface has all the properties of ```GPIOPinInit``` as read-only attributes.
 
 There is one instance of ```GPIOPin``` object for every pin id.
 
 Closing a pin will discard its ```GPIOPin``` object, i.e. clear all its listeners and properties.
+
+The Soletta implementation of reading a pin returns the logical state (i.e. whether it is active or not). For simplicity and conformity with other GPIO APIs, ```read()``` returns the actual value (```true``` or ```false```), and similarly, ```write()``` writes the given physical value.
 
 By default Soletta tries to allocate an interrupt for notifying value changes of an open GPIO pin. If this is not possible, it will try to poll the pin with a user-specified polling interval. This API uses ```Infinity``` as a default polling interval, meaning there is no polling by default. Also, if there are no listeners to the pin, polling should be disabled.
 
@@ -91,7 +91,7 @@ The API implementation should register a callback with  the Soletta function ```
   });
 
   // Open pin 2 as input, with polling only, with listener.
-  gpio.open({ pin:1, direction: "in", edge: "none", poll: 1000 })
+  gpio.open({ pin:2, direction: "in", edge: "none", poll: 1000 })
   .then((pin) => {
      pin.onchange = function(event) {
        if (event.value && pin3)

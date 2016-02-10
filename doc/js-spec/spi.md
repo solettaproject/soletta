@@ -16,7 +16,7 @@ interface SPI {
   Promise<SPIBus> open(SPIBusInit init);
 };
 
-typedef (DOMString or sequence<octet>) SPIData;
+typedef sequence<octet> SPIData;
 
 enum SPIMode {
   "mode0",  // polarity normal, phase 0, i.e. sampled on leading clock
@@ -35,14 +35,20 @@ dictionary SPIBusInit {
 
 [NoInterfaceObject]
 interface SPIBus {
-  Promise<void> transfer(SPIData data);
+  Promise<SPIData> transfer(SPIData txData);
   void close();
 };
 
 ```
+
+The ```SPIData``` type refers to an array of octets (unsigned bytes) and MAY be represented as an array of numbers, or as ```ArrayBuffer``` or as ```Buffer```.
+
 The ```SPIBus``` interface has all the properties of ```SPIBusInit``` as read-only attributes.
 
 _Note_: while SPI modes could have been broken up to polarity and phase, the native API uses symbolic modes, so there would be no gain for using polarity and phase instead of modes.
+
+The ```transfer()``` method concurrently sends and receives a number of octets. The received data size is always smaller or equal to the transmitted data size.
+The promise the ```transfer()``` method returns resolves with the received data as a byte array.
 
 #### Example
 ```javascript
@@ -52,8 +58,9 @@ _Note_: while SPI modes could have been broken up to polarity and phase, the nat
   .then((bus) => {
       console.log("SPI bus 0 opened.");
       bus.transfer([ 0, 1, 2, 3, 4 ])
-      .then(function(){
+      .then(function(rx){
           console.log("SPI bus 0: data transferred.");
+          console.log("SPI bus 0 received " + rx.length + " octets.");
       });
   }).catch( error => {
       console.log("SPI error: " + error.name);
