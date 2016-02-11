@@ -385,7 +385,7 @@ error:
     if (err != CborNoError) {
         char addr[SOL_INET_ADDR_STRLEN];
         sol_network_addr_to_str(cliaddr, addr, sizeof(addr));
-        SOL_WRN("Error building response for /oc/core, server %p client %s: %s",
+        SOL_WRN("Error building response for /oic/res, server %p client %s: %s",
             oic_server.server, addr, cbor_error_string(err));
 
         sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_INTERNAL_ERROR);
@@ -681,6 +681,10 @@ create_endpoint(void)
     char *buffer = NULL;
     int r;
 
+    if (id == UINT_MAX) {
+        SOL_WRN("Resource name overflow. Maximum number of resources reached.");
+        return NULL;
+    }
     r = asprintf(&buffer, "/sol/%x", id++);
     return r < 0 ? NULL : buffer;
 }
@@ -719,7 +723,10 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
     res->iface = strndup(rt->interface.data, rt->interface.len);
     SOL_NULL_CHECK_GOTO(res->iface, free_rt);
 
-    res->href = create_endpoint();
+    if (!rt->path.data || !rt->path.len)
+        res->href = create_endpoint();
+    else
+        res->href = strndup(rt->path.data, rt->path.len);
     SOL_NULL_CHECK_GOTO(res->href, free_iface);
 
     res->coap = create_coap_resource(res);
