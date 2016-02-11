@@ -202,6 +202,7 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 	$(Q) \
 		SOL_CONFIG_OIC=$(OIC) \
 		SOL_CONFIG_USE_GPIO=$(USE_GPIO) \
+		SOL_CONFIG_USE_UART=$(USE_UART) \
 		SOL_CONFIG_NETWORK=$(NETWORK) \
 			$(NODEJS) bindings/nodejs/configure-bindings.js
 
