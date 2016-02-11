@@ -96,150 +96,100 @@ static struct sol_oic_server oic_server;
 
 #define APPEND_KEY_VALUE(info, k, v) \
     do { \
-        err |= cbor_encode_text_stringz(&rep_map, k); \
-        err |= cbor_encode_text_string(&rep_map, \
-            oic_server.info->v.data, oic_server.info->v.len); \
+        ret = sol_oic_map_append(output, &SOL_OIC_REPR_TEXT_STRING(k, \
+            oic_server.info->v.data, oic_server.info->v.len)); \
     } while (0)
 
-static int
-_sol_oic_server_d(struct sol_coap_server *server,
-    const struct sol_coap_resource *resource, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+static sol_coap_responsecode_t
+_sol_oic_server_d(const struct sol_network_link_addr *cliaddr, const void *data,
+    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
 {
-    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
-    CborEncoder encoder, rep_map;
-    CborError err;
-    struct sol_coap_packet *response;
-    uint8_t *payload;
-    uint16_t size;
-
-    OIC_SERVER_CHECK(-ENOTCONN);
-
-    response = sol_coap_packet_new(req);
-    SOL_NULL_CHECK(response, -ENOMEM);
-
-    sol_coap_add_option(response, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
-
-    if (sol_coap_packet_get_payload(response, &payload, &size) < 0) {
-        SOL_WRN("Couldn't obtain payload from CoAP packet");
-        goto out;
-    }
-
-    cbor_encoder_init(&encoder, payload, size, 0);
-
-    err = cbor_encoder_create_map(&encoder, &rep_map, CborIndefiniteLength);
+    bool ret;
 
     APPEND_KEY_VALUE(server_info, SOL_OIC_KEY_DEVICE_NAME, device_name);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(server_info, SOL_OIC_KEY_SPEC_VERSION, spec_version);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(server_info, SOL_OIC_KEY_DATA_MODEL_VERSION,
         data_model_version);
-    err |= cbor_encode_text_stringz(&rep_map, SOL_OIC_KEY_DEVICE_ID);
-    err |= cbor_encode_byte_string(&rep_map,
-        (const uint8_t *)oic_server.server_info->device_id.data,
-        oic_server.server_info->device_id.len);
+    SOL_EXP_CHECK_GOTO(!ret, error);
 
-    err |= cbor_encoder_close_container(&encoder, &rep_map);
+    ret = sol_oic_map_append(output, &SOL_OIC_REPR_BYTE_STRING(
+        SOL_OIC_KEY_DEVICE_ID, oic_server.server_info->device_id.data,
+        oic_server.server_info->device_id.len));
+    return SOL_COAP_RSPCODE_CONTENT;
 
-    if (err == CborNoError) {
-        sol_coap_header_set_code(response, SOL_COAP_RSPCODE_OK);
+error:
+    return SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
-        sol_coap_packet_set_payload_used(response, encoder.ptr - payload);
-        return sol_coap_send_packet(server, response, cliaddr);
-    }
-
-    SOL_WRN("Error encoding platform CBOR response: %s",
-        cbor_error_string(err));
-
-out:
-    sol_coap_packet_unref(response);
-    return -ENOMEM;
 }
 
-static int
-_sol_oic_server_p(struct sol_coap_server *server,
-    const struct sol_coap_resource *resource, struct sol_coap_packet *req,
-    const struct sol_network_link_addr *cliaddr, void *data)
+static sol_coap_responsecode_t
+_sol_oic_server_p(const struct sol_network_link_addr *cliaddr, const void *data,
+    const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output)
 {
-    const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
-    CborEncoder encoder, rep_map;
-    CborError err;
-    struct sol_coap_packet *response;
     const char *os_version;
-    uint8_t *payload;
-    uint16_t size;
-
-    OIC_SERVER_CHECK(-ENOTCONN);
-
-    response = sol_coap_packet_new(req);
-    SOL_NULL_CHECK(response, -ENOMEM);
-
-    sol_coap_add_option(response, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
-
-    if (sol_coap_packet_get_payload(response, &payload, &size) < 0) {
-        SOL_WRN("Couldn't obtain payload from CoAP packet");
-        goto out;
-    }
-
-    cbor_encoder_init(&encoder, payload, size, 0);
-
-    err = cbor_encoder_create_map(&encoder, &rep_map, CborIndefiniteLength);
+    bool ret;
 
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_MANUF_NAME, manufacturer_name);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_MANUF_URL, manufacturer_url);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_MODEL_NUM, model_number);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_MANUF_DATE, manufacture_date);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_PLATFORM_VER, platform_version);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_HW_VER, hardware_version);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_FIRMWARE_VER, firmware_version);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_SUPPORT_URL, support_url);
+    SOL_EXP_CHECK_GOTO(!ret, error);
     APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_PLATFORM_ID, platform_id);
+    SOL_EXP_CHECK_GOTO(!ret, error);
 
-    err |= cbor_encode_text_stringz(&rep_map, SOL_OIC_KEY_SYSTEM_TIME);
-    err |= cbor_encode_text_stringz(&rep_map, "");
+    APPEND_KEY_VALUE(plat_info, SOL_OIC_KEY_SYSTEM_TIME, platform_id);
+    SOL_EXP_CHECK_GOTO(!ret, error);
 
-    err |= cbor_encode_text_stringz(&rep_map, SOL_OIC_KEY_OS_VER);
+    ret = sol_oic_map_append(output, &SOL_OIC_REPR_TEXT_STRING(
+        SOL_OIC_KEY_SYSTEM_TIME, NULL, 0));
+    SOL_EXP_CHECK_GOTO(!ret, error);
+
     os_version = sol_platform_get_os_version();
-    err |= cbor_encode_text_stringz(&rep_map, os_version ? os_version : "Unknown");
+    if (!os_version)
+        os_version = "Unknown";
+    ret = sol_oic_map_append(output, &SOL_OIC_REPR_TEXT_STRING(
+        SOL_OIC_KEY_OS_VER, os_version, strlen(os_version)));
+    SOL_EXP_CHECK_GOTO(!ret, error);
 
-    err |= cbor_encoder_close_container(&encoder, &rep_map);
+    return SOL_COAP_RSPCODE_CONTENT;
 
-    if (err == CborNoError) {
-        sol_coap_header_set_code(response, SOL_COAP_RSPCODE_OK);
-
-        sol_coap_packet_set_payload_used(response, encoder.ptr - payload);
-        return sol_coap_send_packet(server, response, cliaddr);
-    }
-
-    SOL_WRN("Error encoding platform CBOR response: %s",
-        cbor_error_string(err));
-
-out:
-    sol_coap_packet_unref(response);
-    return -ENOMEM;
+error:
+    return SOL_COAP_RSPCODE_INTERNAL_ERROR;
 }
 
 #undef APPEND_KEY_VALUE
 
-static const struct sol_coap_resource oic_d_coap_resource = {
+static const struct sol_oic_resource_type oic_d_resource_type = {
     SOL_SET_API_VERSION(.api_version = SOL_COAP_RESOURCE_API_VERSION, )
-    .path = {
-        SOL_STR_SLICE_LITERAL("oic"),
-        SOL_STR_SLICE_LITERAL("d"),
-        SOL_STR_SLICE_EMPTY
-    },
-    .get = _sol_oic_server_d,
-    .flags = SOL_COAP_FLAGS_NONE
+    .resource_type = SOL_STR_SLICE_LITERAL("oic.wk.d"),
+    .interface = SOL_STR_SLICE_LITERAL("oic.if.r"),
+    .path = SOL_STR_SLICE_LITERAL(SOL_OIC_DEVICE_PATH),
+    .get = {
+        .handle = _sol_oic_server_d
+    }
 };
 
-static const struct sol_coap_resource oic_p_coap_resource = {
+static const struct sol_oic_resource_type oic_p_resource_type = {
     SOL_SET_API_VERSION(.api_version = SOL_COAP_RESOURCE_API_VERSION, )
-    .path = {
-        SOL_STR_SLICE_LITERAL("oic"),
-        SOL_STR_SLICE_LITERAL("p"),
-        SOL_STR_SLICE_EMPTY
-    },
-    .get = _sol_oic_server_p,
-    .flags = SOL_COAP_FLAGS_NONE
+    .resource_type = SOL_STR_SLICE_LITERAL("oic.wk.p"),
+    .interface = SOL_STR_SLICE_LITERAL("oic.if.r"),
+    .path = SOL_STR_SLICE_LITERAL(SOL_OIC_PLATFORM_PATH),
+    .get = {
+        .handle = _sol_oic_server_p
+    }
 };
 
 static unsigned int
@@ -452,6 +402,7 @@ sol_oic_server_init(void)
 {
     struct sol_oic_platform_information *plat_info = NULL;
     struct sol_oic_server_information *server_info = NULL;
+    struct sol_oic_server_resource *res;
 
     if (oic_server.refcnt > 0) {
         oic_server.refcnt++;
@@ -470,17 +421,9 @@ sol_oic_server_init(void)
     if (!oic_server.server)
         goto error;
 
-    if (!sol_coap_server_register_resource(oic_server.server, &oic_d_coap_resource, NULL))
+    if (!sol_coap_server_register_resource(oic_server.server,
+        &oic_res_coap_resource, NULL))
         goto error;
-    if (!sol_coap_server_register_resource(oic_server.server, &oic_p_coap_resource, NULL)) {
-        sol_coap_server_unregister_resource(oic_server.server, &oic_d_coap_resource);
-        goto error;
-    }
-    if (!sol_coap_server_register_resource(oic_server.server, &oic_res_coap_resource, NULL)) {
-        sol_coap_server_unregister_resource(oic_server.server, &oic_p_coap_resource);
-        sol_coap_server_unregister_resource(oic_server.server, &oic_d_coap_resource);
-        goto error;
-    }
 
     oic_server.dtls_server = sol_coap_secure_server_new(OIC_COAP_SERVER_DTLS_PORT);
     if (!oic_server.dtls_server) {
@@ -490,19 +433,6 @@ sol_oic_server_init(void)
             SOL_INF("DTLS server could not be created for OIC server: %s",
                 sol_util_strerrora(errno));
         }
-    } else {
-        bool error = false;
-        error = !sol_coap_server_register_resource(oic_server.dtls_server, &oic_d_coap_resource, NULL);
-        if (!error && !sol_coap_server_register_resource(oic_server.dtls_server, &oic_p_coap_resource, NULL)) {
-            sol_coap_server_unregister_resource(oic_server.dtls_server, &oic_d_coap_resource);
-            error = true;
-        }
-
-        if (error) {
-            SOL_WRN("Could not register device info secure resource, OIC server running in insecure mode");
-            sol_coap_server_unref(oic_server.dtls_server);
-            oic_server.dtls_server = NULL;
-        }
     }
 
     oic_server.server_info = server_info;
@@ -510,11 +440,27 @@ sol_oic_server_init(void)
     sol_ptr_vector_init(&oic_server.resources);
 
     oic_server.refcnt++;
+
+    res = sol_oic_server_add_resource(&oic_d_resource_type, NULL,
+        SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
+    SOL_NULL_CHECK_GOTO(res, error_shutdown);
+
+    res = sol_oic_server_add_resource(&oic_p_resource_type, NULL,
+        SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
+    SOL_NULL_CHECK_GOTO(res, error_shutdown);
+
     return 0;
 
 error:
+    if (oic_server.server)
+        sol_coap_server_unref(oic_server.server);
+
     free(server_info);
     free(plat_info);
+    return -ENOMEM;
+
+error_shutdown:
+    sol_oic_server_shutdown();
     return -ENOMEM;
 }
 
@@ -535,9 +481,8 @@ sol_oic_server_shutdown(void)
     if (oic_server.dtls_server)
         sol_coap_server_unref(oic_server.dtls_server);
 
-    sol_coap_server_unregister_resource(oic_server.server, &oic_d_coap_resource);
-    sol_coap_server_unregister_resource(oic_server.server, &oic_p_coap_resource);
-    sol_coap_server_unregister_resource(oic_server.server, &oic_res_coap_resource);
+    sol_coap_server_unregister_resource(oic_server.server,
+        &oic_res_coap_resource);
 
     sol_coap_server_unref(oic_server.server);
 

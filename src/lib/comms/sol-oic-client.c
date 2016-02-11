@@ -474,7 +474,7 @@ sol_oic_client_get_platform_info(struct sol_oic_client *client,
     OIC_RESOURCE_CHECK_API(resource, false);
 
     server = _best_server_for_resource(client, resource,  &addr);
-    return client_get_info(client, server, &addr, "/oic/p",
+    return client_get_info(client, server, &addr, SOL_OIC_PLATFORM_PATH,
         _platform_info_reply_cb, info_received_cb, data);
 }
 
@@ -491,7 +491,7 @@ sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     OIC_CLIENT_CHECK_API(client, false);
     SOL_NULL_CHECK(addr, false);
 
-    return client_get_info(client, client->server, addr, "/oic/p",
+    return client_get_info(client, client->server, addr, SOL_OIC_PLATFORM_PATH,
         _platform_info_reply_cb, info_received_cb, data);
 }
 
@@ -518,7 +518,7 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
         const struct sol_oic_platform_information *info, void *data))
         info_received_cb;
     server = _best_server_for_resource(client, resource,  &addr);
-    return client_get_info(client, server, &addr, "/oic/d",
+    return client_get_info(client, server, &addr, SOL_OIC_DEVICE_PATH,
         _server_info_reply_cb, cb, data);
 }
 
@@ -541,7 +541,7 @@ sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     cb = (void (*)(struct sol_oic_client *cli,
         const struct sol_oic_platform_information *info, void *data))
         info_received_cb;
-    return client_get_info(client, client->server, addr, "/oic/d",
+    return client_get_info(client, client->server, addr, SOL_OIC_DEVICE_PATH,
         _server_info_reply_cb, cb, data);
 }
 
