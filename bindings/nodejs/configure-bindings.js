@@ -71,6 +71,15 @@ for ( oneVariable in process.env ) {
 				"sol-network.h"
 			] );
 			break;
+		case "USE_UART":
+			sources = sources.concat( [
+				"../src/functions/uart.cc",
+				"../src/structures/sol-js-uart.cc"
+			] );
+			headers = headers.concat( [
+				"sol-uart.h"
+			] );
+			break;
 		default:
 			break;
 	}
