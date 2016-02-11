@@ -221,6 +221,13 @@ struct sol_oic_resource_type {
      */
     struct sol_str_slice interface;
 
+    /**
+     * @brief String representation of the path of this resource.
+     * If path.data == NULL or path.len == 0, a path will be generated
+     * automatically for this resource.
+     */
+    struct sol_str_slice path;
+
     struct {
         sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
             const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output);
