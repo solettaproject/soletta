@@ -530,19 +530,10 @@ sol_oic_server_shutdown(void)
         return;
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
-        sol_coap_server_unregister_resource(oic_server.server, res->coap);
-    if (oic_server.dtls_server) {
-        SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
-            sol_coap_server_unregister_resource(oic_server.dtls_server,
-                res->coap);
+        sol_oic_server_del_resource(res);
 
-        sol_coap_server_unregister_resource(oic_server.dtls_server, &oic_d_coap_resource);
-        sol_coap_server_unregister_resource(oic_server.dtls_server, &oic_p_coap_resource);
+    if (oic_server.dtls_server)
         sol_coap_server_unref(oic_server.dtls_server);
-    }
-    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
-        free(res);
-    sol_ptr_vector_clear(&oic_server.resources);
 
     sol_coap_server_unregister_resource(oic_server.server, &oic_d_coap_resource);
     sol_coap_server_unregister_resource(oic_server.server, &oic_p_coap_resource);
