@@ -67,9 +67,11 @@ obj-io-spi-$(PLATFORM_LINUX) := \
 obj-io-spi-$(PLATFORM_ZEPHYR) := \
     sol-spi-impl-zephyr.o
 
-obj-io-uart-$(PLATFORM_RIOTOS) := \
+obj-io-uart-$(USE_UART) := \
+    sol-uart-common.o
+obj-io-uart-$(PLATFORM_RIOTOS) += \
     sol-uart-impl-riot.o
-obj-io-uart-$(PLATFORM_LINUX) := \
+obj-io-uart-$(PLATFORM_LINUX) += \
     sol-uart-impl-linux.o
 
 obj-io-iio-$(USE_IIO) := \

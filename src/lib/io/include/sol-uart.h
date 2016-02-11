@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <sol-common-buildopts.h>
+#include <sol-macros.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,6 +98,110 @@ struct sol_uart_config {
     const void *rx_cb_user_data;
     bool flow_control; /** Enables software flow control(XOFF and XON) */
 };
+
+/**
+ * @brief Converts a string UART baudRate to sol_uart_baud_rate
+ *
+ * This function converts a string UART baudRate to enumeration sol_uart_baud_rate.
+ *
+ * @see sol_uart_baud_rate_to_str().
+ *
+ * @param baud_rate Valid values are "baud-9600", "baud-19200", "baud-38400", "baud-57600", "baud-115200".
+ *
+ * @return enumeration sol_uart_baud_rate
+ */
+enum sol_uart_baud_rate sol_uart_baud_rate_from_str(const char *baud_rate) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_uart_baud_rate to a string name.
+ *
+ * This function converts sol_uart_baud_rate enumeration to a string UART baudRate.
+ *
+ * @see sol_uart_baud_rate_from_str().
+ *
+ * @param baud_rate sol_uart_baud_rate
+ *
+ * @return String representation of the sol_uart_baud_rate
+ */
+const char *sol_uart_baud_rate_to_str(enum sol_uart_baud_rate baud_rate) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts a string UART dataBits to sol_uart_data_bits
+ *
+ * This function converts a string UART dataBits to enumeration sol_uart_data_bits.
+ *
+ * @see sol_uart_data_bits_to_str().
+ *
+ * @param data_bits Valid values are "databits-5", "databits-6", "databits-7", "databits-8".
+ *
+ * @return enumeration sol_uart_data_bits
+ */
+enum sol_uart_data_bits sol_uart_data_bits_from_str(const char *data_bits) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_uart_data_bits to a string name.
+ *
+ * This function converts sol_uart_data_bits enumeration to a string UART dataBits.
+ *
+ * @see sol_uart_data_bits_from_str().
+ *
+ * @param data_bits sol_uart_data_bits
+ *
+ * @return String representation of the sol_uart_data_bits
+ */
+const char *sol_uart_data_bits_to_str(enum sol_uart_data_bits data_bits) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts a string UART parity to sol_uart_parity
+ *
+ * This function converts a string UART parity to enumeration sol_uart_parity.
+ *
+ * @see sol_uart_parity_to_str().
+ *
+ * @param parity Valid values are "none", "even", "odd".
+ *
+ * @return enumeration sol_uart_parity
+ */
+enum sol_uart_parity sol_uart_parity_from_str(const char *parity) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_uart_parity to a string name.
+ *
+ * This function converts sol_uart_parity enumeration to a string UART parity.
+ *
+ * @see sol_uart_parity_from_str().
+ *
+ * @param parity sol_uart_parity
+ *
+ * @return String representation of the sol_uart_parity
+ */
+const char *sol_uart_parity_to_str(enum sol_uart_parity parity) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts a string UART stopBits to sol_uart_stop_bits
+ *
+ * This function converts a string UART stopBits to enumeration sol_uart_stop_bits.
+ *
+ * @see sol_uart_stop_bits_to_str().
+ *
+ * @param stop_bits Valid values are "stopbits-1", "stopbits-2".
+ *
+ * @return enumeration sol_uart_stop_bits
+ */
+enum sol_uart_stop_bits sol_uart_stop_bits_from_str(const char *stop_bits) SOL_ATTR_WARN_UNUSED_RESULT;
+
+/**
+ * @brief Converts sol_uart_stop_bits to a string name.
+ *
+ * This function converts sol_uart_stop_bits enumeration to a string UART stopBits.
+ *
+ * @see sol_uart_stop_bits_from_str().
+ *
+ * @param stop_bits sol_uart_stop_bits
+ *
+ * @return String representation of the sol_uart_stop_bits
+ */
+const char *sol_uart_stop_bits_to_str(enum sol_uart_stop_bits stop_bits) SOL_ATTR_WARN_UNUSED_RESULT;
 
 /**
  * @brief Open an UART bus.
