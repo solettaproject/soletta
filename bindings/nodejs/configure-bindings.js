@@ -106,6 +106,15 @@ for ( oneVariable in process.env ) {
 				"sol-pwm.h"
 			] );
 			break;
+		case "USE_SPI":
+			sources = sources.concat( [
+				"../src/functions/spi.cc",
+				"../src/structures/sol-js-spi.cc"
+			] );
+			headers = headers.concat( [
+				"sol-spi.h"
+			] );
+			break;
 		default:
 			break;
 	}
