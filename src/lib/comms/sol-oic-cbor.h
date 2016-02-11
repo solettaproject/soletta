@@ -68,6 +68,9 @@ enum sol_oic_payload_type {
     SOL_OIC_PAYLOAD_REPRESENTATION = 4,
 };
 
+#define SOL_OIC_DEVICE_PATH "/oic/d"
+#define SOL_OIC_PLATFORM_PATH "/oic/p"
+
 #define SOL_OIC_KEY_REPRESENTATION "rep"
 #define SOL_OIC_KEY_HREF "href"
 #define SOL_OIC_KEY_PLATFORM_ID "pi"
