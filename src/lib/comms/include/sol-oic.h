@@ -208,7 +208,8 @@ enum sol_oic_repr_type {
     SOL_OIC_REPR_TYPE_HALF_FLOAT, /**< Half-precision float number type. */
     SOL_OIC_REPR_TYPE_FLOAT, /**< Single-precision float number type. */
     SOL_OIC_REPR_TYPE_DOUBLE, /**< Double-precision float number type. */
-    SOL_OIC_REPR_TYPE_BOOLEAN /**< Boolean type. */
+    SOL_OIC_REPR_TYPE_BOOLEAN, /**< Boolean type. */
+    SOL_OIC_REPR_TYPE_UNSUPPORTED /**< Unsupported type. */
 };
 
 /**

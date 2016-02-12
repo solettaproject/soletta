@@ -320,10 +320,11 @@ sol_oic_cbor_repr_map_get_next_field(CborValue *value, struct sol_oic_repr_field
         repr->type = SOL_OIC_REPR_TYPE_BOOLEAN;
         break;
     default:
-        SOL_ERR("While parsing representation map, got unexpected type %d",
+        SOL_WRN("While parsing representation map, got unexpected type %d",
             cbor_value_get_type(value));
-        if (err == CborNoError)
-            err = CborErrorUnknownType;
+        repr->type = SOL_OIC_REPR_TYPE_UNSUPPORTED;
+        repr->v_int = cbor_value_get_type(value);
+        break;
 
 harmless:
         /* Initialize repr with harmless data so cleanup works. */

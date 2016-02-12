@@ -79,6 +79,10 @@ got_get_response(void *data, enum sol_coap_response_code response_code, struct s
         case SOL_OIC_REPR_TYPE_BOOLEAN:
             printf("boolean(%s)\n", field.v_boolean ? "true" : "false");
             break;
+        case SOL_OIC_REPR_TYPE_UNSUPPORTED:
+            printf("\tkey: '%s', value: unsupported cbor code(%" PRIi64 ")\n",
+                field.key, field.v_int);
+            break;
         default:
             printf("unknown(%d)\n", field.type);
         }
