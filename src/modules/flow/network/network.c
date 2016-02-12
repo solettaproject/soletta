@@ -109,6 +109,7 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
     struct sol_network_link *itr;
     bool connected;
     uint16_t idx;
+    int r;
 
     if (!_match_link(mdata, link))
         return;
@@ -116,7 +117,9 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
     switch (event) {
     case SOL_NETWORK_LINK_CHANGED:
     case SOL_NETWORK_LINK_ADDED:
-        sol_ptr_vector_append(&mdata->links, (struct sol_network_link *)link);
+        r = sol_ptr_vector_append(&mdata->links, (struct sol_network_link *)link);
+        SOL_INT_CHECK(r, < 0);
+
         break;
     case SOL_NETWORK_LINK_REMOVED:
         SOL_PTR_VECTOR_FOREACH_IDX (&mdata->links, itr, idx) {
@@ -159,17 +162,20 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
         goto err;
     }
 
+    sol_ptr_vector_init(&mdata->links);
     if (!sol_network_subscribe_events(_on_network_event, mdata))
         goto err_net;
-
-    sol_ptr_vector_init(&mdata->links);
 
     links = sol_network_get_available_links();
 
     if (links) {
         SOL_VECTOR_FOREACH_IDX (links, itr, idx) {
             if (_match_link(mdata, itr)) {
-                sol_ptr_vector_append(&mdata->links, itr);
+                int r;
+
+                r = sol_ptr_vector_append(&mdata->links, itr);
+                SOL_INT_CHECK_GOTO(r, < 0, err_net);
+
                 mdata->connected |= (itr->flags & SOL_NETWORK_LINK_RUNNING) &&
                     !(itr->flags & SOL_NETWORK_LINK_LOOPBACK);
             }

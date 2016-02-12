@@ -142,7 +142,12 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
             return -ENOMEM;
             break;
         }
-        sol_ptr_vector_append(&vec_options, tmp);
+        r = sol_ptr_vector_append(&vec_options, tmp);
+        if (r < 0) {
+            SOL_WRN("Couldn't append '%s' into the options's vector", tmp);
+            free(tmp);
+            return r;
+        }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
         int i;
@@ -659,7 +664,17 @@ _load_json_from_dirs(const char *file, char **full_path, struct sol_file_reader 
             /* We can't close the file_reader on sucess because then the slice would
              * also be killed, so we postpone it till later. */
             if (config_file_contents.len != 0) {
-                sol_ptr_vector_append(&_conffiles_loaded, filename);
+                int r;
+                r = sol_ptr_vector_append(&_conffiles_loaded, filename);
+                if (r < 0) {
+                    SOL_WRN("Could not append %s in the conffiles vector", filename);
+                    free(filename);
+                    sol_file_reader_close(*file_reader);
+                    *file_reader = NULL;
+                    config_file_contents.len = 0;
+                    config_file_contents.data = "";
+                    goto exit;
+                }
                 break;
             }
 
