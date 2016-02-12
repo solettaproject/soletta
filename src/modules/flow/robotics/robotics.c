@@ -331,6 +331,153 @@ skid_steer_odometer_process(struct sol_flow_node *node, void *data,
     return 0;
 }
 
+struct skid_steer_data {
+    struct sol_flow_node *node;
+    struct sol_timeout *timeout;
+    struct sol_direction_vector curdir;
+
+    int min_throttle, max_throttle;
+
+    double turn_angle;
+    int throttle;
+};
+
+static double
+skid_steer_calculate_motor_output(double desired_angle, double measured_angle)
+{
+    double angle_error = fabs(measured_angle - desired_angle);
+    double pct;
+
+    if (desired_angle < 0.001)
+        return 1.0;
+
+    pct = angle_error / desired_angle;
+    if (pct < 0.4)
+        return 0.25;
+    if (pct < 0.55)
+        return 0.75;
+    if (pct < 0.7)
+        return 1.0;
+    if (pct < 0.8)
+        return 0.75;
+    return 0.10;
+}
+
+static bool
+skid_steer_control_motors(void *data)
+{
+    struct skid_steer_data *priv = data;
+    double throttle_factor = skid_steer_calculate_motor_output(priv->turn_angle,
+        priv->curdir.z);
+    int throttle = (int)(throttle_factor * priv->throttle);
+    int left_throttle, right_throttle;
+    int r;
+
+    if (throttle < priv->min_throttle)
+        throttle = priv->min_throttle;
+    else if (throttle > priv->max_throttle)
+        throttle = priv->max_throttle;
+
+    if (fabs(priv->turn_angle) < 0.1) {
+        left_throttle = right_throttle = throttle;
+    } else if (priv->turn_angle > 0) {
+        left_throttle = throttle;
+        right_throttle = -throttle;
+    } else {
+        left_throttle = -throttle;
+        right_throttle = throttle;
+    }
+
+    r = sol_flow_send_irange_value_packet(priv->node,
+        SOL_FLOW_NODE_TYPE_ROBOTICS_SKID_STEER__OUT__LEFT_OUT,
+        left_throttle);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_flow_send_irange_value_packet(priv->node,
+        SOL_FLOW_NODE_TYPE_ROBOTICS_SKID_STEER__OUT__RIGHT_OUT,
+        right_throttle);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return true;
+}
+
+static int
+skid_steer_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct skid_steer_data *priv = data;
+    const struct sol_flow_node_type_robotics_skid_steer_options *opts =
+        (const struct sol_flow_node_type_robotics_skid_steer_options *)options;
+
+    priv->node = node;
+    priv->turn_angle = 0.0;
+    priv->throttle = 100.0;
+
+    priv->max_throttle = opts->max_throttle;
+    priv->min_throttle = opts->min_throttle;
+    if (priv->min_throttle >= priv->max_throttle) {
+        SOL_WRN("min_throttle is greater than max_throttle");
+        return -EINVAL;
+    }
+
+    priv->timeout = sol_timeout_add(100, skid_steer_control_motors, priv);
+    SOL_NULL_CHECK(priv->timeout, -ENOMEM);
+
+    return 0;
+}
+
+static void
+skid_steer_close(struct sol_flow_node *node, void *data)
+{
+    struct skid_steer_data *priv = data;
+
+    sol_timeout_del(priv->timeout);
+}
+
+static int
+skid_steer_throttle_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct skid_steer_data *priv = data;
+    int v, r;
+
+    r = sol_flow_packet_get_irange_value(packet, &v);
+    SOL_INT_CHECK(r, < 0, r);
+
+    priv->throttle = v;
+
+    return 0;
+}
+
+static int
+skid_steer_turn_angle_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct skid_steer_data *priv = data;
+    double v;
+    int r;
+
+    r = sol_flow_packet_get_drange_value(packet, &v);
+    SOL_INT_CHECK(r, < 0, r);
+
+    priv->turn_angle = v;
+
+    return 0;
+}
+
+static int
+skid_steer_curdir_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct skid_steer_data *priv = data;
+    int r;
+
+    r = sol_flow_packet_get_direction_vector(packet, &priv->curdir);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
 struct pid_controller_data {
     double kp, ki, kd;
     double set_point;
