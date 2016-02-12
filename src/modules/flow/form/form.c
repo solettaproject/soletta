@@ -2725,6 +2725,10 @@ string_formatted_format_do(struct sol_flow_node *node)
             continue;
 
         start_ptr = sol_vector_get(&indexes, s++);
+        if (!start_ptr) {
+            r = -ERANGE;
+            goto err;
+        }
 
         chunk->rendered.data =
             (char *)mdata->formatted_value.data + *start_ptr;

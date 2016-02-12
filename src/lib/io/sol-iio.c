@@ -908,6 +908,7 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
 {
     struct sol_iio_channel *channel;
     bool processed;
+    int r;
 
     SOL_NULL_CHECK(device, NULL);
     SOL_NULL_CHECK(name, NULL);
@@ -971,7 +972,8 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
         channel->mask = (1 << channel->bits) - 1;
     }
 
-    sol_ptr_vector_append(&channel->device->channels, channel);
+    r = sol_ptr_vector_append(&channel->device->channels, channel);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     SOL_DBG("channel [%s] added. scale: %lf - offset: %d - storagebits: %d"
         " - bits: %d - mask: %" PRIu64, channel->name, channel->scale,
