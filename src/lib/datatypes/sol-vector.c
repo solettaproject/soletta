@@ -208,7 +208,7 @@ sol_ptr_vector_insert_at(struct sol_ptr_vector *pv, uint16_t i, const void *ptr)
     data = pv->base.data;
     dst = &data[pv->base.elem_size * (i + 1)];
     src = &data[pv->base.elem_size * i];
-    memmove(dst, src, pv->base.elem_size * (pv->base.len - 1 - i));
+    memmove(dst, src, (size_t)pv->base.elem_size * (pv->base.len - 1 - i));
 
     return sol_ptr_vector_set(pv, i, ptr);
 }
