@@ -33,7 +33,7 @@
 #include "sol-flow/led-7seg.h"
 #include "sol-flow-internal.h"
 
-#include <sol-gpio.h>
+#include "../../../lib/io/include/sol-gpio.h"
 #include <sol-util-internal.h>
 #include <errno.h>
 
