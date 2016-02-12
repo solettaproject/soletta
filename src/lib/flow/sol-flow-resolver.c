@@ -113,7 +113,7 @@ sol_flow_resolve(
         SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
             "expected version is '%u'",
             resolver->api_version, SOL_FLOW_RESOLVER_API_VERSION);
-        return NULL;
+        return -EINVAL;
     }
 #endif
 
