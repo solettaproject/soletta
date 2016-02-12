@@ -164,7 +164,74 @@
             "default": 100
           }
         ]
-      }
+      },
+      "url": "http://solettaproject.org/doc/latest/components/robotics/skid-steer-odometer.html"
+    },
+    {
+      "category": "robotics/steering",
+      "description": "Controls two motors for tracked robotic platforms.",
+      "methods": {
+        "open": "skid_steer_open",
+        "close": "skid_steer_close"
+      },
+      "in_ports": [
+        {
+          "data_type": "direction-vector",
+          "name": "CURDIR",
+          "description": "Current position and direction obtained from an odometry node.",
+          "methods": {
+            "process": "skid_steer_curdir_process"
+          }
+        },
+        {
+          "data_type": "float",
+          "name": "TURN_ANGLE",
+          "description": "Angle to turn robotic platform.",
+          "methods": {
+            "process": "skid_steer_turn_angle_process"
+          }
+        },
+        {
+          "data_type": "int",
+          "name": "THROTTLE",
+          "description": "Maximum throttle percentage (0 to 100) to send to motor controllers.",
+          "methods": {
+            "process": "skid_steer_throttle_process"
+          }
+        }
+      ],
+      "name": "robotics/skid-steer",
+      "out_ports": [
+        {
+          "data_type": "int",
+          "name": "LEFT_OUT",
+          "description": "Output to be connected to left motor controller."
+        },
+        {
+          "data_type": "int",
+          "name": "RIGHT_OUT",
+          "description": "Output to be connected to right motor controller."
+        }
+      ],
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "int",
+            "description": "Minimum throttle to send to motor driver.",
+            "name": "min_throttle",
+            "default": 0
+          },
+          {
+            "data_type": "int",
+            "description": "Maximum throttle to send to motor driver.",
+            "name": "max_throttle",
+            "default": 100
+          }
+        ]
+      },
+      "private_data_type": "skid_steer_data",
+      "url": "http://solettaproject.org/doc/latest/components/robotics/skid-steer.html"
     },
     {
       "category": "robotics/controllers",
