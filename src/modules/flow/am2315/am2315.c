@@ -112,10 +112,13 @@ am2315_open(uint8_t bus, uint8_t slave)
     device->slave = slave;
     device->refcount++;
 
-    sol_ptr_vector_append(&devices, device);
+    i = sol_ptr_vector_append(&devices, device);
+    SOL_INT_CHECK_GOTO(i, < 0, fail_append);
 
     return device;
 
+fail_append:
+    free(device);
 fail:
     sol_i2c_close(i2c);
 

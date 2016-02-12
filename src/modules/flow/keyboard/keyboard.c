@@ -287,9 +287,7 @@ keyboard_open(struct sol_flow_node *node,
         }
     }
 
-    sol_ptr_vector_append(&keyboard_users, mdata);
-
-    return 0;
+    return sol_ptr_vector_append(&keyboard_users, mdata);
 }
 
 static int

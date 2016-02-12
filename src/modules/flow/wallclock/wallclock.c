@@ -307,6 +307,7 @@ wallclock_open(struct sol_flow_node *node, void *data, bool send_initial_packet)
 {
     struct wallclock_data *mdata = data;
     struct wallclock_timer *timer;
+    int r;
 
     timer = &timers[mdata->type];
 
@@ -316,7 +317,8 @@ wallclock_open(struct sol_flow_node *node, void *data, bool send_initial_packet)
     if (send_initial_packet)
         sol_flow_send_irange_packet(node, 0, &timer->val);
 
-    sol_ptr_vector_append(&(timer->clients), node);
+    r = sol_ptr_vector_append(&(timer->clients), node);
+    SOL_INT_CHECK(r, < 0, r);
 
     if (!timer->timer)
         return wallclock_schedule_next(node);

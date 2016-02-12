@@ -69,8 +69,11 @@ sol_ptr_vector_update(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
     void *itr;
     uint16_t i;
 
-    SOL_PTR_VECTOR_FOREACH_IDX (from, itr, i)
-        sol_ptr_vector_append(to, itr);
+    SOL_PTR_VECTOR_FOREACH_IDX (from, itr, i) {
+        /* FIXME: Handle when it fails properly */
+        (void)sol_ptr_vector_append(to, itr);
+    }
+
     sol_ptr_vector_clear(from);
 #endif
 }
