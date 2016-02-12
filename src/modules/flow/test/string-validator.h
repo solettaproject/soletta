@@ -34,10 +34,10 @@
 #include "sol-vector.h"
 
 struct string_validator_data {
-    bool done;
-    char *sequence;
     uint16_t next_index;
+    bool done;
     struct sol_vector values;
+    char *sequence;
 };
 
 DECLARE_OPEN_FUNCTION(string_validator_open);

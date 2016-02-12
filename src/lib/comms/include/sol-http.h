@@ -174,12 +174,11 @@ struct sol_http_response {
 #define SOL_HTTP_RESPONSE_API_VERSION (1)
     uint16_t api_version;
 #endif
-
+    int response_code;
     const char *content_type;
     const char *url;
     struct sol_buffer content;
     struct sol_http_params param;
-    int response_code;
 };
 
 /**

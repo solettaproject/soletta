@@ -34,9 +34,9 @@
 #include "sol-vector.h"
 
 struct float_validator_data {
-    struct sol_vector values;
-    bool done;
     uint16_t next_index;
+    bool done;
+    struct sol_vector values;
 };
 
 DECLARE_OPEN_FUNCTION(float_validator_open);

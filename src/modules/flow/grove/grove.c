@@ -491,11 +491,10 @@ enum command_status {
 #define FLAG_CURSOR_ROW (1 << 3)
 
 struct command {
+    uint8_t chip_addr, data_addr, value, flags;
+    enum command_status status;
     struct lcd_data *mdata;
     char *string;
-    uint8_t chip_addr, data_addr, value;
-    enum command_status status;
-    uint8_t flags;
 };
 
 struct lcd_data {

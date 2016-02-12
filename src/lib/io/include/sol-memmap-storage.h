@@ -102,6 +102,8 @@ extern "C" {
 
 struct sol_memmap_map {
     uint16_t api_version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
+    uint32_t timeout; /**< Timeout, in milliseconds, of writing operations. After a write is requested, a timer will run and group all
+                       * writing operations until it expires, when real writing will be performed */
     const char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram.
                        * Optionally, it can also be of form <tt> create,\<bus_type\>,\<rel_path\>,\<devnumber\>,\<devname\> </tt>, where:
                        * @arg @a bus_type is the bus type, supported values are: i2c
@@ -110,8 +112,6 @@ struct sol_memmap_map {
                        * @arg @a devnumber is device number on bus, like 0x50
                        * @arg @a devname is device name, the one recognized by its driver
                        */
-    uint32_t timeout; /**< Timeout, in milliseconds, of writing operations. After a write is requested, a timer will run and group all
-                       * writing operations until it expires, when real writing will be performed */
     const struct sol_str_table_ptr *entries; /**< Entries on map, containing name, offset and size */ /* Memory trick in place, must be last on struct*/
 };
 

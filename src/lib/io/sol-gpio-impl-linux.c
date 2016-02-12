@@ -57,7 +57,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");
 
 struct sol_gpio {
     uint32_t pin;
-
+    bool owned;
     FILE *fp;
     struct {
         struct sol_fd *fd_watch;
@@ -68,8 +68,6 @@ struct sol_gpio {
         bool on_raise : 1;
         bool on_fall : 1;
     } irq;
-
-    bool owned;
 };
 
 static bool

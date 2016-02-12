@@ -73,9 +73,9 @@ struct sol_iio_channel_config {
 #define SOL_IIO_CHANNEL_CONFIG_API_VERSION (1)
     uint16_t api_version;
 #endif
-    double scale; /**< Channel scale, to be applied to raw readings. -1 uses device default. Some devices share scale among all channels, so changing one will change all. If, in this case, different channels set different scales the result is unknown. */
-    int offset; /**< Channel offset, to be added to raw readings. Some devices share offset among all channels, so changing one will change all. If, in this case, different channels set different offsets the result is unknown. */
     bool use_custom_offset; /**< If true, will use user defined offset on member #offset of this struct */
+    int offset; /**< Channel offset, to be added to raw readings. Some devices share offset among all channels, so changing one will change all. If, in this case, different channels set different offsets the result is unknown. */
+    double scale; /**< Channel scale, to be applied to raw readings. -1 uses device default. Some devices share scale among all channels, so changing one will change all. If, in this case, different channels set different scales the result is unknown. */
 };
 
 /**

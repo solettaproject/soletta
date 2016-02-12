@@ -85,9 +85,9 @@ struct sol_update_info {
 #define SOL_UPDATE_INFO_API_VERSION (1)
     uint16_t api_version;
 #endif
+    bool need_update; /**< @brief If version of update is newer than current, so the update is necessary. */
     const char *version; /**< @brief Current version of update file */
     uint64_t size; /**< @brief Size of update file. Useful to warn user about big downloads. */
-    bool need_update; /**< @brief If version of update is newer than current, so the update is necessary. */
 };
 
 /**

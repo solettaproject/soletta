@@ -49,15 +49,15 @@
 #include "sol-flow-internal.h"
 
 struct http_data {
+    bool machine_id;
+    bool strict;
+    enum sol_http_method method;
     struct sol_ptr_vector pending_conns;
     struct sol_str_slice key;
-    enum sol_http_method method;
     struct sol_http_params url_params;
     char *url;
     char *content_type;
     char *accept;
-    bool machine_id;
-    bool strict;
 };
 
 struct http_request_data {

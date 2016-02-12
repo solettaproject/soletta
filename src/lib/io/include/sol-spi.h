@@ -89,10 +89,10 @@ struct sol_spi_config {
 #define SOL_SPI_CONFIG_API_VERSION (1)
     uint16_t api_version;
 #endif
+    uint8_t bits_per_word;
     unsigned int chip_select; /** Also know as slave select */
     enum sol_spi_mode mode;
     uint32_t frequency; /** Clock frequency in Hz */
-    uint8_t bits_per_word;
 };
 
 /**
