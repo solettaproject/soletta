@@ -108,6 +108,15 @@ sol_flow_resolve(
         resolver = sol_flow_get_default_resolver();
     SOL_NULL_CHECK(resolver, -ENOENT);
 
+#ifndef SOL_NO_API_VERSION
+    if (SOL_UNLIKELY(resolver->api_version != SOL_FLOW_RESOLVER_API_VERSION)) {
+        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
+            "expected version is '%u'",
+            resolver->api_version, SOL_FLOW_RESOLVER_API_VERSION);
+        return NULL;
+    }
+#endif
+
     err = resolver->resolve(resolver->data, id, &tmp_type, &tmp_named_opts);
     if (err < 0) {
         SOL_DBG("could not resolve module for id='%s' using resolver=%s",

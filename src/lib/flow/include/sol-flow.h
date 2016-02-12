@@ -762,7 +762,7 @@ struct sol_flow_node_type_description {
      * should be incremented.
      */
 #define SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION (1)
-    unsigned long api_version; /**< @brief Must match SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION at runtime */
+    uint16_t api_version; /**< @brief Must match SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION at runtime */
 #endif
     const char *name; /**< @brief The user-visible name. @b Mandatory. */
 

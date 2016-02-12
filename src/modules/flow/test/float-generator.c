@@ -41,6 +41,7 @@
 #include "test-module.h"
 #include "float-generator.h"
 #include "sol-flow/test.h"
+#include "sol-flow-internal.h"
 
 static bool
 timer_tick(void *data)
@@ -70,6 +71,10 @@ float_generator_open(
     const char *it;
     char *tail;
     double *val;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TEST_FLOAT_GENERATOR_OPTIONS_API_VERSION,
+        -EINVAL);
 
     if (opts->sequence == NULL || *opts->sequence == '\0') {
         SOL_ERR("Option 'sequence' is either NULL or empty.");

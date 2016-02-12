@@ -48,13 +48,7 @@ sol_http_param_add(struct sol_http_params *params,
 
     SOL_NULL_CHECK(params, -EINVAL);
 
-#ifndef SOL_NO_API_VERSION
-    if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
-        SOL_ERR("API version mistmatch; expected %u, got %u",
-            SOL_HTTP_PARAM_API_VERSION, params->api_version);
-        return false;
-    }
-#endif
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, -EINVAL);
 
     ptr = sol_vector_append(&params->params);
     if (!ptr) {
@@ -73,15 +67,8 @@ sol_http_param_add_copy(struct sol_http_params *params,
     struct sol_http_param_value *ptr;
     int r;
 
-    SOL_NULL_CHECK(params, -EINVAL);
-
-#ifndef SOL_NO_API_VERSION
-    if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
-        SOL_ERR("API version mistmatch; expected %u, got %u",
-            SOL_HTTP_PARAM_API_VERSION, params->api_version);
-        return false;
-    }
-#endif
+    SOL_NULL_CHECK(params, false);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, false);
 
     if (!params->arena) {
         params->arena = sol_arena_new();
@@ -279,6 +266,7 @@ sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type,
 
     SOL_NULL_CHECK(buf, -EINVAL);
     SOL_NULL_CHECK(params, -EINVAL);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, -EINVAL);
 
     if (type != SOL_HTTP_PARAM_QUERY_PARAM &&
         type != SOL_HTTP_PARAM_POST_FIELD &&
@@ -347,6 +335,7 @@ sol_http_decode_params(const struct sol_str_slice params_slice,
     int r = 0;
 
     SOL_NULL_CHECK(params, -EINVAL);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, -EINVAL);
 
     if (type != SOL_HTTP_PARAM_QUERY_PARAM &&
         type != SOL_HTTP_PARAM_POST_FIELD &&
@@ -483,6 +472,10 @@ sol_http_create_uri(char **uri_out, const struct sol_http_url url,
 
     if (params && params->params.len) {
         size_t used;
+
+        r = -EINVAL;
+        SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params, exit);
+
         r = sol_buffer_append_char(&buf, '?');
         SOL_INT_CHECK_GOTO(r, < 0, exit);
         used = buf.used;
@@ -548,6 +541,10 @@ sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri,
 
     if (params && params->params.len) {
         size_t used;
+
+        r = -EINVAL;
+        SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params, exit);
+
         r = sol_buffer_append_char(&buf, '?');
         SOL_INT_CHECK_GOTO(r, < 0, exit);
         used = buf.used;
@@ -831,6 +828,9 @@ sol_http_split_str_key_value(const char *query, const enum sol_http_param_type t
     struct sol_str_slice *token;
     char *sep;
     uint16_t i;
+
+    SOL_NULL_CHECK(params, -EINVAL);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, -EINVAL);
 
     tokens = sol_str_slice_split(sol_str_slice_from_str(query), "&", 0);
 

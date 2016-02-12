@@ -68,8 +68,8 @@ sol_flow_set_inspector(const struct sol_flow_inspector *inspector)
     if (inspector) {
 #ifndef SOL_NO_API_VERSION
         if (inspector->api_version != SOL_FLOW_INSPECTOR_API_VERSION) {
-            SOL_WRN("inspector(%p)->api_version(%lu) != "
-                "SOL_FLOW_INSPECTOR_API_VERSION(%lu)",
+            SOL_WRN("inspector(%p)->api_version(%" PRIu16 ") != "
+                "SOL_FLOW_INSPECTOR_API_VERSION(%" PRIu16 ")",
                 inspector, inspector->api_version,
                 SOL_FLOW_INSPECTOR_API_VERSION);
             return false;

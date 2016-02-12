@@ -149,7 +149,6 @@ struct sol_network_link {
 #ifndef SOL_NO_API_VERSION
 #define SOL_NETWORK_LINK_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /* save possible hole for a future field */
 #endif
     uint16_t index; /**< @brief the index of this link given by SO  */
     enum sol_network_link_flags flags; /**< @brief  The status of the link */
@@ -159,6 +158,25 @@ struct sol_network_link {
      **/
     struct sol_vector addrs;
 };
+
+#ifndef SOL_NO_API_VERSION
+/**
+ * @brief Macro used to check if a struct @c struct sol_network_link has
+ * the expected API version.
+ *
+ * In case it has wrong version, it'll return extra arguments passed
+ * to the macro.
+ */
+#define SOL_NETWORK_LINK_CHECK_VERSION(link_, ...) \
+    if (SOL_UNLIKELY((link_)->api_version != \
+        SOL_NETWORK_LINK_API_VERSION)) { \
+        SOL_WRN("Unexpected API version (message is %u, expected %u)", \
+            (link_)->api_version, SOL_NETWORK_LINK_API_VERSION); \
+        return __VA_ARGS__; \
+    }
+#else
+#define SOL_NETWORK_LINK_CHECK_VERSION(link_, ...)
+#endif
 
 /**
  * @brief Converts a @c sol_network_link_addr to a string.

@@ -45,6 +45,7 @@
 #include "sol-mainloop.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
+#include "sol-flow-internal.h"
 
 #define HTTP_HEADER_ACCEPT "Accept"
 #define HTTP_HEADER_CONTENT_TYPE "Content-Type"
@@ -317,6 +318,10 @@ int_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
     struct sol_flow_node_type_http_server_int_options *opts =
         (struct sol_flow_node_type_http_server_int_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_INT_OPTIONS_API_VERSION,
+        -EINVAL);
+
     r = start_server(mdata, node, opts->path, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
@@ -333,6 +338,10 @@ float_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     struct http_data *mdata = data;
     struct sol_flow_node_type_http_server_float_options *opts =
         (struct sol_flow_node_type_http_server_float_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_FLOAT_OPTIONS_API_VERSION,
+        -EINVAL);
 
     r = start_server(mdata, node, opts->path, opts->port);
     SOL_INT_CHECK(r, < 0, r);
@@ -489,6 +498,10 @@ string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     struct sol_flow_node_type_http_server_string_options *opts =
         (struct sol_flow_node_type_http_server_string_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_STRING_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->value.s = strdup(opts->value);
     SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
 
@@ -642,6 +655,10 @@ static_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     struct http_data *mdata = data;
     struct sol_flow_node_type_http_server_static_options *opts =
         (struct sol_flow_node_type_http_server_static_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_STATIC_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->sdata = server_ref(opts->port);
     SOL_NULL_CHECK(mdata->sdata, -ENOMEM);

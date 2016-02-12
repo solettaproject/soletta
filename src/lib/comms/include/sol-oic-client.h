@@ -67,7 +67,6 @@ struct sol_oic_client {
 #ifndef SOL_NO_API_VERSION
 #define SOL_OIC_CLIENT_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
     /**
      * @brief An insecure coap connection to the server associated with this
@@ -88,7 +87,6 @@ struct sol_oic_resource {
 #ifndef SOL_NO_API_VERSION
 #define SOL_OIC_RESOURCE_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
     /**
      * @brief The resource address.

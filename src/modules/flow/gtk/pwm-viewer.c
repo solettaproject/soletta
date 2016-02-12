@@ -32,6 +32,7 @@
 
 #include "pwm-viewer.h"
 #include "sol-flow/gtk.h"
+#include "sol-flow-internal.h"
 
 #define CHART_HEIGHT 42
 #define CHART_WIDTH 340
@@ -98,6 +99,10 @@ pwm_viewer_setup(struct gtk_common_data *data, const struct sol_flow_node_option
     struct gtk_pwm_viewer_data *mdata = (struct gtk_pwm_viewer_data *)data;
 
     SOL_NULL_CHECK(mdata, -ENOMEM);
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_GTK_PWM_VIEWER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     opts = (const struct sol_flow_node_type_gtk_pwm_viewer_options *)options;
 

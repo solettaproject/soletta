@@ -43,6 +43,7 @@
 #include "sol-mainloop.h"
 #include "sol-util-internal.h"
 #include "sol-vector.h"
+#include "sol-flow-internal.h"
 
 struct udev_data {
     struct sol_flow_node *node;
@@ -100,6 +101,9 @@ udev_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opt
     bool value;
     const struct sol_flow_node_type_udev_boolean_options *opts =
         (const struct sol_flow_node_type_udev_boolean_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_UDEV_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
 
     mdata->udev = udev_new();
     SOL_NULL_CHECK(mdata->udev, -EINVAL);

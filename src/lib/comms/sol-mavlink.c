@@ -705,6 +705,24 @@ sol_mavlink_connect(const char *addr, const struct sol_mavlink_config *config, c
     int (*init) (struct sol_mavlink *mavlink);
 
     SOL_NULL_CHECK(addr, NULL);
+    SOL_NULL_CHECK(config, NULL);
+    SOL_NULL_CHECK(config->handlers, NULL);
+
+#ifndef SOL_NO_API_VERSION
+    if (SOL_UNLIKELY(config->api_version !=
+        SOL_MAVLINK_CONFIG_API_VERSION)) {
+        SOL_ERR("Unexpected API version (config is %u, expected %u)",
+            config->api_version, SOL_MAVLINK_CONFIG_API_VERSION);
+        return NULL;
+    }
+
+    if (SOL_UNLIKELY(config->handlers->api_version !=
+        SOL_MAVLINK_HANDLERS_API_VERSION)) {
+        SOL_ERR("Unexpected API version (config is %u, expected %u)",
+            config->handlers->api_version, SOL_MAVLINK_HANDLERS_API_VERSION);
+        return NULL;
+    }
+#endif
 
     init = sol_mavlink_parse_addr_protocol(addr, &address, &port);
     SOL_NULL_CHECK(init, NULL);

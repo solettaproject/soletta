@@ -39,6 +39,7 @@
 #include <stdlib.h>
 
 #include "sol-flow/servo-motor.h"
+#include "sol-flow-internal.h"
 
 struct servo_motor_data {
     struct sol_irange duty_cycle_range;
@@ -54,6 +55,9 @@ servo_motor_open(struct sol_flow_node *node, void *data, const struct sol_flow_n
     const struct sol_flow_node_type_servo_motor_controller_options *opts;
     struct servo_motor_data *mdata = data;
     struct sol_pwm_config pwm_config = { 0 };
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_SERVO_MOTOR_CONTROLLER_OPTIONS_API_VERSION, -EINVAL);
 
     opts = (const struct sol_flow_node_type_servo_motor_controller_options *)options;
 

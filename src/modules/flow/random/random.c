@@ -50,6 +50,9 @@ random_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     struct random_node_data *mdata = data;
     const struct sol_flow_node_type_random_int_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_RANDOM_INT_OPTIONS_API_VERSION, -EINVAL);
+
     /* TODO find some way to share the same options struct between
        multiple node types */
     opts = (const struct sol_flow_node_type_random_int_options *)options;

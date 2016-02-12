@@ -269,6 +269,9 @@ monitor_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     const struct monitor_node_type *monitor_type =
         (const struct monitor_node_type *)sol_flow_node_get_type(node);
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PLATFORM_HOSTNAME_OPTIONS_API_VERSION, -EINVAL);
+
     opts = (const struct sol_flow_node_type_platform_hostname_options *)options;
 
     if (opts->send_initial_packet)
@@ -439,10 +442,13 @@ static int
 locale_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     int r;
-    const struct sol_flow_node_type_platform_hostname_options *opts;
+    const struct sol_flow_node_type_platform_locale_options *opts;
     enum sol_platform_locale_category i;
 
-    opts = (const struct sol_flow_node_type_platform_hostname_options *)options;
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PLATFORM_LOCALE_OPTIONS_API_VERSION, -EINVAL);
+
+    opts = (const struct sol_flow_node_type_platform_locale_options *)options;
 
     if (!opts->send_initial_packet)
         return 0;

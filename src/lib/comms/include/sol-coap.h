@@ -272,8 +272,6 @@ struct sol_coap_resource {
 #define SOL_COAP_RESOURCE_API_VERSION (1)
     /** @brief API version */
     uint16_t api_version;
-    /** @brief Unused */
-    uint16_t reserved; /* save possible hole for a future field */
 #endif
     /**
      * @brief GET request.

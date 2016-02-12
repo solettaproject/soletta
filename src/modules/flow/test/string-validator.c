@@ -42,6 +42,7 @@
 
 #include "string-validator.h"
 #include "sol-flow/test.h"
+#include "sol-flow-internal.h"
 
 static int
 _populate_values(void *data)
@@ -89,6 +90,9 @@ string_validator_open(
     const struct sol_flow_node_type_test_string_validator_options *opts =
         (const struct sol_flow_node_type_test_string_validator_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TEST_STRING_VALIDATOR_OPTIONS_API_VERSION,
+        -EINVAL);
     mdata->done = false;
 
     if (opts->sequence == NULL || *opts->sequence == '\0') {

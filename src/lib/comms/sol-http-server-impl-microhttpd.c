@@ -931,6 +931,8 @@ sol_http_server_send_response(struct sol_http_request *request, struct sol_http_
     SOL_NULL_CHECK(request->connection, -EINVAL);
     SOL_NULL_CHECK(response, -EINVAL);
 
+    SOL_HTTP_RESPONSE_CHECK_API_VERSION(response, -EINVAL);
+
     MHD_resume_connection(request->connection);
 
     mhd_response = build_mhd_response(response);

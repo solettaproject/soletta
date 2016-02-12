@@ -48,6 +48,7 @@
 #include "sol-util-internal.h"
 #include "sol-util-file.h"
 #include "sol-vector.h"
+#include "sol-flow-internal.h"
 
 struct evdev_fd_handler {
     const struct sol_flow_node *node;
@@ -303,6 +304,8 @@ evdev_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     struct evdev_data *mdata = sol_flow_node_get_private_data(node);
     const struct sol_flow_node_type_evdev_boolean_options *opts =
         (const struct sol_flow_node_type_evdev_boolean_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_EVDEV_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
 
     if (opts->ev_code >= KEY_MAX)
         return -EINVAL;

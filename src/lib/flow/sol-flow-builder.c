@@ -291,6 +291,14 @@ sol_flow_builder_set_resolver(struct sol_flow_builder *builder,
     SOL_NULL_CHECK(builder);
     if (!resolver)
         resolver = sol_flow_get_default_resolver();
+#ifndef SOL_NO_API_VERSION
+    else if (SOL_UNLIKELY(resolver->api_version != SOL_FLOW_RESOLVER_API_VERSION)) {
+        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
+            "expected version is '%u'",
+            resolver->api_version, SOL_FLOW_RESOLVER_API_VERSION);
+        return NULL;
+    }
+#endif
     builder->resolver = resolver;
 }
 
