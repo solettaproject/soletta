@@ -116,10 +116,10 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "default": "",
-            "description": "Configure the address of the MQTT Broker",
-            "name": "host"
+            "data_type": "boolean",
+            "default": true,
+            "description": "If set, start a new session in the broker. Restore previous session otherwise. Must be set if {client_id} isn't provided",
+            "name": "clean_session"
           },
           {
             "data_type": "int",
@@ -128,40 +128,22 @@
             "name": "port"
           },
           {
-            "data_type": "string",
-            "default": null,
-            "description": "Username for authenticating the connection",
-            "name": "username"
-          },
-          {
-            "data_type": "string",
-            "default" : null,
-            "description": "Password for authenticating the connection",
-            "name": "password"
-          },
-          {
-            "data_type": "string",
-            "default" : null,
-            "description": "MQTT client ID. Must be valid if {clean_session} is not set",
-            "name": "client_id"
-          },
-          {
             "data_type": "int",
             "default": 60000,
             "description": "Time in milliseconds between PING messages from the Broker to the client",
             "name": "keepalive"
           },
           {
-            "data_type": "boolean",
-            "default": true,
-            "description": "If set, start a new session in the broker. Restore previous session otherwise. Must be set if {client_id} isn't provided",
-            "name": "clean_session"
-          },
-          {
             "data_type": "int",
             "default": 0,
             "description": "QoS for the MQTT messages sent. 0: AT_MOST_ONCE, 1: AT_LEST_ONCE, 2: EXACTLY_ONCE",
             "name": "qos"
+          },
+          {
+            "data_type": "string",
+            "default": "",
+            "description": "Configure the address of the MQTT Broker",
+            "name": "host"
           },
           {
             "data_type": "string",
@@ -180,6 +162,24 @@
             "default": null,
             "description": "Private key for TLS connection",
             "name": "private_key"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Username for authenticating the connection",
+            "name": "username"
+          },
+          {
+            "data_type": "string",
+            "default" : null,
+            "description": "Password for authenticating the connection",
+            "name": "password"
+          },
+          {
+            "data_type": "string",
+            "default" : null,
+            "description": "MQTT client ID. Must be valid if {clean_session} is not set",
+            "name": "client_id"
           },
           {
             "data_type": "string",

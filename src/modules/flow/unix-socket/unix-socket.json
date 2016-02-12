@@ -18,15 +18,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Unix socket path",
-            "name": "path"
-          },
-          {
             "data_type": "boolean",
             "default": true,
             "description": "Act like a server",
             "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
           }
         ],
         "version": 1
@@ -90,16 +90,16 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Unix socket path",
-            "name": "path"
-          },
-          {
             "data_type": "boolean",
             "default": true,
             "description": "Act like a server",
             "name": "server"
-         }
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
+          }
         ],
         "version": 1
       },
@@ -162,15 +162,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Unix socket path",
-            "name": "path"
-          },
-          {
             "data_type": "boolean",
             "default": true,
             "description": "Act like a server",
             "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
           }
         ],
         "version": 1
@@ -234,15 +234,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Unix socket path",
-            "name": "path"
-          },
-          {
             "data_type": "boolean",
             "default": true,
             "description": "Act like a server",
             "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
           }
         ],
         "version": 1
@@ -306,15 +306,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Unix socket path",
-            "name": "path"
-          },
-          {
             "data_type": "boolean",
             "default": true,
             "description": "Act like a server",
             "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
           }
         ],
         "version": 1
@@ -378,15 +378,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Unix socket path",
-            "name": "path"
-          },
-          {
             "data_type": "boolean",
             "default": true,
             "description": "Act like a server",
             "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
           }
         ],
         "version": 1
@@ -450,15 +450,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Unix socket path",
-            "name": "path"
-          },
-          {
             "data_type": "boolean",
             "default": true,
             "description": "Act like a server",
             "name": "server"
+          },
+          {
+            "data_type": "string",
+            "description": "Unix socket path",
+            "name": "path"
           }
         ],
         "version": 1

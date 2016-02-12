@@ -86,6 +86,12 @@
             "name": "rows"
           },
           {
+            "data_type": "boolean",
+            "default": false,
+            "description": "If true, this makes a circular menu, where after the last option it goes back to the first (and vice-versa).",
+            "name": "circular"
+          },
+          {
             "data_type": "string",
             "default": null,
             "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters in this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
@@ -108,12 +114,6 @@
             "default": "{value}",
             "description": "The format string to produce the final STRING output with. The syntax is a free-form string with one '{value}' sub-string in it (and one optional '{title}' one). The value tag will be replaced by the actual string items that came in the ITEMS port, while the title one will be replaced by the title string option, if set. The title tag must occur before the value one.",
             "name": "format"
-          },
-          {
-            "data_type": "boolean",
-            "default": false,
-            "description": "If true, this makes a circular menu, where after the last option it goes back to the first (and vice-versa).",
-            "name": "circular"
           }
         ],
         "version": 1
@@ -308,6 +308,12 @@
             "name": "start_value"
           },
           {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Whether the integer selection by the UP/DOWN ports is circular or not.",
+            "name": "circular"
+          },
+          {
             "data_type": "string",
             "default": null,
             "description": "The title string, to be available for referencing when evaluating the format one by means of the '{title}' tag. Any line breaking characters in this string will be translated to a space instead. If no title is provided, a '{title}' tag in the format will be ignored.",
@@ -318,12 +324,6 @@
             "default": "{value}",
             "description": "The format string to produce the final STRING output with. The syntax is a free-form string with one '{value}' sub-string in it (and one optional '{title}' one). The value tag will be replaced by the actual true/false strings defined for the node (true_str/false_str options), while the title one will be replaced by the title string option, if set. The title tag must occur before the value one.",
             "name": "format"
-          },
-          {
-            "data_type": "boolean",
-            "default": true,
-            "description": "Whether the integer selection by the UP/DOWN ports is circular or not.",
-            "name": "circular"
           }
         ],
         "version": 1

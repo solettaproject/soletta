@@ -18,6 +18,12 @@
       "options": {
         "members": [
           {
+            "data_type": "boolean",
+            "default": false,
+            "description": "Default value for this node, when there's no previous value persisted",
+            "name": "default_value"
+          },
+          {
             "data_type": "string",
             "description": "Name to persist a boolean packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
             "name": "name"
@@ -26,12 +32,6 @@
             "data_type": "string",
             "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
             "name": "storage"
-          },
-          {
-            "data_type": "boolean",
-            "default": false,
-            "description": "Default value for this node, when there's no previous value persisted",
-            "name": "default_value"
           }
         ],
         "version": 1
@@ -75,6 +75,12 @@
       "options": {
         "members": [
           {
+            "data_type": "byte",
+            "default": 0,
+            "description": "Default value for this node, when there's no previous value persisted",
+            "name": "default_value"
+          },
+          {
             "data_type": "string",
             "description": "Name to persist a byte packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
             "name": "name"
@@ -83,12 +89,6 @@
             "data_type": "string",
             "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
             "name": "storage"
-          },
-          {
-            "data_type": "byte",
-            "default": 0,
-            "description": "Default value for this node, when there's no previous value persisted",
-            "name": "default_value"
           }
         ],
         "version": 1
@@ -132,14 +132,10 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Name to persist a float packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
-            "name": "name"
-          },
-          {
-            "data_type": "string",
-            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
-            "name": "storage"
+            "data_type": "boolean",
+            "default": false,
+            "description": "Store only drange val, discarding min, max and step values",
+            "name": "store_only_val"
           },
           {
             "data_type": "float",
@@ -158,10 +154,14 @@
             "name": "default_value_spec"
           },
           {
-            "data_type": "boolean",
-            "default": false,
-            "description": "Store only drange val, discarding min, max and step values",
-            "name": "store_only_val"
+            "data_type": "string",
+            "description": "Name to persist a float packet. If 'storage' is 'fs', name can be a fully fledged path to the file where the value will be stored.",
+            "name": "name"
+          },
+          {
+            "data_type": "string",
+            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
+            "name": "storage"
           }
         ],
         "version": 1
@@ -205,14 +205,10 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Name to persist an integer packet with. If 'storage' is 'fs', the name must be a fully fledged path to the file where the value will be stored.",
-            "name": "name"
-          },
-          {
-            "data_type": "string",
-            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
-            "name": "storage"
+            "data_type": "boolean",
+            "default": false,
+            "description": "Store only irange val, discarding min, max and step values",
+            "name": "store_only_val"
           },
           {
             "data_type": "int",
@@ -231,10 +227,14 @@
             "name": "default_value_spec"
           },
           {
-            "data_type": "boolean",
-            "default": false,
-            "description": "Store only irange val, discarding min, max and step values",
-            "name": "store_only_val"
+            "data_type": "string",
+            "description": "Name to persist an integer packet with. If 'storage' is 'fs', the name must be a fully fledged path to the file where the value will be stored.",
+            "name": "name"
+          },
+          {
+            "data_type": "string",
+            "description": "Storage where data will be persisted. It can be of the following: fs, efivars",
+            "name": "storage"
           }
         ],
         "version": 1

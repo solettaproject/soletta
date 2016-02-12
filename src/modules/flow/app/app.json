@@ -167,16 +167,16 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "default": null,
-            "description": "Name for variable to be added to environment when 'VALUE' packet is received. May be overwritten by packets received on port 'NAME'. If variable already exists on environement, behavior depends on 'overwrite' option.",
-            "name": "variable_name"
-          },
-          {
             "data_type": "boolean",
             "default": true,
             "description": "If variable name does exist in the environment, then its value is changed to value if overwrite is 'true'; if overwrite is zero, then the value of name is not changed.",
             "name": "overwrite"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "Name for variable to be added to environment when 'VALUE' packet is received. May be overwritten by packets received on port 'NAME'. If variable already exists on environement, behavior depends on 'overwrite' option.",
+            "name": "variable_name"
           }
         ],
         "version": 1
