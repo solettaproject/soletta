@@ -373,7 +373,7 @@ sol_util_get_rootdir(char *out, size_t size)
     }
 
     r = snprintf(out, size, "%.*s/", (int)(strlen(progname) - strlen(substr)), progname);
-    return (r < 0 || r > (int)size) ? -ENOMEM : r;
+    return (r < 0 || r >= (int)size) ? -ENOMEM : r;
 }
 
 SOL_API int
