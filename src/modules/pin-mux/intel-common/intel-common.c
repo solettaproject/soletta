@@ -113,7 +113,7 @@ _set_gpio(uint32_t pin, enum sol_gpio_direction dir, int drive, bool val)
     // you used it and we have no way of differentiate those. So its ok to fail
     // to write
     len = snprintf(path, sizeof(path), BASE "/gpio%d/drive", pin);
-    if (len < 0 || len > PATH_MAX || stat(path, &st) == -1)
+    if (len < 0 || len >= PATH_MAX || stat(path, &st) == -1)
         goto end;
 
     switch (drive) {
@@ -144,7 +144,7 @@ _set_mode(uint32_t pin, int mode)
     char mode_str[] = "mode0";
 
     len = snprintf(path, sizeof(path), MODE_PATH, pin);
-    if (len < 0 || len > PATH_MAX || stat(path, &st) == -1)
+    if (len < 0 || len >= PATH_MAX || stat(path, &st) == -1)
         return -EINVAL;
 
     mode_str[4] = '0' + (mode - PIN_MODE_0);

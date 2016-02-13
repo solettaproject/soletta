@@ -98,7 +98,7 @@ _pwm_export(int device, int channel, bool export)
         return true;
 
     len = snprintf(path, sizeof(path), PWM_BASE "/pwmchip%d/pwm%d", device, channel);
-    if (len < 0 || len > (int)sizeof(path))
+    if (len < 0 || len >= (int)sizeof(path))
         return false;
 
     /* busywait for the exported pwm's sysfs entry to be created. It's

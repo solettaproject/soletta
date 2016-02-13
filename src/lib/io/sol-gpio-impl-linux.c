@@ -94,7 +94,7 @@ _gpio_export(uint32_t gpio, bool unexport)
         return true;
 
     len = snprintf(gpio_dir, sizeof(gpio_dir), GPIO_BASE "/gpio%u", gpio);
-    if (len < 0 || len > PATH_MAX)
+    if (len < 0 || len >= PATH_MAX)
         return false;
 
     /* busywait for the exported gpio's sysfs entry to be created. It's
@@ -134,7 +134,7 @@ _gpio_open_fd(struct sol_gpio *gpio, enum sol_gpio_direction dir)
     }
 
     len = snprintf(path, sizeof(path), GPIO_BASE "/gpio%u/value", gpio->pin);
-    if (len < 0 || len > PATH_MAX)
+    if (len < 0 || len >= PATH_MAX)
         return -ENAMETOOLONG;
 
     gpio->fp = fopen(path, mode);

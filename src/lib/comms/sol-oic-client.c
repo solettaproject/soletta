@@ -787,7 +787,7 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
         char query[64];
 
         r = snprintf(query, sizeof(query), "rt=%s", resource_type);
-        if (r < 0 || r > (int)sizeof(query))
+        if (r < 0 || r >= (int)sizeof(query))
             goto out;
 
         sol_coap_add_option(req, SOL_COAP_OPTION_URI_QUERY, query, r);
