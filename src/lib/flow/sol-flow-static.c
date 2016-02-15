@@ -121,9 +121,6 @@ static int
 dispatch_connect_out(struct sol_flow_node *node, uint16_t port, uint16_t conn_id,
     const struct sol_flow_port_type_out *port_type)
 {
-    SOL_FLOW_PORT_TYPE_OUT_API_CHECK(port_type,
-        SOL_FLOW_PORT_TYPE_OUT_API_VERSION, 0);
-
     if (port_type->connect)
         return port_type->connect(node, node->data, port, conn_id);
     return 0;
@@ -133,8 +130,6 @@ static int
 dispatch_connect_in(struct sol_flow_node *node, uint16_t port, uint16_t conn_id,
     const struct sol_flow_port_type_in *port_type)
 {
-    SOL_FLOW_PORT_TYPE_IN_API_CHECK(port_type, SOL_FLOW_PORT_TYPE_IN_API_VERSION, 0);
-
     if (port_type->connect)
         return port_type->connect(node, node->data, port, conn_id);
     return 0;
@@ -143,8 +138,6 @@ dispatch_connect_in(struct sol_flow_node *node, uint16_t port, uint16_t conn_id,
 static int
 dispatch_disconnect_out(struct sol_flow_node *node, uint16_t port, uint16_t conn_id, const struct sol_flow_port_type_out *port_type)
 {
-    SOL_FLOW_PORT_TYPE_IN_API_CHECK(port_type, SOL_FLOW_PORT_TYPE_OUT_API_VERSION, 0);
-
     if (port_type->disconnect)
         return port_type->disconnect(node, node->data, port, conn_id);
     return 0;
@@ -153,8 +146,6 @@ dispatch_disconnect_out(struct sol_flow_node *node, uint16_t port, uint16_t conn
 static int
 dispatch_disconnect_in(struct sol_flow_node *node, uint16_t port, uint16_t conn_id, const struct sol_flow_port_type_in *port_type)
 {
-    SOL_FLOW_PORT_TYPE_IN_API_CHECK(port_type, SOL_FLOW_PORT_TYPE_IN_API_VERSION, 0);
-
     if (port_type->disconnect)
         return port_type->disconnect(node, node->data, port, conn_id);
     return 0;
@@ -163,8 +154,6 @@ dispatch_disconnect_in(struct sol_flow_node *node, uint16_t port, uint16_t conn_
 static int
 dispatch_process(struct sol_flow_node *node, uint16_t port, uint16_t conn_id, const struct sol_flow_port_type_in *port_type, const struct sol_flow_packet *packet)
 {
-    SOL_FLOW_PORT_TYPE_IN_API_CHECK(port_type, SOL_FLOW_PORT_TYPE_IN_API_VERSION, 0);
-
     inspector_will_deliver_packet(node, port, conn_id, packet);
     if (port_type->process)
         return port_type->process(node, node->data, port, conn_id, packet);

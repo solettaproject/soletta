@@ -477,8 +477,6 @@ boolean_process_data(struct sol_flow_node *node,
 {
     bool result;
 
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
-
     if (!strncasecmp("true", response->content.data, response->content.used))
         result = true;
     else if (!strncasecmp("false", response->content.data, response->content.used))
@@ -526,8 +524,6 @@ string_process_data(struct sol_flow_node *node,
     struct sol_http_response *response)
 {
     char *result;
-
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     result = strndup(response->content.data, response->content.used);
 
@@ -590,8 +586,6 @@ int_process_data(struct sol_flow_node *node,
     struct sol_http_response *response)
 {
     int value;
-
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     errno = 0;
     value = strtol(response->content.data, NULL, 0);
@@ -666,8 +660,6 @@ float_process_data(struct sol_flow_node *node,
     struct sol_http_response *response)
 {
     double value;
-
-    SOL_HTTP_RESPONSE_CHECK_API(response, EINVAL);
 
     errno = 0;
     value = sol_util_strtodn(response->content.data, NULL, -1, false);
@@ -765,8 +757,6 @@ get_string_process(struct sol_flow_node *node, struct sol_http_response *respons
 {
     char *result;
 
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
-
     SOL_DBG("String process - response from: %s", response->url);
     result = strndup(response->content.data, response->content.used);
 
@@ -789,8 +779,6 @@ get_blob_process(struct sol_flow_node *node, struct sol_http_response *response)
     size_t size;
     void *data;
     int r;
-
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     SOL_DBG("Blob process - response from: %s", response->url);
 
@@ -816,8 +804,6 @@ get_json_process(struct sol_flow_node *node, struct sol_http_response *response)
     struct sol_json_scanner object_scanner, array_scanner;
     struct sol_str_slice trimmed_str;
     int r;
-
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     SOL_DBG("Json process - response from: %s", response->url);
 
