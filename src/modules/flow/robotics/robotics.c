@@ -32,10 +32,12 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <math.h>
 
 #include "sol-flow-internal.h"
 #include "sol-flow/robotics.h"
 #include "sol-log-internal.h"
+#include "sol-mainloop.h"
 
 enum switches {
     SW_ALL_OFF = 0,
@@ -194,6 +196,137 @@ quadrature_encoder_open(struct sol_flow_node *node, void *data,
     priv->last_a = false;
     priv->input_a = false;
     priv->input_b = false;
+
+    return 0;
+}
+
+/*
+ * Skid-steering odometry code based on sample code on [1].
+ * Copyright (c) 2000 Dafydd Walters <dafydd@walters.net>
+ * Permission to copy all or part of this article, and to use or modify
+ * the code samples is FREELY GRANTED, with the condition that copyright
+ * messages must be retained.
+ *
+ * [1]: http://www.seattlerobotics.org/encoder/200010/dead_reckoning_article.html
+ */
+
+struct skid_steer_odometer_data {
+    struct sol_timeout *timeout;
+    struct sol_flow_node *node;
+
+    long left_ticks, right_ticks;
+
+    struct sol_direction_vector cur_pos;
+    double space_coeff;
+    double axle_length;
+
+    bool dirty;
+};
+
+static bool
+update_odometry(void *data)
+{
+    struct skid_steer_odometer_data *priv = data;
+    double left_dist, curr_sin, curr_cos;
+
+    if (!priv->dirty)
+        return true;
+
+    priv->dirty = false;
+
+    left_dist = priv->left_ticks * priv->space_coeff;
+    curr_sin = sin(priv->cur_pos.z);
+    curr_cos = cos(priv->cur_pos.z);
+
+    if (priv->left_ticks == priv->right_ticks) {
+        priv->cur_pos.x += left_dist * curr_cos;
+        priv->cur_pos.y += left_dist * curr_sin;
+    } else {
+        const double right_dist = priv->right_ticks * priv->space_coeff;
+        const double right_minus_left = right_dist - left_dist;
+        const double distance = priv->axle_length * (right_dist + left_dist) / 2.0 / right_minus_left;
+
+        priv->cur_pos.x += distance *
+            (sin(right_minus_left / priv->axle_length + priv->cur_pos.z) - curr_sin);
+        priv->cur_pos.y -= distance *
+            (cos(right_minus_left / priv->axle_length + priv->cur_pos.z) - curr_cos);
+        priv->cur_pos.z += right_minus_left / priv->axle_length;
+
+        while (priv->cur_pos.z > M_PI)
+            priv->cur_pos.z -= 2 * M_PI;
+        while (priv->cur_pos.z < -M_PI)
+            priv->cur_pos.z += 2 * M_PI;
+    }
+
+    sol_flow_send_direction_vector_packet(priv->node,
+        SOL_FLOW_NODE_TYPE_ROBOTICS_SKID_STEER_ODOMETER__OUT__OUT,
+        &priv->cur_pos);
+
+    return true;
+}
+
+static int
+skid_steer_odometer_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    struct skid_steer_odometer_data *priv = data;
+    const struct sol_flow_node_type_robotics_skid_steer_odometer_options *opts =
+        (const struct sol_flow_node_type_robotics_skid_steer_odometer_options *)options;
+
+    if (opts->pulses_per_revolution <= 0) {
+        SOL_WRN("pulses_per_revolution must be greater than 0");
+        return -EINVAL;
+    }
+    if (opts->axle_length <= 0) {
+        SOL_WRN("axle_length must be greater than 0");
+        return -EINVAL;
+    }
+    if (opts->wheel_diameter <= 0) {
+        SOL_WRN("wheel_diameter must be greater than 0");
+        return -EINVAL;
+    }
+    if (opts->update_period <= 1) {
+        SOL_WRN("update_period must be greater than 1");
+        return -EINVAL;
+    }
+
+    priv->axle_length = opts->axle_length;
+    priv->space_coeff = M_PI * opts->wheel_diameter / opts->pulses_per_revolution;
+    priv->right_ticks = priv->left_ticks = 0.0;
+    priv->cur_pos = (struct sol_direction_vector) {
+        .x = 0.0, .y = 0.0, .z = 0.0
+    };
+    priv->timeout = NULL;
+    priv->node = node;
+
+    priv->dirty = true;
+    priv->timeout = sol_timeout_add(opts->update_period, update_odometry, priv);
+    SOL_NULL_CHECK(priv->timeout, -errno);
+
+    return 0;
+}
+
+static void
+skid_steer_odometer_close(struct sol_flow_node *node, void *data)
+{
+    struct skid_steer_odometer_data *priv = data;
+
+    sol_timeout_del(priv->timeout);
+}
+
+static int
+skid_steer_odometer_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct skid_steer_odometer_data *priv = data;
+
+    if (port == SOL_FLOW_NODE_TYPE_ROBOTICS_SKID_STEER_ODOMETER__IN__LEFT) {
+        priv->left_ticks++;
+    } else if (port == SOL_FLOW_NODE_TYPE_ROBOTICS_SKID_STEER_ODOMETER__IN__RIGHT) {
+        priv->right_ticks++;
+    }
+
+    priv->dirty = true;
 
     return 0;
 }
