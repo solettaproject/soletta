@@ -106,6 +106,67 @@
       "url": "http://solettaproject.org/doc/latest/components/robotics/quadrature-encoder.html"
     },
     {
+      "category": "robotics/localization",
+      "description": "Calculates estimated relative position and heading angle from encoder input in a tracked robot.",
+      "methods": {
+        "open": "skid_steer_odometer_open",
+        "close": "skid_steer_odometer_close"
+      },
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Input from left quadrature encoder.",
+          "name": "LEFT",
+          "methods": {
+            "process": "skid_steer_odometer_process"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Input from left quadrature encoder.",
+          "name": "RIGHT",
+          "methods": {
+            "process": "skid_steer_odometer_process"
+          }
+        }
+      ],
+      "name": "robotics/skid-steer-odometer",
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "X, Y are the relative positions, and Z is the heading",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "skid_steer_odometer_data",
+      "options": {
+        "version": 1,
+        "members": [
+          {
+            "data_type": "float",
+            "description": "Wheel diameter. Output will be in the same unit. Must be greater than zero.",
+            "name": "wheel_diameter"
+          },
+          {
+            "data_type": "float",
+            "description": "Encoder pulses per wheel revolution. Must be greater than zero.",
+            "name": "pulses_per_revolution"
+          },
+          {
+            "data_type": "float",
+            "description": "Axle length. Use a unit compatible with wheel_diameter. Must be greater than zero.",
+            "name": "axle_length"
+          },
+          {
+            "data_type": "int",
+            "description": "Update period, in ms. Default is 100ms.",
+            "name": "update_period",
+            "default": 100
+          }
+        ]
+      }
+    },
+    {
       "category": "robotics/controllers",
       "description": "PID (proportional, integral, derivative) controller.",
       "methods": {
