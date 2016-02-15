@@ -67,11 +67,9 @@ slider_setup(struct gtk_common_data *data,
         SOL_FLOW_NODE_TYPE_GTK_SLIDER_OPTIONS_API_VERSION,
         -EINVAL);
 
-    if (opts) {
-        min = opts->range.min;
-        max = opts->range.max;
-        step = opts->range.step;
-    }
+    min = opts->range.min;
+    max = opts->range.max;
+    step = opts->range.step;
 
     if (min > max) {
         SOL_WRN("invalid range min=%d max=%d for slider id=%s\n",

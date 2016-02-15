@@ -1063,14 +1063,14 @@ request_node_http_response(void *data,
 
     remove_connection(mdata, conn);
 
-    SOL_HTTP_RESPONSE_CHECK_API(response);
-
     if (!response) {
         SOL_ERR("Empty response from:%s", mdata->url);
         sol_flow_send_error_packet(node, EINVAL, "Empty response from:%s",
             mdata->url);
         return;
     }
+
+    SOL_HTTP_RESPONSE_CHECK_API_VERSION(response);
 
     mem = sol_buffer_steal(&response->content, &buf_size);
 
