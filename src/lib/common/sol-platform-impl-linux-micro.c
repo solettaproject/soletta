@@ -1146,9 +1146,30 @@ sol_platform_impl_set_timezone(const char *timezone)
     if (symlink(path, "/etc/localtime") < 0) {
         SOL_WRN("Could not create the symlink to the timezone %s", timezone);
         return -errno;
+    } else {
+        /* Check if it was linked to the right place to prevent TOCTOU */
+        char buf[PATH_MAX];
+        ssize_t len;
+
+        if ((len = readlink("/etc/localtime", buf, sizeof(buf) - 1)) < 0) {
+            r = -errno;
+            goto symlink_error;
+        }
+        buf[len] = '\0';
+        if (strcmp(path, buf)) {
+            r = -EINVAL;
+            goto symlink_error;
+        }
     }
 
     return 0;
+
+symlink_error:
+    SOL_WRN("Failed to verify link /etc/localtime for timezone: %s",
+        timezone);
+    if (unlink("/etc/localtime") < 0)
+        SOL_WRN("Could not unlink /etc/localtime");
+    return r;
 }
 
 static bool
