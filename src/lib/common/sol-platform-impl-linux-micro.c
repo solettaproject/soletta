@@ -199,7 +199,7 @@ new_external_service_module(const char *name)
     }
 #ifndef SOL_NO_API_VERSION
     if ((*p_sym)->api_version != SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION) {
-        SOL_WRN("module '%s' has incorrect api_version: %lu expected %lu",
+        SOL_WRN("module '%s' has incorrect api_version: %hu expected %hu",
             path, (*p_sym)->api_version, SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION);
         goto error;
     }
