@@ -1745,15 +1745,22 @@ SOL_API void
 sol_coap_packet_debug(struct sol_coap_packet *pkt)
 {
     int r;
-    char *path = NULL;
+    char *path = NULL, *query;
+    uint16_t query_len;
 
     if (sol_log_get_level() < SOL_LOG_LEVEL_DEBUG)
         return;
 
+    query = (char *)sol_coap_find_first_option(pkt, SOL_COAP_OPTION_URI_QUERY, &query_len);
+    if (!query)
+        query_len = 0;
+
     r = packet_extract_path(pkt, &path);
-    SOL_DBG("{id: %d, href: '%s', type: %d, header_code: %d}",
-        sol_coap_header_get_id(pkt), r == 0 ? path : "", sol_coap_header_get_type(pkt),
-        sol_coap_header_get_code(pkt));
+    SOL_DBG("{id: %d, href: '%s', type: %d, header_code: %d, query: '%.*s'}",
+        sol_coap_header_get_id(pkt), r == 0 ? path : "",
+        sol_coap_header_get_type(pkt),
+        sol_coap_header_get_code(pkt),
+        query_len, query);
     if (r == 0)
         free(path);
 }
