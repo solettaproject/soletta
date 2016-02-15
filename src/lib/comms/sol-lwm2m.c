@@ -29,13 +29,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <alloca.h>
 #include <errno.h>
 #include <float.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
 #define SOL_LOG_DOMAIN &_lwm2m_domain
 
@@ -59,6 +58,51 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_lwm2m_domain, "lwm2m");
 #define DEFAULT_CLIENT_LIFETIME (86400)
 #define DEFAULT_BINDING_MODE (SOL_LWM2M_BINDING_MODE_U)
 #define DEFAULT_LOCATION_PATH_SIZE (10)
+#define TLV_TYPE_MASK (192)
+#define TLV_ID_SIZE_MASK (32)
+#define TLV_CONTENT_LENGTH_MASK (24)
+#define TLV_CONTENT_LENGHT_CUSTOM_MASK (7)
+#define REMOVE_SIGN_BIT_MASK (127)
+#define SIGN_BIT_MASK (128)
+#define ID_HAS_16BITS_MASK (32)
+#define OBJ_LINK_LEN (4)
+#define LEN_IS_8BITS_MASK (8)
+#define LEN_IS_16BITS_MASK (16)
+#define LEN_IS_24BITS_MASK (24)
+#define UINT24_MAX (16777215)
+
+#ifndef SOL_NO_API_VERSION
+#define LWM2M_TLV_CHECK_API(_tlv, ...) \
+    do { \
+        if (SOL_UNLIKELY((_tlv)->api_version != \
+            SOL_LWM2M_TLV_API_VERSION)) { \
+            SOL_WRN("Couldn't handle tlv that has unsupported version " \
+                "'%u', expected version is '%u'", \
+                (_tlv)->api_version, SOL_LWM2M_TLV_API_VERSION); \
+            return __VA_ARGS__; \
+        } \
+    } while (0);
+#define LWM2M_RESOURCE_CHECK_API(_resource, ...) \
+    do { \
+        if (SOL_UNLIKELY((_resource)->api_version != \
+            SOL_LWM2M_RESOURCE_API_VERSION)) { \
+            SOL_WRN("Couldn't handle resource that has unsupported version " \
+                "'%u', expected version is '%u'", \
+                (_resource)->api_version, SOL_LWM2M_RESOURCE_API_VERSION); \
+            return __VA_ARGS__; \
+        } \
+    } while (0);
+#else
+#define LWM2M_TLV_CHECK_API(_tlv, ...)
+#define LWM2M_RESOURCE_CHECK_API(_resource, ...)
+#endif
+
+enum tlv_length_size_type {
+    LENGTH_SIZE_CHECK_NEXT_TWO_BITS = 0,
+    LENGTH_SIZE_8_BITS = 8,
+    LENGTH_SIZE_16_BITS = 16,
+    LENGTH_SIZE_24_BITS = 32
+};
 
 struct sol_lwm2m_server {
     struct sol_coap_server *coap;
@@ -69,6 +113,7 @@ struct sol_lwm2m_server {
         struct sol_timeout *timeout;
         uint32_t lifetime;
     } lifetime_ctx;
+    struct sol_ptr_vector observers;
 };
 
 struct sol_lwm2m_client_object {
@@ -90,7 +135,30 @@ struct sol_lwm2m_client_info {
     struct sol_coap_resource resource;
 };
 
+struct observer_entry {
+    struct sol_monitors monitors;
+    struct sol_lwm2m_server *server;
+    struct sol_lwm2m_client_info *cinfo;
+    int64_t token;
+    char *path;
+    bool removed;
+};
+
 static bool lifetime_timeout(void *data);
+
+static void
+send_ack_if_needed(struct sol_coap_server *coap, struct sol_coap_packet *msg,
+    const struct sol_network_link_addr *cliaddr)
+{
+    struct sol_coap_packet *ack;
+
+    if (sol_coap_header_get_type(msg) == SOL_COAP_TYPE_CON) {
+        ack = sol_coap_packet_new(msg);
+        SOL_NULL_CHECK(ack);
+        if (sol_coap_send_packet(coap, ack, cliaddr) < 0)
+            SOL_WRN("Could not send the reponse ACK");
+    }
+}
 
 static void
 dispatch_registration_event(struct sol_lwm2m_server *server,
@@ -738,6 +806,91 @@ static const struct sol_coap_resource registration_interface = {
         SOL_STR_SLICE_EMPTY
     }
 };
+
+static void
+observer_entry_free(struct observer_entry *entry)
+{
+    sol_monitors_clear(&entry->monitors);
+    free(entry->path);
+    free(entry);
+}
+
+static void
+remove_observer_entry(struct sol_ptr_vector *entries,
+    struct observer_entry *entry)
+{
+    int r;
+
+    r = sol_ptr_vector_del_element(entries, entry);
+    SOL_INT_CHECK(r, < 0);
+    observer_entry_free(entry);
+}
+
+static struct observer_entry *
+find_observer_entry(struct sol_ptr_vector *entries,
+    struct sol_lwm2m_client_info *cinfo, const char *path)
+{
+    uint16_t i;
+    struct observer_entry *entry;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (entries, entry, i) {
+        if (entry->cinfo == cinfo && streq(path, entry->path))
+            return entry;
+    }
+
+    return NULL;
+}
+
+static int
+observer_entry_new(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *cinfo, const char *path,
+    struct observer_entry **entry)
+{
+    int r = -ENOMEM;
+
+    *entry = calloc(1, sizeof(struct observer_entry));
+    SOL_NULL_CHECK(*entry, r);
+
+    (*entry)->path = strdup(path);
+    SOL_NULL_CHECK_GOTO((*entry)->path, err_exit);
+
+    sol_monitors_init(&(*entry)->monitors, NULL);
+    (*entry)->server = server;
+    (*entry)->cinfo = cinfo;
+
+    r = sol_ptr_vector_append(&server->observers, *entry);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    return 0;
+err_exit:
+    free((*entry)->path);
+    free(*entry);
+    return r;
+}
+
+static int
+observer_entry_add_monitor(struct observer_entry *entry,
+    sol_lwm2m_server_content_cb cb, const void *data)
+{
+    struct sol_monitors_entry *e;
+
+    e = sol_monitors_append(&entry->monitors, (sol_monitors_cb_t)cb, data);
+    SOL_NULL_CHECK(e, -ENOMEM);
+    return 0;
+}
+
+static int
+observer_entry_del_monitor(struct observer_entry *entry,
+    sol_lwm2m_server_content_cb cb, const void *data)
+{
+    int r;
+
+    r = sol_monitors_find(&entry->monitors, (sol_monitors_cb_t)cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_monitors_del(&entry->monitors, r);
+}
+
 SOL_API struct sol_lwm2m_server *
 sol_lwm2m_server_new(uint16_t port)
 {
@@ -754,7 +907,9 @@ sol_lwm2m_server_new(uint16_t port)
 
     sol_ptr_vector_init(&server->clients);
     sol_ptr_vector_init(&server->clients_to_delete);
+    sol_ptr_vector_init(&server->observers);
     sol_monitors_init(&server->registration, NULL);
+
     b = sol_coap_server_register_resource(server->coap,
         &registration_interface, server);
     if (!b) {
@@ -776,13 +931,18 @@ sol_lwm2m_server_del(struct sol_lwm2m_server *server)
 {
     uint16_t i;
     struct sol_lwm2m_client_info *cinfo;
+    struct observer_entry *entry;
 
     SOL_NULL_CHECK(server);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&server->observers, entry, i)
+        entry->removed = true;
 
     sol_coap_server_unref(server->coap);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&server->clients, cinfo, i)
         client_info_del(cinfo);
+
     if (server->lifetime_ctx.timeout)
         sol_timeout_del(server->lifetime_ctx.timeout);
 
@@ -920,3 +1080,801 @@ sol_lwm2m_client_object_get_instances(
     return &object->instances;
 }
 
+static size_t
+get_int_size(int64_t i)
+{
+    if (i >= INT8_MIN && i <= INT8_MAX)
+        return 1;
+    if (i >= INT16_MIN && i <= INT16_MAX)
+        return 2;
+    if (i >= INT32_MIN && i <= INT32_MAX)
+        return 4;
+    return 8;
+}
+
+static int
+get_resource_len(const struct sol_lwm2m_resource *resource, uint16_t index,
+    size_t *len)
+{
+    switch (resource->data_type) {
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_STRING:
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE:
+        *len = resource->data[index].bytes.len;
+        return 0;
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_INT:
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
+        *len = get_int_size(resource->data[index].integer);
+        return 0;
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN:
+        *len = 1;
+        return 0;
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT:
+        *len = 8;
+        return 0;
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK:
+        *len = OBJ_LINK_LEN;
+        return 0;
+    default:
+        return -EINVAL;
+    }
+}
+
+static void
+swap_bytes(uint8_t *to_swap, size_t len)
+{
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    return;
+#elif __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    uint8_t swap;
+    size_t i, j, stop;
+
+    stop = len / 2;
+
+    for (i = 0, j = len - 1; i != stop; i++, j--) {
+        swap = to_swap[i];
+        to_swap[i] = to_swap[j];
+        to_swap[j] = swap;
+    }
+#else
+#error "Unknown byte order"
+#endif
+}
+
+static int
+add_float_resource(struct sol_buffer *buf, double fp, size_t len)
+{
+    uint8_t *bytes = NULL;
+    float f;
+    double d;
+
+    if (len == 4) {
+        f = (float)fp;
+        swap_bytes((uint8_t *)&f, len);
+        bytes = (uint8_t *)&f;
+    } else {
+        d = fp;
+        swap_bytes((uint8_t *)&d, len);
+        bytes = (uint8_t *)&d;
+    }
+
+    return sol_buffer_append_bytes(buf, bytes, len);
+}
+
+static int
+add_int_resource(struct sol_buffer *buf, int64_t i, size_t len)
+{
+    swap_bytes((uint8_t *)&i, len);
+    return sol_buffer_append_bytes(buf, (uint8_t *)&i, len);
+}
+
+static int
+add_resource_bytes_to_buffer(const struct sol_lwm2m_resource *resource,
+    struct sol_buffer *buf, uint16_t idx)
+{
+    int r;
+    uint8_t b;
+    size_t len;
+
+    r = get_resource_len(resource, idx, &len);
+    SOL_INT_CHECK(r, < 0, r);
+
+    switch (resource->data_type) {
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_STRING:
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE:
+        return sol_buffer_append_slice(buf, resource->data[idx].bytes);
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_INT:
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK:
+        return add_int_resource(buf, resource->data[idx].integer, len);
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN:
+        b = resource->data[idx].integer != 0 ? 1 : 0;
+        return sol_buffer_append_bytes(buf, (uint8_t *)&b, 1);
+    case SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT:
+        return add_float_resource(buf, resource->data[idx].fp, len);
+    default:
+        return -EINVAL;
+    }
+}
+
+static int
+set_packet_payload(struct sol_coap_packet *pkt,
+    const uint8_t *data, uint16_t len)
+{
+    int r;
+    uint16_t payload_len;
+    uint8_t *payload;
+
+    r = sol_coap_packet_get_payload(pkt, &payload, &payload_len);
+    SOL_INT_CHECK(r, < 0, r);
+    SOL_INT_CHECK(len, > payload_len, -ENOMEM);
+
+    memcpy(payload, data, len);
+    return sol_coap_packet_set_payload_used(pkt, len);
+}
+
+static int
+setup_tlv_header(enum sol_lwm2m_tlv_type tlv_type, uint16_t res_id,
+    struct sol_buffer *buf, size_t data_len)
+{
+    int r;
+    uint8_t tlv_data[6];
+    size_t tlv_data_len;
+
+    tlv_data_len = 2;
+
+    tlv_data[0] = tlv_type;
+
+    if (res_id > UINT8_MAX) {
+        tlv_data[0] |= ID_HAS_16BITS_MASK;
+        tlv_data[1] = (res_id >> 8) & 255;
+        tlv_data[2] = res_id & 255;
+        tlv_data_len++;
+    } else
+        tlv_data[1] = res_id;
+
+    if (data_len <= 7)
+        tlv_data[0] |= data_len;
+    else if (data_len <= UINT8_MAX) {
+        tlv_data[tlv_data_len++] = data_len;
+        tlv_data[0] |= LEN_IS_8BITS_MASK;
+    } else if (data_len <= UINT16_MAX) {
+        tlv_data[tlv_data_len++] = (data_len >> 8) & 255;
+        tlv_data[tlv_data_len++] = data_len & 255;
+        tlv_data[0] |= LEN_IS_16BITS_MASK;
+    } else if (data_len <= UINT24_MAX) {
+        tlv_data[tlv_data_len++] = (data_len >> 16) & 255;
+        tlv_data[tlv_data_len++] = (data_len >> 8) & 255;
+        tlv_data[tlv_data_len++] = data_len & 255;
+        tlv_data[0] |= LEN_IS_24BITS_MASK;
+    } else
+        return -ENOMEM;
+
+    r = sol_buffer_append_bytes(buf, tlv_data, tlv_data_len);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+static int
+setup_tlv(struct sol_lwm2m_resource *resource, struct sol_buffer *buf)
+{
+    int r;
+    size_t data_len, len;
+    uint16_t i;
+    enum sol_lwm2m_tlv_type type;
+
+    LWM2M_RESOURCE_CHECK_API(resource, -EINVAL);
+
+    for (i = 0, data_len = 0; i < resource->data_len; i++) {
+        r = get_resource_len(resource, i, &len);
+        SOL_INT_CHECK(r, < 0, r);
+        data_len += len;
+    }
+
+    switch (resource->type) {
+    case SOL_LWM2M_RESOURCE_TYPE_SINGLE:
+        type = SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE;
+        break;
+    case SOL_LWM2M_RESOURCE_TYPE_MULTIPLE:
+        type = SOL_LWM2M_TLV_TYPE_MULTIPLE_RESOURCES;
+        data_len += (resource->data_len * 2);
+        break;
+    default:
+        SOL_WRN("Unknown resource type '%d'", (int)resource->type);
+        return -EINVAL;
+    }
+
+    r = setup_tlv_header(type, resource->id, buf, data_len);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (type == SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE)
+        return add_resource_bytes_to_buffer(resource, buf, 0);
+
+    for (i = 0; i < resource->data_len; i++) {
+        r = get_resource_len(resource, i, &data_len);
+        SOL_INT_CHECK(r, < 0, r);
+        r = setup_tlv_header(SOL_LWM2M_TLV_TYPE_RESOURCE_INSTANCE, i,
+            buf, data_len);
+        SOL_INT_CHECK(r, < 0, r);
+        r = add_resource_bytes_to_buffer(resource, buf, i);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    return 0;
+}
+
+static int
+resources_to_tlv(struct sol_lwm2m_resource *resources,
+    size_t len, struct sol_buffer *tlvs)
+{
+    int r;
+    size_t i;
+
+    for (i = 0; i < len; i++) {
+        r = setup_tlv(&resources[i], tlvs);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    return 0;
+
+exit:
+    return r;
+}
+
+static int
+add_coap_int_option(struct sol_coap_packet *pkt,
+    sol_coap_option_num_t opt, const void *data, uint16_t len)
+{
+    uint8_t buf[sizeof(int64_t)] = { };
+
+    memcpy(buf, data, len);
+    swap_bytes(buf, len);
+    return sol_coap_add_option(pkt, opt, buf, len);
+}
+
+static int
+get_coap_int_option(struct sol_coap_packet *pkt,
+    sol_coap_option_num_t opt, uint16_t *value)
+{
+    const void *v;
+    uint16_t len;
+
+    v = sol_coap_find_first_option(pkt, opt, &len);
+
+    if (!v)
+        return -ENOENT;
+
+    memcpy(value, v, len);
+    swap_bytes((uint8_t *)value, len);
+    return 0;
+}
+
+static int
+setup_coap_packet(sol_coap_method_t method,
+    sol_coap_msgtype_t type, const char *objects_path, const char *path,
+    uint8_t *obs, int64_t *token, struct sol_lwm2m_resource *resources,
+    size_t len,
+    const char *execute_args,
+    struct sol_coap_packet **pkt)
+{
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+    struct sol_buffer tlvs =
+        SOL_BUFFER_INIT_FLAGS(NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    struct sol_random *random;
+    uint16_t content_type, content_len = 0;
+    const uint8_t *content_data;
+    int64_t t;
+    int r;
+
+    random = sol_random_new(SOL_RANDOM_DEFAULT, 0);
+    SOL_NULL_CHECK(random, -ENOMEM);
+
+    *pkt = sol_coap_packet_request_new(method, type);
+    r = -ENOMEM;
+    SOL_NULL_CHECK_GOTO(*pkt, exit);
+
+    if (!sol_random_get_int64(random, &t)) {
+        SOL_WRN("Could not generate a random number");
+        r = -ECANCELED;
+        goto exit;
+    }
+
+    if (!sol_coap_header_set_token(*pkt, (uint8_t *)&t,
+        (uint8_t)sizeof(int64_t))) {
+        SOL_WRN("Could not set the token");
+        r = -ECANCELED;
+        goto exit;
+    }
+
+    if (token)
+        *token = t;
+
+    if (obs) {
+        r = add_coap_int_option(*pkt, SOL_COAP_OPTION_OBSERVE, obs,
+            sizeof(uint8_t));
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    if (objects_path) {
+        r = sol_buffer_append_slice(&buf,
+            sol_str_slice_from_str(objects_path));
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    r = sol_buffer_append_slice(&buf, sol_str_slice_from_str(path));
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    r = sol_coap_packet_add_uri_path_option(*pkt, buf.data);
+    SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+    if (execute_args) {
+        size_t str_len;
+        content_type = SOL_LWM2M_CONTENT_TYPE_TEXT;
+        content_data = (const uint8_t *)execute_args;
+        str_len = strlen(execute_args);
+        r = -ENOMEM;
+        SOL_INT_CHECK_GOTO(str_len, >= UINT16_MAX, exit);
+        content_len = str_len;
+    } else if (resources) {
+        content_type = SOL_LWM2M_CONTENT_TYPE_TLV;
+        r = resources_to_tlv(resources, len, &tlvs);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+        r = -ENOMEM;
+        SOL_INT_CHECK_GOTO(tlvs.used, >= UINT16_MAX, exit);
+        content_data = tlvs.data;
+        content_len = tlvs.used;
+    }
+
+    if (content_len > 0) {
+        r = add_coap_int_option(*pkt, SOL_COAP_OPTION_CONTENT_FORMAT,
+            &content_type, sizeof(content_type));
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+
+        r = set_packet_payload(*pkt, content_data, content_len);
+        SOL_INT_CHECK_GOTO(r, < 0, exit);
+    }
+
+    r = 0;
+
+exit:
+    if (r < 0)
+        sol_coap_packet_unref(*pkt);
+    sol_buffer_fini(&tlvs);
+    sol_buffer_fini(&buf);
+    sol_random_del(random);
+    return r;
+}
+
+static void
+extract_content(struct sol_coap_packet *req, uint8_t *code,
+    enum sol_lwm2m_content_type *type, struct sol_str_slice *content)
+{
+    uint16_t len;
+    uint8_t *buf;
+    int r;
+
+    *code = sol_coap_header_get_code(req);
+
+    if (sol_coap_packet_has_payload(req)) {
+        r = sol_coap_packet_get_payload(req, &buf, &len);
+        SOL_INT_CHECK(r, < 0);
+        content->len = len;
+        content->data = (const char *)buf;
+        r = get_coap_int_option(req, SOL_COAP_OPTION_CONTENT_FORMAT,
+            (uint16_t *)type);
+        if (r < 0)
+            SOL_INF("Content format not specified");
+    }
+}
+
+static bool
+observation_request_reply(struct sol_coap_server *coap_server,
+    struct sol_coap_packet *req, const struct sol_network_link_addr *cliaddr,
+    void *data)
+{
+    struct observer_entry *entry = data;
+    struct sol_monitors_entry *m;
+    struct sol_str_slice content = SOL_STR_SLICE_EMPTY;
+    enum sol_lwm2m_content_type type = SOL_LWM2M_CONTENT_TYPE_TEXT;
+    uint16_t i;
+    uint8_t code = SOL_COAP_RSPCODE_GATEWAY_TIMEOUT;
+    bool keep_alive = true;
+
+    if (!cliaddr && !req) {
+        //Cancel observation
+        if (entry->removed) {
+            remove_observer_entry(&entry->server->observers, entry);
+            return false;
+        }
+        SOL_WRN("Could not complete the observation request on client:%s"
+            " path:%s", entry->path, entry->cinfo->name);
+        keep_alive = false;
+    } else {
+        extract_content(req, &code, &type, &content);
+        send_ack_if_needed(coap_server, req, cliaddr);
+    }
+
+    SOL_MONITORS_WALK (&entry->monitors, m, i)
+        ((sol_lwm2m_server_content_cb)m->cb)((void *)m->data, entry->server,
+            entry->cinfo, entry->path, code, type, content);
+
+    return keep_alive;
+}
+
+SOL_API int
+sol_lwm2m_server_add_observer(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client,
+    const char *path, sol_lwm2m_server_content_cb cb, const void *data)
+{
+    struct observer_entry *entry;
+    struct sol_coap_packet *pkt;
+    uint8_t obs = 0;
+    int r;
+    bool send_msg = false;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+
+    entry = find_observer_entry(&server->observers, client, path);
+
+    if (!entry) {
+        send_msg = true;
+        r = observer_entry_new(server, client, path, &entry);
+        SOL_INT_CHECK(r, < 0, r);
+    }
+
+    r = observer_entry_add_monitor(entry, cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!send_msg)
+        return 0;
+
+    r = setup_coap_packet(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON,
+        client->objects_path, path, &obs, &entry->token, NULL, 0, NULL, &pkt);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_coap_send_packet_with_reply(server->coap, pkt, &client->cliaddr,
+        observation_request_reply, entry);
+}
+
+SOL_API int
+sol_lwm2m_server_del_observer(struct sol_lwm2m_server *server,
+    struct sol_lwm2m_client_info *client, const char *path,
+    sol_lwm2m_server_content_cb cb, const void *data)
+{
+    struct observer_entry *entry;
+    int r;
+    int64_t token;
+
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(path, -EINVAL);
+    SOL_NULL_CHECK(client, -EINVAL);
+
+    entry = find_observer_entry(&server->observers, client, path);
+    SOL_NULL_CHECK(entry, -ENOENT);
+
+    r = observer_entry_del_monitor(entry, cb, data);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (entry->monitors.entries.len)
+        return 0;
+
+    entry->removed = true;
+    token = entry->token;
+
+    return sol_coap_unobserve_server(server->coap, &entry->cinfo->cliaddr,
+        (uint8_t *)&token, sizeof(token));
+}
+
+SOL_API int
+sol_lwm2m_resource_init(struct sol_lwm2m_resource *resource,
+    uint16_t id, uint16_t resource_len,
+    enum sol_lwm2m_resource_data_type data_type, ...)
+{
+    uint16_t i;
+    va_list ap;
+    int r = 0;
+
+    if (!resource || data_type == SOL_LWM2M_RESOURCE_DATA_TYPE_NONE ||
+        !resource_len)
+        return -EINVAL;
+
+    LWM2M_RESOURCE_CHECK_API(resource, -EINVAL);
+
+    resource->id = id;
+    if (resource_len > 1)
+        resource->type = SOL_LWM2M_RESOURCE_TYPE_MULTIPLE;
+    else
+        resource->type = SOL_LWM2M_RESOURCE_TYPE_SINGLE;
+    resource->data_type = data_type;
+    resource->data = calloc(resource_len, sizeof(union sol_lwm2m_resource_data));
+    SOL_NULL_CHECK(resource->data, -ENOMEM);
+    resource->data_len = resource_len;
+
+    va_start(ap, data_type);
+
+    for (i = 0; i < resource_len; i++) {
+        switch (resource->data_type) {
+        case SOL_LWM2M_RESOURCE_DATA_TYPE_OPAQUE:
+        case SOL_LWM2M_RESOURCE_DATA_TYPE_STRING:
+            resource->data[i].bytes = va_arg(ap, struct sol_str_slice);
+            break;
+        case SOL_LWM2M_RESOURCE_DATA_TYPE_FLOAT:
+            resource->data[i].fp = va_arg(ap, double);
+            break;
+        case SOL_LWM2M_RESOURCE_DATA_TYPE_INT:
+        case SOL_LWM2M_RESOURCE_DATA_TYPE_TIME:
+            resource->data[i].integer = va_arg(ap, int64_t);
+            break;
+        case SOL_LWM2M_RESOURCE_DATA_TYPE_BOOLEAN:
+            resource->data[i].integer = va_arg(ap, int);
+            break;
+        case SOL_LWM2M_RESOURCE_DATA_TYPE_OBJ_LINK:
+            resource->data[i].integer = (uint16_t)va_arg(ap, int);
+            resource->data[i].integer = (resource->data[i].integer << 16) |
+                (uint16_t)va_arg(ap, int);
+            break;
+        default:
+            r = -EINVAL;
+        }
+    }
+
+    if (r < 0)
+        free(resource->data);
+
+    va_end(ap);
+    return r;
+}
+
+static void
+tlv_clear(struct sol_lwm2m_tlv *tlv)
+{
+    LWM2M_TLV_CHECK_API(tlv);
+    sol_buffer_fini(&tlv->content);
+}
+
+SOL_API void
+sol_lwm2m_tlv_clear(struct sol_lwm2m_tlv *tlv)
+{
+    SOL_NULL_CHECK(tlv);
+    tlv_clear(tlv);
+}
+
+SOL_API void
+sol_lwm2m_tlv_array_clear(struct sol_vector *tlvs)
+{
+    uint16_t i;
+    struct sol_lwm2m_tlv *tlv;
+
+    SOL_NULL_CHECK(tlvs);
+
+    SOL_VECTOR_FOREACH_IDX (tlvs, tlv, i)
+        tlv_clear(tlv);
+    sol_vector_clear(tlvs);
+}
+
+SOL_API int
+sol_lwm2m_parse_tlv(const struct sol_str_slice content, struct sol_vector *out)
+{
+    size_t i, offset;
+    struct sol_lwm2m_tlv *tlv;
+    int r;
+
+    SOL_NULL_CHECK(out, -EINVAL);
+
+    sol_vector_init(out, sizeof(struct sol_lwm2m_tlv));
+
+    for (i = 0; i < content.len;) {
+        struct sol_str_slice tlv_content;
+        tlv = sol_vector_append(out);
+        r = -ENOMEM;
+        SOL_NULL_CHECK_GOTO(tlv, err_exit);
+
+        sol_buffer_init(&tlv->content);
+
+        SOL_SET_API_VERSION(tlv->api_version = SOL_LWM2M_TLV_API_VERSION; )
+
+        tlv->type = content.data[i] & TLV_TYPE_MASK;
+
+        if ((content.data[i] & TLV_ID_SIZE_MASK) != TLV_ID_SIZE_MASK) {
+            tlv->id = content.data[i + 1];
+            offset = i + 2;
+        } else {
+            tlv->id = (content.data[i + 1] << 8) | content.data[i + 2];
+            offset = i + 3;
+        }
+
+        SOL_INT_CHECK_GOTO(offset, >= content.len, err_would_overflow);
+
+        switch (content.data[i] & TLV_CONTENT_LENGTH_MASK) {
+        case LENGTH_SIZE_24_BITS:
+            tlv_content.len = (content.data[offset] << 16) |
+                (content.data[offset + 1] << 8) | content.data[offset + 2];
+            offset += 3;
+            break;
+        case LENGTH_SIZE_16_BITS:
+            tlv_content.len |= (content.data[offset] << 8) |
+                content.data[offset + 1];
+            offset += 2;
+            break;
+        case LENGTH_SIZE_8_BITS:
+            tlv_content.len = content.data[offset];
+            offset++;
+            break;
+        default:
+            tlv_content.len = content.data[i] & TLV_CONTENT_LENGHT_CUSTOM_MASK;
+        }
+
+        SOL_INT_CHECK_GOTO(offset, >= content.len, err_would_overflow);
+
+        tlv_content.data = content.data + offset;
+
+        r = sol_buffer_append_slice(&tlv->content, tlv_content);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+        SOL_DBG("tlv type: %u, ID: %" PRIu16 ", Size: %zu, Content: %.*s",
+            tlv->type, tlv->id, tlv_content.len,
+            SOL_STR_SLICE_PRINT(tlv_content));
+
+        if (tlv->type != SOL_LWM2M_TLV_TYPE_MULTIPLE_RESOURCES &&
+            tlv->type != SOL_LWM2M_TLV_TYPE_OBJECT_INSTANCE)
+            i += ((offset - i) + tlv_content.len);
+        else
+            i += (offset - i);
+    }
+
+    return 0;
+
+err_would_overflow:
+    r = -EOVERFLOW;
+err_exit:
+    sol_lwm2m_tlv_array_clear(out);
+    return r;
+}
+
+static int
+is_resource(struct sol_lwm2m_tlv *tlv)
+{
+    if (tlv->type != SOL_LWM2M_TLV_TYPE_RESOURCE_WITH_VALUE &&
+        tlv->type != SOL_LWM2M_TLV_TYPE_RESOURCE_INSTANCE)
+        return -EINVAL;
+    return 0;
+}
+
+SOL_API int
+sol_lwm2m_tlv_to_int(struct sol_lwm2m_tlv *tlv, int64_t *value)
+{
+    int8_t i8;
+    int16_t i16;
+    int32_t i32;
+    int64_t i64;
+
+    SOL_NULL_CHECK(tlv, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+    SOL_INT_CHECK(is_resource(tlv), < 0, -EINVAL);
+    LWM2M_TLV_CHECK_API(tlv, -EINVAL);
+
+#define TO_LOCAL_INT_VALUE(_network_int, _local_int, _out) \
+    memcpy(&(_local_int), _network_int, sizeof((_local_int))); \
+    swap_bytes((uint8_t *)&(_local_int), sizeof((_local_int))); \
+    *(_out) = _local_int;
+
+    switch (tlv->content.used) {
+    case 1:
+        TO_LOCAL_INT_VALUE(tlv->content.data, i8, value);
+        break;
+    case 2:
+        TO_LOCAL_INT_VALUE(tlv->content.data, i16, value);
+        break;
+    case 4:
+        TO_LOCAL_INT_VALUE(tlv->content.data, i32, value);
+        break;
+    case 8:
+        TO_LOCAL_INT_VALUE(tlv->content.data, i64, value);
+        break;
+    default:
+        SOL_WRN("Invalid int size: %zu", tlv->content.used);
+        return -EINVAL;
+    }
+
+    SOL_DBG("TLV has integer data. Value: %" PRId64 "", *value);
+    return 0;
+
+#undef TO_LOCAL_INT_VALUE
+}
+
+SOL_API int
+sol_lwm2m_tlv_to_bool(struct sol_lwm2m_tlv *tlv, bool *value)
+{
+    char v;
+
+    SOL_NULL_CHECK(tlv, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+    SOL_INT_CHECK(is_resource(tlv), < 0, -EINVAL);
+    LWM2M_TLV_CHECK_API(tlv, -EINVAL);
+    SOL_INT_CHECK(tlv->content.used, != 1, -EINVAL);
+
+    v = (((char *)tlv->content.data))[0];
+
+    if (v != 0 && v != 1) {
+        SOL_WRN("The TLV value is not '0' or '1'. Actual value:%d", v);
+        return -EINVAL;
+    }
+
+    *value = (bool)v;
+    SOL_DBG("TLV data as bool: %d", (int)*value);
+    return 0;
+}
+
+SOL_API int
+sol_lwm2m_tlv_to_float(struct sol_lwm2m_tlv *tlv, double *value)
+{
+    SOL_NULL_CHECK(tlv, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
+    SOL_INT_CHECK(is_resource(tlv), < 0, -EINVAL);
+    LWM2M_TLV_CHECK_API(tlv, -EINVAL);
+
+    if (tlv->content.used == 4) {
+        float f;
+        memcpy(&f, tlv->content.data, sizeof(float));
+        swap_bytes((uint8_t *)&f, sizeof(float));
+        *value = f;
+    } else if (tlv->content.used == 8) {
+        memcpy(value, tlv->content.data, sizeof(double));
+        swap_bytes((uint8_t *)value, sizeof(double));
+    } else
+        return -EINVAL;
+
+    SOL_DBG("TLV has float data. Value: %g", *value);
+    return 0;
+}
+
+SOL_API int
+sol_lwm2m_tlv_to_obj_link(struct sol_lwm2m_tlv *tlv,
+    uint16_t *object_id, uint16_t *instance_id)
+{
+    int32_t i = 0;
+
+    SOL_NULL_CHECK(tlv, -EINVAL);
+    SOL_NULL_CHECK(object_id, -EINVAL);
+    SOL_NULL_CHECK(instance_id, -EINVAL);
+    SOL_INT_CHECK(is_resource(tlv), < 0, -EINVAL);
+    LWM2M_TLV_CHECK_API(tlv, -EINVAL);
+    SOL_INT_CHECK(tlv->content.used, != OBJ_LINK_LEN, -EINVAL);
+
+
+    memcpy(&i, tlv->content.data, OBJ_LINK_LEN);
+    swap_bytes((uint8_t *)&i, OBJ_LINK_LEN);
+    *object_id = (i >> 16) & 0xFFFF;
+    *instance_id = i & 0xFFFF;
+
+    SOL_DBG("TLV has object link value. Object id:%" PRIu16
+        "  Instance id:%" PRIu16 "", *object_id, *instance_id);
+    return 0;
+}
+
+SOL_API int
+sol_lwm2m_tlv_get_bytes(struct sol_lwm2m_tlv *tlv, uint8_t **bytes,
+    uint16_t *len)
+{
+    SOL_NULL_CHECK(tlv, -EINVAL);
+    SOL_NULL_CHECK(bytes, -EINVAL);
+    SOL_NULL_CHECK(len, -EINVAL);
+    SOL_INT_CHECK(is_resource(tlv), < 0, -EINVAL);
+    LWM2M_TLV_CHECK_API(tlv, -EINVAL);
+
+    *bytes = (uint8_t *)tlv->content.data;
+    *len = tlv->content.used;
+
+    return 0;
+}
+
+SOL_API void
+sol_lwm2m_resource_clear(struct sol_lwm2m_resource *resource)
+{
+    SOL_NULL_CHECK(resource);
+    LWM2M_RESOURCE_CHECK_API(resource);
+
+    free(resource->data);
+}
