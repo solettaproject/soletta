@@ -113,8 +113,8 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(config->api_version != SOL_UART_CONFIG_API_VERSION)) {
-        SOL_WRN("Couldn't open UART that has unsupported version '%u', "
-            "expected version is '%u'",
+        SOL_WRN("Couldn't open UART that has unsupported version '%" PRIu16 "', "
+            "expected version is '%" PRIu16 "'",
             config->api_version, SOL_UART_CONFIG_API_VERSION);
         return NULL;
     }

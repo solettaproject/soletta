@@ -37,6 +37,7 @@
 #include <sol-common-buildopts.h>
 #include <sol-vector.h>
 #include <sol-str-slice.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -170,7 +171,7 @@ struct sol_network_link {
 #define SOL_NETWORK_LINK_CHECK_VERSION(link_, ...) \
     if (SOL_UNLIKELY((link_)->api_version != \
         SOL_NETWORK_LINK_API_VERSION)) { \
-        SOL_WRN("Unexpected API version (message is %u, expected %u)", \
+        SOL_WRN("Unexpected API version (message is %" PRIu16 ", expected %" PRIu16 ")", \
             (link_)->api_version, SOL_NETWORK_LINK_API_VERSION); \
         return __VA_ARGS__; \
     }

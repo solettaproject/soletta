@@ -49,7 +49,7 @@ check_metatype(const char *path, const char *symbol_name, void *symbol)
 
 #ifndef SOL_NO_API_VERSION
     if (metatype->api_version != SOL_FLOW_METATYPE_API_VERSION) {
-        SOL_WRN("Module '%s' has incorrect api_version: %u expected %u",
+        SOL_WRN("Module '%s' has incorrect api_version: %" PRIu16 " expected %" PRIu16,
             path, metatype->api_version, SOL_FLOW_METATYPE_API_VERSION);
         return false;
     }

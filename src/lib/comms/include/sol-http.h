@@ -37,6 +37,7 @@
 #include <sol-macros.h>
 #include <sol-str-slice.h>
 #include <sol-vector.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -211,7 +212,7 @@ struct sol_http_url {
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, ...) \
     if (SOL_UNLIKELY((response_)->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (response is %" PRIu16 ", expected %" PRIu16 ")", \
             (response_)->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
         return __VA_ARGS__; \
     }
@@ -245,7 +246,7 @@ struct sol_http_url {
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label) \
     if (SOL_UNLIKELY((response_)->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (response is %" PRIu16 ", expected %" PRIu16 ")", \
             (response_)->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
         goto label; \
     }
@@ -297,7 +298,7 @@ struct sol_http_url {
 #define SOL_HTTP_PARAMS_CHECK_API_VERSION(params_, ...) \
     if (SOL_UNLIKELY((params_)->api_version != \
         SOL_HTTP_PARAM_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (response is %" PRIu16 ", expected %" PRIu16 ")", \
             (params_)->api_version, SOL_HTTP_PARAM_API_VERSION); \
         return __VA_ARGS__; \
     }
@@ -315,7 +316,7 @@ struct sol_http_url {
 #define SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params_, label_) \
     if (SOL_UNLIKELY((params_)->api_version != \
         SOL_HTTP_PARAM_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (params is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (params is %" PRIu16 ", expected %" PRIu16 ")", \
             (params_)->api_version, SOL_HTTP_PARAM_API_VERSION); \
         goto label_; \
     }

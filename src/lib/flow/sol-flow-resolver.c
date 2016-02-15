@@ -110,8 +110,8 @@ sol_flow_resolve(
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(resolver->api_version != SOL_FLOW_RESOLVER_API_VERSION)) {
-        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
-            "expected version is '%u'",
+        SOL_WRN("Couldn't open gpio that has unsupported version '%" PRIu16 "', "
+            "expected version is '%" PRIu16 "'",
             resolver->api_version, SOL_FLOW_RESOLVER_API_VERSION);
         return -EINVAL;
     }
