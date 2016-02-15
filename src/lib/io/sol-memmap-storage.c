@@ -245,13 +245,11 @@ check_version(struct map_internal *map_internal)
     if (map_internal->checked)
         return true;
 
-#ifndef SOL_NO_API_VERSION
-    if (!map_internal->map->api_version || map_internal->map->api_version == UINT16_MAX) {
-        SOL_WRN("Invalid memory_map_version. Should be between 1 and %" PRIu16 ". Found %" PRIu16,
-            UINT16_MAX, map_internal->map->api_version);
+    if (!map_internal->map->version || map_internal->map->version == UINT8_MAX) {
+        SOL_WRN("Invalid memory_map_version. Should be between 1 and %" PRIu8 ". Found %" PRIu8,
+            UINT8_MAX, map_internal->map->version);
         return false;
     }
-#endif
 
     if (!get_entry_metadata_on_map(MEMMAP_VERSION_ENTRY, map_internal->map, &entry,
         &mask)) {
@@ -261,12 +259,12 @@ check_version(struct map_internal *map_internal)
     }
 
     ret = sol_memmap_read_raw_do(map_internal->resolved_path, entry, mask, &buf);
-    if (ret >= 0 && (version == 0 || version == 255)) {
-        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL, &map_internal->map->api_version, sizeof(uint16_t));
+    if (ret >= 0 && (version == 0 || version == UINT8_MAX)) {
+        blob = sol_blob_new(&SOL_BLOB_TYPE_NO_FREE_DATA, NULL, &map_internal->map->version, sizeof(uint8_t));
         SOL_NULL_CHECK(blob, false);
 
         /* No version on file, we should be initialising it */
-        version = map_internal->map->api_version;
+        version = map_internal->map->version;
         if ((ret = sol_memmap_write_raw_do(map_internal->resolved_path, MEMMAP_VERSION_ENTRY, entry, mask, blob, version_write_cb, NULL, NULL)) < 0) {
             SOL_WRN("Could not write current map version to file [%s]: %s",
                 map_internal->resolved_path,
@@ -281,9 +279,9 @@ check_version(struct map_internal *map_internal)
         return false;
     }
 
-    if (version != map_internal->map->api_version) {
-        SOL_WRN("Memory map version mismatch. Expected %d but found %d",
-            map_internal->map->api_version, version);
+    if (version != map_internal->map->version) {
+        SOL_WRN("Memory map version mismatch. Expected %" PRIu8 "but found %" PRIu8,
+            map_internal->map->version, version);
         return false;
     }
 

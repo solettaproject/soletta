@@ -395,7 +395,7 @@ _parse_maps(struct sol_json_token token)
         map = calloc(1, sizeof(struct sol_memmap_map) + entries_vector_size);
         SOL_NULL_CHECK_GOTO(map, error);
 
-        map->api_version = version;
+        map->version = version;
         map->timeout = timeout;
         r = sol_json_token_get_unescaped_string(&path, &path_buffer);
         SOL_INT_CHECK_GOTO(r, < 0, error);

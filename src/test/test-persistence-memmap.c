@@ -61,7 +61,7 @@ static const struct sol_str_table_ptr _memmap0_entries[] = {
 };
 
 static const struct sol_memmap_map _memmap0 = {
-    .api_version = 1,
+    .version = 1,
     .path = "memmap-test.bin",
     .entries = _memmap0_entries
 };
@@ -106,7 +106,7 @@ static const struct sol_str_table_ptr _memmap1_entries[] = {
 };
 
 static const struct sol_memmap_map _memmap1 = {
-    .api_version = 1,
+    .version = 1,
     .path = "memmap-test2.bin",
     .entries = _memmap1_entries
 };
