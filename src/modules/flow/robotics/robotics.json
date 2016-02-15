@@ -1,0 +1,150 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "robotics",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "BSD-3-Clause",
+    "version": "1"
+  },
+  "types": [
+    {
+      "category": "robotics/motor",
+      "description": "H-Bridge node, compatible with L293D.",
+      "in_ports": [
+        {
+          "data_type": "any",
+          "description": "Rotate clockwise.",
+          "name": "CW",
+          "methods": {
+            "process": "hbridge_process_cw"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Rotate counter-clockwise.",
+          "name": "CCW",
+          "methods": {
+            "process": "hbridge_process_ccw"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Coast motor.",
+          "name": "COAST",
+          "methods": {
+            "process": "hbridge_process_coast"
+          }
+        },
+        {
+          "data_type": "any",
+          "description": "Brake.",
+          "name": "BRAKE",
+          "methods": {
+            "process": "hbridge_process_brake"
+          }
+        },
+        {
+          "data_type": "int",
+          "description": "Speed (0 to 100, in percentage).",
+          "name": "SPEED",
+          "methods": {
+            "process": "hbridge_process_speed"
+          }
+        }
+      ],
+      "name": "robotics/hbridge-l293d",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "description": "Label of the desired pin on the board. If 'pwm_raw' is set to true, this should be \"<device> <channel>\" pair, e.g. \"0 3\".",
+            "name": "pwm_pin"
+          },
+          {
+            "data_type": "boolean",
+            "description": "Change 'pwn_pin' meaning to be the system parameters needed to address the desired pin. Use it if you know what you are doing.",
+            "name": "pwm_raw"
+          },
+          {
+            "data_type": "int",
+            "description": "PWM period in nanoseconds. Not specifying this will use the default (25000ns).",
+            "name": "pwm_period_ns"
+          }
+        ],
+        "version": 1
+      },
+      "methods": {
+        "open": "hbridge_open",
+        "close": "hbridge_close"
+      },
+      "private_data_type": "hbridge_data",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Connect to switch 1",
+          "name": "S1"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Connect to switch 2",
+          "name": "S2"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Connect to switch 3",
+          "name": "S3"
+        },
+        {
+          "data_type": "boolean",
+          "description": "Connect to switch 4",
+          "name": "S4"
+        }
+      ],
+      "url": "http://solettaproject.org/doc/latest/components/robotics/hbridge-l293d.html"
+    },
+    {
+      "category": "robotics/encoders",
+      "description": "Encoders measure the speed and direction of a rotating shaft.",
+      "methods": {
+        "open": "quadrature_encoder_open"
+      },
+      "private_data_type": "quadrature_encoder_data",
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Output A from the encoder",
+          "name": "A",
+          "methods": {
+            "process": "quadrature_encoder_process_port"
+          }
+        },
+        {
+          "data_type": "boolean",
+          "description": "Output B from the encoder",
+          "name": "B",
+          "methods": {
+            "process": "quadrature_encoder_process_port"
+          }
+        }
+      ],
+      "name": "robotics/quadrature-encoder",
+      "out_ports": [
+        {
+          "data_type": "boolean",
+          "description": "True if rotating clockwise.",
+          "name": "CW"
+        },
+        {
+          "data_type": "boolean",
+          "description": "True if rotating counterclockwise.",
+          "name": "CCW"
+        },
+        {
+          "data_type": "boolean",
+          "description": "True if stopped.",
+          "name": "STOPPED"
+        }
+      ]
+    }
+ ]
+}

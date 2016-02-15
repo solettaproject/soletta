@@ -1,0 +1,4 @@
+config FLOW_NODE_TYPE_ROBOTICS
+	tristate "Node type: robotics"
+	depends on USE_PWM
+	default y
