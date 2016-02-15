@@ -75,8 +75,8 @@ _load_mux(const char *name)
 
 #ifndef SOL_NO_API_VERSION
     if (p_sym->api_version != SOL_PIN_MUX_API_VERSION) {
-        SOL_WRN("Mux '%s' has incorrect api_version: %u expected %u", path, p_sym->api_version,
-            SOL_PIN_MUX_API_VERSION);
+        SOL_WRN("Mux '%s' has incorrect api_version: %" PRIu16 " expected %"
+            PRIu16, path, p_sym->api_version, SOL_PIN_MUX_API_VERSION);
         goto error;
     }
 #endif

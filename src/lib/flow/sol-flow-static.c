@@ -1138,8 +1138,8 @@ sol_flow_static_new_type(
 
 #ifndef SOL_NO_API_VERSION
     if (spec->api_version != SOL_FLOW_STATIC_API_VERSION) {
-        SOL_WRN("spec(%p)->api_version(%u) != "
-            "SOL_FLOW_STATIC_API_VERSION(%u)",
+        SOL_WRN("spec(%p)->api_version(%" PRIu16 ") != "
+            "SOL_FLOW_STATIC_API_VERSION(%" PRIu16 ")",
             spec, spec->api_version, SOL_FLOW_STATIC_API_VERSION);
         return NULL;
     }

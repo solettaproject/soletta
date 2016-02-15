@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #ifndef SOL_LOG_DOMAIN
 #define SOL_LOG_DOMAIN &_sol_flow_log_domain
@@ -181,95 +182,95 @@ extern const struct sol_flow_node_options sol_flow_node_options_empty;
     } while (0)
 
 #ifndef SOL_NO_API_VERSION
-#define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...)      \
-    do {                                                                \
-        SOL_NULL_CHECK(options, __VA_ARGS__);                            \
+#define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...) \
+    do { \
+        SOL_NULL_CHECK(options, __VA_ARGS__); \
         if (((const struct sol_flow_node_options *)options)->sub_api != (expected)) { \
-            SOL_WRN("" # options "(%p)->sub_api(%hu) != "                \
-                "" # expected "(%hu)",                               \
-                (options),                                           \
+            SOL_WRN("" # options "(%p)->sub_api(%" PRIu16 ") != " \
+                "" # expected "(%" PRIu16 ")", \
+                (options), \
                 ((const struct sol_flow_node_options *)options)->sub_api, \
-                (expected));                                         \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+                (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_FLOW_NODE_OPTIONS_API_CHECK(options, expected, ...)          \
-    do {                                                                \
-        SOL_NULL_CHECK(options, __VA_ARGS__);                            \
+#define SOL_FLOW_NODE_OPTIONS_API_CHECK(options, expected, ...) \
+    do { \
+        SOL_NULL_CHECK(options, __VA_ARGS__); \
         if (((const struct sol_flow_node_options *)options)->api_version != (expected)) { \
-            SOL_WRN("Invalid " # options " %p API version(%hu), "        \
-                "expected " # expected "(%hu)",                      \
-                (options),                                           \
+            SOL_WRN("Invalid " # options " %p API version(%" PRIu16 "), " \
+                "expected " # expected "(%" PRIu16 ")", \
+                (options), \
                 ((const struct sol_flow_node_options *)options)->api_version, \
-                (expected));                                         \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+                (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_FLOW_NODE_TYPE_DESCRIPTION_API_CHECK(description, expected, ...)  \
-    do {                                                                \
-        SOL_NULL_CHECK(description, __VA_ARGS__);                        \
+#define SOL_FLOW_NODE_TYPE_DESCRIPTION_API_CHECK(description, expected, ...) \
+    do { \
+        SOL_NULL_CHECK(description, __VA_ARGS__); \
         if (((const struct sol_flow_node_type_description *)description)->api_version != (expected)) { \
-            SOL_WRN("Invalid " # description " %p API version(%lu), "    \
-                "expected " # expected "(%hu)",                      \
-                (description),                                       \
+            SOL_WRN("Invalid " # description " %p API version(%" PRIu16 "), " \
+                "expected " # expected "(%" PRIu16 ")", \
+                (description), \
                 ((const struct sol_flow_node_type_description *)description)->api_version, \
-                (expected));                                         \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+                (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_FLOW_NODE_TYPE_API_CHECK(type, expected, ...)                  \
-    do {                                                                  \
-        SOL_NULL_CHECK(type, __VA_ARGS__);                                 \
+#define SOL_FLOW_NODE_TYPE_API_CHECK(type, expected, ...) \
+    do { \
+        SOL_NULL_CHECK(type, __VA_ARGS__); \
         if (((const struct sol_flow_node_type *)type)->api_version != (expected)) { \
-            SOL_WRN("Invalid " # type " %p API version(%hu), "             \
-                "expected " # expected "(%hu)",                        \
-                (type),                                                \
+            SOL_WRN("Invalid " # type " %p API version(%" PRIu16 "), " \
+                "expected " # expected "(%" PRIu16 ")", \
+                (type), \
                 ((const struct sol_flow_node_type *)type)->api_version, \
-                (expected));                                           \
-            return __VA_ARGS__;                                           \
-        }                                                                 \
+                (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_FLOW_PORT_TYPE_OUT_API_CHECK(out, expected, ...)               \
-    do {                                                                  \
-        SOL_NULL_CHECK(out, __VA_ARGS__);                                  \
+#define SOL_FLOW_PORT_TYPE_OUT_API_CHECK(out, expected, ...) \
+    do { \
+        SOL_NULL_CHECK(out, __VA_ARGS__); \
         if (((const struct sol_flow_port_type_out *)out)->api_version != (expected)) { \
-            SOL_WRN("Invalid " # out " %p API version(%hu), "              \
-                "expected " # expected "(%hu)",                        \
-                (out),                                                 \
+            SOL_WRN("Invalid " # out " %p API version(%" PRIu16 "), " \
+                "expected " # expected "(%" PRIu16 ")", \
+                (out), \
                 ((const struct sol_flow_port_type_out *)out)->api_version, \
-                (expected));                                           \
-            return __VA_ARGS__;                                           \
-        }                                                                 \
+                (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_FLOW_PORT_TYPE_IN_API_CHECK(in, expected, ...)                  \
-    do {                                                                   \
-        SOL_NULL_CHECK(in, __VA_ARGS__);                                    \
+#define SOL_FLOW_PORT_TYPE_IN_API_CHECK(in, expected, ...) \
+    do { \
+        SOL_NULL_CHECK(in, __VA_ARGS__); \
         if (((const struct sol_flow_port_type_in *)in)->api_version != (expected)) { \
-            SOL_WRN("Invalid " # in " %p API version(%hu), "                \
-                "expected " # expected "(%hu)",                         \
-                (in),                                                   \
+            SOL_WRN("Invalid " # in " %p API version(%" PRIu16 "), " \
+                "expected " # expected "(%" PRIu16 ")", \
+                (in), \
                 ((const struct sol_flow_port_type_in *)in)->api_version, \
-                (expected));                                            \
-            return __VA_ARGS__;                                            \
-        }                                                                  \
+                (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 
-#define SOL_FLOW_RESOLVER_API_CHECK(resolver, expected, ...)             \
-    do {                                                                \
-        SOL_NULL_CHECK(resolver, __VA_ARGS__);                           \
+#define SOL_FLOW_RESOLVER_API_CHECK(resolver, expected, ...) \
+    do { \
+        SOL_NULL_CHECK(resolver, __VA_ARGS__); \
         if (((const struct sol_flow_resolver *)resolver)->api_version != (expected)) { \
-            SOL_WRN("Invalid " # resolver " %p API version(%lu), "       \
-                "expected " # expected "(%lu)",                     \
-                (resolver),                                         \
+            SOL_WRN("Invalid " # resolver " %p API version(%" PRIu16 "), " \
+                "expected " # expected "(%" PRIu16 ")", \
+                (resolver), \
                 ((const struct sol_flow_resolver *)resolver)->api_version, \
-                (expected));                                        \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+                (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 #else
 #define SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, expected, ...)
