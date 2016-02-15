@@ -31,14 +31,9 @@ nodejs_bindings: $(SOL_LIB_OUTPUT)
 	# Build the package without clobbering build/
 	@ \
 		SOLETTA_CFLAGS="$(addprefix -I,$(abspath $(HEADERDIRS)))" \
-		SOLETTA_LIBS="$(FIND_LIBRARY_LDFLAGS)" \
-		NODE_GYP="$$(if test -x "$$(which node-gyp 2> /dev/null)"; then \
-				echo "$$(which node-gyp)"; \
-			elif test -x "$$(dirname $$(which node))/../lib/node_modules/npm/bin/node-gyp-bin/node-gyp"; then \
-				echo "$$(dirname $$(which node))/../lib/node_modules/npm/bin/node-gyp-bin/node-gyp"; \
-			fi)"; \
-		( SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $${NODE_GYP} configure && \
-		SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $${NODE_GYP} build )
+		SOLETTA_LIBS="$(FIND_LIBRARY_LDFLAGS)"; \
+		( SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) $(NODE_GYP_FLAGS) configure && \
+		SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) $(NODE_GYP_FLAGS) build )
 
 PHONY += nodejs_bindings
 
