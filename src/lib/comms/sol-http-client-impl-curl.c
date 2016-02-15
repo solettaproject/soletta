@@ -860,7 +860,7 @@ check_param_api_version(const struct sol_http_params *params)
 {
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(params->api_version != SOL_HTTP_PARAM_API_VERSION)) {
-        SOL_ERR("Parameter has an invalid API version. Expected %u, got %u",
+        SOL_ERR("Parameter has an invalid API version. Expected %" PRIu16 ", got %" PRIu16,
             SOL_HTTP_PARAM_API_VERSION, params->api_version);
         return false;
     }
@@ -1073,8 +1073,8 @@ sol_http_client_request_with_interface(enum sol_http_method method,
 
 #ifndef SOL_NO_API_VERSION
     if (interface->api_version != SOL_HTTP_REQUEST_INTERFACE_API_VERSION) {
-        SOL_WRN("interface->api_version=%hu, "
-            "expected version is %hu.",
+        SOL_WRN("interface->api_version=%" PRIu16 ", "
+            "expected version is %" PRIu16 ".",
             interface->api_version, SOL_HTTP_REQUEST_INTERFACE_API_VERSION);
         return NULL;
     }

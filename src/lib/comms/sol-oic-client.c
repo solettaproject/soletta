@@ -48,7 +48,7 @@
         if (SOL_UNLIKELY(ptr->api_version != \
             SOL_OIC_RESOURCE_API_VERSION)) { \
             SOL_WRN("Couldn't handle oic client resource that has unsupported " \
-                "version '%u', expected version is '%u'", \
+                "version '%" PRIu16 "', expected version is '%" PRIu16 "'", \
                 ptr->api_version, SOL_OIC_RESOURCE_API_VERSION); \
             return __VA_ARGS__; \
         } \

@@ -97,8 +97,8 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(config->api_version != SOL_PWM_CONFIG_API_VERSION)) {
-        SOL_WRN("Couldn't open pwm that has unsupported version '%u', "
-            "expected version is '%u'",
+        SOL_WRN("Couldn't open pwm that has unsupported version '%" PRIu16 "', "
+            "expected version is '%" PRIu16 "'",
             config->api_version, SOL_PWM_CONFIG_API_VERSION);
         return NULL;
     }

@@ -45,7 +45,7 @@ static int init_ref;
         if (SOL_UNLIKELY(ptr->api_version != \
             SOL_MQTT_CONFIG_API_VERSION)) { \
             SOL_WRN("Couldn't handle mqtt handler that has unsupported " \
-                "version '%u', expected version is '%u'", \
+                "version '%" PRIu16 "', expected version is '%" PRIu16 "'", \
                 ptr->api_version, SOL_MQTT_CONFIG_API_VERSION); \
             return __VA_ARGS__; \
         } \
@@ -55,7 +55,7 @@ static int init_ref;
         if (SOL_UNLIKELY((ptr)->api_version != \
             SOL_MQTT_HANDLERS_API_VERSION)) { \
             SOL_WRN("Couldn't handle mqtt handler that has unsupported " \
-                "version '%u', expected version is '%u'", \
+                "version '%" PRIu16 "', expected version is '%" PRIu16 "'", \
                 (ptr)->api_version, SOL_MQTT_HANDLERS_API_VERSION); \
             return __VA_ARGS__; \
         } \

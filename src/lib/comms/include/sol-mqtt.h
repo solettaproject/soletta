@@ -23,6 +23,7 @@
 #include <sol-common-buildopts.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -423,7 +424,7 @@ int sol_mqtt_subscribe(const struct sol_mqtt *mqtt, const char *topic, sol_mqtt_
 #define SOL_MQTT_MESSAGE_CHECK_API_VERSION(msg_, ...) \
     if (SOL_UNLIKELY((msg_)->api_version != \
         SOL_MQTT_MESSAGE_API_VERSION)) { \
-        SOL_ERR("Unexpected API version (message is %u, expected %u)", \
+        SOL_ERR("Unexpected API version (message is %" PRIu16 ", expected %" PRIu16 ")", \
             (msg_)->api_version, SOL_MQTT_MESSAGE_API_VERSION); \
         return __VA_ARGS__; \
     }

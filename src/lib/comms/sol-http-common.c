@@ -124,7 +124,7 @@ sol_http_params_clear(struct sol_http_params *params)
 
 #ifndef SOL_NO_API_VERSION
     if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
-        SOL_ERR("API version mistmatch; expected %u, got %u",
+        SOL_ERR("API version mistmatch; expected %" PRIu16 ", got %" PRIu16,
             SOL_HTTP_PARAM_API_VERSION, params->api_version);
         return;
     }
