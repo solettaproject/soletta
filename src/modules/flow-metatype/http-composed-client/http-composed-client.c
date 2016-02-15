@@ -284,7 +284,6 @@ http_composed_client_request_finished(void *data,
             "Error while reaching %s", cdata->url);
         return;
     }
-    SOL_HTTP_RESPONSE_CHECK_API(response);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(node, EINVAL,

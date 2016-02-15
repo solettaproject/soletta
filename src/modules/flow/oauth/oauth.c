@@ -105,7 +105,6 @@ v1_access_finished(void *data,
         SOL_WRN("Failed to find pending connection %p", connection);
 
     SOL_NULL_CHECK_GOTO(response, end);
-    SOL_HTTP_RESPONSE_CHECK_API_GOTO(response, end);
 
     if (response->response_code == SOL_HTTP_STATUS_OK)
         SOL_INT_CHECK_GOTO(response->content.used, == 0, end);
@@ -260,8 +259,6 @@ v1_parse_response(struct v1_request_data *req_data, const struct sol_http_respon
         .response_code = SOL_HTTP_STATUS_FOUND,
     };
 
-    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
-
     tokens = sol_str_slice_split(
         sol_str_slice_from_str(response->content.data), "&", 0);
     SOL_VECTOR_FOREACH_IDX (&tokens, slice, idx) {
@@ -307,7 +304,6 @@ v1_request_finished(void *data,
         SOL_WRN("Failed to find pending connection %p", connection);
 
     SOL_NULL_CHECK_GOTO(response, err);
-    SOL_HTTP_RESPONSE_CHECK_API_GOTO(response, err);
 
     if (response->response_code == SOL_HTTP_STATUS_OK)
         SOL_INT_CHECK_GOTO(response->content.used, == 0, err);
