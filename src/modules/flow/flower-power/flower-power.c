@@ -221,7 +221,6 @@ generate_token_cb(void *data,
             "Error while reaching service to generate token.");
         return;
     }
-    SOL_HTTP_RESPONSE_CHECK_API(response);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
@@ -534,7 +533,6 @@ http_get_cb(void *data, const struct sol_http_client_connection *connection,
             "Error while reaching service to get plants and sensors info.");
         return;
     }
-    SOL_HTTP_RESPONSE_CHECK_API(response);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,

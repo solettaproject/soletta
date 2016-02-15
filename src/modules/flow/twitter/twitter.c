@@ -108,7 +108,6 @@ twitter_request_finished(void *data,
     }
 
     SOL_NULL_CHECK_GOTO(response, err);
-    SOL_HTTP_RESPONSE_CHECK_API_GOTO(response, err);
 
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         SOL_WRN("Response from %s - %d",

@@ -37,7 +37,6 @@ static void
 on_message(void *data, struct sol_mqtt *mqtt, const struct sol_mqtt_message *message)
 {
     SOL_NULL_CHECK(message);
-    SOL_MQTT_MESSAGE_CHECK_API_VERSION(message);
 
     SOL_INF("%.*s", (int)message->payload->used, (char *)message->payload->data);
 }
