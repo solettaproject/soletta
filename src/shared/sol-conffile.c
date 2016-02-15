@@ -105,19 +105,32 @@ _convert_and_get_token_string(const struct sol_json_token *token, struct sol_buf
     return sol_json_token_get_unescaped_string(token, buffer);
 }
 
+static void
+_clear_entry_options(struct sol_ptr_vector *vec_options)
+{
+    void *ptr;
+    int i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (vec_options, ptr, i) {
+        free(ptr);
+    }
+    sol_ptr_vector_clear(vec_options);
+}
+
 static int
 sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json_token options_object)
 {
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
     struct sol_ptr_vector vec_options;
+    int r;
     enum sol_json_loop_reason reason;
 
     sol_ptr_vector_init(&vec_options);
 
     sol_json_scanner_init_from_token(&scanner, &options_object);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        int key_ret, value_ret, r;
+        int key_ret, value_ret;
         struct sol_buffer key_buf, value_buf;
         char *tmp;
 
@@ -146,22 +159,25 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
         if (r < 0) {
             SOL_WRN("Couldn't append '%s' into the options's vector", tmp);
             free(tmp);
+            _clear_entry_options(&vec_options);
             return r;
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        int i;
-        void *ptr;
         SOL_DBG("Error: Invalid JSON.");
-        SOL_PTR_VECTOR_FOREACH_IDX (&vec_options, ptr, i) {
-            free(ptr);
-        }
-        sol_ptr_vector_clear(&vec_options);
+        _clear_entry_options(&vec_options);
         return -EINVAL;
     }
 
-    sol_ptr_vector_append(&vec_options, NULL);
+    r = sol_ptr_vector_append(&vec_options, NULL);
+    if (r < 0) {
+        SOL_WRN("Couldn't append into the options's vector");
+        _clear_entry_options(&vec_options);
+        return -ENOMEM;
+    }
+
     entry->options = vec_options;
+
     return 0;
 }
 
