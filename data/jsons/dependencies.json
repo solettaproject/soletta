@@ -609,6 +609,16 @@
         "in-tree": "{TOP_SRCDIR}/src/thirdparty/mavlink",
         "out-of-tree": "{MAVLINK_SRC}"
       }
+    },
+    {
+      "dependency": "node_gyp",
+      "type": "filesystem",
+      "files": [
+        "node-gyp"
+      ],
+      "path": {
+        "out-of-tree": "{NODEJS_NPM_DIR}/node-gyp-bin"
+      }
     }
   ]
 }
