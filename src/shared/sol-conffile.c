@@ -164,7 +164,7 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid JSON.");
+        SOL_WRN("Error: Invalid JSON.");
         _clear_entry_options(&vec_options);
         return -EINVAL;
     }
@@ -472,7 +472,7 @@ _json_to_vector(struct sol_json_scanner scanner)
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid JSON");
+        SOL_WRN("Error: Invalid JSON");
         goto err;
     }
 
@@ -530,7 +530,7 @@ _json_to_vector(struct sol_json_scanner scanner)
         }
 
         if (reason != SOL_JSON_LOOP_REASON_OK) {
-            SOL_DBG("Error: Invalid Json.");
+            SOL_WRN("Error: Invalid Json.");
             goto entry_err;
         }
 
@@ -545,7 +545,7 @@ _json_to_vector(struct sol_json_scanner scanner)
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid Json.");
+        SOL_WRN("Error: Invalid Json.");
         goto entry_err;
     }
 
@@ -594,7 +594,7 @@ _get_json_include_paths(
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid Json.");
+        SOL_WRN("Error: Invalid Json.");
         return;
     }
 
@@ -627,7 +627,7 @@ _get_json_include_paths(
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid Json.");
+        SOL_WRN("Error: Invalid Json.");
     }
 }
 
