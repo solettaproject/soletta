@@ -704,7 +704,6 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
         device->buffer_enabled = false;
         if (!set_buffer_enabled(device, false)) {
             SOL_WRN("Could not disable buffer for device%d", device->device_id);
-            goto error;
         }
     }
 
