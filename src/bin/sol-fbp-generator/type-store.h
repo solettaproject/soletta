@@ -97,6 +97,7 @@ struct type_description {
     char *name;
     char *symbol;
     char *options_symbol;
+    char *header_file;
     bool generated_options;
     struct sol_vector in_ports;
     struct sol_vector out_ports;

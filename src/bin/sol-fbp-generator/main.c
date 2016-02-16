@@ -1282,7 +1282,7 @@ exit:
 }
 
 struct generate_context {
-    struct sol_vector modules;
+    struct sol_vector headers;
     struct sol_vector types_to_initialize;
 };
 
@@ -1344,7 +1344,7 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
         struct node_data *nd;
         struct type_description *desc;
         const char *sep;
-        struct sol_str_slice name, module, symbol;
+        struct sol_str_slice name, header, module, symbol;
         struct type_to_init *t = NULL;
         uint16_t idx;
 
@@ -1384,12 +1384,13 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
         if (t)
             t->module = module;
 
-        if (!contains_slice(&ctx->modules, module, &idx)) {
-            struct sol_str_slice *m;
-            m = sol_vector_append(&ctx->modules);
-            if (!m)
+        header = sol_str_slice_from_str(desc->header_file);
+        if (!contains_slice(&ctx->headers, header, &idx)) {
+            struct sol_str_slice *h;
+            h = sol_vector_append(&ctx->headers);
+            if (!h)
                 return false;
-            *m = module;
+            *h = header;
         }
     }
 
@@ -1572,12 +1573,12 @@ static int
 generate(struct sol_vector *fbp_data_vector)
 {
     struct generate_context _ctx = {
-        .modules = SOL_VECTOR_INIT(struct sol_str_slice),
+        .headers = SOL_VECTOR_INIT(struct sol_str_slice),
         .types_to_initialize = SOL_VECTOR_INIT(struct type_to_init),
     }, *ctx = &_ctx;
 
     struct fbp_data *data;
-    struct sol_str_slice *module;
+    struct sol_str_slice *header;
     struct sol_ptr_vector *memory_maps;
     struct type_to_init *type;
     int types_count;
@@ -1610,8 +1611,8 @@ generate(struct sol_vector *fbp_data_vector)
     }
 
     /* Header name is currently inferred from the module name. */
-    SOL_VECTOR_FOREACH_IDX (&ctx->modules, module, i) {
-        out("#include \"sol-flow/%.*s.h\"\n", SOL_STR_SLICE_PRINT(*module));
+    SOL_VECTOR_FOREACH_IDX (&ctx->headers, header, i) {
+        out("#include \"%.*s\"\n", SOL_STR_SLICE_PRINT(*header));
     }
 
 #ifdef USE_MEMMAP
@@ -1726,7 +1727,7 @@ generate(struct sol_vector *fbp_data_vector)
     r = EXIT_SUCCESS;
 
 end:
-    sol_vector_clear(&ctx->modules);
+    sol_vector_clear(&ctx->headers);
     sol_vector_clear(&ctx->types_to_initialize);
     return r;
 }

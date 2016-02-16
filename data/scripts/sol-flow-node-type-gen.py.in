@@ -1113,6 +1113,7 @@ def generate_description_entry(descriptions, data):
     entry = {
         "symbol": data["NAME_C"],
         "options_symbol": data["name_c"] + "_options",
+        "header_file": data["namespace"] + os.path.basename(data["header"]),
         }
     descriptions.append(entry)
     dict_copy_nonempty_keys(entry, data,
