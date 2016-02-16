@@ -1052,11 +1052,13 @@ sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
     int len;
     int64_t raw_value;
     char path[PATH_MAX];
-    struct sol_iio_device *device = channel->device;
+    struct sol_iio_device *device;
     bool r;
 
     SOL_NULL_CHECK(channel, false);
     SOL_NULL_CHECK(value, false);
+
+    device = channel->device;
 
     if (device->buffer_enabled) {
         return iio_read_buffer_channel_value(channel, value);
