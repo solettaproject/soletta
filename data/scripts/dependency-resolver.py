@@ -277,6 +277,11 @@ def handle_exec_check(args, conf, context):
         context.add_append_makefile_var("NOT_FOUND", req_label, True)
 
     context.add_cond_makefile_var(dep_sym, path)
+
+    if success:
+        dir_path = os.path.dirname(os.path.realpath("%s" % path))
+        context.add_cond_makefile_var("%s_DIR" % dep_sym, dir_path)
+
     context.add_kconfig("HAVE_%s" % dep_sym, "bool", "y" if path else "n")
 
     return success
@@ -328,6 +333,10 @@ def handle_filesystem_check(args, conf, context):
 
     variables = dict(os.environ)
     variables['TOP_SRCDIR'] = os.getcwd()
+
+    for k,v in context.makefile_vars.items():
+        variables[k] = v["value"]
+
     dest = path
     vars_expand(dest, variables, len(dest))
 
