@@ -62,6 +62,7 @@ extern "C" {
  * For a better reference, check the following groups:
  * @li @ref Certificate
  * @li @ref Comms
+ * @li @ref Crypto
  * @li @ref Datatypes
  * @li @ref Flow
  * @li @ref IO
