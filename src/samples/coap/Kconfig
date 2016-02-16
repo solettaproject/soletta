@@ -11,3 +11,8 @@ config OIC_SAMPLES
 	bool "OIC samples"
 	depends on OIC && COAP_SAMPLES
 	default y
+
+config LWM2M_SAMPLES
+       bool "LWM2M samples"
+       depends on COAP && COAP_SAMPLES
+       default y
