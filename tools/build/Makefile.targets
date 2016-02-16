@@ -194,3 +194,23 @@ cheat-sheet:
 endif
 
 PHONY += cheat-sheet
+
+ifneq ($(USE_NODEJS),)
+
+bins-out += nodejs_bindings
+NODE_GYP=$(NODE_GYP_PATH)/node-gyp
+
+nodejs_bindings: $(SOL_LIB_OUTPUT)
+	# Install dependencies without building the package
+	$(Q)$(NODEJS_NPM) install --ignore-scripts
+
+	# Build the package without clobbering build/
+	$(Q) \
+		SOLETTA_CFLAGS="$(addprefix -I,$(abspath $(HEADERDIRS)))" \
+		SOLETTA_LIBS="$(FIND_LIBRARY_LDFLAGS)" \
+               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) configure && \
+               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) build
+
+PHONY += nodejs_bindings
+
+endif
