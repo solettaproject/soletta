@@ -35,6 +35,7 @@ dictionary SPIBusInit {
 
 [NoInterfaceObject]
 interface SPIBus {
+  // has all the properties of SPIBusInit as read-only attributes
   Promise<SPIData> transfer(SPIData txData);
   void close();
 };

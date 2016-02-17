@@ -25,18 +25,22 @@ dictionary AIOPinInit {
 };
 
 [NoInterfaceObject]
-interface AIOPin: AIOPinInit {
+interface AIOPin: {
+  // has all the properties of AIOPinInit as read-only attributes
   Promise<unsigned long> read();
+  void abort();
   void close();
 };
 
 ```
 
-In ```AIOPinInit```, either ```name``` MUST be specified and map to a valid AIO path, or otherwise, ```device``` and ```pin``` MUST be specified.
+In ```AIOPinInit```, either ```name``` (label) MUST be specified and map to a valid AIO path, or otherwise, ```device``` and ```pin``` MUST be specified.
 
 When ```raw=true```, then ```device``` and ```pin``` MUST be specified, and the UA does not try to enable multiplexing if that is available.
 
 Precision is the number of valid bits on the data coming from the AD converter. A corresponding mask will be applied to the least significant bits of the data. By default it is 12 bits (data range is between 0 and 4096).
+
+The ```abort()``` method cancels the current pending read operation on a given pin.
 
 #### Example
 ```javascript

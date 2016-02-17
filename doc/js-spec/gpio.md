@@ -13,8 +13,10 @@ Web IDL
 // require returns a GPIO object
 // var gpio = require('gpio');
 
-enum GPIOPinDirection { "in", "out" };
-enum GPIOActiveEdge { "none", "rising", "falling", "any"};
+[NoInterfaceObject]
+interface GPIO: {
+  Promise<GPIOPin> open(GPIOPinInit init);
+};
 
 dictionary GPIOPinInit {
   unsigned long pin;
@@ -26,13 +28,12 @@ dictionary GPIOPinInit {
   boolean pullup = false;  // set voltage to ground if pin is not yet set
 };
 
-[NoInterfaceObject]
-interface GPIO: {
-  Promise<GPIOPin> open(GPIOPinInit init);
-};
+enum GPIOPinDirection { "in", "out" };
+enum GPIOActiveEdge { "none", "rising", "falling", "any"};
 
 [NoInterfaceObject]
 interface GPIOPin: EventTarget {
+  // has all the properties of GPIOPinInit as read-only attributes
   Promise<boolean> read();
   Promise<void> write(boolean value);
   Promise<void> close();
@@ -91,7 +92,7 @@ The API implementation should register a callback with  the Soletta function ```
   });
 
   // Open pin 2 as input, with polling only, with listener.
-  gpio.open({ pin:2, direction: "in", edge: "none", poll: 1000 })
+  gpio.open({ pin: 2, direction: "in", edge: "none", poll: 1000 })
   .then((pin) => {
      pin.onchange = function(event) {
        if (event.value && pin3)

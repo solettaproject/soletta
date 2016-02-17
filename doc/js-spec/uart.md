@@ -34,6 +34,7 @@ typedef (USVString or sequence<octet>) UARTData;
 
 [NoInterfaceObject]
 interface UARTConnection {
+  // has all the properties of UARTInit as read-only attributes
   void close();
   Promise<void> write(UARTData data);
 };
