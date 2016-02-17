@@ -168,6 +168,8 @@ main(int argc, char *argv[])
     { .family = SOL_NETWORK_FAMILY_INET6,
       .port = 5683 };
     const char *resource_type;
+    struct sol_network_link_addr addr = { .family = SOL_NETWORK_FAMILY_INET6,
+                                          .port = 0 };
 
     sol_init();
 
@@ -184,8 +186,8 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    client.server = sol_coap_server_new(0);
-    client.dtls_server = sol_coap_secure_server_new(0);
+    client.server = sol_coap_server_new(addr);
+    client.dtls_server = sol_coap_secure_server_new(addr);
 
     printf("DTLS support %s\n",
         client.dtls_server ? "available" : "unavailable");

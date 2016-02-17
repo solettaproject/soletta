@@ -1452,6 +1452,8 @@ static int
 client_resource_init(struct sol_flow_node *node, struct client_resource *resource, const char *resource_type,
     const struct client_resource_funcs *funcs)
 {
+    struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
+                                              .port = 0 };
     log_init();
 
     if (!initialize_multicast_addresses_once()) {
@@ -1462,10 +1464,10 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
     assert(resource_type);
 
     SOL_SET_API_VERSION(resource->client.api_version = SOL_OIC_CLIENT_API_VERSION; )
-    resource->client.server = sol_coap_server_new(0);
+    resource->client.server = sol_coap_server_new(servaddr);
     SOL_NULL_CHECK(resource->client.server, -ENOMEM);
 
-    resource->client.dtls_server = sol_coap_secure_server_new(0);
+    resource->client.dtls_server = sol_coap_secure_server_new(servaddr);
     if (!resource->client.dtls_server) {
         SOL_INT_CHECK_GOTO(errno, != ENOSYS, nomem);
         SOL_INF("DTLS support not built-in, only making non-secure requests");

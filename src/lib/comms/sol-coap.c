@@ -1469,10 +1469,8 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
 }
 
 static struct sol_coap_server *
-sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
+sol_coap_server_new_full(enum sol_socket_type type, struct sol_network_link_addr servaddr)
 {
-    struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
-                                              .port = port };
     const struct sol_vector *links;
     struct sol_network_link *link;
     struct sol_coap_server *server;
@@ -1522,7 +1520,7 @@ sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
     }
 
     /* If type is SOL_SOCKET_DTLS, then it's only a unicast server. */
-    if (type == SOL_SOCKET_UDP && port) {
+    if (type == SOL_SOCKET_UDP && servaddr.port) {
         /* From man 7 ip:
          *
          *   imr_address is the address of the local interface with which the
@@ -1552,23 +1550,23 @@ sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
 
     sol_network_subscribe_events(network_event, server);
 
-    SOL_DBG("New server %p on port %d%s", server, port,
+    SOL_DBG("New server %p on port %d%s", server, servaddr.port,
         type == SOL_SOCKET_UDP ? "" : " (secure)");
 
     return server;
 }
 
 SOL_API struct sol_coap_server *
-sol_coap_server_new(uint16_t port)
+sol_coap_server_new(struct sol_network_link_addr addr)
 {
-    return sol_coap_server_new_full(SOL_SOCKET_UDP, port);
+    return sol_coap_server_new_full(SOL_SOCKET_UDP, addr);
 }
 
 SOL_API struct sol_coap_server *
-sol_coap_secure_server_new(uint16_t port)
+sol_coap_secure_server_new(struct sol_network_link_addr addr)
 {
 #ifdef DTLS
-    return sol_coap_server_new_full(SOL_SOCKET_DTLS, port);
+    return sol_coap_server_new_full(SOL_SOCKET_DTLS, addr);
 #else
     errno = ENOSYS;
     return NULL;
