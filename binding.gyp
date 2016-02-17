@@ -28,10 +28,7 @@
 						"action_name": "collectbindings",
 						"message": "Collecting bindings",
 						"outputs": [ "bindings/nodejs/generated/main.cc" ],
-						"inputs": [
-							"bindings/nodejs/generated/main.cc.prologue",
-							"bindings/nodejs/generated/main.cc.epilogue",
-						],
+						"inputs": [ "" ],
 						"action": [
 							"sh",
 							"-c",
