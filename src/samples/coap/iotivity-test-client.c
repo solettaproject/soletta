@@ -623,6 +623,8 @@ main(int argc, char *argv[])
     const char *resource_type = NULL;
 
     bool (*found_resource_cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data) = NULL;
+    struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
+                                              .port = 0 };
 
     ctx.res = NULL;
     sol_init();
@@ -643,8 +645,8 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    client.server = sol_coap_server_new(0);
-    client.dtls_server = sol_coap_secure_server_new(0);
+    client.server = sol_coap_server_new(&servaddr);
+    client.dtls_server = sol_coap_secure_server_new(&servaddr);
 
     SOL_INF("DTLS support %s\n", client.dtls_server ? "available" :
         "unavailable");

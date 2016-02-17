@@ -465,35 +465,33 @@ void sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
 /**
  * @brief Creates a new CoAP server instance.
  *
- * Creates a new, unsecured, CoAP server instance listening on @a port. Clients
- * may use 0 for @a port to let the system pick an available one.
- * If the server cannot be created, NULL will be returned and errno will be
- * set to indicate the reason.
+ * Creates a new, unsecured, CoAP server instance listening on address
+ * @a addr. If the server cannot be created, NULL will be returned and
+ * errno will be set to indicate the reason.
  *
- * @param port The port the server will listen on.
+ * @param addr The address where the server will listen on.
  *
  * @return A new server instance, or NULL in case of failure.
  *
  * @see sol_coap_secure_server_new()
  */
-struct sol_coap_server *sol_coap_server_new(uint16_t port);
+struct sol_coap_server *sol_coap_server_new(const struct sol_network_link_addr *addr);
 
 /**
  * @brief Creates a new secure CoAP server instance.
  *
- * Creates a new CoAP server instance listening on @a port. Clients
- * may use 0 for @a port to let the system pick an available one.
- * This server will encrypt communication with its endpoints using DTLS.
- * If the server cannot be created, NULL will be returned and errno will be
- * set to indicate the reason.
+ * Creates a new, unsecured, CoAP server instance listening on address
+ * @a addr. This server will encrypt communication with its endpoints
+ * using DTLS. If the server cannot be created, NULL will be returned
+ * and errno will be set to indicate the reason.
  *
- * @param port The port the server will listen on.
+ * @param addr The address where the server will listen on.
  *
  * @return A new server instance, or NULL in case of failure.
  *
- * @see sol_coap_secure_server_new()
+ * @see sol_coap_server_new()
  */
-struct sol_coap_server *sol_coap_secure_server_new(uint16_t port);
+struct sol_coap_server *sol_coap_secure_server_new(const struct sol_network_link_addr *addr);
 
 /**
  * @brief Take a reference of the given server.
