@@ -39,6 +39,7 @@
 
 #include "sol-mainloop-common.h"
 #include "sol-mainloop-impl.h"
+#include "sol-mainloop-zephyr.h"
 #include "sol-vector.h"
 
 #define PIPE_BUFFER_SIZE 32
@@ -82,25 +83,46 @@ ticks_until_next_timeout(void)
 {
     struct timespec ts;
 
-    if (!sol_mainloop_common_timespec_first(&ts))
-        return 0;
+    if (sol_mainloop_common_idler_first())
+        return TICKS_NONE;
 
-    if (ts.tv_sec < 0)
-        return 0;
+    if (!sol_mainloop_common_timespec_first(&ts))
+        return TICKS_UNLIMITED;
 
     return ts.tv_sec * sys_clock_ticks_per_sec +
-           (sys_clock_ticks_per_sec / NSEC_PER_SEC) * ts.tv_nsec;
+        ((long long)sys_clock_ticks_per_sec * ts.tv_nsec) / NSEC_PER_SEC;
 }
 
 void
 sol_mainloop_impl_iter(void)
 {
+    char buf[PIPE_BUFFER_SIZE];
+    struct mainloop_wake_data *p;
+    int32_t sleeptime;
+    int bytes_read, count, ret;
+
     sol_mainloop_common_timeout_process();
+
+    sleeptime = ticks_until_next_timeout();
+    ret = task_pipe_get(_sol_mainloop_pipe, buf, PIPE_BUFFER_SIZE, &bytes_read,
+            0, sleeptime);
+
+    if (ret == RC_OK) {
+        p = (struct mainloop_wake_data *)buf;
+        count = bytes_read / sizeof(*p);
+        while (count) {
+            p->cb((void *)p->data);
+            count--;
+            p++;
+        }
+    }
+
     sol_mainloop_common_idler_process();
-    sol_mainloop_common_timeout_process();
+}
 
-    if (!sol_mainloop_common_loop_check())
-        return;
-
-    task_sleep(ticks_until_next_timeout());
+int
+sol_mainloop_wakeup(const struct mainloop_wake_data *mwd)
+{
+    int bytes_written;
+    return task_pipe_put(_sol_mainloop_pipe, (void *)mwd, sizeof(*mwd), &bytes_written, 0, TICKS_NONE);
 }
