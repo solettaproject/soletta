@@ -17,20 +17,23 @@ interface PWM {
 };
 
 enum PWMPolarity { "normal", "inversed" };
+enum PWMAlignment { "left", "center", "right"};
 
 dictionary PWMPinInit {
   DOMString name;
   unsigned long device;
-  unsigned long pin;
+  unsigned long channel;
   boolean raw = false;
   boolean enabled = true;
   long period;     // nanoseconds
   long dutyCycle;  // nanoseconds
   PWMPolarity polarity = "normal";
+  PWMAlignment alignment = "left";
 };
 
 [NoInterfaceObject]
 interface PWMPin {
+  // has all the properties of PWMPinInit as read-only attributes
   Promise<void> setEnabled(boolean enable);
   Promise<void> setDutyCycle(boolean enable);
   Promise<void> setPeriod(boolean enable);
@@ -40,9 +43,11 @@ interface PWMPin {
 ```
 
 The ```PWMPin``` interface has all the properties of ```PWMPinInit``` as read-only attributes.
-In ```PWMPinInit```, either ```name``` MUST be specified and map to a valid PWM path, or otherwise ```device``` and ```pin``` MUST be specified.
+A PWM pin is identified by a device and a channel, or by a name.
 
-When a PWM pin is opened with ```raw=true```, then ```device``` and ```pin``` MUST be specified, and the UA does not try to enable multiplexing if available.
+In ```PWMPinInit```, either ```name``` MUST be specified and map to a valid PWM path, or otherwise ```device``` and ```channel``` MUST be specified.
+
+When a PWM pin is opened with ```raw=true```, then ```device``` and ```channel``` MUST be specified, and the UA does not try to enable multiplexing if available.
 
 When ```period``` is specified, ```dutyCycle``` SHOULD be also specified.
 
