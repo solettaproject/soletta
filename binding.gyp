@@ -44,7 +44,8 @@
 					"sources": [
 						"bindings/nodejs/generated/main.cc",
 						"bindings/nodejs/src/data.cc",
-						"bindings/nodejs/src/functions/simple.cc"
+						"bindings/nodejs/src/functions/simple.cc",
+						"bindings/nodejs/src/hijack.c"
 					],
 					"include_dirs": [
 						"<!(node -e \"require('nan')\")"
