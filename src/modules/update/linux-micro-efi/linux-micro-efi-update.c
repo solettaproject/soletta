@@ -289,7 +289,7 @@ static void
 fetch_recv_cb(void *data, struct sol_buffer *buffer)
 {
     struct sol_update_handle *handle = data;
-    int fd;
+    int fd, r;
 
     if (!handle->file) {
         fd = open(SOL_UPDATE_FILE_NAME, O_CREAT | O_RDWR | O_CLOEXEC,
@@ -299,9 +299,10 @@ fetch_recv_cb(void *data, struct sol_buffer *buffer)
                 sol_util_strerrora(errno));
             goto err_create;
         }
-        /* Don't care about errors, as this is more 'nice to have' than a must */
-        /* TODO should I care about EINTR, though? */
-        ftruncate64(fd, handle->size);
+        r = ftruncate64(fd, handle->size);
+        if (r < 0)
+            SOL_WRN("Failed to truncate file: %s",
+                sol_util_strerrora(errno));
         handle->file = fdopen(fd, "w+e");
         if (!handle->file) {
             SOL_WRN("Could not create temporary file: %s",

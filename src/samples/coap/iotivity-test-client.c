@@ -620,7 +620,7 @@ main(int argc, char *argv[])
         SOL_SET_API_VERSION(.api_version = SOL_OIC_CLIENT_API_VERSION)
     };
     struct sol_network_link_addr cliaddr = { .family = SOL_NETWORK_FAMILY_INET, .port = 5683 };
-    const char *resource_type;
+    const char *resource_type = NULL;
 
     bool (*found_resource_cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data) = NULL;
 
@@ -652,7 +652,6 @@ main(int argc, char *argv[])
     switch (ctx.test_number) {
     case TEST_DISCOVERY:
         found_resource_cb = found_resource_print;
-        resource_type = NULL;
         break;
     case TEST_NON_CONFIRMABLE_GET:
     case TEST_NON_CONFIRMABLE_PUT:
