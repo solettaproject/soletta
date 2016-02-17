@@ -931,7 +931,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     }
 
     if (fill_repr_map) {
-        sol_oic_packet_cbor_create(req, href, &map_encoder);
+        sol_oic_packet_cbor_create(req, &map_encoder);
         if (!fill_repr_map(fill_repr_map_data, &map_encoder))
             goto out;
         err = sol_oic_packet_cbor_close(req, &map_encoder);
