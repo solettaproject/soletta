@@ -40,7 +40,7 @@
 CborError sol_oic_packet_cbor_extract_repr_map(struct sol_coap_packet *pkt, CborParser *parser, CborValue *repr_map);
 CborError sol_oic_cbor_repr_map_get_next_field(CborValue *value, struct sol_oic_repr_field *repr);
 CborError sol_oic_packet_cbor_close(struct sol_coap_packet *pkt, struct sol_oic_map_writer *encoder);
-void sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, const char *href, struct sol_oic_map_writer *encoder);
+void sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, struct sol_oic_map_writer *encoder);
 CborError sol_oic_packet_cbor_append(struct sol_oic_map_writer *encoder, struct sol_oic_repr_field *repr);
 bool sol_oic_pkt_has_cbor_content(const struct sol_coap_packet *pkt);
 bool sol_cbor_map_get_bytestr_value(const CborValue *map, const char *key, struct sol_str_slice *slice);
