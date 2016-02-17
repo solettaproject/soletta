@@ -498,7 +498,7 @@ _sol_oic_resource_type_handle(
     struct sol_oic_server_resource *res, bool expect_payload)
 {
     struct sol_coap_packet *response;
-    struct sol_oic_map_reader input;
+    struct sol_oic_map_reader input, *input_ptr = NULL;
     struct sol_oic_map_writer output;
     sol_coap_responsecode_t code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
     CborParser parser;
@@ -525,10 +525,11 @@ _sol_oic_resource_type_handle(
             code = SOL_COAP_RSPCODE_BAD_REQUEST;
             goto done;
         }
+        input_ptr = &input;
     }
 
     sol_oic_packet_cbor_create(response, res->href, &output);
-    code = handle_fn(cliaddr, res->callback.data, &input, &output);
+    code = handle_fn(cliaddr, res->callback.data, input_ptr, &output);
     if (sol_oic_packet_cbor_close(response, &output) != CborNoError)
         code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
@@ -552,7 +553,7 @@ done:
 DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(get, false)
 DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(put, true)
 DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(post, true)
-DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(del, true)
+DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD(del, false)
 
 #undef DEFINE_RESOURCE_TYPE_CALLBACK_FOR_METHOD
 

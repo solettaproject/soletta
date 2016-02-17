@@ -237,8 +237,8 @@ struct sol_oic_resource_type {
      *
      * @param cliaddr The client address.
      * @param data The user's data pointer.
-     * @param input Handler to read request packet data using, for example,
-     *        @ref SOL_OIC_MAP_LOOP() macro.
+     * @param input Always NULL because GET requests shouldn't cointain payload
+     *        data. Parameter kept for compatibility reasons.
      * @param output Handler to write data to response packet using, for
      *        example, @ref sol_oic_map_append().
      *
@@ -276,8 +276,8 @@ struct sol_oic_resource_type {
      *
      * @param cliaddr The client address.
      * @param data The user's data pointer.
-     * @param input Handler to read request packet data using, for example,
-     *        @ref SOL_OIC_MAP_LOOP() macro.
+     * @param input Always NULL because DELETE requests shouldn't cointain
+     *        payload data. Parameter kept for compatibility reasons.
      * @param output Handler to write data to response packet using, for
      *        example, @ref sol_oic_map_append().
      *
