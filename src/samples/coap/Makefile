@@ -6,3 +6,7 @@ sample-$(OIC_SAMPLES) += oic-sample-client oic-sample-server iotivity-test-clien
 sample-oic-sample-client-$(OIC_SAMPLES) := oic-client.c
 sample-oic-sample-server-$(OIC_SAMPLES) := oic-server.c
 sample-iotivity-test-client-$(OIC_SAMPLES) := iotivity-test-client.c
+
+sample-$(LWM2M_SAMPLES) += lwm2m-sample-server lwm2m-sample-client
+sample-lwm2m-sample-server-$(LWM2M_SAMPLES) := lwm2m-server.c
+sample-lwm2m-sample-client-$(LWM2M_SAMPLES) := lwm2m-client.c

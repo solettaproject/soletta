@@ -106,6 +106,24 @@ sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
     return r;
 }
 
+SOL_API unsigned long int
+sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base)
+{
+    char *tmpbuf, *tmpbuf_endptr;
+    unsigned long int r;
+
+    if (len < 0)
+        len = (ssize_t)strlen(nptr);
+
+    tmpbuf = strndupa(nptr, len);
+    errno = 0;
+    r = strtoul(tmpbuf, &tmpbuf_endptr, base);
+
+    if (endptr)
+        *endptr = (char *)nptr + (tmpbuf_endptr - tmpbuf);
+    return r;
+}
+
 SOL_API double
 sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 {
@@ -767,8 +785,11 @@ sol_util_int64_mul(const int64_t a, const int64_t b, int64_t *out)
     if (__builtin_mul_overflow(a, b, out))
         return -EOVERFLOW;
 #else
-    if ((a >= OVERFLOW_INT64 || b >= OVERFLOW_INT64) &&
-        a > 0 && INT64_MAX / a < b)
+    int64_t abs_a = sol_abs(a);
+    int64_t abs_b = sol_abs(b);
+
+    if ((abs_a >= OVERFLOW_INT64 || abs_b >= OVERFLOW_INT64) &&
+        abs_a > 0 && INT64_MAX / abs_a < abs_b)
         return -EOVERFLOW;
     *out = a * b;
 #endif
@@ -785,6 +806,39 @@ sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
     if (a > 0 && b > UINT64_MAX - a)
         return -EOVERFLOW;
     *out = a + b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_int32_mul(const int32_t a, const int32_t b, int32_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    int32_t abs_a = sol_abs(a);
+    int32_t abs_b = sol_abs(b);
+
+    if ((abs_a >= OVERFLOW_INT32 || abs_b >= OVERFLOW_INT32) &&
+        abs_a > 0 && INT32_MAX / abs_a < abs_b)
+        return -EOVERFLOW;
+    *out = a * b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_uint32_mul(const uint32_t a, const uint32_t b, uint32_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a >= OVERFLOW_UINT32 || b >= OVERFLOW_UINT32) &&
+        a > 0 && UINT32_MAX / a < b)
+        return -EOVERFLOW;
+    *out = a * b;
 #endif
     return 0;
 }
