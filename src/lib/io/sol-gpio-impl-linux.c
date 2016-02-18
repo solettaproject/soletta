@@ -198,7 +198,8 @@ _gpio_in_config(struct sol_gpio *gpio, const struct sol_gpio_config *config, int
         mode_str = "both";
         break;
     case SOL_GPIO_EDGE_NONE:
-        return 0;
+        SOL_ERR("gpio #%u: Trigger mode set to 'none', events would never trigger.", gpio->pin);
+        return -EINVAL;
     default:
         SOL_WRN("gpio #%u: Unsupported edge mode '%d'", gpio->pin, trig);
         return -EINVAL;

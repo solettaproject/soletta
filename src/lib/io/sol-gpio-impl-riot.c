@@ -123,29 +123,31 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
     } else {
         uint32_t poll_timeout = 0;
         enum sol_gpio_edge trig = config->in.trigger_mode;
+        gpio_flank_t flank;
+        const unsigned int trigger_table[] = {
+            [SOL_GPIO_EDGE_RISING] = gpio->active_low ? GPIO_FALLING : GPIO_RISING,
+            [SOL_GPIO_EDGE_FALLING] = gpio->active_low ? GPIO_RISING : GPIO_FALLING,
+            [SOL_GPIO_EDGE_BOTH] = GPIO_BOTH
+        };
 
-        if (trig != SOL_GPIO_EDGE_NONE) {
-            gpio_flank_t flank;
-            const unsigned int trigger_table[] = {
-                [SOL_GPIO_EDGE_RISING] = gpio->active_low ? GPIO_FALLING : GPIO_RISING,
-                [SOL_GPIO_EDGE_FALLING] = gpio->active_low ? GPIO_RISING : GPIO_FALLING,
-                [SOL_GPIO_EDGE_BOTH] = GPIO_BOTH
-            };
+        if (trig == SOL_GPIO_EDGE_NONE) {
+            SOL_ERR("gpio #%" PRIu32 ": Trigger mode set to 'none', events would never trigger.", pin);
+            goto error;
+        }
 
-            flank = trigger_table[trig];
+        flank = trigger_table[trig];
 
-            gpio->irq.cb = config->in.cb;
-            gpio->irq.data = config->in.user_data;
-            if (!sol_interrupt_scheduler_gpio_init_int(gpio->pin, pull, flank,
-                gpio_process_cb, gpio, &gpio->irq.int_handler))
-                goto end;
+        gpio->irq.cb = config->in.cb;
+        gpio->irq.data = config->in.user_data;
+        if (!sol_interrupt_scheduler_gpio_init_int(gpio->pin, pull, flank,
+            gpio_process_cb, gpio, &gpio->irq.int_handler))
+            goto end;
 
-            SOL_WRN("gpio #%" PRIu32 ": Could not set interrupt mode, falling back to polling", pin);
+        SOL_WRN("gpio #%" PRIu32 ": Could not set interrupt mode, falling back to polling", pin);
 
-            if (!(poll_timeout = config->in.poll_timeout)) {
-                SOL_WRN("gpio #%" PRIu32 ": No timeout set, cannot fallback to polling mode", pin);
-                goto error;
-            }
+        if (!(poll_timeout = config->in.poll_timeout)) {
+            SOL_WRN("gpio #%" PRIu32 ": No timeout set, cannot fallback to polling mode", pin);
+            goto error;
         }
 
         if (gpio_init(gpio->pin, GPIO_DIR_IN, pull) < 0)
