@@ -73,6 +73,9 @@ extern "C" {
  */
 #define SOL_INET_ADDR_STRLEN 48
 
+#ifndef AF_BT_IOTIVITY
+    #define AF_BT_IOTIVITY 31
+#endif
 
 /**
  * @struct sol_network_hostname_handle
@@ -133,6 +136,9 @@ struct sol_network_link_addr {
     union {
         uint8_t in[4];
         uint8_t in6[16];
+#ifdef SOL_PLATFORM_ZEPHYR
+        uint8_t in_ble[6]; /* 0:5 are address, 6 is the type of the address */
+#endif
     } addr; /**< @brief The address itself */
     uint16_t port; /**< @brief The port associed with the IP address */
 };
