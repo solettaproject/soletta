@@ -316,7 +316,7 @@ sol_platform_impl_add_service_monitor(const char *service)
     SOL_NULL_CHECK(bus, -EINVAL);
 
     systemd_service = sol_bus_client_get_service(_ctx.systemd);
-    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(systemd_service, -EINVAL);
 
     unit = sanitize_service_name(buf, service, "add_service_monitor");
     SOL_NULL_CHECK(unit, -EINVAL);

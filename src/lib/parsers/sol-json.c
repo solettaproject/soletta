@@ -347,9 +347,11 @@ json_path_parse_object_key(const struct sol_str_slice slice, struct sol_buffer *
 SOL_API int
 sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value)
 {
-    *value = 0;
     SOL_NULL_CHECK(token, -EINVAL);
     SOL_NULL_CHECK(value, -EINVAL);
+
+    *value = 0;
+
     if (token->start >= token->end) {
         SOL_WRN("invalid token: start=%p, end=%p",
             token->start, token->end);
@@ -373,9 +375,11 @@ sol_json_token_get_uint64(const struct sol_json_token *token, uint64_t *value)
 SOL_API int
 sol_json_token_get_int64(const struct sol_json_token *token, int64_t *value)
 {
-    *value = 0;
     SOL_NULL_CHECK(token, -EINVAL);
     SOL_NULL_CHECK(value, -EINVAL);
+
+    *value = 0;
+
     if (token->start >= token->end) {
         SOL_WRN("invalid token: start=%p, end=%p",
             token->start, token->end);
@@ -409,6 +413,9 @@ sol_json_token_get_double(const struct sol_json_token *token, double *value)
      * call our helper around libc's strtod() that limits the amount
      * of bytes.
      */
+
+    SOL_NULL_CHECK(token, -EINVAL);
+    SOL_NULL_CHECK(value, -EINVAL);
 
     *value = sol_util_strtodn(token->start, &endptr,
         sol_json_token_get_size(token), false);
