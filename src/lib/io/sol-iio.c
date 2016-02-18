@@ -149,6 +149,7 @@ struct resolve_absolute_path_data {
 
 static bool create_or_resolve_device_address_dispatch(void *data);
 
+SOL_ATTR_PRINTF(3, 4)
 static bool
 craft_filename_path(char *path, size_t size, const char *base, ...)
 {
@@ -167,6 +168,7 @@ craft_filename_path(char *path, size_t size, const char *base, ...)
     return len >= 0 && (size_t)len < size;
 }
 
+SOL_ATTR_PRINTF(1, 2)
 static bool
 check_file_existence(const char *base, ...)
 {

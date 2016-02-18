@@ -34,6 +34,7 @@
 
 #include <sol-str-slice.h>
 #include <sol-vector.h>
+#include <sol-macros.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -134,7 +135,7 @@ int sol_arena_slice_dup(struct sol_arena *arena, struct sol_str_slice *dst, stru
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_arena_slice_sprintf(struct sol_arena *arena, struct sol_str_slice *dst, const char *fmt, ...);
+int sol_arena_slice_sprintf(struct sol_arena *arena, struct sol_str_slice *dst, const char *fmt, ...) SOL_ATTR_PRINTF(3, 4);
 
 /**
  * @brief Store a copy of a given string in the arena.

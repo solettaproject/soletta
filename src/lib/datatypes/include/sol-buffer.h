@@ -618,7 +618,7 @@ int sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_s
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args);
+int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args) SOL_ATTR_PRINTF(2, 0);
 
 /**
  * @brief Append the formatted string in the end of the buffer (including trailing '\0').
@@ -657,7 +657,7 @@ sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...)
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_buffer_insert_vprintf(struct sol_buffer *buf, size_t pos, const char *fmt, va_list args);
+int sol_buffer_insert_vprintf(struct sol_buffer *buf, size_t pos, const char *fmt, va_list args) SOL_ATTR_PRINTF(3, 0);
 
 /**
  * @brief Insert the formatted string in the given position in the buffer.
