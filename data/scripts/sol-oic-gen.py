@@ -961,14 +961,12 @@ def master_json_as_string(generated, json_name):
 
 def master_c_as_string(generated, oic_gen_c, oic_gen_h):
     generated = list(generated)
-    code = '''#include <arpa/inet.h>
+    code = '''
 #include <assert.h>
 #include <errno.h>
 #include <math.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 
 #include "%(oic_gen_h)s"
 
