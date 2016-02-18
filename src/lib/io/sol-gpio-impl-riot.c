@@ -146,6 +146,8 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
                 SOL_WRN("gpio #%" PRIu32 ": No timeout set, cannot fallback to polling mode", pin);
                 goto error;
             }
+        } else {
+            SOL_INF("gpio #%" PRIu32 ": Trigger mode set to 'none': events will never trigger.", pin);
         }
 
         if (gpio_init(gpio->pin, GPIO_DIR_IN, pull) < 0)
