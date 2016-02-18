@@ -569,7 +569,7 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 #ifdef SOL_LOG_ENABLED
 void sol_log_print(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, ...) SOL_ATTR_PRINTF(6, 7) SOL_ATTR_NOINSTRUMENT;
 
-void sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_NOINSTRUMENT;
+void sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(6, 0) SOL_ATTR_NOINSTRUMENT;
 #else
 static inline void
 sol_log_print(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, ...)
@@ -616,7 +616,7 @@ sol_log_set_print_function(void (*print)(void *data, const struct sol_log_domain
  * @see sol_log_set_print_function()
  */
 #ifdef SOL_LOG_ENABLED
-void sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args);
+void sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(7, 0);
 #else
 static inline void
 sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
@@ -639,7 +639,7 @@ sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, u
  * @see sol_log_set_print_function()
  */
 #ifdef SOL_LOG_ENABLED
-void sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args);
+void sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(7, 0);
 #else
 static inline void
 sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
@@ -666,7 +666,7 @@ sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uin
  * @see sol_log_print_function_journal()
  */
 #ifdef SOL_LOG_ENABLED
-void sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *syslog, const char *function, int line, const char *format, va_list args);
+void sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *syslog, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(7, 0);
 #else
 static inline void
 sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *syslog, const char *function, int line, const char *format, va_list args)
@@ -698,7 +698,7 @@ sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, u
  * @see sol_log_print_function_syslog()
  */
 #ifdef SOL_LOG_ENABLED
-void sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *journal, const char *function, int line, const char *format, va_list args);
+void sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *journal, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(7, 0);
 #else
 static inline void
 sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *journal, const char *function, int line, const char *format, va_list args)

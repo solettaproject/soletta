@@ -804,6 +804,7 @@ free_for_all:
     sol_vector_clear(&include_fallbacks);
 }
 
+SOL_ATTR_PRINTF(2, 3)
 static void
 _add_formated_lookup_path(struct sol_vector *vector, const char *fmt, ...)
 {
