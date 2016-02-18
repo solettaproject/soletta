@@ -33,13 +33,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/kd.h>
-#include <netinet/in.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
 
 #include "sol-log.h"
 #include "sol-mainloop.h"
