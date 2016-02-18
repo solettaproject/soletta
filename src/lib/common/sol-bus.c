@@ -557,10 +557,18 @@ sol_bus_map_cached_properties(struct sol_bus_client *client,
     SOL_NULL_CHECK(t, -ENOMEM);
 
     t->iface = strdup(iface);
-    SOL_NULL_CHECK_GOTO(t->iface, fail);
+    if (SOL_UNLIKELY(!t->iface)) {
+        r = -errno;
+        SOL_WRN("t->iface == NULL");
+        goto fail;
+    }
 
     t->path = strdup(path);
-    SOL_NULL_CHECK_GOTO(t->path, fail);
+    if (SOL_UNLIKELY(!t->path)) {
+        r = -errno;
+        SOL_WRN("t->path == NULL");
+        goto fail;
+    }
 
     t->properties = property_table;
     t->data = data;
