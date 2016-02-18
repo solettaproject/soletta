@@ -92,7 +92,7 @@ test_size_mul(void)
     size_t out;
 
     ASSERT(sol_util_size_mul(half_size, 2, &out) == 0);
-    ASSERT_INT_EQ(out, half_double_size);
+    ASSERT(out == half_double_size);
 
     ASSERT_INT_EQ(sol_util_size_mul(half_size, 4, &out), -EOVERFLOW);
 }
@@ -108,14 +108,14 @@ test_ssize_mul(void)
     ssize_t out;
 
     ASSERT(sol_util_ssize_mul(half_ssize, 2, &out) == 0);
-    ASSERT_INT_EQ(out, half_double_ssize);
+    ASSERT(out == half_double_ssize);
 
     ASSERT_INT_EQ(sol_util_ssize_mul(half_ssize, 4, &out), -EOVERFLOW);
 
     half_ssize *= -1;
     half_double_ssize *= -1;
     ASSERT(sol_util_ssize_mul(half_ssize, 2, &out) == 0);
-    ASSERT_INT_EQ(out, half_double_ssize);
+    ASSERT(out == half_double_ssize);
 
     ASSERT_INT_EQ(sol_util_ssize_mul(half_ssize, 4, &out), -EOVERFLOW);
 }
