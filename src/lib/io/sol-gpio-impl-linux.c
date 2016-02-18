@@ -216,8 +216,13 @@ _gpio_in_config(struct sol_gpio *gpio, const struct sol_gpio_config *config, int
                 gpio->pin);
             goto timeout_mode;
         }
-        gpio->irq.fd_watch = sol_fd_add(fd, SOL_FD_FLAGS_PRI, _gpio_on_event,
-            gpio);
+
+        gpio->irq.fd_watch = sol_fd_add(fd, SOL_FD_FLAGS_PRI, _gpio_on_event, gpio);
+        if (!gpio->irq.fd_watch) {
+            SOL_WRN("gpio #%u: could set edge mode but failed to set file watcher, "
+                    "falling back to timeout mode", gpio->pin);
+            goto timeout_mode;
+        }
 
         return 0;
     }
