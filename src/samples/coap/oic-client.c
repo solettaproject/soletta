@@ -31,7 +31,6 @@
  */
 
 #include <stdio.h>
-#include <arpa/inet.h>
 
 #include "sol-log.h"
 #include "sol-mainloop.h"

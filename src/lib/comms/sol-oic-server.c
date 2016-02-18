@@ -31,7 +31,6 @@
  */
 
 #include <errno.h>
-#include <netinet/in.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
