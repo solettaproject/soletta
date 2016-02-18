@@ -106,6 +106,7 @@ get_token_slice(struct sol_fbp_parser *p)
     return s;
 }
 
+SOL_ATTR_PRINTF(2, 3)
 static bool
 set_parse_error(struct sol_fbp_parser *p, const char *fmt, ...)
 {

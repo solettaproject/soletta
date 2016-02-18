@@ -493,6 +493,7 @@ sol_log_impl_domain_init_level(struct sol_log_domain *domain)
     domain->level = level;
 }
 
+SOL_ATTR_PRINTF(7, 0)
 void
 sol_log_impl_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
 {
