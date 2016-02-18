@@ -102,7 +102,7 @@ iterate_dir_cb(void *data, const char *dir_path, struct dirent *ent)
 static char *
 get_first_module_on_dir(const char *dir_name)
 {
-    char *result;
+    char *result = NULL;
     char path[PATH_MAX], install_rootdir[PATH_MAX];
     struct stat st;
     int r;

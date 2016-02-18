@@ -556,6 +556,7 @@ sol_bus_map_cached_properties(struct sol_bus_client *client,
     t = calloc(1, sizeof(*t));
     SOL_NULL_CHECK(t, -ENOMEM);
 
+    r = -ENOMEM;
     t->iface = strdup(iface);
     SOL_NULL_CHECK_GOTO(t->iface, fail);
 
