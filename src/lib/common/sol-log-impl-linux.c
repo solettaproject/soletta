@@ -481,12 +481,14 @@ sol_log_impl_unlock(void)
 void
 sol_log_impl_domain_init_level(struct sol_log_domain *domain)
 {
-    int16_t level = _global_domain.level;
+    int16_t level;
 
-    if (_env_levels)
-        sol_str_table_lookup(_env_levels,
+    if (_env_levels) {
+        level = sol_str_table_lookup_fallback(_env_levels,
             sol_str_slice_from_str(domain->name),
-            &level);
+            _global_domain.level);
+    } else
+        level = _global_domain.level;
 
     domain->level = level;
 }
