@@ -780,7 +780,8 @@ i2c_write_cb(void *cb_data,
     struct lcd_data *mdata = cmd->mdata;
 
     mdata->i2c_pending = NULL;
-    SOL_INT_CHECK(status, < 0);
+    if (status < 0)
+        SOL_WRN("LCD command %p failed: %s", cmd, sol_util_strerrora(-status));
 
     cmd->status = COMMAND_STATUS_DONE;
 
