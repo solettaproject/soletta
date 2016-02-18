@@ -484,7 +484,7 @@ sol_log_impl_domain_init_level(struct sol_log_domain *domain)
     int16_t level = _global_domain.level;
 
     if (_env_levels)
-        sol_str_table_lookup(_env_levels,
+        (void)sol_str_table_lookup(_env_levels,
             sol_str_slice_from_str(domain->name),
             &level);
 

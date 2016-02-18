@@ -474,7 +474,6 @@ static const uint8_t RGB_ADDR = 0xc4 >> 1; //0x62 = 98dec
 static const uint8_t COLOR_ADDR[3] = { 0x04, 0x03, 0x02 };
 static const uint8_t DISPLAY_ADDR = 0x7c >> 1; //0x3E = 62dec
 static const uint8_t ROW_ADDR[2] = { 0x80, 0xc0 };
-static const uint8_t ROW_OUT_MASK = 0x3f;
 
 static const uint8_t SEND_DATA = 0x40;
 static const uint8_t SEND_COMMAND = 0x80;
