@@ -542,7 +542,7 @@ sol_bus_map_cached_properties(struct sol_bus_client *client,
     const struct sol_bus_properties *iter_desc;
     struct property_table *t;
     char matchstr[512];
-    int r;
+    int r = -EINVAL;
 
     SOL_NULL_CHECK(client, -EINVAL);
 
