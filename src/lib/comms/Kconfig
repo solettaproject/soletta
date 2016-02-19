@@ -110,7 +110,7 @@ config MQTT
 config MAVLINK
 	bool "Mavlink"
 	default y
-    depends on NETWORK && HAVE_MAVLINK_SRC
+    depends on LINUX && NETWORK && HAVE_MAVLINK_SRC
     help
             MAVLink or Micro Air Vehicle Link is a protocol for communicating with
             small unmanned vehicle. It is designed as a header-only message marshaling
