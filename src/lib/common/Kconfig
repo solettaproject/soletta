@@ -327,6 +327,7 @@ config LOG
 
 choice
 	prompt "Maximum allowed log level"
+	default MAXIMUM_LOG_LEVEL_ERROR if BUILD_TYPE_RELEASE
 	default MAXIMUM_LOG_LEVEL_UNLIMITED
 	depends on LOG
 	help
