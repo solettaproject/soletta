@@ -518,8 +518,8 @@ add_node_by_type(void)
         char *name;
         bool built;
 
-        asprintf(&name, "node%d", i);
-        ASSERT(name);
+        err = asprintf(&name, "node%d", i);
+        ASSERT(err != -1);
 
         err = sol_flow_builder_add_node_by_type(builder, name, inputs[i].type, inputs[i].opts);
         built = err >= 0;

@@ -192,13 +192,6 @@ static const struct sol_mavlink_mode_mapping mode_mapping_tracker[] = {
     { SOL_MAVLINK_MODE_INITIALISING, 16 },
 };
 
-static const struct sol_mavlink_mode_mapping mode_mapping_px4[] = {
-    { SOL_MAVLINK_MODE_MANUAL, 0 },
-    { SOL_MAVLINK_MODE_ATTITUDE, 1 },
-    { SOL_MAVLINK_MODE_EASY, 2 },
-    { SOL_MAVLINK_MODE_AUTO, 3 },
-};
-
 static const struct sol_mavlink_type_mode type_mode_mapping[] = {
     TYPE_MODE_MAPPING(mode_mapping_acm, MAV_TYPE_QUADROTOR),
     TYPE_MODE_MAPPING(mode_mapping_acm, MAV_TYPE_HELICOPTER),

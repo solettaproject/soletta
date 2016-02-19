@@ -119,6 +119,7 @@ _pwm_export(int device, int channel, bool export)
     return ret;
 }
 
+SOL_ATTR_SCANF(3, 4)
 static int
 _pwm_read(const struct sol_pwm *pwm, const char *file, const char *fmt, ...)
 {
@@ -134,6 +135,7 @@ _pwm_read(const struct sol_pwm *pwm, const char *file, const char *fmt, ...)
     return ret;
 }
 
+SOL_ATTR_PRINTF(3, 4)
 static int
 _pwm_write(struct sol_pwm *pwm, const char *file, const char *fmt, ...)
 {

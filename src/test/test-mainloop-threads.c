@@ -102,7 +102,7 @@ ops_test_loop(void)
         if (cnt++ % 2 == 0) {
             dt = sol_timeout_add(5000, timeout_dn, &tv);
             di = sol_idle_add(idler_dn, &tv);
-            pipe(fds);
+            ASSERT(pipe(fds) == 0);
             df = sol_fd_add(fds[0], SOL_FD_FLAGS_IN, fd_watch_dn, &tv);
         } else {
             if (dt)
@@ -177,7 +177,7 @@ main(int argc, char *argv[])
 
     ASSERT(sol_init() == 0);
 
-    pipe(fds);
+    ASSERT(pipe(fds) == 0);
     sol_fd_add(fds[0], SOL_FD_FLAGS_IN, on_fd, NULL);
 
     main_thread = pthread_self();

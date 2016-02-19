@@ -147,7 +147,7 @@ TEST_MAINLOOP_LINUX_MAIN_FN(int argc, char *argv[])
         int ignored;
         close(sigterm_fds[1]);
         /* Blocks until the parent close the write end of the pipe. */
-        read(sigterm_fds[0], &ignored, sizeof(ignored));
+        ASSERT(read(sigterm_fds[0], &ignored, sizeof(ignored)) != - 1);
         kill(getppid(), SIGTERM);
         _exit(EXIT_SUCCESS);
     }

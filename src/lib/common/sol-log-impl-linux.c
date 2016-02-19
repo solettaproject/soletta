@@ -484,13 +484,14 @@ sol_log_impl_domain_init_level(struct sol_log_domain *domain)
     int16_t level = _global_domain.level;
 
     if (_env_levels)
-        sol_str_table_lookup(_env_levels,
+        (void)sol_str_table_lookup(_env_levels,
             sol_str_slice_from_str(domain->name),
             &level);
 
     domain->level = level;
 }
 
+SOL_ATTR_PRINTF(7, 0)
 void
 sol_log_impl_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
 {
