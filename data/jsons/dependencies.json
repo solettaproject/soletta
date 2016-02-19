@@ -127,7 +127,7 @@
         "-fPIE"
       ],
       "comment": "Position Independent Execution",
-      "append_to": "BIN_COMMON_CFLAGS"
+      "append_to": "BIN_SHARED_COMMON_CFLAGS"
     },
     {
       "dependency": "check_no_undefined_flag",
@@ -170,7 +170,7 @@
         "-pie"
       ],
       "comment": "Position Independent Execution",
-      "append_to": "BIN_COMMON_LDFLAGS"
+      "append_to": "BIN_SHARED_COMMON_LDFLAGS"
     },
     {
       "dependency": "check_soname_flag",
