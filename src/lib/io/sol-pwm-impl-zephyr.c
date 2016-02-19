@@ -94,7 +94,7 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
 
     dev = device_get_binding((char *)devs[device]->name);
     if (!dev) {
-        SOL_WRN("Failed to open AIO device %s", devs[device]->name);
+        SOL_WRN("Failed to open PWM device %s", devs[device]->name);
         return NULL;
     }
 
