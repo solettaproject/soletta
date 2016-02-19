@@ -37,6 +37,10 @@ obj-networking-$(PLATFORM_LINUX) += \
     sol-network-impl-linux.o \
     sol-socket-impl-linux.o
 
+obj-networking-$(PLATFORM_ZEPHYR) += \
+    sol-network-impl-zephyr.o \
+    sol-socket-impl-zephyr-ble.o
+
 obj-networking-$(COAP) += \
     coap.o \
     sol-coap.o

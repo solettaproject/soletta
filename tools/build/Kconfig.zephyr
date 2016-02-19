@@ -6,3 +6,4 @@ config ZEPHYR
     select FEATURE_HW_PWM
     select FEATURE_HW_SPI
     select FEATURE_FLOW
+    select FEATURE_NETWORK
