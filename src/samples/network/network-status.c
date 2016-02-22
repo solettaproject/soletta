@@ -122,13 +122,15 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
 
     if (link->flags & SOL_NETWORK_LINK_UP) {
         struct sol_network_link_addr *addr;
-        char addr_str[SOL_INET_ADDR_STRLEN];
         uint16_t i;
+
+        SOL_BUFFER_DECLARE_STATIC(addr_str, SOL_INET_ADDR_STRLEN);
 
         printf("\tUP ");
         SOL_VECTOR_FOREACH_IDX (&link->addrs, addr, i) {
-            sol_network_addr_to_str(addr, addr_str, sizeof(addr_str));
-            printf("%s ", addr_str);
+            addr_str.used = 0;
+            sol_network_addr_to_str(addr, &addr_str);
+            printf("%.*s ", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr_str)));
         }
         printf("\n");
     } else {

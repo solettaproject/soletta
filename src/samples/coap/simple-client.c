@@ -81,16 +81,17 @@ reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
 {
     struct sol_str_slice *path = data;
     static int count;
-    char addr[SOL_INET_ADDR_STRLEN];
     uint8_t *payload;
     uint16_t len;
+
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     if (!req || !cliaddr) //timeout
         return false;
 
-    sol_network_addr_to_str(cliaddr, addr, sizeof(addr));
+    sol_network_addr_to_str(cliaddr, &addr);
 
-    SOL_INF("Got response from %s", addr);
+    SOL_INF("Got response from %.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
 
     sol_coap_packet_get_payload(req, &payload, &len);
     SOL_INF("Payload: %.*s", len, payload);

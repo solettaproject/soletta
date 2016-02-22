@@ -1088,19 +1088,21 @@ state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_
         return;
 
     if (!sol_network_link_addr_eq(cliaddr, &resource->resource->addr)) {
-        char resaddr[SOL_INET_ADDR_STRLEN] = {0};
-        char respaddr[SOL_INET_ADDR_STRLEN] = {0};
+        SOL_BUFFER_DECLARE_STATIC(resaddr, SOL_INET_ADDR_STRLEN);
+        SOL_BUFFER_DECLARE_STATIC(respaddr, SOL_INET_ADDR_STRLEN);
 
-        if (!sol_network_addr_to_str(&resource->resource->addr, resaddr, sizeof(resaddr))) {
+        if (!sol_network_addr_to_str(&resource->resource->addr, &resaddr)) {
             SOL_WRN("Could not convert network address to string");
             return;
         }
-        if (!sol_network_addr_to_str(cliaddr, respaddr, sizeof(respaddr))) {
+        if (!sol_network_addr_to_str(cliaddr, &respaddr)) {
             SOL_WRN("Could not convert network address to string");
             return;
         }
 
-        SOL_WRN("Expecting response from %%s, got from %%s, ignoring", resaddr, respaddr);
+        SOL_WRN("Expecting response from %%.*s, got from %%.*s, ignoring",
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&resaddr)),
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&respaddr)));
         return;
     }
 

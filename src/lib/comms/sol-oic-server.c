@@ -332,10 +332,12 @@ _sol_oic_server_res(struct sol_coap_server *server,
 
 error:
     if (err != CborNoError) {
-        char addr[SOL_INET_ADDR_STRLEN];
-        sol_network_addr_to_str(cliaddr, addr, sizeof(addr));
-        SOL_WRN("Error building response for /oic/res, server %p client %s: %s",
-            oic_server.server, addr, cbor_error_string(err));
+        SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+
+        sol_network_addr_to_str(cliaddr, &addr);
+        SOL_WRN("Error building response for /oic/res, server %p client %.*s: %s",
+            oic_server.server, SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
+            cbor_error_string(err));
 
         sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_INTERNAL_ERROR);
     } else {
