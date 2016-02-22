@@ -528,7 +528,7 @@ void sol_http_params_clear(struct sol_http_params *params);
  * the slices content to the buffer and set
  * @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED.
  *
- * @param buf The buffer that will hold the encoded string.
+ * @param buf The buffer that will hold the encoded string - The buffer will be initialized by this function.
  * @param value A slice to be encoded.
  *
  * @note if it's required to keep or change the buffer contents
@@ -545,7 +545,7 @@ int sol_http_encode_slice(struct sol_buffer *buf, const struct sol_str_slice val
  * the slices contents to the buffer and set
  * @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED.
  *
- * @param buf The buffer that will hold the decoded string.
+ * @param buf The buffer that will hold the decoded string - The buffer will be initialized by this function.
  * @param value A slice to be decoded.
  *
  * @note if it's required to keep or change the buffer contents
@@ -558,25 +558,25 @@ int sol_http_decode_slice(struct sol_buffer *buf, const struct sol_str_slice val
 /**
  * @brief Creates an URI based on struct sol_http_url and its params
  *
- * @param uri_out The created URI - it should be freed using free().
+ * @param buf Where the create URI should be appended - The buffer must be already initialized.
  * @param url The url parameters.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
  */
-int sol_http_create_uri(char **uri_out, const struct sol_http_url url, const struct sol_http_params *params);
+int sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url, const struct sol_http_params *params);
 
 /**
  * @brief A simpler version of sol_http_create_uri().
  *
  *
- * @param uri The created URI - it should be freed using free().
+ * @param buf Where the create URI should be appended - The buffer must be already initialized.
  * @param base_uri The base uri to be used.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
  */
-int sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri, const struct sol_http_params *params);
+int sol_http_create_simple_uri(struct sol_buffer *buf, const struct sol_str_slice base_uri, const struct sol_http_params *params);
 
 /**
  * @brief Encodes http parameters of a given type.
@@ -622,16 +622,16 @@ int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url 
 /**
  * @brief An wrapper of over sol_http_create_simple_uri()
  *
- * @param uri The created URI - it should be freed using free().
+ * @param buf Where the create URI should be appended - The buffer must be already initialized.
  * @param base_url The base uri to be used.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
  */
 static inline int
-sol_http_create_simple_uri_from_str(char **uri, const char *base_url, const struct sol_http_params *params)
+sol_http_create_simple_uri_from_str(struct sol_buffer *buf, const char *base_url, const struct sol_http_params *params)
 {
-    return sol_http_create_simple_uri(uri, sol_str_slice_from_str(base_url ? base_url : ""), params);
+    return sol_http_create_simple_uri(buf, sol_str_slice_from_str(base_url ? base_url : ""), params);
 }
 
 /**

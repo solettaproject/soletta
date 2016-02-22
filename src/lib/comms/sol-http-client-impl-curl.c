@@ -482,7 +482,7 @@ header_cb(char *data, size_t size, size_t nmemb, void *connp)
     if (!strncasecmp(data, "Set-Cookie:", key_size)) {
         param.type = SOL_HTTP_PARAM_COOKIE;
         cookie_name_size = 0;
-        while (sep[cookie_name_size++] != '=');
+        while (sep[cookie_name_size++] != '=') ;
         decoded_key = curl_easy_unescape(connection->curl, sep,
             cookie_name_size - 1, NULL);
         SOL_NULL_CHECK_GOTO(decoded_key, err_exit);
@@ -746,14 +746,14 @@ static bool
 set_uri_from_params(CURL *curl, const char *base,
     const struct sol_http_params *params)
 {
-    char *full_uri;
+    struct sol_buffer full_uri = SOL_BUFFER_INIT_EMPTY;
     int err;
     bool r;
 
     err = sol_http_create_simple_uri_from_str(&full_uri, base, params);
     SOL_INT_CHECK(err, < 0, false);
-    r = curl_easy_setopt(curl, CURLOPT_URL, full_uri) == CURLE_OK;
-    free(full_uri);
+    r = curl_easy_setopt(curl, CURLOPT_URL, full_uri.data) == CURLE_OK;
+    sol_buffer_fini(&full_uri);
     return r;
 }
 
