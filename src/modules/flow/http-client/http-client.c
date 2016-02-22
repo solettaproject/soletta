@@ -102,7 +102,7 @@ static int
 set_basic_url_info(struct http_data *mdata, const char *full_uri)
 {
     struct sol_http_url url, base_url;
-    char *new_url;
+    struct sol_buffer new_url = SOL_BUFFER_INIT_EMPTY;
     int r;
 
     r = sol_http_split_uri(sol_str_slice_from_str(full_uri), &url);
@@ -119,7 +119,7 @@ set_basic_url_info(struct http_data *mdata, const char *full_uri)
     SOL_INT_CHECK(r, < 0, r);
 
     free(mdata->url);
-    mdata->url = new_url;
+    mdata->url = sol_buffer_steal(&new_url, NULL);
 
     sol_http_params_clear(&mdata->url_params);
     r = sol_http_decode_params(url.query,
@@ -1801,7 +1801,7 @@ create_url_create_process(struct sol_flow_node *node, void *data,
 {
     struct create_url_data *mdata = data;
     int r;
-    char *uri;
+    struct sol_buffer uri = SOL_BUFFER_INIT_EMPTY;
     struct sol_http_url url;
 
     url.scheme = sol_str_slice_from_str(mdata->scheme ? : "http");
@@ -1814,9 +1814,10 @@ create_url_create_process(struct sol_flow_node *node, void *data,
 
     r = sol_http_create_uri(&uri, url, &mdata->params);
     SOL_INT_CHECK(r, < 0, r);
-    r = sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL__OUT__OUT, uri);
-    free(uri);
+    r = sol_flow_send_string_slice_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL__OUT__OUT,
+        sol_buffer_get_slice(&uri));
+    sol_buffer_fini(&uri);
     return r;
 }
 
