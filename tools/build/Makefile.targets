@@ -1,12 +1,8 @@
 tests: $(SOL_LIB_OUTPUT) $(tests-out) $(modules-out)
 
 CHECK_DEPS := tests
-
 ifneq ($(USE_NODEJS),)
-check-nodejs_bindings: nodejs_bindings
-	LD_PRELOAD=$(LIB_ASAN_PATH) node -p 'require( "./lowlevel" ).sol_platform_get_machine_id();'
-CHECK_DEPS += check-nodejs_bindings
-PHONY += check-nodejs_bindings
+CHECK_DEPS += check-bindings-nodejs
 endif
 
 check: $(CHECK_DEPS)
@@ -197,12 +193,12 @@ PHONY += cheat-sheet
 
 ifneq ($(USE_NODEJS),)
 
-bins-out += nodejs_bindings
+bins-out += bindings-nodejs
 NODE_GYP=$(NODE_GYP_PATH)/node-gyp
 
-nodejs_bindings: $(SOL_LIB_OUTPUT)
+bindings-nodejs: $(SOL_LIB_OUTPUT)
 	# Install dependencies without building the package
-	$(Q)$(NODEJS_NPM) install --ignore-scripts
+	$(Q) $(NODEJS_NPM) install --ignore-scripts
 
 	# Build the package without clobbering build/
 	$(Q) \
@@ -211,6 +207,10 @@ nodejs_bindings: $(SOL_LIB_OUTPUT)
                SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) configure && \
                SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) build
 
-PHONY += nodejs_bindings
+PHONY += bindings-nodejs
 
-endif
+check-bindings-nodejs: bindings-nodejs
+	LD_PRELOAD=$(LIB_ASAN_PATH) node -p 'require( "./lowlevel" ).sol_platform_get_machine_id();'
+PHONY += check-bindings-nodejs
+
+endif #neq($(USE_NODEJS),)
