@@ -37,6 +37,7 @@
 #include <sol-common-buildopts.h>
 #include <sol-vector.h>
 #include <sol-str-slice.h>
+#include <sol-buffer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -182,15 +183,14 @@ struct sol_network_link {
  * @brief Converts a @c sol_network_link_addr to a string.
  *
  * @param addr The address to be converted.
- * @param buf The buffer where the converted string will be stored.
- * @param len The size of buf.
+ * @param buf The buffer where the converted string will be appended -
+ * It must be already initialized and with the capacity set.
  *
  * @return a string with the network link address on success, @c NULL on error.
  *
  * @see sol_network_addr_from_str()
  */
-const char *sol_network_addr_to_str(const struct sol_network_link_addr *addr,
-    char *buf, uint32_t len);
+const char *sol_network_addr_to_str(const struct sol_network_link_addr *addr, struct sol_buffer *buf);
 
 /**
  * @brief Converts a string address to @c sol_network_link_addr.

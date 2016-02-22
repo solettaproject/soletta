@@ -33,6 +33,7 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <sys/socket.h>
+#include <string.h>
 
 #if MODULE_GNRC_IPV6_NETIF
 #include "net/ipv6/addr.h"
@@ -50,16 +51,27 @@ static struct sol_vector links = SOL_VECTOR_INIT(struct sol_network_link);
 
 SOL_API const char *
 sol_network_addr_to_str(const struct sol_network_link_addr *addr,
-    char *buf, uint32_t len)
+    struct sol_buffer *buf)
 {
 #if MODULE_GNRC_IPV6_NETIF
+    const char *r;
+    size_t len;
+
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
+    len = buf->capacity - buf->used;
+    SOL_INT_CHECK(len, == 0, NULL);
 
     if (addr->family != SOL_NETWORK_FAMILY_INET6)
         return NULL;
 
-    return ipv6_addr_to_str(buf, (ipv6_addr_t *)&addr->addr, len);
+    r = ipv6_addr_to_str(sol_buffet_at_end(buf), (ipv6_addr_t *)&addr->addr, len);
+
+    if (r)
+        buf->used = strlen(r);
+
+    return r;
+
 #else
     return NULL;
 #endif

@@ -91,12 +91,22 @@ static struct sol_network *network = NULL;
 
 SOL_API const char *
 sol_network_addr_to_str(const struct sol_network_link_addr *addr,
-    char *buf, uint32_t len)
+    struct sol_buffer *buf)
 {
+    const char *r;
+    size_t len;
+
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
+    len = buf->capacity - buf->used;
+    SOL_INT_CHECK(len, == 0, NULL);
 
-    return inet_ntop(sol_network_sol_to_af(addr->family), &addr->addr, buf, len);
+    r = inet_ntop(sol_network_sol_to_af(addr->family), &addr->addr,
+        sol_buffer_at_end(buf), len);
+
+    if (r)
+        buf->used += strlen(r);
+    return r;
 }
 
 SOL_API const struct sol_network_link_addr *
