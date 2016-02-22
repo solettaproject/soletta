@@ -1,10 +1,11 @@
-obj-$(NETWORK) += networking.mod
+obj-$(NETWORK) += networking.mod \
+    dtls.mod
 
 obj-networking-$(NETWORK) := \
     sol-comms.o \
     sol-socket.o
 
-obj-networking-$(DTLS) += \
+obj-dtls-$(DTLS) += \
     $(TINYDTLS_SRC_PATH)/ccm.o \
     $(TINYDTLS_SRC_PATH)/crypto.o \
     $(TINYDTLS_SRC_PATH)/dtls.o \
@@ -18,7 +19,7 @@ obj-networking-$(DTLS) += \
     $(TINYDTLS_SRC_PATH)/sha2/sha2.o \
     sol-socket-dtls-impl-tinydtls.o
 
-obj-networking-$(DTLS)-extra-cflags += \
+obj-dtls-$(DTLS)-extra-cflags += \
     -I$(TINYDTLS_SRC_PATH) \
     -Wno-sign-compare \
     -Wno-discarded-qualifiers \
