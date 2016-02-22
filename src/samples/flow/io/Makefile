@@ -5,9 +5,9 @@ sample-$(FLOW_IO_SAMPLE) += \
 sample-io-pwm-$(FLOW_IO_SAMPLE) := \
 	pwm.fbp
 sample-io-pwm-$(FLOW_IO_SAMPLE)-conffile := \
-	pwm.json
+	sol-flow-intel-edison-rev-c.json
 
 sample-io-servo-motor-$(FLOW_IO_SAMPLE) := \
 	servo-motor.fbp
 sample-io-servo-motor-$(FLOW_IO_SAMPLE)-conffile := \
-	servo-motor.json
+	sol-flow-intel-edison-rev-c.json

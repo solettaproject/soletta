@@ -4,7 +4,7 @@ Since board configuration changes a lot and there is no way to
 autodetect it, you need to create a configuration file (json-based) and
 specify it using the environment variable: $SOL_FLOW_MODULE_RESOLVER_CONFFILE
 
-For instance, say you copied pwm.json to pwm-myboard.json and edited
+For instance, say you copied sol-flow-intel-edison-rev-c.json to pwm-myboard.json and edited
 it to fit your needs, then run:
 
    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=pwm-myboard.json

@@ -19,6 +19,15 @@
     "enabled": true
    },
    "type": "pwm"
+  },
+  {
+   "name": "Servo",
+   "options": {
+    "duty_cycle_range": "min:544|max:2400",
+    "period": "22000",
+    "pin": "3"
+   },
+   "type": "servo-motor/controller"
   }
  ]
 }
