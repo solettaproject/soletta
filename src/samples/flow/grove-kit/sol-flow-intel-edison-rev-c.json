@@ -95,7 +95,7 @@
   {
    "name": "Buzzer",
    "options": {
-    "pin": "5"
+    "pin": "3"
    },
    "type": "piezo-speaker/sound"
   },
