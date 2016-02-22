@@ -155,6 +155,7 @@ sol_i2c_open_raw(uint8_t bus, enum sol_i2c_speed speed)
     i2c = calloc(1, sizeof(*i2c));
     if (!i2c) {
         SOL_WRN("i2c #%u: could not allocate i2c context", bus);
+        close(dev);
         return NULL;
     }
 
