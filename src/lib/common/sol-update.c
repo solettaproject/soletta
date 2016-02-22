@@ -71,8 +71,8 @@ check_module(const char *path, const char *symbol_name, void *symbol)
 
 #ifndef SOL_NO_API_VERSION
     if ((*p_update)->api_version != SOL_UPDATE_API_VERSION) {
-        SOL_WRN("Module [%s] has incorrect api_version: %u expected %u", path,
-            (*p_update)->api_version, SOL_UPDATE_API_VERSION);
+        SOL_WRN("Module [%s] has incorrect api_version: %" PRIu16 " expected %"
+            PRIu16, path, (*p_update)->api_version, SOL_UPDATE_API_VERSION);
         return false;
     }
 #endif

@@ -1427,12 +1427,12 @@ generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
             "};\n");
 
         out("\nstatic const struct sol_memmap_map _memmap%d = {\n"
-            "   .api_version = %u,\n"
+            "   .version = %u,\n"
             "   .path = \"%s\",\n"
             "   .timeout = %u,\n"
             "   .entries = _memmap%d_entries\n"
             "};\n",
-            i, map->api_version, map->path, map->timeout, i);
+            i, map->version, map->path, map->timeout, i);
     }
 
     *elements = i;

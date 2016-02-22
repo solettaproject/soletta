@@ -110,15 +110,6 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     if (!res)
         return false;
 
-#ifndef SOL_NO_API_VERSION
-    if (SOL_UNLIKELY(res->api_version != SOL_OIC_RESOURCE_API_VERSION)) {
-        SOL_WRN("Couldn't add resource_type with "
-            "version '%u'. Expected version '%u'.",
-            res->api_version, SOL_OIC_RESOURCE_API_VERSION);
-        return NULL;
-    }
-#endif
-
     if (!sol_network_addr_to_str(&res->addr, addr, sizeof(addr))) {
         SOL_WRN("Could not convert network address to string");
         return false;

@@ -77,8 +77,8 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
-        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
-            "expected version is '%u'",
+        SOL_WRN("Couldn't open gpio that has unsupported version '%" PRIu16 "', "
+            "expected version is '%" PRIu16 "'",
             config->api_version, SOL_GPIO_CONFIG_API_VERSION);
         return NULL;
     }

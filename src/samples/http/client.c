@@ -55,10 +55,6 @@ static void
 response_cb(void *userdata, const struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
-
-    SOL_HTTP_RESPONSE_CHECK_API(response);
-    SOL_HTTP_PARAMS_CHECK_API_VERSION(&response->param);
-
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         fprintf(stderr, "Finished with error, response code: %d\n",
             response->response_code);

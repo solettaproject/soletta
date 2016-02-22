@@ -74,7 +74,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_coap_log_domain, "coap");
         if (SOL_UNLIKELY(resource->api_version != \
             SOL_COAP_RESOURCE_API_VERSION)) { \
             SOL_WRN("Couldn't handle resource that has unsupported version " \
-                "'%u', expected version is '%u'", \
+                "'%" PRIu16 "', expected version is '%" PRIu16 "'", \
                 resource->api_version, SOL_COAP_RESOURCE_API_VERSION); \
             return __VA_ARGS__; \
         } \

@@ -43,13 +43,13 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_sol_blob_log_domain, "blob");
 
 #ifndef SOL_NO_API_VERSION
 #define SOL_BLOB_CHECK_API_VERSION(blob, ...) \
-    if (!(blob)->type->api_version) {               \
-        SOL_WRN("" # blob                            \
-            "(%p)->type->api_version(%hu) != "   \
-            "SOL_BLOB_TYPE_API_VERSION(%hu)",     \
-            (blob), (blob)->type->api_version,   \
-            SOL_BLOB_TYPE_API_VERSION);           \
-        return __VA_ARGS__;                         \
+    if (!(blob)->type->api_version) { \
+        SOL_WRN("" # blob \
+            "(%p)->type->api_version(%" PRIu16 ") != " \
+            "SOL_BLOB_TYPE_API_VERSION(%" PRIu16 ")", \
+            (blob), (blob)->type->api_version, \
+            SOL_BLOB_TYPE_API_VERSION); \
+        return __VA_ARGS__; \
     }
 #else
 #define SOL_BLOB_CHECK_API_VERSION(blob, ...)

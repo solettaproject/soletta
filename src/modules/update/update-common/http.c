@@ -109,8 +109,6 @@ task_get_metadata_response(void *data, const struct sol_http_client_connection *
     handle->conn = NULL;
     handle->on_callback = true;
 
-    SOL_HTTP_RESPONSE_CHECK_API(http_response);
-
     if (http_response->response_code != SOL_HTTP_STATUS_OK) {
         SOL_WRN("Invalid response code from [%s] when checking for update: %d",
             handle->url, http_response->response_code);
@@ -200,8 +198,6 @@ task_fetch_response(void *data, const struct sol_http_client_connection *conn,
 
     handle->conn = NULL;
     handle->on_callback = true;
-
-    SOL_HTTP_RESPONSE_CHECK_API(http_response);
 
     if (http_response->response_code != SOL_HTTP_STATUS_OK) {
         SOL_WRN("Invalid response code from [%s] when fetching update: %d",

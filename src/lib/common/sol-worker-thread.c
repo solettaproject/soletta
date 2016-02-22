@@ -48,8 +48,8 @@ sol_worker_thread_new(const struct sol_worker_thread_spec *spec)
 
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(spec->api_version != SOL_WORKER_THREAD_SPEC_API_VERSION)) {
-        SOL_WRN("Couldn't create worker thread with unsupported version '%u', "
-            "expected version is '%u'",
+        SOL_WRN("Couldn't create worker thread with unsupported version '%" PRIu16 "', "
+            "expected version is '%" PRIu16 "'",
             spec->api_version, SOL_WORKER_THREAD_SPEC_API_VERSION);
         return NULL;
     }

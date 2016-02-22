@@ -637,7 +637,7 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
 #ifndef SOL_NO_API_VERSION
     if (SOL_UNLIKELY(rt->api_version != SOL_OIC_RESOURCE_TYPE_API_VERSION)) {
         SOL_WRN("Couldn't add resource_type with "
-            "version '%u'. Expected version '%u'.",
+            "version '%" PRIu16 "'. Expected version '%" PRIu16 "'.",
             rt->api_version, SOL_OIC_RESOURCE_TYPE_API_VERSION);
         return NULL;
     }
