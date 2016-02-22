@@ -309,7 +309,7 @@ sol_mavlink_check_known_vehicle(uint8_t type)
 static bool
 sol_mavlink_request_home_position(struct sol_mavlink *mavlink)
 {
-    mavlink_message_t msg;
+    mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len;
 
@@ -436,7 +436,7 @@ static bool
 sol_mavlink_fd_handler(void *data, int fd, uint32_t cond)
 {
     struct sol_mavlink *mavlink = data;
-    mavlink_message_t msg;
+    mavlink_message_t msg = { 0 };
     mavlink_status_t status;
     uint8_t buf[MAVLINK_MAX_PACKET_LEN] = { 0 };
     int i, res;
@@ -491,7 +491,7 @@ sol_mavlink_fd_handler(void *data, int fd, uint32_t cond)
 static bool
 setup_data_stream(struct sol_mavlink *mavlink)
 {
-    mavlink_message_t msg;
+    mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len;
 
@@ -766,7 +766,7 @@ sol_mavlink_disconnect(struct sol_mavlink *mavlink)
 SOL_API int
 sol_mavlink_set_armed(struct sol_mavlink *mavlink, bool armed)
 {
-    mavlink_message_t msg;
+    mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len, res;
     bool curr;
@@ -790,7 +790,7 @@ sol_mavlink_set_armed(struct sol_mavlink *mavlink, bool armed)
 SOL_API int
 sol_mavlink_takeoff(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
 {
-    mavlink_message_t msg;
+    mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len, res;
 
@@ -812,7 +812,7 @@ sol_mavlink_takeoff(struct sol_mavlink *mavlink, struct sol_mavlink_position *po
 SOL_API int
 sol_mavlink_land(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
 {
-    mavlink_message_t msg;
+    mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len, res;
 
@@ -834,7 +834,7 @@ sol_mavlink_land(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
 SOL_API int
 sol_mavlink_set_mode(struct sol_mavlink *mavlink, enum sol_mavlink_mode mode)
 {
-    mavlink_message_t msg;
+    mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN], custom_mode;
     uint16_t len, res;
 
@@ -916,7 +916,7 @@ sol_mavlink_get_home_position(struct sol_mavlink *mavlink, struct sol_mavlink_po
 SOL_API int
 sol_mavlink_goto(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
 {
-    mavlink_message_t msg;
+    mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len, res;
 
@@ -938,7 +938,7 @@ sol_mavlink_goto(struct sol_mavlink *mavlink, struct sol_mavlink_position *pos)
 SOL_API int
 sol_mavlink_change_speed(struct sol_mavlink *mavlink, float speed, bool airspeed)
 {
-    mavlink_message_t msg;
+    mavlink_message_t msg = { 0 };
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t len, res;
     float speed_type = 1.f;
