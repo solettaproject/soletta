@@ -3413,8 +3413,9 @@ register_reply(struct sol_coap_server *server,
     struct server_conn_ctx *conn_ctx = data;
     struct sol_str_slice path[2];
     uint16_t code;
-    char addr[SOL_INET_ADDR_STRLEN] = { };
     int r;
+
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     sol_coap_packet_unref(conn_ctx->pending_pkt);
     conn_ctx->pending_pkt = NULL;
@@ -3431,7 +3432,7 @@ register_reply(struct sol_coap_server *server,
         return false;
     }
 
-    if (!sol_network_addr_to_str(server_addr, addr, sizeof(addr)))
+    if (!sol_network_addr_to_str(server_addr, &addr))
         SOL_WRN("Could not convert the server address to string");
 
     code = sol_coap_header_get_code(pkt);
@@ -3444,7 +3445,8 @@ register_reply(struct sol_coap_server *server,
     conn_ctx->location = sol_str_slice_to_string(path[1]);
     SOL_NULL_CHECK_GOTO(conn_ctx->location, err_exit);
 
-    SOL_DBG("Registered with server %s at location %s", addr,
+    SOL_DBG("Registered with server %.*s at location %s",
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
         conn_ctx->location);
 
     r = reschedule_client_timeout(conn_ctx->client);

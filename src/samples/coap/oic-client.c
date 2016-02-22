@@ -43,7 +43,8 @@ got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *c
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
-    char addr[SOL_INET_ADDR_STRLEN];
+
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     if (!srv_addr) {
         SOL_WRN("Response timeout");
@@ -55,12 +56,12 @@ got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *c
         return;
     }
 
-    if (!sol_network_addr_to_str(srv_addr, addr, sizeof(addr))) {
+    if (!sol_network_addr_to_str(srv_addr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         return;
     }
 
-    printf("Dumping payload received from addr %s {\n", addr);
+    printf("Dumping payload received from addr %.*s {\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
     SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
         printf("\tkey: '%s', value: ", field.key);
 
@@ -105,7 +106,8 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     static const char digits[] = "0123456789abcdef";
     struct sol_str_slice *slice;
     uint16_t idx;
-    char addr[SOL_INET_ADDR_STRLEN];
+
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     if (!res)
         return false;
@@ -119,12 +121,12 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     }
 #endif
 
-    if (!sol_network_addr_to_str(&res->addr, addr, sizeof(addr))) {
+    if (!sol_network_addr_to_str(&res->addr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         return false;
     }
 
-    printf("Found resource: coap://%s%.*s\n", addr,
+    printf("Found resource: coap://%.*s%.*s\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
         SOL_STR_SLICE_PRINT(res->href));
 
     printf("Flags:\n"

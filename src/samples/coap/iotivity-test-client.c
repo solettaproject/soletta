@@ -96,9 +96,10 @@ found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, v
 {
     struct sol_str_slice *slice;
     uint16_t idx;
-    char addr[SOL_INET_ADDR_STRLEN];
     char device_id[DEVICE_ID_LEN * 2];
     static bool resource_found = false;
+
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     if (!res) {
         if (!resource_found) {
@@ -114,13 +115,13 @@ found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, v
         return false;
     }
 
-    if (!sol_network_addr_to_str(&res->addr, addr, sizeof(addr))) {
+    if (!sol_network_addr_to_str(&res->addr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         return false;
     }
 
     resource_found = true;
-    SOL_DBG("Found resource: coap://%s%.*s", addr,
+    SOL_DBG("Found resource: coap://%.*s%.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
         SOL_STR_SLICE_PRINT(res->href));
 
     SOL_DBG("Flags:");
@@ -259,9 +260,10 @@ static void
 resource_notify(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr,
     const struct sol_oic_map_reader *map_reader, void *data)
 {
-    char addr[SOL_INET_ADDR_STRLEN];
     struct Context *ctx = data;
     static uint8_t notify_count = 0;
+
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     if (!cliaddr) {
         SOL_WRN("Timeout reached");
@@ -269,7 +271,7 @@ resource_notify(sol_coap_responsecode_t response_code, struct sol_oic_client *cl
         return;
     }
 
-    if (!sol_network_addr_to_str(cliaddr, addr, sizeof(addr))) {
+    if (!sol_network_addr_to_str(cliaddr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         sol_quit_with_code(EXIT_FAILURE);
         return;
@@ -281,7 +283,7 @@ resource_notify(sol_coap_responsecode_t response_code, struct sol_oic_client *cl
         return;
     }
 
-    SOL_WRN("Received successful notification packet");
+    SOL_WRN("Received successful notification packet from: %.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
     if (notify_count++ >= 5)
         sol_quit();
 }
@@ -307,9 +309,10 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
-    char addr[SOL_INET_ADDR_STRLEN];
     struct Context *ctx = data;
     struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     if (!cliaddr) {
         SOL_WRN("Timeout reached");
@@ -317,7 +320,7 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
         return;
     }
 
-    if (!sol_network_addr_to_str(cliaddr, addr, sizeof(addr))) {
+    if (!sol_network_addr_to_str(cliaddr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         sol_quit_with_code(EXIT_FAILURE);
         return;
@@ -337,7 +340,7 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
     }
 
     if (map_reader) {
-        SOL_DBG("Dumping payload received from addr %s {", addr);
+        SOL_DBG("Dumping payload received from addr %.*s {", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
         SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
 
             switch (field.type) {
