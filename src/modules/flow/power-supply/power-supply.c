@@ -256,9 +256,9 @@ get_capacity(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
 }
 
 static int
-send_string_prop(struct sol_flow_node *node, const char *name, int (*func)(const char *name, char **prop), uint16_t port, const char *err_msg)
+send_string_prop(struct sol_flow_node *node, const char *name, int (*func)(const char *name, struct sol_buffer *prop), uint16_t port, const char *err_msg)
 {
-    char *prop;
+    struct sol_buffer prop = SOL_BUFFER_INIT_EMPTY;
     int r;
 
     r = func(name, &prop);
@@ -266,8 +266,8 @@ send_string_prop(struct sol_flow_node *node, const char *name, int (*func)(const
         r = sol_flow_send_error_packet_str(node, EINVAL, err_msg);
         SOL_INT_CHECK(r, < 0, r);
     } else {
-        r = sol_flow_send_string_packet(node, port, prop);
-        free(prop);
+        r = sol_flow_send_string_slice_packet(node, port, sol_buffer_get_slice(&prop));
+        sol_buffer_fini(&prop);
         SOL_INT_CHECK(r, < 0, r);
     }
 
