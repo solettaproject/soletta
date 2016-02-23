@@ -423,18 +423,7 @@ string_response_cb(struct http_data *mdata, struct sol_buffer *content, bool jso
     int r = 0;
 
     if (json) {
-        size_t escaped_len = sol_json_calculate_escaped_string_len(mdata->value.s);
-        r = sol_buffer_ensure(content, content->used + escaped_len + 2);
-        SOL_INT_CHECK(r, < 0, r);
-
-        r = sol_buffer_append_char(content, '\"');
-        SOL_INT_CHECK(r, < 0, r);
-
-        sol_json_escape_string(mdata->value.s, sol_buffer_at_end(content), escaped_len);
-        content->used += escaped_len - 1; /* remove \0 in the result */
-
-        r = sol_buffer_append_char(content, '\"');
-        SOL_INT_CHECK(r, < 0, r);
+        r = sol_json_serialize_string(content, mdata->value.s);
     } else {
         r = sol_buffer_append_slice(content, sol_str_slice_from_str(mdata->value.s));
     }
@@ -609,26 +598,34 @@ static int
 float_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
 {
     int r;
-    char val[DOUBLE_STRING_LEN], min[DOUBLE_STRING_LEN],
-        max[DOUBLE_STRING_LEN], step[DOUBLE_STRING_LEN];
 
-    r = sol_json_double_to_str(mdata->value.d.val, val, sizeof(val));
-    SOL_INT_CHECK(r, < 0, r);
+    SOL_BUFFER_DECLARE_STATIC(val, DOUBLE_STRING_LEN);
 
-    r = sol_json_double_to_str(mdata->value.d.min, min, sizeof(min));
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = sol_json_double_to_str(mdata->value.d.max, max, sizeof(max));
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = sol_json_double_to_str(mdata->value.d.step, step, sizeof(step));
+    r = sol_json_double_to_str(mdata->value.d.val, &val);
     SOL_INT_CHECK(r, < 0, r);
 
     if (json) {
-        r = sol_buffer_append_printf(content, "{\"value\":%s,\"min\":%s,\"max\":%s,\"step\":%s}",
-            val, min, max, step);
+        SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
+        SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
+        SOL_BUFFER_DECLARE_STATIC(step, DOUBLE_STRING_LEN);
+
+        r = sol_json_double_to_str(mdata->value.d.min, &min);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.d.max, &max);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_json_double_to_str(mdata->value.d.step, &step);
+        SOL_INT_CHECK(r, < 0, r);
+
+        r = sol_buffer_append_printf(content,
+            "{\"value\":%.*s,\"min\":%.*s,\"max\":%.*s,\"step\":%.*s}",
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&val)),
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&min)),
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&max)),
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&step)));
     } else {
-        r = sol_buffer_append_slice(content, sol_str_slice_from_str(val));
+        r = sol_buffer_append_slice(content, sol_buffer_get_slice(&val));
     }
 
     return r;
