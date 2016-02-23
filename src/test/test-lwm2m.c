@@ -113,7 +113,7 @@ security_object_read(void *instance_data, void *user_data,
             SOL_LWM2M_RESOURCE_DATA_TYPE_INT, 101);
         break;
     default:
-        r = -EBADRQC;
+        r = -EINVAL;
     }
 
     return r;
@@ -141,7 +141,7 @@ server_object_read(void *instance_data, void *user_data,
             sol_str_slice_from_str("U"));
         break;
     default:
-        r = -EBADRQC;
+        r = -EINVAL;
     }
 
     return r;
@@ -335,7 +335,7 @@ read_dummy_resource(void *instance_data, void *user_data,
             SOL_LWM2M_RESOURCE_DATA_TYPE_INT, ctx->array[0], ctx->array[1]);
         break;
     default:
-        r = -EBADRQC;
+        r = -EINVAL;
     }
 
     return r;

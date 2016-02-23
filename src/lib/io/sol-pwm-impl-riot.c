@@ -193,7 +193,9 @@ sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
     pwm->duty_cycle = duty_cycle_ns;
     value = (RESOLUTION * duty_cycle_ns) / pwm->period;
 
-    return pwm_set(pwm->dev, pwm->channel, value) == 0;
+    pwm_set(pwm->dev, pwm->channel, value);
+
+    return true;
 }
 
 SOL_API int32_t

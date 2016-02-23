@@ -18,3 +18,4 @@ config LINUX
     select FEATURE_FLOW
     select FEATURE_FILESYSTEM
     select FEATURE_CC_SANITIZE
+    select FEATURE_OIC

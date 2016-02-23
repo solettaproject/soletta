@@ -434,7 +434,7 @@ struct sol_lwm2m_object {
      * @param res_id The resource that should be read.
      * @param res The resource content, it should be set using
      * sol_lwm2m_resource_init()
-     * @return 0 on success, -ENOENT if the resource is empty, -EBADRQC
+     * @return 0 on success, -ENOENT if the resource is empty, -EINVAL
      * if the resource does not exist or -errno on error.
      * @see sol_lwm2m_resource_init()
      */

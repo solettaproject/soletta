@@ -51,3 +51,6 @@ config FEATURE_FILESYSTEM
 
 config FEATURE_CC_SANITIZE
     bool
+
+config FEATURE_OIC
+    bool

@@ -261,7 +261,7 @@ read_location_obj(void *instance_data, void *user_data,
         if (res_id >= 2 && res_id <= 4)
             r = -ENOENT;
         else
-            r = -EBADRQC;
+            r = -EINVAL;
     }
 
     return r;
@@ -293,7 +293,7 @@ read_security_server_obj(void *instance_data, void *user_data,
         if (res_id >= 2 && res_id <= 11)
             r = -ENOENT;
         else
-            r = -EBADRQC;
+            r = -EINVAL;
     }
 
     return r;
@@ -325,7 +325,7 @@ read_server_obj(void *instance_data, void *user_data,
         if (res_id >= 2 && res_id <= 6)
             r = -ENOENT;
         else
-            r = -EBADRQC;
+            r = -EINVAL;
     }
 
     return r;
@@ -337,7 +337,7 @@ execute_server_obj(void *instance_data, void *user_data,
     uint16_t res_id, const struct sol_str_slice args)
 {
     if (res_id != SERVER_OBJ_REGISTRATION_UPDATE_RES_ID)
-        return -EBADRQC;
+        return -EINVAL;
 
     return sol_lwm2m_send_update(client);
 }
