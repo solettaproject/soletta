@@ -94,6 +94,9 @@ obj-networking-$(MAVLINK)-extra-cflags += \
 	-I$(MAVLINK_SRC_PATH)/ardupilotmega/ \
 	-Wno-declaration-after-statement
 
+obj-networking-$(LWM2M) += \
+	sol-lwm2m.o
+
 headers-$(NETWORK) += \
     include/sol-network.h
 
@@ -119,3 +122,6 @@ headers-$(MQTT) += \
 
 headers-$(MAVLINK) += \
 	include/sol-mavlink.h
+
+headers-$(LWM2M) += \
+    include/sol-lwm2m.h
