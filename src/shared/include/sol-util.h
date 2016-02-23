@@ -203,14 +203,13 @@ sol_util_msec_from_timespec(const struct timespec *ts)
  * code passed in the argument @c errnum.
  *
  * @param errnum The error code
- * @param buf Buffer used to store the store the string.
- * @param buflen The size of @c buf
+ * @param buf Buffer used to append error the string - It must be already initialized.
  *
  * @return return the appropriate error description string.
  *
  * @see sol_util_strerrora
  */
-char *sol_util_strerror(int errnum, char *buf, size_t buflen);
+char *sol_util_strerror(int errnum, struct sol_buffer *buf);
 
 /**
  * @brief Gets a string from a given error using the stack.
@@ -227,8 +226,8 @@ char *sol_util_strerror(int errnum, char *buf, size_t buflen);
  */
 #define sol_util_strerrora(errnum) \
     ({ \
-        char buf ## __COUNT__[512]; \
-        sol_util_strerror((errnum), buf ## __COUNT__, sizeof(buf ## __COUNT__)); \
+        SOL_BUFFER_DECLARE_STATIC(buf ## __COUNT__, 512); \
+        sol_util_strerror((errnum), &buf ## __COUNT__); \
     })
 
 /**

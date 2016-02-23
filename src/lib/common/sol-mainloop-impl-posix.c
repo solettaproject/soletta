@@ -256,15 +256,15 @@ static void
 on_sig_debug(const siginfo_t *info)
 {
     if (SOL_LOG_LEVEL_POSSIBLE(SOL_LOG_LEVEL_DEBUG)) {
-        char errmsg[1024] = "Success";
+        SOL_BUFFER_DECLARE_STATIC(errmsg, 1024);
 
         if (info->si_errno)
-            sol_util_strerror(info->si_errno, errmsg, sizeof(errmsg));
+            sol_util_strerror(info->si_errno, &errmsg);
 
         SOL_DBG("got signal %d, errno %d (%s), code %d. ignored.",
             info->si_signo,
             info->si_errno,
-            errmsg,
+            info->si_errno ? "Success" : (char *)errmsg.data,
             info->si_code);
     }
 }

@@ -231,24 +231,59 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 }
 
 SOL_API char *
-sol_util_strerror(int errnum, char *buf, size_t buflen)
+sol_util_strerror(int errnum, struct sol_buffer *buf)
 {
     char *ret;
+    int err;
+    size_t len;
 
-    if (buflen < 1)
-        return NULL;
+    SOL_NULL_CHECK(buf, NULL);
+
+#define CHUNK_SIZE (512)
 
 #ifdef HAVE_XSI_STRERROR_R
     /* XSI-compliant strerror_r returns int */
-    if (strerror_r(errnum, buf, buflen) != 0)
-        return NULL;
-    ret = buf;
+    while (1) {
+        errno = 0;
+        ret = sol_buffer_at_end(buf);
+        err = strerror_r(errnum, ret, buf->capacity - buf->used);
+
+        if (err == ERANGE || (err < 0 && errno == ERANGE)) {
+            err = sol_buffer_expand(buf, CHUNK_SIZE);
+            SOL_INT_CHECK(err, < 0, NULL);
+        } else if (err != 0)
+            return NULL;
+        else
+            break;
+    }
+    buf->used += strlen(ret);
 #else
+
     /* GNU libc version of strerror_r returns char* */
-    ret = strerror_r(errnum, buf, buflen);
+    while (1) {
+        ret = strerror_r(errnum, sol_buffer_at_end(buf), buf->capacity - buf->used);
+
+        if (!ret) {
+            err = sol_buffer_expand(buf, CHUNK_SIZE);
+            SOL_INT_CHECK(err, < 0, NULL);
+        } else
+            break;
+    }
+
+    len = strlen(ret);
+
+    if (buf->capacity - buf->used < len) {
+        err = sol_buffer_expand(buf, len);
+        SOL_INT_CHECK(err, < 0, NULL);
+    }
+
+    err = sol_buffer_append_bytes(buf, (const uint8_t *)ret, len);
+    SOL_INT_CHECK(err, < 0, NULL);
 #endif
 
     return ret;
+
+#undef CHUNCK_SIZE
 }
 
 static struct sol_uuid
