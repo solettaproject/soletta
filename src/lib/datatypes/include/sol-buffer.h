@@ -182,6 +182,25 @@ enum sol_decode_case {
 #define SOL_BUFFER_INIT_DATA(data_, size_) SOL_BUFFER_C_CAST { .data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_DEFAULT }
 
 /**
+ * @def SOL_BUFFER_DECLARE_STATIC(name_, size_)
+ *
+ * @brief A helper macro to create a static allocated buffer with a fixed capacity.
+ *
+ * This macro will expand into the following code:
+ * @code{.c}
+ * // SOL_BUFFER_DECLARE_STATIC(buf, 1024);
+ * uint8_t buf_bytes[1024] = { 0 };
+ * struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(buf_bytes, 1024, SOL_BUFFER_FLAGS_FIXED_CAPACITY);
+ * @endcode
+ *
+ * @param name_ The name of the struct sol_buffer variable
+ * @param size_ The capacity of the buffer
+ */
+#define SOL_BUFFER_DECLARE_STATIC(name_, size_) \
+    uint8_t name_ ## bytes[(size_)] = { 0 }; \
+    struct sol_buffer (name_) = SOL_BUFFER_INIT_FLAGS(name_ ## bytes, (size_), SOL_BUFFER_FLAGS_FIXED_CAPACITY)
+
+/**
  * @brief Initializes a @c sol_buffer structure.
  *
  * flags are set to @c SOL_BUFFER_FLAGS_DEFAULT.

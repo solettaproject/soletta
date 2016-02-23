@@ -684,12 +684,11 @@ size_t sol_json_calculate_escaped_string_len(const char *str) SOL_ATTR_NONNULL(1
  * @brief Escapes JSON special and control characters from the string content.
  *
  * @param str String to escape
- * @param buf Where to place the escaped string
- * @param len Buffer size in bytes
+ * @param buf Where to append the escaped string - It must be already initialized.
  *
  * @return The escaped string
  */
-char *sol_json_escape_string(const char *str, char *buf, size_t len) SOL_ATTR_NONNULL(1, 2);
+char *sol_json_escape_string(const char *str, struct sol_buffer *buf) SOL_ATTR_NONNULL(1, 2);
 
 /**
  * @brief Helper macro to make easier to escape a string for use in a JSON document
@@ -697,20 +696,20 @@ char *sol_json_escape_string(const char *str, char *buf, size_t len) SOL_ATTR_NO
  * @param s String to escape
  */
 #define SOL_JSON_ESCAPE_STRING(s) ({ \
-        size_t str_len ## __COUNT__  = sol_json_calculate_escaped_string_len(s); \
-        sol_json_escape_string(s, (char *)alloca(str_len ## __COUNT__), str_len ## __COUNT__); \
+        SOL_BUFFER_DECLARE_STATIC(aux_buf ## __COUNT__, strlen(s) + 1); \
+        sol_json_escape_string(s, &aux_buf ## __COUNT__); \
     })
 
 /**
  * @brief Converts a double into a string suited for use in a JSON Document
  *
  * @param value Value to be converted
- * @param buf Where to place the converted value
- * @param buf_len Buffer size in bytes
+ * @param buf Where to append the converted value - It must be already initialized and with
+ * the capacity set.
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_json_double_to_str(const double value, char *buf, size_t buf_len);
+int sol_json_double_to_str(const double value, struct sol_buffer *buf);
 
 /**
  * @brief Check if @c scanner content is pointing to a valid JSON element of

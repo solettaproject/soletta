@@ -100,14 +100,14 @@ _get_file_path(char *file_path, size_t size, const char *name,
 
 static int
 _get_string_prop(const char *name, enum sol_power_supply_prop prop,
-    char **value)
+    struct sol_buffer *buf)
 {
     char file_path[PATH_MAX];
     char *str_value;
     int r;
 
     SOL_NULL_CHECK(name, -EINVAL);
-    SOL_NULL_CHECK(value, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
 
     r = _get_file_path(file_path, sizeof(file_path), name, prop);
     SOL_INT_CHECK(r, < 0, r);
@@ -119,7 +119,9 @@ _get_string_prop(const char *name, enum sol_power_supply_prop prop,
     if (r < 0)
         return r;
 
-    *value = str_value;
+    r = sol_buffer_append_slice(buf, sol_str_slice_from_str(str_value));
+    free(str_value);
+    SOL_INT_CHECK(r, < 0, r);
 
     return 0;
 }
@@ -392,23 +394,27 @@ sol_power_supply_get_capacity_level(const char *name,
 }
 
 SOL_API int
-sol_power_supply_get_model_name(const char *name, char **model_name)
+sol_power_supply_get_model_name(const char *name,
+    struct sol_buffer *model_name_buf)
 {
-    return _get_string_prop(name, SOL_POWER_SUPPLY_PROP_MODEL_NAME, model_name);
+    return _get_string_prop(name, SOL_POWER_SUPPLY_PROP_MODEL_NAME,
+        model_name_buf);
 }
 
 SOL_API int
-sol_power_supply_get_manufacturer(const char *name, char **manufacturer)
+sol_power_supply_get_manufacturer(const char *name,
+    struct sol_buffer *manufacturer_buf)
 {
     return _get_string_prop(name,
-        SOL_POWER_SUPPLY_PROP_MANUFACTURER, manufacturer);
+        SOL_POWER_SUPPLY_PROP_MANUFACTURER, manufacturer_buf);
 }
 
 SOL_API int
-sol_power_supply_get_serial_number(const char *name, char **serial_number)
+sol_power_supply_get_serial_number(const char *name,
+    struct sol_buffer *serial_number_buf)
 {
     return _get_string_prop(name,
-        SOL_POWER_SUPPLY_PROP_SERIAL_NUMBER, serial_number);
+        SOL_POWER_SUPPLY_PROP_SERIAL_NUMBER, serial_number_buf);
 }
 
 SOL_API int

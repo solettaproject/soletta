@@ -98,11 +98,13 @@ struct http_client_node_type {
         struct sol_http_response *response);
 };
 
+#define DOUBLE_STRING_LEN (64)
+
 static int
 set_basic_url_info(struct http_data *mdata, const char *full_uri)
 {
     struct sol_http_url url, base_url;
-    char *new_url;
+    struct sol_buffer new_url = SOL_BUFFER_INIT_EMPTY;
     int r;
 
     r = sol_http_split_uri(sol_str_slice_from_str(full_uri), &url);
@@ -119,7 +121,7 @@ set_basic_url_info(struct http_data *mdata, const char *full_uri)
     SOL_INT_CHECK(r, < 0, r);
 
     free(mdata->url);
-    mdata->url = new_url;
+    mdata->url = sol_buffer_steal(&new_url, NULL);
 
     sol_http_params_clear(&mdata->url_params);
     r = sol_http_decode_params(url.query,
@@ -684,25 +686,29 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 {
     int r;
     struct sol_drange value;
-    char val[100], min[100], max[100], step[100];
+
+    SOL_BUFFER_DECLARE_STATIC(val, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(step, DOUBLE_STRING_LEN);
 
     r = sol_flow_packet_get_drange(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.val, val, 100);
+    r = sol_json_double_to_str(value.val, &val);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.min, min, 100);
+    r = sol_json_double_to_str(value.min, &min);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.max, max, 100);
+    r = sol_json_double_to_str(value.max, &max);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.step, step, 100);
+    r = sol_json_double_to_str(value.step, &step);
     SOL_INT_CHECK(r, < 0, r);
 
-    return common_post_process(node, data, "value", val, "min", min,
-        "max", max, "step", step, NULL);
+    return common_post_process(node, data, "value", val.data, "min", min.data,
+        "max", max.data, "step", step.data, NULL);
 }
 
 /*
@@ -1801,7 +1807,7 @@ create_url_create_process(struct sol_flow_node *node, void *data,
 {
     struct create_url_data *mdata = data;
     int r;
-    char *uri;
+    struct sol_buffer uri = SOL_BUFFER_INIT_EMPTY;
     struct sol_http_url url;
 
     url.scheme = sol_str_slice_from_str(mdata->scheme ? : "http");
@@ -1814,9 +1820,10 @@ create_url_create_process(struct sol_flow_node *node, void *data,
 
     r = sol_http_create_uri(&uri, url, &mdata->params);
     SOL_INT_CHECK(r, < 0, r);
-    r = sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL__OUT__OUT, uri);
-    free(uri);
+    r = sol_flow_send_string_slice_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL__OUT__OUT,
+        sol_buffer_get_slice(&uri));
+    sol_buffer_fini(&uri);
     return r;
 }
 
