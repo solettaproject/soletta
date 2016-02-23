@@ -711,8 +711,7 @@ notify_connection_cb(void *data, struct MHD_Connection *connection, void **socke
     conn->watch = sol_fd_add(conn->fd, fd_flags, connection_watch_cb, server);
 
     if (!conn->watch) {
-        char error_str[128];
-        SOL_WRN("Could not watch file descriptor: %s", sol_util_strerror(errno, error_str, sizeof(error_str)));
+        SOL_WRN("Could not watch file descriptor: %s", sol_util_strerrora(errno));
         sol_vector_del_last(&server->fds);
     }
 }
