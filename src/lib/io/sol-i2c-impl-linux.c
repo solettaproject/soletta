@@ -1005,7 +1005,7 @@ create_device_iter_cb(void *data, const char *dir_path, struct dirent *ent)
             result->result = sol_util_write_file(path, "%s %d",
                 result->dev_name, result->dev_number);
             if (result->result < 0) {
-                SOL_WRN("Could not write to [%s]: %s", path,
+                SOL_INF("Could not write to [%s]: %s", path,
                     sol_util_strerrora(errno));
             }
 
