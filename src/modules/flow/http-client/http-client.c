@@ -98,6 +98,8 @@ struct http_client_node_type {
         struct sol_http_response *response);
 };
 
+#define DOUBLE_STRING_LEN (64)
+
 static int
 set_basic_url_info(struct http_data *mdata, const char *full_uri)
 {
@@ -684,25 +686,29 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 {
     int r;
     struct sol_drange value;
-    char val[100], min[100], max[100], step[100];
+
+    SOL_BUFFER_DECLARE_STATIC(val, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(step, DOUBLE_STRING_LEN);
 
     r = sol_flow_packet_get_drange(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.val, val, 100);
+    r = sol_json_double_to_str(value.val, &val);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.min, min, 100);
+    r = sol_json_double_to_str(value.min, &min);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.max, max, 100);
+    r = sol_json_double_to_str(value.max, &max);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.step, step, 100);
+    r = sol_json_double_to_str(value.step, &step);
     SOL_INT_CHECK(r, < 0, r);
 
-    return common_post_process(node, data, "value", val, "min", min,
-        "max", max, "step", step, NULL);
+    return common_post_process(node, data, "value", val.data, "min", min.data,
+        "max", max.data, "step", step.data, NULL);
 }
 
 /*
