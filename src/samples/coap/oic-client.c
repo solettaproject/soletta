@@ -172,7 +172,7 @@ main(int argc, char *argv[])
     sol_init();
 
     if (argc < 2) {
-        SOL_INF("Usage: %s <address> [resource_type]\n", argv[0]);
+        printf("Usage: %s <address> [resource_type]\n", argv[0]);
         return 0;
     }
 
