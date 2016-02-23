@@ -213,22 +213,28 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 }
 
 SOL_API char *
-sol_util_strerror(int errnum, char *buf, size_t buflen)
+sol_util_strerror(int errnum, struct sol_buffer *buf)
 {
     char *ret;
+    size_t len;
 
-    if (buflen < 1)
-        return NULL;
+    SOL_NULL_CHECK(buf, NULL);
+
+    len = buf->capacity - buf->used;
+
+    SOL_INT_CHECK(len, < 1, NULL);
 
 #ifdef HAVE_XSI_STRERROR_R
+    ret = sol_buffer_at_end(buf);
     /* XSI-compliant strerror_r returns int */
-    if (strerror_r(errnum, buf, buflen) != 0)
+    if (strerror_r(errnum, ret, len) != 0)
         return NULL;
-    ret = buf;
 #else
     /* GNU libc version of strerror_r returns char* */
-    ret = strerror_r(errnum, buf, buflen);
+    ret = strerror_r(errnum, sol_buffer_at_end(buf), len);
 #endif
+
+    buf->used += strlen(ret);
 
     return ret;
 }
