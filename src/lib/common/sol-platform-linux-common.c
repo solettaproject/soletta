@@ -972,6 +972,8 @@ sol_platform_impl_load_locales(char **locale_cache)
     line = NULL;
     r = -EINVAL;
     while (fscanf(f, "%m[^\n]\n", &line) != EOF) {
+        size_t offset, line_len;
+
         sep = strchr(line, '=');
         if (!sep) {
             SOL_WRN("The locale entry: %s does not have the separator '='",
@@ -979,10 +981,28 @@ sol_platform_impl_load_locales(char **locale_cache)
             goto err_val;
         }
 
+        offset = 1;
         key.data = line;
-        value.data = sep + 1;
+        line_len = strlen(line);
+
+        if (*(sep + 1) != '\"')
+            value.data = sep + 1;
+        else {
+            value.data = sep + 2;
+            offset++;
+        }
+
         key.len = sep - key.data;
-        value.len = strlen(line) - key.len - 1;
+        //It starts with a \" so it must end with a \"
+        if (offset == 2) {
+            if (*(line + line_len - 1) != '\"') {
+                SOL_WRN("Malformed locale, Missing \". Locale: %s", line);
+                goto err_val;
+            }
+            offset++;
+        }
+
+        value.len = line_len - key.len - offset;
 
         category = system_locale_to_sol_locale(key);
         if (category != SOL_PLATFORM_LOCALE_UNKNOWN) {
