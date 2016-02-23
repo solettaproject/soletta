@@ -1,3 +1,3 @@
-sample-$(MESSAGE_DIGEST_SAMPLE) += message-digest md5sum
+sample-$(MESSAGE_DIGEST_SAMPLE) += message-digest sha256sum
 sample-message-digest-$(MESSAGE_DIGEST_SAMPLE) := message-digest.c
-sample-md5sum-$(MESSAGE_DIGEST_SAMPLE) := md5sum.c
+sample-sha256sum-$(MESSAGE_DIGEST_SAMPLE) := sha256sum.c

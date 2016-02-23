@@ -140,7 +140,7 @@ on_digest_ready(void *data, struct sol_message_digest *handle, struct sol_blob *
 static void
 startup(void)
 {
-    const char *algorithm = "md5";
+    const char *algorithm = "sha256";
     const char *key = NULL;
     char **argv = sol_argv();
     int i, argc = sol_argc();

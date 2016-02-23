@@ -68,7 +68,7 @@ struct entry {
 static struct sol_ptr_vector entries = SOL_PTR_VECTOR_INIT;
 static uint32_t pending;
 
-static const char algorithm[] = "md5";
+static const char algorithm[] = "sha256";
 static bool checking = false;
 static bool checking_strict = false;
 static bool checking_warn = false;
@@ -378,7 +378,7 @@ startup(void)
                 "With no FILE, or when FILE is -, read standard input.\n"
                 "\n"
                 "\t-b, --binary         read in binary mode (ignored).\n"
-                "\t-c, --check          read MD5 sums from the FILEs and check them\n"
+                "\t-c, --check          read SHA-256 sums from the FILEs and check them\n"
                 "\t    --tag            create a BSD-style checksum (not supported).\n"
                 "\t-t, --text           read in text mode (ignored).\n"
                 "\n"
