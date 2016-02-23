@@ -28,7 +28,18 @@ obj-dtls-$(DTLS)-extra-cflags += \
     -Wno-strict-prototypes \
     -Wno-shadow \
     -Wno-missing-prototypes \
-    -Wno-incompatible-pointer-types
+    -Wno-incompatible-pointer-types \
+    -Wno-nested-externs \
+    -Wno-implicit-int \
+    -Wno-endif-labels \
+    -Wno-missing-declarations \
+    -Wno-implicit-function-declaration \
+    -Wno-redundant-decls \
+    -Wno-declaration-after-statement \
+    -Wno-undef \
+    -Wno-unused-variable \
+    -Wno-strict-aliasing \
+    -Wno-pointer-sign
 
 obj-networking-$(PLATFORM_RIOTOS) += \
     sol-network-impl-riot.o \

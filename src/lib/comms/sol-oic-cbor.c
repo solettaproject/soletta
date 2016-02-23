@@ -58,7 +58,7 @@ initialize_cbor_payload(struct sol_oic_map_writer *encoder)
 }
 
 void
-sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, const char *href, struct sol_oic_map_writer *encoder)
+sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, struct sol_oic_map_writer *encoder)
 {
     encoder->pkt = pkt;
     encoder->payload = NULL;

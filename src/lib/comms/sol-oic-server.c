@@ -528,7 +528,7 @@ _sol_oic_resource_type_handle(
         input_ptr = &input;
     }
 
-    sol_oic_packet_cbor_create(response, res->href, &output);
+    sol_oic_packet_cbor_create(response, &output);
     code = handle_fn(cliaddr, res->callback.data, input_ptr, &output);
     if (sol_oic_packet_cbor_close(response, &output) != CborNoError)
         code = SOL_COAP_RSPCODE_INTERNAL_ERROR;
@@ -733,7 +733,7 @@ send_notification_to_server(struct sol_oic_server_resource *resource,
     pkt = sol_coap_packet_notification_new(oic_server.server, resource->coap);
     SOL_NULL_CHECK(pkt, false);
 
-    sol_oic_packet_cbor_create(pkt, resource->href, &oic_map_writer);
+    sol_oic_packet_cbor_create(pkt, &oic_map_writer);
     if (!fill_repr_map((void *)data, &oic_map_writer))
         goto end;
     err = sol_oic_packet_cbor_close(pkt, &oic_map_writer);
