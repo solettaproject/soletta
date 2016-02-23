@@ -158,8 +158,6 @@ startup()
 
     SOL_JSON_TOKEN_STR_LITERAL_EQ(&token, "asd");
 
-    SOL_JSON_ESCAPE_STRING("my string");
-
     SOL_JSON_PATH_FOREACH(path_scanner, key_slice, json_reason);
 
     SOL_JSON_SCANNER_ARRAY_LOOP_NEST(&scanner, &token, elem_type, json_reason);
