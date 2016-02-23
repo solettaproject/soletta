@@ -47,6 +47,7 @@
 						"bindings/nodejs/src/data.cc",
 						"bindings/nodejs/src/sol-uv-integration.c",
 						"bindings/nodejs/src/structures/js-handle.cc",
+						"bindings/nodejs/src/functions/sol-platform-monitors.cc",
 						"bindings/nodejs/src/functions/simple.cc"
 					],
 					"include_dirs": [
