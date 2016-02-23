@@ -2690,7 +2690,7 @@ read_object_instance(struct sol_lwm2m_client *client,
             (void)sol_vector_del_element(resources, res);
             continue;
         }
-        if (r == -EBADRQC) {
+        if (r == -EINVAL) {
             (void)sol_vector_del_element(resources, res);
             break;
         }
@@ -2700,8 +2700,10 @@ read_object_instance(struct sol_lwm2m_client *client,
 
     return 0;
 
+#ifndef SOL_NO_API_VERSION
 err_api:
     r = -EINVAL;
+#endif
 err_exit:
     (void)sol_vector_del_element(resources, res);
     return r;
@@ -2733,7 +2735,7 @@ handle_read(struct sol_lwm2m_client *client,
             (void *)client->user_data, client,
             obj_instance->id, resource_id, res);
 
-        if (r == -ENOENT || r == -EBADRQC) {
+        if (r == -ENOENT || r == -EINVAL) {
             sol_vector_clear(&resources);
             return SOL_COAP_RSPCODE_NOT_FOUND;
         }
@@ -2904,7 +2906,7 @@ handle_resource(struct sol_coap_server *server,
     struct sol_lwm2m_client *client = data;
     struct obj_ctx *obj_ctx;
     struct obj_instance *obj_instance = NULL;
-    uint16_t path[3], path_size, content_format;
+    uint16_t path[3], path_size = 0, content_format;
     uint8_t header_code;
     struct sol_str_slice payload = SOL_STR_SLICE_EMPTY;
     bool is_execute = false;
@@ -3257,8 +3259,10 @@ read_resources(struct sol_lwm2m_client *client,
     va_end(ap);
     return 0;
 
+#ifndef SOL_NO_API_VERSION
 err_exit_api:
     r = -EINVAL;
+#endif
 err_exit:
     clear_resource_array(res, i);
     va_end(ap);
@@ -3477,7 +3481,7 @@ register_with_server(struct sol_lwm2m_client *client,
     struct server_conn_ctx *conn_ctx, bool is_update)
 {
     struct sol_coap_packet *pkt;
-    struct sol_str_slice binding;
+    struct sol_str_slice binding = SOL_STR_SLICE_EMPTY;
     struct sol_buffer query = SOL_BUFFER_INIT_EMPTY, objs_payload;
     uint8_t format = SOL_COAP_CONTENTTYPE_APPLICATION_LINKFORMAT;
     int r;

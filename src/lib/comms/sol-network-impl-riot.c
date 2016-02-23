@@ -30,9 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <netinet/in.h>
 #include <errno.h>
-#include <sys/socket.h>
 
 #if MODULE_GNRC_IPV6_NETIF
 #include "net/ipv6/addr.h"
