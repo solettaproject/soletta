@@ -360,6 +360,22 @@ sol_socket_riot_bind(struct sol_socket *s, const struct sol_network_link_addr *a
     return 0;
 }
 
+static int
+sol_socket_riot_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, const void *optval, size_t optlen)
+{
+    SOL_WRN("Not implemented");
+    return 0;
+}
+
+static int
+sol_socket_riot_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, void *optval, size_t *optlen)
+{
+    SOL_WRN("Not implemented");
+    return 0;
+}
+
 const struct sol_socket_impl *
 sol_socket_riot_get_impl(void)
 {
@@ -371,7 +387,9 @@ sol_socket_riot_get_impl(void)
         .set_on_write = sol_socket_riot_set_on_write,
         .set_on_read = sol_socket_riot_set_on_read,
         .del = sol_socket_riot_del,
-        .new = sol_socket_riot_new
+        .new = sol_socket_riot_new,
+        .setsockopt = sol_socket_riot_setsockopt,
+        .getsockopt = sol_socket_riot_getsockopt
     };
 
     return &impl;
