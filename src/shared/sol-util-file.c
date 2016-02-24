@@ -173,74 +173,70 @@ sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
 }
 
 SOL_API struct sol_buffer *
-sol_util_load_file_raw(const int fd)
+sol_util_load_file_fd_raw(const int fd)
+{
+    struct sol_buffer *buf;
+    int r;
+
+    buf = sol_buffer_new();
+    SOL_NULL_CHECK(buf, NULL);
+
+    buf->flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+
+    r = sol_util_load_file_fd_buffer(fd, buf);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+    return buf;
+
+err_exit:
+    sol_buffer_free(buf);
+    return NULL;
+}
+
+SOL_API int
+sol_util_load_file_fd_buffer(int fd, struct sol_buffer *buf)
 {
     struct stat st;
     ssize_t ret;
-    struct sol_buffer *buffer;
+    int r;
 
-    if (fd < 0)
-        return NULL;
-
-    buffer = sol_buffer_new();
-    SOL_NULL_CHECK(buffer, NULL);
-
-    buffer->flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+    SOL_INT_CHECK(fd, < 0, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
 
     if (fstat(fd, &st) >= 0 && st.st_size) {
-        ret = sol_util_fill_buffer(fd, buffer, st.st_size);
+        ret = sol_util_fill_buffer(fd, buf, st.st_size);
     } else {
         do {
-            ret = sol_util_fill_buffer(fd, buffer, CHUNK_SIZE);
+            ret = sol_util_fill_buffer(fd, buf, CHUNK_SIZE);
         } while (ret > 0);
     }
 
-    if (ret < 0)
-        goto err;
+    r = (int)ret;
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_trim(buf);
+    SOL_INT_CHECK(r, < 0, r);
 
-    if (sol_buffer_trim(buffer) < 0)
-        goto err;
-
-    return buffer;
-
-err:
-    sol_buffer_free(buffer);
-
-    return NULL;
+    return 0;
 }
 
 SOL_API char *
 sol_util_load_file_fd_string(int fd, size_t *size)
 {
-    int saved_errno;
+    int r;
     size_t size_read;
     char *data = NULL;
-    struct sol_buffer *buffer = NULL;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
 
-    buffer = sol_util_load_file_raw(fd);
-    if (!buffer) {
-        data = strdup("");
-        size_read = 1;
-    } else {
-        buffer->flags = SOL_BUFFER_FLAGS_DEFAULT;
-        if (sol_buffer_ensure_nul_byte(buffer) < 0)
-            goto err;
+    r = sol_util_load_file_fd_buffer(fd, &buf);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    data = sol_buffer_steal(&buf, &size_read);
+    SOL_NULL_CHECK_GOTO(data, err);
 
-        data = sol_buffer_steal(buffer, &size_read);
-        if (!data)
-            goto err;
-    }
-
-    sol_buffer_free(buffer);
     if (size)
         *size = size_read;
     return data;
 
 err:
-    saved_errno = errno;
-    free(data);
-    sol_buffer_free(buffer);
-    errno = saved_errno;
     if (size)
         *size = 0;
     return NULL;
@@ -268,6 +264,25 @@ sol_util_load_file_string(const char *filename, size_t *size)
         errno = saved_errno;
 
     return ret;
+}
+
+SOL_API int
+sol_util_load_file_buffer(const char *filename, struct sol_buffer *buf)
+{
+    int fd, r;
+
+    SOL_NULL_CHECK(filename, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    fd = open(filename, O_RDONLY | O_CLOEXEC);
+    r = -errno;
+    SOL_INT_CHECK(fd, < 0, r);
+
+    r = sol_util_load_file_fd_buffer(fd, buf);
+
+    if (close(fd) < 0 && !r)
+        r = -errno;
+    return r;
 }
 
 static int
