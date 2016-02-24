@@ -309,7 +309,7 @@ def handle_python_check(args, conf, context):
 
     if required and not success:
         req_label = context.find_makefile_var("NOT_FOUND")
-        req_label += "python module: %s\\n" % pkgname
+        req_label += "python%s module: %s\\n" % (sys.version_info[0], pkgname)
         context.add_append_makefile_var("NOT_FOUND", req_label, True)
 
     context.add_cond_makefile_var("HAVE_PYTHON_%s" % dep.upper(), "y" if success else "n")
