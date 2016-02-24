@@ -287,7 +287,8 @@ _sol_oic_server_res(struct sol_coap_server *server,
                 continue;
         }
 
-        if (!(iter->flags & SOL_OIC_FLAG_DISCOVERABLE))
+        if (!(uri_query && (iter->flags & SOL_OIC_FLAG_DISCOVERABLE_EXPLICIT)) &&
+            !(iter->flags & SOL_OIC_FLAG_DISCOVERABLE))
             continue;
         if (!(iter->flags & SOL_OIC_FLAG_ACTIVE))
             continue;
