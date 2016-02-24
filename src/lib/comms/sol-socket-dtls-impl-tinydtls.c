@@ -527,10 +527,40 @@ retransmit_timer_check(struct sol_socket_dtls *s)
     clock_time_t next_retransmit = 0;
 
     dtls_check_retransmit(s->context, &next_retransmit);
+    SOL_WRN("retransmit_timer_check %d", next_retransmit);
     if (next_retransmit == 0)
         retransmit_timer_disable(s);
     else
         retransmit_timer_enable(s, next_retransmit);
+}
+
+static void
+send_enqueued_packets(struct sol_socket_dtls *socket)
+{
+    struct queue_item *item;
+    uint16_t idx, i;
+    int r;
+
+    SOL_DBG("Sending %d enqueued packets in write queue", socket->write.queue.len);
+    SOL_VECTOR_FOREACH_IDX (&socket->write.queue, item, idx) {
+        session_t session;
+
+        if (!session_from_linkaddr(&item->addr, &session))
+            continue;
+
+        r = dtls_write(socket->context, &session, item->buffer.data, item->buffer.used);
+        if (r <= 0)
+            break;
+    }
+
+    if (idx == socket->write.queue.len)
+        clear_queue(&socket->write.queue);
+    else {
+        for (i = 0; i < idx; i++) {
+            clear_queue_item(item);
+            sol_vector_del(&socket->write.queue, 0);
+        }
+    }
 }
 
 static int
@@ -600,24 +630,10 @@ handle_dtls_event(struct dtls_context_t *ctx, session_t *session,
         SOL_ERR("DTLS fatal error for socket %p: %s", socket, msg);
     } else {
         SOL_DBG("TLS session changed for socket %p: %s", socket, msg);
-
-        if (code == DTLS_EVENT_CONNECTED) {
-            struct queue_item *item;
-            uint16_t idx;
-
-            SOL_DBG("Sending %d enqueued packets in write queue", socket->write.queue.len);
-            SOL_VECTOR_FOREACH_IDX (&socket->write.queue, item, idx) {
-                session_t session;
-
-                if (!session_from_linkaddr(&item->addr, &session))
-                    continue;
-
-                (void)dtls_write(socket->context, &session, item->buffer.data, item->buffer.used);
-                clear_queue_item(item);
-            }
-            clear_queue(&socket->write.queue);
-        }
     }
+
+    if (code == DTLS_ALERT_CLOSE_NOTIFY || code == DTLS_EVENT_CONNECTED)
+        send_enqueued_packets(socket);
 
     retransmit_timer_check(socket);
 
@@ -770,8 +786,9 @@ sol_socket_dtls_set_handshake_cipher(struct sol_socket *s,
 {
     static const dtls_cipher_t conv_tbl[] = {
         [SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256] = TLS_ECDH_anon_WITH_AES_128_CBC_SHA_256,
-        [SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8] = TLS_PSK_WITH_AES_128_CCM_8,
-        [SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8] = TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
+        [SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8] = TLS_NULL_WITH_NULL_NULL,
+        [SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8] = TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8,
+        [SOL_SOCKET_DTLS_CIPHER_NULL_NULL_NULL] = TLS_NULL_WITH_NULL_NULL,
     };
     struct sol_socket_dtls *socket = (struct sol_socket_dtls *)s;
 
@@ -833,6 +850,25 @@ sol_socket_dtls_set_credentials_callbacks(struct sol_socket *s,
     SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
 
     socket->credentials = cb;
+
+    return 0;
+}
+
+int
+sol_socket_dtls_close(struct sol_socket *s, struct sol_network_link_addr *addr)
+{
+    struct sol_socket_dtls *socket = (struct sol_socket_dtls *)s;
+    session_t session;
+
+    SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
+
+    if (!session_from_linkaddr(addr, &session)) {
+        SOL_DBG("Could not create create session from link address");
+        return -EINVAL;
+    }
+
+    if (dtls_close(socket->context, &session) < 0)
+        return -ECOMM;
 
     return 0;
 }

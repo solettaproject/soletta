@@ -62,12 +62,6 @@ struct sol_oic_map_writer {
     enum sol_oic_map_type type;
 };
 
-enum sol_oic_payload_type {
-    SOL_OIC_PAYLOAD_DISCOVERY = 1,
-    SOL_OIC_PAYLOAD_PLATFORM = 3,
-    SOL_OIC_PAYLOAD_REPRESENTATION = 4,
-};
-
 #define SOL_OIC_DEVICE_PATH "/oic/d"
 #define SOL_OIC_PLATFORM_PATH "/oic/p"
 

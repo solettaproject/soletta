@@ -130,6 +130,18 @@ struct outgoing {
 
 static bool on_can_write(void *data, struct sol_socket *s);
 
+/* This is an internal API and shouldn't be marked with SOL_API. */
+struct sol_socket *sol_coap_server_get_socket(const struct sol_coap_server *server);
+
+struct sol_socket *
+sol_coap_server_get_socket(const struct sol_coap_server *server)
+{
+
+    SOL_NULL_CHECK(server, NULL);
+
+    return server->socket;
+}
+
 SOL_API uint8_t
 sol_coap_header_get_ver(const struct sol_coap_packet *pkt)
 {

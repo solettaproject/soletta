@@ -96,7 +96,8 @@ sol_oic_packet_cbor_append(struct sol_oic_map_writer *encoder, struct sol_oic_re
         SOL_INT_CHECK(err, != CborNoError, err);
     }
 
-    err = cbor_encode_text_stringz(&encoder->rep_map, repr->key);
+    if (repr->key)
+        err = cbor_encode_text_stringz(&encoder->rep_map, repr->key);
     switch (repr->type) {
     case SOL_OIC_REPR_TYPE_UINT:
         err |= cbor_encode_uint(&encoder->rep_map, repr->v_uint);

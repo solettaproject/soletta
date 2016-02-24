@@ -32,46 +32,29 @@
 
 #pragma once
 
-#include <stdbool.h>
-
-#include "sol-buffer.h"
-#include "sol-network.h"
-#include "sol-socket.h"
+#include "sol-coap.h"
+#include "sol-oic-client.h"
+#include "sol-oic-common.h"
 #include "sol-str-slice.h"
 
-#define DTLS_PSK_ID_LEN 16
-#define DTLS_PSK_KEY_LEN 16
+#define MACHINE_ID_LEN 16
 
-enum sol_socket_dtls_cipher {
-    SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256,
-    SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8,
-    SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8,
-    SOL_SOCKET_DTLS_CIPHER_NULL_NULL_NULL,
-};
+struct sol_oic_security;
 
-struct sol_socket_dtls_credential_cb {
-    const void *data;
+struct sol_oic_security *sol_oic_server_security_add(
+    struct sol_coap_server *server, struct sol_coap_server *server_dtls);
+void sol_oic_server_security_del(struct sol_oic_security *security);
 
-    void *(*init)(const void *data);
-    void (*clear)(void *creds);
+struct sol_oic_security *sol_oic_client_security_add(
+    struct sol_coap_server *server, struct sol_coap_server *server_dtls);
+void sol_oic_client_security_del(struct sol_oic_security *security);
 
-    ssize_t (*get_id)(const void *creds, char *id, size_t id_len);
-    ssize_t (*get_psk)(const void *creds, struct sol_str_slice id,
-        char *psk, size_t psk_len);
-};
+bool sol_oic_security_get_is_paired(const struct sol_oic_security *security,
+    struct sol_str_slice device_id);
+int sol_oic_security_pair_request(struct sol_oic_security *security,
+    struct sol_oic_resource *resource, enum sol_oic_pairing_method pm,
+    void (*paired_cb)(void *data, enum sol_oic_security_pair_result result), void *data);
 
-struct sol_socket *sol_socket_dtls_wrap_socket(struct sol_socket *socket);
-
-int sol_socket_dtls_set_handshake_cipher(struct sol_socket *s,
-    enum sol_socket_dtls_cipher cipher);
-
-int sol_socket_dtls_set_anon_ecdh_enabled(struct sol_socket *s, bool setting);
-
-int sol_socket_dtls_prf_keyblock(struct sol_socket *s,
-    const struct sol_network_link_addr *addr, struct sol_str_slice label,
-    struct sol_str_slice random1, struct sol_str_slice random2,
-    struct sol_buffer *buffer);
-
-int sol_socket_dtls_set_credentials_callbacks(struct sol_socket *s,
-    const struct sol_socket_dtls_credential_cb *cb);
-int sol_socket_dtls_close(struct sol_socket *s, struct sol_network_link_addr *addr);
+bool sol_oic_set_token_and_mid(struct sol_coap_packet *pkt, int64_t *token);
+const uint8_t *get_machine_id(void);
+bool sol_oic_pkt_has_same_token(const struct sol_coap_packet *pkt, int64_t token);

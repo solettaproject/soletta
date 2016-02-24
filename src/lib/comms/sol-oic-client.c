@@ -48,11 +48,11 @@
 #include "sol-oic-cbor.h"
 #include "sol-oic-common.h"
 #include "sol-oic-server.h"
+#include "sol-oic-security.h"
 
 #define POLL_OBSERVE_TIMEOUT_MS 10000
 
 #define OIC_COAP_SERVER_UDP_PORT  5683
-#define OIC_COAP_SERVER_DTLS_PORT 5684
 
 #ifndef SOL_NO_API_VERSION
 #define OIC_RESOURCE_CHECK_API(ptr, ...) \
@@ -72,6 +72,7 @@
 struct sol_oic_client {
     struct sol_coap_server *server;
     struct sol_coap_server *dtls_server;
+    struct sol_oic_security *security;
 };
 
 struct find_resource_ctx {
@@ -97,6 +98,13 @@ struct resource_request_ctx {
     int64_t token;
 };
 
+struct pair_ctx {
+    void (*cb)(struct sol_oic_client *client, struct sol_oic_resource *resource, enum sol_oic_security_pair_result result, void *data);
+    struct sol_oic_client *client;
+    struct sol_oic_resource *resource;
+    void *data;
+};
+
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_client_log_domain, "oic-client");
 
 static struct sol_coap_server *
@@ -106,7 +114,7 @@ _best_server_for_resource(const struct sol_oic_client *client,
     *addr = res->addr;
 
     if (client->dtls_server && res->secure) {
-        addr->port = OIC_COAP_SERVER_DTLS_PORT;
+        addr->port = res->secure_port;
         SOL_DBG("Resource has secure flag and we have DTLS support (using port %d)",
             addr->port);
         return client->dtls_server;
@@ -117,51 +125,6 @@ _best_server_for_resource(const struct sol_oic_client *client,
         client->dtls_server ? "have" : "do not have",
         addr->port);
     return client->server;
-}
-
-static bool
-_set_token_and_mid(struct sol_coap_packet *pkt, int64_t *token)
-{
-    static struct sol_random *random = NULL;
-    int32_t mid;
-
-    if (SOL_UNLIKELY(!random)) {
-        random = sol_random_new(SOL_RANDOM_DEFAULT, 0);
-        SOL_NULL_CHECK(random, false);
-    }
-
-    if (!sol_random_get_int64(random, token)) {
-        SOL_WRN("Could not generate CoAP token");
-        return false;
-    }
-    if (!sol_random_get_int32(random, &mid)) {
-        SOL_WRN("Could not generate CoAP message id");
-        return false;
-    }
-
-    if (!sol_coap_header_set_token(pkt, (uint8_t *)token, (uint8_t)sizeof(*token))) {
-        SOL_WRN("Could not set CoAP packet token");
-        return false;
-    }
-
-    sol_coap_header_set_id(pkt, (int16_t)mid);
-
-    return true;
-}
-
-static bool
-_pkt_has_same_token(const struct sol_coap_packet *pkt, int64_t token)
-{
-    uint8_t *token_data, token_len;
-
-    token_data = sol_coap_header_get_token(pkt, &token_len);
-    if (SOL_UNLIKELY(!token_data))
-        return false;
-
-    if (SOL_UNLIKELY(token_len != sizeof(token)))
-        return false;
-
-    return SOL_LIKELY(memcmp(token_data, &token, sizeof(token)) == 0);
 }
 
 SOL_API struct sol_oic_resource *
@@ -304,7 +267,7 @@ _platform_info_reply_cb(struct sol_coap_server *server,
     if (!req || !addr)
         goto error;
 
-    if (!_pkt_has_same_token(req, ctx->token))
+    if (!sol_oic_pkt_has_same_token(req, ctx->token))
         goto error;
 
     if (!sol_oic_pkt_has_cbor_content(req))
@@ -337,7 +300,7 @@ _platform_info_reply_cb(struct sol_coap_server *server,
     goto free_ctx;
 
 error:
-    ctx->cb(ctx->client, NULL, (char *)ctx->data);
+    ctx->cb(ctx->client, NULL, (void *)ctx->data);
 free_ctx:
     free(ctx);
     return false;
@@ -362,7 +325,7 @@ _server_info_reply_cb(struct sol_coap_server *server,
         goto error;
     }
 
-    if (!_pkt_has_same_token(req, ctx->token))
+    if (!sol_oic_pkt_has_same_token(req, ctx->token))
         goto error;
 
     if (!sol_oic_pkt_has_cbor_content(req))
@@ -426,7 +389,7 @@ client_get_info(struct sol_oic_client *client,
         goto out_no_pkt;
     }
 
-    if (!_set_token_and_mid(req, &ctx->token))
+    if (!sol_oic_set_token_and_mid(req, &ctx->token))
         goto out;
 
     if (sol_coap_packet_add_uri_path_option(req, device_uri) < 0) {
@@ -561,13 +524,78 @@ _new_resource(void)
 
     res->observable = false;
     res->secure = false;
+    res->secure_port = 0;
     res->is_observing = false;
+    res->paired = false;
 
     res->refcnt = 1;
 
     SOL_SET_API_VERSION(res->api_version = SOL_OIC_RESOURCE_API_VERSION; )
 
     return res;
+}
+
+static bool
+_is_resource_paired(const struct find_resource_ctx *ctx,
+    struct sol_oic_resource *res)
+{
+    if (!ctx->client->security) {
+        /* If no security support in this OIC client, consider a resource
+         * to be paired if it's not marked as secure.  This is not optimal,
+         * since a resource might be accessible even if not paired, but
+         * there's currently no way to know that.  */
+        return !res->secure;
+    }
+
+    /* This function is quite expensive, as it loads stuff from disk,
+     * parses a JSON file, decodes Base 64 keys, performs a linear
+     * search in all those keys, copies the found key to a temporary
+     * buffer, clean everything, and returns true or false if the
+     * key was copied.  */
+    return sol_oic_security_get_is_paired(ctx->client->security,
+        res->device_id);
+}
+
+static bool
+fill_security_values(CborValue *map, struct sol_oic_resource *res)
+{
+    CborValue secure_value, port_value;
+    CborError err;
+    bool secure;
+    uint64_t port;
+
+    err = cbor_value_map_find_value(map, SOL_OIC_KEY_POLICY_SECURE,
+        &secure_value);
+    SOL_INT_CHECK(err, != CborNoError, false);
+    if (!cbor_value_is_valid(&secure_value)) {
+        res->secure = false;
+        res->secure_port = 0;
+        return true;
+    }
+
+    if (!cbor_value_is_boolean(&secure_value))
+        return false;
+    err = cbor_value_get_boolean(&secure_value, &secure);
+    SOL_INT_CHECK(err, != CborNoError, false);
+    res->secure = secure;
+
+    if (!secure) {
+        res->secure_port = 0;
+        return true;
+    }
+
+    err = cbor_value_map_find_value(map, SOL_OIC_KEY_POLICY_PORT, &port_value);
+    SOL_INT_CHECK(err, != CborNoError, false);
+    if (!cbor_value_is_unsigned_integer(&port_value))
+        return false;
+    err = cbor_value_get_uint64(&port_value, &port);
+    SOL_INT_CHECK(err, != CborNoError, false);
+
+    if (port > UINT16_MAX)
+        return false;
+    res->secure_port = port;
+
+    return true;
 }
 
 static bool
@@ -582,9 +610,8 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     uint16_t payload_len;
     struct sol_str_slice device_id;
     struct sol_oic_resource *res = NULL;
-    CborValue bitmap_value, secure_value;
+    CborValue bitmap_value;
     uint64_t bitmap;
-    bool secure;
 
 
     *cb_return  = true;
@@ -646,20 +673,10 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
             err = cbor_value_get_uint64(&bitmap_value, &bitmap);
             SOL_INT_CHECK_GOTO(err, != CborNoError, error);
 
-            err = cbor_value_map_find_value(&map, SOL_OIC_KEY_POLICY_SECURE,
-                &secure_value);
-            SOL_INT_CHECK(err, != CborNoError, false);
-            if (!cbor_value_is_valid(&secure_value)) {
-                secure = false;
-            } else {
-                if (!cbor_value_is_boolean(&secure_value))
-                    goto error;
-                err = cbor_value_get_boolean(&secure_value, &secure);
-                SOL_INT_CHECK_GOTO(err, != CborNoError, error);
-            }
+            if (!fill_security_values(&map, res))
+                goto error;
 
             res->observable = (bitmap & SOL_OIC_FLAG_OBSERVABLE);
-            res->secure = secure;
             res->observable = res->observable || _has_observable_option(req);
             res->addr = *addr;
             res->device_id.data = sol_util_memdup(device_id.data,
@@ -667,6 +684,7 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
             if (!res->device_id.data)
                 goto error;
             res->device_id.len = device_id.len;
+            res->paired = _is_resource_paired(ctx, res);
             if (!ctx->cb(ctx->client, res, (void *)ctx->data)) {
                 sol_oic_resource_unref(res);
                 free((char *)device_id.data);
@@ -709,7 +727,7 @@ _find_resource_reply_cb(struct sol_coap_server *server,
         return true;
     }
 
-    if (!_pkt_has_same_token(req, ctx->token)) {
+    if (!sol_oic_pkt_has_same_token(req, ctx->token)) {
         SOL_WRN("Discovery packet token differs from expected");
         return false;
     }
@@ -760,7 +778,7 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
         goto out_no_pkt;
     }
 
-    if (!_set_token_and_mid(req, &ctx->token))
+    if (!sol_oic_set_token_and_mid(req, &ctx->token))
         goto out;
 
     if (sol_coap_packet_add_uri_path_option(req, oic_well_known) < 0) {
@@ -812,7 +830,7 @@ _resource_request_cb(struct sol_coap_server *server,
         free(data);
         return false;
     }
-    if (!_pkt_has_same_token(req, ctx->token))
+    if (!sol_oic_pkt_has_same_token(req, ctx->token))
         return true;
 
     if (!sol_oic_pkt_has_cbor_content(req))
@@ -900,7 +918,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
         goto out_no_req;
     }
 
-    if (!_set_token_and_mid(req, &ctx->token))
+    if (!sol_oic_set_token_and_mid(req, &ctx->token))
         goto out;
 
     if (observe) {
@@ -927,7 +945,6 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
         SOL_INT_CHECK_GOTO(err, != CborNoError, cbor_error);
     }
     server = _best_server_for_resource(client, res, &addr);
-
 
     if (!sol_coap_send_packet_with_reply(server, req, &addr, cb, ctx) == 0) {
         SOL_DBG("Failed to send CoAP packet through %s server (port %d)",
@@ -1108,16 +1125,25 @@ SOL_API struct sol_oic_client *
 sol_oic_client_new(void)
 {
     struct sol_oic_client *client = malloc(sizeof(*client));
+    struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
+                                              .port = 0 };
 
     SOL_NULL_CHECK(client, NULL);
 
-    client->server = sol_coap_server_new(0);
+    client->server = sol_coap_server_new(&servaddr);
     SOL_NULL_CHECK_GOTO(client->server, error_create_server);
 
-    client->dtls_server = sol_coap_secure_server_new(0);
+    client->dtls_server = sol_coap_secure_server_new(&servaddr);
     if (!client->dtls_server) {
+        client->security = NULL;
+
         SOL_INT_CHECK_GOTO(errno, != ENOSYS, error_create_dtls_server);
         SOL_INF("DTLS support not built-in, only making non-secure requests");
+    } else {
+        client->security = sol_oic_client_security_add(client->server,
+            client->dtls_server);
+        if (!client->security)
+            SOL_WRN("Could not enable security features for OIC client");
     }
 
     return client;
@@ -1141,7 +1167,59 @@ sol_oic_client_del(struct sol_oic_client *client)
 
     if (client->dtls_server)
         sol_coap_server_unref(client->dtls_server);
+    if (client->security)
+        sol_oic_client_security_del(client->security);
 
     sol_util_secure_clear_memory(client, sizeof(*client));
     free(client);
+}
+
+
+static void
+pair_request_cb(void *data, enum sol_oic_security_pair_result result)
+{
+    struct pair_ctx *ctx = data;
+
+    ctx->cb(ctx->client, ctx->resource, result, ctx->data);
+    sol_oic_resource_unref(ctx->resource);
+    free(ctx);
+}
+
+SOL_API int
+sol_oic_client_resource_pair(struct sol_oic_client *client,
+    struct sol_oic_resource *res, enum sol_oic_pairing_method pm,
+    void (*cb)(struct sol_oic_client *client, struct sol_oic_resource *res, enum sol_oic_security_pair_result result, void *data),
+    void *data)
+{
+    struct pair_ctx *ctx;
+    int r;
+
+    SOL_NULL_CHECK(client, -EINVAL);
+    SOL_NULL_CHECK(cb, -EINVAL);
+
+    if (res->paired) {
+        cb(client, res, 0, data);
+        return 0;
+    }
+
+    ctx = sol_util_memdup(&(struct pair_ctx) {
+            .client = client,
+            .cb = cb,
+            .data = data
+        }, sizeof(*ctx));
+    SOL_NULL_CHECK(ctx, -ENOMEM);
+    ctx->resource = sol_oic_resource_ref(res);
+    if (!ctx->resource) {
+        free(ctx);
+        return -EINVAL;
+    }
+
+    r = sol_oic_security_pair_request(client->security, res, pm,
+        pair_request_cb, ctx);
+    if (r < 0) {
+        sol_oic_resource_unref(ctx->resource);
+        free(ctx);
+    }
+
+    return r;
 }

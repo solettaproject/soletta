@@ -108,7 +108,16 @@ struct sol_oic_resource {
         int clear_data; /** @brief Polling counter. */
         int64_t token; /** @brief Observation token, if in observe mode */
     } observe;
-    int refcnt; /** @brief Reference counter. */
+    /**
+     * @brief Port used to stablish a secure conection.
+     *
+     * secure_port value will be 0 if resource is insecure.
+     */
+    uint16_t secure_port;
+    /**
+     *  @brief Reference counter.
+     */
+    int refcnt;
     /**
      * @brief True if server supports observe mode for this resource
      */
@@ -125,6 +134,7 @@ struct sol_oic_resource {
      * notifications when resource state changes.
      */
     bool is_observing : 1;
+    bool paired : 1;
 };
 
 /**
@@ -485,6 +495,23 @@ struct sol_oic_resource *sol_oic_resource_ref(struct sol_oic_resource *r);
  */
 void sol_oic_resource_unref(struct sol_oic_resource *r);
 
+enum sol_oic_pairing_method {
+    SOL_OIC_PAIR_JUST_WORKS,
+};
+
+enum sol_oic_security_pair_result {
+    SOL_OIC_PAIR_SUCCESS,
+    SOL_OIC_PAIR_ERROR_ALREADY_OWNED,
+    SOL_OIC_PAIR_ERROR_UNSUPPORTED_PAIRING_METHOD,
+    SOL_OIC_PAIR_ERROR_UNSUPPORTED_CREDENTIAL_TYPE,
+    SOL_OIC_PAIR_ERROR_PAIR_FAILURE
+};
+
+int sol_oic_client_resource_pair(struct sol_oic_client *client,
+    struct sol_oic_resource *res, enum sol_oic_pairing_method pm,
+    void (*cb)(struct sol_oic_client *client, struct sol_oic_resource *res,
+    enum sol_oic_security_pair_result result, void *data),
+    void *data);
 /**
  * @}
  */
