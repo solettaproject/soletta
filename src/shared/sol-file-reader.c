@@ -90,7 +90,7 @@ sol_file_reader_from_fd(int fd)
         goto err;
     }
 
-    buffer = sol_util_load_file_raw(fd);
+    buffer = sol_util_load_file_fd_raw(fd);
     if (!buffer)
         goto err;
     fr->contents = sol_buffer_steal(buffer, &size);
