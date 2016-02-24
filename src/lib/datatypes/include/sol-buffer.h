@@ -270,6 +270,21 @@ sol_buffer_at_end(const struct sol_buffer *buf)
 int sol_buffer_resize(struct sol_buffer *buf, size_t new_size);
 
 /**
+ * @brief Increment the buffer capacity to fit the @c bytes.
+ *
+ * This function will increase the buffer capacity in order to
+ * be able to fit @c bytes.
+ *
+ * @param buf The buffer
+ * @param bytes The number of bytes that the buffer must fit.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @note Internally this function uses sol_buffer_ensure()
+ */
+int sol_buffer_expand(struct sol_buffer *buf, size_t bytes);
+
+/**
  * @brief Ensures that @c buf has at least @c min_size.
  *
  * It may allocate more than requested.

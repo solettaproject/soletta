@@ -85,6 +85,27 @@ sol_buffer_ensure(struct sol_buffer *buf, size_t min_size)
 }
 
 SOL_API int
+sol_buffer_expand(struct sol_buffer *buf, size_t bytes)
+{
+    size_t new_size, available;
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    available = buf->capacity - buf->used;
+
+    if (available >= bytes)
+        return 0;
+
+    err = sol_util_size_add(buf->capacity, bytes - available, &new_size);
+    SOL_INT_CHECK(err, < 0, err);
+    err = sol_buffer_ensure(buf, new_size);
+    SOL_INT_CHECK(err, < 0, err);
+
+    return 0;
+}
+
+SOL_API int
 sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 {
     int err;
