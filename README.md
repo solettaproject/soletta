@@ -24,7 +24,9 @@ targets.
     * [Network](#network)
     * [CoAP](#coap)
     * [OIC](#oic)
+    * [LWM2M](#lwm2m)
     * [MQTT](#mqtt)
+    * [MAVLink](#mavlink)
   * [Flow](#flow)
  * [Main Loops](#main-loops)
   * [GLib](#glib-kconfig-core-library---mainloop---glib)
@@ -33,6 +35,9 @@ targets.
   * [Systemd](#systemd-kconfig-core-library---target-platform---systemd)
   * [Linux-micro](#linux-micro-kconfig-core-library---target-platform---linux-micro)
  * [Flow Based Programming](#flow-based-programming)
+ * [Language Bindings](#language-bindings)
+  * [Node.js](#nodejs)
+ * [Supported OSes](#supported-oses)
  * [Contributing](#contributing)
 
 
@@ -197,17 +202,37 @@ operating system or service provider.
 
 Both client and server sides are covered by this library.
 
+##### LWM2M
+
+Lightweight Machine to Machine (LWM2M) is a protocol for communication
+between IoT devices defined by
+[OMA - Open Mobile Alliance](http://openmobilealliance.org/).
+
+LWM2M is a device management protocol, designed to be able to extend
+to meet the requirements of applications. It's also able to transfer
+service / application data.
+
+It implements the interface between M2M device and M2M server.
+Both sides are covered by this library.
+
 ##### MQTT
 
 Wrapper around the mosquitto library implementation of the [MQTT
 protocol](http://mqtt.org/).
-
 
 MQTT is a machine-to-machine (M2M)/"Internet of Things"
 connectivity protocol. It was designed as an extremely
 lightweight publish/subscribe messaging transport.
 
 The broker is not covered by the wrapper, only the client.
+
+##### MAVLink
+
+MAVLink or Micro Air Vehicle Link is a protocol for communicating with
+small unmanned vehicle. It is designed as a header-only message marshaling
+library.
+
+It's a wrapper around mavlink/c\_library.
 
 #### flow
 
@@ -286,6 +311,8 @@ was compiled.
 If GLib is too big then you can use a simpler implementation based
 solely on POSIX syscalls (`poll(2)`/`ppoll(2)`). As it's fully implemented in
 Soletta there are no extra variables to debug it.
+
+POSIX mainloop is used by default.
 
 ## Platforms
 
@@ -466,6 +493,38 @@ API see the output of sol-fbp-generator.
         return 0;
     }
 ```
+
+## Language Bindings
+
+On top of Soletta's C API there are a few higher level language bindings.
+
+For each of these bindings, only a subset of Soletta libraries is exposed,
+only libraries that aren't commonly provided for such languages.
+
+#### Node.js
+
+[Node.js](https://nodejs.org) is a JavaScript runtime built
+on Chrome's V8 JavaScript engine.
+It uses an event-driven, non-blocking I/O model that makes it lightweight
+and efficient.
+
+It's vastly used on server-side Web applications.
+
+Check Soletta's [JavaScript API specification](https://github.com/solettaproject/soletta/blob/master/doc/js-spec/README.md)
+
+## Supported OSes
+
+Soletta works on top of many different operating systems and features
+supported on each of these systems may differ.
+
+Aside from Linux, they are focused on Embedded Systems and IoT.
+
+List of supported OSes:
+
+ * [Linux](https://www.kernel.org/)
+ * [Zephyr](https://www.zephyrproject.org/)
+ * [RIOT](http://www.riot-os.org/)
+ * [Contiki](http://www.contiki-os.org/)
 
 ## Contributing
 
