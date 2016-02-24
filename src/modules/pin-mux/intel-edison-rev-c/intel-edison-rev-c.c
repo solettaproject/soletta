@@ -399,39 +399,67 @@ static struct mux_pin_map pin_map[] = {
 };
 
 // =============================================================================
+static bool ardu_breakout = false;
+
+static int
+_mux_init(void)
+{
+    //Try to detect the Arduino Breakout
+    if (sol_util_write_file("/sys/class/gpio/export", "214") >= 0) {
+        ardu_breakout = true;
+    }
+
+    return 0;
+}
 
 static int
 _pin_map(const char *label, const enum sol_io_protocol prot, va_list args)
 {
-    return mux_pin_map(pin_map, label, prot, args);
+    if (ardu_breakout)
+        return mux_pin_map(pin_map, label, prot, args);
+
+    return -EINVAL;
 }
 
 static int
 _set_aio(const int device, const int pin)
 {
-    return mux_set_aio(device, pin, aio_controller_list, (int)SOL_UTIL_ARRAY_SIZE(aio_controller_list));
+    if (ardu_breakout)
+        return mux_set_aio(device, pin, aio_controller_list, (int)SOL_UTIL_ARRAY_SIZE(aio_controller_list));
+
+    return 0;
 }
 
 static int
 _set_gpio(const uint32_t pin, const enum sol_gpio_direction dir)
 {
-    return mux_set_gpio(pin, dir, gpio_dev_0, (uint32_t)SOL_UTIL_ARRAY_SIZE(gpio_dev_0));
+    if (ardu_breakout)
+        return mux_set_gpio(pin, dir, gpio_dev_0, (uint32_t)SOL_UTIL_ARRAY_SIZE(gpio_dev_0));
+
+    return 0;
 }
 
 static int
 _set_i2c(const uint8_t bus)
 {
-    return mux_set_i2c(bus, i2c_dev_0, SOL_UTIL_ARRAY_SIZE(i2c_dev_0));
+    if (ardu_breakout)
+        return mux_set_i2c(bus, i2c_dev_0, SOL_UTIL_ARRAY_SIZE(i2c_dev_0));
+
+    return 0;
 }
 
 static int
 _set_pwm(const int device, const int channel)
 {
-    return mux_set_pwm(device, channel, pwm_controller_list, (int)SOL_UTIL_ARRAY_SIZE(pwm_controller_list));
+    if (ardu_breakout)
+        return mux_set_pwm(device, channel, pwm_controller_list, (int)SOL_UTIL_ARRAY_SIZE(pwm_controller_list));
+
+    return 0;
 }
 
 SOL_PIN_MUX_DECLARE(INTEL_EDISON_REV_C,
     .plat_name = "intel-edison-rev-c",
+    .init = _mux_init,
     .shutdown = mux_shutdown,
     .pin_map = _pin_map,
     .aio = _set_aio,
