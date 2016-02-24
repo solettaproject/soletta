@@ -333,6 +333,65 @@ init_dtls_if_needed(void)
     }
 }
 
+static const char *
+dtls_message_from_error_code(unsigned short code)
+{
+    switch (code) {
+    case DTLS_EVENT_CONNECT:
+        return "handshake_init";
+    case DTLS_EVENT_CONNECTED:
+        return "handshake_or_renegotiation_done";
+    case DTLS_EVENT_RENEGOTIATE:
+        return "renegotiation_started";
+    case DTLS_ALERT_CLOSE_NOTIFY:
+        return "close_notify";
+    case DTLS_ALERT_UNEXPECTED_MESSAGE:
+        return "unexpected_message";
+    case DTLS_ALERT_BAD_RECORD_MAC:
+        return "bad_record_mac";
+    case DTLS_ALERT_RECORD_OVERFLOW:
+        return "record_overflow";
+    case DTLS_ALERT_DECOMPRESSION_FAILURE:
+        return "decompression_failure";
+    case DTLS_ALERT_HANDSHAKE_FAILURE:
+        return "handshake_failure";
+    case DTLS_ALERT_BAD_CERTIFICATE:
+        return "bad_certificate";
+    case DTLS_ALERT_UNSUPPORTED_CERTIFICATE:
+        return "unsupported_certificate";
+    case DTLS_ALERT_CERTIFICATE_REVOKED:
+        return "certificate_revoked";
+    case DTLS_ALERT_CERTIFICATE_EXPIRED:
+        return "certificate_expired";
+    case DTLS_ALERT_CERTIFICATE_UNKNOWN:
+        return "certificate_unknown";
+    case DTLS_ALERT_ILLEGAL_PARAMETER:
+        return "illegal_parameter";
+    case DTLS_ALERT_UNKNOWN_CA:
+        return "unknown_ca";
+    case DTLS_ALERT_ACCESS_DENIED:
+        return "access_denied";
+    case DTLS_ALERT_DECODE_ERROR:
+        return "decode_error";
+    case DTLS_ALERT_DECRYPT_ERROR:
+        return "decrypt_error";
+    case DTLS_ALERT_PROTOCOL_VERSION:
+        return "protocol_version";
+    case DTLS_ALERT_INSUFFICIENT_SECURITY:
+        return "insufficient_security";
+    case DTLS_ALERT_INTERNAL_ERROR:
+        return "internal_error";
+    case DTLS_ALERT_USER_CANCELED:
+        return "user_canceled";
+    case DTLS_ALERT_NO_RENEGOTIATION:
+        return "no_renegotiation";
+    case DTLS_ALERT_UNSUPPORTED_EXTENSION:
+        return "unsupported_extension";
+    default:
+        return "unknown_event";
+    }
+}
+
 /* Called whenever the wrapped socket can be read. This receives a packet
  * from that socket, and passes to TinyDTLS. When it's done decrypting
  * the payload, dtls_handle_message() will call sol_dtls_read(), which
@@ -344,7 +403,7 @@ read_encrypted(void *data, struct sol_socket *wrapped)
     struct sol_network_link_addr cliaddr;
     session_t session = { 0 };
     uint8_t buf[DTLS_MAX_BUF];
-    int len;
+    int len, err_code;
 
     SOL_DBG("Reading encrypted data from wrapped socket");
 
@@ -355,7 +414,13 @@ read_encrypted(void *data, struct sol_socket *wrapped)
     if (to_sockaddr(&cliaddr, &session.addr.sa, &session.size) < 0)
         return false;
 
-    return dtls_handle_message(socket->context, &session, buf, len) == 0;
+    err_code = dtls_handle_message(socket->context, &session, buf, len);
+    if (err_code < 0) {
+        const char msg = dtls_message_from_error_code((-err_code) | 0xFF);
+        SOL_WRN("dtls_handle_message failed: %s (%d). "
+            " Keep socket alive.", msg, err_code);
+    }
+    return true;
 }
 
 static int
@@ -549,59 +614,7 @@ handle_dtls_event(struct dtls_context_t *ctx, session_t *session,
     struct sol_socket_dtls *socket = dtls_get_app_data(ctx);
     const char *msg;
 
-    if (code == DTLS_EVENT_CONNECT)
-        msg = "handshake_init";
-    else if (code == DTLS_EVENT_CONNECTED)
-        msg = "handshake_or_renegotiation_done";
-    else if (code == DTLS_EVENT_RENEGOTIATE)
-        msg = "renegotiation_started";
-    else if (code == DTLS_ALERT_CLOSE_NOTIFY)
-        msg = "close_notify";
-    else if (code == DTLS_ALERT_UNEXPECTED_MESSAGE)
-        msg = "unexpected_message";
-    else if (code == DTLS_ALERT_BAD_RECORD_MAC)
-        msg = "bad_record_mac";
-    else if (code == DTLS_ALERT_RECORD_OVERFLOW)
-        msg = "record_overflow";
-    else if (code == DTLS_ALERT_DECOMPRESSION_FAILURE)
-        msg = "decompression_failure";
-    else if (code == DTLS_ALERT_HANDSHAKE_FAILURE)
-        msg = "handshake_failure";
-    else if (code == DTLS_ALERT_BAD_CERTIFICATE)
-        msg = "bad_certificate";
-    else if (code == DTLS_ALERT_UNSUPPORTED_CERTIFICATE)
-        msg = "unsupported_certificate";
-    else if (code == DTLS_ALERT_CERTIFICATE_REVOKED)
-        msg = "certificate_revoked";
-    else if (code == DTLS_ALERT_CERTIFICATE_EXPIRED)
-        msg = "certificate_expired";
-    else if (code == DTLS_ALERT_CERTIFICATE_UNKNOWN)
-        msg = "certificate_unknown";
-    else if (code == DTLS_ALERT_ILLEGAL_PARAMETER)
-        msg = "illegal_parameter";
-    else if (code == DTLS_ALERT_UNKNOWN_CA)
-        msg = "unknown_ca";
-    else if (code == DTLS_ALERT_ACCESS_DENIED)
-        msg = "access_denied";
-    else if (code == DTLS_ALERT_DECODE_ERROR)
-        msg = "decode_error";
-    else if (code == DTLS_ALERT_DECRYPT_ERROR)
-        msg = "decrypt_error";
-    else if (code == DTLS_ALERT_PROTOCOL_VERSION)
-        msg = "protocol_version";
-    else if (code == DTLS_ALERT_INSUFFICIENT_SECURITY)
-        msg = "insufficient_security";
-    else if (code == DTLS_ALERT_INTERNAL_ERROR)
-        msg = "internal_error";
-    else if (code == DTLS_ALERT_USER_CANCELED)
-        msg = "user_canceled";
-    else if (code == DTLS_ALERT_NO_RENEGOTIATION)
-        msg = "no_renegotiation";
-    else if (code == DTLS_ALERT_UNSUPPORTED_EXTENSION)
-        msg = "unsupported_extension";
-    else
-        msg = "unknown_event";
-
+    msg = dtls_message_from_error_code(code);
     if (level == DTLS_ALERT_LEVEL_WARNING) {
         SOL_WRN("\n\nDTLS warning for socket %p: %s\n\n", socket, msg);
     } else if (level == DTLS_ALERT_LEVEL_FATAL) {
