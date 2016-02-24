@@ -356,16 +356,18 @@ end:
 static char *
 get_callback_url(const struct sol_http_request *request, const char *basename)
 {
-    char *url, buf[SOL_INET_ADDR_STRLEN];
+    SOL_BUFFER_DECLARE_STATIC(buf, SOL_INET_ADDR_STRLEN);
+    char *url;
     struct sol_network_link_addr addr;
     int r;
 
     r = sol_http_request_get_interface_address(request, &addr);
     SOL_INT_CHECK(r, < 0, NULL);
 
-    sol_network_addr_to_str(&addr, buf, sizeof(buf));
-    r = asprintf(&url, "http://%s:%d/%s/oauth_callback",
-        buf, addr.port, basename);
+    SOL_NULL_CHECK(sol_network_addr_to_str(&addr, &buf), NULL);
+
+    r = asprintf(&url, "http://%.*s:%d/%s/oauth_callback",
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)), addr.port, basename);
 
     SOL_INT_CHECK(r, < 0, NULL);
     return url;

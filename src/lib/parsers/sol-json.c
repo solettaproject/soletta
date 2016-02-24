@@ -607,40 +607,52 @@ sol_json_calculate_escaped_string_len(const char *str)
 }
 
 SOL_API char *
-sol_json_escape_string(const char *str, char *buf, size_t len)
+sol_json_escape_string(const char *str, struct sol_buffer *buf)
 {
-    char *out = buf;
-    size_t i;
+    char *out, *r_str;
+    size_t i, escaped_len;
+    int r;
 
     SOL_NULL_CHECK(str, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
-    for (i = 0; *str && i < len; str++, i++) {
+    escaped_len = sol_json_calculate_escaped_string_len(str);
+
+    r = sol_buffer_expand(buf, escaped_len);
+    SOL_INT_CHECK(r, < 0, NULL);
+
+    r_str = out = sol_buffer_at_end(buf);
+
+    for (i = 0; *str && i < escaped_len; str++, i++) {
         if (memchr(sol_json_escapable_chars, *str, sizeof(sol_json_escapable_chars))) {
-            *buf++ = '\\';
+            *out++ = '\\';
             switch (*str) {
-            case '"':  *buf++ = '"'; break;
-            case '\\': *buf++ = '\\'; break;
-            case '/':  *buf++ = '/'; break;
-            case '\b': *buf++ = 'b'; break;
-            case '\f': *buf++ = 'f'; break;
-            case '\n': *buf++ = 'n'; break;
-            case '\r': *buf++ = 'r'; break;
-            case '\t': *buf++ = 't'; break;
+            case '"':  *out++ = '"'; break;
+            case '\\': *out++ = '\\'; break;
+            case '/':  *out++ = '/'; break;
+            case '\b': *out++ = 'b'; break;
+            case '\f': *out++ = 'f'; break;
+            case '\n': *out++ = 'n'; break;
+            case '\r': *out++ = 'r'; break;
+            case '\t': *out++ = 't'; break;
             }
         } else {
-            *buf++ = *str;
+            *out++ = *str;
         }
     }
-    *buf++ = '\0';
-    return out;
+
+    *out++ = '\0';
+    buf->used += escaped_len - 1;
+
+    return r_str;
 }
 
 SOL_API int
-sol_json_double_to_str(const double value, char *buf, size_t len)
+sol_json_double_to_str(const double value, struct sol_buffer *buf)
 {
     int ret;
-    char *decimal_point;
+    char *decimal_point, *end;
+    size_t used;
 
 #ifdef HAVE_LOCALE
     struct lconv *lc = localeconv();
@@ -648,22 +660,26 @@ sol_json_double_to_str(const double value, char *buf, size_t len)
 
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    ret = snprintf(buf, len, "%g", value);
-    if (ret < 0 || ret > (int)len)
-        return -ENOMEM;
+    used = buf->used;
+
+    ret = sol_buffer_append_printf(buf, "%g", value);
+    SOL_INT_CHECK(ret, < 0, ret);
 
 #ifdef HAVE_LOCALE
     if (lc->decimal_point && streq(lc->decimal_point, "."))
         return 0;
 
+    end = (char *)buf->data + used;
 
-    if ((decimal_point = strstr(buf, lc->decimal_point))) {
+    if ((decimal_point = strstr(end, lc->decimal_point))) {
         size_t decimal_len = strlen(lc->decimal_point);
-        char *fraction = decimal_point + decimal_len;
+        size_t offset = decimal_point - (char *)buf->data + 1;
         *decimal_point = '.';
 
-        memmove(decimal_point + 1, fraction, (buf + ret + 1) - fraction);
+        ret = sol_buffer_remove_data(buf, decimal_len - 1, offset);
+        SOL_INT_CHECK(ret, < 0, ret);
     }
+
 #endif
 
     return 0;
@@ -692,23 +708,14 @@ SOL_API int
 sol_json_serialize_string(struct sol_buffer *buffer, const char *str)
 {
     int r;
-    size_t escaped_len, new_size;
 
     SOL_NULL_CHECK(buffer, -EINVAL);
     SOL_NULL_CHECK(str, -EINVAL);
 
-    escaped_len = sol_json_calculate_escaped_string_len(str);
-    r = sol_util_size_add(buffer->used, escaped_len + 2, &new_size);
-    SOL_INT_CHECK(r, < 0, r);
-
-    r = sol_buffer_ensure(buffer, new_size);
-    SOL_INT_CHECK(r, < 0, r);
-
     r = sol_buffer_append_char(buffer, '\"');
     SOL_INT_CHECK(r, < 0, r);
 
-    sol_json_escape_string(str, sol_buffer_at_end(buffer), escaped_len);
-    buffer->used += escaped_len - 1; /* remove \0 in the result */
+    SOL_NULL_CHECK(sol_json_escape_string(str, buffer), -EINVAL);
 
     r = sol_buffer_append_char(buffer, '\"');
     SOL_INT_CHECK(r, < 0, r);
@@ -720,25 +727,11 @@ SOL_API int
 sol_json_serialize_double(struct sol_buffer *buffer, double val)
 {
     int r;
-    char *p;
-    size_t new_size;
 
     SOL_NULL_CHECK(buffer, -EINVAL);
 
-#define STR_DOUBLE_LEN 64
-    r = sol_util_size_add(buffer->used, STR_DOUBLE_LEN, &new_size);
+    r = sol_json_double_to_str(val, buffer);
     SOL_INT_CHECK(r, < 0, r);
-
-    r = sol_buffer_ensure(buffer, new_size);
-    SOL_INT_CHECK(r, < 0, r);
-
-    p = sol_buffer_at_end(buffer);
-
-    r = sol_json_double_to_str(val, p, STR_DOUBLE_LEN);
-    SOL_INT_CHECK(r, < 0, r);
-#undef STR_DOUBLE_LEN
-
-    buffer->used += strlen(p);
 
     return 0;
 }

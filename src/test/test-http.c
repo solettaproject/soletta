@@ -93,7 +93,8 @@ test_split_urls(void)
     for (i = 0; i < SOL_UTIL_ARRAY_SIZE(test_split); i++) {
         struct sol_http_url splitted;
         struct sol_http_params params;
-        char *out_uri;
+        struct sol_buffer out_uri = SOL_BUFFER_INIT_EMPTY;
+
         r = sol_http_split_uri(test_split[i].url, &splitted);
         ASSERT_INT_EQ(r, test_split[i].result);
         if (test_split[i].result < 0)
@@ -113,9 +114,9 @@ test_split_urls(void)
         ASSERT_INT_EQ(r, 0);
         r = sol_http_create_uri(&out_uri, splitted, &params);
         ASSERT_INT_EQ(r, 0);
-        ASSERT(sol_str_slice_str_eq(test_split[i].url, out_uri));
+        ASSERT(sol_str_slice_eq(test_split[i].url, sol_buffer_get_slice(&out_uri)));
         sol_http_params_clear(&params);
-        free(out_uri);
+        sol_buffer_fini(&out_uri);
     }
 
 #undef SET_PARAMS

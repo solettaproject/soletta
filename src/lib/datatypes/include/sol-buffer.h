@@ -182,6 +182,25 @@ enum sol_decode_case {
 #define SOL_BUFFER_INIT_DATA(data_, size_) SOL_BUFFER_C_CAST { .data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_DEFAULT }
 
 /**
+ * @def SOL_BUFFER_DECLARE_STATIC(name_, size_)
+ *
+ * @brief A helper macro to create a static allocated buffer with a fixed capacity.
+ *
+ * This macro will expand into the following code:
+ * @code{.c}
+ * // SOL_BUFFER_DECLARE_STATIC(buf, 1024);
+ * uint8_t buf_storage[1024] = { 0 };
+ * struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(buf_storage, 1024, SOL_BUFFER_FLAGS_FIXED_CAPACITY);
+ * @endcode
+ *
+ * @param name_ The name of the struct sol_buffer variable
+ * @param size_ The capacity of the buffer
+ */
+#define SOL_BUFFER_DECLARE_STATIC(name_, size_) \
+    uint8_t name_ ## storage[(size_)] = { 0 }; \
+    struct sol_buffer (name_) = SOL_BUFFER_INIT_FLAGS(name_ ## storage, (size_), SOL_BUFFER_FLAGS_FIXED_CAPACITY)
+
+/**
  * @brief Initializes a @c sol_buffer structure.
  *
  * flags are set to @c SOL_BUFFER_FLAGS_DEFAULT.
@@ -268,6 +287,18 @@ sol_buffer_at_end(const struct sol_buffer *buf)
  * @return @c 0 on success, error code (always negative) otherwise
  */
 int sol_buffer_resize(struct sol_buffer *buf, size_t new_size);
+
+/**
+ * @brief Increment the buffer capacity.
+ *
+ * @param buf The buffer
+ * @param bytes The number of bytes that the buffer capacity should me incremented.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @note Internally this function uses sol_buffer_ensure()
+ */
+int sol_buffer_expand(struct sol_buffer *buf, size_t bytes);
 
 /**
  * @brief Ensures that @c buf has at least @c min_size.
