@@ -343,7 +343,7 @@ read_encrypted(void *data, struct sol_socket *wrapped)
     struct sol_network_link_addr cliaddr;
     session_t session = { 0 };
     uint8_t buf[DTLS_MAX_BUF];
-    int len;
+    int len, err_code;
 
     SOL_DBG("Reading encrypted data from wrapped socket");
 
@@ -354,7 +354,11 @@ read_encrypted(void *data, struct sol_socket *wrapped)
     if (to_sockaddr(&cliaddr, &session.addr.sa, &session.size) < 0)
         return false;
 
-    return dtls_handle_message(socket->context, &session, buf, len) == 0;
+    err_code = dtls_handle_message(socket->context, &session, buf, len);
+    if (err_code != 0)
+        SOL_DBG("dtls_handle_message failed with error code = %d. "
+            " Keep socket alive.", err_code);
+    return true;
 }
 
 static int
