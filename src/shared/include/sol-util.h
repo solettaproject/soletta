@@ -752,6 +752,17 @@ long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
 unsigned long int sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base);
 
 /**
+ * @brief Escape a string removing quotes from it.
+ *
+ * This function will also remove any ''' and '"' from the slice.
+ *
+ * @param slice The slice to be escaped
+ * @param buf - The buffer to hold the escaped string - It will be initialized by this function.
+ * @return 0 on success, negative errno otherwise.
+ */
+int sol_util_escape_quotes(const struct sol_str_slice slice, struct sol_buffer *buf);
+
+/**
  * @}
  */
 

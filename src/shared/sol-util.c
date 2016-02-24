@@ -905,3 +905,79 @@ sol_util_uuid_str_valid(const char *str)
 
     return true;
 }
+
+SOL_API int
+sol_util_escape_quotes(const struct sol_str_slice slice,
+    struct sol_buffer *buf)
+{
+    bool is_escaped = false;
+    size_t i, last_append;
+    int r;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    sol_buffer_init(buf);
+
+    if (!slice.len)
+        return 0;
+
+    last_append = 0;
+
+    for (i = 0; i < slice.len; i++) {
+        if (!is_escaped && (slice.data[i] == '"' || slice.data[i] == '\'')) {
+            r = sol_buffer_append_slice(buf,
+                SOL_STR_SLICE_STR(slice.data + last_append, i - last_append));
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            last_append = i + 1;
+        } else if (!is_escaped && slice.data[i] == '\\') {
+            is_escaped = true;
+            r = sol_buffer_append_slice(buf,
+                SOL_STR_SLICE_STR(slice.data + last_append, i - last_append));
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        } else if (is_escaped) {
+            char c;
+
+            is_escaped = false;
+            switch (slice.data[i]) {
+            case '\'':
+                c = '\'';
+                break;
+            case '"':
+                c = '"';
+                break;
+            default:
+                SOL_WRN("Invalid character to be escapted: '%c'", slice.data[i]);
+                r = -EINVAL;
+                goto err_exit;
+            }
+
+            r = sol_buffer_append_char(buf, c);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            last_append = i + 1;
+        }
+    }
+
+    if (is_escaped) {
+        SOL_WRN("Invalid string format, missing character to be escapted. String: %.*s",
+            SOL_STR_SLICE_PRINT(slice));
+        r = -EINVAL;
+        goto err_exit;
+    }
+
+    if (!last_append) {
+        sol_buffer_init_flags(buf, (char *)slice.data, slice.len,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        buf->used = buf->capacity;
+    } else {
+        r = sol_buffer_append_slice(buf,
+            SOL_STR_SLICE_STR(slice.data + last_append,
+            slice.len - last_append));
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    return 0;
+
+err_exit:
+    sol_buffer_fini(buf);
+    return r;
+}
