@@ -619,15 +619,11 @@ main(int argc, char *argv[])
     struct Context ctx;
     int ret;
 
-    struct sol_oic_client client = {
-        SOL_SET_API_VERSION(.api_version = SOL_OIC_CLIENT_API_VERSION)
-    };
+    struct sol_oic_client *client;
     struct sol_network_link_addr cliaddr = { .family = SOL_NETWORK_FAMILY_INET, .port = 5683 };
     const char *resource_type = NULL;
 
     bool (*found_resource_cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data) = NULL;
-    struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
-                                              .port = 0 };
 
     ctx.res = NULL;
     sol_init();
@@ -647,12 +643,6 @@ main(int argc, char *argv[])
         SOL_WRN("could not convert multicast ip address to sockaddr_in");
         return 1;
     }
-
-    client.server = sol_coap_server_new(&servaddr);
-    client.dtls_server = sol_coap_secure_server_new(&servaddr);
-
-    SOL_INF("DTLS support %s\n", client.dtls_server ? "available" :
-        "unavailable");
 
     switch (ctx.test_number) {
     case TEST_DISCOVERY:
@@ -679,17 +669,20 @@ main(int argc, char *argv[])
         return 0;
     }
 
+    client = sol_oic_client_new();
     if (ctx.test_number == TEST_DISCOVER_PLATFORM)
-        sol_oic_client_get_platform_info_by_addr(&client, &cliaddr,
+        sol_oic_client_get_platform_info_by_addr(client, &cliaddr,
             platform_info_cb, NULL);
     else if (ctx.test_number == TEST_DISCOVER_DEVICES)
-        sol_oic_client_get_server_info_by_addr(&client, &cliaddr,
+        sol_oic_client_get_server_info_by_addr(client, &cliaddr,
             server_info_cb, NULL);
     else
-        sol_oic_client_find_resource(&client, &cliaddr, resource_type,
+        sol_oic_client_find_resource(client, &cliaddr, resource_type,
             found_resource_cb, &ctx);
 
     ret = sol_run();
+
+    sol_oic_client_del(client);
     if (ctx.res)
         sol_oic_resource_unref(ctx.res);
     return ret;

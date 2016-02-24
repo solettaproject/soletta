@@ -163,15 +163,11 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
 int
 main(int argc, char *argv[])
 {
-    struct sol_oic_client client = {
-        SOL_SET_API_VERSION(.api_version = SOL_OIC_CLIENT_API_VERSION)
-    };
     struct sol_network_link_addr srv_addr =
     { .family = SOL_NETWORK_FAMILY_INET6,
       .port = 5683 };
+    struct sol_oic_client *client;
     const char *resource_type;
-    struct sol_network_link_addr addr = { .family = SOL_NETWORK_FAMILY_INET6,
-                                          .port = 0 };
 
     sol_init();
 
@@ -188,11 +184,7 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    client.server = sol_coap_server_new(&addr);
-    client.dtls_server = sol_coap_secure_server_new(&addr);
-
-    printf("DTLS support %s\n",
-        client.dtls_server ? "available" : "unavailable");
+    client = sol_oic_client_new();
 
     if (argc < 3) {
         printf("No rt filter specified, assuming everything\n");
@@ -202,10 +194,12 @@ main(int argc, char *argv[])
         resource_type = argv[2];
     }
 
-    sol_oic_client_find_resource(&client, &srv_addr,
+    sol_oic_client_find_resource(client, &srv_addr,
         resource_type, found_resource, NULL);
 
     sol_run();
+
+    sol_oic_client_del(client);
 
     return 0;
 }

@@ -65,20 +65,14 @@
             return __VA_ARGS__; \
         } \
     } while (0)
-
-#define OIC_CLIENT_CHECK_API(ptr, ...) \
-    do { \
-        if (SOL_UNLIKELY(ptr->api_version != SOL_OIC_CLIENT_API_VERSION)) { \
-            SOL_WRN("Couldn't handle oic client that has unsupported " \
-                "version '%u', expected version is '%u'", \
-                ptr->api_version, SOL_OIC_CLIENT_API_VERSION); \
-            return __VA_ARGS__; \
-        } \
-    } while (0)
 #else
 #define OIC_RESOURCE_CHECK_API(ptr, ...)
-#define OIC_CLIENT_CHECK_API(ptr, ...)
 #endif
+
+struct sol_oic_client {
+    struct sol_coap_server *server;
+    struct sol_coap_server *dtls_server;
+};
 
 struct find_resource_ctx {
     struct sol_oic_client *client;
@@ -466,7 +460,6 @@ sol_oic_client_get_platform_info(struct sol_oic_client *client,
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     SOL_NULL_CHECK(client, false);
-    OIC_CLIENT_CHECK_API(client, false);
     OIC_RESOURCE_CHECK_API(resource, false);
 
     server = _best_server_for_resource(client, resource,  &addr);
@@ -484,7 +477,6 @@ sol_oic_client_get_platform_info_by_addr(struct sol_oic_client *client,
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     SOL_NULL_CHECK(client, false);
-    OIC_CLIENT_CHECK_API(client, false);
     SOL_NULL_CHECK(addr, false);
 
     return client_get_info(client, client->server, addr, SOL_OIC_PLATFORM_PATH,
@@ -507,7 +499,6 @@ sol_oic_client_get_server_info(struct sol_oic_client *client,
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     SOL_NULL_CHECK(client, false);
-    OIC_CLIENT_CHECK_API(client, false);
     OIC_RESOURCE_CHECK_API(resource, false);
 
     cb = (void (*)(struct sol_oic_client *cli,
@@ -531,7 +522,6 @@ sol_oic_client_get_server_info_by_addr(struct sol_oic_client *client,
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     SOL_NULL_CHECK(client, false);
-    OIC_CLIENT_CHECK_API(client, false);
     SOL_NULL_CHECK(addr, false);
 
     cb = (void (*)(struct sol_oic_client *cli,
@@ -755,7 +745,6 @@ sol_oic_client_find_resource(struct sol_oic_client *client,
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     SOL_NULL_CHECK(client, false);
-    OIC_CLIENT_CHECK_API(client, false);
 
     ctx = sol_util_memdup(&(struct find_resource_ctx) {
             .client = client,
@@ -969,7 +958,6 @@ sol_oic_client_resource_request(struct sol_oic_client *client, struct sol_oic_re
     const void *callback_data)
 {
     SOL_NULL_CHECK(client, false);
-    OIC_CLIENT_CHECK_API(client, false);
     SOL_NULL_CHECK(res, false);
     OIC_RESOURCE_CHECK_API(res, false);
 
@@ -988,7 +976,6 @@ sol_oic_client_resource_non_confirmable_request(struct sol_oic_client *client, s
     const void *callback_data)
 {
     SOL_NULL_CHECK(client, false);
-    OIC_CLIENT_CHECK_API(client, false);
     SOL_NULL_CHECK(res, false);
     OIC_RESOURCE_CHECK_API(res, false);
 
@@ -1065,7 +1052,6 @@ client_resource_set_observable(struct sol_oic_client *client, struct sol_oic_res
     void *data, bool observe, bool non_confirmable)
 {
     SOL_NULL_CHECK(client, false);
-    OIC_CLIENT_CHECK_API(client, false);
     SOL_NULL_CHECK(res, false);
     OIC_RESOURCE_CHECK_API(res, false);
 
@@ -1116,4 +1102,46 @@ sol_oic_client_resource_set_observable_non_confirmable(struct sol_oic_client *cl
 {
     return client_resource_set_observable(client, res, callback, (void *)data,
         observe, true);
+}
+
+SOL_API struct sol_oic_client *
+sol_oic_client_new(void)
+{
+    struct sol_oic_client *client = malloc(sizeof(*client));
+
+    SOL_NULL_CHECK(client, NULL);
+
+    client->server = sol_coap_server_new(0);
+    SOL_NULL_CHECK_GOTO(client->server, error_create_server);
+
+    client->dtls_server = sol_coap_secure_server_new(0);
+    if (!client->dtls_server) {
+        SOL_INT_CHECK_GOTO(errno, != ENOSYS, error_create_dtls_server);
+        SOL_INF("DTLS support not built-in, only making non-secure requests");
+    }
+
+    return client;
+
+error_create_dtls_server:
+    sol_coap_server_unref(client->server);
+
+error_create_server:
+    sol_util_secure_clear_memory(client, sizeof(*client));
+    free(client);
+
+    return NULL;
+}
+
+SOL_API void
+sol_oic_client_del(struct sol_oic_client *client)
+{
+    SOL_NULL_CHECK(client);
+
+    sol_coap_server_unref(client->server);
+
+    if (client->dtls_server)
+        sol_coap_server_unref(client->dtls_server);
+
+    sol_util_secure_clear_memory(client, sizeof(*client));
+    free(client);
 }
