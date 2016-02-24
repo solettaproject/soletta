@@ -59,26 +59,7 @@ extern "C" {
  * @{
  */
 
-
-/**
- * @brief Structure defining an oic client.
- */
-struct sol_oic_client {
-#ifndef SOL_NO_API_VERSION
-#define SOL_OIC_CLIENT_API_VERSION (1)
-    uint16_t api_version; /**< @brief API version */
-#endif
-    /**
-     * @brief An insecure coap connection to the server associated with this
-     * client.
-     */
-    struct sol_coap_server *server;
-    /**
-     * @brief A secure coap connection to the server associated with this
-     * client.
-     */
-    struct sol_coap_server *dtls_server;
-};
+struct sol_oic_client;
 
 /**
  * @brief Structure defining an oic resource.
@@ -145,6 +126,27 @@ struct sol_oic_resource {
      */
     bool is_observing : 1;
 };
+
+/**
+ * @brief Creates a new OIC client intance.
+ *
+ * @return A new OIC client instance, or NULL in case of failure.
+ *
+ * @see sol_oic_client_del()
+ */
+struct sol_oic_client *sol_oic_client_new(void);
+
+/**
+ * @brief Delete @a client
+ *
+ * All memory used by @a client and all resources associated with it will be
+ * freed.
+ *
+ * @param client The client to delete.
+ *
+ * @see sol_oic_client_new()
+ */
+void sol_oic_client_del(struct sol_oic_client *client);
 
 /**
  * @brief Send a discovevery packet to find resources.
