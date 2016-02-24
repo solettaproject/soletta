@@ -905,3 +905,136 @@ sol_util_uuid_str_valid(const char *str)
 
     return true;
 }
+
+SOL_API int
+sol_util_unescape_quotes(const struct sol_str_slice slice,
+    struct sol_buffer *buf)
+{
+    bool is_escaped = false;
+    size_t i, last_append;
+    char *quote_start, *quote_end, *txt_start, *txt_end, *quote_middle;
+    int r;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    sol_buffer_init(buf);
+
+    if (!slice.len)
+        return 0;
+
+    last_append = 0;
+    quote_start = quote_end = txt_start = txt_end = quote_middle = NULL;
+
+    for (i = 0; i < slice.len; i++) {
+        int is_space = isspace((int)slice.data[i]);
+
+        if (!is_space)
+            txt_end = (char *)slice.data + i;
+
+        if (!is_escaped && (slice.data[i] == '"' || slice.data[i] == '\'')) {
+            if (quote_middle && *quote_middle == slice.data[i]) {
+                size_t len;
+                len = (quote_middle - (txt_start + last_append));
+                r = sol_buffer_append_slice(buf,
+                    SOL_STR_SLICE_STR(txt_start + last_append, len));
+                SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+                len = ((char *)slice.data + i) - quote_middle - 1;
+                r = sol_buffer_append_slice(buf,
+                    SOL_STR_SLICE_STR(quote_middle + 1, len));
+                SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+                last_append = i + 1;
+                quote_middle = NULL;
+            } else if (!quote_start) {
+                if (i > 0 && txt_start) {
+                    //The is slice is something like: MySlice 'WithQuotesInTheMiddle' MySlice continue...
+                    quote_middle = (char *)slice.data + i;
+                } else {
+                    quote_start = (char *)slice.data + i;
+                    if (!txt_start)
+                        txt_start = quote_start + 1;
+                }
+            } else if (quote_start && *quote_start == slice.data[i]) {
+                txt_end = quote_end = (char *)slice.data + i;
+            }
+        } else if (!is_escaped && slice.data[i] == '\\') {
+            is_escaped = true;
+            if (!txt_start)
+                continue;
+            r = sol_buffer_append_slice(buf,
+                SOL_STR_SLICE_STR(slice.data + last_append, i - last_append));
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        } else if (!is_escaped && !txt_start && !is_space) {
+            txt_start = (char *)slice.data + i;
+        } else if (is_escaped) {
+            char c;
+
+            is_escaped = false;
+            switch (slice.data[i]) {
+            case '\'':
+                c = '\'';
+                break;
+            case '"':
+                c = '"';
+                break;
+            default:
+                SOL_WRN("Invalid character to be escapted: '%c'",
+                    slice.data[i]);
+                r = -EINVAL;
+                goto err_exit;
+            }
+
+            r = sol_buffer_append_char(buf, c);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            last_append = i + 1;
+        }
+    }
+
+    if (quote_start && !quote_end) {
+        r = -EINVAL;
+        SOL_WRN("Missing quotes from slice: %.*s",
+            SOL_STR_SLICE_PRINT(slice));
+        goto err_exit;
+    }
+
+    if (is_escaped) {
+        SOL_WRN("Invalid string format, missing character to be escapted."
+            " String: %.*s", SOL_STR_SLICE_PRINT(slice));
+        r = -EINVAL;
+        goto err_exit;
+    }
+
+    if (!last_append) {
+        size_t len = 0;
+
+        if (txt_start && txt_start == txt_end && !isspace((int)*txt_start))
+            len = 1;
+        else if (txt_start != txt_end) {
+            len = txt_end - txt_start + 1;
+            if (quote_end)
+                len--;
+        }
+
+        if (len > 0) {
+            sol_buffer_init_flags(buf, txt_start, len,
+                SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
+                SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+            buf->used = buf->capacity;
+        } else {
+            buf->flags |= SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED |
+                SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+        }
+    } else {
+        size_t len = slice.len - (last_append + (((char *)slice.data + slice.len) - txt_end) - 1);
+
+        r = sol_buffer_append_slice(buf,
+            SOL_STR_SLICE_STR(slice.data + last_append,
+            len));
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    return 0;
+
+err_exit:
+    sol_buffer_fini(buf);
+    return r;
+}
