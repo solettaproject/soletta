@@ -905,3 +905,124 @@ sol_util_uuid_str_valid(const char *str)
 
     return true;
 }
+
+SOL_API int
+sol_util_unescape_quotes(const struct sol_str_slice slice,
+    struct sol_buffer *buf)
+{
+    bool is_escaped = false;
+    size_t i, last_append;
+    char *quote_start, *quote_end;
+    bool quotes_middle;
+    int r;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    sol_buffer_init(buf);
+
+    if (!slice.len)
+        return 0;
+
+    last_append = 0;
+    quote_start = quote_end = NULL;
+    quotes_middle = false;
+
+    for (i = 0; i < slice.len; i++) {
+        if (!is_escaped && (slice.data[i] == '"' || slice.data[i] == '\'')) {
+            if (quote_start && *quote_start != slice.data[i]) {
+                SOL_WRN("Quotes do not match. Expecting: '%c' - found: '%c'",
+                    *quote_start, slice.data[i]);
+                r = -EINVAL;
+                goto err_exit;
+            }
+            if (!quote_start) {
+                //The is slice is something like: MySlice'WithQuotesInTheMiddle'
+                if (i > 0 && !isspace((int)slice.data[i - 1])) {
+                    r = sol_buffer_append_slice(buf,
+                        SOL_STR_SLICE_STR(slice.data + last_append,
+                        i - last_append));
+                    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+                    last_append = i + 1;
+                    quotes_middle = true;
+                }
+                quote_start = (char *)slice.data + i;
+            } else {
+                if (quotes_middle) {
+                    r = sol_buffer_append_slice(buf,
+                        SOL_STR_SLICE_STR(slice.data + last_append,
+                        i - last_append));
+                    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+                    last_append = i + 1;
+                }
+                quote_end = (char *)slice.data + i;
+            }
+        } else if (!is_escaped && slice.data[i] == '\\') {
+            is_escaped = true;
+            r = sol_buffer_append_slice(buf,
+                SOL_STR_SLICE_STR(slice.data + last_append, i - last_append));
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        } else if (is_escaped) {
+            char c;
+
+            is_escaped = false;
+            switch (slice.data[i]) {
+            case '\'':
+                c = '\'';
+                break;
+            case '"':
+                c = '"';
+                break;
+            default:
+                SOL_WRN("Invalid character to be escapted: '%c'",
+                    slice.data[i]);
+                r = -EINVAL;
+                goto err_exit;
+            }
+
+            r = sol_buffer_append_char(buf, c);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            last_append = i + 1;
+        }
+    }
+
+    if (is_escaped) {
+        SOL_WRN("Invalid string format, missing character to be escapted."
+            " String: %.*s", SOL_STR_SLICE_PRINT(slice));
+        r = -EINVAL;
+        goto err_exit;
+    }
+
+    if (quote_start && !quote_end) {
+        SOL_WRN("Missing quote at slice: %.*s", SOL_STR_SLICE_PRINT(slice));
+        r = -EINVAL;
+        goto err_exit;
+    }
+
+    if (!last_append) {
+        size_t len;
+        char *start;
+
+        if (!quote_start) {
+            start = (char *)slice.data;
+            len = slice.len;
+        } else {
+            start = quote_start + 1;
+            len = quote_end - quote_start - 1;
+        }
+
+        sol_buffer_init_flags(buf, start, len,
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+        buf->used = buf->capacity;
+    } else {
+        r = sol_buffer_append_slice(buf,
+            SOL_STR_SLICE_STR(slice.data + last_append,
+            slice.len - last_append));
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
+
+    return 0;
+
+err_exit:
+    sol_buffer_fini(buf);
+    return r;
+}
