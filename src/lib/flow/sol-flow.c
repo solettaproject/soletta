@@ -477,6 +477,8 @@ static struct sol_flow_port_type_out port_error = {
 SOL_API const struct sol_flow_port_type_in *
 sol_flow_node_type_get_port_in(const struct sol_flow_node_type *type, uint16_t port)
 {
+    SOL_NULL_CHECK(type, NULL);
+
     return type->get_port_in(type, port);
 }
 
@@ -484,6 +486,8 @@ sol_flow_node_type_get_port_in(const struct sol_flow_node_type *type, uint16_t p
 SOL_API const struct sol_flow_port_type_out *
 sol_flow_node_type_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
 {
+    SOL_NULL_CHECK(type, NULL);
+
     if (!port_error.packet_type)
         port_error.packet_type = SOL_FLOW_PACKET_TYPE_ERROR;
 
@@ -549,6 +553,15 @@ sol_flow_node_get_port_in_description(const struct sol_flow_node_type *type, uin
     return sol_flow_node_type_get_port_description(type->description->ports_in, port);
 }
 
+static const struct sol_flow_port_description port_error_desc = {
+    .name = SOL_FLOW_NODE_PORT_ERROR_NAME,
+    .description = "Port used to communicate errors, present in all nodes.",
+    .data_type = "error",
+    .array_size = 0,
+    .base_port_idx = SOL_FLOW_NODE_PORT_ERROR,
+    .required = false
+};
+
 SOL_API const struct sol_flow_port_description *
 sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, uint16_t port)
 {
@@ -556,6 +569,10 @@ sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, ui
 
     SOL_NULL_CHECK(type->description, NULL);
     SOL_NULL_CHECK(type->description->ports_out, NULL);
+
+    if (port == SOL_FLOW_NODE_PORT_ERROR)
+        return &port_error_desc;
+
     return sol_flow_node_type_get_port_description(type->description->ports_out, port);
 }
 #endif
