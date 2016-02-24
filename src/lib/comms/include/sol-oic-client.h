@@ -108,7 +108,16 @@ struct sol_oic_resource {
         int clear_data; /** @brief Polling counter. */
         int64_t token; /** @brief Observation token, if in observe mode */
     } observe;
-    int refcnt; /** @brief Reference counter. */
+    /**
+     * @brief Port used to stablish a secure conection.
+     *
+     * secure_port value will be 0 if resource is insecure.
+     */
+    uint16_t secure_port;
+    /**
+     *  @brief Reference counter.
+     */
+    int refcnt;
     /**
      * @brief True if server supports observe mode for this resource
      */
@@ -125,6 +134,7 @@ struct sol_oic_resource {
      * notifications when resource state changes.
      */
     bool is_observing : 1;
+    bool paired : 1;
 };
 
 /**
@@ -485,6 +495,64 @@ struct sol_oic_resource *sol_oic_resource_ref(struct sol_oic_resource *r);
  */
 void sol_oic_resource_unref(struct sol_oic_resource *r);
 
+/**
+ * @brief method using to pair with a secure server.
+ *
+ * @see sol_oic_client_resource_pair
+ */
+enum sol_oic_pairing_method {
+    /**< @brief Just Works pairing method as defined by OIC. */
+    SOL_OIC_PAIR_JUST_WORKS,
+};
+
+/**
+ * @brief Result code of pairing process.
+ *
+ * @see sol_oic_client_resource_pair
+ */
+enum sol_oic_security_pair_result {
+    /**
+     * @brief Pairing finished successfuly.
+     */
+    SOL_OIC_PAIR_SUCCESS,
+    /**
+     * @brief Pairing failed: Device is already owned.
+     */
+    SOL_OIC_PAIR_ERROR_ALREADY_OWNED,
+    /**
+     * @brief Pairing failed: Selected pairing method is not supported by server.
+     */
+    SOL_OIC_PAIR_ERROR_UNSUPPORTED_PAIRING_METHOD,
+    /**
+     * @brief Pairing failed: Credential type used by method is not supported
+     * by server.
+     */
+    SOL_OIC_PAIR_ERROR_UNSUPPORTED_CREDENTIAL_TYPE,
+    /**
+     * @brief Pairing failed: Internal error.
+     */
+    SOL_OIC_PAIR_ERROR_PAIR_FAILURE,
+};
+
+/**
+ * @brief Pair with a secure server that holds the resource @a res.
+ *
+ * @param client An oic client instance.
+ * @param res A resource that is holded by the server to be pairing to.
+ * @param pm The pairing method to be used.
+ * @param cb Callback to be called when pairing has finished or an error occurs.
+ *        Parameter client is the sol_oic_client used to perform the request,
+ *        res is the resource used in pairing function call, result is the
+ *        pairing result status and data is the user's data parameter.
+ * @param data User's data.
+ *
+ * @return A negative error code on errors or 0 on success.
+ */
+int sol_oic_client_resource_pair(struct sol_oic_client *client,
+    struct sol_oic_resource *res, enum sol_oic_pairing_method pm,
+    void (*cb)(struct sol_oic_client *client, struct sol_oic_resource *res,
+    enum sol_oic_security_pair_result result, void *data),
+    void *data);
 /**
  * @}
  */

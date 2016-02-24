@@ -386,7 +386,7 @@ sol_json_token_str_eq(const struct sol_json_token *token, const char *str, unsig
  * to compare compatible strings.
  */
 #define SOL_JSON_TOKEN_STR_LITERAL_EQ(token_, str_) \
-    sol_json_token_str_eq(token_, str_, sizeof(str_) - 1)
+    sol_json_token_str_eq(token_, SOL_STR_STATIC_ASSERT_LITERAL(str_), sizeof(str_) - 1)
 
 /**
  * @brief Get the numeric value of the given token as an 64 bits unsigned integer.

@@ -50,6 +50,7 @@
 #include "sol-oic-cbor.h"
 #include "sol-oic-common.h"
 #include "sol-oic-server.h"
+#include "sol-oic-security.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_oic_server_log_domain, "oic-server");
 
@@ -59,6 +60,7 @@ struct sol_oic_server {
     struct sol_ptr_vector resources;
     struct sol_oic_platform_information *plat_info;
     struct sol_oic_server_information *server_info;
+    struct sol_oic_security *security;
     int refcnt;
 };
 
@@ -190,47 +192,6 @@ static const struct sol_oic_resource_type oic_p_resource_type = {
         .handle = _sol_oic_server_p
     }
 };
-
-static unsigned int
-as_nibble(const char c)
-{
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
-
-    SOL_WRN("Invalid hex character: %d", c);
-    return 0;
-}
-
-static const uint8_t *
-get_machine_id(void)
-{
-    static uint8_t machine_id[16] = { 0 };
-    static bool machine_id_set = false;
-    const char *machine_id_buf;
-
-    if (SOL_UNLIKELY(!machine_id_set)) {
-        machine_id_buf = sol_platform_get_machine_id();
-
-        if (!machine_id_buf) {
-            SOL_WRN("Could not get machine ID");
-            memset(machine_id, 0xFF, sizeof(machine_id));
-        } else {
-            const char *p;
-            size_t i;
-
-            for (p = machine_id_buf, i = 0; i < 16; i++, p += 2)
-                machine_id[i] = as_nibble(*p) << 4 | as_nibble(*(p + 1));
-        }
-
-        machine_id_set = true;
-    }
-
-    return machine_id;
-}
 
 static int
 _sol_oic_server_res(struct sol_coap_server *server,
@@ -406,6 +367,19 @@ init_static_server_info(void)
     return info;
 }
 
+static bool
+oic_dtls_server_init(void)
+{
+    oic_server.security = sol_oic_server_security_add(oic_server.server,
+        oic_server.dtls_server);
+    if (!oic_server.security) {
+        SOL_WRN("OIC server security subsystem could not be initialized");
+        return false;
+    }
+
+    return true;
+}
+
 SOL_API int
 sol_oic_server_init(void)
 {
@@ -436,22 +410,27 @@ sol_oic_server_init(void)
         &oic_res_coap_resource, NULL))
         goto error;
 
+    sol_ptr_vector_init(&oic_server.resources);
+    oic_server.server_info = server_info;
+    oic_server.plat_info = plat_info;
+    oic_server.refcnt++;
+    oic_server.security = NULL;
     servaddr.port = OIC_COAP_SERVER_DTLS_PORT;
     oic_server.dtls_server = sol_coap_secure_server_new(&servaddr);
     if (!oic_server.dtls_server) {
-        if (errno == ENOSYS) {
-            SOL_INF("DTLS support not built in, OIC server running in insecure mode");
-        } else {
-            SOL_INF("DTLS server could not be created for OIC server: %s",
+        if (errno == ENOSYS)
+            SOL_INF("DTLS support not built in, OIC server running in insecure "
+                "mode");
+        else
+            SOL_INF("DTLS server could not be created for OIC server: %s. "
+                "OIC server running in insecure mode",
                 sol_util_strerrora(errno));
-        }
+    } else if (!oic_dtls_server_init()) {
+
+        SOL_INF("OIC server running in insecure mode.");
+        sol_coap_server_unref(oic_server.dtls_server);
+        oic_server.dtls_server = NULL;
     }
-
-    oic_server.server_info = server_info;
-    oic_server.plat_info = plat_info;
-    sol_ptr_vector_init(&oic_server.resources);
-
-    oic_server.refcnt++;
 
     res = sol_oic_server_add_resource(&oic_d_resource_type, NULL,
         SOL_OIC_FLAG_DISCOVERABLE | SOL_OIC_FLAG_ACTIVE);
@@ -484,8 +463,13 @@ sol_oic_server_shutdown(void)
 
     OIC_SERVER_CHECK();
 
-    if (--oic_server.refcnt > 0)
+    if (oic_server.refcnt > 1) {
+        oic_server.refcnt--;
         return;
+    }
+
+    if (oic_server.security)
+        sol_oic_server_security_del(oic_server.security);
 
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&oic_server.resources, res, idx)
         sol_oic_server_del_resource(res);
@@ -500,6 +484,8 @@ sol_oic_server_shutdown(void)
 
     free(oic_server.server_info);
     free(oic_server.plat_info);
+
+    sol_util_secure_clear_memory(&oic_server, sizeof(oic_server));
 }
 
 static int
@@ -528,6 +514,9 @@ _sol_oic_resource_type_handle(
         code = SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
         goto done;
     }
+
+    if (!sol_oic_security_authorize(oic_server.security, server, res))
+        return SOL_COAP_RSPCODE_UNAUTHORIZED;
 
     if (expect_payload) {
         if (!sol_oic_pkt_has_cbor_content(req)) {

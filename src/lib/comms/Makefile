@@ -40,6 +40,7 @@ obj-networking-$(OIC) += \
     sol-oic-client.o \
     sol-oic-common.o \
     sol-oic-server.o \
+    sol-oic-security.o \
     $(TINYCBOR_SRC_PATH)/cborencoder.o \
     $(TINYCBOR_SRC_PATH)/cborerrorstrings.o \
     $(TINYCBOR_SRC_PATH)/cborparser.o \
