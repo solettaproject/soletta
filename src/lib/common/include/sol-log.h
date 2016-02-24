@@ -396,6 +396,13 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
  * the output binary.
  *
  * One should check using SOL_LOG_LEVEL_POSSIBLE().
+ *
+ * It only affects log levels in the library functions.
+ * If an application is using Soletta log system, it
+ * needs to be changed using application CFLAGS.
+ *
+ * So to disable all log levels greater than warning on application build:
+ * CFLAGS += -DSOL_LOG_LEVEL_MAXIMUM=2
  */
 #if 0
 #define SOL_LOG_LEVEL_MAXIMUM SOL_LOG_LEVEL_WARNING

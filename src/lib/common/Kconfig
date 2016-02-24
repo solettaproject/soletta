@@ -327,7 +327,6 @@ config LOG
 
 choice
 	prompt "Maximum allowed log level"
-	default MAXIMUM_LOG_LEVEL_ERROR if BUILD_TYPE_RELEASE
 	default MAXIMUM_LOG_LEVEL_UNLIMITED
 	depends on LOG
 	help
@@ -337,10 +336,29 @@ choice
           disabled in compile time and won't be present in the
           final library.
 
+          It only affects log levels in the library functions.
+          If an application is using Soletta log system, it
+          needs to be changed using application CFLAGS.
+
+          So to disable all log levels greater than warning on
+          application build:
+          CFLAGS += -DSOL_LOG_LEVEL_MAXIMUM=2
+
           Log level ordering is:
           critical < error < warning < info < debug.
 
           The default is to not limit log levels.
+
+          It's suggested to reduce it at least to warning level
+          when building final products using it, so some space
+          and eventually performance can be saved (debug information
+          should be required at this point).
+
+          It isn't suggested to limit log on distros, general purpose
+          distributions or development phases, since relevant
+          information will be hidden and sol-fbp-runner users may also
+          have a bad experience.
+
 
 config MAXIMUM_LOG_LEVEL_CRITICAL
 	bool "critical"
