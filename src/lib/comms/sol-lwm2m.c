@@ -2904,7 +2904,7 @@ handle_resource(struct sol_coap_server *server,
     uint8_t method;
     struct sol_coap_packet *resp;
     struct sol_lwm2m_client *client = data;
-    struct obj_ctx *obj_ctx;
+    struct obj_ctx *obj_ctx = NULL;
     struct obj_instance *obj_instance = NULL;
     uint16_t path[3], path_size = 0, content_format;
     uint8_t header_code;
