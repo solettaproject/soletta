@@ -39,10 +39,24 @@
 #include "sol-socket.h"
 #include "sol-str-slice.h"
 
+#define DTLS_PSK_ID_LEN 16
+#define DTLS_PSK_KEY_LEN 16
+
 enum sol_socket_dtls_cipher {
     SOL_SOCKET_DTLS_CIPHER_ECDH_ANON_AES128_CBC_SHA256,
     SOL_SOCKET_DTLS_CIPHER_PSK_AES128_CCM8,
     SOL_SOCKET_DTLS_CIPHER_ECDHE_ECDSA_AES128_CCM8
+};
+
+struct sol_socket_dtls_credential_cb {
+    const void *data;
+
+    void *(*init)(const void *data);
+    void (*clear)(void *creds);
+
+    ssize_t (*get_id)(const void *creds, char *id, size_t id_len);
+    ssize_t (*get_psk)(const void *creds, struct sol_str_slice id,
+        char *psk, size_t psk_len);
 };
 
 struct sol_socket *sol_socket_dtls_wrap_socket(struct sol_socket *socket);
@@ -56,3 +70,6 @@ int sol_socket_dtls_prf_keyblock(struct sol_socket *s,
     const struct sol_network_link_addr *addr, struct sol_str_slice label,
     struct sol_str_slice random1, struct sol_str_slice random2,
     struct sol_buffer *buffer);
+
+int sol_socket_dtls_set_credentials_callbacks(struct sol_socket *s,
+    const struct sol_socket_dtls_credential_cb *cb);
