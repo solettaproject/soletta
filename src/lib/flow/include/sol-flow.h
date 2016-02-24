@@ -107,7 +107,7 @@ struct sol_flow_node;
  * @param type The type of the node
  * @param options Options to individually parametrize the type
  *                instance (@see
- *                sol_flow_node_options_new_from_strv())
+ *                sol_flow_node_options_new())
  *
  * @return A new node instance on success, otherwise @c NULL
  */
