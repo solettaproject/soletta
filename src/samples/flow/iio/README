@@ -1,0 +1,31 @@
+This showcases the Intel boards using the IIO Node Sample
+
+http://www.seeedstudio.com/depot/Grove-starter-kit-plus-Intel-IoT-Edition-for-Intel-Galileo-Gen-2-and-Edison-p-1978.html
+http://www.intel.com/content/www/us/en/embedded/products/galileo/galileo-overview.html
+http://www.adiengineering.com/products/minnowboard-turbot/
+
+IIO Node Samples - Intel IoT Edition for Intel MinnowMax and Galileo Gen 2
+Developer Kit is a complete hardware & software solution to help you
+explore the IoT space and create innovative projects. It is a starter
+kit for Intel MinnowMax and Galileo Gen2 providing a collection of
+different sensor data.
+
+Since the components may be assembled on different hardware I/O, one
+need to declare its configuration file with the correct pins to use.
+For instance, say your board already has a configuration file or you have
+written your own, then run:
+
+$ ./accelerate.fbp
+
+Same for other files with associated sol-flow-intel-minnow-max-linux_gt_3_17.json.
+If you fail to do so, you may receive an error such as:
+
+$ ./accelerate.fbp
+./accelerate.fbp:37:1 Couldn't resolve type 'MyAccelerate' of node 'accel'
+
+This is because there is no MyAccelerate group in one
+configuration file supported by the system, you can define one using
+the environment variable.
+
+Alternatively you can define all your entries in a file called
+'sol-flow.json' and it will be looked up in the current folder.
