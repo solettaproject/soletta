@@ -147,7 +147,7 @@ enum tlv_length_size_type {
     LENGTH_SIZE_CHECK_NEXT_TWO_BITS = 0,
     LENGTH_SIZE_8_BITS = 8,
     LENGTH_SIZE_16_BITS = 16,
-    LENGTH_SIZE_24_BITS = 32
+    LENGTH_SIZE_24_BITS = 24
 };
 
 enum lwm2m_parser_args_state {
