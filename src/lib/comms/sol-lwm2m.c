@@ -1998,7 +1998,7 @@ sol_lwm2m_parse_tlv(const struct sol_str_slice content, struct sol_vector *out)
             offset += 3;
             break;
         case LENGTH_SIZE_16_BITS:
-            tlv_content.len |= (content.data[offset] << 8) |
+            tlv_content.len = (content.data[offset] << 8) |
                 content.data[offset + 1];
             offset += 2;
             break;
