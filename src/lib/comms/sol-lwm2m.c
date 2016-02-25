@@ -34,8 +34,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <ctype.h>
 
 #define SOL_LOG_DOMAIN &_lwm2m_domain
