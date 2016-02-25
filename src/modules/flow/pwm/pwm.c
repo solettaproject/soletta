@@ -89,6 +89,31 @@ pwm_process_duty_cycle(struct sol_flow_node *node, void *data, uint16_t port, ui
     return 0;
 }
 
+static int
+pwm_process_duty_cycle_percent(struct sol_flow_node *node, void *data, uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int32_t pct;
+    struct pwm_data *mdata = data;
+    int r = sol_flow_packet_get_irange_value(packet, &pct);
+    int32_t period;
+
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (pct < 0 || pct > 100) {
+        SOL_WRN("DUTY_CYCLE_PERCENT value must be in range [0, 100]; got %d instead.",
+            pct);
+        return -EINVAL;
+    }
+
+    period = sol_pwm_get_period(mdata->pwm);
+    SOL_INT_CHECK(period, < 0, period);
+
+    if (!sol_pwm_set_duty_cycle(mdata->pwm, (period * pct) / 100))
+        return -EIO;
+
+    return 0;
+}
+
 
 static int
 pwm_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)

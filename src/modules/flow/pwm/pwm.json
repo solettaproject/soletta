@@ -28,6 +28,14 @@
     "process": "pwm_process_duty_cycle"
    },
    "name": "DUTY_CYCLE"
+  },
+  {
+   "data_type": "int",
+   "description": "Duty cycle, in percentage (0 to 100)",
+   "methods": {
+    "process": "pwm_process_duty_cycle_percent"
+   },
+   "name": "DUTY_CYCLE_PERCENT"
   }
  ],
  "methods": {
