@@ -673,4 +673,17 @@ locale_apply_time_process(struct sol_flow_node *node, void *data, uint16_t port,
     return sol_platform_apply_locale(SOL_PLATFORM_LOCALE_TIME);
 }
 
+static int
+platform_target_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    const char *target;
+
+    r = sol_flow_packet_get_string(packet, &target);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return sol_platform_set_target(target);
+}
+
 #include "platform-gen.c"
