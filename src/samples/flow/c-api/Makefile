@@ -15,3 +15,7 @@ sample-lowlevel-$(FLOW_C_API_LOWLEVEL_SAMPLE)-deps := \
 
 sample-$(FLOW_C_API_SIMPLECTYPE_SAMPLE) += simplectype
 sample-simplectype-$(FLOW_C_API_SIMPLECTYPE_SAMPLE) := simplectype.c
+
+sample-$(FLOW_C_API_FIND_TYPE_SAMPLE) += find-type
+sample-find-type-$(FLOW_C_API_FIND_TYPE_SAMPLE) := find-type.c
+sample-find-type-$(FLOW_C_API_FIND_TYPE_SAMPLE)-extra-ldflags := -ldl
