@@ -3105,7 +3105,7 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
 err_coap:
     free(client->sms);
 err_sms:
-    free(client->splitted_path);
+    free(client->name);
 err_obj:
     SOL_VECTOR_FOREACH_IDX (&client->objects, obj_ctx, i) {
         free(obj_ctx->str_id);
