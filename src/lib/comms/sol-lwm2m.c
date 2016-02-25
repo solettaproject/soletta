@@ -2290,7 +2290,7 @@ setup_object_resource(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx)
 
     SOL_SET_API_VERSION(obj_ctx->obj_res->api_version = SOL_COAP_RESOURCE_API_VERSION; )
 
-    if (client->splitted_path_len) {
+    if (client->splitted_path) {
         uint16_t j;
         for (j = 0; j < client->splitted_path_len; j++)
             obj_ctx->obj_res->path[i++] = sol_str_slice_from_str(client->splitted_path[j]);
@@ -2334,7 +2334,7 @@ setup_resources_ctx(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
 
         SOL_SET_API_VERSION(res_ctx->res->api_version = SOL_COAP_RESOURCE_API_VERSION; )
 
-        if (client->splitted_path_len) {
+        if (client->splitted_path) {
             uint16_t k;
             for (k = 0; k < client->splitted_path_len; k++)
                 res_ctx->res->path[j++] = sol_str_slice_from_str(client->splitted_path[k]);
@@ -2390,7 +2390,7 @@ setup_instance_resource(struct sol_lwm2m_client *client,
 
     SOL_SET_API_VERSION(obj_instance->instance_res->api_version = SOL_COAP_RESOURCE_API_VERSION; )
 
-    if (client->splitted_path_len) {
+    if (client->splitted_path) {
         uint16_t j;
         for (j = 0; j < client->splitted_path_len; j++)
             obj_instance->instance_res->path[i++] =
