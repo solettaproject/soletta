@@ -208,9 +208,10 @@ sanitize_service_name(char buf[SOL_STATIC_ARRAY_SIZE(PATH_MAX)], const char *ser
 int
 sol_platform_impl_get_state(void)
 {
-    sd_bus *bus = sol_bus_get(_bus_initialized);
-
-    SOL_NULL_CHECK(bus, -ENOTCONN);
+    if (!_ctx.systemd) {
+        sd_bus *bus = sol_bus_get(_bus_initialized);
+        SOL_NULL_CHECK(bus, -ENOTCONN);
+    }
 
     return _ctx.properties.system_state;
 }
@@ -387,8 +388,12 @@ call_manager(const char *method, const char *_unit, const char *suffix,
     const char *unit, *service;
     int r;
 
-    bus = sol_bus_client_get_bus(_ctx.systemd);
-    SOL_NULL_CHECK(bus, -EINVAL);
+    if (!_ctx.systemd)
+        bus = sol_bus_get(_bus_initialized);
+    else
+        bus = sol_bus_client_get_bus(_ctx.systemd);
+
+    SOL_NULL_CHECK(bus, -ENOTCONN);
 
     service = sol_bus_client_get_service(_ctx.systemd);
     SOL_NULL_CHECK(service, -EINVAL);
