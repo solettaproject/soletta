@@ -497,6 +497,109 @@ sol_flow_node_type_get_port_out(const struct sol_flow_node_type *type, uint16_t 
     return type->get_port_out(type, port);
 }
 
+#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
+static inline uint16_t
+find_port_regular(const struct sol_flow_port_description *const *ports, const char *name)
+{
+    for (; *ports; ports++) {
+        const struct sol_flow_port_description *p = *ports;
+        if (p->array_size)
+            continue;
+        if (streq(p->name, name))
+            return p->base_port_idx;
+    }
+    return UINT16_MAX;
+}
+
+static inline uint16_t
+find_port_array(const struct sol_flow_port_description *const *ports, const char *name, size_t namelen, uint16_t idx)
+{
+    for (; *ports; ports++) {
+        const struct sol_flow_port_description *p = *ports;
+        if (!p->array_size)
+            continue;
+        /* name is "NAME[INDEX]" (full string), with namelen = strlen("NAME") */
+        if (streqn(p->name, name, namelen) && p->name[namelen] == '\0') {
+            if (idx >= p->array_size)
+                return UINT16_MAX;
+            return p->base_port_idx + idx;
+        }
+    }
+    return UINT16_MAX;
+}
+
+static uint16_t
+find_port(const struct sol_flow_port_description *const *ports, const char *name)
+{
+    const char *delim = strchr(name, '[');
+
+    if (!delim)
+        return find_port_regular(ports, name);
+    else {
+        size_t namelen = delim - name;
+        char *endptr = NULL;
+        unsigned long int idx;
+
+        if (namelen == 0)
+            return UINT16_MAX;
+
+        delim++;
+        errno = 0;
+        idx = strtoul(delim, &endptr, 10);
+        if (errno) {
+            SOL_DBG("failed to parse array port index: name='%s', error=%s",
+                name, sol_util_strerrora(errno));
+            return UINT16_MAX;
+        }
+        if (!endptr || endptr == delim) {
+            SOL_DBG("failed to parse array port index: name='%s', need an unsigned decimal number",
+                name);
+            return UINT16_MAX;
+        }
+        if (idx >= UINT16_MAX) {
+            SOL_DBG("failed to parse array port index: name='%s', number is too big to fit 16 bits",
+                name);
+            return UINT16_MAX;
+        }
+
+        while (*endptr != '\0' && isblank(*endptr))
+            endptr++;
+        if (*endptr != ']') {
+            SOL_DBG("failed to parse array port index: name='%s', missing terminating ']'",
+                name);
+            return UINT16_MAX;
+        }
+
+        return find_port_array(ports, name, namelen, idx);
+    }
+}
+
+SOL_API uint16_t
+sol_flow_node_find_port_in(const struct sol_flow_node_type *type, const char *name)
+{
+    SOL_NULL_CHECK(type, UINT16_MAX);
+    SOL_NULL_CHECK(type->description, UINT16_MAX);
+    SOL_NULL_CHECK(type->description->ports_in, UINT16_MAX);
+    SOL_NULL_CHECK(name, UINT16_MAX);
+
+    return find_port(type->description->ports_in, name);
+}
+
+SOL_API uint16_t
+sol_flow_node_find_port_out(const struct sol_flow_node_type *type, const char *name)
+{
+    SOL_NULL_CHECK(type, UINT16_MAX);
+    SOL_NULL_CHECK(type->description, UINT16_MAX);
+    SOL_NULL_CHECK(type->description->ports_out, UINT16_MAX);
+    SOL_NULL_CHECK(name, UINT16_MAX);
+
+    if (streq(name, SOL_FLOW_NODE_PORT_ERROR_NAME))
+        return SOL_FLOW_NODE_PORT_ERROR;
+
+    return find_port(type->description->ports_out, name);
+}
+#endif
+
 SOL_API void
 sol_flow_node_type_del(struct sol_flow_node_type *type)
 {

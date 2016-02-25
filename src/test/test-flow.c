@@ -1415,5 +1415,53 @@ need_a_valid_type_to_create_packets(void)
 #endif
 }
 
+DEFINE_TEST(test_find_port);
+
+static void
+test_find_port(void)
+{
+    const struct sol_flow_node_type *node_type;
+    uint16_t idx;
+
+    ASSERT(sol_flow_get_node_type("boolean", SOL_FLOW_NODE_TYPE_BOOLEAN_AND, &node_type) == 0);
+
+    idx = sol_flow_node_find_port_out(node_type, "OUT");
+    ASSERT_INT_EQ(idx, 0);
+
+    idx = sol_flow_node_find_port_out(node_type, "NON-EXISTENT");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+
+    idx = sol_flow_node_find_port_in(node_type, "IN");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+
+    idx = sol_flow_node_find_port_in(node_type, "OUT[0]");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+
+    idx = sol_flow_node_find_port_in(node_type, "IN[0]");
+    ASSERT_INT_EQ(idx, 0);
+    idx = sol_flow_node_find_port_in(node_type, "IN[ 0 ]");
+    ASSERT_INT_EQ(idx, 0);
+    idx = sol_flow_node_find_port_in(node_type, "IN[ 0");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[]");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[X");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[-123]");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[1234567]");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+
+    idx = sol_flow_node_find_port_in(node_type, "IN[1]");
+    ASSERT_INT_EQ(idx, 1);
+
+    idx = sol_flow_node_find_port_in(node_type, "IN[2]");
+    ASSERT_INT_EQ(idx, 2);
+
+    idx = sol_flow_node_find_port_in(node_type, "NON-EXISTENT");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+}
 
 TEST_MAIN_WITH_RESET_FUNC(clear_events);
