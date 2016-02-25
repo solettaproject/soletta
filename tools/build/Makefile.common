@@ -92,3 +92,8 @@ soletta_help:
 	$(Q)echo  "  olddefconfig    - Same as silentoldconfig but sets new symbols to their default value"
 
 PHONY += soletta_help
+
+thirdparty-update:
+	$(Q)$(GIT) submodule update --init
+
+PHONY += thirdparty-update
