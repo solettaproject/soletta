@@ -6,6 +6,9 @@ obj-core-y := \
     sol-platform.o \
     sol-types.o
 
+obj-core-extra-ldflags = \
+    -lm
+
 obj-$(POWER_SUPPLY) += \
     power-supply.mod
 
