@@ -932,6 +932,30 @@ const struct sol_flow_port_description *sol_flow_node_get_port_in_description(co
  * @return The port description for the given port
  */
 const struct sol_flow_port_description *sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, uint16_t port);
+
+/**
+ * @brief Find the input port index given its name.
+ *
+ * @param type The node type to get a port index from name
+ * @param name The port name. If an array port, one should use
+ *       "NAME[INDEX]" notation, such as "IN[0]". Names are case
+ *       sensitive.
+ *
+ * @return The port index or UINT16_MAX if not found.
+ */
+uint16_t sol_flow_node_find_port_in(const struct sol_flow_node_type *type, const char *name);
+
+/**
+ * @brief Find the output port index given its name.
+ *
+ * @param type The node type to get a port index from name
+ * @param name The port name. If an array port, one should use
+ *       "NAME[INDEX]" notation, such as "OUT[0]". Names are case
+ *       sensitive.
+ *
+ * @return The port index or UINT16_MAX if not found.
+ */
+uint16_t sol_flow_node_find_port_out(const struct sol_flow_node_type *type, const char *name);
 #endif
 
 /**
