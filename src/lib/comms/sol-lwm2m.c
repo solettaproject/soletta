@@ -2612,6 +2612,7 @@ handle_write(struct sol_lwm2m_client *client,
             return SOL_COAP_RSPCODE_BAD_REQUEST;
         }
 
+        SOL_SET_API_VERSION(res.api_version = SOL_LWM2M_RESOURCE_API_VERSION; )
         r = sol_lwm2m_resource_init(&res, resource, 1,
             content_format == SOL_LWM2M_CONTENT_TYPE_TEXT ?
             SOL_LWM2M_RESOURCE_DATA_TYPE_STRING :
