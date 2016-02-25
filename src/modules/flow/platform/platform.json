@@ -36,6 +36,22 @@
       "url": "http://solettaproject.org/doc/latest/node_types/platform.html"
     },
     {
+      "category": "input/sw",
+      "description": "Node used to set the platform target",
+      "in_ports": [
+        {
+          "data_type": "string",
+          "description": "The new platform target to set which must be one of: default, rescue, emergency, poweroff, reboot or suspend.",
+          "methods": {
+            "process": "platform_target_process"
+          },
+          "name": "TARGET"
+        }
+      ],
+      "name": "platform/set-target",
+      "url": "http://solettaproject.org/doc/latest/node_types/platform.html"
+    },
+    {
       "category": "hostname",
       "description": "This node can be used to set the machine's host name, get the current hostname or monitor for hostname changes",
       "in_ports": [
