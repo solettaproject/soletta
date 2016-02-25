@@ -33,6 +33,16 @@
           "name": "OUT"
         }
       ],
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Enables or disables the wallclock, based on the value of the packet received. When stopped, the wallclock will cease to emit packets from the OUT port.",
+          "name": "ENABLED",
+          "methods": {
+            "process": "wallclock_enabled_process"
+          }
+        }
+      ],
       "private_data_type": "wallclock_data",
       "url": "http://solettaproject.org/doc/latest/node_types/wallclock_hour.html"
     },
@@ -60,6 +70,16 @@
           "data_type": "int",
           "description": "An int range packet when wallclock minute ticks.",
           "name": "OUT"
+        }
+      ],
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Enables or disables the wallclock, based on the value of the packet received. When stopped, the wallclock will cease to emit packets from the OUT port.",
+          "name": "ENABLED",
+          "methods": {
+            "process": "wallclock_enabled_process"
+          }
         }
       ],
       "private_data_type": "wallclock_data",
@@ -91,6 +111,16 @@
           "name": "OUT"
         }
       ],
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Enables or disables the wallclock, based on the value of the packet received. When stopped, the wallclock will cease to emit packets from the OUT port.",
+          "name": "ENABLED",
+          "methods": {
+            "process": "wallclock_enabled_process"
+          }
+        }
+      ],
       "private_data_type": "wallclock_data",
       "url": "http://solettaproject.org/doc/latest/node_types/wallclock_month.html"
     },
@@ -118,6 +148,16 @@
           "data_type": "int",
           "description": "An int range packet when wallclock month day ticks.",
           "name": "OUT"
+        }
+      ],
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Enables or disables the wallclock, based on the value of the packet received. When stopped, the wallclock will cease to emit packets from the OUT port.",
+          "name": "ENABLED",
+          "methods": {
+            "process": "wallclock_enabled_process"
+          }
         }
       ],
       "private_data_type": "wallclock_data",
@@ -149,6 +189,16 @@
           "name": "OUT"
         }
       ],
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Enables or disables the wallclock, based on the value of the packet received. When stopped, the wallclock will cease to emit packets from the OUT port.",
+          "name": "ENABLED",
+          "methods": {
+            "process": "wallclock_enabled_process"
+          }
+        }
+      ],
       "private_data_type": "wallclock_data",
       "url": "http://solettaproject.org/doc/latest/node_types/wallclock_second.html"
     },
@@ -176,6 +226,16 @@
           "data_type": "int",
           "description": "An int range packet when wallclock week day ticks.",
           "name": "OUT"
+        }
+      ],
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Enables or disables the wallclock, based on the value of the packet received. When stopped, the wallclock will cease to emit packets from the OUT port.",
+          "name": "ENABLED",
+          "methods": {
+            "process": "wallclock_enabled_process"
+          }
         }
       ],
       "private_data_type": "wallclock_data",
@@ -212,6 +272,16 @@
           "name": "OUT"
         }
       ],
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Enables or disables the wallclock, based on the value of the packet received. When stopped, the wallclock will cease to emit packets from the OUT port.",
+          "name": "ENABLED",
+          "methods": {
+            "process": "wallclock_timeblock_enabled_process"
+          }
+        }
+      ],
       "private_data_type": "wallclock_timeblock_data",
       "url": "http://solettaproject.org/doc/latest/node_types/wallclock_timeblock.html"
     },
@@ -239,6 +309,16 @@
           "data_type": "int",
           "description": "An int range packet when wallclock year ticks.",
           "name": "OUT"
+        }
+      ],
+      "in_ports": [
+        {
+          "data_type": "boolean",
+          "description": "Enables or disables the wallclock, based on the value of the packet received. When stopped, the wallclock will cease to emit packets from the OUT port.",
+          "name": "ENABLED",
+          "methods": {
+            "process": "wallclock_enabled_process"
+          }
         }
       ],
       "private_data_type": "wallclock_data",
