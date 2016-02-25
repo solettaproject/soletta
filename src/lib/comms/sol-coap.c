@@ -794,6 +794,7 @@ sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap
     struct resource_context *c;
     struct sol_coap_packet *pkt;
     uint16_t id;
+    int r;
 
     SOL_NULL_CHECK(resource, NULL);
     COAP_RESOURCE_CHECK_API(NULL);
@@ -810,9 +811,14 @@ sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap
     SOL_NULL_CHECK(pkt, NULL);
 
     sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
-    sol_coap_add_option(pkt, SOL_COAP_OPTION_OBSERVE, &id, sizeof(id));
+    r = sol_coap_add_option(pkt, SOL_COAP_OPTION_OBSERVE, &id, sizeof(id));
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     return pkt;
+
+err_exit:
+    sol_coap_packet_unref(pkt);
+    return NULL;
 }
 
 SOL_API int
