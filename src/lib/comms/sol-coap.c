@@ -1475,21 +1475,27 @@ network_event(void *data, const struct sol_network_link *link, enum sol_network_
 }
 
 static struct sol_coap_server *
-sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
+sol_coap_server_new_full(enum sol_socket_type type, struct sol_network_link_addr servaddr)
 {
-    struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
-                                              .port = port };
     const struct sol_vector *links;
     struct sol_network_link *link;
     struct sol_coap_server *server;
     struct sol_socket *s;
     uint16_t i;
+    int on = 1;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     s = sol_socket_new(servaddr.family, type, 0);
     if (!s) {
         SOL_WRN("Could not create socket (%d): %s", errno, sol_util_strerrora(errno));
+        return NULL;
+    }
+
+    if (sol_socket_setsockopt(s, SOL_SOCKET_LEVEL_SOCKET,
+        SOL_SOCKET_OPTION_REUSEADDR, &on, sizeof(on)) < 0) {
+        SOL_WRN("Could not set socket's option: %s", sol_util_strerrora(errno));
+        sol_socket_del(s);
         return NULL;
     }
 
@@ -1520,7 +1526,7 @@ sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
     }
 
     /* If type is SOL_SOCKET_DTLS, then it's only a unicast server. */
-    if (type == SOL_SOCKET_UDP && port) {
+    if (type == SOL_SOCKET_UDP && servaddr.port) {
         /* From man 7 ip:
          *
          *   imr_address is the address of the local interface with which the
@@ -1550,23 +1556,23 @@ sol_coap_server_new_full(enum sol_socket_type type, uint16_t port)
 
     sol_network_subscribe_events(network_event, server);
 
-    SOL_DBG("New server %p on port %d%s", server, port,
+    SOL_DBG("New server %p on port %d%s", server, servaddr.port,
         type == SOL_SOCKET_UDP ? "" : " (secure)");
 
     return server;
 }
 
 SOL_API struct sol_coap_server *
-sol_coap_server_new(uint16_t port)
+sol_coap_server_new(struct sol_network_link_addr addr)
 {
-    return sol_coap_server_new_full(SOL_SOCKET_UDP, port);
+    return sol_coap_server_new_full(SOL_SOCKET_UDP, addr);
 }
 
 SOL_API struct sol_coap_server *
-sol_coap_secure_server_new(uint16_t port)
+sol_coap_secure_server_new(struct sol_network_link_addr addr)
 {
 #ifdef DTLS
-    return sol_coap_server_new_full(SOL_SOCKET_DTLS, port);
+    return sol_coap_server_new_full(SOL_SOCKET_DTLS, addr);
 #else
     errno = ENOSYS;
     return NULL;

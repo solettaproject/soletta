@@ -201,6 +201,24 @@ sol_socket_dtls_del(struct sol_socket *socket)
 }
 
 static int
+sol_socket_dtls_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, const void *optval, size_t optlen)
+{
+    struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
+
+    return sol_socket_setsockopt(s->wrapped, level, optname, optval, optlen);
+}
+
+static int
+sol_socket_dtls_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, void *optval, size_t *optlen)
+{
+    struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
+
+    return sol_socket_getsockopt(s->wrapped, level, optname, optval, optlen);
+}
+
+static int
 remove_item_from_vector(struct sol_vector *vec, struct queue_item *item,
     int retval)
 {
@@ -792,6 +810,8 @@ sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap)
         .set_on_read = sol_socket_dtls_set_on_read,
         .del = sol_socket_dtls_del,
         .new = NULL,
+        .setsockopt = sol_socket_dtls_setsockopt,
+        .getsockopt = sol_socket_dtls_getsockopt
     };
     static const dtls_handler_t dtls_handler = {
         .write = write_encrypted,

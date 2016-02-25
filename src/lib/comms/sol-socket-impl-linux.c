@@ -447,6 +447,71 @@ sol_socket_linux_bind(struct sol_socket *socket, const struct sol_network_link_a
     return 0;
 }
 
+static int
+sol_socket_option_to_linux(enum sol_socket_option option)
+{
+    switch (option) {
+    case SOL_SOCKET_OPTION_REUSEADDR:
+        return SO_REUSEADDR;
+    case SOL_SOCKET_OPTION_REUSEPORT:
+        return SO_REUSEPORT;
+    default:
+        SOL_WRN("Invalid option %d", option);
+        break;
+    }
+
+    return -1;
+}
+
+static int
+sol_socket_level_to_linux(enum sol_socket_level level)
+{
+    switch (level) {
+    case SOL_SOCKET_LEVEL_SOCKET:
+        return SOL_SOCKET;
+    case SOL_SOCKET_LEVEL_IP:
+        return IPPROTO_IP;
+    case SOL_SOCKET_LEVEL_IPV6:
+        return IPPROTO_IPV6;
+    default:
+        SOL_WRN("Invalid level %d", level);
+        break;
+    }
+
+    return -1;
+}
+
+static int
+sol_socket_linux_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, const void *optval, size_t optlen)
+{
+    int l, option;
+    struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
+
+    l = sol_socket_level_to_linux(level);
+    option = sol_socket_option_to_linux(optname);
+
+    return setsockopt(s->fd, l, option, optval, optlen);
+}
+
+static int
+sol_socket_linux_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, void *optval, size_t *optlen)
+{
+    int ret, l, option;
+    socklen_t len;
+    struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
+
+    option = sol_socket_option_to_linux(optname);
+    l = sol_socket_level_to_linux(level);
+
+    ret = getsockopt(s->fd, l, option, optval, &len);
+    SOL_INT_CHECK(ret, < 0, ret);
+
+    *optlen = len;
+    return 0;
+}
+
 const struct sol_socket_impl *
 sol_socket_linux_get_impl(void)
 {
@@ -458,7 +523,9 @@ sol_socket_linux_get_impl(void)
         .set_on_write = sol_socket_linux_set_on_write,
         .set_on_read = sol_socket_linux_set_on_read,
         .del = sol_socket_linux_del,
-        .new = sol_socket_linux_new
+        .new = sol_socket_linux_new,
+        .setsockopt = sol_socket_linux_setsockopt,
+        .getsockopt = sol_socket_linux_getsockopt
     };
 
     return &impl;
