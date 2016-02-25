@@ -60,6 +60,7 @@ soletta_help:
 	$(Q)echo  "  distclean          - Removes configurations and built objects (.o, .so etc)"
 	$(Q)echo  "  clean              - Removes built objects (.o, .so etc) but preserves configuration files"
 	$(Q)echo  "  install            - Install soletta to {DESTDIR}/{PREFIX} - see VARIABLES section"
+	$(Q)echo  "  thirdparty-update  - Initialize and update thirdparty submodules."
 	$(Q)echo  "  check              - Runs test suite"
 	$(Q)echo  "  check-valgrind     - Runs test suite - with valgrind"
 	$(Q)echo  "  check-fbp          - Runs fbp (Flow Based Programming) tests"
@@ -92,3 +93,8 @@ soletta_help:
 	$(Q)echo  "  olddefconfig    - Same as silentoldconfig but sets new symbols to their default value"
 
 PHONY += soletta_help
+
+thirdparty-update:
+	$(Q)$(GIT) submodule update --init
+
+PHONY += thirdparty-update
