@@ -147,6 +147,12 @@ or by applications if they define that in some way. Then messages
 above that number will be compiled out and using `$SOL_LOG_LEVEL` or
 `$SOL_LOG_LEVELS` for those numbers won't have effect.
 
+On systems where setting environment variables is not an option, both
+`$SOL_LOG_LEVEL` and `$SOL_LOG_LEVELS` may be defined at build time by
+adding them to the application's `CFLAGS`.
+
+    CFLAGS += -DSOL_LOG_LEVEL=\"CRIT\"
+    CFLAGS += -DSOL_LOG_LEVELS=\"domain1:level1,domain2:level2,...\"
 
 ## Libraries
 

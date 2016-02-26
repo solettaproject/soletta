@@ -45,7 +45,8 @@ extern const void *_print_function_data;
 
 int sol_log_impl_init(void);
 void sol_log_impl_shutdown(void);
-void sol_log_impl_domain_init_level(struct sol_log_domain *domain);
 bool sol_log_impl_lock(void);
 void sol_log_impl_unlock(void);
+bool sol_log_level_parse(const char *str, size_t size, uint8_t *storage);
+bool sol_log_levels_parse(const char *str, size_t size);
 void sol_log_impl_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args);
