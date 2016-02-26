@@ -111,6 +111,7 @@ requires-private-$(PLATFORM_SYSTEMD) += \
 
 
 headers-y := \
+    include/soletta.h \
     include/sol-log.h \
     include/sol-macros.h \
     include/sol-mainloop.h \

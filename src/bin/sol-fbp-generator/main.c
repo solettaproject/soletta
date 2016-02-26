@@ -1608,7 +1608,7 @@ generate(struct sol_vector *fbp_data_vector)
         "#include \"sol-flow-static.h\"\n");
 
     if (!args.export_symbol) {
-        out("#include \"sol-mainloop.h\"\n");
+        out("#include \"soletta.h\"\n");
     }
 
     if (sol_conffile_resolve_memmap_path(&memory_maps, args.conf_file) < 0) {

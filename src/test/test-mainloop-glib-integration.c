@@ -37,6 +37,7 @@
 
 #include "sol-glib-integration.h"
 #include "sol-platform-linux.h"
+#include "soletta.h"
 
 #include "test.h"
 

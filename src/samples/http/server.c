@@ -44,7 +44,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "sol-mainloop.h"
+#include "soletta.h"
 #include "sol-http.h"
 #include "sol-http-server.h"
 

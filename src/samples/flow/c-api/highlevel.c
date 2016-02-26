@@ -36,9 +36,9 @@
  * disregard log_init */
 #include "sol-macros.h"
 
+#include "soletta.h"
 #include "sol-flow-builder.h"
 #include "custom-node-types-gen.h"
-#include "sol-mainloop.h"
 
 /**
  * @file highlevel.c

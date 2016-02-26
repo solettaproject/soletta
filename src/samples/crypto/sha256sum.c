@@ -46,10 +46,10 @@
 #include <errno.h>
 #include <getopt.h>
 
+#include "soletta.h"
 #include "sol-buffer.h"
 #include "sol-file-reader.h"
 #include "sol-str-table.h"
-#include "sol-mainloop.h"
 #include "sol-message-digest.h"
 #include "sol-util.h"
 
