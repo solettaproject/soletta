@@ -359,13 +359,55 @@ extern struct sol_log_domain *sol_log_global_domain;
  *
  * @see sol_log_set_level()
  */
+
+/**
+ * @def SOL_LOG_LEVEL_INIT()
+ *
+ * @brief Sets the global log level based on the SOL_LOG_LEVEL macro.
+ *
+ * Not to be used directly. Applications using #SOL_MAIN_DEFAULT can be built
+ * passing -DSOL_LOG_LEVEL=\"level\" on @c CFLAGS, in which case this macro
+ * will initialize the global log level to the value the macro is defined to.
+ */
+
+/**
+ * @def SOL_LOG_LEVELS_INIT()
+ *
+ * @brief Sets the log level of the given log domains.
+ *
+ * Not to be used directly. Applications using #SOL_MAIN_DEFAULT can be built
+ * passing -DSOL_LOG_LEVELS=\"domain:level,...\" on @c CFLAGS, in which case
+ * this macro will initialize each domain's log level to the values specified
+ * in the macro.
+ */
 #ifdef SOL_LOG_ENABLED
 void sol_log_domain_init_level(struct sol_log_domain *domain);
+void sol_log_init_level_global(const char *str, size_t length);
+void sol_log_init_levels(const char *str, size_t length);
+
+#ifdef SOL_LOG_LEVEL
+#define SOL_LOG_LEVEL_INIT() \
+    sol_log_init_level_global(SOL_LOG_LEVEL, sizeof(SOL_LOG_LEVEL) - 1)
+#else
+#define SOL_LOG_LEVEL_INIT()
+#endif
+
+#ifdef SOL_LOG_LEVELS
+#define SOL_LOG_LEVELS_INIT() \
+    sol_log_init_levels(SOL_LOG_LEVELS, sizeof(SOL_LOG_LEVELS) - 1)
+#else
+#define SOL_LOG_LEVELS_INIT()
+#endif
+
 #else
 static inline void
 sol_log_domain_init_level(struct sol_log_domain *domain)
 {
 }
+
+#define SOL_LOG_LEVEL_INIT()
+#define SOL_LOG_LEVELS_INIT()
+
 #endif
 
 #ifndef SOL_LOG_DOMAIN
