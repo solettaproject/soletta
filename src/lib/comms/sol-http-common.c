@@ -406,6 +406,12 @@ err_exit:
     return r;
 }
 
+static bool
+is_host_ipv6(const struct sol_str_slice host)
+{
+    return memchr(host.data, ':', host.len) != NULL;
+}
+
 SOL_API int
 sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url,
     const struct sol_http_params *params)
@@ -459,7 +465,11 @@ sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url,
             SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
 
-        r = sol_buffer_append_slice(buf, url.host);
+        if (is_host_ipv6(url.host) && url.host.data[0] != '[') {
+            r = sol_buffer_append_printf(buf, "[%.*s]",
+                SOL_STR_SLICE_PRINT(url.host));
+        } else
+            r = sol_buffer_append_slice(buf, url.host);
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
         if (url.port > 0) {
