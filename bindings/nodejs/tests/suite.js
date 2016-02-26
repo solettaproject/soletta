@@ -1,5 +1,4 @@
 var QUnit,
-	ldPreload = process.argv[ 2 ],
 	async = require( "async" ),
 	glob = require( "glob" ),
 	_ = require( "lodash" ),
@@ -7,6 +6,11 @@ var QUnit,
 	fs = require( "fs" ),
 	path = require( "path" ),
 	uuid = require( "uuid" ),
+	suiteOptions = _.extend( {
+
+		// Default options
+		prefix: "tests",
+	}, require( "yargs" ).argv ),
 	runningProcesses = [],
 	getQUnit = function() {
 		if ( !QUnit ) {
@@ -14,10 +18,6 @@ var QUnit,
 		}
 		return QUnit;
 	};
-
-	if ( ldPreload !== undefined ) {
-		process.argv.shift();
-	}
 
 function havePromises() {
 	var nodeVersion = _.map(
@@ -38,7 +38,8 @@ function spawnOne( assert, options ) {
 		[ "--expose_gc", options.path ].concat( options.uuid ? [ options.uuid ] : [] ),
 		{
 			stdio: [ process.stdin, "pipe", process.stderr ],
-			env: _.extend( {}, process.env, ldPreload ? { LD_PRELOAD: ldPreload } : {} )
+			env: _.extend( {}, process.env,
+				suiteOptions.ldPreload ? { LD_PRELOAD: suiteOptions.ldPreload } : {} )
 		} );
 
 	theChild.commandLine = "node" + " " + options.path + " " + options.uuid;
@@ -235,11 +236,12 @@ function runTestSuites( files ) {
 
 // Run tests. If no tests were specified on the command line, we scan the tests directory and run
 // all the tests we find therein.
-runTestSuites( ( ( process.argv.length > 2 ) ?
-	( _.map( process.argv[ 2 ].split( "," ), function( item ) {
-		return path.join( __dirname, "tests", item );
+runTestSuites( ( suiteOptions.testList ?
+	( _.map( suiteOptions.testList.split( "," ), function( item ) {
+		return path.join( __dirname, suiteOptions.prefix, item );
 	} ) ) :
-	( glob.sync( path.join( __dirname, "tests", ( havePromises() ? "" : "!(API)" ) + "*" ) ) ) ) );
+	( glob.sync( path.join( __dirname, suiteOptions.prefix,
+		( havePromises() ? "" : "!(API)" ) + "*" ) ) ) ) );
 
 process.on( "exit", function() {
 	var childIndex;
