@@ -52,9 +52,6 @@
 
 static const uint32_t dtls_magic = 'D' << 24 | 't' << 16 | 'L' << 8 | 's';
 
-static bool encrypt_payload(void *data, struct sol_socket *wrapped);
-
-
 struct queue_item {
     struct sol_buffer buffer;
     struct sol_network_link_addr addr;
@@ -86,6 +83,8 @@ struct creds {
     struct sol_vector items;
     char *id;
 };
+
+static bool encrypt_payload(struct sol_socket_dtls *socket);
 
 static int
 from_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen,
@@ -301,7 +300,7 @@ sol_socket_dtls_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
     sol_buffer_init_flags(&item->buffer, buf_copy, len, SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
     item->buffer.used = len;
 
-    encrypt_payload(s, s->wrapped);
+    encrypt_payload(s);
 
     return (int)len;
 }
@@ -410,9 +409,8 @@ no_item:
  * encrypting the payload, it calls sol_socket_sendmsg() to finally pass it
  * to the wire.  */
 static bool
-encrypt_payload(void *data, struct sol_socket *wrapped)
+encrypt_payload(struct sol_socket_dtls *socket)
 {
-    struct sol_socket_dtls *socket = data;
     struct queue_item *item;
     session_t session;
     int r;
@@ -483,7 +481,7 @@ call_user_write_cb(void *data, struct sol_socket *wrapped)
         SOL_DBG("User func@%p returned success, encrypting payload",
             socket->write.cb);
 
-        if (encrypt_payload(data, wrapped)) {
+        if (encrypt_payload(data)) {
             SOL_DBG("Data encrypted, should have been passed to the "
                 "wrapped socket");
             return true;
