@@ -35,10 +35,9 @@
 #include <string.h>
 #include <errno.h>
 
+#include "soletta.h"
 #include "sol-flow-builder.h"
 #include "sol-flow-simplectype.h"
-#include "sol-log.h"
-#include "sol-mainloop.h"
 
 /**
  * @file simplectype.c

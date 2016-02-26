@@ -48,7 +48,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "sol-mainloop.h"
+#include "soletta.h"
 #include "sol-platform.h"
 #include "sol-gpio.h"
 #include "sol-util.h"

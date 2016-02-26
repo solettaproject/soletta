@@ -48,10 +48,9 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "sol-mainloop.h"
+#include "soletta.h"
 #include "sol-network.h"
 #include "sol-vector.h"
-#include "sol-log.h"
 
 static regex_t regex;
 

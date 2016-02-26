@@ -44,10 +44,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "sol-mainloop.h"
+#include "soletta.h"
 #include "sol-http.h"
 #include "sol-http-client.h"
-#include "sol-log.h"
 
 static bool verbose = false;
 
