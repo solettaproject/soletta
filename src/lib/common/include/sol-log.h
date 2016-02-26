@@ -361,11 +361,32 @@ extern struct sol_log_domain *sol_log_global_domain;
  */
 #ifdef SOL_LOG_ENABLED
 void sol_log_domain_init_level(struct sol_log_domain *domain);
+void sol_log_init_level_global(const char *str, size_t length);
+void sol_log_init_levels(const char *str, size_t length);
+
+#ifdef SOL_LOG_LEVEL
+#define SOL_LOG_LEVEL_INIT() \
+    sol_log_init_level_global(SOL_LOG_LEVEL, sizeof(SOL_LOG_LEVEL) - 1)
+#else
+#define SOL_LOG_LEVEL_INIT()
+#endif
+
+#ifdef SOL_LOG_LEVELS
+#define SOL_LOG_LEVELS_INIT() \
+    sol_log_init_levels(SOL_LOG_LEVELS, sizeof(SOL_LOG_LEVELS) - 1)
+#else
+#define SOL_LOG_LEVELS_INIT()
+#endif
+
 #else
 static inline void
 sol_log_domain_init_level(struct sol_log_domain *domain)
 {
 }
+
+#define SOL_LOG_LEVEL_INIT()
+#define SOL_LOG_LEVELS_INIT()
+
 #endif
 
 #ifndef SOL_LOG_DOMAIN
