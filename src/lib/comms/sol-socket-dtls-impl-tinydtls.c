@@ -52,9 +52,6 @@
 
 static const uint32_t dtls_magic = 'D' << 24 | 't' << 16 | 'L' << 8 | 's';
 
-static bool encrypt_payload(void *data, struct sol_socket *wrapped);
-
-
 struct queue_item {
     struct sol_buffer buffer;
     struct sol_network_link_addr addr;
@@ -86,6 +83,8 @@ struct creds {
     struct sol_vector items;
     char *id;
 };
+
+static bool encrypt_payload(struct sol_socket_dtls *s);
 
 static int
 from_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen,
@@ -301,7 +300,7 @@ sol_socket_dtls_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
     sol_buffer_init_flags(&item->buffer, buf_copy, len, SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
     item->buffer.used = len;
 
-    encrypt_payload(s, s->wrapped);
+    encrypt_payload(s);
 
     return (int)len;
 }
@@ -410,14 +409,13 @@ no_item:
  * encrypting the payload, it calls sol_socket_sendmsg() to finally pass it
  * to the wire.  */
 static bool
-encrypt_payload(void *data, struct sol_socket *wrapped)
+encrypt_payload(struct sol_socket_dtls *s)
 {
-    struct sol_socket_dtls *socket = data;
     struct queue_item *item;
     session_t session;
     int r;
 
-    item = sol_vector_get(&socket->write.queue, 0);
+    item = sol_vector_get(&s->write.queue, 0);
     if (!item) {
         SOL_WRN("Write transmission queue empty");
         return false;
@@ -428,7 +426,7 @@ encrypt_payload(void *data, struct sol_socket *wrapped)
         return false;
     }
 
-    r = dtls_write(socket->context, &session, item->buffer.data, item->buffer.used);
+    r = dtls_write(s->context, &session, item->buffer.data, item->buffer.used);
     if (r == 0) {
         SOL_DBG("Peer state is not connected, keeping buffer in memory to try again");
         return true;
@@ -446,7 +444,7 @@ encrypt_payload(void *data, struct sol_socket *wrapped)
     sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
     sol_buffer_fini(&item->buffer);
     sol_util_secure_clear_memory(item, sizeof(*item));
-    sol_vector_del(&socket->write.queue, 0);
+    sol_vector_del(&s->write.queue, 0);
 
     return true;
 }
@@ -483,7 +481,7 @@ call_user_write_cb(void *data, struct sol_socket *wrapped)
         SOL_DBG("User func@%p returned success, encrypting payload",
             socket->write.cb);
 
-        if (encrypt_payload(data, wrapped)) {
+        if (encrypt_payload(data)) {
             SOL_DBG("Data encrypted, should have been passed to the "
                 "wrapped socket");
             return true;
