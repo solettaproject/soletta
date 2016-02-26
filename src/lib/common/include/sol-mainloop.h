@@ -39,6 +39,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <sol-log.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1100,6 +1102,8 @@ struct sol_main_callbacks {
     AUTOSTART_PROCESSES(&soletta_app_process);            \
     PROCESS_THREAD(soletta_app_process, ev, data)         \
     {                                                     \
+        SOL_LOG_LEVEL_INIT();                             \
+        SOL_LOG_LEVELS_INIT();                            \
         sol_mainloop_contiki_event_set(ev, data);         \
         PROCESS_BEGIN();                                  \
         if (sol_init() < 0)                               \
@@ -1116,6 +1120,8 @@ struct sol_main_callbacks {
 #ifdef SOL_PLATFORM_RIOT
 #define SOL_MAIN(CALLBACKS) \
     int main(void) { \
+        SOL_LOG_LEVEL_INIT(); \
+        SOL_LOG_LEVELS_INIT(); \
         return sol_mainloop_default_main(&(CALLBACKS), 0, NULL); \
     }
 #elif defined SOL_PLATFORM_ZEPHYR
@@ -1128,11 +1134,15 @@ struct sol_main_callbacks {
 
 #define SOL_MAIN(CALLBACKS) \
     void main_task(void) { \
+        SOL_LOG_LEVEL_INIT(); \
+        SOL_LOG_LEVELS_INIT(); \
         sol_mainloop_default_main(&(CALLBACKS), 0, NULL); \
     }
 #else
 #define SOL_MAIN(CALLBACKS)                                          \
     int main(int argc, char *argv[]) {                              \
+        SOL_LOG_LEVEL_INIT(); \
+        SOL_LOG_LEVELS_INIT(); \
         return sol_mainloop_default_main(&(CALLBACKS), argc, argv);  \
     }
 #endif /* SOL_PLATFORM_RIOT */
