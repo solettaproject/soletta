@@ -627,7 +627,7 @@ _get_authority(const struct sol_str_slice partial_uri,
     struct sol_str_slice auth, port_slice = SOL_STR_SLICE_EMPTY;
     const char *itr, *itr_end, *port_start;
     size_t discarted = 2;
-    bool parsing_ipv6;
+    bool parsing_ipv6, parsed_ipv6;
 
     if (!partial_uri.len) {
         SOL_WRN("Empty authority. URI: %.*s", SOL_STR_SLICE_PRINT(full_uri));
@@ -645,15 +645,18 @@ _get_authority(const struct sol_str_slice partial_uri,
     auth.len -= 2;
     itr_end = auth.data + auth.len;
     port_start = NULL;
-    parsing_ipv6 = false;
+    parsing_ipv6 = parsed_ipv6 = false;
 
     for (itr = auth.data, host->data = auth.data; itr < itr_end; itr++) {
         if (*itr == '[') {
-            host->data = itr;
+            host->data = itr + 1;
             parsing_ipv6 = true;
+            discarted++;
         } else if (*itr == ']') {
             parsing_ipv6 = false;
+            parsed_ipv6 = true;
             host->len = itr - host->data;
+            discarted++;
         } else if (*itr == '@') {
             *user = *host;
             if (!user->len && port_slice.data != port_start)
@@ -664,11 +667,13 @@ _get_authority(const struct sol_str_slice partial_uri,
             host->len = 0;
             port_slice.data = "";
             port_slice.len = 0;
+            port_start = NULL;
             discarted++;
         } else if (*itr == ':' && !parsing_ipv6) {
-            if (host->len > 0)
+            if (host->len > 0 && !parsed_ipv6)
                 return -EINVAL;
-            host->len = itr - host->data;
+            if (!host->len)
+                host->len = itr - host->data;
             port_start = itr + 1;
             port_slice.data = port_start;
             discarted++;
@@ -683,7 +688,7 @@ _get_authority(const struct sol_str_slice partial_uri,
 
     if (!host->len)
         host->len = itr - host->data;
-    else if (!port_slice.len) {
+    else if (!port_slice.len && port_start) {
         port_slice.len = itr - port_slice.data;
         if (port_slice.len) {
             char *endptr;
