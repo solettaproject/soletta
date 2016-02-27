@@ -232,14 +232,25 @@ sol_flow_send_packet(struct sol_flow_node *src, uint16_t src_port, struct sol_fl
 {
     struct sol_flow_node *parent;
     struct sol_flow_node_container_type *parent_type;
-    int ret;
+    int ret = 0;
 
     SOL_FLOW_NODE_CHECK_GOTO(src, err);
     parent = src->parent;
 
     if (!parent) {
+        if (src->type->flags & SOL_FLOW_NODE_TYPE_FLAGS_CONTAINER) {
+            struct sol_flow_node_container_type *container_type;
+
+            container_type = (struct sol_flow_node_container_type *)src->type;
+            if (container_type->process) {
+                ret = container_type->process(src, src_port, packet);
+                if (ret == 0)
+                    return 0;
+            }
+        }
+        SOL_DBG("no parent to deliver packet %p, drop it.", packet);
         sol_flow_packet_del(packet);
-        return 0;
+        return ret;
     }
 
     inspector_will_send_packet(src, src_port, packet);
