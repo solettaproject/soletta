@@ -4,6 +4,7 @@ obj-flow-$(FLOW_SUPPORT) := \
     sol-flow-node-options.o \
     sol-flow-packet.o \
     sol-flow-simplectype.o \
+    sol-flow-single.o \
     sol-flow-static.o \
     sol-flow.o
 
@@ -37,5 +38,6 @@ headers-$(FLOW_SUPPORT) := \
     include/sol-flow-parser.h \
     include/sol-flow-resolver.h \
     include/sol-flow-simplectype.h \
+    include/sol-flow-single.h \
     include/sol-flow-static.h \
     sol-flow-buildopts.h.in
