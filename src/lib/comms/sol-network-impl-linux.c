@@ -401,6 +401,8 @@ void sol_network_shutdown(void);
 int
 sol_network_init(void)
 {
+    static struct sol_network _network = {};
+
     SOL_LOG_INTERNAL_INIT_ONCE;
 
     if (network != NULL) {
@@ -408,7 +410,7 @@ sol_network_init(void)
         return 0;
     }
 
-    network = calloc(1, sizeof(*network));
+    network = &_network;
     SOL_NULL_CHECK(network, -ENOMEM);
 
     network->nl_socket = -1;
@@ -460,7 +462,6 @@ sol_network_shutdown(void)
     sol_ptr_vector_clear(&network->hostname_handles);
     sol_vector_clear(&network->links);
     sol_vector_clear(&network->callbacks);
-    free(network);
     network = NULL;
 }
 
