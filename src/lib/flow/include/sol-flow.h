@@ -973,6 +973,18 @@ struct sol_flow_node_container_type {
     int (*send)(struct sol_flow_node *container, struct sol_flow_node *source_node, uint16_t source_out_port_idx, struct sol_flow_packet *packet);
 
     /**
+     * @brief Member function issued when there is no parent and a sol_flow_send() was called in this container.
+     *
+     * This method, if present, may be used to redirect the packet to
+     * some child node. Otherwise the packet is dropped (deleted).
+     *
+     * If this method is implemented and returns 0, the ownership of
+     * the packet is then handled by the function. If it returns
+     * non-zero, then the packet is automatically deleted.
+     */
+    int (*process)(struct sol_flow_node *container, uint16_t source_in_port_idx, struct sol_flow_packet *packet);
+
+    /**
      * @brief Member function that, if not @c NULL, is issued when child nodes of of an instance of this type are created
      */
     void (*add)(struct sol_flow_node *container, struct sol_flow_node *node);
