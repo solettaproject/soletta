@@ -478,6 +478,7 @@ SOL_API const struct sol_flow_port_type_in *
 sol_flow_node_type_get_port_in(const struct sol_flow_node_type *type, uint16_t port)
 {
     SOL_NULL_CHECK(type, NULL);
+    SOL_NULL_CHECK(type->get_port_in, NULL);
 
     return type->get_port_in(type, port);
 }
@@ -494,6 +495,7 @@ sol_flow_node_type_get_port_out(const struct sol_flow_node_type *type, uint16_t 
     if (port == SOL_FLOW_NODE_PORT_ERROR)
         return &port_error;
 
+    SOL_NULL_CHECK(type->get_port_out, NULL);
     return type->get_port_out(type, port);
 }
 
