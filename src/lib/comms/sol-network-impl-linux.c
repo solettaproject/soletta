@@ -340,7 +340,10 @@ _netlink_request(int event)
     _on_event(network, network->nl_socket, SOL_FD_FLAGS_IN);
 }
 
-SOL_API int
+int sol_network_init(void);
+void sol_network_shutdown(void);
+
+int
 sol_network_init(void)
 {
     SOL_LOG_INTERNAL_INIT_ONCE;
@@ -403,7 +406,7 @@ hostname_handle_free(struct sol_network_hostname_handle *ctx)
     free(ctx);
 }
 
-SOL_API void
+void
 sol_network_shutdown(void)
 {
     struct callback *callback;

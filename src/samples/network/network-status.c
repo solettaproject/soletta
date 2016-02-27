@@ -171,18 +171,11 @@ startup_network(void)
     if (!_compile_regex(regexp))
         goto err;
 
-    if (sol_network_init() != 0) {
-        fprintf(stderr, "[ERROR] Could not initialize the network\n");
-        goto err_init;
-    }
-
     if (!sol_network_subscribe_events(_on_network_event, NULL))
-        goto err_net;
+        goto err_init;
 
     return;
 
-err_net:
-    sol_network_shutdown();
 err_init:
     regfree(&regex);
 err:
@@ -195,7 +188,6 @@ shutdown_network(void)
 {
     regfree(&regex);
     sol_network_unsubscribe_events(_on_network_event, NULL);
-    sol_network_shutdown();
 }
 
 SOL_MAIN_DEFAULT(startup_network, shutdown_network);
