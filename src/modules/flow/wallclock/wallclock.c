@@ -131,15 +131,15 @@ clients_cleanup(struct wallclock_timer *timer)
     }
 }
 
-#define CLOCK_GETTIME_DO(_store_var, _store_val)        \
-    do {                                                \
-        if (sol_util_timespec_get_realtime(&ts) < 0) {   \
-            SOL_WRN("could not fetch current time: %s",  \
-                sol_util_strerrora(errno));           \
-            time_fail = true;                           \
-            _store_var = 0;                             \
-        } else                                          \
-            _store_var = _store_val;                    \
+#define CLOCK_GETTIME_DO(_store_var, _store_val) \
+    do { \
+        if (sol_util_timespec_get_realtime(&ts) < 0) { \
+            SOL_WRN("could not fetch current time: %s", \
+                sol_util_strerrora(errno)); \
+            time_fail = true; \
+            _store_var = 0; \
+        } else \
+            _store_var = _store_val; \
     } while (0)
 
 static bool wallclock_do(void *data);
