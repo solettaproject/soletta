@@ -22,3 +22,8 @@ config FLOW_C_API_FIND_TYPE_SAMPLE
 	bool
 	depends on RESOLVER_CONFFILE
 	default y
+
+config FLOW_C_API_SINGLE_NODE_SAMPLE
+	bool
+	depends on NODE_DESCRIPTION && FLOW_NODE_TYPE_WALLCLOCK
+	default y
