@@ -212,7 +212,7 @@ wallclock_schedule_next(struct sol_flow_node *node)
 
     if (mdata->type == TIMEOUT_SECOND) {
         CLOCK_GETTIME_DO(timeout,
-            1000 - ((ts.tv_sec * 1000)
+            1000 - (((uint64_t)ts.tv_sec * 1000)
             + (ts.tv_nsec / 1000000)) % 1000);
         if (time_fail)
             goto err;
