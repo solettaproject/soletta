@@ -48,14 +48,13 @@ int TEST_MAINLOOP_LINUX_MAIN_FN(int argc, char *argv[]);
 
 /* implementations may create timers, fds and others internally */
 #ifdef SOL_PLATFORM_LINUX
-/* sol-network-impl-linux.c adds netlink socket fd */
 /* sol-mainloop-impl-posix.c adds pipe to notify main thread */
 #ifdef MAINLOOP_POSIX
-#define BASE_CALL_COUNT_FD_ADD 2
-#define BASE_CALL_COUNT_FD_DEL 2
-#else
 #define BASE_CALL_COUNT_FD_ADD 1
 #define BASE_CALL_COUNT_FD_DEL 1
+#else
+#define BASE_CALL_COUNT_FD_ADD 0
+#define BASE_CALL_COUNT_FD_DEL 0
 #endif
 #else
 #define BASE_CALL_COUNT_FD_DEL 0
