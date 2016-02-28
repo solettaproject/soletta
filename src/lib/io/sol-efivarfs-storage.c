@@ -247,24 +247,16 @@ sol_efivars_read_raw(const char *name, struct sol_buffer *buffer)
     }
 
     /* Read (to discard) the first uint32_t containing the attributes */
-    r = sol_util_fill_buffer(fd, &attr, sizeof(uint32_t));
+    r = sol_util_fill_buffer_exactly(fd, &attr, sizeof(uint32_t));
     if (r < 0) {
         SOL_WRN("Could not read persistence file [%s] attributes", path);
         goto end;
     }
 
     if (buffer->capacity) {
-        r = sol_util_fill_buffer(fd, buffer, buffer->capacity);
+        r = sol_util_fill_buffer_exactly(fd, buffer, buffer->capacity);
     } else {
-        size_t size;
-        char *data = sol_util_load_file_fd_string(fd, &size);
-        if (data) {
-            buffer->capacity = size;
-            buffer->used = size;
-            buffer->data = data;
-            r = size;
-        } else
-            r = -errno;
+        r = sol_util_load_file_fd_buffer(fd, buffer);
     }
 
 end:
