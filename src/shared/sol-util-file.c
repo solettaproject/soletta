@@ -143,22 +143,31 @@ sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
             size - bytes_read);
         if (ret < 0) {
             retry++;
+            if (retry >= SOL_UTIL_MAX_READ_ATTEMPTS) {
+                if (errno == EINTR || errno == EAGAIN) {
+                    ret = 0; /* if we exceed maximum attempts, don't return error */
+                }
+                break;
+            }
+
+            if (errno == EINTR || errno == EAGAIN)
+                continue;
+            else
+                break;
+        } else if (ret == 0) {
+            retry++;
             if (retry >= SOL_UTIL_MAX_READ_ATTEMPTS)
                 break;
-
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            } else
-                break;
+            continue;
         }
 
         retry = 0; //We only count consecutive failures
         bytes_read += (size_t)ret;
-    } while (ret && bytes_read < size);
+    } while (bytes_read < size);
 
     buffer->used += bytes_read;
 
-    if (ret > 0)
+    if (ret >= 0)
         ret = bytes_read;
 
     if (SOL_BUFFER_NEEDS_NUL_BYTE(buffer)) {
