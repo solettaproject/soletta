@@ -181,7 +181,7 @@ sol_util_load_file_fd_raw(const int fd)
     buf = sol_buffer_new();
     SOL_NULL_CHECK(buf, NULL);
 
-    buf->flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+    buf->flags |= SOL_BUFFER_FLAGS_NO_NUL_BYTE;
 
     r = sol_util_load_file_fd_buffer(fd, buf);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
