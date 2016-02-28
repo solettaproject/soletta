@@ -43,10 +43,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "sol-mainloop.h"
 #include "sol-http.h"
 #include "sol-http-server.h"
+#include "sol-util.h"
+#include "sol-util-file.h"
 
 static struct sol_http_server *server;
 static struct sol_fd *stdin_watch;
@@ -55,43 +58,29 @@ static struct sol_buffer value;
 static bool
 on_stdin(void *data, int fd, uint32_t flags)
 {
-    size_t available;
-    ssize_t r;
-
     if (flags & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP)) {
         fprintf(stderr, "ERROR: Something wrong happened with file descriptor: %d\n", fd);
         goto err;
     }
 
     if (flags & SOL_FD_FLAGS_IN) {
+        int err;
+
         value.used = 0;
-        available = value.capacity - value.used;
-        while ((r = read(fd, (char *)value.data + value.used, available))) {
-            if (r == -1) {
-                if ((errno == EAGAIN) || (errno == EINTR))
-                    return true;
-                fprintf(stderr,
-                    "ERROR: Failed to read file descriptor: %d\n", fd);
-                goto err;
-            }
+        /* this will loop trying to read as much data as possible to buffer. */
+        err = sol_util_load_file_fd_buffer(fd, &value);
+        if (err < 0) {
+            fprintf(stderr, "ERROR: failed to read from stdin: %s\n", sol_util_strerrora(-err));
+            goto err;
+        }
 
-            if ((size_t)r == available) {
-                value.used += r;
-                r = sol_buffer_resize(&value, value.capacity + 128);
-                if (r < 0) {
-                    fprintf(stderr, "ERROR: Could not resize the buffer\n");
-                    goto err;
-                }
-                continue;
-            }
-
-            value.used += r;
-            r = sol_buffer_ensure_nul_byte(&value);
-            if (r < 0) {
-                fprintf(stderr, "ERROR: Failed to ensure nul byte\n");
-                goto err;
-            }
-            break;
+        if (value.used == 0) {
+            /* no data usually means ^D on the terminal, quit the application */
+            puts("no data on stdin, quitting.");
+            sol_quit();
+        } else {
+            printf("Now serving %zd bytes:\n--BEGIN--\n%.*s\n--END--\n",
+                value.used, SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&value)));
         }
     }
 
@@ -151,6 +140,15 @@ startup_server(void)
         }
     }
 
+    /* always set stdin to non-block before we use sol_fd_add() on it,
+     * otherwise we may block reading and it would impact the main
+     * loop dispatching other events.
+     */
+    if (sol_util_fd_set_flag(STDIN_FILENO, O_NONBLOCK) < 0) {
+        fprintf(stderr, "ERROR: cannot set stdin to non-block.\n");
+        goto err_watch;
+    }
+
     stdin_watch = sol_fd_add(STDIN_FILENO,
         SOL_FD_FLAGS_IN | SOL_FD_FLAGS_HUP | SOL_FD_FLAGS_ERR, on_stdin, NULL);
     if (!stdin_watch) {
@@ -175,6 +173,9 @@ startup_server(void)
         fprintf(stderr, "ERROR: Failed to register the handler\n");
         goto err_handler;
     }
+
+    printf("HTTP server at port %d.\nDefault reply set to '%.*s'\n",
+        port, SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&value)));
 
     return;
 
