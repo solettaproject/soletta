@@ -127,7 +127,7 @@ sol_memmap_read_raw_do(const char *path, const struct sol_memmap_entry *entry, u
     if (lseek(fd, entry->offset, SEEK_SET) < 0)
         goto error;
 
-    if ((ret = sol_util_fill_buffer(fd, buffer, entry->size)) < 0)
+    if ((ret = sol_util_fill_buffer_exactly(fd, buffer, entry->size)) < 0)
         goto error;
 
     if (mask) {
