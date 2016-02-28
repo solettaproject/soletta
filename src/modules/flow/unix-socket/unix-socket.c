@@ -66,7 +66,7 @@ fill_buffer(const int fd, void *buf, const size_t size)
         SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
     ssize_t ret;
 
-    ret = sol_util_fill_buffer(fd, &buffer, size);
+    ret = sol_util_fill_buffer_exactly(fd, &buffer, size);
     if (ret < 0)
         return ret;
 
@@ -157,22 +157,24 @@ static void
 string_read_data(void *data, int fd)
 {
     struct unix_socket_data *mdata = data;
-    char val[4096];
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+    char *str;
     size_t len;
-    ssize_t r;
+    int r;
 
     if (FILL_BUFFER(fd, len) < 0)
         return;
 
-    while (len > 0) {
-        if ((r = fill_buffer(fd, val, len < (sizeof(val) - 1) ? len : sizeof(val) - 1)) < 0)
-            return;
+    r = sol_util_fill_buffer_exactly(fd, &buf, len);
+    if (r < 0)
+        goto end;
 
-        val[r] = '\0';
-        len -= r;
-        sol_flow_send_string_packet(mdata->node,
-            SOL_FLOW_NODE_TYPE_UNIX_SOCKET_STRING_READER__OUT__OUT, val);
-    }
+    str = sol_buffer_steal(&buf, NULL);
+    sol_flow_send_string_take_packet(mdata->node,
+        SOL_FLOW_NODE_TYPE_UNIX_SOCKET_STRING_READER__OUT__OUT, str);
+
+end:
+    sol_buffer_fini(&buf);
 }
 
 static int
