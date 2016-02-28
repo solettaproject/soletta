@@ -161,12 +161,11 @@ sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
     if (ret > 0)
         ret = bytes_read;
 
-    if (!(buffer->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE)) {
-        if (buffer->used == buffer->capacity)
-            SOL_WRN("sol_buffer %p asks for terminating NUL byte, but doesn't have space for it",
-                buffer);
-        else
-            *((char *)buffer->data + buffer->used) = '\0';
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buffer)) {
+        int err;
+
+        err = sol_buffer_ensure_nul_byte(buffer);
+        SOL_INT_CHECK(err, < 0, err);
     }
 
     return ret;
