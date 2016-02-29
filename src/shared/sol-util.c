@@ -334,7 +334,7 @@ sol_util_uuid_gen(bool upcase,
     struct sol_buffer buf = { 0 };
 
     sol_buffer_init_flags(&buf, id, 37,
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
     r = uuid_gen(&uuid);
     SOL_INT_CHECK(r, < 0, r);
