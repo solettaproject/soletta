@@ -15,3 +15,7 @@ sample-subprocess-bc-$(FLOW_BASICS_SUBPROCESS_BC_SAMPLE) := subprocess_bc.fbp
 
 sample-$(FLOW_BASICS_KEYBOARD_SAMPLE) += keyboard
 sample-keyboard-$(FLOW_BASICS_KEYBOARD_SAMPLE) := keyboard.fbp
+
+sample-$(FLOW_BASICS_SET_TARGET_SAMPLE) += set-target
+sample-set-target-$(FLOW_BASICS_SET_TARGET_SAMPLE) := set-target.fbp
+sample-set-target-$(FLOW_BASICS_SET_TARGET_SAMPLE)-conffile := sol-flow-intel-galileo-rev-g.json
