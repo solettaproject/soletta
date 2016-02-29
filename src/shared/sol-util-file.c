@@ -221,8 +221,6 @@ sol_util_load_file_fd_buffer(int fd, struct sol_buffer *buf)
 
     r = (int)ret;
     SOL_INT_CHECK(r, < 0, r);
-    r = sol_buffer_trim(buf);
-    SOL_INT_CHECK(r, < 0, r);
 
     return 0;
 }
@@ -237,6 +235,8 @@ sol_util_load_file_fd_string(int fd, size_t *size)
 
     r = sol_util_load_file_fd_buffer(fd, &buf);
     SOL_INT_CHECK_GOTO(r, < 0, err);
+    r = sol_buffer_trim(buf);
+    SOL_INT_CHECK(r, < 0, r);
     data = sol_buffer_steal(&buf, &size_read);
     SOL_NULL_CHECK_GOTO(data, err);
 
