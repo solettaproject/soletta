@@ -943,7 +943,7 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
     if (!sol_coap_send_packet_with_reply(server, req, &addr, cb, ctx) == 0) {
         SOL_DBG("Failed to send CoAP packet through %s server (port %d)",
             server == client->dtls_server ? "secure" : "non-secure", addr.port);
-        goto out;
+        goto out_no_req;
     }
 
     SOL_DBG("Sending CoAP packet through %s server (port %d)",
