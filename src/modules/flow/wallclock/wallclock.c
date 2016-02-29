@@ -136,15 +136,15 @@ clients_cleanup(struct wallclock_timer *timer)
     }
 }
 
-#define CLOCK_GETTIME_DO(_store_var, _store_val)        \
-    do {                                                \
-        if (sol_util_timespec_get_realtime(&ts) < 0) {   \
-            SOL_WRN("could not fetch current time: %s",  \
-                sol_util_strerrora(errno));           \
-            time_fail = true;                           \
-            _store_var = 0;                             \
-        } else                                          \
-            _store_var = _store_val;                    \
+#define CLOCK_GETTIME_DO(_store_var, _store_val) \
+    do { \
+        if (sol_util_timespec_get_realtime(&ts) < 0) { \
+            SOL_WRN("could not fetch current time: %s", \
+                sol_util_strerrora(errno)); \
+            time_fail = true; \
+            _store_var = 0; \
+        } else \
+            _store_var = _store_val; \
     } while (0)
 
 static bool wallclock_timeout(void *data);
@@ -212,7 +212,7 @@ wallclock_schedule_next(struct sol_flow_node *node)
 
     if (mdata->type == TIMEOUT_SECOND) {
         CLOCK_GETTIME_DO(timeout,
-            1000 - ((ts.tv_sec * 1000)
+            1000 - (((uint64_t)ts.tv_sec * 1000)
             + (ts.tv_nsec / 1000000)) % 1000);
         if (time_fail)
             goto err;
