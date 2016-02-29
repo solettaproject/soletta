@@ -239,6 +239,20 @@ sol_vector_take_data(struct sol_vector *v)
         idx++)
 
 /**
+ * @def SOL_VECTOR_FOREACH_IDX_UNTIL(vector, itrvar, idx, until)
+ * @brief Macro to iterate over the vector until a index.
+ *
+ * @param vector The vector to iterate over
+ * @param itrvar Variable pointing to the current element's data on each iteration
+ * @param idx Index integer variable that is increased while iterating
+ * @param until The index that the iteration should stop
+ */
+#define SOL_VECTOR_FOREACH_IDX_UNTIL(vector, itrvar, idx, until) \
+    for (idx = 0; \
+        idx < until && (itrvar = (__typeof__(itrvar))sol_vector_get_nocheck((vector), idx), true); \
+        idx++)
+
+/**
  * @def SOL_VECTOR_FOREACH_REVERSE_IDX(vector, itrvar, idx)
  * @brief Macro to iterate over the vector easily in the reverse order.
  *
@@ -587,6 +601,21 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
 #define SOL_PTR_VECTOR_FOREACH_IDX(vector, itrvar, idx) \
     for (idx = 0; \
         idx < (vector)->base.len && \
+        ((itrvar = (__typeof__(itrvar))sol_ptr_vector_get_nocheck((vector), idx)), true); \
+        idx++)
+
+/**
+ * @def SOL_PTR_VECTOR_FOREACH_IDX_UNTIL(vector, itrvar, idx, until)
+ * @brief Macro to iterate over the pointer vector until a index.
+ *
+ * @param vector The pointer vector to iterate over
+ * @param itrvar Variable pointing to the current element's data on each iteration
+ * @param idx Index integer variable that is increased while iterating
+ * @param until The index that the iteration should stop
+ */
+#define SOL_PTR_VECTOR_FOREACH_IDX_UNTIL(vector, itrvar, idx, until) \
+    for (idx = 0; \
+        idx < until && \
         ((itrvar = (__typeof__(itrvar))sol_ptr_vector_get_nocheck((vector), idx)), true); \
         idx++)
 

@@ -128,11 +128,12 @@ void sol_monitors_end_walk(struct sol_monitors *ms);
 
 #define _SOL_MONITORS_WALK_VAR(X) walk__var__ ## X
 
-#define __SOL_MONITORS_WALK(ms, itrvar, idx, executed)                    \
-    for (bool executed = ({ sol_monitors_begin_walk(ms); false; });      \
-        !executed;                                                     \
-        executed = ({ sol_monitors_end_walk(ms); true; }))              \
-        SOL_VECTOR_FOREACH_IDX (&(ms)->entries, itrvar, idx)
+#define __SOL_MONITORS_WALK(ms, itrvar, idx, executed) \
+    for (uint16_t executed = ({ sol_monitors_begin_walk(ms); 0; }), \
+        entries_len = sol_monitors_count(ms); \
+        !executed; \
+        executed = ({ sol_monitors_end_walk(ms); 1; })) \
+        SOL_VECTOR_FOREACH_IDX_UNTIL (&(ms)->entries, itrvar, idx, entries_len)
 
 #define _SOL_MONITORS_WALK(ms, itrvar, idx, executed) \
     __SOL_MONITORS_WALK(ms, itrvar, idx, _SOL_MONITORS_WALK_VAR(executed))
