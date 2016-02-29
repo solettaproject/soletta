@@ -127,6 +127,7 @@ found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, v
     SOL_DBG("Flags:");
     SOL_DBG(" - observable: %s", res->observable ? "yes" : "no");
     SOL_DBG(" - secure: %s", res->secure ? "yes" : "no");
+    SOL_DBG(" - paired: %s", res->paired? "yes" : "no");
 
     device_id_decode(res->device_id.data, device_id);
     SOL_DBG("Device ID: %.*s", DEVICE_ID_LEN * 2, device_id);
@@ -471,36 +472,13 @@ put_fill_repr_map(void *data, struct sol_oic_map_writer *repr_map)
 }
 
 static bool
-found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data)
+do_resource_request(struct sol_oic_client *cli, struct Context *ctx)
 {
-    struct Context *ctx = data;
     bool non_confirmable = false, observe = false;
     const char *method_str = "GET";
     sol_coap_method_t method = SOL_COAP_METHOD_GET;
-
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *repr_map) = NULL;
     struct sol_str_slice href;
-
-    if (!res)
-        return false;
-
-#ifndef SOL_NO_API_VERSION
-    if (SOL_UNLIKELY(res->api_version != SOL_OIC_RESOURCE_API_VERSION)) {
-        SOL_WRN("Couldn't add resource_type with "
-            "version '%u'. Expected version '%u'.",
-            res->api_version, SOL_OIC_RESOURCE_API_VERSION);
-        return NULL;
-    }
-#endif
-
-    if (!found_resource_print(cli, res, data))
-        return false;
-
-    ctx->res = sol_oic_resource_ref(res);
-    if (!ctx->res) {
-        sol_quit_with_code(EXIT_FAILURE);
-        return false;
-    }
 
     switch (ctx->test_number) {
     case TEST_NON_CONFIRMABLE_GET:
@@ -531,8 +509,8 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     case TEST_NON_CONFIRMABLE_INVALID_GET:
         non_confirmable = true;
         method_str = "invalid GET";
-        href = res->href;
-        res->href = sol_str_slice_from_str("/SomeUnknownResource");
+        href = ctx->res->href;
+        ctx->res->href = sol_str_slice_from_str("/SomeUnknownResource");
         break;
     case TEST_CONFIRMABLE_GET:
         break;
@@ -552,36 +530,103 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
 
     default:
         SOL_WRN("Invalid test");
-        goto error;
+        return false;
     }
 
     SOL_DBG("Issuing %sconfirmable %s on resource %.*s",
         non_confirmable ? "non-" : "", method_str,
-        SOL_STR_SLICE_PRINT(res->href));
+        SOL_STR_SLICE_PRINT(ctx->res->href));
 
     if (observe) {
         if (non_confirmable)
-            sol_oic_client_resource_set_observable(cli, res, resource_notify,
-                data, true);
+            sol_oic_client_resource_set_observable(cli, ctx->res,
+                resource_notify, ctx, true);
         else
-            sol_oic_client_resource_set_observable_non_confirmable(cli, res,
-                resource_notify, data, true);
+            sol_oic_client_resource_set_observable_non_confirmable(cli, ctx->res,
+                resource_notify, ctx, true);
     } else {
         if (non_confirmable)
-            sol_oic_client_resource_non_confirmable_request(cli, res, method,
-                fill_repr_map, NULL, print_response, data);
+            sol_oic_client_resource_non_confirmable_request(cli, ctx->res,
+                method, fill_repr_map, NULL, print_response, ctx);
         else
-            sol_oic_client_resource_request(cli, res, method, fill_repr_map,
-                NULL, print_response, data);
+            sol_oic_client_resource_request(cli, ctx->res, method, fill_repr_map,
+                NULL, print_response, ctx);
     }
 
     if (ctx->test_number == TEST_NON_CONFIRMABLE_INVALID_GET)
-        res->href = href;
+        ctx->res->href = href;
 
-    return false;
+    return true;
+}
+
+static void
+pair_cb(struct sol_oic_client *client, struct sol_oic_resource *res, enum sol_oic_security_pair_result result, void *data)
+{
+    switch(result) {
+    case SOL_OIC_PAIR_SUCCESS:
+        SOL_DBG("Pairing was successful. Continue with request.");
+        if (do_resource_request(client, data))
+            return;
+        SOL_ERR("Request failed.");
+        break;
+    case SOL_OIC_PAIR_ERROR_ALREADY_OWNED:
+        SOL_ERR("Pairing fail: Device is already owned by someone else.");
+        break;
+    case SOL_OIC_PAIR_ERROR_UNSUPPORTED_PAIRING_METHOD:
+        SOL_ERR("Pairing fail: Unsupported pairing method.");
+        break;
+    case SOL_OIC_PAIR_ERROR_UNSUPPORTED_CREDENTIAL_TYPE:
+        SOL_ERR("Pairing fail: Unsupported credential type.");
+        break;
+    case SOL_OIC_PAIR_ERROR_PAIR_FAILURE:
+        SOL_ERR("Pairing fail: Unknown error.");
+        break;
+    }
+
+    sol_quit_with_code(EXIT_FAILURE);
+}
+
+static bool
+found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data)
+{
+    struct Context *ctx = data;
+    int r;
+
+    if (!res)
+        return false;
+
+#ifndef SOL_NO_API_VERSION
+    if (SOL_UNLIKELY(res->api_version != SOL_OIC_RESOURCE_API_VERSION)) {
+        SOL_WRN("Couldn't add resource_type with "
+            "version '%u'. Expected version '%u'.",
+            res->api_version, SOL_OIC_RESOURCE_API_VERSION);
+        return NULL;
+    }
+#endif
+
+    if (!found_resource_print(cli, res, data))
+        return false;
+
+    ctx->res = sol_oic_resource_ref(res);
+    if (!ctx->res) {
+        sol_quit_with_code(EXIT_FAILURE);
+        return false;
+    }
+
+    if (res->secure && !res->paired) {
+        SOL_DBG("Resource is secure. Trying to pair.");
+        r = sol_oic_client_resource_pair(cli, res, SOL_OIC_PAIR_JUST_WORKS,
+                pair_cb, data);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        return false;
+    }
+
+    if (do_resource_request(cli, ctx))
+        return false;
 
 error:
     sol_oic_resource_unref(res);
+    sol_quit_with_code(EXIT_FAILURE);
     return false;
 }
 
@@ -619,15 +664,11 @@ main(int argc, char *argv[])
     struct Context ctx;
     int ret;
 
-    struct sol_oic_client client = {
-        SOL_SET_API_VERSION(.api_version = SOL_OIC_CLIENT_API_VERSION)
-    };
+    struct sol_oic_client *client;
     struct sol_network_link_addr cliaddr = { .family = SOL_NETWORK_FAMILY_INET, .port = 5683 };
     const char *resource_type = NULL;
 
     bool (*found_resource_cb)(struct sol_oic_client *cli, struct sol_oic_resource *res, void *data) = NULL;
-    struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
-                                              .port = 0 };
 
     ctx.res = NULL;
     sol_init();
@@ -647,12 +688,6 @@ main(int argc, char *argv[])
         SOL_WRN("could not convert multicast ip address to sockaddr_in");
         return 1;
     }
-
-    client.server = sol_coap_server_new(&servaddr);
-    client.dtls_server = sol_coap_secure_server_new(&servaddr);
-
-    SOL_INF("DTLS support %s\n", client.dtls_server ? "available" :
-        "unavailable");
 
     switch (ctx.test_number) {
     case TEST_DISCOVERY:
@@ -679,17 +714,20 @@ main(int argc, char *argv[])
         return 0;
     }
 
+    client = sol_oic_client_new();
     if (ctx.test_number == TEST_DISCOVER_PLATFORM)
-        sol_oic_client_get_platform_info_by_addr(&client, &cliaddr,
+        sol_oic_client_get_platform_info_by_addr(client, &cliaddr,
             platform_info_cb, NULL);
     else if (ctx.test_number == TEST_DISCOVER_DEVICES)
-        sol_oic_client_get_server_info_by_addr(&client, &cliaddr,
+        sol_oic_client_get_server_info_by_addr(client, &cliaddr,
             server_info_cb, NULL);
     else
-        sol_oic_client_find_resource(&client, &cliaddr, resource_type,
+        sol_oic_client_find_resource(client, &cliaddr, resource_type,
             found_resource_cb, &ctx);
 
     ret = sol_run();
+
+    sol_oic_client_del(client);
     if (ctx.res)
         sol_oic_resource_unref(ctx.res);
     return ret;

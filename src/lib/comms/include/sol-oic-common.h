@@ -168,7 +168,12 @@ enum sol_oic_resource_flag {
          *
          * Connection established with a secure devices is secure.
          */
-        SOL_OIC_FLAG_SECURE = 1 << 4
+        SOL_OIC_FLAG_SECURE = 1 << 4,
+        /**
+         * @brief The resource is discoverable by clients only if request
+         * contains an explicity query
+         */
+        SOL_OIC_FLAG_DISCOVERABLE_EXPLICIT = 1 << 5,
 };
 
 /**
