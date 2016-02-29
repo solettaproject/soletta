@@ -198,7 +198,7 @@ enum sol_decode_case {
  */
 #define SOL_BUFFER_DECLARE_STATIC(name_, size_) \
     uint8_t name_ ## storage[(size_)] = { 0 }; \
-    struct sol_buffer name_ = SOL_BUFFER_INIT_FLAGS(name_ ## storage, (size_), SOL_BUFFER_FLAGS_FIXED_CAPACITY)
+    struct sol_buffer name_ = SOL_BUFFER_INIT_FLAGS(name_ ## storage, (size_), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED)
 
 /**
  * @brief Initializes a @c sol_buffer structure.
