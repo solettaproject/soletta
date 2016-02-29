@@ -418,14 +418,14 @@ device_reader_cb(void *data, int fd, uint32_t active_flags)
         result = false;
     }
 
-    sol_buffer_reset(&device->buffer);
-    ret = sol_util_fill_buffer(fd, &device->buffer, device->buffer_size);
+    ret = sol_util_fill_buffer(fd, &device->buffer, device->buffer_size - device->buffer.used);
     if (ret <= 0) {
         result = false;
     } else if (device->buffer.used == device->buffer_size) {
         if (device->reader_cb) {
             device->reader_cb((void *)device->reader_cb_data, device);
         }
+        sol_buffer_reset(&device->buffer);
     }
 
     if (!result) {

@@ -494,8 +494,10 @@ sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url,
         SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     }
 
-    r = sol_buffer_ensure_nul_byte(buf);
-    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+        r = sol_buffer_ensure_nul_byte(buf);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
 
     return 0;
 
@@ -564,8 +566,10 @@ sol_http_create_simple_uri(struct sol_buffer *buf, const struct sol_str_slice ba
         }
     }
 
-    r = sol_buffer_ensure_nul_byte(buf);
-    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+        r = sol_buffer_ensure_nul_byte(buf);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
 
     return 0;
 
