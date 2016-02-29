@@ -212,19 +212,59 @@ int sol_util_fd_set_flag(int fd, int flag) SOL_ATTR_WARN_UNUSED_RESULT;
  *
  * Data read will be *appended* to the end of used buffer (i.e. buffer->used).
  * If one wants data to be inserted at beginning of buffer, then one must
- * call @c sol_buffer_reset() on buffer before calling @c sol_util_fill_buffer.
+ * call sol_buffer_reset() on buffer before calling sol_util_fill_buffer().
  *
  * By using this function to fill the buffer, one doesn't need to care about
  * @c EAGAIN or @c EINTR being returned by @c read() raw call.
  *
  * @param fd A valid file descriptor.
  * @param buffer The buffer that will hold the file's content.
- * @param size The buffer's size
+ * @param size Read up to this amount of bytes.
  *
  * @return The size of bytes filled in success, otherwise a negative
- * error indicating what failure happened.
+ * error indicating what failure happened. Note that the amount of
+ * bytes may be smaller than the requested.
+ *
+ * @see sol_util_fill_buffer_exactly()
  */
 ssize_t sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size);
+
+/**
+ * @brief Fills @a buffer with data read from file @a fd with an exact amount of bytes.
+ *
+ * Data read will be *appended* to the end of used buffer
+ * (i.e. buffer->used).  If one wants data to be inserted at beginning
+ * of buffer, then one must call sol_buffer_reset() on buffer before
+ * calling sol_util_fill_buffer_exactly()
+ *
+ * By using this function to fill the buffer, one doesn't need to care
+ * about @c EAGAIN or @c EINTR being returned by @c read() raw call.
+ *
+ * Thi is a convenience function that calls sol_util_fill_buffer() and
+ * check if the read amount is exactly the given @a size, otherwise
+ * considers a failure.
+ *
+ * @param fd A valid file descriptor.
+ * @param buffer The buffer that will hold the file's content.
+ * @param size Read exactly this amount of bytes.
+ *
+ * @return 0 on success, -EIO if the number of bytes read is smaller
+ * than @a size or -errno on errrors.
+ *
+ * @see sol_util_fill_buffer()
+ */
+static inline int
+sol_util_fill_buffer_exactly(const int fd, struct sol_buffer *buffer, const size_t size)
+{
+    ssize_t ret = sol_util_fill_buffer(fd, buffer, size);
+
+    if (ret < 0)
+        return (int)ret;
+    else if ((size_t)ret < size)
+        return -EIO;
+
+    return 0;
+}
 
 /**
  * @brief Iterate over a directory.

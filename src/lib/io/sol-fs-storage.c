@@ -187,17 +187,9 @@ sol_fs_read_raw(const char *name, struct sol_buffer *buffer)
     }
 
     if (buffer->capacity) {
-        r = sol_util_fill_buffer(fd, buffer, buffer->capacity);
+        r = sol_util_fill_buffer_exactly(fd, buffer, buffer->capacity);
     } else {
-        size_t size = 0;
-        char *data = sol_util_load_file_fd_string(fd, &size);
-        if (data) {
-            buffer->capacity = size;
-            buffer->used = size;
-            buffer->data = data;
-            r = size;
-        } else
-            r = -errno;
+        r = sol_util_load_file_fd_buffer(fd, buffer);
     }
 
     close(fd);

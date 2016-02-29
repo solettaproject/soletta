@@ -143,30 +143,38 @@ sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
             size - bytes_read);
         if (ret < 0) {
             retry++;
+            if (retry >= SOL_UTIL_MAX_READ_ATTEMPTS) {
+                if (errno == EINTR || errno == EAGAIN) {
+                    ret = 0; /* if we exceed maximum attempts, don't return error */
+                }
+                break;
+            }
+
+            if (errno == EINTR || errno == EAGAIN)
+                continue;
+            else
+                break;
+        } else if (ret == 0) {
+            retry++;
             if (retry >= SOL_UTIL_MAX_READ_ATTEMPTS)
                 break;
-
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            } else
-                break;
+            continue;
         }
 
         retry = 0; //We only count consecutive failures
         bytes_read += (size_t)ret;
-    } while (ret && bytes_read < size);
+    } while (bytes_read < size);
 
     buffer->used += bytes_read;
 
-    if (ret > 0)
+    if (ret >= 0)
         ret = bytes_read;
 
-    if (!(buffer->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE)) {
-        if (buffer->used == buffer->capacity)
-            SOL_WRN("sol_buffer %p asks for terminating NUL byte, but doesn't have space for it",
-                buffer);
-        else
-            *((char *)buffer->data + buffer->used) = '\0';
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buffer)) {
+        int err;
+
+        err = sol_buffer_ensure_nul_byte(buffer);
+        SOL_INT_CHECK(err, < 0, err);
     }
 
     return ret;
@@ -181,7 +189,7 @@ sol_util_load_file_fd_raw(const int fd)
     buf = sol_buffer_new();
     SOL_NULL_CHECK(buf, NULL);
 
-    buf->flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+    buf->flags |= SOL_BUFFER_FLAGS_NO_NUL_BYTE;
 
     r = sol_util_load_file_fd_buffer(fd, buf);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
@@ -213,8 +221,6 @@ sol_util_load_file_fd_buffer(int fd, struct sol_buffer *buf)
 
     r = (int)ret;
     SOL_INT_CHECK(r, < 0, r);
-    r = sol_buffer_trim(buf);
-    SOL_INT_CHECK(r, < 0, r);
 
     return 0;
 }
@@ -229,6 +235,8 @@ sol_util_load_file_fd_string(int fd, size_t *size)
 
     r = sol_util_load_file_fd_buffer(fd, &buf);
     SOL_INT_CHECK_GOTO(r, < 0, err);
+    r = sol_buffer_trim(buf);
+    SOL_INT_CHECK(r, < 0, r);
     data = sol_buffer_steal(&buf, &size_read);
     SOL_NULL_CHECK_GOTO(data, err);
 
