@@ -163,11 +163,6 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     if (!_compile_regex(&mdata->regex, opts->address))
         return -EINVAL;
 
-    if (sol_network_init() != 0) {
-        SOL_WRN("Could not initialize the network");
-        goto err;
-    }
-
     sol_ptr_vector_init(&mdata->links);
     if (!sol_network_subscribe_events(_on_network_event, mdata))
         goto err_net;
@@ -196,10 +191,8 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
         _check_connected(&mdata->links));
 
 err_net:
-    SOL_WRN("Failed to init the network");
+    SOL_WRN("Failed to subscribe to network events");
     sol_ptr_vector_clear(&mdata->links);
-    sol_network_shutdown();
-err:
     regfree(&mdata->regex);
     return -EINVAL;
 }
@@ -212,7 +205,6 @@ network_close(struct sol_flow_node *node, void *data)
     regfree(&mdata->regex);
     sol_ptr_vector_clear(&mdata->links);
     sol_network_unsubscribe_events(_on_network_event, mdata);
-    sol_network_shutdown();
 }
 
 

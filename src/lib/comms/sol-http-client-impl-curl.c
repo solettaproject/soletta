@@ -50,6 +50,9 @@
 int sol_http_client_init(void);
 void sol_http_client_shutdown(void);
 
+static int sol_http_client_init_lazy(void);
+static void sol_http_client_shutdown_lazy(void);
+
 static struct {
     CURLM *multi;
     struct sol_timeout *multi_perform_timeout;
@@ -61,6 +64,8 @@ static struct {
     .ref = 0,
     .connections = SOL_PTR_VECTOR_INIT,
 };
+
+static bool did_curl_init = false;
 
 struct curl_http_method_opt {
     CURLoption method;
@@ -109,14 +114,12 @@ destroy_connection(struct sol_http_client_connection *c)
     sol_vector_clear(&c->watches);
 
     free(c);
+    sol_http_client_shutdown_lazy();
 }
 
-void
-sol_http_client_shutdown(void)
+static void
+sol_http_client_shutdown_lazy(void)
 {
-    struct sol_http_client_connection *c;
-    uint16_t i;
-
     if (!global.ref)
         return;
     global.ref--;
@@ -128,15 +131,14 @@ sol_http_client_shutdown(void)
         global.multi_perform_timeout = NULL;
     }
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&global.connections, c, i) {
-        destroy_connection(c);
+    if (global.connections.base.len) {
+        SOL_WRN("lazy shutdown with %" PRIu16 " existing connections. Leaking memory",
+            global.connections.base.len);
     }
 
     sol_ptr_vector_clear(&global.connections);
 
     curl_multi_cleanup(global.multi);
-    curl_global_cleanup();
-
     global.multi = NULL;
 }
 
@@ -320,15 +322,61 @@ timer_cb(CURLM *multi, long timeout_ms, void *userp)
 int
 sol_http_client_init(void)
 {
+    return 0;
+}
+
+void
+sol_http_client_shutdown(void)
+{
+    struct sol_ptr_vector v;
+    struct sol_http_client_connection *c;
+    uint16_t i;
+
+    /* steal vector so destroy_connection and
+     * sol_http_client_shutdown_lazy() sees none left. We'll delete
+     * the actual vector later in a single pass with
+     * sol_ptr_vector_clear().
+     */
+    v = global.connections;
+    sol_ptr_vector_init(&global.connections);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&v, c, i) {
+        destroy_connection(c);
+    }
+    sol_ptr_vector_clear(&v);
+
+    if (did_curl_init) {
+        curl_global_cleanup();
+        did_curl_init = false;
+    }
+}
+
+static int
+sol_http_client_init_lazy(void)
+{
     if (global.ref) {
         global.ref++;
         return 0;
     }
 
-    curl_global_init(CURL_GLOBAL_ALL);
+    if (!did_curl_init) {
+        CURLcode r;
+
+        /* cURL says "exactly once", we can't know what other modules
+         * are doing, but at least in our case we do it once.
+         */
+        r = curl_global_init(CURL_GLOBAL_ALL);
+        if (r == CURLE_OK)
+            did_curl_init = true;
+        else {
+            SOL_WRN("curl_global_init(CURL_GLOBAL_ALL) failed: %s",
+                curl_easy_strerror(r));
+            return -EINVAL;
+        }
+    }
 
     global.multi = curl_multi_init();
-    SOL_NULL_CHECK_GOTO(global.multi, cleanup);
+    SOL_NULL_CHECK(global.multi, -EINVAL);
 
     curl_multi_setopt(global.multi, CURLMOPT_TIMERFUNCTION, timer_cb);
 
@@ -337,10 +385,6 @@ sol_http_client_init(void)
     global.ref++;
 
     return 0;
-
-cleanup:
-    curl_global_cleanup();
-    return -EINVAL;
 }
 
 static bool
@@ -899,10 +943,15 @@ client_request_internal(enum sol_http_method method,
         params = &empty_params;
     }
 
+    if (sol_http_client_init_lazy() < 0) {
+        SOL_WRN("could not initialize http-client integration with cURL");
+        return NULL;
+    }
+
     curl = curl_easy_init();
     if (!curl) {
         SOL_WRN("Could not create cURL handle");
-        return NULL;
+        goto failed_easy_init;
     }
 
     method_opt = sol_to_curl_method[method];
@@ -992,6 +1041,8 @@ invalid_option:
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
     curl_formfree(formpost);
+failed_easy_init:
+    sol_http_client_shutdown_lazy();
     return NULL;
 }
 

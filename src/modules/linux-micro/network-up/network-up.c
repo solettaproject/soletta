@@ -79,11 +79,8 @@ network_up_init(const struct sol_platform_linux_micro_module *module, const char
 {
     SOL_LOG_INTERNAL_INIT_ONCE;
 
-    sol_network_init();
-    if (!sol_network_subscribe_events(_network_event_cb, NULL)) {
-        sol_network_shutdown();
+    if (!sol_network_subscribe_events(_network_event_cb, NULL))
         return -1;
-    }
 
     return 0;
 }
@@ -92,7 +89,6 @@ static void
 network_up_shutdown(const struct sol_platform_linux_micro_module *module, const char *service)
 {
     sol_network_unsubscribe_events(_network_event_cb, NULL);
-    sol_network_shutdown();
 }
 
 SOL_PLATFORM_LINUX_MICRO_MODULE(NETWORK_UP,

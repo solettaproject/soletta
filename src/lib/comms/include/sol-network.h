@@ -218,31 +218,6 @@ bool sol_network_link_addr_eq(const struct sol_network_link_addr *a,
     const struct sol_network_link_addr *b);
 
 /**
- * @brief Initialize the support to network.
- *
- * This function sets up all the internal code to monitor and deal
- * with network events.
- *
- * When the network support is not necessary anymore, call @ref
- * sol_network_shutdown() to release all the resources allocated.
- *
- * @return @c 1 or greater on success, @c 0 on error.
- *
- * @see sol_network_shutdown()
- */
-int sol_network_init(void);
-
-/**
- * @brief Shut down the support to network.
- *
- * This function shuts down the network support, it should be called
- * the same same number of times that @ref sol_network_init().
- *
- * @see sol_network_init()
- */
-void sol_network_shutdown(void);
-
-/**
  * @brief Subscribes on to receive network link events.
  *
  * This function register a callback given by the user that will be
@@ -279,10 +254,6 @@ bool sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_netw
     const void *data);
 /**
  * @brief Retrieve the available network links on system.
- *
- * This function gets the availables links in the system, it should
- * not be called if the network was not initialized @see
- * sol_network_init().
  *
  * @return A vector containing the available links @see sol_network_link
  *

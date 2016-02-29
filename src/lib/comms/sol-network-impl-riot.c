@@ -166,7 +166,10 @@ addr_error:
 #endif
 }
 
-SOL_API int
+int sol_network_init(void);
+void sol_network_shutdown(void);
+
+int
 sol_network_init(void)
 {
     size_t i, if_count;
@@ -187,7 +190,7 @@ sol_network_init(void)
     return 0;
 }
 
-SOL_API void
+void
 sol_network_shutdown(void)
 {
     struct sol_network_link *link;

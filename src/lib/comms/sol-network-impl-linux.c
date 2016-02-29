@@ -263,6 +263,9 @@ _on_event(void *data, int nl_socket, uint32_t cond)
 
     if (cond & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP)) {
         SOL_WRN("There is something wrong with the socket");
+        close(network->nl_socket);
+        network->nl_socket = -1;
+        network->fd = NULL;
         return false;
     }
 
@@ -275,6 +278,9 @@ _on_event(void *data, int nl_socket, uint32_t cond)
                 continue;
 
             SOL_WRN("Read netlink error");
+            close(network->nl_socket);
+            network->nl_socket = -1;
+            network->fd = NULL;
             return false;
         }
 
@@ -340,25 +346,22 @@ _netlink_request(int event)
     _on_event(network, network->nl_socket, SOL_FD_FLAGS_IN);
 }
 
-SOL_API int
-sol_network_init(void)
+static int
+sol_network_start_netlink(void)
 {
-    SOL_LOG_INTERNAL_INIT_ONCE;
+    int err;
 
-    if (network != NULL) {
-        network->count++;
+    SOL_NULL_CHECK(network, -ENOENT);
+
+    if (network->fd)
         return 0;
-    }
-
-    network = calloc(1, sizeof(*network));
-    SOL_NULL_CHECK(network, -ENOMEM);
 
     network->seq = 0;
     network->count = 1;
     network->nl_socket = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC | SOCK_NONBLOCK, NETLINK_ROUTE);
     if (network->nl_socket < 0) {
-        SOL_WRN("Socket create failed!");
-        goto err;
+        SOL_WRN("failed to create netlink socket, cannot listen to events or manage the links!");
+        return -errno;
     }
 
     network->nl_addr.nl_family = AF_NETLINK;
@@ -376,24 +379,47 @@ sol_network_init(void)
         _on_event, network);
     if (!network->fd) {
         SOL_WRN("failed to monitor the file descriptor");
+        if (!errno)
+            errno = ENOMEM;
         goto err_bind;
     }
+
+    _netlink_request(RTM_GETLINK);
+    _netlink_request(RTM_GETADDR);
+    return 0;
+
+err_bind:
+    err = -errno;
+    close(network->nl_socket);
+    network->nl_socket = -1;
+    return err;
+}
+
+int sol_network_init(void);
+void sol_network_shutdown(void);
+
+int
+sol_network_init(void)
+{
+    static struct sol_network _network = {};
+
+    SOL_LOG_INTERNAL_INIT_ONCE;
+
+    if (network != NULL) {
+        network->count++;
+        return 0;
+    }
+
+    network = &_network;
+    SOL_NULL_CHECK(network, -ENOMEM);
+
+    network->nl_socket = -1;
 
     sol_vector_init(&network->links, sizeof(struct sol_network_link));
     sol_vector_init(&network->callbacks, sizeof(struct callback));
     sol_ptr_vector_init(&network->hostname_handles);
 
-    _netlink_request(RTM_GETLINK);
-    _netlink_request(RTM_GETADDR);
-
     return 0;
-
-err_bind:
-    close(network->nl_socket);
-err:
-    free(network);
-    network = NULL;
-    return -1;
 }
 
 static void
@@ -403,12 +429,10 @@ hostname_handle_free(struct sol_network_hostname_handle *ctx)
     free(ctx);
 }
 
-SOL_API void
+void
 sol_network_shutdown(void)
 {
-    struct callback *callback;
     struct sol_network_link *link;
-    struct sol_network_link_addr *addr;
     uint16_t idx;
     struct sol_network_hostname_handle *ctx;
 
@@ -425,7 +449,8 @@ sol_network_shutdown(void)
     if (network->hostname_worker)
         sol_timeout_del(network->hostname_worker);
 
-    close(network->nl_socket);
+    if (network->nl_socket > 0)
+        close(network->nl_socket);
 
     SOL_VECTOR_FOREACH_IDX (&network->links, link, idx) {
         sol_vector_clear(&link->addrs);
@@ -437,11 +462,7 @@ sol_network_shutdown(void)
     sol_ptr_vector_clear(&network->hostname_handles);
     sol_vector_clear(&network->links);
     sol_vector_clear(&network->callbacks);
-    free(network);
     network = NULL;
-
-    (void)addr;
-    (void)callback;
 }
 
 SOL_API bool
@@ -451,8 +472,9 @@ sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_lin
 {
     struct callback *callback;
 
-    SOL_NULL_CHECK(network, false);
     SOL_NULL_CHECK(cb, false);
+
+    if (sol_network_start_netlink() < 0) return false;
 
     callback = sol_vector_append(&network->callbacks);
     SOL_NULL_CHECK(callback, false);
@@ -488,7 +510,7 @@ sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_l
 SOL_API const struct sol_vector *
 sol_network_get_available_links(void)
 {
-    SOL_NULL_CHECK(network, NULL);
+    if (sol_network_start_netlink() < 0) return NULL;
 
     return &network->links;
 }
@@ -520,7 +542,7 @@ sol_network_link_up(uint16_t link_index)
     uint8_t mode = IN6_ADDR_GEN_MODE_EUI64;
     size_t buf_size = sizeof(buf);;
 
-    SOL_NULL_CHECK(network, false);
+    if (sol_network_start_netlink() < 0) return false;
 
     msg.msg_name = (void *)&snl;
     msg.msg_namelen = sizeof(snl);
