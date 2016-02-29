@@ -27,3 +27,8 @@ config FLOW_BASICS_KEYBOARD_SAMPLE
 	bool
 	depends on FLOW_FBP_GENERATOR_SAMPLES && FLOW_NODE_TYPE_KEYBOARD
 	default y
+
+config FLOW_BASICS_SET_TARGET_SAMPLE
+       bool
+       depends on FLOW_FBP_GENERATOR_SAMPLES && FLOW_NODE_TYPE_PLATFORM
+       default y
