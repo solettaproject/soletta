@@ -361,6 +361,8 @@ static void
 signals_process(void)
 {
     unsigned char i;
+    struct sol_child_watch_posix *one_child;
+    uint16_t vector_index;
 
     SIGPROCMASK(SIG_BLOCK, &sig_blockset, NULL);
 
@@ -374,14 +376,14 @@ signals_process(void)
 
     SIGPROCMASK(SIG_UNBLOCK, &sig_blockset, NULL);
 
-    do {
+    SOL_PTR_VECTOR_FOREACH_IDX (&child_watch_vector, one_child, vector_index) {
         int status = 0;
-        pid_t pid = waitpid(-1, &status, WNOHANG);
-        if (pid <= 0)
-            break;
-        SOL_DBG("collected finished pid=%" PRIu64 ", status=%d",
-            (uint64_t)pid, status);
-    } while (1);
+        pid_t pid = waitpid(one_child->pid, &status, WNOHANG);
+        if (pid > 0) {
+            SOL_DBG("collected finished pid=%" PRIu64 ", status=%d",
+                (uint64_t)pid, status);
+        }
+    }
 }
 
 int
