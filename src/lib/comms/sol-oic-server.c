@@ -347,7 +347,7 @@ error:
 
         sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_INTERNAL_ERROR);
     } else {
-        sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_OK);
+        sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
         sol_coap_packet_set_payload_used(resp, encoder.ptr - payload);
     }
 
@@ -750,7 +750,7 @@ send_notification_to_server(struct sol_oic_server_resource *resource,
     err = sol_oic_packet_cbor_close(pkt, &oic_map_writer);
     SOL_INT_CHECK_GOTO(err, != CborNoError, end);
 
-    code = SOL_COAP_RSPCODE_OK;
+    code = SOL_COAP_RSPCODE_CONTENT;
 end:
     sol_coap_header_set_code(pkt, code);
     sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
