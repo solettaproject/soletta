@@ -723,10 +723,10 @@ sol_oic_server_del_resource(struct sol_oic_server_resource *resource)
     free(resource->href);
     free(resource->iface);
     free(resource->rt);
-    free(resource);
     if (sol_ptr_vector_del_element(&oic_server.resources, resource) < 0)
         SOL_ERR("Could not find resource %p in OIC server resource list",
             resource);
+    free(resource);
 }
 
 static bool
