@@ -1248,7 +1248,8 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
     id = malloc(DEVICE_ID_LEN);
     SOL_NULL_CHECK(id, true);
     memcpy(id, oic_res->device_id.data, DEVICE_ID_LEN);
-    sol_ptr_vector_append(&resource->scanned_ids, id);
+    r = sol_ptr_vector_append(&resource->scanned_ids, id);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     binary_to_hex_ascii(oic_res->device_id.data, ascii);
 
@@ -1257,6 +1258,11 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
     if (r < 0)
         SOL_WRN("Could not send server id.");
 
+    return true;
+
+error:
+    SOL_WRN("Failed to process id.");
+    free(id);
     return true;
 }
 

@@ -247,6 +247,7 @@ _sol_oic_server_res(struct sol_coap_server *server,
     uint16_t idx;
     const uint8_t *uri_query;
     uint16_t uri_query_len;
+    int r;
 
     uri_query = sol_coap_find_first_option(req, SOL_COAP_OPTION_URI_QUERY, &uri_query_len);
     if (uri_query && uri_query_len > sizeof("rt=") - 1) {
@@ -262,7 +263,11 @@ _sol_oic_server_res(struct sol_coap_server *server,
 
     sol_coap_add_option(resp, SOL_COAP_OPTION_CONTENT_FORMAT, &format_cbor, sizeof(format_cbor));
 
-    sol_coap_packet_get_payload(resp, &payload, &size);
+    r = sol_coap_packet_get_payload(resp, &payload, &size);
+    if (r < 0) {
+        sol_coap_packet_unref(resp);
+        return r;
+    }
 
     cbor_encoder_init(&encoder, payload, size, 0);
 
