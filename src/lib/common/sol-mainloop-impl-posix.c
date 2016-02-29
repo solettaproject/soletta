@@ -38,6 +38,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 
+#include "sol-atomic.h"
 #include "sol-mainloop-common.h"
 #include "sol-mainloop-impl.h"
 #include "sol-vector.h"
@@ -86,7 +87,7 @@ static struct sol_vector child_exit_status_vector = SOL_VECTOR_INIT(struct child
 
 static int pipe_fds[2];
 static pthread_t main_thread;
-static bool have_notified;
+static sol_atomic_int have_notified = SOL_ATOMIC_INIT(0);
 static struct sol_fd *ack_handler;
 
 static struct sol_ptr_vector child_watch_v_process = SOL_PTR_VECTOR_INIT;
@@ -126,7 +127,7 @@ sol_mainloop_impl_main_thread_notify(void)
     char tok = 'w';
     int r;
 
-    if (__atomic_test_and_set(&have_notified, __ATOMIC_SEQ_CST))
+    if (sol_atomic_test_and_set(&have_notified, SOL_ATOMIC_RELAXED))
         return;
 
     r = write(pipe_fds[1], &tok, sizeof(tok));
@@ -145,7 +146,7 @@ main_thread_ack(void *data, int fd, uint32_t active_flags)
     sol_mainloop_impl_lock();
 
     r = read(fd, &tok, sizeof(tok));
-    __atomic_clear(&have_notified, __ATOMIC_SEQ_CST);
+    sol_atomic_clear(&have_notified, SOL_ATOMIC_RELAXED);
 
     sol_mainloop_impl_unlock();
 

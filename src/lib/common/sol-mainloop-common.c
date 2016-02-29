@@ -37,6 +37,7 @@
 #include "sol-vector.h"
 #include "sol-mainloop-impl.h"
 #include "sol-mainloop-common.h"
+#include "sol-atomic.h"
 
 struct sol_mainloop_source_common {
     const struct sol_mainloop_source_type *type;
@@ -49,7 +50,11 @@ static bool source_processing;
 static unsigned source_pending_deletion;
 static struct sol_ptr_vector source_vector = SOL_PTR_VECTOR_INIT;
 
+#ifdef THREADS
+static sol_atomic_int run_loop = SOL_ATOMIC_INIT(0);
+#else
 static bool run_loop;
+#endif
 
 static bool timeout_processing;
 static unsigned int timeout_pending_deletion;
@@ -108,7 +113,7 @@ bool
 sol_mainloop_common_loop_check(void)
 {
 #ifdef THREADS
-    return __atomic_load_n(&run_loop, __ATOMIC_SEQ_CST);
+    return sol_atomic_load(&run_loop, SOL_ATOMIC_RELAXED);
 #else
     return run_loop;
 #endif
@@ -118,7 +123,7 @@ void
 sol_mainloop_common_loop_set(bool val)
 {
 #ifdef THREADS
-    __atomic_store_n(&run_loop, (val), __ATOMIC_SEQ_CST);
+    sol_atomic_store(&run_loop, (val), SOL_ATOMIC_RELAXED);
 #else
     run_loop = val;
 #endif

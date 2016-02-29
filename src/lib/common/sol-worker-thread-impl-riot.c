@@ -34,6 +34,7 @@
 #include <mutex.h>
 #include <thread.h>
 
+#include "sol-atomic.h"
 #include "sol-mainloop.h"
 #include "sol-worker-thread-impl.h"
 
@@ -44,8 +45,8 @@ struct sol_worker_thread_riot {
     mutex_t lock;
     kernel_pid_t thread;
     kernel_pid_t waiting_join;
-    bool cancel;
-    bool finished;
+    sol_atomic_int cancel;
+    sol_atomic_int finished;
 };
 
 bool
@@ -55,13 +56,13 @@ sol_worker_thread_impl_cancel_check(const void *handle)
 
     thread_yield();
 
-    return __atomic_load_n(&thread->cancel, __ATOMIC_SEQ_CST);
+    return sol_atomic_load(&thread->cancel, SOL_ATOMIC_RELAXED);
 }
 
 static inline void
 cancel_set(struct sol_worker_thread_riot *thread)
 {
-    __atomic_store_n(&thread->cancel, true, __ATOMIC_SEQ_CST);
+    sol_atomic_store(&thread->cancel, true, SOL_ATOMIC_RELAXED);
 
     thread_yield();
 }
@@ -85,7 +86,7 @@ sol_worker_thread_join(struct sol_worker_thread_riot *thread)
 {
     bool status;
 
-    status = __atomic_load_n(&thread->finished, __ATOMIC_SEQ_CST);
+    status = sol_atomic_load(&thread->finished, SOL_ATOMIC_ACQUIRE);
     if (!status) {
         thread->waiting_join = thread_getpid();
         thread_sleep();
@@ -149,7 +150,7 @@ end:
     /* From this point forward, we can't allow a context switch. IRQ will be
      * re-enabled by the scheduler once this function returns */
     disableIRQ();
-    __atomic_store_n(&thread->finished, true, __ATOMIC_SEQ_CST);
+    sol_atomic_store(&thread->finished, true, SOL_ATOMIC_RELEASE);
     if (thread->waiting_join != KERNEL_PID_UNDEF)
         sched_set_status((tcb_t *)sched_threads[thread->waiting_join], STATUS_PENDING);
 
