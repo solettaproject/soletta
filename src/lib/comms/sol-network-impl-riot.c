@@ -66,7 +66,7 @@ sol_network_addr_to_str(const struct sol_network_link_addr *addr,
         SOL_INT_CHECK(err, < 0, NULL);
     }
 
-    r = ipv6_addr_to_str(sol_buffet_at_end(buf), (ipv6_addr_t *)&addr->addr,
+    r = ipv6_addr_to_str(sol_buffer_at_end(buf), (ipv6_addr_t *)&addr->addr,
         IPV6_ADDR_MAX_STR_LEN);
 
     if (r)
