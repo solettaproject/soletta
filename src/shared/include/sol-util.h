@@ -752,6 +752,161 @@ long int sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
 unsigned long int sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base);
 
 /**
+ * @brief Swaps the bytes of a 16 bytes unsigned int
+ */
+#define uint16_bytes_swap(val) \
+    ((uint16_t)((((val) >> 8) & 0xff) | (((val) & 0xff) << 8)))
+
+/**
+ * @brief Convert a 16 bytes integer to big endian format
+ *
+ * This function converts a integer of 16 bytes to big endian format, in case of
+ * the integer being in big endian format nothing is done.
+ *
+ * @param val the uint16_t number to convert.
+ *
+ * @return the given value on big endian format.
+ *
+ * @see sol_util_uint16_to_le
+ */
+static inline uint16_t
+sol_util_uint16_to_be(uint16_t val)
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    return uint16_bytes_swap(val);
+#endif
+
+    return val;
+}
+
+/**
+ * @brief Convert a 16 bytes integer to little endian format
+ *
+ * This function converts a integer of 16 bytes to little endian format, in case of
+ * the integer being in little endian format nothing is done.
+ *
+ * @param val the uint16_t number to convert.
+ *
+ * @return the given value on little endian format.
+ *
+ * @see sol_util_uint16_to_be
+ */
+static inline uint16_t
+sol_util_uint16_to_le(uint16_t val)
+{
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    return uint16_bytes_swap(val);
+#endif
+
+    return val;
+}
+
+/**
+ * @brief Swaps the bytes of a 32 bytes unsigned int
+ */
+#define uint32_bytes_swap(val) \
+    ((uint32_t)((((val) & 0xff000000) >> 24) | (((val) & 0x00ff0000) >>  8) | \
+    (((val) & 0x0000ff00) <<  8) | (((val) & 0x000000ff) << 24)))
+
+/**
+ * @brief Convert a 32 bytes integer to big endian format
+ *
+ * This function converts a integer of 32 bytes to big endian format, in case of
+ * the integer being in big endian format nothing is done.
+ *
+ * @param val the uint32_t number to convert.
+ *
+ * @return the given value on big endian format.
+ *
+ * @see sol_util_uint32_to_le
+ */
+static inline uint32_t
+sol_util_uint32_to_be(uint32_t val)
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    return uint32_bytes_swap(val);
+#endif
+
+    return val;
+}
+
+/**
+ * @brief Convert a 32 bytes integer to little endian format
+ *
+ * This function converts a integer of 32 bytes to little endian format, in case of
+ * the integer being in little endian format nothing is done.
+ *
+ * @param val the uint32_t number to convert.
+ *
+ * @return the given value on little endian format.
+ *
+ * @see sol_util_uint32_to_be
+ */
+static inline uint32_t
+sol_util_uint32_to_le(uint32_t val)
+{
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    return uint32_bytes_swap(val);
+#endif
+
+    return val;
+}
+
+/**
+ * @brief Swaps the bytes of a 32 bytes unsigned int
+ */
+#define uint64_bytes_swap(val) \
+    ((uint64_t)((((val) & 0xff00000000000000ull) >> 56) \
+    | (((val) & 0x00ff000000000000ull) >> 40) | (((val) & 0x0000ff0000000000ull) >> 24) \
+    | (((val) & 0x000000ff00000000ull) >> 8) | (((val) & 0x00000000ff000000ull) << 8) \
+    | (((val) & 0x0000000000ff0000ull) << 24) | (((val) & 0x000000000000ff00ull) << 40) \
+    | (((val) & 0x00000000000000ffull) << 56)))
+
+/**
+ * @brief Convert a 64 bytes integer to big endian format
+ *
+ * This function converts a integer of 64 bytes to big endian format, in case of
+ * the integer being in big endian format nothing is done.
+ *
+ * @param val the uint64_t number to convert.
+ *
+ * @return the given value on big endian format.
+ *
+ * @see sol_util_uint64_to_le
+ */
+static inline uint64_t
+sol_util_uint64_to_be(uint64_t val)
+{
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    return uint64_bytes_swap(val);
+#endif
+
+    return val;
+}
+
+/**
+ * @brief Convert a 64 bytes integer to little endian format
+ *
+ * This function converts a integer of 64 bytes to little endian format, in case of
+ * the integer being in little endian format nothing is done.
+ *
+ * @param val the uint64_t number to convert.
+ *
+ * @return the given value on little endian format.
+ *
+ * @see sol_util_uint64_to_be
+ */
+static inline uint64_t
+sol_util_uint64_to_le(uint64_t val)
+{
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+    return uint64_bytes_swap(val);
+#endif
+
+    return val;
+}
+
+/**
  * @}
  */
 
