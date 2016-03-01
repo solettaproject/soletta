@@ -62,18 +62,6 @@ static struct sol_ptr_vector pending_writes = SOL_PTR_VECTOR_INIT;
 static const int EFIVARS_DEFAULT_ATTR = 0x7;
 
 static bool
-check_realpath(const char *path)
-{
-    char real_path[PATH_MAX];
-
-    if (realpath(path, real_path)) {
-        return strstartswith(real_path, EFIVARFS_VAR_DIR);
-    }
-
-    return false;
-}
-
-static bool
 perform_pending_write(void *data)
 {
     FILE *file = NULL;
@@ -97,17 +85,6 @@ perform_pending_write(void *data)
             sol_util_strerrora(errno));
         pending_write->status = -errno;
         goto callback;
-    }
-
-    if (!check_realpath(path)) {
-        /* At this point, a file on an invalid location may have been created.
-         * Should we care about it? Is there a 'realpath()' that doesn't need
-         * the file to exist? Or a string path santiser? */
-        SOL_WRN("Invalid pending_write->name for efivars persistence packet [%s]",
-            pending_write->name);
-        pending_write->status = -EINVAL;
-
-        goto close;
     }
 
     fwrite(&EFIVARS_DEFAULT_ATTR, sizeof(EFIVARS_DEFAULT_ATTR), 1, file);
@@ -232,10 +209,6 @@ sol_efivars_read_raw(const char *name, struct sol_buffer *buffer)
     r = snprintf(path, sizeof(path), EFIVARFS_VAR_PATH, name);
     if (r < 0 || r >= PATH_MAX) {
         SOL_WRN("Could not create path for efivars persistence file [%s]", path);
-        return -EINVAL;
-    }
-    if (!check_realpath(path)) {
-        SOL_WRN("Invalid name for efivars persistence packet [%s]", name);
         return -EINVAL;
     }
 
