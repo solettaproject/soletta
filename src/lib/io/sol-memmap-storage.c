@@ -282,13 +282,17 @@ check_version(struct map_internal *map_internal)
 
         /* No version on file, we should be initialising it */
         version = map_internal->map->api_version;
-        if (sol_memmap_write_raw_do(map_internal->resolved_path, MEMMAP_VERSION_ENTRY, entry, mask, blob, version_write_cb, NULL, NULL) < 0) {
-            SOL_WRN("Could not write current map version to file");
+        if ((ret = sol_memmap_write_raw_do(map_internal->resolved_path, MEMMAP_VERSION_ENTRY, entry, mask, blob, version_write_cb, NULL, NULL)) < 0) {
+            SOL_WRN("Could not write current map version to file [%s]: %s",
+                map_internal->resolved_path,
+                sol_util_strerrora(-ret));
             sol_blob_unref(blob);
             return false;
         }
     } else if (ret < 0) {
-        SOL_WRN("Could not read current map version");
+        SOL_WRN("Could not read current map version from file [%s]: %s",
+            map_internal->resolved_path,
+            sol_util_strerrora(-ret));
         return false;
     }
 
