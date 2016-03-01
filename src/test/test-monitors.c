@@ -354,5 +354,39 @@ custom_entry_type(void)
     sol_monitors_clear(ms);
 }
 
+DEFINE_TEST(infinite_loop_test);
+
+static void
+infinite_loop_cb(const void *data)
+{
+    static uint8_t counter = 0;
+    struct sol_monitors *ms = (struct sol_monitors *)data;
+    void *v;
+
+    counter++;
+
+    if (counter != 1)
+        ASSERT(1 == 2);
+
+    v = sol_monitors_append(ms, infinite_loop_cb, ms);
+    ASSERT(v);
+}
+
+static void
+infinite_loop_test(void)
+{
+    struct sol_monitors ms;
+    void *v;
+
+    sol_monitors_init(&ms, NULL);
+
+    v = sol_monitors_append(&ms, infinite_loop_cb, &ms);
+    ASSERT(v);
+
+    SOL_MONITORS_WALK_AND_CALLBACK(&ms);
+
+    sol_monitors_clear(&ms);
+}
+
 
 TEST_MAIN();
