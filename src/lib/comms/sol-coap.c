@@ -30,14 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #define SOL_LOG_DOMAIN &_sol_coap_log_domain
 #include "sol-log-internal.h"
@@ -171,7 +168,7 @@ sol_coap_header_get_id(const struct sol_coap_packet *pkt)
 {
     struct coap_header *hdr = (struct coap_header *)pkt->buf;
 
-    return ntohs(hdr->id);
+    return sol_util_be16_to_cpu(hdr->id);
 }
 
 SOL_API uint8_t
@@ -222,7 +219,7 @@ sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id)
 {
     struct coap_header *hdr = (struct coap_header *)pkt->buf;
 
-    hdr->id = htons(id);
+    hdr->id = sol_util_cpu_to_be16(id);
 }
 
 SOL_API void
@@ -812,7 +809,7 @@ sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap
     if (++c->age == UINT16_MAX)
         c->age = 2;
 
-    id = htons(c->age);
+    id = sol_util_cpu_to_be16(c->age);
 
     pkt = sol_coap_packet_new(NULL);
     SOL_NULL_CHECK(pkt, NULL);

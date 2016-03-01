@@ -39,6 +39,7 @@
 
 #include "sol-log.h"
 #include "sol-util-internal.h"
+#include "sol-util.h"
 #include "sol-vector.h"
 
 #include "coap.h"
@@ -84,7 +85,7 @@ decode_delta(int num, const uint8_t *buf, int16_t buflen, uint16_t *decoded)
         if (buflen < 2)
             return -EINVAL;
 
-        num = ntohs((uint16_t)*buf) + 269;
+        num = sol_util_be16_to_cpu((uint16_t)*buf) + 269;
         hdrlen += 2;
         break;
     case 15:
@@ -248,7 +249,7 @@ delta_encode(int num, uint8_t *value, uint8_t *buf, size_t buflen)
 
     *value = 14;
 
-    v = htons(num - 269);
+    v = sol_util_cpu_to_be16(num - 269);
     memcpy(buf, &v, sizeof(v));
 
     return 2;
