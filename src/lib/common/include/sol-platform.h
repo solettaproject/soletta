@@ -87,9 +87,10 @@ extern "C" {
 const char *sol_platform_get_board_name(void);
 
 /**
- * @brief Retrieves, in @a id, the machine-id present in the file system.
+ * @brief Retrieves the machine-id present in the file system as a string.
  *
- * The returned string is assured to be a valid, 16 bytes-long (128 bits) UUID.
+ * The returned string is assured to be a valid null terminated string with
+ * the 16 bytes-long (128 bits) UUID encoded as hexadecimal ASC characters.
  *
  * @note: If the environment variable SOL_MACHINE_ID is set and is
  * properly formatted as a UUID, its value is returned by this call.
@@ -98,6 +99,20 @@ const char *sol_platform_get_board_name(void);
  * modified. On error, it returns @c NULL.
  */
 const char *sol_platform_get_machine_id(void);
+
+/**
+ * @brief Retrieves the machine-id present in the file system as a byte array.
+ *
+ * The returned byte array is assured to be a 16 bytes-long (128 bits) array
+ * with the machine UUID.
+ *
+ * @note: If the environment variable SOL_MACHINE_ID is set and is
+ * properly formatted as a UUID byte array, its value is returned by this call.
+ *
+ * @return On success, it returns the machine id as a byte array, that must not
+ * be modified. On error, it returns @c NULL.
+ */
+const uint8_t *sol_platform_get_machine_id_bytes(void);
 
 /**
  * @brief Retrieves, in @a number, the platform's main board serial

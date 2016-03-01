@@ -274,7 +274,8 @@ _sol_oic_server_res(struct sol_coap_server *server,
     err = cbor_encoder_create_array(&encoder, &array, 1);
     err |= cbor_encoder_create_map(&array, &device_map, 2);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_DEVICE_ID);
-    err |= cbor_encode_byte_string(&device_map, get_machine_id(), 16);
+    err |= cbor_encode_byte_string(&device_map,
+        sol_platform_get_machine_id_bytes(), 16);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_RESOURCE_LINKS);
     err |= cbor_encoder_create_array(&device_map, &array_res,
         CborIndefiniteLength);
@@ -396,7 +397,8 @@ init_static_server_info(void)
     };
     struct sol_oic_server_information *info;
 
-    server_info.device_id = SOL_STR_SLICE_STR((const char *)get_machine_id(), 16);
+    server_info.device_id =
+        SOL_STR_SLICE_STR((const char *)sol_platform_get_machine_id_bytes(), 16);
 
     info = sol_util_memdup(&server_info, sizeof(*info));
     SOL_NULL_CHECK(info, NULL);
