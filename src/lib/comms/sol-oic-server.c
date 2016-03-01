@@ -181,47 +181,6 @@ static const struct sol_oic_resource_type oic_p_resource_type = {
     }
 };
 
-static unsigned int
-as_nibble(const char c)
-{
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
-
-    SOL_WRN("Invalid hex character: %d", c);
-    return 0;
-}
-
-static const uint8_t *
-get_machine_id(void)
-{
-    static uint8_t machine_id[16] = { 0 };
-    static bool machine_id_set = false;
-    const char *machine_id_buf;
-
-    if (SOL_UNLIKELY(!machine_id_set)) {
-        machine_id_buf = sol_platform_get_machine_id();
-
-        if (!machine_id_buf) {
-            SOL_WRN("Could not get machine ID");
-            memset(machine_id, 0xFF, sizeof(machine_id));
-        } else {
-            const char *p;
-            size_t i;
-
-            for (p = machine_id_buf, i = 0; i < 16; i++, p += 2)
-                machine_id[i] = as_nibble(*p) << 4 | as_nibble(*(p + 1));
-        }
-
-        machine_id_set = true;
-    }
-
-    return machine_id;
-}
-
 static CborError
 res_payload_do(CborEncoder *encoder,
     uint8_t *buf,
@@ -241,7 +200,8 @@ res_payload_do(CborEncoder *encoder,
     err = cbor_encoder_create_array(encoder, &array, 1);
     err |= cbor_encoder_create_map(&array, &device_map, 2);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_DEVICE_ID);
-    err |= cbor_encode_byte_string(&device_map, get_machine_id(), 16);
+    err |= cbor_encode_byte_string(&device_map,
+        sol_platform_get_machine_id_as_bytes(), 16);
     err |= cbor_encode_text_stringz(&device_map, SOL_OIC_KEY_RESOURCE_LINKS);
     err |= cbor_encoder_create_array(&device_map, &array_res,
         CborIndefiniteLength);
@@ -429,7 +389,8 @@ init_static_server_info(void)
     };
     struct sol_oic_server_information *info;
 
-    server_info.device_id = SOL_STR_SLICE_STR((const char *)get_machine_id(), 16);
+    server_info.device_id =
+        SOL_STR_SLICE_STR((const char *)sol_platform_get_machine_id_as_bytes(), 16);
 
     info = sol_util_memdup(&server_info, sizeof(*info));
     SOL_NULL_CHECK(info, NULL);
