@@ -1,3 +1,10 @@
+config TOOL_AIO
+    bool "sol-aio"
+    depends on USE_AIO
+    default y
+    help
+        Command line tool to manipulate Analog IO
+
 config TOOL_GPIO
     bool "sol-gpio"
     depends on USE_GPIO
