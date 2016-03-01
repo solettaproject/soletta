@@ -1,0 +1,6 @@
+config TOOL_AIO
+    bool "sol-aio"
+    depends on USE_AIO
+    default y
+    help
+        Command line tool to manipulate Analog IO
