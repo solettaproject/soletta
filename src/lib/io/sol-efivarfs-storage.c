@@ -180,6 +180,8 @@ sol_efivars_write_raw(const char *name, struct sol_blob *blob,
     if (sol_ptr_vector_append(&pending_writes, pending_write) < 0)
         goto error;
 
+    return 0;
+
 error:
     if (pending_write->blob)
         sol_blob_unref(blob);
