@@ -522,4 +522,40 @@ test_unicode_utf_conversion(void)
     }
 }
 
+DEFINE_TEST(test_escape_quotes);
+
+static void
+test_escape_quotes(void)
+{
+    static const struct {
+        const struct sol_str_slice input;
+        const struct sol_str_slice output;
+        int int_result;
+        bool check_output;
+    } escape_tests[] = {
+        { SOL_STR_SLICE_LITERAL("'Locale'"), SOL_STR_SLICE_LITERAL("Locale"), 0, true },
+        { SOL_STR_SLICE_LITERAL("\\'Locale\\'"), SOL_STR_SLICE_LITERAL("'Locale'"), 0, true },
+        { SOL_STR_SLICE_LITERAL("\"My String\""), SOL_STR_SLICE_LITERAL("My String"), 0, true },
+        { SOL_STR_SLICE_LITERAL("MyQuo\\\"tes"), SOL_STR_SLICE_LITERAL("MyQuo\"tes"), 0, true },
+        { SOL_STR_SLICE_LITERAL("MyQuo\\'tes2"), SOL_STR_SLICE_LITERAL("MyQuo'tes2"), 0, true },
+        { SOL_STR_SLICE_LITERAL("Remo've1"), SOL_STR_SLICE_LITERAL("Remove1"), 0, true },
+        { SOL_STR_SLICE_LITERAL("Remo\"ve2"), SOL_STR_SLICE_LITERAL("Remove2"), 0, true },
+        { SOL_STR_SLICE_LITERAL("Wrong\\a"), SOL_STR_SLICE_LITERAL(""), -EINVAL, false },
+        { SOL_STR_SLICE_LITERAL("Wrong\\ba"), SOL_STR_SLICE_LITERAL(""), -EINVAL, false },
+    };
+    size_t i;
+
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(escape_tests); i++) {
+        struct sol_buffer buf;
+        int r;
+
+        r = sol_util_escape_quotes(escape_tests[i].input, &buf);
+        ASSERT_INT_EQ(r, escape_tests[i].int_result);
+        if (escape_tests[i].check_output) {
+            ASSERT(sol_str_slice_eq(escape_tests[i].output, sol_buffer_get_slice(&buf)));
+            sol_buffer_fini(&buf);
+        }
+    }
+}
+
 TEST_MAIN();

@@ -970,12 +970,12 @@ sol_platform_impl_load_locales(char **locale_cache)
     }
 
     line = NULL;
-    r = -EINVAL;
     while (fscanf(f, "%m[^\n]\n", &line) != EOF) {
         sep = strchr(line, '=');
         if (!sep) {
             SOL_WRN("The locale entry: %s does not have the separator '='",
                 line);
+            r = -EINVAL;
             goto err_val;
         }
 
@@ -986,7 +986,11 @@ sol_platform_impl_load_locales(char **locale_cache)
 
         category = system_locale_to_sol_locale(key);
         if (category != SOL_PLATFORM_LOCALE_UNKNOWN) {
-            locale_cache[category] = sol_str_slice_to_string(value);
+            struct sol_buffer buf;
+
+            r = sol_util_escape_quotes(value, &buf);
+            SOL_INT_CHECK_GOTO(r, < 0, err_val);
+            locale_cache[category] = sol_buffer_steal_or_copy(&buf, NULL);
             SOL_NULL_CHECK_GOTO(locale_cache[category], err_nomem);
         }
         free(line);
