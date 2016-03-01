@@ -216,7 +216,7 @@ sol_efivars_read_raw(const char *name, struct sol_buffer *buffer)
 
     fd = open(path, O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
-        SOL_WRN("Could not open persistence file [%s]: %s", path,
+        SOL_INF("Could not open persistence file [%s]: %s", path,
             sol_util_strerrora(errno));
         return -errno;
     }

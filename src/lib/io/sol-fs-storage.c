@@ -181,7 +181,7 @@ sol_fs_read_raw(const char *name, struct sol_buffer *buffer)
 
     fd = open(name, O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
-        SOL_WRN("Could not open persistence file [%s]: %s", name,
+        SOL_INF("Could not open persistence file [%s]: %s", name,
             sol_util_strerrora(errno));
         return -errno;
     }
