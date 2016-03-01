@@ -3860,9 +3860,9 @@ sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
 
         k = 0;
         SOL_VECTOR_FOREACH_IDX (&tokens, token, j) {
+            char *end;
             if (j == 0)
                 continue;
-            char *end;
             path[k++] = sol_util_strtoul(token->data, &end, token->len, 10);
             r = errno;
             if (end == token->data || end != token->data + token->len ||
