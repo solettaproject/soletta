@@ -398,14 +398,15 @@ static int
 fill_client_objects(struct sol_lwm2m_client_info *cinfo,
     struct sol_coap_packet *req, bool update)
 {
-    uint8_t *buf;
-    uint16_t len, i;
-    int r;
-    bool has_content;
-    struct sol_vector objects;
-    struct sol_str_slice content, *object;
     struct sol_lwm2m_client_object *cobject;
+    struct sol_str_slice content, *object;
+    struct sol_vector objects;
+    struct sol_buffer *buf;
     uint16_t *instance;
+    bool has_content;
+    size_t offset;
+    uint16_t i;
+    int r;
 
 #define TO_INT(_data, _endptr, _len, _i, _label) \
     _i = sol_util_strtol(_data, &_endptr, _len, 10); \
@@ -433,12 +434,12 @@ fill_client_objects(struct sol_lwm2m_client_info *cinfo,
 
     client_objects_clear(&cinfo->objects);
 
-    r = sol_coap_packet_get_payload(req, &buf, &len);
+    r = sol_coap_packet_get_payload(req, &buf, &offset);
     SOL_INT_CHECK(r, < 0, r);
-    content.data = (const char *)buf;
-    content.len = len;
+    content.data = sol_buffer_at(buf, offset);
+    content.len = buf->used - offset;
 
-    SOL_DBG("Register payload content: %.*s", (int)len, buf);
+    SOL_DBG("Register payload content: %.*s", (int)content.len, content.data);
     objects = sol_str_slice_split(content, ",", 0);
 
     if (!objects.len) {
@@ -746,7 +747,8 @@ update_client(struct sol_coap_server *coap,
     dispatch_registration_event(cinfo->server, cinfo,
         SOL_LWM2M_REGISTRATION_EVENT_UPDATE);
 
-    sol_coap_header_set_code(response, SOL_COAP_RSPCODE_CHANGED);
+    r = sol_coap_header_set_code(response, SOL_COAP_RSPCODE_CHANGED);
+    SOL_INT_CHECK_GOTO(r, < 0, err_update);
     return sol_coap_send_packet(coap, response, cliaddr);
 
 err_update:
@@ -763,6 +765,7 @@ delete_client(struct sol_coap_server *coap,
 {
     struct sol_lwm2m_client_info *cinfo = data;
     struct sol_coap_packet *response;
+    int r;
 
     SOL_DBG("Client delete request (name: %s)", cinfo->name);
 
@@ -782,8 +785,13 @@ delete_client(struct sol_coap_server *coap,
     dispatch_registration_event(cinfo->server, cinfo,
         SOL_LWM2M_REGISTRATION_EVENT_UNREGISTER);
 
-    sol_coap_header_set_code(response, SOL_COAP_RSPCODE_DELETED);
+    r = sol_coap_header_set_code(response, SOL_COAP_RSPCODE_DELETED);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
     return sol_coap_send_packet(coap, response, cliaddr);
+
+err:
+    sol_coap_packet_unref(response);
+    return r;
 }
 
 static int
@@ -897,7 +905,8 @@ registration_request(struct sol_coap_server *coap,
         SOL_COAP_OPTION_LOCATION_PATH, cinfo->location, strlen(cinfo->location));
     SOL_INT_CHECK_GOTO(r, < 0, err_exit_unregister);
 
-    sol_coap_header_set_code(response, SOL_COAP_RSPCODE_CREATED);
+    r = sol_coap_header_set_code(response, SOL_COAP_RSPCODE_CREATED);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit_unregister);
 
     SOL_DBG("Client %s registered. Location: %s, SMS: %s, binding: %u,"
         " lifetime: %" PRIu32 " objects paths: %s",
@@ -1322,16 +1331,13 @@ static int
 set_packet_payload(struct sol_coap_packet *pkt,
     const uint8_t *data, uint16_t len)
 {
+    struct sol_buffer *buf;
     int r;
-    uint16_t payload_len;
-    uint8_t *payload;
 
-    r = sol_coap_packet_get_payload(pkt, &payload, &payload_len);
+    r = sol_coap_packet_get_payload(pkt, &buf, NULL);
     SOL_INT_CHECK(r, < 0, r);
-    SOL_INT_CHECK(len, > payload_len, -ENOMEM);
 
-    memcpy(payload, data, len);
-    return sol_coap_packet_set_payload_used(pkt, len);
+    return sol_buffer_append_bytes(buf, data, len);
 }
 
 static int
@@ -1501,12 +1507,13 @@ setup_coap_packet(sol_coap_method_t method,
         goto exit;
     }
 
-    if (!sol_coap_header_set_token(*pkt, (uint8_t *)&t,
-        (uint8_t)sizeof(int64_t))) {
+    r = sol_coap_header_set_token(*pkt, (uint8_t *)&t,
+        (uint8_t)sizeof(int64_t));
+    if (r < 0) {
         SOL_WRN("Could not set the token");
-        r = -ECANCELED;
         goto exit;
     }
+    SOL_DBG("Setting token as %" PRId64 ", len = %zu", t, sizeof(int64_t));
 
     if (token)
         *token = t;
@@ -1571,22 +1578,23 @@ static void
 extract_content(struct sol_coap_packet *req, uint8_t *code,
     enum sol_lwm2m_content_type *type, struct sol_str_slice *content)
 {
-    uint16_t len;
-    uint8_t *buf;
+    struct sol_buffer *buf;
+    size_t offset;
     int r;
 
     *code = sol_coap_header_get_code(req);
 
-    if (sol_coap_packet_has_payload(req)) {
-        r = sol_coap_packet_get_payload(req, &buf, &len);
-        SOL_INT_CHECK(r, < 0);
-        content->len = len;
-        content->data = (const char *)buf;
-        r = get_coap_int_option(req, SOL_COAP_OPTION_CONTENT_FORMAT,
-            (uint16_t *)type);
-        if (r < 0)
-            SOL_INF("Content format not specified");
-    }
+    if (!sol_coap_packet_has_payload(req))
+        return;
+
+    r = sol_coap_packet_get_payload(req, &buf, &offset);
+    SOL_INT_CHECK(r, < 0);
+    content->len = buf->used - offset;
+    content->data = sol_buffer_at(buf, offset);
+    r = get_coap_int_option(req, SOL_COAP_OPTION_CONTENT_FORMAT,
+        (uint16_t *)type);
+    if (r < 0)
+        SOL_INF("Content format not specified");
 }
 
 static bool
@@ -2783,15 +2791,18 @@ send_notification_pkt(struct sol_lwm2m_client *client,
     int32_t resource_id, struct sol_coap_resource *resource)
 {
     struct sol_coap_packet *pkt;
-    uint8_t r;
+    uint8_t ret;
+    int r;
 
     pkt = sol_coap_packet_notification_new(client->coap_server, resource);
     SOL_NULL_CHECK(pkt, false);
 
-    sol_coap_header_set_type(pkt, SOL_COAP_TYPE_CON);
-    sol_coap_header_set_code(pkt, SOL_COAP_RSPCODE_CHANGED);
-    r = handle_read(client, obj_ctx, obj_instance, resource_id, pkt);
-    SOL_INT_CHECK_GOTO(r, != SOL_COAP_RSPCODE_CONTENT, err_exit);
+    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_CON);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    r = sol_coap_header_set_code(pkt, SOL_COAP_RSPCODE_CHANGED);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    ret = handle_read(client, obj_ctx, obj_instance, resource_id, pkt);
+    SOL_INT_CHECK_GOTO(ret, != SOL_COAP_RSPCODE_CONTENT, err_exit);
 
     return sol_coap_packet_send_notification(client->coap_server,
         resource, pkt) == 0;
@@ -2928,13 +2939,14 @@ handle_resource(struct sol_coap_server *server,
         obj_instance = find_object_instance_by_instance_id(obj_ctx, path[1]);
 
     if (sol_coap_packet_has_payload(req)) {
-        uint8_t *args;
-        uint16_t args_len;
-        r = sol_coap_packet_get_payload(req, &args, &args_len);
+        struct sol_buffer *buf;
+        size_t offset;
+
+        r = sol_coap_packet_get_payload(req, &buf, &offset);
         header_code = SOL_COAP_RSPCODE_BAD_REQUEST;
         SOL_INT_CHECK_GOTO(r, < 0, exit);
-        payload.len = args_len;
-        payload.data = (char *)args;
+        payload.len = buf->used - offset;
+        payload.data = sol_buffer_at(buf, offset);
     }
 
     method = sol_coap_header_get_code(req);
@@ -3480,13 +3492,12 @@ static int
 register_with_server(struct sol_lwm2m_client *client,
     struct server_conn_ctx *conn_ctx, bool is_update)
 {
-    struct sol_coap_packet *pkt;
-    struct sol_str_slice binding = SOL_STR_SLICE_EMPTY;
     struct sol_buffer query = SOL_BUFFER_INIT_EMPTY, objs_payload;
     uint8_t format = SOL_COAP_CONTENTTYPE_APPLICATION_LINKFORMAT;
+    struct sol_str_slice binding = SOL_STR_SLICE_EMPTY;
+    struct sol_coap_packet *pkt;
+    struct sol_buffer *buf;
     int r;
-    uint16_t len;
-    uint8_t *buf;
 
 #define ADD_QUERY(_key, _format, _value) \
     do { \
@@ -3530,12 +3541,10 @@ register_with_server(struct sol_lwm2m_client *client,
     if (client->sms)
         ADD_QUERY("sms", "%s", client->sms);
 
-    r = sol_coap_packet_get_payload(pkt, &buf, &len);
+    r = sol_coap_packet_get_payload(pkt, &buf, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, err_coap);
-    SOL_INT_CHECK_GOTO(len, < objs_payload.used, err_coap);
 
-    memcpy(buf, objs_payload.data, objs_payload.used);
-    r = sol_coap_packet_set_payload_used(pkt, objs_payload.used);
+    r = sol_buffer_append_bytes(buf, objs_payload.data, objs_payload.used);
     SOL_INT_CHECK_GOTO(r, < 0, err_coap);
 
     conn_ctx->registration_time = time(NULL);

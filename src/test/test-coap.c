@@ -50,12 +50,15 @@ test_coap_parse_empty_pdu(void)
 {
     uint8_t pdu[] = { 0x40, 0x01, 0, 0 };
     struct sol_coap_packet *pkt;
+    struct sol_buffer *buf;
+    size_t offset;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
 
-    memcpy(pkt->buf, pdu, sizeof(pdu));
-    pkt->payload.size = sizeof(pdu);
+    ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
+    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(!coap_packet_parse(pkt));
 
@@ -76,18 +79,20 @@ test_coap_parse_simple_pdu(void)
     uint8_t pdu[] = { 0x55, 0xA5, 0x12, 0x34, 't', 'o', 'k', 'e',
                       'n',  0x00, 0xc1, 0x00, 0xff, 'p', 'a', 'y',
                       'l', 'o', 'a', 'd', 0x00 };
-    struct sol_coap_packet *pkt;
     struct sol_str_slice options[16];
-    uint8_t *payload, *token;
-    uint16_t len;
+    struct sol_coap_packet *pkt;
+    struct sol_buffer *buf;
+    uint8_t *token;
     int count = 16;
+    size_t offset;
     uint8_t tkl;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
 
-    memcpy(pkt->buf, pdu, sizeof(pdu));
-    pkt->payload.size = sizeof(pdu);
+    ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
+    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(!coap_packet_parse(pkt));
 
@@ -111,9 +116,9 @@ test_coap_parse_simple_pdu(void)
     count = sol_coap_find_options(pkt, SOL_COAP_OPTION_ETAG, options, count);
     ASSERT_INT_EQ(count, 0);
 
-    ASSERT(!sol_coap_packet_get_payload(pkt, &payload, &len));
-    ASSERT_INT_EQ(len, sizeof("payload"));
-    ASSERT(!strcmp((char *)payload, "payload"));
+    ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
+    ASSERT_INT_EQ(offset + sizeof("payload"), buf->used);
+    ASSERT(!strcmp((char *)buf->data + offset, "payload"));
 
     sol_coap_packet_unref(pkt);
 }
@@ -126,17 +131,21 @@ test_coap_parse_illegal_token_length(void)
 {
     uint8_t pdu[] = { 0x59, 0x69, 0x12, 0x34, 't', 'o', 'k', 'e', 'n', '1', '2', '3', '4' };
     struct sol_coap_packet *pkt;
+    struct sol_buffer *buf;
+    size_t offset;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
 
-    memcpy(pkt->buf, pdu, sizeof(pdu));
-    pkt->payload.size = sizeof(pdu);
+    ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
+    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(coap_packet_parse(pkt));
 
     pdu[0] = 0x5f;
-    memcpy(pkt->buf, pdu, sizeof(pdu));
+    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(coap_packet_parse(pkt));
 
@@ -151,12 +160,15 @@ test_coap_parse_options_that_exceed_pdu(void)
 {
     uint8_t pdu[] = { 0x55, 0x73, 0x12, 0x34, 't', 'o', 'k', 'e', 'n', 0x00, 0xc1, 0x00, 0xae, 0xf0, 0x03 };
     struct sol_coap_packet *pkt;
+    struct sol_buffer *buf;
+    size_t offset;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
 
-    memcpy(pkt->buf, pdu, sizeof(pdu));
-    pkt->payload.size = sizeof(pdu);
+    ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
+    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(coap_packet_parse(pkt));
     sol_coap_packet_unref(pkt);
@@ -170,12 +182,15 @@ test_coap_parse_without_options_with_payload(void)
 {
     uint8_t pdu[] = { 0x50, 0x73, 0x12, 0x34, 0xff, 'p', 'a', 'y', 'l', 'o', 'a', 'd' };
     struct sol_coap_packet *pkt;
+    struct sol_buffer *buf;
+    size_t offset;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
 
-    memcpy(pkt->buf, pdu, sizeof(pdu));
-    pkt->payload.size = sizeof(pdu);
+    ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
+    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(!coap_packet_parse(pkt));
 
@@ -189,21 +204,19 @@ static void
 test_coap_payload_simple(void)
 {
     uint8_t pdu[] = { 0x50, 0x73, 0x12, 0x34, 0xff, 'p', 'a', 'y', 'l', 'o', 'a', 'd', 0x00 };
-    uint16_t payload_length;
-    uint8_t *payload_ptr;
     struct sol_coap_packet *pkt;
+    struct sol_buffer *buf;
+    size_t offset;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
 
-    memcpy(pkt->buf, pdu, sizeof(pdu));
-    pkt->payload.size = sizeof(pdu);
+    ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
+    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
-    ASSERT(!sol_coap_packet_get_payload(pkt, &payload_ptr, &payload_length));
-
-    ASSERT(payload_ptr);
-    ASSERT_INT_EQ(payload_length, sizeof("payload"));
-    ASSERT(streq((char *)payload_ptr, "payload"));
+    ASSERT_INT_EQ(buf->used - offset, sizeof("payload"));
+    ASSERT(streq((char *)buf->data + offset, "payload"));
 
     ASSERT(!coap_packet_parse(pkt));
 
@@ -224,12 +237,12 @@ test_coap_token_simple(void)
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
 
-    sol_coap_header_set_token(pkt, token, sizeof(token));
+    ASSERT(!sol_coap_header_set_token(pkt, token, sizeof(token)));
 
     token_ptr = sol_coap_header_get_token(pkt, &token_length);
     ASSERT(token_ptr);
     ASSERT_INT_EQ(token_length, sizeof(token));
-    ASSERT(streqn((char *)token_ptr, "token", sizeof("token")));
+    ASSERT(streqn((char *)token_ptr, (char *)token, sizeof(token)));
 
     ASSERT(!coap_packet_parse(pkt));
 
@@ -244,15 +257,18 @@ test_coap_find_options(void)
 {
     uint8_t pdu[] = { 0x55, 0xA5, 0x12, 0x34, 't', 'o', 'k', 'e', 'n',
                       0x00, 0xC1, 0x00, 0xff, 'p', 'a', 'y', 'l', 'o', 'a', 'd', 0x00 };
-    struct sol_coap_packet *pkt;
     struct sol_str_slice options[16];
+    struct sol_coap_packet *pkt;
+    struct sol_buffer *buf;
     int count = 16;
+    size_t offset;
 
     pkt = sol_coap_packet_new(NULL);
     ASSERT(pkt);
 
-    memcpy(pkt->buf, pdu, sizeof(pdu));
-    pkt->payload.size = sizeof(pdu);
+    ASSERT(!sol_coap_packet_get_payload(pkt, &buf, &offset));
+    ASSERT(!sol_buffer_remove_data(buf, offset, 0));
+    ASSERT(!sol_buffer_insert_bytes(buf, 0, pdu, sizeof(pdu)));
 
     ASSERT(!coap_packet_parse(pkt));
 
