@@ -86,7 +86,7 @@ read_cb(void *cb_data, struct sol_aio *aio, int32_t ret)
     if (i.val < 0) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
             "AIO (%s): Failed on read operation: %s.", mdata->pin,
-            sol_util_strerrora(i.val));
+            sol_util_strerrora(-i.val));
         return;
     }
 
