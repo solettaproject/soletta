@@ -38,6 +38,8 @@
 
 #define SOL_LOG_DOMAIN &_lwm2m_domain
 
+#include "sol-coap-transport.h"
+#include "sol-coap-transport-ip.h"
 #include "sol-log-internal.h"
 #include "sol-util-internal.h"
 #include "sol-list.h"
@@ -163,6 +165,7 @@ struct lifetime_ctx {
 
 struct sol_lwm2m_server {
     struct sol_coap_server *coap;
+    struct sol_coap_transport *transport;
     struct sol_ptr_vector clients;
     struct sol_ptr_vector clients_to_delete;
     struct sol_monitors registration;
@@ -240,6 +243,7 @@ struct obj_ctx {
 
 struct sol_lwm2m_client {
     struct sol_coap_server *coap_server;
+    struct sol_coap_transport *coap_transport;
     struct lifetime_ctx lifetime_ctx;
     struct sol_vector connections;
     struct sol_vector objects;
@@ -1036,7 +1040,9 @@ sol_lwm2m_server_new(uint16_t port)
     server = calloc(1, sizeof(struct sol_lwm2m_server));
     SOL_NULL_CHECK(server, NULL);
 
-    server->coap = sol_coap_server_new(&servaddr);
+    server->transport = sol_coap_transport_ip_new(&servaddr);
+    SOL_NULL_CHECK_GOTO(server->transport, err_transport);
+    server->coap = sol_coap_server_new(server->transport);
     SOL_NULL_CHECK_GOTO(server->coap, err_coap);
 
     sol_ptr_vector_init(&server->clients);
@@ -1053,6 +1059,8 @@ sol_lwm2m_server_new(uint16_t port)
 err_register:
     sol_coap_server_unref(server->coap);
 err_coap:
+    sol_coap_transport_ip_del(server->transport);
+err_transport:
     free(server);
     return NULL;
 }
@@ -1070,6 +1078,7 @@ sol_lwm2m_server_del(struct sol_lwm2m_server *server)
         entry->removed = true;
 
     sol_coap_server_unref(server->coap);
+    sol_coap_transport_ip_del(server->transport);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&server->clients, cinfo, i)
         client_info_del(cinfo);
@@ -3104,7 +3113,9 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
         SOL_NULL_CHECK_GOTO(client->sms, err_sms);
     }
 
-    client->coap_server = sol_coap_server_new(&servaddr);
+    client->coap_transport = sol_coap_transport_ip_new(&servaddr);
+    SOL_NULL_CHECK_GOTO(client->coap_transport, err_transport);
+    client->coap_server = sol_coap_server_new(client->coap_transport);
     SOL_NULL_CHECK_GOTO(client->coap_server, err_coap);
 
     client->user_data = data;
@@ -3112,6 +3123,8 @@ sol_lwm2m_client_new(const char *name, const char *path, const char *sms,
     return client;
 
 err_coap:
+    sol_coap_transport_ip_del(client->coap_transport);
+err_transport:
     free(client->sms);
 err_sms:
     free(client->name);
@@ -3188,6 +3201,7 @@ sol_lwm2m_client_del(struct sol_lwm2m_client *client)
     client->removed = true;
 
     sol_coap_server_unref(client->coap_server);
+    sol_coap_transport_ip_del(client->coap_transport);
 
     SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i)
         obj_ctx_clear(client, ctx);

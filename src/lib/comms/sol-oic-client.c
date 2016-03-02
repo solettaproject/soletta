@@ -38,6 +38,8 @@
 
 #include "cbor.h"
 #include "sol-coap.h"
+#include "sol-coap-transport.h"
+#include "sol-coap-transport-ip.h"
 #include "sol-log-internal.h"
 #include "sol-macros.h"
 #include "sol-mainloop.h"
@@ -71,7 +73,9 @@
 
 struct sol_oic_client {
     struct sol_coap_server *server;
+    struct sol_coap_transport *transport;
     struct sol_coap_server *dtls_server;
+    struct sol_coap_transport *dtls_transport;
 };
 
 struct find_resource_ctx {
@@ -1125,21 +1129,33 @@ sol_oic_client_new(void)
 
     SOL_NULL_CHECK(client, NULL);
 
-    client->server = sol_coap_server_new(&servaddr);
+    client->transport = sol_coap_transport_ip_new(&servaddr);
+    SOL_NULL_CHECK_GOTO(client->transport, error_create_transport);
+
+    client->server = sol_coap_server_new(client->transport);
     SOL_NULL_CHECK_GOTO(client->server, error_create_server);
 
-    client->dtls_server = sol_coap_secure_server_new(&servaddr);
-    if (!client->dtls_server) {
-        SOL_INT_CHECK_GOTO(errno, != ENOSYS, error_create_dtls_server);
+    client->dtls_transport = sol_coap_transport_ip_secure_new(&servaddr);
+    if (!client->dtls_transport) {
+        SOL_INT_CHECK_GOTO(errno, != ENOSYS, error_create_dtls_transport);
         SOL_INF("DTLS support not built-in, only making non-secure requests");
+    } else {
+        client->dtls_server = sol_coap_server_new(client->dtls_transport);
+        SOL_NULL_CHECK_GOTO(client->dtls_server, error_create_dtls_server);
     }
 
     return client;
 
 error_create_dtls_server:
+    sol_coap_transport_ip_del(client->dtls_transport);
+
+error_create_dtls_transport:
     sol_coap_server_unref(client->server);
 
 error_create_server:
+    sol_coap_transport_ip_del(client->transport);
+
+error_create_transport:
     sol_util_secure_clear_memory(client, sizeof(*client));
     free(client);
 
