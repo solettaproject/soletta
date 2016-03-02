@@ -247,13 +247,13 @@ sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct
     }
 
     memcpy(buf, item->buffer.data, len);
-    sol_util_secure_clear_memory(item->buffer.data, len);
 
     buf_copy = sol_util_memdup((const char *)item->buffer.data + len,
         item->buffer.used - len);
     SOL_NULL_CHECK_GOTO(buf_copy, clear_buf);
 
-    sol_buffer_init_flags(&new_buf, buf_copy, len, SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    sol_buffer_init_flags(&new_buf, buf_copy, len,
+        SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
     new_buf.used = item->buffer.used - len;
 
     sol_buffer_fini(&item->buffer);
@@ -286,7 +286,8 @@ sol_socket_dtls_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
     SOL_NULL_CHECK(item, -ENOMEM);
 
     item->addr = *cliaddr;
-    sol_buffer_init_flags(&item->buffer, buf_copy, len, SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+    sol_buffer_init_flags(&item->buffer, buf_copy, len,
+        SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
     item->buffer.used = len;
 
     encrypt_payload(s);
@@ -373,7 +374,7 @@ call_user_read_cb(struct dtls_context_t *ctx, session_t *session, uint8_t *buf, 
 
     item->addr = addr;
     sol_buffer_init_flags(&item->buffer, buf_copy, len,
-        SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+        SOL_BUFFER_FLAGS_CLEAR_MEMORY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
     item->buffer.used = len;
 
     if (!socket->read.cb) {
@@ -430,7 +431,6 @@ encrypt_payload(struct sol_socket_dtls *s)
     else
         SOL_DBG("Sent everything, will remove from queue");
 
-    sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
     sol_buffer_fini(&item->buffer);
     sol_util_secure_clear_memory(item, sizeof(*item));
     sol_vector_del(&s->write.queue, 0);
