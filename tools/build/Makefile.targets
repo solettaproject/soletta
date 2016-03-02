@@ -217,3 +217,10 @@ check-bindings-nodejs: bindings-nodejs
 PHONY += check-bindings-nodejs
 
 endif #neq($(USE_NODEJS),)
+
+ifneq ($(USE_PYTHON),)
+
+modules-out += bindings-python
+PHONY += bindings-python
+
+endif #neq($(USE_PYTHON),)

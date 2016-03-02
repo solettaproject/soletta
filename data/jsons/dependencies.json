@@ -533,6 +533,16 @@
       "exec": "npm"
     },
     {
+      "dependency" : "cython3",
+      "type" : "exec",
+      "exec" : "cython3"
+    },
+    {
+      "dependency" : "python3",
+      "type" : "exec",
+      "exec" : "python3"
+    },
+    {
       "dependency": "chrpath",
       "type": "exec",
       "exec": "chrpath"
@@ -662,6 +672,11 @@
       "dependency": "libkmod",
       "type": "pkg-config",
       "pkgname": "libkmod"
+    },
+    {
+      "dependency": "libpython3",
+      "type": "pkg-config",
+      "pkgname": "python3"
     },
     {
       "dependency": "libmagic",
