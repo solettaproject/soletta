@@ -311,7 +311,7 @@ to_c_symbol(const char *str, struct sol_buffer *buf)
 
     if (buf->used == 0) {
         sol_buffer_init_flags(buf, (char *)str, p - str,
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         buf->used = buf->capacity;
     } else if (start < p) {
         struct sol_str_slice slice = {

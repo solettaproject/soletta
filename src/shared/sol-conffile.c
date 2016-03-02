@@ -97,7 +97,7 @@ _convert_and_get_token_string(const struct sol_json_token *token, struct sol_buf
 {
     if (sol_json_token_get_type(token) != SOL_JSON_TYPE_STRING) {
         sol_buffer_init_flags(buffer, (char *)token->start,
-            sol_json_token_get_size(token), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            sol_json_token_get_size(token), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         buffer->used = buffer->capacity;
         return 0;
     }
