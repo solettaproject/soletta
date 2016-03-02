@@ -165,7 +165,7 @@ sol_http_encode_slice(struct sol_buffer *buf, const struct sol_str_slice value)
 
     if (!last_append) {
         sol_buffer_init_flags(buf, (char *)value.data, value.len,
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         buf->used = buf->capacity;
     } else if (last_append != value.len) {
         r = sol_buffer_append_slice(buf,
@@ -225,7 +225,7 @@ sol_http_decode_slice(struct sol_buffer *buf,
 
     if (!last_append) {
         sol_buffer_init_flags(buf, (char *)value.data, value.len,
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         buf->used = buf->capacity;
     } else if (last_append != value.len) {
         r = sol_buffer_append_slice(buf,

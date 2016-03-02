@@ -1330,7 +1330,7 @@ sol_json_token_get_unescaped_string(const struct sol_json_token *token, struct s
 
     if (start == token->start + 1) {
         sol_buffer_init_flags(buffer, (char *)start, p - start,
-            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+            SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         buffer->used = buffer->capacity;
     } else {
         struct sol_str_slice slice = { .data = start, .len = p - start };
