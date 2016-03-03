@@ -273,11 +273,17 @@
       ]
     },
     {
+      "dependency": "zephyr_micro",
+      "type": "ccode",
+      "fragment": "#ifndef CONFIG_MICROKERNEL\n#error \"Microkernel not supported\"\n#endif\n"
+    },
+    {
       "dependency": "zephyr",
       "type": "ccode",
       "headers": [
-        "<microkernel.h>"
-      ]
+        "<nanokernel.h>"
+      ],
+      "fragment": "#if !defined(CONFIG_MICROKERNEL) && !defined(CONFIG_NANO_TIMEOUTS)\n#error \"Nanokernel build requires CONFIG_NANO_TIMEOUTS to be enabled\"\n#endif\n"
     },
     {
       "dependency": "dlfcn_h",

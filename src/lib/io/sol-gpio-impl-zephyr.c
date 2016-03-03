@@ -87,7 +87,7 @@ sol_gpio_interrupt_process(void *data)
 static void
 gpio_isr_cb(struct device *port, uint32_t pin)
 {
-    struct mainloop_wake_data w = {
+    struct mainloop_event w = {
         .cb = sol_gpio_interrupt_process,
         .data = NULL
     };
@@ -97,7 +97,7 @@ gpio_isr_cb(struct device *port, uint32_t pin)
     if (!atomic_cas(&int_flag, 0, 1))
         return;
 
-    sol_mainloop_wakeup(&w);
+    sol_mainloop_event_post(&w);
 }
 
 SOL_API struct sol_gpio *
