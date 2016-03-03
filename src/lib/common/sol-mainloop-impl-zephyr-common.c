@@ -31,19 +31,22 @@
  */
 
 #include <stdbool.h>
-#include <stdlib.h>
-#include <unistd.h>
 
-/* Zephyr headers */
-#include <microkernel.h>
+#include <nanokernel.h>
 
 #include "sol-mainloop-common.h"
 #include "sol-mainloop-impl.h"
 #include "sol-mainloop-zephyr.h"
-#include "sol-vector.h"
 
-#define PIPE_BUFFER_SIZE 32
-DEFINE_PIPE(_sol_mainloop_pipe, PIPE_BUFFER_SIZE)
+static nano_thread_id_t main_thread_id;
+
+int
+sol_mainloop_zephyr_common_init(void)
+{
+    main_thread_id = sys_thread_self_get();
+
+    return 0;
+}
 
 void
 sol_mainloop_impl_lock(void)
@@ -58,18 +61,18 @@ sol_mainloop_impl_unlock(void)
 bool
 sol_mainloop_impl_main_thread_check(void)
 {
-    return true;
+    return main_thread_id == sys_thread_self_get();
 }
 
 void
 sol_mainloop_impl_main_thread_notify(void)
 {
-}
+    struct mainloop_event me = {
+        .cb = NULL,
+        .data = NULL
+    };
 
-int
-sol_mainloop_impl_platform_init(void)
-{
-    return 0;
+    sol_mainloop_event_post(&me);
 }
 
 void
@@ -96,33 +99,12 @@ ticks_until_next_timeout(void)
 void
 sol_mainloop_impl_iter(void)
 {
-    char buf[PIPE_BUFFER_SIZE];
-    struct mainloop_wake_data *p;
     int32_t sleeptime;
-    int bytes_read, count, ret;
 
     sol_mainloop_common_timeout_process();
 
     sleeptime = ticks_until_next_timeout();
-    ret = task_pipe_get(_sol_mainloop_pipe, buf, PIPE_BUFFER_SIZE, &bytes_read,
-            0, sleeptime);
-
-    if (ret == RC_OK) {
-        p = (struct mainloop_wake_data *)buf;
-        count = bytes_read / sizeof(*p);
-        while (count) {
-            p->cb((void *)p->data);
-            count--;
-            p++;
-        }
-    }
+    sol_mainloop_events_process(sleeptime);
 
     sol_mainloop_common_idler_process();
-}
-
-int
-sol_mainloop_wakeup(const struct mainloop_wake_data *mwd)
-{
-    int bytes_written;
-    return task_pipe_put(_sol_mainloop_pipe, (void *)mwd, sizeof(*mwd), &bytes_written, 0, TICKS_NONE);
 }

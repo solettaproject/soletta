@@ -54,7 +54,13 @@ obj-core-$(MAINLOOP_CONTIKI) += \
 
 obj-core-$(MAINLOOP_ZEPHYR) += \
     sol-mainloop-common.o \
-    sol-mainloop-impl-zephyr.o
+    sol-mainloop-impl-zephyr-common.o
+
+obj-core-$(MAINLOOP_ZEPHYR_NANO) += \
+    sol-mainloop-impl-zephyr-nano.o
+
+obj-core-$(MAINLOOP_ZEPHYR_MICRO) += \
+    sol-mainloop-impl-zephyr-micro.o
 
 obj-core-$(PLATFORM_LINUX_MICRO) += \
     sol-platform-impl-linux-micro.o
