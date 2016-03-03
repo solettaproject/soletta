@@ -248,17 +248,16 @@ common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     struct sol_flow_node_type_http_client_boolean_options *opts =
         (struct sol_flow_node_type_http_client_boolean_options *)options;
 
+    mdata->machine_id = opts->machine_id;
+    sol_ptr_vector_init(&mdata->pending_conns);
+
     sol_http_params_init(&mdata->url_params);
 
-    if (opts->url) {
+    if (opts->url && opts->url[0] != '\0') {
         r = set_basic_url_info(mdata, opts->url);
         SOL_INT_CHECK(r, < 0, r);
+        get_key(mdata);
     }
-
-    mdata->machine_id = opts->machine_id;
-
-    get_key(mdata);
-    sol_ptr_vector_init(&mdata->pending_conns);
 
     return 0;
 }
@@ -365,7 +364,10 @@ common_get_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
     struct http_data *mdata = data;
     struct sol_http_client_connection *connection;
 
-    SOL_NULL_CHECK(mdata->url, -EINVAL);
+    if (!mdata->url) {
+        sol_flow_send_error_packet_str(node, ENOENT, "Missing URL");
+        return -ENOENT;
+    }
 
     sol_http_params_init(&params);
     if (!sol_http_param_add(&params,

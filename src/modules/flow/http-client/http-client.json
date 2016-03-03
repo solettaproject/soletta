@@ -30,7 +30,8 @@
           {
             "data_type": "string",
             "description": "The url that will be used on request and posts",
-            "name": "url"
+            "name": "url",
+            "default": null
           },
           {
             "data_type": "boolean",
@@ -100,7 +101,8 @@
           {
             "data_type": "string",
             "description": "The url that will be used on request and posts",
-            "name": "url"
+            "name": "url",
+            "default": null
           },
           {
             "data_type": "boolean",
@@ -170,7 +172,8 @@
           {
             "data_type": "string",
             "description": "The url that will be used on request and posts",
-            "name": "url"
+            "name": "url",
+            "default": null
           },
           {
             "data_type": "boolean",
@@ -240,7 +243,8 @@
           {
             "data_type": "string",
             "description": "The url that will be used on request and posts",
-            "name": "url"
+            "name": "url",
+            "default": null
           },
           {
             "data_type": "boolean",
@@ -312,7 +316,8 @@
             "data_type": "string",
             "default": null,
             "description": "The url to make a GET request",
-            "name": "url"
+            "name": "url",
+            "default": null
           },
           {
             "data_type": "boolean",
@@ -392,7 +397,8 @@
             "data_type": "string",
             "default": null,
             "description": "The url to make a GET request",
-            "name": "url"
+            "name": "url",
+            "default": null
           },
           {
             "data_type": "boolean",
@@ -472,7 +478,8 @@
             "data_type": "string",
             "default": null,
             "description": "The URL to make a GET request",
-            "name": "url"
+            "name": "url",
+            "default": null
           },
           {
             "data_type": "boolean",
