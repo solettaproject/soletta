@@ -9,7 +9,7 @@
   "types": [
     {
       "category": "output/network",
-      "description": "HTTP Server for boolean",
+      "description": "HTTP Server for boolean. It will store the value received in the input port 'IN' and upon HTTP requests to server at 'port' option and the path specified at 'path' will return such value for GET method, and set the value on 'POST', in this case the new value will be sent on the 'OUT' port if it changed. The HTTP methods may change the content-type by providing 'Accept: application/json' header. POST should provide payload value=true or value=false.",
       "methods": {
         "close": "common_close",
         "open": "common_open"
@@ -69,7 +69,7 @@
       "out_ports": [
 	{
           "data_type": "boolean",
-          "description": "The value received on a POST",
+          "description": "The value received on a POST or input port 'IN'. Packets are only emitted when the value change, so it is safe to use in feedback loops such as with persistence nodes.",
           "name": "OUT"
         }
       ],
@@ -78,7 +78,7 @@
     },
     {
       "category": "output/network",
-      "description": "HTTP Server for string",
+      "description": "HTTP Server for string. It will store the value received in the input port 'IN' and upon HTTP requests to server at 'port' option and the path specified at 'path' will return such value for GET method, and set the value on 'POST', in this case the new value will be sent on the 'OUT' port if it changed. The HTTP methods may change the content-type by providing 'Accept: application/json' header. POST should provide payload in the format value=urlencoded+string",
       "methods": {
         "close": "string_close",
         "open": "string_open"
@@ -138,7 +138,7 @@
       "out_ports": [
 	{
           "data_type": "string",
-          "description": "The value received on a POST",
+          "description": "The value received on a POST or input port 'IN'. Packets are only emitted when the value change, so it is safe to use in feedback loops such as with persistence nodes.",
           "name": "OUT"
         }
       ],
@@ -147,7 +147,7 @@
     },
     {
       "category": "output/network",
-      "description": "HTTP Server for integer",
+      "description": "HTTP Server for integer. It will store the value received in the input port 'IN' and upon HTTP requests to server at 'port' option and the path specified at 'path' will return such value for GET method, and set the value on 'POST', in this case the new value will be sent on the 'OUT' port if it changed. The HTTP methods may change the content-type by providing 'Accept: application/json' header. POST should provide payload in the format value=1&min=0&max=100&step=1 or a subset of parameters.",
       "methods": {
         "close": "common_close",
         "open": "int_open"
@@ -217,7 +217,7 @@
       "out_ports": [
 	{
           "data_type": "int",
-          "description": "The value received on a POST",
+          "description": "The value received on a POST or input port 'IN'. Packets are only emitted when the value change, so it is safe to use in feedback loops such as with persistence nodes.",
           "name": "OUT"
         }
       ],
@@ -226,7 +226,7 @@
     },
     {
       "category": "output/network",
-      "description": "HTTP Server for float",
+      "description": "HTTP Server for float. It will store the value received in the input port 'IN' and upon HTTP requests to server at 'port' option and the path specified at 'path' will return such value for GET method, and set the value on 'POST', in this case the new value will be sent on the 'OUT' port if it changed. The HTTP methods may change the content-type by providing 'Accept: application/json' header. POST should provide payload in the format value=1.0&min=0.0&max=100.0&step=1.0 or a subset of parameters.",
       "methods": {
         "close": "common_close",
         "open": "float_open"
@@ -296,7 +296,7 @@
       "out_ports": [
 	{
           "data_type": "float",
-          "description": "The value received on a POST",
+          "description": "The value received on a POST or input port 'IN'. Packets are only emitted when the value change, so it is safe to use in feedback loops such as with persistence nodes.",
           "name": "OUT"
         }
       ],
@@ -305,7 +305,7 @@
     },
     {
       "category": "output/network",
-      "description": "HTTP Server for static files",
+      "description": "HTTP Server for static files. This is a convenience type that can serve contents to manage or display a set of other resources exposed with http-server/* nodes, such as configuration or status screens.",
       "methods": {
         "close": "static_close",
         "open": "static_open"
