@@ -65,35 +65,35 @@ extern "C" {
  */
 enum sol_buffer_flags {
     /**
-     * default flags: buffer may be resized and memory will be free'd
+     * @brief Default flags: buffer may be resized and memory will be free'd
      * at the end.
      */
     SOL_BUFFER_FLAGS_DEFAULT = 0,
     /**
-     * fixed capacity buffers won't be resized, sol_buffer_resize()
+     * @brief Fixed capacity buffers won't be resized, sol_buffer_resize()
      * will fail with -EPERM.
      */
     SOL_BUFFER_FLAGS_FIXED_CAPACITY = (1 << 0),
     /**
-     * no free buffers won't call @c free(buf->data) at
+     * @brief No free buffers won't call @c free(buf->data) at
      * sol_buffer_fini().
      */
     SOL_BUFFER_FLAGS_NO_FREE = (1 << 1),
     /**
-     * buffers where the @c buf->data is not owned by sol_buffer, that
+     * @brief Buffers where the @c buf->data is not owned by sol_buffer, that
      * is, it can't be resized and free() should not be called at it
      * at sol_buffer_fini().
      */
     SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED = (SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_FREE),
     /**
-     * do not reserve space for the NUL byte
+     * @brief Do not reserve space for the NUL byte.
      */
     SOL_BUFFER_FLAGS_NO_NUL_BYTE = (1 << 2),
     /**
-     * securely clear buffer data before finishing; this implies the flag
-     * SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED
+     * @brief Securely clear buffer data before finishing; this implies the flag
+     * SOL_BUFFER_FLAGS_FIXED_CAPACITY, so buffer data won't be reallocated.
      */
-    SOL_BUFFER_FLAGS_CLEAR_MEMORY = (1 << 3) | SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED,
+    SOL_BUFFER_FLAGS_CLEAR_MEMORY = (1 << 3) | SOL_BUFFER_FLAGS_FIXED_CAPACITY,
 };
 
 /**
