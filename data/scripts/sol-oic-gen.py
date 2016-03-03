@@ -99,8 +99,15 @@ JSON_TO_FLOW_GET_PKT = {
     "number": "sol_flow_packet_get_drange_value"
 }
 
+JSON_TO_FLOW_CHECK_UPDATED = {
+    "string": "check_updated_string",
+    "integer": "check_updated_int32",
+    "boolean": "check_updated_boolean",
+    "number": "check_updated_number"
+}
+
 JSON_TO_FLOW_SEND_PKT = {
-    "string": "sol_flow_send_string_packet",
+    "string": "send_string_packet",
     "integer": "sol_flow_send_irange_value_packet",
     "boolean": "sol_flow_send_boolean_packet",
     "number": "sol_flow_send_drange_value_packet"
@@ -235,18 +242,19 @@ def object_to_repr_vec_fn_server_c(state_struct_name, name, props):
     return object_to_repr_vec_fn_common_c(state_struct_name, name, props, False)
 
 def get_field_integer_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
-    if (field.type == SOL_OIC_REPR_TYPE_UINT)
-        fields.%(field_name)s = field.v_uint;
-    else if (field.type == SOL_OIC_REPR_TYPE_INT)
-        fields.%(field_name)s = field.v_int;
-    else if (field.type == SOL_OIC_REPR_TYPE_SIMPLE)
-        fields.%(field_name)s = field.v_simple;
-    else
-        RETURN_ERROR(-EINVAL);
-    decode_mask &= ~(1<<%(id)d);
-    continue;
-}
+    return '''
+        if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+            if (field.type == SOL_OIC_REPR_TYPE_UINT)
+                fields.%(field_name)s = field.v_uint;
+            else if (field.type == SOL_OIC_REPR_TYPE_INT)
+                fields.%(field_name)s = field.v_int;
+            else if (field.type == SOL_OIC_REPR_TYPE_SIMPLE)
+                fields.%(field_name)s = field.v_simple;
+            else
+                RETURN_ERROR(-EINVAL);
+            decode_mask &= ~(1<<%(id)d);
+            continue;
+        }
 ''' % {
         'field_name': name,
         'field_name_len': len(name),
@@ -254,16 +262,17 @@ def get_field_integer_client_c(id, name, prop):
     }
 
 def get_field_number_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
-    if (field.type == SOL_OIC_REPR_TYPE_DOUBLE)
-        fields.%(field_name)s = field.v_double;
-    else if (field.type == SOL_OIC_REPR_TYPE_FLOAT)
-        fields.%(field_name)s = field.v_float;
-    else
-        RETURN_ERROR(-EINVAL);
-    decode_mask &= ~(1<<%(id)d);
-    continue;
-}
+    return '''
+        if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+            if (field.type == SOL_OIC_REPR_TYPE_DOUBLE)
+                fields.%(field_name)s = field.v_double;
+            else if (field.type == SOL_OIC_REPR_TYPE_FLOAT)
+                fields.%(field_name)s = field.v_float;
+            else
+                RETURN_ERROR(-EINVAL);
+            decode_mask &= ~(1<<%(id)d);
+            continue;
+        }
 ''' % {
         'field_name': name,
         'field_name_len': len(name),
@@ -271,16 +280,15 @@ def get_field_number_client_c(id, name, prop):
     }
 
 def get_field_string_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
-    if (field.type != SOL_OIC_REPR_TYPE_TEXT_STRING)
-        RETURN_ERROR(-EINVAL);
-    free(fields.%(field_name)s);
-    fields.%(field_name)s = strndup(field.v_slice.data, field.v_slice.len);
-    if (!fields.%(field_name)s)
-        RETURN_ERROR(-EINVAL);
-    decode_mask &= ~(1<<%(id)d);
-    continue;
-}
+    return '''
+        if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+            if (field.type != SOL_OIC_REPR_TYPE_TEXT_STRING)
+                RETURN_ERROR(-EINVAL);
+            if (sol_util_replace_str_from_slice_if_changed(&fields.%(field_name)s, field.v_slice) < 0)
+                RETURN_ERROR(-EINVAL);
+            decode_mask &= ~(1<<%(id)d);
+            continue;
+        }
 ''' % {
         'field_name': name,
         'field_name_len': len(name),
@@ -288,13 +296,14 @@ def get_field_string_client_c(id, name, prop):
     }
 
 def get_field_boolean_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
-    if (field.type != SOL_OIC_REPR_TYPE_BOOLEAN)
-        RETURN_ERROR(-EINVAL);
-    fields.%(field_name)s = field.v_boolean;
-    decode_mask &= ~(1<<%(id)d);
-    continue;
-}
+    return '''
+        if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+            if (field.type != SOL_OIC_REPR_TYPE_BOOLEAN)
+                RETURN_ERROR(-EINVAL);
+            fields.%(field_name)s = field.v_boolean;
+            decode_mask &= ~(1<<%(id)d);
+            continue;
+        }
 ''' % {
         'field_name': name,
         'field_name_len': len(name),
@@ -302,20 +311,21 @@ def get_field_boolean_client_c(id, name, prop):
     }
 
 def get_field_enum_client_c(id, struct_name, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
-    int val;
+    return '''
+        if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+            int val;
 
-    if (field.type != SOL_OIC_REPR_TYPE_TEXT_STRING)
-        RETURN_ERROR(-EINVAL);
+            if (field.type != SOL_OIC_REPR_TYPE_TEXT_STRING)
+                RETURN_ERROR(-EINVAL);
 
-    val = sol_str_table_lookup_fallback(%(struct_name)s_%(field_name)s_tbl,
-        field.v_slice, -1);
-    if (val < 0)
-        RETURN_ERROR(-EINVAL);
-    fields.%(field_name)s = (enum %(struct_name)s_%(field_name)s)val;
-    decode_mask &= ~(1<<%(id)d);
-    continue;
-}
+            val = sol_str_table_lookup_fallback(%(struct_name)s_%(field_name)s_tbl,
+                field.v_slice, -1);
+            if (val < 0)
+                RETURN_ERROR(-EINVAL);
+            fields.%(field_name)s = (enum %(struct_name)s_%(field_name)s)val;
+            decode_mask &= ~(1<<%(id)d);
+            continue;
+        }
 ''' % {
         'struct_name': struct_name,
         'field_name': name,
@@ -324,48 +334,60 @@ def get_field_enum_client_c(id, struct_name, name, prop):
     }
 
 def object_fields_from_repr_vec(name, props):
-    id = 0
     fields = []
-    for prop_name, prop in props.items():
+    type_to_fn = {
+        'string': get_field_string_client_c,
+        'integer': get_field_integer_client_c,
+        'number': get_field_number_client_c,
+        'boolean': get_field_boolean_client_c,
+    }
+
+    for id, (prop_name, prop) in enumerate(props.items()):
         if 'enum' in prop:
             fields.append(get_field_enum_client_c(id, name, prop_name, prop))
-        elif prop['type'] == 'string':
-            fields.append(get_field_string_client_c(id, prop_name, prop))
-        elif prop['type'] == 'integer':
-            fields.append(get_field_integer_client_c(id, prop_name, prop))
-        elif prop['type'] == 'number':
-            fields.append(get_field_number_client_c(id, prop_name, prop))
-        elif prop['type'] == 'boolean':
-            fields.append(get_field_boolean_client_c(id, prop_name, prop))
         else:
-            raise ValueError('unknown field type: %s' % prop['type'])
-        id += 1
+            fields.append(type_to_fn[prop['type']](id, prop_name, prop))
     return '\n'.join(fields)
 
 def generate_object_from_repr_vec_fn_common_c(name, props):
     fields_init = []
     for field_name, field_props in props.items():
         if 'enum' in field_props:
-            fields_init.append('.%s = state->%s,' % (field_name, field_name))
+            fields_init.append('        .%(name)s = state->%(name)s,' % {"name": field_name})
         elif field_props['type'] == 'string':
-            fields_init.append('.%s = state->%s ? strdup(state->%s) : NULL,' % (field_name, field_name, field_name))
+            fields_init.append('        .%(name)s = state->%(name)s ? strdup(state->%(name)s) : NULL,' % {"name": field_name})
         else:
-            fields_init.append('.%s = state->%s,' % (field_name, field_name))
+            fields_init.append('        .%(name)s = state->%(name)s,' % {"name": field_name})
 
     fields_free = []
     for field_name, field_props in props.items():
         if 'enum' in field_props:
             continue
         if field_props.get('type') == 'string':
-            fields_free.append('free(fields.%s);' % (field_name))
+            fields_free.append('    free(fields.%s);' % (field_name))
 
     update_state = []
     for field_name, field_props in props.items():
         if not 'enum' in field_props and field_props.get('type') == 'string':
-            update_state.append('free(state->%s);' % field_name)
-        update_state.append('state->%s = fields.%s;' % (field_name, field_name))
+            update_state.append("""\
+    if (check_updated_string(state->%(name)s, fields.%(name)s)) {
+        free(state->%(name)s);\
+""" % {"name": field_name})
 
-    return '''static bool
+        else:
+            update_state.append("""\
+    if (%(c_check_updated)s(state->%(name)s, fields.%(name)s)) {\
+""" % {"name": field_name,
+       "c_check_updated": JSON_TO_FLOW_CHECK_UPDATED[field_props['type']]})
+
+
+        update_state.append("""\
+        state->%(name)s = fields.%(name)s;
+        updated = true;
+    }
+""" % {"name": field_name})
+
+    return '''static int
 %(struct_name)s_from_repr_vec(struct %(struct_name)s *state,
     const struct sol_oic_map_reader *repr_vec, uint32_t decode_mask)
 {
@@ -373,22 +395,27 @@ def generate_object_from_repr_vec_fn_common_c(name, props):
     enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
     struct %(struct_name)s fields = {
-        %(fields_init)s
+%(fields_init)s
     };
+    bool updated = false;
+    int ret = 0;
 
     SOL_OIC_MAP_LOOP(repr_vec, &field, &iterator, end_reason) {
-        %(fields)s
+%(fields)s
     }
     if (end_reason != SOL_OIC_MAP_LOOP_OK)
         goto out;
 
-    %(update_state)s
+%(update_state)s
 
-    return true;
+    if (!updated)
+        goto out;
+
+    return 1;
 
 out:
-    %(free_fields)s
-    return false;
+%(free_fields)s
+    return ret;
 }
 ''' % {
         'struct_name': name,
@@ -401,7 +428,7 @@ out:
 def object_from_repr_vec_fn_common_c(name, props, equivalent={}):
     for item_name, item_props in equivalent.items():
         if props_are_equivalent(props, item_props):
-            return '''static bool
+            return '''static int
 %(struct_name)s_from_repr_vec(struct %(struct_name)s *state,
     const struct sol_oic_map_reader *repr_map, uint32_t decode_mask)
 {
@@ -418,7 +445,7 @@ def object_from_repr_vec_fn_common_c(name, props, equivalent={}):
 
 
 def object_from_repr_vec_fn_client_c(state_struct_name, name, props):
-    return '''static bool
+    return '''static int
 %(struct_name)s_from_repr_vec(struct client_resource *resource, const struct sol_oic_map_reader *repr_vec)
 {
     struct %(struct_name)s *res = (struct %(struct_name)s *)resource;
@@ -440,7 +467,7 @@ def object_from_repr_vec_fn_server_c(state_struct_name, name, props):
     if not decode_mask:
         return ''
 
-    return '''static bool
+    return '''static int
 %(struct_name)s_from_repr_vec(struct server_resource *resource, const struct sol_oic_map_reader *repr_vec)
 {
     struct %(struct_name)s *res = (struct %(struct_name)s *)resource;
@@ -674,11 +701,12 @@ def object_setters_fn_common_c(state_struct_name, name, props, client):
 
     r = sol_flow_packet_get_string(packet, &var);
     if (!r) {
-        char *tmp = strdup(var);
-        SOL_NULL_CHECK(tmp, -ENOMEM);
-        free(resource->state.%(field_name)s);
-        resource->state.%(field_name)s = tmp;
-        %(type)s_resource_schedule_update(&resource->base);
+        r = sol_util_replace_str_if_changed(&resource->state.%(field_name)s, var);
+        SOL_INT_CHECK(r, < 0, r);
+        if (r > 0) {
+            %(type)s_resource_schedule_update(&resource->base);
+            r = 0;
+        }
     }
     return r;
 }
@@ -699,8 +727,10 @@ def object_setters_fn_common_c(state_struct_name, name, props, client):
 
     r = %(c_getter)s(packet, &var);
     if (!r) {
-        resource->state.%(field_name)s = (%(c_type)s) var;
-        %(type)s_resource_schedule_update(&resource->base);
+        if (%(c_check_updated)s(resource->state.%(field_name)s, (%(c_type)s) var)) {
+            resource->state.%(field_name)s = (%(c_type)s) var;
+            %(type)s_resource_schedule_update(&resource->base);
+        }
     }
     return r;
 }
@@ -710,6 +740,7 @@ def object_setters_fn_common_c(state_struct_name, name, props, client):
         'c_type': JSON_TO_C[descr['type']],
         'c_type_tmp': JSON_TO_C_TMP[descr['type']],
         'c_getter': JSON_TO_FLOW_GET_PKT[descr['type']],
+        'c_check_updated': JSON_TO_FLOW_CHECK_UPDATED[descr['type']],
         'type': 'client' if client else 'server'
     })
 
@@ -977,6 +1008,7 @@ def master_c_as_string(generated, oic_gen_c, oic_gen_h):
 #include "sol-oic-server.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
+#include "sol-util.h"
 
 #define DEFAULT_UDP_PORT 5683
 #define MULTICAST_ADDRESS_IPv4 "224.0.1.187"
@@ -995,7 +1027,7 @@ struct server_resource;
 
 struct client_resource_funcs {
     bool (*to_repr_vec)(void *data, struct sol_oic_map_writer *repr_map);
-    bool (*from_repr_vec)(struct client_resource *resource, const struct sol_oic_map_reader *repr_vec);
+    int (*from_repr_vec)(struct client_resource *resource, const struct sol_oic_map_reader *repr_vec);
     void (*inform_flow)(struct client_resource *resource);
     int found_port;
     int device_id_port;
@@ -1003,7 +1035,7 @@ struct client_resource_funcs {
 
 struct server_resource_funcs {
     bool (*to_repr_vec)(void *data, struct sol_oic_map_writer *repr_map);
-    bool (*from_repr_vec)(struct server_resource *resource, const struct sol_oic_map_reader *repr);
+    int (*from_repr_vec)(struct server_resource *resource, const struct sol_oic_map_reader *repr);
     void (*inform_flow)(struct server_resource *resource);
 };
 
@@ -1106,7 +1138,7 @@ state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_
         return;
     }
 
-    if (resource->funcs->from_repr_vec(resource, repr_vec))
+    if (resource->funcs->from_repr_vec(resource, repr_vec) > 0)
         resource->funcs->inform_flow(resource);
 }
 
@@ -1322,16 +1354,19 @@ server_handle_update(const struct sol_network_link_addr *cliaddr, const void *da
     const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
 {
     struct server_resource *resource = (struct server_resource *)data;
+    int r;
 
     if (!resource->funcs->from_repr_vec)
         return SOL_COAP_RSPCODE_NOT_IMPLEMENTED;
 
-    if (resource->funcs->from_repr_vec(resource, repr_map)) {
+    r = resource->funcs->from_repr_vec(resource, repr_map);
+    if (r > 0) {
         server_resource_schedule_update(resource);
         return SOL_COAP_RSPCODE_CHANGED;
-    }
-
-    return SOL_COAP_RSPCODE_PRECONDITION_FAILED;
+    } else if (r == 0)
+        return SOL_COAP_RSPCODE_OK;
+    else
+        return SOL_COAP_RSPCODE_PRECONDITION_FAILED;
 }
 
 static sol_coap_responsecode_t
@@ -1560,7 +1595,42 @@ device_id_process(struct sol_flow_node *node, void *data, uint16_t port,
     return client_connect(resource, device_id);
 }
 
-#define RETURN_ERROR(errcode) do { goto out; } while(0)
+static inline bool
+check_updated_string(const char *a, const char *b)
+{
+    if (a && b)
+        return strcmp(a, b) != 0;
+    else if ((a && !b) || (!a && b))
+       return true;
+    else
+       return false;
+}
+
+static inline bool
+check_updated_int32(const int32_t a, const int32_t b)
+{
+    return a != b;
+}
+
+static inline bool
+check_updated_boolean(const bool a, const bool b)
+{
+    return a != b;
+}
+
+static inline bool
+check_updated_number(const double a, const double b)
+{
+    return !sol_drange_val_equal(a, b);
+}
+
+static inline int
+send_string_packet(struct sol_flow_node *src, uint16_t src_port, const char *value)
+{
+    return sol_flow_send_string_packet(src, src_port, value ? value : "");
+}
+
+#define RETURN_ERROR(errcode) do { ret = errcode; goto out; } while(0)
 
 %(generated_c_common)s
 %(generated_c_client)s
