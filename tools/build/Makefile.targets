@@ -210,7 +210,7 @@ bindings-nodejs: $(SOL_LIB_OUTPUT)
 PHONY += bindings-nodejs
 
 check-bindings-nodejs: bindings-nodejs
-	node $(NODEJS_ROOT)/tests/suite.js "$(LIB_ASAN_PATH)"
+	node $(NODEJS_ROOT)/tests/suite.js --ldPreload="$(LIB_ASAN_PATH)"
 PHONY += check-bindings-nodejs
 
 endif #neq($(USE_NODEJS),)
