@@ -375,9 +375,11 @@ sol_util_replace_str_from_slice_if_changed(char **str,
     SOL_NULL_CHECK(str, -EINVAL);
 
     if (!slice.len) {
+        if (!*str)
+            return 0;
         free(*str);
         *str = NULL;
-        return 0;
+        return 1;
     }
 
     if (*str) {
@@ -398,7 +400,7 @@ sol_util_replace_str_from_slice_if_changed(char **str,
         SOL_NULL_CHECK(*str, -ENOMEM);
     }
 
-    return 0;
+    return 1;
 }
 
 SOL_API ssize_t
