@@ -2349,9 +2349,11 @@ setup_resources_ctx(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
         res_ctx->res->put = handle_resource;
         res_ctx->res->del = handle_resource;
 
-        if (register_with_coap) {
-            sol_coap_server_register_resource(client->coap_server,
-                res_ctx->res, client);
+        if (register_with_coap &&
+            !sol_coap_server_register_resource(client->coap_server,
+            res_ctx->res, client)) {
+            SOL_WRN("Could not register CoAP resource");
+            goto err_exit;
         }
     }
 
@@ -3707,18 +3709,20 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
     }
 
     SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i) {
-        r = sol_coap_server_register_resource(client->coap_server,
+        bool b;
+
+        b = sol_coap_server_register_resource(client->coap_server,
             ctx->obj_res, client);
-        SOL_INT_CHECK(r, < 0, r);
+        SOL_EXP_CHECK_GOTO(!b, err_coap);
         SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, j) {
-            r = sol_coap_server_register_resource(client->coap_server,
+            b = sol_coap_server_register_resource(client->coap_server,
                 instance->instance_res, client);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_EXP_CHECK_GOTO(!b, err_coap);
 
             SOL_VECTOR_FOREACH_IDX (&instance->resources_ctx, res_ctx, k) {
-                r = sol_coap_server_register_resource(client->coap_server,
+                b = sol_coap_server_register_resource(client->coap_server,
                     res_ctx->res, client);
-                SOL_INT_CHECK(r, < 0, r);
+                SOL_EXP_CHECK_GOTO(!b, err_coap);
             }
         }
     }
@@ -3727,6 +3731,8 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
 
     return 0;
 
+err_coap:
+    r = -ENOMEM;
 err_clear:
     clear_resource_array(res, SOL_UTIL_ARRAY_SIZE(res));
 err_exit:
