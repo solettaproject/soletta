@@ -224,6 +224,15 @@ persist_do(struct persist_data *mdata, struct sol_flow_node *node, void *value,
     else
         size = strlen(value) + 1; //To include the null terminating char
 
+    if (mdata->value_ptr && value) {
+        if (mdata->packet_data_size)
+            r = memcmp(mdata->value_ptr, value, mdata->packet_data_size);
+        else
+            r = strcmp(mdata->value_ptr, value);
+        if (r == 0)
+            return 0;
+    }
+
     r = storage_write(mdata, value, size, node, send_packet);
     SOL_INT_CHECK(r, < 0, r);
 
