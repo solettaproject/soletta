@@ -432,7 +432,7 @@ sol_util_int32_clamp(int32_t start, int32_t end, int32_t value)
  * @param str The pointer for string which will be changed.
  * @param new_str The new string
  *
- * @return @c 0 on success, error code (always negative) otherwise.
+ * @return @c 1 if changed, 0 if unchanged, error code (always negative) otherwise.
  *
  * @see util_replace_str_from_slice_if_changed
  */
@@ -449,7 +449,7 @@ int sol_util_replace_str_if_changed(char **str, const char *new_str);
  * @param str The pointer for string which will be changed.
  * @param slice The slice with string
  *
- * @return @c 0 on success, error code (always negative) otherwise.
+ * @return @c 1 if changed, 0 if unchanged, error code (always negative) otherwise.
  *
  * @see util_replace_str_from_slice_if_changed
  */
