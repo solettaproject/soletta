@@ -1,0 +1,93 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Brief:
+#
+# Controller logic.
+#
+# This FBP handles input, stores the current value, emits value
+# changes on its output ports and take new values on input ports.
+#
+# It receives input from buttons defined in sol-flow*.json
+# (per-board), will load values from server at start and post to
+# server on changes.
+#
+#        .-------------.
+#  POWER>|             |>POWER
+#        |  controller |
+#  STATE>|             |>STATE
+#        `-------------'
+#
+
+OUTPORT=power_value.OUT:POWER
+OUTPORT=state_value.OUT:STATE
+
+INPORT=power_value.SET:POWER
+INPORT=state_value_from_boolean.IN:STATE
+
+_(StartupMessage) OUT -> IN _(console:prefix="Hint: ")
+
+# connect quit
+quit_button(QuitButton) OUT -> QUIT _(app/quit)
+
+# we use an accumulator from 0 to 100 to store the power value, it
+# should not send an initial packet as we're going to load the current
+# value from the server using get_power.
+power_value(int/accumulator:setup_value=min:0|max:100|step:1,initial_value=50,send_initial_packet=false)
+
+# connect increase/decrease buttons
+increase_button(IncreaseButton)
+decrease_button(DecreaseButton)
+
+# buttons emit true/false and if we connect directly to INC/DEC, then
+# it would act on both, which is not desired. Then we use
+# boolean-to-empty to filter
+increase_button OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> INC power_value
+decrease_button OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> DEC power_value
+
+power_value OUT -> IN _(console:prefix="Power value changed: ")
+
+# like for power, we use an accumulator from 0 to 1 to store the state
+# and we do not use an initial packet as we're going to load from the
+# server.  Since accumulator is an integer and state is boolean, we
+# must convert as required.
+state_value_as_int(int/accumulator:setup_value=min:0|max:1,send_initial_packet=false)
+
+# connect button
+state_button(StateButton)
+state_button OUT -> PULSE_IF_TRUE _(converter/boolean-to-empty) OUT -> INC state_value_as_int
+
+# offer an entry point in the correct type (INPORT=...)
+state_value_from_boolean(converter/boolean-to-int) OUT -> SET state_value_as_int
+
+# provide final value with the correct type (OUTPORT=...)
+state_value_as_int OUT -> IN state_value(converter/int-to-boolean)
+
+state_value OUT -> IN _(console:prefix="State changed: ")
