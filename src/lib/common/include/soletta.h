@@ -110,7 +110,7 @@ extern "C" {
 #include <zephyr.h>
 
 #define SOL_MAIN(CALLBACKS) \
-    void main_task(void) { \
+    void main(void) { \
         SOL_LOG_LEVEL_INIT(); \
         SOL_LOG_LEVELS_INIT(); \
         sol_mainloop_default_main(&(CALLBACKS), 0, NULL); \
