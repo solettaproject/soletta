@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # This file is part of the Soletta Project
 #
@@ -31,8 +31,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import argparse
-import os
-import queue
+import multiprocessing
 import subprocess
 import sys
 import threading
@@ -48,11 +47,11 @@ class Task:
         self.success = False
         self.output = ""
 
-def run_test_program(task_queue):
+def run_test_program(task_queue, task_empty_exception):
     while not task_queue.empty():
         try:
             task = task_queue.get_nowait()
-        except queue.Empty:
+        except task_empty_exception:
             break
 
         try:
@@ -116,7 +115,15 @@ VALGRIND_OPTS = "--tool=memcheck --leak-check=full --error-exitcode=1 --num-call
 def run_tests(args):
     log_file = "test-suite.log"
     tasks = []
-    task_queue = queue.Queue()
+
+    try:
+        import queue
+        task_queue = queue.Queue()
+        task_empty_exception = queue.Empty
+    except ImportError:
+        import Queue
+        task_queue = Queue.Queue()
+        task_empty_exception = Queue.Empty
 
     prefix = ""
     if args.valgrind:
@@ -131,8 +138,9 @@ def run_tests(args):
         tasks.append(task)
         task_queue.put(task)
 
-    for i in range(os.cpu_count()):
-        threading.Thread(target=run_test_program, args=(task_queue,)).start()
+    for i in range(multiprocessing.cpu_count()):
+        threading.Thread(target=run_test_program,
+                         args=(task_queue, task_empty_exception)).start()
 
     task_queue.join()
     print_log(log_file, tasks)
