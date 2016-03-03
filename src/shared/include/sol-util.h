@@ -774,9 +774,9 @@ sol_util_cpu_to_be16(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     return sol_uint16_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -796,9 +796,9 @@ sol_util_cpu_to_le16(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     return sol_uint16_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -818,9 +818,9 @@ sol_util_be16_to_cpu(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     return sol_uint16_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -840,9 +840,9 @@ sol_util_le16_to_cpu(uint16_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     return sol_uint16_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -869,9 +869,9 @@ sol_util_cpu_to_be32(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     return sol_uint32_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -891,9 +891,9 @@ sol_util_cpu_to_le32(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     return sol_uint32_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -913,9 +913,9 @@ sol_util_be32_to_cpu(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     return sol_uint32_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -935,9 +935,9 @@ sol_util_le32_to_cpu(uint32_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     return sol_uint32_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -967,9 +967,9 @@ sol_util_cpu_to_be64(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     return sol_uint64_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -989,9 +989,9 @@ sol_util_cpu_to_le64(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     return sol_uint64_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -1011,9 +1011,9 @@ sol_util_be64_to_cpu(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     return sol_uint64_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
@@ -1033,9 +1033,9 @@ sol_util_le64_to_cpu(uint64_t val)
 {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     return sol_uint64_bytes_swap(val);
-#endif
-
+#else
     return val;
+#endif
 }
 
 /**
