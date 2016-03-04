@@ -300,16 +300,16 @@ check_response(struct http_data *mdata, struct sol_flow_node *node,
     }
     SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
-    if (!response->content.used) {
-        sol_flow_send_error_packet(node, EINVAL,
-            "Empty response from %s", mdata->url);
-        return -EINVAL;
-    }
-
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(node, EINVAL,
             "%s returned an unhandled response code: %d",
             mdata->url, response->response_code);
+        return -EINVAL;
+    }
+
+    if (!response->content.used) {
+        sol_flow_send_error_packet(node, EINVAL,
+            "Empty response from %s", mdata->url);
         return -EINVAL;
     }
 

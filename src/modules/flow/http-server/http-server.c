@@ -193,7 +193,7 @@ common_response_cb(void *data, struct sol_http_request *request)
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_RESPONSE_API_VERSION, )
         .content = SOL_BUFFER_INIT_EMPTY,
         .param = SOL_HTTP_REQUEST_PARAMS_INIT,
-        .response_code = SOL_HTTP_STATUS_OK
+        .response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR
     };
 
     type = (const struct http_server_node_type *)
@@ -206,6 +206,7 @@ common_response_cb(void *data, struct sol_http_request *request)
         switch (value->type) {
         case SOL_HTTP_PARAM_POST_FIELD:
             r = type->post_cb(mdata, node, value);
+            response.response_code = SOL_HTTP_STATUS_BAD_REQUEST;
             SOL_INT_CHECK_GOTO(r, < 0, end);
             if (r == 0)
                 continue;
@@ -222,6 +223,8 @@ common_response_cb(void *data, struct sol_http_request *request)
             break;
         }
     }
+
+    response.response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
 
     if (send_json) {
         r = sol_buffer_append_printf(&response.content, "{\"%s\":", mdata->path);
@@ -246,13 +249,33 @@ common_response_cb(void *data, struct sol_http_request *request)
         SOL_INT_CHECK_GOTO(r, < 0, end);
     }
 
+    response.response_code = SOL_HTTP_STATUS_OK;
+
     r = sol_http_server_send_response(request, &response);
+    response.response_code = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
     SOL_INT_CHECK_GOTO(r, < 0, end);
 
     if ((method == SOL_HTTP_METHOD_POST) && type->send_packet_cb && updated)
         type->send_packet_cb(mdata, node);
 
 end:
+    if (r < 0) {
+        sol_buffer_reset(&response.content);
+        sol_buffer_append_printf(&response.content,
+            "Could not serve request: %s", sol_util_strerrora(-r));
+
+        sol_http_params_clear(&response.param);
+        r = sol_http_param_add(&response.param, SOL_HTTP_REQUEST_PARAM_HEADER(
+            HTTP_HEADER_CONTENT_TYPE, HTTP_HEADER_CONTENT_TYPE_TEXT));
+        if (r < 0)
+            SOL_WRN("could not set response content-type: text/plain: %s", sol_util_strerrora(-r));
+
+        /* response_code was set before goto, so use as-is */
+        sol_http_server_send_response(request, &response);
+
+        sol_flow_send_error_packet_str(node, -r, response.content.data);
+    }
+
     sol_buffer_fini(&response.content);
     sol_http_params_clear(&response.param);
 
