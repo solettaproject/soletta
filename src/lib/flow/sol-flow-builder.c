@@ -1340,7 +1340,7 @@ sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *nod
         exported_opt->defvalue = opt->defvalue;
 
     member_alignment = get_member_alignment(opt);
-    padding = builder->type_data->options_size % member_alignment;
+    padding = (member_alignment - (builder->type_data->options_size % member_alignment)) % member_alignment;
     exported_opt->offset = builder->type_data->options_size + padding;
     new_options_size = builder->type_data->options_size + exported_opt->size + padding;
 
