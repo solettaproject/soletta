@@ -774,9 +774,9 @@ int sol_coap_packet_send_notification(struct sol_coap_server *server,
  * @param resource The resource to register.
  * @param data User data pointer that will be passed to the requests callbacks.
  *
- * @return True on success, false on failure.
+ * @return 0 on success, negative errno on error.
  */
-bool sol_coap_server_register_resource(struct sol_coap_server *server,
+int sol_coap_server_register_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, const void *data);
 
 /**
