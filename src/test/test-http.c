@@ -52,9 +52,33 @@ test_split_urls(void)
         int result;
         bool check_url;
     } test_split[] =  {
+        SET_PARAMS("http://[2001:db8::1]", "http", "", "", "2001:db8::1", "", "", "", 0, 0, true),
         SET_PARAMS("http://2001:db8::1", "", "", "", "", "", "", "", 0, -EINVAL, false),
         SET_PARAMS("http://[2001:db8::1", "", "", "", "", "", "", "", 0, -EINVAL, false),
         SET_PARAMS("http://2001:db8::1]", "", "", "", "", "", "", "", 0, -EINVAL, false),
+
+        SET_PARAMS("http://[::1]:/", "http", "", "", "::1", "/", "", "", 0, 0, false),
+        SET_PARAMS("http://[::1]/?go=2", "http", "", "", "::1", "/", "go=2", "", 0, 0, true),
+        SET_PARAMS("http://[::1]:8080", "http", "", "", "::1", "", "", "", 8080, 0, true),
+        SET_PARAMS("http://[::1]:1234/", "http", "", "", "::1", "/", "", "", 1234, 0, true),
+        SET_PARAMS("http://[::1]/a/b/d?go=2#fragment", "http", "", "", "::1", "/a/b/d", "go=2", "fragment", 0, 0, true),
+        SET_PARAMS("foo://user:pass@[::1]:123/a/b?p=1&c=2#/a/b", "foo", "user", "pass", "::1", "/a/b", "p=1&c=2", "/a/b", 123, 0, true),
+        SET_PARAMS("foo://user@[::1]:123/a/b?p=1&c=2#/a/b", "foo", "user", "", "::1", "/a/b", "p=1&c=2", "/a/b", 123, 0, true),
+        SET_PARAMS("foo://user:@[::1]:123/a/b?p=1&c=2#/a/b", "foo", "user", "", "::1", "/a/b", "p=1&c=2", "/a/b", 123, 0, false),
+        SET_PARAMS("foo://[::1]:123/a/b?p=1&c=2#/a/b", "foo", "", "", "::1", "/a/b", "p=1&c=2", "/a/b", 123, 0, true),
+        SET_PARAMS("foo://[::1]/a/b?p=1&c=2#/a/b", "foo", "", "", "::1", "/a/b", "p=1&c=2", "/a/b", 0, 0, true),
+        SET_PARAMS("foo://[::1]/?p=1&c=2#/a/b", "foo", "", "", "::1", "/", "p=1&c=2", "/a/b", 0, 0, true),
+        SET_PARAMS("foo://[::1]/?p=1&c=2", "foo", "", "", "::1", "/", "p=1&c=2", "", 0, 0, true),
+        SET_PARAMS("foo://[::1]/#/a/b", "foo", "", "", "::1", "/", "", "/a/b", 0, 0, true),
+        SET_PARAMS("foo://[::1]?p=1&c=2", "foo", "", "", "::1", "", "p=1&c=2", "", 0, 0, true),
+        SET_PARAMS("foo://[::1]#/a/b", "foo", "", "", "::1", "", "", "/a/b", 0, 0, true),
+        SET_PARAMS("foo://[::1]:123/#/a/b", "foo", "", "", "::1", "/", "", "/a/b", 123, 0, true),
+        SET_PARAMS("file://[::1]/usr/home/user/hi.txt", "file", "", "", "::1", "/usr/home/user/hi.txt", "", "", 0, 0, true),
+        SET_PARAMS("foo://[::1]/?go", "foo", "", "", "::1", "/", "go", "", 0, 0, true),
+        SET_PARAMS("foo://:password@[::1]", "foo", "", "password", "::1", "", "", "", 0, 0, true),
+        SET_PARAMS("foo://:@[::1]", "foo", "", "", "::1", "", "", "", 0, 0, false),
+        SET_PARAMS("foo://@[::1]", "foo", "", "", "::1", "", "", "", 0, 0, false),
+
         SET_PARAMS("www.intel.com.br", "", "", "", "", "", "", "", 0, -EINVAL, false),
         SET_PARAMS(":www.intel.com", "", "", "", "", "", "", "", 0, -EINVAL, false),
         SET_PARAMS("//www.intel.com", "", "", "", "", "", "", "", 0, -EINVAL, false),
