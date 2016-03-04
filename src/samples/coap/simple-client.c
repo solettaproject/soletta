@@ -57,22 +57,29 @@ disable_observing(struct sol_coap_packet *req, struct sol_coap_server *server,
 {
     struct sol_coap_packet *pkt = sol_coap_packet_new(req);
     uint8_t observe = 1;
-    int i;
+    int i, r;
 
     if (!pkt)
         return;
 
-    sol_coap_header_set_code(pkt, SOL_COAP_METHOD_GET);
-    sol_coap_header_set_type(pkt, SOL_COAP_TYPE_CON);
-
-    sol_coap_add_option(pkt, SOL_COAP_OPTION_OBSERVE, &observe, sizeof(observe));
+    r = sol_coap_header_set_code(pkt, SOL_COAP_METHOD_GET);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_CON);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    r = sol_coap_add_option(pkt, SOL_COAP_OPTION_OBSERVE, &observe, sizeof(observe));
+    SOL_INT_CHECK_GOTO(r, < 0, err);
 
     for (i = 0; path[i].data; i++)
         sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_PATH, path[i].data, path[i].len);
 
     sol_coap_send_packet(server, pkt, cliaddr);
 
-    SOL_INF("Disabled observing");
+    SOL_INF("Disabled observing\n");
+
+    return;
+
+err:
+    sol_coap_packet_unref(pkt);
 }
 
 static bool
@@ -81,8 +88,8 @@ reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
 {
     struct sol_str_slice *path = data;
     static int count;
-    uint8_t *payload;
-    uint16_t len;
+    struct sol_buffer *buf;
+    size_t offset;
 
     SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
@@ -91,10 +98,11 @@ reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
 
     sol_network_addr_to_str(cliaddr, &addr);
 
-    SOL_INF("Got response from %.*s", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
+    SOL_INF("Got response from %.*s\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
 
-    sol_coap_packet_get_payload(req, &payload, &len);
-    SOL_INF("Payload: %.*s", len, payload);
+    sol_coap_packet_get_payload(req, &buf, &offset);
+    SOL_INF("Payload: %.*s\n", (int)(buf->used - offset),
+        (char *)sol_buffer_at(buf, offset));
 
     if (++count == 10)
         disable_observing(req, server, path, cliaddr);
@@ -110,7 +118,7 @@ main(int argc, char *argv[])
     struct sol_network_link_addr cliaddr = { };
     struct sol_coap_packet *req;
     uint8_t observe = 0;
-    int i;
+    int i, r;
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = 0 };
 
@@ -119,7 +127,7 @@ main(int argc, char *argv[])
     sol_init();
 
     if (argc < 3) {
-        SOL_INF("Usage: %s <address> <path> [path]\n", argv[0]);
+        printf("Usage: %s <address> <path> [path]\n", argv[0]);
         return 0;
     }
 
@@ -135,7 +143,11 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    sol_coap_header_set_token(req, token, sizeof(token));
+    r = sol_coap_header_set_token(req, token, sizeof(token));
+    if (r < 0) {
+        SOL_WRN("Could not set coap header token.");
+        return -1;
+    }
 
     path = calloc(argc - 1, sizeof(*path));
     if (!path) {

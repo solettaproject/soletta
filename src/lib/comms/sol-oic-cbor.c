@@ -30,6 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "coap.h"
 #include "sol-log.h"
 #include "sol-oic-cbor.h"
 #include "sol-oic-common.h"
@@ -38,21 +39,34 @@ static CborError
 initialize_cbor_payload(struct sol_oic_map_writer *encoder)
 {
     int r;
-    uint16_t size;
+    size_t offset;
+    struct sol_buffer *buf;
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
 
     r = sol_coap_add_option(encoder->pkt, SOL_COAP_OPTION_CONTENT_FORMAT,
         &format_cbor, sizeof(format_cbor));
     SOL_INT_CHECK(r, < 0, CborUnknownError);
 
-    if (sol_coap_packet_get_payload(encoder->pkt, &encoder->payload, &size) < 0) {
+    r = sol_coap_packet_get_payload(encoder->pkt, &buf, &offset);
+    if (r < 0) {
         SOL_WRN("Could not get CoAP payload");
         return CborUnknownError;
     }
 
-    cbor_encoder_init(&encoder->encoder, encoder->payload, size, 0);
+    /* FIXME: Because we can't now make phony cbor calls to calculate
+     * the exact payload in the contexts this call is issued (they
+     * involve user callbacks to append cbor data), we ensure this
+     * hardcoded size */
+    r = sol_buffer_ensure(buf, COAP_UDP_MTU - offset);
+    SOL_INT_CHECK(r, < 0, CborErrorOutOfMemory);
+
+    encoder->payload = sol_buffer_at(buf, offset);
+
+    cbor_encoder_init(&encoder->encoder, encoder->payload,
+        COAP_UDP_MTU - offset, 0);
 
     encoder->type = SOL_OIC_MAP_CONTENT;
+
     return cbor_encoder_create_map(&encoder->encoder, &encoder->rep_map,
         CborIndefiniteLength);
 }
@@ -78,11 +92,16 @@ sol_oic_packet_cbor_close(struct sol_coap_packet *pkt, struct sol_oic_map_writer
     }
 
     err = cbor_encoder_close_container(&encoder->encoder, &encoder->rep_map);
+    if (err == CborNoError) {
+        /* Ugly, but since tinycbor operates on memory slices
+         * directly, we have to resort to that */
+        struct sol_buffer *buf;
+        int r = sol_coap_packet_get_payload(pkt, &buf, NULL);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        buf->used += encoder->encoder.ptr - encoder->payload;
+    }
 
-    if (err == CborNoError)
-        sol_coap_packet_set_payload_used(pkt,
-            encoder->encoder.ptr - encoder->payload);
-
+error:
     return err;
 }
 
@@ -201,13 +220,14 @@ CborError
 sol_oic_packet_cbor_extract_repr_map(struct sol_coap_packet *pkt, CborParser *parser, CborValue *repr_map)
 {
     CborError err;
-    uint8_t *payload;
-    uint16_t size;
+    size_t offset;
+    struct sol_buffer *buf;
 
-    if (sol_coap_packet_get_payload(pkt, &payload, &size) < 0)
-        return CborErrorUnknownLength;
+    err = sol_coap_packet_get_payload(pkt, &buf, &offset);
+    SOL_INT_CHECK(err, < 0, CborErrorUnknownLength);
 
-    err = cbor_parser_init(payload, size, 0, parser, repr_map);
+    err = cbor_parser_init(sol_buffer_at(buf, offset),
+        buf->used - offset, 0, parser, repr_map);
     if (err != CborNoError)
         return err;
 
