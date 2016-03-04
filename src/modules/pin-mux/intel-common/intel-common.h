@@ -102,6 +102,8 @@ struct mux_pin_map {
     } aio, pwm; /**< AIO and PWM mapping */
 };
 
+int apply_mux_desc(struct mux_description *desc, unsigned int mode);
+
 void mux_shutdown(void);
 
 int mux_pin_map(const struct mux_pin_map *map, const char *label, const enum sol_io_protocol prot,

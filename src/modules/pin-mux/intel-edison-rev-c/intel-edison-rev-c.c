@@ -38,6 +38,21 @@
 // Edison Multiplexer Descriptions
 // =============================================================================
 
+static struct mux_description init_board[] = {
+    { 214, PIN_LOW, MODE_GPIO },
+    { 240, PIN_LOW, MODE_GPIO },
+    { 241, PIN_LOW, MODE_GPIO },
+    { 242, PIN_LOW, MODE_GPIO },
+    { 243, PIN_LOW, MODE_GPIO },
+    { 262, PIN_HIGH, MODE_GPIO },
+    { 263, PIN_HIGH, MODE_GPIO },
+    { 109, PIN_MODE_1, MODE_GPIO },
+    { 114, PIN_MODE_1, MODE_GPIO },
+    { 115, PIN_MODE_1, MODE_GPIO },
+    { 214, PIN_HIGH, MODE_GPIO },
+    { }
+};
+
 static struct mux_description desc_0[] = {
     { 214, PIN_LOW, MODE_GPIO | MODE_UART },
     { 248, PIN_HIGH, MODE_GPIO_OUTPUT },
@@ -407,6 +422,7 @@ _mux_init(void)
     //Try to detect the Arduino Breakout
     if (sol_util_write_file("/sys/class/gpio/export", "214") >= 0) {
         ardu_breakout = true;
+        apply_mux_desc(init_board, MODE_GPIO);
     }
 
     return 0;
