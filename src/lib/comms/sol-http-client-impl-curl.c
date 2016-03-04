@@ -164,6 +164,12 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
     if (connection->error)
         goto err;
 
+    r = curl_easy_getinfo(connection->curl, CURLINFO_RESPONSE_CODE,
+        &response_code);
+    if (r != CURLE_OK)
+        goto err;
+    response->response_code = (int)response_code;
+
     r = curl_easy_getinfo(connection->curl, CURLINFO_CONTENT_TYPE, &tmp);
     if (r != CURLE_OK)
         goto err;
@@ -176,13 +182,7 @@ call_connection_finish_cb(struct sol_http_client_connection *connection)
 
     response->url = strdupa(tmp);
 
-    r = curl_easy_getinfo(connection->curl, CURLINFO_RESPONSE_CODE,
-        &response_code);
-    if (r != CURLE_OK)
-        goto err;
-
     response->param = connection->response_params;
-    response->response_code = (int)response_code;
 
     if (connection->interface.response_cb)
         connection->interface.response_cb((void *)connection->data, connection, response);
