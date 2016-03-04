@@ -2349,9 +2349,11 @@ setup_resources_ctx(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
         res_ctx->res->put = handle_resource;
         res_ctx->res->del = handle_resource;
 
-        if (register_with_coap) {
-            sol_coap_server_register_resource(client->coap_server,
-                res_ctx->res, client);
+        if (register_with_coap &&
+            !sol_coap_server_register_resource(client->coap_server,
+            res_ctx->res, client)) {
+            SOL_WRN("Could not register CoAP resource");
+            goto err_exit;
         }
     }
 
@@ -3707,18 +3709,20 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
     }
 
     SOL_VECTOR_FOREACH_IDX (&client->objects, ctx, i) {
-        r = sol_coap_server_register_resource(client->coap_server,
+        bool b;
+
+        b = sol_coap_server_register_resource(client->coap_server,
             ctx->obj_res, client);
-        SOL_INT_CHECK(r, < 0, r);
+        SOL_EXP_CHECK_GOTO(!b, err_coap);
         SOL_VECTOR_FOREACH_IDX (&ctx->instances, instance, j) {
-            r = sol_coap_server_register_resource(client->coap_server,
+            b = sol_coap_server_register_resource(client->coap_server,
                 instance->instance_res, client);
-            SOL_INT_CHECK(r, < 0, r);
+            SOL_EXP_CHECK_GOTO(!b, err_coap);
 
             SOL_VECTOR_FOREACH_IDX (&instance->resources_ctx, res_ctx, k) {
-                r = sol_coap_server_register_resource(client->coap_server,
+                b = sol_coap_server_register_resource(client->coap_server,
                     res_ctx->res, client);
-                SOL_INT_CHECK(r, < 0, r);
+                SOL_EXP_CHECK_GOTO(!b, err_coap);
             }
         }
     }
@@ -3727,6 +3731,8 @@ sol_lwm2m_client_start(struct sol_lwm2m_client *client)
 
     return 0;
 
+err_coap:
+    r = -ENOMEM;
 err_clear:
     clear_resource_array(res, SOL_UTIL_ARRAY_SIZE(res));
 err_exit:
@@ -3832,16 +3838,32 @@ find_resource_ctx_by_id(struct obj_instance *instance, uint16_t id)
     return NULL;
 }
 
+static bool
+notification_already_sent(struct sol_ptr_vector *vector, const void *ptr)
+{
+    uint16_t i;
+    const void *v;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (vector, v, i) {
+        if (v == ptr)
+            return true;
+    }
+
+    return false;
+}
+
 SOL_API int
 sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
 {
     size_t i;
+    struct sol_ptr_vector already_sent = SOL_PTR_VECTOR_INIT;
+    int r;
 
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(paths, -EINVAL);
 
     for (i = 0; paths[i]; i++) {
-        bool r;
+        bool r_bool;
         uint16_t j, k;
         struct obj_ctx *obj_ctx;
         struct obj_instance *obj_instance;
@@ -3855,7 +3877,7 @@ sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
         if (tokens.len != 4) {
             sol_vector_clear(&tokens);
             SOL_WRN("The path must contain an object, instance id and resource id");
-            return -EINVAL;
+            goto err_exit;
         }
 
         k = 0;
@@ -3864,33 +3886,53 @@ sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
             if (j == 0)
                 continue;
             path[k++] = sol_util_strtoul(token->data, &end, token->len, 10);
-            r = errno;
             if (end == token->data || end != token->data + token->len ||
                 errno != 0) {
                 r = errno;
                 SOL_WRN("Could not convert %.*s to integer",
                     SOL_STR_SLICE_PRINT(*token));
                 sol_vector_clear(&tokens);
-                return r;
+                goto err_exit;
             }
         }
+
         sol_vector_clear(&tokens);
 
         obj_ctx = find_object_ctx_by_id(client, path[0]);
-        SOL_NULL_CHECK(obj_ctx, -EINVAL);
+        SOL_NULL_CHECK_GOTO(obj_ctx, err_exit_einval);
         obj_instance = find_object_instance_by_instance_id(obj_ctx, path[1]);
-        SOL_NULL_CHECK(obj_instance, -EINVAL);
+        SOL_NULL_CHECK_GOTO(obj_instance, err_exit_einval);
         res_ctx = find_resource_ctx_by_id(obj_instance, path[2]);
-        SOL_NULL_CHECK(res_ctx, -EINVAL);
+        SOL_NULL_CHECK_GOTO(res_ctx, err_exit_einval);
 
-        r = send_notification_pkt(client, obj_ctx, NULL, -1, obj_ctx->obj_res);
-        SOL_EXP_CHECK(!r, -EINVAL);
-        r = send_notification_pkt(client, obj_ctx, obj_instance, -1,
-            obj_instance->instance_res);
-        SOL_EXP_CHECK(!r, -EINVAL);
-        r = send_notification_pkt(client, obj_ctx, obj_instance, path[2],
+        if (!notification_already_sent(&already_sent, obj_ctx)) {
+            r_bool = send_notification_pkt(client, obj_ctx, NULL, -1, obj_ctx->obj_res);
+            SOL_EXP_CHECK_GOTO(!r_bool, err_exit_einval);
+
+            r = sol_ptr_vector_append(&already_sent, obj_ctx);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        }
+
+        if (!notification_already_sent(&already_sent, obj_instance)) {
+            r_bool = send_notification_pkt(client, obj_ctx, obj_instance, -1,
+                obj_instance->instance_res);
+            SOL_EXP_CHECK_GOTO(!r_bool, err_exit_einval);
+
+            r = sol_ptr_vector_append(&already_sent, obj_instance);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        }
+
+        r_bool = send_notification_pkt(client, obj_ctx, obj_instance, path[2],
             res_ctx->res);
-        SOL_EXP_CHECK(!r, -EINVAL);
+        SOL_EXP_CHECK_GOTO(!r_bool, err_exit_einval);
     }
+
+    sol_ptr_vector_clear(&already_sent);
     return 0;
+
+err_exit_einval:
+    r = -EINVAL;
+err_exit:
+    sol_ptr_vector_clear(&already_sent);
+    return r;
 }
