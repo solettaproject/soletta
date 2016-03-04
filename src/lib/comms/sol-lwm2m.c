@@ -861,7 +861,6 @@ registration_request(struct sol_coap_server *coap,
     struct sol_lwm2m_server *server = data;
     struct sol_coap_packet *response;
     int r;
-    bool b;
 
     SOL_DBG("Client registration request");
 
@@ -881,13 +880,9 @@ registration_request(struct sol_coap_server *coap,
         remove_client(old_cinfo, true);
     }
 
-    b = sol_coap_server_register_resource(server->coap, &cinfo->resource,
+    r = sol_coap_server_register_resource(server->coap, &cinfo->resource,
         cinfo);
-    if (!b) {
-        SOL_WRN("Could not register the coap resource for client: %s",
-            cinfo->name);
-        goto err_exit_del_client;
-    }
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit_del_client);
 
     r = sol_ptr_vector_append(&server->clients, cinfo);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit_unregister);
@@ -1023,9 +1018,9 @@ SOL_API struct sol_lwm2m_server *
 sol_lwm2m_server_new(uint16_t port)
 {
     struct sol_lwm2m_server *server;
-    bool b;
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = port };
+    int r;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
@@ -1040,12 +1035,9 @@ sol_lwm2m_server_new(uint16_t port)
     sol_ptr_vector_init(&server->observers);
     sol_monitors_init(&server->registration, NULL);
 
-    b = sol_coap_server_register_resource(server->coap,
+    r = sol_coap_server_register_resource(server->coap,
         &registration_interface, server);
-    if (!b) {
-        SOL_WRN("Could not register the server resources");
-        goto err_register;
-    }
+    SOL_INT_CHECK_GOTO(r, < 0, err_register);
 
     return server;
 
@@ -2350,8 +2342,9 @@ setup_resources_ctx(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
         res_ctx->res->del = handle_resource;
 
         if (register_with_coap) {
-            sol_coap_server_register_resource(client->coap_server,
+            r = sol_coap_server_register_resource(client->coap_server,
                 res_ctx->res, client);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
     }
 
@@ -2408,8 +2401,9 @@ setup_instance_resource(struct sol_lwm2m_client *client,
     obj_instance->instance_res->del = handle_resource;
 
     if (register_with_coap) {
-        sol_coap_server_register_resource(client->coap_server,
+        r = sol_coap_server_register_resource(client->coap_server,
             obj_instance->instance_res, client);
+        SOL_INT_CHECK_GOTO(r, < 0, err_register);
     }
 
     r = setup_resources_ctx(client, obj_ctx, obj_instance, register_with_coap);
@@ -2420,6 +2414,7 @@ setup_instance_resource(struct sol_lwm2m_client *client,
 err_resources:
     sol_coap_server_unregister_resource(client->coap_server,
         obj_instance->instance_res);
+err_register:
     free(obj_instance->instance_res);
     obj_instance->instance_res = NULL;
 err_exit:
@@ -3832,16 +3827,32 @@ find_resource_ctx_by_id(struct obj_instance *instance, uint16_t id)
     return NULL;
 }
 
+static bool
+notification_already_sent(struct sol_ptr_vector *vector, const void *ptr)
+{
+    uint16_t i;
+    const void *v;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (vector, v, i) {
+        if (v == ptr)
+            return true;
+    }
+
+    return false;
+}
+
 SOL_API int
 sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
 {
     size_t i;
+    struct sol_ptr_vector already_sent = SOL_PTR_VECTOR_INIT;
+    int r;
 
     SOL_NULL_CHECK(client, -EINVAL);
     SOL_NULL_CHECK(paths, -EINVAL);
 
     for (i = 0; paths[i]; i++) {
-        bool r;
+        bool r_bool;
         uint16_t j, k;
         struct obj_ctx *obj_ctx;
         struct obj_instance *obj_instance;
@@ -3855,7 +3866,7 @@ sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
         if (tokens.len != 4) {
             sol_vector_clear(&tokens);
             SOL_WRN("The path must contain an object, instance id and resource id");
-            return -EINVAL;
+            goto err_exit;
         }
 
         k = 0;
@@ -3864,33 +3875,53 @@ sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
             if (j == 0)
                 continue;
             path[k++] = sol_util_strtoul(token->data, &end, token->len, 10);
-            r = errno;
             if (end == token->data || end != token->data + token->len ||
                 errno != 0) {
                 r = errno;
                 SOL_WRN("Could not convert %.*s to integer",
                     SOL_STR_SLICE_PRINT(*token));
                 sol_vector_clear(&tokens);
-                return r;
+                goto err_exit;
             }
         }
+
         sol_vector_clear(&tokens);
 
         obj_ctx = find_object_ctx_by_id(client, path[0]);
-        SOL_NULL_CHECK(obj_ctx, -EINVAL);
+        SOL_NULL_CHECK_GOTO(obj_ctx, err_exit_einval);
         obj_instance = find_object_instance_by_instance_id(obj_ctx, path[1]);
-        SOL_NULL_CHECK(obj_instance, -EINVAL);
+        SOL_NULL_CHECK_GOTO(obj_instance, err_exit_einval);
         res_ctx = find_resource_ctx_by_id(obj_instance, path[2]);
-        SOL_NULL_CHECK(res_ctx, -EINVAL);
+        SOL_NULL_CHECK_GOTO(res_ctx, err_exit_einval);
 
-        r = send_notification_pkt(client, obj_ctx, NULL, -1, obj_ctx->obj_res);
-        SOL_EXP_CHECK(!r, -EINVAL);
-        r = send_notification_pkt(client, obj_ctx, obj_instance, -1,
-            obj_instance->instance_res);
-        SOL_EXP_CHECK(!r, -EINVAL);
-        r = send_notification_pkt(client, obj_ctx, obj_instance, path[2],
+        if (!notification_already_sent(&already_sent, obj_ctx)) {
+            r_bool = send_notification_pkt(client, obj_ctx, NULL, -1, obj_ctx->obj_res);
+            SOL_EXP_CHECK_GOTO(!r_bool, err_exit_einval);
+
+            r = sol_ptr_vector_append(&already_sent, obj_ctx);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        }
+
+        if (!notification_already_sent(&already_sent, obj_instance)) {
+            r_bool = send_notification_pkt(client, obj_ctx, obj_instance, -1,
+                obj_instance->instance_res);
+            SOL_EXP_CHECK_GOTO(!r_bool, err_exit_einval);
+
+            r = sol_ptr_vector_append(&already_sent, obj_instance);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        }
+
+        r_bool = send_notification_pkt(client, obj_ctx, obj_instance, path[2],
             res_ctx->res);
-        SOL_EXP_CHECK(!r, -EINVAL);
+        SOL_EXP_CHECK_GOTO(!r_bool, err_exit_einval);
     }
+
+    sol_ptr_vector_clear(&already_sent);
     return 0;
+
+err_exit_einval:
+    r = -EINVAL;
+err_exit:
+    sol_ptr_vector_clear(&already_sent);
+    return r;
 }

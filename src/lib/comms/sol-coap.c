@@ -1626,24 +1626,24 @@ sol_coap_packet_has_payload(struct sol_coap_packet *pkt)
     return pkt->payload.start || pkt->payload.used != pkt->payload.size;
 }
 
-SOL_API bool
+SOL_API int
 sol_coap_server_register_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource, const void *data)
 {
     struct resource_context *c;
 
-    SOL_NULL_CHECK(server, false);
-    SOL_NULL_CHECK(resource, false);
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(resource, -EINVAL);
 
-    COAP_RESOURCE_CHECK_API(false);
+    COAP_RESOURCE_CHECK_API(-EINVAL);
 
     if (find_context(server, resource)) {
         SOL_WRN("Attempting to register duplicate resource in CoAP server");
-        return false;
+        return -EEXIST;
     }
 
     c = sol_vector_append(&server->contexts);
-    SOL_NULL_CHECK(c, false);
+    SOL_NULL_CHECK(c, -ENOMEM);
 
     c->resource = resource;
     c->data = data;
@@ -1651,7 +1651,7 @@ sol_coap_server_register_resource(struct sol_coap_server *server,
 
     sol_ptr_vector_init(&c->observers);
 
-    return true;
+    return 0;
 }
 
 SOL_API int

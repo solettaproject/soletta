@@ -412,6 +412,7 @@ sol_oic_server_init(void)
     struct sol_oic_server_resource *res;
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = OIC_COAP_SERVER_UDP_PORT };
+    int r;
 
     if (oic_server.refcnt > 0) {
         oic_server.refcnt++;
@@ -427,12 +428,14 @@ sol_oic_server_init(void)
     SOL_NULL_CHECK_GOTO(server_info, error);
 
     oic_server.server = sol_coap_server_new(&servaddr);
-    if (!oic_server.server)
+    if (!oic_server.server) {
+        r = -ENOMEM;
         goto error;
+    }
 
-    if (!sol_coap_server_register_resource(oic_server.server,
-        &oic_res_coap_resource, NULL))
-        goto error;
+    r = sol_coap_server_register_resource(oic_server.server,
+        &oic_res_coap_resource, NULL);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     servaddr.port = OIC_COAP_SERVER_DTLS_PORT;
     oic_server.dtls_server = sol_coap_secure_server_new(&servaddr);
@@ -460,14 +463,13 @@ sol_oic_server_init(void)
     SOL_NULL_CHECK_GOTO(res, error_shutdown);
 
     return 0;
-
 error:
     if (oic_server.server)
         sol_coap_server_unref(oic_server.server);
 
     free(server_info);
     free(plat_info);
-    return -ENOMEM;
+    return r;
 
 error_shutdown:
     sol_oic_server_shutdown();
@@ -679,11 +681,11 @@ sol_oic_server_add_resource(const struct sol_oic_resource_type *rt,
     res->coap = create_coap_resource(res);
     SOL_NULL_CHECK_GOTO(res->coap, free_href);
 
-    if (!sol_coap_server_register_resource(oic_server.server, res->coap, res))
+    if (sol_coap_server_register_resource(oic_server.server, res->coap, res) < 0)
         goto free_coap;
 
     if (oic_server.dtls_server) {
-        if (!sol_coap_server_register_resource(oic_server.dtls_server, res->coap, res)) {
+        if (sol_coap_server_register_resource(oic_server.dtls_server, res->coap, res) < 0) {
             SOL_WRN("Could not register resource in DTLS server");
             goto unregister_resource;
         }

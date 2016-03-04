@@ -237,7 +237,7 @@ main(int argc, char *argv[])
         return -1;
     }
 
-    if (!sol_coap_server_register_resource(server, &light, NULL)) {
+    if (sol_coap_server_register_resource(server, &light, NULL) < 0) {
         SOL_WRN("Could not register resource for the light");
         return -1;
     }
