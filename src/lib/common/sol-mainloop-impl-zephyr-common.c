@@ -39,11 +39,14 @@
 #include "sol-mainloop-zephyr.h"
 
 static nano_thread_id_t main_thread_id;
+static struct nano_sem _sol_mainloop_lock;
 
 int
 sol_mainloop_zephyr_common_init(void)
 {
     main_thread_id = sys_thread_self_get();
+    nano_sem_init(&_sol_mainloop_lock);
+    nano_sem_give(&_sol_mainloop_lock);
 
     return 0;
 }
@@ -51,11 +54,13 @@ sol_mainloop_zephyr_common_init(void)
 void
 sol_mainloop_impl_lock(void)
 {
+    nano_sem_take(&_sol_mainloop_lock, TICKS_UNLIMITED);
 }
 
 void
 sol_mainloop_impl_unlock(void)
 {
+    nano_sem_give(&_sol_mainloop_lock);
 }
 
 bool
@@ -85,11 +90,18 @@ static inline int32_t
 ticks_until_next_timeout(void)
 {
     struct timespec ts;
+    bool ret;
 
-    if (sol_mainloop_common_idler_first())
+    sol_mainloop_impl_lock();
+    ret = (sol_mainloop_common_idler_first() != NULL);
+    sol_mainloop_impl_unlock();
+    if (ret)
         return TICKS_NONE;
 
-    if (!sol_mainloop_common_timespec_first(&ts))
+    sol_mainloop_impl_lock();
+    ret = sol_mainloop_common_timespec_first(&ts);
+    sol_mainloop_impl_unlock();
+    if (!ret)
         return TICKS_UNLIMITED;
 
     return ts.tv_sec * sys_clock_ticks_per_sec +
