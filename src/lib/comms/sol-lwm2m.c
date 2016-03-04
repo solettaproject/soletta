@@ -861,7 +861,6 @@ registration_request(struct sol_coap_server *coap,
     struct sol_lwm2m_server *server = data;
     struct sol_coap_packet *response;
     int r;
-    bool b;
 
     SOL_DBG("Client registration request");
 
@@ -881,13 +880,9 @@ registration_request(struct sol_coap_server *coap,
         remove_client(old_cinfo, true);
     }
 
-    b = sol_coap_server_register_resource(server->coap, &cinfo->resource,
+    r = sol_coap_server_register_resource(server->coap, &cinfo->resource,
         cinfo);
-    if (!b) {
-        SOL_WRN("Could not register the coap resource for client: %s",
-            cinfo->name);
-        goto err_exit_del_client;
-    }
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit_del_client);
 
     r = sol_ptr_vector_append(&server->clients, cinfo);
     SOL_INT_CHECK_GOTO(r, < 0, err_exit_unregister);
@@ -1023,9 +1018,9 @@ SOL_API struct sol_lwm2m_server *
 sol_lwm2m_server_new(uint16_t port)
 {
     struct sol_lwm2m_server *server;
-    bool b;
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = port };
+    int r;
 
     SOL_LOG_INTERNAL_INIT_ONCE;
 
@@ -1040,12 +1035,9 @@ sol_lwm2m_server_new(uint16_t port)
     sol_ptr_vector_init(&server->observers);
     sol_monitors_init(&server->registration, NULL);
 
-    b = sol_coap_server_register_resource(server->coap,
+    r = sol_coap_server_register_resource(server->coap,
         &registration_interface, server);
-    if (!b) {
-        SOL_WRN("Could not register the server resources");
-        goto err_register;
-    }
+    SOL_INT_CHECK_GOTO(r, < 0, err_register);
 
     return server;
 
@@ -2350,8 +2342,9 @@ setup_resources_ctx(struct sol_lwm2m_client *client, struct obj_ctx *obj_ctx,
         res_ctx->res->del = handle_resource;
 
         if (register_with_coap) {
-            sol_coap_server_register_resource(client->coap_server,
+            r = sol_coap_server_register_resource(client->coap_server,
                 res_ctx->res, client);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
     }
 
@@ -2408,8 +2401,9 @@ setup_instance_resource(struct sol_lwm2m_client *client,
     obj_instance->instance_res->del = handle_resource;
 
     if (register_with_coap) {
-        sol_coap_server_register_resource(client->coap_server,
+        r = sol_coap_server_register_resource(client->coap_server,
             obj_instance->instance_res, client);
+        SOL_INT_CHECK_GOTO(r, < 0, err_register);
     }
 
     r = setup_resources_ctx(client, obj_ctx, obj_instance, register_with_coap);
@@ -2420,6 +2414,7 @@ setup_instance_resource(struct sol_lwm2m_client *client,
 err_resources:
     sol_coap_server_unregister_resource(client->coap_server,
         obj_instance->instance_res);
+err_register:
     free(obj_instance->instance_res);
     obj_instance->instance_res = NULL;
 err_exit:
