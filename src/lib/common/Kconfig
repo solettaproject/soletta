@@ -160,6 +160,12 @@ config SOL_BUS
 
 source "src/modules/linux-micro/Kconfig"
 
+config MAINLOOP_ZEPHYR_NANO
+	bool
+
+config MAINLOOP_ZEPHYR_MICRO
+	bool
+
 choice
 	prompt "Mainloop"
 	default MAINLOOP_POSIX if LINUX
@@ -243,6 +249,8 @@ config MAINLOOP_CONTIKI
 config MAINLOOP_ZEPHYR
 	bool "zephyr"
 	depends on ZEPHYR
+	select MAINLOOP_ZEPHYR_NANO if !FEATURE_ZEPHYR_MICROKERNEL
+	select MAINLOOP_ZEPHYR_MICRO if FEATURE_ZEPHYR_MICROKERNEL
 	help
             The mainloop to be used in Zephyr platform.
 

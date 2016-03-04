@@ -273,10 +273,15 @@
       ]
     },
     {
+      "dependency": "zephyr_micro",
+      "type": "ccode",
+      "fragment": "#ifndef CONFIG_MICROKERNEL\n#error \"Microkernel not supported\"\n#endif\n"
+    },
+    {
       "dependency": "zephyr",
       "type": "ccode",
       "headers": [
-        "<microkernel.h>"
+        "<nanokernel.h>"
       ]
     },
     {
