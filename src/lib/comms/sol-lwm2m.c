@@ -3866,7 +3866,7 @@ sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
         if (tokens.len != 4) {
             sol_vector_clear(&tokens);
             SOL_WRN("The path must contain an object, instance id and resource id");
-            goto err_exit;
+            goto err_exit_einval;
         }
 
         k = 0;
