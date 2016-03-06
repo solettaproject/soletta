@@ -1342,7 +1342,7 @@ http_composed_client_options_description(struct sol_vector *options)
     SOL_NULL_CHECK_GOTO(option->name, err);
 
     option->data_type = strdup("string");
-    SOL_NULL_CHECK_GOTO(option->name, err_data);
+    SOL_NULL_CHECK_GOTO(option->data_type, err_data);
 
     return 0;
 
