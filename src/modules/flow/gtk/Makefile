@@ -10,6 +10,7 @@ obj-gtk-$(FLOW_NODE_TYPE_GTK) := \
 	pwm-editor.o \
 	pwm-viewer.o \
 	rgb-editor.o \
+	float-editor.o \
 	slider.o \
 	spinbutton.o \
 	toggle.o \

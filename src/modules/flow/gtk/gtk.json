@@ -354,6 +354,90 @@
       "url": "http://solettaproject.org/doc/latest/node_types/gtk/rgb-editor.html"
     },
     {
+      "category": "output/sw",
+      "description": "A direction vector editor chooser widget that outputs a direction vector packet.",
+      "methods": {
+        "close": "gtk_float_editor_close",
+        "open": "gtk_float_editor_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct float_editor_note_type",
+        "extra_methods": {
+          "setup_widget": "direction_vector_setup",
+          "send_output_packet": "send_direction_vector_output"
+        }
+      },
+      "name": "gtk/direction-vector-editor",
+      "out_ports": [
+        {
+          "data_type": "direction-vector",
+          "description": "The current reading for the editor, after a change",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/direction-vector-editor.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "A location editor widget that outputs a location packet.",
+      "methods": {
+        "close": "gtk_float_editor_close",
+        "open": "gtk_float_editor_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct float_editor_note_type",
+        "extra_methods": {
+          "setup_widget": "location_setup",
+          "send_output_packet": "send_location_output"
+        }
+      },
+      "name": "gtk/location-editor",
+      "out_ports": [
+        {
+          "data_type": "location",
+          "description": "The current reading for the editor, after a change",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/location-editor.html"
+    },
+    {
+      "category": "output/sw",
+      "description": "A float editor widget that outputs a float packet.",
+      "methods": {
+        "close": "gtk_float_editor_close",
+        "open": "gtk_float_editor_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct float_editor_note_type",
+        "extra_methods": {
+          "setup_widget": "float_setup",
+          "send_output_packet": "send_float_output"
+        }
+      },
+      "name": "gtk/float-editor",
+      "out_ports": [
+        {
+          "data_type": "float",
+          "description": "The current reading for the editor, after a change",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/float-editor.html"
+    },
+    {
       "category": "input/sw",
       "description": "Slider that provides (int) input packets to other nodes",
       "methods": {

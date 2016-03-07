@@ -52,6 +52,7 @@ SOL_LOG_INTERNAL_DECLARE(_gtk_log_domain, "flow-gtk");
 #include "pwm-editor.h"
 #include "pwm-viewer.h"
 #include "rgb-editor.h"
+#include "float-editor.h"
 #include "slider.h"
 #include "spinbutton.h"
 #include "toggle.h"
