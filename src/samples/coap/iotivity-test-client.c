@@ -643,6 +643,9 @@ main(int argc, char *argv[])
         return 1;
     }
 
+    if (argc >= 3)
+        resource_type = argv[2];
+
     if (!sol_network_addr_from_str(&cliaddr, "224.0.1.187")) {
         SOL_WRN("could not convert multicast ip address to sockaddr_in");
         return 1;
@@ -663,7 +666,6 @@ main(int argc, char *argv[])
     case TEST_CONFIRMABLE_DELETE:
     case TEST_CONFIRMABLE_OBSERVE:
         found_resource_cb = found_resource;
-        resource_type = "core.light";
     case TEST_DISCOVER_PLATFORM:
     case TEST_DISCOVER_DEVICES:
         break;
