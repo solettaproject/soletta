@@ -81,9 +81,9 @@ public:
         VALIDATE_ARGUMENT_COUNT(info, 1); \
         VALIDATE_ARGUMENT_TYPE(info, 0, IsObject); \
         int result; \
+        Local<Object> jsHandle = Nan::To<Object>(info[0]).ToLocalChecked(); \
         Nan::Callback *callback = \
-            (Nan::Callback *)SolPlatformMonitor::Resolve( \
-                Nan::To<Object>(info[0]).ToLocalChecked()); \
+            (Nan::Callback *)SolPlatformMonitor::Resolve(jsHandle); \
         if (!(callback && hijack_unref())) { \
             return; \
         } \
@@ -94,6 +94,7 @@ public:
         } \
 \
         delete callback; \
+        Nan::SetInternalFieldPointer(jsHandle, 0, 0); \
         info.GetReturnValue().Set(Nan::New(result)); \
     } while(0)
 
@@ -188,58 +189,6 @@ static void serviceMonitor(void *data, const char *service,
     };
     ((Nan::Callback *)data)->Call(2, arguments);
 }
-
-#define ADD_MONITOR(name, marshaller) \
-    do { \
-        VALIDATE_ARGUMENT_COUNT(info, 1); \
-        VALIDATE_ARGUMENT_TYPE(info, 0, IsFunction); \
-        int result; \
-\
-        if (!hijack_ref()) { \
-            return; \
-        } \
-\
-        Nan::Callback *callback = \
-            new Nan::Callback(Local<Function>::Cast(info[0])); \
-        if (!callback) { \
-            result = -ENOMEM; \
-            goto error; \
-        } \
-\
-        result = sol_platform_add_##name##_monitor((marshaller), callback); \
-        if (result) { \
-            goto free_callback_error; \
-        } \
-\
-        info.GetReturnValue().Set(SolPlatformMonitor::New(callback)); \
-        return; \
-    free_callback_error: \
-        delete callback; \
-    error: \
-        hijack_unref(); \
-        Nan::ThrowError(strerror(-result)); \
-    } while(0)
-
-#define DEL_MONITOR(name, marshaller) \
-    do { \
-        VALIDATE_ARGUMENT_COUNT(info, 1); \
-        VALIDATE_ARGUMENT_TYPE(info, 0, IsObject); \
-        int result; \
-        Nan::Callback *callback = \
-            (Nan::Callback *)SolPlatformMonitor::Resolve( \
-                Nan::To<Object>(info[0]).ToLocalChecked()); \
-        if (!(callback && hijack_unref())) { \
-            return; \
-        } \
-        result = sol_platform_del_##name##_monitor((marshaller), callback); \
-        if (result) { \
-            hijack_ref(); \
-            return Nan::ThrowError(strerror(-result)); \
-        } \
-\
-        delete callback; \
-        info.GetReturnValue().Set(Nan::New(result)); \
-    } while(0)
 
 NAN_METHOD(bind_sol_platform_add_service_monitor) {
     VALIDATE_ARGUMENT_COUNT(info, 2);
