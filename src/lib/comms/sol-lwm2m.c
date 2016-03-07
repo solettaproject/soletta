@@ -3886,7 +3886,7 @@ sol_lwm2m_notify_observers(struct sol_lwm2m_client *client, const char **paths)
             path[k++] = sol_util_strtoul(token->data, &end, token->len, 10);
             if (end == token->data || end != token->data + token->len ||
                 errno != 0) {
-                r = errno;
+                r = -errno;
                 SOL_WRN("Could not convert %.*s to integer",
                     SOL_STR_SLICE_PRINT(*token));
                 sol_vector_clear(&tokens);
