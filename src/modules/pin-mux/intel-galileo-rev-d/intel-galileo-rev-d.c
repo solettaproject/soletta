@@ -38,65 +38,65 @@
 // Galileo Gen1 Multiplexer Description
 // =============================================================================
 
-static struct mux_description desc_16[] = {
+static const struct mux_description desc_16[] = {
     { 42, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { 42, PIN_LOW, MODE_SPI },
     { }
 };
 
-static struct mux_description desc_18[] = {
+static const struct mux_description desc_18[] = {
     { 30, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { }
 };
 
-static struct mux_description desc_25[] = {
+static const struct mux_description desc_25[] = {
     { 43, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { 43, PIN_LOW, MODE_SPI },
     { }
 };
 
-static struct mux_description desc_32[] = {
+static const struct mux_description desc_32[] = {
     { 31, PIN_HIGH, MODE_GPIO },
     { }
 };
 
-static struct mux_description desc_38 [] = {
+static const struct mux_description desc_38 [] = {
     { 54, PIN_HIGH, MODE_GPIO },
     { 54, PIN_LOW, MODE_SPI },
     { }
 };
 
-static struct mux_description desc_39[] = {
+static const struct mux_description desc_39[] = {
     { 55, PIN_HIGH, MODE_GPIO | MODE_PWM },
     { 55, PIN_LOW, MODE_SPI },
     { }
 };
 
-static struct mux_description desc_44[] = {
+static const struct mux_description desc_44[] = {
     { 37, PIN_HIGH, MODE_GPIO },
     { 37, PIN_LOW, MODE_ANALOG },
     { }
 };
 
-static struct mux_description desc_45[] = {
+static const struct mux_description desc_45[] = {
     { 36, PIN_HIGH, MODE_GPIO },
     { 36, PIN_LOW, MODE_ANALOG },
     { }
 };
 
-static struct mux_description desc_46[] = {
+static const struct mux_description desc_46[] = {
     { 23, PIN_HIGH, MODE_GPIO },
     { 23, PIN_LOW, MODE_ANALOG },
     { }
 };
 
-static struct mux_description desc_47[] = {
+static const struct mux_description desc_47[] = {
     { 22, PIN_HIGH, MODE_GPIO },
     { 22, PIN_LOW, MODE_ANALOG },
     { }
 };
 
-static struct mux_description desc_48[] = {
+static const struct mux_description desc_48[] = {
     { 21, PIN_HIGH, MODE_GPIO },
     { 21, PIN_LOW, MODE_ANALOG },
     { 29, PIN_HIGH, MODE_ANALOG | MODE_GPIO },
@@ -104,7 +104,7 @@ static struct mux_description desc_48[] = {
     { }
 };
 
-static struct mux_description desc_49[] = {
+static const struct mux_description desc_49[] = {
     { 20, PIN_HIGH, MODE_GPIO },
     { 20, PIN_LOW, MODE_ANALOG },
     { 29, PIN_HIGH, MODE_ANALOG | MODE_GPIO },
@@ -112,13 +112,13 @@ static struct mux_description desc_49[] = {
     { }
 };
 
-static struct mux_description desc_50[] = {
+static const struct mux_description desc_50[] = {
     { 40, PIN_HIGH, MODE_GPIO },
     { 40, PIN_LOW, MODE_UART },
     { }
 };
 
-static struct mux_description desc_51[] = {
+static const struct mux_description desc_51[] = {
     { 41, PIN_HIGH, MODE_GPIO },
     { 41, PIN_LOW, MODE_UART },
     { }
@@ -129,16 +129,16 @@ static struct mux_description desc_51[] = {
 // =============================================================================
 
 //AIO
-static struct mux_description *aio_dev_0[] = {
+static const struct mux_description *const aio_dev_0[] = {
     desc_44, desc_45, desc_46, desc_47, desc_48, desc_49
 };
 
-static struct mux_controller aio_controller_list[] = {
+static const struct mux_controller aio_controller_list[] = {
     { SOL_UTIL_ARRAY_SIZE(aio_dev_0), aio_dev_0 },
 };
 
 //GPIO
-static struct mux_description *gpio_dev_0[52] = {
+static const struct mux_description *const gpio_dev_0[52] = {
     [16] = desc_16,
     [18] = desc_18,
     [25] = desc_25,
@@ -156,18 +156,18 @@ static struct mux_description *gpio_dev_0[52] = {
 };
 
 //I2C
-static struct mux_description *i2c_dev_0[][2] = {
+static const struct mux_description *const i2c_dev_0[][2] = {
     { desc_48, desc_49 }
 };
 
 //PWM
-static struct mux_description *pwm_dev_0[8] = {
+static const struct mux_description *const pwm_dev_0[8] = {
     [3] = desc_18,
     [4] = desc_25,
     [7] = desc_16,
 };
 
-static struct mux_controller pwm_controller_list[] = {
+static const struct mux_controller pwm_controller_list[] = {
     { SOL_UTIL_ARRAY_SIZE(pwm_dev_0), pwm_dev_0 },
 };
 

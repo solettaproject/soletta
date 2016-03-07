@@ -153,7 +153,7 @@ _set_mode(uint32_t pin, int mode)
 }
 
 int
-apply_mux_desc(struct mux_description *desc, unsigned int mode)
+apply_mux_desc(const struct mux_description *desc, unsigned int mode)
 {
     int ret;
 
@@ -241,7 +241,7 @@ mux_pin_map(const struct mux_pin_map *map, const char *label, const enum sol_io_
 #undef SET_INT_ARG
 
 int
-mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_list, const int s)
+mux_set_aio(const int device, const int pin, const struct mux_controller *const ctl_list, const int s)
 {
     const struct mux_controller *ctl;
 
@@ -267,7 +267,7 @@ mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_li
 
 int
 mux_set_gpio(const uint32_t pin, const enum sol_gpio_direction dir,
-    struct mux_description **const desc_list, const uint32_t s)
+    const struct mux_description *const *desc_list, const uint32_t s)
 {
     if (pin >= s || !desc_list[pin])
         return 0;
@@ -277,7 +277,7 @@ mux_set_gpio(const uint32_t pin, const enum sol_gpio_direction dir,
 }
 
 int
-mux_set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2], const unsigned int s)
+mux_set_i2c(const uint8_t bus, const struct mux_description *const (*desc_list)[2], const unsigned int s)
 {
     int ret;
 
@@ -293,7 +293,7 @@ mux_set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2], c
 }
 
 int
-mux_set_pwm(const int device, const int channel, const struct mux_controller *ctl_list, const int s)
+mux_set_pwm(const int device, const int channel, const struct mux_controller *const ctl_list, const int s)
 {
     const struct mux_controller *ctl;
 
