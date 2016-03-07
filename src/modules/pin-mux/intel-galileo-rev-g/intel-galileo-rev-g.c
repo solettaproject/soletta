@@ -38,7 +38,7 @@
 // Galileo Gen2 Multiplexer Description
 // =============================================================================
 
-static struct mux_description desc_0[] = {
+static const struct mux_description desc_0[] = {
     { 32, PIN_LOW, MODE_GPIO_OUTPUT },
     { 32, PIN_HIGH, MODE_UART | MODE_GPIO_INPUT },
     { 33, PIN_NONE, MODE_UART | MODE_GPIO_INPUT_HIZ | MODE_GPIO_OUTPUT },
@@ -46,7 +46,7 @@ static struct mux_description desc_0[] = {
     { }
 };
 
-static struct mux_description desc_1[] = {
+static const struct mux_description desc_1[] = {
     { 45, PIN_LOW, MODE_GPIO },
     { 45, PIN_HIGH, MODE_UART },
     { 28, PIN_LOW, MODE_UART | MODE_GPIO_OUTPUT },
@@ -57,7 +57,7 @@ static struct mux_description desc_1[] = {
     { }
 };
 
-static struct mux_description desc_2[] = {
+static const struct mux_description desc_2[] = {
     { 77, PIN_LOW, MODE_GPIO },
     { 77, PIN_HIGH, MODE_UART },
     { 34, PIN_LOW, MODE_GPIO_OUTPUT },
@@ -70,7 +70,7 @@ static struct mux_description desc_2[] = {
     { }
 };
 
-static struct mux_description desc_3[] = {
+static const struct mux_description desc_3[] = {
     { 64, PIN_LOW, MODE_GPIO },
     { 64, PIN_HIGH, MODE_PWM },
     { 76, PIN_LOW, MODE_GPIO | MODE_PWM },
@@ -85,7 +85,7 @@ static struct mux_description desc_3[] = {
     { }
 };
 
-static struct mux_description desc_4[] = {
+static const struct mux_description desc_4[] = {
     { 36, PIN_LOW, MODE_GPIO_OUTPUT },
     { 36, PIN_HIGH, MODE_GPIO_INPUT },
     { 37, PIN_NONE, MODE_GPIO_INPUT_HIZ | MODE_GPIO_OUTPUT },
@@ -94,7 +94,7 @@ static struct mux_description desc_4[] = {
     { }
 };
 
-static struct mux_description desc_5[] = {
+static const struct mux_description desc_5[] = {
     { 66, PIN_LOW, MODE_GPIO },
     { 66, PIN_HIGH, MODE_PWM },
     { 18, PIN_LOW, MODE_PWM | MODE_GPIO_OUTPUT },
@@ -105,7 +105,7 @@ static struct mux_description desc_5[] = {
     { }
 };
 
-static struct mux_description desc_6[] = {
+static const struct mux_description desc_6[] = {
     { 68, PIN_LOW, MODE_GPIO },
     { 68, PIN_HIGH, MODE_PWM },
     { 20, PIN_LOW, MODE_PWM | MODE_GPIO_OUTPUT },
@@ -116,21 +116,21 @@ static struct mux_description desc_6[] = {
     { }
 };
 
-static struct mux_description desc_7[] = {
+static const struct mux_description desc_7[] = {
     { 39, PIN_NONE, MODE_GPIO_INPUT_HIZ | MODE_GPIO_OUTPUT },
     { 39, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 39, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { }
 };
 
-static struct mux_description desc_8[] = {
+static const struct mux_description desc_8[] = {
     { 41, PIN_NONE, MODE_GPIO_INPUT_HIZ | MODE_GPIO_OUTPUT },
     { 41, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
     { 41, PIN_LOW, MODE_GPIO_INPUT_PULLDOWN },
     { }
 };
 
-static struct mux_description desc_9[] = {
+static const struct mux_description desc_9[] = {
     { 70, PIN_LOW, MODE_GPIO },
     { 70, PIN_HIGH, MODE_PWM },
     { 22, PIN_LOW, MODE_PWM | MODE_GPIO_OUTPUT },
@@ -141,7 +141,7 @@ static struct mux_description desc_9[] = {
     { }
 };
 
-static struct mux_description desc_10[] = {
+static const struct mux_description desc_10[] = {
     { 74, PIN_LOW, MODE_GPIO },
     { 74, PIN_HIGH, MODE_PWM },
     { 26, PIN_LOW, MODE_PWM | MODE_GPIO_OUTPUT },
@@ -152,7 +152,7 @@ static struct mux_description desc_10[] = {
     { }
 };
 
-static struct mux_description desc_11[] = {
+static const struct mux_description desc_11[] = {
     { 44, PIN_LOW, MODE_GPIO },
     { 44, PIN_HIGH, MODE_SPI },
     { 72, PIN_LOW, MODE_GPIO },
@@ -166,7 +166,7 @@ static struct mux_description desc_11[] = {
     { }
 };
 
-static struct mux_description desc_12[] = {
+static const struct mux_description desc_12[] = {
     { 42, PIN_LOW, MODE_GPIO_OUTPUT },
     { 42, PIN_HIGH, MODE_SPI | MODE_GPIO_INPUT },
     { 43, PIN_NONE, MODE_SPI | MODE_GPIO_INPUT_HIZ | MODE_GPIO_OUTPUT },
@@ -175,7 +175,7 @@ static struct mux_description desc_12[] = {
     { }
 };
 
-static struct mux_description desc_13[] = {
+static const struct mux_description desc_13[] = {
     { 46, PIN_LOW, MODE_GPIO },
     { 46, PIN_HIGH, MODE_SPI },
     { 30, PIN_LOW, MODE_SPI | MODE_GPIO_OUTPUT },
@@ -186,7 +186,7 @@ static struct mux_description desc_13[] = {
     { }
 };
 
-static struct mux_description desc_14[] = {
+static const struct mux_description desc_14[] = {
     { 48, PIN_NONE, MODE_ANALOG },
     { 49, PIN_NONE, MODE_ANALOG | MODE_GPIO_INPUT_HIZ | MODE_GPIO_OUTPUT },
     { 49, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
@@ -194,7 +194,7 @@ static struct mux_description desc_14[] = {
     { }
 };
 
-static struct mux_description desc_15[] = {
+static const struct mux_description desc_15[] = {
     { 50, PIN_NONE, MODE_ANALOG },
     { 51, PIN_NONE, MODE_ANALOG | MODE_GPIO_INPUT_HIZ | MODE_GPIO_OUTPUT },
     { 51, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
@@ -202,7 +202,7 @@ static struct mux_description desc_15[] = {
     { }
 };
 
-static struct mux_description desc_16[] = {
+static const struct mux_description desc_16[] = {
     { 52, PIN_NONE, MODE_ANALOG },
     { 53, PIN_NONE, MODE_ANALOG | MODE_GPIO_INPUT_HIZ | MODE_GPIO_OUTPUT },
     { 53, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
@@ -210,7 +210,7 @@ static struct mux_description desc_16[] = {
     { }
 };
 
-static struct mux_description desc_17[] = {
+static const struct mux_description desc_17[] = {
     { 54, PIN_NONE, MODE_ANALOG },
     { 55, PIN_NONE, MODE_ANALOG | MODE_GPIO_INPUT_HIZ | MODE_GPIO_OUTPUT },
     { 55, PIN_HIGH, MODE_GPIO_INPUT_PULLUP },
@@ -218,7 +218,7 @@ static struct mux_description desc_17[] = {
     { }
 };
 
-static struct mux_description desc_18[] = {
+static const struct mux_description desc_18[] = {
     { 78, PIN_LOW, MODE_ANALOG },
     { 78, PIN_HIGH, MODE_GPIO },
     { 60, PIN_LOW, MODE_I2C },
@@ -231,7 +231,7 @@ static struct mux_description desc_18[] = {
     { }
 };
 
-static struct mux_description desc_19[] = {
+static const struct mux_description desc_19[] = {
     { 79, PIN_LOW, MODE_ANALOG },
     { 79, PIN_HIGH, MODE_GPIO },
     { 60, PIN_LOW, MODE_I2C },
@@ -249,16 +249,16 @@ static struct mux_description desc_19[] = {
 // =============================================================================
 
 //AIO
-static struct mux_description *aio_dev_0[] = {
+static const struct mux_description *const aio_dev_0[] = {
     desc_14, desc_15, desc_16, desc_17, desc_18, desc_19
 };
 
-static struct mux_controller aio_controller_list[] = {
+static const struct mux_controller aio_controller_list[] = {
     { SOL_UTIL_ARRAY_SIZE(aio_dev_0), aio_dev_0 },
 };
 
 //GPIO:
-static struct mux_description *gpio_dev_0[63] = {
+static const struct mux_description *const gpio_dev_0[63] = {
     [0] = desc_5,
     [1] = desc_6,
     [2 ... 3] = NULL,
@@ -294,12 +294,12 @@ static struct mux_description *gpio_dev_0[63] = {
 };
 
 //I2C
-static struct mux_description *i2c_dev_0[][2] = {
+static const struct mux_description *const i2c_dev_0[][2] = {
     { desc_18, desc_19 }
 };
 
 //PWM
-static struct mux_description *pwm_dev_0[12] = {
+static const struct mux_description *const pwm_dev_0[12] = {
     [1] = desc_3,
     [3] = desc_5,
     [5] = desc_6,
@@ -308,11 +308,11 @@ static struct mux_description *pwm_dev_0[12] = {
     [11] = desc_10,
 };
 
-static struct mux_controller pwm_controller_list[] = {
+static const struct mux_controller pwm_controller_list[] = {
     { SOL_UTIL_ARRAY_SIZE(pwm_dev_0), pwm_dev_0 },
 };
 
-static struct mux_pin_map pin_map[] = {
+static const struct mux_pin_map pin_map[] = {
     { .label = "A0", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 0, 0 }, .gpio = 14 },
     { .label = "A1", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 0, 1 }, .gpio = 15 },
     { .label = "A2", .cap = SOL_IO_AIO | SOL_IO_GPIO, .aio = { 0, 2 }, .gpio = 16 },

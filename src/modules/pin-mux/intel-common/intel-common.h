@@ -89,7 +89,7 @@ struct mux_description {
  */
 struct mux_controller {
     unsigned int len; /**< Size of the pin set list */
-    struct mux_description **recipe; /**< A list of mux recipes for each pin */
+    const struct mux_description *const *recipe; /**< A list of mux recipes for each pin */
 };
 
 struct mux_pin_map {
@@ -102,23 +102,23 @@ struct mux_pin_map {
     } aio, pwm; /**< AIO and PWM mapping */
 };
 
-int apply_mux_desc(struct mux_description *desc, unsigned int mode);
+int apply_mux_desc(const struct mux_description *desc, unsigned int mode);
 
 void mux_shutdown(void);
 
 int mux_pin_map(const struct mux_pin_map *map, const char *label, const enum sol_io_protocol prot,
     va_list args);
 
-int mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_list,
+int mux_set_aio(const int device, const int pin, const struct mux_controller *const ctl_list,
     const int s);
 
 int mux_set_gpio(const uint32_t pin, const enum sol_gpio_direction dir,
-    struct mux_description **const desc_list, const uint32_t s);
+    const struct mux_description *const *desc_list, const uint32_t s);
 
-int mux_set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2],
+int mux_set_i2c(const uint8_t bus, const struct mux_description *const (*desc_list)[2],
     const unsigned int s);
 
-int mux_set_pwm(const int device, const int channel, const struct mux_controller *ctl_list,
+int mux_set_pwm(const int device, const int channel, const struct mux_controller *const ctl_list,
     const int s);
 
 #ifdef __cplusplus
