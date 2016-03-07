@@ -61,3 +61,5 @@ direction_vector(gtk/direction-vector-editor) OUT -> IN direction_vector_output(
 location_editor(gtk/location-editor) OUT -> IN location_output(gtk/label)
 
 float_editor(gtk/float-editor) OUT -> IN float_output(gtk/label)
+
+timestamp_editor(gtk/timestamp-editor) OUT -> IN timestamp(gtk/label)

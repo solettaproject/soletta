@@ -11,6 +11,7 @@ obj-gtk-$(FLOW_NODE_TYPE_GTK) := \
 	pwm-viewer.o \
 	rgb-editor.o \
 	float-editor.o \
+	timestamp-editor.o \
 	slider.o \
 	spinbutton.o \
 	toggle.o \

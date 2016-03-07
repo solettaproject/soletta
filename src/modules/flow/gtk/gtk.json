@@ -411,6 +411,24 @@
     },
     {
       "category": "output/sw",
+      "description": "A timestamp widget that outputs a timestamp packet.",
+      "methods": {
+        "close": "gtk_timestamp_editor_close",
+        "open": "gtk_timestamp_editor_open"
+      },
+      "name": "gtk/timestamp-editor",
+      "out_ports": [
+        {
+          "data_type": "timestamp",
+          "description": "The current reading for the editor, after a change",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "gtk_common_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/gtk/timestamp-editor.html"
+    },
+    {
+      "category": "output/sw",
       "description": "A float widget that outputs a float packet.",
       "methods": {
         "close": "gtk_float_editor_close",
