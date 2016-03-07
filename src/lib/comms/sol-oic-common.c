@@ -132,22 +132,23 @@ sol_oic_payload_debug(struct sol_coap_packet *pkt)
     SOL_NULL_CHECK(pkt);
 
 #ifdef HAVE_STDOUT
-    uint8_t *payload;
-    uint16_t payload_len;
+    struct sol_buffer *buf;
     CborParser parser;
-    CborError err;
     CborValue root;
+    CborError err;
+    size_t offset;
 
     if (!sol_oic_pkt_has_cbor_content(pkt) ||
         !sol_coap_packet_has_payload(pkt)) {
         return;
     }
-    if (sol_coap_packet_get_payload(pkt, &payload, &payload_len) < 0) {
+    if (sol_coap_packet_get_payload(pkt, &buf, &offset) < 0) {
         SOL_DBG("Failed to get packet payload");
         return;
     }
 
-    err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
+    err = cbor_parser_init(sol_buffer_at(buf, offset),
+        buf->used - offset, 0, &parser, &root);
     if (err != CborNoError) {
         SOL_DBG("Failed to get cbor payload");
         return;

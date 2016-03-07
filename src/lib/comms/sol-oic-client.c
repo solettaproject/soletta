@@ -124,6 +124,7 @@ _set_token_and_mid(struct sol_coap_packet *pkt, int64_t *token)
 {
     static struct sol_random *random = NULL;
     int32_t mid;
+    int r;
 
     if (SOL_UNLIKELY(!random)) {
         random = sol_random_new(SOL_RANDOM_DEFAULT, 0);
@@ -139,12 +140,18 @@ _set_token_and_mid(struct sol_coap_packet *pkt, int64_t *token)
         return false;
     }
 
-    if (!sol_coap_header_set_token(pkt, (uint8_t *)token, (uint8_t)sizeof(*token))) {
+    r = sol_coap_header_set_token(pkt, (uint8_t *)token,
+        (uint8_t)sizeof(*token));
+    if (r < 0) {
         SOL_WRN("Could not set CoAP packet token");
         return false;
     }
 
-    sol_coap_header_set_id(pkt, (int16_t)mid);
+    r = sol_coap_header_set_id(pkt, (int16_t)mid);
+    if (r < 0) {
+        SOL_WRN("Could not set CoAP header ID");
+        return false;
+    }
 
     return true;
 }
@@ -291,10 +298,10 @@ _platform_info_reply_cb(struct sol_coap_server *server,
     struct sol_coap_packet *req, const struct sol_network_link_addr *addr,
     void *data)
 {
-    struct server_info_ctx *ctx = data;
-    uint8_t *payload;
-    uint16_t payload_len;
     struct sol_oic_platform_information info = { 0 };
+    struct server_info_ctx *ctx = data;
+    struct sol_buffer *buf;
+    size_t offset;
 
     if (!ctx->cb) {
         SOL_WRN("No user callback provided");
@@ -310,12 +317,13 @@ _platform_info_reply_cb(struct sol_coap_server *server,
     if (!sol_oic_pkt_has_cbor_content(req))
         goto error;
 
-    if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
+    if (sol_coap_packet_get_payload(req, &buf, &offset) < 0) {
         SOL_WRN("Could not get pkt payload");
         goto error;
     }
 
-    if (_parse_platform_info_payload(&info, payload, payload_len)) {
+    if (_parse_platform_info_payload(&info, sol_buffer_at(buf, offset),
+        buf->used - offset)) {
         SOL_SET_API_VERSION(info.api_version = SOL_OIC_PLATFORM_INFORMATION_API_VERSION; )
         ctx->cb(ctx->client, &info, (void *)ctx->data);
     } else {
@@ -349,8 +357,8 @@ _server_info_reply_cb(struct sol_coap_server *server,
     void *data)
 {
     struct server_info_ctx *ctx = data;
-    uint8_t *payload;
-    uint16_t payload_len;
+    struct sol_buffer *buf;
+    size_t offset;
     struct sol_oic_server_information info = { 0 };
 
     if (!ctx->cb) {
@@ -368,12 +376,13 @@ _server_info_reply_cb(struct sol_coap_server *server,
     if (!sol_oic_pkt_has_cbor_content(req))
         goto error;
 
-    if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
+    if (sol_coap_packet_get_payload(req, &buf, &offset) < 0) {
         SOL_WRN("Could not get pkt payload");
         goto error;
     }
 
-    if (_parse_server_info_payload(&info, payload, payload_len)) {
+    if (_parse_server_info_payload(&info, sol_buffer_at(buf, offset),
+        buf->used - offset)) {
         void (*cb)(struct sol_oic_client *cli,
             const struct sol_oic_server_information *info, void *data);
 
@@ -578,8 +587,8 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
     CborParser parser;
     CborError err;
     CborValue root, devices_array, resources_array, value, map;
-    uint8_t *payload;
-    uint16_t payload_len;
+    struct sol_buffer *buf;
+    size_t offset;
     struct sol_str_slice device_id;
     struct sol_oic_resource *res = NULL;
     CborValue bitmap_value, secure_value;
@@ -589,12 +598,13 @@ _iterate_over_resource_reply_payload(struct sol_coap_packet *req,
 
     *cb_return  = true;
 
-    if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0) {
+    if (sol_coap_packet_get_payload(req, &buf, &offset) < 0) {
         SOL_WRN("Could not get payload form discovery packet response");
         return false;
     }
 
-    err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
+    err = cbor_parser_init(sol_buffer_at(buf, offset), buf->used - offset,
+        0, &parser, &root);
     SOL_INT_CHECK(err, != CborNoError, false);
     if (!cbor_value_is_array(&root))
         return false;
@@ -801,8 +811,8 @@ _resource_request_cb(struct sol_coap_server *server,
     CborParser parser;
     CborValue root;
     CborError err;
-    uint8_t *payload;
-    uint16_t payload_len;
+    struct sol_buffer *buf;
+    size_t offset;
     struct sol_oic_map_reader *map_reader = NULL;
 
     if (!ctx->cb)
@@ -819,10 +829,11 @@ _resource_request_cb(struct sol_coap_server *server,
         goto empty_payload;
     if (!sol_coap_packet_has_payload(req))
         goto empty_payload;
-    if (sol_coap_packet_get_payload(req, &payload, &payload_len) < 0)
+    if (sol_coap_packet_get_payload(req, &buf, &offset) < 0)
         goto empty_payload;
 
-    err = cbor_parser_init(payload, payload_len, 0, &parser, &root);
+    err = cbor_parser_init(sol_buffer_at(buf, offset), buf->used - offset,
+        0, &parser, &root);
     if (err != CborNoError || !cbor_value_is_map(&root)) {
         SOL_ERR("Error while parsing CBOR repr packet: %s",
             cbor_error_string(err));
@@ -919,6 +930,9 @@ _resource_request(struct sol_oic_client *client, struct sol_oic_resource *res,
         goto out;
     }
 
+    /* FIXME: We can't make phony cbor calls to calculate the exact
+     * payload here because it involves an user callback
+     * (fill_repr_map). */
     if (fill_repr_map) {
         sol_oic_packet_cbor_create(req, &map_encoder);
         if (!fill_repr_map(fill_repr_map_data, &map_encoder))
@@ -1109,7 +1123,7 @@ sol_oic_client_new(void)
 {
     struct sol_oic_client *client = malloc(sizeof(*client));
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
-                                                  .port = 0 };
+                                              .port = 0 };
 
 
     SOL_NULL_CHECK(client, NULL);
