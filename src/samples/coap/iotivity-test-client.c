@@ -293,13 +293,17 @@ dump_byte_string(struct sol_buffer *buf, const struct sol_str_slice bytes)
 {
     const char *p, *end;
 
+    if (!bytes.len)
+        return;
+
     end = bytes.data + bytes.len;
     for (p = bytes.data; p < end; p++) {
         if (isprint(*p))
-            sol_buffer_append_printf(buf, "%#x(%c)", *p, *p);
+            sol_buffer_append_printf(buf, "%#x(%c) ", *p, *p);
         else
-            sol_buffer_append_printf(buf, "%#x", *p);
+            sol_buffer_append_printf(buf, "%#x ", *p);
     }
+    buf->used--;
 }
 
 static void
@@ -362,8 +366,8 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
                 break;
             case SOL_OIC_REPR_TYPE_BYTE_STRING:
                 dump_byte_string(&buf, field.v_slice);
-                SOL_DBG("\tkey: '%s', value: bytestr{%s}", field.key,
-                    (char *)buf.data);
+                SOL_DBG("\tkey: '%s', value: bytestr{%.*s}", field.key,
+                    SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)));
 
                 sol_buffer_fini(&buf);
                 break;
