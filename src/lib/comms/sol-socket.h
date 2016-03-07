@@ -64,7 +64,13 @@ void sol_socket_del(struct sol_socket *s);
 int sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data);
 int sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data);
 
-int sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
+/* If the socket's type is SOL_SOCKET_UDP, @a buf may be @c NULL, and
+ * in this case the function will only peek the incoming packet queue
+ * (not removing data from it), returning the number of bytes needed
+ * to store the next datagram and ignoring the cliaddr argument. This
+ * way, the user may allocate the exact number of bytes to hold the
+ * message contents. */
+ssize_t sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
 
 int sol_socket_sendmsg(struct sol_socket *s, const void *buf, size_t len,
     const struct sol_network_link_addr *cliaddr);

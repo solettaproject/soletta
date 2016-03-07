@@ -113,7 +113,7 @@ sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_
     return s->impl->set_on_write(s, cb, data);
 }
 
-SOL_API int
+SOL_API ssize_t
 sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     SOL_NULL_CHECK(s, -EINVAL);

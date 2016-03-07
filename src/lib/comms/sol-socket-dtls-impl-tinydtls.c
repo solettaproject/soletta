@@ -230,7 +230,7 @@ remove_item_from_vector(struct sol_vector *vec, struct queue_item *item,
     return retval;
 }
 
-static int
+static ssize_t
 sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
@@ -254,7 +254,7 @@ sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct
     if (item->buffer.used <= len) {
         memcpy(buf, item->buffer.data, item->buffer.used);
         return remove_item_from_vector(&s->read.queue, item,
-            (int)item->buffer.used);
+            item->buffer.used);
     }
 
     memcpy(buf, item->buffer.data, len);
@@ -270,7 +270,7 @@ sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct
     sol_buffer_fini(&item->buffer);
     item->buffer = new_buf;
 
-    return (int)len;
+    return len;
 
 clear_buf:
     SOL_WRN("Could not copy buffer for short read, discarding unencrypted data");

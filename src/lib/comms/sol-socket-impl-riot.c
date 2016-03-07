@@ -56,7 +56,7 @@ struct sol_socket_riot {
 
 static struct sol_ptr_vector ipv6_udp_bound_sockets = SOL_PTR_VECTOR_INIT;
 
-static int
+static ssize_t
 ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     gnrc_pktsnip_t *pkt = s->curr_pkt, *udp, *ipv6;
@@ -65,6 +65,11 @@ ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_ne
     size_t copysize;
 
     SOL_NULL_CHECK(pkt, -EAGAIN);
+
+    /* When more types of sockets (not just datagram) are accepted,
+     * remember to err if !buf && type != DGRAM */
+    if (!buf)
+        return pkt->size;
 
     LL_SEARCH_SCALAR(pkt, ipv6, type, GNRC_NETTYPE_IPV6);
     iphdr = ipv6->data;
@@ -241,6 +246,15 @@ sol_socket_riot_new(int domain, enum sol_socket_type type, int protocol)
     socket = calloc(1, sizeof(*socket));
     SOL_NULL_CHECK_GOTO(socket, socket_error);
 
+    switch (type) {
+    case SOL_SOCKET_UDP:
+        socket->type = GNRC_NETTYPE_UDP;
+        break;
+    default:
+        SOL_WRN("Unsupported socket type: %d", type);
+        goto unsupported_type;
+    }
+
     socket->entry.demux_ctx = GNRC_NETREG_DEMUX_CTX_ALL;
     socket->entry.pid = KERNEL_PID_UNDEF;
     socket->type = GNRC_NETTYPE_UDP;
@@ -253,6 +267,11 @@ socket_error:
 
 unsupported_family:
     errno = EAFNOSUPPORT;
+    return NULL;
+
+unsupported_type:
+    errno = EPROTOTYPE;
+    free(socket);
     return NULL;
 }
 
@@ -301,7 +320,7 @@ sol_socket_riot_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct
     return 0;
 }
 
-static int
+static ssize_t
 sol_socket_riot_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
