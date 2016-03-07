@@ -130,7 +130,7 @@ static bool on_can_write(void *data, struct sol_socket *s);
 SOL_API uint8_t
 sol_coap_header_get_ver(const struct sol_coap_packet *pkt)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
+    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
 
     return hdr->ver;
 }
@@ -138,7 +138,7 @@ sol_coap_header_get_ver(const struct sol_coap_packet *pkt)
 SOL_API uint8_t
 sol_coap_header_get_type(const struct sol_coap_packet *pkt)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
+    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
 
     return hdr->type;
 }
@@ -146,27 +146,19 @@ sol_coap_header_get_type(const struct sol_coap_packet *pkt)
 SOL_API uint8_t *
 sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
+    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
 
     *len = hdr->tkl;
     if (hdr->tkl == 0)
         return NULL;
 
-    return (uint8_t *)pkt->buf + sizeof(*hdr);
-}
-
-SOL_API void
-sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver)
-{
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
-
-    hdr->ver = ver;
+    return (uint8_t *)pkt->buf.data + sizeof(*hdr);
 }
 
 SOL_API uint16_t
 sol_coap_header_get_id(const struct sol_coap_packet *pkt)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
+    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
 
     return sol_util_be16_to_cpu(hdr->id);
 }
@@ -174,7 +166,7 @@ sol_coap_header_get_id(const struct sol_coap_packet *pkt)
 SOL_API uint8_t
 sol_coap_header_get_code(const struct sol_coap_packet *pkt)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
+    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
     uint8_t code = hdr->code;
 
     switch (code) {
@@ -214,44 +206,83 @@ sol_coap_header_get_code(const struct sol_coap_packet *pkt)
     }
 }
 
-SOL_API void
-sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id)
-{
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
+/* NB: At all _set_ functions, we assign the hdr ptr *after* the
+ * buffer operation, that can lead to reallocs */
 
-    hdr->id = sol_util_cpu_to_be16(id);
+SOL_API int
+sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver)
+{
+    struct coap_header *hdr;
+    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
+
+    SOL_INT_CHECK(r, < 0, r);
+
+    hdr = (struct coap_header *)pkt->buf.data;
+    hdr->ver = ver;
+
+    return 0;
 }
 
-SOL_API void
+SOL_API int
 sol_coap_header_set_type(struct sol_coap_packet *pkt, uint8_t type)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
+    struct coap_header *hdr;
+    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
 
+    SOL_INT_CHECK(r, < 0, r);
+
+    hdr = (struct coap_header *)pkt->buf.data;
     hdr->type = type;
+
+    return 0;
 }
 
-SOL_API void
-sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code)
-{
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
-
-    hdr->code = code;
-}
-
-SOL_API bool
+SOL_API int
 sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint8_t tokenlen)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf;
+    struct sol_str_slice s = SOL_STR_SLICE_STR((char *)token,
+        (size_t)tokenlen);
+    struct coap_header *hdr;
+    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
 
-    if (pkt->payload.size < sizeof(*hdr) + tokenlen)
-        return false;
+    SOL_INT_CHECK(r, < 0, r);
 
-    pkt->payload.used += tokenlen;
+    r = sol_buffer_insert_slice(&pkt->buf, sizeof(*hdr), s);
+    SOL_INT_CHECK(r, < 0, r);
 
+    hdr = (struct coap_header *)pkt->buf.data;
+    /* adjust back token len */
     hdr->tkl = tokenlen;
-    memcpy(pkt->buf + sizeof(*hdr), token, tokenlen);
 
-    return true;
+    return 0;
+}
+
+SOL_API int
+sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id)
+{
+    struct coap_header *hdr;
+    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
+
+    SOL_INT_CHECK(r, < 0, r);
+
+    hdr = (struct coap_header *)pkt->buf.data;
+    hdr->id = sol_util_cpu_to_be16(id);
+
+    return 0;
+}
+
+SOL_API int
+sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code)
+{
+    struct coap_header *hdr;
+    int r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
+
+    SOL_INT_CHECK(r, < 0, r);
+
+    hdr = (struct coap_header *)pkt->buf.data;
+    hdr->code = code;
+
+    return 0;
 }
 
 static bool
@@ -281,7 +312,7 @@ uri_path_eq(const struct sol_coap_packet *req, const struct sol_str_slice path[]
 
 SOL_API int
 sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
-    uint8_t *buf, size_t buflen, size_t *size)
+    struct sol_buffer *buf, size_t offset, size_t *size)
 {
     size_t cur, new_cur;
     unsigned int i;
@@ -290,17 +321,17 @@ sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
     SOL_NULL_CHECK(path, -EINVAL);
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    cur = 0;
+    cur = offset;
     for (i = 0; path[i].len; i++) {
         r = sol_util_size_add(cur, path[i].len + 1, &new_cur);
         SOL_INT_CHECK_GOTO(r, < 0, end);
-        if (new_cur > buflen) {
-            r = -EOVERFLOW;
-            goto end;
-        }
 
-        buf[cur++] = '/';
-        memcpy(buf + cur, path[i].data, path[i].len);
+        r = sol_buffer_insert_char(buf, cur++, '/');
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+
+        r = sol_buffer_insert_slice(buf, cur, path[i]);
+        SOL_INT_CHECK_GOTO(r, < 0, end);
+
         cur = new_cur;
     }
 
@@ -316,10 +347,11 @@ packet_extract_path(const struct sol_coap_packet *req, char **path_str)
     const int max_count = 16;
     struct sol_str_slice options[max_count];
     struct sol_str_slice *path;
-    unsigned int i;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
     size_t path_len;
-    int r;
+    unsigned int i;
     uint16_t count;
+    int r;
 
     SOL_NULL_CHECK(path_str, -EINVAL);
     SOL_NULL_CHECK(req, -EINVAL);
@@ -338,17 +370,19 @@ packet_extract_path(const struct sol_coap_packet *req, char **path_str)
     }
     path[count] = SOL_STR_SLICE_STR(NULL, 0);
 
-    *path_str = malloc(path_len);
-    SOL_NULL_CHECK(*path_str, -ENOMEM);
-
-    r = sol_coap_uri_path_to_buf
-            (path, (uint8_t *)*path_str, path_len - 1, NULL);
+    r = sol_coap_uri_path_to_buf(path, &buf, 0, NULL);
     SOL_INT_CHECK_GOTO(r, < 0, error);
 
-    (*path_str)[path_len - 1] = 0;
+    *path_str = sol_buffer_steal(&buf, NULL);
+    if (!*path_str) {
+        r = -EINVAL;
+        goto error;
+    }
+
     return 0;
 
 error:
+    sol_buffer_fini(&buf);
     free(*path_str);
     return r;
 }
@@ -394,6 +428,7 @@ sol_coap_packet_ref(struct sol_coap_packet *pkt)
 static void
 coap_packet_free(struct sol_coap_packet *pkt)
 {
+    sol_buffer_fini(&pkt->buf);
     free(pkt);
 }
 
@@ -410,35 +445,71 @@ sol_coap_packet_unref(struct sol_coap_packet *pkt)
     coap_packet_free(pkt);
 }
 
+static struct sol_coap_packet *
+packet_new(struct sol_buffer *buf)
+{
+    struct sol_coap_packet *pkt;
+    int r;
+
+    pkt = calloc(1, sizeof(struct sol_coap_packet));
+    SOL_NULL_CHECK(pkt, NULL);
+
+    pkt->refcnt = 1;
+    pkt->buf = buf ? *buf :
+        SOL_BUFFER_INIT_FLAGS(NULL, 0, SOL_BUFFER_FLAGS_NO_NUL_BYTE);
+
+    r = sol_buffer_ensure(&pkt->buf, sizeof(struct coap_header));
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+    memset(pkt->buf.data, 0, sizeof(struct coap_header));
+
+    r = sol_coap_header_set_ver(pkt, COAP_VERSION);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+
+    pkt->buf.used = sizeof(struct coap_header);
+
+    return pkt;
+
+err:
+    sol_buffer_fini(&pkt->buf);
+    free(pkt);
+    return NULL;
+}
+
 SOL_API struct sol_coap_packet *
 sol_coap_packet_new(struct sol_coap_packet *old)
 {
     struct sol_coap_packet *pkt;
+    int r;
 
-    pkt = calloc(1, sizeof(struct sol_coap_packet));
-    SOL_NULL_CHECK(pkt, NULL); /* It may possible that in the next round there is enough memory. */
-
-    pkt->refcnt = 1;
-
-    sol_coap_header_set_ver(pkt, COAP_VERSION);
-
-    pkt->payload.used = sizeof(struct coap_header);
-    pkt->payload.size = COAP_UDP_MTU;
+    pkt = packet_new(NULL);
+    SOL_NULL_CHECK(pkt, NULL);
 
     if (old) {
+        uint8_t *token;
         uint8_t type;
         uint8_t tkl;
-        uint8_t *token = sol_coap_header_get_token(old, &tkl);
-        sol_coap_header_set_id(pkt, sol_coap_header_get_id(old));
-        sol_coap_header_set_token(pkt, token, tkl);
+
+        r = sol_coap_header_set_id(pkt, sol_coap_header_get_id(old));
+        SOL_INT_CHECK_GOTO(r, < 0, err);
         type = sol_coap_header_get_type(old);
         if (type == SOL_COAP_TYPE_CON)
-            sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
+            r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_ACK);
         else if (type == SOL_COAP_TYPE_NONCON)
-            sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
+            r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+        token = sol_coap_header_get_token(old, &tkl);
+        if (token) {
+            r = sol_coap_header_set_token(pkt, token, tkl);
+            SOL_NULL_CHECK_GOTO(token, err);
+        }
     }
 
     return pkt;
+
+err:
+    free(pkt);
+    return NULL;
 }
 
 static void
@@ -581,8 +652,8 @@ on_can_write(void *data, struct sol_socket *s)
     if (!outgoing)
         return false;
 
-    err = sol_socket_sendmsg(s, outgoing->pkt->buf,
-        outgoing->pkt->payload.used, &outgoing->cliaddr);
+    err = sol_socket_sendmsg(s, outgoing->pkt->buf.data,
+        outgoing->pkt->buf.used, &outgoing->cliaddr);
     /* Eventually we are going to re-send it. */
     if (err == -EAGAIN)
         return true;
@@ -733,11 +804,12 @@ SOL_API int
 sol_coap_packet_send_notification(struct sol_coap_server *server,
     struct sol_coap_resource *resource, struct sol_coap_packet *pkt)
 {
-    struct resource_context *c;
     struct resource_observer *o;
-    int err = 0;
+    struct resource_context *c;
+    struct sol_coap_packet *p;
     uint8_t tkl;
     uint16_t i;
+    int r = 0;
 
     SOL_NULL_CHECK(server, -EINVAL);
     SOL_NULL_CHECK(resource, -EINVAL);
@@ -751,31 +823,27 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
     sol_coap_header_get_token(pkt, &tkl);
 
     SOL_PTR_VECTOR_FOREACH_IDX (&c->observers, o, i) {
-        struct sol_coap_packet *p;
-        int h;
-
         p = sol_coap_packet_new(NULL);
         SOL_NULL_CHECK(p, -ENOMEM);
 
-        sol_coap_header_set_code(p, sol_coap_header_get_code(pkt));
-        sol_coap_header_set_type(p, sol_coap_header_get_type(pkt));
-        sol_coap_header_set_token(p, o->token, o->tkl);
-
-        h = o->tkl + sizeof(struct coap_header);
+        r = sol_coap_header_set_code(p, sol_coap_header_get_code(pkt));
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+        r = sol_coap_header_set_type(p, sol_coap_header_get_type(pkt));
+        SOL_INT_CHECK_GOTO(r, < 0, err);
+        r = sol_coap_header_set_token(p, o->token, o->tkl);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
 
         /*
          * Copying the options + payload from the notification packet to
          * every packet that will be sent.
          */
-        memcpy(p->buf + h,
-            pkt->buf + sizeof(struct coap_header),
-            pkt->payload.used - sizeof(struct coap_header));
+        r = sol_buffer_append_bytes(&p->buf,
+            (uint8_t *)pkt->buf.data + sizeof(struct coap_header) + tkl,
+            pkt->buf.used - sizeof(struct coap_header) - tkl);
+        SOL_INT_CHECK_GOTO(r, < 0, err);
 
-        /* As the user may have added a token (which was unused), we need to fix the size. */
-        p->payload.used = pkt->payload.used + o->tkl - tkl;
-
-        err = enqueue_packet(server, p, &o->cliaddr);
-        if (err < 0) {
+        r = enqueue_packet(server, p, &o->cliaddr);
+        if (r < 0) {
             SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
             sol_network_addr_to_str(&o->cliaddr, &addr);
@@ -789,7 +857,12 @@ sol_coap_packet_send_notification(struct sol_coap_server *server,
 
 done:
     sol_coap_packet_unref(pkt);
-    return err;
+    return r;
+
+err:
+    sol_coap_packet_unref(p);
+    sol_coap_packet_unref(pkt);
+    return r;
 }
 
 SOL_API struct sol_coap_packet *
@@ -814,7 +887,9 @@ sol_coap_packet_notification_new(struct sol_coap_server *server, struct sol_coap
     pkt = sol_coap_packet_new(NULL);
     SOL_NULL_CHECK(pkt, NULL);
 
-    sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
+    r = sol_coap_header_set_type(pkt, SOL_COAP_TYPE_NONCON);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
     r = sol_coap_add_option(pkt, SOL_COAP_OPTION_OBSERVE, &id, sizeof(id));
     SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
@@ -838,15 +913,23 @@ sol_coap_packet_request_new(sol_coap_method_t method, sol_coap_msgtype_t type)
 {
     static uint16_t request_id;
     struct sol_coap_packet *pkt;
+    int r;
 
     pkt = sol_coap_packet_new(NULL);
     SOL_NULL_CHECK(pkt, NULL);
 
-    sol_coap_header_set_code(pkt, method);
-    sol_coap_header_set_id(pkt, ++request_id);
-    sol_coap_header_set_type(pkt, type);
+    r = sol_coap_header_set_code(pkt, method);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    r = sol_coap_header_set_id(pkt, ++request_id);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    r = sol_coap_header_set_type(pkt, type);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
 
     return pkt;
+
+err:
+    sol_coap_packet_unref(pkt);
+    return NULL;
 }
 
 SOL_API int
@@ -859,7 +942,7 @@ sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *valu
     SOL_NULL_CHECK(pkt, -EINVAL);
     SOL_NULL_CHECK(value, -EINVAL);
 
-    if (pkt->payload.start) {
+    if (pkt->payload_start) {
         SOL_WRN("packet %p has a payload, would overwrite it", pkt);
         return -EINVAL;
     }
@@ -870,12 +953,11 @@ sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *valu
         return -EINVAL;
     }
 
-    /* We check for options in all the 'used' space. */
-    context.buflen = pkt->payload.used - offset;
-    context.buf = pkt->buf + offset;
+    context.buf = &pkt->buf;
+    context.pos = offset;
 
     while (context.delta <= code) {
-        r = coap_parse_option(pkt, &context, NULL, NULL);
+        r = coap_parse_option(&context, NULL, NULL);
         if (r < 0)
             return -ENOENT;
 
@@ -887,14 +969,8 @@ sol_coap_add_option(struct sol_coap_packet *pkt, uint16_t code, const void *valu
             return -EINVAL;
     }
 
-    /* We can now add options using all the available space. */
-    context.buflen = pkt->payload.size - context.used;
-
     r = coap_option_encode(&context, code, value, len);
-    if (r < 0)
-        return -EINVAL;
-
-    pkt->payload.used += r;
+    SOL_INT_CHECK(r, < 0, r);
 
     return 0;
 }
@@ -919,8 +995,7 @@ sol_coap_packet_add_uri_path_option(struct sol_coap_packet *pkt, const char *uri
             return sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_PATH, uri, strchr(uri, '\0') - uri);
 
         r = sol_coap_add_option(pkt, SOL_COAP_OPTION_URI_PATH, uri, slash - uri);
-        if (r < 0)
-            return r;
+        SOL_INT_CHECK(r, < 0, r);
     }
 
     return -EINVAL;
@@ -959,11 +1034,11 @@ sol_coap_find_options(const struct sol_coap_packet *pkt, uint16_t code,
     hdrlen = coap_get_header_len(pkt);
     SOL_INT_CHECK(hdrlen, < 0, -EINVAL);
 
-    context.buflen = pkt->payload.used - hdrlen;
-    context.buf = (uint8_t *)pkt->buf + hdrlen;
+    context.buf = (struct sol_buffer *)&pkt->buf;
+    context.pos = hdrlen;
 
     while (context.delta <= code && count < veclen) {
-        used = coap_parse_option(pkt, &context, (uint8_t **)&vec[count].data,
+        used = coap_parse_option(&context, (uint8_t **)&vec[count].data,
             &len);
         vec[count].len = len;
         if (used < 0)
@@ -988,10 +1063,9 @@ well_known_get(struct sol_coap_server *server,
 {
     struct resource_context *c;
     struct sol_coap_packet *resp;
-    uint8_t *payload;
-    uint16_t i, size;
     size_t len;
-    int err;
+    uint16_t i;
+    int r;
 
     resp = sol_coap_packet_new(req);
     if (!resp) {
@@ -999,42 +1073,42 @@ well_known_get(struct sol_coap_server *server,
         return -EINVAL;
     }
 
-    sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
-
-    err = sol_coap_packet_get_payload(resp, &payload, &size);
-    if (err < 0) {
-        sol_coap_packet_unref(resp);
-        return err;
+    r = sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_CONTENT);
+    if (r < 0) {
+        SOL_WRN("Failed to set header code on packet %p", resp);
+        return -EINVAL;
     }
 
-    len = 0;
-    SOL_VECTOR_FOREACH_IDX (&server->contexts, c, i) {
-        const struct sol_coap_resource *r = c->resource;
+    r = coap_get_header_len(resp);
+    if (r < 0) {
+        SOL_WRN("Failed to get header len from packet %p", resp);
+        return -EINVAL;
+    }
+    len = r;
 
-        if (!(r->flags & SOL_COAP_FLAGS_WELL_KNOWN))
+    SOL_VECTOR_FOREACH_IDX (&server->contexts, c, i) {
+        size_t tmp = 0;
+        const struct sol_coap_resource *res = c->resource;
+
+        if (!(res->flags & SOL_COAP_FLAGS_WELL_KNOWN))
             continue;
 
-        if (len + 1 < size)
-            goto error;
+        r = sol_buffer_insert_char(&resp->buf, len++, '<');
+        SOL_INT_CHECK_GOTO(r, < 0, error);
 
-        payload[len] = '<';
-        len++;
+        r = sol_coap_uri_path_to_buf(res->path, &resp->buf, len, &tmp);
+        SOL_INT_CHECK_GOTO(r, < 0, error);
+        len += tmp;
 
-        err = sol_coap_uri_path_to_buf(r->path, payload + len, size - len, &len);
-        SOL_INT_CHECK_GOTO(err, < 0, error);
-        if (len + 2 >= size)
-            goto error;
-
-        payload[len] = '>';
-        len++;
+        r = sol_buffer_insert_char(&resp->buf, len++, '>');
+        SOL_INT_CHECK_GOTO(r, < 0, error);
 
         if (i < server->contexts.len) {
-            payload[len] = ',';
-            len += 1;
+            r = sol_buffer_insert_char(&resp->buf, len++, ',');
+            SOL_INT_CHECK_GOTO(r, < 0, error);
         }
     }
 
-    sol_coap_packet_set_payload_used(resp, len);
     return sol_coap_send_packet(server, resp, cliaddr);
 
 error:
@@ -1150,13 +1224,19 @@ resource_not_found(struct sol_coap_packet *req,
     struct sol_coap_server *server)
 {
     struct sol_coap_packet *resp;
+    int r;
 
     resp = sol_coap_packet_new(req);
     SOL_NULL_CHECK(resp, -ENOMEM);
 
-    sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_NOT_FOUND);
+    r = sol_coap_header_set_code(resp, SOL_COAP_RSPCODE_NOT_FOUND);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
 
     return sol_coap_send_packet(server, resp, cliaddr);
+
+err:
+    sol_coap_packet_unref(req);
+    return r;
 }
 
 static void
@@ -1190,8 +1270,8 @@ send_unobserve_packet(struct sol_coap_server *server, const struct sol_network_l
     req = sol_coap_packet_request_new(SOL_COAP_METHOD_GET, SOL_COAP_TYPE_CON);
     SOL_NULL_CHECK(req, -ENOMEM);
 
-    if (!sol_coap_header_set_token(req, token, tkl))
-        goto error;
+    r = sol_coap_header_set_token(req, token, tkl);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     r = sol_coap_add_option(req, SOL_COAP_OPTION_OBSERVE, &reg, sizeof(reg));
     SOL_INT_CHECK_GOTO(r, < 0, error);
@@ -1222,11 +1302,17 @@ send_reset_msg(struct sol_coap_server *server, struct sol_coap_packet *req,
     const struct sol_network_link_addr *cliaddr)
 {
     struct sol_coap_packet *reset;
+    int r;
 
     reset = sol_coap_packet_new(req);
     SOL_NULL_CHECK(reset, -ENOMEM);
-    sol_coap_header_set_type(reset, SOL_COAP_TYPE_RESET);
+    r = sol_coap_header_set_type(reset, SOL_COAP_TYPE_RESET);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
     return sol_coap_send_packet(server, reset, cliaddr);
+
+err:
+    sol_coap_packet_unref(reset);
+    return r;
 }
 
 static int
@@ -1335,17 +1421,27 @@ on_can_read(void *data, struct sol_socket *s)
     int err;
 
     pkt = sol_coap_packet_new(NULL);
-    SOL_NULL_CHECK(pkt, true); /* It may possible that in the next round there is enough memory. */
+    SOL_NULL_CHECK(pkt, true); /* It may possible that in the next
+                                * round there is enough memory. */
 
-    len = sol_socket_recvmsg(s, pkt->buf, pkt->payload.size, &cliaddr);
+    /* FIXME: we can do better later, here */
+    err = sol_buffer_ensure(&pkt->buf, COAP_UDP_MTU);
+    if (err < 0) {
+        SOL_WRN("Could not allocate space (%d bytes) to receive from socket"
+            " (%d): %s", COAP_UDP_MTU, err, sol_util_strerrora(-err));
+        coap_packet_free(pkt);
+        return true;
+    }
+
+    /* store at the beginning of the buffer and reset 'used' */
+    len = sol_socket_recvmsg(s, pkt->buf.data, pkt->buf.capacity, &cliaddr);
     if (len < 0) {
         err = -len;
         SOL_WRN("Could not read from socket (%d): %s", err, sol_util_strerrora(err));
         coap_packet_free(pkt);
         return true;
     }
-
-    pkt->payload.size = len;
+    pkt->buf.used = len;
 
     err = coap_packet_parse(pkt);
     if (err < 0) {
@@ -1583,47 +1679,44 @@ sol_coap_secure_server_new(const struct sol_network_link_addr *addr)
 #endif
 }
 
-SOL_API int
-sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len)
-{
-    SOL_NULL_CHECK(pkt, -EINVAL);
-    SOL_NULL_CHECK(buf, -EINVAL);
-    SOL_NULL_CHECK(len, -EINVAL);
-
-    *buf = NULL;
-    *len = 0;
-
-    if (!pkt->payload.start) {
-        SOL_INT_CHECK(pkt->payload.used + 1, > pkt->payload.size, -ENOMEM);
-
-        /* Have payload, adding marker. */
-        pkt->buf[pkt->payload.used] = COAP_MARKER;
-        pkt->payload.used += 1;
-
-        pkt->payload.start = pkt->buf + pkt->payload.used;
-    }
-
-    *buf = pkt->payload.start;
-    *len = pkt->payload.size - (pkt->payload.start - pkt->buf);
-    return 0;
-}
-
-SOL_API int
-sol_coap_packet_set_payload_used(struct sol_coap_packet *pkt, uint16_t len)
-{
-    SOL_NULL_CHECK(pkt, -EINVAL);
-    SOL_NULL_CHECK(pkt->payload.start, -EBADF);
-    SOL_INT_CHECK(pkt->payload.used + len, > pkt->payload.size, -ENOMEM);
-
-    pkt->payload.used += len;
-    return 0;
-}
-
 SOL_API bool
 sol_coap_packet_has_payload(struct sol_coap_packet *pkt)
 {
+    int offset;
+
     SOL_NULL_CHECK(pkt, false);
-    return pkt->payload.start || pkt->payload.used != pkt->payload.size;
+
+    offset = coap_get_header_len(pkt);
+    if (offset < 0) {
+        SOL_WRN("Failed to get header len from packet %p", pkt);
+        return false;
+    }
+
+    return pkt->payload_start ||
+           (uint8_t *)pkt->buf.data + pkt->buf.used >
+           (uint8_t *)pkt->buf.data + offset;
+}
+
+SOL_API int
+sol_coap_packet_get_payload(struct sol_coap_packet *pkt,
+    struct sol_buffer **buf,
+    size_t *offset)
+{
+    SOL_NULL_CHECK(pkt, -EINVAL);
+
+    if (!pkt->payload_start) {
+        int r;
+        r = sol_buffer_append_char(&pkt->buf, COAP_MARKER);
+        SOL_INT_CHECK(r, < 0, r);
+
+        pkt->payload_start = pkt->buf.used;
+    }
+    if (offset)
+        *offset = pkt->payload_start;
+
+    *buf = &pkt->buf;
+
+    return 0;
 }
 
 SOL_API int
@@ -1761,8 +1854,8 @@ SOL_API void
 sol_coap_packet_debug(struct sol_coap_packet *pkt)
 {
     int r;
-    char *path = NULL, *query;
     uint16_t query_len;
+    char *path = NULL, *query;
 
     if (sol_log_get_level() < SOL_LOG_LEVEL_DEBUG)
         return;
