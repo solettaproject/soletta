@@ -1424,8 +1424,12 @@ on_can_read(void *data, struct sol_socket *s)
     SOL_NULL_CHECK(pkt, true); /* It may possible that in the next
                                 * round there is enough memory. */
 
-    /* FIXME: we can do better later, here */
-    err = sol_buffer_ensure(&pkt->buf, COAP_UDP_MTU);
+    /* calculate exact needed size */
+    len = sol_socket_recvmsg(s, NULL, 0, NULL);
+    SOL_INT_CHECK_GOTO(len, < 0, err_recv);
+
+    SOL_DBG("allocating %zd bytes for pkt", len);
+    err = sol_buffer_ensure(&pkt->buf, len);
     if (err < 0) {
         SOL_WRN("Could not allocate space (%d bytes) to receive from socket"
             " (%d): %s", COAP_UDP_MTU, err, sol_util_strerrora(-err));
@@ -1434,13 +1438,8 @@ on_can_read(void *data, struct sol_socket *s)
     }
 
     /* store at the beginning of the buffer and reset 'used' */
-    len = sol_socket_recvmsg(s, pkt->buf.data, pkt->buf.capacity, &cliaddr);
-    if (len < 0) {
-        err = -len;
-        SOL_WRN("Could not read from socket (%d): %s", err, sol_util_strerrora(err));
-        coap_packet_free(pkt);
-        return true;
-    }
+    len = sol_socket_recvmsg(s, pkt->buf.data, len, &cliaddr);
+    SOL_INT_CHECK_GOTO(len, < 0, err_recv);
     pkt->buf.used = len;
 
     err = coap_packet_parse(pkt);
@@ -1450,7 +1449,7 @@ on_can_read(void *data, struct sol_socket *s)
         return true;
     }
 
-    SOL_DBG("pkt received:");
+    SOL_DBG("pkt received and parsed sucessfully");
     sol_coap_packet_debug(pkt);
 
     err = respond_packet(server, pkt, &cliaddr);
@@ -1461,6 +1460,13 @@ on_can_read(void *data, struct sol_socket *s)
 
     coap_packet_free(pkt);
 
+    return true;
+
+err_recv:
+    err = -len;
+    SOL_WRN("Could not read from socket (%d): %s", err,
+        sol_util_strerrora(err));
+    coap_packet_free(pkt);
     return true;
 }
 

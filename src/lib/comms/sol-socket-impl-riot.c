@@ -56,7 +56,7 @@ struct sol_socket_riot {
 
 static struct sol_ptr_vector ipv6_udp_bound_sockets = SOL_PTR_VECTOR_INIT;
 
-static int
+static ssize_t
 ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     gnrc_pktsnip_t *pkt = s->curr_pkt, *udp, *ipv6;
@@ -65,6 +65,9 @@ ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_ne
     size_t copysize;
 
     SOL_NULL_CHECK(pkt, -EAGAIN);
+
+    if (!buf)
+        return pkt->size;
 
     LL_SEARCH_SCALAR(pkt, ipv6, type, GNRC_NETTYPE_IPV6);
     iphdr = ipv6->data;
@@ -301,7 +304,7 @@ sol_socket_riot_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct
     return 0;
 }
 
-static int
+static ssize_t
 sol_socket_riot_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_riot *socket = (struct sol_socket_riot *)s;
