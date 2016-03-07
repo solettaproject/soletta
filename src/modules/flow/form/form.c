@@ -152,7 +152,9 @@ common_form_init(struct sol_buffer *buf,
     if (!*out_value_tag) {
         SOL_WRN("Bad format, no {value} tag: %s. Fallbacking to "
             "pristine one, i. e. '{value}'.", *out_format);
-        r = sol_util_replace_str_if_changed(out_format, "{value}");
+        r = sol_util_replace_str_if_changed(out_format, VALUE_TAG);
+        *out_value_tag = *out_format;
+        *out_title_tag = NULL;
         SOL_INT_CHECK_GOTO(r, < 0, err_tags);
     }
 
@@ -160,16 +162,20 @@ common_form_init(struct sol_buffer *buf,
         SOL_WRN("Bad format, {title} tag placed after {value} tag: %s."
             " Fallbacking to pristine one, i. e. '{value}'.",
             *out_format);
-        r = sol_util_replace_str_if_changed(out_format, "{value}");
+        r = sol_util_replace_str_if_changed(out_format, VALUE_TAG);
+        *out_value_tag = *out_format;
+        *out_title_tag = NULL;
         SOL_INT_CHECK_GOTO(r, < 0, err_tags);
     }
 
-    if (in_title) {
+    if (in_title && *out_title_tag) {
         *out_title = strdup(in_title);
         if (!*out_title) {
             r = -ENOMEM;
             goto err_title;
         }
+    } else {
+        *out_title = NULL;
     }
 
     r = buffer_re_init(buf, *out_text_mem, *out_rows, *out_cols);
