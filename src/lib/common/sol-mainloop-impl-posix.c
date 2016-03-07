@@ -595,7 +595,7 @@ fd_cleanup(void)
     if (!fd_pending_deletion)
         return;
 
-    // Walk backwards so deletion doesn't impact the indices.
+    // Walk backwards so deletion doesn't impact the index.
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&fd_vector, fd, i) {
         if (!fd->remove_me)
             continue;
