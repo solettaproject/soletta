@@ -6,18 +6,18 @@ obj-networking-$(NETWORK) := \
     sol-socket.o
 
 obj-dtls-$(DTLS) += \
+    sol-socket-dtls-impl-tinydtls.o \
+    $(TINYDTLS_SRC_PATH)/aes/rijndael.o \
     $(TINYDTLS_SRC_PATH)/ccm.o \
     $(TINYDTLS_SRC_PATH)/crypto.o \
     $(TINYDTLS_SRC_PATH)/dtls.o \
     $(TINYDTLS_SRC_PATH)/dtls_time.o \
+    $(TINYDTLS_SRC_PATH)/ecc/ecc.o \
     $(TINYDTLS_SRC_PATH)/hmac.o \
     $(TINYDTLS_SRC_PATH)/netq.o \
     $(TINYDTLS_SRC_PATH)/peer.o \
     $(TINYDTLS_SRC_PATH)/session.o \
-    $(TINYDTLS_SRC_PATH)/ecc/ecc.o \
-    $(TINYDTLS_SRC_PATH)/aes/rijndael.o \
-    $(TINYDTLS_SRC_PATH)/sha2/sha2.o \
-    sol-socket-dtls-impl-tinydtls.o
+    $(TINYDTLS_SRC_PATH)/sha2/sha2.o
 
 obj-dtls-$(DTLS)-extra-cflags += \
     -I$(TINYDTLS_SRC_PATH) \
@@ -40,6 +40,7 @@ obj-networking-$(OIC) += \
     sol-oic-client.o \
     sol-oic-common.o \
     sol-oic-server.o \
+    sol-oic-security.o \
     $(TINYCBOR_SRC_PATH)/cborencoder.o \
     $(TINYCBOR_SRC_PATH)/cborerrorstrings.o \
     $(TINYCBOR_SRC_PATH)/cborparser.o \
