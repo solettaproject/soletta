@@ -248,17 +248,16 @@ common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     struct sol_flow_node_type_http_client_boolean_options *opts =
         (struct sol_flow_node_type_http_client_boolean_options *)options;
 
+    mdata->machine_id = opts->machine_id;
+    sol_ptr_vector_init(&mdata->pending_conns);
+
     sol_http_params_init(&mdata->url_params);
 
-    if (opts->url) {
+    if (opts->url && opts->url[0] != '\0') {
         r = set_basic_url_info(mdata, opts->url);
         SOL_INT_CHECK(r, < 0, r);
+        get_key(mdata);
     }
-
-    mdata->machine_id = opts->machine_id;
-
-    get_key(mdata);
-    sol_ptr_vector_init(&mdata->pending_conns);
 
     return 0;
 }
