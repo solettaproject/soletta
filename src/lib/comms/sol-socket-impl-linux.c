@@ -229,7 +229,7 @@ sol_socket_linux_set_on_write(struct sol_socket *socket, bool (*cb)(void *data, 
     return 0;
 }
 
-static int
+static ssize_t
 sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
@@ -244,7 +244,11 @@ sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struc
     };
     ssize_t r;
 
-    r = recvmsg(s->fd, &msg, 0);
+    if (!buf) {
+        msg.msg_iov->iov_len = 0;
+        return recvmsg(s->fd, &msg, MSG_TRUNC | MSG_PEEK);
+    } else
+        r = recvmsg(s->fd, &msg, 0);
 
     if (r < 0)
         return -errno;
@@ -252,10 +256,7 @@ sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struc
     if (from_sockaddr((struct sockaddr *)sockaddr, sizeof(sockaddr), cliaddr) < 0)
         return -EINVAL;
 
-    if ((ssize_t)(int)r != r)
-        return -EOVERFLOW;
-
-    return (int)r;
+    return r;
 }
 
 static bool

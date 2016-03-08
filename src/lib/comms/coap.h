@@ -32,6 +32,9 @@
 
 #pragma once
 
+#include <inttypes.h>
+#include "sol-buffer.h"
+
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 struct coap_header {
     uint8_t ver : 2;
@@ -56,19 +59,15 @@ struct coap_header {
 
 struct sol_coap_packet {
     int refcnt;
-    struct {
-        uint8_t *start;
-        uint16_t size;
-        uint16_t used;
-    } payload;
-    uint8_t buf[COAP_UDP_MTU];
+    struct sol_buffer buf;
+    size_t payload_start;
 };
 
 struct option_context {
-    uint8_t *buf;
+    struct sol_buffer *buf;
+    size_t pos; /* current position on buf */
     int delta;
-    int used;
-    int buflen;
+    int used; /* size used of options */
 };
 
 #define COAP_VERSION 1
@@ -79,8 +78,7 @@ int coap_get_header_len(const struct sol_coap_packet *pkt);
 
 struct sol_coap_packet *coap_new_packet(struct sol_coap_packet *old);
 
-int coap_parse_option(const struct sol_coap_packet *pkt, struct option_context *context,
-    uint8_t **value, uint16_t *vlen);
+int coap_parse_option(struct option_context *context, uint8_t **value, uint16_t *vlen);
 
 int coap_option_encode(struct option_context *context, uint16_t code,
     const void *value, uint16_t len);

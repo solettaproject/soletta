@@ -42,7 +42,12 @@ struct sol_socket_impl {
     int (*set_on_read)(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data);
     int (*set_on_write)(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data);
 
-    int (*recvmsg)(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
+    /* If buf is NULL, it will only peek the incoming packet queue
+     * (not removing data from it), returning the number of bytes
+     * needed to store the next datagram and ignoring the cliaddr
+     * argument. This way, the user may allocate the exact number of
+     * bytes to hold the message contents. */
+    ssize_t (*recvmsg)(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr);
 
     int (*sendmsg)(struct sol_socket *s, const void *buf, size_t len,
         const struct sol_network_link_addr *cliaddr);

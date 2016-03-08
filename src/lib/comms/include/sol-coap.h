@@ -410,8 +410,10 @@ uint16_t sol_coap_header_get_id(const struct sol_coap_packet *pkt);
  *
  * @param pkt The packet to set the version.
  * @param ver The version to set.
+ *
+ * @return 0 on success, negative error code on failure.
  */
-void sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver);
+int sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver);
 
 /**
  * @brief Sets the message type in the packet's header.
@@ -420,13 +422,15 @@ void sol_coap_header_set_ver(struct sol_coap_packet *pkt, uint8_t ver);
  *
  * @param pkt The packet to set the type to.
  * @param type The message type to set.
+ *
+ * @return 0 on success, negative error code on failure.
  */
-void sol_coap_header_set_type(struct sol_coap_packet *pkt, uint8_t type);
+int sol_coap_header_set_type(struct sol_coap_packet *pkt, uint8_t type);
 
 /**
  * @brief Sets a token in the packet.
  *
- * Tokens can be used, besides the id, to identify a specific request. For
+ * Tokens can be used, besides the ID, to identify a specific request. For
  * @c OBSERVE requests, the server will send notifications with the same
  * @a token used to make the request.
  *
@@ -434,9 +438,12 @@ void sol_coap_header_set_type(struct sol_coap_packet *pkt, uint8_t type);
  * @param token The token to set, can be any array of bytes.
  * @param tokenlen The length in bytes of @a token.
  *
- * @return True on success, false if there's not enough space in the packet for the token.
+ * @return 0 on success, negative error code on failure.
+ *
+ * @warning This function is meant to be used only @b once per packet,
+ * more than that will lead to undefined behavior
  */
-bool sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint8_t tokenlen);
+int sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint8_t tokenlen);
 
 /**
  * @brief Sets the code of the message.
@@ -446,8 +453,10 @@ bool sol_coap_header_set_token(struct sol_coap_packet *pkt, uint8_t *token, uint
  *
  * @param pkt The packet on which to set the code.
  * @param code The request/response code.
+ *
+ * @return 0 on success, negative error code on failure.
  */
-void sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code);
+int sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code);
 
 /**
  * @brief Sets the message ID.
@@ -459,8 +468,10 @@ void sol_coap_header_set_code(struct sol_coap_packet *pkt, uint8_t code);
  *
  * @param pkt The packet on which to set the ID.
  * @param id The ID to set.
+ *
+ * @return 0 on success, negative error code on failure.
  */
-void sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
+int sol_coap_header_set_id(struct sol_coap_packet *pkt, uint16_t id);
 
 /**
  * @brief Creates a new CoAP server instance.
@@ -518,16 +529,16 @@ void sol_coap_server_unref(struct sol_coap_server *server);
  * @brief Creates a new CoAP packet.
  *
  * Creates a packet to send as a request or response.
- * If @a old is not NULL, its @c id and @c token (if any) will be copied to
+ * If @a old is not @c NULL, its @c ID and @c token (if any) will be copied to
  * the new packet. This is useful when crafting a new packet as a response
  * to @a old. It's also important to note that if @a old has #sol_coap_msgtype_t
- * equals to #SOL_COAP_TYPE_CON, the new packet message type will be set to
- * #SOL_COAP_TYPE_ACK or if the #sol_coap_msgtype_t equals to #SOL_COAP_TYPE_NONCON,
+ * equal to #SOL_COAP_TYPE_CON, the new packet message type will be set to
+ * #SOL_COAP_TYPE_ACK. If it has it equal to #SOL_COAP_TYPE_NONCON,
  * the new packet message type will be set to #SOL_COAP_TYPE_NONCON.
  *
  * @param old An optional packet to use as basis.
  *
- * @return A new packet, or NULL on failure.
+ * @return A new packet, or @c NULL on failure.
  */
 struct sol_coap_packet *sol_coap_packet_new(struct sol_coap_packet *old);
 
@@ -587,48 +598,29 @@ void sol_coap_packet_unref(struct sol_coap_packet *pkt);
 /**
  * @brief Gets a pointer to the packet's payload.
  *
- * When creating a packet, first set all the packet header parameters and options,
- * then use this function to get a pointer to the beginning of the available
- * space for the payload within the packet @a pkt. The pointer to the buffer
- * will be stored in @a buf, and the available size in @a len.
- * If there's no enough space left in the packet, -ENOMEM will be returned.
- * After calling this function and writing any contents to the payload,
- * the function sol_coap_packet_set_payload_used() should be called to inform
- * how much of the payload was used.
+ * When creating a packet, first set all the packet header parameters
+ * and options, then use this function to get a pointer to the
+ * packet's payload buffer. One may then append content to the
+ * payload buffer (all @c sol-buffer appending functions will do).
+ * Note that @b only @b appending is permitted, otherwise the packet
+ * headers/options -- that are also payload -- will get corrupted.
  *
  * Getting the payload pointer marks the end of the header and options in the
  * packet, so after that point, it's no longer possible to set any of those.
  *
  * When receiving a packet, first check if it contains a payload with
- * sol_coap_packet_has_payload(), and if so, this function will return in @a buf
- * the address within the packet @a pkt where the payload begins, with its
- * length in @a len.
+ * sol_coap_packet_has_payload(), and if so, this function will return
+ * in @a buf the packet's buffer and in @a offset, where in that
+ * buffer the user's payload actually begins.
  *
  * @param pkt The packet to fetch the payload of.
- * @param buf Where to store the address of the beginning of the payload.
- * @param len Where to store the length of the payload.
+ * @param buf Where to store the address of the payload buffer.
+ * @param offset Where to store the offset, in @a buf, where the
+ * actual payload starts.
  *
- * @return 0 on success, -errno on failure.
+ * @return 0 on success, a negative error code on failure.
  */
-int sol_coap_packet_get_payload(struct sol_coap_packet *pkt, uint8_t **buf, uint16_t *len);
-
-/**
- * @brief Sets the amount of space used from the payload.
- *
- * This function makes no sense for packets received from other end points,
- * only when creating a packet locally to be sent to remote clients or servers.
- *
- * For each call to sol_coap_packet_get_payload(), there should be a matching
- * call to sol_coap_packet_set_payload_used(). After writing any content to
- * the payload retrieved before, this function will increase the total amount
- * of payload used by @a len.
- *
- * @param pkt The packet the payload used belongs to.
- * @param len How much of the retrieved payload was used.
- *
- * @return 0 on success, -errno on failure.
- */
-int sol_coap_packet_set_payload_used(struct sol_coap_packet *pkt, uint16_t len);
+int sol_coap_packet_get_payload(struct sol_coap_packet *pkt, struct sol_buffer **buf, size_t *offset);
 
 /**
  * @brief Checks if the given packet contains a payload.
@@ -796,24 +788,26 @@ int sol_coap_server_unregister_resource(struct sol_coap_server *server,
     const struct sol_coap_resource *resource);
 
 /**
- * @brief Converts a path from slices to a string.
+ * @brief Inserts a path given in slices form to a @c sol-buffer, at a
+ * given offset.
  *
- * Takes a path, as respresented by #sol_coap_resource and writes all its
- * components, separated by '/' to @a buf.
+ * Takes a path, as respresented by #sol_coap_resource and inserts all
+ * its components, in order, separated by '/', to @a buf's @a offset
+ * position.
  *
  * @param path Array of slices, last one empty, representing the path.
- * @param buf Buffer where to store the string version of the path.
- * @param buflen Size of the buffer.
+ * @param buf Buffer where to append the string version of the path.
+ * @param offset Where to insert the paths string into @a buf.
  * @param size Pointer where to store the number of bytes written to @a buf
- *        If NULL, it will be ignored.
+ *        If @c NULL, it will be ignored.
  *
- * @return 0 on success
- *         -EOVERFLOW if buflen is smaller than the number of bytes needed to
- *         store all strings from @a path in @a buf.
- *         -EINVAL if some parameter is invalid.
+ * @return 0 on success, negative error code on failure
+ *
+ * @warning @a buf has be initialized before this call and must be
+ * free/finished afterwards
  */
 int sol_coap_uri_path_to_buf(const struct sol_str_slice path[],
-    uint8_t *buf, size_t buflen, size_t *size);
+    struct sol_buffer *buf, size_t offset, size_t *size);
 
 /**
  * @brief Cancel a packet sent using sol_coap_send_packet() or
