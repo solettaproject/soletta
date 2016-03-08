@@ -94,7 +94,7 @@ uv_loop_source_dispatch(void *data)
 }
 
 static const struct sol_mainloop_source_type uv_loop_source_funcs = {
-    SOL_SET_API_VERSION(.api_version = SOL_MAINLOOP_SOURCE_TYPE_API_VERSION),
+    SOL_SET_API_VERSION(.api_version = SOL_MAINLOOP_SOURCE_TYPE_API_VERSION, )
     .prepare = NULL,
     .get_next_timeout = uv_loop_source_get_next_timeout,
     .check = uv_loop_source_check,
