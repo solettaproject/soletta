@@ -1,0 +1,72 @@
+{
+    "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+    "nodetypes": [
+        {
+            "name": "StateActuator",
+            "options": {
+                "pin": "339",
+                "raw": true
+            },
+            "type": "gpio/writer"
+        },
+        {
+            "name": "PowerActuator",
+            "options": {
+                "address": 1,
+                "period": 10000,
+                "range": "min:0|max:10000|step:1"
+            },
+            "type": "calamari/led"
+        },
+        {
+            "name": "QuitButton",
+            "options": {
+                "binary_code": 113
+            },
+            "type": "keyboard/boolean"
+        },
+        {
+            "name": "IncreaseButton",
+            "options": {
+                "active_low": true,
+                "edge_falling": true,
+                "edge_rising": true,
+                "pin": 472,
+                "pull": "up",
+                "raw": true
+            },
+            "type": "gpio/reader"
+        },
+        {
+            "name": "DecreaseButton",
+            "options": {
+                "active_low": true,
+                "edge_falling": true,
+                "edge_rising": true,
+                "pin": 482,
+                "pull": "up",
+                "raw": true
+            },
+            "type": "gpio/reader"
+        },
+        {
+            "name": "StateButton",
+            "options": {
+                "active_low": true,
+                "edge_falling": true,
+                "edge_rising": true,
+                "pin": 483,
+                "pull": "up",
+                "raw": true
+            },
+            "type": "gpio/reader"
+        },
+        {
+            "name": "StartupMessage",
+            "options": {
+                "value": "This configuration uses Minnowboard and Calamari Lure. Press Button-3 to change state, Button-1 to increase power and Button-2 to decrease it, 'q' (keyboard) to quit."
+            },
+            "type": "constant/string"
+        }
+    ]
+}

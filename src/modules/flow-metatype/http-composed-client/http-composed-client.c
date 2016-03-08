@@ -299,16 +299,16 @@ http_composed_client_request_finished(void *data,
     }
     SOL_HTTP_RESPONSE_CHECK_API(response);
 
-    if (!response->content.used) {
-        sol_flow_send_error_packet(node, EINVAL,
-            "Empty response from %s", cdata->url);
-        return;
-    }
-
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(node, EINVAL,
             "%s returned an unhandled response code: %d",
             cdata->url, response->response_code);
+        return;
+    }
+
+    if (!response->content.used) {
+        sol_flow_send_error_packet(node, EINVAL,
+            "Empty response from %s", cdata->url);
         return;
     }
 

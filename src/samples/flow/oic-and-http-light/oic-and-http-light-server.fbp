@@ -1,0 +1,75 @@
+#!/usr/bin/env sol-fbp-runner
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+# Brief:
+#
+# This sensor will export oic/server-light resource and also listen
+# for HTTP requests on port 8002 using the http-light-server.
+#
+# values are persisted to filesystem storage and applied to
+# StateActuator and PowerActuator defined at sol-flow*.json
+
+DECLARE=http-light-server:fbp:http-light-server.fbp
+DECLARE=persistence-light-server:fbp:persistence-light-server.fbp
+
+# The servers may be declared in any order, they won't block execution
+# here, rather will all serve requests from the same event (main)
+# loop, the one that is also used to receive hardware events and
+# timers.
+oic_server(oic/server-light)
+http_server(http-light-server)
+
+persistence(persistence-light-server:default_state=true,default_power=100)
+
+# cross-link OIC and HTTP, acting on one should report to the other.
+oic_server OUT_POWER -> IN_POWER http_server
+oic_server OUT_STATE -> IN_STATE http_server
+
+http_server OUT_POWER -> IN_POWER oic_server
+http_server OUT_STATE -> IN_STATE oic_server
+
+# cross-link OIC and persistence, acting on one should report to the other.
+oic_server OUT_POWER -> IN_POWER persistence
+oic_server OUT_STATE -> IN_STATE persistence
+
+persistence OUT_POWER -> IN_POWER oic_server
+persistence OUT_STATE -> IN_STATE oic_server
+
+# act on hardware based on OIC values
+# TODO: sol-flow.json defines PowerActuator as calamari/led that uses
+# an input port INTENSITY instead of IN. There should be a way to
+# define a meta-type in the sol-flow.json, then we could create a
+# wrapper FBP that converts the port name.
+oic_server OUT_POWER -> IN power_actuator(PowerActuator)
+oic_server OUT_STATE -> IN state_actuator(StateActuator)
+
+# show machine-id as device-id
+_(platform/machine-id) OUT -> IN _(console:prefix="OIC device-id: ")

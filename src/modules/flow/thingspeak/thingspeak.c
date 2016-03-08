@@ -133,15 +133,15 @@ thingspeak_execute_poll_finished(void *data,
 
     RESPONSE_CHECK_API(response, mdata);
 
-    if (!response->content.used) {
-        /* Empty response means no talkback commands */
-        return;
-    }
-
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         sol_flow_send_error_packet(mdata->node, EINVAL,
             "Thingspeak returned an unknown response code: %d",
             response->response_code);
+        return;
+    }
+
+    if (!response->content.used) {
+        /* Empty response means no talkback commands */
         return;
     }
 
