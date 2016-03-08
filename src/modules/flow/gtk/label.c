@@ -32,6 +32,7 @@
 
 #include "label.h"
 #include "sol-flow/gtk.h"
+#include <time.h>
 
 static void
 set_min_size(GtkWidget *widget)
@@ -103,9 +104,59 @@ gtk_label_in_process(struct sol_flow_node *node,
         SOL_INT_CHECK(r, < 0, r);
         snprintf(buf, sizeof(buf), "%d", val);
         gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_DRANGE) {
+        double val;
+        char buf[64];
+        int r = sol_flow_packet_get_drange_value(packet, &val);
+        SOL_INT_CHECK(r, < 0, r);
+        snprintf(buf, sizeof(buf), "%g", val);
+        gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_DIRECTION_VECTOR) {
+        char buf[1024];
+        double x, y, z;
+        int r = sol_flow_packet_get_direction_vector_components(packet, &x,
+            &y, &z);
+        SOL_INT_CHECK(r, < 0, r);
+        snprintf(buf, sizeof(buf), "X:%g, Y:%g, Z:%g", x, y, z);
+        gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_RGB) {
+        char buf[1024];
+        uint32_t r, g, b;
+        int err = sol_flow_packet_get_rgb_components(packet, &r, &g, &b);
+        SOL_INT_CHECK(err, < 0, err);
+        snprintf(buf, sizeof(buf), "Red:%" PRIu32 ", Green:%" PRIu32
+            ", Blue:%" PRIu32, r, g, b);
+        gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_LOCATION) {
+        char buf[1024];
+        struct sol_location loc;
+        int r = sol_flow_packet_get_location(packet, &loc);
+        SOL_INT_CHECK(r, < 0, r);
+        snprintf(buf, sizeof(buf), "Altitude:%g, Longitude:%g, Altitude:%g",
+            loc.lat, loc.lon, loc.alt);
+        gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_TIMESTAMP) {
+        struct timespec spec;
+        struct tm res;
+        char buf[1024];
+        int r = sol_flow_packet_get_timestamp(packet, &spec);
+        SOL_INT_CHECK(r, < 0, r);
+        tzset();
+        SOL_NULL_CHECK(localtime_r(&spec.tv_sec, &res), -EINVAL);
+        strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &res);
+        gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
+    } else if (sol_flow_packet_get_type(packet) == SOL_FLOW_PACKET_TYPE_ERROR) {
+        int code;
+        const char *msg;
+        char buf[1024];
+        int r = sol_flow_packet_get_error(packet, &code, &msg);
+        SOL_INT_CHECK(r, < 0, r);
+        snprintf(buf, sizeof(buf), "Error message: %s. Code: %d", msg, code);
+        gtk_label_set_text(GTK_LABEL(mdata->widget), buf);
     } else {
         SOL_WRN("Unsupported packet=%p type=%p (%s)",
-            packet, sol_flow_packet_get_type(packet), sol_flow_packet_get_type(packet)->name);
+            packet, sol_flow_packet_get_type(packet),
+            sol_flow_packet_get_type(packet)->name);
         return -EINVAL;
     }
 
