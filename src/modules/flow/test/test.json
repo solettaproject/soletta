@@ -104,15 +104,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "String sequence to be generated, formatted as 'TFTFTTTFF' where 'T' is true and 'F' is false.",
-            "name": "sequence"
-          },
-          {
             "data_type": "int",
             "default": 0,
             "description": "Interval between packets, in miliseconds.",
             "name": "interval"
+          },
+          {
+            "data_type": "string",
+            "description": "String sequence to be generated, formatted as 'TFTFTTTFF' where 'T' is true and 'F' is false.",
+            "name": "sequence"
           }
          ],
         "version": 1
@@ -176,15 +176,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "String sequence to be generated, formatted as '10 20 255'. Only numbers on base 10.",
-            "name": "sequence"
-          },
-          {
             "data_type": "int",
             "default": 0,
             "description": "Interval between packets, in miliseconds.",
             "name": "interval"
+          },
+          {
+            "data_type": "string",
+            "description": "String sequence to be generated, formatted as '10 20 255'. Only numbers on base 10.",
+            "name": "sequence"
           }
          ],
         "version": 1
@@ -248,15 +248,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "String sequence to be generated, formatted as '1 10 -2 1000'.",
-            "name": "sequence"
-          },
-          {
             "data_type": "int",
             "default": 0,
             "description": "Interval between packets, in miliseconds.",
             "name": "interval"
+          },
+          {
+            "data_type": "string",
+            "description": "String sequence to be generated, formatted as '1 10 -2 1000'.",
+            "name": "sequence"
           }
          ],
         "version": 1
@@ -282,15 +282,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "String sequence to be generated, formatted as '1.0 2 -1.7 35.864'",
-            "name": "sequence"
-          },
-          {
             "data_type": "int",
             "default": 0,
             "description": "Interval between packets, in miliseconds.",
             "name": "interval"
+          },
+          {
+            "data_type": "string",
+            "description": "String sequence to be generated, formatted as '1.0 2 -1.7 35.864'",
+            "name": "sequence"
           }
          ],
         "version": 1
@@ -364,15 +364,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Expected string to be matched",
-            "name": "expected"
-          },
-          {
             "data_type": "boolean",
             "default": false,
             "description": "If true, it will compare the received blob with 'expected' string with terminating null byte, otherwise it will compare with a not terminated string.",
             "name": "expect_terminating_null_byte"
+          },
+          {
+            "data_type": "string",
+            "description": "Expected string to be matched",
+            "name": "expected"
           }
          ],
         "version": 1
@@ -398,6 +398,12 @@
       "options": {
         "members": [
           {
+            "data_type": "int",
+            "default": 0,
+            "description": "Interval between packets, in miliseconds.",
+            "name": "interval"
+          },
+          {
             "data_type": "string",
             "description": "String sequence to be generated, formatted as 'str1<separator>str2<separator>...', where separator is set on the separator option..",
             "name": "sequence"
@@ -407,12 +413,6 @@
             "default": " ",
             "description": "String sequence separator.",
             "name": "separator"
-          },
-          {
-            "data_type": "int",
-            "default": 0,
-            "description": "Interval between packets, in miliseconds.",
-            "name": "interval"
           }
          ],
         "version": 1

@@ -34,9 +34,9 @@
 
 struct gtk_pwm_viewer_data {
     struct gtk_common_data base;
-    bool enabled;
     int duty_cycle;
     int period;
+    bool enabled;
 };
 
 DEFINE_DEFAULT_HEADER(pwm_viewer);

@@ -105,15 +105,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "The command that will be executed",
-            "name": "command"
-          },
-          {
             "data_type": "boolean",
             "default": true,
             "description": "Select if the process should automatically start (true) or should start only after a packet come into the START port",
             "name": "start"
+          },
+          {
+            "data_type": "string",
+            "description": "The command that will be executed",
+            "name": "command"
           }
         ],
         "version": 1

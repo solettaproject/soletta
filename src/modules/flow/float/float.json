@@ -241,6 +241,12 @@
       "options": {
         "members": [
           {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Use min, max and step values from package instead of options min, max and step. It's useful if you need to convert from many different sources to the same range and all of them inform these values correctly in each package.",
+            "name": "use_input_range"
+          },
+          {
             "data_type": "drange-spec",
             "default": {
               "max": 1023,
@@ -248,12 +254,6 @@
             },
             "description": "Range values (min, max, step). Used only if use_input_range is disabled.",
             "name": "range"
-          },
-          {
-            "data_type": "boolean",
-            "default": true,
-            "description": "Use min, max and step values from package instead of options min, max and step. It's useful if you need to convert from many different sources to the same range and all of them inform these values correctly in each package.",
-            "name": "use_input_range"
           }
         ],
         "version": 1
@@ -311,6 +311,12 @@
       "options": {
         "members": [
           {
+            "data_type": "boolean",
+            "default": true,
+            "description": "Use min and max values from input package instead of option input_range. It's useful if you need to convert from many different sources to the same range and all of them inform these values correctly in each package.",
+            "name": "use_input_range"
+          },
+          {
             "data_type": "drange-spec",
             "default": {
               "max": "DBL_MAX",
@@ -324,12 +330,6 @@
             "data_type": "drange-spec",
             "description": "Output's range.",
             "name": "output_range"
-          },
-          {
-            "data_type": "boolean",
-            "default": true,
-            "description": "Use min and max values from input package instead of option input_range. It's useful if you need to convert from many different sources to the same range and all of them inform these values correctly in each package.",
-            "name": "use_input_range"
           }
         ],
         "version": 1
@@ -690,6 +690,12 @@
       "options": {
         "members": [
           {
+            "data_type": "boolean",
+            "description": "if true, the packet irange will have it's min and max changed to the min and max of this node.",
+            "name": "range_override",
+            "default" : false
+          },
+          {
             "data_type": "float",
             "description": "Minimum value (inclusive)",
             "name": "min",
@@ -700,12 +706,6 @@
             "description": "Maximum value (inclusive)",
             "name": "max",
             "default" : "DBL_MAX"
-          },
-          {
-            "data_type": "boolean",
-            "description": "if true, the packet irange will have it's min and max changed to the min and max of this node.",
-            "name": "range_override",
-            "default" : false
           }
         ],
         "version": 1
@@ -740,20 +740,10 @@
             "name": "ticks_inc"
           },
           {
-            "data_type": "float",
-            "description": "The maximum value of the wave. This must be greater than min.",
-            "name": "max"
-          },
-          {
             "data_type": "int",
             "default": 1,
             "description": "In how many function iterations (ticks) it should go from min to max values. The value must be greater than or equal to 1 (which means go from min to max instantly). With this value, the node will calculate the 'increasing step' of the function for you.",
             "name": "ticks_dec"
-          },
-          {
-            "data_type": "float",
-            "description": "The minimum value of the wave. This must be less than max.",
-            "name": "min"
           },
           {
             "data_type": "int",
@@ -772,6 +762,16 @@
             "default": 0,
             "description": "The number of (extra) input ticks the wave will hold its output at min value when it reaches it. The value must be greater than or equal to 0.",
             "name": "ticks_at_min"
+          },
+          {
+            "data_type": "float",
+            "description": "The minimum value of the wave. This must be less than max.",
+            "name": "min"
+          },
+          {
+            "data_type": "float",
+            "description": "The maximum value of the wave. This must be greater than min.",
+            "name": "max"
           }
         ],
         "version": 1

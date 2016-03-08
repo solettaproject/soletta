@@ -160,7 +160,15 @@ struct sol_mqtt_message {
      */
     uint16_t api_version;
 #endif
+    /**
+     * If true, the message will be retained by the broker
+     */
+    bool retain;
 
+    /**
+     * The message Id
+     */
+    int id;
     /**
      * The topic which the message was/will be posted to
      */
@@ -172,19 +180,9 @@ struct sol_mqtt_message {
     struct sol_buffer *payload;
 
     /**
-     * The message Id
-     */
-    int id;
-
-    /**
      * The message Quality of service
      */
     sol_mqtt_qos qos;
-
-    /**
-     * If true, the message will be retained by the broker
-     */
-    bool retain;
 };
 
 /**

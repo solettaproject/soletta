@@ -22,18 +22,6 @@
  "options": {
   "members": [
    {
-    "data_type": "string",
-    "default": null,
-    "description": "prefix messages with given string.",
-    "name": "prefix"
-   },
-   {
-    "data_type": "string",
-    "default": null,
-    "description": "suffix messages with given string.",
-    "name": "suffix"
-   },
-   {
     "data_type": "boolean",
     "default": true,
     "description": "If true will output to stdout, otherwise stderr.",
@@ -44,6 +32,18 @@
     "default": true,
     "description": "If true will force flush after messages are printed.",
     "name": "flush"
+   },
+   {
+    "data_type": "string",
+    "default": null,
+    "description": "prefix messages with given string.",
+    "name": "prefix"
+   },
+   {
+    "data_type": "string",
+    "default": null,
+    "description": "suffix messages with given string.",
+    "name": "suffix"
    }
   ],
   "version": 1

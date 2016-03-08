@@ -28,15 +28,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "The url that will be used on request and posts",
-            "name": "url"
-          },
-          {
             "data_type": "boolean",
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
           }
         ],
         "version": 1
@@ -98,15 +98,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "The url that will be used on request and posts",
-            "name": "url"
-          },
-          {
             "data_type": "boolean",
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
           }
         ],
         "version": 1
@@ -168,15 +168,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "The url that will be used on request and posts",
-            "name": "url"
-          },
-          {
             "data_type": "boolean",
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
           }
         ],
         "version": 1
@@ -238,15 +238,15 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "The url that will be used on request and posts",
-            "name": "url"
-          },
-          {
             "data_type": "boolean",
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
             "default": false
+          },
+          {
+            "data_type": "string",
+            "description": "The url that will be used on request and posts",
+            "name": "url"
           }
         ],
         "version": 1
@@ -309,12 +309,6 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "default": null,
-            "description": "The url to make a GET request",
-            "name": "url"
-          },
-          {
             "data_type": "boolean",
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
@@ -325,6 +319,12 @@
             "default": false,
             "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
             "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The url to make a GET request",
+            "name": "url"
           },
           {
             "data_type": "string",
@@ -389,12 +389,6 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "default": null,
-            "description": "The url to make a GET request",
-            "name": "url"
-          },
-          {
             "data_type": "boolean",
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
@@ -405,6 +399,12 @@
             "default": false,
             "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
             "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The url to make a GET request",
+            "name": "url"
           },
           {
             "data_type": "string",
@@ -469,12 +469,6 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "default": null,
-            "description": "The URL to make a GET request",
-            "name": "url"
-          },
-          {
             "data_type": "boolean",
             "description": "If the machine_id should be set on every request made",
             "name": "machine_id",
@@ -485,6 +479,12 @@
             "default": false,
             "description": "Enforce the response content type, if it does not match if the requested one, ignore it.",
             "name": "strict"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "The URL to make a GET request",
+            "name": "url"
           },
           {
             "data_type": "string",
@@ -815,16 +815,16 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "default": "http",
-            "description": "The URL protocol",
-            "name": "scheme"
-          },
-          {
             "data_type": "int",
             "default": 0,
             "description": "The server port",
             "name": "port"
+          },
+          {
+            "data_type": "string",
+            "default": "http",
+            "description": "The URL protocol",
+            "name": "scheme"
           },
           {
             "data_type": "string",

@@ -93,16 +93,16 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-	    "default": "string",
-            "description": "The http path where it will be served",
-            "name": "path"
-          },
-          {
             "data_type": "int",
             "default": -1,
             "description": "The port used to bind the server. If a negative value, default port will be used.",
             "name": "port"
+          },
+          {
+            "data_type": "string",
+	    "default": "string",
+            "description": "The http path where it will be served",
+            "name": "path"
           },
           {
             "data_type": "string",
@@ -229,12 +229,6 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-	    "default": "string",
-            "description": "The http path where it will be served",
-            "name": "path"
-          },
-          {
             "data_type": "int",
             "default": -1,
             "description": "The port used to bind the server. If a negative value, default port will be used.",
@@ -255,6 +249,12 @@
             },
             "description": "The initial node's range",
             "name": "value_spec"
+        },
+        {
+          "data_type": "string",
+	  "default": "string",
+          "description": "The http path where it will be served",
+          "name": "path"
         }
         ],
         "version": 1
@@ -290,15 +290,16 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "The path where the server will look for the files",
-            "name": "path"
-          },
-          {
             "data_type": "int",
             "default": -1,
             "description": "The port used to bind the server. If a negative value, default port will be used.",
             "name": "port"
+          },
+          {
+            "data_type": "boolean",
+            "default": true,
+            "description": "If the files will be served as soon as the node opens",
+            "name": "enabled"
           },
 	  {
             "data_type": "string",
@@ -307,10 +308,9 @@
             "name": "basename"
           },
           {
-            "data_type": "boolean",
-            "default": true,
-            "description": "If the files will be served as soon as the node opens",
-            "name": "enabled"
+            "data_type": "string",
+            "description": "The path where the server will look for the files",
+            "name": "path"
           }
         ],
         "version": 1

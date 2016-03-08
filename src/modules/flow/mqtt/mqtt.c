@@ -42,31 +42,22 @@
 
 struct client_data {
     struct sol_flow_node *node;
-
     char *host;
-    int port;
-
     char *user;
     char *pass;
-
     char *id;
-
-    int keepalive;
-
-    bool clean_session;
-    sol_mqtt_qos qos;
-
+    char *topic;
     struct sol_cert *ca_cert;
     struct sol_cert *client_cert;
     struct sol_cert *private_key;
-
-    char *topic;
     struct sol_blob *payload;
-
     struct sol_mqtt *mqtt;
-
-    bool pending_publish;
-    bool pending_subscribe;
+    int port;
+    int keepalive;
+    sol_mqtt_qos qos;
+    bool clean_session : 1;
+    bool pending_publish : 1;
+    bool pending_subscribe : 1;
 };
 
 static void

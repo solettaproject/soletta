@@ -83,16 +83,16 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "default": null,
-            "description": "file name to write.",
-            "name": "path"
-          },
-          {
             "data_type": "int",
             "default": 420,
             "description": "file permissions in POSIX mode such as 0644.",
             "name": "permissions"
+          },
+          {
+            "data_type": "string",
+            "default": null,
+            "description": "file name to write.",
+            "name": "path"
           }
         ],
         "version": 1

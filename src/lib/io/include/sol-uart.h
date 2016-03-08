@@ -103,13 +103,13 @@ struct sol_uart_config {
 #define SOL_UART_CONFIG_API_VERSION (1)
     uint16_t api_version;
 #endif
+    bool flow_control; /** Enables software flow control(XOFF and XON) */
     enum sol_uart_baud_rate baud_rate;
     enum sol_uart_data_bits data_bits;
     enum sol_uart_parity parity;
     enum sol_uart_stop_bits stop_bits;
     void (*rx_cb)(void *user_data, struct sol_uart *uart, uint8_t byte_read); /** Set a callback to be called every time a character is received on UART */
     const void *rx_cb_user_data;
-    bool flow_control; /** Enables software flow control(XOFF and XON) */
 };
 
 /**

@@ -71,10 +71,10 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "i2c");
 #define SYSFS_I2C_NEW_DEVICE "%s/%s/new_device"
 
 struct i2c_create_device {
-    struct sol_buffer *result_path;
     unsigned int dev_number;
-    const char *dev_name;
     int result;
+    struct sol_buffer *result_path;
+    const char *dev_name;
 };
 
 struct sol_i2c {

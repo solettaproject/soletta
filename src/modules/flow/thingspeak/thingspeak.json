@@ -18,6 +18,12 @@
       "options": {
         "members": [
           {
+            "data_type": "int",
+            "default": 1000,
+            "description": "Poll interval in milliseconds. Default to one request every 1000ms.",
+            "name": "interval"
+          },
+          {
             "data_type": "string",
             "description": "Thingpeak API key",
             "name": "api_key"
@@ -32,12 +38,6 @@
             "default": "https://api.thingspeak.com/",
             "description": "Thingspeak endpoint. Defaults to public server",
             "name": "endpoint"
-          },
-          {
-            "data_type": "int",
-            "default": 1000,
-            "description": "Poll interval in milliseconds. Default to one request every 1000ms.",
-            "name": "interval"
           }
         ],
         "version": 1
@@ -63,6 +63,12 @@
       "options": {
         "members": [
           {
+            "data_type": "int",
+            "default": -1,
+            "description": "Position for this command to appear in the queue. Default is end of queue",
+            "name": "position"
+          },
+          {
             "data_type": "string",
             "description": "Thingpeak API key",
             "name": "api_key"
@@ -77,12 +83,6 @@
             "default": "https://api.thingspeak.com/",
             "description": "Thingspeak endpoint. Defaults to public server",
             "name": "endpoint"
-          },
-          {
-            "data_type": "int",
-            "default": -1,
-            "description": "Position for this command to appear in the queue. Default is end of queue",
-            "name": "position"
           }
         ],
         "version": 1

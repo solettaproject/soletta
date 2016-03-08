@@ -18,11 +18,6 @@
       "options": {
         "members": [
           {
-            "data_type": "string",
-            "description": "Label of the desired pin on the board. If raw is set to true, this should be \"<device> <pin>\" pair, e.g. \"0 3\".",
-            "name": "pin"
-          },
-          {
             "data_type": "boolean",
             "default": false,
             "description": "Change 'pin' meaning to be the system parameters needed to address the desired pin. Use it if you know what you are doing.",
@@ -39,6 +34,11 @@
             "default": 1000,
             "description": "Polling time in milliseconds. This option will take no effect if hardware interruptions for GPIO is supported by the underlying system. Use it if you know that you don't have those interruptions available.",
             "name": "poll_timeout"
+          },
+          {
+            "data_type": "string",
+            "description": "Label of the desired pin on the board. If raw is set to true, this should be \"<device> <pin>\" pair, e.g. \"0 3\".",
+            "name": "pin"
           }
         ],
         "version": 1

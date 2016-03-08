@@ -1942,8 +1942,8 @@ struct string_data {
     struct sol_buffer text_grid;
     struct sol_ptr_vector chars; /* ptrs to charset or void sentinel */
     struct sol_timeout *timer;
-    int blink_time;
     char *charset;
+    int blink_time;
     bool enabled : 1;
     bool blink_on : 1;
     bool state_changed : 1;

@@ -87,11 +87,11 @@ struct sol_pwm_config {
 #define SOL_PWM_CONFIG_API_VERSION (1)
     uint16_t api_version;
 #endif
+    bool enabled;
     int32_t period_ns; /* if == -1, won't set */
     int32_t duty_cycle_ns; /* if == -1, won't set, but if period is set, duty cycle is zeroed */
     enum sol_pwm_alignment alignment;
     enum sol_pwm_polarity polarity;
-    bool enabled;
 };
 
 /**
