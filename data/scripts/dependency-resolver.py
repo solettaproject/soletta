@@ -545,8 +545,6 @@ if __name__ == "__main__":
                         type=str, default="COMMON_LDFLAGS")
     parser.add_argument("--cache", help="The configuration cache.", type=str,
                         default=".config-cache")
-    parser.add_argument("--prefix", help="The installation prefix",
-                        type=str, default="/usr")
     parser.add_argument("--makefile-gen", help="Should generate Makefile.gen?",
                         action="store_true")
     parser.add_argument("--kconfig-gen", help="Should generate Kconfig.gen?",
