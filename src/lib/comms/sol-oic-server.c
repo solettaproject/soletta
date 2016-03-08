@@ -412,7 +412,7 @@ sol_oic_server_init(void)
     struct sol_oic_server_resource *res;
     struct sol_network_link_addr servaddr = { .family = SOL_NETWORK_FAMILY_INET6,
                                               .port = OIC_COAP_SERVER_UDP_PORT };
-    int r;
+    int r = -ENOMEM;
 
     if (oic_server.refcnt > 0) {
         oic_server.refcnt++;
