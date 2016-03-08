@@ -56,6 +56,19 @@ implementation, see [main loops](#main-loops) documentaion.
 
 Before you start, check the [build requirements](https://github.com/solettaproject/soletta/wiki/Build-requirements).
 
+Some Soletta parts depends on projects that can be fetched via
+git submodules:
+ * OIC depends on [tinycbor](https://github.com/01org/tinycbor) and [tinydtls](https://projects.eclipse.org/projects/iot.tinydtls)
+ * JS metatypes depends on [duktape](http://duktape.org/)
+ * Mavlink API depends on [mavlink](http://qgroundcontrol.org/mavlink/start)
+
+To make sure all these projects are fetched and correct versions
+are checked out, just run:
+
+    make thirdparty-update
+
+It requires Internet access.
+
 The build system is based on linux kernel's kconfig. To configure it
 with default configuration values run:
 
