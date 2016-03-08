@@ -101,6 +101,8 @@ void sol_vector_init(struct sol_vector *v, uint16_t elem_size);
  * @param v Vector pointer
  *
  * @return Pointer to the added element
+ *
+ * @remark Time complexity: amortized constant
  */
 void *sol_vector_append(struct sol_vector *v);
 
@@ -114,6 +116,8 @@ void *sol_vector_append(struct sol_vector *v);
  * @param n Number of elements to be appended
  *
  * @return Pointer to the first of the @c n elements appended
+ *
+ * @remark Time complexity: amortized linear in the number of elements appended
  */
 void *sol_vector_append_n(struct sol_vector *v, uint16_t n);
 
@@ -128,6 +132,8 @@ void *sol_vector_append_n(struct sol_vector *v, uint16_t n);
  * @param i Index of the element to return
  *
  * @return Pointer to the element at the index @c i
+ *
+ * @remark Time complexity: constant
  *
  * @see sol_vector_get()
  */
@@ -148,6 +154,8 @@ sol_vector_get_nocheck(const struct sol_vector *v, uint16_t i)
  * @param i Index of the element to return
  *
  * @return Pointer to the element at the index @c i or @c NULL on errors.
+ *
+ * @remark Time complexity: constant
  */
 static inline void *
 sol_vector_get(const struct sol_vector *v, uint16_t i)
@@ -167,6 +175,8 @@ sol_vector_get(const struct sol_vector *v, uint16_t i)
  * @param i Index of the element to remove
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: linear in distance between @a i and the end of the vector
  */
 int sol_vector_del(struct sol_vector *v, uint16_t i);
 
@@ -179,6 +189,8 @@ int sol_vector_del(struct sol_vector *v, uint16_t i);
  * @param elem Pointer of the element to remove
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: linear in distance between @a elem and the end of the vector
  */
 int sol_vector_del_element(struct sol_vector *v, const void *elem);
 
@@ -188,6 +200,8 @@ int sol_vector_del_element(struct sol_vector *v, const void *elem);
  * @param v Vector pointer
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: amortized constant
  */
 static inline int
 sol_vector_del_last(struct sol_vector *v)
@@ -203,6 +217,8 @@ sol_vector_del_last(struct sol_vector *v)
  * And frees the memory allocated for them. The vector returns to the initial state (empty).
  *
  * @param v Vector pointer
+ *
+ * @remark Time complexity: constant
  */
 void sol_vector_clear(struct sol_vector *v);
 
@@ -214,6 +230,8 @@ void sol_vector_clear(struct sol_vector *v);
  * @param v Vector pointer
  *
  * @return Pointer to the memory containing the elements
+ *
+ * @remark Time complexity: constant
  */
 static inline void *
 sol_vector_take_data(struct sol_vector *v)
@@ -319,6 +337,8 @@ sol_ptr_vector_init(struct sol_ptr_vector *pv)
  *
  * @param pv Pointer to the struct @c sol_ptr_vector to be initialized
  * @param n Number of elements that should be preallocated
+ *
+ * @remark Time complexity: linear in the number of elements @c n
  */
 int sol_ptr_vector_init_n(struct sol_ptr_vector *pv, uint16_t n);
 
@@ -328,6 +348,8 @@ int sol_ptr_vector_init_n(struct sol_ptr_vector *pv, uint16_t n);
  * @param pv Pointer to the @c struct @c sol_ptr_vector to be initialized
  *
  * @return Number of elements in the vector
+ *
+ * @remark Time complexity: constant
  */
 static inline uint16_t
 sol_ptr_vector_get_len(const struct sol_ptr_vector *pv)
@@ -344,6 +366,8 @@ sol_ptr_vector_get_len(const struct sol_ptr_vector *pv)
  * @param ptr Pointer to be stored
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: amortized constant
  */
 int sol_ptr_vector_append(struct sol_ptr_vector *pv, const void *ptr);
 
@@ -358,6 +382,8 @@ int sol_ptr_vector_append(struct sol_ptr_vector *pv, const void *ptr);
  * @param i Index of the element to return
  *
  * @return Pointer at the index @c i.
+ *
+ * @remark Time complexity: constant
  *
  * @see sol_ptr_vector_get()
  */
@@ -377,6 +403,8 @@ sol_ptr_vector_get_nocheck(const struct sol_ptr_vector *pv, uint16_t i)
  * @param i Index of the element to return
  *
  * @return Pointer at the index @c i and @c NULL on errors.
+ *
+ * @remark Time complexity: constant
  */
 static inline void *
 sol_ptr_vector_get(const struct sol_ptr_vector *pv, uint16_t i)
@@ -395,6 +423,8 @@ sol_ptr_vector_get(const struct sol_ptr_vector *pv, uint16_t i)
  * @param ptr The pointer
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: constant
  */
 int sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, const void *ptr);
 
@@ -414,6 +444,9 @@ int sol_ptr_vector_set(struct sol_ptr_vector *pv, uint16_t i, const void *ptr);
  * to be less than, to match, or be greater than @c data2 in the sort order
  *
  * @return index (>=0) or negative errno on errors.
+ *
+ * @remark Time complexity: linear in number of elements between inserted position and the
+ * end of the vector or logarithmic in the size of the vector, whichever is greater
  *
  * @see sol_ptr_vector_append()
  * @see sol_ptr_vector_insert_at()
@@ -440,6 +473,9 @@ int32_t sol_ptr_vector_insert_sorted(struct sol_ptr_vector *pv, const void *ptr,
  *
  * @return the index (>=0) on success, which may be the same if it
  * wasn't changed, or negative errno on failure.
+ *
+ * @remark Time complexity: linear in number of elements between updated position and the
+ * end of the vector or logarithmic in the size of the vector, whichever is greater
  */
 int32_t sol_ptr_vector_update_sorted(struct sol_ptr_vector *pv, uint16_t i, int (*compare_cb)(const void *data1, const void *data2));
 
@@ -458,6 +494,9 @@ int32_t sol_ptr_vector_update_sorted(struct sol_ptr_vector *pv, uint16_t i, int 
  *
  * @return 0 on success or negative errno on errors.
  *
+ * @remark Time complexity: amortized linear in number of elements between
+ * @a i and the end of the vector
+ *
  * @see sol_ptr_vector_append()
  * @see sol_ptr_vector_match_sorted()
  * @see sol_ptr_vector_find_sorted()
@@ -469,13 +508,16 @@ int sol_ptr_vector_insert_at(struct sol_ptr_vector *pv, uint16_t i, const void *
 /**
  * @brief Remove an pointer from the vector.
  *
- * Removes the pointer @c ptr from the vector. It stops when the first
- * occurrence is found. To delete all use sol_ptr_vector_del_element()
+ * Removes the last occurence of the pointer @c ptr from the vector. To delete all
+ * use sol_ptr_vector_del_element()
  *
  * @param pv Pointer Vector pointer
  * @param ptr Pointer to remove
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: linear in number of elements between the @c ptr
+ * position and the end of the vector
  *
  * @see sol_ptr_vector_del()
  * @see sol_ptr_vector_del_element()
@@ -489,6 +531,8 @@ int sol_ptr_vector_remove(struct sol_ptr_vector *pv, const void *ptr);
  * @param i Index of the element to remove
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: linear in distance between @a i and the end of the vector
  *
  * @see sol_ptr_vector_del_element()
  * @see sol_ptr_vector_remove()
@@ -510,6 +554,8 @@ sol_ptr_vector_del(struct sol_ptr_vector *pv, uint16_t i)
  *
  * @return @c 0 on success, error code (always negative) otherwise
  *
+ * @remark Time complexity: number of @c elem occurences * vector size
+ *
  * @see sol_ptr_vector_del()
  * @see sol_ptr_vector_remove()
  */
@@ -521,6 +567,8 @@ int sol_ptr_vector_del_element(struct sol_ptr_vector *pv, const void *elem);
  * @param pv Pointer Vector pointer
  *
  * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: amortized constant
  */
 static inline int
 sol_ptr_vector_del_last(struct sol_ptr_vector *pv)
@@ -537,6 +585,8 @@ sol_ptr_vector_del_last(struct sol_ptr_vector *pv)
  * @param i Index of the element to retrieved
  *
  * @return Pointer that was at index @c i, @c NULL otherwise
+ *
+ * @remark Time complexity: linear in distance between @a i and the end of the vector
  */
 static inline void *
 sol_ptr_vector_take(struct sol_ptr_vector *pv, uint16_t i)
@@ -553,6 +603,8 @@ sol_ptr_vector_take(struct sol_ptr_vector *pv, uint16_t i)
  * @param pv Pointer Vector pointer
  *
  * @return Pointer that was in the last position from the vector, @c NULL otherwise
+ *
+ * @remark Time complexity: amortized constant
  */
 static inline void *
 sol_ptr_vector_take_last(struct sol_ptr_vector *pv)
@@ -568,6 +620,8 @@ sol_ptr_vector_take_last(struct sol_ptr_vector *pv)
  * And frees the memory allocated for them. The vector returns to the initial state (empty).
  *
  * @param pv Pointer Vector pointer
+ *
+ * @remark Time complexity: constant
  */
 static inline void
 sol_ptr_vector_clear(struct sol_ptr_vector *pv)
@@ -583,6 +637,8 @@ sol_ptr_vector_clear(struct sol_ptr_vector *pv)
  * @param pv Pointer Vector pointer
  *
  * @return Pointer to the memory containing the elements
+ *
+ * @remark Time complexity: constant
  */
 static inline void *
 sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
@@ -641,6 +697,9 @@ sol_ptr_vector_take_data(struct sol_ptr_vector *pv)
  *
  * @return index (>=0) on success, error code (always negative) otherwise
  *
+ * @remark Time complexity: linear in distance between found element and
+ * the end of the vector
+ *
  * @see sol_ptr_vector_find_first()
  * @see sol_ptr_vector_find_first_sorted()
  * @see sol_ptr_vector_match_first()
@@ -670,6 +729,9 @@ sol_ptr_vector_find_last(const struct sol_ptr_vector *pv, const void *elem)
  * @param elem Element to find
  *
  * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: linear between found element and the beginning
+ * of the vector
  *
  * @see sol_ptr_vector_find_last()
  * @see sol_ptr_vector_find_first_sorted()
@@ -710,6 +772,9 @@ sol_ptr_vector_find_first(const struct sol_ptr_vector *pv, const void *elem)
  *
  * @return index (>=0) on success, error code (always negative) otherwise
  *
+ * @remark Time complexity: linear in distance between the beginning of the vector
+ * and the matched element
+ *
  * @see sol_ptr_vector_match_last()
  * @see sol_ptr_vector_find_first()
  * @see sol_ptr_vector_find_first_sorted()
@@ -744,6 +809,9 @@ sol_ptr_vector_match_first(const struct sol_ptr_vector *pv, const void *elem, in
  * to be less than, to match, or be greater than @c data2 in the sort order
  *
  * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: linear in distance between the matched element and the
+ * end of the vector
  *
  * @see sol_ptr_vector_match_first()
  * @see sol_ptr_vector_find_last()
@@ -780,6 +848,8 @@ sol_ptr_vector_match_last(const struct sol_ptr_vector *pv, const void *elem, int
  *
  * @return index (>=0) on success, error code (always negative) otherwise
  *
+ * @remark Time complexity: logarithmic in vector size
+ *
  * @see sol_ptr_vector_find_first()
  * @see sol_ptr_vector_find_last()
  * @see sol_ptr_vector_find_first_sorted()
@@ -811,6 +881,8 @@ int32_t sol_ptr_vector_match_sorted(const struct sol_ptr_vector *pv, const void 
  * to be less than, to match, or be greater than @c data2 in the sort order
  *
  * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: logarithmic in number of elements
  *
  * @see sol_ptr_vector_find_first()
  * @see sol_ptr_vector_find_last()
@@ -865,6 +937,9 @@ sol_ptr_vector_find_sorted(const struct sol_ptr_vector *pv, const void *elem, in
  * to be less than, to match, or be greater than @c data2 in the sort order
  *
  * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: logarithmic in vector size or linear in number of elements
+ * equal to @a elem, whichever is greater
  *
  * @see sol_ptr_vector_find_first()
  * @see sol_ptr_vector_find_last()
@@ -921,6 +996,9 @@ sol_ptr_vector_find_last_sorted(const struct sol_ptr_vector *pv, const void *ele
  * to be less than, to match, or be greater than @c data2 in the sort order
  *
  * @return index (>=0) on success, error code (always negative) otherwise
+ *
+ * @remark Time complexity: logarithmic in vector size or linear in number of elements
+ * equal to @a elem, whichever is greater
  *
  * @see sol_ptr_vector_find_first()
  * @see sol_ptr_vector_find_first()
