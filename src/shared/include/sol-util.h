@@ -1039,6 +1039,22 @@ sol_util_le64_to_cpu(uint64_t val)
 }
 
 /**
+ * @brief Unescape a string removing quotes from it.
+ *
+ * This function will unescape single quotes (\') and double quotes (\") from the slice,
+ * it will also remove single and double quotes from the string if they are not escaped.
+ * The number of quotes that are not escaped must match, otherwise it will be considered a
+ * malformed slice and it will return an error.
+ * Trying to unespace a character that is not a single quote or double quote it is also
+ * considered an error.
+ *
+ * @param slice The slice to be escaped
+ * @param buf - The buffer to hold the unescaped string - It will be initialized by this function.
+ * @return 0 on success, negative errno otherwise.
+ */
+int sol_util_unescape_quotes(const struct sol_str_slice slice, struct sol_buffer *buf);
+
+/**
  * @}
  */
 

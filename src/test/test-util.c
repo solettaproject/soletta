@@ -522,4 +522,73 @@ test_unicode_utf_conversion(void)
     }
 }
 
+DEFINE_TEST(test_escape_quotes);
+
+static void
+test_escape_quotes(void)
+{
+    static const struct {
+        const struct sol_str_slice input;
+        const struct sol_str_slice output;
+        ssize_t int_result;
+        enum sol_buffer_flags flags;
+    } escape_tests[] = {
+        //Cases where that copy is not necessary.
+        { SOL_STR_SLICE_LITERAL("x"), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("    x"), SOL_STR_SLICE_LITERAL("    x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("x    "), SOL_STR_SLICE_LITERAL("x    "), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("'x'"), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("\"x\""), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("    \"x\""), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("\"x\"     "), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("    \"x\"    "), SOL_STR_SLICE_LITERAL("x"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("'Locale'"), SOL_STR_SLICE_LITERAL("Locale"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+        { SOL_STR_SLICE_LITERAL("\"My String\""), SOL_STR_SLICE_LITERAL("My String"), 0,
+          SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE },
+
+        { SOL_STR_SLICE_LITERAL("x\\\"y"), SOL_STR_SLICE_LITERAL("x\"y"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x\\\'y\\\"zd"), SOL_STR_SLICE_LITERAL("x'y\"zd"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x'y'"), SOL_STR_SLICE_LITERAL("xy"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x\"y\""), SOL_STR_SLICE_LITERAL("xy"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x\"y\"z\\\"f"), SOL_STR_SLICE_LITERAL("xyz\"f"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\\'Locale\\'"), SOL_STR_SLICE_LITERAL("'Locale'"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("MyQuo\\\"tes"), SOL_STR_SLICE_LITERAL("MyQuo\"tes"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("MyQuo\\'tes2"), SOL_STR_SLICE_LITERAL("MyQuo'tes2"), 0, SOL_BUFFER_FLAGS_DEFAULT },
+
+        //Cases that should fail
+        { SOL_STR_SLICE_LITERAL("x'y\""), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\"x'"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("'x\""), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x\""), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("x'"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("'x"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("\"x"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("Wrong\\a"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+        { SOL_STR_SLICE_LITERAL("Wrong\\ba"), SOL_STR_SLICE_LITERAL(""), -EINVAL, SOL_BUFFER_FLAGS_DEFAULT },
+    };
+    size_t i;
+
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(escape_tests); i++) {
+        struct sol_buffer buf;
+        int r;
+
+        r = sol_util_unescape_quotes(escape_tests[i].input, &buf);
+        ASSERT_INT_EQ(r, escape_tests[i].int_result);
+        if (r < 0)
+            continue;
+        ASSERT(sol_str_slice_eq(escape_tests[i].output, sol_buffer_get_slice(&buf)));
+        ASSERT(buf.flags == escape_tests[i].flags);
+        sol_buffer_fini(&buf);
+    }
+}
+
 TEST_MAIN();
