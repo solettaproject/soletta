@@ -30,8 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __SOLETTA_NODE_COMMON_H__
-#define __SOLETTA_NODE_COMMON_H__
+#pragma once
 
 #define SET_FUNCTION(destination, functionName) \
     Nan::ForceSet((destination), Nan::New(#functionName).ToLocalChecked(), \
@@ -54,10 +53,11 @@
     bind_ ## name, \
     (v8::PropertyAttribute)(v8::ReadOnly | v8::DontDelete));
 
-#define VALIDATE_CALLBACK_RETURN_VALUE_TYPE(value, typecheck, message) \
+#define VALIDATE_CALLBACK_RETURN_VALUE_TYPE(value, typecheck, message, fallback) \
     if (!value->typecheck()) { \
         Nan::ThrowTypeError( \
             message " callback return value type must satisfy " #typecheck "()"); \
+        return fallback; \
     }
 
 #define VALIDATE_ARGUMENT_COUNT(args, length) \
@@ -109,5 +109,3 @@
     VALIDATE_VALUE_TYPE(memberName, typecheck, message "." #memberName, \
     failReturn); \
     destination.memberName = (destinationType)memberName->accessor();
-
-#endif /* ndef __SOLETTA_NODE_COMMON_H__ */

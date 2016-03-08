@@ -47,10 +47,18 @@ cat bindings/nodejs/generated/main.cc.prologue > bindings/nodejs/generated/main.
 cat bindings/nodejs/generated/main.h.prologue > bindings/nodejs/generated/main.h || exit 1
 
 # Add constants and enums from selected files
-FILES=\
-'sol-platform.h'
+FILES='
+sol-platform.h
+sol-network.h
+sol-oic-client.h
+sol-oic-common.h
+sol-coap.h
+'
 
 for file in $FILES; do
+	if test "x${file}x" = "xx"; then
+		continue
+	fi
 	echo "#include <$file>" >> bindings/nodejs/generated/main.h
 	for path in $SOLETTA_SEARCH_PATHS; do
 		if test -f $path/$file; then
