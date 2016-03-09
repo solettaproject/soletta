@@ -814,6 +814,7 @@ _resource_request_cb(struct sol_coap_server *server,
     struct sol_buffer *buf;
     size_t offset;
     struct sol_oic_map_reader *map_reader = NULL;
+    uint8_t code;
 
     if (!ctx->cb)
         return false;
@@ -841,7 +842,8 @@ _resource_request_cb(struct sol_coap_server *server,
         map_reader = (struct sol_oic_map_reader *)&root;
 
 empty_payload:
-    ctx->cb(sol_coap_header_get_code(req), ctx->client, addr, map_reader,
+    sol_coap_header_get_code(req, &code);
+    ctx->cb(code, ctx->client, addr, map_reader,
         (void *)ctx->data);
 
     return true;
