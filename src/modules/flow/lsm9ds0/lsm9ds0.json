@@ -1,0 +1,130 @@
+{
+  "$schema": "http://solettaproject.github.io/soletta/schemas/node-type-genspec.schema",
+  "name": "lsm9ds0",
+  "meta": {
+    "author": "Intel Corporation",
+    "license": "Apache-2.0",
+    "version": "1"
+  },
+  "types": [
+    {
+      "name": "lsm9ds0/gyroscope",
+      "aliases": [
+         "gyroscope/lsm9ds0"
+      ],
+      "category": "input/hw",
+      "description": "Gyroscope node for the lsm9ds0 chipset.",
+      "methods": {
+        "close": "lsm9ds0_gyro_close",
+        "open": "lsm9ds0_gyro_open"
+      },
+      "options": {
+       "members": [
+         {
+           "name": "i2c_bus",
+           "data_type": "int",
+           "description": "I2C bus number"
+         },
+         {
+           "name": "i2c_addr",
+           "data_type": "int",
+           "description": "I2C address",
+           "default": 107
+         },
+         {
+           "name": "scale",
+           "data_type": "int",
+           "description": "Scale selection (in degrees per second). Must be one of 245, 500 or 2000. The scales ranges from -value to +value",
+           "default": 245
+         }
+       ],
+       "version": 1
+      },
+      "in_ports": [
+        {
+          "name": "TICK",
+          "data_type": "any",
+          "description": "Packets sent in here will trigger a gyroscope reading and produce packets on each of the the output ports.",
+          "methods": {
+              "process": "lsm9ds0_gyro_process"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "name": "OUT",
+          "data_type": "direction-vector",
+          "description": "Gyroscope in all X/Y/Z axes, in a scale of degrees per second."
+        }
+      ],
+      "private_data_type": "lsm9ds0_gyro_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/lsm9ds0/gyroscope.html"
+    },
+    {
+      "name": "lsm9ds0/xmt",
+      "category": "input/hw",
+      "description": "Accelerometer (X), Magnetometer (M) and Temperature (T) node for the lsm9ds0 chipset.",
+      "methods": {
+        "close": "lsm9ds0_xmt_close",
+        "open": "lsm9ds0_xmt_open"
+      },
+      "options": {
+       "members": [
+         {
+           "name": "i2c_bus",
+           "data_type": "int",
+           "description": "I2C bus number"
+         },
+         {
+           "name": "i2c_addr",
+           "data_type": "int",
+           "description": "I2C address",
+           "default": 29
+         },
+         {
+           "name": "accel_scale",
+           "data_type": "int",
+           "description": "Scale selection (in factor of g). Must be one of 2, 4, 6, 8 or 16. The scales ranges from -value to +value",
+           "default": 2
+         },
+         {
+           "name": "mag_scale",
+           "data_type": "int",
+           "description": "Scale selection (in gauss). Must be one of 2, 4, 8 or 12. The scales ranges from -value to +value",
+           "default": 4
+         }
+       ],
+       "version": 1
+      },
+      "in_ports": [
+        {
+          "name": "TICK",
+          "data_type": "any",
+          "description": "Every time a packet is received in this port the node will read the sensor value and output it's data.",
+          "methods": {
+              "process": "lsm9ds0_xmt_process"
+          }
+        }
+      ],
+      "out_ports": [
+        {
+          "name": "ACCEL",
+          "data_type": "direction-vector",
+          "description": "Acceleration in all (X/Y/Z) axes, as g-force factor."
+        },
+        {
+          "name": "MAG",
+          "data_type": "direction-vector",
+          "description": "Magnetometer in all (X/Y/Z) axes, in gauss."
+        },
+        {
+          "name": "TEMP",
+          "data_type": "int",
+          "description": "Temperature in Celsius."
+        }
+      ],
+      "private_data_type": "lsm9ds0_xmt_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/lsm9ds0/xmt.html"
+    }
+  ]
+}
