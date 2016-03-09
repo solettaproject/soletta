@@ -30,19 +30,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* FIXME: this layer should not be aware of coap.h, it's just here
- * because of the FIXME below */
-#include "coap.h"
 #include "sol-log.h"
 #include "sol-oic-cbor.h"
 #include "sol-oic-common.h"
+
+#define TYPICAL_OIC_PAYLOAD_SZ (64)
+
+static inline int
+buffer_used_bump(struct sol_oic_map_writer *writer, size_t inc)
+{
+    struct sol_buffer *buf;
+    int r = sol_coap_packet_get_payload(writer->pkt, &buf, NULL);
+
+    SOL_INT_CHECK(r, < 0, r);
+    /* Ugly, but since tinycbor operates on memory slices directly, we
+     * have to resort to that */
+    buf->used += inc;
+
+    return 0;
+}
 
 static CborError
 initialize_cbor_payload(struct sol_oic_map_writer *encoder)
 {
     int r;
+    CborError err;
     size_t offset;
     struct sol_buffer *buf;
+    uint8_t *old_ptr, *new_ptr;
     const uint8_t format_cbor = SOL_COAP_CONTENTTYPE_APPLICATION_CBOR;
 
     r = sol_coap_add_option(encoder->pkt, SOL_COAP_OPTION_CONTENT_FORMAT,
@@ -55,22 +70,29 @@ initialize_cbor_payload(struct sol_oic_map_writer *encoder)
         return CborUnknownError;
     }
 
-    /* FIXME: Because we can't now make phony cbor calls to calculate
-     * the exact payload in the contexts this call is issued (they
-     * involve user callbacks to append cbor data), we ensure this
-     * hardcoded size */
-    r = sol_buffer_ensure(buf, COAP_UDP_MTU);
+    r = sol_buffer_ensure(buf, offset + TYPICAL_OIC_PAYLOAD_SZ);
     SOL_INT_CHECK(r, < 0, CborErrorOutOfMemory);
 
     encoder->payload = sol_buffer_at(buf, offset);
 
     cbor_encoder_init(&encoder->encoder, encoder->payload,
         buf->capacity - offset, 0);
+    old_ptr = encoder->encoder.ptr;
 
     encoder->type = SOL_OIC_MAP_CONTENT;
 
-    return cbor_encoder_create_map(&encoder->encoder, &encoder->rep_map,
+    /* With the call to sol_buffer_ensure() before, we're safe to open
+     * a container */
+    err = cbor_encoder_create_map(&encoder->encoder, &encoder->rep_map,
         CborIndefiniteLength);
+    if (err == CborNoError) {
+        new_ptr = encoder->rep_map.ptr;
+        r = buffer_used_bump(encoder, new_ptr - old_ptr);
+        if (r < 0)
+            err = CborErrorUnknownType;
+    }
+
+    return err;
 }
 
 void
@@ -81,81 +103,189 @@ sol_oic_packet_cbor_create(struct sol_coap_packet *pkt, struct sol_oic_map_write
     encoder->type = SOL_OIC_MAP_NO_CONTENT;
 }
 
-CborError
-sol_oic_packet_cbor_close(struct sol_coap_packet *pkt, struct sol_oic_map_writer *encoder)
+/* Enlarge a CoAP packet's buffer and update CoAP encoder states
+ * accordingly */
+static inline int
+enlarge_buffer(struct sol_oic_map_writer *writer,
+    CborEncoder orig_encoder,
+    CborEncoder orig_map,
+    size_t needed)
 {
-    CborError err;
+    uint8_t *old_payload = writer->payload;
+    struct sol_buffer *buf;
+    size_t offset;
+    int r;
 
-    if (!encoder->payload) {
-        if (encoder->type == SOL_OIC_MAP_NO_CONTENT)
+    r = sol_coap_packet_get_payload(writer->pkt, &buf, &offset);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_ensure(buf, buf->capacity + needed);
+    SOL_INT_CHECK(r, < 0, r);
+
+    /* restore state */
+    writer->encoder = orig_encoder;
+    writer->rep_map = orig_map;
+
+    /* update all encoder states */
+    writer->payload = writer->encoder.ptr = sol_buffer_at(buf, offset);
+    /* sol_buffer_at() directly to somewhere past the used portion fails*/
+    writer->encoder.end = (uint8_t *)sol_buffer_at(buf, 0) + buf->capacity;
+
+    /* new offset + how much it had progressed so far */
+    writer->rep_map.ptr = writer->payload + (orig_map.ptr - old_payload);
+    writer->rep_map.end = writer->encoder.end;
+
+    return 0;
+}
+
+CborError
+sol_oic_packet_cbor_close(struct sol_coap_packet *pkt,
+    struct sol_oic_map_writer *writer)
+{
+    int r;
+    uint8_t *old_ptr;
+    CborError err = CborNoError;
+    CborEncoder orig_encoder, orig_map;
+
+    if (!writer->payload) {
+        if (writer->type == SOL_OIC_MAP_NO_CONTENT)
             return CborNoError;
-        err = initialize_cbor_payload(encoder);
+        err = initialize_cbor_payload(writer);
         SOL_INT_CHECK(err, != CborNoError, err);
     }
 
-    err = cbor_encoder_close_container(&encoder->encoder, &encoder->rep_map);
-    if (err == CborNoError) {
-        /* Ugly, but since tinycbor operates on memory slices
-         * directly, we have to resort to that */
-        struct sol_buffer *buf;
-        int r = sol_coap_packet_get_payload(pkt, &buf, NULL);
-        SOL_INT_CHECK_GOTO(r, < 0, error);
-        buf->used += encoder->encoder.ptr - encoder->payload;
+    while (err == CborNoError || err & CborErrorOutOfMemory) {
+        orig_encoder = writer->encoder, orig_map = writer->rep_map;
+
+        /* When you close an encoder, it will get its ptr set to the
+         * topmost container's. Also, this would append one byte to the
+         * payload, thus '1' below */
+        old_ptr = writer->rep_map.ptr;
+        err = cbor_encoder_close_container(&writer->encoder, &writer->rep_map);
+        if (err & CborErrorOutOfMemory) {
+            r = enlarge_buffer(writer, orig_encoder, orig_map, 1);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+        } else if (err == CborNoError) {
+            r = buffer_used_bump(writer, writer->encoder.ptr - old_ptr);
+            if (r < 0) {
+                err = CborErrorUnknownType;
+                goto end;
+            }
+            break;
+        }
     }
 
-error:
+end:
     return err;
 }
 
 CborError
-sol_oic_packet_cbor_append(struct sol_oic_map_writer *encoder, struct sol_oic_repr_field *repr)
+sol_oic_packet_cbor_append(struct sol_oic_map_writer *writer,
+    struct sol_oic_repr_field *repr)
 {
-    CborError err;
+    CborEncoder orig_encoder, orig_map;
+    CborError err = CborNoError;
+    size_t next_buf_sz;
+    int r;
 
-    if (!encoder->payload) {
-        err = initialize_cbor_payload(encoder);
+    if (!writer->payload) {
+        err = initialize_cbor_payload(writer);
         SOL_INT_CHECK(err, != CborNoError, err);
     }
+    next_buf_sz = strlen(repr->key) + sizeof(uint64_t);
 
-    err = cbor_encode_text_stringz(&encoder->rep_map, repr->key);
-    switch (repr->type) {
-    case SOL_OIC_REPR_TYPE_UINT:
-        err |= cbor_encode_uint(&encoder->rep_map, repr->v_uint);
-        break;
-    case SOL_OIC_REPR_TYPE_INT:
-        err |= cbor_encode_int(&encoder->rep_map, repr->v_int);
-        break;
-    case SOL_OIC_REPR_TYPE_SIMPLE:
-        err |= cbor_encode_simple_value(&encoder->rep_map, repr->v_simple);
-        break;
-    case SOL_OIC_REPR_TYPE_TEXT_STRING: {
-        const char *p = repr->v_slice.data ? repr->v_slice.data : "";
+/* The next_buf_sz argument of enlarge_buffer() is assigned like so
+ * because, according to tinycbor's code: i) all scalar types should
+ * fit to (at most) that size and ii) strings and byte arrays get a
+ * size sentinel, also with that maximum size, encoded together.
+ */
 
-        err |= cbor_encode_text_string(&encoder->rep_map, p, repr->v_slice.len);
-        break;
-    }
-    case SOL_OIC_REPR_TYPE_BYTE_STRING: {
-        const uint8_t *empty = (const uint8_t *)"";
-        const uint8_t *p = repr->v_slice.data ? (const uint8_t *)repr->v_slice.data : empty;
+    while (err == CborNoError || err & CborErrorOutOfMemory) {
+        orig_encoder = writer->encoder, orig_map = writer->rep_map;
+        err = cbor_encode_text_stringz(&writer->rep_map, repr->key);
 
-        err |= cbor_encode_byte_string(&encoder->rep_map, p, repr->v_slice.len);
-        break;
+        if (err & CborErrorOutOfMemory) {
+            r = enlarge_buffer(writer, orig_encoder, orig_map, next_buf_sz);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+        } else if (err == CborNoError) {
+            r = buffer_used_bump(writer, writer->rep_map.ptr - orig_map.ptr);
+            if (r < 0) {
+                err = CborErrorUnknownType;
+                goto end;
+            }
+            break;
+        }
     }
-    case SOL_OIC_REPR_TYPE_HALF_FLOAT:
-        err |= cbor_encode_half_float(&encoder->rep_map, repr->v_voidptr);
-        break;
-    case SOL_OIC_REPR_TYPE_FLOAT:
-        err |= cbor_encode_float(&encoder->rep_map, repr->v_float);
-        break;
-    case SOL_OIC_REPR_TYPE_DOUBLE:
-        err |= cbor_encode_double(&encoder->rep_map, repr->v_double);
-        break;
-    case SOL_OIC_REPR_TYPE_BOOLEAN:
-        err |= cbor_encode_boolean(&encoder->rep_map, repr->v_boolean);
-        break;
-    default:
-        err |= CborErrorUnknownType;
+
+    while (err == CborNoError || err & CborErrorOutOfMemory) {
+        orig_encoder = writer->encoder, orig_map = writer->rep_map;
+
+        if (err & CborErrorOutOfMemory) {
+            r = enlarge_buffer(writer, orig_encoder, orig_map, next_buf_sz);
+            SOL_INT_CHECK_GOTO(r, < 0, end);
+        }
+
+        switch (repr->type) {
+        case SOL_OIC_REPR_TYPE_UINT:
+            next_buf_sz = sizeof(uint64_t);
+            err = cbor_encode_uint(&writer->rep_map, repr->v_uint);
+            break;
+        case SOL_OIC_REPR_TYPE_INT:
+            next_buf_sz = sizeof(uint64_t);
+            err = cbor_encode_int(&writer->rep_map, repr->v_int);
+            break;
+        case SOL_OIC_REPR_TYPE_SIMPLE:
+            next_buf_sz = sizeof(uint64_t);
+            err = cbor_encode_simple_value(&writer->rep_map, repr->v_simple);
+            break;
+        case SOL_OIC_REPR_TYPE_TEXT_STRING: {
+            const char *p = repr->v_slice.data ? repr->v_slice.data : "";
+            next_buf_sz = repr->v_slice.len + sizeof(uint64_t);
+            err = cbor_encode_text_string(&writer->rep_map, p,
+                repr->v_slice.len);
+            break;
+        }
+        case SOL_OIC_REPR_TYPE_BYTE_STRING: {
+            const uint8_t *empty = (const uint8_t *)"";
+            const uint8_t *p = repr->v_slice.data ?
+                (const uint8_t *)repr->v_slice.data : empty;
+            next_buf_sz = repr->v_slice.len + sizeof(uint64_t);
+            err = cbor_encode_byte_string(&writer->rep_map, p,
+                repr->v_slice.len);
+            break;
+        }
+        case SOL_OIC_REPR_TYPE_HALF_FLOAT:
+            next_buf_sz = sizeof(uint64_t);
+            err = cbor_encode_half_float(&writer->rep_map, repr->v_voidptr);
+            break;
+        case SOL_OIC_REPR_TYPE_FLOAT:
+            next_buf_sz = sizeof(uint64_t);
+            err = cbor_encode_float(&writer->rep_map, repr->v_float);
+            break;
+        case SOL_OIC_REPR_TYPE_DOUBLE:
+            next_buf_sz = sizeof(uint64_t);
+            err = cbor_encode_double(&writer->rep_map, repr->v_double);
+            break;
+        case SOL_OIC_REPR_TYPE_BOOLEAN:
+            next_buf_sz = sizeof(uint64_t);
+            err = cbor_encode_boolean(&writer->rep_map, repr->v_boolean);
+            break;
+        default:
+            err = CborErrorUnknownType;
+            break;
+        }
+
+        if (err == CborNoError) {
+            r = buffer_used_bump(writer, writer->rep_map.ptr - orig_map.ptr);
+            if (r < 0) {
+                err = CborErrorUnknownType;
+                goto end;
+            }
+            break;
+        }
     }
+
+end:
 
     return err;
 }
