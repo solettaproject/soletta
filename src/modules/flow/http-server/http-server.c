@@ -64,6 +64,7 @@ struct http_data {
     union {
         struct sol_irange i;
         struct sol_drange d;
+        struct sol_rgb rgb;
         bool b;
         char *s;
     } value;
@@ -84,6 +85,22 @@ struct http_server_node_type {
 };
 
 static struct sol_ptr_vector *servers = NULL;
+
+#define STRTOL(field_, var_, changed_, is_unsigned_) \
+    do { \
+        errno = 0; \
+        if ((is_unsigned_)) \
+            var_ = sol_util_strtoul(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
+        else \
+            var_ = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
+        if (errno != 0) { \
+            return -errno; \
+        } \
+        if (mdata->value.field_ != (var_)) { \
+            mdata->value.field_ = (var_); \
+            changed_ = 1; \
+        } \
+    } while (0)
 
 static bool
 is_method_allowed(const uint8_t allowed_methods, enum sol_http_method method)
@@ -623,32 +640,18 @@ int_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     struct sol_http_param_value *value)
 {
     int ret = 0;
-
-#define STRTOL_(field_) \
-    do { \
-        int32_t i; \
-        errno = 0; \
-        i = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
-        if (errno != 0) { \
-            return -errno; \
-        } \
-        if (mdata->value.i.field_ != i) { \
-            mdata->value.i.field_ = i; \
-            ret = 1; \
-        } \
-    } while (0)
+    int32_t i;
 
     if (sol_str_slice_str_eq(value->value.key_value.key, "value"))
-        STRTOL_(val);
+        STRTOL(i.val, i, ret, false);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "min"))
-        STRTOL_(min);
+        STRTOL(i.min, i, ret, false);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "max"))
-        STRTOL_(max);
+        STRTOL(i.max, i, ret, false);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "step"))
-        STRTOL_(step);
+        STRTOL(i.step, i, ret, false);
     else
         return -EINVAL;
-#undef STRTOL_
 
     return ret;
 }
@@ -787,6 +790,84 @@ float_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 
     memcpy(&mdata->value.d, &d, sizeof(d));
     return 1;
+}
+
+static void
+rgb_send_packet_cb(struct http_data *mdata, struct sol_flow_node *node)
+{
+    sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_RGB__OUT__OUT, &mdata->value.rgb);
+}
+
+static int
+rgb_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
+{
+    if (json) {
+        return sol_buffer_append_printf(content,
+            "{\"red\":%" PRIu32 ",\"green\":%" PRIu32 ",\"blue\":%" PRIu32
+            ",\"red_max\":%" PRIu32 ",\"green_max\":%" PRIu32
+            ",\"blue_max\":%" PRIu32 "}",
+            mdata->value.rgb.red, mdata->value.rgb.green, mdata->value.rgb.blue,
+            mdata->value.rgb.red_max, mdata->value.rgb.green_max,
+            mdata->value.rgb.blue_max);
+    }
+
+    return sol_buffer_append_printf(content, "#%02X%02X%02X",
+        mdata->value.rgb.red, mdata->value.rgb.green, mdata->value.rgb.blue);
+}
+
+static int
+rgb_post_cb(struct http_data *mdata, struct sol_flow_node *node,
+    struct sol_http_param_value *value)
+{
+    int ret = 0;
+    uint32_t i;
+
+    if (sol_str_slice_str_eq(value->value.key_value.key, "red"))
+        STRTOL(rgb.red, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "green"))
+        STRTOL(rgb.green, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "blue"))
+        STRTOL(rgb.blue, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "red_max"))
+        STRTOL(rgb.red_max, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "green_max"))
+        STRTOL(rgb.green_max, i, ret, true);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "blue_max"))
+        STRTOL(rgb.blue_max, i, ret, true);
+    else
+        return -EINVAL;
+
+    return ret;
+}
+
+static int
+rgb_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
+{
+    return sol_flow_packet_get_rgb(packet, &mdata->value.rgb);
+}
+
+static int
+rgb_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_server_rgb_options *opts =
+        (struct sol_flow_node_type_http_server_rgb_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_RGB_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = start_server(mdata, node, opts->path, opts->port);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->value.rgb = opts->value;
+    return 0;
 }
 
 /* ---------------------------  static files ----------------------------------------- */

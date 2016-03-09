@@ -714,6 +714,158 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 }
 
 /*
+ * --------------------------------- rgb node  -----------------------------
+ */
+
+static int
+rgb_process_token(struct sol_flow_node *node, struct sol_json_token *key,
+    struct sol_json_token *value)
+{
+    struct sol_rgb rgb = { 0 };
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token sub_key, sub_value, token;
+
+    sol_json_scanner_init(&sub_scanner, value->start,
+        value->end - value->start);
+
+    rgb.red_max = rgb.green_max = rgb.blue_max = 255;
+
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key,
+        &sub_value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "red")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.red) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "green")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.green) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "blue")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.blue) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "red_max")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.red_max) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "green_max")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.green_max) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "blue_max")) {
+            if (sol_json_token_get_uint32(&sub_value, &rgb.blue_max) < 0)
+                return -EINVAL;
+        }
+    }
+
+    if (rgb.red > rgb.red_max) {
+        SOL_WRN("Red value '%" PRIu32 "' is bigger than red max '%" PRIu32,
+            rgb.red, rgb.red_max);
+        return -EINVAL;
+    }
+    if (rgb.blue > rgb.blue_max) {
+        SOL_WRN("Blue value '%" PRIu32 "' is bigger than blue max '%" PRIu32,
+            rgb.blue, rgb.blue_max);
+        return -EINVAL;
+    }
+    if (rgb.green > rgb.green_max) {
+        SOL_WRN("Green value '%" PRIu32 "' is bigger than green max '%" PRIu32,
+            rgb.green, rgb.green_max);
+        return -EINVAL;
+    }
+
+    return sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_RGB__OUT__OUT, &rgb);
+}
+
+static int
+hex_str_to_decimal(const char *start, ssize_t len, uint32_t *value)
+{
+    char *endptr = NULL;
+
+    errno = 0;
+    *value = sol_util_strtoul(start, &endptr, len, 16);
+
+    if (errno != 0 || endptr == start) {
+        SOL_WRN("Could not convert the string '%.*s' to decimal",
+            (int)len, start);
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
+static int
+rgb_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    struct sol_rgb rgb = { 0 };
+    struct sol_str_slice rgb_str;
+    int r;
+
+    rgb_str.data = response->content.data;
+    rgb_str.len = response->content.used;
+
+    if (rgb_str.len != 7 || rgb_str.data[0] != '#') {
+        SOL_WRN("Expected format #RRGGBB. Received: %.*s",
+            SOL_STR_SLICE_PRINT(rgb_str));
+        return -EINVAL;
+    }
+
+    //Skip '#'
+    rgb_str.data++;
+    rgb_str.len--;
+
+    r = hex_str_to_decimal(rgb_str.data, 2, &rgb.red);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = hex_str_to_decimal(rgb_str.data + 2, 2, &rgb.green);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = hex_str_to_decimal(rgb_str.data + 4, 2, &rgb.blue);
+    SOL_INT_CHECK(r, < 0, r);
+    rgb.green_max = rgb.red_max = rgb.blue_max = 255;
+
+    return sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_RGB__OUT__OUT, &rgb);
+}
+
+static int
+rgb_post_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_rgb rgb;
+
+#define INT32_STR_LEN (12)
+
+    SOL_BUFFER_DECLARE_STATIC(red, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(green, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(blue, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(red_max, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(green_max, INT32_STR_LEN);
+    SOL_BUFFER_DECLARE_STATIC(blue_max, INT32_STR_LEN);
+
+    r = sol_flow_packet_get_rgb(packet, &rgb);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_buffer_append_printf(&red, "%" PRIu32, rgb.red);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&green, "%" PRIu32, rgb.green);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&blue, "%" PRIu32, rgb.blue);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&red_max, "%" PRIu32, rgb.red_max);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&green_max, "%" PRIu32, rgb.green_max);
+    SOL_INT_CHECK(r, < 0, r);
+    r = sol_buffer_append_printf(&blue_max, "%" PRIu32, rgb.blue_max);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return common_post_process(node, data, "red", red.data,
+        "green", green.data, "blue", blue.data, "red_max", red_max.data,
+        "green_max", green_max.data, "blue_max", blue_max.data, NULL);
+
+#undef INT32_STR_LEN
+}
+
+/*
  * --------------------------------- generic nodes  -----------------------------
  */
 
