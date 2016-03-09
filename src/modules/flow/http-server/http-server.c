@@ -71,6 +71,7 @@ struct http_data {
     struct server_data *sdata;
     char *path;
     char *basename;
+    uint8_t allowed_methods;
 };
 
 struct http_server_node_type {
@@ -83,6 +84,14 @@ struct http_server_node_type {
 };
 
 static struct sol_ptr_vector *servers = NULL;
+
+static bool
+is_method_allowed(const uint8_t allowed_methods, enum sol_http_method method)
+{
+    if (allowed_methods & (1 << method))
+        return true;
+    return false;
+}
 
 static void
 servers_free(void)
@@ -202,6 +211,15 @@ common_response_cb(void *data, struct sol_http_request *request)
     method = sol_http_request_get_method(request);
     response.url = sol_http_request_get_url(request);
 
+    if (!is_method_allowed(mdata->allowed_methods, method)) {
+        SOL_INF("HTTP Method not allowed. Method: %d", (int)method);
+        response.response_code = SOL_HTTP_STATUS_FORBIDDEN;
+        r = sol_http_server_send_response(request, &response);
+        if (r < 0)
+            SOL_WRN("Could not send the forbidden response");
+        return 0;
+    }
+
     SOL_HTTP_PARAMS_FOREACH_IDX (sol_http_request_get_params(request), value, idx) {
         switch (value->type) {
         case SOL_HTTP_PARAM_POST_FIELD:
@@ -295,12 +313,54 @@ common_close(struct sol_flow_node *node, void *data)
 }
 
 static int
+parse_allowed_methods(const char *allowed_methods_str, uint8_t *allowed_methods)
+{
+    if (!allowed_methods_str) {
+        SOL_WRN("Allowed methods is NULL");
+        return -EINVAL;
+    }
+
+    while (*allowed_methods_str) {
+        const char *sep;
+        struct sol_str_slice method;
+
+        sep = strchr(allowed_methods_str, '|');
+
+        if (!sep)
+            sep = allowed_methods_str + strlen(allowed_methods_str);
+
+        method.data = allowed_methods_str;
+        method.len = sep - allowed_methods_str;
+
+        if (sol_str_slice_str_eq(method, "GET"))
+            *allowed_methods |= (1 << SOL_HTTP_METHOD_GET);
+        else if (sol_str_slice_str_eq(method, "POST"))
+            *allowed_methods |= (1 << SOL_HTTP_METHOD_POST);
+        else {
+            SOL_WRN("Unsupported allowed_method: %.*s",
+                SOL_STR_SLICE_PRINT(method));
+            return -EINVAL;
+        }
+
+        if (*sep == '|')
+            allowed_methods_str = sep + 1;
+        else
+            break;
+    }
+
+    return 0;
+}
+
+static int
 common_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     int r;
     struct http_data *mdata = data;
     struct sol_flow_node_type_http_server_boolean_options *opts =
         (struct sol_flow_node_type_http_server_boolean_options *)options;
+
+    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
+    SOL_INT_CHECK(r, < 0, r);
 
     r = start_server(mdata, node, opts->path, opts->port);
     SOL_INT_CHECK(r, < 0, r);
@@ -322,6 +382,9 @@ int_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_opti
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_INT_OPTIONS_API_VERSION,
         -EINVAL);
 
+    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
+    SOL_INT_CHECK(r, < 0, r);
+
     r = start_server(mdata, node, opts->path, opts->port);
     SOL_INT_CHECK(r, < 0, r);
 
@@ -342,6 +405,9 @@ float_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_op
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_FLOAT_OPTIONS_API_VERSION,
         -EINVAL);
+
+    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
+    SOL_INT_CHECK(r, < 0, r);
 
     r = start_server(mdata, node, opts->path, opts->port);
     SOL_INT_CHECK(r, < 0, r);
@@ -490,6 +556,9 @@ string_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_o
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_HTTP_SERVER_STRING_OPTIONS_API_VERSION,
         -EINVAL);
+
+    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
+    SOL_INT_CHECK(r, < 0, r);
 
     mdata->value.s = strdup(opts->value);
     SOL_NULL_CHECK(mdata->value.s, -ENOMEM);
