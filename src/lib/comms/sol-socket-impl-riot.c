@@ -69,7 +69,7 @@ ipv6_udp_recvmsg(struct sol_socket_riot *s, void *buf, size_t len, struct sol_ne
     /* When more types of sockets (not just datagram) are accepted,
      * remember to err if !buf && type != DGRAM */
     if (!buf)
-        return pkt->size;
+        return pkt->size < len ? pkt->size : len;
 
     LL_SEARCH_SCALAR(pkt, ipv6, type, GNRC_NETTYPE_IPV6);
     iphdr = ipv6->data;
