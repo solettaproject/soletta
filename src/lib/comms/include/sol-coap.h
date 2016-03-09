@@ -354,19 +354,21 @@ struct sol_coap_resource {
  * @brief Gets the CoAP protocol version of the packet.
  *
  * @param pkt The packet to get version from.
+ * @param version The CoAP protocol version the packet implements.
  *
- * @return The CoAP protocol version the packet implements.
+ * @return 0 on success, negative number on error.
  */
-uint8_t sol_coap_header_get_ver(const struct sol_coap_packet *pkt);
+int sol_coap_header_get_ver(const struct sol_coap_packet *pkt, uint8_t *version);
 
 /**
  * @brief Gets the type of the message container in the packet.
  *
  * @param pkt The packet containing the message.
+ * @param type The type of the message, one of #sol_coap_msgtype_t.
  *
- * @return The type of the message, one of #sol_coap_msgtype_t.
+ * @return 0 on success, negative number on error.
  */
-uint8_t sol_coap_header_get_type(const struct sol_coap_packet *pkt);
+int sol_coap_header_get_type(const struct sol_coap_packet *pkt, uint8_t *type);
 
 /**
  * @brief Gets the token of the packet, if any.
@@ -376,7 +378,8 @@ uint8_t sol_coap_header_get_type(const struct sol_coap_packet *pkt);
  * @param pkt The packet with the token.
  * @param len Pointer where to store the length in bytes of the token.
  *
- * @return Pointer to an internal buffer containint the token. It must not be modified.
+ * @return @c NULL in case of error, otherwise a pointer to an internal
+ * buffer containint the token. It must not be modified.
  */
 uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *len);
 
@@ -385,22 +388,24 @@ uint8_t *sol_coap_header_get_token(const struct sol_coap_packet *pkt, uint8_t *l
  *
  * If the packet is a request, the code returned is one of #sol_coap_method_t.
  * If it's a response, it will be one of #sol_coap_responsecode_t.
- * If the code was not set, it will return #SOL_COAP_CODE_EMPTY.
+ * If the code was not set, the returned code will be #SOL_COAP_CODE_EMPTY.
  *
  * @param pkt The packet to get the code from.
+ * @param code The request/response code.
  *
- * @return The request/response code.
+ * @return 0 on success, negative number on error.
  */
-uint8_t sol_coap_header_get_code(const struct sol_coap_packet *pkt);
+int sol_coap_header_get_code(const struct sol_coap_packet *pkt, uint8_t *code);
 
 /**
  * @brief Gets the message ID.
  *
  * @param pkt The packet from which to get the message ID.
+ * @param id The message ID.
  *
- * @return The message ID.
+ * @return 0 on success, negative number on error.
  */
-uint16_t sol_coap_header_get_id(const struct sol_coap_packet *pkt);
+int sol_coap_header_get_id(const struct sol_coap_packet *pkt, uint16_t *id);
 
 /**
  * @brief Sets the CoAP protocol version in the packet's header.
