@@ -118,8 +118,8 @@ user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
     struct sol_oic_map_reader iter;
 
     SOL_OIC_MAP_LOOP(input, &field, &iter, reason) {
-        if (!strcmp(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
-            if (set_scrolllock_led(field.v_boolean))
+        if (!strcmp(field.f_key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
+            if (set_scrolllock_led(field.f_boolean))
                 return SOL_COAP_RSPCODE_OK;
 
             return SOL_COAP_RSPCODE_INTERNAL_ERROR;

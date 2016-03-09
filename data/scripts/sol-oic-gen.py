@@ -235,13 +235,13 @@ def object_to_repr_vec_fn_server_c(state_struct_name, name, props):
     return object_to_repr_vec_fn_common_c(state_struct_name, name, props, False)
 
 def get_field_integer_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.f_key, "%(field_name)s")) {
     if (field.type == SOL_OIC_REPR_TYPE_UINT)
-        fields.%(field_name)s = field.v_uint;
+        fields.%(field_name)s = field.f_uint;
     else if (field.type == SOL_OIC_REPR_TYPE_INT)
-        fields.%(field_name)s = field.v_int;
+        fields.%(field_name)s = field.f_int;
     else if (field.type == SOL_OIC_REPR_TYPE_SIMPLE)
-        fields.%(field_name)s = field.v_simple;
+        fields.%(field_name)s = field.f_simple;
     else
         RETURN_ERROR(-EINVAL);
     decode_mask &= ~(1<<%(id)d);
@@ -254,11 +254,11 @@ def get_field_integer_client_c(id, name, prop):
     }
 
 def get_field_number_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.f_key, "%(field_name)s")) {
     if (field.type == SOL_OIC_REPR_TYPE_DOUBLE)
-        fields.%(field_name)s = field.v_double;
+        fields.%(field_name)s = field.f_double;
     else if (field.type == SOL_OIC_REPR_TYPE_FLOAT)
-        fields.%(field_name)s = field.v_float;
+        fields.%(field_name)s = field.f_float;
     else
         RETURN_ERROR(-EINVAL);
     decode_mask &= ~(1<<%(id)d);
@@ -271,11 +271,11 @@ def get_field_number_client_c(id, name, prop):
     }
 
 def get_field_string_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.f_key, "%(field_name)s")) {
     if (field.type != SOL_OIC_REPR_TYPE_TEXT_STRING)
         RETURN_ERROR(-EINVAL);
     free(fields.%(field_name)s);
-    fields.%(field_name)s = strndup(field.v_slice.data, field.v_slice.len);
+    fields.%(field_name)s = strndup(field.f_slice.data, field.f_slice.len);
     if (!fields.%(field_name)s)
         RETURN_ERROR(-EINVAL);
     decode_mask &= ~(1<<%(id)d);
@@ -288,10 +288,10 @@ def get_field_string_client_c(id, name, prop):
     }
 
 def get_field_boolean_client_c(id, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.f_key, "%(field_name)s")) {
     if (field.type != SOL_OIC_REPR_TYPE_BOOLEAN)
         RETURN_ERROR(-EINVAL);
-    fields.%(field_name)s = field.v_boolean;
+    fields.%(field_name)s = field.f_boolean;
     decode_mask &= ~(1<<%(id)d);
     continue;
 }
@@ -302,14 +302,14 @@ def get_field_boolean_client_c(id, name, prop):
     }
 
 def get_field_enum_client_c(id, struct_name, name, prop):
-    return '''if (decode_mask & (1<<%(id)d) && streq(field.key, "%(field_name)s")) {
+    return '''if (decode_mask & (1<<%(id)d) && streq(field.f_key, "%(field_name)s")) {
     int val;
 
     if (field.type != SOL_OIC_REPR_TYPE_TEXT_STRING)
         RETURN_ERROR(-EINVAL);
 
     val = sol_str_table_lookup_fallback(%(struct_name)s_%(field_name)s_tbl,
-        field.v_slice, -1);
+        field.f_slice, -1);
     if (val < 0)
         RETURN_ERROR(-EINVAL);
     fields.%(field_name)s = (enum %(struct_name)s_%(field_name)s)val;
@@ -457,7 +457,7 @@ def object_inform_flow_fn_common_c(state_struct_name, name, props, client):
     for field_name, field_props in props.items():
         if 'enum' in field_props:
             fn = 'sol_flow_send_string_packet'
-            val = '%(struct_name)s_%(field_name)s_tbl[state->state.%(field_name)s].key' % {
+            val = '%(struct_name)s_%(field_name)s_tbl[state->state.%(field_name)s].f_key' % {
                 'struct_name': state_struct_name,
                 'field_name': field_name
             }

@@ -56,7 +56,7 @@ sol_oic_map_loop_init(const struct sol_oic_map_reader *map, struct sol_oic_map_r
 
     /* Initialize repr with harmless data so cleanup works. */
     repr->type = SOL_OIC_REPR_TYPE_BOOLEAN;
-    repr->key = NULL;
+    repr->f_key = NULL;
     return SOL_OIC_MAP_LOOP_OK;
 }
 
@@ -65,9 +65,9 @@ repr_field_free(struct sol_oic_repr_field *field)
 {
     if (field->type == SOL_OIC_REPR_TYPE_TEXT_STRING ||
         field->type == SOL_OIC_REPR_TYPE_BYTE_STRING)
-        free((char *)field->v_slice.data);
+        free((char *)field->f_slice.data);
 
-    free((char *)field->key);
+    free((char *)field->f_key);
 }
 
 SOL_API bool
