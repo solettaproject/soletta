@@ -1,0 +1,51 @@
+# This file is part of the Soletta Project
+#
+# Copyright (C) 2015 Intel Corporation. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#   * Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#   * Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in
+#     the documentation and/or other materials provided with the
+#     distribution.
+#   * Neither the name of Intel Corporation nor the names of its
+#     contributors may be used to endorse or promote products derived
+#     from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+_(http-server/boolean:port=8080, path="/boolean_get_only", value=true, allowed_methods="GET")
+
+_(constant/boolean:value=false) OUT -> POST boolean_client(http-client/boolean:url="http://localhost:8080/boolean_get_only")
+
+boolean_client ERROR -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT _(test/result)
+
+_(constant/empty) OUT -> GET boolean_client OUT -> RESULT _(test/result)
+
+_(http-server/string:port=8080, path="/string_post_only", value="I Like http", allowed_methods="POST") OUT -> IN _(test/string-validator:sequence="my string") OUT -> RESULT _(test/result)
+
+_(constant/string:value="my string") OUT -> POST string_client(http-client/string:url="http://localhost:8080/string_post_only")
+
+_(constant/empty) OUT -> GET string_client ERROR -> IN _(converter/empty-to-boolean:output_value=true) OUT -> RESULT _(test/result)
+
+_(http-server/int:port=8080, path="/int_post_get", value=200, allowed_methods="POST|GET") OUT -> IN _(test/int-validator:sequence="256") OUT -> RESULT _(test/result)
+
+_(constant/empty) OUT -> GET int_client(http-client/int:url="http://localhost:8080/int_post_get")
+
+int_client OUT -> IN _(test/int-validator:sequence="200") OUT -> RESULT _(test/result)
+
+int_client OUT -> IN _(converter/empty-to-int:output_value=256) OUT -> POST int_client
