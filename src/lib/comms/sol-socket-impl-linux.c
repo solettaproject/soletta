@@ -248,7 +248,10 @@ sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struc
      * remember to err if !buf && type != DGRAM */
     if (!buf) {
         msg.msg_iov->iov_len = 0;
-        return recvmsg(s->fd, &msg, MSG_TRUNC | MSG_PEEK);
+        r = recvmsg(s->fd, &msg, MSG_TRUNC | MSG_PEEK);
+        if (r < 0)
+            return -errno;
+        return (size_t)r < len ? r : (ssize_t)len;
     } else
         r = recvmsg(s->fd, &msg, 0);
 

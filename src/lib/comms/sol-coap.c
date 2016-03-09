@@ -1430,7 +1430,7 @@ on_can_read(void *data, struct sol_socket *s)
      * have to change on those cases. */
 
     /* calculate exact needed size */
-    len = sol_socket_recvmsg(s, NULL, 0, NULL);
+    len = sol_socket_recvmsg(s, NULL, COAP_UDP_MTU, NULL);
     SOL_INT_CHECK_GOTO(len, < 0, err_recv);
 
     SOL_DBG("allocating %zd bytes for pkt", len);
