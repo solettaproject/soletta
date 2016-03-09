@@ -249,6 +249,9 @@ sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct
         return -EAGAIN;
     }
 
+    if (!buf)
+        return item->buffer.used;
+
     memcpy(cliaddr, &item->addr, sizeof(*cliaddr));
 
     if (item->buffer.used <= len) {
