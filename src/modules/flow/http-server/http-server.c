@@ -64,6 +64,7 @@ struct http_data {
     union {
         struct sol_irange i;
         struct sol_drange d;
+        struct sol_rgb rgb;
         bool b;
         char *s;
     } value;
@@ -84,6 +85,15 @@ struct http_server_node_type {
 };
 
 static struct sol_ptr_vector *servers = NULL;
+
+#define STRTOL(field_) \
+    do { \
+        errno = 0; \
+        mdata->value.field_ = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
+        if (errno != 0) { \
+            return -errno; \
+        } \
+    } while (0)
 
 static bool
 is_method_allowed(const uint8_t allowed_methods, enum sol_http_method method)
@@ -580,26 +590,16 @@ static int
 int_post_cb(struct http_data *mdata, struct sol_flow_node *node,
     struct sol_http_param_value *value)
 {
-#define STRTOL_(field_) \
-    do { \
-        errno = 0; \
-        mdata->value.i.field_ = sol_util_strtol(value->value.key_value.value.data, NULL, value->value.key_value.value.len, 0); \
-        if (errno != 0) { \
-            return -errno; \
-        } \
-    } while (0)
-
     if (sol_str_slice_str_eq(value->value.key_value.key, "value"))
-        STRTOL_(val);
+        STRTOL(i.val);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "min"))
-        STRTOL_(min);
+        STRTOL(i.min);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "max"))
-        STRTOL_(max);
+        STRTOL(i.max);
     else if (sol_str_slice_str_eq(value->value.key_value.key, "step"))
-        STRTOL_(step);
+        STRTOL(i.step);
     else
         return -EINVAL;
-#undef STRTOL_
 
     return 0;
 }
@@ -711,6 +711,76 @@ static int
 float_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
 {
     return sol_flow_packet_get_drange(packet, &mdata->value.d);
+}
+
+static void
+rgb_send_packet_cb(struct http_data *mdata, struct sol_flow_node *node)
+{
+    sol_flow_send_rgb_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_RGB__OUT__OUT, &mdata->value.rgb);
+}
+
+static int
+rgb_response_cb(struct http_data *mdata, struct sol_buffer *content, bool json)
+{
+    return sol_buffer_append_printf(content,
+        "{\"red\":%" PRIu32 ",\"green\":%" PRIu32 ",\"blue\":%" PRIu32
+        ",\"red_max\":%" PRIu32 ",\"green_max\":%" PRIu32
+        ",\"blue_max\":%" PRIu32 "}",
+        mdata->value.rgb.red, mdata->value.rgb.green, mdata->value.rgb.blue,
+        mdata->value.rgb.red_max, mdata->value.rgb.green_max,
+        mdata->value.rgb.blue_max);
+}
+
+static int
+rgb_post_cb(struct http_data *mdata, struct sol_flow_node *node,
+    struct sol_http_param_value *value)
+{
+    if (sol_str_slice_str_eq(value->value.key_value.key, "red"))
+        STRTOL(rgb.red);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "green"))
+        STRTOL(rgb.green);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "blue"))
+        STRTOL(rgb.blue);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "red_max"))
+        STRTOL(rgb.red_max);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "green_max"))
+        STRTOL(rgb.green_max);
+    else if (sol_str_slice_str_eq(value->value.key_value.key, "blue_max"))
+        STRTOL(rgb.blue_max);
+    else
+        return -EINVAL;
+
+    return 0;
+}
+
+static int
+rgb_process_cb(struct http_data *mdata, const struct sol_flow_packet *packet)
+{
+    return sol_flow_packet_get_rgb(packet, &mdata->value.rgb);
+}
+
+static int
+rgb_open(struct sol_flow_node *node, void *data,
+    const struct sol_flow_node_options *options)
+{
+    int r;
+    struct http_data *mdata = data;
+    struct sol_flow_node_type_http_server_rgb_options *opts =
+        (struct sol_flow_node_type_http_server_rgb_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_SERVER_RGB_OPTIONS_API_VERSION,
+        -EINVAL);
+
+    r = parse_allowed_methods(opts->allowed_methods, &mdata->allowed_methods);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = start_server(mdata, node, opts->path, opts->port);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->value.rgb = opts->value;
+    return 0;
 }
 
 /* ---------------------------  static files ----------------------------------------- */
