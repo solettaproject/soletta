@@ -46,6 +46,12 @@
 	    "default": true,
             "description": "The initial node's value",
             "name": "value"
+          },
+          {
+            "data_type": "string",
+            "default": "GET|POST",
+            "description": "The allowed HTTP methods. Should be separated by a '|' character.",
+            "name": "allowed_methods"
           }
         ],
         "version": 1
@@ -109,6 +115,12 @@
 	    "default": "",
             "description": "The initial node's value",
             "name": "value"
+          },
+          {
+            "data_type": "string",
+            "default": "GET|POST",
+            "description": "The allowed HTTP methods. Should be separated by a '|' character.",
+            "name": "allowed_methods"
           }
         ],
         "version": 1
@@ -182,6 +194,12 @@
             },
             "description": "The initial node's range",
             "name": "value_spec"
+        },
+        {
+           "data_type": "string",
+           "default": "GET|POST",
+           "description": "The allowed HTTP methods. Should be separated by a '|' character.",
+           "name": "allowed_methods"
         }
         ],
         "version": 1
@@ -255,6 +273,12 @@
             },
             "description": "The initial node's range",
             "name": "value_spec"
+        },
+        {
+           "data_type": "string",
+           "default": "GET|POST",
+           "description": "The allowed HTTP methods. Should be separated by a '|' character.",
+           "name": "allowed_methods"
         }
         ],
         "version": 1
