@@ -32,7 +32,7 @@
 
 #include <errno.h>
 
-#include "crypto/sha256.h"
+#include "hashes/sha256.h"
 #include "hashes/md5.h"
 
 #include "sol-message-digest-common.h"

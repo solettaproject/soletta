@@ -35,7 +35,7 @@
 
 #include "sol-flow.h"
 #include "sol-flow-inspector.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-log.h"
 
 struct timespec start;

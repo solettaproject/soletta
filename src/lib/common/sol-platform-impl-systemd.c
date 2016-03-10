@@ -43,7 +43,8 @@
 #include "sol-bus.h"
 #include "sol-platform.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 struct service {
@@ -207,9 +208,10 @@ sanitize_service_name(char buf[SOL_STATIC_ARRAY_SIZE(PATH_MAX)], const char *ser
 int
 sol_platform_impl_get_state(void)
 {
-    sd_bus *bus = sol_bus_get(_bus_initialized);
-
-    SOL_NULL_CHECK(bus, -ENOTCONN);
+    if (!_ctx.systemd) {
+        sd_bus *bus = sol_bus_get(_bus_initialized);
+        SOL_NULL_CHECK(bus, -ENOTCONN);
+    }
 
     return _ctx.properties.system_state;
 }
@@ -315,7 +317,7 @@ sol_platform_impl_add_service_monitor(const char *service)
     SOL_NULL_CHECK(bus, -EINVAL);
 
     systemd_service = sol_bus_client_get_service(_ctx.systemd);
-    SOL_NULL_CHECK(service, -EINVAL);
+    SOL_NULL_CHECK(systemd_service, -EINVAL);
 
     unit = sanitize_service_name(buf, service, "add_service_monitor");
     SOL_NULL_CHECK(unit, -EINVAL);
@@ -386,8 +388,12 @@ call_manager(const char *method, const char *_unit, const char *suffix,
     const char *unit, *service;
     int r;
 
-    bus = sol_bus_client_get_bus(_ctx.systemd);
-    SOL_NULL_CHECK(bus, -EINVAL);
+    if (!_ctx.systemd)
+        bus = sol_bus_get(_bus_initialized);
+    else
+        bus = sol_bus_client_get_bus(_ctx.systemd);
+
+    SOL_NULL_CHECK(bus, -ENOTCONN);
 
     service = sol_bus_client_get_service(_ctx.systemd);
     SOL_NULL_CHECK(service, -EINVAL);
@@ -609,7 +615,7 @@ sol_platform_impl_set_system_clock(int64_t timestamp)
     service = sol_bus_client_get_service(_ctx.timedate);
     SOL_NULL_CHECK(service, -EINVAL);
 
-    r = sol_util_int64_mul(timestamp, USEC_PER_SEC, &timestamp_micro);
+    r = sol_util_int64_mul(timestamp, SOL_USEC_PER_SEC, &timestamp_micro);
     SOL_INT_CHECK(r, < 0, r);
 
     bus = sol_bus_get(NULL);

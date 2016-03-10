@@ -44,7 +44,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-rc-d");
 
 #include "sol-mainloop.h"
 #include "sol-platform-linux-micro.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 /* interval in milliseconds to poll for service status, when there are services to be polled */
@@ -62,7 +62,7 @@ static struct sol_ptr_vector monitors = SOL_PTR_VECTOR_INIT;
 static struct sol_timeout *monitor_timer;
 static struct sol_vector pendings = SOL_VECTOR_INIT(struct pending);
 
-static void
+static void SOL_ATTR_NORETURN
 find_exec(const char *service, const char *arg)
 {
     const char **itr, *dirs[] = {
@@ -70,7 +70,7 @@ find_exec(const char *service, const char *arg)
         "/etc/rc.d"
     };
 
-    for (itr = dirs; itr < dirs + ARRAY_SIZE(dirs); itr++) {
+    for (itr = dirs; itr < dirs + SOL_UTIL_ARRAY_SIZE(dirs); itr++) {
         char path[PATH_MAX];
         int r;
 
@@ -177,7 +177,7 @@ rc_d_stop(const struct sol_platform_linux_micro_module *mod, const char *service
             sigemptyset(&emptyset);
             sigprocmask(SIG_SETMASK, &emptyset, NULL);
             find_exec(service, "stop");
-            return -errno;
+            SOL_UNREACHABLE();
         } else if (pid < 0)
             return -errno;
         else {

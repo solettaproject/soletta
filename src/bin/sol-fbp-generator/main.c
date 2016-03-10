@@ -49,7 +49,7 @@
 #include "sol-mainloop.h"
 #include "sol-missing.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-flow-metatype.h"
 
 #include "type-store.h"
@@ -290,7 +290,7 @@ to_c_symbol(const char *str, struct sol_buffer *buf)
     sol_buffer_init(buf);
 
     for (start = p = str; *p; p++) {
-        if (isalnum(*p) || *p == '_')
+        if (isalnum((uint8_t)*p) || *p == '_')
             continue;
         else {
             struct sol_str_slice slice = {
@@ -563,9 +563,6 @@ handle_option(const struct sol_fbp_meta *meta, struct option_description *o,
     int err;
     bool r = false, has_default_option = false;
 
-    if (!sol_str_slice_eq(meta->key, opt_name))
-        return true;
-
     /* Option values from the conffile other than strings might
     * have quotes. E.g. 0|3 is currently represented as a string
     * "0|3" in JSON. When reading we don't have the type
@@ -639,13 +636,19 @@ exit:
 
 static bool
 handle_options(const struct sol_fbp_meta *meta, struct sol_vector *options,
-    const char *name_prefix, const char *fbp_file)
+    const char *name_prefix, const char *fbp_file, bool generated)
 {
     struct option_description *o;
     uint16_t i;
     bool r = false;
 
     SOL_VECTOR_FOREACH_IDX (options, o, i) {
+        if (!sol_str_slice_eq(meta->key, sol_str_slice_from_str(o->name))) {
+            if (generated)
+                r = true;
+            continue;
+        }
+
         r = handle_option(meta, o, name_prefix, sol_str_slice_from_str(o->name),
             fbp_file);
         if (!r) {
@@ -851,9 +854,10 @@ generate_options(const struct fbp_data *data)
             SOL_VECTOR_FOREACH_IDX (&exported_opts->node_ptr->meta, m, j) {
                 SOL_VECTOR_FOREACH_IDX (&exported_opts->options,
                     exported_desc, k) {
-                    if (!handle_option(m, exported_desc->description,
-                        "opt_", exported_desc->node_option, data->filename))
-                        return EXIT_FAILURE;
+                    if (sol_str_slice_eq(m->key, exported_desc->node_option))
+                        if (!handle_option(m, exported_desc->description,
+                            "opt_", exported_desc->node_option, data->filename))
+                            return EXIT_FAILURE;
                 }
             }
         }
@@ -866,6 +870,11 @@ generate_options(const struct fbp_data *data)
         if (n->meta.len <= 0)
             continue;
 
+        if (!desc->options_symbol || !*desc->options_symbol) {
+            SOL_ERR("Option declared for node type (%s) with no options", desc->name);
+            return EXIT_FAILURE;
+        }
+
         out("    static const struct %s opts%d =\n", desc->options_symbol, i);
         if (!desc->generated_options)
             out("        %s_OPTIONS_DEFAULTS(\n", desc->symbol);
@@ -876,8 +885,12 @@ generate_options(const struct fbp_data *data)
         }
 
         SOL_VECTOR_FOREACH_IDX (&n->meta, m, j) {
-            if (!handle_options(m, &desc->options, name_prefix, data->filename))
+            if (!handle_options(m, &desc->options, name_prefix, data->filename,
+                desc->generated_options)) {
+                SOL_ERR("Invalid option (%.*s) for node type (%s)",
+                    SOL_STR_SLICE_PRINT(m->key), desc->name);
                 return EXIT_FAILURE;
+            }
         }
         out("        );\n\n");
     }
@@ -1282,7 +1295,7 @@ exit:
 }
 
 struct generate_context {
-    struct sol_vector modules;
+    struct sol_vector headers;
     struct sol_vector types_to_initialize;
 };
 
@@ -1344,7 +1357,7 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
         struct node_data *nd;
         struct type_description *desc;
         const char *sep;
-        struct sol_str_slice name, module, symbol;
+        struct sol_str_slice name, header, module, symbol;
         struct type_to_init *t = NULL;
         uint16_t idx;
 
@@ -1384,12 +1397,13 @@ collect_context_info(struct generate_context *ctx, struct fbp_data *data)
         if (t)
             t->module = module;
 
-        if (!contains_slice(&ctx->modules, module, &idx)) {
-            struct sol_str_slice *m;
-            m = sol_vector_append(&ctx->modules);
-            if (!m)
+        header = sol_str_slice_from_str(desc->header_file);
+        if (!contains_slice(&ctx->headers, header, &idx)) {
+            struct sol_str_slice *h;
+            h = sol_vector_append(&ctx->headers);
+            if (!h)
                 return false;
-            *m = module;
+            *h = header;
         }
     }
 
@@ -1426,12 +1440,12 @@ generate_memory_map_struct(const struct sol_ptr_vector *maps, int *elements)
             "};\n");
 
         out("\nstatic const struct sol_memmap_map _memmap%d = {\n"
-            "   .version = %d,\n"
+            "   .api_version = %u,\n"
             "   .path = \"%s\",\n"
             "   .timeout = %u,\n"
             "   .entries = _memmap%d_entries\n"
             "};\n",
-            i, map->version, map->path, map->timeout, i);
+            i, map->api_version, map->path, map->timeout, i);
     }
 
     *elements = i;
@@ -1572,12 +1586,12 @@ static int
 generate(struct sol_vector *fbp_data_vector)
 {
     struct generate_context _ctx = {
-        .modules = SOL_VECTOR_INIT(struct sol_str_slice),
+        .headers = SOL_VECTOR_INIT(struct sol_str_slice),
         .types_to_initialize = SOL_VECTOR_INIT(struct type_to_init),
     }, *ctx = &_ctx;
 
     struct fbp_data *data;
-    struct sol_str_slice *module;
+    struct sol_str_slice *header;
     struct sol_ptr_vector *memory_maps;
     struct type_to_init *type;
     int types_count;
@@ -1594,7 +1608,7 @@ generate(struct sol_vector *fbp_data_vector)
         "#include \"sol-flow-static.h\"\n");
 
     if (!args.export_symbol) {
-        out("#include \"sol-mainloop.h\"\n");
+        out("#include \"soletta.h\"\n");
     }
 
     if (sol_conffile_resolve_memmap_path(&memory_maps, args.conf_file) < 0) {
@@ -1610,8 +1624,8 @@ generate(struct sol_vector *fbp_data_vector)
     }
 
     /* Header name is currently inferred from the module name. */
-    SOL_VECTOR_FOREACH_IDX (&ctx->modules, module, i) {
-        out("#include \"sol-flow/%.*s.h\"\n", SOL_STR_SLICE_PRINT(*module));
+    SOL_VECTOR_FOREACH_IDX (&ctx->headers, header, i) {
+        out("#include \"%.*s\"\n", SOL_STR_SLICE_PRINT(*header));
     }
 
 #ifdef USE_MEMMAP
@@ -1726,7 +1740,7 @@ generate(struct sol_vector *fbp_data_vector)
     r = EXIT_SUCCESS;
 
 end:
-    sol_vector_clear(&ctx->modules);
+    sol_vector_clear(&ctx->headers);
     sol_vector_clear(&ctx->types_to_initialize);
     return r;
 }
@@ -2211,18 +2225,51 @@ resolve_node(struct fbp_data *data, struct type_store *common_store)
     return true;
 }
 
+static int
+convert_metatype_options(struct sol_vector *metatype_options, struct sol_vector *options)
+{
+    uint16_t i;
+    struct option_description *o;
+    struct sol_flow_metatype_option_description *opt;
+
+    SOL_VECTOR_FOREACH_IDX (metatype_options, opt, i) {
+        o = sol_vector_append(options);
+        SOL_NULL_CHECK_GOTO(o, err);
+
+        o->name = opt->name;
+        o->data_type = opt->data_type;
+
+        sol_vector_del(metatype_options, i);
+    }
+
+    sol_vector_clear(metatype_options);
+    return 0;
+
+err:
+    SOL_VECTOR_FOREACH_IDX (options, o, i) {
+        free(o->name);
+        free(o->data_type);
+    }
+    sol_vector_clear(metatype_options);
+    return -ENOMEM;
+}
+
 static bool
 add_metatype_to_type_store(struct type_store *store,
     struct declared_metatype *meta)
 {
     struct type_description type = { };
     sol_flow_metatype_ports_description_func get_ports;
+    sol_flow_metatype_options_description_func get_options;
     bool r = false;
     struct port_description *port;
     char name[2048];
     uint16_t i;
     int wrote, err;
     struct sol_flow_metatype_context meta_context;
+    const char *options_symbol;
+    struct sol_vector metatype_options;
+    struct option_description *opt;
 
     get_ports = sol_flow_metatype_get_ports_description_func(meta->type);
 
@@ -2232,12 +2279,29 @@ add_metatype_to_type_store(struct type_store *store,
         return r;
     }
 
+    get_options = sol_flow_metatype_get_options_description_func(meta->type);
+
     /* Beware that struct sol_flow_metatype_port_description is a copy of struct port_description */
     meta_context =
         setup_metatype_context(meta->c_name, meta->contents);
     err = get_ports(&meta_context, &type.in_ports, &type.out_ports);
     SOL_INT_CHECK_GOTO(err, < 0, exit);
 
+    type.options_symbol = (char *)"";
+    sol_vector_init(&type.options, sizeof(struct option_description));
+    if (get_options) {
+        err = get_options(&metatype_options);
+        SOL_INT_CHECK_GOTO(err, < 0, exit);
+
+        err = convert_metatype_options(&metatype_options, &type.options);
+        SOL_INT_CHECK_GOTO(err, < 0, exit);
+
+        options_symbol = sol_flow_metatype_get_options_symbol(meta->type);
+        if (options_symbol)
+            type.options_symbol = (char *)options_symbol;
+    }
+
+    type.generated_options = false;
     wrote = snprintf(name, sizeof(name), "%.*s",
         SOL_STR_SLICE_PRINT(meta->name));
     if (wrote < 0 || wrote >= (int)sizeof(name)) {
@@ -2248,15 +2312,13 @@ add_metatype_to_type_store(struct type_store *store,
 
     type.name = name;
     type.symbol = meta->c_name;
-    type.options_symbol = (char *)"";
-    type.generated_options = false;
-    sol_vector_init(&type.options, sizeof(struct option_description));
 
     r = type_store_add_type(store, &type);
     if (!r) {
         SOL_ERR("Could not store the type %.*s",
             SOL_STR_SLICE_PRINT(meta->name));
     }
+
 exit:
     SOL_VECTOR_FOREACH_IDX (&type.in_ports, port, i) {
         free(port->name);
@@ -2267,8 +2329,15 @@ exit:
         free(port->name);
         free(port->data_type);
     }
+
+    SOL_VECTOR_FOREACH_IDX (&type.options, opt, i) {
+        free(opt->name);
+        free(opt->data_type);
+    }
+
     sol_vector_clear(&type.out_ports);
     sol_vector_clear(&type.in_ports);
+    sol_vector_clear(&type.options);
     return r;
 }
 

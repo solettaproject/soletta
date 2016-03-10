@@ -30,10 +30,10 @@ endif
 
 ifneq (,$(NOT_FOUND))
 warning:
-	$(Q)echo -e "The following (required) dependencies were not met:\n"
-	$(Q)echo -e "$(NOT_FOUND)"
-	$(Q)echo -e "If you've just installed it, run: make reconf"
-	$(Q)echo -e "For more information/options, run: make help"
+	$(Q)echo "The following (required) dependencies were not met:\n"
+	$(Q)echo "$(NOT_FOUND)"
+	$(Q)echo "If you've just installed it, run: make reconf"
+	$(Q)echo "For more information/options, run: make help"
 $(warning-targets)
 else
 ifeq ($(HAVE_KCONFIG_CONFIG),)

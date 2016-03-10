@@ -6,6 +6,9 @@ obj-core-y := \
     sol-platform.o \
     sol-types.o
 
+obj-core-extra-ldflags = \
+    -lm
+
 obj-$(POWER_SUPPLY) += \
     power-supply.mod
 
@@ -23,6 +26,8 @@ obj-log-$(PLATFORM_RIOTOS) += \
     sol-log-impl-riot.o
 obj-log-$(PLATFORM_CONTIKI) += \
     sol-log-impl-contiki.o
+obj-log-$(PLATFORM_ZEPHYR) += \
+    sol-log-impl-zephyr.o
 
 obj-core-$(SOL_BUS) += \
     sol-bus.o
@@ -47,12 +52,24 @@ obj-core-$(MAINLOOP_CONTIKI) += \
     sol-mainloop-common.o \
     sol-mainloop-impl-contiki.o
 
+obj-core-$(MAINLOOP_ZEPHYR) += \
+    sol-mainloop-common.o \
+    sol-mainloop-impl-zephyr-common.o
+
+obj-core-$(MAINLOOP_ZEPHYR_NANO) += \
+    sol-mainloop-impl-zephyr-nano.o
+
+obj-core-$(MAINLOOP_ZEPHYR_MICRO) += \
+    sol-mainloop-impl-zephyr-micro.o
+
 obj-core-$(PLATFORM_LINUX_MICRO) += \
     sol-platform-impl-linux-micro.o
 obj-core-$(PLATFORM_RIOTOS) += \
     sol-platform-impl-riot.o
 obj-core-$(PLATFORM_CONTIKI) += \
     sol-platform-impl-contiki.o
+obj-core-$(PLATFORM_ZEPHYR) += \
+    sol-platform-impl-zephyr.o
 
 obj-core-$(PLATFORM_LINUX) += \
     sol-platform-linux-common.o
@@ -100,6 +117,7 @@ requires-private-$(PLATFORM_SYSTEMD) += \
 
 
 headers-y := \
+    include/soletta.h \
     include/sol-log.h \
     include/sol-macros.h \
     include/sol-mainloop.h \

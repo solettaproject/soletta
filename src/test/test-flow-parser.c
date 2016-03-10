@@ -36,7 +36,7 @@
 #include "sol-flow-resolver.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "test.h"
@@ -217,8 +217,8 @@ static const struct sol_flow_node_type test_node_type = {
 
     .init_type = test_node_init_type,
 
-    .ports_in_count = ARRAY_SIZE(test_ports_in),
-    .ports_out_count = ARRAY_SIZE(test_ports_out),
+    .ports_in_count = SOL_UTIL_ARRAY_SIZE(test_ports_in),
+    .ports_out_count = SOL_UTIL_ARRAY_SIZE(test_ports_out),
     .get_port_in = test_node_get_port_in,
     .get_port_out = test_node_get_port_out,
 
@@ -309,7 +309,7 @@ parse_with_string(void)
     parser = sol_flow_parser_new(NULL, NULL);
     ASSERT(parser);
 
-    for (i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(tests); i++) {
         const char *input = tests[i];
         struct sol_flow_node_type *type;
 
@@ -351,7 +351,7 @@ parse_and_fail_with_invalid_string(void)
     parser = sol_flow_parser_new(NULL, NULL);
     ASSERT(parser);
 
-    for (i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(tests); i++) {
         const char *input = tests[i];
         struct sol_flow_node_type *type;
 

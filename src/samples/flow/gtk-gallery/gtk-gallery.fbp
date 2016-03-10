@@ -55,3 +55,11 @@ timer(timer:interval=3000)
 val(int/accumulator:setup_value=min:0|max:15)
 timer OUT -> INC val
 val OUT -> VALUE led_7seg(gtk/led-7seg)
+
+direction_vector(gtk/direction-vector-editor) OUT -> IN direction_vector_output(gtk/label)
+
+location_editor(gtk/location-editor) OUT -> IN location_output(gtk/label)
+
+float_editor(gtk/float-editor) OUT -> IN float_output(gtk/label)
+
+timestamp_editor(gtk/timestamp-editor) OUT -> IN timestamp(gtk/label)

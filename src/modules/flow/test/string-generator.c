@@ -37,11 +37,12 @@
 #include "sol-flow.h"
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test-module.h"
 #include "string-generator.h"
 #include "sol-flow/test.h"
+#include "sol-flow-internal.h"
 
 static bool
 timer_tick(void *data)
@@ -68,6 +69,9 @@ string_generator_open(
     const struct sol_flow_node_type_test_string_generator_options *opts =
         (const struct sol_flow_node_type_test_string_generator_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TEST_STRING_GENERATOR_OPTIONS_API_VERSION,
+        -EINVAL);
     sol_vector_init(&mdata->values, sizeof(struct sol_str_slice));
     if (opts->sequence == NULL || *opts->sequence == '\0') {
         SOL_ERR("Option 'sequence' is either NULL or empty.");

@@ -56,13 +56,15 @@
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "sol-platform-linux-micro-builtins-gen.h"
 
 #define SOL_DEBUG_ARG "sol-debug=1"
 #define SOL_DEBUG_COMM_ARG "sol-debug-comm="
+#define LOCALE_CONF_MAX_CREATE_ATTEMPTS (5)
 
 static enum sol_platform_state platform_state = SOL_PLATFORM_STATE_INITIALIZING;
 static int reboot_cmd = RB_AUTOBOOT;
@@ -91,9 +93,15 @@ struct sol_fd_watcher_ctx {
     int fd;
 };
 
+struct sol_locale_monitor {
+    struct sol_fd_watcher_ctx fd_watcher;
+    struct sol_timeout *create_timeout;
+    uint8_t create_attempts;
+};
+
 static struct sol_fd_watcher_ctx hostname_monitor = { NULL, -1 };
 static struct sol_fd_watcher_ctx timezone_monitor = { NULL, -1 };
-static struct sol_fd_watcher_ctx locale_monitor = { NULL, -1 };
+static struct sol_locale_monitor locale_monitor = { { NULL, -1 }, NULL, 0 };
 
 #ifdef ENABLE_DYNAMIC_MODULES
 struct service_module {
@@ -191,7 +199,7 @@ new_external_service_module(const char *name)
     }
 #ifndef SOL_NO_API_VERSION
     if ((*p_sym)->api_version != SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION) {
-        SOL_WRN("module '%s' has incorrect api_version: %lu expected %lu",
+        SOL_WRN("module '%s' has incorrect api_version: %hu expected %hu",
             path, (*p_sym)->api_version, SOL_PLATFORM_LINUX_MICRO_MODULE_API_VERSION);
         goto error;
     }
@@ -330,7 +338,7 @@ load_initial_services_internal(struct sol_file_reader *reader)
     start = file.data;
     end = start + file.len;
     for (p = start; err == 0 && p < end; p++) {
-        if (isspace(*p) && start < p) {
+        if (isspace((uint8_t)*p) && start < p) {
             err = load_initial_services_entry(start, p - start);
             start = p + 1;
         }
@@ -350,7 +358,7 @@ load_initial_services(void)
     };
     int err = 0;
 
-    for (itr = paths; itr < paths + ARRAY_SIZE(paths); itr++) {
+    for (itr = paths; itr < paths + SOL_UTIL_ARRAY_SIZE(paths); itr++) {
         struct sol_file_reader *reader = sol_file_reader_open(*itr);
         if (!reader && errno == ENOENT) {
             SOL_DBG("no initial services to load at '%s'", *itr);
@@ -390,7 +398,7 @@ setup_pid1(void)
     int err;
     pid_t pid;
 
-    for (mnt = mount_table; mnt < mount_table + ARRAY_SIZE(mount_table); mnt++) {
+    for (mnt = mount_table; mnt < mount_table + SOL_UTIL_ARRAY_SIZE(mount_table); mnt++) {
         const char *source = mnt->source ? mnt->source : "none";
 
         SOL_DBG("creating %s", mnt->target);
@@ -424,7 +432,7 @@ setup_pid1(void)
         }
     }
 
-    for (sym = symlink_table; sym < symlink_table + ARRAY_SIZE(symlink_table); sym++) {
+    for (sym = symlink_table; sym < symlink_table + SOL_UTIL_ARRAY_SIZE(symlink_table); sym++) {
         SOL_DBG("symlinking '%s' to '%s'", sym->source, sym->target);
         err = symlink(sym->target, sym->source);
         if (err < 0) {
@@ -504,7 +512,7 @@ teardown_pid1(void)
                 continue;
             }
 
-            for (idx = 0; idx < ARRAY_SIZE(mount_table); idx++) {
+            for (idx = 0; idx < SOL_UTIL_ARRAY_SIZE(mount_table); idx++) {
                 if (streq(mount_table[idx].target, path)) {
                     should_umount = false;
                     break;
@@ -631,7 +639,7 @@ gdb_exec(const char *gdb_comm)
         _exit(EXIT_FAILURE);
     }
 
-    for (i = 0; i < ARRAY_SIZE(paths); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(paths); i++) {
         if (execl(paths[i], paths[i], gdb_comm, argv[0], NULL) == -1)
             SOL_DBG("failed to exec %s - %s", paths[i],
                 sol_util_strerrora(errno));
@@ -1138,9 +1146,30 @@ sol_platform_impl_set_timezone(const char *timezone)
     if (symlink(path, "/etc/localtime") < 0) {
         SOL_WRN("Could not create the symlink to the timezone %s", timezone);
         return -errno;
+    } else {
+        /* Check if it was linked to the right place to prevent TOCTOU */
+        char buf[PATH_MAX];
+        ssize_t len;
+
+        if ((len = readlink("/etc/localtime", buf, sizeof(buf) - 1)) < 0) {
+            r = -errno;
+            goto symlink_error;
+        }
+        buf[len] = '\0';
+        if (strcmp(path, buf)) {
+            r = -EINVAL;
+            goto symlink_error;
+        }
     }
 
     return 0;
+
+symlink_error:
+    SOL_WRN("Failed to verify link /etc/localtime for timezone: %s",
+        timezone);
+    if (unlink("/etc/localtime") < 0)
+        SOL_WRN("Could not unlink /etc/localtime");
+    return r;
 }
 
 static bool
@@ -1155,22 +1184,21 @@ timezone_changed(void *data, int fd, uint32_t active_flags)
 }
 
 static int
-add_watch(struct sol_fd_watcher_ctx *monitor, const char *path,
-    bool (*cb)(void *data, int fd, uint32_t active_flags))
+add_watch(struct sol_fd_watcher_ctx *monitor, uint32_t inotify_flags,
+    const char *path, bool (*cb)(void *data, int fd, uint32_t active_flags))
 {
     int r;
 
     if (monitor->watcher)
         return 0;
 
-    monitor->fd = inotify_init1(IN_CLOEXEC);
+    monitor->fd = inotify_init1(IN_CLOEXEC | IN_NONBLOCK);
 
     if (monitor->fd < 0) {
         return -errno;
     }
 
-    if (inotify_add_watch(monitor->fd, path,
-        IN_MODIFY | IN_DONT_FOLLOW) < 0) {
+    if (inotify_add_watch(monitor->fd, path, inotify_flags) < 0) {
         r = -errno;
         goto err_exit;
     }
@@ -1193,7 +1221,8 @@ err_exit:
 int
 sol_platform_register_timezone_monitor(void)
 {
-    return add_watch(&timezone_monitor, "/etc/localtime", timezone_changed);
+    return add_watch(&timezone_monitor, IN_MODIFY | IN_DONT_FOLLOW,
+        "/etc/localtime", timezone_changed);
 }
 
 int
@@ -1236,25 +1265,98 @@ exit:
 }
 
 static bool
+timeout_locale(void *data)
+{
+    int r;
+
+    r = sol_platform_register_locale_monitor();
+    if (!r) {
+        SOL_DBG("Watching /etc/locale.conf again");
+        goto unregister;
+    }
+
+    if (++locale_monitor.create_attempts == LOCALE_CONF_MAX_CREATE_ATTEMPTS) {
+        sol_platform_inform_locale_monitor_error();
+        SOL_WRN("/etc/locale.conf was not created. Giving up.");
+        goto unregister;
+    }
+
+    SOL_DBG("/etc/locale.conf was not created yet, trying again in some time");
+    return true;
+unregister:
+    locale_monitor.create_timeout = NULL;
+    sol_platform_inform_locale_changed();
+    return false;
+}
+
+static bool
 locale_changed(void *data, int fd, uint32_t active_flags)
 {
     char buf[4096];
+    struct inotify_event *event;
+    char *ptr;
+    ssize_t len;
+    bool dispatch_callback, deleted;
 
-    sol_platform_inform_locale_changed();
-    (void)read(fd, buf, sizeof(buf));
-    return true;
+    deleted = dispatch_callback = false;
+
+    while (1) {
+        len = read(fd, buf, sizeof(buf));
+
+        if (len == -1 && errno != EAGAIN && errno != EINTR) {
+            SOL_WRN("Could read the locale.conf inotify. Reason: %d", errno);
+            sol_platform_inform_locale_monitor_error();
+            close_fd_monitor(&locale_monitor.fd_watcher);
+            return false;
+        }
+
+        if (len <= 0)
+            break;
+
+        for (ptr = buf; ptr < buf + len;
+            ptr += sizeof(struct inotify_event) + event->len) {
+
+            event = (struct inotify_event *)ptr;
+
+            if (event->mask & IN_MODIFY) {
+                SOL_DBG("locale.conf changed");
+                dispatch_callback = true;
+            }
+            if (event->mask & IN_DELETE_SELF) {
+                SOL_DBG("locale.conf was moved");
+                deleted = true;
+            }
+        }
+    }
+
+    if (deleted) {
+        close_fd_monitor(&locale_monitor.fd_watcher);
+        //One second from now, check if a new locale has been created.
+        locale_monitor.create_timeout =
+            sol_timeout_add(1000, timeout_locale, NULL);
+        locale_monitor.create_attempts = 0;
+        if (!locale_monitor.create_timeout) {
+            SOL_WRN("Could not create a timer to check if"
+                " a new /etc/locale.conf has been created.");
+            sol_platform_inform_locale_monitor_error();
+        }
+    } else if (dispatch_callback)
+        sol_platform_inform_locale_changed();
+    return !deleted;
 }
 
 int
 sol_platform_register_locale_monitor(void)
 {
-    return add_watch(&locale_monitor, "/etc/locale.conf",
-        locale_changed);
+    return add_watch(&locale_monitor.fd_watcher, IN_MODIFY | IN_DELETE_SELF,
+        "/etc/locale.conf", locale_changed);
 }
 
 int
 sol_platform_unregister_locale_monitor(void)
 {
-    close_fd_monitor(&locale_monitor);
+    close_fd_monitor(&locale_monitor.fd_watcher);
+    if (locale_monitor.create_timeout)
+        sol_timeout_del(locale_monitor.create_timeout);
     return 0;
 }

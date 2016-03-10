@@ -108,7 +108,8 @@ INPUT                  = \
     src/lib/datatypes/include \
     src/lib/flow/include \
     src/lib/io/include \
-    src/lib/parsers/include
+    src/lib/parsers/include \
+    src/shared/include
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          =
 RECURSIVE              = YES

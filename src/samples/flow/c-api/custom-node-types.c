@@ -66,7 +66,6 @@
 
 #include <sol-log.h>
 #include <sol-mainloop.h>
-#include <sol-util.h>
 
 /* macro to check if option's sub_api is the one we expect */
 #ifndef SOL_NO_API_VERSION

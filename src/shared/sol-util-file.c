@@ -31,10 +31,9 @@
  */
 
 #include "sol-util-file.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-mainloop.h"
 #include "sol-log.h"
-#include "sol-util.h"
 
 #include <dlfcn.h>
 #include <errno.h>
@@ -51,7 +50,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-int
+#define CHUNK_SIZE 4096
+
+SOL_API int
 sol_util_vwrite_file(const char *path, const char *fmt, va_list args)
 {
     FILE *fp;
@@ -79,7 +80,7 @@ sol_util_vwrite_file(const char *path, const char *fmt, va_list args)
     return ret;
 }
 
-int
+SOL_API int
 sol_util_write_file(const char *path, const char *fmt, ...)
 {
     va_list ap;
@@ -92,7 +93,7 @@ sol_util_write_file(const char *path, const char *fmt, ...)
     return ret;
 }
 
-int
+SOL_API int
 sol_util_vread_file(const char *path, const char *fmt, va_list args)
 {
     FILE *fp;
@@ -108,7 +109,7 @@ sol_util_vread_file(const char *path, const char *fmt, va_list args)
     return ret;
 }
 
-int
+SOL_API int
 sol_util_read_file(const char *path, const char *fmt, ...)
 {
     va_list ap;
@@ -121,7 +122,7 @@ sol_util_read_file(const char *path, const char *fmt, ...)
     return ret;
 }
 
-ssize_t
+SOL_API ssize_t
 sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
 {
     size_t bytes_read = 0, s;
@@ -142,110 +143,114 @@ sol_util_fill_buffer(const int fd, struct sol_buffer *buffer, const size_t size)
             size - bytes_read);
         if (ret < 0) {
             retry++;
+            if (retry >= SOL_UTIL_MAX_READ_ATTEMPTS) {
+                if (errno == EINTR || errno == EAGAIN) {
+                    ret = 0; /* if we exceed maximum attempts, don't return error */
+                }
+                break;
+            }
+
+            if (errno == EINTR || errno == EAGAIN)
+                continue;
+            else
+                break;
+        } else if (ret == 0) {
+            retry++;
             if (retry >= SOL_UTIL_MAX_READ_ATTEMPTS)
                 break;
-
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            } else
-                break;
+            continue;
         }
 
         retry = 0; //We only count consecutive failures
         bytes_read += (size_t)ret;
-    } while (ret && bytes_read < size);
+    } while (bytes_read < size);
 
     buffer->used += bytes_read;
 
-    if (ret > 0)
+    if (ret >= 0)
         ret = bytes_read;
 
-    if (!(buffer->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE)) {
-        if (buffer->used == buffer->capacity)
-            SOL_WRN("sol_buffer %p asks for terminating NUL byte, but doesn't have space for it",
-                buffer);
-        else
-            *((char *)buffer->data + buffer->used) = '\0';
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buffer)) {
+        int err;
+
+        err = sol_buffer_ensure_nul_byte(buffer);
+        SOL_INT_CHECK(err, < 0, err);
     }
 
     return ret;
 }
 
-struct sol_buffer *
-sol_util_load_file_raw(const int fd)
+SOL_API struct sol_buffer *
+sol_util_load_file_fd_raw(const int fd)
 {
-    struct stat st;
-    ssize_t ret;
-    struct sol_buffer *buffer;
+    struct sol_buffer *buf;
+    int r;
 
-    if (fd < 0)
-        return NULL;
+    buf = sol_buffer_new();
+    SOL_NULL_CHECK(buf, NULL);
 
-    buffer = sol_buffer_new();
-    SOL_NULL_CHECK(buffer, NULL);
+    buf->flags |= SOL_BUFFER_FLAGS_NO_NUL_BYTE;
 
-    buffer->flags = SOL_BUFFER_FLAGS_NO_NUL_BYTE;
+    r = sol_util_load_file_fd_buffer(fd, buf);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    if (fstat(fd, &st) >= 0 && st.st_size) {
-        ret = sol_util_fill_buffer(fd, buffer, st.st_size);
-    } else {
-        do {
-            ret = sol_util_fill_buffer(fd, buffer, CHUNK_SIZE);
-        } while (ret > 0);
-    }
+    return buf;
 
-    if (ret < 0)
-        goto err;
-
-    if (sol_buffer_trim(buffer) < 0)
-        goto err;
-
-    return buffer;
-
-err:
-    sol_buffer_free(buffer);
-
+err_exit:
+    sol_buffer_free(buf);
     return NULL;
 }
 
-char *
-sol_util_load_file_fd_string(int fd, size_t *size)
+SOL_API int
+sol_util_load_file_fd_buffer(int fd, struct sol_buffer *buf)
 {
-    int saved_errno;
-    size_t size_read;
-    char *data = NULL;
-    struct sol_buffer *buffer = NULL;
+    struct stat st;
+    ssize_t ret;
+    int r;
 
-    buffer = sol_util_load_file_raw(fd);
-    if (!buffer) {
-        data = strdup("");
-        size_read = 1;
+    SOL_INT_CHECK(fd, < 0, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    if (fstat(fd, &st) >= 0 && st.st_size) {
+        ret = sol_util_fill_buffer(fd, buf, st.st_size);
     } else {
-        buffer->flags = SOL_BUFFER_FLAGS_DEFAULT;
-        if (sol_buffer_ensure_nul_byte(buffer) < 0)
-            goto err;
-
-        data = sol_buffer_steal(buffer, &size_read);
-        if (!data)
-            goto err;
+        do {
+            ret = sol_util_fill_buffer(fd, buf, CHUNK_SIZE);
+        } while (ret > 0);
     }
 
-    sol_buffer_free(buffer);
+    r = (int)ret;
+    SOL_INT_CHECK(r, < 0, r);
+
+    return 0;
+}
+
+SOL_API char *
+sol_util_load_file_fd_string(int fd, size_t *size)
+{
+    int r;
+    size_t size_read;
+    char *data = NULL;
+    struct sol_buffer buf = SOL_BUFFER_INIT_EMPTY;
+
+    r = sol_util_load_file_fd_buffer(fd, &buf);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    r = sol_buffer_trim(&buf);
+    SOL_INT_CHECK_GOTO(r, < 0, err);
+    data = sol_buffer_steal(&buf, &size_read);
+    SOL_NULL_CHECK_GOTO(data, err);
+
     if (size)
         *size = size_read;
     return data;
 
 err:
-    saved_errno = errno;
-    free(data);
-    sol_buffer_free(buffer);
-    errno = saved_errno;
     if (size)
         *size = 0;
     return NULL;
 }
 
-char *
+SOL_API char *
 sol_util_load_file_string(const char *filename, size_t *size)
 {
     int fd, saved_errno;
@@ -267,6 +272,25 @@ sol_util_load_file_string(const char *filename, size_t *size)
         errno = saved_errno;
 
     return ret;
+}
+
+SOL_API int
+sol_util_load_file_buffer(const char *filename, struct sol_buffer *buf)
+{
+    int fd, r;
+
+    SOL_NULL_CHECK(filename, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    fd = open(filename, O_RDONLY | O_CLOEXEC);
+    r = -errno;
+    SOL_INT_CHECK(fd, < 0, r);
+
+    r = sol_util_load_file_fd_buffer(fd, buf);
+
+    if (close(fd) < 0 && !r)
+        r = -errno;
+    return r;
 }
 
 static int
@@ -352,7 +376,7 @@ strrstr(const char *haystack, const char *needle)
     return r;
 }
 
-int
+SOL_API int
 sol_util_get_rootdir(char *out, size_t size)
 {
     char progname[PATH_MAX] = { 0 };
@@ -372,10 +396,10 @@ sol_util_get_rootdir(char *out, size_t size)
     }
 
     r = snprintf(out, size, "%.*s/", (int)(strlen(progname) - strlen(substr)), progname);
-    return (r < 0 || r > (int)size) ? -ENOMEM : r;
+    return (r < 0 || r >= (int)size) ? -ENOMEM : r;
 }
 
-int
+SOL_API int
 sol_util_fd_set_flag(int fd, int flag)
 {
     int flags;
@@ -391,7 +415,7 @@ sol_util_fd_set_flag(int fd, int flag)
     return 0;
 }
 
-bool
+SOL_API bool
 sol_util_iterate_dir(const char *path, bool (*iterate_dir_cb)(void *data, const char *dir_path, struct dirent *ent), const void *data)
 {
     DIR *dir;
@@ -464,7 +488,7 @@ sync_dir_of(const char *new_path)
     return -errno;
 }
 
-int
+SOL_API int
 sol_util_move_file(const char *old_path, const char *new_path, mode_t mode)
 {
     FILE *new, *old;

@@ -40,7 +40,7 @@ SOL_LOG_INTERNAL_DECLARE(_sol_message_digest_common_log_domain, "message-digest"
 
 #include "sol-crypto.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 int

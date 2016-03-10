@@ -1,0 +1,12 @@
+config FEATURE_ZEPHYR_MICROKERNEL
+    bool
+
+config ZEPHYR
+    def_bool y
+    select FEATURE_HW_AIO
+    select FEATURE_HW_GPIO
+    select FEATURE_HW_I2C
+    select FEATURE_HW_PWM
+    select FEATURE_HW_SPI
+    select FEATURE_FLOW
+    select FEATURE_ZEPHYR_MICROKERNEL if HAVE_ZEPHYR_MICRO

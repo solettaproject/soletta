@@ -1698,7 +1698,7 @@ direction_vector_convert(struct sol_flow_node *node, void *data, uint16_t port, 
         mdata->output_value.z = val;
     }
 
-    for (i = 0; i < ARRAY_SIZE(mdata->output_initialized); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(mdata->output_initialized); i++) {
         if (!mdata->output_initialized[i])
             return 0;
     }
@@ -2107,6 +2107,7 @@ timestamp_to_string_convert(struct sol_flow_node *node, void *data, uint16_t por
     if (!localtime_r(&in_value.tv_sec, &time_tm))
         goto timestamp_error;
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
 
     r = strftime(out_value, sizeof(out_value), mdata->string,

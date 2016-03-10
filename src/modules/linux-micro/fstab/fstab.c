@@ -42,7 +42,7 @@
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-fstab");
 
 #include "sol-platform-linux-micro.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 static void
@@ -122,7 +122,12 @@ get_mountflags(char *mnt_opts, bool *should_mount)
             sol_ptr_vector_clear(&specific_opts);
             return 0;
         } else {
-            sol_ptr_vector_append(&specific_opts, remaining);
+            int r = sol_ptr_vector_append(&specific_opts, remaining);
+            if (r < 0) {
+                SOL_WRN("Could not append option string");
+                sol_ptr_vector_clear(&specific_opts);
+                return 0;
+            }
         }
     } while ((remaining = p));
 

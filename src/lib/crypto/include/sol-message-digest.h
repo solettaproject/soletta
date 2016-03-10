@@ -77,6 +77,19 @@ extern "C" {
  * picking one for your application, check the one that is
  * more secure and hard to break, such as SHA512.
  *
+ * Soletta provides a portable API for message digests, but it doesn't
+ * implement any of them. The actual work is done by the engine underneath,
+ * which will depend on the build configuration. On Linux, either the kernel's
+ * crypo API or OpenSSL's crypto library are available to choose at build time.
+ * On RIOT-OS, only the algorithms provided by the OS are implemented. Other
+ * systems lack support currently.
+ *
+ * When choosing an algorithm, Soletta will pass it down to the engine selected
+ * for use, and to keep applications portable, it was chosen to always follow
+ * the names used by the Linux kernel. If they don't match on other implementations,
+ * Soletta will translate accordingly, keeping those difference transparent
+ * for developers.
+ *
  * @{
  */
 

@@ -33,13 +33,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/kd.h>
-#include <netinet/in.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
 
 #include "sol-log.h"
 #include "sol-mainloop.h"
@@ -120,7 +118,7 @@ user_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
     struct sol_oic_map_reader iter;
 
     SOL_OIC_MAP_LOOP(input, &field, &iter, reason) {
-        if (streq(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
+        if (!strcmp(field.key, "state") && field.type == SOL_OIC_REPR_TYPE_BOOLEAN) {
             if (set_scrolllock_led(field.v_boolean))
                 return SOL_COAP_RSPCODE_OK;
 

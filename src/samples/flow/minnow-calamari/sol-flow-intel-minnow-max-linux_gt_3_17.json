@@ -4,40 +4,43 @@
   {
    "name": "RGBLed",
    "options": {
-    "blue_pin": 464,
-    "green_pin": 339,
-    "red_pin": 338
+    "blue_pin": "464",
+    "green_pin": "339",
+    "red_pin": "338"
    },
    "type": "calamari/rgb-led"
   },
   {
    "name": "SevenSegments",
    "options": {
-    "clear_pin": 473,
-    "clock_pin": 340,
-    "data_pin": 474,
-    "latch_pin": 475
+    "clear_pin": "473",
+    "clock_pin": "340",
+    "data_pin": "474",
+    "latch_pin": "475"
    },
    "type": "calamari/7seg"
   },
   {
    "name": "LedRed",
    "options": {
-    "pin": 338
+    "pin": "338",
+    "raw": true
    },
    "type": "gpio/writer"
   },
   {
    "name": "LedGreen",
    "options": {
-    "pin": 339
+    "pin": "339",
+    "raw": true
    },
    "type": "gpio/writer"
   },
   {
    "name": "LedBlue",
    "options": {
-    "pin": 464
+    "pin": "464",
+    "raw": true
    },
    "type": "gpio/writer"
   },
@@ -47,8 +50,9 @@
     "active_low": true,
     "edge_falling": true,
     "edge_rising": true,
-    "pin": 472,
-    "pull": "up"
+    "pin": "472",
+    "pull": "up",
+    "raw": true
    },
    "type": "gpio/reader"
   },
@@ -58,8 +62,9 @@
     "active_low": true,
     "edge_falling": true,
     "edge_rising": true,
-    "pin": 482,
-    "pull": "up"
+    "pin": "482",
+    "pull": "up",
+    "raw": true
    },
    "type": "gpio/reader"
   },
@@ -69,8 +74,9 @@
     "active_low": true,
     "edge_falling": true,
     "edge_rising": true,
-    "pin": 483,
-    "pull": "up"
+    "pin": "483",
+    "pull": "up",
+    "raw": true
    },
    "type": "gpio/reader"
   },

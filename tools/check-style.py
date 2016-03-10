@@ -69,8 +69,8 @@ def check_uncrustify():
         return None
 
     version = version.split()[1]
-    if version != UNCRUSTIFY_VERSION:
-        print("Uncrustify tool must be at %s version, exactly (found %s)." % \
+    if version < UNCRUSTIFY_VERSION:
+        print("Uncrustify tool must be at least %s version (found %s)." % \
               (UNCRUSTIFY_VERSION, version))
         return None
 

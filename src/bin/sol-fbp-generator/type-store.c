@@ -37,7 +37,7 @@
 #include "sol-log.h"
 #include "sol-missing.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "type-store.h"
@@ -59,6 +59,7 @@ struct type_store {
 CONST_SLICE(NAME_SLICE, "name");
 CONST_SLICE(SYMBOL_SLICE, "symbol");
 CONST_SLICE(OPTIONS_SYMBOL_SLICE, "options_symbol");
+CONST_SLICE(HEADER_FILE, "header_file");
 CONST_SLICE(IN_PORTS_SLICE, "in_ports");
 CONST_SLICE(OUT_PORTS_SLICE, "out_ports");
 CONST_SLICE(DATA_TYPE_SLICE, "data_type");
@@ -67,7 +68,6 @@ CONST_SLICE(BASE_PORT_IDX_SLICE, "base_port_idx");
 CONST_SLICE(OPTIONS_SLICE, "options");
 CONST_SLICE(MEMBERS_SLICE, "members");
 CONST_SLICE(DEFAULT_SLICE, "default");
-CONST_SLICE(VAL_SLICE, "val");
 CONST_SLICE(MIN_SLICE, "min");
 CONST_SLICE(MAX_SLICE, "max");
 CONST_SLICE(STEP_SLICE, "step");
@@ -215,6 +215,7 @@ type_description_init(struct type_description *desc)
     desc->name = NULL;
     desc->symbol = NULL;
     desc->options_symbol = NULL;
+    desc->header_file = NULL;
     sol_vector_init(&desc->in_ports, sizeof(struct port_description));
     sol_vector_init(&desc->out_ports, sizeof(struct port_description));
     sol_vector_init(&desc->options, sizeof(struct option_description));
@@ -291,6 +292,7 @@ type_description_fini(struct type_description *desc)
     free(desc->name);
     free(desc->symbol);
     free(desc->options_symbol);
+    free(desc->header_file);
 }
 
 static bool
@@ -742,6 +744,11 @@ read_type(struct decoder *d, struct type_description *desc)
             if (!read_string_property_value(d, &value))
                 return false;
             desc->options_symbol = get_string(&value);
+
+        } else if (sol_str_slice_eq(key_slice, HEADER_FILE)) {
+            if (!read_string_property_value(d, &value))
+                return false;
+            desc->header_file = get_string(&value);
 
         } else if (sol_str_slice_eq(key_slice, IN_PORTS_SLICE)) {
             if (!read_ports_array(d, &desc->in_ports))

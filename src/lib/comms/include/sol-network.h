@@ -36,6 +36,8 @@
 
 #include <sol-common-buildopts.h>
 #include <sol-vector.h>
+#include <sol-str-slice.h>
+#include <sol-buffer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,6 +74,20 @@ extern "C" {
  */
 #define SOL_INET_ADDR_STRLEN 48
 
+
+/**
+ * @struct sol_network_hostname_handle
+ *
+ * @brief A handle to sol_network_get_hostname_address_info()
+ *
+ * This handle can be used to cancel get sol_network_get_hostname_address_info()
+ * by calling sol_network_cancel_get_hostname_address_info()
+ *
+ * @see sol_network_get_hostname_address_info()
+ * @see sol_network_cancel_get_hostname_address_info()
+ */
+struct sol_network_hostname_handle;
+
 /**
  * @brief Type of events generated for a network link.
  *
@@ -97,10 +113,24 @@ enum sol_network_link_flags {
 };
 
 /**
+ * @brief Type of a network address
+ *
+ * Tells how an address should be interpreted.
+ */
+enum sol_network_family {
+    /** @brief Unspecified address type */
+    SOL_NETWORK_FAMILY_UNSPEC,
+    /** @brief IPv4 family. */
+    SOL_NETWORK_FAMILY_INET,
+    /** @brief IPv6 family. */
+    SOL_NETWORK_FAMILY_INET6
+};
+
+/**
  * @brief Structure to represent a network address, both IPv6 and IPv4 are valid.
  */
 struct sol_network_link_addr {
-    uint16_t family; /**< @brief IPv4 or IPv6 family */
+    enum sol_network_family family; /**< @brief IPv4 or IPv6 family */
     union {
         uint8_t in[4];
         uint8_t in6[16];
@@ -120,7 +150,6 @@ struct sol_network_link {
 #ifndef SOL_NO_API_VERSION
 #define SOL_NETWORK_LINK_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /* save possible hole for a future field */
 #endif
     uint16_t index; /**< @brief the index of this link given by SO  */
     enum sol_network_link_flags flags; /**< @brief  The status of the link */
@@ -131,19 +160,37 @@ struct sol_network_link {
     struct sol_vector addrs;
 };
 
+#ifndef SOL_NO_API_VERSION
+/**
+ * @brief Macro used to check if a struct @c struct sol_network_link has
+ * the expected API version.
+ *
+ * In case it has wrong version, it'll return extra arguments passed
+ * to the macro.
+ */
+#define SOL_NETWORK_LINK_CHECK_VERSION(link_, ...) \
+    if (SOL_UNLIKELY((link_)->api_version != \
+        SOL_NETWORK_LINK_API_VERSION)) { \
+        SOL_WRN("Unexpected API version (message is %u, expected %u)", \
+            (link_)->api_version, SOL_NETWORK_LINK_API_VERSION); \
+        return __VA_ARGS__; \
+    }
+#else
+#define SOL_NETWORK_LINK_CHECK_VERSION(link_, ...)
+#endif
+
 /**
  * @brief Converts a @c sol_network_link_addr to a string.
  *
  * @param addr The address to be converted.
- * @param buf The buffer where the converted string will be stored.
- * @param len The size of buf.
+ * @param buf The buffer where the converted string will be appended -
+ * It must be already initialized.
  *
  * @return a string with the network link address on success, @c NULL on error.
  *
  * @see sol_network_addr_from_str()
  */
-const char *sol_network_addr_to_str(const struct sol_network_link_addr *addr,
-    char *buf, uint32_t len);
+const char *sol_network_addr_to_str(const struct sol_network_link_addr *addr, struct sol_buffer *buf);
 
 /**
  * @brief Converts a string address to @c sol_network_link_addr.
@@ -169,31 +216,6 @@ const struct sol_network_link_addr *sol_network_addr_from_str(struct sol_network
  */
 bool sol_network_link_addr_eq(const struct sol_network_link_addr *a,
     const struct sol_network_link_addr *b);
-
-/**
- * @brief Initialize the support to network.
- *
- * This function sets up all the internal code to monitor and deal
- * with network events.
- *
- * When the network support is not necessary anymore, call @ref
- * sol_network_shutdown() to release all the resources allocated.
- *
- * @return @c 1 or greater on success, @c 0 on error.
- *
- * @see sol_network_shutdown()
- */
-int sol_network_init(void);
-
-/**
- * @brief Shut down the support to network.
- *
- * This function shuts down the network support, it should be called
- * the same same number of times that @ref sol_network_init().
- *
- * @see sol_network_init()
- */
-void sol_network_shutdown(void);
 
 /**
  * @brief Subscribes on to receive network link events.
@@ -233,10 +255,6 @@ bool sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_netw
 /**
  * @brief Retrieve the available network links on system.
  *
- * This function gets the availables links in the system, it should
- * not be called if the network was not initialized @see
- * sol_network_init().
- *
  * @return A vector containing the available links @see sol_network_link
  *
  * @note This vector is updated as soon as the SO notifies about a
@@ -265,6 +283,40 @@ char *sol_network_link_get_name(const struct sol_network_link *link);
  * @return @c true on success, @c false on error.
  */
 bool sol_network_link_up(uint16_t link_index);
+
+/**
+ * @brief Gets a hostname address info.
+ *
+ * This function will fetch the address of a given hostname, since this may
+ * take some time, this will be an async operation. When the address info
+ * is ready the @c host_info_cb will called with the host's address info.
+ * If an error happens or it was not possible to fetch the host address
+ * information, @c addrs_list will be set to @c NULL.
+ * The list @c addrs_list will contains a set of #sol_network_link_addr.
+ *
+ * @param hostname The hostname to get the address info.
+ * @param family The family the returned addresses should be, pass SOL_NETWORK_FAMILY_UNSPEC
+ * to match them all.
+ * @param host_info_cb A callback to be called with the address list.
+ * @param data Data to @c host_info_cb.
+ * @return A handle to a hostname or @c NULL on error.
+ * @see sol_network_cancel_get_hostname_address_info()
+ * @see #sol_network_family
+ */
+struct sol_network_hostname_handle *
+sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
+    enum sol_network_family family, void (*host_info_cb)(void *data,
+    const struct sol_str_slice hostname, const struct sol_vector *addrs_list),
+    const void *data);
+
+/**
+ * @brief Cancels a request to get the hostname info.
+ *
+ * @param handle The handle returned by #sol_network_get_hostname_address_info
+ * @return 0 on success, -errno on error.
+ * @see sol_network_get_hostname_address_info()
+ */
+int sol_network_cancel_get_hostname_address_info(struct sol_network_hostname_handle *handle);
 
 /**
  * @}

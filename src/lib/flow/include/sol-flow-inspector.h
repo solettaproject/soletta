@@ -62,8 +62,8 @@ extern "C" {
  */
 struct sol_flow_inspector {
 #ifndef SOL_NO_API_VERSION
-    unsigned long api_version; /**< @brief API version */
-#define SOL_FLOW_INSPECTOR_API_VERSION (1UL)
+    uint16_t api_version; /**< @brief API version */
+#define SOL_FLOW_INSPECTOR_API_VERSION (1)
 #endif
     /**
      * @brief Callback to trigger when a node is open.

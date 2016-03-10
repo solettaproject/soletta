@@ -38,7 +38,7 @@
 # storage does not support 'not previously saved value', as we only get a bunch
 # of zeros and have no way to know if they mean something or not.
 
-## TEST-PRECONDITION truncate -s0 memmap-test.bin
+## TEST-PRECONDITION dd if=/dev/zero of=memmap-test.bin bs=256 count=1
 ## TEST-SKIP-COMPILE This test uses some files, but path resolution is not decided yet
 
 int(constant/int:value=-12)

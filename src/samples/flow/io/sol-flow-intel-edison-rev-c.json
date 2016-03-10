@@ -1,0 +1,33 @@
+{
+ "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+ "nodetypes": [
+  {
+   "name": "Led1",
+   "options": {
+    "pin": "3",
+    "period": 1020408,
+    "duty_cycle": 510204
+   },
+   "type": "pwm"
+  },
+  {
+   "name": "Led2",
+   "options": {
+    "pin": "5",
+    "period": 2040816,
+    "duty_cycle": 0,
+    "enabled": true
+   },
+   "type": "pwm"
+  },
+  {
+   "name": "Servo",
+   "options": {
+    "duty_cycle_range": "min:544|max:2400",
+    "period": "22000",
+    "pin": "3"
+   },
+   "type": "servo-motor/controller"
+  }
+ ]
+}

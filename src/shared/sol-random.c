@@ -32,7 +32,7 @@
 
 #include <errno.h>
 #include <sol-log.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <time.h>
 
 #ifdef SOL_PLATFORM_LINUX
@@ -43,7 +43,7 @@
 #endif
 
 #include "sol-random.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct sol_random {
     const struct sol_random_impl *impl;
@@ -118,7 +118,7 @@ static bool
 engine_mt19937_init(struct sol_random *generic, uint64_t seed)
 {
     struct sol_random_mt19937 *engine = (struct sol_random_mt19937 *)generic;
-    const size_t state_array_size = ARRAY_SIZE(engine->state);
+    const size_t state_array_size = SOL_UTIL_ARRAY_SIZE(engine->state);
     size_t i;
 
     if (!seed)
@@ -136,7 +136,7 @@ static uint32_t
 engine_mt19937_generate_uint32(struct sol_random *generic)
 {
     struct sol_random_mt19937 *engine = (struct sol_random_mt19937 *)generic;
-    const size_t state_array_size = ARRAY_SIZE(engine->state);
+    const size_t state_array_size = SOL_UTIL_ARRAY_SIZE(engine->state);
     uint32_t y;
 
     if (engine->index == 0) {

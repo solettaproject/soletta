@@ -42,101 +42,17 @@
 #include <systemd/sd-journal.h>
 #endif
 
-#include "sol-str-table.h"
 #include "sol-log-impl.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 
 static pid_t _main_pid;
-static struct sol_str_table *_env_levels = NULL;
-static char *_env_levels_str = NULL;
 
 #ifdef PTHREAD
 #include <pthread.h>
 static pthread_t _main_thread;
 static pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
-
-static bool
-_level_str_parse(const char *buf, size_t buflen, uint8_t *storage)
-{
-    int16_t found;
-    static const struct sol_str_table table[] = {
-        SOL_STR_TABLE_ITEM("CRI",      SOL_LOG_LEVEL_CRITICAL),
-        SOL_STR_TABLE_ITEM("CRIT",     SOL_LOG_LEVEL_CRITICAL),
-        SOL_STR_TABLE_ITEM("CRITICAL", SOL_LOG_LEVEL_CRITICAL),
-        SOL_STR_TABLE_ITEM("DBG",      SOL_LOG_LEVEL_DEBUG),
-        SOL_STR_TABLE_ITEM("DEBUG",    SOL_LOG_LEVEL_DEBUG),
-        SOL_STR_TABLE_ITEM("ERR",      SOL_LOG_LEVEL_ERROR),
-        SOL_STR_TABLE_ITEM("ERROR",    SOL_LOG_LEVEL_ERROR),
-        SOL_STR_TABLE_ITEM("INF",      SOL_LOG_LEVEL_INFO),
-        SOL_STR_TABLE_ITEM("INFO",     SOL_LOG_LEVEL_INFO),
-        SOL_STR_TABLE_ITEM("WARN",     SOL_LOG_LEVEL_WARNING),
-        SOL_STR_TABLE_ITEM("WARNING",  SOL_LOG_LEVEL_WARNING),
-        SOL_STR_TABLE_ITEM("WRN",      SOL_LOG_LEVEL_WARNING),
-        { }
-    };
-
-    if (!sol_str_table_lookup(table, SOL_STR_SLICE_STR(buf, buflen), &found))
-        return false;
-    *storage = found;
-    return true;
-}
-
-static bool
-_int32_parse(const char *str, size_t size, int32_t *storage)
-{
-    int64_t value = 0;
-    size_t i;
-    bool negative = false;
-
-    errno = 0;
-    for (i = 0; i < size; i++) {
-        const char c = str[i];
-        if (i == 0 && c == '-') {
-            negative = true;
-            continue;
-        }
-
-        if (c < '0' || c > '9')
-            break;
-        value = (value * 10) + (c - '0');
-        if (value > INT32_MAX) {
-            errno = ERANGE;
-            return false;
-        }
-    }
-    if (i == 0) {
-        errno = EINVAL;
-        return false;
-    }
-    if (negative) {
-        value = -value;
-        if (value < INT32_MIN) {
-            errno = ERANGE;
-            return false;
-        }
-    }
-    *storage = value;
-    return true;
-}
-
-static bool
-_level_parse(const char *str, size_t size, uint8_t *storage)
-{
-    int32_t i;
-    uint8_t level = 0;
-
-    if (size == 0)
-        return false;
-
-    if (_int32_parse(str, size, &i))
-        level = i;
-    else if (!_level_str_parse(str, size, &level))
-        return false;
-
-    *storage = level;
-    return true;
-}
 
 static bool
 _bool_parse(const char *str, size_t size, bool *storage)
@@ -164,89 +80,13 @@ _bool_parse(const char *str, size_t size, bool *storage)
     return true;
 }
 
-static bool
-_levels_parse(const char *str, size_t size)
-{
-    const char *str_end = str + size;
-    unsigned int count = 0;
-    struct sol_str_table *itr;
-    const char *p, *e;
-
-    for (p = str; p < str_end; p++) {
-        if (*p == ',')
-            count++;
-    }
-    if (p > str)
-        count++;
-
-    free(_env_levels);
-    free(_env_levels_str);
-    if (count == 0) {
-        _env_levels = NULL;
-        _env_levels_str = NULL;
-        return false;
-    }
-
-    _env_levels = malloc((count + 1) * sizeof(*_env_levels));
-    if (!_env_levels) {
-        _env_levels_str = NULL;
-        return false;
-    }
-
-    _env_levels_str = strndup(str, size);
-    if (!_env_levels_str) {
-        free(_env_levels);
-        _env_levels = NULL;
-        _env_levels_str = NULL;
-        return false;
-    }
-
-    itr = _env_levels;
-    e = NULL;
-    str = _env_levels_str;
-    str_end = str + size;
-    for (p = str;; p++) {
-        if (p < str_end && *p == ':')
-            e = p;
-        else if (p == str_end || *p == ',') {
-            if (e && str + 1 < e && e + 1 < p) {
-                uint8_t val;
-                itr->key = str;
-                itr->len = e - str;
-                if (_level_parse(e + 1, p - e - 1, &val)) {
-                    itr->val = val;
-                    itr++;
-                }
-            }
-
-            if (p == str_end)
-                break;
-            str = p + 1;
-            e = NULL;
-        }
-    }
-
-    if (itr == _env_levels) {
-        free(_env_levels);
-        free(_env_levels_str);
-        _env_levels = NULL;
-        _env_levels_str = NULL;
-        return false;
-    }
-
-    itr->key = NULL;
-    itr->len = 0;
-    itr->val = 0;
-    return true;
-}
-
 static void
 _env_level_get(const char *envvar, uint8_t *storage)
 {
     const char *s = getenv(envvar);
 
     if (!s) return;
-    _level_parse(s, strlen(s), storage);
+    sol_log_level_parse(s, strlen(s), storage);
 }
 
 static void
@@ -264,16 +104,7 @@ _env_levels_load(void)
     const char *s = getenv("SOL_LOG_LEVELS");
 
     if (!s) return;
-    _levels_parse(s, strlen(s));
-}
-
-static void
-_env_levels_unload(void)
-{
-    free(_env_levels);
-    free(_env_levels_str);
-    _env_levels = NULL;
-    _env_levels_str = NULL;
+    sol_log_levels_parse(s, strlen(s));
 }
 
 static void
@@ -285,13 +116,13 @@ _bool_parse_wrapper(const char *str, size_t size, void *data)
 static void
 _level_parse_wrapper(const char *str, size_t size, void *data)
 {
-    _level_parse(str, size, data);
+    sol_log_level_parse(str, size, data);
 }
 
 static void
 _levels_parse_wrapper(const char *str, size_t size, void *data)
 {
-    _levels_parse(str, size);
+    sol_log_levels_parse(str, size);
 }
 
 static void
@@ -318,7 +149,7 @@ _kcmdline_parse_var(const char *start, size_t len)
     const struct spec *itr, *itr_end;
 
     itr = specs;
-    itr_end = itr + ARRAY_SIZE(specs);
+    itr_end = itr + SOL_UTIL_ARRAY_SIZE(specs);
     for (; itr < itr_end; itr++) {
         if (itr->prefixlen + 1 < len &&
             memcmp(itr->prefix, start, itr->prefixlen) == 0 &&
@@ -446,7 +277,6 @@ sol_log_impl_init(void)
 void
 sol_log_impl_shutdown(void)
 {
-    _env_levels_unload();
     _main_pid = 0;
 #ifdef PTHREAD
     _main_thread = 0;
@@ -477,19 +307,7 @@ sol_log_impl_unlock(void)
 #endif
 }
 
-void
-sol_log_impl_domain_init_level(struct sol_log_domain *domain)
-{
-    int16_t level = _global_domain.level;
-
-    if (_env_levels)
-        sol_str_table_lookup(_env_levels,
-            sol_str_slice_from_str(domain->name),
-            &level);
-
-    domain->level = level;
-}
-
+SOL_ATTR_PRINTF(7, 0)
 void
 sol_log_impl_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
 {

@@ -42,7 +42,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "sol-mainloop.h"
+#include "soletta.h"
 #include "sol-http.h"
 #include "sol-http-server.h"
 

@@ -1,7 +1,20 @@
-check: $(SOL_LIB_OUTPUT) $(tests-out) $(modules-out)
+tests: $(SOL_LIB_OUTPUT) $(tests-out) $(modules-out)
+
+CHECK_DEPS := tests
+ifneq ($(USE_NODEJS),)
+CHECK_DEPS += check-bindings-nodejs
+endif
+
+check: $(CHECK_DEPS)
 	$(Q)$(PYTHON) $(TEST_SUITE_RUN_SCRIPT) --tests="$(tests-out)"
 
-PHONY += check
+PHONY += tests check
+
+#GLIB cflags and ldflags are used here due glib-integration that includes glib headers directly
+check-cpp: $(SOL_LIB_OUTPUT) $(HEADERS_CC)
+	$(HOSTCPP) -std=gnu++11 -Wno-attributes $(GLIB_CFLAGS)  $(addprefix -I,$(HEADERDIRS)) $(HEADERS_CC) $(SOL_LIB_OUTPUT) $(GLIB_LDFLAGS) -o $(build_stagedir)bin/cpp/headers
+
+PHONY += check-cpp
 
 ifeq (y,$(FBP_RUNNER))
 check-fbp: $(SOL_LIB_OUTPUT) $(SOL_FBP_RUNNER_BIN) $(modules-out)
@@ -94,7 +107,7 @@ check-stub: $(SOL_LIB_OUTPUT) $(NODE_TYPE_STUB_GEN_SCRIPT) $(NODE_TYPE_SCHEMA) $
 	$(Q)$(TARGETCC) $(MOD_CFLAGS) \
 		-Wno-unused-variable -Wno-unused-but-set-variable \
 		-Wno-unused-function -Wno-old-style-definition -Wno-strict-prototypes \
-		$(NODE_TYPE_STUB_GEN_DIR)dummy.c -shared \
+		$(NODE_TYPE_STUB_GEN_DIR)dummy.c -shared $(SOL_LIB_OUTPUT) \
 		-o $(NODE_TYPE_STUB_GEN_DIR)dummy.so
 
 PHONY += check-stub
@@ -177,3 +190,27 @@ cheat-sheet:
 endif
 
 PHONY += cheat-sheet
+
+ifneq ($(USE_NODEJS),)
+
+bins-out += bindings-nodejs
+NODE_GYP=$(NODE_GYP_PATH)/node-gyp
+
+bindings-nodejs: $(SOL_LIB_OUTPUT)
+	# Install dependencies without building the package
+	$(Q) $(NODEJS_NPM) install --ignore-scripts
+
+	# Build the package without clobbering build/
+	$(Q) \
+		SOLETTA_CFLAGS="$(addprefix -I,$(abspath $(HEADERDIRS)))" \
+		SOLETTA_LIBS="$(FIND_LIBRARY_LDFLAGS)" \
+               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) configure && \
+               SOLETTA_CFLAGS="$${SOLETTA_CFLAGS}" SOLETTA_LIBS="$${SOLETTA_LIBS}" $(NODE_GYP) build
+
+PHONY += bindings-nodejs
+
+check-bindings-nodejs: bindings-nodejs
+	node $(NODEJS_ROOT)/tests/suite.js --ldPreload="$(LIB_ASAN_PATH)"
+PHONY += check-bindings-nodejs
+
+endif #neq($(USE_NODEJS),)

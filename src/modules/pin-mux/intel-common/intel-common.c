@@ -33,9 +33,12 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#define SOL_LOG_DOMAIN &_intel_mux_log_domain
+
 #include "intel-common.h"
 #include "sol-log-internal.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 
 SOL_LOG_INTERNAL_DECLARE(_intel_mux_log_domain, "intel-mux");
 
@@ -110,7 +113,7 @@ _set_gpio(uint32_t pin, enum sol_gpio_direction dir, int drive, bool val)
     // you used it and we have no way of differentiate those. So its ok to fail
     // to write
     len = snprintf(path, sizeof(path), BASE "/gpio%d/drive", pin);
-    if (len < 0 || len > PATH_MAX || stat(path, &st) == -1)
+    if (len < 0 || len >= PATH_MAX || stat(path, &st) == -1)
         goto end;
 
     switch (drive) {
@@ -141,7 +144,7 @@ _set_mode(uint32_t pin, int mode)
     char mode_str[] = "mode0";
 
     len = snprintf(path, sizeof(path), MODE_PATH, pin);
-    if (len < 0 || len > PATH_MAX || stat(path, &st) == -1)
+    if (len < 0 || len >= PATH_MAX || stat(path, &st) == -1)
         return -EINVAL;
 
     mode_str[4] = '0' + (mode - PIN_MODE_0);
@@ -149,8 +152,8 @@ _set_mode(uint32_t pin, int mode)
     return sol_util_write_file(path, "%s", mode_str);
 }
 
-static int
-_apply_mux_desc(struct mux_description *desc, unsigned int mode)
+int
+apply_mux_desc(struct mux_description *desc, unsigned int mode)
 {
     int ret;
 
@@ -259,7 +262,7 @@ mux_set_aio(const int device, const int pin, const struct mux_controller *ctl_li
     if (pin >= (int)ctl->len || !ctl->recipe[pin])
         return 0;
 
-    return _apply_mux_desc(ctl->recipe[pin], MODE_ANALOG);
+    return apply_mux_desc(ctl->recipe[pin], MODE_ANALOG);
 }
 
 int
@@ -269,7 +272,7 @@ mux_set_gpio(const uint32_t pin, const enum sol_gpio_direction dir,
     if (pin >= s || !desc_list[pin])
         return 0;
 
-    return _apply_mux_desc(desc_list[pin], dir == SOL_GPIO_DIR_OUT ?
+    return apply_mux_desc(desc_list[pin], dir == SOL_GPIO_DIR_OUT ?
         MODE_GPIO_OUTPUT : MODE_GPIO_INPUT_PULLUP);
 }
 
@@ -281,12 +284,12 @@ mux_set_i2c(const uint8_t bus, struct mux_description * (*const desc_list)[2], c
     if (bus >= s || (!desc_list[bus][0] && !desc_list[bus][1]))
         return 0;
 
-    ret = _apply_mux_desc(desc_list[bus][0], MODE_I2C);
+    ret = apply_mux_desc(desc_list[bus][0], MODE_I2C);
 
     if (ret < 0)
         return ret;
 
-    return _apply_mux_desc(desc_list[bus][1], MODE_I2C);
+    return apply_mux_desc(desc_list[bus][1], MODE_I2C);
 }
 
 int
@@ -311,5 +314,5 @@ mux_set_pwm(const int device, const int channel, const struct mux_controller *ct
     if (channel >= (int)ctl->len || !ctl->recipe[channel])
         return 0;
 
-    return _apply_mux_desc(ctl->recipe[channel], MODE_PWM);
+    return apply_mux_desc(ctl->recipe[channel], MODE_PWM);
 }

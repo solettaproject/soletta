@@ -41,7 +41,7 @@
 #include "sol-bus.h"
 #include "sol-mainloop.h"
 #include "sol-platform-impl.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #define SERVICE_NAME_OWNER_MATCH "type='signal',"                   \
@@ -85,9 +85,9 @@ struct sol_bus_client {
     sd_bus_slot *properties_changed;
     sd_bus_slot *name_owner_slot;
     void (*connect)(void *data, const char *unique);
-    void *connect_data;
+    const void *connect_data;
     void (*disconnect)(void *data);
-    void *disconnect_data;
+    const void *disconnect_data;
 };
 
 static struct ctx _ctx;
@@ -163,7 +163,7 @@ event_create_source(sd_event *event)
         on_sd_event_fd, ctx);
     SOL_NULL_CHECK_GOTO(ctx->fd_handler, error_fd);
 
-    source = sol_mainloop_source_new(&source_type, ctx);
+    source = sol_mainloop_source_add(&source_type, ctx);
     SOL_NULL_CHECK_GOTO(source, error_source);
 
     return source;
@@ -557,10 +557,18 @@ sol_bus_map_cached_properties(struct sol_bus_client *client,
     SOL_NULL_CHECK(t, -ENOMEM);
 
     t->iface = strdup(iface);
-    SOL_NULL_CHECK_GOTO(t->iface, fail);
+    if (SOL_UNLIKELY(!t->iface)) {
+        r = -errno;
+        SOL_WRN("t->iface == NULL");
+        goto fail;
+    }
 
     t->path = strdup(path);
-    SOL_NULL_CHECK_GOTO(t->path, fail);
+    if (SOL_UNLIKELY(!t->path)) {
+        r = -errno;
+        SOL_WRN("t->path == NULL");
+        goto fail;
+    }
 
     t->properties = property_table;
     t->data = data;
@@ -645,12 +653,12 @@ name_owner_changed(sd_bus_message *m, void *userdata, sd_bus_error *ret_error)
         /* Assuming that when a name is replaced, calling 'connected()' is
          * the right thing to do.
          */
-        client->connect(client->connect_data, new);
+        client->connect((void *)client->connect_data, new);
         return 0;
     }
 
     if (client->disconnect)
-        client->disconnect(client->disconnect_data);
+        client->disconnect((void *)client->disconnect_data);
 
     return 0;
 }
@@ -875,7 +883,7 @@ get_name_owner_reply_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_err
     SOL_INT_CHECK(r, < 0, -EINVAL);
 
     if (client->connect)
-        client->connect(client->connect_data, unique);
+        client->connect((void *)client->connect_data, unique);
 
     return 0;
 }
@@ -883,7 +891,7 @@ get_name_owner_reply_cb(sd_bus_message *m, void *userdata, sd_bus_error *ret_err
 SOL_API int
 sol_bus_client_set_connect_handler(struct sol_bus_client *client,
     void (*connect)(void *data, const char *unique),
-    void *data)
+    const void *data)
 {
     SOL_NULL_CHECK(client, -EINVAL);
 
@@ -908,7 +916,7 @@ sol_bus_client_set_connect_handler(struct sol_bus_client *client,
 SOL_API int
 sol_bus_client_set_disconnect_handler(struct sol_bus_client *client,
     void (*disconnect)(void *data),
-    void *data)
+    const void *data)
 {
     SOL_NULL_CHECK(client, -EINVAL);
 

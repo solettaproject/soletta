@@ -49,7 +49,7 @@
 #include "string-format.h"
 SOL_LOG_INTERNAL_DECLARE(_string_format_log_domain, "string-format");
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct format_spec_data {
     ssize_t width;
@@ -781,7 +781,7 @@ append_number(struct sol_buffer *out,
             for (t = 0; t < spec->n_prefix; t++) {
                 char c = *(char *)sol_buffer_at(out, pos + t);
 
-                c = toupper(c);
+                c = toupper((uint8_t)c);
                 write_char(out, pos + t, c);
             }
         }
@@ -814,7 +814,7 @@ append_number(struct sol_buffer *out,
         for (t = 0; t < spec->n_grouped_digits; t++) {
             char c = *(char *)sol_buffer_at(out, pos + t);
 
-            c = toupper(c);
+            c = toupper((uint8_t)c);
             write_char(out, pos + t, c);
         }
     }
@@ -1152,7 +1152,7 @@ change_decimal_from_locale_to_dot(struct sol_buffer *buffer)
 
         if (*p == '+' || *p == '-')
             p++;
-        while (isdigit(*p))
+        while (isdigit((uint8_t)*p))
             p++;
         if (strncmp(p, decimal_point, decimal_point_len) == 0) {
             *p = '.';
@@ -1198,7 +1198,7 @@ ensure_minimum_exponent_length(struct sol_buffer *buffer)
 
         /* Find the end of the exponent, keeping track of leading
            zeros. */
-        while (*p && isdigit(*p)) {
+        while (*p && isdigit((uint8_t)*p)) {
             if (in_leading_zeros && *p == '0')
                 ++leading_zero_cnt;
             if (*p != '0')
@@ -1261,7 +1261,7 @@ remove_trailing_zeros(struct sol_buffer *buffer)
     if (*p == '-' || *p == '+')
         /* Skip leading sign, if present */
         ++p;
-    while (isdigit(*p))
+    while (isdigit((uint8_t)*p))
         ++p;
 
     /* if there's no decimal point there's nothing to do */
@@ -1269,7 +1269,7 @@ remove_trailing_zeros(struct sol_buffer *buffer)
         return 0;
 
     /* scan any digits after the point */
-    while (isdigit(*p))
+    while (isdigit((uint8_t)*p))
         ++p;
     old_fraction_end = p;
 
@@ -1317,12 +1317,12 @@ ensure_decimal_point(struct sol_buffer *buffer, int precision)
     if (*p == '-' || *p == '+')
         ++p;
     digits_start = p;
-    while (*p && isdigit(*p))
+    while (*p && isdigit((uint8_t)*p))
         ++p;
     digit_count = (int)(p - digits_start);
 
     if (*p == '.') {
-        if (isdigit(*(p + 1))) {
+        if (isdigit((uint8_t)*(p + 1))) {
             /* Nothing to do, we already have a decimal point and a
                digit after it */
         } else {
@@ -1444,6 +1444,7 @@ ascii_format_double(struct sol_buffer *buffer,
         format = tmp_format;
     }
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
     /* Have snprintf do the hard work */
     r = sol_buffer_append_printf(buffer, format, d);
@@ -1552,7 +1553,7 @@ double_to_buffer(double val,
         /* Convert to upper case. */
         char *p1;
         for (p1 = (char *)sol_buffer_at(out, 0); *p1; p1++)
-            *p1 = toupper(*p1);
+            *p1 = toupper((uint8_t)*p1);
     }
 
     if (type)
@@ -1580,7 +1581,7 @@ parse_number(char *s,
 {
     ssize_t remainder;
 
-    while (pos < end && isdigit(s[pos]))
+    while (pos < end && isdigit((uint8_t)s[pos]))
         ++pos;
     remainder = pos;
 
@@ -2270,6 +2271,7 @@ do_integer_markup(struct sol_flow_node *node,
     bool field_present;
     int result;
 
+    SOL_LOG_INTERNAL_INIT_ONCE;
     auto_number_init(&auto_number);
     iter = SOL_STR_SLICE_STR(format, strlen(format));
 
@@ -2344,6 +2346,7 @@ do_float_markup(struct sol_flow_node *node,
     bool field_present;
     int result;
 
+    SOL_LOG_INTERNAL_INIT_ONCE;
     auto_number_init(&auto_number);
 
     iter = SOL_STR_SLICE_STR(format, strlen(format));

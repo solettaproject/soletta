@@ -46,7 +46,8 @@
 #include "sol-gpio.h"
 #include "sol-macros.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");
 
@@ -93,7 +94,7 @@ _gpio_export(uint32_t gpio, bool unexport)
         return true;
 
     len = snprintf(gpio_dir, sizeof(gpio_dir), GPIO_BASE "/gpio%u", gpio);
-    if (len < 0 || len > PATH_MAX)
+    if (len < 0 || len >= PATH_MAX)
         return false;
 
     /* busywait for the exported gpio's sysfs entry to be created. It's
@@ -133,7 +134,7 @@ _gpio_open_fd(struct sol_gpio *gpio, enum sol_gpio_direction dir)
     }
 
     len = snprintf(path, sizeof(path), GPIO_BASE "/gpio%u/value", gpio->pin);
-    if (len < 0 || len > PATH_MAX)
+    if (len < 0 || len >= PATH_MAX)
         return -ENAMETOOLONG;
 
     gpio->fp = fopen(path, mode);
@@ -197,6 +198,7 @@ _gpio_in_config(struct sol_gpio *gpio, const struct sol_gpio_config *config, int
         mode_str = "both";
         break;
     case SOL_GPIO_EDGE_NONE:
+        SOL_INF("gpio #%u: Trigger mode set to 'none': events will never trigger.", gpio->pin);
         return 0;
     default:
         SOL_WRN("gpio #%u: Unsupported edge mode '%d'", gpio->pin, trig);
@@ -215,8 +217,13 @@ _gpio_in_config(struct sol_gpio *gpio, const struct sol_gpio_config *config, int
                 gpio->pin);
             goto timeout_mode;
         }
-        gpio->irq.fd_watch = sol_fd_add(fd, SOL_FD_FLAGS_PRI, _gpio_on_event,
-            gpio);
+
+        gpio->irq.fd_watch = sol_fd_add(fd, SOL_FD_FLAGS_PRI, _gpio_on_event, gpio);
+        if (!gpio->irq.fd_watch) {
+            SOL_WRN("gpio #%u: could set edge mode but failed to set file watcher, "
+                "falling back to timeout mode", gpio->pin);
+            goto timeout_mode;
+        }
 
         return 0;
     }
@@ -298,7 +305,7 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
             "expected version is '%u'",
             config->api_version, SOL_GPIO_CONFIG_API_VERSION);

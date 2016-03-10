@@ -36,7 +36,9 @@
 # https://github.com/Seeed-Studio/Sketchbook_Starter_Kit_for_Arduino.git
 
 # Our range is 0-4096 for sound sensor's analog reading, so the
-# original 50 value maps to ~200
+# original 50 value maps to ~200. Also the ambient noise is very important
+# for this sample, as the sensor itself. So you may need to change the
+# threshold value to match your ambient/sensor combination.
 
 threshold(constant/int:value=200)
 

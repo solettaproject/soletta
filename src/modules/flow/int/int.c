@@ -37,7 +37,7 @@
 #include "sol-str-table.h"
 #include "sol-mainloop.h"
 
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <limits.h>
 #include <errno.h>
 
@@ -517,6 +517,9 @@ irange_constrain_open(struct sol_flow_node *node, void *data, const struct sol_f
     struct irange_constrain_data *mdata = data;
     const struct sol_flow_node_type_int_constrain_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_INT_CONSTRAIN_OPTIONS_API_VERSION,
+        -EINVAL);
     opts = (const struct sol_flow_node_type_int_constrain_options *)options;
     mdata->range = opts->range;
     mdata->use_input_range = opts->use_input_range;

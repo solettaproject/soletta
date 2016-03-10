@@ -231,11 +231,9 @@ on_sig_child(const siginfo_t *info)
     struct child_exit_status *cs;
 
     SOL_DBG("child %" PRIu64 " exited with status %d, "
-        "stime=%" PRIu64 ", utime=%" PRIu64 ", uid=%" PRIu64,
+        ", uid=%" PRIu64,
         (uint64_t)info->si_pid,
         info->si_status,
-        (uint64_t)info->si_stime,
-        (uint64_t)info->si_utime,
         (uint64_t)info->si_uid);
 
     cs = find_child_exit_status(info->si_pid);
@@ -258,15 +256,15 @@ static void
 on_sig_debug(const siginfo_t *info)
 {
     if (SOL_LOG_LEVEL_POSSIBLE(SOL_LOG_LEVEL_DEBUG)) {
-        char errmsg[1024] = "Success";
+        SOL_BUFFER_DECLARE_STATIC(errmsg, 1024);
 
         if (info->si_errno)
-            sol_util_strerror(info->si_errno, errmsg, sizeof(errmsg));
+            sol_util_strerror(info->si_errno, &errmsg);
 
         SOL_DBG("got signal %d, errno %d (%s), code %d. ignored.",
             info->si_signo,
             info->si_errno,
-            errmsg,
+            info->si_errno ? "Success" : (char *)errmsg.data,
             info->si_code);
     }
 }
@@ -289,7 +287,7 @@ static const struct siginfo_handler siginfo_handler[] = {
     SIG(SIGUSR2, NULL),
 #undef SIG
 };
-#define SIGINFO_HANDLER_COUNT ARRAY_SIZE(siginfo_handler)
+#define SIGINFO_HANDLER_COUNT SOL_UTIL_ARRAY_SIZE(siginfo_handler)
 
 static struct sigaction sa_orig[SIGINFO_HANDLER_COUNT];
 static sigset_t sig_blockset, sig_origset;
@@ -363,6 +361,8 @@ static void
 signals_process(void)
 {
     unsigned char i;
+    struct sol_child_watch_posix *one_child;
+    uint16_t vector_index;
 
     SIGPROCMASK(SIG_BLOCK, &sig_blockset, NULL);
 
@@ -376,14 +376,14 @@ signals_process(void)
 
     SIGPROCMASK(SIG_UNBLOCK, &sig_blockset, NULL);
 
-    do {
+    SOL_PTR_VECTOR_FOREACH_IDX (&child_watch_vector, one_child, vector_index) {
         int status = 0;
-        pid_t pid = waitpid(-1, &status, WNOHANG);
-        if (pid <= 0)
-            break;
-        SOL_DBG("collected finished pid=%" PRIu64 ", status=%d",
-            (uint64_t)pid, status);
-    } while (1);
+        pid_t pid = waitpid(one_child->pid, &status, WNOHANG);
+        if (pid > 0) {
+            SOL_DBG("collected finished pid=%" PRIu64 ", status=%d",
+                (uint64_t)pid, status);
+        }
+    }
 }
 
 int
@@ -595,7 +595,7 @@ fd_cleanup(void)
     if (!fd_pending_deletion)
         return;
 
-    // Walk backwards so deletion doesn't impact the indices.
+    // Walk backwards so deletion doesn't impact the index.
     SOL_PTR_VECTOR_FOREACH_REVERSE_IDX (&fd_vector, fd, i) {
         if (!fd->remove_me)
             continue;
@@ -609,9 +609,16 @@ fd_cleanup(void)
 }
 
 #ifndef HAVE_PPOLL
+int ppoll(struct pollfd *, nfds_t, const struct timespec *, const sigset_t *);
+
 int
 ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts, const sigset_t *sigmask)
 {
+#ifdef HAVE_POLLTS
+    /* Some BSDs have pollts, which is the same as Linux's ppoll */
+    return pollts(fds, nfds, timeout_ts, sigmask);
+#else
+    /* Fall back to POSIX poll */
     int timeout_ms, ret;
     sigset_t origmask;
 
@@ -620,6 +627,7 @@ ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts, const 
     else
         timeout_ms = -1;
 
+    /* Warning: non-atomic! */
     if (sigmask)
         sigprocmask(SIG_SETMASK, sigmask, &origmask);
 
@@ -629,6 +637,7 @@ ppoll(struct pollfd *fds, nfds_t nfds, const struct timespec *timeout_ts, const 
         sigprocmask(SIG_SETMASK, &origmask, NULL);
 
     return ret;
+#endif
 }
 #endif
 

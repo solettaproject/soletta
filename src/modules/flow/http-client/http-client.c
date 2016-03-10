@@ -43,9 +43,10 @@
 #include "sol-json.h"
 #include "sol-mainloop.h"
 #include "sol-platform.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-str-table.h"
+#include "sol-flow-internal.h"
 
 struct http_data {
     struct sol_ptr_vector pending_conns;
@@ -97,11 +98,13 @@ struct http_client_node_type {
         struct sol_http_response *response);
 };
 
+#define DOUBLE_STRING_LEN (64)
+
 static int
 set_basic_url_info(struct http_data *mdata, const char *full_uri)
 {
     struct sol_http_url url, base_url;
-    char *new_url;
+    struct sol_buffer new_url = SOL_BUFFER_INIT_EMPTY;
     int r;
 
     r = sol_http_split_uri(sol_str_slice_from_str(full_uri), &url);
@@ -118,7 +121,7 @@ set_basic_url_info(struct http_data *mdata, const char *full_uri)
     SOL_INT_CHECK(r, < 0, r);
 
     free(mdata->url);
-    mdata->url = new_url;
+    mdata->url = sol_buffer_steal(&new_url, NULL);
 
     sol_http_params_clear(&mdata->url_params);
     r = sol_http_decode_params(url.query,
@@ -476,6 +479,8 @@ boolean_process_data(struct sol_flow_node *node,
 {
     bool result;
 
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
     if (!strncasecmp("true", response->content.data, response->content.used))
         result = true;
     else if (!strncasecmp("false", response->content.data, response->content.used))
@@ -522,7 +527,11 @@ static int
 string_process_data(struct sol_flow_node *node,
     struct sol_http_response *response)
 {
-    char *result = strndup(response->content.data, response->content.used);
+    char *result;
+
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
+    result = strndup(response->content.data, response->content.used);
 
     if (result) {
         return sol_flow_send_string_take_packet(node,
@@ -583,6 +592,8 @@ int_process_data(struct sol_flow_node *node,
     struct sol_http_response *response)
 {
     int value;
+
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     errno = 0;
     value = strtol(response->content.data, NULL, 0);
@@ -658,6 +669,8 @@ float_process_data(struct sol_flow_node *node,
 {
     double value;
 
+    SOL_HTTP_RESPONSE_CHECK_API(response, EINVAL);
+
     errno = 0;
     value = sol_util_strtodn(response->content.data, NULL, -1, false);
     if (errno)
@@ -673,25 +686,29 @@ float_post_process(struct sol_flow_node *node, void *data, uint16_t port, uint16
 {
     int r;
     struct sol_drange value;
-    char val[100], min[100], max[100], step[100];
+
+    SOL_BUFFER_DECLARE_STATIC(val, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(step, DOUBLE_STRING_LEN);
 
     r = sol_flow_packet_get_drange(packet, &value);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.val, val, 100);
+    r = sol_json_double_to_str(value.val, &val);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.min, min, 100);
+    r = sol_json_double_to_str(value.min, &min);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.max, max, 100);
+    r = sol_json_double_to_str(value.max, &max);
     SOL_INT_CHECK(r, < 0, r);
 
-    r = sol_json_double_to_str(value.step, step, 100);
+    r = sol_json_double_to_str(value.step, &step);
     SOL_INT_CHECK(r, < 0, r);
 
-    return common_post_process(node, data, "value", val, "min", min,
-        "max", max, "step", step, NULL);
+    return common_post_process(node, data, "value", val.data, "min", min.data,
+        "max", max.data, "step", step.data, NULL);
 }
 
 /*
@@ -706,6 +723,10 @@ generic_open(struct sol_flow_node *node, void *data,
     int r;
     struct sol_flow_node_type_http_client_get_string_options *opts =
         (struct sol_flow_node_type_http_client_get_string_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_STRING_OPTIONS_API_VERSION,
+        -EINVAL);
 
     sol_http_params_init(&mdata->url_params);
 
@@ -750,6 +771,8 @@ get_string_process(struct sol_flow_node *node, struct sol_http_response *respons
 {
     char *result;
 
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
     SOL_DBG("String process - response from: %s", response->url);
     result = strndup(response->content.data, response->content.used);
 
@@ -772,6 +795,8 @@ get_blob_process(struct sol_flow_node *node, struct sol_http_response *response)
     size_t size;
     void *data;
     int r;
+
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     SOL_DBG("Blob process - response from: %s", response->url);
 
@@ -797,6 +822,8 @@ get_json_process(struct sol_flow_node *node, struct sol_http_response *response)
     struct sol_json_scanner object_scanner, array_scanner;
     struct sol_str_slice trimmed_str;
     int r;
+
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
 
     SOL_DBG("Json process - response from: %s", response->url);
 
@@ -944,6 +971,7 @@ request_node_setup_params(struct http_data *data, struct sol_http_params *params
     struct http_request_data *mdata = (struct http_request_data *)data;
     struct sol_http_param_value *param;
     uint16_t i;
+    static const char *key = "blob";
 
     SOL_HTTP_PARAMS_FOREACH_IDX (&mdata->params, param, i) {
         if (!sol_http_param_add(params, *param)) {
@@ -973,7 +1001,7 @@ request_node_setup_params(struct http_data *data, struct sol_http_params *params
     }
 
     if (mdata->content && !sol_http_param_add(params,
-        SOL_HTTP_REQUEST_PARAM_POST_DATA(
+        SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS(key,
         sol_str_slice_from_blob(mdata->content)))) {
         SOL_ERR("Could not set the post parameter");
         return -ENOMEM;
@@ -1048,6 +1076,8 @@ request_node_http_response(void *data,
         return;
     }
 
+    SOL_HTTP_RESPONSE_CHECK_API_VERSION(response);
+
     mem = sol_buffer_steal(&response->content, &buf_size);
 
     blob = sol_blob_new(SOL_BLOB_TYPE_DEFAULT, NULL, mem,
@@ -1109,6 +1139,8 @@ request_node_open(struct sol_flow_node *node, void *data,
     struct sol_flow_node_type_http_client_request_options *opts =
         (struct sol_flow_node_type_http_client_request_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_HTTP_CLIENT_REQUEST_OPTIONS_API_VERSION,
+        -EINVAL);
     SOL_INT_CHECK(opts->timeout, < 0, -EINVAL);
     mdata->timeout = opts->timeout;
 
@@ -1439,6 +1471,9 @@ common_get_open(struct sol_flow_node *node, void *data,
     struct sol_flow_node_type_http_client_get_headers_options *opts =
         (struct sol_flow_node_type_http_client_get_headers_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_GET_HEADERS_OPTIONS_API_VERSION,
+        -EINVAL);
     if (opts->key) {
         mdata->key = strdup(opts->key);
         SOL_NULL_CHECK(mdata->key, -ENOMEM);
@@ -1592,6 +1627,9 @@ create_url_open(struct sol_flow_node *node, void *data,
     struct create_url_data *mdata = data;
     struct sol_flow_node_type_http_client_create_url_options *opts =
         (struct sol_flow_node_type_http_client_create_url_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options, SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->params = SOL_HTTP_REQUEST_PARAMS_INIT;
     SOL_INT_CHECK(opts->port, < 0, -EINVAL);
@@ -1769,7 +1807,7 @@ create_url_create_process(struct sol_flow_node *node, void *data,
 {
     struct create_url_data *mdata = data;
     int r;
-    char *uri;
+    struct sol_buffer uri = SOL_BUFFER_INIT_EMPTY;
     struct sol_http_url url;
 
     url.scheme = sol_str_slice_from_str(mdata->scheme ? : "http");
@@ -1782,9 +1820,9 @@ create_url_create_process(struct sol_flow_node *node, void *data,
 
     r = sol_http_create_uri(&uri, url, &mdata->params);
     SOL_INT_CHECK(r, < 0, r);
-    r = sol_flow_send_string_packet(node,
-        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL__OUT__OUT, uri);
-    free(uri);
+    r = sol_flow_send_string_take_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_CREATE_URL__OUT__OUT,
+        sol_buffer_steal(&uri, NULL));
     return r;
 }
 

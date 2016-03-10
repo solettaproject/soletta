@@ -260,6 +260,33 @@ int sol_http_request_get_interface_address(const struct sol_http_request *reques
     struct sol_network_link_addr *address);
 
 /**
+ * @brief Set the buffer size for a request.
+ *
+ * This function changes the default request's buffer size, it is
+ * used to store the post data. The default value is 4096 bytes.
+ *
+ * @param server The handle got with @c sol_http_server_new
+ * @param buf_size The size of the buffer.
+ *
+ * @return 0 in success, a negative value otherwise.
+ *
+ * @see sol_http_server_get_buffer_size
+ */
+int sol_http_server_set_buffer_size(struct sol_http_server *server, size_t buf_size);
+
+/**
+ * @brief Get the request buffer's size.
+ *
+ * @param server The handle got with @c sol_http_server_new
+ * @param buf_size Variable to get the buffer's size.
+ *
+ * @return 0 in success, a negative value otherwise.
+ *
+ * @see sol_http_server_set_buffer_size
+ */
+int sol_http_server_get_buffer_size(struct sol_http_server *server, size_t *buf_size);
+
+/**
  * @}
  */
 

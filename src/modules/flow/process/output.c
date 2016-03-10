@@ -33,7 +33,8 @@
 #include "common.h"
 
 #include "sol-platform.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 
 #include <fcntl.h>
 #include <unistd.h>

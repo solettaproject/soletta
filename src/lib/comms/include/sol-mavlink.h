@@ -337,7 +337,7 @@ struct sol_mavlink_config {
  *   tcp:localhost:5726
  *   serial:/dev/ttyUSB0
  */
-struct sol_mavlink *sol_mavlink_connect(const char *addr, const struct sol_mavlink_config *config, void *data);
+struct sol_mavlink *sol_mavlink_connect(const char *addr, const struct sol_mavlink_config *config, const void *data);
 
 /**
  * @brief Disconnect from mavlink server

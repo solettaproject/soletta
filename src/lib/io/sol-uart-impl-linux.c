@@ -41,9 +41,10 @@
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-uart.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "uart");
@@ -54,13 +55,13 @@ struct sol_uart {
     int fd;
     struct {
         void *rx_fd_handler;
-        void (*rx_cb)(void *data, struct sol_uart *uart, unsigned char byte_read);
+        void (*rx_cb)(void *data, struct sol_uart *uart, uint8_t byte_read);
         const void *rx_user_data;
 
         void *tx_fd_handler;
-        void (*tx_cb)(void *data, struct sol_uart *uart, unsigned char *tx, int status);
+        void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status);
         const void *tx_user_data;
-        const unsigned char *tx_buffer;
+        const uint8_t *tx_buffer;
         unsigned int tx_length, tx_index;
     } async;
 };
@@ -78,7 +79,7 @@ uart_rx_callback(void *data, int fd, uint32_t active_flags)
         return true;
     }
     if (active_flags & SOL_FD_FLAGS_IN) {
-        unsigned char c; /* Backing storage for next sol_buffer */
+        uint8_t c; /* Backing storage for next sol_buffer */
         struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(&c, sizeof(c),
             SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
         int status = sol_util_fill_buffer(uart->fd, &buf, 1);
@@ -112,7 +113,7 @@ sol_uart_open(const char *port_name, const struct sol_uart_config *config)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_UART_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_UART_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open UART that has unsupported version '%u', "
             "expected version is '%u'",
             config->api_version, SOL_UART_CONFIG_API_VERSION);
@@ -201,7 +202,7 @@ uart_tx_dispatch(struct sol_uart *uart, int status)
     if (!uart->async.tx_cb)
         return;
     uart->async.tx_cb((void *)uart->async.tx_user_data, uart,
-        (unsigned char *)uart->async.tx_buffer, status);
+        (uint8_t *)uart->async.tx_buffer, status);
 }
 
 static bool
@@ -237,7 +238,7 @@ error:
 }
 
 SOL_API bool
-sol_uart_write(struct sol_uart *uart, const unsigned char *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, unsigned char *tx, int status), const void *data)
+sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data)
 {
     SOL_NULL_CHECK(uart, false);
     SOL_EXP_CHECK(uart->async.tx_fd_handler != NULL, false);

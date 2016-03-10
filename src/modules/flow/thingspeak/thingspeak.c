@@ -38,8 +38,9 @@
 #include <stdio.h>
 
 #include <sol-http-client.h>
+#include <sol-macros.h>
 #include <sol-mainloop.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 
 struct talkback {
     char *api_key;
@@ -72,7 +73,7 @@ struct thingspeak_channel_update_data {
 
 #define RESPONSE_CHECK_API(response_, mdata_) \
     do { \
-        if (unlikely(!response_)) { \
+        if (SOL_UNLIKELY(!response_)) { \
             sol_flow_send_error_packet(mdata_->node, EINVAL, \
                 "Error while reaching Thingspeak"); \
             return; \
@@ -402,7 +403,7 @@ thingspeak_channel_update_send(void *data)
         }
     }
 
-    for (i = 0; i < ARRAY_SIZE(mdata->fields); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(mdata->fields); i++) {
         if (!mdata->fields[i])
             continue;
 
@@ -455,7 +456,7 @@ thingspeak_channel_update_field_process(struct sol_flow_node *node,
     int n_field = port - SOL_FLOW_NODE_TYPE_THINGSPEAK_CHANNEL_UPDATE__IN__FIELD;
     const char *field;
 
-    if (n_field < 0 || n_field >= (int)ARRAY_SIZE(mdata->fields)) {
+    if (n_field < 0 || n_field >= (int)SOL_UTIL_ARRAY_SIZE(mdata->fields)) {
         SOL_WRN("Invalid field ID: %d, expecting 0 to 7", n_field);
         return -EINVAL;
     }
@@ -507,7 +508,7 @@ thingspeak_channel_update_close(struct sol_flow_node *node, void *data)
     struct sol_http_client_connection *connection;
     uint16_t i;
 
-    for (i = 0; i < ARRAY_SIZE(mdata->fields); i++)
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(mdata->fields); i++)
         free(mdata->fields[i]);
     free(mdata->status);
 
@@ -543,7 +544,7 @@ thingspeak_channel_update_open(struct sol_flow_node *node, void *data, const str
         return -ENOMEM;
     }
 
-    for (i = 0; i < ARRAY_SIZE(mdata->fields); i++)
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(mdata->fields); i++)
         mdata->fields[i] = NULL;
     mdata->status = NULL;
     mdata->timeout = NULL;

@@ -32,9 +32,13 @@
 
 #pragma once
 
-#include <time.h>
+#include "sol-common-buildopts.h"
 
-#include "sol-util.h"
+#ifndef SOL_PLATFORM_ZEPHYR
+#include <time.h>
+#endif
+
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 struct sol_timeout_common {
@@ -69,8 +73,11 @@ sol_ptr_vector_update(struct sol_ptr_vector *to, struct sol_ptr_vector *from)
     void *itr;
     uint16_t i;
 
-    SOL_PTR_VECTOR_FOREACH_IDX (from, itr, i)
-        sol_ptr_vector_append(to, itr);
+    SOL_PTR_VECTOR_FOREACH_IDX (from, itr, i) {
+        /* FIXME: Handle when it fails properly */
+        (void)sol_ptr_vector_append(to, itr);
+    }
+
     sol_ptr_vector_clear(from);
 #endif
 }

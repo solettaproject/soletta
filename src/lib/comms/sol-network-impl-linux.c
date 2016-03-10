@@ -45,13 +45,16 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <netdb.h>
 #include <unistd.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
-#include "sol-util.h"
+#include "sol-network-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "network");
@@ -62,29 +65,55 @@ struct callback {
     const void *data;
 };
 
+struct sol_network_hostname_handle {
+    char *hostname;
+    enum sol_network_family family;
+    void (*cb)(void *data, const struct sol_str_slice hostname,
+        const struct sol_vector *addrs_list);
+    const void *data;
+};
+
 struct sol_network {
     unsigned int count;
     int nl_socket;
     struct sockaddr_nl nl_addr;
     struct sol_fd *fd;
+    struct sol_timeout *hostname_worker;
 
     struct sol_vector links;
     struct sol_vector callbacks;
+    struct sol_ptr_vector hostname_handles;
 
     int seq;
 };
 
 static struct sol_network *network = NULL;
 
-
 SOL_API const char *
 sol_network_addr_to_str(const struct sol_network_link_addr *addr,
-    char *buf, uint32_t len)
+    struct sol_buffer *buf)
 {
+    const char *r;
+
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
-    return inet_ntop(addr->family, &addr->addr, buf, len);
+    while (1) {
+        int err;
+
+        r = inet_ntop(sol_network_sol_to_af(addr->family), &addr->addr,
+            sol_buffer_at_end(buf), buf->capacity - buf->used);
+
+        if (r || (!r && errno != ENOSPC))
+            break;
+
+        err = sol_buffer_expand(buf, SOL_INET_ADDR_STRLEN);
+        SOL_INT_CHECK(err, < 0, NULL);
+    }
+
+    if (r)
+        buf->used += strlen(r);
+    return r;
 }
 
 SOL_API const struct sol_network_link_addr *
@@ -93,7 +122,7 @@ sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
-    if (inet_pton(addr->family, buf, &addr->addr) != 1)
+    if (inet_pton(sol_network_sol_to_af(addr->family), buf, &addr->addr) != 1)
         return NULL;
     return addr;
 }
@@ -191,7 +220,7 @@ _on_addr_event(struct nlmsghdr *header)
             continue;
 
         SOL_VECTOR_FOREACH_IDX (&link->addrs, addr_itr, idx) {
-            if (addr_itr->family == ifa->ifa_family) {
+            if (sol_network_sol_to_af(addr_itr->family) == ifa->ifa_family) {
                 addr = addr_itr;
                 break;
             }
@@ -201,7 +230,7 @@ _on_addr_event(struct nlmsghdr *header)
             addr = sol_vector_append(&link->addrs);
             SOL_NULL_CHECK(addr);
 
-            addr->family = ifa->ifa_family;
+            addr->family = sol_network_af_to_sol(ifa->ifa_family);
         }
 
         if (ifa->ifa_family == AF_INET)
@@ -234,6 +263,9 @@ _on_event(void *data, int nl_socket, uint32_t cond)
 
     if (cond & (SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP)) {
         SOL_WRN("There is something wrong with the socket");
+        close(network->nl_socket);
+        network->nl_socket = -1;
+        network->fd = NULL;
         return false;
     }
 
@@ -246,6 +278,9 @@ _on_event(void *data, int nl_socket, uint32_t cond)
                 continue;
 
             SOL_WRN("Read netlink error");
+            close(network->nl_socket);
+            network->nl_socket = -1;
+            network->fd = NULL;
             return false;
         }
 
@@ -311,25 +346,22 @@ _netlink_request(int event)
     _on_event(network, network->nl_socket, SOL_FD_FLAGS_IN);
 }
 
-SOL_API int
-sol_network_init(void)
+static int
+sol_network_start_netlink(void)
 {
-    SOL_LOG_INTERNAL_INIT_ONCE;
+    int err;
 
-    if (network != NULL) {
-        network->count++;
+    SOL_NULL_CHECK(network, -ENOENT);
+
+    if (network->fd)
         return 0;
-    }
-
-    network = calloc(1, sizeof(*network));
-    SOL_NULL_CHECK(network, -ENOMEM);
 
     network->seq = 0;
     network->count = 1;
     network->nl_socket = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC | SOCK_NONBLOCK, NETLINK_ROUTE);
     if (network->nl_socket < 0) {
-        SOL_WRN("Socket create failed!");
-        goto err;
+        SOL_WRN("failed to create netlink socket, cannot listen to events or manage the links!");
+        return -errno;
     }
 
     network->nl_addr.nl_family = AF_NETLINK;
@@ -347,32 +379,60 @@ sol_network_init(void)
         _on_event, network);
     if (!network->fd) {
         SOL_WRN("failed to monitor the file descriptor");
+        if (!errno)
+            errno = ENOMEM;
         goto err_bind;
     }
 
-    sol_vector_init(&network->links, sizeof(struct sol_network_link));
-    sol_vector_init(&network->callbacks, sizeof(struct callback));
-
     _netlink_request(RTM_GETLINK);
     _netlink_request(RTM_GETADDR);
-
     return 0;
 
 err_bind:
+    err = -errno;
     close(network->nl_socket);
-err:
-    free(network);
-    network = NULL;
-    return -1;
+    network->nl_socket = -1;
+    return err;
 }
 
-SOL_API void
+int sol_network_init(void);
+void sol_network_shutdown(void);
+
+int
+sol_network_init(void)
+{
+    static struct sol_network _network = {};
+
+    SOL_LOG_INTERNAL_INIT_ONCE;
+
+    if (network != NULL) {
+        network->count++;
+        return 0;
+    }
+
+    network = &_network;
+    network->nl_socket = -1;
+
+    sol_vector_init(&network->links, sizeof(struct sol_network_link));
+    sol_vector_init(&network->callbacks, sizeof(struct callback));
+    sol_ptr_vector_init(&network->hostname_handles);
+
+    return 0;
+}
+
+static void
+hostname_handle_free(struct sol_network_hostname_handle *ctx)
+{
+    free(ctx->hostname);
+    free(ctx);
+}
+
+void
 sol_network_shutdown(void)
 {
-    struct callback *callback;
     struct sol_network_link *link;
-    struct sol_network_link_addr *addr;
     uint16_t idx;
+    struct sol_network_hostname_handle *ctx;
 
     if (!network)
         return;
@@ -384,19 +444,23 @@ sol_network_shutdown(void)
     if (network->fd)
         sol_fd_del(network->fd);
 
-    close(network->nl_socket);
+    if (network->hostname_worker)
+        sol_timeout_del(network->hostname_worker);
+
+    if (network->nl_socket > 0)
+        close(network->nl_socket);
 
     SOL_VECTOR_FOREACH_IDX (&network->links, link, idx) {
         sol_vector_clear(&link->addrs);
     }
 
+    SOL_PTR_VECTOR_FOREACH_IDX (&network->hostname_handles, ctx, idx)
+        hostname_handle_free(ctx);
+
+    sol_ptr_vector_clear(&network->hostname_handles);
     sol_vector_clear(&network->links);
     sol_vector_clear(&network->callbacks);
-    free(network);
     network = NULL;
-
-    (void)addr;
-    (void)callback;
 }
 
 SOL_API bool
@@ -406,8 +470,9 @@ sol_network_subscribe_events(void (*cb)(void *data, const struct sol_network_lin
 {
     struct callback *callback;
 
-    SOL_NULL_CHECK(network, false);
     SOL_NULL_CHECK(cb, false);
+
+    if (sol_network_start_netlink() < 0) return false;
 
     callback = sol_vector_append(&network->callbacks);
     SOL_NULL_CHECK(callback, false);
@@ -443,7 +508,7 @@ sol_network_unsubscribe_events(void (*cb)(void *data, const struct sol_network_l
 SOL_API const struct sol_vector *
 sol_network_get_available_links(void)
 {
-    SOL_NULL_CHECK(network, NULL);
+    if (sol_network_start_netlink() < 0) return NULL;
 
     return &network->links;
 }
@@ -454,15 +519,7 @@ sol_network_link_get_name(const struct sol_network_link *link)
     char name[IFNAMSIZ];
 
     SOL_NULL_CHECK(link, NULL);
-
-#ifndef SOL_NO_API_VERSION
-    if (unlikely(link->api_version != SOL_NETWORK_LINK_API_VERSION)) {
-        SOL_WRN("Couldn't link that has unsupported version '%u', "
-            "expected version is '%u'",
-            link->api_version, SOL_NETWORK_LINK_API_VERSION);
-        return NULL;
-    }
-#endif
+    SOL_NETWORK_LINK_CHECK_VERSION(link, NULL);
 
     if (if_indextoname(link->index, name))
         return strdup(name);
@@ -483,7 +540,7 @@ sol_network_link_up(uint16_t link_index)
     uint8_t mode = IN6_ADDR_GEN_MODE_EUI64;
     size_t buf_size = sizeof(buf);;
 
-    SOL_NULL_CHECK(network, false);
+    if (sol_network_start_netlink() < 0) return false;
 
     msg.msg_name = (void *)&snl;
     msg.msg_namelen = sizeof(snl);
@@ -505,12 +562,12 @@ sol_network_link_up(uint16_t link_index)
     ifi->ifi_change = IFF_UP;
     ifi->ifi_flags = IFF_UP;
 
-#define ADD_RTATTR(_attr, _len, _type)                                        \
-    do {                                                                      \
+#define ADD_RTATTR(_attr, _len, _type) \
+    do { \
         SOL_INT_CHECK(NLMSG_ALIGN(h->nlmsg_len) + sizeof(struct rtattr), > buf_size, false); \
         _attr = (struct rtattr *)(((char *)buf) + NLMSG_ALIGN(h->nlmsg_len)); \
-        _attr->rta_type = _type;                                              \
-        _attr->rta_len = _len;                                                \
+        _attr->rta_type = _type; \
+        _attr->rta_len = _len; \
         h->nlmsg_len = NLMSG_ALIGN(h->nlmsg_len) + RTA_ALIGN(_attr->rta_len); \
     } while (0)
 
@@ -540,11 +597,11 @@ sol_network_link_addr_eq(const struct sol_network_link_addr *a, const struct sol
     if (a->family != b->family)
         return false;
 
-    if (a->family == AF_INET) {
+    if (a->family == SOL_NETWORK_FAMILY_INET) {
         addr_a = a->addr.in;
         addr_b = b->addr.in;
         bytes = sizeof(a->addr.in);
-    } else if (a->family == AF_INET6) {
+    } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
         addr_a = a->addr.in6;
         addr_b = b->addr.in6;
         bytes = sizeof(a->addr.in6);
@@ -554,4 +611,139 @@ sol_network_link_addr_eq(const struct sol_network_link_addr *a, const struct sol
     }
 
     return !memcmp(addr_a, addr_b, bytes);
+}
+
+static bool
+hostname_worker(void *data)
+{
+    uint16_t i;
+    struct sol_network_hostname_handle *ctx;
+    int r;
+    struct addrinfo hints = { };
+    uint8_t **base_data = network->hostname_handles.base.data;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&network->hostname_handles, ctx, i) {
+        struct addrinfo *addr_list;
+        struct addrinfo *addr;
+        struct sol_vector sol_addr_list;
+        struct sol_network_link_addr *sol_addr;
+
+        base_data[network->hostname_handles.base.elem_size * i] = NULL;
+
+        sol_vector_init(&sol_addr_list, sizeof(struct sol_network_link_addr));
+        switch (ctx->family) {
+        case SOL_NETWORK_FAMILY_INET:
+            hints.ai_family = AF_INET;
+            break;
+        case SOL_NETWORK_FAMILY_INET6:
+            hints.ai_family = AF_INET6;
+            break;
+        default:
+            hints.ai_family = AF_UNSPEC;
+        }
+
+        r = getaddrinfo(ctx->hostname, NULL, &hints, &addr_list);
+
+        if (r != 0) {
+            SOL_WRN("Could not fetch address info of %s."
+                " Reason: %s", ctx->hostname, gai_strerror(r));
+            goto err_getaddr;
+        }
+
+
+        for (addr = addr_list; addr != NULL; addr = addr->ai_next) {
+
+            sol_addr = sol_vector_append(&sol_addr_list);
+            SOL_NULL_CHECK_GOTO(sol_addr, err_alloc);
+
+            sol_addr->family = sol_network_af_to_sol(addr->ai_family);
+
+            if (addr->ai_family == AF_INET) {
+                memcpy(&sol_addr->addr.in,
+                    &(((struct sockaddr_in *)addr->ai_addr)->sin_addr),
+                    sizeof(sol_addr->addr.in));
+            } else if (addr->ai_family == AF_INET6) {
+                memcpy(&sol_addr->addr.in6,
+                    &(((struct sockaddr_in6 *)addr->ai_addr)->sin6_addr),
+                    sizeof(sol_addr->addr.in6));
+            }
+        }
+
+        freeaddrinfo(addr_list);
+        ctx->cb((void *)ctx->data, sol_str_slice_from_str(ctx->hostname),
+            &sol_addr_list);
+        hostname_handle_free(ctx);
+        sol_vector_clear(&sol_addr_list);
+        continue;
+
+err_alloc:
+        freeaddrinfo(addr_list);
+err_getaddr:
+        ctx->cb((void *)ctx->data, sol_str_slice_from_str(ctx->hostname),
+            NULL);
+        hostname_handle_free(ctx);
+        sol_vector_clear(&sol_addr_list);
+    }
+
+    network->hostname_worker = NULL;
+    sol_ptr_vector_clear(&network->hostname_handles);
+    return false;
+}
+
+SOL_API struct sol_network_hostname_handle *
+sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
+    enum sol_network_family family, void (*host_info_cb)(void *data,
+    const struct sol_str_slice host, const struct sol_vector *addrs_list),
+    const void *data)
+{
+    struct sol_network_hostname_handle *ctx;
+    int r;
+
+    SOL_NULL_CHECK(host_info_cb, NULL);
+    SOL_NULL_CHECK(network, NULL);
+
+    ctx = calloc(1, sizeof(struct sol_network_hostname_handle));
+    SOL_NULL_CHECK(ctx, NULL);
+
+    r = sol_ptr_vector_append(&network->hostname_handles, ctx);
+    SOL_INT_CHECK_GOTO(r, < 0, err_append);
+
+    ctx->hostname = sol_str_slice_to_string(hostname);
+    SOL_NULL_CHECK_GOTO(ctx->hostname, err_hostname);
+
+    ctx->cb = host_info_cb;
+    ctx->data = data;
+    ctx->family = family;
+
+    if (!network->hostname_worker) {
+        network->hostname_worker = sol_timeout_add(0, hostname_worker, NULL);
+        SOL_NULL_CHECK_GOTO(network->hostname_worker, err_hostname);
+    }
+
+    return ctx;
+
+err_hostname:
+    (void)sol_ptr_vector_remove(&network->hostname_handles, ctx);
+err_append:
+    hostname_handle_free(ctx);
+    return NULL;
+}
+
+SOL_API int
+sol_network_cancel_get_hostname_address_info(
+    struct sol_network_hostname_handle *handle)
+{
+    int r;
+
+    SOL_NULL_CHECK(handle, -EINVAL);
+
+    r = sol_ptr_vector_remove(&network->hostname_handles, handle);
+    SOL_INT_CHECK(r, < 0, r);
+    if (!sol_ptr_vector_get_len(&network->hostname_handles)) {
+        sol_timeout_del(network->hostname_worker);
+        network->hostname_worker = NULL;
+    }
+
+    hostname_handle_free(handle);
+    return 0;
 }

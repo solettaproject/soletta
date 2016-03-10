@@ -37,7 +37,7 @@
 #include "sol-json.h"
 #include "sol-log.h"
 #include "sol-update.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct update_http_handle {
     struct sol_http_client_connection *conn;
@@ -108,6 +108,8 @@ task_get_metadata_response(void *data, const struct sol_http_client_connection *
 
     handle->conn = NULL;
     handle->on_callback = true;
+
+    SOL_HTTP_RESPONSE_CHECK_API(http_response);
 
     if (http_response->response_code != SOL_HTTP_STATUS_OK) {
         SOL_WRN("Invalid response code from [%s] when checking for update: %d",
@@ -198,6 +200,8 @@ task_fetch_response(void *data, const struct sol_http_client_connection *conn,
 
     handle->conn = NULL;
     handle->on_callback = true;
+
+    SOL_HTTP_RESPONSE_CHECK_API(http_response);
 
     if (http_response->response_code != SOL_HTTP_STATUS_OK) {
         SOL_WRN("Invalid response code from [%s] when fetching update: %d",

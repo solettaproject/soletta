@@ -35,7 +35,7 @@
 
 #include "window.h"
 #include "common.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static const int LABEL_COLUMN = 0;
 static const int WIDGET_COLUMN = 1;

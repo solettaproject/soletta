@@ -38,6 +38,7 @@ choice
 	default PLATFORM_LINUX_MICRO if LINUX
 	default PLATFORM_RIOTOS if RIOT
 	default PLATFORM_CONTIKI if CONTIKI
+	default PLATFORM_ZEPHYR if ZEPHYR
 	default PLATFORM_DUMMY
 	help
 
@@ -136,6 +137,18 @@ config PLATFORM_CONTIKI
             Soletta aims to do its best to offer the same experience on
             all platforms, including Contiki.
 
+config PLATFORM_ZEPHYR
+	bool "zephyr"
+	depends on ZEPHYR
+	help
+            This platform is to be used with Zephyr OS.
+
+            Zephyr (http://zephyr-project.intel.com/) is an open source operating
+            system for the Internet of Things.
+
+            Soletta aims to do its best to offer the same experience on
+            all platforms, including Zephyr.
+
 endchoice
 
 config SOL_BUS
@@ -147,11 +160,18 @@ config SOL_BUS
 
 source "src/modules/linux-micro/Kconfig"
 
+config MAINLOOP_ZEPHYR_NANO
+	bool
+
+config MAINLOOP_ZEPHYR_MICRO
+	bool
+
 choice
 	prompt "Mainloop"
 	default MAINLOOP_POSIX if LINUX
 	default MAINLOOP_RIOTOS if RIOT
 	default MAINLOOP_CONTIKI if CONTIKI
+	default MAINLOOP_ZEPHYR if ZEPHYR
 	help
             The main loop is used to provide uniform event delivering
             accross multiple operating systems.
@@ -225,6 +245,14 @@ config MAINLOOP_CONTIKI
 	depends on CONTIKI
 	help
             The mainloop to be used in Contiki platform.
+
+config MAINLOOP_ZEPHYR
+	bool "zephyr"
+	depends on ZEPHYR
+	select MAINLOOP_ZEPHYR_NANO if !FEATURE_ZEPHYR_MICROKERNEL
+	select MAINLOOP_ZEPHYR_MICRO if FEATURE_ZEPHYR_MICROKERNEL
+	help
+            The mainloop to be used in Zephyr platform.
 
 endchoice
 
@@ -316,10 +344,29 @@ choice
           disabled in compile time and won't be present in the
           final library.
 
+          It only affects log levels in the library functions.
+          If an application is using Soletta log system, it
+          needs to be changed using application CFLAGS.
+
+          So to disable all log levels greater than warning on
+          application build:
+          CFLAGS += -DSOL_LOG_LEVEL_MAXIMUM=2
+
           Log level ordering is:
           critical < error < warning < info < debug.
 
           The default is to not limit log levels.
+
+          It's suggested to reduce it at least to warning level
+          when building final products using it, so some space
+          and eventually performance can be saved (debug information
+          should be required at this point).
+
+          It isn't suggested to limit log on distros, general purpose
+          distributions or development phases, since relevant
+          information will be hidden and sol-fbp-runner users may also
+          have a bad experience.
+
 
 config MAXIMUM_LOG_LEVEL_CRITICAL
 	bool "critical"

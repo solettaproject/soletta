@@ -152,6 +152,21 @@ struct sol_flow_metatype_port_description {
 };
 
 /**
+ * @brief Struct that describes the meta type options.
+ *
+ * This struct is used by the sol_fbp_generator in order to check if the node options are correct.
+ * The sol-fbp-generator will call sol_flow_metatype_options_description_func() callback in order to
+ * obtain an array of options description.
+ *
+ * @see sol_flow_metatype_options_description_func()
+ * @see sol_flow_metatype_get_options_description_func()
+ */
+struct sol_flow_metatype_option_description {
+    char *name; /**< The option name. */
+    char *data_type; /**< The option type (int, float, blob and etc). */
+};
+
+/**
  * @brief A callback used to create the meta type itself.
  *
  * This function is used to create a meta type, this means that this function must setup the node properties, ports and etc.
@@ -209,6 +224,26 @@ typedef int (*sol_flow_metatype_generate_code_func)(const struct sol_flow_metaty
 typedef int (*sol_flow_metatype_ports_description_func)(const struct sol_flow_metatype_context *ctx, struct sol_vector *in, struct sol_vector *out);
 
 /**
+ * @brief A callback used create the options description of a meta type.
+ *
+ * One must add @c sol_flow_metatype_option_description elements in the given vector.
+ *
+ *
+ * @param opts Where the options descriptions should be inserted.
+ *
+ * @return 0 on success, negative value on failure.
+ *
+ * @note sol-fbp-generator will free the @a opts elements when it is not necessary anymore, this means
+ * that it will call free() on the name and type variables.
+ * @note the given vector is not initialized.
+ *
+ * @see struct sol_flow_metatype_context
+ * @see struct sol_flow_metatype
+ * @see struct sol_flow_metatype_options_description
+ */
+typedef int (*sol_flow_metatype_options_description_func)(struct sol_vector *opts);
+
+/**
  * @brief Searchs for the callback that generates the start code of a given meta type.
  *
  * @param name The meta type name.
@@ -248,6 +283,25 @@ sol_flow_metatype_generate_code_func sol_flow_metatype_get_generate_code_end_fun
 sol_flow_metatype_ports_description_func sol_flow_metatype_get_ports_description_func(const struct sol_str_slice name);
 
 /**
+ * @brief Searchs for callback that describes the options of a given meta type
+ *
+ * @param name The meta type name.
+ *
+ * @return A valid pointer to a sol_flow_metatype_options_description_func() or @c NULL if not found.
+ * @see sol_flow_metatype_options_description_func
+ */
+sol_flow_metatype_options_description_func sol_flow_metatype_get_options_description_func(const struct sol_str_slice name);
+
+/**
+ * @brief Searchs for the metatype options symbol.
+ *
+ * @param name The meta type name.
+ *
+ * @return The options symbol string or @c NULL if not found.
+ */
+const char *sol_flow_metatype_get_options_symbol(const struct sol_str_slice name);
+
+/**
  * @brief Defines the current version of the meta type API.
  */
 #define SOL_FLOW_METATYPE_API_VERSION (1)
@@ -272,12 +326,14 @@ struct sol_flow_metatype {
 #endif
 
     const char *name; /**< The name of the meta type. */
+    const char *options_symbol; /**< The options symbol. */
 
     sol_flow_metatype_create_type_func create_type; /**< A callback used the create the meta type. */
     sol_flow_metatype_generate_code_func generate_type_start; /**< A callback used to generate the meta type start code. */
     sol_flow_metatype_generate_code_func generate_type_body; /**< A callback used to generate the meta type code. */
     sol_flow_metatype_generate_code_func generate_type_end; /**< A callback used to generate the meta type end code. */
     sol_flow_metatype_ports_description_func ports_description; /**< A callback used to fetch the meta type port description. */
+    sol_flow_metatype_options_description_func options_description; /**< A callback used to fetch the meta type options description. */
 };
 
 #ifdef SOL_FLOW_METATYPE_MODULE_EXTERNAL
@@ -292,6 +348,7 @@ struct sol_flow_metatype {
  * @code
  * SOL_FLOW_METATYPE(MY_META,
  *   .name = "My Meta"
+ *   .options_symbol = "my_meta_options"
  *   .create_type = create_function,
  *   .generate_type_start = type_start_function,
  *   .generate_type_body = body_function,
@@ -317,6 +374,7 @@ struct sol_flow_metatype {
  * @code
  * SOL_FLOW_METATYPE(MY_META,
  *   .name = "My Meta"
+ *   .options_symbol = "my_meta_options"
  *   .create_type = create_function,
  *   .generate_type_start = type_start_function,
  *   .generate_type_body = body_function,

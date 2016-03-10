@@ -35,7 +35,7 @@
 
 #include <sol-power-supply.h>
 #include <sol-str-table.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <errno.h>
 
 
@@ -205,7 +205,7 @@ get_capacity(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
     struct get_props_data *mdata = data;
     struct sol_irange capacity = { 0, 0, 100, 1 };
     enum sol_power_supply_capacity_level capacity_level;
-    int r;
+    int r, tmp;
     bool exist;
 
     static const char *level_msgs[] = {
@@ -227,12 +227,13 @@ get_capacity(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
         return sol_flow_send_error_packet(node, EINVAL,
             "Power supply %s doesn't exist.", mdata->name);
 
-    r = sol_power_supply_get_capacity(mdata->name, &capacity.val);
+    r = sol_power_supply_get_capacity(mdata->name, &tmp);
     if (r < 0) {
         r = sol_flow_send_error_packet(node, ENOENT,
             "Couldn't get power supply %s capacity.", mdata->name);
         SOL_INT_CHECK(r, < 0, r);
     } else {
+        capacity.val = tmp;
         r = sol_flow_send_irange_packet(node,
             SOL_FLOW_NODE_TYPE_POWER_SUPPLY_GET_CAPACITY__OUT__CAPACITY,
             &capacity);
@@ -255,9 +256,9 @@ get_capacity(struct sol_flow_node *node, void *data, uint16_t port, uint16_t con
 }
 
 static int
-send_string_prop(struct sol_flow_node *node, const char *name, int (*func)(const char *name, char **prop), uint16_t port, const char *err_msg)
+send_string_prop(struct sol_flow_node *node, const char *name, int (*func)(const char *name, struct sol_buffer *prop), uint16_t port, const char *err_msg)
 {
-    char *prop;
+    struct sol_buffer prop = SOL_BUFFER_INIT_EMPTY;
     int r;
 
     r = func(name, &prop);
@@ -265,8 +266,7 @@ send_string_prop(struct sol_flow_node *node, const char *name, int (*func)(const
         r = sol_flow_send_error_packet_str(node, EINVAL, err_msg);
         SOL_INT_CHECK(r, < 0, r);
     } else {
-        r = sol_flow_send_string_packet(node, port, prop);
-        free(prop);
+        r = sol_flow_send_string_take_packet(node, port, sol_buffer_steal(&prop, NULL));
         SOL_INT_CHECK(r, < 0, r);
     }
 

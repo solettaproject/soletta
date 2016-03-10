@@ -36,7 +36,7 @@
 #include <sol-certificate.h>
 #include <sol-mainloop.h>
 #include <sol-mqtt.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <errno.h>
 
 
@@ -82,6 +82,7 @@ publish(struct client_data *mdata)
     payload_buffer = SOL_BUFFER_INIT_CONST(mdata->payload->mem, mdata->payload->size);
 
     message = (struct sol_mqtt_message){
+        SOL_SET_API_VERSION(.api_version = SOL_MQTT_MESSAGE_API_VERSION, )
         .topic = mdata->topic,
         .payload = &payload_buffer,
         .qos = mdata->qos,
@@ -142,6 +143,9 @@ on_message(void *data, struct sol_mqtt *mqtt, const struct sol_mqtt_message *mes
     struct sol_blob *blob;
     char *payload;
 
+    SOL_NULL_CHECK(message);
+    SOL_MQTT_MESSAGE_CHECK_API_VERSION(message);
+
     payload = sol_util_memdup(message->payload->data, message->payload->used);
     SOL_NULL_CHECK(payload);
 
@@ -161,7 +165,7 @@ static void
 mqtt_init(struct client_data *mdata)
 {
     struct sol_mqtt_config config = {
-        .api_version = SOL_MQTT_CONFIG_API_VERSION,
+        SOL_SET_API_VERSION(.api_version = SOL_MQTT_CONFIG_API_VERSION, )
         .clean_session = mdata->clean_session,
         .keepalive = mdata->keepalive,
         .username = mdata->user,

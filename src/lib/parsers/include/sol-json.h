@@ -132,7 +132,7 @@ enum sol_json_loop_reason {
  * @param end_reason_ Loop exit status
  */
 #define SOL_JSON_SCANNER_ARRAY_LOOP_NEST(scanner_, token_, element_type_, end_reason_) \
-    for (end_reason_ = SOL_JSON_LOOP_REASON_OK;  \
+    for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
         sol_json_loop_helper_array(scanner_, token_, &end_reason_, element_type_);)
 
 /**
@@ -162,7 +162,7 @@ enum sol_json_loop_reason {
  * @param end_reason_ Loop exit status
  */
 #define SOL_JSON_SCANNER_ARRAY_LOOP_ALL_NEST(scanner_, token_, end_reason_) \
-    for (end_reason_ = SOL_JSON_LOOP_REASON_OK;  \
+    for (end_reason_ = SOL_JSON_LOOP_REASON_OK; \
         sol_json_loop_helper_generic(scanner_, token_, SOL_JSON_TYPE_ARRAY_END, &end_reason_);)
 
 /**
@@ -320,7 +320,7 @@ sol_json_mem_get_type(const void *mem)
 
     if (strchr("{}[],:tfn\"", *p))
         return (enum sol_json_type)*p;
-    if (isdigit(*p) || *p == '-' || *p == '+')
+    if (isdigit((uint8_t)*p) || *p == '-' || *p == '+')
         return SOL_JSON_TYPE_NUMBER;
     return SOL_JSON_TYPE_UNKNOWN;
 }
@@ -684,33 +684,21 @@ size_t sol_json_calculate_escaped_string_len(const char *str) SOL_ATTR_NONNULL(1
  * @brief Escapes JSON special and control characters from the string content.
  *
  * @param str String to escape
- * @param buf Where to place the escaped string
- * @param len Buffer size in bytes
+ * @param buf Where to append the escaped string - It must be already initialized.
  *
  * @return The escaped string
  */
-char *sol_json_escape_string(const char *str, char *buf, size_t len) SOL_ATTR_NONNULL(1, 2);
-
-/**
- * @brief Helper macro to make easier to escape a string for use in a JSON document
- *
- * @param s String to escape
- */
-#define SOL_JSON_ESCAPE_STRING(s) ({ \
-        size_t str_len ## __COUNT__  = sol_json_calculate_escaped_string_len(s); \
-        sol_json_escape_string(s, alloca(str_len ## __COUNT__), str_len ## __COUNT__); \
-    })
+char *sol_json_escape_string(const char *str, struct sol_buffer *buf) SOL_ATTR_NONNULL(1, 2);
 
 /**
  * @brief Converts a double into a string suited for use in a JSON Document
  *
  * @param value Value to be converted
- * @param buf Where to place the converted value
- * @param buf_len Buffer size in bytes
+ * @param buf Where to append the converted value - It must be already initialized.
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_json_double_to_str(const double value, char *buf, size_t buf_len);
+int sol_json_double_to_str(const double value, struct sol_buffer *buf);
 
 /**
  * @brief Check if @c scanner content is pointing to a valid JSON element of

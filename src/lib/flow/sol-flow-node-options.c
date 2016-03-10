@@ -39,7 +39,7 @@
 #include "sol-flow-internal.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
 
@@ -63,31 +63,31 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
 #define STRTOL_DECIMAL(_ptr, _endptr) strtoll(_ptr, _endptr, 0)
 
 #define ASSIGN_LINEAR_VALUES(_parse_func, \
-        _max_val, _max_str, _max_str_len,          \
-        _min_val, _min_str, _min_str_len)          \
-    do {                                                                \
-        char *start, *end, backup;                                      \
-        int field_cnt_max = ARRAY_SIZE(store_vals); \
-        if (keys_schema) break;                                         \
-        start = buf;                                                    \
-        end = strchr(start, SUBOPTION_SEPARATOR);                       \
-        if (!end) end = start + strlen(start);                          \
-        backup = *end;                                                  \
-        *end = '\0';                                                    \
+        _max_val, _max_str, _max_str_len, \
+        _min_val, _min_str, _min_str_len) \
+    do { \
+        char *start, *end, backup; \
+        int field_cnt_max = SOL_UTIL_ARRAY_SIZE(store_vals); \
+        if (keys_schema) break; \
+        start = buf; \
+        end = strchr(start, SUBOPTION_SEPARATOR); \
+        if (!end) end = start + strlen(start); \
+        backup = *end; \
+        *end = '\0'; \
         for (field_cnt = 0; field_cnt < field_cnt_max;) { \
-            bool is_max = false, is_min = false;                        \
-            errno = 0;                                                  \
-            if (strlen(start) >= _max_str_len                           \
-                && (strncmp(start, _max_str,                            \
-                _max_str_len) == 0)) {                      \
-                is_max = true;                                          \
-            } else if (strlen(start) >= _min_str_len                    \
-                && (strncmp(start, _min_str,                     \
-                _min_str_len) == 0)) {               \
-                is_min = true;                                          \
-            }                                                           \
-            if (is_max) *store_vals[field_cnt] = _max_val;              \
-            else if (is_min) *store_vals[field_cnt] = _min_val;         \
+            bool is_max = false, is_min = false; \
+            errno = 0; \
+            if (strlen(start) >= _max_str_len \
+                && (strncmp(start, _max_str, \
+                _max_str_len) == 0)) { \
+                is_max = true; \
+            } else if (strlen(start) >= _min_str_len \
+                && (strncmp(start, _min_str, \
+                _min_str_len) == 0)) { \
+                is_min = true; \
+            } \
+            if (is_max) *store_vals[field_cnt] = _max_val; \
+            else if (is_min) *store_vals[field_cnt] = _min_val; \
             else { \
                 char *endptr; \
                 *store_vals[field_cnt] = _parse_func(start, &endptr); \
@@ -95,18 +95,18 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
                 if (start == endptr) \
                     goto err; \
             } \
-            if (errno != 0) goto err;                                   \
-            field_cnt++;                                                \
-            *end = backup;                                              \
+            if (errno != 0) goto err; \
+            field_cnt++; \
+            *end = backup; \
             start = NULL; \
-            if (backup == '\0') break;                                  \
-            start = end + 1;                                            \
-            if (!start) break;                                          \
-            end = strchr(start, SUBOPTION_SEPARATOR);                   \
-            if (!end) end = start + strlen(start);                      \
-            backup = *end;                                              \
-            *end = '\0';                                                \
-        }                                                               \
+            if (backup == '\0') break; \
+            start = end + 1; \
+            if (!start) break; \
+            end = strchr(start, SUBOPTION_SEPARATOR); \
+            if (!end) end = start + strlen(start); \
+            backup = *end; \
+            *end = '\0'; \
+        } \
         if (start) goto err; \
     } while (0)
 
@@ -126,7 +126,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             } \
             i = key_name + strlen(#_key); \
             for (; i < _key; i++) \
-                if (!(isspace(*i) || *i == '"')) { \
+                if (!(isspace((uint8_t)*i) || *i == '"')) { \
                     remaining = _key; \
                     break; \
                 } \
@@ -137,7 +137,7 @@ get_member_memory(const struct sol_flow_node_options_member_description *member,
             break; \
         if (_key && _key[0] && _key[1]) {                       \
             _key++;                                             \
-            while (_key && isspace(*_key)) _key++;              \
+            while (_key && isspace((uint8_t)*_key)) _key++;              \
         } else goto err;                                        \
         if (!_key)                                              \
             break;                                              \
@@ -605,7 +605,7 @@ sol_flow_node_named_options_parse_member(
     if (m->type == 0) {
         r = -EINVAL;
         SOL_DBG("Unitialized member type for name=\"%s\": \"%s\"", m->name, value);
-    } else if (m->type < ARRAY_SIZE(options_parse_functions)) {
+    } else if (m->type < SOL_UTIL_ARRAY_SIZE(options_parse_functions)) {
         if (mdesc->required)
             init_member_suboptions(m);
         else

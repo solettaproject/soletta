@@ -31,7 +31,6 @@
  */
 
 #include <stdio.h>
-#include <arpa/inet.h>
 
 #include "sol-log.h"
 #include "sol-mainloop.h"
@@ -39,19 +38,30 @@
 #include "sol-oic-client.h"
 
 static void
-got_get_response(struct sol_oic_client *cli, const struct sol_network_link_addr *cliaddr, const struct sol_oic_map_reader *map_reader, void *data)
+got_get_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli, const struct sol_network_link_addr *srv_addr, const struct sol_oic_map_reader *map_reader, void *data)
 {
     struct sol_oic_repr_field field;
     enum sol_oic_map_loop_reason end_reason;
     struct sol_oic_map_reader iterator;
-    char addr[SOL_INET_ADDR_STRLEN];
 
-    if (!sol_network_addr_to_str(cliaddr, addr, sizeof(addr))) {
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
+
+    if (!srv_addr) {
+        SOL_WRN("Response timeout");
+        return;
+    }
+
+    if (!map_reader) {
+        SOL_WRN("Empty Response");
+        return;
+    }
+
+    if (!sol_network_addr_to_str(srv_addr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         return;
     }
 
-    printf("Dumping payload received from addr %s {\n", addr);
+    printf("Dumping payload received from addr %.*s {\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
     SOL_OIC_MAP_LOOP(map_reader, &field, &iterator, end_reason) {
         printf("\tkey: '%s', value: ", field.key);
 
@@ -96,27 +106,33 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
     static const char digits[] = "0123456789abcdef";
     struct sol_str_slice *slice;
     uint16_t idx;
-    char addr[SOL_INET_ADDR_STRLEN];
+
+    SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
     if (!res)
         return false;
 
-    if (!sol_network_addr_to_str(&res->addr, addr, sizeof(addr))) {
+#ifndef SOL_NO_API_VERSION
+    if (SOL_UNLIKELY(res->api_version != SOL_OIC_RESOURCE_API_VERSION)) {
+        SOL_WRN("Couldn't add resource_type with "
+            "version '%u'. Expected version '%u'.",
+            res->api_version, SOL_OIC_RESOURCE_API_VERSION);
+        return NULL;
+    }
+#endif
+
+    if (!sol_network_addr_to_str(&res->addr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         return false;
     }
 
-    printf("Found resource: coap://%s%.*s\n", addr,
+    printf("Found resource: coap://%.*s%.*s\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
         SOL_STR_SLICE_PRINT(res->href));
 
     printf("Flags:\n"
         " - observable: %s\n"
-        " - active: %s\n"
-        " - slow: %s\n"
         " - secure: %s\n",
         res->observable ? "yes" : "no",
-        res->active ? "yes" : "no",
-        res->slow ? "yes" : "no",
         res->secure ? "yes" : "no");
 
     printf("Device ID: ");
@@ -147,35 +163,43 @@ found_resource(struct sol_oic_client *cli, struct sol_oic_resource *res, void *d
 int
 main(int argc, char *argv[])
 {
-    struct sol_oic_client client = {
-        SOL_SET_API_VERSION(.api_version = SOL_OIC_CLIENT_API_VERSION)
-    };
-    struct sol_network_link_addr cliaddr = { .family = AF_INET, .port = 5683 };
+    struct sol_network_link_addr srv_addr =
+    { .family = SOL_NETWORK_FAMILY_INET6,
+      .port = 5683 };
+    struct sol_oic_client *client;
     const char *resource_type;
 
     sol_init();
 
-    if (!sol_network_addr_from_str(&cliaddr, "224.0.1.187")) {
-        printf("could not convert multicast ip address to sockaddr_in\n");
+    if (argc < 2) {
+        printf("Usage: %s <address> [resource_type]\n", argv[0]);
+        return 0;
+    }
+
+    if (!strchr(argv[1], ':'))
+        srv_addr.family = SOL_NETWORK_FAMILY_INET;
+
+    if (!sol_network_addr_from_str(&srv_addr, argv[1])) {
+        printf("Could not convert IP address to sockaddr_in\n");
         return 1;
     }
 
-    client.server = sol_coap_server_new(0);
-    client.dtls_server = sol_coap_secure_server_new(0);
+    client = sol_oic_client_new();
 
-    printf("DTLS support %s\n", client.dtls_server ? "available" : "unavailable");
-
-    if (argc < 2) {
+    if (argc < 3) {
         printf("No rt filter specified, assuming everything\n");
         resource_type = NULL;
     } else {
-        printf("Finding resources with resource type %s\n", argv[1]);
-        resource_type = argv[1];
+        printf("Finding resources with resource type %s\n", argv[2]);
+        resource_type = argv[2];
     }
 
-    sol_oic_client_find_resource(&client, &cliaddr, resource_type, found_resource, NULL);
+    sol_oic_client_find_resource(client, &srv_addr,
+        resource_type, found_resource, NULL);
 
     sol_run();
+
+    sol_oic_client_del(client);
 
     return 0;
 }

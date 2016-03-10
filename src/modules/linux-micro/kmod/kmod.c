@@ -40,13 +40,34 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-kmod");
 #include "sol-file-reader.h"
 #include "sol-mainloop.h"
 #include "sol-platform-linux-micro.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct kmod_data {
     struct kmod_ctx *kmod;
 };
 
 static struct kmod_data context;
+
+static int
+kmod_insert_module(int probe_flags, struct kmod_module *module, const char *name)
+{
+    int ret = kmod_module_probe_insert_module(module, probe_flags, NULL, NULL,
+        NULL, NULL);
+
+    if (ret == 0) {
+        SOL_INF("Moduled successfully inserted: '%s'", name);
+        return 0;
+    }
+
+    if (ret == KMOD_PROBE_APPLY_BLACKLIST) {
+        SOL_INF("Module '%s' not loaded - module blacklisted", name);
+        return 0;
+    }
+
+    SOL_WRN("Module not loaded '%s', reason: %s", name,
+        sol_util_strerrora(errno));
+    return ret;
+}
 
 static int
 kmod_apply_value(struct kmod_ctx *kmod, struct sol_str_slice modalias)
@@ -75,34 +96,23 @@ kmod_apply_value(struct kmod_ctx *kmod, struct sol_str_slice modalias)
     }
 
     kmod_list_foreach(itr, modlist) {
-        struct kmod_module *mod;
-        int state, err;
+        struct kmod_module *module;
+        int err, istate;
+        const char *name = kmod_module_get_name(module);
 
-        mod = kmod_module_get_module(itr);
-        state = kmod_module_get_initstate(mod);
+        module = kmod_module_get_module(itr);
+        istate = kmod_module_get_initstate(module);
 
-        switch (state) {
-        case KMOD_MODULE_BUILTIN:
-            SOL_INF("Module '%s' is builtin", kmod_module_get_name(mod));
+        if (istate == KMOD_MODULE_BUILTIN || istate == KMOD_MODULE_LIVE) {
+            SOL_INF("Module '%s' skipped, either previously loaded or builtin",
+                name);
+            continue;
+        }
+
+        err = kmod_insert_module(probe_flags, module, name);
+        if (err != 0) {
+            r = err;
             break;
-
-        case KMOD_MODULE_LIVE:
-            SOL_INF("Module '%s' is already loaded", kmod_module_get_name(mod));
-            break;
-
-        default:
-            err = kmod_module_probe_insert_module(mod, probe_flags,
-                NULL, NULL, NULL, NULL);
-
-            if (err == 0)
-                SOL_INF("Inserted module '%s'", kmod_module_get_name(mod));
-            else if (err == KMOD_PROBE_APPLY_BLACKLIST)
-                SOL_INF("Module '%s' is blacklisted", kmod_module_get_name(mod));
-            else {
-                SOL_WRN("Failed to insert '%s': %s", kmod_module_get_name(mod),
-                    sol_util_strerrora(errno));
-                r = err;
-            }
         }
     }
 

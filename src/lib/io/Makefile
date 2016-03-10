@@ -28,6 +28,8 @@ obj-io-aio-$(PLATFORM_RIOTOS) += \
     sol-aio-impl-riot.o
 obj-io-aio-$(PLATFORM_LINUX) += \
     sol-aio-impl-linux.o
+obj-io-aio-$(PLATFORM_ZEPHYR) += \
+    sol-aio-impl-zephyr.o
 
 obj-io-gpio-$(USE_GPIO) := \
     sol-gpio-common.o
@@ -37,6 +39,8 @@ obj-io-gpio-$(PLATFORM_CONTIKI) += \
     sol-gpio-impl-contiki.o
 obj-io-gpio-$(PLATFORM_LINUX) += \
     sol-gpio-impl-linux.o
+obj-io-gpio-$(PLATFORM_ZEPHYR) += \
+    sol-gpio-impl-zephyr.o
 
 obj-io-pwm-$(USE_PWM) := \
     sol-pwm-common.o
@@ -44,6 +48,8 @@ obj-io-pwm-$(PLATFORM_RIOTOS) += \
     sol-pwm-impl-riot.o
 obj-io-pwm-$(PLATFORM_LINUX) += \
     sol-pwm-impl-linux.o
+obj-io-pwm-$(PLATFORM_ZEPHYR) += \
+    sol-pwm-impl-zephyr.o
 
 obj-io-i2c-$(USE_I2C) := \
     sol-i2c-common.o
@@ -51,11 +57,15 @@ obj-io-i2c-$(PLATFORM_RIOTOS) += \
     sol-i2c-impl-riot.o
 obj-io-i2c-$(PLATFORM_LINUX) += \
     sol-i2c-impl-linux.o
+obj-io-i2c-$(PLATFORM_ZEPHYR) += \
+    sol-i2c-impl-zephyr.o
 
 obj-io-spi-$(PLATFORM_RIOTOS) := \
     sol-spi-impl-riot.o
 obj-io-spi-$(PLATFORM_LINUX) := \
     sol-spi-impl-linux.o
+obj-io-spi-$(PLATFORM_ZEPHYR) := \
+    sol-spi-impl-zephyr.o
 
 obj-io-uart-$(PLATFORM_RIOTOS) := \
     sol-uart-impl-riot.o

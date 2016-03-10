@@ -31,7 +31,7 @@
  */
 
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test.h"
 
@@ -94,7 +94,7 @@ test_str_to_slice(void)
         },
     };
 
-    for (i = 0; i < ARRAY_SIZE(items); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(items); i++) {
         uint16_t j;
         struct sol_vector tokens;
         struct sol_str_slice *s;

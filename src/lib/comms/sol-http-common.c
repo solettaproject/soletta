@@ -37,7 +37,7 @@
 
 #include "sol-http.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 SOL_API bool
@@ -48,13 +48,7 @@ sol_http_param_add(struct sol_http_params *params,
 
     SOL_NULL_CHECK(params, -EINVAL);
 
-#ifndef SOL_NO_API_VERSION
-    if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
-        SOL_ERR("API version mistmatch; expected %u, got %u",
-            SOL_HTTP_PARAM_API_VERSION, params->api_version);
-        return false;
-    }
-#endif
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, -EINVAL);
 
     ptr = sol_vector_append(&params->params);
     if (!ptr) {
@@ -73,15 +67,8 @@ sol_http_param_add_copy(struct sol_http_params *params,
     struct sol_http_param_value *ptr;
     int r;
 
-    SOL_NULL_CHECK(params, -EINVAL);
-
-#ifndef SOL_NO_API_VERSION
-    if (params->api_version != SOL_HTTP_PARAM_API_VERSION) {
-        SOL_ERR("API version mistmatch; expected %u, got %u",
-            SOL_HTTP_PARAM_API_VERSION, params->api_version);
-        return false;
-    }
-#endif
+    SOL_NULL_CHECK(params, false);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, false);
 
     if (!params->arena) {
         params->arena = sol_arena_new();
@@ -103,9 +90,22 @@ sol_http_param_add_copy(struct sol_http_params *params,
             SOL_INT_CHECK(r, < 0, false);
         }
     } else if (value.type == SOL_HTTP_PARAM_POST_DATA) {
+        if (value.value.data.value.len) {
+            r = sol_arena_slice_dup(params->arena,
+                &value.value.data.value,
+                value.value.data.value);
+        } else if (value.value.data.filename.len) {
+            r = sol_arena_slice_dup(params->arena,
+                &value.value.data.filename,
+                value.value.data.filename);
+        } else {
+            SOL_WRN("POSTDATA must contain data or a filename");
+            return false;
+        }
+        SOL_INT_CHECK(r, < 0, false);
         r = sol_arena_slice_dup(params->arena,
-            (struct sol_str_slice *)&value.value.data.value,
-            value.value.data.value);
+            &value.value.data.key,
+            value.value.data.key);
         SOL_INT_CHECK(r, < 0, false);
     } else if (value.type == SOL_HTTP_PARAM_AUTH_BASIC) {
         if (value.value.auth.user.len) {
@@ -213,8 +213,8 @@ sol_http_decode_slice(struct sol_buffer *buf,
 
     for (i = 0; i < value.len; i++) {
         unsigned char c = value.data[i];
-        if (c == '%' && value.len - i > 2 && isxdigit(value.data[i + 1])
-            && isxdigit(value.data[i + 2])) {
+        if (c == '%' && value.len - i > 2 && isxdigit((uint8_t)value.data[i + 1])
+            && isxdigit((uint8_t)value.data[i + 2])) {
             struct sol_str_slice hex;
             ssize_t err;
             char chex;
@@ -266,6 +266,7 @@ sol_http_encode_params(struct sol_buffer *buf, enum sol_http_param_type type,
 
     SOL_NULL_CHECK(buf, -EINVAL);
     SOL_NULL_CHECK(params, -EINVAL);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, -EINVAL);
 
     if (type != SOL_HTTP_PARAM_QUERY_PARAM &&
         type != SOL_HTTP_PARAM_POST_FIELD &&
@@ -334,6 +335,7 @@ sol_http_decode_params(const struct sol_str_slice params_slice,
     int r = 0;
 
     SOL_NULL_CHECK(params, -EINVAL);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, -EINVAL);
 
     if (type != SOL_HTTP_PARAM_QUERY_PARAM &&
         type != SOL_HTTP_PARAM_POST_FIELD &&
@@ -404,99 +406,113 @@ err_exit:
     return r;
 }
 
+static bool
+is_host_ipv6(const struct sol_str_slice host)
+{
+    return memchr(host.data, ':', host.len) != NULL;
+}
+
 SOL_API int
-sol_http_create_uri(char **uri_out, const struct sol_http_url url,
+sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url,
     const struct sol_http_params *params)
 {
     struct sol_str_slice scheme;
-    struct sol_buffer buf, buf_encoded;
+    struct sol_buffer buf_encoded;
+    size_t used;
     int r;
 
-    SOL_NULL_CHECK(uri_out, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
 
-    sol_buffer_init(&buf);
+    used = buf->used;
 
     if (url.scheme.len)
         scheme = url.scheme;
     else
         scheme = sol_str_slice_from_str("http");
 
-    r = sol_buffer_append_slice(&buf, scheme);
-    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = sol_buffer_append_slice(buf, scheme);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
-    r = sol_buffer_append_char(&buf, ':');
-    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = sol_buffer_append_char(buf, ':');
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     if (url.host.len > 0) {
-        r = sol_buffer_append_slice(&buf, sol_str_slice_from_str("//"));
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
+        r = sol_buffer_append_slice(buf, sol_str_slice_from_str("//"));
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
         if (url.user.len > 0) {
             r = sol_http_encode_slice(&buf_encoded, url.user);
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
-            r = sol_buffer_append_slice(&buf,
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            r = sol_buffer_append_slice(buf,
                 sol_buffer_get_slice(&buf_encoded));
             sol_buffer_fini(&buf_encoded);
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
 
         if (url.password.len > 0) {
-            r = sol_buffer_append_char(&buf, ':');
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
+            r = sol_buffer_append_char(buf, ':');
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
             r = sol_http_encode_slice(&buf_encoded, url.password);
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
-            r = sol_buffer_append_slice(&buf,
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            r = sol_buffer_append_slice(buf,
                 sol_buffer_get_slice(&buf_encoded));
             sol_buffer_fini(&buf_encoded);
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
 
         if (url.user.len > 0 || url.password.len > 0) {
-            r = sol_buffer_append_char(&buf, '@');
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
+            r = sol_buffer_append_char(buf, '@');
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
 
-        r = sol_buffer_append_slice(&buf, url.host);
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
+        if (is_host_ipv6(url.host) && url.host.data[0] != '[') {
+            r = sol_buffer_append_printf(buf, "[%.*s]",
+                SOL_STR_SLICE_PRINT(url.host));
+        } else
+            r = sol_buffer_append_slice(buf, url.host);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
         if (url.port > 0) {
-            r = sol_buffer_append_printf(&buf, ":%" PRIu32, url.port);
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
+            r = sol_buffer_append_printf(buf, ":%" PRIu32, url.port);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
     }
 
-    r = sol_buffer_append_slice(&buf, url.path);
-    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = sol_buffer_append_slice(buf, url.path);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     if (params && params->params.len) {
-        size_t used;
-        r = sol_buffer_append_char(&buf, '?');
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
-        used = buf.used;
-        r = sol_http_encode_params(&buf, SOL_HTTP_PARAM_QUERY_PARAM,
+        size_t aux_used;
+
+        r = -EINVAL;
+        SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params, err_exit);
+
+        r = sol_buffer_append_char(buf, '?');
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        aux_used = buf->used;
+        r = sol_http_encode_params(buf, SOL_HTTP_PARAM_QUERY_PARAM,
             params);
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
-        if (used == buf.used)
-            buf.used--;
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        if (aux_used == buf->used)
+            buf->used--;
     }
 
     if (url.fragment.len) {
-        r = sol_buffer_append_char(&buf, '#');
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
-        r = sol_buffer_append_slice(&buf, url.fragment);
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
+        r = sol_buffer_append_char(buf, '#');
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        r = sol_buffer_append_slice(buf, url.fragment);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
     }
 
-    r = sol_buffer_ensure_nul_byte(&buf);
-    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+        r = sol_buffer_ensure_nul_byte(buf);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
 
-    *uri_out = sol_buffer_steal(&buf, NULL);
+    return 0;
 
-    if (!*uri_out)
-        r = -ENOMEM;
-
-exit:
-    sol_buffer_fini(&buf);
+err_exit:
+    buf->used = used;
     return r;
 }
 
@@ -515,56 +531,60 @@ _find_fragment(const struct sol_http_params *params)
 }
 
 SOL_API int
-sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri,
+sol_http_create_simple_uri(struct sol_buffer *buf, const struct sol_str_slice base_uri,
     const struct sol_http_params *params)
 {
-    struct sol_buffer buf;
     struct sol_str_slice *fragment;
+    size_t used;
     int r;
 
-    SOL_NULL_CHECK(uri, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    used = buf->used;
+
     if (base_uri.len == 0) {
         SOL_WRN("base_url is empty!");
         return -EINVAL;
     }
 
-    sol_buffer_init(&buf);
-
-    r = sol_buffer_append_slice(&buf, base_uri);
-    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    r = sol_buffer_append_slice(buf, base_uri);
+    SOL_INT_CHECK_GOTO(r, < 0, err_exit);
 
     if (params && params->params.len) {
-        size_t used;
-        r = sol_buffer_append_char(&buf, '?');
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
-        used = buf.used;
-        r = sol_http_encode_params(&buf, SOL_HTTP_PARAM_QUERY_PARAM,
-            params);
-        SOL_INT_CHECK_GOTO(r, < 0, exit);
+        size_t aux_used;
 
-        if (used == buf.used)
-            buf.used--;
+        r = -EINVAL;
+        SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params, err_exit);
+
+        r = sol_buffer_append_char(buf, '?');
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+        aux_used = buf->used;
+        r = sol_http_encode_params(buf, SOL_HTTP_PARAM_QUERY_PARAM,
+            params);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+
+        if (aux_used == buf->used)
+            buf->used--;
 
         fragment = _find_fragment(params);
 
         if (fragment && fragment->len) {
-            r = sol_buffer_append_char(&buf, '#');
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
-            r = sol_buffer_append_slice(&buf, *fragment);
-            SOL_INT_CHECK_GOTO(r, < 0, exit);
+            r = sol_buffer_append_char(buf, '#');
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+            r = sol_buffer_append_slice(buf, *fragment);
+            SOL_INT_CHECK_GOTO(r, < 0, err_exit);
         }
     }
 
-    r = sol_buffer_ensure_nul_byte(&buf);
-    SOL_INT_CHECK_GOTO(r, < 0, exit);
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+        r = sol_buffer_ensure_nul_byte(buf);
+        SOL_INT_CHECK_GOTO(r, < 0, err_exit);
+    }
 
-    *uri = sol_buffer_steal(&buf, NULL);
+    return 0;
 
-    if (!*uri)
-        r = -ENOMEM;
-
-exit:
-    sol_buffer_fini(&buf);
+err_exit:
+    buf->used = used;
     return r;
 }
 
@@ -617,7 +637,7 @@ _get_authority(const struct sol_str_slice partial_uri,
     struct sol_str_slice auth, port_slice = SOL_STR_SLICE_EMPTY;
     const char *itr, *itr_end, *port_start;
     size_t discarted = 2;
-    bool parsing_ipv6;
+    bool parsing_ipv6, parsed_ipv6;
 
     if (!partial_uri.len) {
         SOL_WRN("Empty authority. URI: %.*s", SOL_STR_SLICE_PRINT(full_uri));
@@ -635,15 +655,18 @@ _get_authority(const struct sol_str_slice partial_uri,
     auth.len -= 2;
     itr_end = auth.data + auth.len;
     port_start = NULL;
-    parsing_ipv6 = false;
+    parsing_ipv6 = parsed_ipv6 = false;
 
     for (itr = auth.data, host->data = auth.data; itr < itr_end; itr++) {
         if (*itr == '[') {
-            host->data = itr;
+            host->data = itr + 1;
             parsing_ipv6 = true;
+            discarted++;
         } else if (*itr == ']') {
             parsing_ipv6 = false;
+            parsed_ipv6 = true;
             host->len = itr - host->data;
+            discarted++;
         } else if (*itr == '@') {
             *user = *host;
             if (!user->len && port_slice.data != port_start)
@@ -654,11 +677,13 @@ _get_authority(const struct sol_str_slice partial_uri,
             host->len = 0;
             port_slice.data = "";
             port_slice.len = 0;
+            port_start = NULL;
             discarted++;
         } else if (*itr == ':' && !parsing_ipv6) {
-            if (host->len > 0)
+            if (host->len > 0 && !parsed_ipv6)
                 return -EINVAL;
-            host->len = itr - host->data;
+            if (!host->len)
+                host->len = itr - host->data;
             port_start = itr + 1;
             port_slice.data = port_start;
             discarted++;
@@ -673,7 +698,7 @@ _get_authority(const struct sol_str_slice partial_uri,
 
     if (!host->len)
         host->len = itr - host->data;
-    else if (!port_slice.len) {
+    else if (!port_slice.len && port_start) {
         port_slice.len = itr - port_slice.data;
         if (port_slice.len) {
             char *endptr;
@@ -818,6 +843,9 @@ sol_http_split_str_key_value(const char *query, const enum sol_http_param_type t
     struct sol_str_slice *token;
     char *sep;
     uint16_t i;
+
+    SOL_NULL_CHECK(params, -EINVAL);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(params, -EINVAL);
 
     tokens = sol_str_slice_split(sol_str_slice_from_str(query), "&", 0);
 

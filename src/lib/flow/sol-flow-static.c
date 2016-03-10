@@ -41,7 +41,7 @@
 #include "sol-flow-static.h"
 #include "sol-list.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct node_info {
     uint16_t first_conn_idx;
@@ -143,6 +143,8 @@ dispatch_connect_in(struct sol_flow_node *node, uint16_t port, uint16_t conn_id,
 static int
 dispatch_disconnect_out(struct sol_flow_node *node, uint16_t port, uint16_t conn_id, const struct sol_flow_port_type_out *port_type)
 {
+    SOL_FLOW_PORT_TYPE_IN_API_CHECK(port_type, SOL_FLOW_PORT_TYPE_OUT_API_VERSION, 0);
+
     if (port_type->disconnect)
         return port_type->disconnect(node, node->data, port, conn_id);
     return 0;
@@ -151,6 +153,8 @@ dispatch_disconnect_out(struct sol_flow_node *node, uint16_t port, uint16_t conn
 static int
 dispatch_disconnect_in(struct sol_flow_node *node, uint16_t port, uint16_t conn_id, const struct sol_flow_port_type_in *port_type)
 {
+    SOL_FLOW_PORT_TYPE_IN_API_CHECK(port_type, SOL_FLOW_PORT_TYPE_IN_API_VERSION, 0);
+
     if (port_type->disconnect)
         return port_type->disconnect(node, node->data, port, conn_id);
     return 0;

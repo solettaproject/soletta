@@ -50,7 +50,9 @@ _log_init(void)
 SOL_API struct sol_aio *
 sol_aio_open_by_label(const char *label, const unsigned int precision)
 {
+#ifdef USE_PIN_MUX
     int device, pin;
+#endif
 
     _log_init();
 

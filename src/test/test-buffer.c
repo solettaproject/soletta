@@ -31,7 +31,7 @@
  */
 
 #include "sol-buffer.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test.h"
 
@@ -263,6 +263,76 @@ test_set_slice_at(void)
     ASSERT_INT_EQ(err, -EINVAL);
 
     sol_buffer_fini(&buf);
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("abcd");
+    err = sol_buffer_set_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("abcd"));
+    ASSERT_STR_EQ(buf.data, "abcd");
+
+    slice = sol_str_slice_from_str("XY");
+    err = sol_buffer_set_slice_at(&buf, 4, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("abcdXY"));
+    ASSERT_STR_EQ(buf.data, "abcdXY");
+    sol_buffer_fini(&buf);
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("abcd");
+    err = sol_buffer_set_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("abcd"));
+    ASSERT_STR_EQ(buf.data, "abcd");
+
+    slice = sol_str_slice_from_str("XY");
+    err = sol_buffer_set_slice_at(&buf, 3, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("abcXY"));
+    ASSERT_STR_EQ(buf.data, "abcXY");
+    sol_buffer_fini(&buf);
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("abcd");
+    err = sol_buffer_set_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("abcd"));
+    ASSERT_STR_EQ(buf.data, "abcd");
+
+    slice = sol_str_slice_from_str("XY");
+    err = sol_buffer_set_slice_at(&buf, 2, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("abXY"));
+    ASSERT_STR_EQ(buf.data, "abXY");
+    sol_buffer_fini(&buf);
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("abcd");
+    err = sol_buffer_set_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("abcd"));
+    ASSERT_STR_EQ(buf.data, "abcd");
+
+    slice = sol_str_slice_from_str("XY");
+    err = sol_buffer_set_slice_at(&buf, 1, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("aXYd"));
+    ASSERT_STR_EQ(buf.data, "aXYd");
+    sol_buffer_fini(&buf);
+
+    sol_buffer_init(&buf);
+    slice = sol_str_slice_from_str("abcd");
+    err = sol_buffer_set_slice(&buf, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("abcd"));
+    ASSERT_STR_EQ(buf.data, "abcd");
+
+    slice = sol_str_slice_from_str("XY");
+    err = sol_buffer_set_slice_at(&buf, 0, slice);
+    ASSERT_INT_EQ(err, 0);
+    ASSERT_INT_EQ(buf.used, strlen("XYcd"));
+    ASSERT_STR_EQ(buf.data, "XYcd");
+    sol_buffer_fini(&buf);
 }
 
 DEFINE_TEST(test_set_char_at);
@@ -369,7 +439,8 @@ test_memory_not_owned(void)
     err = sol_buffer_ensure(&buf, 0);
     ASSERT_INT_EQ(err, 0);
 
-    err = sol_buffer_ensure(&buf, sizeof(backend));
+    /* ensure considers null-byte, so we use sizeof - 1 */
+    err = sol_buffer_ensure(&buf, sizeof(backend) - 1);
     ASSERT_INT_EQ(err, 0);
 
     err = sol_buffer_ensure(&buf, sizeof(backend) * 2);

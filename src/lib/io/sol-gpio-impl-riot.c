@@ -38,9 +38,10 @@
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 #include "sol-gpio.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-interrupt_scheduler_riot.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "gpio");
@@ -99,7 +100,7 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_GPIO_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
             "expected version is '%u'",
             config->api_version, SOL_GPIO_CONFIG_API_VERSION);
@@ -145,6 +146,8 @@ sol_gpio_open_raw(uint32_t pin, const struct sol_gpio_config *config)
                 SOL_WRN("gpio #%" PRIu32 ": No timeout set, cannot fallback to polling mode", pin);
                 goto error;
             }
+        } else {
+            SOL_INF("gpio #%" PRIu32 ": Trigger mode set to 'none': events will never trigger.", pin);
         }
 
         if (gpio_init(gpio->pin, GPIO_DIR_IN, pull) < 0)

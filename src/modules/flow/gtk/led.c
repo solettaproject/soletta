@@ -35,6 +35,7 @@
 #include "led.h"
 #include "sol-flow/gtk.h"
 #include "sol-types.h"
+#include "sol-flow-internal.h"
 
 #define LED_VIEW_DIMENSION (50)
 #define RGB_VALUE_MAX (255)
@@ -74,7 +75,9 @@ led_setup(struct gtk_common_data *data,
         (const struct sol_flow_node_type_gtk_led_options *)options;
     struct sol_rgb color;
 
-    SOL_NULL_CHECK(options, -EINVAL);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_GTK_LED_OPTIONS_API_VERSION,
+        -EINVAL);
 
     color = opts->rgb;
     if (sol_rgb_set_max(&color, 255) < 0) {

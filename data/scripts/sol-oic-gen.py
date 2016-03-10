@@ -90,7 +90,6 @@ JSON_TO_C = {
 
 JSON_TO_C_TMP = {}
 JSON_TO_C_TMP.update(JSON_TO_C)
-JSON_TO_C_TMP['string'] = "const char *"
 JSON_TO_C_TMP['number'] = "double"
 
 JSON_TO_FLOW_GET_PKT = {
@@ -118,7 +117,7 @@ JSON_TO_SOL_JSON = {
     "string": "string",
     "integer": "int",
     "boolean": "boolean",
-    "number": "double"
+    "number": "float"
 }
 
 def props_are_equivalent(p1, p2):
@@ -664,6 +663,31 @@ def object_setters_fn_common_c(state_struct_name, name, props, client):
         'type': 'client' if client else 'server'
     })
 
+        elif descr['type'] == 'string':
+            fields.append('''static int
+%(struct_name)s_set_%(field_name)s(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    struct %(struct_name)s *resource = data;
+    const char *var;
+    int r;
+
+    r = sol_flow_packet_get_string(packet, &var);
+    if (!r) {
+        char *tmp = strdup(var);
+        SOL_NULL_CHECK(tmp, -ENOMEM);
+        free(resource->state.%(field_name)s);
+        resource->state.%(field_name)s = tmp;
+        %(type)s_resource_schedule_update(&resource->base);
+    }
+    return r;
+}
+''' % {
+        'struct_name': name,
+        'field_name': field,
+        'type': 'client' if client else 'server'
+    })
+
         else:
             fields.append('''static int
 %(struct_name)s_set_%(field_name)s(struct sol_flow_node *node, void *data, uint16_t port,
@@ -937,14 +961,12 @@ def master_json_as_string(generated, json_name):
 
 def master_c_as_string(generated, oic_gen_c, oic_gen_h):
     generated = list(generated)
-    code = '''#include <arpa/inet.h>
+    code = '''
 #include <assert.h>
 #include <errno.h>
 #include <math.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 
 #include "%(oic_gen_h)s"
 
@@ -994,7 +1016,7 @@ struct client_resource {
     struct sol_timeout *find_timeout;
     struct sol_timeout *update_schedule_timeout;
 
-    struct sol_oic_client client;
+    struct sol_oic_client *client;
 
     const char *rt;
     char device_id[DEVICE_ID_LEN];
@@ -1021,17 +1043,17 @@ initialize_multicast_addresses_once(void)
     if (multicast_addresses_initialized)
         return true;
 
-    multicast_ipv4 = (struct sol_network_link_addr) { .family = AF_INET, .port = DEFAULT_UDP_PORT };
+    multicast_ipv4 = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET, .port = DEFAULT_UDP_PORT };
     if (!sol_network_addr_from_str(&multicast_ipv4, MULTICAST_ADDRESS_IPv4)) {
         SOL_WRN("Could not parse multicast IP address");
         return false;
     }
-    multicast_ipv6_local = (struct sol_network_link_addr) { .family = AF_INET6, .port = DEFAULT_UDP_PORT };
+    multicast_ipv6_local = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET6, .port = DEFAULT_UDP_PORT };
     if (!sol_network_addr_from_str(&multicast_ipv6_local, MULTICAST_ADDRESS_IPv6_LOCAL)) {
         SOL_WRN("Could not parse multicast IP address");
         return false;
     }
-    multicast_ipv6_site = (struct sol_network_link_addr) { .family = AF_INET6, .port = DEFAULT_UDP_PORT };
+    multicast_ipv6_site = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET6, .port = DEFAULT_UDP_PORT };
     if (!sol_network_addr_from_str(&multicast_ipv6_site, MULTICAST_ADDRESS_IPv6_SITE)) {
         SOL_WRN("Could not parse multicast IP address");
         return false;
@@ -1057,25 +1079,30 @@ client_resource_implements_type(struct sol_oic_resource *oic_res, const char *re
 }
 
 static void
-state_changed(struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
+state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_cli, const struct sol_network_link_addr *cliaddr,
     const struct sol_oic_map_reader *repr_vec, void *data)
 {
     struct client_resource *resource = data;
 
+    if (!cliaddr || !repr_vec)
+        return;
+
     if (!sol_network_link_addr_eq(cliaddr, &resource->resource->addr)) {
-        char resaddr[SOL_INET_ADDR_STRLEN] = {0};
-        char respaddr[SOL_INET_ADDR_STRLEN] = {0};
+        SOL_BUFFER_DECLARE_STATIC(resaddr, SOL_INET_ADDR_STRLEN);
+        SOL_BUFFER_DECLARE_STATIC(respaddr, SOL_INET_ADDR_STRLEN);
 
-        if (!sol_network_addr_to_str(&resource->resource->addr, resaddr, sizeof(resaddr))) {
+        if (!sol_network_addr_to_str(&resource->resource->addr, &resaddr)) {
             SOL_WRN("Could not convert network address to string");
             return;
         }
-        if (!sol_network_addr_to_str(cliaddr, respaddr, sizeof(respaddr))) {
+        if (!sol_network_addr_to_str(cliaddr, &respaddr)) {
             SOL_WRN("Could not convert network address to string");
             return;
         }
 
-        SOL_WRN("Expecting response from %%s, got from %%s, ignoring", resaddr, respaddr);
+        SOL_WRN("Expecting response from %%.*s, got from %%.*s, ignoring",
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&resaddr)),
+            SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&respaddr)));
         return;
     }
 
@@ -1141,11 +1168,11 @@ send_discovery_packets(struct client_resource *resource)
 
     sol_flow_send_boolean_packet(resource->node, resource->funcs->found_port, false);
 
-    sol_oic_client_find_resource(&resource->client, &multicast_ipv4, resource->rt,
+    sol_oic_client_find_resource(resource->client, &multicast_ipv4, resource->rt,
         found_resource, resource);
-    sol_oic_client_find_resource(&resource->client, &multicast_ipv6_local, resource->rt,
+    sol_oic_client_find_resource(resource->client, &multicast_ipv6_local, resource->rt,
         found_resource, resource);
-    sol_oic_client_find_resource(&resource->client, &multicast_ipv6_site, resource->rt,
+    sol_oic_client_find_resource(resource->client, &multicast_ipv6_site, resource->rt,
         found_resource, resource);
 }
 
@@ -1214,7 +1241,6 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
         return true;
     }
 
-    resource->resource = sol_oic_resource_ref(oic_res);
     SOL_PTR_VECTOR_FOREACH_IDX(&resource->scanned_ids, id, i)
         if (memcmp(id, oic_res->device_id.data, DEVICE_ID_LEN) == 0)
             return true;
@@ -1222,7 +1248,8 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
     id = malloc(DEVICE_ID_LEN);
     SOL_NULL_CHECK(id, true);
     memcpy(id, oic_res->device_id.data, DEVICE_ID_LEN);
-    sol_ptr_vector_append(&resource->scanned_ids, id);
+    r = sol_ptr_vector_append(&resource->scanned_ids, id);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     binary_to_hex_ascii(oic_res->device_id.data, ascii);
 
@@ -1231,6 +1258,11 @@ scan_callback(struct sol_oic_client *oic_cli, struct sol_oic_resource *oic_res, 
     if (r < 0)
         SOL_WRN("Could not send server id.");
 
+    return true;
+
+error:
+    SOL_WRN("Failed to process id.");
+    free(id);
     return true;
 }
 
@@ -1249,11 +1281,11 @@ static void
 send_scan_packets(struct client_resource *resource)
 {
     clear_scanned_ids(&resource->scanned_ids);
-    sol_oic_client_find_resource(&resource->client, &multicast_ipv4,
+    sol_oic_client_find_resource(resource->client, &multicast_ipv4,
          resource->rt, scan_callback, resource);
-    sol_oic_client_find_resource(&resource->client, &multicast_ipv6_local,
+    sol_oic_client_find_resource(resource->client, &multicast_ipv6_local,
          resource->rt, scan_callback, resource);
-    sol_oic_client_find_resource(&resource->client, &multicast_ipv6_site,
+    sol_oic_client_find_resource(resource->client, &multicast_ipv6_site,
          resource->rt, scan_callback, resource);
 }
 
@@ -1286,7 +1318,7 @@ server_resource_schedule_update(struct server_resource *resource)
 }
 
 static sol_coap_responsecode_t
-server_handle_put(const struct sol_network_link_addr *cliaddr, const void *data,
+server_handle_update(const struct sol_network_link_addr *cliaddr, const void *data,
     const struct sol_oic_map_reader *repr_map, struct sol_oic_map_writer *output)
 {
     struct server_resource *resource = (struct server_resource *)data;
@@ -1314,7 +1346,7 @@ server_handle_get(const struct sol_network_link_addr *cliaddr, const void *data,
     if (!resource->funcs->to_repr_vec((void *)resource, output))
         return SOL_COAP_RSPCODE_INTERNAL_ERROR;
 
-    return SOL_COAP_RSPCODE_OK;
+    return SOL_COAP_RSPCODE_CONTENT;
 }
 
 // log_init() implementation happens within oic-gen.c
@@ -1340,7 +1372,8 @@ server_resource_init(struct server_resource *resource, struct sol_flow_node *nod
         .resource_type = resource_type,
         .interface = SOL_STR_SLICE_LITERAL("oc.mi.def"),
         .get = { .handle = server_handle_get },
-        .put = { .handle = server_handle_put },
+        .put = { .handle = server_handle_update },
+        .post = { .handle = server_handle_update },
     };
 
     resource->resource = sol_oic_server_add_resource(&resource->type,
@@ -1400,7 +1433,7 @@ client_connect(struct client_resource *resource, const char *device_id)
         sol_timeout_del(resource->find_timeout);
 
     if (resource->resource) {
-        if (!sol_oic_client_resource_set_observable(&resource->client,
+        if (!sol_oic_client_resource_set_observable(resource->client,
             resource->resource, NULL, NULL, false)) {
             SOL_WRN("Could not unobserve resource");
         }
@@ -1436,15 +1469,8 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
 
     assert(resource_type);
 
-    SOL_SET_API_VERSION(resource->client.api_version = SOL_OIC_CLIENT_API_VERSION; )
-    resource->client.server = sol_coap_server_new(0);
-    SOL_NULL_CHECK(resource->client.server, -ENOMEM);
-
-    resource->client.dtls_server = sol_coap_secure_server_new(0);
-    if (!resource->client.dtls_server) {
-        SOL_INT_CHECK_GOTO(errno, != ENOSYS, nomem);
-        SOL_INF("DTLS support not built-in, only making non-secure requests");
-    }
+    resource->client = sol_oic_client_new();
+    SOL_NULL_CHECK(resource->client, -ENOMEM);
 
     sol_ptr_vector_init(&resource->scanned_ids);
     resource->node = node;
@@ -1455,10 +1481,6 @@ client_resource_init(struct sol_flow_node *node, struct client_resource *resourc
     resource->rt = resource_type;
 
     return 0;
-
-nomem:
-    sol_coap_server_unref(resource->client.server);
-    return -ENOMEM;
 }
 
 static void
@@ -1470,7 +1492,7 @@ client_resource_close(struct client_resource *resource)
         sol_timeout_del(resource->update_schedule_timeout);
 
     if (resource->resource) {
-        bool r = sol_oic_client_resource_set_observable(&resource->client, resource->resource,
+        bool r = sol_oic_client_resource_set_observable(resource->client, resource->resource,
             NULL, NULL, false);
         if (!r)
             SOL_WRN("Could not unobserve resource");
@@ -1479,9 +1501,7 @@ client_resource_close(struct client_resource *resource)
     }
 
     clear_scanned_ids(&resource->scanned_ids);
-    sol_coap_server_unref(resource->client.server);
-    if (resource->client.dtls_server)
-        sol_coap_server_unref(resource->client.dtls_server);
+    sol_oic_client_del(resource->client);
 }
 
 static bool
@@ -1493,7 +1513,7 @@ client_resource_perform_update(void *data)
     SOL_NULL_CHECK_GOTO(resource->resource, disable_timeout);
     SOL_NULL_CHECK_GOTO(resource->funcs->to_repr_vec, disable_timeout);
 
-    r = sol_oic_client_resource_request(&resource->client, resource->resource,
+    r = sol_oic_client_resource_request(resource->client, resource->resource,
         SOL_COAP_METHOD_PUT, resource->funcs->to_repr_vec, resource, NULL, NULL);
     if (r < 0) {
         SOL_WRN("Could not send update request to resource, will try again");

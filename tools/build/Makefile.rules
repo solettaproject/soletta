@@ -26,11 +26,11 @@ extra-headers = \
 			$(eval gen-file      := $(subst .h.in,.h,$(hdr))) \
 			$(eval $(hdr)-dest   := $(build_includedir)$(notdir $(gen-file))) \
 			$(eval all-templates += $(hdr)) \
-			$(eval all-hdr       += $($(hdr)-dest)) \
+			$(eval export all-hdr       += $($(hdr)-dest)) \
 		, \
 			$(eval $(hdr)-dest  := $(build_includedir)$(notdir $(hdr))) \
 			$(eval all-dest-hdr += $($(hdr)-dest)) \
-			$(eval all-hdr += $(hdr)) \
+			$(eval export all-hdr += $(hdr)) \
 		) \
 	) \
 
@@ -231,7 +231,7 @@ PRE_GEN += $(all-gen-hdrs) $(all-dest-hdr) $(all-dest-bin)
 
 define make-warning
 $(1):
-	$(Q)echo -e "     [!]   "$($(1)-msg)
+	$(Q)echo "     [!]   "$($(1)-msg)
 
 all: $(1)
 PHONY += $(1)
@@ -241,7 +241,7 @@ $(foreach wrn,$(all-warnings),$(eval $(call make-warning,$(wrn))))
 define make-warning-header
 $(all-warnings): warning-header
 warning-header: default_target
-	$(Q)echo -e "*** ATTENTION:"
+	$(Q)echo "*** ATTENTION:"
 PHONY += warning-header
 endef
 $(if $(all-warnings),$(eval $(call make-warning-header,$(wrn))))
@@ -294,7 +294,7 @@ $($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-src) $(modules-out)
 	$(Q)echo "     " CC"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
 	$(Q)$(TARGETCC) $(SAMPLE_CFLAGS) $($(1)-CFLAGS) $(use-builtin-cflags) $($(1)-src) $($(1)-extra) -o $($(1)-out) \
-	$(SAMPLE_LDFLAGS) $(use-builtin-ldflags)
+	$(SAMPLE_LDFLAGS) $($(1)-LDFLAGS) $(use-builtin-ldflags)
 endef
 $(foreach test-fbp-bin,$(all-tests-fbp-bin),$(eval $(call make-test-fbp-bin,$(test-fbp-bin))))
 
@@ -338,7 +338,7 @@ $($(1)-out): $(SOL_LIB_OUTPUT) $($(1)-objs) $(call find-deps,$(1)) $($(1)-bs)
 	$(Q)echo "     "MOD"   "$$@
 	$(Q)$(MKDIR) -p $(dir $($(1)-out))
 	$(Q)$(TARGETCC) $(MOD_CFLAGS) $(sort $($(1)-cflags)) $($(1)-objs) \
-		-shared -o $($(1)-out) $(sort $($(1)-ldflags))
+		-shared -o $($(1)-out) $(LINKED_OBJS_LDFLAGS) $(sort $($(1)-ldflags))
 endef
 $(foreach curr,$(mod-so),$(eval $(call make-mod-so,$(curr))))
 

@@ -33,8 +33,9 @@
 #include "common.h"
 
 #include "sol-platform-linux.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
+#include "sol-flow-internal.h"
 
 #include <fcntl.h>
 #include <signal.h>
@@ -147,7 +148,7 @@ process_subprocess_in_process(struct sol_flow_node *node, void *data, uint16_t p
     return 0;
 }
 
-static void
+static void SOL_ATTR_NORETURN
 on_fork(void *data)
 {
     struct subprocess_data *mdata = data;
@@ -380,6 +381,10 @@ process_subprocess_open(struct sol_flow_node *node, void *data, const struct sol
     struct subprocess_data *mdata = data;
     struct sol_flow_node_type_process_subprocess_options *opts =
         (struct sol_flow_node_type_process_subprocess_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PROCESS_SUBPROCESS_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->node = node;
     sol_vector_init(&mdata->write_data, sizeof(struct write_data));

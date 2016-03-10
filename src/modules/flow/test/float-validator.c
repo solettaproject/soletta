@@ -36,11 +36,12 @@
 #include "sol-flow.h"
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test-module.h"
 #include "float-validator.h"
 #include "sol-flow/test.h"
+#include "sol-flow-internal.h"
 
 int
 float_validator_open(
@@ -55,6 +56,9 @@ float_validator_open(
     char *tail;
     double *val;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TEST_FLOAT_VALIDATOR_OPTIONS_API_VERSION,
+        -EINVAL);
     mdata->done = false;
 
     if (opts->sequence == NULL || *opts->sequence == '\0') {

@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <linux/netlink.h>
 #include <locale.h>
+#include <limits.h>
 #include <mntent.h>
 #include <signal.h>
 #include <stdio.h>
@@ -54,7 +55,7 @@
 #include "sol-platform-linux.h"
 #include "sol-platform.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #define SOL_MTAB_FILE P_tmpdir "/mtab.sol"
@@ -837,7 +838,7 @@ sol_platform_register_system_clock_monitor(void)
 
     memset(&spec, 0, sizeof(struct itimerspec));
     /* Set a dummy value, end of time. */
-    spec.it_value.tv_sec += 0xfffffff0;
+    spec.it_value.tv_sec = LONG_MAX;
     if (timerfd_settime(timer_ctx.fd,
         TFD_TIMER_ABSTIME | TFD_TIMER_CANCELON_SET, &spec, NULL) < 0) {
         r = -errno;
@@ -984,11 +985,12 @@ sol_platform_impl_load_locales(char **locale_cache)
         value.len = strlen(line) - key.len - 1;
 
         category = system_locale_to_sol_locale(key);
-        SOL_INT_CHECK_GOTO(category, == SOL_PLATFORM_LOCALE_UNKNOWN, err_val);
-        locale_cache[category] = sol_str_slice_to_string(value);
+        if (category != SOL_PLATFORM_LOCALE_UNKNOWN) {
+            locale_cache[category] = sol_str_slice_to_string(value);
+            SOL_NULL_CHECK_GOTO(locale_cache[category], err_nomem);
+        }
         free(line);
         line = NULL;
-        SOL_NULL_CHECK_GOTO(locale_cache[category], err_nomem);
     }
 
     r = ferror(f);

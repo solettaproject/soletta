@@ -57,6 +57,8 @@ struct monitor_node_type {
     int (*monitor_unregister)(struct sol_flow_node *);
 };
 
+static int locale_monitor_unregister(struct sol_flow_node *node);
+
 static int
 state_dispatch_ready(struct platform_data *mdata)
 {
@@ -267,6 +269,9 @@ monitor_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     const struct monitor_node_type *monitor_type =
         (const struct monitor_node_type *)sol_flow_node_get_type(node);
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PLATFORM_HOSTNAME_OPTIONS_API_VERSION, -EINVAL);
+
     opts = (const struct sol_flow_node_type_platform_hostname_options *)options;
 
     if (opts->send_initial_packet)
@@ -370,24 +375,24 @@ system_clock_process(struct sol_flow_node *node, void *data, uint16_t port,
 }
 
 static int
-timezone_send(const void *timezone, struct sol_flow_node *node)
+timezone_send(const void *tzone, struct sol_flow_node *node)
 {
     int r;
 
-    if (!timezone) {
-        timezone = sol_platform_get_timezone();
-        SOL_NULL_CHECK(timezone, -ECANCELED);
+    if (!tzone) {
+        tzone = sol_platform_get_timezone();
+        SOL_NULL_CHECK(tzone, -ECANCELED);
     }
 
-    r = sol_flow_send_string_packet(node, 0, timezone);
+    r = sol_flow_send_string_packet(node, 0, tzone);
     SOL_INT_CHECK(r, < 0, r);
     return 0;
 }
 
 static void
-timezone_changed(void *data, const char *timezone)
+timezone_changed(void *data, const char *tzone)
 {
-    timezone_send(timezone, data);
+    timezone_send(tzone, data);
 }
 
 static int
@@ -419,6 +424,13 @@ timezone_process(struct sol_flow_node *node, void *data, uint16_t port,
 static int
 locale_send(struct sol_flow_node *node, enum sol_platform_locale_category category, const char *locale)
 {
+    if (category == SOL_PLATFORM_LOCALE_UNKNOWN && !locale) {
+        locale_monitor_unregister(node);
+        return sol_flow_send_error_packet(node, ECANCELED,
+            "Something wrong happened with the locale monitor,"
+            "stoping to monitor locale changes");
+    }
+
     if (!locale) {
         locale = sol_platform_get_locale(category);
         SOL_NULL_CHECK(locale, -EINVAL);
@@ -430,10 +442,13 @@ static int
 locale_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_options *options)
 {
     int r;
-    const struct sol_flow_node_type_platform_hostname_options *opts;
+    const struct sol_flow_node_type_platform_locale_options *opts;
     enum sol_platform_locale_category i;
 
-    opts = (const struct sol_flow_node_type_platform_hostname_options *)options;
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PLATFORM_LOCALE_OPTIONS_API_VERSION, -EINVAL);
+
+    opts = (const struct sol_flow_node_type_platform_locale_options *)options;
 
     if (!opts->send_initial_packet)
         return 0;
@@ -656,6 +671,26 @@ locale_apply_time_process(struct sol_flow_node *node, void *data, uint16_t port,
     uint16_t conn_id, const struct sol_flow_packet *packet)
 {
     return sol_platform_apply_locale(SOL_PLATFORM_LOCALE_TIME);
+}
+
+static int
+platform_target_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    const char *target;
+
+    r = sol_flow_packet_get_string(packet, &target);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_platform_set_target(target);
+
+    if (r < 0) {
+        sol_flow_send_error_packet(node, r,
+            "Could not change the system target to: %s", target);
+    }
+
+    return 0;
 }
 
 #include "platform-gen.c"

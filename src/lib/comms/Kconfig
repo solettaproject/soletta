@@ -49,7 +49,7 @@ config COAP
 config OIC
 	bool "OIC"
 	default y
-	depends on COAP && HAVE_TINYCBOR_SRC
+	depends on COAP && FEATURE_OIC && HAVE_TINYCBOR_SRC
 	help
             Implementation of protocol defined by Open Interconnect Consortium
             (OIC - http://openinterconnect.org/)
@@ -110,8 +110,17 @@ config MQTT
 config MAVLINK
 	bool "Mavlink"
 	default y
-    depends on NETWORK && HAVE_MAVLINK_SRC
+    depends on LINUX && NETWORK && HAVE_MAVLINK_SRC
     help
             MAVLink or Micro Air Vehicle Link is a protocol for communicating with
             small unmanned vehicle. It is designed as a header-only message marshaling
             library.
+
+config LWM2M
+       bool "LWM2M"
+       default y
+       depends on COAP && HTTP
+       help
+           LWM2M is a protocol for communication between IoT devices defined by OMA
+           (Open Mobile Alliance).
+           Both client and server sides are covered by this library.

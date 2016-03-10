@@ -44,8 +44,9 @@
 #include "sol-mainloop.h"
 #include "sol-message-digest.h"
 #include "sol-random.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
+#include "sol-flow-internal.h"
 
 #define BASE_POST_URL "https://api.twitter.com/1.1/statuses/update.json"
 #define BASE_TIMELINE_URL "https://api.twitter.com/1.1/statuses/home_timeline.json"
@@ -594,6 +595,9 @@ twitter_open(struct sol_flow_node *node, void *data,
     struct sol_buffer buf;
     struct sol_flow_node_type_twitter_client_options *opts =
         (struct sol_flow_node_type_twitter_client_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TWITTER_CLIENT_OPTIONS_API_VERSION, -EINVAL);
 
     mdata->consumer_key = strdup(opts->consumer_key);
     SOL_NULL_CHECK(mdata->consumer_key, -ENOMEM);

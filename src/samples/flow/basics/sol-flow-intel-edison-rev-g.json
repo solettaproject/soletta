@@ -1,0 +1,15 @@
+{
+ "$schema": "http://solettaproject.github.io/soletta/schemas/config.schema",
+ "nodetypes": [
+  {
+   "name": "Button",
+   "options": {
+    "active_low": false,
+    "edge_falling": true,
+    "edge_rising": true,
+    "pin": "3"
+   },
+   "type": "gpio/reader"
+  }
+ ]
+}

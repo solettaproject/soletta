@@ -1,0 +1,262 @@
+/*
+ * This file is part of the Soletta Project
+ *
+ * Copyright (C) 2015 Intel Corporation. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *   * Neither the name of Intel Corporation nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#include "sol_config.h"
+#include <stdio.h>
+
+{{
+st.include("../../data/templates/headers-public.tpl")
+gen_headers("all-hdr")
+}}
+
+static const struct sol_str_table str_table[] = {
+  SOL_STR_TABLE_ITEM("key1", 0),
+  SOL_STR_TABLE_ITEM("key2", 2),
+  { }
+};
+
+static const struct sol_str_table_ptr str_ptr_table[] = {
+  SOL_STR_TABLE_PTR_ITEM("key1", "1"),
+  SOL_STR_TABLE_PTR_ITEM("key2", "2"),
+  { }
+};
+
+#ifdef USE_PIN_MUX
+
+SOL_PIN_MUX_DECLARE(my_pin_mux,
+                    .plat_name = NULL,
+                    .init = NULL,
+                    .shutdown = NULL,
+                    .pin_map = NULL,
+                    .aio = NULL,
+                    .gpio = NULL,
+                    .i2c = NULL,
+                    .pwm = NULL);
+#endif
+
+#ifdef USE_UPDATE
+
+SOL_UPDATE_DECLARE(my_update,
+                   .check = NULL,
+                   .fetch = NULL,
+                   .cancel = NULL,
+                   .get_progress = NULL,
+                   .install = NULL,
+                   .init = NULL,
+                   .shutdown = NULL);
+#endif
+
+#ifdef FLOW_SUPPORT
+
+SOL_FLOW_METATYPE(my_meta,
+                  .name = NULL,
+                  .options_symbol = NULL,
+                  .create_type = NULL,
+                  .generate_type_start = NULL,
+                  .generate_type_body = NULL,
+                  .generate_type_end = NULL,
+                  .ports_description = NULL,
+                  .options_description = NULL);
+#endif
+
+struct my_container {
+  int a;
+  struct sol_list list;
+};
+
+static int
+msg_macro(void)
+{
+  SOL_NULL_CHECK_MSG(NULL, -1, "123 %s", "123");
+  return 0;
+}
+
+static void
+startup()
+{
+    SOL_DBG("Starting ...");
+    int *i;
+    uint16_t j;
+    const void *v;
+    int arr[10];
+
+    SOL_UTIL_ARRAY_SIZE(arr);
+
+    sol_util_strerrora(2);
+
+    struct sol_drange d1 = SOL_DRANGE_INIT();
+    struct sol_drange d2 = SOL_DRANGE_INIT_VALUE(2.3);
+    struct sol_irange i1 = SOL_IRANGE_INIT();
+    struct sol_irange i2 = SOL_IRANGE_INIT_VALUE(3);
+    SOL_TYPE_CHECK(int, 123);
+
+    struct sol_str_slice s1 = SOL_STR_SLICE_EMPTY;
+    struct sol_str_slice s2 = SOL_STR_SLICE_STR("123", 3);
+    struct sol_str_slice s3 = SOL_STR_SLICE_LITERAL("slice");
+    printf("%.*s", SOL_STR_SLICE_PRINT(s3));
+
+    struct sol_buffer b1 = SOL_BUFFER_INIT_EMPTY;
+    struct sol_buffer b2 = SOL_BUFFER_INIT_FLAGS(NULL, 0, SOL_BUFFER_FLAGS_CLEAR_MEMORY);
+    struct sol_buffer b3 = SOL_BUFFER_INIT_CONST(NULL, 0);
+    struct sol_buffer b4 = SOL_BUFFER_INIT_DATA(NULL, 0);
+
+    struct sol_vector v1 = SOL_VECTOR_INIT(int);
+
+    SOL_VECTOR_FOREACH_IDX (&v1, i, j);
+    SOL_VECTOR_FOREACH_REVERSE_IDX (&v1, i, j);
+
+    struct sol_ptr_vector v2 = SOL_PTR_VECTOR_INIT;
+
+    SOL_PTR_VECTOR_FOREACH_IDX(&v2, i, j);
+    SOL_PTR_VECTOR_FOREACH_REVERSE_IDX(&v2, i, j);
+
+    struct sol_list list = SOL_LIST_INIT, *itr, *itr2;
+
+    SOL_LIST_FOREACH(&list, itr);
+
+    SOL_LIST_FOREACH_SAFE(&list, itr, itr2);
+
+    SOL_LIST_GET_CONTAINER(&list, struct my_container, list);
+
+    sol_str_table_lookup(str_table, SOL_STR_SLICE_LITERAL("key1"), &j);
+    sol_str_table_ptr_lookup(str_ptr_table, SOL_STR_SLICE_LITERAL("key1"), &v);
+
+    struct sol_json_token token, token_key, token_value;
+    struct sol_json_path_scanner path_scanner;
+    struct sol_json_scanner scanner;
+    enum sol_json_loop_reason json_reason;
+    struct sol_str_slice key_slice;
+    enum sol_json_type elem_type;
+
+    SOL_JSON_TOKEN_STR_LITERAL_EQ(&token, "asd");
+
+    SOL_JSON_PATH_FOREACH(path_scanner, key_slice, json_reason);
+
+    SOL_JSON_SCANNER_ARRAY_LOOP_NEST(&scanner, &token, elem_type, json_reason);
+    SOL_JSON_SCANNER_ARRAY_LOOP(&scanner, &token, elem_type, json_reason);
+    SOL_JSON_SCANNER_ARRAY_LOOP_ALL_NEST(&scanner, &token, json_reason);
+    SOL_JSON_SCANNER_ARRAY_LOOP_ALL(&scanner, &token, json_reason);
+    SOL_JSON_SCANNER_OBJECT_LOOP(&scanner, &token, &token_key, &token_value, json_reason);
+    SOL_JSON_SCANNER_OBJECT_LOOP_NEST(&scanner, &token, &token_key, &token_value, json_reason);
+
+#ifdef FLOW_SUPPORT
+    struct sol_flow_static_node_spec node_spec = SOL_FLOW_STATIC_NODE_SPEC_GUARD;
+    struct sol_flow_static_conn_spec conn_spec = SOL_FLOW_STATIC_CONN_SPEC_GUARD;
+    struct sol_flow_static_port_spec port_sec = SOL_FLOW_STATIC_PORT_SPEC_GUARD;
+
+    SOL_FLOW_SIMPLECTYPE_PORT_IN("in", NULL);
+    SOL_FLOW_SIMPLECTYPE_PORT_OUT("out", NULL);
+#endif
+
+#ifdef OIC
+    float f = 2.3f;
+    struct sol_oic_map_reader map = { 0, 0, 0, 0, 0, 0 };
+    enum sol_oic_map_loop_reason end_reason;
+    struct sol_oic_map_reader iterator = { 0, 0, 0, 0, 0, 0 };
+    struct sol_oic_repr_field rep_field1 = SOL_OIC_REPR_UINT("1", 2);
+    struct sol_oic_repr_field rep_field2 = SOL_OIC_REPR_INT("2", -2);
+    struct sol_oic_repr_field rep_field4 = SOL_OIC_REPR_BOOLEAN("4", true);
+    struct sol_oic_repr_field rep_field5 = SOL_OIC_REPR_SIMPLE("5", 3);
+    struct sol_oic_repr_field rep_field6 = SOL_OIC_REPR_TEXT_STRING("6", "123", 3);
+    struct sol_oic_repr_field rep_field7 = SOL_OIC_REPR_BYTE_STRING("7", "333", 3);
+    struct sol_oic_repr_field rep_field8 = SOL_OIC_REPR_HALF_FLOAT("8", &f);
+    struct sol_oic_repr_field rep_field9 = SOL_OIC_REPR_FLOAT("9", 2.3);
+    struct sol_oic_repr_field rep_field10 = SOL_OIC_REPR_DOUBLE("10", 2.3);
+    struct sol_oic_repr_field rep_field11 = SOL_OIC_REPR_FIELD("131231", SOL_OIC_REPR_TYPE_UINT, .v_uint = 123);
+    SOL_OIC_MAP_LOOP(&map, &rep_field1, &iterator, end_reason);
+#endif
+
+#ifdef HTTP
+    struct sol_http_response resp = { };
+    struct sol_http_params params = SOL_HTTP_REQUEST_PARAMS_INIT;
+    struct sol_http_param_value *p_itr;
+    struct sol_http_param_value param_value_str = SOL_HTTP_REQUEST_PARAM_KEY_VALUE(SOL_HTTP_PARAM_QUERY_PARAM, "123", "123");
+    struct sol_http_param_value pbool = SOL_HTTP_REQUEST_PARAM_BOOLEAN(SOL_HTTP_PARAM_QUERY_PARAM, false);
+    struct sol_http_param_value cookie = SOL_HTTP_REQUEST_PARAM_COOKIE("123", "123");
+    struct sol_http_param_value post = SOL_HTTP_REQUEST_PARAM_POST_FIELD("123", "123");
+    struct sol_http_param_value header = SOL_HTTP_REQUEST_PARAM_HEADER("123", "123");
+    struct sol_http_param_value auth = SOL_HTTP_REQUEST_PARAM_AUTH_BASIC("123", "123");
+    struct sol_http_param_value query = SOL_HTTP_REQUEST_PARAM_QUERY("123", "123");
+    struct sol_http_param_value redir = SOL_HTTP_REQUEST_PARAM_ALLOW_REDIR(true);
+    struct sol_http_param_value verbo = SOL_HTTP_REQUEST_PARAM_VERBOSE(true);
+    struct sol_http_param_value timeout = SOL_HTTP_REQUEST_PARAM_TIMEOUT(true);
+    struct sol_http_param_value data_file = SOL_HTTP_REQUEST_PARAM_POST_DATA_FILE("123", "213123");
+    struct sol_http_param_value data_contents = SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS("123", sol_str_slice_from_str("123"));
+
+    SOL_HTTP_PARAMS_FOREACH_IDX(&params, p_itr, j);
+
+    SOL_HTTP_RESPONSE_CHECK_API_VERSION(&resp);
+    SOL_HTTP_RESPONSE_CHECK_API(&resp);
+#endif
+
+    struct sol_iio_channel_config iio_channel_config = SOL_IIO_CHANNEL_CONFIG_INIT;
+
+    SOL_MEMMAP_BOOL_ENTRY(memmap1, 0, 0);
+    SOL_MEMMAP_ENTRY(memamp2, 0, 0);
+
+#ifdef COAP
+    MAKE_RSPCODE(2, 3);
+#endif
+
+#ifdef FLOW_NODE_TYPE_FLOWER_POWER
+    struct sol_flower_power_data fp_data = SOL_FLOWER_POWER_DATA_INIT_VALUE(2.3);
+#endif
+
+    SOL_NULL_CHECK(i);
+    SOL_NULL_CHECK_GOTO(i, exit);
+    SOL_INT_CHECK(j, < 0);
+    SOL_INT_CHECK_GOTO(j, < 0, exit);
+    SOL_NULL_CHECK_MSG_GOTO(i, exit, "hi %s", "123");
+
+    SOL_EXP_CHECK(1 == 1);
+    SOL_EXP_CHECK_GOTO(1 == 1, exit);
+
+#ifdef HTTP
+    SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(&resp, exit);
+    SOL_HTTP_RESPONSE_CHECK_API_GOTO(&resp, exit);
+#endif
+
+#ifdef ENABLE_DYNAMIC_MODULES
+    sol_flow_get_node_type("module", "symbol", NULL);
+    sol_flow_get_packet_type("module", "symbol", NULL);
+#endif
+
+exit:
+    return;
+}
+
+static void
+shutdown()
+{
+    SOL_DBG("Exiting ...");
+}
+
+SOL_MAIN_DEFAULT(startup, shutdown);

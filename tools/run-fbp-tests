@@ -321,11 +321,7 @@ def set_log_level(args):
         if not level:
             raise ValueError('Invalid log level: %s' % args.log)
 
-    root = logging.getLogger()
-    hdlr = root.handlers[0]
-    fmt = logging.Formatter('%(message)s')
-    hdlr.setFormatter(fmt)
-    hdlr.setLevel(level)
+    logging.basicConfig(level=level, format='%(message)s') 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

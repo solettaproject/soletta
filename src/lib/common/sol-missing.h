@@ -39,44 +39,18 @@ extern "C" {
 #ifndef HAVE_DECL_STRNDUPA
 #include <alloca.h>
 
-#define __strndupa_internal__(str_, len_, var_)       \
-    ({                                                  \
-        size_t var_ ## len = strnlen((str_), (len_));   \
-        char *var_ = alloca((var_ ## len) + 1);         \
-        var_[var_ ## len] = '\0';                       \
-        memcpy(var_, (str_), var_ ## len);              \
+#define __strndupa_internal__(str_, len_, var_) \
+    ({ \
+        size_t var_ ## len = strnlen((str_), (len_)); \
+        char *var_ = alloca((var_ ## len) + 1); \
+        var_[var_ ## len] = '\0'; \
+        memcpy(var_, (str_), var_ ## len); \
     })
 #define strndupa(str_, len_)     __strndupa_internal__(str_, len_, __tmp__ ## __LINE__)
 #endif
 
-#if defined(HAVE_SOCKET) && !defined(HAVE_ACCEPT4)
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
-static inline int
-accept4(int sockfd, struct sockaddr *addr, socklen_t *len, int flags)
-{
-    int fl, fd = accept(sockfd, addr, len);
-
-    if (fd < 0)
-        return fd;
-
-    fl = fcntl(fd, F_GETFD);
-    if (fl == -1)
-        goto err;
-
-    fl |= flags;
-    if (fcntl(fd, F_SETFD, fl) == -1)
-        goto err;
-
-    return fd;
-
-err:
-    close(fd);
-    return -1;
-}
+#ifndef HAVE_DECL_STRDUPA
+#define strdupa(str)            strndupa(str, strlen(str))
 #endif
 
 #ifndef HAVE_DECL_MEMMEM
@@ -97,6 +71,72 @@ memmem(const void *haystack, size_t haystacklen, const void *needle, size_t need
     }
 
     return NULL;
+}
+#endif
+
+#ifndef HAVE_DECL_MEMRCHR
+#include <string.h>
+
+static inline void *
+memrchr(const void *haystack, int c, size_t n)
+{
+    const char *ptr = (const char *)haystack + n;
+
+    for (; ptr != haystack; --ptr) {
+        if (*ptr == c)
+            return (void *)ptr;
+    }
+
+    return NULL;
+}
+#endif
+
+#if !defined(HAVE_PIPE2) && defined(HAVE_PIPE) && defined(FEATURE_FILESYSTEM)
+#include <fcntl.h>
+#include <unistd.h>
+#include <sol-util-file.h>
+#ifndef O_CLOEXEC
+#error "I need O_CLOEXEC to work!"
+#endif
+
+static inline int
+pipe2(int pipefd[2], int flags)
+{
+    int ret = pipe(pipefd);
+
+    if (ret < 0)
+        return ret;
+
+    if (flags & O_NONBLOCK) {
+        ret = sol_util_fd_set_flag(pipefd[0], O_NONBLOCK);
+        if (ret >= 0)
+            ret = sol_util_fd_set_flag(pipefd[1], O_NONBLOCK);
+        if (ret < 0)
+            goto err;
+    }
+
+    if (flags & O_CLOEXEC) {
+        ret = fcntl(pipefd[0], F_GETFD);
+        if (ret >= 0)
+            ret = fcntl(pipefd[0], F_SETFD, ret | FD_CLOEXEC);
+        if (ret >= 0)
+            ret = fcntl(pipefd[1], F_GETFD);
+        if (ret >= 0)
+            ret = fcntl(pipefd[1], F_SETFD, ret | FD_CLOEXEC);
+        if (ret < 0)
+            goto err;
+    }
+
+    return 0;
+
+err:
+    {
+        int save_errno = errno;
+        close(pipefd[0]);
+        close(pipefd[1]);
+        errno = save_errno;
+    }
+    return -1;
 }
 #endif
 

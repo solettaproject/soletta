@@ -41,13 +41,17 @@
 #include "sol-buffer.h"
 #include "sol-http-client.h"
 #include "sol-log.h"
+#include "sol-macros.h"
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 int sol_http_client_init(void);
 void sol_http_client_shutdown(void);
+
+static int sol_http_client_init_lazy(void);
+static void sol_http_client_shutdown_lazy(void);
 
 static struct {
     CURLM *multi;
@@ -60,6 +64,8 @@ static struct {
     .ref = 0,
     .connections = SOL_PTR_VECTOR_INIT,
 };
+
+static bool did_curl_init = false;
 
 struct curl_http_method_opt {
     CURLoption method;
@@ -77,6 +83,7 @@ struct connection_watch {
 struct sol_http_client_connection {
     CURL *curl;
     struct curl_slist *headers;
+    struct curl_httppost *formpost;
     struct sol_buffer buffer;
     struct sol_vector watches;
     struct sol_http_params response_params;
@@ -95,6 +102,7 @@ destroy_connection(struct sol_http_client_connection *c)
     curl_multi_remove_handle(global.multi, c->curl);
     curl_slist_free_all(c->headers);
     curl_easy_cleanup(c->curl);
+    curl_formfree(c->formpost);
 
     sol_buffer_fini(&c->buffer);
 
@@ -106,14 +114,12 @@ destroy_connection(struct sol_http_client_connection *c)
     sol_vector_clear(&c->watches);
 
     free(c);
+    sol_http_client_shutdown_lazy();
 }
 
-void
-sol_http_client_shutdown(void)
+static void
+sol_http_client_shutdown_lazy(void)
 {
-    struct sol_http_client_connection *c;
-    uint16_t i;
-
     if (!global.ref)
         return;
     global.ref--;
@@ -125,15 +131,14 @@ sol_http_client_shutdown(void)
         global.multi_perform_timeout = NULL;
     }
 
-    SOL_PTR_VECTOR_FOREACH_IDX (&global.connections, c, i) {
-        destroy_connection(c);
+    if (global.connections.base.len) {
+        SOL_WRN("lazy shutdown with %" PRIu16 " existing connections. Leaking memory",
+            global.connections.base.len);
     }
 
     sol_ptr_vector_clear(&global.connections);
 
     curl_multi_cleanup(global.multi);
-    curl_global_cleanup();
-
     global.multi = NULL;
 }
 
@@ -317,15 +322,61 @@ timer_cb(CURLM *multi, long timeout_ms, void *userp)
 int
 sol_http_client_init(void)
 {
+    return 0;
+}
+
+void
+sol_http_client_shutdown(void)
+{
+    struct sol_ptr_vector v;
+    struct sol_http_client_connection *c;
+    uint16_t i;
+
+    /* steal vector so destroy_connection and
+     * sol_http_client_shutdown_lazy() sees none left. We'll delete
+     * the actual vector later in a single pass with
+     * sol_ptr_vector_clear().
+     */
+    v = global.connections;
+    sol_ptr_vector_init(&global.connections);
+
+    SOL_PTR_VECTOR_FOREACH_IDX (&v, c, i) {
+        destroy_connection(c);
+    }
+    sol_ptr_vector_clear(&v);
+
+    if (did_curl_init) {
+        curl_global_cleanup();
+        did_curl_init = false;
+    }
+}
+
+static int
+sol_http_client_init_lazy(void)
+{
     if (global.ref) {
         global.ref++;
         return 0;
     }
 
-    curl_global_init(CURL_GLOBAL_ALL);
+    if (!did_curl_init) {
+        CURLcode r;
+
+        /* cURL says "exactly once", we can't know what other modules
+         * are doing, but at least in our case we do it once.
+         */
+        r = curl_global_init(CURL_GLOBAL_ALL);
+        if (r == CURLE_OK)
+            did_curl_init = true;
+        else {
+            SOL_WRN("curl_global_init(CURL_GLOBAL_ALL) failed: %s",
+                curl_easy_strerror(r));
+            return -EINVAL;
+        }
+    }
 
     global.multi = curl_multi_init();
-    SOL_NULL_CHECK_GOTO(global.multi, cleanup);
+    SOL_NULL_CHECK(global.multi, -EINVAL);
 
     curl_multi_setopt(global.multi, CURLMOPT_TIMERFUNCTION, timer_cb);
 
@@ -334,10 +385,6 @@ sol_http_client_init(void)
     global.ref++;
 
     return 0;
-
-cleanup:
-    curl_global_cleanup();
-    return -EINVAL;
 }
 
 static bool
@@ -433,7 +480,7 @@ xferinfo_cb(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 {
     struct sol_http_client_connection *connection = clientp;
 
-    if (dltotal > 0 && unlikely(dltotal < dlnow)) {
+    if (dltotal > 0 && SOL_UNLIKELY(dltotal < dlnow)) {
         SOL_WRN("Received more than expected, aborting transfer ("
             CURL_FORMAT_OFF_T "< " CURL_FORMAT_OFF_T ")",
             dltotal, dlnow);
@@ -468,12 +515,12 @@ header_cb(char *data, size_t size, size_t nmemb, void *connp)
     sep++;
 
     //Trim spaces
-    while (isspace(*sep)) {
+    while (isspace((uint8_t)*sep)) {
         sep++;
         discarted++;
     }
 
-    for (i = data_size - 1; isspace(data[i]); i--)
+    for (i = data_size - 1; isspace((uint8_t)data[i]); i--)
         discarted++;
 
     if (!strncasecmp(data, "Set-Cookie:", key_size)) {
@@ -520,6 +567,7 @@ err_exit:
 
 static struct sol_http_client_connection *
 perform_multi(CURL *curl, struct curl_slist *headers,
+    struct curl_httppost *formpost,
     const struct sol_http_request_interface *interface,
     const void *data)
 {
@@ -533,6 +581,7 @@ perform_multi(CURL *curl, struct curl_slist *headers,
     SOL_NULL_CHECK(connection, NULL);
 
     connection->headers = headers;
+    connection->formpost = formpost;
     connection->curl = curl;
     connection->interface = *interface;
     connection->data = data;
@@ -741,14 +790,14 @@ static bool
 set_uri_from_params(CURL *curl, const char *base,
     const struct sol_http_params *params)
 {
-    char *full_uri;
+    struct sol_buffer full_uri = SOL_BUFFER_INIT_EMPTY;
     int err;
     bool r;
 
     err = sol_http_create_simple_uri_from_str(&full_uri, base, params);
     SOL_INT_CHECK(err, < 0, false);
-    r = curl_easy_setopt(curl, CURLOPT_URL, full_uri) == CURLE_OK;
-    free(full_uri);
+    r = curl_easy_setopt(curl, CURLOPT_URL, full_uri.data) == CURLE_OK;
+    sol_buffer_fini(&full_uri);
     return r;
 }
 
@@ -766,57 +815,65 @@ set_post_fields_from_params(CURL *curl, const struct sol_http_params *params)
     return r;
 }
 
-static bool
-set_post_data_from_params(CURL *curl, const struct sol_http_params *params)
+static int
+set_post_data_from_params(CURL *curl, struct curl_httppost **formpost,
+    const struct sol_http_params *params)
 {
-    struct sol_str_slice data = SOL_STR_SLICE_EMPTY;
-    struct sol_http_param_value *iter;
+    int len = 0;
     uint16_t idx;
-    bool type_set, has_post_fields, has_post_data;
+    struct sol_http_param_value *iter;
+    struct curl_httppost *lastptr = NULL;
+    CURLFORMcode ret;
+    bool has_post_field = false;
 
-    type_set = has_post_fields = has_post_data = false;
-    SOL_VECTOR_FOREACH_IDX (&params->params, iter, idx) {
-        struct sol_str_slice value = SOL_STR_SLICE_EMPTY;
-        if (iter->type == SOL_HTTP_PARAM_POST_FIELD) {
-            has_post_fields = true;
-        } else if (iter->type == SOL_HTTP_PARAM_HEADER) {
-            struct sol_str_slice key = iter->value.key_value.key;
-            type_set = type_set || sol_str_slice_str_caseeq(key, "content-type");
-        } else if (iter->type == SOL_HTTP_PARAM_POST_DATA) {
-            value = iter->value.data.value;
-            if (data.len != 0) {
-                SOL_WRN("More than one SOL_HTTP_PARAM_POST_DATA found.");
-                return false;
-            }
+    SOL_HTTP_PARAMS_FOREACH_IDX (params, iter, idx) {
+        if (iter->type == SOL_HTTP_PARAM_POST_FIELD)
+            has_post_field = true;
 
-            data = value;
-            has_post_data = true;
+        if (iter->type != SOL_HTTP_PARAM_POST_DATA)
+            continue;
+
+        if (has_post_field) {
+            SOL_WRN("Request can not have both, POSTFIELD and POSTDATA at same time.");
+            return -1;
         }
+
+        if (iter->value.data.filename.len) {
+            char filename[PATH_MAX + 1];
+            if (iter->value.data.filename.len >= PATH_MAX)
+                return -1;
+            memcpy(filename, iter->value.data.filename.data,
+                iter->value.data.filename.len);
+            filename[iter->value.data.filename.len] = '\0';
+            ret = curl_formadd(formpost, &lastptr,
+                CURLFORM_COPYNAME, iter->value.data.key.data,
+                CURLFORM_NAMELENGTH, iter->value.data.key.len,
+                CURLFORM_FILE, filename,
+                CURLFORM_END);
+        } else {
+            ret = curl_formadd(formpost, &lastptr,
+                CURLFORM_COPYNAME, iter->value.data.key.data,
+                CURLFORM_NAMELENGTH, iter->value.data.key.len,
+                CURLFORM_COPYCONTENTS, iter->value.data.value.data,
+                CURLFORM_CONTENTSLENGTH, iter->value.data.value.len,
+                CURLFORM_END);
+        }
+
+        SOL_EXP_CHECK(ret != CURL_FORMADD_OK, -1);
+        len++;
     }
 
-    if (!has_post_data)
-        return true;
+    if (*formpost)
+        return curl_easy_setopt(curl, CURLOPT_HTTPPOST, *formpost) == CURLE_OK ? len : -1;
 
-    if (has_post_data && data.len == 0)
-        return false;
-
-    if (has_post_fields && has_post_data) {
-        SOL_WRN("SOL_HTTP_PARAM_POST_FIELD and SOL_HTTP_PARAM_POST_DATA found in parameters."
-            " Only one can be used at a time");
-        return false;
-    }
-
-    if (!type_set)
-        SOL_WRN("POST request has data but no content-type was set");
-
-    return set_postfields(curl, data);
+    return len;
 }
 
 static bool
 check_param_api_version(const struct sol_http_params *params)
 {
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(params->api_version != SOL_HTTP_PARAM_API_VERSION)) {
+    if (SOL_UNLIKELY(params->api_version != SOL_HTTP_PARAM_API_VERSION)) {
         SOL_ERR("Parameter has an invalid API version. Expected %u, got %u",
             SOL_HTTP_PARAM_API_VERSION, params->api_version);
         return false;
@@ -857,6 +914,7 @@ client_request_internal(enum sol_http_method method,
     };
     struct sol_http_param_value *value;
     struct curl_slist *headers = NULL;
+    struct curl_httppost *formpost = NULL;
     struct sol_http_client_connection *pending;
     CURL *curl;
     uint16_t idx;
@@ -885,10 +943,15 @@ client_request_internal(enum sol_http_method method,
         params = &empty_params;
     }
 
+    if (sol_http_client_init_lazy() < 0) {
+        SOL_WRN("could not initialize http-client integration with cURL");
+        return NULL;
+    }
+
     curl = curl_easy_init();
     if (!curl) {
         SOL_WRN("Could not create cURL handle");
-        return NULL;
+        goto failed_easy_init;
     }
 
     method_opt = sol_to_curl_method[method];
@@ -916,9 +979,12 @@ client_request_internal(enum sol_http_method method,
     }
 
     if (method == SOL_HTTP_METHOD_POST) {
-        if (!set_post_fields_from_params(curl, params) ||
-            !set_post_data_from_params(curl, params)) {
-            SOL_WRN("Could not set POST fields or data from params");
+        if (!set_post_fields_from_params(curl, params)) {
+            SOL_WRN("Could not set POST fields from params");
+            goto invalid_option;
+        }
+        if (set_post_data_from_params(curl, &formpost, params) < 0) {
+            SOL_WRN("Could not set POST data from params");
             goto invalid_option;
         }
     }
@@ -967,13 +1033,16 @@ client_request_internal(enum sol_http_method method,
         }
     }
 
-    pending = perform_multi(curl, headers, interface, data);
+    pending = perform_multi(curl, headers, formpost, interface, data);
     if (pending)
         return pending;
 
 invalid_option:
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
+    curl_formfree(formpost);
+failed_easy_init:
+    sol_http_client_shutdown_lazy();
     return NULL;
 }
 

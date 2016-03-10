@@ -1,3 +1,4 @@
 config FLOW_NODE_TYPE_LED_7SEG
 	tristate "Node type: led 7 segments"
+	depends on USE_GPIO
 	default y

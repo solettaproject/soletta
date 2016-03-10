@@ -111,6 +111,15 @@ enum sol_buffer_flags {
 };
 
 /**
+ * @def SOL_BUFFER_NEEDS_NUL_BYTE()
+ *
+ * Convenience flag to check for flags not containing
+ * #SOL_BUFFER_FLAGS_NO_NUL_BYTE, that is, buffers that needs the
+ * trailing nul byte terminator.
+ */
+#define SOL_BUFFER_NEEDS_NUL_BYTE(buf) (!((buf)->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE))
+
+/**
  * @struct sol_buffer
  *
  * @brief A sol_buffer is a dynamic array, that can be resized if needed.
@@ -180,6 +189,25 @@ enum sol_decode_case {
  * @param size_ Initial data size
  */
 #define SOL_BUFFER_INIT_DATA(data_, size_) SOL_BUFFER_C_CAST { .data = data_, .capacity = size_, .used = size_, .flags = SOL_BUFFER_FLAGS_DEFAULT }
+
+/**
+ * @def SOL_BUFFER_DECLARE_STATIC(name_, size_)
+ *
+ * @brief A helper macro to create a static allocated buffer with a fixed capacity.
+ *
+ * This macro will expand into the following code:
+ * @code{.c}
+ * // SOL_BUFFER_DECLARE_STATIC(buf, 1024);
+ * uint8_t buf_storage[1024] = { 0 };
+ * struct sol_buffer buf = SOL_BUFFER_INIT_FLAGS(buf_storage, 1024, SOL_BUFFER_FLAGS_FIXED_CAPACITY);
+ * @endcode
+ *
+ * @param name_ The name of the struct sol_buffer variable
+ * @param size_ The capacity of the buffer
+ */
+#define SOL_BUFFER_DECLARE_STATIC(name_, size_) \
+    uint8_t name_ ## storage[(size_)] = { 0 }; \
+    struct sol_buffer name_ = SOL_BUFFER_INIT_FLAGS(name_ ## storage, (size_), SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED)
 
 /**
  * @brief Initializes a @c sol_buffer structure.
@@ -262,6 +290,10 @@ sol_buffer_at_end(const struct sol_buffer *buf)
 /**
  * @brief Resize the buffer to the given size.
  *
+ * The new size will be exactly of the given @a new_size, no null-byte
+ * is automatically handled and if @c used member is larger than the
+ * new size, then it's limited to that amount (clamp).
+ *
  * @param buf The buffer
  * @param new_size New size
  *
@@ -270,9 +302,33 @@ sol_buffer_at_end(const struct sol_buffer *buf)
 int sol_buffer_resize(struct sol_buffer *buf, size_t new_size);
 
 /**
+ * @brief Increment the buffer capacity to fit the @c bytes.
+ *
+ * This function will increase the buffer capacity in order to
+ * be able to fit @c bytes.
+ *
+ * If buffer has null-bytes (ie: null terminated strings), then the
+ * resized ammount will include that null byte automatically. See
+ * SOL_BUFFER_FLAGS_NO_NUL_BYTE.
+ *
+ * @param buf The buffer
+ * @param bytes The number of bytes that the buffer must fit.
+ *
+ * @return @c 0 on success, error code (always negative) otherwise
+ *
+ * @note Internally this function uses sol_buffer_ensure()
+ */
+int sol_buffer_expand(struct sol_buffer *buf, size_t bytes);
+
+/**
  * @brief Ensures that @c buf has at least @c min_size.
  *
- * It may allocate more than requested.
+ * If buffer has null-bytes (ie: null terminated strings), then the
+ * resized ammount will include that null byte automatically. See
+ * SOL_BUFFER_FLAGS_NO_NUL_BYTE.
+ *
+ * It may allocate more than requested to avoid subsequent reallocs,
+ * the internal heuristic rounds up to next power-of-2.
  *
  * @param buf The buffer
  * @param min_size Minimum size
@@ -285,6 +341,11 @@ int sol_buffer_ensure(struct sol_buffer *buf, size_t min_size);
  * @brief Copy @c slice into @c buf, ensuring that will fit.
  *
  * Also includes an extra NULL byte so the buffer data can be used as a C string.
+ *
+ * If data exists, then it won't be moved/shiffted, instead it will be
+ * overriden. Example:
+ *  - buffer "abcd", slice "XY", result: "XYcd";
+ *  - buffer "XY", slice "abcd", result: "abcd".
  *
  * @param buf The buffer
  * @param slice String slice
@@ -378,7 +439,15 @@ int sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t
  *
  * The memory regions of @a slice and @a buf may overlap.
  *
- * If pos == buf->end, then the behavior is the same as @ref sol_buffer_append_slice
+ * If pos == buf->end, then the behavior is the same as @ref sol_buffer_append_slice.
+ *
+ * If data exists after @a pos, then it won't be moved/shiffted,
+ * instead it will be overriden. Example:
+ *  - buffer "abcd", slice "XY", pos: 4, result: "abcdXY";
+ *  - buffer "abcd", slice "XY", pos: 3, result: "abcXY";
+ *  - buffer "abcd", slice "XY", pos: 2, result: "abXY";
+ *  - buffer "abcd", slice "XY", pos: 1, result: "aXYd";
+ *  - buffer "abcd", slice "XY", pos: 0, result: "XYcd";
  *
  * @param buf Destination buffer
  * @param pos Start position
@@ -618,7 +687,7 @@ int sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_s
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args);
+int sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args) SOL_ATTR_PRINTF(2, 0);
 
 /**
  * @brief Append the formatted string in the end of the buffer (including trailing '\0').
@@ -657,7 +726,7 @@ sol_buffer_append_printf(struct sol_buffer *buf, const char *fmt, ...)
  *
  * @return @c 0 on success, error code (always negative) otherwise
  */
-int sol_buffer_insert_vprintf(struct sol_buffer *buf, size_t pos, const char *fmt, va_list args);
+int sol_buffer_insert_vprintf(struct sol_buffer *buf, size_t pos, const char *fmt, va_list args) SOL_ATTR_PRINTF(3, 0);
 
 /**
  * @brief Insert the formatted string in the given position in the buffer.
@@ -685,6 +754,10 @@ sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ..
 /**
  * @brief Frees memory that is not in being used by the buffer.
  *
+ * If buffer has null-bytes (ie: null terminated strings), then the
+ * resized ammount will include that null byte automatically. See
+ * SOL_BUFFER_FLAGS_NO_NUL_BYTE.
+ *
  * @param buf The buffer
  *
  * @return @c 0 on success, error code (always negative) otherwise
@@ -692,13 +765,22 @@ sol_buffer_insert_printf(struct sol_buffer *buf, size_t pos, const char *fmt, ..
 static inline int
 sol_buffer_trim(struct sol_buffer *buf)
 {
+    size_t new_size;
+
     if (!buf)
         return -EINVAL;
 
-    if (buf->used == buf->capacity)
+    if (buf->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE)
+        new_size = buf->used;
+    else if (buf->used == SIZE_MAX)
+        return -EOVERFLOW;
+    else
+        new_size = buf->used + 1;
+
+    if (new_size == buf->capacity)
         return 0;
 
-    return sol_buffer_resize(buf, buf->used);
+    return sol_buffer_resize(buf, new_size);
 }
 
 /**

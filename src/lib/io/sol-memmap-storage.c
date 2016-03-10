@@ -44,10 +44,9 @@
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
 #include "sol-util-file.h"
 #include "sol-vector.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #ifdef USE_I2C
 #include <sol-i2c.h>
@@ -128,7 +127,7 @@ sol_memmap_read_raw_do(const char *path, const struct sol_memmap_entry *entry, u
     if (lseek(fd, entry->offset, SEEK_SET) < 0)
         goto error;
 
-    if ((ret = sol_util_fill_buffer(fd, buffer, entry->size)) < 0)
+    if ((ret = sol_util_fill_buffer_exactly(fd, buffer, entry->size)) < 0)
         goto error;
 
     if (mask) {
@@ -261,11 +260,13 @@ check_version(struct map_internal *map_internal)
     if (map_internal->checked)
         return true;
 
-    if (!map_internal->map->version || map_internal->map->version == 255) {
-        SOL_WRN("Invalid memory_map_version. Should be between 1 and 255. Found %d",
-            map_internal->map->version);
+#ifndef SOL_NO_API_VERSION
+    if (!map_internal->map->api_version || map_internal->map->api_version == UINT16_MAX) {
+        SOL_WRN("Invalid memory_map_version. Should be between 1 and %" PRIu16 ". Found %" PRIu16,
+            UINT16_MAX, map_internal->map->api_version);
         return false;
     }
+#endif
 
     if (!get_entry_metadata_on_map(MEMMAP_VERSION_ENTRY, map_internal->map, &entry,
         &mask)) {
@@ -276,24 +277,28 @@ check_version(struct map_internal *map_internal)
 
     ret = sol_memmap_read_raw_do(map_internal->resolved_path, entry, mask, &buf);
     if (ret >= 0 && (version == 0 || version == 255)) {
-        blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE, NULL, &map_internal->map->version, sizeof(uint8_t));
+        blob = sol_blob_new(SOL_BLOB_TYPE_NOFREE, NULL, &map_internal->map->api_version, sizeof(uint16_t));
         SOL_NULL_CHECK(blob, false);
 
         /* No version on file, we should be initialising it */
-        version = map_internal->map->version;
-        if (sol_memmap_write_raw_do(map_internal->resolved_path, MEMMAP_VERSION_ENTRY, entry, mask, blob, version_write_cb, NULL, NULL) < 0) {
-            SOL_WRN("Could not write current map version to file");
+        version = map_internal->map->api_version;
+        if ((ret = sol_memmap_write_raw_do(map_internal->resolved_path, MEMMAP_VERSION_ENTRY, entry, mask, blob, version_write_cb, NULL, NULL)) < 0) {
+            SOL_WRN("Could not write current map version to file [%s]: %s",
+                map_internal->resolved_path,
+                sol_util_strerrora(-ret));
             sol_blob_unref(blob);
             return false;
         }
     } else if (ret < 0) {
-        SOL_WRN("Could not read current map version");
+        SOL_WRN("Could not read current map version from file [%s]: %s",
+            map_internal->resolved_path,
+            sol_util_strerrora(-ret));
         return false;
     }
 
-    if (version != map_internal->map->version) {
+    if (version != map_internal->map->api_version) {
         SOL_WRN("Memory map version mismatch. Expected %d but found %d",
-            map_internal->map->version, version);
+            map_internal->map->api_version, version);
         return false;
     }
 

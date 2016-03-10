@@ -30,14 +30,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #define SOL_LOG_DOMAIN &_log_domain
@@ -46,7 +43,8 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-unix-socket-impl");
 
 #include "unix-socket.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 struct client_data {
@@ -153,11 +151,28 @@ on_server_connect(void *data, int fd, uint32_t cond)
 
     len = sizeof(client);
 
+#ifdef HAVE_ACCEPT4
     c->sock = accept4(server->base.sock, (struct sockaddr *)&client, &len, SOCK_CLOEXEC);
+#else
+    c->sock = accept(server->base.sock, (struct sockaddr *)&client, &len);
+#endif
     if (c->sock < 0) {
         SOL_WRN("Error on accept %s", sol_util_strerrora(errno));
         goto err;
     }
+
+#ifndef HAVE_ACCEPT4
+    /* we need to set the FD_CLOEXEC flag */
+    {
+        int ret = fcntl(c->sock, F_GETFD);
+        if (ret >= 0)
+            ret = fcntl(c->sock, F_SETFD, ret | FD_CLOEXEC);
+        if (ret < 0) {
+            SOL_WRN("Error on setting FD_CLOEXEC flag on socket: %s", sol_util_strerrora(errno));
+            goto err_socket;
+        }
+    }
+#endif
 
     c->watch = sol_fd_add(c->sock, SOL_FD_FLAGS_IN | SOL_FD_FLAGS_ERR | SOL_FD_FLAGS_HUP,
         on_server_data, server);

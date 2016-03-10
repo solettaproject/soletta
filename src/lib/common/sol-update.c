@@ -30,7 +30,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,12 +45,14 @@
 #include "sol-update.h"
 #include "sol-update-modules.h"
 #include "sol-update-builtins-gen.h"
-#include "sol-util.h"
-#include "sol-util-file.h"
+#include "sol-util-internal.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_update_log_domain, "update");
 
+#ifdef ENABLE_DYNAMIC_MODULES
+#include "sol-util-file.h"
 static struct sol_lib_loader *update_module_loader;
+#endif
 static const struct sol_update *update_module;
 
 int sol_update_init(void);
@@ -101,7 +102,7 @@ iterate_dir_cb(void *data, const char *dir_path, struct dirent *ent)
 static char *
 get_first_module_on_dir(const char *dir_name)
 {
-    char *result;
+    char *result = NULL;
     char path[PATH_MAX], install_rootdir[PATH_MAX];
     struct stat st;
     int r;
@@ -189,7 +190,10 @@ sol_update_shutdown(void)
     if (update_module && update_module->shutdown)
         update_module->shutdown();
 
+#ifdef ENABLE_DYNAMIC_MODULES
     sol_lib_loader_del(update_module_loader);
+    update_module_loader = NULL;
+#endif
 }
 
 SOL_API struct sol_update_handle *

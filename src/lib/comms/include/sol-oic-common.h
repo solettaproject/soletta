@@ -168,7 +168,12 @@ enum sol_oic_resource_flag {
          *
          * Connection established with a secure devices is secure.
          */
-        SOL_OIC_FLAG_SECURE = 1 << 4
+        SOL_OIC_FLAG_SECURE = 1 << 4,
+        /**
+         * @brief The resource is discoverable by clients only if request
+         * contains an explicity query
+         */
+        SOL_OIC_FLAG_DISCOVERABLE_EXPLICIT = 1 << 5,
 };
 
 /**
@@ -236,7 +241,7 @@ struct sol_oic_repr_field {
      */
     const char *key;
     /**
-     * @brief Union used to access field's data in correct formap specified by
+     * @brief Union used to access field's data in correct format specified by
      * @a type
      */
     union {
@@ -284,7 +289,7 @@ struct sol_oic_repr_field {
  * @param ... Extra structure initialization commands.
  */
 #define SOL_OIC_REPR_FIELD(key_, type_, ...) \
-    (struct sol_oic_repr_field){.type = (type_), .key = (key_), __VA_ARGS__ }
+    (struct sol_oic_repr_field){.type = (type_), .key = (key_), { __VA_ARGS__ } }
 
 /**
  * @brief Helper macro to create an unsigned integer sol_oic_repr_field.
@@ -352,7 +357,7 @@ struct sol_oic_repr_field {
  * @param value_ The value of the float number.
  */
 #define SOL_OIC_REPR_HALF_FLOAT(key_, value_) \
-    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_HALF_FLOAT, .v_voidptr = (value_))
+    SOL_OIC_REPR_FIELD(key_, SOL_OIC_REPR_TYPE_HALF_FLOAT, .v_voidptr = (void *)(value_))
 
 /**
  * @brief Helper macro to create a single-precision float number
@@ -385,6 +390,31 @@ struct sol_oic_repr_field {
  * @see sol_oic_client_resource_request()
  */
 struct sol_oic_map_writer;
+
+/**
+ * @brief Used in @ref sol_oic_map_writer to state if the map has a content or not
+ *
+ * @see sol_oic_map_set_type()
+ * @see sol_oic_map_get_type()
+ */
+enum sol_oic_map_type {
+    /**
+     * @brief Map with no content
+     *
+     * When an oic map is used to create a packet and type is
+     * SOL_OIC_MAP_NO_CONTENT, no payload will be added to the packet.
+     **/
+    SOL_OIC_MAP_NO_CONTENT,
+    /**
+     * @brief Map with content.
+     *
+     * When an oic map is used to create a packet and type is
+     * SOL_OIC_MAP_CONTENT, a payload will be created and elements
+     * from map will be added to payload. If map contains no elements,
+     * an empty map will be added to payload.
+     */
+    SOL_OIC_MAP_CONTENT,
+};
 
 /**
  * @brief Handler for an oic packet map reader.
@@ -468,8 +498,37 @@ bool sol_oic_map_loop_next(struct sol_oic_repr_field *repr, struct sol_oic_map_r
  *
  * @see sol_oic_notify_observers()
  * @see sol_oic_client_resource_request()
+ * @note As this function adds elements to @a oic_map_writer, it will update
+ * its type to SOL_OIC_MAP_CONTENT when needed.
  */
 bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oic_repr_field *repr);
+
+/**
+ * @brief set current @a oic_map_writer type.
+ *
+ * Use this function if you want to change @a oic_map_writer type to
+ * SOL_OIC_MAP_CONTENT without adding elements to it. This will force oic to
+ * create a payload in packet with an empty list if map is empty.
+ * Trying to change from SOL_OIC_MAP_CONTENT to SOL_OIC_MAP_NO_CONTENT will fail
+ * if elements were already added to @a oic_map_writer.
+ *
+ * @param oic_map_writer The map to set the type.
+ * @param type The new type of @a oic_map_writer.
+ *
+ * @return False if @a oic_map_writer is NULL or if it was not possible to
+ * change the type. True otherwise.
+ */
+bool sol_oic_map_set_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type type);
+
+/**
+ * @brief get current @a oic_map_writer type.
+ *
+ * @param oic_map_writer The map to get the type from.
+ * @param type A pointer to an enum to be filled with @a oic_map_writer type.
+ *
+ * @return False if any param is NULL. True otherwise.
+ */
+bool sol_oic_map_get_type(struct sol_oic_map_writer *oic_map_writer, enum sol_oic_map_type *type);
 
 /**
  * @def SOL_OIC_MAP_LOOP(map_, current_, iterator_, end_reason_)
@@ -498,7 +557,7 @@ bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oi
  * }
  *
  * if (end_reason != SOL_OIC_MAP_LOOP_OK)
- *     // Erro handling
+ *     // Error handling
  * @endcode
  *
  * @see sol_oic_map_reader
@@ -506,7 +565,7 @@ bool sol_oic_map_append(struct sol_oic_map_writer *oic_map_writer, struct sol_oi
  * @see sol_oic_map_loop_next
  */
 #define SOL_OIC_MAP_LOOP(map_, current_, iterator_, end_reason_) \
-    for (end_reason_ = sol_oic_map_loop_init(map_, iterator_, current_);  \
+    for (end_reason_ = sol_oic_map_loop_init(map_, iterator_, current_); \
         end_reason_ == SOL_OIC_MAP_LOOP_OK && \
         sol_oic_map_loop_next(current_, iterator_, &end_reason_);)
 

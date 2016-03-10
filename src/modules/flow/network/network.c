@@ -42,8 +42,9 @@
 #include "sol-flow.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
+#include "sol-flow-internal.h"
 
 struct network_data {
     struct sol_flow_node *node;
@@ -59,7 +60,7 @@ struct network_data {
 static bool
 _compile_regex(regex_t *r, const char *text)
 {
-    char error_message[PATH_MAX];
+    char error_message[256];
     int status = regcomp(r, text, REG_EXTENDED | REG_NEWLINE);
 
     if (!status)
@@ -109,6 +110,9 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
     struct sol_network_link *itr;
     bool connected;
     uint16_t idx;
+    int r;
+
+    SOL_NETWORK_LINK_CHECK_VERSION(link);
 
     if (!_match_link(mdata, link))
         return;
@@ -116,7 +120,9 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
     switch (event) {
     case SOL_NETWORK_LINK_CHANGED:
     case SOL_NETWORK_LINK_ADDED:
-        sol_ptr_vector_append(&mdata->links, (struct sol_network_link *)link);
+        r = sol_ptr_vector_append(&mdata->links, (struct sol_network_link *)link);
+        SOL_INT_CHECK(r, < 0);
+
         break;
     case SOL_NETWORK_LINK_REMOVED:
         SOL_PTR_VECTOR_FOREACH_IDX (&mdata->links, itr, idx) {
@@ -149,27 +155,29 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
     const struct sol_flow_node_type_network_boolean_options *opts =
         (const struct sol_flow_node_type_network_boolean_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_NETWORK_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
+
     SOL_NULL_CHECK(options, -EINVAL);
 
     if (!_compile_regex(&mdata->regex, opts->address))
         return -EINVAL;
 
-    if (sol_network_init() != 0) {
-        SOL_WRN("Could not initialize the network");
-        goto err;
-    }
-
+    sol_ptr_vector_init(&mdata->links);
     if (!sol_network_subscribe_events(_on_network_event, mdata))
         goto err_net;
-
-    sol_ptr_vector_init(&mdata->links);
 
     links = sol_network_get_available_links();
 
     if (links) {
         SOL_VECTOR_FOREACH_IDX (links, itr, idx) {
+            SOL_NETWORK_LINK_CHECK_VERSION(itr, -EINVAL);
             if (_match_link(mdata, itr)) {
-                sol_ptr_vector_append(&mdata->links, itr);
+                int r;
+
+                r = sol_ptr_vector_append(&mdata->links, itr);
+                SOL_INT_CHECK_GOTO(r, < 0, err_net);
+
                 mdata->connected |= (itr->flags & SOL_NETWORK_LINK_RUNNING) &&
                     !(itr->flags & SOL_NETWORK_LINK_LOOPBACK);
             }
@@ -183,10 +191,8 @@ network_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_
         _check_connected(&mdata->links));
 
 err_net:
-    SOL_WRN("Failed to init the network");
+    SOL_WRN("Failed to subscribe to network events");
     sol_ptr_vector_clear(&mdata->links);
-    sol_network_shutdown();
-err:
     regfree(&mdata->regex);
     return -EINVAL;
 }
@@ -195,14 +201,10 @@ static void
 network_close(struct sol_flow_node *node, void *data)
 {
     struct network_data *mdata = data;
-    struct sol_network_link *itr;
 
     regfree(&mdata->regex);
     sol_ptr_vector_clear(&mdata->links);
     sol_network_unsubscribe_events(_on_network_event, mdata);
-    sol_network_shutdown();
-
-    (void)itr;
 }
 
 

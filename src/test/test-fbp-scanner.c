@@ -35,7 +35,7 @@
 #include "sol-log.h"
 #include "sol-mainloop.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "sol-fbp-internal-scanner.h"
@@ -472,7 +472,7 @@ run_table_tests(void)
 {
     unsigned int i;
 
-    for (i = 0; i < ARRAY_SIZE(scan_tests); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(scan_tests); i++) {
         struct test_entry *t;
         struct sol_fbp_scanner scanner;
         struct sol_str_slice input;
@@ -525,7 +525,7 @@ scan_errors(void)
         SOL_STR_SLICE_LITERAL("OPTION=A:B.C"),
     };
 
-    for (i = 0; i < ARRAY_SIZE(tests); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(tests); i++) {
         struct sol_fbp_scanner scanner;
         struct sol_vector v = SOL_VECTOR_INIT(enum sol_fbp_token_type);
         enum sol_fbp_token_type *type;
@@ -598,7 +598,7 @@ token_position(void)
 
     sol_fbp_scanner_init(&scanner, sol_str_slice_from_str(input));
 
-    for (i = 0; i < ARRAY_SIZE(expected); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(expected); i++) {
         struct entry *e = &expected[i];
         struct sol_fbp_token *t = &scanner.token;
         char *token_contents;

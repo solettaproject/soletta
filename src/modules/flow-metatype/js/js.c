@@ -43,7 +43,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "flow-metatype-js");
 #include "sol-arena.h"
 #include "sol-flow-metatype.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "js_code_start.h"
 
 /**
@@ -106,7 +106,7 @@ struct flow_js_port_out {
 /* Contains information specific to a node of a JS node type. */
 struct flow_js_data {
     /* Each node keeps its own JavaScript context and global object. */
-    struct duk_context *duk_ctx;
+    duk_context *duk_ctx;
 };
 
 struct flow_js_port_description_context {
@@ -672,7 +672,7 @@ send_error_packet(duk_context *ctx)
 }
 
 static bool
-fetch_ports_methods(struct duk_context *duk_ctx, const char *prop,
+fetch_ports_methods(duk_context *duk_ctx, const char *prop,
     uint16_t ports_len, uint16_t base, uint16_t methods_len, uint16_t *methods_index)
 {
     uint16_t i;
@@ -874,7 +874,7 @@ process_boilerplate_post(duk_context *ctx, struct sol_flow_node *node, uint16_t 
 
 static int
 push_boolean(const struct sol_flow_packet *packet,
-    struct duk_context *duk_ctx)
+    duk_context *duk_ctx)
 {
     bool value;
     int r;
@@ -888,7 +888,7 @@ push_boolean(const struct sol_flow_packet *packet,
 }
 
 static int
-push_byte(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_byte(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     unsigned char value;
     int r;
@@ -902,7 +902,7 @@ push_byte(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
 }
 
 static int
-push_error(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_error(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     const char *value_msg;
     int r, value_code;
@@ -917,7 +917,7 @@ push_error(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
 }
 
 static int
-push_float(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_float(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     struct sol_drange value;
     duk_idx_t obj_idx;
@@ -940,7 +940,7 @@ push_float(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
 }
 
 static int
-push_int(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_int(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     struct sol_irange value;
     duk_idx_t obj_idx;
@@ -963,7 +963,7 @@ push_int(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
 }
 
 static int
-push_rgb(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_rgb(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     struct sol_rgb value;
     duk_idx_t obj_idx;
@@ -990,7 +990,7 @@ push_rgb(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
 }
 
 static int
-push_string(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_string(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     const char *value;
     int r;
@@ -1004,7 +1004,7 @@ push_string(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
 }
 
 static int
-push_timestamp(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_timestamp(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     struct timespec timestamp;
     duk_idx_t obj_idx;
@@ -1025,7 +1025,7 @@ push_timestamp(const struct sol_flow_packet *packet, struct duk_context *duk_ctx
 }
 
 static int
-push_direction_vector(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_direction_vector(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     struct sol_direction_vector dir;
     duk_idx_t obj_idx;
@@ -1055,7 +1055,7 @@ push_direction_vector(const struct sol_flow_packet *packet, struct duk_context *
 }
 
 static void
-copy_blob_to_stack(const struct sol_blob *blob, struct duk_context *duk_ctx)
+copy_blob_to_stack(const struct sol_blob *blob, duk_context *duk_ctx)
 {
     void *mem;
 
@@ -1064,7 +1064,7 @@ copy_blob_to_stack(const struct sol_blob *blob, struct duk_context *duk_ctx)
 }
 
 static int
-push_blob(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_blob(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     struct sol_blob *blob;
     int r;
@@ -1079,7 +1079,7 @@ push_blob(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
 }
 
 static int
-push_location(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_location(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     struct sol_location loc;
     duk_idx_t obj_idx;
@@ -1102,7 +1102,7 @@ push_location(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
 }
 
 static int
-push_json_array(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_json_array(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     struct sol_blob *blob;
     int r;
@@ -1115,7 +1115,7 @@ push_json_array(const struct sol_flow_packet *packet, struct duk_context *duk_ct
 }
 
 static int
-push_json_object(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_json_object(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     struct sol_blob *blob;
     int r;
@@ -1129,7 +1129,7 @@ push_json_object(const struct sol_flow_packet *packet, struct duk_context *duk_c
 
 static void
 add_sol_key_valueto_js_array(const struct sol_vector *vector,
-    struct duk_context *duk_ctx, duk_idx_t request_idx, const char *prop_name)
+    duk_context *duk_ctx, duk_idx_t request_idx, const char *prop_name)
 {
     uint16_t i;
     duk_idx_t obj_idx, array_idx;
@@ -1150,7 +1150,7 @@ add_sol_key_valueto_js_array(const struct sol_vector *vector,
 }
 
 static int
-push_http_response(const struct sol_flow_packet *packet, struct duk_context *duk_ctx)
+push_http_response(const struct sol_flow_packet *packet, duk_context *duk_ctx)
 {
     const char *url, *content_type;
     const struct sol_blob *content;
@@ -1186,7 +1186,7 @@ push_http_response(const struct sol_flow_packet *packet, struct duk_context *duk
 
 static int
 process_simple_packet(const struct sol_flow_packet *packet,
-    struct duk_context *duk_ctx)
+    duk_context *duk_ctx)
 {
     const struct sol_flow_packet_type *packet_type =
         sol_flow_packet_get_type(packet);
@@ -1661,7 +1661,7 @@ err_exit:
 }
 
 static int
-setup_port_properties(struct duk_context *duk_ctx, const char *prop_name,
+setup_port_properties(duk_context *duk_ctx, const char *prop_name,
     bool is_input, js_add_port add_port, void *add_port_data)
 {
     uint16_t array_len, i;
@@ -1725,7 +1725,7 @@ static int
 setup_ports(const char *buf, size_t len, js_add_port add_port,
     void *add_port_data)
 {
-    struct duk_context *duk_ctx;
+    duk_context *duk_ctx;
     int r;
 
     duk_ctx = duk_create_heap_default();

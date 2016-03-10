@@ -96,7 +96,7 @@ sol_socket_del(struct sol_socket *s)
 }
 
 SOL_API int
-sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
 {
     SOL_NULL_CHECK(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->set_on_read, -ENOSYS);
@@ -105,7 +105,7 @@ sol_socket_set_on_read(struct sol_socket *s, bool (*cb)(void *data, struct sol_s
 }
 
 SOL_API int
-sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_socket *s), const void *data)
 {
     SOL_NULL_CHECK(s, -EINVAL);
     SOL_NULL_CHECK(s->impl->set_on_write, -ENOSYS);
@@ -113,7 +113,7 @@ sol_socket_set_on_write(struct sol_socket *s, bool (*cb)(void *data, struct sol_
     return s->impl->set_on_write(s, cb, data);
 }
 
-SOL_API int
+SOL_API ssize_t
 sol_socket_recvmsg(struct sol_socket *s, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     SOL_NULL_CHECK(s, -EINVAL);
@@ -148,4 +148,22 @@ sol_socket_bind(struct sol_socket *s, const struct sol_network_link_addr *addr)
     SOL_NULL_CHECK(s->impl->bind, -ENOSYS);
 
     return s->impl->bind(s, addr);
+}
+
+SOL_API int
+sol_socket_setsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, const void *optval, size_t optlen)
+{
+    SOL_NULL_CHECK(s, -EINVAL);
+    SOL_NULL_CHECK(s->impl->setsockopt, -ENOSYS);
+
+    return s->impl->setsockopt(s, level, optname, optval, optlen);
+}
+
+SOL_API int
+sol_socket_getsockopt(struct sol_socket *s, enum sol_socket_level level, enum sol_socket_option optname, void *optval, size_t *optlen)
+{
+    SOL_NULL_CHECK(s, -EINVAL);
+    SOL_NULL_CHECK(s->impl->getsockopt, -ENOSYS);
+
+    return s->impl->getsockopt(s, level, optname, optval, optlen);
 }

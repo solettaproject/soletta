@@ -291,6 +291,14 @@ sol_flow_builder_set_resolver(struct sol_flow_builder *builder,
     SOL_NULL_CHECK(builder);
     if (!resolver)
         resolver = sol_flow_get_default_resolver();
+#ifndef SOL_NO_API_VERSION
+    else if (SOL_UNLIKELY(resolver->api_version != SOL_FLOW_RESOLVER_API_VERSION)) {
+        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
+            "expected version is '%u'",
+            resolver->api_version, SOL_FLOW_RESOLVER_API_VERSION);
+        return;
+    }
+#endif
     builder->resolver = resolver;
 }
 
@@ -481,7 +489,7 @@ sol_flow_builder_add_node(struct sol_flow_builder *builder, const char *name, co
     SOL_VECTOR_FOREACH_IDX (&builder->nodes, node_spec, i)
         if (!strcmp(name, node_spec->name)) {
             SOL_WRN("Node not added, name %s already exists.", name);
-            return -ENOTUNIQ;
+            return -EEXIST;
         }
 
     /* check if port names are unique */
@@ -1332,7 +1340,7 @@ sol_flow_builder_export_option(struct sol_flow_builder *builder, const char *nod
         exported_opt->defvalue = opt->defvalue;
 
     member_alignment = get_member_alignment(opt);
-    padding = builder->type_data->options_size % member_alignment;
+    padding = (member_alignment - (builder->type_data->options_size % member_alignment)) % member_alignment;
     exported_opt->offset = builder->type_data->options_size + padding;
     new_options_size = builder->type_data->options_size + exported_opt->size + padding;
 

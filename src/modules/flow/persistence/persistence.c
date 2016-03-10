@@ -38,7 +38,8 @@
 #include "sol-flow.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
+#include "sol-flow-internal.h"
 
 #ifdef USE_FILESYSTEM
 #include "sol-fs-storage.h"
@@ -140,7 +141,7 @@ write_cb(void *data, const char *name, struct sol_blob *blob, int status)
 
     if (status < 0) {
         if (status == -ECANCELED)
-            SOL_WRN("Writing to [%s] superseeded by another write", name);
+            SOL_INF("Writing to [%s] superseeded by another write", name);
         else
             SOL_WRN("Could not write [%s], error: %d", name, status);
 
@@ -393,6 +394,9 @@ persist_boolean_open(struct sol_flow_node *node,
     const struct sol_flow_node_type_persistence_boolean_options *opts =
         (const struct sol_flow_node_type_persistence_boolean_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_BOOLEAN_OPTIONS_API_VERSION, -EINVAL);
+
     mdata->base.packet_data_size = sizeof(bool);
     mdata->base.value_ptr = &mdata->last_value;
     mdata->base.packet_new_fn = persist_boolean_packet_new;
@@ -456,6 +460,9 @@ persist_byte_open(struct sol_flow_node *node,
     struct persist_byte_data *mdata = data;
     const struct sol_flow_node_type_persistence_byte_options *opts =
         (const struct sol_flow_node_type_persistence_byte_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_BYTE_OPTIONS_API_VERSION, -EINVAL);
 
     mdata->base.packet_data_size = sizeof(unsigned char);
     mdata->base.value_ptr = &mdata->last_value;
@@ -541,6 +548,9 @@ persist_irange_open(struct sol_flow_node *node,
     const struct sol_flow_node_type_persistence_int_options *opts =
         (const struct sol_flow_node_type_persistence_int_options *)options;
     int r;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_INT_OPTIONS_API_VERSION, -EINVAL);
 
     if (opts->store_only_val)
         mdata->base.packet_data_size = sizeof(int32_t);
@@ -637,6 +647,9 @@ persist_drange_open(struct sol_flow_node *node,
         (const struct sol_flow_node_type_persistence_float_options *)options;
     int r;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_FLOAT_OPTIONS_API_VERSION, -EINVAL);
+
     if (opts->store_only_val)
         mdata->base.packet_data_size = sizeof(double);
     else
@@ -707,6 +720,8 @@ persist_string_open(struct sol_flow_node *node,
         (const struct sol_flow_node_type_persistence_string_options *)options;
     int r;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_PERSISTENCE_STRING_OPTIONS_API_VERSION, -EINVAL);
     mdata->base.packet_new_fn = persist_string_packet_new;
     mdata->base.packet_data_get_fn = persist_string_packet_data_get;
     mdata->base.packet_send_fn = persist_string_packet_send;

@@ -4,6 +4,7 @@ obj-flow-$(FLOW_SUPPORT) := \
     sol-flow-node-options.o \
     sol-flow-packet.o \
     sol-flow-simplectype.o \
+    sol-flow-single.o \
     sol-flow-static.o \
     sol-flow.o
 
@@ -29,13 +30,16 @@ obj-flow-$(RESOLVER_CONFFILE) += \
 obj-flow-$(FLOW_SUPPORT)-extra-cflags += $(def-resolver-flag)
 
 headers-$(FLOW_SUPPORT) := \
-    include/sol-flow-builder.h \
     include/sol-flow.h \
     include/sol-flow-inspector.h \
     include/sol-flow-metatype.h \
     include/sol-flow-packet.h \
-    include/sol-flow-parser.h \
-    include/sol-flow-resolver.h \
     include/sol-flow-simplectype.h \
+    include/sol-flow-single.h \
     include/sol-flow-static.h \
     sol-flow-buildopts.h.in
+
+headers-$(NODE_DESCRIPTION) += \
+    include/sol-flow-parser.h \
+    include/sol-flow-resolver.h \
+    include/sol-flow-builder.h

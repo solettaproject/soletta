@@ -38,7 +38,8 @@
 #include "sol-log.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
-#include "sol-util.h"
+#include "sol-network-util.h"
+#include "sol-util-internal.h"
 
 #include "sol-socket.h"
 #include "sol-socket-impl.h"
@@ -94,7 +95,7 @@ from_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen,
     if (sockaddr->sa_family != AF_INET && sockaddr->sa_family != AF_INET6)
         return -EINVAL;
 
-    addr->family = sockaddr->sa_family;
+    addr->family = sol_network_af_to_sol(sockaddr->sa_family);
 
     if (sockaddr->sa_family == AF_INET) {
         struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
@@ -122,7 +123,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
     SOL_NULL_CHECK(sockaddr, -EINVAL);
     SOL_NULL_CHECK(socklen, -EINVAL);
 
-    if (addr->family == AF_INET) {
+    if (addr->family == SOL_NETWORK_FAMILY_INET) {
         struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in))
             return -EINVAL;
@@ -131,7 +132,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
         sock4->sin_port = htons(addr->port);
         sock4->sin_family = AF_INET;
         *socklen = sizeof(*sock4);
-    } else if (addr->family == AF_INET6) {
+    } else if (addr->family == SOL_NETWORK_FAMILY_INET6) {
         struct sockaddr_in6 *sock6 = (struct sockaddr_in6 *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in6))
             return -EINVAL;
@@ -163,7 +164,7 @@ sol_socket_linux_new(int domain, enum sol_socket_type type, int protocol)
         return NULL;
     }
 
-    fd = socket(domain, socktype, protocol);
+    fd = socket(sol_network_sol_to_af(domain), socktype, protocol);
     SOL_INT_CHECK(fd, < 0, NULL);
 
     s = calloc(1, sizeof(*s));
@@ -191,7 +192,7 @@ sol_socket_linux_del(struct sol_socket *socket)
 }
 
 static int
-sol_socket_linux_set_on_read(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_linux_set_on_read(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), const void *data)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
 
@@ -210,7 +211,7 @@ sol_socket_linux_set_on_read(struct sol_socket *socket, bool (*cb)(void *data, s
 }
 
 static int
-sol_socket_linux_set_on_write(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), void *data)
+sol_socket_linux_set_on_write(struct sol_socket *socket, bool (*cb)(void *data, struct sol_socket *s), const void *data)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
 
@@ -228,7 +229,7 @@ sol_socket_linux_set_on_write(struct sol_socket *socket, bool (*cb)(void *data, 
     return 0;
 }
 
-static int
+static ssize_t
 sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
@@ -243,7 +244,13 @@ sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struc
     };
     ssize_t r;
 
-    r = recvmsg(s->fd, &msg, 0);
+    /* When more types of sockets (not just datagram) are accepted,
+     * remember to err if !buf && type != DGRAM */
+    if (!buf) {
+        msg.msg_iov->iov_len = 0;
+        return recvmsg(s->fd, &msg, MSG_TRUNC | MSG_PEEK);
+    } else
+        r = recvmsg(s->fd, &msg, 0);
 
     if (r < 0)
         return -errno;
@@ -251,10 +258,7 @@ sol_socket_linux_recvmsg(struct sol_socket *socket, void *buf, size_t len, struc
     if (from_sockaddr((struct sockaddr *)sockaddr, sizeof(sockaddr), cliaddr) < 0)
         return -EINVAL;
 
-    if ((ssize_t)(int)r != r)
-        return -EOVERFLOW;
-
-    return (int)r;
+    return r;
 }
 
 static bool
@@ -274,13 +278,13 @@ sendmsg_multicast_addrs(int fd, struct sol_network_link *net_link,
         int level, option;
         socklen_t l, l_orig;
 
-        if (addr->family == AF_INET) {
+        if (addr->family == SOL_NETWORK_FAMILY_INET) {
             level = IPPROTO_IP;
             option = IP_MULTICAST_IF;
             p_orig = &orig_ip4_mreq;
             p_new = &ip4_mreq;
             l = sizeof(orig_ip4_mreq);
-        } else if (addr->family == AF_INET6) {
+        } else if (addr->family == SOL_NETWORK_FAMILY_INET6) {
             level = IPPROTO_IPV6;
             option = IPV6_MULTICAST_IF;
             p_orig = &orig_ip6_mreq;
@@ -345,15 +349,15 @@ sendmsg_multicast(int fd, struct msghdr *msg)
 }
 
 static bool
-is_multicast(int family, const struct sockaddr *sockaddr)
+is_multicast(enum sol_network_family family, const struct sockaddr *sockaddr)
 {
-    if (family == AF_INET6) {
+    if (family == SOL_NETWORK_FAMILY_INET6) {
         const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)sockaddr;
 
         return IN6_IS_ADDR_MULTICAST(&addr6->sin6_addr);
     }
 
-    if (family == AF_INET) {
+    if (family == SOL_NETWORK_FAMILY_INET) {
         const struct sockaddr_in *addr4 = (const struct sockaddr_in *)sockaddr;
 
         return IN_MULTICAST(htonl(addr4->sin_addr.s_addr));
@@ -401,10 +405,10 @@ sol_socket_linux_join_group(struct sol_socket *socket, int ifindex, const struct
     int level, option;
     socklen_t l;
 
-    if (group->family != AF_INET && group->family != AF_INET6)
+    if (group->family != SOL_NETWORK_FAMILY_INET && group->family != SOL_NETWORK_FAMILY_INET6)
         return -EINVAL;
 
-    if (group->family == AF_INET) {
+    if (group->family == SOL_NETWORK_FAMILY_INET) {
         memcpy(&ip_join.imr_multiaddr, group->addr.in, sizeof(group->addr.in));
         ip_join.imr_ifindex = ifindex;
 
@@ -419,7 +423,7 @@ sol_socket_linux_join_group(struct sol_socket *socket, int ifindex, const struct
         p = &ip6_join;
         l = sizeof(ip6_join);
         level = IPPROTO_IPV6;
-        option = IPV6_ADD_MEMBERSHIP;
+        option = IPV6_JOIN_GROUP;
     }
 
     if (setsockopt(s->fd, level, option, p, l) < 0)
@@ -446,6 +450,71 @@ sol_socket_linux_bind(struct sol_socket *socket, const struct sol_network_link_a
     return 0;
 }
 
+static int
+sol_socket_option_to_linux(enum sol_socket_option option)
+{
+    switch (option) {
+    case SOL_SOCKET_OPTION_REUSEADDR:
+        return SO_REUSEADDR;
+    case SOL_SOCKET_OPTION_REUSEPORT:
+        return SO_REUSEPORT;
+    default:
+        SOL_WRN("Invalid option %d", option);
+        break;
+    }
+
+    return -1;
+}
+
+static int
+sol_socket_level_to_linux(enum sol_socket_level level)
+{
+    switch (level) {
+    case SOL_SOCKET_LEVEL_SOCKET:
+        return SOL_SOCKET;
+    case SOL_SOCKET_LEVEL_IP:
+        return IPPROTO_IP;
+    case SOL_SOCKET_LEVEL_IPV6:
+        return IPPROTO_IPV6;
+    default:
+        SOL_WRN("Invalid level %d", level);
+        break;
+    }
+
+    return -1;
+}
+
+static int
+sol_socket_linux_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, const void *optval, size_t optlen)
+{
+    int l, option;
+    struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
+
+    l = sol_socket_level_to_linux(level);
+    option = sol_socket_option_to_linux(optname);
+
+    return setsockopt(s->fd, l, option, optval, optlen);
+}
+
+static int
+sol_socket_linux_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, void *optval, size_t *optlen)
+{
+    int ret, l, option;
+    socklen_t len = 0;
+    struct sol_socket_linux *s = (struct sol_socket_linux *)socket;
+
+    option = sol_socket_option_to_linux(optname);
+    l = sol_socket_level_to_linux(level);
+
+    ret = getsockopt(s->fd, l, option, optval, &len);
+    SOL_INT_CHECK(ret, < 0, ret);
+
+    *optlen = len;
+    return 0;
+}
+
 const struct sol_socket_impl *
 sol_socket_linux_get_impl(void)
 {
@@ -457,7 +526,9 @@ sol_socket_linux_get_impl(void)
         .set_on_write = sol_socket_linux_set_on_write,
         .set_on_read = sol_socket_linux_set_on_read,
         .del = sol_socket_linux_del,
-        .new = sol_socket_linux_new
+        .new = sol_socket_linux_new,
+        .setsockopt = sol_socket_linux_setsockopt,
+        .getsockopt = sol_socket_linux_getsockopt
     };
 
     return &impl;

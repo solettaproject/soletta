@@ -207,7 +207,6 @@ struct sol_oic_resource_type {
 #ifndef SOL_NO_API_VERSION
 #define SOL_OIC_RESOURCE_TYPE_API_VERSION (1)
     uint16_t api_version; /**< @brief API version */
-    int : 0; /**< @brief Unused. Save possible hole for a future field */
 #endif
 
     /**
@@ -222,6 +221,13 @@ struct sol_oic_resource_type {
      */
     struct sol_str_slice interface;
 
+    /**
+     * @brief String representation of the path of this resource.
+     * If path.data == NULL or path.len == 0, a path will be generated
+     * automatically for this resource.
+     */
+    struct sol_str_slice path;
+
     struct {
         sol_coap_responsecode_t (*handle)(const struct sol_network_link_addr *cliaddr,
             const void *data, const struct sol_oic_map_reader *input, struct sol_oic_map_writer *output);
@@ -231,8 +237,8 @@ struct sol_oic_resource_type {
      *
      * @param cliaddr The client address.
      * @param data The user's data pointer.
-     * @param input Handler to read request packet data using, for example,
-     *        @ref SOL_OIC_MAP_LOOP() macro.
+     * @param input Always NULL because GET requests shouldn't cointain payload
+     *        data. Parameter kept for compatibility reasons.
      * @param output Handler to write data to response packet using, for
      *        example, @ref sol_oic_map_append().
      *
@@ -270,8 +276,8 @@ struct sol_oic_resource_type {
      *
      * @param cliaddr The client address.
      * @param data The user's data pointer.
-     * @param input Handler to read request packet data using, for example,
-     *        @ref SOL_OIC_MAP_LOOP() macro.
+     * @param input Always NULL because DELETE requests shouldn't cointain
+     *        payload data. Parameter kept for compatibility reasons.
      * @param output Handler to write data to response packet using, for
      *        example, @ref sol_oic_map_append().
      *
@@ -353,7 +359,7 @@ void sol_oic_server_del_resource(struct sol_oic_server_resource *resource);
  */
 bool sol_oic_notify_observers(struct sol_oic_server_resource *resource,
     bool (*fill_repr_map)(void *data, struct sol_oic_map_writer *oic_map_writer),
-    void *data);
+    const void *data);
 
 /**
  * @}

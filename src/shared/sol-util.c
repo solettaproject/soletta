@@ -42,7 +42,8 @@
 #endif
 
 #include "sol-buffer.h"
-#include "sol-util.h"
+#include "sol-macros.h"
+#include "sol-util-internal.h"
 #include "sol-log.h"
 #include "sol-random.h"
 #include "sol-str-slice.h"
@@ -75,7 +76,7 @@ init_c_locale(void)
 }
 #endif
 
-void *
+SOL_API void *
 sol_util_memdup(const void *data, size_t len)
 {
     void *ptr;
@@ -86,7 +87,7 @@ sol_util_memdup(const void *data, size_t len)
     return ptr;
 }
 
-long int
+SOL_API long int
 sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
 {
     char *tmpbuf, *tmpbuf_endptr;
@@ -105,7 +106,25 @@ sol_util_strtol(const char *nptr, char **endptr, ssize_t len, int base)
     return r;
 }
 
-double
+SOL_API unsigned long int
+sol_util_strtoul(const char *nptr, char **endptr, ssize_t len, int base)
+{
+    char *tmpbuf, *tmpbuf_endptr;
+    unsigned long int r;
+
+    if (len < 0)
+        len = (ssize_t)strlen(nptr);
+
+    tmpbuf = strndupa(nptr, len);
+    errno = 0;
+    r = strtoul(tmpbuf, &tmpbuf_endptr, base);
+
+    if (endptr)
+        *endptr = (char *)nptr + (tmpbuf_endptr - tmpbuf);
+    return r;
+}
+
+SOL_API double
 sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
 {
     char *tmpbuf, *tmpbuf_endptr;
@@ -124,7 +143,7 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
     if (len < 0)
         len = (ssize_t)strlen(nptr);
 
-    if (unlikely(len > (DBL_MANT_DIG - DBL_MIN_EXP + 3))) {
+    if (SOL_UNLIKELY(len > (DBL_MANT_DIG - DBL_MIN_EXP + 3))) {
         errno = EINVAL;
         return FP_NAN;
     }
@@ -211,24 +230,60 @@ sol_util_strtodn(const char *nptr, char **endptr, ssize_t len, bool use_locale)
     return value;
 }
 
-char *
-sol_util_strerror(int errnum, char *buf, size_t buflen)
+SOL_API char *
+sol_util_strerror(int errnum, struct sol_buffer *buf)
 {
     char *ret;
+    int err;
+    size_t len;
 
-    if (buflen < 1)
-        return NULL;
+    SOL_NULL_CHECK(buf, NULL);
 
-    buf[0] = '\0';
+#define CHUNK_SIZE (512)
 
-    ret = (char *)strerror_r(errnum, buf, buflen);
-    /* if buf was used it means it can be XSI version (so ret won't be
-       pointing to msg string), or GNU version using non static string
-       (in this case ret == buf already) */
-    if (buf[0] != '\0')
-        ret = buf;
+#ifdef HAVE_XSI_STRERROR_R
+    /* XSI-compliant strerror_r returns int */
+    while (1) {
+        errno = 0;
+        ret = sol_buffer_at_end(buf);
+        err = strerror_r(errnum, ret, buf->capacity - buf->used);
+
+        if (err == ERANGE || (err < 0 && errno == ERANGE)) {
+            err = sol_buffer_expand(buf, CHUNK_SIZE);
+            SOL_INT_CHECK(err, < 0, NULL);
+        } else if (err != 0)
+            return NULL;
+        else
+            break;
+    }
+    buf->used += strlen(ret);
+#else
+
+    /* GNU libc version of strerror_r returns char* */
+    while (1) {
+        ret = strerror_r(errnum, sol_buffer_at_end(buf), buf->capacity - buf->used);
+
+        if (!ret) {
+            err = sol_buffer_expand(buf, CHUNK_SIZE);
+            SOL_INT_CHECK(err, < 0, NULL);
+        } else
+            break;
+    }
+
+    len = strlen(ret);
+
+    if (buf->capacity - buf->used < len) {
+        err = sol_buffer_expand(buf, len);
+        SOL_INT_CHECK(err, < 0, NULL);
+    }
+
+    err = sol_buffer_append_bytes(buf, (const uint8_t *)ret, len);
+    SOL_INT_CHECK(err, < 0, NULL);
+#endif
 
     return ret;
+
+#undef CHUNCK_SIZE
 }
 
 static struct sol_uuid
@@ -264,7 +319,7 @@ uuid_gen(struct sol_uuid *ret)
 }
 
 // 37 = 2 * 16 (chars) + 4 (hyphens) + 1 (\0)
-int
+SOL_API int
 sol_util_uuid_gen(bool upcase,
     bool with_hyphens,
     char id[SOL_STATIC_ARRAY_SIZE(37)])
@@ -279,19 +334,19 @@ sol_util_uuid_gen(bool upcase,
     struct sol_buffer buf = { 0 };
 
     sol_buffer_init_flags(&buf, id, 37,
-        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED);
+        SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
 
     r = uuid_gen(&uuid);
     SOL_INT_CHECK(r, < 0, r);
 
-    for (i = 0; i < ARRAY_SIZE(uuid.bytes); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(uuid.bytes); i++) {
         r = sol_buffer_append_printf(&buf, upcase ? "%02hhX" : "%02hhx",
             uuid.bytes[i]);
         SOL_INT_CHECK_GOTO(r, < 0, err);
     }
 
     if (with_hyphens) {
-        for (i = 0; i < ARRAY_SIZE(hyphens_pos); i++) {
+        for (i = 0; i < SOL_UTIL_ARRAY_SIZE(hyphens_pos); i++) {
             r = sol_buffer_insert_slice(&buf, hyphens_pos[i], hyphen);
             SOL_INT_CHECK_GOTO(r, < 0, err);
         }
@@ -302,7 +357,7 @@ err:
     return r;
 }
 
-int
+SOL_API int
 sol_util_replace_str_if_changed(char **str, const char *new_str)
 {
     struct sol_str_slice slice = SOL_STR_SLICE_EMPTY;
@@ -313,7 +368,7 @@ sol_util_replace_str_if_changed(char **str, const char *new_str)
     return sol_util_replace_str_from_slice_if_changed(str, slice);
 }
 
-int
+SOL_API int
 sol_util_replace_str_from_slice_if_changed(char **str,
     const struct sol_str_slice slice)
 {
@@ -346,7 +401,7 @@ sol_util_replace_str_from_slice_if_changed(char **str,
     return 0;
 }
 
-ssize_t
+SOL_API ssize_t
 sol_util_base64_encode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *output;
@@ -414,12 +469,12 @@ base64_index_of(char c, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     const char *p = memchr(base64_map, c, 65);
 
-    if (unlikely(!p))
+    if (SOL_UNLIKELY(!p))
         return UINT8_MAX;
     return p - base64_map;
 }
 
-ssize_t
+SOL_API ssize_t
 sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     uint8_t *output;
@@ -468,12 +523,12 @@ sol_util_base64_decode(void *buf, size_t buflen, const struct sol_str_slice slic
 static inline char
 base16_encode_digit(const uint8_t nibble, const char a)
 {
-    if (likely(nibble < 10))
+    if (SOL_LIKELY(nibble < 10))
         return '0' + nibble;
     return a + (nibble - 10);
 }
 
-ssize_t
+SOL_API ssize_t
 sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slice, bool uppercase)
 {
     char *output, a;
@@ -511,7 +566,7 @@ sol_util_base16_encode(void *buf, size_t buflen, const struct sol_str_slice slic
 static inline uint8_t
 base16_decode_digit(const char digit, const char a, const char f, const char A, const char F)
 {
-    if (likely('0' <= digit && digit <= '9'))
+    if (SOL_LIKELY('0' <= digit && digit <= '9'))
         return digit - '0';
     else if (a <= digit && digit <= f)
         return 10 + (digit - a);
@@ -521,7 +576,7 @@ base16_decode_digit(const char digit, const char a, const char f, const char A, 
         return UINT8_MAX;
 }
 
-ssize_t
+SOL_API ssize_t
 sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slice, enum sol_decode_case decode_case)
 {
     uint8_t *output;
@@ -550,7 +605,7 @@ sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slic
         for (n = 0; n < 2; n++) {
             const uint8_t c = input[i + n];
             uint8_t nibble = base16_decode_digit(c, a, f, A, F);
-            if (unlikely(nibble == UINT8_MAX)) {
+            if (SOL_UNLIKELY(nibble == UINT8_MAX)) {
                 SOL_WRN("Invalid base16 char %c, index: %zd", c, i + n);
                 return -EINVAL;
             }
@@ -567,7 +622,7 @@ sol_util_base16_decode(void *buf, size_t buflen, const struct sol_str_slice slic
     return o;
 }
 
-int8_t
+SOL_API int8_t
 sol_util_utf8_from_unicode_code(uint8_t *buf, size_t buf_len, uint32_t unicode_code)
 {
     uint8_t b;
@@ -629,7 +684,7 @@ valid_utf8_byte(const uint8_t byte)
     return (byte & 0xC0) == 0x80;
 }
 
-int32_t
+SOL_API int32_t
 sol_util_unicode_code_from_utf8(const uint8_t *buf, size_t buf_len, uint8_t *bytes_read)
 {
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -671,4 +726,182 @@ sol_util_unicode_code_from_utf8(const uint8_t *buf, size_t buf_len, uint8_t *byt
 error:
     SOL_WRN("Invalid unicode character in buffer");
     return -EINVAL;
+}
+
+SOL_API int
+sol_util_ssize_mul(ssize_t op1, ssize_t op2, ssize_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(op1, op2, out))
+        return -EOVERFLOW;
+#else
+    bool overflow = false;
+
+    if (op1 > 0 && op2 > 0) {
+        overflow = op1 > OVERFLOW_SSIZE_T_POS / op2;
+    } else if (op1 > 0 && op2 <= 0) {
+        overflow = op2 < OVERFLOW_SSIZE_T_NEG / op1;
+    } else if (op1 <= 0 && op2 > 0) {
+        overflow = op1 < OVERFLOW_SSIZE_T_NEG / op2;
+    } else { // op1 <= 0 && op2 <= 0
+        overflow = op1 != 0 && op2 < OVERFLOW_SSIZE_T_POS / op1;
+    }
+
+    if (overflow)
+        return -EOVERFLOW;
+
+    *out = op1 * op2;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_size_mul(size_t elem_size, size_t num_elems, size_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(elem_size, num_elems, out))
+        return -EOVERFLOW;
+#else
+    if ((elem_size >= OVERFLOW_SIZE_T || num_elems >= OVERFLOW_SIZE_T) &&
+        elem_size > 0 && SIZE_MAX / elem_size < num_elems)
+        return -EOVERFLOW;
+    *out = elem_size * num_elems;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_size_add(const size_t a, const size_t b, size_t *out)
+{
+#ifdef HAVE_BUILTIN_ADD_OVERFLOW
+    if (__builtin_add_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if (a > 0 && b > SIZE_MAX - a)
+        return -EOVERFLOW;
+    *out = a + b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_size_sub(const size_t a, const size_t b, size_t *out)
+{
+#ifdef HAVE_BUILTIN_SUB_OVERFLOW
+    if (__builtin_sub_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if (b > a)
+        return -EOVERFLOW;
+    *out = a - b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_uint64_mul(const uint64_t a, const uint64_t b, uint64_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a >= OVERFLOW_UINT64 || b >= OVERFLOW_UINT64) &&
+        a > 0 && UINT64_MAX / a < b)
+        return -EOVERFLOW;
+    *out = a * b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_int64_mul(const int64_t a, const int64_t b, int64_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a == INT64_MAX && b == -1) ||
+        (a > 0 && b > 0 && (a > INT64_MAX / b)) ||
+        (a < 0 && b < 0 && (a < INT64_MAX / b)) ||
+        (a > 0 && b < -1 && (a > INT64_MIN / b)) ||
+        (a < 0 && b > 0 && (a < INT64_MIN / b)))
+        return -EOVERFLOW;
+    *out = a * b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_uint64_add(const uint64_t a, const uint64_t b, uint64_t *out)
+{
+#ifdef HAVE_BUILTIN_ADD_OVERFLOW
+    if (__builtin_add_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if (a > 0 && b > UINT64_MAX - a)
+        return -EOVERFLOW;
+    *out = a + b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_int32_mul(const int32_t a, const int32_t b, int32_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a == INT32_MAX && b == -1) ||
+        (a > 0 && b > 0 && (a > INT32_MAX / b)) ||
+        (a < 0 && b < 0 && (a < INT32_MAX / b)) ||
+        (a > 0 && b < -1 && (a > INT32_MIN / b)) ||
+        (a < 0 && b > 0 && (a < INT32_MIN / b)))
+        return -EOVERFLOW;
+    *out = a * b;
+#endif
+    return 0;
+}
+
+SOL_API int
+sol_util_uint32_mul(const uint32_t a, const uint32_t b, uint32_t *out)
+{
+#ifdef HAVE_BUILTIN_MUL_OVERFLOW
+    if (__builtin_mul_overflow(a, b, out))
+        return -EOVERFLOW;
+#else
+    if ((a >= OVERFLOW_UINT32 || b >= OVERFLOW_UINT32) &&
+        a > 0 && UINT32_MAX / a < b)
+        return -EOVERFLOW;
+    *out = a * b;
+#endif
+    return 0;
+}
+
+SOL_API bool
+sol_util_uuid_str_valid(const char *str)
+{
+    size_t i, len;
+
+    len = strlen(str);
+    if (len == 32) {
+        for (i = 0; i < len; i++) {
+            if (!isxdigit((uint8_t)str[i]))
+                return false;
+        }
+    } else if (len == 36) {
+        char c;
+        for (i = 0; i < len; i++) {
+            c = str[i];
+
+            if (i == 8 || i == 13 || i == 18 || i == 23) {
+                if (c != '-')
+                    return false;
+            } else if (!isxdigit((uint8_t)c))
+                return false;
+        }
+    } else
+        return false;
+
+    return true;
 }

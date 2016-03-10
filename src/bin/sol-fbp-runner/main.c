@@ -42,7 +42,7 @@
 #include "sol-json.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #ifdef USE_MEMMAP
@@ -256,13 +256,13 @@ main(int argc, char *argv[])
 {
     int r;
 
-    if (!parse_args(argc, argv)) {
-        usage(argv[0]);
+    if (sol_init() < 0) {
+        fprintf(stderr, "Cannot initialize soletta.\n");
         return EXIT_FAILURE;
     }
 
-    if (sol_init() < 0) {
-        fprintf(stderr, "Cannot initialize soletta.\n");
+    if (!parse_args(argc, argv)) {
+        usage(argv[0]);
         return EXIT_FAILURE;
     }
 

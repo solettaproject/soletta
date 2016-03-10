@@ -107,7 +107,7 @@ struct sol_uart_config {
     enum sol_uart_data_bits data_bits;
     enum sol_uart_parity parity;
     enum sol_uart_stop_bits stop_bits;
-    void (*rx_cb)(void *user_data, struct sol_uart *uart, unsigned char byte_read); /** Set a callback to be called every time a character is received on UART */
+    void (*rx_cb)(void *user_data, struct sol_uart *uart, uint8_t byte_read); /** Set a callback to be called every time a character is received on UART */
     const void *rx_cb_user_data;
     bool flow_control; /** Enables software flow control(XOFF and XON) */
 };
@@ -147,7 +147,7 @@ void sol_uart_close(struct sol_uart *uart);
  * @note Caller should guarantee that tx buffer will not be freed until
  * callback is called.
  */
-bool sol_uart_write(struct sol_uart *uart, const unsigned char *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, unsigned char *tx, int status), const void *data);
+bool sol_uart_write(struct sol_uart *uart, const uint8_t *tx, unsigned int length, void (*tx_cb)(void *data, struct sol_uart *uart, uint8_t *tx, int status), const void *data);
 
 /**
  * @}

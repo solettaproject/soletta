@@ -35,8 +35,7 @@
 #include <time.h>
 
 #include "sol-flow-internal.h"
-#include "sol-flow-resolver.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 SOL_LOG_INTERNAL_DECLARE(_sol_flow_log_domain, "flow");
 
@@ -68,8 +67,8 @@ sol_flow_set_inspector(const struct sol_flow_inspector *inspector)
     if (inspector) {
 #ifndef SOL_NO_API_VERSION
         if (inspector->api_version != SOL_FLOW_INSPECTOR_API_VERSION) {
-            SOL_WRN("inspector(%p)->api_version(%lu) != "
-                "SOL_FLOW_INSPECTOR_API_VERSION(%lu)",
+            SOL_WRN("inspector(%p)->api_version(%" PRIu16 ") != "
+                "SOL_FLOW_INSPECTOR_API_VERSION(%" PRIu16 ")",
                 inspector, inspector->api_version,
                 SOL_FLOW_INSPECTOR_API_VERSION);
             return false;
@@ -232,14 +231,25 @@ sol_flow_send_packet(struct sol_flow_node *src, uint16_t src_port, struct sol_fl
 {
     struct sol_flow_node *parent;
     struct sol_flow_node_container_type *parent_type;
-    int ret;
+    int ret = 0;
 
     SOL_FLOW_NODE_CHECK_GOTO(src, err);
     parent = src->parent;
 
     if (!parent) {
+        if (src->type->flags & SOL_FLOW_NODE_TYPE_FLAGS_CONTAINER) {
+            struct sol_flow_node_container_type *container_type;
+
+            container_type = (struct sol_flow_node_container_type *)src->type;
+            if (container_type->process) {
+                ret = container_type->process(src, src_port, packet);
+                if (ret == 0)
+                    return 0;
+            }
+        }
+        SOL_DBG("no parent to deliver packet %p, drop it.", packet);
         sol_flow_packet_del(packet);
-        return 0;
+        return ret;
     }
 
     inspector_will_send_packet(src, src_port, packet);
@@ -477,6 +487,9 @@ static struct sol_flow_port_type_out port_error = {
 SOL_API const struct sol_flow_port_type_in *
 sol_flow_node_type_get_port_in(const struct sol_flow_node_type *type, uint16_t port)
 {
+    SOL_NULL_CHECK(type, NULL);
+    SOL_NULL_CHECK(type->get_port_in, NULL);
+
     return type->get_port_in(type, port);
 }
 
@@ -484,14 +497,120 @@ sol_flow_node_type_get_port_in(const struct sol_flow_node_type *type, uint16_t p
 SOL_API const struct sol_flow_port_type_out *
 sol_flow_node_type_get_port_out(const struct sol_flow_node_type *type, uint16_t port)
 {
+    SOL_NULL_CHECK(type, NULL);
+
     if (!port_error.packet_type)
         port_error.packet_type = SOL_FLOW_PACKET_TYPE_ERROR;
 
     if (port == SOL_FLOW_NODE_PORT_ERROR)
         return &port_error;
 
+    SOL_NULL_CHECK(type->get_port_out, NULL);
     return type->get_port_out(type, port);
 }
+
+#ifdef SOL_FLOW_NODE_TYPE_DESCRIPTION_ENABLED
+static inline uint16_t
+find_port_regular(const struct sol_flow_port_description *const *ports, const char *name)
+{
+    for (; *ports; ports++) {
+        const struct sol_flow_port_description *p = *ports;
+        if (p->array_size)
+            continue;
+        if (streq(p->name, name))
+            return p->base_port_idx;
+    }
+    return UINT16_MAX;
+}
+
+static inline uint16_t
+find_port_array(const struct sol_flow_port_description *const *ports, const char *name, size_t namelen, uint16_t idx)
+{
+    for (; *ports; ports++) {
+        const struct sol_flow_port_description *p = *ports;
+        if (!p->array_size)
+            continue;
+        /* name is "NAME[INDEX]" (full string), with namelen = strlen("NAME") */
+        if (streqn(p->name, name, namelen) && p->name[namelen] == '\0') {
+            if (idx >= p->array_size)
+                return UINT16_MAX;
+            return p->base_port_idx + idx;
+        }
+    }
+    return UINT16_MAX;
+}
+
+static uint16_t
+find_port(const struct sol_flow_port_description *const *ports, const char *name)
+{
+    const char *delim = strchr(name, '[');
+
+    if (!delim)
+        return find_port_regular(ports, name);
+    else {
+        size_t namelen = delim - name;
+        char *endptr = NULL;
+        unsigned long int idx;
+
+        if (namelen == 0)
+            return UINT16_MAX;
+
+        delim++;
+        errno = 0;
+        idx = strtoul(delim, &endptr, 10);
+        if (errno) {
+            SOL_DBG("failed to parse array port index: name='%s', error=%s",
+                name, sol_util_strerrora(errno));
+            return UINT16_MAX;
+        }
+        if (!endptr || endptr == delim) {
+            SOL_DBG("failed to parse array port index: name='%s', need an unsigned decimal number",
+                name);
+            return UINT16_MAX;
+        }
+        if (idx >= UINT16_MAX) {
+            SOL_DBG("failed to parse array port index: name='%s', number is too big to fit 16 bits",
+                name);
+            return UINT16_MAX;
+        }
+
+        while (*endptr != '\0' && isblank(*endptr))
+            endptr++;
+        if (*endptr != ']') {
+            SOL_DBG("failed to parse array port index: name='%s', missing terminating ']'",
+                name);
+            return UINT16_MAX;
+        }
+
+        return find_port_array(ports, name, namelen, idx);
+    }
+}
+
+SOL_API uint16_t
+sol_flow_node_find_port_in(const struct sol_flow_node_type *type, const char *name)
+{
+    SOL_NULL_CHECK(type, UINT16_MAX);
+    SOL_NULL_CHECK(type->description, UINT16_MAX);
+    SOL_NULL_CHECK(type->description->ports_in, UINT16_MAX);
+    SOL_NULL_CHECK(name, UINT16_MAX);
+
+    return find_port(type->description->ports_in, name);
+}
+
+SOL_API uint16_t
+sol_flow_node_find_port_out(const struct sol_flow_node_type *type, const char *name)
+{
+    SOL_NULL_CHECK(type, UINT16_MAX);
+    SOL_NULL_CHECK(type->description, UINT16_MAX);
+    SOL_NULL_CHECK(type->description->ports_out, UINT16_MAX);
+    SOL_NULL_CHECK(name, UINT16_MAX);
+
+    if (streq(name, SOL_FLOW_NODE_PORT_ERROR_NAME))
+        return SOL_FLOW_NODE_PORT_ERROR;
+
+    return find_port(type->description->ports_out, name);
+}
+#endif
 
 SOL_API void
 sol_flow_node_type_del(struct sol_flow_node_type *type)
@@ -549,6 +668,15 @@ sol_flow_node_get_port_in_description(const struct sol_flow_node_type *type, uin
     return sol_flow_node_type_get_port_description(type->description->ports_in, port);
 }
 
+static const struct sol_flow_port_description port_error_desc = {
+    .name = SOL_FLOW_NODE_PORT_ERROR_NAME,
+    .description = "Port used to communicate errors, present in all nodes.",
+    .data_type = "error",
+    .array_size = 0,
+    .base_port_idx = SOL_FLOW_NODE_PORT_ERROR,
+    .required = false
+};
+
 SOL_API const struct sol_flow_port_description *
 sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, uint16_t port)
 {
@@ -556,6 +684,10 @@ sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, ui
 
     SOL_NULL_CHECK(type->description, NULL);
     SOL_NULL_CHECK(type->description->ports_out, NULL);
+
+    if (port == SOL_FLOW_NODE_PORT_ERROR)
+        return &port_error_desc;
+
     return sol_flow_node_type_get_port_description(type->description->ports_out, port);
 }
 #endif

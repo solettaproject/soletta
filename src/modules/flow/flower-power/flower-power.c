@@ -36,7 +36,7 @@
 
 #include <sol-http-client.h>
 #include <sol-json.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 
 #include <errno.h>
 #include <float.h>
@@ -1013,7 +1013,7 @@ parse_sensor_packet(struct sol_flow_node *node, void *data, uint16_t port, uint1
 {
     struct sol_drange battery_level;
     struct timespec timestamp, battery_end_of_life;
-    const char *id;
+    const char *id = NULL;
     int r;
 
     r = sol_flower_power_sensor_get_packet_components(packet, &id, &timestamp,

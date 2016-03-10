@@ -40,7 +40,7 @@
 #include "sol-flow-static.h"
 #include "sol-i2c.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 // ################################ Rotary sensor nodes
@@ -61,10 +61,16 @@ rotary_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_inde
     if (child_index == ROTARY_CONVERTER_NODE_IDX) {
         struct sol_flow_node_type_grove_rotary_converter_options *converter_opts =
             (struct sol_flow_node_type_grove_rotary_converter_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_GROVE_ROTARY_CONVERTER_OPTIONS_API_VERSION,
+            -EINVAL);
         converter_opts->angular_range = container_opts->angular_range;
         converter_opts->input_range_mask = container_opts->mask;
     } else if (child_index == ROTARY_AIO_READER_NODE_IDX) {
         struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_AIO_READER_OPTIONS_API_VERSION,
+            -EINVAL);
         reader_opts->raw = container_opts->raw;
         reader_opts->pin = container_opts->pin ? strdup(container_opts->pin) : NULL;
         reader_opts->mask = container_opts->mask;
@@ -196,9 +202,15 @@ light_child_opts_set(const struct sol_flow_node_type *type, uint16_t child_index
 
     if (child_index == LIGHT_CONVERTER_NODE_IDX) {
         struct sol_flow_node_type_grove_light_converter_options *converter_opts = (struct sol_flow_node_type_grove_light_converter_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_GROVE_LIGHT_CONVERTER_OPTIONS_API_VERSION,
+            -EINVAL);
         converter_opts->input_range_mask = container_opts->mask;
     } else if (child_index == LIGHT_AIO_READER_NODE_IDX) {
         struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_AIO_READER_OPTIONS_API_VERSION,
+            -EINVAL);
         reader_opts->raw = container_opts->raw;
         reader_opts->pin = container_opts->pin ? strdup(container_opts->pin) : NULL;
         reader_opts->mask = container_opts->mask;
@@ -370,6 +382,9 @@ temperature_child_opts_set(const struct sol_flow_node_type *type, uint16_t child
     if (child_index == TEMPERATURE_CONVERTER_NODE_IDX) {
         struct sol_flow_node_type_grove_temperature_converter_options *converter_opts =
             (struct sol_flow_node_type_grove_temperature_converter_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_GROVE_TEMPERATURE_CONVERTER_OPTIONS_API_VERSION,
+            -EINVAL);
         converter_opts->thermistor_constant = container_opts->thermistor_constant;
         converter_opts->input_range_mask = container_opts->mask;
         converter_opts->resistance = container_opts->resistance;
@@ -377,6 +392,9 @@ temperature_child_opts_set(const struct sol_flow_node_type *type, uint16_t child
         converter_opts->thermistor_resistance = container_opts->thermistor_resistance;
     } else if (child_index == TEMPERATURE_AIO_READER_NODE_IDX) {
         struct sol_flow_node_type_aio_reader_options *reader_opts = (struct sol_flow_node_type_aio_reader_options *)child_opts;
+        SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+            SOL_FLOW_NODE_TYPE_AIO_READER_OPTIONS_API_VERSION,
+            -EINVAL);
         reader_opts->raw = container_opts->raw;
         reader_opts->pin = container_opts->pin ? strdup(container_opts->pin) : NULL;
         reader_opts->pin = container_opts->pin;
@@ -456,7 +474,6 @@ static const uint8_t RGB_ADDR = 0xc4 >> 1; //0x62 = 98dec
 static const uint8_t COLOR_ADDR[3] = { 0x04, 0x03, 0x02 };
 static const uint8_t DISPLAY_ADDR = 0x7c >> 1; //0x3E = 62dec
 static const uint8_t ROW_ADDR[2] = { 0x80, 0xc0 };
-static const uint8_t ROW_OUT_MASK = 0x3f;
 
 static const uint8_t SEND_DATA = 0x40;
 static const uint8_t SEND_COMMAND = 0x80;
@@ -762,7 +779,8 @@ i2c_write_cb(void *cb_data,
     struct lcd_data *mdata = cmd->mdata;
 
     mdata->i2c_pending = NULL;
-    SOL_INT_CHECK(status, < 0);
+    if (status < 0)
+        SOL_WRN("LCD command %p failed: %s", cmd, sol_util_strerrora(-status));
 
     cmd->status = COMMAND_STATUS_DONE;
 
@@ -927,7 +945,7 @@ command_queue_process(struct lcd_data *mdata)
 
     SOL_PTR_VECTOR_FOREACH_IDX (&mdata->cmd_queue, cmd, i) {
         /* done, left to be cleaned after the loop */
-        if (cmd->status == COMMAND_STATUS_DONE) continue;
+        if (cmd->status == COMMAND_STATUS_DONE) break;
 
         /* COMMAND_STATUS_WAITING cases, since COMMAND_STATUS_SENDING
          * can't happen at this point */
@@ -1422,7 +1440,7 @@ color_cmd_queue(struct lcd_data *mdata,
     uint32_t *color = colors;
     unsigned i;
 
-    for (i = 0; i < ARRAY_SIZE(colors); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(colors); i++) {
         int r = command_queue_append(mdata, RGB_ADDR, COLOR_ADDR[i], *color++);
         SOL_INT_CHECK(r, < 0, r);
     }

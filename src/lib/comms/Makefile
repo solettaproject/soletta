@@ -1,10 +1,11 @@
-obj-$(NETWORK) += networking.mod
+obj-$(NETWORK) += networking.mod \
+    dtls.mod
 
 obj-networking-$(NETWORK) := \
     sol-comms.o \
     sol-socket.o
 
-obj-networking-$(DTLS) += \
+obj-dtls-$(DTLS) += \
     $(TINYDTLS_SRC_PATH)/ccm.o \
     $(TINYDTLS_SRC_PATH)/crypto.o \
     $(TINYDTLS_SRC_PATH)/dtls.o \
@@ -18,16 +19,9 @@ obj-networking-$(DTLS) += \
     $(TINYDTLS_SRC_PATH)/sha2/sha2.o \
     sol-socket-dtls-impl-tinydtls.o
 
-obj-networking-$(DTLS)-extra-cflags += \
+obj-dtls-$(DTLS)-extra-cflags += \
     -I$(TINYDTLS_SRC_PATH) \
-    -Wno-sign-compare \
-    -Wno-discarded-qualifiers \
-    -Wno-old-style-definition \
-    -Wno-old-style-declaration \
-    -Wno-strict-prototypes \
-    -Wno-shadow \
-    -Wno-missing-prototypes \
-    -Wno-incompatible-pointer-types
+    -w
 
 obj-networking-$(PLATFORM_RIOTOS) += \
     sol-network-impl-riot.o \
@@ -100,6 +94,9 @@ obj-networking-$(MAVLINK)-extra-cflags += \
 	-I$(MAVLINK_SRC_PATH)/ardupilotmega/ \
 	-Wno-declaration-after-statement
 
+obj-networking-$(LWM2M) += \
+	sol-lwm2m.o
+
 headers-$(NETWORK) += \
     include/sol-network.h
 
@@ -125,3 +122,6 @@ headers-$(MQTT) += \
 
 headers-$(MAVLINK) += \
 	include/sol-mavlink.h
+
+headers-$(LWM2M) += \
+    include/sol-lwm2m.h

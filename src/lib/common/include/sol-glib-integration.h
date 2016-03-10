@@ -46,6 +46,7 @@
 #include <glib.h>
 #include <sol-mainloop.h>
 #include <sol-log.h>
+#include <sol-util.h>
 #include <sol-vector.h>
 
 static gboolean
@@ -166,7 +167,7 @@ _sol_glib_integration_source_fd_handler_data_find(struct _sol_glib_integration_s
 static bool
 _sol_glib_integration_on_source_fd(void *data, int fd, uint32_t active_flags)
 {
-    struct _sol_glib_integration_fd_handler *h = data;
+    struct _sol_glib_integration_fd_handler *h = (struct _sol_glib_integration_fd_handler *)data;
     GPollFD *gpfd = _sol_glib_integration_source_gpollfd_find(h->mdata, fd);
 
     SOL_NULL_CHECK(gpfd, true);
@@ -203,11 +204,11 @@ _sol_glib_integration_source_fd_handlers_adjust(struct _sol_glib_integration_sou
         uint32_t flags;
         int r;
 
-        h = _sol_glib_integration_source_fd_handler_data_find(mdata, gpfd->fd);
+        h = (struct _sol_glib_integration_fd_handler *)_sol_glib_integration_source_fd_handler_data_find(mdata, gpfd->fd);
         if (h)
             continue;
 
-        h = malloc(sizeof(struct _sol_glib_integration_fd_handler));
+        h = (struct _sol_glib_integration_fd_handler *)malloc(sizeof(struct _sol_glib_integration_fd_handler));
         SOL_NULL_CHECK(h);
 
         h->fd = gpfd->fd;
@@ -270,7 +271,8 @@ _sol_glib_integration_align_power2(unsigned int u)
 static bool
 _sol_glib_integration_source_prepare(void *data)
 {
-    struct _sol_glib_integration_source_data *mdata = data;
+    struct _sol_glib_integration_source_data *mdata =
+        (struct _sol_glib_integration_source_data *)data;
     GMainContext *ctx = g_source_get_context(&mdata->gsource);
     bool ready;
     gint req_n_fds;
@@ -286,6 +288,7 @@ _sol_glib_integration_source_prepare(void *data)
     do {
         size_t byte_size;
         void *tmp;
+        int r;
 
         mdata->n_poll = g_main_context_query(ctx,
             mdata->max_prio, &mdata->timeout, mdata->fds, mdata->n_fds);
@@ -294,18 +297,16 @@ _sol_glib_integration_source_prepare(void *data)
         if (req_n_fds == mdata->n_fds)
             break;
 
-        /* NOTE: not using sol_util_size_mul() since sol-util.h is not
-         * installed and this file is to be compiled by soletta's
-         * users.
-         */
-        byte_size = req_n_fds * sizeof(GPollFD);
+        r = sol_util_size_mul(sizeof(GPollFD), req_n_fds, &byte_size);
+        SOL_INT_CHECK_GOTO(r, < 0, failed);
+
         tmp = realloc(mdata->fds, byte_size);
         if (byte_size > 0) {
             SOL_NULL_CHECK_GOTO(tmp, failed);
             memset(tmp, 0, byte_size);
         }
 
-        mdata->fds = tmp;
+        mdata->fds = (GPollFD *)tmp;
         mdata->n_fds = req_n_fds;
     } while (1);
 
@@ -323,24 +324,21 @@ failed:
 static bool
 _sol_glib_integration_source_get_next_timeout(void *data, struct timespec *ts)
 {
-    struct _sol_glib_integration_source_data *mdata = data;
+    struct _sol_glib_integration_source_data *mdata =
+        (struct _sol_glib_integration_source_data *)data;
 
     if (mdata->timeout < 0)
         return false;
 
-    /* NOTE: not using sol_util_timespec_from_msec() since sol-util.h
-     * is not installed and this file is to be compiled by soletta's
-     * users.
-     */
-    ts->tv_sec = mdata->timeout / 1000ULL;
-    ts->tv_nsec = (mdata->timeout % 1000ULL) * 1000000ULL;
+    *ts = sol_util_timespec_from_msec(mdata->timeout);
     return true;
 }
 
 static bool
 _sol_glib_integration_source_check(void *data)
 {
-    struct _sol_glib_integration_source_data *mdata = data;
+    struct _sol_glib_integration_source_data *mdata =
+        (struct _sol_glib_integration_source_data *)data;
     GMainContext *ctx = g_source_get_context(&mdata->gsource);
     bool ready;
 
@@ -358,7 +356,8 @@ _sol_glib_integration_source_check(void *data)
 static void
 _sol_glib_integration_source_dispatch(void *data)
 {
-    struct _sol_glib_integration_source_data *mdata = data;
+    struct _sol_glib_integration_source_data *mdata =
+        (struct _sol_glib_integration_source_data *)data;
     GMainContext *ctx = g_source_get_context(&mdata->gsource);
 
     if (!_sol_glib_integration_source_acquire(mdata))
@@ -372,7 +371,8 @@ _sol_glib_integration_source_dispatch(void *data)
 static void
 _sol_glib_integration_source_dispose(void *data)
 {
-    struct _sol_glib_integration_source_data *mdata = data;
+    struct _sol_glib_integration_source_data *mdata =
+        (struct _sol_glib_integration_source_data *)data;
     GMainContext *ctx = g_source_get_context(&mdata->gsource);
     uint16_t i;
     struct _sol_glib_integration_fd_handler *h;
@@ -427,7 +427,7 @@ sol_glib_integration(void)
      * it is a dummy gsource that does nothing other than exist to hold
      * this mark.
      */
-    gsource = g_main_context_find_source_by_user_data(ctx, sol_init);
+    gsource = g_main_context_find_source_by_user_data(ctx, (void *)sol_init);
     if (gsource)
         return true;
 
@@ -435,7 +435,7 @@ sol_glib_integration(void)
         sizeof(struct _sol_glib_integration_source_data));
     SOL_NULL_CHECK(gsource, false);
     g_source_set_callback(gsource,
-        _sol_glib_integration_gsource_cb, sol_init, NULL);
+        _sol_glib_integration_gsource_cb, (void *)sol_init, NULL);
 
     id = g_source_attach(gsource, ctx);
     SOL_INT_CHECK_GOTO(id, == 0, failed_gsource);
@@ -448,7 +448,7 @@ sol_glib_integration(void)
     mdata->timeout = -1;
     mdata->max_prio = 0;
 
-    msource = sol_mainloop_source_new(&_sol_glib_integration_source_type, gsource);
+    msource = sol_mainloop_source_add(&_sol_glib_integration_source_type, gsource);
     SOL_NULL_CHECK_GOTO(msource, failed_mainloop_source);
 
     g_main_context_ref(ctx);

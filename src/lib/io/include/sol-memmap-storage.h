@@ -83,7 +83,7 @@ extern "C" {
  * with values passed by argument.
  */
 #define SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, _size, _bit_offset, _bit_size) \
-    static struct sol_memmap_entry _name = { .offset = (_offset), .size = (_size), .bit_offset = (_bit_offset), .bit_size = (_bit_size) }
+    static struct sol_memmap_entry _name = { .offset = (_offset), .size = (_size), .bit_size = (_bit_size), .bit_offset = (_bit_offset) }
 
 
 /**
@@ -101,7 +101,7 @@ extern "C" {
     SOL_MEMMAP_ENTRY_BIT_SIZE(_name, _offset, 1, _bit_offset, 1)
 
 struct sol_memmap_map {
-    uint8_t version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
+    uint16_t api_version; /**< Version of map. Functions will refuse to read/write on storage if this version and the one storad differs */
     const char *path; /**< Where to find the storage. Under Linux, it is the file mapping the storage, like @c /dev/nvram.
                        * Optionally, it can also be of form <tt> create,\<bus_type\>,\<rel_path\>,\<devnumber\>,\<devname\> </tt>, where:
                        * @arg @a bus_type is the bus type, supported values are: i2c

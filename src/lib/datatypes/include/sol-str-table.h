@@ -77,7 +77,7 @@ struct sol_str_table {
  * @param _val Pair's value (integer)
  */
 #define SOL_STR_TABLE_ITEM(_key, _val) \
-    { SOL_STR_STATIC_ASSERT_LITERAL(_key), sizeof(_key) - 1, _val }
+    { .key = SOL_STR_STATIC_ASSERT_LITERAL(_key), .len = sizeof(_key) - 1, .val = _val }
 
 /**
  * @brief Retrieves the value associated with a given key from the string table.
@@ -160,8 +160,8 @@ struct sol_str_table_ptr {
  */
 #define SOL_STR_TABLE_PTR_ITEM(_key, _val) \
     { .key = SOL_STR_STATIC_ASSERT_LITERAL(_key), \
-      .len = sizeof(_key) - 1, \
-      .val = _val }
+      .val = _val, \
+      .len = sizeof(_key) - 1 }
 
 /**
  * @brief Retrieves the value associated with a given key from the string/pointer table.

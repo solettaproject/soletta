@@ -37,10 +37,11 @@
 #include "sol-flow.h"
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "int-validator.h"
 #include "sol-flow/test.h"
+#include "sol-flow-internal.h"
 
 static int
 _populate_values(void *data, const char *sequence)
@@ -87,6 +88,9 @@ int_validator_open(
     const struct sol_flow_node_type_test_int_validator_options *opts =
         (const struct sol_flow_node_type_test_int_validator_options *)options;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TEST_INT_VALIDATOR_OPTIONS_API_VERSION,
+        -EINVAL);
     mdata->done = false;
 
     if (opts->sequence == NULL || opts->sequence == '\0') {

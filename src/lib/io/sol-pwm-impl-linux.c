@@ -43,8 +43,10 @@
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 #include "sol-pwm.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 
 SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "pwm");
 
@@ -96,7 +98,7 @@ _pwm_export(int device, int channel, bool export)
         return true;
 
     len = snprintf(path, sizeof(path), PWM_BASE "/pwmchip%d/pwm%d", device, channel);
-    if (len < 0 || len > (int)sizeof(path))
+    if (len < 0 || len >= (int)sizeof(path))
         return false;
 
     /* busywait for the exported pwm's sysfs entry to be created. It's
@@ -117,6 +119,7 @@ _pwm_export(int device, int channel, bool export)
     return ret;
 }
 
+SOL_ATTR_SCANF(3, 4)
 static int
 _pwm_read(const struct sol_pwm *pwm, const char *file, const char *fmt, ...)
 {
@@ -132,6 +135,7 @@ _pwm_read(const struct sol_pwm *pwm, const char *file, const char *fmt, ...)
     return ret;
 }
 
+SOL_ATTR_PRINTF(3, 4)
 static int
 _pwm_write(struct sol_pwm *pwm, const char *file, const char *fmt, ...)
 {
@@ -271,7 +275,7 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_PWM_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_PWM_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open pwm that has unsupported version '%u', "
             "expected version is '%u'",
             config->api_version, SOL_PWM_CONFIG_API_VERSION);

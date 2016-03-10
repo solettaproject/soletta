@@ -41,21 +41,21 @@
 #include "sol-flow-parser.h"
 #include "sol-flow-resolver.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-flow-composed.h"
 
 #include "sol-flow-metatype-builtins-gen.h"
 
 #ifndef SOL_NO_API_VERSION
-#define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...)          \
-    do {                                                                \
-        if ((client)->api_version != (expected)) {                      \
-            SOL_WRN("Invalid " # client " %p API version(%lu), "         \
-                "expected " # expected "(%lu)",                     \
-                (client), (client)->api_version, (expected));       \
-            return __VA_ARGS__;                                         \
-        }                                                               \
+#define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...) \
+    do { \
+        if ((client)->api_version != (expected)) { \
+            SOL_WRN("Invalid " # client " %p API version(%" PRIu16 "), " \
+                "expected " # expected "(%" PRIu16 ")", \
+                (client), (client)->api_version, (expected)); \
+            return __VA_ARGS__; \
+        } \
     } while (0)
 #else
 #define SOL_FLOW_PARSER_CLIENT_API_CHECK(client, expected, ...)
@@ -211,13 +211,22 @@ sol_flow_parser_new(
             client, SOL_FLOW_PARSER_CLIENT_API_VERSION, NULL);
     }
 
+    if (!resolver)
+        resolver = sol_flow_get_default_resolver();
+#ifndef SOL_NO_API_VERSION
+    else if (SOL_UNLIKELY(resolver->api_version != SOL_FLOW_RESOLVER_API_VERSION)) {
+        SOL_WRN("Couldn't open gpio that has unsupported version '%u', "
+            "expected version is '%u'",
+            resolver->api_version, SOL_FLOW_RESOLVER_API_VERSION);
+        return NULL;
+    }
+#endif
+
     parser = calloc(1, sizeof(struct sol_flow_parser));
 
     if (!parser)
         return NULL;
 
-    if (!resolver)
-        resolver = sol_flow_get_default_resolver();
     parser->builtins_resolver = sol_flow_get_builtins_resolver();
     parser->resolver = resolver;
     parser->client = client;
@@ -694,6 +703,62 @@ sol_flow_metatype_get_ports_description_func(const struct sol_str_slice name)
         metatype = get_dynamic_metatype(name);
         if (metatype)
             return metatype->ports_description;
+    }
+#endif
+    return NULL;
+}
+
+SOL_API sol_flow_metatype_options_description_func
+sol_flow_metatype_get_options_description_func(const struct sol_str_slice name)
+{
+    if (sol_str_slice_str_eq(name, "composed-split"))
+        return NULL;
+    if (sol_str_slice_str_eq(name, "composed-new"))
+        return NULL;
+#if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
+    {
+        const struct sol_flow_metatype *metatype;
+
+        metatype = get_metatype_by_name(name);
+        if (metatype)
+            return metatype->options_description;
+    }
+#endif
+#ifdef ENABLE_DYNAMIC_MODULES
+    {
+        const struct sol_flow_metatype *metatype;
+
+        metatype = get_dynamic_metatype(name);
+        if (metatype)
+            return metatype->options_description;
+    }
+#endif
+    return NULL;
+}
+
+SOL_API const char *
+sol_flow_metatype_get_options_symbol(const struct sol_str_slice name)
+{
+    if (sol_str_slice_str_eq(name, "composed-split"))
+        return NULL;
+    if (sol_str_slice_str_eq(name, "composed-new"))
+        return NULL;
+#if (SOL_FLOW_METATYPE_BUILTINS_COUNT > 0)
+    {
+        const struct sol_flow_metatype *metatype;
+
+        metatype = get_metatype_by_name(name);
+        if (metatype)
+            return metatype->options_symbol;
+    }
+#endif
+#ifdef ENABLE_DYNAMIC_MODULES
+    {
+        const struct sol_flow_metatype *metatype;
+
+        metatype = get_dynamic_metatype(name);
+        if (metatype)
+            return metatype->options_symbol;
     }
 #endif
     return NULL;

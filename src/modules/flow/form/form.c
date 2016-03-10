@@ -37,7 +37,7 @@
 #include "../converter/string-format.h"
 #include "sol-buffer.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #define DITCH_NL (true)
 #define KEEP_NL (false)
@@ -2725,6 +2725,10 @@ string_formatted_format_do(struct sol_flow_node *node)
             continue;
 
         start_ptr = sol_vector_get(&indexes, s++);
+        if (!start_ptr) {
+            r = -ERANGE;
+            goto err;
+        }
 
         chunk->rendered.data =
             (char *)mdata->formatted_value.data + *start_ptr;
@@ -3226,6 +3230,7 @@ numeric_loop:
         numeric_field_present = true;
 
         ptr = tmp + 1;
+        sol_buffer_fini(&mdata->formatted_value);
     }
 
     if (!numeric_field_present) {

@@ -46,8 +46,9 @@
 #include "sol-message-digest.h"
 #include "sol-network.h"
 #include "sol-random.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
+#include "sol-flow-internal.h"
 
 struct v1_data {
     struct sol_ptr_vector pending_conns;
@@ -273,6 +274,8 @@ v1_parse_response(struct v1_request_data *req_data, const struct sol_http_respon
         .response_code = SOL_HTTP_STATUS_FOUND,
     };
 
+    SOL_HTTP_RESPONSE_CHECK_API(response, -EINVAL);
+
     tokens = sol_str_slice_split(
         sol_str_slice_from_str(response->content.data), "&", 0);
     SOL_VECTOR_FOREACH_IDX (&tokens, slice, idx) {
@@ -353,16 +356,18 @@ end:
 static char *
 get_callback_url(const struct sol_http_request *request, const char *basename)
 {
-    char *url, buf[SOL_INET_ADDR_STRLEN];
+    SOL_BUFFER_DECLARE_STATIC(buf, SOL_INET_ADDR_STRLEN);
+    char *url;
     struct sol_network_link_addr addr;
     int r;
 
     r = sol_http_request_get_interface_address(request, &addr);
     SOL_INT_CHECK(r, < 0, NULL);
 
-    sol_network_addr_to_str(&addr, buf, sizeof(buf));
-    r = asprintf(&url, "http://%s:%d/%s/oauth_callback",
-        buf, addr.port, basename);
+    SOL_NULL_CHECK(sol_network_addr_to_str(&addr, &buf), NULL);
+
+    r = asprintf(&url, "http://%.*s:%d/%s/oauth_callback",
+        SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)), addr.port, basename);
 
     SOL_INT_CHECK(r, < 0, NULL);
     return url;
@@ -593,6 +598,10 @@ v1_open(struct sol_flow_node *node, void *data, const struct sol_flow_node_optio
     struct oauth_node_type *type;
     struct sol_flow_node_type_oauth_v1_options *opts =
         (struct sol_flow_node_type_oauth_v1_options *)options;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_OAUTH_V1_OPTIONS_API_VERSION,
+        -EINVAL);
 
     type = (struct oauth_node_type *)sol_flow_node_get_type(node);
 

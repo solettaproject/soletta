@@ -38,7 +38,8 @@
 #include "sol-log.h"
 #include "sol-power-supply.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #define SYSFS_POWER_SUPPLY "/sys/class/power_supply"
@@ -99,26 +100,19 @@ _get_file_path(char *file_path, size_t size, const char *name,
 
 static int
 _get_string_prop(const char *name, enum sol_power_supply_prop prop,
-    char **value)
+    struct sol_buffer *buf)
 {
     char file_path[PATH_MAX];
-    char *str_value;
     int r;
 
     SOL_NULL_CHECK(name, -EINVAL);
-    SOL_NULL_CHECK(value, -EINVAL);
+    SOL_NULL_CHECK(buf, -EINVAL);
 
     r = _get_file_path(file_path, sizeof(file_path), name, prop);
     SOL_INT_CHECK(r, < 0, r);
 
-    errno = 0;
-    r = sol_util_read_file(file_path, "%ms", &str_value);
-    if (errno != 0)
-        return -errno;
-    if (r < 0)
-        return r;
-
-    *value = str_value;
+    r = sol_util_load_file_buffer(file_path, buf);
+    SOL_INT_CHECK(r, < 0, r);
 
     return 0;
 }
@@ -391,23 +385,27 @@ sol_power_supply_get_capacity_level(const char *name,
 }
 
 SOL_API int
-sol_power_supply_get_model_name(const char *name, char **model_name)
+sol_power_supply_get_model_name(const char *name,
+    struct sol_buffer *model_name_buf)
 {
-    return _get_string_prop(name, SOL_POWER_SUPPLY_PROP_MODEL_NAME, model_name);
+    return _get_string_prop(name, SOL_POWER_SUPPLY_PROP_MODEL_NAME,
+        model_name_buf);
 }
 
 SOL_API int
-sol_power_supply_get_manufacturer(const char *name, char **manufacturer)
+sol_power_supply_get_manufacturer(const char *name,
+    struct sol_buffer *manufacturer_buf)
 {
     return _get_string_prop(name,
-        SOL_POWER_SUPPLY_PROP_MANUFACTURER, manufacturer);
+        SOL_POWER_SUPPLY_PROP_MANUFACTURER, manufacturer_buf);
 }
 
 SOL_API int
-sol_power_supply_get_serial_number(const char *name, char **serial_number)
+sol_power_supply_get_serial_number(const char *name,
+    struct sol_buffer *serial_number_buf)
 {
     return _get_string_prop(name,
-        SOL_POWER_SUPPLY_PROP_SERIAL_NUMBER, serial_number);
+        SOL_POWER_SUPPLY_PROP_SERIAL_NUMBER, serial_number_buf);
 }
 
 SOL_API int

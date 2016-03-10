@@ -60,7 +60,7 @@ struct sol_pwm;
 /**
  * @brief Alignment determines how the pulse is aligned within the PWM period.
  *
- * No API for this on Linux, so we simply ignore it there
+ * No API for this on Linux (and other OSes), so we simply ignore it there
  */
 enum sol_pwm_alignment {
     SOL_PWM_ALIGNMENT_LEFT, /**< The pulse is aligned to the leading-edge (left) of the PWM period. */

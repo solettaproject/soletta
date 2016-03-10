@@ -41,12 +41,12 @@
 #include "sol-log-internal.h"
 #include "sol-macros.h"
 #include "sol-monitors.h"
-#ifdef SOL_PLATFORM_LINUX
+#ifdef DETECT_BOARD_NAME
 #include "sol-board-detect.h"
 #endif
 #include "sol-platform.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #define SOL_BOARD_NAME_ENVVAR "SOL_BOARD_NAME"
 
@@ -130,8 +130,11 @@ void
 sol_platform_shutdown(void)
 {
     free(board_name);
+    board_name = NULL;
     free(os_version);
+    os_version = NULL;
     free(serial_number);
+    serial_number = NULL;
     sol_monitors_clear(&_ctx.state_monitors);
     sol_monitors_clear(&_ctx.service_monitors);
     sol_monitors_clear(&_ctx.hostname_monitors);
@@ -155,7 +158,7 @@ sol_board_name_is_valid(const char *name)
         return false;
 
     for (i = 0; name[i] != '\0'; i++) {
-        if (isalnum(name[i]) || name[i] == '_' || name[i] == '-')
+        if (isalnum((uint8_t)name[i]) || name[i] == '_' || name[i] == '-')
             continue;
 
         return false;
@@ -640,22 +643,22 @@ sol_platform_del_system_clock_monitor(void (*cb)(void *data, int64_t timestamp),
 void
 sol_platform_inform_timezone_changed(void)
 {
-    const char *timezone;
+    const char *tzone;
     struct sol_monitors_entry *entry;
     uint16_t i;
 
-    timezone = sol_platform_impl_get_timezone();
-    SOL_NULL_CHECK(timezone);
+    tzone = sol_platform_impl_get_timezone();
+    SOL_NULL_CHECK(tzone);
 
     SOL_MONITORS_WALK (&_ctx.timezone_monitors, entry, i)
-        ((void (*)(void *, const char *))entry->cb)((void *)entry->data, timezone);
+        ((void (*)(void *, const char *))entry->cb)((void *)entry->data, tzone);
 }
 
 SOL_API int
-sol_platform_set_timezone(const char *timezone)
+sol_platform_set_timezone(const char *tzone)
 {
-    SOL_NULL_CHECK(timezone, -EINVAL);
-    return sol_platform_impl_set_timezone(timezone);
+    SOL_NULL_CHECK(tzone, -EINVAL);
+    return sol_platform_impl_set_timezone(tzone);
 }
 
 SOL_API const char *
@@ -693,6 +696,18 @@ sol_platform_inform_locale_changed(void)
             ((void (*)(void *, enum sol_platform_locale_category, const char *))
             entry->cb)((void *)entry->data, i, _ctx.locale_cache[i] ? : "C");
         }
+    }
+}
+
+void
+sol_platform_inform_locale_monitor_error(void)
+{
+    struct sol_monitors_entry *entry;
+    uint16_t i;
+
+    SOL_MONITORS_WALK (&_ctx.locale_monitors, entry, i) {
+        ((void (*)(void *, enum sol_platform_locale_category, const char *))
+        entry->cb)((void *)entry->data, SOL_PLATFORM_LOCALE_UNKNOWN, NULL);
     }
 }
 

@@ -39,6 +39,14 @@
       }
     },
     {
+      "dependency": "check_cflag_float_store",
+      "type": "cflags",
+      "cflags": [
+        "-ffloat-store"
+      ],
+      "append_to": "CFLAG_FLOAT_STORE"
+    },
+    {
       "dependency": "check_cflags",
       "type": "cflags",
       "cflags": [
@@ -86,12 +94,91 @@
       "append_to": "COMMON_CFLAGS"
     },
     {
+      "dependency": "check_cflag_new_stack_protector",
+      "type": "cflags",
+      "cflags": [
+        "-fstack-protector-strong"
+      ],
+      "comment": "Stack-based buffer overrun detection, gcc 4.9 or newer",
+      "append_to": "COMMON_CFLAGS"
+    },
+    {
+      "dependency": "check_cflag_stack_protector",
+      "type": "cflags",
+      "cflags": [
+        "-fstack-protector"
+      ],
+      "comment": "Stack-based buffer overrun detection",
+      "append_to": "COMMON_CFLAGS"
+    },
+    {
+      "dependency": "check_cflag_fortify",
+      "type": "cflags",
+      "cflags": [
+        "-O2 -D_FORTIFY_SOURCE=2"
+      ],
+      "comment": "Add some more security checks",
+      "append_to": "RELEASE_COMMON_CFLAGS"
+    },
+    {
+      "dependency": "check_cflag_pie",
+      "type": "cflags",
+      "cflags": [
+        "-fPIE"
+      ],
+      "comment": "Position Independent Execution",
+      "append_to": "BIN_COMMON_CFLAGS"
+    },
+    {
+      "dependency": "check_no_undefined_flag",
+      "type": "ldflags",
+      "ldflags": [
+        "-Wl,--no-undefined"
+      ],
+      "append_to": "LDFLAG_UNDEFINED"
+    },
+    {
       "dependency": "check_ldflags",
       "type": "ldflags",
       "ldflags": [
         "-Wl,--gc-sections"
       ],
       "append_to": "COMMON_LDFLAGS"
+    },
+    {
+      "dependency": "check_ldflag_stack",
+      "type": "ldflags",
+      "ldflags": [
+        "-z noexecstack"
+      ],
+      "comment": "Stack execution protection",
+      "append_to": "COMMON_LDFLAGS"
+    },
+    {
+      "dependency": "check_ldflag_relro",
+      "type": "ldflags",
+      "ldflags": [
+        "-z relro -z now"
+      ],
+      "comment": "Data relocation and protection",
+      "append_to": "COMMON_LDFLAGS"
+    },
+    {
+      "dependency": "check_ldflag_pie",
+      "type": "ldflags",
+      "ldflags": [
+        "-pie"
+      ],
+      "comment": "Position Independent Execution",
+      "append_to": "BIN_COMMON_LDFLAGS"
+    },
+    {
+      "dependency": "check_soname_flag",
+      "type": "ldflags",
+      "ldflags": [
+        "-shared -Wl,-soname,foo"
+      ],
+      "append_to": "LDFLAG_SONAME"
     }
   ],
   "dependencies": [
@@ -186,6 +273,19 @@
       ]
     },
     {
+      "dependency": "zephyr_micro",
+      "type": "ccode",
+      "fragment": "#ifndef CONFIG_MICROKERNEL\n#error \"Microkernel not supported\"\n#endif\n"
+    },
+    {
+      "dependency": "zephyr",
+      "type": "ccode",
+      "headers": [
+        "<nanokernel.h>"
+      ],
+      "fragment": "#if !defined(CONFIG_MICROKERNEL) && !defined(CONFIG_NANO_TIMEOUTS)\n#error \"Nanokernel build requires CONFIG_NANO_TIMEOUTS to be enabled\"\n#endif\n"
+    },
+    {
       "dependency": "dlfcn_h",
       "type": "ccode",
       "headers": [
@@ -198,6 +298,22 @@
       "headers": [
         "<sys/socket.h>"
       ]
+    },
+    {
+      "dependency": "pipe",
+      "type": "ccode",
+      "headers": [
+        "<unistd.h>"
+      ],
+      "fragment": "int fds[2]; pipe(fds);"
+    },
+    {
+      "dependency": "pipe2",
+      "type": "ccode",
+      "headers": [
+        "<unistd.h>"
+      ],
+      "fragment": "int fds[2]; pipe2(fds, 0);"
     },
     {
       "dependency": "accept4",
@@ -252,6 +368,14 @@
       "fragment": "ppoll(0, 0, 0, 0);"
     },
     {
+      "dependency": "pollts",
+      "type": "ccode",
+      "headers": [
+        "<poll.h>"
+      ],
+      "fragment": "pollts(0, 0, 0, 0);"
+    },
+    {
       "dependency": "decl_strndupa",
       "type": "ccode",
       "headers": [
@@ -260,12 +384,29 @@
       "fragment": "strndupa(0, 0);"
     },
     {
+      "dependency": "decl_strdupa",
+      "type": "ccode",
+      "comment": "Detect GNU extension strdupa()",
+      "headers": [
+        "<string.h>"
+      ],
+      "fragment": "strdupa((void *)0);"
+    },
+    {
       "dependency": "random_r",
       "type": "ccode",
       "headers": [
         "<stdlib.h>"
       ],
       "fragment": "random_r(NULL, NULL);"
+    },
+    {
+      "dependency": "xsi_strerror_r",
+      "type": "ccode",
+      "headers": [
+        "<string.h>"
+      ],
+      "fragment": "char *p; p[strerror_r(0, p, 0)];"
     },
     {
       "dependency": "builtin_mul_overflow",
@@ -284,6 +425,15 @@
         "<string.h>"
       ],
       "fragment": "memmem(0, 0, 0, 0);"
+    },
+    {
+      "dependency": "decl_memrchr",
+      "type": "ccode",
+      "comment": "Detect GNU extension memrchr()",
+      "headers": [
+        "<string.h>"
+      ],
+      "fragment": "memrchr((void *)0, 0, 0);"
     },
     {
       "dependency": "getrandom",
@@ -330,6 +480,11 @@
       "fragment": "strtod_l(0, 0, 0);"
     },
     {
+      "dependency": "getconf",
+      "type": "exec",
+      "exec": "getconf"
+    },
+    {
       "dependency": "valgrind",
       "type": "exec",
       "exec": "valgrind"
@@ -358,6 +513,16 @@
       "dependency": "genhtml",
       "type": "exec",
       "exec": "genhtml"
+    },
+    {
+      "dependency": "nodejs",
+      "type": "exec",
+      "exec": "node"
+    },
+    {
+      "dependency": "nodejs_npm",
+      "type": "exec",
+      "exec": "npm"
     },
     {
       "dependency": "chrpath",
@@ -420,7 +585,7 @@
         "value": "-fsanitize=address"
       },
       "ldflags": {
-        "value": "-fsanitize=address"
+        "value": "-fsanitize=address -lasan"
       }
     },
     {
@@ -519,6 +684,16 @@
       "path": {
         "in-tree": "{TOP_SRCDIR}/src/thirdparty/mavlink",
         "out-of-tree": "{MAVLINK_SRC}"
+      }
+    },
+    {
+      "dependency": "node_gyp",
+      "type": "filesystem",
+      "files": [
+        "node-gyp"
+      ],
+      "path": {
+        "out-of-tree": "{NODEJS_NPM_DIR}/node-gyp-bin"
       }
     }
   ]

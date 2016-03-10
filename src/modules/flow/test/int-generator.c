@@ -37,11 +37,12 @@
 #include "sol-flow.h"
 #include "sol-log-internal.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "test-module.h"
 #include "int-generator.h"
 #include "sol-flow/test.h"
+#include "sol-flow-internal.h"
 
 static bool
 timer_tick(void *data)
@@ -72,6 +73,10 @@ int_generator_open(
     const char *it;
     char *tail;
     int32_t *val;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_TEST_INT_GENERATOR_OPTIONS_API_VERSION,
+        -EINVAL);
 
     if (opts->sequence == NULL || *opts->sequence == '\0') {
         SOL_ERR("Option 'sequence' is either NULL or empty.");

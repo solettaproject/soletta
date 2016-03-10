@@ -36,10 +36,10 @@
 
 #include "sol-buffer.h"
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 SOL_ATTR_PURE static inline size_t
-nul_byte_size(struct sol_buffer *buf)
+nul_byte_size(const struct sol_buffer *buf)
 {
     return (buf->flags & SOL_BUFFER_FLAGS_NO_NUL_BYTE) ? 0 : 1;
 }
@@ -70,18 +70,44 @@ SOL_API int
 sol_buffer_ensure(struct sol_buffer *buf, size_t min_size)
 {
     int err;
+    size_t nul_byte;
 
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    if (min_size >= SIZE_MAX - nul_byte_size(buf))
+    nul_byte = nul_byte_size(buf);
+    if (min_size >= SIZE_MAX - nul_byte)
         return -EINVAL;
+
+    min_size += nul_byte;
     if (buf->capacity >= min_size)
         return 0;
 
-    err = sol_buffer_resize(buf, align_power2(min_size + nul_byte_size(buf)));
+    err = sol_buffer_resize(buf, align_power2(min_size));
     if (err == -EPERM)
         return -ENOMEM;
     return err;
+}
+
+SOL_API int
+sol_buffer_expand(struct sol_buffer *buf, size_t bytes)
+{
+    size_t new_size, available;
+    int err;
+
+    SOL_NULL_CHECK(buf, -EINVAL);
+
+    available = buf->capacity - buf->used;
+
+    /* only account null byte here since sol_buffer_ensure() already adds it */
+    if (available >= bytes + nul_byte_size(buf))
+        return 0;
+
+    err = sol_util_size_add(buf->capacity, bytes - available, &new_size);
+    SOL_INT_CHECK(err, < 0, err);
+    err = sol_buffer_ensure(buf, new_size);
+    SOL_INT_CHECK(err, < 0, err);
+
+    return 0;
 }
 
 SOL_API int
@@ -91,10 +117,8 @@ sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    /* Extra room for the ending NUL-byte. */
-    if (slice.len >= SIZE_MAX - nul_byte_size(buf))
-        return -EOVERFLOW;
-    err = sol_buffer_ensure(buf, slice.len + nul_byte_size(buf));
+    /* ensure already handles the null-byte */
+    err = sol_buffer_ensure(buf, slice.len);
     if (err < 0)
         return err;
 
@@ -106,28 +130,19 @@ sol_buffer_set_slice(struct sol_buffer *buf, const struct sol_str_slice slice)
 SOL_API int
 sol_buffer_append_bytes(struct sol_buffer *buf, const uint8_t *bytes, size_t size)
 {
-    const size_t nul_size = nul_byte_size(buf);
     char *p;
-    size_t new_size;
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    err = sol_util_size_add(buf->used, size, &new_size);
-    if (err < 0)
-        return err;
-
-    /* Extra room for the ending NUL-byte. */
-    if (new_size >= SIZE_MAX - nul_size)
-        return -EOVERFLOW;
-    err = sol_buffer_ensure(buf, new_size + nul_size);
+    err = sol_buffer_expand(buf, size);
     if (err < 0)
         return err;
 
     p = sol_buffer_at_end(buf);
     memcpy(p, bytes, size);
 
-    if (nul_size)
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         p[size] = '\0';
     buf->used += size;
     return 0;
@@ -143,17 +158,20 @@ SOL_API int
 sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice)
 {
     int err;
-    const size_t nul_size = nul_byte_size(buf);
+    size_t nul_size;
 
     SOL_NULL_CHECK(buf, -EINVAL);
     if (buf->used < pos) {
         return -EINVAL;
     }
 
+    nul_size = nul_byte_size(buf);
     /* Extra room for the ending NUL-byte. */
     if (slice.len >= SIZE_MAX - nul_size - pos)
         return -EOVERFLOW;
-    err = sol_buffer_ensure(buf, pos + slice.len + nul_size);
+
+    /* ensure already handles the null-byte */
+    err = sol_buffer_ensure(buf, pos + slice.len);
     if (err < 0)
         return err;
 
@@ -163,7 +181,8 @@ sol_buffer_set_slice_at(struct sol_buffer *buf, size_t pos, const struct sol_str
     if (pos + slice.len >= buf->used) {
         buf->used = pos + slice.len;
         /* only terminate if we're growing */
-        ((char *)buf->data)[buf->used] = 0;
+        if (nul_size)
+            ((char *)buf->data)[buf->used] = 0;
     }
 
     return 0;
@@ -173,17 +192,20 @@ SOL_API int
 sol_buffer_set_char_at(struct sol_buffer *buf, size_t pos, char c)
 {
     int err;
-    const size_t nul_size = nul_byte_size(buf);
+    size_t nul_size;
 
     SOL_NULL_CHECK(buf, -EINVAL);
     if (buf->used < pos) {
         return -EINVAL;
     }
 
+    nul_size = nul_byte_size(buf);
     /* Extra room for the ending NUL-byte. */
     if (1 >= SIZE_MAX - nul_size - pos)
         return -EOVERFLOW;
-    err = sol_buffer_ensure(buf, pos + 1 + nul_size);
+
+    /* ensure already handles the null-byte */
+    err = sol_buffer_ensure(buf, pos + 1);
     if (err < 0)
         return err;
 
@@ -192,7 +214,7 @@ sol_buffer_set_char_at(struct sol_buffer *buf, size_t pos, char c)
     if (pos + 1 >= buf->used)
         buf->used = pos + 1;
 
-    if (nul_byte_size(buf))
+    if (nul_size)
         return sol_buffer_ensure_nul_byte(buf);
 
     return 0;
@@ -201,9 +223,7 @@ sol_buffer_set_char_at(struct sol_buffer *buf, size_t pos, char c)
 SOL_API int
 sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const uint8_t *bytes, size_t size)
 {
-    const size_t nul_size = nul_byte_size(buf);
     char *p;
-    size_t new_size;
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -212,14 +232,7 @@ sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const uint8_t *bytes
     if (pos == buf->used)
         return sol_buffer_append_bytes(buf, bytes, size);
 
-    err = sol_util_size_add(buf->used, size, &new_size);
-    if (err < 0)
-        return err;
-
-    /* Extra room for the ending NUL-byte. */
-    if (new_size >= SIZE_MAX - nul_size)
-        return -EOVERFLOW;
-    err = sol_buffer_ensure(buf, new_size + nul_size);
+    err = sol_buffer_expand(buf, size);
     if (err < 0)
         return err;
 
@@ -228,10 +241,8 @@ sol_buffer_insert_bytes(struct sol_buffer *buf, size_t pos, const uint8_t *bytes
     memcpy(p, bytes, size);
     buf->used += size;
 
-    if (nul_size) {
-        p = sol_buffer_at_end(buf);
-        p[0] = '\0';
-    }
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
+        return sol_buffer_ensure_nul_byte(buf);
 
     return 0;
 }
@@ -276,12 +287,20 @@ sol_buffer_append_vprintf(struct sol_buffer *buf, const char *fmt, va_list args)
         if (r < 0)
             goto end;
 
-        /* Extra room for the ending NUL-byte. */
-        if (new_size >= SIZE_MAX - 1) {
-            r = -EOVERFLOW;
-            goto end;
+        if (!SOL_BUFFER_NEEDS_NUL_BYTE(buf)) {
+            /* sol_buffer_ensure() will add the space for the
+             * null-byte only if the flag is set, however vsnprintf()
+             * needs it in all cases.
+             * Then if NO_NULL_BYTE is set, we need to manually add it.
+             */
+            if (new_size >= SIZE_MAX - 1) {
+                r = -EOVERFLOW;
+                goto end;
+            }
+            new_size++;
         }
-        r = sol_buffer_ensure(buf, new_size + 1);
+
+        r = sol_buffer_ensure(buf, new_size);
         if (r < 0)
             goto end;
 
@@ -358,7 +377,7 @@ sol_buffer_steal_or_copy(struct sol_buffer *buf, size_t *size)
 
     r = sol_buffer_steal(buf, size);
     if (!r) {
-        r = sol_util_memdup(buf->data, buf->used);
+        r = sol_util_memdup(buf->data, buf->used + nul_byte_size(buf));
         SOL_NULL_CHECK(r, NULL);
 
         if (size)
@@ -378,7 +397,7 @@ sol_buffer_copy(const struct sol_buffer *buf)
     b_copy = sol_util_memdup(buf, sizeof(*buf));
     if (!b_copy) return NULL;
 
-    b_copy->data = sol_util_memdup(buf->data, buf->used);
+    b_copy->data = sol_util_memdup(buf->data, buf->used + nul_byte_size(buf));
     if (!b_copy->data) {
         free(b_copy);
         return NULL;
@@ -413,16 +432,11 @@ SOL_API int
 sol_buffer_append_char(struct sol_buffer *buf, const char c)
 {
     char *p;
-    size_t new_size;
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
 
-    err = sol_util_size_add(buf->used, 1, &new_size);
-    if (err < 0)
-        return err;
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, 1);
     if (err < 0)
         return err;
 
@@ -439,7 +453,6 @@ SOL_API int
 sol_buffer_insert_char(struct sol_buffer *buf, size_t pos, const char c)
 {
     char *p;
-    size_t new_size;
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -448,11 +461,7 @@ sol_buffer_insert_char(struct sol_buffer *buf, size_t pos, const char c)
     if (pos == buf->used)
         return sol_buffer_append_char(buf, c);
 
-    err = sol_util_size_add(buf->used, 1, &new_size);
-    if (err < 0)
-        return err;
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, 1);
     if (err < 0)
         return err;
 
@@ -461,7 +470,7 @@ sol_buffer_insert_char(struct sol_buffer *buf, size_t pos, const char c)
     *p = c;
     buf->used++;
 
-    if (nul_byte_size(buf))
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
@@ -472,9 +481,7 @@ SOL_API int
 sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *p;
-    size_t new_size;
     ssize_t encoded_size, r;
-    const size_t nul_size = nul_byte_size(buf);
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -490,17 +497,7 @@ sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol
     if (encoded_size < 0)
         return encoded_size;
 
-    err = sol_util_size_add(buf->used, encoded_size, &new_size);
-    if (err < 0)
-        return err;
-
-    if (nul_size) {
-        err = sol_util_size_add(new_size, nul_size, &new_size);
-        if (err < 0)
-            return err;
-    }
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, encoded_size);
     if (err < 0)
         return err;
 
@@ -509,7 +506,7 @@ sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol
     r = sol_util_base64_encode(p, encoded_size, slice, base64_map);
     if (r != encoded_size) {
         memmove(p, p + encoded_size, buf->used - pos);
-        if (nul_size)
+        if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
             sol_buffer_ensure_nul_byte(buf);
         if (r < 0)
             return r;
@@ -519,7 +516,7 @@ sol_buffer_insert_as_base64(struct sol_buffer *buf, size_t pos, const struct sol
 
     buf->used += encoded_size;
 
-    if (nul_size)
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
@@ -528,9 +525,7 @@ SOL_API int
 sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *p;
-    size_t new_size;
     ssize_t encoded_size, r;
-    const size_t nul_size = nul_byte_size(buf);
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -542,24 +537,14 @@ sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice s
     if (encoded_size < 0)
         return encoded_size;
 
-    err = sol_util_size_add(buf->used, encoded_size, &new_size);
-    if (err < 0)
-        return err;
-
-    if (nul_size) {
-        err = sol_util_size_add(new_size, nul_size, &new_size);
-        if (err < 0)
-            return err;
-    }
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, encoded_size);
     if (err < 0)
         return err;
 
     p = sol_buffer_at_end(buf);
     r = sol_util_base64_encode(p, encoded_size, slice, base64_map);
     if (r != encoded_size) {
-        if (nul_size)
+        if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
             sol_buffer_ensure_nul_byte(buf);
         if (r < 0)
             return r;
@@ -569,7 +554,7 @@ sol_buffer_append_as_base64(struct sol_buffer *buf, const struct sol_str_slice s
 
     buf->used += encoded_size;
 
-    if (nul_size)
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
@@ -578,9 +563,7 @@ SOL_API int
 sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *p;
-    size_t new_size;
     ssize_t decoded_size, r;
-    const size_t nul_size = nul_byte_size(buf);
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -596,17 +579,7 @@ sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct s
     if (decoded_size < 0)
         return decoded_size;
 
-    err = sol_util_size_add(buf->used, decoded_size, &new_size);
-    if (err < 0)
-        return err;
-
-    if (nul_size) {
-        err = sol_util_size_add(new_size, nul_size, &new_size);
-        if (err < 0)
-            return err;
-    }
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, decoded_size);
     if (err < 0)
         return err;
 
@@ -615,7 +588,7 @@ sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct s
     r = sol_util_base64_decode(p, decoded_size, slice, base64_map);
     if (r != decoded_size) {
         memmove(p, p + decoded_size, buf->used - pos);
-        if (nul_size)
+        if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
             sol_buffer_ensure_nul_byte(buf);
         if (r < 0)
             return r;
@@ -625,7 +598,7 @@ sol_buffer_insert_from_base64(struct sol_buffer *buf, size_t pos, const struct s
 
     buf->used += decoded_size;
 
-    if (nul_size)
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
@@ -634,9 +607,7 @@ SOL_API int
 sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice slice, const char base64_map[SOL_STATIC_ARRAY_SIZE(65)])
 {
     char *p;
-    size_t new_size;
     ssize_t decoded_size, r;
-    const size_t nul_size = nul_byte_size(buf);
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -648,24 +619,14 @@ sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice
     if (decoded_size < 0)
         return decoded_size;
 
-    err = sol_util_size_add(buf->used, decoded_size, &new_size);
-    if (err < 0)
-        return err;
-
-    if (nul_size) {
-        err = sol_util_size_add(new_size, nul_size, &new_size);
-        if (err < 0)
-            return err;
-    }
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, decoded_size);
     if (err < 0)
         return err;
 
     p = sol_buffer_at_end(buf);
     r = sol_util_base64_decode(p, decoded_size, slice, base64_map);
     if (r != decoded_size) {
-        if (nul_size)
+        if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
             sol_buffer_ensure_nul_byte(buf);
         if (r < 0)
             return r;
@@ -675,7 +636,7 @@ sol_buffer_append_from_base64(struct sol_buffer *buf, const struct sol_str_slice
 
     buf->used += decoded_size;
 
-    if (nul_size)
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
@@ -684,9 +645,7 @@ SOL_API int
 sol_buffer_insert_as_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, bool uppercase)
 {
     char *p;
-    size_t new_size;
     ssize_t encoded_size, r;
-    const size_t nul_size = nul_byte_size(buf);
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -702,17 +661,7 @@ sol_buffer_insert_as_base16(struct sol_buffer *buf, size_t pos, const struct sol
     if (encoded_size < 0)
         return encoded_size;
 
-    err = sol_util_size_add(buf->used, encoded_size, &new_size);
-    if (err < 0)
-        return err;
-
-    if (nul_size) {
-        err = sol_util_size_add(new_size, nul_size, &new_size);
-        if (err < 0)
-            return err;
-    }
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, encoded_size);
     if (err < 0)
         return err;
 
@@ -721,7 +670,7 @@ sol_buffer_insert_as_base16(struct sol_buffer *buf, size_t pos, const struct sol
     r = sol_util_base16_encode(p, encoded_size, slice, uppercase);
     if (r != encoded_size) {
         memmove(p, p + encoded_size, buf->used - pos);
-        if (nul_size)
+        if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
             sol_buffer_ensure_nul_byte(buf);
         if (r < 0)
             return r;
@@ -731,7 +680,7 @@ sol_buffer_insert_as_base16(struct sol_buffer *buf, size_t pos, const struct sol
 
     buf->used += encoded_size;
 
-    if (nul_size)
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
@@ -740,9 +689,7 @@ SOL_API int
 sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_slice slice, bool uppercase)
 {
     char *p;
-    size_t new_size;
     ssize_t encoded_size, r;
-    const size_t nul_size = nul_byte_size(buf);
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -754,24 +701,14 @@ sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_slice s
     if (encoded_size < 0)
         return encoded_size;
 
-    err = sol_util_size_add(buf->used, encoded_size, &new_size);
-    if (err < 0)
-        return err;
-
-    if (nul_size) {
-        err = sol_util_size_add(new_size, nul_size, &new_size);
-        if (err < 0)
-            return err;
-    }
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, encoded_size);
     if (err < 0)
         return err;
 
     p = sol_buffer_at_end(buf);
     r = sol_util_base16_encode(p, encoded_size, slice, uppercase);
     if (r != encoded_size) {
-        if (nul_size)
+        if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
             sol_buffer_ensure_nul_byte(buf);
         if (r < 0)
             return r;
@@ -781,7 +718,7 @@ sol_buffer_append_as_base16(struct sol_buffer *buf, const struct sol_str_slice s
 
     buf->used += encoded_size;
 
-    if (nul_size)
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
@@ -790,9 +727,7 @@ SOL_API int
 sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct sol_str_slice slice, enum sol_decode_case decode_case)
 {
     char *p;
-    size_t new_size;
     ssize_t decoded_size, r;
-    const size_t nul_size = nul_byte_size(buf);
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -808,17 +743,7 @@ sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct s
     if (decoded_size < 0)
         return decoded_size;
 
-    err = sol_util_size_add(buf->used, decoded_size, &new_size);
-    if (err < 0)
-        return err;
-
-    if (nul_size) {
-        err = sol_util_size_add(new_size, nul_size, &new_size);
-        if (err < 0)
-            return err;
-    }
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, decoded_size);
     if (err < 0)
         return err;
 
@@ -827,7 +752,7 @@ sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct s
     r = sol_util_base16_decode(p, decoded_size, slice, decode_case);
     if (r != decoded_size) {
         memmove(p, p + decoded_size, buf->used - pos);
-        if (nul_size)
+        if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
             sol_buffer_ensure_nul_byte(buf);
         if (r < 0)
             return r;
@@ -837,7 +762,7 @@ sol_buffer_insert_from_base16(struct sol_buffer *buf, size_t pos, const struct s
 
     buf->used += decoded_size;
 
-    if (nul_size)
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
@@ -846,9 +771,7 @@ SOL_API int
 sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice slice, enum sol_decode_case decode_case)
 {
     char *p;
-    size_t new_size;
     ssize_t decoded_size, r;
-    const size_t nul_size = nul_byte_size(buf);
     int err;
 
     SOL_NULL_CHECK(buf, -EINVAL);
@@ -860,24 +783,14 @@ sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice
     if (decoded_size < 0)
         return decoded_size;
 
-    err = sol_util_size_add(buf->used, decoded_size, &new_size);
-    if (err < 0)
-        return err;
-
-    if (nul_size) {
-        err = sol_util_size_add(new_size, nul_size, &new_size);
-        if (err < 0)
-            return err;
-    }
-
-    err = sol_buffer_ensure(buf, new_size);
+    err = sol_buffer_expand(buf, decoded_size);
     if (err < 0)
         return err;
 
     p = sol_buffer_at_end(buf);
     r = sol_util_base16_decode(p, decoded_size, slice, decode_case);
     if (r != decoded_size) {
-        if (nul_size)
+        if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
             sol_buffer_ensure_nul_byte(buf);
         if (r < 0)
             return r;
@@ -887,7 +800,7 @@ sol_buffer_append_from_base16(struct sol_buffer *buf, const struct sol_str_slice
 
     buf->used += decoded_size;
 
-    if (nul_size)
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
         return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
@@ -899,7 +812,6 @@ sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset)
     size_t total;
 
     SOL_NULL_CHECK(buf, -EINVAL);
-    SOL_EXP_CHECK(buf->flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED, -EPERM);
 
     if ((buf->used < offset))
         return -EINVAL;
@@ -916,6 +828,14 @@ sol_buffer_remove_data(struct sol_buffer *buf, size_t size, size_t offset)
 
     buf->used -= size;
 
+    if (!(buf->flags & SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED)) {
+        r = sol_buffer_resize(buf, align_power2(buf->used + nul_byte_size(buf)));
+        if (r < 0)
+            return r;
+    }
+
+    if (SOL_BUFFER_NEEDS_NUL_BYTE(buf))
+        return sol_buffer_ensure_nul_byte(buf);
     return 0;
 }
 

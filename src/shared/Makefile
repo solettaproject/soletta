@@ -20,7 +20,9 @@ obj-libshared-$(PLATFORM_LINUX) += \
     sol-conffile.o \
     sol-file-reader.o \
     sol-lib-loader.o \
-    sol-util-impl-linux.o \
+    sol-util-impl-linux.o
+
+obj-libshared-$(FEATURE_FILESYSTEM) += \
     sol-util-file.o
 
 obj-libshared-$(PLATFORM_RIOTOS) += \
@@ -29,4 +31,13 @@ obj-libshared-$(PLATFORM_RIOTOS) += \
 obj-libshared-$(PLATFORM_CONTIKI) += \
     sol-util-impl-contiki.o
 
+obj-libshared-$(PLATFORM_ZEPHYR) += \
+    sol-util-impl-zephyr.o
+
 obj-libshared-y-extra-cflags += -fvisibility=default
+
+headers-y += \
+    include/sol-util.h
+
+headers-$(FEATURE_FILESYSTEM) += \
+    include/sol-util-file.h

@@ -36,7 +36,7 @@
 #include "sol-mainloop-impl.h"
 #include "sol-macros.h"
 #include "sol-modules.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #include "sol-platform.h"
 
@@ -91,11 +91,43 @@ extern int sol_update_init(void);
 extern void sol_update_shutdown(void);
 #endif
 
+static const struct sol_mainloop_implementation _sol_mainloop_implementation_default = {
+    SOL_SET_API_VERSION(.api_version = SOL_MAINLOOP_IMPLEMENTATION_API_VERSION, )
+    .init = sol_mainloop_impl_init,
+    .shutdown =  sol_mainloop_impl_shutdown,
+    .run =  sol_mainloop_impl_run,
+    .quit =  sol_mainloop_impl_quit,
+    .timeout_add =  sol_mainloop_impl_timeout_add,
+    .timeout_del =  sol_mainloop_impl_timeout_del,
+    .idle_add =  sol_mainloop_impl_idle_add,
+    .idle_del =  sol_mainloop_impl_idle_del,
+
+#ifdef SOL_MAINLOOP_FD_ENABLED
+    .fd_add =  sol_mainloop_impl_fd_add,
+    .fd_del =  sol_mainloop_impl_fd_del,
+    .fd_set_flags =  sol_mainloop_impl_fd_set_flags,
+    .fd_get_flags =  sol_mainloop_impl_fd_get_flags,
+#endif
+
+#ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
+    .child_watch_add =  sol_mainloop_impl_child_watch_add,
+    .child_watch_del =  sol_mainloop_impl_child_watch_del,
+#endif
+
+    .source_add =  sol_mainloop_impl_source_add,
+    .source_del =  sol_mainloop_impl_source_del,
+    .source_get_data =  sol_mainloop_impl_source_get_data,
+};
+
 static int _init_count;
 static bool mainloop_running;
 static int mainloop_return_code;
 static int _argc;
 static char **_argv;
+static const struct sol_mainloop_implementation *mainloop_impl = &_sol_mainloop_implementation_default;
+
+SOL_API const struct sol_mainloop_implementation *SOL_MAINLOOP_IMPLEMENTATION_DEFAULT = &_sol_mainloop_implementation_default;
+
 
 SOL_API int
 sol_init(void)
@@ -112,7 +144,7 @@ sol_init(void)
 
     sol_log_domain_init_level(SOL_LOG_DOMAIN);
 
-    r = sol_mainloop_impl_init();
+    r = mainloop_impl->init();
     if (r < 0)
         goto impl_error;
 
@@ -174,7 +206,7 @@ blob_error:
 pin_mux_error:
     sol_platform_shutdown();
 platform_error:
-    sol_mainloop_impl_shutdown();
+    mainloop_impl->shutdown();
 impl_error:
     sol_log_shutdown();
 log_error:
@@ -196,7 +228,7 @@ sol_run(void)
 
     SOL_DBG("run");
     mainloop_running = true;
-    sol_mainloop_impl_run();
+    mainloop_impl->run();
     return mainloop_return_code;
 }
 
@@ -221,7 +253,7 @@ sol_quit_with_code(int return_code)
     SOL_DBG("quit with code %d", return_code);
     mainloop_return_code = return_code;
     mainloop_running = false;
-    sol_mainloop_impl_quit();
+    mainloop_impl->quit();
 }
 
 SOL_API void
@@ -246,7 +278,7 @@ sol_shutdown(void)
     sol_blob_shutdown();
     sol_pin_mux_shutdown();
     sol_platform_shutdown();
-    sol_mainloop_impl_shutdown();
+    mainloop_impl->shutdown();
     sol_modules_clear_cache();
 #ifdef USE_UPDATE
     sol_update_shutdown();
@@ -259,28 +291,28 @@ SOL_API struct sol_timeout *
 sol_timeout_add(uint32_t timeout_ms, bool (*cb)(void *data), const void *data)
 {
     SOL_NULL_CHECK(cb, NULL);
-    return sol_mainloop_impl_timeout_add(timeout_ms, cb, data);
+    return mainloop_impl->timeout_add(timeout_ms, cb, data);
 }
 
 SOL_API bool
 sol_timeout_del(struct sol_timeout *handle)
 {
     SOL_NULL_CHECK(handle, false);
-    return sol_mainloop_impl_timeout_del(handle);
+    return mainloop_impl->timeout_del(handle);
 }
 
 SOL_API struct sol_idle *
 sol_idle_add(bool (*cb)(void *data), const void *data)
 {
     SOL_NULL_CHECK(cb, NULL);
-    return sol_mainloop_impl_idle_add(cb, data);
+    return mainloop_impl->idle_add(cb, data);
 }
 
 SOL_API bool
 sol_idle_del(struct sol_idle *handle)
 {
     SOL_NULL_CHECK(handle, false);
-    return sol_mainloop_impl_idle_del(handle);
+    return mainloop_impl->idle_del(handle);
 }
 
 #ifdef SOL_MAINLOOP_FD_ENABLED
@@ -288,35 +320,35 @@ SOL_API struct sol_fd *
 sol_fd_add(int fd, uint32_t flags, bool (*cb)(void *data, int fd, uint32_t active_flags), const void *data)
 {
     SOL_NULL_CHECK(cb, NULL);
-    return sol_mainloop_impl_fd_add(fd, flags, cb, data);
+    return mainloop_impl->fd_add(fd, flags, cb, data);
 }
 
 SOL_API bool
 sol_fd_del(struct sol_fd *handle)
 {
     SOL_NULL_CHECK(handle, false);
-    return sol_mainloop_impl_fd_del(handle);
+    return mainloop_impl->fd_del(handle);
 }
 
 SOL_API bool
 sol_fd_set_flags(struct sol_fd *handle, uint32_t flags)
 {
     SOL_NULL_CHECK(handle, false);
-    return sol_mainloop_impl_fd_set_flags(handle, flags);
+    return mainloop_impl->fd_set_flags(handle, flags);
 }
 
 SOL_API uint32_t
 sol_fd_get_flags(const struct sol_fd *handle)
 {
     SOL_NULL_CHECK(handle, false);
-    return sol_mainloop_impl_fd_get_flags(handle);
+    return mainloop_impl->fd_get_flags(handle);
 }
 
 SOL_API bool
 sol_fd_unset_flags(struct sol_fd *handle, uint32_t flags)
 {
     SOL_NULL_CHECK(handle, false);
-    return sol_mainloop_impl_fd_set_flags(handle, sol_mainloop_impl_fd_get_flags(handle) & ~flags);
+    return mainloop_impl->fd_set_flags(handle, mainloop_impl->fd_get_flags(handle) & ~flags);
 }
 #endif
 
@@ -326,19 +358,19 @@ sol_child_watch_add(uint64_t pid, void (*cb)(void *data, uint64_t pid, int statu
 {
     SOL_INT_CHECK(pid, < 1, NULL);
     SOL_NULL_CHECK(cb, NULL);
-    return sol_mainloop_impl_child_watch_add(pid, cb, data);
+    return mainloop_impl->child_watch_add(pid, cb, data);
 }
 
 SOL_API bool
 sol_child_watch_del(struct sol_child_watch *handle)
 {
     SOL_NULL_CHECK(handle, false);
-    return sol_mainloop_impl_child_watch_del(handle);
+    return mainloop_impl->child_watch_del(handle);
 }
 #endif
 
 SOL_API struct sol_mainloop_source *
-sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void *data)
+sol_mainloop_source_add(const struct sol_mainloop_source_type *type, const void *data)
 {
     SOL_NULL_CHECK(type, NULL);
 
@@ -355,21 +387,73 @@ sol_mainloop_source_new(const struct sol_mainloop_source_type *type, const void 
     SOL_NULL_CHECK(type->check, NULL);
     SOL_NULL_CHECK(type->dispatch, NULL);
 
-    return sol_mainloop_impl_source_new(type, data);
+    return mainloop_impl->source_add(type, data);
 }
 
 SOL_API void
 sol_mainloop_source_del(struct sol_mainloop_source *handle)
 {
     SOL_NULL_CHECK(handle);
-    sol_mainloop_impl_source_del(handle);
+    mainloop_impl->source_del(handle);
 }
 
 SOL_API void *
 sol_mainloop_source_get_data(const struct sol_mainloop_source *handle)
 {
     SOL_NULL_CHECK(handle, NULL);
-    return sol_mainloop_impl_source_get_data(handle);
+    return mainloop_impl->source_get_data(handle);
+}
+
+SOL_API const struct sol_mainloop_implementation *
+sol_mainloop_get_implementation(void)
+{
+    return mainloop_impl;
+}
+
+SOL_API bool
+sol_mainloop_set_implementation(const struct sol_mainloop_implementation *impl)
+{
+    SOL_NULL_CHECK(impl, false);
+
+#ifndef SOL_NO_API_VERSION
+    if (impl->api_version != SOL_MAINLOOP_IMPLEMENTATION_API_VERSION) {
+        SOL_WRN("impl(%p)->api_version(%hu) != "
+            "SOL_MAINLOOP_IMPLEMENTATION_API_VERSION(%hu)",
+            impl, impl->api_version,
+            SOL_MAINLOOP_IMPLEMENTATION_API_VERSION);
+        return false;
+    }
+#endif
+
+    SOL_NULL_CHECK(impl->init, false);
+    SOL_NULL_CHECK(impl->shutdown, false);
+    SOL_NULL_CHECK(impl->run, false);
+    SOL_NULL_CHECK(impl->quit, false);
+    SOL_NULL_CHECK(impl->timeout_add, false);
+    SOL_NULL_CHECK(impl->timeout_del, false);
+    SOL_NULL_CHECK(impl->idle_add, false);
+    SOL_NULL_CHECK(impl->idle_del, false);
+
+#ifdef SOL_MAINLOOP_FD_ENABLED
+    SOL_NULL_CHECK(impl->fd_add, false);
+    SOL_NULL_CHECK(impl->fd_del, false);
+    SOL_NULL_CHECK(impl->fd_set_flags, false);
+    SOL_NULL_CHECK(impl->fd_get_flags, false);
+#endif
+
+#ifdef SOL_MAINLOOP_FORK_WATCH_ENABLED
+    SOL_NULL_CHECK(impl->child_watch_add, false);
+    SOL_NULL_CHECK(impl->child_watch_del, false);
+#endif
+
+    SOL_NULL_CHECK(impl->source_add, false);
+    SOL_NULL_CHECK(impl->source_del, false);
+    SOL_NULL_CHECK(impl->source_get_data, false);
+
+    SOL_INT_CHECK(_init_count, > 0, false);
+
+    mainloop_impl = impl;
+    return true;
 }
 
 SOL_API int
@@ -408,13 +492,12 @@ sol_mainloop_default_main(const struct sol_main_callbacks *callbacks, int argc, 
     _argc = argc;
     _argv = argv;
 
-    if (unlikely(!callbacks || !callbacks->startup)) {
+    if (SOL_UNLIKELY(!callbacks || !callbacks->startup)) {
         fprintf(stderr, "Missing startup function.\n");
         return EXIT_FAILURE;
     }
 
-    if (unlikely(sol_init() < 0)) {
-        SOL_CRI("Cannot initialize soletta.");
+    if (SOL_UNLIKELY(sol_init() < 0)) {
         return EXIT_FAILURE;
     }
 

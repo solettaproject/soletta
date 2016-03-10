@@ -551,7 +551,7 @@ string_regexp_replace_open(struct sol_flow_node *node,
         return -EINVAL;
     }
     mdata->max_regexp_replace = opts->max_regexp_replace > 0 ?
-        (size_t)opts->max_regexp_replace : SIZE_MAX;
+        (size_t)opts->max_regexp_replace : INT32_MAX;
 
     if (!opts->regexp || !strlen(opts->regexp)) {
         SOL_WRN("A non-empty regular expression string must be provided");

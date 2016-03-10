@@ -35,8 +35,9 @@
 
 #define SOL_LOG_DOMAIN &_log_domain
 #include "sol-log-internal.h"
+#include "sol-macros.h"
 #include "sol-pwm.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "periph/pwm.h"
@@ -109,7 +110,7 @@ sol_pwm_open_raw(int device, int channel, const struct sol_pwm_config *config)
     SOL_LOG_INTERNAL_INIT_ONCE;
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_PWM_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_PWM_CONFIG_API_VERSION)) {
         SOL_WRN("Couldn't open pwm that has unsupported version '%u', "
             "expected version is '%u'",
             config->api_version, SOL_PWM_CONFIG_API_VERSION);
@@ -171,7 +172,7 @@ sol_pwm_set_period(struct sol_pwm *pwm, uint32_t period_ns)
     SOL_NULL_CHECK(pwm, false);
     pwm->period = period_ns;
 
-    return pwm_init(pwm->dev, pwm->phase, NSEC_PER_SEC / pwm->period, RESOLUTION) == 0;
+    return pwm_init(pwm->dev, pwm->phase, SOL_NSEC_PER_SEC / pwm->period, RESOLUTION) == 0;
 }
 
 SOL_API int32_t
@@ -192,7 +193,9 @@ sol_pwm_set_duty_cycle(struct sol_pwm *pwm, uint32_t duty_cycle_ns)
     pwm->duty_cycle = duty_cycle_ns;
     value = (RESOLUTION * duty_cycle_ns) / pwm->period;
 
-    return pwm_set(pwm->dev, pwm->channel, value) == 0;
+    pwm_set(pwm->dev, pwm->channel, value);
+
+    return true;
 }
 
 SOL_API int32_t

@@ -42,7 +42,7 @@ extern struct sol_log_domain _gtk_log_domain;
 #endif
 
 #include "sol-flow.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 struct gtk_common_data {
     struct sol_flow_node *node;

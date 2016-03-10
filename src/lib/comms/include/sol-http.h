@@ -34,6 +34,7 @@
 
 #include <sol-arena.h>
 #include <sol-buffer.h>
+#include <sol-macros.h>
 #include <sol-str-slice.h>
 #include <sol-vector.h>
 
@@ -121,7 +122,6 @@ struct sol_http_params {
 #ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_PARAM_API_VERSION (1)
     uint16_t api_version;
-    uint16_t reserved;
 #endif
 
     struct sol_vector params; /**< vector of parameters, struct @ref sol_http_param_value */
@@ -154,7 +154,9 @@ struct sol_http_param_value {
             int32_t value;
         } integer;
         struct {
-            const struct sol_str_slice value;
+            struct sol_str_slice key;
+            struct sol_str_slice value;
+            struct sol_str_slice filename;
         } data;
     } value;
 };
@@ -171,7 +173,6 @@ struct sol_http_response {
 #ifndef SOL_NO_API_VERSION
 #define SOL_HTTP_RESPONSE_API_VERSION (1)
     uint16_t api_version;
-    uint16_t reserved;
 #endif
 
     const char *content_type;
@@ -208,10 +209,10 @@ struct sol_http_url {
  * to the macro.
  */
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, ...) \
-    if (unlikely(response_->api_version != \
+    if (SOL_UNLIKELY((response_)->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
         SOL_ERR("Unexpected API version (response is %u, expected %u)", \
-            response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
+            (response_)->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
         return __VA_ARGS__; \
     }
 #else
@@ -227,11 +228,11 @@ struct sol_http_url {
  */
 #define SOL_HTTP_RESPONSE_CHECK_API(response_, ...) \
     do { \
-        if (unlikely(!response_)) { \
+        if (SOL_UNLIKELY(!(response_))) { \
             SOL_WRN("Error while reaching service."); \
             return __VA_ARGS__; \
         } \
-        SOL_HTTP_RESPONSE_CHECK_API_VERSION(response_, __VA_ARGS__) \
+        SOL_HTTP_RESPONSE_CHECK_API_VERSION((response_), __VA_ARGS__) \
     } while (0)
 
 #ifndef SOL_NO_API_VERSION
@@ -242,10 +243,10 @@ struct sol_http_url {
  * In case it's a wrong version, it'll go to @a label.
  */
 #define SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label) \
-    if (unlikely(response_->api_version != \
+    if (SOL_UNLIKELY((response_)->api_version != \
         SOL_HTTP_RESPONSE_API_VERSION)) { \
         SOL_ERR("Unexpected API version (response is %u, expected %u)", \
-            response->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
+            (response_)->api_version, SOL_HTTP_RESPONSE_API_VERSION); \
         goto label; \
     }
 #else
@@ -261,11 +262,11 @@ struct sol_http_url {
  */
 #define SOL_HTTP_RESPONSE_CHECK_API_GOTO(response_, label) \
     do { \
-        if (unlikely(!response_)) { \
+        if (SOL_UNLIKELY(!(response_))) { \
             SOL_WRN("Error while reaching service."); \
             goto label; \
         } \
-        SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO(response_, label) \
+        SOL_HTTP_RESPONSE_CHECK_API_VERSION_GOTO((response_), label) \
     } while (0)
 
 /**
@@ -278,11 +279,49 @@ struct sol_http_url {
  *
  * @see sol_http_params_init()
  */
-#define SOL_HTTP_REQUEST_PARAMS_INIT   \
+#define SOL_HTTP_REQUEST_PARAMS_INIT \
     (struct sol_http_params) { \
         SOL_SET_API_VERSION(.api_version = SOL_HTTP_PARAM_API_VERSION, ) \
-        .params = SOL_VECTOR_INIT(struct sol_http_param_value) \
+        .params = SOL_VECTOR_INIT(struct sol_http_param_value), \
+        .arena = NULL \
     }
+
+#ifndef SOL_NO_API_VERSION
+/**
+ * @brief Macro used to check if a struct @ref sol_http_params
+ * has the expected API version.
+ *
+ * In case it's a wrong version, it'll return extra arguments passed
+ * to the macro.
+ */
+#define SOL_HTTP_PARAMS_CHECK_API_VERSION(params_, ...) \
+    if (SOL_UNLIKELY((params_)->api_version != \
+        SOL_HTTP_PARAM_API_VERSION)) { \
+        SOL_ERR("Unexpected API version (response is %u, expected %u)", \
+            (params_)->api_version, SOL_HTTP_PARAM_API_VERSION); \
+        return __VA_ARGS__; \
+    }
+#else
+#define SOL_HTTP_PARAMS_CHECK_API_VERSION(params_, ...)
+#endif
+
+#ifndef SOL_NO_API_VERSION
+/**
+ * @brief Macro used to check if a struct @ref sol_http_params
+ * has the expected API version.
+ *
+ * In case it's a wrong version, it'll go to @a label.
+ */
+#define SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params_, label_) \
+    if (SOL_UNLIKELY((params_)->api_version != \
+        SOL_HTTP_PARAM_API_VERSION)) { \
+        SOL_ERR("Unexpected API version (params is %u, expected %u)", \
+            (params_)->api_version, SOL_HTTP_PARAM_API_VERSION); \
+        goto label_; \
+    }
+#else
+#define SOL_HTTP_PARAMS_CHECK_API_VERSION_GOTO(params_, label_)
+#endif
 
 /**
  * @brief Macro to set a struct @ref sol_http_param_value with
@@ -291,9 +330,11 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_KEY_VALUE(type_, key_, value_) \
     (struct sol_http_param_value) { \
         .type = type_, \
-        .value.key_value = { \
-            .key = sol_str_slice_from_str((key_ ? : "")),        \
-            .value = sol_str_slice_from_str((value_ ? : ""))        \
+        .value = { \
+            .key_value = { \
+                .key = sol_str_slice_from_str((key_ ? : "")), \
+                .value = sol_str_slice_from_str((value_ ? : "")) \
+            } \
         } \
     }
 
@@ -304,7 +345,7 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_BOOLEAN(type_, setting_) \
     (struct sol_http_param_value) { \
         .type = type_, \
-        .value.boolean.value = (setting_) \
+        .value = { .boolean = { .value = (setting_) } } \
     }
 
 /**
@@ -328,9 +369,11 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_AUTH_BASIC(username_, password_) \
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_AUTH_BASIC, \
-        .value.auth = { \
-            .user = sol_str_slice_from_str((username_ ? : "")),    \
-            .password = sol_str_slice_from_str((password_ ? : ""))    \
+        .value = { \
+            .auth = { \
+                .user = sol_str_slice_from_str((username_ ? : "")), \
+                .password = sol_str_slice_from_str((password_ ? : "")) \
+            } \
         } \
     }
 
@@ -369,17 +412,42 @@ struct sol_http_url {
 #define SOL_HTTP_REQUEST_PARAM_TIMEOUT(setting_) \
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_TIMEOUT, \
-        .value.integer.value = (setting_) \
+        .value = { \
+            .integer = { .value = (setting_) } \
+        } \
+    }
+
+
+/**
+ * @brief Macro to set a struct @ref sol_http_param_value with
+ * type SOL_HTTP_PARAM_POST_DATA and the contents of @c filename_.
+ */
+#define SOL_HTTP_REQUEST_PARAM_POST_DATA_FILE(key_, filename_) \
+    (struct sol_http_param_value) { \
+        .type = SOL_HTTP_PARAM_POST_DATA, \
+        .value = { \
+            .data = { \
+                .key = sol_str_slice_from_str((key_ ? : "")), \
+                .value = SOL_STR_SLICE_EMPTY, \
+                .filename = sol_str_slice_from_str((filename_ ? : "")) \
+            } \
+        } \
     }
 
 /**
  * @brief Macro to set a struct @ref sol_http_param_value with
- * type SOL_HTTP_PARAM_POST_DATA and its content.
+ * type SOL_HTTP_PARAM_POST_DATA and the given value.
  */
-#define SOL_HTTP_REQUEST_PARAM_POST_DATA(data_) \
+#define SOL_HTTP_REQUEST_PARAM_POST_DATA_CONTENTS(key_, value_) \
     (struct sol_http_param_value) { \
         .type = SOL_HTTP_PARAM_POST_DATA, \
-        .value.data.value = (data_) \
+        .value = { \
+            .data = { \
+                .key = sol_str_slice_from_str((key_ ? : "")), \
+                .value = (value_), \
+                .filename = SOL_STR_SLICE_EMPTY, \
+            } \
+        } \
     }
 
 /**
@@ -398,7 +466,7 @@ struct sol_http_url {
  */
 #define SOL_HTTP_PARAMS_FOREACH_IDX(param, itrvar, idx) \
     for (idx = 0; \
-        param && idx < (param)->params.len && (itrvar = sol_vector_get(&(param)->params, idx), true); \
+        param && idx < (param)->params.len && (itrvar = (struct sol_http_param_value *)sol_vector_get(&(param)->params, idx), true); \
         idx++)
 
 /**
@@ -460,7 +528,7 @@ void sol_http_params_clear(struct sol_http_params *params);
  * the slices content to the buffer and set
  * @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED.
  *
- * @param buf The buffer that will hold the encoded string.
+ * @param buf The buffer that will hold the encoded string - The buffer will be initialized by this function.
  * @param value A slice to be encoded.
  *
  * @note if it's required to keep or change the buffer contents
@@ -477,7 +545,7 @@ int sol_http_encode_slice(struct sol_buffer *buf, const struct sol_str_slice val
  * the slices contents to the buffer and set
  * @c SOL_BUFFER_FLAGS_MEMORY_NOT_OWNED.
  *
- * @param buf The buffer that will hold the decoded string.
+ * @param buf The buffer that will hold the decoded string - The buffer will be initialized by this function.
  * @param value A slice to be decoded.
  *
  * @note if it's required to keep or change the buffer contents
@@ -490,25 +558,25 @@ int sol_http_decode_slice(struct sol_buffer *buf, const struct sol_str_slice val
 /**
  * @brief Creates an URI based on struct sol_http_url and its params
  *
- * @param uri_out The created URI - it should be freed using free().
+ * @param buf Where the create URI should be appended - The buffer must be already initialized.
  * @param url The url parameters.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
  */
-int sol_http_create_uri(char **uri_out, const struct sol_http_url url, const struct sol_http_params *params);
+int sol_http_create_uri(struct sol_buffer *buf, const struct sol_http_url url, const struct sol_http_params *params);
 
 /**
  * @brief A simpler version of sol_http_create_uri().
  *
  *
- * @param uri The created URI - it should be freed using free().
+ * @param buf Where the create URI should be appended - The buffer must be already initialized.
  * @param base_uri The base uri to be used.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
  */
-int sol_http_create_simple_uri(char **uri, const struct sol_str_slice base_uri, const struct sol_http_params *params);
+int sol_http_create_simple_uri(struct sol_buffer *buf, const struct sol_str_slice base_uri, const struct sol_http_params *params);
 
 /**
  * @brief Encodes http parameters of a given type.
@@ -554,16 +622,16 @@ int sol_http_split_uri(const struct sol_str_slice full_uri, struct sol_http_url 
 /**
  * @brief An wrapper of over sol_http_create_simple_uri()
  *
- * @param uri The created URI - it should be freed using free().
+ * @param buf Where the create URI should be appended - The buffer must be already initialized.
  * @param base_url The base uri to be used.
  * @param params The query and cookies params.
  *
  * @return 0 on success, negative number on error.
  */
 static inline int
-sol_http_create_simple_uri_from_str(char **uri, const char *base_url, const struct sol_http_params *params)
+sol_http_create_simple_uri_from_str(struct sol_buffer *buf, const char *base_url, const struct sol_http_params *params)
 {
-    return sol_http_create_simple_uri(uri, sol_str_slice_from_str(base_url ? base_url : ""), params);
+    return sol_http_create_simple_uri(buf, sol_str_slice_from_str(base_url ? base_url : ""), params);
 }
 
 /**

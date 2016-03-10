@@ -38,7 +38,8 @@
 #include "sol-log.h"
 #include "sol-mainloop.h"
 #include "sol-network.h"
-#include "sol-util.h"
+#include "sol-network-util.h"
+#include "sol-util-internal.h"
 
 #include "sol-socket.h"
 #include "sol-socket-dtls.h"
@@ -50,10 +51,6 @@
 #define DTLS_PSK_KEY_LEN 16
 
 static const uint32_t dtls_magic = 'D' << 24 | 't' << 16 | 'L' << 8 | 's';
-
-static bool encrypt_payload(void *data, struct sol_socket *wrapped);
-
-struct sol_socket *sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap);
 
 struct queue_item {
     struct sol_buffer buffer;
@@ -87,6 +84,8 @@ struct creds {
     char *id;
 };
 
+static bool encrypt_payload(struct sol_socket_dtls *s);
+
 static int
 from_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen,
     struct sol_network_link_addr *addr)
@@ -94,7 +93,7 @@ from_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen,
     SOL_NULL_CHECK(sockaddr, -EINVAL);
     SOL_NULL_CHECK(addr, -EINVAL);
 
-    addr->family = sockaddr->sa_family;
+    addr->family = sol_network_af_to_sol(sockaddr->sa_family);
 
     if (sockaddr->sa_family == AF_INET) {
         struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
@@ -124,7 +123,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
     SOL_NULL_CHECK(sockaddr, -EINVAL);
     SOL_NULL_CHECK(socklen, -EINVAL);
 
-    if (addr->family == AF_INET) {
+    if (addr->family == SOL_NETWORK_FAMILY_INET) {
         struct sockaddr_in *sock4 = (struct sockaddr_in *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in))
             return -EINVAL;
@@ -133,7 +132,7 @@ to_sockaddr(const struct sol_network_link_addr *addr, struct sockaddr *sockaddr,
         sock4->sin_port = htons(addr->port);
         sock4->sin_family = AF_INET;
         *socklen = sizeof(*sock4);
-    } else if (addr->family == AF_INET6) {
+    } else if (addr->family == SOL_NETWORK_FAMILY_INET6) {
         struct sockaddr_in6 *sock6 = (struct sockaddr_in6 *)sockaddr;
         if (*socklen < sizeof(struct sockaddr_in6))
             return -EINVAL;
@@ -201,6 +200,24 @@ sol_socket_dtls_del(struct sol_socket *socket)
 }
 
 static int
+sol_socket_dtls_setsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, const void *optval, size_t optlen)
+{
+    struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
+
+    return sol_socket_setsockopt(s->wrapped, level, optname, optval, optlen);
+}
+
+static int
+sol_socket_dtls_getsockopt(struct sol_socket *socket, enum sol_socket_level level,
+    enum sol_socket_option optname, void *optval, size_t *optlen)
+{
+    struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
+
+    return sol_socket_getsockopt(s->wrapped, level, optname, optval, optlen);
+}
+
+static int
 remove_item_from_vector(struct sol_vector *vec, struct queue_item *item,
     int retval)
 {
@@ -213,7 +230,7 @@ remove_item_from_vector(struct sol_vector *vec, struct queue_item *item,
     return retval;
 }
 
-static int
+static ssize_t
 sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct sol_network_link_addr *cliaddr)
 {
     struct sol_socket_dtls *s = (struct sol_socket_dtls *)socket;
@@ -232,12 +249,15 @@ sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct
         return -EAGAIN;
     }
 
+    if (!buf)
+        return item->buffer.used;
+
     memcpy(cliaddr, &item->addr, sizeof(*cliaddr));
 
     if (item->buffer.used <= len) {
         memcpy(buf, item->buffer.data, item->buffer.used);
         return remove_item_from_vector(&s->read.queue, item,
-            (int)item->buffer.used);
+            item->buffer.used);
     }
 
     memcpy(buf, item->buffer.data, len);
@@ -253,7 +273,7 @@ sol_socket_dtls_recvmsg(struct sol_socket *socket, void *buf, size_t len, struct
     sol_buffer_fini(&item->buffer);
     item->buffer = new_buf;
 
-    return (int)len;
+    return len;
 
 clear_buf:
     SOL_WRN("Could not copy buffer for short read, discarding unencrypted data");
@@ -283,7 +303,7 @@ sol_socket_dtls_sendmsg(struct sol_socket *socket, const void *buf, size_t len,
     sol_buffer_init_flags(&item->buffer, buf_copy, len, SOL_BUFFER_FLAGS_FIXED_CAPACITY | SOL_BUFFER_FLAGS_NO_NUL_BYTE);
     item->buffer.used = len;
 
-    encrypt_payload(s, s->wrapped);
+    encrypt_payload(s);
 
     return (int)len;
 }
@@ -392,14 +412,13 @@ no_item:
  * encrypting the payload, it calls sol_socket_sendmsg() to finally pass it
  * to the wire.  */
 static bool
-encrypt_payload(void *data, struct sol_socket *wrapped)
+encrypt_payload(struct sol_socket_dtls *s)
 {
-    struct sol_socket_dtls *socket = data;
     struct queue_item *item;
     session_t session;
     int r;
 
-    item = sol_vector_get(&socket->write.queue, 0);
+    item = sol_vector_get(&s->write.queue, 0);
     if (!item) {
         SOL_WRN("Write transmission queue empty");
         return false;
@@ -410,7 +429,7 @@ encrypt_payload(void *data, struct sol_socket *wrapped)
         return false;
     }
 
-    r = dtls_write(socket->context, &session, item->buffer.data, item->buffer.used);
+    r = dtls_write(s->context, &session, item->buffer.data, item->buffer.used);
     if (r == 0) {
         SOL_DBG("Peer state is not connected, keeping buffer in memory to try again");
         return true;
@@ -428,7 +447,7 @@ encrypt_payload(void *data, struct sol_socket *wrapped)
     sol_util_secure_clear_memory(item->buffer.data, item->buffer.capacity);
     sol_buffer_fini(&item->buffer);
     sol_util_secure_clear_memory(item, sizeof(*item));
-    sol_vector_del(&socket->write.queue, 0);
+    sol_vector_del(&s->write.queue, 0);
 
     return true;
 }
@@ -465,7 +484,7 @@ call_user_write_cb(void *data, struct sol_socket *wrapped)
         SOL_DBG("User func@%p returned success, encrypting payload",
             socket->write.cb);
 
-        if (encrypt_payload(data, wrapped)) {
+        if (encrypt_payload(data)) {
             SOL_DBG("Data encrypted, should have been passed to the "
                 "wrapped socket");
             return true;
@@ -792,6 +811,8 @@ sol_socket_dtls_wrap_socket(struct sol_socket *to_wrap)
         .set_on_read = sol_socket_dtls_set_on_read,
         .del = sol_socket_dtls_del,
         .new = NULL,
+        .setsockopt = sol_socket_dtls_setsockopt,
+        .getsockopt = sol_socket_dtls_getsockopt
     };
     static const dtls_handler_t dtls_handler = {
         .write = write_encrypted,
@@ -841,7 +862,7 @@ sol_socket_dtls_set_handshake_cipher(struct sol_socket *s,
 
     SOL_INT_CHECK(socket->dtls_magic, != dtls_magic, -EINVAL);
 
-    if ((size_t)cipher >= ARRAY_SIZE(conv_tbl))
+    if ((size_t)cipher >= SOL_UTIL_ARRAY_SIZE(conv_tbl))
         return -EINVAL;
 
     dtls_select_cipher(socket->context, conv_tbl[cipher]);
@@ -878,8 +899,8 @@ sol_socket_dtls_prf_keyblock(struct sol_socket *s,
         return -EINVAL;
 
     r = dtls_prf_with_current_keyblock(socket->context, &session,
-        label.data, label.len, random1.data, random1.len,
-        random2.data, random1.len, buffer->data, buffer->capacity);
+        (const uint8_t *)label.data, label.len, (const uint8_t *)random1.data, random1.len,
+        (const uint8_t *)random2.data, random1.len, buffer->data, buffer->capacity);
     if (!r)
         return -EINVAL;
 

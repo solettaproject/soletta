@@ -45,9 +45,10 @@
 #include "sol-http-server.h"
 #include "sol-log.h"
 #include "sol-mainloop.h"
+#include "sol-network-util.h"
 #include "sol-str-slice.h"
 #include "sol-str-table.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-arena.h"
 
@@ -55,9 +56,12 @@
 #include <magic.h>
 #endif
 
+#define SOL_HTTP_MULTIPART_HEADER "multipart/form-data"
 #define SOL_HTTP_PARAM_IF_SINCE_MODIFIED "If-Since-Modified"
 #define SOL_HTTP_PARAM_LAST_MODIFIED "Last-Modified"
 #define READABLE_BY_EVERYONE (S_IRUSR | S_IRGRP | S_IROTH)
+
+#define SOL_HTTP_REQUEST_BUFFER_SIZE 4096
 
 struct http_handler {
     time_t last_modified;
@@ -71,8 +75,12 @@ struct sol_http_request {
     struct MHD_PostProcessor *pp;
     const char *url;
     struct sol_http_params params;
+    struct sol_buffer buffer;
+    struct sol_http_param_value param;
+    size_t len;
     enum sol_http_method method;
     time_t if_since_modified;
+    bool is_multipart;
 };
 
 struct static_dir {
@@ -96,6 +104,7 @@ struct sol_http_server {
 #ifdef HAVE_LIBMAGIC
     magic_t magic;
 #endif
+    size_t buf_size;
 };
 
 struct http_connection {
@@ -253,16 +262,47 @@ post_iterator(void *data, enum MHD_ValueKind kind, const char *key,
     const char *filename, const char *type,
     const char *encoding, const char *value, uint64_t off, size_t size)
 {
+    int r;
+    char *str;
     struct sol_http_request *request = data;
 
-    if (!size)
-        return MHD_NO;
-
-    if (!sol_http_param_add_copy(&request->params,
-        SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value))) {
-        SOL_WRN("Could not add %s key", key);
-        return MHD_NO;
+    if (off) {
+        r = sol_buffer_append_bytes(&request->buffer, (uint8_t *)value, size);
+        SOL_INT_CHECK(r, < 0, MHD_NO);
+        return MHD_YES;
     }
+
+    if (request->param.value.data.key.len) {
+        size_t len;
+        void *copy;
+
+        copy = sol_buffer_steal(&request->buffer, &len);
+        request->param.value.data.value = SOL_STR_SLICE_STR(copy, len);
+        if (!sol_http_param_add(&request->params, request->param)) {
+            free(copy);
+            SOL_WRN("Could not add %s key", key);
+            return MHD_NO;
+        }
+        memset(&request->param, 0, sizeof(request->param));
+    }
+
+    if (request->is_multipart) {
+        request->param.type = SOL_HTTP_PARAM_POST_DATA;
+        if (filename) {
+            str = strdup(filename);
+            SOL_NULL_CHECK(str, MHD_NO);
+            request->param.value.data.filename = sol_str_slice_from_str(str);
+        }
+    } else {
+        request->param.type = SOL_HTTP_PARAM_POST_FIELD;
+    }
+
+    str = strdup(key);
+    SOL_NULL_CHECK(str, MHD_NO);
+    request->param.value.data.key = sol_str_slice_from_str(str);
+
+    r = sol_buffer_append_bytes(&request->buffer, (uint8_t *)value, size);
+    SOL_INT_CHECK(r, < 0, MHD_NO);
 
     return MHD_YES;
 }
@@ -291,6 +331,10 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
             request->if_since_modified = process_if_modified_since(key);
             SOL_INT_CHECK_GOTO(request->if_since_modified, == 0, param_err);
         }
+        if (!strncasecmp(value, SOL_HTTP_MULTIPART_HEADER,
+            sizeof(SOL_HTTP_MULTIPART_HEADER) - 1))
+            request->is_multipart = true;
+
         if (!sol_http_param_add_copy(&request->params,
             SOL_HTTP_REQUEST_PARAM_HEADER(key, value)))
             goto param_err;
@@ -303,11 +347,6 @@ headers_iterator(void *data, enum MHD_ValueKind kind, const char *key, const cha
     case MHD_GET_ARGUMENT_KIND:
         if (!sol_http_param_add_copy(&request->params,
             SOL_HTTP_REQUEST_PARAM_QUERY(key, value)))
-            goto param_err;
-        break;
-    case MHD_POSTDATA_KIND:
-        if (!sol_http_param_add_copy(&request->params,
-            SOL_HTTP_REQUEST_PARAM_POST_FIELD(key, value)))
             goto param_err;
         break;
     default:
@@ -514,14 +553,26 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
 
         sol_http_params_init(&req->params);
         req->url = url;
+        sol_buffer_init(&req->buffer);
         req->connection = connection;
         *ptr = req;
         return MHD_YES;
     }
 
+    MHD_get_connection_values(connection, MHD_HEADER_KIND, headers_iterator, req);
+    MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND, headers_iterator, req);
+    MHD_get_connection_values(connection, MHD_COOKIE_KIND, headers_iterator, req);
+
     req->method = http_server_get_method(method);
     switch (req->method) {
     case SOL_HTTP_METHOD_POST:
+        req->len += *upload_data_size;
+        if (req->len > server->buf_size) {
+            SOL_WRN("Request is bigger than buffer (%zu)", server->buf_size);
+            status = SOL_HTTP_STATUS_INTERNAL_SERVER_ERROR;
+            goto end;
+        }
+
         if (!req->pp)
             req->pp = MHD_create_post_processor(connection, 1024, post_iterator, req);
         SOL_NULL_CHECK_GOTO(req->pp, end);
@@ -534,6 +585,19 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
         if (*upload_data_size) {
             *upload_data_size = 0;
             return MHD_YES;
+        }
+        if (req->buffer.used) {
+            void *copy;
+            size_t len;
+
+            copy = sol_buffer_steal(&req->buffer, &len);
+            req->param.value.data.value = SOL_STR_SLICE_STR(copy, len);
+            if (!sol_http_param_add(&req->params, req->param)) {
+                SOL_WRN("Could not add %.*s key",
+                    SOL_STR_SLICE_PRINT(req->param.value.data.value));
+                return MHD_NO;
+            }
+            memset(&req->param, 0, sizeof(req->param));
         }
         break;
     case SOL_HTTP_METHOD_GET:
@@ -557,10 +621,6 @@ http_server_handler(void *data, struct MHD_Connection *connection, const char *u
             continue;
 
         free(path);
-        MHD_get_connection_values(connection, MHD_HEADER_KIND, headers_iterator, req);
-        MHD_get_connection_values(connection, MHD_GET_ARGUMENT_KIND, headers_iterator, req);
-        MHD_get_connection_values(connection, MHD_COOKIE_KIND, headers_iterator, req);
-        MHD_get_connection_values(connection, MHD_POSTDATA_KIND, headers_iterator, req);
         if (handler->last_modified && (req->if_since_modified > handler->last_modified)) {
             status = SOL_HTTP_STATUS_NOT_MODIFIED;
             goto end;
@@ -651,8 +711,7 @@ notify_connection_cb(void *data, struct MHD_Connection *connection, void **socke
     conn->watch = sol_fd_add(conn->fd, fd_flags, connection_watch_cb, server);
 
     if (!conn->watch) {
-        char error_str[128];
-        SOL_WRN("Could not watch file descriptor: %s", sol_util_strerror(errno, error_str, sizeof(error_str)));
+        SOL_WRN("Could not watch file descriptor: %s", sol_util_strerrora(errno));
         sol_vector_del_last(&server->fds);
     }
 }
@@ -660,9 +719,32 @@ notify_connection_cb(void *data, struct MHD_Connection *connection, void **socke
 static void
 free_request(struct sol_http_request *request)
 {
+    uint16_t idx;
+    struct sol_http_param_value *param;
+
     if (request->pp)
         MHD_destroy_post_processor(request->pp);
+
+    SOL_HTTP_PARAMS_FOREACH_IDX (&request->params, param, idx) {
+        switch (param->type) {
+        case SOL_HTTP_PARAM_POST_DATA:
+            free((char *)param->value.data.filename.data);
+        case SOL_HTTP_PARAM_POST_FIELD:
+            free((char *)param->value.key_value.value.data);
+            free((char *)param->value.key_value.key.data);
+            break;
+        default:
+            break;
+        }
+    }
+
+    free((char *)request->param.value.data.value.data);
+    free((char *)request->param.value.data.key.data);
+    if (request->param.type == SOL_HTTP_PARAM_POST_DATA)
+        free((char *)request->param.value.data.filename.data);
+
     sol_http_params_clear(&request->params);
+    sol_buffer_fini(&request->buffer);
     free(request);
 }
 
@@ -697,6 +779,8 @@ sol_http_server_new(uint16_t port)
     sol_vector_init(&server->dirs, sizeof(struct static_dir));
     sol_vector_init(&server->defaults, sizeof(struct default_page));
     sol_ptr_vector_init(&server->requests);
+
+    server->buf_size = SOL_HTTP_REQUEST_BUFFER_SIZE;
 
     server->daemon = MHD_start_daemon(MHD_USE_SUSPEND_RESUME,
         port, NULL, NULL,
@@ -846,6 +930,8 @@ sol_http_server_send_response(struct sol_http_request *request, struct sol_http_
     SOL_NULL_CHECK(request->connection, -EINVAL);
     SOL_NULL_CHECK(response, -EINVAL);
 
+    SOL_HTTP_RESPONSE_CHECK_API_VERSION(response, -EINVAL);
+
     MHD_resume_connection(request->connection);
 
     mhd_response = build_mhd_response(response);
@@ -980,13 +1066,13 @@ sol_http_request_get_interface_address(const struct sol_http_request *request,
         return -EINVAL;
     }
 
-    address->family = ((struct sockaddr *)&addr)->sa_family;
+    address->family = sol_network_af_to_sol(((struct sockaddr *)&addr)->sa_family);
     switch (address->family) {
-    case AF_INET:
+    case SOL_NETWORK_FAMILY_INET:
         address->port = ntohs(addr.in4.sin_port);
         memcpy(&(address->addr.in), &addr.in4.sin_addr, sizeof(addr.in4.sin_addr));
         break;
-    case AF_INET6:
+    case SOL_NETWORK_FAMILY_INET6:
         address->port = ntohs(addr.in6.sin6_port);
         memcpy(&(address->addr.in6), &addr.in6.sin6_addr, sizeof(addr.in6.sin6_addr));
         break;
@@ -1060,4 +1146,24 @@ sol_http_server_remove_error_page(struct sol_http_server *server,
     }
 
     return -ENODATA;
+}
+
+SOL_API int
+sol_http_server_set_buffer_size(struct sol_http_server *server, size_t buf_size)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+
+    server->buf_size = buf_size;
+    return 0;
+}
+
+SOL_API int
+sol_http_server_get_buffer_size(struct sol_http_server *server, size_t *buf_size)
+{
+    SOL_NULL_CHECK(server, -EINVAL);
+    SOL_NULL_CHECK(buf_size, -EINVAL);
+
+    *buf_size = server->buf_size;
+
+    return 0;
 }

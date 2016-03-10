@@ -34,10 +34,12 @@
 #include "sol-flow-internal.h"
 #include "sol-mainloop.h"
 #include "sol-vector.h"
+#include "sol-platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <errno.h>
 
 #define SECONDS_IN_MINUTE (60)
 #define SECONDS_IN_HOUR (3600)
@@ -63,6 +65,7 @@ struct wallclock_timeblock_data {
 
 struct wallclock_data {
     enum sol_flow_node_wallclock_type type;
+    bool registered;
 };
 
 struct wallclock_timer {
@@ -104,6 +107,8 @@ static struct wallclock_timer timers[] = {
                        .val.max = INT32_MAX, },
 };
 
+static uint16_t wallclocks_count = 0;
+
 static void
 clients_cleanup(struct wallclock_timer *timer)
 {
@@ -131,18 +136,68 @@ clients_cleanup(struct wallclock_timer *timer)
     }
 }
 
-#define CLOCK_GETTIME_DO(_store_var, _store_val)        \
-    do {                                                \
-        if (sol_util_timespec_get_realtime(&ts) < 0) {   \
-            SOL_WRN("could not fetch current time: %s",  \
-                sol_util_strerrora(errno));           \
-            time_fail = true;                           \
-            _store_var = 0;                             \
-        } else                                          \
-            _store_var = _store_val;                    \
+#define CLOCK_GETTIME_DO(_store_var, _store_val) \
+    do { \
+        if (sol_util_timespec_get_realtime(&ts) < 0) { \
+            SOL_WRN("could not fetch current time: %s", \
+                sol_util_strerrora(errno)); \
+            time_fail = true; \
+            _store_var = 0; \
+        } else \
+            _store_var = _store_val; \
     } while (0)
 
-static bool wallclock_do(void *data);
+static bool wallclock_timeout(void *data);
+static void wallclock_do(enum sol_flow_node_wallclock_type type,
+    struct wallclock_timer *timer);
+
+static void
+system_clock_changed(void *data, int64_t timestamp)
+{
+    size_t i;
+
+    for (i = TIMEOUT_SECOND; i <= TIMEOUT_YEAR; i++) {
+        if (!timers[i].timer)
+            continue;
+        sol_timeout_del(timers[i].timer);
+        timers[i].timer = NULL;
+        wallclock_do((enum sol_flow_node_wallclock_type)i, &timers[i]);
+    }
+}
+
+static int
+register_system_clock_monitor(void)
+{
+    if (!wallclocks_count) {
+        int r;
+
+        r = sol_platform_add_system_clock_monitor(system_clock_changed,
+            NULL);
+        SOL_INT_CHECK(r, < 0, r);
+        wallclocks_count++;
+        return 0;
+    }
+
+    //Wallclocks everywhere...
+    if (wallclocks_count < UINT16_MAX) {
+        wallclocks_count++;
+        return 0;
+    }
+
+    return -EOVERFLOW;
+}
+
+static int
+unregister_systeclock_monitor(void)
+{
+    if (!wallclocks_count)
+        return 0;
+
+    if (!--wallclocks_count)
+        return sol_platform_del_system_clock_monitor(system_clock_changed,
+            NULL);
+    return 0;
+}
 
 static int
 wallclock_schedule_next(struct sol_flow_node *node)
@@ -157,7 +212,7 @@ wallclock_schedule_next(struct sol_flow_node *node)
 
     if (mdata->type == TIMEOUT_SECOND) {
         CLOCK_GETTIME_DO(timeout,
-            1000 - ((ts.tv_sec * 1000)
+            1000 - (((uint64_t)ts.tv_sec * 1000)
             + (ts.tv_nsec / 1000000)) % 1000);
         if (time_fail)
             goto err;
@@ -228,7 +283,7 @@ wallclock_schedule_next(struct sol_flow_node *node)
 
     timer->timer = sol_timeout_add(
         mdata->type == TIMEOUT_SECOND ? timeout : timeout * 1000,
-        wallclock_do, node);
+        wallclock_timeout, node);
 
     return 0;
 
@@ -279,55 +334,42 @@ wallclock_update_time(enum sol_flow_node_wallclock_type type,
     }
 }
 
-static bool
-wallclock_do(void *data)
+static void
+wallclock_do(enum sol_flow_node_wallclock_type type,
+    struct wallclock_timer *timer)
 {
-    struct sol_flow_node *node = data, *n;
-    struct wallclock_data *mdata = sol_flow_node_get_private_data(node);
-    enum sol_flow_node_wallclock_type type = mdata->type;
-    struct wallclock_timer *timer = &timers[type];
     uint16_t i;
+    struct sol_flow_node *n = NULL;
 
     wallclock_update_time(type, timer);
+
     SOL_PTR_VECTOR_FOREACH_IDX (&(timer->clients), n, i)
         sol_flow_send_irange_packet(n, 0, &timer->val);
 
     clients_cleanup(timer);
-    if (sol_ptr_vector_get_len(&(timer->clients)) == 0) return false;
 
-    wallclock_schedule_next(node);
+    if (sol_ptr_vector_get_len(&(timer->clients)) == 0)
+        return;
 
+    wallclock_schedule_next(n);
+}
+
+static bool
+wallclock_timeout(void *data)
+{
+    struct sol_flow_node *node = data;
+    struct wallclock_data *mdata = sol_flow_node_get_private_data(node);
+
+    wallclock_do(mdata->type, &timers[mdata->type]);
     return false;
 }
 
 #undef CLOCK_GETTIME_DO
 
-static int
-wallclock_open(struct sol_flow_node *node, void *data, bool send_initial_packet)
-{
-    struct wallclock_data *mdata = data;
-    struct wallclock_timer *timer;
-
-    timer = &timers[mdata->type];
-
-    if (sol_ptr_vector_get_len(&(timer->clients)) == 0)
-        wallclock_update_time(mdata->type, timer);
-
-    if (send_initial_packet)
-        sol_flow_send_irange_packet(node, 0, &timer->val);
-
-    sol_ptr_vector_append(&(timer->clients), node);
-
-    if (!timer->timer)
-        return wallclock_schedule_next(node);
-
-    return 0;
-}
-
 static void
-wallclock_close(struct sol_flow_node *node, void *data)
+wallclock_remove_client(struct sol_flow_node *node,
+    struct wallclock_data *mdata)
 {
-    struct wallclock_data *mdata = data;
     struct wallclock_timer *timer = &timers[mdata->type];
     struct sol_flow_node *n;
     uint16_t i;
@@ -341,6 +383,7 @@ wallclock_close(struct sol_flow_node *node, void *data)
         } else {
             sol_ptr_vector_del(&(timer->clients), i);
         }
+        mdata->registered = false;
         break;
     }
     timer->walking--;
@@ -356,12 +399,64 @@ wallclock_close(struct sol_flow_node *node, void *data)
 }
 
 static int
+wallclock_add_client(struct sol_flow_node *node, struct wallclock_data *mdata)
+{
+    int r;
+    struct wallclock_timer *timer;
+
+    timer = &timers[mdata->type];
+
+    r = sol_ptr_vector_append(&(timer->clients), node);
+    SOL_INT_CHECK(r, < 0, r);
+
+    mdata->registered = true;
+
+    if (!timer->timer)
+        return wallclock_schedule_next(node);
+    return 0;
+}
+
+static int
+wallclock_open(struct sol_flow_node *node, void *data, bool send_initial_packet)
+{
+    struct wallclock_data *mdata = data;
+    struct wallclock_timer *timer;
+    int r;
+
+    timer = &timers[mdata->type];
+
+    r = register_system_clock_monitor();
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (sol_ptr_vector_get_len(&(timer->clients)) == 0)
+        wallclock_update_time(mdata->type, timer);
+
+    if (send_initial_packet)
+        sol_flow_send_irange_packet(node, 0, &timer->val);
+
+    return wallclock_add_client(node, mdata);
+}
+
+static void
+wallclock_close(struct sol_flow_node *node, void *data)
+{
+    struct wallclock_data *mdata = data;
+
+    wallclock_remove_client(node, mdata);
+    unregister_systeclock_monitor();
+}
+
+static int
 wallclock_second_open(struct sol_flow_node *node,
     void *data,
     const struct sol_flow_node_options *options)
 {
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_second_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_SECOND_OPTIONS_API_VERSION,
+        -EINVAL);
 
     opts = (const struct sol_flow_node_type_wallclock_second_options *)
         options;
@@ -377,6 +472,10 @@ wallclock_minute_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_minute_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_MINUTE_OPTIONS_API_VERSION,
+        -EINVAL);
+
     opts = (const struct sol_flow_node_type_wallclock_minute_options *)
         options;
     mdata->type = TIMEOUT_MINUTE;
@@ -390,6 +489,10 @@ wallclock_hour_open(struct sol_flow_node *node,
 {
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_hour_options *opts;
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_HOUR_OPTIONS_API_VERSION,
+        -EINVAL);
 
     opts = (const struct sol_flow_node_type_wallclock_hour_options *)
         options;
@@ -405,6 +508,9 @@ wallclock_weekday_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_weekday_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_WEEKDAY_OPTIONS_API_VERSION,
+        -EINVAL);
     opts = (const struct sol_flow_node_type_wallclock_weekday_options *)
         options;
     mdata->type = TIMEOUT_WEEKDAY;
@@ -419,6 +525,9 @@ wallclock_monthday_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_monthday_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_MONTHDAY_OPTIONS_API_VERSION,
+        -EINVAL);
     opts = (const struct sol_flow_node_type_wallclock_monthday_options *)
         options;
     mdata->type = TIMEOUT_MONTHDAY;
@@ -433,6 +542,9 @@ wallclock_month_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_month_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_MONTH_OPTIONS_API_VERSION,
+        -EINVAL);
     opts = (const struct sol_flow_node_type_wallclock_month_options *)
         options;
     mdata->type = TIMEOUT_MONTH;
@@ -447,6 +559,9 @@ wallclock_year_open(struct sol_flow_node *node,
     struct wallclock_data *mdata = data;
     const struct sol_flow_node_type_wallclock_year_options *opts;
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_WALLCLOCK_YEAR_OPTIONS_API_VERSION,
+        -EINVAL);
     opts = (const struct sol_flow_node_type_wallclock_year_options *)
         options;
     mdata->type = TIMEOUT_YEAR;
@@ -508,6 +623,14 @@ timeblock_send_packet(void *data)
     return false;
 }
 
+static void
+system_clock_changed_timeblock(void *data, int64_t timestamp)
+{
+    struct wallclock_timeblock_data *mdata = data;
+
+    timeblock_send_packet(mdata);
+}
+
 static int
 wallclock_timeblock_open(struct sol_flow_node *node,
     void *data,
@@ -515,6 +638,7 @@ wallclock_timeblock_open(struct sol_flow_node *node,
 {
     const struct sol_flow_node_type_wallclock_timeblock_options *opts;
     struct wallclock_timeblock_data *mdata = data;
+    int r;
 
     SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
         SOL_FLOW_NODE_TYPE_WALLCLOCK_TIMEBLOCK_OPTIONS_API_VERSION,
@@ -535,6 +659,11 @@ wallclock_timeblock_open(struct sol_flow_node *node,
         mdata->interval = opts->interval;
     }
 
+
+    r = sol_platform_add_system_clock_monitor(system_clock_changed_timeblock,
+        mdata);
+    SOL_INT_CHECK(r, < 0, r);
+
     mdata->node = node;
 
     if (opts->send_initial_packet)
@@ -547,9 +676,57 @@ static void
 wallclock_timeblock_close(struct sol_flow_node *node, void *data)
 {
     struct wallclock_timeblock_data *mdata = data;
+    int r;
 
     if (mdata->timer)
         sol_timeout_del(mdata->timer);
+
+    r = sol_platform_del_system_clock_monitor(system_clock_changed_timeblock,
+        mdata);
+    SOL_INT_CHECK(r, < 0);
+}
+
+static int
+wallclock_enabled_process(struct sol_flow_node *node, void *data, uint16_t port,
+    uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    bool enabled;
+    struct wallclock_data *mdata = data;
+
+    r = sol_flow_packet_get_boolean(packet, &enabled);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (enabled && !mdata->registered) {
+        struct wallclock_timer *timer = &timers[mdata->type];
+
+        r = wallclock_add_client(node, mdata);
+        SOL_INT_CHECK(r, < 0, r);
+        return sol_flow_send_irange_packet(node, 0, &timer->val);
+    } else if (!enabled && mdata->registered)
+        wallclock_remove_client(node, mdata);
+    return 0;
+}
+
+static int
+wallclock_timeblock_enabled_process(struct sol_flow_node *node,
+    void *data, uint16_t port, uint16_t conn_id,
+    const struct sol_flow_packet *packet)
+{
+    int r;
+    bool enabled;
+    struct wallclock_timeblock_data *mdata = data;
+
+    r = sol_flow_packet_get_boolean(packet, &enabled);
+    SOL_INT_CHECK(r, < 0, r);
+
+    if (!enabled && mdata->timer) {
+        sol_timeout_del(mdata->timer);
+        mdata->timer = NULL;
+    } else if (enabled && !mdata->timer)
+        timeblock_send_packet(mdata);
+
+    return 0;
 }
 
 #undef SECONDS_IN_MINUTE

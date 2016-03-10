@@ -30,9 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <netinet/in.h>
 #include <errno.h>
-#include <sys/socket.h>
 
 #if MODULE_GNRC_IPV6_NETIF
 #include "net/ipv6/addr.h"
@@ -41,7 +39,7 @@
 #include "net/gnrc/netif.h"
 
 #include "sol-log.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #include "sol-network.h"
@@ -50,16 +48,32 @@ static struct sol_vector links = SOL_VECTOR_INIT(struct sol_network_link);
 
 SOL_API const char *
 sol_network_addr_to_str(const struct sol_network_link_addr *addr,
-    char *buf, uint32_t len)
+    struct sol_buffer *buf)
 {
 #if MODULE_GNRC_IPV6_NETIF
+    const char *r;
+
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
-    if (addr->family != AF_INET6)
+    if (addr->family != SOL_NETWORK_FAMILY_INET6)
         return NULL;
 
-    return ipv6_addr_to_str(buf, (ipv6_addr_t *)&addr->addr, len);
+    if (buf->capacity - buf->used < IPV6_ADDR_MAX_STR_LEN) {
+        int err;
+
+        err = sol_buffer_expand(buf, IPV6_ADDR_MAX_STR_LEN);
+        SOL_INT_CHECK(err, < 0, NULL);
+    }
+
+    r = ipv6_addr_to_str(sol_buffer_at_end(buf), (ipv6_addr_t *)&addr->addr,
+        IPV6_ADDR_MAX_STR_LEN);
+
+    if (r)
+        buf->used += strlen(r);
+
+    return r;
+
 #else
     return NULL;
 #endif
@@ -72,7 +86,7 @@ sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
 
-    if (addr->family != AF_INET6)
+    if (addr->family != SOL_NETWORK_FAMILY_INET6)
         return NULL;
 
     if (!ipv6_addr_from_str((ipv6_addr_t *)&addr->addr, buf))
@@ -81,6 +95,31 @@ sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
 #else
     return NULL;
 #endif
+}
+
+SOL_API bool
+sol_network_link_addr_eq(const struct sol_network_link_addr *a, const struct sol_network_link_addr *b)
+{
+    const uint8_t *addr_a, *addr_b;
+    size_t bytes;
+
+    if (a->family != b->family)
+        return false;
+
+    if (a->family == SOL_NETWORK_FAMILY_INET) {
+        addr_a = a->addr.in;
+        addr_b = b->addr.in;
+        bytes = sizeof(a->addr.in);
+    } else if (a->family == SOL_NETWORK_FAMILY_INET6) {
+        addr_a = a->addr.in6;
+        addr_b = b->addr.in6;
+        bytes = sizeof(a->addr.in6);
+    } else {
+        SOL_WRN("Unknown family type: %d", a->family);
+        return false;
+    }
+
+    return !memcmp(addr_a, addr_b, bytes);
 }
 
 static int
@@ -109,7 +148,7 @@ add_ip6_link(uint16_t idx, gnrc_ipv6_netif_t *if_ip6)
         addr = sol_vector_append(&link->addrs);
         SOL_NULL_CHECK_GOTO(addr, addr_error);
 
-        addr->family = AF_INET6;
+        addr->family = SOL_NETWORK_FAMILY_INET6;
         memcpy(addr->addr.in6, netif_addr->addr.u8, sizeof(addr->addr.in6));
 
         link->flags |= SOL_NETWORK_LINK_UP;
@@ -127,7 +166,10 @@ addr_error:
 #endif
 }
 
-SOL_API int
+int sol_network_init(void);
+void sol_network_shutdown(void);
+
+int
 sol_network_init(void)
 {
     size_t i, if_count;
@@ -148,7 +190,7 @@ sol_network_init(void)
     return 0;
 }
 
-SOL_API void
+void
 sol_network_shutdown(void)
 {
     struct sol_network_link *link;
@@ -187,6 +229,22 @@ sol_network_get_available_links(void)
 
 SOL_API char *
 sol_network_link_get_name(const struct sol_network_link *link)
+{
+    return NULL;
+}
+
+SOL_API int
+sol_network_cancel_get_hostname_address_info(
+    struct sol_network_hostname_handle *handle)
+{
+    return -ENOTSUP;
+}
+
+SOL_API struct sol_network_hostname_handle *
+sol_network_get_hostname_address_info(const struct sol_str_slice hostname,
+    enum sol_network_family family, void (*host_info_cb)(void *data,
+    const struct sol_str_slice host, const struct sol_vector *addrs_list),
+    const void *data)
 {
     return NULL;
 }

@@ -44,7 +44,7 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-watchdog");
 
 #include "sol-platform-linux-micro.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static int watchdog_fd = -1;
 static struct sol_timeout *watchdog_timeout;
@@ -94,7 +94,7 @@ watchdog_show_info_flags(const char *msg, uint32_t flags, uint32_t options)
             msg, flags, options);
 
         itr = map;
-        itr_end = itr + ARRAY_SIZE(map);
+        itr_end = itr + SOL_UTIL_ARRAY_SIZE(map);
         for (; itr < itr_end; itr++) {
             if (itr->flag & options) {
                 if (itr->flag & flags)

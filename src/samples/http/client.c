@@ -44,7 +44,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "sol-mainloop.h"
+#include "soletta.h"
 #include "sol-http.h"
 #include "sol-http-client.h"
 
@@ -54,6 +54,10 @@ static void
 response_cb(void *userdata, const struct sol_http_client_connection *connection,
     struct sol_http_response *response)
 {
+
+    SOL_HTTP_RESPONSE_CHECK_API(response);
+    SOL_HTTP_PARAMS_CHECK_API_VERSION(&response->param);
+
     if (response->response_code != SOL_HTTP_STATUS_OK) {
         fprintf(stderr, "Finished with error, response code: %d\n",
             response->response_code);
@@ -96,6 +100,67 @@ create_post_field_params(struct sol_http_params *params, const char *value)
         fprintf(stderr, "ERROR: Could not parse the post fields - \'%s\'\n", value);
 
     return r;
+}
+
+static int
+create_post_data_params(struct sol_http_params *params, const char *query)
+{
+    struct sol_vector tokens;
+    struct sol_str_slice *token;
+    char *sep;
+    uint16_t i;
+    int ret = 0;
+
+    tokens = sol_str_slice_split(sol_str_slice_from_str(query), "&", 0);
+
+#define CREATE_PARAM(_key, _filename, _value) \
+    (struct sol_http_param_value) { \
+        .type = SOL_HTTP_PARAM_POST_DATA, \
+        .value.data.filename = _filename, \
+        .value.data.key = _key, \
+        .value.data.value = _value \
+    }
+
+
+    SOL_VECTOR_FOREACH_IDX (&tokens, token, i) {
+        struct sol_str_slice key, value;
+        bool ok;
+
+        sep = memchr(token->data, '=', token->len);
+        key.data = token->data;
+        if (sep) {
+            key.len = sep - key.data;
+            value.data = sep + 1;
+            value.len = token->len - key.len - 1;
+        } else {
+            key.len = token->len;
+            value.data = NULL;
+            value.len = 0;
+        }
+
+        if (value.data && (value.data[0] == '@')) {
+            value.data++;
+            value.len--;
+            ok = sol_http_param_add_copy(params,
+                CREATE_PARAM(key, value, SOL_STR_SLICE_EMPTY));
+        } else {
+            ok = sol_http_param_add_copy(params,
+                CREATE_PARAM(key, SOL_STR_SLICE_EMPTY, value));
+        }
+
+        if (!ok) {
+            fprintf(stderr, "[ERROR] Could not add the HTTP param %.*s:%.*s\n",
+                SOL_STR_SLICE_PRINT(key), SOL_STR_SLICE_PRINT(value));
+            ret = -1;
+            goto exit;
+        }
+    }
+
+#undef CREATE_PARAM
+
+exit:
+    sol_vector_clear(&tokens);
+    return ret;
 }
 
 static int
@@ -144,11 +209,12 @@ startup(void)
         { "verbose", no_argument, NULL, 'v' },
         { "header", required_argument, NULL, 'H' },
         { "data", required_argument, NULL, 'd' },
+        { "form", required_argument, NULL, 'F' },
         { "help", no_argument, NULL, 'h' },
         { 0, 0, 0, 0 }
     };
 
-    while ((c = getopt_long(argc, argv, "vH:d:h", opts, &opt_idx)) != -1) {
+    while ((c = getopt_long(argc, argv, "vH:d:F:h", opts, &opt_idx)) != -1) {
         switch (c) {
         case 'v':
             verbose = true;
@@ -156,6 +222,11 @@ startup(void)
         case 'd':
             method = SOL_HTTP_METHOD_POST;
             if (create_post_field_params(&params, optarg) < 0)
+                goto err;
+            break;
+        case 'F':
+            method = SOL_HTTP_METHOD_POST;
+            if (create_post_data_params(&params, optarg) < 0)
                 goto err;
             break;
         case 'H':
@@ -167,7 +238,10 @@ startup(void)
             fprintf(stderr,
                 "Usage: %s <url> \n\t-v, --verbose Make it more talkative\n"
                 "\t-H, --header <\"Header\"> pass custom header to server\n"
-                "\t-d, --data  <\"post fields\"> HTTP POST data (NOT encoded)\n",
+                "\t-F, --form <\"post data\"> Specify HTTP mulitpart POST data\n"
+                "\t           syntax: key=value (for post value) or key=@value to post "
+                "the contents of the file value\n"
+                "\t-d, --data  <\"post fields\"> HTTP POST fields (NOT encoded)\n",
                 argv[0]);
             sol_quit_with_code(EXIT_SUCCESS);
             return;

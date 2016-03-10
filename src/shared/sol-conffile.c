@@ -44,7 +44,7 @@
 #include "sol-log.h"
 #include "sol-mainloop.h"
 #include "sol-platform.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 #ifdef USE_MEMMAP
@@ -105,19 +105,32 @@ _convert_and_get_token_string(const struct sol_json_token *token, struct sol_buf
     return sol_json_token_get_unescaped_string(token, buffer);
 }
 
+static void
+_clear_entry_options(struct sol_ptr_vector *vec_options)
+{
+    void *ptr;
+    int i;
+
+    SOL_PTR_VECTOR_FOREACH_IDX (vec_options, ptr, i) {
+        free(ptr);
+    }
+    sol_ptr_vector_clear(vec_options);
+}
+
 static int
 sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json_token options_object)
 {
     struct sol_json_scanner scanner;
     struct sol_json_token token, key, value;
     struct sol_ptr_vector vec_options;
+    int r;
     enum sol_json_loop_reason reason;
 
     sol_ptr_vector_init(&vec_options);
 
     sol_json_scanner_init_from_token(&scanner, &options_object);
     SOL_JSON_SCANNER_OBJECT_LOOP (&scanner, &token, &key, &value, reason) {
-        int key_ret, value_ret, r;
+        int key_ret, value_ret;
         struct sol_buffer key_buf, value_buf;
         char *tmp;
 
@@ -142,21 +155,29 @@ sol_conffile_set_entry_options(struct sol_conffile_entry *entry, struct sol_json
             return -ENOMEM;
             break;
         }
-        sol_ptr_vector_append(&vec_options, tmp);
+        r = sol_ptr_vector_append(&vec_options, tmp);
+        if (r < 0) {
+            SOL_WRN("Couldn't append '%s' into the options's vector", tmp);
+            free(tmp);
+            _clear_entry_options(&vec_options);
+            return r;
+        }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        int i;
-        void *ptr;
-        SOL_DBG("Error: Invalid JSON.");
-        SOL_PTR_VECTOR_FOREACH_IDX (&vec_options, ptr, i) {
-            free(ptr);
-        }
-        sol_ptr_vector_clear(&vec_options);
-        return -ENOKEY;
+        SOL_WRN("Error: Invalid JSON.");
+        _clear_entry_options(&vec_options);
+        return -EINVAL;
     }
 
-    sol_ptr_vector_append(&vec_options, NULL);
+    r = sol_ptr_vector_append(&vec_options, NULL);
+    if (r < 0) {
+        SOL_WRN("Couldn't append into the options's vector");
+        _clear_entry_options(&vec_options);
+        return -ENOMEM;
+    }
+
     entry->options = vec_options;
+
     return 0;
 }
 
@@ -376,7 +397,7 @@ _parse_maps(struct sol_json_token token)
         map = calloc(1, sizeof(struct sol_memmap_map) + entries_vector_size);
         SOL_NULL_CHECK_GOTO(map, error);
 
-        map->version = version;
+        map->api_version = version;
         map->timeout = timeout;
         r = sol_json_token_get_unescaped_string(&path, &path_buffer);
         SOL_INT_CHECK_GOTO(r, < 0, error);
@@ -451,7 +472,7 @@ _json_to_vector(struct sol_json_scanner scanner)
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid JSON");
+        SOL_WRN("Error: Invalid JSON");
         goto err;
     }
 
@@ -466,7 +487,7 @@ _json_to_vector(struct sol_json_scanner scanner)
         }
     } else if (!nodes.start) {
         /* No maps, no nodes. */
-        return -ENOKEY;
+        return -EINVAL;
     }
 
     sol_json_scanner_init_from_token(&obj_scanner, &nodes);
@@ -509,7 +530,7 @@ _json_to_vector(struct sol_json_scanner scanner)
         }
 
         if (reason != SOL_JSON_LOOP_REASON_OK) {
-            SOL_DBG("Error: Invalid Json.");
+            SOL_WRN("Error: Invalid Json.");
             goto entry_err;
         }
 
@@ -518,13 +539,13 @@ _json_to_vector(struct sol_json_scanner scanner)
             goto entry_err;
         }
 
-        if (sol_ptr_vector_insert_sorted(&_conffile_entry_vector, entry, _entry_sort_cb) == -1) {
+        if (sol_ptr_vector_insert_sorted(&_conffile_entry_vector, entry, _entry_sort_cb) < 0) {
             SOL_DBG("Error: Couldn't setup config entry");
             goto entry_err;
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid Json.");
+        SOL_WRN("Error: Invalid Json.");
         goto entry_err;
     }
 
@@ -573,7 +594,7 @@ _get_json_include_paths(
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid Json.");
+        SOL_WRN("Error: Invalid Json.");
         return;
     }
 
@@ -606,7 +627,7 @@ _get_json_include_paths(
         }
     }
     if (reason != SOL_JSON_LOOP_REASON_OK) {
-        SOL_DBG("Error: Invalid Json.");
+        SOL_WRN("Error: Invalid Json.");
     }
 }
 
@@ -639,7 +660,7 @@ _load_json_from_dirs(const char *file, char **full_path, struct sol_file_reader 
 
     search_dirs[0] = curr_dir = get_current_dir_name();
 
-    for (i = 0; i < ARRAY_SIZE(search_dirs); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(search_dirs); i++) {
         char *filename;
 
         if (asprintf(&filename, "%s/%s", search_dirs[i], file) < 0 || !filename) {
@@ -659,7 +680,17 @@ _load_json_from_dirs(const char *file, char **full_path, struct sol_file_reader 
             /* We can't close the file_reader on sucess because then the slice would
              * also be killed, so we postpone it till later. */
             if (config_file_contents.len != 0) {
-                sol_ptr_vector_append(&_conffiles_loaded, filename);
+                int r;
+                r = sol_ptr_vector_append(&_conffiles_loaded, filename);
+                if (r < 0) {
+                    SOL_WRN("Could not append %s in the conffiles vector", filename);
+                    free(filename);
+                    sol_file_reader_close(*file_reader);
+                    *file_reader = NULL;
+                    config_file_contents.len = 0;
+                    config_file_contents.data = "";
+                    goto exit;
+                }
                 break;
             }
 
@@ -773,6 +804,7 @@ free_for_all:
     sol_vector_clear(&include_fallbacks);
 }
 
+SOL_ATTR_PRINTF(2, 3)
 static void
 _add_formated_lookup_path(struct sol_vector *vector, const char *fmt, ...)
 {
@@ -842,7 +874,7 @@ _add_lookup_path(struct sol_vector *vector, char *appname, char *appdir, const c
 
     _add_formated_lookup_path(&files, "sol-flow.json");
 
-    for (i = 0; i < ARRAY_SIZE(search_dirs); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(search_dirs); i++) {
         if (!search_dirs[i])
             continue;
 

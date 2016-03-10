@@ -42,7 +42,8 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-locale");
 #include "sol-file-reader.h"
 #include "sol-platform-linux-micro.h"
 #include "sol-str-slice.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 
 static const struct sol_str_slice locale_vars[] = {
     SOL_STR_SLICE_LITERAL("LANG"),
@@ -94,7 +95,7 @@ parse_var(const char *start, size_t len)
         valuelen -= 2;
     }
 
-    for (itr = locale_vars; itr < locale_vars + ARRAY_SIZE(locale_vars); itr++) {
+    for (itr = locale_vars; itr < locale_vars + SOL_UTIL_ARRAY_SIZE(locale_vars); itr++) {
         if (itr->len == namelen && memcmp(itr->data, name, namelen) == 0) {
             char *v = strndupa(value, valuelen);
             SOL_DBG("set locale var %s=%s", itr->data, v);

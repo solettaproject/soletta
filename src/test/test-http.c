@@ -31,7 +31,7 @@
  */
 
 #include "test.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-http.h"
 #include "sol-vector.h"
 
@@ -52,9 +52,33 @@ test_split_urls(void)
         int result;
         bool check_url;
     } test_split[] =  {
+        SET_PARAMS("http://[2001:db8::1]", "http", "", "", "2001:db8::1", "", "", "", 0, 0, true),
         SET_PARAMS("http://2001:db8::1", "", "", "", "", "", "", "", 0, -EINVAL, false),
         SET_PARAMS("http://[2001:db8::1", "", "", "", "", "", "", "", 0, -EINVAL, false),
         SET_PARAMS("http://2001:db8::1]", "", "", "", "", "", "", "", 0, -EINVAL, false),
+
+        SET_PARAMS("http://[::1]:/", "http", "", "", "::1", "/", "", "", 0, 0, false),
+        SET_PARAMS("http://[::1]/?go=2", "http", "", "", "::1", "/", "go=2", "", 0, 0, true),
+        SET_PARAMS("http://[::1]:8080", "http", "", "", "::1", "", "", "", 8080, 0, true),
+        SET_PARAMS("http://[::1]:1234/", "http", "", "", "::1", "/", "", "", 1234, 0, true),
+        SET_PARAMS("http://[::1]/a/b/d?go=2#fragment", "http", "", "", "::1", "/a/b/d", "go=2", "fragment", 0, 0, true),
+        SET_PARAMS("foo://user:pass@[::1]:123/a/b?p=1&c=2#/a/b", "foo", "user", "pass", "::1", "/a/b", "p=1&c=2", "/a/b", 123, 0, true),
+        SET_PARAMS("foo://user@[::1]:123/a/b?p=1&c=2#/a/b", "foo", "user", "", "::1", "/a/b", "p=1&c=2", "/a/b", 123, 0, true),
+        SET_PARAMS("foo://user:@[::1]:123/a/b?p=1&c=2#/a/b", "foo", "user", "", "::1", "/a/b", "p=1&c=2", "/a/b", 123, 0, false),
+        SET_PARAMS("foo://[::1]:123/a/b?p=1&c=2#/a/b", "foo", "", "", "::1", "/a/b", "p=1&c=2", "/a/b", 123, 0, true),
+        SET_PARAMS("foo://[::1]/a/b?p=1&c=2#/a/b", "foo", "", "", "::1", "/a/b", "p=1&c=2", "/a/b", 0, 0, true),
+        SET_PARAMS("foo://[::1]/?p=1&c=2#/a/b", "foo", "", "", "::1", "/", "p=1&c=2", "/a/b", 0, 0, true),
+        SET_PARAMS("foo://[::1]/?p=1&c=2", "foo", "", "", "::1", "/", "p=1&c=2", "", 0, 0, true),
+        SET_PARAMS("foo://[::1]/#/a/b", "foo", "", "", "::1", "/", "", "/a/b", 0, 0, true),
+        SET_PARAMS("foo://[::1]?p=1&c=2", "foo", "", "", "::1", "", "p=1&c=2", "", 0, 0, true),
+        SET_PARAMS("foo://[::1]#/a/b", "foo", "", "", "::1", "", "", "/a/b", 0, 0, true),
+        SET_PARAMS("foo://[::1]:123/#/a/b", "foo", "", "", "::1", "/", "", "/a/b", 123, 0, true),
+        SET_PARAMS("file://[::1]/usr/home/user/hi.txt", "file", "", "", "::1", "/usr/home/user/hi.txt", "", "", 0, 0, true),
+        SET_PARAMS("foo://[::1]/?go", "foo", "", "", "::1", "/", "go", "", 0, 0, true),
+        SET_PARAMS("foo://:password@[::1]", "foo", "", "password", "::1", "", "", "", 0, 0, true),
+        SET_PARAMS("foo://:@[::1]", "foo", "", "", "::1", "", "", "", 0, 0, false),
+        SET_PARAMS("foo://@[::1]", "foo", "", "", "::1", "", "", "", 0, 0, false),
+
         SET_PARAMS("www.intel.com.br", "", "", "", "", "", "", "", 0, -EINVAL, false),
         SET_PARAMS(":www.intel.com", "", "", "", "", "", "", "", 0, -EINVAL, false),
         SET_PARAMS("//www.intel.com", "", "", "", "", "", "", "", 0, -EINVAL, false),
@@ -90,10 +114,11 @@ test_split_urls(void)
         SET_PARAMS("foo://@localhost", "foo", "", "", "localhost", "", "", "", 0, 0, false),
     };
 
-    for (i = 0; i < ARRAY_SIZE(test_split); i++) {
+    for (i = 0; i < SOL_UTIL_ARRAY_SIZE(test_split); i++) {
         struct sol_http_url splitted;
         struct sol_http_params params;
-        char *out_uri;
+        struct sol_buffer out_uri = SOL_BUFFER_INIT_EMPTY;
+
         r = sol_http_split_uri(test_split[i].url, &splitted);
         ASSERT_INT_EQ(r, test_split[i].result);
         if (test_split[i].result < 0)
@@ -113,9 +138,9 @@ test_split_urls(void)
         ASSERT_INT_EQ(r, 0);
         r = sol_http_create_uri(&out_uri, splitted, &params);
         ASSERT_INT_EQ(r, 0);
-        ASSERT(sol_str_slice_str_eq(test_split[i].url, out_uri));
+        ASSERT(sol_str_slice_eq(test_split[i].url, sol_buffer_get_slice(&out_uri)));
         sol_http_params_clear(&params);
-        free(out_uri);
+        sol_buffer_fini(&out_uri);
     }
 
 #undef SET_PARAMS

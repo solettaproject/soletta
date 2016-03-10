@@ -35,6 +35,7 @@
 #include <stdlib.h>
 
 #include <sol-vector.h>
+#include <sol-buffer.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -259,13 +260,13 @@ int sol_power_supply_get_capacity_level(const char *name, enum sol_power_supply_
  * @param name Name of power supply. A list of all board supplies names may be
  * fetched with sol_power_supply_get_list().
  *
- * @param model_name Model name of power supply will be set on
- * this pointer on success. It must be freed after usage.
+ * @param model_name_buf Model name of power supply will be appended
+ * to this buffer. The buffer must be already initialized.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid).
+ * and the property value will not be appended to @c model_name_buf
  */
-int sol_power_supply_get_model_name(const char *name, char **model_name);
+int sol_power_supply_get_model_name(const char *name, struct sol_buffer *model_name_buf);
 
 /**
  * Get manufacturer of a given power supply.
@@ -273,13 +274,13 @@ int sol_power_supply_get_model_name(const char *name, char **model_name);
  * @param name Name of power supply. A list of all board supplies names may be
  * fetched with sol_power_supply_get_list().
  *
- * @param manufacturer Manufacturer of power supply will be set on
- * this pointer on success. It must be freed after usage.
+ * @param manufacturer_buf Manufacturer of power supply will be appended to this
+ * buffer. The buffer must be already initialized.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid).
+ * and the property value will not be appended to @c manufacturer_buf.
  */
-int sol_power_supply_get_manufacturer(const char *name, char **manufacturer);
+int sol_power_supply_get_manufacturer(const char *name, struct sol_buffer *manufacturer_buf);
 
 /**
  * Get serial number of a given power supply.
@@ -287,13 +288,13 @@ int sol_power_supply_get_manufacturer(const char *name, char **manufacturer);
  * @param name Name of power supply. A list of all board supplies names may be
  * fetched with sol_power_supply_get_list().
  *
- * @param serial_number Serial number of power supply will be set on
- * this pointer on success. It must be freed after usage.
+ * @param serial_number_buf Serial number of power supply  will be appended
+ * to this buffer. The buffer must be already initialized.
  *
  * @return On success, it returns @c 0. On error, a negative value is returned
- * and properties won't be set (pointers won't be valid).
+ * and the property value will not be appended to @c serial_number_buf.
  */
-int sol_power_supply_get_serial_number(const char *name, char **serial_number);
+int sol_power_supply_get_serial_number(const char *name, struct sol_buffer *serial_number_buf);
 
 /**
  * Get current voltage.

@@ -43,7 +43,8 @@
 #include "sol-mainloop.h"
 #include "sol-pwm.h"
 #include "sol-spi.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
+#include "sol-flow-internal.h"
 
 ///////// SEGMENTS CTL ///////////
 
@@ -229,6 +230,10 @@ calamari_7seg_child_opts_set(const struct sol_flow_node_type *type,
         [SEG_DATA] = calamari_7seg_opts->data_pin
     };
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+        SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
+
     if (child_index == SEG_CTL || child_index > SEG_DATA)
         return 0;
 
@@ -346,6 +351,10 @@ calamari_led_open(struct sol_flow_node *node, void *data, const struct sol_flow_
         (const struct sol_flow_node_type_calamari_led_options *)options;
     struct sol_pwm_config pwm_config = { 0 };
 
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CALAMARI_LED_OPTIONS_API_VERSION,
+        -EINVAL);
+
     mdata->period = opts->period;
     mdata->val.min = opts->range.min;
     mdata->val.max = opts->range.max;
@@ -432,12 +441,12 @@ calamari_lever_spi_poll(void *data)
     /* MCP300X message - Start, Single ended - pin 0, null */
     static const uint8_t tx[] = { 0x01, 0x80, 0x00 };
     /* rx must be the same size as tx */
-    static uint8_t rx[ARRAY_SIZE(tx)] = { 0x00, };
+    static uint8_t rx[SOL_UTIL_ARRAY_SIZE(tx)] = { 0x00, };
 
     SOL_NULL_CHECK(mdata, false);
     SOL_NULL_CHECK(mdata->spi, false);
 
-    if (!sol_spi_transfer(mdata->spi, tx, rx, ARRAY_SIZE(tx), spi_transfer_cb,
+    if (!sol_spi_transfer(mdata->spi, tx, rx, SOL_UTIL_ARRAY_SIZE(tx), spi_transfer_cb,
         mdata)) {
         SOL_WRN("Error reading lever during poll.");
     }
@@ -467,7 +476,9 @@ calamari_lever_open(struct sol_flow_node *node, void *data, const struct sol_flo
         (const struct sol_flow_node_type_calamari_lever_options *)options;
     struct sol_spi_config spi_config;
 
-    SOL_NULL_CHECK(options, 0);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_CALAMARI_LEVER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->node = node;
     mdata->last_value = 0;
@@ -566,6 +577,10 @@ calamari_rgb_child_opts_set(const struct sol_flow_node_type *type,
         [RGB_LED_GREEN] = calamari_rgb_opts->green_pin,
         [RGB_LED_BLUE] = calamari_rgb_opts->blue_pin,
     };
+
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(child_opts,
+        SOL_FLOW_NODE_TYPE_GPIO_WRITER_OPTIONS_API_VERSION,
+        -EINVAL);
 
     // There is nothing to do for node 0, which is rgb-ctl
     if (child_index == RGB_LED_CTL || child_index > RGB_LED_BLUE)

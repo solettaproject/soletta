@@ -8,6 +8,7 @@ config BASE_OS
     default "contiki" if HAVE_CONTIKI
     default "linux" if HAVE_LINUX
     default "riot" if HAVE_RIOTOS
+    default "zephyr" if HAVE_ZEPHYR
 
 source "tools/build/Kconfig.$BASE_OS"
 
@@ -171,6 +172,7 @@ source "src/samples/crypto/Kconfig"
 source "src/samples/http/Kconfig"
 source "src/samples/mqtt/Kconfig"
 source "src/samples/mavlink/Kconfig"
+source "src/samples/network/Kconfig"
 
 config FLOW_SAMPLES
 	bool "Flow samples"
@@ -198,6 +200,7 @@ source "src/samples/flow/led-strip/Kconfig"
 source "src/samples/flow/minnow-calamari/Kconfig"
 source "src/samples/flow/misc/Kconfig"
 source "src/samples/flow/oic/Kconfig"
+source "src/samples/flow/oic/light-scan/Kconfig"
 source "src/samples/flow/power-supply/Kconfig"
 source "src/samples/flow/trash-disposer/Kconfig"
 source "src/samples/flow/unix-socket/Kconfig"
@@ -215,4 +218,13 @@ endmenu
 menu "Test suite"
 depends on FEATURE_RUNNABLE_PROGRAMS
 source "src/test/Kconfig"
+endmenu
+
+menu "Bindings"
+config USE_NODEJS
+	bool "Node.js bindings"
+	depends on HAVE_NODEJS && HAVE_NODEJS_NPM && HAVE_NODE_GYP
+	default n
+	help
+		Enable Node.js bindings
 endmenu

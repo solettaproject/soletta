@@ -33,7 +33,7 @@
 #include "sol-flow.h"
 #include "sol-flow-static.h"
 #include "sol-mainloop.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 #include "sol-log.h"
 
@@ -262,8 +262,8 @@ static const struct sol_flow_node_type test_node_type = {
 
     .init_type = test_node_init_type,
 
-    .ports_in_count = ARRAY_SIZE(test_ports_in),
-    .ports_out_count = ARRAY_SIZE(test_ports_out),
+    .ports_in_count = SOL_UTIL_ARRAY_SIZE(test_ports_in),
+    .ports_out_count = SOL_UTIL_ARRAY_SIZE(test_ports_out),
     .get_port_in = test_node_get_port_in,
     .get_port_out = test_node_get_port_out,
 };
@@ -312,7 +312,7 @@ test_flow_del_type(struct sol_flow_node_type *type)
 #define ASSERT_EVENT_COUNT(node, event, count) \
     ASSERT_INT_EQ(count_events(node, event, UINT16_MAX), count);
 
-#define ASSERT_EVENT_WITH_ID_COUNT(node, event, id, count)   \
+#define ASSERT_EVENT_WITH_ID_COUNT(node, event, id, count) \
     ASSERT_INT_EQ(count_events(node, event, id), count);
 
 
@@ -1164,7 +1164,7 @@ named_options_init_from_strv(void)
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
             strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "initial_value");
@@ -1180,7 +1180,7 @@ named_options_init_from_strv(void)
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
             strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "setup_value");
@@ -1198,7 +1198,7 @@ named_options_init_from_strv(void)
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type,
             strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "setup_value");
@@ -1233,7 +1233,7 @@ named_options_init_from_strv(void)
 
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "pin");
@@ -1270,7 +1270,7 @@ named_options_init_from_strv(void)
 
         r = sol_flow_node_named_options_init_from_strv(&named_opts, node_type, strv);
         ASSERT(r >= 0);
-        ASSERT_INT_EQ(named_opts.count, ARRAY_SIZE(strv) - 1);
+        ASSERT_INT_EQ(named_opts.count, SOL_UTIL_ARRAY_SIZE(strv) - 1);
 
         m = named_opts.members;
         ASSERT_STR_EQ(m->name, "prefix");
@@ -1339,7 +1339,7 @@ node_options_new(void)
     /* One option */
     ASSERT(sol_flow_get_node_type("timer", SOL_FLOW_NODE_TYPE_TIMER, &node_type) == 0);
     named_opts.members = one_option;
-    named_opts.count = ARRAY_SIZE(one_option);
+    named_opts.count = SOL_UTIL_ARRAY_SIZE(one_option);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     timer_opts = (struct sol_flow_node_type_timer_options *)opts;
@@ -1348,13 +1348,13 @@ node_options_new(void)
 
     /* Unknown option */
     named_opts.members = unknown_option;
-    named_opts.count = ARRAY_SIZE(unknown_option);
+    named_opts.count = SOL_UTIL_ARRAY_SIZE(unknown_option);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r < 0);
 
     /* Wrong type */
     named_opts.members = wrong_type;
-    named_opts.count = ARRAY_SIZE(wrong_type);
+    named_opts.count = SOL_UTIL_ARRAY_SIZE(wrong_type);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r < 0);
 
@@ -1362,7 +1362,7 @@ node_options_new(void)
     /* Multiple options */
     ASSERT(sol_flow_get_node_type("pwm", SOL_FLOW_NODE_TYPE_PWM, &node_type) == 0);
     named_opts.members = multiple_options;
-    named_opts.count = ARRAY_SIZE(multiple_options);
+    named_opts.count = SOL_UTIL_ARRAY_SIZE(multiple_options);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     pwm_opts = (struct sol_flow_node_type_pwm_options *)opts;
@@ -1377,7 +1377,7 @@ node_options_new(void)
     /* String options */
     ASSERT(sol_flow_get_node_type("console", SOL_FLOW_NODE_TYPE_CONSOLE, &node_type) == 0);
     named_opts.members = string_options;
-    named_opts.count = ARRAY_SIZE(string_options);
+    named_opts.count = SOL_UTIL_ARRAY_SIZE(string_options);
     r = sol_flow_node_options_new(node_type, &named_opts, &opts);
     ASSERT(r >= 0);
     console_opts = (struct sol_flow_node_type_console_options *)opts;
@@ -1415,5 +1415,53 @@ need_a_valid_type_to_create_packets(void)
 #endif
 }
 
+DEFINE_TEST(test_find_port);
+
+static void
+test_find_port(void)
+{
+    const struct sol_flow_node_type *node_type;
+    uint16_t idx;
+
+    ASSERT(sol_flow_get_node_type("boolean", SOL_FLOW_NODE_TYPE_BOOLEAN_AND, &node_type) == 0);
+
+    idx = sol_flow_node_find_port_out(node_type, "OUT");
+    ASSERT_INT_EQ(idx, 0);
+
+    idx = sol_flow_node_find_port_out(node_type, "NON-EXISTENT");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+
+    idx = sol_flow_node_find_port_in(node_type, "IN");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+
+    idx = sol_flow_node_find_port_in(node_type, "OUT[0]");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+
+    idx = sol_flow_node_find_port_in(node_type, "IN[0]");
+    ASSERT_INT_EQ(idx, 0);
+    idx = sol_flow_node_find_port_in(node_type, "IN[ 0 ]");
+    ASSERT_INT_EQ(idx, 0);
+    idx = sol_flow_node_find_port_in(node_type, "IN[ 0");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[]");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[X");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[-123]");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+    idx = sol_flow_node_find_port_in(node_type, "IN[1234567]");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+
+    idx = sol_flow_node_find_port_in(node_type, "IN[1]");
+    ASSERT_INT_EQ(idx, 1);
+
+    idx = sol_flow_node_find_port_in(node_type, "IN[2]");
+    ASSERT_INT_EQ(idx, 2);
+
+    idx = sol_flow_node_find_port_in(node_type, "NON-EXISTENT");
+    ASSERT_INT_EQ(idx, UINT16_MAX);
+}
 
 TEST_MAIN_WITH_RESET_FUNC(clear_events);

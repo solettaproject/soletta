@@ -47,8 +47,9 @@
 #include "sol-buffer.h"
 #include "sol-mainloop.h"
 #include "sol-vector.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 #include "sol-util-file.h"
+#include "sol-flow-internal.h"
 
 struct keyboard_common_data {
     struct sol_flow_node *node;
@@ -286,9 +287,7 @@ keyboard_open(struct sol_flow_node *node,
         }
     }
 
-    sol_ptr_vector_append(&keyboard_users, mdata);
-
-    return 0;
+    return sol_ptr_vector_append(&keyboard_users, mdata);
 }
 
 static int
@@ -300,7 +299,9 @@ keyboard_boolean_open(struct sol_flow_node *node,
     const struct sol_flow_node_type_keyboard_boolean_options *opts =
         (const struct sol_flow_node_type_keyboard_boolean_options *)options;
 
-    SOL_NULL_CHECK(options, -EINVAL);
+    SOL_FLOW_NODE_OPTIONS_SUB_API_CHECK(options,
+        SOL_FLOW_NODE_TYPE_KEYBOARD_BOOLEAN_OPTIONS_API_VERSION,
+        -EINVAL);
 
     mdata->binary_code = opts->binary_code;
     mdata->toggle = opts->toggle;

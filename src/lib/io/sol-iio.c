@@ -43,9 +43,10 @@
 #include <unistd.h>
 
 #include <sol-log.h>
+#include <sol-macros.h>
 #include <sol-mainloop.h>
 #include <sol-str-slice.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <sol-util-file.h>
 #include <sol-vector.h>
 
@@ -85,6 +86,7 @@ struct sol_iio_channel {
 
     bool little_endian : 1;
     bool is_signed : 1;
+    bool processed : 1;
 
     char name[]; /* Must be last. Memory trick in place. */
 };
@@ -127,6 +129,7 @@ struct resolve_absolute_path_data {
 #define SYSFS_TRIGGER_SYSFS_PATH SYSFS_DEVICES_PATH "/iio_sysfs_trigger"
 
 #define CHANNEL_RAW_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_raw"
+#define CHANNEL_PROCESSED_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_input"
 #define CHANNEL_OFFSET_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_offset"
 #define CHANNEL_SCALE_PATH SYSFS_DEVICES_PATH "/iio:device%d/%s_scale"
 
@@ -146,6 +149,7 @@ struct resolve_absolute_path_data {
 
 static bool create_or_resolve_device_address_dispatch(void *data);
 
+SOL_ATTR_PRINTF(3, 4)
 static bool
 craft_filename_path(char *path, size_t size, const char *base, ...)
 {
@@ -156,9 +160,15 @@ craft_filename_path(char *path, size_t size, const char *base, ...)
     len = vsnprintf(path, size, base, args);
     va_end(args);
 
+    if (len < 0)
+        path[0] = '\0';
+
+    SOL_DBG("available=%zu, used=%d, path='%s'", size, len, path);
+
     return len >= 0 && (size_t)len < size;
 }
 
+SOL_ATTR_PRINTF(1, 2)
 static bool
 check_file_existence(const char *base, ...)
 {
@@ -351,14 +361,16 @@ static void
 set_buffer_size(struct sol_iio_device *device, int buffer_size)
 {
     char path[PATH_MAX];
+    int r;
 
     if (craft_filename_path(path, sizeof(path), BUFFER_LENGHT_DEVICE_PATH, device->device_id)) {
         SOL_WRN("Could not set IIO device buffer size");
         return;
     }
 
-    if (sol_util_write_file(path, "%d", buffer_size) < 0) {
-        SOL_WRN("Could not set IIO device buffer size");
+    if ((r = sol_util_write_file(path, "%d", buffer_size)) < 0) {
+        SOL_WRN("Could not set IIO device buffer size to %d at '%s': %s",
+            buffer_size, path, sol_util_strerrora(r));
     }
 
     return;
@@ -406,14 +418,14 @@ device_reader_cb(void *data, int fd, uint32_t active_flags)
         result = false;
     }
 
-    sol_buffer_reset(&device->buffer);
-    ret = sol_util_fill_buffer(fd, &device->buffer, device->buffer_size);
+    ret = sol_util_fill_buffer(fd, &device->buffer, device->buffer_size - device->buffer.used);
     if (ret <= 0) {
         result = false;
     } else if (device->buffer.used == device->buffer_size) {
         if (device->reader_cb) {
             device->reader_cb((void *)device->reader_cb_data, device);
         }
+        sol_buffer_reset(&device->buffer);
     }
 
     if (!result) {
@@ -491,9 +503,9 @@ channel_get_pure_name(struct sol_iio_channel *channel)
             channel_pure_name = calloc(1, channel_name_len + 1);
             original_channel_pure_name = channel_pure_name;
             for (i = 0; i < channel_name_len; i++) {
-                if (isalpha(channel->name[i]) || channel->name[i] == '-' || channel->name[i] == '_')
+                if (isalpha((uint8_t)channel->name[i]) || channel->name[i] == '-' || channel->name[i] == '_')
                     *channel_pure_name++ = channel->name[i];
-                else if (isdigit(channel->name[i])) {
+                else if (isdigit((uint8_t)channel->name[i])) {
                     modified = true;
                     continue;
                 }
@@ -622,7 +634,7 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
 
     SOL_NULL_CHECK(config, NULL);
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_IIO_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_IIO_CONFIG_API_VERSION)) {
         SOL_WRN("IIO config version '%u' is unexpected, expected '%u'",
             config->api_version, SOL_IIO_CONFIG_API_VERSION);
         return NULL;
@@ -694,7 +706,6 @@ sol_iio_open(int device_id, const struct sol_iio_config *config)
         device->buffer_enabled = false;
         if (!set_buffer_enabled(device, false)) {
             SOL_WRN("Could not disable buffer for device%d", device->device_id);
-            goto error;
         }
     }
 
@@ -904,20 +915,27 @@ SOL_API struct sol_iio_channel *
 sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struct sol_iio_channel_config *config)
 {
     struct sol_iio_channel *channel;
+    bool processed;
+    int r;
 
     SOL_NULL_CHECK(device, NULL);
     SOL_NULL_CHECK(name, NULL);
     SOL_NULL_CHECK(config, NULL);
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(config->api_version != SOL_IIO_CHANNEL_CONFIG_API_VERSION)) {
+    if (SOL_UNLIKELY(config->api_version != SOL_IIO_CHANNEL_CONFIG_API_VERSION)) {
         SOL_WRN("IIO channel config version '%u' is unexpected, expected '%u'",
             config->api_version, SOL_IIO_CHANNEL_CONFIG_API_VERSION);
         return NULL;
     }
 #endif
 
-    if (!check_file_existence(CHANNEL_RAW_PATH, device->device_id, name)) {
+    /* First try '_raw' suffix, then '_input' */
+    if (check_file_existence(CHANNEL_RAW_PATH, device->device_id, name))
+        processed = false;
+    else if (check_file_existence(CHANNEL_PROCESSED_PATH, device->device_id, name))
+        processed = true;
+    else {
         SOL_WRN("Could not find channel [%s] for device%d", name,
             device->device_id);
         return NULL;
@@ -928,6 +946,7 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
     memcpy(channel->name, name, strlen(name));
 
     channel->device = device;
+    channel->processed = processed;
 
     if (config->scale > -1)
         iio_set_channel_scale(channel, config->scale);
@@ -961,7 +980,8 @@ sol_iio_add_channel(struct sol_iio_device *device, const char *name, const struc
         channel->mask = (1 << channel->bits) - 1;
     }
 
-    sol_ptr_vector_append(&channel->device->channels, channel);
+    r = sol_ptr_vector_append(&channel->device->channels, channel);
+    SOL_INT_CHECK_GOTO(r, < 0, error);
 
     SOL_DBG("channel [%s] added. scale: %lf - offset: %d - storagebits: %d"
         " - bits: %d - mask: %" PRIu64, channel->name, channel->scale,
@@ -1024,9 +1044,12 @@ iio_read_buffer_channel_value(struct sol_iio_channel *channel, double *value)
 
     if (negative) {
         s_data = data | ~channel->mask;
-        *value = (s_data + channel->offset) * channel->scale;
+        *value = s_data;
     } else
-        *value = (data + channel->offset) * channel->scale;
+        *value = data;
+
+    if (!channel->processed)
+        *value = (*value + channel->offset) * channel->scale;
 
     return true;
 }
@@ -1037,17 +1060,20 @@ sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
     int len;
     int64_t raw_value;
     char path[PATH_MAX];
-    struct sol_iio_device *device = channel->device;
+    struct sol_iio_device *device;
     bool r;
 
     SOL_NULL_CHECK(channel, false);
     SOL_NULL_CHECK(value, false);
 
+    device = channel->device;
+
     if (device->buffer_enabled) {
         return iio_read_buffer_channel_value(channel, value);
     }
 
-    r = craft_filename_path(path, sizeof(path), CHANNEL_RAW_PATH,
+    r = craft_filename_path(path, sizeof(path),
+        channel->processed ? CHANNEL_PROCESSED_PATH : CHANNEL_RAW_PATH,
         device->device_id, channel->name);
     if (!r) {
         SOL_WRN("Could not read channel [%s] in device%d", channel->name,
@@ -1062,7 +1088,10 @@ sol_iio_read_channel_value(struct sol_iio_channel *channel, double *value)
         return false;
     }
 
-    *value = (raw_value + channel->offset) * channel->scale;
+    if (channel->processed)
+        *value = raw_value;
+    else
+        *value = (raw_value + channel->offset) * channel->scale;
     return true;
 }
 
@@ -1085,6 +1114,7 @@ sol_iio_device_trigger_now(struct sol_iio_device *device)
 {
     char path[PATH_MAX];
     bool r;
+    int i;
 
     SOL_NULL_CHECK(device, false);
 
@@ -1101,9 +1131,9 @@ sol_iio_device_trigger_now(struct sol_iio_device *device)
         return false;
     }
 
-    if (sol_util_write_file(path, "%d", 1) < 0) {
-        SOL_WRN("Could not write to trigger_now file for trigger [%s]",
-            device->trigger_name);
+    if ((i = sol_util_write_file(path, "%d", 1)) < 0) {
+        SOL_WRN("Could not write to trigger_now file for trigger [%s]: %s",
+            device->trigger_name, sol_util_strerrora(i));
         return false;
     }
 

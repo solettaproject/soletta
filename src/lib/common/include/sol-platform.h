@@ -409,7 +409,7 @@ int sol_platform_del_system_clock_monitor(void (*cb)(void *data, int64_t timesta
 /**
  * @brief Set the system timezone.
  *
- * @param timezone The new timezone. (Example: America/Sao_Paulo)
+ * @param tzone The new timezone. (Example: America/Sao_Paulo)
  *
  * @return @c 0 on success, negative errno on error
  *
@@ -417,7 +417,7 @@ int sol_platform_del_system_clock_monitor(void (*cb)(void *data, int64_t timesta
  *
  * @see sol_platform_get_timezone()
  */
-int sol_platform_set_timezone(const char *timezone);
+int sol_platform_set_timezone(const char *tzone);
 
 /**
  * @brief Get the current timezone.
@@ -484,6 +484,9 @@ const char *sol_platform_get_locale(enum sol_platform_locale_category category);
  * @param data The data to @c cb
  *
  * @return 0 on success, negative errno otherwise.
+ *
+ * @note If an error happens while the locale is being monitored the @c cb
+ * will be called and @c category will be set to #SOL_PLATFORM_SERVICE_STATE_UNKNOWN and @c locale to @c NULL.
  */
 int sol_platform_add_locale_monitor(void (*cb)(void *data, enum sol_platform_locale_category category, const char *locale), const void *data);
 

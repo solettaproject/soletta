@@ -55,6 +55,13 @@ static struct sol_vector _dev_ref = SOL_VECTOR_INIT(struct dev_ref);
 struct sol_aio {
     int device;
     int pin;
+
+    struct {
+        const void *cb_data;
+        struct sol_timeout *timeout;
+        void (*read_cb)(void *cb_data, struct sol_aio *aio, int32_t ret);
+        int32_t value;
+    } async;
 };
 
 static bool
@@ -173,12 +180,12 @@ sol_aio_close(struct sol_aio *aio)
 }
 
 static void
-_aio_read_dispatch(struct sol_aio *aio)
+aio_read_dispatch(struct sol_aio *aio)
 {
-    if (!aio->async.read_cb.cb)
+    if (!aio->async.read_cb)
         return;
 
-    aio->async.read_cb.cb((void *)aio->async.cb_data, aio, aio->async.value);
+    aio->async.read_cb((void *)aio->async.cb_data, aio, aio->async.value);
 }
 
 static bool
@@ -188,18 +195,21 @@ aio_read_timeout_cb(void *data)
 
     aio->async.value = (int32_t)adc_sample(aio->device, aio->pin);
     aio->async.timeout = NULL;
-    aio->async.dispatch(aio);
+    aio_read_dispatch(aio);
     return false;
 }
 
 struct sol_aio_pending *
-sol_aio_get_value(const struct sol_aio *aio)
+sol_aio_get_value(struct sol_aio *aio,
+    void (*read_cb)(void *cb_data,
+    struct sol_aio *aio,
+    int32_t ret),
+    const void *cb_data)
 {
     SOL_NULL_CHECK(aio, -EINVAL);
 
     aio->async.value = 0;
-    aio->async.read_cb.cb = read_cb;
-    aio->async.dispatch = _aio_read_dispatch;
+    aio->async.read_cb = read_cb;
     aio->async.cb_data = cb_data;
 
     aio->async.timeout = sol_timeout_add(0, aio_read_timeout_cb, aio);
@@ -224,7 +234,7 @@ sol_aio_pending_cancel(struct sol_aio *aio, struct sol_aio_pending *pending)
 
     if (aio->async.timeout == (struct sol_timeout *)pending) {
         sol_timeout_del(aio->async.timeout);
-        aio->async.dispatch(aio);
+        aio_read_dispatch(aio);
         aio->async.timeout = NULL;
     } else
         SOL_WRN("Invalid AIO pending handle.");

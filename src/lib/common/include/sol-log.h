@@ -39,7 +39,109 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <sys/types.h>
+
+#ifdef __cplusplus
+
+template <typename T> inline const char *sol_int_format(T) { return NULL; }
+template <> inline const char *sol_int_format<int>(int) { return "%d"; }
+template <> inline const char *sol_int_format<long>(long) { return "%ld"; }
+template <> inline const char *sol_int_format<long long>(long long) { return "%lld"; }
+template <> inline const char *sol_int_format<short>(short) { return "%hd"; }
+template <> inline const char *sol_int_format<signed char>(signed char) { return "%hhd"; }
+template <> inline const char *sol_int_format<unsigned>(unsigned) { return "%u"; }
+template <> inline const char *sol_int_format<unsigned long>(unsigned long) { return "%lu"; }
+template <> inline const char *sol_int_format<unsigned long long>(unsigned long long) { return "%llu"; }
+template <> inline const char *sol_int_format<unsigned short>(unsigned short) { return "%hu"; }
+template <> inline const char *sol_int_format<unsigned char>(unsigned char) { return "%hhu"; }
+
+#define SOL_INT_CHECK_IMPL(var, exp, ...) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            char *str = (char *)alloca(snprintf(NULL, 0, "%s (%s) %s", #var, sol_int_format(var),  #exp) + 1); \
+            sprintf(str, "%s (%s) %s", #var, sol_int_format(var), #exp); \
+            SOL_WRN(str, var); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
+#define SOL_INT_CHECK_GOTO_IMPL(var, exp, label) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            char *str = (char *)alloca(snprintf(NULL, 0, "%s (%s) %s", #var, sol_int_format(var),  #exp) + 1); \
+            sprintf(str, "%s (%s) %s", #var, sol_int_format(var), #exp); \
+            SOL_WRN(str, var); \
+            goto label; \
+        } \
+    } while (0)
+
+#else
+
+/**
+ * @brief Auxiliary macro intended to be used by @ref SOL_INT_CHECK to format it's output.
+ *
+ * @param var Integer checked by @ref SOL_INT_CHECK
+ */
+#define _SOL_INT_CHECK_FMT(var) \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int), \
+    "" # var " (%d) %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), long), \
+    "" # var " (%ld) %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), size_t), \
+    "" # var " (%zu) %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), unsigned), \
+    "" # var " (%u) %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint64_t), \
+    "" # var " (%" PRIu64 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint32_t), \
+    "" # var " (%" PRIu32 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint16_t), \
+    "" # var " (%" PRIu16 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), uint8_t), \
+    "" # var " (%" PRIu8 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int64_t), \
+    "" # var " (%" PRId64 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int32_t), \
+    "" # var " (%" PRId32 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int16_t), \
+    "" # var " (%" PRId16 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), int8_t), \
+    "" # var " (%" PRId8 ") %s", \
+    __builtin_choose_expr( \
+    __builtin_types_compatible_p(typeof(var), ssize_t), \
+    "" # var " (%zd) %s", \
+    (void)0)))))))))))))
+
+#define SOL_INT_CHECK_IMPL(var, exp, ...) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
+            return __VA_ARGS__; \
+        } \
+    } while (0)
+
+#define SOL_INT_CHECK_GOTO_IMPL(var, exp, label) \
+    do { \
+        if (SOL_UNLIKELY((var)exp)) { \
+            SOL_WRN(_SOL_INT_CHECK_FMT(var), var, # exp); \
+            goto label; \
+        } \
+    } while (0)
+
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -82,11 +184,6 @@ extern "C" {
  */
 
 /**
- * @brief Convenience macro for @c unlikely branch annotation. Intended for local use.
- */
-#define log_unlikely(x) __builtin_expect(!!(x), 0)
-
-/**
  * @brief Convenience macro to check for @c NULL pointer.
  *
  * This macro logs a warning message and returns if the pointer @c ptr
@@ -97,8 +194,8 @@ extern "C" {
  */
 #define SOL_NULL_CHECK(ptr, ...) \
     do { \
-        if (log_unlikely(!(ptr))) { \
-            SOL_WRN("" # ptr "== NULL"); \
+        if (SOL_UNLIKELY(!(ptr))) { \
+            SOL_WRN("%s == NULL", # ptr); \
             return __VA_ARGS__; \
         } \
     } while (0)
@@ -115,8 +212,8 @@ extern "C" {
  */
 #define SOL_NULL_CHECK_GOTO(ptr, label) \
     do { \
-        if (log_unlikely(!(ptr))) { \
-            SOL_WRN("" # ptr "== NULL"); \
+        if (SOL_UNLIKELY(!(ptr))) { \
+            SOL_WRN("%s == NULL", # ptr); \
             goto label; \
         } \
     } while (0)
@@ -133,7 +230,7 @@ extern "C" {
  */
 #define SOL_NULL_CHECK_MSG(ptr, ret, fmt, ...) \
     do { \
-        if (log_unlikely(!(ptr))) { \
+        if (SOL_UNLIKELY(!(ptr))) { \
             SOL_WRN(fmt, ## __VA_ARGS__); \
             return ret; \
         } \
@@ -151,59 +248,11 @@ extern "C" {
  */
 #define SOL_NULL_CHECK_MSG_GOTO(ptr, label, fmt, ...) \
     do { \
-        if (log_unlikely(!(ptr))) { \
+        if (SOL_UNLIKELY(!(ptr))) { \
             SOL_WRN(fmt, ## __VA_ARGS__); \
             goto label; \
         } \
     } while (0)
-
-/**
- * @brief Auxiliary macro intended to be used by @ref SOL_INT_CHECK to format it's output.
- *
- * @param var Integer checked by @ref SOL_INT_CHECK
- * @param exp Safety-check expression from @ref SOL_INT_CHECK
- */
-#define _SOL_INT_CHECK_FMT(var, exp) \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int), \
-    "" # var " (%d) " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), long), \
-    "" # var " (%ld) " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), size_t), \
-    "" # var " (%zu) " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), unsigned), \
-    "" # var " (%u) " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint64_t), \
-    "" # var " (%" PRIu64 ") " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint32_t), \
-    "" # var " (%" PRIu32 ") " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint16_t), \
-    "" # var " (%" PRIu16 ") " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), uint8_t), \
-    "" # var " (%" PRIu8 ") " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int64_t), \
-    "" # var " (%" PRId64 ") " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int32_t), \
-    "" # var " (%" PRId32 ") " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int16_t), \
-    "" # var " (%" PRId16 ") " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), int8_t), \
-    "" # var " (%" PRId8 ") " # exp, \
-    __builtin_choose_expr( \
-    __builtin_types_compatible_p(typeof(var), ssize_t), \
-    "" # var " (%zd) " # exp, \
-    (void)0)))))))))))))
 
 /**
  * @brief Safety-check macro to check if integer @c var against @c exp.
@@ -216,12 +265,8 @@ extern "C" {
  * @param ... Optional return value
  */
 #define SOL_INT_CHECK(var, exp, ...) \
-    do { \
-        if (log_unlikely((var)exp)) { \
-            SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var); \
-            return __VA_ARGS__; \
-        } \
-    } while (0)
+    SOL_INT_CHECK_IMPL(var, exp, __VA_ARGS__)
+
 
 /**
  * @brief Similar to @ref SOL_INT_CHECK but jumping to @c label instead of returning.
@@ -234,12 +279,7 @@ extern "C" {
  * @param label @c goto label
  */
 #define SOL_INT_CHECK_GOTO(var, exp, label) \
-    do { \
-        if (log_unlikely((var)exp)) { \
-            SOL_WRN(_SOL_INT_CHECK_FMT(var, exp), var); \
-            goto label; \
-        } \
-    } while (0)
+    SOL_INT_CHECK_GOTO_IMPL(var, exp, label)
 
 /**
  * @brief Safety-check macro to check the expression @c exp.
@@ -252,8 +292,8 @@ extern "C" {
  */
 #define SOL_EXP_CHECK(exp, ...) \
     do { \
-        if (log_unlikely((exp))) { \
-            SOL_WRN("(" # exp ") is true"); \
+        if (SOL_UNLIKELY((exp))) { \
+            SOL_WRN("(%s) is true", # exp); \
             return __VA_ARGS__; \
         } \
     } while (0)
@@ -269,8 +309,8 @@ extern "C" {
  */
 #define SOL_EXP_CHECK_GOTO(exp, label) \
     do { \
-        if (log_unlikely((exp))) { \
-            SOL_WRN("(" # exp ") is true"); \
+        if (SOL_UNLIKELY((exp))) { \
+            SOL_WRN("(%s) is true", # exp); \
             goto label; \
         } \
     } while (0)
@@ -319,13 +359,55 @@ extern struct sol_log_domain *sol_log_global_domain;
  *
  * @see sol_log_set_level()
  */
+
+/**
+ * @def SOL_LOG_LEVEL_INIT()
+ *
+ * @brief Sets the global log level based on the SOL_LOG_LEVEL macro.
+ *
+ * Not to be used directly. Applications using #SOL_MAIN_DEFAULT can be built
+ * passing -DSOL_LOG_LEVEL=\"level\" on @c CFLAGS, in which case this macro
+ * will initialize the global log level to the value the macro is defined to.
+ */
+
+/**
+ * @def SOL_LOG_LEVELS_INIT()
+ *
+ * @brief Sets the log level of the given log domains.
+ *
+ * Not to be used directly. Applications using #SOL_MAIN_DEFAULT can be built
+ * passing -DSOL_LOG_LEVELS=\"domain:level,...\" on @c CFLAGS, in which case
+ * this macro will initialize each domain's log level to the values specified
+ * in the macro.
+ */
 #ifdef SOL_LOG_ENABLED
 void sol_log_domain_init_level(struct sol_log_domain *domain);
+void sol_log_init_level_global(const char *str, size_t length);
+void sol_log_init_levels(const char *str, size_t length);
+
+#ifdef SOL_LOG_LEVEL
+#define SOL_LOG_LEVEL_INIT() \
+    sol_log_init_level_global(SOL_LOG_LEVEL, sizeof(SOL_LOG_LEVEL) - 1)
+#else
+#define SOL_LOG_LEVEL_INIT()
+#endif
+
+#ifdef SOL_LOG_LEVELS
+#define SOL_LOG_LEVELS_INIT() \
+    sol_log_init_levels(SOL_LOG_LEVELS, sizeof(SOL_LOG_LEVELS) - 1)
+#else
+#define SOL_LOG_LEVELS_INIT()
+#endif
+
 #else
 static inline void
 sol_log_domain_init_level(struct sol_log_domain *domain)
 {
 }
+
+#define SOL_LOG_LEVEL_INIT()
+#define SOL_LOG_LEVELS_INIT()
+
 #endif
 
 #ifndef SOL_LOG_DOMAIN
@@ -356,6 +438,13 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
  * the output binary.
  *
  * One should check using SOL_LOG_LEVEL_POSSIBLE().
+ *
+ * It only affects log levels in the library functions.
+ * If an application is using Soletta log system, it
+ * needs to be changed using application CFLAGS.
+ *
+ * So to disable all log levels greater than warning on application build:
+ * CFLAGS += -DSOL_LOG_LEVEL_MAXIMUM=2
  */
 #if 0
 #define SOL_LOG_LEVEL_MAXIMUM SOL_LOG_LEVEL_WARNING
@@ -529,7 +618,7 @@ sol_log_domain_init_level(struct sol_log_domain *domain)
 #ifdef SOL_LOG_ENABLED
 void sol_log_print(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, ...) SOL_ATTR_PRINTF(6, 7) SOL_ATTR_NOINSTRUMENT;
 
-void sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_NOINSTRUMENT;
+void sol_log_vprint(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(6, 0) SOL_ATTR_NOINSTRUMENT;
 #else
 static inline void
 sol_log_print(const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, ...)
@@ -576,7 +665,7 @@ sol_log_set_print_function(void (*print)(void *data, const struct sol_log_domain
  * @see sol_log_set_print_function()
  */
 #ifdef SOL_LOG_ENABLED
-void sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args);
+void sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(7, 0);
 #else
 static inline void
 sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
@@ -599,7 +688,7 @@ sol_log_print_function_stderr(void *data, const struct sol_log_domain *domain, u
  * @see sol_log_set_print_function()
  */
 #ifdef SOL_LOG_ENABLED
-void sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args);
+void sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(7, 0);
 #else
 static inline void
 sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *file, const char *function, int line, const char *format, va_list args)
@@ -626,7 +715,7 @@ sol_log_print_function_file(void *data, const struct sol_log_domain *domain, uin
  * @see sol_log_print_function_journal()
  */
 #ifdef SOL_LOG_ENABLED
-void sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *syslog, const char *function, int line, const char *format, va_list args);
+void sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *syslog, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(7, 0);
 #else
 static inline void
 sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *syslog, const char *function, int line, const char *format, va_list args)
@@ -658,7 +747,7 @@ sol_log_print_function_syslog(void *data, const struct sol_log_domain *domain, u
  * @see sol_log_print_function_syslog()
  */
 #ifdef SOL_LOG_ENABLED
-void sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *journal, const char *function, int line, const char *format, va_list args);
+void sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *journal, const char *function, int line, const char *format, va_list args) SOL_ATTR_PRINTF(7, 0);
 #else
 static inline void
 sol_log_print_function_journal(void *data, const struct sol_log_domain *domain, uint8_t message_level, const char *journal, const char *function, int line, const char *format, va_list args)

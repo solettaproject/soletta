@@ -34,11 +34,12 @@
 #include "sol-flow/update.h"
 #include "sol-flow-internal.h"
 #include "sol-json.h"
+#include "sol-macros.h"
 #include "sol-str-slice.h"
 #include "sol-types.h"
 #include "sol-update.h"
 
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <errno.h>
 
 struct update_data {
@@ -92,7 +93,7 @@ check_cb(void *data, int status, const struct sol_update_info *response)
     }
 
 #ifndef SOL_NO_API_VERSION
-    if (unlikely(response->api_version != SOL_UPDATE_INFO_API_VERSION)) {
+    if (SOL_UNLIKELY(response->api_version != SOL_UPDATE_INFO_API_VERSION)) {
         SOL_WRN("Update info config version '%u' is unexpected, expected '%u'",
             response->api_version, SOL_UPDATE_INFO_API_VERSION);
         return;

@@ -107,7 +107,7 @@ struct sol_flow_node;
  * @param type The type of the node
  * @param options Options to individually parametrize the type
  *                instance (@see
- *                sol_flow_node_options_new_from_strv())
+ *                sol_flow_node_options_new())
  *
  * @return A new node instance on success, otherwise @c NULL
  */
@@ -762,7 +762,7 @@ struct sol_flow_node_type_description {
      * should be incremented.
      */
 #define SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION (1)
-    unsigned long api_version; /**< @brief Must match SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION at runtime */
+    uint16_t api_version; /**< @brief Must match SOL_FLOW_NODE_TYPE_DESCRIPTION_API_VERSION at runtime */
 #endif
     const char *name; /**< @brief The user-visible name. @b Mandatory. */
 
@@ -932,6 +932,30 @@ const struct sol_flow_port_description *sol_flow_node_get_port_in_description(co
  * @return The port description for the given port
  */
 const struct sol_flow_port_description *sol_flow_node_get_port_out_description(const struct sol_flow_node_type *type, uint16_t port);
+
+/**
+ * @brief Find the input port index given its name.
+ *
+ * @param type The node type to get a port index from name
+ * @param name The port name. If an array port, one should use
+ *       "NAME[INDEX]" notation, such as "IN[0]". Names are case
+ *       sensitive.
+ *
+ * @return The port index or UINT16_MAX if not found.
+ */
+uint16_t sol_flow_node_find_port_in(const struct sol_flow_node_type *type, const char *name);
+
+/**
+ * @brief Find the output port index given its name.
+ *
+ * @param type The node type to get a port index from name
+ * @param name The port name. If an array port, one should use
+ *       "NAME[INDEX]" notation, such as "OUT[0]". Names are case
+ *       sensitive.
+ *
+ * @return The port index or UINT16_MAX if not found.
+ */
+uint16_t sol_flow_node_find_port_out(const struct sol_flow_node_type *type, const char *name);
 #endif
 
 /**
@@ -947,6 +971,18 @@ struct sol_flow_node_container_type {
      * @brief Member function issued when a child node sends packets to its output ports
      */
     int (*send)(struct sol_flow_node *container, struct sol_flow_node *source_node, uint16_t source_out_port_idx, struct sol_flow_packet *packet);
+
+    /**
+     * @brief Member function issued when there is no parent and a sol_flow_send() was called in this container.
+     *
+     * This method, if present, may be used to redirect the packet to
+     * some child node. Otherwise the packet is dropped (deleted).
+     *
+     * If this method is implemented and returns 0, the ownership of
+     * the packet is then handled by the function. If it returns
+     * non-zero, then the packet is automatically deleted.
+     */
+    int (*process)(struct sol_flow_node *container, uint16_t source_in_port_idx, struct sol_flow_packet *packet);
 
     /**
      * @brief Member function that, if not @c NULL, is issued when child nodes of of an instance of this type are created

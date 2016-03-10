@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 #define SOL_LOG_DOMAIN &sol_fbp_log_domain
 #include "sol-fbp-internal-log.h"

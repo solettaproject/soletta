@@ -49,7 +49,8 @@ SOL_LOG_INTERNAL_DECLARE_STATIC(_log_domain, "linux-micro-console");
 
 #include "sol-mainloop.h"
 #include "sol-platform-linux-micro.h"
-#include "sol-util.h"
+#include "sol-util-file.h"
+#include "sol-util-internal.h"
 #include "sol-vector.h"
 
 struct instance {
@@ -84,7 +85,7 @@ find_getty_cmd(void)
     const char **itr, **itr_end;
 
     itr = cmds;
-    itr_end = itr + ARRAY_SIZE(cmds);
+    itr_end = itr + SOL_UTIL_ARRAY_SIZE(cmds);
     for (; itr < itr_end; itr++) {
         if (access(*itr, R_OK | X_OK) == 0)
             return *itr;
@@ -264,7 +265,7 @@ parse_var(const char *start, size_t len)
     const struct spec *itr, *itr_end;
 
     itr = specs;
-    itr_end = itr + ARRAY_SIZE(specs);
+    itr_end = itr + SOL_UTIL_ARRAY_SIZE(specs);
     for (; itr < itr_end; itr++) {
         if (itr->prefixlen < len &&
             memcmp(itr->prefix, start, itr->prefixlen) == 0) {

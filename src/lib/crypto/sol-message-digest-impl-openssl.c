@@ -36,7 +36,7 @@
 
 #include "sol-message-digest-common.h"
 #include "sol-crypto.h"
-#include "sol-util.h"
+#include "sol-util-internal.h"
 
 static bool did_openssl_load_digests = false;
 
@@ -57,7 +57,8 @@ _sol_message_digest_evp_init(struct sol_message_digest *handle, const EVP_MD *md
 {
     EVP_MD_CTX *ctx = sol_message_digest_common_get_context(handle);
 
-    if (EVP_DigestInit(ctx, md))
+    EVP_MD_CTX_init(ctx);
+    if (EVP_DigestInit_ex(ctx, md, NULL))
         return 0;
 
     return -EINVAL;
@@ -108,7 +109,8 @@ _sol_message_digest_hmac_init(struct sol_message_digest *handle, const EVP_MD *m
 {
     HMAC_CTX *ctx = sol_message_digest_common_get_context(handle);
 
-    if (HMAC_Init(ctx, key.data, key.len, md))
+    HMAC_CTX_init(ctx);
+    if (HMAC_Init_ex(ctx, key.data, key.len, md, NULL))
         return 0;
 
     return -EINVAL;

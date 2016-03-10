@@ -34,7 +34,7 @@
 #include "sol-flow-internal.h"
 
 #include <sol-json.h>
-#include <sol-util.h>
+#include <sol-util-internal.h>
 #include <sol-types.h>
 #include <sol-buffer.h>
 #include <errno.h>

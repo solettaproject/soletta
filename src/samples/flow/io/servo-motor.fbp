@@ -30,11 +30,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # This example controls a servo and sets its angle, adjusting every 3
-# seconds. The node type is resolved using the servo-motor.json
-# (edited for servo on pin 3 on Edison board), please adjust to
-# your board configuration.
+# seconds. The node type is resolved using the
+# sol-flow-intel-edison-rev-c.json. If running in a different board,
+# please adjust to your needs and:
 #
-#    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=servo-motor-myboard.json
+#    $ export SOL_FLOW_MODULE_RESOLVER_CONFFILE=<your-config>.json
 #    $ ./servo-motor.fbp
 #
 # or save it as sol-flow.json

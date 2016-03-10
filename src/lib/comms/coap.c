@@ -30,7 +30,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arpa/inet.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -38,6 +37,7 @@
 #include <string.h>
 
 #include "sol-log.h"
+#include "sol-util-internal.h"
 #include "sol-util.h"
 #include "sol-vector.h"
 
@@ -84,7 +84,7 @@ decode_delta(int num, const uint8_t *buf, int16_t buflen, uint16_t *decoded)
         if (buflen < 2)
             return -EINVAL;
 
-        num = ntohs((uint16_t)*buf) + 269;
+        num = sol_util_be16_to_cpu((uint16_t)*buf) + 269;
         hdrlen += 2;
         break;
     case 15:
@@ -97,51 +97,53 @@ decode_delta(int num, const uint8_t *buf, int16_t buflen, uint16_t *decoded)
 }
 
 int
-coap_parse_option(const struct sol_coap_packet *pkt, struct option_context *context,
+coap_parse_option(struct option_context *context,
     uint8_t **value, uint16_t *vlen)
 {
     uint16_t delta, len;
+    uint8_t start;
     int r;
 
-    if (context->buflen < 1)
+    if (context->buf->used - context->pos < 1)
         return 0;
+
+    start = ((uint8_t *)sol_buffer_at(context->buf, context->pos))[0];
 
     /* This indicates that options have ended */
-    if (context->buf[0] == COAP_MARKER)
+    if (start == COAP_MARKER)
         return 0;
 
-    delta = coap_option_header_get_delta(context->buf[0]);
-    len = coap_option_header_get_len(context->buf[0]);
-    context->buf += 1;
+    delta = coap_option_header_get_delta(start);
+    len = coap_option_header_get_len(start);
+    context->pos += 1;
     context->used += 1;
-    context->buflen -= 1;
 
     /* In case 'delta' doesn't fit the option fixed header. */
-    r = decode_delta(delta, context->buf, context->buflen, &delta);
+    r = decode_delta(delta, sol_buffer_at(context->buf, context->pos),
+        context->buf->used - context->pos, &delta);
     if (r < 0)
-        return -EINVAL;
+        return r;
 
-    context->buf += r;
+    context->pos += r;
     context->used += r;
-    context->buflen -= r;
 
     /* In case 'len' doesn't fit the option fixed header. */
-    r = decode_delta(len, context->buf, context->buflen, &len);
+    r = decode_delta(len, sol_buffer_at(context->buf, context->pos),
+        context->buf->used - context->pos, &len);
     if (r < 0)
-        return -EINVAL;
+        return r;
 
-    if (context->buflen < r + len)
+    if (context->buf->used - context->pos < (size_t)(r + len))
         return -EINVAL;
 
     if (value)
-        *value = context->buf + r;
+        *value = sol_buffer_at(context->buf, context->pos + r);
 
     if (vlen)
         *vlen = len;
 
-    context->buf += r + len;
+    context->pos += r + len;
     context->used += r + len;
-    context->buflen -= r + len;
 
     context->delta += delta;
 
@@ -153,11 +155,11 @@ coap_parse_options(struct sol_coap_packet *pkt, unsigned int offset)
 {
     struct option_context context = { .delta = 0,
                                       .used = 0,
-                                      .buflen = pkt->payload.size - offset,
-                                      .buf = &pkt->buf[offset] };
+                                      .buf = &pkt->buf,
+                                      .pos = offset };
 
     while (true) {
-        int r = coap_parse_option(pkt, &context, NULL, NULL);
+        int r = coap_parse_option(&context, NULL, NULL);
         if (r < 0)
             return -EINVAL;
 
@@ -176,17 +178,17 @@ coap_get_header_len(const struct sol_coap_packet *pkt)
 
     hdrlen = sizeof(struct coap_header);
 
-    if (pkt->payload.size < hdrlen)
+    if (pkt->buf.used < hdrlen)
         return -EINVAL;
 
-    hdr = (struct coap_header *)pkt->buf;
+    hdr = (struct coap_header *)sol_buffer_at(&pkt->buf, 0);
     tkl = hdr->tkl;
 
     // Token lenghts 9-15 are reserved.
     if (tkl > 8)
         return -EINVAL;
 
-    if (pkt->payload.size < hdrlen + tkl)
+    if (pkt->buf.used < hdrlen + tkl)
         return -EINVAL;
 
     return hdrlen + tkl;
@@ -201,33 +203,33 @@ coap_packet_parse(struct sol_coap_packet *pkt)
 
     hdrlen = coap_get_header_len(pkt);
     if (hdrlen < 0)
-        return -EINVAL;
+        return hdrlen;
 
     optlen = coap_parse_options(pkt, hdrlen);
     if (optlen < 0)
+        return optlen;
+
+    if (pkt->buf.used < (size_t)(hdrlen + optlen))
         return -EINVAL;
 
-    if (pkt->payload.size < hdrlen + optlen)
+    if (pkt->buf.used > COAP_UDP_MTU)
         return -EINVAL;
 
-    if (pkt->payload.size > COAP_UDP_MTU)
-        return -EINVAL;
-
-    if (pkt->payload.size <= hdrlen + optlen + 1) {
-        pkt->payload.start = NULL;
-        pkt->payload.used = pkt->payload.size;
+    /* +1 for COAP_MARKER */
+    if (pkt->buf.used <= (size_t)(hdrlen + optlen + 1)) {
+        pkt->payload_start = 0;
         return 0;
     }
 
-    pkt->payload.start = pkt->buf + hdrlen + optlen + 1;
-    pkt->payload.used = hdrlen + optlen + 1;
+    pkt->payload_start = hdrlen + optlen + 1;
     return 0;
 }
 
 static int
-delta_encode(int num, uint8_t *value, uint8_t *buf, size_t buflen)
+delta_encode(int num, uint8_t *value, struct sol_buffer *buf, size_t offset)
 {
     uint16_t v;
+    int r;
 
     if (num < 13) {
         *value = num;
@@ -235,21 +237,19 @@ delta_encode(int num, uint8_t *value, uint8_t *buf, size_t buflen)
     }
 
     if (num < 269) {
-        if (buflen < 1)
-            return -EINVAL;
-
         *value = 13;
-        *buf = num - 13;
+        r = sol_buffer_insert_char(buf, offset, num - 13);
+        SOL_INT_CHECK(r, < 0, r);
+
         return 1;
     }
 
-    if (buflen < 2)
-        return -EINVAL;
-
     *value = 14;
 
-    v = htons(num - 269);
-    memcpy(buf, &v, sizeof(v));
+    v = sol_util_cpu_to_be16(num - 269);
+
+    r = sol_buffer_insert_bytes(buf, offset, (uint8_t *)&v, sizeof(v));
+    SOL_INT_CHECK(r, < 0, r);
 
     return 2;
 }
@@ -265,24 +265,27 @@ coap_option_encode(struct option_context *context, uint16_t code,
 
     offset = 1;
 
-    r = delta_encode(delta, &data, context->buf + offset, context->buflen - offset);
+    /* write zero on this reserved space, just to advance buffer's 'used' */
+    r = sol_buffer_set_char_at(context->buf, context->pos, 0);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = delta_encode(delta, &data, context->buf, context->pos + offset);
     if (r < 0)
         return -EINVAL;
 
     offset += r;
-    coap_option_header_set_delta(context->buf, data);
+    coap_option_header_set_delta(sol_buffer_at(context->buf, context->pos),
+        data);
 
-    r = delta_encode(len, &data, context->buf + offset, context->buflen - offset);
-    if (r < 0)
-        return -EINVAL;
+    r = delta_encode(len, &data, context->buf, context->pos + offset);
+    SOL_INT_CHECK(r, < 0, r);
 
     offset += r;
-    coap_option_header_set_len(context->buf, data);
-
-    if (context->buflen < offset + len)
-        return -EINVAL;
-
-    memcpy(context->buf + offset, value, len);
+    coap_option_header_set_len(sol_buffer_at(context->buf, context->pos),
+        data);
+    r = sol_buffer_insert_bytes(context->buf,
+        context->pos + offset, value, len);
+    SOL_INT_CHECK(r, < 0, r);
 
     return offset + len;
 }
