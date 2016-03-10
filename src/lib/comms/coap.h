@@ -55,8 +55,6 @@ struct coap_header {
 #error "Unknown byte order"
 #endif
 
-#define COAP_UDP_MTU (576)
-
 struct sol_coap_packet {
     int refcnt;
     struct sol_buffer buf;
