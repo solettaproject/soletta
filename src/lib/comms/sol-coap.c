@@ -166,8 +166,13 @@ sol_coap_header_get_id(const struct sol_coap_packet *pkt)
 SOL_API uint8_t
 sol_coap_header_get_code(const struct sol_coap_packet *pkt)
 {
-    struct coap_header *hdr = (struct coap_header *)pkt->buf.data;
-    uint8_t code = hdr->code;
+    struct coap_header *hdr;
+    uint8_t code;
+
+    SOL_NULL_CHECK(pkt, SOL_COAP_CODE_EMPTY);
+
+    hdr = (struct coap_header *)pkt->buf.data;
+    code = hdr->code;
 
     switch (code) {
     /* Methods are encoded in the code field too */
