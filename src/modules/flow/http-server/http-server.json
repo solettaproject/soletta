@@ -425,6 +425,79 @@
       ],
       "private_data_type": "http_data",
       "url": "http://solettaproject.org/doc/latest/node_types/http-server/rgb.html"
+    },
+    {
+      "category": "output/network",
+      "description": "HTTP Server for direction vector",
+      "methods": {
+        "close": "common_close",
+        "open": "direction_vector_open"
+      },
+      "node_type": {
+        "access": [
+          "base"
+        ],
+        "data_type": "struct http_server_node_type",
+        "extra_methods": {
+            "response_cb": "direction_vector_response_cb",
+            "post_cb": "direction_vector_post_cb",
+            "process_cb": "direction_vector_process_cb",
+            "send_packet_cb": "direction_vector_send_packet_cb"
+        }
+      },
+      "name": "http-server/direction-vector",
+      "options": {
+        "members": [
+          {
+            "data_type": "string",
+            "default": "direction-vector",
+            "description": "The http path where it will be served",
+            "name": "path"
+          },
+          {
+            "data_type": "int",
+            "default": -1,
+            "description": "The port used to bind the server. If a negative value, default port will be used.",
+            "name": "port"
+          },
+          {
+            "data_type": "direction-vector",
+            "default": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "description": "The initial node's value",
+            "name": "value"
+          },
+          {
+            "data_type": "string",
+            "default": "GET|POST",
+            "description": "The allowed HTTP methods. Should be separated by a '|' character.",
+            "name": "allowed_methods"
+          }
+        ],
+        "version": 1
+      },
+      "in_ports": [
+	{
+	  "data_type": "direction-vector",
+	  "description": "The value that will be given on a GET",
+          "methods": {
+            "process": "common_process"
+          },
+          "name": "IN"
+        }
+      ],
+      "out_ports": [
+	{
+          "data_type": "direction-vector",
+          "description": "The value received on a POST",
+          "name": "OUT"
+        }
+      ],
+      "private_data_type": "http_data",
+      "url": "http://solettaproject.org/doc/latest/node_types/http-server/direction-vector.html"
     }
   ]
 }
