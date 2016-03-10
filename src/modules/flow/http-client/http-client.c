@@ -847,6 +847,143 @@ rgb_post_process(struct sol_flow_node *node, void *data, uint16_t port,
 }
 
 /*
+ * --------------------------------- direction vector node  -----------------------------
+ */
+static int
+direction_vector_process_token(struct sol_flow_node *node,
+    struct sol_json_token *key, struct sol_json_token *value)
+{
+    struct sol_direction_vector dir_vector = { 0 };
+    enum sol_json_loop_reason reason;
+    struct sol_json_scanner sub_scanner;
+    struct sol_json_token sub_key, sub_value, token;
+
+    sol_json_scanner_init(&sub_scanner, value->start,
+        value->end - value->start);
+    SOL_JSON_SCANNER_OBJECT_LOOP (&sub_scanner, &token, &sub_key,
+        &sub_value, reason) {
+        if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "x")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.x) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "y")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.y) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "z")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.z) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "min")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.min) < 0)
+                return -EINVAL;
+        } else if (SOL_JSON_TOKEN_STR_LITERAL_EQ(&sub_key, "max")) {
+            if (sol_json_token_get_double(&sub_value, &dir_vector.max) < 0)
+                return -EINVAL;
+        }
+    }
+
+    return sol_flow_send_direction_vector_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_DIRECTION_VECTOR__OUT__OUT, &dir_vector);
+}
+
+static int
+direction_vector_process_data(struct sol_flow_node *node,
+    struct sol_http_response *response)
+{
+    struct sol_direction_vector dir_vector;
+    struct sol_str_slice token;
+    double components[3];
+    size_t i = 0;
+
+    token.data = response->content.data;
+    token.len = response->content.used;
+
+    if (!token.len || token.data[0] != '(' ||
+        token.data[token.len - 1] != ')') {
+        SOL_WRN("Invalid direction vector format. Received '%.*s'",
+            SOL_STR_SLICE_PRINT(token));
+        return -EINVAL;
+    }
+
+    token.data++;
+    token.len -= 2;
+
+    while (token.len) {
+        char *sep = memchr(token.data, ';', token.len);
+        size_t len;
+        char *endptr;
+
+        if (!sep)
+            len = token.len;
+        else
+            len = sep - token.data;
+
+        errno = 0;
+        endptr = NULL;
+        components[i] = sol_util_strtodn(token.data, &endptr, len, false);
+
+        if (errno != 0 || endptr == token.data) {
+            SOL_WRN("Could not parse the component to double. '%.*s'",
+                (int)len, token.data);
+            return -EINVAL;
+        }
+
+        //Skip ,
+        token.data += len + 1;
+        token.len -= len == token.len ? len : len + 1;
+        i++;
+    }
+
+    if (i != 3) {
+        SOL_WRN("Could not parse all the direction vector components.");
+        return -EINVAL;
+    }
+
+    dir_vector.x = components[0];
+    dir_vector.y = components[1];
+    dir_vector.z = components[2];
+    dir_vector.max = DBL_MAX;
+    dir_vector.min = -DBL_MAX;
+
+    return sol_flow_send_direction_vector_packet(node,
+        SOL_FLOW_NODE_TYPE_HTTP_CLIENT_DIRECTION_VECTOR__OUT__OUT, &dir_vector);
+}
+
+static int
+direction_vector_post_process(struct sol_flow_node *node, void *data,
+    uint16_t port, uint16_t conn_id, const struct sol_flow_packet *packet)
+{
+    int r;
+    struct sol_direction_vector dir;
+
+    SOL_BUFFER_DECLARE_STATIC(x, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(z, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(y, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(min, DOUBLE_STRING_LEN);
+    SOL_BUFFER_DECLARE_STATIC(max, DOUBLE_STRING_LEN);
+
+    r = sol_flow_packet_get_direction_vector(packet, &dir);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.x, &x);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.y, &y);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.z, &z);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.min, &min);
+    SOL_INT_CHECK(r, < 0, r);
+
+    r = sol_json_double_to_str(dir.max, &max);
+    SOL_INT_CHECK(r, < 0, r);
+
+    return common_post_process(node, data, "x", x.data,
+        "y", y.data, "z", z.data, "min", min.data,
+        "max", max.data, NULL);
+}
+
+/*
  * --------------------------------- generic nodes  -----------------------------
  */
 
