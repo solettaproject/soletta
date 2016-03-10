@@ -212,9 +212,6 @@ coap_packet_parse(struct sol_coap_packet *pkt)
     if (pkt->buf.used < (size_t)(hdrlen + optlen))
         return -EINVAL;
 
-    if (pkt->buf.used > COAP_UDP_MTU)
-        return -EINVAL;
-
     /* +1 for COAP_MARKER */
     if (pkt->buf.used <= (size_t)(hdrlen + optlen + 1)) {
         pkt->payload_start = 0;
