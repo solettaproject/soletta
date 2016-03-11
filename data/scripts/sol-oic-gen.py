@@ -1044,17 +1044,17 @@ initialize_multicast_addresses_once(void)
         return true;
 
     multicast_ipv4 = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET, .port = DEFAULT_UDP_PORT };
-    if (!sol_network_addr_from_str(&multicast_ipv4, MULTICAST_ADDRESS_IPv4)) {
+    if (!sol_network_link_addr_from_str(&multicast_ipv4, MULTICAST_ADDRESS_IPv4)) {
         SOL_WRN("Could not parse multicast IP address");
         return false;
     }
     multicast_ipv6_local = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET6, .port = DEFAULT_UDP_PORT };
-    if (!sol_network_addr_from_str(&multicast_ipv6_local, MULTICAST_ADDRESS_IPv6_LOCAL)) {
+    if (!sol_network_link_addr_from_str(&multicast_ipv6_local, MULTICAST_ADDRESS_IPv6_LOCAL)) {
         SOL_WRN("Could not parse multicast IP address");
         return false;
     }
     multicast_ipv6_site = (struct sol_network_link_addr) { .family = SOL_NETWORK_FAMILY_INET6, .port = DEFAULT_UDP_PORT };
-    if (!sol_network_addr_from_str(&multicast_ipv6_site, MULTICAST_ADDRESS_IPv6_SITE)) {
+    if (!sol_network_link_addr_from_str(&multicast_ipv6_site, MULTICAST_ADDRESS_IPv6_SITE)) {
         SOL_WRN("Could not parse multicast IP address");
         return false;
     }
@@ -1091,11 +1091,11 @@ state_changed(sol_coap_responsecode_t response_code, struct sol_oic_client *oic_
         SOL_BUFFER_DECLARE_STATIC(resaddr, SOL_INET_ADDR_STRLEN);
         SOL_BUFFER_DECLARE_STATIC(respaddr, SOL_INET_ADDR_STRLEN);
 
-        if (!sol_network_addr_to_str(&resource->resource->addr, &resaddr)) {
+        if (!sol_network_link_addr_to_str(&resource->resource->addr, &resaddr)) {
             SOL_WRN("Could not convert network address to string");
             return;
         }
-        if (!sol_network_addr_to_str(cliaddr, &respaddr)) {
+        if (!sol_network_link_addr_to_str(cliaddr, &respaddr)) {
             SOL_WRN("Could not convert network address to string");
             return;
         }

@@ -96,7 +96,7 @@ reply_cb(struct sol_coap_server *server, struct sol_coap_packet *req,
     if (!req || !cliaddr) //timeout
         return false;
 
-    sol_network_addr_to_str(cliaddr, &addr);
+    sol_network_link_addr_to_str(cliaddr, &addr);
 
     SOL_INF("Got response from %.*s\n", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)));
 
@@ -165,7 +165,7 @@ main(int argc, char *argv[])
         sol_coap_add_option(req, SOL_COAP_OPTION_URI_PATH, path[i].data, path[i].len);
 
     cliaddr.family = SOL_NETWORK_FAMILY_INET6;
-    if (!sol_network_addr_from_str(&cliaddr, argv[1])) {
+    if (!sol_network_link_addr_from_str(&cliaddr, argv[1])) {
         SOL_WRN("%s is an invalid IPv6 address", argv[1]);
         free(path);
         sol_coap_packet_unref(req);

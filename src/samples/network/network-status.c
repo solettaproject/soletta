@@ -128,7 +128,7 @@ _on_network_event(void *data, const struct sol_network_link *link, enum sol_netw
         printf("\tUP ");
         SOL_VECTOR_FOREACH_IDX (&link->addrs, addr, i) {
             addr_str.used = 0;
-            sol_network_addr_to_str(addr, &addr_str);
+            sol_network_link_addr_to_str(addr, &addr_str);
             printf("%.*s ", SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr_str)));
         }
         printf("\n");

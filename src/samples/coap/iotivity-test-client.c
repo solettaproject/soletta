@@ -115,7 +115,7 @@ found_resource_print(struct sol_oic_client *cli, struct sol_oic_resource *res, v
         return false;
     }
 
-    if (!sol_network_addr_to_str(&res->addr, &addr)) {
+    if (!sol_network_link_addr_to_str(&res->addr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         return false;
     }
@@ -271,7 +271,7 @@ resource_notify(sol_coap_responsecode_t response_code, struct sol_oic_client *cl
         return;
     }
 
-    if (!sol_network_addr_to_str(cliaddr, &addr)) {
+    if (!sol_network_link_addr_to_str(cliaddr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         sol_quit_with_code(EXIT_FAILURE);
         return;
@@ -324,7 +324,7 @@ print_response(sol_coap_responsecode_t response_code, struct sol_oic_client *cli
         return;
     }
 
-    if (!sol_network_addr_to_str(cliaddr, &addr)) {
+    if (!sol_network_link_addr_to_str(cliaddr, &addr)) {
         SOL_WRN("Could not convert network address to string");
         sol_quit_with_code(EXIT_FAILURE);
         return;
@@ -646,7 +646,7 @@ main(int argc, char *argv[])
     if (argc >= 3)
         resource_type = argv[2];
 
-    if (!sol_network_addr_from_str(&cliaddr, "224.0.1.187")) {
+    if (!sol_network_link_addr_from_str(&cliaddr, "224.0.1.187")) {
         SOL_WRN("could not convert multicast ip address to sockaddr_in");
         return 1;
     }

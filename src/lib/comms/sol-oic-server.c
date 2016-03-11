@@ -381,7 +381,7 @@ err:
     if (err != CborNoError) {
         SOL_BUFFER_DECLARE_STATIC(addr, SOL_INET_ADDR_STRLEN);
 
-        sol_network_addr_to_str(cliaddr, &addr);
+        sol_network_link_addr_to_str(cliaddr, &addr);
         SOL_WRN("Error building response for /oic/res, server %p client %.*s: %s",
             oic_server.server, SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&addr)),
             cbor_error_string(err));

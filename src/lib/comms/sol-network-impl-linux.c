@@ -90,7 +90,7 @@ struct sol_network {
 static struct sol_network *network = NULL;
 
 SOL_API const char *
-sol_network_addr_to_str(const struct sol_network_link_addr *addr,
+sol_network_link_addr_to_str(const struct sol_network_link_addr *addr,
     struct sol_buffer *buf)
 {
     const char *r;
@@ -117,7 +117,7 @@ sol_network_addr_to_str(const struct sol_network_link_addr *addr,
 }
 
 SOL_API const struct sol_network_link_addr *
-sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
+sol_network_link_addr_from_str(struct sol_network_link_addr *addr, const char *buf)
 {
     SOL_NULL_CHECK(addr, NULL);
     SOL_NULL_CHECK(buf, NULL);
