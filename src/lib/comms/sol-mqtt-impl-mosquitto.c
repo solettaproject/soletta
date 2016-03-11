@@ -288,6 +288,7 @@ end:
 
     sol_mqtt_message_free(message);
 
+    mqtt->message_timeout = NULL;
     return false;
 }
 
