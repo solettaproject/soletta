@@ -42,16 +42,15 @@ artifact-path = $(foreach curr,$(1), \
 			$(eval abs_path := $(if $(filter /%,$(curr)),y,n)) \
 			$(if $(filter y,$(intree)), \
 				$(if $(filter y,$(abs_path)), \
-					$(eval cpath := $(curr)) \
-					$(eval normalized := $(subst $(abspath $(top_srcdir)),$(top_srcdir),$(curr))) \
-					$(eval dest-obj := $(subst $(top_srcdir)src/,$(build_stagedir),$(normalized))) \
+					$(eval cpath := $(subst $(abspath $(top_srcdir))/,$(top_srcdir),$(curr))) \
 				, \
-					$(eval cpath := $(addprefix $(2),$(curr))) \
-					$(eval normalized := $(addprefix $(subst $(top_srcdir)src/,$(build_stagedir),$(2)),$(curr))) \
-					$(eval dest-obj := $(subst $(abspath $(top_srcdir))/,$(top_srcdir),$(abspath $(normalized)))) \
-				), \
+					$(eval normalized := $(abspath $(addprefix $(2),$(curr)))) \
+					$(eval cpath := $(subst $(abspath $(top_srcdir))/,$(top_srcdir),$(normalized))) \
+				) \
+				$(eval dest-obj := $(subst $(top_srcdir)src/,$(build_stagedir),$(cpath))) \
+			, \
 				$(eval cpath := $(curr)) \
-				$(eval dest-obj := $(subst $(top_srcdir)src/,$(build_stagedir),$(curr))) \
+				$(eval dest-obj := $(addprefix $(build_stagedir),$(cpath))) \
 			) \
 			$(eval $(3) += $(cpath)) \
 			$(eval $(cpath)-dest-obj := $(dest-obj)) \
