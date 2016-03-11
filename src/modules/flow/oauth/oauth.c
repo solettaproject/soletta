@@ -364,7 +364,7 @@ get_callback_url(const struct sol_http_request *request, const char *basename)
     r = sol_http_request_get_interface_address(request, &addr);
     SOL_INT_CHECK(r, < 0, NULL);
 
-    SOL_NULL_CHECK(sol_network_addr_to_str(&addr, &buf), NULL);
+    SOL_NULL_CHECK(sol_network_link_addr_to_str(&addr, &buf), NULL);
 
     r = asprintf(&url, "http://%.*s:%d/%s/oauth_callback",
         SOL_STR_SLICE_PRINT(sol_buffer_get_slice(&buf)), addr.port, basename);

@@ -3442,7 +3442,7 @@ register_reply(struct sol_coap_server *server,
         return false;
     }
 
-    if (!sol_network_addr_to_str(server_addr, &addr))
+    if (!sol_network_link_addr_to_str(server_addr, &addr))
         SOL_WRN("Could not convert the server address to string");
 
     code = sol_coap_header_get_code(pkt);

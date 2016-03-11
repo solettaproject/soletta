@@ -188,9 +188,9 @@ struct sol_network_link {
  *
  * @return a string with the network link address on success, @c NULL on error.
  *
- * @see sol_network_addr_from_str()
+ * @see sol_network_link_addr_from_str()
  */
-const char *sol_network_addr_to_str(const struct sol_network_link_addr *addr, struct sol_buffer *buf);
+const char *sol_network_link_addr_to_str(const struct sol_network_link_addr *addr, struct sol_buffer *buf);
 
 /**
  * @brief Converts a string address to @c sol_network_link_addr.
@@ -200,9 +200,9 @@ const char *sol_network_addr_to_str(const struct sol_network_link_addr *addr, st
  *
  * @return the network link address on success, @c NULL on error.
  *
- * @see sol_network_addr_to_str()
+ * @see sol_network_link_addr_to_str()
  */
-const struct sol_network_link_addr *sol_network_addr_from_str(struct sol_network_link_addr *addr, const char *buf);
+const struct sol_network_link_addr *sol_network_link_addr_from_str(struct sol_network_link_addr *addr, const char *buf);
 
 /**
  * @brief Checks if two address are equal.
