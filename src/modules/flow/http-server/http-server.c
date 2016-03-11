@@ -57,7 +57,7 @@
 struct server_data {
     struct sol_http_server *server;
     int port;
-    int refcount;
+    uint16_t refcount;
 };
 
 struct http_data {
@@ -150,6 +150,11 @@ server_ref(int32_t opt_port)
     SOL_PTR_VECTOR_FOREACH_IDX (&servers, idata, i) {
         if (idata->port == port) {
             sdata = idata;
+            if (sdata->refcount == UINT16_MAX) {
+                SOL_WRN("Server port %d reached its max refcount %" PRIu16,
+                    sdata->port, UINT16_MAX);
+                return NULL;
+            }
             break;
         }
     }
