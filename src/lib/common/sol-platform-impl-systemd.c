@@ -629,7 +629,7 @@ sol_platform_impl_set_system_clock(int64_t timestamp)
 }
 
 int
-sol_platform_impl_set_timezone(const char *timezone)
+sol_platform_impl_set_timezone(const char *tmz)
 {
     sd_bus *bus;
     const char *service;
@@ -643,7 +643,7 @@ sol_platform_impl_set_timezone(const char *timezone)
 
     r = sd_bus_call_method_async(bus, NULL, service,
         "/org/freedesktop/timedate1", "org.freedesktop.timedate1",
-        "SetTimezone", sol_bus_log_callback, NULL, "sb", timezone, false);
+        "SetTimezone", sol_bus_log_callback, NULL, "sb", tmz, false);
     SOL_INT_CHECK(r, < 0, r);
     return 0;
 }
